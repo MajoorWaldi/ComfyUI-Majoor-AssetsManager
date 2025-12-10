@@ -1,8 +1,16 @@
+<<<<<<< HEAD
+# 📂 Majoor Assets Manager for ComfyUI
+
+**A fast, modern, and robust media manager for ComfyUI with native OS metadata integration.**
+
+Majoor Assets Manager is a custom node extension designed to browse, inspect, and organize your generated images, videos, and audio files without leaving the ComfyUI interface.
+=======
 # 📂 Majoor Asset Manager for ComfyUI
 
 **A fast, modern, and robust media manager for ComfyUI with native OS metadata integration.**
 
 Majoor Asset Manager is a custom node extension designed to browse, inspect, and organize your generated images, videos, and audio files without leaving the ComfyUI interface.
+>>>>>>> 03dbf188a7eef63bb1553f50b00ccf0eeef8ac46
 
 Unlike other file managers, **it runs asynchronously** (no freezing during scans) and **writes ratings/tags directly to your files' Windows properties** (via Exif/OS shell), ensuring your organization survives outside of ComfyUI.
 
@@ -42,7 +50,7 @@ Unlike other file managers, **it runs asynchronously** (no freezing during scans
 ### Method 1: Via ComfyUI Manager (Recommended)
 1. Open **ComfyUI Manager**.
 2. Click **"Install via Git URL"**.
-3. Paste the repository URL: `https://github.com/YOUR_USERNAME/ComfyUI-Majoor-FileManager`
+3. Paste the repository URL: `https://github.com/YOUR_USERNAME/ComfyUI-Majoor-AssetsManager`
 4. Click **Install** and Restart ComfyUI.
 
 ### Method 2: Manual Installation

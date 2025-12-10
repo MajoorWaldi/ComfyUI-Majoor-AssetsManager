@@ -1,5 +1,5 @@
 """
-Majoor File Manager - ComfyUI extension
+Majoor Assets Manager - ComfyUI extension
 """
 
 NODE_CLASS_MAPPINGS = {}
