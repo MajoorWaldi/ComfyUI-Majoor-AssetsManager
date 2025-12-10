@@ -77,8 +77,8 @@ export function createMetadataSidebar(options) {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard
           .writeText(toCopy)
-          .then(() => mjrShowToast("success", "Copié dans le presse-papiers", "Copy"))
-          .catch(() => mjrShowToast("error", "Impossible de copier", "Copy"));
+          .then(() => mjrShowToast("success", "Copied to clipboard", "Copy"))
+          .catch(() => mjrShowToast("error", "Unable to copy", "Copy"));
       } else {
         const tmp = document.createElement("textarea");
         tmp.value = toCopy;
@@ -86,9 +86,9 @@ export function createMetadataSidebar(options) {
         tmp.select();
         try {
           document.execCommand("copy");
-          mjrShowToast("success", "Copié dans le presse-papiers", "Copy");
+          mjrShowToast("success", "Copied to clipboard", "Copy");
         } catch (e) {
-          mjrShowToast("error", "Impossible de copier", "Copy");
+          mjrShowToast("error", "Unable to copy", "Copy");
         }
         document.body.removeChild(tmp);
       }
@@ -306,7 +306,7 @@ export function createMetadataSidebar(options) {
     ratingStars.style.letterSpacing = "3px";
     ratingStars.style.display = "flex";
     ratingStars.style.gap = "6px";
-    mjrAttachHoverFeedback(ratingStars, "Cliquez pour noter de 1 à 5 (0 réinitialise).", 3000);
+    mjrAttachHoverFeedback(ratingStars, "Click to rate 1-5 (0 clears).", 3000);
 
     for (let i = 1; i <= 5; i++) {
       const star = createEl("span", "mjr-fm-meta-star", i <= ratingCount ? "★" : "☆");
@@ -356,7 +356,7 @@ export function createMetadataSidebar(options) {
     tagsInput.style.color = "var(--input-fg, #eee)";
     tagsInput.style.fontSize = "0.75rem";
     tagsInput.style.padding = "4px 6px";
-    mjrAttachHoverFeedback(tagsInput, "Saisissez des tags (séparés par des virgules) puis Enregistrer.", 3000);
+    mjrAttachHoverFeedback(tagsInput, "Enter tags (comma-separated) then Save.", 3000);
 
     const saveTagsBtn = createEl("button", "comfy-btn", "Save");
     saveTagsBtn.style.fontSize = "0.7rem";
@@ -420,7 +420,7 @@ export function createMetadataSidebar(options) {
       const warn = createEl(
         "div",
         "",
-        "Aucune donnée de génération trouvée (pas de workflow dans ce fichier)."
+        "No generation data found (no workflow present in this file)."
       );
       warn.style.marginTop = "8px";
       warn.style.padding = "6px 8px";
@@ -468,7 +468,7 @@ export function createMetadataSidebar(options) {
           try {
             loadMetadataForFile(file);
           } catch (err) {
-            console.warn("[Majoor.FileManager] metadata panel refresh failed", err);
+            console.warn("[Majoor.AssetsManager] metadata panel refresh failed", err);
           }
         }
         refreshAllInstances({ silent: true, metaOnly: true });
@@ -478,7 +478,7 @@ export function createMetadataSidebar(options) {
         mjrShowToast("error", data.error || "Metadata update failed", "Error");
       }
     } catch (err) {
-      console.error("[Majoor.FileManager] metadata update failed", err);
+      console.error("[Majoor.AssetsManager] metadata update failed", err);
       mjrShowToast("error", "Network error while saving metadata", "Error");
     }
   }
@@ -562,7 +562,7 @@ export function createMetadataSidebar(options) {
         showPanel(file, null, data.error || "No metadata found for this file.");
       }
     } catch (err) {
-      console.error("[Majoor.FileManager] metadata error", err);
+      console.error("[Majoor.AssetsManager] metadata error", err);
       showPanel(file, null, "Error while loading metadata (check console).");
     }
   }

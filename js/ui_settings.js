@@ -1,4 +1,5 @@
 import { api } from "../../scripts/api.js";
+import { app } from "../../scripts/app.js";
 
 export function createEl(tag, className, text) {
   const el = document.createElement(tag);
@@ -130,7 +131,7 @@ export function mjrLoadSettings() {
     const parsed = JSON.parse(raw);
     return mjrDeepMerge(mjrSettingsDefaults, parsed);
   } catch (err) {
-    console.warn("[Majoor.FileManager] settings load failed, using defaults", err);
+    console.warn("[Majoor.AssetsManager] settings load failed, using defaults", err);
     return { ...mjrSettingsDefaults };
   }
 }
@@ -139,7 +140,7 @@ export function mjrSaveSettings(settings) {
   try {
     localStorage.setItem("mjrFMSettings", JSON.stringify(settings || mjrSettingsDefaults));
   } catch (err) {
-    console.warn("[Majoor.FileManager] settings save failed", err);
+    console.warn("[Majoor.AssetsManager] settings save failed", err);
   }
 }
 
@@ -168,76 +169,10 @@ export async function mjrPrefetchOutputs() {
       return mjrPrefetchedFiles;
     })
     .catch((err) => {
-      console.warn("[Majoor.FileManager] prefetch outputs failed", err);
+      console.warn("[Majoor.AssetsManager] prefetch outputs failed", err);
       mjrPrefetchedFiles = null;
     });
   return mjrPrefetchPromise;
-}
-
-let mjrToastContainer = null;
-let mjrToastStyleInjected = false;
-
-export function mjrEnsureToastContainer() {
-  if (!mjrToastStyleInjected) {
-    const style = document.createElement("style");
-    style.textContent = `
-    .mjr-toast-container {
-      position: fixed;
-      top: 14px;
-      right: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      z-index: 10000;
-      pointer-events: none;
-    }
-    .mjr-toast {
-      min-width: 200px;
-      max-width: 360px;
-      padding: 10px 12px;
-      border-radius: 8px;
-      background: rgba(18,18,18,0.95);
-      color: #f2f2f2;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.4);
-      border: 1px solid rgba(255,255,255,0.05);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 0.85rem;
-      letter-spacing: 0.1px;
-      opacity: 0;
-      transform: translateX(12px);
-      transition: opacity 0.15s ease, transform 0.15s ease;
-      pointer-events: auto;
-    }
-    .mjr-toast-accent {
-      width: 4px;
-      align-self: stretch;
-      border-radius: 4px;
-      background: #4ea3ff;
-    }
-    .mjr-toast-title {
-      font-weight: 600;
-      margin-bottom: 2px;
-      font-size: 0.8rem;
-    }
-    .mjr-toast-body {
-      opacity: 0.9;
-      font-size: 0.82rem;
-      line-height: 1.3;
-    }
-    `;
-    document.head.appendChild(style);
-    mjrToastStyleInjected = true;
-  }
-
-  if (!mjrToastContainer) {
-    const wrap = document.createElement("div");
-    wrap.className = "mjr-toast-container";
-    mjrToastContainer = wrap;
-    document.body.appendChild(wrap);
-  }
-  return mjrToastContainer;
 }
 
 export function mjrShouldShowToast(kind) {
@@ -252,64 +187,39 @@ export function mjrShouldShowToast(kind) {
 export function mjrShowToast(kind = "info", message = "", title = null, duration = null) {
   if (!mjrShouldShowToast(kind)) return;
 
-  const container = mjrEnsureToastContainer();
-  const toast = document.createElement("div");
-  toast.className = "mjr-toast";
-  const accent = document.createElement("div");
-  accent.className = "mjr-toast-accent";
-  const colors = {
-    info: "#4ea3ff",
-    success: "#6dd679",
-    warn: "#f7c14b",
-    error: "#f45b69",
+  const severityMap = {
+    info: "info",
+    success: "success",
+    warn: "warn",
+    error: "error",
   };
-  accent.style.background = colors[kind] || "#4ea3ff";
 
-  const bodyWrap = document.createElement("div");
-  bodyWrap.style.display = "flex";
-  bodyWrap.style.flexDirection = "column";
-  bodyWrap.style.gap = "2px";
-
-  if (title) {
-    const t = document.createElement("div");
-    t.className = "mjr-toast-title";
-    t.textContent = title;
-    bodyWrap.appendChild(t);
-  }
-  if (message) {
-    const b = document.createElement("div");
-    b.className = "mjr-toast-body";
-    b.textContent = message;
-    bodyWrap.appendChild(b);
+  if (!app.toast || !app.toast.add) {
+    console.log(`[${kind.toUpperCase()}] ${title ? title + ": " : ""}${message}`);
+    return;
   }
 
-  toast.appendChild(accent);
-  toast.appendChild(bodyWrap);
-  container.appendChild(toast);
-
-  // trigger animation
-  requestAnimationFrame(() => {
-    toast.style.opacity = "1";
-    toast.style.transform = "translateX(0)";
+  app.toast.add({
+    severity: severityMap[kind] || "info",
+    summary: title || (kind.charAt(0).toUpperCase() + kind.slice(1)),
+    detail: message,
+    life: duration || 3000,
+    closable: true,
   });
-
-  const ttl = duration || mjrSettings.toasts.duration || 3200;
-  setTimeout(() => {
-    toast.style.opacity = "0";
-    toast.style.transform = "translateX(12px)";
-    setTimeout(() => {
-      toast.remove();
-    }, 180);
-  }, ttl);
 }
 
 export function mjrAttachHoverFeedback(el, message, delay = 3000) {
   if (!el) return;
   let t = null;
+  let lastShownAt = 0;
+  const cooldownMs = 2000;
   el.addEventListener("mouseenter", () => {
+    const now = Date.now();
+    if (now - lastShownAt < cooldownMs) return; // throttle repeated hover toasts
     if (t) clearTimeout(t);
     t = setTimeout(() => {
       mjrShowToast("info", message, "Info", 2500);
+      lastShownAt = Date.now();
     }, delay);
   });
   const clear = () => {
@@ -325,7 +235,7 @@ export function mjrAttachHoverFeedback(el, message, delay = 3000) {
 // Trigger prefetch at startup
 mjrPrefetchOutputs();
 
-// État global partagé pour éviter les problèmes d'import circulaire
+// Shared global state to avoid circular import issues
 export const mjrGlobalState = {
   instances: new Set(),
 };
