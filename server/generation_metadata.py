@@ -14,7 +14,7 @@ except Exception:
     load_metadata = None  # sidecar fallback option
 
 
-# Samplers que l'on considÃ¨re comme "source de vÃ©ritÃ©" (lowercase)
+# Samplers treated as source of truth (lowercase)
 SAMPLER_CLASSES: Set[str] = {
     "ksampler",
     "samplercustom",
@@ -26,7 +26,7 @@ SAMPLER_CLASSES: Set[str] = {
     "wanmoeksampler",
 }
 
-# Loaders de modÃ¨le (diffusion / checkpoint)
+# Model loaders (diffusion / checkpoint)
 CHECKPOINT_LOADER_CLASSES: Set[str] = {
     "CheckpointLoaderSimple",
     "CheckpointLoader",
@@ -46,7 +46,7 @@ LORA_CLASSES: Set[str] = {
 }
 
 
-# --------- Helpers gÃ©nÃ©raux ---------
+# --------- General helpers ---------
 
 
 def _ensure_dict_from_json(value: Any) -> Optional[Dict[str, Any]]:
@@ -68,10 +68,10 @@ def _ensure_dict_from_json(value: Any) -> Optional[Dict[str, Any]]:
 
 def _extract_link_node_id(val: Any) -> Optional[str]:
     """
-    RÃ©cupÃ¨re l'id de node Ã  partir d'un input de type:
+    Extract a node id from inputs shaped like:
     - ["node_id", output_idx]
     - [[ "node_id", output_idx ], ...]
-    - str/int direct (cas oÃ¹ le graph stocke juste l'id)
+    - str/int directly (graph stored only the id)
     """
     if isinstance(val, (str, int)):
         return str(val)
@@ -99,7 +99,7 @@ def _extract_link_node_id(val: Any) -> Optional[str]:
 
 def _normalize_workflow_to_prompt_graph(workflow: Any) -> Optional[Dict[str, Any]]:
     """
-    Convertit un workflow (dict avec 'nodes': [...]) en map id->node pour parsing.
+    Convert a workflow (dict with 'nodes': [...]) into an id->node map for parsing.
     """
     if isinstance(workflow, dict) and isinstance(workflow.get("nodes"), list):
         nodes_map: Dict[str, Any] = {}
@@ -118,17 +118,17 @@ def _normalize_workflow_to_prompt_graph(workflow: Any) -> Optional[Dict[str, Any
             }
         return nodes_map if nodes_map else None
     if isinstance(workflow, dict):
-        # Peut dÃ©jÃ  Ãªtre map id -> node
+        # May already be id -> node map
         return {str(k): v for k, v in workflow.items() if isinstance(v, dict)}
     return None
 
 
 def _prompt_graph_to_workflow(prompt_graph: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Reconstruit un workflow (nodes: [...]) minimal Ã  partir du prompt_graph map id->node.
-    - Ajoute un champ version numÃ©rique attendu par ComfyUI.
-    - Normalise les ids en int quand possible pour Ã©viter les erreurs "expected number".
-    - Fournit toujours les clÃ©s last_node_id / last_link_id / links pour le loader.
+    Rebuild a minimal workflow (nodes: [...]) from the prompt_graph map id->node.
+    - Adds numeric version expected by ComfyUI.
+    - Normalizes ids to int when possible to avoid "expected number" errors.
+    - Always provides last_node_id / last_link_id / links for the loader.
     """
     nodes: List[Dict[str, Any]] = []
     links: List[List[Any]] = []
@@ -155,7 +155,7 @@ def _prompt_graph_to_workflow(prompt_graph: Dict[str, Any]) -> Dict[str, Any]:
                 "name": iname,
                 "type": "ANY",
             }
-            # Si l'entrÃ©e ressemble Ã  un lien ["node_id", slot]
+            # If the input looks like a link ["node_id", slot]
             if isinstance(ival, (list, tuple)) and len(ival) >= 2 and isinstance(ival[0], (str, int)):
                 try:
                     src_id = int(ival[0])
@@ -201,10 +201,10 @@ def _prompt_graph_to_workflow(prompt_graph: Dict[str, Any]) -> Dict[str, Any]:
 
 def _normalize_workflow_dict(wf: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Normalise un workflow brut pour Ã©viter les erreurs de loader ComfyUI.
-    - force version numÃ©rique
-    - ajoute les champs last_node_id / last_link_id / links si absents
-    - convertit les ids de node en int quand possible
+    Normalize a raw workflow to avoid ComfyUI loader errors.
+    - force numeric version
+    - add last_node_id / last_link_id / links if missing
+    - convert node ids to int when possible
     """
     out = dict(wf) if isinstance(wf, dict) else {}
 
@@ -307,10 +307,9 @@ def _normalize_workflow_dict(wf: Dict[str, Any]) -> Dict[str, Any]:
 
 def load_prompt_graph_from_png(path: str | Path) -> Optional[Dict[str, Any]]:
     """
-    Charge le graph 'prompt' stockÃ© dans les metadata ComfyUI du PNG.
-
-    - On suppose que ComfyUI a Ã©crit un champ 'prompt' (format graph backend).
-    - Pas de fallback exotique: si 'prompt' n'est pas lÃ , on renvoie None.
+    Load the 'prompt' graph stored in ComfyUI PNG metadata.
+    - Assumes ComfyUI wrote a 'prompt' field (backend graph format).
+    - No fallback: if 'prompt' is missing, return None.
     """
     if Image is None:
         return None
@@ -325,7 +324,7 @@ def load_prompt_graph_from_png(path: str | Path) -> Optional[Dict[str, Any]]:
     # 1) prompt au top-level
     prompt = _ensure_dict_from_json(info.get("prompt"))
     if prompt is not None:
-        # certains dumps contiennent une liste de nodes plutÃ´t qu'un map
+        # some dumps contain a list of nodes rather than a map
         if isinstance(prompt, list):
             prompt = _normalize_workflow_to_prompt_graph({"nodes": prompt})
         return prompt
@@ -369,14 +368,14 @@ def load_prompt_graph_from_png(path: str | Path) -> Optional[Dict[str, Any]]:
                 if pg:
                     return pg
 
-    # Pas de prompt exploitable â†’ on arrÃªte lÃ 
+    # No usable prompt found -> stop here
     return None
 
 
 def load_raw_workflow_from_png(path: str | Path) -> Optional[Dict[str, Any]]:
     """
-    RÃ©cupÃ¨re le workflow brut (tel qu'exportÃ© par ComfyUI) s'il est prÃ©sent dans les metadata PNG.
-    Ne tente pas de normalisation: on renvoie tel quel pour que le front puisse le charger.
+    Retrieve the raw workflow (as exported by ComfyUI) if present in PNG metadata.
+    No normalization: return as-is so the frontend can load it.
     """
     if Image is None:
         return None
@@ -425,9 +424,9 @@ def load_raw_workflow_from_png(path: str | Path) -> Optional[Dict[str, Any]]:
 
 def _pick_sampler_node(prompt_graph: Dict[str, Any]) -> Optional[str]:
     """
-    SÃ©lectionne UN sampler dans le graph.
-    StratÃ©gie simple et dÃ©terministe:
-    - on prend le sampler avec l'id numÃ©rique le plus grand.
+    Select a single sampler from the graph.
+    Simple deterministic strategy:
+    - pick the sampler with the largest numeric id.
     """
     sampler_ids: List[int] = []
 
@@ -449,8 +448,8 @@ def _pick_sampler_node(prompt_graph: Dict[str, Any]) -> Optional[str]:
 
 def _extract_clip_text(prompt_graph: Dict[str, Any], node_id: Optional[str]) -> Optional[str]:
     """
-    RÃ©cupÃ¨re le texte d'un node de type encodeur de texte (CLIP / SDXL / Flux, etc.).
-    On reste gÃ©nÃ©rique: on regarde les champs 'text', 'text_g', 'text_l'.
+    Extract text from a text-encoder-like node (CLIP / SDXL / Flux, etc.).
+    Keep it generic: look at fields 'text', 'text_g', 'text_l'.
     """
     if node_id is None:
         return None
@@ -476,8 +475,8 @@ def _extract_clip_text(prompt_graph: Dict[str, Any], node_id: Optional[str]) -> 
 
 def _collect_all_texts(prompt_graph: Dict[str, Any]) -> Dict[str, List[str]]:
     """
-    Collecte tous les textes prÃ©sents dans les nodes potentiels (encodeurs, prompts divers).
-    Essaie de sÃ©parer positif/nÃ©gatif selon class_type/title.
+    Collect all text present in potential nodes (encoders, various prompts).
+    Try to separate positive/negative based on class_type/title.
     """
     pos_list: List[str] = []
     neg_list: List[str] = []
@@ -542,12 +541,12 @@ def _walk_model_chain(
     start_id: Optional[str],
 ) -> Tuple[Optional[str], Optional[str], List[Dict[str, Any]]]:
     """
-    Remonte la chaÃ®ne 'model' Ã  partir du sampler pour rÃ©cupÃ©rer:
+    Walk the 'model' chain from the sampler to collect:
     - model_name  : ckpt / diffusion model / unet
-    - vae_name    : si dispo (CheckpointLoaderSimple)
-    - loras       : liste [{name, strength_model, strength_clip}, ...]
+    - vae_name    : if present (CheckpointLoaderSimple)
+    - loras       : list [{name, strength_model, strength_clip}, ...]
 
-    On suit uniquement la branche 'model' (ce qui est raccord avec ta logique).
+    Only follows the 'model' branch.
     """
     model_name: Optional[str] = None
     vae_name: Optional[str] = None
@@ -605,7 +604,7 @@ def _walk_model_chain(
             current_id = next_id
             continue
 
-        # --- Autres maillons de la chaÃ®ne 'model' ---
+        # --- Other links in the 'model' chain ---
         next_id = _extract_link_node_id(inputs.get("model"))
         if next_id is None:
             break
@@ -621,10 +620,9 @@ def extract_generation_params_from_prompt_graph(
     reconstruct_allowed: bool = False,
 ) -> Dict[str, Any]:
     """
-    Extraction centrale des paramÃ‡Ã¹tres de gÃ‡Â¸nÃ‡Â¸ration depuis un graph de prompt (map id -> node).
-
-    - `raw_workflow` peut Ã‡Â¦tre fourni pour le renvoyer tel quel.
-    - si `reconstruct_allowed` est True et qu'aucun workflow n'est fourni, on reconstruit un workflow minimal.
+    Core extraction of generation parameters from a prompt graph (map id -> node).
+    - `raw_workflow` can be supplied to return as-is.
+    - if `reconstruct_allowed` is True and no workflow is provided, rebuild a minimal workflow.
     """
     if not prompt_graph:
         return {}
@@ -689,7 +687,7 @@ def extract_generation_params_from_prompt_graph(
         if not negative_prompt and collected.get("negative"):
             negative_prompt = " | ".join(collected["negative"])
 
-    # ChaÃ‡Â©ne modÃ‡Ã¹le
+    # Model chain
     model_link_id = (
         _extract_link_node_id(inputs.get("model"))
         or _extract_link_node_id(inputs.get("guider"))
@@ -721,7 +719,7 @@ def extract_generation_params_from_prompt_graph(
 
 def extract_generation_params_from_workflow(workflow: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Variante qui prend un workflow ComfyUI brut (dict avec 'nodes': [...]).
+    Variant that takes a raw ComfyUI workflow (dict with 'nodes': [...]).
     """
     prompt_graph = _normalize_workflow_to_prompt_graph(workflow)
     if prompt_graph is None:
@@ -733,12 +731,12 @@ def extract_generation_params_from_workflow(workflow: Dict[str, Any]) -> Dict[st
 
 def extract_generation_params_from_png(path: str | Path) -> Dict[str, Any]:
     """
-    Lecture de toutes les infos de génération à partir d'un output ComfyUI.
+    Read all generation info from a ComfyUI output.
 
-    - Si path est un MP4, on cherche le PNG sibling (même nom, extension .png).
-    - On lit le graph 'prompt' depuis les metadata du PNG.
-    - On choisit un sampler (KSampler / SamplerCustom / WAN...).
-    - On remonte la chaîne 'model' et les branches positive/negative.
+    - If path is an MP4, look for the PNG sibling (same name, .png).
+    - Read the 'prompt' graph from PNG metadata.
+    - Choose a sampler (KSampler / SamplerCustom / WAN...).
+    - Walk the 'model' chain and the positive/negative branches.
     """
     p = Path(path)
 

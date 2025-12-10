@@ -1,8 +1,8 @@
-﻿import os
+import os
 import subprocess
 import asyncio
-import time  # ← AJOUT
-import threading  # ← AJOUT
+import time
+import threading
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -27,10 +27,16 @@ from .utils import (
 from .metadata import update_metadata_with_windows
 from .generation_metadata import extract_generation_params_from_png
 from .config import OUTPUT_ROOT
+from .mjr_collections import (
+    get_collections,
+    load_collection,
+    add_to_collection,
+    remove_from_collection,
+)
 
 # ---------------------------------------------------------------------------
-# In-memory cache pour le listing des outputs
-# Évite de refaire un os.walk complet à chaque auto-refresh.
+# In-memory cache for output listing
+# Avoids redoing a full os.scandir on every auto-refresh.
 # ---------------------------------------------------------------------------
 
 _FILE_CACHE: List[Dict[str, Any]] = []
@@ -40,34 +46,34 @@ _LAST_FOLDER_MTIME: float = 0.0
 try:
     _SCAN_MIN_INTERVAL = float(os.environ.get("MJR_SCAN_MIN_INTERVAL", "5.0"))
 except Exception:
-    _SCAN_MIN_INTERVAL = 5.0  # fallback 5s si variable mal formée / absente
+    _SCAN_MIN_INTERVAL = 5.0
 
 _CACHE_LOCK = threading.Lock()
 
 
 def _folder_changed(root_path: Path) -> bool:
-    """Vérifie rapidement si le dossier a changé (modification de fichier ou ajout)."""
+    """Quick check if folder changed (file added/modified)."""
     try:
-        # Sur Linux/Mac, mtime du dossier change quand on ajoute/supprime un fichier.
-        # Sur Windows, c'est moins fiable pour les sous-dossiers, mais ça aide.
+        # On Linux/Mac, folder mtime changes when adding/removing a file.
+        # On Windows it's less reliable for subfolders, but still helps.
         current_mtime = root_path.stat().st_mtime
         global _LAST_FOLDER_MTIME
         if current_mtime != _LAST_FOLDER_MTIME:
-          _LAST_FOLDER_MTIME = current_mtime
-          return True
+            _LAST_FOLDER_MTIME = current_mtime
+            return True
         return False
-    except:
+    except Exception:
         return True
 
 
 def _get_output_root() -> Path:
-    """Utilise le dossier d'output ComfyUI (respecte --output-directory)."""
+    """Use the ComfyUI output folder (respects --output-directory)."""
     return Path(folder_paths.get_output_directory()).resolve()
 
 
 def _metadata_target(path: Path, kind: str) -> Path:
     """
-    Pour les vidÃ©os/audio/3D, on tente un PNG jumeau pour rÃ©cupÃ©rer les mÃ©tadonnÃ©es.
+    For video/audio/3D, try a sibling PNG to retrieve metadata.
     """
     if kind != "image":
         sibling = path.with_suffix(".png")
@@ -81,9 +87,8 @@ def _metadata_target(path: Path, kind: str) -> Path:
 
 
 def _open_in_explorer(path: Path) -> bool:
-    """Ouvre l'explorateur Windows en sÃ©lectionnant le fichier."""
+    """Open Windows Explorer selecting the given file."""
     try:
-        # Tentative 1 : forcer une nouvelle fenÃªtre (et focus) via "start".
         start_cmd = f'start "" explorer.exe /select,"{str(path)}"'
         res_start = subprocess.run(
             start_cmd,
@@ -95,11 +100,10 @@ def _open_in_explorer(path: Path) -> bool:
         if res_start.returncode in (0, 1):
             return True
 
-        # Tentative 2 : forme la plus compatible : chaÃ®ne avec /select,"<path>"
         cmd = f'explorer.exe /select,"{str(path)}"'
         res = subprocess.run(
             cmd,
-            shell=True,  # explorer.exe requiert souvent le parsing shell pour /select,
+            shell=True,
             check=False,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
@@ -107,7 +111,6 @@ def _open_in_explorer(path: Path) -> bool:
         if res.returncode in (0, 1):
             return True
 
-        # Tentative 3 : mode argument list (certains environnements)
         res2 = subprocess.run(
             ["explorer.exe", "/select,", str(path)],
             shell=False,
@@ -143,11 +146,7 @@ def _format_date(ts: float) -> str:
         return ""
 
 
-def _build_view_url(filename: str, subfolder: str, kind: str) -> str:
-    """
-    Construit lâ€™URL /view standard de ComfyUI.
-    type=output fonctionne pour image/vidÃ©o/audio/models.
-    """
+def _build_view_url(filename: str, subfolder: str) -> str:
     from urllib.parse import urlencode
 
     params = {"filename": filename, "type": "output"}
@@ -156,10 +155,63 @@ def _build_view_url(filename: str, subfolder: str, kind: str) -> str:
     return f"/view?{urlencode(params)}"
 
 
+# ---------------------------------------------------------------------------
+# OPTIMIZED SCANNING LOGIC (os.scandir)
+# ---------------------------------------------------------------------------
+
+def _scan_folder_recursive(base_path: str, subfolder: str, results: List[Dict[str, Any]]):
+    """
+    Recursive scanner using os.scandir for performance.
+    - Avoids Path object creation in the hot loop.
+    - Uses entry.stat() which is cached on Windows.
+    """
+    try:
+        with os.scandir(base_path) as it:
+            for entry in it:
+                if entry.is_dir():
+                    if not entry.name.startswith("."):
+                        new_sub = os.path.join(subfolder, entry.name) if subfolder else entry.name
+                        _scan_folder_recursive(entry.path, new_sub, results)
+                elif entry.is_file():
+                    try:
+                        name = entry.name
+                        lower = name.lower()
+                        kind = classify_ext(lower)
+                        if kind == "other":
+                            continue
+
+                        stat = entry.stat()
+                        mtime = stat.st_mtime
+                        size = stat.st_size
+
+                        ext = (os.path.splitext(name)[1][1:] or "").upper()
+
+                        rel_path = f"{subfolder}/{name}" if subfolder else name
+                        rel_path = rel_path.replace("\\", "/")
+                        sub_clean = subfolder.replace("\\", "/")
+
+                        results.append({
+                            "filename": name,
+                            "name": name,
+                            "subfolder": sub_clean,
+                            "relpath": rel_path,
+                            "mtime": mtime,
+                            "date": _format_date(mtime),
+                            "size": size,
+                            "size_readable": _format_size(size),
+                            "kind": kind,
+                            "ext": ext,
+                            "url": _build_view_url(name, sub_clean),
+                        })
+                    except OSError:
+                        continue
+    except OSError:
+        pass
+
+
 def _scan_outputs() -> List[Dict[str, Any]]:
     """
-    Parcourt le dossier d'outputs et renvoie une liste de fichiers
-    (listing rapide, sans lecture des metadonnees Exif/Windows).
+    Entry point for the optimized scanner.
     """
     root = _get_output_root()
     files: List[Dict[str, Any]] = []
@@ -167,42 +219,7 @@ def _scan_outputs() -> List[Dict[str, Any]]:
     if not root.exists():
         return files
 
-    for dirpath, dirnames, filenames in os.walk(root):
-        dirnames[:] = [d for d in dirnames if not d.startswith(".")]
-
-        for name in filenames:
-            lower = name.lower()
-            kind = classify_ext(lower)
-            if kind == "other":
-                continue
-
-            full = Path(dirpath) / name
-            try:
-                stat = full.stat()
-            except OSError:
-                continue
-
-            rel = full.relative_to(root)
-            subfolder = str(rel.parent) if rel.parent != Path(".") else ""
-
-            mtime = stat.st_mtime
-            ext = (Path(name).suffix[1:] or "").upper()
-
-            item: Dict[str, Any] = {
-                "filename": name,
-                "name": name,
-                "subfolder": subfolder,
-                "relpath": str(rel).replace("\\", "/"),
-                "mtime": mtime,
-                "date": _format_date(mtime),
-                "size": stat.st_size,
-                "size_readable": _format_size(stat.st_size),
-                "kind": kind,
-                "ext": ext,
-                "url": _build_view_url(name, subfolder, kind),
-            }
-
-            files.append(item)
+    _scan_folder_recursive(str(root), "", files)
 
     files.sort(key=lambda f: f["mtime"], reverse=True)
     return files
@@ -210,25 +227,19 @@ def _scan_outputs() -> List[Dict[str, Any]]:
 
 def _scan_outputs_cached(force: bool = False) -> List[Dict[str, Any]]:
     """
-    Wrapper autour de _scan_outputs avec cache mémoire.
-    Évite de refaire un scan disque complet à chaque auto-refresh.
+    Wrapper around _scan_outputs with in-memory cache.
     """
     global _FILE_CACHE, _LAST_SCAN_TS
 
     now = time.time()
-    # Fast path : cache encore "frais" et pas de force → on renvoie directement
     if not force and _FILE_CACHE and (now - _LAST_SCAN_TS) < _SCAN_MIN_INTERVAL:
-        # On renvoie une copie superficielle pour éviter que l'appelant ne modifie
-        # la liste interne par accident.
         return list(_FILE_CACHE)
 
-    # On prend un verrou pour éviter les scans concurrents
     with _CACHE_LOCK:
         now = time.time()
         if not force and _FILE_CACHE and (now - _LAST_SCAN_TS) < _SCAN_MIN_INTERVAL:
             return list(_FILE_CACHE)
 
-        # Fast check dossier : si rien n'a changé et on a déjà un cache, on renvoie direct
         root = _get_output_root()
         if not force and _FILE_CACHE and not _folder_changed(root):
             return list(_FILE_CACHE)
@@ -240,14 +251,12 @@ def _scan_outputs_cached(force: bool = False) -> List[Dict[str, Any]]:
 
 
 async def _scan_outputs_async(force: bool = False) -> List[Dict[str, Any]]:
-    """Exécute le scan (éventuellement caché) dans un thread pour ne pas bloquer l'event loop."""
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, _scan_outputs_cached, force)
 
 
 @PromptServer.instance.routes.get("/mjr/filemanager/files")
 async def list_files(request: web.Request) -> web.Response:
-    # force=1 / true / yes / force → on ignore le cache et on rescane vraiment
     force_param = (request.query.get("force") or "").lower()
     force = force_param in ("1", "true", "yes", "force")
 
@@ -257,18 +266,13 @@ async def list_files(request: web.Request) -> web.Response:
 
 @PromptServer.instance.routes.post("/mjr/filemanager/metadata/batch")
 async def batch_metadata(request: web.Request) -> web.Response:
-    """
-    Charge rating/tags de faÇßon paresseuse pour une liste de fichiers.
-    """
     root = _get_output_root()
-
     try:
         payload = await request.json()
     except Exception:
         return web.json_response({"ok": False, "error": "Invalid JSON"}, status=400)
 
     items = payload.get("items") or []
-
     loop = asyncio.get_running_loop()
 
     def _fetch_batch():
@@ -307,23 +311,11 @@ async def batch_metadata(request: web.Request) -> web.Response:
         return results, errors
 
     results, errors = await loop.run_in_executor(None, _fetch_batch)
-
     return web.json_response({"ok": True, "metadatas": results, "errors": errors})
 
 
 @PromptServer.instance.routes.post("/mjr/filemanager/delete")
 async def delete_files(request: web.Request) -> web.Response:
-    """
-    Supprime une liste de fichiers dans le dossier output.
-
-    Body JSON:
-    {
-      "items": [
-        {"subfolder": "2025-12-03/flux", "filename": "ComfyUI_00001_.png"},
-        ...
-      ]
-    }
-    """
     root = _get_output_root()
 
     try:
@@ -346,7 +338,6 @@ async def delete_files(request: web.Request) -> web.Response:
 
         candidate = (root / subfolder / filename).resolve()
 
-        # sÃ©curitÃ©: pas de delete hors du dossier d'output
         try:
             candidate.relative_to(root)
         except ValueError:
@@ -381,9 +372,6 @@ async def delete_files(request: web.Request) -> web.Response:
 
 @PromptServer.instance.routes.post("/mjr/filemanager/open_explorer")
 async def open_explorer(request: web.Request) -> web.Response:
-    """
-    Ouvre l'explorateur Windows et sÃ©lectionne le fichier demandÃ©.
-    """
     root = _get_output_root()
     try:
         payload = await request.json()
@@ -407,7 +395,6 @@ async def open_explorer(request: web.Request) -> web.Response:
     if _open_in_explorer(target):
         return web.json_response({"ok": True})
 
-    # Fallback: open folder if select fails (some Windows setups)
     try:
         subprocess.run(
             ["explorer.exe", str(target.parent)],
@@ -433,11 +420,7 @@ async def open_explorer(request: web.Request) -> web.Response:
 
 @PromptServer.instance.routes.get("/mjr/filemanager/metadata")
 async def get_metadata(request: web.Request) -> web.Response:
-    """
-    Endpoint minimal : paramÃ¨tres de gÃ©nÃ©ration extraits du PNG (ou sibling PNG).
-    """
     root = _get_output_root()
-
     filename = request.query.get("filename")
     subfolder = request.query.get("subfolder", "")
 
@@ -460,7 +443,6 @@ async def get_metadata(request: web.Request) -> web.Response:
             {"ok": False, "error": "File not found"}, status=404
         )
 
-    # Si vidÃ©o, forcer la prÃ©sence du PNG sibling
     if target.suffix.lower() == ".mp4":
         png_sibling = target.with_suffix(".png")
         if not png_sibling.exists():
@@ -468,7 +450,6 @@ async def get_metadata(request: web.Request) -> web.Response:
                 {"ok": False, "error": "PNG sibling not found for video"}, status=404
             )
 
-    # Si mp4, lecture sur le PNG sibling pour reflÃ©ter les infos de gÃ©nÃ©ration
     if target.suffix.lower() == ".mp4":
         png_sibling = target.with_suffix(".png")
         meta_target = png_sibling if png_sibling.exists() else target
@@ -478,7 +459,6 @@ async def get_metadata(request: web.Request) -> web.Response:
     try:
         params = extract_generation_params_from_png(meta_target)
     except Exception as e:
-        # EmpÃªche un 500 et remonte l'erreur cÃ´tÃ© UI pour debug
         return web.json_response(
             {"ok": False, "error": f"metadata parsing failed: {e}"}, status=500
         )
@@ -488,9 +468,6 @@ async def get_metadata(request: web.Request) -> web.Response:
 
 @PromptServer.instance.routes.post("/mjr/filemanager/metadata/update")
 async def update_metadata(request: web.Request) -> web.Response:
-    """
-    Met Ã  jour les mÃ©tadonnÃ©es Windows (rating + tags) pour un fichier d'output.
-    """
     root = _get_output_root()
 
     try:
@@ -525,8 +502,6 @@ async def update_metadata(request: web.Request) -> web.Response:
 
     try:
         meta = update_metadata_with_windows(str(target), {"rating": rating, "tags": tags})
-
-        # Si on a un sibling PNG, on propage la note/tag pour rester alignÃ©
         sibling = (target.parent / (target.stem + ".png")).resolve()
         if sibling.exists():
             try:
@@ -547,3 +522,38 @@ async def update_metadata(request: web.Request) -> web.Response:
     return web.json_response({"ok": True, "rating": meta.get("rating", 0), "tags": meta.get("tags", [])})
 
 
+# ---------------------------------------------------------------------------
+# Collections endpoints
+# ---------------------------------------------------------------------------
+
+@PromptServer.instance.routes.get("/mjr/collections/list")
+async def list_collections_route(request: web.Request) -> web.Response:
+    names = await asyncio.to_thread(get_collections)
+    return web.json_response({"collections": names})
+
+
+@PromptServer.instance.routes.get("/mjr/collections/{name}")
+async def get_collection_route(request: web.Request) -> web.Response:
+    name = request.match_info["name"]
+    files = await asyncio.to_thread(load_collection, name)
+    return web.json_response({"files": files})
+
+
+@PromptServer.instance.routes.post("/mjr/collections/add")
+async def add_to_collection_route(request: web.Request) -> web.Response:
+    try:
+        data = await request.json()
+        await asyncio.to_thread(add_to_collection, data["name"], data["path"])
+        return web.json_response({"ok": True})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e)}, status=500)
+
+
+@PromptServer.instance.routes.post("/mjr/collections/remove")
+async def remove_from_collection_route(request: web.Request) -> web.Response:
+    try:
+        data = await request.json()
+        await asyncio.to_thread(remove_from_collection, data["name"], data["path"])
+        return web.json_response({"ok": True})
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e)}, status=500)

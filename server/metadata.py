@@ -8,12 +8,12 @@ logger = logging.getLogger(__name__)
 
 
 def get_metadata(path: str) -> Dict:
-    """Lecture simple du sidecar JSON ou fallback."""
+    """Load sidecar JSON (or fallback) for the given path."""
     return load_metadata(path)
 
 
 def update_metadata(path: str, updates: dict) -> Dict:
-    """Mise à jour du sidecar JSON."""
+    """Update and persist the sidecar JSON for a file."""
     meta = load_metadata(path)
     meta.update(updates or {})
     save_metadata(path, meta)
@@ -22,8 +22,8 @@ def update_metadata(path: str, updates: dict) -> Dict:
 
 def update_metadata_with_windows(path: str, updates: dict) -> Dict:
     """
-    Met à jour les métadonnées locales + Windows (rating/tags).
-    Fonction principale utilisée par routes.py.
+    Update local sidecar + Windows properties (rating/tags).
+    Main entry used by routes.py.
     """
     meta = load_metadata(path)
     meta.update(updates or {})

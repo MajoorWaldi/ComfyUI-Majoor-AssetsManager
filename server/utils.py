@@ -7,7 +7,7 @@ import unicodedata
 from typing import Dict, List, Optional
 from .config import ENABLE_JSON_SIDECAR, METADATA_EXT
 
-# Extensions gérées (partagées)
+# Supported extensions
 IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".gif")
 VIDEO_EXTS = (".mp4", ".mov", ".webm", ".mkv")
 AUDIO_EXTS = (".wav", ".mp3", ".flac", ".ogg", ".m4a", ".aac")
@@ -109,7 +109,7 @@ def _parse_rating_value(raw) -> int:
 
 
 def get_windows_metadata(file_path: str) -> dict:
-    """Récupère les métadonnées de fichier via l'API Windows Shell."""
+    """Fetch file metadata via the Windows Shell API."""
     try:
         win32com = safe_import_win32com()
         if not win32com:
@@ -149,8 +149,8 @@ def get_windows_metadata(file_path: str) -> dict:
 
 def get_exif_metadata(file_path: str) -> dict:
     """
-    Lecture rapide via exiftool si disponible.
-    Retourne {"rating": int, "tags": List[str]} ou {} en fallback.
+    Fast read via exiftool when available.
+    Returns {"rating": int, "tags": List[str]} or {} on fallback.
     """
     exe = _get_exiftool_path()
     if not exe:
@@ -190,7 +190,7 @@ def get_exif_metadata(file_path: str) -> dict:
 
 def set_exif_metadata(file_path: str, rating: int, tags: list) -> bool:
     """
-    Écrit Rating/Keywords via exiftool si dispo. Retourne True si OK.
+    Write Rating/Keywords via exiftool when available. Returns True on success.
     """
     exe = _get_exiftool_path()
     if not exe:
@@ -221,20 +221,20 @@ def set_exif_metadata(file_path: str, rating: int, tags: list) -> bool:
             for t in clean_tags:
                 cmd.append(f"-xmp:subject+={t}")
                 cmd.append(f"-iptc:keywords+={t}")
-            # XPKeywords attend une chaîne séparée par ; côté Windows
+            # XPKeywords expects a semicolon-separated string on Windows
             cmd.append(f"-xpkeywords={'; '.join(clean_tags)}")
 
         cmd.append(file_path)
         subprocess.run(cmd, check=True, capture_output=True, timeout=3)
 
-        # Restaure l'mtime pour éviter de réordonner le grid après une note/tag
+        # Restore mtime to avoid reordering the grid after rating/tag updates
         if original_mtime is not None:
             try:
                 os.utime(file_path, (original_mtime, original_mtime))
             except Exception:
                 pass
 
-        # Met à jour le cache avec l'epoch courant
+        # Update cache with current epoch
         _META_CACHE[file_path] = (
             original_mtime if original_mtime is not None else _get_mtime_safe(file_path),
             epoch,
@@ -246,7 +246,7 @@ def set_exif_metadata(file_path: str, rating: int, tags: list) -> bool:
 
 
 def set_windows_metadata(file_path: str, rating: int, tags: list) -> bool:
-    """Écrit les métadonnées via l'API Windows Shell."""
+    """Write metadata via the Windows Shell API."""
     try:
         win32com = safe_import_win32com()
         if not win32com:
@@ -312,7 +312,7 @@ def _resolve_shell_indices(folder) -> (int, int):
 
 def apply_windows_metadata(file_path: str, rating, tags: list) -> dict:
     """
-    Applique une note et des tags via l'API Windows en gérant les valeurs par défaut.
+    Apply rating/tags via Windows API while handling defaults.
     Retourne {"rating": int, "tags": List[str]}.
     """
     try:
@@ -328,8 +328,8 @@ def apply_windows_metadata(file_path: str, rating, tags: list) -> dict:
 
 def update_metadata_with_windows(file_path: str, updates: dict) -> dict:
     """
-    Met à jour rating/tags côté Windows + sidecar (si activé).
-    Retourne les métadonnées finales.
+    Update rating/tags via Windows + sidecar (if enabled).
+    Returns final metadata.
     """
     current_rating = 0
     current_tags: List[str] = []
@@ -356,7 +356,7 @@ def update_metadata_with_windows(file_path: str, updates: dict) -> dict:
 
 def apply_system_metadata(file_path: str, rating, tags: list) -> dict:
     """
-    Essaie d'abord exiftool (si installé), sinon Windows Shell.
+    Try exiftool first (if installed), otherwise Windows Shell.
     """
     global _CACHE_EPOCH
     _CACHE_EPOCH += 1
@@ -384,7 +384,7 @@ def apply_system_metadata(file_path: str, rating, tags: list) -> dict:
 
 def get_system_metadata(file_path: str) -> dict:
     """
-    Préfère les métadonnées ExifTool (Rating/Keywords), sinon API Windows.
+    Prefer ExifTool metadata (Rating/Keywords), otherwise Windows API.
     """
     mtime = _get_mtime_safe(file_path)
     cached = _META_CACHE.get(file_path)
