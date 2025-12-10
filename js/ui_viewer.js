@@ -9,6 +9,7 @@ import {
   mjrCardBasePx,
   mjrSettings,
   mjrShowToast,
+  mjrSaveSettings,
   mjrGlobalState,
 } from "./ui_settings.js";
 
@@ -112,6 +113,80 @@ export function mjrEnsureViewerOverlay() {
     overflow: "hidden",
     boxSizing: "border-box",
   });
+
+  // --- FILMSTRIP UI ---
+  const filmstrip = document.createElement("div");
+  filmstrip.className = "mjr-filmstrip";
+  Object.assign(filmstrip.style, {
+    position: "absolute",
+    bottom: "20px",
+    left: "50%",
+    transform: "translateX(-50%)",
+    display: "flex",
+    gap: "6px",
+    padding: "6px",
+    background: "rgba(0,0,0,0.6)",
+    borderRadius: "8px",
+    backdropFilter: "blur(4px)",
+    maxWidth: "380px",
+    overflowX: "hidden",
+    zIndex: "10001",
+    scrollbarWidth: "none",
+    alignItems: "center",
+  });
+  const filmstripCount = document.createElement("div");
+  Object.assign(filmstripCount.style, {
+    color: "#ddd",
+    fontSize: "12px",
+    fontWeight: "600",
+    padding: "0 6px",
+    borderRadius: "4px",
+    background: "rgba(255,255,255,0.08)",
+    flex: "0 0 auto",
+  });
+
+  mjrViewerState.updateFilmstrip = () => {
+    filmstrip.innerHTML = "";
+    if (mjrViewerIsAB || !mjrCurrentList || mjrCurrentList.length < 2) {
+      filmstrip.style.display = "none";
+      return;
+    }
+    filmstrip.style.display = "flex";
+    filmstrip.appendChild(filmstripCount);
+    filmstripCount.textContent = `${mjrCurrentIndex + 1} / ${mjrCurrentList.length}`;
+
+    const windowSize = 7;
+    let start = Math.max(0, mjrCurrentIndex - Math.floor(windowSize / 2));
+    let end = start + windowSize;
+    if (end > mjrCurrentList.length) {
+      end = mjrCurrentList.length;
+      start = Math.max(0, end - windowSize);
+    }
+    for (let i = start; i < end; i++) {
+      const file = mjrCurrentList[i];
+      if (!file) continue;
+      const thumbUrl = buildViewUrl(file);
+      const t = document.createElement("img");
+      t.src = thumbUrl;
+      Object.assign(t.style, {
+        width: "48px",
+        height: "48px",
+        objectFit: "cover",
+        borderRadius: "4px",
+        cursor: "pointer",
+        border: i === mjrCurrentIndex ? "2px solid #5fb3ff" : "2px solid transparent",
+        opacity: i === mjrCurrentIndex ? "1" : "0.6",
+      });
+      t.onclick = (e) => {
+        e.stopPropagation();
+        mjrCurrentIndex = i;
+        mjrRenderSingleCurrent();
+      };
+      filmstrip.appendChild(t);
+    }
+  };
+
+  overlay.appendChild(filmstrip);
   container.appendChild(frame);
   container.appendChild(closeBtn);
 
@@ -251,6 +326,8 @@ export function mjrCloseViewer() {
   if (!mjrViewerState.overlay) return;
   mjrViewerState.overlay.style.display = "none";
   if (mjrViewerState.frame) {
+    const pane = mjrViewerState.frame.firstChild;
+    pane?.__mjrCleanupContext?.();
     mjrViewerState.frame.innerHTML = "";
   }
   mjrViewerIsAB = false;
@@ -367,12 +444,12 @@ export function mjrCreateViewerPane(file) {
   });
   zoomHud.textContent = "100%";
   mediaWrap.appendChild(zoomHud);
-  // Toggleable checkerboard for transparency
-  const checkerEnabled = !!mjrSettings.viewer.useCheckerboard;
-  if (checkerEnabled) {
-    mediaWrap.style.background =
-      "repeating-conic-gradient(#eee 0 25%, #ccc 0 50%) 50%/20px 20px";
-  }
+  const checkerPattern =
+    "repeating-conic-gradient(#eee 0 25%, #ccc 0 50%) 50%/20px 20px";
+  const applyCheckerboardBg = (enabled) => {
+    mediaWrap.style.background = enabled ? checkerPattern : "#000";
+  };
+  applyCheckerboardBg(!!mjrSettings.viewer.useCheckerboard);
 
   const infoBar = document.createElement("div");
   Object.assign(infoBar.style, {
@@ -556,6 +633,80 @@ export function mjrCreateViewerPane(file) {
   pane.appendChild(infoBar);
   pane.__mjrReset = resetZoomPan;
   requestAnimationFrame(() => resetZoomPan());
+
+  // Context menu: reset + toggle checkerboard
+  let contextMenuEl = null;
+  const closeContextMenu = () => {
+    if (contextMenuEl && contextMenuEl.parentNode) contextMenuEl.parentNode.removeChild(contextMenuEl);
+    contextMenuEl = null;
+  };
+  const buildContextMenu = (x, y) => {
+    closeContextMenu();
+    const menu = document.createElement("div");
+    Object.assign(menu.style, {
+      position: "fixed",
+      left: `${x}px`,
+      top: `${y}px`,
+      background: "rgba(0,0,0,0.92)",
+      color: "#eee",
+      border: "1px solid #444",
+      borderRadius: "6px",
+      boxShadow: "0 6px 20px rgba(0,0,0,0.5)",
+      padding: "6px 0",
+      minWidth: "150px",
+      zIndex: "99999",
+      fontSize: "12px",
+      userSelect: "none",
+    });
+    menu.addEventListener("pointerdown", (ev) => ev.stopPropagation());
+    const makeItem = (label, onClick) => {
+      const el = document.createElement("div");
+      el.textContent = label;
+      Object.assign(el.style, {
+        padding: "6px 12px",
+        cursor: "pointer",
+      });
+      el.addEventListener("mouseenter", () => {
+        el.style.background = "rgba(255,255,255,0.08)";
+      });
+      el.addEventListener("mouseleave", () => {
+        el.style.background = "transparent";
+      });
+      el.addEventListener("click", () => {
+        closeContextMenu();
+        onClick();
+      });
+      return el;
+    };
+
+    menu.appendChild(makeItem("Reset zoom / pan", () => resetZoomPan()));
+
+    const toggleCheckerboard = () => {
+      const next = !mjrSettings.viewer.useCheckerboard;
+      mjrSettings.viewer.useCheckerboard = next;
+      mjrSaveSettings(mjrSettings);
+      applyCheckerboardBg(next);
+    };
+    const checkerLabel = () =>
+      mjrSettings.viewer.useCheckerboard ? "Hide checkerboard" : "Show checkerboard";
+    menu.appendChild(makeItem(checkerLabel(), toggleCheckerboard));
+
+    document.body.appendChild(menu);
+    contextMenuEl = menu;
+  };
+  const onWindowPointerDown = () => closeContextMenu();
+  const onWindowBlur = () => closeContextMenu();
+  mediaWrap.addEventListener("contextmenu", (ev) => {
+    ev.preventDefault();
+    buildContextMenu(ev.clientX, ev.clientY);
+  });
+  window.addEventListener("pointerdown", onWindowPointerDown);
+  window.addEventListener("blur", onWindowBlur);
+  mediaWrap.__mjrCleanupContext = () => {
+    closeContextMenu();
+    window.removeEventListener("pointerdown", onWindowPointerDown);
+    window.removeEventListener("blur", onWindowBlur);
+  };
   return pane;
 }
 
@@ -563,10 +714,12 @@ export function mjrOpenABViewer(fileA, fileB) {
   // Clean up any previous A/B-specific listeners
   mjrViewerState.abCleanup?.();
   mjrViewerState.abCleanup = null;
+  mjrViewerState.resetView = null;
 
   mjrEnsureViewerOverlay();
   mjrViewerState.overlay.style.display = "flex";
   mjrViewerIsAB = true;
+  mjrViewerState.updateFilmstrip?.();
   mjrViewerRatingEl = null;
   mjrUpdateNavVisibility();
   const frame = mjrViewerState.frame;
@@ -778,6 +931,15 @@ export function mjrOpenABViewer(fileA, fileB) {
   enableZoomPan(baseMedia, baseWrap, sharedZoom);
   enableZoomPan(topMedia, topWrap, sharedZoom);
 
+  const checkerPattern =
+    "repeating-conic-gradient(#eee 0 25%, #ccc 0 50%) 50%/20px 20px";
+  const applyCheckerboardBg = (enabled) => {
+    const bg = enabled ? checkerPattern : "#000";
+    baseWrap.style.background = bg;
+    topWrap.style.background = bg;
+  };
+  applyCheckerboardBg(!!mjrSettings.viewer.useCheckerboard);
+
   const applySharedZoom = () => {
     if (sharedZoom.scale <= 1) {
       sharedZoom.offsetX = 0;
@@ -833,23 +995,37 @@ export function mjrOpenABViewer(fileA, fileB) {
     });
     // Keep clicks inside from closing before they fire
     menu.addEventListener("pointerdown", (ev) => ev.stopPropagation());
-    const item = document.createElement("div");
-    item.textContent = "Reset zoom / pan";
-    Object.assign(item.style, {
-      padding: "6px 12px",
-      cursor: "pointer",
-    });
-    item.addEventListener("mouseenter", () => {
-      item.style.background = "rgba(255,255,255,0.08)";
-    });
-    item.addEventListener("mouseleave", () => {
-      item.style.background = "transparent";
-    });
-    item.addEventListener("click", () => {
-      closeContextMenu();
-      sharedZoom.reset?.();
-    });
-    menu.appendChild(item);
+    const makeItem = (label, onClick) => {
+      const el = document.createElement("div");
+      el.textContent = label;
+      Object.assign(el.style, {
+        padding: "6px 12px",
+        cursor: "pointer",
+      });
+      el.addEventListener("mouseenter", () => {
+        el.style.background = "rgba(255,255,255,0.08)";
+      });
+      el.addEventListener("mouseleave", () => {
+        el.style.background = "transparent";
+      });
+      el.addEventListener("click", () => {
+        closeContextMenu();
+        onClick();
+      });
+      return el;
+    };
+
+    menu.appendChild(makeItem("Reset zoom / pan", () => sharedZoom.reset?.()));
+
+    const toggleCheckerboard = () => {
+      const next = !mjrSettings.viewer.useCheckerboard;
+      mjrSettings.viewer.useCheckerboard = next;
+      mjrSaveSettings(mjrSettings);
+      applyCheckerboardBg(next);
+    };
+    const checkerLabel = () =>
+      mjrSettings.viewer.useCheckerboard ? "Hide checkerboard" : "Show checkerboard";
+    menu.appendChild(makeItem(checkerLabel(), toggleCheckerboard));
     document.body.appendChild(menu);
     contextMenuEl = menu;
   };
@@ -1109,7 +1285,9 @@ export function mjrRenderSingleCurrent() {
   if (!mjrCurrentList.length) return;
   const file = mjrCurrentList[mjrCurrentIndex];
   if (!file) return;
+  mjrViewerState.resetView = null;
   mjrViewerIsAB = false;
+  mjrViewerState.updateFilmstrip?.();
   mjrUpdateNavVisibility();
 
   mjrEnsureViewerOverlay();
@@ -1162,6 +1340,10 @@ export function mjrRenderSingleCurrent() {
   } else {
     mjrViewerRatingEl = null;
   }
+
+  if (mjrViewerState.updateFilmstrip) {
+    mjrViewerState.updateFilmstrip();
+  }
 }
 
 export function mjrViewerPrev() {
@@ -1205,7 +1387,7 @@ export function mjrUpdateViewerRatingDisplay(rating) {
     try {
       await firstInst.updateFileMetadata(file, "Rating updated");
     } catch (err) {
-      console.warn("[Majoor.FileManager] viewer rating persist failed", err);
+      console.warn("[Majoor.AssetsManager] viewer rating persist failed", err);
     }
   }
 }
