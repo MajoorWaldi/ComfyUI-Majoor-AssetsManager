@@ -239,6 +239,18 @@ export function createMetadataSidebar(options) {
 
     const m = meta || {};
     const normStr = (v) => (typeof v === "string" ? v.trim() : "");
+    const cleanName = (val) => {
+      if (typeof val !== "string") return "";
+      let n = val.replace(/\\/g, "/").split("/").pop();
+      n = n.replace(/\.(safetensors|ckpt|pth|bin)$/i, "");
+      return n.trim();
+    };
+    const cleanList = (str) =>
+      str
+        .split(",")
+        .map((s) => cleanName(s))
+        .filter(Boolean)
+        .join(", ");
     const positive = normStr(m.positive_prompt);
     const negative = normStr(m.negative_prompt);
     const seedList =
@@ -256,11 +268,12 @@ export function createMetadataSidebar(options) {
       ? [m.cfg]
       : [];
     const cfg = cfgList.join(", ").trim();
-    const models = Array.isArray(m.models)
+    const modelsRaw = Array.isArray(m.models)
       ? m.models.join(", ").trim()
       : m.model
       ? String(m.model).trim()
       : "";
+    const models = modelsRaw ? cleanList(modelsRaw) : "";
     const loras = Array.isArray(m.loras)
       ? m.loras
           .map((l) => {
@@ -271,6 +284,7 @@ export function createMetadataSidebar(options) {
           .filter(Boolean)
           .join(", ")
       : "";
+    const lorasClean = loras ? cleanList(loras) : "";
 
     const hasPositive = positive.length > 0;
     const hasNegative = negative.length > 0;
@@ -403,13 +417,19 @@ export function createMetadataSidebar(options) {
 
     const genLines = [];
     if (models) genLines.push(`Model: ${models}`);
-    if (loras) genLines.push(`LoRAs: ${loras}`);
+    if (lorasClean) genLines.push(`LoRAs: ${lorasClean}`);
     if (samplers) genLines.push(`Sampler: ${samplers}`);
     if (meta && meta.scheduler) genLines.push(`Scheduler: ${meta.scheduler}`);
     if (cfg) genLines.push(`CFG: ${cfg}`);
     if (meta && meta.steps !== undefined && meta.steps !== null) genLines.push(`Steps: ${meta.steps}`);
     if (genLines.length) {
-      fieldsContainer.appendChild(createCopyField("MODEL / LORA / SAMPLER", genLines.join("\n"), true));
+      const genField = createCopyField("MODEL / LORA / SAMPLER", genLines.join("\n"), true);
+      const lbl = genField.querySelector(".mjr-fm-meta-label");
+      if (lbl) {
+        lbl.style.color = "#5fb3ff";
+        lbl.style.fontWeight = "700";
+      }
+      fieldsContainer.appendChild(genField);
     }
 
     if (hasAnyGen) {
