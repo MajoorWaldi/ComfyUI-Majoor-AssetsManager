@@ -112,6 +112,7 @@ export function createMetadataSidebar(options) {
     const url = file.url || buildViewUrl(file);
 
     metaContent.innerHTML = "";
+    metaContent.style.userSelect = "text"; // allow copying any text in the sidebar
 
     const previewShell = createEl("div", "mjr-fm-meta-preview");
     previewShell.style.borderRadius = "8px";
@@ -411,9 +412,19 @@ export function createMetadataSidebar(options) {
     fieldsContainer.style.gap = "6px";
     fieldsContainer.style.marginTop = "8px";
 
-    if (hasPositive) fieldsContainer.appendChild(createCopyField("POSITIVE PROMPT", positive, true));
-    if (hasNegative) fieldsContainer.appendChild(createCopyField("NEGATIVE PROMPT", negative, true));
-    if (hasSeeds) fieldsContainer.appendChild(createCopyField("SEED(S)", seeds, false));
+    const addColoredField = (label, value, multiline = false, color = "#5fb3ff") => {
+      const field = createCopyField(label, value, multiline);
+      const lbl = field.querySelector(".mjr-fm-meta-label");
+      if (lbl) {
+        lbl.style.color = color;
+        lbl.style.fontWeight = "700";
+      }
+      return field;
+    };
+
+    if (hasPositive) fieldsContainer.appendChild(addColoredField("POSITIVE PROMPT", positive, true, "#8bd5ff"));
+    if (hasNegative) fieldsContainer.appendChild(addColoredField("NEGATIVE PROMPT", negative, true, "#ff9f7f"));
+    if (hasSeeds) fieldsContainer.appendChild(addColoredField("SEED(S)", seeds, false, "#d1b3ff"));
 
     const genLines = [];
     if (models) genLines.push(`Model: ${models}`);
@@ -423,13 +434,7 @@ export function createMetadataSidebar(options) {
     if (cfg) genLines.push(`CFG: ${cfg}`);
     if (meta && meta.steps !== undefined && meta.steps !== null) genLines.push(`Steps: ${meta.steps}`);
     if (genLines.length) {
-      const genField = createCopyField("MODEL / LORA / SAMPLER", genLines.join("\n"), true);
-      const lbl = genField.querySelector(".mjr-fm-meta-label");
-      if (lbl) {
-        lbl.style.color = "#5fb3ff";
-        lbl.style.fontWeight = "700";
-      }
-      fieldsContainer.appendChild(genField);
+      fieldsContainer.appendChild(addColoredField("MODEL / LORA / SAMPLER", genLines.join("\n"), true, "#5fb3ff"));
     }
 
     if (hasAnyGen) {
@@ -562,6 +567,7 @@ export function createMetadataSidebar(options) {
       if (seq !== metaRequestSeq) return;
       if (data.ok && data.generation) {
         const meta = data.generation || {};
+        if (meta.has_workflow === undefined) meta.has_workflow = !!meta.workflow;
         if (meta.rating === undefined && file.rating !== undefined) meta.rating = file.rating;
         if (!meta.tags && file.tags) meta.tags = file.tags;
         const sourceMtime = meta.mtime ?? file.mtime;
@@ -575,6 +581,7 @@ export function createMetadataSidebar(options) {
           state.metaCache.set(key, payload);
           state.metaFetchAt.set(key, Date.now());
         }
+        file.hasWorkflow = !!meta.has_workflow;
         showPanel(file, meta);
       } else {
         showPanel(file, null, data.error || "No metadata found for this file.");

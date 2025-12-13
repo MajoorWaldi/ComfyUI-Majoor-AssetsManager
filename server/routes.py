@@ -3,8 +3,11 @@ import subprocess
 import asyncio
 import time
 import threading
+import shutil
+import platform
+import concurrent.futures
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 try:
     from send2trash import send2trash  # type: ignore
@@ -23,10 +26,11 @@ from .utils import (
     classify_ext,
     get_system_metadata,
     load_metadata,
+    _get_exiftool_path,
 )
 from .metadata import update_metadata_with_windows
-from .generation_metadata import extract_generation_params_from_png
-from .config import OUTPUT_ROOT
+from .generation_metadata import extract_generation_params_from_png, has_generation_workflow
+from .config import OUTPUT_ROOT, THUMB_SIZE, ENABLE_JSON_SIDECAR
 from .mjr_collections import (
     get_collections,
     load_collection,
@@ -42,6 +46,7 @@ from .mjr_collections import (
 _FILE_CACHE: List[Dict[str, Any]] = []
 _LAST_SCAN_TS: float = 0.0
 _LAST_FOLDER_MTIME: float = 0.0
+_LAST_FOLDER_SIGNATURE: Optional[tuple] = None
 
 try:
     _SCAN_MIN_INTERVAL = float(os.environ.get("MJR_SCAN_MIN_INTERVAL", "5.0"))
@@ -60,13 +65,47 @@ _CACHE_LOCK = threading.Lock()
 
 def _folder_changed(root_path: Path) -> bool:
     """Quick check if folder changed (file added/modified)."""
+    global _LAST_FOLDER_MTIME, _LAST_FOLDER_SIGNATURE
     try:
-        # On Linux/Mac, folder mtime changes when adding/removing a file.
-        # On Windows it's less reliable for subfolders, but still helps.
         current_mtime = root_path.stat().st_mtime
-        global _LAST_FOLDER_MTIME
         if current_mtime != _LAST_FOLDER_MTIME:
             _LAST_FOLDER_MTIME = current_mtime
+            _LAST_FOLDER_SIGNATURE = None  # force recompute
+            return True
+
+        # Fallback signature (top-level dirs/files count + max mtime)
+        def _signature():
+            total = 0
+            max_m = current_mtime
+            sub_sig = []
+            try:
+                with os.scandir(root_path) as it:
+                    for entry in it:
+                        try:
+                            st = entry.stat()
+                            max_m = max(max_m, st.st_mtime)
+                        except Exception:
+                            continue
+                        total += 1
+                        if entry.is_dir():
+                            try:
+                                with os.scandir(entry.path) as sub:
+                                    sub_count = sum(1 for _ in sub)
+                                sub_sig.append((entry.name, st.st_mtime, sub_count))
+                            except Exception:
+                                sub_sig.append((entry.name, st.st_mtime, None))
+                        else:
+                            sub_sig.append((entry.name, st.st_mtime, None))
+            except Exception:
+                return None
+            sub_sig.sort()
+            return (total, max_m, tuple(sub_sig))
+
+        sig = _signature()
+        if sig is None:
+            return True
+        if sig != _LAST_FOLDER_SIGNATURE:
+            _LAST_FOLDER_SIGNATURE = sig
             return True
         return False
     except Exception:
@@ -78,18 +117,30 @@ def _get_output_root() -> Path:
     return Path(folder_paths.get_output_directory()).resolve()
 
 
+def _safe_target(root: Path, subfolder: str, filename: str) -> Path:
+    """
+    Build a path under root while rejecting traversal/absolute components.
+    - filename must be a plain name (no separators)
+    - subfolder must be relative and free of '..'
+    """
+    if not filename:
+        raise ValueError("Missing filename")
+    if Path(filename).name != filename:
+        raise ValueError("Invalid filename")
+
+    sub = Path(subfolder) if subfolder else Path()
+    if sub.is_absolute() or any(part == ".." for part in sub.parts):
+        raise ValueError("Invalid subfolder")
+
+    candidate = (root / sub / filename).resolve()
+    candidate.relative_to(root)  # will raise if outside
+    return candidate
+
+
 def _metadata_target(path: Path, kind: str) -> Path:
     """
-    For video/audio/3D, try a sibling PNG to retrieve metadata.
+    Direct metadata target; no sidecar PNG fallback.
     """
-    if kind != "image":
-        sibling = path.with_suffix(".png")
-        if sibling.exists():
-            try:
-                sibling.relative_to(_get_output_root())
-                return sibling
-            except ValueError:
-                pass
     return path
 
 
@@ -315,42 +366,68 @@ async def batch_metadata(request: web.Request) -> web.Response:
     items = payload.get("items") or []
     loop = asyncio.get_running_loop()
 
-    def _fetch_batch():
-        results: List[Dict[str, Any]] = []
-        errors: List[Dict[str, Any]] = []
-        for item in items:
-            filename = (item or {}).get("filename")
-            subfolder = (item or {}).get("subfolder", "")
+    def _fetch_one(item: Dict[str, Any]) -> Dict[str, Any]:
+        filename = (item or {}).get("filename")
+        subfolder = (item or {}).get("subfolder", "")
+        result: Dict[str, Any] = {"filename": filename, "subfolder": subfolder}
 
-            if not filename:
-                errors.append({"filename": filename, "error": "Missing filename"})
-                continue
+        if not filename:
+            result["error"] = "Missing filename"
+            return result
 
-            target = (root / subfolder / filename).resolve()
+        try:
+            target = _safe_target(root, subfolder, filename)
+        except ValueError:
+            result["error"] = "Outside output directory"
+            return result
+
+        if not target.exists():
+            result["error"] = "Not found"
+            return result
+
+        kind = classify_ext(filename.lower())
+        meta_target = _metadata_target(target, kind)
+        sys_meta = get_system_metadata(str(meta_target))
+        json_meta = load_metadata(str(meta_target))
+
+        has_wf = False
+        if kind in ("image", "video"):
             try:
-                target.relative_to(root)
-            except ValueError:
+                has_wf = has_generation_workflow(meta_target)
+            except Exception:
+                has_wf = False
+
+        result.update(
+            {
+                "rating": sys_meta.get("rating") or json_meta.get("rating", 0),
+                "tags": sys_meta.get("tags") or json_meta.get("tags", []),
+                "has_workflow": has_wf,
+            }
+        )
+        return result
+
+    # Parallelize within the executor to avoid long serial batches
+    results: List[Dict[str, Any]] = []
+    errors: List[Dict[str, Any]] = []
+    max_workers_env = os.environ.get("MJR_META_BATCH_WORKERS")
+    try:
+        max_workers_cfg = int(max_workers_env) if max_workers_env is not None else None
+    except Exception:
+        max_workers_cfg = None
+    max_workers = max(1, max_workers_cfg) if max_workers_cfg else 4
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
+        futures = [pool.submit(_fetch_one, itm) for itm in items]
+        for fut in concurrent.futures.as_completed(futures):
+            try:
+                res = fut.result()
+                if res.get("error"):
+                    errors.append({"filename": res.get("filename"), "error": res.get("error")})
+                elif res.get("filename"):
+                    results.append(res)
+            except Exception:
                 continue
 
-            if not target.exists():
-                continue
-
-            kind = classify_ext(filename.lower())
-            meta_target = _metadata_target(target, kind)
-            sys_meta = get_system_metadata(str(meta_target))
-            json_meta = load_metadata(str(meta_target))
-
-            results.append(
-                {
-                    "filename": filename,
-                    "subfolder": subfolder,
-                    "rating": sys_meta.get("rating") or json_meta.get("rating", 0),
-                    "tags": sys_meta.get("tags") or json_meta.get("tags", []),
-                }
-            )
-        return results, errors
-
-    results, errors = await loop.run_in_executor(None, _fetch_batch)
     return web.json_response({"ok": True, "metadatas": results, "errors": errors})
 
 
@@ -376,10 +453,8 @@ async def delete_files(request: web.Request) -> web.Response:
         if not filename:
             continue
 
-        candidate = (root / subfolder / filename).resolve()
-
         try:
-            candidate.relative_to(root)
+            candidate = _safe_target(root, subfolder, filename)
         except ValueError:
             errors.append(
                 {
@@ -400,6 +475,7 @@ async def delete_files(request: web.Request) -> web.Response:
             if send2trash:
                 send2trash(str(candidate))
             else:
+                print(f"[Majoor.AssetsManager] send2trash unavailable; deleting permanently: {candidate}")
                 candidate.unlink()
             deleted.append({"filename": filename, "subfolder": subfolder})
         except Exception as exc:
@@ -423,9 +499,8 @@ async def open_explorer(request: web.Request) -> web.Response:
     if not filename:
         return web.json_response({"ok": False, "error": "Missing filename"}, status=400)
 
-    target = (root / subfolder / filename).resolve()
     try:
-        target.relative_to(root)
+        target = _safe_target(root, subfolder, filename)
     except ValueError:
         return web.json_response({"ok": False, "error": "File is outside output directory"}, status=400)
 
@@ -469,12 +544,8 @@ async def get_metadata(request: web.Request) -> web.Response:
             {"ok": False, "error": "missing filename"}, status=400
         )
 
-    target = (root / subfolder / filename).resolve()
-
-    kind = classify_ext(filename.lower())
-
     try:
-        target.relative_to(root)
+        target = _safe_target(root, subfolder, filename)
     except ValueError:
         return web.json_response(
             {"ok": False, "error": "File is outside output directory"}, status=400
@@ -485,21 +556,41 @@ async def get_metadata(request: web.Request) -> web.Response:
             {"ok": False, "error": "File not found"}, status=404
         )
 
-    meta_target = _metadata_target(target, kind)
-    if kind != "image":
-        if not meta_target.exists() or meta_target.suffix.lower() != ".png":
-            return web.json_response(
-                {"ok": False, "error": "PNG sibling not found for this file"}, status=404
-            )
-
     try:
-        params = extract_generation_params_from_png(meta_target)
+        params = extract_generation_params_from_png(target)
     except Exception as e:
+        print(f"[Majoor.AssetsManager] metadata parsing error for {filename}: {e}")
         return web.json_response(
             {"ok": False, "error": f"metadata parsing failed: {e}"}, status=500
         )
 
+    if isinstance(params, dict):
+        if "has_workflow" not in params:
+            params["has_workflow"] = bool(
+                params.get("has_workflow")
+                or params.get("workflow")
+                or params.get("positive_prompt")
+                or params.get("negative_prompt")
+                or params.get("sampler_name")
+                or params.get("model")
+                or params.get("loras")
+            )
+
     return web.json_response({"ok": True, "generation": params})
+
+
+@PromptServer.instance.routes.get("/mjr/filemanager/capabilities")
+async def get_capabilities(request: web.Request) -> web.Response:
+    os_name = platform.system().lower()
+    exiftool_available = _get_exiftool_path() is not None
+    return web.json_response(
+        {
+            "ok": True,
+            "os": os_name,
+            "exiftool_available": exiftool_available,
+            "sidecar_enabled": ENABLE_JSON_SIDECAR,
+        }
+    )
 
 
 @PromptServer.instance.routes.post("/mjr/filemanager/metadata/update")
@@ -525,15 +616,14 @@ async def update_metadata(request: web.Request) -> web.Response:
             {"ok": False, "error": "Missing filename"}, status=400
         )
 
-    target = (root / subfolder / filename).resolve()
-    kind = classify_ext(filename.lower())
     try:
-        target.relative_to(root)
+        target = _safe_target(root, subfolder, filename)
     except ValueError:
         return web.json_response(
             {"ok": False, "error": "File is outside output directory"}, status=400
         )
 
+    kind = classify_ext(filename.lower())
     if not target.exists():
         return web.json_response(
             {"ok": False, "error": "File not found"}, status=404
@@ -547,14 +637,6 @@ async def update_metadata(request: web.Request) -> web.Response:
 
     try:
         meta = update_metadata_with_windows(str(target), updates)
-        if kind != "image":
-            sibling = (target.parent / (target.stem + ".png")).resolve()
-            if sibling.exists():
-                try:
-                    sibling.relative_to(root)
-                    update_metadata_with_windows(str(sibling), updates)
-                except Exception:
-                    pass
     except Exception as exc:
         return web.json_response(
             {

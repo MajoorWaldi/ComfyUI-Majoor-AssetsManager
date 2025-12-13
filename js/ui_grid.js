@@ -19,8 +19,8 @@ import {
   mjrSettingsDefaults,
   mjrShowToast,
   setMjrSettings,
-  mjrGlobalState,
 } from "./ui_settings.js";
+import { mjrGlobalState } from "./mjr_global.js";
 import { createInitialState, fileKey } from "./am_state.js";
 import {
   mjrRefreshDefaults,
@@ -53,6 +53,37 @@ let mjrWorkflowDropBound = false;
 let mjrLastDragFile = null;
 let mjrRefreshMs = mjrSettings.autoRefresh.interval || 5000;
 let mjrQueueListenerBound = false;
+let mjrNewFilesListenerBound = false;
+let metadataAbortCtrl = null;
+
+async function mjrFetchFileAsDataTransferFile(info) {
+  const url = buildViewUrl(info);
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    const name = info.filename || info.name || "file";
+    return new File([blob], name, { type: blob.type || "application/octet-stream" });
+  } catch {
+    return null;
+  }
+}
+
+function mjrDispatchSyntheticDrop(target, file) {
+  if (!target || !file) return;
+  try {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    const evt = new DragEvent("drop", {
+      bubbles: true,
+      cancelable: true,
+      dataTransfer: dt,
+    });
+    target.dispatchEvent(evt);
+  } catch (err) {
+    console.warn("[Majoor.AssetsManager] synthetic drop failed", err);
+  }
+}
 
 const fileManagerStore = {
   addNewGeneratedFiles(newFiles = []) {
@@ -240,16 +271,17 @@ function ensureWorkflowDropHandler() {
 
   const onDragOver = (ev) => {
     const types = Array.from(ev.dataTransfer?.types || []);
-    if (types.includes("application/x-mjr-sibling-file")) {
-      ev.preventDefault();
-      ev.dataTransfer.dropEffect = "copy";
-    }
+    if (!types.includes("application/x-mjr-sibling-file")) return;
+    ev.preventDefault();
+    ev.dataTransfer.dropEffect = "copy";
   };
 
   const onDrop = async (ev) => {
     const types = Array.from(ev.dataTransfer?.types || []);
     if (!types.includes("application/x-mjr-sibling-file")) return;
-    ev.preventDefault();
+    const target = ev.target;
+    const isGraph = target && typeof target.closest === "function" && target.closest(".graphcanvas");
+    if (!isGraph) return;
 
     let info = null;
     try {
@@ -257,6 +289,10 @@ function ensureWorkflowDropHandler() {
       if (raw) info = JSON.parse(raw);
     } catch (_) { info = null; }
     if (!info || !info.filename) return;
+
+    ev.preventDefault();
+    ev.stopPropagation();
+    if (typeof ev.stopImmediatePropagation === "function") ev.stopImmediatePropagation();
 
     try {
       const params = new URLSearchParams();
@@ -310,14 +346,57 @@ function ensureQueueListener() {
   };
 }
 
+function ensureNewFilesListener() {
+  if (mjrNewFilesListenerBound) return () => {};
+  const onNewFiles = (ev) => {
+    const files = ev?.detail?.files || ev?.data?.files || [];
+    if (!Array.isArray(files) || !files.length) return;
+    const mapped = files
+      .map((f) => {
+        const filename = f.filename || f.name;
+        if (!filename) return null;
+        const subfolder = f.subfolder || "";
+        const ext = getExt(filename) || "";
+        const kind = detectKindFromExt(ext);
+        return {
+          filename,
+          name: filename,
+          subfolder,
+          ext,
+          kind,
+          mtime: f.mtime || Date.now(),
+          size: 0,
+          url: buildViewUrl({ filename, subfolder }),
+          type: "output",
+        };
+      })
+      .filter(Boolean);
+    if (mapped.length) {
+      fileManagerStore.addNewGeneratedFiles(mapped);
+    }
+  };
+  api.addEventListener("mjr_new_files", onNewFiles);
+  mjrNewFilesListenerBound = true;
+  return () => {
+    api.removeEventListener("mjr_new_files", onNewFiles);
+    mjrNewFilesListenerBound = false;
+  };
+}
+
 function renderAssetsManager(root) {
   const cleanups = [];
   cleanups.push(ensureWorkflowDropHandler());
   cleanups.push(ensureQueueListener());
+  cleanups.push(ensureNewFilesListener());
   cleanups.push(ensureGlobalAutoRefresh());
 
   root.innerHTML = "";
-  Object.assign(root.style, { display: "flex", flexDirection: "column", height: "100%" });
+  Object.assign(root.style, {
+    display: "flex",
+    flexDirection: "column",
+    height: "100%",
+    userSelect: "text", // allow copying any text in the manager UI
+  });
   
   // --- TOOLBAR ---
   const toolbar = createEl("div", "mjr-fm-toolbar");
@@ -526,6 +605,7 @@ function renderAssetsManager(root) {
   // Visible Metadata Fetching
   async function fetchMetadataForVisible() {
     if (metadataFetchInFlight) return;
+    const reqVersion = state.renderVersion;
     const fullList = state.filtered || [];
     const { visibleStart: start, visibleEnd: end } = state;
     
@@ -539,16 +619,25 @@ function renderAssetsManager(root) {
     if (!targetFiles.length) return;
     const batch = targetFiles.slice(0, 30).map(f => ({ filename: f.filename || f.name, subfolder: f.subfolder || "" }));
     
+    if (metadataAbortCtrl) {
+      try { metadataAbortCtrl.abort(); } catch (_) {}
+    }
+    metadataAbortCtrl = new AbortController();
+    const thisCtrl = metadataAbortCtrl;
+
     metadataFetchInFlight = api.fetchApi("/mjr/filemanager/metadata/batch", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ items: batch }),
+      signal: thisCtrl.signal,
     });
 
     try {
       const res = await metadataFetchInFlight;
+      if (thisCtrl.signal.aborted || reqVersion !== state.renderVersion) return;
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
+      if (thisCtrl.signal.aborted || reqVersion !== state.renderVersion) return;
       
       const metaByKey = new Map();
       (data.metadatas || []).forEach((m) => metaByKey.set(`${m.subfolder || ""}/${m.filename || ""}`, m));
@@ -559,6 +648,7 @@ function renderAssetsManager(root) {
         if (m) {
             f.rating = m.rating ?? 0;
             f.tags = m.tags || [];
+            if (m.has_workflow !== undefined) f.hasWorkflow = !!m.has_workflow;
             f.__metaLoaded = true;
         }
       });
@@ -567,9 +657,14 @@ function renderAssetsManager(root) {
       if (gridView) gridView.renderGrid(); 
 
     } catch (err) {
-      console.warn("[Majoor.AssetsManager] batch metadata load failed", err);
+      if (err?.name === "AbortError") {
+        // ignore aborted fetch
+      } else {
+        console.warn("[Majoor.AssetsManager] batch metadata load failed", err);
+      }
     } finally {
       metadataFetchInFlight = null;
+      if (metadataAbortCtrl === thisCtrl) metadataAbortCtrl = null;
       // Re-check in case user scrolled while fetching
       if (fullList.slice(effectiveStart, effectiveEnd).some(f => !f.__metaLoaded)) {
         fetchMetadataForVisible();
@@ -735,6 +830,32 @@ app.registerExtension({
   async setup() {
     const SETTINGS_PREFIX = "MajoorAM";
 
+    const warnIfNoExiftool = async () => {
+      const warnKey = "mjrExiftoolWarned";
+      try {
+        if (typeof localStorage !== "undefined" && localStorage.getItem(warnKey)) return;
+      } catch (_) {}
+      try {
+        const res = await api.fetchApi("/mjr/filemanager/capabilities");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data || !data.ok) return;
+        const osName = (data.os || "").toLowerCase();
+        const exiftoolAvailable = !!data.exiftool_available;
+        const sidecarEnabled = !!data.sidecar_enabled;
+        if (osName !== "windows" && !exiftoolAvailable && sidecarEnabled) {
+          mjrShowToast(
+            "warn",
+            "ExifTool not detected. Using JSON sidecar metadata; install ExifTool for OS-native tags.",
+            "Metadata"
+          );
+          try { localStorage.setItem(warnKey, "1"); } catch (_) {}
+        }
+      } catch (_) {
+        /* ignore */
+      }
+    };
+
     // --- GRID SETTINGS ---
     app.ui.settings.addSetting({
       id: `${SETTINGS_PREFIX}.Grid.CardSize`,
@@ -847,6 +968,8 @@ app.registerExtension({
       },
     });
     
+    warnIfNoExiftool();
+
     try {
       app.extensionManager.registerSidebarTab({
         id: "majoorAssetsManagerSidebar",

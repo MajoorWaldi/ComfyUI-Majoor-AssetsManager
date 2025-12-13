@@ -9,12 +9,102 @@ import {
   mjrSettings,
 } from "./ui_settings.js";
 
+export function resolveWorkflowState(file) {
+  const toState = (val) => {
+    if (val === true || val === 1 || val === "true") return "yes";
+    if (val === false || val === 0 || val === "false") return "no";
+    return null;
+  };
+
+  const candidates = [
+    file?.hasWorkflow,
+    file?.has_workflow,
+    file?.workflow ? true : null,
+    file?.meta?.has_workflow,
+    file?.meta?.workflow ? true : null,
+  ];
+
+  for (const c of candidates) {
+    const s = toState(c);
+    if (s) return s;
+  }
+  return "unknown";
+}
+
+export function handleDragStart(file, ev) {
+  if (!ev?.dataTransfer) return;
+  const payload = {
+    filename: file.filename || file.name,
+    subfolder: file.subfolder || "",
+  };
+  ev.dataTransfer.effectAllowed = "copy";
+  try {
+    ev.dataTransfer.setData("application/x-mjr-sibling-file", JSON.stringify(payload));
+    // Minimal payload; let ComfyUI default handling proceed otherwise
+  } catch (_) {
+    // ignore
+  }
+}
+
+export function updateWorkflowDot(card, workflowState) {
+  const host = card.querySelector(".mjr-fm-thumb") || card;
+  const existingDots = Array.from(card.querySelectorAll(".mjr-fm-workflow-dot"));
+  let dot = existingDots.shift() || null;
+  // Remove extras
+  existingDots.forEach((d) => d.remove());
+  // If the kept dot is not under the host, discard it and recreate
+  if (dot && dot.parentElement !== host) {
+    dot.remove();
+    dot = null;
+  }
+
+  if (!dot) {
+    dot = document.createElement("div");
+    dot.className = "mjr-fm-workflow-dot";
+    dot.style.position = "absolute";
+    dot.style.bottom = "6px";
+    dot.style.right = "6px";
+    dot.style.width = "10px";
+    dot.style.height = "10px";
+    dot.style.borderRadius = "50%";
+    dot.style.border = "1px solid rgba(0,0,0,0.6)";
+    dot.style.pointerEvents = "none";
+    // Ensure the card anchors the dot at bottom-right of the card
+    if (!card.style.position) card.style.position = "relative";
+    card.appendChild(dot);
+  }
+
+  const state =
+    workflowState === "yes" || workflowState === true
+      ? "yes"
+      : workflowState === "no" || workflowState === false
+      ? "no"
+      : "unknown";
+
+  if (state === "yes") {
+    dot.style.background = "#65d174";
+    dot.style.boxShadow = "0 0 6px rgba(101,209,116,0.9)";
+    dot.style.opacity = "1";
+  } else if (state === "no") {
+    dot.style.background = "#d45a5a";
+    dot.style.boxShadow = "0 0 6px rgba(212,90,90,0.8)";
+    dot.style.opacity = "0.85";
+  } else {
+    dot.style.background = "#aaaaaa";
+    dot.style.boxShadow = "0 0 6px rgba(170,170,170,0.6)";
+    dot.style.opacity = "0.6";
+  }
+}
+
 export function updateCardVisuals(card, file) {
   const rating = Number(file.rating ?? (file.meta && file.meta.rating) ?? 0);
   const tags =
     (Array.isArray(file.tags) && file.tags) ||
     (Array.isArray(file.meta && file.meta.tags) && file.meta.tags) ||
     [];
+
+  const wfState = resolveWorkflowState(file);
+  updateWorkflowDot(card, wfState);
 
   const newRatingText = rating > 0 ? "★".repeat(rating) : "";
   let ratingBadge = card.querySelector(".mjr-fm-rating-badge");
@@ -42,6 +132,7 @@ export function updateCardVisuals(card, file) {
     if (!tagsBadge) {
       tagsBadge = createEl("div", "mjr-fm-tags-badge");
       applyStyles(tagsBadge, BADGE_STYLES.tags);
+      tagsBadge.style.fontSize = "0.65rem";
       tagsBadge.textContent = newTagsText;
       card.appendChild(tagsBadge);
     } else if (tagsBadge.textContent !== newTagsText) {
@@ -65,21 +156,9 @@ export function renderBadges(card, rating, tags) {
   if (mjrSettings.grid.showTags && tags && tags.length > 0) {
     const tagsBadge = createEl("div", "mjr-fm-tags-badge", tags.join(", "));
     applyStyles(tagsBadge, BADGE_STYLES.tags);
+    tagsBadge.style.fontSize = "0.65rem";
     card.appendChild(tagsBadge);
   }
-}
-
-export function handleDragStart(file, ev) {
-  const kind = file.kind || detectKindFromExt(file.ext || getExt(file.filename || file.name));
-  const isSiblingTarget =
-    kind === "video" || kind === "audio" || kind === "model3d" || kind === "3d" || kind === "other3d";
-  if (!isSiblingTarget) return;
-
-  ev.dataTransfer.effectAllowed = "copy";
-  ev.dataTransfer.setData(
-    "application/x-mjr-sibling-file",
-    JSON.stringify({ filename: file.filename || file.name, subfolder: file.subfolder || "" })
-  );
 }
 
 export function createFileThumb(kind, ext, file, card) {
@@ -88,6 +167,7 @@ export function createFileThumb(kind, ext, file, card) {
   thumb.style.aspectRatio = "1 / 1";
   thumb.style.overflow = "hidden";
   thumb.style.background = "#111";
+  thumb.__mjrHoverTimer = null;
 
   const badge = createEl("div", "mjr-fm-badge", ext || "FILE");
   badge.style.position = "absolute";
@@ -109,15 +189,9 @@ export function createFileThumb(kind, ext, file, card) {
     card.__cleanupVideoListeners = null;
   }
 
-  if (kind === "image") {
-    const img = document.createElement("img");
-    img.loading = "lazy";
-    img.src = file.url || buildViewUrl(file);
-    img.style.width = "100%";
-    img.style.height = "100%";
-    img.style.objectFit = "cover";
-    thumb.appendChild(img);
-  } else if (kind === "video") {
+  const attachVideoPreview = () => {
+    if (thumb.__mjrVideoPreviewAttached) return;
+    thumb.__mjrVideoPreviewAttached = true;
     const video = document.createElement("video");
     video.src = file.url || buildViewUrl(file);
     video.muted = !!mjrSettings.viewer.muteVideos;
@@ -130,11 +204,18 @@ export function createFileThumb(kind, ext, file, card) {
     thumb.appendChild(video);
 
     const onMouseEnter = () => {
-      if (mjrSettings.viewer.autoplayVideos) {
-        video.play().catch(() => {});
-      }
+      if (thumb.__mjrHoverTimer) clearTimeout(thumb.__mjrHoverTimer);
+      thumb.__mjrHoverTimer = setTimeout(() => {
+        if (mjrSettings.viewer.autoplayVideos) {
+          video.play().catch(() => {});
+        }
+      }, 200);
     };
     const onMouseLeave = () => {
+      if (thumb.__mjrHoverTimer) {
+        clearTimeout(thumb.__mjrHoverTimer);
+        thumb.__mjrHoverTimer = null;
+      }
       video.pause();
       try {
         video.currentTime = 0;
@@ -147,7 +228,24 @@ export function createFileThumb(kind, ext, file, card) {
     card.__cleanupVideoListeners = () => {
       card.removeEventListener("mouseenter", onMouseEnter);
       card.removeEventListener("mouseleave", onMouseLeave);
+      if (thumb.__mjrHoverTimer) {
+        clearTimeout(thumb.__mjrHoverTimer);
+        thumb.__mjrHoverTimer = null;
+      }
     };
+  };
+
+  if (kind === "image") {
+    const img = document.createElement("img");
+    img.loading = "lazy";
+    img.src = file.url || buildViewUrl(file);
+    img.style.width = "100%";
+    img.style.height = "100%";
+    img.style.objectFit = "cover";
+    thumb.appendChild(img);
+  } else if (kind === "video") {
+    // No server-side thumbs: use inline video preview with hover debounce
+    attachVideoPreview();
 
     const playIcon = document.createElement("i");
     playIcon.className = "pi pi-play";

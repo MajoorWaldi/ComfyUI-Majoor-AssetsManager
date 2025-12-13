@@ -4,6 +4,7 @@ from folder_paths import get_output_directory
 
 OUTPUT_ROOT = get_output_directory()
 THUMB_SIZE = (320, 320)
+THUMB_CACHE_DIR = os.path.join(OUTPUT_ROOT, "_mjr_thumbs")
 
 # Sidecar JSON files are optional; default to Windows metadata on Windows
 _DEFAULT_SIDECAR = platform.system().lower() != "windows"
@@ -21,3 +22,4 @@ else:
 METADATA_EXT = ".mjr.json"
 COLLECTIONS_DIR = os.path.join(OUTPUT_ROOT, "_mjr_collections")
 os.makedirs(COLLECTIONS_DIR, exist_ok=True)
+os.makedirs(THUMB_CACHE_DIR, exist_ok=True)
