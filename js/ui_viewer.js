@@ -12,8 +12,8 @@ import {
   mjrSettings,
   mjrShowToast,
   mjrSaveSettings,
-  mjrGlobalState,
 } from "./ui_settings.js";
+import { mjrGlobalState } from "./mjr_global.js";
 
 export const mjrViewerState = { overlay: null, frame: null, abCleanup: null, resetView: null };
 export const mjrViewerNav = { prev: null, next: null };
@@ -62,44 +62,63 @@ function mjrCaptureVideoThumb(file, imgEl) {
   }
 
   const promise = new Promise((resolve) => {
-    const video = document.createElement("video");
-    video.muted = true;
-    video.playsInline = true;
-    video.preload = "auto";
-    video.crossOrigin = "anonymous";
-    video.src = buildViewUrl(file);
+    const proceedVideoCapture = () => {
+      const video = document.createElement("video");
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = "auto";
+      video.crossOrigin = "anonymous";
+      video.src = buildViewUrl(file);
 
-    let timeout = null;
-    const cleanup = (res) => {
-      if (timeout) clearTimeout(timeout);
-      video.onloadeddata = null;
-      video.onerror = null;
-      video.src = "";
-      resolve(res || null);
+      let timeout = null;
+      const cleanup = (res) => {
+        if (timeout) clearTimeout(timeout);
+        video.onloadeddata = null;
+        video.onerror = null;
+        video.src = "";
+        resolve(res || null);
+      };
+
+      video.onloadeddata = () => {
+        try {
+          const w = video.videoWidth || 0;
+          const h = video.videoHeight || 0;
+          if (!w || !h) return cleanup(null);
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return cleanup(null);
+          ctx.drawImage(video, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL("image/png");
+          mjrThumbCache.set(key, dataUrl);
+          if (imgEl) imgEl.src = dataUrl;
+          cleanup(dataUrl);
+        } catch (_) {
+          cleanup(null);
+        }
+      };
+
+      video.onerror = () => cleanup(null);
+      timeout = setTimeout(() => cleanup(null), 3000);
     };
 
-    video.onloadeddata = () => {
-      try {
-        const w = video.videoWidth || 0;
-        const h = video.videoHeight || 0;
-        if (!w || !h) return cleanup(null);
-        const canvas = document.createElement("canvas");
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return cleanup(null);
-        ctx.drawImage(video, 0, 0, w, h);
-        const dataUrl = canvas.toDataURL("image/png");
-        mjrThumbCache.set(key, dataUrl);
-        if (imgEl) imgEl.src = dataUrl;
-        cleanup(dataUrl);
-      } catch (_) {
-        cleanup(null);
-      }
-    };
+    const serverThumb = mjrFileThumbUrl(file);
+    if (serverThumb) {
+      const probeImg = new Image();
+      probeImg.onload = () => {
+        mjrThumbCache.set(key, serverThumb);
+        if (imgEl) imgEl.src = serverThumb;
+        resolve(serverThumb);
+      };
+      probeImg.onerror = () => {
+        proceedVideoCapture();
+      };
+      probeImg.src = serverThumb;
+      return;
+    }
 
-    video.onerror = () => cleanup(null);
-    timeout = setTimeout(() => cleanup(null), 3000);
+    proceedVideoCapture();
   });
 
   mjrThumbPromises.set(key, promise);
@@ -556,15 +575,22 @@ export function mjrCreateViewerPane(file) {
   });
   infoBar.textContent = file.name || file.filename || "(unnamed)";
 
-  const { el } = mjrCreateMediaElement(file);
+  const { el, kind } = mjrCreateMediaElement(file);
 
-  // Zoom / dezoom with wheel
+  // Zoom / dezoom with wheel (images only)
+  const allowZoom = kind === "image";
   let scale = 1;
   const originX = 50;
   const originY = 50;
   let offsetX = 0;
   let offsetY = 0;
-  el.style.transformOrigin = `${originX}% ${originY}%`;
+  let resetZoomPan = () => {};
+  if (allowZoom) el.style.transformOrigin = `${originX}% ${originY}%`;
+  else {
+    zoomHud.style.display = "none";
+    el.style.transform = "none";
+    el.style.cursor = "default";
+  }
 
   const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
   const calcFitScale = () => {
@@ -579,7 +605,7 @@ export function mjrCreateViewerPane(file) {
   };
 
   const applyTransform = () => {
-    // Recentre offsets when zoom is reset
+    if (!allowZoom) return;
     if (scale <= 1) {
       offsetX = 0;
       offsetY = 0;
@@ -589,86 +615,90 @@ export function mjrCreateViewerPane(file) {
     zoomHud.textContent = `${Math.round(scale * 100)}%`;
   };
 
-  const resetZoomPan = () => {
-    scale = calcFitScale();
-    offsetX = 0;
-    offsetY = 0;
-    applyTransform();
-  };
-  // Make single-view reset accessible to global hotkeys
-  mjrViewerState.resetView = resetZoomPan;
-  const fitOnReady = () => resetZoomPan();
-  el.addEventListener?.("load", fitOnReady);
-  el.addEventListener?.("loadedmetadata", fitOnReady);
-
-  mediaWrap.addEventListener(
-    "wheel",
-    (ev) => {
-      ev.preventDefault();
-      const delta = ev.deltaY;
-      const factor = delta > 0 ? 0.9 : 1.1;
-      const rect = mediaWrap.getBoundingClientRect();
-      const px = ev.clientX - rect.left;
-      const py = ev.clientY - rect.top;
-      const prevScale = scale;
-      const newScale = clamp(scale * factor, 0.25, 10);
-
-      // Keep the point under cursor stable while zooming
-      const dx = (px - rect.width / 2 - offsetX) / prevScale;
-      const dy = (py - rect.height / 2 - offsetY) / prevScale;
-      offsetX = px - rect.width / 2 - newScale * dx;
-      offsetY = py - rect.height / 2 - newScale * dy;
-
-      scale = newScale;
+  if (allowZoom) {
+    resetZoomPan = () => {
+      scale = calcFitScale();
+      offsetX = 0;
+      offsetY = 0;
       applyTransform();
-    },
-    { passive: false }
-  );
+    };
+    // Make single-view reset accessible to global hotkeys
+    mjrViewerState.resetView = resetZoomPan;
+    const fitOnReady = () => resetZoomPan();
+    el.addEventListener?.("load", fitOnReady);
+    el.addEventListener?.("loadedmetadata", fitOnReady);
 
-  // Pan while zoomed
-  let dragging = false;
-  let dragStartX = 0;
-  let dragStartY = 0;
-  let dragOrigX = 0;
-  let dragOrigY = 0;
+    mediaWrap.addEventListener(
+      "wheel",
+      (ev) => {
+        ev.preventDefault();
+        const delta = ev.deltaY;
+        const factor = delta > 0 ? 0.9 : 1.1;
+        const rect = mediaWrap.getBoundingClientRect();
+        const px = ev.clientX - rect.left;
+        const py = ev.clientY - rect.top;
+        const prevScale = scale;
+        const newScale = clamp(scale * factor, 0.25, 10);
 
-  const onPointerMove = (ev) => {
-    if (!dragging) return;
-    const dx = ev.clientX - dragStartX;
-    const dy = ev.clientY - dragStartY;
-    offsetX = dragOrigX + dx;
-    offsetY = dragOrigY + dy;
-    applyTransform();
-  };
-  const stopDrag = () => {
-    if (!dragging) return;
-    dragging = false;
-    el.style.cursor = scale > 1 ? "grab" : "default";
-    window.removeEventListener("pointermove", onPointerMove);
-    window.removeEventListener("pointerup", stopDrag);
-    window.removeEventListener("pointercancel", stopDrag);
-  };
+        // Keep the point under cursor stable while zooming
+        const dx = (px - rect.width / 2 - offsetX) / prevScale;
+        const dy = (py - rect.height / 2 - offsetY) / prevScale;
+        offsetX = px - rect.width / 2 - newScale * dx;
+        offsetY = py - rect.height / 2 - newScale * dy;
 
-  mediaWrap.addEventListener("pointerdown", (ev) => {
-    if (ev.button !== 0) return;
-    if (scale <= 1) return;
-    ev.preventDefault();
-    try {
-      mediaWrap.setPointerCapture(ev.pointerId);
-    } catch (_) {}
-    dragging = true;
-    dragStartX = ev.clientX;
-    dragStartY = ev.clientY;
-    dragOrigX = offsetX;
-    dragOrigY = offsetY;
-    el.style.cursor = "grabbing";
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", stopDrag);
-    window.addEventListener("pointercancel", stopDrag);
-  });
+        scale = newScale;
+        applyTransform();
+      },
+      { passive: false }
+    );
 
-  // Reset zoom on double click
-  mediaWrap.addEventListener("dblclick", resetZoomPan);
+    // Pan while zoomed
+    let dragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let dragOrigX = 0;
+    let dragOrigY = 0;
+
+    const onPointerMove = (ev) => {
+      if (!dragging) return;
+      const dx = ev.clientX - dragStartX;
+      const dy = ev.clientY - dragStartY;
+      offsetX = dragOrigX + dx;
+      offsetY = dragOrigY + dy;
+      applyTransform();
+    };
+    const stopDrag = () => {
+      if (!dragging) return;
+      dragging = false;
+      el.style.cursor = scale > 1 ? "grab" : "default";
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", stopDrag);
+      window.removeEventListener("pointercancel", stopDrag);
+    };
+
+    mediaWrap.addEventListener("pointerdown", (ev) => {
+      if (ev.button !== 0) return;
+      if (scale <= 1) return;
+      ev.preventDefault();
+      try {
+        mediaWrap.setPointerCapture(ev.pointerId);
+      } catch (_) {}
+      dragging = true;
+      dragStartX = ev.clientX;
+      dragStartY = ev.clientY;
+      dragOrigX = offsetX;
+      dragOrigY = offsetY;
+      el.style.cursor = "grabbing";
+      window.addEventListener("pointermove", onPointerMove);
+      window.addEventListener("pointerup", stopDrag);
+      window.addEventListener("pointercancel", stopDrag);
+    });
+
+    // Reset zoom on double click
+    mediaWrap.addEventListener("dblclick", resetZoomPan);
+  } else {
+    mjrViewerState.resetView = null;
+  }
 
   mediaWrap.appendChild(el);
   // Hint overlay for controls
@@ -1484,4 +1514,3 @@ export function mjrUpdateViewerRatingDisplay(rating) {
     }
   }
 }
-

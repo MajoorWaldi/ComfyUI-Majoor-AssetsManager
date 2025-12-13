@@ -38,6 +38,15 @@ _META_CACHE: Dict[str, tuple[Optional[float], int, dict]] = {}
 _CACHE_EPOCH = 0
 
 
+def _force_sidecar_enabled() -> bool:
+    val = str(os.environ.get("MJR_FORCE_SIDECAR", "0")).lower()
+    return val in ("1", "true", "yes", "on")
+
+
+def _sidecar_allowed_for(path: str) -> bool:
+    return ENABLE_JSON_SIDECAR or _force_sidecar_enabled()
+
+
 def _normalize_label(text) -> str:
     try:
         normalized = unicodedata.normalize("NFKD", str(text or ""))
@@ -260,7 +269,12 @@ def set_windows_metadata(file_path: str, rating: int, tags: list) -> bool:
 
         # Rating (scale 1-99); Windows 5-star uses 1-5, but accepting broader range
         if rating is not None:
-            rating_val = max(0, min(99, int(rating)))
+            try:
+                r_int = int(rating)
+            except Exception:
+                r_int = 0
+            star_to_percent = {1: 1, 2: 25, 3: 50, 4: 75, 5: 99}
+            rating_val = max(0, min(99, star_to_percent.get(r_int, r_int)))
             folder.GetDetailsOf(file, rating_idx)  # force index load
             folder.SetDetailsOf(file, rating_idx, str(rating_val))
 
@@ -349,7 +363,7 @@ def update_metadata_with_windows(file_path: str, updates: dict) -> dict:
     ok_win = set_windows_metadata(file_path, rating, target_tags)
     ok_exif = set_exif_metadata(file_path, rating, target_tags)
 
-    if ENABLE_JSON_SIDECAR:
+    if _sidecar_allowed_for(file_path):
         save_metadata(file_path, {"rating": rating, "tags": target_tags})
 
     effective_rating = rating if (ok_win or ok_exif) else current_rating
@@ -400,6 +414,20 @@ def get_system_metadata(file_path: str) -> dict:
         return meta
 
     meta = get_windows_metadata(file_path)
+    if (meta.get("rating") or meta.get("tags")) and not (meta.get("rating") == 0 and not meta.get("tags")):
+        _META_CACHE[file_path] = (mtime, _CACHE_EPOCH, meta)
+        return meta
+
+    # Sidecar fallback only when enabled/forced
+    if _sidecar_allowed_for(file_path):
+        sidecar = load_metadata(file_path)
+        if sidecar:
+            r = sidecar.get("rating", 0)
+            t = sidecar.get("tags", [])
+            meta = {"rating": r if isinstance(r, int) else 0, "tags": t if isinstance(t, list) else []}
+            _META_CACHE[file_path] = (mtime, _CACHE_EPOCH, meta)
+            return meta
+
     _META_CACHE[file_path] = (mtime, _CACHE_EPOCH, meta)
     return meta
 
@@ -425,7 +453,7 @@ def is_image(fname: str):
     return f.endswith(IMAGE_EXTS)
 
 def metadata_path(image_path: str):
-    if not ENABLE_JSON_SIDECAR:
+    if not _sidecar_allowed_for(image_path):
         return None
     return image_path + METADATA_EXT
 

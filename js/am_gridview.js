@@ -8,7 +8,7 @@ import {
   CARD_STYLES,
   mjrSettings,
 } from "./ui_settings.js";
-import { renderBadges, createFileThumb, updateCardSelectionStyle, handleDragStart, updateCardVisuals } from "./am_cards.js";
+import { createFileThumb, updateCardSelectionStyle, updateCardVisuals, resolveWorkflowState, handleDragStart } from "./am_cards.js";
 import { mjrOpenABViewer, mjrOpenViewerForFiles } from "./ui_viewer.js";
 
 /**
@@ -68,12 +68,11 @@ export function createGridView(deps) {
       "border-color 0.12s ease, box-shadow 0.12s ease, background 0.12s ease";
     card.style.width = "100%";
 
-    renderBadges(card, rating, tags);
-
     const thumb = createFileThumb(kind, ext, file, card);
     thumb.style.width = "100%";
     thumb.style.aspectRatio = "1 / 1";
     thumb.style.height = "auto";
+    updateCardVisuals(card, file);
 
     const meta = createEl("div", "mjr-fm-meta");
     meta.style.padding = "6px";
@@ -104,7 +103,9 @@ export function createGridView(deps) {
     const currentFile = () => card.__mjrFile || file;
 
     card.draggable = true;
-    card.addEventListener("dragstart", (ev) => handleDragStart(currentFile(), ev));
+    if (kind === "video") {
+      card.addEventListener("dragstart", (ev) => handleDragStart(currentFile(), ev));
+    }
 
     card.addEventListener("mouseenter", () => {
       if (!state.selected.has(key)) {
@@ -276,7 +277,8 @@ export function createGridView(deps) {
       const showRating = mjrSettings.grid.showRating ? 1 : 0;
       const showTags = mjrSettings.grid.showTags ? 1 : 0;
 
-      return `${rating}|${tags.length ? tags.join(",") : ""}|${file.mtime || ""}|${showRating}|${showTags}`;
+      const wfState = resolveWorkflowState(file);
+      return `${rating}|${tags.length ? tags.join(",") : ""}|${file.mtime || ""}|${showRating}|${showTags}|wf:${wfState}`;
     };
 
     const orderedElements = visibleFiles.map((file) => {

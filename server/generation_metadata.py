@@ -1,6 +1,11 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import shutil
+import os
+import base64
+import urllib.parse
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
@@ -9,9 +14,10 @@ try:
 except Exception:  # Pillow non dispo -> pas de parsing PNG
     Image = None
 try:
-    from .utils import load_metadata  # type: ignore
+    from .utils import load_metadata, _get_exiftool_path  # type: ignore
 except Exception:
     load_metadata = None  # sidecar fallback option
+    _get_exiftool_path = None
 
 
 # Samplers treated as source of truth (lowercase)
@@ -94,6 +100,225 @@ def _extract_link_node_id(val: Any) -> Optional[str]:
     return None
 
 
+def _balanced_json_from_text(text: str, start_idx: int, max_chars: int = 2_000_000) -> Optional[str]:
+    """
+    Simple balanced-brace scanner starting at `start_idx` (expected to be '{').
+    Stops when depth returns to zero or when exceeding `max_chars`.
+    Ignores braces inside quoted strings.
+    """
+    if start_idx < 0 or start_idx >= len(text) or text[start_idx] != "{":
+        return None
+
+    depth = 0
+    in_str = False
+    escape = False
+    limit = min(len(text), start_idx + max_chars)
+
+    for i in range(start_idx, limit):
+        ch = text[i]
+        if in_str:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_str = False
+            continue
+
+        if ch == '"':
+            in_str = True
+            continue
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start_idx : i + 1]
+    return None
+
+
+def _extract_json_from_video(path: Path) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+    """
+    Extract prompt/workflow JSON from a video container using exiftool.
+    Returns (prompt_graph, raw_workflow).
+    """
+    exe = _get_exiftool_path() if callable(_get_exiftool_path) else None
+    found_prompt = None
+    found_workflow = None
+
+    try:
+        exif_timeout = float(os.environ.get("MJR_META_EXIFTOOL_TIMEOUT", "6"))
+    except Exception:
+        exif_timeout = 6.0
+    exif_timeout = max(1.0, min(exif_timeout, 30.0))
+
+    def parse_vhs_json(json_str: str):
+        nonlocal found_prompt, found_workflow
+        try:
+            payload = json.loads(json_str)
+            if not isinstance(payload, dict):
+                return
+            if "workflow" in payload:
+                wf = payload["workflow"]
+                if isinstance(wf, str):
+                    wf = _ensure_dict_from_json(wf)
+                if isinstance(wf, dict) and wf.get("nodes"):
+                    found_workflow = wf
+            if "prompt" in payload:
+                pr = payload["prompt"]
+                if isinstance(pr, str):
+                    pr = _ensure_dict_from_json(pr)
+                if isinstance(pr, dict):
+                    first = next(iter(pr.values()), None)
+                    if isinstance(first, dict) and "inputs" in first:
+                        found_prompt = pr
+        except Exception:
+            pass
+
+    def recursive_scan(obj):
+        nonlocal found_prompt, found_workflow
+        if found_prompt and found_workflow:
+            return
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                key_norm = str(k).lower()
+                if key_norm in ("comment", "usercomment", "description", "userdata", "user_data", "xmp:comment", "xmp:description"):
+                    if isinstance(v, str) and v.strip().startswith("{"):
+                        parse_vhs_json(v)
+                else:
+                    if isinstance(v, str) and v.strip().startswith("{"):
+                        parse_vhs_json(v)
+                    elif isinstance(v, (dict, list)):
+                        recursive_scan(v)
+            return
+        if isinstance(obj, list):
+            for v in obj:
+                recursive_scan(v)
+            return
+        if isinstance(obj, str):
+            if obj.strip().startswith("{"):
+                parse_vhs_json(obj)
+
+    # Prefer ffprobe first (fast for Comment tag), then a light exiftool pass, then heavy exiftool
+    if not found_prompt and not found_workflow:
+        ffprobe = shutil.which("ffprobe")
+        if ffprobe:
+            try:
+                cmd = [
+                    ffprobe,
+                    "-v",
+                    "error",
+                    "-print_format",
+                    "json",
+                    "-show_entries",
+                    "format_tags:stream_tags",
+                    str(path),
+                ]
+                out = subprocess.check_output(cmd, stderr=subprocess.DEVNULL, timeout=4)
+                data = json.loads(out) if out else {}
+                tags = (data.get("format") or {}).get("tags") or {}
+                recursive_scan(tags)
+                for stream in data.get("streams") or []:
+                    recursive_scan(stream.get("tags") or {})
+            except subprocess.TimeoutExpired:
+                print(f"[Majoor] ffprobe timeout on {path.name}")
+            except Exception as e:
+                print(f"[Majoor] ffprobe error on {path.name}: {e}")
+
+    if exe and not (found_prompt and found_workflow):
+        # Light pass: only common comment/description buckets
+        try:
+            cmd = [
+                exe,
+                "-j",
+                "-Comment",
+                "-UserComment",
+                "-Description",
+                "-XPComment",
+                "-ItemList:Comment",
+                "-ItemList:Description",
+                "-ItemList:UserComment",
+                str(path),
+            ]
+            out = subprocess.check_output(cmd, stderr=subprocess.DEVNULL, timeout=exif_timeout)
+            data_list = json.loads(out) if out else []
+            if data_list:
+                recursive_scan(data_list[0])
+        except subprocess.TimeoutExpired:
+            print(f"[Majoor] ExifTool (light) timeout on {path.name} after {exif_timeout}s")
+        except Exception:
+            pass
+
+    # Heavy ExifTool fallback with -ee if still nothing
+    if exe and not (found_prompt and found_workflow):
+        try:
+            cmd = [exe, "-j", "-g", "-ee", str(path)]
+            out = subprocess.check_output(cmd, stderr=subprocess.DEVNULL, timeout=exif_timeout)
+            data_list = json.loads(out) if out else []
+            if data_list:
+                recursive_scan(data_list[0])
+        except subprocess.TimeoutExpired:
+            print(f"[Majoor] ExifTool timeout on {path.name} after {exif_timeout}s")
+        except Exception as e:
+            print(f"[Majoor] ExifTool error on {path.name}: {e}")
+
+    # Final fallback: scan binary for embedded JSON (when exiftool/ffprobe are unavailable)
+    if not found_prompt and not found_workflow:
+        try:
+            size = path.stat().st_size
+        except Exception:
+            size = 0
+
+        # Read head + tail to stay fast on large videos
+        try:
+            scan_budget = int(os.environ.get("MJR_META_SCAN_BYTES", str(1 * 1024 * 1024)))
+        except Exception:
+            scan_budget = 1 * 1024 * 1024
+        scan_budget = max(512 * 1024, min(scan_budget, 16 * 1024 * 1024))  # clamp between 512KB and 16MB
+        blob = b""
+        try:
+            with open(path, "rb") as f:
+                head = f.read(scan_budget)
+                blob += head
+                if size > scan_budget:
+                    try:
+                        f.seek(max(0, size - scan_budget))
+                        tail = f.read(scan_budget)
+                        blob += tail
+                    except Exception:
+                        pass
+        except Exception as e:
+            print(f"[Majoor] raw scan failed for {path.name}: {e}")
+            blob = b""
+
+        if blob:
+            try:
+                text_blob = blob.decode("utf-8", errors="ignore")
+            except Exception:
+                text_blob = ""
+
+            if text_blob:
+                keywords = ['"prompt"', '"workflow"', '"nodes"']
+                for kw in keywords:
+                    pos = text_blob.find(kw)
+                    while pos != -1 and not (found_prompt and found_workflow):
+                        start = text_blob.rfind("{", 0, pos)
+                        if start == -1:
+                            pos = text_blob.find(kw, pos + len(kw))
+                            continue
+                        candidate = _balanced_json_from_text(text_blob, start)
+                        if candidate:
+                            parse_vhs_json(candidate)
+                            if found_prompt and found_workflow:
+                                break
+                        pos = text_blob.find(kw, pos + len(kw))
+
+    if found_workflow and not found_prompt:
+        found_prompt = _normalize_workflow_to_prompt_graph(found_workflow)
+
+    return found_prompt, found_workflow
+
+
 # --------- Lecture du graph PROMPT depuis le PNG ---------
 
 
@@ -101,6 +326,8 @@ def _normalize_workflow_to_prompt_graph(workflow: Any) -> Optional[Dict[str, Any
     """
     Convert a workflow (dict with 'nodes': [...]) into an id->node map for parsing.
     """
+    if workflow is None:
+        return None
     if isinstance(workflow, dict) and isinstance(workflow.get("nodes"), list):
         nodes_map: Dict[str, Any] = {}
         for n in workflow.get("nodes", []):
@@ -308,14 +535,17 @@ def _normalize_workflow_dict(wf: Dict[str, Any]) -> Dict[str, Any]:
 def load_prompt_graph_from_png(path: str | Path) -> Optional[Dict[str, Any]]:
     """
     Load the 'prompt' graph stored in ComfyUI PNG metadata.
-    - Assumes ComfyUI wrote a 'prompt' field (backend graph format).
-    - No fallback: if 'prompt' is missing, return None.
+    Also supports video containers (MP4/MOV/WEBM/MKV) via exiftool.
     """
-    if Image is None:
-        return None
-
     p = Path(path)
     if not p.exists():
+        return None
+
+    if p.suffix.lower() in {".mp4", ".mov", ".webm", ".mkv"}:
+        pg, _ = _extract_json_from_video(p)
+        return pg
+
+    if Image is None:
         return None
 
     img = Image.open(p)
@@ -375,13 +605,18 @@ def load_prompt_graph_from_png(path: str | Path) -> Optional[Dict[str, Any]]:
 def load_raw_workflow_from_png(path: str | Path) -> Optional[Dict[str, Any]]:
     """
     Retrieve the raw workflow (as exported by ComfyUI) if present in PNG metadata.
+    Also supports video containers via exiftool.
     No normalization: return as-is so the frontend can load it.
     """
-    if Image is None:
-        return None
-
     p = Path(path)
     if not p.exists():
+        return None
+
+    if p.suffix.lower() in {".mp4", ".mov", ".webm", ".mkv"}:
+        _, wf = _extract_json_from_video(p)
+        return wf
+
+    if Image is None:
         return None
 
     img = Image.open(p)
@@ -710,6 +945,7 @@ def extract_generation_params_from_prompt_graph(
         "vae": vae_name,
         "loras": loras,
         "workflow": workflow,
+        "has_workflow": True,  # prompt graph present => mark as available
     }
     return result
 
@@ -730,7 +966,7 @@ def extract_generation_params_from_png(path: str | Path) -> Dict[str, Any]:
     """
     Read all generation info from a ComfyUI output.
 
-    - If path is an MP4, look for the PNG sibling (same name, .png).
+    - If path is a video, read prompt/workflow directly from the container (no PNG sibling).
     - Read the 'prompt' graph from PNG metadata.
     - Choose a sampler (KSampler / SamplerCustom / WAN...).
     - Walk the 'model' chain and the positive/negative branches.
@@ -739,23 +975,22 @@ def extract_generation_params_from_png(path: str | Path) -> Dict[str, Any]:
 
     original_ext = p.suffix.lower()
 
-    # MP4 -> PNG sibling
-    if original_ext == ".mp4":
-        png_sibling = p.with_suffix(".png")
-        target = png_sibling
-    else:
-        target = p
-
-    if not target.exists():
+    if not p.exists():
         return {}
 
-    raw_workflow = load_raw_workflow_from_png(target)
-    prompt_graph = load_prompt_graph_from_png(target)
+    raw_workflow = None
+    prompt_graph = None
+
+    if original_ext in {".mp4", ".mov", ".webm", ".mkv"}:
+        prompt_graph, raw_workflow = _extract_json_from_video(p)
+    else:
+        raw_workflow = load_raw_workflow_from_png(p)
+        prompt_graph = load_prompt_graph_from_png(p)
+
     if prompt_graph is None and load_metadata is not None:
         try:
-            side_meta = load_metadata(str(target))
+            side_meta = load_metadata(str(p))
             if isinstance(side_meta, dict):
-                # accepte 'prompt' ou 'workflow' dans le sidecar
                 prompt = _ensure_dict_from_json(side_meta.get("prompt"))
                 if prompt is not None:
                     prompt_graph = prompt
@@ -767,6 +1002,7 @@ def extract_generation_params_from_png(path: str | Path) -> Dict[str, Any]:
                             raw_workflow = wf_raw
         except Exception:
             prompt_graph = None
+
     if not prompt_graph:
         return {}
 
@@ -776,3 +1012,39 @@ def extract_generation_params_from_png(path: str | Path) -> Dict[str, Any]:
         raw_workflow=raw_workflow,
         reconstruct_allowed=reconstruct_allowed,
     )
+
+
+def has_generation_workflow(path: str | Path) -> bool:
+    """
+    Lightweight presence check for generation workflow/prompt.
+    Avoids reconstruction; just detects whether metadata contains a prompt/workflow.
+    """
+    p = Path(path)
+    if not p.exists():
+        return False
+
+    ext = p.suffix.lower()
+    prompt_graph = None
+    raw_workflow = None
+
+    if ext in {".mp4", ".mov", ".webm", ".mkv"}:
+        prompt_graph, raw_workflow = _extract_json_from_video(p)
+    else:
+        raw_workflow = load_raw_workflow_from_png(p)
+        prompt_graph = load_prompt_graph_from_png(p)
+
+    if prompt_graph or raw_workflow:
+        return True
+
+    if load_metadata is not None:
+        try:
+            side_meta = load_metadata(str(p))
+            if isinstance(side_meta, dict):
+                pr = _ensure_dict_from_json(side_meta.get("prompt"))
+                wf = _ensure_dict_from_json(side_meta.get("workflow"))
+                if (isinstance(pr, dict) and pr) or (isinstance(wf, dict) and wf):
+                    return True
+        except Exception:
+            pass
+
+    return False

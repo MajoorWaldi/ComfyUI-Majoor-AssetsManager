@@ -44,23 +44,29 @@ export function buildViewUrl(file) {
 export const BADGE_STYLES = {
   rating: {
     position: "absolute",
-    top: "5px",
-    right: "5px",
+    top: "4px",
+    right: "4px",
     backgroundColor: "rgba(0, 0, 0, 0.7)",
     color: "#ffd45a",
-    padding: "2px 6px",
+    padding: "1px 5px",
     zIndex: "5",
     pointerEvents: "none",
+    fontSize: "0.75rem",
   },
   tags: {
     position: "absolute",
-    bottom: "5px",
-    right: "5px",
+    top: "23px",
+    right: "4px",
     backgroundColor: "rgba(0, 0, 0, 0.7)",
     color: "#fff",
-    padding: "2px 6px",
+    padding: "1px 5px",
     zIndex: "5",
     pointerEvents: "none",
+    fontSize: "0.65rem",
+    maxWidth: "60%",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
   },
 };
 
@@ -234,8 +240,3 @@ export function mjrAttachHoverFeedback(el, message, delay = 3000) {
 
 // Trigger prefetch at startup
 mjrPrefetchOutputs();
-
-// Shared global state to avoid circular import issues
-export const mjrGlobalState = {
-  instances: new Set(),
-};
