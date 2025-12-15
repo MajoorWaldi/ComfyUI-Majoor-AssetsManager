@@ -6,6 +6,8 @@ import folder_paths
 from server import PromptServer
 from .utils import (
     classify_ext,
+    get_system_metadata,
+    load_metadata,
     set_windows_metadata,
     set_exif_metadata,
     _get_exiftool_path,
@@ -42,10 +44,34 @@ def _iter_generated_files(output_data: Dict[str, Any]) -> List[str]:
     return files
 
 
+def _is_missing_meta(meta: Dict[str, Any]) -> bool:
+    """
+    Determine if metadata is missing (None) or effectively absent.
+    Treat explicit rating=0/tags=[] as present unless both are empty and no source hints.
+    """
+    if not isinstance(meta, dict):
+        return True
+    rating = meta.get("rating")
+    tags = meta.get("tags")
+    if rating is None or tags is None:
+        return True
+    if rating == 0 and (tags == [] or tags is None):
+        # consider missing only if nothing else in meta hints at a source
+        return True
+    return False
+
+
 def _apply_default_metadata(file_path: str):
     """
-    Apply default rating/tags to a generated file (video/image).
+    Apply default rating/tags to a generated file (video/image) if missing.
+    Idempotent: never overwrites user-set rating/tags.
     """
+    try:
+        if not str(os.environ.get("MJR_PRIME_METADATA", "0")).lower() in ("1", "true", "yes", "on"):
+            return
+    except Exception:
+        return
+
     filename_lower = os.path.basename(file_path).lower()
     kind = classify_ext(filename_lower)
     if kind not in ("video", "image"):
@@ -55,20 +81,26 @@ def _apply_default_metadata(file_path: str):
         return
 
     try:
+        existing = get_system_metadata(file_path) or load_metadata(file_path) or {}
+        if not _is_missing_meta(existing):
+            return
+
+        current_rating = existing.get("rating")
+        current_tags = existing.get("tags")
+        default_rating = 0 if current_rating is None else current_rating
+        default_tags = ["ComfyUI"] if current_tags is None else current_tags
+
         try:
-            set_windows_metadata(file_path, 0, ["ComfyUI"])
+            set_windows_metadata(file_path, default_rating, default_tags)
         except Exception:
-            # Silently ignore to avoid breaking execution
             pass
 
         if _get_exiftool_path():
             try:
-                set_exif_metadata(file_path, 0, ["ComfyUI"])
+                set_exif_metadata(file_path, default_rating, default_tags)
             except Exception:
-                # Ignore exiftool write errors
                 pass
     except Exception:
-        # Final guard to keep ComfyUI running even if unexpected errors occur
         pass
 
 
@@ -104,8 +136,11 @@ def on_executed(prompt_id, node_id, output_data):
         print(f"[Majoor Hook Error] {e}")
 
 
-# Register hook once
+# Register hook once (only if supported)
 try:
-    PromptServer.instance.add_on_executed(on_executed)
+    if hasattr(PromptServer.instance, "add_on_executed"):
+        PromptServer.instance.add_on_executed(on_executed)
+    else:
+        print("[Majoor] add_on_executed not available on PromptServer (legacy frontend); hook disabled.")
 except Exception as e:
     print(f"[Majoor] Failed to register on_executed hook: {e}")

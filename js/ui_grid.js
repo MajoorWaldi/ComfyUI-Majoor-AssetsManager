@@ -1,37 +1,9 @@
-import { app } from "../../scripts/app.js";
-import { api } from "../../scripts/api.js";
-import {
-  applyStyles,
-  BADGE_STYLES,
-  buildViewUrl,
-  CARD_STYLES,
-  CONTEXT_MENU_STYLES,
-  createEl,
-  detectKindFromExt,
-  getBaseName,
-  getExt,
-  mjrAttachHoverFeedback,
-  mjrCardBasePx,
-  mjrDeepMerge,
-  mjrPrefetchedFiles,
-  mjrSaveSettings,
-  mjrSettings,
-  mjrSettingsDefaults,
-  mjrShowToast,
-  setMjrSettings,
-} from "./ui_settings.js";
+import { app } from "../../../../scripts/app.js";
+import { api } from "../../../../scripts/api.js";
+import { createEl, mjrAttachHoverFeedback, mjrCardBasePx, mjrDeepMerge, mjrSaveSettings, mjrSettings, mjrSettingsDefaults, mjrShowToast, setMjrSettings, detectKindFromExt } from "./ui_settings.js";
 import { mjrGlobalState } from "./mjr_global.js";
-import { createInitialState, fileKey } from "./am_state.js";
-import {
-  mjrRefreshDefaults,
-  mergeLoadOpts,
-  normalizeRefreshOptions,
-  mergeRefreshOptions,
-  sortFilesDeterministically,
-  loadFiles as fmLoadFiles,
-  createRefreshInstance,
-} from "./am_data.js";
-import { SMART_FILTERS, normalizeMtimeValue } from "./am_filters.js";
+import { fileKey } from "./am_state.js";
+import { SMART_FILTERS } from "./am_filters.js";
 import { mjrCreateContextMenu } from "./am_context_menu.js";
 import {
   mjrOpenABViewer,
@@ -41,144 +13,33 @@ import {
 } from "./ui_viewer.js";
 import { createMetadataSidebar } from "./ui_sidebar.js";
 import { createGridView } from "./am_gridview.js";
+import {
+  ensureGlobalAutoRefresh,
+  ensureNewFilesListener,
+  ensureQueueListener,
+  ensureWorkflowDropHandler,
+  mjrFetchFileAsDataTransferFile,
+  mjrDispatchSyntheticDrop,
+  mjrStartAutoRefreshTimer,
+  mjrIsOurDrag,
+} from "./grid/events.js";
+import { createMetadataFetcher } from "./grid/fetch.js";
+import { initManagerState, populateCollectionsOptions } from "./grid/state.js";
+import { createApplyFilterAndRender } from "./grid/render.js";
+import { createRefreshController } from "./grid/load.js";
 
 // ---------------------------------------------------------------------------
 // Majoor Assets Manager globals + hotkeys
 // ---------------------------------------------------------------------------
 
 let mjrMetaVisible = !!mjrSettings.metaPanel.showByDefault;
-let mjrGlobalRefreshTimer = null;
-let mjrFocusListenerAttached = false;
-let mjrWorkflowDropBound = false;
-let mjrLastDragFile = null;
-let mjrRefreshMs = mjrSettings.autoRefresh.interval || 5000;
-let mjrQueueListenerBound = false;
-let mjrNewFilesListenerBound = false;
-let metadataAbortCtrl = null;
-
-async function mjrFetchFileAsDataTransferFile(info) {
-  const url = buildViewUrl(info);
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const blob = await res.blob();
-    const name = info.filename || info.name || "file";
-    return new File([blob], name, { type: blob.type || "application/octet-stream" });
-  } catch {
-    return null;
-  }
-}
-
-function mjrDispatchSyntheticDrop(target, file) {
-  if (!target || !file) return;
-  try {
-    const dt = new DataTransfer();
-    dt.items.add(file);
-    const evt = new DragEvent("drop", {
-      bubbles: true,
-      cancelable: true,
-      dataTransfer: dt,
-    });
-    target.dispatchEvent(evt);
-  } catch (err) {
-    console.warn("[Majoor.AssetsManager] synthetic drop failed", err);
-  }
-}
-
-const fileManagerStore = {
-  addNewGeneratedFiles(newFiles = []) {
-    if (!Array.isArray(newFiles) || !newFiles.length) return;
-    const now = Date.now();
-
-    mjrGlobalState.instances.forEach((inst) => {
-      const state = inst.state;
-      if (!state || !Array.isArray(state.files)) return;
-
-      const existingKeys = new Set(
-        state.files.map((f) => `${f.subfolder || ""}/${f.filename || f.name || ""}`)
-      );
-
-      let added = false;
-      newFiles.forEach((nf) => {
-        const filename = nf?.filename;
-        if (!filename || nf?.type !== "output") return;
-        const subfolder = nf.subfolder || "";
-        const key = `${subfolder}/${filename}`;
-        if (existingKeys.has(key)) return;
-
-        const ext = getExt(filename) || "";
-        const kind = detectKindFromExt(ext);
-        const fileObj = {
-          filename,
-          name: filename,
-          subfolder,
-          ext,
-          kind,
-          mtime: now,
-          size: 0,
-          url: buildViewUrl({ filename, subfolder }),
-          promptId: nf.promptId,
-          nodeId: nf.nodeId,
-        };
-
-        state.files.push(fileObj);
-        existingKeys.add(key);
-        added = true;
-      });
-
-      if (added) {
-        sortFilesDeterministically(state.files);
-        if (typeof inst.applyFilterAndRender === "function") {
-          inst.applyFilterAndRender();
-        }
-      }
-    });
-  },
-};
-
-let mjrGlobalRefreshPromise = null;
-let mjrGlobalRefreshPending = null;
-
-function refreshAllInstances(optionsOrSilent = true, force = false) {
-  const opts = normalizeRefreshOptions(optionsOrSilent, force);
-  if (mjrGlobalRefreshPromise) {
-    mjrGlobalRefreshPending = mergeRefreshOptions(mjrGlobalRefreshPending, opts);
-    return mjrGlobalRefreshPromise;
-  }
-
-  const run = async () => {
-    const instances = Array.from(mjrGlobalState.instances);
-    for (const inst of instances) {
-      try {
-        if (typeof inst.refresh === "function") {
-          await inst.refresh(opts);
-        } else if (typeof inst.loadFiles === "function") {
-          await inst.loadFiles(opts.silent, opts.forceFiles, { skipMetadataFetch: false });
-        }
-      } catch (err) {
-        console.warn("[Majoor.AssetsManager] refresh failed for an instance", err);
-        if (!opts.silent) mjrShowToast("warn", "Auto refresh failed", "Warning");
-      }
-    }
-  };
-
-  mjrGlobalRefreshPromise = run().finally(() => {
-    const pending = mjrGlobalRefreshPending;
-    mjrGlobalRefreshPending = null;
-    mjrGlobalRefreshPromise = null;
-    if (pending) {
-      refreshAllInstances(pending);
-    }
-  });
-
-  return mjrGlobalRefreshPromise;
-}
+let refreshAllInstances = () => Promise.resolve();
 
 function mjrApplySettings(newSettings) {
   setMjrSettings(mjrDeepMerge(mjrSettingsDefaults, newSettings || {}));
   mjrSaveSettings(mjrSettings);
   mjrMetaVisible = !!mjrSettings.metaPanel.showByDefault;
-  mjrStartAutoRefreshTimer();
+  mjrStartAutoRefreshTimer(refreshAllInstances);
   mjrUpdateNavVisibility();
 
   // Re-render grids with new sizing/badges/filters
@@ -198,197 +59,9 @@ function mjrApplySettings(newSettings) {
   refreshAllInstances({ silent: true, forceFiles: false });
 }
 
-function mjrStartAutoRefreshTimer() {
-  if (mjrGlobalRefreshTimer) {
-    clearInterval(mjrGlobalRefreshTimer);
-    mjrGlobalRefreshTimer = null;
-  }
-  if (!mjrSettings.autoRefresh.enabled) return;
-
-  const mjrRefreshMs = Math.max(3000, Number(mjrSettings.autoRefresh.interval) || 5000);
-
-  mjrGlobalRefreshTimer = setInterval(() => {
-    if (mjrSettings.autoRefresh.focusOnly && !document.hasFocus()) return;
-    refreshAllInstances({ silent: true, metaOnly: true });
-  }, mjrRefreshMs);
-}
-
-function ensureGlobalAutoRefresh() {
-  mjrStartAutoRefreshTimer();
-  if (!mjrFocusListenerAttached) {
-    const onFocus = () => refreshAllInstances({ silent: true, metaOnly: true });
-    window.addEventListener("focus", onFocus);
-    mjrFocusListenerAttached = true;
-    return () => window.removeEventListener("focus", onFocus);
-  }
-  return () => {};
-}
-
-async function fetchHistory(promptId) {
-  try {
-    const url = `${location.origin}/history/${promptId}`;
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    return await res.json();
-  } catch (err) {
-    console.warn("[Majoor.AssetsManager] history fetch failed", err);
-    return null;
-  }
-}
-
-async function refreshAssetsForPrompt(promptId) {
-  const history = await fetchHistory(promptId);
-  if (!history) return 0;
-
-  const outputs = history.outputs || {};
-  const newFiles = [];
-  Object.entries(outputs).forEach(([nodeId, data]) => {
-    if (!data) return;
-    if (Array.isArray(data.images)) {
-      data.images.forEach((img) => {
-        if (!img || img.type !== "output") return;
-        newFiles.push({
-          filename: img.filename,
-          subfolder: img.subfolder,
-          type: img.type,
-          promptId,
-          nodeId,
-        });
-      });
-    }
-  });
-
-  if (newFiles.length > 0) {
-    fileManagerStore.addNewGeneratedFiles(newFiles);
-    mjrShowToast("success", `${newFiles.length} new file(s)`, "Generated");
-    return newFiles.length;
-  }
-  return 0;
-}
-
-function ensureWorkflowDropHandler() {
-  if (mjrWorkflowDropBound) return () => {};
-
-  const onDragOver = (ev) => {
-    const types = Array.from(ev.dataTransfer?.types || []);
-    if (!types.includes("application/x-mjr-sibling-file")) return;
-    ev.preventDefault();
-    ev.dataTransfer.dropEffect = "copy";
-  };
-
-  const onDrop = async (ev) => {
-    const types = Array.from(ev.dataTransfer?.types || []);
-    if (!types.includes("application/x-mjr-sibling-file")) return;
-    const target = ev.target;
-    const isGraph = target && typeof target.closest === "function" && target.closest(".graphcanvas");
-    if (!isGraph) return;
-
-    let info = null;
-    try {
-      const raw = ev.dataTransfer.getData("application/x-mjr-sibling-file");
-      if (raw) info = JSON.parse(raw);
-    } catch (_) { info = null; }
-    if (!info || !info.filename) return;
-
-    ev.preventDefault();
-    ev.stopPropagation();
-    if (typeof ev.stopImmediatePropagation === "function") ev.stopImmediatePropagation();
-
-    try {
-      const params = new URLSearchParams();
-      params.set("filename", info.filename);
-      if (info.subfolder) params.set("subfolder", info.subfolder);
-      const res = await api.fetchApi(`/mjr/filemanager/metadata?${params.toString()}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      if (data && data.ok && data.generation && data.generation.workflow) {
-        app.loadGraphData(data.generation.workflow);
-        mjrShowToast("info", "Workflow loaded from sibling PNG.", "Workflow");
-      } else {
-        mjrShowToast("warn", "No workflow found for this sibling.", "Workflow");
-      }
-    } catch (err) {
-      console.warn("[Majoor.AssetsManager] sibling workflow drop failed", err);
-      mjrShowToast("error", "Failed to load sibling workflow", "Workflow");
-    }
-  };
-
-  window.addEventListener("dragover", onDragOver, true);
-  window.addEventListener("drop", onDrop, true);
-  mjrWorkflowDropBound = true;
-
-  return () => {
-    window.removeEventListener("dragover", onDragOver, true);
-    window.removeEventListener("drop", onDrop, true);
-    mjrWorkflowDropBound = false;
-  };
-}
-
-function ensureQueueListener() {
-  if (mjrQueueListenerBound) return () => {};
-
-  const onExecutionSuccess = async (ev) => {
-    const promptId = ev?.detail?.prompt_id;
-    if (promptId) {
-      const added = await refreshAssetsForPrompt(promptId);
-      if (!added) {
-        refreshAllInstances({ silent: true, forceFiles: true });
-      }
-    }
-  };
-
-  api.addEventListener("execution_success", onExecutionSuccess);
-  mjrQueueListenerBound = true;
-
-  return () => {
-    api.removeEventListener("execution_success", onExecutionSuccess);
-    mjrQueueListenerBound = false;
-  };
-}
-
-function ensureNewFilesListener() {
-  if (mjrNewFilesListenerBound) return () => {};
-  const onNewFiles = (ev) => {
-    const files = ev?.detail?.files || ev?.data?.files || [];
-    if (!Array.isArray(files) || !files.length) return;
-    const mapped = files
-      .map((f) => {
-        const filename = f.filename || f.name;
-        if (!filename) return null;
-        const subfolder = f.subfolder || "";
-        const ext = getExt(filename) || "";
-        const kind = detectKindFromExt(ext);
-        return {
-          filename,
-          name: filename,
-          subfolder,
-          ext,
-          kind,
-          mtime: f.mtime || Date.now(),
-          size: 0,
-          url: buildViewUrl({ filename, subfolder }),
-          type: "output",
-        };
-      })
-      .filter(Boolean);
-    if (mapped.length) {
-      fileManagerStore.addNewGeneratedFiles(mapped);
-    }
-  };
-  api.addEventListener("mjr_new_files", onNewFiles);
-  mjrNewFilesListenerBound = true;
-  return () => {
-    api.removeEventListener("mjr_new_files", onNewFiles);
-    mjrNewFilesListenerBound = false;
-  };
-}
-
 function renderAssetsManager(root) {
   const cleanups = [];
-  cleanups.push(ensureWorkflowDropHandler());
-  cleanups.push(ensureQueueListener());
-  cleanups.push(ensureNewFilesListener());
-  cleanups.push(ensureGlobalAutoRefresh());
+  const cleanupsExternal = [];
 
   root.innerHTML = "";
   Object.assign(root.style, {
@@ -414,7 +87,7 @@ function renderAssetsManager(root) {
 
   const search = createEl("input", "mjr-fm-search");
   search.type = "search";
-  search.placeholder = "Search outputs…";
+  search.placeholder = "Search outputs...";
   Object.assign(search.style, { flex: "1", minWidth: "0", borderRadius: "6px", border: "1px solid var(--border-color, #333)", background: "var(--comfy-input-bg, #1b1b1b)", padding: "6px 8px", fontSize: "0.8rem", color: "var(--input-fg, #eee)" });
 
   const refreshBtn = createEl("button", "comfy-btn mjr-fm-refresh");
@@ -429,60 +102,27 @@ function renderAssetsManager(root) {
   const filterRow = createEl("div", "mjr-fm-filter-row");
   Object.assign(filterRow.style, { display: "flex", alignItems: "center", gap: "6px" });
 
-  const kindFilterSelect = createEl("select", "mjr-fm-filter-kind");
-  [["", "All"], ["image", "Images"], ["video", "Videos"], ["audio", "Audio"], ["model3d", "3D"]].forEach(([value, label]) => {
-    kindFilterSelect.add(new Option(label, value));
-  });
-
   const ratingFilter = createEl("select", "mjr-fm-filter-rating");
-  [["0", "All"], ["1", "★+"], ["2", "★★+"], ["3", "★★★+"], ["4", "★★★★+"], ["5", "★★★★★"]].forEach(([value, label]) => {
+  [["0", "All"], ["1", "*+"], ["2", "**+"], ["3", "***+"], ["4", "****+"], ["5", "*****"]].forEach(([value, label]) => {
     ratingFilter.add(new Option(label, value));
   });
 
   const tagFilterInput = createEl("input", "mjr-fm-filter-tag");
   tagFilterInput.type = "text";
-  tagFilterInput.placeholder = "Filter by tag…";
+  tagFilterInput.placeholder = "Filter by tag...";
   Object.assign(tagFilterInput.style, { flex: "1", minWidth: "0", borderRadius: "6px", border: "1px solid var(--border-color, #333)", background: "var(--comfy-input-bg, #1b1b1b)", padding: "4px 6px", fontSize: "0.8rem", color: "var(--input-fg, #eee)" });
 
   filterRow.append(
-    createEl("div", "", "Type", { fontSize: "0.75rem", opacity: "0.75" }),
-    kindFilterSelect,
-    createEl("div", "", "Min ★", { fontSize: "0.75rem", opacity: "0.75" }),
+    createEl("div", "", "Min *", { fontSize: "0.75rem", opacity: "0.75" }),
     ratingFilter,
     tagFilterInput
   );
-  mjrAttachHoverFeedback(kindFilterSelect, "Filter by type: image / video / audio / 3D.", 3000);
-  mjrAttachHoverFeedback(ratingFilter, "Filter by minimum rating (★).", 3000);
+  mjrAttachHoverFeedback(ratingFilter, "Filter by minimum rating (*).", 3000);
   mjrAttachHoverFeedback(tagFilterInput, "Filter by tag (separate with commas).", 3000);
 
   const collectionFilterSelect = createEl("select", "mjr-fm-filter-collection");
   collectionFilterSelect.style.maxWidth = "140px";
   
-  const refreshCollections = async () => {
-    collectionFilterSelect.innerHTML = '<option value="">(All Files)</option>';
-    const smartGroup = createEl("optgroup");
-    smartGroup.label = "Smart Views";
-    Object.entries(SMART_FILTERS).forEach(([key, def]) => {
-      const opt = new Option(def.label, key);
-      if (state.activeCollection === key) opt.selected = true;
-      smartGroup.appendChild(opt);
-    });
-    collectionFilterSelect.appendChild(smartGroup);
-
-    const manualGroup = createEl("optgroup");
-    manualGroup.label = "Collections";
-    try {
-      const res = await api.fetchApi("/mjr/collections/list");
-      const data = await res.json();
-      (data.collections || []).forEach((name) => {
-        const opt = new Option(name, name);
-        if (state.activeCollection === name) opt.selected = true;
-        manualGroup.appendChild(opt);
-      });
-    } catch (e) { console.error(e); }
-    collectionFilterSelect.appendChild(manualGroup);
-  };
-
   filterRow.appendChild(collectionFilterSelect);
 
   const status = createEl("div", "mjr-fm-status");
@@ -520,16 +160,96 @@ function renderAssetsManager(root) {
   // STATE & LOGIC
   // ---------------------------------------------------------------------------
 
-  const state = createInitialState();
-  state.visibleStart = 0;
-  state.visibleEnd = 50;
-  kindFilterSelect.value = state.kindFilter;
-  refreshCollections();
+  const state = initManagerState();
+  populateCollectionsOptions(state, collectionFilterSelect);
 
-  let metadataFetchInFlight = null;
-  let metadataDebounceTimer = null;
-  const lastSignatureRef = { value: null };
   let openContextMenuEl = null;
+  const {
+    fetchMetadataForVisible,
+    onRequestMetadata,
+    cleanup: cleanupMetadataFetcher,
+    setGridView: setGridViewForMetadata,
+  } = createMetadataFetcher(state, null);
+  const {
+    applyFilterAndRender,
+    setGridView: setGridViewForRender,
+  } = createApplyFilterAndRender(state, fetchMetadataForVisible);
+  const {
+    refreshInstance,
+    refreshAllInstances: refreshAllInstancesFn,
+    loadFilesWrapper,
+    loadFiles,
+    lastSignatureRef,
+  } = createRefreshController(state, grid, applyFilterAndRender, fetchMetadataForVisible);
+  refreshAllInstances = refreshAllInstancesFn;
+  const refreshCollections = () => populateCollectionsOptions(state, collectionFilterSelect);
+
+  // Synthetic upload for our drags dropped on ComfyUI file widgets
+  const FILE_INPUT_SELECTORS = [
+    "input[type='file']",
+    ".comfy-file-input",
+    ".comfy-file",
+    ".file-input",
+    ".upload-area",
+  ].join(",");
+  const isGraphCanvas = (t) =>
+    t instanceof HTMLCanvasElement && t.classList && t.classList.contains("graphcanvas");
+  const findFileInput = (target) => {
+    if (!target || typeof target.closest !== "function") return null;
+    // Direct input
+    const direct = target.closest("input[type='file']");
+    if (direct) return direct;
+    const wrapper = target.closest(FILE_INPUT_SELECTORS);
+    if (wrapper) {
+      if (wrapper instanceof HTMLInputElement && wrapper.type === "file") return wrapper;
+      return wrapper.querySelector("input[type='file']") || null;
+    }
+    return null;
+  };
+  const onGlobalDrop = async (ev) => {
+    if (!mjrIsOurDrag(ev)) return;
+    if (isGraphCanvas(ev.target)) return;
+    const fileInput = findFileInput(ev.target);
+    if (!fileInput) return;
+
+    let info = null;
+    try {
+      const raw = ev.dataTransfer.getData("application/x-mjr-sibling-file");
+      if (raw) info = JSON.parse(raw);
+    } catch (_) {
+      info = null;
+    }
+    if (!info || !info.filename) return;
+
+    const filename = info.filename || info.name || "";
+    const ext = (filename.split(".").pop() || "").toLowerCase();
+    const kind = typeof detectKindFromExt === "function" ? detectKindFromExt(ext) : "";
+    if (kind !== "image") {
+      if (mjrSettings && mjrSettings.debugDnD) {
+        console.debug("[Majoor.DnD] skip synthetic drop for non-image", filename, kind);
+      }
+      return; // Let native handling proceed for videos/others
+    }
+
+    ev.preventDefault();
+    ev.stopPropagation();
+    if (typeof ev.stopImmediatePropagation === "function") ev.stopImmediatePropagation();
+    try {
+      const fileObj = await mjrFetchFileAsDataTransferFile(info);
+      if (!fileObj) return;
+      mjrDispatchSyntheticDrop(fileInput, fileObj);
+    } catch (err) {
+      console.warn("[Majoor.AssetsManager] synthetic upload failed", err);
+    }
+  };
+  document.addEventListener("drop", onGlobalDrop, false);
+  cleanupsExternal.push(() => document.removeEventListener("drop", onGlobalDrop, false));
+
+  // Workflow drops are handled in events.js and gated by our intent flag ("workflow")
+  cleanups.push(ensureWorkflowDropHandler());
+  cleanups.push(ensureQueueListener(refreshAllInstances));
+  cleanups.push(ensureNewFilesListener());
+  cleanups.push(ensureGlobalAutoRefresh(refreshAllInstances));
 
   // --- ACTIONS ---
 
@@ -602,172 +322,29 @@ function renderAssetsManager(root) {
 
   // --- GRID VIEW INTEGRATION ---
   
-  // Visible Metadata Fetching
-  async function fetchMetadataForVisible() {
-    if (metadataFetchInFlight) return;
-    const reqVersion = state.renderVersion;
-    const fullList = state.filtered || [];
-    const { visibleStart: start, visibleEnd: end } = state;
-    
-    const buffer = 20;
-    const effectiveStart = Math.max(0, start - buffer);
-    const effectiveEnd = Math.min(fullList.length, end + buffer);
-    
-    const visibleSlice = fullList.slice(effectiveStart, effectiveEnd);
-    const targetFiles = visibleSlice.filter(f => !f.__metaLoaded);
-
-    if (!targetFiles.length) return;
-    const batch = targetFiles.slice(0, 30).map(f => ({ filename: f.filename || f.name, subfolder: f.subfolder || "" }));
-    
-    if (metadataAbortCtrl) {
-      try { metadataAbortCtrl.abort(); } catch (_) {}
-    }
-    metadataAbortCtrl = new AbortController();
-    const thisCtrl = metadataAbortCtrl;
-
-    metadataFetchInFlight = api.fetchApi("/mjr/filemanager/metadata/batch", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items: batch }),
-      signal: thisCtrl.signal,
-    });
-
-    try {
-      const res = await metadataFetchInFlight;
-      if (thisCtrl.signal.aborted || reqVersion !== state.renderVersion) return;
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (thisCtrl.signal.aborted || reqVersion !== state.renderVersion) return;
-      
-      const metaByKey = new Map();
-      (data.metadatas || []).forEach((m) => metaByKey.set(`${m.subfolder || ""}/${m.filename || ""}`, m));
-
-      state.files.forEach(f => {
-        const key = `${f.subfolder || ""}/${f.filename || f.name || ""}`;
-        const m = metaByKey.get(key);
-        if (m) {
-            f.rating = m.rating ?? 0;
-            f.tags = m.tags || [];
-            if (m.has_workflow !== undefined) f.hasWorkflow = !!m.has_workflow;
-            f.__metaLoaded = true;
-        }
-      });
-      
-      // Tell grid to redraw to show badges
-      if (gridView) gridView.renderGrid(); 
-
-    } catch (err) {
-      if (err?.name === "AbortError") {
-        // ignore aborted fetch
-      } else {
-        console.warn("[Majoor.AssetsManager] batch metadata load failed", err);
-      }
-    } finally {
-      metadataFetchInFlight = null;
-      if (metadataAbortCtrl === thisCtrl) metadataAbortCtrl = null;
-      // Re-check in case user scrolled while fetching
-      if (fullList.slice(effectiveStart, effectiveEnd).some(f => !f.__metaLoaded)) {
-        fetchMetadataForVisible();
-      }
-    }
-  }
-
-  const onRequestMetadata = (start, end) => {
-    state.visibleStart = start;
-    state.visibleEnd = end;
-    if (metadataDebounceTimer) clearTimeout(metadataDebounceTimer);
-    metadataDebounceTimer = setTimeout(() => fetchMetadataForVisible(), 150);
-  };
-  cleanups.push(() => clearTimeout(metadataDebounceTimer));
-
-  // Instantiate GridView module
   const gridDeps = {
-      state, grid, gridWrapper, statusEl: status,
-      loadMetadataForFile: sidebar.loadMetadataForFile,
-      openContextMenu,
-      onRequestMetadata,
-      isMetaVisible: () => mjrMetaVisible,
+    state,
+    grid,
+    gridWrapper,
+    statusEl: status,
+    loadMetadataForFile: sidebar.loadMetadataForFile,
+    openContextMenu,
+    onRequestMetadata,
+    isMetaVisible: () => mjrMetaVisible,
   };
   const gridView = createGridView(gridDeps);
+  setGridViewForMetadata(gridView);
+  setGridViewForRender(gridView);
   const handleScroll = () => gridView.renderGrid();
   const handleResize = () => gridView.renderGrid();
   gridWrapper.addEventListener("scroll", handleScroll);
   window.addEventListener("resize", handleResize);
   cleanups.push(() => gridWrapper.removeEventListener("scroll", handleScroll));
   cleanups.push(() => window.removeEventListener("resize", handleResize));
-
-  // --- FILTER & LOAD ---
-
-  function applyFilterAndRender(options = {}) {
-    const { skipMetadataFetch = false } = options;
-    const q = (state.search || "").trim().toLowerCase();
-    const tagFilter = (state.tagFilter || "").trim().toLowerCase();
-    const minRating = Number(state.minRating || 0);
-    const kindFilter = (state.kindFilter || "").toLowerCase();
-    const hidePng = !!mjrSettings.siblings.hidePngSiblings;
-    let nonImageStems = null;
-    if (hidePng) {
-      nonImageStems = new Set();
-      for (const f of state.files) {
-        const raw = f.name || f.filename || "";
-        if ((f.kind || detectKindFromExt(f.ext || getExt(raw) || "")) !== "image") {
-          nonImageStems.add(getBaseName(raw));
-        }
-      }
-    }
-
-    state.filtered = state.files.filter((file) => {
-      const rawName = file.name || file.filename || "";
-      const extUpper = (file.ext || getExt(rawName) || "").toUpperCase();
-      const kind = file.kind || detectKindFromExt(extUpper);
-      if (hidePng && nonImageStems?.has(getBaseName(rawName)) && extUpper === "PNG") return false;
-
-      const name = rawName.toLowerCase();
-      const folder = (file.subfolder || "").toLowerCase();
-      if (q && !name.includes(q) && !folder.includes(q)) return false;
-      
-      file.mtime = normalizeMtimeValue(file.mtime);
-      if (state.collectionSet) {
-        const fileRelPath = `${file.subfolder ? file.subfolder + "/" : ""}${rawName}`;
-        if (!state.collectionSet.has(fileRelPath)) return false;
-      } else if (state.smartFilter && !state.smartFilter(file)) {
-        return false;
-      }
-
-      const fileRating = Number(file.rating ?? 0);
-      if (fileRating < minRating) return false;
-
-      const tagsArr = file.tags || [];
-      if (tagFilter && !tagsArr.some((tag) => String(tag).toLowerCase().includes(tagFilter))) return false;
-
-      return !kindFilter || kind === kindFilter;
-    });
-
-    // Sort by Date Descending
-    state.filtered.sort((a, b) => (b.mtime - a.mtime) || a.name.localeCompare(b.name));
-    state.renderVersion = (state.renderVersion || 0) + 1;
-    
-    // Delegate rendering to GridView
-    gridView.renderGrid();
-    
-    if (!skipMetadataFetch) {
-      fetchMetadataForVisible(); 
-    }
-  }
-
-  const loadFiles = (silent = false, force = false, { skipMetadataFetch = false } = {}) =>
-    fmLoadFiles(state, grid, applyFilterAndRender, { silent, force, skipMetadataFetch }, { lastSignatureRef, mergeLoadOptsFn: mergeLoadOpts });
-
-  const loadFilesWrapper = (opts = {}) => loadFiles(opts.silent ?? true, opts.forceFiles ?? false, { skipMetadataFetch: opts.skipMetadataFetch ?? true });
-
-  const refreshInstance = createRefreshInstance(state, fetchMetadataForVisible, loadFilesWrapper, {
-    mjrRefreshDefaults,
-    mergeRefreshOptionsFn: mergeRefreshOptions,
-  });
+  cleanups.push(() => cleanupMetadataFetcher());
 
   // --- EVENTS ---
   const onSearchInput = () => { state.search = search.value; applyFilterAndRender(); };
-  const onKindFilterChange = () => { state.kindFilter = kindFilterSelect.value || ""; applyFilterAndRender(); };
   const onRatingFilterChange = () => { state.minRating = parseInt(ratingFilter.value, 10) || 0; applyFilterAndRender(); };
   const onTagFilterInput = () => { state.tagFilter = tagFilterInput.value; applyFilterAndRender(); };
   const onRefreshClick = () => { refreshAllInstances({ silent: false, forceFiles: true }); };
@@ -789,23 +366,18 @@ function renderAssetsManager(root) {
   };
 
   search.addEventListener("input", onSearchInput);
-  kindFilterSelect.addEventListener("change", onKindFilterChange);
   ratingFilter.addEventListener("change", onRatingFilterChange);
   tagFilterInput.addEventListener("input", onTagFilterInput);
   refreshBtn.addEventListener("click", onRefreshClick);
   collectionFilterSelect.addEventListener("change", onCollectionChange);
   cleanups.push(() => search.removeEventListener("input", onSearchInput));
-  cleanups.push(() => kindFilterSelect.removeEventListener("change", onKindFilterChange));
   cleanups.push(() => ratingFilter.removeEventListener("change", onRatingFilterChange));
   cleanups.push(() => tagFilterInput.removeEventListener("input", onTagFilterInput));
   cleanups.push(() => refreshBtn.removeEventListener("click", onRefreshClick));
   cleanups.push(() => collectionFilterSelect.removeEventListener("change", onCollectionChange));
 
   // Initial Load
-  refreshInstance({ silent: false, forceFiles: true }).finally(() => {
-    if (!root.__mjrCleanup) return; 
-    cleanups.push(ensureGlobalAutoRefresh());
-  });
+  refreshInstance({ silent: false, forceFiles: true });
 
   // Register Instance
   const instance = { root, state, loadMetadataForFile, setMetadataPanelVisibility, setRating, updateFileMetadata, refresh: refreshInstance, loadFiles, applyFilterAndRender };
@@ -815,6 +387,7 @@ function renderAssetsManager(root) {
     root.__mjrCleanup = null;
     mjrGlobalState.instances.delete(instance);
     cleanups.forEach(c => c());
+    cleanupsExternal.forEach((c) => c());
   };
 }
 
@@ -840,13 +413,11 @@ app.registerExtension({
         if (!res.ok) return;
         const data = await res.json();
         if (!data || !data.ok) return;
-        const osName = (data.os || "").toLowerCase();
         const exiftoolAvailable = !!data.exiftool_available;
-        const sidecarEnabled = !!data.sidecar_enabled;
-        if (osName !== "windows" && !exiftoolAvailable && sidecarEnabled) {
+        if (!exiftoolAvailable) {
           mjrShowToast(
             "warn",
-            "ExifTool not detected. Using JSON sidecar metadata; install ExifTool for OS-native tags.",
+            "ExifTool missing: Video metadata parsing will be limited. Please install ExifTool on your system.",
             "Metadata"
           );
           try { localStorage.setItem(warnKey, "1"); } catch (_) {}
@@ -903,7 +474,7 @@ app.registerExtension({
       onChange: (val) => {
         mjrSettings.autoRefresh.enabled = val;
         mjrSaveSettings(mjrSettings);
-        mjrStartAutoRefreshTimer();
+        mjrStartAutoRefreshTimer(refreshAllInstances);
       },
     });
 
@@ -916,7 +487,7 @@ app.registerExtension({
       onChange: (val) => {
         mjrSettings.autoRefresh.interval = val;
         mjrSaveSettings(mjrSettings);
-        mjrStartAutoRefreshTimer();
+        mjrStartAutoRefreshTimer(refreshAllInstances);
       },
     });
 

@@ -103,9 +103,7 @@ export function createGridView(deps) {
     const currentFile = () => card.__mjrFile || file;
 
     card.draggable = true;
-    if (kind === "video") {
-      card.addEventListener("dragstart", (ev) => handleDragStart(currentFile(), ev));
-    }
+    card.addEventListener("dragstart", (ev) => handleDragStart(currentFile(), ev));
 
     card.addEventListener("mouseenter", () => {
       if (!state.selected.has(key)) {

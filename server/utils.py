@@ -74,8 +74,10 @@ def safe_import_win32com():
 
             _WIN32COM = win32com.client
         except ImportError:
-            print("pywin32 is not installed. Windows-specific metadata will not be available.")
+            print("Windows logic disabled (pywin32 not found)")
             _WIN32COM = None
+    else:
+        _WIN32COM = None
     return _WIN32COM
 
 
@@ -117,6 +119,59 @@ def _parse_rating_value(raw) -> int:
     return int(round(min(numeric, 5)))
 
 
+def rating_to_windows_percent(stars: int) -> int:
+    """
+    Map 0..5 stars to Windows percent scale expected by SharedUserRating.
+    """
+    try:
+        r = int(stars)
+    except Exception:
+        r = 0
+    mapping = {0: 0, 1: 1, 2: 25, 3: 50, 4: 75, 5: 99}
+    return max(0, min(99, mapping.get(r, 0 if r < 0 else r)))
+
+
+def windows_percent_to_stars(percent: int) -> int:
+    """
+    Convert Windows percent (SharedUserRating) to 0..5 stars using thresholds.
+    """
+    try:
+        p = int(percent)
+    except Exception:
+        return 0
+    if p <= 0:
+        return 0
+    if p <= 12:
+        return 1
+    if p <= 37:
+        return 2
+    if p <= 62:
+        return 3
+    if p <= 87:
+        return 4
+    return 5
+
+
+def tags_to_windows_category(tags: list) -> str:
+    """
+    Join tags for Microsoft:Category; use '; ' which Explorer parses.
+    """
+    if not isinstance(tags, list):
+        return ""
+    cleaned = [str(t).strip() for t in tags if str(t).strip()]
+    return "; ".join(cleaned)
+
+
+def windows_category_to_tags(cat: str) -> list:
+    """
+    Split Microsoft:Category back into a list; preserve order, drop empties.
+    """
+    if not cat:
+        return []
+    parts = [p.strip() for p in str(cat).split(";") if p.strip()]
+    return parts
+
+
 def get_windows_metadata(file_path: str) -> dict:
     """Fetch file metadata via the Windows Shell API."""
     try:
@@ -133,7 +188,16 @@ def get_windows_metadata(file_path: str) -> dict:
         rating_raw = folder.GetDetailsOf(file, rating_idx)
         tags_raw = folder.GetDetailsOf(file, tags_idx)
 
-        rating = _parse_rating_value(rating_raw)
+        rating = 0
+        # Windows may expose either stars or SharedUserRating percent; normalize to stars
+        try:
+            numeric = float(str(rating_raw).strip())
+            if 0 <= numeric <= 100 and numeric > 5:
+                rating = windows_percent_to_stars(int(round(numeric)))
+            else:
+                rating = _parse_rating_value(numeric)
+        except Exception:
+            rating = _parse_rating_value(rating_raw)
 
         tags = []
         if tags_raw:
@@ -156,6 +220,7 @@ def get_windows_metadata(file_path: str) -> dict:
         return {"rating": 0, "tags": []}
 
 
+# Canonical ExifTool reader for rating/tags (avoid duplicate implementations)
 def get_exif_metadata(file_path: str) -> dict:
     """
     Fast read via exiftool when available.
@@ -171,6 +236,8 @@ def get_exif_metadata(file_path: str) -> dict:
             "-json",
             "-Rating",
             "-RatingPercent",
+            "-Microsoft:SharedUserRating",
+            "-Microsoft:Category",
             "-Subject",
             "-Keywords",
             "-XPKeywords",
@@ -178,16 +245,38 @@ def get_exif_metadata(file_path: str) -> dict:
         ]
         out = subprocess.check_output(cmd, timeout=2)
         data = json.loads(out)[0]
-        rating_raw = data.get("Rating") or data.get("RatingPercent")
-        rating = _parse_rating_value(rating_raw)
+        is_video = file_path.lower().endswith((".mp4", ".mov", ".m4v", ".webm", ".mkv"))
+
+        rating_raw = data.get("Rating")
+        if rating_raw is None:
+            rating_raw = data.get("RatingPercent")
+        if rating_raw is None:
+            rating_raw = data.get("Microsoft:SharedUserRating")
+        rating = 0
+        if rating_raw is not None:
+            try:
+                num = float(rating_raw)
+            except Exception:
+                num = None
+            if num is not None and 0 <= num <= 5:
+                rating = int(round(num))
+            elif num is not None and num > 5:
+                rating = windows_percent_to_stars(int(round(num)))
+            else:
+                rating = _parse_rating_value(rating_raw)
 
         tags: List[str] = []
-        for key in ("Subject", "Keywords", "XPKeywords"):
-            val = data.get(key)
-            if isinstance(val, list):
-                tags.extend([str(v).strip() for v in val if str(v).strip()])
-            elif isinstance(val, str):
-                tags.extend([t.strip() for t in val.split(",") if t.strip()])
+        if is_video:
+            cat = data.get("Microsoft:Category")
+            if cat:
+                tags = windows_category_to_tags(cat)
+        if not tags:
+            for key in ("Subject", "Keywords", "XPKeywords"):
+                val = data.get(key)
+                if isinstance(val, list):
+                    tags.extend([str(v).strip() for v in val if str(v).strip()])
+                elif isinstance(val, str):
+                    tags.extend([t.strip() for t in val.split(",") if t.strip()])
 
         if tags:
             tags = sorted(set(tags))
@@ -197,6 +286,19 @@ def get_exif_metadata(file_path: str) -> dict:
         return {}
 
 
+# Self-check for rating normalization; kept lightweight
+def _test_rating_normalization():
+    assert windows_percent_to_stars(5) == 1  # percent-like but low
+    assert windows_percent_to_stars(99) == 5
+    assert windows_percent_to_stars(75) == 4
+    assert windows_percent_to_stars(1) == 1
+    assert _parse_rating_value(5) == 5
+    assert _parse_rating_value(0) == 0
+
+_test_rating_normalization()
+
+
+# Canonical ExifTool writer for rating/tags (video-aware); do not duplicate
 def set_exif_metadata(file_path: str, rating: int, tags: list) -> bool:
     """
     Write Rating/Keywords via exiftool when available. Returns True on success.
@@ -210,13 +312,50 @@ def set_exif_metadata(file_path: str, rating: int, tags: list) -> bool:
     epoch = _CACHE_EPOCH
     original_mtime = _get_mtime_safe(file_path)
 
+    def _collect_preserve_args_for_video() -> list:
+        if not exe:
+            return []
+        try:
+            cmd = [
+                exe,
+                "-j",
+                "-Comment",
+                "-UserComment",
+                "-Description",
+                "-UserData",
+                "-XMP:Comment",
+                "-XMP:Description",
+                "-ItemList:UserComment",
+                file_path,
+            ]
+            out = subprocess.check_output(cmd, stderr=subprocess.DEVNULL, timeout=3)
+            data_list = json.loads(out) if out else []
+            if not data_list:
+                return []
+            entry = data_list[0]
+            preserve_args = []
+            for key in ("Comment", "UserComment", "Description", "UserData", "XMP:Comment", "XMP:Description", "ItemList:UserComment"):
+                val = entry.get(key)
+                if isinstance(val, list):
+                    val = " ".join(str(v) for v in val if str(v).strip())
+                if isinstance(val, str):
+                    val = val.strip()
+                if val:
+                    preserve_args.append(f"-{key}={val}")
+            return preserve_args
+        except Exception:
+            return []
+
     try:
         r = max(0, min(int(rating), 5))
-        win_r = {1: 1, 2: 25, 3: 50, 4: 75, 5: 99}.get(r, r if r <= 5 else 99)
+        win_r = rating_to_windows_percent(r)
 
-        cmd = [
-            exe,
-            "-overwrite_original",
+        is_video = file_path.lower().endswith((".mp4", ".mov", ".m4v", ".webm", ".mkv"))
+
+        preserve_args = _collect_preserve_args_for_video() if is_video else []
+
+        cmd = [exe, "-overwrite_original", *preserve_args]
+        cmd += [
             f"-xmp:rating={r}",
             f"-rating={r}",
             f"-ratingpercent={win_r}",
@@ -224,8 +363,15 @@ def set_exif_metadata(file_path: str, rating: int, tags: list) -> bool:
             "-Keywords=",
             "-XPKeywords=",
         ]
+        if is_video:
+            cmd.append(f"-Microsoft:SharedUserRating={win_r}")
+            cat = tags_to_windows_category(tags)
+            cmd.append(f"-Microsoft:Category={cat}")
 
         clean_tags = [str(t).strip() for t in tags if str(t).strip()]
+        # Always write Category for video, even if empty, to clear stale values
+        if is_video and not clean_tags:
+            cmd.append(f"-Microsoft:Category=")
         if clean_tags:
             for t in clean_tags:
                 cmd.append(f"-xmp:subject+={t}")
@@ -273,8 +419,11 @@ def set_windows_metadata(file_path: str, rating: int, tags: list) -> bool:
                 r_int = int(rating)
             except Exception:
                 r_int = 0
-            star_to_percent = {1: 1, 2: 25, 3: 50, 4: 75, 5: 99}
-            rating_val = max(0, min(99, star_to_percent.get(r_int, r_int)))
+            # Accept 0-5 stars or already-percent; normalize to Windows percent scale
+            if 0 <= r_int <= 5:
+                rating_val = rating_to_windows_percent(r_int)
+            else:
+                rating_val = max(0, min(99, r_int))
             folder.GetDetailsOf(file, rating_idx)  # force index load
             folder.SetDetailsOf(file, rating_idx, str(rating_val))
 
@@ -340,11 +489,16 @@ def apply_windows_metadata(file_path: str, rating, tags: list) -> dict:
     return {"rating": rating_int, "tags": tags_list}
 
 
+# Canonical metadata updater (Windows + ExifTool + optional sidecar); keep single definition
 def update_metadata_with_windows(file_path: str, updates: dict) -> dict:
     """
     Update rating/tags via Windows + sidecar (if enabled).
     Returns final metadata.
     """
+    global _CACHE_EPOCH
+    _CACHE_EPOCH += 1
+    epoch = _CACHE_EPOCH
+
     # Load current values (prefer system metadata, fallback to sidecar)
     sys_meta = get_system_metadata(file_path) or {}
     sidecar = load_metadata(file_path) or {}
@@ -354,21 +508,28 @@ def update_metadata_with_windows(file_path: str, updates: dict) -> dict:
     has_rating = "rating" in updates
     has_tags = "tags" in updates
 
+    if not has_rating and not has_tags:
+        return {"rating": current_rating, "tags": current_tags}
+
     rating = updates.get("rating", current_rating if has_rating else current_rating)
     tags = updates.get("tags", current_tags if has_tags else current_tags)
 
     # Only write tags when provided; otherwise preserve existing tags in system metadata
     target_tags = tags if has_tags else current_tags
 
-    ok_win = set_windows_metadata(file_path, rating, target_tags)
-    ok_exif = set_exif_metadata(file_path, rating, target_tags)
+    ok_win = False
+    ok_exif = False
+    if has_rating or has_tags:
+        ok_win = set_windows_metadata(file_path, rating if has_rating else current_rating, target_tags if has_tags else current_tags)
+        ok_exif = set_exif_metadata(file_path, rating if has_rating else current_rating, target_tags if has_tags else current_tags)
 
     if _sidecar_allowed_for(file_path):
-        save_metadata(file_path, {"rating": rating, "tags": target_tags})
+        save_metadata(file_path, {"rating": rating if has_rating else current_rating, "tags": target_tags})
 
-    effective_rating = rating if (ok_win or ok_exif) else current_rating
-    _META_CACHE[file_path] = (_get_mtime_safe(file_path), _CACHE_EPOCH, {"rating": effective_rating, "tags": target_tags})
-    return {"rating": effective_rating, "tags": target_tags}
+    effective_rating = (rating if has_rating else current_rating) if (ok_win or ok_exif) else current_rating
+    effective_tags = target_tags
+    _META_CACHE[file_path] = (_get_mtime_safe(file_path), epoch, {"rating": effective_rating, "tags": effective_tags})
+    return {"rating": effective_rating, "tags": effective_tags}
 
 
 def apply_system_metadata(file_path: str, rating, tags: list) -> dict:

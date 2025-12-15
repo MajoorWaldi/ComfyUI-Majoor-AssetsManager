@@ -6,6 +6,7 @@ import threading
 import shutil
 import platform
 import concurrent.futures
+import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -26,11 +27,13 @@ from .utils import (
     classify_ext,
     get_system_metadata,
     load_metadata,
+    save_metadata,
+    metadata_path,
     _get_exiftool_path,
 )
-from .metadata import update_metadata_with_windows
+from .metadata import update_metadata_with_windows, deep_merge_metadata
 from .generation_metadata import extract_generation_params_from_png, has_generation_workflow
-from .config import OUTPUT_ROOT, THUMB_SIZE, ENABLE_JSON_SIDECAR
+from .config import OUTPUT_ROOT, THUMB_SIZE, ENABLE_JSON_SIDECAR, METADATA_EXT
 from .mjr_collections import (
     get_collections,
     load_collection,
@@ -144,6 +147,44 @@ def _metadata_target(path: Path, kind: str) -> Path:
     return path
 
 
+def _rating_tags_with_fallback(meta_target: Path, kind: str) -> tuple[int, List[str]]:
+    """
+    Read rating/tags for a file, and for videos optionally fall back to a PNG sibling sidecar
+    when both rating and tags are missing.
+    """
+    sys_meta = get_system_metadata(str(meta_target)) or {}
+    json_meta = load_metadata(str(meta_target)) or {}
+
+    rating = sys_meta["rating"] if "rating" in sys_meta else json_meta.get("rating")
+    tags = sys_meta["tags"] if "tags" in sys_meta else json_meta.get("tags")
+
+    sys_empty = not sys_meta
+    json_empty = not json_meta
+    emptyish_rating = rating is None or rating == 0
+    emptyish_tags = tags is None or tags == []
+
+    if kind == "video" and sys_empty and json_empty and emptyish_rating and emptyish_tags:
+        try:
+            sib_png = meta_target.with_suffix(".png")
+            sib_json = load_metadata(str(sib_png)) or {}
+            if rating is None:
+                r = sib_json.get("rating")
+                if isinstance(r, int):
+                    rating = r
+            if tags is None:
+                t = sib_json.get("tags")
+                if isinstance(t, list):
+                    tags = t
+        except Exception:
+            pass
+
+    if rating is None:
+        rating = 0
+    if tags is None:
+        tags = []
+    return rating, tags if isinstance(tags, list) else []
+
+
 def _open_in_explorer(path: Path) -> bool:
     """Open Windows Explorer selecting the given file."""
     try:
@@ -154,6 +195,7 @@ def _open_in_explorer(path: Path) -> bool:
             check=False,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            timeout=15,
         )
         if res_start.returncode in (0, 1):
             return True
@@ -165,6 +207,7 @@ def _open_in_explorer(path: Path) -> bool:
             check=False,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            timeout=15,
         )
         if res.returncode in (0, 1):
             return True
@@ -175,6 +218,7 @@ def _open_in_explorer(path: Path) -> bool:
             check=False,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            timeout=15,
         )
         return res2.returncode in (0, 1)
     except Exception:
@@ -341,10 +385,9 @@ async def list_files(request: web.Request) -> web.Response:
                     meta_target = _metadata_target(target, kind)
                     if not meta_target.exists():
                         continue
-                    sys_meta = get_system_metadata(str(meta_target))
-                    json_meta = load_metadata(str(meta_target))
-                    f["rating"] = sys_meta.get("rating") or json_meta.get("rating", 0)
-                    f["tags"] = sys_meta.get("tags") or json_meta.get("tags", [])
+                    rating, tags = _rating_tags_with_fallback(meta_target, kind)
+                    f["rating"] = rating
+                    f["tags"] = tags
                     f["__metaLoaded"] = True
                 except Exception:
                     continue
@@ -387,8 +430,7 @@ async def batch_metadata(request: web.Request) -> web.Response:
 
         kind = classify_ext(filename.lower())
         meta_target = _metadata_target(target, kind)
-        sys_meta = get_system_metadata(str(meta_target))
-        json_meta = load_metadata(str(meta_target))
+        rating, tags = _rating_tags_with_fallback(meta_target, kind)
 
         has_wf = False
         if kind in ("image", "video"):
@@ -399,8 +441,8 @@ async def batch_metadata(request: web.Request) -> web.Response:
 
         result.update(
             {
-                "rating": sys_meta.get("rating") or json_meta.get("rating", 0),
-                "tags": sys_meta.get("tags") or json_meta.get("tags", []),
+                "rating": rating,
+                "tags": tags,
                 "has_workflow": has_wf,
             }
         )
@@ -556,19 +598,57 @@ async def get_metadata(request: web.Request) -> web.Response:
             {"ok": False, "error": "File not found"}, status=404
         )
 
-    try:
-        params = extract_generation_params_from_png(target)
-    except Exception as e:
-        print(f"[Majoor.AssetsManager] metadata parsing error for {filename}: {e}")
-        return web.json_response(
-            {"ok": False, "error": f"metadata parsing failed: {e}"}, status=500
+    def _extract(path: Path) -> Dict[str, Any]:
+        try:
+            return extract_generation_params_from_png(path) or {}
+        except Exception as e:
+            print(f"[Majoor.AssetsManager] metadata parsing error for {path.name}: {e}")
+            return {}
+
+    ext_lower = target.suffix.lower()
+    params: Dict[str, Any] = _extract(target)
+
+    def _has_wf(p: Dict[str, Any]) -> bool:
+        return bool(
+            p.get("has_workflow")
+            or p.get("workflow")
+            or p.get("prompt")
+            or p.get("positive_prompt")
+            or p.get("negative_prompt")
+            or p.get("sampler_name")
+            or p.get("model")
+            or p.get("loras")
         )
+
+    if ext_lower in {".mp4", ".mov", ".m4v", ".webm", ".mkv"} and not _has_wf(params):
+        stem = target.stem
+        candidates = []
+        try:
+            for entry in target.parent.iterdir():
+                if not entry.is_file():
+                    continue
+                if entry.suffix.lower() != ".png":
+                    continue
+                if entry.stem == stem or entry.stem.startswith(f"{stem}_") or entry.stem.startswith(f"{stem}-"):
+                    candidates.append(entry)
+        except Exception:
+            candidates = []
+
+        if candidates:
+            candidates.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+            for png in candidates:
+                sib_params = _extract(png)
+                if _has_wf(sib_params):
+                    params = sib_params
+                    params["generation_source"] = "sibling_png"
+                    break
 
     if isinstance(params, dict):
         if "has_workflow" not in params:
             params["has_workflow"] = bool(
                 params.get("has_workflow")
                 or params.get("workflow")
+                or params.get("prompt")
                 or params.get("positive_prompt")
                 or params.get("negative_prompt")
                 or params.get("sampler_name")
@@ -576,7 +656,10 @@ async def get_metadata(request: web.Request) -> web.Response:
                 or params.get("loras")
             )
 
-    return web.json_response({"ok": True, "generation": params})
+    kind = classify_ext(filename.lower())
+    rating, tags = _rating_tags_with_fallback(target, kind)
+
+    return web.json_response({"ok": True, "generation": params, "rating": rating, "tags": tags})
 
 
 @PromptServer.instance.routes.get("/mjr/filemanager/capabilities")
@@ -648,6 +731,113 @@ async def update_metadata(request: web.Request) -> web.Response:
         )
 
     return web.json_response({"ok": True, "rating": meta.get("rating", 0), "tags": meta.get("tags", [])})
+
+
+@PromptServer.instance.routes.post("/mjr/filemanager/generation/update")
+async def update_generation_sidecar(request: web.Request) -> web.Response:
+    """
+    Persist prompt/workflow into sidecar JSON for generated videos.
+    Payload:
+      {
+        "files": [{"filename": "...", "subfolder": "..."}],
+        "prompt": {...},      # optional prompt graph (id -> node)
+        "workflow": {...}     # optional raw workflow
+      }
+    """
+    root = _get_output_root()
+    try:
+        payload = await request.json()
+    except Exception:
+        return web.json_response({"ok": False, "error": "Invalid JSON body"}, status=400)
+
+    files = payload.get("files") or []
+    prompt = payload.get("prompt")
+    workflow = payload.get("workflow")
+
+    if not isinstance(files, list) or not files:
+        return web.json_response({"ok": False, "error": "No files provided"}, status=400)
+
+    updated: List[Dict[str, Any]] = []
+    errors: List[Dict[str, Any]] = []
+
+    for item in files:
+        filename = (item or {}).get("filename") or (item or {}).get("name")
+        subfolder = (item or {}).get("subfolder", "")
+        if not filename:
+            errors.append({"file": item, "error": "Missing filename"})
+            continue
+        try:
+            target = _safe_target(root, subfolder, filename)
+        except ValueError:
+            errors.append({"file": {"filename": filename, "subfolder": subfolder}, "error": "Outside output directory"})
+            continue
+        if not target.exists():
+            errors.append({"file": {"filename": filename, "subfolder": subfolder}, "error": "File not found"})
+            continue
+        if classify_ext(filename.lower()) != "video":
+            continue
+
+        meta_path = metadata_path(str(target))
+        if not meta_path:
+            errors.append({"file": {"filename": filename, "subfolder": subfolder}, "error": "Sidecar disabled"})
+            continue
+
+        meta = load_metadata(str(target)) or {}
+        if "rating" not in meta:
+            meta["rating"] = 0
+        if not isinstance(meta.get("tags"), list):
+            meta["tags"] = []
+        if prompt is not None:
+            meta["prompt"] = prompt
+        if workflow is not None:
+            meta["workflow"] = workflow
+        if workflow is not None or prompt is not None:
+            meta["has_workflow"] = bool(workflow or prompt)
+
+        try:
+            save_metadata(str(target), meta)
+            updated.append({"filename": filename, "subfolder": subfolder})
+        except Exception as exc:
+            errors.append({"file": {"filename": filename, "subfolder": subfolder}, "error": str(exc)})
+
+    return web.json_response({"ok": True, "updated": updated, "errors": errors})
+
+
+@PromptServer.instance.routes.post("/mjr/filemanager/sidecar/update")
+async def update_sidecar(request: web.Request) -> web.Response:
+    """
+    Deep-merge arbitrary meta (rating/tags/prompt/workflow/...) into a file sidecar.
+    """
+    root = _get_output_root()
+    try:
+        payload = await request.json()
+    except Exception:
+        return web.json_response({"ok": False, "error": "Invalid JSON body"}, status=400)
+
+    filename = payload.get("filename")
+    subfolder = payload.get("subfolder", "")
+    meta_updates = payload.get("meta")
+
+    if not filename or not isinstance(meta_updates, dict):
+        return web.json_response({"ok": False, "error": "Missing filename or invalid meta"}, status=400)
+
+    try:
+        target = _safe_target(root, subfolder, filename)
+    except ValueError:
+        return web.json_response({"ok": False, "error": "File is outside output directory"}, status=400)
+
+    if not target.exists():
+        return web.json_response({"ok": False, "error": "File not found"}, status=404)
+
+    meta_path = metadata_path(str(target))
+    if not meta_path:
+        return web.json_response({"ok": False, "error": "Sidecar disabled"}, status=400)
+
+    try:
+        merged = deep_merge_metadata(str(target), meta_updates)
+        return web.json_response({"ok": True, "meta": merged})
+    except Exception as exc:
+        return web.json_response({"ok": False, "error": str(exc)}, status=500)
 
 
 # ---------------------------------------------------------------------------

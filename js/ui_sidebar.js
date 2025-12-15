@@ -1,4 +1,4 @@
-import { api } from "../../scripts/api.js";
+import { api } from "../../../../scripts/api.js";
 import {
   buildViewUrl,
   createEl,
@@ -239,6 +239,10 @@ export function createMetadataSidebar(options) {
     }
 
     const m = meta || {};
+    // Normalize workflow presence for UI state
+    const workflowPresent = !!(m.has_workflow || m.workflow || (file && file.hasWorkflow));
+    if (m.has_workflow === undefined) m.has_workflow = workflowPresent;
+    if (file && workflowPresent) file.hasWorkflow = true;
     const normStr = (v) => (typeof v === "string" ? v.trim() : "");
     const cleanName = (val) => {
       if (typeof val !== "string") return "";
@@ -296,6 +300,7 @@ export function createMetadataSidebar(options) {
     const hasLoras = loras.length > 0;
     const hasAnyGen =
       hasPositive || hasNegative || hasSeeds || hasCfg || hasSamplers || hasModels || hasLoras;
+    const hasWorkflow = workflowPresent;
 
     const topDivider = createEl("div");
     topDivider.style.borderTop = "1px solid var(--border-color, #333)";
@@ -439,12 +444,13 @@ export function createMetadataSidebar(options) {
 
     if (hasAnyGen) {
       metaContent.appendChild(fieldsContainer);
-    } else {
-      const warn = createEl(
-        "div",
-        "",
-        "No generation data found (no workflow present in this file)."
-      );
+    }
+
+    const warnMessages = [];
+    if (!hasAnyGen) warnMessages.push("No generation data found.");
+    if (!hasWorkflow) warnMessages.push("No workflow present in this file.");
+    if (warnMessages.length) {
+      const warn = createEl("div", "", warnMessages.join(" "));
       warn.style.marginTop = "8px";
       warn.style.padding = "6px 8px";
       warn.style.borderRadius = "6px";
@@ -568,6 +574,7 @@ export function createMetadataSidebar(options) {
       if (data.ok && data.generation) {
         const meta = data.generation || {};
         if (meta.has_workflow === undefined) meta.has_workflow = !!meta.workflow;
+        if (meta.has_workflow && file) file.hasWorkflow = true;
         if (meta.rating === undefined && file.rating !== undefined) meta.rating = file.rating;
         if (!meta.tags && file.tags) meta.tags = file.tags;
         const sourceMtime = meta.mtime ?? file.mtime;

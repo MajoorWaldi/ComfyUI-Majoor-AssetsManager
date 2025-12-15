@@ -9,6 +9,10 @@ import urllib.parse
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from .metadata.workflow_normalize import _normalize_workflow_to_prompt_graph, _ensure_dict_from_json
+
+from .metadata.video_extraction import _extract_json_from_video
+
 try:
     from PIL import Image  # type: ignore
 except Exception:  # Pillow non dispo -> pas de parsing PNG
@@ -51,25 +55,289 @@ LORA_CLASSES: Set[str] = {
     "LoraLoaderModelOnly",
 }
 
-
-# --------- General helpers ---------
-
-
-def _ensure_dict_from_json(value: Any) -> Optional[Dict[str, Any]]:
+def _extract_json_like_from_text(text: str) -> List[str]:
     """
-    Accepte soit un dict, soit une string JSON.
-    Retourne un dict ou None.
+    Extract balanced JSON-like substrings when generation keywords are present.
     """
-    if isinstance(value, dict):
-        return value
-    if isinstance(value, str):
+    if not text or not isinstance(text, str):
+        return []
+    lower = text.lower()
+    keywords = ("prompt", "workflow", "nodes", "extra_pnginfo", "class_type", "inputs")
+    if not any(k in lower for k in keywords):
+        return []
+
+    results: List[str] = []
+    stack: List[str] = []
+    start = None
+    for idx, ch in enumerate(text):
+        if ch in "{[":
+            if not stack:
+                start = idx
+            stack.append(ch)
+        elif ch in "}]":
+            if not stack:
+                continue
+            opening = stack.pop()
+            if opening == "{" and ch != "}":
+                continue
+            if opening == "[" and ch != "]":
+                continue
+            if not stack and start is not None:
+                candidate = text[start : idx + 1]
+                if candidate:
+                    results.append(candidate)
+                start = None
+    return results
+
+
+def _parse_candidate_json(s: str):
+    try:
+        return json.loads(s)
+    except Exception:
+        return None
+
+
+def _detect_prompt_graph(obj) -> Optional[Dict[str, Any]]:
+    if not isinstance(obj, dict):
+        return None
+    for v in obj.values():
+        if isinstance(v, dict) and ("inputs" in v or "class_type" in v):
+            return obj
+    return None
+
+
+def _detect_workflow(obj) -> Optional[Dict[str, Any]]:
+    if not isinstance(obj, dict):
+        return None
+    if isinstance(obj.get("nodes"), list):
+        return obj
+    if ("last_node_id" in obj or "last_link_id" in obj or "links" in obj) and isinstance(obj.get("nodes"), list):
+        return obj
+    return None
+
+
+def _scan_png_info_for_generation(info: Dict[str, Any]) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+    """
+    Scan all info entries for prompt/workflow JSON stored in alternative fields.
+    """
+    prompt_found = None
+    workflow_found = None
+    candidate_keys = {"prompt", "workflow", "comment", "parameters", "description", "usercomment", "xpcomment", "software"}
+
+    def try_payload(obj: Any):
+        nonlocal prompt_found, workflow_found
+        if isinstance(obj, dict):
+            # explicit prompt/workflow
+            pr = _ensure_dict_from_json(obj.get("prompt"))
+            if isinstance(pr, list):
+                pr = _normalize_workflow_to_prompt_graph({"nodes": pr})
+            if prompt_found is None and isinstance(pr, dict):
+                prompt_found = pr
+
+            wf_raw = _ensure_dict_from_json(obj.get("workflow"))
+            if workflow_found is None and isinstance(wf_raw, dict):
+                if wf_raw.get("nodes"):
+                    workflow_found = wf_raw
+                else:
+                    wf_norm = _normalize_workflow_to_prompt_graph(wf_raw)
+                    if wf_norm:
+                        workflow_found = wf_raw
+
+            # raw prompt/workflow detections
+            if prompt_found is None:
+                pg = _detect_prompt_graph(obj)
+                if pg:
+                    prompt_found = pg
+            if workflow_found is None:
+                wf = _detect_workflow(obj)
+                if wf:
+                    workflow_found = wf
+
+            extra = obj.get("extra_pnginfo")
+            if isinstance(extra, dict):
+                try_payload(extra)
+        elif isinstance(obj, str):
+            txt = obj.strip()
+            candidates: List[str] = []
+            if txt.startswith("{") or txt.startswith("["):
+                candidates.append(txt)
+            else:
+                candidates.extend(_extract_json_like_from_text(txt))
+            for cand in candidates:
+                parsed = _parse_candidate_json(cand)
+                if isinstance(parsed, (dict, list)):
+                    try_payload(parsed)
+
+    for key, val in (info or {}).items():
         try:
-            data = json.loads(value)
-            if isinstance(data, dict):
-                return data
+            if str(key).lower() not in candidate_keys:
+                continue
+        except Exception:
+            continue
+        if prompt_found and workflow_found:
+            break
+        try_payload(val)
+
+    return prompt_found, workflow_found
+
+
+def parse_a1111_parameters(text: str) -> Dict[str, Any]:
+    """
+    Parse A1111/SD-WebUI style 'Parameters' block into a metadata dict.
+    """
+    result: Dict[str, Any] = {}
+    if not isinstance(text, str):
+        return result
+    raw = text.strip()
+    if not raw:
+        return result
+
+    lower = raw.lower()
+    neg_tag = "negative prompt:"
+    steps_tag = "steps:"
+
+    pos = ""
+    neg = ""
+    params_section = ""
+
+    idx_neg = lower.find(neg_tag)
+    if idx_neg != -1:
+        pos = raw[:idx_neg].strip()
+        rest = raw[idx_neg + len(neg_tag) :].strip()
+        lower_rest = rest.lower()
+        idx_steps = lower_rest.find(steps_tag)
+        if idx_steps != -1:
+            neg = rest[:idx_steps].strip()
+            params_section = rest[idx_steps:]
+        else:
+            neg = rest
+    else:
+        pos = raw
+        idx_steps = lower.find(steps_tag)
+        if idx_steps != -1:
+            params_section = raw[idx_steps:]
+
+    def split_tokens(s: str) -> List[str]:
+        tokens: List[str] = []
+        current: List[str] = []
+        depth = 0
+        in_quote = False
+        escape = False
+        for ch in s:
+            if in_quote:
+                current.append(ch)
+                if escape:
+                    escape = False
+                    continue
+                if ch == "\\":
+                    escape = True
+                elif ch == '"':
+                    in_quote = False
+            else:
+                if ch == '"':
+                    in_quote = True
+                    current.append(ch)
+                elif ch in "{[":
+                    depth += 1
+                    current.append(ch)
+                elif ch in "}]":
+                    depth = max(0, depth - 1)
+                    current.append(ch)
+                elif ch == "," and depth == 0:
+                    tok = "".join(current).strip()
+                    if tok:
+                        tokens.append(tok)
+                    current = []
+                else:
+                    current.append(ch)
+        tok = "".join(current).strip()
+        if tok:
+            tokens.append(tok)
+        return tokens
+
+    def to_int(val: str) -> Optional[int]:
+        try:
+            return int(str(val).split()[0])
         except Exception:
             return None
-    return None
+
+    def to_float(val: str) -> Optional[float]:
+        try:
+            return float(str(val).split()[0])
+        except Exception:
+            return None
+
+    tokens = split_tokens(params_section) if params_section else []
+    hashes = None
+    lora_hashes = None
+
+    for tok in tokens:
+        if ":" not in tok:
+            continue
+        key, value = tok.split(":", 1)
+        k = key.strip().lower()
+        v = value.strip()
+        if not v:
+            continue
+        if k == "steps":
+            result["steps"] = to_int(v)
+        elif k == "sampler":
+            result["sampler_name"] = v
+        elif k in ("schedule type", "schedulertype", "scheduler"):
+            result["scheduler"] = v
+        elif k in ("cfg scale", "cfg"):
+            result["cfg"] = to_float(v)
+        elif k == "seed":
+            result["seed"] = to_int(v)
+        elif k == "size":
+            if "x" in v.lower():
+                parts = v.lower().split("x")
+                try:
+                    w = int(parts[0].strip())
+                    h = int(parts[1].strip())
+                    result["size"] = (w, h)
+                except Exception:
+                    pass
+        elif k == "model":
+            result["model"] = v
+        elif k == "model hash":
+            result["model_hash"] = v
+        elif k == "denoising strength":
+            result["denoising_strength"] = to_float(v)
+        elif k == "hires upscale":
+            result["hires_upscale"] = to_float(v)
+        elif k == "hires steps":
+            result["hires_steps"] = to_int(v)
+        elif k == "hires upscaler":
+            result["hires_upscaler"] = v
+        elif k == "version":
+            result["version"] = v
+        elif k.startswith("hashes"):
+            try:
+                hashes = json.loads(v)
+            except Exception:
+                hashes = v
+        elif k.startswith("lora hashes"):
+            try:
+                lora_hashes = json.loads(v)
+            except Exception:
+                lora_hashes = v
+
+    if hashes is not None:
+        result["hashes"] = hashes
+    if lora_hashes is not None:
+        result["lora_hashes"] = lora_hashes
+    if pos:
+        result["positive_prompt"] = pos.strip()
+    if neg:
+        result["negative_prompt"] = neg.strip()
+    if raw:
+        result["parameters_raw"] = raw
+
+    # If nothing useful parsed, return empty
+    if not any(k for k in result if k != "parameters_raw"):
+        return {}
+    return result
 
 
 def _extract_link_node_id(val: Any) -> Optional[str]:
@@ -97,256 +365,6 @@ def _extract_link_node_id(val: Any) -> Optional[str]:
     ):
         return str(val[0][0])
 
-    return None
-
-
-def _balanced_json_from_text(text: str, start_idx: int, max_chars: int = 2_000_000) -> Optional[str]:
-    """
-    Simple balanced-brace scanner starting at `start_idx` (expected to be '{').
-    Stops when depth returns to zero or when exceeding `max_chars`.
-    Ignores braces inside quoted strings.
-    """
-    if start_idx < 0 or start_idx >= len(text) or text[start_idx] != "{":
-        return None
-
-    depth = 0
-    in_str = False
-    escape = False
-    limit = min(len(text), start_idx + max_chars)
-
-    for i in range(start_idx, limit):
-        ch = text[i]
-        if in_str:
-            if escape:
-                escape = False
-            elif ch == "\\":
-                escape = True
-            elif ch == '"':
-                in_str = False
-            continue
-
-        if ch == '"':
-            in_str = True
-            continue
-        if ch == "{":
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth == 0:
-                return text[start_idx : i + 1]
-    return None
-
-
-def _extract_json_from_video(path: Path) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
-    """
-    Extract prompt/workflow JSON from a video container using exiftool.
-    Returns (prompt_graph, raw_workflow).
-    """
-    exe = _get_exiftool_path() if callable(_get_exiftool_path) else None
-    found_prompt = None
-    found_workflow = None
-
-    try:
-        exif_timeout = float(os.environ.get("MJR_META_EXIFTOOL_TIMEOUT", "6"))
-    except Exception:
-        exif_timeout = 6.0
-    exif_timeout = max(1.0, min(exif_timeout, 30.0))
-
-    def parse_vhs_json(json_str: str):
-        nonlocal found_prompt, found_workflow
-        try:
-            payload = json.loads(json_str)
-            if not isinstance(payload, dict):
-                return
-            if "workflow" in payload:
-                wf = payload["workflow"]
-                if isinstance(wf, str):
-                    wf = _ensure_dict_from_json(wf)
-                if isinstance(wf, dict) and wf.get("nodes"):
-                    found_workflow = wf
-            if "prompt" in payload:
-                pr = payload["prompt"]
-                if isinstance(pr, str):
-                    pr = _ensure_dict_from_json(pr)
-                if isinstance(pr, dict):
-                    first = next(iter(pr.values()), None)
-                    if isinstance(first, dict) and "inputs" in first:
-                        found_prompt = pr
-        except Exception:
-            pass
-
-    def recursive_scan(obj):
-        nonlocal found_prompt, found_workflow
-        if found_prompt and found_workflow:
-            return
-        if isinstance(obj, dict):
-            for k, v in obj.items():
-                key_norm = str(k).lower()
-                if key_norm in ("comment", "usercomment", "description", "userdata", "user_data", "xmp:comment", "xmp:description"):
-                    if isinstance(v, str) and v.strip().startswith("{"):
-                        parse_vhs_json(v)
-                else:
-                    if isinstance(v, str) and v.strip().startswith("{"):
-                        parse_vhs_json(v)
-                    elif isinstance(v, (dict, list)):
-                        recursive_scan(v)
-            return
-        if isinstance(obj, list):
-            for v in obj:
-                recursive_scan(v)
-            return
-        if isinstance(obj, str):
-            if obj.strip().startswith("{"):
-                parse_vhs_json(obj)
-
-    # Prefer ffprobe first (fast for Comment tag), then a light exiftool pass, then heavy exiftool
-    if not found_prompt and not found_workflow:
-        ffprobe = shutil.which("ffprobe")
-        if ffprobe:
-            try:
-                cmd = [
-                    ffprobe,
-                    "-v",
-                    "error",
-                    "-print_format",
-                    "json",
-                    "-show_entries",
-                    "format_tags:stream_tags",
-                    str(path),
-                ]
-                out = subprocess.check_output(cmd, stderr=subprocess.DEVNULL, timeout=4)
-                data = json.loads(out) if out else {}
-                tags = (data.get("format") or {}).get("tags") or {}
-                recursive_scan(tags)
-                for stream in data.get("streams") or []:
-                    recursive_scan(stream.get("tags") or {})
-            except subprocess.TimeoutExpired:
-                print(f"[Majoor] ffprobe timeout on {path.name}")
-            except Exception as e:
-                print(f"[Majoor] ffprobe error on {path.name}: {e}")
-
-    if exe and not (found_prompt and found_workflow):
-        # Light pass: only common comment/description buckets
-        try:
-            cmd = [
-                exe,
-                "-j",
-                "-Comment",
-                "-UserComment",
-                "-Description",
-                "-XPComment",
-                "-ItemList:Comment",
-                "-ItemList:Description",
-                "-ItemList:UserComment",
-                str(path),
-            ]
-            out = subprocess.check_output(cmd, stderr=subprocess.DEVNULL, timeout=exif_timeout)
-            data_list = json.loads(out) if out else []
-            if data_list:
-                recursive_scan(data_list[0])
-        except subprocess.TimeoutExpired:
-            print(f"[Majoor] ExifTool (light) timeout on {path.name} after {exif_timeout}s")
-        except Exception:
-            pass
-
-    # Heavy ExifTool fallback with -ee if still nothing
-    if exe and not (found_prompt and found_workflow):
-        try:
-            cmd = [exe, "-j", "-g", "-ee", str(path)]
-            out = subprocess.check_output(cmd, stderr=subprocess.DEVNULL, timeout=exif_timeout)
-            data_list = json.loads(out) if out else []
-            if data_list:
-                recursive_scan(data_list[0])
-        except subprocess.TimeoutExpired:
-            print(f"[Majoor] ExifTool timeout on {path.name} after {exif_timeout}s")
-        except Exception as e:
-            print(f"[Majoor] ExifTool error on {path.name}: {e}")
-
-    # Final fallback: scan binary for embedded JSON (when exiftool/ffprobe are unavailable)
-    if not found_prompt and not found_workflow:
-        try:
-            size = path.stat().st_size
-        except Exception:
-            size = 0
-
-        # Read head + tail to stay fast on large videos
-        try:
-            scan_budget = int(os.environ.get("MJR_META_SCAN_BYTES", str(1 * 1024 * 1024)))
-        except Exception:
-            scan_budget = 1 * 1024 * 1024
-        scan_budget = max(512 * 1024, min(scan_budget, 16 * 1024 * 1024))  # clamp between 512KB and 16MB
-        blob = b""
-        try:
-            with open(path, "rb") as f:
-                head = f.read(scan_budget)
-                blob += head
-                if size > scan_budget:
-                    try:
-                        f.seek(max(0, size - scan_budget))
-                        tail = f.read(scan_budget)
-                        blob += tail
-                    except Exception:
-                        pass
-        except Exception as e:
-            print(f"[Majoor] raw scan failed for {path.name}: {e}")
-            blob = b""
-
-        if blob:
-            try:
-                text_blob = blob.decode("utf-8", errors="ignore")
-            except Exception:
-                text_blob = ""
-
-            if text_blob:
-                keywords = ['"prompt"', '"workflow"', '"nodes"']
-                for kw in keywords:
-                    pos = text_blob.find(kw)
-                    while pos != -1 and not (found_prompt and found_workflow):
-                        start = text_blob.rfind("{", 0, pos)
-                        if start == -1:
-                            pos = text_blob.find(kw, pos + len(kw))
-                            continue
-                        candidate = _balanced_json_from_text(text_blob, start)
-                        if candidate:
-                            parse_vhs_json(candidate)
-                            if found_prompt and found_workflow:
-                                break
-                        pos = text_blob.find(kw, pos + len(kw))
-
-    if found_workflow and not found_prompt:
-        found_prompt = _normalize_workflow_to_prompt_graph(found_workflow)
-
-    return found_prompt, found_workflow
-
-
-# --------- Lecture du graph PROMPT depuis le PNG ---------
-
-
-def _normalize_workflow_to_prompt_graph(workflow: Any) -> Optional[Dict[str, Any]]:
-    """
-    Convert a workflow (dict with 'nodes': [...]) into an id->node map for parsing.
-    """
-    if workflow is None:
-        return None
-    if isinstance(workflow, dict) and isinstance(workflow.get("nodes"), list):
-        nodes_map: Dict[str, Any] = {}
-        for n in workflow.get("nodes", []):
-            if not isinstance(n, dict):
-                continue
-            nid = n.get("id")
-            if nid is None:
-                continue
-            ctype = n.get("class_type") or n.get("type") or n.get("title")
-            nodes_map[str(nid)] = {
-                "class_type": ctype,
-                "inputs": n.get("inputs", {}) or {},
-                "title": n.get("title"),
-                "widgets_values": n.get("widgets_values"),
-            }
-        return nodes_map if nodes_map else None
-    if isinstance(workflow, dict):
-        # May already be id -> node map
-        return {str(k): v for k, v in workflow.items() if isinstance(v, dict)}
     return None
 
 
@@ -566,6 +584,40 @@ def load_prompt_graph_from_png(path: str | Path) -> Optional[Dict[str, Any]]:
         if pg:
             return pg
 
+    # Helper to sniff prompt/workflow from a "Parameters" string (some tools stash JSON there)
+    def _extract_from_parameters(val: Any) -> Optional[Dict[str, Any]]:
+        if isinstance(val, dict):
+            return val
+        if isinstance(val, str):
+            start = val.find("{")
+            end = val.rfind("}")
+            if start != -1 and end != -1 and end > start:
+                try:
+                    parsed = json.loads(val[start : end + 1])
+                    if isinstance(parsed, dict):
+                        return parsed
+                except Exception:
+                    return None
+        return None
+
+    def _maybe_prompt_from_payload(payload: Any) -> Optional[Dict[str, Any]]:
+        if not isinstance(payload, dict):
+            return None
+        pr = _ensure_dict_from_json(payload.get("prompt"))
+        if isinstance(pr, list):
+            pr = _normalize_workflow_to_prompt_graph({"nodes": pr})
+        if isinstance(pr, dict):
+            return pr
+        wf = _ensure_dict_from_json(payload.get("workflow"))
+        if isinstance(wf, dict):
+            return _normalize_workflow_to_prompt_graph(wf)
+        if isinstance(payload.get("nodes"), list):
+            return _normalize_workflow_to_prompt_graph(payload)
+        # Raw prompt graph heuristic
+        if any(isinstance(v, dict) and "inputs" in v for v in payload.values() if isinstance(v, dict)):
+            return payload
+        return None
+
     # 2) prompt dans extra_pnginfo (cas courant)
     extra = info.get("extra_pnginfo")
     if isinstance(extra, str):
@@ -597,6 +649,29 @@ def load_prompt_graph_from_png(path: str | Path) -> Optional[Dict[str, Any]]:
                 pg = _normalize_workflow_to_prompt_graph(wf_raw)
                 if pg:
                     return pg
+            maybe = _extract_from_parameters(item.get("parameters"))
+            if maybe:
+                pg = _maybe_prompt_from_payload(maybe)
+                if pg:
+                    return pg
+
+    # 3) Parameters field (other tools)
+    params_payload = _extract_from_parameters(info.get("parameters"))
+    if params_payload:
+        pg = _maybe_prompt_from_payload(params_payload)
+        if pg:
+            return pg
+    if isinstance(extra, dict):
+        params_payload = _extract_from_parameters(extra.get("parameters"))
+        if params_payload:
+            pg = _maybe_prompt_from_payload(params_payload)
+            if pg:
+                return pg
+
+    # Extended scan for alternative fields (comment/parameters/etc.)
+    prompt_alt, _ = _scan_png_info_for_generation(info)
+    if prompt_alt:
+        return prompt_alt
 
     # No usable prompt found -> stop here
     return None
@@ -628,6 +703,21 @@ def load_raw_workflow_from_png(path: str | Path) -> Optional[Dict[str, Any]]:
             return wf
         return None
 
+    def _extract_from_parameters(val: Any) -> Optional[Dict[str, Any]]:
+        if isinstance(val, dict):
+            return val if val.get("nodes") else None
+        if isinstance(val, str):
+            start = val.find("{")
+            end = val.rfind("}")
+            if start != -1 and end != -1 and end > start:
+                try:
+                    parsed = json.loads(val[start : end + 1])
+                    if isinstance(parsed, dict) and parsed.get("nodes"):
+                        return parsed
+                except Exception:
+                    return None
+        return None
+
     # Top-level
     wf = _maybe_workflow(info.get("workflow"))
     if wf:
@@ -644,6 +734,9 @@ def load_raw_workflow_from_png(path: str | Path) -> Optional[Dict[str, Any]]:
         wf = _maybe_workflow(extra.get("workflow"))
         if wf:
             return wf
+        wf = _extract_from_parameters(extra.get("parameters"))
+        if wf:
+            return wf
     if isinstance(extra, list):
         for item in extra:
             if not isinstance(item, dict):
@@ -651,7 +744,15 @@ def load_raw_workflow_from_png(path: str | Path) -> Optional[Dict[str, Any]]:
             wf = _maybe_workflow(item.get("workflow"))
             if wf:
                 return wf
-    return None
+            wf = _extract_from_parameters(item.get("parameters"))
+            if wf:
+                return wf
+
+    wf = _extract_from_parameters(info.get("parameters"))
+    if wf:
+        return wf
+    wf_alt = _scan_png_info_for_generation(info)[1]
+    return wf_alt
 
 
 def _pick_sampler_node(prompt_graph: Dict[str, Any]) -> Optional[str]:
@@ -926,10 +1027,12 @@ def extract_generation_params_from_prompt_graph(
     )
     model_name, vae_name, loras = _walk_model_chain(prompt_graph, model_link_id)
 
+    reconstructed_from_prompt = False
     if isinstance(raw_workflow, dict):
         workflow = raw_workflow
     elif reconstruct_allowed:
         workflow = _prompt_graph_to_workflow(prompt_graph)
+        reconstructed_from_prompt = workflow is not None
     else:
         workflow = None
 
@@ -945,6 +1048,9 @@ def extract_generation_params_from_prompt_graph(
         "vae": vae_name,
         "loras": loras,
         "workflow": workflow,
+        "raw_workflow": raw_workflow if isinstance(raw_workflow, dict) else None,
+        "prompt_graph": prompt_graph,
+        "workflow_reconstructed": workflow if reconstructed_from_prompt else None,
         "has_workflow": True,  # prompt graph present => mark as available
     }
     return result
@@ -1003,6 +1109,28 @@ def extract_generation_params_from_png(path: str | Path) -> Dict[str, Any]:
         except Exception:
             prompt_graph = None
 
+    # Fallback: A1111/SD-WebUI Parameters block (no workflow)
+    if prompt_graph is None and original_ext == ".png" and Image is not None:
+        try:
+            img = Image.open(p)
+            info = getattr(img, "info", {}) or {}
+            params_val = None
+            for k, v in info.items():
+                try:
+                    if str(k).lower() == "parameters":
+                        params_val = v
+                        break
+                except Exception:
+                    continue
+            if isinstance(params_val, str):
+                parsed = parse_a1111_parameters(params_val)
+                if parsed:
+                    parsed.setdefault("has_workflow", False)
+                    parsed.setdefault("source", "a1111_parameters")
+                    return parsed
+        except Exception:
+            pass
+
     if not prompt_graph:
         return {}
 
@@ -1030,8 +1158,21 @@ def has_generation_workflow(path: str | Path) -> bool:
     if ext in {".mp4", ".mov", ".webm", ".mkv"}:
         prompt_graph, raw_workflow = _extract_json_from_video(p)
     else:
-        raw_workflow = load_raw_workflow_from_png(p)
-        prompt_graph = load_prompt_graph_from_png(p)
+        if Image is None or not p.exists():
+            return False
+        prompt_graph = None
+        raw_workflow = None
+        try:
+            img = Image.open(p)
+            info = getattr(img, "info", {}) or {}
+            prompt_graph, raw_workflow = _scan_png_info_for_generation(info)
+        except Exception:
+            prompt_graph = None
+            raw_workflow = None
+        if not prompt_graph:
+            prompt_graph = load_prompt_graph_from_png(p)
+        if not raw_workflow:
+            raw_workflow = load_raw_workflow_from_png(p)
 
     if prompt_graph or raw_workflow:
         return True

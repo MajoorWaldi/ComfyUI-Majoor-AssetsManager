@@ -1,5 +1,5 @@
-import { app } from "../../scripts/app.js";
-import { api } from "../../scripts/api.js";
+import { app } from "../../../../scripts/app.js";
+import { api } from "../../../../scripts/api.js";
 import { applyStyles, CONTEXT_MENU_STYLES, createEl, mjrShowToast } from "./ui_settings.js";
 import { mjrOpenABViewer } from "./ui_viewer.js";
 
@@ -16,9 +16,17 @@ export function mjrCreateContextMenu(file, deps) {
   addToCollItem.style.padding = "4px 0";
   addToCollItem.style.cursor = "pointer";
   
+  const closeSubmenu = (relatedTarget) => {
+    const submenu = contextMenu.querySelector(".mjr-submenu");
+    if (!submenu) return;
+    const withinSub = relatedTarget && submenu.contains(relatedTarget);
+    const withinItem = relatedTarget && addToCollItem.contains(relatedTarget);
+    if (!withinSub && !withinItem) submenu.remove();
+  };
+
   addToCollItem.addEventListener("mouseenter", async () => {
     const old = contextMenu.querySelector(".mjr-submenu");
-    if(old) old.remove();
+    if (old) old.remove();
 
     const submenu = createEl("div", "mjr-submenu");
     applyStyles(submenu, CONTEXT_MENU_STYLES);
@@ -74,14 +82,13 @@ export function mjrCreateContextMenu(file, deps) {
     } catch (err) {
       console.error("[Majoor.AssetsManager] collections submenu failed", err);
     }
-    addToCollItem.appendChild(submenu);
+    // append to parent to avoid expanding main item height
+    contextMenu.appendChild(submenu);
+
+    submenu.addEventListener("mouseleave", (ev) => closeSubmenu(ev.relatedTarget));
   });
   
-  addToCollItem.addEventListener("mouseleave", () => {
-     // Optional: delay removal or let CSS handle hover
-     // const old = contextMenu.querySelector(".mjr-submenu");
-     // if(old) old.remove(); 
-  });
+  addToCollItem.addEventListener("mouseleave", (ev) => closeSubmenu(ev.relatedTarget));
   contextMenu.appendChild(addToCollItem);
 
   // --- ACTIONS ---
@@ -109,7 +116,7 @@ export function mjrCreateContextMenu(file, deps) {
       },
     },
     {
-      label: "Compare (selected x2)",
+      label: "Compare",
       action: () => {
         closeContextMenu();
         if (state.selected && state.selected.size === 2) {

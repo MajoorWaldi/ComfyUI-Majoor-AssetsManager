@@ -33,16 +33,28 @@ export function resolveWorkflowState(file) {
 
 export function handleDragStart(file, ev) {
   if (!ev?.dataTransfer) return;
-  const payload = {
-    filename: file.filename || file.name,
-    subfolder: file.subfolder || "",
-  };
+  // Always attach payload (videos first target; others harmless)
+  const filename = file.filename || file.name;
+  const subfolder = file.subfolder || "";
+  const payload = { filename, subfolder };
+  const relPath = subfolder ? `${subfolder}/${filename}` : filename;
+  const extGuess = file.ext || getExt(filename) || "";
+  const kind = file.kind || detectKindFromExt(extGuess);
+  const isVideo = kind === "video";
+  const fileUrl = new URL(
+    `/view?filename=${encodeURIComponent(filename)}&subfolder=${encodeURIComponent(subfolder)}&type=output`,
+    window.location.origin
+  ).toString();
   ev.dataTransfer.effectAllowed = "copy";
-  try {
-    ev.dataTransfer.setData("application/x-mjr-sibling-file", JSON.stringify(payload));
-    // Minimal payload; let ComfyUI default handling proceed otherwise
-  } catch (_) {
-    // ignore
+  ev.dataTransfer.setData("application/x-mjr-sibling-file", JSON.stringify(payload));
+  ev.dataTransfer.setData("application/x-mjr-origin", "majoor-assetmanager");
+  ev.dataTransfer.setData("application/x-mjr-intent", "workflow");
+  // Also provide standard paths for native handlers / nodes
+  ev.dataTransfer.setData("text/plain", relPath); // filename/path only
+  // Keep URI in a custom channel to avoid being shown as filename on canvas (still useful for nodes)
+  if (isVideo) {
+    ev.dataTransfer.setData("application/x-mjr-url", fileUrl);
+    ev.dataTransfer.setData("text/uri-list", fileUrl);
   }
 }
 
@@ -106,20 +118,38 @@ export function updateCardVisuals(card, file) {
   const wfState = resolveWorkflowState(file);
   updateWorkflowDot(card, wfState);
 
-  const newRatingText = rating > 0 ? "★".repeat(rating) : "";
+  const applyStars = (badge, r) => {
+    badge.textContent = "";
+    const val = Math.max(0, Math.min(5, Number(r) || 0));
+    for (let i = 1; i <= 5; i++) {
+      const span = document.createElement("span");
+      const filled = i <= val;
+      span.textContent = "★";
+      span.style.color = filled ? "#ffd45a" : "#777";
+      span.style.marginRight = i < 5 ? "2px" : "0";
+      badge.appendChild(span);
+    }
+    badge.dataset.mjrRating = String(val);
+  };
+
   let ratingBadge = card.querySelector(".mjr-fm-rating-badge");
 
   if (mjrSettings.grid.showRating && rating > 0) {
     if (!ratingBadge) {
       ratingBadge = createEl("div", "mjr-fm-rating-badge");
       applyStyles(ratingBadge, BADGE_STYLES.rating);
-      ratingBadge.style.color = "#ffd45a";
       ratingBadge.style.filter = "drop-shadow(0 0 2px rgba(255, 212, 90, 0.7))";
-      ratingBadge.style.fontWeight = "700";
-      ratingBadge.textContent = newRatingText;
+      ratingBadge.style.fontSize = "10px";
+      ratingBadge.style.padding = "4px 6px";
+      ratingBadge.style.letterSpacing = "1px";
+      ratingBadge.style.display = "inline-flex";
+      ratingBadge.style.alignItems = "center";
+      ratingBadge.style.justifyContent = "center";
+      ratingBadge.style.textAlign = "center";
+      applyStars(ratingBadge, rating);
       card.appendChild(ratingBadge);
-    } else if (ratingBadge.textContent !== newRatingText) {
-      ratingBadge.textContent = newRatingText;
+    } else if (ratingBadge.dataset.mjrRating !== String(rating)) {
+      applyStars(ratingBadge, rating);
     }
   } else if (ratingBadge) {
     ratingBadge.remove();
@@ -145,11 +175,25 @@ export function updateCardVisuals(card, file) {
 
 export function renderBadges(card, rating, tags) {
   if (mjrSettings.grid.showRating && rating > 0) {
-    const ratingBadge = createEl("div", "mjr-fm-rating-badge", "★".repeat(rating));
+    const ratingBadge = createEl("div", "mjr-fm-rating-badge");
     applyStyles(ratingBadge, BADGE_STYLES.rating);
-    ratingBadge.style.color = "#ffd45a";
     ratingBadge.style.filter = "drop-shadow(0 0 2px rgba(255, 212, 90, 0.7))";
-    ratingBadge.style.fontWeight = "700";
+    ratingBadge.style.fontSize = "10px";
+    ratingBadge.style.padding = "4px 6px";
+    ratingBadge.style.letterSpacing = "1px";
+    ratingBadge.style.display = "inline-flex";
+    ratingBadge.style.alignItems = "center";
+    ratingBadge.style.justifyContent = "center";
+    ratingBadge.style.textAlign = "center";
+    ratingBadge.dataset.mjrRating = String(rating);
+    for (let i = 1; i <= 5; i++) {
+      const span = document.createElement("span");
+      const filled = i <= rating;
+      span.textContent = "★";
+      span.style.color = filled ? "#ffd45a" : "#777";
+      span.style.marginRight = i < 5 ? "2px" : "0";
+      ratingBadge.appendChild(span);
+    }
     card.appendChild(ratingBadge);
   }
 

@@ -1,5 +1,5 @@
-import { api } from "../../scripts/api.js";
-import { app } from "../../scripts/app.js";
+import { api } from "../../../../scripts/api.js";
+import { app } from "../../../../scripts/app.js";
 
 export function createEl(tag, className, text) {
   const el = document.createElement(tag);
@@ -44,19 +44,24 @@ export function buildViewUrl(file) {
 export const BADGE_STYLES = {
   rating: {
     position: "absolute",
-    top: "4px",
-    right: "4px",
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    top: "8px",
+    right: "8px",
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
     color: "#ffd45a",
-    padding: "1px 5px",
+    padding: "6px 10px",
+    borderRadius: "8px",
     zIndex: "5",
     pointerEvents: "none",
-    fontSize: "0.75rem",
+    fontSize: "20px",
+    fontWeight: "700",
+    letterSpacing: "2px",
   },
   tags: {
     position: "absolute",
-    top: "23px",
-    right: "4px",
+    top: "auto",
+    bottom: "50px",
+    right: "auto",
+    left: "4px",
     backgroundColor: "rgba(0, 0, 0, 0.7)",
     color: "#fff",
     padding: "1px 5px",
@@ -87,6 +92,7 @@ export const CONTEXT_MENU_STYLES = {
   zIndex: "9999",
   padding: "10px",
   background: "#1b1b1b",
+  border: "1px solid rgba(255,255,255,0.08)",
   borderRadius: "5px",
   boxShadow: "0px 0px 10px rgba(0,0,0,0.3)",
   minWidth: "140px",
