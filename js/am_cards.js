@@ -51,12 +51,7 @@ export function handleDragStart(file, ev) {
 
   ev.dataTransfer.effectAllowed = "copy";
   ev.dataTransfer.setData("text/uri-list", url);
-  ev.dataTransfer.setData("text/plain", url);
   ev.dataTransfer.setData("DownloadURL", `${mime}:${filename}:${url}`);
-  ev.dataTransfer.setData(
-    "application/x-mjr-asset",
-    JSON.stringify({ filename, subfolder: file.subfolder || "", kind })
-  );
 }
 
 export function updateWorkflowDot(card, workflowState) {
