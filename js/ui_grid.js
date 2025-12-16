@@ -17,7 +17,6 @@ import {
   ensureGlobalAutoRefresh,
   ensureNewFilesListener,
   ensureQueueListener,
-  ensureWorkflowDropHandler,
   mjrStartAutoRefreshTimer,
 } from "./grid/events.js";
 import { createMetadataFetcher } from "./grid/fetch.js";
@@ -181,8 +180,7 @@ function renderAssetsManager(root) {
   refreshAllInstances = refreshAllInstancesFn;
   const refreshCollections = () => populateCollectionsOptions(state, collectionFilterSelect);
 
-  // Workflow drops are handled in events.js (sibling payload drop on graph)
-  cleanups.push(ensureWorkflowDropHandler());
+  // Media drops on the ComfyUI canvas are handled natively by ComfyUI (this plugin does not intercept drop events).
   cleanups.push(ensureQueueListener(refreshAllInstances));
   cleanups.push(ensureNewFilesListener());
   cleanups.push(ensureGlobalAutoRefresh(refreshAllInstances));

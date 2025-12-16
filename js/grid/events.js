@@ -1,4 +1,3 @@
-import { app } from "../../../../scripts/app.js";
 import { api } from "../../../../scripts/api.js";
 import { buildViewUrl, detectKindFromExt, getExt, mjrSettings, mjrShowToast } from "../ui_settings.js";
 import { mjrGlobalState } from "../mjr_global.js";
@@ -6,7 +5,6 @@ import { sortFilesDeterministically } from "../am_data.js";
 
 let mjrGlobalRefreshTimer = null;
 let mjrFocusListenerAttached = false;
-let mjrWorkflowDropBound = false;
 let mjrQueueListenerBound = false;
 let mjrNewFilesListenerBound = false;
 let mjrCapabilitiesCache = null;
@@ -16,11 +14,6 @@ const mjrDbg = (...args) => {
       console.debug("[Majoor.DnD]", ...args);
     }
   } catch (_) {}
-};
-
-export const mjrIsOurDrag = (ev) => {
-  const types = Array.from(ev?.dataTransfer?.types || []);
-  return types.includes("application/x-mjr-sibling-file");
 };
 let mjrGraphCanvas = null;
 let mjrCanvasObserver = null;
@@ -228,62 +221,6 @@ export async function refreshAssetsForPrompt(promptId) {
     return newFiles.length;
   }
   return 0;
-}
-
-export function ensureWorkflowDropHandler() {
-  if (mjrWorkflowDropBound) return () => {};
-
-  const onDragOver = (ev) => {
-    const types = Array.from(ev.dataTransfer?.types || []);
-    if (types.includes("application/x-mjr-sibling-file")) {
-      ev.preventDefault();
-      ev.dataTransfer.dropEffect = "copy";
-    }
-  };
-
-  const onDrop = async (ev) => {
-    const types = Array.from(ev.dataTransfer?.types || []);
-    if (!types.includes("application/x-mjr-sibling-file")) return;
-
-    ev.preventDefault();
-
-    let info = null;
-    try {
-      const raw = ev.dataTransfer.getData("application/x-mjr-sibling-file");
-      if (raw) info = JSON.parse(raw);
-    } catch (_) {
-      info = null;
-    }
-    if (!info || !info.filename) return;
-
-    try {
-      const params = new URLSearchParams();
-      params.set("filename", info.filename);
-      if (info.subfolder) params.set("subfolder", info.subfolder);
-      const res = await api.fetchApi(`/mjr/filemanager/metadata?${params.toString()}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      if (data && data.ok && data.generation && data.generation.workflow) {
-        app.loadGraphData(data.generation.workflow);
-        mjrShowToast("info", "Workflow loaded from sibling PNG.", "Workflow");
-      } else {
-        mjrShowToast("warn", "No workflow found for this sibling.", "Workflow");
-      }
-    } catch (err) {
-      console.warn("[Majoor.AssetsManager] sibling workflow drop failed", err);
-      mjrShowToast("error", "Failed to load sibling workflow", "Workflow");
-    }
-  };
-
-  window.addEventListener("dragover", onDragOver, true);
-  window.addEventListener("drop", onDrop, true);
-  mjrWorkflowDropBound = true;
-
-  return () => {
-    window.removeEventListener("dragover", onDragOver, true);
-    window.removeEventListener("drop", onDrop, true);
-    mjrWorkflowDropBound = false;
-  };
 }
 
 export function ensureQueueListener(refreshAllInstances) {

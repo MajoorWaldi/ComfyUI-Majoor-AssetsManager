@@ -38,14 +38,24 @@ export function handleDragStart(file, ev) {
 
   const extGuess = file.ext || getExt(filename) || "";
   const kind = file.kind || detectKindFromExt(extGuess);
-  const isSiblingTarget =
-    kind === "video" || kind === "audio" || kind === "model3d" || kind === "3d" || kind === "other3d";
-  if (!isSiblingTarget) return;
+  const rawUrl = file.url || buildViewUrl(file);
+  const url = new URL(rawUrl, window.location.href).href;
+
+  const extLower = String(extGuess).toLowerCase().replace(/^\./, "");
+  const mime =
+    extLower === "mp4"
+      ? "video/mp4"
+      : extLower === "mp3"
+      ? "audio/mpeg"
+      : "application/octet-stream";
 
   ev.dataTransfer.effectAllowed = "copy";
+  ev.dataTransfer.setData("text/uri-list", url);
+  ev.dataTransfer.setData("text/plain", url);
+  ev.dataTransfer.setData("DownloadURL", `${mime}:${filename}:${url}`);
   ev.dataTransfer.setData(
-    "application/x-mjr-sibling-file",
-    JSON.stringify({ filename, subfolder: file.subfolder || "" })
+    "application/x-mjr-asset",
+    JSON.stringify({ filename, subfolder: file.subfolder || "", kind })
   );
 }
 
