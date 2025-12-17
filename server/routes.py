@@ -36,7 +36,7 @@ from .utils import (
 )
 from .metadata import update_metadata_with_windows, deep_merge_metadata
 from .generation_metadata import extract_generation_params_from_png, has_generation_workflow
-from .config import OUTPUT_ROOT, THUMB_SIZE, ENABLE_JSON_SIDECAR, METADATA_EXT
+from .config import OUTPUT_ROOT, ENABLE_JSON_SIDECAR, METADATA_EXT
 from .mjr_collections import (
     get_collections,
     load_collection,
