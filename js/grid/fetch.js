@@ -1,10 +1,40 @@
 import { api } from "../../../../scripts/api.js";
 
-export function createMetadataFetcher(state, gridView) {
+export function createMetadataFetcher(state, gridView, opts = {}) {
   let metadataAbortCtrl = null;
   let metadataFetchInFlight = null;
   let metadataDebounceTimer = null;
   let currentGridView = gridView || null;
+  let onMetadataUpdated = typeof opts.onMetadataUpdated === "function" ? opts.onMetadataUpdated : null;
+
+  const setOnMetadataUpdated = (fn) => {
+    onMetadataUpdated = typeof fn === "function" ? fn : null;
+  };
+
+  const shouldHydrateForFilter = () => {
+    const tagFilter = (state.tagFilter || "").trim();
+    const minRating = Number(state.minRating || 0);
+    return !!tagFilter || minRating > 0;
+  };
+
+  const applyBatchResults = (data) => {
+    const metaByKey = new Map();
+    (data.metadatas || []).forEach((m) => metaByKey.set(`${m.subfolder || ""}/${m.filename || ""}`, m));
+
+    let updatedCount = 0;
+    state.files.forEach((f) => {
+      const key = `${f.subfolder || ""}/${f.filename || f.name || ""}`;
+      const m = metaByKey.get(key);
+      if (m) {
+        f.rating = m.rating ?? 0;
+        f.tags = m.tags || [];
+        if (m.has_workflow !== undefined) f.hasWorkflow = !!m.has_workflow;
+        f.__metaLoaded = true;
+        updatedCount += 1;
+      }
+    });
+    return updatedCount;
+  };
 
   async function fetchMetadataForVisible() {
     if (metadataFetchInFlight) return;
@@ -37,26 +67,14 @@ export function createMetadataFetcher(state, gridView) {
       signal: thisCtrl.signal,
     });
 
+    let updatedAny = false;
     try {
       const res = await metadataFetchInFlight;
       if (thisCtrl.signal.aborted || reqVersion !== state.renderVersion) return;
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (thisCtrl.signal.aborted || reqVersion !== state.renderVersion) return;
-
-      const metaByKey = new Map();
-      (data.metadatas || []).forEach((m) => metaByKey.set(`${m.subfolder || ""}/${m.filename || ""}`, m));
-
-      state.files.forEach((f) => {
-        const key = `${f.subfolder || ""}/${f.filename || f.name || ""}`;
-        const m = metaByKey.get(key);
-        if (m) {
-          f.rating = m.rating ?? 0;
-          f.tags = m.tags || [];
-          if (m.has_workflow !== undefined) f.hasWorkflow = !!m.has_workflow;
-          f.__metaLoaded = true;
-        }
-      });
+      updatedAny = applyBatchResults(data) > 0;
 
       if (currentGridView) currentGridView.renderGrid();
     } catch (err) {
@@ -68,8 +86,72 @@ export function createMetadataFetcher(state, gridView) {
     } finally {
       metadataFetchInFlight = null;
       if (metadataAbortCtrl === thisCtrl) metadataAbortCtrl = null;
-      if (fullList.slice(effectiveStart, effectiveEnd).some((f) => !f.__metaLoaded)) {
+      if (updatedAny && onMetadataUpdated) {
+        setTimeout(() => {
+          try {
+            onMetadataUpdated();
+          } catch (_) {}
+        }, 0);
+      }
+      if (reqVersion === state.renderVersion && fullList.slice(effectiveStart, effectiveEnd).some((f) => !f.__metaLoaded)) {
         fetchMetadataForVisible();
+      }
+    }
+  }
+
+  async function fetchMetadataForFilter() {
+    if (metadataFetchInFlight) return;
+    if (!shouldHydrateForFilter()) return;
+
+    const reqVersion = state.renderVersion;
+    const allFiles = state.files || [];
+    const targetFiles = allFiles.filter((f) => !f.__metaLoaded).slice(0, 30);
+    if (!targetFiles.length) return;
+
+    const batch = targetFiles.map((f) => ({ filename: f.filename || f.name, subfolder: f.subfolder || "" }));
+
+    if (metadataAbortCtrl) {
+      try {
+        metadataAbortCtrl.abort();
+      } catch (_) {}
+    }
+    metadataAbortCtrl = new AbortController();
+    const thisCtrl = metadataAbortCtrl;
+
+    metadataFetchInFlight = api.fetchApi("/mjr/filemanager/metadata/batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items: batch }),
+      signal: thisCtrl.signal,
+    });
+
+    let updatedAny = false;
+    try {
+      const res = await metadataFetchInFlight;
+      if (thisCtrl.signal.aborted || reqVersion !== state.renderVersion) return;
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (thisCtrl.signal.aborted || reqVersion !== state.renderVersion) return;
+      updatedAny = applyBatchResults(data) > 0;
+      if (currentGridView) currentGridView.renderGrid();
+    } catch (err) {
+      if (err?.name === "AbortError") {
+        // ignore aborted fetch
+      } else {
+        console.warn("[Majoor.AssetsManager] filter metadata load failed", err);
+      }
+    } finally {
+      metadataFetchInFlight = null;
+      if (metadataAbortCtrl === thisCtrl) metadataAbortCtrl = null;
+      if (updatedAny && onMetadataUpdated) {
+        setTimeout(() => {
+          try {
+            onMetadataUpdated();
+          } catch (_) {}
+        }, 0);
+      }
+      if (reqVersion === state.renderVersion && shouldHydrateForFilter() && allFiles.some((f) => !f.__metaLoaded)) {
+        fetchMetadataForFilter();
       }
     }
   }
@@ -94,5 +176,5 @@ export function createMetadataFetcher(state, gridView) {
     currentGridView = gv;
   };
 
-  return { fetchMetadataForVisible, onRequestMetadata, cleanup, setGridView };
+  return { fetchMetadataForVisible, fetchMetadataForFilter, onRequestMetadata, cleanup, setGridView, setOnMetadataUpdated };
 }

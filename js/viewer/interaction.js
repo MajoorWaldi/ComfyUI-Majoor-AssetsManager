@@ -7,13 +7,14 @@ export function setupViewerInteractions({
   applyCheckerboardBg,
   mjrSettings,
 }) {
-  const allowZoom = kind === "image";
+  const allowZoom = kind === "image" || kind === "video";
   let scale = 1;
   const originX = 50;
   const originY = 50;
   let offsetX = 0;
   let offsetY = 0;
   let resetZoomPan = () => {};
+  let minScale = 1;
 
   const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
   const calcFitScale = () => {
@@ -27,8 +28,10 @@ export function setupViewerInteractions({
     return Math.max(0.01, Math.min(10, ratio || 1));
   };
 
-  if (allowZoom) el.style.transformOrigin = `${originX}% ${originY}%`;
-  else {
+  if (allowZoom) {
+    el.style.transformOrigin = `${originX}% ${originY}%`;
+    el.style.willChange = "transform";
+  } else {
     zoomHud.style.display = "none";
     el.style.transform = "none";
     el.style.cursor = "default";
@@ -36,18 +39,19 @@ export function setupViewerInteractions({
 
   const applyTransform = () => {
     if (!allowZoom) return;
-    if (scale <= 1) {
+    if (scale <= minScale) {
       offsetX = 0;
       offsetY = 0;
     }
     el.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
-    el.style.cursor = scale > 1 ? "grab" : "default";
+    el.style.cursor = scale > minScale ? "grab" : "default";
     zoomHud.textContent = `${Math.round(scale * 100)}%`;
   };
 
   if (allowZoom) {
     resetZoomPan = () => {
-      scale = calcFitScale();
+      minScale = calcFitScale();
+      scale = minScale;
       offsetX = 0;
       offsetY = 0;
       applyTransform();
@@ -97,7 +101,7 @@ export function setupViewerInteractions({
     const stopDrag = () => {
       if (!dragging) return;
       dragging = false;
-      el.style.cursor = scale > 1 ? "grab" : "default";
+      el.style.cursor = scale > minScale ? "grab" : "default";
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", stopDrag);
       window.removeEventListener("pointercancel", stopDrag);
@@ -105,7 +109,7 @@ export function setupViewerInteractions({
 
     mediaWrap.addEventListener("pointerdown", (ev) => {
       if (ev.button !== 0) return;
-      if (scale <= 1) return;
+      if (scale <= minScale) return;
       ev.preventDefault();
       try {
         mediaWrap.setPointerCapture(ev.pointerId);
@@ -145,7 +149,7 @@ export function setupViewerInteractions({
     textAlign: "center",
     whiteSpace: "nowrap",
   });
-  hint.textContent = "Scroll: Zoom  •  Drag: Pan  •  F: Fit/Reset";
+  hint.textContent = "Scroll: Zoom  •  Drag (zoomed): Pan  •  F: Fit/Reset";
   mediaWrap.appendChild(hint);
   hint.style.transition = "opacity 0.3s ease";
   let hideTimer = setTimeout(() => {

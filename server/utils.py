@@ -1,6 +1,7 @@
 import json
 import os
 import platform
+import re
 import shutil
 import subprocess
 import unicodedata
@@ -136,6 +137,55 @@ def _parse_rating_value(raw) -> int:
             return 4
         return 5
     return int(round(min(numeric, 5)))
+
+
+def _coerce_rating_to_stars(raw) -> int:
+    """
+    Normalize arbitrary rating inputs to 0..5 stars.
+    Accepts:
+    - 0..5 stars (int/float/str)
+    - Windows percent scale (0..100)
+    - star glyphs (e.g. ★★★☆☆)
+    """
+    if raw in (None, ""):
+        return 0
+    try:
+        num = float(str(raw).strip().replace(",", ".").split()[0])
+    except Exception:
+        return max(0, min(_parse_rating_value(raw), 5))
+
+    if num <= 0:
+        return 0
+    if 0 <= num <= 5:
+        return max(0, min(int(round(num)), 5))
+    if num <= 100:
+        return windows_percent_to_stars(int(round(num)))
+    return max(0, min(_parse_rating_value(raw), 5))
+
+
+def _normalize_tags(raw) -> List[str]:
+    """
+    Normalize tags to a deduplicated, order-preserving list of non-empty strings.
+    Accepts list or comma/semicolon-delimited strings.
+    """
+    if raw is None:
+        return []
+    if isinstance(raw, list):
+        candidates = raw
+    elif isinstance(raw, str):
+        candidates = [t.strip() for t in re.split(r"[;,]", raw)]
+    else:
+        return []
+
+    out: List[str] = []
+    seen = set()
+    for t in candidates:
+        s = str(t).strip()
+        if not s or s in seen:
+            continue
+        seen.add(s)
+        out.append(s)
+    return out
 
 
 def rating_to_windows_percent(stars: int) -> int:
@@ -373,7 +423,7 @@ def set_exif_metadata(file_path: str, rating: int, tags: list) -> bool:
 
     try:
         write_timeout_s = _env_timeout("MJR_EXIFTOOL_WRITE_TIMEOUT", 3.0, min_s=0.5, max_s=120.0)
-        r = max(0, min(int(rating), 5))
+        r = _coerce_rating_to_stars(rating)
         win_r = rating_to_windows_percent(r)
 
         is_video = file_path.lower().endswith((".mp4", ".mov", ".m4v", ".webm", ".mkv"))
@@ -394,7 +444,7 @@ def set_exif_metadata(file_path: str, rating: int, tags: list) -> bool:
             cat = tags_to_windows_category(tags)
             cmd.append(f"-Microsoft:Category={cat}")
 
-        clean_tags = [str(t).strip() for t in tags if str(t).strip()]
+        clean_tags = _normalize_tags(tags)
         # Always write Category for video, even if empty, to clear stale values
         if is_video and not clean_tags:
             cmd.append(f"-Microsoft:Category=")
@@ -435,33 +485,43 @@ def set_windows_metadata(file_path: str, rating: int, tags: list) -> bool:
         if not win32com:
             return False
 
+        original_mtime = _get_mtime_safe(file_path)
         shell = win32com.Dispatch("Shell.Application")
         folder = shell.Namespace(os.path.dirname(file_path))
         file = folder.ParseName(os.path.basename(file_path))
 
         rating_idx, tags_idx = _resolve_shell_indices(folder)
 
-        # Rating (scale 1-99); Windows 5-star uses 1-5, but accepting broader range
+        # Rating (SharedUserRating percent 0..99); accept stars or percent and normalize
         if rating is not None:
-            try:
-                r_int = int(rating)
-            except Exception:
-                r_int = 0
-            # Accept 0-5 stars or already-percent; normalize to Windows percent scale
-            if 0 <= r_int <= 5:
-                rating_val = rating_to_windows_percent(r_int)
-            else:
-                rating_val = max(0, min(99, r_int))
+            stars = _coerce_rating_to_stars(rating)
+            rating_val = rating_to_windows_percent(stars)
             folder.GetDetailsOf(file, rating_idx)  # force index load
             folder.SetDetailsOf(file, rating_idx, str(rating_val))
 
-        if tags:
+        tags_list = _normalize_tags(tags)
+        if tags_list:
             folder.GetDetailsOf(file, tags_idx)
-            folder.SetDetailsOf(file, tags_idx, "; ".join(tags))
+            folder.SetDetailsOf(file, tags_idx, "; ".join(tags_list))
         elif tags == []:
             folder.GetDetailsOf(file, tags_idx)
             folder.SetDetailsOf(file, tags_idx, "")
 
+        # Restore mtime to avoid reordering the grid after rating/tag updates
+        if original_mtime is not None:
+            try:
+                os.utime(file_path, (original_mtime, original_mtime))
+            except Exception:
+                pass
+
+        global _CACHE_EPOCH
+        _CACHE_EPOCH += 1
+        epoch = _CACHE_EPOCH
+        _META_CACHE[file_path] = (
+            original_mtime if original_mtime is not None else _get_mtime_safe(file_path),
+            epoch,
+            {"rating": _coerce_rating_to_stars(rating), "tags": tags_list},
+        )
         return True
     except Exception:
         return False
@@ -524,8 +584,7 @@ def update_metadata_with_windows(file_path: str, updates: dict) -> dict:
     Returns final metadata.
     """
     global _CACHE_EPOCH
-    _CACHE_EPOCH += 1
-    epoch = _CACHE_EPOCH
+    start_epoch = _CACHE_EPOCH
 
     # Load current values (prefer system metadata, fallback to sidecar)
     sys_meta = get_system_metadata(file_path) or {}
@@ -539,11 +598,11 @@ def update_metadata_with_windows(file_path: str, updates: dict) -> dict:
     if not has_rating and not has_tags:
         return {"rating": current_rating, "tags": current_tags}
 
-    rating = updates.get("rating", current_rating if has_rating else current_rating)
-    tags = updates.get("tags", current_tags if has_tags else current_tags)
+    rating = _coerce_rating_to_stars(updates.get("rating", current_rating))
+    tags = _normalize_tags(updates.get("tags", current_tags))
 
     # Only write tags when provided; otherwise preserve existing tags in system metadata
-    target_tags = tags if has_tags else current_tags
+    target_tags = tags if has_tags else _normalize_tags(current_tags)
 
     ok_win = False
     ok_exif = False
@@ -551,12 +610,22 @@ def update_metadata_with_windows(file_path: str, updates: dict) -> dict:
         ok_win = set_windows_metadata(file_path, rating if has_rating else current_rating, target_tags if has_tags else current_tags)
         ok_exif = set_exif_metadata(file_path, rating if has_rating else current_rating, target_tags if has_tags else current_tags)
 
+    sidecar_saved = False
     if _sidecar_allowed_for(file_path):
         save_metadata(file_path, {"rating": rating if has_rating else current_rating, "tags": target_tags})
+        sidecar_saved = True
 
-    effective_rating = (rating if has_rating else current_rating) if (ok_win or ok_exif) else current_rating
+    effective_rating = (rating if has_rating else current_rating) if (ok_win or ok_exif or sidecar_saved) else current_rating
     effective_tags = target_tags
-    _META_CACHE[file_path] = (_get_mtime_safe(file_path), epoch, {"rating": effective_rating, "tags": effective_tags})
+
+    # Ensure cache invalidates even when mtime is preserved (Windows/ExifTool writes).
+    if (ok_win or ok_exif or sidecar_saved) and _CACHE_EPOCH == start_epoch:
+        _CACHE_EPOCH += 1
+    _META_CACHE[file_path] = (
+        _get_mtime_safe(file_path),
+        _CACHE_EPOCH,
+        {"rating": _coerce_rating_to_stars(effective_rating), "tags": _normalize_tags(effective_tags)},
+    )
     return {"rating": effective_rating, "tags": effective_tags}
 
 
@@ -565,26 +634,19 @@ def apply_system_metadata(file_path: str, rating, tags: list) -> dict:
     Try exiftool first (if installed), otherwise Windows Shell.
     """
     global _CACHE_EPOCH
-    _CACHE_EPOCH += 1
-    epoch = _CACHE_EPOCH
-    try:
-        rating_int = int(rating) if rating is not None else 0
-    except Exception:
-        rating_int = 0
-    tags_list: List[str] = []
-    if isinstance(tags, list):
-        tags_list = [str(t) for t in tags if str(t).strip()]
+    start_epoch = _CACHE_EPOCH
+    rating_int = _coerce_rating_to_stars(rating)
+    tags_list = _normalize_tags(tags)
 
     # exiftool (meilleure compat Windows + autres OS)
     if set_exif_metadata(file_path, rating_int, tags_list):
-        mtime = _get_mtime_safe(file_path)
-        _META_CACHE[file_path] = (mtime, epoch, {"rating": rating_int, "tags": tags_list})
         return {"rating": rating_int, "tags": tags_list}
 
     # fallback shell API
     meta = apply_windows_metadata(file_path, rating_int, tags_list)
-    mtime = _get_mtime_safe(file_path)
-    _META_CACHE[file_path] = (mtime, epoch, meta)
+    if _CACHE_EPOCH == start_epoch:
+        _CACHE_EPOCH += 1
+        _META_CACHE[file_path] = (_get_mtime_safe(file_path), _CACHE_EPOCH, meta)
     return meta
 
 

@@ -101,7 +101,8 @@ export const CONTEXT_MENU_STYLES = {
 export const mjrSettingsDefaults = {
   autoRefresh: { enabled: true, interval: 5000, focusOnly: true },
   metaPanel: { showByDefault: true, refreshInterval: 2000 },
-  grid: { cardSize: "medium", showTags: true, showRating: true, pageSize: 500 },
+  grid: { cardSize: "medium", showTags: true, showRating: true, pageSize: 500, hoverInfo: true },
+  integration: { panel: "both" }, // "both" | "sidebar" | "bottom"
   viewer: {
     navEnabled: true,
     autoplayVideos: true,
@@ -191,6 +192,11 @@ export async function mjrPrefetchOutputs() {
   return mjrPrefetchPromise;
 }
 
+export function mjrResetPrefetch() {
+  mjrPrefetchedFiles = null;
+  mjrPrefetchPromise = null;
+}
+
 export function mjrShouldShowToast(kind) {
   if (!mjrSettings.toasts.enabled) return false;
   const v = mjrSettings.toasts.verbosity || "all";
@@ -219,7 +225,7 @@ export function mjrShowToast(kind = "info", message = "", title = null, duration
     severity: severityMap[kind] || "info",
     summary: title || (kind.charAt(0).toUpperCase() + kind.slice(1)),
     detail: message,
-    life: duration || 3000,
+    life: duration || Number(mjrSettings.toasts.duration) || 3000,
     closable: true,
   });
 }

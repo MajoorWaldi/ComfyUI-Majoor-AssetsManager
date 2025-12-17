@@ -1331,6 +1331,69 @@ export function mjrUpdateViewerRatingDisplay(rating) {
   }
 }
 
+export function mjrApplyOpenViewerSettings() {
+  try {
+    mjrUpdateNavVisibility();
+  } catch (_) {}
+
+  const frame = mjrViewerState.frame;
+  if (!frame) return;
+
+  // Update video element behavior without rerendering (keeps zoom/pan state)
+  try {
+    frame.querySelectorAll("video").forEach((el) => {
+      el.autoplay = !!mjrSettings.viewer.autoplayVideos;
+      el.loop = !!mjrSettings.viewer.loopVideos;
+      el.muted = !!mjrSettings.viewer.muteVideos;
+    });
+  } catch (_) {}
+
+  // Toggle rating HUD (single viewer only)
+  try {
+    if (mjrViewerIsAB) return;
+    const pane = frame.firstChild;
+    const mediaWrap = pane && pane.firstChild;
+    if (!mediaWrap || !mediaWrap.appendChild) return;
+
+    if (!mjrSettings.viewer.showRatingHUD) {
+      if (mjrViewerRatingEl && mjrViewerRatingEl.parentNode) {
+        mjrViewerRatingEl.parentNode.removeChild(mjrViewerRatingEl);
+      }
+      mjrViewerRatingEl = null;
+      return;
+    }
+
+    if (!mjrViewerRatingEl) {
+      const existing = mediaWrap.querySelector?.("[data-mjr-viewer-rating='1']") || null;
+      if (existing) {
+        mjrViewerRatingEl = existing;
+      } else {
+        const badge = document.createElement("div");
+        Object.assign(badge.style, {
+          position: "absolute",
+          top: "8px",
+          left: "8px",
+          padding: "6px 10px",
+          borderRadius: "8px",
+          background: "rgba(0,0,0,0.6)",
+          color: "#ffd45a",
+          fontWeight: "700",
+          letterSpacing: "2px",
+          fontSize: "20px",
+          pointerEvents: "none",
+        });
+        badge.dataset.mjrViewerRating = "1";
+        mediaWrap.appendChild(badge);
+        mjrViewerRatingEl = badge;
+      }
+    }
+
+    const file = mjrCurrentList[mjrCurrentIndex];
+    const currentRating = Math.max(0, Math.min(5, mjrGetRating(file)));
+    mjrUpdateViewerRatingDisplay(currentRating);
+  } catch (_) {}
+}
+
   async function mjrSetViewerRating(rating) {
     if (mjrViewerIsAB) return;
     if (!mjrCurrentList.length) return;
@@ -1344,7 +1407,7 @@ export function mjrUpdateViewerRatingDisplay(rating) {
   const firstInst = mjrGlobalState.instances.values().next().value;
   if (firstInst && typeof firstInst.updateFileMetadata === "function") {
     try {
-      await firstInst.updateFileMetadata(file, "Rating updated");
+      await firstInst.updateFileMetadata(file, { rating: r }, "Rating updated");
     } catch (err) {
       console.warn("[Majoor.AssetsManager] viewer rating persist failed", err);
     }

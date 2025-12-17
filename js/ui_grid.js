@@ -1,6 +1,19 @@
 import { app } from "../../../../scripts/app.js";
 import { api } from "../../../../scripts/api.js";
-import { createEl, mjrAttachHoverFeedback, mjrCardBasePx, mjrDeepMerge, mjrSaveSettings, mjrSettings, mjrSettingsDefaults, mjrShowToast, setMjrSettings, detectKindFromExt } from "./ui_settings.js";
+import {
+  createEl,
+  mjrAttachHoverFeedback,
+  mjrCardBasePx,
+  mjrDeepMerge,
+  mjrPrefetchOutputs,
+  mjrResetPrefetch,
+  mjrSaveSettings,
+  mjrSettings,
+  mjrSettingsDefaults,
+  mjrShowToast,
+  setMjrSettings,
+  detectKindFromExt,
+} from "./ui_settings.js";
 import { mjrGlobalState } from "./mjr_global.js";
 import { fileKey } from "./am_state.js";
 import { SMART_FILTERS } from "./am_filters.js";
@@ -9,6 +22,7 @@ import {
   mjrOpenABViewer,
   mjrOpenViewerForFiles,
   mjrStepVideos,
+  mjrApplyOpenViewerSettings,
   mjrUpdateNavVisibility,
 } from "./ui_viewer.js";
 import { createMetadataSidebar } from "./ui_sidebar.js";
@@ -31,6 +45,10 @@ import { createRefreshController } from "./grid/load.js";
 
 let mjrMetaVisible = !!mjrSettings.metaPanel.showByDefault;
 let refreshAllInstances = () => Promise.resolve();
+
+const mjrPanelMode = String(mjrSettings?.integration?.panel || mjrSettingsDefaults?.integration?.panel || "both").toLowerCase();
+const mjrUseBottomPanel = mjrPanelMode === "bottom" || mjrPanelMode === "both";
+const mjrUseSidebarPanel = mjrPanelMode === "sidebar" || mjrPanelMode === "both";
 
 function mjrApplySettings(newSettings) {
   setMjrSettings(mjrDeepMerge(mjrSettingsDefaults, newSettings || {}));
@@ -161,20 +179,30 @@ function renderAssetsManager(root) {
   populateCollectionsOptions(state, collectionFilterSelect);
 
   let openContextMenuEl = null;
-  const {
-    fetchMetadataForVisible,
-    onRequestMetadata,
-    cleanup: cleanupMetadataFetcher,
-    setGridView: setGridViewForMetadata,
-  } = createMetadataFetcher(state, null);
-  const {
-    applyFilterAndRender,
-    setGridView: setGridViewForRender,
-  } = createApplyFilterAndRender(state, fetchMetadataForVisible);
-  const {
-    refreshInstance,
-    refreshAllInstances: refreshAllInstancesFn,
-    loadFilesWrapper,
+	  const {
+	    fetchMetadataForVisible,
+	    fetchMetadataForFilter,
+	    onRequestMetadata,
+	    cleanup: cleanupMetadataFetcher,
+	    setGridView: setGridViewForMetadata,
+	    setOnMetadataUpdated,
+	  } = createMetadataFetcher(state, null);
+	  const {
+	    applyFilterAndRender,
+	    setGridView: setGridViewForRender,
+	  } = createApplyFilterAndRender(state, fetchMetadataForVisible, fetchMetadataForFilter);
+
+	  setOnMetadataUpdated(() => {
+	    const tagFilter = (state.tagFilter || "").trim();
+	    const minRating = Number(state.minRating || 0);
+	    if (tagFilter || minRating > 0) {
+	      applyFilterAndRender();
+	    }
+	  });
+	  const {
+	    refreshInstance,
+	    refreshAllInstances: refreshAllInstancesFn,
+	    loadFilesWrapper,
     loadFiles,
     loadMoreFiles,
     lastSignatureRef,
@@ -331,13 +359,17 @@ function renderAssetsManager(root) {
 
 app.registerExtension({
   name: "Majoor.AssetsManager",
-  bottomPanelTabs: [{
-    id: "majoorAssetsManagerBottom",
-    title: "Assets Manager",
-    type: "custom",
-    render: (el) => renderAssetsManager(el),
-    destroy: (el) => el?.__mjrCleanup?.(),
-  }],
+  bottomPanelTabs: mjrUseBottomPanel
+    ? [
+        {
+          id: "majoorAssetsManagerBottom",
+          title: "Assets Manager",
+          type: "custom",
+          render: (el) => renderAssetsManager(el),
+          destroy: (el) => el?.__mjrCleanup?.(),
+        },
+      ]
+    : [],
   async setup() {
     const SETTINGS_PREFIX = "MajoorAM";
 
@@ -365,13 +397,29 @@ app.registerExtension({
       }
     };
 
+    // --- INTEGRATION ---
+    app.ui.settings.addSetting({
+      id: `${SETTINGS_PREFIX}.Integration.Panel`,
+      name: "Majoor: Panel Integration (reload to apply)",
+      tooltip: "Choose where the Assets Manager appears (reload ComfyUI page after changing).",
+      type: "combo",
+      options: ["both", "sidebar", "bottom"],
+      defaultValue: mjrSettings.integration?.panel || mjrSettingsDefaults.integration.panel,
+      onChange: (val) => {
+        mjrSettings.integration = mjrSettings.integration || {};
+        mjrSettings.integration.panel = String(val || "both");
+        mjrSaveSettings(mjrSettings);
+        mjrShowToast("info", "Reload the ComfyUI page to apply the new panel placement.", "Assets Manager");
+      },
+    });
+
     // --- GRID SETTINGS ---
     app.ui.settings.addSetting({
       id: `${SETTINGS_PREFIX}.Grid.CardSize`,
       name: "Majoor: Card Size",
       type: "combo",
       options: ["compact", "medium", "large"],
-      defaultValue: mjrSettingsDefaults.grid.cardSize,
+      defaultValue: mjrSettings.grid.cardSize,
       onChange: (val) => {
         mjrSettings.grid.cardSize = val;
         mjrSaveSettings(mjrSettings);
@@ -380,10 +428,27 @@ app.registerExtension({
     });
 
     app.ui.settings.addSetting({
+      id: `${SETTINGS_PREFIX}.Grid.PageSize`,
+      name: "Majoor: Page Size (files per request)",
+      tooltip: "Bigger loads more at once; smaller reduces memory. Applies on next refresh.",
+      type: "number",
+      defaultValue: Number(mjrSettings.grid.pageSize) || mjrSettingsDefaults.grid.pageSize,
+      attrs: { min: 50, max: 2000, step: 50 },
+      onChange: (val) => {
+        const n = Math.max(50, Math.min(2000, Math.floor(Number(val) || mjrSettingsDefaults.grid.pageSize)));
+        mjrSettings.grid.pageSize = n;
+        mjrSaveSettings(mjrSettings);
+        mjrResetPrefetch();
+        mjrPrefetchOutputs();
+        refreshAllInstances({ silent: true, forceFiles: true });
+      },
+    });
+
+    app.ui.settings.addSetting({
       id: `${SETTINGS_PREFIX}.Grid.ShowTags`,
       name: "Majoor: Show Tags on Cards",
       type: "boolean",
-      defaultValue: mjrSettingsDefaults.grid.showTags,
+      defaultValue: mjrSettings.grid.showTags,
       onChange: (val) => {
         mjrSettings.grid.showTags = val;
         mjrSaveSettings(mjrSettings);
@@ -395,11 +460,52 @@ app.registerExtension({
       id: `${SETTINGS_PREFIX}.Grid.ShowRating`,
       name: "Majoor: Show Ratings on Cards",
       type: "boolean",
-      defaultValue: mjrSettingsDefaults.grid.showRating,
+      defaultValue: mjrSettings.grid.showRating,
       onChange: (val) => {
         mjrSettings.grid.showRating = val;
         mjrSaveSettings(mjrSettings);
         mjrGlobalState.instances.forEach((i) => i.applyFilterAndRender?.());
+      },
+    });
+
+    app.ui.settings.addSetting({
+      id: `${SETTINGS_PREFIX}.Grid.HoverInfo`,
+      name: "Majoor: Hover Info Tooltips",
+      tooltip: "Show file info on hover (native tooltip).",
+      type: "boolean",
+      defaultValue: mjrSettings.grid.hoverInfo,
+      onChange: (val) => {
+        mjrSettings.grid.hoverInfo = !!val;
+        mjrSaveSettings(mjrSettings);
+        mjrGlobalState.instances.forEach((i) => i.applyFilterAndRender?.());
+      },
+    });
+
+    // --- META PANEL ---
+    app.ui.settings.addSetting({
+      id: `${SETTINGS_PREFIX}.MetaPanel.ShowByDefault`,
+      name: "Majoor: Show Metadata Panel",
+      type: "boolean",
+      defaultValue: mjrSettings.metaPanel.showByDefault,
+      onChange: (val) => {
+        mjrSettings.metaPanel.showByDefault = !!val;
+        mjrSaveSettings(mjrSettings);
+        mjrMetaVisible = !!val;
+        mjrGlobalState.instances.forEach((i) => i.setMetadataPanelVisibility?.(mjrMetaVisible));
+      },
+    });
+
+    app.ui.settings.addSetting({
+      id: `${SETTINGS_PREFIX}.MetaPanel.RefreshInterval`,
+      name: "Majoor: Metadata Refresh Interval (ms)",
+      tooltip: "While a file is selected, re-fetch generation metadata at this interval (0 disables).",
+      type: "number",
+      defaultValue: Number(mjrSettings.metaPanel.refreshInterval) || mjrSettingsDefaults.metaPanel.refreshInterval,
+      attrs: { min: 0, step: 250 },
+      onChange: (val) => {
+        const n = Math.max(0, Math.min(60000, Math.floor(Number(val) || 0)));
+        mjrSettings.metaPanel.refreshInterval = n;
+        mjrSaveSettings(mjrSettings);
       },
     });
 
@@ -408,7 +514,7 @@ app.registerExtension({
       id: `${SETTINGS_PREFIX}.Refresh.Enabled`,
       name: "Majoor: Auto-Refresh Enabled",
       type: "boolean",
-      defaultValue: mjrSettingsDefaults.autoRefresh.enabled,
+      defaultValue: mjrSettings.autoRefresh.enabled,
       onChange: (val) => {
         mjrSettings.autoRefresh.enabled = val;
         mjrSaveSettings(mjrSettings);
@@ -420,12 +526,61 @@ app.registerExtension({
       id: `${SETTINGS_PREFIX}.Refresh.Interval`,
       name: "Majoor: Refresh Interval (ms)",
       type: "number",
-      defaultValue: mjrSettingsDefaults.autoRefresh.interval,
+      defaultValue: Number(mjrSettings.autoRefresh.interval) || mjrSettingsDefaults.autoRefresh.interval,
       attrs: { min: 1000, step: 500 },
       onChange: (val) => {
-        mjrSettings.autoRefresh.interval = val;
+        mjrSettings.autoRefresh.interval = Number(val) || mjrSettingsDefaults.autoRefresh.interval;
         mjrSaveSettings(mjrSettings);
         mjrStartAutoRefreshTimer(refreshAllInstances);
+      },
+    });
+
+    app.ui.settings.addSetting({
+      id: `${SETTINGS_PREFIX}.Refresh.FocusOnly`,
+      name: "Majoor: Auto-Refresh Only When Focused",
+      type: "boolean",
+      defaultValue: mjrSettings.autoRefresh.focusOnly,
+      onChange: (val) => {
+        mjrSettings.autoRefresh.focusOnly = !!val;
+        mjrSaveSettings(mjrSettings);
+        mjrStartAutoRefreshTimer(refreshAllInstances);
+      },
+    });
+
+    // --- TOASTS ---
+    app.ui.settings.addSetting({
+      id: `${SETTINGS_PREFIX}.Toasts.Enabled`,
+      name: "Majoor: Toasts Enabled",
+      type: "boolean",
+      defaultValue: mjrSettings.toasts.enabled,
+      onChange: (val) => {
+        mjrSettings.toasts.enabled = !!val;
+        mjrSaveSettings(mjrSettings);
+      },
+    });
+
+    app.ui.settings.addSetting({
+      id: `${SETTINGS_PREFIX}.Toasts.Verbosity`,
+      name: "Majoor: Toast Verbosity",
+      type: "combo",
+      options: ["all", "warnings", "errors", "none"],
+      defaultValue: mjrSettings.toasts.verbosity || mjrSettingsDefaults.toasts.verbosity,
+      onChange: (val) => {
+        mjrSettings.toasts.verbosity = String(val || "all");
+        mjrSaveSettings(mjrSettings);
+      },
+    });
+
+    app.ui.settings.addSetting({
+      id: `${SETTINGS_PREFIX}.Toasts.Duration`,
+      name: "Majoor: Toast Duration (ms)",
+      type: "number",
+      defaultValue: Number(mjrSettings.toasts.duration) || mjrSettingsDefaults.toasts.duration,
+      attrs: { min: 500, max: 20000, step: 250 },
+      onChange: (val) => {
+        const n = Math.max(500, Math.min(20000, Math.floor(Number(val) || mjrSettingsDefaults.toasts.duration)));
+        mjrSettings.toasts.duration = n;
+        mjrSaveSettings(mjrSettings);
       },
     });
 
@@ -434,10 +589,11 @@ app.registerExtension({
       id: `${SETTINGS_PREFIX}.Viewer.Autoplay`,
       name: "Majoor Viewer: Autoplay Videos",
       type: "boolean",
-      defaultValue: mjrSettingsDefaults.viewer.autoplayVideos,
+      defaultValue: mjrSettings.viewer.autoplayVideos,
       onChange: (val) => {
         mjrSettings.viewer.autoplayVideos = val;
         mjrSaveSettings(mjrSettings);
+        mjrApplyOpenViewerSettings();
       },
     });
 
@@ -445,9 +601,57 @@ app.registerExtension({
       id: `${SETTINGS_PREFIX}.Viewer.Loop`,
       name: "Majoor Viewer: Loop Videos",
       type: "boolean",
-      defaultValue: mjrSettingsDefaults.viewer.loopVideos,
+      defaultValue: mjrSettings.viewer.loopVideos,
       onChange: (val) => {
         mjrSettings.viewer.loopVideos = val;
+        mjrSaveSettings(mjrSettings);
+        mjrApplyOpenViewerSettings();
+      },
+    });
+
+    app.ui.settings.addSetting({
+      id: `${SETTINGS_PREFIX}.Viewer.Mute`,
+      name: "Majoor Viewer: Mute Videos",
+      type: "boolean",
+      defaultValue: mjrSettings.viewer.muteVideos,
+      onChange: (val) => {
+        mjrSettings.viewer.muteVideos = !!val;
+        mjrSaveSettings(mjrSettings);
+        mjrApplyOpenViewerSettings();
+      },
+    });
+
+    app.ui.settings.addSetting({
+      id: `${SETTINGS_PREFIX}.Viewer.Navigation`,
+      name: "Majoor Viewer: Navigation Enabled",
+      type: "boolean",
+      defaultValue: mjrSettings.viewer.navEnabled,
+      onChange: (val) => {
+        mjrSettings.viewer.navEnabled = !!val;
+        mjrSaveSettings(mjrSettings);
+        mjrApplyOpenViewerSettings();
+      },
+    });
+
+    app.ui.settings.addSetting({
+      id: `${SETTINGS_PREFIX}.Viewer.RatingHUD`,
+      name: "Majoor Viewer: Show Rating HUD",
+      type: "boolean",
+      defaultValue: mjrSettings.viewer.showRatingHUD,
+      onChange: (val) => {
+        mjrSettings.viewer.showRatingHUD = !!val;
+        mjrSaveSettings(mjrSettings);
+        mjrApplyOpenViewerSettings();
+      },
+    });
+
+    app.ui.settings.addSetting({
+      id: `${SETTINGS_PREFIX}.Viewer.RatingHotkeys`,
+      name: "Majoor Viewer: Rating Hotkeys (0-5)",
+      type: "boolean",
+      defaultValue: mjrSettings.viewer.ratingHotkeys,
+      onChange: (val) => {
+        mjrSettings.viewer.ratingHotkeys = !!val;
         mjrSaveSettings(mjrSettings);
       },
     });
@@ -456,9 +660,54 @@ app.registerExtension({
       id: `${SETTINGS_PREFIX}.Viewer.Checkerboard`,
       name: "Majoor Viewer: Checkerboard Background",
       type: "boolean",
-      defaultValue: mjrSettingsDefaults.viewer.useCheckerboard,
+      defaultValue: mjrSettings.viewer.useCheckerboard,
       onChange: (val) => {
         mjrSettings.viewer.useCheckerboard = val;
+        mjrSaveSettings(mjrSettings);
+      },
+    });
+
+    // --- HOTKEYS ---
+    app.ui.settings.addSetting({
+      id: `${SETTINGS_PREFIX}.Hotkeys.Enabled`,
+      name: "Majoor: Hotkeys Enabled",
+      type: "boolean",
+      defaultValue: mjrSettings.hotkeys.enabled,
+      onChange: (val) => {
+        mjrSettings.hotkeys.enabled = !!val;
+        mjrSaveSettings(mjrSettings);
+      },
+    });
+
+    app.ui.settings.addSetting({
+      id: `${SETTINGS_PREFIX}.Hotkeys.Rating`,
+      name: "Majoor: Rating Hotkeys in Grid (0-5)",
+      type: "boolean",
+      defaultValue: mjrSettings.hotkeys.rating,
+      onChange: (val) => {
+        mjrSettings.hotkeys.rating = !!val;
+        mjrSaveSettings(mjrSettings);
+      },
+    });
+
+    app.ui.settings.addSetting({
+      id: `${SETTINGS_PREFIX}.Hotkeys.SpaceOpen`,
+      name: "Majoor: Open Viewer Hotkey (Space)",
+      type: "boolean",
+      defaultValue: mjrSettings.hotkeys.enterOpen,
+      onChange: (val) => {
+        mjrSettings.hotkeys.enterOpen = !!val;
+        mjrSaveSettings(mjrSettings);
+      },
+    });
+
+    app.ui.settings.addSetting({
+      id: `${SETTINGS_PREFIX}.Hotkeys.FrameStep`,
+      name: "Majoor: Viewer Frame-Step Hotkeys (ArrowUp/Down)",
+      type: "boolean",
+      defaultValue: mjrSettings.hotkeys.frameStep,
+      onChange: (val) => {
+        mjrSettings.hotkeys.frameStep = !!val;
         mjrSaveSettings(mjrSettings);
       },
     });
@@ -469,7 +718,7 @@ app.registerExtension({
       name: "Majoor: Hide PNG Siblings (Video previews)",
       tooltip: "If a video has a matching .png, hide the .png from the grid",
       type: "boolean",
-      defaultValue: mjrSettingsDefaults.siblings.hidePngSiblings,
+      defaultValue: mjrSettings.siblings.hidePngSiblings,
       onChange: (val) => {
         mjrSettings.siblings.hidePngSiblings = val;
         mjrSaveSettings(mjrSettings);
@@ -479,17 +728,21 @@ app.registerExtension({
     
     warnIfNoExiftool();
 
-    try {
-      app.extensionManager.registerSidebarTab({
-        id: "majoorAssetsManagerSidebar",
-        icon: "pi pi-folder-open",
-        title: "Assets Manager",
-        tooltip: "Majoor Assets Manager",
-        type: "custom",
-        render: (el) => renderAssetsManager(el),
-        destroy: (el) => el?.__mjrCleanup?.(),
-      });
-    } catch (err) { console.error("[Majoor.AssetsManager] sidebar registration failed", err); }
+    if (mjrUseSidebarPanel && app.extensionManager?.registerSidebarTab) {
+      try {
+        app.extensionManager.registerSidebarTab({
+          id: "majoorAssetsManagerSidebar",
+          icon: "pi pi-folder-open",
+          title: "Assets Manager",
+          tooltip: "Majoor Assets Manager",
+          type: "custom",
+          render: (el) => renderAssetsManager(el),
+          destroy: (el) => el?.__mjrCleanup?.(),
+        });
+      } catch (err) {
+        console.error("[Majoor.AssetsManager] sidebar registration failed", err);
+      }
+    }
   },
 });
 

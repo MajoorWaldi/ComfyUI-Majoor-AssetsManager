@@ -1,7 +1,7 @@
 import { detectKindFromExt, getBaseName, getExt, mjrSettings } from "../ui_settings.js";
 import { normalizeMtimeValue } from "../am_filters.js";
 
-export function createApplyFilterAndRender(state, fetchMetadataForVisible) {
+export function createApplyFilterAndRender(state, fetchMetadataForVisible, fetchMetadataForFilter) {
   let gridView = null;
 
   const applyFilterAndRender = (options = {}) => {
@@ -9,6 +9,7 @@ export function createApplyFilterAndRender(state, fetchMetadataForVisible) {
     const q = (state.search || "").trim().toLowerCase();
     const tagFilter = (state.tagFilter || "").trim().toLowerCase();
     const minRating = Number(state.minRating || 0);
+    const needsMetaFilter = minRating > 0 || !!tagFilter;
     const hidePng = !!mjrSettings.siblings.hidePngSiblings;
     let nonImageStems = null;
     if (hidePng) {
@@ -40,9 +41,11 @@ export function createApplyFilterAndRender(state, fetchMetadataForVisible) {
       }
 
       const fileRating = Number(file.rating ?? 0);
+      const hasMeta = !!file.__metaLoaded || file.rating !== undefined || Array.isArray(file.tags);
+      if (needsMetaFilter && !hasMeta) return false;
       if (fileRating < minRating) return false;
 
-      const tagsArr = file.tags || [];
+      const tagsArr = Array.isArray(file.tags) ? file.tags : [];
       if (tagFilter && !tagsArr.some((tag) => String(tag).toLowerCase().includes(tagFilter))) return false;
 
       return true;
@@ -55,6 +58,9 @@ export function createApplyFilterAndRender(state, fetchMetadataForVisible) {
 
     if (!skipMetadataFetch) {
       fetchMetadataForVisible();
+      if (needsMetaFilter && typeof fetchMetadataForFilter === "function") {
+        fetchMetadataForFilter();
+      }
     }
   };
 

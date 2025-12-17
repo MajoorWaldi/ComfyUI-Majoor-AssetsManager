@@ -383,14 +383,14 @@ export function createMetadataSidebar(options) {
     saveTagsBtn.style.padding = "2px 8px";
     saveTagsBtn.style.borderRadius = "6px";
 
-    const persistTags = async () => {
-      const newTags = tagsInput.value
-        .split(",")
-        .map((t) => t.trim())
-        .filter((t) => t.length > 0);
-      file.tags = newTags;
-      await updateFileMetadata(file, "Tags updated");
-    };
+	    const persistTags = async () => {
+	      const newTags = tagsInput.value
+	        .split(",")
+	        .map((t) => t.trim())
+	        .filter((t) => t.length > 0);
+	      file.tags = newTags;
+	      await updateFileMetadata(file, { tags: newTags }, "Tags updated");
+	    };
 
     saveTagsBtn.addEventListener("click", () => persistTags());
     tagsInput.addEventListener("keydown", (e) => {
@@ -461,31 +461,35 @@ export function createMetadataSidebar(options) {
     }
   }
 
-  async function updateFileMetadata(file, toastLabel = "Metadata updated") {
+  async function updateFileMetadata(file, updates, toastLabel = "Metadata updated") {
     const filename = file.filename || file.name;
     if (!filename) {
       console.error("Error updating metadata: missing filename");
       return;
     }
     const subfolder = file.subfolder || "";
-    const rating = file.rating || 0;
-    const tags = Array.isArray(file.tags) ? file.tags : [];
+    const safeUpdates = updates && typeof updates === "object" ? updates : {};
 
     try {
+      const body = { filename, subfolder };
+      if (Object.prototype.hasOwnProperty.call(safeUpdates, "rating")) {
+        body.rating = Number(safeUpdates.rating) || 0;
+      }
+      if (Object.prototype.hasOwnProperty.call(safeUpdates, "tags")) {
+        body.tags = Array.isArray(safeUpdates.tags) ? safeUpdates.tags : [];
+      }
+
       const res = await fetch("/mjr/filemanager/metadata/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          filename,
-          subfolder,
-          rating,
-          tags,
+          ...body,
         }),
       });
       const data = await res.json();
       if (data.ok) {
-        file.rating = data.rating ?? rating;
-        file.tags = data.tags ?? tags;
+        if (data.rating !== undefined) file.rating = data.rating;
+        if (data.tags !== undefined) file.tags = data.tags;
         if (!(state.metaCache instanceof Map)) state.metaCache = new Map();
         const key = metadataKey(file);
         state.metaCache.delete(key);
@@ -514,7 +518,7 @@ export function createMetadataSidebar(options) {
 
   function setRating(file, rating) {
     file.rating = rating;
-    updateFileMetadata(file, "Rating updated");
+    updateFileMetadata(file, { rating }, "Rating updated");
   }
 
   function setMetadataPanelVisibility(visible) {

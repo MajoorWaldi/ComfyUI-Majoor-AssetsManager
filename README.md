@@ -91,9 +91,8 @@ Hotkeys are ignored while typing in an input/textarea.
 
 ### Assets Manager (grid)
 
-- `Tab`: focus/open the Assets Manager sidebar tab.
 - `0`-`5`: set rating for the current file (0 clears).
-- `Enter`: open viewer (1 selected) or A/B compare (2 selected; uses the first two).
+- `Space`: open viewer (1 selected) or A/B compare (2 selected; uses the first two).
 
 ### Viewer
 

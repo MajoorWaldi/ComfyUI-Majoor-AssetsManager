@@ -9,6 +9,43 @@ import {
   mjrSettings,
 } from "./ui_settings.js";
 
+function formatCardHoverTitle(file) {
+  const rawName = file?.name || file?.filename || "(unnamed)";
+  const ext = String(file?.ext || getExt(rawName) || "").toUpperCase();
+  const kind = file?.kind || detectKindFromExt(ext);
+  const subfolder = file?.subfolder ? String(file.subfolder) : "(root)";
+  const sizeReadable = file?.size_readable ? String(file.size_readable) : null;
+  const sizeBytes = Number.isFinite(file?.size) ? `${file.size} B` : null;
+  const size = sizeReadable || sizeBytes || null;
+  const date = file?.date ? String(file.date) : null;
+
+  const rating = Math.max(0, Math.min(5, Number(file?.rating ?? (file?.meta && file.meta.rating) ?? 0) || 0));
+  const tags =
+    (Array.isArray(file?.tags) && file.tags) ||
+    (Array.isArray(file?.meta && file.meta.tags) && file.meta.tags) ||
+    [];
+
+  const wfState = resolveWorkflowState(file);
+
+  const lines = [];
+  lines.push(rawName);
+  lines.push(`Folder: ${subfolder}`);
+  lines.push(`Type: ${kind}${ext ? ` (${ext})` : ""}`);
+  if (date) lines.push(`Date: ${date}`);
+  if (size) lines.push(`Size: ${size}`);
+  lines.push(`Rating: ${rating}/5`);
+  if (tags.length) {
+    const maxTags = 20;
+    const shown = tags.slice(0, maxTags).map((t) => String(t)).join(", ");
+    const more = tags.length > maxTags ? ` (+${tags.length - maxTags} more)` : "";
+    lines.push(`Tags: ${shown}${more}`);
+  } else {
+    lines.push("Tags: (none)");
+  }
+  lines.push(`Workflow: ${wfState}`);
+  return lines.join("\n");
+}
+
 export function resolveWorkflowState(file) {
   const toState = (val) => {
     if (val === true || val === 1 || val === "true") return "yes";
@@ -117,6 +154,16 @@ export function updateCardVisuals(card, file) {
     (Array.isArray(file.tags) && file.tags) ||
     (Array.isArray(file.meta && file.meta.tags) && file.meta.tags) ||
     [];
+
+  if (mjrSettings.grid.hoverInfo) {
+    try {
+      card.title = formatCardHoverTitle(file);
+    } catch (_) {
+      card.title = "";
+    }
+  } else {
+    card.title = "";
+  }
 
   const wfState = resolveWorkflowState(file);
   updateWorkflowDot(card, wfState);
