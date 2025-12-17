@@ -8,6 +8,7 @@ import shutil
 import platform
 import concurrent.futures
 import json
+import math
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -44,6 +45,45 @@ from .mjr_collections import (
 )
 
 log = get_logger(__name__)
+
+
+def _json_sanitize(obj: Any) -> Any:
+    """
+    Ensure objects are JSON-safe and strict-JSON compliant.
+    Python's json.dumps allows NaN/Infinity by default, but browsers reject them.
+    """
+    if obj is None:
+        return None
+    if isinstance(obj, float):
+        return obj if math.isfinite(obj) else None
+    if isinstance(obj, (bytes, bytearray)):
+        try:
+            return bytes(obj).decode("utf-8", errors="replace")
+        except Exception:
+            return repr(obj)
+    if isinstance(obj, Path):
+        return str(obj)
+    if isinstance(obj, dict):
+        out: Dict[str, Any] = {}
+        for k, v in obj.items():
+            try:
+                key = str(k)
+            except Exception:
+                key = repr(k)
+            out[key] = _json_sanitize(v)
+        return out
+    if isinstance(obj, (list, tuple, set)):
+        return [_json_sanitize(v) for v in obj]
+    return obj
+
+
+def _json_response(data: Any, status: int = 200) -> web.Response:
+    cleaned = _json_sanitize(data)
+    return web.json_response(
+        cleaned,
+        status=status,
+        dumps=lambda x: json.dumps(x, ensure_ascii=False, allow_nan=False),
+    )
 
 # ---------------------------------------------------------------------------
 # In-memory cache for output listing
@@ -553,7 +593,7 @@ async def list_files(request: web.Request) -> web.Response:
         loop = asyncio.get_running_loop()
         loop.run_in_executor(None, _prefetch)
 
-    return web.json_response(
+    return _json_response(
         {
             "files": items,
             "total": total,
@@ -574,7 +614,7 @@ async def batch_metadata(request: web.Request) -> web.Response:
     except ConnectionResetError:
         return web.Response(status=499)
     except Exception:
-        return web.json_response({"ok": False, "error": "Invalid JSON"}, status=400)
+        return _json_response({"ok": False, "error": "Invalid JSON"}, status=400)
 
     items = payload.get("items") or []
     loop = asyncio.get_running_loop()
@@ -641,7 +681,7 @@ async def batch_metadata(request: web.Request) -> web.Response:
                 continue
 
     try:
-        return web.json_response({"ok": True, "metadatas": results, "errors": errors})
+        return _json_response({"ok": True, "metadatas": results, "errors": errors})
     except ConnectionResetError:
         return web.Response(status=499)
 
@@ -653,9 +693,7 @@ async def delete_files(request: web.Request) -> web.Response:
     try:
         payload = await request.json()
     except Exception:
-        return web.json_response(
-            {"ok": False, "error": "Invalid JSON body"}, status=400
-        )
+        return _json_response({"ok": False, "error": "Invalid JSON body"}, status=400)
 
     items = payload.get("items") or []
     deleted = []
@@ -701,7 +739,7 @@ async def delete_files(request: web.Request) -> web.Response:
                 {"filename": filename, "subfolder": subfolder, "error": str(exc)}
             )
 
-    return web.json_response({"ok": True, "deleted": deleted, "errors": errors})
+    return _json_response({"ok": True, "deleted": deleted, "errors": errors})
 
 
 @PromptServer.instance.routes.post("/mjr/filemanager/open_explorer")
@@ -715,28 +753,28 @@ async def open_folder(request: web.Request) -> web.Response:
     try:
         payload = await request.json()
     except Exception:
-        return web.json_response({"ok": False, "error": "Invalid JSON body"}, status=400)
+        return _json_response({"ok": False, "error": "Invalid JSON body"}, status=400)
 
     filename = payload.get("filename")
     subfolder = payload.get("subfolder", "")
     if not filename:
-        return web.json_response({"ok": False, "error": "Missing filename"}, status=400)
+        return _json_response({"ok": False, "error": "Missing filename"}, status=400)
 
     try:
         target = _safe_target(root, subfolder, filename)
     except ValueError:
-        return web.json_response({"ok": False, "error": "File is outside output directory"}, status=400)
+        return _json_response({"ok": False, "error": "File is outside output directory"}, status=400)
 
     if not target.exists():
-        return web.json_response({"ok": False, "error": "File not found"}, status=404)
+        return _json_response({"ok": False, "error": "File not found"}, status=404)
 
     ok, warning = _open_in_file_manager(target)
     if ok:
         resp = {"ok": True}
         if warning:
             resp["warning"] = warning
-        return web.json_response(resp, status=200)
-    return web.json_response({"ok": False, "error": warning or "Failed to open folder"}, status=500)
+        return _json_response(resp, status=200)
+    return _json_response({"ok": False, "error": warning or "Failed to open folder"}, status=500)
 
 
 # ---------------------------------------------------------------------------
@@ -751,21 +789,15 @@ async def get_metadata(request: web.Request) -> web.Response:
     subfolder = request.query.get("subfolder", "")
 
     if not filename:
-        return web.json_response(
-            {"ok": False, "error": "missing filename"}, status=400
-        )
+        return _json_response({"ok": False, "error": "missing filename"}, status=400)
 
     try:
         target = _safe_target(root, subfolder, filename)
     except ValueError:
-        return web.json_response(
-            {"ok": False, "error": "File is outside output directory"}, status=400
-        )
+        return _json_response({"ok": False, "error": "File is outside output directory"}, status=400)
 
     if not target.exists():
-        return web.json_response(
-            {"ok": False, "error": "File not found"}, status=404
-        )
+        return _json_response({"ok": False, "error": "File not found"}, status=404)
 
     def _extract_generation(path: Path) -> Dict[str, Any]:
         def _extract_one(p: Path) -> Dict[str, Any]:
@@ -831,9 +863,7 @@ async def get_metadata(request: web.Request) -> web.Response:
     rating, tags = _rating_tags_with_fallback(target, kind)
 
     try:
-        return web.json_response(
-            {"ok": True, "generation": params, "rating": rating, "tags": tags}
-        )
+        return _json_response({"ok": True, "generation": params, "rating": rating, "tags": tags})
     except ConnectionResetError:
         return web.Response(status=499)
 
@@ -842,7 +872,7 @@ async def get_metadata(request: web.Request) -> web.Response:
 async def get_capabilities(request: web.Request) -> web.Response:
     os_name = platform.system().lower()
     exiftool_available = _get_exiftool_path() is not None
-    return web.json_response(
+    return _json_response(
         {
             "ok": True,
             "os": os_name,
@@ -859,9 +889,7 @@ async def update_metadata(request: web.Request) -> web.Response:
     try:
         payload = await request.json()
     except Exception:
-        return web.json_response(
-            {"ok": False, "error": "Invalid JSON body"}, status=400
-        )
+        return _json_response({"ok": False, "error": "Invalid JSON body"}, status=400)
 
     filename = payload.get("filename")
     subfolder = payload.get("subfolder", "")
@@ -871,22 +899,16 @@ async def update_metadata(request: web.Request) -> web.Response:
     tags = payload.get("tags") if tags_provided else None
 
     if not filename:
-        return web.json_response(
-            {"ok": False, "error": "Missing filename"}, status=400
-        )
+        return _json_response({"ok": False, "error": "Missing filename"}, status=400)
 
     try:
         target = _safe_target(root, subfolder, filename)
     except ValueError:
-        return web.json_response(
-            {"ok": False, "error": "File is outside output directory"}, status=400
-        )
+        return _json_response({"ok": False, "error": "File is outside output directory"}, status=400)
 
     kind = classify_ext(filename.lower())
     if not target.exists():
-        return web.json_response(
-            {"ok": False, "error": "File not found"}, status=404
-        )
+        return _json_response({"ok": False, "error": "File not found"}, status=404)
 
     updates = {}
     if rating_provided:
@@ -897,7 +919,7 @@ async def update_metadata(request: web.Request) -> web.Response:
     try:
         meta = update_metadata_with_windows(str(target), updates)
     except Exception as exc:
-        return web.json_response(
+        return _json_response(
             {
                 "ok": False,
                 "file": {"filename": filename, "subfolder": subfolder},
@@ -906,7 +928,7 @@ async def update_metadata(request: web.Request) -> web.Response:
             status=500,
         )
 
-    return web.json_response({"ok": True, "rating": meta.get("rating", 0), "tags": meta.get("tags", [])})
+    return _json_response({"ok": True, "rating": meta.get("rating", 0), "tags": meta.get("tags", [])})
 
 
 @PromptServer.instance.routes.post("/mjr/filemanager/generation/update")
@@ -924,14 +946,14 @@ async def update_generation_sidecar(request: web.Request) -> web.Response:
     try:
         payload = await request.json()
     except Exception:
-        return web.json_response({"ok": False, "error": "Invalid JSON body"}, status=400)
+        return _json_response({"ok": False, "error": "Invalid JSON body"}, status=400)
 
     files = payload.get("files") or []
     prompt = payload.get("prompt")
     workflow = payload.get("workflow")
 
     if not isinstance(files, list) or not files:
-        return web.json_response({"ok": False, "error": "No files provided"}, status=400)
+        return _json_response({"ok": False, "error": "No files provided"}, status=400)
 
     updated: List[Dict[str, Any]] = []
     errors: List[Dict[str, Any]] = []
@@ -976,7 +998,7 @@ async def update_generation_sidecar(request: web.Request) -> web.Response:
         except Exception as exc:
             errors.append({"file": {"filename": filename, "subfolder": subfolder}, "error": str(exc)})
 
-    return web.json_response({"ok": True, "updated": updated, "errors": errors})
+    return _json_response({"ok": True, "updated": updated, "errors": errors})
 
 
 @PromptServer.instance.routes.post("/mjr/filemanager/sidecar/update")
@@ -988,32 +1010,32 @@ async def update_sidecar(request: web.Request) -> web.Response:
     try:
         payload = await request.json()
     except Exception:
-        return web.json_response({"ok": False, "error": "Invalid JSON body"}, status=400)
+        return _json_response({"ok": False, "error": "Invalid JSON body"}, status=400)
 
     filename = payload.get("filename")
     subfolder = payload.get("subfolder", "")
     meta_updates = payload.get("meta")
 
     if not filename or not isinstance(meta_updates, dict):
-        return web.json_response({"ok": False, "error": "Missing filename or invalid meta"}, status=400)
+        return _json_response({"ok": False, "error": "Missing filename or invalid meta"}, status=400)
 
     try:
         target = _safe_target(root, subfolder, filename)
     except ValueError:
-        return web.json_response({"ok": False, "error": "File is outside output directory"}, status=400)
+        return _json_response({"ok": False, "error": "File is outside output directory"}, status=400)
 
     if not target.exists():
-        return web.json_response({"ok": False, "error": "File not found"}, status=404)
+        return _json_response({"ok": False, "error": "File not found"}, status=404)
 
     meta_path = metadata_path(str(target))
     if not meta_path:
-        return web.json_response({"ok": False, "error": "Sidecar disabled"}, status=400)
+        return _json_response({"ok": False, "error": "Sidecar disabled"}, status=400)
 
     try:
         merged = deep_merge_metadata(str(target), meta_updates)
-        return web.json_response({"ok": True, "meta": merged})
+        return _json_response({"ok": True, "meta": merged})
     except Exception as exc:
-        return web.json_response({"ok": False, "error": str(exc)}, status=500)
+        return _json_response({"ok": False, "error": str(exc)}, status=500)
 
 
 # ---------------------------------------------------------------------------
@@ -1023,14 +1045,14 @@ async def update_sidecar(request: web.Request) -> web.Response:
 @PromptServer.instance.routes.get("/mjr/collections/list")
 async def list_collections_route(request: web.Request) -> web.Response:
     names = await asyncio.to_thread(get_collections)
-    return web.json_response({"collections": names})
+    return _json_response({"collections": names})
 
 
 @PromptServer.instance.routes.get("/mjr/collections/{name}")
 async def get_collection_route(request: web.Request) -> web.Response:
     name = request.match_info["name"]
     files = await asyncio.to_thread(load_collection, name)
-    return web.json_response({"files": files})
+    return _json_response({"files": files})
 
 
 @PromptServer.instance.routes.post("/mjr/collections/add")
@@ -1038,9 +1060,9 @@ async def add_to_collection_route(request: web.Request) -> web.Response:
     try:
         data = await request.json()
         await asyncio.to_thread(add_to_collection, data["name"], data["path"])
-        return web.json_response({"ok": True})
+        return _json_response({"ok": True})
     except Exception as e:
-        return web.json_response({"ok": False, "error": str(e)}, status=500)
+        return _json_response({"ok": False, "error": str(e)}, status=500)
 
 
 @PromptServer.instance.routes.post("/mjr/collections/remove")
@@ -1048,6 +1070,6 @@ async def remove_from_collection_route(request: web.Request) -> web.Response:
     try:
         data = await request.json()
         await asyncio.to_thread(remove_from_collection, data["name"], data["path"])
-        return web.json_response({"ok": True})
+        return _json_response({"ok": True})
     except Exception as e:
-        return web.json_response({"ok": False, "error": str(e)}, status=500)
+        return _json_response({"ok": False, "error": str(e)}, status=500)

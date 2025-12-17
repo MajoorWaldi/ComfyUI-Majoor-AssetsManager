@@ -496,70 +496,6 @@ app.registerExtension({
 if (!window.__MajoorAssetsManagerHotkeysInitialized) {
   window.__MajoorAssetsManagerHotkeysInitialized = true;
 
-  const toggleAssetsManager = () => {
-    const SIDEBAR_ID = "majoorAssetsManagerSidebar";
-    const BOTTOM_ID = "majoorAssetsManagerBottom";
-
-    try {
-      const em = app?.extensionManager;
-      const sidebar = em?.sidebarTab;
-      const bottom = em?.bottomPanel;
-
-      const sidebarActive = sidebar && sidebar.activeSidebarTabId === SIDEBAR_ID;
-      const bottomActive =
-        bottom &&
-        bottom.bottomPanelVisible === true &&
-        bottom.activeBottomPanelTabId === BOTTOM_ID;
-
-      if (sidebarActive) {
-        sidebar.activeSidebarTabId = null;
-        return true;
-      }
-      if (bottomActive) {
-        bottom.bottomPanelVisible = false;
-        return true;
-      }
-
-      const sidebarRegistered =
-        sidebar &&
-        Array.isArray(sidebar.sidebarTabs) &&
-        sidebar.sidebarTabs.some((t) => t && t.id === SIDEBAR_ID);
-      if (sidebarRegistered) {
-        sidebar.activeSidebarTabId = SIDEBAR_ID;
-        return true;
-      }
-
-      const bottomRegistered =
-        bottom &&
-        Array.isArray(bottom.bottomPanelTabs) &&
-        bottom.bottomPanelTabs.some((t) => t && t.id === BOTTOM_ID);
-      if (bottomRegistered) {
-        bottom.activeBottomPanelTabId = BOTTOM_ID;
-        bottom.bottomPanelVisible = true;
-        return true;
-      }
-    } catch (_) {
-      // fall through to DOM-based toggle
-    }
-
-    const selectors = [
-      `[data-sidebar-tab-id="majoorAssetsManagerSidebar"]`,
-      `[data-sidebar-tab="majoorAssetsManagerSidebar"]`,
-      `[data-tab-id="majoorAssetsManagerSidebar"]`,
-      `[data-extension-id="majoorAssetsManagerSidebar"]`,
-      `[data-tab-id="majoorAssetsManagerBottom"]`,
-      `[data-bottom-tab-id="majoorAssetsManagerBottom"]`,
-    ];
-    for (const sel of selectors) {
-      const el = document.querySelector(sel);
-      if (el && typeof el.click === "function") {
-        el.click();
-        return true;
-      }
-    }
-    return false;
-  };
-
   const onKeyDown = (ev) => {
     if (!mjrSettings.hotkeys.enabled) return;
     if (ev.isComposing) return;
@@ -573,9 +509,7 @@ if (!window.__MajoorAssetsManagerHotkeysInitialized) {
     if (isTyping) return;
 
     let handled = false;
-    if (ev.key === "Tab" && !ev.ctrlKey && !ev.altKey && !ev.metaKey) {
-      handled = toggleAssetsManager();
-    } else if (mjrSettings.hotkeys.rating && /^[0-5]$/.test(ev.key) && !ev.ctrlKey && !ev.altKey && !ev.metaKey) {
+    if (mjrSettings.hotkeys.rating && /^[0-5]$/.test(ev.key) && !ev.ctrlKey && !ev.altKey && !ev.metaKey) {
       mjrGlobalState.instances.forEach(inst => {
         if (!inst?.state) return;
         const rate = parseInt(ev.key, 10);

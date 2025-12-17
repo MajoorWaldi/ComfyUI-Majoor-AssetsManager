@@ -569,7 +569,24 @@ export function createMetadataSidebar(options) {
 
     try {
       const res = await api.fetchApi(`/mjr/filemanager/metadata?${params.toString()}`);
-      const data = await res.json();
+      if (seq !== metaRequestSeq) return;
+      if (!res.ok) {
+        let extra = "";
+        try {
+          const txt = await res.text();
+          if (txt) extra = `: ${String(txt).slice(0, 160)}`;
+        } catch (_) {}
+        showPanel(file, null, `Error while loading metadata (HTTP ${res.status}${extra})`);
+        return;
+      }
+
+      let data = null;
+      try {
+        data = await res.json();
+      } catch (e) {
+        showPanel(file, null, "Error while loading metadata (invalid server response).");
+        return;
+      }
       if (seq !== metaRequestSeq) return;
       if (data.ok && data.generation) {
         const meta = data.generation || {};
