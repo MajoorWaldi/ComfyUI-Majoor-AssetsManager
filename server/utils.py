@@ -28,7 +28,19 @@ RATING_KEYS = (
     "star",
     "stars",
 )
-TAG_KEYS = ("tag", "mot-cle", "mot cle", "mots cle", "keywords", "keyword")
+TAG_KEYS = (
+    "tag",
+    "mot-cle",
+    "mot cle",
+    "mots cle",
+    "keywords",
+    "keyword",
+    "category",
+    "categories",
+    "categorie",
+    "catégorie",
+    "catégories",
+)
 
 _WIN32COM: Optional[object] = None
 _WIN32COM_CHECKED = False
@@ -115,19 +127,95 @@ def _set_windows_property_store(file_path: str, rating: int, tags, *, clear_tags
         pythoncom.CoInitialize()
         store = propsys.SHGetPropertyStoreFromParsingName(file_path, None, pscon.GPS_READWRITE)
         # System.Rating expects 0..99
-        store.SetValue(pscon.PKEY_Rating, rating_to_windows_percent(rating))
+        percent = rating_to_windows_percent(rating)
+        store.SetValue(pscon.PKEY_Rating, percent)
+        # Explorer's "Shared User Rating" can map to different property keys depending on handlers.
+        media_key = getattr(pscon, "PKEY_ShareUserRating", None) or getattr(pscon, "PKEY_Media_UserRating", None)
+        if media_key is not None:
+            try:
+                store.SetValue(media_key, percent)
+            except Exception:
+                pass
 
         if tags is not None:
             tags_list = _normalize_tags(tags)
+            cat_key = getattr(pscon, "PKEY_Category", None)
             if tags_list:
+                # For videos, Explorer commonly shows tags under "Category/Categories".
+                if cat_key is not None:
+                    try:
+                        store.SetValue(cat_key, tuple(tags_list))
+                    except Exception:
+                        pass
                 store.SetValue(pscon.PKEY_Keywords, tuple(tags_list))
             elif clear_tags:
+                if cat_key is not None:
+                    try:
+                        store.SetValue(cat_key, tuple())
+                    except Exception:
+                        pass
                 store.SetValue(pscon.PKEY_Keywords, tuple())
 
         store.Commit()
         return True
     except Exception:
         return False
+
+
+def _get_windows_property_store(file_path: str) -> dict:
+    """
+    Read rating/tags using the Windows Property System.
+    Helps when Shell column indices are missing or differ per file type (notably videos).
+    """
+    if platform.system().lower() != "windows":
+        return {}
+    try:
+        import pythoncom  # type: ignore
+        from win32com.propsys import propsys, pscon  # type: ignore
+
+        pythoncom.CoInitialize()
+        store = propsys.SHGetPropertyStoreFromParsingName(file_path, None, pscon.GPS_BESTEFFORT)
+
+        rating_raw = None
+        try:
+            rating_raw = store.GetValue(pscon.PKEY_Rating).GetValue()
+        except Exception:
+            rating_raw = None
+        if rating_raw is None:
+            media_key = getattr(pscon, "PKEY_ShareUserRating", None) or getattr(pscon, "PKEY_Media_UserRating", None)
+            if media_key is not None:
+                try:
+                    rating_raw = store.GetValue(media_key).GetValue()
+                except Exception:
+                    rating_raw = None
+
+        rating = windows_percent_to_stars(int(rating_raw)) if rating_raw is not None else 0
+
+        tags: List[str] = []
+        cat_key = getattr(pscon, "PKEY_Category", None)
+        if cat_key is not None:
+            try:
+                cat_val = store.GetValue(cat_key).GetValue()
+                if isinstance(cat_val, (list, tuple)):
+                    tags = _normalize_tags(list(cat_val))
+                elif isinstance(cat_val, str):
+                    tags = _normalize_tags(cat_val)
+            except Exception:
+                tags = []
+
+        if not tags:
+            try:
+                kw_val = store.GetValue(pscon.PKEY_Keywords).GetValue()
+                if isinstance(kw_val, (list, tuple)):
+                    tags = _normalize_tags(list(kw_val))
+                elif isinstance(kw_val, str):
+                    tags = _normalize_tags(kw_val)
+            except Exception:
+                tags = []
+
+        return {"rating": rating, "tags": tags}
+    except Exception:
+        return {}
 
 
 def _get_exiftool_path() -> Optional[str]:
@@ -273,6 +361,12 @@ def windows_category_to_tags(cat: str) -> list:
 def get_windows_metadata(file_path: str) -> dict:
     """Fetch file metadata via the Windows Shell API."""
     try:
+        prop_meta = _get_windows_property_store(file_path)
+        if (prop_meta.get("rating") or prop_meta.get("tags")) and not (
+            prop_meta.get("rating") == 0 and not prop_meta.get("tags")
+        ):
+            return prop_meta
+
         win32com = safe_import_win32com()
         if not win32com:
             return {"rating": 0, "tags": []}
