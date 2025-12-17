@@ -38,12 +38,18 @@ External tools (recommended):
 
 GIFs are large; these are linked (not embedded) to keep the README fast. Full-res captures are kept locally as `examples/*_full.gif` (gitignored):
 
-- ⚡ Fast browsing: [examples/fastbrowsing.gif](examples/fastbrowsing.gif)
-- ⭐ Ratings & 🏷️ tags: [examples/notations.gif](examples/notations.gif)
-- 🗂️ Smart collections: [examples/Smart_Collections.gif](examples/Smart_Collections.gif)
-- 🧩 Drag & drop workflow: [examples/Drop_Workflow.gif](examples/Drop_Workflow.gif)
-- 🎞️ Frame-by-frame (video): [examples/Frame_by_frame.gif](examples/Frame_by_frame.gif)
-- 🧩 UI rendering/integration: [examples/render.gif](examples/render.gif)
+- ⚡ Fast browsing  
+  ![Fast browsing demo](examples/fastbrowsing.gif)
+- ⭐ Ratings & 🏷️ tags  
+  ![Ratings & tags demo](examples/notations.gif)
+- 🗂️ Smart collections  
+  ![Smart collections demo](examples/Smart_Collections.gif)
+- 🧩 Drag & drop workflow  
+  ![Drag & drop workflow demo](examples/Drop_Workflow.gif)
+- 🎞️ Frame-by-frame (video)  
+  ![Frame-by-frame demo](examples/Frame_by_frame.gif)
+- 🧩 UI rendering/integration  
+  ![UI rendering/integration demo](examples/render.gif)
 
 ---
 
