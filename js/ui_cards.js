@@ -310,6 +310,8 @@ export function createFileThumb(kind, ext, file, card) {
     const onMouseEnter = () => {
       if (thumb.__mjrHoverTimer) clearTimeout(thumb.__mjrHoverTimer);
       thumb.__mjrHoverTimer = setTimeout(() => {
+        // Race condition fix: Check if video still exists and is connected
+        if (!video || !video.isConnected) return;
         if (mjrSettings.viewer.autoplayVideos) {
           video.play().catch(() => {});
         }
@@ -320,8 +322,10 @@ export function createFileThumb(kind, ext, file, card) {
         clearTimeout(thumb.__mjrHoverTimer);
         thumb.__mjrHoverTimer = null;
       }
-      video.pause();
+      // Race condition fix: Check if video still exists before pausing
+      if (!video || !video.isConnected) return;
       try {
+        video.pause();
         video.currentTime = 0;
       } catch (_) {}
     };
@@ -336,6 +340,14 @@ export function createFileThumb(kind, ext, file, card) {
         clearTimeout(thumb.__mjrHoverTimer);
         thumb.__mjrHoverTimer = null;
       }
+      // Clean up video element properly
+      try {
+        if (video && video.isConnected) {
+          video.pause();
+          video.src = "";
+          video.load(); // Release resources
+        }
+      } catch (_) {}
     };
   };
 

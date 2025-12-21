@@ -19,6 +19,7 @@ import { setupViewerInteractions } from "./viewer/interaction.js";
 export const mjrViewerState = { overlay: null, frame: null, abCleanup: null, resetView: null };
 export const mjrViewerNav = { prev: null, next: null };
 let mjrViewerEscBound = false;
+let mjrViewerKeydownHandler = null; // Track handler reference for cleanup
 export let mjrViewerIsAB = false;
 let mjrViewerRatingEl = null;
 let mjrCurrentList = [];
@@ -392,10 +393,16 @@ export function mjrEnsureViewerOverlay() {
     mjrViewerNav.next = nextBtn;
   }
 
-  if (!mjrViewerEscBound) {
-    window.addEventListener("keydown", (ev) => {
+  // Setup keyboard handler with proper cleanup
+  // NOTE: Using normal bubbling (not capture) to avoid conflicts with grid navigation
+  if (!mjrViewerEscBound && !mjrViewerKeydownHandler) {
+    mjrViewerKeydownHandler = (ev) => {
       const isViewerOpen =
         mjrViewerState.overlay && mjrViewerState.overlay.style.display !== "none";
+
+      // Don't handle any keys if viewer is closed - let grid handle them
+      if (!isViewerOpen) return;
+
       const navEnabled =
         isViewerOpen && !mjrViewerIsAB && mjrSettings.viewer.navEnabled;
       const inInput =
@@ -403,13 +410,12 @@ export function mjrEnsureViewerOverlay() {
         (ev.target.tagName === "INPUT" ||
           ev.target.tagName === "TEXTAREA" ||
           ev.target.isContentEditable);
-      const navKeys = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", " ", "Spacebar"];
-      if (isViewerOpen && !inInput && navKeys.includes(ev.key)) {
-        ev.preventDefault();
-        ev.stopPropagation();
-      }
+
+      // Early return if in input field
+      if (inInput) return;
+
       let handled = false;
-      if ((ev.key === "Escape" || ev.key === " ") && isViewerOpen) {
+      if (ev.key === "Escape" || ev.key === " " || ev.key === "Spacebar") {
         mjrCloseViewer();
         handled = true;
       } else if (ev.key === "ArrowLeft" && navEnabled) {
@@ -418,13 +424,12 @@ export function mjrEnsureViewerOverlay() {
       } else if (ev.key === "ArrowRight" && navEnabled) {
         mjrViewerNext();
         handled = true;
-      } else if (ev.key === "ArrowUp" && isViewerOpen && mjrSettings.hotkeys.frameStep) {
+      } else if (ev.key === "ArrowUp" && mjrSettings.hotkeys.frameStep) {
         if (mjrStepVideos(1 / 30)) handled = true;
-      } else if (ev.key === "ArrowDown" && isViewerOpen && mjrSettings.hotkeys.frameStep) {
+      } else if (ev.key === "ArrowDown" && mjrSettings.hotkeys.frameStep) {
         if (mjrStepVideos(-1 / 30)) handled = true;
       } else if (
         navEnabled &&
-        !inInput &&
         mjrSettings.viewer.ratingHotkeys &&
         (/^[0-5]$/.test(ev.key) || (ev.code && ev.code.startsWith("Numpad") && /^[0-9]$/.test(ev.key)))
       ) {
@@ -433,7 +438,7 @@ export function mjrEnsureViewerOverlay() {
           mjrSetViewerRating(num);
           handled = true;
         }
-      } else if (isViewerOpen && !inInput && (ev.key === "f" || ev.key === "F")) {
+      } else if (ev.key === "f" || ev.key === "F") {
         if (typeof mjrViewerState.resetView !== "function") {
           const pane = mjrViewerState.frame?.firstChild;
           if (pane && typeof pane.__mjrReset === "function") {
@@ -449,11 +454,15 @@ export function mjrEnsureViewerOverlay() {
           handled = true;
         }
       }
+
+      // Only prevent default if we actually handled the key
       if (handled) {
         ev.preventDefault();
         ev.stopPropagation();
       }
-    }, { capture: true });
+    };
+    // Use normal bubbling instead of capture to avoid conflicts with grid
+    window.addEventListener("keydown", mjrViewerKeydownHandler);
     mjrViewerEscBound = true;
   }
   mjrUpdateNavVisibility();
@@ -461,19 +470,44 @@ export function mjrEnsureViewerOverlay() {
 }
 
 export function mjrCloseViewer() {
+  // Cleanup A/B viewer listeners
   mjrViewerState.abCleanup?.();
   mjrViewerState.abCleanup = null;
   mjrViewerState.resetView = null;
+
   if (!mjrViewerState.overlay) return;
   mjrViewerState.overlay.style.display = "none";
+
+  // Cleanup context menu listeners for all panes
   if (mjrViewerState.frame) {
-    const pane = mjrViewerState.frame.firstChild;
-    pane?.__mjrCleanupContext?.();
+    const panes = mjrViewerState.frame.querySelectorAll("[data-mjr-viewer-pane]");
+    panes.forEach((pane) => {
+      if (typeof pane.__mjrCleanupContext === "function") {
+        try {
+          pane.__mjrCleanupContext();
+        } catch (e) {
+          console.warn("[Majoor.Viewer] Error cleaning up context listeners", e);
+        }
+      }
+    });
     mjrViewerState.frame.innerHTML = "";
   }
+
   mjrViewerIsAB = false;
   mjrViewerRatingEl = null;
   mjrUpdateNavVisibility();
+}
+
+/**
+ * Cleanup global event listeners for viewer.
+ * Call this when unloading the module or disposing the viewer permanently.
+ */
+export function mjrCleanupViewerGlobalListeners() {
+  if (mjrViewerKeydownHandler) {
+    window.removeEventListener("keydown", mjrViewerKeydownHandler);
+    mjrViewerKeydownHandler = null;
+    mjrViewerEscBound = false;
+  }
 }
 
 export function mjrCreateMediaElement(file) {
@@ -538,6 +572,7 @@ export function mjrGetRating(file) {
 
 export function mjrCreateViewerPane(file) {
   const pane = document.createElement("div");
+  pane.setAttribute("data-mjr-viewer-pane", "true"); // For cleanup queries
   Object.assign(pane.style, {
     flex: "1 1 0",
     display: "flex",
@@ -913,20 +948,25 @@ export function mjrOpenABViewer(fileA, fileB) {
   baseWrap.appendChild(baseMedia);
   topWrap.appendChild(topMedia);
 
-  // Enable zoom/pan on both
+  // Enable zoom/pan on both - Define shared state and helper functions first
   const sharedZoom = { scale: 1, offsetX: 0, offsetY: 0, entries: [] };
-  enableZoomPan(baseMedia, baseWrap, sharedZoom);
-  enableZoomPan(topMedia, topWrap, sharedZoom);
 
-  const checkerPattern =
-    "repeating-conic-gradient(#eee 0 25%, #ccc 0 50%) 50%/20px 20px";
-  const applyCheckerboardBg = (enabled) => {
-    const bg = enabled ? checkerPattern : "#000";
-    baseWrap.style.background = bg;
-    topWrap.style.background = bg;
+  // Define calcFitScale before enableZoomPan so it's available in closures
+  const calcFitScale = () => {
+    const wrapRect = baseWrap.getBoundingClientRect();
+    const wrapW = wrapRect.width || baseWrap.clientWidth || 1;
+    const wrapH = wrapRect.height || baseWrap.clientHeight || 1;
+    const mediaW1 = baseMedia.videoWidth || baseMedia.naturalWidth || baseMedia.clientWidth || wrapW;
+    const mediaH1 = baseMedia.videoHeight || baseMedia.naturalHeight || baseMedia.clientHeight || wrapH;
+    const mediaW2 = topMedia.videoWidth || topMedia.naturalWidth || topMedia.clientWidth || wrapW;
+    const mediaH2 = topMedia.videoHeight || topMedia.naturalHeight || topMedia.clientHeight || wrapH;
+    const ratioA = mediaW1 && mediaH1 ? Math.min(wrapW / mediaW1, wrapH / mediaH1) : 1;
+    const ratioB = mediaW2 && mediaH2 ? Math.min(wrapW / mediaW2, wrapH / mediaH2) : 1;
+    const ratio = Math.min(ratioA || 1, ratioB || 1);
+    return Math.max(0.01, Math.min(10, ratio || 1));
   };
-  applyCheckerboardBg(!!mjrSettings.viewer.useCheckerboard);
 
+  // Define applySharedZoom before enableZoomPan so it's available in closures
   const applySharedZoom = () => {
     if (sharedZoom.scale <= 1) {
       sharedZoom.offsetX = 0;
@@ -942,19 +982,19 @@ export function mjrOpenABViewer(fileA, fileB) {
     }
   };
   sharedZoom.applySharedZoom = applySharedZoom;
-  const calcFitScale = () => {
-    const wrapRect = baseWrap.getBoundingClientRect();
-    const wrapW = wrapRect.width || baseWrap.clientWidth || 1;
-    const wrapH = wrapRect.height || baseWrap.clientHeight || 1;
-    const mediaW1 = baseMedia.videoWidth || baseMedia.naturalWidth || baseMedia.clientWidth || wrapW;
-    const mediaH1 = baseMedia.videoHeight || baseMedia.naturalHeight || baseMedia.clientHeight || wrapH;
-    const mediaW2 = topMedia.videoWidth || topMedia.naturalWidth || topMedia.clientWidth || wrapW;
-    const mediaH2 = topMedia.videoHeight || topMedia.naturalHeight || topMedia.clientHeight || wrapH;
-    const ratioA = mediaW1 && mediaH1 ? Math.min(wrapW / mediaW1, wrapH / mediaH1) : 1;
-    const ratioB = mediaW2 && mediaH2 ? Math.min(wrapW / mediaW2, wrapH / mediaH2) : 1;
-    const ratio = Math.min(ratioA || 1, ratioB || 1);
-    return Math.max(0.01, Math.min(10, ratio || 1));
+
+  // Now enable zoom/pan with access to calcFitScale and applySharedZoom
+  enableZoomPan(baseMedia, baseWrap, sharedZoom);
+  enableZoomPan(topMedia, topWrap, sharedZoom);
+
+  const checkerPattern =
+    "repeating-conic-gradient(#eee 0 25%, #ccc 0 50%) 50%/20px 20px";
+  const applyCheckerboardBg = (enabled) => {
+    const bg = enabled ? checkerPattern : "#000";
+    baseWrap.style.background = bg;
+    topWrap.style.background = bg;
   };
+  applyCheckerboardBg(!!mjrSettings.viewer.useCheckerboard);
 
   // Simple context menu to reset zoom/pan
   let contextMenuEl = null;
@@ -1430,6 +1470,17 @@ export function mjrApplyOpenViewerSettings() {
   const r = Math.max(0, Math.min(5, Number(rating) || 0));
   file.rating = r;
   mjrUpdateViewerRatingDisplay(r);
+
+  // Update grid displays to reflect new rating
+  mjrGlobalState.instances.forEach((inst) => {
+    if (typeof inst.applyFilterAndRender === "function") {
+      try {
+        inst.applyFilterAndRender();
+      } catch (e) {
+        console.warn("[Majoor.Viewer] Failed to update grid after rating change", e);
+      }
+    }
+  });
 
   // Persist using the first available instance from global state
   const firstInst = mjrGlobalState.instances.values().next().value;

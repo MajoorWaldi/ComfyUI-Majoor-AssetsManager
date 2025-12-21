@@ -111,6 +111,24 @@ export function createMetadataSidebar(options) {
 
     const url = file.url || buildViewUrl(file);
 
+    // Cleanup video/audio elements before clearing content
+    try {
+      const videos = metaContent.querySelectorAll("video");
+      videos.forEach((video) => {
+        video.pause();
+        video.src = "";
+        video.load(); // Release resources
+      });
+      const audios = metaContent.querySelectorAll("audio");
+      audios.forEach((audio) => {
+        audio.pause();
+        audio.src = "";
+        audio.load(); // Release resources
+      });
+    } catch (e) {
+      console.warn("[Majoor.Sidebar] Error cleaning up media elements", e);
+    }
+
     metaContent.innerHTML = "";
     metaContent.style.userSelect = "text"; // allow copying any text in the sidebar
 
@@ -438,6 +456,14 @@ export function createMetadataSidebar(options) {
     if (meta && meta.scheduler) genLines.push(`Scheduler: ${meta.scheduler}`);
     if (cfg) genLines.push(`CFG: ${cfg}`);
     if (meta && meta.steps !== undefined && meta.steps !== null) genLines.push(`Steps: ${meta.steps}`);
+    if (meta && meta.denoise !== undefined && meta.denoise !== null) genLines.push(`Denoise: ${meta.denoise}`);
+
+    // Advanced sampler parameters
+    if (meta && meta.start_at_step !== undefined && meta.start_at_step !== null) genLines.push(`Start Step: ${meta.start_at_step}`);
+    if (meta && meta.end_at_step !== undefined && meta.end_at_step !== null) genLines.push(`End Step: ${meta.end_at_step}`);
+    if (meta && meta.add_noise !== undefined && meta.add_noise !== null) genLines.push(`Add Noise: ${meta.add_noise}`);
+    if (meta && meta.return_with_leftover_noise !== undefined && meta.return_with_leftover_noise !== null) genLines.push(`Return Leftover Noise: ${meta.return_with_leftover_noise}`);
+
     if (genLines.length) {
       fieldsContainer.appendChild(addColoredField("MODEL / LORA / SAMPLER", genLines.join("\n"), true, "#5fb3ff"));
     }

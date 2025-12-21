@@ -27,14 +27,78 @@ except Exception:
 
 # Samplers treated as source of truth (lowercase)
 SAMPLER_CLASSES: Set[str] = {
+    # Core ComfyUI samplers
     "ksampler",
     "samplercustom",
     "ksampleradvanced",
+    "ksamplercustom",
+    "ksamplercustomadvanced",
+    "ksamplerhires",
+    "ksamplerupscale",
+
+    # Efficiency nodes
+    "ksampler (efficient)",
+    "ksampler adv. (efficient)",
+    "ksamplerefficient",
+    "ksampleradvefficient",
+
+    # Impact Pack samplers
+    "impactksampleradvanced",
+    "ksamplerprovider",
+    "impactksampler",
+
+    # AnimateDiff samplers
+    "animatediffsampler",
+    "animatediffksampleradvanced",
+    "animatediffksampler",
+
+    # Flux / SD3 / SDXL samplers
+    "fluxsampler",
+    "fluxguidance",
+    "sd3sampler",
+    "sdxlsampler",
+    "sdxlksampleradvanced",
+
+    # Advanced custom samplers
+    "samplerdpmpp_sde",
+    "samplerdpmpp_2m",
+    "samplerdpmpp_3m_sde",
+    "samplerlms",
+    "samplereulera",
+    "samplereulerancestral",
+    "samplerdpm2",
+    "samplerdpm2ancestral",
+    "samplerheun",
+    "samplerdpm_fast",
+    "samplerdpm_adaptive",
+    "samplerlcm",
+    "samplerddim",
+    "samplerddpm",
+    "sampleruni_pc",
+    "sampleruni_pc_bh2",
+
     # WAN / Kijai wrappers
     "wanvideosampler",
     "wanvideoksampler",
-    "wanvideoksampler",
     "wanmoeksampler",
+
+    # ComfyUI-Manager / custom nodes
+    "ttn_ksampler",
+    "ttN_KSampler",
+    "bnsrksampleradv",
+    "bnk_sampler",
+    "rgthreesampler",
+    "rg_sampler",
+    "was_sampler",
+    "civitai_sampler",
+    "adv_sampler",
+    "custom_sampler",
+    "restart_sampler",
+
+    # Video / Frame samplers
+    "videoksampler",
+    "frameksampler",
+    "batchksampler",
 }
 
 # Model loaders (diffusion / checkpoint)
@@ -770,7 +834,7 @@ def _pick_sampler_node(prompt_graph: Dict[str, Any]) -> Optional[str]:
 def _extract_clip_text(prompt_graph: Dict[str, Any], node_id: Optional[str]) -> Optional[str]:
     """
     Extract text from a text-encoder-like node (CLIP / SDXL / Flux, etc.).
-    Keep it generic: look at fields 'text', 'text_g', 'text_l'.
+    Keep it generic: look at fields 'text', 'text_g', 'text_l', and various custom node fields.
     """
     if node_id is None:
         return None
@@ -782,7 +846,11 @@ def _extract_clip_text(prompt_graph: Dict[str, Any], node_id: Optional[str]) -> 
     inputs: Dict[str, Any] = node.get("inputs", {}) or {}
 
     texts: List[str] = []
-    for key in ("text", "text_g", "text_l"):
+    # Check standard fields and custom node variants
+    for key in (
+        "text", "text_g", "text_l", "prompt", "string", "value",
+        "content", "input_text", "prompt_text", "clip_l", "clip_g", "t5xxl"
+    ):
         v = inputs.get(key)
         if isinstance(v, str) and v.strip():
             texts.append(v.strip())
@@ -812,14 +880,47 @@ def _collect_all_texts(prompt_graph: Dict[str, Any]) -> Dict[str, List[str]]:
             continue
 
         text_keywords = [
+            # Core CLIP encoders
             "cliptextencode",
             "clip_text_encode",
             "textencode",
             "prompt",
+
+            # Advanced CLIP encoders
+            "bnk_cliptextencodeadvanced",
+            "cliptextencodeadvanced",
+            "clipsetlastlayer",
+            "conditioningsetarea",
+            "conditioningcombine",
+
+            # SDXL / Flux / SD3 encoders
+            "cliptextencodesdxl",
+            "cliptextencodesdxlrefiner",
+            "dualcliptextencodeflux",
+            "fluxguidance",
+            "sd3textencoder",
             "t5textencode",
             "llama",
             "qwen",
             "gpt",
+
+            # Custom node text encoders
+            "ellatextencode",
+            "advancedcliptextencode",
+            "promptbuilder",
+            "stringliteral",
+            "textconcat",
+            "text_multiline",
+            "dynamicprompt",
+            "wildcardprocessor",
+            "promptcomposer",
+
+            # Multi-conditioning nodes
+            "conditioningsetmask",
+            "conditioningaverage",
+            "conditioningconcat",
+
+            # Generic text nodes
             "textencoder",
             "customtext",
             "text_node",
@@ -830,7 +931,12 @@ def _collect_all_texts(prompt_graph: Dict[str, Any]) -> Dict[str, List[str]]:
             continue
 
         texts = []
-        for key in ("text", "text_g", "text_l", "prompt", "positive", "negative"):
+        # Expanded field names for various custom nodes
+        for key in (
+            "text", "text_g", "text_l", "prompt", "positive", "negative",
+            "string", "value", "content", "input_text", "prompt_text",
+            "conditioning", "clip_l", "clip_g", "t5xxl"
+        ):
             v = inputs.get(key)
             if isinstance(v, str) and v.strip():
                 texts.append(v.strip())
@@ -974,7 +1080,7 @@ def extract_generation_params_from_prompt_graph(
     sampler = prompt_graph.get(sampler_id, {})
     inputs: Dict[str, Any] = sampler.get("inputs", {}) or {}
 
-    # seed / cfg / steps / sampler / scheduler
+    # seed / cfg / steps / sampler / scheduler / denoise / advanced params
     seed = inputs.get("seed") or inputs.get("noise_seed")
     cfg = (
         inputs.get("cfg")
@@ -985,6 +1091,13 @@ def extract_generation_params_from_prompt_graph(
     steps = inputs.get("steps")
     sampler_name = inputs.get("sampler_name") or inputs.get("sampler")
     scheduler = inputs.get("scheduler")
+    denoise = inputs.get("denoise")
+
+    # Advanced sampler parameters
+    start_at_step = inputs.get("start_at_step")
+    end_at_step = inputs.get("end_at_step")
+    return_with_leftover_noise = inputs.get("return_with_leftover_noise")
+    add_noise = inputs.get("add_noise")
 
     # Prompts
     pos_input = inputs.get("positive")
@@ -1032,6 +1145,11 @@ def extract_generation_params_from_prompt_graph(
         "cfg": cfg,
         "sampler_name": sampler_name,
         "scheduler": scheduler,
+        "denoise": denoise,
+        "start_at_step": start_at_step,
+        "end_at_step": end_at_step,
+        "return_with_leftover_noise": return_with_leftover_noise,
+        "add_noise": add_noise,
         "model": model_name,
         "vae": vae_name,
         "loras": loras,

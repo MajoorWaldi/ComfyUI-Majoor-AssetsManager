@@ -222,17 +222,19 @@ const MJR_DND_VIDEO_EXTS = ["mp4", "mov", "mkv", "webm"];
 // - MIN_SCORE: Minimum confidence to accept a widget as video input (prevents false positives)
 // - WARN_SCORE: Below this score, warn user that widget detection may be ambiguous
 const MJR_WIDGET_PICK_MIN_SCORE = 20;
-const MJR_WIDGET_PICK_WARN_SCORE = 70;
+const MJR_WIDGET_PICK_WARN_SCORE = 50; // Reduced from 70 to avoid warnings on standard nodes
 
 // Widget scoring weights (used in pickBestVideoPathWidget)
 const SCORE_EXACT_NAME = 100;        // Exact match for known video input names
-const SCORE_VIDEO_WITH_HINT = 70;    // Has "video" + "path"/"file"/"input" in name
-const SCORE_PATH_OR_FILE = 30;       // Has "path" or "file" in name
+const SCORE_VIDEO_WITH_HINT = 80;    // Has "video" + "path"/"file"/"input" in name (increased from 70)
+const SCORE_PATH_OR_FILE = 35;       // Has "path" or "file" in name (increased from 30)
 const SCORE_OUTPUT_PENALTY = -90;    // Penalize output/save/export widgets
-const SCORE_VIDEO_MATCH = 20;        // Widget named "video" with empty or video path value
-const SCORE_VIDEO_MISMATCH = -40;    // Widget named "video" with non-video value
-const SCORE_EMPTY_BONUS = 5;         // Slight preference for empty widgets
-const SCORE_COMBO_VIDEO_BONUS = 3;   // Combo has video paths in options
+const SCORE_VIDEO_MATCH = 25;        // Widget named "video" with empty or video path value (increased from 20)
+const SCORE_VIDEO_MISMATCH = -50;    // Widget named "video" with non-video value (increased from -40)
+const SCORE_EMPTY_BONUS = 3;         // Slight preference for empty widgets (decreased from 5)
+const SCORE_COMBO_VIDEO_BONUS = 12;  // Combo has video paths in options (increased from 3)
+const SCORE_NODE_TYPE_BOOST = 15;    // Boost for known video node types
+const SCORE_MEDIA_KEYWORD = 45;      // For "media", "clip", "footage" keywords
 
 function _looksLikeVideoPath(value, droppedExt) {
   if (typeof value !== "string") return false;
@@ -262,7 +264,22 @@ function pickBestVideoPathWidget(node, droppedExt) {
   if (!Array.isArray(widgets) || !widgets.length) return null;
 
   const ext = String(droppedExt || "").toLowerCase().replace(/^\./, "");
-  const exactNames = new Set(["video_path", "input_video", "source_video"]);
+
+  // Exact match widget names (VHS and native ComfyUI nodes)
+  const exactNames = new Set([
+    "video_path",
+    "input_video",
+    "source_video",
+    "video",        // VHS nodes (VHS_LoadVideo, VHS_LoadVideoPath)
+  ]);
+
+  // Check if this is a known video node type
+  const nodeType = String(node?.type || "").toLowerCase();
+  const isKnownVideoNode =
+    nodeType.includes("loadvideo") ||
+    nodeType.includes("vhs_loadvideo") ||
+    nodeType.includes("videoloader") ||
+    nodeType === "loadvideo";
 
   const candidates = [];
   for (const w of widgets) {
@@ -282,8 +299,18 @@ function pickBestVideoPathWidget(node, droppedExt) {
     const name = rawName.toLowerCase().trim();
 
     let score = 0;
-    if (exactNames.has(name)) score += SCORE_EXACT_NAME;
 
+    // Exact name match (highest priority)
+    if (exactNames.has(name)) {
+      score += SCORE_EXACT_NAME;
+    }
+
+    // Special handling for "file" widget on known video nodes (native LoadVideo)
+    if (name === "file" && isKnownVideoNode && type === "combo" && _comboHasAnyVideoValue(w, ext)) {
+      score += SCORE_EXACT_NAME; // Treat as exact match for LoadVideo
+    }
+
+    // Video with hint keywords
     const hasVideo = name.includes("video");
     const hasAnyVideoHint =
       name.includes("path") ||
@@ -292,8 +319,16 @@ function pickBestVideoPathWidget(node, droppedExt) {
       name.includes("src") ||
       name.includes("source");
     if (hasVideo && hasAnyVideoHint) score += SCORE_VIDEO_WITH_HINT;
+
+    // Path or file keywords
     if (name.includes("file") || name.includes("path")) score += SCORE_PATH_OR_FILE;
 
+    // Media/clip/footage keywords (for custom nodes)
+    if (name.includes("media") || name.includes("clip") || name.includes("footage")) {
+      score += SCORE_MEDIA_KEYWORD;
+    }
+
+    // Output widget penalty
     const isOutputy =
       name.includes("output") ||
       name.includes("save") ||
@@ -302,14 +337,23 @@ function pickBestVideoPathWidget(node, droppedExt) {
       name.includes("dir");
     if (isOutputy) score += SCORE_OUTPUT_PENALTY;
 
+    // Special case for widget named exactly "video"
     if (name === "video") {
       const empty = typeof value === "string" && value.trim() === "";
       if (empty || _looksLikeVideoPath(value, ext)) score += SCORE_VIDEO_MATCH;
       else score += SCORE_VIDEO_MISMATCH;
     }
 
+    // Node type boost for known video nodes
+    if (isKnownVideoNode) {
+      score += SCORE_NODE_TYPE_BOOST;
+    }
+
+    // Empty value bonus (reduced to prevent overriding better matches)
     const emptyValue = typeof value === "string" && value.trim() === "";
     if (emptyValue) score += SCORE_EMPTY_BONUS;
+
+    // Combo with video values bonus (increased importance)
     if (type === "combo" && _comboHasAnyVideoValue(w, ext)) score += SCORE_COMBO_VIDEO_BONUS;
 
     candidates.push({ w, score, emptyValue, combo: type === "combo" });
