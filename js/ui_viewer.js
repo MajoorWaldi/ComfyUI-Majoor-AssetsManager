@@ -13,7 +13,7 @@ import {
   mjrShowToast,
   mjrSaveSettings,
 } from "./ui_settings.js";
-import { mjrGlobalState } from "./mjr_global.js";
+import { mjrGlobalState } from "./global_state.js";
 import { setupViewerInteractions } from "./viewer/interaction.js";
 
 export const mjrViewerState = { overlay: null, frame: null, abCleanup: null, resetView: null };
@@ -23,8 +23,26 @@ export let mjrViewerIsAB = false;
 let mjrViewerRatingEl = null;
 let mjrCurrentList = [];
 let mjrCurrentIndex = 0;
+
+// LRU cache for video thumbnails (prevents memory bloat)
+const MJR_THUMB_CACHE_MAX_SIZE = 200;
+const MJR_THUMB_PROMISE_TIMEOUT = 10000; // 10 second timeout for abandoned promises
 const mjrThumbCache = new Map();
 const mjrThumbPromises = new Map();
+
+function _addToThumbCache(key, value) {
+  // Implement LRU eviction for thumbnail cache
+  if (mjrThumbCache.has(key)) {
+    mjrThumbCache.delete(key); // Move to end
+  }
+  mjrThumbCache.set(key, value);
+
+  // Evict oldest if over limit
+  if (mjrThumbCache.size > MJR_THUMB_CACHE_MAX_SIZE) {
+    const firstKey = mjrThumbCache.keys().next().value;
+    mjrThumbCache.delete(firstKey);
+  }
+}
 
 function mjrFileThumbUrl(file) {
   const name = file?.filename || file?.name || "";
@@ -92,7 +110,7 @@ function mjrCaptureVideoThumb(file, imgEl) {
           if (!ctx) return cleanup(null);
           ctx.drawImage(video, 0, 0, w, h);
           const dataUrl = canvas.toDataURL("image/png");
-          mjrThumbCache.set(key, dataUrl);
+          _addToThumbCache(key, dataUrl);
           if (imgEl) imgEl.src = dataUrl;
           cleanup(dataUrl);
         } catch (_) {
@@ -108,7 +126,7 @@ function mjrCaptureVideoThumb(file, imgEl) {
     if (serverThumb) {
       const probeImg = new Image();
       probeImg.onload = () => {
-        mjrThumbCache.set(key, serverThumb);
+        _addToThumbCache(key, serverThumb);
         if (imgEl) imgEl.src = serverThumb;
         resolve(serverThumb);
       };
@@ -122,8 +140,18 @@ function mjrCaptureVideoThumb(file, imgEl) {
     proceedVideoCapture();
   });
 
+  // Store promise with timeout cleanup to prevent memory leaks
   mjrThumbPromises.set(key, promise);
-  promise.finally(() => mjrThumbPromises.delete(key));
+
+  // Ensure promise is cleaned up even if abandoned or fails
+  const cleanupTimeout = setTimeout(() => {
+    mjrThumbPromises.delete(key);
+  }, MJR_THUMB_PROMISE_TIMEOUT);
+
+  promise.finally(() => {
+    clearTimeout(cleanupTimeout);
+    mjrThumbPromises.delete(key);
+  });
 }
 
 export function mjrUpdateNavVisibility() {

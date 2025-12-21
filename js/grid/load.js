@@ -1,6 +1,6 @@
-import { normalizeRefreshOptions, mergeRefreshOptions, mergeLoadOpts, createRefreshInstance, mjrRefreshDefaults } from "../am_data.js";
+import { normalizeRefreshOptions, mergeRefreshOptions, mergeLoadOpts, createRefreshInstance, mjrRefreshDefaults } from "../assets_data.js";
 import { mjrShowToast } from "../ui_settings.js";
-import { mjrGlobalState } from "../mjr_global.js";
+import { mjrGlobalState } from "../global_state.js";
 
 export function createRefreshController(state, grid, applyFilterAndRender, fetchMetadataForVisible) {
   let mjrGlobalRefreshPromise = null;
@@ -8,14 +8,14 @@ export function createRefreshController(state, grid, applyFilterAndRender, fetch
   const lastSignatureRef = { value: null };
 
   const loadFiles = (silent = false, force = false, { skipMetadataFetch = false } = {}) =>
-    import("../am_data.js").then(({ loadFiles: fmLoadFiles }) =>
+    import("../assets_data.js").then(({ loadFiles: fmLoadFiles }) =>
       fmLoadFiles(state, grid, applyFilterAndRender, { silent, force, skipMetadataFetch }, { lastSignatureRef, mergeLoadOptsFn: mergeLoadOpts })
     );
 
   const loadFilesWrapper = (opts = {}) => loadFiles(opts.silent ?? true, opts.forceFiles ?? false, { skipMetadataFetch: opts.skipMetadataFetch ?? true });
 
   const loadMoreFiles = (opts = {}) =>
-    import("../am_data.js").then(({ loadMoreFiles: fmLoadMoreFiles }) =>
+    import("../assets_data.js").then(({ loadMoreFiles: fmLoadMoreFiles }) =>
       fmLoadMoreFiles(state, grid, applyFilterAndRender, { silent: opts.silent ?? true, skipMetadataFetch: opts.skipMetadataFetch ?? false }, {})
     );
 

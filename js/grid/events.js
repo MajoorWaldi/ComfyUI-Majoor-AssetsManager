@@ -1,8 +1,8 @@
 import { app } from "../../../../scripts/app.js";
 import { api } from "../../../../scripts/api.js";
 import { buildViewUrl, detectKindFromExt, getExt, mjrSettings, mjrShowToast } from "../ui_settings.js";
-import { mjrGlobalState } from "../mjr_global.js";
-import { sortFilesDeterministically } from "../am_data.js";
+import { mjrGlobalState } from "../global_state.js";
+import { sortFilesDeterministically } from "../assets_data.js";
 
 let mjrGlobalRefreshTimer = null;
 let mjrFocusListenerAttached = false;
@@ -12,7 +12,7 @@ let mjrNewFilesListenerBound = false;
 let mjrCapabilitiesCache = null;
 try {
   if (typeof window !== "undefined" && window.MJR_DND_DEBUG === undefined) {
-    window.MJR_DND_DEBUG = true;
+    window.MJR_DND_DEBUG = false;
   }
 } catch (_) {}
 const mjrDbg = (...args) => {
@@ -151,16 +151,9 @@ function getNodeUnderClientXY(clientX, clientY) {
 
 function isVhsVideoNode(node) {
   if (!node) return false;
-  const title = String(node.title || "");
   const type = String(node.type || "");
-  if (/video/i.test(title)) return true;
   if (type.includes("VHS_LoadVideo")) return true;
-
-  const widgets = node.widgets;
-  if (Array.isArray(widgets)) {
-    return widgets.some((w) => String(w?.name || "").toLowerCase() === "video");
-  }
-  return false;
+  return pickBestVideoPathWidget(node, "mp4") != null;
 }
 
 function markCanvasDirty() {
@@ -222,14 +215,122 @@ function ensureComboHasValue(widget, value) {
   target.values = vals;
 }
 
-function pickVideoWidget(node) {
+// Video extensions supported for drag-and-drop
+const MJR_DND_VIDEO_EXTS = ["mp4", "mov", "mkv", "webm"];
+
+// Widget picker scoring thresholds:
+// - MIN_SCORE: Minimum confidence to accept a widget as video input (prevents false positives)
+// - WARN_SCORE: Below this score, warn user that widget detection may be ambiguous
+const MJR_WIDGET_PICK_MIN_SCORE = 20;
+const MJR_WIDGET_PICK_WARN_SCORE = 70;
+
+// Widget scoring weights (used in pickBestVideoPathWidget)
+const SCORE_EXACT_NAME = 100;        // Exact match for known video input names
+const SCORE_VIDEO_WITH_HINT = 70;    // Has "video" + "path"/"file"/"input" in name
+const SCORE_PATH_OR_FILE = 30;       // Has "path" or "file" in name
+const SCORE_OUTPUT_PENALTY = -90;    // Penalize output/save/export widgets
+const SCORE_VIDEO_MATCH = 20;        // Widget named "video" with empty or video path value
+const SCORE_VIDEO_MISMATCH = -40;    // Widget named "video" with non-video value
+const SCORE_EMPTY_BONUS = 5;         // Slight preference for empty widgets
+const SCORE_COMBO_VIDEO_BONUS = 3;   // Combo has video paths in options
+
+function _looksLikeVideoPath(value, droppedExt) {
+  if (typeof value !== "string") return false;
+  const v = value.trim().toLowerCase();
+  if (!v) return false;
+  const ext = (v.split(/[?#]/)[0].split(".").pop() || "").toLowerCase();
+  if (!ext) return false;
+  if (droppedExt && ext === String(droppedExt).toLowerCase()) return true;
+  return MJR_DND_VIDEO_EXTS.includes(ext);
+}
+
+function _comboHasAnyVideoValue(widget, droppedExt) {
+  if (!widget || widget.type !== "combo" || !widget.options) return false;
+  const vals =
+    (Array.isArray(widget.options.values) && widget.options.values) ||
+    (widget.options.values && Array.isArray(widget.options.values.values) && widget.options.values.values) ||
+    null;
+  if (!Array.isArray(vals)) return false;
+  return vals.some((v) => {
+    const s = typeof v === "string" ? v : (v?.content ?? v?.value ?? v?.text);
+    return _looksLikeVideoPath(s, droppedExt);
+  });
+}
+
+function pickBestVideoPathWidget(node, droppedExt) {
   const widgets = node?.widgets;
   if (!Array.isArray(widgets) || !widgets.length) return null;
-  const exact = widgets.find((w) => String(w?.name || "").toLowerCase() === "video");
-  if (exact) return exact;
-  return (
-    widgets.find((w) => /video|file|path/i.test(String(w?.name || w?.label || ""))) || null
-  );
+
+  const ext = String(droppedExt || "").toLowerCase().replace(/^\./, "");
+  const exactNames = new Set(["video_path", "input_video", "source_video"]);
+
+  const candidates = [];
+  for (const w of widgets) {
+    if (!w) continue;
+    const type = String(w?.type || "").toLowerCase();
+    const value = w?.value;
+
+    const rejectTypes = new Set(["number", "int", "float", "boolean", "toggle", "checkbox"]);
+    if (rejectTypes.has(type)) continue;
+    if (typeof value === "number" || typeof value === "boolean") continue;
+
+    const stringLikeByType = type === "text" || type === "string" || type === "combo";
+    const stringLikeByCallback = typeof w?.callback === "function" && typeof value === "string";
+    if (!stringLikeByType && !stringLikeByCallback) continue;
+
+    const rawName = String(w?.name || w?.label || "");
+    const name = rawName.toLowerCase().trim();
+
+    let score = 0;
+    if (exactNames.has(name)) score += SCORE_EXACT_NAME;
+
+    const hasVideo = name.includes("video");
+    const hasAnyVideoHint =
+      name.includes("path") ||
+      name.includes("file") ||
+      name.includes("input") ||
+      name.includes("src") ||
+      name.includes("source");
+    if (hasVideo && hasAnyVideoHint) score += SCORE_VIDEO_WITH_HINT;
+    if (name.includes("file") || name.includes("path")) score += SCORE_PATH_OR_FILE;
+
+    const isOutputy =
+      name.includes("output") ||
+      name.includes("save") ||
+      name.includes("export") ||
+      name.includes("folder") ||
+      name.includes("dir");
+    if (isOutputy) score += SCORE_OUTPUT_PENALTY;
+
+    if (name === "video") {
+      const empty = typeof value === "string" && value.trim() === "";
+      if (empty || _looksLikeVideoPath(value, ext)) score += SCORE_VIDEO_MATCH;
+      else score += SCORE_VIDEO_MISMATCH;
+    }
+
+    const emptyValue = typeof value === "string" && value.trim() === "";
+    if (emptyValue) score += SCORE_EMPTY_BONUS;
+    if (type === "combo" && _comboHasAnyVideoValue(w, ext)) score += SCORE_COMBO_VIDEO_BONUS;
+
+    candidates.push({ w, score, emptyValue, combo: type === "combo" });
+  }
+
+  if (!candidates.length) return null;
+
+  candidates.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    if (b.emptyValue !== a.emptyValue) return b.emptyValue ? 1 : -1;
+    if (b.combo !== a.combo) return b.combo ? 1 : -1;
+    return 0;
+  });
+
+  const best = candidates[0];
+  if (!best || best.score < MJR_WIDGET_PICK_MIN_SCORE) return null;
+
+  try {
+    best.w.__mjrVideoPickScore = best.score;
+  } catch (_) {}
+  return best.w;
 }
 
 function comboHasValue(widget, value) {
@@ -259,15 +360,23 @@ export function ensureVideoNodeDropBridge() {
       payload = null;
     }
     if (!payload || payload.kind !== "video") return;
+    if (!payload.filename) return;
 
     const node = getNodeUnderClientXY(e.clientX, e.clientY);
-    if (node && isVhsVideoNode(node)) {
+    const droppedExt = String(getExt(payload.filename || "") || "").toLowerCase();
+    const widget = node ? pickBestVideoPathWidget(node, droppedExt) : null;
+    if (node && widget) {
       e.preventDefault();
       e.stopImmediatePropagation?.();
       e.stopPropagation();
       applyHighlight(node);
       e.dataTransfer.dropEffect = "copy";
-      mjrDbg("DnD video dragover", { payload, nodeTitle: node?.title, nodeType: node?.type });
+      mjrDbg("DnD video dragover", {
+        payload,
+        nodeTitle: node?.title,
+        nodeType: node?.type,
+        widget: { name: widget?.name, type: widget?.type, score: widget?.__mjrVideoPickScore },
+      });
       return;
     }
 
@@ -287,10 +396,21 @@ export function ensureVideoNodeDropBridge() {
     }
     if (!payload || payload.kind !== "video") return;
 
+    const filename = payload.filename;
+    if (!filename) return;
+
     const node = getNodeUnderClientXY(e.clientX, e.clientY);
-    if (!node || !isVhsVideoNode(node)) {
+    const subfolder = payload.subfolder || "";
+    const droppedExt = String(getExt(filename || "") || "").toLowerCase();
+    const widget = node ? pickBestVideoPathWidget(node, droppedExt) : null;
+
+    if (!node || !widget) {
       clearHighlight();
-      mjrDbg("DnD video drop pass-through", { payload, nodeTitle: node?.title, nodeType: node?.type });
+      mjrDbg("DnD video drop pass-through", {
+        payload,
+        nodeTitle: node?.title,
+        nodeType: node?.type,
+      });
       return; // leave ComfyUI to load workflow from video metadata
     }
 
@@ -299,48 +419,60 @@ export function ensureVideoNodeDropBridge() {
     e.stopPropagation();
     clearHighlight();
 
-    const filename = payload.filename;
-    const subfolder = payload.subfolder || "";
-    if (!filename) return;
-
     let stageResp = null;
     try {
       const res = await api.fetchApi("/mjr/filemanager/stage_to_input", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filename, subfolder, from_type: "output" }),
+        body: JSON.stringify({
+          filename,
+          subfolder,
+          from_type: "output",
+          dest_subfolder: "_mjr_drop",
+          collision_policy: "rename",
+        }),
       });
-      stageResp = res.ok ? await res.json().catch(() => null) : null;
+      stageResp = await res.json().catch(() => null);
+      if (!res.ok && stageResp && stageResp.ok !== true) {
+        stageResp = { ok: false, error: stageResp?.error || `HTTP ${res.status}` };
+      }
     } catch (_) {
       stageResp = null;
     }
 
-    const relativePath = stageResp?.relative_path;
+    if (!stageResp?.ok) {
+      mjrShowToast("error", stageResp?.error || "Failed to stage video to input", "Drag & Drop");
+      return;
+    }
+
+    const relativePath = String(stageResp?.relative_path || "");
     const stagedName = stageResp?.filename || stageResp?.name || filename;
+    const respSub = stageResp?.dest_subfolder || "_mjr_drop";
+    const injectedPath = relativePath || `${respSub}/${stagedName}`;
     mjrDbg("DnD stage_to_input response", stageResp);
 
-    if (!relativePath && !stagedName) {
-      mjrShowToast("error", "Failed to stage video to input", "Drag & Drop");
+    if (!injectedPath) {
+      mjrShowToast("error", "Failed to determine staged input path", "Drag & Drop");
       return;
     }
 
-    const w = pickVideoWidget(node);
-    if (!w) {
-      mjrShowToast("warn", "No compatible 'video' widget found", "Drag & Drop");
-      return;
+    if (stageResp?.collision === "renamed") {
+      mjrShowToast("info", `Staged as ${stagedName} (renamed to avoid overwrite)`, "Drag & Drop");
     }
 
-    const prefer = w.type === "combo" && comboHasValue(w, relativePath) ? relativePath : null;
-    const value =
-      prefer ||
-      (w.type === "combo" && comboHasValue(w, stagedName) ? stagedName : null) ||
-      relativePath ||
-      stagedName;
+    const pickScore = Number(widget?.__mjrVideoPickScore || 0);
+    if (pickScore > 0 && pickScore < MJR_WIDGET_PICK_WARN_SCORE) {
+      mjrShowToast(
+        "warn",
+        "Widget selection may be ambiguous. Rename the target widget to 'video_path' for best reliability.",
+        "Drag & Drop"
+      );
+    }
 
-    if (w.type === "combo") ensureComboHasValue(w, value);
-    w.value = value;
+    if (widget.type === "combo") ensureComboHasValue(widget, injectedPath);
+    widget.value = injectedPath;
     try {
-      w.callback?.(w.value);
+      widget.callback?.(widget.value);
     } catch (_) {}
 
     markCanvasDirty();
@@ -349,8 +481,8 @@ export function ensureVideoNodeDropBridge() {
       payload,
       nodeTitle: node?.title,
       nodeType: node?.type,
-      widget: { name: w?.name, type: w?.type },
-      value,
+      widget: { name: widget?.name, type: widget?.type, score: widget?.__mjrVideoPickScore },
+      value: injectedPath,
     });
   };
 

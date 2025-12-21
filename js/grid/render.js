@@ -1,5 +1,5 @@
 import { detectKindFromExt, getBaseName, getExt, mjrSettings } from "../ui_settings.js";
-import { normalizeMtimeValue } from "../am_filters.js";
+import { normalizeMtimeValue } from "../assets_filters.js";
 
 export function createApplyFilterAndRender(state, fetchMetadataForVisible, fetchMetadataForFilter) {
   let gridView = null;
