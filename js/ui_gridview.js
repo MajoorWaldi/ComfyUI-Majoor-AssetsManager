@@ -29,6 +29,13 @@ export function createGridView(deps) {
   } = deps;
 
   let lastRenderWindow = { startIndex: -1, endIndex: -1, cols: -1, version: -1 };
+  const selectionAnchorKeyProp = "__mjrSelectionAnchorKey";
+  const keyForFile = (f) => `${f.subfolder || ""}/${f.filename || f.name || "(unnamed)"}`;
+  const buildKeyToIndexMap = () => {
+    const map = new Map();
+    (state.filtered || []).forEach((f, idx) => map.set(keyForFile(f), idx));
+    return map;
+  };
 
   const updateStatus = () => {
     const loaded = (state.files || []).length;
@@ -114,7 +121,19 @@ export function createGridView(deps) {
     const currentFile = () => card.__mjrFile || file;
 
     card.draggable = true;
-    card.addEventListener("dragstart", (ev) => handleDragStart(currentFile(), ev));
+    card.addEventListener("dragstart", (ev) => {
+      const f = currentFile();
+      let selectedFiles = null;
+      if (state.selected && state.selected.size > 1) {
+        const key = card.dataset.mjrKey || keyForFile(f);
+        if (state.selected.has(key)) {
+          const keyToFile = new Map();
+          (state.filtered || []).forEach((item) => keyToFile.set(keyForFile(item), item));
+          selectedFiles = Array.from(state.selected).map((k) => keyToFile.get(k)).filter(Boolean);
+        }
+      }
+      handleDragStart(f, ev, selectedFiles);
+    });
 
     card.addEventListener("mouseenter", () => {
       if (!state.selected.has(key)) {
@@ -227,21 +246,54 @@ export function createGridView(deps) {
 
     const handlers = {
       onSelect: (file, key, card, ev) => {
-        const multi = ev && (ev.ctrlKey || ev.metaKey);
-        if (!multi) {
+        const isCtrl = ev && (ev.ctrlKey || ev.metaKey);
+        const isShift = ev && ev.shiftKey;
+        const anchorKey = state[selectionAnchorKeyProp] || null;
+
+        if (isShift) {
+          const keyToIndex = buildKeyToIndexMap();
+          const anchorIndex = anchorKey ? keyToIndex.get(anchorKey) : undefined;
+          const targetIndex = keyToIndex.get(key);
+          if (anchorIndex !== undefined && targetIndex !== undefined) {
+            const start = Math.min(anchorIndex, targetIndex);
+            const end = Math.max(anchorIndex, targetIndex);
+            const keysInRange = (state.filtered || [])
+              .slice(start, end + 1)
+              .map((f) => keyForFile(f));
+            if (isCtrl) {
+              keysInRange.forEach((k) => state.selected.add(k));
+            } else {
+              state.selected = new Set(keysInRange);
+            }
+            state.currentFile = file;
+            if (!anchorKey) state[selectionAnchorKeyProp] = key;
+            state.renderVersion = (state.renderVersion || 0) + 1;
+            renderGrid();
+            updateStatus();
+            if (typeof isMetaVisible === "function" ? isMetaVisible() : isMetaVisible) {
+              loadMetadataForFile(file);
+            }
+            return;
+          }
+        }
+
+        if (!isCtrl) {
           clearAllSelection();
           if (state.selected && state.selected.clear) {
             state.selected.clear();
           }
         }
-        if (multi && state.selected.has(key)) {
+
+        if (isCtrl && state.selected.has(key)) {
           state.selected.delete(key);
           updateCardSelectionStyle(card, false);
         } else {
           state.selected.add(key);
           state.currentFile = file;
           updateCardSelectionStyle(card, true);
+          state[selectionAnchorKeyProp] = key;
         }
+
         updateStatus();
         if (typeof isMetaVisible === "function" ? isMetaVisible() : isMetaVisible) {
           loadMetadataForFile(file);
@@ -334,6 +386,7 @@ export function createGridView(deps) {
           updateCardVisuals(card, file); // from ui_cards.js, which reads mjrSettings
           card.__mjrVersion = nextVersion;
         }
+        updateCardSelectionStyle(card, state.selected.has(key));
       } else {
         card = createFileCard(file, handlers);
         card.dataset.mjrKey = key;

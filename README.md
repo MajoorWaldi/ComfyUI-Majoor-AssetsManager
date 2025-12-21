@@ -95,15 +95,22 @@ Hotkeys are ignored while typing in an input/textarea.
 
 ### Assets Manager (grid)
 
-- `0`–`5`: set rating for current/selected files (`0` clears).
+- `0`‑`5`: set rating for current/selected files (`0` clears).
 - `Space`: open viewer (1 selected) or A/B compare (2 selected; uses the first two).
+- `Ctrl`/`Cmd` + `A`: select all filtered files.
+
+Selection behavior (Explorer‑like):
+- Click: clear selection + select item.
+- `Ctrl`/`Cmd` + Click: toggle item.
+- `Shift` + Click: select range from last anchor.
+- `Ctrl`/`Cmd` + `Shift` + Click: add range to selection.
 
 ### Viewer
 
 - `Esc` or `Space`: close viewer.
-- `ArrowLeft` / `ArrowRight`: previous/next asset (when navigation is enabled).
-- `0`–`5` (including numpad): set rating (when viewer rating hotkeys are enabled).
-- `ArrowUp` / `ArrowDown`: step videos +/- 1/30s (when frame-step hotkeys are enabled).
+- `ArrowUp` / `ArrowDown`: previous/next asset (when navigation is enabled).
+- `0`‑`5` (including numpad): set rating (when viewer rating hotkeys are enabled).
+- `ArrowLeft` / `ArrowRight`: step videos +/- 1/30s (when frame-step hotkeys are enabled).
 - `F`: fit/reset view.
 
 ---

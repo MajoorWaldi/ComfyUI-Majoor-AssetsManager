@@ -8,6 +8,7 @@ import {
   getExt,
   mjrSettings,
 } from "./ui_settings.js";
+import { api } from "../../../../scripts/api.js";
 
 function formatCardHoverTitle(file) {
   const rawName = file?.name || file?.filename || "(unnamed)";
@@ -78,10 +79,33 @@ export function resolveWorkflowState(file) {
   return "unknown";
 }
 
-export function handleDragStart(file, ev) {
+export function handleDragStart(file, ev, selectedFiles = null) {
   if (!ev?.dataTransfer) return;
   const filename = file.filename || file.name;
   if (!filename) return;
+
+  if (Array.isArray(selectedFiles) && selectedFiles.length > 1) {
+    const items = selectedFiles
+      .map((f) => ({ filename: f.filename || f.name, subfolder: f.subfolder || "" }))
+      .filter((f) => f.filename);
+    if (items.length > 1) {
+      const token = `mjr_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+      try {
+        api.fetchApi("/mjr/filemanager/batch_zip", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, items }),
+          keepalive: true,
+        }).catch(() => {});
+      } catch (_) {}
+      const url = new URL(`/mjr/filemanager/batch_zip/${encodeURIComponent(token)}`, window.location.href).href;
+      const zipName = `Majoor_Batch_${items.length}.zip`;
+      ev.dataTransfer.effectAllowed = "copy";
+      ev.dataTransfer.setData("text/uri-list", url);
+      ev.dataTransfer.setData("DownloadURL", `application/zip:${zipName}:${url}`);
+      return;
+    }
+  }
 
   const extGuess = file.ext || getExt(filename) || "";
   const kind = file.kind || detectKindFromExt(extGuess);

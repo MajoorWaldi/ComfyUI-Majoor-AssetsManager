@@ -17,6 +17,19 @@ export function setupViewerInteractions({
   let minScale = 1;
 
   const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+  const clampOffsets = () => {
+    const rect = mediaWrap.getBoundingClientRect();
+    const wrapW = rect.width || 1;
+    const wrapH = rect.height || 1;
+    const mediaW = el.videoWidth || el.naturalWidth || el.clientWidth || wrapW;
+    const mediaH = el.videoHeight || el.naturalHeight || el.clientHeight || wrapH;
+    const maxX = Math.max(0, (mediaW * scale - wrapW) / 2);
+    const maxY = Math.max(0, (mediaH * scale - wrapH) / 2);
+    if (maxX <= 0) offsetX = 0;
+    else offsetX = clamp(offsetX, -maxX, maxX);
+    if (maxY <= 0) offsetY = 0;
+    else offsetY = clamp(offsetY, -maxY, maxY);
+  };
   const calcFitScale = () => {
     const wrapRect = mediaWrap.getBoundingClientRect();
     const wrapW = wrapRect.width || mediaWrap.clientWidth || 1;
@@ -39,6 +52,8 @@ export function setupViewerInteractions({
 
   const applyTransform = () => {
     if (!allowZoom) return;
+    if (scale < minScale) scale = minScale;
+    clampOffsets();
     if (scale <= minScale) {
       offsetX = 0;
       offsetY = 0;
@@ -47,6 +62,9 @@ export function setupViewerInteractions({
     el.style.cursor = scale > minScale ? "grab" : "default";
     zoomHud.textContent = `${Math.round(scale * 100)}%`;
   };
+
+  let resizeObserver = null;
+  let onWindowResize = null;
 
   if (allowZoom) {
     resetZoomPan = () => {
@@ -57,9 +75,33 @@ export function setupViewerInteractions({
       applyTransform();
     };
     mjrViewerState.resetView = resetZoomPan;
+    const recalcFit = (preserveZoom = true) => {
+      const oldMin = minScale;
+      const oldScale = scale;
+      const zoomRatio = oldMin > 0 ? (oldScale / oldMin) : 1;
+      minScale = calcFitScale();
+      if (!preserveZoom || zoomRatio <= 1.0001) {
+        scale = minScale;
+        offsetX = 0;
+        offsetY = 0;
+      } else {
+        scale = clamp(minScale * zoomRatio, minScale, 10);
+        const k = oldScale > 0 ? (scale / oldScale) : 1;
+        offsetX *= k;
+        offsetY *= k;
+      }
+      applyTransform();
+    };
     const fitOnReady = () => resetZoomPan();
     el.addEventListener?.("load", fitOnReady);
     el.addEventListener?.("loadedmetadata", fitOnReady);
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(() => recalcFit(true));
+      resizeObserver.observe(mediaWrap);
+    } else {
+      onWindowResize = () => recalcFit(true);
+      window.addEventListener("resize", onWindowResize);
+    }
 
     mediaWrap.addEventListener(
       "wheel",
@@ -71,7 +113,7 @@ export function setupViewerInteractions({
         const px = ev.clientX - rect.left;
         const py = ev.clientY - rect.top;
         const prevScale = scale;
-        const newScale = clamp(scale * factor, 0.25, 10);
+        const newScale = clamp(scale * factor, minScale, 10);
 
         const dx = (px - rect.width / 2 - offsetX) / prevScale;
         const dy = (py - rect.height / 2 - offsetY) / prevScale;
@@ -79,6 +121,7 @@ export function setupViewerInteractions({
         offsetY = py - rect.height / 2 - newScale * dy;
 
         scale = newScale;
+        clampOffsets();
         applyTransform();
       },
       { passive: false }
@@ -96,6 +139,7 @@ export function setupViewerInteractions({
       const dy = ev.clientY - dragStartY;
       offsetX = dragOrigX + dx;
       offsetY = dragOrigY + dy;
+      clampOffsets();
       applyTransform();
     };
     const stopDrag = () => {
@@ -176,15 +220,21 @@ export function setupViewerInteractions({
     }
   };
 
+  const onLeave = () => scheduleHide(700);
   mediaWrap.addEventListener("mousemove", onMove);
   mediaWrap.addEventListener("mouseenter", onMove);
-  mediaWrap.addEventListener("mouseleave", () => scheduleHide(700));
+  mediaWrap.addEventListener("mouseleave", onLeave);
   requestAnimationFrame(() => resetZoomPan());
 
   const cleanup = () => {
     try { mediaWrap.removeEventListener("mousemove", onMove); } catch (_) {}
     try { mediaWrap.removeEventListener("mouseenter", onMove); } catch (_) {}
-    try { mediaWrap.removeEventListener("mouseleave", () => scheduleHide(700)); } catch (_) {}
+    try { mediaWrap.removeEventListener("mouseleave", onLeave); } catch (_) {}
+    try { resizeObserver?.disconnect?.(); } catch (_) {}
+    if (onWindowResize) {
+      try { window.removeEventListener("resize", onWindowResize); } catch (_) {}
+      onWindowResize = null;
+    }
   };
 
   return { resetZoomPan, cleanup };

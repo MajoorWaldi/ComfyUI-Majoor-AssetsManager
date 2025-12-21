@@ -25,6 +25,7 @@ import {
   mjrApplyOpenViewerSettings,
   mjrUpdateNavVisibility,
   mjrCleanupViewerGlobalListeners,
+  mjrViewerState,
 } from "./ui_viewer.js";
 import { createMetadataSidebar } from "./ui_sidebar.js";
 import { createGridView } from "./ui_gridview.js";
@@ -161,6 +162,7 @@ function renderAssetsManager(root) {
 
   const gridWrapper = createEl("div", "mjr-fm-grid-wrapper");
   Object.assign(gridWrapper.style, { flex: "1.8", overflow: "auto", position: "relative" });
+  gridWrapper.setAttribute("tabindex", "0"); // Keep focusable for selection hotkeys
 
   const grid = createEl("div", "mjr-fm-grid");
   const basePx = mjrCardBasePx();
@@ -535,143 +537,44 @@ function renderAssetsManager(root) {
   });
   cleanups.push(() => cleanupMetadataFetcher());
 
-  // --- KEYBOARD NAVIGATION ---
+  // --- GRID HOTKEYS ---
 
-  const handleKeyboardNavigation = (e) => {
-    // Only handle navigation when grid area has focus and not typing in input fields
-    if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
-      return;
+  const onGridSelectAll = (e) => {
+    const key = String(e.key || "").toLowerCase();
+    if (key !== "a") return;
+    if (!(e.ctrlKey || e.metaKey)) return;
+    if (mjrViewerState?.overlay && mjrViewerState.overlay.style.display !== "none") return;
+
+    const target = e.target;
+    const tagName = target && target.tagName ? String(target.tagName).toUpperCase() : "";
+    const isInput =
+      tagName === "INPUT" ||
+      tagName === "TEXTAREA" ||
+      tagName === "SELECT" ||
+      !!(target && target.isContentEditable);
+    if (isInput) return;
+
+    const active = document.activeElement;
+    const inGrid = (active && gridWrapper.contains(active)) || (target && root.contains(target));
+    if (!inGrid) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation?.();
+
+    state.selected.clear();
+    (state.filtered || []).forEach((f) => state.selected.add(fileKey(f)));
+    if (state.filtered && state.filtered.length) {
+      state.currentFile = state.filtered[0];
+      state.__mjrSelectionAnchorKey = fileKey(state.filtered[0]);
     }
-
-    const filtered = state.filtered || [];
-    if (filtered.length === 0) return;
-
-    const currentFile = state.currentFile;
-    let currentIndex = currentFile ? filtered.findIndex(f => fileKey(f) === fileKey(currentFile)) : -1;
-
-    // Calculate grid columns from CSS Grid computed style
-    const cards = grid.querySelectorAll(".mjr-fm-card");
-    if (cards.length === 0) return;
-
-    let cols = 1;
-    try {
-      const gridComputedStyle = window.getComputedStyle(grid);
-      const gridTemplateColumns = gridComputedStyle.getPropertyValue("grid-template-columns");
-
-      if (gridTemplateColumns && gridTemplateColumns !== "none") {
-        // Count the number of column definitions
-        cols = gridTemplateColumns.split(" ").filter(Boolean).length;
-      } else {
-        // Fallback: calculate from card positions
-        if (cards.length >= 2) {
-          const firstCard = cards[0];
-          const secondCard = cards[1];
-
-          // If second card is on same row, count cards until wrap
-          if (Math.abs(firstCard.offsetTop - secondCard.offsetTop) < 10) {
-            cols = 1;
-            for (let i = 0; i < Math.min(cards.length, 20); i++) {
-              if (Math.abs(cards[i].offsetTop - firstCard.offsetTop) < 10) {
-                cols = i + 1;
-              } else {
-                break;
-              }
-            }
-          }
-        }
-      }
-    } catch (e) {
-      // Fallback to width-based calculation
-      const gridWidth = gridWrapper.clientWidth;
-      const cardWidth = cards[0].offsetWidth;
-      const gap = 8;
-      cols = Math.max(1, Math.floor((gridWidth + gap) / (cardWidth + gap)));
-    }
-
-    cols = Math.max(1, cols);
-
-    let nextIndex = currentIndex;
-
-    switch (e.key) {
-      case "ArrowRight":
-        e.preventDefault();
-        nextIndex = Math.min(currentIndex + 1, filtered.length - 1);
-        break;
-      case "ArrowLeft":
-        e.preventDefault();
-        nextIndex = Math.max(currentIndex - 1, 0);
-        break;
-      case "ArrowDown":
-        e.preventDefault();
-        nextIndex = Math.min(currentIndex + cols, filtered.length - 1);
-        break;
-      case "ArrowUp":
-        e.preventDefault();
-        nextIndex = Math.max(currentIndex - cols, 0);
-        break;
-      case " ": // Space - toggle selection
-        e.preventDefault();
-        if (currentFile) {
-          const key = fileKey(currentFile);
-          if (state.selected.has(key)) {
-            state.selected.delete(key);
-          } else {
-            state.selected.add(key);
-          }
-          gridView.renderGrid();
-          updateStatus();
-        }
-        return;
-      case "Enter": // Enter - open viewer
-        e.preventDefault();
-        if (currentFile) {
-          const selectedFiles = state.selected.size > 0 && state.selected.has(fileKey(currentFile))
-            ? Array.from(state.selected).map(key => filtered.find(f => fileKey(f) === key)).filter(Boolean)
-            : [currentFile];
-          mjrOpenViewerForFiles(selectedFiles, currentFile);
-        }
-        return;
-      case "Escape": // Escape - clear selection
-        e.preventDefault();
-        state.selected.clear();
-        gridView.renderGrid();
-        updateStatus();
-        return;
-      default:
-        return;
-    }
-
-    // Navigate to next file
-    if (nextIndex !== currentIndex && nextIndex >= 0 && nextIndex < filtered.length) {
-      const nextFile = filtered[nextIndex];
-      state.currentFile = nextFile;
-
-      // Update selection if not in multi-select mode
-      if (!e.shiftKey) {
-        state.selected.clear();
-        state.selected.add(fileKey(nextFile));
-      }
-
-      // Scroll to card if needed
-      const key = fileKey(nextFile);
-      const card = grid.querySelector(`[data-mjr-key="${CSS.escape(key)}"]`);
-      if (card) {
-        card.scrollIntoView({ block: "nearest", behavior: "smooth" });
-        updateCardSelectionStyle(card, true);
-      }
-
-      gridView.renderGrid();
-      updateStatus();
-
-      if (typeof isMetaVisible === "function" ? isMetaVisible() : mjrMetaVisible) {
-        loadMetadataForFile(nextFile);
-      }
-    }
+    state.renderVersion = (state.renderVersion || 0) + 1;
+    gridView.renderGrid();
+    updateStatus();
   };
 
-  gridWrapper.addEventListener("keydown", handleKeyboardNavigation);
-  gridWrapper.setAttribute("tabindex", "0"); // Make grid focusable
-  cleanups.push(() => gridWrapper.removeEventListener("keydown", handleKeyboardNavigation));
+  document.addEventListener("keydown", onGridSelectAll, true);
+  cleanups.push(() => document.removeEventListener("keydown", onGridSelectAll, true));
 
   // --- EVENTS ---
   const onSearchInput = () => { state.search = search.value; applyFilterAndRender(); };
@@ -1074,7 +977,7 @@ app.registerExtension({
 
     app.ui.settings.addSetting({
       id: `${SETTINGS_PREFIX}.Hotkeys.FrameStep`,
-      name: "Majoor: Viewer Frame-Step Hotkeys (ArrowUp/Down)",
+      name: "Majoor: Viewer Frame-Step Hotkeys",
       type: "boolean",
       defaultValue: mjrSettings.hotkeys.frameStep,
       onChange: (val) => {

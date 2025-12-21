@@ -8,6 +8,8 @@ import shutil
 import platform
 import concurrent.futures
 import json
+import re
+import zipfile
 import math
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -127,6 +129,9 @@ _LAST_SCAN_TS: float = 0.0
 _LAST_FOLDER_MTIME: float = 0.0
 _LAST_FOLDER_SIGNATURE: Optional[tuple] = None
 _LAST_FOLDER_CHECK_TS: float = 0.0  # Cache folder signature checks
+_BATCH_ZIP_CACHE: Dict[str, Dict[str, Any]] = {}
+_BATCH_ZIP_LOCK = threading.Lock()
+_BATCH_ZIP_MAX_AGE_S = 3600.0
 
 try:
     _SCAN_MIN_INTERVAL = float(os.environ.get("MJR_SCAN_MIN_INTERVAL", "5.0"))
@@ -189,6 +194,33 @@ def _install_windows_asyncio_connection_reset_silencer() -> None:
 
     loop.set_exception_handler(_handler)
     _ASYNCIO_SILENCER_INSTALLED = True
+
+
+def _sanitize_batch_token(token: Optional[str]) -> Optional[str]:
+    if token is None:
+        return None
+    token = str(token).strip()
+    if not token:
+        return None
+    if not re.match(r"^[A-Za-z0-9_-]{6,80}$", token):
+        return None
+    return token
+
+
+def _cleanup_batch_zips(root: Path) -> None:
+    now = time.time()
+    with _BATCH_ZIP_LOCK:
+        for token, info in list(_BATCH_ZIP_CACHE.items()):
+            created_at = float(info.get("created_at") or 0)
+            if now - created_at <= _BATCH_ZIP_MAX_AGE_S:
+                continue
+            path = info.get("path")
+            try:
+                if isinstance(path, Path) and path.exists():
+                    path.unlink()
+            except Exception:
+                pass
+            _BATCH_ZIP_CACHE.pop(token, None)
 
 
 def _folder_changed(root_path: Path) -> bool:
@@ -1055,6 +1087,141 @@ async def stage_to_input(request: web.Request) -> web.Response:
             "collision": collision,
         }
     )
+
+
+@PromptServer.instance.routes.post("/mjr/filemanager/batch_zip")
+async def create_batch_zip(request: web.Request) -> web.Response:
+    size_error = await _validate_payload_size(request, max_size_mb=5.0)
+    if size_error:
+        return size_error
+
+    try:
+        payload = await request.json()
+    except Exception:
+        return _json_response({"ok": False, "error": "Invalid JSON body"}, status=400)
+
+    token = _sanitize_batch_token(payload.get("token"))
+    items = payload.get("items") or []
+    if not token:
+        return _json_response({"ok": False, "error": "Invalid token"}, status=400)
+    if not isinstance(items, list) or not items:
+        return _json_response({"ok": False, "error": "No items provided"}, status=400)
+
+    max_batch_size = int(os.environ.get("MJR_MAX_BATCH_SIZE", "1000"))
+    if len(items) > max_batch_size:
+        return _json_response(
+            {"ok": False, "error": f"Batch size exceeds limit ({max_batch_size})"},
+            status=400,
+        )
+
+    root = _get_output_root()
+    _cleanup_batch_zips(root)
+
+    zip_path = (root / f".mjr_batch_{token}.zip").resolve()
+    try:
+        zip_path.relative_to(root)
+    except Exception:
+        return _json_response({"ok": False, "error": "Invalid zip path"}, status=400)
+
+    event = asyncio.Event()
+    filename = f"Majoor_Batch_{len(items)}.zip"
+    with _BATCH_ZIP_LOCK:
+        _BATCH_ZIP_CACHE[token] = {
+            "path": zip_path,
+            "event": event,
+            "ready": False,
+            "created_at": time.time(),
+            "filename": filename,
+        }
+
+    def _build_zip() -> int:
+        try:
+            if zip_path.exists():
+                zip_path.unlink()
+        except Exception:
+            pass
+        count = 0
+        with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+            for item in items:
+                filename_item = (item or {}).get("filename")
+                subfolder = (item or {}).get("subfolder", "") or ""
+                if not filename_item:
+                    continue
+                try:
+                    target = _safe_target(root, str(subfolder), str(filename_item))
+                except ValueError:
+                    continue
+                if not target.exists() or not target.is_file():
+                    continue
+                arcname = f"{subfolder}/{filename_item}" if subfolder else str(filename_item)
+                arcname = arcname.replace("\\", "/")
+                try:
+                    zf.write(str(target), arcname)
+                    count += 1
+                except Exception:
+                    continue
+        return count
+
+    ok = False
+    error = None
+    count = 0
+    try:
+        count = await asyncio.to_thread(_build_zip)
+        if count > 0:
+            ok = True
+        else:
+            error = "No valid files to archive"
+    except Exception as exc:
+        error = str(exc)
+
+    with _BATCH_ZIP_LOCK:
+        entry = _BATCH_ZIP_CACHE.get(token)
+        if entry:
+            entry["ready"] = ok
+            entry["error"] = error
+            entry["count"] = count
+            entry["event"].set()
+
+    if not ok:
+        try:
+            if zip_path.exists():
+                zip_path.unlink()
+        except Exception:
+            pass
+
+    return _json_response({"ok": ok, "token": token, "count": count, "filename": filename, "error": error})
+
+
+@PromptServer.instance.routes.get("/mjr/filemanager/batch_zip/{token}")
+async def get_batch_zip(request: web.Request) -> web.Response:
+    token = _sanitize_batch_token(request.match_info.get("token"))
+    if not token:
+        return _json_response({"ok": False, "error": "Invalid token"}, status=400)
+
+    with _BATCH_ZIP_LOCK:
+        entry = _BATCH_ZIP_CACHE.get(token)
+    if not entry:
+        return _json_response({"ok": False, "error": "Not found"}, status=404)
+
+    event = entry.get("event")
+    if isinstance(event, asyncio.Event) and not entry.get("ready"):
+        try:
+            await asyncio.wait_for(event.wait(), timeout=15.0)
+        except asyncio.TimeoutError:
+            return _json_response({"ok": False, "error": "Zip not ready"}, status=404)
+
+    with _BATCH_ZIP_LOCK:
+        entry = _BATCH_ZIP_CACHE.get(token)
+    if not entry or not entry.get("ready"):
+        return _json_response({"ok": False, "error": "Not ready"}, status=404)
+
+    path = entry.get("path")
+    if not isinstance(path, Path) or not path.exists():
+        return _json_response({"ok": False, "error": "File missing"}, status=404)
+
+    name = entry.get("filename") or f"{token}.zip"
+    headers = {"Content-Disposition": f'attachment; filename="{name}"'}
+    return web.FileResponse(path, headers=headers)
 
 
 @PromptServer.instance.routes.post("/mjr/filemanager/open_explorer")

@@ -418,16 +418,16 @@ export function mjrEnsureViewerOverlay() {
       if (ev.key === "Escape" || ev.key === " " || ev.key === "Spacebar") {
         mjrCloseViewer();
         handled = true;
-      } else if (ev.key === "ArrowLeft" && navEnabled) {
+      } else if (ev.key === "ArrowUp" && navEnabled) {
         mjrViewerPrev();
         handled = true;
-      } else if (ev.key === "ArrowRight" && navEnabled) {
+      } else if (ev.key === "ArrowDown" && navEnabled) {
         mjrViewerNext();
         handled = true;
-      } else if (ev.key === "ArrowUp" && mjrSettings.hotkeys.frameStep) {
-        if (mjrStepVideos(1 / 30)) handled = true;
-      } else if (ev.key === "ArrowDown" && mjrSettings.hotkeys.frameStep) {
+      } else if (ev.key === "ArrowLeft" && mjrSettings.hotkeys.frameStep) {
         if (mjrStepVideos(-1 / 30)) handled = true;
+      } else if (ev.key === "ArrowRight" && mjrSettings.hotkeys.frameStep) {
+        if (mjrStepVideos(1 / 30)) handled = true;
       } else if (
         navEnabled &&
         mjrSettings.viewer.ratingHotkeys &&
@@ -814,20 +814,46 @@ export function mjrOpenABViewer(fileA, fileB) {
   function enableZoomPan(mediaEl, wrap, shared) {
     const state = shared || {
       scale: 1,
+      minScale: 1,
       offsetX: 0,
       offsetY: 0,
       entries: [],
     };
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+    const clampOffsets = () => {
+      let minMaxX = Infinity;
+      let minMaxY = Infinity;
+      const entries = state.entries && state.entries.length ? state.entries : [{ media: mediaEl, wrap }];
+      entries.forEach((entry) => {
+        const entryWrap = entry.wrap || wrap;
+        const rect = entryWrap.getBoundingClientRect();
+        const wrapW = rect.width || 1;
+        const wrapH = rect.height || 1;
+        const media = entry.media;
+        const w = media.videoWidth || media.naturalWidth || media.clientWidth || wrapW;
+        const h = media.videoHeight || media.naturalHeight || media.clientHeight || wrapH;
+        const maxX = Math.max(0, (w * state.scale - wrapW) / 2);
+        const maxY = Math.max(0, (h * state.scale - wrapH) / 2);
+        minMaxX = Math.min(minMaxX, maxX);
+        minMaxY = Math.min(minMaxY, maxY);
+      });
+      if (!Number.isFinite(minMaxX)) minMaxX = 0;
+      if (!Number.isFinite(minMaxY)) minMaxY = 0;
+      if (minMaxX <= 0) state.offsetX = 0;
+      else state.offsetX = clamp(state.offsetX, -minMaxX, minMaxX);
+      if (minMaxY <= 0) state.offsetY = 0;
+      else state.offsetY = clamp(state.offsetY, -minMaxY, minMaxY);
+    };
     const applyAll = () => {
-      if (state.scale <= 1) {
+      clampOffsets();
+      if (state.scale <= state.minScale) {
         state.offsetX = 0;
         state.offsetY = 0;
       }
       for (const entry of state.entries) {
         entry.media.style.transform = `translate(${state.offsetX}px, ${state.offsetY}px) scale(${state.scale})`;
         entry.media.style.transformOrigin = "50% 50%";
-        entry.media.style.cursor = state.scale > 1 ? "grab" : "default";
+        entry.media.style.cursor = state.scale > state.minScale ? "grab" : "default";
         if (entry.hud) {
           entry.hud.textContent = `${Math.round(state.scale * 100)}%`;
         }
@@ -836,7 +862,9 @@ export function mjrOpenABViewer(fileA, fileB) {
 
     if (!state.reset) {
       state.reset = () => {
-        state.scale = 1;
+        const fit = calcFitScale();
+        state.minScale = fit;
+        state.scale = fit;
         state.offsetX = 0;
         state.offsetY = 0;
         applyAll();
@@ -864,7 +892,7 @@ export function mjrOpenABViewer(fileA, fileB) {
     zoomHud.textContent = "100%";
     wrap.appendChild(zoomHud);
 
-    state.entries.push({ media: mediaEl, hud: zoomHud });
+    state.entries.push({ media: mediaEl, hud: zoomHud, wrap });
 
     wrap.addEventListener(
       "wheel",
@@ -876,12 +904,13 @@ export function mjrOpenABViewer(fileA, fileB) {
         const px = ev.clientX - rect.left;
         const py = ev.clientY - rect.top;
         const prevScale = state.scale;
-        const newScale = clamp(state.scale * factor, 0.25, 10);
+        const newScale = clamp(state.scale * factor, state.minScale, 10);
         const dx = (px - rect.width / 2 - state.offsetX) / prevScale;
         const dy = (py - rect.height / 2 - state.offsetY) / prevScale;
         state.offsetX = px - rect.width / 2 - newScale * dx;
         state.offsetY = py - rect.height / 2 - newScale * dy;
         state.scale = newScale;
+        clampOffsets();
         applyAll();
       },
       { passive: false }
@@ -896,12 +925,13 @@ export function mjrOpenABViewer(fileA, fileB) {
       if (!dragging) return;
       state.offsetX = dragOrigX + (ev.clientX - dragStartX);
       state.offsetY = dragOrigY + (ev.clientY - dragStartY);
+      clampOffsets();
       applyAll();
     };
     const stopDrag = () => {
       if (!dragging) return;
       dragging = false;
-      mediaEl.style.cursor = state.scale > 1 ? "grab" : "default";
+      mediaEl.style.cursor = state.scale > state.minScale ? "grab" : "default";
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", stopDrag);
       window.removeEventListener("pointercancel", stopDrag);
@@ -909,7 +939,7 @@ export function mjrOpenABViewer(fileA, fileB) {
 
     wrap.addEventListener("pointerdown", (ev) => {
       if (ev.button !== 0) return;
-      if (state.scale <= 1) return;
+      if (state.scale <= state.minScale) return;
       ev.preventDefault();
       try {
         wrap.setPointerCapture(ev.pointerId);
@@ -927,6 +957,7 @@ export function mjrOpenABViewer(fileA, fileB) {
 
     const fitOnReady = () => {
       sharedZoom.scale = calcFitScale();
+      sharedZoom.minScale = sharedZoom.scale;
       sharedZoom.offsetX = 0;
       sharedZoom.offsetY = 0;
       applySharedZoom();
@@ -936,6 +967,7 @@ export function mjrOpenABViewer(fileA, fileB) {
 
     wrap.addEventListener("dblclick", () => {
       sharedZoom.scale = calcFitScale();
+      sharedZoom.minScale = sharedZoom.scale;
       sharedZoom.offsetX = 0;
       sharedZoom.offsetY = 0;
       applySharedZoom();
@@ -949,7 +981,7 @@ export function mjrOpenABViewer(fileA, fileB) {
   topWrap.appendChild(topMedia);
 
   // Enable zoom/pan on both - Define shared state and helper functions first
-  const sharedZoom = { scale: 1, offsetX: 0, offsetY: 0, entries: [] };
+  const sharedZoom = { scale: 1, minScale: 1, offsetX: 0, offsetY: 0, entries: [] };
 
   // Define calcFitScale before enableZoomPan so it's available in closures
   const calcFitScale = () => {
@@ -968,14 +1000,14 @@ export function mjrOpenABViewer(fileA, fileB) {
 
   // Define applySharedZoom before enableZoomPan so it's available in closures
   const applySharedZoom = () => {
-    if (sharedZoom.scale <= 1) {
+    if (sharedZoom.scale <= sharedZoom.minScale) {
       sharedZoom.offsetX = 0;
       sharedZoom.offsetY = 0;
     }
     for (const entry of sharedZoom.entries) {
       entry.media.style.transform = `translate(${sharedZoom.offsetX}px, ${sharedZoom.offsetY}px) scale(${sharedZoom.scale})`;
       entry.media.style.transformOrigin = "50% 50%";
-      entry.media.style.cursor = sharedZoom.scale > 1 ? "grab" : "default";
+      entry.media.style.cursor = sharedZoom.scale > sharedZoom.minScale ? "grab" : "default";
       if (entry.hud) {
         entry.hud.textContent = `${Math.round(sharedZoom.scale * 100)}%`;
       }
@@ -1206,6 +1238,7 @@ export function mjrOpenABViewer(fileA, fileB) {
 
   const resetView = () => {
     sharedZoom.scale = calcFitScale();
+    sharedZoom.minScale = sharedZoom.scale;
     sharedZoom.offsetX = 0;
     sharedZoom.offsetY = 0;
     applySharedZoom();
@@ -1220,7 +1253,7 @@ export function mjrOpenABViewer(fileA, fileB) {
     if (!isPrimary) return;
     const targetIsHandle =
       ev.target === handle || (ev.target && ev.target.closest?.("[data-mjr-split-handle]"));
-    if (sharedZoom.scale > 1 && !targetIsHandle) return;
+    if (sharedZoom.scale > sharedZoom.minScale && !targetIsHandle) return;
     ev.preventDefault();
     const rect = container.getBoundingClientRect();
     const apply = (clientX) => {
