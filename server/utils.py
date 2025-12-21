@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import time
 import unicodedata
+from collections import OrderedDict
 from typing import Dict, List, Optional
 from .config import ENABLE_JSON_SIDECAR, METADATA_EXT
 from .logger import get_logger
@@ -49,10 +50,35 @@ _CACHED_RATING_INDEX: Optional[int] = None
 _CACHED_TAGS_INDEX: Optional[int] = None
 _EXIFTOOL_PATH: Optional[str] = None
 _EXIFTOOL_CHECKED = False
-_META_CACHE: Dict[str, tuple[Optional[float], int, dict]] = {}
+
+# LRU cache for metadata (prevents unbounded memory growth)
+# Max size configurable via MJR_META_CACHE_SIZE env var (default: 1000 entries)
+try:
+    _META_CACHE_MAX_SIZE = int(os.environ.get("MJR_META_CACHE_SIZE", "1000"))
+    if _META_CACHE_MAX_SIZE <= 0:
+        _META_CACHE_MAX_SIZE = 1000
+except Exception:
+    _META_CACHE_MAX_SIZE = 1000
+
+_META_CACHE: OrderedDict[str, tuple[Optional[float], int, dict]] = OrderedDict()
 _CACHE_EPOCH = 0
 
 log = get_logger(__name__)
+
+
+def _cache_set(file_path: str, mtime: Optional[float], epoch: int, meta: dict) -> None:
+    """
+    Add or update an entry in the LRU metadata cache with automatic eviction.
+    """
+    # Move to end if already exists (LRU update)
+    if file_path in _META_CACHE:
+        _META_CACHE.move_to_end(file_path)
+
+    _META_CACHE[file_path] = (mtime, epoch, meta)
+
+    # Evict oldest entries if cache exceeds max size
+    while len(_META_CACHE) > _META_CACHE_MAX_SIZE:
+        _META_CACHE.popitem(last=False)  # Remove oldest (FIFO when not accessed)
 
 
 def _env_timeout(name: str, default: float, min_s: float = 0.5, max_s: float = 60.0) -> float:
@@ -608,7 +634,8 @@ def set_exif_metadata(file_path: str, rating: int, tags: list) -> bool:
                 except Exception:
                     pass
 
-            _META_CACHE[file_path] = (
+            _cache_set(
+                file_path,
                 original_mtime if original_mtime is not None else _get_mtime_safe(file_path),
                 epoch,
                 {"rating": rating, "tags": tags},
@@ -682,7 +709,8 @@ def set_exif_metadata(file_path: str, rating: int, tags: list) -> bool:
                 pass
 
         # Update cache with current epoch
-        _META_CACHE[file_path] = (
+        _cache_set(
+            file_path,
             original_mtime if original_mtime is not None else _get_mtime_safe(file_path),
             epoch,
             {"rating": rating, "tags": tags},
@@ -716,7 +744,8 @@ def set_windows_metadata(file_path: str, rating: int, tags: list) -> bool:
 
             _CACHE_EPOCH += 1
             epoch = _CACHE_EPOCH
-            _META_CACHE[file_path] = (
+            _cache_set(
+                file_path,
                 original_mtime if original_mtime is not None else _get_mtime_safe(file_path),
                 epoch,
                 {"rating": _coerce_rating_to_stars(rating), "tags": tags_list},
@@ -752,7 +781,8 @@ def set_windows_metadata(file_path: str, rating: int, tags: list) -> bool:
 
         _CACHE_EPOCH += 1
         epoch = _CACHE_EPOCH
-        _META_CACHE[file_path] = (
+        _cache_set(
+            file_path,
             original_mtime if original_mtime is not None else _get_mtime_safe(file_path),
             epoch,
             {"rating": _coerce_rating_to_stars(rating), "tags": tags_list},
@@ -887,7 +917,8 @@ def update_metadata_with_windows(file_path: str, updates: dict) -> dict:
     # Ensure cache invalidates even when mtime is preserved (Windows/ExifTool writes).
     if (ok_win or ok_exif or sidecar_saved) and _CACHE_EPOCH == start_epoch:
         _CACHE_EPOCH += 1
-    _META_CACHE[file_path] = (
+    _cache_set(
+        file_path,
         _get_mtime_safe(file_path),
         _CACHE_EPOCH,
         {"rating": _coerce_rating_to_stars(effective_rating), "tags": _normalize_tags(effective_tags)},
@@ -912,7 +943,7 @@ def apply_system_metadata(file_path: str, rating, tags: list) -> dict:
     meta = apply_windows_metadata(file_path, rating_int, tags_list)
     if _CACHE_EPOCH == start_epoch:
         _CACHE_EPOCH += 1
-        _META_CACHE[file_path] = (_get_mtime_safe(file_path), _CACHE_EPOCH, meta)
+        _cache_set(file_path, _get_mtime_safe(file_path), _CACHE_EPOCH, meta)
     return meta
 
 
@@ -928,16 +959,16 @@ def get_system_metadata(file_path: str) -> dict:
     meta = get_exif_metadata(file_path)
     # For videos, ExifTool is the source of truth (Explorer can be inconsistent across handlers).
     if file_path.lower().endswith(VIDEO_EXTS) and meta:
-        _META_CACHE[file_path] = (mtime, _CACHE_EPOCH, meta)
+        _cache_set(file_path, mtime, _CACHE_EPOCH, meta)
         return meta
 
     if meta.get("rating") or meta.get("tags"):
-        _META_CACHE[file_path] = (mtime, _CACHE_EPOCH, meta)
+        _cache_set(file_path, mtime, _CACHE_EPOCH, meta)
         return meta
 
     meta = get_windows_metadata(file_path)
     if (meta.get("rating") or meta.get("tags")) and not (meta.get("rating") == 0 and not meta.get("tags")):
-        _META_CACHE[file_path] = (mtime, _CACHE_EPOCH, meta)
+        _cache_set(file_path, mtime, _CACHE_EPOCH, meta)
         return meta
 
     # Sidecar fallback only when enabled/forced
@@ -947,10 +978,10 @@ def get_system_metadata(file_path: str) -> dict:
             r = sidecar.get("rating", 0)
             t = sidecar.get("tags", [])
             meta = {"rating": r if isinstance(r, int) else 0, "tags": t if isinstance(t, list) else []}
-            _META_CACHE[file_path] = (mtime, _CACHE_EPOCH, meta)
+            _cache_set(file_path, mtime, _CACHE_EPOCH, meta)
             return meta
 
-    _META_CACHE[file_path] = (mtime, _CACHE_EPOCH, meta)
+    _cache_set(file_path, mtime, _CACHE_EPOCH, meta)
     return meta
 
 

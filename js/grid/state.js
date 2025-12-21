@@ -1,6 +1,6 @@
 import { api } from "../../../../scripts/api.js";
-import { SMART_FILTERS } from "../am_filters.js";
-import { createInitialState } from "../am_state.js";
+import { SMART_FILTERS } from "../assets_filters.js";
+import { createInitialState } from "../assets_state.js";
 
 export function initManagerState() {
   const state = createInitialState();

@@ -14,10 +14,10 @@ import {
   setMjrSettings,
   detectKindFromExt,
 } from "./ui_settings.js";
-import { mjrGlobalState } from "./mjr_global.js";
-import { fileKey } from "./am_state.js";
-import { SMART_FILTERS } from "./am_filters.js";
-import { mjrCreateContextMenu } from "./am_context_menu.js";
+import { mjrGlobalState } from "./global_state.js";
+import { fileKey } from "./assets_state.js";
+import { SMART_FILTERS } from "./assets_filters.js";
+import { mjrCreateContextMenu } from "./ui_context_menu.js";
 import {
   mjrOpenABViewer,
   mjrOpenViewerForFiles,
@@ -26,7 +26,7 @@ import {
   mjrUpdateNavVisibility,
 } from "./ui_viewer.js";
 import { createMetadataSidebar } from "./ui_sidebar.js";
-import { createGridView } from "./am_gridview.js";
+import { createGridView } from "./ui_gridview.js";
 import {
   ensureGlobalAutoRefresh,
   ensureVideoNodeDropBridge,
@@ -110,7 +110,16 @@ function renderAssetsManager(root) {
   const refreshIcon = createEl("i", "pi pi-refresh", null, { fontSize: "0.9rem" });
   refreshBtn.appendChild(refreshIcon);
 
-  searchRow.append(search, refreshBtn);
+  const bulkBtn = createEl("button", "comfy-btn mjr-fm-bulk");
+  bulkBtn.textContent = "Bulk";
+  Object.assign(bulkBtn.style, { padding: "4px 10px", borderRadius: "6px", fontSize: "0.8rem", display: "none" });
+
+  // Show/hide bulk button based on selection
+  const updateBulkButtonVisibility = () => {
+    bulkBtn.style.display = state.selected.size > 0 ? "inline-block" : "none";
+  };
+
+  searchRow.append(search, bulkBtn, refreshBtn);
   mjrAttachHoverFeedback(search, "Type to filter files by name or text.", 3000);
   mjrAttachHoverFeedback(refreshBtn, "Force an immediate refresh of outputs.", 3000);
 
@@ -227,6 +236,7 @@ function renderAssetsManager(root) {
 
   const updateStatus = () => {
     if (gridView) gridView.updateStatus();
+    updateBulkButtonVisibility();
   };
 
   const removeFileFromState = (file) => {
@@ -285,6 +295,200 @@ function renderAssetsManager(root) {
 
   const { loadMetadataForFile, setMetadataPanelVisibility, updateFileMetadata, setRating } = sidebar;
 
+  // --- BULK OPERATIONS ---
+
+  const openBulkOperationsModal = () => {
+    const selectedFiles = Array.from(state.selected).map(key => {
+      const parts = key.split(":::");
+      return state.files.find(f => fileKey(f) === key);
+    }).filter(Boolean);
+
+    if (selectedFiles.length === 0) {
+      mjrShowToast("info", "No files selected", "Bulk Operations");
+      return;
+    }
+
+    const overlay = createEl("div", "mjr-bulk-overlay");
+    Object.assign(overlay.style, {
+      position: "fixed",
+      top: "0",
+      left: "0",
+      right: "0",
+      bottom: "0",
+      background: "rgba(0, 0, 0, 0.7)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: "10000"
+    });
+
+    const modal = createEl("div", "mjr-bulk-modal");
+    Object.assign(modal.style, {
+      background: "var(--comfy-menu-bg, #1e1e1e)",
+      border: "1px solid var(--border-color, #333)",
+      borderRadius: "8px",
+      padding: "20px",
+      minWidth: "400px",
+      maxWidth: "500px",
+      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.5)"
+    });
+
+    const title = createEl("h3", "", `Bulk Operations (${selectedFiles.length} files)`);
+    Object.assign(title.style, { marginTop: "0", marginBottom: "16px", fontSize: "1rem" });
+
+    const ratingRow = createEl("div", "");
+    Object.assign(ratingRow.style, { marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" });
+    const ratingLabel = createEl("label", "", "Set Rating:");
+    Object.assign(ratingLabel.style, { flex: "0 0 100px", fontSize: "0.85rem" });
+    const ratingSelect = createEl("select", "");
+    Object.assign(ratingSelect.style, {
+      flex: "1",
+      padding: "6px",
+      borderRadius: "4px",
+      background: "var(--comfy-input-bg, #2a2a2a)",
+      color: "var(--input-fg, #eee)",
+      border: "1px solid var(--border-color, #444)"
+    });
+    [["", "(no change)"], ["0", "0 - Clear"], ["1", "1 ★"], ["2", "2 ★★"], ["3", "3 ★★★"], ["4", "4 ★★★★"], ["5", "5 ★★★★★"]].forEach(([value, label]) => {
+      ratingSelect.add(new Option(label, value));
+    });
+    ratingRow.append(ratingLabel, ratingSelect);
+
+    const tagsRow = createEl("div", "");
+    Object.assign(tagsRow.style, { marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" });
+    const tagsLabel = createEl("label", "", "Add Tags:");
+    Object.assign(tagsLabel.style, { flex: "0 0 100px", fontSize: "0.85rem" });
+    const tagsInput = createEl("input", "");
+    tagsInput.type = "text";
+    tagsInput.placeholder = "tag1, tag2, tag3";
+    Object.assign(tagsInput.style, {
+      flex: "1",
+      padding: "6px",
+      borderRadius: "4px",
+      background: "var(--comfy-input-bg, #2a2a2a)",
+      color: "var(--input-fg, #eee)",
+      border: "1px solid var(--border-color, #444)"
+    });
+    tagsRow.append(tagsLabel, tagsInput);
+
+    const removeTagsRow = createEl("div", "");
+    Object.assign(removeTagsRow.style, { marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" });
+    const removeTagsLabel = createEl("label", "", "Remove Tags:");
+    Object.assign(removeTagsLabel.style, { flex: "0 0 100px", fontSize: "0.85rem" });
+    const removeTagsInput = createEl("input", "");
+    removeTagsInput.type = "text";
+    removeTagsInput.placeholder = "tag1, tag2";
+    Object.assign(removeTagsInput.style, {
+      flex: "1",
+      padding: "6px",
+      borderRadius: "4px",
+      background: "var(--comfy-input-bg, #2a2a2a)",
+      color: "var(--input-fg, #eee)",
+      border: "1px solid var(--border-color, #444)"
+    });
+    removeTagsRow.append(removeTagsLabel, removeTagsInput);
+
+    const buttonRow = createEl("div", "");
+    Object.assign(buttonRow.style, { display: "flex", justifyContent: "flex-end", gap: "8px" });
+
+    const cancelBtn = createEl("button", "comfy-btn", "Cancel");
+    Object.assign(cancelBtn.style, {
+      padding: "6px 16px",
+      borderRadius: "4px",
+      fontSize: "0.85rem"
+    });
+
+    const applyBtn = createEl("button", "comfy-btn", "Apply");
+    Object.assign(applyBtn.style, {
+      padding: "6px 16px",
+      borderRadius: "4px",
+      fontSize: "0.85rem",
+      background: "var(--primary-color, #007bff)",
+      color: "#fff"
+    });
+
+    buttonRow.append(cancelBtn, applyBtn);
+    modal.append(title, ratingRow, tagsRow, removeTagsRow, buttonRow);
+    overlay.appendChild(modal);
+
+    const closeModal = () => {
+      document.body.removeChild(overlay);
+    };
+
+    cancelBtn.addEventListener("click", closeModal);
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) closeModal();
+    });
+
+    applyBtn.addEventListener("click", async () => {
+      const newRating = ratingSelect.value;
+      const addTagsStr = tagsInput.value.trim();
+      const removeTagsStr = removeTagsInput.value.trim();
+
+      if (!newRating && !addTagsStr && !removeTagsStr) {
+        mjrShowToast("info", "No changes specified", "Bulk Operations");
+        closeModal();
+        return;
+      }
+
+      const addTags = addTagsStr ? addTagsStr.split(",").map(t => t.trim()).filter(Boolean) : [];
+      const removeTags = removeTagsStr ? removeTagsStr.split(",").map(t => t.trim()).filter(Boolean) : [];
+
+      let processed = 0;
+      let errors = 0;
+
+      for (const file of selectedFiles) {
+        try {
+          const updates = {};
+
+          if (newRating !== "") {
+            file.rating = parseInt(newRating);
+            updates.rating = parseInt(newRating);
+          }
+
+          if (addTags.length > 0 || removeTags.length > 0) {
+            const currentTags = Array.isArray(file.tags) ? [...file.tags] : [];
+            let newTags = [...currentTags];
+
+            for (const tag of addTags) {
+              if (!newTags.includes(tag)) {
+                newTags.push(tag);
+              }
+            }
+
+            newTags = newTags.filter(tag => !removeTags.includes(tag));
+
+            file.tags = newTags;
+            updates.tags = newTags;
+          }
+
+          if (Object.keys(updates).length > 0) {
+            await updateFileMetadata(file, updates, null);
+            processed++;
+          }
+        } catch (err) {
+          console.error(`Failed to update ${file.filename || file.name}:`, err);
+          errors++;
+        }
+      }
+
+      closeModal();
+
+      if (errors > 0) {
+        mjrShowToast("warning", `Updated ${processed} files, ${errors} failed`, "Bulk Operations");
+      } else {
+        mjrShowToast("success", `Updated ${processed} files`, "Bulk Operations");
+      }
+
+      applyFilterAndRender();
+    });
+
+    document.body.appendChild(overlay);
+  };
+
+  bulkBtn.addEventListener("click", openBulkOperationsModal);
+  mjrAttachHoverFeedback(bulkBtn, "Perform bulk operations on selected files.", 3000);
+
   // --- GRID VIEW INTEGRATION ---
   
   const gridDeps = {
@@ -301,13 +505,172 @@ function renderAssetsManager(root) {
   const gridView = createGridView(gridDeps);
   setGridViewForMetadata(gridView);
   setGridViewForRender(gridView);
-  const handleScroll = () => gridView.renderGrid();
-  const handleResize = () => gridView.renderGrid();
-  gridWrapper.addEventListener("scroll", handleScroll);
+
+  // Throttle scroll/resize handlers for better performance
+  let scrollRaf = null;
+  const handleScroll = () => {
+    if (scrollRaf) return;
+    scrollRaf = requestAnimationFrame(() => {
+      gridView.renderGrid();
+      scrollRaf = null;
+    });
+  };
+
+  let resizeTimeout = null;
+  const handleResize = () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => gridView.renderGrid(), 150);
+  };
+
+  gridWrapper.addEventListener("scroll", handleScroll, { passive: true });
   window.addEventListener("resize", handleResize);
-  cleanups.push(() => gridWrapper.removeEventListener("scroll", handleScroll));
-  cleanups.push(() => window.removeEventListener("resize", handleResize));
+  cleanups.push(() => {
+    gridWrapper.removeEventListener("scroll", handleScroll);
+    if (scrollRaf) cancelAnimationFrame(scrollRaf);
+  });
+  cleanups.push(() => {
+    window.removeEventListener("resize", handleResize);
+    if (resizeTimeout) clearTimeout(resizeTimeout);
+  });
   cleanups.push(() => cleanupMetadataFetcher());
+
+  // --- KEYBOARD NAVIGATION ---
+
+  const handleKeyboardNavigation = (e) => {
+    // Only handle navigation when grid area has focus and not typing in input fields
+    if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
+      return;
+    }
+
+    const filtered = state.filtered || [];
+    if (filtered.length === 0) return;
+
+    const currentFile = state.currentFile;
+    let currentIndex = currentFile ? filtered.findIndex(f => fileKey(f) === fileKey(currentFile)) : -1;
+
+    // Calculate grid columns from CSS Grid computed style
+    const cards = grid.querySelectorAll(".mjr-fm-card");
+    if (cards.length === 0) return;
+
+    let cols = 1;
+    try {
+      const gridComputedStyle = window.getComputedStyle(grid);
+      const gridTemplateColumns = gridComputedStyle.getPropertyValue("grid-template-columns");
+
+      if (gridTemplateColumns && gridTemplateColumns !== "none") {
+        // Count the number of column definitions
+        cols = gridTemplateColumns.split(" ").filter(Boolean).length;
+      } else {
+        // Fallback: calculate from card positions
+        if (cards.length >= 2) {
+          const firstCard = cards[0];
+          const secondCard = cards[1];
+
+          // If second card is on same row, count cards until wrap
+          if (Math.abs(firstCard.offsetTop - secondCard.offsetTop) < 10) {
+            cols = 1;
+            for (let i = 0; i < Math.min(cards.length, 20); i++) {
+              if (Math.abs(cards[i].offsetTop - firstCard.offsetTop) < 10) {
+                cols = i + 1;
+              } else {
+                break;
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // Fallback to width-based calculation
+      const gridWidth = gridWrapper.clientWidth;
+      const cardWidth = cards[0].offsetWidth;
+      const gap = 8;
+      cols = Math.max(1, Math.floor((gridWidth + gap) / (cardWidth + gap)));
+    }
+
+    cols = Math.max(1, cols);
+
+    let nextIndex = currentIndex;
+
+    switch (e.key) {
+      case "ArrowRight":
+        e.preventDefault();
+        nextIndex = Math.min(currentIndex + 1, filtered.length - 1);
+        break;
+      case "ArrowLeft":
+        e.preventDefault();
+        nextIndex = Math.max(currentIndex - 1, 0);
+        break;
+      case "ArrowDown":
+        e.preventDefault();
+        nextIndex = Math.min(currentIndex + cols, filtered.length - 1);
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        nextIndex = Math.max(currentIndex - cols, 0);
+        break;
+      case " ": // Space - toggle selection
+        e.preventDefault();
+        if (currentFile) {
+          const key = fileKey(currentFile);
+          if (state.selected.has(key)) {
+            state.selected.delete(key);
+          } else {
+            state.selected.add(key);
+          }
+          gridView.renderGrid();
+          updateStatus();
+        }
+        return;
+      case "Enter": // Enter - open viewer
+        e.preventDefault();
+        if (currentFile) {
+          const selectedFiles = state.selected.size > 0 && state.selected.has(fileKey(currentFile))
+            ? Array.from(state.selected).map(key => filtered.find(f => fileKey(f) === key)).filter(Boolean)
+            : [currentFile];
+          mjrOpenViewerForFiles(selectedFiles, currentFile);
+        }
+        return;
+      case "Escape": // Escape - clear selection
+        e.preventDefault();
+        state.selected.clear();
+        gridView.renderGrid();
+        updateStatus();
+        return;
+      default:
+        return;
+    }
+
+    // Navigate to next file
+    if (nextIndex !== currentIndex && nextIndex >= 0 && nextIndex < filtered.length) {
+      const nextFile = filtered[nextIndex];
+      state.currentFile = nextFile;
+
+      // Update selection if not in multi-select mode
+      if (!e.shiftKey) {
+        state.selected.clear();
+        state.selected.add(fileKey(nextFile));
+      }
+
+      // Scroll to card if needed
+      const key = fileKey(nextFile);
+      const card = grid.querySelector(`[data-mjr-key="${CSS.escape(key)}"]`);
+      if (card) {
+        card.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        updateCardSelectionStyle(card, true);
+      }
+
+      gridView.renderGrid();
+      updateStatus();
+
+      if (typeof isMetaVisible === "function" ? isMetaVisible() : mjrMetaVisible) {
+        loadMetadataForFile(nextFile);
+      }
+    }
+  };
+
+  gridWrapper.addEventListener("keydown", handleKeyboardNavigation);
+  gridWrapper.setAttribute("tabindex", "0"); // Make grid focusable
+  cleanups.push(() => gridWrapper.removeEventListener("keydown", handleKeyboardNavigation));
 
   // --- EVENTS ---
   const onSearchInput = () => { state.search = search.value; applyFilterAndRender(); };

@@ -53,6 +53,9 @@ export function resolveWorkflowState(file) {
     return null;
   };
 
+  // Check if metadata has been loaded
+  const metadataLoaded = file?.__metaLoaded === true;
+
   const candidates = [
     file?.hasWorkflow,
     file?.has_workflow,
@@ -65,6 +68,13 @@ export function resolveWorkflowState(file) {
     const s = toState(c);
     if (s) return s;
   }
+
+  // Distinguish between "not loaded yet" and "definitely no workflow"
+  // If metadata was loaded but no workflow field was found, it means "no workflow"
+  if (metadataLoaded) {
+    return "no";
+  }
+
   return "unknown";
 }
 

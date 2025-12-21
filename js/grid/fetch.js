@@ -7,6 +7,12 @@ export function createMetadataFetcher(state, gridView, opts = {}) {
   let currentGridView = gridView || null;
   let onMetadataUpdated = typeof opts.onMetadataUpdated === "function" ? opts.onMetadataUpdated : null;
 
+  // Retry limit tracking to prevent infinite loops
+  const MAX_RETRY_ATTEMPTS = 3;
+  const RETRY_BACKOFF_MS = 1000; // Start with 1 second
+  let retryCount = 0;
+  let lastRetryTime = 0;
+
   const setOnMetadataUpdated = (fn) => {
     onMetadataUpdated = typeof fn === "function" ? fn : null;
   };
@@ -72,7 +78,15 @@ export function createMetadataFetcher(state, gridView, opts = {}) {
       const res = await metadataFetchInFlight;
       if (thisCtrl.signal.aborted || reqVersion !== state.renderVersion) return;
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+
+      let data;
+      try {
+        data = await res.json();
+      } catch (parseErr) {
+        console.error("[Majoor.AssetsManager] Failed to parse metadata JSON response", parseErr);
+        throw new Error(`JSON parse error: ${parseErr.message}`);
+      }
+
       if (thisCtrl.signal.aborted || reqVersion !== state.renderVersion) return;
       updatedAny = applyBatchResults(data) > 0;
 
@@ -93,8 +107,30 @@ export function createMetadataFetcher(state, gridView, opts = {}) {
           } catch (_) {}
         }, 0);
       }
+
+      // Retry with exponential backoff and max attempts
       if (reqVersion === state.renderVersion && fullList.slice(effectiveStart, effectiveEnd).some((f) => !f.__metaLoaded)) {
-        fetchMetadataForVisible();
+        const now = Date.now();
+
+        // Reset retry count if enough time has passed
+        if (now - lastRetryTime > 30000) {
+          retryCount = 0;
+        }
+
+        if (retryCount < MAX_RETRY_ATTEMPTS) {
+          const backoffDelay = updatedAny ? 0 : RETRY_BACKOFF_MS * Math.pow(2, retryCount);
+          retryCount++;
+          lastRetryTime = now;
+
+          setTimeout(() => {
+            fetchMetadataForVisible();
+          }, backoffDelay);
+        } else {
+          console.warn("[Majoor.AssetsManager] Max metadata fetch retries reached, stopping to prevent infinite loop");
+        }
+      } else {
+        // Reset retry count on successful completion
+        retryCount = 0;
       }
     }
   }

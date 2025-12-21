@@ -8,7 +8,7 @@ import {
   CARD_STYLES,
   mjrSettings,
 } from "./ui_settings.js";
-import { createFileThumb, updateCardSelectionStyle, updateCardVisuals, resolveWorkflowState, handleDragStart } from "./am_cards.js";
+import { createFileThumb, updateCardSelectionStyle, updateCardVisuals, resolveWorkflowState, handleDragStart } from "./ui_cards.js";
 import { mjrOpenABViewer, mjrOpenViewerForFiles } from "./ui_viewer.js";
 
 /**
@@ -265,6 +265,16 @@ export function createGridView(deps) {
     };
 
     if (!state.filtered.length) {
+      // Cleanup all video listeners before clearing grid
+      const allCards = grid.querySelectorAll(".mjr-fm-card");
+      allCards.forEach((card) => {
+        if (typeof card.__cleanupVideoListeners === "function") {
+          try {
+            card.__cleanupVideoListeners();
+          } catch (e) {}
+        }
+      });
+
       grid.innerHTML = "";
       const empty = createEl("div", "", "No outputs found.");
       empty.style.opacity = "0.7";
@@ -315,7 +325,7 @@ export function createGridView(deps) {
         const nextVersion = cardVersion(file);
         if (card.__mjrVersion !== nextVersion) {
           // This will now trigger if mjrSettings.grid.* changed!
-          updateCardVisuals(card, file); // from am_cards.js, which reads mjrSettings
+          updateCardVisuals(card, file); // from ui_cards.js, which reads mjrSettings
           card.__mjrVersion = nextVersion;
         }
       } else {
@@ -327,7 +337,17 @@ export function createGridView(deps) {
     });
 
     existingCards.forEach((el, key) => {
-      if (!keptKeys.has(key)) el.remove();
+      if (!keptKeys.has(key)) {
+        // Cleanup video event listeners before removing card
+        if (typeof el.__cleanupVideoListeners === "function") {
+          try {
+            el.__cleanupVideoListeners();
+          } catch (e) {
+            console.warn("[Majoor.AssetsManager] Error cleaning up video listeners", e);
+          }
+        }
+        el.remove();
+      }
     });
 
     const baseIndex = topSpacer ? 1 : 0;

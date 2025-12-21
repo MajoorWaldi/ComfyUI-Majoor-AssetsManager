@@ -11,6 +11,7 @@ import json
 import math
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from functools import wraps
 
 try:
     from send2trash import send2trash  # type: ignore
@@ -35,9 +36,9 @@ from .utils import (
     _get_exiftool_path,
 )
 from .metadata import update_metadata_with_windows, deep_merge_metadata
-from .generation_metadata import extract_generation_params_from_png, has_generation_workflow
+from .metadata_generation import extract_generation_params_from_png, has_generation_workflow
 from .config import OUTPUT_ROOT, ENABLE_JSON_SIDECAR, METADATA_EXT
-from .mjr_collections import (
+from .collections_store import (
     get_collections,
     load_collection,
     add_to_collection,
@@ -45,6 +46,20 @@ from .mjr_collections import (
 )
 
 log = get_logger(__name__)
+
+
+def handle_connection_reset(func):
+    """
+    Decorator to handle ConnectionResetError consistently across endpoints.
+    Returns HTTP 499 (Client Closed Request) when connection is reset.
+    """
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except ConnectionResetError:
+            return web.Response(status=499)
+    return wrapper
 
 
 def _json_sanitize(obj: Any) -> Any:
@@ -85,6 +100,23 @@ def _json_response(data: Any, status: int = 200) -> web.Response:
         dumps=lambda x: json.dumps(x, ensure_ascii=False, allow_nan=False),
     )
 
+
+async def _validate_payload_size(request: web.Request, max_size_mb: float = 10.0) -> Optional[web.Response]:
+    """
+    Validate request payload size to prevent DoS attacks.
+    Returns error response if payload exceeds limit, None otherwise.
+    """
+    content_length = request.content_length
+    if content_length is not None:
+        max_bytes = int(max_size_mb * 1024 * 1024)
+        if content_length > max_bytes:
+            return _json_response(
+                {"ok": False, "error": f"Payload too large (max {max_size_mb}MB)"},
+                status=413
+            )
+    return None
+
+
 # ---------------------------------------------------------------------------
 # In-memory cache for output listing
 # Avoids redoing a full os.scandir on every auto-refresh.
@@ -94,11 +126,17 @@ _FILE_CACHE: List[Dict[str, Any]] = []
 _LAST_SCAN_TS: float = 0.0
 _LAST_FOLDER_MTIME: float = 0.0
 _LAST_FOLDER_SIGNATURE: Optional[tuple] = None
+_LAST_FOLDER_CHECK_TS: float = 0.0  # Cache folder signature checks
 
 try:
     _SCAN_MIN_INTERVAL = float(os.environ.get("MJR_SCAN_MIN_INTERVAL", "5.0"))
 except Exception:
     _SCAN_MIN_INTERVAL = 5.0
+
+try:
+    _FOLDER_CHECK_INTERVAL = float(os.environ.get("MJR_FOLDER_CHECK_INTERVAL", "2.0"))
+except Exception:
+    _FOLDER_CHECK_INTERVAL = 2.0
 
 try:
     _META_PREFETCH_COUNT = int(os.environ.get("MJR_META_PREFETCH_COUNT", "80"))
@@ -154,14 +192,25 @@ def _install_windows_asyncio_connection_reset_silencer() -> None:
 
 
 def _folder_changed(root_path: Path) -> bool:
-    """Quick check if folder changed (file added/modified)."""
-    global _LAST_FOLDER_MTIME, _LAST_FOLDER_SIGNATURE
+    """
+    Quick check if folder changed (file added/modified).
+    Uses a two-tier caching strategy:
+    1. Check root mtime (fast)
+    2. If unchanged, cache signature check for _FOLDER_CHECK_INTERVAL seconds
+    """
+    global _LAST_FOLDER_MTIME, _LAST_FOLDER_SIGNATURE, _LAST_FOLDER_CHECK_TS
     try:
         current_mtime = root_path.stat().st_mtime
         if current_mtime != _LAST_FOLDER_MTIME:
             _LAST_FOLDER_MTIME = current_mtime
             _LAST_FOLDER_SIGNATURE = None  # force recompute
+            _LAST_FOLDER_CHECK_TS = 0.0
             return True
+
+        # If we recently checked the signature and it was unchanged, skip rechecking
+        now = time.time()
+        if _LAST_FOLDER_SIGNATURE is not None and (now - _LAST_FOLDER_CHECK_TS) < _FOLDER_CHECK_INTERVAL:
+            return False
 
         # Fallback signature (top-level dirs/files count + max mtime)
         def _signature():
@@ -192,6 +241,7 @@ def _folder_changed(root_path: Path) -> bool:
             return (total, max_m, tuple(sub_sig))
 
         sig = _signature()
+        _LAST_FOLDER_CHECK_TS = now
         if sig is None:
             return True
         if sig != _LAST_FOLDER_SIGNATURE:
@@ -212,19 +262,113 @@ def _safe_target(root: Path, subfolder: str, filename: str) -> Path:
     Build a path under root while rejecting traversal/absolute components.
     - filename must be a plain name (no separators)
     - subfolder must be relative and free of '..'
+    - Additional security checks for null bytes, suspicious patterns, ADS
     """
     if not filename:
         raise ValueError("Missing filename")
+
+    # Security: Reject null bytes (path truncation attacks)
+    if "\x00" in filename or (subfolder and "\x00" in subfolder):
+        raise ValueError("Null byte in path")
+
+    # Security: Reject Windows Alternate Data Streams (ADS)
+    if platform.system() == "Windows":
+        if ":" in filename or (subfolder and ":" in subfolder):
+            # Allow drive letters in absolute paths but reject in filenames
+            if not (len(filename) == 2 and filename[1] == ":"):
+                raise ValueError("Invalid path: Alternate Data Streams not allowed")
+
+    # Security: Reject suspicious path components
     if Path(filename).name != filename:
         raise ValueError("Invalid filename")
+
+    # Security: Check for Windows reserved names
+    base_name = filename.split('.')[0].upper()
+    windows_reserved = {"CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4",
+                       "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2",
+                       "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"}
+    if base_name in windows_reserved:
+        raise ValueError("Invalid filename: Windows reserved name")
 
     sub = Path(subfolder) if subfolder else Path()
     if sub.is_absolute() or any(part == ".." for part in sub.parts):
         raise ValueError("Invalid subfolder")
 
+    # Security: Additional check for current directory references
+    if any(part == "." for part in sub.parts):
+        raise ValueError("Invalid subfolder: current directory reference")
+
     candidate = (root / sub / filename).resolve()
-    candidate.relative_to(root)  # will raise if outside
+
+    # Security: Verify resolved path is under root (prevents symlink escapes)
+    try:
+        candidate.relative_to(root)
+    except ValueError:
+        raise ValueError("Path outside root directory")
+
+    # Security: Double-check no intermediate symlinks escape root (defense in depth)
+    if platform.system() != "Windows":  # Only applicable to Unix-like systems
+        # Walk up the path and verify no symlinks point outside root
+        check_path = candidate
+        while check_path != root:
+            if check_path.is_symlink():
+                real_target = check_path.readlink()
+                if real_target.is_absolute():
+                    try:
+                        real_target.resolve().relative_to(root)
+                    except ValueError:
+                        raise ValueError("Symlink points outside root directory")
+            check_path = check_path.parent
+            if check_path == check_path.parent:  # Reached filesystem root
+                break
+
     return candidate
+
+
+_STAGE_VIDEO_EXTS = {"mp4", "mov", "mkv", "webm"}
+
+
+def _is_allowed_video_filename(filename: str) -> bool:
+    try:
+        ext = Path(filename).suffix.lower().lstrip(".")
+    except Exception:
+        return False
+    return ext in _STAGE_VIDEO_EXTS
+
+
+def _resolve_stage_collision(
+    dest_dir: Path, filename: str, collision_policy: str
+) -> tuple[Path, str, str]:
+    """
+    Returns (dest_path, final_filename, collision_state).
+    collision_state is one of: "none", "renamed", "overwritten".
+    """
+    collision_policy = (collision_policy or "rename").lower().strip()
+    if collision_policy not in ("rename", "overwrite", "error"):
+        raise ValueError("Invalid collision_policy")
+
+    dest = (dest_dir / filename).resolve()
+    dest.relative_to(dest_dir)  # safety guard
+
+    if not dest.exists():
+        return dest, filename, "none"
+
+    if collision_policy == "overwrite":
+        return dest, filename, "overwritten"
+
+    if collision_policy == "error":
+        raise FileExistsError("Destination exists")
+
+    base = Path(filename).stem
+    suffix = Path(filename).suffix
+    for i in range(1, 10000):
+        candidate_name = f"{base}_{i:03d}{suffix}"
+        candidate = (dest_dir / candidate_name).resolve()
+        candidate.relative_to(dest_dir)
+        if not candidate.exists():
+            return candidate, candidate_name, "renamed"
+
+    raise RuntimeError("Failed to generate a unique filename")
 
 
 def _metadata_target(path: Path, kind: str) -> Path:
@@ -490,26 +634,36 @@ def _scan_outputs() -> List[Dict[str, Any]]:
 def _scan_outputs_cached(force: bool = False) -> List[Dict[str, Any]]:
     """
     Wrapper around _scan_outputs with in-memory cache.
+    Uses double-checked locking with proper atomic update to prevent race conditions.
     """
     global _FILE_CACHE, _LAST_SCAN_TS
 
-    now = time.time()
-    if not force and _FILE_CACHE and (now - _LAST_SCAN_TS) < _SCAN_MIN_INTERVAL:
-        return _FILE_CACHE
+    # Fast path: check without lock (read cache snapshot atomically)
+    if not force:
+        with _CACHE_LOCK:
+            now = time.time()
+            if _FILE_CACHE and (now - _LAST_SCAN_TS) < _SCAN_MIN_INTERVAL:
+                # Return a copy to prevent external modifications
+                return _FILE_CACHE
 
+    # Slow path: acquire lock and recheck
     with _CACHE_LOCK:
         now = time.time()
+        # Recheck after acquiring lock (another thread may have updated)
         if not force and _FILE_CACHE and (now - _LAST_SCAN_TS) < _SCAN_MIN_INTERVAL:
             return _FILE_CACHE
 
         root = _get_output_root()
         if not force and _FILE_CACHE and not _folder_changed(root):
+            # Update timestamp even if folder hasn't changed (prevents repeated checks)
+            _LAST_SCAN_TS = now
             return _FILE_CACHE
 
+        # Perform scan and atomically update cache
         files = _scan_outputs()
         _FILE_CACHE = files
         _LAST_SCAN_TS = now
-        return _FILE_CACHE
+        return files
 
 
 async def _scan_outputs_async(force: bool = False) -> List[Dict[str, Any]]:
@@ -518,6 +672,7 @@ async def _scan_outputs_async(force: bool = False) -> List[Dict[str, Any]]:
 
 
 @PromptServer.instance.routes.get("/mjr/filemanager/files")
+@handle_connection_reset
 async def list_files(request: web.Request) -> web.Response:
     _install_windows_asyncio_connection_reset_silencer()
     force_param = (request.query.get("force") or "").lower()
@@ -555,26 +710,30 @@ async def list_files(request: web.Request) -> web.Response:
 
     # Prefetch metadata for the first N items without delaying the response.
     # Only do this for the first paged request (offset=0, limit provided).
+    # Uses asyncio.create_task for true non-blocking async execution.
     prefetch_count = min(len(items), _META_PREFETCH_COUNT) if (paged and offset == 0) else 0
     if prefetch_count > 0:
         root = _get_output_root()
 
-        def _prefetch():
-            for f in items[:prefetch_count]:
+        async def _prefetch_async():
+            """Background task to prefetch metadata without blocking the response."""
+            loop = asyncio.get_running_loop()
+
+            def _prefetch_one(f):
                 try:
                     filename = f.get("filename") or f.get("name")
                     subfolder = f.get("subfolder", "")
                     if not filename:
-                        continue
+                        return
                     target = (root / subfolder / filename).resolve()
                     try:
                         target.relative_to(root)
                     except ValueError:
-                        continue
+                        return
                     kind = f.get("kind") or classify_ext(filename.lower())
                     meta_target = _metadata_target(target, kind)
                     if not meta_target.exists():
-                        continue
+                        return
                     rating, tags = _rating_tags_with_fallback(meta_target, kind)
                     f["rating"] = rating
                     f["tags"] = tags
@@ -588,10 +747,14 @@ async def list_files(request: web.Request) -> web.Response:
                     f["has_workflow"] = has_wf
                     f["__metaLoaded"] = True
                 except Exception:
-                    continue
+                    pass
 
-        loop = asyncio.get_running_loop()
-        loop.run_in_executor(None, _prefetch)
+            # Process items in parallel batches
+            for f in items[:prefetch_count]:
+                await loop.run_in_executor(None, _prefetch_one, f)
+
+        # Schedule background task without blocking
+        asyncio.create_task(_prefetch_async())
 
     return _json_response(
         {
@@ -606,17 +769,31 @@ async def list_files(request: web.Request) -> web.Response:
 
 
 @PromptServer.instance.routes.post("/mjr/filemanager/metadata/batch")
+@handle_connection_reset
 async def batch_metadata(request: web.Request) -> web.Response:
     _install_windows_asyncio_connection_reset_silencer()
+
+    # Validate payload size
+    size_error = await _validate_payload_size(request, max_size_mb=5.0)
+    if size_error:
+        return size_error
+
     root = _get_output_root()
     try:
         payload = await request.json()
-    except ConnectionResetError:
-        return web.Response(status=499)
     except Exception:
         return _json_response({"ok": False, "error": "Invalid JSON"}, status=400)
 
     items = payload.get("items") or []
+
+    # Validate request size to prevent DoS
+    max_batch_size = int(os.environ.get("MJR_MAX_BATCH_SIZE", "1000"))
+    if len(items) > max_batch_size:
+        return _json_response(
+            {"ok": False, "error": f"Batch size exceeds limit ({max_batch_size})"},
+            status=400
+        )
+
     loop = asyncio.get_running_loop()
 
     def _fetch_one(item: Dict[str, Any]) -> Dict[str, Any]:
@@ -680,14 +857,16 @@ async def batch_metadata(request: web.Request) -> web.Response:
             except Exception:
                 continue
 
-    try:
-        return _json_response({"ok": True, "metadatas": results, "errors": errors})
-    except ConnectionResetError:
-        return web.Response(status=499)
+    return _json_response({"ok": True, "metadatas": results, "errors": errors})
 
 
 @PromptServer.instance.routes.post("/mjr/filemanager/delete")
 async def delete_files(request: web.Request) -> web.Response:
+    # Validate payload size
+    size_error = await _validate_payload_size(request, max_size_mb=2.0)
+    if size_error:
+        return size_error
+
     root = _get_output_root()
 
     try:
@@ -696,6 +875,15 @@ async def delete_files(request: web.Request) -> web.Response:
         return _json_response({"ok": False, "error": "Invalid JSON body"}, status=400)
 
     items = payload.get("items") or []
+
+    # Validate request size to prevent DoS
+    max_batch_size = int(os.environ.get("MJR_MAX_BATCH_SIZE", "1000"))
+    if len(items) > max_batch_size:
+        return _json_response(
+            {"ok": False, "error": f"Batch size exceeds limit ({max_batch_size})"},
+            status=400
+        )
+
     deleted = []
     errors = []
 
@@ -742,6 +930,129 @@ async def delete_files(request: web.Request) -> web.Response:
     return _json_response({"ok": True, "deleted": deleted, "errors": errors})
 
 
+@PromptServer.instance.routes.post("/mjr/filemanager/stage_to_input")
+@handle_connection_reset
+async def stage_to_input(request: web.Request) -> web.Response:
+    """
+    Stage a file from ComfyUI output to ComfyUI input for Drag & Drop workflows.
+    Expected JSON payload:
+      {
+        "filename": "xxx.mp4",
+        "subfolder": "optional/subfolder",
+        "from_type": "output",
+        "dest_subfolder": "_mjr_drop",
+        "collision_policy": "rename" | "overwrite" | "error"
+      }
+    """
+    _install_windows_asyncio_connection_reset_silencer()
+    try:
+        payload = await request.json()
+    except Exception:
+        return _json_response({"ok": False, "error": "Invalid JSON body"}, status=400)
+
+    filename = payload.get("filename")
+    subfolder = payload.get("subfolder", "") or ""
+    from_type = (payload.get("from_type") or "output").lower().strip()
+    dest_subfolder = payload.get("dest_subfolder", "_mjr_drop") or "_mjr_drop"
+    collision_policy = payload.get("collision_policy", "rename") or "rename"
+
+    if not filename:
+        return _json_response({"ok": False, "error": "Missing filename"}, status=400)
+    if Path(str(filename)).name != str(filename):
+        return _json_response({"ok": False, "error": "Invalid filename"}, status=400)
+
+    if from_type != "output":
+        return _json_response({"ok": False, "error": "Unsupported from_type"}, status=400)
+
+    if not _is_allowed_video_filename(str(filename)):
+        return _json_response(
+            {"ok": False, "error": "Unsupported video extension (mp4/mov/mkv/webm only)"},
+            status=400,
+        )
+
+    output_root = _get_output_root()
+    try:
+        src = _safe_target(output_root, str(subfolder), str(filename))
+    except ValueError:
+        return _json_response({"ok": False, "error": "File is outside output directory"}, status=400)
+
+    if not src.exists() or not src.is_file():
+        return _json_response({"ok": False, "error": "File not found"}, status=404)
+
+    input_root = Path(folder_paths.get_input_directory()).resolve()
+
+    dest_sub = Path(str(dest_subfolder)) if dest_subfolder else Path()
+    if dest_sub.is_absolute() or any(part == ".." for part in dest_sub.parts):
+        return _json_response({"ok": False, "error": "Invalid dest_subfolder"}, status=400)
+
+    try:
+        dest_dir = (input_root / dest_sub).resolve()
+        dest_dir.relative_to(input_root)
+    except Exception:
+        return _json_response({"ok": False, "error": "Destination is outside input directory"}, status=400)
+
+    try:
+        os.makedirs(dest_dir, exist_ok=True)
+    except Exception as exc:
+        return _json_response({"ok": False, "error": str(exc)}, status=500)
+
+    try:
+        dest_path, staged_name, collision = _resolve_stage_collision(
+            dest_dir, str(filename), str(collision_policy)
+        )
+    except FileExistsError:
+        return _json_response({"ok": False, "error": "Destination file exists"}, status=409)
+    except ValueError as exc:
+        return _json_response({"ok": False, "error": str(exc)}, status=400)
+    except Exception as exc:
+        return _json_response({"ok": False, "error": str(exc)}, status=500)
+
+    try:
+        # Check disk space before copying
+        src_size = src.stat().st_size
+        dest_stat = shutil.disk_usage(dest_path.parent)
+        available_space = dest_stat.free
+
+        # Require at least 100MB buffer beyond file size
+        required_space = src_size + (100 * 1024 * 1024)
+        if available_space < required_space:
+            return _json_response(
+                {
+                    "ok": False,
+                    "error": f"Insufficient disk space ({available_space / 1024 / 1024:.1f}MB available, {required_space / 1024 / 1024:.1f}MB required)"
+                },
+                status=507  # HTTP 507 Insufficient Storage
+            )
+
+        shutil.copy2(src, dest_path)
+    except OSError as exc:
+        # Handle specific OS errors with better messages
+        if exc.errno == 28:  # ENOSPC - No space left on device
+            return _json_response(
+                {"ok": False, "error": "Disk full: No space left on device"},
+                status=507
+            )
+        elif exc.errno == 122:  # EDQUOT - Disk quota exceeded
+            return _json_response(
+                {"ok": False, "error": "Disk quota exceeded"},
+                status=507
+            )
+        return _json_response({"ok": False, "error": f"File operation failed: {exc}"}, status=500)
+    except Exception as exc:
+        return _json_response({"ok": False, "error": str(exc)}, status=500)
+
+    rel = (dest_sub / staged_name).as_posix() if dest_subfolder else staged_name
+    return _json_response(
+        {
+            "ok": True,
+            "filename": staged_name,
+            "relative_path": rel,
+            "dest_subfolder": str(dest_subfolder),
+            "collision": collision,
+        }
+    )
+
+
 @PromptServer.instance.routes.post("/mjr/filemanager/open_explorer")
 async def open_explorer(request: web.Request) -> web.Response:
     return await open_folder(request)
@@ -782,6 +1093,7 @@ async def open_folder(request: web.Request) -> web.Response:
 # ---------------------------------------------------------------------------
 
 @PromptServer.instance.routes.get("/mjr/filemanager/metadata")
+@handle_connection_reset
 async def get_metadata(request: web.Request) -> web.Response:
     _install_windows_asyncio_connection_reset_silencer()
     root = _get_output_root()
@@ -862,10 +1174,7 @@ async def get_metadata(request: web.Request) -> web.Response:
     kind = classify_ext(filename.lower())
     rating, tags = _rating_tags_with_fallback(target, kind)
 
-    try:
-        return _json_response({"ok": True, "generation": params, "rating": rating, "tags": tags})
-    except ConnectionResetError:
-        return web.Response(status=499)
+    return _json_response({"ok": True, "generation": params, "rating": rating, "tags": tags})
 
 
 @PromptServer.instance.routes.get("/mjr/filemanager/capabilities")
