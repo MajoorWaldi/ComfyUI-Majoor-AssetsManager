@@ -45,6 +45,7 @@ from .collections_store import (
     load_collection,
     add_to_collection,
     remove_from_collection,
+    save_collection,
 )
 
 log = get_logger(__name__)
@@ -1522,6 +1523,136 @@ async def update_metadata(request: web.Request) -> web.Response:
     return _json_response({"ok": True, "rating": meta.get("rating", 0), "tags": meta.get("tags", [])})
 
 
+@PromptServer.instance.routes.post("/mjr/filemanager/metadata/batch_update")
+async def batch_update_metadata(request: web.Request) -> web.Response:
+    """
+    Bulk update metadata for multiple files in parallel.
+    Payload:
+      {
+        "items": [
+          {"filename": "...", "subfolder": "...", "rating": 3, "tags": ["tag1", "tag2"]},
+          ...
+        ]
+      }
+    Returns:
+      {
+        "ok": true,
+        "updated": [{"filename": "...", "subfolder": "...", "rating": 3, "tags": [...]}],
+        "errors": [{"filename": "...", "subfolder": "...", "error": "..."}]
+      }
+    """
+    # Validate payload size
+    size_error = await _validate_payload_size(request, max_size_mb=5.0)
+    if size_error:
+        return size_error
+
+    root = _get_output_root()
+
+    payload, error_response = await _parse_json_payload(request)
+    if error_response:
+        return error_response
+
+    items = payload.get("items") or []
+
+    # Validate request size to prevent DoS
+    max_batch_size = int(os.environ.get("MJR_MAX_BATCH_SIZE", "1000"))
+    if len(items) > max_batch_size:
+        return _json_response(
+            {"ok": False, "error": f"Batch size exceeds limit ({max_batch_size})"},
+            status=400
+        )
+
+    loop = asyncio.get_running_loop()
+
+    def _update_one(item: Dict[str, Any]) -> Dict[str, Any]:
+        filename = (item or {}).get("filename")
+        subfolder = (item or {}).get("subfolder", "")
+        rating_provided = "rating" in item
+        tags_provided = "tags" in item
+        rating = item.get("rating") if rating_provided else None
+        tags = item.get("tags") if tags_provided else None
+
+        result: Dict[str, Any] = {"filename": filename, "subfolder": subfolder}
+
+        if not filename:
+            result["error"] = "Missing filename"
+            return result
+
+        try:
+            target = _safe_target(root, subfolder, filename)
+        except ValueError:
+            result["error"] = "Outside output directory"
+            return result
+
+        if not target.exists():
+            result["error"] = "File not found"
+            return result
+
+        # Build updates dict
+        updates = {}
+        if rating_provided:
+            updates["rating"] = rating
+        if tags_provided:
+            updates["tags"] = tags if tags is not None else []
+
+        if not updates:
+            result["error"] = "No updates provided (rating or tags required)"
+            return result
+
+        try:
+            meta = update_metadata_with_windows(str(target), updates)
+            result["rating"] = meta.get("rating", 0)
+            result["tags"] = meta.get("tags", [])
+        except Exception as exc:
+            result["error"] = f"{type(exc).__name__}: {str(exc)}"
+            return result
+
+        return result
+
+    # Parallelize updates
+    updated: List[Dict[str, Any]] = []
+    errors: List[Dict[str, Any]] = []
+    max_workers_env = os.environ.get("MJR_META_BATCH_WORKERS")
+    try:
+        max_workers_cfg = int(max_workers_env) if max_workers_env is not None else None
+    except (ValueError, TypeError):
+        max_workers_cfg = None
+    max_workers = max(1, max_workers_cfg) if max_workers_cfg else 4
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
+        future_to_item = {pool.submit(_update_one, itm): itm for itm in items}
+
+        for fut in concurrent.futures.as_completed(future_to_item):
+            item = future_to_item[fut]
+            try:
+                res = fut.result()
+                if res.get("error"):
+                    errors.append({
+                        "filename": res.get("filename"),
+                        "subfolder": res.get("subfolder"),
+                        "error": res.get("error")
+                    })
+                else:
+                    updated.append(res)
+            except Exception as e:
+                filename = item.get("filename", "unknown")
+                error_msg = f"Worker exception: {type(e).__name__}: {str(e)}"
+                log.warning("[Majoor] Batch update worker failed for %s: %s", filename, error_msg)
+                errors.append({
+                    "filename": filename,
+                    "subfolder": item.get("subfolder", ""),
+                    "error": error_msg
+                })
+
+    # Log summary
+    if errors:
+        log.info("[Majoor] Batch update completed: %d updated, %d errors", len(updated), len(errors))
+    else:
+        log.debug("[Majoor] Batch update completed: %d files updated successfully", len(updated))
+
+    return _json_response({"ok": True, "updated": updated, "errors": errors})
+
+
 @PromptServer.instance.routes.post("/mjr/filemanager/generation/update")
 async def update_generation_sidecar(request: web.Request) -> web.Response:
     """
@@ -1663,4 +1794,96 @@ async def remove_from_collection_route(request: web.Request) -> web.Response:
         await asyncio.to_thread(remove_from_collection, data["name"], data["path"])
         return _json_response({"ok": True})
     except Exception as e:
+        return _json_response({"ok": False, "error": str(e)}, status=500)
+
+
+@PromptServer.instance.routes.post("/mjr/collections/health_check")
+async def health_check_collection_route(request: web.Request) -> web.Response:
+    """
+    Check health of a collection by validating all file paths exist.
+    Payload:
+      {
+        "name": "collection_name",
+        "auto_repair": false  // optional - remove broken paths automatically
+      }
+    Returns:
+      {
+        "ok": true,
+        "total": 100,
+        "valid": 95,
+        "broken": 5,
+        "broken_paths": ["path1", "path2", ...],
+        "repaired": false  // true if auto_repair was used
+      }
+    """
+    try:
+        data = await request.json()
+    except Exception:
+        return _json_response({"ok": False, "error": "Invalid JSON body"}, status=400)
+
+    name = data.get("name")
+    auto_repair = data.get("auto_repair", False)
+
+    if not name:
+        return _json_response({"ok": False, "error": "Missing collection name"}, status=400)
+
+    try:
+        # Load collection
+        files = await asyncio.to_thread(load_collection, name)
+        total = len(files)
+
+        # Check which paths exist
+        root = _get_output_root()
+        broken_paths = []
+        valid_count = 0
+
+        def _check_path(file_path: str) -> bool:
+            """Check if a file path exists. Returns True if valid, False if broken."""
+            try:
+                # Parse the path (format: "subfolder/filename" or just "filename")
+                parts = file_path.split("/")
+                if len(parts) == 1:
+                    filename = parts[0]
+                    subfolder = ""
+                else:
+                    filename = parts[-1]
+                    subfolder = "/".join(parts[:-1])
+
+                target = _safe_target(root, subfolder, filename)
+                return target.exists()
+            except (ValueError, OSError):
+                return False
+
+        # Check all paths
+        for file_path in files:
+            if _check_path(file_path):
+                valid_count += 1
+            else:
+                broken_paths.append(file_path)
+
+        broken_count = len(broken_paths)
+        repaired = False
+
+        # Auto-repair if requested
+        if auto_repair and broken_count > 0:
+            valid_files = [f for f in files if f not in broken_paths]
+            await asyncio.to_thread(save_collection, name, valid_files)
+            repaired = True
+            log.info(
+                "[Majoor] Collection '%s' auto-repaired: removed %d broken paths",
+                name,
+                broken_count
+            )
+
+        return _json_response({
+            "ok": True,
+            "total": total,
+            "valid": valid_count,
+            "broken": broken_count,
+            "broken_paths": broken_paths,
+            "repaired": repaired
+        })
+
+    except Exception as e:
+        log.error("[Majoor] Collection health check failed for '%s': %s", name, e)
         return _json_response({"ok": False, "error": str(e)}, status=500)

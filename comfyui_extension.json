@@ -1,6 +1,6 @@
 {
   "name": "Majoor-AssetsManager",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": "Ewald ALOEBOETOE (Majoor)",
   "frontend": "js/",
   "backend": "server/"

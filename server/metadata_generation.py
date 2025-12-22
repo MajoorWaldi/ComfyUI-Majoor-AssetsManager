@@ -27,8 +27,27 @@ except ImportError:
     _get_exiftool_path = None
 
 
+def _load_custom_node_mappings() -> Dict[str, List[str]]:
+    """
+    Load custom node type mappings from node_mapping.json.
+    Returns a dict with keys like 'sampler_classes', 'checkpoint_loader_classes', etc.
+    """
+    config_path = Path(__file__).parent.parent / "node_mapping.json"
+    if not config_path.exists():
+        return {}
+
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            # Remove comment fields
+            return {k: v for k, v in data.items() if not k.startswith("_")}
+    except (json.JSONDecodeError, OSError, ValueError):
+        # Invalid config - ignore and use defaults
+        return {}
+
+
 # Samplers treated as source of truth (lowercase)
-SAMPLER_CLASSES: Set[str] = {
+_DEFAULT_SAMPLER_CLASSES: Set[str] = {
     # Core ComfyUI samplers
     "ksampler",
     "samplercustom",
@@ -104,23 +123,43 @@ SAMPLER_CLASSES: Set[str] = {
 }
 
 # Model loaders (diffusion / checkpoint)
-CHECKPOINT_LOADER_CLASSES: Set[str] = {
+_DEFAULT_CHECKPOINT_LOADER_CLASSES: Set[str] = {
     "CheckpointLoaderSimple",
     "CheckpointLoader",
 }
-UNET_LOADER_CLASSES: Set[str] = {
+_DEFAULT_UNET_LOADER_CLASSES: Set[str] = {
     "UNETLoader",
     "LoadDiffusionModel",  # certains wrappers utilisent ce label
 }
-DIFFUSERS_LOADER_CLASSES: Set[str] = {
+_DEFAULT_DIFFUSERS_LOADER_CLASSES: Set[str] = {
     "DiffusersLoader",
 }
 
 # LoRA
-LORA_CLASSES: Set[str] = {
+_DEFAULT_LORA_CLASSES: Set[str] = {
     "LoraLoader",
     "LoraLoaderModelOnly",
 }
+
+# Load custom mappings and merge with defaults
+_custom_mappings = _load_custom_node_mappings()
+
+# Merge custom classes with defaults (lowercase normalization)
+SAMPLER_CLASSES: Set[str] = _DEFAULT_SAMPLER_CLASSES | {
+    s.lower() for s in _custom_mappings.get("sampler_classes", [])
+}
+CHECKPOINT_LOADER_CLASSES: Set[str] = _DEFAULT_CHECKPOINT_LOADER_CLASSES | set(
+    _custom_mappings.get("checkpoint_loader_classes", [])
+)
+UNET_LOADER_CLASSES: Set[str] = _DEFAULT_UNET_LOADER_CLASSES | set(
+    _custom_mappings.get("unet_loader_classes", [])
+)
+DIFFUSERS_LOADER_CLASSES: Set[str] = _DEFAULT_DIFFUSERS_LOADER_CLASSES | set(
+    _custom_mappings.get("diffusers_loader_classes", [])
+)
+LORA_CLASSES: Set[str] = _DEFAULT_LORA_CLASSES | set(
+    _custom_mappings.get("lora_classes", [])
+)
 
 def _extract_json_like_from_text(text: str) -> List[str]:
     """
