@@ -1,6 +1,20 @@
 # 📂 Majoor Assets Manager for ComfyUI
 
-Professional asset browser for ComfyUI outputs (images/videos/audio/3D) with **ratings & tags**, **full-text search**, **workflow fingerprinting**, and advanced metadata management.
+Advanced asset browser for ComfyUI outputs (images/videos/audio/3D) with **ratings & tags**, **full-text search**, **workflow fingerprinting**, and advanced metadata management.
+
+## 💡 Why This Exists
+
+I work daily in ComfyUI in real production contexts (VFX / generative pipelines), and asset management quickly became a problem.
+
+I've tested several asset managers over time. Some are external tools. Some are partially integrated. Most of them are either too rigid, too opinionated, or disconnected from how ComfyUI is actually used in production.
+
+Sometimes you need custom nodes. Sometimes external logic makes sense. But jumping outside ComfyUI just to understand what you generated breaks the flow.
+
+**So I built an Assets Manager that lives directly inside ComfyUI.**
+
+> ⚠️ **Work in Progress**: This extension is still under active development. Many things will move and change. Recommendations and feedback are welcomed!
+
+![Majoor Assets Manager Demo](examples/ComfyUI_Majoor_AssetsManager_Video.gif)
 
 ---
 
@@ -100,23 +114,6 @@ Python dependencies (auto-installed by ComfyUI Manager):
 
 ---
 
-## 🎞️ Demos (GIF)
-
-Click to view full demos (GIFs are large and not embedded):
-
-- ⚡ **Fast browsing**
-  ![Fast browsing demo](examples/fastbrowsing.gif)
-- ⭐ **Ratings & 🏷️ tags**
-  ![Ratings & tags demo](examples/notations.gif)
-- 🗂️ **Smart collections**
-  ![Smart collections demo](examples/Smart_Collections.gif)
-- 🧩 **Drag & drop workflow**
-  ![Drag & drop workflow demo](examples/Drop_Workflow.gif)
-- 🎞️ **Frame-by-frame (video)**
-  ![Frame-by-frame demo](examples/Frame_by_frame.gif)
-- 🧩 **UI rendering/integration**
-  ![UI rendering/integration demo](examples/render.gif)
-
 ## 🎬 Metadata Storage & Video Reliability
 
 ### Metadata Storage Strategies
@@ -202,71 +199,6 @@ Access settings via the ComfyUI settings panel (gear icon).
 - ⌨️ **Rating Hotkeys**: enable `0`-`5` keys in viewer
 - ⌨️ **Frame-Step Hotkeys**: enable `ArrowLeft`/`Right` for video stepping
 - 🎨 **Checkerboard Background**: show transparency pattern
-
----
-
-## 🧩 Advanced Configuration
-
-### Environment Variables
-
-#### Metadata Mode & Parsers
-- `MJR_METADATA_MODE` - `legacy` | `hybrid` (default) | `native`
-- `MJR_METADATA_EXIF_NATIVE` - Enable native EXIF UserComment decoder (default: `1`)
-- `MJR_COMFY_TRACE_V2` - Enable recursive workflow node tracer v2 (default: `1`)
-- `MJR_METADATA_PNG_INJECT` - Enable lossless PNG metadata injection (default: `1`)
-- `MJR_METADATA_WORKFLOW_HASH` - Enable workflow fingerprinting (default: `1`)
-
-#### Sidecar Configuration
-- `MJR_ENABLE_SIDECAR` - Enable `.mjr.json` sidecar files (default: `1` on non-Windows)
-- `MJR_FORCE_SIDECAR` - Force sidecar-only mode (ignores OS metadata)
-
-#### Timeouts (milliseconds)
-- `MJR_META_EXIFTOOL_TIMEOUT` - ExifTool metadata extraction timeout
-- `MJR_META_FFPROBE_TIMEOUT` - ffprobe extraction timeout
-- `MJR_EXIFTOOL_READ_TIMEOUT` - ExifTool read operation timeout
-- `MJR_EXIFTOOL_WRITE_TIMEOUT` - ExifTool write operation timeout
-- `MJR_EXIFTOOL_PRESERVE_TIMEOUT` - Workflow preservation timeout
-- `MJR_FILE_MANAGER_TIMEOUT` - General file manager timeout
-
-#### Debug Options
-- `MJR_DEBUG_METADATA` - Enable verbose metadata logging (default: `0`)
-- `MJR_METADATA_SAFE_FALLBACK` - Fallback to legacy on parser errors (default: `1`)
-
-### API Endpoints
-
-All endpoints are prefixed with `/mjr/filemanager/` or `/mjr/collections/`.
-
-#### File Operations
-- `GET /mjr/filemanager/files` - List assets (pagination, filtering, sorting)
-- `POST /mjr/filemanager/delete` - Safe delete to recycle bin
-- `POST /mjr/filemanager/stage_to_input` - Copy files to ComfyUI input
-- `POST /mjr/filemanager/batch_zip` - Create batch download ZIP
-- `GET /mjr/filemanager/batch_zip/{token}` - Download prepared ZIP
-- `POST /mjr/filemanager/open_explorer` - Open file location in system explorer
-- `POST /mjr/filemanager/open_folder` - Open folder in explorer
-
-#### Metadata Operations
-- `GET /mjr/filemanager/metadata` - Get single file metadata
-- `POST /mjr/filemanager/metadata/update` - Update single file metadata
-- `POST /mjr/filemanager/metadata/batch` - Get metadata for multiple files
-- `POST /mjr/filemanager/metadata/batch_update` - Update multiple files
-- `POST /mjr/filemanager/generation/update` - Update generation sidecar
-- `POST /mjr/filemanager/sidecar/update` - Update metadata sidecar
-- `GET /mjr/filemanager/capabilities` - Check ExifTool/ffprobe availability
-
-#### Search & Indexing
-- `GET /mjr/filemanager/index/status` - Real-time index status (FTS5, last scan)
-- `GET /mjr/filemanager/index/query` - Full-text search with filters
-- `POST /mjr/filemanager/index/reindex` - Trigger incremental/full reindex
-- `POST /mjr/filemanager/index/sync_from_metadata` - Sync metadata to index
-- `GET /mjr/filemanager/workflow/hash_info` - Workflow hash algorithm details
-
-#### Collections
-- `GET /mjr/collections/list` - List all collections
-- `GET /mjr/collections/{name}` - Get collection contents
-- `POST /mjr/collections/add` - Add files to collection
-- `POST /mjr/collections/remove` - Remove files from collection
-- `POST /mjr/collections/health_check` - Verify collection integrity
 
 ---
 
