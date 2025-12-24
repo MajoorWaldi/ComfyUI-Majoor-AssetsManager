@@ -1,6 +1,6 @@
 # 📂 Majoor Assets Manager for ComfyUI
 
-Advanced asset browser for ComfyUI outputs (images/videos/audio/3D) with **ratings & tags**, **full-text search**, **workflow fingerprinting**, and advanced metadata management.
+Advanced asset browser for ComfyUI outputs (images/videos) with **ratings & tags**, **full-text search**, **workflow fingerprinting**, and advanced metadata management.
 
 ## 💡 Why This Exists
 
