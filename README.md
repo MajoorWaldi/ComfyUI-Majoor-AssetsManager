@@ -22,7 +22,7 @@ Sometimes you need custom nodes. Sometimes external logic makes sense. But jumpi
 
 ### 🔍 **Search & Discovery**
 - **Full-text search** powered by SQLite FTS5 with BM25 ranking
-- **Workflow fingerprinting**: find all assets generated with the same workflow
+- **Workflow fingerprinting**: find all assets generated with the same workflow (upcoming)
 - **Smart filters**: Today, Yesterday, Last 7 Days, 5 Stars, 4+ Stars, Videos, Images
 - **Advanced filtering**: by rating, tags (AND/OR logic), file type, workflow presence
 - **Collections system**: save and organize filtered asset groups in `_mjr_collections`
