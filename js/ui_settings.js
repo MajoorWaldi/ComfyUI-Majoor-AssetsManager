@@ -118,7 +118,7 @@ export const mjrSettingsDefaults = {
   hotkeys: {
     enabled: true,
     rating: true,
-    enterOpen: true,
+    spaceOpen: true,
     frameStep: true,
   },
 };
@@ -143,6 +143,9 @@ export function mjrLoadSettings() {
     const raw = localStorage.getItem("mjrFMSettings");
     if (!raw) return { ...mjrSettingsDefaults };
     const parsed = JSON.parse(raw);
+    if (parsed?.hotkeys && parsed.hotkeys.enterOpen !== undefined && parsed.hotkeys.spaceOpen === undefined) {
+      parsed.hotkeys.spaceOpen = parsed.hotkeys.enterOpen;
+    }
     return mjrDeepMerge(mjrSettingsDefaults, parsed);
   } catch (err) {
     console.warn("[Majoor.AssetsManager] settings load failed, using defaults", err);
