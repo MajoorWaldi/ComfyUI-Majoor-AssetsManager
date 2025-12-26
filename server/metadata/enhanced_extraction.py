@@ -20,6 +20,7 @@ Usage:
     write_enhanced_metadata("/path/to/image.png", {"rating": 5, "tags": ["test"]})
 """
 
+import json
 import logging
 from typing import Dict, Any, Optional, Tuple
 from pathlib import Path
@@ -45,6 +46,7 @@ from .workflow_reconstruct import prompt_graph_to_workflow
 
 # Import existing metadata utilities
 from .core import get_metadata as legacy_get_metadata, update_metadata as legacy_update_metadata
+from ..utils import get_windows_metadata, metadata_path
 
 log = logging.getLogger(__name__)
 
@@ -282,7 +284,6 @@ def write_enhanced_metadata(file_path: str, updates: Dict[str, Any]) -> Dict[str
             for key, value in updates.items():
                 # Convert value to string for PNG iTXt
                 if isinstance(value, (list, dict)):
-                    import json
                     value_str = json.dumps(value)
                 else:
                     value_str = str(value)
@@ -388,7 +389,6 @@ def get_metadata_source_info(file_path: str) -> Dict[str, Any]:
                 info["has_workflow"] = True
 
             # Check if sidecar file exists
-            from ..utils import metadata_path
             import os
             sidecar_path = metadata_path(file_path)
             if sidecar_path and os.path.exists(sidecar_path):
@@ -585,7 +585,6 @@ def extract_comprehensive_metadata_png(file_path: str) -> Tuple[Optional[Dict[st
     from PIL import Image
     from PIL.ExifTags import TAGS
     from ..logger import get_logger
-    import json
 
     log = get_logger(__name__)
 
@@ -679,7 +678,6 @@ def extract_comprehensive_metadata_video_exiftool(file_path: str) -> Tuple[Optio
     """
     from ..utils import _get_exiftool_path
     from ..logger import get_logger
-    import json
     import subprocess
 
     log = get_logger(__name__)
@@ -747,7 +745,6 @@ def extract_comprehensive_metadata_video_ffprobe(file_path: str) -> Tuple[Option
     This version uses enhanced scanning of ALL metadata fields including all stream tags.
     """
     import shutil
-    import json
     import subprocess
     from ..logger import get_logger
 
@@ -1000,7 +997,6 @@ def extract_comprehensive_metadata(file_path: str) -> Dict[str, Any]:
         - generation_metadata_source: Name of the tool that created the metadata (if detected)
     """
     from pathlib import Path
-    import json
     from ..config import METADATA_EXT
     from ..metadata.workflow_normalize import _ensure_dict_from_json
 
@@ -1226,7 +1222,6 @@ def has_generation_workflow_enhanced(file_path: str) -> bool:
     If sidecar exists and contains prompt/workflow, return True immediately.
     """
     from pathlib import Path
-    import json
     from ..config import METADATA_EXT
 
     # Ultra-fast sidecar check first (PATCH #2)
@@ -1257,5 +1252,3 @@ __all__ = [
     "_extract_json_from_text",
     "_scan_all_metadata_fields"
 ]
-
-

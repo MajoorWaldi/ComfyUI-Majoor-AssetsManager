@@ -989,16 +989,16 @@ app.registerExtension({
       },
     });
 
-    app.ui.settings.addSetting({
-      id: `${SETTINGS_PREFIX}.Hotkeys.SpaceOpen`,
-      name: "Majoor: Open Viewer Hotkey (Space)",
-      type: "boolean",
-      defaultValue: mjrSettings.hotkeys.enterOpen,
-      onChange: (val) => {
-        mjrSettings.hotkeys.enterOpen = !!val;
-        mjrSaveSettings(mjrSettings);
-      },
-    });
+      app.ui.settings.addSetting({
+        id: `${SETTINGS_PREFIX}.Hotkeys.SpaceOpen`,
+        name: "Majoor: Open Viewer Hotkey (Space)",
+        type: "boolean",
+        defaultValue: mjrSettings.hotkeys.spaceOpen,
+        onChange: (val) => {
+          mjrSettings.hotkeys.spaceOpen = !!val;
+          mjrSaveSettings(mjrSettings);
+        },
+      });
 
     app.ui.settings.addSetting({
       id: `${SETTINGS_PREFIX}.Hotkeys.FrameStep`,
@@ -1072,7 +1072,7 @@ if (!window.__MajoorAssetsManagerHotkeysInitialized) {
         if (targets.length) handled = true;
       });
     } else if (
-      mjrSettings.hotkeys.enterOpen &&
+      mjrSettings.hotkeys.spaceOpen &&
       (ev.key === " " || ev.key === "Spacebar" || ev.code === "Space") &&
       !ev.ctrlKey &&
       !ev.altKey &&

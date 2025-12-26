@@ -226,7 +226,7 @@ def _extract_json_from_video(path: Path) -> Tuple[Optional[Dict[str, Any]], Opti
                 key_norm = str(k).lower()
 
                 # QuickTime Keys tags contain workflow/prompt directly
-                if key_norm == "keys:workflow" and isinstance(v, str):
+                if key_norm in ("keys:workflow", "quicktime:workflow") and isinstance(v, str):
                     s = v.strip()
                     if s.startswith("{"):
                         try:
@@ -237,7 +237,7 @@ def _extract_json_from_video(path: Path) -> Tuple[Optional[Dict[str, Any]], Opti
                             pass
                     continue
 
-                if key_norm == "keys:prompt" and isinstance(v, str):
+                if key_norm in ("keys:prompt", "quicktime:prompt") and isinstance(v, str):
                     s = v.strip()
                     if s.startswith("{"):
                         try:
