@@ -37,6 +37,48 @@ export function createGridView(deps) {
     return map;
   };
 
+  const cardVersion = (file) => {
+    const rating =
+      Number(
+        file.rating ??
+          (file.meta && file.meta.rating) ??
+          (file.metadata && file.metadata.rating)
+      ) || 0;
+    const tags =
+      (Array.isArray(file.tags) && file.tags) ||
+      (Array.isArray(file.meta && file.meta.tags) && file.meta.tags) ||
+      (Array.isArray(file.metadata && file.metadata.tags) && file.metadata.tags) ||
+      [];
+
+    const showRating = mjrSettings.grid.showRating ? 1 : 0;
+    const showTags = mjrSettings.grid.showTags ? 1 : 0;
+    const wfState = resolveWorkflowState(file);
+
+    return `${rating}|${tags.length ? tags.join(",") : ""}|${file.mtime || ""}|${showRating}|${showTags}|wf:${wfState}`;
+  };
+
+  const refreshCardsForFiles = (files = []) => {
+    if (!Array.isArray(files) || !files.length) return;
+    const seen = new Set();
+    for (const file of files) {
+      if (!file) continue;
+      const key = keyForFile(file);
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const card = grid.querySelector(`[data-mjr-key="${CSS.escape(key)}"]`);
+      if (!card) continue;
+
+      card.__mjrFile = file;
+      const nextVersion = cardVersion(file);
+      if (card.__mjrVersion !== nextVersion) {
+        updateCardVisuals(card, file);
+        card.__mjrVersion = nextVersion;
+      }
+      updateCardSelectionStyle(card, state.selected.has(key));
+    }
+  };
+
   const updateStatus = () => {
     const loaded = (state.files || []).length;
     const total = Number.isFinite(state.filesTotal) ? state.filesTotal : loaded;
@@ -352,26 +394,6 @@ export function createGridView(deps) {
     const visibleFiles = state.filtered.slice(startIndex, endIndex);
     
     // NEW: Version string now includes global settings
-    const cardVersion = (file) => {
-      const rating =
-        Number(
-          file.rating ??
-            (file.meta && file.meta.rating) ??
-            (file.metadata && file.metadata.rating)
-        ) || 0;
-      const tags =
-        (Array.isArray(file.tags) && file.tags) ||
-        (Array.isArray(file.meta && file.meta.tags) && file.meta.tags) ||
-        (Array.isArray(file.metadata && file.metadata.tags) && file.metadata.tags) ||
-        [];
-      
-      const showRating = mjrSettings.grid.showRating ? 1 : 0;
-      const showTags = mjrSettings.grid.showTags ? 1 : 0;
-
-      const wfState = resolveWorkflowState(file);
-      return `${rating}|${tags.length ? tags.join(",") : ""}|${file.mtime || ""}|${showRating}|${showTags}|wf:${wfState}`;
-    };
-
     const orderedElements = visibleFiles.map((file) => {
       const rawName = file.name || file.filename || "";
       const key = `${file.subfolder || ""}/${rawName}`;
@@ -438,5 +460,5 @@ export function createGridView(deps) {
     updateStatus();
   };
 
-  return { renderGrid, clearAllSelection, updateStatus };
+  return { renderGrid, clearAllSelection, updateStatus, refreshCardsForFiles };
 }

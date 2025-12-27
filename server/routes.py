@@ -37,6 +37,8 @@ from .utils import (
     save_metadata,
     metadata_path,
     _get_exiftool_path,
+    _coerce_rating_to_stars,
+    _normalize_tags,
 )
 from .metadata import update_metadata_with_windows, deep_merge_metadata
 from .metadata_generation import extract_generation_params_from_png, has_generation_workflow
@@ -47,7 +49,9 @@ from .collections_store import (
     add_to_collection,
     remove_from_collection,
     save_collection,
+    _validate_collection_name,
 )
+from .emoji import emoji_prefix
 from .index_db import (
     get_index_status,
     query_assets,
@@ -114,6 +118,24 @@ def _json_response(data: Any, status: int = 200) -> web.Response:
     )
 
 
+def _route_error_response(
+    description: str,
+    *,
+    status: int = 500,
+    exc: Optional[Exception] = None,
+    body: Optional[Dict[str, Any]] = None,
+    level: str = "error",
+) -> web.Response:
+    prefix = emoji_prefix(level)
+    log.error("%s%s", prefix, description, exc_info=exc)
+    payload = body or {"ok": False, "error": description}
+    return _json_response(payload, status=status)
+
+
+_MAX_METADATA_TAGS = 64
+_MAX_METADATA_TAG_LENGTH = 128
+
+
 async def _validate_payload_size(request: web.Request, max_size_mb: float = 10.0) -> Optional[web.Response]:
     """
     Validate request payload size to prevent DoS attacks.
@@ -130,6 +152,21 @@ async def _validate_payload_size(request: web.Request, max_size_mb: float = 10.0
     return None
 
 
+def _clean_metadata_tags(raw: Any) -> List[str]:
+    tags = _normalize_tags(raw)
+    sanitized: List[str] = []
+    for tag in tags:
+        if not tag:
+            continue
+        trimmed = tag[:_MAX_METADATA_TAG_LENGTH]
+        if not trimmed:
+            continue
+        sanitized.append(trimmed)
+        if len(sanitized) >= _MAX_METADATA_TAGS:
+            break
+    return sanitized
+
+
 # ---------------------------------------------------------------------------
 # File Request Validation Helpers (reduces code duplication)
 # ---------------------------------------------------------------------------
@@ -143,15 +180,9 @@ async def _parse_json_payload(request: web.Request) -> tuple[Optional[dict], Opt
         payload = await request.json()
         return (payload, None)
     except json.JSONDecodeError as e:
-        return (None, _json_response(
-            {"ok": False, "error": f"Invalid JSON: {str(e)}"},
-            status=400
-        ))
+        return (None, _route_error_response("Invalid JSON payload", status=400, exc=e))
     except Exception as e:
-        return (None, _json_response(
-            {"ok": False, "error": f"Failed to parse request: {str(e)}"},
-            status=400
-        ))
+        return (None, _route_error_response("Failed to parse JSON payload", status=400, exc=e))
 
 
 def _validate_file_path(root: Path, filename: str, subfolder: str = "") -> tuple[Optional[Path], Optional[dict]]:
@@ -167,7 +198,8 @@ def _validate_file_path(root: Path, filename: str, subfolder: str = "") -> tuple
     try:
         target = _safe_target(root, subfolder, filename)
     except ValueError as e:
-        return (None, {"ok": False, "error": f"Invalid path: {str(e)}"})
+        log.warning("📁⚠️ [Majoor] Invalid file path during validation: %s", e)
+        return (None, {"ok": False, "error": "Invalid path"})
 
     if not target.exists():
         return (None, {"ok": False, "error": "File not found"})
@@ -185,9 +217,11 @@ _LAST_SCAN_TS: float = 0.0
 _LAST_FOLDER_MTIME: float = 0.0
 _LAST_FOLDER_SIGNATURE: Optional[tuple] = None
 _LAST_FOLDER_CHECK_TS: float = 0.0  # Cache folder signature checks
-_BATCH_ZIP_CACHE: Dict[str, Dict[str, Any]] = {}
+_BATCH_ZIP_CACHE: "OrderedDict[str, Dict[str, Any]]" = OrderedDict()
 _BATCH_ZIP_LOCK = threading.Lock()
 _BATCH_ZIP_MAX_AGE_S = 3600.0
+_BATCH_ZIP_CACHE_MAX = int(os.environ.get("MJR_BATCH_ZIP_CACHE_MAX", "64"))
+_BATCH_ZIP_CACHE_MAX = max(1, min(_BATCH_ZIP_CACHE_MAX, 256))
 
 try:
     _SCAN_MIN_INTERVAL = float(os.environ.get("MJR_SCAN_MIN_INTERVAL", "5.0"))
@@ -310,6 +344,29 @@ def _cleanup_batch_zips(root: Path) -> None:
             except (OSError, PermissionError) as e:
                 log.debug("[Majoor] Failed to delete batch zip cache file: %s", e)
             _BATCH_ZIP_CACHE.pop(token, None)
+        while len(_BATCH_ZIP_CACHE) > _BATCH_ZIP_CACHE_MAX:
+            _, info = _BATCH_ZIP_CACHE.popitem(last=False)
+            old_path = info.get("path")
+            if isinstance(old_path, Path) and old_path.exists():
+                try:
+                    old_path.unlink()
+                except (OSError, PermissionError):
+                    pass
+
+
+def _store_batch_zip_cache(token: str, entry: Dict[str, Any]) -> None:
+    with _BATCH_ZIP_LOCK:
+        if token in _BATCH_ZIP_CACHE:
+            _BATCH_ZIP_CACHE.pop(token)
+        _BATCH_ZIP_CACHE[token] = entry
+        while len(_BATCH_ZIP_CACHE) > _BATCH_ZIP_CACHE_MAX:
+            old_token, old_info = _BATCH_ZIP_CACHE.popitem(last=False)
+            old_path = old_info.get("path")
+            if isinstance(old_path, Path) and old_path.exists():
+                try:
+                    old_path.unlink()
+                except (OSError, PermissionError):
+                    pass
 
 
 def _folder_changed(root_path: Path) -> bool:
@@ -417,6 +474,9 @@ def _safe_target(root: Path, subfolder: str, filename: str) -> Path:
     base_name = filename.split('.')[0].upper()
     if base_name in _WINDOWS_RESERVED_NAMES:
         raise ValueError("Invalid filename: Windows reserved name")
+
+    if filename in (".", ".."):
+        raise ValueError("Invalid filename component")
 
     sub = Path(subfolder) if subfolder else Path()
     if sub.is_absolute() or any(part == ".." for part in sub.parts):
@@ -1429,14 +1489,16 @@ async def create_batch_zip(request: web.Request) -> web.Response:
 
     event = asyncio.Event()
     filename = f"Majoor_Batch_{len(items)}.zip"
-    with _BATCH_ZIP_LOCK:
-        _BATCH_ZIP_CACHE[token] = {
+    _store_batch_zip_cache(
+        token,
+        {
             "path": zip_path,
             "event": event,
             "ready": False,
             "created_at": time.time(),
             "filename": filename,
-        }
+        },
+    )
 
     def _build_zip() -> int:
         try:
@@ -1685,20 +1747,25 @@ async def update_metadata(request: web.Request) -> web.Response:
 
     updates = {}
     if rating_provided:
-        updates["rating"] = rating
+        updates["rating"] = _coerce_rating_to_stars(rating)
     if tags_provided:
-        updates["tags"] = tags if tags is not None else []
+        updates["tags"] = _clean_metadata_tags(tags)
+
+    if not updates:
+        return _json_response({"ok": False, "error": "No metadata updates provided"}, status=400)
 
     try:
         meta = update_metadata_with_windows(str(target), updates)
     except Exception as exc:
-        return _json_response(
-            {
+        return _route_error_response(
+            "Failed to update metadata",
+            exc=exc,
+            status=500,
+            body={
                 "ok": False,
                 "file": {"filename": filename, "subfolder": subfolder},
-                "error": str(exc),
+                "error": "Unable to update metadata",
             },
-            status=500,
         )
 
     return _json_response({"ok": True, "rating": meta.get("rating", 0), "tags": meta.get("tags", [])})
@@ -1941,6 +2008,27 @@ async def update_sidecar(request: web.Request) -> web.Response:
         return _json_response({"ok": False, "error": str(exc)}, status=500)
 
 
+def _normalize_collection_path(root: Path, raw_path: Any) -> str:
+    if not raw_path or not isinstance(raw_path, str):
+        raise ValueError("Collection path must be a string")
+    cleaned = raw_path.replace("\\", "/").strip()
+    if not cleaned:
+        raise ValueError("Collection path cannot be empty")
+    parts = [part.strip() for part in cleaned.split("/") if part.strip()]
+    if not parts:
+        raise ValueError("Collection path cannot be empty")
+    filename = parts[-1]
+    if not filename:
+        raise ValueError("Collection path must include a filename")
+    subfolder = "/".join(parts[:-1])
+    target = _safe_target(root, subfolder, filename)
+    try:
+        rel = target.relative_to(root)
+    except ValueError as exc:
+        raise ValueError("Collection path is outside output directory") from exc
+    return rel.as_posix()
+
+
 # ---------------------------------------------------------------------------
 # Collections endpoints
 # ---------------------------------------------------------------------------
@@ -1954,6 +2042,12 @@ async def list_collections_route(request: web.Request) -> web.Response:
 @PromptServer.instance.routes.get("/mjr/collections/{name}")
 async def get_collection_route(request: web.Request) -> web.Response:
     name = request.match_info["name"]
+    try:
+        _validate_collection_name(name)
+    except ValueError as exc:
+        return _json_response(
+            {"ok": False, "error": str(exc)}, status=400
+        )
     files = await asyncio.to_thread(load_collection, name)
     return _json_response({"files": files})
 
@@ -1962,20 +2056,46 @@ async def get_collection_route(request: web.Request) -> web.Response:
 async def add_to_collection_route(request: web.Request) -> web.Response:
     try:
         data = await request.json()
-        await asyncio.to_thread(add_to_collection, data["name"], data["path"])
+    except json.JSONDecodeError:
+        return _json_response({"ok": False, "error": "Invalid JSON body"}, status=400)
+    root = _get_output_root()
+    name = data.get("name")
+    raw_path = data.get("path")
+
+    try:
+        _validate_collection_name(name)
+        normalized_path = _normalize_collection_path(root, raw_path)
+    except ValueError as exc:
+        return _json_response({"ok": False, "error": str(exc)}, status=400)
+
+    try:
+        await asyncio.to_thread(add_to_collection, name, normalized_path)
         return _json_response({"ok": True})
     except Exception as e:
-        return _json_response({"ok": False, "error": str(e)}, status=500)
+        return _route_error_response("Failed to add path to collection", exc=e, status=500)
 
 
 @PromptServer.instance.routes.post("/mjr/collections/remove")
 async def remove_from_collection_route(request: web.Request) -> web.Response:
     try:
         data = await request.json()
-        await asyncio.to_thread(remove_from_collection, data["name"], data["path"])
+    except json.JSONDecodeError:
+        return _json_response({"ok": False, "error": "Invalid JSON body"}, status=400)
+    root = _get_output_root()
+    name = data.get("name")
+    raw_path = data.get("path")
+
+    try:
+        _validate_collection_name(name)
+        normalized_path = _normalize_collection_path(root, raw_path)
+    except ValueError as exc:
+        return _json_response({"ok": False, "error": str(exc)}, status=400)
+
+    try:
+        await asyncio.to_thread(remove_from_collection, name, normalized_path)
         return _json_response({"ok": True})
     except Exception as e:
-        return _json_response({"ok": False, "error": str(e)}, status=500)
+        return _route_error_response("Failed to remove path from collection", exc=e, status=500)
 
 
 @PromptServer.instance.routes.post("/mjr/collections/health_check")
@@ -2007,6 +2127,11 @@ async def health_check_collection_route(request: web.Request) -> web.Response:
 
     if not name:
         return _json_response({"ok": False, "error": "Missing collection name"}, status=400)
+
+    try:
+        _validate_collection_name(name)
+    except ValueError as exc:
+        return _json_response({"ok": False, "error": str(exc)}, status=400)
 
     try:
         # Load collection
@@ -2066,8 +2191,11 @@ async def health_check_collection_route(request: web.Request) -> web.Response:
         })
 
     except Exception as e:
-        log.error("📁❌ [Majoor] Collection health check failed for '%s': %s", name, e)
-        return _json_response({"ok": False, "error": str(e)}, status=500)
+        return _route_error_response(
+            "Collection health check failed",
+            exc=e,
+            status=500,
+        )
 
 
 # ===== Index Routes (SQLite Asset Index) =====
@@ -2093,8 +2221,12 @@ async def index_status_route(request: web.Request) -> web.Response:
         status = await asyncio.to_thread(get_index_status)
         return _json_response(status)
     except Exception as e:
-        log.error("📁❌ [Majoor] Failed to get index status: %s", e)
-        return _json_response({"status": "error", "error": str(e)}, status=500)
+        return _route_error_response(
+            "Failed to get index status",
+            exc=e,
+            status=500,
+            body={"status": "error", "error": "Unable to retrieve index status"},
+        )
 
 
 @PromptServer.instance.routes.post("/mjr/filemanager/index/reindex")
@@ -2265,8 +2397,7 @@ async def index_query_route(request: web.Request) -> web.Response:
         return _json_response(result)
 
     except Exception as e:
-        log.error("📁❌ [Majoor] Failed to query index: %s", e)
-        return _json_response({"error": str(e)}, status=500)
+        return _route_error_response("Failed to query index", exc=e, status=500)
 
 
 @PromptServer.instance.routes.post("/mjr/filemanager/index/sync_from_metadata")
@@ -2318,8 +2449,7 @@ async def index_sync_metadata_route(request: web.Request) -> web.Response:
         })
 
     except Exception as e:
-        log.error("📁❌ [Majoor] Failed to sync metadata to index: %s", e)
-        return _json_response({"ok": False, "error": str(e)}, status=500)
+        return _route_error_response("Failed to sync metadata to index", exc=e, status=500)
 
 
 @PromptServer.instance.routes.post("/mjr/filemanager/cache/clear")
@@ -2342,8 +2472,7 @@ async def clear_workflow_cache(request: web.Request) -> web.Response:
         log.info("📁 [Majoor] Cleared workflow cache (%d entries)", count)
         return _json_response({"ok": True, "cleared": count})
     except Exception as e:
-        log.error("📁❌ [Majoor] Failed to clear workflow cache: %s", e)
-        return _json_response({"ok": False, "error": str(e)}, status=500)
+        return _route_error_response("Failed to clear workflow cache", exc=e, status=500)
 
 
 @PromptServer.instance.routes.get("/mjr/filemanager/workflow/hash_info")
@@ -2363,8 +2492,7 @@ async def workflow_hash_info_route(request: web.Request) -> web.Response:
         info = get_hash_algorithm_info()
         return _json_response(info)
     except Exception as e:
-        log.error("📁❌ [Majoor] Failed to get workflow hash info: %s", e)
-        return _json_response({"error": str(e)}, status=500)
+        return _route_error_response("Failed to get workflow hash info", exc=e, status=500)
 
 
 @PromptServer.instance.routes.get("/mjr/filemanager/index/errors")
@@ -2386,8 +2514,7 @@ async def get_indexing_errors_route(request: web.Request) -> web.Response:
         errors = await asyncio.to_thread(get_indexing_errors)
         return _json_response({"ok": True, "errors": errors})
     except Exception as e:
-        log.error("📁❌ [Majoor] Failed to get indexing errors: %s", e)
-        return _json_response({"ok": False, "error": str(e)}, status=500)
+        return _route_error_response("Failed to retrieve indexing errors", exc=e, status=500)
 
 
 @PromptServer.instance.routes.post("/mjr/filemanager/index/retry_failed")
@@ -2423,8 +2550,7 @@ async def retry_failed_route(request: web.Request) -> web.Response:
             "message": f"Retrying {len(paths_to_retry)} failed items in the background."
         })
     except Exception as e:
-        log.error("📁❌ [Majoor] Failed to start retry job: %s", e)
-        return _json_response({"ok": False, "error": str(e)}, status=500)
+        return _route_error_response("Failed to start retry job", exc=e, status=500)
 
 
 # ===== Initialize Index After Routes Loaded =====

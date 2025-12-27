@@ -1050,6 +1050,7 @@ if (!window.__MajoorAssetsManagerHotkeysInitialized) {
 
   const onKeyDown = (ev) => {
     if (!mjrSettings.hotkeys.enabled) return;
+    if (mjrViewerState?.overlay && mjrViewerState.overlay.style.display !== "none") return;
     if (ev.isComposing) return;
     const target = ev.target;
     const tagName = (target && target.tagName) ? String(target.tagName).toUpperCase() : "";

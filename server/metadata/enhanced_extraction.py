@@ -46,7 +46,7 @@ from .workflow_reconstruct import prompt_graph_to_workflow
 
 # Import existing metadata utilities
 from .core import get_metadata as legacy_get_metadata, update_metadata as legacy_update_metadata
-from ..utils import get_windows_metadata, metadata_path
+from ..utils import get_windows_metadata, metadata_path, safe_metadata_json_load
 
 log = logging.getLogger(__name__)
 
@@ -419,22 +419,18 @@ def _extract_json_from_text(text: str) -> Optional[Dict[str, Any]]:
 
     # First, try to find JSON directly
     if text.strip().startswith('{'):
-        try:
-            return json.loads(text.strip())
-        except json.JSONDecodeError:
-            pass
+        parsed = safe_metadata_json_load(text.strip())
+        if parsed:
+            return parsed if isinstance(parsed, dict) else {"nodes": parsed}
 
     # Extract potential JSON structures
     start = text.find('{')
     while start != -1:
         json_candidate = _balanced_json_from_text(text, start)
         if json_candidate:
-            try:
-                parsed = json.loads(json_candidate)
-                if isinstance(parsed, (dict, list)):
-                    return parsed if isinstance(parsed, dict) else {"nodes": parsed}
-            except json.JSONDecodeError:
-                pass
+            parsed = safe_metadata_json_load(json_candidate)
+            if parsed:
+                return parsed if isinstance(parsed, dict) else {"nodes": parsed}
         start = text.find('{', start + 1)
 
     # Try to find JSON-like patterns with common ComfyUI keys
@@ -445,12 +441,9 @@ def _extract_json_from_text(text: str) -> Optional[Dict[str, Any]]:
             if start != -1:
                 json_candidate = _balanced_json_from_text(text, start)
                 if json_candidate:
-                    try:
-                        parsed = json.loads(json_candidate)
-                        if isinstance(parsed, (dict, list)):
-                            return parsed if isinstance(parsed, dict) else {"nodes": parsed}
-                    except json.JSONDecodeError:
-                        pass
+                    parsed = safe_metadata_json_load(json_candidate)
+                    if parsed:
+                        return parsed if isinstance(parsed, dict) else {"nodes": parsed}
 
     return None
 

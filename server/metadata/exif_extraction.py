@@ -3,7 +3,8 @@ Robust EXIF extraction for ComfyUI prompt/workflow data.
 Handles various storage patterns used by different Save nodes.
 """
 from typing import Optional, Dict, Any, Tuple, List
-import json
+
+from ..utils import safe_metadata_json_load
 
 
 def extract_comfyui_prompt_workflow_from_exif_fields(file_path: str) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]], List[str]]:
@@ -188,12 +189,9 @@ def _extract_from_field(field_name: str, value: str) -> Optional[Tuple[Optional[
 
 def _parse_json_safe(text: str) -> Optional[Dict]:
     """Parse JSON safely, return None on error."""
-    try:
-        obj = json.loads(text)
-        if isinstance(obj, dict):
-            return obj
-    except:
-        pass
+    parsed = safe_metadata_json_load(text)
+    if isinstance(parsed, dict):
+        return parsed
     return None
 
 

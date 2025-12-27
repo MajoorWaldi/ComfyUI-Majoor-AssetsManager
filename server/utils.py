@@ -8,7 +8,7 @@ import time
 import unicodedata
 import threading
 from collections import OrderedDict
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from .config import ENABLE_JSON_SIDECAR, METADATA_EXT, IS_WINDOWS
 from .logger import get_logger
 
@@ -53,6 +53,12 @@ _CACHED_RATING_INDEX: Optional[int] = None
 _CACHED_TAGS_INDEX: Optional[int] = None
 _EXIFTOOL_PATH: Optional[str] = None
 _EXIFTOOL_CHECKED = False
+
+_MAX_METADATA_JSON_TEXT = 120_000
+_MAX_METADATA_JSON_DEPTH = 12
+_MAX_METADATA_JSON_DICT_KEYS = 500
+_MAX_METADATA_JSON_LIST_ITEMS = 500
+_MAX_METADATA_JSON_STRING_LEN = 4_096
 
 # LRU cache for metadata (prevents unbounded memory growth)
 # Max size configurable via MJR_META_CACHE_SIZE env var (default: 1000 entries)
@@ -151,6 +157,47 @@ def _normalize_label(text) -> str:
     except (ValueError, TypeError, AttributeError):
         # Fallback for non-normalizable text
         return str(text or "").lower().strip()
+
+
+def _is_safe_metadata_json(value: Any, depth: int = 0) -> bool:
+    if depth > _MAX_METADATA_JSON_DEPTH:
+        return False
+    if isinstance(value, dict):
+        if len(value) > _MAX_METADATA_JSON_DICT_KEYS:
+            return False
+        for key, sub in value.items():
+            if not isinstance(key, str):
+                return False
+            if not _is_safe_metadata_json(sub, depth + 1):
+                return False
+        return True
+    if isinstance(value, list):
+        if len(value) > _MAX_METADATA_JSON_LIST_ITEMS:
+            return False
+        for item in value:
+            if not _is_safe_metadata_json(item, depth + 1):
+                return False
+        return True
+    if isinstance(value, str):
+        return len(value) <= _MAX_METADATA_JSON_STRING_LEN
+    if isinstance(value, (int, float, bool)) or value is None:
+        return True
+    return False
+
+
+def safe_metadata_json_load(text: Any) -> Optional[Any]:
+    if not isinstance(text, str):
+        return None
+    candidate = text.strip()
+    if not candidate or len(candidate) > _MAX_METADATA_JSON_TEXT:
+        return None
+    try:
+        data = json.loads(candidate)
+    except json.JSONDecodeError:
+        return None
+    if not _is_safe_metadata_json(data):
+        return None
+    return data
 
 
 def _get_mtime_safe(path: str) -> Optional[float]:
@@ -1032,17 +1079,23 @@ def apply_system_metadata(file_path: str, rating, tags: list) -> dict:
     """
     Try exiftool first (if installed), otherwise Windows Shell.
     """
-    start_epoch = _get_cache_epoch()
     rating_int = _coerce_rating_to_stars(rating)
     tags_list = _normalize_tags(tags)
 
     # exiftool (meilleure compat Windows + autres OS)
     if set_exif_metadata(file_path, rating_int, tags_list):
+        epoch = _next_cache_epoch()
+        _cache_set(
+            file_path,
+            _get_mtime_safe(file_path),
+            epoch,
+            {"rating": rating_int, "tags": tags_list},
+        )
         return {"rating": rating_int, "tags": tags_list}
 
     # fallback shell API
     meta = apply_windows_metadata(file_path, rating_int, tags_list)
-    epoch = _bump_cache_epoch_if(start_epoch)
+    epoch = _next_cache_epoch()
     _cache_set(file_path, _get_mtime_safe(file_path), epoch, meta)
     return meta
 

@@ -34,7 +34,7 @@ export function createMetadataFetcher(state, gridView, opts = {}) {
     const metaByKey = new Map();
     (data.metadatas || []).forEach((m) => metaByKey.set(`${m.subfolder || ""}/${m.filename || ""}`, m));
 
-    let updatedCount = 0;
+    const updatedFiles = [];
     state.files.forEach((f) => {
       const key = `${f.subfolder || ""}/${f.filename || f.name || ""}`;
       const m = metaByKey.get(key);
@@ -43,10 +43,10 @@ export function createMetadataFetcher(state, gridView, opts = {}) {
         f.tags = m.tags || [];
         if (m.has_workflow !== undefined) f.hasWorkflow = !!m.has_workflow;
         f.__metaLoaded = true;
-        updatedCount += 1;
+        updatedFiles.push(f);
       }
     });
-    return updatedCount;
+    return updatedFiles;
   };
 
   // Safety check: should we proceed with this fetch?
@@ -151,9 +151,11 @@ export function createMetadataFetcher(state, gridView, opts = {}) {
         return;
       }
 
-      updatedAny = applyBatchResults(data) > 0;
-
-      if (currentGridView) currentGridView.renderGrid();
+      const updatedFiles = applyBatchResults(data);
+      updatedAny = updatedFiles.length > 0;
+      if (currentGridView?.refreshCardsForFiles) {
+        currentGridView.refreshCardsForFiles(updatedFiles);
+      }
     } catch (err) {
       if (err?.name === "AbortError") {
         // ignore aborted fetch
@@ -277,9 +279,11 @@ export function createMetadataFetcher(state, gridView, opts = {}) {
         return;
       }
 
-      updatedAny = applyBatchResults(data) > 0;
-
-      if (currentGridView) currentGridView.renderGrid();
+      const updatedFiles = applyBatchResults(data);
+      updatedAny = updatedFiles.length > 0;
+      if (currentGridView?.refreshCardsForFiles) {
+        currentGridView.refreshCardsForFiles(updatedFiles);
+      }
     } catch (err) {
       if (err?.name === "AbortError") {
         // ignore aborted fetch

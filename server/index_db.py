@@ -739,6 +739,29 @@ def get_asset(asset_id: str) -> Optional[Dict[str, Any]]:
 
 # ===== Query Operations =====
 
+def _normalize_tags_filter(value: Optional[Any]) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple, set)):
+        raw_tags = list(value)
+    else:
+        raw_tags = str(value).split(",")
+
+    normalized = []
+    for tag in raw_tags:
+        if tag is None:
+            continue
+        tag_str = str(tag).strip()
+        if not tag_str:
+            continue
+        if "\x00" in tag_str:
+            continue
+        if any(seq in tag_str for seq in (";", "--", "/*", "*/")):
+            continue
+        normalized.append(tag_str)
+    return normalized[:50]  # limit to prevent overly large queries
+
+
 def query_assets(
     filters: Optional[Dict[str, Any]] = None,
     q: Optional[str] = None,
@@ -828,12 +851,9 @@ def query_assets(
         params.append(filters["workflow_hash"])
 
     # Tags filter (AND logic for multiple tags)
-    if filters.get("tags"):
-        tag_list = filters["tags"] if isinstance(filters["tags"], list) else filters["tags"].split(",")
+    tag_list = _normalize_tags_filter(filters.get("tags"))
+    if tag_list:
         for tag in tag_list:
-            tag = tag.strip()
-            if not tag:
-                continue
             if _JSON1_AVAILABLE:
                 where_clauses.append(
                     "EXISTS (SELECT 1 FROM json_each(assets.tags_json) WHERE value = ?)"
