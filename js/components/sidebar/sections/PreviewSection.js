@@ -1,0 +1,88 @@
+import { buildAssetViewURL } from "../../../api/endpoints.js";
+import { formatFileSize, formatShortDate } from "../utils/format.js";
+
+export function createPreviewSection(asset) {
+    const section = document.createElement("div");
+    section.className = "mjr-sidebar-preview";
+
+    const previewContainer = document.createElement("div");
+    previewContainer.style.cssText = `
+        width: 100%;
+        aspect-ratio: 1;
+        background: black;
+        border-radius: 8px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    `;
+
+    const viewUrl = buildAssetViewURL(asset);
+
+    if (asset.kind === "image") {
+        const img = document.createElement("img");
+        img.src = viewUrl;
+        img.style.cssText = `
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        `;
+        previewContainer.appendChild(img);
+    } else if (asset.kind === "video") {
+        const video = document.createElement("video");
+        video.src = viewUrl;
+        video.controls = true;
+        video.loop = true;
+        video.muted = true;
+        video.style.cssText = `
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        `;
+        previewContainer.appendChild(video);
+    } else {
+        const placeholder = document.createElement("div");
+        placeholder.textContent = asset.kind?.toUpperCase() || "PREVIEW";
+        placeholder.style.cssText = `
+            color: rgba(255,255,255,0.4);
+            font-size: 14px;
+        `;
+        previewContainer.appendChild(placeholder);
+    }
+
+    const metaLine = document.createElement("div");
+    metaLine.className = "mjr-sidebar-preview-meta";
+    metaLine.style.cssText = `
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--mjr-muted, rgba(255,255,255,0.65));
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+        line-height: 1.3;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--mjr-border, rgba(255,255,255,0.12));
+    `;
+
+    const ext = (() => {
+        const name = String(asset?.filename || "");
+        const idx = name.lastIndexOf(".");
+        if (idx === -1) return "";
+        return name.slice(idx + 1).toUpperCase();
+    })();
+
+    const parts = [];
+    if (ext) parts.push(ext);
+    if (asset?.kind) parts.push(String(asset.kind).toLowerCase());
+    const size = formatFileSize(asset?.size);
+    if (size) parts.push(size);
+    const date = formatShortDate(asset?.mtime);
+    if (date) parts.push(date);
+    metaLine.textContent = parts.join(" • ");
+
+    section.appendChild(previewContainer);
+    section.appendChild(metaLine);
+    return section;
+}
+

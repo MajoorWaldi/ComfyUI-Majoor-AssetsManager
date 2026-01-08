@@ -1,0 +1,4 @@
+"""
+Generation-info parsing (GenInfoNormalized).
+"""
+

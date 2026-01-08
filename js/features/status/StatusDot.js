@@ -1,0 +1,509 @@
+/**
+ * Status Dot Feature - Health indicator
+ */
+
+import { get, post } from "../../api/client.js";
+import { ENDPOINTS } from "../../api/endpoints.js";
+import { APP_CONFIG } from "../../app/config.js";
+
+const TOOL_CAPABILITIES = [
+    {
+        key: "exiftool",
+        label: "ExifTool metadata",
+        hint: "PNG/WEBP workflow data (uses ExifTool)"
+    },
+    {
+        key: "ffprobe",
+        label: "FFprobe video stats",
+        hint: "Video duration, FPS, and resolution (uses FFprobe)"
+    }
+];
+
+function setStatusLines(statusText, lines, footerText = null) {
+    if (!statusText) return;
+    statusText.replaceChildren();
+
+    const normalizedLines = Array.isArray(lines) ? lines.filter((l) => l != null && String(l).trim() !== "") : [];
+    normalizedLines.forEach((line, index) => {
+        if (index > 0) statusText.appendChild(document.createElement("br"));
+        statusText.appendChild(document.createTextNode(String(line)));
+    });
+
+    if (footerText != null && String(footerText).trim() !== "") {
+        statusText.appendChild(document.createElement("br"));
+        const span = document.createElement("span");
+        span.style.fontSize = "11px";
+        span.style.opacity = "0.6";
+        span.textContent = String(footerText);
+        statusText.appendChild(span);
+    }
+}
+
+function setStatusWithHint(statusText, mainText, hintText) {
+    if (!statusText) return;
+    statusText.replaceChildren();
+    statusText.appendChild(document.createTextNode(String(mainText || "")));
+    statusText.appendChild(document.createElement("br"));
+    const span = document.createElement("span");
+    span.style.fontSize = "11px";
+    span.style.opacity = "0.7";
+    span.textContent = String(hintText || "");
+    statusText.appendChild(span);
+}
+
+/**
+ * Create status indicator section
+ */
+export function createStatusIndicator() {
+    const section = document.createElement("div");
+    section.style.cssText = "margin-bottom: 20px; padding: 12px; background: var(--bg-color, #1a1a1a); border-radius: 6px; border: 1px solid var(--border-color, #333); cursor: pointer; transition: all 0.2s;";
+
+    // Header container
+    const header = document.createElement("div");
+    header.style.cssText = "display: flex; align-items: center; gap: 10px; margin-bottom: 8px;";
+
+    // Status dot
+    const statusDot = document.createElement("span");
+    statusDot.id = "mjr-status-dot";
+    statusDot.style.cssText = "width: 12px; height: 12px; border-radius: 50%; background: #FFA726; display: inline-block; cursor: pointer;";
+
+    // Title container
+    const titleSpan = document.createElement("span");
+    titleSpan.id = "mjr-status-title";
+    titleSpan.style.cssText = "font-weight: 500; font-size: 13px; cursor: pointer;";
+
+    const indicator = document.createElement("span");
+    indicator.id = "mjr-status-title-indicator";
+    indicator.style.marginRight = "6px";
+    indicator.textContent = "▾";
+
+    titleSpan.appendChild(indicator);
+    titleSpan.appendChild(document.createTextNode("Index Status"));
+
+    header.appendChild(statusDot);
+    header.appendChild(titleSpan);
+
+    // Body container
+    const body = document.createElement("div");
+    body.id = "mjr-status-body";
+    body.style.marginLeft = "22px";
+
+    // Status text
+    const statusText = document.createElement("div");
+    statusText.id = "mjr-status-text";
+    statusText.style.cssText = "font-size: 12px; opacity: 0.8;";
+    statusText.textContent = "Checking...";
+
+    // Capabilities section
+    const capabilities = document.createElement("div");
+    capabilities.id = "mjr-status-capabilities";
+    capabilities.style.cssText = "font-size: 11px; opacity: 0.75; margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap;";
+    capabilities.textContent = "Capabilities: checking...";
+
+    body.appendChild(statusText);
+    body.appendChild(capabilities);
+
+    section.appendChild(header);
+    section.appendChild(body);
+
+
+
+    const title = section.querySelector("#mjr-status-title");
+    if (title) {
+        title.addEventListener("click", (event) => {
+            event.stopPropagation();
+            const body = section.querySelector("#mjr-status-body");
+            if (!body) return;
+            const collapsed = body.style.display === "none";
+            setBodyCollapsed(section, !collapsed);
+        });
+    }
+
+    setBodyCollapsed(section, false);
+    // Add hover effect
+    section.onmouseenter = () => {
+        section.style.borderColor = "var(--mjr-accent-border, var(--border-color, #333))";
+        section.style.background = "var(--mjr-accent-bg, var(--bg-color, #1a1a1a))";
+    };
+    section.onmouseleave = () => {
+        section.style.borderColor = "var(--border-color, #333)";
+        section.style.background = "var(--bg-color, #1a1a1a)";
+    };
+
+    return section;
+}
+
+/**
+ * Trigger a scan
+ */
+export async function triggerScan(statusDot, statusText, capabilitiesSection = null, scanTarget = null) {
+    const desiredScope = String(scanTarget?.scope || "output").toLowerCase();
+    const desiredCustomRootId = scanTarget?.customRootId || scanTarget?.custom_root_id || scanTarget?.root_id || null;
+
+    // Fetch roots so we can show meaningful paths
+    let roots = null;
+    try {
+        const rootsResult = await get(ENDPOINTS.ROOTS);
+        if (rootsResult.ok) roots = rootsResult.data;
+    } catch {}
+
+    // Fallback to config for output directory if roots endpoint is unavailable
+    if (!roots) {
+        const configResult = await get(ENDPOINTS.CONFIG);
+        if (!configResult.ok) {
+            statusText.textContent = "Error: Failed to get config";
+            return;
+        }
+        roots = { output_directory: configResult.data.output_directory };
+    }
+
+    const scopeLabel =
+        desiredScope === "all"
+            ? "Inputs + Outputs"
+            : desiredScope === "input"
+            ? "Inputs"
+            : desiredScope === "custom"
+            ? "Custom"
+            : "Outputs";
+
+    let detail = "";
+    if (desiredScope === "input") detail = roots?.input_directory ? ` (${roots.input_directory})` : "";
+    else if (desiredScope === "custom") {
+        const list = Array.isArray(roots?.custom_roots) ? roots.custom_roots : [];
+        const picked = desiredCustomRootId ? list.find((r) => r?.id === desiredCustomRootId) : null;
+        detail = picked?.path ? ` (${picked.path})` : "";
+    } else if (desiredScope === "output") detail = roots?.output_directory ? ` (${roots.output_directory})` : "";
+
+    // Show scanning status
+    statusDot.style.background = "#FFA726"; // Orange
+    setStatusWithHint(statusText, `Scanning ${scopeLabel}${detail}...`, "This may take a while");
+
+    const payload = {
+        scope: desiredScope,
+        recursive: true,
+        incremental: true,
+        fast: true,
+        background_metadata: true
+    };
+    if (desiredScope === "custom") {
+        if (!desiredCustomRootId) {
+            statusDot.style.background = "#f44336";
+            statusText.textContent = "Select a custom folder first";
+            return;
+        }
+        payload.custom_root_id = desiredCustomRootId;
+    }
+
+    // Trigger scan
+    const scanResult = await post(ENDPOINTS.SCAN, payload);
+
+    if (scanResult.ok) {
+        const stats = scanResult.data;
+        statusDot.style.background = "#4CAF50"; // Green
+        setStatusWithHint(
+            statusText,
+            "Scan complete!",
+            `Added: ${stats.added || 0}  -  Updated: ${stats.updated || 0}  -  Skipped: ${stats.skipped || 0}`
+        );
+
+        // Refresh status after 2 seconds
+        setTimeout(() => {
+            updateStatus(statusDot, statusText, capabilitiesSection);
+        }, 2000);
+    } else {
+        statusDot.style.background = "#f44336"; // Red
+        setStatusLines(statusText, [`Scan failed: ${scanResult.error || "Unknown error"}`]);
+
+        // Restore status after 3 seconds
+        setTimeout(() => {
+            updateStatus(statusDot, statusText, capabilitiesSection);
+        }, 3000);
+    }
+}
+
+function createCapabilityBadge(label, available, hint) {
+    const badge = document.createElement("span");
+    badge.style.cssText = `
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 6px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    `;
+    badge.textContent = `${available ? "✅" : "❌"} ${label}`;
+    badge.title = available ? `${label} available` : hint || `${label} unavailable`;
+    badge.style.opacity = available ? "1" : "0.75";
+    return badge;
+}
+
+function renderCapabilities(section, toolAvailability = {}, toolPaths = {}) {
+    if (!section) return;
+    section.replaceChildren();
+    if (!toolAvailability || Object.keys(toolAvailability).length === 0) {
+        section.textContent = "Capabilities: discovering tools...";
+        return;
+    }
+
+    const wrapper = document.createElement("div");
+    wrapper.style.display = "flex";
+    wrapper.style.flexWrap = "wrap";
+    wrapper.style.gap = "10px";
+    wrapper.style.alignItems = "flex-start";
+
+    TOOL_CAPABILITIES.forEach(({ key, label, hint }) => {
+        const available = Boolean(toolAvailability[key]);
+        const path = toolPaths[key];
+        wrapper.appendChild(createCapabilityNode({ label, hint }, available, path));
+    });
+
+    section.appendChild(wrapper);
+}
+
+function createCapabilityNode({ label, hint }, available, path) {
+    const container = document.createElement("div");
+    container.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        padding: 6px 8px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        min-width: 170px;
+    `;
+
+    const badge = createCapabilityBadge(label, available, hint);
+    badge.style.fontWeight = "500";
+    container.appendChild(badge);
+
+    const pathLine = document.createElement("span");
+    pathLine.style.fontSize = "10px";
+    pathLine.style.opacity = "0.7";
+    pathLine.style.wordBreak = "break-all";
+    pathLine.textContent = `Path: ${path ? path : "auto / not configured"}`;
+    container.appendChild(pathLine);
+
+    return container;
+}
+
+function setBodyCollapsed(section, collapsed) {
+    const body = section.querySelector("#mjr-status-body");
+    const indicator = section.querySelector("#mjr-status-title-indicator");
+    if (!body || !indicator) return;
+    if (collapsed) {
+        body.style.display = "none";
+        indicator.textContent = "▸";
+    } else {
+        body.style.display = "";
+        indicator.textContent = "▾";
+    }
+}
+export async function updateStatus(statusDot, statusText, capabilitiesSection = null, scanTarget = null, meta = null) {
+    // Optional: caller-provided object to read the last HTTP error details from.
+    // (Used by the polling loop to avoid relying on string matching.)
+    if (meta && typeof meta === "object") {
+        meta.lastCode = null;
+        meta.lastStatus = null;
+    }
+
+    const desiredScope = String(scanTarget?.scope || "output").toLowerCase();
+    const desiredCustomRootId = scanTarget?.customRootId || scanTarget?.custom_root_id || scanTarget?.root_id || null;
+    const url =
+        desiredScope === "custom"
+            ? `${ENDPOINTS.HEALTH_COUNTERS}?scope=custom&custom_root_id=${encodeURIComponent(String(desiredCustomRootId || ""))}`
+            : `${ENDPOINTS.HEALTH_COUNTERS}?scope=${encodeURIComponent(desiredScope || "output")}`;
+    const result = await get(url);
+
+    if (meta && typeof meta === "object") {
+        meta.lastCode = result?.code || null;
+        meta.lastStatus = typeof result?.status === "number" ? result.status : null;
+    }
+
+    if (result.ok) {
+        const counters = result.data;
+        const totalAssets = counters.total_assets || 0;
+        const withWorkflows = counters.with_workflows ?? 0;
+        const withGenerationData = counters.with_generation_data ?? 0;
+        const lastScanRaw = counters.last_scan_end;
+        const lastScanText = lastScanRaw ? new Date(lastScanRaw).toLocaleString() : "N/A";
+        const toolAvailability = counters.tool_availability || {};
+        const toolPaths = counters.tool_paths || {};
+
+        renderCapabilities(capabilitiesSection, toolAvailability, toolPaths);
+
+        const scopeLabel =
+            desiredScope === "all"
+                ? "All (Inputs + Outputs)"
+                : desiredScope === "input"
+                ? "Inputs"
+                : desiredScope === "custom"
+                ? "Custom"
+                : "Outputs";
+
+        if (totalAssets === 0) {
+            // No assets indexed - yellow
+            statusDot.style.background = "#FFA726";
+            statusText.textContent = `No assets indexed yet (${scopeLabel})`;
+        } else {
+            // Assets indexed - green
+            statusDot.style.background = "#4CAF50";
+            setStatusLines(
+                statusText,
+                [
+                    `${totalAssets.toLocaleString()} assets indexed (${scopeLabel})`,
+                    `Images: ${counters.images || 0}  -  Videos: ${counters.videos || 0}`,
+                    `With workflows: ${withWorkflows}  -  Generation data: ${withGenerationData}`,
+                ],
+                `Last scan: ${lastScanText}`
+            );
+        }
+        return counters;
+    } else {
+        // Error - red
+        renderCapabilities(capabilitiesSection, {}, {});
+        statusDot.style.background = "#f44336";
+        if (result?.code === "INVALID_RESPONSE" && result?.status === 404) {
+            setStatusWithHint(
+                statusText,
+                "Majoor API endpoints not found (404)",
+                "Backend routes are not loaded. Restart ComfyUI and check the terminal for Majoor import errors."
+            );
+        } else {
+            setStatusLines(statusText, [result.error || "Error checking status"]);
+        }
+        if (result.code === "SERVICE_UNAVAILABLE") {
+            const retryBtn = createRetryButton(statusDot, statusText, capabilitiesSection);
+            statusText.appendChild(document.createElement("br"));
+            statusText.appendChild(retryBtn);
+        }
+    }
+    return null;
+}
+
+function createRetryButton(statusDot, statusText, capabilitiesSection = null) {
+    const button = document.createElement("button");
+    button.textContent = "Retry services";
+    button.style.cssText = `
+        padding: 4px 10px;
+        margin-top: 6px;
+        font-size: 11px;
+        border-radius: 4px;
+        border: 1px solid rgba(255,255,255,0.3);
+        background: transparent;
+        color: white;
+        cursor: pointer;
+    `;
+
+    button.onclick = async () => {
+        button.disabled = true;
+        button.textContent = "Retrying...";
+        const retryResult = await post(ENDPOINTS.RETRY_SERVICES, {});
+        button.disabled = false;
+        button.textContent = "Retry services";
+        if (retryResult.ok) {
+            const target = typeof getScanTarget === "function" ? getScanTarget() : null;
+            updateStatus(statusDot, statusText, capabilitiesSection, target);
+        } else {
+            setStatusLines(statusText, [retryResult.error || "Retry failed"]);
+            statusText.appendChild(document.createElement("br"));
+            statusText.appendChild(button);
+        }
+    };
+
+    return button;
+}
+
+/**
+ * Setup status polling
+ */
+export function setupStatusPolling(
+    statusDot,
+    statusText,
+    section,
+    capabilitiesSection = null,
+    onCountersUpdate = null,
+    getScanTarget = null
+) {
+    const GLOBAL_POLL_KEY = "__MJR_STATUS_POLL_DISPOSE__";
+    const pollMeta = { lastCode: null, lastStatus: null };
+
+    const handleUpdate = async () => {
+        const target = typeof getScanTarget === "function" ? getScanTarget() : null;
+        const counters = await updateStatus(statusDot, statusText, capabilitiesSection, target, pollMeta);
+        if (counters && typeof onCountersUpdate === "function") {
+            onCountersUpdate(counters);
+        }
+        return counters;
+    };
+
+    // Initial update
+    handleUpdate();
+
+    try {
+        section._mjrStatusPollDispose?.();
+    } catch {}
+
+    // Ensure only one polling loop exists globally (panel rerenders can otherwise duplicate timers).
+    try {
+        const oldGlobalDispose = window?.[GLOBAL_POLL_KEY];
+        if (typeof oldGlobalDispose === "function") oldGlobalDispose();
+    } catch {}
+
+    // Poll using a dynamic interval so settings changes apply without reload.
+    let pollTimerId = null;
+    let consecutiveFailures = 0;
+    let lastWasMissingEndpoint = false;
+
+    const scheduleNext = () => {
+        const baseMs = Math.max(250, Number(APP_CONFIG.STATUS_POLL_INTERVAL) || 2000);
+        const waitMs = lastWasMissingEndpoint
+            ? Math.max(30_000, baseMs)
+            : consecutiveFailures > 0
+            ? Math.min(60_000, Math.round(baseMs * Math.min(8, 1 + consecutiveFailures)))
+            : baseMs;
+
+        pollTimerId = setTimeout(async () => {
+            const counters = await handleUpdate();
+
+            // If the backend routes aren't loaded, ComfyUI returns an HTML 404 page (non-JSON).
+            // Back off to avoid spamming the console/network.
+            lastWasMissingEndpoint = pollMeta.lastCode === "INVALID_RESPONSE" && pollMeta.lastStatus === 404;
+            if (counters) {
+                consecutiveFailures = 0;
+            } else if (lastWasMissingEndpoint) {
+                consecutiveFailures = Math.min(999, consecutiveFailures + 1);
+            } else {
+                consecutiveFailures = Math.min(999, consecutiveFailures + 1);
+            }
+
+            // After a few consecutive 404s, stop polling entirely until reload.
+            if (lastWasMissingEndpoint && consecutiveFailures >= 3) {
+                try {
+                    section._mjrStatusPollDispose?.();
+                } catch {}
+                return;
+            }
+            scheduleNext();
+        }, waitMs);
+    };
+    section._mjrStatusPollDispose = () => {
+        if (pollTimerId) clearTimeout(pollTimerId);
+        pollTimerId = null;
+    };
+    try {
+        window[GLOBAL_POLL_KEY] = section._mjrStatusPollDispose;
+    } catch {}
+    scheduleNext();
+
+    const statusDotEl = section.querySelector("#mjr-status-dot");
+    if (statusDotEl) {
+        statusDotEl.onclick = (event) => {
+            event.stopPropagation();
+            const target = typeof getScanTarget === "function" ? getScanTarget() : null;
+            triggerScan(statusDot, statusText, capabilitiesSection, target);
+        };
+        statusDotEl.title = "Click to scan";
+    }
+}

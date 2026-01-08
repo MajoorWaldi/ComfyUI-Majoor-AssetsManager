@@ -1,0 +1,420 @@
+/**
+ * Majoor Assets Manager - ComfyUI Extension
+ */
+
+import { app } from "../../scripts/app.js";
+import { api } from "../../scripts/api.js";
+
+// Test API connection
+async function testAPI() {
+    try {
+        console.log("📂 Majoor: Testing API connection...");
+        const response = await fetch("/mjr/am/health");
+        const data = await response.json();
+
+        if (data.ok) {
+            console.log("📂 Majoor [✅]: API connection successful!");
+            console.log("📂 Majoor [ℹ️]: Health status:", data.data.overall);
+        } else {
+            console.error("📂 Majoor [❌]: API health check failed:", data.error);
+        }
+    } catch (error) {
+        console.error("📂 Majoor [❌]: Failed to connect to API:", error);
+    }
+}
+
+// Get ComfyUI output directory
+let outputDirectory = null;
+async function getOutputDirectory() {
+    if (outputDirectory) return outputDirectory;
+
+    try {
+        const response = await fetch("/mjr/am/config");
+        const result = await response.json();
+        if (result.ok) {
+            outputDirectory = result.data.output_directory;
+            console.log("📂 Majoor [ℹ️]: Output directory:", outputDirectory);
+            return outputDirectory;
+        }
+    } catch (error) {
+        console.error("📂 Majoor [❌]: Failed to get output directory:", error);
+    }
+    return "output"; // fallback
+}
+
+// Auto-scan on first render (once per session)
+let autoScanDone = false;
+async function triggerAutoScan() {
+    if (autoScanDone) return;
+    autoScanDone = true;
+
+    try {
+        console.log("📂 Majoor [ℹ️]: Starting auto-scan of output directory...");
+        const response = await fetch("/mjr/am/scan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                recursive: true,
+                incremental: true
+            })
+        });
+
+        const result = await response.json();
+        if (result.ok) {
+            const stats = result.data;
+            console.log(`📂 Majoor [✅]: Auto-scan complete! Added: ${stats.added}, Updated: ${stats.updated}, Skipped: ${stats.skipped}`);
+        } else {
+            console.warn("📂 Majoor [⚠️]: Auto-scan failed:", result.error);
+        }
+    } catch (error) {
+        console.error("📂 Majoor [❌]: Auto-scan error:", error);
+    }
+}
+
+// Render the assets manager UI
+async function renderAssetsManager(container) {
+    // Trigger auto-scan on first render
+    triggerAutoScan();
+
+    container.innerHTML = "";
+    container.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+    `;
+
+    // Header
+    const header = document.createElement("div");
+    header.style.cssText = `
+        padding: 15px;
+        border-bottom: 1px solid var(--border-color, #444);
+        background: var(--comfy-menu-bg, #333);
+    `;
+    header.innerHTML = `
+        <h3 style="margin: 0; font-size: 16px; font-weight: 600;">📂 Majoor Assets Manager</h3>
+    `;
+
+    // Content
+    const content = document.createElement("div");
+    content.style.cssText = `
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+    `;
+
+    // Status indicator section
+    const statusSection = document.createElement("div");
+    statusSection.style.cssText = "margin-bottom: 20px; padding: 12px; background: var(--bg-color, #1a1a1a); border-radius: 6px; border: 1px solid var(--border-color, #333);";
+    statusSection.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+            <span id="mjr-status-dot" style="
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background: #666;
+                display: inline-block;
+            "></span>
+            <span style="font-weight: 500; font-size: 13px;">Index Status</span>
+        </div>
+        <div id="mjr-status-text" style="font-size: 12px; opacity: 0.8; margin-left: 22px;">
+            Checking...
+        </div>
+    `;
+
+    // Search section
+    const searchSection = document.createElement("div");
+    searchSection.style.cssText = "margin-bottom: 20px;";
+    searchSection.innerHTML = `
+        <h4 style="margin: 0 0 10px 0; font-size: 14px;">Search Assets</h4>
+        <div style="display: flex; gap: 8px;">
+            <input type="text" id="mjr-search-input" placeholder="Search by filename..." style="
+                flex: 1;
+                padding: 8px 12px;
+                background: var(--bg-color, #222);
+                border: 1px solid var(--border-color, #444);
+                border-radius: 4px;
+                color: var(--fg-color, #fff);
+                font-size: 13px;
+            ">
+            <button id="mjr-search-btn" style="
+                padding: 8px 16px;
+                background: #2196F3;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 13px;
+            ">Search</button>
+        </div>
+    `;
+
+    // Browse section with grid
+    const browseSection = document.createElement("div");
+    browseSection.style.cssText = "margin-top: 20px;";
+    browseSection.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+            <h4 style="margin: 0; font-size: 14px;">Browse All Assets</h4>
+            <button id="mjr-load-all-btn" style="
+                padding: 6px 12px;
+                background: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 12px;
+            ">Load Assets</button>
+        </div>
+        <div id="mjr-assets-grid" style="
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        "></div>
+    `;
+
+    content.appendChild(statusSection);
+    content.appendChild(searchSection);
+    content.appendChild(browseSection);
+    container.appendChild(header);
+    container.appendChild(content);
+
+    // Setup status indicator
+    const statusDot = container.querySelector("#mjr-status-dot");
+    const statusText = container.querySelector("#mjr-status-text");
+
+    async function updateStatus() {
+        try {
+            const response = await fetch("/mjr/am/health/counters");
+            const result = await response.json();
+
+            if (result.ok) {
+                const counters = result.data;
+                const totalAssets = counters.total_assets || 0;
+
+                if (totalAssets === 0) {
+                    // No assets indexed - yellow
+                    statusDot.style.background = "#FFA726";
+                    statusText.textContent = "No assets indexed yet";
+                } else {
+                    // Assets indexed - green
+                    statusDot.style.background = "#4CAF50";
+                    statusText.innerHTML = `
+                        ${totalAssets.toLocaleString()} assets indexed<br>
+                        Images: ${counters.images || 0} • Videos: ${counters.videos || 0}<br>
+                        With workflows: ${counters.with_workflows || 0}
+                    `;
+                }
+            } else {
+                // Error - red
+                statusDot.style.background = "#f44336";
+                statusText.textContent = "Error checking status";
+            }
+        } catch (error) {
+            // Error - red
+            statusDot.style.background = "#f44336";
+            statusText.textContent = "Failed to connect";
+        }
+    }
+
+    // Update status on load and every 5 seconds
+    updateStatus();
+    setInterval(updateStatus, 5000);
+
+    // Setup search
+    const searchInput = container.querySelector("#mjr-search-input");
+    const searchBtn = container.querySelector("#mjr-search-btn");
+    const assetsGrid = container.querySelector("#mjr-assets-grid");
+    const loadAllBtn = container.querySelector("#mjr-load-all-btn");
+
+    // Function to render asset card
+    const renderAssetCard = (asset) => {
+        const card = document.createElement("div");
+        card.style.cssText = `
+            background: var(--bg-color, #222);
+            border: 1px solid var(--border-color, #444);
+            border-radius: 4px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+        `;
+        card.onmouseenter = () => {
+            card.style.transform = "scale(1.05)";
+            card.style.borderColor = "#2196F3";
+        };
+        card.onmouseleave = () => {
+            card.style.transform = "scale(1)";
+            card.style.borderColor = "var(--border-color, #444)";
+        };
+
+        // Thumbnail (placeholder or actual image)
+        const thumb = document.createElement("div");
+        thumb.style.cssText = `
+            width: 100%;
+            padding-top: 100%;
+            background: #1a1a1a;
+            position: relative;
+            overflow: hidden;
+        `;
+
+        if (asset.kind === "image") {
+            const img = document.createElement("img");
+            const viewUrl = `/view?filename=${encodeURIComponent(asset.filename)}${asset.subfolder ? '&subfolder=' + encodeURIComponent(asset.subfolder) : ''}&type=output`;
+            img.src = viewUrl;
+            img.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            `;
+            thumb.appendChild(img);
+        } else if (asset.kind === "video") {
+            const videoIcon = document.createElement("div");
+            videoIcon.textContent = "🎬";
+            videoIcon.style.cssText = `
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                font-size: 32px;
+            `;
+            thumb.appendChild(videoIcon);
+        }
+
+        // Info section
+        const info = document.createElement("div");
+        info.style.cssText = `
+            padding: 8px;
+            font-size: 11px;
+        `;
+        info.innerHTML = `
+            <div style="font-weight: 500; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${asset.filename}">
+                ${asset.filename}
+            </div>
+            <div style="opacity: 0.6; font-size: 10px;">
+                ${asset.kind}${asset.has_workflow ? ' • ⚡' : ''}
+            </div>
+        `;
+
+        card.appendChild(thumb);
+        card.appendChild(info);
+
+        // Click to open viewer
+        card.onclick = () => {
+            const viewUrl = `/view?filename=${encodeURIComponent(asset.filename)}${asset.subfolder ? '&subfolder=' + encodeURIComponent(asset.subfolder) : ''}&type=output`;
+            window.open(viewUrl, '_blank');
+        };
+
+        return card;
+    };
+
+    // Load all assets
+    const loadAllAssets = async () => {
+        try {
+            loadAllBtn.disabled = true;
+            loadAllBtn.textContent = "Loading...";
+            assetsGrid.innerHTML = '<p style="color: #888; font-size: 13px;">Loading assets...</p>';
+
+            // Use search with wildcard to get all assets
+            const response = await fetch('/mjr/am/search?q=*&limit=100');
+            const result = await response.json();
+
+            if (result.ok) {
+                const assets = result.data.assets;
+                if (assets.length === 0) {
+                    assetsGrid.innerHTML = '<p style="color: #888; font-size: 13px;">No assets found</p>';
+                } else {
+                    assetsGrid.innerHTML = '';
+                    assets.forEach(asset => {
+                        assetsGrid.appendChild(renderAssetCard(asset));
+                    });
+                }
+            } else {
+                assetsGrid.innerHTML = `<p style="color: #f44336; font-size: 13px;">Error: ${result.error}</p>`;
+            }
+        } catch (error) {
+            assetsGrid.innerHTML = `<p style="color: #f44336; font-size: 13px;">Failed to load assets: ${error.message}</p>`;
+        } finally {
+            loadAllBtn.disabled = false;
+            loadAllBtn.textContent = "Refresh";
+        }
+    };
+
+    // Search functionality
+    const performSearch = async () => {
+        const query = searchInput.value.trim();
+        if (!query) {
+            assetsGrid.innerHTML = '<p style="color: #888; font-size: 13px;">Enter a search term or click "Load Assets"</p>';
+            return;
+        }
+
+        try {
+            assetsGrid.innerHTML = '<p style="color: #888; font-size: 13px;">Searching...</p>';
+
+            const response = await fetch(`/mjr/am/search?q=${encodeURIComponent(query)}&limit=50`);
+            const result = await response.json();
+
+            if (result.ok) {
+                const assets = result.data.assets;
+                if (assets.length === 0) {
+                    assetsGrid.innerHTML = '<p style="color: #888; font-size: 13px;">No results found</p>';
+                } else {
+                    assetsGrid.innerHTML = '';
+                    assets.forEach(asset => {
+                        assetsGrid.appendChild(renderAssetCard(asset));
+                    });
+                }
+            } else {
+                assetsGrid.innerHTML = `<p style="color: #f44336; font-size: 13px;">Error: ${result.error}</p>`;
+            }
+        } catch (error) {
+            assetsGrid.innerHTML = `<p style="color: #f44336; font-size: 13px;">Search failed: ${error.message}</p>`;
+        }
+    };
+
+    loadAllBtn.onclick = loadAllAssets;
+    searchBtn.onclick = performSearch;
+    searchInput.onkeypress = (e) => {
+        if (e.key === "Enter") performSearch();
+    };
+
+    // Auto-load assets on startup if there are any indexed
+    setTimeout(async () => {
+        const response = await fetch("/mjr/am/health/counters");
+        const result = await response.json();
+        if (result.ok && result.data.total_assets > 0) {
+            loadAllAssets();
+        }
+    }, 1000);
+}
+
+// Register extension
+app.registerExtension({
+    name: "Majoor.AssetsManager",
+
+    async setup() {
+        console.log("📂 Majoor: Extension loaded");
+        await testAPI();
+
+        // Register sidebar tab using ComfyUI's modern API
+        if (app.extensionManager?.registerSidebarTab) {
+            try {
+                app.extensionManager.registerSidebarTab({
+                    id: "majoorAssetsManager",
+                    icon: "pi pi-folder-open",
+                    title: "Assets Manager",
+                    tooltip: "Majoor Assets Manager",
+                    type: "custom",
+                    render: (el) => renderAssetsManager(el),
+                });
+                console.log("📂 Majoor [✅]: Sidebar tab registered");
+            } catch (err) {
+                console.error("📂 Majoor [❌]: Sidebar registration failed", err);
+            }
+        } else {
+            console.warn("📂 Majoor [⚠️]: extensionManager.registerSidebarTab not available");
+        }
+    }
+});

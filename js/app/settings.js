@@ -1,0 +1,199 @@
+/**
+ * Majoor settings integration with ComfyUI settings panel.
+ */
+
+import { APP_CONFIG } from "./config.js";
+import { invalidateObsCache } from "../api/client.js";
+import { safeDispatchCustomEvent } from "../utils/events.js";
+
+const SETTINGS_KEY = "mjrSettings";
+const SETTINGS_PREFIX = "Majoor";
+
+const DEFAULT_SETTINGS = {
+    grid: {
+        pageSize: APP_CONFIG.DEFAULT_PAGE_SIZE
+    },
+    autoScan: {
+        enabled: APP_CONFIG.AUTO_SCAN_ENABLED,
+        onStartup: APP_CONFIG.AUTO_SCAN_ON_STARTUP
+    },
+    status: {
+        pollInterval: APP_CONFIG.STATUS_POLL_INTERVAL
+    },
+    observability: {
+        enabled: false
+    },
+    sidebar: {
+        position: "right"  // "left" or "right"
+    }
+};
+
+const deepMerge = (base, next) => {
+    const output = { ...base };
+    if (!next || typeof next !== "object") {
+        return output;
+    }
+    Object.keys(next).forEach((key) => {
+        const value = next[key];
+        if (value && typeof value === "object" && !Array.isArray(value)) {
+            output[key] = deepMerge(base[key] || {}, value);
+        } else if (value !== undefined) {
+            output[key] = value;
+        }
+    });
+    return output;
+};
+
+export const loadMajoorSettings = () => {
+    if (typeof localStorage === "undefined") {
+        return { ...DEFAULT_SETTINGS };
+    }
+    try {
+        const raw = localStorage.getItem(SETTINGS_KEY);
+        if (!raw) return { ...DEFAULT_SETTINGS };
+        const parsed = JSON.parse(raw);
+        return deepMerge(DEFAULT_SETTINGS, parsed);
+    } catch (error) {
+        console.warn("[Majoor] settings load failed, using defaults", error);
+        return { ...DEFAULT_SETTINGS };
+    }
+};
+
+export const saveMajoorSettings = (settings) => {
+    if (typeof localStorage === "undefined") return;
+    try {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    } catch (error) {
+        console.warn("[Majoor] settings save failed", error);
+    }
+};
+
+const applySettingsToConfig = (settings) => {
+    const maxPage = Number(APP_CONFIG.MAX_PAGE_SIZE) || 2000;
+    const pageSize = Math.max(50, Math.min(maxPage, Number(settings.grid?.pageSize) || APP_CONFIG.DEFAULT_PAGE_SIZE));
+    APP_CONFIG.DEFAULT_PAGE_SIZE = pageSize;
+    APP_CONFIG.AUTO_SCAN_ENABLED = !!settings.autoScan?.enabled;
+    APP_CONFIG.AUTO_SCAN_ON_STARTUP = !!settings.autoScan?.onStartup;
+    APP_CONFIG.STATUS_POLL_INTERVAL = Math.max(1000, Number(settings.status?.pollInterval) || APP_CONFIG.STATUS_POLL_INTERVAL);
+};
+
+export const registerMajoorSettings = (app, onApplied) => {
+    const settings = loadMajoorSettings();
+    applySettingsToConfig(settings);
+
+    if (!app?.ui?.settings?.addSetting) {
+        return settings;
+    }
+
+    const notifyApplied = (key) => {
+        if (typeof onApplied === "function") {
+            onApplied(settings, key);
+        }
+        safeDispatchCustomEvent("mjr-settings-changed", { key }, { warnPrefix: "[Majoor]" });
+    };
+
+    app.ui.settings.addSetting({
+        id: `${SETTINGS_PREFIX}.Grid.PageSize`,
+        name: "Majoor: Page Size (files per request)",
+        tooltip: "Bigger loads more at once; smaller reduces memory.",
+        type: "number",
+        defaultValue: settings.grid.pageSize,
+        attrs: { min: 50, max: Number(APP_CONFIG.MAX_PAGE_SIZE) || 2000, step: 50 },
+        onChange: (val) => {
+            const maxPage = Number(APP_CONFIG.MAX_PAGE_SIZE) || 2000;
+            settings.grid.pageSize = Math.max(50, Math.min(maxPage, Number(val) || DEFAULT_SETTINGS.grid.pageSize));
+            saveMajoorSettings(settings);
+            applySettingsToConfig(settings);
+            notifyApplied("grid.pageSize");
+        }
+    });
+
+    app.ui.settings.addSetting({
+        id: `${SETTINGS_PREFIX}.AutoScan.Enabled`,
+        name: "Majoor: Auto-scan on open",
+        type: "boolean",
+        defaultValue: settings.autoScan.enabled,
+        onChange: (val) => {
+            settings.autoScan.enabled = !!val;
+            saveMajoorSettings(settings);
+            applySettingsToConfig(settings);
+            notifyApplied("autoScan.enabled");
+        }
+    });
+
+    app.ui.settings.addSetting({
+        id: `${SETTINGS_PREFIX}.AutoScan.OnStartup`,
+        name: "Majoor: Auto-scan at ComfyUI startup",
+        tooltip: "Starts a background scan as soon as ComfyUI loads in your browser (before opening the panel).",
+        type: "boolean",
+        defaultValue: !!settings.autoScan?.onStartup,
+        onChange: (val) => {
+            settings.autoScan = settings.autoScan || {};
+            settings.autoScan.onStartup = !!val;
+            saveMajoorSettings(settings);
+            applySettingsToConfig(settings);
+            notifyApplied("autoScan.onStartup");
+        }
+    });
+
+    app.ui.settings.addSetting({
+        id: `${SETTINGS_PREFIX}.Status.PollInterval`,
+        name: "Majoor: Status poll interval (ms)",
+        tooltip: "Reload the page to apply.",
+        type: "number",
+        defaultValue: settings.status.pollInterval,
+        attrs: { min: 1000, max: 60000, step: 500 },
+        onChange: (val) => {
+            settings.status.pollInterval = Math.max(1000, Number(val) || DEFAULT_SETTINGS.status.pollInterval);
+            saveMajoorSettings(settings);
+            applySettingsToConfig(settings);
+            notifyApplied("status.pollInterval");
+        }
+    });
+
+    app.ui.settings.addSetting({
+        id: `${SETTINGS_PREFIX}.Observability.Enabled`,
+        name: "Majoor: Observability (request logging)",
+        tooltip: "Enables backend request logs for debugging. When disabled, Majoor will send X-MJR-OBS: off to suppress request logs.",
+        type: "boolean",
+        defaultValue: !!settings.observability?.enabled,
+        onChange: (val) => {
+            settings.observability = settings.observability || {};
+            settings.observability.enabled = !!val;
+            saveMajoorSettings(settings);
+            invalidateObsCache();
+            notifyApplied("observability.enabled");
+        }
+    });
+
+    app.ui.settings.addSetting({
+        id: `${SETTINGS_PREFIX}.Sidebar.Position`,
+        name: "Majoor: Sidebar position",
+        tooltip: "Choose whether the asset details sidebar appears on the left or right side of the panel. Reload the page to apply.",
+        type: "combo",
+        defaultValue: settings.sidebar?.position || "right",
+        options: ["left", "right"],
+        onChange: (val) => {
+            settings.sidebar = settings.sidebar || {};
+            settings.sidebar.position = val === "left" ? "left" : "right";
+            saveMajoorSettings(settings);
+            notifyApplied("sidebar.position");
+        }
+    });
+
+    app.ui.settings.addSetting({
+        id: `${SETTINGS_PREFIX}.RatingTagsSync.Enabled`,
+        name: "Majoor: Sync rating/tags to files",
+        tooltip: "When enabled, Majoor will request the backend to write your rating/tags into the file metadata (ExifTool). On Windows, it may also try a Shell fallback if ExifTool fails.",
+        type: "boolean",
+        defaultValue: !!settings.ratingTagsSync?.enabled,
+        onChange: (val) => {
+            settings.ratingTagsSync = settings.ratingTagsSync || {};
+            settings.ratingTagsSync.enabled = !!val;
+            saveMajoorSettings(settings);
+            notifyApplied("ratingTagsSync.enabled");
+        }
+    });
+
+    return settings;
+};

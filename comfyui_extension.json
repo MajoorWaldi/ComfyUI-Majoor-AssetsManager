@@ -1,7 +1,11 @@
 {
-  "name": "Majoor-AssetsManager",
-  "version": "1.0.2",
-  "author": "Ewald ALOEBOETOE (Majoor)",
-  "frontend": "js/",
-  "backend": "server/"
+  "name": "ComfyUI-Majoor-AssetsManager",
+  "version": "0.1.0",
+  "author": "Majoor",
+  "description": "Advanced asset browser for ComfyUI with ratings, tags, and metadata management",
+  "license": "MIT",
+  "repository": "",
+  "install_type": "git-clone",
+  "js_path": "js",
+  "nodename_pattern": "^Majoor"
 }

@@ -1,0 +1,662 @@
+"""
+Metadata service - coordinates metadata extraction from multiple sources.
+"""
+import logging
+import os
+import time
+from pathlib import Path
+from typing import Dict, Any, Optional
+
+from ...shared import Result, ErrorCode, get_logger, classify_file, log_structured
+from ...adapters.tools import ExifTool, FFProbe
+from .extractors import (
+    extract_png_metadata,
+    extract_webp_metadata,
+    extract_video_metadata,
+    extract_rating_tags_from_exif,
+)
+from ..geninfo.parser import parse_geninfo_from_prompt
+
+logger = get_logger(__name__)
+
+
+def _clean_model_name(value: Any) -> Optional[str]:
+    if value is None:
+        return None
+    s = str(value).strip()
+    if not s:
+        return None
+    s = s.replace("\\", "/").split("/")[-1]
+    lower = s.lower()
+    for ext in (".safetensors", ".ckpt", ".pt", ".pth", ".bin", ".gguf", ".json"):
+        if lower.endswith(ext):
+            return s[: -len(ext)]
+    return s
+
+
+def _build_geninfo_from_parameters(meta: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """
+    Build a backend `geninfo` object from explicit A1111/Forge-style parameters data.
+
+    Accuracy-first (no guessing): only uses fields already parsed by the extractor.
+    """
+    if not isinstance(meta, dict):
+        return None
+
+    pos = meta.get("prompt")
+    neg = meta.get("negative_prompt")
+    steps = meta.get("steps")
+    sampler = meta.get("sampler")
+    scheduler = meta.get("scheduler")
+    cfg = meta.get("cfg")
+    seed = meta.get("seed")
+    w = meta.get("width")
+    h = meta.get("height")
+    model = meta.get("model")
+
+    has_any = any(v is not None and v != "" for v in (pos, neg, steps, sampler, cfg, seed, w, h, model))
+    if not has_any:
+        return None
+
+    out: Dict[str, Any] = {"engine": {"parser_version": "geninfo-params-v1", "source": "parameters"}}
+
+    if isinstance(pos, str) and pos.strip():
+        out["positive"] = {"value": pos.strip(), "confidence": "high", "source": "parameters"}
+    if isinstance(neg, str) and neg.strip():
+        out["negative"] = {"value": neg.strip(), "confidence": "high", "source": "parameters"}
+
+    if sampler is not None:
+        out["sampler"] = {"name": str(sampler), "confidence": "high", "source": "parameters"}
+    if scheduler is not None:
+        out["scheduler"] = {"name": str(scheduler), "confidence": "high", "source": "parameters"}
+
+    if steps is not None:
+        try:
+            out["steps"] = {"value": int(steps), "confidence": "high", "source": "parameters"}
+        except Exception:
+            pass
+    if cfg is not None:
+        try:
+            out["cfg"] = {"value": float(cfg), "confidence": "high", "source": "parameters"}
+        except Exception:
+            pass
+    if seed is not None:
+        try:
+            out["seed"] = {"value": int(seed), "confidence": "high", "source": "parameters"}
+        except Exception:
+            pass
+
+    if w is not None and h is not None:
+        try:
+            out["size"] = {"width": int(w), "height": int(h), "confidence": "high", "source": "parameters"}
+        except Exception:
+            pass
+
+    ckpt = _clean_model_name(model)
+    if ckpt:
+        out["checkpoint"] = {"name": ckpt, "confidence": "high", "source": "parameters"}
+        out["models"] = {"checkpoint": out["checkpoint"]}
+
+    return out if len(out.keys()) > 1 else None
+
+
+def _looks_like_media_pipeline(prompt_graph: Any) -> bool:
+    """
+    Detect "media-only" graphs (load video -> combine/save) that do not represent generation.
+
+    Used to avoid marking such assets as having generation data.
+    """
+    if not isinstance(prompt_graph, dict) or not prompt_graph:
+        return False
+    try:
+        types = []
+        for node in prompt_graph.values():
+            if not isinstance(node, dict):
+                continue
+            ct = str(node.get("class_type") or node.get("type") or "").lower()
+            if ct:
+                types.append(ct)
+        if not types:
+            return False
+
+        # If any sampler-like node exists, it's not media-only.
+        if any(("ksampler" in t and "select" not in t) or ("samplercustom" in t) for t in types):
+            return False
+        if any("sampler" in t and "select" not in t for t in types):
+            return False
+
+        has_load = any("loadvideo" in t or "vhs_loadvideo" in t for t in types)
+        has_combine = any("videocombine" in t or "video_combine" in t or "vhs_videocombine" in t for t in types)
+        has_save = any(t.startswith("save") or "savevideo" in t or "savegif" in t or "saveanimatedwebp" in t for t in types)
+        return has_load and (has_combine or has_save)
+    except Exception:
+        return False
+
+class MetadataService:
+    """
+    Metadata extraction service.
+
+    Orchestrates extraction from multiple tools (ExifTool, FFProbe)
+    and file-specific extractors.
+    """
+
+    def __init__(self, exiftool: ExifTool, ffprobe: FFProbe):
+        """
+        Initialize metadata service.
+
+        Args:
+            exiftool: ExifTool adapter instance
+            ffprobe: FFProbe adapter instance
+        """
+        self.exiftool = exiftool
+        self.ffprobe = ffprobe
+
+    def get_metadata(self, file_path: str, scan_id: Optional[str] = None) -> Result[Dict[str, Any]]:
+        """
+        Extract metadata from file.
+
+        Args:
+            file_path: Path to file
+
+        Returns:
+            Result with metadata dict including:
+                - file_info: Basic file information
+                - exif: Raw EXIF data
+                - workflow: ComfyUI workflow (if present)
+                - prompt: Generation parameters
+                - quality: Metadata quality (full, partial, degraded, none)
+        """
+        if not os.path.exists(file_path):
+            return Result.Err(ErrorCode.NOT_FOUND, f"File not found: {file_path}")
+
+        # Get file kind
+        kind = classify_file(file_path)
+        if kind == "unknown":
+            return Result.Err(
+                ErrorCode.UNSUPPORTED,
+                f"Unsupported file type: {file_path}",
+                quality="none"
+            )
+
+        logger.debug(f"Extracting metadata from {kind} file: {file_path} (scan_id={scan_id})")
+
+        try:
+            # Dispatch to appropriate handler
+            if kind == "image":
+                return self._extract_image_metadata(file_path, scan_id=scan_id)
+            elif kind == "video":
+                return self._extract_video_metadata(file_path, scan_id=scan_id)
+            elif kind == "audio":
+                return self._extract_audio_metadata(file_path, scan_id=scan_id)
+            else:
+                return Result.Ok({
+                    "file_info": self._get_file_info(file_path),
+                    "quality": "none"
+                }, quality="none")
+
+        except Exception as e:
+            logger.error(f"Metadata extraction failed: {e}")
+            return Result.Err(
+                ErrorCode.PARSE_ERROR,
+                f"Metadata extraction failed: {e}",
+                quality="degraded"
+            )
+
+    def get_workflow_only(self, file_path: str, scan_id: Optional[str] = None) -> Result[Dict[str, Any]]:
+        """
+        Fast path for extracting only embedded ComfyUI workflow/prompt (no ffprobe, no geninfo).
+
+        Used for "drop on canvas" UX where we only need the workflow to load it into the graph.
+        """
+        if not os.path.exists(file_path):
+            return Result.Err(ErrorCode.NOT_FOUND, f"File not found: {file_path}", quality="none")
+
+        kind = classify_file(file_path)
+        if kind not in ("image", "video"):
+            return Result.Ok({"workflow": None, "prompt": None, "quality": "none"}, quality="none")
+
+        ext = os.path.splitext(file_path)[1].lower()
+
+        exif_start = time.perf_counter()
+        exif_result = self.exiftool.read(file_path)
+        exif_duration = time.perf_counter() - exif_start
+        exif_data = exif_result.data if exif_result.ok else None
+        if not exif_result.ok:
+            self._log_metadata_issue(
+                logging.DEBUG,
+                "ExifTool failed while reading workflow-only metadata",
+                file_path,
+                scan_id=scan_id,
+                tool="exiftool",
+                error=exif_result.error,
+                duration_seconds=exif_duration,
+            )
+            return Result.Ok({"workflow": None, "prompt": None, "quality": "none"}, quality="none")
+
+        if kind == "image":
+            if ext == ".png":
+                res = extract_png_metadata(file_path, exif_data)
+            elif ext == ".webp":
+                res = extract_webp_metadata(file_path, exif_data)
+            else:
+                res = Result.Ok({"workflow": None, "prompt": None, "quality": "none"}, quality="none")
+        else:
+            # No ffprobe here (can be slow); extractor supports workflow/prompt from ExifTool tags.
+            res = extract_video_metadata(file_path, exif_data, ffprobe_data=None)
+
+        if not res.ok:
+            return res
+
+        data = res.data or {}
+        payload = {
+            "workflow": data.get("workflow"),
+            "prompt": data.get("prompt"),
+            "quality": data.get("quality", res.meta.get("quality", "none")),
+        }
+        return Result.Ok(payload, quality=payload.get("quality", "none"))
+
+    def _extract_image_metadata(self, file_path: str, scan_id: Optional[str] = None) -> Result[Dict[str, Any]]:
+        """Extract metadata from image file."""
+        ext = os.path.splitext(file_path)[1].lower()
+
+        exif_start = time.perf_counter()
+        exif_result = self.exiftool.read(file_path)
+        exif_duration = time.perf_counter() - exif_start
+        exif_data = exif_result.data if exif_result.ok else None
+        if not exif_result.ok:
+            self._log_metadata_issue(
+                logging.WARNING,
+                "ExifTool failed while reading image metadata",
+                file_path,
+                scan_id=scan_id,
+                tool="exiftool",
+                error=exif_result.error,
+                duration_seconds=exif_duration
+            )
+            return Result.Ok({
+                "file_info": self._get_file_info(file_path),
+                "exif": None,
+                "quality": "none"
+            }, quality="none")
+
+        # Extract based on format
+        if ext == ".png":
+            metadata_result = extract_png_metadata(file_path, exif_data)
+        elif ext == ".webp":
+            metadata_result = extract_webp_metadata(file_path, exif_data)
+        else:
+            # Generic image
+            metadata_result = Result.Ok({
+                "workflow": None,
+                "prompt": None,
+                "quality": "partial" if exif_data else "none"
+            })
+
+        if not metadata_result.ok:
+            self._log_metadata_issue(
+                logging.WARNING,
+                "Image extractor failed",
+                file_path,
+                scan_id=scan_id,
+                tool="extractor",
+                error=metadata_result.error,
+                duration_seconds=exif_duration
+            )
+            return metadata_result
+
+        # Combine results
+        combined = {
+            "file_info": self._get_file_info(file_path),
+            "exif": exif_data,
+            **metadata_result.data
+        }
+
+        # Optional: parse deterministic generation info from ComfyUI prompt graph (backend-first).
+        try:
+            prompt_graph = combined.get("prompt")
+            workflow = combined.get("workflow")
+            geninfo_res = parse_geninfo_from_prompt(prompt_graph, workflow=workflow)
+            if geninfo_res.ok and geninfo_res.data:
+                combined["geninfo"] = geninfo_res.data
+            elif "geninfo" not in combined:
+                gi = _build_geninfo_from_parameters(combined)
+                if gi:
+                    combined["geninfo"] = gi
+                elif _looks_like_media_pipeline(prompt_graph):
+                    combined["geninfo_status"] = {"kind": "media_pipeline", "reason": "no_sampler"}
+        except Exception as exc:
+            logger.debug(f"GenInfo parse skipped: {exc}")
+
+        quality = metadata_result.meta.get("quality", "none")
+        return Result.Ok(combined, quality=quality)
+
+    def _extract_video_metadata(self, file_path: str, scan_id: Optional[str] = None) -> Result[Dict[str, Any]]:
+        """Extract metadata from video file."""
+        exif_start = time.perf_counter()
+        exif_result = self.exiftool.read(file_path)
+        exif_duration = time.perf_counter() - exif_start
+        exif_data = exif_result.data if exif_result.ok else None
+        if not exif_result.ok:
+            self._log_metadata_issue(
+                logging.WARNING,
+                "ExifTool failed while reading video metadata",
+                file_path,
+                scan_id=scan_id,
+                tool="exiftool",
+                error=exif_result.error,
+                duration_seconds=exif_duration
+            )
+            exif_data = None
+
+        ffprobe_start = time.perf_counter()
+        ffprobe_result = self.ffprobe.read(file_path)
+        ffprobe_duration = time.perf_counter() - ffprobe_start
+        if not ffprobe_result.ok:
+            self._log_metadata_issue(
+                logging.WARNING,
+                "FFprobe failed while reading video metadata",
+                file_path,
+                scan_id=scan_id,
+                tool="ffprobe",
+                error=ffprobe_result.error,
+                duration_seconds=ffprobe_duration
+            )
+            ffprobe_data = None
+        else:
+            ffprobe_data = ffprobe_result.data
+
+        # Extract video-specific metadata
+        metadata_result = extract_video_metadata(file_path, exif_data, ffprobe_data)
+
+        if not metadata_result.ok:
+            self._log_metadata_issue(
+                logging.WARNING,
+                "Video extractor failed",
+                file_path,
+                scan_id=scan_id,
+                tool="extractor",
+                error=metadata_result.error,
+                duration_seconds=(exif_duration + ffprobe_duration)
+            )
+            return metadata_result
+
+        # Combine results
+        combined = {
+            "file_info": self._get_file_info(file_path),
+            "exif": exif_data,
+            "ffprobe": ffprobe_data,
+            **metadata_result.data
+        }
+
+        try:
+            prompt_graph = combined.get("prompt")
+            workflow = combined.get("workflow")
+            geninfo_res = parse_geninfo_from_prompt(prompt_graph, workflow=workflow)
+            if geninfo_res.ok and geninfo_res.data:
+                combined["geninfo"] = geninfo_res.data
+            elif "geninfo" not in combined:
+                gi = _build_geninfo_from_parameters(combined)
+                if gi:
+                    combined["geninfo"] = gi
+                elif _looks_like_media_pipeline(prompt_graph):
+                    combined["geninfo_status"] = {"kind": "media_pipeline", "reason": "no_sampler"}
+        except Exception as exc:
+            logger.debug(f"GenInfo parse skipped: {exc}")
+
+        quality = metadata_result.meta.get("quality", "none")
+        return Result.Ok(combined, quality=quality)
+
+    def _extract_audio_metadata(self, file_path: str, scan_id: Optional[str] = None) -> Result[Dict[str, Any]]:
+        """Extract metadata from audio file."""
+        exif_start = time.perf_counter()
+        exif_result = self.exiftool.read(file_path)
+        exif_duration = time.perf_counter() - exif_start
+        exif_data = exif_result.data if exif_result.ok else None
+        if not exif_result.ok:
+            self._log_metadata_issue(
+                logging.WARNING,
+                "ExifTool failed while reading audio metadata",
+                file_path,
+                scan_id=scan_id,
+                tool="exiftool",
+                error=exif_result.error,
+                duration_seconds=exif_duration
+            )
+            return Result.Ok({
+                "file_info": self._get_file_info(file_path),
+                "exif": None,
+                "quality": "none"
+            }, quality="none")
+
+        return Result.Ok({
+            "file_info": self._get_file_info(file_path),
+            "exif": exif_data,
+            "quality": "partial" if exif_data else "none"
+        }, quality="partial" if exif_data else "none")
+
+    def get_metadata_batch(self, file_paths: list[str], scan_id: Optional[str] = None) -> Dict[str, Result[Dict[str, Any]]]:
+        """
+        Extract metadata from multiple files in batch (much faster than individual calls).
+
+        This uses batch ExifTool/FFProbe execution to dramatically reduce subprocess overhead.
+
+        Args:
+            file_paths: List of file paths to process
+            scan_id: Optional scan ID for logging
+
+        Returns:
+            Dict mapping file path to Result with metadata
+        """
+        if not file_paths:
+            return {}
+
+        from ...shared import classify_file
+
+        # Group files by kind to optimize tool invocations
+        images = []
+        videos = []
+        audios = []
+        others = []
+
+        for path in file_paths:
+            if not os.path.exists(path):
+                continue
+            kind = classify_file(path)
+            if kind == "image":
+                images.append(path)
+            elif kind == "video":
+                videos.append(path)
+            elif kind == "audio":
+                audios.append(path)
+            else:
+                others.append(path)
+
+        results = {}
+
+        # Batch ExifTool for all files that need it (images + videos + audio)
+        exif_paths = images + videos + audios
+        exif_results = {}
+        if exif_paths:
+            exif_results = self.exiftool.read_batch(exif_paths)
+
+        # Batch FFProbe for videos only
+        ffprobe_results = {}
+        if videos:
+            ffprobe_results = self.ffprobe.read_batch(videos)
+
+        # Process images
+        for path in images:
+            ext = os.path.splitext(path)[1].lower()
+            exif_data = exif_results.get(path, Result.Err(ErrorCode.EXIFTOOL_ERROR, "No result")).data if exif_results.get(path, Result.Err(ErrorCode.EXIFTOOL_ERROR, "No result")).ok else None
+
+            if ext == ".png":
+                metadata_result = extract_png_metadata(path, exif_data)
+            elif ext == ".webp":
+                metadata_result = extract_webp_metadata(path, exif_data)
+            else:
+                metadata_result = Result.Ok({
+                    "workflow": None,
+                    "prompt": None,
+                    "quality": "partial" if exif_data else "none"
+                })
+
+            if metadata_result.ok:
+                combined = {
+                    "file_info": self._get_file_info(path),
+                    "exif": exif_data,
+                    **metadata_result.data
+                }
+                # Optional geninfo parsing
+                try:
+                    prompt_graph = combined.get("prompt")
+                    workflow = combined.get("workflow")
+                    geninfo_res = parse_geninfo_from_prompt(prompt_graph, workflow=workflow)
+                    if geninfo_res.ok and geninfo_res.data:
+                        combined["geninfo"] = geninfo_res.data
+                    elif "geninfo" not in combined:
+                        gi = _build_geninfo_from_parameters(combined)
+                        if gi:
+                            combined["geninfo"] = gi
+                        elif _looks_like_media_pipeline(prompt_graph):
+                            combined["geninfo_status"] = {"kind": "media_pipeline", "reason": "no_sampler"}
+                except Exception:
+                    pass
+
+                quality = metadata_result.meta.get("quality", "none")
+                results[path] = Result.Ok(combined, quality=quality)
+            else:
+                results[path] = metadata_result
+
+        # Process videos
+        for path in videos:
+            exif_data = exif_results.get(path, Result.Err(ErrorCode.EXIFTOOL_ERROR, "No result")).data if exif_results.get(path, Result.Err(ErrorCode.EXIFTOOL_ERROR, "No result")).ok else None
+            ffprobe_data = ffprobe_results.get(path, Result.Err(ErrorCode.FFPROBE_ERROR, "No result")).data if ffprobe_results.get(path, Result.Err(ErrorCode.FFPROBE_ERROR, "No result")).ok else None
+
+            metadata_result = extract_video_metadata(path, exif_data, ffprobe_data)
+
+            if metadata_result.ok:
+                combined = {
+                    "file_info": self._get_file_info(path),
+                    "exif": exif_data,
+                    "ffprobe": ffprobe_data,
+                    **metadata_result.data
+                }
+                try:
+                    prompt_graph = combined.get("prompt")
+                    workflow = combined.get("workflow")
+                    geninfo_res = parse_geninfo_from_prompt(prompt_graph, workflow=workflow)
+                    if geninfo_res.ok and geninfo_res.data:
+                        combined["geninfo"] = geninfo_res.data
+                    elif "geninfo" not in combined:
+                        gi = _build_geninfo_from_parameters(combined)
+                        if gi:
+                            combined["geninfo"] = gi
+                        elif _looks_like_media_pipeline(prompt_graph):
+                            combined["geninfo_status"] = {"kind": "media_pipeline", "reason": "no_sampler"}
+                except Exception:
+                    pass
+
+                quality = metadata_result.meta.get("quality", "none")
+                results[path] = Result.Ok(combined, quality=quality)
+            else:
+                results[path] = metadata_result
+
+        # Process audio (ExifTool only)
+        for path in audios:
+            exif_data = exif_results.get(path, Result.Err(ErrorCode.EXIFTOOL_ERROR, "No result")).data if exif_results.get(path, Result.Err(ErrorCode.EXIFTOOL_ERROR, "No result")).ok else None
+            results[path] = Result.Ok({
+                "file_info": self._get_file_info(path),
+                "exif": exif_data,
+                "quality": "partial" if exif_data else "none"
+            }, quality="partial" if exif_data else "none")
+
+        # Process other files
+        for path in others:
+            results[path] = Result.Ok({
+                "file_info": self._get_file_info(path),
+                "quality": "none"
+            }, quality="none")
+
+        return results
+
+    def extract_rating_tags_only(self, file_path: str, scan_id: Optional[str] = None) -> Result[Dict[str, Any]]:
+        """
+        Lightweight extraction for rating/tags only (no workflow/geninfo parsing).
+
+        Used to "hydrate" missing rating/tags from existing OS/file metadata without running a full scan.
+        """
+        if not os.path.exists(file_path):
+            return Result.Err(ErrorCode.NOT_FOUND, f"File not found: {file_path}", quality="none")
+
+        exif_start = time.perf_counter()
+        # Read a narrow tag set for performance; extractor normalizes grouped keys.
+        tags = [
+            # Ratings (XMP + Windows)
+            "XMP-xmp:Rating",
+            "XMP-microsoft:RatingPercent",
+            "Microsoft:SharedUserRating",
+            "Rating",
+            "RatingPercent",
+            # Tags/keywords
+            "XMP-dc:Subject",
+            "XMP:Subject",
+            "IPTC:Keywords",
+            "Keywords",
+            "XPKeywords",
+            "Microsoft:Category",
+            "Subject",
+        ]
+        exif_result = self.exiftool.read(file_path, tags=tags)
+        exif_duration = time.perf_counter() - exif_start
+        exif_data = exif_result.data if exif_result.ok else None
+
+        if not exif_result.ok:
+            self._log_metadata_issue(
+                logging.DEBUG,
+                "ExifTool failed while reading rating/tags",
+                file_path,
+                scan_id=scan_id,
+                tool="exiftool",
+                error=exif_result.error,
+                duration_seconds=exif_duration,
+            )
+            return Result.Ok({"rating": None, "tags": []}, quality="none")
+
+        rating, tags_list = extract_rating_tags_from_exif(exif_data)
+        return Result.Ok({"rating": rating, "tags": tags_list}, quality="partial")
+
+    def _log_metadata_issue(
+        self,
+        level: int,
+        message: str,
+        file_path: str,
+        scan_id: Optional[str] = None,
+        tool: Optional[str] = None,
+        error: Optional[str] = None,
+        duration_seconds: Optional[float] = None
+    ):
+        context = {"file_path": file_path}
+        if scan_id:
+            context["scan_id"] = scan_id
+        if tool:
+            context["tool"] = tool
+        if error:
+            context["error"] = error
+        if duration_seconds is not None:
+            try:
+                context["duration_seconds"] = round(float(duration_seconds), 3)
+            except Exception:
+                context["duration_seconds"] = duration_seconds
+        log_structured(logger, level, message, **context)
+
+    def _get_file_info(self, file_path: str) -> Dict[str, Any]:
+        """Get basic file information."""
+        stat = os.stat(file_path)
+        return {
+            "filename": os.path.basename(file_path),
+            "filepath": file_path,
+            "size": stat.st_size,
+            "mtime": stat.st_mtime,
+            "kind": classify_file(file_path),
+            "ext": os.path.splitext(file_path)[1].lower()
+        }

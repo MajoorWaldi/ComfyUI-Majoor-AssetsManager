@@ -1,0 +1,75 @@
+export function createFilterPopoverView() {
+    const filterPopover = document.createElement("div");
+    filterPopover.className = "mjr-popover mjr-filter-popover";
+    filterPopover.style.display = "none";
+
+    const kindRow = document.createElement("div");
+    kindRow.className = "mjr-popover-row";
+    const kindLabel = document.createElement("div");
+    kindLabel.className = "mjr-popover-label";
+    kindLabel.textContent = "Type";
+    const kindSelect = document.createElement("select");
+    kindSelect.className = "mjr-select";
+    [
+        ["", "All"],
+        ["image", "Image"],
+        ["video", "Video"],
+        ["gif", "GIF"],
+        ["webp", "WebP"],
+        ["audio", "Audio"],
+        ["model3d", "3D"],
+    ].forEach(([val, text]) => {
+        const opt = document.createElement("option");
+        opt.value = val;
+        opt.textContent = text;
+        kindSelect.appendChild(opt);
+    });
+    kindRow.appendChild(kindLabel);
+    kindRow.appendChild(kindSelect);
+
+    const wfRow = document.createElement("div");
+    wfRow.className = "mjr-popover-row";
+    const wfLabel = document.createElement("div");
+    wfLabel.className = "mjr-popover-label";
+    wfLabel.textContent = "Workflow";
+    const wfToggle = document.createElement("label");
+    wfToggle.className = "mjr-popover-toggle";
+    const wfCheckbox = document.createElement("input");
+    wfCheckbox.type = "checkbox";
+    const wfText = document.createElement("span");
+    wfText.textContent = "Only with workflow";
+    wfToggle.appendChild(wfCheckbox);
+    wfToggle.appendChild(wfText);
+    wfRow.appendChild(wfLabel);
+    wfRow.appendChild(wfToggle);
+
+    const ratingRow = document.createElement("div");
+    ratingRow.className = "mjr-popover-row";
+    const ratingLabel = document.createElement("div");
+    ratingLabel.className = "mjr-popover-label";
+    ratingLabel.textContent = "Rating";
+    const ratingSelect = document.createElement("select");
+    ratingSelect.className = "mjr-select";
+    [
+        [0, "Any"],
+        [1, "★ 1"],
+        [2, "★ 2"],
+        [3, "★ 3"],
+        [4, "★ 4"],
+        [5, "★ 5"],
+    ].forEach(([val, text]) => {
+        const opt = document.createElement("option");
+        opt.value = String(val);
+        opt.textContent = text;
+        ratingSelect.appendChild(opt);
+    });
+    ratingRow.appendChild(ratingLabel);
+    ratingRow.appendChild(ratingSelect);
+
+    filterPopover.appendChild(kindRow);
+    filterPopover.appendChild(wfRow);
+    filterPopover.appendChild(ratingRow);
+
+    return { filterPopover, kindSelect, wfCheckbox, ratingSelect };
+}
+

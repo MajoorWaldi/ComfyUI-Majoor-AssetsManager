@@ -77,7 +77,11 @@ Sometimes you need custom nodes. Sometimes external logic makes sense. But jumpi
 
 ## 📦 Installation
 
-### Method 1: Manual
+### Method 1: ComfyUI Manager (Recommended)
+
+Install directly from the ComfyUI Manager interface.
+
+### Method 2: Manual
 
 ```bash
 cd ComfyUI/custom_nodes
@@ -91,7 +95,9 @@ Restart ComfyUI.
 
 ## ✅ Requirements
 
-Python dependencies (auto-installed by ComfyUI Manager):
+### Python Dependencies
+
+All Python dependencies are automatically installed via `requirements.txt`:
 
 - `aiohttp` (REST API server)
 - `pillow` (thumbnail generation)
@@ -99,13 +105,20 @@ Python dependencies (auto-installed by ComfyUI Manager):
 - `watchdog` (real-time file system monitoring for automatic reindexing)
 - `pywin32` (Windows only; enables Windows Property System metadata)
 
-**Strongly recommended** external tools:
+### External Tools (Strongly Recommended)
+
+For full metadata capabilities, install these external tools:
 
 - 🧰 **ExifTool** (video metadata read/write, XMP/IPTC support)
   - Windows: download from [exiftool.org](https://exiftool.org) and add `exiftool.exe` to `PATH`
   - macOS: `brew install exiftool`
   - Linux (Debian/Ubuntu): `sudo apt install libimage-exiftool-perl`
 - 🎬 **ffprobe** (improved video metadata extraction; usually bundled with FFmpeg)
+  - Windows: download FFmpeg from [ffmpeg.org](https://ffmpeg.org) and add to `PATH`
+  - macOS: `brew install ffmpeg`
+  - Linux (Debian/Ubuntu): `sudo apt install ffmpeg`
+
+The extension will automatically detect and use these tools if available. Without them, metadata extraction will fall back to Python-only parsers with reduced capabilities.
 
 ---
 
@@ -197,14 +210,94 @@ Access settings via the ComfyUI settings panel (gear icon).
 
 ---
 
+---
+
+## 🏗️ Architecture
+
+The new codebase follows a clean, modular architecture:
+
+### Backend Structure
+
+- **`backend/`** - Core Python backend
+  - **`adapters/`** - External integrations (database, tools)
+    - `db/` - SQLite adapter with connection pooling
+    - `tools/` - ExifTool and FFProbe wrappers
+  - **`features/`** - Business logic modules
+    - `index/` - File scanning, searching, and indexing
+    - `metadata/` - Metadata extraction and enrichment
+    - `geninfo/` - Generation info parsing (A1111, ComfyUI)
+    - `tags/` - Rating and tags synchronization
+    - `health/` - System health checks
+    - `collections/` - Smart filter collections
+  - **`routes/`** - HTTP API endpoints
+    - `core/` - Path resolution and utilities
+    - `handlers/` - Request handlers (filesystem, metadata, search)
+  - `config.py` - Configuration and environment variables
+  - `deps.py` - Dependency injection container
+  - `observability.py` - Logging and performance tracing
+
+### Frontend Structure
+
+- **`js/`** - Modern JavaScript frontend
+  - **`api/`** - Backend API client
+  - **`app/`** - Application bootstrap and configuration
+  - **`components/`** - Reusable UI components (Card, Sidebar, Viewer)
+  - **`features/`** - Feature modules (grid, search, filters, viewer)
+  - **`state/`** - Global state management
+  - **`utils/`** - Helper utilities
+  - **`theme/`** - UI theming
+  - `entry.js` - Extension entry point
+
+### Shared Modules
+
+- **`shared/`** - Code shared between backend components
+  - `log.py` - Structured logging
+  - `result.py` - Result type for error handling
+  - `types.py` - Common type definitions
+
+---
+
+## 🔧 Configuration
+
+The extension can be configured via environment variables:
+
+### Output Directory
+- `MAJOOR_OUTPUT_DIRECTORY` - Override ComfyUI output directory
+
+### External Tools
+- `MAJOOR_EXIFTOOL_PATH` - Path to ExifTool binary
+- `MAJOOR_FFPROBE_PATH` - Path to FFProbe binary
+- `MAJOOR_MEDIA_PROBE_BACKEND` - Metadata backend: `auto`, `exiftool`, `ffprobe`, or `both` (default: `auto`)
+
+### File Watcher
+- `MAJOOR_ENABLE_FILE_WATCHER` - Enable automatic reindexing (default: `false`)
+- `MAJOOR_WATCHER_INTERVAL` - Polling interval in seconds (default: `15.0`)
+- `MAJOOR_WATCHER_PATHS` - Colon/semicolon-separated paths to watch
+
+### Performance Tuning
+- `MAJOOR_DB_TIMEOUT` - Database connection timeout (default: `30.0`)
+- `MAJOOR_DB_MAX_CONNECTIONS` - Connection pool size (default: `8`)
+- `MAJOOR_EXIFTOOL_TIMEOUT` - ExifTool command timeout (default: `15`)
+- `MAJOOR_FFPROBE_TIMEOUT` - FFProbe command timeout (default: `10`)
+
+---
+
 ## 📝 Notes & Tips
 
-## 📌 Recent fixes
-- Fixed a crash when querying metadata source info while sidecar files are disabled (safe-guard against missing sidecar paths).
-- Improved ExifTool reads to use a robust subprocess pattern with timeouts and better error handling.
-- Added unit tests for PNG injection, EXIF UserComment decoding, and metadata source detection.
+### 📌 Recent Changes (v2.0 Architecture Refactor)
 
+This version represents a **complete rewrite** with:
+- Clean separation between backend (Python) and frontend (JavaScript)
+- Modular feature-based architecture
+- Improved dependency injection and testability
+- Better error handling with Result types
+- Enhanced observability and logging
+- Optimized database connection pooling
+- Auto-detection of external tools
 
+### General Tips
+
+- **Index location**: The SQLite database is stored in `<output_directory>/_mjr_index/assets.sqlite`
 - **Collections folder**: Smart filters and saved collections are stored in `_mjr_collections` inside your ComfyUI output directory
 - **Workflow fingerprinting**: Uses SHA1 of canonicalized workflow JSON (excludes node IDs, positions, UI properties) for stable matching across workflow variations
 - **Index freshness**: The SQLite FTS5 index auto-detects staleness based on file modification times and triggers incremental reindexing

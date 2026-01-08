@@ -1,0 +1,110 @@
+"""
+Health check endpoints.
+"""
+from pathlib import Path
+from aiohttp import web
+
+try:
+    import folder_paths  # type: ignore
+except Exception:
+    class _FolderPathsStub:
+        @staticmethod
+        def get_input_directory() -> str:
+            return str((Path(__file__).resolve().parents[3] / "input").resolve())
+
+    folder_paths = _FolderPathsStub()  # type: ignore
+
+from backend.config import OUTPUT_ROOT, get_tool_paths, MEDIA_PROBE_BACKEND
+from backend.custom_roots import resolve_custom_root
+from backend.shared import Result
+from backend.tool_detect import get_tool_status
+from ..core import _json_response, _require_services
+
+
+def register_health_routes(routes: web.RouteTableDef) -> None:
+    @routes.get("/mjr/am/health")
+    async def health(request):
+        """Get health status."""
+        svc, error_result = _require_services()
+        if error_result:
+            return _json_response(error_result)
+
+        result = svc["health"].status()
+        return _json_response(result)
+
+    @routes.get("/mjr/am/health/counters")
+    async def health_counters(request):
+        """Get database counters."""
+        svc, error_result = _require_services()
+        if error_result:
+            return _json_response(error_result)
+
+        scope = (request.query.get("scope") or "output").strip().lower()
+        custom_root_id = request.query.get("custom_root_id") or request.query.get("root_id") or None
+
+        roots = None
+        if scope == "output":
+            roots = [str(Path(OUTPUT_ROOT).resolve(strict=False))]
+        elif scope == "input":
+            roots = [str(Path(folder_paths.get_input_directory()).resolve(strict=False))]
+        elif scope == "all":
+            roots = [
+                str(Path(OUTPUT_ROOT).resolve(strict=False)),
+                str(Path(folder_paths.get_input_directory()).resolve(strict=False)),
+            ]
+        elif scope == "custom":
+            root_result = resolve_custom_root(str(custom_root_id or ""))
+            if not root_result.ok:
+                return _json_response(Result.Err("INVALID_INPUT", root_result.error))
+            roots = [str(Path(str(root_result.data)).resolve(strict=False))]
+        else:
+            return _json_response(Result.Err("INVALID_INPUT", f"Unknown scope: {scope}"))
+
+        result = svc["health"].get_counters(roots=roots)
+        if result.ok:
+            if isinstance(result.data, dict):
+                result.data["scope"] = scope
+                if scope == "custom":
+                    result.data["custom_root_id"] = custom_root_id
+        return _json_response(result)
+
+    @routes.get("/mjr/am/config")
+    async def get_config(request):
+        """
+        Get configuration (output directory, etc.).
+        """
+        return _json_response(Result.Ok({
+            "output_directory": OUTPUT_ROOT,
+            "tool_paths": get_tool_paths(),
+            "media_probe_backend": MEDIA_PROBE_BACKEND
+        }))
+
+    @routes.get("/mjr/am/tools/status")
+    async def tools_status(request):
+        """
+        Get status of external tools (ExifTool, FFprobe).
+        Returns availability and version info.
+        """
+        status = get_tool_status()
+        return _json_response(Result.Ok(status))
+
+    @routes.get("/mjr/am/roots")
+    async def get_roots(request):
+        """
+        Get core roots and custom roots.
+        """
+        from backend.custom_roots import list_custom_roots
+
+        roots = {
+            "output_directory": str(Path(OUTPUT_ROOT).resolve()),
+            "input_directory": str(Path(folder_paths.get_input_directory()).resolve()),
+        }
+
+        custom = list_custom_roots()
+        if custom.ok:
+            roots["custom_roots"] = custom.data
+        else:
+            roots["custom_roots"] = []
+            roots["custom_roots_error"] = custom.error
+
+        return _json_response(Result.Ok(roots))
