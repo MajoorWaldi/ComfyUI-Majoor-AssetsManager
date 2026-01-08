@@ -199,9 +199,11 @@ export const enableAssetDrag = (cardEl, asset) => {
         event.dataTransfer.setData("text/uri-list", viewUrl);
 
         // Add download URL for drag-out to Windows Explorer
-        const downloadUrl = `${ENDPOINTS.DOWNLOAD}?asset_id=${asset.id || ''}&filename=${encodeURIComponent(asset.filename || '')}`;
+        const rel = `${ENDPOINTS.DOWNLOAD}?asset_id=${encodeURIComponent(asset.id || "")}&filename=${encodeURIComponent(asset.filename || "")}`;
+        const downloadUrl = new URL(rel, window.location.href).toString();
         const mime = getDownloadMimeForFilename(asset.filename);
         event.dataTransfer.setData("DownloadURL", `${mime}:${asset.filename}:${downloadUrl}`);
+        event.dataTransfer.setData("text/uri-list", downloadUrl); // fallback for some shells
         event.dataTransfer.effectAllowed = "copy";
 
         const preview = cardEl.querySelector("img") || cardEl.querySelector("video");
@@ -243,9 +245,11 @@ export const bindAssetDragStart = (containerEl) => {
                 dt.setData("text/uri-list", viewUrl);
 
                 // Add download URL for drag-out to Windows Explorer
-                const downloadUrl = `${ENDPOINTS.DOWNLOAD}?asset_id=${asset.id || ''}&filename=${encodeURIComponent(asset.filename || '')}`;
+                const rel = `${ENDPOINTS.DOWNLOAD}?asset_id=${encodeURIComponent(asset.id || "")}&filename=${encodeURIComponent(asset.filename || "")}`;
+                const downloadUrl = new URL(rel, window.location.href).toString();
                 const mime = getDownloadMimeForFilename(asset.filename);
                 dt.setData("DownloadURL", `${mime}:${asset.filename}:${downloadUrl}`);
+                dt.setData("text/uri-list", downloadUrl); // fallback for some shells
                 dt.effectAllowed = "copy";
             } catch {}
 
@@ -353,17 +357,17 @@ export const initDragDrop = () => {
 
                         // Upload the file using the fast path
                         const result = await smartUploadToInput(file, "node_drop");
-                        const fileName = result.name || file.name;
 
-                        // Update widget with the actual filename
-                        if (widget.type === "combo") ensureComboHasValue(widget, fileName);
-                        widget.value = fileName;
+                        // Construct relPath considering subfolder for proper loading
+                        const relPath = result.subfolder ? `${result.subfolder}/${result.name}` : result.name;
+                        if (widget.type === "combo") ensureComboHasValue(widget, relPath);
+                        widget.value = relPath;
                         try {
                             widget.callback?.(widget.value);
                         } catch {}
 
                         markCanvasDirty(app);
-                        dndLog("file drop inject", { node: node?.title, widget: widget?.name, value: fileName });
+                        dndLog("file drop inject", { node: node?.title, widget: widget?.name, value: relPath });
                     }
                 }
             } catch (error) {

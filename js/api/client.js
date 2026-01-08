@@ -307,6 +307,10 @@ export async function deleteAsset(assetId) {
     return post("/mjr/am/asset/delete", { asset_id: assetId });
 }
 
+export async function deleteAssets(assetIds) {
+    return post("/mjr/am/assets/delete", { ids: assetIds });
+}
+
 export async function renameAsset(assetId, newName) {
     return post("/mjr/am/asset/rename", { asset_id: assetId, new_name: newName });
 }
