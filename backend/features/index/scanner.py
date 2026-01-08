@@ -497,102 +497,50 @@ class IndexScanner:
             return
 
         # Apply DB writes for the whole batch in one transaction.
-        with self.db.transaction(mode="immediate"):
-            for entry in prepared:
-                action = entry.get("action")
+        # If the batch fails, fall back to processing items individually
+        batch_failed = False
+        try:
+            with self.db.transaction(mode="immediate"):
+                for entry in prepared:
+                    action = entry.get("action")
 
-                if action in ("skipped", "skipped_journal"):
-                    stats["skipped"] += 1
-                    continue
-
-                if action == "refresh":
-                    asset_id = entry.get("asset_id")
-                    metadata_result = entry.get("metadata_result")
-                    if not asset_id or not isinstance(metadata_result, Result):
+                    if action in ("skipped", "skipped_journal"):
                         stats["skipped"] += 1
                         continue
-                    try:
-                        refreshed = MetadataHelpers.refresh_metadata_if_needed(
-                            self.db,
-                            int(asset_id),
-                            metadata_result,
-                            entry.get("filepath") or "",
-                            base_dir,
-                            entry.get("state_hash") or "",
-                            int(entry.get("mtime") or 0),
-                            int(entry.get("size") or 0),
-                            self._write_scan_journal_entry,
-                        )
-                        stats["skipped"] += 1
-                        if refreshed and entry.get("fast") and to_enrich is not None:
-                            to_enrich.append(entry.get("filepath") or str(entry.get("file_path") or ""))
-                    except Exception as exc:
-                        stats["errors"] += 1
-                        logger.warning("Metadata refresh failed for asset_id=%s: %s", asset_id, exc)
-                    continue
 
-                if action == "updated":
-                    asset_id = entry.get("asset_id")
-                    metadata_result = entry.get("metadata_result")
-                    if not asset_id or not isinstance(metadata_result, Result):
-                        stats["errors"] += 1
-                        continue
-                    cache_store = bool(entry.get("cache_store"))
-                    if cache_store:
+                    if action == "refresh":
+                        asset_id = entry.get("asset_id")
+                        metadata_result = entry.get("metadata_result")
+                        if not asset_id or not isinstance(metadata_result, Result):
+                            stats["skipped"] += 1
+                            continue
                         try:
-                            MetadataHelpers.store_metadata_cache(
+                            refreshed = MetadataHelpers.refresh_metadata_if_needed(
                                 self.db,
-                                entry.get("filepath") or "",
-                                entry.get("state_hash") or "",
+                                int(asset_id),
                                 metadata_result,
+                                entry.get("filepath") or "",
+                                base_dir,
+                                entry.get("state_hash") or "",
+                                int(entry.get("mtime") or 0),
+                                int(entry.get("size") or 0),
+                                self._write_scan_journal_entry,
                             )
-                        except Exception:
-                            pass
-                    res = self._update_asset(
-                        int(asset_id),
-                        entry.get("file_path"),
-                        int(entry.get("mtime") or 0),
-                        int(entry.get("size") or 0),
-                        metadata_result,
-                        source=source,
-                        root_id=root_id,
-                        write_metadata=not bool(entry.get("fast")),
-                    )
-                    if res.ok:
-                        self._write_scan_journal_entry(
-                            entry.get("filepath") or "",
-                            base_dir,
-                            entry.get("state_hash") or "",
-                            int(entry.get("mtime") or 0),
-                            int(entry.get("size") or 0),
-                        )
-                        stats["updated"] += 1
-                        if entry.get("fast") and to_enrich is not None:
-                            to_enrich.append(entry.get("filepath") or str(entry.get("file_path") or ""))
-                    else:
-                        stats["errors"] += 1
-                    continue
-
-                if action == "added":
-                    metadata_result = entry.get("metadata_result")
-                    if not isinstance(metadata_result, Result):
-                        stats["errors"] += 1
+                            stats["skipped"] += 1
+                            if refreshed and entry.get("fast") and to_enrich is not None:
+                                to_enrich.append(entry.get("filepath") or str(entry.get("file_path") or ""))
+                        except Exception as exc:
+                            stats["errors"] += 1
+                            logger.warning("Metadata refresh failed for asset_id=%s: %s", asset_id, exc)
                         continue
-                    cache_store = bool(entry.get("cache_store"))
-                    res = self._add_asset(
-                        entry.get("filename") or "",
-                        entry.get("subfolder") or "",
-                        entry.get("filepath") or "",
-                        entry.get("kind"),
-                        int(entry.get("mtime") or 0),
-                        int(entry.get("size") or 0),
-                        entry.get("file_path"),
-                        metadata_result,
-                        source=source,
-                        root_id=root_id,
-                        write_metadata=True,
-                    )
-                    if res.ok:
+
+                    if action == "updated":
+                        asset_id = entry.get("asset_id")
+                        metadata_result = entry.get("metadata_result")
+                        if not asset_id or not isinstance(metadata_result, Result):
+                            stats["errors"] += 1
+                            continue
+                        cache_store = bool(entry.get("cache_store"))
                         if cache_store:
                             try:
                                 MetadataHelpers.store_metadata_cache(
@@ -603,22 +551,217 @@ class IndexScanner:
                                 )
                             except Exception:
                                 pass
-                        self._write_scan_journal_entry(
-                            entry.get("filepath") or "",
-                            base_dir,
-                            entry.get("state_hash") or "",
+                        res = self._update_asset(
+                            int(asset_id),
+                            entry.get("file_path"),
                             int(entry.get("mtime") or 0),
                             int(entry.get("size") or 0),
+                            metadata_result,
+                            source=source,
+                            root_id=root_id,
+                            write_metadata=not bool(entry.get("fast")),
                         )
-                        stats["added"] += 1
-                        if entry.get("fast") and to_enrich is not None:
-                            to_enrich.append(entry.get("filepath") or str(entry.get("file_path") or ""))
-                    else:
-                        stats["errors"] += 1
+                        if res.ok:
+                            self._write_scan_journal_entry(
+                                entry.get("filepath") or "",
+                                base_dir,
+                                entry.get("state_hash") or "",
+                                int(entry.get("mtime") or 0),
+                                int(entry.get("size") or 0),
+                            )
+                            stats["updated"] += 1
+                            if entry.get("fast") and to_enrich is not None:
+                                to_enrich.append(entry.get("filepath") or str(entry.get("file_path") or ""))
+                        else:
+                            stats["errors"] += 1
+                        continue
+
+                    if action == "added":
+                        metadata_result = entry.get("metadata_result")
+                        if not isinstance(metadata_result, Result):
+                            stats["errors"] += 1
+                            continue
+                        cache_store = bool(entry.get("cache_store"))
+                        res = self._add_asset(
+                            entry.get("filename") or "",
+                            entry.get("subfolder") or "",
+                            entry.get("filepath") or "",
+                            entry.get("kind"),
+                            int(entry.get("mtime") or 0),
+                            int(entry.get("size") or 0),
+                            entry.get("file_path"),
+                            metadata_result,
+                            source=source,
+                            root_id=root_id,
+                            write_metadata=True,
+                        )
+                        if res.ok:
+                            if cache_store:
+                                try:
+                                    MetadataHelpers.store_metadata_cache(
+                                        self.db,
+                                        entry.get("filepath") or "",
+                                        entry.get("state_hash") or "",
+                                        metadata_result,
+                                    )
+                                except Exception:
+                                    pass
+                            self._write_scan_journal_entry(
+                                entry.get("filepath") or "",
+                                base_dir,
+                                entry.get("state_hash") or "",
+                                int(entry.get("mtime") or 0),
+                                int(entry.get("size") or 0),
+                            )
+                            stats["added"] += 1
+                            if entry.get("fast") and to_enrich is not None:
+                                to_enrich.append(entry.get("filepath") or str(entry.get("file_path") or ""))
+                        else:
+                            stats["errors"] += 1
+                        continue
+
+                    # Unknown action: count as skipped to be safe.
+                    stats["skipped"] += 1
+        except Exception as batch_error:
+            # If the entire batch transaction fails, fall back to processing items individually
+            batch_failed = True
+            logger.warning("Batch transaction failed: %s. Falling back to individual processing.", str(batch_error))
+            stats["errors"] += len(prepared)  # Temporarily count all as errors, will be corrected below
+
+            # Process each item individually to isolate failures
+            for entry in prepared:
+                action = entry.get("action")
+
+                if action in ("skipped", "skipped_journal"):
+                    stats["skipped"] += 1
+                    stats["errors"] -= 1  # Correct the error count
                     continue
 
-                # Unknown action: count as skipped to be safe.
-                stats["skipped"] += 1
+                try:
+                    with self.db.transaction(mode="immediate"):
+                        if action == "refresh":
+                            asset_id = entry.get("asset_id")
+                            metadata_result = entry.get("metadata_result")
+                            if not asset_id or not isinstance(metadata_result, Result):
+                                stats["skipped"] += 1
+                                stats["errors"] -= 1  # Correct the error count
+                                continue
+                            try:
+                                refreshed = MetadataHelpers.refresh_metadata_if_needed(
+                                    self.db,
+                                    int(asset_id),
+                                    metadata_result,
+                                    entry.get("filepath") or "",
+                                    base_dir,
+                                    entry.get("state_hash") or "",
+                                    int(entry.get("mtime") or 0),
+                                    int(entry.get("size") or 0),
+                                    self._write_scan_journal_entry,
+                                )
+                                stats["skipped"] += 1
+                                stats["errors"] -= 1  # Correct the error count
+                                if refreshed and entry.get("fast") and to_enrich is not None:
+                                    to_enrich.append(entry.get("filepath") or str(entry.get("file_path") or ""))
+                            except Exception as exc:
+                                stats["errors"] += 1  # Keep as error
+                                logger.warning("Metadata refresh failed for asset_id=%s: %s", asset_id, exc)
+                            continue
+
+                        if action == "updated":
+                            asset_id = entry.get("asset_id")
+                            metadata_result = entry.get("metadata_result")
+                            if not asset_id or not isinstance(metadata_result, Result):
+                                stats["errors"] += 1  # Keep as error
+                                continue
+                            cache_store = bool(entry.get("cache_store"))
+                            if cache_store:
+                                try:
+                                    MetadataHelpers.store_metadata_cache(
+                                        self.db,
+                                        entry.get("filepath") or "",
+                                        entry.get("state_hash") or "",
+                                        metadata_result,
+                                    )
+                                except Exception:
+                                    pass
+                            res = self._update_asset(
+                                int(asset_id),
+                                entry.get("file_path"),
+                                int(entry.get("mtime") or 0),
+                                int(entry.get("size") or 0),
+                                metadata_result,
+                                source=source,
+                                root_id=root_id,
+                                write_metadata=not bool(entry.get("fast")),
+                            )
+                            if res.ok:
+                                self._write_scan_journal_entry(
+                                    entry.get("filepath") or "",
+                                    base_dir,
+                                    entry.get("state_hash") or "",
+                                    int(entry.get("mtime") or 0),
+                                    int(entry.get("size") or 0),
+                                )
+                                stats["updated"] += 1
+                                stats["errors"] -= 1  # Correct the error count
+                                if entry.get("fast") and to_enrich is not None:
+                                    to_enrich.append(entry.get("filepath") or str(entry.get("file_path") or ""))
+                            else:
+                                stats["errors"] += 1  # Keep as error
+                            continue
+
+                        if action == "added":
+                            metadata_result = entry.get("metadata_result")
+                            if not isinstance(metadata_result, Result):
+                                stats["errors"] += 1  # Keep as error
+                                continue
+                            cache_store = bool(entry.get("cache_store"))
+                            res = self._add_asset(
+                                entry.get("filename") or "",
+                                entry.get("subfolder") or "",
+                                entry.get("filepath") or "",
+                                entry.get("kind"),
+                                int(entry.get("mtime") or 0),
+                                int(entry.get("size") or 0),
+                                entry.get("file_path"),
+                                metadata_result,
+                                source=source,
+                                root_id=root_id,
+                                write_metadata=True,
+                            )
+                            if res.ok:
+                                if cache_store:
+                                    try:
+                                        MetadataHelpers.store_metadata_cache(
+                                            self.db,
+                                            entry.get("filepath") or "",
+                                            entry.get("state_hash") or "",
+                                            metadata_result,
+                                        )
+                                    except Exception:
+                                        pass
+                                self._write_scan_journal_entry(
+                                    entry.get("filepath") or "",
+                                    base_dir,
+                                    entry.get("state_hash") or "",
+                                    int(entry.get("mtime") or 0),
+                                    int(entry.get("size") or 0),
+                                )
+                                stats["added"] += 1
+                                stats["errors"] -= 1  # Correct the error count
+                                if entry.get("fast") and to_enrich is not None:
+                                    to_enrich.append(entry.get("filepath") or str(entry.get("file_path") or ""))
+                            else:
+                                stats["errors"] += 1  # Keep as error
+                            continue
+
+                        # Unknown action: count as skipped to be safe.
+                        stats["skipped"] += 1
+                        stats["errors"] -= 1  # Correct the error count
+                except Exception as individual_error:
+                    # If individual processing also fails, log and keep as error
+                    logger.warning("Individual processing failed for entry: %s. Error: %s", str(entry.get("filepath", "unknown")), str(individual_error))
+                    # Error count is already correct
 
     def _prepare_index_entry(
         self,

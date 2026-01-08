@@ -54,6 +54,8 @@ def register_all_routes() -> web.RouteTableDef:
     logger.info("  POST /mjr/am/open-in-folder")
     logger.info("  GET /mjr/am/search?q=<query>")
     logger.info("  GET /mjr/am/asset/{asset_id}")
+    logger.info("  POST /mjr/am/assets/delete")
+    logger.info("  POST /mjr/am/assets/rename")
     logger.info("=" * 60)
 
     return routes

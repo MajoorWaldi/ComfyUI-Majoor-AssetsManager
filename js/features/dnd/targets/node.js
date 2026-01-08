@@ -121,9 +121,9 @@ export const pickBestImagePathWidget = (node, droppedExt) => {
 
         const hasImage = name.includes("image");
         const hasAnyImageHint =
-            name.includes("path") || name.includes("file") || name.includes("input") || name.includes("src") || name.includes("source");
+            name.includes("path") || name.includes("file") || name.includes("input") || name.includes("src") || name.includes("source") || name.includes("img");
         if (hasImage && hasAnyImageHint) score += 80;
-        if (name.includes("file") || name.includes("path")) score += 35;
+        if (name.includes("file") || name.includes("path") || name.includes("input") || name.includes("src")) score += 35;
         if (name.includes("media") || name.includes("picture") || name.includes("photo")) score += 45;
 
         const isOutputy =
@@ -156,7 +156,26 @@ export const pickBestImagePathWidget = (node, droppedExt) => {
     });
 
     const best = candidates[0];
-    if (!best || best.score < 20) return null;
+
+    // For image extensions, lower the threshold from 20 to 10
+    const imageExtensions = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'tiff', 'tif']);
+    const threshold = imageExtensions.has(ext) ? 10 : 20;
+
+    if (!best || best.score < threshold) {
+        // Fallback: try a more permissive picker for images
+        if (imageExtensions.has(ext)) {
+            for (const w of widgets) {
+                if (!w) continue;
+                const type = String(w?.type || "").toLowerCase();
+
+                if (type === "text" || type === "combo") {
+                    return w; // Return first text/combo widget as fallback for images
+                }
+            }
+        }
+        return null;
+    }
+
     try {
         best.w.__mjrImagePickScore = best.score;
     } catch {}

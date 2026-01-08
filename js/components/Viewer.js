@@ -572,31 +572,44 @@ export function createViewer() {
     const EPSILON = 0.001; // Threshold to stop animation when close enough
 
     const tick = () => {
-        // Check if we need animation (values are significantly different)
-        const needsAnimation =
-            Math.abs(state.targetZoom - state.zoom) > EPSILON ||
-            Math.abs(state.targetPanX - state.panX) > EPSILON ||
-            Math.abs(state.targetPanY - state.panY) > EPSILON;
+        const visible = overlay.style.display !== "none";
+        if (!visible) {
+            animationFrameId = null;
+            return; // stop loop when closed
+        }
 
-        if (needsAnimation) {
-            // Interpolate current values toward target values
-            state.zoom += (state.targetZoom - state.zoom) * SMOOTH;
-            state.panX += (state.targetPanX - state.panX) * SMOOTH;
-            state.panY += (state.targetPanY - state.panY) * SMOOTH;
+        const dz = Math.abs(state.targetZoom - state.zoom);
+        const dx = Math.abs(state.targetPanX - state.panX);
+        const dy = Math.abs(state.targetPanY - state.panY);
 
-            // Apply the smoothed transform
+        const EPS = 0.001;
+        if (dz < EPS && dx < EPS && dy < EPS) {
+            // apply final snap to avoid drift
+            state.zoom = state.targetZoom;
+            state.panX = state.targetPanX;
+            state.panY = state.targetPanY;
             applyTransform();
             updatePanCursor();
-
-            // Update zoom HUD if zoom has changed significantly
-            if (Math.abs(state.zoom - state.targetZoom) > 0.01) {
-                showZoomHUD();
-            }
-
-            // Continue the animation loop
-            animationFrameId = requestAnimationFrame(tick);
+            animationFrameId = null;
+            return;
         }
-        // If no animation needed, the loop stops automatically
+
+        // Interpolate current values toward target values
+        state.zoom += (state.targetZoom - state.zoom) * SMOOTH;
+        state.panX += (state.targetPanX - state.panX) * SMOOTH;
+        state.panY += (state.targetPanY - state.panY) * SMOOTH;
+
+        // Apply the smoothed transform
+        applyTransform();
+        updatePanCursor();
+
+        // Update zoom HUD if zoom has changed significantly
+        if (Math.abs(state.zoom - state.targetZoom) > 0.01) {
+            showZoomHUD();
+        }
+
+        // Continue the animation loop
+        animationFrameId = requestAnimationFrame(tick);
     };
 
     // Function to start animation when needed
@@ -607,8 +620,7 @@ export function createViewer() {
         animationFrameId = requestAnimationFrame(tick);
     };
 
-    // Start the animation loop initially
-    startAnimation();
+    // Removed: startAnimation(); - Don't start animation at boot
 
     const updatePanCursor = () => {
         try {
