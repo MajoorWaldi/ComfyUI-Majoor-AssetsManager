@@ -1,6 +1,7 @@
 """
 Search and list endpoints.
 """
+import datetime
 from pathlib import Path
 from aiohttp import web
 
@@ -20,6 +21,36 @@ from backend.shared import Result
 from backend.features.index.metadata_helpers import MetadataHelpers
 from ..core import _json_response, _require_services
 from .filesystem import _list_filesystem_assets, _kickoff_background_scan
+
+
+def _date_bounds_for_range(range_name, reference=None):
+    if not range_name:
+        return (None, None)
+    now = reference or datetime.datetime.now()
+    today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    if range_name == "today":
+        start = today
+        end = start + datetime.timedelta(days=1)
+    elif range_name == "this_week":
+        start = today - datetime.timedelta(days=today.weekday())
+        end = start + datetime.timedelta(days=7)
+    elif range_name == "this_month":
+        start = today.replace(day=1)
+        next_month = (start.replace(day=28) + datetime.timedelta(days=4)).replace(day=1)
+        end = next_month
+    else:
+        return (None, None)
+    return int(start.timestamp()), int(end.timestamp())
+
+
+def _date_bounds_for_exact(value):
+    try:
+        parsed = datetime.datetime.strptime(value, "%Y-%m-%d")
+    except Exception:
+        return (None, None)
+    start = parsed.replace(hour=0, minute=0, second=0, microsecond=0)
+    end = start + datetime.timedelta(days=1)
+    return int(start.timestamp()), int(end.timestamp())
 
 
 def register_search_routes(routes: web.RouteTableDef) -> None:
@@ -66,6 +97,23 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                 return _json_response(Result.Err("INVALID_INPUT", "Invalid min_rating"))
         if "has_workflow" in request.query:
             filters["has_workflow"] = request.query["has_workflow"].lower() in ("true", "1", "yes")
+
+        date_exact = (request.query.get("date_exact") or "").strip()
+        date_range = (request.query.get("date_range") or "").strip().lower()
+        mtime_start = None
+        mtime_end = None
+        if date_exact:
+            mtime_start, mtime_end = _date_bounds_for_exact(date_exact)
+            if mtime_start is None or mtime_end is None:
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid date_exact"))
+        elif date_range:
+            mtime_start, mtime_end = _date_bounds_for_range(date_range)
+            if mtime_start is None or mtime_end is None:
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid date_range"))
+        if mtime_start is not None:
+            filters["mtime_start"] = mtime_start
+        if mtime_end is not None:
+            filters["mtime_end"] = mtime_end
 
         include_total = request.query.get("include_total", "1").strip().lower() not in ("0", "false", "no", "off")
 

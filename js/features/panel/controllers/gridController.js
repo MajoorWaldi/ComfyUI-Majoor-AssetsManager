@@ -5,6 +5,8 @@ export function createGridController({ gridContainer, loadAssets, disposeGrid, g
         gridContainer.dataset.mjrFilterKind = state.kindFilter || "";
         gridContainer.dataset.mjrFilterWorkflowOnly = state.workflowOnly ? "1" : "0";
         gridContainer.dataset.mjrFilterMinRating = String(state.minRating || 0);
+        gridContainer.dataset.mjrFilterDateRange = state.dateRangeFilter || "";
+        gridContainer.dataset.mjrFilterDateExact = state.dateExactFilter || "";
         gridContainer.dataset.mjrSort = state.sort || "mtime_desc";
 
         // Keep selection durable across re-renders by persisting it in the dataset

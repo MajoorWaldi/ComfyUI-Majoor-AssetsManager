@@ -29,7 +29,17 @@ export const getNodeUnderClientXY = (app, clientX, clientY) => {
     for (let i = nodes.length - 1; i >= 0; i--) {
         const n = nodes[i];
         if (!n?.pos || !n?.size) continue;
-        if (x >= n.pos[0] && y >= n.pos[1] && x <= n.pos[0] + n.size[0] && y <= n.pos[1] + n.size[1]) {
+        const width = n.size[0];
+        let height = n.size[1];
+        if (n.flags && n.flags.collapsed) {
+            height = 30;
+        }
+        if (
+            x >= n.pos[0] &&
+            y >= n.pos[1] &&
+            x <= n.pos[0] + width &&
+            y <= n.pos[1] + height
+        ) {
             return n;
         }
     }
@@ -61,16 +71,21 @@ export const clearHighlight = (app, markCanvasDirty) => {
 
 export const ensureComboHasValue = (widget, value) => {
     if (!widget || widget.type !== "combo" || !widget.options) return;
-    let vals = null;
-    let target = null;
-    if (Array.isArray(widget.options.values)) {
-        vals = widget.options.values;
-        target = widget.options;
-    } else if (widget.options.values && Array.isArray(widget.options.values.values)) {
-        vals = widget.options.values.values;
-        target = widget.options.values;
+    let vals = widget.options.values;
+    let target = widget.options;
+
+    if (typeof vals === "function") {
+        return;
     }
-    if (!Array.isArray(vals) || !target) return;
+
+    if (!Array.isArray(vals)) {
+        if (vals && typeof vals === "object" && Array.isArray(vals.values)) {
+            target = vals;
+            vals = vals.values;
+        } else {
+            return;
+        }
+    }
 
     const has = vals.some((v) => {
         if (typeof v === "string") return v === value;
@@ -84,102 +99,6 @@ export const ensureComboHasValue = (widget, value) => {
         vals.unshift({ content: value, text: value, value });
     }
     target.values = vals;
-};
-
-export const pickBestImagePathWidget = (node, droppedExt) => {
-    const widgets = node?.widgets;
-    if (!Array.isArray(widgets) || !widgets.length) return null;
-
-    const ext = String(droppedExt || "").toLowerCase().replace(/^\./, "");
-    const exactNames = new Set(["image", "image_path", "input_image", "source_image", "file", "filename", "path"]);
-    const nodeType = String(node?.type || "").toLowerCase();
-    const isKnownImageNode =
-        nodeType.includes("loadimage") ||
-        nodeType.includes("load image") ||
-        nodeType.includes("imageloader") ||
-        nodeType === "loadimage";
-
-    const candidates = [];
-    for (const w of widgets) {
-        if (!w) continue;
-        const type = String(w?.type || "").toLowerCase();
-        const value = w?.value;
-
-        const rejectTypes = new Set(["number", "int", "float", "boolean", "toggle", "checkbox"]);
-        if (rejectTypes.has(type)) continue;
-        if (typeof value === "number" || typeof value === "boolean") continue;
-
-        const stringLikeByType = type === "text" || type === "string" || type === "combo";
-        const stringLikeByCallback = typeof w?.callback === "function" && typeof value === "string";
-        if (!stringLikeByType && !stringLikeByCallback) continue;
-
-        const rawName = String(w?.name || w?.label || "");
-        const name = rawName.toLowerCase().trim();
-
-        let score = 0;
-        if (exactNames.has(name)) score += 100;
-
-        const hasImage = name.includes("image");
-        const hasAnyImageHint =
-            name.includes("path") || name.includes("file") || name.includes("input") || name.includes("src") || name.includes("source") || name.includes("img");
-        if (hasImage && hasAnyImageHint) score += 80;
-        if (name.includes("file") || name.includes("path") || name.includes("input") || name.includes("src")) score += 35;
-        if (name.includes("media") || name.includes("picture") || name.includes("photo")) score += 45;
-
-        const isOutputy =
-            name.includes("output") ||
-            name.includes("save") ||
-            name.includes("export") ||
-            name.includes("folder") ||
-            name.includes("dir");
-        if (isOutputy) score -= 90;
-
-        if (name === "image") {
-            const empty = typeof value === "string" && value.trim() === "";
-            if (empty) score += 25;
-            else score -= 50;
-        }
-
-        if (isKnownImageNode) score += 15;
-        const emptyValue = typeof value === "string" && value.trim() === "";
-        if (emptyValue) score += 3;
-
-        candidates.push({ w, score, emptyValue, combo: type === "combo" });
-    }
-
-    if (!candidates.length) return null;
-    candidates.sort((a, b) => {
-        if (b.score !== a.score) return b.score - a.score;
-        if (b.emptyValue !== a.emptyValue) return b.emptyValue ? 1 : -1;
-        if (b.combo !== a.combo) return b.combo ? 1 : -1;
-        return 0;
-    });
-
-    const best = candidates[0];
-
-    // For image extensions, lower the threshold from 20 to 10
-    const imageExtensions = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'tiff', 'tif']);
-    const threshold = imageExtensions.has(ext) ? 10 : 20;
-
-    if (!best || best.score < threshold) {
-        // Fallback: try a more permissive picker for images
-        if (imageExtensions.has(ext)) {
-            for (const w of widgets) {
-                if (!w) continue;
-                const type = String(w?.type || "").toLowerCase();
-
-                if (type === "text" || type === "combo") {
-                    return w; // Return first text/combo widget as fallback for images
-                }
-            }
-        }
-        return null;
-    }
-
-    try {
-        best.w.__mjrImagePickScore = best.score;
-    } catch {}
-    return best.w;
 };
 
 export const pickBestVideoPathWidget = (node, droppedExt) => {
@@ -236,8 +155,13 @@ export const pickBestVideoPathWidget = (node, droppedExt) => {
 
         if (name === "video") {
             const empty = typeof value === "string" && value.trim() === "";
-            if (empty || looksLikeVideoPath(value, ext)) score += 25;
-            else score -= 50;
+            if (empty) {
+                score += 25;
+            } else if (looksLikeVideoPath(value, ext)) {
+                score += 25;
+            } else {
+                score -= 10;
+            }
         }
 
         if (isKnownVideoNode) score += 15;
@@ -263,4 +187,3 @@ export const pickBestVideoPathWidget = (node, droppedExt) => {
     } catch {}
     return best.w;
 };
-

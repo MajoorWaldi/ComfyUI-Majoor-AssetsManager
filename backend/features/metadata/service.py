@@ -9,6 +9,8 @@ from typing import Dict, Any, Optional
 
 from ...shared import Result, ErrorCode, get_logger, classify_file, log_structured
 from ...adapters.tools import ExifTool, FFProbe
+from ...settings import AppSettings
+from ...probe_router import pick_probe_backend
 from .extractors import (
     extract_png_metadata,
     extract_webp_metadata,
@@ -140,18 +142,36 @@ class MetadataService:
     and file-specific extractors.
     """
 
-    def __init__(self, exiftool: ExifTool, ffprobe: FFProbe):
+    def __init__(self, exiftool: ExifTool, ffprobe: FFProbe, settings: AppSettings):
         """
         Initialize metadata service.
 
         Args:
             exiftool: ExifTool adapter instance
             ffprobe: FFProbe adapter instance
+            settings: Application settings service
         """
         self.exiftool = exiftool
         self.ffprobe = ffprobe
+        self._settings = settings
 
-    def get_metadata(self, file_path: str, scan_id: Optional[str] = None) -> Result[Dict[str, Any]]:
+    def _resolve_probe_mode(self, override: Optional[str]) -> str:
+        if isinstance(override, str):
+            normalized = override.strip().lower()
+            if normalized in ("auto", "exiftool", "ffprobe", "both"):
+                return normalized
+        return self._settings.get_probe_backend()
+
+    def _probe_backends(self, file_path: str, override: Optional[str]) -> tuple[str, list[str]]:
+        mode = self._resolve_probe_mode(override)
+        return mode, pick_probe_backend(file_path, settings_override=mode)
+
+    def get_metadata(
+        self,
+        file_path: str,
+        scan_id: Optional[str] = None,
+        probe_mode_override: Optional[str] = None
+    ) -> Result[Dict[str, Any]]:
         """
         Extract metadata from file.
 
@@ -182,12 +202,21 @@ class MetadataService:
 
         try:
             # Dispatch to appropriate handler
+            _, backends = self._probe_backends(file_path, probe_mode_override)
+            allow_exif = "exiftool" in backends
+            allow_ffprobe = "ffprobe" in backends
+
             if kind == "image":
-                return self._extract_image_metadata(file_path, scan_id=scan_id)
+                return self._extract_image_metadata(file_path, scan_id=scan_id, allow_exif=allow_exif)
             elif kind == "video":
-                return self._extract_video_metadata(file_path, scan_id=scan_id)
+                return self._extract_video_metadata(
+                    file_path,
+                    scan_id=scan_id,
+                    allow_exif=allow_exif,
+                    allow_ffprobe=allow_ffprobe,
+                )
             elif kind == "audio":
-                return self._extract_audio_metadata(file_path, scan_id=scan_id)
+                return self._extract_audio_metadata(file_path, scan_id=scan_id, allow_exif=allow_exif)
             else:
                 return Result.Ok({
                     "file_info": self._get_file_info(file_path),
@@ -255,9 +284,21 @@ class MetadataService:
         }
         return Result.Ok(payload, quality=payload.get("quality", "none"))
 
-    def _extract_image_metadata(self, file_path: str, scan_id: Optional[str] = None) -> Result[Dict[str, Any]]:
+    def _extract_image_metadata(
+        self,
+        file_path: str,
+        scan_id: Optional[str] = None,
+        allow_exif: bool = True
+    ) -> Result[Dict[str, Any]]:
         """Extract metadata from image file."""
         ext = os.path.splitext(file_path)[1].lower()
+
+        if not allow_exif:
+            return Result.Ok({
+                "file_info": self._get_file_info(file_path),
+                "exif": None,
+                "quality": "none"
+            }, quality="none")
 
         exif_start = time.perf_counter()
         exif_result = self.exiftool.read(file_path)
@@ -330,40 +371,54 @@ class MetadataService:
         quality = metadata_result.meta.get("quality", "none")
         return Result.Ok(combined, quality=quality)
 
-    def _extract_video_metadata(self, file_path: str, scan_id: Optional[str] = None) -> Result[Dict[str, Any]]:
+    def _extract_video_metadata(
+        self,
+        file_path: str,
+        scan_id: Optional[str] = None,
+        allow_exif: bool = True,
+        allow_ffprobe: bool = True,
+    ) -> Result[Dict[str, Any]]:
         """Extract metadata from video file."""
-        exif_start = time.perf_counter()
-        exif_result = self.exiftool.read(file_path)
-        exif_duration = time.perf_counter() - exif_start
-        exif_data = exif_result.data if exif_result.ok else None
-        if not exif_result.ok:
-            self._log_metadata_issue(
-                logging.WARNING,
-                "ExifTool failed while reading video metadata",
-                file_path,
-                scan_id=scan_id,
-                tool="exiftool",
-                error=exif_result.error,
-                duration_seconds=exif_duration
-            )
-            exif_data = None
-
-        ffprobe_start = time.perf_counter()
-        ffprobe_result = self.ffprobe.read(file_path)
-        ffprobe_duration = time.perf_counter() - ffprobe_start
-        if not ffprobe_result.ok:
-            self._log_metadata_issue(
-                logging.WARNING,
-                "FFprobe failed while reading video metadata",
-                file_path,
-                scan_id=scan_id,
-                tool="ffprobe",
-                error=ffprobe_result.error,
-                duration_seconds=ffprobe_duration
-            )
-            ffprobe_data = None
+        exif_data = {}
+        exif_duration = 0.0
+        if allow_exif:
+            exif_start = time.perf_counter()
+            exif_result = self.exiftool.read(file_path)
+            exif_duration = time.perf_counter() - exif_start
+            exif_data = exif_result.data if exif_result.ok else None
+            if not exif_result.ok:
+                self._log_metadata_issue(
+                    logging.WARNING,
+                    "ExifTool failed while reading video metadata",
+                    file_path,
+                    scan_id=scan_id,
+                    tool="exiftool",
+                    error=exif_result.error,
+                    duration_seconds=exif_duration
+                )
+                exif_data = None
         else:
-            ffprobe_data = ffprobe_result.data
+            exif_data = {}
+
+        ffprobe_data = {}
+        ffprobe_duration = 0.0
+        if allow_ffprobe:
+            ffprobe_start = time.perf_counter()
+            ffprobe_result = self.ffprobe.read(file_path)
+            ffprobe_duration = time.perf_counter() - ffprobe_start
+            if not ffprobe_result.ok:
+                self._log_metadata_issue(
+                    logging.WARNING,
+                    "FFprobe failed while reading video metadata",
+                    file_path,
+                    scan_id=scan_id,
+                    tool="ffprobe",
+                    error=ffprobe_result.error,
+                    duration_seconds=ffprobe_duration
+                )
+                ffprobe_data = None
+            else:
+                ffprobe_data = ffprobe_result.data
 
         # Extract video-specific metadata
         metadata_result = extract_video_metadata(file_path, exif_data, ffprobe_data)
@@ -406,8 +461,20 @@ class MetadataService:
         quality = metadata_result.meta.get("quality", "none")
         return Result.Ok(combined, quality=quality)
 
-    def _extract_audio_metadata(self, file_path: str, scan_id: Optional[str] = None) -> Result[Dict[str, Any]]:
+    def _extract_audio_metadata(
+        self,
+        file_path: str,
+        scan_id: Optional[str] = None,
+        allow_exif: bool = True,
+    ) -> Result[Dict[str, Any]]:
         """Extract metadata from audio file."""
+        if not allow_exif:
+            return Result.Ok({
+                "file_info": self._get_file_info(file_path),
+                "exif": None,
+                "quality": "none"
+            }, quality="none")
+
         exif_start = time.perf_counter()
         exif_result = self.exiftool.read(file_path)
         exif_duration = time.perf_counter() - exif_start
@@ -434,7 +501,12 @@ class MetadataService:
             "quality": "partial" if exif_data else "none"
         }, quality="partial" if exif_data else "none")
 
-    def get_metadata_batch(self, file_paths: list[str], scan_id: Optional[str] = None) -> Dict[str, Result[Dict[str, Any]]]:
+    def get_metadata_batch(
+        self,
+        file_paths: list[str],
+        scan_id: Optional[str] = None,
+        probe_mode_override: Optional[str] = None,
+    ) -> Dict[str, Result[Dict[str, Any]]]:
         """
         Extract metadata from multiple files in batch (much faster than individual calls).
 
@@ -473,16 +545,31 @@ class MetadataService:
 
         results = {}
 
-        # Batch ExifTool for all files that need it (images + videos + audio)
-        exif_paths = images + videos + audios
-        exif_results = {}
-        if exif_paths:
-            exif_results = self.exiftool.read_batch(exif_paths)
+        probe_mode = self._resolve_probe_mode(probe_mode_override)
 
-        # Batch FFProbe for videos only
+        exif_targets = []
+        ffprobe_targets = []
+        seen_exif = set()
+        seen_ffprobe = set()
+
+        for path in [*images, *videos, *audios]:
+            backends = pick_probe_backend(path, settings_override=probe_mode)
+            if "exiftool" in backends and path not in seen_exif:
+                seen_exif.add(path)
+                exif_targets.append(path)
+            if "ffprobe" in backends and path not in seen_ffprobe:
+                seen_ffprobe.add(path)
+                ffprobe_targets.append(path)
+
+        # Batch ExifTool for targets that requested it
+        exif_results = {}
+        if exif_targets:
+            exif_results = self.exiftool.read_batch(exif_targets)
+
+        # Batch FFProbe for videos only when enabled
         ffprobe_results = {}
-        if videos:
-            ffprobe_results = self.ffprobe.read_batch(videos)
+        if ffprobe_targets:
+            ffprobe_results = self.ffprobe.read_batch(ffprobe_targets)
 
         # Process images
         for path in images:

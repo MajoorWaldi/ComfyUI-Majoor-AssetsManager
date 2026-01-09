@@ -6,7 +6,6 @@ import { app } from "../../../../scripts/app.js";
 import { get, post } from "../../api/client.js";
 import { ENDPOINTS, buildCustomViewURL, buildViewURL } from "../../api/endpoints.js";
 import { comfyAlert } from "../../app/dialogs.js";
-import { smartUploadToInput } from "../../utils/fastUpload.js";
 
 import { DND_GLOBAL_KEY, DND_INSTANCE_VERSION, DND_MIME } from "./utils/constants.js";
 import { dndLog } from "./utils/log.js";
@@ -18,23 +17,12 @@ import {
     clearHighlight,
     ensureComboHasValue,
     getNodeUnderClientXY,
-    pickBestVideoPathWidget,
-    pickBestImagePathWidget
+    pickBestVideoPathWidget
 } from "./targets/node.js";
 import { stageToInput, stageToInputDetailed } from "./staging/stageToInput.js";
 
 const buildURL = (payload) =>
     buildPayloadViewURL(payload, { buildCustomViewURL, buildViewURL });
-
-// Helper to check if payload is an image
-const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.tiff', '.tif']);
-const isImagePayload = (payload) => {
-    if (!payload) return false;
-    if (payload.kind === "image") return true;
-    const filename = String(payload.filename || "").toLowerCase();
-    const ext = filename.substring(filename.lastIndexOf('.'));
-    return IMAGE_EXTS.has(ext);
-};
 
 // Workflow cache: filename -> { workflow, at }
 const _workflowCache = new Map();
@@ -177,42 +165,6 @@ const tryLoadWorkflowToCanvas = async (payload, fallbackAbsPath = null) => {
     return false;
 };
 
-export const enableAssetDrag = (cardEl, asset) => {
-    if (!cardEl) return;
-    // Deprecated for grid rendering: prefer `bindAssetDragStart(container)` so we don't
-    // attach a dragstart handler per card (large perf win for big grids).
-    cardEl.draggable = true;
-    cardEl.addEventListener("dragstart", (event) => {
-        if (!event.dataTransfer) return;
-        const type = String(asset?.type || "output").toLowerCase();
-        const payload = {
-            filename: asset.filename,
-            subfolder: asset.subfolder || "",
-            type,
-            root_id: asset?.root_id || asset?.rootId || asset?.custom_root_id || undefined,
-            kind: asset.kind
-        };
-        event.dataTransfer.setData(DND_MIME, JSON.stringify(payload));
-        event.dataTransfer.setData("text/plain", asset.filename);
-
-        const viewUrl = buildURL(payload);
-        event.dataTransfer.setData("text/uri-list", viewUrl);
-
-        // Add download URL for drag-out to Windows Explorer
-        const rel = `${ENDPOINTS.DOWNLOAD}?asset_id=${encodeURIComponent(asset.id || "")}&filename=${encodeURIComponent(asset.filename || "")}`;
-        const downloadUrl = new URL(rel, window.location.href).toString();
-        const mime = getDownloadMimeForFilename(asset.filename);
-        event.dataTransfer.setData("DownloadURL", `${mime}:${asset.filename}:${downloadUrl}`);
-        event.dataTransfer.setData("text/uri-list", downloadUrl); // fallback for some shells
-        event.dataTransfer.effectAllowed = "copy";
-
-        const preview = cardEl.querySelector("img") || cardEl.querySelector("video");
-        if (preview && preview instanceof HTMLElement) {
-            event.dataTransfer.setDragImage(preview, 10, 10);
-        }
-    });
-};
-
 export const bindAssetDragStart = (containerEl) => {
     if (!containerEl) return;
     if (containerEl._mjrAssetDragStartBound) return;
@@ -243,13 +195,8 @@ export const bindAssetDragStart = (containerEl) => {
                 dt.setData("text/plain", String(asset.filename || ""));
                 const viewUrl = buildURL(payload);
                 dt.setData("text/uri-list", viewUrl);
-
-                // Add download URL for drag-out to Windows Explorer
-                const rel = `${ENDPOINTS.DOWNLOAD}?asset_id=${encodeURIComponent(asset.id || "")}&filename=${encodeURIComponent(asset.filename || "")}`;
-                const downloadUrl = new URL(rel, window.location.href).toString();
                 const mime = getDownloadMimeForFilename(asset.filename);
-                dt.setData("DownloadURL", `${mime}:${asset.filename}:${downloadUrl}`);
-                dt.setData("text/uri-list", downloadUrl); // fallback for some shells
+                dt.setData("DownloadURL", `${mime}:${asset.filename}:${viewUrl}`);
                 dt.effectAllowed = "copy";
             } catch {}
 
@@ -287,18 +234,11 @@ export const initDragDrop = () => {
         const types = Array.from(event?.dataTransfer?.types || []);
         if (!types.includes(DND_MIME)) return;
         const payload = getDraggedAsset(event, DND_MIME);
-        if (!payload) return;
+        if (!isVideoPayload(payload)) return;
 
-        // Route to appropriate widget picker based on payload type
         const node = getNodeUnderClientXY(app, event.clientX, event.clientY);
         const droppedExt = String(payload?.filename || "").split(".").pop() || "";
-        let widget = null;
-
-        if (isVideoPayload(payload)) {
-            widget = node ? pickBestVideoPathWidget(node, droppedExt) : null;
-        } else if (isImagePayload(payload)) {
-            widget = node ? pickBestImagePathWidget(node, droppedExt) : null;
-        }
+        const widget = node ? pickBestVideoPathWidget(node, droppedExt) : null;
 
         if (node && widget) {
             event.preventDefault();
@@ -318,81 +258,14 @@ export const initDragDrop = () => {
 
     const onDrop = async (event) => {
         const types = Array.from(event?.dataTransfer?.types || []);
-
-        // Check if this is a file drop from OS (not from our asset manager)
-        if (types.includes("Files")) {
-            // Handle direct file drop from OS
-            event.preventDefault();
-            event.stopImmediatePropagation?.();
-            event.stopPropagation();
-
-            const files = Array.from(event.dataTransfer.files || []);
-            if (files.length === 0) return;
-
-            // Process the first file (we typically handle one at a time)
-            const file = files[0];
-
-            try {
-                // Show immediate feedback
-                const node = getNodeUnderClientXY(app, event.clientX, event.clientY);
-                if (node) {
-                    // Set widget to "Uploading…" placeholder
-                    const droppedExt = String(file.name || "").split(".").pop() || "";
-                    // Route to appropriate widget picker based on file type
-                    const filename = String(file.name || "").toLowerCase();
-                    const ext = filename.substring(filename.lastIndexOf('.'));
-                    let widget = null;
-                    if (IMAGE_EXTS.has(ext)) {
-                        widget = pickBestImagePathWidget(node, droppedExt);
-                    } else {
-                        widget = pickBestVideoPathWidget(node, droppedExt);
-                    }
-
-                    if (widget) {
-                        const oldValue = widget.value;
-                        widget.value = "Uploading…";
-                        try {
-                            widget.callback?.(widget.value);
-                        } catch {}
-
-                        // Upload the file using the fast path
-                        const result = await smartUploadToInput(file, "node_drop");
-
-                        // Construct relPath considering subfolder for proper loading
-                        const relPath = result.subfolder ? `${result.subfolder}/${result.name}` : result.name;
-                        if (widget.type === "combo") ensureComboHasValue(widget, relPath);
-                        widget.value = relPath;
-                        try {
-                            widget.callback?.(widget.value);
-                        } catch {}
-
-                        markCanvasDirty(app);
-                        dndLog("file drop inject", { node: node?.title, widget: widget?.name, value: relPath });
-                    }
-                }
-            } catch (error) {
-                console.error("Majoor: File upload failed", error);
-                dndLog("file drop failed", { error: error.message });
-            }
-            return;
-        }
-
-        // Original logic for assets dragged from our manager
         if (!types.includes(DND_MIME)) return;
         const payload = getDraggedAsset(event, DND_MIME);
-        if (!payload) return;
+        if (!isVideoPayload(payload)) return;
         if (!isCanvasDropTarget(app, event)) return;
 
         const node = getNodeUnderClientXY(app, event.clientX, event.clientY);
         const droppedExt = String(payload?.filename || "").split(".").pop() || "";
-
-        // Route to appropriate widget picker based on payload type
-        let widget = null;
-        if (isVideoPayload(payload)) {
-            widget = node ? pickBestVideoPathWidget(node, droppedExt) : null;
-        } else if (isImagePayload(payload)) {
-            widget = node ? pickBestImagePathWidget(node, droppedExt) : null;
-        }
+        const widget = node ? pickBestVideoPathWidget(node, droppedExt) : null;
 
         if (!node || !widget) {
             clearHighlight(app, markCanvasDirty);
@@ -405,8 +278,7 @@ export const initDragDrop = () => {
                 post,
                 endpoint: ENDPOINTS.STAGE_TO_INPUT,
                 payload,
-                index: false,
-                purpose: "node_drop"  // Fast path - skip indexing for node drops
+                index: false
             });
             const workflowPromise = tryLoadWorkflowToCanvas(payload);
 
@@ -422,6 +294,11 @@ export const initDragDrop = () => {
             const relativePath = staged?.relativePath;
             if (!relativePath) {
                 dndLog("drop canvas stage failed");
+                await comfyAlert(
+                    `Impossible de charger le fichier : "${payload?.filename}".\n` +
+                    "Le workflow n'a pas été trouvé et le staging a échoué.",
+                    "Erreur Majoor"
+                );
                 return;
             }
             dndLog("drop canvas staged", { value: relativePath });
@@ -441,8 +318,7 @@ export const initDragDrop = () => {
             post,
             endpoint: ENDPOINTS.STAGE_TO_INPUT,
             payload,
-            index: false,
-            purpose: "node_drop"  // Fast path - skip indexing for node drops
+            index: false
         });
         if (!relativePath) return;
 

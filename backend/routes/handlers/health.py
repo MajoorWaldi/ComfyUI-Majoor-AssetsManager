@@ -18,7 +18,7 @@ from backend.config import OUTPUT_ROOT, get_tool_paths, MEDIA_PROBE_BACKEND
 from backend.custom_roots import resolve_custom_root
 from backend.shared import Result
 from backend.tool_detect import get_tool_status
-from ..core import _json_response, _require_services
+from ..core import _json_response, _require_services, _csrf_error
 
 
 def register_health_routes(routes: web.RouteTableDef) -> None:
@@ -73,11 +73,51 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         """
         Get configuration (output directory, etc.).
         """
+        svc, _ = _require_services()
+        probe_mode = MEDIA_PROBE_BACKEND
+        if svc:
+            settings_service = svc.get("settings")
+            if settings_service:
+                try:
+                    probe_mode = settings_service.get_probe_backend()
+                except Exception:
+                    probe_mode = MEDIA_PROBE_BACKEND
         return _json_response(Result.Ok({
             "output_directory": OUTPUT_ROOT,
             "tool_paths": get_tool_paths(),
-            "media_probe_backend": MEDIA_PROBE_BACKEND
+            "media_probe_backend": probe_mode
         }))
+
+    @routes.post("/mjr/am/settings/probe-backend")
+    async def update_probe_backend(request):
+        """
+        Update media probe backend preference (ExifTool, FFprobe, Both, Auto).
+        """
+        csrf = _csrf_error(request)
+        if csrf:
+            return _json_response(Result.Err("CSRF", csrf))
+
+        svc, error_result = _require_services()
+        if error_result:
+            return _json_response(error_result)
+
+        settings_service = svc.get("settings")
+        if not settings_service:
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Settings service unavailable"))
+
+        try:
+            body = await request.json()
+        except Exception as exc:
+            return _json_response(Result.Err("INVALID_JSON", f"Invalid JSON body: {exc}"))
+
+        mode = (body.get("mode") or body.get("media_probe_backend") or "").strip()
+        if not mode:
+            return _json_response(Result.Err("INVALID_INPUT", "Missing probe backend mode"))
+
+        result = settings_service.set_probe_backend(mode)
+        if result.ok:
+            return _json_response(Result.Ok({"media_probe_backend": result.data}))
+        return _json_response(result)
 
     @routes.get("/mjr/am/tools/status")
     async def tools_status(request):

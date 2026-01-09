@@ -3,6 +3,8 @@ export function createPanelState() {
         scope: "output",
         customRootId: "",
         kindFilter: "",
+        dateRangeFilter: "",
+        dateExactFilter: "",
         workflowOnly: false,
         minRating: 0,
         sort: "mtime_desc",

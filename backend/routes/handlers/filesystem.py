@@ -169,6 +169,12 @@ def _list_filesystem_assets(
     filter_kind = str(filters.get("kind") or "").strip().lower() if isinstance(filters, dict) else ""
     filter_min_rating = int(filters.get("min_rating") or 0) if isinstance(filters, dict) else 0
     filter_workflow_only = bool(filters.get("has_workflow")) if isinstance(filters, dict) else False
+    filter_mtime_start = (
+        int(filters.get("mtime_start")) if isinstance(filters, dict) and filters.get("mtime_start") is not None else None
+    )
+    filter_mtime_end = (
+        int(filters.get("mtime_end")) if isinstance(filters, dict) and filters.get("mtime_end") is not None else None
+    )
 
     # Removed the early return that was causing filters to return empty results
     # The filtering will now be handled properly below after metadata enrichment
@@ -237,6 +243,14 @@ def _list_filesystem_assets(
         if filter_min_rating > 0 and int(item.get("rating", 0)) < filter_min_rating:
             continue
         if filter_workflow_only and not int(item.get("has_workflow", 0)):
+            continue
+        try:
+            entry_mtime = int(item.get("mtime") or 0)
+        except Exception:
+            entry_mtime = 0
+        if filter_mtime_start is not None and entry_mtime < filter_mtime_start:
+            continue
+        if filter_mtime_end is not None and entry_mtime >= filter_mtime_end:
             continue
         if not browse_all and q_lower not in str(item.get("filename", "")).lower():
             continue

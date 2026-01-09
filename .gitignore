@@ -39,3 +39,5 @@ ENV/
 # OS
 .DS_Store
 Thumbs.db
+clean_pycache.bat
+AGENTS.md

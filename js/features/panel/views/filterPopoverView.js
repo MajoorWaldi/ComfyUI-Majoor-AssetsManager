@@ -66,10 +66,53 @@ export function createFilterPopoverView() {
     ratingRow.appendChild(ratingLabel);
     ratingRow.appendChild(ratingSelect);
 
+    const dateRow = document.createElement("div");
+    dateRow.className = "mjr-popover-row";
+    const dateLabel = document.createElement("div");
+    dateLabel.className = "mjr-popover-label";
+    dateLabel.textContent = "Date range";
+    const dateRangeSelect = document.createElement("select");
+    dateRangeSelect.className = "mjr-select";
+    [
+        ["", "Any"],
+        ["today", "Today"],
+        ["this_week", "This week"],
+        ["this_month", "This month"],
+    ].forEach(([val, text]) => {
+        const opt = document.createElement("option");
+        opt.value = val;
+        opt.textContent = text;
+        dateRangeSelect.appendChild(opt);
+    });
+    dateRow.appendChild(dateLabel);
+    dateRow.appendChild(dateRangeSelect);
+
+    const agendaRow = document.createElement("div");
+    agendaRow.className = "mjr-popover-row";
+    const agendaLabel = document.createElement("div");
+    agendaLabel.className = "mjr-popover-label";
+    agendaLabel.textContent = "Agenda";
+    const agendaInput = document.createElement("input");
+    agendaInput.type = "date";
+    agendaInput.className = "mjr-input";
+    agendaInput.placeholder = "Specific day";
+    agendaInput.classList.add("mjr-agenda-input");
+    agendaRow.appendChild(agendaLabel);
+    agendaRow.appendChild(agendaInput);
+
     filterPopover.appendChild(kindRow);
     filterPopover.appendChild(wfRow);
     filterPopover.appendChild(ratingRow);
+    filterPopover.appendChild(dateRow);
+    filterPopover.appendChild(agendaRow);
 
-    return { filterPopover, kindSelect, wfCheckbox, ratingSelect };
+    return {
+        filterPopover,
+        kindSelect,
+        wfCheckbox,
+        ratingSelect,
+        dateRangeSelect,
+        dateExactInput: agendaInput
+    };
 }
 

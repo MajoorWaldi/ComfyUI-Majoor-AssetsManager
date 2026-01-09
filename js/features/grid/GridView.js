@@ -403,6 +403,8 @@ async function fetchPage(gridContainer, query, limit, offset) {
     const kind = gridContainer?.dataset?.mjrFilterKind || "";
     const workflowOnly = gridContainer?.dataset?.mjrFilterWorkflowOnly === "1";
     const minRating = Number(gridContainer?.dataset?.mjrFilterMinRating || 0) || 0;
+    const dateRange = String(gridContainer?.dataset?.mjrFilterDateRange || "").trim().toLowerCase();
+    const dateExact = String(gridContainer?.dataset?.mjrFilterDateExact || "").trim();
     const sortKey = gridContainer?.dataset?.mjrSort || "mtime_desc";
 
     const requestedQuery = query && query.trim() ? query : "*";
@@ -410,18 +412,20 @@ async function fetchPage(gridContainer, query, limit, offset) {
 
     try {
         const includeTotal = !(String(scope || "").toLowerCase() === "output" && Number(offset || 0) > 0);
-        const url = buildListURL({
-            q: safeQuery,
-            limit,
-            offset,
-            scope,
-            subfolder,
-            customRootId: customRootId || null,
-            kind: kind || null,
-            hasWorkflow: workflowOnly ? true : null,
-            minRating: minRating > 0 ? minRating : null,
-            includeTotal
-        });
+            const url = buildListURL({
+                q: safeQuery,
+                limit,
+                offset,
+                scope,
+                subfolder,
+                customRootId: customRootId || null,
+                kind: kind || null,
+                hasWorkflow: workflowOnly ? true : null,
+                minRating: minRating > 0 ? minRating : null,
+                dateRange: dateRange || null,
+                dateExact: dateExact || null,
+                includeTotal
+            });
         const result = await get(url);
 
         if (result.ok) {
@@ -450,6 +454,17 @@ async function fetchPage(gridContainer, query, limit, offset) {
     }
 }
 
+const emitAgendaStatus = (dateExact, hasResults) => {
+    if (!dateExact) return;
+    try {
+        window?.dispatchEvent?.(
+            new CustomEvent("MJR:AgendaStatus", {
+                detail: { date: dateExact, hasResults: Boolean(hasResults) },
+            })
+        );
+    } catch {}
+};
+
 async function loadNextPage(gridContainer, state) {
     if (state.loading || state.done) return;
     const limit = Math.max(1, Math.min(APP_CONFIG.MAX_PAGE_SIZE, APP_CONFIG.DEFAULT_PAGE_SIZE));
@@ -457,6 +472,8 @@ async function loadNextPage(gridContainer, state) {
     const before = captureScrollMetrics(state);
     try {
         const page = await fetchPage(gridContainer, state.query, limit, state.offset);
+        const dateExact = String(gridContainer?.dataset?.mjrFilterDateExact || "").trim();
+        emitAgendaStatus(dateExact, page.ok && Array.isArray(page.assets) && page.assets.length > 0);
         if (!page.ok) {
             state.done = true;
             stopObserver(state);

@@ -219,15 +219,13 @@ export function createViewer() {
         zoom: 1,
         panX: 0,
         panY: 0,
-        // Smooth animation target values
-        targetZoom: 1,
-        targetPanX: 0,
-        targetPanY: 0,
+        // Direct transform (no animation targets)
         _lastPointerX: null,
         _lastPointerY: null,
         _mediaW: 0,
         _mediaH: 0,
-        compareAsset: null
+        compareAsset: null,
+        targetZoom: 1
     };
 
     // Metadata hydration cache for viewer-visible assets (so rating/tags show even if the grid
@@ -235,6 +233,9 @@ export function createViewer() {
     const _metaCache = new Map(); // id -> { at:number, data:any }
     const META_TTL_MS = APP_CONFIG.VIEWER_META_TTL_MS ?? 30_000;
     const META_MAX_ENTRIES = APP_CONFIG.VIEWER_META_MAX_ENTRIES ?? 500;
+
+    // Track hydration requests to prevent race conditions
+    let hydrationRequestId = 0;
 
     const cleanupMetaCache = () => {
         if (_metaCache.size <= META_MAX_ENTRIES) return;
@@ -330,16 +331,29 @@ export function createViewer() {
     };
 
     const hydrateVisibleMetadata = async () => {
+        // Increment request ID to invalidate previous requests
+        const currentRequestId = ++hydrationRequestId;
+
         try {
             if (state.mode === VIEWER_MODES.SINGLE) {
                 const current = state.assets[state.currentIndex];
-                if (current) await hydrateAssetsMetadataBatch([current]);
+                if (current) {
+                    await hydrateAssetsMetadataBatch([current]);
+                    // Check if this request is still valid before rendering
+                    if (currentRequestId !== hydrationRequestId) return;
+                }
+                renderBadges();
                 return;
             }
             const visible = Array.isArray(state.assets) ? state.assets.slice(0, 4) : [];
             const batch = visible.slice();
             if (state.compareAsset) batch.push(state.compareAsset);
             await hydrateAssetsMetadataBatch(batch);
+
+            // Check if this request is still valid before rendering
+            if (currentRequestId === hydrationRequestId) {
+                renderBadges();
+            }
         } catch {}
     };
 
@@ -389,14 +403,15 @@ export function createViewer() {
 
     const clampPanToBounds = () => {
         try {
+            // FIX: Verify overlay is visible before calculating bounds
+            if (overlay.style.display === 'none') return;
+
             const MIN_ZOOM = 0.1;
             const MAX_ZOOM = 16;
             const zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Number(state.zoom) || 1));
             if (!(zoom > 1.001)) {
                 state.panX = 0;
                 state.panY = 0;
-                state.targetPanX = 0;
-                state.targetPanY = 0;
                 return;
             }
 
@@ -413,13 +428,18 @@ export function createViewer() {
             if (!Number.isFinite(aspect) || aspect <= 0) return;
 
             const getViewportSize = () => {
+                const fallbackW = Math.max(Number(content?.clientWidth) || 0, Number(overlay?.clientWidth) || 0);
+                const fallbackH = Math.max(Number(content?.clientHeight) || 0, Number(overlay?.clientHeight) || 0);
+                const clampToFallback = (w, h) => ({
+                    w: Math.max(Number(w) || 0, fallbackW),
+                    h: Math.max(Number(h) || 0, fallbackH),
+                });
                 if (state.mode === VIEWER_MODES.SINGLE) {
-                    return { w: Number(singleView.clientWidth) || 0, h: Number(singleView.clientHeight) || 0 };
+                    return clampToFallback(singleView.clientWidth, singleView.clientHeight);
                 }
                 if (state.mode === VIEWER_MODES.AB_COMPARE) {
-                    return { w: Number(abView.clientWidth) || 0, h: Number(abView.clientHeight) || 0 };
+                    return clampToFallback(abView.clientWidth, abView.clientHeight);
                 }
-                // Side-by-side: clamp against the smallest visible cell/panel to avoid blank borders.
                 const children = Array.from(sideView.children || []).filter((el) => el && el.nodeType === 1);
                 if (children.length) {
                     let minW = Infinity;
@@ -430,13 +450,22 @@ export function createViewer() {
                         if (w > 0) minW = Math.min(minW, w);
                         if (h > 0) minH = Math.min(minH, h);
                     }
-                    if (Number.isFinite(minW) && Number.isFinite(minH)) return { w: minW, h: minH };
+                    if (Number.isFinite(minW) && Number.isFinite(minH)) {
+                        return clampToFallback(minW, minH);
+                    }
                 }
-                return { w: Number(sideView.clientWidth) || 0, h: Number(sideView.clientHeight) || 0 };
+                return clampToFallback(sideView.clientWidth, sideView.clientHeight);
             };
 
             const { w: vw, h: vh } = getViewportSize();
-            if (!(vw > 0 && vh > 0)) return;
+            if (!(vw > 0 && vh > 0)) {
+                // FIX: If dimensions are zero (e.g., just after display:block but before paint),
+                // defer the calculation to the next animation frame
+                if (overlay.style.display !== 'none') {
+                    requestAnimationFrame(clampPanToBounds);
+                }
+                return;
+            }
 
             // Compute the "contain" base size inside the viewport.
             const viewportAspect = vw / vh;
@@ -453,12 +482,20 @@ export function createViewer() {
             const scaledW = baseW * zoom;
             const scaledH = baseH * zoom;
 
-            const maxPanX = Math.max(0, (scaledW - vw) / 2);
-            const maxPanY = Math.max(0, (scaledH - vh) / 2);
+            const overflowVH = Math.max(0, scaledW - vw);
+            const overflowVV = Math.max(0, scaledH - vh);
+            const overflowImageW = Math.max(0, scaledW - baseW);
+            const overflowImageH = Math.max(0, scaledH - baseH);
+            const overscrollW = Math.max(0, baseW - vw);
+            const overscrollH = Math.max(0, baseH - vh);
+            const maxPanX =
+                Math.max(overflowVH, overflowImageW, overscrollW) / 2 * zoom;
+            const maxPanY =
+                Math.max(overflowVV, overflowImageH, overscrollH) / 2 * zoom;
 
-            // Clamp the target values instead of the current values
-            state.targetPanX = Math.max(-maxPanX, Math.min(maxPanX, state.targetPanX));
-            state.targetPanY = Math.max(-maxPanY, Math.min(maxPanY, state.targetPanY));
+            // Clamp pan values directly (no animation targets)
+            state.panX = Math.max(-maxPanX, Math.min(maxPanX, state.panX));
+            state.panY = Math.max(-maxPanY, Math.min(maxPanY, state.panY));
         } catch {}
     };
 
@@ -478,13 +515,13 @@ export function createViewer() {
         // Clamp zoom to reasonable limits (0.1x to 16x)
         const MIN_ZOOM = 0.1;
         const MAX_ZOOM = 16;
-        const prevZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Number(state.targetZoom) || 1));
+        const prevZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Number(state.zoom) || 1));
         const clamped = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Number(next) || 1));
         const nextZoom = Math.round(clamped * 100) / 100;
 
-        // Calculate target pan values for smooth zoom
-        let targetPanX = state.targetPanX;
-        let targetPanY = state.targetPanY;
+        // Calculate new pan values (direct, no animation)
+        let newPanX = state.panX;
+        let newPanY = state.panY;
 
         // Zoom towards pointer when available (keep the point under cursor stable).
         if (clientX != null && clientY != null && Number.isFinite(prevZoom) && prevZoom > 0 && nextZoom !== prevZoom) {
@@ -495,28 +532,32 @@ export function createViewer() {
                 const uX = (Number(clientX) || 0) - cx;
                 const uY = (Number(clientY) || 0) - cy;
                 const r = nextZoom / prevZoom;
-                targetPanX = Math.round(((Number(state.targetPanX) || 0) * r + (1 - r) * uX) * 10) / 10;
-                targetPanY = Math.round(((Number(state.targetPanY) || 0) * r + (1 - r) * uY) * 10) / 10;
+                newPanX = Math.round(((Number(state.panX) || 0) * r + (1 - r) * uX) * 10) / 10;
+                newPanY = Math.round(((Number(state.panY) || 0) * r + (1 - r) * uY) * 10) / 10;
             } catch {}
         } else if (nextZoom !== prevZoom) {
             // When zooming without a pointer, preserve relative pan.
             const r = nextZoom / prevZoom;
-            targetPanX = Math.round(((Number(state.targetPanX) || 0) * r) * 10) / 10;
-            targetPanY = Math.round(((Number(state.targetPanY) || 0) * r) * 10) / 10;
+            newPanX = Math.round(((Number(state.panX) || 0) * r) * 10) / 10;
+            newPanY = Math.round(((Number(state.panY) || 0) * r) * 10) / 10;
         }
 
-        state.targetZoom = nextZoom;
-        state.targetPanX = targetPanX;
-        state.targetPanY = targetPanY;
+        state.zoom = nextZoom;
+        state.panX = newPanX;
+        state.panY = newPanY;
 
-        if (Math.abs(state.targetZoom - 1) < 0.001) {
-            state.targetZoom = 1;
-            state.targetPanX = 0;
-            state.targetPanY = 0;
+        if (Math.abs(state.zoom - 1) < 0.001) {
+            state.zoom = 1;
+            state.panX = 0;
+            state.panY = 0;
         }
 
-        // Restart animation loop to apply the new zoom/pan targets
-        startAnimation();
+        state.targetZoom = state.zoom;
+
+        // Apply transform directly (no animation)
+        applyTransform();
+        updatePanCursor();
+        showZoomHUD();
     };
 
     const applyTransform = () => {
@@ -567,60 +608,8 @@ export function createViewer() {
     };
 
     // Smooth animation loop using requestAnimationFrame (only when needed)
-    let animationFrameId = null;
-    const SMOOTH = 0.18; // Smoothing factor for interpolation
-    const EPSILON = 0.001; // Threshold to stop animation when close enough
-
-    const tick = () => {
-        const visible = overlay.style.display !== "none";
-        if (!visible) {
-            animationFrameId = null;
-            return; // stop loop when closed
-        }
-
-        const dz = Math.abs(state.targetZoom - state.zoom);
-        const dx = Math.abs(state.targetPanX - state.panX);
-        const dy = Math.abs(state.targetPanY - state.panY);
-
-        const EPS = 0.001;
-        if (dz < EPS && dx < EPS && dy < EPS) {
-            // apply final snap to avoid drift
-            state.zoom = state.targetZoom;
-            state.panX = state.targetPanX;
-            state.panY = state.targetPanY;
-            applyTransform();
-            updatePanCursor();
-            animationFrameId = null;
-            return;
-        }
-
-        // Interpolate current values toward target values
-        state.zoom += (state.targetZoom - state.zoom) * SMOOTH;
-        state.panX += (state.targetPanX - state.panX) * SMOOTH;
-        state.panY += (state.targetPanY - state.panY) * SMOOTH;
-
-        // Apply the smoothed transform
-        applyTransform();
-        updatePanCursor();
-
-        // Update zoom HUD if zoom has changed significantly
-        if (Math.abs(state.zoom - state.targetZoom) > 0.01) {
-            showZoomHUD();
-        }
-
-        // Continue the animation loop
-        animationFrameId = requestAnimationFrame(tick);
-    };
-
-    // Function to start animation when needed
-    const startAnimation = () => {
-        if (animationFrameId) {
-            cancelAnimationFrame(animationFrameId);
-        }
-        animationFrameId = requestAnimationFrame(tick);
-    };
-
-    // Removed: startAnimation(); - Don't start animation at boot
+    // REMOVED: Animation loop (requestAnimationFrame) for performance
+    // Direct transform updates only
 
     const updatePanCursor = () => {
         try {
@@ -730,6 +719,12 @@ export function createViewer() {
 
     // Update UI based on state
     function updateUI() {
+        // FORCE RESET: Always reset zoom/pan when changing images
+        state.zoom = 1;
+        state.panX = 0;
+        state.panY = 0;
+        state.targetZoom = 1;
+
         // Update filename
         const current = state.assets[state.currentIndex];
         if (state.mode === VIEWER_MODES.AB_COMPARE && canAB()) {
@@ -1040,6 +1035,45 @@ export function createViewer() {
         abView.appendChild(baseLayer);
         abView.appendChild(topLayer);
         abView.appendChild(slider);
+
+        // FIX: Synchronize videos in A/B comparison mode
+        if (baseMedia.tagName === 'VIDEO' && topMedia.tagName === 'VIDEO') {
+            let syncing = false;
+
+            const bindSync = (leader, follower) => {
+                leader.addEventListener('play', () => {
+                    if (syncing) return;
+                    follower.play().catch(() => {});
+                });
+                leader.addEventListener('pause', () => {
+                    if (syncing) return;
+                    follower.pause();
+                });
+                leader.addEventListener('timeupdate', () => {
+                    if (syncing) return;
+                    // Use a threshold to avoid jitter and infinite loops
+                    if (Math.abs(leader.currentTime - follower.currentTime) > 0.15) {
+                        syncing = true;
+                        follower.currentTime = leader.currentTime;
+                        syncing = false;
+                    }
+                });
+                leader.addEventListener('seeking', () => {
+                    if (syncing) return;
+                    syncing = true;
+                    follower.currentTime = leader.currentTime;
+                    syncing = false;
+                });
+            };
+
+            // Bidirectional sync
+            bindSync(baseMedia, topMedia);
+            bindSync(topMedia, baseMedia);
+
+            // Mute one video to avoid audio echo
+            topMedia.muted = true;
+            baseMedia.muted = false;
+        }
     }
 
     // Render side-by-side view
@@ -1111,6 +1145,44 @@ export function createViewer() {
         sideView.style.padding = "0";
         sideView.appendChild(leftPanel);
         sideView.appendChild(rightPanel);
+
+        // FIX: Synchronize videos in side-by-side mode
+        if (leftMedia.tagName === 'VIDEO' && rightMedia.tagName === 'VIDEO') {
+            let syncing = false;
+
+            const bindSync = (leader, follower) => {
+                leader.addEventListener('play', () => {
+                    if (syncing) return;
+                    follower.play().catch(() => {});
+                });
+                leader.addEventListener('pause', () => {
+                    if (syncing) return;
+                    follower.pause();
+                });
+                leader.addEventListener('timeupdate', () => {
+                    if (syncing) return;
+                    if (Math.abs(leader.currentTime - follower.currentTime) > 0.15) {
+                        syncing = true;
+                        follower.currentTime = leader.currentTime;
+                        syncing = false;
+                    }
+                });
+                leader.addEventListener('seeking', () => {
+                    if (syncing) return;
+                    syncing = true;
+                    follower.currentTime = leader.currentTime;
+                    syncing = false;
+                });
+            };
+
+            // Bidirectional sync
+            bindSync(leftMedia, rightMedia);
+            bindSync(rightMedia, leftMedia);
+
+            // Mute right video to avoid audio echo
+            rightMedia.muted = true;
+            leftMedia.muted = false;
+        }
     }
 
     // Mode switchers
@@ -1147,20 +1219,17 @@ export function createViewer() {
     // Zoom controls
     zoomIn.addEventListener('click', () => {
         setZoom((Number(state.zoom) || 1) + 0.25, { clientX: state._lastPointerX, clientY: state._lastPointerY });
-        showZoomHUD(); // Show zoom HUD when zooming with buttons
-        startAnimation(); // Ensure animation loop is active
+        // setZoom now handles transform application directly
     });
 
     zoomOut.addEventListener('click', () => {
         setZoom((Number(state.zoom) || 1) - 0.25, { clientX: state._lastPointerX, clientY: state._lastPointerY });
-        showZoomHUD(); // Show zoom HUD when zooming with buttons
-        startAnimation(); // Ensure animation loop is active
+        // setZoom now handles transform application directly
     });
 
     zoomReset.addEventListener('click', () => {
         setZoom(1);
-        showZoomHUD(); // Show zoom HUD when zooming with buttons
-        startAnimation(); // Ensure animation loop is active
+        // setZoom now handles transform application directly
     });
 
     // Close
@@ -1202,8 +1271,7 @@ export function createViewer() {
         const factor = Math.exp(-dy * 0.0015);
         const next = (Number(state.zoom) || 1) * factor;
         setZoom(next, { clientX: e.clientX, clientY: e.clientY });
-        showZoomHUD(); // Show zoom HUD when wheel zooming
-        startAnimation(); // Ensure animation loop is active
+        // setZoom now handles transform application directly
     };
 
     try {
@@ -1282,14 +1350,17 @@ export function createViewer() {
         } catch {}
         const dx = (Number(e.clientX) || 0) - pan.startX;
         const dy = (Number(e.clientY) || 0) - pan.startY;
-        state.targetPanX = Math.round((pan.startPanX + dx) * 10) / 10;
-        state.targetPanY = Math.round((pan.startPanY + dy) * 10) / 10;
+        const zoom = Math.max(0.1, Math.min(16, Number(state.zoom) || 1));
+        const panMultiplier = Math.max(1, zoom);
+        state.panX = pan.startPanX + dx * panMultiplier;
+        state.panY = pan.startPanY + dy * panMultiplier;
         try {
             state._lastPointerX = e.clientX;
             state._lastPointerY = e.clientY;
         } catch {}
-        // Don't call clampPanToBounds or applyTransform here - let the animation loop handle it
-        startAnimation(); // Ensure animation loop is active during pan
+        // Apply transform directly (no animation)
+        applyTransform();
+        updatePanCursor();
     };
 
     const onPanPointerUp = (e) => {
@@ -1331,10 +1402,10 @@ export function createViewer() {
                     const isNearFit = Math.abs(state.targetZoom - 1) < 0.01;
                     if (isNearFit) {
                         // If near fit, go to max zoom (8x)
-                        setZoom(Math.min(8, state.targetZoom * 4)); // Scale up by 4x from current zoom
+                        setZoom(Math.min(8, state.targetZoom * 4), { clientX: e.clientX, clientY: e.clientY });
                     } else {
                         // If zoomed in, return to fit
-                        setZoom(1);
+                        setZoom(1, { clientX: e.clientX, clientY: e.clientY });
                     }
                     showZoomHUD(); // Show zoom HUD when toggling
                 },
@@ -1444,6 +1515,16 @@ export function createViewer() {
         }
 
         switch (e.key) {
+            case 'Tab':
+                // FIX: Focus trap - prevent tabbing to elements outside the viewer
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation?.();
+                // Keep focus within the viewer overlay
+                if (!overlay.contains(document.activeElement)) {
+                    overlay.focus();
+                }
+                break;
             case 'Escape':
                 closeViewer();
                 break;
@@ -1537,6 +1618,14 @@ export function createViewer() {
             document.body.style.overflow = '';
         }
 
+        // FIX: Restore focus to previously focused element for accessibility
+        try {
+            if (state._prevFocusedElement && typeof state._prevFocusedElement.focus === 'function') {
+                state._prevFocusedElement.focus();
+            }
+            state._prevFocusedElement = null;
+        } catch {}
+
         // Return hotkeys scope to panel
         if (window._mjrHotkeysState) {
             window._mjrHotkeysState.scope = "panel";
@@ -1551,6 +1640,7 @@ export function createViewer() {
             state.zoom = 1;
             state.panX = 0;
             state.panY = 0;
+            state.targetZoom = 1;
             state._lastPointerX = null;
             state._lastPointerY = null;
             state._mediaW = 0;
@@ -1558,8 +1648,17 @@ export function createViewer() {
             state.compareAsset = compareAsset;
 
             overlay.style.display = 'flex';
-            // Removed overlay.focus() to prevent focus ring appearance
-            // Keyboard events are handled via window-level listeners anyway
+
+            // FIX: Store previously focused element and set focus to overlay for accessibility
+            try {
+                state._prevFocusedElement = document.activeElement;
+            } catch {
+                state._prevFocusedElement = null;
+            }
+
+            // Focus the overlay so screen readers announce it as a dialog
+            overlay.focus();
+
             try {
                 state._prevBodyOverflow = document.body.style.overflow;
             } catch {
@@ -1572,18 +1671,12 @@ export function createViewer() {
             window._mjrHotkeysState.scope = "viewer";
 
             updateUI();
-
-            // Restart animation if needed
-            startAnimation();
+            // No animation loop needed - transforms are applied directly
         },
 
         close() {
             closeViewer();
-            // Stop animation when viewer is closed to save resources
-            if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId);
-                animationFrameId = null;
-            }
+            // No animation loop to stop
         },
 
         setMode(mode) {

@@ -1,4 +1,12 @@
-export function bindFilters({ state, kindSelect, wfCheckbox, ratingSelect, reloadGrid }) {
+export function bindFilters({
+    state,
+    kindSelect,
+    wfCheckbox,
+    ratingSelect,
+    dateRangeSelect,
+    dateExactInput,
+    reloadGrid
+}) {
     kindSelect.addEventListener("change", async () => {
         state.kindFilter = kindSelect.value || "";
         await reloadGrid();
@@ -11,5 +19,49 @@ export function bindFilters({ state, kindSelect, wfCheckbox, ratingSelect, reloa
         state.minRating = Number(ratingSelect.value || 0) || 0;
         await reloadGrid();
     });
+    if (dateRangeSelect) {
+        dateRangeSelect.addEventListener("change", async () => {
+            state.dateRangeFilter = dateRangeSelect.value || "";
+            if (state.dateRangeFilter && state.dateExactFilter) {
+                state.dateExactFilter = "";
+                if (dateExactInput) {
+                    dateExactInput.value = "";
+                }
+            }
+            await reloadGrid();
+        });
+    }
+    if (dateExactInput) {
+        const applyAgendaStyle = (status) => {
+            dateExactInput.classList.toggle("mjr-agenda-filled", status === "filled");
+            dateExactInput.classList.toggle("mjr-agenda-empty", status === "empty");
+        };
+        dateExactInput.addEventListener("change", async () => {
+            state.dateExactFilter = dateExactInput.value ? String(dateExactInput.value) : "";
+            if (state.dateExactFilter && state.dateRangeFilter) {
+                state.dateRangeFilter = "";
+                if (dateRangeSelect) {
+                    dateRangeSelect.value = "";
+                }
+            }
+            if (!state.dateExactFilter) {
+                applyAgendaStyle("");
+            }
+            await reloadGrid();
+        });
+        const handleAgendaStatus = (event) => {
+            if (!event?.detail) return;
+            const { date, hasResults } = event.detail;
+            if (!dateExactInput.value) {
+                applyAgendaStyle("");
+                return;
+            }
+            if (date !== dateExactInput.value) return;
+            applyAgendaStyle(hasResults ? "filled" : "empty");
+        };
+        try {
+            window?.addEventListener?.("MJR:AgendaStatus", handleAgendaStatus, { passive: true });
+        } catch {}
+    }
 }
 

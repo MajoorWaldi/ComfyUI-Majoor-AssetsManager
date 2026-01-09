@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any, Tuple
 
 from ...shared import Result, ErrorCode, get_logger
+from .graph_traversal import iter_nested_dicts
 
 logger = get_logger(__name__)
 
@@ -837,6 +838,16 @@ def _extract_json_fields(exif_data: Dict[str, Any]) -> Tuple[Optional[Dict[str, 
                 prompt = pr_candidate
             if workflow and prompt:
                 break
+
+        for nested in iter_nested_dicts(parsed):
+            if workflow is None and _looks_like_comfyui_workflow(nested):
+                workflow = nested
+            if prompt is None and _looks_like_comfyui_prompt_graph(nested):
+                prompt = nested
+            if workflow and prompt:
+                break
+        if workflow and prompt:
+            break
 
         text = value.strip() if isinstance(value, str) else ""
         lower_text = text.lower()

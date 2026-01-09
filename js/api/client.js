@@ -299,6 +299,13 @@ export async function getFileMetadata(filePath) {
     return get(`/mjr/am/metadata?path=${encodeURIComponent(filePath)}`);
 }
 
+export async function setProbeBackendMode(mode) {
+    if (!mode || typeof mode !== "string") {
+        return { ok: false, error: "Missing mode", code: "INVALID_INPUT" };
+    }
+    return post("/mjr/am/settings/probe-backend", { mode });
+}
+
 export async function openInFolder(assetId) {
     return post("/mjr/am/open-in-folder", { asset_id: assetId });
 }

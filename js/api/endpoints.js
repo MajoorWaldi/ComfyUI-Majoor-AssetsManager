@@ -67,6 +67,8 @@ export function buildListURL(params = {}) {
         kind = null,
         hasWorkflow = null,
         minRating = null,
+        dateRange = null,
+        dateExact = null,
         includeTotal = true
     } = params;
 
@@ -85,6 +87,12 @@ export function buildListURL(params = {}) {
     }
     if (minRating !== null && minRating !== undefined && Number(minRating) > 0) {
         url += `&min_rating=${encodeURIComponent(String(minRating))}`;
+    }
+    if (dateRange) {
+        url += `&date_range=${encodeURIComponent(dateRange)}`;
+    }
+    if (dateExact) {
+        url += `&date_exact=${encodeURIComponent(dateExact)}`;
     }
     if (includeTotal === false) {
         url += `&include_total=0`;

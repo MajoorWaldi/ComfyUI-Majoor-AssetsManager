@@ -311,9 +311,26 @@
 }
 
 .mjr-assets-manager .mjr-popover-anchor {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+  }
+
+.mjr-agenda-input {
+    border: 1px solid var(--mjr-border);
+    background: var(--comfy-input-bg, rgba(0, 0, 0, 0.25));
+    color: var(--input-text, #ddd);
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.mjr-agenda-input.mjr-agenda-filled {
+    background: color-mix(in srgb, var(--mjr-accent, var(--comfy-accent, #5fb3ff)) 40%, var(--mjr-surface-2) 60%);
+    border-color: color-mix(in srgb, var(--mjr-accent, var(--comfy-accent, #5fb3ff)) 80%, var(--mjr-border));
+    color: var(--content-fg, #fff);
+}
+.mjr-agenda-input.mjr-agenda-empty {
+    background: color-mix(in srgb, var(--mjr-surface-2) 85%, transparent 15%);
+    border-color: var(--mjr-border);
+    color: var(--mjr-muted, rgba(255, 255, 255, 0.65));
 }
 
 .mjr-menu,

@@ -19,6 +19,30 @@ MAX_SEARCH_TOKENS = 16
 MAX_TOKEN_LENGTH = 64
 
 
+def _build_filter_clauses(filters: Optional[Dict[str, Any]], alias: str = "a") -> Tuple[List[str], List[Any]]:
+    clauses: List[str] = []
+    params: List[Any] = []
+    if not filters:
+        return clauses, params
+    kind = filters.get("kind")
+    if isinstance(kind, str) and kind:
+        clauses.append(f"AND {alias}.kind = ?")
+        params.append(kind)
+    if "min_rating" in filters:
+        clauses.append("AND COALESCE(m.rating, 0) >= ?")
+        params.append(filters["min_rating"])
+    if "has_workflow" in filters:
+        clauses.append("AND COALESCE(m.has_workflow, 0) = ?")
+        params.append(1 if filters["has_workflow"] else 0)
+    if "mtime_start" in filters:
+        clauses.append(f"AND {alias}.mtime >= ?")
+        params.append(filters["mtime_start"])
+    if "mtime_end" in filters:
+        clauses.append(f"AND {alias}.mtime < ?")
+        params.append(filters["mtime_end"])
+    return clauses, params
+
+
 class IndexSearcher:
     """
     Handles asset search and retrieval operations.
@@ -90,17 +114,9 @@ class IndexSearcher:
             ]
             params = []
 
-            # Add filters
-            if filters:
-                if "kind" in filters:
-                    sql_parts.append("AND a.kind = ?")
-                    params.append(filters["kind"])
-                if "min_rating" in filters:
-                    sql_parts.append("AND COALESCE(m.rating, 0) >= ?")
-                    params.append(filters["min_rating"])
-                if "has_workflow" in filters:
-                    sql_parts.append("AND COALESCE(m.has_workflow, 0) = ?")
-                    params.append(1 if filters["has_workflow"] else 0)
+            filter_clauses, filter_params = _build_filter_clauses(filters)
+            sql_parts.extend(filter_clauses)
+            params.extend(filter_params)
 
             # Order by most recent first
             sql_parts.append("ORDER BY a.mtime DESC")
@@ -121,16 +137,9 @@ class IndexSearcher:
                 count_sql = "SELECT COUNT(*) as total FROM assets a LEFT JOIN asset_metadata m ON a.id = m.asset_id WHERE 1=1"
                 count_params = []
 
-                if filters:
-                    if "kind" in filters:
-                        count_sql += " AND a.kind = ?"
-                        count_params.append(filters["kind"])
-                    if "min_rating" in filters:
-                        count_sql += " AND COALESCE(m.rating, 0) >= ?"
-                        count_params.append(filters["min_rating"])
-                    if "has_workflow" in filters:
-                        count_sql += " AND COALESCE(m.has_workflow, 0) = ?"
-                        count_params.append(1 if filters["has_workflow"] else 0)
+                if filter_clauses:
+                    count_sql += " " + " ".join(filter_clauses)
+                    count_params.extend(filter_params)
 
                 count_result = self.db.query(count_sql, tuple(count_params))
                 total = count_result.data[0]["total"] if count_result.ok and count_result.data else 0
@@ -175,19 +184,9 @@ class IndexSearcher:
 
             params = [fts_query, fts_query]
 
-            # Add filters
-            if filters:
-                if "kind" in filters:
-                    sql_parts.append("AND a.kind = ?")
-                    params.append(filters["kind"])
-
-                if "min_rating" in filters:
-                    sql_parts.append("AND COALESCE(m.rating, 0) >= ?")
-                    params.append(filters["min_rating"])
-
-                if "has_workflow" in filters:
-                    sql_parts.append("AND COALESCE(m.has_workflow, 0) = ?")
-                    params.append(1 if filters["has_workflow"] else 0)
+            filter_clauses, filter_params = _build_filter_clauses(filters)
+            sql_parts.extend(filter_clauses)
+            params.extend(filter_params)
 
             # Add ordering and pagination
             sql_parts.append("ORDER BY rank")
@@ -227,16 +226,9 @@ class IndexSearcher:
                 """
                 count_params = [fts_query, fts_query]
 
-                if filters:
-                    if "kind" in filters:
-                        count_sql += " AND a.kind = ?"
-                        count_params.append(filters["kind"])
-                    if "min_rating" in filters:
-                        count_sql += " AND COALESCE(m.rating, 0) >= ?"
-                        count_params.append(filters["min_rating"])
-                    if "has_workflow" in filters:
-                        count_sql += " AND COALESCE(m.has_workflow, 0) = ?"
-                        count_params.append(1 if filters["has_workflow"] else 0)
+                if filter_clauses:
+                    count_sql += " " + " ".join(filter_clauses)
+                    count_params.extend(filter_params)
 
                 count_result = self.db.query(count_sql, tuple(count_params))
                 total = count_result.data[0]["total"] if count_result.ok and count_result.data else 0
@@ -336,16 +328,9 @@ class IndexSearcher:
             params: List[Any] = []
             params.extend(roots_params)
 
-            if filters:
-                if "kind" in filters:
-                    sql_parts.append("AND a.kind = ?")
-                    params.append(filters["kind"])
-                if "min_rating" in filters:
-                    sql_parts.append("AND COALESCE(m.rating, 0) >= ?")
-                    params.append(filters["min_rating"])
-                if "has_workflow" in filters:
-                    sql_parts.append("AND COALESCE(m.has_workflow, 0) = ?")
-                    params.append(1 if filters["has_workflow"] else 0)
+            filter_clauses, filter_params = _build_filter_clauses(filters)
+            sql_parts.extend(filter_clauses)
+            params.extend(filter_params)
 
             sql_parts.append("ORDER BY a.mtime DESC")
             sql_parts.append("LIMIT ? OFFSET ?")
@@ -369,16 +354,9 @@ class IndexSearcher:
                 count_params: List[Any] = []
                 count_params.extend(roots_params)
 
-                if filters:
-                    if "kind" in filters:
-                        count_sql += " AND a.kind = ?"
-                        count_params.append(filters["kind"])
-                    if "min_rating" in filters:
-                        count_sql += " AND COALESCE(m.rating, 0) >= ?"
-                        count_params.append(filters["min_rating"])
-                    if "has_workflow" in filters:
-                        count_sql += " AND COALESCE(m.has_workflow, 0) = ?"
-                        count_params.append(1 if filters["has_workflow"] else 0)
+                if filter_clauses:
+                    count_sql += " " + " ".join(filter_clauses)
+                    count_params.extend(filter_params)
 
                 count_result = self.db.query(count_sql, tuple(count_params))
                 total = count_result.data[0]["total"] if count_result.ok and count_result.data else 0
@@ -420,16 +398,9 @@ class IndexSearcher:
             params: List[Any] = [fts_query, fts_query]
             params.extend(roots_params)
 
-            if filters:
-                if "kind" in filters:
-                    sql_parts.append("AND a.kind = ?")
-                    params.append(filters["kind"])
-                if "min_rating" in filters:
-                    sql_parts.append("AND COALESCE(m.rating, 0) >= ?")
-                    params.append(filters["min_rating"])
-                if "has_workflow" in filters:
-                    sql_parts.append("AND COALESCE(m.has_workflow, 0) = ?")
-                    params.append(1 if filters["has_workflow"] else 0)
+            filter_clauses, filter_params = _build_filter_clauses(filters)
+            sql_parts.extend(filter_clauses)
+            params.extend(filter_params)
 
             sql_parts.append("ORDER BY rank")
             sql_parts.append("LIMIT ? OFFSET ?")
@@ -465,16 +436,9 @@ class IndexSearcher:
                 count_params: List[Any] = [fts_query, fts_query]
                 count_params.extend(roots_params)
 
-                if filters:
-                    if "kind" in filters:
-                        count_sql += " AND a.kind = ?"
-                        count_params.append(filters["kind"])
-                    if "min_rating" in filters:
-                        count_sql += " AND COALESCE(m.rating, 0) >= ?"
-                        count_params.append(filters["min_rating"])
-                    if "has_workflow" in filters:
-                        count_sql += " AND COALESCE(m.has_workflow, 0) = ?"
-                        count_params.append(1 if filters["has_workflow"] else 0)
+                if filter_clauses:
+                    count_sql += " " + " ".join(filter_clauses)
+                    count_params.extend(filter_params)
 
                 count_result = self.db.query(count_sql, tuple(count_params))
                 total = count_result.data[0]["total"] if count_result.ok and count_result.data else 0

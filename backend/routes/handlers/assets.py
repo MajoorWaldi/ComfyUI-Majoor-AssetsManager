@@ -401,47 +401,27 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             except Exception as exc:
                 return _json_response(Result.Err("DEGRADED", f"Open-in-folder not supported: {exc}"))
 
-        # Windows: Use Win32 API to open Explorer and select the file (more secure than subprocess)
+        # Windows: Use subprocess with validated path components (secure against injection)
         try:
-            import ctypes
-            from ctypes import wintypes
-            import ctypes.wintypes
-
-            # Load the shell32 library
-            shell32 = ctypes.windll.shell32
-
-            # Convert path to wide string
-            path_wide = str(resolved)
-
-            # Use ShellExecuteW to open the file in explorer with selection
-            # This is safer than using subprocess with command line arguments
-            result = shell32.ShellExecuteW(
-                None,                   # hwnd
-                "explore",              # lpOperation - 'explore' opens folder
-                str(resolved.parent),   # lpFile - folder to open
-                f"/select,{str(resolved.name)}",  # lpParameters - select specific file
-                None,                   # lpDirectory
-                1                       # nShowCmd (SW_SHOWNORMAL)
+            # Using list-based subprocess arguments prevents command injection
+            # Path components are validated above via strict=True resolution
+            subprocess.Popen(
+                ["explorer.exe", f"/select,{str(resolved)}"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                # Don't use shell=True - that would enable injection
+                shell=False
             )
-
-            if result > 32:  # Success
-                return _json_response(Result.Ok({"opened": True, "selected": True}))
-            else:
-                # Fallback if ShellExecute fails
+            return _json_response(Result.Ok({"opened": True, "selected": True}))
+        except FileNotFoundError:
+            # explorer.exe not found - try os.startfile as fallback
+            try:
                 os.startfile(str(resolved.parent))
                 return _json_response(Result.Ok({"opened": True, "selected": False, "fallback": "startfile"}))
-        except ImportError:
-            # Fallback if ctypes is not available (shouldn't happen on Windows)
-            try:
-                subprocess.Popen(["explorer.exe", f"/select,{str(resolved)}"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                return _json_response(Result.Ok({"opened": True, "selected": True}))
             except Exception as exc:
-                try:
-                    os.startfile(str(resolved.parent))
-                    return _json_response(Result.Ok({"opened": True, "selected": False, "fallback": "startfile"}))
-                except Exception:
-                    return _json_response(Result.Err("DEGRADED", f"Failed to open folder: {exc}"))
+                return _json_response(Result.Err("DEGRADED", f"Failed to open folder: {exc}"))
         except Exception as exc:
+            # Any other error - try os.startfile as fallback
             try:
                 os.startfile(str(resolved.parent))
                 return _json_response(Result.Ok({"opened": True, "selected": False, "fallback": "startfile"}))

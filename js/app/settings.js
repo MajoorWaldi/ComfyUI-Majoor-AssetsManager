@@ -3,7 +3,7 @@
  */
 
 import { APP_CONFIG } from "./config.js";
-import { invalidateObsCache } from "../api/client.js";
+import { invalidateObsCache, setProbeBackendMode } from "../api/client.js";
 import { safeDispatchCustomEvent } from "../utils/events.js";
 
 const SETTINGS_KEY = "mjrSettings";
@@ -25,6 +25,9 @@ const DEFAULT_SETTINGS = {
     },
     sidebar: {
         position: "right"  // "left" or "right"
+    },
+    probeBackend: {
+        mode: "auto"
     }
 };
 
@@ -192,6 +195,33 @@ export const registerMajoorSettings = (app, onApplied) => {
             settings.ratingTagsSync.enabled = !!val;
             saveMajoorSettings(settings);
             notifyApplied("ratingTagsSync.enabled");
+        }
+    });
+
+    app.ui.settings.addSetting({
+        id: `${SETTINGS_PREFIX}.Probe.Backend`,
+        name: "Majoor: Media probe backend",
+        tooltip: "Choose which probe(s) drive metadata extraction (Auto, ExifTool, FFprobe, Both).",
+        type: "combo",
+        defaultValue: settings.probeBackend?.mode || "auto",
+        options: ["auto", "exiftool", "ffprobe", "both"],
+        onChange: (val) => {
+            const normalized = typeof val === "string" ? val.trim().toLowerCase() : "auto";
+            const allowed = ["auto", "exiftool", "ffprobe", "both"];
+            const mode = allowed.includes(normalized) ? normalized : "auto";
+            settings.probeBackend = settings.probeBackend || {};
+            settings.probeBackend.mode = mode;
+            saveMajoorSettings(settings);
+            setProbeBackendMode(mode)
+                .then((result) => {
+                    if (!result?.ok) {
+                        console.warn("[Majoor] Probe backend update failed", result?.error || result);
+                    }
+                })
+                .catch((error) => {
+                    console.warn("[Majoor] Failed to persist probe backend preference", error);
+                });
+            notifyApplied("probeBackend.mode");
         }
     });
 

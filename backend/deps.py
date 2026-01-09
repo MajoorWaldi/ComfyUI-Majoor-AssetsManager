@@ -14,6 +14,7 @@ from .features.health import HealthService
 from .features.index import IndexService
 from .features.index.watcher import DirectoryWatcher
 from .features.tags import RatingTagsSyncWorker
+from .settings import AppSettings
 from .config import (
     INDEX_DB,
     EXIFTOOL_BIN,
@@ -59,6 +60,7 @@ def build_services(db_path: str = None) -> dict:
     # Initialize adapters
     exiftool = ExifTool(bin_name=EXIFTOOL_BIN, timeout=EXIFTOOL_TIMEOUT)
     ffprobe = FFProbe(bin_name=FFPROBE_BIN, timeout=FFPROBE_TIMEOUT)
+    settings_service = AppSettings(db)
 
     # Log tool availability
     if exiftool.is_available():
@@ -74,7 +76,8 @@ def build_services(db_path: str = None) -> dict:
     # Build services
     metadata_service = MetadataService(
         exiftool=exiftool,
-        ffprobe=ffprobe
+        ffprobe=ffprobe,
+        settings=settings_service,
     )
 
     health_service = HealthService(
@@ -95,6 +98,7 @@ def build_services(db_path: str = None) -> dict:
         "metadata": metadata_service,
         "health": health_service,
         "index": index_service,
+        "settings": settings_service,
     }
 
     # Best-effort filesystem sync for rating/tags (sidecar / ExifTool).

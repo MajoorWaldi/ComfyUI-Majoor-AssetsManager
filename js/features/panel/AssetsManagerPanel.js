@@ -55,7 +55,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     const { header, headerActions, tabButtons, customMenuBtn, filterBtn, sortBtn } = headerView;
 
     const { customPopover, customSelect, customAddBtn, customRemoveBtn } = createCustomPopoverView();
-    const { filterPopover, kindSelect, wfCheckbox, ratingSelect } = createFilterPopoverView();
+    const { filterPopover, kindSelect, wfCheckbox, ratingSelect, dateRangeSelect, dateExactInput } = createFilterPopoverView();
     const { sortPopover, sortMenu } = createSortPopoverView();
 
     headerActions.appendChild(customPopover);
@@ -205,6 +205,8 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         kindSelect,
         wfCheckbox,
         ratingSelect,
+        dateRangeSelect,
+        dateExactInput,
         reloadGrid: gridController.reloadGrid
     });
 
