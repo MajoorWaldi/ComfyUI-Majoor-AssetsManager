@@ -3,6 +3,7 @@ Logging utilities with consistent formatting and emoji indicators.
 """
 import json
 import logging
+from contextvars import ContextVar
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -19,6 +20,18 @@ EMOJI_MAP = {
 # Global logger prefix
 PREFIX = "📂 Majoor"
 
+request_id_var: ContextVar[str] = ContextVar("request_id", default="")
+
+
+class CorrelationFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        try:
+            record.request_id = request_id_var.get("")  # type: ignore[attr-defined]
+        except Exception:
+            record.request_id = ""  # type: ignore[attr-defined]
+        return True
+
+
 class EmojiFormatter(logging.Formatter):
     """Custom formatter that adds emoji based on log level."""
 
@@ -27,7 +40,12 @@ class EmojiFormatter(logging.Formatter):
         emoji = EMOJI_MAP.get(record.levelname, "📂")
 
         # Format: 📂 Majoor [📂✅] module: message
-        log_format = f"{PREFIX} [{emoji}] %(name)s: %(message)s"
+        try:
+            rid = str(getattr(record, "request_id", "") or "").strip()
+        except Exception:
+            rid = ""
+        rid_part = f" [{rid}]" if rid else ""
+        log_format = f"{PREFIX} [{emoji}] %(name)s{rid_part}: %(message)s"
         formatter = logging.Formatter(log_format)
         return formatter.format(record)
 
@@ -55,6 +73,10 @@ def get_logger(name: str, level: Optional[int] = None) -> logging.Logger:
             name = ".".join(parts[idx:])
 
     logger = logging.getLogger(f"majoor.{name}")
+    try:
+        logger.addFilter(CorrelationFilter())
+    except Exception:
+        pass
 
     if level is not None:
         logger.setLevel(level)

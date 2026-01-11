@@ -133,10 +133,10 @@ class IndexScanner:
                     existing_map: Dict[str, Dict[str, Any]] = {}
 
                     if filepaths:
-                        placeholders = ",".join(["?"] * len(filepaths))
-                        existing_rows = self.db.query(
-                            f"SELECT filepath, id, mtime FROM assets WHERE filepath IN ({placeholders})",
-                            tuple(filepaths),
+                        existing_rows = self.db.query_in(
+                            "SELECT filepath, id, mtime FROM assets WHERE {IN_CLAUSE}",
+                            "filepath",
+                            filepaths,
                         )
                         if existing_rows.ok and existing_rows.data and len(existing_rows.data) > 0:
                             for row in existing_rows.data:
@@ -241,10 +241,10 @@ class IndexScanner:
                     existing_map: Dict[str, Dict[str, Any]] = {}
 
                     if filepaths:
-                        placeholders = ",".join(["?"] * len(filepaths))
-                        existing_rows = self.db.query(
-                            f"SELECT filepath, id, mtime FROM assets WHERE filepath IN ({placeholders})",
-                            tuple(filepaths),
+                        existing_rows = self.db.query_in(
+                            "SELECT filepath, id, mtime FROM assets WHERE {IN_CLAUSE}",
+                            "filepath",
+                            filepaths,
                         )
                         if existing_rows.ok and existing_rows.data and len(existing_rows.data) > 0:
                             for row in existing_rows.data:
@@ -318,10 +318,10 @@ class IndexScanner:
 
         if filepaths:
             # Prefetch metadata_cache entries
-            placeholders = ",".join(["?"] * len(filepaths))
-            cache_rows = self.db.query(
-                f"SELECT filepath, state_hash, metadata_raw FROM metadata_cache WHERE filepath IN ({placeholders})",
-                tuple(filepaths)
+            cache_rows = self.db.query_in(
+                "SELECT filepath, state_hash, metadata_raw FROM metadata_cache WHERE {IN_CLAUSE}",
+                "filepath",
+                filepaths,
             )
             if cache_rows.ok and cache_rows.data:
                 for row in cache_rows.data:
@@ -343,10 +343,10 @@ class IndexScanner:
                         pass
 
             if asset_ids:
-                placeholders = ",".join(["?"] * len(asset_ids))
-                meta_rows = self.db.query(
-                    f"SELECT asset_id FROM asset_metadata WHERE asset_id IN ({placeholders})",
-                    tuple(asset_ids)
+                meta_rows = self.db.query_in(
+                    "SELECT asset_id FROM asset_metadata WHERE {IN_CLAUSE}",
+                    "asset_id",
+                    asset_ids,
                 )
                 if meta_rows.ok and meta_rows.data:
                     for row in meta_rows.data:
@@ -1046,10 +1046,10 @@ class IndexScanner:
             return {}
         if len(cleaned) > 5000:
             cleaned = cleaned[:5000]
-        placeholders = ",".join(["?"] * len(cleaned))
-        res = self.db.query(
-            f"SELECT filepath, state_hash FROM scan_journal WHERE filepath IN ({placeholders})",
-            tuple(cleaned),
+        res = self.db.query_in(
+            "SELECT filepath, state_hash FROM scan_journal WHERE {IN_CLAUSE}",
+            "filepath",
+            cleaned,
         )
         if not res.ok:
             return {}

@@ -102,8 +102,11 @@ class MetadataEnricher:
         if not cleaned:
             return
 
-        placeholders = ",".join(["?"] * len(cleaned))
-        id_res = self.db.query(f"SELECT id, filepath FROM assets WHERE filepath IN ({placeholders})", tuple(cleaned))
+        id_res = self.db.query_in(
+            "SELECT id, filepath FROM assets WHERE {IN_CLAUSE}",
+            "filepath",
+            cleaned,
+        )
         if not id_res.ok:
             return
         id_by_fp: Dict[str, int] = {}

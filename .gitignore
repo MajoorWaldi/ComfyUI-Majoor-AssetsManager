@@ -42,3 +42,9 @@ Thumbs.db
 clean_pycache.bat
 AGENTS.md
 backend/features/metadata/test_extractors.py
+backend/adapters/db/test_sqlite_query_in.py
+.claude/settings.local.json
+SECURITY_FIXES.md
+backend/routes/core/test_security.py
+backend/routes/handlers/test_assets_delete.py
+SECURITY_AUDIT_COMPLETE.md

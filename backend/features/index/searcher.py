@@ -549,9 +549,8 @@ class IndexSearcher:
         if not cleaned:
             return Result.Ok([])
 
-        placeholders = ",".join(["?"] * len(cleaned))
-        result = self.db.query(
-            f"""
+        result = self.db.query_in(
+            """
             SELECT
                 a.*,
                 COALESCE(m.rating, 0) AS rating,
@@ -564,9 +563,10 @@ class IndexSearcher:
                 COALESCE(m.metadata_raw, '{{}}') AS metadata_raw
             FROM assets a
             LEFT JOIN asset_metadata m ON m.asset_id = a.id
-            WHERE a.id IN ({placeholders})
+            WHERE {IN_CLAUSE}
             """,
-            tuple(cleaned),
+            "a.id",
+            cleaned,
         )
 
         if not result.ok:
@@ -634,9 +634,8 @@ class IndexSearcher:
         if len(cleaned) > 5000:
             cleaned = cleaned[:5000]
 
-        placeholders = ",".join(["?"] * len(cleaned))
-        result = self.db.query(
-            f"""
+        result = self.db.query_in(
+            """
             SELECT
                 a.filepath,
                 a.id,
@@ -648,9 +647,10 @@ class IndexSearcher:
                 COALESCE(m.has_generation_data, 0) as has_generation_metadata
             FROM assets a
             LEFT JOIN asset_metadata m ON a.id = m.asset_id
-            WHERE a.filepath IN ({placeholders})
+            WHERE {IN_CLAUSE}
             """,
-            tuple(cleaned),
+            "a.filepath",
+            cleaned,
         )
         if not result.ok:
             return Result.Err("DB_ERROR", result.error)

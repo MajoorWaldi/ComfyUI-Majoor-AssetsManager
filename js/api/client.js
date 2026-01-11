@@ -101,6 +101,18 @@ export async function fetchAPI(url, options = {}) {
     try {
         const headers = typeof Headers !== "undefined" ? new Headers(options.headers || {}) : { ...(options.headers || {}) };
 
+        // Add anti-CSRF header for state-changing requests
+        const method = (options.method || "GET").toUpperCase();
+        if (["POST", "PUT", "DELETE", "PATCH"].includes(method)) {
+            try {
+                if (headers instanceof Headers) {
+                    if (!headers.has("X-Requested-With")) headers.set("X-Requested-With", "XMLHttpRequest");
+                } else if (!headers["X-Requested-With"]) {
+                    headers["X-Requested-With"] = "XMLHttpRequest";
+                }
+            } catch {}
+        }
+
         // Per-client switch: control backend observability logs.
         // Explicitly send on/off so backend doesn't have to guess.
         const obsEnabled = _readObsEnabled();

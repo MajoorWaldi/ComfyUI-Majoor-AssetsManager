@@ -15,7 +15,7 @@ from uuid import uuid4
 
 from aiohttp import web
 
-from .shared import get_logger
+from .shared import get_logger, request_id_var
 
 logger = get_logger(__name__)
 
@@ -144,6 +144,12 @@ async def request_context_middleware(request: web.Request, handler):
 
     rid = _get_request_id(request)
     request["mjr_request_id"] = rid
+    token = None
+    try:
+        if request_id_var is not None:
+            token = request_id_var.set(rid)
+    except Exception:
+        token = None
     start = time.perf_counter()
     status: Optional[int] = None
     error: Optional[str] = None
@@ -182,6 +188,11 @@ async def request_context_middleware(request: web.Request, handler):
     finally:
         duration_ms = (time.perf_counter() - start) * 1000.0
         request["mjr_duration_ms"] = duration_ms
+        try:
+            if token is not None and request_id_var is not None:
+                request_id_var.reset(token)
+        except Exception:
+            pass
         try:
             fields = build_request_log_fields(request, response_status=status)
             if error:

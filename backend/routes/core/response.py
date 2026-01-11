@@ -17,28 +17,26 @@ def _json_response(result: Result, status: Optional[int] = None):
     Returns:
         aiohttp web.Response
     """
+    # Majoor policy: business / validation errors return HTTP 200 with {ok:false,...}.
+    # Use explicit status only for genuine server bugs/unhandled exceptions.
     if status is None:
-        if result.ok:
-            status = 200
-        else:
-            error_code = result.code or ""
-            if error_code in ("INVALID_INPUT", "INVALID_JSON", "EMPTY_QUERY", "QUERY_TOO_LONG", "RATE_LIMIT"):
-                status = 400 if error_code != "RATE_LIMIT" else 429
-            elif error_code in ("NOT_FOUND", "DIR_NOT_FOUND"):
-                status = 404
-            elif error_code in ("SERVICE_UNAVAILABLE",):
-                status = 503
-            elif error_code in ("CSRF",):
-                status = 403
-            elif error_code in ("DB_ERROR", "SCAN_FAILED", "SEARCH_FAILED"):
-                status = 500
-            else:
-                status = 400
+        status = 200
 
-    return web.json_response({
+    response = web.json_response({
         "ok": result.ok,
         "data": result.data,
         "error": result.error,
         "code": result.code,
         "meta": result.meta,
     }, status=status)
+
+    # Optional standard headers derived from Result meta.
+    try:
+        meta = result.meta if isinstance(result.meta, dict) else {}
+        retry_after = meta.get("retry_after")
+        if retry_after is not None:
+            response.headers["Retry-After"] = str(int(retry_after))
+    except Exception:
+        pass
+
+    return response

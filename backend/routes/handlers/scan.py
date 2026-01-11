@@ -139,11 +139,9 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
 
-        if not _check_rate_limit("scan", max_requests=3, window_seconds=60):
-            return _json_response(
-                Result.Err("RATE_LIMIT", "Too many scan requests. Please wait before retrying."),
-                status=429
-            )
+        allowed, retry_after = _check_rate_limit(request, "scan", max_requests=3, window_seconds=60)
+        if not allowed:
+            return _json_response(Result.Err("RATE_LIMITED", "Too many scan requests. Please wait before retrying.", retry_after=retry_after))
 
         try:
             body = await request.json()

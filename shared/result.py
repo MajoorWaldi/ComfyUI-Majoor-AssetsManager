@@ -3,6 +3,7 @@ Result pattern for error handling without exceptions.
 All service methods return Result[T] to avoid HTTP 500 errors.
 """
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Dict, Generic, Optional, TypeVar
 
 T = TypeVar("T")
@@ -30,9 +31,15 @@ class Result(Generic[T]):
         return Result(ok=True, data=data, code="OK", meta=meta)
 
     @staticmethod
-    def Err(code: str, error: str, **meta) -> "Result[T]":
+    def Err(code: Any, error: str, **meta) -> "Result[T]":
         """Create an error result with code, message, and optional metadata."""
-        return Result(ok=False, error=error, code=code, meta=meta)
+        code_value = code
+        try:
+            if isinstance(code, Enum):
+                code_value = code.value
+        except Exception:
+            code_value = code
+        return Result(ok=False, error=error, code=str(code_value), meta=meta)
 
     def map(self, fn):
         """Map the data if ok, otherwise return self."""

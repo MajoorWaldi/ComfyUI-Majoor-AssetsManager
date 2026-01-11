@@ -25,6 +25,7 @@ except Exception:  # pragma: no cover
 from ..core import (
     _json_response,
     _require_services,
+    _check_rate_limit,
     _csrf_error,
     _build_services,
     get_services_error,
@@ -35,6 +36,9 @@ from ..core import (
 )
 
 logger = get_logger(__name__)
+
+MAX_TAGS_PER_ASSET = 50
+MAX_TAG_LENGTH = 100
 
 
 def register_asset_routes(routes: web.RouteTableDef) -> None:
@@ -236,6 +240,10 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
 
+        allowed, retry_after = _check_rate_limit(request, "asset_rating", max_requests=30, window_seconds=60)
+        if not allowed:
+            return _json_response(Result.Err("RATE_LIMITED", "Rate limit exceeded. Please wait before retrying.", retry_after=retry_after))
+
         svc, error_result = _require_services()
         if error_result:
             return _json_response(error_result)
@@ -288,6 +296,10 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
 
+        allowed, retry_after = _check_rate_limit(request, "asset_tags", max_requests=30, window_seconds=60)
+        if not allowed:
+            return _json_response(Result.Err("RATE_LIMITED", "Rate limit exceeded. Please wait before retrying.", retry_after=retry_after))
+
         svc, error_result = _require_services()
         if error_result:
             return _json_response(error_result)
@@ -317,15 +329,23 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if not isinstance(tags, list):
             return _json_response(Result.Err("INVALID_INPUT", "Tags must be a list"))
 
+        if len(tags) > MAX_TAGS_PER_ASSET:
+            return _json_response(Result.Err("INVALID_INPUT", f"Too many tags (max {MAX_TAGS_PER_ASSET}, got {len(tags)})"))
+
         # Validate and sanitize tags
         sanitized_tags = []
         for tag in tags:
             if not isinstance(tag, str):
                 continue
             tag = str(tag).strip()
-            if not tag or len(tag) > 100:
+            if not tag or len(tag) > MAX_TAG_LENGTH:
+                continue
+            tag_lower = tag.lower()
+            if any(existing.lower() == tag_lower for existing in sanitized_tags):
                 continue
             sanitized_tags.append(tag)
+            if len(sanitized_tags) >= MAX_TAGS_PER_ASSET:
+                break
 
         try:
             result = await asyncio.to_thread(svc["index"].update_asset_tags, asset_id, sanitized_tags)
@@ -482,6 +502,10 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
 
+        allowed, retry_after = _check_rate_limit(request, "asset_delete", max_requests=20, window_seconds=60)
+        if not allowed:
+            return _json_response(Result.Err("RATE_LIMITED", "Rate limit exceeded. Please wait before retrying.", retry_after=retry_after))
+
         svc, error_result = _require_services()
         if error_result:
             return _json_response(error_result)
@@ -526,59 +550,34 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         except Exception:
             return _json_response(Result.Err("NOT_FOUND", "File does not exist"))
 
-        # Start a transaction to ensure atomicity
-        try:
-            # Begin transaction
-            trans_res = svc["db"].execute("BEGIN IMMEDIATE TRANSACTION")
-            if not trans_res.ok:
-                return _json_response(Result.Err("DB_ERROR", "Failed to begin transaction"))
-        except Exception as exc:
-            return _json_response(Result.Err("DB_ERROR", f"Failed to begin transaction: {exc}"))
-
-        # Delete the file if it exists
-        file_deleted = False
-        try:
-            if resolved.exists() and resolved.is_file():
+        file_deletion_error = None
+        if resolved.exists() and resolved.is_file():
+            try:
                 resolved.unlink(missing_ok=True)
-                file_deleted = True
-        except Exception as exc:
-            # Rollback the transaction on file deletion failure
-            try:
-                svc["db"].execute("ROLLBACK")
-            except:
-                pass  # Ignore rollback errors
-            return _json_response(Result.Err("DELETE_FAILED", f"Failed to delete file: {exc}"))
+            except Exception as exc:
+                file_deletion_error = str(exc)
 
-        # Delete from database within the same transaction
+        if file_deletion_error:
+            return _json_response(Result.Err(
+                "DELETE_FAILED",
+                "Failed to delete file",
+                errors=[{"asset_id": asset_id, "error": file_deletion_error}],
+                aborted=True
+            ))
+
         try:
-            # Delete from main assets table (this should cascade to asset_metadata)
-            del_res = svc["db"].execute("DELETE FROM assets WHERE id = ?", (asset_id,))
-            if not del_res.ok:
-                # Rollback on DB failure
-                try:
-                    svc["db"].execute("ROLLBACK")
-                except:
-                    pass  # Ignore rollback errors
-                return _json_response(del_res)
+            with svc["db"].transaction(mode="immediate"):
+                del_res = svc["db"].execute("DELETE FROM assets WHERE id = ?", (asset_id,))
+                if not del_res.ok:
+                    raise RuntimeError(str(del_res.error or "DB delete failed"))
 
-            # Clean up related tables
-            svc["db"].execute("DELETE FROM scan_journal WHERE filepath = ?", (str(resolved),))
-            svc["db"].execute("DELETE FROM metadata_cache WHERE filepath = ?", (str(resolved),))
+                svc["db"].execute("DELETE FROM scan_journal WHERE filepath = ?", (str(resolved),))
+                svc["db"].execute("DELETE FROM metadata_cache WHERE filepath = ?", (str(resolved),))
 
-            # Commit the transaction
-            commit_res = svc["db"].execute("COMMIT")
-            if not commit_res.ok:
-                return _json_response(Result.Err("DB_ERROR", "Failed to commit transaction"))
-
+            return _json_response(Result.Ok({"deleted": 1}))
         except Exception as exc:
-            # Rollback on DB failure
-            try:
-                svc["db"].execute("ROLLBACK")
-            except:
-                pass  # Ignore rollback errors
+            logger.error("Database deletion failed: %s", exc)
             return _json_response(Result.Err("DB_ERROR", f"Failed to delete asset record: {exc}"))
-
-        return _json_response(Result.Ok({"deleted": 1, "file_existed": file_deleted}))
 
     @routes.post("/mjr/am/asset/rename")
     async def rename_asset(request):
@@ -705,6 +704,10 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
 
+        allowed, retry_after = _check_rate_limit(request, "assets_delete", max_requests=10, window_seconds=60)
+        if not allowed:
+            return _json_response(Result.Err("RATE_LIMITED", "Rate limit exceeded. Please wait before retrying.", retry_after=retry_after))
+
         svc, error_result = _require_services()
         if error_result:
             return _json_response(error_result)
@@ -729,110 +732,85 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if not validated_ids:
             return _json_response(Result.Err("INVALID_INPUT", "No valid asset IDs provided"))
 
-        # Get file paths for validation
+        # PHASE 1: Validate all assets exist
         try:
-            placeholders = ",".join("?" * len(validated_ids))
-            res = svc["db"].query(f"SELECT id, filepath FROM assets WHERE id IN ({placeholders})", tuple(validated_ids))
+            res = svc["db"].query_in(
+                "SELECT id, filepath FROM assets WHERE {IN_CLAUSE}",
+                "id",
+                validated_ids
+            )
             if not res.ok:
                 return _json_response(res)
 
             found_assets = res.data or []
-            found_ids = {row["id"] for row in found_assets}
+            found_ids = {row["id"] for row in found_assets if isinstance(row, dict) and "id" in row}
             missing_ids = set(validated_ids) - found_ids
-
             if missing_ids:
-                return _json_response(Result.Err("NOT_FOUND", f"Assets not found: {list(missing_ids)}"))
+                return _json_response(Result.Err("NOT_FOUND", f"Assets not found: {sorted(missing_ids)}"))
         except Exception as exc:
             return _json_response(Result.Err("DB_ERROR", f"Failed to validate assets: {exc}"))
 
-        # Validate file paths are within allowed roots
+        # PHASE 2: Validate and resolve file paths
+        validated_assets = []
         for asset_row in found_assets:
+            asset_id = asset_row.get("id")
             raw_path = asset_row.get("filepath")
+
+            if asset_id is None:
+                return _json_response(Result.Err("DB_ERROR", "Missing asset id in DB row"))
             if not raw_path or not isinstance(raw_path, str):
-                continue
+                return _json_response(Result.Err("INVALID_INPUT", f"Invalid path for asset ID {asset_id}"))
 
             candidate = _normalize_path(raw_path)
             if not candidate:
-                return _json_response(Result.Err("INVALID_INPUT", f"Invalid asset path for ID {asset_row['id']}"))
+                return _json_response(Result.Err("INVALID_INPUT", f"Invalid asset path for ID {asset_id}"))
 
-            allowed = _is_path_allowed(candidate) or _is_path_allowed_custom(candidate)
-            if not allowed:
-                return _json_response(Result.Err("FORBIDDEN", f"Path for asset ID {asset_row['id']} is not within allowed roots"))
-
-        # Start a transaction to ensure atomicity for the entire bulk operation
-        try:
-            # Begin transaction
-            trans_res = svc["db"].execute("BEGIN IMMEDIATE TRANSACTION")
-            if not trans_res.ok:
-                return _json_response(Result.Err("DB_ERROR", "Failed to begin transaction"))
-        except Exception as exc:
-            return _json_response(Result.Err("DB_ERROR", f"Failed to begin transaction: {exc}"))
-
-        # Delete files and database records
-        deleted_count = 0
-        errors = []
-
-        for asset_row in found_assets:
-            asset_id = asset_row["id"]
-            raw_path = asset_row["filepath"]
-
-            candidate = _normalize_path(raw_path)
-            if not candidate:
-                errors.append(f"Invalid path for asset ID {asset_id}")
-                continue
+            allowed_path = _is_path_allowed(candidate) or _is_path_allowed_custom(candidate)
+            if not allowed_path:
+                return _json_response(Result.Err("FORBIDDEN", f"Path for asset ID {asset_id} is not within allowed roots"))
 
             try:
                 resolved = candidate.resolve(strict=True)
             except Exception:
-                # File doesn't exist, but we can still remove the DB record
                 resolved = None
 
-            # Delete the file if it exists
+            validated_assets.append({"id": int(asset_id), "filepath": str(raw_path), "resolved": resolved})
+
+        validated_assets.sort(key=lambda x: x["id"])
+
+        # PHASE 3: Delete files first; abort DB deletion if any file deletion fails.
+        file_deletion_errors = []
+        for asset_info in validated_assets:
+            resolved = asset_info["resolved"]
             if resolved and resolved.exists() and resolved.is_file():
                 try:
                     resolved.unlink(missing_ok=True)
                 except Exception as exc:
-                    errors.append(f"Failed to delete file for asset ID {asset_id}: {exc}")
-                    continue
+                    file_deletion_errors.append({"asset_id": asset_info["id"], "error": f"{exc}"})
+                    break
 
-            # Delete from database within the same transaction
-            try:
-                # Delete from main assets table (this should cascade to asset_metadata)
-                del_res = svc["db"].execute("DELETE FROM assets WHERE id = ?", (asset_id,))
-                if not del_res.ok:
-                    errors.append(f"Failed to delete DB record for asset ID {asset_id}")
-                    continue
+        if file_deletion_errors:
+            return _json_response(Result.Err("DELETE_FAILED", "Failed to delete files", errors=file_deletion_errors, aborted=True))
 
-                # Clean up related tables
-                if resolved:
-                    svc["db"].execute("DELETE FROM scan_journal WHERE filepath = ?", (str(resolved),))
-                    svc["db"].execute("DELETE FROM metadata_cache WHERE filepath = ?", (str(resolved),))
+        # PHASE 4: Delete database rows in a single transaction
+        try:
+            with svc["db"].transaction(mode="immediate"):
+                deleted_count = 0
+                for asset_info in validated_assets:
+                    asset_id = asset_info["id"]
+                    filepath = asset_info["filepath"]
 
-                deleted_count += 1
-            except Exception as exc:
-                errors.append(f"Failed to delete DB record for asset ID {asset_id}: {exc}")
-                continue
+                    del_res = svc["db"].execute("DELETE FROM assets WHERE id = ?", (asset_id,))
+                    if not del_res.ok:
+                        raise RuntimeError(f"Failed to delete asset ID {asset_id}: {del_res.error}")
 
-        # Check if there were errors during the process
-        if errors:
-            # Rollback the transaction on any errors
-            try:
-                svc["db"].execute("ROLLBACK")
-            except:
-                pass  # Ignore rollback errors
-            result_data = {"deleted": deleted_count, "errors": errors}
-            # Return as Ok but with error details
-            return _json_response(Result.Ok(result_data))
-        else:
-            # Commit the transaction if no errors
-            try:
-                commit_res = svc["db"].execute("COMMIT")
-                if not commit_res.ok:
-                    return _json_response(Result.Err("DB_ERROR", "Failed to commit transaction"))
-            except Exception as exc:
-                return _json_response(Result.Err("DB_ERROR", f"Failed to commit transaction: {exc}"))
-
-        return _json_response(Result.Ok({"deleted": deleted_count}))
+                    svc["db"].execute("DELETE FROM scan_journal WHERE filepath = ?", (filepath,))
+                    svc["db"].execute("DELETE FROM metadata_cache WHERE filepath = ?", (filepath,))
+                    deleted_count += 1
+            return _json_response(Result.Ok({"deleted": deleted_count}))
+        except Exception as exc:
+            logger.error("Database deletion failed: %s", exc)
+            return _json_response(Result.Err("DB_ERROR", f"Failed to delete asset records: {exc}"))
 
     @routes.post("/mjr/am/assets/rename")
     async def rename_asset_endpoint(request):

@@ -6,6 +6,7 @@ import sqlite3
 import threading
 import time
 import random
+import re
 from contextlib import contextmanager
 from queue import Empty, Queue
 from typing import Optional, Any, List, Dict, Tuple
@@ -218,6 +219,42 @@ class Sqlite:
         params: Optional[tuple] = None
     ) -> Result[List[Dict[str, Any]]]:
         return self.execute(sql, params, fetch=True)
+
+    def query_in(
+        self,
+        base_query: str,
+        column: str,
+        values: List[Any],
+        additional_params: Optional[tuple] = None
+    ) -> Result[List[Dict[str, Any]]]:
+        """
+        Execute a query with an IN clause safely.
+
+        `base_query` must contain the `{IN_CLAUSE}` placeholder, which will be replaced
+        with `<column> IN (?, ?, ...)` using parameter binding for values.
+        """
+        if not values:
+            return Result.Ok([])
+
+        if not isinstance(values, (list, tuple)):
+            return Result.Err(ErrorCode.INVALID_INPUT, "values must be a list or tuple")
+
+        # Allow optional table alias prefix (e.g. "a.filepath").
+        if not isinstance(column, str) or not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*(\\.[a-zA-Z_][a-zA-Z0-9_]*)?$", column):
+            return Result.Err(ErrorCode.INVALID_INPUT, f"Invalid column name: {column}")
+
+        if "{IN_CLAUSE}" not in str(base_query or ""):
+            return Result.Err(ErrorCode.INVALID_INPUT, "base_query must contain {IN_CLAUSE}")
+
+        placeholders = ",".join(["?"] * len(values))
+        in_clause = f"{column} IN ({placeholders})"
+        query = str(base_query).replace("{IN_CLAUSE}", in_clause)
+
+        params = tuple(values)
+        if additional_params:
+            params = params + tuple(additional_params)
+
+        return self.query(query, params)
 
     def executemany(
         self,

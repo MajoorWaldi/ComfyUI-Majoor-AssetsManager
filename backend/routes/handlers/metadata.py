@@ -6,7 +6,7 @@ from aiohttp import web
 from backend.shared import Result
 from backend.config import OUTPUT_ROOT
 from backend.custom_roots import resolve_custom_root
-from ..core import _json_response, _require_services, _normalize_path, _is_path_allowed, _is_path_allowed_custom, _is_within_root
+from ..core import _json_response, _require_services, _check_rate_limit, _normalize_path, _is_path_allowed, _is_path_allowed_custom, _is_within_root
 
 try:
     import folder_paths  # type: ignore
@@ -33,6 +33,10 @@ def register_metadata_routes(routes: web.RouteTableDef) -> None:
         svc, error_result = _require_services()
         if error_result:
             return _json_response(error_result)
+
+        allowed, retry_after = _check_rate_limit(request, "metadata", max_requests=20, window_seconds=60)
+        if not allowed:
+            return _json_response(Result.Err("RATE_LIMITED", "Too many metadata requests. Please wait before retrying.", retry_after=retry_after))
 
         file_path = (request.query.get("path") or "").strip()
         normalized = None
