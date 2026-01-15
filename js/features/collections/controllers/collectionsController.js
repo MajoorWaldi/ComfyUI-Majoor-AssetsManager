@@ -39,7 +39,7 @@ function createDivider() {
     return d;
 }
 
-export function createCollectionsController({ state, collectionsBtn, collectionsMenu, collectionsPopover, popovers, reloadGrid }) {
+export function createCollectionsController({ state, collectionsBtn, collectionsMenu, collectionsPopover, popovers, reloadGrid, onChanged = null }) {
     const render = async () => {
         collectionsMenu.replaceChildren();
 
@@ -54,21 +54,27 @@ export function createCollectionsController({ state, collectionsBtn, collections
             }
             state.collectionId = String(res.data?.id || "");
             state.collectionName = String(res.data?.name || name);
+            try {
+                onChanged?.();
+            } catch {}
             popovers.close(collectionsPopover);
             await reloadGrid();
         });
         collectionsMenu.appendChild(createBtn);
 
-        if (state.collectionId) {
-            const exitBtn = createMenuItem(`Exit collection view`, { right: state.collectionName || null });
-            exitBtn.addEventListener("click", async () => {
-                state.collectionId = "";
-                state.collectionName = "";
-                popovers.close(collectionsPopover);
-                await reloadGrid();
-            });
-            collectionsMenu.appendChild(exitBtn);
-        }
+            if (state.collectionId) {
+                const exitBtn = createMenuItem(`Exit collection view`, { right: state.collectionName || null });
+                exitBtn.addEventListener("click", async () => {
+                    state.collectionId = "";
+                    state.collectionName = "";
+                    try {
+                        onChanged?.();
+                    } catch {}
+                    popovers.close(collectionsPopover);
+                    await reloadGrid();
+                });
+                collectionsMenu.appendChild(exitBtn);
+            }
 
         collectionsMenu.appendChild(createDivider());
 
@@ -98,6 +104,9 @@ export function createCollectionsController({ state, collectionsBtn, collections
             openBtn.addEventListener("click", async () => {
                 state.collectionId = id;
                 state.collectionName = name;
+                try {
+                    onChanged?.();
+                } catch {}
                 popovers.close(collectionsPopover);
                 await reloadGrid();
             });
@@ -127,6 +136,9 @@ export function createCollectionsController({ state, collectionsBtn, collections
                 if (state.collectionId === id) {
                     state.collectionId = "";
                     state.collectionName = "";
+                    try {
+                        onChanged?.();
+                    } catch {}
                 }
                 await render();
                 await reloadGrid();

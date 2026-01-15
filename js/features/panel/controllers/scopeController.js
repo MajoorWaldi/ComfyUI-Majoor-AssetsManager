@@ -1,4 +1,4 @@
-export function createScopeController({ state, tabButtons, customMenuBtn, customPopover, popovers, refreshCustomRoots, reloadGrid }) {
+export function createScopeController({ state, tabButtons, customMenuBtn, customPopover, popovers, refreshCustomRoots, reloadGrid, onChanged = null }) {
     const setActiveTabStyles = () => {
         const buttons = Object.values(tabButtons || {});
         buttons.forEach((b) => {
@@ -31,6 +31,9 @@ export function createScopeController({ state, tabButtons, customMenuBtn, custom
         }
 
         setActiveTabStyles();
+        try {
+            onChanged?.();
+        } catch {}
         await reloadGrid();
     };
 

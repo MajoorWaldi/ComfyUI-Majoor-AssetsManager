@@ -144,6 +144,12 @@
     transform: translateY(-1px);
 }
 
+.mjr-assets-manager .mjr-icon-btn.mjr-context-active {
+    border-color: color-mix(in srgb, var(--mjr-accent) 85%, var(--mjr-border));
+    background: color-mix(in srgb, var(--mjr-surface-2) 55%, var(--mjr-accent) 12%);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--mjr-accent) 35%, transparent);
+}
+
 .mjr-assets-manager .mjr-icon-btn .pi {
     font-size: 13px;
     line-height: 1;
@@ -304,6 +310,73 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.mjr-assets-manager .mjr-am-summary-right {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.mjr-assets-manager .mjr-am-context-pills {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.mjr-assets-manager .mjr-context-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--mjr-accent) 55%, var(--mjr-border));
+    background: color-mix(in srgb, var(--mjr-surface-2) 55%, var(--mjr-accent) 10%);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--mjr-accent) 18%, transparent);
+    color: var(--content-fg, #ddd);
+    font-size: 11px;
+    line-height: 1;
+    min-height: 24px;
+    max-width: 260px;
+}
+
+.mjr-assets-manager .mjr-context-pill:hover {
+    border-color: color-mix(in srgb, var(--mjr-accent) 75%, var(--mjr-border));
+    background: color-mix(in srgb, var(--mjr-surface-2) 50%, var(--mjr-accent) 14%);
+}
+
+.mjr-assets-manager .mjr-context-pill-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0.92;
+}
+
+.mjr-assets-manager .mjr-context-pill-x {
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 1px solid color-mix(in srgb, var(--mjr-border) 75%, transparent);
+    background: transparent;
+    border-radius: 999px;
+    color: var(--mjr-muted, rgba(255, 255, 255, 0.65));
+    cursor: pointer;
+    line-height: 1;
+    font-size: 14px;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.mjr-assets-manager .mjr-context-pill-x:hover {
+    border-color: color-mix(in srgb, var(--mjr-accent) 55%, var(--mjr-border));
+    background: color-mix(in srgb, var(--mjr-surface-2) 70%, var(--mjr-accent) 10%);
+    color: var(--content-fg, #fff);
 }
 
 .mjr-assets-manager .mjr-am-search-pill {

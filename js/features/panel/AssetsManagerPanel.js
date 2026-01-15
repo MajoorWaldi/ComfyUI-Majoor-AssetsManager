@@ -23,6 +23,7 @@ import { createAgendaCalendar } from "../filters/calendar/AgendaCalendar.js";
 import { normalizeQuery } from "./controllers/query.js";
 import { createGridController } from "./controllers/gridController.js";
 import { createScopeController } from "./controllers/scopeController.js";
+import { createContextController } from "./controllers/contextController.js";
 import { createCustomRootsController } from "./controllers/customRootsController.js";
 import { bindFilters } from "./controllers/filtersController.js";
 import { createSortController } from "./controllers/sortController.js";
@@ -117,16 +118,68 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     });
 
     const settings = loadMajoorSettings();
-    const sidebarPosition = settings.sidebar?.position || "right";
-    const sidebar = createSidebar(sidebarPosition);
+    const sidebar = createSidebar(settings.sidebar?.position || "right");
 
-    if (sidebarPosition === "left") {
-        browseSection.appendChild(sidebar);
-        browseSection.appendChild(gridWrapper);
-    } else {
-        browseSection.appendChild(gridWrapper);
-        browseSection.appendChild(sidebar);
-    }
+    let _sidebarPosition = "right";
+    const applySidebarPosition = (nextPosition) => {
+        const pos = String(nextPosition || "right").toLowerCase() === "left" ? "left" : "right";
+        if (_sidebarPosition === pos) return;
+        _sidebarPosition = pos;
+
+        // Preserve grid scroll where possible.
+        let scrollTop = 0;
+        let scrollLeft = 0;
+        try {
+            scrollTop = Number(gridWrapper?.scrollTop || 0) || 0;
+            scrollLeft = Number(gridWrapper?.scrollLeft || 0) || 0;
+        } catch {}
+
+        try {
+            sidebar.dataset.position = pos;
+        } catch {}
+
+        try {
+            if (pos === "left") {
+                browseSection.appendChild(sidebar);
+                browseSection.appendChild(gridWrapper);
+                browseSection.insertBefore(sidebar, browseSection.firstChild);
+            } else {
+                browseSection.appendChild(gridWrapper);
+                browseSection.appendChild(sidebar);
+            }
+        } catch {}
+
+        try {
+            requestAnimationFrame(() => {
+                try {
+                    gridWrapper.scrollTop = scrollTop;
+                    gridWrapper.scrollLeft = scrollLeft;
+                } catch {}
+            });
+        } catch {
+            try {
+                gridWrapper.scrollTop = scrollTop;
+                gridWrapper.scrollLeft = scrollLeft;
+            } catch {}
+        }
+    };
+
+    // Initial position (no reload needed).
+    try {
+        _sidebarPosition = ""; // force apply
+        applySidebarPosition(settings.sidebar?.position || "right");
+    } catch {}
+
+    // Live updates when ComfyUI settings change.
+    const onSidebarSettingsChanged = () => {
+        try {
+            const s = loadMajoorSettings();
+            applySidebarPosition(s.sidebar?.position || "right");
+        } catch {}
+    };
+    try {
+        document.addEventListener?.("mjr-settings-changed", onSidebarSettingsChanged);
+    } catch {}
 
     content.appendChild(statusSection);
     content.appendChild(searchSection);
@@ -146,37 +199,14 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         state
     });
 
-    // Summary bar updates: selection changes, load changes, scope/collection changes.
-    try {
-        updateSummaryBar({ state, gridContainer });
-        const onStats = () => updateSummaryBar({ state, gridContainer });
-        gridContainer.addEventListener("mjr:grid-stats", onStats);
-        document.addEventListener?.("mjr-settings-changed", onStats);
-
-        // Observe DOM changes for card count / selection class changes.
-        let raf = null;
-        const schedule = () => {
-            if (raf) cancelAnimationFrame(raf);
-            raf = requestAnimationFrame(() => {
-                raf = null;
-                updateSummaryBar({ state, gridContainer });
-            });
-        };
-        const mo = new MutationObserver(() => schedule());
-        mo.observe(gridContainer, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
-        gridContainer._mjrSummaryBarObserver = mo;
-        gridContainer._mjrSummaryBarDispose = () => {
-            try {
-                gridContainer.removeEventListener("mjr:grid-stats", onStats);
-            } catch {}
-            try {
-                document.removeEventListener?.("mjr-settings-changed", onStats);
-            } catch {}
-            try {
-                mo.disconnect();
-            } catch {}
-        };
-    } catch {}
+    let scopeController = null;
+    let sortController = null;
+    let contextController = null;
+    const notifyContextChanged = () => {
+        try {
+            contextController?.update?.();
+        } catch {}
+    };
 
     // Allow context menus to request a refresh (e.g. after "Remove from collection").
     try {
@@ -201,14 +231,17 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     });
     customRootsController.bind({ customAddBtn, customRemoveBtn });
 
-    const scopeController = createScopeController({
+    scopeController = createScopeController({
         state,
         tabButtons,
         customMenuBtn,
         customPopover,
         popovers,
         refreshCustomRoots: customRootsController.refreshCustomRoots,
-        reloadGrid: gridController.reloadGrid
+        reloadGrid: gridController.reloadGrid,
+        onChanged: () => {
+            notifyContextChanged();
+        }
     });
 
     Object.values(tabButtons).forEach((btn) => {
@@ -240,13 +273,16 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         popovers.toggle(filterPopover, filterBtn);
     });
 
-    const sortController = createSortController({
+    sortController = createSortController({
         state,
         sortBtn,
         sortMenu,
         sortPopover,
         popovers,
-        reloadGrid: gridController.reloadGrid
+        reloadGrid: gridController.reloadGrid,
+        onChanged: () => {
+            notifyContextChanged();
+        }
     });
     sortController.bind({
         onBeforeToggle: () => {
@@ -261,7 +297,10 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         collectionsMenu,
         collectionsPopover,
         popovers,
-        reloadGrid: gridController.reloadGrid
+        reloadGrid: gridController.reloadGrid,
+        onChanged: () => {
+            notifyContextChanged();
+        }
     });
     collectionsController.bind();
 
@@ -288,8 +327,62 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             try {
                 agendaCalendar?.refresh?.();
             } catch {}
+            notifyContextChanged();
         }
     });
+
+    // Context controller: pills + button highlighting.
+    try {
+        contextController = createContextController({
+            state,
+            gridContainer,
+            filterBtn,
+            sortBtn,
+            collectionsBtn,
+            searchInputEl,
+            kindSelect,
+            wfCheckbox,
+            ratingSelect,
+            dateRangeSelect,
+            dateExactInput,
+            scopeController,
+            sortController,
+            updateSummaryBar,
+            reloadGrid: () => gridController.reloadGrid()
+        });
+    } catch {}
+
+    // Summary bar updates: selection changes, load changes, scope/collection changes.
+    try {
+        notifyContextChanged();
+        const onStats = () => notifyContextChanged();
+        gridContainer.addEventListener("mjr:grid-stats", onStats);
+        document.addEventListener?.("mjr-settings-changed", onStats);
+
+        // Observe DOM changes for card count / selection class changes.
+        let raf = null;
+        const schedule = () => {
+            if (raf) cancelAnimationFrame(raf);
+            raf = requestAnimationFrame(() => {
+                raf = null;
+                notifyContextChanged();
+            });
+        };
+        const mo = new MutationObserver(() => schedule());
+        mo.observe(gridContainer, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+        gridContainer._mjrSummaryBarObserver = mo;
+        gridContainer._mjrSummaryBarDispose = () => {
+            try {
+                gridContainer.removeEventListener("mjr:grid-stats", onStats);
+            } catch {}
+            try {
+                document.removeEventListener?.("mjr-settings-changed", onStats);
+            } catch {}
+            try {
+                mo.disconnect();
+            } catch {}
+        };
+    } catch {}
 
     const sidebarController = bindSidebarOpen({
         gridContainer,
@@ -350,6 +443,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         } catch {}
         try {
             sidebarController?.dispose?.();
+        } catch {}
+        try {
+            document.removeEventListener?.("mjr-settings-changed", onSidebarSettingsChanged);
         } catch {}
         try {
             if (gridContainer) disposeGrid(gridContainer);
@@ -417,6 +513,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         const value = e?.target?.value ?? "";
         if (value === lastSearchValue) return;
         lastSearchValue = value;
+        notifyContextChanged();
 
         if (searchTimeout) clearTimeout(searchTimeout);
 
@@ -435,6 +532,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     searchInputEl.addEventListener("keypress", (e) => {
         if (e.key === "Enter") {
             gridController.reloadGrid();
+            notifyContextChanged();
         }
     });
 

@@ -1,4 +1,4 @@
-export function createSortController({ state, sortBtn, sortMenu, sortPopover, popovers, reloadGrid }) {
+export function createSortController({ state, sortBtn, sortMenu, sortPopover, popovers, reloadGrid, onChanged = null }) {
     const sortOptions = [
         { key: "mtime_desc", label: "Newest first" },
         { key: "mtime_asc", label: "Oldest first" },
@@ -37,6 +37,9 @@ export function createSortController({ state, sortBtn, sortMenu, sortPopover, po
                 state.sort = opt.key;
                 setSortIcon(state.sort);
                 renderSortMenu();
+                try {
+                    onChanged?.();
+                } catch {}
                 sortPopover.style.display = "none";
                 popovers.close(sortPopover);
                 await reloadGrid();
