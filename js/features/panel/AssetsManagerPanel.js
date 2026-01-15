@@ -18,6 +18,7 @@ import { createFilterPopoverView } from "./views/filterPopoverView.js";
 import { createSortPopoverView } from "./views/sortPopoverView.js";
 import { createSearchView } from "./views/searchView.js";
 import { createSummaryBarView } from "./views/summaryBarView.js";
+import { createAgendaCalendar } from "../filters/calendar/AgendaCalendar.js";
 
 import { normalizeQuery } from "./controllers/query.js";
 import { createGridController } from "./controllers/gridController.js";
@@ -58,7 +59,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     const { header, headerActions, tabButtons, customMenuBtn, filterBtn, sortBtn, collectionsBtn } = headerView;
 
     const { customPopover, customSelect, customAddBtn, customRemoveBtn } = createCustomPopoverView();
-    const { filterPopover, kindSelect, wfCheckbox, ratingSelect, dateRangeSelect, dateExactInput } = createFilterPopoverView();
+    const { filterPopover, kindSelect, wfCheckbox, ratingSelect, dateRangeSelect, dateExactInput, agendaContainer } = createFilterPopoverView();
     const { sortPopover, sortMenu } = createSortPopoverView();
     const { collectionsPopover, collectionsMenu } = createCollectionsPopoverView();
 
@@ -264,6 +265,17 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     });
     collectionsController.bind();
 
+    // Calendar UI (separate module) for day indicators.
+    let agendaCalendar = null;
+    try {
+        agendaCalendar = createAgendaCalendar({
+            container: agendaContainer,
+            hiddenInput: dateExactInput,
+            state,
+            onRequestReloadGrid: () => gridController.reloadGrid()
+        });
+    } catch {}
+
     bindFilters({
         state,
         kindSelect,
@@ -271,7 +283,12 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         ratingSelect,
         dateRangeSelect,
         dateExactInput,
-        reloadGrid: gridController.reloadGrid
+        reloadGrid: gridController.reloadGrid,
+        onFiltersChanged: () => {
+            try {
+                agendaCalendar?.refresh?.();
+            } catch {}
+        }
     });
 
     const sidebarController = bindSidebarOpen({
@@ -320,6 +337,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         } catch {}
         try {
             ratingHotkeys.dispose();
+        } catch {}
+        try {
+            agendaCalendar?.dispose?.();
         } catch {}
         try {
             if (searchTimeout) clearTimeout(searchTimeout);

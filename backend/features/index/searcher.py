@@ -486,6 +486,100 @@ class IndexSearcher:
             return Result.Err("DB_ERROR", result.error)
         return Result.Ok(bool(result.data))
 
+    def date_histogram_scoped(
+        self,
+        roots: List[str],
+        month_start: int,
+        month_end: int,
+        filters: Optional[Dict[str, Any]] = None,
+    ) -> Result[Dict[str, int]]:
+        """
+        Return a day->count mapping for assets whose mtime falls inside [month_start, month_end).
+
+        Notes:
+        - Uses localtime conversion to match the UI's date filters (which use local time).
+        - Intended for calendar "days with assets" indicators (no query/FTS).
+        """
+        cleaned_roots: List[str] = []
+        for r in roots or []:
+            if not r:
+                continue
+            try:
+                cleaned_roots.append(str(Path(r).resolve()))
+            except Exception:
+                continue
+
+        if not cleaned_roots:
+            return Result.Err("INVALID_INPUT", "Missing or invalid roots")
+
+        try:
+            start_i = int(month_start)
+            end_i = int(month_end)
+        except Exception:
+            return Result.Err("INVALID_INPUT", "Invalid month range")
+
+        if start_i <= 0 or end_i <= 0 or end_i <= start_i:
+            return Result.Err("INVALID_INPUT", "Invalid month range")
+
+        def _escape_like_pattern(pattern: str) -> str:
+            return pattern.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+        def _roots_where() -> Tuple[str, List[Any]]:
+            parts = []
+            params: List[Any] = []
+            for root in cleaned_roots:
+                prefix = root.rstrip(os.sep) + os.sep
+                escaped_prefix = _escape_like_pattern(prefix)
+                parts.append("(a.filepath = ? OR a.filepath LIKE ? ESCAPE '\\')")
+                params.extend([root, f"{escaped_prefix}%"])
+            return "(" + " OR ".join(parts) + ")", params
+
+        roots_clause, roots_params = _roots_where()
+
+        # Do not allow callers to inject their own mtime window beyond the month we requested.
+        safe_filters = dict(filters or {})
+        safe_filters.pop("mtime_start", None)
+        safe_filters.pop("mtime_end", None)
+
+        sql_parts = [
+            """
+            SELECT
+                strftime('%Y-%m-%d', a.mtime, 'unixepoch', 'localtime') AS day,
+                COUNT(*) AS count
+            FROM assets a
+            LEFT JOIN asset_metadata m ON a.id = m.asset_id
+            WHERE
+            """,
+            roots_clause,
+            "AND a.mtime >= ? AND a.mtime < ?",
+        ]
+        params: List[Any] = []
+        params.extend(roots_params)
+        params.extend([start_i, end_i])
+
+        filter_clauses, filter_params = _build_filter_clauses(safe_filters)
+        sql_parts.extend(filter_clauses)
+        params.extend(filter_params)
+
+        sql_parts.append("GROUP BY day ORDER BY day ASC")
+
+        sql = " ".join(sql_parts)
+        result = self.db.query(sql, tuple(params))
+        if not result.ok:
+            return Result.Err("DB_ERROR", result.error)
+
+        days: Dict[str, int] = {}
+        for row in result.data or []:
+            try:
+                day = str(row.get("day") or "").strip()
+                count = int(row.get("count") or 0)
+            except Exception:
+                continue
+            if day:
+                days[day] = max(0, count)
+
+        return Result.Ok(days)
+
     def get_asset(self, asset_id: int) -> Result[Optional[Dict[str, Any]]]:
         """
         Get a single asset by ID.

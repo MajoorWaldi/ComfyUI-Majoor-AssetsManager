@@ -351,6 +351,105 @@
     color: var(--mjr-muted, rgba(255, 255, 255, 0.65));
 }
 
+.mjr-agenda-container {
+    width: 100%;
+}
+
+.mjr-agenda-calendar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+}
+
+.mjr-agenda-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mjr-agenda-month {
+    flex: 1;
+    text-align: center;
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--content-fg, #ddd);
+    user-select: none;
+}
+
+.mjr-agenda-nav {
+    width: 32px;
+    height: 28px;
+    padding: 0;
+    border-radius: 10px;
+}
+
+.mjr-agenda-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+    width: 100%;
+}
+
+.mjr-agenda-weekday {
+    text-align: center;
+    font-size: 11px;
+    color: var(--mjr-muted, rgba(255, 255, 255, 0.65));
+    user-select: none;
+}
+
+.mjr-agenda-day {
+    height: 30px;
+    border-radius: 10px;
+    border: 1px solid var(--mjr-border);
+    background: color-mix(in srgb, var(--mjr-surface-2) 55%, transparent);
+    color: var(--content-fg, #ddd);
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 120ms ease, border-color 120ms ease, transform 80ms ease;
+}
+
+.mjr-agenda-day:hover {
+    border-color: color-mix(in srgb, var(--mjr-border) 55%, var(--mjr-accent, var(--comfy-accent, #5fb3ff)) 45%);
+    background: color-mix(in srgb, var(--mjr-surface-2) 45%, var(--mjr-accent, var(--comfy-accent, #5fb3ff)) 10%);
+}
+
+.mjr-agenda-day:active {
+    transform: translateY(1px);
+}
+
+.mjr-agenda-day--blank {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.mjr-agenda-day--has-assets {
+    border-color: color-mix(in srgb, var(--mjr-accent, var(--comfy-accent, #5fb3ff)) 80%, var(--mjr-border));
+    background: color-mix(in srgb, var(--mjr-accent, var(--comfy-accent, #5fb3ff)) 18%, var(--mjr-surface-2) 82%);
+}
+
+.mjr-agenda-day--selected {
+    border-color: var(--mjr-accent, var(--comfy-accent, #5fb3ff));
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--mjr-accent, var(--comfy-accent, #5fb3ff)) 55%, transparent);
+}
+
+.mjr-agenda-footer {
+    display: flex;
+    gap: 8px;
+    justify-content: space-between;
+}
+
+.mjr-agenda-clear,
+.mjr-agenda-refresh {
+    flex: 1;
+}
+
 .mjr-menu,
 .mjr-assets-manager .mjr-menu {
     display: flex;

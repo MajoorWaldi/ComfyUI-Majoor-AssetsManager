@@ -23,6 +23,7 @@ from .handlers import (
     register_asset_routes,
     register_collections_routes,
     register_batch_zip_routes,
+    register_calendar_routes,
 )
 
 logger = get_logger(__name__)
@@ -108,6 +109,7 @@ def register_all_routes() -> web.RouteTableDef:
     register_asset_routes(routes)
     register_collections_routes(routes)
     register_batch_zip_routes(routes)
+    register_calendar_routes(routes)
 
     logger.info("=" * 60)
     logger.info("Routes registered:")
@@ -125,6 +127,7 @@ def register_all_routes() -> web.RouteTableDef:
     logger.info("  POST /mjr/am/assets/delete")
     logger.info("  POST /mjr/am/assets/rename")
     logger.info("  GET /mjr/am/collections")
+    logger.info("  GET /mjr/am/date-histogram?month=YYYY-MM")
     logger.info("  POST /mjr/am/batch-zip")
     logger.info("  GET /mjr/am/batch-zip/{token}")
     logger.info("=" * 60)

@@ -39,6 +39,9 @@ export const ENDPOINTS = {
     // Drag-out (OS) helpers
     BATCH_ZIP_CREATE: "/mjr/am/batch-zip",
 
+    // Calendar helpers
+    DATE_HISTOGRAM: "/mjr/am/date-histogram",
+
     // Asset operations
     ASSET_DELETE: "/mjr/am/asset/delete",
     ASSET_RENAME: "/mjr/am/asset/rename",
@@ -116,6 +119,32 @@ export function buildCustomViewURL(filename, subfolder = "", rootId = "") {
 
 export function buildBatchZipDownloadURL(token) {
     return `${ENDPOINTS.BATCH_ZIP_CREATE}/${encodeURIComponent(String(token || ""))}`;
+}
+
+export function buildDateHistogramURL(params = {}) {
+    const {
+        scope = "output",
+        customRootId = null,
+        month = "",
+        kind = null,
+        hasWorkflow = null,
+        minRating = null
+    } = params;
+
+    let url = `${ENDPOINTS.DATE_HISTOGRAM}?scope=${encodeURIComponent(scope)}&month=${encodeURIComponent(String(month || ""))}`;
+    if (customRootId) {
+        url += `&custom_root_id=${encodeURIComponent(customRootId)}`;
+    }
+    if (kind) {
+        url += `&kind=${encodeURIComponent(kind)}`;
+    }
+    if (hasWorkflow !== null && hasWorkflow !== undefined) {
+        url += `&has_workflow=${encodeURIComponent(hasWorkflow ? "true" : "false")}`;
+    }
+    if (minRating !== null && minRating !== undefined && Number(minRating) > 0) {
+        url += `&min_rating=${encodeURIComponent(String(minRating))}`;
+    }
+    return url;
 }
 
 export function buildAssetViewURL(asset) {

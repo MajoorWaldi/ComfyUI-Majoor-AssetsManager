@@ -92,13 +92,20 @@ export function createFilterPopoverView() {
     const agendaLabel = document.createElement("div");
     agendaLabel.className = "mjr-popover-label";
     agendaLabel.textContent = "Agenda";
+    agendaRow.appendChild(agendaLabel);
+
+    // Keep a hidden input as the "source of truth" for existing controllers (change events, etc.).
+    // The visible calendar UI is implemented in a separate module and renders into `agendaContainer`.
+    const agendaContainer = document.createElement("div");
+    agendaContainer.className = "mjr-agenda-container";
+
     const agendaInput = document.createElement("input");
     agendaInput.type = "date";
-    agendaInput.className = "mjr-input";
-    agendaInput.placeholder = "Specific day";
-    agendaInput.classList.add("mjr-agenda-input");
-    agendaRow.appendChild(agendaLabel);
-    agendaRow.appendChild(agendaInput);
+    agendaInput.className = "mjr-input mjr-agenda-input";
+    agendaInput.style.display = "none";
+
+    agendaContainer.appendChild(agendaInput);
+    agendaRow.appendChild(agendaContainer);
 
     filterPopover.appendChild(kindRow);
     filterPopover.appendChild(wfRow);
@@ -112,7 +119,8 @@ export function createFilterPopoverView() {
         wfCheckbox,
         ratingSelect,
         dateRangeSelect,
-        dateExactInput: agendaInput
+        dateExactInput: agendaInput,
+        agendaContainer
     };
 }
 

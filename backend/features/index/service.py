@@ -181,6 +181,20 @@ class IndexService:
         """
         return self._searcher.has_assets_under_root(root)
 
+    def date_histogram_scoped(
+        self,
+        roots: List[str],
+        month_start: int,
+        month_end: int,
+        filters: Optional[Dict[str, Any]] = None,
+    ) -> Result[Dict[str, int]]:
+        """
+        Return a day->count mapping for assets within a month for the given roots.
+
+        Used by the UI calendar to mark days that have assets.
+        """
+        return self._searcher.date_histogram_scoped(roots, month_start, month_end, filters)
+
     def get_asset(self, asset_id: int) -> Result[Optional[Dict[str, Any]]]:
         """
         Get a single asset by ID.

@@ -5,18 +5,22 @@ export function bindFilters({
     ratingSelect,
     dateRangeSelect,
     dateExactInput,
-    reloadGrid
+    reloadGrid,
+    onFiltersChanged = null
 }) {
     kindSelect.addEventListener("change", async () => {
         state.kindFilter = kindSelect.value || "";
+        try { onFiltersChanged?.(); } catch {}
         await reloadGrid();
     });
     wfCheckbox.addEventListener("change", async () => {
         state.workflowOnly = Boolean(wfCheckbox.checked);
+        try { onFiltersChanged?.(); } catch {}
         await reloadGrid();
     });
     ratingSelect.addEventListener("change", async () => {
         state.minRating = Number(ratingSelect.value || 0) || 0;
+        try { onFiltersChanged?.(); } catch {}
         await reloadGrid();
     });
     if (dateRangeSelect) {
@@ -28,6 +32,7 @@ export function bindFilters({
                     dateExactInput.value = "";
                 }
             }
+            try { onFiltersChanged?.(); } catch {}
             await reloadGrid();
         });
     }
@@ -47,6 +52,7 @@ export function bindFilters({
             if (!state.dateExactFilter) {
                 applyAgendaStyle("");
             }
+            try { onFiltersChanged?.(); } catch {}
             await reloadGrid();
         });
         const handleAgendaStatus = (event) => {
