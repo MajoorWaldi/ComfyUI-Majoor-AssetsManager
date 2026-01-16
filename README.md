@@ -44,6 +44,54 @@ pip install -r ComfyUI-Majoor-AssetsManager/requirements.txt
 ```
 Restart ComfyUI.
 
+### Optional (recommended): install ExifTool + FFprobe (metadata extraction)
+
+The Assets Manager works without these tools, but **metadata extraction** (generation info, media probe) and **tag/rating sync to files** are best-effort and will be **degraded** if the tools are missing.
+
+Verify they are available in your `PATH`:
+```bash
+exiftool -ver
+ffprobe -version
+```
+
+If they are not in `PATH`, set `MAJOOR_EXIFTOOL_PATH` and/or `MAJOOR_FFPROBE_PATH` (see Environment Variables below).
+
+#### Windows
+Option A (Scoop):
+```powershell
+scoop install ffmpeg exiftool
+```
+
+Option B (Chocolatey):
+```powershell
+choco install -y ffmpeg exiftool
+```
+
+Option C (WinGet):
+```powershell
+winget install -e --id Gyan.FFmpeg
+winget install -e --id PhilHarvey.ExifTool
+```
+If the IDs differ on your machine, use `winget search ffmpeg` / `winget search exiftool`.
+
+Option D (manual download):
+- FFprobe is included with FFmpeg builds: install FFmpeg and ensure the `bin/` folder is in your `PATH`.
+- ExifTool: download from `https://exiftool.org/` and point `MAJOOR_EXIFTOOL_PATH` to `exiftool.exe` if needed.
+
+#### macOS
+```bash
+brew install ffmpeg exiftool
+```
+
+#### Linux
+Debian/Ubuntu:
+```bash
+sudo apt-get update
+sudo apt-get install -y ffmpeg exiftool
+```
+
+Package names can vary by distro (e.g. `perl-Image-ExifTool` on some).
+
 ## Usage 🧭
 
 - Open the **Assets Manager** panel/tab.
