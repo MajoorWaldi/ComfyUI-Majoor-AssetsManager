@@ -104,10 +104,14 @@ class MetadataHelpers:
         Returns:
             Result with degraded payload
         """
+        quality = metadata_result.meta.get("quality", "degraded")
         payload = {
             "filepath": filepath,
             "error": metadata_result.error or "Metadata extraction failed",
             "code": metadata_result.code,
+            # Persist quality in the payload so downstream DB writes can avoid treating
+            # degraded results as "none" and inadvertently downgrading existing metadata.
+            "quality": quality,
         }
 
         for key, value in metadata_result.meta.items():
@@ -115,7 +119,6 @@ class MetadataHelpers:
                 continue
             payload[key] = value
 
-        quality = metadata_result.meta.get("quality", "degraded")
         return Result.Ok(payload, quality=quality)
 
     @staticmethod
@@ -166,6 +169,14 @@ class MetadataHelpers:
         # Import existing OS/file metadata when DB has defaults, without overriding user edits.
         # - rating: only set if current rating is 0
         # - tags: only set if current tags are empty ('[]' or '')
+        # Never downgrade metadata flags/raw on transient tool failures.
+        # We keep the best known metadata_quality for a file unless a newer extraction
+        # yields an equal-or-better quality. This prevents counters/progress from
+        # "going backwards" during background enrichment retries.
+        quality_rank_excluded = "CASE excluded.metadata_quality WHEN 'full' THEN 3 WHEN 'partial' THEN 2 WHEN 'degraded' THEN 1 ELSE 0 END"
+        quality_rank_current = "CASE COALESCE(asset_metadata.metadata_quality, 'none') WHEN 'full' THEN 3 WHEN 'partial' THEN 2 WHEN 'degraded' THEN 1 ELSE 0 END"
+        should_upgrade = f"({quality_rank_excluded} >= {quality_rank_current})"
+
         return db.execute(
             """
             INSERT INTO asset_metadata
@@ -184,11 +195,23 @@ class MetadataHelpers:
                     WHEN COALESCE(asset_metadata.tags, '[]') IN ('[]', '') THEN excluded.tags_text
                     ELSE asset_metadata.tags_text
                 END,
-                has_workflow = excluded.has_workflow,
-                has_generation_data = excluded.has_generation_data,
-                metadata_quality = excluded.metadata_quality,
-                metadata_raw = excluded.metadata_raw
-            """,
+                has_workflow = CASE
+                    WHEN {should_upgrade} THEN excluded.has_workflow
+                    ELSE asset_metadata.has_workflow
+                END,
+                has_generation_data = CASE
+                    WHEN {should_upgrade} THEN excluded.has_generation_data
+                    ELSE asset_metadata.has_generation_data
+                END,
+                metadata_quality = CASE
+                    WHEN {should_upgrade} THEN excluded.metadata_quality
+                    ELSE asset_metadata.metadata_quality
+                END,
+                metadata_raw = CASE
+                    WHEN {should_upgrade} THEN excluded.metadata_raw
+                    ELSE asset_metadata.metadata_raw
+                END
+            """.format(should_upgrade=should_upgrade),
             (
                 asset_id,
                 extracted_rating,

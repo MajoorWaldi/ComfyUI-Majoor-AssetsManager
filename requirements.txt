@@ -3,6 +3,9 @@
 # Core web framework
 aiohttp>=3.8.0
 
+# Async SQLite (non-blocking DB adapter)
+aiosqlite>=0.20.0
+
 # Image processing and thumbnails
 # Updated for security patches (CVE-2023-50447, CVE-2024-28219)
 pillow>=11.0.0

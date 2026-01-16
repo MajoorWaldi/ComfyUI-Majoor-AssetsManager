@@ -4,6 +4,7 @@ Collections endpoints.
 Collections are small JSON files that store a user-curated list of assets (by filepath + basic fields).
 """
 
+import asyncio
 import json
 from pathlib import Path
 from typing import Any, Dict, List
@@ -13,7 +14,7 @@ from aiohttp import web
 from backend.shared import Result, classify_file, get_logger
 from backend.features.collections import CollectionsService
 
-from ..core import _json_response, _require_services
+from ..core import _json_response, _require_services, _read_json
 
 logger = get_logger(__name__)
 
@@ -86,10 +87,8 @@ def register_collections_routes(routes: web.RouteTableDef) -> None:
 
     @routes.post("/mjr/am/collections")
     async def create_collection(request):
-        try:
-            body = await request.json()
-        except Exception:
-            body = {}
+        body_res = await _read_json(request)
+        body = body_res.data if body_res.ok else {}
         name = str((body or {}).get("name") or "").strip()
         result = _collections.create(name)
         return _json_response(result)
@@ -109,10 +108,8 @@ def register_collections_routes(routes: web.RouteTableDef) -> None:
     @routes.post(r"/mjr/am/collections/{collection_id}/add")
     async def add_to_collection(request):
         cid = str(request.match_info.get("collection_id") or "").strip()
-        try:
-            body = await request.json()
-        except Exception:
-            body = {}
+        body_res = await _read_json(request)
+        body = body_res.data if body_res.ok else {}
         assets = _safe_assets_payload((body or {}).get("assets"))
         result = _collections.add_assets(cid, assets)
         return _json_response(result)
@@ -120,10 +117,8 @@ def register_collections_routes(routes: web.RouteTableDef) -> None:
     @routes.post(r"/mjr/am/collections/{collection_id}/remove")
     async def remove_from_collection(request):
         cid = str(request.match_info.get("collection_id") or "").strip()
-        try:
-            body = await request.json()
-        except Exception:
-            body = {}
+        body_res = await _read_json(request)
+        body = body_res.data if body_res.ok else {}
         filepaths = [str(x) for x in _as_list((body or {}).get("filepaths")) if x]
         result = _collections.remove_filepaths(cid, filepaths)
         return _json_response(result)
@@ -160,7 +155,7 @@ def register_collections_routes(routes: web.RouteTableDef) -> None:
             if not error_result and svc and "index" in svc:
                 lookup = getattr(svc["index"], "lookup_assets_by_filepaths", None)
                 if callable(lookup) and filepaths:
-                    enrich = lookup(filepaths)
+                    enrich = await lookup(filepaths)
                     if enrich and getattr(enrich, "ok", False) and isinstance(enrich.data, dict):
                         mapping = enrich.data
                         for a in assets:

@@ -20,7 +20,7 @@ license = {file = "LICENSE"}
 #     "Environment :: GPU :: Apple Metal",    # Apple Metal support
 # ]
 
-dependencies = ["# ComfyUI-Majoor-AssetsManager Python Dependencies", "# Core web framework", "aiohttp>=3.8.0", "# Image processing and thumbnails", "# Updated for security patches (CVE-2023-50447, CVE-2024-28219)", "pillow>=11.0.0", "# Safe file deletion (recycle bin support)", "send2trash>=1.8.0", "# File system monitoring for auto-reindexing", "watchdog>=2.1.0", "# Windows-specific: Windows Property System metadata support", "# Only required on Windows; gracefully skipped on other platforms", "pywin32>=300; sys_platform == 'win32'"]
+dependencies = ["# ComfyUI-Majoor-AssetsManager Python Dependencies", "# Core web framework", "aiohttp>=3.8.0", "# Async SQLite (non-blocking DB adapter)", "aiosqlite>=0.20.0", "# Image processing and thumbnails", "# Updated for security patches (CVE-2023-50447, CVE-2024-28219)", "pillow>=11.0.0", "# Safe file deletion (recycle bin support)", "send2trash>=1.8.0", "# File system monitoring for auto-reindexing", "watchdog>=2.1.0", "# Windows-specific: Windows Property System metadata support", "# Only required on Windows; gracefully skipped on other platforms", "pywin32>=300; sys_platform == 'win32'"]
 
 [project.urls]
 Repository = "https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager"

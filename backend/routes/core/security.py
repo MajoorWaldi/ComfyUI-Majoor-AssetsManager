@@ -7,14 +7,16 @@ from __future__ import annotations
 import hashlib
 import threading
 import time
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from typing import Optional, Tuple
 from urllib.parse import urlparse
 
 from aiohttp import web
 
 # Per-client rate limiting state: {client_id: {endpoint: [timestamps]}}
-_rate_limit_state = defaultdict(lambda: defaultdict(list))
+# Use LRU eviction to prevent unbounded memory growth from spoofed client IPs.
+_MAX_RATE_LIMIT_CLIENTS = 10_000
+_rate_limit_state: "OrderedDict[str, dict]" = OrderedDict()
 _rate_limit_lock = threading.Lock()
 _rate_limit_cleanup_counter = 0
 _rate_limit_cleanup_interval = 100
@@ -32,6 +34,22 @@ def _get_client_identifier(request: web.Request) -> str:
             peername = request.transport.get_extra_info("peername") if request.transport else None
             client_ip = peername[0] if peername else "unknown"
     return hashlib.sha256(client_ip.encode("utf-8", errors="ignore")).hexdigest()[:16]
+
+def _evict_oldest_clients_if_needed() -> None:
+    while len(_rate_limit_state) > _MAX_RATE_LIMIT_CLIENTS:
+        try:
+            _rate_limit_state.popitem(last=False)
+        except KeyError:
+            break
+
+def _get_or_create_client_state(client_id: str) -> dict:
+    if client_id in _rate_limit_state:
+        _rate_limit_state.move_to_end(client_id)
+        return _rate_limit_state[client_id]
+    _evict_oldest_clients_if_needed()
+    state = defaultdict(list)
+    _rate_limit_state[client_id] = state
+    return state
 
 
 def _cleanup_rate_limit_state(now: float, window_seconds: int) -> None:
@@ -75,17 +93,15 @@ def _check_rate_limit(
                 _cleanup_rate_limit_state(now, max(window_seconds, 60))
                 _rate_limit_cleanup_counter = 0
 
-            recent = [
-                ts for ts in _rate_limit_state[client_id][endpoint]
-                if now - ts < window_seconds
-            ]
+            client_state = _get_or_create_client_state(client_id)
+            recent = [ts for ts in client_state[endpoint] if now - ts < window_seconds]
 
             if len(recent) >= max_requests:
                 retry_after = int(window_seconds - (now - recent[0])) + 1
                 return False, max(1, retry_after)
 
             recent.append(now)
-            _rate_limit_state[client_id][endpoint] = recent
+            client_state[endpoint] = recent
             return True, None
     except Exception:
         return True, None
@@ -167,4 +183,3 @@ def _reset_security_state_for_tests() -> None:
             _rate_limit_state.clear()
     except Exception:
         pass
-

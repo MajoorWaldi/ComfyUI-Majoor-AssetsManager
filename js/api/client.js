@@ -10,7 +10,40 @@ let _rtSyncCacheAt = 0;
 let _tagsCache = null;
 let _tagsCacheAt = 0;
 const TAGS_CACHE_TTL_MS = 30_000;
+const DEFAULT_TAGS_CACHE_TTL_MS = TAGS_CACHE_TTL_MS;
 const CLIENT_GLOBAL_KEY = "__MJR_API_CLIENT__";
+
+function _getTagsCacheTTL() {
+    try {
+        const raw = localStorage?.getItem?.(SETTINGS_KEY) || "{}";
+        const parsed = JSON.parse(raw);
+        const ttl = parsed?.cache?.tagsTTL ?? parsed?.cache?.tags_ttl_ms ?? null;
+        const n = Number(ttl);
+        if (!Number.isFinite(n)) return DEFAULT_TAGS_CACHE_TTL_MS;
+        return Math.max(1_000, Math.min(10 * 60_000, Math.floor(n)));
+    } catch {
+        return DEFAULT_TAGS_CACHE_TTL_MS;
+    }
+}
+
+const MAX_RETRIES = 3;
+const RETRY_BASE_DELAY_MS = 400;
+
+function _delay(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function _isRetryableError(error) {
+    try {
+        if (!error) return false;
+        const name = String(error.name || "");
+        if (name === "TypeError") return true;
+        const msg = String(error.message || "").toLowerCase();
+        return msg.includes("fetch") || msg.includes("network") || msg.includes("failed");
+    } catch {
+        return false;
+    }
+}
 
 export function invalidateObsCache() {
     _obsEnabledCache = null;
@@ -97,7 +130,7 @@ const _readRatingTagsSyncEnabled = () => {
  * Fetch wrapper that always returns {ok, data, error}
  * Never throws - returns error object instead
  */
-export async function fetchAPI(url, options = {}) {
+export async function fetchAPI(url, options = {}, retryCount = 0) {
     try {
         const headers = typeof Headers !== "undefined" ? new Headers(options.headers || {}) : { ...(options.headers || {}) };
 
@@ -156,11 +189,21 @@ export async function fetchAPI(url, options = {}) {
         }
         return result; // Backend returns {ok, data, error, code, meta}
     } catch (error) {
+        // Retry network failures a few times (best-effort).
+        if (retryCount < MAX_RETRIES && _isRetryableError(error)) {
+            try {
+                await _delay(RETRY_BASE_DELAY_MS * (retryCount + 1));
+            } catch {}
+            try {
+                return await fetchAPI(url, options, retryCount + 1);
+            } catch {}
+        }
         return {
             ok: false,
-            error: error.message,
+            error: error?.message || String(error || "Network error"),
             code: "NETWORK_ERROR",
-            data: null
+            data: null,
+            retries: retryCount
         };
     }
 }
@@ -260,7 +303,7 @@ export async function updateAssetTags(assetId, tags) {
  */
 export async function getAvailableTags() {
     const now = Date.now();
-    if (Array.isArray(_tagsCache) && now - _tagsCacheAt < TAGS_CACHE_TTL_MS) {
+    if (Array.isArray(_tagsCache) && now - _tagsCacheAt < _getTagsCacheTTL()) {
         return { ok: true, data: _tagsCache, error: null, code: "OK", meta: { cached: true } };
     }
 

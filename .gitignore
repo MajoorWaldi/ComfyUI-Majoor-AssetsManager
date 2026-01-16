@@ -53,3 +53,6 @@ node.zip
 backend/routes/handlers/test_batch_zip.py
 nul
 backend/features/index/test_date_histogram.py
+backend/routes/handlers/test_list_output_fs_fallback.py
+backend/features/index/test_metadata_quality_monotonic.py
+AUDIT.md

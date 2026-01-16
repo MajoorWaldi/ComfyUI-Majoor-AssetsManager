@@ -12,6 +12,7 @@ from .paths import (
 )
 from .security import _check_rate_limit, _csrf_error
 from .services import _require_services, _build_services, get_services_error
+from .request_json import _read_json
 
 __all__ = [
     "_json_response",
@@ -26,4 +27,5 @@ __all__ = [
     "_require_services",
     "_build_services",
     "get_services_error",
+    "_read_json",
 ]

@@ -27,7 +27,7 @@ class AssetUpdater:
         self.db = db
         self._has_tags_text_column = has_tags_text_column
 
-    def update_asset_rating(self, asset_id: int, rating: int) -> Result[Dict[str, Any]]:
+    async def update_asset_rating(self, asset_id: int, rating: int) -> Result[Dict[str, Any]]:
         """
         Update the rating for an asset.
 
@@ -41,7 +41,7 @@ class AssetUpdater:
         rating = max(0, min(5, int(rating or 0)))
 
         # Ensure asset exists
-        check_result = self.db.query(
+        check_result = await self.db.aquery(
             "SELECT id FROM assets WHERE id = ?",
             (asset_id,)
         )
@@ -49,7 +49,7 @@ class AssetUpdater:
             return Result.Err("NOT_FOUND", f"Asset not found: {asset_id}")
 
         # Update or insert asset_metadata
-        result = self.db.execute(
+        result = await self.db.aexecute(
             """
             INSERT INTO asset_metadata (asset_id, rating, tags)
             VALUES (?, ?, '[]')
@@ -64,7 +64,7 @@ class AssetUpdater:
 
         return Result.Ok({"asset_id": asset_id, "rating": rating})
 
-    def update_asset_tags(self, asset_id: int, tags: List[str]) -> Result[Dict[str, Any]]:
+    async def update_asset_tags(self, asset_id: int, tags: List[str]) -> Result[Dict[str, Any]]:
         """
         Update the tags for an asset.
 
@@ -76,7 +76,7 @@ class AssetUpdater:
             Result with updated asset info
         """
         # Ensure asset exists
-        check_result = self.db.query(
+        check_result = await self.db.aquery(
             "SELECT id FROM assets WHERE id = ?",
             (asset_id,)
         )
@@ -101,7 +101,7 @@ class AssetUpdater:
 
         # Update or insert asset_metadata
         if self._has_tags_text_column:
-            result = self.db.execute(
+            result = await self.db.aexecute(
                 """
                 INSERT INTO asset_metadata (asset_id, rating, tags, tags_text)
                 VALUES (?, 0, ?, ?)
@@ -112,7 +112,7 @@ class AssetUpdater:
                 (asset_id, tags_json, tags_text)
             )
         else:
-            result = self.db.execute(
+            result = await self.db.aexecute(
                 """
                 INSERT INTO asset_metadata (asset_id, rating, tags)
                 VALUES (?, 0, ?)
@@ -127,14 +127,14 @@ class AssetUpdater:
 
         return Result.Ok({"asset_id": asset_id, "tags": sanitized})
 
-    def get_all_tags(self) -> Result[List[str]]:
+    async def get_all_tags(self) -> Result[List[str]]:
         """
         Get all unique tags from the database for autocomplete.
 
         Returns:
             Result with list of unique tags sorted alphabetically
         """
-        result = self.db.query(
+        result = await self.db.aquery(
             """
             SELECT DISTINCT tags
             FROM asset_metadata

@@ -10,7 +10,7 @@ from backend.custom_roots import (
     resolve_custom_root,
 )
 from backend.shared import Result, get_logger
-from ..core import _json_response, _csrf_error, _safe_rel_path, _is_within_root
+from ..core import _json_response, _csrf_error, _safe_rel_path, _is_within_root, _read_json
 from .filesystem import _kickoff_background_scan
 
 logger = get_logger(__name__)
@@ -28,10 +28,10 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
 
-        try:
-            body = await request.json()
-        except Exception as exc:
-            return _json_response(Result.Err("INVALID_JSON", f"Invalid JSON body: {exc}"))
+        body_res = await _read_json(request)
+        if not body_res.ok:
+            return _json_response(body_res)
+        body = body_res.data or {}
 
         path = body.get("path") or body.get("directory") or body.get("root")
         label = body.get("label")
@@ -53,10 +53,10 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
 
-        try:
-            body = await request.json()
-        except Exception as exc:
-            return _json_response(Result.Err("INVALID_JSON", f"Invalid JSON body: {exc}"))
+        body_res = await _read_json(request)
+        if not body_res.ok:
+            return _json_response(body_res)
+        body = body_res.data or {}
 
         rid = body.get("id") or body.get("root_id")
         result = remove_custom_root(str(rid or ""))
@@ -102,6 +102,9 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
         # This avoids race condition between exists() check and file serving
         try:
             resolved_path = candidate.resolve(strict=True)
+            # Prevent symlink/junction escapes: ensure the resolved target is still under the root.
+            if not _is_within_root(resolved_path, root_dir):
+                return _json_response(Result.Err("FORBIDDEN", "Path escapes root"))
             if not resolved_path.is_file():
                 return _json_response(Result.Err("NOT_FOUND", "File not found or not a regular file"))
             return web.FileResponse(path=str(resolved_path))

@@ -27,6 +27,7 @@ from ..core import (
     _require_services,
     _check_rate_limit,
     _csrf_error,
+    _read_json,
     _build_services,
     get_services_error,
     _normalize_path,
@@ -39,6 +40,16 @@ logger = get_logger(__name__)
 
 MAX_TAGS_PER_ASSET = 50
 MAX_TAG_LENGTH = 100
+_DEBUG_MODE = os.environ.get("MJR_DEBUG", "").strip().lower() in ("1", "true", "yes", "on")
+
+
+def _safe_error_message(exc: Exception, generic_message: str) -> str:
+    if _DEBUG_MODE:
+        try:
+            return f"{generic_message}: {exc}"
+        except Exception:
+            return generic_message
+    return generic_message
 
 
 def _delete_file_best_effort(path: Path) -> Result[bool]:
@@ -283,10 +294,10 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if error_result:
             return _json_response(error_result)
 
-        try:
-            body = await request.json()
-        except Exception as exc:
-            return _json_response(Result.Err("INVALID_JSON", f"Invalid JSON body: {exc}"))
+        body_res = await _read_json(request)
+        if not body_res.ok:
+            return _json_response(body_res)
+        body = body_res.data or {}
 
         asset_id = body.get("asset_id")
         rating = body.get("rating")
@@ -311,9 +322,9 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             return _json_response(Result.Err("INVALID_INPUT", "Invalid rating"))
 
         try:
-            result = await asyncio.to_thread(svc["index"].update_asset_rating, asset_id, rating)
+            result = await svc["index"].update_asset_rating(asset_id, rating)
         except Exception as exc:
-            result = Result.Err("UPDATE_FAILED", f"Failed to update rating: {exc}")
+            result = Result.Err("UPDATE_FAILED", _safe_error_message(exc, "Failed to update rating"))
         if result.ok:
             _enqueue_rating_tags_sync(request, svc, asset_id)
         return _json_response(result)
@@ -339,10 +350,10 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if error_result:
             return _json_response(error_result)
 
-        try:
-            body = await request.json()
-        except Exception as exc:
-            return _json_response(Result.Err("INVALID_JSON", f"Invalid JSON body: {exc}"))
+        body_res = await _read_json(request)
+        if not body_res.ok:
+            return _json_response(body_res)
+        body = body_res.data or {}
 
         asset_id = body.get("asset_id")
         tags = body.get("tags")
@@ -383,7 +394,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                 break
 
         try:
-            result = await asyncio.to_thread(svc["index"].update_asset_tags, asset_id, sanitized_tags)
+            result = await svc["index"].update_asset_tags(asset_id, sanitized_tags)
         except Exception as exc:
             result = Result.Err("UPDATE_FAILED", f"Failed to update tags: {exc}")
         if result.ok:
@@ -405,10 +416,10 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if error_result:
             return _json_response(error_result)
 
-        try:
-            body = await request.json()
-        except Exception as exc:
-            return _json_response(Result.Err("INVALID_JSON", f"Invalid JSON body: {exc}"))
+        body_res = await _read_json(request)
+        if not body_res.ok:
+            return _json_response(body_res)
+        body = body_res.data or {}
 
         asset_id = body.get("asset_id")
         if not asset_id:
@@ -429,7 +440,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                 return _json_response(Result.Err("NOT_FOUND", "Asset not found"))
             raw_path = (res.data[0] or {}).get("filepath")
         except Exception as exc:
-            return _json_response(Result.Err("DB_ERROR", f"Failed to load asset: {exc}"))
+            return _json_response(Result.Err("DB_ERROR", _safe_error_message(exc, "Failed to load asset")))
 
         if not raw_path or not isinstance(raw_path, str):
             return _json_response(Result.Err("NOT_FOUND", "Asset path not available"))
@@ -494,7 +505,10 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if error_result:
             return _json_response(error_result)
 
-        result = svc["index"].get_all_tags()
+        try:
+            result = await svc["index"].get_all_tags()
+        except Exception as exc:
+            result = Result.Err("DB_ERROR", f"Failed to load tags: {exc}")
         return _json_response(result)
 
     @routes.get("/mjr/am/routes")
@@ -545,10 +559,10 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if error_result:
             return _json_response(error_result)
 
-        try:
-            body = await request.json()
-        except Exception as exc:
-            return _json_response(Result.Err("INVALID_JSON", f"Invalid JSON body: {exc}"))
+        body_res = await _read_json(request)
+        if not body_res.ok:
+            return _json_response(body_res)
+        body = body_res.data or {}
 
         asset_id = body.get("asset_id")
         if not asset_id:
@@ -561,12 +575,12 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
 
         # Get file path from database
         try:
-            res = svc["db"].query("SELECT filepath FROM assets WHERE id = ?", (asset_id,))
+            res = await svc["db"].aquery("SELECT filepath FROM assets WHERE id = ?", (asset_id,))
             if not res.ok or not res.data:
                 return _json_response(Result.Err("NOT_FOUND", "Asset not found"))
             raw_path = (res.data[0] or {}).get("filepath")
         except Exception as exc:
-            return _json_response(Result.Err("DB_ERROR", f"Failed to load asset: {exc}"))
+            return _json_response(Result.Err("DB_ERROR", _safe_error_message(exc, "Failed to load asset")))
 
         if not raw_path or not isinstance(raw_path, str):
             return _json_response(Result.Err("NOT_FOUND", "Asset path not available"))
@@ -602,19 +616,22 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                 aborted=True
             ))
 
-        try:
-            with svc["db"].transaction(mode="immediate"):
-                del_res = svc["db"].execute("DELETE FROM assets WHERE id = ?", (asset_id,))
+        async def _db_delete_one() -> Result:
+            async with svc["db"].atransaction(mode="immediate"):
+                del_res = await svc["db"].aexecute("DELETE FROM assets WHERE id = ?", (asset_id,))
                 if not del_res.ok:
-                    raise RuntimeError(str(del_res.error or "DB delete failed"))
+                    return Result.Err("DB_ERROR", str(del_res.error or "DB delete failed"))
 
-                svc["db"].execute("DELETE FROM scan_journal WHERE filepath = ?", (str(resolved),))
-                svc["db"].execute("DELETE FROM metadata_cache WHERE filepath = ?", (str(resolved),))
+                await svc["db"].aexecute("DELETE FROM scan_journal WHERE filepath = ?", (str(resolved),))
+                await svc["db"].aexecute("DELETE FROM metadata_cache WHERE filepath = ?", (str(resolved),))
+            return Result.Ok({"deleted": 1})
 
-            return _json_response(Result.Ok({"deleted": 1}))
+        try:
+            db_res = await _db_delete_one()
+            return _json_response(db_res)
         except Exception as exc:
             logger.error("Database deletion failed: %s", exc)
-            return _json_response(Result.Err("DB_ERROR", f"Failed to delete asset record: {exc}"))
+            return _json_response(Result.Err("DB_ERROR", _safe_error_message(exc, "Failed to delete asset record")))
 
     @routes.post("/mjr/am/asset/rename")
     async def rename_asset(request):
@@ -631,10 +648,10 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if error_result:
             return _json_response(error_result)
 
-        try:
-            body = await request.json()
-        except Exception as exc:
-            return _json_response(Result.Err("INVALID_JSON", f"Invalid JSON body: {exc}"))
+        body_res = await _read_json(request)
+        if not body_res.ok:
+            return _json_response(body_res)
+        body = body_res.data or {}
 
         asset_id = body.get("asset_id")
         new_name = body.get("new_name")
@@ -663,14 +680,14 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
 
         # Get current asset info from database
         try:
-            res = svc["db"].query("SELECT filepath, filename FROM assets WHERE id = ?", (asset_id,))
+            res = await svc["db"].aquery("SELECT filepath, filename FROM assets WHERE id = ?", (asset_id,))
             if not res.ok or not res.data:
                 return _json_response(Result.Err("NOT_FOUND", "Asset not found"))
             row = res.data[0] or {}
             current_filepath = row.get("filepath")
             current_filename = row.get("filename")
         except Exception as exc:
-            return _json_response(Result.Err("DB_ERROR", f"Failed to load asset: {exc}"))
+            return _json_response(Result.Err("DB_ERROR", _safe_error_message(exc, "Failed to load asset")))
 
         if not current_filepath or not isinstance(current_filepath, str):
             return _json_response(Result.Err("NOT_FOUND", "Asset path not available"))
@@ -709,7 +726,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         try:
             # Update assets table
             mtime = int(new_path.stat().st_mtime)
-            update_res = svc["db"].execute(
+            update_res = await svc["db"].aexecute(
                 "UPDATE assets SET filename = ?, filepath = ?, mtime = ? WHERE id = ?",
                 (new_name, str(new_path), mtime, asset_id)
             )
@@ -717,8 +734,8 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                 return _json_response(update_res)
 
             # Update related tables - clean old cache entries
-            svc["db"].execute("DELETE FROM scan_journal WHERE filepath = ?", (str(current_path),))
-            svc["db"].execute("DELETE FROM metadata_cache WHERE filepath = ?", (str(current_path),))
+            await svc["db"].aexecute("DELETE FROM scan_journal WHERE filepath = ?", (str(current_path),))
+            await svc["db"].aexecute("DELETE FROM metadata_cache WHERE filepath = ?", (str(current_path),))
         except Exception as exc:
             return _json_response(Result.Err("DB_ERROR", f"Failed to update asset record: {exc}"))
 
@@ -749,10 +766,10 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if error_result:
             return _json_response(error_result)
 
-        try:
-            body = await request.json()
-        except Exception as exc:
-            return _json_response(Result.Err("INVALID_JSON", f"Invalid JSON body: {exc}"))
+        body_res = await _read_json(request)
+        if not body_res.ok:
+            return _json_response(body_res)
+        body = body_res.data or {}
 
         asset_ids = body.get("ids")
         if not asset_ids or not isinstance(asset_ids, list):
@@ -771,10 +788,10 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
 
         # PHASE 1: Validate all assets exist
         try:
-            res = svc["db"].query_in(
+            res = await svc["db"].aquery_in(
                 "SELECT id, filepath FROM assets WHERE {IN_CLAUSE}",
                 "id",
-                validated_ids
+                validated_ids,
             )
             if not res.ok:
                 return _json_response(res)
@@ -785,7 +802,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             if missing_ids:
                 return _json_response(Result.Err("NOT_FOUND", f"Assets not found: {sorted(missing_ids)}"))
         except Exception as exc:
-            return _json_response(Result.Err("DB_ERROR", f"Failed to validate assets: {exc}"))
+            return _json_response(Result.Err("DB_ERROR", _safe_error_message(exc, "Failed to validate assets")))
 
         # PHASE 2: Validate and resolve file paths
         validated_assets = []
@@ -833,21 +850,25 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             return _json_response(Result.Err("DELETE_FAILED", "Failed to delete files", errors=file_deletion_errors, aborted=True))
 
         # PHASE 4: Delete database rows in a single transaction
-        try:
-            with svc["db"].transaction(mode="immediate"):
+        async def _db_delete_many() -> Result:
+            async with svc["db"].atransaction(mode="immediate"):
                 deleted_count = 0
                 for asset_info in validated_assets:
-                    asset_id = asset_info["id"]
+                    aid = asset_info["id"]
                     filepath = asset_info["filepath"]
 
-                    del_res = svc["db"].execute("DELETE FROM assets WHERE id = ?", (asset_id,))
+                    del_res = await svc["db"].aexecute("DELETE FROM assets WHERE id = ?", (aid,))
                     if not del_res.ok:
-                        raise RuntimeError(f"Failed to delete asset ID {asset_id}: {del_res.error}")
+                        return Result.Err("DB_ERROR", f"Failed to delete asset ID {aid}: {del_res.error}")
 
-                    svc["db"].execute("DELETE FROM scan_journal WHERE filepath = ?", (filepath,))
-                    svc["db"].execute("DELETE FROM metadata_cache WHERE filepath = ?", (filepath,))
+                    await svc["db"].aexecute("DELETE FROM scan_journal WHERE filepath = ?", (filepath,))
+                    await svc["db"].aexecute("DELETE FROM metadata_cache WHERE filepath = ?", (filepath,))
                     deleted_count += 1
-            return _json_response(Result.Ok({"deleted": deleted_count}))
+            return Result.Ok({"deleted": deleted_count})
+
+        try:
+            db_res = await _db_delete_many()
+            return _json_response(db_res)
         except Exception as exc:
             logger.error("Database deletion failed: %s", exc)
             return _json_response(Result.Err("DB_ERROR", f"Failed to delete asset records: {exc}"))

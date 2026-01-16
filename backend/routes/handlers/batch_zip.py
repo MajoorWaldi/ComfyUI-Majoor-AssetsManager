@@ -21,6 +21,7 @@ from backend.custom_roots import resolve_custom_root
 from backend.shared import Result, get_logger
 from backend.routes.core.paths import _is_within_root, _safe_rel_path
 from backend.routes.core.response import _json_response
+from backend.routes.core.request_json import _read_json
 from backend.routes.core.security import _check_rate_limit, _csrf_error
 
 try:
@@ -157,10 +158,10 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
         except Exception:
             pass
 
-        try:
-            payload = await request.json()
-        except Exception as exc:
-            return _json_response(Result.Err("INVALID_JSON", f"Invalid JSON body: {exc}"))
+        payload_res = await _read_json(request, max_bytes=5 * 1024 * 1024)
+        if not payload_res.ok:
+            return _json_response(payload_res)
+        payload = payload_res.data or {}
 
         token = _sanitize_token((payload or {}).get("token"))
         items = (payload or {}).get("items") or []

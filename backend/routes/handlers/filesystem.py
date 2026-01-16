@@ -1,6 +1,7 @@
 """
 Filesystem operations: background scanning and file listing.
 """
+import datetime
 import time
 import threading
 from collections import OrderedDict
@@ -14,6 +15,8 @@ logger = get_logger(__name__)
 
 _BACKGROUND_SCAN_LOCK = threading.Lock()
 _BACKGROUND_SCAN_LAST: Dict[str, float] = {}
+_BACKGROUND_SCAN_FAILURES: list[dict] = []
+_MAX_FAILURE_HISTORY = 50
 
 _FS_LIST_CACHE_LOCK = threading.Lock()
 _FS_LIST_CACHE: "OrderedDict[str, Dict[str, Any]]" = OrderedDict()
@@ -27,6 +30,8 @@ def _kickoff_background_scan(
     root_id: Optional[str] = None,
     recursive: bool = True,
     incremental: bool = True,
+    fast: bool = True,
+    background_metadata: bool = True,
     min_interval_seconds: float = 10.0,
 ) -> None:
     """
@@ -50,16 +55,55 @@ def _kickoff_background_scan(
             from ..core import _require_services
             svc, error_result = _require_services()
             if error_result:
+                try:
+                    _record_scan_failure(str(directory), str(source), "SERVICE_UNAVAILABLE", str(error_result.error or ""))
+                except Exception:
+                    pass
                 return
             try:
-                svc["index"].scan_directory(str(directory), recursive, incremental, source=source, root_id=root_id)
+                # Prefer a fast scan to populate the grid quickly, then enrich in background.
+                # Keep backward compatibility if older IndexService doesn't support these args.
+                try:
+                    svc["index"].scan_directory(
+                        str(directory),
+                        recursive,
+                        incremental,
+                        source=source,
+                        root_id=root_id,
+                        fast=bool(fast),
+                        background_metadata=bool(background_metadata),
+                    )
+                except TypeError:
+                    svc["index"].scan_directory(str(directory), recursive, incremental, source=source, root_id=root_id)
             except Exception as exc:
+                _record_scan_failure(str(directory), str(source), "SCAN_FAILED", str(exc))
                 logger.warning("Background scan failed: %s", exc)
         except Exception:
+            try:
+                _record_scan_failure(str(directory), str(source), "EXCEPTION", "Unhandled exception")
+            except Exception:
+                pass
             return
 
     try:
         threading.Thread(target=_run, daemon=True).start()
+    except Exception:
+        return
+
+
+def _record_scan_failure(directory: str, source: str, code: str, error: str) -> None:
+    global _BACKGROUND_SCAN_FAILURES
+    try:
+        entry = {
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "directory": str(directory),
+            "source": str(source),
+            "code": str(code),
+            "error": str(error)[:500],
+        }
+        _BACKGROUND_SCAN_FAILURES.append(entry)
+        if len(_BACKGROUND_SCAN_FAILURES) > _MAX_FAILURE_HISTORY:
+            _BACKGROUND_SCAN_FAILURES = _BACKGROUND_SCAN_FAILURES[-_MAX_FAILURE_HISTORY:]
     except Exception:
         return
 
@@ -133,7 +177,7 @@ def _fs_cache_get_or_build(
     return Result.Ok({"entries": entries, "dir_mtime_ns": dir_mtime_ns})
 
 
-def _list_filesystem_assets(
+async def _list_filesystem_assets(
     root_dir: Path,
     subfolder: str,
     query: str,
@@ -209,7 +253,7 @@ def _list_filesystem_assets(
             filepaths = [str(a.get("filepath") or "") for a in entries if isinstance(a, dict)]
             filepaths = [p for p in filepaths if p]
             if filepaths:
-                enrich_result = lookup(filepaths)
+                enrich_result = await lookup(filepaths)
                 if enrich_result and getattr(enrich_result, "ok", False) and isinstance(enrich_result.data, dict):
                     mapping = enrich_result.data
                     for asset in entries:

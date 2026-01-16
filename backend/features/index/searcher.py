@@ -62,7 +62,7 @@ class IndexSearcher:
         self.db = db
         self._has_tags_text_column = has_tags_text_column
 
-    def search(
+    async def search(
         self,
         query: str,
         limit: int = 50,
@@ -124,7 +124,7 @@ class IndexSearcher:
             params.extend([limit, offset])
 
             sql = " ".join(sql_parts)
-            result = self.db.query(sql, tuple(params))
+            result = await self.db.aquery(sql, tuple(params))
 
             if not result.ok:
                 return Result.Err("SEARCH_FAILED", result.error)
@@ -141,7 +141,7 @@ class IndexSearcher:
                     count_sql += " " + " ".join(filter_clauses)
                     count_params.extend(filter_params)
 
-                count_result = self.db.query(count_sql, tuple(count_params))
+                count_result = await self.db.aquery(count_sql, tuple(count_params))
                 total = count_result.data[0]["total"] if count_result.ok and count_result.data else 0
 
         else:
@@ -196,7 +196,7 @@ class IndexSearcher:
             sql = " ".join(sql_parts)
 
             # Execute search
-            result = self.db.query(sql, tuple(params))
+            result = await self.db.aquery(sql, tuple(params))
 
             if not result.ok:
                 return Result.Err("SEARCH_FAILED", result.error)
@@ -230,7 +230,7 @@ class IndexSearcher:
                     count_sql += " " + " ".join(filter_clauses)
                     count_params.extend(filter_params)
 
-                count_result = self.db.query(count_sql, tuple(count_params))
+                count_result = await self.db.aquery(count_sql, tuple(count_params))
                 total = count_result.data[0]["total"] if count_result.ok and count_result.data else 0
 
         # Format results
@@ -255,7 +255,7 @@ class IndexSearcher:
         payload["total"] = int(total or 0) if include_total else None
         return Result.Ok(payload)
 
-    def search_scoped(
+    async def search_scoped(
         self,
         query: str,
         roots: List[str],
@@ -337,7 +337,7 @@ class IndexSearcher:
             params.extend([limit, offset])
 
             sql = " ".join(sql_parts)
-            result = self.db.query(sql, tuple(params))
+            result = await self.db.aquery(sql, tuple(params))
             if not result.ok:
                 return Result.Err("SEARCH_FAILED", result.error)
 
@@ -358,7 +358,7 @@ class IndexSearcher:
                     count_sql += " " + " ".join(filter_clauses)
                     count_params.extend(filter_params)
 
-                count_result = self.db.query(count_sql, tuple(count_params))
+                count_result = await self.db.aquery(count_sql, tuple(count_params))
                 total = count_result.data[0]["total"] if count_result.ok and count_result.data else 0
         else:
             fts_query = self._sanitize_fts_query(query)
@@ -407,7 +407,7 @@ class IndexSearcher:
             params.extend([limit, offset])
 
             sql = " ".join(sql_parts)
-            result = self.db.query(sql, tuple(params))
+            result = await self.db.aquery(sql, tuple(params))
             if not result.ok:
                 return Result.Err("SEARCH_FAILED", result.error)
 
@@ -440,7 +440,7 @@ class IndexSearcher:
                     count_sql += " " + " ".join(filter_clauses)
                     count_params.extend(filter_params)
 
-                count_result = self.db.query(count_sql, tuple(count_params))
+                count_result = await self.db.aquery(count_sql, tuple(count_params))
                 total = count_result.data[0]["total"] if count_result.ok and count_result.data else 0
 
         assets = []
@@ -460,7 +460,7 @@ class IndexSearcher:
         payload["total"] = int(total or 0) if include_total else None
         return Result.Ok(payload)
 
-    def has_assets_under_root(self, root: str) -> Result[bool]:
+    async def has_assets_under_root(self, root: str) -> Result[bool]:
         """
         Return True if the DB contains at least one asset whose filepath is exactly `root`
         or is nested under it (prefix match).
@@ -481,12 +481,12 @@ class IndexSearcher:
             WHERE (a.filepath = ? OR a.filepath LIKE ? ESCAPE '\\')
             LIMIT 1
         """
-        result = self.db.query(sql, (resolved, f"{escaped_prefix}%"))
+        result = await self.db.aquery(sql, (resolved, f"{escaped_prefix}%"))
         if not result.ok:
             return Result.Err("DB_ERROR", result.error)
         return Result.Ok(bool(result.data))
 
-    def date_histogram_scoped(
+    async def date_histogram_scoped(
         self,
         roots: List[str],
         month_start: int,
@@ -564,7 +564,7 @@ class IndexSearcher:
         sql_parts.append("GROUP BY day ORDER BY day ASC")
 
         sql = " ".join(sql_parts)
-        result = self.db.query(sql, tuple(params))
+        result = await self.db.aquery(sql, tuple(params))
         if not result.ok:
             return Result.Err("DB_ERROR", result.error)
 
@@ -580,7 +580,7 @@ class IndexSearcher:
 
         return Result.Ok(days)
 
-    def get_asset(self, asset_id: int) -> Result[Optional[Dict[str, Any]]]:
+    async def get_asset(self, asset_id: int) -> Result[Optional[Dict[str, Any]]]:
         """
         Get a single asset by ID.
 
@@ -590,7 +590,7 @@ class IndexSearcher:
         Returns:
             Result with asset data or None if not found
         """
-        result = self.db.query(
+        result = await self.db.aquery(
             """
             SELECT
                 a.*,
@@ -618,7 +618,7 @@ class IndexSearcher:
         asset = self._hydrate_asset_payload(dict(result.data[0]))
         return Result.Ok(asset)
 
-    def get_assets(self, asset_ids: List[int]) -> Result[List[Dict[str, Any]]]:
+    async def get_assets(self, asset_ids: List[int]) -> Result[List[Dict[str, Any]]]:
         """
         Batch fetch assets by ID (single query).
 
@@ -643,7 +643,7 @@ class IndexSearcher:
         if not cleaned:
             return Result.Ok([])
 
-        result = self.db.query_in(
+        result = await self.db.aquery_in(
             """
             SELECT
                 a.*,
@@ -714,7 +714,7 @@ class IndexSearcher:
 
         return asset
 
-    def lookup_assets_by_filepaths(self, filepaths: List[str]) -> Result[Dict[str, Dict[str, Any]]]:
+    async def lookup_assets_by_filepaths(self, filepaths: List[str]) -> Result[Dict[str, Dict[str, Any]]]:
         """
         Lookup DB-enriched asset fields for a set of absolute filepaths.
 
@@ -728,7 +728,7 @@ class IndexSearcher:
         if len(cleaned) > 5000:
             cleaned = cleaned[:5000]
 
-        result = self.db.query_in(
+        result = await self.db.aquery_in(
             """
             SELECT
                 a.filepath,

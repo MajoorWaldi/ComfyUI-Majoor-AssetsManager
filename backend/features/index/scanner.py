@@ -116,48 +116,53 @@ class IndexScanner:
                 "start_time": datetime.now().isoformat()
             }
 
-            # Use streaming approach to avoid loading all files in memory at once
-            file_generator = self._iter_files(dir_path, recursive)
-            files = list(file_generator)  # For now, keeping the same interface
-            stats["scanned"] = len(files)
-            logger.debug(f"Found {len(files)} files to process")
+            def _stream_batch_target(scanned_count: int) -> int:
+                try:
+                    n = int(scanned_count or 0)
+                except Exception:
+                    n = 0
+                if n <= SCAN_BATCH_SMALL_THRESHOLD:
+                    return int(SCAN_BATCH_SMALL)
+                if n <= SCAN_BATCH_MED_THRESHOLD:
+                    return int(SCAN_BATCH_MED)
+                if n <= SCAN_BATCH_LARGE_THRESHOLD:
+                    return int(SCAN_BATCH_LARGE)
+                return int(SCAN_BATCH_XL)
 
             try:
-                for batch in self._chunk_file_batches(files):
-                    if not batch:
+                # Stream batches to keep memory bounded for very large directories.
+                file_iter = self._iter_files(dir_path, recursive)
+                batch: List[Path] = []
+                for file_path in file_iter:
+                    batch.append(file_path)
+                    stats["scanned"] += 1
+                    if len(batch) < _stream_batch_target(stats["scanned"]):
                         continue
 
-                    # Prefetch existing rows and scan journal entries for the batch.
-                    filepaths = [str(p) for p in batch]
-                    journal_map = self._get_journal_entries(filepaths) if incremental and filepaths else {}
-                    existing_map: Dict[str, Dict[str, Any]] = {}
-
-                    if filepaths:
-                        existing_rows = self.db.query_in(
-                            "SELECT filepath, id, mtime FROM assets WHERE {IN_CLAUSE}",
-                            "filepath",
-                            filepaths,
-                        )
-                        if existing_rows.ok and existing_rows.data and len(existing_rows.data) > 0:
-                            for row in existing_rows.data:
-                                fp = row.get("filepath")
-                                if fp:
-                                    existing_map[str(fp)] = row
-
-                    # Process the whole batch with a bounded transaction (huge perf win).
-                    # This avoids BEGIN/COMMIT per file while keeping write locks short.
-                    self._index_batch(
+                    self._scan_stream_batch(
                         batch=batch,
                         base_dir=directory,
                         incremental=incremental,
                         source=source,
                         root_id=root_id,
                         fast=fast,
-                        journal_map=journal_map,
-                        existing_map=existing_map,
                         stats=stats,
                         to_enrich=to_enrich,
                     )
+                    batch = []
+
+                if batch:
+                    self._scan_stream_batch(
+                        batch=batch,
+                        base_dir=directory,
+                        incremental=incremental,
+                        source=source,
+                        root_id=root_id,
+                        fast=fast,
+                        stats=stats,
+                        to_enrich=to_enrich,
+                    )
+                    batch = []
             finally:
                 stats["end_time"] = datetime.now().isoformat()
                 duration = time.perf_counter() - scan_start
@@ -187,6 +192,50 @@ class IndexScanner:
         )
 
         return Result.Ok(stats)
+
+    def _scan_stream_batch(
+        self,
+        *,
+        batch: List[Path],
+        base_dir: str,
+        incremental: bool,
+        source: str,
+        root_id: Optional[str],
+        fast: bool,
+        stats: Dict[str, Any],
+        to_enrich: List[str],
+    ) -> None:
+        if not batch:
+            return
+
+        filepaths = [str(p) for p in batch]
+        journal_map = self._get_journal_entries(filepaths) if incremental and filepaths else {}
+        existing_map: Dict[str, Dict[str, Any]] = {}
+
+        if filepaths:
+            existing_rows = self.db.query_in(
+                "SELECT filepath, id, mtime FROM assets WHERE {IN_CLAUSE}",
+                "filepath",
+                filepaths,
+            )
+            if existing_rows.ok and existing_rows.data and len(existing_rows.data) > 0:
+                for row in existing_rows.data:
+                    fp = row.get("filepath")
+                    if fp:
+                        existing_map[str(fp)] = row
+
+        self._index_batch(
+            batch=batch,
+            base_dir=base_dir,
+            incremental=incremental,
+            source=source,
+            root_id=root_id,
+            fast=fast,
+            journal_map=journal_map,
+            existing_map=existing_map,
+            stats=stats,
+            to_enrich=to_enrich,
+        )
 
     def index_paths(
         self,

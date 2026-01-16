@@ -9,6 +9,7 @@ without relying on ComfyUI internal userdata routes.
 from __future__ import annotations
 
 import json
+import os
 import threading
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -23,17 +24,41 @@ logger = get_logger(__name__)
 
 _LOCK = threading.Lock()
 _STORE_PATH = Path(INDEX_DIR) / "custom_roots.json"
+_MAX_STORE_BYTES = int(os.environ.get("MJR_CUSTOM_ROOTS_MAX_BYTES", str(1024 * 1024)))  # 1MB
 
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+def _is_symlink_like(path: Path) -> bool:
+    """
+    Best-effort detection for symlinks/junctions/reparse points.
+    """
+    try:
+        if path.is_symlink():
+            return True
+    except Exception:
+        pass
+    try:
+        st = path.lstat()
+        # Windows: reparse points cover symlinks/junctions.
+        if hasattr(st, "st_file_attributes"):
+            return bool(int(getattr(st, "st_file_attributes") or 0) & 0x400)
+    except Exception:
+        pass
+    return False
 
 
 def _normalize_dir_path(path: str) -> Optional[Path]:
     if not path or "\x00" in path:
         return None
     try:
-        return Path(path).expanduser().resolve()
+        p = Path(path).expanduser()
+        allow_symlinks = os.environ.get("MJR_ALLOW_SYMLINKS", "").strip().lower() in ("1", "true", "yes", "on")
+        if not allow_symlinks and _is_symlink_like(p):
+            return None
+        resolved = p.resolve(strict=False)
+        return resolved
     except (OSError, RuntimeError, ValueError):
         return None
 
@@ -42,6 +67,12 @@ def _read_store() -> Dict[str, Any]:
     if not _STORE_PATH.exists():
         return {"version": 1, "roots": []}
     try:
+        try:
+            if _STORE_PATH.stat().st_size > _MAX_STORE_BYTES:
+                logger.warning("Custom roots store too large, ignoring: %s", _STORE_PATH)
+                return {"version": 1, "roots": []}
+        except Exception:
+            pass
         raw = _STORE_PATH.read_text(encoding="utf-8")
         data = json.loads(raw) if raw else {}
         if not isinstance(data, dict):
@@ -58,7 +89,11 @@ def _read_store() -> Dict[str, Any]:
 def _write_store(data: dict) -> Result[bool]:
     try:
         _STORE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        _STORE_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        # Atomic write to prevent corruption on crash/interruption.
+        payload = json.dumps(data, ensure_ascii=False, indent=2)
+        tmp = _STORE_PATH.with_name(_STORE_PATH.name + f".tmp_{uuid4().hex}")
+        tmp.write_text(payload, encoding="utf-8")
+        tmp.replace(_STORE_PATH)
         return Result.Ok(True)
     except Exception as exc:
         logger.warning("Failed to persist custom roots store: %s", exc)
