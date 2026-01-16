@@ -1,6 +1,7 @@
 """
 Health check endpoints.
 """
+import asyncio
 from pathlib import Path
 from aiohttp import web
 
@@ -18,7 +19,7 @@ from backend.config import OUTPUT_ROOT, get_tool_paths, MEDIA_PROBE_BACKEND
 from backend.custom_roots import resolve_custom_root
 from backend.shared import Result
 from backend.tool_detect import get_tool_status
-from ..core import _json_response, _require_services, _csrf_error
+from ..core import _json_response, _require_services, _csrf_error, _read_json
 
 
 def register_health_routes(routes: web.RouteTableDef) -> None:
@@ -29,7 +30,10 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         if error_result:
             return _json_response(error_result)
 
-        result = svc["health"].status()
+        try:
+            result = await asyncio.to_thread(svc["health"].status)
+        except Exception as exc:
+            result = Result.Err("DEGRADED", f"Health status failed: {exc}")
         return _json_response(result)
 
     @routes.get("/mjr/am/health/counters")
@@ -60,7 +64,10 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         else:
             return _json_response(Result.Err("INVALID_INPUT", f"Unknown scope: {scope}"))
 
-        result = svc["health"].get_counters(roots=roots)
+        try:
+            result = await asyncio.to_thread(svc["health"].get_counters, roots=roots)
+        except Exception as exc:
+            result = Result.Err("DEGRADED", f"Health counters failed: {exc}")
         if result.ok:
             if isinstance(result.data, dict):
                 result.data["scope"] = scope
@@ -105,10 +112,10 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         if not settings_service:
             return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Settings service unavailable"))
 
-        try:
-            body = await request.json()
-        except Exception as exc:
-            return _json_response(Result.Err("INVALID_JSON", f"Invalid JSON body: {exc}"))
+        body_res = await _read_json(request)
+        if not body_res.ok:
+            return _json_response(body_res)
+        body = body_res.data or {}
 
         mode = (body.get("mode") or body.get("media_probe_backend") or "").strip()
         if not mode:

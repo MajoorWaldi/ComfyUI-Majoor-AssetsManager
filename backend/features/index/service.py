@@ -9,6 +9,7 @@ This service coordinates multiple specialized components:
 - MetadataHelpers: Shared metadata utilities
 """
 import threading
+import asyncio
 import os
 from pathlib import Path
 from typing import Optional, List, Dict, Any
@@ -137,7 +138,7 @@ class IndexService:
 
     # ==================== Search Operations ====================
 
-    def search(
+    async def search(
         self,
         query: str,
         limit: int = 50,
@@ -157,9 +158,9 @@ class IndexService:
         Returns:
             Result with search results and metadata
         """
-        return self._searcher.search(query, limit, offset, filters, include_total=include_total)
+        return await self._searcher.search(query, limit, offset, filters, include_total=include_total)
 
-    def search_scoped(
+    async def search_scoped(
         self,
         query: str,
         roots: List[str],
@@ -173,15 +174,15 @@ class IndexService:
 
         This is used for UI scopes like Outputs / Inputs / All without breaking the existing DB structure.
         """
-        return self._searcher.search_scoped(query, roots, limit, offset, filters, include_total=include_total)
+        return await self._searcher.search_scoped(query, roots, limit, offset, filters, include_total=include_total)
 
-    def has_assets_under_root(self, root: str) -> Result[bool]:
+    async def has_assets_under_root(self, root: str) -> Result[bool]:
         """
         Return True if the DB has at least one asset under the provided root.
         """
-        return self._searcher.has_assets_under_root(root)
+        return await self._searcher.has_assets_under_root(root)
 
-    def date_histogram_scoped(
+    async def date_histogram_scoped(
         self,
         roots: List[str],
         month_start: int,
@@ -193,173 +194,33 @@ class IndexService:
 
         Used by the UI calendar to mark days that have assets.
         """
-        return self._searcher.date_histogram_scoped(roots, month_start, month_end, filters)
+        return await self._searcher.date_histogram_scoped(roots, month_start, month_end, filters)
 
-    def get_asset(self, asset_id: int) -> Result[Optional[Dict[str, Any]]]:
-        """
-        Get a single asset by ID.
+    async def get_asset(self, asset_id: int) -> Result[Optional[Dict[str, Any]]]:
+        # Async path: return the DB row; deep "self-heal" is handled by scan/enrich flows.
+        return await self._searcher.get_asset(asset_id)
 
-        Args:
-            asset_id: Asset database ID
-
-        Returns:
-            Result with asset data or None if not found
-        """
-        result = self._searcher.get_asset(asset_id)
-        if not result.ok or not result.data:
-            return result
-
-        asset = result.data
-        filepath = asset.get("filepath")
-        if not filepath or not isinstance(filepath, str):
-            return result
-
-        try:
-            has_workflow = int(asset.get("has_workflow") or 0)
-            has_generation_data = int(asset.get("has_generation_data") or 0)
-        except (TypeError, ValueError):
-            has_workflow = 0
-            has_generation_data = 0
-
-        # Opportunistic self-heal: if geninfo is missing but we already have a prompt graph,
-        # we can compute it without calling external tools.
-        geninfo = asset.get("geninfo")
-        prompt_graph = asset.get("prompt")
-        workflow = asset.get("workflow")
-        metadata_raw = asset.get("metadata_raw")
-
-        did_update = False
-
-        def _geninfo_score(value: Any) -> int:
-            if not isinstance(value, dict):
-                return 0
-            score = 0
-            if isinstance(value.get("positive"), dict) and value["positive"].get("value"):
-                score += 3
-            if isinstance(value.get("negative"), dict) and value["negative"].get("value"):
-                score += 2
-            models_obj = value.get("models") if isinstance(value.get("models"), dict) else None
-            if isinstance(models_obj, dict):
-                # Count "primary" models higher than accessory models (clip/vae).
-                if any(k in models_obj for k in ("checkpoint", "unet", "diffusion")):
-                    score += 3
-                if isinstance(value.get("clip"), dict) and value["clip"].get("name"):
-                    score += 1
-                if isinstance(value.get("vae"), dict) and value["vae"].get("name"):
-                    score += 1
-            if isinstance(value.get("checkpoint"), dict) and value["checkpoint"].get("name"):
-                score += 2
-            if isinstance(value.get("loras"), list) and value["loras"]:
-                score += 1
-            if isinstance(value.get("sampler"), dict) and value["sampler"].get("name"):
-                score += 1
-            return score
-
-        def _geninfo_is_incomplete(value: Any) -> bool:
-            if not isinstance(value, dict):
-                return True
-            # If we only have sampler-ish fields but no prompts or models, treat as incomplete.
-            has_prompt = isinstance(value.get("positive"), dict) and bool(value["positive"].get("value"))
-            has_negative = isinstance(value.get("negative"), dict) and bool(value["negative"].get("value"))
-            models_obj = value.get("models") if isinstance(value.get("models"), dict) else None
-            has_primary_model = isinstance(models_obj, dict) and any(k in models_obj for k in ("checkpoint", "unet", "diffusion"))
-            has_checkpoint = isinstance(value.get("checkpoint"), dict) and bool(value["checkpoint"].get("name"))
-            # If we don't have any prompt text AND we don't have a primary model id,
-            # it's likely a stale/partial geninfo and should be recomputed from the prompt graph.
-            return not (has_prompt or has_negative or has_primary_model or has_checkpoint)
-
-        if isinstance(prompt_graph, dict) and (not geninfo or _geninfo_is_incomplete(geninfo)):
-            try:
-                gi_res = parse_geninfo_from_prompt(prompt_graph, workflow=workflow)
-                if gi_res.ok and gi_res.data:
-                    if _geninfo_score(gi_res.data) <= _geninfo_score(geninfo):
-                        # Keep existing geninfo if it's already as rich (or richer) than the new parse.
-                        raise RuntimeError("Geninfo recompute did not improve richness")
-                    meta_obj = metadata_raw if isinstance(metadata_raw, dict) else {}
-                    meta_obj = dict(meta_obj)
-                    meta_obj.setdefault("prompt", prompt_graph)
-                    if workflow is not None:
-                        meta_obj.setdefault("workflow", workflow)
-                    meta_obj["geninfo"] = gi_res.data
-
-                    metadata_result = Result.Ok(meta_obj, quality=str(meta_obj.get("quality") or "partial"))
-                    with self._scan_lock:
-                        MetadataHelpers.write_asset_metadata_row(self.db, asset_id, metadata_result)
-                    did_update = True
-            except Exception as exc:
-                logger.debug("Geninfo self-heal skipped for asset_id=%s: %s", asset_id, exc)
-
-        # If we still don't have generation flags, try a targeted extraction (video sidecars, ffprobe tags, etc.).
-        if not did_update and (has_workflow == 0 and has_generation_data == 0):
-            try:
-                if os.path.exists(filepath) and os.path.isfile(filepath):
-                    stat = os.stat(filepath)
-                    mtime_ns = getattr(stat, "st_mtime_ns", int(stat.st_mtime * 1_000_000_000))
-                    size = int(stat.st_size)
-                    state_hash = self._scanner._compute_state_hash(filepath, int(mtime_ns), int(size))
-
-                    cached = None
-                    try:
-                        cached = MetadataHelpers.retrieve_cached_metadata(self.db, filepath, state_hash)
-                    except Exception:
-                        cached = None
-
-                    meta_res = cached or self.metadata.get_metadata(filepath, scan_id=None)
-                    if meta_res and meta_res.ok and meta_res.data:
-                        meta = meta_res.data
-                        width = meta.get("width")
-                        height = meta.get("height")
-                        duration = meta.get("duration")
-
-                        try:
-                            MetadataHelpers.store_metadata_cache(self.db, filepath, state_hash, meta_res)
-                        except Exception as exc:
-                            logger.debug("Metadata cache store skipped for asset_id=%s: %s", asset_id, exc)
-
-                        with self._scan_lock:
-                            with self.db.transaction(mode="immediate"):
-                                self.db.execute(
-                                    """
-                                    UPDATE assets
-                                    SET width = COALESCE(?, width),
-                                        height = COALESCE(?, height),
-                                        duration = COALESCE(?, duration),
-                                        updated_at = CURRENT_TIMESTAMP
-                                    WHERE id = ?
-                                    """,
-                                    (width, height, duration, asset_id),
-                                )
-                                MetadataHelpers.write_asset_metadata_row(self.db, asset_id, meta_res)
-                        did_update = True
-            except Exception as exc:
-                logger.debug("Targeted metadata extraction skipped for asset_id=%s: %s", asset_id, exc)
-
-        if did_update:
-            return self._searcher.get_asset(asset_id)
-
-        return result
-
-    def get_assets_batch(self, asset_ids: List[int]) -> Result[List[Dict[str, Any]]]:
+    async def get_assets_batch(self, asset_ids: List[int]) -> Result[List[Dict[str, Any]]]:
         """
         Batch fetch assets by ID (single query).
 
         This is used by the UI to reduce network chatter and avoid triggering per-asset self-heal
         paths that may invoke external tools.
         """
-        return self._searcher.get_assets(asset_ids)
+        return await self._searcher.get_assets(asset_ids)
 
-    def lookup_assets_by_filepaths(self, filepaths: List[str]) -> Result[Dict[str, Dict[str, Any]]]:
+    async def lookup_assets_by_filepaths(self, filepaths: List[str]) -> Result[Dict[str, Dict[str, Any]]]:
         """
         Lookup DB-enriched asset fields for a set of absolute filepaths.
 
         This is used to enrich filesystem listings (input/custom) without requiring
         a full directory scan on every request.
         """
-        return self._searcher.lookup_assets_by_filepaths(filepaths)
+        return await self._searcher.lookup_assets_by_filepaths(filepaths)
 
     # ==================== Update Operations ====================
 
-    def update_asset_rating(self, asset_id: int, rating: int) -> Result[Dict[str, Any]]:
+    async def update_asset_rating(self, asset_id: int, rating: int) -> Result[Dict[str, Any]]:
         """
         Update the rating for an asset.
 
@@ -370,9 +231,9 @@ class IndexService:
         Returns:
             Result with updated asset info
         """
-        return self._updater.update_asset_rating(asset_id, rating)
+        return await self._updater.update_asset_rating(asset_id, rating)
 
-    def update_asset_tags(self, asset_id: int, tags: List[str]) -> Result[Dict[str, Any]]:
+    async def update_asset_tags(self, asset_id: int, tags: List[str]) -> Result[Dict[str, Any]]:
         """
         Update the tags for an asset.
 
@@ -383,13 +244,13 @@ class IndexService:
         Returns:
             Result with updated asset info
         """
-        return self._updater.update_asset_tags(asset_id, tags)
+        return await self._updater.update_asset_tags(asset_id, tags)
 
-    def get_all_tags(self) -> Result[List[str]]:
+    async def get_all_tags(self) -> Result[List[str]]:
         """
         Get all unique tags from the database for autocomplete.
 
         Returns:
             Result with list of unique tags sorted alphabetically
         """
-        return self._updater.get_all_tags()
+        return await self._updater.get_all_tags()

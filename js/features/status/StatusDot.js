@@ -140,6 +140,21 @@ export async function triggerScan(statusDot, statusText, capabilitiesSection = n
     const desiredScope = String(scanTarget?.scope || "output").toLowerCase();
     const desiredCustomRootId = scanTarget?.customRootId || scanTarget?.custom_root_id || scanTarget?.root_id || null;
 
+    // Decide whether to run a full scan. If nothing is indexed yet, incremental scans can be confusing
+    // (and may skip if a stale scan journal exists). Prefer a full scan for first-time indexing.
+    let shouldIncremental = true;
+    try {
+        const countersUrl =
+            desiredScope === "custom"
+                ? `${ENDPOINTS.HEALTH_COUNTERS}?scope=custom&custom_root_id=${encodeURIComponent(String(desiredCustomRootId || ""))}`
+                : `${ENDPOINTS.HEALTH_COUNTERS}?scope=${encodeURIComponent(desiredScope || "output")}`;
+        const countersRes = await get(countersUrl);
+        if (countersRes?.ok) {
+            const totalAssets = Number(countersRes?.data?.total_assets || 0);
+            shouldIncremental = totalAssets > 0;
+        }
+    } catch {}
+
     // Fetch roots so we can show meaningful paths
     let roots = null;
     try {
@@ -181,7 +196,7 @@ export async function triggerScan(statusDot, statusText, capabilitiesSection = n
     const payload = {
         scope: desiredScope,
         recursive: true,
-        incremental: true,
+        incremental: shouldIncremental,
         fast: true,
         background_metadata: true
     };
@@ -345,7 +360,11 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
         if (totalAssets === 0) {
             // No assets indexed - yellow
             statusDot.style.background = "#FFA726";
-            statusText.textContent = `No assets indexed yet (${scopeLabel})`;
+            setStatusWithHint(
+                statusText,
+                `No assets indexed yet (${scopeLabel})`,
+                "Click the dot to start a scan"
+            );
         } else {
             // Assets indexed - green
             statusDot.style.background = "#4CAF50";

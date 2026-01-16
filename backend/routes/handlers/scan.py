@@ -2,7 +2,9 @@
 Directory scanning and file indexing endpoints.
 """
 import asyncio
+import os
 import shutil
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
@@ -26,6 +28,7 @@ from ..core import (
     _require_services,
     _csrf_error,
     _check_rate_limit,
+    _read_json,
     _normalize_path,
     _is_path_allowed,
     _is_path_allowed_custom,
@@ -34,6 +37,129 @@ from ..core import (
 )
 
 logger = get_logger(__name__)
+
+_MAX_UPLOAD_SIZE = int(os.environ.get("MJR_MAX_UPLOAD_SIZE", str(500 * 1024 * 1024)))
+_MAX_CONCURRENT_INDEX = int(os.environ.get("MJR_MAX_CONCURRENT_INDEX", "10"))
+_INDEX_SEMAPHORE = asyncio.Semaphore(max(1, _MAX_CONCURRENT_INDEX))
+
+
+def _allowed_upload_exts() -> set[str]:
+    try:
+        from backend.shared import EXTENSIONS  # type: ignore
+        allowed: set[str] = set()
+        for exts in (EXTENSIONS or {}).values():
+            for ext in exts or []:
+                allowed.add(str(ext).lower())
+        allowed.update({".json", ".txt", ".csv"})
+    except Exception:
+        allowed = {
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".webp",
+            ".gif",
+            ".mp4",
+            ".webm",
+            ".mov",
+            ".mkv",
+            ".wav",
+            ".mp3",
+            ".flac",
+            ".ogg",
+            ".m4a",
+            ".aac",
+            ".obj",
+            ".fbx",
+            ".glb",
+            ".gltf",
+            ".stl",
+            ".json",
+            ".txt",
+            ".csv",
+        }
+
+    try:
+        extra = os.environ.get("MJR_UPLOAD_EXTRA_EXT", "")
+        if extra:
+            for item in extra.split(","):
+                e = item.strip().lower()
+                if e and not e.startswith("."):
+                    e = "." + e
+                if e:
+                    allowed.add(e)
+    except Exception:
+        pass
+    return allowed
+
+
+async def _write_multipart_file_atomic(dest_dir: Path, filename: str, field) -> Result[Path]:
+    """
+    Write a multipart field to dest_dir using an atomic rename, enforcing max size.
+    Never overwrites existing files.
+    """
+    try:
+        dest_dir.mkdir(parents=True, exist_ok=True)
+    except Exception as exc:
+        return Result.Err("UPLOAD_FAILED", f"Cannot create destination directory: {exc}")
+
+    safe_name = Path(str(filename)).name
+    if not safe_name or "\x00" in safe_name or safe_name.startswith(".") or ".." in safe_name:
+        return Result.Err("INVALID_INPUT", "Invalid filename")
+
+    ext = Path(safe_name).suffix.lower()
+    if ext not in _allowed_upload_exts():
+        return Result.Err("INVALID_INPUT", "File extension not allowed")
+
+    total = 0
+    fd = None
+    tmp_path = None
+    try:
+        fd, tmp_path = tempfile.mkstemp(dir=str(dest_dir), prefix=".upload_", suffix=ext)
+        with os.fdopen(fd, "wb") as f:
+            fd = None
+            while True:
+                chunk = await field.read_chunk(size=262144)
+                if not chunk:
+                    break
+                total += len(chunk)
+                if total > _MAX_UPLOAD_SIZE:
+                    raise ValueError(f"File exceeds maximum size ({_MAX_UPLOAD_SIZE} bytes)")
+                f.write(chunk)
+
+        tmp_obj = Path(str(tmp_path))
+        final = dest_dir / safe_name
+        counter = 0
+        while final.exists():
+            counter += 1
+            final = dest_dir / f"{Path(safe_name).stem}_{counter}{ext}"
+        tmp_obj.replace(final)
+        return Result.Ok(final)
+    except Exception as exc:
+        try:
+            if fd is not None:
+                os.close(fd)
+        except Exception:
+            pass
+        try:
+            if tmp_path:
+                Path(str(tmp_path)).unlink(missing_ok=True)
+        except Exception:
+            pass
+        return Result.Err("UPLOAD_FAILED", str(exc))
+
+
+def _schedule_index_task(fn) -> None:
+    async def _runner():
+        try:
+            async with _INDEX_SEMAPHORE:
+                await fn()
+        except Exception:
+            return
+
+    try:
+        asyncio.create_task(_runner())
+    except Exception:
+        return
 
 def _files_equal_content(src: Path, dst: Path, *, chunk_size: int = 4 * 1024 * 1024) -> bool:
     """
@@ -143,11 +269,10 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         if not allowed:
             return _json_response(Result.Err("RATE_LIMITED", "Too many scan requests. Please wait before retrying.", retry_after=retry_after))
 
-        try:
-            body = await request.json()
-        except Exception as e:
-            result = Result.Err("INVALID_JSON", f"Invalid JSON body: {e}")
-            return _json_response(result)
+        body_res = await _read_json(request)
+        if not body_res.ok:
+            return _json_response(body_res)
+        body = body_res.data or {}
 
         scope = (body.get("scope") or "").lower().strip()
         custom_root_id = body.get("custom_root_id") or body.get("root_id") or body.get("customRootId")
@@ -331,11 +456,10 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
 
-        try:
-            body = await request.json()
-        except Exception as e:
-            result = Result.Err("INVALID_JSON", f"Invalid JSON body: {e}")
-            return _json_response(result)
+        body_res = await _read_json(request)
+        if not body_res.ok:
+            return _json_response(body_res)
+        body = body_res.data or {}
 
         files = body.get("files")
         if not isinstance(files, list) or not files:
@@ -461,11 +585,10 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
 
-        try:
-            body = await request.json()
-        except Exception as e:
-            result = Result.Err("INVALID_JSON", f"Invalid JSON body: {e}")
-            return _json_response(result)
+        body_res = await _read_json(request)
+        if not body_res.ok:
+            return _json_response(body_res)
+        body = body_res.data or {}
 
         # Check if this is a fast path request (e.g., for node drop)
         purpose = body.get("purpose", "").lower().strip()
@@ -646,8 +769,8 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             if index_staged and staged_paths:
                 # Index in the background so staging returns quickly (DnD UX),
                 # and avoid blocking the aiohttp event loop on ExifTool/FFprobe.
-                asyncio.create_task(
-                    asyncio.to_thread(
+                _schedule_index_task(
+                    lambda: asyncio.to_thread(
                         svc["index"].index_paths,
                         staged_paths,
                         str(input_root),
@@ -673,9 +796,6 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
-        from aiohttp import web
-        import shutil
-        from pathlib import Path
 
         try:
             reader = await request.multipart()
@@ -689,20 +809,6 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             if not filename:
                 return _json_response(Result.Err("INVALID_INPUT", "No filename provided"))
 
-            # Sanitize filename with comprehensive security checks
-            filename = Path(filename).name
-            if not filename or "\x00" in filename:
-                return _json_response(Result.Err("INVALID_INPUT", "Invalid filename"))
-
-            # Block dangerous patterns
-            if ".." in filename or filename.startswith('.') or '/' in filename or '\\' in filename:
-                return _json_response(Result.Err("INVALID_INPUT", "Invalid filename"))
-
-            # Additional security checks
-            forbidden_extensions = ['.exe', '.bat', '.cmd', '.scr', '.com', '.pif', '.lnk', '.hta', '.msi', '.msp', '.vbs', '.vbe', '.js', '.jse', '.wsf', '.wsh', '.ps1', '.ps1xml', '.ps2', '.ps2xml', '.psc1', '.psc2', '.msh', '.msh1', '.msh2', '.mshxml', '.msh1xml', '.msh2xml', '.scf', '.lnk', '.inf', '.reg', '.dll', '.sys', '.bin', '.tmp', '.dat', '.ini']
-            if any(filename.lower().endswith(ext) for ext in forbidden_extensions):
-                return _json_response(Result.Err("INVALID_INPUT", "File extension not allowed"))
-
             # Get purpose from query params
             purpose = request.query.get("purpose", "").lower().strip()
             skip_index = (purpose == "node_drop")
@@ -715,40 +821,10 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 input_dir = Path(__file__).parent.parent.parent.parent / "input"
                 input_dir = input_dir.resolve()
 
-            # Create destination path
-            dest_path = input_dir / filename
-
-            # Handle filename collision atomically to prevent race conditions
-            if dest_path.exists():
-                stem = dest_path.stem
-                suffix = dest_path.suffix
-                counter = 1
-                while True:
-                    candidate_path = input_dir / f"{stem}_{counter}{suffix}"
-                    try:
-                        # Use 'x' mode to create file only if it doesn't exist (atomic)
-                        with open(candidate_path, 'xb'):
-                            pass  # Create empty file to claim the name
-                        dest_path = candidate_path
-                        break  # Successfully found unique name
-                    except FileExistsError:
-                        counter += 1
-                        continue
-
-            # Create the destination directory if it doesn't exist
-            dest_path.parent.mkdir(parents=True, exist_ok=True)
-
-            # Stream the file to disk in chunks to avoid loading large files in memory
-            # Run in thread to avoid blocking the event loop during large file operations
-            async def write_file_async():
-                with open(dest_path, 'wb') as f:
-                    while True:
-                        chunk = await field.read_chunk(size=262144)  # 256KB chunks
-                        if not chunk:
-                            break
-                        f.write(chunk)
-
-            await write_file_async()
+            write_res = await _write_multipart_file_atomic(input_dir, str(filename), field)
+            if not write_res.ok:
+                return _json_response(write_res)
+            dest_path = write_res.data
 
             # Optionally index the file (skip for fast path)
             if not skip_index:
@@ -756,8 +832,8 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                     svc, error_result = _require_services()
                     if svc and svc.get("index"):
                         # Index in the background so upload returns quickly
-                        asyncio.create_task(
-                            asyncio.to_thread(
+                        _schedule_index_task(
+                            lambda: asyncio.to_thread(
                                 svc["index"].index_paths,
                                 [dest_path],
                                 str(input_dir),
@@ -776,7 +852,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
 
         except Exception as e:
             logger.error(f"Upload failed: {e}")
-            return _json_response(Result.Err("UPLOAD_FAILED", f"Upload failed: {str(e)}"))
+            return _json_response(Result.Err("UPLOAD_FAILED", "Upload failed"))
 
     @routes.get("/mjr/am/download")
     async def download_asset(request):
@@ -818,7 +894,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 return _json_response(error_result)
 
             try:
-                asset_result = svc["index"].get_asset(asset_id)
+                asset_result = await svc["index"].get_asset(asset_id)
                 if not asset_result.ok or not asset_result.data:
                     return _json_response(Result.Err("NOT_FOUND", "Asset not found"))
 

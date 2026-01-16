@@ -2,6 +2,7 @@
 Search and list endpoints.
 """
 import datetime
+import asyncio
 from pathlib import Path
 from aiohttp import web
 
@@ -19,7 +20,7 @@ from backend.config import OUTPUT_ROOT
 from backend.custom_roots import resolve_custom_root
 from backend.shared import Result
 from backend.features.index.metadata_helpers import MetadataHelpers
-from ..core import _json_response, _require_services
+from ..core import _json_response, _require_services, _read_json
 from .filesystem import _list_filesystem_assets, _kickoff_background_scan
 
 
@@ -128,7 +129,7 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                 root_path = str(root_dir.resolve(strict=False))
 
                 # Call index searcher with filters, limit, and offset
-                db_result = svc["index"].search_scoped(
+                db_result = await svc["index"].search_scoped(
                     query,
                     roots=[root_path],
                     limit=limit,
@@ -151,7 +152,7 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
             if query == "*" and offset == 0 and not filters:
                 # Avoid scanning entire input trees just by opening the tab; only scan the current folder.
                 _kickoff_background_scan(str(root_dir), source="input", recursive=False, incremental=True)
-            result = _list_filesystem_assets(
+            result = await _list_filesystem_assets(
                 root_dir,
                 subfolder,
                 query,
@@ -178,7 +179,7 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                 root_path = str(root_dir.resolve(strict=False))
 
                 # Call index searcher with filters, limit, and offset
-                db_result = svc["index"].search_scoped(
+                db_result = await svc["index"].search_scoped(
                     query,
                     roots=[root_path],
                     limit=limit,
@@ -203,7 +204,7 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
             if query == "*" and offset == 0 and not filters:
                 # Avoid scanning entire custom trees just by opening the tab; only scan the current folder.
                 _kickoff_background_scan(str(root_dir), source="custom", root_id=str(root_id), recursive=False, incremental=True)
-            result = _list_filesystem_assets(
+            result = await _list_filesystem_assets(
                 root_dir,
                 subfolder,
                 query,
@@ -230,7 +231,7 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
 
             input_indexed = False
             try:
-                has_input = svc["index"].has_assets_under_root(input_root)
+                has_input = await svc["index"].has_assets_under_root(input_root)
                 if has_input.ok:
                     input_indexed = bool(has_input.data)
             except Exception:
@@ -241,7 +242,13 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                 _kickoff_background_scan(str(Path(input_root)), source="input", recursive=False, incremental=True)
 
             if input_indexed:
-                scoped = svc["index"].search_scoped(query, roots=[output_root, input_root], limit=limit, offset=offset, filters=filters or None)
+                scoped = await svc["index"].search_scoped(
+                    query,
+                    roots=[output_root, input_root],
+                    limit=limit,
+                    offset=offset,
+                    filters=filters or None,
+                )
                 if not scoped.ok:
                     return _json_response(scoped)
                 data = scoped.data or {}
@@ -281,10 +288,16 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
 
             if not limit:
                 # Keep behavior predictable when limit==0: return empty page but valid total.
-                out_count = svc["index"].search_scoped(query, roots=[output_root], limit=0, offset=0, filters=filters or None)
+                out_count = await svc["index"].search_scoped(
+                    query,
+                    roots=[output_root],
+                    limit=0,
+                    offset=0,
+                    filters=filters or None,
+                )
                 if not out_count.ok:
                     return _json_response(out_count)
-                in_count = _list_filesystem_assets(Path(input_root), "", query, 0, 0, asset_type="input", filters=filters or None)
+                in_count = await _list_filesystem_assets(Path(input_root), "", query, 0, 0, asset_type="input", filters=filters or None)
                 if not in_count.ok:
                     return _json_response(in_count)
                 total = int((out_count.data or {}).get("total") or 0) + int((in_count.data or {}).get("total") or 0)
@@ -293,7 +306,13 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
             # Non-browse queries keep deterministic concatenation: outputs first, then inputs.
             # This enables cheap pagination by splitting offsets instead of fetching everything.
             if not is_browse_all:
-                out_res = svc["index"].search_scoped(query, roots=[output_root], limit=limit, offset=offset, filters=filters or None)
+                out_res = await svc["index"].search_scoped(
+                    query,
+                    roots=[output_root],
+                    limit=limit,
+                    offset=offset,
+                    filters=filters or None,
+                )
                 if not out_res.ok:
                     return _json_response(out_res)
                 out_data = out_res.data or {}
@@ -304,7 +323,7 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
 
                 # If the requested page fits within outputs, we're done.
                 if offset + limit <= out_total:
-                    in_total_res = _list_filesystem_assets(Path(input_root), "", query, 0, 0, asset_type="input", filters=filters or None)
+                    in_total_res = await _list_filesystem_assets(Path(input_root), "", query, 0, 0, asset_type="input", filters=filters or None)
                     if not in_total_res.ok:
                         return _json_response(in_total_res)
                     total = out_total + int((in_total_res.data or {}).get("total") or 0)
@@ -313,7 +332,7 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                 # Need to spill over into inputs (or we're already past outputs).
                 need = max(0, limit - len(out_assets))
                 in_offset = max(0, offset - out_total)
-                in_res = _list_filesystem_assets(Path(input_root), "", query, need, in_offset, asset_type="input", filters=filters or None)
+                in_res = await _list_filesystem_assets(Path(input_root), "", query, need, in_offset, asset_type="input", filters=filters or None)
                 if not in_res.ok:
                     return _json_response(in_res)
                 in_data = in_res.data or {}
@@ -339,11 +358,17 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                 except Exception:
                     return 0
 
-            def _fill_out():
+            async def _fill_out():
                 nonlocal out_buf, out_total, out_offset
                 if out_total is not None and out_offset >= out_total:
                     return
-                res = svc["index"].search_scoped("*", roots=[output_root], limit=chunk, offset=out_offset, filters=filters or None)
+                res = await svc["index"].search_scoped(
+                    "*",
+                    roots=[output_root],
+                    limit=chunk,
+                    offset=out_offset,
+                    filters=filters or None,
+                )
                 if not res.ok:
                     return res
                 data = res.data or {}
@@ -355,11 +380,11 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                 out_buf.extend(items)
                 return None
 
-            def _fill_in():
+            async def _fill_in():
                 nonlocal in_buf, in_total, in_offset
                 if in_total is not None and in_offset >= in_total:
                     return
-                res = _list_filesystem_assets(Path(input_root), "", "*", chunk, in_offset, asset_type="input", filters=filters or None)
+                res = await _list_filesystem_assets(Path(input_root), "", "*", chunk, in_offset, asset_type="input", filters=filters or None)
                 if not res.ok:
                     return res
                 data = res.data or {}
@@ -370,10 +395,10 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                 return None
 
             # Prime buffers (and totals)
-            err = _fill_out()
+            err = await _fill_out()
             if err:
                 return _json_response(err)
-            err = _fill_in()
+            err = await _fill_in()
             if err:
                 return _json_response(err)
 
@@ -384,11 +409,11 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
 
             while produced < target:
                 if out_i >= len(out_buf) and (out_total is None or out_offset < out_total):
-                    err = _fill_out()
+                    err = await _fill_out()
                     if err:
                         return _json_response(err)
                 if in_i >= len(in_buf) and (in_total is None or in_offset < in_total):
-                    err = _fill_in()
+                    err = await _fill_in()
                     if err:
                         return _json_response(err)
 
@@ -430,7 +455,7 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
             return _json_response(Result.Err("INVALID_INPUT", f"Unknown scope: {scope}"))
 
         # Use DB search for output scope
-        out_res = svc["index"].search_scoped(
+        out_res = await svc["index"].search_scoped(
             query,
             roots=[output_root],
             limit=limit,
@@ -438,6 +463,40 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
             filters=filters or None,
             include_total=include_total,
         )
+        # If nothing is indexed yet, fall back to a fast filesystem listing so the grid can populate
+        # immediately (old behavior), and kick off a fast background scan to build the DB.
+        try:
+            is_initial = query == "*" and offset == 0 and not (filters or None)
+            total = int((out_res.data or {}).get("total") or 0) if out_res.ok else 0
+            if is_initial and out_res.ok and total == 0:
+                _kickoff_background_scan(
+                    str(Path(output_root)),
+                    source="output",
+                    recursive=True,
+                    incremental=False,
+                    fast=True,
+                    background_metadata=True,
+                )
+                fs_res = await _list_filesystem_assets(
+                    Path(output_root),
+                    "",
+                    query,
+                    limit,
+                    offset,
+                    asset_type="output",
+                    filters=filters or None,
+                    index_service=svc.get("index"),
+                )
+                if fs_res.ok and isinstance(fs_res.data, dict):
+                    for a in fs_res.data.get("assets") or []:
+                        if isinstance(a, dict):
+                            a["type"] = "output"
+                    fs_res.data["scope"] = "output"
+                    fs_res.data["mode"] = "filesystem"
+                return _json_response(fs_res)
+        except Exception:
+            pass
+
         if not out_res.ok:
             return _json_response(out_res)
         for a in out_res.data.get("assets") or []:
@@ -496,7 +555,13 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
             filters["has_workflow"] = request.query["has_workflow"].lower() in ("true", "1", "yes")
 
         include_total = request.query.get("include_total", "1").strip().lower() not in ("0", "false", "no", "off")
-        result = svc["index"].search(query, limit, offset, filters if filters else None, include_total=include_total)
+        result = await svc["index"].search(
+            query,
+            limit,
+            offset,
+            filters if filters else None,
+            include_total=include_total,
+        )
         return _json_response(result)
 
     @routes.post("/mjr/am/assets/batch")
@@ -511,10 +576,10 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
         if error_result:
             return _json_response(error_result)
 
-        try:
-            body = await request.json()
-        except Exception as e:
-            return _json_response(Result.Err("INVALID_JSON", f"Invalid JSON body: {e}"))
+        body_res = await _read_json(request)
+        if not body_res.ok:
+            return _json_response(body_res)
+        body = body_res.data or {}
 
         raw_ids = body.get("asset_ids") or body.get("ids") or []
         if not isinstance(raw_ids, list):
@@ -532,7 +597,7 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
             if len(ids) >= 200:
                 break
 
-        result = svc["index"].get_assets_batch(ids)
+        result = await svc["index"].get_assets_batch(ids)
         return _json_response(result)
 
     @routes.get("/mjr/am/workflow-quick")
@@ -572,7 +637,7 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
 
             where_clause = " AND ".join(where_parts)
 
-            result = svc["index"].db.query(
+            result = await svc["index"].db.aquery(
                 f"""
                 SELECT m.metadata_raw, m.has_workflow
                 FROM assets a
@@ -580,7 +645,7 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                 WHERE {where_clause}
                 LIMIT 1
                 """,
-                tuple(params)
+                tuple(params),
             )
 
             if result.ok and result.data and len(result.data) > 0:
@@ -624,7 +689,7 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
 
         hydrate = (request.query.get("hydrate") or "").strip().lower()
 
-        result = svc["index"].get_asset(asset_id)
+        result = await svc["index"].get_asset(asset_id)
         if not result.ok or not result.data:
             return _json_response(result)
 
@@ -646,10 +711,11 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                         meta_svc = svc.get("metadata")
                         db = svc.get("db")
                         if meta_svc and db:
-                            meta_res = meta_svc.extract_rating_tags_only(fp)
+                            meta_res = await asyncio.to_thread(meta_svc.extract_rating_tags_only, fp)
                             if meta_res and meta_res.ok and meta_res.data:
                                 try:
-                                    MetadataHelpers.write_asset_metadata_row(
+                                    await asyncio.to_thread(
+                                        MetadataHelpers.write_asset_metadata_row,
                                         db,
                                         asset_id,
                                         Result.Ok(
@@ -663,7 +729,7 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                                 except Exception:
                                     pass
                                 # Re-fetch after best-effort update.
-                                result = svc["index"].get_asset(asset_id)
+                                result = await svc["index"].get_asset(asset_id)
             except Exception:
                 pass
 
