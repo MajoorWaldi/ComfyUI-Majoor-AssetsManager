@@ -1226,6 +1226,170 @@
     text-align: center;
 }
 
+/* ========== Custom Video Controls (no native bar) ========== */
+.mjr-video-host {
+    position: relative;
+}
+
+.mjr-video-controls {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 10px;
+    backdrop-filter: blur(10px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+    z-index: 5;
+}
+
+.mjr-video-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.mjr-video-row--top {
+    gap: 12px;
+    display: grid;
+    align-items: center;
+    grid-template-columns: auto 1fr auto auto auto;
+}
+
+.mjr-video-controls--preview .mjr-video-row--top {
+    display: flex;
+}
+
+.mjr-video-row--bottom {
+    gap: 8px;
+}
+
+.mjr-video-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 12px;
+    user-select: none;
+}
+
+.mjr-video-num {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    padding: 5px 8px;
+    font-size: 12px;
+    line-height: 1;
+    outline: none;
+}
+
+.mjr-video-num:focus {
+    border-color: rgba(255, 255, 255, 0.38);
+}
+
+.mjr-video-frame {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.9);
+    min-width: 52px;
+    text-align: right;
+    user-select: none;
+}
+
+.mjr-video-frame.is-step {
+    color: #ffd24d;
+}
+
+.mjr-video-bottom {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
+}
+
+.mjr-video-bottom--left {
+    justify-content: flex-start;
+}
+
+.mjr-video-bottom--right {
+    justify-content: flex-end;
+}
+
+.mjr-video-transport {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex: 0 0 auto;
+}
+
+/* Show controls on hover/focus (viewer). */
+.mjr-video-host:hover .mjr-video-controls,
+.mjr-video-controls:focus-within {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Preview: keep controls visible because the area is small. */
+.mjr-video-controls--preview {
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.mjr-video-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #fff;
+    border-radius: 8px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+}
+
+.mjr-video-btn:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.mjr-video-btn.is-on {
+    background: rgba(64, 160, 255, 0.25);
+    border-color: rgba(64, 160, 255, 0.55);
+}
+
+.mjr-video-time {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.9);
+    min-width: 92px;
+    text-align: center;
+    user-select: none;
+}
+
+.mjr-video-range {
+    accent-color: rgba(255, 255, 255, 0.9);
+}
+
+.mjr-video-range--seek {
+    flex: 1;
+    min-width: 80px;
+}
+
+.mjr-video-range--volume {
+    width: 90px;
+}
+
 /* ========== Context Menu Component ========== */
 .mjr-context-menu {
     position: fixed;

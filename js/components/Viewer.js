@@ -10,6 +10,7 @@ import { bindViewerContextMenu } from "../features/viewer/ViewerContextMenu.js";
 import { createFileBadge, createRatingBadge, createTagsBadge } from "./Badges.js";
 import { APP_CONFIG } from "../app/config.js";
 import { safeDispatchCustomEvent } from "../utils/events.js";
+import { mountVideoControls } from "./VideoControls.js";
 
 /**
  * Viewer modes
@@ -818,19 +819,21 @@ export function createViewer() {
     // Create image or video element
     function createMediaElement(asset, url) {
         const container = document.createElement("div");
+        container.className = "mjr-video-host";
         container.style.cssText = `
             width: 100%;
             height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
+            position: relative;
         `;
 
         if (asset.kind === 'video') {
             const video = document.createElement("video");
             video.className = "mjr-viewer-media";
             video.src = url;
-            video.controls = true;
+            video.controls = false;
             video.autoplay = true;
             video.loop = true;
             video.playsInline = true;
@@ -855,6 +858,10 @@ export function createViewer() {
                 );
             } catch {}
             container.appendChild(video);
+            // Custom controls: avoid native player bar to keep layout stable.
+            try {
+                mountVideoControls(video, { variant: "viewer", hostEl: container, fullscreenEl: overlay });
+            } catch {}
         } else {
             const img = document.createElement("img");
             img.className = "mjr-viewer-media";
@@ -1146,8 +1153,11 @@ export function createViewer() {
         sideView.appendChild(leftPanel);
         sideView.appendChild(rightPanel);
 
-        // FIX: Synchronize videos in side-by-side mode
-        if (leftMedia.tagName === 'VIDEO' && rightMedia.tagName === 'VIDEO') {
+        // Synchronize videos in side-by-side mode (when both panels are videos).
+        // Note: `createMediaElement()` returns a container DIV, so we must query for the actual <video>.
+        const leftVideo = leftMedia?.querySelector?.("video");
+        const rightVideo = rightMedia?.querySelector?.("video");
+        if (leftVideo && rightVideo) {
             let syncing = false;
 
             const bindSync = (leader, follower) => {
@@ -1176,12 +1186,12 @@ export function createViewer() {
             };
 
             // Bidirectional sync
-            bindSync(leftMedia, rightMedia);
-            bindSync(rightMedia, leftMedia);
+            bindSync(leftVideo, rightVideo);
+            bindSync(rightVideo, leftVideo);
 
             // Mute right video to avoid audio echo
-            rightMedia.muted = true;
-            leftMedia.muted = false;
+            rightVideo.muted = true;
+            leftVideo.muted = false;
         }
     }
 
@@ -1507,6 +1517,9 @@ export function createViewer() {
                 const duration = Number(video.duration);
                 const next = Math.max(0, Math.min(Number.isFinite(duration) ? duration : Infinity, (video.currentTime || 0) + delta));
                 video.currentTime = next;
+                try {
+                    video.dispatchEvent?.(new CustomEvent("mjr:frameStep", { detail: { direction, time: next } }));
+                } catch {}
                 return true;
             } catch {
                 return true;
@@ -1538,6 +1551,30 @@ export function createViewer() {
         }
 
         switch (e.key) {
+            case " ":
+            case "Spacebar": {
+                // Toggle video play/pause (viewer single + video only)
+                if (isSingle && current?.kind === "video") {
+                    const videoEl = singleView.querySelector("video");
+                    if (videoEl) {
+                        try {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            e.stopImmediatePropagation?.();
+                        } catch {}
+                        try {
+                            if (videoEl.paused) {
+                                const p = videoEl.play?.();
+                                if (p && typeof p.catch === "function") p.catch(() => {});
+                            } else {
+                                videoEl.pause?.();
+                            }
+                        } catch {}
+                        break;
+                    }
+                }
+                break;
+            }
             case 'Tab':
                 // FIX: Focus trap - prevent tabbing to elements outside the viewer
                 e.preventDefault();

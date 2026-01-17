@@ -7,6 +7,7 @@ import { comfyAlert, comfyConfirm, comfyPrompt } from "../../app/dialogs.js";
 import { openInFolder, updateAssetRating, deleteAsset, renameAsset, removeFilepathsFromCollection } from "../../api/client.js";
 import { ASSET_RATING_CHANGED_EVENT, ASSET_TAGS_CHANGED_EVENT } from "../../app/events.js";
 import { createTagsEditor } from "../../components/TagsEditor.js";
+import { getViewerInstance } from "../../components/Viewer.js";
 import { safeDispatchCustomEvent } from "../../utils/events.js";
 import { showAddToCollectionMenu } from "../collections/contextmenu/addToCollectionMenu.js";
 import { getOrCreateMenu, createMenuItem, createMenuSeparator, showMenuAt } from "../../components/contextmenu/MenuCore.js";
@@ -56,6 +57,28 @@ const clearSelection = (gridContainer) => {
             card.setAttribute('aria-selected', 'false');
         }
     } catch {}
+};
+
+const getAllAssetsInGrid = (gridContainer) => {
+    const assets = [];
+    if (!gridContainer) return assets;
+    try {
+        const cards = gridContainer.querySelectorAll(".mjr-asset-card");
+        for (const card of cards) {
+            const a = card?._mjrAsset;
+            if (a) assets.push(a);
+        }
+    } catch {}
+    return assets;
+};
+
+const findIndexById = (assets, assetId) => {
+    try {
+        const id = String(assetId ?? "");
+        return (assets || []).findIndex((a) => String(a?.id ?? "") === id);
+    } catch {
+        return -1;
+    }
 };
 
 const MENU_SELECTOR = ".mjr-grid-context-menu";
@@ -214,9 +237,54 @@ export function bindGridContextMenu({
         // Open Viewer
         menu.appendChild(
             createItem("Open Viewer", "pi pi-image", null, () => {
-                onRequestOpenViewer(asset);
+                // For a small selection set, open the selection (useful for quick compare).
+                // Otherwise open the whole grid so navigation works.
+                try {
+                    const viewer = getViewerInstance();
+                    const selectedAssets = hasSelection ? getSelectedAssets(gridContainer) : [];
+                    const selectedCount = selectedAssets.length;
+                    if (selectedCount >= 2 && selectedCount <= 4) {
+                        viewer.open(selectedAssets, 0);
+                        return;
+                    }
+
+                    const allAssets = getAllAssetsInGrid(gridContainer);
+                    const idx = findIndexById(allAssets, asset?.id);
+                    viewer.open(allAssets, Math.max(0, idx));
+                } catch {
+                    // Fallback to the caller hook (legacy/optional).
+                    try {
+                        onRequestOpenViewer(asset);
+                    } catch {}
+                }
             })
         );
+
+        // Compare options (selection-only)
+        const selectedAssets = hasSelection ? getSelectedAssets(gridContainer) : [];
+        const selectedCount = selectedAssets.length;
+        if (selectedCount === 2) {
+            menu.appendChild(
+                createItem("Compare A/B (2 selected)", "pi pi-clone", null, () => {
+                    try {
+                        const viewer = getViewerInstance();
+                        viewer.open(selectedAssets, 0);
+                        viewer.setMode?.("ab");
+                    } catch {}
+                })
+            );
+        }
+        if (selectedCount >= 2 && selectedCount <= 4) {
+            menu.appendChild(
+                createItem(`Side-by-side (2×2) (${selectedCount} selected)`, "pi pi-table", null, () => {
+                    try {
+                        const viewer = getViewerInstance();
+                        viewer.open(selectedAssets, 0);
+                        viewer.setMode?.("sidebyside");
+                    } catch {}
+                })
+            );
+        }
 
         // Open in Folder
         menu.appendChild(
@@ -319,6 +387,12 @@ export function bindGridContextMenu({
 
         let hideTimer = null;
         const ratingSubmenu = getOrCreateRatingSubmenu();
+        // Prevent listener buildup across repeated opens (submenu is reused).
+        try {
+            ratingSubmenu._mjrAbortController?.abort?.();
+        } catch {}
+        const ratingAC = new AbortController();
+        ratingSubmenu._mjrAbortController = ratingAC;
 
         const closeRatingSubmenu = () => {
             try {
@@ -373,17 +447,25 @@ export function bindGridContextMenu({
             );
         };
 
-        ratingRoot.addEventListener("mouseenter", () => {
+        ratingRoot.addEventListener(
+            "mouseenter",
+            () => {
             if (!asset?.id) return;
             cancelClose();
             renderRatingSubmenu();
             showSubmenuNextTo(ratingRoot, ratingSubmenu);
-        });
-        ratingRoot.addEventListener("mouseleave", () => {
+            },
+            { signal: ratingAC.signal }
+        );
+        ratingRoot.addEventListener(
+            "mouseleave",
+            () => {
             scheduleClose();
-        });
-        ratingSubmenu.addEventListener("mouseenter", () => cancelClose());
-        ratingSubmenu.addEventListener("mouseleave", () => scheduleClose());
+            },
+            { signal: ratingAC.signal }
+        );
+        ratingSubmenu.addEventListener("mouseenter", () => cancelClose(), { signal: ratingAC.signal });
+        ratingSubmenu.addEventListener("mouseleave", () => scheduleClose(), { signal: ratingAC.signal });
 
         menu.appendChild(separator());
 

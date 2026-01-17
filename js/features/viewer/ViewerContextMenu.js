@@ -219,6 +219,12 @@ export function bindViewerContextMenu({
 
         let hideTimer = null;
         const ratingSubmenu = getOrCreateRatingSubmenu();
+        // Prevent listener buildup across repeated opens (submenu is reused).
+        try {
+            ratingSubmenu._mjrAbortController?.abort?.();
+        } catch {}
+        const ratingAC = new AbortController();
+        ratingSubmenu._mjrAbortController = ratingAC;
 
         const closeRatingSubmenu = () => {
             try {
@@ -263,17 +269,25 @@ export function bindViewerContextMenu({
             );
         };
 
-        ratingRoot.addEventListener("mouseenter", () => {
-            if (!asset?.id) return;
-            cancelClose();
-            renderRatingSubmenu();
-            showSubmenuNextTo(ratingRoot, ratingSubmenu);
-        });
-        ratingRoot.addEventListener("mouseleave", () => {
-            scheduleClose();
-        });
-        ratingSubmenu.addEventListener("mouseenter", () => cancelClose());
-        ratingSubmenu.addEventListener("mouseleave", () => scheduleClose());
+        ratingRoot.addEventListener(
+            "mouseenter",
+            () => {
+                if (!asset?.id) return;
+                cancelClose();
+                renderRatingSubmenu();
+                showSubmenuNextTo(ratingRoot, ratingSubmenu);
+            },
+            { signal: ratingAC.signal }
+        );
+        ratingRoot.addEventListener(
+            "mouseleave",
+            () => {
+                scheduleClose();
+            },
+            { signal: ratingAC.signal }
+        );
+        ratingSubmenu.addEventListener("mouseenter", () => cancelClose(), { signal: ratingAC.signal });
+        ratingSubmenu.addEventListener("mouseleave", () => scheduleClose(), { signal: ratingAC.signal });
 
         menu.appendChild(separator());
 

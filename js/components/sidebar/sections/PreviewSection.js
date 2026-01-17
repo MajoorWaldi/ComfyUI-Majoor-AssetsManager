@@ -1,5 +1,6 @@
 import { buildAssetViewURL } from "../../../api/endpoints.js";
 import { formatFileSize, formatShortDate } from "../utils/format.js";
+import { mountVideoControls } from "../../VideoControls.js";
 
 export function createPreviewSection(asset) {
     const section = document.createElement("div");
@@ -15,6 +16,7 @@ export function createPreviewSection(asset) {
         display: flex;
         align-items: center;
         justify-content: center;
+        position: relative;
     `;
 
     const viewUrl = buildAssetViewURL(asset);
@@ -31,15 +33,20 @@ export function createPreviewSection(asset) {
     } else if (asset.kind === "video") {
         const video = document.createElement("video");
         video.src = viewUrl;
-        video.controls = true;
+        video.controls = false;
         video.loop = true;
         video.muted = true;
+        video.playsInline = true;
+        video.preload = "metadata";
         video.style.cssText = `
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
         `;
         previewContainer.appendChild(video);
+        try {
+            mountVideoControls(video, { variant: "preview", hostEl: previewContainer });
+        } catch {}
     } else {
         const placeholder = document.createElement("div");
         placeholder.textContent = asset.kind?.toUpperCase() || "PREVIEW";
