@@ -101,6 +101,7 @@ export function mountVideoControls(video, opts = {}) {
     try {
         const variant = opts?.variant === "preview" ? "preview" : opts?.variant === "viewerbar" ? "viewerbar" : "viewer";
         const advanced = variant !== "preview";
+        const showVolumeSlider = variant === "viewer";
         const initialFps = (() => {
             try {
                 const v = Number(opts?.initialFps);
@@ -364,14 +365,17 @@ export function mountVideoControls(video, opts = {}) {
 
         const muteIcon = createIconBtn("mjr-video-btn--mute", "pi-volume-up", "Mute", "Mute");
         const muteBtn = muteIcon.btn;
-        const volume = document.createElement("input");
-        volume.className = "mjr-video-range mjr-video-range--volume";
-        volume.type = "range";
-        volume.min = "0";
-        volume.max = "1";
-        volume.step = "0.02";
-        volume.value = String(clamp01(Number(video.volume) || 0));
-        volume.setAttribute("aria-label", "Volume");
+        let volume = null;
+        if (showVolumeSlider) {
+            volume = document.createElement("input");
+            volume.className = "mjr-video-range mjr-video-range--volume";
+            volume.type = "range";
+            volume.min = "0";
+            volume.max = "1";
+            volume.step = "0.02";
+            volume.value = String(clamp01(Number(video.volume) || 0));
+            volume.setAttribute("aria-label", "Volume");
+        }
 
         const inGroup = document.createElement("div");
         inGroup.className = "mjr-video-group mjr-video-group--in";
@@ -430,7 +434,7 @@ export function mountVideoControls(video, opts = {}) {
         if (advanced) bottomRight.appendChild(rightAdjustGroup);
         bottomRight.appendChild(muteBtn);
         if (advanced) bottomRight.appendChild(setOutBtn);
-        bottomRight.appendChild(volume);
+        if (volume) bottomRight.appendChild(volume);
 
         rowBottom.appendChild(bottomLeft);
         rowBottom.appendChild(transport);
@@ -496,6 +500,15 @@ export function mountVideoControls(video, opts = {}) {
                 }, 220);
             } catch {}
         };
+        unsubs.push(() => {
+            try {
+                if (_stepFlashTimer) clearTimeout(_stepFlashTimer);
+            } catch {}
+            _stepFlashTimer = null;
+            try {
+                frameLabel?.classList?.remove?.("is-step");
+            } catch {}
+        });
 
         const setToggleBtn = (btn, on) => {
             try {
@@ -769,7 +782,9 @@ export function mountVideoControls(video, opts = {}) {
         const updateVolumeUI = () => {
             try {
                 const v = clamp01(Number(video?.volume) || 0);
-                if (!volume.matches?.(":active")) volume.value = String(v);
+                try {
+                    if (volume && !volume.matches?.(":active")) volume.value = String(v);
+                } catch {}
                 setMuteLabel();
             } catch {}
         };
@@ -991,17 +1006,19 @@ export function mountVideoControls(video, opts = {}) {
                 updateVolumeUI();
             })
         );
-        unsubs.push(
-            safeAddListener(volume, "input", (e) => {
-                stop(e);
-                try {
-                    const v = clamp01(Number(volume.value) || 0);
-                    video.volume = v;
-                    if (v > 0.001) video.muted = false;
-                } catch {}
-                updateVolumeUI();
-            })
-        );
+        if (volume) {
+            unsubs.push(
+                safeAddListener(volume, "input", (e) => {
+                    stop(e);
+                    try {
+                        const v = clamp01(Number(volume.value) || 0);
+                        video.volume = v;
+                        if (v > 0.001) video.muted = false;
+                    } catch {}
+                    updateVolumeUI();
+                })
+            );
+        }
         const enforceRange = () => {
             if (!advanced) return;
             try {

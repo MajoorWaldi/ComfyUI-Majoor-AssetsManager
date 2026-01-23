@@ -41,6 +41,20 @@ export function createViewerMediaFactory({
             }
         });
 
+    const _seedNaturalSizeFromAsset = (canvas, asset) => {
+        try {
+            if (!canvas || !(canvas instanceof HTMLCanvasElement)) return;
+            const w = Number(asset?.width) || 0;
+            const h = Number(asset?.height) || 0;
+            if (!(w > 0 && h > 0)) return;
+            // Hint used before processors are ready; processors will overwrite with true natural size.
+            if (!Number(canvas._mjrNaturalW) && !Number(canvas._mjrNaturalH)) {
+                canvas._mjrNaturalW = w;
+                canvas._mjrNaturalH = h;
+            }
+        } catch {}
+    };
+
     function createMediaElement(asset, url) {
         const container = document.createElement("div");
         container.className = "mjr-video-host";
@@ -57,6 +71,10 @@ export function createViewerMediaFactory({
         if (kind && kind !== "image" && kind !== "video") {
             const canvas = document.createElement("canvas");
             canvas.className = "mjr-viewer-media";
+            try {
+                if (asset?.id != null && canvas?.dataset) canvas.dataset.mjrAssetId = String(asset.id);
+            } catch {}
+            _seedNaturalSizeFromAsset(canvas, asset);
             canvas.style.cssText = `
                 max-width: 100%;
                 max-height: 100%;
@@ -73,6 +91,10 @@ export function createViewerMediaFactory({
         if (kind === "video") {
             const canvas = document.createElement("canvas");
             canvas.className = "mjr-viewer-media";
+            try {
+                if (asset?.id != null && canvas?.dataset) canvas.dataset.mjrAssetId = String(asset.id);
+            } catch {}
+            _seedNaturalSizeFromAsset(canvas, asset);
             canvas.style.cssText = `
                 max-width: 100%;
                 max-height: 100%;
@@ -156,6 +178,10 @@ export function createViewerMediaFactory({
 
         const canvas = document.createElement("canvas");
         canvas.className = "mjr-viewer-media";
+        try {
+            if (asset?.id != null && canvas?.dataset) canvas.dataset.mjrAssetId = String(asset.id);
+        } catch {}
+        _seedNaturalSizeFromAsset(canvas, asset);
         canvas.style.cssText = `
             max-width: 100%;
             max-height: 100%;
@@ -196,11 +222,15 @@ export function createViewerMediaFactory({
 
     // Create media element for compare modes (A/B and side-by-side).
     // Important: the returned element fills the container so both layers share identical sizing/centering.
-    function createCompareMediaElement(asset, url) {
+        function createCompareMediaElement(asset, url) {
         const kind = String(asset?.kind || "").toLowerCase();
         if (kind && kind !== "image" && kind !== "video") {
             const canvas = document.createElement("canvas");
             canvas.className = "mjr-viewer-media";
+            try {
+                if (asset?.id != null && canvas?.dataset) canvas.dataset.mjrAssetId = String(asset.id);
+            } catch {}
+            _seedNaturalSizeFromAsset(canvas, asset);
             canvas.style.cssText = `
                 max-width: 100%;
                 max-height: 100%;
@@ -214,12 +244,16 @@ export function createViewerMediaFactory({
             return canvas;
         }
 
-        if (kind === "video") {
-            const wrap = document.createElement("div");
-            wrap.style.cssText = "width:100%; height:100%; position:relative; display:flex; align-items:center; justify-content:center;";
+            if (kind === "video") {
+                const wrap = document.createElement("div");
+                wrap.style.cssText = "width:100%; height:100%; position:relative; display:flex; align-items:center; justify-content:center;";
 
             const canvas = document.createElement("canvas");
             canvas.className = "mjr-viewer-media";
+            try {
+                if (asset?.id != null && canvas?.dataset) canvas.dataset.mjrAssetId = String(asset.id);
+            } catch {}
+            _seedNaturalSizeFromAsset(canvas, asset);
             canvas.style.cssText = `
                 max-width: 100%;
                 max-height: 100%;
@@ -239,25 +273,37 @@ export function createViewerMediaFactory({
             video.preload = "metadata";
             video.style.cssText = "position:absolute; width:1px; height:1px; opacity:0; pointer-events:none;";
 
-            try {
-                canvas._mjrProc = createVideoProcessor({
-                    canvas,
-                    videoEl: video,
-                    getGradeParams,
-                    isDefaultGrade,
-                    tonemap,
-                    maxProcPixelsVideo: maxProcPixelsVideo,
-                    throttleFps: videoGradeThrottleFps,
-                    safeAddListener: _safeAddListener,
-                    safeCall: _safeCall,
-                    onReady: () => {
-                        try {
-                            scheduleOverlayRedraw?.();
-                        } catch {}
-                    },
-                });
-                canvas._mjrProc?.setParams?.(getGradeParams?.());
-            } catch {}
+                try {
+                    canvas._mjrProc = createVideoProcessor({
+                        canvas,
+                        videoEl: video,
+                        getGradeParams,
+                        isDefaultGrade,
+                        tonemap,
+                        maxProcPixelsVideo: maxProcPixelsVideo,
+                        throttleFps: videoGradeThrottleFps,
+                        safeAddListener: _safeAddListener,
+                        safeCall: _safeCall,
+                        onReady: () => {
+                            try {
+                                // Refit after the processor updates natural size (important in compare modes).
+                                requestAnimationFrame(() => {
+                                    try {
+                                        if (!state?._userInteracted) {
+                                            updateMediaNaturalSize?.();
+                                            clampPanToBounds?.();
+                                            applyTransform?.();
+                                        }
+                                    } catch {}
+                                });
+                            } catch {}
+                            try {
+                                scheduleOverlayRedraw?.();
+                            } catch {}
+                        },
+                    });
+                    canvas._mjrProc?.setParams?.(getGradeParams?.());
+                } catch {}
 
             wrap.appendChild(canvas);
             wrap.appendChild(video);
@@ -266,6 +312,10 @@ export function createViewerMediaFactory({
 
         const canvas = document.createElement("canvas");
         canvas.className = "mjr-viewer-media";
+        try {
+            if (asset?.id != null && canvas?.dataset) canvas.dataset.mjrAssetId = String(asset.id);
+        } catch {}
+        _seedNaturalSizeFromAsset(canvas, asset);
         canvas.style.cssText = `
             max-width: 100%;
             max-height: 100%;
@@ -282,6 +332,18 @@ export function createViewerMediaFactory({
                 tonemap,
                 maxProcPixels: maxProcPixels,
                 onReady: () => {
+                    try {
+                        // Refit after the processor updates natural size (important in compare modes).
+                        requestAnimationFrame(() => {
+                            try {
+                                if (!state?._userInteracted) {
+                                    updateMediaNaturalSize?.();
+                                    clampPanToBounds?.();
+                                    applyTransform?.();
+                                }
+                            } catch {}
+                        });
+                    } catch {}
                     try {
                         scheduleOverlayRedraw?.();
                     } catch {}

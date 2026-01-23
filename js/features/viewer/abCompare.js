@@ -20,7 +20,13 @@ export function renderABCompareView({
         abView?._mjrDiffAbort?.abort?.();
     } catch {}
     try {
+        abView?._mjrSliderAbort?.abort?.();
+    } catch {}
+    try {
         abView._mjrDiffRequest = null;
+    } catch {}
+    try {
+        abView._mjrSliderAbort = null;
     } catch {}
 
     if (!abView || !state || !currentAsset) return;
@@ -155,83 +161,7 @@ export function renderABCompareView({
     handle.textContent = "\u2194";
     slider.appendChild(handle);
 
-    // Synchronize A/B videos when both are videos.
-    try {
-        const aVideo = topMedia?.querySelector?.(".mjr-viewer-video-src") || topMedia?.querySelector?.("video");
-        const bVideo = baseMedia?.querySelector?.(".mjr-viewer-video-src") || baseMedia?.querySelector?.("video");
-        if (aVideo && bVideo) {
-            let syncing = false;
-            try {
-                abView._mjrSyncAbort?.abort?.();
-            } catch {}
-            const syncAC = new AbortController();
-            abView._mjrSyncAbort = syncAC;
-
-            const bindSync = (leader, follower) => {
-                const threshold = 0.15;
-                leader.addEventListener(
-                    "play",
-                    () => {
-                        if (syncing) return;
-                        try {
-                            const p = follower.play?.();
-                            if (p && typeof p.catch === "function") p.catch(() => {});
-                        } catch {}
-                    },
-                    { signal: syncAC.signal, passive: true }
-                );
-                leader.addEventListener(
-                    "pause",
-                    () => {
-                        if (syncing) return;
-                        try {
-                            follower.pause?.();
-                        } catch {}
-                    },
-                    { signal: syncAC.signal, passive: true }
-                );
-                leader.addEventListener(
-                    "timeupdate",
-                    () => {
-                        if (syncing) return;
-                        try {
-                            if (Math.abs(leader.currentTime - follower.currentTime) > threshold) {
-                                syncing = true;
-                                follower.currentTime = leader.currentTime;
-                                syncing = false;
-                            }
-                        } catch {
-                            syncing = false;
-                        }
-                    },
-                    { signal: syncAC.signal, passive: true }
-                );
-                leader.addEventListener(
-                    "seeking",
-                    () => {
-                        if (syncing) return;
-                        try {
-                            syncing = true;
-                            follower.currentTime = leader.currentTime;
-                        } catch {} finally {
-                            syncing = false;
-                        }
-                    },
-                    { signal: syncAC.signal, passive: true }
-                );
-            };
-
-            bindSync(aVideo, bVideo);
-            bindSync(bVideo, aVideo);
-
-            try {
-                aVideo.muted = true;
-            } catch {}
-            try {
-                bVideo.muted = true;
-            } catch {}
-        }
-    } catch {}
+    // Video sync is handled centrally by the viewer bar (Viewer.js) so we avoid double-sync here.
 
     const mode = (() => {
         try {
@@ -440,14 +370,64 @@ export function renderABCompareView({
                 const isVideo = !!(topMedia?.querySelector?.("video") || baseMedia?.querySelector?.("video"));
                 if (isVideo) {
                     let raf = null;
+
+                    const aVideo = topMedia?.querySelector?.("video") || null;
+                    const bVideo = baseMedia?.querySelector?.("video") || null;
+                    const anyPlaying = () => {
+                        try {
+                            const ap = aVideo ? !aVideo.paused : false;
+                            const bp = bVideo ? !bVideo.paused : false;
+                            return ap || bp;
+                        } catch {
+                            return true;
+                        }
+                    };
+
                     const tick = () => {
                         if (ac.signal.aborted) return;
                         try {
                             if (aCanvas && bCanvas) drawDiffOnce();
                         } catch {}
-                        raf = requestAnimationFrame(tick);
+                        if (!anyPlaying()) {
+                            raf = null;
+                            return;
+                        }
+                        try {
+                            raf = requestAnimationFrame(tick);
+                        } catch {
+                            raf = null;
+                        }
                     };
-                    raf = requestAnimationFrame(tick);
+
+                    const ensureRaf = () => {
+                        if (ac.signal.aborted) return;
+                        if (raf != null) return;
+                        try {
+                            raf = requestAnimationFrame(tick);
+                        } catch {
+                            raf = null;
+                        }
+                    };
+
+                    // While playing: continuous updates. While paused: update on seek/timeupdate (scrub) only.
+                    try {
+                        if (aVideo) {
+                            aVideo.addEventListener("play", ensureRaf, { signal: ac.signal, passive: true });
+                            aVideo.addEventListener("seeking", request, { signal: ac.signal, passive: true });
+                            aVideo.addEventListener("seeked", request, { signal: ac.signal, passive: true });
+                            aVideo.addEventListener("timeupdate", request, { signal: ac.signal, passive: true });
+                        }
+                    } catch {}
+                    try {
+                        if (bVideo) {
+                            bVideo.addEventListener("play", ensureRaf, { signal: ac.signal, passive: true });
+                            bVideo.addEventListener("seeking", request, { signal: ac.signal, passive: true });
+                            bVideo.addEventListener("seeked", request, { signal: ac.signal, passive: true });
+                            bVideo.addEventListener("timeupdate", request, { signal: ac.signal, passive: true });
+                        }
+                    } catch {}
+
+                    ensureRaf();
                     ac.signal.addEventListener(
                         "abort",
                         () => {
@@ -471,7 +451,7 @@ export function renderABCompareView({
         }
     } catch {}
 
-    // Drag functionality (pointer-capture; avoids leaking document-level listeners on re-render)
+    // Drag functionality (pointer-capture; uses AbortController to avoid leaking listeners on re-render)
     let isDragging = false;
     const onPointerMove = (e) => {
         if (!isDragging) return;
@@ -492,16 +472,25 @@ export function renderABCompareView({
     const stopDrag = () => {
         isDragging = false;
     };
-    slider.addEventListener("pointerdown", (e) => {
-        isDragging = true;
-        try {
-            slider.setPointerCapture(e.pointerId);
-        } catch {}
-        onPointerMove(e);
-    });
-    slider.addEventListener("pointermove", onPointerMove);
-    slider.addEventListener("pointerup", stopDrag);
-    slider.addEventListener("pointercancel", stopDrag);
+    try {
+        const sliderAC = new AbortController();
+        abView._mjrSliderAbort = sliderAC;
+
+        slider.addEventListener(
+            "pointerdown",
+            (e) => {
+                isDragging = true;
+                try {
+                    slider.setPointerCapture(e.pointerId);
+                } catch {}
+                onPointerMove(e);
+            },
+            { signal: sliderAC.signal, passive: true }
+        );
+        slider.addEventListener("pointermove", onPointerMove, { signal: sliderAC.signal, passive: true });
+        slider.addEventListener("pointerup", stopDrag, { signal: sliderAC.signal, passive: true });
+        slider.addEventListener("pointercancel", stopDrag, { signal: sliderAC.signal, passive: true });
+    } catch {}
 
     // Slider styling per wipe mode (horizontal/vertical)
     try {
@@ -528,81 +517,5 @@ export function renderABCompareView({
         abView.appendChild(slider);
     } catch {}
 
-    // Synchronize videos in A/B comparison mode (if both layers are videos).
-    try {
-        const baseVideo = baseMedia?.querySelector?.("video");
-        const topVideo = topMedia?.querySelector?.("video");
-        if (baseVideo && topVideo) {
-            let syncing = false;
-            try {
-                abView._mjrSyncAbort?.abort?.();
-            } catch {}
-            const syncAC = new AbortController();
-            abView._mjrSyncAbort = syncAC;
-
-            const bindSync = (leader, follower) => {
-                const threshold = 0.15;
-                leader.addEventListener(
-                    "play",
-                    () => {
-                        if (syncing) return;
-                        try {
-                            const p = follower.play?.();
-                            if (p && typeof p.catch === "function") p.catch(() => {});
-                        } catch {}
-                    },
-                    { signal: syncAC.signal, passive: true }
-                );
-                leader.addEventListener(
-                    "pause",
-                    () => {
-                        if (syncing) return;
-                        try {
-                            follower.pause?.();
-                        } catch {}
-                    },
-                    { signal: syncAC.signal, passive: true }
-                );
-                leader.addEventListener(
-                    "timeupdate",
-                    () => {
-                        if (syncing) return;
-                        try {
-                            if (Math.abs(leader.currentTime - follower.currentTime) > threshold) {
-                                syncing = true;
-                                follower.currentTime = leader.currentTime;
-                                syncing = false;
-                            }
-                        } catch {
-                            syncing = false;
-                        }
-                    },
-                    { signal: syncAC.signal, passive: true }
-                );
-                leader.addEventListener(
-                    "seeking",
-                    () => {
-                        if (syncing) return;
-                        try {
-                            syncing = true;
-                            follower.currentTime = leader.currentTime;
-                        } catch {} finally {
-                            syncing = false;
-                        }
-                    },
-                    { signal: syncAC.signal, passive: true }
-                );
-            };
-
-            bindSync(baseVideo, topVideo);
-            bindSync(topVideo, baseVideo);
-
-            try {
-                topVideo.muted = true;
-            } catch {}
-            try {
-                baseVideo.muted = true;
-            } catch {}
-        }
-    } catch {}
+    // Video sync handled above via shared utility (do not duplicate listeners here).
 }

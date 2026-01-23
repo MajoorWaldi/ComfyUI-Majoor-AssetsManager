@@ -36,11 +36,18 @@ export function createSidebar(position = "right") {
     sidebar._currentFullAsset = null;
     sidebar._ratingTagsSection = null;
 
+    const unsubs = [];
     const ac = typeof AbortController !== "undefined" ? new AbortController() : null;
     sidebar._mjrAbortController = ac;
     sidebar._dispose = () => {
         try {
             ac?.abort?.();
+        } catch {}
+        try {
+            for (const u of unsubs) u?.();
+        } catch {}
+        try {
+            unsubs.length = 0;
         } catch {}
     };
 
@@ -83,6 +90,14 @@ export function createSidebar(position = "right") {
         try {
             window.addEventListener(ASSET_RATING_CHANGED_EVENT, onRatingChanged);
             window.addEventListener(ASSET_TAGS_CHANGED_EVENT, onTagsChanged);
+            unsubs.push(() => {
+                try {
+                    window.removeEventListener(ASSET_RATING_CHANGED_EVENT, onRatingChanged);
+                } catch {}
+                try {
+                    window.removeEventListener(ASSET_TAGS_CHANGED_EVENT, onTagsChanged);
+                } catch {}
+            });
         } catch {}
     }
 

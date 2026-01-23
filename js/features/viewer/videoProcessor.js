@@ -1,4 +1,5 @@
 import { clamp01 } from "./state.js";
+import { computeProcessorScale } from "./processorUtils.js";
 import { drawMediaError } from "./imageProcessor.js";
 
 export function createVideoProcessor({
@@ -60,16 +61,7 @@ export function createVideoProcessor({
 
     const unsubs = [];
 
-    const computeScale = (w, h) => {
-        try {
-            const pixels = (Number(w) || 0) * (Number(h) || 0);
-            if (!(pixels > 0)) return 1;
-            if (pixels <= maxProcPixelsVideo) return 1;
-            return Math.max(0.05, Math.min(1, Math.sqrt(maxProcPixelsVideo / pixels)));
-        } catch {
-            return 1;
-        }
-    };
+    const computeScale = (w, h) => computeProcessorScale(maxProcPixelsVideo, w, h);
 
     const ensureSizeFromVideo = () => {
         try {

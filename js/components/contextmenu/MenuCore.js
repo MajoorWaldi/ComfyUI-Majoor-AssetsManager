@@ -142,6 +142,15 @@ export function getOrCreateMenu({
         },
         { signal: ac.signal, capture: true }
     );
+    // Some parts of the viewer use pointerdown handlers that preventDefault() and can suppress "click".
+    // Use pointerdown as the primary outside-dismiss signal to avoid stuck menus.
+    document.addEventListener(
+        "pointerdown",
+        (e) => {
+            if (!menu.contains(e.target)) hide();
+        },
+        { signal: ac.signal, capture: true, passive: true }
+    );
     document.addEventListener(
         "keydown",
         (e) => {
@@ -150,6 +159,7 @@ export function getOrCreateMenu({
         { signal: ac.signal, capture: true }
     );
     document.addEventListener("scroll", hide, { capture: true, passive: true, signal: ac.signal });
+    document.addEventListener("wheel", hide, { capture: true, passive: true, signal: ac.signal });
 
     document.body.appendChild(menu);
     return menu;

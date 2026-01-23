@@ -7,7 +7,53 @@ export function createViewerGrid({
     getViewportRect,
     clearCanvas,
 } = {}) {
-    const _getNaturalSize = (el) => {
+    const _getModeRoot = () => {
+        try {
+            const mode = state?.mode;
+            if (mode === VIEWER_MODES?.AB_COMPARE) return content?.querySelector?.(".mjr-viewer-ab") || content || null;
+            if (mode === VIEWER_MODES?.SIDE_BY_SIDE) return content?.querySelector?.(".mjr-viewer-sidebyside") || content || null;
+            return content?.querySelector?.(".mjr-viewer-single") || content || null;
+        } catch {
+            return content || null;
+        }
+    };
+
+    const _getBoxElForMedia = (mediaEl, root) => {
+        try {
+            if (!mediaEl) return root || null;
+            const mode = state?.mode;
+            if (mode === VIEWER_MODES?.SIDE_BY_SIDE || mode === VIEWER_MODES?.AB_COMPARE) {
+                // Prefer the direct child panel/layer of the mode root (stable, not transformed by pan/zoom).
+                let el = mediaEl;
+                while (el && el !== root && el.parentElement) {
+                    if (el.parentElement === root) return el;
+                    el = el.parentElement;
+                }
+                return root || null;
+            }
+            return root || content || null;
+        } catch {
+            return root || content || null;
+        }
+    };
+
+    const _getAssetForMedia = (mediaEl) => {
+        try {
+            const id = mediaEl?.dataset?.mjrAssetId;
+            if (id == null || id === "") return state?.assets?.[state?.currentIndex] || null;
+            const list = Array.isArray(state?.assets) ? state.assets : [];
+            for (const a of list) {
+                try {
+                    if (a?.id != null && String(a.id) === String(id)) return a;
+                } catch {}
+            }
+            return state?.assets?.[state?.currentIndex] || null;
+        } catch {
+            return state?.assets?.[state?.currentIndex] || null;
+        }
+    };
+
+    const _getNaturalSize = (el, assetHint = null) => {
         try {
             if (!el) return { w: 0, h: 0 };
             if (el instanceof HTMLCanvasElement) {
@@ -18,6 +64,13 @@ export function createViewerGrid({
             const w = Number(el.videoWidth) || Number(el.naturalWidth) || 0;
             const h = Number(el.videoHeight) || Number(el.naturalHeight) || 0;
             if (w > 0 && h > 0) return { w, h };
+
+            // Prefer per-media asset dimensions (works in side-by-side / A-B while processors are still loading).
+            try {
+                const aw = Number(assetHint?.width) || 0;
+                const ah = Number(assetHint?.height) || 0;
+                if (aw > 0 && ah > 0) return { w: aw, h: ah };
+            } catch {}
 
             // Fallbacks (before processors report natural size).
             try {
@@ -52,6 +105,97 @@ export function createViewerGrid({
             return { x, y, w, h };
         } catch {
             return { x: 0, y: 0, w: Number(boxW) || 0, h: Number(boxH) || 0 };
+        }
+    };
+
+    const _fitHeightRect = (boxW, boxH, naturalW, naturalH) => {
+        try {
+            const bw = Number(boxW) || 0;
+            const bh = Number(boxH) || 0;
+            const nw = Number(naturalW) || 0;
+            const nh = Number(naturalH) || 0;
+            if (!(bw > 0 && bh > 0 && nw > 0 && nh > 0)) return { x: 0, y: 0, w: bw, h: bh };
+            const aspect = nw / nh;
+            if (!Number.isFinite(aspect) || aspect <= 0) return { x: 0, y: 0, w: bw, h: bh };
+            const h = bh;
+            const w = bh * aspect;
+            const x = (bw - w) / 2;
+            const y = 0;
+            return { x, y, w, h };
+        } catch {
+            return { x: 0, y: 0, w: Number(boxW) || 0, h: Number(boxH) || 0 };
+        }
+    };
+
+    const _transformRectAround = (rectCss, centerCss, zoom, panX, panY) => {
+        try {
+            const z = Math.max(0.1, Math.min(16, Number(zoom) || 1));
+            const cx = Number(centerCss?.x) || 0;
+            const cy = Number(centerCss?.y) || 0;
+            const x = Number(rectCss?.x) || 0;
+            const y = Number(rectCss?.y) || 0;
+            const w = Number(rectCss?.w) || 0;
+            const h = Number(rectCss?.h) || 0;
+            const px = Number(panX) || 0;
+            const py = Number(panY) || 0;
+            return {
+                x: cx + (x - cx) * z + px,
+                y: cy + (y - cy) * z + py,
+                w: w * z,
+                h: h * z,
+            };
+        } catch {
+            return { x: 0, y: 0, w: 0, h: 0 };
+        }
+    };
+
+    const _drawHudSizeLabel = (ctx, rect, label, dpr) => {
+        try {
+            const r = rect || {};
+            const x = Number(r.x) || 0;
+            const y = Number(r.y) || 0;
+            const w = Number(r.w) || 0;
+            const h = Number(r.h) || 0;
+            if (!(w > 8 && h > 8)) return;
+            const text = String(label || "");
+            if (!text) return;
+
+            const padX = Math.max(6, Math.round(6 * dpr));
+            const padY = Math.max(3, Math.round(3 * dpr));
+            const fontPx = Math.max(11, Math.round(11 * dpr));
+
+            ctx.save();
+            ctx.font = `${fontPx}px var(--comfy-font, ui-sans-serif, system-ui)`;
+            ctx.textAlign = "left";
+            ctx.textBaseline = "top";
+
+            const tw = Math.ceil(ctx.measureText(text).width);
+            const bw = tw + padX * 2;
+            const bh = fontPx + padY * 2;
+
+            const bx = x + Math.max(2, Math.round(8 * dpr));
+            const by = y + Math.max(2, Math.round(8 * dpr));
+
+            ctx.fillStyle = "rgba(0,0,0,0.55)";
+            ctx.strokeStyle = "rgba(255,255,255,0.18)";
+            ctx.lineWidth = Math.max(1, Math.round(1 * dpr));
+            ctx.beginPath();
+            const rr = Math.max(6, Math.round(8 * dpr));
+            ctx.moveTo(bx + rr, by);
+            ctx.arcTo(bx + bw, by, bx + bw, by + bh, rr);
+            ctx.arcTo(bx + bw, by + bh, bx, by + bh, rr);
+            ctx.arcTo(bx, by + bh, bx, by, rr);
+            ctx.arcTo(bx, by, bx + bw, by, rr);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = "rgba(255,255,255,0.92)";
+            ctx.fillText(text, bx + padX, by + padY);
+            ctx.restore();
+        } catch {
+            try {
+                ctx.restore();
+            } catch {}
         }
     };
 
@@ -127,7 +271,16 @@ export function createViewerGrid({
             ctx.fillRect(0, 0, gridCanvas.width, gridCanvas.height);
             ctx.globalCompositeOperation = "destination-out";
             ctx.fillStyle = "rgba(0,0,0,1)";
-            ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+            const rects = Array.isArray(rect) ? rect : [rect];
+            for (const r of rects) {
+                if (!r) continue;
+                const x = Number(r.x) || 0;
+                const y = Number(r.y) || 0;
+                const w = Number(r.w) || 0;
+                const h = Number(r.h) || 0;
+                if (!(w > 1 && h > 1)) continue;
+                ctx.fillRect(x, y, w, h);
+            }
             ctx.restore();
         } catch {
             try {
@@ -161,55 +314,146 @@ export function createViewerGrid({
                 clearCanvas?.(ctx, w, h);
             } catch {}
 
-            const mediaEl = getPrimaryMedia?.();
-            if (!mediaEl) return;
-
-            // IMPORTANT: overlays must not move with pan/zoom.
-            // Compute the format rect purely from the viewport and the image aspect, NOT from the transformed media element rect.
             const vp = getViewportRect?.();
             if (!vp) return;
             const vpW = Number(vp.width) || 0;
             const vpH = Number(vp.height) || 0;
             if (!(vpW > 1 && vpH > 1)) return;
 
-            const nat = _getNaturalSize(mediaEl);
-            const base = _fitContainRect(vpW, vpH, nat.w, nat.h);
-            const aspect = _aspectFromFormat(state?.overlayFormat, mediaEl, { width: base.w, height: base.h });
-            const fmt = _fitAspectInBox(base.w, base.h, aspect);
-            const fmtRectCss = {
-                x: (base.x || 0) + (fmt.x || 0),
-                y: (base.y || 0) + (fmt.y || 0),
-                w: fmt.w || base.w,
-                h: fmt.h || base.h,
-            };
+            const root = _getModeRoot();
+            const mode = state?.mode;
+            const mediaEls = (() => {
+                try {
+                    if (mode === VIEWER_MODES?.SINGLE) return [getPrimaryMedia?.()].filter(Boolean);
+                    // Multi-media modes: collect all .mjr-viewer-media elements in the active view root.
+                    const els = root?.querySelectorAll?.(".mjr-viewer-media") || [];
+                    return Array.from(els || []).filter(Boolean);
+                } catch {
+                    return [getPrimaryMedia?.()].filter(Boolean);
+                }
+            })();
+            if (!mediaEls.length) return;
 
-            const rect = {
-                x: fmtRectCss.x * dpr,
-                y: fmtRectCss.y * dpr,
-                w: fmtRectCss.w * dpr,
-                h: fmtRectCss.h * dpr,
-            };
-            if (!(rect.w > 1 && rect.h > 1)) return;
+            // IMPORTANT: overlays must not move with pan/zoom.
+            // Compute the format rect purely from the viewport and the image aspect, NOT from the transformed media element rect.
+            const rects = [];
+            const baseRects = [];
+            for (const mediaEl of mediaEls) {
+                try {
+                    const boxEl = _getBoxElForMedia(mediaEl, root);
+                    const boxRect = boxEl?.getBoundingClientRect?.() || null;
+                    if (!boxRect) continue;
+
+                    const boxW = Number(boxRect.width) || 0;
+                    const boxH = Number(boxRect.height) || 0;
+                    if (!(boxW > 1 && boxH > 1)) continue;
+
+                    const assetHint = _getAssetForMedia(mediaEl);
+                    const nat = _getNaturalSize(mediaEl, assetHint);
+
+                    const base = _fitHeightRect(boxW, boxH, nat.w, nat.h);
+                    const aspect = _aspectFromFormat(state?.overlayFormat, mediaEl, { width: base.w, height: base.h });
+                    const fmt = _fitAspectInBox(base.w, base.h, aspect);
+
+                    const ox = (Number(boxRect.left) || 0) - (Number(vp.left) || 0);
+                    const oy = (Number(boxRect.top) || 0) - (Number(vp.top) || 0);
+
+                    const baseRectCss0 = {
+                        x: ox + (base.x || 0),
+                        y: oy + (base.y || 0),
+                        w: base.w || boxW,
+                        h: base.h || boxH,
+                    };
+                    const fmtRectCss0 = {
+                        x: baseRectCss0.x + (fmt.x || 0),
+                        y: baseRectCss0.y + (fmt.y || 0),
+                        w: fmt.w || baseRectCss0.w,
+                        h: fmt.h || baseRectCss0.h,
+                    };
+
+                    const centerCss = { x: ox + boxW / 2, y: oy + boxH / 2 };
+                    const z = Number(state?.zoom) || 1;
+                    const panX = Number(state?.panX) || 0;
+                    const panY = Number(state?.panY) || 0;
+
+                    const baseRectCss = _transformRectAround(baseRectCss0, centerCss, z, panX, panY);
+                    const fmtRectCss = _transformRectAround(fmtRectCss0, centerCss, z, panX, panY);
+
+                    const rb = {
+                        x: baseRectCss.x * dpr,
+                        y: baseRectCss.y * dpr,
+                        w: baseRectCss.w * dpr,
+                        h: baseRectCss.h * dpr,
+                        _sizeLabel: (() => {
+                            try {
+                                const hw = Number(assetHint?.width) || Number(nat.w) || 0;
+                                const hh = Number(assetHint?.height) || Number(nat.h) || 0;
+                                if (hw > 0 && hh > 0) return `${hw}x${hh}`;
+                            } catch {}
+                            return "";
+                        })(),
+                    };
+                    const rf = {
+                        x: fmtRectCss.x * dpr,
+                        y: fmtRectCss.y * dpr,
+                        w: fmtRectCss.w * dpr,
+                        h: fmtRectCss.h * dpr,
+                    };
+                    if (rb.w > 1 && rb.h > 1) baseRects.push(rb);
+                    if (rf.w > 1 && rf.h > 1) rects.push(rf);
+                } catch {}
+            }
+            if (!rects.length && !baseRects.length) return;
+            const formatRects = rects.length ? rects : baseRects;
+            const rect = formatRects[0] || null;
 
             // Optional format mask (dim outside chosen rect).
             try {
                 if (state?.overlayMaskEnabled) {
-                    _drawMaskOutside(ctx, rect, state?.overlayMaskOpacity ?? 0.65);
-                    // The viewer background is often already dark; draw an outline so the format is visible.
-                    _drawFormatOutline(ctx, rect, dpr);
+                    _drawMaskOutside(ctx, formatRects, state?.overlayMaskOpacity ?? 0.65);
+                    // The viewer background is often already dark; draw outlines so the format is visible.
+                    for (const r of formatRects) {
+                        try {
+                            _drawFormatOutline(ctx, r, dpr);
+                        } catch {}
+                    }
+                }
+            } catch {}
+
+            // Nuke-like format box per image (drawn in all modes when HUD is enabled).
+            try {
+                if (state?.hudEnabled) {
+                    for (const r of baseRects) {
+                        try {
+                            ctx.save();
+                            ctx.strokeStyle = "rgba(255,255,255,0.22)";
+                            ctx.lineWidth = Math.max(1, Math.floor(1 * dpr));
+                            ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
+                            ctx.restore();
+                        } catch {
+                            try {
+                                ctx.restore();
+                            } catch {}
+                        }
+                        try {
+                            _drawHudSizeLabel(ctx, r, r._sizeLabel || "", dpr);
+                        } catch {}
+                    }
                 }
             } catch {}
 
             // Only draw guide lines in single mode (mask can apply in any mode).
             if (state?.mode !== VIEWER_MODES?.SINGLE) return;
             if ((state?.gridMode || 0) === 0) return;
+            if (!rect) return;
 
             try {
                 ctx.save();
                 ctx.translate(rect.x, rect.y);
 
                 ctx.strokeStyle = "rgba(255, 255, 255, 0.22)";
-                ctx.lineWidth = Math.max(1, Math.floor(1 * dpr));
+                // Slightly thicker grid lines for readability.
+                ctx.lineWidth = Math.max(2, Math.round(1.25 * dpr));
 
                 const drawLine = (x1, y1, x2, y2) => {
                     try {

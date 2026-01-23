@@ -167,9 +167,36 @@ export function showRatingPopover(anchor, asset, onUpdate) {
             try {
                 popover.remove();
             } catch {}
-            document.removeEventListener("click", closeOnClickOutside);
+            try {
+                popover?._mjrDocClickAC?.abort?.();
+            } catch {}
+            popover._mjrDocClickAC = null;
+            try {
+                if (popover._mjrDocClickTimer) clearTimeout(popover._mjrDocClickTimer);
+            } catch {}
+            popover._mjrDocClickTimer = null;
         }
     };
-    setTimeout(() => document.addEventListener("click", closeOnClickOutside), 100);
+    try {
+        const ac = typeof AbortController !== "undefined" ? new AbortController() : null;
+        popover._mjrDocClickAC = ac;
+        popover._mjrDocClickTimer = setTimeout(() => {
+            try {
+                popover._mjrDocClickTimer = null;
+            } catch {}
+            try {
+                if (!popover.isConnected) {
+                    ac?.abort?.();
+                    return;
+                }
+                if (ac) document.addEventListener("click", closeOnClickOutside, { signal: ac.signal, capture: true });
+                else document.addEventListener("click", closeOnClickOutside, { capture: true });
+            } catch {}
+        }, 100);
+    } catch {
+        try {
+            document.addEventListener("click", closeOnClickOutside, { capture: true });
+        } catch {}
+    }
     return popover;
 }

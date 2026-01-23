@@ -18,12 +18,6 @@ function createModeButton(label, mode) {
         font-size: 12px;
         transition: all 0.2s;
     `;
-    btn.addEventListener("mouseenter", () => {
-        btn.style.background = "rgba(255, 255, 255, 0.2)";
-    });
-    btn.addEventListener("mouseleave", () => {
-        btn.style.background = "rgba(255, 255, 255, 0.1)";
-    });
     return btn;
 }
 
@@ -44,12 +38,6 @@ function createIconButton(label, title) {
         font-size: 14px;
         transition: all 0.2s;
     `;
-    btn.addEventListener("mouseenter", () => {
-        btn.style.background = "rgba(255, 255, 255, 0.1)";
-    });
-    btn.addEventListener("mouseleave", () => {
-        btn.style.background = "transparent";
-    });
     return btn;
 }
 
@@ -77,19 +65,21 @@ export function createViewerToolbar({
         display: flex;
         flex-direction: column;
         gap: 8px;
-        padding: 10px 16px;
+        padding: 12px 20px;
         background: rgba(0, 0, 0, 0.8);
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         color: white;
+        box-sizing: border-box;
     `;
 
     const headerTop = document.createElement("div");
     headerTop.style.cssText = `
-        display: flex;
-        justify-content: space-between;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
         align-items: center;
-        gap: 12px;
+        column-gap: 12px;
         min-width: 0;
+        box-sizing: border-box;
     `;
     // Close is fixed to the viewer corner; avoid reserving header space for it.
 
@@ -655,23 +645,40 @@ export function createViewerToolbar({
         display: none;
         z-index: 10002;
     `;
-    helpPop.innerHTML = `
-        <div style="font-weight:600; margin-bottom:6px;">Shortcuts</div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 4px 10px;">
-            <div><span style="opacity:.75">Esc</span> Close</div>
-            <div><span style="opacity:.75">Space</span> Play/Pause</div>
-            <div><span style="opacity:.75">+</span> Zoom In</div>
-            <div><span style="opacity:.75">-</span> Zoom Out</div>
-            <div><span style="opacity:.75">Alt+1</span> 1:1 Zoom</div>
-            <div><span style="opacity:.75">G</span> Grid</div>
-            <div><span style="opacity:.75">Z</span> Zebra</div>
-            <div><span style="opacity:.75">I</span> Probe</div>
-            <div><span style="opacity:.75">L</span> Loupe</div>
-            <div><span style="opacity:.75">C</span> Copy Color</div>
-            <div><span style="opacity:.75">←/→</span> Prev/Next</div>
-            <div><span style="opacity:.75">0-5</span> Rating</div>
-        </div>
-    `;
+    try {
+        const title = document.createElement("div");
+        title.textContent = "Shortcuts";
+        title.style.cssText = "font-weight:600; margin-bottom:6px;";
+
+        const grid = document.createElement("div");
+        grid.style.cssText = "display:grid; grid-template-columns: 1fr 1fr; gap: 4px 10px;";
+
+        const addRow = (key, label) => {
+            const row = document.createElement("div");
+            const k = document.createElement("span");
+            k.style.cssText = "opacity:.75;";
+            k.textContent = String(key || "");
+            row.appendChild(k);
+            row.appendChild(document.createTextNode(` ${String(label || "")}`));
+            grid.appendChild(row);
+        };
+
+        addRow("Esc", "Close");
+        addRow("Space", "Play/Pause");
+        addRow("+", "Zoom In");
+        addRow("-", "Zoom Out");
+        addRow("Alt+1", "1:1 Zoom");
+        addRow("G", "Grid");
+        addRow("Z", "Zebra");
+        addRow("I", "Probe");
+        addRow("L", "Loupe");
+        addRow("C", "Copy Color");
+        addRow("←/→", "Prev/Next");
+        addRow("0-5", "Rating");
+
+        helpPop.appendChild(title);
+        helpPop.appendChild(grid);
+    } catch {}
 
     helpWrap.appendChild(helpBtn);
     helpWrap.appendChild(helpPop);

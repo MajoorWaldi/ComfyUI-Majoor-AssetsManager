@@ -1,4 +1,5 @@
 import { clamp01 } from "./state.js";
+import { computeProcessorScale } from "./processorUtils.js";
 
 export function drawMediaError(canvas, message) {
     if (!canvas) return;
@@ -116,16 +117,7 @@ export function createImageProcessor({
         }
     };
 
-    const computeScale = (w, h) => {
-        try {
-            const pixels = (Number(w) || 0) * (Number(h) || 0);
-            if (!(pixels > 0)) return 1;
-            if (pixels <= maxProcPixels) return 1;
-            return Math.max(0.05, Math.min(1, Math.sqrt(maxProcPixels / pixels)));
-        } catch {
-            return 1;
-        }
-    };
+    const computeScale = (w, h) => computeProcessorScale(maxProcPixels, w, h);
 
     const ensureSourceData = () => {
         if (proc.srcData) return proc.srcData;

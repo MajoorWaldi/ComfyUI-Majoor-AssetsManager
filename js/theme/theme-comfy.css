@@ -1891,3 +1891,13 @@
     background: var(--border-color);
     margin: 4px 0;
 }
+
+@media (prefers-reduced-motion: reduce) {
+    .mjr-viewer-overlay *,
+    .mjr-video-controls,
+    .mjr-context-menu {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+    }
+}

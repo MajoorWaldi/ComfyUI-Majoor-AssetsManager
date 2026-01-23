@@ -8,6 +8,23 @@ function srgbToLuma(r, g, b) {
     return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
+let _scopesTmpCanvas = null;
+let _scopesTmpCtx = null;
+
+function getScopesTmpCtx(w, h) {
+    try {
+        const dw = Math.max(1, Math.floor(Number(w) || 1));
+        const dh = Math.max(1, Math.floor(Number(h) || 1));
+        if (!_scopesTmpCanvas) _scopesTmpCanvas = document.createElement("canvas");
+        if (_scopesTmpCanvas.width !== dw) _scopesTmpCanvas.width = dw;
+        if (_scopesTmpCanvas.height !== dh) _scopesTmpCanvas.height = dh;
+        if (!_scopesTmpCtx) _scopesTmpCtx = _scopesTmpCanvas.getContext("2d", { willReadFrequently: true });
+        return _scopesTmpCtx || null;
+    } catch {
+        return null;
+    }
+}
+
 function safeGetImageData(ctx, w, h) {
     try {
         return ctx.getImageData(0, 0, w, h);
@@ -232,12 +249,10 @@ export function drawScopesLight(ctx, viewport, sourceCanvas, opts = {}) {
         const dw = Math.max(1, Math.floor(srcW / s));
         const dh = Math.max(1, Math.floor(srcH / s));
 
-        const tmp = document.createElement("canvas");
-        tmp.width = dw;
-        tmp.height = dh;
-        const tctx = tmp.getContext("2d", { willReadFrequently: true });
+        const tctx = getScopesTmpCtx(dw, dh);
         if (!tctx) return;
         try {
+            tctx.clearRect(0, 0, dw, dh);
             tctx.drawImage(sourceCanvas, 0, 0, dw, dh);
         } catch {
             return;

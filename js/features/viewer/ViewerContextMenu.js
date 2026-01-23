@@ -405,6 +405,19 @@ export function bindViewerContextMenu({
             overlayEl.removeEventListener("contextmenu", handler);
         } catch {}
         try {
+            for (const t of _ratingDebounceTimers.values()) {
+                try {
+                    clearTimeout(t);
+                } catch {}
+            }
+        } catch {}
+        try {
+            _ratingDebounceTimers.clear();
+        } catch {}
+        try {
+            menu.remove?.();
+        } catch {}
+        try {
             overlayEl._mjrViewerContextMenuBound = false;
         } catch {}
         try {

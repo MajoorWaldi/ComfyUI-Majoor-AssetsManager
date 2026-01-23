@@ -37,7 +37,7 @@ export function createDefaultViewerState() {
         overlayMaskEnabled: false,
         overlayMaskOpacity: 0.65,
         overlayFormat: "image", // image|16:9|1:1|4:3|2.39|9:16
-        probeEnabled: true,
+        probeEnabled: false,
         loupeEnabled: false,
         hudEnabled: true,
         loupeSize: 120,

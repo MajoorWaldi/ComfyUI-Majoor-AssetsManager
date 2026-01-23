@@ -103,85 +103,13 @@ export function renderSideBySideView({
         sideView.appendChild(rightPanel);
     } catch {}
 
-    // Synchronize videos in side-by-side mode (when both panels are videos).
+    // Tag roles for the global viewer bar (so it controls the "A" side by default).
     try {
-        const leftVideo = leftMedia?.querySelector?.("video");
-        const rightVideo = rightMedia?.querySelector?.("video");
-        if (leftVideo && rightVideo) {
-            try {
-                if (leftVideo?.dataset) leftVideo.dataset.mjrCompareRole = "A";
-                if (rightVideo?.dataset) rightVideo.dataset.mjrCompareRole = "B";
-            } catch {}
-            let syncing = false;
-            try {
-                sideView._mjrSyncAbort?.abort?.();
-            } catch {}
-            const syncAC = new AbortController();
-            sideView._mjrSyncAbort = syncAC;
-
-            const bindSync = (leader, follower) => {
-                const threshold = 0.15;
-                leader.addEventListener(
-                    "play",
-                    () => {
-                        if (syncing) return;
-                        try {
-                            const p = follower.play?.();
-                            if (p && typeof p.catch === "function") p.catch(() => {});
-                        } catch {}
-                    },
-                    { signal: syncAC.signal, passive: true }
-                );
-                leader.addEventListener(
-                    "pause",
-                    () => {
-                        if (syncing) return;
-                        try {
-                            follower.pause?.();
-                        } catch {}
-                    },
-                    { signal: syncAC.signal, passive: true }
-                );
-                leader.addEventListener(
-                    "timeupdate",
-                    () => {
-                        if (syncing) return;
-                        try {
-                            if (Math.abs(leader.currentTime - follower.currentTime) > threshold) {
-                                syncing = true;
-                                follower.currentTime = leader.currentTime;
-                                syncing = false;
-                            }
-                        } catch {
-                            syncing = false;
-                        }
-                    },
-                    { signal: syncAC.signal, passive: true }
-                );
-                leader.addEventListener(
-                    "seeking",
-                    () => {
-                        if (syncing) return;
-                        try {
-                            syncing = true;
-                            follower.currentTime = leader.currentTime;
-                        } catch {} finally {
-                            syncing = false;
-                        }
-                    },
-                    { signal: syncAC.signal, passive: true }
-                );
-            };
-
-            bindSync(leftVideo, rightVideo);
-            bindSync(rightVideo, leftVideo);
-
-            try {
-                rightVideo.muted = true;
-            } catch {}
-            try {
-                leftVideo.muted = true;
-            } catch {}
-        }
+        const leftVideo = leftMedia?.querySelector?.(".mjr-viewer-video-src") || leftMedia?.querySelector?.("video");
+        const rightVideo = rightMedia?.querySelector?.(".mjr-viewer-video-src") || rightMedia?.querySelector?.("video");
+        if (leftVideo?.dataset) leftVideo.dataset.mjrCompareRole = "A";
+        if (rightVideo?.dataset) rightVideo.dataset.mjrCompareRole = "B";
     } catch {}
+
+    // Video sync is handled centrally by the viewer bar (Viewer.js) so we avoid double-sync here.
 }

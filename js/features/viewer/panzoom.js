@@ -1,4 +1,5 @@
 import { APP_CONFIG } from "../../app/config.js";
+import { VIEWER_ZOOM } from "./constants.js";
 
 export function createViewerPanZoom({
     overlay,
@@ -109,14 +110,7 @@ export function createViewerPanZoom({
         try {
             if (!overlay || overlay.style.display === "none") return;
 
-            const MIN_ZOOM = 0.1;
-            const MAX_ZOOM = 16;
-            const zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Number(state?.zoom) || 1));
-            if (!(zoom > 1.001)) {
-                state.panX = 0;
-                state.panY = 0;
-                return;
-            }
+            const zoom = Math.max(VIEWER_ZOOM.MIN, Math.min(VIEWER_ZOOM.MAX, Number(state?.zoom) || 1));
 
             const current = state?.assets?.[state?.currentIndex];
             let aw = Number(current?.width) || 0;
@@ -185,19 +179,18 @@ export function createViewerPanZoom({
                 return;
             }
 
-            const viewportAspect = vw / vh;
-            let baseW = vw;
-            let baseH = vh;
-            if (aspect >= viewportAspect) {
-                baseW = vw;
-                baseH = vw / aspect;
-            } else {
-                baseH = vh;
-                baseW = vh * aspect;
-            }
+            // Fit-by-height base (may overflow horizontally).
+            const baseH = vh;
+            const baseW = vh * aspect;
 
             const scaledW = baseW * zoom;
             const scaledH = baseH * zoom;
+            const overflow = scaledW > vw + 1 || scaledH > vh + 1;
+            if (!(zoom > 1.001) && !overflow) {
+                state.panX = 0;
+                state.panY = 0;
+                return;
+            }
 
             const overflowVH = Math.max(0, scaledW - vw);
             const overflowVV = Math.max(0, scaledH - vh);
@@ -214,7 +207,7 @@ export function createViewerPanZoom({
     };
 
     const mediaTransform = () => {
-        const zoom = Math.max(0.1, Math.min(16, Number(state?.zoom) || 1));
+        const zoom = Math.max(VIEWER_ZOOM.MIN, Math.min(VIEWER_ZOOM.MAX, Number(state?.zoom) || 1));
         const x = Number(state?.panX) || 0;
         const y = Number(state?.panY) || 0;
         const nx = x / zoom;
@@ -229,7 +222,13 @@ export function createViewerPanZoom({
                 content.style.cursor = "";
                 return;
             }
-            const zoomed = (Number(state?.zoom) || 1) > 1.01;
+            const zoom = Number(state?.zoom) || 1;
+            const mediaEl = getPrimaryMedia();
+            const { w: aw, h: ah } = getMediaNaturalSize(mediaEl) || { w: 0, h: 0 };
+            const viewport = getViewportRect();
+            const overflow =
+                viewport && aw > 0 && ah > 0 ? _computeOverflowAtZoom(aw, ah, viewport.width, viewport.height, zoom) : false;
+            const zoomed = zoom > 1.01 || overflow;
             if (!zoomed) {
                 content.style.cursor = "";
                 return;
@@ -242,9 +241,27 @@ export function createViewerPanZoom({
         try {
             clampPanToBounds();
             const t = mediaTransform();
+            const root = _getModeRoot();
             const els = overlay?.querySelectorAll?.(".mjr-viewer-media") || [];
             for (const el of els) {
                 try {
+                    // Keep the media element sized to its fitted base, so rect-based tooling (probe/mask) matches.
+                    const boxEl = _getBoxElForMedia(el, root);
+                    const boxRect = boxEl?.getBoundingClientRect?.() || null;
+                    if (boxRect) {
+                        const bw = Number(boxRect.width) || 0;
+                        const bh = Number(boxRect.height) || 0;
+                        if (bw > 1 && bh > 1) {
+                            const { w: aw, h: ah } = getMediaNaturalSize(el) || { w: 0, h: 0 };
+                            if (aw > 0 && ah > 0) {
+                                const base = computeContainBaseSize(aw, ah, bw, bh);
+                                if (base.w > 1 && base.h > 1) {
+                                    el.style.width = `${Math.round(base.w)}px`;
+                                    el.style.height = `${Math.round(base.h)}px`;
+                                }
+                            }
+                        }
+                    }
                     el.style.transform = t;
                 } catch {}
             }
@@ -256,10 +273,8 @@ export function createViewerPanZoom({
 
     const setZoom = (next, { clientX = null, clientY = null } = {}) => {
         try {
-            const MIN_ZOOM = 0.1;
-            const MAX_ZOOM = 16;
-            const prevZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Number(state?.zoom) || 1));
-            const nextZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Number(next) || prevZoom));
+            const prevZoom = Math.max(VIEWER_ZOOM.MIN, Math.min(VIEWER_ZOOM.MAX, Number(state?.zoom) || 1));
+            const nextZoom = Math.max(VIEWER_ZOOM.MIN, Math.min(VIEWER_ZOOM.MAX, Number(next) || prevZoom));
             try {
                 state._userInteracted = true;
             } catch {}
@@ -303,6 +318,8 @@ export function createViewerPanZoom({
         } catch {}
     };
 
+    // Viewer default: fit by height (Nuke-like). Prevents "tiny" images by always scaling up to viewer height.
+    // Note: may overflow horizontally for wide formats; panning at zoom=1 is allowed in that case.
     const computeContainBaseSize = (aw, ah, vw, vh) => {
         try {
             const w = Number(aw) || 0;
@@ -311,16 +328,55 @@ export function createViewerPanZoom({
             const Vh = Number(vh) || 0;
             if (!(w > 0 && h > 0 && Vw > 0 && Vh > 0)) return { w: 0, h: 0 };
             const aspect = w / h;
-            const viewportAspect = Vw / Vh;
-            if (!Number.isFinite(aspect) || !Number.isFinite(viewportAspect) || aspect <= 0 || viewportAspect <= 0) {
+            if (!Number.isFinite(aspect) || aspect <= 0) {
                 return { w: 0, h: 0 };
-            }
-            if (aspect >= viewportAspect) {
-                return { w: Vw, h: Vw / aspect };
             }
             return { w: Vh * aspect, h: Vh };
         } catch {
             return { w: 0, h: 0 };
+        }
+    };
+
+    const _getModeRoot = () => {
+        try {
+            const mode = state?.mode;
+            if (mode === VIEWER_MODES?.AB_COMPARE) return abView || content || null;
+            if (mode === VIEWER_MODES?.SIDE_BY_SIDE) return sideView || content || null;
+            return singleView || content || null;
+        } catch {
+            return content || null;
+        }
+    };
+
+    const _getBoxElForMedia = (mediaEl, root) => {
+        try {
+            if (!mediaEl) return root || null;
+            const mode = state?.mode;
+            if (mode === VIEWER_MODES?.SIDE_BY_SIDE || mode === VIEWER_MODES?.AB_COMPARE) {
+                // Prefer the direct child panel/layer of the mode root (stable, not transformed by pan/zoom).
+                let el = mediaEl;
+                while (el && el !== root && el.parentElement) {
+                    if (el.parentElement === root) return el;
+                    el = el.parentElement;
+                }
+                return root || null;
+            }
+            return root || content || null;
+        } catch {
+            return root || content || null;
+        }
+    };
+
+    const _computeOverflowAtZoom = (aw, ah, viewportW, viewportH, zoom) => {
+        try {
+            const base = computeContainBaseSize(aw, ah, viewportW, viewportH);
+            if (!(base.w > 0 && base.h > 0)) return false;
+            const z = Math.max(VIEWER_ZOOM.MIN, Math.min(VIEWER_ZOOM.MAX, Number(zoom) || 1));
+            const scaledW = base.w * z;
+            const scaledH = base.h * z;
+            return scaledW > (Number(viewportW) || 0) + 1 || scaledH > (Number(viewportH) || 0) + 1;
+        } catch {
+            return false;
         }
     };
 
@@ -336,7 +392,7 @@ export function createViewerPanZoom({
             if (!(base.w > 0 && base.h > 0)) return null;
             const z = aw / base.w;
             if (!Number.isFinite(z) || z <= 0) return null;
-            return Math.max(0.1, Math.min(16, z));
+            return Math.max(VIEWER_ZOOM.MIN, Math.min(VIEWER_ZOOM.MAX, z));
         } catch {
             return null;
         }
@@ -355,7 +411,19 @@ export function createViewerPanZoom({
                 return false;
             }
         })();
-        if (!(zoom > 1.01) && !allowAt1) {
+        const allowAtCurrent = (() => {
+            try {
+                if (allowAt1) return true;
+                const mediaEl = getPrimaryMedia();
+                const { w: aw, h: ah } = getMediaNaturalSize(mediaEl) || { w: 0, h: 0 };
+                const viewport = getViewportRect();
+                if (!viewport || !(aw > 0 && ah > 0)) return zoom > 1.01;
+                return zoom > 1.01 || _computeOverflowAtZoom(aw, ah, viewport.width, viewport.height, zoom);
+            } catch {
+                return zoom > 1.01;
+            }
+        })();
+        if (!allowAtCurrent) {
             try {
                 state._panHintAt = Date.now();
                 state._panHintX = e?.clientX ?? null;
@@ -432,7 +500,7 @@ export function createViewerPanZoom({
         } catch {}
         const dx = (Number(e.clientX) || 0) - pan.startX;
         const dy = (Number(e.clientY) || 0) - pan.startY;
-        const zoom = Math.max(0.1, Math.min(16, Number(state?.zoom) || 1));
+        const zoom = Math.max(VIEWER_ZOOM.MIN, Math.min(VIEWER_ZOOM.MAX, Number(state?.zoom) || 1));
         const panMultiplier = Math.max(1, zoom);
         state.panX = pan.startPanX + dx * panMultiplier;
         state.panY = pan.startPanY + dy * panMultiplier;

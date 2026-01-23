@@ -31,6 +31,7 @@ export const APP_DEFAULTS = Object.freeze({
     // Debug / diagnostics (opt-in)
     DEBUG_SAFE_CALL: false,
     DEBUG_SAFE_LISTENERS: false,
+    DEBUG_VIEWER: false,
 
     // Viewer
     VIEWER_ALLOW_PAN_AT_ZOOM_1: false,

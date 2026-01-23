@@ -15,6 +15,7 @@ import { createDefaultViewerState } from "../features/viewer/state.js";
 import { createViewerLifecycle, destroyMediaProcessorsIn, safeAddListener, safeCall } from "../features/viewer/lifecycle.js";
 import { createViewerToolbar } from "../features/viewer/toolbar.js";
 import { installViewerKeyboard } from "../features/viewer/keyboard.js";
+import { installFollowerVideoSync } from "../features/viewer/videoSync.js";
 import { createViewerGrid } from "../features/viewer/grid.js";
 import { installViewerProbe } from "../features/viewer/probe.js";
 import { createViewerLoupe } from "../features/viewer/loupe.js";
@@ -160,6 +161,8 @@ export function createViewer() {
     }
 
     let toolbar = null;
+    // Late-bound close handler: default to "soft close" until API exists, then upgrade close button to full dispose.
+    let _requestCloseFromButton = () => closeViewer();
 
     // Header (toolbar)
     let header = document.createElement("div");
@@ -168,10 +171,11 @@ export function createViewer() {
         display: flex;
         flex-direction: column;
         gap: 8px;
-        padding: 10px 16px;
+        padding: 12px 20px;
         background: rgba(0, 0, 0, 0.8);
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         color: white;
+        box-sizing: border-box;
     `;
     let filename = document.createElement("span");
     filename.className = "mjr-viewer-filename";
@@ -194,7 +198,8 @@ export function createViewer() {
             state,
             lifecycle,
             getCanAB: () => canAB(),
-            onClose: () => closeViewer(),
+            // Close button should fully tear down the viewer (remove overlay + listeners) to avoid leaks/ghost UI.
+            onClose: () => _requestCloseFromButton?.(),
             onMode: (mode) => {
                 try {
                     if (mode === VIEWER_MODES.AB_COMPARE && !canAB()) return;
@@ -610,7 +615,8 @@ export function createViewer() {
 
         const size = grid.ensureCanvasSize();
         if (!(size.w > 0 && size.h > 0)) return;
-        const wantGridOrMask = (Number(state.gridMode) || 0) !== 0 || Boolean(state?.overlayMaskEnabled);
+        const wantGridOrMask =
+            (Number(state.gridMode) || 0) !== 0 || Boolean(state?.overlayMaskEnabled) || Boolean(state?.hudEnabled);
         if (wantGridOrMask) {
             grid.redrawGrid(size);
         } else {
@@ -662,52 +668,7 @@ export function createViewer() {
             } catch {}
         }
 
-        // Minimal pro HUD (opt-in): zoom + resolution + kind.
-        try {
-            if (state?.hudEnabled) {
-                const ctx = gridCanvas.getContext("2d");
-                if (ctx) {
-                    const current = state?.assets?.[state?.currentIndex] || null;
-                    const kind = String(current?.kind || "unknown");
-                    const w = Number(current?.width) || Number(state?._mediaW) || 0;
-                    const h = Number(current?.height) || Number(state?._mediaH) || 0;
-                    const z = Math.round((Number(state?.zoom) || 1) * 100);
-                    const line1 = `${z}%  ${w > 0 && h > 0 ? `${w}x${h}` : ""}`.trim();
-                    const line2 = `${kind}${current?.filename ? `  ${String(current.filename)}` : ""}`.trim();
-
-                    ctx.save();
-                    ctx.font = "12px var(--comfy-font, ui-sans-serif, system-ui)";
-                    ctx.textAlign = "left";
-                    ctx.textBaseline = "top";
-                    const pad = 10;
-                    const boxPad = 8;
-                    const w1 = ctx.measureText(line1).width;
-                    const w2 = ctx.measureText(line2).width;
-                    const bw = Math.min(size.w - 2 * pad, Math.max(180, Math.max(w1, w2) + boxPad * 2));
-                    const bh = 44;
-                    const x = pad;
-                    const y = pad;
-                    ctx.fillStyle = "rgba(0,0,0,0.55)";
-                    ctx.strokeStyle = "rgba(255,255,255,0.14)";
-                    ctx.lineWidth = 1;
-                    ctx.beginPath();
-                    const r = 10;
-                    ctx.moveTo(x + r, y);
-                    ctx.arcTo(x + bw, y, x + bw, y + bh, r);
-                    ctx.arcTo(x + bw, y + bh, x, y + bh, r);
-                    ctx.arcTo(x, y + bh, x, y, r);
-                    ctx.arcTo(x, y, x + bw, y, r);
-                    ctx.closePath();
-                    ctx.fill();
-                    ctx.stroke();
-                    ctx.fillStyle = "rgba(255,255,255,0.92)";
-                    ctx.fillText(line1, x + boxPad, y + 7);
-                    ctx.fillStyle = "rgba(255,255,255,0.72)";
-                    ctx.fillText(line2, x + boxPad, y + 24);
-                    ctx.restore();
-                }
-            }
-        } catch {}
+        // HUD: bbox + image WxH label (drawn in `grid.js`). No filename overlay here.
 
         // Scopes (optional): RGB histogram + luma waveform (downscaled, best-effort).
         try {
@@ -1580,67 +1541,8 @@ export function createViewer() {
             } catch {}
             try {
                 if (allVideos.length > 1) {
-                    const ac = new AbortController();
-                    state._videoSyncAbort = ac;
-                    let syncing = false;
-                    const threshold = 0.15;
                     const followers = allVideos.filter((v) => v && v !== videoEl);
-
-                    const syncTimeTo = () => {
-                        if (syncing) return;
-                        try {
-                            for (const f of followers) {
-                                if (!f) continue;
-                                if (Math.abs((Number(videoEl.currentTime) || 0) - (Number(f.currentTime) || 0)) > threshold) {
-                                    syncing = true;
-                                    f.currentTime = videoEl.currentTime;
-                                    syncing = false;
-                                }
-                            }
-                        } catch {
-                            syncing = false;
-                        }
-                    };
-
-                    const syncPlayState = (playing) => {
-                        if (syncing) return;
-                        for (const f of followers) {
-                            try {
-                                if (!f) continue;
-                                if (playing) {
-                                    const p = f.play?.();
-                                    if (p && typeof p.catch === "function") p.catch(() => {});
-                                } else {
-                                    f.pause?.();
-                                }
-                            } catch {}
-                        }
-                    };
-
-                    const syncVolume = () => {
-                        if (syncing) return;
-                        for (const f of followers) {
-                            try {
-                                if (!f) continue;
-                                f.muted = Boolean(videoEl.muted);
-                                f.volume = Number(videoEl.volume) || 0;
-                            } catch {}
-                        }
-                    };
-
-                    videoEl.addEventListener("play", () => syncPlayState(true), { signal: ac.signal, passive: true });
-                    videoEl.addEventListener("pause", () => syncPlayState(false), { signal: ac.signal, passive: true });
-                    videoEl.addEventListener("timeupdate", syncTimeTo, { signal: ac.signal, passive: true });
-                    videoEl.addEventListener("seeking", syncTimeTo, { signal: ac.signal, passive: true });
-                    videoEl.addEventListener("volumechange", syncVolume, { signal: ac.signal, passive: true });
-
-                    // Keep followers in a quiet state (analysis/compare generally shouldn't blast audio).
-                    try {
-                        for (const f of followers) {
-                            if (!f) continue;
-                            f.muted = true;
-                        }
-                    } catch {}
+                    state._videoSyncAbort = installFollowerVideoSync(videoEl, followers);
                 }
             } catch {}
 
@@ -1735,6 +1637,12 @@ export function createViewer() {
                 } catch {}
             }
         } catch {}
+        // If A/B compare is showing a computed diff canvas, force a refresh after grade changes.
+        try {
+            if (state?.mode === VIEWER_MODES.AB_COMPARE) {
+                abView?._mjrDiffRequest?.();
+            }
+        } catch {}
     };
 
     const isDefaultGrade = (params) => {
@@ -1781,19 +1689,23 @@ export function createViewer() {
     }
 
     // Navigation
-    prevBtn.addEventListener('click', () => {
-        if (state.currentIndex > 0) {
-            state.currentIndex--;
-            updateUI();
-        }
-    });
+    lifecycleUnsubs.push(
+        safeAddListener(prevBtn, "click", () => {
+            if (state.currentIndex > 0) {
+                state.currentIndex--;
+                updateUI();
+            }
+        })
+    );
 
-    nextBtn.addEventListener('click', () => {
-        if (state.currentIndex < state.assets.length - 1) {
-            state.currentIndex++;
-            updateUI();
-        }
-    });
+    lifecycleUnsubs.push(
+        safeAddListener(nextBtn, "click", () => {
+            if (state.currentIndex < state.assets.length - 1) {
+                state.currentIndex++;
+                updateUI();
+            }
+        })
+    );
 
     // Nuke-like processing controls (images only): channel/exposure/gamma/analysis.
     let _gradeRAF = null;
@@ -2067,6 +1979,40 @@ export function createViewer() {
             state._scopesVideoAbort?.abort?.();
         } catch {}
         state._scopesVideoAbort = null;
+        // Clear any pending hint timers (avoid callbacks after close/dispose).
+        try {
+            if (state._panHintTimer) clearTimeout(state._panHintTimer);
+        } catch {}
+        state._panHintTimer = null;
+        try {
+            state._panHintAt = 0;
+        } catch {}
+
+        // Abort compare-mode background work (sync listeners, diff loops).
+        try {
+            abView?._mjrSyncAbort?.abort?.();
+        } catch {}
+        try {
+            abView?._mjrDiffAbort?.abort?.();
+        } catch {}
+        try {
+            abView._mjrSyncAbort = null;
+        } catch {}
+        try {
+            abView._mjrDiffAbort = null;
+        } catch {}
+        try {
+            sideView?._mjrSyncAbort?.abort?.();
+        } catch {}
+        try {
+            sideView._mjrSyncAbort = null;
+        } catch {}
+        try {
+            abView?._mjrSliderAbort?.abort?.();
+        } catch {}
+        try {
+            abView._mjrSliderAbort = null;
+        } catch {}
         // Ensure media playback is fully stopped when closing the overlay.
         // Hiding the overlay alone does not stop HTMLMediaElement audio in all browsers.
         try {
@@ -2286,6 +2232,11 @@ export function createViewer() {
         }
     };
 
+    // Upgrade the toolbar close button to a full dispose once API is available.
+    try {
+        _requestCloseFromButton = () => api.dispose();
+    } catch {}
+
     overlay._mjrViewerAPI = api;
 
     // Right-click context menu (viewer): tags/rating/open-in-folder/copy path.
@@ -2325,12 +2276,6 @@ function createIconButton(label, title) {
         font-size: 14px;
         transition: all 0.2s;
     `;
-    btn.addEventListener('mouseenter', () => {
-        btn.style.background = 'rgba(255, 255, 255, 0.1)';
-    });
-    btn.addEventListener('mouseleave', () => {
-        btn.style.background = 'transparent';
-    });
     return btn;
 }
 
