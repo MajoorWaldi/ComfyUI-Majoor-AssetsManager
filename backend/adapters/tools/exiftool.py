@@ -5,6 +5,7 @@ import os
 import subprocess
 import json
 import shutil
+import re
 from typing import Optional, List, Dict, Any, Tuple
 from pathlib import Path
 
@@ -12,6 +13,67 @@ from ...config import EXIFTOOL_TIMEOUT
 from ...shared import Result, ErrorCode, get_logger
 
 logger = get_logger(__name__)
+
+_TAG_SAFE_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_:-]*$")
+
+
+def _is_safe_exiftool_tag(tag: str) -> bool:
+    """
+    Return True if a tag/key looks safe to pass to ExifTool as `-TAG` / `-TAG=...`.
+
+    ExifTool tags commonly contain:
+      - group separators: `XMP-xmp:Rating`
+      - dashes and colons
+      - underscores
+
+    We disallow whitespace and other special characters to prevent passing
+    unintended options or malformed arguments to ExifTool.
+    """
+    if not tag or not isinstance(tag, str):
+        return False
+    s = tag.strip()
+    if not s:
+        return False
+    if "\x00" in s or "\n" in s or "\r" in s or "\t" in s:
+        return False
+    # Reject leading dash to avoid double-dash option style (- -something).
+    if s.startswith("-"):
+        return False
+    return bool(_TAG_SAFE_PATTERN.match(s))
+
+
+def _validate_exiftool_tags(tags: Optional[List[str]]) -> Result[List[str]]:
+    """
+    Validate a tag list and return a cleaned list, or Err on any invalid tags.
+
+    Strict: invalid tags abort to avoid ambiguous or unsafe ExifTool invocations.
+    """
+    if tags is None:
+        return Result.Ok([])
+    if not isinstance(tags, list):
+        return Result.Err(ErrorCode.INVALID_INPUT, "tags must be a list", quality="none")
+
+    cleaned: List[str] = []
+    invalid: List[str] = []
+    for t in tags:
+        if not isinstance(t, str):
+            invalid.append(str(t))
+            continue
+        s = t.strip()
+        if not _is_safe_exiftool_tag(s):
+            invalid.append(s)
+            continue
+        cleaned.append(s)
+
+    if invalid:
+        return Result.Err(
+            ErrorCode.INVALID_INPUT,
+            "Invalid ExifTool tag format",
+            invalid_tags=invalid,
+            quality="none",
+        )
+    return Result.Ok(cleaned)
+
 
 def _normalize_match_path(path_value: str) -> Optional[str]:
     """
@@ -152,6 +214,11 @@ class ExifTool:
         if not p.exists() or not p.is_file():
             return Result.Err(ErrorCode.NOT_FOUND, f"File not found: {path}", quality="none")
 
+        tags_res = _validate_exiftool_tags(tags)
+        if not tags_res.ok:
+            return Result.Err(tags_res.code, tags_res.error or "Invalid tags", **(tags_res.meta or {}))
+        safe_tags = tags_res.data or []
+
         def _run(cmd: List[str], stdin_input: Optional[str]) -> subprocess.CompletedProcess:
             return subprocess.run(
                 cmd,
@@ -174,8 +241,8 @@ class ExifTool:
             # -U: Extract unknown tags
             # -s: Short tag names
             cmd = [self.bin, "-j", "-G1", "-ee", "-a", "-U", "-s"]
-            if tags:
-                cmd.extend([f"-{tag}" for tag in tags])
+            if safe_tags:
+                cmd.extend([f"-{tag}" for tag in safe_tags])
 
             # Windows Unicode compatibility:
             # - Prefer argv (most robust with Win32 wide-char argv).
@@ -196,8 +263,8 @@ class ExifTool:
                 # masking other errors (invalid tags, parse errors, etc.).
                 if "file not found" in stderr_msg.lower():
                     retry_cmd = [self.bin, "-j", "-G1", "-ee", "-a", "-U", "-s"]
-                    if tags:
-                        retry_cmd.extend([f"-{tag}" for tag in tags])
+                    if safe_tags:
+                        retry_cmd.extend([f"-{tag}" for tag in safe_tags])
                     retry_cmd.extend(["-charset", "filename=utf8", "-@", "-"])
                     # Prefer CRLF on Windows to match typical ExifTool stdin parsing behavior.
                     retry_process = _run(retry_cmd, f"{path}\r\n")
@@ -306,13 +373,21 @@ class ExifTool:
         if not valid_paths:
             return results
 
+        tags_res = _validate_exiftool_tags(tags)
+        if not tags_res.ok:
+            err = Result.Err(tags_res.code, tags_res.error or "Invalid tags", **(tags_res.meta or {}))
+            for path in valid_paths:
+                results[path] = err
+            return results
+        safe_tags = tags_res.data or []
+
         key_to_paths, cmd_paths = _build_match_map(valid_paths)
 
         try:
             # Build batch command
             cmd = [self.bin, "-j", "-G1", "-ee", "-a", "-U", "-s"]
-            if tags:
-                cmd.extend([f"-{tag}" for tag in tags])
+            if safe_tags:
+                cmd.extend([f"-{tag}" for tag in safe_tags])
 
             if os.name == "nt":
                 cmd.extend(["-charset", "filename=utf8"])
@@ -450,6 +525,20 @@ class ExifTool:
             # Preserve existing metadata if requested
             if preserve_workflow:
                 cmd.extend(["-tagsFromFile", "@"])
+
+            invalid_keys: List[str] = []
+            for key in (metadata or {}).keys():
+                if not isinstance(key, str):
+                    invalid_keys.append(str(key))
+                    continue
+                if not _is_safe_exiftool_tag(key.strip()):
+                    invalid_keys.append(key.strip())
+            if invalid_keys:
+                return Result.Err(
+                    ErrorCode.INVALID_INPUT,
+                    "Invalid ExifTool tag format",
+                    invalid_tags=invalid_keys,
+                )
 
             # Add metadata tags
             # - Scalars: `-Tag=Value`

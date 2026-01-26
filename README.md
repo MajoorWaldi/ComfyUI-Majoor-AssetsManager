@@ -186,12 +186,22 @@ Backend persistence is currently limited to `probeBackend.mode` (stored in the S
 - `MJR_COLLECTION_MAX_ITEMS` - max items per collection JSON (default `50000`)
 - `MJR_ALLOW_SYMLINKS` - allow symlink/junction custom roots (default `off`)
 - `MAJOOR_TRUSTED_PROXIES` - comma-separated IPs/CIDRs allowed to supply `X-Forwarded-For`/`X-Real-IP` (default `127.0.0.1,::1`)
+- `MAJOOR_API_TOKEN` (or `MJR_API_TOKEN`) - optional token to authorize write operations (send via `X-MJR-Token` or `Authorization: Bearer <token>`)
+- `MAJOOR_REQUIRE_AUTH` - set to `1` to require `MAJOOR_API_TOKEN` even for localhost
+- `MAJOOR_ALLOW_REMOTE_WRITE` - set to `1` to allow write operations from non-local clients without a token (**unsafe**)
+- `MAJOOR_SAFE_MODE` - set to `0` to disable Safe Mode (default enabled)
+- `MAJOOR_ALLOW_WRITE` - set to `1` to allow rating/tags writes while Safe Mode is enabled
+- `MAJOOR_ALLOW_DELETE` - set to `1` to enable asset deletion (disabled by default)
+- `MAJOOR_ALLOW_RENAME` - set to `1` to enable asset renaming (disabled by default)
+- `MAJOOR_ALLOW_OPEN_IN_FOLDER` - set to `1` to enable `/mjr/am/open-in-folder` (disabled by default)
 
 ## Security Model (high level)
 
 - **CSRF**: state-changing endpoints require `X-Requested-With: XMLHttpRequest` (or `X-CSRF-Token`) and validate `Origin` vs `Host` when present.
 - **Rate limiting**: in-memory per-client limits exist on expensive endpoints (search/scan/metadata/batch-zip). Client identity is based on IP; `X-Forwarded-For` is only honored when the connection comes from `MAJOOR_TRUSTED_PROXIES`.
 - **Path safety**: file operations validate root containment for output/input/custom roots and reject paths outside allowed roots (symlink/junction handling is opt-in).
+- **Write access**: destructive actions are loopback-only by default unless a token is configured.
+- **Safe Mode**: write operations are disabled by default unless explicitly enabled via environment variables.
 - **Batch ZIP**: ZIP building streams from an open file handle (avoids TOCTOU rename/replace races).
 
 ## Files & Storage

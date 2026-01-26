@@ -10,7 +10,7 @@ import os
 import threading
 import time
 from collections import defaultdict, OrderedDict
-from typing import Optional, Tuple
+from typing import Mapping, Optional, Tuple
 from urllib.parse import urlparse
 
 from aiohttp import web
@@ -52,6 +52,273 @@ except Exception:
 _rate_limit_state: "OrderedDict[str, dict]" = OrderedDict()
 _rate_limit_lock = threading.Lock()
 _rate_limit_cleanup_counter = 0
+
+
+def _env_truthy(name: str) -> bool:
+    try:
+        raw = os.environ.get(name)
+    except Exception:
+        raw = None
+    if raw is None:
+        return False
+    return str(raw).strip().lower() in ("1", "true", "yes", "on")
+
+
+def _safe_mode_enabled() -> bool:
+    """
+    Return True when Majoor Safe Mode is enabled.
+
+    Safe Mode is enabled by default to reduce risk when ComfyUI is exposed to remote clients
+    (via --listen, tunnels, reverse proxies, etc.).
+    """
+    # Default: enabled when unset.
+    try:
+        raw = os.environ.get("MAJOOR_SAFE_MODE")
+    except Exception:
+        raw = None
+    if raw is None:
+        return True
+    return str(raw).strip().lower() in ("1", "true", "yes", "on")
+
+
+def _require_operation_enabled(operation: str) -> "Result[bool]":
+    """
+    Gate "dangerous" or state-changing operations behind explicit opt-ins.
+
+    Policy:
+      - Safe Mode enabled by default: blocks write operations unless explicitly allowed.
+      - Delete/Rename/Open-in-folder are always opt-in (even when Safe Mode is off).
+
+    Environment variables:
+      - MAJOOR_SAFE_MODE=0 to disable safe mode
+      - MAJOOR_ALLOW_WRITE=1 to enable rating/tags writes while in safe mode
+      - MAJOOR_ALLOW_DELETE=1 to enable deletion
+      - MAJOOR_ALLOW_RENAME=1 to enable renaming
+      - MAJOOR_ALLOW_OPEN_IN_FOLDER=1 to enable open-in-folder
+    """
+    from ...shared import Result
+
+    op = str(operation or "").strip().lower()
+    safe_mode = _safe_mode_enabled()
+
+    if op in ("delete", "asset_delete", "assets_delete"):
+        if _env_truthy("MAJOOR_ALLOW_DELETE"):
+            return Result.Ok(True, operation=op, safe_mode=safe_mode)
+        return Result.Err(
+            "FORBIDDEN",
+            "Delete is disabled by default. Set MAJOOR_ALLOW_DELETE=1 to enable asset deletion.",
+            operation=op,
+            safe_mode=safe_mode,
+        )
+
+    if op in ("rename", "asset_rename"):
+        if _env_truthy("MAJOOR_ALLOW_RENAME"):
+            return Result.Ok(True, operation=op, safe_mode=safe_mode)
+        return Result.Err(
+            "FORBIDDEN",
+            "Rename is disabled by default. Set MAJOOR_ALLOW_RENAME=1 to enable asset renaming.",
+            operation=op,
+            safe_mode=safe_mode,
+        )
+
+    if op in ("open_in_folder", "open-in-folder"):
+        if _env_truthy("MAJOOR_ALLOW_OPEN_IN_FOLDER"):
+            return Result.Ok(True, operation=op, safe_mode=safe_mode)
+        return Result.Err(
+            "FORBIDDEN",
+            "Open-in-folder is disabled by default. Set MAJOOR_ALLOW_OPEN_IN_FOLDER=1 to enable it.",
+            operation=op,
+            safe_mode=safe_mode,
+        )
+
+    if op in ("write", "rating", "tags", "asset_rating", "asset_tags"):
+        if not safe_mode:
+            return Result.Ok(True, operation=op, safe_mode=safe_mode)
+        if _env_truthy("MAJOOR_ALLOW_WRITE"):
+            return Result.Ok(True, operation=op, safe_mode=safe_mode)
+        return Result.Err(
+            "FORBIDDEN",
+            "Write operations are disabled in Safe Mode. Set MAJOOR_SAFE_MODE=0 to disable safe mode, or MAJOOR_ALLOW_WRITE=1 to allow rating/tags writes.",
+            operation=op,
+            safe_mode=safe_mode,
+        )
+
+    # Unknown operation: fail closed only in safe mode.
+    if safe_mode:
+        return Result.Err(
+            "FORBIDDEN",
+            "Operation blocked in Safe Mode (unknown operation).",
+            operation=op,
+            safe_mode=safe_mode,
+        )
+    return Result.Ok(True, operation=op, safe_mode=safe_mode)
+
+
+def _get_write_token() -> str:
+    """
+    Return configured API token used to authorize destructive/write operations.
+
+    Supported env vars:
+      - MAJOOR_API_TOKEN (preferred)
+      - MJR_API_TOKEN (compat / shorter alias)
+    """
+    try:
+        raw = (os.environ.get("MAJOOR_API_TOKEN") or os.environ.get("MJR_API_TOKEN") or "").strip()
+    except Exception:
+        raw = ""
+    return raw
+
+
+def _extract_bearer_token(headers: Mapping[str, str]) -> str:
+    try:
+        auth = str(headers.get("Authorization") or "").strip()
+    except Exception:
+        auth = ""
+    if not auth:
+        return ""
+    prefix = "bearer "
+    if auth.lower().startswith(prefix):
+        return auth[len(prefix):].strip()
+    return ""
+
+
+def _extract_write_token_from_headers(headers: Mapping[str, str]) -> str:
+    """
+    Extract a user-provided write token from request headers.
+
+    Accepted:
+      - Authorization: Bearer <token>
+      - X-MJR-Token: <token>
+    """
+    bearer = _extract_bearer_token(headers)
+    if bearer:
+        return bearer
+
+    try:
+        token = str(headers.get("X-MJR-Token") or "").strip()
+    except Exception:
+        token = ""
+    return token
+
+
+def _resolve_client_ip(peer_ip: str, headers: Mapping[str, str]) -> str:
+    """
+    Resolve client IP, honoring X-Forwarded-For / X-Real-IP only from trusted proxies.
+
+    Note: This mirrors the rate-limit identity resolution but returns the IP string (not a hash),
+    so it can be used for local/remote authorization checks.
+    """
+    peer = str(peer_ip or "").strip()
+    if not peer:
+        return "unknown"
+
+    if _is_trusted_proxy(peer):
+        try:
+            forwarded_for = str(headers.get("X-Forwarded-For") or "").strip()
+        except Exception:
+            forwarded_for = ""
+        if forwarded_for:
+            cand = forwarded_for.split(",")[0].strip()
+            try:
+                ipaddress.ip_address(cand)
+                return cand
+            except Exception:
+                return peer
+
+        try:
+            real_ip = str(headers.get("X-Real-IP") or "").strip()
+        except Exception:
+            real_ip = ""
+        if real_ip:
+            try:
+                ipaddress.ip_address(real_ip)
+                return real_ip
+            except Exception:
+                return peer
+
+    return peer
+
+
+def _is_loopback_ip(value: str) -> bool:
+    try:
+        return ipaddress.ip_address(str(value or "").strip()).is_loopback
+    except Exception:
+        return False
+
+
+def _check_write_access(*, peer_ip: str, headers: Mapping[str, str]) -> "Result[bool]":
+    """
+    Authorization guard for destructive/write endpoints.
+
+    Default policy (safe-by-default):
+      - If a token is configured, it must be provided for *all* write operations.
+      - If no token is configured, allow only loopback clients (localhost / 127.0.0.1 / ::1).
+
+    Overrides:
+      - MAJOOR_REQUIRE_AUTH=1 forces token auth even for loopback (requires MAJOOR_API_TOKEN).
+      - MAJOOR_ALLOW_REMOTE_WRITE=1 disables the loopback-only restriction when no token is set.
+
+    Returns a Result that never raises (route handlers should return 200 with this Result on error).
+    """
+    # Local import to avoid cycles: core/security must remain lightweight.
+    from ...shared import Result
+
+    configured = _get_write_token()
+    require_auth = _env_truthy("MAJOOR_REQUIRE_AUTH")
+    allow_remote = _env_truthy("MAJOOR_ALLOW_REMOTE_WRITE")
+
+    client_ip = _resolve_client_ip(peer_ip, headers)
+
+    provided = _extract_write_token_from_headers(headers)
+    if configured:
+        if provided and provided == configured:
+            return Result.Ok(True, auth="token", client_ip=client_ip)
+        return Result.Err(
+            "AUTH_REQUIRED",
+            "Write operation blocked: missing or invalid API token. Set MAJOOR_API_TOKEN and send it via X-MJR-Token or Authorization: Bearer <token>.",
+            auth="token",
+            client_ip=client_ip,
+        )
+
+    if require_auth:
+        return Result.Err(
+            "AUTH_REQUIRED",
+            "Write operation blocked: MAJOOR_REQUIRE_AUTH=1 is set but no MAJOOR_API_TOKEN is configured.",
+            auth="required_missing_token",
+            client_ip=client_ip,
+        )
+
+    if allow_remote:
+        return Result.Ok(True, auth="allow_remote_no_token", client_ip=client_ip)
+
+    if _is_loopback_ip(client_ip):
+        return Result.Ok(True, auth="loopback", client_ip=client_ip)
+
+    return Result.Err(
+        "FORBIDDEN",
+        "Write operation blocked for non-local clients. If you exposed ComfyUI with --listen/tunnels, set MAJOOR_API_TOKEN (recommended) or MAJOOR_ALLOW_REMOTE_WRITE=1 (unsafe).",
+        auth="loopback_only",
+        client_ip=client_ip,
+    )
+
+
+def _require_write_access(request: web.Request) -> "Result[bool]":
+    """
+    Request-level wrapper for `_check_write_access()`.
+
+    Never raises. Meant to be used at the top of handlers that modify filesystem/DB.
+    """
+    try:
+        peer = str(getattr(request, "remote", None) or "").strip()
+    except Exception:
+        peer = ""
+    if not peer:
+        peer = _extract_peer_ip(request)
+    try:
+        headers = request.headers  # CIMultiDictProxy
+    except Exception:
+        headers = {}
+    return _check_write_access(peer_ip=peer, headers=headers)
 
 
 def _parse_trusted_proxies() -> list["ipaddress._BaseNetwork"]:

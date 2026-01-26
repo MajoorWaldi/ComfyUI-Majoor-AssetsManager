@@ -133,6 +133,34 @@ def _validate_in_base_query(base_query: str) -> Tuple[bool, str]:
     return True, ""
 
 
+def _build_in_query(base_query: str, safe_column: str, value_count: int) -> Tuple[bool, str, tuple]:
+    """
+    Build a parameterized IN-clause query from a validated template.
+
+    Returns:
+        (ok, query_or_error, placeholders_tuple)
+    """
+    try:
+        n = int(value_count)
+    except Exception:
+        n = 0
+    if n <= 0:
+        return True, "", tuple()
+
+    try:
+        parts = str(base_query).split("{IN_CLAUSE}")
+    except Exception:
+        return False, "Invalid base_query template", tuple()
+
+    if len(parts) != 2:
+        return False, "base_query must contain exactly one {IN_CLAUSE}", tuple()
+
+    placeholders = ",".join(["?"] * n)
+    in_clause = f"{safe_column} IN ({placeholders})"
+    query = parts[0] + in_clause + parts[1]
+    return True, query, tuple(["?"] * n)
+
+
 def _try_repair_column_name(column: str) -> Optional[str]:
     if not column or not isinstance(column, str):
         return None
@@ -543,9 +571,10 @@ class Sqlite:
         if not ok_tpl:
             return Result.Err(ErrorCode.INVALID_INPUT, why or "Invalid base_query template")
 
-        placeholders = ",".join(["?"] * len(values))
-        in_clause = f"{safe_col} IN ({placeholders})"
-        query = str(base_query).replace("{IN_CLAUSE}", in_clause)
+        ok_q, query_or_err, _ = _build_in_query(str(base_query), safe_col, len(values))
+        if not ok_q:
+            return Result.Err(ErrorCode.INVALID_INPUT, str(query_or_err))
+        query = query_or_err
 
         params = tuple(values)
         if additional_params:
@@ -572,9 +601,10 @@ class Sqlite:
         if not ok_tpl:
             return Result.Err(ErrorCode.INVALID_INPUT, why or "Invalid base_query template")
 
-        placeholders = ",".join(["?"] * len(values))
-        in_clause = f"{safe_col} IN ({placeholders})"
-        query = str(base_query).replace("{IN_CLAUSE}", in_clause)
+        ok_q, query_or_err, _ = _build_in_query(str(base_query), safe_col, len(values))
+        if not ok_q:
+            return Result.Err(ErrorCode.INVALID_INPUT, str(query_or_err))
+        query = query_or_err
 
         params = tuple(values)
         if additional_params:

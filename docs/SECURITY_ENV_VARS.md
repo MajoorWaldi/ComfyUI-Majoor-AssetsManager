@@ -34,11 +34,31 @@ The Assets Manager employs multiple layers of security:
 
 ## Authentication & Authorization
 
-### Session Management
-- No persistent authentication required
-- All operations happen within ComfyUI session
-- No external accounts or credentials needed
-- Access limited to ComfyUI user permissions
+### Write access guard (recommended)
+ComfyUI is often used locally, but it can be exposed via `--listen`, reverse proxies, or tunnels.
+To reduce risk, Majoor blocks destructive/write operations from non-local clients by default.
+
+- **Default behavior (no token configured)**: allow write operations only from loopback clients (`127.0.0.1` / `::1` / `localhost`).
+- **Token behavior**: if `MAJOOR_API_TOKEN` (or `MJR_API_TOKEN`) is set, all write operations require it.
+  - Send the token via `X-MJR-Token: <token>` or `Authorization: Bearer <token>`.
+
+#### Overrides (use with care)
+- `MAJOOR_REQUIRE_AUTH=1` forces token auth even for loopback (requires `MAJOOR_API_TOKEN`).
+- `MAJOOR_ALLOW_REMOTE_WRITE=1` allows remote write operations without a token (**unsafe**).
+
+### Safe Mode (default enabled)
+Safe Mode adds an explicit opt-in layer for operations that modify files or user metadata.
+
+- `MAJOOR_SAFE_MODE` (default: enabled)  
+  - Set `MAJOOR_SAFE_MODE=0` to disable Safe Mode.
+- `MAJOOR_ALLOW_WRITE=1`  
+  - Allows rating/tags writes while Safe Mode is enabled.
+- `MAJOOR_ALLOW_DELETE=1`  
+  - Enables asset deletion (disabled by default).
+- `MAJOOR_ALLOW_RENAME=1`  
+  - Enables asset rename (disabled by default).
+- `MAJOOR_ALLOW_OPEN_IN_FOLDER=1`  
+  - Enables `/mjr/am/open-in-folder` (disabled by default).
 
 ### Access Control
 - File access limited to ComfyUI's allowed directories

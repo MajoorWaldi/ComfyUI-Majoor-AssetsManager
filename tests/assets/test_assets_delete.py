@@ -34,6 +34,9 @@ def _init_schema(db: Sqlite) -> None:
 
 @pytest.mark.asyncio
 async def test_bulk_delete_aborts_on_file_delete_error(monkeypatch, tmp_path):
+    # Deletion is gated behind an explicit opt-in for safety.
+    monkeypatch.setenv("MAJOOR_ALLOW_DELETE", "1")
+
     db = Sqlite(str(tmp_path / "test.db"))
     _init_schema(db)
 
