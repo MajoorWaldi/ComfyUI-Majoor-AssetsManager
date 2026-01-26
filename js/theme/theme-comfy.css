@@ -215,10 +215,12 @@
 }
 
 .mjr-assets-manager .mjr-am-header-icon {
-    width: 16px;
-    height: 16px;
-    display: block;
-    object-fit: contain;
+    font-size: 16px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.9;
 }
 
 .mjr-assets-manager .mjr-am-header-title {

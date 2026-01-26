@@ -11,12 +11,10 @@ export function createHeaderView() {
     const headerLeft = document.createElement("div");
     headerLeft.classList.add("mjr-am-header-left");
 
-    const headerIcon = document.createElement("img");
-    headerIcon.className = "mjr-am-header-icon";
-    headerIcon.alt = "Assets Manager";
-    try {
-        headerIcon.src = new URL("../../../../ressources/icon.png", import.meta.url).toString();
-    } catch {}
+    // Use PrimeIcons (ComfyUI ships them) for maximum compatibility across extension loaders.
+    const headerIcon = document.createElement("i");
+    headerIcon.className = "mjr-am-header-icon pi pi-folder";
+    headerIcon.setAttribute("aria-hidden", "true");
 
     const headerTitle = document.createElement("div");
     headerTitle.classList.add("mjr-am-header-title");
