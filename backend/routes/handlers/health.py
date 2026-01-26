@@ -24,6 +24,7 @@ from ..core import _json_response, _require_services, _csrf_error, _read_json
 
 
 def register_health_routes(routes: web.RouteTableDef) -> None:
+    """Register health and diagnostics routes."""
     @routes.get("/mjr/am/health")
     async def health(request):
         """Get health status."""

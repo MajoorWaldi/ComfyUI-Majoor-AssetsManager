@@ -13,6 +13,10 @@ same name. This shim is deliberately named `backend.routes_compat` so the
 canonical entry-point remains the `backend.routes` *package*.
 """
 
+from __future__ import annotations
+
+from typing import Protocol, cast
+
 # Import the modular routes system which auto-registers everything.
 from .routes import (  # noqa: F401
     register_routes,
@@ -48,8 +52,17 @@ from .shared import Result, get_logger  # noqa: F401
 logger = get_logger(__name__)
 
 # Expose folder_paths stub for compatibility.
+class _FolderPaths(Protocol):
+    def get_input_directory(self) -> str: ...
+
+    def get_output_directory(self) -> str: ...
+
+
 try:
-    import folder_paths  # type: ignore
+    import folder_paths as _folder_paths
+
+    folder_paths: _FolderPaths
+    folder_paths = cast(_FolderPaths, _folder_paths)
 except Exception:  # pragma: no cover
     from pathlib import Path
 
@@ -62,18 +75,35 @@ except Exception:  # pragma: no cover
         def get_output_directory() -> str:
             return str((Path(__file__).resolve().parents[2] / "output").resolve())
 
-    folder_paths = _FolderPathsStub()  # type: ignore
+    folder_paths = cast(_FolderPaths, _FolderPathsStub())
 
 # Expose PromptServer stub for compatibility.
 try:
-    from server import PromptServer  # type: ignore
+    # Do not import ComfyUI's `server.py` here: importing it can trigger heavy
+    # initialization (nodes/torch/cuda) and may hard-crash outside the real
+    # ComfyUI runtime. Prefer reusing the already-loaded module when present.
+    import sys
+
+    _server_mod = sys.modules.get("server")
+    if _server_mod is None or not hasattr(_server_mod, "PromptServer"):
+        raise ImportError("ComfyUI server not loaded")
+
+    from aiohttp import web
+
+    class _PromptServerInstance(Protocol):
+        routes: web.RouteTableDef
+
+    class _PromptServer(Protocol):
+        instance: _PromptServerInstance
+
+    PromptServer = cast(_PromptServer, getattr(_server_mod, "PromptServer"))
 except Exception:  # pragma: no cover
     from aiohttp import web
 
     class _PromptServerStub:
         instance = type("PromptServerInstance", (), {"routes": web.RouteTableDef()})()
 
-    PromptServer = _PromptServerStub  # type: ignore
+    PromptServer = _PromptServerStub
 
 __all__ = [
     # Main functions

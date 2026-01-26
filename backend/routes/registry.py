@@ -2,17 +2,47 @@
 Route registration system.
 Coordinates all route handlers and registers them with PromptServer or aiohttp app.
 """
+
+from __future__ import annotations
+
 from aiohttp import web
 from backend.shared import get_logger
 from backend.observability import ensure_observability
+from typing import Awaitable, Callable, ClassVar, Protocol, cast
+
+
+class _PromptServerInstance(Protocol):
+    routes: web.RouteTableDef
+    app: web.Application | None
+
+
+class _PromptServer(Protocol):
+    instance: ClassVar[_PromptServerInstance]
 
 try:
-    from server import PromptServer  # type: ignore
-except Exception:
-    class _PromptServerStub:
-        instance = type("PromptServerInstance", (), {"routes": web.RouteTableDef()})()
+    # IMPORTANT (ComfyUI compatibility):
+    # Never `import server` here. Importing ComfyUI's `server.py` triggers a cascade
+    # (nodes -> torch -> cuda init) which can hard-crash the interpreter in non-ComfyUI
+    # contexts (unit tests, docs scripts, standalone runs) or on misconfigured CUDA.
+    #
+    # In the real ComfyUI runtime, `server` is already imported and lives in
+    # `sys.modules`, so we can safely reuse it without re-importing.
+    import sys
 
-    PromptServer = _PromptServerStub  # type: ignore
+    _server_mod = sys.modules.get("server")
+    if _server_mod is None or not hasattr(_server_mod, "PromptServer"):
+        raise ImportError("ComfyUI server not loaded")
+
+    PromptServer = cast(type[_PromptServer], getattr(_server_mod, "PromptServer"))
+except Exception:
+    class _PromptServerInstanceStub:
+        routes: web.RouteTableDef = web.RouteTableDef()
+        app: web.Application | None = None
+
+    class _PromptServerStub:
+        instance: ClassVar[_PromptServerInstanceStub] = _PromptServerInstanceStub()
+
+    PromptServer = cast(type[_PromptServer], _PromptServerStub)
 
 from .handlers import (
     register_health_routes,
@@ -32,7 +62,11 @@ logger = get_logger(__name__)
 
 
 @web.middleware
-async def security_headers_middleware(request, handler):
+async def security_headers_middleware(
+    request: web.Request,
+    handler: Callable[[web.Request], Awaitable[web.StreamResponse]],
+) -> web.StreamResponse:
+    """Apply strict security headers to Majoor API responses only."""
     response = await handler(request)
 
     # Only apply to Majoor API endpoints. Applying `nosniff` / CSP globally can break
@@ -60,7 +94,10 @@ async def security_headers_middleware(request, handler):
 
 
 @web.middleware
-async def api_versioning_middleware(request, handler):
+async def api_versioning_middleware(
+    request: web.Request,
+    handler: Callable[[web.Request], Awaitable[web.StreamResponse]],
+) -> web.StreamResponse:
     """
     Support versioned routes without breaking existing clients.
 

@@ -1,9 +1,12 @@
 """
 Time utilities for timestamps and performance measurement.
 """
+from __future__ import annotations
+
+import logging
 import time
-from typing import Optional
 from contextlib import contextmanager
+from typing import Iterator, Optional
 
 def now() -> float:
     """Get current timestamp in seconds (float)."""
@@ -28,7 +31,7 @@ def format_timestamp(ts: Optional[float] = None) -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(ts))
 
 @contextmanager
-def timer(label: str, logger=None):
+def timer(label: str, logger: Optional[logging.Logger] = None) -> Iterator[None]:
     """
     Context manager for timing operations.
 

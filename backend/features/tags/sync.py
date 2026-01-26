@@ -121,6 +121,7 @@ def write_exif_rating_tags(exiftool: ExifTool, file_path: str, rating: int, tags
 
 @dataclass(frozen=True)
 class RatingTagsSyncTask:
+    """Coalesced update request for a single file."""
     file_path: str
     rating: int
     tags: List[str]
@@ -277,6 +278,7 @@ class RatingTagsSyncWorker:
         self._thread.start()
 
     def stop(self, timeout: float = 2.0) -> None:
+        """Stop the background worker thread (best-effort)."""
         try:
             self._stop = True
             self._event.set()
@@ -285,6 +287,7 @@ class RatingTagsSyncWorker:
             logger.debug("RatingTagsSyncWorker stop failed: %s", exc)
 
     def enqueue(self, file_path: str, rating: int, tags: List[str], mode: str) -> None:
+        """Queue a rating/tags update (coalesced per filepath)."""
         mode_norm = str(mode or "off").strip().lower()
         # Backward compatible: "sidecar"/"both" now map to "on" (no sidecar writes).
         if mode_norm in ("sidecar", "both", "true", "1", "yes", "enabled", "enable", "on"):

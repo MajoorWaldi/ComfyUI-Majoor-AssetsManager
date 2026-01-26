@@ -1,11 +1,25 @@
-"""Backend-facing alias for shared utilities."""
+"""Backend-facing alias for shared utilities.
 
-try:
-    # When loaded by ComfyUI as a package (e.g. <extension>.backend.*)
-    from .. import shared as _root_shared  # type: ignore
-except Exception:
-    # When running tests or scripts that import `backend.*` as a top-level module
-    import shared as _root_shared  # type: ignore
+This file exists because ComfyUI can load custom nodes either:
+- as a pseudo-package via file paths under `custom_nodes/`, or
+- as top-level modules when running tests/scripts.
+
+All imports here are therefore best-effort and must not crash the UI.
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    import shared as _root_shared
+else:
+    try:
+        # When loaded by ComfyUI as a package (e.g. <extension>.backend.*)
+        from .. import shared as _root_shared  # type: ignore
+    except Exception:
+        # When running tests or scripts that import `backend.*` as a top-level module
+        import shared as _root_shared  # type: ignore
 
 Result = _root_shared.Result
 ErrorCode = _root_shared.ErrorCode
@@ -18,13 +32,17 @@ FileKind = _root_shared.FileKind
 MetadataQuality = _root_shared.MetadataQuality
 IndexMode = _root_shared.IndexMode
 MetadataMode = _root_shared.MetadataMode
-try:
-    from ..shared.types import EXTENSIONS as EXTENSIONS  # type: ignore
-except Exception:
+
+if TYPE_CHECKING:
+    from shared.types import EXTENSIONS as EXTENSIONS
+else:
     try:
-        from shared.types import EXTENSIONS as EXTENSIONS  # type: ignore
+        from ..shared.types import EXTENSIONS as EXTENSIONS  # type: ignore
     except Exception:
-        EXTENSIONS = {}  # type: ignore
+        try:
+            from shared.types import EXTENSIONS as EXTENSIONS  # type: ignore
+        except Exception:
+            EXTENSIONS: dict[str, Any] = {}
 
 __all__ = _root_shared.__all__ + [
     "Result",

@@ -18,6 +18,7 @@ logger = get_logger(__name__)
 
 
 def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
+    """Register custom root directory routes."""
     @routes.get("/mjr/am/custom-roots")
     async def get_custom_roots(request):
         result = list_custom_roots()

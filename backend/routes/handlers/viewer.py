@@ -25,6 +25,7 @@ logger = get_logger(__name__)
 
 
 def register_viewer_routes(routes: web.RouteTableDef) -> None:
+    """Register viewer info and file-serving routes."""
     @routes.get("/mjr/am/viewer/info")
     async def viewer_info(request: web.Request):
         """
@@ -88,4 +89,3 @@ def register_viewer_routes(routes: web.RouteTableDef) -> None:
             info["mime"] = None
 
         return _json_response(Result.Ok(info))
-

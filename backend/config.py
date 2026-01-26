@@ -51,6 +51,7 @@ TOOL_LOCATIONS = {
 }
 
 def get_tool_paths():
+    """Return the resolved external tool executable paths."""
     return TOOL_LOCATIONS.copy()
 
 # Media probe backend setting

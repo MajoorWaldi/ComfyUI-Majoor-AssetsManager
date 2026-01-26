@@ -35,6 +35,7 @@ class DirectoryWatcher:
         return threading.Thread(target=self._run, daemon=True)
 
     def start(self):
+        """Start the background watcher thread (idempotent)."""
         with self._lock:
             if self._thread is not None and self._thread.is_alive():
                 return
@@ -47,6 +48,7 @@ class DirectoryWatcher:
         logger.info("File watcher started", extra={"directories": [str(d) for d in self.directories]})
 
     def stop(self):
+        """Request the watcher thread to stop and join it (best-effort)."""
         self._stop_event.set()
 
         with self._lock:
@@ -78,6 +80,7 @@ class DirectoryWatcher:
         logger.info("File watcher stopped successfully")
 
     def is_alive(self) -> bool:
+        """Return True if the watcher thread is currently running."""
         with self._lock:
             return bool(self._thread and self._thread.is_alive())
 

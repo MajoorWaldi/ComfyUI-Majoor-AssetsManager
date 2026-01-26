@@ -71,6 +71,7 @@ def _date_bounds_for_exact(value):
 
 
 def register_search_routes(routes: web.RouteTableDef) -> None:
+    """Register listing/search routes."""
     @routes.get("/mjr/am/list")
     async def list_assets(request):
         """

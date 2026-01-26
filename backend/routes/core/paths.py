@@ -197,6 +197,39 @@ _ALLOWED_VIEW_EXTS = {
 
 
 def _guess_content_type_for_file(path: Path) -> str:
+    """
+    Best-effort content-type for media serving.
+
+    Note: On Windows, `mimetypes` may not include modern media types (webp/webm/avif)
+    depending on registry state. We keep a small explicit mapping for viewer-critical
+    formats to ensure browsers can decode them.
+    """
+    try:
+        ext = str(path.suffix or "").lower()
+        if ext:
+            known = {
+                # Images
+                ".png": "image/png",
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".gif": "image/gif",
+                ".webp": "image/webp",
+                ".bmp": "image/bmp",
+                ".tif": "image/tiff",
+                ".tiff": "image/tiff",
+                ".avif": "image/avif",
+                # Videos
+                ".mp4": "video/mp4",
+                ".m4v": "video/x-m4v",
+                ".webm": "video/webm",
+                ".mov": "video/quicktime",
+                ".mkv": "video/x-matroska",
+                ".avi": "video/x-msvideo",
+            }
+            if ext in known:
+                return known[ext]
+    except Exception:
+        pass
     try:
         ct, _ = mimetypes.guess_type(str(path))
         if ct:

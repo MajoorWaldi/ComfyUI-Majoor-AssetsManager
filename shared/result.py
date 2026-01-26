@@ -4,9 +4,12 @@ All service methods return Result[T] to avoid HTTP 500 errors.
 """
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Generic, Optional, TypeVar
+from typing import Any, Callable, Generic, Optional, TypeVar, cast
+
+from .types import ErrorCode
 
 T = TypeVar("T")
+U = TypeVar("U")
 
 @dataclass
 class Result(Generic[T]):
@@ -23,33 +26,31 @@ class Result(Generic[T]):
     data: Optional[T] = None
     error: Optional[str] = None
     code: str = "OK"  # OK, DEGRADED, TOOL_MISSING, DB_ERROR, UNSUPPORTED, etc.
-    meta: Dict[str, Any] = field(default_factory=dict)
+    meta: dict[str, Any] = field(default_factory=dict)
 
     @staticmethod
-    def Ok(data: T, **meta) -> "Result[T]":
+    def Ok(data: T, **meta: Any) -> "Result[T]":
         """Create a successful result with data and optional metadata."""
         return Result(ok=True, data=data, code="OK", meta=meta)
 
     @staticmethod
-    def Err(code: Any, error: str, **meta) -> "Result[T]":
+    def Err(code: ErrorCode | str | Enum, error: str, **meta: Any) -> "Result[T]":
         """Create an error result with code, message, and optional metadata."""
-        code_value = code
         try:
-            if isinstance(code, Enum):
-                code_value = code.value
+            code_value = code.value if isinstance(code, Enum) else code
         except Exception:
             code_value = code
         return Result(ok=False, error=error, code=str(code_value), meta=meta)
 
-    def map(self, fn):
+    def map(self, fn: Callable[[T], U]) -> "Result[U]":
         """Map the data if ok, otherwise return self."""
         if self.ok and self.data is not None:
             return Result.Ok(fn(self.data), **self.meta)
-        return self
+        return cast(Result[U], self)
 
     def unwrap(self) -> T:
         """Get data or raise ValueError if error."""
-        if self.ok:
+        if self.ok and self.data is not None:
             return self.data
         raise ValueError(f"[{self.code}] {self.error}")
 

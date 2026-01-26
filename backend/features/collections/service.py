@@ -96,6 +96,7 @@ def _collection_path(collection_id: str) -> Optional[Path]:
 
 @dataclass(frozen=True)
 class CollectionSummary:
+    """Lightweight summary row for collection listings."""
     id: str
     name: str
     count: int
@@ -103,6 +104,8 @@ class CollectionSummary:
 
 
 class CollectionsService:
+    """Filesystem-backed collections service (JSON files under `COLLECTIONS_DIR`)."""
+
     def __init__(self, base_dir: Optional[str | Path] = None):
         self._base = Path(base_dir) if base_dir is not None else Path(COLLECTIONS_DIR_PATH)
         self._lock = threading.Lock()
@@ -112,6 +115,7 @@ class CollectionsService:
             pass
 
     def list(self) -> Result[List[Dict[str, Any]]]:
+        """List collections with basic metadata and item counts."""
         try:
             base = self._base.resolve(strict=False)
         except Exception as exc:
@@ -139,6 +143,7 @@ class CollectionsService:
         return Result.Ok([i.__dict__ for i in items])
 
     def create(self, name: str) -> Result[Dict[str, Any]]:
+        """Create a new empty collection."""
         cname = _safe_name(name)
         if not cname:
             return Result.Err(ErrorCode.INVALID_INPUT, "Missing collection name")
@@ -166,6 +171,7 @@ class CollectionsService:
         return Result.Ok({"id": cid, "name": cname})
 
     def get(self, collection_id: str) -> Result[Dict[str, Any]]:
+        """Get a collection by id (including items)."""
         path = _collection_path(collection_id)
         if not path:
             return Result.Err(ErrorCode.INVALID_INPUT, "Invalid collection id")
@@ -193,6 +199,7 @@ class CollectionsService:
         )
 
     def delete(self, collection_id: str) -> Result[bool]:
+        """Delete a collection file by id."""
         path = _collection_path(collection_id)
         if not path:
             return Result.Err(ErrorCode.INVALID_INPUT, "Invalid collection id")
@@ -228,6 +235,7 @@ class CollectionsService:
         return path, data, None
 
     def add_assets(self, collection_id: str, assets: List[Dict[str, Any]]) -> Result[Dict[str, Any]]:
+        """Add assets (by filepath) to a collection (deduplicated, bounded)."""
         if not isinstance(assets, list) or not assets:
             return Result.Err(ErrorCode.INVALID_INPUT, "No assets provided")
 
@@ -310,6 +318,7 @@ class CollectionsService:
         )
 
     def remove_filepaths(self, collection_id: str, filepaths: List[str]) -> Result[Dict[str, Any]]:
+        """Remove items from a collection by filepath."""
         if not isinstance(filepaths, list) or not filepaths:
             return Result.Err(ErrorCode.INVALID_INPUT, "No filepaths provided")
         targets = set(_normalize_fp(str(p)) for p in filepaths if str(p or "").strip())

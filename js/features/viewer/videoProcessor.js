@@ -385,7 +385,7 @@ export function createVideoProcessor({
         const onError = () => {
             proc.ready = false;
             try {
-                drawMediaError(canvas, "Failed to load video");
+                drawMediaError(canvas, "Failed to load video (unsupported codec/format?)");
             } catch {}
         };
 

@@ -31,6 +31,7 @@ except Exception:
 
 
 def register_metadata_routes(routes: web.RouteTableDef) -> None:
+    """Register metadata extraction routes."""
     @routes.get("/mjr/am/metadata")
     async def get_metadata(request):
         """

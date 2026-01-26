@@ -214,6 +214,7 @@ def _files_equal_content(src: Path, dst: Path, *, chunk_size: int = _FILE_COMPAR
 
 @dataclass(frozen=True)
 class StageDestination:
+    """Resolved destination for staging (path + whether it was reused)."""
     path: Path
     reused_existing: bool
 
@@ -258,6 +259,7 @@ def _resolve_scan_root(directory: str) -> Result[Path]:
 
 
 def register_scan_routes(routes: web.RouteTableDef) -> None:
+    """Register scan/index/stage/open-in-folder routes."""
     @routes.post("/mjr/am/scan")
     async def scan_directory(request):
         """

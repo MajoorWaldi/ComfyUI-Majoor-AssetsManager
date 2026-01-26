@@ -13,6 +13,7 @@ logger = get_logger(__name__)
 
 
 def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
+    """Register database maintenance routes."""
     @routes.post("/mjr/am/db/optimize")
     async def db_optimize(request: web.Request):
         """
@@ -49,4 +50,3 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
             return _json_response(Result.Err("DB_ERROR", safe_error_message(exc, "Database optimize failed")))
 
         return _json_response(Result.Ok({"ran": steps}))
-

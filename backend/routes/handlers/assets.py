@@ -89,6 +89,7 @@ def _delete_file_best_effort(path: Path) -> Result[bool]:
 
 
 def register_asset_routes(routes: web.RouteTableDef) -> None:
+    """Register asset CRUD routes (get, delete, rename)."""
     async def _resolve_or_create_asset_id(
         *,
         services: dict,

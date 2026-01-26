@@ -5,10 +5,10 @@ import json
 import logging
 from contextvars import ContextVar
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Final, Optional
 
 # Emoji indicators for log levels
-EMOJI_MAP = {
+EMOJI_MAP: Final[dict[str, str]] = {
     "DEBUG": "🔍",      # Magnifying glass for debug
     "INFO": "ℹ️",       # Info symbol
     "WARNING": "⚠️",    # Warning sign
@@ -18,24 +18,28 @@ EMOJI_MAP = {
 }
 
 # Global logger prefix
-PREFIX = "📂 Majoor"
+PREFIX: Final[str] = "📂 Majoor"
 
 request_id_var: ContextVar[str] = ContextVar("request_id", default="")
 
 
 class CorrelationFilter(logging.Filter):
+    """Inject `request_id` from `request_id_var` into each log record."""
+
     def filter(self, record: logging.LogRecord) -> bool:
+        """Attach `record.request_id` for correlation; always returns True."""
         try:
-            record.request_id = request_id_var.get("")  # type: ignore[attr-defined]
+            setattr(record, "request_id", request_id_var.get(""))
         except Exception:
-            record.request_id = ""  # type: ignore[attr-defined]
+            setattr(record, "request_id", "")
         return True
 
 
 class EmojiFormatter(logging.Formatter):
     """Custom formatter that adds emoji based on log level."""
 
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
+        """Format a log record as a single line with a prefix and emoji."""
         # Get emoji for log level
         emoji = EMOJI_MAP.get(record.levelname, "📂")
 
@@ -96,10 +100,10 @@ def get_logger(name: str, level: Optional[int] = None) -> logging.Logger:
     return logger
 
 # Add SUCCESS level
-logging.SUCCESS = 25  # Between INFO (20) and WARNING (30)
-logging.addLevelName(logging.SUCCESS, "SUCCESS")
+SUCCESS_LEVEL: Final[int] = 25  # Between INFO (20) and WARNING (30)
+logging.addLevelName(SUCCESS_LEVEL, "SUCCESS")
 
-def log_success(logger, message: str):
+def log_success(logger: logging.Logger, message: str) -> None:
     """
     Log a success message with ✅ emoji.
 
@@ -107,9 +111,9 @@ def log_success(logger, message: str):
         logger: Logger instance
         message: Success message
     """
-    logger.log(logging.SUCCESS, message)
+    logger.log(SUCCESS_LEVEL, message)
 
-def log_structured(logger, level, message: str, **context):
+def log_structured(logger: logging.Logger, level: int, message: str, **context: Any) -> None:
     """Emit a structured JSON log entry with contextual fields."""
     payload = {
         "message": message,

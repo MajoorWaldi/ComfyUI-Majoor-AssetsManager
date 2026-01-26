@@ -1,12 +1,15 @@
 """
 Filesystem operations: background scanning and file listing.
 """
+
+from __future__ import annotations
+
 import datetime
 import time
 import threading
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Mapping, Optional
 
 from backend.shared import Result, classify_file, get_logger
 from backend.adapters.fs.list_cache_watcher import ensure_fs_list_cache_watching, get_fs_list_cache_token
@@ -16,17 +19,17 @@ from ..core import _safe_rel_path, _is_within_root
 logger = get_logger(__name__)
 
 _BACKGROUND_SCAN_LOCK = threading.Lock()
-_BACKGROUND_SCAN_LAST: Dict[str, float] = {}
-_BACKGROUND_SCAN_FAILURES: list[dict] = []
+_BACKGROUND_SCAN_LAST: dict[str, float] = {}
+_BACKGROUND_SCAN_FAILURES: list[dict[str, Any]] = []
 _MAX_FAILURE_HISTORY = int(BG_SCAN_FAILURE_HISTORY_MAX)
 
 _SCAN_PENDING_LOCK = threading.Lock()
-_SCAN_PENDING: "OrderedDict[str, Dict[str, Any]]" = OrderedDict()
+_SCAN_PENDING: OrderedDict[str, dict[str, Any]] = OrderedDict()
 _SCAN_WORKER: Optional[threading.Thread] = None
 _SCAN_PENDING_MAX = int(SCAN_PENDING_MAX)
 
 _FS_LIST_CACHE_LOCK = threading.Lock()
-_FS_LIST_CACHE: "OrderedDict[str, Dict[str, Any]]" = OrderedDict()
+_FS_LIST_CACHE: OrderedDict[str, dict[str, Any]] = OrderedDict()
 
 
 def _kickoff_background_scan(
@@ -48,11 +51,6 @@ def _kickoff_background_scan(
     try:
         key = f"{source}|{str(root_id or '')}|{str(directory)}"
         now = time.time()
-        with _BACKGROUND_SCAN_LOCK:
-            last = _BACKGROUND_SCAN_LAST.get(key, 0.0)
-            if now - last < float(min_interval_seconds):
-                return
-            _BACKGROUND_SCAN_LAST[key] = now
     except Exception:
         return
 
@@ -66,12 +64,13 @@ def _kickoff_background_scan(
         "background_metadata": bool(background_metadata),
     }
 
-    def _ensure_worker():
+    def _ensure_worker() -> None:
         global _SCAN_WORKER
-        if _SCAN_WORKER and _SCAN_WORKER.is_alive():
-            return
+        with _SCAN_PENDING_LOCK:
+            if _SCAN_WORKER and _SCAN_WORKER.is_alive():
+                return
 
-        def _worker_loop():
+        def _worker_loop() -> None:
             while True:
                 task = None
                 with _SCAN_PENDING_LOCK:
@@ -88,7 +87,7 @@ def _kickoff_background_scan(
 
                 try:
                     from ..core import _require_services
-                    svc, error_result = _require_services()
+                    svc, error_result = _require_services()  # type: ignore[no-untyped-call]
                     if error_result:
                         _record_scan_failure(str(task.get("directory")), str(task.get("source")), "SERVICE_UNAVAILABLE", str(error_result.error or ""))
                         continue
@@ -122,18 +121,36 @@ def _kickoff_background_scan(
                         pass
 
         try:
-            _SCAN_WORKER = threading.Thread(target=_worker_loop, name="mjr-bg-scan-worker", daemon=True)
-            _SCAN_WORKER.start()
+            worker = threading.Thread(target=_worker_loop, name="mjr-bg-scan-worker", daemon=True)
         except Exception:
-            _SCAN_WORKER = None
+            with _SCAN_PENDING_LOCK:
+                _SCAN_WORKER = None
+            return
+
+        with _SCAN_PENDING_LOCK:
+            _SCAN_WORKER = worker
+        try:
+            worker.start()
+        except Exception:
+            with _SCAN_PENDING_LOCK:
+                if _SCAN_WORKER is worker:
+                    _SCAN_WORKER = None
 
     try:
         _ensure_worker()
-        with _SCAN_PENDING_LOCK:
-            _SCAN_PENDING[key] = job
-            _SCAN_PENDING.move_to_end(key)
-            while len(_SCAN_PENDING) > _SCAN_PENDING_MAX:
-                _SCAN_PENDING.popitem(last=False)
+        with _BACKGROUND_SCAN_LOCK:
+            last = _BACKGROUND_SCAN_LAST.get(key, 0.0)
+            if now - last < float(min_interval_seconds):
+                return
+
+            with _SCAN_PENDING_LOCK:
+                _SCAN_PENDING[key] = job
+                _SCAN_PENDING.move_to_end(key)
+                while len(_SCAN_PENDING) > _SCAN_PENDING_MAX:
+                    _SCAN_PENDING.popitem(last=False)
+
+            # Race fix: only update the throttle marker once the job is enqueued.
+            _BACKGROUND_SCAN_LAST[key] = now
     except Exception:
         return
 
@@ -160,7 +177,7 @@ def _fs_cache_get_or_build(
     target_dir_resolved: Path,
     asset_type: str,
     root_id: Optional[str],
-) -> Result[Dict[str, Any]]:
+) -> Result[dict[str, Any]]:
     try:
         if FS_LIST_CACHE_WATCHDOG:
             ensure_fs_list_cache_watching(str(base))
@@ -198,7 +215,7 @@ def _fs_cache_get_or_build(
             # If TTL expired, rebuild even if directory mtime did not change. Some filesystems
             # do not bump dir mtime when file contents change, which would otherwise cause stale listings.
 
-    entries = []
+    entries: list[dict[str, Any]] = []
     try:
         for entry in target_dir_resolved.iterdir():
             if not entry.is_file():
@@ -262,9 +279,9 @@ async def _list_filesystem_assets(
     offset: int,
     asset_type: str,
     root_id: Optional[str] = None,
-    filters: Optional[dict] = None,
+    filters: Optional[Mapping[str, Any]] = None,
     index_service: Optional[Any] = None,
-) -> Result[dict]:
+) -> Result[dict[str, Any]]:
     try:
         base = root_dir.resolve()
     except OSError as exc:
@@ -287,15 +304,14 @@ async def _list_filesystem_assets(
     q_lower = q.lower()
     browse_all = q == "*" or q == ""
 
-    filter_kind = str(filters.get("kind") or "").strip().lower() if isinstance(filters, dict) else ""
-    filter_min_rating = int(filters.get("min_rating") or 0) if isinstance(filters, dict) else 0
-    filter_workflow_only = bool(filters.get("has_workflow")) if isinstance(filters, dict) else False
-    filter_mtime_start = (
-        int(filters.get("mtime_start")) if isinstance(filters, dict) and filters.get("mtime_start") is not None else None
-    )
-    filter_mtime_end = (
-        int(filters.get("mtime_end")) if isinstance(filters, dict) and filters.get("mtime_end") is not None else None
-    )
+    filter_kind = str(filters.get("kind") or "").strip().lower() if filters is not None else ""
+    filter_min_rating = int(filters.get("min_rating") or 0) if filters is not None else 0
+    filter_workflow_only = bool(filters.get("has_workflow")) if filters is not None else False
+
+    mtime_start_raw = filters.get("mtime_start") if filters is not None else None
+    mtime_end_raw = filters.get("mtime_end") if filters is not None else None
+    filter_mtime_start = int(mtime_start_raw) if mtime_start_raw is not None else None
+    filter_mtime_end = int(mtime_end_raw) if mtime_end_raw is not None else None
 
     # Removed the early return that was causing filters to return empty results
     # The filtering will now be handled properly below after metadata enrichment
@@ -359,7 +375,7 @@ async def _list_filesystem_assets(
     # Apply filters after enrichment.
     # Keep memory predictable by building only the requested page while still computing `total`.
     total = 0
-    paged = []
+    paged: list[dict[str, Any]] = []
     start = max(0, int(offset or 0))
     end = start + int(limit or 0) if int(limit or 0) > 0 else None
 

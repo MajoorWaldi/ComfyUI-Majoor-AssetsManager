@@ -493,6 +493,7 @@ class Sqlite:
             raise
 
     def execute(self, query: str, params: Optional[tuple] = None, fetch: bool = False) -> Result[Any]:
+        """Execute SQL on the DB loop thread (sync)."""
         try:
             # Sync callers may be inside `transaction()` (token lives on the caller thread).
             # Pass it explicitly because DB work runs on the loop thread.
@@ -502,14 +503,17 @@ class Sqlite:
             return Result.Err(ErrorCode.DB_ERROR, str(exc))
 
     def query(self, sql: str, params: Optional[tuple] = None) -> Result[List[Dict[str, Any]]]:
+        """Execute a SELECT query and return rows (sync)."""
         return self.execute(sql, params, fetch=True)
 
     async def aexecute(self, query: str, params: Optional[tuple] = None, fetch: bool = False) -> Result[Any]:
+        """Execute SQL on the DB loop thread (async)."""
         token = _TX_TOKEN.get()
         fut = self._loop_thread.submit(self._execute_async(query, params, fetch, tx_token=token))
         return await asyncio.wrap_future(fut)
 
     async def aquery(self, sql: str, params: Optional[tuple] = None) -> Result[List[Dict[str, Any]]]:
+        """Execute a SELECT query and return rows (async)."""
         return await self.aexecute(sql, params, fetch=True)
 
     def query_in(
@@ -556,6 +560,7 @@ class Sqlite:
         values: List[Any],
         additional_params: Optional[tuple] = None,
     ) -> Result[List[Dict[str, Any]]]:
+        """Async variant of `query_in()` for IN-clause queries."""
         if not values:
             return Result.Ok([])
         if not isinstance(values, (list, tuple)):
@@ -660,6 +665,7 @@ class Sqlite:
             raise
 
     def executemany(self, query: str, params_list: List[Tuple]) -> Result[int]:
+        """Execute a parameterized statement over multiple param tuples (sync)."""
         try:
             token = self._tx_token()
             return self._loop_thread.run(self._executemany_async(query, params_list, tx_token=token))
@@ -667,6 +673,7 @@ class Sqlite:
             return Result.Err(ErrorCode.DB_ERROR, str(exc))
 
     async def aexecutemany(self, query: str, params_list: List[Tuple]) -> Result[int]:
+        """Execute a parameterized statement over multiple param tuples (async)."""
         token = _TX_TOKEN.get()
         fut = self._loop_thread.submit(self._executemany_async(query, params_list, tx_token=token))
         return await asyncio.wrap_future(fut)
@@ -713,6 +720,7 @@ class Sqlite:
             return Result.Err(ErrorCode.DB_ERROR, str(exc))
 
     def executescript(self, script: str) -> Result[bool]:
+        """Execute a multi-statement SQL script (sync)."""
         try:
             token = self._tx_token()
             return self._loop_thread.run(self._executescript_async(script, tx_token=token))
@@ -720,6 +728,7 @@ class Sqlite:
             return Result.Err(ErrorCode.DB_ERROR, str(exc))
 
     async def aexecutescript(self, script: str) -> Result[bool]:
+        """Execute a multi-statement SQL script (async)."""
         token = _TX_TOKEN.get()
         fut = self._loop_thread.submit(self._executescript_async(script, tx_token=token))
         return await asyncio.wrap_future(fut)
@@ -739,16 +748,19 @@ class Sqlite:
             await self._release_connection_async(conn)
 
     def vacuum(self) -> Result[bool]:
+        """Run SQLite VACUUM (sync)."""
         try:
             return self._loop_thread.run(self._vacuum_async())
         except Exception as exc:
             return Result.Err(ErrorCode.DB_ERROR, str(exc))
 
     async def avacuum(self) -> Result[bool]:
+        """Run SQLite VACUUM (async)."""
         fut = self._loop_thread.submit(self._vacuum_async())
         return await asyncio.wrap_future(fut)
 
     def has_table(self, table_name: str) -> bool:
+        """Return True if `table_name` exists in sqlite_master."""
         result = self.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name = ?",
             (table_name,),
@@ -757,6 +769,7 @@ class Sqlite:
         return bool(result.ok and result.data and len(result.data) > 0)
 
     def get_schema_version(self) -> int:
+        """Get the schema version from the `metadata` table (0 if missing)."""
         if not self.has_table("metadata"):
             return 0
 
@@ -773,6 +786,7 @@ class Sqlite:
         return 0
 
     def set_schema_version(self, version: int) -> Result[bool]:
+        """Set the schema version in the `metadata` table."""
         return self.execute(
             "INSERT OR REPLACE INTO metadata (key, value) VALUES ('schema_version', ?)",
             (str(version),),
@@ -925,6 +939,7 @@ class Sqlite:
                 pass
 
     def close(self):
+        """Close connections and stop the DB loop thread (sync)."""
         try:
             self._loop_thread.run(self._close_all_async())
         except Exception as exc:
@@ -933,6 +948,7 @@ class Sqlite:
             self._loop_thread.stop()
 
     async def aclose(self):
+        """Close connections and stop the DB loop thread (async)."""
         fut = self._loop_thread.submit(self._close_all_async())
         try:
             await asyncio.wrap_future(fut)
@@ -953,6 +969,7 @@ class Sqlite:
 
     @contextmanager
     def transaction(self, mode: str = "immediate"):
+        """Context manager for a DB transaction (sync)."""
         # Back-compat sync transaction: routes token via thread-local.
         begin_res = self._loop_thread.run(self._begin_tx_async(mode))
         if not begin_res.ok or not begin_res.data:
@@ -980,6 +997,7 @@ class Sqlite:
 
     @asynccontextmanager
     async def atransaction(self, mode: str = "immediate"):
+        """Async context manager for a DB transaction."""
         begin_res = await self._begin_tx_for_async(mode)
         if not begin_res.ok or not begin_res.data:
             raise RuntimeError(str(begin_res.error or "Failed to begin transaction"))

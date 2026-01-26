@@ -201,6 +201,7 @@ def _get_table_columns(db, table_name: str) -> Result[List[str]]:
 
 
 def table_has_column(db, table_name: str, column_name: str) -> bool:
+    """Return True if `table_name` has `column_name` (best-effort)."""
     if not _is_safe_identifier(table_name) or not _is_safe_identifier(column_name):
         logger.warning("Invalid identifier in table_has_column: %s.%s", table_name, column_name)
         return False
@@ -233,6 +234,7 @@ def _ensure_column(db, table_name: str, column_name: str, definition: str) -> Re
 
 
 def ensure_columns_exist(db) -> Result[bool]:
+    """Ensure required columns exist in existing tables (best-effort)."""
     for table, columns in COLUMN_DEFINITIONS.items():
         for column_name, definition in columns:
             result = _ensure_column(db, table, column_name, definition)
@@ -243,6 +245,7 @@ def ensure_columns_exist(db) -> Result[bool]:
 
 
 def ensure_tables_exist(db) -> Result[bool]:
+    """Ensure base schema tables exist (idempotent)."""
     logger.info("Ensuring tables exist...")
     result = db.executescript(SCHEMA_V1)
     if not result.ok:
@@ -251,6 +254,7 @@ def ensure_tables_exist(db) -> Result[bool]:
 
 
 def ensure_indexes_and_triggers(db) -> Result[bool]:
+    """Ensure indexes/triggers exist and repair FTS metadata (best-effort)."""
     logger.info("Ensuring indexes/triggers exist...")
     result = db.executescript(INDEXES_AND_TRIGGERS)
     if not result.ok:

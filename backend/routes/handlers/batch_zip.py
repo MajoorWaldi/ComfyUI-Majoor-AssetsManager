@@ -159,6 +159,7 @@ def _resolve_item_path(item: Dict[str, Any]) -> Optional[Path]:
 
 
 def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
+    """Register batch-zip creation and download routes."""
     @routes.post("/mjr/am/batch-zip")
     async def create_batch_zip(request: web.Request) -> web.Response:
         csrf = _csrf_error(request)

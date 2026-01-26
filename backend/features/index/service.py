@@ -197,6 +197,7 @@ class IndexService:
         return await self._searcher.date_histogram_scoped(roots, month_start, month_end, filters)
 
     async def get_asset(self, asset_id: int) -> Result[Optional[Dict[str, Any]]]:
+        """Fetch a single asset row by id."""
         # Async path: return the DB row; deep "self-heal" is handled by scan/enrich flows.
         return await self._searcher.get_asset(asset_id)
 

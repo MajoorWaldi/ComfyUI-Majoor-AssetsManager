@@ -40,6 +40,7 @@ def _month_bounds(month_value: str) -> Result[tuple[int, int]]:
 
 
 def register_calendar_routes(routes: web.RouteTableDef) -> None:
+    """Register calendar/date-histogram routes."""
     @routes.get("/mjr/am/date-histogram")
     async def date_histogram(request: web.Request):
         """

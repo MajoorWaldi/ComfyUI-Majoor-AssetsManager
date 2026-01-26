@@ -77,6 +77,7 @@ def _minimal_asset_from_item(item: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def register_collections_routes(routes: web.RouteTableDef) -> None:
+    """Register collection management routes."""
     @routes.get("/mjr/am/collections")
     async def list_collections(request):
         try:

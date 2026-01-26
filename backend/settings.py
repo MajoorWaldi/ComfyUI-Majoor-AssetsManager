@@ -93,6 +93,7 @@ class AppSettings:
         return Result.Ok(v)
 
     def get_probe_backend(self) -> str:
+        """Return the configured media probe backend mode."""
         with self._lock:
             current_version = self._get_settings_version()
             cached = self._cache.get(_PROBE_BACKEND_KEY)
@@ -113,6 +114,7 @@ class AppSettings:
             return mode
 
     def set_probe_backend(self, mode: str) -> Result[str]:
+        """Persist the media probe backend mode and bump the settings version."""
         normalized = (mode or "").strip().lower()
         if not normalized:
             normalized = self._default_probe_mode

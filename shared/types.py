@@ -2,7 +2,7 @@
 Shared types, enums, and constants.
 """
 from enum import Enum
-from typing import Literal
+from typing import Final, Literal
 
 # File type classifications
 FileKind = Literal["image", "video", "audio", "model3d", "unknown"]
@@ -56,11 +56,12 @@ class ErrorCode(str, Enum):
     PARSE_ERROR = "PARSE_ERROR"
 
 # File extensions by type
-EXTENSIONS = {
+EXTENSIONS: Final[dict[FileKind, set[str]]] = {
     "image": {".png", ".jpg", ".jpeg", ".webp", ".gif"},
     "video": {".mp4", ".mov", ".webm", ".mkv"},
     "audio": {".wav", ".mp3", ".flac", ".ogg", ".m4a", ".aac"},
     "model3d": {".obj", ".fbx", ".glb", ".gltf", ".stl"},
+    "unknown": set(),
 }
 
 def classify_file(filename: str) -> FileKind:

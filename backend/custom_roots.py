@@ -102,6 +102,7 @@ def _write_store(data: dict) -> Result[bool]:
 
 
 def list_custom_roots() -> Result[List[Dict[str, Any]]]:
+    """List configured custom root directories (id/path/label/created_at)."""
     with _LOCK:
         store = _read_store()
         roots = store.get("roots") or []
@@ -125,6 +126,7 @@ def list_custom_roots() -> Result[List[Dict[str, Any]]]:
 
 
 def add_custom_root(path: str, label: Optional[str] = None) -> Result[Dict[str, Any]]:
+    """Add a custom root directory, or return the existing one if present."""
     normalized = _normalize_dir_path(path)
     if not normalized:
         return Result.Err("INVALID_INPUT", "Invalid path")
@@ -167,6 +169,7 @@ def add_custom_root(path: str, label: Optional[str] = None) -> Result[Dict[str, 
 
 
 def remove_custom_root(root_id: str) -> Result[bool]:
+    """Remove a custom root by id."""
     rid = str(root_id or "").strip()
     if not rid:
         return Result.Err("INVALID_INPUT", "Missing root_id")
@@ -186,6 +189,7 @@ def remove_custom_root(root_id: str) -> Result[bool]:
 
 
 def resolve_custom_root(root_id: str) -> Result[Path]:
+    """Resolve a custom root id to a validated directory path."""
     rid = str(root_id or "").strip()
     if not rid:
         return Result.Err("INVALID_INPUT", "Missing root_id")

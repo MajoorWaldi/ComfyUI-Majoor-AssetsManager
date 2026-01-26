@@ -22,6 +22,98 @@ export function createViewerMediaFactory({
     const _safeCall = safeCall || defaultSafeCall;
     const _safeAddListener = safeAddListener || defaultSafeAddListener;
 
+    const _extOf = (asset) => {
+        try {
+            const ext = String(asset?.ext || "").trim().toLowerCase();
+            if (ext) return ext.startsWith(".") ? ext : `.${ext}`;
+        } catch {}
+        try {
+            const name = String(asset?.filename || asset?.filepath || "").trim();
+            const idx = name.lastIndexOf(".");
+            if (idx >= 0) return name.slice(idx).toLowerCase();
+        } catch {}
+        return "";
+    };
+
+    // Formats that may be animated (GIF, animated WebP). Rendering through the
+    // image processor (canvas) would only show a single frame.
+    const _shouldUseNativeImageEl = (asset) => {
+        const ext = _extOf(asset);
+        return ext === ".gif" || ext === ".webp";
+    };
+
+    const _createNativeImageEl = (asset, url) => {
+        const img = document.createElement("img");
+        img.className = "mjr-viewer-media";
+        try {
+            if (asset?.id != null && img?.dataset) img.dataset.mjrAssetId = String(asset.id);
+        } catch {}
+        img.alt = String(asset?.filename || "") || "image";
+        try {
+            img.decoding = "async";
+        } catch {}
+        try {
+            img.loading = "eager";
+        } catch {}
+        try {
+            img.draggable = false;
+        } catch {}
+        img.src = url;
+        img.style.cssText = `
+            max-width: 100%;
+            max-height: 100%;
+            display: block;
+            transform: ${mediaTransform?.() || ""};
+            transform-origin: center center;
+        `;
+
+        const onLoad = () => {
+            try {
+                requestAnimationFrame(() => {
+                    try {
+                        if (!state?._userInteracted) {
+                            updateMediaNaturalSize?.();
+                            clampPanToBounds?.();
+                            applyTransform?.();
+                        }
+                    } catch {}
+                });
+            } catch {}
+            try {
+                scheduleOverlayRedraw?.();
+            } catch {}
+        };
+
+        const onError = () => {
+            try {
+                const canvas = document.createElement("canvas");
+                canvas.className = "mjr-viewer-media";
+                try {
+                    if (asset?.id != null && canvas?.dataset) canvas.dataset.mjrAssetId = String(asset.id);
+                } catch {}
+                _seedNaturalSizeFromAsset(canvas, asset);
+                canvas.style.cssText = `
+                    max-width: 100%;
+                    max-height: 100%;
+                    display: block;
+                    transform: ${mediaTransform?.() || ""};
+                    transform-origin: center center;
+                `;
+                drawMediaError(canvas, "Failed to load image");
+                img.replaceWith(canvas);
+            } catch {}
+        };
+
+        try {
+            img.addEventListener("load", onLoad, { once: true });
+        } catch {}
+        try {
+            img.addEventListener("error", onError, { once: true });
+        } catch {}
+
+        return img;
+    };
+
     const _seedNaturalSizeFromAsset = (canvas, asset) => {
         try {
             if (!canvas || !(canvas instanceof HTMLCanvasElement)) return;
@@ -157,6 +249,10 @@ export function createViewerMediaFactory({
             return container;
         }
 
+        if (_shouldUseNativeImageEl(asset)) {
+            return _createNativeImageEl(asset, url);
+        }
+
         const canvas = document.createElement("canvas");
         canvas.className = "mjr-viewer-media";
         try {
@@ -289,6 +385,10 @@ export function createViewerMediaFactory({
             wrap.appendChild(canvas);
             wrap.appendChild(video);
             return wrap;
+        }
+
+        if (_shouldUseNativeImageEl(asset)) {
+            return _createNativeImageEl(asset, url);
         }
 
         const canvas = document.createElement("canvas");

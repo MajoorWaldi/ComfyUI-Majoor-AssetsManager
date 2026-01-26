@@ -156,6 +156,7 @@ def _should_log(request: web.Request, *, status: Optional[int], duration_ms: flo
 
 @web.middleware
 async def request_context_middleware(request: web.Request, handler):
+    """Add request-id correlation and lightweight request logging context."""
     if _env_flag("MJR_OBS_DISABLE", default=False):
         return await handler(request)
 
@@ -258,6 +259,7 @@ def ensure_observability(app: web.Application) -> None:
 
 
 def build_request_log_fields(request: web.Request, response_status: Optional[int] = None) -> Dict[str, Any]:
+    """Build a JSON-serializable dict of request/response fields for logs."""
     stats = request.get("mjr_stats")
     return {
         "request_id": request.get("mjr_request_id"),
