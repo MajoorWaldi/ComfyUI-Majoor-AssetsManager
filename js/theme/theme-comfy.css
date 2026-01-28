@@ -633,16 +633,24 @@
 
 .mjr-assets-manager .mjr-asset-card.is-selected {
     box-shadow:
-        0 0 0 2px color-mix(in srgb, var(--mjr-accent) 55%, transparent),
+        0 0 0 3px color-mix(in srgb, var(--mjr-accent) 80%, var(--content-fg)),
+        0 0 0 6px color-mix(in srgb, var(--mjr-accent) 30%, transparent),
+        0 0 20px color-mix(in srgb, var(--mjr-accent) 40%, transparent),
         0 10px 28px rgba(0,0,0,0.28);
     border-radius: var(--mjr-r-lg);
+    transform: translateY(-2px);
+    z-index: 10;
 }
 
 .mjr-assets-manager .mjr-asset-card:focus-visible {
     box-shadow:
-        0 0 0 2px color-mix(in srgb, var(--mjr-accent) 75%, transparent),
+        0 0 0 3px color-mix(in srgb, var(--mjr-accent) 80%, var(--content-fg)),
+        0 0 0 6px color-mix(in srgb, var(--mjr-accent) 30%, transparent),
+        0 0 20px color-mix(in srgb, var(--mjr-accent) 40%, transparent),
         0 10px 28px rgba(0,0,0,0.28);
     border-radius: var(--mjr-r-lg);
+    transform: translateY(-2px);
+    z-index: 10;
 }
 
 /* Grid loading overlay */
@@ -1030,6 +1038,61 @@
 
 .mjr-sidebar .mjr-sidebar-content::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.3);
+}
+
+/* Custom Roots Popover Styling */
+.mjr-custom-popover {
+    min-width: 300px;
+    background: var(--mjr-surface-1, var(--comfy-menu-bg, #2a2a2a));
+    border: 1px solid var(--mjr-border, var(--border-color, rgba(255, 255, 255, 0.12)));
+    border-radius: var(--radius-lg, 0.5rem);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.35);
+    z-index: var(--mjr-popover-z-index);
+    padding: 12px;
+}
+
+.mjr-custom-popover .mjr-popover-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.mjr-custom-popover .mjr-popover-row:last-child {
+    margin-bottom: 0;
+}
+
+.mjr-custom-popover .mjr-popover-label {
+    width: 60px;
+    color: var(--mjr-muted, var(--descrip-text, rgba(255, 255, 255, 0.65)));
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.mjr-custom-popover .mjr-select {
+    flex: 1;
+    min-width: 0;
+}
+
+.mjr-custom-popover .mjr-btn {
+    flex: 1;
+    min-width: 0;
+    margin-right: 5px;
+}
+
+.mjr-custom-popover .mjr-btn:last-child {
+    margin-right: 0;
+}
+
+.mjr-custom-popover .mjr-btn.mjr-primary {
+    background: color-mix(in srgb, var(--mjr-accent) 18%, var(--mjr-surface-2));
+    border-color: color-mix(in srgb, var(--mjr-accent) 60%, var(--mjr-border));
+}
+
+.mjr-custom-popover .mjr-btn.mjr-primary:hover {
+    background: color-mix(in srgb, var(--mjr-accent) 25%, var(--mjr-surface-2));
+    border-color: color-mix(in srgb, var(--mjr-accent) 80%, var(--mjr-border));
 }
 
 .mjr-sidebar .mjr-sidebar-section {

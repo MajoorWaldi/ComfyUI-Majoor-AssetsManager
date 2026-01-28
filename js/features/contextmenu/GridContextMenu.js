@@ -67,6 +67,41 @@ const clearSelection = (gridContainer) => {
     } catch {}
 };
 
+const selectCardForDetails = (gridContainer, card, asset, state) => {
+    if (!gridContainer) return;
+    try {
+        clearSelection(gridContainer);
+    } catch {}
+    if (card) {
+        try {
+            card.classList.add('is-selected');
+            card.setAttribute('aria-selected', 'true');
+        } catch {}
+    }
+    const id = asset?.id != null ? String(asset.id) : "";
+    if (id) {
+        try {
+            gridContainer.dataset.mjrSelectedAssetIds = JSON.stringify([id]);
+            gridContainer.dataset.mjrSelectedAssetId = id;
+        } catch {}
+    } else {
+        try {
+            delete gridContainer.dataset.mjrSelectedAssetIds;
+        } catch {}
+        try {
+            delete gridContainer.dataset.mjrSelectedAssetId;
+        } catch {}
+    }
+    if (state && typeof state === 'object') {
+        try {
+            state.selectedAssetIds = id ? [id] : [];
+        } catch {}
+        try {
+            state.activeAssetId = id;
+        } catch {}
+    }
+};
+
 const getAllAssetsInGrid = (gridContainer) => {
     const assets = [];
     if (!gridContainer) return assets;
@@ -261,6 +296,14 @@ export function bindGridContextMenu({
         const asset = card._mjrAsset;
         if (!asset) return;
 
+        const panelState = (() => {
+            try {
+                return getState?.() || {};
+            } catch {
+                return {};
+            }
+        })();
+
         menu.innerHTML = "";
 
         // Get current selection state
@@ -292,6 +335,23 @@ export function bindGridContextMenu({
                         onRequestOpenViewer(asset);
                     } catch {}
                 }
+            })
+        );
+
+        menu.appendChild(
+            createItem("Show metadata panel", "pi pi-info-circle", "D", () => {
+                try {
+                    hideMenu(menu);
+                } catch {}
+                try {
+                    selectCardForDetails(gridContainer, card, asset, panelState);
+                } catch {}
+                try {
+                    const toggleDetails = gridContainer?._mjrOpenDetails;
+                    if (typeof toggleDetails === "function") {
+                        toggleDetails();
+                    }
+                } catch {}
             })
         );
 
@@ -359,14 +419,7 @@ export function bindGridContextMenu({
         );
 
         // Remove from current collection (only when in collection view)
-        const state = (() => {
-            try {
-                return getState?.() || {};
-            } catch {
-                return {};
-            }
-        })();
-        const collectionId = String(state?.collectionId || "").trim();
+        const collectionId = String(panelState?.collectionId || "").trim();
         if (collectionId) {
             const selectedAssets = getSelectedAssets(gridContainer);
             const list = selectedAssets.length ? selectedAssets : [asset];

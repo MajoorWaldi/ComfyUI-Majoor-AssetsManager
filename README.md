@@ -76,6 +76,19 @@ Restart ComfyUI.
 
 If dependencies are missing at startup, the extension may attempt a best-effort `pip install -r requirements.txt` automatically (can be disabled with `MJR_AM_NO_AUTO_PIP=1`).
 
+**Note:** The native folder browser feature requires tkinter, which is included with most Python installations but may be missing in minimal Python distributions like embedded Python. If tkinter is not available, the system will fall back to manual path input.
+
+**For Embedded Python Environments (like ComfyUI's python_embeded):**
+- Tkinter is typically not available in embedded Python distributions
+- The system will automatically fall back to manual path input
+- The `tk` package from PyPI is NOT equivalent to the built-in `tkinter` module
+- Even after installing `pip install tk`, the actual GUI libraries may still be missing
+- The extension will work fully with manual input fallback when tkinter is unavailable
+- Solutions for native folder browser:
+  - Switch to a full Python installation that includes tkinter
+  - Use the manual input method (fully functional alternative)
+  - The extension works identically in both scenarios, just with different UI for folder selection
+
 ### Optional (recommended): install ExifTool + FFprobe (metadata extraction)
 
 The Assets Manager works without these tools, but **metadata extraction** (generation info, media probe) and **tag/rating sync to files** are best-effort and will be **degraded** if the tools are missing.

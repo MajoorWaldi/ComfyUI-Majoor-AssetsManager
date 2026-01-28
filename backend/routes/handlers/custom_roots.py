@@ -1,6 +1,7 @@
 """
 Custom roots management endpoints.
 """
+import os
 from pathlib import Path
 from aiohttp import web
 from backend.custom_roots import (
@@ -14,11 +15,66 @@ from backend.adapters.fs.list_cache_watcher import ensure_fs_list_cache_watching
 from ..core import _json_response, _csrf_error, _safe_rel_path, _is_within_root, _read_json, _guess_content_type_for_file, _is_allowed_view_media_file
 from .filesystem import _kickoff_background_scan
 
+# Import tkinter only when needed to avoid startup issues
+tk = None
+filedialog = None
+try:
+    import tkinter as tk_module
+    from tkinter import filedialog as fd_module
+    tk = tk_module
+    filedialog = fd_module
+except ImportError:
+    pass  # tkinter not available, native browser will not work
+
 logger = get_logger(__name__)
 
 
 def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
     """Register custom root directory routes."""
+
+    @routes.post("/mjr/sys/browse-folder")
+    async def browse_folder_dialog(request):
+        import sys
+        import os
+
+        # Check if tkinter is available
+        if tk is None or filedialog is None:
+            logger.error("Tkinter is not available in this environment")
+            return _json_response(Result.Err("TKINTER_UNAVAILABLE", "Tkinter is not available"))
+
+        # Check if we're in a headless environment (no display)
+        if os.getenv('DISPLAY') is None and os.name == 'posix':
+            # On Linux systems without a display, tkinter won't work
+            logger.info("Running in headless environment, skipping tkinter dialog")
+            return _json_response(Result.Err("HEADLESS_ENV", "No display available for folder browser"))
+
+        # Check if tkinter is working properly
+        try:
+            # For tkinter to work properly in some environments, we may need to ensure it runs in main thread
+            def run_tkinter():
+                # Initialize tkinter in a way that works better with web servers
+                root = tk.Tk()
+                root.withdraw()  # Hide the main window
+                root.attributes('-topmost', True)  # Bring window to front
+
+                # Open the selector
+                directory = filedialog.askdirectory(title="Select Folder for Majoor Assets")
+
+                root.destroy()  # Close the Tkinter instance
+                return directory
+
+            # Run tkinter in the current thread (for web server compatibility)
+            directory = run_tkinter()
+
+            if directory:
+                return _json_response(Result.Ok({"path": directory}))
+            else:
+                return _json_response(Result.Err("CANCELLED", "Selection cancelled"))
+        except Exception as e:
+            logger.error(f"Tkinter browse dialog failed: {e}")
+            # Return an error that the frontend can handle
+            return _json_response(Result.Err("TKINTER_ERROR", f"Browse dialog failed: {str(e)}"))
+
     @routes.get("/mjr/am/custom-roots")
     async def get_custom_roots(request):
         result = list_custom_roots()
