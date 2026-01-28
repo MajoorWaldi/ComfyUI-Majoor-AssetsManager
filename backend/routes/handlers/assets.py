@@ -28,6 +28,7 @@ from ..core import (
     _check_rate_limit,
     _csrf_error,
     _require_operation_enabled,
+    _resolve_security_prefs,
     _require_write_access,
     _read_json,
     _build_services,
@@ -300,7 +301,12 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
 
-        op = _require_operation_enabled("asset_rating")
+        svc, error_result = _require_services()
+        if error_result:
+            return _json_response(error_result)
+
+        prefs = _resolve_security_prefs(svc)
+        op = _require_operation_enabled("asset_rating", prefs=prefs)
         if not op.ok:
             return _json_response(op)
 
@@ -311,10 +317,6 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         allowed, retry_after = _check_rate_limit(request, "asset_rating", max_requests=30, window_seconds=60)
         if not allowed:
             return _json_response(Result.Err("RATE_LIMITED", "Rate limit exceeded. Please wait before retrying.", retry_after=retry_after))
-
-        svc, error_result = _require_services()
-        if error_result:
-            return _json_response(error_result)
 
         body_res = await _read_json(request)
         if not body_res.ok:
@@ -364,7 +366,12 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
 
-        op = _require_operation_enabled("asset_tags")
+        svc, error_result = _require_services()
+        if error_result:
+            return _json_response(error_result)
+
+        prefs = _resolve_security_prefs(svc)
+        op = _require_operation_enabled("asset_tags", prefs=prefs)
         if not op.ok:
             return _json_response(op)
 
@@ -375,10 +382,6 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         allowed, retry_after = _check_rate_limit(request, "asset_tags", max_requests=30, window_seconds=60)
         if not allowed:
             return _json_response(Result.Err("RATE_LIMITED", "Rate limit exceeded. Please wait before retrying.", retry_after=retry_after))
-
-        svc, error_result = _require_services()
-        if error_result:
-            return _json_response(error_result)
 
         body_res = await _read_json(request)
         if not body_res.ok:
@@ -442,7 +445,12 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
 
-        op = _require_operation_enabled("open_in_folder")
+        svc, error_result = _require_services()
+        if error_result:
+            return _json_response(error_result)
+
+        prefs = _resolve_security_prefs(svc)
+        op = _require_operation_enabled("open_in_folder", prefs=prefs)
         if not op.ok:
             return _json_response(op)
 
@@ -453,10 +461,6 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         allowed, retry_after = _check_rate_limit(request, "open_in_folder", max_requests=1, window_seconds=2)
         if not allowed:
             return _json_response(Result.Err("RATE_LIMITED", "Rate limit exceeded. Please wait before retrying.", retry_after=retry_after))
-
-        svc, error_result = _require_services()
-        if error_result:
-            return _json_response(error_result)
 
         body_res = await _read_json(request)
         if not body_res.ok:
@@ -593,7 +597,12 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
 
-        op = _require_operation_enabled("asset_delete")
+        svc, error_result = _require_services()
+        if error_result:
+            return _json_response(error_result)
+
+        prefs = _resolve_security_prefs(svc)
+        op = _require_operation_enabled("asset_delete", prefs=prefs)
         if not op.ok:
             return _json_response(op)
 
@@ -604,10 +613,6 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         allowed, retry_after = _check_rate_limit(request, "asset_delete", max_requests=20, window_seconds=60)
         if not allowed:
             return _json_response(Result.Err("RATE_LIMITED", "Rate limit exceeded. Please wait before retrying.", retry_after=retry_after))
-
-        svc, error_result = _require_services()
-        if error_result:
-            return _json_response(error_result)
 
         body_res = await _read_json(request)
         if not body_res.ok:
@@ -694,17 +699,18 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
 
-        op = _require_operation_enabled("asset_rename")
+        svc, error_result = _require_services()
+        if error_result:
+            return _json_response(error_result)
+
+        prefs = _resolve_security_prefs(svc)
+        op = _require_operation_enabled("asset_rename", prefs=prefs)
         if not op.ok:
             return _json_response(op)
 
         auth = _require_write_access(request)
         if not auth.ok:
             return _json_response(auth)
-
-        svc, error_result = _require_services()
-        if error_result:
-            return _json_response(error_result)
 
         body_res = await _read_json(request)
         if not body_res.ok:
@@ -821,7 +827,12 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
 
-        op = _require_operation_enabled("assets_delete")
+        svc, error_result = _require_services()
+        if error_result:
+            return _json_response(error_result)
+
+        prefs = _resolve_security_prefs(svc)
+        op = _require_operation_enabled("assets_delete", prefs=prefs)
         if not op.ok:
             return _json_response(op)
 
@@ -832,10 +843,6 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         allowed, retry_after = _check_rate_limit(request, "assets_delete", max_requests=10, window_seconds=60)
         if not allowed:
             return _json_response(Result.Err("RATE_LIMITED", "Rate limit exceeded. Please wait before retrying.", retry_after=retry_after))
-
-        svc, error_result = _require_services()
-        if error_result:
-            return _json_response(error_result)
 
         body_res = await _read_json(request)
         if not body_res.ok:

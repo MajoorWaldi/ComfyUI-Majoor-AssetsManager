@@ -3,6 +3,7 @@
  */
 
 import { SETTINGS_KEY } from "../app/settingsStore.js";
+import { ENDPOINTS } from "./endpoints.js";
 import { normalizeAssetId, pickRootId } from "../utils/ids.js";
 
 /**
@@ -431,8 +432,47 @@ export async function setProbeBackendMode(mode) {
     return post("/mjr/am/settings/probe-backend", { mode });
 }
 
+export async function getSecuritySettings() {
+    return get("/mjr/am/settings/security");
+}
+
+export async function setSecuritySettings(prefs) {
+    const body = prefs && typeof prefs === "object" ? prefs : {};
+    return post("/mjr/am/settings/security", body);
+}
+
 export async function openInFolder(assetId) {
     return post("/mjr/am/open-in-folder", { asset_id: normalizeAssetId(assetId) });
+}
+
+export async function resetIndex(options = {}) {
+    const _bool = (value, fallback) => (value === undefined || value === null ? fallback : Boolean(value));
+    const scope = String(options.scope || "output").trim().toLowerCase() || "output";
+    const customRootId =
+        options.customRootId ??
+        options.custom_root_id ??
+        options.rootId ??
+        options.root_id ??
+        options.customRoot ??
+        null;
+    const body = {
+        scope,
+        reindex: _bool(options.reindex, true),
+        clear_scan_journal: _bool(options.clearScanJournal ?? options.clear_scan_journal, true),
+        clear_metadata_cache: _bool(options.clearMetadataCache ?? options.clear_metadata_cache, true),
+        rebuild_fts: _bool(options.rebuildFts ?? options.rebuild_fts, true),
+        incremental: _bool(options.incremental, false),
+        fast: _bool(options.fast, true),
+        background_metadata: _bool(options.backgroundMetadata ?? options.background_metadata, true),
+    };
+    if (customRootId) {
+        body.custom_root_id = String(customRootId);
+    }
+    return post(ENDPOINTS.INDEX_RESET, body);
+}
+
+export async function getToolsStatus(options = {}) {
+    return get(ENDPOINTS.TOOLS_STATUS, options);
 }
 
 /**

@@ -12,7 +12,12 @@ from .paths import (
     _guess_content_type_for_file,
     _is_allowed_view_media_file,
 )
-from .security import _check_rate_limit, _csrf_error, _require_operation_enabled
+from .security import (
+    _check_rate_limit,
+    _csrf_error,
+    _require_operation_enabled,
+    _resolve_security_prefs,
+)
 from .security import _require_write_access
 from .services import _require_services, _build_services, get_services_error
 from .request_json import _read_json
@@ -31,6 +36,7 @@ __all__ = [
     "_check_rate_limit",
     "_csrf_error",
     "_require_operation_enabled",
+    "_resolve_security_prefs",
     "_require_write_access",
     "_require_services",
     "_build_services",

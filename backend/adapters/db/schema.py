@@ -260,10 +260,9 @@ def ensure_indexes_and_triggers(db) -> Result[bool]:
     if not result.ok:
         logger.error("Failed to ensure indexes/triggers: %s", result.error)
         return result
-    try:
-        _repair_asset_metadata_fts(db)
-    except Exception as exc:
-        logger.warning("Failed to repair asset_metadata_fts: %s", exc)
+    repair_result = _repair_asset_metadata_fts(db)
+    if repair_result and not repair_result.ok:
+        logger.warning("Failed to repair asset_metadata_fts: %s", repair_result.error)
     return result
 
 
@@ -278,7 +277,7 @@ def _fts_has_column(db, table: str, col: str) -> bool:
         return False
 
 
-def _repair_asset_metadata_fts(db) -> None:
+def _repair_asset_metadata_fts(db) -> Result[bool]:
     """
     Repair legacy/incorrect FTS definition for asset metadata.
 
@@ -307,14 +306,12 @@ def _repair_asset_metadata_fts(db) -> None:
             needs_table_rebuild = True
 
         if not (needs_table_rebuild or needs_trigger_rebuild):
-            return
+            return Result.Ok(True)
     except Exception:
-        return
+        return Result.Ok(True)
 
     logger.warning("Repairing asset_metadata_fts (schema/triggers)")
 
-    # Wrap DDL/repair in a single explicit transaction so concurrent writes can't observe
-    # half-applied trigger/table state.
     try:
         with db.transaction(mode="immediate"):
             if needs_table_rebuild:
@@ -363,7 +360,6 @@ def _repair_asset_metadata_fts(db) -> None:
                 """
             )
 
-            # Rebuild to ensure consistency after trigger/table repair.
             db.executescript(
                 """
                 DELETE FROM asset_metadata_fts;
@@ -372,8 +368,10 @@ def _repair_asset_metadata_fts(db) -> None:
                 FROM asset_metadata;
                 """
             )
-    except Exception:
-        return
+        return Result.Ok(True)
+    except Exception as exc:
+        logger.warning("Failed to repair asset_metadata_fts: %s", exc)
+        return Result.Err("FTS_REPAIR_FAILED", str(exc))
 
 
 def _schema_fingerprint() -> str:
@@ -492,10 +490,10 @@ def rebuild_fts(db) -> Result[bool]:
         logger.error(f"Failed to rebuild assets_fts: {result.error}")
         return result
 
-    result = db.execute("INSERT INTO asset_metadata_fts(asset_metadata_fts) VALUES('rebuild')")
-    if not result.ok:
-        logger.error(f"Failed to rebuild asset_metadata_fts: {result.error}")
-        return result
+    repair_result = _repair_asset_metadata_fts(db)
+    if repair_result is not None and not repair_result.ok:
+        logger.error(f"Failed to rebuild asset_metadata_fts: {repair_result.error}")
+        return repair_result
 
     log_success(logger, "FTS index rebuilt")
     return Result.Ok(True)

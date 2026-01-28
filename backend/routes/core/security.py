@@ -10,7 +10,7 @@ import os
 import threading
 import time
 from collections import defaultdict, OrderedDict
-from typing import Mapping, Optional, Tuple
+from typing import Any, Mapping, Optional, Tuple
 from urllib.parse import urlparse
 
 from aiohttp import web
@@ -81,7 +81,7 @@ def _safe_mode_enabled() -> bool:
     return str(raw).strip().lower() in ("1", "true", "yes", "on")
 
 
-def _require_operation_enabled(operation: str) -> "Result[bool]":
+def _require_operation_enabled(operation: str, *, prefs: Mapping[str, Any] | None = None) -> "Result[bool]":
     """
     Gate "dangerous" or state-changing operations behind explicit opt-ins.
 
@@ -99,10 +99,31 @@ def _require_operation_enabled(operation: str) -> "Result[bool]":
     from ...shared import Result
 
     op = str(operation or "").strip().lower()
-    safe_mode = _safe_mode_enabled()
+    if prefs and "safe_mode" in prefs:
+        safe_mode = bool(prefs.get("safe_mode"))
+    else:
+        safe_mode = _safe_mode_enabled()
+
+    def _pref_truthy(key: str, env_var: str) -> bool:
+        if prefs is not None and key in prefs:
+            try:
+                return bool(prefs[key])
+            except Exception:
+                pass
+        return _env_truthy(env_var)
+
+    if op in ("reset_index",):
+        if _pref_truthy("allow_reset_index", "MAJOOR_ALLOW_RESET_INDEX"):
+            return Result.Ok(True, operation=op, safe_mode=safe_mode)
+        return Result.Err(
+            "FORBIDDEN",
+            "Reset index is disabled by default. Enable 'allow_reset_index' in settings or set MAJOOR_ALLOW_RESET_INDEX=1.",
+            operation=op,
+            safe_mode=safe_mode,
+        )
 
     if op in ("delete", "asset_delete", "assets_delete"):
-        if _env_truthy("MAJOOR_ALLOW_DELETE"):
+        if _pref_truthy("allow_delete", "MAJOOR_ALLOW_DELETE"):
             return Result.Ok(True, operation=op, safe_mode=safe_mode)
         return Result.Err(
             "FORBIDDEN",
@@ -112,7 +133,7 @@ def _require_operation_enabled(operation: str) -> "Result[bool]":
         )
 
     if op in ("rename", "asset_rename"):
-        if _env_truthy("MAJOOR_ALLOW_RENAME"):
+        if _pref_truthy("allow_rename", "MAJOOR_ALLOW_RENAME"):
             return Result.Ok(True, operation=op, safe_mode=safe_mode)
         return Result.Err(
             "FORBIDDEN",
@@ -122,7 +143,7 @@ def _require_operation_enabled(operation: str) -> "Result[bool]":
         )
 
     if op in ("open_in_folder", "open-in-folder"):
-        if _env_truthy("MAJOOR_ALLOW_OPEN_IN_FOLDER"):
+        if _pref_truthy("allow_open_in_folder", "MAJOOR_ALLOW_OPEN_IN_FOLDER"):
             return Result.Ok(True, operation=op, safe_mode=safe_mode)
         return Result.Err(
             "FORBIDDEN",
@@ -134,7 +155,7 @@ def _require_operation_enabled(operation: str) -> "Result[bool]":
     if op in ("write", "rating", "tags", "asset_rating", "asset_tags"):
         if not safe_mode:
             return Result.Ok(True, operation=op, safe_mode=safe_mode)
-        if _env_truthy("MAJOOR_ALLOW_WRITE"):
+        if _pref_truthy("allow_write", "MAJOOR_ALLOW_WRITE"):
             return Result.Ok(True, operation=op, safe_mode=safe_mode)
         return Result.Err(
             "FORBIDDEN",
@@ -152,6 +173,21 @@ def _require_operation_enabled(operation: str) -> "Result[bool]":
             safe_mode=safe_mode,
         )
     return Result.Ok(True, operation=op, safe_mode=safe_mode)
+
+
+def _resolve_security_prefs(services: Mapping[str, Any] | None) -> Mapping[str, Any] | None:
+    """
+    Extract stored security preferences from the services container safely.
+    """
+    if not services:
+        return None
+    settings_service = services.get("settings")
+    if not settings_service:
+        return None
+    try:
+        return settings_service.get_security_prefs()
+    except Exception:
+        return None
 
 
 def _get_write_token() -> str:

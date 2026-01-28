@@ -6,6 +6,8 @@ import sys
 import logging
 from pathlib import Path
 
+from .utils import env_bool, env_float
+
 logger = logging.getLogger(__name__)
 
 def _resolve_output_root() -> Path:
@@ -59,27 +61,15 @@ def get_tool_paths():
 MEDIA_PROBE_BACKEND = os.getenv("MAJOOR_MEDIA_PROBE_BACKEND", "auto")
 
 # Performance tuning defaults
-def _env_bool(name: str, default: bool) -> bool:
-    value = os.getenv(name)
-    if value is None:
-        return default
-    return value.lower() in ("1", "true", "yes", "on")
-
 def _env_int(name: str, default: int) -> int:
     try:
         return int(os.getenv(name, default))
     except (TypeError, ValueError):
         return default
 
-def _env_float(name: str, default: float) -> float:
-    try:
-        return float(os.getenv(name, default))
-    except (TypeError, ValueError):
-        return default
-
-ENABLE_FILE_WATCHER = _env_bool("MAJOOR_ENABLE_FILE_WATCHER", False)
-WATCHER_INTERVAL_SECONDS = _env_float("MAJOOR_WATCHER_INTERVAL", 15.0)
-WATCHER_JOIN_TIMEOUT = _env_float("MAJOOR_WATCHER_JOIN_TIMEOUT", 5.0)
+ENABLE_FILE_WATCHER = env_bool("MAJOOR_ENABLE_FILE_WATCHER", False)
+WATCHER_INTERVAL_SECONDS = env_float("MAJOOR_WATCHER_INTERVAL", 15.0)
+WATCHER_JOIN_TIMEOUT = env_float("MAJOOR_WATCHER_JOIN_TIMEOUT", 5.0)
 WATCHER_PATHS = []
 for raw_path in os.getenv("MAJOOR_WATCHER_PATHS", OUTPUT_ROOT).split(os.pathsep):
     cleaned = raw_path.strip()
@@ -99,10 +89,10 @@ EXIFTOOL_TIMEOUT = _env_int("MAJOOR_EXIFTOOL_TIMEOUT", 15)
 FFPROBE_TIMEOUT = _env_int("MAJOOR_FFPROBE_TIMEOUT", 10)
 
 # Database tuning
-DB_TIMEOUT = _env_float("MAJOOR_DB_TIMEOUT", 30.0)
+DB_TIMEOUT = env_float("MAJOOR_DB_TIMEOUT", 30.0)
 DB_MAX_CONNECTIONS = _env_int("MAJOOR_DB_MAX_CONNECTIONS", 8)
-DB_QUERY_TIMEOUT = _env_float("MAJOOR_DB_QUERY_TIMEOUT", 30.0)
-TO_THREAD_TIMEOUT_S = _env_float("MAJOOR_TO_THREAD_TIMEOUT", 30.0)
+DB_QUERY_TIMEOUT = env_float("MAJOOR_DB_QUERY_TIMEOUT", 30.0)
+TO_THREAD_TIMEOUT_S = env_float("MAJOOR_TO_THREAD_TIMEOUT", 30.0)
 MAX_METADATA_JSON_BYTES = _env_int("MAJOOR_MAX_METADATA_JSON_BYTES", 2 * 1024 * 1024)  # 2MB
 
 # Background scan / filesystem listing tuning
@@ -111,8 +101,8 @@ SCAN_PENDING_MAX = _env_int("MAJOOR_SCAN_PENDING_MAX", 64)
 
 # Filesystem listing cache (used by filesystem fallback search/list)
 FS_LIST_CACHE_MAX = _env_int("MAJOOR_FS_LIST_CACHE_MAX", 32)
-FS_LIST_CACHE_TTL_SECONDS = _env_float("MAJOOR_FS_LIST_CACHE_TTL_SECONDS", 1.5)
-FS_LIST_CACHE_WATCHDOG = _env_bool("MAJOOR_FS_LIST_CACHE_WATCHDOG", True)
+FS_LIST_CACHE_TTL_SECONDS = env_float("MAJOOR_FS_LIST_CACHE_TTL_SECONDS", 1.5)
+FS_LIST_CACHE_WATCHDOG = env_bool("MAJOOR_FS_LIST_CACHE_WATCHDOG", True)
 
 # Scanner batching (bounded transactions)
 # Tweak only if you know your workload; larger batches reduce transaction overhead but increase lock time.

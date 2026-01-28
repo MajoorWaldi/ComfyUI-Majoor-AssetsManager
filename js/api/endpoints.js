@@ -16,6 +16,7 @@ export const ENDPOINTS = {
     // Index & Search
     SCAN: "/mjr/am/scan",
     INDEX_FILES: "/mjr/am/index-files",
+    INDEX_RESET: "/mjr/am/index/reset",
     SEARCH: "/mjr/am/search",
     LIST: "/mjr/am/list",
     ROOTS: "/mjr/am/roots",
@@ -28,6 +29,7 @@ export const ENDPOINTS = {
     RETRY_SERVICES: "/mjr/am/retry-services",
     STAGE_TO_INPUT: "/mjr/am/stage-to-input",
     OPEN_IN_FOLDER: "/mjr/am/open-in-folder",
+    TOOLS_STATUS: "/mjr/am/tools/status",
 
     // View (ComfyUI native)
     VIEW: "/view",

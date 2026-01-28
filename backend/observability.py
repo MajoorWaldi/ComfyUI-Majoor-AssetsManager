@@ -16,6 +16,7 @@ from uuid import uuid4
 from aiohttp import web
 
 from .shared import get_logger, request_id_var
+from .utils import env_float
 
 logger = get_logger(__name__)
 
@@ -58,18 +59,6 @@ def _env_flag(name: str, default: bool = False) -> bool:
     return value in ("1", "true", "yes", "on")
 
 
-def _env_float(name: str, default: float) -> float:
-    try:
-        raw = os.environ.get(name)
-    except Exception:
-        raw = None
-    if raw is None or str(raw).strip() == "":
-        return float(default)
-    try:
-        return float(raw)
-    except Exception:
-        return float(default)
-
 
 # (no cached env reads here on purpose)
 
@@ -88,9 +77,9 @@ def _should_emit_log(key: str, *, window_ms: float) -> bool:
             _LOG_RATELIMIT_STATE[key] = now
 
             # Periodic cleanup to avoid unbounded growth.
-            clean_interval_ms = _env_float("MJR_OBS_RATELIMIT_CLEAN_INTERVAL_MS", _DEFAULT_RATELIMIT_CLEAN_INTERVAL_MS)
-            clean_window_mult = _env_float("MJR_OBS_RATELIMIT_CLEAN_WINDOW_MULT", _DEFAULT_RATELIMIT_CLEAN_WINDOW_MULT)
-            clean_min_cutoff_ms = _env_float("MJR_OBS_RATELIMIT_CLEAN_MIN_CUTOFF_MS", _DEFAULT_RATELIMIT_CLEAN_MIN_CUTOFF_MS)
+            clean_interval_ms = env_float("MJR_OBS_RATELIMIT_CLEAN_INTERVAL_MS", _DEFAULT_RATELIMIT_CLEAN_INTERVAL_MS)
+            clean_window_mult = env_float("MJR_OBS_RATELIMIT_CLEAN_WINDOW_MULT", _DEFAULT_RATELIMIT_CLEAN_WINDOW_MULT)
+            clean_min_cutoff_ms = env_float("MJR_OBS_RATELIMIT_CLEAN_MIN_CUTOFF_MS", _DEFAULT_RATELIMIT_CLEAN_MIN_CUTOFF_MS)
 
             if not _LOG_RATELIMIT_CLEAN_AT or now - _LOG_RATELIMIT_CLEAN_AT > clean_interval_ms:
                 cutoff = now - max(window_ms * clean_window_mult, clean_min_cutoff_ms)
@@ -150,7 +139,7 @@ def _should_log(request: web.Request, *, status: Optional[int], duration_ms: flo
     if not _env_flag("MJR_OBS_LOG_SLOW", default=False):
         return False
 
-    slow_ms = _env_float("MJR_OBS_SLOW_MS", _DEFAULT_SLOW_MS)
+    slow_ms = env_float("MJR_OBS_SLOW_MS", _DEFAULT_SLOW_MS)
     return duration_ms >= slow_ms
 
 
@@ -219,7 +208,7 @@ async def request_context_middleware(request: web.Request, handler):
 
             if _should_log(request, status=status, duration_ms=duration_ms):
                 # Rate-limit repetitive logs (especially error loops / polling).
-                window_ms = _env_float("MJR_OBS_RATELIMIT_MS", _DEFAULT_LOG_RATELIMIT_MS)
+                window_ms = env_float("MJR_OBS_RATELIMIT_MS", _DEFAULT_LOG_RATELIMIT_MS)
                 try:
                     key = f"{request.method}:{request.path}:{status}"
                 except Exception:

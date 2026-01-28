@@ -20,7 +20,17 @@ from backend.config import TO_THREAD_TIMEOUT_S
 from backend.custom_roots import resolve_custom_root
 from backend.shared import Result
 from backend.tool_detect import get_tool_status
-from ..core import _json_response, _require_services, _csrf_error, _read_json
+from backend.utils import parse_bool
+from ..core import _json_response, _require_services, _csrf_error, _require_write_access, _read_json
+
+SECURITY_PREF_KEYS = {
+    "safe_mode",
+    "allow_write",
+    "allow_delete",
+    "allow_rename",
+    "allow_open_in_folder",
+    "allow_reset_index",
+}
 
 
 def register_health_routes(routes: web.RouteTableDef) -> None:
@@ -130,6 +140,54 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         result = settings_service.set_probe_backend(mode)
         if result.ok:
             return _json_response(Result.Ok({"media_probe_backend": result.data}))
+        return _json_response(result)
+
+    @routes.get("/mjr/am/settings/security")
+    async def get_security_settings(request):
+        svc, error_result = _require_services()
+        if error_result:
+            return _json_response(error_result)
+
+        settings_service = svc.get("settings")
+        if not settings_service:
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Settings service unavailable"))
+
+        prefs = settings_service.get_security_prefs()
+        return _json_response(Result.Ok({"prefs": prefs}))
+
+    @routes.post("/mjr/am/settings/security")
+    async def update_security_settings(request):
+        csrf = _csrf_error(request)
+        if csrf:
+            return _json_response(Result.Err("CSRF", csrf))
+
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
+
+        svc, error_result = _require_services()
+        if error_result:
+            return _json_response(error_result)
+
+        settings_service = svc.get("settings")
+        if not settings_service:
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Settings service unavailable"))
+
+        body_res = await _read_json(request)
+        if not body_res.ok:
+            return _json_response(body_res)
+        body = body_res.data or {}
+
+        prefs = {}
+        for key in SECURITY_PREF_KEYS:
+            if key in body:
+                prefs[key] = parse_bool(body[key], False)
+        if not prefs:
+            return _json_response(Result.Err("INVALID_INPUT", "No security settings provided"))
+
+        result = settings_service.set_security_prefs(prefs)
+        if result.ok:
+            return _json_response(Result.Ok({"prefs": result.data or settings_service.get_security_prefs()}))
         return _json_response(result)
 
     @routes.get("/mjr/am/tools/status")

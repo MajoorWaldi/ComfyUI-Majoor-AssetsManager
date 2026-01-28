@@ -20,13 +20,18 @@ except Exception:
 
     folder_paths = _FolderPathsStub()  # type: ignore
 
+from backend.adapters.db.schema import rebuild_fts
 from backend.config import OUTPUT_ROOT, TO_THREAD_TIMEOUT_S
 from backend.custom_roots import resolve_custom_root
 from backend.shared import Result, get_logger
+from backend.utils import parse_bool
 from ..core import (
     _json_response,
     _require_services,
     _csrf_error,
+    _require_operation_enabled,
+    _resolve_security_prefs,
+    _require_write_access,
     _check_rate_limit,
     _read_json,
     safe_error_message,
@@ -602,6 +607,204 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             logger.debug("Failed to attach scan stats: %s", exc)
 
         return _json_response(Result.Ok(total_stats))
+
+    @routes.post("/mjr/am/index/reset")
+    async def reset_index(request):
+        """
+        Reset index caches and optionally re-run scans.
+
+        Body fields:
+            scope: "output"|"input"|"custom"|"all" (default: "output")
+            custom_root_id/root_id: required when scope="custom"
+            reindex: bool (default: true)
+            clear_scan_journal: bool (default: true)
+            clear_metadata_cache: bool (default: true)
+            rebuild_fts: bool (default: true)
+            incremental: bool (default: false)
+            fast: bool (default: true)
+            background_metadata: bool (default: true)
+        """
+        csrf = _csrf_error(request)
+        if csrf:
+            return _json_response(Result.Err("CSRF", csrf))
+
+        svc, error_result = _require_services()
+        if error_result:
+            return _json_response(error_result)
+
+        prefs = _resolve_security_prefs(svc)
+        op = _require_operation_enabled("reset_index", prefs=prefs)
+        if not op.ok:
+            return _json_response(op)
+
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
+
+        body_res = await _read_json(request)
+        if not body_res.ok:
+            return _json_response(body_res)
+        body = body_res.data or {}
+
+        def _bool_option(keys, default):
+            for key in keys:
+                if key in body:
+                    return parse_bool(body[key], default)
+            return default
+
+        scope = str(body.get("scope") or "output").strip().lower() or "output"
+        custom_root_id = ""
+        for key in ("custom_root_id", "root_id", "customRootId", "customRoot"):
+            candidate = body.get(key)
+            if candidate:
+                custom_root_id = str(candidate).strip()
+                break
+
+        reindex = _bool_option(("reindex",), True)
+        clear_scan_journal = _bool_option(("clear_scan_journal", "clearScanJournal"), True)
+        clear_metadata_cache = _bool_option(("clear_metadata_cache", "clearMetadataCache"), True)
+        rebuild_fts_flag = _bool_option(("rebuild_fts", "rebuildFts"), True)
+        incremental = _bool_option(("incremental",), False)
+        fast = _bool_option(("fast",), True)
+        background_metadata = _bool_option(("background_metadata", "backgroundMetadata"), True)
+
+        target_roots: list[dict[str, str | None]] = []
+        try:
+            if scope in ("output", "outputs"):
+                target_roots.append({"source": "output", "path": str(Path(OUTPUT_ROOT).resolve(strict=False)), "root_id": None})
+            elif scope in ("input", "inputs"):
+                target_roots.append(
+                    {
+                        "source": "input",
+                        "path": str(Path(folder_paths.get_input_directory()).resolve(strict=False)),
+                        "root_id": None,
+                    }
+                )
+            elif scope == "all":
+                target_roots.append({"source": "output", "path": str(Path(OUTPUT_ROOT).resolve(strict=False)), "root_id": None})
+                target_roots.append(
+                    {
+                        "source": "input",
+                        "path": str(Path(folder_paths.get_input_directory()).resolve(strict=False)),
+                        "root_id": None,
+                    }
+                )
+            elif scope == "custom":
+                if not custom_root_id:
+                    return _json_response(Result.Err("INVALID_INPUT", "Missing custom_root_id for custom scope"))
+                root_result = resolve_custom_root(custom_root_id)
+                if not root_result.ok:
+                    return _json_response(root_result)
+                resolved = str(root_result.data)
+                target_roots.append({"source": "custom", "path": resolved, "root_id": custom_root_id})
+            else:
+                return _json_response(Result.Err("INVALID_INPUT", f"Unknown scope: {scope}"))
+        except Exception as exc:
+            logger.debug("Failed to resolve reset index roots: %s", exc)
+            return _json_response(Result.Err("INVALID_INPUT", "Unable to resolve reset scope"))
+
+        db = svc.get("db")
+        if not db:
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Database service unavailable"))
+
+        cache_prefixes: list[str] | None = None if scope == "all" else [entry["path"] for entry in target_roots]
+
+        async def _clear_table(table: str, prefixes: list[str] | None) -> Result[int]:
+            total_deleted = 0
+            if prefixes is None:
+                res = await db.aexecute(f"DELETE FROM {table}")
+                if not res.ok:
+                    return res
+                return Result.Ok(int(res.data or 0))
+            for prefix in prefixes:
+                try:
+                    normalized = str(Path(prefix).resolve(strict=False))
+                except Exception:
+                    return Result.Err("INVALID_INPUT", f"Invalid path for cache clearing: {prefix}")
+                like = normalized.rstrip(os.path.sep) + os.path.sep + "%"
+                res = await db.aexecute(
+                    f"DELETE FROM {table} WHERE filepath = ? OR filepath LIKE ?",
+                    (normalized, like),
+                )
+                if not res.ok:
+                    return res
+                total_deleted += int(res.data or 0)
+            return Result.Ok(total_deleted)
+
+        cleared = {"scan_journal": 0, "metadata_cache": 0}
+        if clear_scan_journal:
+            res = await _clear_table("scan_journal", cache_prefixes)
+            if not res.ok:
+                return _json_response(res)
+            cleared["scan_journal"] = int(res.data or 0)
+        if clear_metadata_cache:
+            res = await _clear_table("metadata_cache", cache_prefixes)
+            if not res.ok:
+                return _json_response(res)
+            cleared["metadata_cache"] = int(res.data or 0)
+
+        scan_details: list[dict[str, Any]] = []
+        totals = {key: 0 for key in ("scanned", "added", "updated", "skipped", "errors")}
+        if reindex:
+            for target in target_roots:
+                try:
+                    result = await asyncio.wait_for(
+                        asyncio.to_thread(
+                            svc["index"].scan_directory,
+                            target["path"],
+                            True,
+                            incremental,
+                            target["source"],
+                            target.get("root_id"),
+                            fast,
+                            background_metadata,
+                        ),
+                        timeout=TO_THREAD_TIMEOUT_S,
+                    )
+                except asyncio.TimeoutError:
+                    return _json_response(Result.Err("TIMEOUT", "Index reset scan timed out"))
+                except Exception as exc:
+                    logger.exception("Index reset scan failed")
+                    return _json_response(Result.Err("RESET_FAILED", f"Index reset scan failed: {exc}"))
+
+                if not result.ok:
+                    return _json_response(result)
+
+                stats = result.data or {}
+                counts = {key: int(stats.get(key) or 0) for key in totals}
+                for key in totals:
+                    totals[key] += counts[key]
+                scan_details.append(
+                    {
+                        "source": target["source"],
+                        "root_id": target.get("root_id"),
+                        **counts,
+                    }
+                )
+
+        scan_summary = {
+            "scope": scope,
+            "reindex": bool(reindex),
+            "details": scan_details,
+            **totals,
+        }
+
+        rebuild_status = None
+        if rebuild_fts_flag:
+            rebuild_result = rebuild_fts(db)
+            if not rebuild_result.ok:
+                return _json_response(rebuild_result)
+            rebuild_status = True
+
+        return _json_response(
+            Result.Ok(
+                {
+                    "cleared": cleared,
+                    "scan_summary": scan_summary,
+                    "rebuild_fts": rebuild_status,
+                }
+            )
+        )
 
     @routes.post("/mjr/am/stage-to-input")
     async def stage_to_input(request):

@@ -2,9 +2,10 @@
  * Status Dot Feature - Health indicator
  */
 
-import { get, post } from "../../api/client.js";
+import { get, getToolsStatus, post, resetIndex } from "../../api/client.js";
 import { ENDPOINTS } from "../../api/endpoints.js";
 import { APP_CONFIG } from "../../app/config.js";
+import { comfyAlert, comfyConfirm } from "../../app/dialogs.js";
 
 const TOOL_CAPABILITIES = [
     {
@@ -103,6 +104,70 @@ export function createStatusIndicator() {
     body.appendChild(statusText);
     body.appendChild(capabilities);
 
+    const toolsStatus = document.createElement("div");
+    toolsStatus.id = "mjr-tools-status";
+    toolsStatus.style.cssText = "font-size: 11px; opacity: 0.7; margin-top: 10px;";
+    toolsStatus.textContent = "Tool status: checking...";
+    body.appendChild(toolsStatus);
+
+    const actionsRow = document.createElement("div");
+    actionsRow.style.cssText = "margin-top: 10px; display: flex; justify-content: flex-end; gap: 8px;";
+
+    const resetBtn = document.createElement("button");
+    resetBtn.type = "button";
+    resetBtn.textContent = "Reset index";
+    resetBtn.title = "Reset index cache (requires allowResetIndex in settings).";
+    resetBtn.style.cssText = `
+        padding: 5px 12px;
+        font-size: 11px;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.25);
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+        transition: border 0.2s, background 0.2s;
+    `;
+    resetBtn.onmouseenter = () => {
+        resetBtn.style.borderColor = "rgba(255,255,255,0.6)";
+        resetBtn.style.background = "rgba(255,255,255,0.08)";
+    };
+    resetBtn.onmouseleave = () => {
+        resetBtn.style.borderColor = "rgba(255,255,255,0.25)";
+        resetBtn.style.background = "transparent";
+    };
+    resetBtn.onclick = async (event) => {
+        event.stopPropagation();
+        const confirmed = await comfyConfirm(
+            "Reset index cache and reindex all files? This will purge scan journals and metadata caches."
+        );
+        if (!confirmed) return;
+        const originalText = resetBtn.textContent;
+        resetBtn.disabled = true;
+        resetBtn.textContent = "Resetting...";
+        try {
+            const res = await resetIndex({
+                scope: "all",
+                reindex: true,
+                clear_scan_journal: true,
+                clear_metadata_cache: true,
+                rebuild_fts: true,
+            });
+            if (res?.ok) {
+                await comfyAlert("Index reset started. Files will be reindexed in the background.");
+            } else {
+                await comfyAlert(res?.error || "Failed to reset index.");
+            }
+        } catch (error) {
+            await comfyAlert(error?.message || "Reset index failed.");
+        } finally {
+            resetBtn.disabled = false;
+            resetBtn.textContent = originalText;
+        }
+    };
+
+    actionsRow.appendChild(resetBtn);
+    body.appendChild(actionsRow);
+
     section.appendChild(header);
     section.appendChild(body);
 
@@ -119,7 +184,7 @@ export function createStatusIndicator() {
         });
     }
 
-    setBodyCollapsed(section, false);
+    setBodyCollapsed(section, true);
     // Add hover effect
     section.onmouseenter = () => {
         section.style.borderColor = "var(--mjr-accent-border, var(--border-color, #333))";
@@ -276,6 +341,32 @@ function renderCapabilities(section, toolAvailability = {}, toolPaths = {}) {
     section.appendChild(wrapper);
 }
 
+function renderToolsStatusLine(section, toolStatus = null, fallbackAvailability = {}) {
+    if (!section) return;
+    const parent = section.parentElement;
+    if (!parent) return;
+    const container = parent.querySelector("#mjr-tools-status");
+    if (!container) return;
+
+    const hasFallback = fallbackAvailability && Object.keys(fallbackAvailability).length > 0;
+    if (!toolStatus && !hasFallback) {
+        container.textContent = "Tool status: checking...";
+        return;
+    }
+
+    const segments = TOOL_CAPABILITIES.map(({ key, label }) => {
+        const availability =
+            toolStatus && key in toolStatus ? toolStatus[key] : undefined;
+        const fallback = key in fallbackAvailability ? fallbackAvailability[key] : undefined;
+        const available = availability !== undefined ? availability : fallback;
+        const statusText =
+            available === null || available === undefined ? "unknown" : available ? "available" : "missing";
+        const version = toolStatus?.versions?.[key];
+        return version ? `${label}: ${statusText} - ${version}` : `${label}: ${statusText}`;
+    });
+    container.textContent = segments.join("  |  ");
+}
+
 function createCapabilityNode({ label, hint }, available, path) {
     const container = document.createElement("div");
     container.style.cssText = `
@@ -330,6 +421,13 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
             ? `${ENDPOINTS.HEALTH_COUNTERS}?scope=custom&custom_root_id=${encodeURIComponent(String(desiredCustomRootId || ""))}`
             : `${ENDPOINTS.HEALTH_COUNTERS}?scope=${encodeURIComponent(desiredScope || "output")}`;
     const result = await get(url);
+    let toolStatusData = null;
+    try {
+        const toolsResult = await getToolsStatus();
+        if (toolsResult?.ok) {
+            toolStatusData = toolsResult.data;
+        }
+    } catch {}
 
     if (meta && typeof meta === "object") {
         meta.lastCode = result?.code || null;
@@ -347,6 +445,7 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
         const toolPaths = counters.tool_paths || {};
 
         renderCapabilities(capabilitiesSection, toolAvailability, toolPaths);
+        renderToolsStatusLine(capabilitiesSection, toolStatusData, toolAvailability);
 
         const scopeLabel =
             desiredScope === "all"
@@ -382,6 +481,7 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
     } else {
         // Error - red
         renderCapabilities(capabilitiesSection, {}, {});
+        renderToolsStatusLine(capabilitiesSection, toolStatusData);
         statusDot.style.background = "#f44336";
         if (result?.code === "INVALID_RESPONSE" && result?.status === 404) {
             setStatusWithHint(

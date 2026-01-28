@@ -93,3 +93,4 @@ node.zip
 *AUDIT*.md
 DEEP_AUDIT*.md
 SECURITY_FIXES*.md
+find_duplicates.py

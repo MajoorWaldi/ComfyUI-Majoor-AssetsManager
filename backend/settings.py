@@ -5,20 +5,30 @@ from __future__ import annotations
 
 import threading
 import time
-from typing import Optional
+from typing import Any, Mapping, Optional
 
 from .shared import Result, get_logger
 from .config import MEDIA_PROBE_BACKEND
+from .utils import env_bool, parse_bool
 
 logger = get_logger(__name__)
 
 _PROBE_BACKEND_KEY = "media_probe_backend"
 _SETTINGS_VERSION_KEY = "__settings_version"
 _VALID_PROBE_MODES = {"auto", "exiftool", "ffprobe", "both"}
+_SECURITY_PREFS_INFO: Mapping[str, dict[str, bool | str]] = {
+    "safe_mode": {"env": "MAJOOR_SAFE_MODE", "default": False},
+    "allow_write": {"env": "MAJOOR_ALLOW_WRITE", "default": False},
+    "allow_delete": {"env": "MAJOOR_ALLOW_DELETE", "default": True},
+    "allow_rename": {"env": "MAJOOR_ALLOW_RENAME", "default": True},
+    "allow_open_in_folder": {"env": "MAJOOR_ALLOW_OPEN_IN_FOLDER", "default": True},
+    "allow_reset_index": {"env": "MAJOOR_ALLOW_RESET_INDEX", "default": True},
+}
 
 _SETTINGS_CACHE_TTL_S = 10.0
 _VERSION_CACHE_TTL_S = 1.0
 _MS_PER_S = 1000.0
+
 
 
 class AppSettings:
@@ -52,6 +62,42 @@ class AppSettings:
             "INSERT OR REPLACE INTO metadata (key, value) VALUES (?, ?)",
             (key, value),
         )
+
+    def _get_security_prefs_locked(self) -> dict[str, bool]:
+        output: dict[str, bool] = {}
+        for key, info in _SECURITY_PREFS_INFO.items():
+            raw = self._read_setting(key)
+            if raw is not None:
+                output[key] = parse_bool(raw, bool(info.get("default", False)))
+            else:
+                default = bool(info.get("default", False))
+                env_var = str(info.get("env") or "")
+                output[key] = env_bool(env_var, default)
+        return output
+
+    def get_security_prefs(self) -> dict[str, bool]:
+        with self._lock:
+            return self._get_security_prefs_locked()
+
+    def set_security_prefs(self, prefs: Mapping[str, Any]) -> Result[dict[str, bool]]:
+        to_write: dict[str, bool] = {}
+        for key in _SECURITY_PREFS_INFO:
+            if key in prefs:
+                to_write[key] = parse_bool(prefs[key], False)
+        if not to_write:
+            return Result.Err("INVALID_INPUT", "No security settings provided")
+        with self._lock:
+            for key, value in to_write.items():
+                res = self._write_setting(key, "1" if value else "0")
+                if not res.ok:
+                    return Result.Err("DB_ERROR", res.error or f"Failed to persist {key}")
+            bump = self._bump_settings_version_locked()
+            if not bump.ok:
+                try:
+                    logger.warning("Failed to bump settings version: %s", bump.error)
+                except Exception:
+                    pass
+            return Result.Ok(self._get_security_prefs_locked())
 
     def _read_settings_version(self) -> int:
         try:
