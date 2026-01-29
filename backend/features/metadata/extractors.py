@@ -7,7 +7,6 @@ import os
 import base64
 import re
 import zlib
-from pathlib import Path
 from typing import Optional, Dict, Any, Tuple
 
 from ...shared import Result, ErrorCode, get_logger
@@ -25,27 +24,23 @@ MAX_TAG_LENGTH = 100
 
 
 def _try_parse_json_text(text: str) -> Optional[Dict[str, Any]]:
-    """
-    Parse JSON that may be embedded as:
-      - a dict JSON string
-      - a JSON-encoded string containing JSON (double-encoded)
-      - base64 (optionally zlib-compressed) JSON
-
-    Returns dict if successful, else None.
-    """
+    """Parse JSON embedded in text, handling standard ComfyUI prefixes."""
     if not isinstance(text, str):
         return None
     raw = text.strip()
     if not raw:
         return None
 
-    if raw.startswith("workflow:"):
-        raw = raw.split(":", 1)[1].strip()
-    if raw.startswith("prompt:"):
-        raw = raw.split(":", 1)[1].strip()
+    # Handle common prefixes
+    lower_raw = raw.lower()
+    if lower_raw.startswith("workflow:"):
+        raw = raw[9:].strip()
+    elif lower_raw.startswith("prompt:"):
+        raw = raw[7:].strip()
+    elif lower_raw.startswith("makeprompt:"):
+        raw = raw[11:].strip()
 
     if len(raw) > MAX_METADATA_JSON_SIZE:
-        logger.debug("Skipping oversized metadata JSON payload (%s bytes)", len(raw))
         return None
 
     def _loads_maybe(s: str) -> Optional[Dict[str, Any]]:
@@ -55,7 +50,6 @@ def _try_parse_json_text(text: str) -> Optional[Dict[str, Any]]:
             return None
         if isinstance(parsed, dict):
             return parsed
-        # Some tools store JSON as a JSON string literal (double-encoded).
         if isinstance(parsed, str):
             try:
                 nested = json.loads(parsed)
@@ -68,8 +62,7 @@ def _try_parse_json_text(text: str) -> Optional[Dict[str, Any]]:
     if direct is not None:
         return direct
 
-    # Base64 (possibly zlib-compressed) JSON payload.
-    # Only attempt when the string looks like base64 and is reasonably sized.
+    # Base64 check
     if len(raw) < MIN_BASE64_CANDIDATE_LEN or len(raw) > (MAX_METADATA_JSON_SIZE * 2):
         return None
     if not _BASE64_RE.match(raw):
@@ -80,40 +73,112 @@ def _try_parse_json_text(text: str) -> Optional[Dict[str, Any]]:
     except Exception:
         return None
 
-    # Detect zlib wrapper (common for compressed prompt/workflow payloads).
-    def _safe_zlib_decompress(data: bytes, limit: int) -> Optional[bytes]:
-        try:
-            decomp = zlib.decompressobj()
-            out = decomp.decompress(data, limit)
-            if len(out) >= limit:
-                return None
-            tail = decomp.flush()
-            if tail:
-                if len(out) + len(tail) > limit:
-                    return None
-                out += tail
-            return out
-        except Exception:
-            return None
-
+    # Zlib check
     if decoded.startswith(b"x\x9c") or decoded.startswith(b"x\xda"):
-        maybe = _safe_zlib_decompress(decoded, MAX_ZLIB_DECOMPRESS_BYTES)
-        if maybe is not None:
-            decoded = maybe
-
-    # Decode to text and try JSON parsing again.
-    try:
-        decoded_text = decoded.decode("utf-8", errors="strict").strip()
-    except Exception:
         try:
-            decoded_text = decoded.decode("utf-8", errors="replace").strip()
+            decoded = zlib.decompress(decoded)
         except Exception:
-            return None
+            pass
+
+    try:
+        decoded_text = decoded.decode("utf-8", errors="replace").strip()
+    except Exception:
+        return None
 
     if not decoded_text or len(decoded_text) > MAX_METADATA_JSON_SIZE:
         return None
 
     return _loads_maybe(decoded_text)
+
+
+def _reconstruct_params_from_workflow(workflow: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Fallback: Extract prompts and parameters directly from the Workflow nodes
+    when the 'Parameters' text field is missing.
+    """
+    params = {}
+    nodes = workflow.get("nodes", [])
+    if not nodes:
+        return params
+
+    prompts = []
+    negative_prompts = []
+
+    # Simple heuristic scan of nodes
+    for node in nodes:
+        widgets = node.get("widgets_values")
+        if not widgets or not isinstance(widgets, list):
+            continue
+
+        node_type = str(node.get("type", "")).lower()
+        title = str(node.get("title", "")).lower()
+
+        # 1. Extract Prompts (CLIPTextEncode, PrimitiveString, etc.)
+        if "text" in node_type or "string" in node_type or "prompt" in node_type:
+            # Usually the first widget is the text
+            for val in widgets:
+                if isinstance(val, str) and len(val) > 2:
+                    # heuristic: negative prompts often have "negative" in title or color/bg
+                    if "negative" in title or "negative" in node_type:
+                        negative_prompts.append(val)
+                    else:
+                        prompts.append(val)
+                    break # take first string only per node
+
+        # 2. Extract KSampler Info (Seed, Steps, CFG, Sampler)
+        if "ksampler" in node_type or "sampler" in node_type:
+            # Common widget order varies, but we can look for specific types
+            for val in widgets:
+                if isinstance(val, int):
+                    # Large int is likely seed
+                    if val > 10000 and "seed" not in params:
+                        params["seed"] = val
+                    # Small int (1-100) likely steps
+                    elif 1 <= val <= 200 and "steps" not in params:
+                        params["steps"] = val
+                elif isinstance(val, float):
+                    # Small float (1.0-30.0) likely CFG
+                    if 1.0 <= val <= 30.0 and "cfg" not in params:
+                        params["cfg"] = val
+                elif isinstance(val, str):
+                    # Check for sampler names
+                    v_low = val.lower()
+                    if v_low in ["euler", "euler_a", "dpm++", "ddim", "uni_pc"] and "sampler" not in params:
+                        params["sampler"] = val
+
+        # 3. Extract Model Name
+        if "loader" in node_type and "checkpoint" in node_type:
+             for val in widgets:
+                 if isinstance(val, str) and (".safetensors" in val or ".ckpt" in val):
+                     params["model"] = val
+                     break
+
+    # Construct parameter text
+    if prompts:
+        # Join multiple prompt nodes if found
+        full_prompt = "\n".join(prompts)
+        params["prompt"] = full_prompt
+
+        # Build a fake parameters string for display
+        fake_text = full_prompt
+        if negative_prompts:
+            neg = "\n".join(negative_prompts)
+            params["negative_prompt"] = neg
+            fake_text += f"\nNegative prompt: {neg}"
+
+        details = []
+        if "steps" in params: details.append(f"Steps: {params['steps']}")
+        if "sampler" in params: details.append(f"Sampler: {params['sampler']}")
+        if "cfg" in params: details.append(f"CFG scale: {params['cfg']}")
+        if "seed" in params: details.append(f"Seed: {params['seed']}")
+        if "model" in params: details.append(f"Model: {params['model']}")
+
+        if details:
+            fake_text += "\n" + ", ".join(details)
+
+        params["parameters"] = fake_text
+
+    return params
 
 def _coerce_rating_to_stars(value: Any) -> Optional[int]:
     """
@@ -337,6 +402,14 @@ def _apply_common_exif_fields(
         if str(metadata.get("quality") or "none") != "full":
             _bump_quality(metadata, "partial")
 
+    # FALLBACK: If we have a workflow but NO parameters text, reconstruct it
+    if metadata.get("workflow") and not metadata.get("parameters"):
+        reconstructed = _reconstruct_params_from_workflow(metadata["workflow"])
+        if reconstructed:
+            metadata.update(reconstructed)
+            if metadata.get("quality") != "full":
+                _bump_quality(metadata, "partial")
+
     rating, tags = _extract_rating_tags(exif_data)
     if rating is not None:
         metadata["rating"] = rating
@@ -345,23 +418,9 @@ def _apply_common_exif_fields(
 
 
 def extract_png_metadata(file_path: str, exif_data: Optional[Dict] = None) -> Result[Dict[str, Any]]:
-    """
-    Extract ComfyUI metadata from PNG file.
-
-    PNG files store workflow in 'PNG:Parameters' field (Auto1111/Forge style)
-    or in custom tEXt/iTXt chunks.
-
-    Args:
-        file_path: Path to PNG file
-        exif_data: Optional pre-fetched EXIF data from ExifTool
-
-    Returns:
-        Result with extracted metadata (all raw data + interpreted fields)
-    """
     if not os.path.exists(file_path):
         return Result.Err(ErrorCode.NOT_FOUND, f"File not found: {file_path}")
 
-    # Start with all raw EXIF data
     metadata = {
         "raw": exif_data or {},
         "workflow": None,
@@ -374,20 +433,16 @@ def extract_png_metadata(file_path: str, exif_data: Optional[Dict] = None) -> Re
         return Result.Ok(metadata, quality="none")
 
     try:
-        # Check PNG:Parameters field (Auto1111/Forge)
         png_params = exif_data.get("PNG:Parameters")
         if png_params:
             metadata["parameters"] = png_params
             _bump_quality(metadata, "partial")
-
-            # Try to parse generation parameters
             parsed = _parse_auto1111_params(png_params)
             if parsed:
-                metadata.update(parsed)  # Add all parsed fields
+                metadata.update(parsed)
+
         _apply_common_exif_fields(metadata, exif_data)
-
         return Result.Ok(metadata, quality=metadata["quality"])
-
     except Exception as e:
         logger.warning(f"PNG metadata extraction error: {e}")
         return Result.Err(ErrorCode.PARSE_ERROR, str(e), quality="degraded")
@@ -395,20 +450,11 @@ def extract_png_metadata(file_path: str, exif_data: Optional[Dict] = None) -> Re
 def extract_webp_metadata(file_path: str, exif_data: Optional[Dict] = None) -> Result[Dict[str, Any]]:
     """
     Extract ComfyUI metadata from WEBP file.
-
-    WEBP files store workflow in EXIF:Make field as JSON string.
-
-    Args:
-        file_path: Path to WEBP file
-        exif_data: Optional pre-fetched EXIF data from ExifTool
-
-    Returns:
-        Result with extracted metadata (all raw data + interpreted fields)
+    Handles JSON in EXIF:Make/Model and text fields (ImageDescription) with prefixes.
     """
     if not os.path.exists(file_path):
         return Result.Err(ErrorCode.NOT_FOUND, f"File not found: {file_path}")
 
-    # Start with all raw EXIF data
     metadata = {
         "raw": exif_data or {},
         "workflow": None,
@@ -420,7 +466,7 @@ def extract_webp_metadata(file_path: str, exif_data: Optional[Dict] = None) -> R
         return Result.Ok(metadata, quality="none")
 
     try:
-        # 1) ComfyUI JSON in WEBP is commonly stored in EXIF:Make / EXIF:Model
+        # 1) Direct check in standard ComfyUI locations for WebP
         def _inspect_json_field(key_names, container):
             for key in key_names:
                 value = container.get(key) if isinstance(container, dict) else None
@@ -432,7 +478,7 @@ def extract_webp_metadata(file_path: str, exif_data: Optional[Dict] = None) -> R
         workflow = _inspect_json_field(["EXIF:Make", "IFD0:Make", "Keys:Workflow", "comfyui:workflow"], exif_data)
         prompt = _inspect_json_field(["EXIF:Model", "IFD0:Model", "Keys:Prompt", "comfyui:prompt"], exif_data)
 
-        # 2) Fallback: scan all tags for workflow/prompt JSON (same approach as video)
+        # 2) Fallback: scan all tags (optimized scan)
         if not workflow or not prompt:
             scanned_workflow, scanned_prompt = _extract_json_fields(exif_data)
             if not workflow:
@@ -440,18 +486,13 @@ def extract_webp_metadata(file_path: str, exif_data: Optional[Dict] = None) -> R
             if not prompt:
                 prompt = scanned_prompt
 
-        _apply_common_exif_fields(metadata, exif_data, workflow=workflow, prompt=prompt)
-
-        # Look for Auto1111-style prompt/parameters text in additional EXIF fields
+        # 3) Look for Auto1111-style text OR prefixed JSON in description fields
+        # This fixes files where workflow is stored as "Workflow: {...}" in ImageDescription
         text_keys = [
-            "EXIF:ImageDescription",
-            "IFD0:ImageDescription",
-            "EXIF:UserComment",
-            "IFD0:UserComment",
-            "EXIF:Comment",
-            "IFD0:Comment",
-            "EXIF:Subject",
-            "IFD0:Subject",
+            "EXIF:ImageDescription", "IFD0:ImageDescription", "ImageDescription",
+            "EXIF:UserComment", "IFD0:UserComment", "UserComment",
+            "EXIF:Comment", "IFD0:Comment",
+            "EXIF:Subject", "IFD0:Subject",
         ]
 
         for key in text_keys:
@@ -459,17 +500,28 @@ def extract_webp_metadata(file_path: str, exif_data: Optional[Dict] = None) -> R
             if not candidate or not isinstance(candidate, str):
                 continue
 
-            parsed = _parse_auto1111_params(candidate)
-            if not parsed:
-                continue
+            # A) Try to parse as JSON first (handles "Workflow: {...}")
+            parsed_json = _try_parse_json_text(candidate)
+            if parsed_json:
+                if workflow is None and _looks_like_comfyui_workflow(parsed_json):
+                    workflow = parsed_json
+                    continue
+                if prompt is None and _looks_like_comfyui_prompt_graph(parsed_json):
+                    prompt = parsed_json
+                    continue
 
-            metadata["parameters"] = candidate
-            metadata.update(parsed)
-            if metadata["quality"] != "full":
-                _bump_quality(metadata, "partial")
-            if not metadata.get("prompt") and parsed.get("prompt"):
-                metadata["prompt"] = parsed["prompt"]
-                break
+            # B) Try to parse as Auto1111 parameters
+            parsed_a1111 = _parse_auto1111_params(candidate)
+            if parsed_a1111:
+                metadata["parameters"] = candidate
+                metadata.update(parsed_a1111)
+                if metadata["quality"] != "full":
+                    _bump_quality(metadata, "partial")
+                # Don't overwrite existing prompt graph with simple text prompt
+                if not prompt and not metadata.get("prompt") and parsed_a1111.get("prompt"):
+                    metadata["prompt"] = parsed_a1111["prompt"]
+
+        _apply_common_exif_fields(metadata, exif_data, workflow=workflow, prompt=prompt)
 
         return Result.Ok(metadata, quality=metadata["quality"])
 
@@ -794,89 +846,90 @@ def _looks_like_comfyui_workflow(value: Optional[Dict[str, Any]]) -> bool:
 
 
 def _extract_json_fields(exif_data: Dict[str, Any]) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
-    """Scan EXIF/ffprobe metadata for workflow/prompt JSON fields."""
+    """
+    Optimized scan of EXIF/ffprobe metadata for workflow/prompt JSON fields.
+    Prioritizes known keys before scanning strictly.
+    """
     workflow = None
     prompt = None
 
-    def _unwrap_workflow_prompt_container(container: Any) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
-        """
-        Some pipelines embed a wrapper object like:
-          {"workflow": {...}, "prompt": "{...json...}"}
-        inside a single tag (often `ItemList:Comment`).
+    # 1. Prioritize known keys where JSON is typically found
+    # This avoids expensive regex/zlib on thousands of irrelevant EXIF tags
+    PRIORITY_KEYS = [
+        "UserComment", "Comment", "Description", "ImageDescription",
+        "Parameters", "Workflow", "Prompt", "ExifOffset", "Make", "Model"
+    ]
 
-        Only return values if they match ComfyUI shapes (prevents false positives).
-        """
+    # Helper to check if a key matches our priority list (case-insensitive partial match)
+    def is_priority_key(k: str) -> bool:
+        k_lower = k.lower()
+        return any(pk.lower() in k_lower for pk in PRIORITY_KEYS)
+
+    # Sort keys to process priority ones first
+    sorted_items = sorted(
+        exif_data.items(),
+        key=lambda item: 0 if is_priority_key(str(item[0])) else 1
+    )
+
+    def _unwrap_workflow_prompt_container(container: Any) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
         if not isinstance(container, dict):
             return (None, None)
 
-        wf = container.get("workflow") or container.get("Workflow") or None
-        pr = container.get("prompt") or container.get("Prompt") or None
+        wf = container.get("workflow") or container.get("Workflow")
+        pr = container.get("prompt") or container.get("Prompt")
 
-        wf_out: Optional[Dict[str, Any]] = None
-        pr_out: Optional[Dict[str, Any]] = None
+        wf_out, pr_out = None, None
 
         if isinstance(wf, dict) and _looks_like_comfyui_workflow(wf):
             wf_out = wf
-
         if isinstance(pr, dict) and _looks_like_comfyui_prompt_graph(pr):
             pr_out = pr
         elif isinstance(pr, str):
-            # Prompt can be a JSON string literal or base64/zlib.
             parsed = _try_parse_json_text(pr)
             if isinstance(parsed, dict) and _looks_like_comfyui_prompt_graph(parsed):
                 pr_out = parsed
-
         return (wf_out, pr_out)
 
-    for key, value in exif_data.items():
+    for key, value in sorted_items:
+        # Stop early if we found both
+        if workflow and prompt:
+            break
+
+        # Skip obviously short strings to save CPU
+        if isinstance(value, str) and len(value) < 10:
+            continue
+
         normalized = key.lower() if isinstance(key, str) else ""
         parsed = _parse_json_value(value)
+
         if not parsed:
             continue
 
-        # Wrapper object case (common for some VHS / VideoCombine exporters).
+        # Check for container pattern
         if workflow is None or prompt is None:
             wf_candidate, pr_candidate = _unwrap_workflow_prompt_container(parsed)
-            if workflow is None and wf_candidate is not None:
+            if workflow is None and wf_candidate:
                 workflow = wf_candidate
-            if prompt is None and pr_candidate is not None:
+            if prompt is None and pr_candidate:
                 prompt = pr_candidate
             if workflow and prompt:
                 break
 
-        for nested in iter_nested_dicts(parsed):
-            if workflow is None and _looks_like_comfyui_workflow(nested):
-                workflow = nested
-            if prompt is None and _looks_like_comfyui_prompt_graph(nested):
-                prompt = nested
-            if workflow and prompt:
-                break
-        if workflow and prompt:
-            break
+        # Check direct match
+        if workflow is None and _looks_like_comfyui_workflow(parsed):
+            workflow = parsed
+        if prompt is None and _looks_like_comfyui_prompt_graph(parsed):
+            prompt = parsed
 
-        text = value.strip() if isinstance(value, str) else ""
-        lower_text = text.lower()
-        has_workflow_prefix = lower_text.startswith("workflow:")
-        has_prompt_prefix = lower_text.startswith("prompt:")
-
-        # Be strict: only accept a "workflow" if the payload actually looks like a ComfyUI workflow export.
-        if workflow is None:
-            if has_workflow_prefix or "workflow" in normalized:
+        # Check prefix usage (workflow: ...)
+        if isinstance(value, str):
+            text_lower = value.strip().lower()
+            if workflow is None and (text_lower.startswith("workflow:") or "workflow" in normalized):
                 if _looks_like_comfyui_workflow(parsed):
                     workflow = parsed
-            elif _looks_like_comfyui_workflow(parsed):
-                workflow = parsed
-
-        # Similarly, only accept a "prompt" if it looks like a ComfyUI prompt graph.
-        if prompt is None:
-            if has_prompt_prefix or "prompt" in normalized:
+            if prompt is None and (text_lower.startswith("prompt:") or "prompt" in normalized):
                 if _looks_like_comfyui_prompt_graph(parsed):
                     prompt = parsed
-            elif _looks_like_comfyui_prompt_graph(parsed):
-                prompt = parsed
-
-        if workflow and prompt:
-            break
 
     return workflow, prompt
 

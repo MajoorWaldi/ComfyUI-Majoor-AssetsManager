@@ -10,6 +10,9 @@ from backend.shared import get_logger
 from backend.observability import ensure_observability
 from typing import Awaitable, Callable, ClassVar, Protocol, cast
 
+# --- CONFIGURATION ---
+API_PREFIX = "/mjr/am/"
+
 
 class _PromptServerInstance(Protocol):
     routes: web.RouteTableDef
@@ -56,6 +59,7 @@ from .handlers import (
     register_calendar_routes,
     register_viewer_routes,
     register_db_maintenance_routes,
+    register_download_routes,
 )
 
 logger = get_logger(__name__)
@@ -75,7 +79,8 @@ async def security_headers_middleware(
         path = request.path or ""
     except Exception:
         path = ""
-    if not path.startswith("/mjr/am/"):
+    # FIX: Utilisation de la constante au lieu du hardcoding
+    if not path.startswith(API_PREFIX):
         return response
 
     try:
@@ -108,10 +113,10 @@ async def api_versioning_middleware(
     except Exception:
         path = ""
 
-    prefix = "/mjr/am/v1"
+    prefix = API_PREFIX + "v1"
     if path == prefix or path.startswith(prefix + "/"):
         tail = path[len(prefix):] or "/"
-        target = "/mjr/am" + tail
+        target = API_PREFIX.rstrip("/") + tail
         qs = ""
         try:
             qs = request.query_string or ""
@@ -152,6 +157,13 @@ def register_all_routes() -> web.RouteTableDef:
     register_viewer_routes(routes)
     register_db_maintenance_routes(routes)
 
+    # FIX: Enregistrement de la route de téléchargement
+    try:
+        register_download_routes(routes)
+        logger.info("  GET /mjr/am/download (Added)")
+    except Exception as e:
+        logger.error(f"Failed to register download routes: {e}")
+
     logger.info("=" * 60)
     logger.info("Routes registered:")
     logger.info("  GET /mjr/am/health")
@@ -173,6 +185,7 @@ def register_all_routes() -> web.RouteTableDef:
     logger.info("  GET /mjr/am/batch-zip/{token}")
     logger.info("  GET /mjr/am/viewer/info?asset_id=<id>")
     logger.info("  POST /mjr/am/db/optimize")
+    logger.info("  GET /mjr/am/download")
     logger.info("=" * 60)
 
     return routes

@@ -2,7 +2,7 @@
  * Grid Context Menu - Right-click menu for asset cards
  */
 
-import { buildAssetViewURL } from "../../api/endpoints.js";
+import { buildAssetViewURL, buildDownloadURL } from "../../api/endpoints.js";
 import { comfyAlert, comfyConfirm, comfyPrompt } from "../../app/dialogs.js";
 import { openInFolder, updateAssetRating, deleteAsset, renameAsset, removeFilepathsFromCollection } from "../../api/client.js";
 import { ASSET_RATING_CHANGED_EVENT, ASSET_TAGS_CHANGED_EVENT } from "../../app/events.js";
@@ -404,6 +404,27 @@ export function bindGridContextMenu({
                     await navigator.clipboard.writeText(p);
                 } catch {}
             })
+        );
+
+        // Download
+        menu.appendChild(
+            createItem("Download", "pi pi-download", null, () => {
+                if (!asset || !asset.filepath) {
+                    console.error("No filepath for asset", asset);
+                    return;
+                }
+
+                const url = buildDownloadURL(asset.filepath);
+                const filename = asset.filename || "download";
+
+                // Trigger download invisibly
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }, { disabled: (asset) => !asset?.filepath })
         );
 
         // Add to collection (single or multi)

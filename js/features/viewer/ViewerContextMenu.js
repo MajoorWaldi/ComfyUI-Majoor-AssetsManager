@@ -1,4 +1,4 @@
-import { buildAssetViewURL } from "../../api/endpoints.js";
+import { buildAssetViewURL, buildDownloadURL } from "../../api/endpoints.js";
 import { comfyAlert, comfyConfirm, comfyPrompt } from "../../app/dialogs.js";
 import { openInFolder, updateAssetRating, deleteAsset, renameAsset } from "../../api/client.js";
 import { ASSET_RATING_CHANGED_EVENT, ASSET_TAGS_CHANGED_EVENT } from "../../app/events.js";
@@ -208,6 +208,24 @@ export function bindViewerContextMenu({
                     console.error("[ViewerContextMenu] Copy failed:", err);
                 }
             })
+        );
+
+        // Download Original
+        menu.appendChild(
+            createItem("Download Original", "pi pi-download", null, () => {
+                // Use asset from context
+                const contextAsset = asset;
+
+                if (!contextAsset || !contextAsset.filepath) return;
+
+                const url = buildDownloadURL(contextAsset.filepath);
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = contextAsset.filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }, { disabled: (asset) => !asset?.filepath })
         );
 
         menu.appendChild(

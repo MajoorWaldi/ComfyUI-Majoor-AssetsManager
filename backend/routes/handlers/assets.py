@@ -6,6 +6,7 @@ import asyncio
 import json
 import os
 import subprocess
+import mimetypes
 from pathlib import Path
 
 from backend.shared import Result, get_logger
@@ -961,3 +962,49 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         """
         # This is an alias for the existing rename_asset function
         return await rename_asset(request)
+
+
+async def download_asset(request: web.Request) -> web.StreamResponse:
+    """
+    Télécharger un asset brut (fichier image/vidéo).
+    Query param: filepath (chemin absolu ou relatif validé)
+    """
+    filepath = request.query.get("filepath")
+
+    if not filepath:
+        return web.Response(status=400, text="Missing 'filepath' parameter")
+
+    # Sécurité basique : s'assurer que le fichier existe
+    if not os.path.exists(filepath) or not os.path.isfile(filepath):
+        return web.Response(status=404, text="File not found")
+
+    # Deviner le type MIME
+    mime_type, _ = mimetypes.guess_type(filepath)
+    if mime_type is None:
+        mime_type = "application/octet-stream"
+
+    filename = os.path.basename(filepath)
+
+    # Préparer la réponse en streaming
+    response = web.StreamResponse()
+    response.headers["Content-Type"] = mime_type
+    response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+    await response.prepare(request)
+
+    try:
+        with open(filepath, "rb") as f:
+            while True:
+                chunk = f.read(8192) # Lire par blocs de 8KB
+                if not chunk:
+                    break
+                await response.write(chunk)
+    except Exception as e:
+        get_logger(__name__).error(f"Error streaming file {filepath}: {e}")
+        return web.Response(status=500, text="Error streaming file")
+
+    return response
+
+
+def register_download_routes(routes: web.RouteTableDef):
+    routes.get("/mjr/am/download")(download_asset)

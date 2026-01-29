@@ -6,7 +6,7 @@ from .metadata import register_metadata_routes
 from .custom_roots import register_custom_roots_routes
 from .search import register_search_routes
 from .scan import register_scan_routes
-from .assets import register_asset_routes
+from .assets import register_asset_routes, register_download_routes
 from .collections import register_collections_routes
 from .batch_zip import register_batch_zip_routes
 from .calendar import register_calendar_routes
@@ -25,4 +25,5 @@ __all__ = [
     "register_calendar_routes",
     "register_viewer_routes",
     "register_db_maintenance_routes",
+    "register_download_routes",
 ]
