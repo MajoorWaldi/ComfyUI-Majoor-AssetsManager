@@ -1,5 +1,6 @@
 import { buildAssetViewURL, buildDownloadURL } from "../../api/endpoints.js";
-import { comfyAlert, comfyConfirm, comfyPrompt } from "../../app/dialogs.js";
+import { comfyConfirm, comfyPrompt } from "../../app/dialogs.js";
+import { comfyToast } from "../../app/toast.js";
 import { openInFolder, updateAssetRating, deleteAsset, renameAsset } from "../../api/client.js";
 import { ASSET_RATING_CHANGED_EVENT, ASSET_TAGS_CHANGED_EVENT } from "../../app/events.js";
 import { createTagsEditor } from "../../components/TagsEditor.js";
@@ -149,7 +150,11 @@ function setRating(asset, rating, onChanged) {
         } catch {}
         try {
             const result = await updateAssetRating(assetId, rating);
-            if (!result?.ok) return;
+            if (!result?.ok) {
+                comfyToast(result?.error || "Failed to update rating", "error");
+                return;
+            }
+            comfyToast(`Rating set to ${rating} stars`, "success", 1500);
             safeDispatchCustomEvent(
                 ASSET_RATING_CHANGED_EVENT,
                 { assetId: String(assetId), rating },
@@ -157,6 +162,7 @@ function setRating(asset, rating, onChanged) {
             );
         } catch (err) {
             console.error("[ViewerContextMenu] Rating update failed:", err);
+            comfyToast("Error updating rating", "error");
         }
     }, 300);
     try {
@@ -208,13 +214,15 @@ export function bindViewerContextMenu({
             createItem("Copy file path", "pi pi-copy", null, withClose(async () => {
                 const p = asset?.filepath ? String(asset.filepath) : "";
                 if (!p) {
-                    await comfyAlert("No file path available for this asset.");
+                    comfyToast("No file path available for this asset.", "error");
                     return;
                 }
                 try {
                     await navigator.clipboard.writeText(p);
+                    comfyToast("File path copied to clipboard", "success", 2000);
                 } catch (err) {
                     console.error("[ViewerContextMenu] Copy failed:", err);
+                    comfyToast("Failed to copy path", "error");
                 }
             }))
         );
@@ -231,6 +239,7 @@ export function bindViewerContextMenu({
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
+                comfyToast(`Downloading ${asset.filename}...`, "info", 3000);
             }), { disabled: !asset?.filepath })
         );
 
@@ -239,7 +248,9 @@ export function bindViewerContextMenu({
                 if (!asset?.id) return;
                 const res = await openInFolder(asset.id);
                 if (!res?.ok) {
-                    await comfyAlert(res?.error || "Failed to open folder.");
+                    comfyToast(res?.error || "Failed to open folder.", "error");
+                } else {
+                    comfyToast("Opened in folder", "info", 2000);
                 }
             }), { disabled: !asset?.id })
         );
@@ -374,13 +385,13 @@ export function bindViewerContextMenu({
                         asset.filename = newName;
                         asset.filepath = asset.filepath.replace(/[^\\/]+$/, newName);
 
-                        await comfyAlert("File renamed successfully!");
+                        comfyToast("File renamed successfully!", "success");
                         onAssetChanged?.();
                     } else {
-                        await comfyAlert(renameResult?.error || "Failed to rename file.");
+                        comfyToast(renameResult?.error || "Failed to rename file.", "error");
                     }
                 } catch (error) {
-                    await comfyAlert(`Error renaming file: ${error.message}`);
+                    comfyToast(`Error renaming file: ${error.message}`, "error");
                 }
             }), { disabled: !asset?.id })
         );
@@ -390,20 +401,18 @@ export function bindViewerContextMenu({
             createItem("Delete...", "pi pi-trash", null, withClose(async () => {
                 if (!asset?.id) return;
 
-                const confirmed = await comfyConfirm("Delete this file? This cannot be undone.");
-                if (!confirmed) return;
-
+                // Confirmation removed as per user request
                 try {
                     const deleteResult = await deleteAsset(asset.id);
                     if (deleteResult?.ok) {
-                        await comfyAlert("File deleted successfully!");
+                        comfyToast("File deleted successfully!", "success");
                         // Close viewer or navigate to next asset
                         onAssetChanged?.();
                     } else {
-                        await comfyAlert(deleteResult?.error || "Failed to delete file.");
+                        comfyToast(deleteResult?.error || "Failed to delete file.", "error");
                     }
                 } catch (error) {
-                    await comfyAlert(`Error deleting file: ${error.message}`);
+                    comfyToast(`Error deleting file: ${error.message}`, "error");
                 }
             }), { disabled: !asset?.id })
         );

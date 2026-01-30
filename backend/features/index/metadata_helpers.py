@@ -190,6 +190,42 @@ class MetadataHelpers:
                 extracted_tags_json = "[]"
                 extracted_tags_text = ""
 
+        # Enrich tags_text with GenInfo (Models, LoRAs, Prompts) for FTS
+        if metadata_result and metadata_result.ok and metadata_result.data:
+            meta = metadata_result.data
+            geninfo = meta.get("geninfo")
+            if isinstance(geninfo, dict):
+                extras = []
+                
+                # Models
+                models = geninfo.get("models", {})
+                if isinstance(models, dict):
+                    for m_key, m_val in models.items():
+                        if isinstance(m_val, dict) and "name" in m_val:
+                            n = str(m_val["name"]).strip()
+                            if n: extras.append(n)
+
+                # LoRAs
+                loras = geninfo.get("loras", [])
+                if isinstance(loras, list):
+                    for lora in loras:
+                        if isinstance(lora, dict) and "name" in lora:
+                            n = str(lora["name"]).strip()
+                            if n: extras.append(n)
+
+                # Positive Prompt
+                pos_obj = geninfo.get("positive")
+                if isinstance(pos_obj, dict):
+                    p_val = pos_obj.get("value")
+                    if isinstance(p_val, str) and p_val.strip():
+                        extras.append(p_val.strip())
+
+                if extras:
+                    if extracted_tags_text:
+                        extracted_tags_text += " " + " ".join(extras)
+                    else:
+                        extracted_tags_text = " ".join(extras)
+        
         # Import existing OS/file metadata when DB has defaults, without overriding user edits.
         # - rating: only set if current rating is 0
         # - tags: only set if current tags are empty ('[]' or '')
@@ -215,10 +251,7 @@ class MetadataHelpers:
                     WHEN COALESCE(asset_metadata.tags, '[]') IN ('[]', '') THEN excluded.tags
                     ELSE asset_metadata.tags
                 END,
-                tags_text = CASE
-                    WHEN COALESCE(asset_metadata.tags, '[]') IN ('[]', '') THEN excluded.tags_text
-                    ELSE asset_metadata.tags_text
-                END,
+                tags_text = excluded.tags_text,
                 has_workflow = CASE
                     WHEN {should_upgrade} THEN excluded.has_workflow
                     ELSE asset_metadata.has_workflow

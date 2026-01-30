@@ -72,6 +72,35 @@ def _date_bounds_for_exact(value):
 
 def register_search_routes(routes: web.RouteTableDef) -> None:
     """Register listing/search routes."""
+    @routes.get("/mjr/am/autocomplete")
+    async def autocomplete_assets(request):
+        """
+        Autocomplete tags/terms.
+        
+        Query params:
+          q: prefix to complete
+          limit: max results (default 10)
+        """
+        prefix = (request.query.get("q") or "").strip()
+        try:
+            limit = int(request.query.get("limit", "10"))
+        except Exception:
+            limit = 10
+        limit = max(1, min(50, limit))
+
+        services, error = await _require_services()
+        if error:
+             return _json_response(error)
+
+        # services["index"] is user's IndexService instance
+        # IndexService exposes .searcher as a public attribute
+        index_service = services["index"]
+        if not hasattr(index_service, "searcher"):
+             return _json_response(Result.Err("INTERNAL_ERROR", "Search service unavailable"))
+
+        result = await index_service.searcher.autocomplete(prefix, limit)
+        return _json_response(result)
+
     @routes.get("/mjr/am/list")
     async def list_assets(request):
         """

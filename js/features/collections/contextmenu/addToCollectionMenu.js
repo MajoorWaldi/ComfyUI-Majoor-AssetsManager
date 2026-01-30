@@ -1,4 +1,5 @@
-import { comfyAlert, comfyPrompt } from "../../../app/dialogs.js";
+import { comfyPrompt } from "../../../app/dialogs.js";
+import { comfyToast } from "../../../app/toast.js";
 import { listCollections, createCollection, addAssetsToCollection } from "../../../api/client.js";
 import {
     getOrCreateMenu as getOrCreateMenuCore,
@@ -59,7 +60,7 @@ function formatAddResultMessage({ collectionName, selectedCount, addRes }) {
         msg += `\n\nIgnored ${skippedDuplicate} duplicate(s) in selection.`;
     }
     if (added === 0 && skippedExisting > 0 && selectedCount > 0) {
-        msg = `Nothing added to "${name}".\n\nAll selected item(s) were already present in the collection.`;
+        msg = `No new items added to "${name}" (all exist).`;
     }
     return msg;
 }
@@ -67,7 +68,7 @@ function formatAddResultMessage({ collectionName, selectedCount, addRes }) {
 export async function showAddToCollectionMenu({ x, y, assets }) {
     const selected = Array.isArray(assets) ? assets.map(simplifyAsset).filter(Boolean) : [];
     if (!selected.length) {
-        await comfyAlert("No assets selected.");
+        comfyToast("No valid assets selected.", "warning");
         return;
     }
 
@@ -80,16 +81,16 @@ export async function showAddToCollectionMenu({ x, y, assets }) {
         if (!name) return;
         const created = await createCollection(name);
         if (!created?.ok) {
-            await comfyAlert(created?.error || "Failed to create collection.");
+            comfyToast(created?.error || "Failed to create collection.", "error");
             return;
         }
         const cid = created.data?.id;
         const addRes = await addAssetsToCollection(cid, selected);
         if (!addRes?.ok) {
-            await comfyAlert(addRes?.error || "Failed to add assets to collection.");
+            comfyToast(addRes?.error || "Failed to add assets to collection.", "error");
             return;
         }
-        await comfyAlert(formatAddResultMessage({ collectionName: created.data?.name || name, selectedCount: selected.length, addRes }));
+        comfyToast(formatAddResultMessage({ collectionName: created.data?.name || name, selectedCount: selected.length, addRes }), "success", 4000);
         return;
     }
 
@@ -102,16 +103,16 @@ export async function showAddToCollectionMenu({ x, y, assets }) {
         if (!name) return;
         const created = await createCollection(name);
         if (!created?.ok) {
-            await comfyAlert(created?.error || "Failed to create collection.");
+            comfyToast(created?.error || "Failed to create collection.", "error");
             return;
         }
         const cid = created.data?.id;
         const addRes = await addAssetsToCollection(cid, selected);
         if (!addRes?.ok) {
-            await comfyAlert(addRes?.error || "Failed to add assets to collection.");
+            comfyToast(addRes?.error || "Failed to add assets to collection.", "error");
             return;
         }
-        await comfyAlert(formatAddResultMessage({ collectionName: created.data?.name || name, selectedCount: selected.length, addRes }));
+        comfyToast(formatAddResultMessage({ collectionName: created.data?.name || name, selectedCount: selected.length, addRes }), "success", 4000);
     });
     menu.appendChild(createIt);
     menu.appendChild(separator());
@@ -125,10 +126,10 @@ export async function showAddToCollectionMenu({ x, y, assets }) {
                 hideMenu(menu);
                 const addRes = await addAssetsToCollection(cid, selected);
                 if (!addRes?.ok) {
-                    await comfyAlert(addRes?.error || "Failed to add assets to collection.");
+                    comfyToast(addRes?.error || "Failed to add assets to collection.", "error");
                     return;
                 }
-                await comfyAlert(formatAddResultMessage({ collectionName: name, selectedCount: selected.length, addRes }));
+                comfyToast(formatAddResultMessage({ collectionName: name, selectedCount: selected.length, addRes }), "success", 4000);
             })
         );
     }

@@ -786,7 +786,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
 
         rebuild_status = None
         if rebuild_fts_flag:
-            rebuild_result = rebuild_fts(db)
+            rebuild_result = await rebuild_fts(db)
             if not rebuild_result.ok:
                 return _json_response(rebuild_result)
             rebuild_status = True
@@ -844,6 +844,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         staged = []
         staged_paths = []
         errors = []
+        pending_ops = []
 
         def _safe_filename(name: str) -> Optional[str]:
             if not name or "\x00" in name:

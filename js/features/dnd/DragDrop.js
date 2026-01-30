@@ -5,7 +5,7 @@
 import { app } from "../../../../scripts/app.js";
 import { get, post } from "../../api/client.js";
 import { ENDPOINTS, buildCustomViewURL, buildViewURL } from "../../api/endpoints.js";
-import { comfyAlert } from "../../app/dialogs.js";
+import { comfyToast } from "../../app/toast.js";
 import { pickRootId } from "../../utils/ids.js";
 
 import { DND_GLOBAL_KEY, DND_INSTANCE_VERSION, DND_MIME } from "./utils/constants.js";
@@ -297,17 +297,17 @@ export const initDragDrop = () => {
             const relativePath = staged?.relativePath;
             if (!relativePath) {
                 dndLog("drop canvas stage failed");
-                await comfyAlert(
-                    `Impossible de charger le fichier : "${payload?.filename}".\n` +
-                    "Le workflow n'a pas été trouvé et le staging a échoué.",
-                    "Erreur Majoor"
+                comfyToast(
+                    `Failed to load file: "${payload?.filename}". Staging failed.`,
+                    "error"
                 );
                 return;
             }
             dndLog("drop canvas staged", { value: relativePath });
-            await comfyAlert(
-                `Staged to input: ${relativePath}\n\nTip: drop onto a video node to inject the path automatically.`,
-                "Majoor"
+            comfyToast(
+                `Staged to input: ${relativePath}`,
+                "success",
+                4000
             );
             return;
         }

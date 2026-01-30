@@ -1,5 +1,6 @@
 import { triggerAutoScan } from "../../app/bootstrap.js";
-import { comfyAlert, comfyConfirm, comfyPrompt } from "../../app/dialogs.js";
+import { comfyConfirm, comfyPrompt } from "../../app/dialogs.js";
+import { comfyToast } from "../../app/toast.js";
 import { createStatusIndicator, setupStatusPolling, triggerScan } from "../status/StatusDot.js";
 import { createGridContainer, loadAssets, loadAssetsFromList, disposeGrid } from "../grid/GridView.js";
 import { get, post, getCollectionAssets } from "../../api/client.js";
@@ -221,9 +222,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         state,
         customSelect,
         customRemoveBtn,
-        comfyAlert,
         comfyConfirm,
         comfyPrompt,
+        comfyToast,
         get,
         post,
         ENDPOINTS,

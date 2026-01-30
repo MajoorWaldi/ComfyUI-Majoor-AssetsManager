@@ -3,7 +3,8 @@
  */
 
 import { buildAssetViewURL, buildDownloadURL } from "../../api/endpoints.js";
-import { comfyAlert, comfyConfirm, comfyPrompt } from "../../app/dialogs.js";
+import { comfyConfirm, comfyPrompt } from "../../app/dialogs.js";
+import { comfyToast } from "../../app/toast.js";
 import { openInFolder, updateAssetRating, deleteAsset, renameAsset, removeFilepathsFromCollection } from "../../api/client.js";
 import { ASSET_RATING_CHANGED_EVENT, ASSET_TAGS_CHANGED_EVENT } from "../../app/events.js";
 import { createTagsEditor } from "../../components/TagsEditor.js";
@@ -258,7 +259,11 @@ function setRating(asset, rating, onChanged) {
         } catch {}
         try {
             const result = await updateAssetRating(assetId, rating);
-            if (!result?.ok) return;
+            if (!result?.ok) {
+                comfyToast(result?.error || "Failed to update rating", "error");
+                return;
+            }
+            comfyToast(`Rating set to ${rating} stars`, "success", 1500);
             safeDispatchCustomEvent(
                 ASSET_RATING_CHANGED_EVENT,
                 { assetId: String(assetId), rating },
@@ -266,6 +271,7 @@ function setRating(asset, rating, onChanged) {
             );
         } catch (err) {
             console.error("[GridContextMenu] Rating update failed:", err);
+            comfyToast("Error updating rating", "error");
         }
     }, 350);
     try {
@@ -387,7 +393,9 @@ export function bindGridContextMenu({
                 if (!asset?.id) return;
                 const res = await openInFolder(asset.id);
                 if (!res?.ok) {
-                    await comfyAlert(res?.error || "Failed to open folder.");
+                    comfyToast(res?.error || "Failed to open folder.", "error");
+                } else {
+                    comfyToast("Opened in folder", "info", 2000);
                 }
             }, { disabled: !asset?.id })
         );
@@ -397,12 +405,16 @@ export function bindGridContextMenu({
             createItem("Copy file path", "pi pi-copy", null, async () => {
                 const p = asset?.filepath ? String(asset.filepath) : "";
                 if (!p) {
-                    await comfyAlert("No file path available for this asset.");
+                    comfyToast("No file path available for this asset.", "error");
                     return;
                 }
                 try {
                     await navigator.clipboard.writeText(p);
-                } catch {}
+                    comfyToast("File path copied to clipboard", "success", 2000);
+                } catch (err) {
+                    console.warn("Clipboard copy failed", err);
+                    comfyToast("Failed to copy path", "error");
+                }
             })
         );
 
@@ -424,6 +436,7 @@ export function bindGridContextMenu({
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
+                comfyToast(`Downloading ${filename}...`, "info", 3000);
             }, { disabled: !asset?.filepath })
         );
 
@@ -452,15 +465,14 @@ export function bindGridContextMenu({
                         hideMenu(menu);
                     } catch {}
                     if (!filepaths.length) {
-                        await comfyAlert("No file path available for this asset.");
+                        comfyToast("No file path available for this asset.", "error");
                         return;
                     }
-                    const confirmed = await comfyConfirm(`Remove ${filepaths.length} item(s) from this collection?`);
-                    if (!confirmed) return;
-
+                    
+                    // Confirmation removed as per user request
                     const res = await removeFilepathsFromCollection(collectionId, filepaths);
                     if (!res?.ok) {
-                        await comfyAlert(res?.error || "Failed to remove from collection.");
+                        comfyToast(res?.error || "Failed to remove from collection.", "error");
                         return;
                     }
 
@@ -620,12 +632,12 @@ export function bindGridContextMenu({
                             }
                         }
                         
-                        await comfyAlert("File renamed successfully!");
+                        comfyToast("File renamed successfully!", "success");
                     } else {
-                        await comfyAlert(result?.error || "Failed to rename file.");
+                        comfyToast(result?.error || "Failed to rename file.", "error");
                     }
                 } catch (error) {
-                    await comfyAlert(`Error renaming file: ${error.message}`);
+                    comfyToast(`Error renaming file: ${error.message}`, "error");
                 }
             }, { disabled: !asset?.id })
         );
@@ -634,9 +646,7 @@ export function bindGridContextMenu({
         if (isMultiSelected) {
             menu.appendChild(
                 createItem(`Delete ${selectedIds.size} files...`, "pi pi-trash", null, async () => {
-                    const confirmed = await comfyConfirm(`Delete ${selectedIds.size} files? This cannot be undone.`);
-                    if (!confirmed) return;
-
+                   // Confirmation removed as per user request
                     try {
                         // Delete each asset individually
                         let successCount = 0;
@@ -658,21 +668,19 @@ export function bindGridContextMenu({
                         clearSelection(gridContainer);
 
                         if (errorCount === 0) {
-                            await comfyAlert(`${successCount} files deleted successfully!`);
+                            comfyToast(`${successCount} files deleted successfully!`, "success");
                         } else {
-                            await comfyAlert(`${successCount} files deleted, ${errorCount} failed.`);
+                            comfyToast(`${successCount} files deleted, ${errorCount} failed.`, "warning");
                         }
                     } catch (error) {
-                        await comfyAlert(`Error deleting files: ${error.message}`);
+                        comfyToast(`Error deleting files: ${error.message}`, "error");
                     }
                 })
             );
         } else {
             menu.appendChild(
                 createItem("Delete...", "pi pi-trash", null, async () => {
-                    const confirmed = await comfyConfirm("Delete this file? This cannot be undone.");
-                    if (!confirmed) return;
-                    
+                   // Confirmation removed as per user request
                     try {
                         const result = await deleteAsset(asset.id);
                         if (result?.ok) {
@@ -681,12 +689,12 @@ export function bindGridContextMenu({
                                 const cardToRemove = document.querySelector(`[data-mjr-asset-id="${safeEscapeSelector(asset.id)}"]`);
                                 cardToRemove?.remove?.();
                             } catch {}
-                            await comfyAlert("File deleted successfully!");
+                            comfyToast("File deleted successfully!", "success");
                         } else {
-                            await comfyAlert(result?.error || "Failed to delete file.");
+                            comfyToast(result?.error || "Failed to delete file.", "error");
                         }
                     } catch (error) {
-                        await comfyAlert(`Error deleting file: ${error.message}`);
+                        comfyToast(`Error deleting file: ${error.message}`, "error");
                     }
                 }, { disabled: !asset?.id })
             );

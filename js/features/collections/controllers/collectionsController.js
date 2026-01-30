@@ -1,4 +1,5 @@
-import { comfyAlert, comfyPrompt, comfyConfirm } from "../../../app/dialogs.js";
+import { comfyPrompt, comfyConfirm } from "../../../app/dialogs.js";
+import { comfyToast } from "../../../app/toast.js";
 import { listCollections, createCollection, deleteCollection } from "../../../api/client.js";
 
 function createMenuItem(label, { right = null, checked = false, danger = false } = {}) {
@@ -49,7 +50,7 @@ export function createCollectionsController({ state, collectionsBtn, collections
             if (!name) return;
             const res = await createCollection(name);
             if (!res?.ok) {
-                await comfyAlert(res?.error || "Failed to create collection.");
+                comfyToast(res?.error || "Failed to create collection.", "error");
                 return;
             }
             state.collectionId = String(res.data?.id || "");
@@ -126,11 +127,11 @@ export function createCollectionsController({ state, collectionsBtn, collections
             delBtn.addEventListener("click", async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                const ok = await comfyConfirm(`Delete collection \"${name}\"?`);
+                const ok = await comfyConfirm(`Delete collection "${name}"?`);
                 if (!ok) return;
                 const res = await deleteCollection(id);
                 if (!res?.ok) {
-                    await comfyAlert(res?.error || "Failed to delete collection.");
+                    comfyToast(res?.error || "Failed to delete collection.", "error");
                     return;
                 }
                 if (state.collectionId === id) {

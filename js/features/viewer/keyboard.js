@@ -1,4 +1,5 @@
 import { safeAddListener, safeCall } from "./lifecycle.js";
+import { comfyToast } from "../../app/toast.js";
 
 export function installViewerKeyboard({
     overlay,
@@ -45,13 +46,21 @@ export function installViewerKeyboard({
             if (!pending?.assetId) return;
             try {
                 const result = await updateAssetRating?.(pending.assetId, pending.rating);
-                if (!result?.ok) return;
+                if (!result?.ok) {
+                    comfyToast(result?.error || "Failed to update rating", "error");
+                    return;
+                }
+                
+                comfyToast(`Rating set to ${pending.rating} stars`, "success", 1500);
+                
                 safeDispatchCustomEvent?.(
                     ASSET_RATING_CHANGED_EVENT,
                     { assetId: String(pending.assetId), rating: pending.rating },
                     { warnPrefix: "[Viewer]" }
                 );
-            } catch {}
+            } catch (err) {
+                comfyToast("Error updating rating", "error");
+            }
         }, 300);
     };
 

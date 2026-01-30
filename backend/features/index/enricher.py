@@ -122,7 +122,10 @@ class MetadataEnricher:
                 id_by_fp[str(fp)] = aid
 
         asset_updates: List[Tuple[Any, Any, Any, int]] = []
-        meta_updates: List[Tuple[int, int, str, str, int]] = []
+        meta_updates: List[Tuple[int, Any]] = []
+
+        # Import helper locally to use shared logic (including FTS population)
+        from .metadata_helpers import MetadataHelpers
 
         for fp in cleaned:
             asset_id = id_by_fp.get(fp)
@@ -136,7 +139,6 @@ class MetadataEnricher:
             state_hash = self._compute_state_hash(fp, int(mtime_ns), int(stat.st_size))
 
             # Try cache first to avoid tool work.
-            from .metadata_helpers import MetadataHelpers
             metadata_result = await MetadataHelpers.retrieve_cached_metadata(self.db, fp, state_hash)
             if not (metadata_result and metadata_result.ok):
                 metadata_result = await self.metadata.get_metadata(fp, scan_id=None)
@@ -154,17 +156,8 @@ class MetadataEnricher:
                 height = meta.get("height")
                 duration = meta.get("duration")
 
-            has_workflow, has_generation_data, metadata_quality, metadata_raw_json = self._prepare_metadata_fields(metadata_result)
             asset_updates.append((width, height, duration, asset_id))
-            meta_updates.append(
-                (
-                    1 if has_workflow else 0,
-                    1 if has_generation_data else 0,
-                    metadata_quality,
-                    metadata_raw_json,
-                    asset_id,
-                )
-            )
+            meta_updates.append((asset_id, metadata_result))
 
         if not asset_updates and not meta_updates:
             return
@@ -185,21 +178,6 @@ class MetadataEnricher:
                         asset_updates,
                     )
                 if meta_updates:
-                    # executemany() + triggers can be brittle across SQLite builds; keep this robust.
-                    for (_, _, _, _, asset_id) in meta_updates:
-                        await self.db.aexecute(
-                            "INSERT OR IGNORE INTO asset_metadata(asset_id, rating, tags) VALUES (?, 0, '[]')",
-                            (asset_id,),
-                        )
-                    for hw, hg, q, raw, asset_id in meta_updates:
-                        await self.db.aexecute(
-                            """
-                            UPDATE asset_metadata
-                            SET has_workflow = ?,
-                                has_generation_data = ?,
-                                metadata_quality = ?,
-                                metadata_raw = ?
-                            WHERE asset_id = ?
-                            """,
-                            (hw, hg, q, raw, asset_id),
-                        )
+                    # Use shared helper to write metadata (ensures tags_text/FTS is populated with prompt/geninfo)
+                    for asset_id, meta_res in meta_updates:
+                        await MetadataHelpers.write_asset_metadata_row(self.db, asset_id, meta_res)

@@ -70,7 +70,45 @@ class IndexSearcher:
         """
         self.db = db
         self._has_tags_text_column = has_tags_text_column
+        self.fts_vocab_ready = False
 
+    async def ensure_vocab(self):
+        """Ensure FTS5 vocab table exists for autocomplete."""
+        if self.fts_vocab_ready:
+            return
+        try:
+            # Check if fts5 is available and creates the vocab table
+            # fts5vocab('table_name', 'row'|'col'|'instance')
+            await self.db.aexecute("CREATE VIRTUAL TABLE IF NOT EXISTS asset_metadata_vocab USING fts5vocab('asset_metadata_fts', 'row')")
+            self.fts_vocab_ready = True
+        except Exception:
+            # Silent fail if fts5vocab not available
+            self.fts_vocab_ready = False
+
+    async def autocomplete(self, prefix: str, limit: int = 10) -> Result[List[str]]:
+        """
+        Suggest completions for the given prefix using FTS5 vocabulary.
+        """
+        await self.ensure_vocab()
+        if not self.fts_vocab_ready:
+            return Result.Ok([])
+
+        clean_prefix = prefix.strip()
+        if not clean_prefix or len(clean_prefix) < 2:
+            return Result.Ok([])
+
+        try:
+            res = await self.db.aquery(
+                "SELECT term FROM asset_metadata_vocab WHERE term LIKE ? ORDER BY doc DESC LIMIT ?",
+                (f"{clean_prefix}%", limit)
+            )
+            if not res.ok:
+                return Result.Ok([])
+            
+            terms = [str(r["term"]) for r in res.data or []]
+            return Result.Ok(terms)
+        except Exception:
+            return Result.Ok([])
     async def search(
         self,
         query: str,
@@ -789,7 +827,8 @@ class IndexSearcher:
 
     def _sanitize_fts_query(self, query: str) -> str:
         """
-        Escape special characters for FTS5 and collapse whitespace.
+        Escape special characters for FTS5, collapse whitespace, and add wildcards
+        for partial prefix matching (Google-like behavior).
         """
         text = query.strip()
         if not text:
@@ -801,7 +840,13 @@ class IndexSearcher:
         sanitized = re.sub(r"[^\x20-\x7E]+", " ", sanitized)
         # Collapse whitespace
         sanitized = re.sub(r"\s+", " ", sanitized).strip()
-        return sanitized or "*"
+
+        if not sanitized:
+            return "*"
+
+        # Apply prefix matching to every token to allow partial matches (e.g. "dark" -> "dark*")
+        tokens = sanitized.split()
+        return " ".join(f'"{token}"*' for token in tokens)
 
     def _validate_search_input(self, query: str) -> Optional[Result[Any]]:
         trimmed = query.strip()

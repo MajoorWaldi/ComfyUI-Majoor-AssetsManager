@@ -52,7 +52,7 @@ class IndexService:
 
         # Initialize specialized components
         self._scanner = IndexScanner(db, metadata_service, self._scan_lock)
-        self._searcher = IndexSearcher(db, self._has_tags_text_column)
+        self.searcher = IndexSearcher(db, self._has_tags_text_column)
         self._updater = AssetUpdater(db, self._has_tags_text_column)
         self._enricher = MetadataEnricher(
             db,
@@ -158,7 +158,7 @@ class IndexService:
         Returns:
             Result with search results and metadata
         """
-        return await self._searcher.search(query, limit, offset, filters, include_total=include_total)
+        return await self.searcher.search(query, limit, offset, filters, include_total=include_total)
 
     async def search_scoped(
         self,
@@ -174,13 +174,13 @@ class IndexService:
 
         This is used for UI scopes like Outputs / Inputs / All without breaking the existing DB structure.
         """
-        return await self._searcher.search_scoped(query, roots, limit, offset, filters, include_total=include_total)
+        return await self.searcher.search_scoped(query, roots, limit, offset, filters, include_total=include_total)
 
     async def has_assets_under_root(self, root: str) -> Result[bool]:
         """
         Return True if the DB has at least one asset under the provided root.
         """
-        return await self._searcher.has_assets_under_root(root)
+        return await self.searcher.has_assets_under_root(root)
 
     async def date_histogram_scoped(
         self,
@@ -194,12 +194,12 @@ class IndexService:
 
         Used by the UI calendar to mark days that have assets.
         """
-        return await self._searcher.date_histogram_scoped(roots, month_start, month_end, filters)
+        return await self.searcher.date_histogram_scoped(roots, month_start, month_end, filters)
 
     async def get_asset(self, asset_id: int) -> Result[Optional[Dict[str, Any]]]:
         """Fetch a single asset row by id."""
         # Async path: return the DB row; deep "self-heal" is handled by scan/enrich flows.
-        return await self._searcher.get_asset(asset_id)
+        return await self.searcher.get_asset(asset_id)
 
     async def get_assets_batch(self, asset_ids: List[int]) -> Result[List[Dict[str, Any]]]:
         """
@@ -208,7 +208,7 @@ class IndexService:
         This is used by the UI to reduce network chatter and avoid triggering per-asset self-heal
         paths that may invoke external tools.
         """
-        return await self._searcher.get_assets(asset_ids)
+        return await self.searcher.get_assets(asset_ids)
 
     async def lookup_assets_by_filepaths(self, filepaths: List[str]) -> Result[Dict[str, Dict[str, Any]]]:
         """
@@ -217,7 +217,7 @@ class IndexService:
         This is used to enrich filesystem listings (input/custom) without requiring
         a full directory scan on every request.
         """
-        return await self._searcher.lookup_assets_by_filepaths(filepaths)
+        return await self.searcher.lookup_assets_by_filepaths(filepaths)
 
     # ==================== Update Operations ====================
 

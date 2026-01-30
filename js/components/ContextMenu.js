@@ -10,7 +10,7 @@
 
 import { getViewerInstance } from "./Viewer.js";
 import { buildAssetViewURL } from "../api/endpoints.js";
-import { comfyAlert } from "../app/dialogs.js";
+import { comfyToast } from "../app/toast.js";
 import { openInFolder } from "../api/client.js";
 import { showAddToCollectionMenu } from "../features/collections/contextmenu/addToCollectionMenu.js";
 import { MENU_Z_INDEX } from "./contextmenu/MenuCore.js";
@@ -224,12 +224,14 @@ export function showContextMenu(x, y, asset, allAssets, currentIndex, selectedAs
         try {
             const path = asset?.filepath ? String(asset.filepath) : "";
             if (!path) {
-                await comfyAlert("No file path available for this asset.");
+                comfyToast("No file path available for this asset.", "error");
                 return;
             }
             await navigator.clipboard.writeText(path);
+            comfyToast("File path copied to clipboard", "success", 2000);
         } catch (error) {
             console.error("Copy path failed:", error);
+            comfyToast("Failed to copy path", "error");
         }
         hide();
     });
@@ -255,15 +257,18 @@ export function showContextMenu(x, y, asset, allAssets, currentIndex, selectedAs
         try {
             const assetId = asset?.id;
             if (!assetId) {
-                await comfyAlert("No asset id available for this item.");
+                comfyToast("No asset id available for this item.", "error");
                 return;
             }
             const res = await openInFolder(assetId);
             if (!res?.ok) {
-                await comfyAlert(res?.error || "Failed to open folder.");
+                comfyToast(res?.error || "Failed to open folder.", "error");
+            } else {
+                comfyToast("Opened in folder", "info", 2000);
             }
         } catch (error) {
             console.error("Open in folder failed:", error);
+            comfyToast("Failed to open folder", "error");
         }
         hide();
     });

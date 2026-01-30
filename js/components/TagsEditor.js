@@ -4,6 +4,7 @@
 
 import { updateAssetTags, getAvailableTags } from "../api/client.js";
 import { ASSET_TAGS_CHANGED_EVENT } from "../app/events.js";
+import { comfyToast } from "../app/toast.js";
 import { getPopoverManagerForElement } from "../features/panel/views/popoverManager.js";
 import { safeDispatchCustomEvent } from "../utils/events.js";
 import { MENU_Z_INDEX } from "./contextmenu/MenuCore.js";
@@ -265,6 +266,7 @@ export function createTagsEditor(asset, onUpdate) {
                 renderTags();
                 saveInFlight = false;
                 saveAC = null;
+                comfyToast(result?.error || "Failed to update tags", "error");
                 return;
             }
 
@@ -282,6 +284,7 @@ export function createTagsEditor(asset, onUpdate) {
             { assetId: String(asset.id), tags: [...snapshot] },
             { warnPrefix: "[TagsEditor]" }
         );
+        comfyToast("Tags updated", "success", 1000);
             if (!savePending) break;
             savePending = false;
         }

@@ -5,7 +5,7 @@
 import { get, getToolsStatus, post, resetIndex } from "../../api/client.js";
 import { ENDPOINTS } from "../../api/endpoints.js";
 import { APP_CONFIG } from "../../app/config.js";
-import { comfyAlert, comfyConfirm } from "../../app/dialogs.js";
+import { comfyToast } from "../../app/toast.js";
 
 const TOOL_CAPABILITIES = [
     {
@@ -137,13 +137,17 @@ export function createStatusIndicator() {
     };
     resetBtn.onclick = async (event) => {
         event.stopPropagation();
-        const confirmed = await comfyConfirm(
-            "Reset index cache and reindex all files? This will purge scan journals and metadata caches."
-        );
-        if (!confirmed) return;
+        
+        comfyToast("Reset triggered: Reindexing all files...", "warning", 3000);
+
         const originalText = resetBtn.textContent;
         resetBtn.disabled = true;
         resetBtn.textContent = "Resetting...";
+        
+        // Status indicator feedback
+        const prevColor = statusDot.style.background;
+        statusDot.style.background = "#FFA726"; // Orange (working)
+
         try {
             const res = await resetIndex({
                 scope: "all",
@@ -153,12 +157,15 @@ export function createStatusIndicator() {
                 rebuild_fts: true,
             });
             if (res?.ok) {
-                await comfyAlert("Index reset started. Files will be reindexed in the background.");
+                statusDot.style.background = "#4CAF50"; // Green (success)
+                comfyToast("Index reset started. Files will be reindexed in the background.", "success");
             } else {
-                await comfyAlert(res?.error || "Failed to reset index.");
+                statusDot.style.background = "#f44336"; // Red (error)
+                comfyToast(res?.error || "Failed to reset index.", "error");
             }
         } catch (error) {
-            await comfyAlert(error?.message || "Reset index failed.");
+            statusDot.style.background = "#f44336"; // Red (error)
+            comfyToast(error?.message || "Reset index failed.", "error");
         } finally {
             resetBtn.disabled = false;
             resetBtn.textContent = originalText;

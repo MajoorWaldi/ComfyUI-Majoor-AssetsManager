@@ -2,9 +2,9 @@ export function createCustomRootsController({
     state,
     customSelect,
     customRemoveBtn,
-    comfyAlert,
     comfyConfirm,
     comfyPrompt,
+    comfyToast,
     get,
     post,
     ENDPOINTS,
@@ -125,17 +125,18 @@ export function createCustomRootsController({
                     // Send to backend for actual addition
                     const json = await post(ENDPOINTS.CUSTOM_ROOTS, { path });
                     if (!json?.ok) {
-                        await comfyAlert(json?.error || "Failed to add custom folder", "Majoor: Custom Folders");
+                        comfyToast(json?.error || "Failed to add custom folder", "error");
                         return;
                     }
                     // Refresh
+                    comfyToast("Folder linked successfully", "success");
                     await refreshCustomRoots(json.data?.id);
                     await reloadGrid();
                     return;
                 } else if (response && !response.ok && (response.code === "TKINTER_ERROR" || response.code === "HEADLESS_ENV" || response.code === "TKINTER_UNAVAILABLE")) {
                     // Handle specific tkinter errors
                     console.warn("Tkinter error:", response.error);
-                    await comfyAlert("Native folder browser is not available in this environment. Using manual input instead.", "Majoor: Folder Browser");
+                    comfyToast("Native folder browser unavailable. Please enter path manually.", "warning");
                 }
             } catch (e) {
                 console.log("Native selector failed or was cancelled, falling back to manual input...", e);
@@ -170,15 +171,16 @@ export function createCustomRootsController({
 
                 const json = await post(ENDPOINTS.CUSTOM_ROOTS, { path });
                 if (!json?.ok) {
-                    await comfyAlert(json?.error || "Failed to add custom folder", "Majoor: Custom Folders");
+                    comfyToast(json?.error || "Failed to add custom folder", "error");
                     return;
                 }
                 const newId = json.data?.id;
+                comfyToast("Folder linked successfully", "success");
                 await refreshCustomRoots(newId);
                 await reloadGrid();
             } catch (err) {
                 console.warn("Majoor: add custom root failed", err);
-                await comfyAlert("An error occurred while adding the custom folder", "Majoor: Error");
+                comfyToast("An error occurred while adding the custom folder", "error");
             } finally {
                 // Re-enable button regardless of outcome
                 customAddBtn.disabled = false;
@@ -202,15 +204,16 @@ export function createCustomRootsController({
             try {
                 const json = await post(ENDPOINTS.CUSTOM_ROOTS_REMOVE, { id: state.customRootId });
                 if (!json?.ok) {
-                    await comfyAlert(json?.error || "Failed to remove custom folder", "Majoor: Custom Folders");
+                    comfyToast(json?.error || "Failed to remove custom folder", "error");
                     return;
                 }
+                comfyToast("Folder removed", "success");
                 state.customRootId = "";
                 await refreshCustomRoots();
                 await reloadGrid();
             } catch (err) {
                 console.warn("Majoor: remove custom root failed", err);
-                await comfyAlert("An error occurred while removing the custom folder", "Majoor: Error");
+                comfyToast("An error occurred while removing the custom folder", "error");
             } finally {
                 // Re-enable button regardless of outcome
                 customRemoveBtn.disabled = !state.customRootId; // Keep disabled if no selection
