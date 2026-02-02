@@ -185,7 +185,28 @@ def _reconstruct_params_from_workflow(workflow: Dict[str, Any]) -> Dict[str, Any
                 unique_negatives.update(neg_texts)
                 visited_nodes.update(trace_seen)
 
-            # 3. Model
+            # 3. Flux/Advanced Sampler (via Guider)
+            guider_info = get_source_data(node["id"], "guider")
+            if guider_info:
+                guider_node = guider_info[0]
+                if guider_node:
+                    # Guider usually has 'conditioning' or 'positive' input
+                    cond_info = get_source_data(guider_node["id"], "conditioning") or get_source_data(guider_node["id"], "positive")
+                    if cond_info:
+                        trace_seen = set()
+                        pos_texts = find_upstream_text(cond_info[0], context="positive", seen=trace_seen)
+                        unique_prompts.update(pos_texts)
+                        visited_nodes.update(trace_seen)
+                    
+                    # Some guiders (CFGGuider) also have negative
+                    neg_guider_info = get_source_data(guider_node["id"], "negative")
+                    if neg_guider_info:
+                        trace_seen = set()
+                        neg_texts = find_upstream_text(neg_guider_info[0], context="negative", seen=trace_seen)
+                        unique_negatives.update(neg_texts)
+                        visited_nodes.update(trace_seen)
+
+            # 4. Model
             model_info = get_source_data(node["id"], "model")
             if model_info:
                 model_node = model_info[0]
@@ -201,34 +222,44 @@ def _reconstruct_params_from_workflow(workflow: Dict[str, Any]) -> Dict[str, Any
     # we should try to include them by inferring their role from their DOWNSTREAM connections.
     
     # helper to check if a node connects to a positive/negative input anywhere
-    def classify_unconnected_node(node):
-        out_role = "unknown"
-        outputs = node.get("outputs", [])
+    # Now recursive (depth-limited) to catch Resize/VAE chains in I2I/Video workflows
+    def classify_unconnected_node(start_node, depth=0, visited_trace=None):
+        if visited_trace is None: visited_trace = set()
+        
+        nid = start_node.get("id")
+        if nid in visited_trace or depth > 6: 
+            return "unknown"
+        visited_trace.add(nid)
+        
+        outputs = start_node.get("outputs", [])
         for out in outputs:
-            links_arr = out.get("links") # Usually list of IDs, or single ID? ComfyUI format depends.
+            links_arr = out.get("links") 
             if not links_arr: continue
-            if not isinstance(links_arr, list): links_arr = [links_arr] # Normalize
+            if not isinstance(links_arr, list): links_arr = [links_arr] 
             
             for lid in links_arr:
                 # Check where this link goes
                 link_target = link_lookup.get(lid)
                 if not link_target: continue
-                # link_lookup: link_id -> (origin, slot, target, slot)
+                
                 tgt_id = link_target[2]
                 tgt_node = node_map.get(tgt_id)
                 if not tgt_node: continue
                 
-                # Check inputs of target node to find the name
+                # 1. Direct Input Check
                 tgt_inputs = tgt_node.get("inputs", [])
                 for inp in tgt_inputs:
                     if inp.get("link") == lid:
                         iname = str(inp.get("name", "")).lower()
-                        if "positive" in iname:
-                            return "positive"
-                        if "negative" in iname:
-                            return "negative"
-                        # Fallback for "clip" input? No, ambiguous.
-        return out_role
+                        if "positive" in iname: return "positive"
+                        if "negative" in iname: return "negative"
+                
+                # 2. Recursive downstream
+                role = classify_unconnected_node(tgt_node, depth + 1, visited_trace)
+                if role != "unknown":
+                    return role
+                    
+        return "unknown"
 
     for node in nodes:
         uid = node.get("id")
@@ -761,10 +792,49 @@ def extract_video_metadata(file_path: str, exif_data: Optional[Dict] = None, ffp
             metadata["fps"] = video_stream.get("r_frame_rate")
             metadata["duration"] = format_info.get("duration")
 
+        def _unwrap_workflow_prompt_container(container: Any) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+            """
+            Some pipelines embed a wrapper object like:
+              {"workflow": {...}, "prompt": "{...json...}"}
+            inside a single tag (often `ItemList:Comment`).
+
+            Only return values if they match ComfyUI shapes (prevents false positives).
+            """
+            if not isinstance(container, dict):
+                return (None, None)
+
+            wf = container.get("workflow") or container.get("Workflow") or None
+            pr = container.get("prompt") or container.get("Prompt") or None
+
+            wf_out: Optional[Dict[str, Any]] = None
+            pr_out: Optional[Dict[str, Any]] = None
+
+            if isinstance(wf, dict) and looks_like_comfyui_workflow(wf):
+                wf_out = wf
+
+            if isinstance(pr, dict) and looks_like_comfyui_prompt_graph(pr):
+                pr_out = pr
+            elif isinstance(pr, str):
+                # Prompt can be a JSON string literal.
+                parsed = try_parse_json_text(pr)
+                if isinstance(parsed, dict) and looks_like_comfyui_prompt_graph(parsed):
+                    pr_out = parsed
+
+            if wf_out or pr_out:
+                return (wf_out, pr_out)
+            return (None, None)
+
         def _inspect_json_field(key_names, container):
             for key in key_names:
                 value = container.get(key) if isinstance(container, dict) else None
                 parsed = parse_json_value(value)
+                
+                # Check for wrapped container (Legacy behavior restoration)
+                if isinstance(parsed, dict):
+                     wf_wrapped, pr_wrapped = _unwrap_workflow_prompt_container(parsed)
+                     if wf_wrapped or pr_wrapped:
+                         return parsed
+
                 if parsed is not None:
                     return parsed
             return None
@@ -803,12 +873,21 @@ def extract_video_metadata(file_path: str, exif_data: Optional[Dict] = None, ffp
                 workflow = potential_workflow
             elif looks_like_comfyui_prompt_graph(potential_workflow) and not prompt:
                 prompt = potential_workflow
+            else:
+                 # Check for legacy wrapper format in tags like "QuickTime:Workflow"
+                 wf_w, pr_w = _unwrap_workflow_prompt_container(potential_workflow)
+                 if wf_w and not workflow: workflow = wf_w
+                 if pr_w and not prompt: prompt = pr_w
 
         if potential_prompt:
             if looks_like_comfyui_prompt_graph(potential_prompt) and not prompt:
                 prompt = potential_prompt
             elif looks_like_comfyui_workflow(potential_prompt) and not workflow:
                 workflow = potential_prompt
+            else:
+                 wf_w, pr_w = _unwrap_workflow_prompt_container(potential_prompt)
+                 if wf_w and not workflow: workflow = wf_w
+                 if pr_w and not prompt: prompt = pr_w
 
         # Fallback scan across all ExifTool tags, using shape-based heuristics.
         if workflow is None or prompt is None:

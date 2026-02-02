@@ -433,21 +433,20 @@ export function createAssetCard(asset) {
     // Thumbnail
     const thumb = createThumbnail(asset, viewUrl);
 
-    // Add file type badge (top left)
-    if (APP_CONFIG.GRID_SHOW_BADGES_EXTENSION) {
-        const fileBadge = createFileBadge(asset.filename, asset.kind, !!asset?._mjrNameCollision);
-        thumb.appendChild(fileBadge);
+    // --- Badges (Always created, visibility controlled via parent CSS) ---
+    const fileBadge = createFileBadge(asset.filename, asset.kind, !!asset?._mjrNameCollision);
+    fileBadge.classList.add("mjr-badge-ext"); // Class helper
+    thumb.appendChild(fileBadge);
+
+    const ratingBadge = createRatingBadge(asset.rating || 0);
+    if (ratingBadge) {
+        ratingBadge.classList.add("mjr-badge-rating");
+        thumb.appendChild(ratingBadge);
     }
 
-    // Add rating badge (top right)
-    if (APP_CONFIG.GRID_SHOW_BADGES_RATING) {
-        const ratingBadge = createRatingBadge(asset.rating || 0);
-        if (ratingBadge) thumb.appendChild(ratingBadge);
-    }
-
-    // Add tags badge (bottom left)
-    if (APP_CONFIG.GRID_SHOW_BADGES_TAGS) {
-        const tagsBadge = createTagsBadge(asset.tags || []);
+    const tagsBadge = createTagsBadge(asset.tags || []);
+    if (tagsBadge) {
+        tagsBadge.classList.add("mjr-badge-tags");
         thumb.appendChild(tagsBadge);
     }
 
@@ -456,87 +455,106 @@ export function createAssetCard(asset) {
     
     card.appendChild(thumb);
 
-    // Info section
-    if (APP_CONFIG.GRID_SHOW_DETAILS) {
-        const info = document.createElement("div");
-        info.classList.add("mjr-card-meta");
+    // --- Info Section (Standard Block) ---
+    // We always create the info section structure. 
+    // Visibility of children is toggled via CSS classes on the grid container (.mjr-show-filename etc).
+    
+    const info = document.createElement("div");
+    info.classList.add("mjr-card-info");
+    info.classList.add("mjr-card-meta"); // Keep old class for any legacy CSS
+    // Reset to standard block flow with relative positioning for absolute child (dot)
+    info.style.cssText = "position: relative; padding: 6px 8px; min-width: 0;";
 
-        if (APP_CONFIG.GRID_SHOW_DETAILS_FILENAME) {
-            const filenameDiv = document.createElement("div");
-            filenameDiv.classList.add("mjr-card-filename");
-            filenameDiv.title = asset.filename;
+    // 1. Filename Row
+    const filenameDiv = document.createElement("div");
+    filenameDiv.classList.add("mjr-card-filename"); // Helper for settings toggling
+    filenameDiv.title = asset.filename;
+    filenameDiv.textContent = displayName;
+    filenameDiv.style.cssText = "overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 4px; padding-right: 12px;";
+    
+    info.appendChild(filenameDiv);
 
-            const filenameText = document.createElement("span");
-            filenameText.textContent = displayName;
-            filenameText.classList.add("mjr-card-filename-text");
+    // 2. Metadata Row
+    const metaRow = document.createElement("div");
+    metaRow.classList.add("mjr-card-meta-row");
+    // Standard block with inline items
+    // Padding right to prevent text overlap with the absolute dot
+    metaRow.style.cssText = "font-size: 0.85em; opacity: 0.7; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 16px;";
+    
+    // Resolution
+    if (asset.width && asset.height) {
+        const resSpan = document.createElement("span");
+        resSpan.classList.add("mjr-meta-res"); // Toggled via .mjr-show-dimensions
+        resSpan.textContent = `${asset.width}x${asset.height}`;
+        metaRow.appendChild(resSpan);
+    }
 
-            filenameDiv.appendChild(filenameText);
-            info.appendChild(filenameDiv);
-        }
-
-        // Bottom Row: Metadata (Left) + Workflow Dot (Right)
-        const bottomRow = document.createElement("div");
-        bottomRow.style.cssText = "display: flex; justify-content: space-between; align-items: center; gap: 6px; min-width: 0;";
-
-        const metaDetails = document.createElement("div");
-        metaDetails.classList.add("mjr-card-details");
-        metaDetails.style.cssText = "flex: 1; min-width: 0; margin-bottom: 0;"; // Override CSS margin
-        
-        const statsSpan = document.createElement("span");
-        const items = [];
-
-        // Resolution / Duration (Video Length)
-        if (APP_CONFIG.GRID_SHOW_DETAILS_DIMENSIONS) {
-            if (asset.duration) {
-                items.push({ text: `(${formatDuration(asset.duration)})`, class: "mjr-meta-duration" }); // Format: (19s)
-            } 
-            if (asset.width && asset.height) {
-                 items.push({ text: `${asset.width}x${asset.height}`, class: "mjr-meta-res" });
-            }
+    // Duration
+    if (asset.duration) {
+        const durSpan = document.createElement("span");
+        durSpan.classList.add("mjr-meta-duration"); // Toggled via .mjr-show-dimensions
+        durSpan.textContent = formatDuration(asset.duration);
+        metaRow.appendChild(durSpan);
+    }
+    
+    // Date/Time
+    const timestamp = asset.generation_time || asset.file_creation_time || asset.mtime || asset.created_at;
+    if (timestamp) {
+        // Date
+        const dateStr = formatDate(timestamp);
+        if (dateStr) {
+            const dateSpan = document.createElement("span");
+            dateSpan.classList.add("mjr-meta-date"); // Toggled via .mjr-show-date
+            dateSpan.textContent = dateStr;
+            metaRow.appendChild(dateSpan);
         }
         
         // Time
-        if (APP_CONFIG.GRID_SHOW_DETAILS_DATE) {
-            const timestamp = asset.generation_time || asset.file_creation_time || asset.mtime || asset.created_at;
-            if (timestamp) {
-                const full = formatDateTime(timestamp);
-                if (full) items.push({ text: full, class: "mjr-meta-date" });
-            }
-        }
-
-        if (items.length > 0) {
-            items.forEach((item, idx) => {
-                const span = document.createElement("span");
-                span.textContent = item.text;
-                if (item.class) span.classList.add(item.class);
-                statsSpan.appendChild(span);
-                
-                if (idx < items.length - 1) {
-                    const sep = document.createTextNode(" • ");
-                    statsSpan.appendChild(sep);
-                }
-            });
-            metaDetails.appendChild(statsSpan);
-        }
-        
-        bottomRow.appendChild(metaDetails);
-
-        // Workflow Dot (Right aligned)
-        if (APP_CONFIG.GRID_SHOW_WORKFLOW_DOT) {
-             const workflowDot = createWorkflowDot(asset);
-             workflowDot.style.flex = "0 0 auto";
-             bottomRow.appendChild(workflowDot);
-        }
-
-        // Only add bottom row if it has content (stats or dot)
-        if (items.length > 0 || APP_CONFIG.GRID_SHOW_WORKFLOW_DOT) {
-            info.appendChild(bottomRow);
-        }
-
-        if (info.hasChildNodes()) {
-            card.appendChild(info);
+        const timeStr = formatTime(timestamp);
+        if (timeStr) {
+             const timeSpan = document.createElement("span");
+             timeSpan.classList.add("mjr-meta-date"); // Reuse date toggle for now logic-wise
+             timeSpan.classList.add("mjr-meta-time-val"); 
+             timeSpan.textContent = timeStr;
+             metaRow.appendChild(timeSpan);
         }
     }
+
+    // Generation Time (EXPERIMENTAL)
+    // Needs custom node to populate 'generation_time_ms' in metadata
+    // or parse it from prompt parameters if 'Time: 12.5s' is present
+    const genTimeMs = asset.metadata?.generation_time_ms; 
+    // Fallback: Check if we have prompt params with time
+    // For now we only render if explicitly set in metadata to avoid confusing video duration with gen time
+    if (genTimeMs && genTimeMs > 0) {
+        const genTimeSpan = document.createElement("span");
+        genTimeSpan.classList.add("mjr-meta-gentime");
+        genTimeSpan.style.color = "#aaaaaa";
+        
+        const secs = (genTimeMs / 1000).toFixed(1);
+        genTimeSpan.textContent = `${secs}s`;
+        genTimeSpan.title = `Generation time: ${secs} seconds`;
+        
+        metaRow.appendChild(genTimeSpan);
+    }
+
+    // Workflow Dot (Absolute Positioned for stable right-alignment)
+    const workflowDot = createWorkflowDot(asset);
+    if (workflowDot) {
+        const dotWrapper = document.createElement("div");
+        dotWrapper.className = "mjr-card-dot-wrapper";
+        // Absolute bottom-right corner of the info box
+        // Matches padding (6px bottom, 8px right)
+        dotWrapper.style.cssText = "position: absolute; right: 8px; bottom: 6px; z-index: 2;";
+        
+        dotWrapper.appendChild(workflowDot);
+        
+        // Append to info container (parent), NOT inside the scrolling metaRow
+        info.appendChild(dotWrapper);
+    }
+
+    info.appendChild(metaRow);
+    card.appendChild(info);
 
     // Store view URL (click handled by panel event delegation)
     card.dataset.mjrViewUrl = viewUrl;

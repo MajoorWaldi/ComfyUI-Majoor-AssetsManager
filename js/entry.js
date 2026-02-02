@@ -151,6 +151,16 @@ app.registerExtension({
 
         const api = app.api || (app.ui ? app.ui.api : null);
         if (api) {
+            // [ISSUE 1] Backend Scan Notification -> UI Event
+            try {
+                api.addEventListener("mjr-scan-complete", (e) => {
+                    const detail = e.detail;
+                    window.dispatchEvent(new CustomEvent('mjr:scan-complete', { detail }));
+                });
+            } catch (err) {
+                console.warn("[Majoor] Failed to bind scan listener", err);
+            }
+
             // Avoid double-binding when ComfyUI reloads extensions.
             try {
                 if (api._mjrRtHandlers && typeof api._mjrRtHandlers === "object") {
@@ -164,43 +174,51 @@ app.registerExtension({
                 }
             } catch {}
 
-            api._mjrExecutedHandler = async (event) => {
+            // Batch state for debouncing multiple checks
+            api._mjrPendingFiles = api._mjrPendingFiles || [];
+            api._mjrProcessingQueue = false; // Mutex for async processing
+            api._mjrExecutionStarts = api._mjrExecutionStarts || new Map();
+
+            // Listen for execution start to effectively measure generation time
+            const onExecutionStart = (event) => {
+                const promptId = event?.detail?.prompt_id;
+                if (promptId) {
+                    api._mjrExecutionStarts.set(promptId, Date.now());
+                }
+            };
+            api.addEventListener("execution_start", onExecutionStart);
+
+            // Async queue processor that mimics "Image Feed" reactivity but ensures DB consistency
+            const processFileQueue = async () => {
+                if (api._mjrProcessingQueue) return; // Already working
+                if (api._mjrPendingFiles.length === 0) return;
+
+                api._mjrProcessingQueue = true;
+                
+                // Grab current batch
+                const batch = [...api._mjrPendingFiles];
+                api._mjrPendingFiles = []; 
+
                 try {
-                    if (runtime?.ac?.signal?.aborted) return;
-                } catch {}
-                // ComfyUI variants differ: sometimes the payload is on `detail.output`, sometimes `detail` is the output.
-                const output = event?.detail?.output || event?.detail || null;
-                const grid = getActiveGridContainer();
-                if (!output || !grid) return;
-
-                const hasMedia = output.images || output.gifs || output.videos;
-                if (!hasMedia) return;
-
-                console.log("📂 Majoor [ℹ️] New media generated, refreshing grid...");
-
-                const outerTimer = runtime?.trackTimeout?.(async () => {
-                    const ok = await runtime?.delay?.(UI_BOOT_DELAY_MS);
-                    if (ok === false) return;
-
-                    const files = extractOutputFiles(output);
-                    if (!files.length) return;
-
-                    const indexRes = await post(ENDPOINTS.INDEX_FILES, { files, incremental: true });
+                    // 1. Index the files (backend)
+                    // console.log(`📂 Majoor [ℹ️] Indexing batch of ${batch.length} files...`);
+                    const indexRes = await post(ENDPOINTS.INDEX_FILES, { files: batch, incremental: true });
+                    
                     if (!indexRes?.ok) {
                         console.warn("📂 Majoor [⚠️] index-files failed:", indexRes?.error || indexRes);
-                        return;
                     }
 
+                    // 2. Fetch latest & visual update
+                    // Only update if the user is looking at the default view (no search query)
                     const latestGrid = getActiveGridContainer();
-                    if (latestGrid) {
-                        // Only auto-insert when browsing "*" (avoid disrupting active searches).
-                        const currentQuery = String(latestGrid.dataset?.mjrQuery || "*").trim() || "*";
-                        if (currentQuery !== "*" && currentQuery !== "") return;
-
-                        // Use incremental update instead of full reload.
+                    const currentQuery = String(latestGrid?.dataset?.mjrQuery || "*").trim() || "*";
+                    
+                    if (latestGrid && (currentQuery === "*" || currentQuery === "")) {
+                         // Use incremental update logic
                         const anchor = captureAnchor(latestGrid);
                         const atBottomBefore = isAtBottom(latestGrid);
 
+                        // Read filter state from DOM
                         const scope = latestGrid.dataset?.mjrScope || "output";
                         const customRootId = latestGrid.dataset?.mjrCustomRootId || "";
                         const subfolder = latestGrid.dataset?.mjrSubfolder || "";
@@ -210,10 +228,11 @@ app.registerExtension({
                         const dateRange = String(latestGrid.dataset?.mjrFilterDateRange || "").trim().toLowerCase();
                         const dateExact = String(latestGrid.dataset?.mjrFilterDateExact || "").trim();
 
-                        // Fetch the newest page and upsert into the grid (more reliable than filename search).
+                        // Fetch the newest page (Limit increased to catch batch bursts)
+                        // This "rescans from 0" (offset 0) to get the latest
                         const url = buildListURL({
                             q: "*",
-                            limit: AUTO_INSERT_FETCH_LIMIT,
+                            limit: Math.max(AUTO_INSERT_FETCH_LIMIT, batch.length * 2), // Ensure we fetch enough to cover the batch
                             offset: 0,
                             scope,
                             subfolder,
@@ -235,34 +254,70 @@ app.registerExtension({
                             }
                         }
 
-                        // Check if user is at bottom to decide whether to follow newest
+                        // Auto-scroll logic
                         if (atBottomBefore) {
-                            // If user is at bottom, scroll to bottom after upserting all assets
-
-                            // Wait for layout to stabilize before scrolling
-                            for (let i = 0; i < RAF_STABILIZE_FRAMES; i++) {
-                                await _raf();
-                            }
+                             for (let i = 0; i < RAF_STABILIZE_FRAMES; i++) await _raf();
                             scrollToBottom(latestGrid);
                         } else {
-                            // If user is not at bottom, preserve scroll position
                             await restoreAnchor(latestGrid, anchor);
                         }
                     }
-                }, AUTO_REFRESH_DEBOUNCE_MS);
-                try {
-                    if (outerTimer != null) {
-                        runtime?.ac?.signal?.addEventListener?.(
-                            "abort",
-                            () => {
-                                try {
-                                    clearTimeout(outerTimer);
-                                } catch {}
-                            },
-                            { once: true }
-                        );
+
+                } catch (err) {
+                    console.error("📂 Majoor [❌] Queue processing error:", err);
+                } finally {
+                    api._mjrProcessingQueue = false;
+                    
+                    // If new files arrived while we were working, go again immediately
+                    if (api._mjrPendingFiles.length > 0) {
+                         // Small yield to UI thread before looping
+                         setTimeout(processFileQueue, 16); 
                     }
+                }
+            };
+
+            api._mjrExecutedHandler = async (event) => {
+                try {
+                    if (runtime?.ac?.signal?.aborted) return;
                 } catch {}
+                
+                const detail = event?.detail;
+                const output = detail?.output || detail || null;
+                const promptId = detail?.prompt_id;
+
+                const grid = getActiveGridContainer();
+                if (!output) return; // Even if grid is hidden, we might want to buffer? No, save resources.
+                
+                // Note: Image Feed logic doesn't require grid, but we need it for `upsertAsset`.
+                // If grid is not present, we still index? Yes, useful for consistency.
+                // But `processFileQueue` checks for grid before fetching.
+
+                const hasMedia = output.images || output.gifs || output.videos;
+                if (!hasMedia) return;
+
+                const newFiles = extractOutputFiles(output);
+                if (!newFiles.length) return;
+                
+                // Calculate generation time if we saw the start
+                let genTimeMs = undefined;
+                if (promptId && api._mjrExecutionStarts.has(promptId)) {
+                    const start = api._mjrExecutionStarts.get(promptId);
+                    genTimeMs = Date.now() - start;
+                    api._mjrExecutionStarts.delete(promptId); // Cleanup
+                }
+
+                if (genTimeMs) {
+                    // Attach duration to each file object so backend can index it
+                    for (const f of newFiles) {
+                        f.generation_time_ms = genTimeMs;
+                    }
+                }
+
+                // Add to batch
+                api._mjrPendingFiles.push(...newFiles);
+
+                // Trigger processing (Debounce removed: Queue Pattern used instead)
+                processFileQueue();
             };
 
             // Bind to multiple event names across ComfyUI variants.

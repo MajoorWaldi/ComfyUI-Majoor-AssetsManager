@@ -26,6 +26,8 @@ export function createGenerationSection(asset) {
     const hasDisplayableFields = (obj) => {
         try {
             if (!obj || typeof obj !== "object") return false;
+            // Workflow Type check
+            if (obj.engine && typeof obj.engine === "object" && obj.engine.type) return true;
             if (typeof obj.prompt === "string" && obj.prompt.trim()) return true;
             if (typeof (obj.negative_prompt || obj.negativePrompt) === "string" && (obj.negative_prompt || obj.negativePrompt).trim())
                 return true;
@@ -61,6 +63,53 @@ export function createGenerationSection(asset) {
         flex-direction: column;
         gap: 12px;
     `;
+    
+    // Check for truncated flag (backend sets this if metadata > limit)
+    const isTruncated = asset?.geninfo?._truncated || asset?.metadata?._truncated || asset?.prompt?._truncated;
+
+    if (isTruncated) {
+         container.appendChild(
+            createInfoBox(
+                "Metadata Truncated",
+                "Generation data is incomplete because it exceeded the size limit.",
+                "#FF9800"
+            )
+        );
+    }
+    
+    // Workflow Type Header
+    if (metadata.engine && metadata.engine.type) {
+        const typeBox = document.createElement("div");
+        typeBox.style.cssText = `
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            font-size: 11px;
+            color: #ccc;
+        `;
+        
+        const badge = document.createElement("span");
+        badge.textContent = metadata.engine.type;
+        badge.style.cssText = `
+            background: #2196f3;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+            font-size: 10px;
+        `;
+        
+        const label = document.createElement("span");
+        label.textContent = "Workflow Type";
+        label.style.opacity = "0.7";
+
+        typeBox.appendChild(label);
+        typeBox.appendChild(badge);
+        container.appendChild(typeBox);
+    }
 
     const cleaned = normalizePromptsForDisplay(
         typeof metadata.prompt === "string" ? metadata.prompt : null,
@@ -197,17 +246,40 @@ export function createGenerationSection(asset) {
                 
                 vid.style.cssText = "width: 100%; height: 100%; object-fit: cover;";
                 thumb.appendChild(vid);
-                
-                // Play icon overlay
-                const icon = document.createElement("div");
-                icon.innerHTML = "▶";
-                icon.style.cssText = "position: absolute; color: white; opacity: 0.7; font-size: 16px; pointer-events: none;";
-                thumb.appendChild(icon);
             } else {
                 const img = document.createElement("img");
                 img.src = src;
                 img.style.cssText = "width: 100%; height: 100%; object-fit: cover;";
                 thumb.appendChild(img);
+            }
+
+            // Role Badge (New)
+            if (inp.role && inp.role !== "secondary") {
+                const roleBadge = document.createElement("div");
+                roleBadge.textContent = inp.role.replace("_", " ");
+                roleBadge.style.cssText = `
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    background: rgba(0,0,0,0.7);
+                    color: white;
+                    font-size: 8px;
+                    padding: 2px;
+                    text-align: center;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                `;
+                thumb.appendChild(roleBadge);
+            }
+
+            // Play icon overlay for video if no role badge or just on top
+            if (isVideo && !inp.role) {
+                const icon = document.createElement("div");
+                icon.innerHTML = "▶";
+                icon.style.cssText = "position: absolute; color: white; opacity: 0.7; font-size: 16px; pointer-events: none;";
+                thumb.appendChild(icon);
             }
             
             thumb.onclick = (e) => {

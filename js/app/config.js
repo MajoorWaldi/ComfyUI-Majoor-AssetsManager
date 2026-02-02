@@ -62,6 +62,7 @@ export const APP_DEFAULTS = Object.freeze({
     GRID_SHOW_DETAILS_FILENAME: true,
     GRID_SHOW_DETAILS_DATE: true,
     GRID_SHOW_DETAILS_DIMENSIONS: true,
+    GRID_SHOW_DETAILS_GENTIME: true,
     GRID_SHOW_WORKFLOW_DOT: true,
 
     // Pagination

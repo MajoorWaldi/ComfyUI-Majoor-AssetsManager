@@ -1,27 +1,114 @@
 """
 Lightweight directory watcher that triggers incremental scans.
+Replaced with Watchdog for real-time event handling.
 """
 import logging
 import threading
 import asyncio
+import time
 from pathlib import Path
 from typing import Iterable, Optional
 
 from .service import IndexService
 from ...shared import get_logger
-from ...config import WATCHER_INTERVAL_SECONDS, WATCHER_JOIN_TIMEOUT
+from ...config import WATCHER_JOIN_TIMEOUT
 
 logger = get_logger(__name__)
 
+try:
+    from watchdog.observers import Observer
+    from watchdog.events import FileSystemEventHandler
+    HAS_WATCHDOG = True
+except ImportError:
+    HAS_WATCHDOG = False
+    class Observer:
+        def schedule(self, *args, **kwargs): pass
+        def start(self): pass
+        def stop(self): pass
+        def join(self, **kwargs): pass
+    class FileSystemEventHandler: 
+        pass
+    logger.warning("Watchdog module not found. Real-time file watching will be disabled.")
+
+
+class IndexEventHandler(FileSystemEventHandler):
+    """Handles file system events and queues index updates."""
+    
+    def __init__(self, watcher, loop):
+        self.watcher = watcher
+        self.loop = loop
+        self.last_events = {}
+        self.debounce_seconds = 1.0
+
+    def _is_valid_file(self, path_str: str) -> bool:
+        try:
+            p = Path(path_str)
+            if p.name.startswith(".") or not p.name:
+                return False
+            # Ignore common temp extensions and partial downloads
+            if p.suffix.lower() in {".tmp", ".crdownload", ".part", ".lock", ".aria2"}:
+                return False
+            return True
+        except Exception:
+            return False
+
+    def _debounce(self, filepath: str) -> bool:
+        # Simple debounce to avoid double-processing (created + modified)
+        now = time.time()
+        last = self.last_events.get(filepath, 0)
+        if now - last < self.debounce_seconds:
+            return True
+        self.last_events[filepath] = now
+        # Cleanup old entries
+        if len(self.last_events) > 1000:
+            self.last_events.clear() 
+        return False
+
+    def on_created(self, event):
+        if event.is_directory or not self._is_valid_file(event.src_path):
+            return
+        if self._debounce(event.src_path):
+            return
+        # logger.debug(f"Watcher: Created {event.src_path}")
+        self.watcher.queue_update(event.src_path, action="add")
+
+    def on_moved(self, event):
+        if event.is_directory:
+            return
+        
+        # REMOVE old path
+        if self._is_valid_file(event.src_path):
+            # logger.debug(f"Watcher: Moved from {event.src_path}")
+            self.watcher.queue_update(event.src_path, action="remove")
+            
+        # ADD new path
+        if self._is_valid_file(event.dest_path):
+            # logger.debug(f"Watcher: Moved to {event.dest_path}")
+            self.watcher.queue_update(event.dest_path, action="add")
+
+    def on_deleted(self, event):
+        if event.is_directory:
+            return
+        # logger.debug(f"Watcher: Deleted {event.src_path}")
+        self.watcher.queue_update(event.src_path, action="remove")
+
+    def on_modified(self, event):
+        if event.is_directory or not self._is_valid_file(event.src_path):
+            return
+        if self._debounce(event.src_path):
+            return
+        # logger.debug(f"Watcher: Modified {event.src_path}")
+        self.watcher.queue_update(event.src_path, action="add")
+
 
 class DirectoryWatcher:
-    """Polls directories and enqueues scans when changes may exist."""
+    """Uses watchdog to listen for file events without full rescans."""
 
     def __init__(
         self,
         index_service: IndexService,
         directories: Iterable[str],
-        interval_seconds: Optional[float] = None,
+        interval_seconds: Optional[float] = None, # Deprecated/Unused
         join_timeout: Optional[float] = None
     ):
         self.index_service = index_service
@@ -30,95 +117,83 @@ class DirectoryWatcher:
             self._loop = asyncio.get_running_loop()
         except RuntimeError:
             self._loop = asyncio.get_event_loop()
-        self.interval = interval_seconds or WATCHER_INTERVAL_SECONDS
-        self._stop_event = threading.Event()
-        self._thread: Optional[threading.Thread] = None
-        self._lock = threading.Lock()
+            
         self._join_timeout = join_timeout if join_timeout is not None else WATCHER_JOIN_TIMEOUT
+        self._observer = None
+        self._shutdown = False
 
-    def _create_thread(self) -> threading.Thread:
-        return threading.Thread(target=self._run, daemon=True)
+        if HAS_WATCHDOG:
+            self._observer = Observer()
+            handler = IndexEventHandler(self, self._loop)
+            scheduled = 0
+            for d in self.directories:
+                if d.exists() and d.is_dir():
+                    try:
+                        self._observer.schedule(handler, str(d), recursive=True)
+                        scheduled += 1
+                    except Exception as exc:
+                        logger.warning(f"Failed to watch {d}: {exc}")
+            
+            if scheduled > 0:
+                logger.info(f"File watcher initialized for {scheduled} directories (Mode: Event-Driven/Watchdog)")
+        else:
+             logger.warning("File watcher disabled: Watchdog module missing. Manual refresh required.")
 
     def start(self):
-        """Start the background watcher thread (idempotent)."""
-        with self._lock:
-            if self._thread is not None and self._thread.is_alive():
-                return
-
-            # Allow restart on the same instance
-            self._stop_event.clear()
-            self._thread = self._create_thread()
-            self._thread.start()
-
-        logger.info("File watcher started", extra={"directories": [str(d) for d in self.directories]})
+        """Start the background watcher thread."""
+        if self._observer:
+            try:
+                self._observer.start()
+                logger.info("File watcher started (event-based)")
+            except Exception as exc:
+                logger.error(f"Failed to start file watcher: {exc}")
 
     def stop(self):
-        """Request the watcher thread to stop and join it (best-effort)."""
-        self._stop_event.set()
-
-        with self._lock:
-            thread = self._thread
-
-        if not thread:
-            return
-
-        # Avoid deadlocking if stop is (unexpectedly) called from the watcher thread itself.
-        if thread is threading.current_thread():
-            return
-
-        try:
-            thread.join(timeout=self._join_timeout)
-        except Exception as exc:
-            logger.warning("Exception during watcher thread join: %s", exc)
-            return
-
-        if thread.is_alive():
-            logger.warning(
-                "File watcher thread did not stop within timeout (%.2fs). Thread will be abandoned as daemon.",
-                self._join_timeout,
-            )
-            return
-
-        with self._lock:
-            if self._thread is thread:
-                self._thread = None
-        logger.info("File watcher stopped successfully")
+        """Request the watcher thread to stop."""
+        self._shutdown = True
+        if self._observer:
+            try:
+                self._observer.stop()
+                self._observer.join(timeout=self._join_timeout)
+            except Exception:
+                pass
+        logger.info("File watcher stopped")
 
     def is_alive(self) -> bool:
-        """Return True if the watcher thread is currently running."""
-        with self._lock:
-            return bool(self._thread and self._thread.is_alive())
+        """Return True if the watcher thread is running."""
+        return self._observer.is_alive() if self._observer else False
 
-    def _run(self):
-        while not self._stop_event.is_set():
-            for directory in self.directories:
-                if self._stop_event.is_set():
-                    break
-                # Check existence but handle gracefully if directory disappears during scan.
-                # This is a benign TOCTOU - if it disappears mid-scan, scan_directory will
-                # return an error which we log and continue.
-                try:
-                    exists = directory.exists()
-                except Exception as exc:
-                    logger.debug("Watcher cannot stat directory %s: %s", directory, exc)
-                    exists = False
+    def queue_update(self, filepath: str, action: str):
+        if self._shutdown:
+            return
+            
+        async def _process():
+            # Small delay to allow file writes to settle (e.g. copy paste)
+            if action == "add":
+                await asyncio.sleep(0.5)
+            
+            if action == "remove":
+                await self.index_service.remove_file(filepath)
+            elif action == "add":
+                # Determine base dir for relative path calculation
+                path_obj = Path(filepath)
+                base_dir = str(path_obj.parent)
+                for d in self.directories:
+                    if str(d) in filepath:
+                        base_dir = str(d)
+                        break
+                
+                await self.index_service.index_paths(
+                    paths=[path_obj],
+                    base_dir=base_dir,
+                    incremental=True,
+                    source="output" # Default to output, logic could be refined
+                )
 
-                if not exists:
-                    # Avoid busy-looping when watched path disappears
-                    self._stop_event.wait(self.interval)
-                    continue
+        try:
+            asyncio.run_coroutine_threadsafe(_process(), self._loop)
+        except Exception as exc:
+            logger.debug(f"Failed to queue watcher update: {exc}")
 
-                try:
-                    future = asyncio.run_coroutine_threadsafe(
-                        self.index_service.scan_directory(str(directory), recursive=True, incremental=True),
-                        self._loop
-                    )
-                    scan_result = future.result()
-                    if not scan_result.ok:
-                        logger.warning(
-                            "Watcher scan reported issues for %s: %s (code=%s)",
-                            directory, scan_result.error, getattr(scan_result, 'code', 'UNKNOWN')
-                        )
-                except Exception as exc:
-                    logger.warning("Watcher scan failed for %s: %s", directory, exc)
-            self._stop_event.wait(self.interval)
+# Legacy implementation removed. Watchdog is now required for auto-updates without full scan.
+

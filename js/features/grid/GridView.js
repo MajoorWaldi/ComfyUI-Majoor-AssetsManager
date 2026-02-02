@@ -251,6 +251,115 @@ function enqueueRatingTagsHydration(gridContainer, card, asset) {
 }
 
 /**
+ * Update grid CSS classes based on current settings.
+ * Allows instant toggling of card elements (Filename, Dimensions, etc.) via CSS
+ * without rebuilding the DOM.
+ */
+function _updateGridSettingsClasses(container) {
+    if (!container) return;
+    
+    // Inject dynamic styles if not present (ensures reactivity behaves correctly)
+    const styleId = "mjr-grid-settings-styles";
+    if (!document.getElementById(styleId)) {
+        const style = document.createElement("style");
+        style.id = styleId;
+        style.textContent = `
+            /* Reactive visibility toggles */
+            /* Ensure card uses flex column to fill space when info is hidden */
+            .mjr-grid .mjr-asset-card, 
+            .mjr-grid .mjr-card {
+                display: flex;
+                flex-direction: column;
+            }
+            /* Thumb grows to fill available space */
+            .mjr-grid .mjr-thumb {
+                flex: 1;
+                min-height: 0;
+                position: relative;
+                overflow: hidden;
+            }
+            /* Ensure media fills the thumb container */
+            .mjr-grid .mjr-thumb-media {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                display: block;
+            }
+
+            .mjr-grid .mjr-card-filename { display: none; }
+            .mjr-grid.mjr-show-filename .mjr-card-filename { display: block; }
+            
+            .mjr-grid .mjr-card-dot-wrapper { display: none; }
+            .mjr-grid.mjr-show-dot .mjr-card-dot-wrapper { display: inline-flex; }
+
+            .mjr-grid .mjr-meta-res { display: none; }
+            .mjr-grid.mjr-show-dimensions .mjr-meta-res { display: inline; }
+
+            .mjr-grid .mjr-meta-duration { display: none; }
+            .mjr-grid.mjr-show-dimensions .mjr-meta-duration { display: inline; }
+
+            .mjr-grid .mjr-meta-date { display: none; }
+            .mjr-grid.mjr-show-date .mjr-meta-date { display: inline; }
+
+            .mjr-grid .mjr-meta-gentime { display: none; }
+            .mjr-grid.mjr-show-gentime .mjr-meta-gentime { display: inline; }
+
+            .mjr-grid .mjr-badge-ext { display: none; }
+            .mjr-grid.mjr-show-badges-ext .mjr-badge-ext { display: flex; }
+
+            .mjr-grid .mjr-badge-rating { display: none; }
+            .mjr-grid.mjr-show-badges-rating .mjr-badge-rating { display: flex; }
+
+            .mjr-grid .mjr-badge-tags { display: none; }
+            .mjr-grid.mjr-show-badges-tags .mjr-badge-tags { display: flex; }
+            
+            /* Info container management */
+            /* Default to hidden to prevent flash or "black box" if js is slow */
+            .mjr-grid .mjr-card-info { display: none !important; }
+            /* Only show when explicitly enabled */
+            .mjr-grid.mjr-show-details .mjr-card-info { display: block !important; }
+
+            /* Separator management (experimental) */
+            /* If we want separators like " • ", we can use CSS pseudo-elements instead of text nodes */
+            .mjr-card-meta-row > span + span::before {
+                content: " • ";
+                opacity: 0.5;
+                margin: 0 4px;
+            }
+            // Hide separator if previous element is hidden
+            .mjr-card-meta-row > span[style*="display: none"] + span::before {
+                 display: none;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Helper to toggle class based on config bool
+    const toggle = (cls, enabled) => {
+        if (enabled) container.classList.add(cls);
+        else container.classList.remove(cls);
+    };
+
+    toggle("mjr-show-filename", APP_CONFIG.GRID_SHOW_DETAILS_FILENAME);
+    toggle("mjr-show-dimensions", APP_CONFIG.GRID_SHOW_DETAILS_DIMENSIONS);
+    toggle("mjr-show-date", APP_CONFIG.GRID_SHOW_DETAILS_DATE);
+    toggle("mjr-show-gentime", APP_CONFIG.GRID_SHOW_DETAILS_GENTIME);
+    // toggle("mjr-show-time", APP_CONFIG.GRID_SHOW_DETAILS_TIME); // If we add explicit time setting
+    toggle("mjr-show-dot", APP_CONFIG.GRID_SHOW_WORKFLOW_DOT);
+    
+    toggle("mjr-show-badges-ext", APP_CONFIG.GRID_SHOW_BADGES_EXTENSION);
+    toggle("mjr-show-badges-rating", APP_CONFIG.GRID_SHOW_BADGES_RATING);
+    toggle("mjr-show-badges-tags", APP_CONFIG.GRID_SHOW_BADGES_TAGS);
+    
+    // Overall details vs generic show
+    toggle("mjr-show-details", APP_CONFIG.GRID_SHOW_DETAILS);
+    
+    // Helper for CSS vars
+    container.style.setProperty("--mjr-grid-min-size", `${APP_CONFIG.GRID_MIN_SIZE}px`);
+    container.style.setProperty("--mjr-grid-gap", `${APP_CONFIG.GRID_GAP}px`);
+}
+
+/**
  * Create grid container
  * @returns {HTMLElement} The configured grid container
  */
@@ -258,8 +367,23 @@ export function createGridContainer() {
     const container = document.createElement("div");
     container.id = "mjr-assets-grid";
     container.classList.add("mjr-grid");
-    container.style.setProperty("--mjr-grid-min-size", `${APP_CONFIG.GRID_MIN_SIZE}px`);
-    container.style.setProperty("--mjr-grid-gap", `${APP_CONFIG.GRID_GAP}px`);
+    
+    // Initial class application
+    _updateGridSettingsClasses(container);
+
+    // Listen for settings changes to update CSS classes reactively
+    const onSettingsChanged = () => {
+        requestAnimationFrame(() => _updateGridSettingsClasses(container));
+    };
+    
+    // We bind to the custom event dispatched by settings.js
+    // Note: The event is dispatched on `window` usually via safeDispatchCustomEvent
+    try {
+        window.addEventListener("mjr-settings-changed", onSettingsChanged);
+        // Also cleanup listener if grid is removed? (WeakMap handles state, but listener persists on window)
+        // Ideally we would return a cleanup function or attach to container custom event, 
+        // but for now this singleton grid pattern is acceptable.
+    } catch {}
 
     // Bind delegated dragstart once (avoid per-card listeners; improves load perf on large grids).
     try {
@@ -658,9 +782,41 @@ function appendAssets(gridContainer, assets, state) {
     const stemMap = state.stemMap || new Map();
     state.stemMap = stemMap;
     
+    // [ISSUE 3] Memory protection: Page Eviction
+    // Prevent unchecked growth of assets array and seenKeys
+    const MAX_ASSETS_MEMORY = 3000;
+    if (state.assets.length > MAX_ASSETS_MEMORY) {
+        const pruneCount = 500; // prune chunk
+        const removed = state.assets.splice(0, pruneCount);
+        // Also clean up seenKeys to keep Set size manageable,
+        // though strictly they shouldn't show up again if paginating forward.
+        if (state.seenKeys) {
+            for (const a of removed) {
+                const key = _getAssetId(a); 
+                if (key) state.seenKeys.delete(key);
+            }
+        }
+    }
+
     let addedCount = 0;
     let needsUpdate = false;
     const validNewAssets = [];
+    
+    // [OPTIMIZATION] Single pass removal for PNG siblings
+    const assetsToRemoveFromState = new Set();
+    
+    // Pre-pass: Identify new non-image stems in this batch to handle same-batch pairs
+    if (hidePngSiblings) {
+        for (const asset of assets || []) {
+            const filename = String(asset?.filename || "");
+            const extUpper = _getExtUpper(filename); 
+            const kind = _detectKind(asset, extUpper);
+            if (kind !== "image") {
+                const stem = _getStemLower(filename);
+                if (stem) nonImageStems.add(stem);
+            }
+        }
+    }
 
     for (const asset of assets || []) {
         const filename = String(asset?.filename || "");
@@ -671,23 +827,17 @@ function appendAssets(gridContainer, assets, state) {
         // Hide PNG Siblings Logic
         if (hidePngSiblings && stemLower) {
             if (kind !== "image") {
-                nonImageStems.add(stemLower);
+                // nonImageStems already updated in pre-pass
                 
-                // Remove existing PNG siblings from STATE
+                // Check if we need to hide EXISTING PNG siblings (retroactive hiding)
                 const list = stemMap.get(stemLower);
                 if (list) {
-                    const toRemove = [];
                     for (let i = list.length - 1; i >= 0; i--) {
                         if (_getExtUpper(list[i].filename) === "PNG") {
-                            toRemove.push(list[i]);
+                            assetsToRemoveFromState.add(list[i]);
+                            // Also remove from stemMap immediately so we don't process it again
                             list.splice(i, 1);
                         }
-                    }
-                    if (toRemove.length) {
-                        state.hiddenPngSiblings += toRemove.length;
-                        const removeSet = new Set(toRemove);
-                        state.assets = state.assets.filter(a => !removeSet.has(a));
-                        needsUpdate = true;
                     }
                 }
             } else if (extUpper === "PNG" && nonImageStems.has(stemLower)) {
@@ -746,6 +896,14 @@ function appendAssets(gridContainer, assets, state) {
         }
         
         addedCount++;
+    }
+
+    // [OPTIMIZATION] Apply batch removals
+    if (assetsToRemoveFromState.size > 0) {
+        state.hiddenPngSiblings += assetsToRemoveFromState.size;
+        // Single pass removal
+        state.assets = state.assets.filter(a => !assetsToRemoveFromState.has(a));
+        needsUpdate = true;
     }
 
     if (validNewAssets.length > 0) {
@@ -962,11 +1120,33 @@ async function loadNextPage(gridContainer, state) {
             if (page.aborted || page.stale) return;
             state.done = true;
             stopObserver(state);
-            const p = document.createElement("p");
-            p.className = "mjr-muted";
-            p.style.color = "var(--error-text, #f44336)";
-            p.textContent = `Error: ${page.error}`;
-            gridContainer.appendChild(p);
+            
+            // [ISSUE 5] Error Retry Mechanism
+            const errDiv = document.createElement("div");
+            errDiv.style.padding = "20px";
+            errDiv.style.textAlign = "center";
+            errDiv.style.gridColumn = "1 / -1";
+            
+            const msg = document.createElement("p");
+            msg.className = "mjr-muted";
+            msg.style.color = "var(--error-text, #f44336)";
+            msg.textContent = `Error loading: ${page.error}`;
+            
+            const retryBtn = document.createElement("button");
+            retryBtn.textContent = "Retry";
+            retryBtn.className = "mjr-btn mjr-btn-secondary"; // Use existing class if available
+            retryBtn.style.marginTop = "10px";
+            retryBtn.onclick = () => {
+                errDiv.remove();
+                state.done = false;
+                state.loading = false;
+                // Retry immediately
+                loadNextPage(gridContainer, state);
+            };
+            
+            errDiv.appendChild(msg);
+            errDiv.appendChild(retryBtn);
+            gridContainer.appendChild(errDiv);
             return;
         }
 
@@ -1569,3 +1749,42 @@ export function clearGrid(gridContainer) {
     p.textContent = "Type to search or wait for the scan to finish";
     gridContainer.appendChild(p);
 }
+
+// [ISSUE 1] Real-time Refresh Implementation
+// Listens for the event dispatched by entry.js (relayed from backend)
+try {
+    window.addEventListener("mjr:scan-complete", (e) => {
+        const detail = e.detail;
+        
+        // Find all active grids
+        const grids = document.querySelectorAll(".mjr-grid-container");
+        for (const grid of grids) {
+            try {
+                if (!grid.isConnected) continue;
+                
+                // Get state
+                const state = GRID_STATE.get(grid);
+                if (!state) continue;
+                
+                // Debounce refresh
+                if (grid._mjrRefreshTimer) clearTimeout(grid._mjrRefreshTimer);
+                
+                grid._mjrRefreshTimer = setTimeout(() => {
+                    grid._mjrRefreshTimer = null;
+                    if (!grid.isConnected) return;
+                    
+                    // Trigger reload with reset to ensure we get newest items at top
+                    // Only reload if user hasn't scrolled deep? 
+                    // Actually, for "Issue 1", update > perfect UX.
+                    loadAssets(grid, state.query, { reset: true });
+                }, 500);
+                
+            } catch (err) {
+                console.warn("[Majoor] Auto-refresh error:", err);
+            }
+        }
+    });
+} catch (e) {
+    console.warn("Failed to register global scan listener:", e);
+}
+

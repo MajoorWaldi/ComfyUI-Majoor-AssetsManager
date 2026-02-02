@@ -220,6 +220,29 @@ class MetadataHelpers:
                     if isinstance(p_val, str) and p_val.strip():
                         extras.append(p_val.strip())
 
+                # Workflow Type (T2I, I2V, etc.)
+                engine = geninfo.get("engine")
+                if isinstance(engine, dict):
+                    wf_type = engine.get("type")
+                    if isinstance(wf_type, str) and wf_type.strip():
+                        extras.append(wf_type.strip()) # e.g. "I2V", "T2I"
+
+                # Input files (to find assets using a specific source)
+                inputs = geninfo.get("inputs")
+                if isinstance(inputs, list):
+                    for inp in inputs:
+                        if isinstance(inp, dict):
+                            fname = inp.get("filename")
+                            if isinstance(fname, str) and fname.strip():
+                                extras.append(fname.strip())
+                            
+                            role = inp.get("role")
+                            if isinstance(role, str) and role.strip() and role not in ("secondary",):
+                                # Index roles too? Maybe overkill to add "first_frame" to index, 
+                                # but "mask" or "source" could be useful. 
+                                # Let's keep it simple for now and just index the filenames.
+                                pass
+
                 if extras:
                     if extracted_tags_text:
                         extracted_tags_text += " " + " ".join(extras)

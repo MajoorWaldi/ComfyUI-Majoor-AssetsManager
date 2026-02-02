@@ -355,6 +355,10 @@ def _is_advanced_sampler(node: Dict[str, Any]) -> bool:
     try:
         ins = _inputs(node)
         # Heuristic: orchestration sampler has these link inputs.
+        # Strict check for all 4 caused issues with custom nodes that auto-provide noise/sampler.
+        # "guider" + "sigmas" is the defining signature of the advanced decoupled interaction.
+        if _is_link(ins.get("guider")) and _is_link(ins.get("sigmas")):
+            return True
         keys = ("noise", "guider", "sampler", "sigmas")
         return all(_is_link(ins.get(k)) for k in keys)
     except (TypeError, ValueError, KeyError):
@@ -894,9 +898,10 @@ def _trace_model_chain(
             or "unetloader" in ct
             or "loadunet" in ct
             or "unet" == ct
+            or "videomodel" in ct # Helper for LTX/Wan video models
         ):
             unet = _clean_model_id(ins.get("unet_name") or ins.get("unet"))
-            diffusion = _clean_model_id(ins.get("diffusion_name") or ins.get("diffusion") or ins.get("model_name") or ins.get("ckpt_name"))
+            diffusion = _clean_model_id(ins.get("diffusion_name") or ins.get("diffusion") or ins.get("model_name") or ins.get("ckpt_name") or ins.get("model"))
             if unet and "unet" not in models:
                 models["unet"] = {"name": unet, "confidence": confidence, "source": f"{_node_type(node)}:{node_id}"}
             if diffusion and "diffusion" not in models:
@@ -909,7 +914,7 @@ def _trace_model_chain(
 
         # Generic "model loader" style custom nodes (e.g. WanVideoModelLoader) often expose
         # only a model path/identifier without "ckpt_name" naming.
-        if "modelloader" in ct or ("model_loader" in ct or "model-loader" in ct):
+        if "modelloader" in ct or ("model_loader" in ct or "model-loader" in ct) or "ltxvideomodel" in ct:
             raw = _first_model_string()
             name = _clean_model_id(raw)
             if name:
@@ -1113,6 +1118,55 @@ def _trace_size(nodes_by_id: Dict[str, Dict[str, Any]], latent_link: Any, confid
     return None
 
 
+def _trace_guidance_value(nodes_by_id: Dict[str, Dict[str, Any]], start_link: Any, max_hops: int = 15) -> Optional[Tuple[float, str]]:
+    """
+    Traverse conditioning chain upstream to find a node providing 'guidance' (Flux).
+    """
+    start_id = _walk_passthrough(nodes_by_id, start_link)
+    if not start_id:
+        return None
+
+    # stack: (node_id, depth)
+    stack = [(start_id, 0)]
+    visited = set()
+
+    while stack:
+        nid, depth = stack.pop()
+        if nid in visited or depth > max_hops:
+            continue
+        visited.add(nid)
+        
+        node = nodes_by_id.get(nid)
+        if not isinstance(node, dict):
+            continue
+            
+        ins = _inputs(node)
+        # Check if this node has guidance
+        g_val = _scalar(ins.get("guidance"))
+        if g_val is not None:
+             return float(g_val), f"{_node_type(node)}:{nid}"
+             
+        # Traverse upstream
+        ct = _lower(_node_type(node))
+        should_expand = False
+        
+        if _is_reroute(node):
+            should_expand = True
+        elif "conditioning" in ct or "guider" in ct or "flux" in ct:
+            should_expand = True
+        elif any("conditioning" in str(k).lower() for k in ins.keys()):
+            should_expand = True
+            
+        if should_expand:
+            # Add conditioning sources to stack
+            for k, v in ins.items():
+                if "conditioning" in str(k).lower() and _is_link(v):
+                     src = _walk_passthrough(nodes_by_id, v)
+                     if src and src not in visited:
+                         stack.append((src, depth + 1))
+    return None
+
+
 def _extract_workflow_metadata(workflow: Any) -> Dict[str, Any]:
     meta = {}
     if isinstance(workflow, dict):
@@ -1124,9 +1178,89 @@ def _extract_workflow_metadata(workflow: Any) -> Dict[str, Any]:
     return meta
 
 
+
+def _detect_input_role(nodes_by_id: Dict[str, Any], subject_node_id: str) -> str:
+    """
+    Determine how an input node is used (e.g. 'first_frame', 'reference', 'mask', 'source', 'style').
+    Performs a limited-depth BFS downstream to handle intermediate nodes (Resize, VAE, etc).
+    """
+    roles = set()
+    frontier = {str(subject_node_id)}
+    visited = {str(subject_node_id)}
+    
+    # Limit depth to avoid infinite loops or massive fan-out
+    for _ in range(8): 
+        if not frontier: break
+        next_frontier = set()
+        
+        for nid, node in nodes_by_id.items():
+            if str(nid) in visited: continue 
+            if not isinstance(node, dict): continue
+            
+            # Check if 'node' inputs from 'frontier'
+            ins = _inputs(node)
+            linked = False
+            hit_input_name = ""
+            
+            for k, v in ins.items():
+                if _is_link(v):
+                    src_id, _ = _resolve_link(v)
+                    if str(src_id) in frontier:
+                        linked = True
+                        hit_input_name = str(k).lower()
+                        break
+            
+            if linked:
+                # Found a consumer
+                target_type = _lower(_node_type(node))
+                
+                # 1. High specific roles
+                if "ipadapter" in target_type:
+                    roles.add("style/reference")
+                elif "controlnet" in target_type:
+                    roles.add("control")
+                elif "mask" in hit_input_name or "mask" in target_type:
+                    roles.add("mask")
+                
+                # 2. Video specific
+                # "first_frame" logic for AnimateDiff/Video helpers
+                elif "first" in hit_input_name or "start" in hit_input_name:
+                    roles.add("first_frame")
+                elif "last" in hit_input_name or "end" in hit_input_name:
+                    roles.add("last_frame")
+                elif "img2vid" in target_type:
+                    roles.add("source")
+
+                # 3. VAE Encode -> likely source material (I2I/I2V)
+                elif "vaeencode" in target_type:
+                    roles.add("source")
+                
+                # 4. If connected directly to sampler input (rare for images)
+                elif "sampler" in target_type:
+                     if "image" in hit_input_name or "latent" in hit_input_name:
+                         roles.add("source")
+                
+                else:
+                    # Unknown/Intermediate node (Resize, Upscale, etc.)
+                    # Add to frontier to trace what IT connects to
+                    next_frontier.add(str(nid))
+                    
+        visited.update(next_frontier)
+        frontier = next_frontier
+
+    # Priority resolution
+    if "first_frame" in roles: return "first_frame"
+    if "source" in roles: return "source"
+    if "style/reference" in roles: return "style/reference"
+    if "control" in roles: return "control"
+    if "mask" in roles: return "mask"
+    
+    return "secondary" # Default if mostly unused or just passed around
+
+
 def _extract_input_files(nodes_by_id: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
-    Extract input file references (LoadImage, LoadVideo, etc).
+    Extract input file references (LoadImage, LoadVideo, etc) with usage context.
     """
     inputs = []
     seen = set()
@@ -1136,27 +1270,40 @@ def _extract_input_files(nodes_by_id: Dict[str, Any]) -> List[Dict[str, Any]]:
             continue
             
         ntype = _lower(_node_type(node))
+        ntype_clean = ntype.replace(" ", "").replace("_", "").replace("-", "")
         
-        # Standard input nodes
-        is_image_load = "loadimage" in ntype
-        is_video_load = "loadvideo" in ntype 
+        # Standard input nodes (robust to spacing/naming variations)
+        is_image_load = "loadimage" in ntype_clean or "imageloader" in ntype_clean or "inputimage" in ntype_clean
+        is_video_load = "loadvideo" in ntype_clean or "videoloader" in ntype_clean or "inputvideo" in ntype_clean
         
+        # Also check for known specific nodes like LTX or IPAdapter that might not match above
+        if "ipadapter" in ntype_clean and "image" in ntype_clean:
+            is_image_load = True
+
         if is_image_load or is_video_load:
             ins = _inputs(node)
             
-            # 1. API Format inputs
-            filename = ins.get("image") or ins.get("video") or ins.get("filename")
+            # 1. API Format inputs (broadened search for file/path keys)
+            filename = (
+                ins.get("image") or ins.get("video") or ins.get("filename") or 
+                ins.get("file") or ins.get("media_source") or ins.get("path") or
+                ins.get("image_path") or ins.get("video_path")
+            )
             
             # 2. Workflow Format widgets_values (Heuristic)
             if not filename:
                 widgets = node.get("widgets_values")
                 if isinstance(widgets, list) and len(widgets) > 0:
-                    candidate = widgets[0]
-                    # Heuristic: Valid filenames usually have extensions or paths
-                    if isinstance(candidate, str) and (
-                        "." in candidate or "/" in candidate or "\\" in candidate
-                    ):
-                        filename = candidate
+                    # Some nodes put the file at index 0, others index 1 (like "upload" switch)
+                    # Iterate to find the first string that looks like a file path
+                    for w in widgets:
+                        if isinstance(w, str) and (
+                            "." in w or "/" in w or "\\" in w
+                        ):
+                             # Exclude simple extensions selection like "format: png"
+                             if len(w) > 4: 
+                                filename = w
+                                break
 
             if isinstance(filename, str) and filename:
                 # Deduplicate by (filename, subfolder, type)
@@ -1165,15 +1312,94 @@ def _extract_input_files(nodes_by_id: Dict[str, Any]) -> List[Dict[str, Any]]:
                 
                 if key not in seen:
                     seen.add(key)
+                    # Determine role
+                    usage = _detect_input_role(nodes_by_id, nid)
+                    
                     inputs.append({
                         "filename": filename,
                         "subfolder": subfolder,
                         "type": "video" if is_video_load else "image",
                         "node_id": nid,
-                        "folder_type": ins.get("type", "input") 
+                        "folder_type": ins.get("type", "input"),
+                        "role": usage
                     })
     
     return inputs
+
+
+def _determine_workflow_type(nodes_by_id: Dict[str, Any], sink_node_id: str, sampler_id: Optional[str]) -> str:
+    """
+    Classify: T2I, I2I, T2V, I2V, V2V
+    """
+    # 1. Output Type
+    sink = nodes_by_id.get(sink_node_id)
+    sink_type = _lower(_node_type(sink))
+    # Heuristic: VHS_VideoCombine, SaveAnimatedWEBP, SaveVideo -> V, SaveImage -> I
+    is_video_out = "video" in sink_type or "animate" in sink_type or "gif" in sink_type
+    suffix = "V" if is_video_out else "I"
+    
+    # 2. Input Type (Trace Latent Origin)
+    prefix = "T" # Default to Text
+    
+    if sampler_id:
+        sampler = nodes_by_id.get(sampler_id)
+        if isinstance(sampler, dict):
+            ins = _inputs(sampler)
+            # Standard KSampler 'latent_image', or 'samples' input
+            latent_link = ins.get("latent_image") or ins.get("samples") or ins.get("latent")
+            
+            if _is_link(latent_link):
+                 # Trace upstream to find if it comes from EmptyLatent (T2...) or VAEEncode (I2...)
+                 curr_id = _walk_passthrough(nodes_by_id, latent_link)
+                 hops = 0
+                 while curr_id and hops < 15:
+                     hops += 1
+                     node = nodes_by_id.get(curr_id)
+                     if not isinstance(node, dict): break
+                     ct = _lower(_node_type(node))
+                     
+                     if "emptylatent" in ct:
+                         prefix = "T"
+                         break
+                     if "vaeencode" in ct:
+                         # Found encoder -> I2 or V2
+                         # Check what feeds the VAE
+                         vae_ins = _inputs(node)
+                         pixel_link = vae_ins.get("pixels") or vae_ins.get("image")
+                         if _is_link(pixel_link):
+                             # Trace pixel source to see if it's "LoadVideo" or "LoadImage"
+                             pix_src_id = _walk_passthrough(nodes_by_id, pixel_link)
+                             if pix_src_id:
+                                 pix_node = nodes_by_id.get(pix_src_id)
+                                 pct = _lower(_node_type(pix_node))
+                                 if "loadvideo" in pct or "videoloader" in pct:
+                                     prefix = "V"
+                                 else:
+                                     prefix = "I"
+                             else:
+                                 prefix = "I" # Default to Image if VAE encoded and source unclear
+                         else:
+                             prefix = "I" # Default
+                         break
+                     
+                     # Input is latent directly (LoadLatent)
+                     if "loadlatent" in ct:
+                         prefix = "L" # Latent to ...?
+                         break
+                         
+                     # Pass-through logic (LatentUpscale, Duplicate, etc.)
+                     # If we hit an upscaler/refiner, we need to look at ITS input
+                     found_next = False
+                     for k in ("samples", "latent", "latent_image"):
+                         if _is_link(_inputs(node).get(k)):
+                             curr_id = _walk_passthrough(nodes_by_id, _inputs(node).get(k))
+                             found_next = True
+                             break
+                     if not found_next:
+                         # Dead end
+                         break
+                     
+    return f"{prefix}2{suffix}"
 
 
 def parse_geninfo_from_prompt(prompt_graph: Any, workflow: Any = None) -> Result[Optional[Dict[str, Any]]]:
@@ -1264,6 +1490,13 @@ def parse_geninfo_from_prompt(prompt_graph: Any, workflow: Any = None) -> Result
     guider_cfg_value: Optional[Any] = None
     guider_cfg_source: Optional[str] = None
     guider_model_link: Optional[Any] = None
+
+    # Wan/video stacks: prompts are often encoded into text embeds rather than conditioning.
+    if _is_link(ins.get("text_embeds")):
+        p, n = _extract_posneg_from_text_embeds(nodes_by_id, ins.get("text_embeds"))
+        pos_val = pos_val or p
+        neg_val = neg_val or n
+
     if _is_link(ins.get("positive")):
         items = _collect_texts_from_conditioning(nodes_by_id, ins.get("positive"), branch="positive")
         if items:
@@ -1281,12 +1514,6 @@ def parse_geninfo_from_prompt(prompt_graph: Any, workflow: Any = None) -> Result
             source = srcs[0] if len(set(srcs)) <= 1 else f"{srcs[0]} (+{len(srcs)-1})"
             if text:
                 neg_val = (text, source)
-
-    # Wan/video stacks: prompts are often encoded into text embeds rather than conditioning.
-    if (not pos_val and not neg_val) and _is_link(ins.get("text_embeds")):
-        p, n = _extract_posneg_from_text_embeds(nodes_by_id, ins.get("text_embeds"))
-        pos_val = pos_val or p
-        neg_val = neg_val or n
 
     # Flux-style guidance pipelines: conditioning is passed through a guider node.
     if advanced and _is_link(ins.get("guider")):
@@ -1331,6 +1558,12 @@ def parse_geninfo_from_prompt(prompt_graph: Any, workflow: Any = None) -> Result
             if cfg_val is not None:
                 guider_cfg_value = cfg_val
                 guider_cfg_source = f"{_node_type(guider_node)}:{guider_id}"
+            else:
+                # Flux-style: check if guidance is provided by an upstream node (e.g. FluxGuidance via conditioning)
+                cond_link = gins.get("conditioning")
+                found_guidance = _trace_guidance_value(nodes_by_id, cond_link)
+                if found_guidance:
+                    guider_cfg_value, guider_cfg_source = found_guidance
 
             # Model chain for video stacks can also originate on the guider node.
             if _is_link(gins.get("model")):
@@ -1452,11 +1685,15 @@ def parse_geninfo_from_prompt(prompt_graph: Any, workflow: Any = None) -> Result
     if sink_start_id:
         vae = _trace_vae_from_sink(nodes_by_id, sink_start_id, confidence)
 
+    # Determine Workflow Type (T2I, I2V, etc.)
+    wf_type = _determine_workflow_type(nodes_by_id, sink_id, sampler_id)
+    
     out: Dict[str, Any] = {
         "engine": {
             "parser_version": "geninfo-v1",
             "sink": str(_node_type(nodes_by_id.get(sink_id, {}))),
             "sampler_mode": sampler_mode,
+            "type": wf_type,
         },
     }
     if workflow_meta:

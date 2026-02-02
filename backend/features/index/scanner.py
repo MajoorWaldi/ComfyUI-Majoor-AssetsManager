@@ -455,7 +455,9 @@ class IndexScanner:
                     pass
 
             # Check cache skip using prefetched data
-            if incremental and existing_id and existing_mtime == mtime:
+            # Optimization: Skip processing if mtime matches, even for non-incremental scans.
+            # This prevents massive redundant DB updates when performing full directory scans.
+            if existing_id and existing_mtime == mtime:
                 # Check if we have cached metadata for this filepath and state_hash
                 cached_raw = cache_map.get((filepath, state_hash))
                 if cached_raw:

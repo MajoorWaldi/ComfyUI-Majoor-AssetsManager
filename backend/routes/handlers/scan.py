@@ -334,30 +334,39 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 fast = bool(body.get("fast") or body.get("mode") == "fast" or body.get("manifest_only") is True)
                 background_metadata = bool(body.get("background_metadata") or body.get("enrich_metadata") or body.get("enqueue_metadata"))
                 try:
-                    out_res = await asyncio.wait_for(
-                        svc['index'].scan_directory(
-                            str(Path(OUTPUT_ROOT).resolve()),
-                            recursive,
-                            incremental,
-                            "output",
-                            None,
-                            fast,
-                            background_metadata,
-                        ),
-                        timeout=TO_THREAD_TIMEOUT_S,
+                    # [OPTIMIZATION] Parallel Scan (Output + Input)
+                    # Use gather instead of sequential await
+                    out_coro = svc['index'].scan_directory(
+                        str(Path(OUTPUT_ROOT).resolve()),
+                        recursive,
+                        incremental,
+                        "output",
+                        None,
+                        fast,
+                        background_metadata,
                     )
-                    in_res = await asyncio.wait_for(
-                        svc['index'].scan_directory(
-                            str(Path(folder_paths.get_input_directory()).resolve()),
-                            recursive,
-                            incremental,
-                            "input",
-                            None,
-                            fast,
-                            background_metadata,
-                        ),
-                        timeout=TO_THREAD_TIMEOUT_S,
+                    in_coro = svc['index'].scan_directory(
+                        str(Path(folder_paths.get_input_directory()).resolve()),
+                        recursive,
+                        incremental,
+                        "input",
+                        None,
+                        fast,
+                        background_metadata,
                     )
+                    
+                    results = await asyncio.wait_for(
+                        asyncio.gather(out_coro, in_coro, return_exceptions=True),
+                        timeout=TO_THREAD_TIMEOUT_S
+                    )
+                    
+                    out_res = results[0]
+                    in_res = results[1]
+                    
+                    # Handle exceptions if any
+                    if isinstance(out_res, Exception): raise out_res
+                    if isinstance(in_res, Exception): raise in_res
+                    
                 except asyncio.TimeoutError:
                     return _json_response(Result.Err("TIMEOUT", "Scan timed out"))
                 if not out_res.ok:
@@ -595,6 +604,79 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             total_stats["updated"] += stats.get("updated", 0)
             total_stats["skipped"] += stats.get("skipped", 0)
             total_stats["errors"] += stats.get("errors", 0)
+
+        # POST-PROCESSING: Enhance metadata with frontend-provided info (e.g. generation_time_ms)
+        # We process this via a temporary table batch update to avoid N+1 queries.
+        _enhancement_map: Dict[str, Dict[str, Any]] = {}
+
+        insert_params = []
+        for item in files:
+            gen_time = item.get("generation_time_ms") or item.get("duration_ms")
+            if gen_time and isinstance(gen_time, (int, float)) and gen_time > 0:
+                fname = item.get("filename")
+                if not fname: continue
+                s_name = item.get("subfolder") or ""
+                s_src = (item.get("type") or "output").lower()
+                
+                # Check duplication in params list
+                # (Simple dedupe by tuple key)
+                key = (fname, str(s_name), s_src)
+                if key not in _enhancement_map:
+                    _enhancement_map[key] = True
+                    insert_params.append((str(fname), str(s_name), s_src, int(gen_time)))
+
+        if insert_params:
+             try:
+                 db_adapter = svc['db']
+                 
+                 async with db_adapter.atransaction():
+                     # A. Create Temp Table for Batch Processing
+                     await db_adapter.aexecute("CREATE TEMPORARY TABLE IF NOT EXISTS temp_gen_updates (filename TEXT, subfolder TEXT, source TEXT, gen_time INTEGER)")
+                     await db_adapter.aexecute("DELETE FROM temp_gen_updates")
+
+                     # B. Bulk Insert
+                     await db_adapter.aexecutemany("INSERT INTO temp_gen_updates (filename, subfolder, source, gen_time) VALUES (?, ?, ?, ?)", insert_params)
+
+                     # C. Fetch joined data in ONE query
+                     # We need existing metadata to merge safely (read-modify-write pattern required for JSON in SQLite < 3.38 json_patch, or generally for safety)
+                     q_res = await db_adapter.aquery("""
+                        SELECT a.id, am.metadata_raw, t.gen_time 
+                        FROM temp_gen_updates t
+                        JOIN assets a ON a.filename = t.filename AND a.subfolder = t.subfolder AND a.source = t.source
+                        LEFT JOIN asset_metadata am ON a.id = am.asset_id
+                     """)
+                     
+                     if q_res.ok and q_res.data:
+                         import json
+                         update_params = []
+                         
+                         for row in q_res.data:
+                             asset_id = row["id"]
+                             raw = row["metadata_raw"]
+                             new_time = row["gen_time"]
+                             
+                             current_meta = {}
+                             if raw:
+                                 try:
+                                     current_meta = json.loads(raw)
+                                 except: pass
+                            
+                             # Merge updates
+                             current_meta["generation_time_ms"] = new_time
+                             new_json = json.dumps(current_meta, ensure_ascii=False)
+                             
+                             update_params.append((new_json, asset_id))
+                         
+                         # D. Bulk Update
+                         if update_params:
+                             await db_adapter.aexecutemany("UPDATE asset_metadata SET metadata_raw = ? WHERE asset_id = ?", update_params)
+                     
+                     # Cleanup
+                     await db_adapter.aexecute("DROP TABLE IF EXISTS temp_gen_updates")
+
+             except Exception as ex:
+                 logger.debug("Failed during batch metadata enhancement: %s", ex)
+
 
         try:
             request["mjr_stats"] = {

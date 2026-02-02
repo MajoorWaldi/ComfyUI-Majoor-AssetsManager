@@ -30,6 +30,7 @@ const DEFAULT_SETTINGS = {
         showFilename: APP_DEFAULTS.GRID_SHOW_DETAILS_FILENAME,
         showDate: APP_DEFAULTS.GRID_SHOW_DETAILS_DATE,
         showDimensions: APP_DEFAULTS.GRID_SHOW_DETAILS_DIMENSIONS,
+        showGenTime: APP_DEFAULTS.GRID_SHOW_DETAILS_GENTIME,
         showWorkflowDot: APP_DEFAULTS.GRID_SHOW_WORKFLOW_DOT,
     },
     infiniteScroll: {
@@ -216,6 +217,7 @@ const applySettingsToConfig = (settings) => {
     APP_CONFIG.GRID_SHOW_DETAILS_FILENAME = !!(settings.grid?.showFilename ?? APP_DEFAULTS.GRID_SHOW_DETAILS_FILENAME);
     APP_CONFIG.GRID_SHOW_DETAILS_DATE = !!(settings.grid?.showDate ?? APP_DEFAULTS.GRID_SHOW_DETAILS_DATE);
     APP_CONFIG.GRID_SHOW_DETAILS_DIMENSIONS = !!(settings.grid?.showDimensions ?? APP_DEFAULTS.GRID_SHOW_DETAILS_DIMENSIONS);
+    APP_CONFIG.GRID_SHOW_DETAILS_GENTIME = !!(settings.grid?.showGenTime ?? APP_DEFAULTS.GRID_SHOW_DETAILS_GENTIME);
     APP_CONFIG.GRID_SHOW_WORKFLOW_DOT = !!(settings.grid?.showWorkflowDot ?? APP_DEFAULTS.GRID_SHOW_WORKFLOW_DOT);
 
     APP_CONFIG.INFINITE_SCROLL_ENABLED = !!settings.infiniteScroll?.enabled;
@@ -439,6 +441,21 @@ export const registerMajoorSettings = (app, onApplied) => {
                     saveMajoorSettings(settings);
                     applySettingsToConfig(settings);
                     notifyApplied("grid.showDimensions");
+                },
+            });
+
+            safeAddSetting({
+                id: `${SETTINGS_PREFIX}.Grid.ShowGenTime`,
+                category: cat(t("cat.display"), "Show generation time"),
+                name: "Show generation time",
+                tooltip: "Display seconds taken to generate the asset (if available)",
+                type: "boolean",
+                defaultValue: !!settings.grid?.showGenTime,
+                onChange: (value) => {
+                    settings.grid.showGenTime = !!value;
+                    saveMajoorSettings(settings);
+                    applySettingsToConfig(settings);
+                    notifyApplied("grid.showGenTime");
                 },
             });
 

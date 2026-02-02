@@ -17,6 +17,7 @@ from typing import Optional, List, Dict, Any
 from ...shared import get_logger, Result
 from ...adapters.db.sqlite import Sqlite
 from ...adapters.db.schema import table_has_column
+from ...routes.registry import PromptServer
 from ..metadata import MetadataService
 from ..geninfo.parser import parse_geninfo_from_prompt
 from .scanner import IndexScanner
@@ -100,6 +101,13 @@ class IndexService:
             background_metadata,
         )
 
+        if result.ok:
+            try:
+                # Notify frontend of scan completion
+                PromptServer.instance.send_sync("mjr-scan-complete", result.data)
+            except Exception as e:
+                logger.debug("Failed to emit scan-complete event: %s", e)
+
         # Handle background enrichment if requested
         if result.ok and fast and background_metadata:
             to_enrich = result.data.get("to_enrich", [])
@@ -134,7 +142,33 @@ class IndexService:
         Returns:
             Result with indexing statistics
         """
-        return await self._scanner.index_paths(paths, base_dir, incremental, source, root_id)
+        res = await self._scanner.index_paths(paths, base_dir, incremental, source, root_id)
+        if res.ok:
+            try:
+                # Notify frontend (useful for drag-drop staging updates)
+                PromptServer.instance.send_sync("mjr-scan-complete", res.data)
+            except Exception as e:
+                logger.debug("Failed to emit scan-complete event: %s", e)
+        return res
+
+    async def remove_file(self, filepath: str) -> Result[bool]:
+        """
+        Remove a file from the index.
+
+        Args:
+            filepath: Absolute path of the file to remove
+
+        Returns:
+            Result indicating success
+        """
+        try:
+            # ON DELETE CASCADE handles asset_metadata, scan_journal, etc.
+            res = await self.db.aexecute("DELETE FROM assets WHERE filepath = ?", (str(filepath),))
+            if res.ok:
+                logger.debug(f"Removed from index: {filepath}")
+            return Result.Ok(True)
+        except Exception as e:
+            return Result.Err("DB_ERROR", str(e))
 
     # ==================== Search Operations ====================
 
