@@ -273,6 +273,20 @@ class MetadataService:
 
         ext = os.path.splitext(file_path)[1].lower()
 
+        # 1. Native Extraction (Fast Path for Drop)
+        if kind == "image" and await self._settings.get_native_extraction_enabled():
+            try:
+                native_data = await extract_png_metadata_native(file_path)
+                # If we found workflow/prompt in native, return immediately (fastest)
+                if native_data and (native_data.get("workflow") or native_data.get("prompt")):
+                    return Result.Ok({
+                        "workflow": native_data.get("workflow"),
+                        "prompt": native_data.get("prompt"),
+                        "quality": "full"
+                    }, quality="full")
+            except Exception:
+                pass
+
         exif_start = time.perf_counter()
         exif_result = await asyncio.to_thread(self.exiftool.read, file_path)
         exif_duration = time.perf_counter() - exif_start
@@ -360,18 +374,39 @@ class MetadataService:
                 "quality": "partial" if exif_data else "none"
             })
             
-        # Ensure dimensions are present even if ExifTool missed them or didn't map them correctly
-        # We can call the native extractor cheaply here for dims.
-        try:
-             native_dims = await extract_png_metadata_native(file_path)
-             if native_dims and metadata_result.ok:
-                 data = metadata_result.data or {}
-                 if not data.get("width") and native_dims.get("width"):
-                     data["width"] = native_dims["width"]
-                 if not data.get("height") and native_dims.get("height"):
-                     data["height"] = native_dims["height"]
-        except Exception:
-             pass
+        # Optional Native Extraction (Fallback/Augmentation)
+        # Driven by 'Enable Native Extraction' setting
+        if await self._settings.get_native_extraction_enabled():
+            try:
+                native_data = await extract_png_metadata_native(file_path)
+                if native_data:
+                    # Initialize data if extraction failed or is empty
+                    if not metadata_result.ok or not metadata_result.data:
+                        metadata_result = Result.Ok({
+                            "workflow": None, 
+                            "prompt": None, 
+                            "quality": "none"
+                        })
+                    
+                    res_data = metadata_result.data or {}
+
+                    # 1. Dimensions
+                    if not res_data.get("width") and native_data.get("width"):
+                        res_data["width"] = native_data["width"]
+                    if not res_data.get("height") and native_data.get("height"):
+                        res_data["height"] = native_data["height"]
+                    
+                    # 2. Workflow/GenInfo/Prompt
+                    if not res_data.get("workflow") and native_data.get("workflow"):
+                        res_data["workflow"] = native_data["workflow"]
+                    if not res_data.get("prompt") and native_data.get("prompt"):
+                        res_data["prompt"] = native_data["prompt"]
+                    if not res_data.get("geninfo") and native_data.get("geninfo"):
+                        res_data["geninfo"] = native_data["geninfo"]
+                    
+                    metadata_result.data = res_data
+            except Exception:
+                pass
 
         if not metadata_result.ok:
             self._log_metadata_issue(
@@ -586,33 +621,29 @@ class MetadataService:
         # For PNGs, if full metadata is found, we might skip ExifTool.
         native_cache: Dict[str, Dict[str, Any]] = {}
         
-        for path in images:
-            if probe_mode == "exiftool": # Forced check
-                continue
-                
-            native_res = await extract_png_metadata_native(path) # Supports all images (dimensions) now
-            if native_res:
-                native_cache[path] = native_res
-                
-                # Decision: Is this result "complete" enough to skip ExifTool?
-                # For PNG: If we have workflow/prompt OR just dimensions, we often trust Pillow for PNGs in ComfyUI ecosystem.
-                # NOTE: Only skip ExifTool if it is actually a PNG, other formats might need ExifTool for metadata hidden in EXIF tags.
-                if path.lower().endswith(".png"):
-                     combined = {
-                         "file_info": self._get_file_info(path),
-                         "exif": None,
-                         **native_res
-                     }
-                     await self._enrich_with_geninfo_async(combined)
-                     # If we have workflow/prompt, it's definitely full. Result handles partial too.
-                     results[path] = Result.Ok(combined, quality="full")
-                     seen_exif.add(path)
+        # Check setting before running native extraction
+        if await self._settings.get_native_extraction_enabled():
+            for path in images:
+                if probe_mode == "exiftool": # Forced check
+                    continue
+                    
+                native_res = await extract_png_metadata_native(path) # Supports all images (dimensions) now
+                if native_res:
+                    native_cache[path] = native_res
+                    
+                    # NOTE: We previously skipped ExifTool if native extraction found geninfo/workflow.
+                    # However, user feedback indicates not all PNGs are created equal (e.g. some might miss text chunks but have XMP).
+                    # To ensure maximum coverage, we now ALWAYS let it fall through to ExifTool, using Native data as a fallback/augment.
+                    pass
 
         # 2. Schedule remaining files for tools
 
         for path in [*images, *videos, *audios]:
+            # NOTE: We do not check 'if path in results' here anymore for images, because we forced them to fall through.
+            # But technically 'results' is empty for images now.
             if path in results:
                 continue
+
 
             backends = pick_probe_backend(path, settings_override=probe_mode)
             if "exiftool" in backends and path not in seen_exif:
@@ -651,6 +682,35 @@ class MetadataService:
                     "prompt": None,
                     "quality": "partial" if exif_data else "none"
                 })
+            
+            # --- MERGE NATIVE EXTRACTION (Fallback/Augmentation) ---
+            native_data = native_cache.get(path)
+            if native_data:
+                # Initialize data if extraction failed or is empty
+                if not metadata_result.ok or not metadata_result.data:
+                    metadata_result = Result.Ok({
+                        "workflow": None, 
+                        "prompt": None, 
+                        "quality": "none"
+                    })
+                
+                res_data = metadata_result.data or {}
+
+                # 1. Dimensions (Native is usually reliable for PNG)
+                if not res_data.get("width") and native_data.get("width"):
+                    res_data["width"] = native_data["width"]
+                if not res_data.get("height") and native_data.get("height"):
+                    res_data["height"] = native_data["height"]
+                
+                # 2. Workflow/GenInfo (If ExifTool missed it, but Native found it)
+                if not res_data.get("workflow") and native_data.get("workflow"):
+                    res_data["workflow"] = native_data["workflow"]
+                if not res_data.get("prompt") and native_data.get("prompt"):
+                    res_data["prompt"] = native_data["prompt"]
+                if not res_data.get("geninfo") and native_data.get("geninfo"):
+                    res_data["geninfo"] = native_data["geninfo"]
+                
+                metadata_result.data = res_data
 
             if metadata_result.ok:
                 combined = {

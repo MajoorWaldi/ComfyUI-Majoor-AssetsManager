@@ -3,7 +3,7 @@
  */
 
 import { APP_CONFIG, APP_DEFAULTS } from "./config.js";
-import { getSecuritySettings, setSecuritySettings, setProbeBackendMode, resetIndex } from "../api/client.js";
+import { getSecuritySettings, setSecuritySettings, setProbeBackendMode, setNativeExtractionEnabled, resetIndex } from "../api/client.js";
 import { comfyToast } from "./toast.js";
 import { safeDispatchCustomEvent } from "../utils/events.js";
 import { t, initI18n } from "./i18n.js";
@@ -72,6 +72,7 @@ const DEFAULT_SETTINGS = {
     },
     probeBackend: {
         mode: "auto",
+        nativeExtraction: false,
     },
     ratingTagsSync: {
         enabled: true,
@@ -649,6 +650,23 @@ export const registerMajoorSettings = (app, onApplied) => {
                 applySettingsToConfig(settings);
                 notifyApplied("probeBackend.mode");
                 setProbeBackendMode(mode).catch(() => {});
+            },
+        });
+
+        safeAddSetting({
+            id: `${SETTINGS_PREFIX}.ProbeBackend.NativeExtraction`,
+            category: cat(t("cat.tools"), "Enable Native Extraction (Pillow)"),
+            name: "Use Pillow for PNGs",
+            tooltip: "Enable Python Pillow extraction for PNG metadata (Faster, but less accurate than ExifTool). Disabled by default.",
+            type: "boolean",
+            defaultValue: !!settings.probeBackend?.nativeExtraction,
+            onChange: (value) => {
+                settings.probeBackend = settings.probeBackend || {};
+                settings.probeBackend.nativeExtraction = !!value;
+                saveMajoorSettings(settings);
+                applySettingsToConfig(settings);
+                notifyApplied("probeBackend.nativeExtraction");
+                setNativeExtractionEnabled(!!value).catch(() => {});
             },
         });
 

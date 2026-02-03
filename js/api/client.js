@@ -432,6 +432,10 @@ export async function setProbeBackendMode(mode) {
     return post("/mjr/am/settings/probe-backend", { mode });
 }
 
+export async function setNativeExtractionEnabled(enabled) {
+    return post("/mjr/am/settings/native-extraction", { enabled: !!enabled });
+}
+
 export async function getSecuritySettings() {
     return get("/mjr/am/settings/security");
 }
