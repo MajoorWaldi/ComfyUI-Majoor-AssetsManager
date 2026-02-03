@@ -747,6 +747,8 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         reindex = _bool_option(("reindex",), True)
         clear_scan_journal = _bool_option(("clear_scan_journal", "clearScanJournal"), True)
         clear_metadata_cache = _bool_option(("clear_metadata_cache", "clearMetadataCache"), True)
+        clear_asset_metadata = _bool_option(("clear_asset_metadata", "clearAssetMetadata"), True)
+        clear_assets_table = _bool_option(("clear_assets", "clearAssets"), True)
         rebuild_fts_flag = _bool_option(("rebuild_fts", "rebuildFts"), True)
         incremental = _bool_option(("incremental",), False)
         fast = _bool_option(("fast",), True)
@@ -815,7 +817,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 total_deleted += int(res.data or 0)
             return Result.Ok(total_deleted)
 
-        cleared = {"scan_journal": 0, "metadata_cache": 0}
+        cleared = {"scan_journal": 0, "metadata_cache": 0, "asset_metadata": 0, "assets": 0}
         if clear_scan_journal:
             res = await _clear_table("scan_journal", cache_prefixes)
             if not res.ok:
@@ -826,6 +828,16 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             if not res.ok:
                 return _json_response(res)
             cleared["metadata_cache"] = int(res.data or 0)
+        if clear_asset_metadata:
+            res = await db.aexecute("DELETE FROM asset_metadata")
+            if not res.ok:
+                return _json_response(res)
+            cleared["asset_metadata"] = int(res.data or 0)
+        if clear_assets_table:
+            res = await db.aexecute("DELETE FROM assets")
+            if not res.ok:
+                return _json_response(res)
+            cleared["assets"] = int(res.data or 0)
 
         # FULL RESET CLEANUP: VACUUM and Physical Files
         if scope == "all" and (clear_scan_journal or clear_metadata_cache):

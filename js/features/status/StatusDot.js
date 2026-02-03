@@ -154,6 +154,8 @@ export function createStatusIndicator() {
                 reindex: true,
                 clear_scan_journal: true,
                 clear_metadata_cache: true,
+                clear_asset_metadata: true,
+                clear_assets: true,
                 rebuild_fts: true,
             });
             if (res?.ok) {

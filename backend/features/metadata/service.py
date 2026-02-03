@@ -19,7 +19,6 @@ from .extractors import (
     extract_video_metadata,
     extract_rating_tags_from_exif,
 )
-from .native_extractors import extract_png_metadata_native
 from ..geninfo.parser import parse_geninfo_from_prompt
 
 logger = get_logger(__name__)
@@ -273,20 +272,6 @@ class MetadataService:
 
         ext = os.path.splitext(file_path)[1].lower()
 
-        # 1. Native Extraction (Fast Path for Drop)
-        if kind == "image" and await self._settings.get_native_extraction_enabled():
-            try:
-                native_data = await extract_png_metadata_native(file_path)
-                # If we found workflow/prompt in native, return immediately (fastest)
-                if native_data and (native_data.get("workflow") or native_data.get("prompt")):
-                    return Result.Ok({
-                        "workflow": native_data.get("workflow"),
-                        "prompt": native_data.get("prompt"),
-                        "quality": "full"
-                    }, quality="full")
-            except Exception:
-                pass
-
         exif_start = time.perf_counter()
         exif_result = await asyncio.to_thread(self.exiftool.read, file_path)
         exif_duration = time.perf_counter() - exif_start
@@ -374,40 +359,6 @@ class MetadataService:
                 "quality": "partial" if exif_data else "none"
             })
             
-        # Optional Native Extraction (Fallback/Augmentation)
-        # Driven by 'Enable Native Extraction' setting
-        if await self._settings.get_native_extraction_enabled():
-            try:
-                native_data = await extract_png_metadata_native(file_path)
-                if native_data:
-                    # Initialize data if extraction failed or is empty
-                    if not metadata_result.ok or not metadata_result.data:
-                        metadata_result = Result.Ok({
-                            "workflow": None, 
-                            "prompt": None, 
-                            "quality": "none"
-                        })
-                    
-                    res_data = metadata_result.data or {}
-
-                    # 1. Dimensions
-                    if not res_data.get("width") and native_data.get("width"):
-                        res_data["width"] = native_data["width"]
-                    if not res_data.get("height") and native_data.get("height"):
-                        res_data["height"] = native_data["height"]
-                    
-                    # 2. Workflow/GenInfo/Prompt
-                    if not res_data.get("workflow") and native_data.get("workflow"):
-                        res_data["workflow"] = native_data["workflow"]
-                    if not res_data.get("prompt") and native_data.get("prompt"):
-                        res_data["prompt"] = native_data["prompt"]
-                    if not res_data.get("geninfo") and native_data.get("geninfo"):
-                        res_data["geninfo"] = native_data["geninfo"]
-                    
-                    metadata_result.data = res_data
-            except Exception:
-                pass
-
         if not metadata_result.ok:
             self._log_metadata_issue(
                 logging.WARNING,
@@ -616,26 +567,6 @@ class MetadataService:
         seen_exif = set()
         seen_ffprobe = set()
 
-        # 1. Optimistic native extraction
-        # Try for all images to get dimensions at minimum.
-        # For PNGs, if full metadata is found, we might skip ExifTool.
-        native_cache: Dict[str, Dict[str, Any]] = {}
-        
-        # Check setting before running native extraction
-        if await self._settings.get_native_extraction_enabled():
-            for path in images:
-                if probe_mode == "exiftool": # Forced check
-                    continue
-                    
-                native_res = await extract_png_metadata_native(path) # Supports all images (dimensions) now
-                if native_res:
-                    native_cache[path] = native_res
-                    
-                    # NOTE: We previously skipped ExifTool if native extraction found geninfo/workflow.
-                    # However, user feedback indicates not all PNGs are created equal (e.g. some might miss text chunks but have XMP).
-                    # To ensure maximum coverage, we now ALWAYS let it fall through to ExifTool, using Native data as a fallback/augment.
-                    pass
-
         # 2. Schedule remaining files for tools
 
         for path in [*images, *videos, *audios]:
@@ -683,35 +614,6 @@ class MetadataService:
                     "quality": "partial" if exif_data else "none"
                 })
             
-            # --- MERGE NATIVE EXTRACTION (Fallback/Augmentation) ---
-            native_data = native_cache.get(path)
-            if native_data:
-                # Initialize data if extraction failed or is empty
-                if not metadata_result.ok or not metadata_result.data:
-                    metadata_result = Result.Ok({
-                        "workflow": None, 
-                        "prompt": None, 
-                        "quality": "none"
-                    })
-                
-                res_data = metadata_result.data or {}
-
-                # 1. Dimensions (Native is usually reliable for PNG)
-                if not res_data.get("width") and native_data.get("width"):
-                    res_data["width"] = native_data["width"]
-                if not res_data.get("height") and native_data.get("height"):
-                    res_data["height"] = native_data["height"]
-                
-                # 2. Workflow/GenInfo (If ExifTool missed it, but Native found it)
-                if not res_data.get("workflow") and native_data.get("workflow"):
-                    res_data["workflow"] = native_data["workflow"]
-                if not res_data.get("prompt") and native_data.get("prompt"):
-                    res_data["prompt"] = native_data["prompt"]
-                if not res_data.get("geninfo") and native_data.get("geninfo"):
-                    res_data["geninfo"] = native_data["geninfo"]
-                
-                metadata_result.data = res_data
-
             if metadata_result.ok:
                 combined = {
                     "file_info": self._get_file_info(path),

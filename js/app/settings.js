@@ -3,7 +3,7 @@
  */
 
 import { APP_CONFIG, APP_DEFAULTS } from "./config.js";
-import { getSecuritySettings, setSecuritySettings, setProbeBackendMode, setNativeExtractionEnabled, resetIndex } from "../api/client.js";
+import { getSecuritySettings, setSecuritySettings, setProbeBackendMode, resetIndex } from "../api/client.js";
 import { comfyToast } from "./toast.js";
 import { safeDispatchCustomEvent } from "../utils/events.js";
 import { t, initI18n } from "./i18n.js";
@@ -72,7 +72,6 @@ const DEFAULT_SETTINGS = {
     },
     probeBackend: {
         mode: "auto",
-        nativeExtraction: false,
     },
     ratingTagsSync: {
         enabled: true,
@@ -270,6 +269,41 @@ export const registerMajoorSettings = (app, onApplied) => {
     initI18n(app);
     const settings = loadMajoorSettings();
     applySettingsToConfig(settings);
+    void syncBackendSecuritySettings();
+
+    let notifyTimer = null;
+    const pendingKeys = new Set();
+    const flushNotify = () => {
+        notifyTimer = null;
+        if (!pendingKeys.size) return;
+        const keys = Array.from(pendingKeys);
+        pendingKeys.clear();
+        for (const pendingKey of keys) {
+            safeDispatchCustomEvent("mjr-settings-changed", { key: pendingKey }, { warnPrefix: "[Majoor]" });
+        }
+    };
+    const scheduleNotify = (key) => {
+        if (typeof key === "string") pendingKeys.add(key);
+        if (notifyTimer) return;
+        notifyTimer = setTimeout(flushNotify, 120);
+    };
+
+    const refreshFromStorage = () => {
+        const latest = loadMajoorSettings();
+        Object.assign(settings, latest);
+        applySettingsToConfig(settings);
+        scheduleNotify("storage");
+    };
+
+    const storageListener = (event) => {
+        if (!event || event.key !== SETTINGS_KEY) return;
+        if (event.newValue === event.oldValue) return;
+        refreshFromStorage();
+    };
+
+    try {
+        window.addEventListener("storage", storageListener);
+    } catch {}
 
     const tryRegister = () => {
         const settingsApi = app?.ui?.settings;
@@ -302,10 +336,11 @@ export const registerMajoorSettings = (app, onApplied) => {
             if (typeof onApplied === "function") {
                 onApplied(settings, key);
             }
-            safeDispatchCustomEvent("mjr-settings-changed", { key }, { warnPrefix: "[Majoor]" });
+            scheduleNotify(key);
         };
 
         const cat = (section, label) => [SETTINGS_CATEGORY, section, label];
+        const cardCat = (label) => [SETTINGS_CATEGORY, "Cards", label];
 
         safeAddSetting({
             id: `${SETTINGS_PREFIX}.Grid.MinSize`,
@@ -339,9 +374,9 @@ export const registerMajoorSettings = (app, onApplied) => {
             },
         });
 
-        safeAddSetting({
-            id: `${SETTINGS_PREFIX}.Grid.ShowExtBadge`,
-            category: cat(t("cat.display"), "Show format/extension badges"),
+          safeAddSetting({
+              id: `${SETTINGS_PREFIX}.Grid.ShowExtBadge`,
+              category: cardCat("Show format badges"),
             name: "Show format badges",
             tooltip: "Display format badges (e.g. JPG, MP4) on thumbnails",
             type: "boolean",
@@ -354,9 +389,9 @@ export const registerMajoorSettings = (app, onApplied) => {
             },
         });
 
-        safeAddSetting({
-            id: `${SETTINGS_PREFIX}.Grid.ShowRatingBadge`,
-            category: cat(t("cat.display"), "Show rating badges"),
+          safeAddSetting({
+              id: `${SETTINGS_PREFIX}.Grid.ShowRatingBadge`,
+              category: cardCat("Show rating badges"),
             name: "Show ratings",
             tooltip: "Display star ratings on thumbnails",
             type: "boolean",
@@ -369,9 +404,9 @@ export const registerMajoorSettings = (app, onApplied) => {
             },
         });
 
-        safeAddSetting({
-            id: `${SETTINGS_PREFIX}.Grid.ShowTagsBadge`,
-            category: cat(t("cat.display"), "Show tags badges"),
+          safeAddSetting({
+              id: `${SETTINGS_PREFIX}.Grid.ShowTagsBadge`,
+              category: cardCat("Show tags badges"),
             name: "Show tags",
             tooltip: "Display a small indicator if an asset has tags",
             type: "boolean",
@@ -386,7 +421,7 @@ export const registerMajoorSettings = (app, onApplied) => {
 
         safeAddSetting({
             id: `${SETTINGS_PREFIX}.Grid.ShowDetails`,
-            category: cat(t("cat.display"), "Show card details"),
+            category: cardCat("Show card details"),
             name: "Show metadata panel",
             tooltip: "Show the bottom details panel on asset cards (filename, date, etc.)",
             type: "boolean",
@@ -400,9 +435,9 @@ export const registerMajoorSettings = (app, onApplied) => {
         });
 
         if (settings.grid?.showDetails !== false) {
-             safeAddSetting({
-                id: `${SETTINGS_PREFIX}.Grid.ShowFilename`,
-                category: cat(t("cat.display"), "Show filename"),
+                safeAddSetting({
+                    id: `${SETTINGS_PREFIX}.Grid.ShowFilename`,
+                    category: cardCat("Show filename"),
                 name: "Show filename",
                 tooltip: "Display filename in details panel",
                 type: "boolean",
@@ -415,9 +450,9 @@ export const registerMajoorSettings = (app, onApplied) => {
                 },
             });
 
-            safeAddSetting({
-                id: `${SETTINGS_PREFIX}.Grid.ShowDate`,
-                category: cat(t("cat.display"), "Show date"),
+                safeAddSetting({
+                    id: `${SETTINGS_PREFIX}.Grid.ShowDate`,
+                    category: cardCat("Show date/time"),
                 name: "Show date/time",
                 tooltip: "Display date and time in details panel",
                 type: "boolean",
@@ -430,9 +465,9 @@ export const registerMajoorSettings = (app, onApplied) => {
                 },
             });
 
-            safeAddSetting({
-                id: `${SETTINGS_PREFIX}.Grid.ShowDimensions`,
-                category: cat(t("cat.display"), "Show dimensions"),
+                safeAddSetting({
+                    id: `${SETTINGS_PREFIX}.Grid.ShowDimensions`,
+                    category: cardCat("Show dimensions"),
                 name: "Show dimensions",
                 tooltip: "Display resolution (WxH) in details panel",
                 type: "boolean",
@@ -445,9 +480,9 @@ export const registerMajoorSettings = (app, onApplied) => {
                 },
             });
 
-            safeAddSetting({
-                id: `${SETTINGS_PREFIX}.Grid.ShowGenTime`,
-                category: cat(t("cat.display"), "Show generation time"),
+                safeAddSetting({
+                    id: `${SETTINGS_PREFIX}.Grid.ShowGenTime`,
+                    category: cardCat("Show generation time"),
                 name: "Show generation time",
                 tooltip: "Display seconds taken to generate the asset (if available)",
                 type: "boolean",
@@ -462,7 +497,7 @@ export const registerMajoorSettings = (app, onApplied) => {
 
             safeAddSetting({
                 id: `${SETTINGS_PREFIX}.Grid.ShowWorkflowDot`,
-                category: cat(t("cat.display"), "Show workflow dot"),
+                category: cardCat("Show workflow dot"),
                 name: "Show workflow indicator",
                 tooltip: "Display the green dot indicating workflow metadata availability (bottom right of card)",
                 type: "boolean",
@@ -475,6 +510,37 @@ export const registerMajoorSettings = (app, onApplied) => {
                 },
             });
         }
+
+        let thumbSizeTimer = null;
+        let thumbSizePending = null;
+        const commitThumbSize = () => {
+            thumbSizeTimer = null;
+            if (thumbSizePending == null) return;
+            const sanitized = Math.max(80, Math.min(400, Math.round(Number(thumbSizePending) || DEFAULT_SETTINGS.grid.minSize)));
+            settings.grid.minSize = sanitized;
+            saveMajoorSettings(settings);
+            applySettingsToConfig(settings);
+            notifyApplied("grid.thumbSize");
+            thumbSizePending = null;
+        };
+        const scheduleThumbSizeUpdate = (value) => {
+            thumbSizePending = value;
+            if (thumbSizeTimer) return;
+            thumbSizeTimer = setTimeout(commitThumbSize, 160);
+        };
+
+        safeAddSetting({
+            id: `${SETTINGS_PREFIX}.Cards.ThumbSize`,
+            category: cardCat("Thumbnail width"),
+            name: "Thumbnail width",
+            tooltip: "Set the approximate width of each thumbnail. Higher values show fewer cards per row.",
+            type: "slider",
+            defaultValue: settings.grid.minSize,
+            attrs: { min: 80, max: 400, step: 10 },
+            onChange: (value) => {
+                scheduleThumbSizeUpdate(value);
+            },
+        });
 
         safeAddSetting({
             id: `${SETTINGS_PREFIX}.Sidebar.Position`,
@@ -653,23 +719,6 @@ export const registerMajoorSettings = (app, onApplied) => {
             },
         });
 
-        safeAddSetting({
-            id: `${SETTINGS_PREFIX}.ProbeBackend.NativeExtraction`,
-            category: cat(t("cat.tools"), "Enable Native Extraction (Pillow)"),
-            name: "Use Pillow for PNGs",
-            tooltip: "Enable Python Pillow extraction for PNG metadata (Faster, but less accurate than ExifTool). Disabled by default.",
-            type: "boolean",
-            defaultValue: !!settings.probeBackend?.nativeExtraction,
-            onChange: (value) => {
-                settings.probeBackend = settings.probeBackend || {};
-                settings.probeBackend.nativeExtraction = !!value;
-                saveMajoorSettings(settings);
-                applySettingsToConfig(settings);
-                notifyApplied("probeBackend.nativeExtraction");
-                setNativeExtractionEnabled(!!value).catch(() => {});
-            },
-        });
-
         const registerMinimapToggle = (idKey, stateKey, nameKey, descKey) => {
             safeAddSetting({
                 id: `${SETTINGS_PREFIX}.WorkflowMinimap.${idKey}`,
@@ -732,6 +781,8 @@ export const registerMajoorSettings = (app, onApplied) => {
         registerSecurityToggle("allowOpenInFolder", "setting.sec.open.name", "setting.sec.open.desc");
         registerSecurityToggle("allowResetIndex", "setting.sec.reset.name", "setting.sec.reset.desc");
 
+        let resetIndexInitialized = false;
+
         safeAddSetting({
             id: `${SETTINGS_PREFIX}.Maintenance.ResetIndexRun`,
             category: cat("Maintenance", "Reset Index Now"),
@@ -740,7 +791,11 @@ export const registerMajoorSettings = (app, onApplied) => {
             type: "boolean",
             defaultValue: false,
             onChange: async (value) => {
-                if (!value) return; 
+                if (!resetIndexInitialized) {
+                    resetIndexInitialized = true;
+                    if (!value) return;
+                }
+                if (!value) return;
 
                 // Hack to ensure this setting is never persisted as true
                 // We use localStorage directly to revert it because ComfyUI saves settings automatically.
