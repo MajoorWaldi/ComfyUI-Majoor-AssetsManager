@@ -46,6 +46,25 @@ export function cleanupVideoThumbsIn(rootEl) {
     } catch {}
 }
 
+export function cleanupCardMediaHandlers(rootEl) {
+    try {
+        if (!rootEl) return;
+        const imgs = rootEl?.querySelectorAll?.("img.mjr-thumb-media") || [];
+        for (const img of imgs) {
+            try {
+                img.onerror = null;
+                img.onload = null;
+            } catch {}
+        }
+        const vids = rootEl?.querySelectorAll?.("video.mjr-thumb-media") || [];
+        for (const video of vids) {
+            try {
+                video.onerror = null;
+            } catch {}
+        }
+    } catch {}
+}
+
 const getVideoThumbManager = () => {
     try {
         if (window?.[VIDEO_THUMBS_KEY]) return window[VIDEO_THUMBS_KEY];
@@ -401,14 +420,6 @@ export function createAssetCard(asset) {
     card.setAttribute("aria-label", `Asset ${asset?.filename || ""}`);
     card.setAttribute("aria-selected", "false");
     
-    // Accessibility: Keyboard navigation support
-    card.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            card.click();
-        }
-    });
-
     if (asset?.id != null) {
         try {
             card.dataset.mjrAssetId = String(asset.id);
@@ -523,7 +534,9 @@ export function createAssetCard(asset) {
     // Generation Time (EXPERIMENTAL)
     // Needs custom node to populate 'generation_time_ms' in metadata
     // or parse it from prompt parameters if 'Time: 12.5s' is present
-    const genTimeMs = asset.metadata?.generation_time_ms; 
+    const rawGenTime =
+        asset.metadata?.generation_time_ms ?? asset.generation_time_ms ?? asset.metadata?.generation_time ?? 0;
+    const genTimeMs = Number.isFinite(Number(rawGenTime)) ? Number(rawGenTime) : 0;
     // Fallback: Check if we have prompt params with time
     // For now we only render if explicitly set in metadata to avoid confusing video duration with gen time
     if (genTimeMs && genTimeMs > 0) {

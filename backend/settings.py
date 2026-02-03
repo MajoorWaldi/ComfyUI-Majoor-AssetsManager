@@ -15,7 +15,6 @@ from .utils import env_bool, parse_bool
 logger = get_logger(__name__)
 
 _PROBE_BACKEND_KEY = "media_probe_backend"
-_NATIVE_EXTRACTION_KEY = "native_extraction_enabled"
 _SETTINGS_VERSION_KEY = "__settings_version"
 _VALID_PROBE_MODES = {"auto", "exiftool", "ffprobe", "both"}
 _SECURITY_PREFS_INFO: Mapping[str, dict[str, bool | str]] = {
@@ -184,44 +183,3 @@ class AppSettings:
                 return Result.Ok(normalized)
             return Result.Err("DB_ERROR", result.error or "Failed to persist probe backend")
 
-    async def get_native_extraction_enabled(self) -> bool:
-        """Return whether native extraction (Pillow) is enabled."""
-        async with self._lock:
-            current_version = await self._get_settings_version()
-            cached = self._cache.get(_NATIVE_EXTRACTION_KEY)
-            if cached is not None:
-                try:
-                    ts = float(self._cache_at.get(_NATIVE_EXTRACTION_KEY) or 0.0)
-                except Exception:
-                    ts = 0.0
-                cached_ver = int(self._cache_version.get(_NATIVE_EXTRACTION_KEY) or 0)
-                if cached_ver == int(current_version or 0) and ts and (time.monotonic() - ts) < self._cache_ttl_s:
-                    return parse_bool(cached, False)
-            
-            # Default is False (disabled by default as requested)
-            val = await self._read_setting(_NATIVE_EXTRACTION_KEY)
-            is_enabled = parse_bool(val, False)
-        
-            self._cache[_NATIVE_EXTRACTION_KEY] = str(is_enabled).lower()
-            self._cache_at[_NATIVE_EXTRACTION_KEY] = time.monotonic()
-            self._cache_version[_NATIVE_EXTRACTION_KEY] = int(current_version or 0)
-            return is_enabled
-
-    async def set_native_extraction_enabled(self, enabled: bool) -> Result[bool]:
-        """Persist the native extraction setting and bump the settings version."""
-        val = "true" if enabled else "false"
-        async with self._lock:
-            result = await self._write_setting(_NATIVE_EXTRACTION_KEY, val)
-            if result.ok:
-                bump = await self._bump_settings_version_locked()
-                if not bump.ok:
-                    try:
-                        logger.warning("Failed to bump settings version: %s", bump.error)
-                    except Exception:
-                        pass
-                self._cache[_NATIVE_EXTRACTION_KEY] = val
-                self._cache_at[_NATIVE_EXTRACTION_KEY] = time.monotonic()
-                self._cache_version[_NATIVE_EXTRACTION_KEY] = int(bump.data or await self._get_settings_version() or 0)
-                logger.info("Native extraction set to %s", val)
-                return Result.Ok(enabled)
-            return Result.Err("DB_ERROR", result.error or "Failed to persist native extraction setting")

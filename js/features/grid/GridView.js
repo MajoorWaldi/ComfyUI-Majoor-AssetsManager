@@ -4,7 +4,7 @@
 
 import { get, hydrateAssetRatingTags } from "../../api/client.js";
 import { buildListURL } from "../../api/endpoints.js";
-import { createAssetCard, cleanupVideoThumbsIn } from "../../components/Card.js";
+import { createAssetCard, cleanupVideoThumbsIn, cleanupCardMediaHandlers } from "../../components/Card.js";
 import { createRatingBadge, createTagsBadge, setFileBadgeCollision } from "../../components/Badges.js";
 import { APP_CONFIG } from "../../app/config.js";
 import { getViewerInstance } from "../../components/Viewer.js";
@@ -304,14 +304,14 @@ function _updateGridSettingsClasses(container) {
             .mjr-grid .mjr-meta-gentime { display: none; }
             .mjr-grid.mjr-show-gentime .mjr-meta-gentime { display: inline; }
 
-            .mjr-grid .mjr-badge-ext { display: none; }
-            .mjr-grid.mjr-show-badges-ext .mjr-badge-ext { display: flex; }
+            .mjr-grid .mjr-badge-ext { display: none !important; }
+            .mjr-grid.mjr-show-badges-ext .mjr-badge-ext { display: flex !important; }
 
-            .mjr-grid .mjr-badge-rating { display: none; }
-            .mjr-grid.mjr-show-badges-rating .mjr-badge-rating { display: flex; }
+            .mjr-grid .mjr-badge-rating { display: none !important; }
+            .mjr-grid.mjr-show-badges-rating .mjr-badge-rating { display: flex !important; }
 
-            .mjr-grid .mjr-badge-tags { display: none; }
-            .mjr-grid.mjr-show-badges-tags .mjr-badge-tags { display: flex; }
+            .mjr-grid .mjr-badge-tags { display: none !important; }
+            .mjr-grid.mjr-show-badges-tags .mjr-badge-tags { display: flex !important; }
             
             /* Info container management */
             /* Default to hidden to prevent flash or "black box" if js is slow */
@@ -455,6 +455,46 @@ function hideLoadingOverlay(gridContainer) {
         if (gridContainer.style.minHeight === "160px") {
             gridContainer.style.minHeight = "";
         }
+    } catch {}
+}
+
+const GRID_MESSAGE_CLASS = "mjr-grid-message";
+
+function clearGridMessage(gridContainer) {
+    if (!gridContainer) return;
+    try {
+        const existing = gridContainer.querySelectorAll?.(`.${GRID_MESSAGE_CLASS}`) || [];
+        for (const el of existing) {
+            try {
+                el.remove();
+            } catch {}
+        }
+    } catch {}
+}
+
+function setGridMessage(gridContainer, text, { error = false } = {}) {
+    if (!gridContainer) return;
+    clearGridMessage(gridContainer);
+    try {
+        const msg = document.createElement("div");
+        msg.className = GRID_MESSAGE_CLASS;
+        msg.textContent = String(text || "");
+        msg.style.cssText = `
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 16px;
+            pointer-events: none;
+            font-size: 14px;
+            line-height: 1.4;
+            color: ${error ? "var(--error-text, #f44336)" : "var(--muted-text, #bdbdbd)"};
+            background: rgba(0, 0, 0, 0.35);
+            z-index: 2;
+        `;
+        gridContainer.appendChild(msg);
     } catch {}
 }
 
@@ -658,13 +698,31 @@ function ensureVirtualGrid(gridContainer, state) {
                 }
             } catch {}
             
-            // Cleanup video thumbs
-            try {
-                 // Use the exported cleanup if available or implement inline
-                 cleanupVideoThumbsIn(card);
-            } catch {}
+              // Cleanup video thumbs
+              try {
+                   // Use the exported cleanup if available or implement inline
+                   cleanupVideoThumbsIn(card);
+              } catch {}
+              try {
+                   cleanupCardMediaHandlers(card);
+              } catch {}
         }
     });
+
+    if (!state._cardKeydownHandler) {
+        const handler = (event) => {
+            try {
+                if (!event?.key) return;
+                if (event.key !== "Enter" && event.key !== " ") return;
+                const card = event.target?.closest?.(".mjr-asset-card");
+                if (!card) return;
+                event.preventDefault();
+                card.click();
+            } catch {}
+        };
+        state._cardKeydownHandler = handler;
+        gridContainer.addEventListener("keydown", handler, true);
+    }
     
     return state.virtualGrid;
 }
@@ -772,6 +830,8 @@ function appendAssets(gridContainer, assets, state) {
     const nonImageStems = state.nonImageStems || new Set();
     state.nonImageStems = nonImageStems;
 
+    clearGridMessage(gridContainer);
+
     // Use VirtualGrid
     const vg = ensureVirtualGrid(gridContainer, state);
     if (!vg) return 0;
@@ -781,6 +841,18 @@ function appendAssets(gridContainer, assets, state) {
 
     const stemMap = state.stemMap || new Map();
     state.stemMap = stemMap;
+    
+    const filenameToAssets = new Map();
+    for (const existing of state.assets || []) {
+        const key = _getFilenameKey(existing?.filename);
+        if (!key) continue;
+        let list = filenameToAssets.get(key);
+        if (!list) {
+            list = [];
+            filenameToAssets.set(key, list);
+        }
+        list.push(existing);
+    }
     
     // [ISSUE 3] Memory protection: Page Eviction
     // Prevent unchecked growth of assets array and seenKeys
@@ -804,6 +876,42 @@ function appendAssets(gridContainer, assets, state) {
     
     // [OPTIMIZATION] Single pass removal for PNG siblings
     const assetsToRemoveFromState = new Set();
+
+    const applyFilenameCollisions = () => {
+        try {
+            for (const [key, bucket] of filenameToAssets.entries()) {
+                const count = bucket.length;
+                filenameCounts.set(key, count);
+                if (count < 2) {
+                    for (const asset of bucket) {
+                        asset._mjrNameCollision = false;
+                        delete asset._mjrNameCollisionCount;
+                    }
+                    const renderedList = state.renderedFilenameMap.get(key);
+                    if (renderedList) {
+                        for (const card of renderedList) {
+                            const badge = card.querySelector?.(".mjr-file-badge");
+                            setFileBadgeCollision(badge, false);
+                        }
+                    }
+                    continue;
+                }
+                for (const asset of bucket) {
+                    asset._mjrNameCollision = true;
+                    asset._mjrNameCollisionCount = count;
+                }
+                const renderedList = state.renderedFilenameMap.get(key);
+                if (renderedList) {
+                    for (const card of renderedList) {
+                        const badge = card.querySelector?.(".mjr-file-badge");
+                        setFileBadgeCollision(badge, true);
+                        const asset = card._mjrAsset;
+                        _setCollisionTooltip(card, asset?.filename, count);
+                    }
+                }
+            }
+        } catch {}
+    };
     
     // Pre-pass: Identify new non-image stems in this batch to handle same-batch pairs
     if (hidePngSiblings) {
@@ -849,33 +957,12 @@ function appendAssets(gridContainer, assets, state) {
         // Name Collisions Logic
         const fnKey = _getFilenameKey(filename);
         if (fnKey) {
-            const prev = Number(filenameCounts.get(fnKey) || 0) || 0;
-            const next = prev + 1;
-            filenameCounts.set(fnKey, next);
-            
-            if (next >= 2) {
-                 asset._mjrNameCollision = true;
-                 asset._mjrNameCollisionCount = next;
-                 
-                 // Update other assets in state (data)
-                 for (const a of state.assets) {
-                     if (_getFilenameKey(a.filename) === fnKey) {
-                         a._mjrNameCollision = true;
-                         a._mjrNameCollisionCount = next;
-                     }
-                 }
-                 
-                 // Update rendered items (view)
-                 const renderedList = state.renderedFilenameMap.get(fnKey);
-                 if (renderedList) {
-                     for (const c of renderedList) {
-                         const badge = c.querySelector?.(".mjr-file-badge");
-                         setFileBadgeCollision(badge, true);
-                         const a = c._mjrAsset;
-                         _setCollisionTooltip(c, a?.filename, next);
-                     }
-                 }
+            let bucket = filenameToAssets.get(fnKey);
+            if (!bucket) {
+                bucket = [];
+                filenameToAssets.set(fnKey, bucket);
             }
+            bucket.push(asset);
         }
         
         const key = assetKey(asset);
@@ -903,6 +990,17 @@ function appendAssets(gridContainer, assets, state) {
         state.hiddenPngSiblings += assetsToRemoveFromState.size;
         // Single pass removal
         state.assets = state.assets.filter(a => !assetsToRemoveFromState.has(a));
+        try {
+            for (const removed of assetsToRemoveFromState) {
+                const key = _getFilenameKey(removed?.filename);
+                if (!key) continue;
+                const bucket = filenameToAssets.get(key);
+                if (!bucket) continue;
+                const idx = bucket.indexOf(removed);
+                if (idx > -1) bucket.splice(idx, 1);
+                if (!bucket.length) filenameToAssets.delete(key);
+            }
+        } catch {}
         needsUpdate = true;
     }
 
@@ -912,6 +1010,7 @@ function appendAssets(gridContainer, assets, state) {
     }
 
     if (needsUpdate) {
+        applyFilenameCollisions();
         // Update the virtual grid
         vg.setItems(state.assets);
         
@@ -1359,17 +1458,13 @@ export async function loadAssets(gridContainer, query = "*", options = {}) {
             hideLoadingOverlay(gridContainer);
             // Check if items present in state, not just DOM (logic shift)
             const hasItems = state.assets && state.assets.length > 0;
-            if (!hasItems && state.offset === 0) {
-                // Manually clear to show message
-                if (state.virtualGrid) state.virtualGrid.setItems([]);
-                gridContainer.innerHTML = ""; 
-                const p = document.createElement("p");
-                p.className = "mjr-muted";
-                p.textContent = "No assets found";
-                gridContainer.appendChild(p);
-            } else {
-                startInfiniteScroll(gridContainer, state);
-            }
+              if (!hasItems && state.offset === 0) {
+                  // Manually clear to show message
+                  if (state.virtualGrid) state.virtualGrid.setItems([]);
+                  setGridMessage(gridContainer, "No assets found");
+              } else {
+                  startInfiniteScroll(gridContainer, state);
+              }
         }
         return { ok: true, count: state.offset, total: state.total || 0 };
     } catch (err) {
@@ -1380,12 +1475,8 @@ export async function loadAssets(gridContainer, query = "*", options = {}) {
         } catch {}
         stopObserver(state);
         if (reset) hideLoadingOverlay(gridContainer);
-        gridContainer.innerHTML = "";
-        const p = document.createElement("p");
-        p.className = "mjr-muted";
-        p.style.color = "var(--error-text, #f44336)";
-        p.textContent = `Failed to load assets: ${err?.message || err}`;
-        gridContainer.appendChild(p);
+        clearGridMessage(gridContainer);
+        setGridMessage(gridContainer, `Failed to load assets: ${err?.message || err}`, { error: true });
         return { ok: false, error: err?.message || String(err) };
     } finally {
         if (reset) hideLoadingOverlay(gridContainer);
@@ -1444,26 +1535,18 @@ export async function loadAssetsFromList(gridContainer, assets, options = {}) {
         if (reset) {
             hideLoadingOverlay(gridContainer);
             const hasItems = state.assets && state.assets.length > 0;
-            if (!hasItems) {
-                if (state.virtualGrid) state.virtualGrid.setItems([]);
-                gridContainer.innerHTML = "";
-                const p = document.createElement("p");
-                p.className = "mjr-muted";
-                p.textContent = "No assets found";
-                gridContainer.appendChild(p);
-            }
+              if (!hasItems) {
+                  if (state.virtualGrid) state.virtualGrid.setItems([]);
+                  setGridMessage(gridContainer, "No assets found");
+              }
         }
 
         return { ok: true, count: sorted.length, total: sorted.length };
     } catch (err) {
         stopObserver(state);
         if (reset) hideLoadingOverlay(gridContainer);
-        gridContainer.innerHTML = "";
-        const p = document.createElement("p");
-        p.className = "mjr-muted";
-        p.style.color = "var(--error-text, #f44336)";
-        p.textContent = `Failed to load collection: ${err?.message || err}`;
-        gridContainer.appendChild(p);
+        clearGridMessage(gridContainer);
+        setGridMessage(gridContainer, `Failed to load collection: ${err?.message || err}`, { error: true });
         return { ok: false, error: err?.message || String(err) };
     } finally {
         if (reset) hideLoadingOverlay(gridContainer);
@@ -1481,6 +1564,13 @@ export function disposeGrid(gridContainer) {
             state.virtualGrid.dispose();
         } catch {}
         state.virtualGrid = null;
+    }
+
+    if (state._cardKeydownHandler) {
+        try {
+            gridContainer.removeEventListener("keydown", state._cardKeydownHandler, true);
+        } catch {}
+        state._cardKeydownHandler = null;
     }
 
     try {
@@ -1731,24 +1821,21 @@ export function refreshGrid(gridContainer) {
 /**
  * Clear grid placeholder
  */
-export function clearGrid(gridContainer) {
-    try {
-        const state = GRID_STATE.get(gridContainer);
-        if (state) {
-            stopObserver(state);
-            state.offset = 0;
-            state.total = null;
-            state.done = false;
-            state.loading = false;
-            state.seenKeys = new Set();
-        }
-    } catch {}
-    gridContainer.innerHTML = "";
-    const p = document.createElement("p");
-    p.className = "mjr-muted";
-    p.textContent = "Type to search or wait for the scan to finish";
-    gridContainer.appendChild(p);
-}
+  export function clearGrid(gridContainer) {
+      try {
+          const state = GRID_STATE.get(gridContainer);
+          if (state) {
+              stopObserver(state);
+              state.offset = 0;
+              state.total = null;
+              state.done = false;
+              state.loading = false;
+              state.seenKeys = new Set();
+          }
+      } catch {}
+      clearGridMessage(gridContainer);
+      setGridMessage(gridContainer, "Type to search or wait for the scan to finish");
+  }
 
 // [ISSUE 1] Real-time Refresh Implementation
 // Listens for the event dispatched by entry.js (relayed from backend)

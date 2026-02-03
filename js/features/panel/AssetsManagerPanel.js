@@ -278,9 +278,12 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         }
     });
 
-    Object.values(tabButtons).forEach((btn) => {
-        btn.addEventListener("click", () => scopeController.setScope(btn.dataset.scope));
-    });
+    if (!header._mjrTabListenersBound) {
+        Object.values(tabButtons).forEach((btn) => {
+            btn.addEventListener("click", () => scopeController.setScope(btn.dataset.scope));
+        });
+        header._mjrTabListenersBound = true;
+    }
 
     popovers.setDismissWhitelist([
         customPopover,

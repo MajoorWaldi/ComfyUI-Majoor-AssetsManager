@@ -99,7 +99,6 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         svc, _ = await _require_services()
         
         probe_mode = MEDIA_PROBE_BACKEND
-        native_enabled = False # Default off
         
         if svc:
             settings_service = svc.get("settings")
@@ -107,7 +106,6 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
                 try:
                     # FIX: await the async method
                     probe_mode = await settings_service.get_probe_backend()
-                    native_enabled = await settings_service.get_native_extraction_enabled()
                 except Exception:
                     # fallback to defaults
                     pass
@@ -116,37 +114,7 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
             "output_directory": OUTPUT_ROOT,
             "tool_paths": get_tool_paths(),
             "media_probe_backend": probe_mode,
-            "native_extraction_enabled": native_enabled,
         }))
-
-    @routes.post("/mjr/am/settings/native-extraction")
-    async def update_native_extraction(request):
-        """
-        Update native extraction setting (Pillow).
-        """
-        csrf = _csrf_error(request)
-        if csrf:
-            return _json_response(Result.Err(ErrorCode.CSRF, csrf))
-
-        svc, error_result = await _require_services()
-        if error_result:
-            return _json_response(error_result)
-
-        settings_service = svc.get("settings")
-        if not settings_service:
-            return _json_response(Result.Err(ErrorCode.SERVICE_UNAVAILABLE, "Settings service unavailable"))
-
-        body_res = await _read_json(request)
-        if not body_res.ok:
-            return _json_response(body_res)
-        body = body_res.data or {}
-
-        enabled = parse_bool(body.get("enabled"), False)
-        
-        result = await settings_service.set_native_extraction_enabled(enabled)
-        if result.ok:
-             return _json_response(Result.Ok({"native_extraction_enabled": result.data}))
-        return _json_response(result)
 
     @routes.post("/mjr/am/settings/probe-backend")
     async def update_probe_backend(request):

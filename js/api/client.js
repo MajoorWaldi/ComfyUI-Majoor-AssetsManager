@@ -432,10 +432,6 @@ export async function setProbeBackendMode(mode) {
     return post("/mjr/am/settings/probe-backend", { mode });
 }
 
-export async function setNativeExtractionEnabled(enabled) {
-    return post("/mjr/am/settings/native-extraction", { enabled: !!enabled });
-}
-
 export async function getSecuritySettings() {
     return get("/mjr/am/settings/security");
 }
@@ -459,12 +455,14 @@ export async function resetIndex(options = {}) {
         options.root_id ??
         options.customRoot ??
         null;
-    const body = {
-        scope,
-        reindex: _bool(options.reindex, true),
-        clear_scan_journal: _bool(options.clearScanJournal ?? options.clear_scan_journal, true),
-        clear_metadata_cache: _bool(options.clearMetadataCache ?? options.clear_metadata_cache, true),
-        rebuild_fts: _bool(options.rebuildFts ?? options.rebuild_fts, true),
+      const body = {
+          scope,
+          reindex: _bool(options.reindex, true),
+          clear_scan_journal: _bool(options.clearScanJournal ?? options.clear_scan_journal, true),
+          clear_metadata_cache: _bool(options.clearMetadataCache ?? options.clear_metadata_cache, true),
+          clear_asset_metadata: _bool(options.clearAssetMetadata ?? options.clear_asset_metadata, true),
+          clear_assets: _bool(options.clearAssets ?? options.clear_assets, true),
+          rebuild_fts: _bool(options.rebuildFts ?? options.rebuild_fts, true),
         incremental: _bool(options.incremental, false),
         fast: _bool(options.fast, true),
         background_metadata: _bool(options.backgroundMetadata ?? options.background_metadata, true),

@@ -46,11 +46,32 @@ export function createPanelState() {
         selectedAssetIds: saved.selectedAssetIds || []
     };
     
+    let debounceTimer = null;
+    const debouncedSave = (targetState) => {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            savePanelState(targetState);
+            debounceTimer = null;
+        }, 500);
+    };
+
+    const storageHandler = (event) => {
+        if (!event) return;
+        if (event.key !== STORAGE_KEY) return;
+        if (!event.newValue) return;
+        try {
+            const updated = JSON.parse(event.newValue);
+            Object.assign(state, updated || {});
+        } catch {}
+    };
+    try {
+        window.addEventListener("storage", storageHandler);
+    } catch {}
+
     return new Proxy(state, {
         set(target, prop, value) {
             target[prop] = value;
-            // Debounce save (optional, but reliable enough without for now)
-            savePanelState(target);
+            debouncedSave(target);
             return true;
         }
     });
