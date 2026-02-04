@@ -563,11 +563,20 @@ export function createAssetCard(asset) {
     if (genTimeMs > 0 && genTimeMs < 86400000) {
         const genTimeSpan = document.createElement("span");
         genTimeSpan.classList.add("mjr-meta-gentime");
-        genTimeSpan.style.color = "#aaaaaa";
         
-        const secs = (genTimeMs / 1000).toFixed(1);
-        genTimeSpan.textContent = `${secs}s`;
-        genTimeSpan.title = `Generation time: ${secs} seconds`;
+        // Color based on generation time (green = fast, yellow = medium, orange = slow)
+        const secs = genTimeMs / 1000;
+        let color = "#4CAF50"; // Green for < 10s
+        if (secs >= 60) color = "#FF9800"; // Orange for >= 60s
+        else if (secs >= 30) color = "#FFC107"; // Yellow for >= 30s
+        else if (secs >= 10) color = "#8BC34A"; // Light green for >= 10s
+        
+        genTimeSpan.style.color = color;
+        genTimeSpan.style.fontWeight = "500";
+        
+        const secsDisplay = secs.toFixed(1);
+        genTimeSpan.textContent = `${secsDisplay}s`;
+        genTimeSpan.title = `Generation time: ${secsDisplay} seconds`;
         
         metaRow.appendChild(genTimeSpan);
     }

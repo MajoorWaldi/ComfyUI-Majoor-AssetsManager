@@ -10,6 +10,7 @@ import { createFieldRow, createSection } from "./utils/dom.js";
 import { createSidebarHeader } from "./sections/HeaderSection.js";
 import { createPreviewSection } from "./sections/PreviewSection.js";
 import { createRatingTagsSection } from "./sections/RatingTagsSection.js";
+import { createFileInfoSection } from "./sections/FileInfoSection.js";
 import { createGenerationSection } from "./sections/GenerationSection.js";
 import { createWorkflowMinimapSection } from "./sections/WorkflowMinimapSection.js";
 import { ASSET_RATING_CHANGED_EVENT, ASSET_TAGS_CHANGED_EVENT } from "../../app/events.js";
@@ -190,6 +191,8 @@ export async function showAssetInSidebar(sidebar, asset, onUpdate) {
         const ratingTagsSection = createRatingTagsSection(data, onUpdate);
         sidebar._ratingTagsSection = ratingTagsSection;
         content.appendChild(ratingTagsSection);
+        const fileInfoSection = createFileInfoSection(data);
+        if (fileInfoSection) content.appendChild(fileInfoSection);
         const genMetadata = createGenerationSection(data);
         if (genMetadata) content.appendChild(genMetadata);
         const workflow = createWorkflowMinimapSection(data);

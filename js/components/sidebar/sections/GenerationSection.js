@@ -187,8 +187,65 @@ export function createGenerationSection(asset) {
         container.appendChild(createParametersBox("Sampling", samplingData, "#FF9800"));
     }
 
+    // SEED - Highlighted prominently for easy comparison in A/B and side-by-side modes
+    if (metadata.seed) {
+        const seedBox = document.createElement("div");
+        seedBox.style.cssText = `
+            background: linear-gradient(135deg, rgba(233, 30, 99, 0.15) 0%, rgba(156, 39, 176, 0.15) 100%);
+            border: 2px solid #E91E63;
+            border-radius: 8px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        `;
+        
+        const seedLabel = document.createElement("div");
+        seedLabel.textContent = "SEED";
+        seedLabel.style.cssText = `
+            font-size: 11px;
+            font-weight: 700;
+            color: #E91E63;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        `;
+        
+        const seedValue = document.createElement("div");
+        seedValue.textContent = String(metadata.seed);
+        seedValue.title = `Seed: ${metadata.seed} (click to copy)`;
+        seedValue.style.cssText = `
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+            font-family: 'Consolas', 'Monaco', monospace;
+            letter-spacing: 1px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        `;
+        
+        seedValue.addEventListener("mouseenter", () => {
+            seedValue.style.background = "rgba(233, 30, 99, 0.3)";
+        });
+        seedValue.addEventListener("mouseleave", () => {
+            seedValue.style.background = "transparent";
+        });
+        seedValue.addEventListener("click", async () => {
+            try {
+                await navigator.clipboard.writeText(String(metadata.seed));
+                seedValue.style.background = "rgba(76, 175, 80, 0.4)";
+                setTimeout(() => { seedValue.style.background = "transparent"; }, 500);
+            } catch {}
+        });
+        
+        seedBox.appendChild(seedLabel);
+        seedBox.appendChild(seedValue);
+        container.appendChild(seedBox);
+    }
+
     const imageData = [];
-    if (metadata.seed) imageData.push({ label: "Seed", value: metadata.seed });
     if (metadata.width && metadata.height) imageData.push({ label: "Size", value: `${metadata.width}\u00D7${metadata.height}` });
     if (metadata.denoise || metadata.denoising) imageData.push({ label: "Denoise", value: metadata.denoise || metadata.denoising });
     if (metadata.clip_skip) imageData.push({ label: "Clip Skip", value: metadata.clip_skip });

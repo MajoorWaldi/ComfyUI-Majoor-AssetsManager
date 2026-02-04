@@ -165,6 +165,7 @@ export function createParametersBox(title, fields, accentColor) {
             color: rgba(255,255,255,0.95);
             word-break: break-word;
             white-space: pre-wrap;
+            ${field.valueStyle || ""}
         `;
 
         grid.appendChild(label);
