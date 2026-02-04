@@ -9,7 +9,11 @@ from typing import Dict, Any, Tuple, Optional
 from ...config import MAX_METADATA_JSON_BYTES
 from ...shared import Result
 from ...adapters.db.sqlite import Sqlite
-from ..metadata.parsing_utils import looks_like_comfyui_workflow
+from ..metadata.parsing_utils import (
+    looks_like_comfyui_workflow,
+    looks_like_comfyui_prompt_graph,
+    try_parse_json_text,
+)
 
 MAX_TAG_LENGTH = 100
 
@@ -78,20 +82,48 @@ class MetadataHelpers:
                 return False
             return False
 
+        def _coerce_json_dict(value: Any) -> Optional[Dict[str, Any]]:
+            if isinstance(value, dict):
+                return value
+            if isinstance(value, str):
+                parsed = try_parse_json_text(value)
+                return parsed if isinstance(parsed, dict) else None
+            return None
+
         if metadata_result and metadata_result.ok and metadata_result.data:
             meta = metadata_result.data
+
+            raw_workflow = meta.get("workflow")
+            raw_prompt = meta.get("prompt")
+
+            workflow_obj = _coerce_json_dict(raw_workflow)
+            prompt_obj = _coerce_json_dict(raw_prompt)
+
+            workflow_ok = bool(workflow_obj and looks_like_comfyui_workflow(workflow_obj))
+            prompt_ok = bool(prompt_obj and looks_like_comfyui_prompt_graph(prompt_obj))
+
+            # Backward-compatible: if the extractor stored non-empty strings but we can't parse,
+            # still count it as "has_workflow" so Workflow-only filters don't hide the asset.
+            workflow_present = bool(raw_workflow)
+            prompt_present = bool(raw_prompt)
+
             has_workflow = bool(
-                (meta.get("workflow") and looks_like_comfyui_workflow(meta.get("workflow"))) or
+                workflow_ok or
+                prompt_ok or
+                workflow_present or
+                prompt_present or
                 meta.get("parameters")
             )
+
             has_generation_data = bool(
                 meta.get("parameters") or
                 meta.get("geninfo") or
                 meta.get("model") or
                 meta.get("seed") or
-                _graph_has_sampler(meta.get("prompt")) or
-                _graph_has_sampler(meta.get("workflow"))
+                _graph_has_sampler(prompt_obj or raw_prompt) or
+                _graph_has_sampler(workflow_obj or raw_workflow)
             )
+
             metadata_quality = meta.get("quality", "none")
             metadata_raw_json = json.dumps(meta)
 
