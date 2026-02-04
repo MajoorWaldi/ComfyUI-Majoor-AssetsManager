@@ -819,7 +819,7 @@ class IndexScanner:
                                 stats["skipped"] += 1
                                 stats["errors"] -= 1  # Correct the error count
                                 if refreshed and entry.get("fast") and to_enrich is not None:
-                                    if len(to_enrich) < 10000:
+                                    if len(to_enrich) < MAX_TO_ENRICH_ITEMS:
                                         to_enrich.append(entry.get("filepath") or str(entry.get("file_path") or ""))
                             except Exception as exc:
                                 stats["errors"] += 1  # Keep as error

@@ -319,7 +319,7 @@ async def _repair_asset_metadata_fts(db) -> Result[bool]:
     logger.warning("Repairing asset_metadata_fts (schema/triggers)")
 
     try:
-        with db.transaction(mode="immediate"):
+        async with db.atransaction(mode="immediate"):
             if needs_table_rebuild:
                 await db.aexecutescript(
                     """

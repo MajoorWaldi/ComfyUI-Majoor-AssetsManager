@@ -3,8 +3,10 @@ Throttle helpers so background scans can skip directories that were just indexed
 """
 from __future__ import annotations
 
+import os
 import threading
 import time
+from pathlib import Path
 from typing import Optional
 
 from backend.config import MANUAL_BG_SCAN_GRACE_SECONDS
@@ -14,8 +16,23 @@ _MANUAL_SCAN_TIMES: dict[str, float] = {}
 _MAX_ENTRY_AGE = max(600, int(MANUAL_BG_SCAN_GRACE_SECONDS * 5))
 
 
+def normalize_scan_directory(directory: str) -> str:
+    """Normalize and resolve a directory path for consistent throttling keys."""
+    if not directory:
+        return ""
+    try:
+        resolved = Path(directory).resolve()
+        return str(resolved)
+    except Exception:
+        try:
+            return os.path.abspath(directory)
+        except Exception:
+            return str(directory)
+
+
 def _scan_key(directory: str, source: str, root_id: Optional[str]) -> str:
-    return f"{str(source or 'output')}|{str(root_id or '')}|{str(directory)}"
+    norm_dir = normalize_scan_directory(directory or "")
+    return f"{str(source or 'output')}|{str(root_id or '')}|{norm_dir}"
 
 
 def mark_directory_indexed(

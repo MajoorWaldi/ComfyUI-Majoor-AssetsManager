@@ -381,9 +381,12 @@ export function createGridContainer() {
     // Note: The event is dispatched on `window` usually via safeDispatchCustomEvent
     try {
         window.addEventListener("mjr-settings-changed", onSettingsChanged);
-        // Also cleanup listener if grid is removed? (WeakMap handles state, but listener persists on window)
-        // Ideally we would return a cleanup function or attach to container custom event, 
-        // but for now this singleton grid pattern is acceptable.
+        // Store cleanup function on container for disposeGrid
+        container._mjrSettingsChangedCleanup = () => {
+            try {
+                window.removeEventListener("mjr-settings-changed", onSettingsChanged);
+            } catch {}
+        };
     } catch {}
 
     // Bind delegated dragstart once (avoid per-card listeners; improves load perf on large grids).
@@ -908,7 +911,7 @@ function appendAssets(gridContainer, assets, state) {
         // though strictly they shouldn't show up again if paginating forward.
         if (state.seenKeys) {
             for (const a of removed) {
-                const key = _getAssetId(a); 
+                const key = assetKey(a); 
                 if (key) state.seenKeys.delete(key);
             }
         }
@@ -1616,6 +1619,21 @@ export function disposeGrid(gridContainer) {
         } catch {}
         state._cardKeydownHandler = null;
     }
+
+    // Cleanup summary bar listeners
+    try {
+        gridContainer._mjrSummaryBarDispose?.();
+    } catch {}
+
+    // Cleanup grid keyboard
+    try {
+        gridContainer._mjrGridKeyboard?.dispose?.();
+    } catch {}
+
+    // Cleanup settings-changed listener
+    try {
+        gridContainer._mjrSettingsChangedCleanup?.();
+    } catch {}
 
     try {
         cleanupVideoThumbsIn?.(gridContainer);

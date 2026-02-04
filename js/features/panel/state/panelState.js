@@ -72,11 +72,26 @@ export function createPanelState() {
         window.addEventListener("storage", storageHandler);
     } catch {}
 
-    return new Proxy(state, {
+    const dispose = () => {
+        try {
+            if (debounceTimer) clearTimeout(debounceTimer);
+        } catch {}
+        debounceTimer = null;
+        try {
+            window.removeEventListener("storage", storageHandler);
+        } catch {}
+    };
+
+    const proxy = new Proxy(state, {
         set(target, prop, value) {
             target[prop] = value;
             debouncedSave(target);
             return true;
         }
     });
+    
+    // Attach dispose to the proxy for cleanup
+    proxy._mjrDispose = dispose;
+    
+    return proxy;
 }

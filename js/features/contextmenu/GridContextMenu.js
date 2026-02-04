@@ -331,10 +331,10 @@ export function bindGridContextMenu({
              try {
                  gridContainer.dataset.mjrSelectedAssetIds = JSON.stringify(newSelection);
                  // Dispatch event to sync state
-                 safeDispatchCustomEvent(gridContainer, "mjr:selection-changed", {
+                 safeDispatchCustomEvent("mjr:selection-changed", {
                      selectedIds: newSelection,
                      selectedAssets: [asset]
-                 });
+                 }, { target: gridContainer, warnPrefix: "[GridContextMenu]" });
              } catch {}
              // Update local set for menu logic
              selectedIds = new Set(newSelection);

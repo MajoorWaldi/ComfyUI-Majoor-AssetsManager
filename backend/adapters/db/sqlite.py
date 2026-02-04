@@ -428,11 +428,11 @@ class Sqlite:
             yield
         finally:
             lock.release()
-        logger.info("Database initialized: %s", self.db_path)
 
     def _init_db(self):
         try:
             self._loop_thread.run(self._ensure_initialized_async())
+            logger.info("Database initialized: %s", self.db_path)
         except Exception as exc:
             logger.error("Failed to initialize database: %s", exc)
             raise

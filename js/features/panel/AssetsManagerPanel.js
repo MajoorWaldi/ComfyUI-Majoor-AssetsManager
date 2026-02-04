@@ -48,6 +48,29 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
 
     triggerAutoScan();
 
+    // Cleanup previous instance before re-render to prevent listener leaks
+    try {
+        container._eventCleanup?.();
+    } catch {}
+    try {
+        container._mjrPanelState?._mjrDispose?.();
+    } catch {}
+    try {
+        container._mjrPopoverManager?.dispose?.();
+    } catch {}
+    try {
+        container._mjrHotkeys?.dispose?.();
+    } catch {}
+    try {
+        container._mjrRatingHotkeys?.dispose?.();
+    } catch {}
+    try {
+        container._mjrSidebarController?.dispose?.();
+    } catch {}
+    try {
+        container._mjrGridContextMenuUnbind?.();
+    } catch {}
+
     container.innerHTML = "";
     container.classList.add("mjr-am-container");
 
@@ -56,6 +79,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         container._mjrPopoverManager = popovers;
     } catch {}
     const state = createPanelState();
+    try {
+        container._mjrPanelState = state;
+    } catch {}
 
     const headerView = createHeaderView();
     const { header, headerActions, tabButtons, customMenuBtn, filterBtn, sortBtn, collectionsBtn } = headerView;
@@ -475,6 +501,13 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
 
     hotkeys.bind(content);
     ratingHotkeys.bind();
+    
+    // Attach controllers to container for cleanup on re-render
+    try {
+        container._mjrHotkeys = hotkeys;
+        container._mjrRatingHotkeys = ratingHotkeys;
+        container._mjrSidebarController = sidebarController;
+    } catch {}
 
     container._eventCleanup = () => {
         try {

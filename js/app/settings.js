@@ -264,6 +264,8 @@ export async function syncBackendSecuritySettings() {
     }
 }
 
+// Guard to prevent multiple registrations
+let _settingsStorageListenerBound = false;
 
 export const registerMajoorSettings = (app, onApplied) => {
     initI18n(app);
@@ -301,9 +303,13 @@ export const registerMajoorSettings = (app, onApplied) => {
         refreshFromStorage();
     };
 
-    try {
-        window.addEventListener("storage", storageListener);
-    } catch {}
+    // Only add storage listener once to prevent leaks
+    if (!_settingsStorageListenerBound) {
+        try {
+            window.addEventListener("storage", storageListener);
+            _settingsStorageListenerBound = true;
+        } catch {}
+    }
 
     const tryRegister = () => {
         const settingsApi = app?.ui?.settings;

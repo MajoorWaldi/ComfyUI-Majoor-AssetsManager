@@ -307,13 +307,6 @@ def _reconstruct_params_from_workflow(workflow: Dict[str, Any]) -> Dict[str, Any
                 # But here we are in post-pass.
                 pass 
 
-    # Construct output
-    if unique_prompts:
-        params["prompt"] = "\n".join(unique_prompts)
-    
-    if unique_negatives:
-        params["negative_prompt"] = "\n".join(unique_negatives)
-
     # HEURISTIC FALLBACK: If no sampler tracing worked (e.g. non-standard sampler names or broken links),
     # revert to the "title contains negative" scan, BUT ONLY for nodes not already found.
     if not unique_prompts and not unique_negatives:
@@ -334,16 +327,19 @@ def _reconstruct_params_from_workflow(workflow: Dict[str, Any]) -> Dict[str, Any
                         break
 
     # Construct output
+    # NOTE: Use "positive_prompt" not "prompt" to avoid overwriting the prompt graph dict
+    # in metadata. The prompt graph (dict) is used by geninfo parser; positive_prompt (str)
+    # is just the extracted text for display purposes.
     if unique_prompts:
-        params["prompt"] = "\n".join(unique_prompts)
+        params["positive_prompt"] = "\n".join(unique_prompts)
     
     if unique_negatives:
         params["negative_prompt"] = "\n".join(unique_negatives)
 
     # Build fake parameters text
     fake_text_parts = []
-    if "prompt" in params:
-        fake_text_parts.append(params["prompt"])
+    if "positive_prompt" in params:
+        fake_text_parts.append(params["positive_prompt"])
     if "negative_prompt" in params:
         fake_text_parts.append(f"Negative prompt: {params['negative_prompt']}")
     

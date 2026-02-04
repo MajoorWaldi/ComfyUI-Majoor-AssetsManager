@@ -1,9 +1,11 @@
 """
 Metadata enricher - handles background metadata enrichment for assets.
 """
+from __future__ import annotations
+
 import os
 import asyncio
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 
 from ...shared import get_logger
 from ...adapters.db.sqlite import Sqlite

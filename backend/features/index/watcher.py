@@ -2,12 +2,14 @@
 Lightweight directory watcher that triggers incremental scans.
 Replaced with Watchdog for real-time event handling.
 """
+from __future__ import annotations
+
 import logging
 import threading
 import asyncio
 import time
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Dict, Iterable, Optional
 
 from .service import IndexService
 from ...shared import get_logger
@@ -34,10 +36,9 @@ except ImportError:
 class IndexEventHandler(FileSystemEventHandler):
     """Handles file system events and queues index updates."""
     
-    def __init__(self, watcher, loop):
+    def __init__(self, watcher):
         self.watcher = watcher
-        self.loop = loop
-        self.last_events = {}
+        self.last_events: Dict[str, float] = {}
         self.debounce_seconds = 1.0
 
     def _is_valid_file(self, path_str: str) -> bool:
@@ -126,11 +127,9 @@ class DirectoryWatcher:
     ):
         self.index_service = index_service
         self.directories = [Path(dir_path).resolve() for dir_path in directories if dir_path]
-        try:
-            self._loop = asyncio.get_running_loop()
-        except RuntimeError:
-            self._loop = asyncio.get_event_loop()
-            
+        # NOTE: Do NOT cache the event loop here. The loop may not exist yet at __init__ time
+        # (e.g., when DirectoryWatcher is instantiated before asyncio.run()). Instead, we
+        # fetch the running loop dynamically in queue_update() and _setup_observer().
         self._join_timeout = join_timeout if join_timeout is not None else WATCHER_JOIN_TIMEOUT
         self._observer = None
         self._shutdown = False
@@ -143,7 +142,7 @@ class DirectoryWatcher:
             return None
         
         observer = Observer()
-        handler = IndexEventHandler(self, self._loop)
+        handler = IndexEventHandler(self)
         scheduled = 0
         for d in self.directories:
             if d.exists() and d.is_dir():
@@ -188,32 +187,55 @@ class DirectoryWatcher:
     def queue_update(self, filepath: str, action: str):
         if self._shutdown:
             return
+        
+        # Capture values needed in the coroutine (avoid closure issues)
+        _filepath = str(filepath)
+        _action = str(action)
+        _directories = list(self.directories)
+        _index_service = self.index_service
             
         async def _process():
-            # Small delay to allow file writes to settle (e.g. copy paste)
-            if action == "add":
-                await asyncio.sleep(0.5)
-            
-            if action == "remove":
-                await self.index_service.remove_file(filepath)
-            elif action == "add":
-                # Determine base dir for relative path calculation
-                path_obj = Path(filepath)
-                base_dir = str(path_obj.parent)
-                for d in self.directories:
-                    if str(d) in filepath:
-                        base_dir = str(d)
-                        break
+            try:
+                # Small delay to allow file writes to settle (e.g. copy paste)
+                if _action == "add":
+                    await asyncio.sleep(0.5)
                 
-                await self.index_service.index_paths(
-                    paths=[path_obj],
-                    base_dir=base_dir,
-                    incremental=True,
-                    source="output" # Default to output, logic could be refined
-                )
+                if _action == "remove":
+                    await _index_service.remove_file(_filepath)
+                elif _action == "add":
+                    # Determine base dir for relative path calculation
+                    path_obj = Path(_filepath)
+                    base_dir = str(path_obj.parent)
+                    for d in _directories:
+                        if str(d) in _filepath:
+                            base_dir = str(d)
+                            break
+                    
+                    await _index_service.index_paths(
+                        paths=[path_obj],
+                        base_dir=base_dir,
+                        incremental=True,
+                        source="output" # Default to output, logic could be refined
+                    )
+            except Exception as exc:
+                logger.debug(f"Watcher update processing failed for {_filepath}: {exc}")
 
         try:
-            asyncio.run_coroutine_threadsafe(_process(), self._loop)
+            # Get the running loop dynamically (may have changed since __init__)
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                # No running loop - try to get the default loop (may not exist)
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_closed():
+                        logger.debug("Event loop is closed, cannot queue watcher update")
+                        return
+                except RuntimeError:
+                    logger.debug("No event loop available for watcher update")
+                    return
+            
+            asyncio.run_coroutine_threadsafe(_process(), loop)
         except Exception as exc:
             logger.debug(f"Failed to queue watcher update: {exc}")
 

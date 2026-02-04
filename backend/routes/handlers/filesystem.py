@@ -21,7 +21,7 @@ from backend.config import (
     SCAN_PENDING_MAX,
     MANUAL_BG_SCAN_GRACE_SECONDS,
 )
-from shared.scan_throttle import should_skip_background_scan
+from shared.scan_throttle import normalize_scan_directory, should_skip_background_scan
 from ..core import _safe_rel_path, _is_within_root, _require_services
 
 logger = get_logger(__name__)
@@ -57,11 +57,12 @@ async def _kickoff_background_scan(
 
     Used to ensure input/custom folders get indexed without blocking list requests.
     """
-    if should_skip_background_scan(directory, source, root_id, MANUAL_BG_SCAN_GRACE_SECONDS):
+    normalized_dir = normalize_scan_directory(directory)
+    if should_skip_background_scan(normalized_dir, source, root_id, MANUAL_BG_SCAN_GRACE_SECONDS):
         return
 
     try:
-        key = f"{source}|{str(root_id or '')}|{str(directory)}"
+        key = f"{source}|{str(root_id or '')}|{normalized_dir}"
         now = time.time()
 
         def _peek_entry(k: str) -> tuple[float, bool]:
@@ -84,41 +85,39 @@ async def _kickoff_background_scan(
             return
 
         async with _BACKGROUND_SCAN_LOCK:
-             # Double-check under lock
+            # Double-check under lock
             last_seen, in_progress = _peek_entry(key)
             if in_progress:
                 return
             if now - last_seen < min_interval_seconds:
                 return
 
-            job = {
-                "directory": str(directory),
-                "source": str(source),
-                "root_id": str(root_id) if root_id is not None else None,
-                "recursive": bool(recursive),
-                "incremental": bool(incremental),
-                "fast": bool(fast),
-                "background_metadata": bool(background_metadata),
-            }
+        job = {
+            "directory": str(normalized_dir),
+            "source": str(source),
+            "root_id": str(root_id) if root_id is not None else None,
+            "recursive": bool(recursive),
+            "incremental": bool(incremental),
+            "fast": bool(fast),
+            "background_metadata": bool(background_metadata),
+        }
 
-            _ensure_worker()
+        _ensure_worker()
 
-            async with _SCAN_PENDING_LOCK:
-                # Move to end if exists (refresh priority)
-                if key in _SCAN_PENDING:
-                    del _SCAN_PENDING[key]
-                _SCAN_PENDING[key] = job
-                
-                # Enforce max pending size
-                while len(_SCAN_PENDING) > _SCAN_PENDING_MAX:
-                    _SCAN_PENDING.popitem(last=False)
+        async with _SCAN_PENDING_LOCK:
+            # Move to end if exists (refresh priority)
+            if key in _SCAN_PENDING:
+                del _SCAN_PENDING[key]
+            _SCAN_PENDING[key] = job
+            
+            # Enforce max pending size
+            while len(_SCAN_PENDING) > _SCAN_PENDING_MAX:
+                _SCAN_PENDING.popitem(last=False)
 
-            # Only mark as enqueued once we've successfully updated _SCAN_PENDING.
-            _BACKGROUND_SCAN_LAST[key] = {"last": now, "in_progress": False}
-
+        # Only mark as enqueued once we've successfully updated _SCAN_PENDING.
+        _BACKGROUND_SCAN_LAST[key] = {"last": now, "in_progress": False}
     except Exception:
         return
-
 
 
 def _ensure_worker() -> None:
@@ -226,7 +225,7 @@ def _ensure_background_entry(key: str) -> dict[str, Any]:
 def _build_task_key(task: dict[str, Any]) -> str:
     source = str(task.get("source") or "output")
     root_id = str(task.get("root_id") or "")
-    directory = str(task.get("directory") or "")
+    directory = normalize_scan_directory(str(task.get("directory") or ""))
     return f"{source}|{root_id}|{directory}"
 
 

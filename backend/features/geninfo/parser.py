@@ -1251,12 +1251,35 @@ def _extract_workflow_metadata(workflow: Any) -> Dict[str, Any]:
 
 def _detect_input_role(nodes_by_id: Dict[str, Any], subject_node_id: str) -> str:
     """
-    Determine how an input node is used (e.g. 'first_frame', 'reference', 'mask', 'source', 'style').
+    Determine how an input node is used (e.g. 'first_frame', 'last_frame', 'reference', 
+    'control_video', 'control_image', 'mask/inpaint', 'source', 'style', 'depth').
     Performs a limited-depth BFS downstream to handle intermediate nodes (Resize, VAE, etc).
     """
     roles = set()
     frontier = {str(subject_node_id)}
     visited = {str(subject_node_id)}
+    
+    # Also check the subject node's title for hints (e.g. "FIRST_FRAME", "LAST_FRAME")
+    subject = nodes_by_id.get(str(subject_node_id)) or nodes_by_id.get(subject_node_id)
+    if isinstance(subject, dict):
+        title = _lower(subject.get("_meta", {}).get("title", "") or subject.get("title", ""))
+        filename = ""
+        ins = _inputs(subject)
+        filename = _lower(str(ins.get("image", "") or ins.get("video", "") or ""))
+        
+        # Check title/filename for first/last frame hints
+        if "first" in title or "first" in filename or "start" in title:
+            roles.add("first_frame")
+        if "last" in title or "last" in filename or "end" in title:
+            roles.add("last_frame")
+        if "control" in title:
+            roles.add("control")
+        if "mask" in title or "inpaint" in title:
+            roles.add("mask/inpaint")
+        if "depth" in title:
+            roles.add("depth")
+        if "reference" in title or "ref" in title or "style" in title:
+            roles.add("style/reference")
     
     # Limit depth to avoid infinite loops or massive fan-out
     for _ in range(8): 
@@ -1283,29 +1306,56 @@ def _detect_input_role(nodes_by_id: Dict[str, Any], subject_node_id: str) -> str
             if linked:
                 # Found a consumer
                 target_type = _lower(_node_type(node))
+                title = _lower(node.get("_meta", {}).get("title", "") or node.get("title", ""))
                 
                 # 1. High specific roles
                 if "ipadapter" in target_type:
                     roles.add("style/reference")
                 elif "controlnet" in target_type:
-                    roles.add("control")
-                elif "mask" in hit_input_name or "mask" in target_type:
-                    roles.add("mask")
+                    if subject and _lower(_node_type(subject)).find("video") >= 0:
+                        roles.add("control_video")
+                    else:
+                        roles.add("control_image")
+                elif "mask" in hit_input_name or "mask" in target_type or "inpaint" in target_type:
+                    roles.add("mask/inpaint")
+                elif "depth" in target_type or "depth" in hit_input_name:
+                    roles.add("depth")
                 
-                # 2. Video specific
-                # "first_frame" logic for AnimateDiff/Video helpers
+                # 2. Video-specific nodes (WAN VACE, AnimateDiff, etc.)
+                elif "vace" in target_type or "wanvace" in target_type:
+                    # VACE uses control video/image for video generation
+                    if "control" in hit_input_name or "reference" in hit_input_name:
+                        roles.add("control_video")
+                    elif "start" in hit_input_name or "first" in hit_input_name:
+                        roles.add("first_frame")
+                    elif "end" in hit_input_name or "last" in hit_input_name:
+                        roles.add("last_frame")
+                    else:
+                        roles.add("source")
+                        
+                elif "starttoend" in target_type or "framerange" in target_type:
+                    # Nodes like WanVideoVACEStartToEndFrame
+                    if "start" in hit_input_name or "first" in hit_input_name:
+                        roles.add("first_frame")
+                    elif "end" in hit_input_name or "last" in hit_input_name:
+                        roles.add("last_frame")
+                    else:
+                        # Check if the input connects to start_image or end_image
+                        roles.add("frame_range")
+                
+                # 3. Frame position detection
                 elif "first" in hit_input_name or "start" in hit_input_name:
                     roles.add("first_frame")
                 elif "last" in hit_input_name or "end" in hit_input_name:
                     roles.add("last_frame")
-                elif "img2vid" in target_type:
+                elif "img2vid" in target_type or "i2v" in target_type:
                     roles.add("source")
 
-                # 3. VAE Encode -> likely source material (I2I/I2V)
+                # 4. VAE Encode -> likely source material (I2I/I2V)
                 elif "vaeencode" in target_type:
                     roles.add("source")
                 
-                # 4. If connected directly to sampler input (rare for images)
+                # 5. If connected directly to sampler input (rare for images)
                 elif "sampler" in target_type:
                      if "image" in hit_input_name or "latent" in hit_input_name:
                          roles.add("source")
@@ -1318,14 +1368,19 @@ def _detect_input_role(nodes_by_id: Dict[str, Any], subject_node_id: str) -> str
         visited.update(next_frontier)
         frontier = next_frontier
 
-    # Priority resolution
+    # Priority resolution (more specific roles first)
     if "first_frame" in roles: return "first_frame"
+    if "last_frame" in roles: return "last_frame"
+    if "mask/inpaint" in roles: return "mask/inpaint"
+    if "depth" in roles: return "depth"
+    if "control_video" in roles: return "control_video"
+    if "control_image" in roles: return "control_image"
+    if "control" in roles: return "control"
     if "source" in roles: return "source"
     if "style/reference" in roles: return "style/reference"
-    if "control" in roles: return "control"
-    if "mask" in roles: return "mask"
+    if "frame_range" in roles: return "frame_range"
     
-    return "secondary" # Default if mostly unused or just passed around
+    return "input" # Default - generic input
 
 
 def _extract_input_files(nodes_by_id: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -1400,6 +1455,11 @@ def _extract_input_files(nodes_by_id: Dict[str, Any]) -> List[Dict[str, Any]]:
 def _determine_workflow_type(nodes_by_id: Dict[str, Any], sink_node_id: str, sampler_id: Optional[str]) -> str:
     """
     Classify: T2I, I2I, T2V, I2V, V2V
+    
+    Improved detection:
+    - Checks latent path (EmptyLatent vs VAEEncode)
+    - Also scans for LoadImage/LoadVideo nodes feeding into VAEEncode anywhere in the graph
+      (for reference-based workflows like Flux2 Redux, IP-Adapter, ControlNet, etc.)
     """
     # 1. Output Type
     sink = nodes_by_id.get(sink_node_id)
@@ -1410,6 +1470,42 @@ def _determine_workflow_type(nodes_by_id: Dict[str, Any], sink_node_id: str, sam
     
     # 2. Input Type (Trace Latent Origin)
     prefix = "T" # Default to Text
+    
+    # 2a. First, scan the entire graph for LoadImage/LoadVideo -> VAEEncode patterns
+    # This catches reference-based workflows (Flux2 Redux, IP-Adapter, ControlNet, etc.)
+    has_image_input = False
+    has_video_input = False
+    
+    for nid, node in nodes_by_id.items():
+        if not isinstance(node, dict):
+            continue
+        ct = _lower(_node_type(node))
+        
+        # Check for VAEEncode nodes and trace their pixel input
+        if "vaeencode" in ct:
+            vae_ins = _inputs(node)
+            pixel_link = vae_ins.get("pixels") or vae_ins.get("image")
+            if _is_link(pixel_link):
+                # Trace pixel source
+                pix_src_id = _walk_passthrough(nodes_by_id, pixel_link)
+                if pix_src_id:
+                    pix_node = nodes_by_id.get(pix_src_id)
+                    pct = _lower(_node_type(pix_node))
+                    if "loadvideo" in pct or "videoloader" in pct:
+                        has_video_input = True
+                    elif "loadimage" in pct or "imageloader" in pct:
+                        has_image_input = True
+        
+        # Also check direct LoadImage/LoadVideo that feed into conditioning nodes
+        # (IP-Adapter, ControlNet, etc. may not use VAEEncode)
+        if "loadimage" in ct or "imageloader" in ct:
+            # Check if this node's output goes to something other than preview
+            has_image_input = True
+        if "loadvideo" in ct or "videoloader" in ct:
+            has_video_input = True
+    
+    # 2b. Now check the main latent path for EmptyLatent (which would indicate pure T2X)
+    latent_is_empty = False
     
     if sampler_id:
         sampler = nodes_by_id.get(sampler_id)
@@ -1429,10 +1525,10 @@ def _determine_workflow_type(nodes_by_id: Dict[str, Any], sink_node_id: str, sam
                      ct = _lower(_node_type(node))
                      
                      if "emptylatent" in ct:
-                         prefix = "T"
+                         latent_is_empty = True
                          break
                      if "vaeencode" in ct:
-                         # Found encoder -> I2 or V2
+                         # Found encoder -> I2 or V2 (main latent path)
                          # Check what feeds the VAE
                          vae_ins = _inputs(node)
                          pixel_link = vae_ins.get("pixels") or vae_ins.get("image")
@@ -1443,22 +1539,21 @@ def _determine_workflow_type(nodes_by_id: Dict[str, Any], sink_node_id: str, sam
                                  pix_node = nodes_by_id.get(pix_src_id)
                                  pct = _lower(_node_type(pix_node))
                                  if "loadvideo" in pct or "videoloader" in pct:
-                                     prefix = "V"
+                                     has_video_input = True
                                  else:
-                                     prefix = "I"
+                                     has_image_input = True
                              else:
-                                 prefix = "I" # Default to Image if VAE encoded and source unclear
+                                 has_image_input = True
                          else:
-                             prefix = "I" # Default
+                             has_image_input = True
                          break
                      
                      # Input is latent directly (LoadLatent)
                      if "loadlatent" in ct:
-                         prefix = "L" # Latent to ...?
+                         has_image_input = True  # Assume loaded latent came from image
                          break
                          
                      # Pass-through logic (LatentUpscale, Duplicate, etc.)
-                     # If we hit an upscaler/refiner, we need to look at ITS input
                      found_next = False
                      for k in ("samples", "latent", "latent_image"):
                          if _is_link(_inputs(node).get(k)):
@@ -1466,8 +1561,16 @@ def _determine_workflow_type(nodes_by_id: Dict[str, Any], sink_node_id: str, sam
                              found_next = True
                              break
                      if not found_next:
-                         # Dead end
                          break
+    
+    # 3. Determine prefix based on findings
+    # Priority: V (video) > I (image) > T (text-only)
+    if has_video_input:
+        prefix = "V"
+    elif has_image_input:
+        prefix = "I"
+    else:
+        prefix = "T"
                      
     return f"{prefix}2{suffix}"
 
