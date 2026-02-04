@@ -125,16 +125,27 @@ export function createWorkflowDot(asset) {
     const dot = document.createElement("span");
     dot.className = "mjr-workflow-dot";
 
+    const toBoolish = (v) => {
+        if (v === true) return true;
+        if (v === false) return false;
+        if (v === 1 || v === "1") return true;
+        if (v === 0 || v === "0") return false;
+        return null;
+    };
+
+    const hasWorkflow = toBoolish(asset?.has_workflow ?? asset?.hasWorkflow);
+    const hasGen = toBoolish(asset?.has_generation_data ?? asset?.hasGenerationData);
+
     let color = "var(--mjr-status-neutral, #666)";
     let title = "Not parsed yet";
 
-    if (asset.has_workflow && asset.has_generation_data) {
+    if (hasWorkflow === true && hasGen === true) {
         color = "var(--mjr-status-success, #4CAF50)";
         title = "Complete: Workflow + Generation data";
-    } else if (asset.has_workflow || asset.has_generation_data) {
+    } else if (hasWorkflow === true || hasGen === true) {
         color = "var(--mjr-status-warning, #FF9800)";
-        title = asset.has_workflow ? "Partial: Workflow only" : "Partial: Generation data only";
-    } else if (asset.has_workflow === false || asset.has_generation_data === false) {
+        title = hasWorkflow === true ? "Partial: Workflow only" : "Partial: Generation data only";
+    } else if (hasWorkflow === false && hasGen === false) {
         color = "var(--mjr-status-error, #f44336)";
         title = "No workflow or generation data";
     }
