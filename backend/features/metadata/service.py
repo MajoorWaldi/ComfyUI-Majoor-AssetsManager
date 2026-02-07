@@ -21,6 +21,7 @@ from .extractors import (
     extract_rating_tags_from_exif,
 )
 from ..geninfo.parser import parse_geninfo_from_prompt
+from .parsing_utils import parse_auto1111_params
 
 logger = get_logger(__name__)
 
@@ -48,16 +49,33 @@ def _build_geninfo_from_parameters(meta: Dict[str, Any]) -> Optional[Dict[str, A
     if not isinstance(meta, dict):
         return None
 
-    pos = meta.get("prompt")
-    neg = meta.get("negative_prompt")
-    steps = meta.get("steps")
-    sampler = meta.get("sampler")
-    scheduler = meta.get("scheduler")
-    cfg = meta.get("cfg")
-    seed = meta.get("seed")
-    w = meta.get("width")
-    h = meta.get("height")
-    model = meta.get("model")
+    parsed_meta = dict(meta)
+    params_text = parsed_meta.get("parameters")
+    if isinstance(params_text, str) and params_text.strip():
+        parsed_params = parse_auto1111_params(params_text)
+        if parsed_params:
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(
+                    "Parsed PNG:Parameters for geninfo fallback (%s keys)",
+                    ", ".join(sorted(parsed_params.keys())),
+                )
+            for key, value in parsed_params.items():
+                if value is None:
+                    continue
+                parsed_meta[key] = value
+        elif logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Auto1111 parameter parser returned no fields for provided PNG:Parameters text.")
+
+    pos = parsed_meta.get("prompt")
+    neg = parsed_meta.get("negative_prompt")
+    steps = parsed_meta.get("steps")
+    sampler = parsed_meta.get("sampler")
+    scheduler = parsed_meta.get("scheduler")
+    cfg = parsed_meta.get("cfg")
+    seed = parsed_meta.get("seed")
+    w = parsed_meta.get("width")
+    h = parsed_meta.get("height")
+    model = parsed_meta.get("model")
 
     has_any = any(v is not None and v != "" for v in (pos, neg, steps, sampler, cfg, seed, w, h, model))
     if not has_any:
