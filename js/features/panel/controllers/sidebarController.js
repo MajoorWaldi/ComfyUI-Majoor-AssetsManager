@@ -3,6 +3,7 @@ import { post, getAssetMetadata } from "../../../api/client.js";
 import { ENDPOINTS } from "../../../api/endpoints.js";
 import { pickRootId } from "../../../utils/ids.js";
 import { safeClosest } from "../../../utils/dom.js";
+import { comfyToast } from "../../../app/toast.js";
 
 const RESCAN_FLAG = "_mjrRescanning";
 const RESCAN_TTL_MS = 1500;
@@ -20,11 +21,13 @@ async function rescanSingleAsset({ card, asset, sidebar, onAssetUpdated }) {
     const dot = card.querySelector(".mjr-workflow-dot");
     try {
         if (dot) {
-            dot.style.opacity = "0.6";
+            dot.style.color = "var(--mjr-status-info, #64B5F6)";
             dot.style.cursor = "progress";
             dot.title = "Rescanning…";
         }
     } catch {}
+
+    try { comfyToast("Rescanning file…", "info", 2000); } catch {}
 
     const fileEntry = {
         filename: asset.filename,
@@ -63,11 +66,15 @@ async function rescanSingleAsset({ card, asset, sidebar, onAssetUpdated }) {
         }
     } finally {
         try {
-            if (dot) {
-                dot.style.opacity = "";
-                dot.style.cursor = "";
+            // If the dot is still in the DOM (scan failed, dot not replaced by onAssetUpdated),
+            // restore it to its original state so it doesn't stay stuck on blue/pending.
+            if (dot && dot.isConnected) {
+                const restored = createWorkflowDot(asset);
+                if (restored) dot.replaceWith(restored);
             }
-        } catch {}
+        } catch {
+            try { if (dot) dot.style.cursor = ""; } catch {}
+        }
     }
 
     return updated;
@@ -102,25 +109,72 @@ function setSelectedCard(gridContainer, selectedCard) {
     }
 }
 
+const escapeAttributeValue = (value) => {
+    if (value == null) return "";
+    try {
+        if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
+            return CSS.escape(String(value));
+        }
+    } catch {}
+    return String(value).replace(/["\\]/g, "\\$&");
+};
+
+function queryCardById(gridContainer, assetId) {
+    if (!gridContainer || !assetId) return null;
+    try {
+        return gridContainer.querySelector(`.mjr-asset-card[data-mjr-asset-id="${escapeAttributeValue(assetId)}"]`);
+    } catch {}
+    try {
+        return gridContainer.querySelector(`.mjr-asset-card[data-mjr-asset-id="${String(assetId).replace(/["\\]/g, "\\$&")}"]`);
+    } catch {}
+    return null;
+}
+
+function getActiveCardElement(gridContainer) {
+    if (!gridContainer) return null;
+    const activeId = gridContainer.dataset?.mjrSelectedAssetId;
+    if (activeId) {
+        const card = queryCardById(gridContainer, activeId);
+        if (card) return card;
+    }
+    const selectedIds = gridContainer.dataset?.mjrSelectedAssetIds;
+    if (selectedIds) {
+        try {
+            const parsed = JSON.parse(selectedIds);
+            if (Array.isArray(parsed) && parsed.length) {
+                const card = queryCardById(gridContainer, parsed[0]);
+                if (card) return card;
+            }
+        } catch {}
+    }
+    return gridContainer.querySelector(".mjr-asset-card.is-selected");
+}
+
+function focusCardElement(card, { preventScroll = true } = {}) {
+    if (!card) return;
+    try {
+        card.focus?.({ preventScroll });
+    } catch {
+        try {
+            card.focus?.();
+        } catch {}
+    }
+}
+
+function focusActiveCard(gridContainer, { force = false } = {}) {
+    if (!gridContainer) return;
+    if (!force && !gridContainer._mjrFocusWithin) return;
+    const card = getActiveCardElement(gridContainer);
+    if (!card) return;
+    focusCardElement(card);
+    gridContainer._mjrFocusWithin = true;
+}
+
 function ensureSelectionVisible(gridContainer) {
     if (!gridContainer) return;
 
-    const cssEscape = (value) => {
-        try {
-            return CSS?.escape ? CSS.escape(String(value)) : String(value).replace(/["\\]/g, "\\$&");
-        } catch {
-            return String(value).replace(/["\\]/g, "\\$&");
-        }
-    };
-
     try {
-        const selected =
-            gridContainer.querySelector(".mjr-asset-card.is-selected") ||
-            (gridContainer.dataset?.mjrSelectedAssetId
-                ? gridContainer.querySelector(
-                      `.mjr-asset-card[data-mjr-asset-id="${cssEscape(gridContainer.dataset.mjrSelectedAssetId)}"]`
-                  )
-                : null);
+        const selected = getActiveCardElement(gridContainer);
         if (!selected) return;
         const root = gridContainer.parentElement;
         if (root && typeof root.getBoundingClientRect === "function" && typeof selected.getBoundingClientRect === "function") {
@@ -134,16 +188,24 @@ function ensureSelectionVisible(gridContainer) {
 }
 
 function scheduleEnsureSelectionVisible(gridContainer) {
+    const runOnce = () => {
+        try {
+            ensureSelectionVisible(gridContainer);
+        } catch {}
+        try {
+            focusActiveCard(gridContainer);
+        } catch {}
+    };
     try {
         requestAnimationFrame(() => {
-            try { ensureSelectionVisible(gridContainer); } catch {}
+            runOnce();
             // Second pass after layout settles (sidebar open/close).
             setTimeout(() => {
-                try { ensureSelectionVisible(gridContainer); } catch {}
+                runOnce();
             }, 50);
         });
     } catch {
-        try { ensureSelectionVisible(gridContainer); } catch {}
+        runOnce();
     }
 }
 
@@ -258,31 +320,62 @@ function syncSelectionState({ gridContainer, state, activeId } = {}) {
 }
 
 export function bindSidebarOpen({
-    gridContainer,
-    sidebar,
-    createRatingBadge,
-    createTagsBadge,
-    showAssetInSidebar,
-    closeSidebar,
-    state
-}) {
-    if (!gridContainer) return { dispose: () => {} };
-    if (gridContainer._mjrSidebarOpenBound) {
-        return { dispose: gridContainer._mjrSidebarOpenDispose || (() => {}) };
-    }
-    gridContainer._mjrSidebarOpenBound = true;
+      gridContainer,
+      sidebar,
+      createRatingBadge,
+      createTagsBadge,
+      showAssetInSidebar,
+      closeSidebar,
+      state
+  }) {
+      if (!gridContainer) return { dispose: () => {} };
+      if (gridContainer._mjrSidebarOpenBound) {
+          return { dispose: gridContainer._mjrSidebarOpenDispose || (() => {}) };
+      }
+      gridContainer._mjrSidebarOpenBound = true;
+
+    const onGridFocusIn = (event) => {
+        gridContainer._mjrFocusWithin = true;
+        const card = safeClosest(event.target, ".mjr-asset-card");
+        if (card) {
+            try {
+                gridContainer._mjrLastFocusedCardId = card.dataset?.mjrAssetId || "";
+            } catch {}
+        }
+    };
+
+    const onGridFocusOut = (event) => {
+        const related = event?.relatedTarget;
+        if (related && gridContainer.contains(related)) return;
+        gridContainer._mjrFocusWithin = false;
+    };
+
+    try {
+        gridContainer.addEventListener("focusin", onGridFocusIn);
+        gridContainer.addEventListener("focusout", onGridFocusOut);
+    } catch {}
 
     // Keep selection visible when the panel/grid resizes (column wrap changes can move the selected card).
+    // The VirtualGrid repositions cards after a 100ms debounce, so we need multiple passes
+    // to ensure we scroll after the grid has finished re-laying out.
     try {
         if (!gridContainer._mjrSelectionResizeObserver) {
             const scrollRoot = gridContainer.parentElement;
             let raf = null;
+            let timer = null;
             const schedule = () => {
                 if (raf) cancelAnimationFrame(raf);
+                if (timer) clearTimeout(timer);
+                // First pass: immediate after layout
                 raf = requestAnimationFrame(() => {
                     raf = null;
                     ensureSelectionVisible(gridContainer);
                 });
+                // Second pass: after VirtualGrid debounce (100ms) + render
+                timer = setTimeout(() => {
+                    timer = null;
+                    ensureSelectionVisible(gridContainer);
+                }, 160);
             };
 
             const ro = new ResizeObserver(() => schedule());
@@ -463,6 +556,12 @@ export function bindSidebarOpen({
         const asset = card?._mjrAsset;
         if (!asset) return;
 
+        // Ensure the card keeps selection and focus when the sidebar opens
+        // (needed when triggered from the global hotkey which bypasses the grid keydown handler)
+        setSelectedCard(gridContainer, card);
+        updateSelectedIdsDataset(gridContainer);
+        syncSelectionState({ gridContainer, state, activeId: card?.dataset?.mjrAssetId });
+
         try {
             const isOpen = !!sidebar?.classList?.contains?.("is-open");
             const curId = sidebar?._currentAsset?.id ?? sidebar?._currentFullAsset?.id ?? null;
@@ -470,6 +569,8 @@ export function bindSidebarOpen({
                 closeSidebar(sidebar);
                 // Persist sidebar closed state
                 try { state.sidebarOpen = false; } catch {}
+                focusActiveCard(gridContainer, { force: true });
+                scheduleEnsureSelectionVisible(gridContainer);
                 return;
             }
         } catch {}
@@ -519,6 +620,12 @@ export function bindSidebarOpen({
     const dispose = () => {
         try {
             gridContainer.removeEventListener("click", onClick);
+        } catch {}
+        try {
+            gridContainer.removeEventListener("focusin", onGridFocusIn);
+        } catch {}
+        try {
+            gridContainer.removeEventListener("focusout", onGridFocusOut);
         } catch {}
         try {
             gridContainer.removeEventListener("keydown", onKeyDown);
