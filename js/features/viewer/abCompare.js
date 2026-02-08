@@ -180,7 +180,6 @@ export function renderABCompareView({
     // Video sync is handled centrally by the viewer bar (Viewer.js) so we avoid double-sync here.
 
     const isCompositeMode = (m) => m === "multiply" || m === "screen" || m === "add";
-    const isMathMode = (m) => m === "difference" || m === "absdiff" || m === "subtract";
 
     // Compare display mode
     try {

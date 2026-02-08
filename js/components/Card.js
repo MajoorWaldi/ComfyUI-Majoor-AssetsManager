@@ -5,8 +5,7 @@
 
 import { buildAssetViewURL } from "../api/endpoints.js";
 import { createFileBadge, createRatingBadge, createTagsBadge, createWorkflowDot } from "./Badges.js";
-import { formatTimestamp, formatDuration, formatDate, formatTime, formatDateTime } from "../utils/format.js";
-import { APP_CONFIG } from "../app/config.js";
+import { formatDuration, formatDate, formatTime } from "../utils/format.js";
 
 /**
  * @typedef {Object} Asset

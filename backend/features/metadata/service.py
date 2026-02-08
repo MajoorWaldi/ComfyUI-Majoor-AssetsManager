@@ -6,7 +6,6 @@ import logging
 import os
 import time
 import functools
-from pathlib import Path
 from typing import Dict, Any, Optional
 
 from ...shared import Result, ErrorCode, get_logger, classify_file, log_structured

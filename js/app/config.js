@@ -65,6 +65,13 @@ export const APP_DEFAULTS = Object.freeze({
     GRID_SHOW_DETAILS_GENTIME: true,
     GRID_SHOW_WORKFLOW_DOT: true,
 
+    // Badge colors
+    BADGE_STAR_COLOR: "#FFD45A",
+    BADGE_IMAGE_COLOR: "#2196F3",
+    BADGE_VIDEO_COLOR: "#9C27B0",
+    BADGE_AUDIO_COLOR: "#FF9800",
+    BADGE_MODEL3D_COLOR: "#4CAF50",
+
     // Pagination
     DEFAULT_PAGE_SIZE: 100,
     // Upper bound for a single list request. The backend allows more, but very large
@@ -95,6 +102,11 @@ export const APP_DEFAULTS = Object.freeze({
 
     // Workflow Minimap
     WORKFLOW_MINIMAP_ENABLED: true,
+    WATCHER_DEBOUNCE_MS: 500,
+    WATCHER_DEDUPE_TTL_MS: 3000,
+    // UI safety knobs
+    DELETE_CONFIRMATION: true,
+    DEBUG_VERBOSE_ERRORS: false,
 });
 
 // Runtime config (some values are user-tunable via settings).

@@ -901,7 +901,6 @@ def _trace_model_chain(
         if ("lora" in ct) or (ins.get("lora_name") is not None and _is_link(ins.get("model"))):
             # rgthree "Power Lora Loader" stores multiple LoRAs under lora_1/lora_2/...
             # objects instead of a flat `lora_name`.
-            added_any = False
             for k, v in ins.items():
                 if not str(k).lower().startswith("lora_"):
                     continue
@@ -923,7 +922,6 @@ def _trace_model_chain(
                         "source": f"{_node_type(node)}:{node_id}:{k}",
                     }
                 )
-                added_any = True
 
             name = _clean_model_id(ins.get("lora_name") or ins.get("lora") or ins.get("name"))
             if name:
@@ -938,7 +936,6 @@ def _trace_model_chain(
                         "source": f"{_node_type(node)}:{node_id}",
                     }
                 )
-                added_any = True
 
             # If this node is LoRA-ish but didn't yield any LoRA entries, still follow the chain.
             current_link = ins.get("model") if _is_link(ins.get("model")) else None
@@ -1563,8 +1560,6 @@ def _determine_workflow_type(nodes_by_id: Dict[str, Any], sink_node_id: str, sam
             has_video_input = True
     
     # 2b. Now check the main latent path for EmptyLatent (which would indicate pure T2X)
-    latent_is_empty = False
-    
     if sampler_id:
         sampler = nodes_by_id.get(sampler_id)
         if isinstance(sampler, dict):
@@ -1583,7 +1578,6 @@ def _determine_workflow_type(nodes_by_id: Dict[str, Any], sink_node_id: str, sam
                      ct = _lower(_node_type(node))
                      
                      if "emptylatent" in ct:
-                         latent_is_empty = True
                          break
                      if "vaeencode" in ct:
                          # Found encoder -> I2 or V2 (main latent path)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,7 @@ def _pick_ffprobe_video_stream(metadata_raw: Any) -> Dict[str, Any]:
     return vs if isinstance(vs, dict) else {}
 
 
-def build_viewer_media_info(asset: Dict[str, Any], resolved_path: Optional[Path] = None) -> Dict[str, Any]:
+def build_viewer_media_info(asset: Dict[str, Any], resolved_path: Optional[Path] = None, refresh: bool = False) -> Dict[str, Any]:
     """
     Build a compact media info payload for the viewer UI.
     Must be safe to call on partially populated assets.
