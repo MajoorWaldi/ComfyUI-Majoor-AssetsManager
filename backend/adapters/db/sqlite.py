@@ -65,6 +65,9 @@ _KNOWN_COLUMNS = {
     "created_at",
     "updated_at",
     "indexed_at",
+    "content_hash",
+    "phash",
+    "hash_state",
     # asset_metadata
     "asset_id",
     "rating",
@@ -90,6 +93,9 @@ _KNOWN_COLUMNS = {
     "a.mtime",
     "a.source",
     "a.root_id",
+    "a.content_hash",
+    "a.phash",
+    "a.hash_state",
     "m.asset_id",
     "m.rating",
     "m.tags",
@@ -100,8 +106,16 @@ _KNOWN_COLUMNS = {
 }
 _KNOWN_COLUMNS_LOWER = {c.lower(): c for c in _KNOWN_COLUMNS}
 
+
+def _is_missing_column_error(exc: Exception) -> bool:
+    try:
+        msg = str(exc).lower()
+    except Exception:
+        return False
+    return "no such column" in msg
+
 def _populate_known_columns_from_schema(db_path: Path) -> None:
-    global _KNOWN_COLUMNS, _KNOWN_COLUMNS_LOWER
+    global _KNOWN_COLUMNS_LOWER
     try:
         if not db_path.exists():
             return
@@ -347,6 +361,8 @@ class Sqlite:
         self._tx_local = threading.local()
         self._asset_locks: Dict[str, Dict[str, Any]] = {}
         self._asset_locks_lock = threading.Lock()
+        self._malformed_recovery_lock = threading.Lock()
+        self._malformed_recovery_last_ts = 0.0
 
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
@@ -364,6 +380,78 @@ class Sqlite:
             or "busy" in msg
             or "locked" in msg
         )
+
+    def _is_malformed_error(self, exc: Exception) -> bool:
+        try:
+            msg = str(exc).lower()
+        except Exception:
+            return False
+        return (
+            "database disk image is malformed" in msg
+            or "malformed database schema" in msg
+            or "file is not a database" in msg
+        )
+
+    async def _attempt_malformed_recovery_async(self, conn: aiosqlite.Connection) -> bool:
+        """
+        Best-effort online recovery for transient malformed errors.
+
+        This is intentionally conservative: checkpoint WAL, run quick check,
+        and rebuild FTS indexes if available. Hard reset remains an explicit operation.
+        """
+        now = time.time()
+        with self._malformed_recovery_lock:
+            if now - float(self._malformed_recovery_last_ts or 0.0) < 5.0:
+                return False
+            self._malformed_recovery_last_ts = now
+
+        try:
+            logger.warning("DB malformed detected; attempting online recovery")
+
+            # Flush/merge WAL first; malformed bursts can come from partial WAL state.
+            cur = await conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            try:
+                await cur.fetchall()
+            finally:
+                try:
+                    await cur.close()
+                except Exception:
+                    pass
+
+            # Lightweight consistency check.
+            cur = await conn.execute("PRAGMA quick_check")
+            try:
+                row = await cur.fetchone()
+            finally:
+                try:
+                    await cur.close()
+                except Exception:
+                    pass
+            if not row or str(row[0]).lower() != "ok":
+                return False
+
+            # Rebuild FTS tables if present (best-effort).
+            for stmt in (
+                "INSERT INTO assets_fts(assets_fts) VALUES('rebuild')",
+                "INSERT INTO asset_metadata_fts(asset_metadata_fts) VALUES('rebuild')",
+            ):
+                try:
+                    cur = await conn.execute(stmt)
+                    try:
+                        await cur.fetchall()
+                    finally:
+                        try:
+                            await cur.close()
+                        except Exception:
+                            pass
+                except Exception:
+                    # Not fatal: FTS table may not exist yet.
+                    pass
+
+            return True
+        except Exception as rec_exc:
+            logger.error("Online recovery failed: %s", rec_exc)
+            return False
 
     async def _sleep_backoff(self, attempt: int):
         base = float(self._lock_retry_base_seconds)
@@ -612,8 +700,33 @@ class Sqlite:
             except sqlite3.OperationalError as exc:
                 if "interrupted" in str(exc).lower():
                     return Result.Err(ErrorCode.TIMEOUT, "Database operation interrupted (query timeout)")
+                if _is_missing_column_error(exc):
+                    # Best-effort self-heal for legacy/partial DBs: add missing expected columns,
+                    # then retry the original statement once.
+                    try:
+                        from .schema import ensure_columns_exist
+                        heal_res = await ensure_columns_exist(self)
+                        if heal_res.ok:
+                            return await self._execute_on_conn_locked_async(
+                                conn, query, params, fetch, commit=commit
+                            )
+                    except Exception as heal_exc:
+                        logger.warning("Schema self-heal after missing column failed: %s", heal_exc)
                 logger.error("Operational error: %s", exc)
                 return Result.Err(ErrorCode.DB_ERROR, f"Operational error: {exc}")
+            except sqlite3.DatabaseError as exc:
+                if not self._is_malformed_error(exc):
+                    logger.error("Database error: %s", exc)
+                    return Result.Err(ErrorCode.DB_ERROR, str(exc))
+                recovered = await self._attempt_malformed_recovery_async(conn)
+                if recovered:
+                    try:
+                        return await self._execute_on_conn_locked_async(conn, query, params, fetch, commit=commit)
+                    except Exception as retry_exc:
+                        logger.error("Database malformed after recovery retry: %s", retry_exc)
+                        return Result.Err(ErrorCode.DB_ERROR, str(retry_exc))
+                logger.error("Database malformed and recovery failed: %s", exc)
+                return Result.Err(ErrorCode.DB_ERROR, str(exc))
             except Exception as exc:
                 logger.error("Unexpected database error: %s", exc)
                 return Result.Err(ErrorCode.DB_ERROR, str(exc))

@@ -6,10 +6,10 @@ export function createViewerToolbar({
     state,
     lifecycle,
     onClose,
-    onZoomIn,
-    onZoomOut,
-    onZoomReset,
-    onZoomOneToOne,
+    _onZoomIn,
+    _onZoomOut,
+    _onZoomReset,
+    _onZoomOneToOne,
     onMode,
     onToolsChanged,
     onCompareModeChanged,
@@ -483,6 +483,10 @@ export function createViewerToolbar({
     const probeToggle = createToggle("Probe", "Pixel Probe (I)", { iconClass: "pi-eye", accentRgb: ACCENT.probe });
     const loupeToggle = createToggle("Loupe", "Loupe (L)", { iconClass: "pi-search-plus", accentRgb: ACCENT.loupe });
     const hudToggle = createToggle("HUD", "Viewer HUD", { iconClass: "pi-info-circle", accentRgb: ACCENT.overlay });
+    const focusToggle = createToggle("Focus", "Distraction-free mode (X)", {
+        iconClass: "pi-window-maximize",
+        accentRgb: ACCENT.overlay,
+    });
     const genInfoToggle = createToggle("Gen", "Generation info (prompt/model)", {
         iconClass: "pi-book",
         accentRgb: ACCENT.geninfo,
@@ -613,6 +617,7 @@ export function createViewerToolbar({
     ovGroup.appendChild(probeToggle.b);
     ovGroup.appendChild(loupeToggle.b);
     ovGroup.appendChild(hudToggle.b);
+    ovGroup.appendChild(focusToggle.b);
     ovGroup.appendChild(genInfoToggle.b);
     toolsRow.appendChild(ovGroup);
 
@@ -696,7 +701,10 @@ export function createViewerToolbar({
         addRow("Z", "Zebra");
         addRow("I", "Probe");
         addRow("L", "Loupe");
+        addRow("X", "Focus Mode");
         addRow("C", "Copy Color");
+        addRow("[ / ]", "Speed -/+");
+        addRow("\\", "Speed 1x");
         addRow("←/→", "Prev/Next");
         addRow("0-5", "Rating");
 
@@ -864,6 +872,12 @@ export function createViewerToolbar({
         })
     );
     unsubs.push(
+        safeAddListener(focusToggle.b, "click", () => {
+            state.distractionFree = !state.distractionFree;
+            safeCall(onToolsChanged);
+        })
+    );
+    unsubs.push(
         safeAddListener(genInfoToggle.b, "click", () => {
             try {
                 state.genInfoOpen = !state.genInfoOpen;
@@ -958,6 +972,9 @@ export function createViewerToolbar({
         } catch {}
         try {
             hudToggle.setActive(Boolean(state.hudEnabled));
+        } catch {}
+        try {
+            focusToggle.setActive(Boolean(state.distractionFree));
         } catch {}
         try {
             genInfoToggle.setActive(Boolean(state.genInfoOpen));

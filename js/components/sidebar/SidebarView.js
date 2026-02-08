@@ -5,8 +5,7 @@
  * while delegating UI rendering/parsing to `js/components/sidebar/sections/*` and `parsers/*`.
  */
 
-import { getAssetMetadata, getFileMetadata } from "../../api/client.js";
-import { createFieldRow, createSection } from "./utils/dom.js";
+import { getAssetMetadata, getFileMetadataScoped } from "../../api/client.js";
 import { createSidebarHeader } from "./sections/HeaderSection.js";
 import { createPreviewSection } from "./sections/PreviewSection.js";
 import { createRatingTagsSection } from "./sections/RatingTagsSection.js";
@@ -238,10 +237,13 @@ export async function showAssetInSidebar(sidebar, asset, onUpdate) {
         if (signal?.aborted) return;
 
         if (!hasGenerationLikeData(fullAsset)) {
-            const filePath = fullAsset?.filepath || fullAsset?.path || fullAsset?.file_info?.filepath || null;
-            if (typeof filePath === "string" && filePath.trim()) {
+            const filename = String(fullAsset?.filename || "").trim();
+            const type = String(fullAsset?.type || "output").trim().toLowerCase();
+            const subfolder = String(fullAsset?.subfolder || "").trim();
+            const root_id = String(fullAsset?.root_id || fullAsset?.rootId || "").trim();
+            if (filename) {
                 try {
-                    const result = await getFileMetadata(filePath, opts);
+                    const result = await getFileMetadataScoped({ type, filename, subfolder, root_id }, opts);
                     if (signal?.aborted) return;
                     if (result?.ok && result.data) {
                         const md = result.data;
@@ -256,7 +258,7 @@ export async function showAssetInSidebar(sidebar, asset, onUpdate) {
                         tryUpdateWith(updates);
                     }
                 } catch (err) {
-                    if (!(signal?.aborted)) console.warn("Failed to load metadata by filepath:", err);
+                    if (!(signal?.aborted)) console.warn("Failed to load scoped metadata:", err);
                 }
             }
         }

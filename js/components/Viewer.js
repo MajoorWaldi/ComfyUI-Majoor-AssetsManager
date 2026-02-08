@@ -4,7 +4,7 @@
  */
 
 import { buildAssetViewURL } from "../api/endpoints.js";
-import { updateAssetRating, getAssetMetadata, getAssetsBatch, getViewerInfo, getFileMetadata, getFileMetadataScoped } from "../api/client.js";
+import { updateAssetRating, getAssetMetadata, getAssetsBatch, getViewerInfo, getFileMetadataScoped } from "../api/client.js";
 import { ASSET_RATING_CHANGED_EVENT, ASSET_TAGS_CHANGED_EVENT } from "../app/events.js";
 import { bindViewerContextMenu } from "../features/viewer/ViewerContextMenu.js";
 import { createFileBadge, createRatingBadge, createTagsBadge } from "./Badges.js";
@@ -141,12 +141,6 @@ export function createViewer() {
     function updateMediaNaturalSize() {
         try {
             panzoom?.updateMediaNaturalSize?.();
-        } catch {}
-    }
-
-    function attachMediaLoadHandlers(mediaEl) {
-        try {
-            panzoom?.attachMediaLoadHandlers?.(mediaEl, { clampPanToBounds, applyTransform });
         } catch {}
     }
 
@@ -291,6 +285,9 @@ export function createViewer() {
             onToolsChanged: () => {
                 try {
                     toolbar?.syncToolsUIFromState?.();
+                } catch {}
+                try {
+                    applyDistractionFreeUI();
                 } catch {}
                 try {
                     if (state.mode === VIEWER_MODES.AB_COMPARE) {
@@ -819,7 +816,6 @@ export function createViewer() {
         try {
             return await ensureViewerMetadataAsset(asset, {
                 getAssetMetadata,
-                getFileMetadata,
                 getFileMetadataScoped,
                 metadataCache: metadataHydrator,
                 signal,
@@ -849,7 +845,7 @@ export function createViewer() {
         const canAB = state.assets.length === 2;
         const canSide = state.assets.length >= 2;
         const mode = state.mode;
-        const open = Boolean(state?.genInfoOpen);
+        const open = Boolean(state?.genInfoOpen) && !state?.distractionFree;
 
         // Determine if we should show split panels
         const isDual = open && (
@@ -916,17 +912,10 @@ export function createViewer() {
                         block.appendChild(h);
                     }
 
-                    const section = (() => {
-                        try { return createGenerationSection(assetObj); } catch { return null; }
-                    })();
-                    if (section) {
-                        block.appendChild(section);
-                    } else {
-                        const empty = document.createElement("div");
-                        empty.style.cssText = "padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.72);";
-                        empty.textContent = "No generation data found for this file.";
-                        block.appendChild(empty);
-                    }
+                    const empty = document.createElement("div");
+                    empty.style.cssText = "padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.72);";
+                    empty.textContent = "No generation data found for this file.";
+                    block.appendChild(empty);
                     
                     try {
                         const raw = assetObj?.metadata_raw;
@@ -1174,7 +1163,7 @@ export function createViewer() {
             // Download (best-effort)
             try {
                 const current = state?.assets?.[state?.currentIndex] || null;
-                const base = String(current?.filename || "frame").replace(/[\\\\/:*?\"<>|]+/g, "_");
+                const base = String(current?.filename || "frame").replace(/[\\\\/:*?"<>|]+/g, "_");
                 const name = `${base.replace(/\\.[^.]+$/, "") || "frame"}_export.png`;
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
@@ -1318,6 +1307,27 @@ export function createViewer() {
         return n >= 2 && n <= 4;
     }
 
+    function applyDistractionFreeUI() {
+        const on = Boolean(state?.distractionFree);
+        try {
+            header.style.display = on ? "none" : "";
+        } catch {}
+        try {
+            footer.style.display = on ? "none" : "";
+        } catch {}
+        try {
+            overlay.classList.toggle("mjr-viewer-focus", on);
+        } catch {}
+        try {
+            if (on) {
+                overlay.style.paddingRight = "0px";
+                overlay.style.paddingLeft = "0px";
+                genInfoOverlay.style.display = "none";
+                genInfoOverlayLeft.style.display = "none";
+            }
+        } catch {}
+    }
+
     // Update UI based on state
     function updateUI() {
         // FORCE RESET: Always reset zoom/pan when changing images
@@ -1406,6 +1416,9 @@ export function createViewer() {
         syncPlayerBar();
         try {
             toolbar?.syncToolsUIFromState?.();
+        } catch {}
+        try {
+            applyDistractionFreeUI();
         } catch {}
         try {
             scheduleApplyGrade?.();
@@ -1682,6 +1695,7 @@ export function createViewer() {
                 fullscreenEl: overlay,
                 initialFps,
                 initialFrameCount,
+                initialPlaybackRate: Number(state?.playbackRate) || 1,
             });
             state._videoControlsMounted = mounted || null;
             state._videoControlsDestroy = mounted?.destroy || null;
@@ -1820,8 +1834,6 @@ export function createViewer() {
         analysisMode: state.analysisMode || "none",
         zebraThreshold: Math.max(0, Math.min(1, Number(state.zebraThreshold) || 0.95)),
     });
-
-    const clamp01 = (v) => Math.max(0, Math.min(1, Number(v) || 0));
 
     const applyGradeToVisibleMedia = () => {
         const params = getGradeParams();

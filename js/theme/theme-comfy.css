@@ -36,6 +36,12 @@
     --mjr-status-info: var(--comfy-status-info, #2196F3);
     --mjr-status-neutral: var(--comfy-status-neutral, #9e9e9e);
     --mjr-star-active: var(--mjr-accent, #FFD45A);
+
+    /* Badge colors (overridden by settings) */
+    --mjr-badge-image: #2196F3;
+    --mjr-badge-video: #9C27B0;
+    --mjr-badge-audio: #FF9800;
+    --mjr-badge-model3d: #4CAF50;
 }
 
 /* Make the theme visibly apply even with inline styles */
