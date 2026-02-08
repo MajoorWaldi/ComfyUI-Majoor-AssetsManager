@@ -44,6 +44,7 @@ export function createDefaultViewerState() {
         loupeSize: 120,
         loupeMagnification: 8,
         genInfoOpen: true,
+        audioVisualizerMode: "artistic", // simple|artistic
 
         // UX state
         _userInteracted: false,

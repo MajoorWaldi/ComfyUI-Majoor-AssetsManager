@@ -109,6 +109,65 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
                     result.data["watcher"] = {"enabled": False, "directories": [], "scope": None, "custom_root_id": None}
         return _json_response(result)
 
+    @routes.get("/mjr/am/health/db")
+    async def health_db(request):
+        """
+        DB-focused diagnostics endpoint.
+
+        Exposes explicit lock/corruption/recovery state so operators can diagnose
+        reset/scan issues without parsing logs.
+        """
+        svc, error_result = await _require_services()
+        if error_result:
+            return _json_response(error_result)
+
+        db = svc.get("db") if isinstance(svc, dict) else None
+        if not db:
+            return _json_response(Result.Err(ErrorCode.SERVICE_UNAVAILABLE, "Database service unavailable"))
+
+        # Safe defaults if adapter doesn't expose diagnostics yet.
+        diagnostics = {
+            "locked": False,
+            "malformed": False,
+            "recovery_state": "unknown",
+        }
+
+        try:
+            getter = getattr(db, "get_diagnostics", None)
+            if callable(getter):
+                payload = getter()
+                if isinstance(payload, dict):
+                    diagnostics = payload
+        except Exception as exc:
+            diagnostics = {
+                "locked": False,
+                "malformed": False,
+                "recovery_state": "unknown",
+                "error": sanitize_error_message(exc, "Failed to read DB diagnostics"),
+            }
+
+        # Include quick liveness check for context.
+        available = False
+        error = None
+        try:
+            q = await db.aexecute("SELECT 1 as ok", fetch=True)
+            available = bool(q.ok)
+            if not q.ok:
+                error = q.error
+        except Exception as exc:
+            available = False
+            error = sanitize_error_message(exc, "DB liveness check failed")
+
+        return _json_response(
+            Result.Ok(
+                {
+                    "available": available,
+                    "error": error,
+                    "diagnostics": diagnostics,
+                }
+            )
+        )
+
     @routes.get("/mjr/am/config")
     async def get_config(request):
         """

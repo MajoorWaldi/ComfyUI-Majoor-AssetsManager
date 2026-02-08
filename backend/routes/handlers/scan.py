@@ -75,6 +75,20 @@ _MAX_CONCURRENT_INDEX = int(os.environ.get("MJR_MAX_CONCURRENT_INDEX", str(_DEFA
 _INDEX_SEMAPHORE = asyncio.Semaphore(max(1, _MAX_CONCURRENT_INDEX))
 
 
+def _is_db_malformed_result(res: Any) -> bool:
+    try:
+        if not res or getattr(res, "ok", True):
+            return False
+        msg = str(getattr(res, "error", "") or "").lower()
+        return (
+            "database disk image is malformed" in msg
+            or "malformed database schema" in msg
+            or "file is not a database" in msg
+        )
+    except Exception:
+        return False
+
+
 def _allowed_upload_exts() -> set[str]:
     try:
         from backend.shared import EXTENSIONS  # type: ignore
@@ -1231,7 +1245,36 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             )
 
         if not res.ok:
-            return _json_response(res)
+            # Fallback: if scoped clear hits a malformed DB, escalate to hard adapter reset.
+            if _is_db_malformed_result(res):
+                try:
+                    if scan_lock is not None and hasattr(scan_lock, "__aenter__"):
+                        async with scan_lock:
+                            reset_res = await db.areset()
+                    else:
+                        reset_res = await db.areset()
+                except Exception as exc:
+                    logger.exception("Fallback hard reset after malformed DB failed")
+                    return _json_response(
+                        Result.Err(
+                            "RESET_FAILED",
+                            sanitize_error_message(exc, "Malformed DB and fallback hard reset failed"),
+                        )
+                    )
+                if not reset_res.ok:
+                    return _json_response(reset_res)
+                cleared = {
+                    "scan_journal": None,
+                    "metadata_cache": None,
+                    "asset_metadata": None,
+                    "assets": None,
+                    "hard_reset_db": True,
+                    "fallback_reason": "malformed_db",
+                    "file_ops": (reset_res.meta or {}),
+                }
+                # Continue with optional reindex path below.
+            else:
+                return _json_response(res)
 
         # FULL RESET CLEANUP: VACUUM and Physical Files
         if scope == "all" and (clear_scan_journal or clear_metadata_cache):

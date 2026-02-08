@@ -303,6 +303,23 @@ The backend still requires the environment variable (`MAJOOR_API_TOKEN`/`MJR_API
 - Collections store: `<output>/_mjr_index/collections/*.json`
 - Temporary drag-out ZIPs: `<output>/_mjr_batch_zips/` (auto-cleaned)
 
+## Troubleshooting (DB Corruption)
+
+If the index DB is too corrupted, use the emergency endpoint:
+
+- `POST /mjr/am/db/force-delete`
+
+This force-deletes the SQLite files, recreates a clean DB, then triggers a rescan.
+
+Manual fallback (with ComfyUI stopped):
+
+- Delete:
+  - `assets.sqlite`
+  - `assets.sqlite-wal`
+  - `assets.sqlite-shm`
+- Location: `<output>/_mjr_index/`
+- Restart ComfyUI, then run a scan/reset index.
+
 ## Development
 
 ```bash

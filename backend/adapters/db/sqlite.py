@@ -363,6 +363,21 @@ class Sqlite:
         self._asset_locks_lock = threading.Lock()
         self._malformed_recovery_lock = threading.Lock()
         self._malformed_recovery_last_ts = 0.0
+        self._diag_lock = threading.Lock()
+        self._diag: Dict[str, Any] = {
+            "locked": False,
+            "last_locked_error": None,
+            "last_locked_at": None,
+            "malformed": False,
+            "last_malformed_error": None,
+            "last_malformed_at": None,
+            "recovery_state": "idle",  # idle|in_progress|success|failed|skipped_locked
+            "last_recovery_at": None,
+            "last_recovery_error": None,
+            "recovery_attempts": 0,
+            "recovery_successes": 0,
+            "recovery_failures": 0,
+        }
 
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
@@ -392,6 +407,45 @@ class Sqlite:
             or "file is not a database" in msg
         )
 
+    def _mark_locked_event(self, exc: Exception) -> None:
+        now = time.time()
+        with self._diag_lock:
+            self._diag["locked"] = True
+            self._diag["last_locked_at"] = now
+            self._diag["last_locked_error"] = str(exc)
+
+    def _mark_malformed_event(self, exc: Exception) -> None:
+        now = time.time()
+        with self._diag_lock:
+            self._diag["malformed"] = True
+            self._diag["last_malformed_at"] = now
+            self._diag["last_malformed_error"] = str(exc)
+
+    def _set_recovery_state(self, state: str, error: Optional[str] = None) -> None:
+        now = time.time()
+        with self._diag_lock:
+            self._diag["recovery_state"] = str(state)
+            self._diag["last_recovery_at"] = now
+            self._diag["last_recovery_error"] = str(error) if error else None
+            if state == "in_progress":
+                self._diag["recovery_attempts"] = int(self._diag.get("recovery_attempts") or 0) + 1
+            elif state == "success":
+                self._diag["recovery_successes"] = int(self._diag.get("recovery_successes") or 0) + 1
+            elif state in ("failed", "skipped_locked"):
+                self._diag["recovery_failures"] = int(self._diag.get("recovery_failures") or 0) + 1
+
+    def get_diagnostics(self) -> Dict[str, Any]:
+        with self._diag_lock:
+            data = dict(self._diag)
+        # reset volatile "locked" flag if no recent lock event
+        try:
+            last = float(data.get("last_locked_at") or 0.0)
+            if last and (time.time() - last) > 10.0:
+                data["locked"] = False
+        except Exception:
+            pass
+        return data
+
     async def _attempt_malformed_recovery_async(self, conn: aiosqlite.Connection) -> bool:
         """
         Best-effort online recovery for transient malformed errors.
@@ -405,28 +459,36 @@ class Sqlite:
                 return False
             self._malformed_recovery_last_ts = now
 
+        async def _run_pragma_with_lock_retry(sql: str, fetch_one: bool = False) -> Optional[Any]:
+            for attempt in range(self._lock_retry_attempts + 1):
+                try:
+                    cur = await conn.execute(sql)
+                    try:
+                        if fetch_one:
+                            return await cur.fetchone()
+                        await cur.fetchall()
+                        return True
+                    finally:
+                        try:
+                            await cur.close()
+                        except Exception:
+                            pass
+                except sqlite3.OperationalError as exc:
+                    if self._is_locked_error(exc) and attempt < self._lock_retry_attempts:
+                        await self._sleep_backoff(attempt)
+                        continue
+                    raise
+            return None
+
         try:
+            self._set_recovery_state("in_progress")
             logger.warning("DB malformed detected; attempting online recovery")
 
             # Flush/merge WAL first; malformed bursts can come from partial WAL state.
-            cur = await conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-            try:
-                await cur.fetchall()
-            finally:
-                try:
-                    await cur.close()
-                except Exception:
-                    pass
+            await _run_pragma_with_lock_retry("PRAGMA wal_checkpoint(TRUNCATE)")
 
             # Lightweight consistency check.
-            cur = await conn.execute("PRAGMA quick_check")
-            try:
-                row = await cur.fetchone()
-            finally:
-                try:
-                    await cur.close()
-                except Exception:
-                    pass
+            row = await _run_pragma_with_lock_retry("PRAGMA quick_check", fetch_one=True)
             if not row or str(row[0]).lower() != "ok":
                 return False
 
@@ -436,20 +498,25 @@ class Sqlite:
                 "INSERT INTO asset_metadata_fts(asset_metadata_fts) VALUES('rebuild')",
             ):
                 try:
-                    cur = await conn.execute(stmt)
-                    try:
-                        await cur.fetchall()
-                    finally:
-                        try:
-                            await cur.close()
-                        except Exception:
-                            pass
+                    await _run_pragma_with_lock_retry(stmt)
                 except Exception:
                     # Not fatal: FTS table may not exist yet.
                     pass
 
+            self._set_recovery_state("success")
             return True
+        except sqlite3.OperationalError as rec_exc:
+            if self._is_locked_error(rec_exc):
+                # This can happen during concurrent reset/scan churn; keep signal but avoid noisy hard-error spam.
+                self._mark_locked_event(rec_exc)
+                self._set_recovery_state("skipped_locked", str(rec_exc))
+                logger.warning("Online recovery skipped due to active DB lock: %s", rec_exc)
+                return False
+            self._set_recovery_state("failed", str(rec_exc))
+            logger.error("Online recovery failed: %s", rec_exc)
+            return False
         except Exception as rec_exc:
+            self._set_recovery_state("failed", str(rec_exc))
             logger.error("Online recovery failed: %s", rec_exc)
             return False
 
@@ -700,6 +767,8 @@ class Sqlite:
             except sqlite3.OperationalError as exc:
                 if "interrupted" in str(exc).lower():
                     return Result.Err(ErrorCode.TIMEOUT, "Database operation interrupted (query timeout)")
+                if self._is_locked_error(exc):
+                    self._mark_locked_event(exc)
                 if _is_missing_column_error(exc):
                     # Best-effort self-heal for legacy/partial DBs: add missing expected columns,
                     # then retry the original statement once.
@@ -718,6 +787,7 @@ class Sqlite:
                 if not self._is_malformed_error(exc):
                     logger.error("Database error: %s", exc)
                     return Result.Err(ErrorCode.DB_ERROR, str(exc))
+                self._mark_malformed_event(exc)
                 recovered = await self._attempt_malformed_recovery_async(conn)
                 if recovered:
                     try:

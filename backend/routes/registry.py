@@ -184,6 +184,7 @@ def register_all_routes() -> web.RouteTableDef:
     logger.info("Routes registered:")
     logger.info("  GET /mjr/am/health")
     logger.info("  GET /mjr/am/health/counters")
+    logger.info("  GET /mjr/am/health/db")
     logger.info("  GET /mjr/am/config")
     logger.info("  GET /mjr/am/tools/status")
     logger.info("  GET /mjr/am/metadata?type=<scope>&filename=<name>&subfolder=<sub>&root_id=<id>")

@@ -49,7 +49,10 @@ export const APP_DEFAULTS = Object.freeze({
     // Viewer
     VIEWER_ALLOW_PAN_AT_ZOOM_1: false,
     VIEWER_DISABLE_WEBGL_VIDEO: false,
+    VIEWER_DISABLE_WEBGL_AUDIO: false,
     VIEWER_VIDEO_GRADE_THROTTLE_FPS: 15,
+    VIEWER_AUDIO_VISUALIZER_MODE: "artistic", // simple|artistic
+    VIEWER_AUDIO_VIS_FPS: 24,
     VIEWER_SCOPES_FPS: 10,
 
     // Grid

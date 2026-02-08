@@ -83,6 +83,7 @@ const DEFAULT_SETTINGS = {
     },
     sidebar: {
         position: "right",
+        showPreviewThumb: true,
     },
     probeBackend: {
         mode: "auto",
@@ -706,6 +707,21 @@ export const registerMajoorSettings = (app, onApplied) => {
                 settings.sidebar.position = value === "left" ? "left" : "right";
                 saveMajoorSettings(settings);
                 notifyApplied("sidebar.position");
+            },
+        });
+
+        safeAddSetting({
+            id: `${SETTINGS_PREFIX}.Sidebar.ShowPreviewThumb`,
+            category: cat(t("cat.grid"), "Sidebar preview"),
+            name: "Show sidebar preview thumb",
+            tooltip: "Show/hide the large media preview at the top of the sidebar metadata panel.",
+            type: "boolean",
+            defaultValue: !!(settings.sidebar?.showPreviewThumb ?? true),
+            onChange: (value) => {
+                settings.sidebar = settings.sidebar || {};
+                settings.sidebar.showPreviewThumb = !!value;
+                saveMajoorSettings(settings);
+                notifyApplied("sidebar.showPreviewThumb");
             },
         });
 

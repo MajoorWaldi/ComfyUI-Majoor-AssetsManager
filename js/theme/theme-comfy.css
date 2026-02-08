@@ -1488,6 +1488,17 @@
     border-color: rgba(255, 255, 255, 0.38);
 }
 
+.mjr-video-num--speed {
+    color-scheme: dark;
+    background: rgba(0, 0, 0, 0.62);
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.mjr-video-num--speed option {
+    background: var(--comfy-menu-bg, #2a2a2a);
+    color: var(--content-fg, #ddd);
+}
+
 .mjr-video-frame {
     font-size: 12px;
     color: rgba(255, 255, 255, 0.9);

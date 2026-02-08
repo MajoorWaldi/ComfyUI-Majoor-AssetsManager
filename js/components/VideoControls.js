@@ -215,16 +215,16 @@ function _mountPreviewControls(video, hostEl) {
  *
  * Viewer variant adds Nuke-style range + frame controls (in/out, step, loop/once).
  *
- * @param {HTMLVideoElement} video
- * @param {{variant?: 'viewer'|'preview'|'viewerbar', hostEl?: HTMLElement, fullscreenEl?: HTMLElement, initialFps?: number, initialFrameCount?: number, initialPlaybackRate?: number}} opts
+ * @param {HTMLMediaElement} video
+ * @param {{variant?: 'viewer'|'preview'|'viewerbar', mediaKind?: 'video'|'audio', hostEl?: HTMLElement, fullscreenEl?: HTMLElement, initialFps?: number, initialFrameCount?: number, initialPlaybackRate?: number}} opts
  * @returns {{controlsEl: HTMLElement|null, destroy: () => void, setMediaInfo?: (info: {fps?: number, frameCount?: number}) => void, setPlaybackRate?: (rate:number)=>number, getPlaybackRate?: ()=>number, adjustPlaybackRate?: (delta:number)=>number, togglePlay?: ()=>boolean, stepFrames?: (direction:number)=>boolean}}
  */
 export function mountVideoControls(video, opts = {}) {
     try {
         const variant = _resolveVideoControlsVariant(opts);
         const advanced = variant !== "preview";
-        // Removed by design (player bar should not expose volume UI).
-        const showVolumeSlider = false;
+        // Volume slider is toggled from the sound icon to keep the bar compact.
+        const showVolumeSlider = true;
         const initialFps = _resolveInitialFps(opts);
         const hostEl = opts?.hostEl || video?.parentElement;
         if (!video || !hostEl) return { controlsEl: null, destroy: noop };
@@ -406,6 +406,9 @@ export function mountVideoControls(video, opts = {}) {
 
         const muteIcon = createIconBtn("mjr-video-btn--mute", "pi-volume-up", "Mute", "Mute");
         const muteBtn = muteIcon.btn;
+        const volumeWrap = document.createElement("div");
+        volumeWrap.className = "mjr-video-volume-wrap";
+        volumeWrap.style.cssText = "display:none; align-items:center; position:relative;";
         let volume = null;
         if (showVolumeSlider) {
             volume = document.createElement("input");
@@ -416,6 +419,11 @@ export function mountVideoControls(video, opts = {}) {
             volume.step = "0.02";
             volume.value = String(clamp01(Number(video.volume) || 0));
             volume.setAttribute("aria-label", "Volume");
+            volume.title = "Volume";
+            try {
+                volume.style.width = "120px";
+            } catch {}
+            volumeWrap.appendChild(volume);
         }
 
         const inGroup = document.createElement("div");
@@ -480,7 +488,7 @@ export function mountVideoControls(video, opts = {}) {
         bottomRight.appendChild(speedGroup);
         bottomRight.appendChild(muteBtn);
         if (advanced) bottomRight.appendChild(setOutBtn);
-        if (volume) bottomRight.appendChild(volume);
+        if (volume) bottomRight.appendChild(volumeWrap);
 
         rowBottom.appendChild(bottomLeft);
         rowBottom.appendChild(transport);
@@ -1088,10 +1096,30 @@ export function mountVideoControls(video, opts = {}) {
             safeAddListener(muteBtn, "click", (e) => {
                 stop(e);
                 try {
+                    if (!volumeWrap) return;
+                    const open = volumeWrap.style.display !== "none";
+                    volumeWrap.style.display = open ? "none" : "inline-flex";
+                } catch {}
+                updateVolumeUI();
+            })
+        );
+        unsubs.push(
+            safeAddListener(muteBtn, "contextmenu", (e) => {
+                preventStop(e);
+                try {
                     video.muted = !video.muted;
                 } catch {}
                 updateVolumeUI();
             })
+        );
+        unsubs.push(
+            safeAddListener(window, "pointerdown", (e) => {
+                try {
+                    if (!volumeWrap || volumeWrap.style.display === "none") return;
+                    if (muteBtn.contains?.(e?.target) || volumeWrap.contains?.(e?.target)) return;
+                    volumeWrap.style.display = "none";
+                } catch {}
+            }, { capture: true })
         );
         if (volume) {
             unsubs.push(

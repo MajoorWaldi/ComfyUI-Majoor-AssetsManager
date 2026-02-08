@@ -13,6 +13,7 @@ import { createFileInfoSection } from "./sections/FileInfoSection.js";
 import { createGenerationSection } from "./sections/GenerationSection.js";
 import { createWorkflowMinimapSection } from "./sections/WorkflowMinimapSection.js";
 import { ASSET_RATING_CHANGED_EVENT, ASSET_TAGS_CHANGED_EVENT } from "../../app/events.js";
+import { loadMajoorSettings } from "../../app/settings.js";
 
 /**
  * Create inline sidebar (for panel integration)
@@ -188,7 +189,9 @@ export async function showAssetInSidebar(sidebar, asset, onUpdate) {
         if (sidebar._requestSeq !== requestSeq || sidebar._currentAsset !== asset) return;
         cleanupMinimapSections(content);
         content.innerHTML = "";
-        content.appendChild(createPreviewSection(data));
+        const settings = loadMajoorSettings();
+        const showPreviewThumb = !!(settings?.sidebar?.showPreviewThumb ?? true);
+        content.appendChild(createPreviewSection(data, { showPreviewThumb }));
         const ratingTagsSection = createRatingTagsSection(data, onUpdate);
         sidebar._ratingTagsSection = ratingTagsSection;
         content.appendChild(ratingTagsSection);

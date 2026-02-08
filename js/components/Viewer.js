@@ -11,7 +11,12 @@ import { createFileBadge, createRatingBadge, createTagsBadge } from "./Badges.js
 import { APP_CONFIG } from "../app/config.js";
 import { safeDispatchCustomEvent } from "../utils/events.js";
 import { safeClosest } from "../utils/dom.js";
-import { mountVideoControls } from "./VideoControls.js";
+import {
+    isPlayableViewerKind,
+    collectPlayableMediaElements,
+    pickPrimaryPlayableMedia,
+    mountUnifiedMediaControls,
+} from "../features/viewer/mediaPlayer.js";
 import { createDefaultViewerState } from "../features/viewer/state.js";
 import { createViewerLifecycle, destroyMediaProcessorsIn, safeAddListener, safeCall } from "../features/viewer/lifecycle.js";
 import { createViewerToolbar } from "../features/viewer/toolbar.js";
@@ -280,6 +285,14 @@ export function createViewer() {
             onCopyFrame: () => {
                 try {
                     void exportCurrentFrame({ toClipboard: true });
+                } catch {}
+            },
+            onAudioVizModeChanged: () => {
+                try {
+                    const current = state.assets[state.currentIndex];
+                    if (String(current?.kind || "") !== "audio") return;
+                    renderAsset();
+                    syncPlayerBar();
                 } catch {}
             },
             onToolsChanged: () => {
@@ -1587,38 +1600,37 @@ export function createViewer() {
     const syncPlayerBar = () => {
         try {
             const current = state.assets[state.currentIndex];
-            if (current?.kind !== "video") {
+            if (!isPlayableViewerKind(current?.kind)) {
                 destroyPlayerBar();
                 return;
             }
 
-            // Keep the player bar visible for video even in compare modes.
-            let videoEl = null;
-            let allVideos = [];
+            // Keep the player bar visible for playable media (video/audio) even in compare modes.
+            let mediaEl = null;
+            let allMedia = [];
             try {
-                if (state.mode === VIEWER_MODES.SINGLE) {
-                    allVideos = Array.from(singleView.querySelectorAll?.(".mjr-viewer-video-src") || []);
-                } else if (state.mode === VIEWER_MODES.AB_COMPARE) {
-                    allVideos = Array.from(abView.querySelectorAll?.(".mjr-viewer-video-src") || []);
-                } else if (state.mode === VIEWER_MODES.SIDE_BY_SIDE) {
-                    allVideos = Array.from(sideView.querySelectorAll?.(".mjr-viewer-video-src") || []);
-                }
+                allMedia = collectPlayableMediaElements({
+                    mode: state.mode,
+                    VIEWER_MODES,
+                    singleView,
+                    abView,
+                    sideView,
+                });
             } catch {
-                allVideos = [];
+                allMedia = [];
             }
             try {
-                // Prefer the "A" role when available (current asset in compare views).
-                videoEl = allVideos.find((v) => String(v?.dataset?.mjrCompareRole || "") === "A") || allVideos[0] || null;
+                mediaEl = pickPrimaryPlayableMedia(allMedia);
             } catch {
-                videoEl = allVideos[0] || null;
+                mediaEl = allMedia[0] || null;
             }
-            if (!videoEl) {
+            if (!mediaEl) {
                 destroyPlayerBar();
                 return;
             }
 
-            // Re-mount only if the underlying video element changed.
-            if (state._activeVideoEl && state._activeVideoEl === videoEl && state._videoControlsDestroy) {
+            // Re-mount only if the underlying media element changed.
+            if (state._activeVideoEl && state._activeVideoEl === mediaEl && state._videoControlsDestroy) {
                 try {
                     navBar.style.display = "none";
                     playerBarHost.style.display = "";
@@ -1689,23 +1701,32 @@ export function createViewer() {
                 }
             } catch {}
 
-            const mounted = mountVideoControls(videoEl, {
+            const mediaKind = String(current?.kind || "").toLowerCase() === "audio" ? "audio" : "video";
+            const mounted = mountUnifiedMediaControls(mediaEl, {
                 variant: "viewerbar",
                 hostEl: playerBarHost,
                 fullscreenEl: overlay,
                 initialFps,
                 initialFrameCount,
                 initialPlaybackRate: Number(state?.playbackRate) || 1,
+                mediaKind,
             });
             state._videoControlsMounted = mounted || null;
             state._videoControlsDestroy = mounted?.destroy || null;
-            state._activeVideoEl = videoEl;
+            state._activeVideoEl = mediaEl;
+            try {
+                if (mediaKind === "audio") {
+                    const p = mediaEl.play?.();
+                    if (p && typeof p.catch === "function") p.catch(() => {});
+                }
+            } catch {}
 
-            // Keep scopes responsive for video: refresh on seek/play/pause/timeupdate and animate while playing.
+            // Keep scopes responsive for video only.
             try {
                 state._scopesVideoAbort?.abort?.();
             } catch {}
-            try {
+            if (mediaKind === "video") {
+                try {
                 const ac = new AbortController();
                 state._scopesVideoAbort = ac;
                 const refresh = () => {
@@ -1714,11 +1735,11 @@ export function createViewer() {
                     } catch {}
                     scheduleOverlayRedraw();
                 };
-                videoEl.addEventListener("seeked", refresh, { signal: ac.signal, passive: true });
-                videoEl.addEventListener("timeupdate", refresh, { signal: ac.signal, passive: true });
-                videoEl.addEventListener("loadeddata", refresh, { signal: ac.signal, passive: true });
-                videoEl.addEventListener("play", refresh, { signal: ac.signal, passive: true });
-                videoEl.addEventListener("pause", refresh, { signal: ac.signal, passive: true });
+                mediaEl.addEventListener("seeked", refresh, { signal: ac.signal, passive: true });
+                mediaEl.addEventListener("timeupdate", refresh, { signal: ac.signal, passive: true });
+                mediaEl.addEventListener("loadeddata", refresh, { signal: ac.signal, passive: true });
+                mediaEl.addEventListener("play", refresh, { signal: ac.signal, passive: true });
+                mediaEl.addEventListener("pause", refresh, { signal: ac.signal, passive: true });
 
                 const scopesFps = Math.max(1, Math.min(30, Math.floor(Number(APP_CONFIG.VIEWER_SCOPES_FPS) || 10)));
                 const interval = 1000 / scopesFps;
@@ -1728,7 +1749,7 @@ export function createViewer() {
                         if (overlay.style.display === "none") return;
                     } catch {}
                     try {
-                        if (String(state?.scopesMode || "off") !== "off" && !videoEl.paused) {
+                        if (String(state?.scopesMode || "off") !== "off" && !mediaEl.paused) {
                             const now = performance.now();
                             const last = Number(state?._scopesLastAt) || 0;
                             if (now - last >= interval) {
@@ -1744,16 +1765,19 @@ export function createViewer() {
                 try {
                     requestAnimationFrame(tick);
                 } catch {}
-            } catch {}
+                } catch {}
+            } else {
+                state._scopesVideoAbort = null;
+            }
 
             // If multiple videos are visible (compare modes), keep them synced to the controlled one.
             try {
                 state._videoSyncAbort?.abort?.();
             } catch {}
             try {
-                if (allVideos.length > 1) {
-                    const followers = allVideos.filter((v) => v && v !== videoEl);
-                    state._videoSyncAbort = installFollowerVideoSync(videoEl, followers);
+                if (allMedia.length > 1) {
+                    const followers = allMedia.filter((v) => v && v !== mediaEl);
+                    state._videoSyncAbort = installFollowerVideoSync(mediaEl, followers);
                 }
             } catch {}
 
@@ -1807,8 +1831,8 @@ export function createViewer() {
                     try {
                         const res = await getViewerInfo(current?.id, { signal: ac.signal });
                         if (!res?.ok || !res.data) return;
-                        // Still the same active video element?
-                        if (state._activeVideoEl !== videoEl) return;
+                        // Still the same active media element?
+                        if (state._activeVideoEl !== mediaEl) return;
                         try {
                             _viewerInfoCache.set(String(current?.id ?? ""), res.data);
                         } catch {}

@@ -648,6 +648,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         routes_info = [
             {"method": "GET", "path": "/mjr/am/health", "description": "Get health status"},
             {"method": "GET", "path": "/mjr/am/health/counters", "description": "Get database counters"},
+            {"method": "GET", "path": "/mjr/am/health/db", "description": "Get DB lock/corruption/recovery diagnostics"},
             {"method": "GET", "path": "/mjr/am/config", "description": "Get configuration"},
             {"method": "GET", "path": "/mjr/am/roots", "description": "Get core and custom roots"},
             {"method": "GET", "path": "/mjr/am/custom-roots", "description": "List custom roots"},
