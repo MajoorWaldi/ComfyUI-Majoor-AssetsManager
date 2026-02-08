@@ -14,7 +14,13 @@ from threading import Lock
 from typing import Deque, Dict, Set, Tuple, Optional, Callable, Awaitable
 
 from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler, FileCreatedEvent, DirCreatedEvent
+from watchdog.events import (
+    FileSystemEventHandler,
+    FileCreatedEvent,
+    FileDeletedEvent,
+    FileMovedEvent,
+    DirCreatedEvent,
+)
 
 from ...shared import get_logger, EXTENSIONS
 from ...config import (
@@ -99,6 +105,8 @@ class DebouncedWatchHandler(FileSystemEventHandler):
     def __init__(
         self,
         on_files_ready: Callable[[list], Awaitable[None]],
+        on_files_removed: Optional[Callable[[list], Awaitable[None]]],
+        on_files_moved: Optional[Callable[[list], Awaitable[None]]],
         loop: asyncio.AbstractEventLoop,
         debounce_ms: int = 500,
         dedupe_ttl_ms: int = 3000,
@@ -106,6 +114,8 @@ class DebouncedWatchHandler(FileSystemEventHandler):
     ):
         super().__init__()
         self._on_files_ready = on_files_ready
+        self._on_files_removed = on_files_removed
+        self._on_files_moved = on_files_moved
         self._loop = loop
         self._debounce_s = debounce_ms / 1000.0
         self._dedupe_ttl_s = dedupe_ttl_ms / 1000.0
@@ -185,6 +195,14 @@ class DebouncedWatchHandler(FileSystemEventHandler):
         # We only care about new files added manually.
         return
 
+    def on_deleted(self, event):
+        if isinstance(event, FileDeletedEvent):
+            self._handle_deleted_file(event.src_path)
+
+    def on_moved(self, event):
+        if isinstance(event, FileMovedEvent):
+            self._handle_moved_file(event.src_path, event.dest_path)
+
     def _handle_file(self, path: str):
         """Queue a file for indexing with deduplication."""
         if not path:
@@ -233,6 +251,63 @@ class DebouncedWatchHandler(FileSystemEventHandler):
             )
         except Exception:
             pass
+
+    def _handle_deleted_file(self, path: str):
+        if not path:
+            return
+        if self._is_ignored_path(path):
+            return
+        if not self._is_supported(path):
+            return
+        if not self._on_files_removed:
+            return
+        key = self._normalize_path(path)
+        try:
+            asyncio.run_coroutine_threadsafe(self._on_files_removed([key]), self._loop)
+        except Exception:
+            return
+
+    def _handle_moved_file(self, src_path: str, dest_path: str):
+        if not src_path or not dest_path:
+            return
+        if self._is_ignored_path(src_path) or self._is_ignored_path(dest_path):
+            return
+        src_ok = self._is_supported(src_path)
+        dst_ok = self._is_supported(dest_path)
+
+        if not src_ok and not dst_ok:
+            return
+
+        src_norm = self._normalize_path(src_path)
+        dst_norm = self._normalize_path(dest_path)
+
+        # If extension changed from supported->unsupported, treat as deletion.
+        if src_ok and not dst_ok and self._on_files_removed:
+            try:
+                asyncio.run_coroutine_threadsafe(self._on_files_removed([src_norm]), self._loop)
+            except Exception:
+                pass
+            return
+
+        # If extension changed from unsupported->supported, treat as creation.
+        if dst_ok and not src_ok:
+            self._handle_file(dst_norm)
+            return
+
+        if self._on_files_moved:
+            try:
+                asyncio.run_coroutine_threadsafe(self._on_files_moved([(src_norm, dst_norm)]), self._loop)
+                return
+            except Exception:
+                pass
+
+        # Fallback: index new path and remove old path as separate operations.
+        self._handle_file(dst_norm)
+        if self._on_files_removed:
+            try:
+                asyncio.run_coroutine_threadsafe(self._on_files_removed([src_norm]), self._loop)
+            except Exception:
+                pass
 
     async def _flush(self):
         """Flush pending files to the indexer."""
@@ -403,12 +478,19 @@ class OutputWatcher:
         await watcher.stop()
     """
 
-    def __init__(self, index_callback: Callable[[list, str, Optional[str], Optional[str]], Awaitable[None]]):
+    def __init__(
+        self,
+        index_callback: Callable[[list, str, Optional[str], Optional[str]], Awaitable[None]],
+        remove_callback: Optional[Callable[[list, str, Optional[str], Optional[str]], Awaitable[None]]] = None,
+        move_callback: Optional[Callable[[list, str, Optional[str], Optional[str]], Awaitable[None]]] = None,
+    ):
         """
         Args:
             index_callback: async function(filepaths, base_dir, source, root_id) to index files
         """
         self._index_callback = index_callback
+        self._remove_callback = remove_callback
+        self._move_callback = move_callback
         self._observer: Optional[Observer] = None
         self._handler: Optional[DebouncedWatchHandler] = None
         self._watched_paths: Dict[str, dict] = {}  # watch_key -> {path, source, root_id, watch}
@@ -472,8 +554,100 @@ class OutputWatcher:
                 except Exception as e:
                     logger.debug("Watcher index error: %s", e)
 
+        async def on_files_removed(files: list):
+            if not files or not callable(self._remove_callback):
+                return
+            by_dir: Dict[str, dict] = {}
+            for f in files:
+                try:
+                    normalized_f = os.path.normcase(os.path.normpath(f))
+                    best = None
+                    best_len = -1
+                    for entry in self._watched_paths.values():
+                        watched = entry.get("path")
+                        if not watched:
+                            continue
+                        normalized_watched = os.path.normcase(os.path.normpath(watched))
+                        if _is_under_path(normalized_f, normalized_watched) and len(normalized_watched) > best_len:
+                            best = entry
+                            best_len = len(normalized_watched)
+                    if not best:
+                        continue
+                    base = best.get("path")
+                    if not base:
+                        continue
+                    key = str(base)
+                    if key not in by_dir:
+                        by_dir[key] = {"files": [], "source": best.get("source"), "root_id": best.get("root_id")}
+                    by_dir[key]["files"].append(f)
+                except Exception:
+                    continue
+            for base_dir, payload in by_dir.items():
+                try:
+                    await self._remove_callback(
+                        payload.get("files") or [],
+                        base_dir,
+                        payload.get("source"),
+                        payload.get("root_id"),
+                    )
+                except Exception as e:
+                    logger.debug("Watcher remove error: %s", e)
+
+        async def on_files_moved(moves: list):
+            if not moves:
+                return
+            if callable(self._move_callback):
+                by_dir: Dict[str, dict] = {}
+                for src, dst in moves:
+                    try:
+                        normalized_dst = os.path.normcase(os.path.normpath(dst))
+                        best = None
+                        best_len = -1
+                        for entry in self._watched_paths.values():
+                            watched = entry.get("path")
+                            if not watched:
+                                continue
+                            normalized_watched = os.path.normcase(os.path.normpath(watched))
+                            if _is_under_path(normalized_dst, normalized_watched) and len(normalized_watched) > best_len:
+                                best = entry
+                                best_len = len(normalized_watched)
+                        if not best:
+                            continue
+                        base = best.get("path")
+                        if not base:
+                            continue
+                        key = str(base)
+                        if key not in by_dir:
+                            by_dir[key] = {"moves": [], "source": best.get("source"), "root_id": best.get("root_id")}
+                        by_dir[key]["moves"].append((src, dst))
+                    except Exception:
+                        continue
+                for base_dir, payload in by_dir.items():
+                    try:
+                        await self._move_callback(
+                            payload.get("moves") or [],
+                            base_dir,
+                            payload.get("source"),
+                            payload.get("root_id"),
+                        )
+                    except Exception as e:
+                        logger.debug("Watcher move error: %s", e)
+                return
+            # Fallback if no move callback: reindex destination and remove source.
+            try:
+                src_files = [m[0] for m in moves if isinstance(m, (list, tuple)) and len(m) == 2]
+                dst_files = [m[1] for m in moves if isinstance(m, (list, tuple)) and len(m) == 2]
+                if dst_files:
+                    await on_files_ready(dst_files)
+                if src_files:
+                    await on_files_removed(src_files)
+            except Exception:
+                return
+
         self._handler = DebouncedWatchHandler(
             on_files_ready,
+            on_files_removed,
+            on_files_moved,
             loop,
             debounce_ms=WATCHER_DEBOUNCE_MS,
             dedupe_ttl_ms=WATCHER_DEDUPE_TTL_MS,

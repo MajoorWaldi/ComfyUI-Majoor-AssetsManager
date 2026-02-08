@@ -34,7 +34,7 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
             try {
                 disposeGrid(gridContainer);
             } catch {}
-            gridContainer.innerHTML = "";
+            gridContainer.replaceChildren();
             const p = document.createElement("p");
             p.className = "mjr-muted";
             p.textContent = t("msg.addCustomFolder");

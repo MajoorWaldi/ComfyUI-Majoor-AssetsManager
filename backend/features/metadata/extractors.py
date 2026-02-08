@@ -627,6 +627,61 @@ def _apply_common_exif_fields(
         metadata["generation_time"] = date_created
 
 
+def _build_a1111_geninfo(parsed: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Build a minimal geninfo payload from parsed A1111 parameters."""
+    if not isinstance(parsed, dict):
+        return None
+
+    out: Dict[str, Any] = {"engine": {"parser_version": "geninfo-params-v1", "source": "parameters"}}
+
+    pos = parsed.get("prompt")
+    neg = parsed.get("negative_prompt")
+    if isinstance(pos, str) and pos.strip():
+        out["positive"] = {"value": pos.strip(), "confidence": "high", "source": "parameters"}
+    if isinstance(neg, str) and neg.strip():
+        out["negative"] = {"value": neg.strip(), "confidence": "high", "source": "parameters"}
+
+    try:
+        if parsed.get("steps") is not None:
+            out["steps"] = {"value": int(parsed.get("steps")), "confidence": "high", "source": "parameters"}
+    except Exception:
+        pass
+    try:
+        if parsed.get("cfg") is not None:
+            out["cfg"] = {"value": float(parsed.get("cfg")), "confidence": "high", "source": "parameters"}
+    except Exception:
+        pass
+    try:
+        if parsed.get("seed") is not None:
+            out["seed"] = {"value": int(parsed.get("seed")), "confidence": "high", "source": "parameters"}
+    except Exception:
+        pass
+
+    try:
+        if parsed.get("width") is not None and parsed.get("height") is not None:
+            out["size"] = {
+                "width": int(parsed.get("width")),
+                "height": int(parsed.get("height")),
+                "confidence": "high",
+                "source": "parameters",
+            }
+    except Exception:
+        pass
+
+    model = parsed.get("model")
+    if isinstance(model, str) and model.strip():
+        checkpoint = model.strip().replace("\\", "/").split("/")[-1]
+        lower = checkpoint.lower()
+        for ext in (".safetensors", ".ckpt", ".pt", ".pth", ".bin", ".gguf", ".json"):
+            if lower.endswith(ext):
+                checkpoint = checkpoint[: -len(ext)]
+                break
+        if checkpoint:
+            out["checkpoint"] = {"name": checkpoint, "confidence": "high", "source": "parameters"}
+
+    return out if len(out) > 1 else None
+
+
 def extract_png_metadata(file_path: str, exif_data: Optional[Dict] = None) -> Result[Dict[str, Any]]:
     if not os.path.exists(file_path):
         return Result.Err(ErrorCode.NOT_FOUND, f"File not found: {file_path}")
@@ -650,6 +705,7 @@ def extract_png_metadata(file_path: str, exif_data: Optional[Dict] = None) -> Re
             parsed = parse_auto1111_params(png_params)
             if parsed:
                 metadata.update(parsed)
+                metadata["geninfo"] = _build_a1111_geninfo(parsed) or {}
 
         _apply_common_exif_fields(metadata, exif_data)
         return Result.Ok(metadata, quality=metadata["quality"])

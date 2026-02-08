@@ -1646,6 +1646,59 @@ export async function loadAssets(gridContainer, query = "*", options = {}) {
 }
 
 /**
+ * Prepare grid for a hard context/scope switch.
+ * Aborts in-flight requests, invalidates stale responses, and clears visible DOM immediately.
+ * @param {HTMLElement} gridContainer
+ */
+export function prepareGridForScopeSwitch(gridContainer) {
+    if (!gridContainer) return;
+    const state = getOrCreateState(gridContainer);
+    try {
+        state.abortController?.abort?.();
+    } catch {}
+    try {
+        state.abortController = typeof AbortController !== "undefined" ? new AbortController() : null;
+    } catch {
+        state.abortController = null;
+    }
+    try {
+        state.requestId = (Number(state.requestId) || 0) + 1;
+    } catch {
+        state.requestId = 1;
+    }
+
+    stopObserver(state);
+    state.offset = 0;
+    state.total = null;
+    state.done = false;
+    state.loading = false;
+    state.assets = [];
+    state.seenKeys = new Set();
+    state.filenameCounts = new Map();
+    state.stemMap = new Map();
+    state.renderedFilenameMap = new Map();
+    state.nonImageStems = new Set();
+
+    try {
+        clearGridMessage(gridContainer);
+        hideLoadingOverlay(gridContainer);
+    } catch {}
+
+    // Physical clear to prevent visual overlap during rapid scope switches.
+    try {
+        if (state.virtualGrid) {
+            state.virtualGrid.setItems([], true);
+        } else {
+            gridContainer.replaceChildren();
+        }
+    } catch {
+        try {
+            gridContainer.replaceChildren();
+        } catch {}
+    }
+}
+
+/**
  * Load a pre-defined list of assets into the grid (no paging/infinite scroll).
  * Used for "Collections" views.
  */
@@ -1656,6 +1709,19 @@ export async function loadAssetsFromList(gridContainer, assets, options = {}) {
     const list = Array.isArray(assets) ? assets : [];
 
     if (reset) {
+        try {
+            state.abortController?.abort?.();
+        } catch {}
+        try {
+            state.abortController = typeof AbortController !== "undefined" ? new AbortController() : null;
+        } catch {
+            state.abortController = null;
+        }
+        try {
+            state.requestId = (Number(state.requestId) || 0) + 1;
+        } catch {
+            state.requestId = 1;
+        }
         stopObserver(state);
         state.offset = 0;
         state.total = list.length;
@@ -2204,6 +2270,7 @@ export function refreshGrid(gridContainer) {
 // [ISSUE 1] Real-time Refresh Implementation
 // Manages the global scan-complete handlers so we can teardown on panel unload.
 const GRID_SCAN_EVENT_NAMES = ["mjr-scan-complete", "mjr:scan-complete"];
+const GRID_SCAN_REFRESH_DEBOUNCE_MS = Number(APP_CONFIG?.GRID_SCAN_REFRESH_DEBOUNCE_MS) || 300;
 let _gridScanListenersBound = false;
 
 const _onScanComplete = (_e) => {
@@ -2223,7 +2290,7 @@ const _onScanComplete = (_e) => {
                     grid._mjrRefreshTimer = null;
                     if (!grid.isConnected) return;
                     loadAssets(grid, state.query, { reset: true });
-                }, 500);
+                }, GRID_SCAN_REFRESH_DEBOUNCE_MS);
             } catch (err) {
                 console.warn("[Majoor] Auto-refresh error:", err);
             }

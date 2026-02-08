@@ -1776,7 +1776,38 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                         root_id=root_id,
                     )
 
-            new_watcher = OutputWatcher(index_callback)
+            async def remove_callback(filepaths, _base_dir, _source=None, _root_id=None):
+                if not filepaths:
+                    return
+                for fp in filepaths:
+                    try:
+                        await index_service.remove_file(str(fp))
+                    except Exception:
+                        continue
+
+            async def move_callback(moves, _base_dir, source=None, root_id=None):
+                if not moves:
+                    return
+                for move in moves:
+                    try:
+                        old_fp, new_fp = move
+                    except Exception:
+                        continue
+                    try:
+                        res = await index_service.rename_file(str(old_fp), str(new_fp))
+                        if not res.ok:
+                            await index_service.remove_file(str(old_fp))
+                            await index_service.index_paths(
+                                paths=[Path(str(new_fp))],
+                                base_dir=str(Path(str(new_fp)).parent),
+                                incremental=True,
+                                source=source or "watcher",
+                                root_id=root_id,
+                            )
+                    except Exception:
+                        continue
+
+            new_watcher = OutputWatcher(index_callback, remove_callback=remove_callback, move_callback=move_callback)
             scope_cfg = svc.get("watcher_scope") if isinstance(svc, dict) else None
             desired_scope = normalize_scope((scope_cfg or {}).get("scope"))
             desired_root_id = (scope_cfg or {}).get("custom_root_id") or (scope_cfg or {}).get("root_id")
@@ -1955,7 +1986,38 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                     root_id=root_id,
                 )
 
-        new_watcher = OutputWatcher(index_callback)
+        async def remove_callback(filepaths, _base_dir, _source=None, _root_id=None):
+            if not filepaths:
+                return
+            for fp in filepaths:
+                try:
+                    await index_service.remove_file(str(fp))
+                except Exception:
+                    continue
+
+        async def move_callback(moves, _base_dir, source=None, root_id=None):
+            if not moves:
+                return
+            for move in moves:
+                try:
+                    old_fp, new_fp = move
+                except Exception:
+                    continue
+                try:
+                    res = await index_service.rename_file(str(old_fp), str(new_fp))
+                    if not res.ok:
+                        await index_service.remove_file(str(old_fp))
+                        await index_service.index_paths(
+                            paths=[Path(str(new_fp))],
+                            base_dir=str(Path(str(new_fp)).parent),
+                            incremental=True,
+                            source=source or "watcher",
+                            root_id=root_id,
+                        )
+                except Exception:
+                    continue
+
+        new_watcher = OutputWatcher(index_callback, remove_callback=remove_callback, move_callback=move_callback)
         loop = asyncio.get_event_loop()
         await new_watcher.start(watch_paths, loop)
         svc["watcher"] = new_watcher

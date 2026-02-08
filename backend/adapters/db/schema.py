@@ -41,7 +41,10 @@ CREATE TABLE IF NOT EXISTS assets (
     duration REAL,  -- Video/audio duration in seconds (NULL for non-temporal assets)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    indexed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    indexed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    content_hash TEXT,
+    phash TEXT,
+    hash_state TEXT
 );
 
 CREATE TABLE IF NOT EXISTS asset_metadata (
