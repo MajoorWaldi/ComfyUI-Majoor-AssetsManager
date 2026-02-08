@@ -96,6 +96,9 @@ const DEFAULT_SETTINGS = {
     cache: {
         tagsTTLms: 30_000,
     },
+    search: {
+        maxResults: APP_DEFAULTS.SEARCH_DEFAULT_LIMIT,
+    },
     workflowMinimap: {
         enabled: false,
         nodeColors: true,
@@ -301,6 +304,11 @@ const applySettingsToConfig = (settings) => {
 
     APP_CONFIG.DELETE_CONFIRMATION = !!settings.safety?.confirmDeletion;
     APP_CONFIG.DEBUG_VERBOSE_ERRORS = !!settings.observability?.verboseErrors;
+    // Search request limit (client-side); backend still enforces MAJOOR_SEARCH_MAX_LIMIT
+    APP_CONFIG.SEARCH_REQUEST_LIMIT = Math.max(
+        10,
+        Math.min(APP_DEFAULTS.MAX_PAGE_SIZE || 2000, Math.round(_safeNum(settings.search?.maxResults, APP_DEFAULTS.SEARCH_DEFAULT_LIMIT)))
+    );
 };
 
 export async function syncBackendSecuritySettings() {
@@ -1213,6 +1221,29 @@ export const registerMajoorSettings = (app, onApplied) => {
                 notifyApplied("observability.verboseErrors");
             },
         });
+
+            // ------------------------
+            // Search UI setting
+            // ------------------------
+            safeAddSetting({
+                id: `${SETTINGS_PREFIX}.Search.MaxResults`,
+                category: cat(t("cat.search", "Search")),
+                name: t("setting.search.maxResults.name", "Max search results (client)"),
+                tooltip: t(
+                    "setting.search.maxResults.desc",
+                    "Maximum number of results requested per search. The backend still enforces MAJOOR_SEARCH_MAX_LIMIT; increase that env var if you need a higher hard cap."
+                ),
+                type: "number",
+                defaultValue: Number(settings.search?.maxResults || APP_DEFAULTS.SEARCH_DEFAULT_LIMIT),
+                attrs: { min: 10, max: APP_DEFAULTS.MAX_PAGE_SIZE || 2000, step: 1 },
+                onChange: (value) => {
+                    settings.search = settings.search || {};
+                    settings.search.maxResults = Math.max(10, Math.min(APP_DEFAULTS.MAX_PAGE_SIZE || 2000, Number(value) || APP_DEFAULTS.SEARCH_DEFAULT_LIMIT));
+                    saveMajoorSettings(settings);
+                    applySettingsToConfig(settings);
+                    notifyApplied("search.maxResults");
+                },
+            });
 
         safeAddSetting({
             id: `${SETTINGS_PREFIX}.EnvVars.Reference`,

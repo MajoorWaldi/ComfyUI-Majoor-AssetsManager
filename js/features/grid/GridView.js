@@ -542,8 +542,9 @@ function clearGridMessage(gridContainer) {
     } catch {}
 }
 
-function setGridMessage(gridContainer, text, { error = false } = {}) {
+function setGridMessage(gridContainer, text, { error = false, clear = false } = {}) {
     if (!gridContainer) return;
+    // Remove previous message elements
     clearGridMessage(gridContainer);
     try {
         const msg = document.createElement("div");
@@ -564,7 +565,15 @@ function setGridMessage(gridContainer, text, { error = false } = {}) {
             background: rgba(0, 0, 0, 0.35);
             z-index: 2;
         `;
-        gridContainer.appendChild(msg);
+        if (clear) {
+            try {
+                // Clear existing DOM content to avoid overlap with previous grid elements
+                gridContainer.replaceChildren();
+            } catch {}
+            gridContainer.appendChild(msg);
+        } else {
+            gridContainer.appendChild(msg);
+        }
     } catch {}
 }
 
@@ -1620,10 +1629,10 @@ export async function loadAssets(gridContainer, query = "*", options = {}) {
             hideLoadingOverlay(gridContainer);
             // Check if items present in state, not just DOM (logic shift)
             const hasItems = state.assets && state.assets.length > 0;
-              if (!hasItems && state.offset === 0) {
+                  if (!hasItems && state.offset === 0) {
                   // Manually clear to show message
                   if (state.virtualGrid) state.virtualGrid.setItems([]);
-                  setGridMessage(gridContainer, "No assets found");
+                  setGridMessage(gridContainer, "No assets found", { clear: true });
               } else {
                   startInfiniteScroll(gridContainer, state);
               }
@@ -1763,7 +1772,7 @@ export async function loadAssetsFromList(gridContainer, assets, options = {}) {
             const hasItems = state.assets && state.assets.length > 0;
               if (!hasItems) {
                   if (state.virtualGrid) state.virtualGrid.setItems([]);
-                  setGridMessage(gridContainer, "No assets found");
+                  setGridMessage(gridContainer, "No assets found", { clear: true });
               }
         }
 

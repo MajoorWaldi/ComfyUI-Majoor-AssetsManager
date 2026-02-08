@@ -268,6 +268,11 @@ async def ensure_indexes_and_triggers(db) -> Result[bool]:
     if not result.ok:
         logger.error("Failed to ensure indexes/triggers: %s", result.error)
         return result
+    # Repair assets_fts first (content-backed FTS table), then asset_metadata_fts
+    repair_assets = await _repair_assets_fts(db)
+    if repair_assets and not repair_assets.ok:
+        logger.warning("Failed to repair assets_fts: %s", repair_assets.error)
+
     repair_result = await _repair_asset_metadata_fts(db)
     if repair_result and not repair_result.ok:
         logger.warning("Failed to repair asset_metadata_fts: %s", repair_result.error)
@@ -450,6 +455,94 @@ async def _ensure_schema(db) -> Result[bool]:
 
     log_success(logger, f"Schema ensured (version {CURRENT_SCHEMA_VERSION})")
     return Result.Ok(True)
+
+
+async def _repair_assets_fts(db) -> Result[bool]:
+    """
+    Ensure the `assets_fts` virtual table and its triggers are correctly defined and
+    repopulated from the `assets` table. This prevents stale/missing FTS rows when
+    triggers were not present or the FTS table got out of sync.
+    """
+    try:
+        table_row = await db.aquery("SELECT sql FROM sqlite_master WHERE type='table' AND name='assets_fts' LIMIT 1")
+        ddl = ""
+        if table_row.ok and table_row.data:
+            ddl = str(table_row.data[0].get("sql") or "")
+        ddl_lower = ddl.lower()
+
+        # Check existing trigger presence
+        trig_row = await db.aquery("SELECT name FROM sqlite_master WHERE type='trigger' AND name LIKE 'assets_fts_%'")
+        triggers_exist = trig_row.ok and bool(trig_row.data)
+
+        needs_rebuild = False
+        # If virtual table ddl looks wrong or triggers missing -> rebuild
+        if not ddl_lower or "fts5" not in ddl_lower or not triggers_exist:
+            needs_rebuild = True
+
+        if not needs_rebuild:
+            return Result.Ok(True)
+    except Exception:
+        return Result.Ok(True)
+
+    logger.warning("Repairing assets_fts (schema/triggers)")
+    try:
+        async with db.atransaction(mode="immediate") as tx:
+            if not tx.ok:
+                return Result.Err("DB_ERROR", tx.error or "Failed to begin transaction")
+
+            await db.aexecutescript(
+                """
+                DROP TRIGGER IF EXISTS assets_fts_insert;
+                DROP TRIGGER IF EXISTS assets_fts_delete;
+                DROP TRIGGER IF EXISTS assets_fts_update;
+                DROP TABLE IF EXISTS assets_fts;
+                """
+            )
+
+            await db.aexecutescript(
+                """
+                CREATE VIRTUAL TABLE IF NOT EXISTS assets_fts USING fts5(
+                    filename,
+                    subfolder,
+                    content='assets',
+                    content_rowid='id'
+                );
+                """
+            )
+
+            await db.aexecutescript(
+                """
+                CREATE TRIGGER IF NOT EXISTS assets_fts_insert AFTER INSERT ON assets BEGIN
+                    INSERT INTO assets_fts(rowid, filename, subfolder)
+                    VALUES (new.id, new.filename, new.subfolder);
+                END;
+
+                CREATE TRIGGER IF NOT EXISTS assets_fts_delete AFTER DELETE ON assets BEGIN
+                    DELETE FROM assets_fts WHERE rowid = old.id;
+                END;
+
+                CREATE TRIGGER IF NOT EXISTS assets_fts_update AFTER UPDATE ON assets BEGIN
+                    UPDATE assets_fts SET filename = new.filename, subfolder = new.subfolder
+                    WHERE rowid = new.id;
+                END;
+                """
+            )
+
+            # Rebuild FTS contents from assets table
+            await db.aexecutescript(
+                """
+                DELETE FROM assets_fts;
+                INSERT INTO assets_fts(rowid, filename, subfolder)
+                SELECT id, COALESCE(filename, ''), COALESCE(subfolder, '') FROM assets;
+                """
+            )
+
+        if not tx.ok:
+            return Result.Err("DB_ERROR", tx.error or "Commit failed")
+        return Result.Ok(True)
+    except Exception as exc:
+        logger.warning("Failed to repair assets_fts: %s", exc)
+        return Result.Err("FTS_REPAIR_FAILED", str(exc))
 
 
 async def init_schema(db) -> Result[bool]:
