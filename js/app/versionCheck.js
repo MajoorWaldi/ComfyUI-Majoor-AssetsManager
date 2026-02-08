@@ -1,11 +1,14 @@
 import { get } from "../api/client.js";
 import { ENDPOINTS } from "../api/endpoints.js";
 import { comfyToast } from "./toast.js";
+import { comfyAlert } from "./dialogs.js";
+import { t } from "./i18n.js";
 
 export const VERSION_UPDATE_EVENT = "mjr:version-update-available";
 export const VERSION_UPDATE_STATE_KEY = "__MJR_VERSION_UPDATE_STATE__";
 const LATEST_RELEASE_URL = "https://api.github.com/repos/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/latest";
 const LAST_CHECK_KEY = "majoor_last_update_check";
+const DB_RESET_NOTICE_VERSION_KEY = "majoor_db_reset_notice_version";
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 let _versionUpdateState = { available: false, timestamp: Date.now() };
@@ -139,12 +142,33 @@ export async function checkMajoorVersion({ force = false } = {}) {
 
     comfyToast(
         {
-            summary: "Majoor Assets Manager",
-            detail: `Mise à jour disponible : ${remoteVersion} (Actuel : ${localVersion})`
+            summary: t("msg.newVersionTitle", "Majoor Assets Manager"),
+            detail: t("msg.newVersionDetail", "New version available: {latest} (Current: {current})", {
+                latest: remoteVersion,
+                current: localVersion,
+            }),
         },
         "info",
         10000
     );
+
+    try {
+        const alreadyShownFor = String(window.localStorage.getItem(DB_RESET_NOTICE_VERSION_KEY) || "").trim();
+        if (alreadyShownFor !== remoteVersion) {
+            setTimeout(() => {
+                comfyAlert(
+                    t(
+                        "msg.dbResetNotice",
+                        "Majoor Update Notice:\n\nTo avoid database errors with this new version, please delete your existing index. Click the 'Delete DB' button in the Index Status panel to reset it."
+                    )
+                );
+            }, 1000);
+            try {
+                window.localStorage.setItem(DB_RESET_NOTICE_VERSION_KEY, remoteVersion);
+            } catch {}
+        }
+    } catch {}
+
 
     return { current: localVersion, latest: remoteVersion };
 }
