@@ -80,6 +80,8 @@ export const APP_DEFAULTS = Object.freeze({
     // Upper bound for a single list request. The backend allows more, but very large
     // pages can create huge DOM batches; keep this as a safety cap.
     MAX_PAGE_SIZE: 2000,
+    // Client-side default for search request limit (user-adjustable in settings)
+    SEARCH_DEFAULT_LIMIT: 500,
     INFINITE_SCROLL_ENABLED: true,
     INFINITE_SCROLL_ROOT_MARGIN: "800px",
     INFINITE_SCROLL_THRESHOLD: 0.01,

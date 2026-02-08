@@ -48,8 +48,4 @@ Icon = "https://raw.githubusercontent.com/MajoorWaldi/ComfyUI-Majoor-AssetsManag
 includes = [] 
 # "requires-comfyui" = ">=1.0.0"  # ComfyUI version compatibility
 
-[tool.pytest.ini_options]
-# Keep pytest temp artifacts (tmp_path, tmp_path_factory) inside the repo under `tests/`.
-# This ensures *.db / *.db-wal / *.db-shm created by tests are easy to find and never pollute the repo root.
-addopts = ["--basetemp=tests/__pytest_tmp__"]
 
