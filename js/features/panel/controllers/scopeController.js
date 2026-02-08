@@ -1,4 +1,17 @@
-export function createScopeController({ state, tabButtons, customMenuBtn, customPopover, popovers, refreshCustomRoots, reloadGrid, onChanged = null, onScopeChanged = null }) {
+export function createScopeController({
+    state,
+    tabButtons,
+    customMenuBtn,
+    customPopover,
+    popovers,
+    refreshCustomRoots,
+    reloadGrid,
+    onChanged = null,
+    onScopeChanged = null,
+    onBeforeReload = null
+}) {
+    let scopeSwitchSeq = 0;
+
     const setActiveTabStyles = () => {
         const buttons = Object.values(tabButtons || {});
         buttons.forEach((b) => {
@@ -15,6 +28,7 @@ export function createScopeController({ state, tabButtons, customMenuBtn, custom
     };
 
     const setScope = async (scope) => {
+        const requestedSeq = ++scopeSwitchSeq;
         const allowed = new Set(["output", "outputs", "input", "inputs", "all", "custom"]);
         const normalized = String(scope || "").toLowerCase();
         if (!allowed.has(normalized)) return;
@@ -28,6 +42,7 @@ export function createScopeController({ state, tabButtons, customMenuBtn, custom
             state.customRootId = "";
         } else {
             await refreshCustomRoots();
+            if (requestedSeq !== scopeSwitchSeq) return;
         }
 
         setActiveTabStyles();
@@ -37,6 +52,11 @@ export function createScopeController({ state, tabButtons, customMenuBtn, custom
         try {
             await onScopeChanged?.(state);
         } catch {}
+        if (requestedSeq !== scopeSwitchSeq) return;
+        try {
+            await onBeforeReload?.(state);
+        } catch {}
+        if (requestedSeq !== scopeSwitchSeq) return;
         await reloadGrid();
     };
 

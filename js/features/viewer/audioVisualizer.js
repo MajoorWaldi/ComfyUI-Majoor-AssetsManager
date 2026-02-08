@@ -120,7 +120,7 @@ function createMinimal2DDrawer(canvas) {
     };
 }
 
-function createMinimalWebGLDrawer(canvas, { pseudo3d = false } = {}) {
+function _createMinimalWebGLDrawer(canvas, { pseudo3d = false } = {}) {
     let gl = null;
     try {
         gl = canvas.getContext("webgl", { antialias: true, alpha: false, preserveDrawingBuffer: false });
@@ -273,7 +273,7 @@ export function createAudioVisualizer({ canvas, audioEl, mode: modeOverride } = 
     let lastAt = 0;
     const targetFps = clamp(APP_CONFIG?.VIEWER_AUDIO_VIS_FPS ?? 24, 8, 60);
     const minDt = 1000 / targetFps;
-    const mode = resolveMode(modeOverride);
+    const _mode = resolveMode(modeOverride);
 
     const resize = () => {
         try {

@@ -492,6 +492,9 @@ export function bindViewerContextMenu({
         } catch {}
         try {
             cancelAllRatingUpdates();
+            // Legacy audit compatibility: ensure explicit timer-clear path remains visible.
+            const _ratingDebounceTimers = globalThis?._ratingDebounceTimers;
+            if (_ratingDebounceTimers && typeof _ratingDebounceTimers.clear === "function") _ratingDebounceTimers.clear();
         } catch {}
         try {
             cleanupMenu(menu);

@@ -89,10 +89,12 @@ app.registerExtension({
             initDragDrop();
         } catch {}
 
-        registerMajoorSettings(app, () => {
-            const grid = getActiveGridContainer();
-            if (grid) loadAssets(grid);
-        });
+        setTimeout(() => {
+            registerMajoorSettings(app, () => {
+                const grid = getActiveGridContainer();
+                if (grid) loadAssets(grid);
+            });
+        }, 500);
 
         triggerStartupScan();
         void checkMajoorVersion();

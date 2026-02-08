@@ -524,8 +524,8 @@ export async function setWatcherScope({ scope = "output", customRootId = "" } = 
     return post(ENDPOINTS.WATCHER_SCOPE, body);
 }
 
-export async function getWatcherStatus() {
-    return get(ENDPOINTS.WATCHER_STATUS);
+export async function getWatcherStatus(options = {}) {
+    return get(ENDPOINTS.WATCHER_STATUS, options);
 }
 
 export async function toggleWatcher(enabled = true) {
@@ -566,14 +566,17 @@ export async function startDuplicatesAnalysis(limit = 250) {
     return post("/mjr/am/duplicates/analyze", { limit: Math.max(10, Math.min(5000, Number(limit) || 250)) });
 }
 
-export async function getDuplicateAlerts({ scope = "output", customRootId = "", maxGroups = 6, maxPairs = 10 } = {}) {
+export async function getDuplicateAlerts(
+    { scope = "output", customRootId = "", maxGroups = 6, maxPairs = 10 } = {},
+    options = {}
+) {
     let url = `/mjr/am/duplicates/alerts?scope=${encodeURIComponent(String(scope || "output"))}`;
     if (customRootId) {
         url += `&custom_root_id=${encodeURIComponent(String(customRootId))}`;
     }
     url += `&max_groups=${encodeURIComponent(String(Math.max(1, Number(maxGroups) || 6)))}`;
     url += `&max_pairs=${encodeURIComponent(String(Math.max(1, Number(maxPairs) || 10)))}`;
-    return get(url);
+    return get(url, options);
 }
 
 export async function mergeDuplicateTags(keepAssetId, mergeAssetIds = []) {

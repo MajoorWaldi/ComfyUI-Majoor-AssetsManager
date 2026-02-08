@@ -11,7 +11,7 @@ import sys
 import mimetypes
 from pathlib import Path
 
-from backend.shared import Result, get_logger, sanitize_error_message
+from backend.shared import Result, get_logger, sanitize_error_message as _safe_error_message
 from backend.config import OUTPUT_ROOT, TO_THREAD_TIMEOUT_S
 from backend.custom_roots import list_custom_roots, resolve_custom_root
 
@@ -100,7 +100,7 @@ def _delete_file_best_effort(path: Path) -> Result[bool]:
             return Result.Ok(True, method="noop")
     except Exception as exc:
         return Result.Err(
-            "DELETE_FAILED", sanitize_error_message(exc, "Failed to stat file")
+            "DELETE_FAILED", _safe_error_message(exc, "Failed to stat file")
         )
 
     # Prefer recycle bin when possible.
@@ -117,11 +117,11 @@ def _delete_file_best_effort(path: Path) -> Result[bool]:
                 return Result.Ok(
                     True,
                     method="unlink_fallback",
-                    warning=sanitize_error_message(exc, "send2trash failed"),
+                    warning=_safe_error_message(exc, "send2trash failed"),
                 )
             except Exception as exc2:
                 return Result.Err(
-                    "DELETE_FAILED", sanitize_error_message(exc2, "Failed to delete file")
+                    "DELETE_FAILED", _safe_error_message(exc2, "Failed to delete file")
                 )
     except Exception:
         # send2trash not available or failed to import.
@@ -130,7 +130,7 @@ def _delete_file_best_effort(path: Path) -> Result[bool]:
             return Result.Ok(True, method="unlink")
         except Exception as exc:
             return Result.Err(
-                "DELETE_FAILED", sanitize_error_message(exc, "Failed to delete file")
+                "DELETE_FAILED", _safe_error_message(exc, "Failed to delete file")
             )
 
 
@@ -250,7 +250,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         except Exception as exc:
             return Result.Err(
                 "DB_ERROR",
-                sanitize_error_message(exc, "Failed to resolve asset id"),
+                _safe_error_message(exc, "Failed to resolve asset id"),
             )
 
     def _get_rating_tags_sync_mode(request: web.Request) -> str:
@@ -393,7 +393,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             result = await svc["index"].update_asset_rating(asset_id, rating)
         except Exception as exc:
             result = Result.Err(
-                "UPDATE_FAILED", sanitize_error_message(exc, "Failed to update rating")
+                "UPDATE_FAILED", _safe_error_message(exc, "Failed to update rating")
             )
         if result.ok:
             await _enqueue_rating_tags_sync(request, svc, asset_id)
@@ -476,7 +476,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             result = await svc["index"].update_asset_tags(asset_id, sanitized_tags)
         except Exception as exc:
             result = Result.Err(
-                "UPDATE_FAILED", sanitize_error_message(exc, "Failed to update tags")
+                "UPDATE_FAILED", _safe_error_message(exc, "Failed to update tags")
             )
         if result.ok:
             await _enqueue_rating_tags_sync(request, svc, asset_id)
@@ -535,7 +535,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             raw_path = (res.data[0] or {}).get("filepath")
         except Exception as exc:
             return _json_response(
-                Result.Err("DB_ERROR", sanitize_error_message(exc, "Failed to load asset"))
+                Result.Err("DB_ERROR", _safe_error_message(exc, "Failed to load asset"))
             )
 
         if not raw_path or not isinstance(raw_path, str):
@@ -616,7 +616,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         return _json_response(
             Result.Err(
                 "DEGRADED",
-                sanitize_error_message(
+                _safe_error_message(
                     last_exception or ValueError("Failed to open folder"),
                     "Failed to open folder",
                 ),
@@ -638,7 +638,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             result = await svc["index"].get_all_tags()
         except Exception as exc:
             result = Result.Err(
-                "DB_ERROR", sanitize_error_message(exc, "Failed to load tags")
+                "DB_ERROR", _safe_error_message(exc, "Failed to load tags")
             )
         return _json_response(result)
 
@@ -722,7 +722,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             raw_path = (res.data[0] or {}).get("filepath")
         except Exception as exc:
             return _json_response(
-                Result.Err("DB_ERROR", sanitize_error_message(exc, "Failed to load asset"))
+                Result.Err("DB_ERROR", _safe_error_message(exc, "Failed to load asset"))
             )
 
         if not raw_path or not isinstance(raw_path, str):
@@ -747,11 +747,11 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             try:
                 del_res = _delete_file_best_effort(resolved)
                 if not del_res.ok:
-                    file_deletion_error = sanitize_error_message(
+                    file_deletion_error = _safe_error_message(
                         del_res.error or "delete failed", "File deletion failed"
                     )
             except Exception as exc:
-                file_deletion_error = sanitize_error_message(exc, "File deletion failed")
+                file_deletion_error = _safe_error_message(exc, "File deletion failed")
 
         if file_deletion_error:
             return _json_response(Result.Err(
@@ -779,7 +779,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             return _json_response(
                 Result.Err(
                     "DB_ERROR",
-                    sanitize_error_message(exc, "Failed to delete asset record"),
+                    _safe_error_message(exc, "Failed to delete asset record"),
                 )
             )
 
@@ -844,7 +844,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             current_filename = row.get("filename")
         except Exception as exc:
             return _json_response(
-                Result.Err("DB_ERROR", sanitize_error_message(exc, "Failed to load asset"))
+                Result.Err("DB_ERROR", _safe_error_message(exc, "Failed to load asset"))
             )
 
         if not current_filepath or not isinstance(current_filepath, str):
@@ -881,7 +881,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             return _json_response(
                 Result.Err(
                     "RENAME_FAILED",
-                    sanitize_error_message(exc, "Failed to rename file"),
+                    _safe_error_message(exc, "Failed to rename file"),
                 )
             )
 
@@ -896,7 +896,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                 return _json_response(
                     Result.Err(
                         "FS_ERROR",
-                        sanitize_error_message(exc, "Failed to stat renamed file"),
+                        _safe_error_message(exc, "Failed to stat renamed file"),
                     )
                 )
             update_res = await svc["db"].aexecute(
@@ -913,7 +913,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             return _json_response(
                 Result.Err(
                     "DB_ERROR",
-                    sanitize_error_message(exc, "Failed to update asset record"),
+                    _safe_error_message(exc, "Failed to update asset record"),
                 )
             )
 
@@ -992,7 +992,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             return _json_response(
                 Result.Err(
                     "DB_ERROR",
-                    sanitize_error_message(exc, "Failed to validate assets"),
+                    _safe_error_message(exc, "Failed to validate assets"),
                 )
             )
 
@@ -1038,7 +1038,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                     file_deletion_errors.append(
                         {
                             "asset_id": asset_info["id"],
-                            "error": sanitize_error_message(exc, "File deletion failed"),
+                            "error": _safe_error_message(exc, "File deletion failed"),
                         }
                     )
                     break
@@ -1071,7 +1071,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             return _json_response(
                 Result.Err(
                     "DB_ERROR",
-                    sanitize_error_message(exc, "Failed to delete asset records"),
+                    _safe_error_message(exc, "Failed to delete asset records"),
                 )
             )
 

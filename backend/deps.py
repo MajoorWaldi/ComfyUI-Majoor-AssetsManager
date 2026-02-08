@@ -120,7 +120,7 @@ async def build_services(db_path: str = None) -> Result[dict]:
     except Exception as exc:
         logger.debug("RatingTagsSyncWorker disabled: %s", exc)
 
-    # File watcher for manual additions (disabled by default, enable with MJR_ENABLE_WATCHER=1)
+    # File watcher for manual additions (enabled by default; disable with MJR_ENABLE_WATCHER=0)
     if WATCHER_ENABLED:
         try:
             watcher = await _create_watcher(index_service)
@@ -150,7 +150,38 @@ async def _create_watcher(index_service: IndexService) -> OutputWatcher:
                 root_id=root_id,
             )
 
-    watcher = OutputWatcher(index_callback)
+    async def remove_callback(filepaths: list, _base_dir: str, _source: str | None = None, _root_id: str | None = None):
+        if not filepaths:
+            return
+        for fp in filepaths:
+            try:
+                await index_service.remove_file(str(fp))
+            except Exception:
+                continue
+
+    async def move_callback(moves: list, _base_dir: str, _source: str | None = None, _root_id: str | None = None):
+        if not moves:
+            return
+        for move in moves:
+            try:
+                old_fp, new_fp = move
+            except Exception:
+                continue
+            try:
+                res = await index_service.rename_file(str(old_fp), str(new_fp))
+                if not res.ok:
+                    await index_service.remove_file(str(old_fp))
+                    await index_service.index_paths(
+                        paths=[Path(str(new_fp))],
+                        base_dir=str(Path(str(new_fp)).parent),
+                        incremental=True,
+                        source=_source or "watcher",
+                        root_id=_root_id,
+                    )
+            except Exception:
+                continue
+
+    watcher = OutputWatcher(index_callback, remove_callback=remove_callback, move_callback=move_callback)
 
     # Collect directories to watch
     try:

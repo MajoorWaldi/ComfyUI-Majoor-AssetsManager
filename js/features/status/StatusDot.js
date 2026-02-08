@@ -564,7 +564,14 @@ function setBodyCollapsed(section, collapsed) {
         indicator.textContent = "▾";
     }
 }
-export async function updateStatus(statusDot, statusText, capabilitiesSection = null, scanTarget = null, meta = null) {
+export async function updateStatus(statusDot, statusText, capabilitiesSection = null, scanTarget = null, meta = null, options = {}) {
+    const signal = options?.signal || null;
+    try {
+        if (signal?.aborted) return null;
+    } catch {}
+    try {
+        if (!statusDot?.isConnected || !statusText?.isConnected) return null;
+    } catch {}
     // Optional: caller-provided object to read the last HTTP error details from.
     // (Used by the polling loop to avoid relying on string matching.)
     if (meta && typeof meta === "object") {
@@ -578,13 +585,19 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
         desiredScope === "custom"
             ? `${ENDPOINTS.HEALTH_COUNTERS}?scope=custom&custom_root_id=${encodeURIComponent(String(desiredCustomRootId || ""))}`
             : `${ENDPOINTS.HEALTH_COUNTERS}?scope=${encodeURIComponent(desiredScope || "output")}`;
-    const result = await get(url);
+    const result = await get(url, signal ? { signal } : undefined);
     let toolStatusData = null;
     try {
-        const toolsResult = await getToolsStatus();
+        const toolsResult = await getToolsStatus(signal ? { signal } : undefined);
         if (toolsResult?.ok) {
             toolStatusData = toolsResult.data;
         }
+    } catch {}
+    try {
+        if (signal?.aborted) return null;
+    } catch {}
+    try {
+        if (!statusDot?.isConnected || !statusText?.isConnected) return null;
     } catch {}
 
     if (meta && typeof meta === "object") {
@@ -607,7 +620,7 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
         let watcherInfo = counters.watcher;
         try {
             if (!watcherInfo || typeof watcherInfo.enabled !== "boolean") {
-                const wres = await getWatcherStatus();
+                const wres = await getWatcherStatus(signal ? { signal } : undefined);
                 if (wres?.ok && wres.data) {
                     watcherInfo = {
                         enabled: !!wres.data.enabled,
@@ -738,9 +751,15 @@ export function setupStatusPolling(
     const GLOBAL_POLL_KEY = "__MJR_STATUS_POLL_DISPOSE__";
     const pollMeta = { lastCode: null, lastStatus: null };
 
+    const pollingAC = typeof AbortController !== "undefined" ? new AbortController() : null;
     const handleUpdate = async () => {
+        try {
+            if (pollingAC?.signal?.aborted) return null;
+        } catch {}
         const target = typeof getScanTarget === "function" ? getScanTarget() : null;
-        const counters = await updateStatus(statusDot, statusText, capabilitiesSection, target, pollMeta);
+        const counters = await updateStatus(statusDot, statusText, capabilitiesSection, target, pollMeta, {
+            signal: pollingAC?.signal || null
+        });
         if (counters && typeof onCountersUpdate === "function") {
             onCountersUpdate(counters);
         }
@@ -774,6 +793,9 @@ export function setupStatusPolling(
             : baseMs;
 
         pollTimerId = setTimeout(async () => {
+            try {
+                if (pollingAC?.signal?.aborted) return;
+            } catch {}
             const counters = await handleUpdate();
 
             // If the backend routes aren't loaded, ComfyUI returns an HTML 404 page (non-JSON).
@@ -798,6 +820,9 @@ export function setupStatusPolling(
         }, waitMs);
     };
     section._mjrStatusPollDispose = () => {
+        try {
+            pollingAC?.abort?.();
+        } catch {}
         if (pollTimerId) clearTimeout(pollTimerId);
         pollTimerId = null;
     };

@@ -169,6 +169,58 @@ class IndexService:
         logger.debug(f"Removed from index: {filepath}")
         return Result.Ok(True)
 
+    async def rename_file(self, old_filepath: str, new_filepath: str) -> Result[bool]:
+        """
+        Rename/move a file path in index tables without rescanning directories.
+
+        This keeps DB metadata attached to the asset while updating path-keyed tables.
+        """
+        old_fp = str(old_filepath or "")
+        new_fp = str(new_filepath or "")
+        if not old_fp or not new_fp:
+            return Result.Err("INVALID_INPUT", "Missing old/new filepath")
+        if old_fp == new_fp:
+            return Result.Ok(True)
+
+        try:
+            new_path = Path(new_fp)
+            filename = new_path.name
+            subfolder = str(new_path.parent)
+            mtime = None
+            try:
+                if new_path.exists():
+                    mtime = int(new_path.stat().st_mtime)
+            except Exception:
+                mtime = None
+
+            async with self.db.atransaction(mode="immediate"):
+                if mtime is None:
+                    upd = await self.db.aexecute(
+                        "UPDATE assets SET filepath = ?, filename = ?, subfolder = ?, updated_at = CURRENT_TIMESTAMP WHERE filepath = ?",
+                        (new_fp, filename, subfolder, old_fp),
+                    )
+                else:
+                    upd = await self.db.aexecute(
+                        "UPDATE assets SET filepath = ?, filename = ?, subfolder = ?, mtime = ?, updated_at = CURRENT_TIMESTAMP WHERE filepath = ?",
+                        (new_fp, filename, subfolder, mtime, old_fp),
+                    )
+                if not upd.ok:
+                    return Result.Err("DB_ERROR", upd.error or "Failed to update asset filepath")
+
+                await self.db.aexecute(
+                    "UPDATE scan_journal SET filepath = ?, dir_path = ?, mtime = COALESCE(?, mtime), last_seen = CURRENT_TIMESTAMP WHERE filepath = ?",
+                    (new_fp, subfolder, mtime, old_fp),
+                )
+                await self.db.aexecute(
+                    "UPDATE metadata_cache SET filepath = ?, last_updated = CURRENT_TIMESTAMP WHERE filepath = ?",
+                    (new_fp, old_fp),
+                )
+        except Exception as exc:
+            return Result.Err("DB_ERROR", str(exc))
+
+        logger.debug("Renamed in index: %s -> %s", old_fp, new_fp)
+        return Result.Ok(True)
+
     # ==================== Search Operations ====================
 
     async def search(

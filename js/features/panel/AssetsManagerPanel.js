@@ -1,11 +1,12 @@
 
 import { comfyConfirm, comfyPrompt } from "../../app/dialogs.js";
 import { comfyToast } from "../../app/toast.js";
-import { createStatusIndicator, setupStatusPolling, triggerScan } from "../status/StatusDot.js";
+import { createStatusIndicator, setupStatusPolling, triggerScan, updateStatus } from "../status/StatusDot.js";
 import {
     createGridContainer,
     loadAssets,
     loadAssetsFromList,
+    prepareGridForScopeSwitch,
     disposeGrid,
     refreshGrid,
     bindGridScanListeners,
@@ -69,6 +70,7 @@ export function getActiveGridContainer() {
 }
 
 export async function renderAssetsManager(container, { useComfyThemeUI = true } = {}) {
+    const panelLifecycleAC = typeof AbortController !== "undefined" ? new AbortController() : null;
     if (useComfyThemeUI) {
         container.classList.add("mjr-assets-manager");
     } else {
@@ -98,7 +100,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         container._mjrGridContextMenuUnbind?.();
     } catch {}
 
-    container.innerHTML = "";
+    container.replaceChildren();
     container.classList.add("mjr-am-container");
 
     const popovers = createPopoverManager(container);
@@ -135,7 +137,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     }
     searchInputEl.addEventListener("input", (e) => {
         state.searchQuery = e.target.value;
-    });
+    }, { signal: panelLifecycleAC?.signal });
 
     const { bar: summaryBar, update: updateSummaryBar } = createSummaryBarView();
 
@@ -177,7 +179,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 state.scrollTop = gridWrapper.scrollTop;
             } catch {}
         }, 100);
-    }, { passive: true });
+    }, { passive: true, signal: panelLifecycleAC?.signal });
 
     gridContainer = createGridContainer();
     gridWrapper.appendChild(gridContainer);
@@ -299,7 +301,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         } catch {}
     };
     try {
-        window.addEventListener?.("mjr-settings-changed", onSettingsChanged);
+        window.addEventListener?.("mjr-settings-changed", onSettingsChanged, { signal: panelLifecycleAC?.signal });
     } catch {}
 
     content.appendChild(statusSection);
@@ -329,6 +331,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     let contextController = null;
     let _duplicatesAlert = null;
     let _dupPollTimer = null;
+    let _autoLoadTimer = null;
     const notifyContextChanged = () => {
         try {
             contextController?.update?.();
@@ -350,7 +353,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 customRootId,
                 maxGroups: 4,
                 maxPairs: 4
-            });
+            }, { signal: panelLifecycleAC?.signal });
             if (!result?.ok) return;
             const data = result.data || {};
             _duplicatesAlert = {
@@ -412,12 +415,29 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             try {
                 await refreshDuplicateAlerts();
             } catch {}
+        },
+        onBeforeReload: async () => {
+            // Prevent stale cards overlap during fast scope switches.
+            try {
+                prepareGridForScopeSwitch(gridContainer);
+            } catch {}
+            // Force an immediate counters refresh for this scope instead of waiting polling tick.
+            try {
+                await updateStatus(
+                    statusDot,
+                    statusText,
+                    capabilitiesSection,
+                    { scope: state.scope, customRootId: state.customRootId },
+                    null,
+                    { signal: panelLifecycleAC?.signal || null }
+                );
+            } catch {}
         }
     });
 
     if (!header._mjrTabListenersBound) {
         Object.values(tabButtons).forEach((btn) => {
-            btn.addEventListener("click", () => scopeController.setScope(btn.dataset.scope));
+            btn.addEventListener("click", () => scopeController.setScope(btn.dataset.scope), { signal: panelLifecycleAC?.signal });
         });
         header._mjrTabListenersBound = true;
     }
@@ -438,14 +458,14 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         popovers.close(filterPopover);
         popovers.close(sortPopover);
         popovers.toggle(customPopover, customMenuBtn);
-    });
+    }, { signal: panelLifecycleAC?.signal });
 
     filterBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         popovers.close(customPopover);
         popovers.close(sortPopover);
         popovers.toggle(filterPopover, filterBtn);
-    });
+    }, { signal: panelLifecycleAC?.signal });
 
     sortController = createSortController({
         state,
@@ -672,6 +692,12 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
 
     container._eventCleanup = () => {
         try {
+            panelLifecycleAC?.abort?.();
+        } catch {}
+        try {
+            statusSection?._mjrStatusPollDispose?.();
+        } catch {}
+        try {
             container._mjrVersionUpdateCleanup?.();
         } catch {}
         container._mjrVersionUpdateCleanup = null;
@@ -695,11 +721,12 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             sidebarController?.dispose?.();
         } catch {}
         try {
-            window.removeEventListener?.("mjr-settings-changed", onSettingsChanged);
-        } catch {}
-        try {
             if (_dupPollTimer) clearInterval(_dupPollTimer);
             _dupPollTimer = null;
+        } catch {}
+        try {
+            if (_autoLoadTimer) clearTimeout(_autoLoadTimer);
+            _autoLoadTimer = null;
         } catch {}
         try {
             disposeGridScanListeners();
@@ -807,13 +834,13 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             searchTimeout = null;
             gridController.reloadGrid();
         }, 200);
-    });
+    }, { signal: panelLifecycleAC?.signal });
     searchInputEl.addEventListener("keypress", (e) => {
         if (e.key === "Enter") {
             gridController.reloadGrid();
             notifyContextChanged();
         }
-    });
+    }, { signal: panelLifecycleAC?.signal });
 
     const initialLoadPromise = gridController.reloadGrid();
     try {
@@ -821,6 +848,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     } catch {}
     try {
         _dupPollTimer = setInterval(() => {
+            try {
+                if (panelLifecycleAC?.signal?.aborted) return;
+            } catch {}
             refreshDuplicateAlerts().catch(() => {});
         }, 15000);
     } catch {}
@@ -889,13 +919,13 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         if (getQuery() !== "*") return;
 
         try {
-            const statusData = await get(`${ENDPOINTS.HEALTH_COUNTERS}?scope=output`);
+            const statusData = await get(`${ENDPOINTS.HEALTH_COUNTERS}?scope=output`, { signal: panelLifecycleAC?.signal });
             if (statusData?.ok && (statusData.data?.total_assets || 0) > 0) {
                 await loadAssets(gridContainer);
             }
         } catch {}
     };
-    setTimeout(checkAndAutoLoad, 2000);
+    _autoLoadTimer = setTimeout(checkAndAutoLoad, 2000);
 
     return { gridContainer };
 }
