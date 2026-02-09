@@ -13,6 +13,7 @@ from ..metadata.parsing_utils import (
     looks_like_comfyui_workflow,
     parse_auto1111_params,
     parse_json_value,
+    try_parse_json_text,
 )
 from ..metadata.extractors import extract_rating_tags_from_exif
 
@@ -37,6 +38,71 @@ def _extract_json_fields(container: Any) -> Tuple[Optional[Dict[str, Any]], Opti
             prompt = parsed if looks_like_comfyui_prompt_graph(parsed) else prompt
         if workflow is not None and prompt is not None:
             break
+    return (workflow, prompt)
+
+
+def _unwrap_workflow_prompt_container(container: Any) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+    """
+    Handle wrapper payloads embedded in a single text field/tag, e.g:
+    {"workflow": {...}, "prompt": "{...json...}"}
+    """
+    if not isinstance(container, dict):
+        return (None, None)
+
+    wf = container.get("workflow") or container.get("Workflow") or None
+    pr = container.get("prompt") or container.get("Prompt") or None
+
+    wf_out: Optional[Dict[str, Any]] = None
+    pr_out: Optional[Dict[str, Any]] = None
+
+    if isinstance(wf, dict) and looks_like_comfyui_workflow(wf):
+        wf_out = wf
+
+    if isinstance(pr, dict) and looks_like_comfyui_prompt_graph(pr):
+        pr_out = pr
+    elif isinstance(pr, str):
+        parsed = try_parse_json_text(pr)
+        if isinstance(parsed, dict) and looks_like_comfyui_prompt_graph(parsed):
+            pr_out = parsed
+
+    return (wf_out, pr_out)
+
+
+def _scan_for_workflow_prompt(*containers: Any) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+    """
+    Robust scan across one or multiple metadata containers.
+    """
+    workflow: Optional[Dict[str, Any]] = None
+    prompt: Optional[Dict[str, Any]] = None
+
+    for container in containers:
+        if not isinstance(container, dict):
+            continue
+
+        # 1) Fast key-based parse first
+        wf, pr = _extract_json_fields(container)
+        if workflow is None:
+            workflow = wf
+        if prompt is None:
+            prompt = pr
+
+        # 2) Wrapper scan for JSON values under comments/descriptions
+        if workflow is None or prompt is None:
+            for _, value in container.items():
+                parsed = parse_json_value(value)
+                if not isinstance(parsed, dict):
+                    continue
+                wf2, pr2 = _unwrap_workflow_prompt_container(parsed)
+                if workflow is None and wf2 is not None:
+                    workflow = wf2
+                if prompt is None and pr2 is not None:
+                    prompt = pr2
+                if workflow is not None and prompt is not None:
+                    break
+
+        if workflow is not None and prompt is not None:
+            break
+
     return (workflow, prompt)
 
 
@@ -84,11 +150,17 @@ def extract_audio_metadata(
             if metadata["bitrate"] is None:
                 metadata["bitrate"] = fmt.get("bit_rate")
 
-        workflow, prompt = _extract_json_fields(exif_data)
-        if isinstance(fmt, dict):
-            wf2, pr2 = _extract_json_fields(fmt.get("tags"))
-            workflow = workflow or wf2
-            prompt = prompt or pr2
+        format_tags = fmt.get("tags") if isinstance(fmt, dict) and isinstance(fmt.get("tags"), dict) else {}
+        stream_tag_dicts = []
+        if isinstance(ffprobe_data, dict) and isinstance(ffprobe_data.get("streams"), list):
+            for stream in ffprobe_data.get("streams") or []:
+                if not isinstance(stream, dict):
+                    continue
+                tags = stream.get("tags")
+                if isinstance(tags, dict):
+                    stream_tag_dicts.append(tags)
+
+        workflow, prompt = _scan_for_workflow_prompt(exif_data, format_tags, *stream_tag_dicts)
 
         if workflow is not None:
             metadata["workflow"] = workflow

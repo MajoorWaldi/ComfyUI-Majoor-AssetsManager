@@ -21,6 +21,18 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install ExifTool and FFmpeg (includes ffprobe)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libimage-exiftool-perl ffmpeg
+
+      - name: Verify ExifTool and ffprobe
+        run: |
+          echo "ExifTool version:"
+          exiftool -ver || true
+          echo "ffprobe version:"
+          ffprobe -version || true
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip

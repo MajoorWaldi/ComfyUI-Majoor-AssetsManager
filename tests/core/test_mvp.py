@@ -1,14 +1,10 @@
-import pytest
-"""
-MVP test to validate architecture.
-Tests: Result pattern, logging with emojis, ExifTool, FFProbe, SQLite.
-"""
+"""MVP tests focused on Result pattern, adapters and SQLite behavior."""
+import json
 import sys
 from pathlib import Path
+from unittest.mock import MagicMock
 
-# Add project to path
-project_root = Path(__file__).parent
-sys.path.insert(0, str(project_root))
+import pytest
 
 from shared import Result, get_logger, log_success, ErrorCode
 from backend.adapters.tools import ExifTool, FFProbe
@@ -84,56 +80,55 @@ async def test_result_pattern():
     log_success(logger, "Result pattern works!")
 
 @pytest.mark.asyncio
-async def test_exiftool():
-    """Test ExifTool adapter."""
-    logger.info("Testing ExifTool adapter...")
+async def test_exiftool_with_mocks(tmp_path, monkeypatch):
+    """ExifTool adapter test with mocked OS/process responses."""
+    logger.info("Testing ExifTool adapter with mocks...")
+
+    test_file = tmp_path / "sample.png"
+    test_file.write_bytes(b"\x89PNG\r\n\x1a\n")
+
+    monkeypatch.setattr("backend.adapters.tools.exiftool.shutil.which", lambda _: "/usr/bin/exiftool")
+
+    fake_payload = [{"SourceFile": str(test_file), "XMP-xmp:Rating": 5, "XMP-dc:Subject": ["tag1"]}]
+    fake_proc = MagicMock(
+        returncode=0,
+        stdout=json.dumps(fake_payload),
+        stderr="",
+    )
+    monkeypatch.setattr("backend.adapters.tools.exiftool.subprocess.run", lambda *args, **kwargs: fake_proc)
 
     exiftool = ExifTool()
-
-    if not exiftool.is_available():
-        logger.warning("ExifTool not available, skipping test")
-        return
-
-    # Test with sample PNG file
-    test_file = Path("C:/Users/ewald/Pictures/ComfyUI_TOTEST/ComfyUI/custom_nodes/parser/00095-1926696019.png")
-    if not test_file.exists():
-        logger.warning(f"Test file not found: {test_file}")
-        return
+    assert exiftool.is_available()
 
     result = exiftool.read(str(test_file))
-
-    if result.ok:
-        logger.info(f"ExifTool found {len(result.data)} metadata fields")
-        logger.info(f"Sample fields: {list(result.data.keys())[:5]}")
-        log_success(logger, "ExifTool works!")
-    else:
-        logger.error(f"ExifTool failed: {result.error}")
+    assert result.ok
+    assert result.data["XMP-xmp:Rating"] == 5
+    assert "XMP-dc:Subject" in result.data
 
 @pytest.mark.asyncio
-async def test_ffprobe():
-    """Test FFProbe adapter."""
-    logger.info("Testing FFProbe adapter...")
+async def test_ffprobe_with_mocks(tmp_path, monkeypatch):
+    """FFProbe adapter test with mocked OS/process responses."""
+    logger.info("Testing FFProbe adapter with mocks...")
+
+    test_file = tmp_path / "sample.mp4"
+    test_file.write_bytes(b"\x00\x00\x00\x18ftypmp42")
+
+    monkeypatch.setattr("backend.adapters.tools.ffprobe.shutil.which", lambda _: "/usr/bin/ffprobe")
+
+    ffprobe_json = {
+        "format": {"format_name": "mov,mp4,m4a,3gp,3g2,mj2", "duration": "2.5"},
+        "streams": [{"codec_type": "video", "codec_name": "h264", "width": 1280, "height": 720}],
+    }
+    fake_proc = MagicMock(returncode=0, stdout=json.dumps(ffprobe_json), stderr="")
+    monkeypatch.setattr("backend.adapters.tools.ffprobe.subprocess.run", lambda *args, **kwargs: fake_proc)
 
     ffprobe = FFProbe()
-
-    if not ffprobe.is_available():
-        logger.warning("ffprobe not available, skipping test")
-        return
-
-    # Test with sample MP4 file
-    test_file = Path("C:/Users/ewald/Pictures/ComfyUI_TOTEST/ComfyUI/custom_nodes/parser/ComfyUI_00002_.mp4")
-    if not test_file.exists():
-        logger.warning(f"Test file not found: {test_file}")
-        return
+    assert ffprobe.is_available()
 
     result = ffprobe.read(str(test_file))
-
-    if result.ok:
-        logger.info(f"ffprobe format: {result.data.get('format', {}).get('format_name')}")
-        logger.info(f"Video stream: {result.data.get('video_stream', {}).get('codec_name')}")
-        log_success(logger, "FFProbe works!")
-    else:
-        logger.error(f"ffprobe failed: {result.error}")
+    assert result.ok
+    assert result.data["video_stream"]["codec_name"] == "h264"
+    assert result.data["format"]["duration"] == "2.5"
 
 @pytest.mark.asyncio
 async def test_sqlite(tmp_path):
@@ -150,11 +145,7 @@ async def main():
     logger.info("=" * 60)
 
     try:
-        test_result_pattern()
-        print()
-        await test_exiftool()
-        print()
-        await test_ffprobe()
+        await test_result_pattern()
         print()
         # For manual runs, keep artifacts out of the repo root.
         import tempfile

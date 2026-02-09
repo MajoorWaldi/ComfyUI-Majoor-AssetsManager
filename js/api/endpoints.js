@@ -11,6 +11,7 @@ export const ENDPOINTS = {
     // Health & Config
     HEALTH: "/mjr/am/health",
     HEALTH_COUNTERS: "/mjr/am/health/counters",
+    HEALTH_DB: "/mjr/am/health/db",
     CONFIG: "/mjr/am/config",
     VERSION: "/majoor/version",
 

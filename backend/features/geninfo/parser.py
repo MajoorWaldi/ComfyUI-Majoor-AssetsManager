@@ -1880,6 +1880,193 @@ def _normalize_graph_input(prompt_graph: Any, workflow: Any) -> Optional[Dict[st
     return nodes_by_id if nodes_by_id else None
 
 def _extract_geninfo(nodes_by_id: Dict[str, Any], sinks: List[str], workflow_meta: Optional[Dict]) -> Result:
+    def _extract_tts_geninfo_fallback() -> Optional[Dict[str, Any]]:
+        text_node_id = None
+        text_node = None
+        engine_node_id = None
+        engine_node = None
+
+        for nid, node in nodes_by_id.items():
+            if not isinstance(node, dict):
+                continue
+            ct = _lower(_node_type(node))
+            if text_node is None and ("unifiedttstextnode" in ct or "tts_text_node" in ct or ("tts" in ct and "text" in ct)):
+                text_node_id = nid
+                text_node = node
+            if engine_node is None and (
+                "ttsengine" in ct
+                or ("qwen" in ct and "tts" in ct and "engine" in ct)
+                or "engine_node" in ct and "tts" in ct
+            ):
+                engine_node_id = nid
+                engine_node = node
+            if text_node is not None and engine_node is not None:
+                break
+
+        if not text_node and not engine_node:
+            return None
+
+        out: Dict[str, Any] = {
+            "engine": {
+                "parser_version": "geninfo-tts-v1",
+                "type": "tts",
+                "sink": "audio",
+            }
+        }
+        if workflow_meta:
+            out["metadata"] = workflow_meta
+
+        if text_node:
+            tins = _inputs(text_node)
+            source = f"{_node_type(text_node)}:{text_node_id}"
+            # In TTS workflows, text node is the generation driver ("sampler").
+            out["sampler"] = {"name": str(_node_type(text_node) or "TTS"), "confidence": "high", "source": source}
+            text_value = tins.get("text")
+            if isinstance(text_value, str) and text_value.strip():
+                out["positive"] = {"value": text_value.strip(), "confidence": "high", "source": source}
+            seed_value = _scalar(tins.get("seed")) or _scalar(tins.get("noise_seed"))
+            if seed_value is not None:
+                out["seed"] = {"value": seed_value, "confidence": "high", "source": source}
+            narrator = _scalar(tins.get("narrator_voice"))
+            if narrator is not None and str(narrator).strip():
+                out["voice"] = {"name": str(narrator).strip(), "confidence": "high", "source": source}
+            for key in (
+                "enable_chunking",
+                "max_chars_per_chunk",
+                "chunk_combination_method",
+                "silence_between_chunks_ms",
+                "enable_audio_cache",
+                "batch_size",
+                "control_after_generate",
+            ):
+                value = _scalar(tins.get(key))
+                if value is not None:
+                    out[key] = {"value": value, "confidence": "high", "source": source}
+            # Workflow-export fallback: infer key fields from widgets_values.
+            widgets = text_node.get("widgets_values")
+            if isinstance(widgets, list):
+                if "positive" not in out:
+                    for v in widgets:
+                        if isinstance(v, str) and len(v.strip()) > 20:
+                            out["positive"] = {"value": v.strip(), "confidence": "medium", "source": source}
+                            break
+                if "seed" not in out:
+                    for v in widgets:
+                        sv = _scalar(v)
+                        if isinstance(sv, int) and sv >= 0:
+                            out["seed"] = {"value": sv, "confidence": "medium", "source": source}
+                            break
+                if "voice" not in out and len(widgets) >= 2 and isinstance(widgets[1], str) and widgets[1].strip():
+                    out["voice"] = {"name": widgets[1].strip(), "confidence": "medium", "source": source}
+            # If narrator comes from CharacterVoices via opt_narrator link, resolve voice_name.
+            try:
+                narrator_link = tins.get("opt_narrator")
+                narrator_id = _walk_passthrough(nodes_by_id, narrator_link) if _is_link(narrator_link) else None
+                narrator_node = nodes_by_id.get(narrator_id) if narrator_id else None
+                if isinstance(narrator_node, dict):
+                    nins = _inputs(narrator_node)
+                    voice_name = _scalar(nins.get("voice_name"))
+                    if voice_name is not None and str(voice_name).strip():
+                        out["voice"] = {
+                            "name": str(voice_name).strip(),
+                            "confidence": "high",
+                            "source": f"{_node_type(narrator_node)}:{narrator_id}",
+                        }
+            except Exception:
+                pass
+
+        if engine_node:
+            eins = _inputs(engine_node)
+            esource = f"{_node_type(engine_node)}:{engine_node_id}"
+            model_name = _clean_model_id(eins.get("model_size") or eins.get("model") or eins.get("checkpoint") or eins.get("model_name"))
+            if model_name:
+                out["checkpoint"] = {"name": model_name, "confidence": "high", "source": esource}
+                out["models"] = {"checkpoint": out["checkpoint"]}
+            device = _scalar(eins.get("device"))
+            if device is not None and str(device).strip():
+                out["device"] = {"value": str(device).strip(), "confidence": "high", "source": esource}
+            voice_preset = _scalar(eins.get("voice_preset"))
+            if voice_preset is not None and str(voice_preset).strip():
+                out["voice_preset"] = {"value": str(voice_preset).strip(), "confidence": "high", "source": esource}
+            instruct = _scalar(eins.get("instruct"))
+            if instruct is not None and str(instruct).strip():
+                out["instruct"] = {"value": str(instruct).strip(), "confidence": "high", "source": esource}
+            language = _scalar(eins.get("language"))
+            if language is not None and str(language).strip():
+                out["language"] = {"value": str(language).strip(), "confidence": "high", "source": esource}
+            for key in (
+                "temperature",
+                "top_p",
+                "top_k",
+                "repetition_penalty",
+                "max_new_tokens",
+                "dtype",
+                "attn_implementation",
+                "x_vector_only_mode",
+                "use_torch_compile",
+                "use_cuda_graphs",
+                "compile_mode",
+            ):
+                value = _scalar(eins.get(key))
+                if value is not None:
+                    out[key] = {"value": value, "confidence": "high", "source": esource}
+            # Workflow-export fallback for engine widgets.
+            ewidgets = engine_node.get("widgets_values")
+            ect = _lower(_node_type(engine_node))
+            if isinstance(ewidgets, list):
+                if "checkpoint" not in out and ewidgets:
+                    guess_model = _clean_model_id(ewidgets[0])
+                    if guess_model:
+                        out["checkpoint"] = {"name": guess_model, "confidence": "medium", "source": esource}
+                        out["models"] = {"checkpoint": out["checkpoint"]}
+                if "language" not in out:
+                    guess_lang = None
+                    if "qwen3ttsengine" in ect and len(ewidgets) > 3:
+                        guess_lang = _scalar(ewidgets[3])
+                    if guess_lang is None:
+                        for v in ewidgets:
+                            if isinstance(v, str) and v.strip() and v.strip().lower() not in ("auto", "default"):
+                                guess_lang = v
+                                break
+                    if guess_lang is not None:
+                        out["language"] = {"value": str(guess_lang).strip(), "confidence": "medium", "source": esource}
+                if "device" not in out and "qwen3ttsengine" in ect and len(ewidgets) > 1:
+                    v = _scalar(ewidgets[1])
+                    if v is not None and str(v).strip():
+                        out["device"] = {"value": str(v).strip(), "confidence": "medium", "source": esource}
+                if "voice_preset" not in out and "qwen3ttsengine" in ect and len(ewidgets) > 2:
+                    v = _scalar(ewidgets[2])
+                    if v is not None and str(v).strip():
+                        out["voice_preset"] = {"value": str(v).strip(), "confidence": "medium", "source": esource}
+                if "top_k" not in out and "qwen3ttsengine" in ect and len(ewidgets) > 5:
+                    v = _scalar(ewidgets[5])
+                    if v is not None:
+                        out["top_k"] = {"value": v, "confidence": "medium", "source": esource}
+                if "top_p" not in out and "qwen3ttsengine" in ect and len(ewidgets) > 6:
+                    v = _scalar(ewidgets[6])
+                    if v is not None:
+                        out["top_p"] = {"value": v, "confidence": "medium", "source": esource}
+                if "temperature" not in out and "qwen3ttsengine" in ect and len(ewidgets) > 7:
+                    v = _scalar(ewidgets[7])
+                    if v is not None:
+                        out["temperature"] = {"value": v, "confidence": "medium", "source": esource}
+                if "repetition_penalty" not in out and "qwen3ttsengine" in ect and len(ewidgets) > 8:
+                    v = _scalar(ewidgets[8])
+                    if v is not None:
+                        out["repetition_penalty"] = {"value": v, "confidence": "medium", "source": esource}
+                if "max_new_tokens" not in out and "qwen3ttsengine" in ect and len(ewidgets) > 9:
+                    v = _scalar(ewidgets[9])
+                    if v is not None:
+                        out["max_new_tokens"] = {"value": v, "confidence": "medium", "source": esource}
+
+        input_files = _extract_input_files(nodes_by_id)
+        if input_files:
+            out["inputs"] = input_files
+
+        if len(out.keys()) <= 1:
+            return None
+        return out
+
     sink_id = sinks[0]
     sampler_id, sampler_conf = _select_primary_sampler(nodes_by_id, sink_id)
     sampler_mode = "primary"
@@ -1904,6 +2091,10 @@ def _extract_geninfo(nodes_by_id: Dict[str, Any], sinks: List[str], workflow_met
                  break
 
     if not sampler_id:
+        tts_fallback = _extract_tts_geninfo_fallback()
+        if tts_fallback:
+            return Result.Ok(tts_fallback)
+
         out_fallback: Dict[str, Any] = {}
         if workflow_meta:
             out_fallback["metadata"] = workflow_meta

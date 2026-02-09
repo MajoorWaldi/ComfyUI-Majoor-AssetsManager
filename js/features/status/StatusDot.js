@@ -636,6 +636,42 @@ function setBodyCollapsed(section, collapsed) {
         indicator.textContent = "▾";
     }
 }
+function buildDbHealthLine(healthData, dbDiagData) {
+    const dbAvailable = Boolean(healthData?.database?.available);
+    const diagnostics = dbDiagData?.diagnostics || {};
+    const malformed = Boolean(diagnostics?.malformed);
+    const locked = Boolean(diagnostics?.locked);
+
+    if (!dbAvailable || malformed) {
+        return t("status.dbHealthError", "DB health: error");
+    }
+    if (locked) {
+        return t("status.dbHealthLocked", "DB health: locked");
+    }
+    return t("status.dbHealthOk", "DB health: ok");
+}
+
+function buildIndexHealthLine(counters, desiredScope) {
+    const totalAssets = Number(counters?.total_assets || 0);
+    const lastIndexEnd = counters?.last_index_end;
+    const scopeLabel =
+        desiredScope === "all"
+            ? t("scope.all", "Inputs + Outputs")
+            : desiredScope === "input"
+            ? t("scope.input", "Inputs")
+            : desiredScope === "custom"
+            ? t("scope.custom", "Custom")
+            : t("scope.output", "Outputs");
+
+    if (!Number.isFinite(totalAssets) || totalAssets <= 0) {
+        return `${t("status.indexHealthEmpty", "Index health: empty")} (${scopeLabel})`;
+    }
+    if (!lastIndexEnd) {
+        return `${t("status.indexHealthPartial", "Index health: partial")} (${scopeLabel})`;
+    }
+    return `${t("status.indexHealthOk", "Index health: ok")} (${scopeLabel})`;
+}
+
 export async function updateStatus(statusDot, statusText, capabilitiesSection = null, scanTarget = null, meta = null, options = {}) {
     const section = statusText?.closest?.("#mjr-status-body")?.parentElement || statusText?.closest?.("div");
     const signal = options?.signal || null;
@@ -658,7 +694,11 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
         desiredScope === "custom"
             ? `${ENDPOINTS.HEALTH_COUNTERS}?scope=custom&custom_root_id=${encodeURIComponent(String(desiredCustomRootId || ""))}`
             : `${ENDPOINTS.HEALTH_COUNTERS}?scope=${encodeURIComponent(desiredScope || "output")}`;
-    const result = await get(url, signal ? { signal } : undefined);
+    const [result, healthResult, dbDiagResult] = await Promise.all([
+        get(url, signal ? { signal } : undefined),
+        get(ENDPOINTS.HEALTH, signal ? { signal } : undefined),
+        get(ENDPOINTS.HEALTH_DB, signal ? { signal } : undefined),
+    ]);
     let toolStatusData = null;
     try {
         const toolsResult = await getToolsStatus(signal ? { signal } : undefined);
@@ -690,6 +730,22 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
         const dbSizeLine = t("status.dbSize", "Database size: {size}", {
             size: formatBytes(counters.db_size_bytes || 0),
         });
+        const dbHealthLine = buildDbHealthLine(healthResult?.data || null, dbDiagResult?.data || null);
+        const indexHealthLine = buildIndexHealthLine(counters, desiredScope);
+        const dbAvailable = Boolean(healthResult?.ok && healthResult?.data?.database?.available);
+        const dbDiagnostics = dbDiagResult?.ok ? (dbDiagResult?.data?.diagnostics || {}) : {};
+        const dbMalformed = Boolean(dbDiagnostics?.malformed);
+        const dbLocked = Boolean(dbDiagnostics?.locked);
+        const hasIndexedAssets = Number(totalAssets) > 0;
+        const hasIndexTimestamp = Boolean(counters?.last_index_end);
+        const indexHealthy = hasIndexedAssets && hasIndexTimestamp;
+
+        let healthTone = "success";
+        if (!dbAvailable || dbMalformed) {
+            healthTone = "error";
+        } else if (dbLocked || !indexHealthy) {
+            healthTone = "warning";
+        }
         let watcherInfo = counters.watcher;
         try {
             if (!watcherInfo || typeof watcherInfo.enabled !== "boolean") {
@@ -717,25 +773,38 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
                 ? t("scope.custom", "Custom")
                 : t("scope.output", "Outputs");
 
+        if (healthTone === "error") {
+            statusDot.style.background = "var(--mjr-status-error, #f44336)";
+            applyStatusHighlight(section, "error");
+            setStatusWithHint(
+                statusText,
+                t("status.dbCorrupted", "Database appears corrupted or unavailable."),
+                [dbHealthLine, indexHealthLine, dbSizeLine, watcherLine].filter(Boolean).join("  |  ")
+            );
+            return counters;
+        }
+
         if (totalAssets === 0) {
-            // No assets indexed - yellow
-            statusDot.style.background = "var(--mjr-status-warning, #FFA726)";
-            applyStatusHighlight(section, "warning");
+            statusDot.style.background =
+                healthTone === "warning" ? "var(--mjr-status-warning, #FFA726)" : "var(--mjr-status-success, #4CAF50)";
+            applyStatusHighlight(section, healthTone);
             setStatusWithHint(
                 statusText,
                 t("status.noAssets", `No assets indexed yet (${scopeLabel})`, { scope: scopeLabel }),
-                [t("status.clickToScan", "Click the dot to start a scan"), dbSizeLine, watcherLine].filter(Boolean).join("  |  ")
+                [t("status.clickToScan", "Click the dot to start a scan"), dbHealthLine, indexHealthLine, dbSizeLine, watcherLine].filter(Boolean).join("  |  ")
             );
         } else {
-            // Assets indexed - green
-            statusDot.style.background = "var(--mjr-status-success, #4CAF50)";
-            applyStatusHighlight(section, "success");
+            statusDot.style.background =
+                healthTone === "warning" ? "var(--mjr-status-warning, #FFA726)" : "var(--mjr-status-success, #4CAF50)";
+            applyStatusHighlight(section, healthTone);
             setStatusLines(
                 statusText,
                 [
                     t("status.assetsIndexed", `${totalAssets.toLocaleString()} assets indexed (${scopeLabel})`, { count: totalAssets.toLocaleString(), scope: scopeLabel }),
                     t("status.imagesVideos", `Images: ${counters.images || 0}  -  Videos: ${counters.videos || 0}`, { images: counters.images || 0, videos: counters.videos || 0 }),
                     t("status.withWorkflows", `With workflows: ${withWorkflows}  -  Generation data: ${withGenerationData}`, { workflows: withWorkflows, gendata: withGenerationData }),
+                    dbHealthLine,
+                    indexHealthLine,
                     dbSizeLine,
                     watcherLine,
                 ],

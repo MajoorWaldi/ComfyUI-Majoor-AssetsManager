@@ -34,6 +34,10 @@ export function createGenerationSection(asset) {
             if (obj.models || obj.model || obj.checkpoint || obj.loras) return true;
             if (obj.sampler || obj.sampler_name || obj.steps || obj.cfg || obj.cfg_scale || obj.scheduler) return true;
             if (obj.seed || obj.width || obj.height || obj.denoise || obj.denoising || obj.clip_skip) return true;
+            if (obj.voice || obj.language || obj.temperature || obj.top_k || obj.top_p || obj.repetition_penalty || obj.max_new_tokens) return true;
+            if (obj.device || obj.voice_preset || obj.instruct || obj.dtype || obj.attn_implementation) return true;
+            if (obj.enable_chunking !== undefined || obj.max_chars_per_chunk || obj.chunk_combination_method || obj.silence_between_chunks_ms) return true;
+            if (obj.enable_audio_cache !== undefined || obj.batch_size !== undefined || obj.use_torch_compile !== undefined || obj.use_cuda_graphs !== undefined || obj.compile_mode) return true;
             if (typeof obj.lyrics === "string" && obj.lyrics.trim()) return true;
             return false;
         } catch {
@@ -269,6 +273,64 @@ export function createGenerationSection(asset) {
     if (samplingData.length > 0) {
         container.appendChild(createParametersBox("Sampling", samplingData, "#FF9800", { emphasis: true }));
     }
+
+    const isTTS = String(metadata?.engine?.type || "").toLowerCase() === "tts";
+    const ttsData = [];
+    if (metadata.voice) ttsData.push({ label: "Narrator Voice", value: metadata.voice });
+    if (metadata.language) ttsData.push({ label: "Language", value: metadata.language });
+    if (metadata.top_k !== undefined && metadata.top_k !== null) ttsData.push({ label: "Top-k", value: metadata.top_k });
+    if (metadata.top_p !== undefined && metadata.top_p !== null) ttsData.push({ label: "Top-p", value: metadata.top_p });
+    if (metadata.temperature !== undefined && metadata.temperature !== null) ttsData.push({ label: "Temperature", value: metadata.temperature });
+    if (metadata.repetition_penalty !== undefined && metadata.repetition_penalty !== null)
+        ttsData.push({ label: "Repetition Penalty", value: metadata.repetition_penalty });
+    if (metadata.max_new_tokens !== undefined && metadata.max_new_tokens !== null)
+        ttsData.push({ label: "Max New Tokens", value: metadata.max_new_tokens });
+    if (ttsData.length > 0 || isTTS) {
+        container.appendChild(createParametersBox("TTS", ttsData, "#26A69A", { emphasis: true }));
+    }
+
+    const ttsEngineData = [];
+    if (metadata.device) ttsEngineData.push({ label: "Device", value: metadata.device });
+    if (metadata.voice_preset) ttsEngineData.push({ label: "Voice Preset", value: metadata.voice_preset });
+    if (metadata.dtype) ttsEngineData.push({ label: "Dtype", value: metadata.dtype });
+    if (metadata.attn_implementation) ttsEngineData.push({ label: "Attention", value: metadata.attn_implementation });
+    if (metadata.compile_mode) ttsEngineData.push({ label: "Compile Mode", value: metadata.compile_mode });
+    if (metadata.use_torch_compile !== undefined && metadata.use_torch_compile !== null)
+        ttsEngineData.push({ label: "Torch Compile", value: metadata.use_torch_compile ? "on" : "off" });
+    if (metadata.use_cuda_graphs !== undefined && metadata.use_cuda_graphs !== null)
+        ttsEngineData.push({ label: "CUDA Graphs", value: metadata.use_cuda_graphs ? "on" : "off" });
+    if (metadata.x_vector_only_mode !== undefined && metadata.x_vector_only_mode !== null)
+        ttsEngineData.push({ label: "X-Vector Only", value: metadata.x_vector_only_mode ? "on" : "off" });
+    if (ttsEngineData.length > 0) {
+        container.appendChild(createParametersBox("TTS Engine", ttsEngineData, "#00897B"));
+    }
+
+    if (typeof metadata.instruct === "string" && metadata.instruct.trim()) {
+        container.appendChild(
+            createInfoBox("TTS Instruction", metadata.instruct, "#26A69A", {
+                showCopyButton: false,
+                copyOnContentClick: true,
+            })
+        );
+    }
+
+    const ttsChunkingData = [];
+    if (metadata.enable_chunking !== undefined && metadata.enable_chunking !== null)
+        ttsChunkingData.push({ label: "Chunking", value: metadata.enable_chunking ? "on" : "off" });
+    if (metadata.max_chars_per_chunk !== undefined && metadata.max_chars_per_chunk !== null)
+        ttsChunkingData.push({ label: "Max Chars/Chunk", value: metadata.max_chars_per_chunk });
+    if (metadata.chunk_combination_method)
+        ttsChunkingData.push({ label: "Chunk Method", value: metadata.chunk_combination_method });
+    if (metadata.silence_between_chunks_ms !== undefined && metadata.silence_between_chunks_ms !== null)
+        ttsChunkingData.push({ label: "Silence Between Chunks (ms)", value: metadata.silence_between_chunks_ms });
+    if (metadata.enable_audio_cache !== undefined && metadata.enable_audio_cache !== null)
+        ttsChunkingData.push({ label: "Audio Cache", value: metadata.enable_audio_cache ? "on" : "off" });
+    if (metadata.batch_size !== undefined && metadata.batch_size !== null)
+        ttsChunkingData.push({ label: "Batch Size", value: metadata.batch_size });
+    if (ttsChunkingData.length > 0) {
+        container.appendChild(createParametersBox("TTS Runtime", ttsChunkingData, "#00796B"));
+    }
+
     if (metadata.lyrics_strength !== undefined && metadata.lyrics_strength !== null) {
         container.appendChild(createParametersBox("Audio", [{ label: "Lyrics Strength", value: metadata.lyrics_strength }], "#00BCD4"));
     }
