@@ -127,19 +127,29 @@ export async function showAssetInSidebar(sidebar, asset, onUpdate) {
 
     const hasMeaningfulMetadataRaw = (value) => {
         if (value == null) return false;
+        let obj = value;
         if (typeof value === "string") {
             const trimmed = value.trim();
-            if (!trimmed) return false;
-            return trimmed !== "{}" && trimmed !== "null";
-        }
-        if (typeof value === "object") {
+            if (!trimmed || trimmed === "{}" || trimmed === "null") return false;
             try {
-                return Object.keys(value).length > 0;
+                obj = JSON.parse(trimmed);
             } catch {
                 return false;
             }
         }
-        return true;
+        if (typeof obj === "object") {
+            try {
+                // Require generation-specific keys (not just any metadata payload).
+                if (obj.geninfo || obj.prompt || obj.workflow) return true;
+                if (obj.metadata_raw && typeof obj.metadata_raw === "object") {
+                    return Boolean(obj.metadata_raw.geninfo || obj.metadata_raw.prompt || obj.metadata_raw.workflow);
+                }
+                return false;
+            } catch {
+                return false;
+            }
+        }
+        return false;
     };
 
     const hasGenerationLikeData = (obj) => {

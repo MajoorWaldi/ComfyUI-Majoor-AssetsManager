@@ -100,3 +100,56 @@ def test_wan_video_integration_payload():
     ckpt = data["models"].get("checkpoint") or data["models"].get("diffusion")
     assert ckpt["name"] == "Wan2.1-T2V-14B"
     assert data["steps"]["value"] == 30
+
+
+def test_tts_audio_integration_payload():
+    """
+    Simulate a TTS audio workflow (no diffusion sampler) and verify fallback geninfo.
+    """
+    graph = {
+        "1": {
+            "class_type": "UnifiedTTSTextNode",
+            "inputs": {
+                "text": "Bonjour tout le monde",
+                "seed": 616267440,
+                "narrator_voice": "none",
+                "TTS_engine": ["4", 0],
+            },
+        },
+        "2": {"class_type": "SaveAudioMP3", "inputs": {"audio": ["1", 0]}},
+        "4": {
+            "class_type": "Qwen3TTSEngineNode",
+            "inputs": {
+                "model_size": "1.7B",
+                "device": "auto",
+                "voice_preset": "None (Zero-shot / Custom)",
+                "language": "French",
+                "temperature": 0.7,
+                "top_p": 0.9,
+                "top_k": 50,
+                "repetition_penalty": 1.1,
+                "max_new_tokens": 2048,
+                "dtype": "auto",
+                "attn_implementation": "auto",
+                "use_torch_compile": False,
+                "use_cuda_graphs": False,
+                "compile_mode": "default",
+            },
+        },
+    }
+
+    result = parse_geninfo_from_prompt(graph)
+    assert result.ok
+    data = result.data
+    assert data["engine"]["type"] == "tts"
+    assert data["positive"]["value"] == "Bonjour tout le monde"
+    assert data["seed"]["value"] == 616267440
+    assert data["models"]["checkpoint"]["name"] == "1.7B"
+    assert data["language"]["value"] == "French"
+    assert data["device"]["value"] == "auto"
+    assert data["voice_preset"]["value"] == "None (Zero-shot / Custom)"
+    assert data["top_k"]["value"] == 50
+    assert data["top_p"]["value"] == 0.9
+    assert data["temperature"]["value"] == 0.7
+    assert data["repetition_penalty"]["value"] == 1.1
+    assert data["max_new_tokens"]["value"] == 2048
