@@ -12,8 +12,13 @@ Majoor Assets Manager is an advanced asset browser for ComfyUI that provides a c
 
 ![Majoor Assets Manager Demo](examples/ComfyUI_Majoor_AssetsManager_Video.gif)
 
-**[User Guide](user_guide.html)** - Complete documentation with features, installation, and usage instructions.
-**[Documentation Index](docs/DOCUMENTATION_INDEX.md)** - All docs (install, viewer, metadata, settings, etc).
+## Quick Start
+
+- **User Guide:** [user_guide.html](user_guide.html)
+- **Installation:** [Installation](#installation)
+- **Changelog:** [CHANGELOG.md](CHANGELOG.md)
+- **Roadmap:** [ROADMAP.md](ROADMAP.md)
+- **Documentation Index:** [docs/DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md)
 
 ## GitHub
 
@@ -30,22 +35,13 @@ Optional attribution request (non-binding): see `NOTICE`.
 
 ## Key Features
 
-### Performance & Scalability (New)
+### Performance & Navigation
 - **Virtual Scrolling Engine**: Seamlessly handles grid views with 10,000+ assets with zero UI lag.
-- **GPU-Accelerated Video**: WebGL-based video player for real-time grading (Exposure/Gamma/Zebra) of 4K content.
 - **Non-Blocking Indexing**: Background scanning and metadata parsing (using worker threads) ensures the ComfyUI server remains responsive.
 - **Database Optimization**: SQLite WAL mode + Connection Pooling for high-concurrency access.
 
-### Search & Filtering
-- Full-text search powered by SQLite **FTS5** (BM25 ranking).
-- Scope: **Outputs**, **Inputs**, **Custom roots**, **Collections**.
-- Filters: kind, min rating, workflow-only, date filters, sorting.
-- Optional: hide PNG siblings of video previews.
-- Summary line: total assets + selected count + current context.
-
-### Metadata & Viewer
-- Extracts generation info from PNG/WEBP/video (ExifTool/FFprobe; degrades gracefully).
--Recognizes modern workflows such as Qwen (Edit) exports, Flux (Advanced/GGUF), WanVideo/Kijai, HunyuanVideo/Kijai, and Marigold (Depth) so prompts/models are surfaced even when stored in custom node graphs.
+### Advanced Visualization
+- **GPU-Accelerated Video**: WebGL-based video player for real-time grading (Exposure/Gamma/Zebra) of 4K content.
 - Viewer modes: single, A/B compare, side-by-side.
 - Navigation: zoom/pan, 1:1 pixel zoom, quick next/prev navigation.
 - Tools: exposure (EV), gamma, channel view (RGB/R/G/B/Alpha/Luma), analysis (false color, zebra).
@@ -54,13 +50,24 @@ Optional attribution request (non-binding): see `NOTICE`.
 - Overlays: grid (thirds/center/safe/golden), pixel probe, loupe.
 - Compare: wipe (slider) and difference mode.
 - Export: save current frame to PNG + copy to clipboard (best-effort).
+
+### Metadata & Workflows
+- Extracts generation info from PNG/WEBP/video (ExifTool/FFprobe; degrades gracefully).
+- Recognizes modern workflows such as Qwen (Edit), Flux (Advanced/GGUF), WanVideo (Kijai), HunyuanVideo (Kijai), and Marigold (Depth).
 - Generation Info panel: prompt/model/sampling/image parameters + workflow minimap, with loading/error feedback and retry for transient failures.
 - Video: loops by default; player bar provides seek, In/Out range, loop/once, frame stepping, and FPS/step controls.
-- Context menu: tags, rating, add to collection, open in folder, rename, delete.
 
-### Ratings, Tags, Collections
+### Search & Filtering
+- Full-text search powered by SQLite **FTS5** (BM25 ranking).
+- Scope: **Outputs**, **Inputs**, **Custom roots**, **Collections**.
+- Filters: kind, min rating, workflow-only, date filters, sorting.
+- Optional: hide PNG siblings of video previews.
+- Summary line: total assets + selected count + current context.
+
+### Asset Management
 - Ratings/tags stored in the index DB and (optionally) synced into files when enabled.
 - Collections: create, add items (duplicates skipped and reported), remove items, open as a view. Large collections are capped for safety (configurable).
+- Context menu: tags, rating, add to collection, open in folder, rename, delete.
 
 ### Drag & Drop
 - Drag an asset onto the ComfyUI canvas: stage to input, inject paths into compatible nodes.
@@ -72,7 +79,7 @@ Optional attribution request (non-binding): see `NOTICE`.
 
 ## Installation
 
-### ComfyUI Manager (recommended)
+### Method A (Recommended): ComfyUI Manager
 Install via the ComfyUI Manager UI.
 
 ### Installing a specific version or nightly build
@@ -80,7 +87,7 @@ You can install a specific release tag or the nightly branch by using the GitHub
 
 - Release tag (example):
 
-  https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/archive/refs/tags/v2.3.1.zip
+  https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/archive/refs/tags/v2.3.2.zip
 
 - Nightly / latest main branch (example):
 
@@ -92,7 +99,7 @@ If your ComfyUI registry or manager accepts a zip URL, paste one of the above UR
 
 Use `{ref}` = `tags/vX.Y.Z` for a tag, or `{ref}` = `heads/<branch>` (for example `heads/main`) for branch installs (nightly).
 
-### Manual
+### Method B: Manual Install
 ```bash
 cd ComfyUI/custom_nodes
 git clone https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager ComfyUI-Majoor-AssetsManager
@@ -102,20 +109,14 @@ Restart ComfyUI.
 
 If dependencies are missing at startup, the extension may attempt a best-effort `pip install -r requirements.txt` automatically (can be disabled with `MJR_AM_NO_AUTO_PIP=1`).
 
-**Note:** The native folder browser feature requires tkinter, which is included with most Python installations but may be missing in minimal Python distributions like embedded Python. If tkinter is not available, the system will fall back to manual path input.
+### Tkinter Note (Embedded Python)
+The native folder picker requires built-in `tkinter`. On embedded Python builds (for example `python_embeded`), `tkinter` is often missing, so the UI falls back to manual path entry.
 
-**For Embedded Python Environments (like ComfyUI's python_embeded):**
-- Tkinter is typically not available in embedded Python distributions
-- The system will automatically fall back to manual path input
-- The `tk` package from PyPI is NOT equivalent to the built-in `tkinter` module
-- Even after installing `pip install tk`, the actual GUI libraries may still be missing
-- The extension will work fully with manual input fallback when tkinter is unavailable
-- Solutions for native folder browser:
-  - Switch to a full Python installation that includes tkinter
-  - Use the manual input method (fully functional alternative)
-  - The extension works identically in both scenarios, just with different UI for folder selection
+- The extension remains fully functional with manual path input.
+- `pip install tk` is not a replacement for built-in `tkinter`.
+- If you need the native folder picker, use a full Python installation with `tkinter`.
 
-### Optional (recommended): install ExifTool + FFprobe (metadata extraction)
+### Optional (Recommended): ExifTool + FFprobe
 
 The Assets Manager works without these tools, but **metadata extraction** (generation info, media probe) and **tag/rating sync to files** are best-effort and will be **degraded** if the tools are missing.
 
@@ -181,7 +182,7 @@ Hotkeys are ignored while typing inside inputs.
 - `D`: toggle details sidebar for the current selection.
 - `0`-`5`: set rating for the current selection (when interacting with the grid).
 - Viewer:
-  - Viewer hotkeys are consumed (don’t leak to ComfyUI/global handlers).
+  - Viewer hotkeys are consumed (do not leak to ComfyUI/global handlers).
   - `Esc`: close viewer
   - `0`-`5`: set rating (single view)
   - `Shift+Arrow`: step video frames (single video)
@@ -226,6 +227,8 @@ tox
 
 ## Environment Variables (backend)
 
+Both `MAJOOR_...` and `MJR_...` prefixes are used in this project. Where both variants exist, both are accepted for compatibility.
+
 - `MAJOOR_OUTPUT_DIRECTORY` - override output directory
 - `MAJOOR_EXIFTOOL_PATH` / `MAJOOR_EXIFTOOL_BIN` - ExifTool path
 - `MAJOOR_FFPROBE_PATH` / `MAJOOR_FFPROBE_BIN` - FFprobe path
@@ -258,7 +261,7 @@ tox
 
 ### API Token Setup
 
-The `MAJOOR_API_TOKEN` is not obtained from an external service — **you define it yourself** as an environment variable before starting ComfyUI. Choose any secret string you like.
+The API token is user-defined. Set `MAJOOR_API_TOKEN` (or `MJR_API_TOKEN`) before starting ComfyUI.
 
 **Windows (PowerShell):**
 
@@ -287,7 +290,14 @@ Once set, include the token in your API requests via one of these headers:
 | No token set (default) | Write operations allowed only from localhost (`127.0.0.1` / `::1`) |
 | Token set | All write operations require the token |
 | `MAJOOR_REQUIRE_AUTH=1` | Forces token auth even for localhost |
-You can persist the same secret in ComfyUI's Settings modal under **Security → Majoor: API Token**. The Assets Manager stores it in browser storage and automatically sends both `X-MJR-Token` and `Authorization: Bearer …` on behalf of the UI, so remote clients only need to match the shared secret between the backend environment and the settings field.
+
+### Security Summary
+
+- Without token: write operations are localhost-only.
+- With token: write operations require authentication.
+- Safe Mode is enabled by default.
+- Destructive operations (delete/rename/open-in-folder) are disabled by default and must be explicitly enabled.
+You can persist the same secret in ComfyUI's Settings modal under **Security -> Majoor: API Token**. The Assets Manager stores it in browser storage and automatically sends both `X-MJR-Token` and `Authorization: Bearer ...` on behalf of the UI, so remote clients only need to match the shared secret between the backend environment and the settings field.
 The backend still requires the environment variable (`MAJOOR_API_TOKEN`/`MJR_API_TOKEN`) when ComfyUI starts; the UI control just remembers it for you so the headers stay in sync.
 
 ## Security Model (high level)
@@ -298,6 +308,12 @@ The backend still requires the environment variable (`MAJOOR_API_TOKEN`/`MJR_API
 - **Write access**: destructive actions are loopback-only by default unless a token is configured.
 - **Safe Mode**: write operations are disabled by default unless explicitly enabled via environment variables.
 - **Batch ZIP**: ZIP building streams from an open file handle (avoids TOCTOU rename/replace races).
+
+## UI Preview
+
+![Viewer](ressources/Viewer.png)
+![Filters](ressources/Filter.png)
+![Index Scan](ressources/IndexScan.png)
 
 ## Files & Storage
 
@@ -368,3 +384,5 @@ pwsh -File scripts/make_release_zip.ps1
 - GPU grade (WebGL2): exposure/gamma/channels/zebra/false color.
 - OffscreenCanvas + Worker fallback for heavy processing.
 - Cache processed frame while paused (instant grade tweaks).
+
+
