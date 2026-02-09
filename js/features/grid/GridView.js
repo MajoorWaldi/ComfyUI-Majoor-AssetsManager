@@ -424,25 +424,6 @@ export function createGridContainer() {
     // Initial class application
     _updateGridSettingsClasses(container);
 
-    // Keep keyboard navigation reliable: ensure grid can receive focus and owns hotkey scope when interacted with.
-    const focusGrid = () => {
-        try {
-            container.focus({ preventScroll: true });
-        } catch {
-            try { container.focus(); } catch {}
-        }
-        try {
-            if (!window._mjrHotkeysState) window._mjrHotkeysState = {};
-            window._mjrHotkeysState.scope = "grid";
-        } catch {}
-    };
-    try {
-        container.addEventListener("pointerdown", focusGrid, true);
-        container.addEventListener("mousedown", focusGrid, true);
-        container.addEventListener("focusin", focusGrid);
-        container._mjrGridFocusHandler = focusGrid;
-    } catch {}
-
     // Listen for settings changes to update CSS classes reactively
     let settingsRefreshTimer = null;
     const SETTINGS_REFRESH_DEBOUNCE_MS = 180;
@@ -1995,16 +1976,6 @@ export function disposeGrid(gridContainer) {
     try {
         gridContainer._mjrSettingsChangedCleanup?.();
     } catch {}
-    try {
-        const focusHandler = gridContainer._mjrGridFocusHandler;
-        if (focusHandler) {
-            gridContainer.removeEventListener("pointerdown", focusHandler, true);
-            gridContainer.removeEventListener("mousedown", focusHandler, true);
-            gridContainer.removeEventListener("focusin", focusHandler);
-        }
-        gridContainer._mjrGridFocusHandler = null;
-    } catch {}
-
     try {
         cleanupVideoThumbsIn?.(gridContainer);
     } catch {}
