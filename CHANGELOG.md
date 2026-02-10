@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [2.3.2] - 2026-02-09
+### Added / Improved
+- Added language support for Chinese, Korean, Russian, Hindi, Spanish, French, and English. 🌍
+- Added audio support for workflows such as AC-STEP, Stable Audio, and TTS. 🎵
+- Improved metadata extraction. 🧠
+- Improved UI design. 🎨
+- Added database management. 🗄️
+
+### Fixed
+- Fixed multiple bugs across the extension. 🐛
+
+---
+
 ## [2.3.1] - 2026-02-07
 ### Added / Improved
 - UI parameters for **API token** and remote access: added settings in the UI to configure an API token and enable remote access to the Assets Manager (secure-by-default). 🔐
