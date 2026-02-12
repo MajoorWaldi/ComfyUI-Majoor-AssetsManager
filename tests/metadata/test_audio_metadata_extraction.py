@@ -1,9 +1,9 @@
-import json
+﻿import json
 
 import pytest
 
-from backend.features.audio.metadata import extract_audio_metadata
-from shared.types import classify_file
+from mjr_am_backend.features.audio.metadata import extract_audio_metadata
+from mjr_am_shared.types import classify_file
 
 
 @pytest.mark.asyncio
@@ -79,3 +79,4 @@ async def test_audio_extractor_reads_prompt_from_ffprobe_stream_tags(tmp_path) -
     assert res.ok
     assert isinstance(res.data.get("prompt"), dict)
     assert res.data["prompt"]["10"]["class_type"] == "CLIPTextEncode"
+

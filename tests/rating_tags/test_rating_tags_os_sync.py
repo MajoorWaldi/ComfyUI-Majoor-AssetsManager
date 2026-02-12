@@ -1,8 +1,8 @@
-import pytest
+﻿import pytest
 from pathlib import Path
 
-from backend.features.tags.sync import write_exif_rating_tags
-from backend.shared import Result
+from mjr_am_backend.features.tags.sync import write_exif_rating_tags
+from mjr_am_backend.shared import Result
 
 
 class _ExifToolCapture:
@@ -55,4 +55,5 @@ async def test_exiftool_payload_clears_tags_when_empty(tmp_path: Path):
     assert payload["XMP:Subject"] == []
     assert payload["IPTC:Keywords"] == []
     assert payload["Microsoft:Category"] == ""
+
 

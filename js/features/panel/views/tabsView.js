@@ -12,7 +12,7 @@ export function createTabsView() {
         return btn;
     };
 
-    const tabAll = makeTab("All", "all", "Browse all assets (inputs + outputs + custom)");
+    const tabAll = makeTab("All", "all", "Browse all assets (inputs + outputs)");
     const tabInputs = makeTab("Inputs", "input", "Browse input folder assets");
     const tabOutputs = makeTab("Outputs", "output", "Browse generated outputs");
     const tabCustom = makeTab("Custom", "custom", "Browse custom folders");

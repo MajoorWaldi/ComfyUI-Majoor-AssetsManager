@@ -120,7 +120,8 @@ export function createWebGLVideoProcessor(opts) {
     function acquireContext() {
         let ctx = null;
         try {
-            ctx = canvas.getContext("webgl", { alpha: false, preserveDrawingBuffer: true });
+            // Keep default back-buffer behavior for lower per-frame GPU cost.
+            ctx = canvas.getContext("webgl", { alpha: false, preserveDrawingBuffer: false });
         } catch {}
         if (!ctx) {
             try {

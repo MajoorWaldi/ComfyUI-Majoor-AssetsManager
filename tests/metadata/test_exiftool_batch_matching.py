@@ -1,8 +1,8 @@
-import pytest
+﻿import pytest
 import os
 from pathlib import Path
 
-from backend.adapters.tools.exiftool import _build_match_map, _normalize_match_path
+from mjr_am_backend.adapters.tools.exiftool import _build_match_map, _normalize_match_path
 
 
 @pytest.mark.asyncio
@@ -35,4 +35,5 @@ async def test_normalize_match_path_is_case_insensitive_on_windows(tmp_path: Pat
     norm2 = _normalize_match_path(upper)
     assert norm2
     assert norm1 == norm2
+
 

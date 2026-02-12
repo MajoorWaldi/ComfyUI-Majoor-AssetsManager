@@ -1,4 +1,4 @@
-from backend.shared import sanitize_error_message
+﻿from mjr_am_backend.shared import sanitize_error_message
 
 
 def test_sanitize_error_message_masks_paths() -> None:
@@ -11,3 +11,4 @@ def test_sanitize_error_message_masks_paths() -> None:
 def test_sanitize_error_message_returns_fallback_for_empty() -> None:
     assert sanitize_error_message("", "Fallback") == "Fallback"
     assert sanitize_error_message(None, "Fallback") == "Fallback"
+

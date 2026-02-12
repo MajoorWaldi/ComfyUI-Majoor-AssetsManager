@@ -1,6 +1,6 @@
-import pytest
-from backend.shared import Result
-from backend.features.index.metadata_helpers import MetadataHelpers
+﻿import pytest
+from mjr_am_backend.shared import Result
+from mjr_am_backend.features.index.metadata_helpers import MetadataHelpers
 
 
 @pytest.mark.asyncio
@@ -31,3 +31,4 @@ async def test_has_generation_data_false_for_media_pipeline_prompt_graph():
     has_wf, has_gen, _, _ = MetadataHelpers.prepare_metadata_fields(Result.Ok(meta))
     assert has_wf is True
     assert has_gen is False
+

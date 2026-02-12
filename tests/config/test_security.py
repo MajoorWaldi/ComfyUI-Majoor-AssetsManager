@@ -1,7 +1,7 @@
-import pytest
+﻿import pytest
 from aiohttp.test_utils import make_mocked_request
 
-from backend.routes.core.security import _check_rate_limit, _csrf_error, _reset_security_state_for_tests
+from mjr_am_backend.routes.core.security import _check_rate_limit, _csrf_error, _reset_security_state_for_tests
 
 
 class _DummyTransport:
@@ -194,3 +194,4 @@ async def test_rate_limit_uses_x_real_ip():
     # Should be blocked
     allowed, _ = _check_rate_limit(req, "test", max_requests=2, window_seconds=60)
     assert allowed is False
+

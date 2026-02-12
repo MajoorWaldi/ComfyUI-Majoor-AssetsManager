@@ -1,5 +1,5 @@
-import pytest
-from backend.adapters.tools.exiftool import _is_safe_exiftool_tag, _validate_exiftool_tags
+﻿import pytest
+from mjr_am_backend.adapters.tools.exiftool import _is_safe_exiftool_tag, _validate_exiftool_tags
 
 
 @pytest.mark.asyncio
@@ -27,4 +27,5 @@ async def test_validate_exiftool_tags_is_strict():
     assert not res.ok
     assert res.code == "INVALID_INPUT"
     assert "invalid_tags" in (res.meta or {})
+
 

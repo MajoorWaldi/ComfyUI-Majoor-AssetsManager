@@ -1,6 +1,6 @@
 ﻿import datetime
 
-from backend.routes.handlers import search as search_mod
+from mjr_am_backend.routes.handlers import search as search_mod
 
 
 def test_parse_inline_query_filters_extracts_extensions_and_rating():
@@ -37,3 +37,4 @@ def test_date_bounds_exact_anchors_to_utc_midnight():
     expected = int(datetime.datetime(2026, 2, 1, tzinfo=datetime.timezone.utc).timestamp())
     assert start == expected
     assert end == expected + 86400
+

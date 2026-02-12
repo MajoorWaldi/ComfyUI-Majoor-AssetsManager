@@ -1,4 +1,4 @@
-"""
+﻿"""
 Integration test - validates full service stack.
 Tests: DI, services, metadata extraction on real files.
 """
@@ -12,7 +12,7 @@ if sys.platform == "win32":
     os.system("")
     sys.stdout.reconfigure(encoding='utf-8')
 
-from shared import get_logger, log_success
+from mjr_am_shared import get_logger, log_success
 
 logger = get_logger(__name__)
 
@@ -111,13 +111,13 @@ async def test_metadata_service(services):
 def main():
     """Run integration tests."""
     logger.info("=" * 60)
-    logger.info("🚀 Majoor Assets Manager - Integration Test")
+    logger.info("ðŸš€ Majoor Assets Manager - Integration Test")
     logger.info("=" * 60)
     print()
 
     try:
         # Build services (manual run uses direct build)
-        from backend.deps import build_services
+        from mjr_am_backend.deps import build_services
         import asyncio
         services_res = asyncio.run(build_services("test_integration.db"))
         if not services_res.ok:
@@ -152,3 +152,4 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+

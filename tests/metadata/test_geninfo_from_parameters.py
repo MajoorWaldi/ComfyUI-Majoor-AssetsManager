@@ -1,11 +1,11 @@
-"""
+﻿"""
 Tests for extracting generation info from A1111 parameters using MetadataService.
 """
 import pytest
 from pathlib import Path
 
-from backend.features.metadata.service import MetadataService
-from backend.shared import Result
+from mjr_am_backend.features.metadata.service import MetadataService
+from mjr_am_backend.shared import Result
 
 
 class _SettingsStub:
@@ -55,3 +55,4 @@ async def test_metadata_service_builds_geninfo_from_a1111_parameters(tmp_path: P
     assert gi["size"]["width"] == 512
     assert gi["size"]["height"] == 768
     assert gi["checkpoint"]["name"] == "myModel"
+

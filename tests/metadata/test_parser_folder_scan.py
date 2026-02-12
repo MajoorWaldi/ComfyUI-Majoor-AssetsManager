@@ -1,4 +1,4 @@
-"""
+﻿"""
 Ensure metadata extraction safely handles every file under tests/parser (recursively).
 
 This is meant to be future-proof: when new sample files are added (even in subfolders),
@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from tests.repo_root import REPO_ROOT
-from shared.types import classify_file
+from mjr_am_shared.types import classify_file
 
 
 @pytest.mark.asyncio
@@ -64,3 +64,4 @@ async def test_metadata_extraction_scans_tests_parser_tree(services):
     assert not failures, "Metadata extraction failures:\n" + "\n".join(
         f"- {p} [{code}] {err}" for (p, code, err) in failures
     )
+

@@ -1,4 +1,4 @@
-from backend.features.geninfo.parser import parse_geninfo_from_prompt
+﻿from mjr_am_backend.features.geninfo.parser import parse_geninfo_from_prompt
 
 def test_geninfo_kijai_wanvideo():
     """
@@ -91,4 +91,5 @@ def test_geninfo_kijai_hunyuan():
     assert data["cfg"]["value"] == 6.0 # Mapped from embedded_guidance_scale
     assert data["positive"]["value"] == "Cinematic shot of a robot"
     assert data["checkpoint"]["name"] == "hunyuan-video"
+
 

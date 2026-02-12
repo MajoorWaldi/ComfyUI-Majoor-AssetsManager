@@ -1,4 +1,4 @@
-from backend.features.audio.metadata import extract_audio_metadata
+﻿from mjr_am_backend.features.audio.metadata import extract_audio_metadata
 
 
 def test_audio_prompt_graph_not_overwritten_by_parameters_text():
@@ -18,3 +18,4 @@ def test_audio_prompt_graph_not_overwritten_by_parameters_text():
     assert isinstance(data.get("prompt"), dict)
     assert "13" in data["prompt"]
     assert data.get("parameters")
+

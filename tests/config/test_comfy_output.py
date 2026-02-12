@@ -1,4 +1,4 @@
-"""
+﻿"""
 Test scanning ComfyUI's actual output directory.
 """
 import os
@@ -10,8 +10,8 @@ import pytest
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from shared import get_logger, log_success
-from backend.deps import build_services
+from mjr_am_shared import get_logger, log_success
+from mjr_am_backend.deps import build_services
 
 logger = get_logger(__name__)
 
@@ -167,3 +167,4 @@ async def test_comfy_output(tmp_path):
 
 if __name__ == "__main__":
     test_comfy_output()
+

@@ -1,4 +1,4 @@
-from backend.features.geninfo.parser import parse_geninfo_from_prompt
+﻿from mjr_am_backend.features.geninfo.parser import parse_geninfo_from_prompt
 
 def test_extract_qwen_workflow_linked_prompt():
     """
@@ -159,3 +159,4 @@ def test_extract_qwen_workflow_instruction():
     assert pos is not None
     assert "cyberpunk" in pos
     assert "cyberpunk" in pos
+

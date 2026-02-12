@@ -1499,6 +1499,20 @@ export function createViewer() {
         if (!current) return;
 
         const viewUrl = buildAssetViewURL(current);
+        if (!viewUrl) {
+            try {
+                destroyMediaProcessorsIn(singleView);
+            } catch {}
+            try {
+                singleView.innerHTML = "";
+                const err = document.createElement("div");
+                err.className = "mjr-viewer-media";
+                err.style.cssText = "color:#ff9a9a; font-size:13px; padding:16px; text-align:center;";
+                err.textContent = "Cannot open asset: missing or invalid filename/path.";
+                singleView.appendChild(err);
+            } catch {}
+            return;
+        }
 
         if (state.mode === VIEWER_MODES.SINGLE) {
             try {
@@ -1785,7 +1799,6 @@ export function createViewer() {
                     scheduleOverlayRedraw();
                 };
                 mediaEl.addEventListener("seeked", refresh, { signal: ac.signal, passive: true });
-                mediaEl.addEventListener("timeupdate", refresh, { signal: ac.signal, passive: true });
                 mediaEl.addEventListener("loadeddata", refresh, { signal: ac.signal, passive: true });
                 mediaEl.addEventListener("play", refresh, { signal: ac.signal, passive: true });
                 mediaEl.addEventListener("pause", refresh, { signal: ac.signal, passive: true });
@@ -1794,6 +1807,9 @@ export function createViewer() {
                 const interval = 1000 / scopesFps;
                 const tick = () => {
                     if (ac.signal.aborted) return;
+                    try {
+                        if (document?.hidden) return;
+                    } catch {}
                     try {
                         if (overlay.style.display === "none") return;
                     } catch {}

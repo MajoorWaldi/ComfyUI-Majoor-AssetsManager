@@ -464,6 +464,15 @@ export async function setProbeBackendMode(mode) {
     return post("/mjr/am/settings/probe-backend", { mode });
 }
 
+export async function getOutputDirectorySetting() {
+    return get(ENDPOINTS.SETTINGS_OUTPUT_DIRECTORY);
+}
+
+export async function setOutputDirectorySetting(outputDirectory) {
+    const value = String(outputDirectory ?? "").trim();
+    return post(ENDPOINTS.SETTINGS_OUTPUT_DIRECTORY, { output_directory: value });
+}
+
 export async function getSecuritySettings() {
     return get("/mjr/am/settings/security");
 }

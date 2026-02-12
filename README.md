@@ -106,7 +106,11 @@ pip install -r ComfyUI-Majoor-AssetsManager/requirements.txt
 ```
 Restart ComfyUI.
 
-If dependencies are missing at startup, the extension may attempt a best-effort `pip install -r requirements.txt` automatically (can be disabled with `MJR_AM_NO_AUTO_PIP=1`).
+If dependencies are missing at startup, install them explicitly:
+
+```bash
+python ComfyUI-Majoor-AssetsManager/scripts/install-requirements.py
+```
 
 ### Tkinter Note (Embedded Python)
 The native folder picker requires built-in `tkinter`. On embedded Python builds (for example `python_embeded`), `tkinter` is often missing, so the UI falls back to manual path entry.
@@ -245,7 +249,7 @@ Both `MAJOOR_...` and `MJR_...` prefixes are used in this project. Where both va
 - `MAJOOR_DB_TIMEOUT` / `MAJOOR_DB_MAX_CONNECTIONS` / `MAJOOR_DB_QUERY_TIMEOUT`
 - `MAJOOR_TO_THREAD_TIMEOUT` - timeout (seconds) for `asyncio.to_thread(...)` work in HTTP handlers (default `30`)
 - `MAJOOR_MAX_METADATA_JSON_BYTES` - max metadata JSON size stored in DB/cache (default `2097152`)
-- `MJR_AM_NO_AUTO_PIP` - set to `1` to disable best-effort dependency auto-install on startup
+- `MJR_AM_CLEANUP_RESERVED_NAMES` - set to `1` to enable Windows reserved-name cleanup in `custom_nodes` (disabled by default)
 - `MJR_COLLECTION_MAX_ITEMS` - max items per collection JSON (default `50000`)
 - `MJR_ALLOW_SYMLINKS` - allow symlink/junction custom roots (default `off`)
 - `MAJOOR_TRUSTED_PROXIES` - comma-separated IPs/CIDRs allowed to supply `X-Forwarded-For`/`X-Real-IP` (default `127.0.0.1,::1`)

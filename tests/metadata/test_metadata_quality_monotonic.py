@@ -1,11 +1,11 @@
-import pytest
+﻿import pytest
 import json
 from pathlib import Path
 
-from backend.adapters.db.schema import init_schema
-from backend.adapters.db.sqlite import Sqlite
-from backend.features.index.metadata_helpers import MetadataHelpers
-from backend.shared import Result
+from mjr_am_backend.adapters.db.schema import init_schema
+from mjr_am_backend.adapters.db.sqlite import Sqlite
+from mjr_am_backend.features.index.metadata_helpers import MetadataHelpers
+from mjr_am_backend.shared import Result
 
 
 @pytest.mark.asyncio
@@ -55,3 +55,4 @@ async def test_write_asset_metadata_row_does_not_downgrade_quality(tmp_path: Pat
     assert parsed.get("quality") == "full"
 
     await db.aclose()
+

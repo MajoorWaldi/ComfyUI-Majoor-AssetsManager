@@ -352,6 +352,20 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     try {
         window.addEventListener?.("mjr-settings-changed", onSettingsChanged, { signal: panelLifecycleAC?.signal });
     } catch {}
+    try {
+        const onEnrichmentStatus = (e) => {
+            try {
+                if (panelLifecycleAC?.signal?.aborted) return;
+            } catch {}
+            const detail = e?.detail || {};
+            const active = !!detail?.active;
+            // Ensure card workflow/status dots reflect final metadata once enrichment ends.
+            if (!active) {
+                gridController.reloadGrid().catch(() => {});
+            }
+        };
+        window.addEventListener?.("mjr-enrichment-status", onEnrichmentStatus, { signal: panelLifecycleAC?.signal });
+    } catch {}
 
     content.appendChild(statusSection);
     content.appendChild(searchSection);
@@ -417,6 +431,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
 
     // Allow context menus to request a refresh (e.g. after "Remove from collection").
     let _reloadGridHandler = null;
+    let _globalReloadGridHandler = null;
     try {
         _reloadGridHandler = () => {
             try {
@@ -430,6 +445,18 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             } catch {}
             _reloadGridHandler = null;
         });
+    } catch {}
+    try {
+        _globalReloadGridHandler = () => {
+            try {
+                if (panelLifecycleAC?.signal?.aborted) return;
+            } catch {}
+            try {
+                if (globalThis?._mjrMaintenanceActive) return;
+            } catch {}
+            queuedReload().catch(() => {});
+        };
+        window.addEventListener("mjr:reload-grid", _globalReloadGridHandler, { signal: panelLifecycleAC?.signal });
     } catch {}
 
     const customRootsController = createCustomRootsController({

@@ -34,6 +34,7 @@ export const ENDPOINTS = {
     STAGE_TO_INPUT: "/mjr/am/stage-to-input",
     OPEN_IN_FOLDER: "/mjr/am/open-in-folder",
     TOOLS_STATUS: "/mjr/am/tools/status",
+    SETTINGS_OUTPUT_DIRECTORY: "/mjr/am/settings/output-directory",
 
     // View (ComfyUI native)
     VIEW: "/view",
@@ -84,7 +85,9 @@ export const ENDPOINTS = {
  * Build view URL for asset
  */
 export function buildViewURL(filename, subfolder = null, type = "output") {
-    let url = `${ENDPOINTS.VIEW}?filename=${encodeURIComponent(filename)}`;
+    const fn = String(filename || "").trim();
+    if (!fn) return "";
+    let url = `${ENDPOINTS.VIEW}?filename=${encodeURIComponent(fn)}`;
     if (subfolder) {
         url += `&subfolder=${encodeURIComponent(subfolder)}`;
     }
@@ -108,6 +111,7 @@ export function buildListURL(params = {}) {
         minRating = null,
         dateRange = null,
         dateExact = null,
+        sort = null,
         includeTotal = true
     } = params;
 
@@ -133,6 +137,9 @@ export function buildListURL(params = {}) {
     if (dateExact) {
         url += `&date_exact=${encodeURIComponent(dateExact)}`;
     }
+    if (sort) {
+        url += `&sort=${encodeURIComponent(String(sort))}`;
+    }
     if (includeTotal === false) {
         url += `&include_total=0`;
     }
@@ -140,7 +147,10 @@ export function buildListURL(params = {}) {
 }
 
 export function buildCustomViewURL(filename, subfolder = "", rootId = "") {
-    let url = `${ENDPOINTS.CUSTOM_VIEW}?root_id=${encodeURIComponent(rootId)}&filename=${encodeURIComponent(filename)}`;
+    const fn = String(filename || "").trim();
+    const rid = String(rootId || "").trim();
+    if (!fn || !rid) return "";
+    let url = `${ENDPOINTS.CUSTOM_VIEW}?root_id=${encodeURIComponent(rid)}&filename=${encodeURIComponent(fn)}`;
     if (subfolder) {
         url += `&subfolder=${encodeURIComponent(subfolder)}`;
     }
@@ -178,14 +188,88 @@ export function buildDateHistogramURL(params = {}) {
 }
 
 export function buildAssetViewURL(asset) {
-    const type = (asset?.type || "output").toLowerCase();
+    const rawPath = String(
+        asset?.filepath ||
+        asset?.path ||
+        asset?.fullpath ||
+        asset?.full_path ||
+        asset?.file_info?.filepath ||
+        asset?.file_info?.path ||
+        ""
+    ).trim().replace(/\\/g, "/");
+    let filename = String(
+        asset?.filename ||
+        asset?.name ||
+        asset?.file_info?.filename ||
+        ""
+    ).trim();
+    let subfolder = String(
+        asset?.subfolder ||
+        asset?.file_info?.subfolder ||
+        ""
+    ).trim();
+    const pickFromPath = (p) => {
+        const out = { type: "", subfolder: "", filename: "" };
+        const normalized = String(p || "").replace(/\\/g, "/");
+        if (!normalized) return out;
+        const idxOut = normalized.toLowerCase().indexOf("/output/");
+        const idxIn = normalized.toLowerCase().indexOf("/input/");
+        let baseIdx = -1;
+        if (idxOut >= 0) {
+            out.type = "output";
+            baseIdx = idxOut + "/output/".length;
+        } else if (idxIn >= 0) {
+            out.type = "input";
+            baseIdx = idxIn + "/input/".length;
+        }
+        if (baseIdx >= 0) {
+            const rel = normalized.slice(baseIdx);
+            const slash = rel.lastIndexOf("/");
+            if (slash >= 0) {
+                out.subfolder = rel.slice(0, slash);
+                out.filename = rel.slice(slash + 1);
+            } else {
+                out.filename = rel;
+            }
+        } else {
+            const slash = normalized.lastIndexOf("/");
+            out.filename = slash >= 0 ? normalized.slice(slash + 1) : normalized;
+        }
+        return out;
+    };
+    const fromPath = pickFromPath(rawPath);
+    // If filename accidentally contains a relative path, split it for /view API.
+    if (!subfolder && filename.includes("/")) {
+        const idx = filename.lastIndexOf("/");
+        if (idx > 0) {
+            subfolder = filename.slice(0, idx);
+            filename = filename.slice(idx + 1);
+        }
+    }
+    if (!filename && fromPath.filename) filename = fromPath.filename;
+    if (!subfolder && fromPath.subfolder) subfolder = fromPath.subfolder;
+    if (!filename) return "";
+
+    let type = String(asset?.type || asset?.file_info?.type || "").toLowerCase().trim();
+    if (type !== "input" && type !== "output" && type !== "custom") type = "";
+    if (!type && fromPath.type) type = fromPath.type;
+    if (!type && rawPath) {
+        if (rawPath.includes("/input/")) type = "input";
+        else if (rawPath.includes("/output/")) type = "output";
+    }
+    if (!type) type = "output";
+
     if (type === "custom") {
-        return buildCustomViewURL(asset?.filename || "", asset?.subfolder || "", pickRootId(asset));
+        const rid = String(pickRootId(asset) || "").trim();
+        if (rid) return buildCustomViewURL(filename, subfolder, rid);
+        // Fallback for malformed custom assets without root id.
+        const fallbackType = fromPath.type || "output";
+        return buildViewURL(filename, subfolder, fallbackType);
     }
-    if (type === "input") {
-        return buildViewURL(asset?.filename || "", asset?.subfolder || "", "input");
-    }
-    return buildViewURL(asset?.filename || "", asset?.subfolder || "", "output");
+    // Prefer path-based type when explicit type conflicts with obvious filepath bucket.
+    if (rawPath.includes("/output/")) type = "output";
+    if (rawPath.includes("/input/")) type = "input";
+    return buildViewURL(filename, subfolder, type);
 }
 
 /**

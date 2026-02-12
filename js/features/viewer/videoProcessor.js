@@ -73,6 +73,10 @@ export function createVideoProcessor({
         _connectRAF: null,
         _connectTries: 0,
         _buffer: null,
+        _lut: null,
+        _lutKey: "",
+        _lastFrameTime: -1,
+        _lastHeavySig: "",
     };
 
     const unsubs = [];
@@ -186,7 +190,31 @@ export function createVideoProcessor({
 
         const s = src.data;
         const d = dst.data;
-        for (let i = 0; i < d.length; i += 4) {
+        const canUseLut = analysisMode !== "zebra" && channel === "rgb";
+        let lut = null;
+        if (canUseLut) {
+            const lutKey = `${exposureScale.toFixed(6)}|${invGamma.toFixed(6)}`;
+            if (!proc._lut || proc._lutKey !== lutKey) {
+                const nextLut = new Uint8ClampedArray(256);
+                for (let j = 0; j < 256; j += 1) {
+                    const v = j / 255;
+                    nextLut[j] = Math.round(Math.pow(clamp01(v * exposureScale), invGamma) * 255);
+                }
+                proc._lut = nextLut;
+                proc._lutKey = lutKey;
+            }
+            lut = proc._lut;
+        }
+
+        if (lut) {
+            for (let i = 0; i < d.length; i += 4) {
+                d[i] = lut[s[i] ?? 0];
+                d[i + 1] = lut[s[i + 1] ?? 0];
+                d[i + 2] = lut[s[i + 2] ?? 0];
+                d[i + 3] = 255;
+            }
+        } else {
+            for (let i = 0; i < d.length; i += 4) {
             const r0 = (s[i] ?? 0) / 255;
             const g0 = (s[i + 1] ?? 0) / 255;
             const b0 = (s[i + 2] ?? 0) / 255;
@@ -243,6 +271,7 @@ export function createVideoProcessor({
             d[i + 2] = Math.round(clamp01(bb) * 255);
             d[i + 3] = 255;
         }
+        }
 
         try {
             ctx.putImageData(dst, 0, 0);
@@ -254,6 +283,20 @@ export function createVideoProcessor({
         if (!canvas?.isConnected) return;
         if (!proc.ready) ensureSizeFromVideo();
         if (!proc.ready) return;
+        // Skip duplicate heavy renders when neither time nor grading params changed.
+        try {
+            const params = proc.lastParams || getGradeParams?.() || {};
+            const heavy = !isDefaultGrade?.(params);
+            if (heavy) {
+                const t = Number(videoEl?.currentTime) || 0;
+                const sig = `${Number(params.exposureEV) || 0}|${Number(params.gamma) || 1}|${String(params.channel || "rgb")}|${String(params.analysisMode || "none")}|${Number(params.zebraThreshold ?? 0.95)}`;
+                if (Math.abs(t - (Number(proc._lastFrameTime) || 0)) < 1e-6 && sig === String(proc._lastHeavySig || "")) {
+                    return;
+                }
+                proc._lastFrameTime = t;
+                proc._lastHeavySig = sig;
+            }
+        } catch {}
         renderProcessedFrame();
     };
 

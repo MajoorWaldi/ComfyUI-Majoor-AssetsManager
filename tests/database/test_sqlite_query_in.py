@@ -1,5 +1,5 @@
-import pytest
-from backend.adapters.db.sqlite import Sqlite
+﻿import pytest
+from mjr_am_backend.adapters.db.sqlite import Sqlite
 
 
 async def _init_db(db: Sqlite) -> None:
@@ -68,3 +68,4 @@ async def test_query_in_repairs_whitespace_column(tmp_path):
     assert res.ok
     assert [row["id"] for row in (res.data or [])] == [1, 2]
     await db.aclose()
+

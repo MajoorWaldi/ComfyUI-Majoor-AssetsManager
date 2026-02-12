@@ -1,4 +1,4 @@
-from backend.features.geninfo.parser import parse_geninfo_from_prompt
+﻿from mjr_am_backend.features.geninfo.parser import parse_geninfo_from_prompt
 
 def test_qwen_integration_payload():
     """
@@ -153,3 +153,4 @@ def test_tts_audio_integration_payload():
     assert data["temperature"]["value"] == 0.7
     assert data["repetition_penalty"]["value"] == 1.1
     assert data["max_new_tokens"]["value"] == 2048
+

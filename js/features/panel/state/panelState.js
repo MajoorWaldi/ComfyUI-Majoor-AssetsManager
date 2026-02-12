@@ -24,9 +24,12 @@ function savePanelState(state) {
 
 export function createPanelState() {
     const saved = loadPanelState() || {};
+    const allowedScopes = new Set(["output", "input", "all", "custom"]);
+    const rawScope = String(saved.scope || "output").toLowerCase();
+    const normalizedScope = rawScope === "outputs" ? "output" : rawScope === "inputs" ? "input" : rawScope;
     
     const state = {
-        scope: saved.scope || "output",
+        scope: allowedScopes.has(normalizedScope) ? normalizedScope : "output",
         customRootId: saved.customRootId || "",
         subfolder: saved.subfolder || "",
         collectionId: saved.collectionId || "",

@@ -1,4 +1,4 @@
-from backend.features.geninfo.parser import parse_geninfo_from_prompt
+﻿from mjr_am_backend.features.geninfo.parser import parse_geninfo_from_prompt
 
 def test_geninfo_flux_standard_advanced_sampler():
     """
@@ -161,4 +161,5 @@ def test_geninfo_flux_gguf_fp8_variant():
     # Verify Prompt was extracted
     # "GGUF cat" via BasicGuider -> conditioning
     assert data["positive"]["value"] == "GGUF cat"
+
 

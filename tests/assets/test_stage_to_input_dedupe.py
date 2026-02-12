@@ -1,10 +1,10 @@
-import pytest
+﻿import pytest
 from pathlib import Path
 
 
 @pytest.mark.asyncio
 async def test_files_equal_content(tmp_path: Path):
-    from backend.routes.handlers.scan import _files_equal_content
+    from mjr_am_backend.routes.handlers.scan import _files_equal_content
 
     a = tmp_path / "a.bin"
     b = tmp_path / "b.bin"
@@ -20,7 +20,7 @@ async def test_files_equal_content(tmp_path: Path):
 
 @pytest.mark.asyncio
 async def test_resolve_stage_destination_reuses_identical_file(tmp_path: Path):
-    from backend.routes.handlers.scan import _resolve_stage_destination
+    from mjr_am_backend.routes.handlers.scan import _resolve_stage_destination
 
     src = tmp_path / "src.bin"
     src.write_bytes(b"x" * 1024)
@@ -38,7 +38,7 @@ async def test_resolve_stage_destination_reuses_identical_file(tmp_path: Path):
 
 @pytest.mark.asyncio
 async def test_resolve_stage_destination_increments_on_conflict(tmp_path: Path):
-    from backend.routes.handlers.scan import _resolve_stage_destination
+    from mjr_am_backend.routes.handlers.scan import _resolve_stage_destination
 
     src = tmp_path / "src.bin"
     src.write_bytes(b"aaa")
@@ -52,4 +52,5 @@ async def test_resolve_stage_destination_increments_on_conflict(tmp_path: Path):
     resolved = _resolve_stage_destination(dest_dir, "file.bin", src)
     assert resolved.reused_existing is False
     assert resolved.path.name == "file_1.bin"
+
 

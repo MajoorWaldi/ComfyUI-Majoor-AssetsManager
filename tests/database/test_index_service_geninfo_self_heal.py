@@ -1,8 +1,8 @@
-import json
+﻿import json
 
 import pytest
 
-from backend.shared import Result
+from mjr_am_backend.shared import Result
 
 
 @pytest.mark.asyncio
@@ -84,3 +84,4 @@ async def test_get_asset_does_not_self_heal_incomplete_geninfo(services):
     assert gi.get("positive") in (None, {})
     assert gi.get("negative") in (None, {})
     assert gi.get("checkpoint") in (None, {})
+

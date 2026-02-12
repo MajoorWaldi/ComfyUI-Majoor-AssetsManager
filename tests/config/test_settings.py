@@ -1,6 +1,6 @@
 import pytest
-from backend.adapters.db.sqlite import Sqlite
-from backend.settings import AppSettings
+from mjr_am_backend.adapters.db.sqlite import Sqlite
+from mjr_am_backend.settings import AppSettings
 
 
 async def _init_settings_db(db: Sqlite) -> None:
@@ -36,4 +36,27 @@ async def test_settings_cache_version_invalidation(tmp_path):
     assert after == "ffprobe"
 
     await db.aclose()
+
+
+@pytest.mark.asyncio
+async def test_output_directory_persist_and_read(tmp_path):
+    db = Sqlite(str(tmp_path / "test_output_dir.db"))
+    await _init_settings_db(db)
+    settings = AppSettings(db)
+
+    custom = str((tmp_path / "CustomOutputDir").resolve())
+    res = await settings.set_output_directory(custom)
+    assert res.ok
+    assert res.data == custom
+
+    got = await settings.get_output_directory()
+    assert got == custom
+
+    cleared = await settings.set_output_directory("")
+    assert cleared.ok
+    assert cleared.data == ""
+    got_after = await settings.get_output_directory()
+    assert got_after is None
+    await db.aclose()
+
 

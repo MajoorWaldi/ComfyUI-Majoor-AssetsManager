@@ -1,5 +1,5 @@
-import pytest
-from backend.features.metadata.extractors import extract_png_metadata
+﻿import pytest
+from mjr_am_backend.features.metadata.extractors import extract_png_metadata
 
 
 @pytest.mark.asyncio
@@ -23,4 +23,5 @@ async def test_extracts_tags_from_exiftool_grouped_xmp_keys(tmp_path):
     res = extract_png_metadata(str(f), exif)
     assert res.ok
     assert set(res.data.get("tags") or []) >= {"foo", "bar", "baz", "alpha", "beta"}
+
 

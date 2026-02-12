@@ -298,14 +298,16 @@ export function drawScopesLight(ctx, viewport, sourceCanvas, opts = {}) {
                           ? "Histogram (Luma)"
                           : "Histogram (RGB + Luma)";
             drawPanel(ctx, { ...rect, title });
-            const hist = computeHistogramFromImageData(img, { sampleStep: 2 });
+            const sampleStep = Math.max(2, Math.floor(Math.max(dw, dh) / 180));
+            const hist = computeHistogramFromImageData(img, { sampleStep });
             drawHistogram(ctx, rect, hist, { channel });
         }
         if (mode === "wave" || mode === "both") {
             const y = mode === "both" ? baseY - panelH - 8 : baseY;
             const rect = { x: baseX, y, w: panelW, h: panelH };
             drawPanel(ctx, { ...rect, title: "Waveform (Luma)" });
-            const wf = computeWaveformFromImageData(img, { columns: 240, rows: 120, sampleStep: 2 });
+            const sampleStep = Math.max(2, Math.floor(Math.max(dw, dh) / 180));
+            const wf = computeWaveformFromImageData(img, { columns: 180, rows: 96, sampleStep });
             drawWaveform(ctx, rect, wf);
         }
     } catch {}

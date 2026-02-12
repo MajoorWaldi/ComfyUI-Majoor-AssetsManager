@@ -1,4 +1,4 @@
-"""MVP tests focused on Result pattern, adapters and SQLite behavior."""
+﻿"""MVP tests focused on Result pattern, adapters and SQLite behavior."""
 import json
 import sys
 from pathlib import Path
@@ -6,10 +6,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from shared import Result, get_logger, log_success, ErrorCode
-from backend.adapters.tools import ExifTool, FFProbe
-from backend.adapters.db.sqlite import Sqlite
-from backend.adapters.db.schema import init_schema
+from mjr_am_shared import Result, get_logger, log_success, ErrorCode
+from mjr_am_backend.adapters.tools import ExifTool, FFProbe
+from mjr_am_backend.adapters.db.sqlite import Sqlite
+from mjr_am_backend.adapters.db.schema import init_schema
 
 logger = get_logger(__name__)
 
@@ -87,7 +87,7 @@ async def test_exiftool_with_mocks(tmp_path, monkeypatch):
     test_file = tmp_path / "sample.png"
     test_file.write_bytes(b"\x89PNG\r\n\x1a\n")
 
-    monkeypatch.setattr("backend.adapters.tools.exiftool.shutil.which", lambda _: "/usr/bin/exiftool")
+    monkeypatch.setattr("mjr_am_backend.adapters.tools.exiftool.shutil.which", lambda _: "/usr/bin/exiftool")
 
     fake_payload = [{"SourceFile": str(test_file), "XMP-xmp:Rating": 5, "XMP-dc:Subject": ["tag1"]}]
     fake_proc = MagicMock(
@@ -95,7 +95,7 @@ async def test_exiftool_with_mocks(tmp_path, monkeypatch):
         stdout=json.dumps(fake_payload),
         stderr="",
     )
-    monkeypatch.setattr("backend.adapters.tools.exiftool.subprocess.run", lambda *args, **kwargs: fake_proc)
+    monkeypatch.setattr("mjr_am_backend.adapters.tools.exiftool.subprocess.run", lambda *args, **kwargs: fake_proc)
 
     exiftool = ExifTool()
     assert exiftool.is_available()
@@ -113,14 +113,14 @@ async def test_ffprobe_with_mocks(tmp_path, monkeypatch):
     test_file = tmp_path / "sample.mp4"
     test_file.write_bytes(b"\x00\x00\x00\x18ftypmp42")
 
-    monkeypatch.setattr("backend.adapters.tools.ffprobe.shutil.which", lambda _: "/usr/bin/ffprobe")
+    monkeypatch.setattr("mjr_am_backend.adapters.tools.ffprobe.shutil.which", lambda _: "/usr/bin/ffprobe")
 
     ffprobe_json = {
         "format": {"format_name": "mov,mp4,m4a,3gp,3g2,mj2", "duration": "2.5"},
         "streams": [{"codec_type": "video", "codec_name": "h264", "width": 1280, "height": 720}],
     }
     fake_proc = MagicMock(returncode=0, stdout=json.dumps(ffprobe_json), stderr="")
-    monkeypatch.setattr("backend.adapters.tools.ffprobe.subprocess.run", lambda *args, **kwargs: fake_proc)
+    monkeypatch.setattr("mjr_am_backend.adapters.tools.ffprobe.subprocess.run", lambda *args, **kwargs: fake_proc)
 
     ffprobe = FFProbe()
     assert ffprobe.is_available()
@@ -141,7 +141,7 @@ async def test_sqlite(tmp_path):
 async def main():
     """Run MVP tests."""
     logger.info("=" * 60)
-    logger.info("🚀 Majoor Assets Manager - MVP Test")
+    logger.info("ðŸš€ Majoor Assets Manager - MVP Test")
     logger.info("=" * 60)
 
     try:
@@ -164,3 +164,4 @@ async def main():
 if __name__ == "__main__":
     import asyncio
     sys.exit(asyncio.run(main()))
+

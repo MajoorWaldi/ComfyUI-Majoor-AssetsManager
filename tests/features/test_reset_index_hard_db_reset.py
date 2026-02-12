@@ -1,4 +1,4 @@
-import json
+﻿import json
 import time
 from pathlib import Path
 
@@ -6,9 +6,9 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from backend.adapters.db.sqlite import Sqlite
-from backend.adapters.db.schema import ensure_tables_exist, ensure_indexes_and_triggers
-from backend.routes.handlers.scan import register_scan_routes
+from mjr_am_backend.adapters.db.sqlite import Sqlite
+from mjr_am_backend.adapters.db.schema import ensure_tables_exist, ensure_indexes_and_triggers
+from mjr_am_backend.routes.handlers.scan import register_scan_routes
 
 
 @pytest.mark.asyncio
@@ -42,7 +42,7 @@ async def test_reset_index_hard_reset_deletes_and_recreates_db(monkeypatch, tmp_
     shm_path = Path(str(db_path) + "-shm")
 
     # Monkeypatch scan handler to run without ComfyUI folder_paths.
-    import backend.routes.handlers.scan as scan_mod
+    import mjr_am_backend.routes.handlers.scan as scan_mod
 
     class _FP:
         @staticmethod
@@ -103,3 +103,4 @@ async def test_reset_index_hard_reset_deletes_and_recreates_db(monkeypatch, tmp_
     finally:
         await client.close()
         await db.aclose()
+

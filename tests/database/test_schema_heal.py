@@ -1,11 +1,11 @@
-import pytest
+﻿import pytest
 import sqlite3
 
 
 @pytest.mark.asyncio
 async def test_schema_self_heals_missing_columns(tmp_path):
-    from backend.adapters.db.sqlite import Sqlite
-    from backend.adapters.db.schema import CURRENT_SCHEMA_VERSION, migrate_schema
+    from mjr_am_backend.adapters.db.sqlite import Sqlite
+    from mjr_am_backend.adapters.db.schema import CURRENT_SCHEMA_VERSION, migrate_schema
 
     db_path = tmp_path / "partial_schema.db"
 
@@ -98,8 +98,8 @@ async def test_schema_self_heals_missing_columns(tmp_path):
 
 @pytest.mark.asyncio
 async def test_sqlite_query_missing_column_triggers_self_heal(tmp_path):
-    from backend.adapters.db.sqlite import Sqlite
-    from backend.adapters.db.schema import ensure_tables_exist
+    from mjr_am_backend.adapters.db.sqlite import Sqlite
+    from mjr_am_backend.adapters.db.schema import ensure_tables_exist
 
     db_path = tmp_path / "missing_hash_columns.db"
     conn = sqlite3.connect(str(db_path))
@@ -132,4 +132,5 @@ async def test_sqlite_query_missing_column_triggers_self_heal(tmp_path):
             await db.aclose()
         except Exception:
             pass
+
 

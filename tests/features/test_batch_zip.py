@@ -1,4 +1,4 @@
-import io
+﻿import io
 import json
 import zipfile
 
@@ -6,7 +6,7 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from backend.routes.handlers.batch_zip import register_batch_zip_routes
+from mjr_am_backend.routes.handlers.batch_zip import register_batch_zip_routes
 
 
 @pytest.mark.asyncio
@@ -19,7 +19,7 @@ async def test_batch_zip_is_flat_and_renames_duplicates(monkeypatch, tmp_path):
     (out_root / "b" / "same.png").write_bytes(b"b")
 
     # Patch handler module globals to use temp output/batch directory.
-    import backend.routes.handlers.batch_zip as mod
+    import mjr_am_backend.routes.handlers.batch_zip as mod
 
     monkeypatch.setattr(mod, "OUTPUT_ROOT_PATH", out_root, raising=True)
     monkeypatch.setattr(mod, "_BATCH_DIR", out_root / "_mjr_batch_zips", raising=True)
@@ -62,4 +62,5 @@ async def test_batch_zip_is_flat_and_renames_duplicates(monkeypatch, tmp_path):
         assert all("/" not in n and "\\" not in n for n in names)
     finally:
         await client.close()
+
 

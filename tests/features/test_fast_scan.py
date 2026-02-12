@@ -1,4 +1,4 @@
-import pytest
+﻿import pytest
 import time
 from pathlib import Path
 
@@ -8,7 +8,7 @@ async def test_fast_scan_enriches_metadata_in_background(tmp_path: Path):
     Fast scan should avoid running metadata tools inline (metadata_raw initially '{}'),
     then background enrichment should populate metadata_raw and metadata_cache.
     """
-    from backend.deps import build_services
+    from mjr_am_backend.deps import build_services
 
     db_path = tmp_path / "fast_scan.db"
     services_res = await build_services(db_path=str(db_path))
@@ -84,3 +84,4 @@ async def test_fast_scan_enriches_metadata_in_background(tmp_path: Path):
     assert cache_res.ok, cache_res.error
     count = int((cache_res.data or [{}])[0].get("c") or 0)
     assert count == len(files)
+

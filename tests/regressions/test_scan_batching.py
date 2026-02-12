@@ -1,4 +1,4 @@
-import pytest
+﻿import pytest
 import contextlib
 from pathlib import Path
 
@@ -11,7 +11,7 @@ async def test_scan_uses_batched_transactions(tmp_path: Path):
     We count `db.transaction()` invocations during a scan and ensure it's bounded
     by the batch size logic (<< number of files).
     """
-    from backend.deps import build_services
+    from mjr_am_backend.deps import build_services
 
     db_path = tmp_path / "batching.db"
     services_res = await build_services(db_path=str(db_path))
@@ -61,3 +61,4 @@ async def test_scan_uses_batched_transactions(tmp_path: Path):
     c = await db.aquery("SELECT COUNT(*) as c FROM assets")
     assert c.ok
     assert int((c.data or [{}])[0].get("c") or 0) == len(files)
+

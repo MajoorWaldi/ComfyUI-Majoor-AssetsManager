@@ -1,5 +1,5 @@
-import pytest
-from backend.routes.core.security import _require_operation_enabled
+﻿import pytest
+from mjr_am_backend.routes.core.security import _require_operation_enabled
 
 
 def _clear_env(monkeypatch):
@@ -66,4 +66,5 @@ async def test_open_in_folder_requires_explicit_opt_in(monkeypatch):
     monkeypatch.setenv("MAJOOR_ALLOW_OPEN_IN_FOLDER", "1")
     res2 = _require_operation_enabled("open_in_folder")
     assert res2.ok, res2.error
+
 

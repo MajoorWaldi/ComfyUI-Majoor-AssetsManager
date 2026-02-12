@@ -1,7 +1,7 @@
-import pytest
+﻿import pytest
 import json
 
-from backend.features.metadata.extractors import extract_video_metadata
+from mjr_am_backend.features.metadata.extractors import extract_video_metadata
 
 
 @pytest.mark.asyncio
@@ -32,3 +32,4 @@ async def test_video_extractor_parses_itemlist_comment_wrapper(tmp_path):
     assert isinstance(res.data.get("workflow"), dict)
     assert isinstance(res.data.get("prompt"), dict)
     assert res.data["prompt"].get("6", {}).get("class_type") == "CLIPTextEncode"
+

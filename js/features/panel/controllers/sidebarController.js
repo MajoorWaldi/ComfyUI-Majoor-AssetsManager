@@ -234,6 +234,14 @@ function setCardSelected(card, selected) {
 
 function getAllCards(gridContainer) {
     try {
+        if (typeof gridContainer?._mjrGetRenderedCards === "function") {
+            const cards = gridContainer._mjrGetRenderedCards();
+            if (Array.isArray(cards) && cards.length) return cards;
+        }
+    } catch {
+        return [];
+    }
+    try {
         return Array.from(gridContainer.querySelectorAll(".mjr-asset-card"));
     } catch {
         return [];
@@ -243,7 +251,8 @@ function getAllCards(gridContainer) {
 function updateSelectedIdsDataset(gridContainer) {
     if (!gridContainer) return;
     try {
-        const ids = Array.from(gridContainer.querySelectorAll(".mjr-asset-card.is-selected"))
+        const ids = getAllCards(gridContainer)
+            .filter((c) => c?.classList?.contains?.("is-selected"))
             .map((c) => c?.dataset?.mjrAssetId)
             .filter(Boolean);
         if (ids.length) {
@@ -276,7 +285,7 @@ function applySelection(gridContainer, ids, activeId = "") {
         }
     } catch {}
     try {
-        for (const card of gridContainer.querySelectorAll(".mjr-asset-card")) {
+        for (const card of getAllCards(gridContainer)) {
             const id = card?.dataset?.mjrAssetId;
             const selected = id && list.includes(String(id));
             setCardSelected(card, !!selected);
@@ -302,7 +311,8 @@ function syncSelectionState({ gridContainer, state, activeId } = {}) {
         } else if (gridContainer.dataset?.mjrSelectedAssetId) {
             selected = [String(gridContainer.dataset.mjrSelectedAssetId)].filter(Boolean);
         } else {
-            selected = Array.from(gridContainer.querySelectorAll(".mjr-asset-card.is-selected"))
+            selected = getAllCards(gridContainer)
+                .filter((c) => c?.classList?.contains?.("is-selected"))
                 .map((c) => c?.dataset?.mjrAssetId)
                 .filter(Boolean)
                 .map(String);

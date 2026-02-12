@@ -3,7 +3,7 @@
  */
 
 import { APP_CONFIG, APP_DEFAULTS } from "./config.js";
-import { getSecuritySettings, setSecuritySettings, setProbeBackendMode, getWatcherStatus, toggleWatcher, getWatcherSettings, updateWatcherSettings, getRuntimeStatus } from "../api/client.js";
+import { getSecuritySettings, setSecuritySettings, setProbeBackendMode, getOutputDirectorySetting, setOutputDirectorySetting, getWatcherStatus, toggleWatcher, getWatcherSettings, updateWatcherSettings, getRuntimeStatus } from "../api/client.js";
 import { comfyToast } from "./toast.js";
 import { safeDispatchCustomEvent } from "../utils/events.js";
 import { t, initI18n, setLang, getCurrentLang, getSupportedLanguages } from "./i18n.js";
@@ -94,6 +94,9 @@ const DEFAULT_SETTINGS = {
     },
     probeBackend: {
         mode: "auto",
+    },
+    paths: {
+        outputDirectory: "",
     },
     db: {
         timeoutMs: 5000,
@@ -195,21 +198,43 @@ const deepMerge = (base, next) => {
 
 function ensureRuntimeStatusDashboard() {
     try {
+        const host = document.querySelector(".mjr-assets-manager.mjr-am-container");
+        const existing = document.getElementById(RUNTIME_DASHBOARD_ID);
+        if (!host) {
+            try {
+                existing?.remove?.();
+            } catch {}
+            return null;
+        }
+
+        // Anchor to the Assets Manager container (not the scrollable grid),
+        // so the widget stays fixed while the grid scrolls and disappears when panel closes.
+        try {
+            const hostPos = String(getComputedStyle(host).position || "").toLowerCase();
+            if (!hostPos || hostPos === "static") {
+                host.style.position = "relative";
+            }
+        } catch {}
+
         let el = document.getElementById(RUNTIME_DASHBOARD_ID);
         if (!el) {
             el = document.createElement("div");
             el.id = RUNTIME_DASHBOARD_ID;
-            el.style.position = "fixed";
-            el.style.left = "10px";
+            el.style.position = "absolute";
             el.style.bottom = "10px";
+            el.style.right = "10px";
             el.style.zIndex = "9999";
-            el.style.padding = "6px 8px";
-            el.style.borderRadius = "6px";
-            el.style.background = "rgba(0,0,0,0.65)";
-            el.style.color = "#fff";
+            el.style.padding = "6px 10px";
+            el.style.borderRadius = "10px";
+            el.style.border = "1px solid rgba(255,255,255,0.16)";
+            el.style.background = "rgba(0,0,0,0.45)";
+            el.style.backdropFilter = "blur(4px)";
+            el.style.color = "var(--content-fg, #fff)";
             el.style.fontSize = "11px";
             el.style.pointerEvents = "none";
-            document.body.appendChild(el);
+            host.appendChild(el);
+        } else if (el.parentElement !== host) {
+            host.appendChild(el);
         }
         return el;
     } catch {
@@ -224,6 +249,7 @@ async function refreshRuntimeStatusDashboard() {
         const res = await getRuntimeStatus();
         if (!res?.ok || !res?.data) {
             el.textContent = "Runtime: unavailable";
+            el.title = "Runtime metrics unavailable";
             return;
         }
         const db = res.data.db || {};
@@ -233,8 +259,10 @@ async function refreshRuntimeStatusDashboard() {
         const enrichQ = Number(idx.enrichment_queue_length || 0);
         const pending = Number(w.pending_files || 0);
         el.textContent = `DB active: ${active} | Enrich Q: ${enrichQ} | Watcher pending: ${pending}`;
+        el.title = `Runtime Metrics\nDB active connections: ${active}\nEnrichment queue: ${enrichQ}\nWatcher pending files: ${pending}`;
     } catch {
         el.textContent = "Runtime: unavailable";
+        el.title = "Runtime metrics unavailable";
     }
 }
 
@@ -268,6 +296,7 @@ export const loadMajoorSettings = () => {
             "observability",
             "sidebar",
             "probeBackend",
+            "paths",
             "db",
             "ratingTagsSync",
             "cache",
@@ -1473,6 +1502,56 @@ export const registerMajoorSettings = (app, onApplied) => {
         });
 
         safeAddSetting({
+            id: `${SETTINGS_PREFIX}.Paths.OutputDirectory`,
+            category: cat(t("cat.advanced"), "Paths"),
+            name: "Majoor: Output Directory Override",
+            tooltip: "Override ComfyUI output directory used by Majoor (equivalent to --output-directory). Leave empty to keep current backend default.",
+            type: "text",
+            defaultValue: String(settings.paths?.outputDirectory || ""),
+            attrs: {
+                placeholder: "D:\\\\____COMFY_OUTPUTS",
+            },
+            onChange: async (value) => {
+                const previous = String(settings.paths?.outputDirectory || "");
+                const next = String(value || "").trim();
+                settings.paths = settings.paths || {};
+                settings.paths.outputDirectory = next;
+                saveMajoorSettings(settings);
+                notifyApplied("paths.outputDirectory");
+                try {
+                    const res = await setOutputDirectorySetting(next);
+                    if (!res?.ok) {
+                        throw new Error(res?.error || "Failed to set output directory");
+                    }
+                    const serverValue = String(res?.data?.output_directory || next);
+                    settings.paths.outputDirectory = serverValue;
+                    saveMajoorSettings(settings);
+                    notifyApplied("paths.outputDirectory");
+                } catch (error) {
+                    settings.paths.outputDirectory = previous;
+                    saveMajoorSettings(settings);
+                    notifyApplied("paths.outputDirectory");
+                    comfyToast(error?.message || "Failed to set output directory", "error");
+                }
+            },
+        });
+
+        try {
+            getOutputDirectorySetting()
+                .then((res) => {
+                    if (!res?.ok) return;
+                    const serverValue = String(res?.data?.output_directory || "").trim();
+                    settings.paths = settings.paths || {};
+                    if (settings.paths.outputDirectory !== serverValue) {
+                        settings.paths.outputDirectory = serverValue;
+                        saveMajoorSettings(settings);
+                        notifyApplied("paths.outputDirectory");
+                    }
+                })
+                .catch(() => {});
+        } catch {}
+
+        safeAddSetting({
             id: `${SETTINGS_PREFIX}.Db.Timeout`,
             category: cat(t("cat.advanced"), "Database"),
             name: "DB Timeout (ms)",
@@ -1596,7 +1675,7 @@ export const registerMajoorSettings = (app, onApplied) => {
                 "MAJOOR_METADATA_CACHE_MAX — Metadata cache max entries (default: 100000)",
                 "MAJOOR_METADATA_EXTRACT_CONCURRENCY — Parallel metadata workers (default: 1)",
                 "MJR_ENABLE_WATCHER — Enable file watcher: 1|0 (default: 1)",
-                "MJR_WATCHER_DEBOUNCE_MS — Watcher debounce delay in ms (default: 500)",
+                "MJR_WATCHER_DEBOUNCE_MS — Watcher debounce delay in ms (default: 3000)",
                 "MJR_WATCHER_DEDUPE_TTL_MS — Watcher dedupe window in ms (default: 3000)",
                 "MJR_WATCHER_MAX_FILE_SIZE_BYTES — Max file size to index (default: 512MB)",
                 "MJR_WATCHER_FLUSH_MAX_FILES — Max files per flush batch (default: 256)",

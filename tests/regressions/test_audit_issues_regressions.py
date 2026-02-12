@@ -1,5 +1,16 @@
 import pytest
+from pathlib import Path
 from tests.repo_root import REPO_ROOT
+
+
+def _read_backend_file(*parts: str) -> str:
+    """
+    Read backend file content from migrated path first, then legacy shim path.
+    """
+    migrated = REPO_ROOT / "mjr_am_backend" / "routes" / "handlers" / Path(*parts)
+    legacy = REPO_ROOT / "backend" / "routes" / "handlers" / Path(*parts)
+    target = migrated if migrated.exists() else legacy
+    return target.read_text(encoding="utf-8", errors="replace")
 
 
 @pytest.mark.asyncio
@@ -23,8 +34,7 @@ async def test_gridview_hydration_queue_is_per_grid() -> None:
 
 @pytest.mark.asyncio
 async def test_search_endpoints_rate_limited() -> None:
-    search_py = REPO_ROOT / "backend" / "routes" / "handlers" / "search.py"
-    s = search_py.read_text(encoding="utf-8", errors="replace")
+    s = _read_backend_file("search.py")
 
     assert "_check_rate_limit" in s
     assert '"list_assets"' in s or "list_assets" in s
@@ -34,8 +44,7 @@ async def test_search_endpoints_rate_limited() -> None:
 
 @pytest.mark.asyncio
 async def test_assets_tags_error_does_not_leak_exception() -> None:
-    assets_py = REPO_ROOT / "backend" / "routes" / "handlers" / "assets.py"
-    s = assets_py.read_text(encoding="utf-8", errors="replace")
+    s = _read_backend_file("assets.py")
 
     assert 'Failed to update tags: {exc}' not in s
     assert "_safe_error_message" in s
@@ -48,6 +57,20 @@ async def test_output_directory_cache_has_ttl() -> None:
 
     assert "OUTPUT_DIR_CACHE_TTL_MS" in s
     assert "outputDirectoryAt" in s
+
+
+@pytest.mark.asyncio
+async def test_output_scope_uses_runtime_output_root_in_key_handlers() -> None:
+    files = [
+        REPO_ROOT / "mjr_am_backend" / "routes" / "core" / "paths.py",
+        REPO_ROOT / "mjr_am_backend" / "routes" / "handlers" / "metadata.py",
+        REPO_ROOT / "mjr_am_backend" / "routes" / "handlers" / "assets.py",
+        REPO_ROOT / "mjr_am_backend" / "routes" / "handlers" / "calendar.py",
+        REPO_ROOT / "mjr_am_backend" / "routes" / "handlers" / "duplicates.py",
+        REPO_ROOT / "mjr_am_backend" / "features" / "index" / "watcher_scope.py",
+    ]
+    joined = "\n".join(p.read_text(encoding="utf-8", errors="replace") for p in files)
+    assert "get_runtime_output_root" in joined
 
 
 @pytest.mark.asyncio
@@ -73,16 +96,14 @@ async def test_popovers_do_not_use_max_int_zindex() -> None:
 
 @pytest.mark.asyncio
 async def test_filesystem_pagination_no_full_filtered_slice() -> None:
-    fs_py = REPO_ROOT / "backend" / "routes" / "handlers" / "filesystem.py"
-    s = fs_py.read_text(encoding="utf-8", errors="replace")
+    s = _read_backend_file("filesystem.py")
 
     assert "filtered_entries[offset" not in s
 
 
 @pytest.mark.asyncio
 async def test_scan_stage_batches_file_ops() -> None:
-    scan_py = REPO_ROOT / "backend" / "routes" / "handlers" / "scan.py"
-    s = scan_py.read_text(encoding="utf-8", errors="replace")
+    s = _read_backend_file("scan.py")
 
     assert "_MAX_RENAME_ATTEMPTS" in s
     assert "_link_or_copy_many" in s

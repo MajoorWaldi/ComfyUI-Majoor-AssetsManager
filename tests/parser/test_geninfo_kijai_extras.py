@@ -1,4 +1,4 @@
-from backend.features.geninfo.parser import parse_geninfo_from_prompt
+﻿from mjr_am_backend.features.geninfo.parser import parse_geninfo_from_prompt
 
 def test_geninfo_kijai_flux_trainer_inference():
     """
@@ -55,3 +55,4 @@ def test_geninfo_marigold_depth():
     assert data["engine"]["sampler_mode"] == "primary"
     assert data["steps"]["value"] == 15
     assert data["seed"]["value"] == 123
+

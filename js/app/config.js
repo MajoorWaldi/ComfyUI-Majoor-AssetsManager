@@ -10,6 +10,20 @@ let outputDirectory = null;
 let outputDirectoryAt = 0;
 const OUTPUT_DIR_CACHE_TTL_MS = 30_000;
 
+try {
+    const w = typeof window !== "undefined" ? window : null;
+    if (w) {
+        w.addEventListener?.("mjr-settings-changed", (event) => {
+            try {
+                const key = String(event?.detail?.key || "");
+                if (!key || key === "paths.outputDirectory") {
+                    invalidateOutputDirectoryCache();
+                }
+            } catch {}
+        });
+    }
+} catch {}
+
 export function invalidateOutputDirectoryCache() {
     outputDirectory = null;
     outputDirectoryAt = 0;
@@ -50,10 +64,10 @@ export const APP_DEFAULTS = Object.freeze({
     VIEWER_ALLOW_PAN_AT_ZOOM_1: false,
     VIEWER_DISABLE_WEBGL_VIDEO: false,
     VIEWER_DISABLE_WEBGL_AUDIO: false,
-    VIEWER_VIDEO_GRADE_THROTTLE_FPS: 15,
+    VIEWER_VIDEO_GRADE_THROTTLE_FPS: 12,
     VIEWER_AUDIO_VISUALIZER_MODE: "artistic", // simple|artistic
-    VIEWER_AUDIO_VIS_FPS: 24,
-    VIEWER_SCOPES_FPS: 10,
+    VIEWER_AUDIO_VIS_FPS: 18,
+    VIEWER_SCOPES_FPS: 8,
 
     // Grid
     GRID_MIN_SIZE: 120,
@@ -67,7 +81,7 @@ export const APP_DEFAULTS = Object.freeze({
     GRID_SHOW_DETAILS_DIMENSIONS: true,
     GRID_SHOW_DETAILS_GENTIME: true,
     GRID_SHOW_WORKFLOW_DOT: true,
-    GRID_VIDEO_HOVER_AUTOPLAY: true,
+    GRID_VIDEO_HOVER_AUTOPLAY: false,
     UI_CARD_HOVER_COLOR: "#3D3D3D",
     UI_CARD_SELECTION_COLOR: "#4A90E2",
     UI_RATING_COLOR: "#FF9500",
@@ -112,7 +126,7 @@ export const APP_DEFAULTS = Object.freeze({
 
     // Workflow Minimap
     WORKFLOW_MINIMAP_ENABLED: true,
-    WATCHER_DEBOUNCE_MS: 500,
+    WATCHER_DEBOUNCE_MS: 3000,
     WATCHER_DEDUPE_TTL_MS: 3000,
     // UI safety knobs
     DELETE_CONFIRMATION: true,

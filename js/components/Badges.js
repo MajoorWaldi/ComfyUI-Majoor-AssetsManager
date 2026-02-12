@@ -72,7 +72,11 @@ export function setFileBadgeCollision(badgeEl, nameCollision) {
 
 /**
  * Create workflow status dot (inline with filename)
- * States: complete (green), partial (orange), none (red), unparsed (grey)
+ * States:
+ * - success: complete metadata
+ * - warning: partial metadata
+ * - error: no metadata
+ * - pending/info: enrichment in progress or not parsed yet
  */
 export function createWorkflowDot(asset) {
     const dot = document.createElement("span");
@@ -124,7 +128,7 @@ export function applyAssetStatusDotState(dot, state, title = "") {
     let color = "var(--mjr-status-neutral, #666)";
     if (s === "pending" || s === "info") color = "var(--mjr-status-info, #64B5F6)";
     else if (s === "success") color = "var(--mjr-status-success, #4CAF50)";
-    else if (s === "warning") color = "var(--mjr-status-warning, #FF9800)";
+    else if (s === "warning") color = "var(--mjr-status-warning, #FFA726)";
     else if (s === "error") color = "var(--mjr-status-error, #f44336)";
 
     try {

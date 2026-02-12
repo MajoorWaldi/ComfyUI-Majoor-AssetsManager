@@ -1,4 +1,4 @@
-import sys
+﻿import sys
 import pytest_asyncio
 
 from .repo_root import REPO_ROOT
@@ -8,7 +8,7 @@ if str(REPO_ROOT) not in sys.path:
 
 @pytest_asyncio.fixture
 async def services(tmp_path):
-    from backend.deps import build_services
+    from mjr_am_backend.deps import build_services
 
     db_path = str(tmp_path / "test_services.db")
     # build_services is now async
@@ -22,3 +22,4 @@ async def services(tmp_path):
             await svc.get("db").aclose()
         except Exception:
             pass
+

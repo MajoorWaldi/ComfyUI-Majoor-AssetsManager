@@ -38,6 +38,8 @@ export function createScopeController({
         state.collectionName = "";
 
         state.scope = normalized === "outputs" ? "output" : normalized === "inputs" ? "input" : normalized;
+        // Scope switch should reset folder context to avoid stale filtering behavior.
+        state.subfolder = "";
         if (state.scope !== "custom") {
             state.customRootId = "";
         } else {

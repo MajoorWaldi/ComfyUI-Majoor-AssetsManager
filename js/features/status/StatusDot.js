@@ -154,6 +154,14 @@ function formatWatcherLine(watcher, desiredScope = "") {
     return t("status.watcher.enabled", "Watcher: enabled");
 }
 
+function emitGlobalGridReload(reason = "status-action") {
+    try {
+        window?.dispatchEvent?.(
+            new CustomEvent("mjr:reload-grid", { detail: { reason: String(reason || "status-action") } })
+        );
+    } catch {}
+}
+
 /**
  * Create status indicator section
  */
@@ -300,7 +308,7 @@ export function createStatusIndicator(options = {}) {
             saveDbBtn.textContent = original;
             try {
                 const target = getScanContext ? getScanContext() : null;
-                await updateStatus(statusDot, statusText, capabilities, target);
+                await updateStatus(statusDot, statusText, capabilities, target, null, { force: true });
             } catch {}
         }
     };
@@ -348,9 +356,10 @@ export function createStatusIndicator(options = {}) {
             globalThis._mjrMaintenanceActive = false;
             restoreDbBtn.disabled = false;
             restoreDbBtn.textContent = original;
+            emitGlobalGridReload("db-restore");
             try {
                 const target = getScanContext ? getScanContext() : null;
-                await updateStatus(statusDot, statusText, capabilities, target);
+                await updateStatus(statusDot, statusText, capabilities, target, null, { force: true });
             } catch {}
         }
     };
@@ -427,9 +436,10 @@ export function createStatusIndicator(options = {}) {
             globalThis._mjrMaintenanceActive = false;
             resetBtn.disabled = false;
             resetBtn.textContent = originalText;
+            emitGlobalGridReload("index-reset");
             try {
                 const target = getScanContext ? getScanContext() : null;
-                await updateStatus(statusDot, statusText, capabilities, target);
+                await updateStatus(statusDot, statusText, capabilities, target, null, { force: true });
             } catch {}
         }
     };
@@ -491,9 +501,10 @@ export function createStatusIndicator(options = {}) {
             deleteDbBtn.disabled = false;
             deleteDbBtn.textContent = originalText;
             resetBtn.disabled = false;
+            emitGlobalGridReload("db-force-delete");
             try {
                 const target = getScanContext ? getScanContext() : null;
-                await updateStatus(statusDot, statusText, capabilities, target);
+                await updateStatus(statusDot, statusText, capabilities, target, null, { force: true });
             } catch {}
         }
     };
@@ -577,7 +588,7 @@ export function createStatusIndicator(options = {}) {
                 try {
                     const target = getScanContext ? getScanContext() : null;
                     setTimeout(() => {
-                        void updateStatus(statusDot, statusText, capabilities, target);
+                        void updateStatus(statusDot, statusText, capabilities, target, null, { force: true });
                     }, 600);
                 } catch {}
             }
@@ -715,6 +726,7 @@ export async function triggerScan(statusDot, statusText, capabilitiesSection = n
             t("toast.scanComplete"),
             t("status.scanStats", `Added: ${stats.added || 0}  -  Updated: ${stats.updated || 0}  -  Skipped: ${stats.skipped || 0}`, { added: stats.added || 0, updated: stats.updated || 0, skipped: stats.skipped || 0 })
         );
+        emitGlobalGridReload("scan-complete");
 
         // Refresh status after 2 seconds
         setTimeout(() => {
@@ -879,11 +891,15 @@ function buildIndexHealthLine(counters, desiredScope) {
 export async function updateStatus(statusDot, statusText, capabilitiesSection = null, scanTarget = null, meta = null, options = {}) {
     const section = statusText?.closest?.("#mjr-status-body")?.parentElement || statusText?.closest?.("div");
     const signal = options?.signal || null;
+    const force = !!options?.force;
     try {
         if (signal?.aborted) return null;
     } catch {}
     try {
         if (!statusDot?.isConnected || !statusText?.isConnected) return null;
+    } catch {}
+    try {
+        if (!force && globalThis?._mjrMaintenanceActive) return null;
     } catch {}
     // Optional: caller-provided object to read the last HTTP error details from.
     // (Used by the polling loop to avoid relying on string matching.)
@@ -941,12 +957,13 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
         const dbMalformed = Boolean(dbDiagnostics?.malformed);
         const dbLocked = Boolean(dbDiagnostics?.locked);
         const dbMaintenance = Boolean(dbDiagnostics?.maintenance_active);
+        const enrichmentActive = !!globalThis?._mjrEnrichmentActive;
         const hasIndexedAssets = Number(totalAssets) > 0;
         const hasIndexTimestamp = Boolean(counters?.last_index_end);
         const indexHealthy = hasIndexedAssets && hasIndexTimestamp;
 
         let healthTone = "success";
-        if (dbMaintenance) {
+        if (dbMaintenance || enrichmentActive) {
             healthTone = "info";
         } else if (!dbAvailable || dbMalformed) {
             healthTone = "error";
@@ -993,7 +1010,11 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
 
         if (totalAssets === 0) {
             statusDot.style.background =
-                healthTone === "warning" ? "var(--mjr-status-warning, #FFA726)" : "var(--mjr-status-success, #4CAF50)";
+                healthTone === "info"
+                    ? "var(--mjr-status-info, #64B5F6)"
+                    : healthTone === "warning"
+                    ? "var(--mjr-status-warning, #FFA726)"
+                    : "var(--mjr-status-success, #4CAF50)";
             applyStatusHighlight(section, healthTone);
             setStatusWithHint(
                 statusText,
@@ -1002,7 +1023,11 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
             );
         } else {
             statusDot.style.background =
-                healthTone === "warning" ? "var(--mjr-status-warning, #FFA726)" : "var(--mjr-status-success, #4CAF50)";
+                healthTone === "info"
+                    ? "var(--mjr-status-info, #64B5F6)"
+                    : healthTone === "warning"
+                    ? "var(--mjr-status-warning, #FFA726)"
+                    : "var(--mjr-status-success, #4CAF50)";
             applyStatusHighlight(section, healthTone);
             setStatusLines(
                 statusText,
@@ -1135,14 +1160,23 @@ export function setupStatusPolling(
     let pollTimerId = null;
     let consecutiveFailures = 0;
     let lastWasMissingEndpoint = false;
+    const getIdleMultiplier = () => {
+        try {
+            const hidden = typeof document !== "undefined" && !!document.hidden;
+            const unfocused = typeof document !== "undefined" && typeof document.hasFocus === "function" && !document.hasFocus();
+            if (hidden || unfocused) return 4;
+        } catch {}
+        return 1;
+    };
 
     const scheduleNext = () => {
         const baseMs = Math.max(250, Number(APP_CONFIG.STATUS_POLL_INTERVAL) || 2000);
-        const waitMs = lastWasMissingEndpoint
+        const rawWaitMs = lastWasMissingEndpoint
             ? Math.max(30_000, baseMs)
             : consecutiveFailures > 0
             ? Math.min(60_000, Math.round(baseMs * Math.min(8, 1 + consecutiveFailures)))
             : baseMs;
+        const waitMs = Math.min(120_000, Math.round(rawWaitMs * getIdleMultiplier()));
 
         pollTimerId = setTimeout(async () => {
             try {

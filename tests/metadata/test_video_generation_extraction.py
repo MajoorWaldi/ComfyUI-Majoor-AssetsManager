@@ -1,7 +1,7 @@
-import pytest
+﻿import pytest
 import json
 
-from backend.features.metadata.extractors import extract_video_metadata
+from mjr_am_backend.features.metadata.extractors import extract_video_metadata
 
 
 def _dummy_workflow():
@@ -84,3 +84,4 @@ async def test_video_extractor_uses_ffprobe_tags(tmp_path):
     res = extract_video_metadata(str(video), exif_data={}, ffprobe_data=ffprobe)
     assert res.ok
     assert isinstance(res.data["workflow"], dict)
+

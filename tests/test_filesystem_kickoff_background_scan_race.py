@@ -1,9 +1,9 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from typing import Any
 
 import pytest
-from backend.routes.handlers import filesystem
+from mjr_am_backend.routes.handlers import filesystem
 
 
 class _RaisingPending(dict):
@@ -39,3 +39,4 @@ async def test_kickoff_background_scan_does_not_update_throttle_marker_if_enqueu
     # Validation: because the inner block raised (which is caught inside kickoff), 
     # the line `_BACKGROUND_SCAN_LAST[key] = now` should NOT have been reached.
     assert len(filesystem._BACKGROUND_SCAN_LAST) == 0
+

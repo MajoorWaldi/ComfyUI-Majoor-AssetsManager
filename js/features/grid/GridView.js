@@ -72,6 +72,21 @@ const gridDebug = (...args) => {
     } catch {}
 };
 
+function _getRenderedCards(gridContainer) {
+    if (!gridContainer) return [];
+    try {
+        if (typeof gridContainer._mjrGetRenderedCards === "function") {
+            const cards = gridContainer._mjrGetRenderedCards();
+            if (Array.isArray(cards)) return cards;
+        }
+    } catch {}
+    try {
+        return Array.from(gridContainer.querySelectorAll(".mjr-asset-card"));
+    } catch {
+        return [];
+    }
+}
+
 /**
  * Get hydration state for a grid.
  * @param {HTMLElement} gridContainer 
@@ -422,6 +437,14 @@ export function createGridContainer() {
     try {
         container._mjrSetSelection = (ids, activeId = "") => setSelectionIds(container, ids, { activeId });
         container._mjrSyncSelection = (ids) => syncSelectionClasses(container, ids);
+        container._mjrGetRenderedCards = () => {
+            try {
+                const state = GRID_STATE.get(container);
+                return state?.virtualGrid?.getRenderedCards?.() || [];
+            } catch {
+                return [];
+            }
+        };
         container._mjrScrollToAssetId = (assetId) => {
             const id = String(assetId || "").trim();
             if (!id) return;
@@ -490,8 +513,10 @@ export function createGridContainer() {
                         const ids = getSelectedIdSet(container);
                         return state.assets.filter(a => ids.has(String(a.id)));
                     }
-                    // @ts-ignore
-                    return Array.from(container.querySelectorAll('.mjr-asset-card.is-selected')).map(c => c._mjrAsset).filter(Boolean);
+                    return _getRenderedCards(container)
+                        .filter((c) => c?.classList?.contains?.("is-selected"))
+                        .map(c => c?._mjrAsset)
+                        .filter(Boolean);
                 } catch { return []; }
             },
             getActiveAsset: () => {
@@ -501,7 +526,7 @@ export function createGridContainer() {
             onAssetChanged: (asset) => {
                  if (!asset?.id) return;
                  const id = String(asset.id);
-                 const cards = Array.from(container.querySelectorAll(`.mjr-asset-card`));
+                 const cards = _getRenderedCards(container);
                  for (const card of cards) {
                      // @ts-ignore
                      if (String(card?._mjrAsset?.id) === id) {
@@ -518,7 +543,7 @@ export function createGridContainer() {
         // @ts-ignore
         container._mjrGridKeyboard = kbd;
     } catch (e) {
-        console.error("Failed to install grid keyboard", e);
+        gridDebug("keyboard:installFailed", e);
     }
 
     // Bind double-click to open viewer
@@ -543,7 +568,7 @@ export function createGridContainer() {
              currentIndex = allAssets.findIndex(a => a.id === asset.id);
         } else {
              // Fallback to DOM (legacy)
-             const allCards = Array.from(container.querySelectorAll('.mjr-asset-card'));
+             const allCards = _getRenderedCards(container);
              // @ts-ignore
              allAssets = allCards.map(c => c._mjrAsset).filter(Boolean);
              currentIndex = allAssets.findIndex(a => a.id === asset.id);
@@ -698,6 +723,7 @@ function getOrCreateState(gridContainer) {
             done: false,
             seenKeys: new Set(),
             assets: [],
+            assetIdSet: new Set(),
             filenameCounts: new Map(),
             nonImageStems: new Set(),
             // Virtual Grid mappings
@@ -741,6 +767,7 @@ function _formatLoadErrorMessage(prefix, err) {
 
 function _attachGridMetrics(state, gridContainer) {
     try {
+        if (!_gridDebugEnabled()) return;
         if (!state || state.metricsEl) return;
         const el = document.createElement("div");
         el.id = "mjr-grid-metrics";
@@ -1024,7 +1051,7 @@ export function syncSelectionClasses(gridContainer, selectedIds) {
     if (!gridContainer) return;
     const set = selectedIds instanceof Set ? selectedIds : new Set(Array.from(selectedIds || []).map(String));
     try {
-        for (const card of gridContainer.querySelectorAll(".mjr-asset-card")) {
+        for (const card of _getRenderedCards(gridContainer)) {
             const id = card?.dataset?.mjrAssetId;
             if (id && set.has(String(id))) {
                 card.classList.add("is-selected");
@@ -1140,6 +1167,8 @@ function appendAssets(gridContainer, assets, state) {
 
     const stemMap = state.stemMap || new Map();
     state.stemMap = stemMap;
+    const assetIdSet = state.assetIdSet || new Set();
+    state.assetIdSet = assetIdSet;
     
     const filenameToAssets = new Map();
     for (const existing of state.assets || []) {
@@ -1153,22 +1182,6 @@ function appendAssets(gridContainer, assets, state) {
         list.push(existing);
     }
     
-    // [ISSUE 3] Memory protection: Page Eviction
-    // Prevent unchecked growth of assets array and seenKeys
-    const MAX_ASSETS_MEMORY = 3000;
-    if (state.assets.length > MAX_ASSETS_MEMORY) {
-        const pruneCount = 500; // prune chunk
-        const removed = state.assets.splice(0, pruneCount);
-        // Also clean up seenKeys to keep Set size manageable,
-        // though strictly they shouldn't show up again if paginating forward.
-        if (state.seenKeys) {
-            for (const a of removed) {
-                const key = assetKey(a); 
-                if (key) state.seenKeys.delete(key);
-            }
-        }
-    }
-
     let addedCount = 0;
     let needsUpdate = false;
     const validNewAssets = [];
@@ -1212,13 +1225,15 @@ function appendAssets(gridContainer, assets, state) {
         } catch {}
     };
     
-    // Pre-pass: Identify new non-image stems in this batch to handle same-batch pairs
+    // Pre-pass: identify video stems only.
+    // The setting is "hide PNG previews when a corresponding video exists",
+    // so sidecars like .json/.txt must not hide PNG assets.
     if (hidePngSiblings) {
         for (const asset of assets || []) {
             const filename = String(asset?.filename || "");
             const extUpper = _getExtUpper(filename); 
             const kind = _detectKind(asset, extUpper);
-            if (kind !== "image") {
+            if (kind === "video") {
                 const stem = _getStemLower(filename);
                 if (stem) nonImageStems.add(stem);
             }
@@ -1233,7 +1248,7 @@ function appendAssets(gridContainer, assets, state) {
 
         // Hide PNG Siblings Logic
         if (hidePngSiblings && stemLower) {
-            if (kind !== "image") {
+            if (kind === "video") {
                 // nonImageStems already updated in pre-pass
                 
                 // Check if we need to hide EXISTING PNG siblings (retroactive hiding)
@@ -1268,8 +1283,9 @@ function appendAssets(gridContainer, assets, state) {
         if (!key) continue;
         if (state.seenKeys.has(key)) continue;
         // Defensive: also skip if an asset with the same id already exists
-        if (asset.id != null && state.assets.some(a => String(a.id) === String(asset.id))) continue;
+        if (asset.id != null && assetIdSet.has(String(asset.id))) continue;
         state.seenKeys.add(key);
+        if (asset.id != null) assetIdSet.add(String(asset.id));
         
         validNewAssets.push(asset);
         
@@ -1291,6 +1307,11 @@ function appendAssets(gridContainer, assets, state) {
         state.hiddenPngSiblings += assetsToRemoveFromState.size;
         // Single pass removal
         state.assets = state.assets.filter(a => !assetsToRemoveFromState.has(a));
+        for (const removed of assetsToRemoveFromState) {
+            try {
+                if (removed?.id != null) assetIdSet.delete(String(removed.id));
+            } catch {}
+        }
         try {
             for (const removed of assetsToRemoveFromState) {
                 const key = _getFilenameKey(removed?.filename);
@@ -1431,6 +1452,7 @@ async function fetchPage(gridContainer, query, limit, offset, { requestId = 0, s
                 minRating: minRating > 0 ? minRating : null,
                 dateRange: dateRange || null,
                 dateExact: dateExact || null,
+                sort: sortKey,
                 includeTotal
             });
         const result = await get(url, signal ? { signal } : undefined);
@@ -1448,18 +1470,6 @@ async function fetchPage(gridContainer, query, limit, offset, { requestId = 0, s
             const rawTotal = result.data?.total;
             const total = rawTotal == null ? null : (Number(rawTotal || 0) || 0);
 
-            // Client-side sorting (applies to current page). Default is already mtime desc from the backend.
-            if (sortKey !== "mtime_desc") {
-                const safeName = (a) => String(a?.filename || "");
-                const safeMtime = (a) => Number(a?.mtime || 0) || 0;
-                if (sortKey === "name_asc") {
-                    assets.sort((a, b) => safeName(a).localeCompare(safeName(b)));
-                } else if (sortKey === "name_desc") {
-                    assets.sort((a, b) => safeName(b).localeCompare(safeName(a)));
-                } else if (sortKey === "mtime_asc") {
-                    assets.sort((a, b) => safeMtime(a) - safeMtime(b));
-                }
-            }
             return { ok: true, assets, total, count: assets.length, sortKey, safeQuery };
         } else {
             try {
@@ -1641,6 +1651,14 @@ function startInfiniteScroll(gridContainer, state) {
                  return;
              }
              state.userScrolled = true;
+             try {
+                 if (state.loading || state.done || state.allowUntilFilled) return;
+                 const m = captureScrollMetrics(state);
+                 const bottomGapPx = Math.max(0, Number(APP_CONFIG.BOTTOM_GAP_PX || 80));
+                 if (m && m.bottomGap <= bottomGapPx) {
+                     Promise.resolve(loadNextPage(gridContainer, state)).catch(() => null);
+                 }
+             } catch {}
         };
         try {
             scrollTarget.addEventListener("scroll", state.scrollHandler, { passive: true });
@@ -1670,21 +1688,9 @@ function startInfiniteScroll(gridContainer, state) {
                 const metrics = captureScrollMetrics(state);
                 const fillsViewport = metrics ? metrics.scrollHeight > metrics.clientHeight + 40 : false;
                 
-                // Fix: Force load if not filled, regardless of user scroll state.
-                // If it fills viewport but userScrolled is false, we might still want to load
-                // if the sentinel is stubbornly visible (e.g. big screens).
-                // So we relax the check: ONLY block if fillsViewport AND allowUntilFilled is false AND !userScrolled.
-                /* 
-                   CRITICAL FIX: We cannot block inside the IntersectionObserver callback based on state.userScrolled.
-                   Observer only fires on STATE CHANGE. If we block now, and the user scrolls (keeping sentinel intersecting),
-                   the observer will NOT fire again, and the user will hit the bottom with no load.
-                   
-                   We rely on rootMargin ("800px") to naturally stop the loading once we have enough buffer.
-                   As long as items are adding height (pushing sentinel down), this will terminate.
-                */
-                // if (!state.userScrolled && fillsViewport && !state.allowUntilFilled) {
-                //    return;
-                // }
+                if (!state.userScrolled && fillsViewport && !state.allowUntilFilled) {
+                    return;
+                }
                 try {
                     state.observer?.unobserve?.(sentinel);
                 } catch {}
@@ -1742,6 +1748,7 @@ export async function loadAssets(gridContainer, query = "*", options = {}) {
         state.allowUntilFilled = true; // Reset: Allow auto-filling the viewport on new search
         state.seenKeys = new Set();
         state.assets = [];
+        state.assetIdSet = new Set();
         state.filenameCounts = new Map();
         state.stemMap = new Map();
         state.renderedFilenameMap = new Map();
@@ -1835,6 +1842,7 @@ export function prepareGridForScopeSwitch(gridContainer) {
     state.done = false;
     state.loading = false;
     state.assets = [];
+    state.assetIdSet = new Set();
     state.seenKeys = new Set();
     state.filenameCounts = new Map();
     state.stemMap = new Map();
@@ -1892,6 +1900,7 @@ export async function loadAssetsFromList(gridContainer, assets, options = {}) {
         state.query = String(title || "Collection");
         state.seenKeys = new Set();
         state.assets = [];
+        state.assetIdSet = new Set();
         state.filenameCounts = new Map();
         state.stemMap = new Map();
         state.renderedFilenameMap = new Map();
@@ -1976,7 +1985,8 @@ export function removeAssetsFromGrid(gridContainer, assetIds, { updateSelection 
 
     // Best-effort selection class sync for visible cards.
     try {
-        for (const card of gridContainer.querySelectorAll(".mjr-asset-card.is-selected")) {
+        for (const card of _getRenderedCards(gridContainer)) {
+            if (!card?.classList?.contains?.("is-selected")) continue;
             const id = card?.dataset?.mjrAssetId;
             if (!id || !selectedIds.has(String(id))) {
                 card.classList.remove("is-selected");
@@ -1993,6 +2003,9 @@ export function removeAssetsFromGrid(gridContainer, assetIds, { updateSelection 
             const id = asset?.id != null ? String(asset.id) : "";
             if (id && ids.has(id)) {
                 removedCount += 1;
+                try {
+                    state.assetIdSet?.delete?.(id);
+                } catch {}
             } else {
                 next.push(asset);
             }
@@ -2222,12 +2235,13 @@ function _flushUpsertBatch(gridContainer) {
                 // Defensive: skip if already tracked by seenKeys OR if another asset
                 // with the same id somehow exists (guards against race conditions).
                 const alreadySeen = state.seenKeys.has(key) ||
-                    (asset.id != null && state.assets.some(a => String(a.id) === assetId));
+                    (asset.id != null && state.assetIdSet?.has?.(assetId));
                 if (!alreadySeen) {
                     const sortKey = gridContainer.dataset.mjrSort || "mtime_desc";
                     const insertPos = findInsertPosition(state.assets, asset, sortKey);
 
                     state.seenKeys.add(key);
+                    if (asset.id != null) state.assetIdSet?.add?.(assetId);
 
                     // If insertion is near the top, mark re-sort to avoid large index shifts.
                     const shouldResort = insertPos <= Math.min(10, state.assets.length);
@@ -2265,7 +2279,7 @@ function _flushUpsertBatch(gridContainer) {
             vg.setItems(state.assets);
         }
     } catch (err) {
-        console.warn("📂 Majoor [⚠️] Upsert batch flush error:", err);
+        gridDebug("upsertBatch:flushError", err);
     } finally {
         batchState.pending.clear();
         batchState.flushing = false;
@@ -2339,7 +2353,7 @@ export function captureAnchor(gridContainer) {
  * Get first visible asset element
  */
 function getFirstVisibleAssetElement(gridContainer) {
-    const cards = gridContainer.querySelectorAll('.mjr-asset-card');
+    const cards = _getRenderedCards(gridContainer);
     const containerRect = gridContainer.getBoundingClientRect();
     const containerTop = containerRect.top;
     const containerBottom = containerRect.bottom;

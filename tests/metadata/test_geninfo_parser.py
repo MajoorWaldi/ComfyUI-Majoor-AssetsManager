@@ -1,7 +1,7 @@
-import pytest
+﻿import pytest
 
 
-from backend.features.geninfo.parser import parse_geninfo_from_prompt
+from mjr_am_backend.features.geninfo.parser import parse_geninfo_from_prompt
 
 
 @pytest.mark.asyncio
@@ -531,3 +531,4 @@ async def test_geninfo_parser_traces_checkpoint_through_model_sampling_nodes():
     assert gi["checkpoint"]["name"] == "base_model"
     assert gi["models"]["checkpoint"]["name"] == "base_model"
     assert gi["loras"][0]["name"] == "my_lora"
+

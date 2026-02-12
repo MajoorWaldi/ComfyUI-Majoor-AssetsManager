@@ -1,6 +1,6 @@
-import pytest
+﻿import pytest
 
-from backend.features.geninfo.parser import parse_geninfo_from_prompt
+from mjr_am_backend.features.geninfo.parser import parse_geninfo_from_prompt
 
 
 @pytest.mark.asyncio
@@ -105,3 +105,4 @@ async def test_geninfo_acestep15tasktextencode_reads_lyrics_textbox() -> None:
     assert isinstance(res.data, dict)
     lyrics = str((res.data.get("lyrics") or {}).get("value") or "")
     assert "hello from textbox lyrics" in lyrics
+

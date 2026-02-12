@@ -10,6 +10,8 @@ export function renderABCompareView({
     const PERCENT_MIN = 0;
     const PERCENT_MAX = 100;
     const DEFAULT_WIPE_PERCENT = 50;
+    const DIFF_MAX_FPS = 12;
+    const DIFF_INTERVAL_MS = 1000 / DIFF_MAX_FPS;
     const SLIDER_BAR_WIDTH_PX = 1;
     const SLIDER_Z_INDEX = 10;
     const SLIDER_HIT_AREA_PX = 40;
@@ -360,6 +362,13 @@ export function renderABCompareView({
             try {
                 const ac = new AbortController();
                 abView._mjrDiffAbort = ac;
+                let lastDiffAt = 0;
+                const canDrawNow = () => {
+                    const now = performance.now();
+                    if (now - lastDiffAt < DIFF_INTERVAL_MS) return false;
+                    lastDiffAt = now;
+                    return true;
+                };
 
                 const request = () => {
                     if (ac.signal.aborted) return;
@@ -367,7 +376,7 @@ export function renderABCompareView({
                         requestAnimationFrame(() => {
                             if (ac.signal.aborted) return;
                             try {
-                                if (aCanvas && bCanvas) drawDiffOnce();
+                                if (aCanvas && bCanvas && canDrawNow()) drawDiffOnce();
                             } catch {}
                         });
                     } catch {}
@@ -393,7 +402,7 @@ export function renderABCompareView({
                     const tick = () => {
                         if (ac.signal.aborted) return;
                         try {
-                            if (aCanvas && bCanvas) drawDiffOnce();
+                            if (aCanvas && bCanvas && canDrawNow()) drawDiffOnce();
                         } catch {}
                         if (!anyPlaying()) {
                             raf = null;

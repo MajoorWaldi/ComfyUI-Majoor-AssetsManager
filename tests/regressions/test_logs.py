@@ -1,4 +1,4 @@
-"""
+﻿"""
 Test all log levels with emojis.
 """
 import sys
@@ -14,7 +14,7 @@ if sys.platform == "win32":
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from shared import get_logger, log_success
+from mjr_am_shared import get_logger, log_success
 import logging
 
 logger = get_logger(__name__, level=logging.DEBUG)
@@ -38,3 +38,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

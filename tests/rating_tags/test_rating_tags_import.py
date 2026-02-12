@@ -1,14 +1,14 @@
-"""
+﻿"""
 Tests for importing ratings and tags logic, ensuring no data loss or incorrect overwrites.
 """
 import pytest
 import json
 from pathlib import Path
 
-from backend.adapters.db.sqlite import Sqlite
-from backend.adapters.db.schema import migrate_schema
-from backend.features.index.metadata_helpers import MetadataHelpers
-from backend.shared import Result
+from mjr_am_backend.adapters.db.sqlite import Sqlite
+from mjr_am_backend.adapters.db.schema import migrate_schema
+from mjr_am_backend.features.index.metadata_helpers import MetadataHelpers
+from mjr_am_backend.shared import Result
 
 
 async def _make_db(tmp_path: Path) -> Sqlite:
@@ -64,3 +64,4 @@ async def test_does_not_override_existing_db_rating_tags(tmp_path: Path):
     assert row["rating"] == 5
     assert json.loads(row["tags"]) == ["keep"]
     assert row["tags_text"] == "keep"
+

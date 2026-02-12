@@ -1,4 +1,4 @@
-"""
+﻿"""
 Test routes registration without starting full ComfyUI.
 """
 import sys
@@ -10,7 +10,7 @@ if sys.platform == "win32":
     os.system("")
     sys.stdout.reconfigure(encoding='utf-8')
 
-from shared import get_logger, log_success
+from mjr_am_shared import get_logger, log_success
 from aiohttp import web
 
 logger = get_logger(__name__)
@@ -24,7 +24,7 @@ async def test_routes():
     app = web.Application()
 
     # Register routes
-    from backend.routes import register_routes
+    from mjr_am_backend.routes import register_routes
     register_routes(app)
 
     # List registered routes
@@ -37,3 +37,4 @@ async def test_routes():
 if __name__ == "__main__":
     import asyncio
     asyncio.run(test_routes())
+

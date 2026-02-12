@@ -1,12 +1,12 @@
-import pytest
+﻿import pytest
 
-from backend.features.collections.service import CollectionsService
+from mjr_am_backend.features.collections.service import CollectionsService
 
 
 @pytest.mark.asyncio
 async def test_add_assets_reports_skipped_existing_and_duplicates(monkeypatch, tmp_path):
     # Ensure the service writes into a temp collections directory.
-    import backend.features.collections.service as service_mod
+    import mjr_am_backend.features.collections.service as service_mod
 
     monkeypatch.setattr(service_mod, "COLLECTIONS_DIR_PATH", tmp_path, raising=True)
 
@@ -35,4 +35,5 @@ async def test_add_assets_reports_skipped_existing_and_duplicates(monkeypatch, t
     assert res2.ok
     assert res2.data["added"] == 0
     assert res2.data["skipped_existing"] == 1
+
 

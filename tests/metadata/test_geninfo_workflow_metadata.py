@@ -1,4 +1,4 @@
-from backend.features.geninfo.parser import parse_geninfo_from_prompt
+﻿from mjr_am_backend.features.geninfo.parser import parse_geninfo_from_prompt
 
 def test_parse_geninfo_workflow_metadata_only():
     """Test extracting metadata from workflow when prompt is missing."""
@@ -47,3 +47,4 @@ def test_parse_geninfo_workflow_metadata_merge_fallback():
     assert result.ok
     assert result.data is not None
     assert result.data["metadata"]["title"] == "Merged Info"
+

@@ -1,9 +1,9 @@
-import pytest
+﻿import pytest
 import base64
 import json
 import zlib
 
-from backend.features.metadata.extractors import extract_video_metadata
+from mjr_am_backend.features.metadata.extractors import extract_video_metadata
 
 
 def _prompt_graph():
@@ -76,3 +76,4 @@ async def test_video_extractor_scans_stream_tags(tmp_path):
     assert res.ok
     assert isinstance(res.data.get("prompt"), dict)
     assert res.data["prompt"].get("3", {}).get("inputs", {}).get("steps") == 20
+

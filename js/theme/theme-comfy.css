@@ -351,6 +351,7 @@
     color: var(--mjr-muted, rgba(255, 255, 255, 0.65));
 }
 
+
 .mjr-assets-manager .mjr-am-summary-text {
     overflow: hidden;
     text-overflow: ellipsis;

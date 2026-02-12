@@ -1,12 +1,12 @@
-import json
+﻿import json
 from pathlib import Path
 
 import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from backend.adapters.db.sqlite import Sqlite
-from backend.routes.handlers.scan import register_scan_routes
+from mjr_am_backend.adapters.db.sqlite import Sqlite
+from mjr_am_backend.routes.handlers.scan import register_scan_routes
 
 
 async def _init_schema(db: Sqlite) -> None:
@@ -76,7 +76,7 @@ async def test_reset_index_output_scope_does_not_wipe_other_roots(monkeypatch, t
     await db.aexecute("INSERT INTO metadata_cache(filepath, state_hash, metadata_raw) VALUES (?, ?, ?)", (fp_in, "i", "{}"))
     await db.aexecute("INSERT INTO metadata_cache(filepath, state_hash, metadata_raw) VALUES (?, ?, ?)", (fp_custom, "c", "{}"))
 
-    import backend.routes.handlers.scan as scan_mod
+    import mjr_am_backend.routes.handlers.scan as scan_mod
 
     async def _mock_require_services():
         return ({"db": db}, None)
@@ -130,3 +130,4 @@ async def test_reset_index_output_scope_does_not_wipe_other_roots(monkeypatch, t
     finally:
         await client.close()
         await db.aclose()
+

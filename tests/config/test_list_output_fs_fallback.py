@@ -1,9 +1,9 @@
-import pytest
+﻿import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from backend.shared import Result
-from backend.routes.handlers.search import register_search_routes
+from mjr_am_backend.shared import Result
+from mjr_am_backend.routes.handlers.search import register_search_routes
 
 
 class _FakeIndex:
@@ -17,7 +17,7 @@ async def test_list_output_falls_back_to_filesystem_when_db_empty(monkeypatch, t
     out_root.mkdir(parents=True, exist_ok=True)
     (out_root / "a.png").write_bytes(b"x")
 
-    import backend.routes.handlers.search as mod
+    import mjr_am_backend.routes.handlers.search as mod
 
     monkeypatch.setattr(mod, "OUTPUT_ROOT", str(out_root), raising=True)
     
@@ -47,4 +47,5 @@ async def test_list_output_falls_back_to_filesystem_when_db_empty(monkeypatch, t
         assert any(a.get("filename") == "a.png" for a in assets if isinstance(a, dict))
     finally:
         await client.close()
+
 

@@ -1,25 +1,18 @@
-"""Shared utilities for Majoor Assets Manager."""
-from .result import Result
-from .errors import sanitize_error_message
-from .log import get_logger, log_success, log_structured, request_id_var
-from .time import now, ms, format_timestamp, timer
-from .types import FileKind, MetadataQuality, ErrorCode, classify_file, IndexMode, MetadataMode
+﻿"""Compatibility shim: expose `shared` as alias of `mjr_am_shared`."""
+from __future__ import annotations
 
-__all__ = [
-    "Result",
-    "get_logger",
-    "log_success",
-    "now",
-    "ms",
-    "format_timestamp",
-    "timer",
-    "FileKind",
-    "MetadataQuality",
-    "ErrorCode",
-    "classify_file",
-    "IndexMode",
-    "MetadataMode",
-    "log_structured",
-    "request_id_var",
-    "sanitize_error_message",
-]
+import importlib
+
+_impl = importlib.import_module("mjr_am_shared")
+
+for _k in dir(_impl):
+    if _k.startswith("__") and _k not in {"__all__", "__doc__", "__path__", "__spec__"}:
+        continue
+    globals()[_k] = getattr(_impl, _k)
+
+try:
+    __path__ = _impl.__path__  # type: ignore[attr-defined]
+except Exception:
+    pass
+
+__all__ = getattr(_impl, "__all__", [])

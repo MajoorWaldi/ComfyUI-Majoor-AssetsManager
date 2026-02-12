@@ -1,13 +1,13 @@
-import json
+﻿import json
 from pathlib import Path
 
 import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from backend.adapters.db.sqlite import Sqlite
-from backend.routes.handlers.assets import register_asset_routes
-from backend.shared import Result
+from mjr_am_backend.adapters.db.sqlite import Sqlite
+from mjr_am_backend.routes.handlers.assets import register_asset_routes
+from mjr_am_backend.shared import Result
 
 
 @pytest.mark.asyncio
@@ -28,7 +28,7 @@ async def test_open_in_folder_returns_ok(tmp_path: Path, monkeypatch):
     file_path.write_bytes(b"x")
     await db.aexecute("INSERT INTO assets(id, filepath) VALUES (?, ?)", (1, str(file_path)))
 
-    import backend.routes.handlers.assets as assets_mod
+    import mjr_am_backend.routes.handlers.assets as assets_mod
 
     async def _mock_require_services():
         return ({"db": db}, None)
@@ -71,3 +71,4 @@ async def test_open_in_folder_returns_ok(tmp_path: Path, monkeypatch):
             await db.aclose()
         except Exception:
             pass
+

@@ -1,7 +1,7 @@
-import pytest
+﻿import pytest
 import json
 
-from backend.features.metadata.extractors import extract_png_metadata, extract_webp_metadata
+from mjr_am_backend.features.metadata.extractors import extract_png_metadata, extract_webp_metadata
 
 
 def _dummy_workflow():
@@ -56,4 +56,5 @@ async def test_png_extractor_accepts_real_workflow_export(tmp_path):
     assert res.ok
     assert isinstance(res.data.get("workflow"), dict)
     assert res.data["workflow"].get("nodes")
+
 

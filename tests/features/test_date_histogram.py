@@ -1,9 +1,9 @@
-import datetime
+﻿import datetime
 from pathlib import Path
 
-from backend.adapters.db.schema import init_schema, table_has_column
-from backend.adapters.db.sqlite import Sqlite
-from backend.features.index.searcher import IndexSearcher
+from mjr_am_backend.adapters.db.schema import init_schema, table_has_column
+from mjr_am_backend.adapters.db.sqlite import Sqlite
+from mjr_am_backend.features.index.searcher import IndexSearcher
 
 
 def _ts(y, m, d, hh=0, mm=0, ss=0) -> int:
@@ -65,3 +65,4 @@ async def test_date_histogram_scoped_counts_days(tmp_path: Path):
     assert res_video.ok
     assert res_video.data == {"2026-01-05": 1}
     await db.aclose()
+

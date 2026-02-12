@@ -1,11 +1,10 @@
-"""
+﻿"""
 ComfyUI-Majoor-AssetsManager
 Advanced asset browser for ComfyUI with ratings, tags, and metadata management.
 """
 
 from __future__ import annotations
 
-import importlib
 import os
 import re
 import shutil
@@ -17,7 +16,11 @@ from pathlib import Path
 # ComfyUI extension metadata
 NODE_CLASS_MAPPINGS = {}
 NODE_DISPLAY_NAME_MAPPINGS = {}
-WEB_DIRECTORY = "./js"
+# Resolved below after `root` is known; keep None as sentinel so imports
+# executed before root assignment don't accidentally use a relative path.
+WEB_DIRECTORY = None
+import logging
+_logger = logging.getLogger("majoor_assets_manager")
 
 
 def _read_version_from_pyproject() -> str:
@@ -51,10 +54,8 @@ __version__ = _read_version_from_pyproject()
 __branch__ = _detect_branch_from_env()
 
 # ---- Windows safety guard -------------------------------------------------
-# ComfyUI loads every entry under `custom_nodes/`. On Windows, reserved device
-# filenames like `NUL` can appear (accidentally created by tooling) and cause
-# noisy import failures. We best-effort delete them when our extension loads so
-# it can't break subsequent restarts.
+# Optional maintenance helper. Disabled by default to avoid mutating sibling
+# entries in a shared `custom_nodes/` directory.
 
 
 def _windows_extended_path(path: str) -> str:
@@ -129,135 +130,65 @@ def _cleanup_windows_reserved_custom_nodes() -> Optional[str]:
     return None
 
 
-try:
-    removed = _cleanup_windows_reserved_custom_nodes()
-    if removed:
-        print(f"Majoor Assets Manager: removed Windows reserved custom node entry: {removed}")
-except Exception:
-    pass
+root = Path(__file__).resolve().parent
+if str(root) not in sys.path:
+    sys.path.append(str(root))
+if WEB_DIRECTORY is None:
+    WEB_DIRECTORY = str(root / "js")
 
-# Register API routes (importing `backend.routes` auto-registers via PromptServer decorators)
-# NOTE: In "Legacy Mode", ComfyUI may import this file as a module (not a package). Also,
-# importing as a subpackage (`from .backend import ...`) breaks when backend uses absolute imports
-# like `from backend.config import ...`. To keep imports stable, we always expose our node root on
-# sys.path and import `backend.routes` as a top-level package.
-try:
-    root = Path(__file__).resolve().parent
-    if str(root) not in sys.path:
-        sys.path.insert(0, str(root))
 
-    expected_backend_dir = (root / "backend").resolve()
-    existing_backend = sys.modules.get("backend")
-    if existing_backend is not None:
-        try:
-            existing_file = Path(getattr(existing_backend, "__file__", "")).resolve()
-        except Exception:
-            existing_file = None
-
-        if not existing_file or expected_backend_dir not in existing_file.parents:
-            for name in list(sys.modules.keys()):
-                if name == "backend" or name.startswith("backend."):
-                    sys.modules.pop(name, None)
-
-    # Helpful hint (and optional auto-install) when ComfyUI-Manager didn't install deps yet (embedded Python).
-    # Can be disabled with env var `MJR_AM_NO_AUTO_PIP=1`.
+def _warn_missing_dependencies() -> None:
     try:
         import importlib.util as _ilu
-
-        def _spec_ok(module_name: str) -> bool:
-            try:
-                return _ilu.find_spec(module_name) is not None
-            except Exception:
-                return False
-
-        def _has_pip() -> bool:
-            try:
-                r = subprocess.run(
-                    [sys.executable, "-m", "pip", "--version"],
-                    check=False,
-                    capture_output=True,
-                    timeout=30,
-                )
-                return r.returncode == 0
-            except Exception:
-                return False
-
-        def _ensure_pip_best_effort() -> None:
-            if _has_pip():
-                return
-            try:
-                subprocess.run(
-                    [sys.executable, "-m", "ensurepip", "--upgrade"],
-                    check=False,
-                    capture_output=True,
-                    timeout=120,
-                )
-            except Exception:
-                return
-
-        def _install_requirements_best_effort(req_path: Path) -> None:
-            try:
-                _ensure_pip_best_effort()
-                if not _has_pip():
-                    return
-                subprocess.run(
-                    [sys.executable, "-m", "pip", "install", "-r", str(req_path)],
-                    check=False,
-                    capture_output=True,
-                    timeout=300,
-                )
-            except Exception:
-                return
-
-        no_auto = str(os.environ.get("MJR_AM_NO_AUTO_PIP") or "").strip().lower() in ("1", "true", "yes", "on")
-        in_pytest = bool(os.environ.get("PYTEST_CURRENT_TEST")) or ("pytest" in sys.modules) or any("pytest" in str(a).lower() for a in (sys.argv or []))
-
-        # Minimal import-based detection (fast). If any are missing, attempt `pip install -r requirements.txt`.
-        # Mapping: package -> import module name.
-        required_modules = [
-            "aiohttp",
-            "PIL",  # pillow
-            "send2trash",
-            "aiosqlite",
-        ]
+        required_modules = ["aiohttp", "PIL", "send2trash", "aiosqlite"]
         if os.name == "nt":
-            # pywin32
             required_modules.append("win32api")
-
-        missing = [m for m in required_modules if not _spec_ok(m)]
+        missing = [m for m in required_modules if _ilu.find_spec(m) is None]
         if missing:
-            req_txt = root / "requirements.txt"
-            hint = f"Majoor Assets Manager: missing dependencies: {', '.join(missing)}"
-            if req_txt.exists():
-                hint += f" (auto-install from {req_txt})"
-            else:
-                hint += " (requirements.txt not found)"
-            print(hint)
-
-            if (not no_auto) and (not in_pytest) and req_txt.exists():
-                _install_requirements_best_effort(req_txt)
-
-                # Re-check and print a final message if still missing.
-                still_missing = [m for m in required_modules if not _spec_ok(m)]
-                if still_missing:
-                    print(
-                        "Majoor Assets Manager: dependency install incomplete. "
-                        f"Try: \"{sys.executable}\" -m pip install -r \"{req_txt}\""
-                    )
+            _logger.warning(
+                "missing dependencies: %s. install manually: \"%s\" -m pip install -r \"%s\"",
+                ", ".join(missing),
+                sys.executable,
+                root / "requirements.txt",
+            )
     except Exception:
         pass
 
-    routes = importlib.import_module("backend.routes")  # type: ignore  # noqa: F401
-except Exception:
-    # Keep import side-effect-free when ComfyUI environment isn't available.
+
+def init_prompt_server() -> None:
     try:
-        import traceback
+        from mjr_am_backend.routes.registry import register_all_routes, _install_observability_on_prompt_server
+        register_all_routes()
+        _install_observability_on_prompt_server()
+    except Exception:
+        _logger.exception("failed to initialize prompt server routes")
 
-        print("Majoor Assets Manager: failed to import backend routes (API endpoints will be unavailable).")
-        traceback.print_exc()
+
+def init(app_or_prompt_server=None) -> None:
+    """Public explicit initializer for host integrations and tests."""
+    if app_or_prompt_server is None:
+        init_prompt_server()
+        return
+    try:
+        from mjr_am_backend.routes.registry import register_routes
+        register_routes(app_or_prompt_server)
+    except Exception:
+        _logger.exception("failed to initialize routes on provided app")
+
+
+_warn_missing_dependencies()
+if str(os.environ.get("MJR_AM_CLEANUP_RESERVED_NAMES", "")).strip().lower() in ("1", "true", "yes", "on"):
+    try:
+        removed = _cleanup_windows_reserved_custom_nodes()
+        if removed:
+            _logger.info("removed Windows reserved custom node entry: %s", removed)
     except Exception:
         pass
-    routes = None  # type: ignore
+try:
+    if "server" in sys.modules:
+        init_prompt_server()
+except Exception:
+    _logger.exception("failed to auto-initialize prompt server routes")
 
 __all__ = [
     "NODE_CLASS_MAPPINGS",
@@ -265,4 +196,6 @@ __all__ = [
     "WEB_DIRECTORY",
     "__version__",
     "__branch__",
+    "init",
+    "init_prompt_server",
 ]

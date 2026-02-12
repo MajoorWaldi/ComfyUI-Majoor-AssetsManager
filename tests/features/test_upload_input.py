@@ -1,14 +1,14 @@
-import pytest
+﻿import pytest
 from pathlib import Path
 from aiohttp import web, FormData
 from aiohttp.test_utils import TestClient, TestServer
 
-from backend.routes.handlers.scan import register_scan_routes
+from mjr_am_backend.routes.handlers.scan import register_scan_routes
 
 
 @pytest.mark.asyncio
 async def test_upload_input_file_writes_to_input_dir(tmp_path: Path, monkeypatch):
-    import backend.routes.handlers.scan as scan_mod
+    import mjr_am_backend.routes.handlers.scan as scan_mod
 
     input_dir = tmp_path / "input"
     input_dir.mkdir(parents=True, exist_ok=True)
@@ -40,3 +40,4 @@ async def test_upload_input_file_writes_to_input_dir(tmp_path: Path, monkeypatch
         assert (input_dir / "hello.txt").exists()
     finally:
         await client.close()
+

@@ -1,13 +1,13 @@
-import json
+﻿import json
 from pathlib import Path
 
 import pytest
 
-from backend.adapters.db.schema import migrate_schema
-from backend.adapters.db.sqlite import Sqlite
-from backend.features.metadata.service import MetadataService
-from backend.routes.handlers.search import register_search_routes
-from backend.shared import Result
+from mjr_am_backend.adapters.db.schema import migrate_schema
+from mjr_am_backend.adapters.db.sqlite import Sqlite
+from mjr_am_backend.features.metadata.service import MetadataService
+from mjr_am_backend.routes.handlers.search import register_search_routes
+from mjr_am_backend.shared import Result
 
 
 class _SettingsStub:
@@ -60,7 +60,7 @@ async def test_get_asset_hydrate_rating_tags_updates_db(tmp_path: Path):
     exif = {"XMP-xmp:Rating": 4, "XMP-dc:Subject": ["foo"]}
     meta = MetadataService(exiftool=_ExifToolStub(exif), ffprobe=_FFProbeStub(), settings=_SettingsStub())
 
-    from backend.features.index.service import IndexService
+    from mjr_am_backend.features.index.service import IndexService
 
     index = IndexService(db=db, metadata_service=meta)
 
@@ -70,7 +70,7 @@ async def test_get_asset_hydrate_rating_tags_updates_db(tmp_path: Path):
     app.add_routes(routes)
 
     # Inject services into the route core singleton.
-    from backend.routes.core import services as core_services  # type: ignore
+    from mjr_am_backend.routes.core import services as core_services  # type: ignore
 
     core_services._services = {"db": db, "index": index, "metadata": meta}  # type: ignore[attr-defined]
     core_services._services_error = None  # type: ignore[attr-defined]
@@ -90,3 +90,4 @@ async def test_get_asset_hydrate_rating_tags_updates_db(tmp_path: Path):
     row = (await db.aquery("SELECT rating, tags FROM asset_metadata WHERE asset_id = ?", (asset_id,))).data[0]
     assert row["rating"] == 4
     assert "foo" in json.loads(row["tags"])
+

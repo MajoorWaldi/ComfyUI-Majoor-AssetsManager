@@ -187,6 +187,20 @@ export function installGridKeyboard({
         }
     };
 
+    const getRenderedCards = () => {
+        try {
+            if (typeof gridContainer?._mjrGetRenderedCards === "function") {
+                const cards = gridContainer._mjrGetRenderedCards();
+                if (Array.isArray(cards)) return cards;
+            }
+        } catch {}
+        try {
+            return Array.from(gridContainer.querySelectorAll(".mjr-asset-card"));
+        } catch {
+            return [];
+        }
+    };
+
     const getActive = () => {
         try {
             const active = getActiveAsset();
@@ -210,7 +224,7 @@ export function installGridKeyboard({
             }
         } catch {}
         try {
-            return Array.from(gridContainer.querySelectorAll(".mjr-asset-card"))
+            return getRenderedCards()
                 .map((card) => card?._mjrAsset)
                 .filter(Boolean);
         } catch {
@@ -220,7 +234,7 @@ export function installGridKeyboard({
 
     const getGridColumns = () => {
         try {
-            const cards = Array.from(gridContainer.querySelectorAll(".mjr-asset-card"));
+            const cards = getRenderedCards();
             if (cards.length >= 2) {
                 const firstTop = Math.round(cards[0].getBoundingClientRect().top);
                 const sameRow = cards.filter((c) => {
@@ -413,7 +427,8 @@ export function installGridKeyboard({
                             const list = gridContainer._mjrGetAssets();
                             if (Array.isArray(list) && list.length) allAssets = list;
                         } else {
-                            allAssets = Array.from(gridContainer.querySelectorAll('.mjr-asset-card'))
+                            const cards = getRenderedCards();
+                            allAssets = cards
                                 .map(card => card._mjrAsset)
                                 .filter(Boolean);
                         }
@@ -637,15 +652,14 @@ export function installGridKeyboard({
             } catch {}
             if (!ids.length) {
                 try {
-                    const cards = gridContainer.querySelectorAll('.mjr-asset-card');
-                    ids = Array.from(cards).map(card => String(card?._mjrAsset?.id || "")).filter(Boolean);
+                    ids = getRenderedCards().map(card => String(card?._mjrAsset?.id || "")).filter(Boolean);
                 } catch {}
             }
             try {
                 if (typeof gridContainer?._mjrSetSelection === "function") {
                     gridContainer._mjrSetSelection(ids, ids[0] || "");
                 } else {
-                    const cards = gridContainer.querySelectorAll('.mjr-asset-card');
+                    const cards = getRenderedCards();
                     cards.forEach(card => {
                         card.classList.add('is-selected');
                         card.setAttribute('aria-selected', 'true');
@@ -665,7 +679,7 @@ export function installGridKeyboard({
                 if (typeof gridContainer?._mjrSetSelection === "function") {
                     gridContainer._mjrSetSelection([], "");
                 } else {
-                    const cards = gridContainer.querySelectorAll('.mjr-asset-card.is-selected');
+                    const cards = getRenderedCards().filter((card) => card?.classList?.contains?.("is-selected"));
                     cards.forEach(card => {
                         card.classList.remove('is-selected');
                         card.setAttribute('aria-selected', 'false');

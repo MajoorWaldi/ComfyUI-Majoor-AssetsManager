@@ -1,13 +1,13 @@
-import json
+﻿import json
 from pathlib import Path
 
 import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from backend.adapters.db.sqlite import Sqlite
-from backend.shared import Result
-from backend.routes.handlers.assets import register_asset_routes
+from mjr_am_backend.adapters.db.sqlite import Sqlite
+from mjr_am_backend.shared import Result
+from mjr_am_backend.routes.handlers.assets import register_asset_routes
 
 
 async def _init_schema(db: Sqlite) -> None:
@@ -49,7 +49,7 @@ async def test_bulk_delete_aborts_on_file_delete_error(monkeypatch, tmp_path):
     await db.aexecute("INSERT INTO assets(id, filepath) VALUES (?, ?)", (2, str(f2)))
 
     # Patch the imported reference in the handlers module (not the core module).
-    import backend.routes.handlers.assets as assets_mod
+    import mjr_am_backend.routes.handlers.assets as assets_mod
 
     async def _mock_require_services():
         return ({"db": db}, None)
@@ -88,3 +88,4 @@ async def test_bulk_delete_aborts_on_file_delete_error(monkeypatch, tmp_path):
     finally:
         await client.close()
         await db.aclose()
+
