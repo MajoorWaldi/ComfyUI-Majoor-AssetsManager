@@ -166,7 +166,7 @@ Settings are primarily adjusted through the user interface:
   - Example: `MAJOOR_DB_MAX_CONNECTIONS=12`
 
 - **MAJOOR_DB_QUERY_TIMEOUT**: Maximum query execution time
-  - Default: 30.0 seconds
+  - Default: 60.0 seconds
   - Range: 1.0 to 300.0
   - Impact: Prevents long-running queries from blocking
   - Example: `MAJOOR_DB_QUERY_TIMEOUT=45.0`

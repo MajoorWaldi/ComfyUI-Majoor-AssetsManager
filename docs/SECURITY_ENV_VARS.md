@@ -381,7 +381,7 @@ Environment variables provide secure configuration without code changes:
 
 - **MAJOOR_DB_QUERY_TIMEOUT**
   - Purpose: Maximum query execution time
-  - Default: 30.0 seconds
+  - Default: 60.0 seconds
   - Security Impact: Prevents long-running queries
   - Example: `MAJOOR_DB_QUERY_TIMEOUT=45.0`
 

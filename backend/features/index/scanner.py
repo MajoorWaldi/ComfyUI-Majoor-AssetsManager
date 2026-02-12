@@ -25,6 +25,8 @@ from ...config import (
     SCAN_BATCH_MED,
     SCAN_BATCH_LARGE,
     SCAN_BATCH_XL,
+    SCAN_BATCH_INITIAL,
+    SCAN_BATCH_MIN,
     MAX_TO_ENRICH_ITEMS,
     IS_WINDOWS,
 )
@@ -156,13 +158,15 @@ class IndexScanner:
                     n = int(scanned_count or 0)
                 except (ValueError, TypeError):
                     n = 0
+                if n <= 0:
+                    return max(1, int(SCAN_BATCH_INITIAL))
                 if n <= SCAN_BATCH_SMALL_THRESHOLD:
-                    return int(SCAN_BATCH_SMALL)
+                    return max(int(SCAN_BATCH_MIN), int(SCAN_BATCH_SMALL))
                 if n <= SCAN_BATCH_MED_THRESHOLD:
-                    return int(SCAN_BATCH_MED)
+                    return max(int(SCAN_BATCH_MIN), int(SCAN_BATCH_MED))
                 if n <= SCAN_BATCH_LARGE_THRESHOLD:
-                    return int(SCAN_BATCH_LARGE)
-                return int(SCAN_BATCH_XL)
+                    return max(int(SCAN_BATCH_MIN), int(SCAN_BATCH_LARGE))
+                return max(int(SCAN_BATCH_MIN), int(SCAN_BATCH_XL))
 
             try:
                 # IMPORTANT: os.walk() / Path.iterdir() are blocking and can freeze aiohttp.
@@ -778,6 +782,14 @@ class IndexScanner:
                             if entry.get("fast") and to_enrich is not None:
                                 if len(to_enrich) < MAX_TO_ENRICH_ITEMS:
                                     to_enrich.append(entry.get("filepath") or str(entry.get("file_path") or ""))
+                            try:
+                                logger.debug(
+                                    "Indexed file (updated): %s [asset_id=%s]",
+                                    entry.get("filepath") or "",
+                                    asset_id,
+                                )
+                            except Exception:
+                                pass
                         else:
                             stats["errors"] += 1
                         continue
@@ -829,6 +841,14 @@ class IndexScanner:
                             if entry.get("fast") and to_enrich is not None:
                                 if len(to_enrich) < MAX_TO_ENRICH_ITEMS:
                                     to_enrich.append(entry.get("filepath") or str(entry.get("file_path") or ""))
+                            try:
+                                logger.debug(
+                                    "Indexed file (added): %s [asset_id=%s]",
+                                    entry.get("filepath") or "",
+                                    (res.data or {}).get("asset_id") if isinstance(res.data, dict) else None,
+                                )
+                            except Exception:
+                                pass
                         else:
                             stats["errors"] += 1
                         continue
@@ -932,6 +952,14 @@ class IndexScanner:
                                 stats["errors"] = max(0, stats["errors"] - 1)  # Correct the error count
                                 if entry.get("fast") and to_enrich is not None:
                                     to_enrich.append(entry.get("filepath") or str(entry.get("file_path") or ""))
+                                try:
+                                    logger.debug(
+                                        "Indexed file (updated/fallback): %s [asset_id=%s]",
+                                        entry.get("filepath") or "",
+                                        asset_id,
+                                    )
+                                except Exception:
+                                    pass
                             else:
                                 failed_entries.append(filepath_value)
                             continue
@@ -975,6 +1003,14 @@ class IndexScanner:
                                 )
                                 stats["added"] += 1
                                 stats["errors"] = max(0, stats["errors"] - 1)  # Correct the error count
+                                try:
+                                    logger.debug(
+                                        "Indexed file (added/fallback): %s [asset_id=%s]",
+                                        entry.get("filepath") or "",
+                                        (res.data or {}).get("asset_id") if isinstance(res.data, dict) else None,
+                                    )
+                                except Exception:
+                                    pass
                                 if entry.get("fast") and to_enrich is not None:
                                     to_enrich.append(entry.get("filepath") or str(entry.get("file_path") or ""))
                             else:

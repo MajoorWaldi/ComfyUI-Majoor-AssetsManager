@@ -359,3 +359,13 @@ class IndexService:
             await self._enricher.stop_enrichment(clear_queue=clear_queue)
         except Exception:
             pass
+
+    def get_runtime_status(self) -> Dict[str, Any]:
+        """Return lightweight runtime counters for diagnostics/dashboard."""
+        try:
+            queue_len = int(self._enricher.get_queue_length())
+        except Exception:
+            queue_len = 0
+        return {
+            "enrichment_queue_length": queue_len,
+        }

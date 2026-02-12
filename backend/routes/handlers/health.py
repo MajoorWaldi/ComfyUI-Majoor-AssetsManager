@@ -172,6 +172,60 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
             )
         )
 
+    @routes.get("/mjr/am/status")
+    async def runtime_status(request):
+        """
+        Lightweight runtime status for diagnostics/dashboard.
+
+        Returns:
+        - SQLite active connections
+        - enrichment queue length
+        - watcher pending files
+        """
+        svc, error_result = await _require_services()
+        if error_result:
+            return _json_response(error_result)
+
+        db = svc.get("db") if isinstance(svc, dict) else None
+        index = svc.get("index") if isinstance(svc, dict) else None
+        watcher = svc.get("watcher") if isinstance(svc, dict) else None
+
+        db_status = {}
+        try:
+            get_db_status = getattr(db, "get_runtime_status", None)
+            if callable(get_db_status):
+                db_status = get_db_status() or {}
+        except Exception:
+            db_status = {}
+
+        index_status = {}
+        try:
+            get_index_status = getattr(index, "get_runtime_status", None)
+            if callable(get_index_status):
+                index_status = get_index_status() or {}
+        except Exception:
+            index_status = {}
+
+        watcher_pending = 0
+        try:
+            if watcher:
+                get_pending = getattr(watcher, "get_pending_count", None)
+                if callable(get_pending):
+                    watcher_pending = int(get_pending() or 0)
+        except Exception:
+            watcher_pending = 0
+
+        payload = {
+            "db": db_status,
+            "index": index_status,
+            "watcher": {
+                "enabled": bool(watcher is not None and getattr(watcher, "is_running", False)),
+                "pending_files": int(watcher_pending),
+            },
+            "maintenance_active": is_db_maintenance_active(),
+        }
+        return _json_response(Result.Ok(payload))
+
     @routes.get("/mjr/am/config")
     async def get_config(request):
         """

@@ -94,4 +94,4 @@ If the Delete DB button reports that files could not be deleted (another process
 |---|---|---|
 | `MAJOOR_DB_TIMEOUT` | `30.0` | SQLite busy timeout (seconds) |
 | `MAJOOR_DB_MAX_CONNECTIONS` | `8` | Maximum concurrent DB connections |
-| `MAJOOR_DB_QUERY_TIMEOUT` | `30.0` | Per-query timeout (seconds) |
+| `MAJOOR_DB_QUERY_TIMEOUT` | `60.0` | Per-query timeout (seconds) |

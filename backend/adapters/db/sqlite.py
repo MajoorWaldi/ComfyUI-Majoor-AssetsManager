@@ -26,6 +26,7 @@ import threading
 import time
 import uuid
 import os
+import json
 from contextlib import contextmanager, asynccontextmanager
 from pathlib import Path
 from queue import Empty, Queue
@@ -34,12 +35,12 @@ from typing import Any, Dict, List, Optional, Tuple
 import aiosqlite
 import sqlite3
 
-from ...config import DB_MAX_CONNECTIONS, DB_QUERY_TIMEOUT
+from ...config import DB_MAX_CONNECTIONS, DB_QUERY_TIMEOUT, DB_TIMEOUT
 from ...shared import ErrorCode, Result, get_logger
 
 logger = get_logger(__name__)
 
-SQLITE_BUSY_TIMEOUT_MS = 5000
+SQLITE_BUSY_TIMEOUT_MS = max(1000, int(float(DB_TIMEOUT) * 1000))
 # Negative cache_size is in KiB. -64000 ~= 64 MiB cache.
 SQLITE_CACHE_SIZE_KIB = -64000
 ASSET_LOCKS_MAX = int(os.getenv("MAJOOR_ASSET_LOCKS_MAX", "10000") or 10000)
@@ -340,7 +341,12 @@ class Sqlite:
 
     def __init__(self, db_path: str, max_connections: Optional[int] = None, timeout: float = 30.0):
         self.db_path = Path(db_path)
-        max_conn = int(max_connections) if max_connections is not None else int(DB_MAX_CONNECTIONS or 8)
+        user_config = self._load_user_db_config()
+        max_conn = (
+            int(max_connections)
+            if max_connections is not None
+            else int(user_config.get("maxConnections", DB_MAX_CONNECTIONS or 8))
+        )
         max_conn = max(1, max_conn)
         self._max_conn_limit = max_conn
         self._pool: "Queue[aiosqlite.Connection]" = Queue(maxsize=max_conn)
@@ -352,8 +358,8 @@ class Sqlite:
         self._resetting = False
         self._active_conns: set[aiosqlite.Connection] = set()
         
-        self._timeout = float(timeout)
-        self._query_timeout = float(DB_QUERY_TIMEOUT) if DB_QUERY_TIMEOUT is not None else 0.0
+        self._timeout = float(user_config.get("timeout", timeout))
+        self._query_timeout = float(user_config.get("queryTimeout", DB_QUERY_TIMEOUT if DB_QUERY_TIMEOUT is not None else 0.0))
         self._lock_retry_attempts = 6
         self._lock_retry_base_seconds = 0.05
         self._lock_retry_max_seconds = 0.75
@@ -392,6 +398,46 @@ class Sqlite:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
         _populate_known_columns_from_schema(self.db_path)
+
+    def _load_user_db_config(self) -> Dict[str, Any]:
+        """
+        Load optional user DB overrides from JSON file.
+
+        Path resolution order:
+        1) MAJOOR_DB_CONFIG_PATH
+        2) <db parent>/db_config.json
+        """
+        try:
+            cfg_path_raw = os.getenv("MAJOOR_DB_CONFIG_PATH", "").strip()
+            cfg_path = Path(cfg_path_raw).expanduser() if cfg_path_raw else (self.db_path.parent / "db_config.json")
+            if not cfg_path.exists() or not cfg_path.is_file():
+                return {}
+
+            with cfg_path.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+            if not isinstance(data, dict):
+                return {}
+
+            out: Dict[str, Any] = {}
+            try:
+                if "timeout" in data:
+                    out["timeout"] = max(1.0, float(data.get("timeout")))
+            except Exception:
+                pass
+            try:
+                if "maxConnections" in data:
+                    out["maxConnections"] = max(1, int(data.get("maxConnections")))
+            except Exception:
+                pass
+            try:
+                if "queryTimeout" in data:
+                    out["queryTimeout"] = max(0.0, float(data.get("queryTimeout")))
+            except Exception:
+                pass
+            return out
+        except Exception as exc:
+            logger.debug("Ignoring invalid DB user config: %s", exc)
+            return {}
 
     def _is_locked_error(self, exc: Exception) -> bool:
         try:
@@ -443,6 +489,36 @@ class Sqlite:
                 self._diag["recovery_successes"] = int(self._diag.get("recovery_successes") or 0) + 1
             elif state in ("failed", "skipped_locked"):
                 self._diag["recovery_failures"] = int(self._diag.get("recovery_failures") or 0) + 1
+
+    async def _maybe_auto_reset_on_corruption(self, error: Exception) -> None:
+        """
+        Optionally auto-reset DB on corruption, gated by MAJOOR_DB_AUTO_RESET=true.
+        """
+        try:
+            auto_reset = str(os.getenv("MAJOOR_DB_AUTO_RESET", "false")).strip().lower() in (
+                "1",
+                "true",
+                "yes",
+                "on",
+            )
+        except Exception:
+            auto_reset = False
+
+        if not auto_reset:
+            logger.error(
+                "Corruption detected (%s). To auto-reset DB, set MAJOOR_DB_AUTO_RESET=true",
+                error,
+            )
+            return
+
+        try:
+            reset_res = await self.areset()
+            if reset_res and reset_res.ok:
+                logger.warning("Database auto-reset completed after corruption")
+            else:
+                logger.error("Database auto-reset failed after corruption: %s", getattr(reset_res, "error", "unknown error"))
+        except Exception as exc:
+            logger.error("Database auto-reset exception after corruption: %s", exc)
 
     def get_diagnostics(self) -> Dict[str, Any]:
         with self._diag_lock:
@@ -555,7 +631,29 @@ class Sqlite:
         max_s = float(self._lock_retry_max_seconds)
         delay = min(max_s, base * (2 ** max(0, attempt)))
         delay = delay + (random.random() * 0.03)
+        try:
+            logger.debug("DB lock backoff: attempt=%d delay=%.3fs", int(attempt), float(delay))
+        except Exception:
+            pass
         await asyncio.sleep(delay)
+
+    def get_runtime_status(self) -> Dict[str, Any]:
+        """Return lightweight runtime counters for diagnostics/dashboard."""
+        try:
+            active = len(self._active_conns)
+        except Exception:
+            active = 0
+        try:
+            pooled = int(self._pool.qsize())
+        except Exception:
+            pooled = 0
+        return {
+            "active_connections": int(active),
+            "pooled_connections": int(pooled),
+            "max_connections": int(self._max_conn_limit),
+            "query_timeout_s": float(self._query_timeout),
+            "busy_timeout_ms": int(SQLITE_BUSY_TIMEOUT_MS),
+        }
 
     async def _apply_connection_pragmas(self, conn: aiosqlite.Connection):
         await conn.execute("PRAGMA journal_mode=WAL")
@@ -831,6 +929,7 @@ class Sqlite:
                     except Exception as retry_exc:
                         logger.error("Database malformed after recovery retry: %s", retry_exc)
                         return Result.Err(ErrorCode.DB_ERROR, str(retry_exc))
+                await self._maybe_auto_reset_on_corruption(exc)
                 logger.error("Database malformed and recovery failed: %s", exc)
                 return Result.Err(ErrorCode.DB_ERROR, str(exc))
             except Exception as exc:
