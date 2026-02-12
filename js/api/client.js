@@ -545,6 +545,10 @@ export async function getToolsStatus(options = {}) {
     return get(ENDPOINTS.TOOLS_STATUS, options);
 }
 
+export async function getRuntimeStatus(options = {}) {
+    return get(ENDPOINTS.STATUS, options);
+}
+
 /**
  * Best-effort database maintenance (PRAGMA optimize / ANALYZE).
  * Returns 200 even on degraded runs; check `ok/code`.

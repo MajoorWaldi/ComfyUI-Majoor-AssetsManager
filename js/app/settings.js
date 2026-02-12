@@ -3,7 +3,7 @@
  */
 
 import { APP_CONFIG, APP_DEFAULTS } from "./config.js";
-import { getSecuritySettings, setSecuritySettings, setProbeBackendMode, getWatcherStatus, toggleWatcher, getWatcherSettings, updateWatcherSettings } from "../api/client.js";
+import { getSecuritySettings, setSecuritySettings, setProbeBackendMode, getWatcherStatus, toggleWatcher, getWatcherSettings, updateWatcherSettings, getRuntimeStatus } from "../api/client.js";
 import { comfyToast } from "./toast.js";
 import { safeDispatchCustomEvent } from "../utils/events.js";
 import { t, initI18n, setLang, getCurrentLang, getSupportedLanguages } from "./i18n.js";
@@ -14,6 +14,7 @@ const SETTINGS_CATEGORY = "Majoor Assets Manager";
 const SETTINGS_REG_FLAG = "__mjrSettingsRegistered";
 const SETTINGS_DEBUG_KEY = "__mjrSettingsDebug";
 const SETTINGS_NAME_PREFIX_RE = /^\s*Majoor:\s*/i;
+const RUNTIME_DASHBOARD_ID = "mjr-runtime-status-dashboard";
 
 const DEFAULT_SETTINGS = {
     debug: {
@@ -58,6 +59,9 @@ const DEFAULT_SETTINGS = {
         enabled: true,
         debounceMs: APP_DEFAULTS.WATCHER_DEBOUNCE_MS,
         dedupeTtlMs: APP_DEFAULTS.WATCHER_DEDUPE_TTL_MS,
+        maxPending: 500,
+        minSize: 100,
+        maxSize: 4294967296,
     },
     safety: {
         confirmDeletion: true,
@@ -90,6 +94,11 @@ const DEFAULT_SETTINGS = {
     },
     probeBackend: {
         mode: "auto",
+    },
+    db: {
+        timeoutMs: 5000,
+        maxConnections: 10,
+        queryTimeoutMs: 1000,
     },
     ratingTagsSync: {
         enabled: true,
@@ -184,6 +193,62 @@ const deepMerge = (base, next) => {
     return output;
 };
 
+function ensureRuntimeStatusDashboard() {
+    try {
+        let el = document.getElementById(RUNTIME_DASHBOARD_ID);
+        if (!el) {
+            el = document.createElement("div");
+            el.id = RUNTIME_DASHBOARD_ID;
+            el.style.position = "fixed";
+            el.style.left = "10px";
+            el.style.bottom = "10px";
+            el.style.zIndex = "9999";
+            el.style.padding = "6px 8px";
+            el.style.borderRadius = "6px";
+            el.style.background = "rgba(0,0,0,0.65)";
+            el.style.color = "#fff";
+            el.style.fontSize = "11px";
+            el.style.pointerEvents = "none";
+            document.body.appendChild(el);
+        }
+        return el;
+    } catch {
+        return null;
+    }
+}
+
+async function refreshRuntimeStatusDashboard() {
+    const el = ensureRuntimeStatusDashboard();
+    if (!el) return;
+    try {
+        const res = await getRuntimeStatus();
+        if (!res?.ok || !res?.data) {
+            el.textContent = "Runtime: unavailable";
+            return;
+        }
+        const db = res.data.db || {};
+        const idx = res.data.index || {};
+        const w = res.data.watcher || {};
+        const active = Number(db.active_connections || 0);
+        const enrichQ = Number(idx.enrichment_queue_length || 0);
+        const pending = Number(w.pending_files || 0);
+        el.textContent = `DB active: ${active} | Enrich Q: ${enrichQ} | Watcher pending: ${pending}`;
+    } catch {
+        el.textContent = "Runtime: unavailable";
+    }
+}
+
+export function startRuntimeStatusDashboard() {
+    try {
+        refreshRuntimeStatusDashboard().catch(() => {});
+        if (!window.__MJR_RUNTIME_STATUS_INTERVAL__) {
+            window.__MJR_RUNTIME_STATUS_INTERVAL__ = setInterval(() => {
+                refreshRuntimeStatusDashboard().catch(() => {});
+            }, 3000);
+        }
+    } catch {}
+}
+
 export const loadMajoorSettings = () => {
     if (typeof localStorage === "undefined") return { ...DEFAULT_SETTINGS };
     try {
@@ -203,6 +268,7 @@ export const loadMajoorSettings = () => {
             "observability",
             "sidebar",
             "probeBackend",
+            "db",
             "ratingTagsSync",
             "cache",
             "search",
@@ -326,6 +392,12 @@ const applySettingsToConfig = (settings) => {
 
     APP_CONFIG.DELETE_CONFIRMATION = !!settings.safety?.confirmDeletion;
     APP_CONFIG.DEBUG_VERBOSE_ERRORS = !!settings.observability?.verboseErrors;
+    APP_CONFIG.WATCHER_MAX_PENDING = Math.max(10, Math.min(5000, Math.round(_safeNum(settings.watcher?.maxPending, 500))));
+    APP_CONFIG.WATCHER_MIN_SIZE = Math.max(0, Math.min(1000000, Math.round(_safeNum(settings.watcher?.minSize, 100))));
+    APP_CONFIG.WATCHER_MAX_SIZE = Math.max(100000, Math.min(17179869184, Math.round(_safeNum(settings.watcher?.maxSize, 4294967296))));
+    APP_CONFIG.DB_TIMEOUT_MS = Math.max(1000, Math.min(30000, Math.round(_safeNum(settings.db?.timeoutMs, 5000))));
+    APP_CONFIG.DB_MAX_CONNECTIONS = Math.max(1, Math.min(100, Math.round(_safeNum(settings.db?.maxConnections, 10))));
+    APP_CONFIG.DB_QUERY_TIMEOUT_MS = Math.max(500, Math.min(10000, Math.round(_safeNum(settings.db?.queryTimeoutMs, 1000))));
     // Search request limit (client-side); backend still enforces MAJOOR_SEARCH_MAX_LIMIT
     APP_CONFIG.SEARCH_REQUEST_LIMIT = Math.max(
         10,
@@ -1038,6 +1110,26 @@ export const registerMajoorSettings = (app, onApplied) => {
             },
         });
 
+        safeAddSetting({
+            id: `${SETTINGS_PREFIX}.RtHydrate.Concurrency`,
+            category: cat(t("cat.scanning"), "Hydration"),
+            name: "Hydrate Concurrency",
+            tooltip: "Maximum concurrent hydration requests for rating/tags.",
+            type: "number",
+            defaultValue: Number(settings.rtHydrate?.concurrency || APP_DEFAULTS.RT_HYDRATE_CONCURRENCY || 5),
+            attrs: { min: 1, max: 20, step: 1 },
+            onChange: (value) => {
+                settings.rtHydrate = settings.rtHydrate || {};
+                settings.rtHydrate.concurrency = Math.max(
+                    1,
+                    Math.min(20, Math.round(_safeNum(value, APP_DEFAULTS.RT_HYDRATE_CONCURRENCY || 5)))
+                );
+                saveMajoorSettings(settings);
+                applySettingsToConfig(settings);
+                notifyApplied("rtHydrate.concurrency");
+            },
+        });
+
         const _clampWatcherValue = (raw, fallback, min, max) => {
             const parsed = Math.round(_safeNum(raw, fallback));
             return Math.max(min, Math.min(max, parsed));
@@ -1170,6 +1262,57 @@ export const registerMajoorSettings = (app, onApplied) => {
                     notifyApplied("watcher.dedupeTtlMs");
                     comfyToast(error?.message || t("setting.watcher.dedupe.error"), "error");
                 }
+            },
+        });
+
+        safeAddSetting({
+            id: `${SETTINGS_PREFIX}.Watcher.MaxPending`,
+            category: cat(t("cat.scanning"), "Watcher queue"),
+            name: "Watcher: max pending files",
+            tooltip: "Maximum number of pending watcher files kept in memory.",
+            type: "number",
+            defaultValue: Number(settings.watcher?.maxPending ?? 500),
+            attrs: { min: 10, max: 5000, step: 10 },
+            onChange: (value) => {
+                settings.watcher = settings.watcher || {};
+                settings.watcher.maxPending = Math.max(10, Math.min(5000, Math.round(_safeNum(value, 500))));
+                saveMajoorSettings(settings);
+                applySettingsToConfig(settings);
+                notifyApplied("watcher.maxPending");
+            },
+        });
+
+        safeAddSetting({
+            id: `${SETTINGS_PREFIX}.Watcher.MinSize`,
+            category: cat(t("cat.scanning"), "Watcher file size"),
+            name: "Watcher: min size (bytes)",
+            tooltip: "Minimum file size indexed by watcher.",
+            type: "number",
+            defaultValue: Number(settings.watcher?.minSize ?? 100),
+            attrs: { min: 0, max: 1000000, step: 100 },
+            onChange: (value) => {
+                settings.watcher = settings.watcher || {};
+                settings.watcher.minSize = Math.max(0, Math.min(1000000, Math.round(_safeNum(value, 100))));
+                saveMajoorSettings(settings);
+                applySettingsToConfig(settings);
+                notifyApplied("watcher.minSize");
+            },
+        });
+
+        safeAddSetting({
+            id: `${SETTINGS_PREFIX}.Watcher.MaxSize`,
+            category: cat(t("cat.scanning"), "Watcher file size"),
+            name: "Watcher: max size (bytes)",
+            tooltip: "Maximum file size indexed by watcher.",
+            type: "number",
+            defaultValue: Number(settings.watcher?.maxSize ?? 4294967296),
+            attrs: { min: 100000, max: 17179869184, step: 100000 },
+            onChange: (value) => {
+                settings.watcher = settings.watcher || {};
+                settings.watcher.maxSize = Math.max(100000, Math.min(17179869184, Math.round(_safeNum(value, 4294967296))));
+                saveMajoorSettings(settings);
+                applySettingsToConfig(settings);
+                notifyApplied("watcher.maxSize");
             },
         });
 
@@ -1330,6 +1473,57 @@ export const registerMajoorSettings = (app, onApplied) => {
         });
 
         safeAddSetting({
+            id: `${SETTINGS_PREFIX}.Db.Timeout`,
+            category: cat(t("cat.advanced"), "Database"),
+            name: "DB Timeout (ms)",
+            tooltip: "Client-side DB timeout preference (stored locally).",
+            type: "number",
+            defaultValue: Number(settings.db?.timeoutMs || 5000),
+            attrs: { min: 1000, max: 30000, step: 1000 },
+            onChange: (value) => {
+                settings.db = settings.db || {};
+                settings.db.timeoutMs = Math.max(1000, Math.min(30000, Math.round(_safeNum(value, 5000))));
+                saveMajoorSettings(settings);
+                applySettingsToConfig(settings);
+                notifyApplied("db.timeoutMs");
+            },
+        });
+
+        safeAddSetting({
+            id: `${SETTINGS_PREFIX}.Db.MaxConnections`,
+            category: cat(t("cat.advanced"), "Database"),
+            name: "DB Max Connections",
+            tooltip: "Client-side DB max connections preference (stored locally).",
+            type: "number",
+            defaultValue: Number(settings.db?.maxConnections || 10),
+            attrs: { min: 1, max: 100, step: 1 },
+            onChange: (value) => {
+                settings.db = settings.db || {};
+                settings.db.maxConnections = Math.max(1, Math.min(100, Math.round(_safeNum(value, 10))));
+                saveMajoorSettings(settings);
+                applySettingsToConfig(settings);
+                notifyApplied("db.maxConnections");
+            },
+        });
+
+        safeAddSetting({
+            id: `${SETTINGS_PREFIX}.Db.QueryTimeout`,
+            category: cat(t("cat.advanced"), "Database"),
+            name: "DB Query Timeout (ms)",
+            tooltip: "Client-side DB query timeout preference (stored locally).",
+            type: "number",
+            defaultValue: Number(settings.db?.queryTimeoutMs || 1000),
+            attrs: { min: 500, max: 10000, step: 500 },
+            onChange: (value) => {
+                settings.db = settings.db || {};
+                settings.db.queryTimeoutMs = Math.max(500, Math.min(10000, Math.round(_safeNum(value, 1000))));
+                saveMajoorSettings(settings);
+                applySettingsToConfig(settings);
+                notifyApplied("db.queryTimeoutMs");
+            },
+        });
+
+        safeAddSetting({
             id: `${SETTINGS_PREFIX}.Observability.Enabled`,
             category: cat(t("cat.advanced"), t("setting.obs.enabled.name").replace("Majoor: ", "")),
             name: t("setting.obs.enabled.name"),
@@ -1450,6 +1644,8 @@ export const registerMajoorSettings = (app, onApplied) => {
             setTimeout(tick, delayMs);
         } catch {}
     }
+
+    startRuntimeStatusDashboard();
 
     // Best-effort: apply watcher state to backend to match saved settings.
     try {

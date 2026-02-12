@@ -1760,6 +1760,30 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             "directories": watcher.watched_directories if watcher else [],
         }))
 
+    @routes.post("/mjr/am/watcher/flush")
+    async def watcher_flush(request):
+        """Flush watcher pending queue immediately (best-effort)."""
+        svc, error_result = await _require_services()
+        if error_result:
+            return _json_response(error_result)
+
+        csrf = _csrf_error(request)
+        if csrf:
+            return _json_response(Result.Err("CSRF", csrf))
+
+        watcher = svc.get("watcher")
+        if not watcher:
+            return _json_response(Result.Ok({"enabled": False, "flushed": False}))
+
+        flushed = False
+        try:
+            flush_fn = getattr(watcher, "flush_pending", None)
+            if callable(flush_fn):
+                flushed = bool(flush_fn())
+        except Exception:
+            flushed = False
+        return _json_response(Result.Ok({"enabled": bool(watcher.is_running), "flushed": flushed}))
+
     @routes.post("/mjr/am/watcher/toggle")
     async def watcher_toggle(request):
         """Start or stop the file watcher."""
@@ -1961,8 +1985,8 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         body = body_res.data or {}
 
         scope = normalize_scope(body.get("scope"))
-        custom_root_id = body.get("custom_root_id") or body.get("root_id") or body.get("customRootId")
-        custom_root_id = str(custom_root_id or "").strip()
+        # Watcher scope is backend-restricted to output only.
+        custom_root_id = ""
 
         # Persist desired scope in memory even if watcher is disabled.
         svc["watcher_scope"] = {"scope": scope, "custom_root_id": custom_root_id}

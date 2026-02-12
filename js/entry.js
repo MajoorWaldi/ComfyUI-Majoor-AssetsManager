@@ -7,7 +7,7 @@ import { app } from "../../scripts/app.js";
 import { testAPI, triggerStartupScan } from "./app/bootstrap.js";
 import { checkMajoorVersion } from "./app/versionCheck.js";
 import { ensureStyleLoaded } from "./app/style.js";
-import { registerMajoorSettings } from "./app/settings.js";
+import { registerMajoorSettings, startRuntimeStatusDashboard } from "./app/settings.js";
 import { initDragDrop } from "./features/dnd/DragDrop.js";
 import { loadAssets, upsertAsset } from "./features/grid/GridView.js";
 import { renderAssetsManager, getActiveGridContainer } from "./features/panel/AssetsManagerPanel.js";
@@ -86,6 +86,7 @@ app.registerExtension({
         // Initialize core services
         testAPI();
         ensureStyleLoaded({ enabled: UI_FLAGS.useComfyThemeUI });
+        startRuntimeStatusDashboard();
 
         try {
             initDragDrop();

@@ -69,7 +69,7 @@ class MetadataEnricher:
         self._prepare_metadata_fields = prepare_metadata_fields_fn
         self._metadata_error_payload = metadata_error_payload_fn
         self._enrich_lock = asyncio.Lock()
-        self._enrich_queue: List[str] = []
+        self._enrich_queue: List[tuple[int, str]] = []
         self._enrich_task: Optional[asyncio.Task[None]] = None
         self._enrich_running = False
         self._retry_counts: Dict[str, int] = {}
@@ -109,13 +109,40 @@ class MetadataEnricher:
         if not cleaned:
             return
         async with self._enrich_lock:
-            existing = set(self._enrich_queue)
+            existing = {fp for _, fp in self._enrich_queue}
             for fp in cleaned:
                 if fp in existing:
                     continue
-                self._enrich_queue.append(fp)
+                self._enrich_queue.append((0, fp))
                 existing.add(fp)
+            # Keep highest priority first (negative = higher priority).
+            self._enrich_queue.sort(key=lambda item: item[0])
             if self._enrich_running and self._enrich_task and not self._enrich_task.done():
+                return
+            self._emit_status(True, queued=len(self._enrich_queue))
+            self._enrich_running = True
+            self._enrich_task = asyncio.create_task(self._enrichment_worker())
+
+    async def enqueue(self, path: str, priority: int = 0) -> None:
+        """
+        Enqueue a single path with priority.
+        priority 0 = normal, negative = higher priority.
+        """
+        fp = str(path or "").strip()
+        if not fp:
+            return
+        async with self._enrich_lock:
+            existing = {p for _, p in self._enrich_queue}
+            if fp in existing:
+                return
+            try:
+                prio = int(priority)
+            except Exception:
+                prio = 0
+            self._enrich_queue.append((prio, fp))
+            self._enrich_queue.sort(key=lambda item: item[0])
+            if self._enrich_running and self._enrich_task and not self._enrich_task.done():
+                self._emit_status(True, queued=len(self._enrich_queue))
                 return
             self._emit_status(True, queued=len(self._enrich_queue))
             self._enrich_running = True
@@ -154,8 +181,10 @@ class MetadataEnricher:
                 async with self._enrich_lock:
                     if not self._enrich_queue:
                         return
-                    chunk = self._enrich_queue[:64]
-                    del self._enrich_queue[:64]
+                    size = max(1, int(self._CHUNK_SIZE or 64))
+                    chunk_items = self._enrich_queue[:size]
+                    del self._enrich_queue[:size]
+                    chunk = [fp for _, fp in chunk_items if fp]
                 await self._enrich_metadata_chunk(chunk)
         except Exception as exc:
             if _is_db_resetting_error(exc):
@@ -340,3 +369,12 @@ class MetadataEnricher:
             if to_requeue:
                 await asyncio.sleep(0.2)
                 await self.start_enrichment(to_requeue)
+
+    def get_queue_length(self) -> int:
+        """Return pending enrichment queue length."""
+        try:
+            return int(len(self._enrich_queue))
+        except Exception:
+            return 0
+    # Batch size configurable via MAJOOR_ENRICHER_CHUNK_SIZE.
+    _CHUNK_SIZE = int(os.getenv("MAJOOR_ENRICHER_CHUNK_SIZE", 64))

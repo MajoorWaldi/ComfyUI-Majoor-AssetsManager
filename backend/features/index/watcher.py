@@ -28,6 +28,7 @@ from ...config import (
     WATCHER_DEDUPE_TTL_MS,
     WATCHER_FLUSH_MAX_FILES,
     WATCHER_MAX_FILE_SIZE_BYTES,
+    WATCHER_MIN_FILE_SIZE_BYTES,
     WATCHER_MAX_FLUSH_CONCURRENCY,
     WATCHER_STREAM_ALERT_COOLDOWN_SECONDS,
     WATCHER_STREAM_ALERT_THRESHOLD,
@@ -80,7 +81,9 @@ IGNORED_DIRS = {
 }
 
 # Minimum file size (bytes) to avoid indexing partial/temp writes
-MIN_FILE_SIZE = 100
+MIN_FILE_SIZE = max(0, int(WATCHER_MIN_FILE_SIZE_BYTES))
+# Maximum file size (bytes) to avoid indexing oversized files
+MAX_FILE_SIZE = max(0, int(WATCHER_MAX_FILE_SIZE_BYTES))
 _RECENT_GENERATED_TTL_S = 30.0
 _RECENT_GENERATED_LOCK = Lock()
 _RECENT_GENERATED: Dict[str, float] = {}
@@ -166,6 +169,29 @@ class DebouncedWatchHandler(FileSystemEventHandler):
     def refresh_runtime_settings(self) -> None:
         """Expose runtime tuning for external callers."""
         self._refresh_runtime_settings()
+
+    def flush_pending(self) -> bool:
+        """
+        Trigger an immediate flush of pending files.
+
+        Returns True when a flush task was successfully scheduled.
+        """
+        try:
+            if self._flush_timer:
+                self._flush_timer.cancel()
+                self._flush_timer = None
+            asyncio.run_coroutine_threadsafe(self._flush(), self._loop)
+            return True
+        except Exception:
+            return False
+
+    def get_pending_count(self) -> int:
+        """Return pending file count in debounce queue."""
+        try:
+            with self._lock:
+                return int(len(self._pending))
+        except Exception:
+            return 0
 
     def _maybe_log_pending_limit(self, path: str) -> None:
         now = time.time()
@@ -343,7 +369,7 @@ class DebouncedWatchHandler(FileSystemEventHandler):
                     continue
                 if size < MIN_FILE_SIZE:
                     continue
-                max_size = WATCHER_MAX_FILE_SIZE_BYTES
+                max_size = MAX_FILE_SIZE
                 if max_size > 0 and size > max_size:
                     logger.debug("Watcher skipping oversized file %s (%d bytes > %d)", f, size, max_size)
                     continue
@@ -785,6 +811,24 @@ class OutputWatcher:
             self._handler.refresh_runtime_settings()
         except Exception:
             pass
+
+    def flush_pending(self) -> bool:
+        """Flush watcher pending queue immediately (best-effort)."""
+        if not self._handler:
+            return False
+        try:
+            return bool(self._handler.flush_pending())
+        except Exception:
+            return False
+
+    def get_pending_count(self) -> int:
+        """Return pending watcher files waiting for flush."""
+        if not self._handler:
+            return 0
+        try:
+            return int(self._handler.get_pending_count())
+        except Exception:
+            return 0
 
 
 def _is_under_path(candidate: str, root: str) -> bool:

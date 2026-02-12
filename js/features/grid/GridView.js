@@ -714,11 +714,66 @@ function getOrCreateState(gridContainer) {
             allowUntilFilled: true,
             requestId: 0,
             abortController: null,
-            virtualGrid: null
+            virtualGrid: null,
+            metricsEl: null,
+            metricsTimer: null,
         };
         GRID_STATE.set(gridContainer, state);
+        _attachGridMetrics(state, gridContainer);
     }
     return state;
+}
+
+function _formatLoadErrorMessage(prefix, err) {
+    let message = String(prefix || "Failed to load");
+    try {
+        const raw = String(err?.message || err || "").trim();
+        const low = raw.toLowerCase();
+        if (!raw) return message;
+        if (low.includes("database is locked") || low.includes("database table is locked") || low.includes("database schema is locked")) {
+            return `${message}: the database is temporarily locked. Please retry in a few seconds.`;
+        }
+        return `${message}: ${raw}`;
+    } catch {
+        return message;
+    }
+}
+
+function _attachGridMetrics(state, gridContainer) {
+    try {
+        if (!state || state.metricsEl) return;
+        const el = document.createElement("div");
+        el.id = "mjr-grid-metrics";
+        el.style.position = "fixed";
+        el.style.bottom = "10px";
+        el.style.right = "10px";
+        el.style.background = "rgba(0,0,0,0.6)";
+        el.style.color = "#fff";
+        el.style.padding = "5px";
+        el.style.fontSize = "12px";
+        el.style.zIndex = "9999";
+        el.style.pointerEvents = "none";
+        document.body.appendChild(el);
+        state.metricsEl = el;
+        _updateGridMetrics(state, gridContainer);
+        state.metricsTimer = setInterval(() => _updateGridMetrics(state, gridContainer), 2000);
+    } catch {}
+}
+
+function _updateGridMetrics(state, gridContainer) {
+    try {
+        if (!state?.metricsEl) return;
+        const assetCount = Array.isArray(state.assets) ? state.assets.length : 0;
+        const seenCount = state.seenKeys?.size || 0;
+        const rt = _getRtHydrateState(gridContainer);
+        const hydrateSeen = rt?.seen?.size || 0;
+        let memoryMB = "n/a";
+        try {
+            const used = performance?.memory?.usedJSHeapSize;
+            if (Number.isFinite(used)) memoryMB = (used / 1024 / 1024).toFixed(1);
+        } catch {}
+        state.metricsEl.textContent = `Assets: ${assetCount} / Seen: ${seenCount} / HydrateSeen: ${hydrateSeen} / Memory: ${memoryMB} MB`;
+    } catch {}
 }
 
 function _isPotentialScrollContainer(el) {
@@ -1745,7 +1800,7 @@ export async function loadAssets(gridContainer, query = "*", options = {}) {
         stopObserver(state);
         if (reset) hideLoadingOverlay(gridContainer);
         clearGridMessage(gridContainer);
-        setGridMessage(gridContainer, `Failed to load assets: ${err?.message || err}`, { error: true });
+        setGridMessage(gridContainer, _formatLoadErrorMessage("Failed to load assets", err), { error: true });
         return { ok: false, error: err?.message || String(err) };
     } finally {
         if (reset) hideLoadingOverlay(gridContainer);
@@ -1879,7 +1934,7 @@ export async function loadAssetsFromList(gridContainer, assets, options = {}) {
         stopObserver(state);
         if (reset) hideLoadingOverlay(gridContainer);
         clearGridMessage(gridContainer);
-        setGridMessage(gridContainer, `Failed to load collection: ${err?.message || err}`, { error: true });
+        setGridMessage(gridContainer, _formatLoadErrorMessage("Failed to load collection", err), { error: true });
         return { ok: false, error: err?.message || String(err) };
     } finally {
         if (reset) hideLoadingOverlay(gridContainer);
@@ -2043,6 +2098,16 @@ export function disposeGrid(gridContainer) {
     } catch {}
     try {
         RT_HYDRATE_STATE.delete(gridContainer);
+    } catch {}
+    try {
+        if (state.metricsTimer) {
+            clearInterval(state.metricsTimer);
+            state.metricsTimer = null;
+        }
+        if (state.metricsEl?.parentNode) {
+            state.metricsEl.parentNode.removeChild(state.metricsEl);
+        }
+        state.metricsEl = null;
     } catch {}
     GRID_STATE.delete(gridContainer);
 }
