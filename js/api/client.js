@@ -464,6 +464,14 @@ export async function setProbeBackendMode(mode) {
     return post("/mjr/am/settings/probe-backend", { mode });
 }
 
+export async function getMetadataFallbackSettings() {
+    return get(ENDPOINTS.SETTINGS_METADATA_FALLBACK);
+}
+
+export async function setMetadataFallbackSettings({ image, media } = {}) {
+    return post(ENDPOINTS.SETTINGS_METADATA_FALLBACK, { image, media });
+}
+
 export async function getOutputDirectorySetting() {
     return get(ENDPOINTS.SETTINGS_OUTPUT_DIRECTORY);
 }

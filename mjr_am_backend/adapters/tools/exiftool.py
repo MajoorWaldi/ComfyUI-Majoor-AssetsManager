@@ -391,15 +391,17 @@ class ExifTool:
             Dict mapping file path to Result with metadata
         """
         if not self._available:
-            err = Result.Err(ErrorCode.TOOL_MISSING, "ExifTool not found in PATH", quality="none")
+            err: Result[Dict[str, Any]] = Result.Err(
+                ErrorCode.TOOL_MISSING, "ExifTool not found in PATH", quality="none"
+            )
             return {str(p): err for p in paths}
 
         if not paths:
             return {}
 
         # Filter valid paths
-        valid_paths = []
-        results = {}
+        valid_paths: List[str] = []
+        results: Dict[str, Result[Dict[str, Any]]] = {}
 
         for path in paths:
             if not path or "\x00" in str(path):

@@ -25,7 +25,7 @@ def _reconstruct_params_from_workflow(workflow: Dict[str, Any]) -> Dict[str, Any
     Fallback: Extract prompts and parameters directly from the Workflow nodes.
     Uses link traversal to distinguish Positive vs Negative prompts.
     """
-    params = {}
+    params: Dict[str, Any] = {}
     nodes = workflow.get("nodes", [])
     links = workflow.get("links", [])  # [[id, src_node, src_slot, tgt_node, tgt_slot, type], ...]
     if not nodes:
@@ -183,7 +183,7 @@ def _reconstruct_params_from_workflow(workflow: Dict[str, Any]) -> Dict[str, Any
             if pos_info:
                 # Use a local set for this trace to allow the same node to be visited 
                 # in the negative trace (e.g. dual-role nodes like PromptToLoras)
-                trace_seen = set()
+                trace_seen: set[Any] = set()
                 pos_texts = find_upstream_text(pos_info[0], context="positive", seen=trace_seen)
                 unique_prompts.update(pos_texts)
                 visited_nodes.update(trace_seen)
@@ -642,26 +642,31 @@ def _build_a1111_geninfo(parsed: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         out["negative"] = {"value": neg.strip(), "confidence": "high", "source": "parameters"}
 
     try:
-        if parsed.get("steps") is not None:
-            out["steps"] = {"value": int(parsed.get("steps")), "confidence": "high", "source": "parameters"}
+        steps = parsed.get("steps")
+        if steps is not None:
+            out["steps"] = {"value": int(steps), "confidence": "high", "source": "parameters"}
     except Exception:
         pass
     try:
-        if parsed.get("cfg") is not None:
-            out["cfg"] = {"value": float(parsed.get("cfg")), "confidence": "high", "source": "parameters"}
+        cfg = parsed.get("cfg")
+        if cfg is not None:
+            out["cfg"] = {"value": float(cfg), "confidence": "high", "source": "parameters"}
     except Exception:
         pass
     try:
-        if parsed.get("seed") is not None:
-            out["seed"] = {"value": int(parsed.get("seed")), "confidence": "high", "source": "parameters"}
+        seed = parsed.get("seed")
+        if seed is not None:
+            out["seed"] = {"value": int(seed), "confidence": "high", "source": "parameters"}
     except Exception:
         pass
 
     try:
-        if parsed.get("width") is not None and parsed.get("height") is not None:
+        width = parsed.get("width")
+        height = parsed.get("height")
+        if width is not None and height is not None:
             out["size"] = {
-                "width": int(parsed.get("width")),
-                "height": int(parsed.get("height")),
+                "width": int(width),
+                "height": int(height),
                 "confidence": "high",
                 "source": "parameters",
             }
@@ -830,7 +835,7 @@ def extract_video_metadata(file_path: str, exif_data: Optional[Dict] = None, ffp
 
     exif_data = exif_data or {}
     # Start with all raw data
-    metadata = {
+    metadata: Dict[str, Any] = {
         "raw": exif_data or {},
         "raw_ffprobe": ffprobe_data or {},
         "workflow": None,

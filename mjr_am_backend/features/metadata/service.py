@@ -19,6 +19,7 @@ from .extractors import (
     extract_video_metadata,
     extract_rating_tags_from_exif,
 )
+from .fallback_readers import read_image_exif_like, read_media_probe_like
 from ..audio import extract_audio_metadata
 from ..geninfo.parser import parse_geninfo_from_prompt
 from .parsing_utils import parse_auto1111_params
@@ -241,6 +242,24 @@ class MetadataService:
         mode = await self._resolve_probe_mode(override)
         return mode, pick_probe_backend(file_path, settings_override=mode)
 
+    async def _resolve_fallback_prefs(self) -> tuple[bool, bool]:
+        """
+        Resolve runtime fallback toggles from settings.
+        Returns (image_fallback_enabled, media_fallback_enabled).
+        """
+        image_enabled = True
+        media_enabled = True
+        try:
+            getter = getattr(self._settings, "get_metadata_fallback_prefs", None)
+            if callable(getter):
+                prefs = await getter()
+                if isinstance(prefs, dict):
+                    image_enabled = bool(prefs.get("image", True))
+                    media_enabled = bool(prefs.get("media", True))
+        except Exception:
+            pass
+        return image_enabled, media_enabled
+
     async def get_metadata(
         self,
         file_path: str,
@@ -339,6 +358,7 @@ class MetadataService:
         exif_result = await asyncio.to_thread(self.exiftool.read, file_path)
         exif_duration = time.perf_counter() - exif_start
         exif_data = exif_result.data if exif_result.ok else None
+        image_fallback_enabled, _ = await self._resolve_fallback_prefs()
         if not exif_result.ok:
             self._log_metadata_issue(
                 logging.DEBUG,
@@ -349,6 +369,11 @@ class MetadataService:
                 error=exif_result.error,
                 duration_seconds=exif_duration,
             )
+            if kind == "image" and image_fallback_enabled:
+                exif_data = await asyncio.to_thread(read_image_exif_like, file_path)
+            else:
+                exif_data = {}
+        if not exif_data:
             return Result.Ok({"workflow": None, "prompt": None, "quality": "none"}, quality="none")
 
         if kind == "image":
@@ -382,32 +407,25 @@ class MetadataService:
         """Extract metadata from image file."""
         ext = os.path.splitext(file_path)[1].lower()
 
-        if not allow_exif:
-            return Result.Ok({
-                "file_info": self._get_file_info(file_path),
-                "exif": None,
-                "quality": "none"
-            }, quality="none")
-
-        exif_start = time.perf_counter()
-        exif_result = await asyncio.to_thread(self.exiftool.read, file_path)
-        exif_duration = time.perf_counter() - exif_start
-        exif_data = exif_result.data if exif_result.ok else None
-        if not exif_result.ok:
-            self._log_metadata_issue(
-                logging.WARNING,
-                "ExifTool failed while reading image metadata",
-                file_path,
-                scan_id=scan_id,
-                tool="exiftool",
-                error=exif_result.error,
-                duration_seconds=exif_duration
-            )
-            return Result.Ok({
-                "file_info": self._get_file_info(file_path),
-                "exif": None,
-                "quality": "none"
-            }, quality="none")
+        exif_data = None
+        image_fallback_enabled, _ = await self._resolve_fallback_prefs()
+        if allow_exif:
+            exif_start = time.perf_counter()
+            exif_result = await asyncio.to_thread(self.exiftool.read, file_path)
+            exif_duration = time.perf_counter() - exif_start
+            exif_data = exif_result.data if exif_result.ok else None
+            if not exif_result.ok:
+                self._log_metadata_issue(
+                    logging.WARNING,
+                    "ExifTool failed while reading image metadata",
+                    file_path,
+                    scan_id=scan_id,
+                    tool="exiftool",
+                    error=exif_result.error,
+                    duration_seconds=exif_duration
+                )
+        if not exif_data and image_fallback_enabled:
+            exif_data = await asyncio.to_thread(read_image_exif_like, file_path)
 
         # Extract based on format
         if ext == ".png":
@@ -438,7 +456,7 @@ class MetadataService:
         combined = {
             "file_info": self._get_file_info(file_path),
             "exif": exif_data,
-            **metadata_result.data
+            **(metadata_result.data or {})
         }
 
         # Optional: parse deterministic generation info from ComfyUI prompt graph (backend-first).
@@ -456,8 +474,9 @@ class MetadataService:
         allow_ffprobe: bool = True,
     ) -> Result[Dict[str, Any]]:
         """Extract metadata from video file."""
-        exif_data = {}
+        exif_data: Dict[str, Any] | None = {}
         exif_duration = 0.0
+        _, media_fallback_enabled = await self._resolve_fallback_prefs()
         if allow_exif:
             exif_start = time.perf_counter()
             exif_result = await asyncio.to_thread(self.exiftool.read, file_path)
@@ -477,7 +496,7 @@ class MetadataService:
         else:
             exif_data = {}
 
-        ffprobe_data = {}
+        ffprobe_data: Dict[str, Any] | None = {}
         ffprobe_duration = 0.0
         if allow_ffprobe:
             ffprobe_start = time.perf_counter()
@@ -495,7 +514,9 @@ class MetadataService:
                 )
                 ffprobe_data = None
             else:
-                ffprobe_data = ffprobe_result.data
+                ffprobe_data = ffprobe_result.data or {}
+        if not ffprobe_data and media_fallback_enabled:
+            ffprobe_data = await asyncio.to_thread(read_media_probe_like, file_path)
 
         # Extract video-specific metadata
         metadata_result = extract_video_metadata(file_path, exif_data, ffprobe_data)
@@ -527,7 +548,7 @@ class MetadataService:
             "file_info": self._get_file_info(file_path),
             "exif": exif_data,
             "ffprobe": ffprobe_data,
-            **metadata_result.data
+            **(metadata_result.data or {})
         }
 
         try:
@@ -547,15 +568,23 @@ class MetadataService:
     ) -> Result[Dict[str, Any]]:
         """Extract metadata from audio file."""
         if not allow_exif and not allow_ffprobe:
-            return Result.Ok(
-                {
-                    "file_info": self._get_file_info(file_path),
-                    "exif": None,
-                    "ffprobe": None,
-                    "quality": "none",
-                },
-                quality="none",
+            _, media_fallback_enabled = await self._resolve_fallback_prefs()
+            fallback_ffprobe = (
+                await asyncio.to_thread(read_media_probe_like, file_path)
+                if media_fallback_enabled
+                else None
             )
+            metadata_result = extract_audio_metadata(file_path, exif_data=None, ffprobe_data=fallback_ffprobe or None)
+            if not metadata_result.ok:
+                return metadata_result
+            combined = {
+                "file_info": self._get_file_info(file_path),
+                "exif": None,
+                "ffprobe": fallback_ffprobe or None,
+                **(metadata_result.data or {}),
+            }
+            quality = metadata_result.meta.get("quality", "none") if metadata_result.ok else "none"
+            return Result.Ok(combined, quality=quality)
 
         exif_data = None
         ffprobe_data = None
@@ -593,6 +622,9 @@ class MetadataService:
                     error=ffprobe_result.error,
                     duration_seconds=ffprobe_duration,
                 )
+        _, media_fallback_enabled = await self._resolve_fallback_prefs()
+        if not ffprobe_data and media_fallback_enabled:
+            ffprobe_data = await asyncio.to_thread(read_media_probe_like, file_path)
 
         metadata_result = extract_audio_metadata(file_path, exif_data=exif_data, ffprobe_data=ffprobe_data)
         if not metadata_result.ok:
@@ -683,6 +715,7 @@ class MetadataService:
 
         results: Dict[str, Result[Dict[str, Any]]] = {}
         probe_mode = await self._resolve_probe_mode(probe_mode_override)
+        image_fallback_enabled, media_fallback_enabled = await self._resolve_fallback_prefs()
 
         # Schedule tool targets (dedupe to avoid duplicate subprocess work).
         exif_targets: list[str] = []
@@ -724,6 +757,8 @@ class MetadataService:
                 continue
             ext = os.path.splitext(path)[1].lower()
             exif_data = _exif_for(path)
+            if not exif_data and image_fallback_enabled:
+                exif_data = read_image_exif_like(path)
 
             if ext == ".png":
                 metadata_result = extract_png_metadata(path, exif_data)
@@ -740,7 +775,7 @@ class MetadataService:
                 combined = {
                     "file_info": self._get_file_info(path),
                     "exif": exif_data,
-                    **metadata_result.data,
+                    **(metadata_result.data or {}),
                 }
                 await _finalize_ok(path, combined, metadata_result)
             else:
@@ -752,6 +787,8 @@ class MetadataService:
                 continue
             exif_data = _exif_for(path)
             ffprobe_data = _ffprobe_for(path)
+            if not ffprobe_data and media_fallback_enabled:
+                ffprobe_data = read_media_probe_like(path)
 
             metadata_result = extract_video_metadata(path, exif_data, ffprobe_data)
             if metadata_result.ok:
@@ -759,7 +796,7 @@ class MetadataService:
                     "file_info": self._get_file_info(path),
                     "exif": exif_data,
                     "ffprobe": ffprobe_data,
-                    **metadata_result.data,
+                    **(metadata_result.data or {}),
                 }
                 await _finalize_ok(path, combined, metadata_result)
             else:
@@ -771,6 +808,8 @@ class MetadataService:
                 continue
             exif_data = _exif_for(path)
             ffprobe_data = _ffprobe_for(path)
+            if not ffprobe_data and media_fallback_enabled:
+                ffprobe_data = read_media_probe_like(path)
             metadata_result = extract_audio_metadata(path, exif_data=exif_data, ffprobe_data=ffprobe_data)
             if metadata_result.ok:
                 combined = {
@@ -847,7 +886,7 @@ class MetadataService:
         error: Optional[str] = None,
         duration_seconds: Optional[float] = None
     ):
-        context = {"file_path": file_path}
+        context: Dict[str, Any] = {"file_path": file_path}
         if scan_id:
             context["scan_id"] = scan_id
         if tool:

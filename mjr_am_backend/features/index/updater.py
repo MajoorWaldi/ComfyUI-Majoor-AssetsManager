@@ -63,7 +63,7 @@ class AssetUpdater:
             )
 
         if not result.ok:
-            return Result.Err("UPDATE_FAILED", result.error)
+            return Result.Err("UPDATE_FAILED", result.error or "Failed to update rating")
 
         return Result.Ok({"asset_id": asset_id, "rating": rating})
 
@@ -127,7 +127,7 @@ class AssetUpdater:
                 )
 
         if not result.ok:
-            return Result.Err("UPDATE_FAILED", result.error)
+            return Result.Err("UPDATE_FAILED", result.error or "Failed to update tags")
 
         return Result.Ok({"asset_id": asset_id, "tags": sanitized})
 
@@ -147,7 +147,7 @@ class AssetUpdater:
         )
 
         if not result.ok:
-            return Result.Err("DB_ERROR", result.error)
+            return Result.Err("DB_ERROR", result.error or "Failed to read tags")
 
         # Collect all unique tags
         all_tags = set()

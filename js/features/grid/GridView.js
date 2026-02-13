@@ -406,6 +406,7 @@ function _updateGridSettingsClasses(container) {
     container.style.setProperty("--mjr-badge-video", APP_CONFIG.BADGE_VIDEO_COLOR);
     container.style.setProperty("--mjr-badge-audio", APP_CONFIG.BADGE_AUDIO_COLOR);
     container.style.setProperty("--mjr-badge-model3d", APP_CONFIG.BADGE_MODEL3D_COLOR);
+    container.style.setProperty("--mjr-badge-duplicate-alert", APP_CONFIG.BADGE_DUPLICATE_ALERT_COLOR);
     container.style.setProperty("--mjr-card-hover-color", APP_CONFIG.UI_CARD_HOVER_COLOR);
     container.style.setProperty("--mjr-card-selection-color", APP_CONFIG.UI_CARD_SELECTION_COLOR);
     container.style.setProperty("--mjr-rating-color", APP_CONFIG.UI_RATING_COLOR);
@@ -584,6 +585,7 @@ export function createGridContainer() {
 
 const OVERLAY_CLASS = "mjr-grid-loading-overlay";
 const SENTINEL_CLASS = "mjr-grid-sentinel";
+const LOAD_ASSETS_TIMEOUT_MS = 25000;
 
 function showLoadingOverlay(gridContainer, message = "Loading assets...") {
     let overlay = gridContainer.querySelector(`.${OVERLAY_CLASS}`);
@@ -887,7 +889,11 @@ function ensureVirtualGrid(gridContainer, state) {
             // Handle collision badge if already known
             if (asset?._mjrNameCollision) {
                  const badge = card.querySelector?.(".mjr-file-badge");
-                 setFileBadgeCollision(badge, true);
+                 setFileBadgeCollision(badge, true, {
+                     filename: asset?.filename || "",
+                     count: asset?._mjrNameCollisionCount || 2,
+                     paths: asset?._mjrNameCollisionPaths || [],
+                 });
                  _setCollisionTooltip(card, asset?.filename, asset?._mjrNameCollisionCount || 2);
             }
             return card;
@@ -1140,12 +1146,12 @@ function _setCollisionTooltip(card, filename, count) {
     try {
         const row = card.querySelector?.(".mjr-card-filename");
         if (row) {
-            row.title = `${String(filename || "")}\nDuplicate filename: ${n} items in this view`;
+            row.title = `${String(filename || "")}\nName collision: ${n} items in this view`;
             return;
         }
     } catch {}
     try {
-        card.title = `Duplicate filename: ${n} items in this view`;
+        card.title = `Name collision: ${n} items in this view`;
     } catch {}
 }
 
@@ -1198,6 +1204,7 @@ function appendAssets(gridContainer, assets, state) {
                     for (const asset of bucket) {
                         asset._mjrNameCollision = false;
                         delete asset._mjrNameCollisionCount;
+                        delete asset._mjrNameCollisionPaths;
                     }
                     const renderedList = state.renderedFilenameMap.get(key);
                     if (renderedList) {
@@ -1208,16 +1215,22 @@ function appendAssets(gridContainer, assets, state) {
                     }
                     continue;
                 }
+                const paths = _buildCollisionPaths(bucket);
                 for (const asset of bucket) {
                     asset._mjrNameCollision = true;
                     asset._mjrNameCollisionCount = count;
+                    asset._mjrNameCollisionPaths = paths;
                 }
                 const renderedList = state.renderedFilenameMap.get(key);
                 if (renderedList) {
                     for (const card of renderedList) {
                         const badge = card.querySelector?.(".mjr-file-badge");
-                        setFileBadgeCollision(badge, true);
                         const asset = card._mjrAsset;
+                        setFileBadgeCollision(badge, true, {
+                            filename: asset?.filename || "",
+                            count,
+                            paths: asset?._mjrNameCollisionPaths || paths,
+                        });
                         _setCollisionTooltip(card, asset?.filename, count);
                     }
                 }
@@ -1431,6 +1444,11 @@ async function fetchPage(gridContainer, query, limit, offset, { requestId = 0, s
     const kind = gridContainer?.dataset?.mjrFilterKind || "";
     const workflowOnly = gridContainer?.dataset?.mjrFilterWorkflowOnly === "1";
     const minRating = Number(gridContainer?.dataset?.mjrFilterMinRating || 0) || 0;
+    const minSizeMB = Number(gridContainer?.dataset?.mjrFilterMinSizeMB || 0) || 0;
+    const maxSizeMB = Number(gridContainer?.dataset?.mjrFilterMaxSizeMB || 0) || 0;
+    const minWidth = Number(gridContainer?.dataset?.mjrFilterMinWidth || 0) || 0;
+    const minHeight = Number(gridContainer?.dataset?.mjrFilterMinHeight || 0) || 0;
+    const workflowType = String(gridContainer?.dataset?.mjrFilterWorkflowType || "").trim().toUpperCase();
     const dateRange = String(gridContainer?.dataset?.mjrFilterDateRange || "").trim().toLowerCase();
     const dateExact = String(gridContainer?.dataset?.mjrFilterDateExact || "").trim();
     const sortKey = gridContainer?.dataset?.mjrSort || "mtime_desc";
@@ -1450,6 +1468,11 @@ async function fetchPage(gridContainer, query, limit, offset, { requestId = 0, s
                 kind: kind || null,
                 hasWorkflow: workflowOnly ? true : null,
                 minRating: minRating > 0 ? minRating : null,
+                minSizeMB: minSizeMB > 0 ? minSizeMB : null,
+                maxSizeMB: maxSizeMB > 0 ? maxSizeMB : null,
+                minWidth: minWidth > 0 ? minWidth : null,
+                minHeight: minHeight > 0 ? minHeight : null,
+                workflowType: workflowType || null,
                 dateRange: dateRange || null,
                 dateExact: dateExact || null,
                 sort: sortKey,
@@ -1783,7 +1806,23 @@ export async function loadAssets(gridContainer, query = "*", options = {}) {
     }
 
     try {
-        await loadNextPage(gridContainer, state);
+        if (reset) {
+            let timeoutId = null;
+            const timeoutPromise = new Promise((_, reject) => {
+                timeoutId = setTimeout(() => {
+                    const err = new Error(`Load assets timeout after ${LOAD_ASSETS_TIMEOUT_MS}ms`);
+                    err.name = "LoadTimeoutError";
+                    reject(err);
+                }, LOAD_ASSETS_TIMEOUT_MS);
+            });
+            try {
+                await Promise.race([loadNextPage(gridContainer, state), timeoutPromise]);
+            } finally {
+                if (timeoutId) clearTimeout(timeoutId);
+            }
+        } else {
+            await loadNextPage(gridContainer, state);
+        }
 
         if (reset) {
             hideLoadingOverlay(gridContainer);
@@ -1799,6 +1838,25 @@ export async function loadAssets(gridContainer, query = "*", options = {}) {
         }
         return { ok: true, count: state.offset, total: state.total || 0 };
     } catch (err) {
+        try {
+            if (String(err?.name || "") === "LoadTimeoutError") {
+                // Force-unblock state so future reloads are not stuck behind a stale in-flight request.
+                try {
+                    state.abortController?.abort?.();
+                } catch {}
+                try {
+                    state.abortController = typeof AbortController !== "undefined" ? new AbortController() : null;
+                } catch {
+                    state.abortController = null;
+                }
+                try {
+                    state.requestId = (Number(state.requestId) || 0) + 1;
+                } catch {
+                    state.requestId = 1;
+                }
+                state.loading = false;
+            }
+        } catch {}
         try {
             if (String(err?.name || "") === "AbortError") {
                 return { ok: false, aborted: true, error: "Aborted" };
@@ -2367,6 +2425,24 @@ function getFirstVisibleAssetElement(gridContainer) {
 
     // If no card is visible, return the first one
     return cards[0] || null;
+}
+
+function _buildCollisionPaths(bucket) {
+    const out = [];
+    const seen = new Set();
+    for (const asset of bucket || []) {
+        const raw =
+            asset?.filepath
+            || asset?.path
+            || (asset?.subfolder ? `${asset.subfolder}/${asset.filename || ""}` : `${asset?.filename || ""}`);
+        const p = String(raw || "").trim();
+        if (!p) continue;
+        const key = p.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(p);
+    }
+    return out;
 }
 
 /**

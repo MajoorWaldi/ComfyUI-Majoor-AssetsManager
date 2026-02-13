@@ -235,7 +235,7 @@ def resolve_custom_root(root_id: str) -> Result[Path]:
 
     roots_result = list_custom_roots()
     if not roots_result.ok:
-        return Result.Err(roots_result.code, roots_result.error)
+        return Result.Err(roots_result.code, roots_result.error or "Failed to list custom roots")
     for r in roots_result.data or []:
         if str(r.get("id") or "") == rid:
             normalized = _normalize_dir_path(str(r.get("path") or ""))

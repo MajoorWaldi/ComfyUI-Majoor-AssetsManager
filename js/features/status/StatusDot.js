@@ -914,18 +914,42 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
         desiredScope === "custom"
             ? `${ENDPOINTS.HEALTH_COUNTERS}?scope=custom&custom_root_id=${encodeURIComponent(String(desiredCustomRootId || ""))}`
             : `${ENDPOINTS.HEALTH_COUNTERS}?scope=${encodeURIComponent(desiredScope || "output")}`;
-    const [result, healthResult, dbDiagResult] = await Promise.all([
-        get(url, signal ? { signal } : undefined),
-        get(ENDPOINTS.HEALTH, signal ? { signal } : undefined),
-        get(ENDPOINTS.HEALTH_DB, signal ? { signal } : undefined),
-    ]);
+    const lightweight = !!options?.lightweight;
+    const shouldFetchAux =
+        force ||
+        !lightweight ||
+        !(meta && typeof meta === "object" && meta._auxCached);
+
+    let result = null;
+    let healthResult = null;
+    let dbDiagResult = null;
     let toolStatusData = null;
-    try {
-        const toolsResult = await getToolsStatus(signal ? { signal } : undefined);
-        if (toolsResult?.ok) {
-            toolStatusData = toolsResult.data;
+
+    if (shouldFetchAux) {
+        const [countersRes, healthRes, dbRes] = await Promise.all([
+            get(url, signal ? { signal } : undefined),
+            get(ENDPOINTS.HEALTH, signal ? { signal } : undefined),
+            get(ENDPOINTS.HEALTH_DB, signal ? { signal } : undefined),
+        ]);
+        result = countersRes;
+        healthResult = healthRes;
+        dbDiagResult = dbRes;
+        try {
+            const toolsResult = await getToolsStatus(signal ? { signal } : undefined);
+            if (toolsResult?.ok) toolStatusData = toolsResult.data;
+        } catch {}
+        if (meta && typeof meta === "object") {
+            meta._auxCached = true;
+            meta._healthCache = healthResult;
+            meta._dbDiagCache = dbDiagResult;
+            meta._toolsCache = toolStatusData;
         }
-    } catch {}
+    } else {
+        result = await get(url, signal ? { signal } : undefined);
+        healthResult = meta?._healthCache || null;
+        dbDiagResult = meta?._dbDiagCache || null;
+        toolStatusData = meta?._toolsCache || null;
+    }
     try {
         if (signal?.aborted) return null;
     } catch {}
@@ -1126,19 +1150,24 @@ export function setupStatusPolling(
     getScanTarget = null
 ) {
     const GLOBAL_POLL_KEY = "__MJR_STATUS_POLL_DISPOSE__";
-    const pollMeta = { lastCode: null, lastStatus: null };
+    const pollMeta = { lastCode: null, lastStatus: null, _pollTick: 0, _auxCached: false };
 
     const pollingAC = typeof AbortController !== "undefined" ? new AbortController() : null;
     const handleUpdate = async () => {
         try {
             if (pollingAC?.signal?.aborted) return null;
         } catch {}
+        pollMeta._pollTick = Number(pollMeta._pollTick || 0) + 1;
+        const lightweight = pollMeta._pollTick > 1 && (pollMeta._pollTick % 4 !== 0);
         const target = typeof getScanTarget === "function" ? getScanTarget() : null;
         const counters = await updateStatus(statusDot, statusText, capabilitiesSection, target, pollMeta, {
-            signal: pollingAC?.signal || null
+            signal: pollingAC?.signal || null,
+            lightweight
         });
         if (counters && typeof onCountersUpdate === "function") {
-            onCountersUpdate(counters);
+            try {
+                await onCountersUpdate(counters);
+            } catch {}
         }
         return counters;
     };

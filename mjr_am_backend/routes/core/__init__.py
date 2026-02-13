@@ -17,6 +17,7 @@ from .security import (
     _csrf_error,
     _require_operation_enabled,
     _resolve_security_prefs,
+    _require_authenticated_user,
 )
 from .security import _require_write_access
 from .services import _require_services, _build_services, get_services_error
@@ -37,6 +38,7 @@ __all__ = [
     "_csrf_error",
     "_require_operation_enabled",
     "_resolve_security_prefs",
+    "_require_authenticated_user",
     "_require_write_access",
     "_require_services",
     "_build_services",

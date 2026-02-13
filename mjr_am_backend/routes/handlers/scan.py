@@ -1247,12 +1247,12 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 if clear_scan_journal:
                     res = await _clear_table("scan_journal", cache_prefixes)
                     if not res.ok:
-                        return res
+                        return Result.Err(res.code, res.error or "Failed to clear scan_journal")
                     cleared["scan_journal"] = int(res.data or 0)
                 if clear_metadata_cache:
                     res = await _clear_table("metadata_cache", cache_prefixes)
                     if not res.ok:
-                        return res
+                        return Result.Err(res.code, res.error or "Failed to clear metadata_cache")
                     cleared["metadata_cache"] = int(res.data or 0)
 
                 # IMPORTANT: scope-aware clears.
@@ -1260,12 +1260,12 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 if clear_asset_metadata:
                     res = await _clear_asset_metadata(cache_prefixes)
                     if not res.ok:
-                        return res
+                        return Result.Err(res.code, res.error or "Failed to clear asset_metadata")
                     cleared["asset_metadata"] = int(res.data or 0)
                 if clear_assets_table:
                     res = await _clear_assets(cache_prefixes)
                     if not res.ok:
-                        return res
+                        return Result.Err(res.code, res.error or "Failed to clear assets")
                     cleared["assets"] = int(res.data or 0)
             if not tx.ok:
                 return Result.Err("DB_ERROR", tx.error or "Commit failed")

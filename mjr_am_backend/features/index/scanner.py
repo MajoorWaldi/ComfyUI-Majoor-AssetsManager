@@ -11,7 +11,7 @@ import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from queue import Empty, Queue
-from typing import List, Dict, Any, Iterable, Optional
+from typing import List, Dict, Any, Iterable, Optional, cast
 from datetime import datetime
 from uuid import uuid4
 
@@ -62,7 +62,7 @@ except Exception:
 def _is_fatal_db_error(exc: Exception) -> bool:
     if not isinstance(exc, sqlite3.DatabaseError):
         return False
-    if isinstance(exc, sqlite3.BusyError):
+    if "busy" in str(exc).lower() or "locked" in str(exc).lower():
         return False
     return True
 
@@ -94,7 +94,48 @@ class IndexScanner:
         self.metadata = metadata_service
         self._scan_lock = scan_lock
         self._index_lock = index_lock or scan_lock
-        self._current_scan_id = None
+        self._current_scan_id: Optional[str] = None
+
+    @staticmethod
+    def _drain_walk_queue(q: "Queue[Optional[Path]]", max_items: int) -> list[Optional[Path]]:
+        """Read one-or-more items from walk queue with bounded non-blocking drain."""
+        items: list[Optional[Path]] = []
+        try:
+            first = q.get()
+        except Exception:
+            return items
+        items.append(first)
+        try:
+            limit = max(1, int(max_items or 1))
+        except (TypeError, ValueError):
+            limit = 1
+        while len(items) < limit:
+            try:
+                items.append(q.get_nowait())
+            except Empty:
+                break
+            except Exception:
+                break
+        return items
+
+    def _walk_and_enqueue(self, dir_path: Path, recursive: bool, stop_event: threading.Event, q: "Queue[Optional[Path]]") -> None:
+        """Producer running on executor: walks filesystem and pushes paths into queue."""
+        try:
+            for fp in self._iter_files(dir_path, recursive):
+                if stop_event.is_set():
+                    break
+                try:
+                    q.put(fp)
+                except Exception:
+                    logger.debug("Walk queue push failed; stopping producer for %s", dir_path, exc_info=True)
+                    break
+        except Exception:
+            logger.debug("Filesystem walk failed for %s", dir_path, exc_info=True)
+        finally:
+            try:
+                q.put(None)
+            except Exception:
+                logger.debug("Walk queue sentinel push failed for %s", dir_path, exc_info=True)
 
     async def scan_directory(
         self,
@@ -144,7 +185,7 @@ class IndexScanner:
                 files_root=str(dir_path)
             )
 
-            stats = {
+            stats: Dict[str, Any] = {
                 "scanned": 0,
                 "added": 0,
                 "updated": 0,
@@ -175,49 +216,21 @@ class IndexScanner:
                 stop_event = threading.Event()
                 q: "Queue[Optional[Path]]" = Queue(maxsize=max(1000, int(SCAN_BATCH_XL) * 4))
 
-                def _walk_and_put() -> None:
-                    try:
-                        for fp in self._iter_files(dir_path, recursive):
-                            if stop_event.is_set():
-                                break
-                            try:
-                                q.put(fp)
-                            except Exception:
-                                break
-                    except Exception:
-                        pass
-                    finally:
-                        try:
-                            q.put(None)
-                        except Exception:
-                            pass
-
-                walk_future = loop.run_in_executor(_FS_WALK_EXECUTOR, _walk_and_put)
-
-                def _get_many(max_items: int) -> list[Optional[Path]]:
-                    items: list[Optional[Path]] = []
-                    try:
-                        first = q.get()
-                    except Exception:
-                        return items
-                    items.append(first)
-                    # Drain without blocking.
-                    try:
-                        while len(items) < max(1, int(max_items or 1)):
-                            try:
-                                items.append(q.get_nowait())
-                            except Empty:
-                                break
-                    except Exception:
-                        pass
-                    return items
+                walk_future = loop.run_in_executor(
+                    _FS_WALK_EXECUTOR,
+                    self._walk_and_enqueue,
+                    dir_path,
+                    recursive,
+                    stop_event,
+                    q,
+                )
 
                 batch: List[Path] = []
                 done = False
                 try:
                     while not done:
                         target = _stream_batch_target(stats["scanned"])
-                        pulled = await asyncio.to_thread(_get_many, target)
+                        pulled = await asyncio.to_thread(self._drain_walk_queue, q, target)
                         if not pulled:
                             # Yield and try again.
                             await asyncio.sleep(0)
@@ -409,7 +422,7 @@ class IndexScanner:
                 incremental=incremental
             )
 
-            stats = {
+            stats: Dict[str, Any] = {
                 "scanned": len(paths),
                 "added": 0,
                 "updated": 0,
@@ -532,10 +545,10 @@ class IndexScanner:
             # Prefetch asset_metadata entries
             asset_ids = []
             for fp in filepaths:
-                existing_state = existing_map.get(fp)
-                if existing_state and existing_state.get("id"):
+                existing_row = existing_map.get(fp)
+                if existing_row and existing_row.get("id"):
                     try:
-                        existing_id = int(existing_state.get("id") or 0)
+                        existing_id = int(existing_row.get("id") or 0)
                         if existing_id:
                             asset_ids.append(existing_id)
                     except (ValueError, TypeError):
@@ -651,8 +664,8 @@ class IndexScanner:
             paths_to_extract = [item[0] for item in needs_metadata]
             batch_metadata = await self.metadata.get_metadata_batch([str(p) for p in paths_to_extract], scan_id=self._current_scan_id)
 
-            for file_path, filepath, mtime, size, state_hash, existing_id in needs_metadata:
-                metadata_result = batch_metadata.get(str(file_path))
+            for file_path, filepath, mtime, size, state_hash, existing_id_opt in needs_metadata:
+                metadata_result: Result[Dict[str, Any]] | None = batch_metadata.get(str(file_path))
                 if not metadata_result:
                     metadata_result = MetadataHelpers.metadata_error_payload(Result.Err("METADATA_MISSING", "No metadata returned"), filepath)
                 elif not metadata_result.ok:
@@ -660,10 +673,10 @@ class IndexScanner:
 
                 cache_store = metadata_result.ok
 
-                if existing_id:
+                if existing_id_opt:
                     prepared.append({
                         "action": "updated",
-                        "asset_id": existing_id,
+                        "asset_id": existing_id_opt,
                         "metadata_result": metadata_result,
                         "filepath": filepath,
                         "file_path": file_path,
@@ -743,6 +756,10 @@ class IndexScanner:
                         if not asset_id or not isinstance(metadata_result, Result):
                             stats["errors"] += 1
                             continue
+                        file_path_value = entry.get("file_path")
+                        if not isinstance(file_path_value, Path):
+                            stats["errors"] += 1
+                            continue
                         cache_store = bool(entry.get("cache_store"))
                         if cache_store:
                             try:
@@ -756,7 +773,7 @@ class IndexScanner:
                                 pass
                         res = await self._update_asset(
                             int(asset_id),
-                            entry.get("file_path"),
+                            file_path_value,
                             int(entry.get("mtime") or 0),
                             int(entry.get("size") or 0),
                             metadata_result,
@@ -799,15 +816,20 @@ class IndexScanner:
                         if not isinstance(metadata_result, Result):
                             stats["errors"] += 1
                             continue
+                        kind_value = entry.get("kind")
+                        file_path_value = entry.get("file_path")
+                        if not isinstance(kind_value, str) or not isinstance(file_path_value, Path):
+                            stats["errors"] += 1
+                            continue
                         cache_store = bool(entry.get("cache_store"))
                         res = await self._add_asset(
                             entry.get("filename") or "",
                             entry.get("subfolder") or "",
                             entry.get("filepath") or "",
-                            entry.get("kind"),
+                        cast(FileKind, kind_value),
                             int(entry.get("mtime") or 0),
                             int(entry.get("size") or 0),
-                            entry.get("file_path"),
+                            file_path_value,
                             metadata_result,
                             source=source,
                             root_id=root_id,
@@ -919,6 +941,10 @@ class IndexScanner:
                             if not asset_id or not isinstance(metadata_result, Result):
                                 failed_entries.append(filepath_value)
                                 continue
+                            file_path_value = entry.get("file_path")
+                            if not isinstance(file_path_value, Path):
+                                failed_entries.append(filepath_value)
+                                continue
                             cache_store = bool(entry.get("cache_store"))
                             if cache_store:
                                 try:
@@ -932,7 +958,7 @@ class IndexScanner:
                                     pass
                             res = await self._update_asset(
                                 int(asset_id),
-                                entry.get("file_path"),
+                                file_path_value,
                                 int(entry.get("mtime") or 0),
                                 int(entry.get("size") or 0),
                                 metadata_result,
@@ -969,15 +995,20 @@ class IndexScanner:
                             if not isinstance(metadata_result, Result):
                                 failed_entries.append(filepath_value)
                                 continue
+                            kind_value = entry.get("kind")
+                            file_path_value = entry.get("file_path")
+                            if not isinstance(kind_value, str) or not isinstance(file_path_value, Path):
+                                failed_entries.append(filepath_value)
+                                continue
                             cache_store = bool(entry.get("cache_store"))
                             res = await self._add_asset(
                                 entry.get("filename") or "",
                                 entry.get("subfolder") or "",
                                 entry.get("filepath") or "",
-                                entry.get("kind"),
+                                cast(FileKind, kind_value),
                                 int(entry.get("mtime") or 0),
                                 int(entry.get("size") or 0),
-                                entry.get("file_path"),
+                                file_path_value,
                                 metadata_result,
                                 source=source,
                                 root_id=root_id,
@@ -1025,7 +1056,12 @@ class IndexScanner:
                 except Exception as individual_error:
                     # If individual processing also fails, log and keep as error
                     failed_entries.append(filepath_value)
-                    logger.warning("Individual processing failed for entry: %s. Error: %s", filepath_value, str(individual_error))
+                    logger.warning(
+                        "Individual processing failed for entry: %s. Error: %s",
+                        filepath_value,
+                        str(individual_error),
+                        exc_info=individual_error,
+                    )
                     # Error count is already correct
             if failed_entries:
                 sample = failed_entries[:5]
@@ -1450,7 +1486,7 @@ class IndexScanner:
 
         # Compute metadata (may run tools) only when needed.
         if fast:
-            metadata_result = Result.Ok({})
+            metadata_result: Result[Dict[str, Any]] = Result.Ok({})
         else:
             metadata_result = await self.metadata.get_metadata(filepath, scan_id=self._current_scan_id)
             if metadata_result.ok:
@@ -1521,10 +1557,11 @@ class IndexScanner:
                             )
                             if refreshed:
                                 await self._write_scan_journal_entry(filepath, base_dir, state_hash, mtime, size)
-                    except sqlite3.BusyError as exc:
-                        logger.warning("Database busy while refreshing metadata (asset=%s): %s", existing_id, exc)
+                    except sqlite3.OperationalError as exc:
+                        if self.db._is_locked_error(exc):
+                            logger.warning("Database busy while refreshing metadata (asset=%s): %s", existing_id, exc)
                         raise
-            except sqlite3.BusyError:
+            except sqlite3.OperationalError:
                 return Result.Err("DB_BUSY", "Database busy while refreshing metadata")
             if not tx_state or not tx_state.ok:
                 return Result.Err("DB_ERROR", tx_state.error or "Commit failed")
@@ -1554,10 +1591,11 @@ class IndexScanner:
                                 )
                                 if result.ok:
                                     await self._write_scan_journal_entry(filepath, base_dir, state_hash, mtime, size)
-                        except sqlite3.BusyError as exc:
-                            logger.warning("Database busy while updating asset %s: %s", existing_id, exc)
+                        except sqlite3.OperationalError as exc:
+                            if self.db._is_locked_error(exc):
+                                logger.warning("Database busy while updating asset %s: %s", existing_id, exc)
                             raise
-                except sqlite3.BusyError:
+                except sqlite3.OperationalError:
                     return Result.Err("DB_BUSY", "Database busy while updating asset")
                 if not tx_state or not tx_state.ok:
                     return Result.Err("DB_ERROR", tx_state.error or "Commit failed")
@@ -1588,13 +1626,17 @@ class IndexScanner:
                 )
                 if result.ok:
                     await self._write_scan_journal_entry(filepath, base_dir, state_hash, mtime, size)
-        except sqlite3.BusyError as exc:
-            logger.warning("Database busy while inserting asset %s: %s", filepath, exc)
-            return Result.Err("DB_BUSY", "Database busy while inserting asset")
+        except sqlite3.OperationalError as exc:
+            if self.db._is_locked_error(exc):
+                logger.warning("Database busy while inserting asset %s: %s", filepath, exc)
+                return Result.Err("DB_BUSY", "Database busy while inserting asset")
+            raise
         if not tx_state or not tx_state.ok:
             return Result.Err("DB_ERROR", tx_state.error or "Commit failed")
-        if result.ok:
-            await self._write_metadata_row(result.data.get("asset_id"), metadata_result, filepath=filepath)
+        if result.ok and isinstance(result.data, dict):
+            asset_id = result.data.get("asset_id")
+            if asset_id is not None:
+                await self._write_metadata_row(int(asset_id), metadata_result, filepath=filepath)
         return result
 
     async def _add_asset(
@@ -1649,7 +1691,7 @@ class IndexScanner:
         )
 
         if not insert_result.ok:
-            return Result.Err("INSERT_FAILED", insert_result.error)
+            return Result.Err("INSERT_FAILED", insert_result.error or "Failed to insert asset")
 
         asset_id = insert_result.data if insert_result.ok else None
         if not asset_id:

@@ -108,14 +108,15 @@ class IndexService:
 
         # Handle background enrichment if requested
         if result.ok and fast and background_metadata:
-            to_enrich = result.data.get("to_enrich", [])
+            result_data = result.data if isinstance(result.data, dict) else {}
+            to_enrich = result_data.get("to_enrich", [])
             if to_enrich:
                 try:
                     await self._enricher.start_enrichment(to_enrich)
                 except Exception as exc:
                     logger.debug("Background enrichment start skipped: %s", exc)
                 # Remove from stats as it's internal
-                result.data.pop("to_enrich", None)
+                result_data.pop("to_enrich", None)
 
         return result
 

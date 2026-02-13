@@ -9,6 +9,8 @@ import {
     prepareGridForScopeSwitch,
     disposeGrid,
     refreshGrid,
+    captureAnchor,
+    restoreAnchor,
     bindGridScanListeners,
     disposeGridScanListeners,
 } from "../grid/GridView.js";
@@ -116,7 +118,21 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     const { header, headerActions, tabButtons, customMenuBtn, filterBtn, sortBtn, collectionsBtn } = headerView;
 
     const { customPopover, customSelect, customAddBtn, customRemoveBtn } = createCustomPopoverView();
-    const { filterPopover, kindSelect, wfCheckbox, ratingSelect, dateRangeSelect, dateExactInput, agendaContainer } = createFilterPopoverView();
+    const {
+        filterPopover,
+        kindSelect,
+        wfCheckbox,
+        workflowTypeSelect,
+        ratingSelect,
+        minSizeInput,
+        maxSizeInput,
+        resolutionPresetSelect,
+        minWidthInput,
+        minHeightInput,
+        dateRangeSelect,
+        dateExactInput,
+        agendaContainer
+    } = createFilterPopoverView();
     const { sortPopover, sortMenu } = createSortPopoverView();
     const { collectionsPopover, collectionsMenu } = createCollectionsPopoverView();
 
@@ -173,7 +189,16 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     // Restoring scroll on an empty grid would be useless.
     
     let _scrollTimer = null;
+    let _lastUserInteractionAt = 0;
+    const markUserInteraction = () => {
+        try {
+            _lastUserInteractionAt = Date.now();
+        } catch {
+            _lastUserInteractionAt = 0;
+        }
+    };
     gridWrapper.addEventListener("scroll", () => {
+        markUserInteraction();
         if (_scrollTimer) clearTimeout(_scrollTimer);
         _scrollTimer = setTimeout(() => {
             try {
@@ -439,9 +464,37 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             } catch {}
         };
         gridContainer.addEventListener("mjr:reload-grid", _reloadGridHandler);
+        const onDuplicateBadgeFocus = (e) => {
+            try {
+                const detail = e?.detail || {};
+                const filenameKey = String(detail?.filenameKey || "").trim().toLowerCase();
+                if (!filenameKey || !gridContainer) return;
+                const cards = Array.from(gridContainer.querySelectorAll(".mjr-asset-card"))
+                    .filter((card) => String(card?.dataset?.mjrFilenameKey || "").trim().toLowerCase() === filenameKey);
+                if (!cards.length) return;
+                const ids = cards
+                    .map((card) => String(card?.dataset?.mjrAssetId || "").trim())
+                    .filter(Boolean);
+                const activeId = String(cards[0]?.dataset?.mjrAssetId || ids[0] || "").trim();
+                if (ids.length && typeof gridContainer?._mjrSetSelection === "function") {
+                    gridContainer._mjrSetSelection(ids, activeId);
+                }
+                cards[0]?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+                markUserInteraction();
+                notifyContextChanged();
+                const n = Number(detail?.count || ids.length || cards.length || 0);
+                try {
+                    comfyToast(`Name collision in view: ${n} item(s) selected`, "info", 1800);
+                } catch {}
+            } catch {}
+        };
+        gridContainer.addEventListener("mjr:badge-duplicates-focus", onDuplicateBadgeFocus);
         registerSummaryDispose(() => {
             try {
                 if (_reloadGridHandler) gridContainer.removeEventListener("mjr:reload-grid", _reloadGridHandler);
+            } catch {}
+            try {
+                gridContainer.removeEventListener("mjr:badge-duplicates-focus", onDuplicateBadgeFocus);
             } catch {}
             _reloadGridHandler = null;
         });
@@ -585,6 +638,24 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     // Calendar UI (separate module) for day indicators.
     let agendaCalendar = null;
     try {
+        try {
+            kindSelect.value = state.kindFilter || "";
+            wfCheckbox.checked = !!state.workflowOnly;
+            workflowTypeSelect.value = String(state.workflowType || "").trim().toUpperCase();
+            ratingSelect.value = String(Number(state.minRating || 0) || 0);
+            minSizeInput.value = Number(state.minSizeMB || 0) > 0 ? String(state.minSizeMB) : "";
+            maxSizeInput.value = Number(state.maxSizeMB || 0) > 0 ? String(state.maxSizeMB) : "";
+            minWidthInput.value = Number(state.minWidth || 0) > 0 ? String(state.minWidth) : "";
+            minHeightInput.value = Number(state.minHeight || 0) > 0 ? String(state.minHeight) : "";
+            const w = Number(state.minWidth || 0) || 0;
+            const h = Number(state.minHeight || 0) || 0;
+            if (w >= 3840 && h >= 2160) resolutionPresetSelect.value = "uhd";
+            else if (w >= 2560 && h >= 1440) resolutionPresetSelect.value = "qhd";
+            else if (w >= 1920 && h >= 1080) resolutionPresetSelect.value = "fhd";
+            else if (w >= 1280 && h >= 720) resolutionPresetSelect.value = "hd";
+            else resolutionPresetSelect.value = "";
+            dateRangeSelect.value = state.dateRangeFilter || "";
+        } catch {}
         agendaCalendar = createAgendaCalendar({
             container: agendaContainer,
             hiddenInput: dateExactInput,
@@ -597,7 +668,13 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         state,
         kindSelect,
         wfCheckbox,
+        workflowTypeSelect,
         ratingSelect,
+        minSizeInput,
+        maxSizeInput,
+        resolutionPresetSelect,
+        minWidthInput,
+        minHeightInput,
         dateRangeSelect,
         dateExactInput,
         reloadGrid: gridController.reloadGrid,
@@ -620,7 +697,13 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             searchInputEl,
             kindSelect,
             wfCheckbox,
+            workflowTypeSelect,
             ratingSelect,
+            minSizeInput,
+            maxSizeInput,
+            minWidthInput,
+            minHeightInput,
+            resolutionPresetSelect,
             dateRangeSelect,
             dateExactInput,
             scopeController,
@@ -672,6 +755,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         notifyContextChanged();
         const onStats = () => notifyContextChanged();
         const onSelectionChanged = (e) => {
+            markUserInteraction();
             try {
                 const detail = e?.detail || {};
                 const ids = Array.isArray(detail.selectedIds) ? detail.selectedIds.map(String).filter(Boolean) : [];
@@ -856,6 +940,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     let hasSeenFirstCounters = false;
     let pendingReloadCount = 0;
     let isReloading = false;
+    let _lastAutoReloadAt = 0;
 
     const queuedReload = async () => {
         if (!gridContainer) return;
@@ -866,7 +951,11 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         try {
             while (pendingReloadCount > 0) {
                 pendingReloadCount = 0;
+                const anchor = captureAnchor(gridContainer);
                 await gridController.reloadGrid();
+                try {
+                    await restoreAnchor(gridContainer, anchor);
+                } catch {}
             }
         } finally {
             isReloading = false;
@@ -893,16 +982,46 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             !state.kindFilter &&
             !state.workflowOnly &&
             !(Number(state.minRating || 0) > 0) &&
+            !(Number(state.minSizeMB || 0) > 0) &&
+            !(Number(state.maxSizeMB || 0) > 0) &&
+            !(Number(state.minWidth || 0) > 0) &&
+            !(Number(state.minHeight || 0) > 0) &&
+            !String(state.workflowType || "").trim() &&
             !state.dateRangeFilter &&
             !state.dateExactFilter;
 
-        const hasNewTotal = Number.isFinite(totalAssets) && Number.isFinite(lastKnownTotalAssets) && totalAssets > lastKnownTotalAssets;
+        const totalDelta =
+            Number.isFinite(totalAssets) && Number.isFinite(lastKnownTotalAssets)
+                ? totalAssets - lastKnownTotalAssets
+                : 0;
+        const hasNewTotal = totalDelta >= 3;
+
+        // Keep baseline current even if we skip auto-reload; avoids repeated trigger loops.
+        if (Number.isFinite(totalAssets)) {
+            lastKnownTotalAssets = totalAssets;
+        }
 
         if (!hasNewScan && !(isDefaultBrowse && hasNewTotal)) return;
 
+        // Global throttle against reload storms from frequent watcher/enrichment updates.
+        try {
+            const now = Date.now();
+            if (now - Number(_lastAutoReloadAt || 0) < 8000) return;
+        } catch {}
+
+        // Avoid disruptive auto-reload while user is actively interacting.
+        try {
+            const recentInteraction = (Date.now() - Number(_lastUserInteractionAt || 0)) < 1500;
+            if (recentInteraction) return;
+        } catch {}
+
         lastKnownScan = counters.last_scan_end;
-        lastKnownTotalAssets = Number.isFinite(totalAssets) ? totalAssets : lastKnownTotalAssets;
         await queuedReload();
+        try {
+            _lastAutoReloadAt = Date.now();
+        } catch {
+            _lastAutoReloadAt = 0;
+        }
     };
 
     setupStatusPolling(

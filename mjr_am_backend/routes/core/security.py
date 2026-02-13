@@ -50,7 +50,7 @@ try:
 except Exception:
     _CLIENT_ID_HASH_HEX_CHARS = _DEFAULT_CLIENT_ID_HASH_HEX_CHARS
 
-_rate_limit_state: "OrderedDict[str, dict]" = OrderedDict()
+_rate_limit_state: "OrderedDict[str, dict[str, list[float]]]" = OrderedDict()
 _rate_limit_lock = threading.Lock()
 _rate_limit_cleanup_counter = 0
 
@@ -355,11 +355,112 @@ def _require_write_access(request: web.Request) -> "Result[bool]":
         peer = ""
     if not peer:
         peer = _extract_peer_ip(request)
+    headers: Mapping[str, str]
     try:
         headers = request.headers  # CIMultiDictProxy
     except Exception:
         headers = {}
     return _check_write_access(peer_ip=peer, headers=headers)
+
+
+def _get_comfy_user_manager(request: web.Request | None = None) -> Any:
+    """
+    Best-effort resolver for ComfyUI user manager object.
+    """
+    # Prefer explicit user manager injected in app context.
+    if request is not None:
+        try:
+            app_mgr = request.app.get("_mjr_user_manager")
+            if app_mgr is not None:
+                return app_mgr
+            for key in request.app.keys():
+                try:
+                    key_name = getattr(key, "name", "")
+                except Exception:
+                    key_name = ""
+                if key_name == "_mjr_user_manager":
+                    cand = request.app.get(key)
+                    if cand is not None:
+                        return cand
+        except Exception:
+            pass
+
+    try:
+        import sys
+
+        server_mod = sys.modules.get("server")
+        if server_mod is None:
+            return None
+        for key in ("USER_MANAGER", "user_manager"):
+            mgr = getattr(server_mod, key, None)
+            if mgr is not None:
+                return mgr
+    except Exception:
+        return None
+    return None
+
+
+def _comfy_auth_enabled(user_manager: Any) -> bool:
+    """
+    Determine whether ComfyUI auth should be treated as enabled.
+    """
+    if user_manager is None:
+        return False
+    try:
+        for attr in ("enabled", "is_enabled", "auth_enabled", "users_enabled"):
+            value = getattr(user_manager, attr, None)
+            if isinstance(value, bool):
+                return value
+            if callable(value):
+                out = value()
+                if isinstance(out, bool):
+                    return out
+    except Exception:
+        pass
+    # If manager exists but does not expose flags, assume enabled to fail safe.
+    return True
+
+
+def _resolve_request_user_id(request: web.Request) -> str:
+    """
+    Resolve ComfyUI user id from request, if available.
+    """
+    um = _get_comfy_user_manager(request)
+    if um is None:
+        return ""
+    try:
+        getter = getattr(um, "get_request_user_id", None)
+        if callable(getter):
+            uid = getter(request)
+            if uid is None:
+                return ""
+            return str(uid).strip()
+    except Exception:
+        return ""
+    return ""
+
+
+def _require_authenticated_user(request: web.Request) -> "Result[str]":
+    """
+    Require an authenticated ComfyUI user when Comfy auth is enabled.
+    """
+    um = _get_comfy_user_manager(request)
+    if um is None:
+        # Backward compatibility: Comfy auth subsystem unavailable.
+        return Result.Ok("", auth_mode="unavailable")
+
+    if not _comfy_auth_enabled(um):
+        return Result.Ok("", auth_mode="disabled")
+
+    user_id = _resolve_request_user_id(request)
+    if user_id:
+        return Result.Ok(user_id, auth_mode="comfy_user")
+
+    return Result.Err(
+        "AUTH_REQUIRED",
+        "Authentication required. Please sign in to ComfyUI first.",
+        auth_mode="comfy_user",
+    )
 
 
 def _parse_trusted_proxies() -> list["ipaddress._BaseNetwork"]:
@@ -443,12 +544,12 @@ def _evict_oldest_clients_if_needed() -> None:
         except KeyError:
             break
 
-def _get_or_create_client_state(client_id: str) -> dict:
+def _get_or_create_client_state(client_id: str) -> dict[str, list[float]]:
     if client_id in _rate_limit_state:
         _rate_limit_state.move_to_end(client_id)
         return _rate_limit_state[client_id]
     _evict_oldest_clients_if_needed()
-    state = defaultdict(list)
+    state: dict[str, list[float]] = defaultdict(list)
     _rate_limit_state[client_id] = state
     return state
 

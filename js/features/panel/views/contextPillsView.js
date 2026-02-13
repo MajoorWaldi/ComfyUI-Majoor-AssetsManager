@@ -60,6 +60,11 @@ export function createContextPillsView() {
             _safeText(state?.kindFilter || "").trim()
             || !!state?.workflowOnly
             || (Number(state?.minRating || 0) || 0) > 0
+            || (Number(state?.minSizeMB || 0) || 0) > 0
+            || (Number(state?.maxSizeMB || 0) || 0) > 0
+            || (Number(state?.minWidth || 0) || 0) > 0
+            || (Number(state?.minHeight || 0) || 0) > 0
+            || _safeText(state?.workflowType || "").trim()
             || _safeText(state?.dateRangeFilter || "").trim()
             || _safeText(state?.dateExactFilter || "").trim()
         );
@@ -145,6 +150,38 @@ export function createContextPillsView() {
                     label: "Workflow",
                     value: "Only",
                     onClear: () => safeActions?.clearWorkflowOnly?.()
+                })
+            );
+        }
+        if (_safeText(state?.workflowType || "").trim()) {
+            root.appendChild(
+                _createPill({
+                    label: "WF Type",
+                    value: _safeText(state?.workflowType || "").trim(),
+                    onClear: () => safeActions?.clearWorkflowType?.()
+                })
+            );
+        }
+        if ((Number(state?.minSizeMB || 0) || 0) > 0 || (Number(state?.maxSizeMB || 0) || 0) > 0) {
+            const min = Number(state?.minSizeMB || 0) || 0;
+            const max = Number(state?.maxSizeMB || 0) || 0;
+            const label = min > 0 && max > 0 ? `${min}-${max} MB` : min > 0 ? `>= ${min} MB` : `<= ${max} MB`;
+            root.appendChild(
+                _createPill({
+                    label: "Size",
+                    value: label,
+                    onClear: () => safeActions?.clearSize?.()
+                })
+            );
+        }
+        if ((Number(state?.minWidth || 0) || 0) > 0 || (Number(state?.minHeight || 0) || 0) > 0) {
+            const w = Number(state?.minWidth || 0) || 0;
+            const h = Number(state?.minHeight || 0) || 0;
+            root.appendChild(
+                _createPill({
+                    label: "Resolution",
+                    value: `>= ${w || 0}x${h || 0}`,
+                    onClear: () => safeActions?.clearResolution?.()
                 })
             );
         }

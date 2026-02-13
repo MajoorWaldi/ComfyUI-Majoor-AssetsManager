@@ -5,6 +5,7 @@ Used by the UI to mark days that have assets (per month).
 """
 import datetime
 from pathlib import Path
+from typing import Any
 from aiohttp import web
 
 try:
@@ -60,11 +61,14 @@ def register_calendar_routes(routes: web.RouteTableDef) -> None:
         bounds = _month_bounds(month)
         if not bounds.ok:
             return _json_response(bounds)
-        month_start, month_end = bounds.data
+        month_data = bounds.data
+        if not month_data:
+            return _json_response(Result.Err("INVALID_INPUT", "Invalid month bounds"))
+        month_start, month_end = month_data
 
         scope = (request.query.get("scope") or "output").strip().lower()
 
-        filters = {}
+        filters: dict[str, Any] = {}
         if "kind" in request.query:
             valid_kinds = {"image", "video", "audio", "model3d"}
             kind = request.query["kind"].strip().lower()
@@ -84,6 +88,8 @@ def register_calendar_routes(routes: web.RouteTableDef) -> None:
         svc, error_result = await _require_services()
         if error_result:
             return _json_response(error_result)
+        if not isinstance(svc, dict):
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Index service unavailable"))
 
         output_root = str(Path(get_runtime_output_root()).resolve(strict=False))
         input_root = str(Path(folder_paths.get_input_directory()).resolve(strict=False))
@@ -99,6 +105,8 @@ def register_calendar_routes(routes: web.RouteTableDef) -> None:
             root_result = resolve_custom_root(str(root_id or ""))
             if not root_result.ok:
                 return _json_response(root_result)
+            if not root_result.data:
+                return _json_response(Result.Err("NOT_FOUND", "Custom root not found"))
             roots = [str(Path(root_result.data).resolve(strict=False))]
         else:
             # Default: output

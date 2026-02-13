@@ -4,7 +4,7 @@
  * Provides transient notification messages (Toasts) that mimic ComfyUI native style.
  * Supports: success, error, warning, info.
  */
-import { app } from "../../../scripts/app.js";
+import { getComfyApp } from "./comfyApiBridge.js";
 import { t } from "./i18n.js";
 
 const TOAST_CONTAINER_ID = "mjr-toast-container";
@@ -125,6 +125,7 @@ function getToastContainer() {
  */
 export function comfyToast(message, type = "info", duration = 3000) {
     message = translateToastMessage(message);
+    const app = getComfyApp();
     // 1. Try ComfyUI extensionManager toast (ComfyUI v1.3+ standard)
     // See: ComfyUI-Majoor-NodeFlow reference implementation
     try {

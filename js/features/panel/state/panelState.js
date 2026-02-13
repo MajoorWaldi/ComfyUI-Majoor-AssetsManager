@@ -39,6 +39,11 @@ export function createPanelState() {
         dateExactFilter: saved.dateExactFilter || "",
         workflowOnly: saved.workflowOnly || false,
         minRating: saved.minRating || 0,
+        minSizeMB: Number(saved.minSizeMB || 0) || 0,
+        maxSizeMB: Number(saved.maxSizeMB || 0) || 0,
+        minWidth: Number(saved.minWidth || 0) || 0,
+        minHeight: Number(saved.minHeight || 0) || 0,
+        workflowType: saved.workflowType || "",
         sort: saved.sort || "mtime_desc",
         // Search query and scroll position persistence
         searchQuery: saved.searchQuery || "",

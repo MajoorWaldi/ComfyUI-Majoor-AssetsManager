@@ -273,14 +273,17 @@ class CollectionsService:
                 return err
             assert path is not None and data is not None
 
-            existing = data.get("items") if isinstance(data.get("items"), list) else []
+            raw_items = data.get("items")
+            existing: List[Dict[str, Any]] = (
+                [it for it in raw_items if isinstance(it, dict)] if isinstance(raw_items, list) else []
+            )
             seen = set()
             existing_seen = set()
             for it in existing:
                 if isinstance(it, dict):
-                    fp = it.get("filepath")
-                    if fp:
-                        k = _normalize_fp(str(fp))
+                    existing_fp = it.get("filepath")
+                    if existing_fp:
+                        k = _normalize_fp(str(existing_fp))
                         seen.add(k)
                         existing_seen.add(k)
 
@@ -338,11 +341,14 @@ class CollectionsService:
                 return err
             assert path is not None and data is not None
 
-            existing = data.get("items") if isinstance(data.get("items"), list) else []
+            raw_items = data.get("items")
+            existing: List[Dict[str, Any]] = (
+                [it for it in raw_items if isinstance(it, dict)] if isinstance(raw_items, list) else []
+            )
             kept: List[Any] = []
             removed = 0
             for it in existing:
-                fp = it.get("filepath") if isinstance(it, dict) else None
+                fp = it.get("filepath")
                 if fp and _normalize_fp(str(fp)) in targets:
                     removed += 1
                     continue

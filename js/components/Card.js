@@ -37,17 +37,25 @@ const AUDIO_THUMB_URL = (() => {
  */
 
 const VIDEO_THUMBS_KEY = "__MJR_VIDEO_THUMBS__";
-const VIDEO_THUMB_MAX_AUTOPLAY = 6;
+const VIDEO_THUMB_MAX_AUTOPLAY_HOVER = 6;
+const VIDEO_THUMB_MAX_AUTOPLAY_ALWAYS = 12;
 const VIDEO_THUMB_MAX_PREPARED = 48;
 const VIDEO_THUMB_LOAD_TIMEOUT_MS = 5000;
 const VIDEO_THUMB_FIRST_FRAME_SEEK_S = 1.0;
 
-const isVideoHoverAutoplayEnabled = () => {
+/** @returns {"off"|"hover"|"always"} */
+const getVideoAutoplayMode = () => {
     try {
-        return !!APP_CONFIG.GRID_VIDEO_HOVER_AUTOPLAY;
+        const mode = APP_CONFIG.GRID_VIDEO_AUTOPLAY_MODE;
+        if (mode === "hover" || mode === "always") return mode;
+        // Backward compat: old boolean setting
+        if (mode === true || APP_CONFIG.GRID_VIDEO_HOVER_AUTOPLAY === true) return "hover";
     } catch {}
-    return true;
+    return "off";
 };
+
+const isVideoAutoplayAlways = () => getVideoAutoplayMode() === "always";
+const getMaxAutoplay = () => isVideoAutoplayAlways() ? VIDEO_THUMB_MAX_AUTOPLAY_ALWAYS : VIDEO_THUMB_MAX_AUTOPLAY_HOVER;
 
 export function cleanupVideoThumbsIn(rootEl) {
     try {
@@ -232,7 +240,7 @@ const getVideoThumbManager = () => {
 
         if (!playing.has(video)) {
             playing.add(video);
-            while (playing.size > VIDEO_THUMB_MAX_AUTOPLAY) {
+            while (playing.size > getMaxAutoplay()) {
                 const oldest = playing.values().next().value;
                 // Demote to prepared (paused with frame kept)
                 pauseVideo(oldest);
@@ -279,7 +287,9 @@ const getVideoThumbManager = () => {
     };
 
     const applyAutoplayModeToObserved = () => {
-        const enabled = isVideoHoverAutoplayEnabled();
+        const mode = getVideoAutoplayMode();
+        const enabled = mode !== "off";
+        const always = mode === "always";
         for (const v of Array.from(observed)) {
             if (!(v instanceof HTMLVideoElement)) continue;
             const overlay = v._mjrPlayOverlay || null;
@@ -289,7 +299,9 @@ const getVideoThumbManager = () => {
                 if (overlay) overlay.style.opacity = "1";
                 continue;
             }
-            if (v._mjrVisible && v._mjrHovered && !document.hidden) {
+            const shouldPlay = v._mjrVisible && !document.hidden
+                && (always || v._mjrHovered);
+            if (shouldPlay) {
                 playVideo(v);
                 if (overlay) overlay.style.opacity = "0";
             } else {
@@ -350,7 +362,9 @@ const getVideoThumbManager = () => {
                           const video = entry.target;
                           if (!(video instanceof HTMLVideoElement)) continue;
                           const overlay = video._mjrPlayOverlay || null;
-                          const autoplayEnabled = isVideoHoverAutoplayEnabled();
+                          const mode = getVideoAutoplayMode();
+                          const autoplayEnabled = mode !== "off";
+                          const always = mode === "always";
 
                           if (!video.isConnected || document.hidden) {
                               try { video._mjrVisible = false; } catch {}
@@ -365,14 +379,15 @@ const getVideoThumbManager = () => {
 
                           const isVisible = entry.isIntersecting && entry.intersectionRatio >= 0.2;
                           try { video._mjrVisible = isVisible; } catch {}
-                          const isHovered = !!video._mjrHovered;
 
-                          if (autoplayEnabled && isVisible && isHovered) {
-                              // Play only if visible + hovered/focused.
+                          // "always": play when visible; "hover": play when visible + hovered
+                          const shouldPlay = autoplayEnabled && isVisible
+                              && (always || !!video._mjrHovered);
+
+                          if (shouldPlay) {
                               playVideo(video);
                               if (overlay) overlay.style.opacity = "0";
                           } else {
-                              // Keep a prepared frame, but avoid background playback.
                               if (autoplayEnabled) pauseVideo(video);
                               else stopVideo(video);
                               if (overlay) overlay.style.opacity = "1";
@@ -442,11 +457,15 @@ const getVideoThumbManager = () => {
             };
 
             const onEnter = () => {
-                if (!isVideoHoverAutoplayEnabled()) {
+                const mode = getVideoAutoplayMode();
+                if (mode === "off") {
                     showOverlay("1");
                     return;
                 }
+                // In "always" mode the IO handles play; just track hover state.
                 try { video._mjrHovered = true; } catch {}
+                if (mode === "always") return;
+                // "hover" mode: play on enter
                 const canPlay = !!video?._mjrVisible && !document.hidden;
                 if (canPlay) {
                     showOverlay("0");
@@ -457,6 +476,8 @@ const getVideoThumbManager = () => {
             };
             const onLeave = () => {
                 try { video._mjrHovered = false; } catch {}
+                // In "always" mode the IO keeps it playing; don't pause.
+                if (isVideoAutoplayAlways()) return;
                 showOverlay("1");
                 pauseVideo(video);
             };
@@ -544,8 +565,36 @@ export function createAssetCard(asset) {
     const thumb = createThumbnail(asset, viewUrl);
 
     // --- Badges (Always created, visibility controlled via parent CSS) ---
-    const fileBadge = createFileBadge(asset.filename, asset.kind, !!asset?._mjrNameCollision);
+    const fileBadge = createFileBadge(
+        asset.filename,
+        asset.kind,
+        !!asset?._mjrNameCollision,
+        {
+            count: asset?._mjrNameCollisionCount || 0,
+            paths: asset?._mjrNameCollisionPaths || [],
+        }
+    );
     fileBadge.classList.add("mjr-badge-ext"); // Class helper
+    try {
+        fileBadge.addEventListener("click", (event) => {
+            if (!asset?._mjrNameCollision) return;
+            event.preventDefault();
+            event.stopPropagation();
+            const name = String(asset?.filename || "").trim();
+            const filenameKey = String(card?.dataset?.mjrFilenameKey || "").trim().toLowerCase();
+            card.dispatchEvent?.(
+                new CustomEvent("mjr:badge-duplicates-focus", {
+                    bubbles: true,
+                    detail: {
+                        filename: name,
+                        filenameKey,
+                        count: Number(asset?._mjrNameCollisionCount || 0),
+                        paths: Array.isArray(asset?._mjrNameCollisionPaths) ? asset._mjrNameCollisionPaths : [],
+                    },
+                })
+            );
+        });
+    } catch {}
     thumb.appendChild(fileBadge);
 
     const ratingBadge = createRatingBadge(asset.rating || 0);

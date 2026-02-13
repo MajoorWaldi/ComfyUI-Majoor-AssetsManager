@@ -89,6 +89,44 @@ def _build_filter_clauses(filters: Optional[Dict[str, Any]], alias: str = "a") -
     if "min_rating" in filters:
         clauses.append("AND COALESCE(m.rating, 0) >= ?")
         params.append(filters["min_rating"])
+    if "min_size_bytes" in filters:
+        clauses.append(f"AND COALESCE({alias}.size, 0) >= ?")
+        params.append(int(filters["min_size_bytes"]))
+    if "max_size_bytes" in filters:
+        clauses.append(f"AND COALESCE({alias}.size, 0) <= ?")
+        params.append(int(filters["max_size_bytes"]))
+    if "min_width" in filters:
+        clauses.append(f"AND COALESCE({alias}.width, 0) >= ?")
+        params.append(int(filters["min_width"]))
+    if "min_height" in filters:
+        clauses.append(f"AND COALESCE({alias}.height, 0) >= ?")
+        params.append(int(filters["min_height"]))
+    if "workflow_type" in filters:
+        raw = str(filters.get("workflow_type") or "").strip().upper()
+        alias_map = {
+            "T2I": ["T2I"],
+            "I2I": ["I2I"],
+            "T2V": ["T2V"],
+            "I2V": ["I2V"],
+            "V2V": ["V2V"],
+            "A2A": ["A2A"],
+            "TTS": ["TTS", "T2A"],
+            "UPSCL": ["UPSCL", "UPSCALE", "UPSCALER"],
+            "INPT": ["INPT", "INPUT", "LOAD_INPUT"],
+            "FLF": ["FLF", "FIRST_LAST_FRAME", "FIRST_FRAME_LAST_FRAME"],
+        }
+        variants = alias_map.get(raw, [raw] if raw else [])
+        if variants:
+            placeholders = ", ".join("?" for _ in variants)
+            clauses.append(
+                "AND UPPER(COALESCE("
+                "json_extract(m.metadata_raw, '$.workflow_type'), "
+                "json_extract(m.metadata_raw, '$.geninfo.engine.type'), "
+                "json_extract(m.metadata_raw, '$.engine.type'), "
+                "''"
+                f")) IN ({placeholders})"
+            )
+            params.extend(variants)
     if "has_workflow" in filters:
         # Backward-compatible: older/stale rows may have has_workflow=0 even though metadata_raw
         # contains a workflow/prompt. Prefer not to hide such assets when filtering.
@@ -117,6 +155,15 @@ def _build_filter_clauses(filters: Optional[Dict[str, Any]], alias: str = "a") -
     if "mtime_end" in filters:
         clauses.append(f"AND {alias}.mtime < ?")
         params.append(filters["mtime_end"])
+    exclude_root = filters.get("exclude_root")
+    if isinstance(exclude_root, str) and exclude_root.strip():
+        try:
+            root = str(Path(exclude_root).resolve(strict=False))
+            esc = root.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            clauses.append(f"AND NOT ({alias}.filepath = ? OR {alias}.filepath LIKE ? ESCAPE '\\')")
+            params.extend([root, f"{esc}%"])
+        except Exception:
+            pass
     return clauses, params
 
 
@@ -234,8 +281,8 @@ class IndexSearcher:
 
             result = await self.db.aquery(" ".join(sql_parts), tuple(params))
             if not result.ok:
-                return Result.Err("SEARCH_FAILED", result.error)
-            rows = result.data
+                return Result.Err("SEARCH_FAILED", result.error or "Search query failed")
+            rows = result.data or []
 
             total = None
             if include_total:
@@ -298,8 +345,8 @@ class IndexSearcher:
 
             result = await self.db.aquery(" ".join(sql_parts), tuple(params))
             if not result.ok:
-                return Result.Err("SEARCH_FAILED", result.error)
-            rows = result.data
+                return Result.Err("SEARCH_FAILED", result.error or "Search query failed")
+            rows = result.data or []
 
             total = None
             if include_total and rows and "_total" in rows[0]:
@@ -323,11 +370,11 @@ class IndexSearcher:
                     LEFT JOIN asset_metadata m ON a.id = m.asset_id
                     WHERE 1=1
                 """
-                count_params = [fts_query, fts_query]
+                count_params2 = [fts_query, fts_query]
                 if filter_clauses:
                     count_sql += " " + " ".join(filter_clauses)
-                    count_params.extend(filter_params)
-                count_result = await self.db.aquery(count_sql, tuple(count_params))
+                    count_params2.extend(filter_params)
+                count_result = await self.db.aquery(count_sql, tuple(count_params2))
                 total = count_result.data[0]["total"] if count_result.ok and count_result.data else 0
 
         assets = []
@@ -441,9 +488,9 @@ class IndexSearcher:
             sql = " ".join(sql_parts)
             result = await self.db.aquery(sql, tuple(params))
             if not result.ok:
-                return Result.Err("SEARCH_FAILED", result.error)
+                return Result.Err("SEARCH_FAILED", result.error or "Scoped search query failed")
 
-            rows = result.data
+            rows = result.data or []
 
             total = None
             if include_total:
@@ -499,7 +546,7 @@ class IndexSearcher:
                 """
             ]
 
-            params: List[Any] = [fts_query, fts_query]
+            params = [fts_query, fts_query]
             params.extend(roots_params)
 
             filter_clauses, filter_params = _build_filter_clauses(filters)
@@ -513,9 +560,9 @@ class IndexSearcher:
             sql = " ".join(sql_parts)
             result = await self.db.aquery(sql, tuple(params))
             if not result.ok:
-                return Result.Err("SEARCH_FAILED", result.error)
+                return Result.Err("SEARCH_FAILED", result.error or "Scoped search query failed")
 
-            rows = result.data
+            rows = result.data or []
 
             total = None
             if include_total:
@@ -537,14 +584,14 @@ class IndexSearcher:
                     LEFT JOIN asset_metadata m ON a.id = m.asset_id
                     WHERE {roots_clause}
                 """
-                count_params: List[Any] = [fts_query, fts_query]
-                count_params.extend(roots_params)
+                count_params2: List[Any] = [fts_query, fts_query]
+                count_params2.extend(roots_params)
 
                 if filter_clauses:
                     count_sql += " " + " ".join(filter_clauses)
-                    count_params.extend(filter_params)
+                    count_params2.extend(filter_params)
 
-                count_result = await self.db.aquery(count_sql, tuple(count_params))
+                count_result = await self.db.aquery(count_sql, tuple(count_params2))
                 total = count_result.data[0]["total"] if count_result.ok and count_result.data else 0
 
         assets = []
@@ -588,7 +635,7 @@ class IndexSearcher:
         """
         result = await self.db.aquery(sql, (resolved, f"{escaped_prefix}%"))
         if not result.ok:
-            return Result.Err("DB_ERROR", result.error)
+            return Result.Err("DB_ERROR", result.error or "Root lookup query failed")
         return Result.Ok(bool(result.data))
 
     async def date_histogram_scoped(
@@ -671,7 +718,7 @@ class IndexSearcher:
         sql = " ".join(sql_parts)
         result = await self.db.aquery(sql, tuple(params))
         if not result.ok:
-            return Result.Err("DB_ERROR", result.error)
+            return Result.Err("DB_ERROR", result.error or "Histogram query failed")
 
         days: Dict[str, int] = {}
         for row in result.data or []:
@@ -715,7 +762,7 @@ class IndexSearcher:
         )
 
         if not result.ok:
-            return Result.Err("QUERY_FAILED", result.error)
+            return Result.Err("QUERY_FAILED", result.error or "Asset lookup failed")
 
         if not result.data:
             return Result.Ok(None)
@@ -769,7 +816,7 @@ class IndexSearcher:
         )
 
         if not result.ok:
-            return Result.Err("QUERY_FAILED", result.error)
+            return Result.Err("QUERY_FAILED", result.error or "Batch asset lookup failed")
 
         by_id: Dict[int, Dict[str, Any]] = {}
         for row in result.data or []:
@@ -778,7 +825,10 @@ class IndexSearcher:
             except Exception:
                 continue
             try:
-                aid = int(asset.get("id"))
+                raw_id = asset.get("id")
+                if raw_id is None:
+                    continue
+                aid = int(raw_id)
             except Exception:
                 continue
             by_id[aid] = asset
@@ -852,7 +902,7 @@ class IndexSearcher:
             cleaned,
         )
         if not result.ok:
-            return Result.Err("DB_ERROR", result.error)
+            return Result.Err("DB_ERROR", result.error or "Filepath lookup failed")
 
         out: Dict[str, Dict[str, Any]] = {}
         for row in result.data or []:

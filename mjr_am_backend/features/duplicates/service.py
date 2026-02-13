@@ -221,7 +221,7 @@ class DuplicatesService:
             if len(items) < 2:
                 continue
             exact_groups.append({"hash": h, "count": len(items), "assets": items[:25]})
-        exact_groups.sort(key=lambda g: g.get("count", 0), reverse=True)
+        exact_groups.sort(key=lambda g: _safe_int(g.get("count")), reverse=True)
         exact_groups = exact_groups[:max_groups]
 
         sim_q = f"""
@@ -268,7 +268,7 @@ class DuplicatesService:
             if len(similar_pairs) >= max_pairs:
                 break
 
-        similar_pairs.sort(key=lambda p: p.get("distance", 64))
+        similar_pairs.sort(key=lambda p: _safe_int(p.get("distance"), 64))
 
         return Result.Ok({
             "exact_groups": exact_groups,

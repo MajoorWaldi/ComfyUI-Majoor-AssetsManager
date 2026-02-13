@@ -3,11 +3,11 @@
  * Registers extension with ComfyUI and mounts UI.
  */
 
-import { app } from "../../scripts/app.js";
 import { testAPI, triggerStartupScan } from "./app/bootstrap.js";
 import { checkMajoorVersion } from "./app/versionCheck.js";
 import { ensureStyleLoaded } from "./app/style.js";
 import { registerMajoorSettings, startRuntimeStatusDashboard } from "./app/settings.js";
+import { getComfyApi, registerSidebarTabCompat } from "./app/comfyApiBridge.js";
 import { initDragDrop } from "./features/dnd/DragDrop.js";
 import { loadAssets, upsertAsset } from "./features/grid/GridView.js";
 import { renderAssetsManager, getActiveGridContainer } from "./features/panel/AssetsManagerPanel.js";
@@ -16,6 +16,7 @@ import { post } from "./api/client.js";
 import { ENDPOINTS } from "./api/endpoints.js";
 import { comfyToast } from "./app/toast.js";
 import { t } from "./app/i18n.js";
+import { app } from "../../scripts/app.js";
 
 const UI_FLAGS = {
     useComfyThemeUI: true,
@@ -103,7 +104,7 @@ app.registerExtension({
         void checkMajoorVersion();
 
         // Get ComfyUI API
-        const api = app.api || (app.ui ? app.ui.api : null);
+        const api = getComfyApi(app);
         if (api) {
             // Clean up previous handlers (hot-reload safety)
             try {
@@ -203,10 +204,8 @@ app.registerExtension({
                     const prev = !!globalThis?._mjrEnrichmentActive;
                     globalThis._mjrEnrichmentActive = active;
                     window.dispatchEvent(new CustomEvent("mjr-enrichment-status", { detail }));
-                    if (prev !== active) {
-                        const grid = getActiveGridContainer();
-                        if (grid) loadAssets(grid, undefined, { reset: true });
-                    }
+                    // Do not force a full grid reset on enrichment state flips.
+                    // Panel-level listeners handle refresh with scroll/selection anchor preservation.
                     if (prev && !active) {
                         comfyToast(t("toast.enrichmentComplete", "Metadata enrichment complete"), "success", 2600);
                     }
@@ -263,8 +262,7 @@ app.registerExtension({
         }
 
         // Register sidebar tab
-        if (app.extensionManager?.registerSidebarTab) {
-            app.extensionManager.registerSidebarTab({
+        if (registerSidebarTabCompat(app, {
                 id: "majoor-assets",
                 icon: "pi pi-folder",
                 title: "Assets Manager",
@@ -273,7 +271,7 @@ app.registerExtension({
                 render: (el) => {
                     void renderAssetsManager(el, { useComfyThemeUI: UI_FLAGS.useComfyThemeUI });
                 },
-            });
+            })) {
 
             console.log("📂 Majoor Assets Manager: Sidebar tab registered");
         } else {
