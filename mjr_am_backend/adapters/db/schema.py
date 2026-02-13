@@ -223,15 +223,17 @@ async def table_has_column(db, table_name: str, column_name: str) -> bool:
         )
         return False
 
-    return column_name in columns_result.data
+    columns = columns_result.data or []
+    return column_name in columns
 
 
 async def _ensure_column(db, table_name: str, column_name: str, definition: str) -> Result[bool]:
     columns_result = await _get_table_columns(db, table_name)
     if not columns_result.ok:
-        return columns_result
+        return Result.Err(columns_result.code or "PRAGMA_FAILED", columns_result.error or "Unable to inspect table")
 
-    if column_name in columns_result.data:
+    columns = columns_result.data or []
+    if column_name in columns:
         return Result.Ok(True)
 
     logger.info("Adding missing column %s.%s", table_name, column_name)

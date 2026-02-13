@@ -14,7 +14,7 @@ export const ENDPOINTS = {
     HEALTH_DB: "/mjr/am/health/db",
     STATUS: "/mjr/am/status",
     CONFIG: "/mjr/am/config",
-    VERSION: "/majoor/version",
+    VERSION: "/mjr/am/version",
 
     // Index & Search
     SCAN: "/mjr/am/scan",
@@ -35,6 +35,7 @@ export const ENDPOINTS = {
     OPEN_IN_FOLDER: "/mjr/am/open-in-folder",
     TOOLS_STATUS: "/mjr/am/tools/status",
     SETTINGS_OUTPUT_DIRECTORY: "/mjr/am/settings/output-directory",
+    SETTINGS_METADATA_FALLBACK: "/mjr/am/settings/metadata-fallback",
 
     // View (ComfyUI native)
     VIEW: "/view",
@@ -109,6 +110,11 @@ export function buildListURL(params = {}) {
         kind = null,
         hasWorkflow = null,
         minRating = null,
+        minSizeMB = null,
+        maxSizeMB = null,
+        minWidth = null,
+        minHeight = null,
+        workflowType = null,
         dateRange = null,
         dateExact = null,
         sort = null,
@@ -130,6 +136,21 @@ export function buildListURL(params = {}) {
     }
     if (minRating !== null && minRating !== undefined && Number(minRating) > 0) {
         url += `&min_rating=${encodeURIComponent(String(minRating))}`;
+    }
+    if (minSizeMB !== null && minSizeMB !== undefined && Number(minSizeMB) > 0) {
+        url += `&min_size_mb=${encodeURIComponent(String(minSizeMB))}`;
+    }
+    if (maxSizeMB !== null && maxSizeMB !== undefined && Number(maxSizeMB) > 0) {
+        url += `&max_size_mb=${encodeURIComponent(String(maxSizeMB))}`;
+    }
+    if (minWidth !== null && minWidth !== undefined && Number(minWidth) > 0) {
+        url += `&min_width=${encodeURIComponent(String(minWidth))}`;
+    }
+    if (minHeight !== null && minHeight !== undefined && Number(minHeight) > 0) {
+        url += `&min_height=${encodeURIComponent(String(minHeight))}`;
+    }
+    if (workflowType) {
+        url += `&workflow_type=${encodeURIComponent(String(workflowType))}`;
     }
     if (dateRange) {
         url += `&date_range=${encodeURIComponent(dateRange)}`;

@@ -8,10 +8,26 @@ function createMenuItem(label, { right = null, checked = false, danger = false }
     btn.type = "button";
     btn.className = "mjr-menu-item";
     if (danger) btn.style.color = "var(--error-text, #f44336)";
+    btn.style.cssText = `
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        width:100%;
+        gap:10px;
+        padding:9px 10px;
+        border-radius:9px;
+        border:1px solid ${checked ? "rgba(120,190,255,0.68)" : "rgba(120,190,255,0.18)"};
+        background:${checked
+            ? "linear-gradient(135deg, rgba(70,130,255,0.28), rgba(20,95,185,0.22))"
+            : "linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))"};
+        box-shadow:${checked ? "0 0 0 1px rgba(160,210,255,0.22) inset, 0 8px 18px rgba(35,95,185,0.26)" : "none"};
+        transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+    `;
 
     const left = document.createElement("span");
     left.className = "mjr-menu-item-label";
     left.textContent = label;
+    left.style.cssText = `font-weight:${checked ? "700" : "600"}; color:${checked ? "rgba(208,234,255,0.98)" : "var(--fg-color, #e6edf7)"};`;
 
     const rightWrap = document.createElement("span");
     rightWrap.style.cssText = "display:flex; align-items:center; gap:10px;";
@@ -20,24 +36,34 @@ function createMenuItem(label, { right = null, checked = false, danger = false }
         const hint = document.createElement("span");
         hint.className = "mjr-menu-item-hint";
         hint.textContent = String(right);
-        hint.style.opacity = "0.65";
+        hint.style.opacity = checked ? "0.9" : "0.65";
         hint.style.fontSize = "11px";
         rightWrap.appendChild(hint);
     }
 
     const check = document.createElement("i");
     check.className = "pi pi-check mjr-menu-item-check";
-    check.style.opacity = checked ? "1" : "0";
+    check.style.cssText = `opacity:${checked ? "1" : "0"}; color: rgba(133,203,255,0.98);`;
     rightWrap.appendChild(check);
 
     btn.appendChild(left);
     btn.appendChild(rightWrap);
+    btn.addEventListener("mouseenter", () => {
+        if (checked) return;
+        btn.style.borderColor = "rgba(145,205,255,0.4)";
+        btn.style.background = "linear-gradient(135deg, rgba(80,140,255,0.18), rgba(32,100,200,0.14))";
+    });
+    btn.addEventListener("mouseleave", () => {
+        if (checked) return;
+        btn.style.borderColor = "rgba(120,190,255,0.18)";
+        btn.style.background = "linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))";
+    });
     return btn;
 }
 
 function createDivider() {
     const d = document.createElement("div");
-    d.style.cssText = "height:1px; background: var(--border-color); margin: 6px 0;";
+    d.style.cssText = "height:1px; background: rgba(120,190,255,0.3); margin: 4px 0;";
     return d;
 }
 
@@ -118,12 +144,20 @@ export function createCollectionsController({ state, collectionsBtn, collections
             delBtn.className = "mjr-menu-item";
             delBtn.title = "Delete collection";
             delBtn.style.cssText =
-                "width:42px; justify-content:center; padding:0; border-left: 1px solid var(--border-color);";
+                "width:42px; justify-content:center; padding:0; border:1px solid rgba(255,95,95,0.35); border-radius:9px; margin-left:6px; background: linear-gradient(135deg, rgba(255,70,70,0.16), rgba(160,20,20,0.12));";
 
             const trash = document.createElement("i");
             trash.className = "pi pi-trash";
-            trash.style.opacity = "0.75";
+            trash.style.cssText = "opacity:0.88; color: rgba(255,130,130,0.96);";
             delBtn.appendChild(trash);
+            delBtn.addEventListener("mouseenter", () => {
+                delBtn.style.borderColor = "rgba(255,120,120,0.62)";
+                delBtn.style.background = "linear-gradient(135deg, rgba(255,70,70,0.24), rgba(170,30,30,0.2))";
+            });
+            delBtn.addEventListener("mouseleave", () => {
+                delBtn.style.borderColor = "rgba(255,95,95,0.35)";
+                delBtn.style.background = "linear-gradient(135deg, rgba(255,70,70,0.16), rgba(160,20,20,0.12))";
+            });
 
             delBtn.addEventListener("click", async (e) => {
                 e.preventDefault();

@@ -6,9 +6,17 @@ All notable changes to this project are documented in this file.
 ### Added / Improved
 - Enhanced metadata extraction for the AC-Step (Ace Step) custom node.
 - Drag & Drop: stage dropped audio files to the node input (audio file staging).
+- Added new filtering/sorting capabilities:
+  - Filter by workflow type (I2I, I2V, T2I, T2V, V2V, FLF, UPSCL, INPT, TTS, A2A).
+  - Filter by file size (weight).
+  - Filter by image resolution/size.
+- Added a settings option to configure the output path directly from the UI.
+- Added grid settings to configure video preview behavior.
+- Refactored frontend/backend integration paths for better ComfyUI compatibility.
 ### Fixed
 - Fixed drag & drop issues for images and videos.
 - Enhanced index status functionality and various bug fixes.
+- Fixed multiple UI/filtering issues and improved overall stability.
 
 ---
 

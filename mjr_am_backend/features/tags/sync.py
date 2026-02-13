@@ -231,13 +231,14 @@ def write_windows_rating_tags(file_path: str, rating: int, tags: List[str]) -> R
         original_mtime = None
 
     try:
-        pythoncom = None
+        pythoncom_mod: Any = None
         try:
             import pythoncom  # type: ignore
 
-            pythoncom.CoInitialize()
+            pythoncom_mod = pythoncom
+            pythoncom_mod.CoInitialize()
         except Exception:
-            pythoncom = None
+            pythoncom_mod = None
 
         try:
             shell = win32com.Dispatch("Shell.Application")
@@ -257,9 +258,9 @@ def write_windows_rating_tags(file_path: str, rating: int, tags: List[str]) -> R
             except Exception as exc:
                 logger.debug("Windows shell tags write skipped: %s", exc)
         finally:
-            if pythoncom is not None:
+            if pythoncom_mod is not None:
                 try:
-                    pythoncom.CoUninitialize()
+                    pythoncom_mod.CoUninitialize()
                 except Exception as exc:
                     logger.debug("pythoncom.CoUninitialize failed: %s", exc)
 
@@ -271,7 +272,7 @@ def write_windows_rating_tags(file_path: str, rating: int, tags: List[str]) -> R
 
         return Result.Ok(True)
     except Exception as exc:
-        return Result.Err(ErrorCode.IO_ERROR, f"Windows metadata sync failed: {exc}")
+        return Result.Err(ErrorCode.UPDATE_FAILED, f"Windows metadata sync failed: {exc}")
 
 
 class RatingTagsSyncWorker:

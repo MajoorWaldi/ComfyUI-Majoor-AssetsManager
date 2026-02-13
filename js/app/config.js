@@ -81,7 +81,7 @@ export const APP_DEFAULTS = Object.freeze({
     GRID_SHOW_DETAILS_DIMENSIONS: true,
     GRID_SHOW_DETAILS_GENTIME: true,
     GRID_SHOW_WORKFLOW_DOT: true,
-    GRID_VIDEO_HOVER_AUTOPLAY: false,
+    GRID_VIDEO_AUTOPLAY_MODE: "off", // "off" | "hover" | "always"
     UI_CARD_HOVER_COLOR: "#3D3D3D",
     UI_CARD_SELECTION_COLOR: "#4A90E2",
     UI_RATING_COLOR: "#FF9500",
@@ -93,6 +93,7 @@ export const APP_DEFAULTS = Object.freeze({
     BADGE_VIDEO_COLOR: "#9C27B0",
     BADGE_AUDIO_COLOR: "#FF9800",
     BADGE_MODEL3D_COLOR: "#4CAF50",
+    BADGE_DUPLICATE_ALERT_COLOR: "#FF1744",
 
     // Pagination
     DEFAULT_PAGE_SIZE: 100,

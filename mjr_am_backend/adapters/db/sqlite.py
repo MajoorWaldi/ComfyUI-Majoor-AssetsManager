@@ -421,17 +421,23 @@ class Sqlite:
             out: Dict[str, Any] = {}
             try:
                 if "timeout" in data:
-                    out["timeout"] = max(1.0, float(data.get("timeout")))
+                    timeout_raw = data.get("timeout")
+                    if timeout_raw is not None:
+                        out["timeout"] = max(1.0, float(timeout_raw))
             except Exception:
                 pass
             try:
                 if "maxConnections" in data:
-                    out["maxConnections"] = max(1, int(data.get("maxConnections")))
+                    max_connections_raw = data.get("maxConnections")
+                    if max_connections_raw is not None:
+                        out["maxConnections"] = max(1, int(max_connections_raw))
             except Exception:
                 pass
             try:
                 if "queryTimeout" in data:
-                    out["queryTimeout"] = max(0.0, float(data.get("queryTimeout")))
+                    query_timeout_raw = data.get("queryTimeout")
+                    if query_timeout_raw is not None:
+                        out["queryTimeout"] = max(0.0, float(query_timeout_raw))
             except Exception:
                 pass
             return out
@@ -972,6 +978,7 @@ class Sqlite:
                         await self._sleep_backoff(attempt)
                         continue
                     raise
+            return Result.Err(ErrorCode.DB_ERROR, "Query failed after retries")
         except Exception:
             raise
 
@@ -1148,6 +1155,7 @@ class Sqlite:
                         await self._sleep_backoff(attempt)
                         continue
                     raise
+            return Result.Err(ErrorCode.DB_ERROR, "Batch execute failed after retries")
         except Exception:
             raise
 
@@ -1198,6 +1206,7 @@ class Sqlite:
                             await self._sleep_backoff(attempt)
                             continue
                         raise
+                return Result.Err(ErrorCode.DB_ERROR, "Script execution failed after retries")
             except sqlite3.OperationalError as exc:
                 if "interrupted" in str(exc).lower():
                     return Result.Err(ErrorCode.TIMEOUT, "Database operation interrupted (query timeout)")

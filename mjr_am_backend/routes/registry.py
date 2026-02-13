@@ -8,44 +8,64 @@ from __future__ import annotations
 from aiohttp import web
 from mjr_am_backend.shared import get_logger
 from mjr_am_backend.observability import ensure_observability
+from .core import _json_response, _require_authenticated_user
+from mjr_am_backend.shared import Result
 from typing import Awaitable, Callable, ClassVar, Protocol, cast
 
 # --- CONFIGURATION ---
 API_PREFIX = "/mjr/am/"
+_SENSITIVE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+_APP_KEY_SECURITY_MIDDLEWARES_INSTALLED: web.AppKey[bool] = web.AppKey(
+    "_mjr_security_middlewares_installed", bool
+)
+_APP_KEY_ROUTES_REGISTERED: web.AppKey[bool] = web.AppKey("_mjr_routes_registered", bool)
+_APP_KEY_OBSERVABILITY_INSTALLED: web.AppKey[bool] = web.AppKey("_mjr_observability_installed", bool)
+_APP_KEY_USER_MANAGER: web.AppKey[object] = web.AppKey("_mjr_user_manager", object)
 
 
 class _PromptServerInstance(Protocol):
     routes: web.RouteTableDef
     app: web.Application | None
+    def send_sync(self, event: str, data: object) -> None: ...
 
 
 class _PromptServer(Protocol):
     instance: ClassVar[_PromptServerInstance]
 
-try:
+class _PromptServerInstanceStub:
+    routes: web.RouteTableDef = web.RouteTableDef()
+    app: web.Application | None = None
+    def send_sync(self, event: str, data: object) -> None:
+        return None
+
+
+class _PromptServerStub:
+    instance: ClassVar[_PromptServerInstanceStub] = _PromptServerInstanceStub()
+
+
+def _get_prompt_server() -> type[_PromptServer]:
     # IMPORTANT (ComfyUI compatibility):
-    # Never `import server` here. Importing ComfyUI's `server.py` triggers a cascade
-    # (nodes -> torch -> cuda init) which can hard-crash the interpreter in non-ComfyUI
-    # contexts (unit tests, docs scripts, standalone runs) or on misconfigured CUDA.
-    #
-    # In the real ComfyUI runtime, `server` is already imported and lives in
-    # `sys.modules`, so we can safely reuse it without re-importing.
+    # Never `import server` here. Importing ComfyUI's `server.py` can trigger heavy
+    # initialization cascades in non-Comfy contexts.
     import sys
 
-    _server_mod = sys.modules.get("server")
-    if _server_mod is None or not hasattr(_server_mod, "PromptServer"):
-        raise ImportError("ComfyUI server not loaded")
+    try:
+        _server_mod = sys.modules.get("server")
+        if _server_mod is None or not hasattr(_server_mod, "PromptServer"):
+            raise ImportError("ComfyUI server not loaded")
+        return cast(type[_PromptServer], getattr(_server_mod, "PromptServer"))
+    except Exception:
+        return cast(type[_PromptServer], _PromptServerStub)
 
-    PromptServer = cast(type[_PromptServer], getattr(_server_mod, "PromptServer"))
-except Exception:
-    class _PromptServerInstanceStub:
-        routes: web.RouteTableDef = web.RouteTableDef()
-        app: web.Application | None = None
 
-    class _PromptServerStub:
-        instance: ClassVar[_PromptServerInstanceStub] = _PromptServerInstanceStub()
+class _PromptServerProxy:
+    @property
+    def instance(self) -> _PromptServerInstance:
+        return _get_prompt_server().instance
 
-    PromptServer = cast(type[_PromptServer], _PromptServerStub)
+
+# Public compatibility symbol used by several modules.
+PromptServer = _PromptServerProxy()
 
 from .handlers import (
     register_health_routes,
@@ -67,6 +87,48 @@ from .handlers import (
 
 logger = get_logger(__name__)
 _ROUTES_REGISTERED = False
+
+
+def _extract_app_paths(app: web.Application) -> set[str]:
+    paths: set[str] = set()
+    try:
+        for route in app.router.routes():
+            try:
+                resource = getattr(route, "resource", None)
+                canonical = getattr(resource, "canonical", None)
+                if isinstance(canonical, str) and canonical:
+                    paths.add(canonical)
+            except Exception:
+                continue
+    except Exception:
+        pass
+    return paths
+
+
+def _extract_table_paths(routes: web.RouteTableDef) -> set[str]:
+    paths: set[str] = set()
+    try:
+        for item in routes:
+            path = getattr(item, "path", None)
+            if isinstance(path, str) and path:
+                paths.add(path)
+    except Exception:
+        pass
+    return paths
+
+
+def _log_route_collisions(app: web.Application, routes: web.RouteTableDef) -> None:
+    try:
+        app_paths = _extract_app_paths(app)
+        table_paths = _extract_table_paths(routes)
+        overlaps = sorted(app_paths.intersection(table_paths))
+        if overlaps:
+            logger.warning(
+                "Potential route path collisions detected before registration: %s",
+                ", ".join(overlaps[:20]),
+            )
+    except Exception:
+        pass
 
 
 @web.middleware
@@ -133,13 +195,47 @@ async def api_versioning_middleware(
     return await handler(request)
 
 
+@web.middleware
+async def auth_required_middleware(
+    request: web.Request,
+    handler: Callable[[web.Request], Awaitable[web.StreamResponse]],
+) -> web.StreamResponse:
+    """
+    Require authenticated ComfyUI user for sensitive Majoor routes when auth is enabled.
+    """
+    try:
+        path = request.path or ""
+        method = str(request.method or "GET").upper()
+    except Exception:
+        path = ""
+        method = "GET"
+
+    if path.startswith(API_PREFIX) and method in _SENSITIVE_METHODS:
+        auth = _require_authenticated_user(request)
+        if not auth.ok:
+            return _json_response(
+                Result.Err(
+                    auth.code or "AUTH_REQUIRED",
+                    auth.error or "Authentication required. Please sign in first.",
+                ),
+                status=401,
+            )
+        try:
+            request["mjr_user_id"] = str(auth.data or "").strip()
+        except Exception:
+            pass
+
+    return await handler(request)
+
+
 def _install_security_middlewares(app: web.Application) -> None:
     try:
-        if app.get("_mjr_security_middlewares_installed"):
+        if app.get(_APP_KEY_SECURITY_MIDDLEWARES_INSTALLED):
             return
+        app.middlewares.insert(0, auth_required_middleware)
         app.middlewares.insert(0, security_headers_middleware)
         app.middlewares.insert(0, api_versioning_middleware)
-        app["_mjr_security_middlewares_installed"] = True
+        app[_APP_KEY_SECURITY_MIDDLEWARES_INSTALLED] = True
     except Exception as exc:
         logger.debug("Failed to install security middlewares: %s", exc)
 
@@ -150,7 +246,7 @@ def register_all_routes() -> web.RouteTableDef:
     This is the central registration point for all routes.
     """
     global _ROUTES_REGISTERED
-    routes = PromptServer.instance.routes
+    routes = _get_prompt_server().instance.routes
     if _ROUTES_REGISTERED:
         logger.debug("register_all_routes() skipped: already registered")
         return routes
@@ -211,6 +307,7 @@ def register_all_routes() -> web.RouteTableDef:
     logger.info("  GET /mjr/am/batch-zip/{token}")
     logger.info("  GET /mjr/am/viewer/info?asset_id=<id>")
     logger.info("  POST /mjr/am/db/optimize")
+    logger.info("  POST /mjr/am/db/cleanup-case-duplicates")
     logger.info("  POST /mjr/am/db/force-delete")
     logger.info("  GET /mjr/am/download")
     logger.info("  GET /mjr/am/releases")
@@ -221,13 +318,25 @@ def register_all_routes() -> web.RouteTableDef:
     return routes
 
 
-def register_routes(app: web.Application) -> None:
+def register_routes(app: web.Application, user_manager=None) -> None:
     """
     Register routes onto an aiohttp application.
 
     This is primarily used for unit tests; in ComfyUI, routes are registered
     via PromptServer decorators at import time.
     """
+    try:
+        if user_manager is not None:
+            try:
+                app[_APP_KEY_USER_MANAGER] = user_manager
+            except Exception:
+                pass
+        # Ensure decorators are registered exactly once globally.
+        register_all_routes()
+    except Exception as exc:
+        logger.warning("Failed to prepare route table: %s", exc)
+        return
+
     try:
         ensure_observability(app)
     except Exception as exc:
@@ -236,8 +345,22 @@ def register_routes(app: web.Application) -> None:
         _install_security_middlewares(app)
     except Exception as exc:
         logger.debug("Security middlewares not installed on aiohttp app: %s", exc)
+
     try:
-        app.add_routes(PromptServer.instance.routes)
+        if app.get(_APP_KEY_ROUTES_REGISTERED):
+            logger.debug("register_routes(app) skipped: routes already registered on this app")
+            return
+    except Exception:
+        pass
+
+    try:
+        route_table = _get_prompt_server().instance.routes
+        _log_route_collisions(app, route_table)
+        app.add_routes(route_table)
+        try:
+            app[_APP_KEY_ROUTES_REGISTERED] = True
+        except Exception:
+            pass
     except Exception as exc:
         logger.warning("Failed to register routes on aiohttp app: %s", exc)
 
@@ -248,11 +371,11 @@ def _install_observability_on_prompt_server() -> None:
     If PromptServer doesn't expose `app`, this safely no-ops.
     """
     try:
-        app = getattr(PromptServer.instance, "app", None)
+        app = getattr(_get_prompt_server().instance, "app", None)
         if app is not None:
-            if not app.get("_mjr_observability_installed"):
+            if not app.get(_APP_KEY_OBSERVABILITY_INSTALLED):
                 ensure_observability(app)
-                app["_mjr_observability_installed"] = True
+                app[_APP_KEY_OBSERVABILITY_INSTALLED] = True
             _install_security_middlewares(app)
     except Exception as exc:
         logger.debug("Observability not installed on PromptServer app: %s", exc)

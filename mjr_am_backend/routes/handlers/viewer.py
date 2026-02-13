@@ -51,6 +51,8 @@ def register_viewer_routes(routes: web.RouteTableDef) -> None:
         svc, error_result = await _require_services()
         if error_result:
             return _json_response(error_result)
+        if not isinstance(svc, dict):
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Index service unavailable"))
 
         try:
             asset_res = await svc["index"].get_asset(asset_id)

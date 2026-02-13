@@ -4,6 +4,39 @@ export function createFilterPopoverView() {
     const filterPopover = document.createElement("div");
     filterPopover.className = "mjr-popover mjr-filter-popover";
     filterPopover.style.display = "none";
+    filterPopover.style.cssText = `
+        display:none;
+        border: 1px solid rgba(120,180,255,0.35);
+        background: linear-gradient(180deg, rgba(16,24,36,0.96) 0%, rgba(11,16,24,0.96) 100%);
+        box-shadow: 0 14px 34px rgba(0,0,0,0.42), 0 0 0 1px rgba(130,185,255,0.16) inset;
+        border-radius: 12px;
+        padding: 12px;
+        min-width: 340px;
+    `;
+
+    const makeGroup = (title) => {
+        const g = document.createElement("div");
+        g.className = "mjr-filter-group";
+        g.style.cssText = `
+            border: 1px solid rgba(120,180,255,0.24);
+            background: linear-gradient(180deg, rgba(22,32,48,0.55), rgba(15,22,34,0.55));
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+        `;
+        const h = document.createElement("div");
+        h.textContent = title;
+        h.style.cssText = `
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            color: rgba(167,209,255,0.95);
+            margin-bottom: 8px;
+        `;
+        g.appendChild(h);
+        return g;
+    };
 
     const kindRow = document.createElement("div");
     kindRow.className = "mjr-popover-row";
@@ -27,6 +60,7 @@ export function createFilterPopoverView() {
     });
     kindRow.appendChild(kindLabel);
     kindRow.appendChild(kindSelect);
+    kindRow.style.cssText = "display:grid; grid-template-columns: 110px 1fr; gap:8px; align-items:center; margin-bottom:8px;";
 
     const wfRow = document.createElement("div");
     wfRow.className = "mjr-popover-row";
@@ -44,6 +78,7 @@ export function createFilterPopoverView() {
     wfToggle.appendChild(wfText);
     wfRow.appendChild(wfLabel);
     wfRow.appendChild(wfToggle);
+    wfRow.style.cssText = "display:grid; grid-template-columns: 110px 1fr; gap:8px; align-items:center; margin-bottom:8px;";
 
     const ratingRow = document.createElement("div");
     ratingRow.className = "mjr-popover-row";
@@ -68,6 +103,36 @@ export function createFilterPopoverView() {
     });
     ratingRow.appendChild(ratingLabel);
     ratingRow.appendChild(ratingSelect);
+    ratingRow.style.cssText = "display:grid; grid-template-columns: 110px 1fr; gap:8px; align-items:center; margin-bottom:8px;";
+
+    const workflowTypeRow = document.createElement("div");
+    workflowTypeRow.className = "mjr-popover-row";
+    workflowTypeRow.style.cssText = "display:grid; grid-template-columns: 110px 1fr; gap:8px; align-items:center; margin-bottom:8px;";
+    const workflowTypeLabel = document.createElement("div");
+    workflowTypeLabel.className = "mjr-popover-label";
+    workflowTypeLabel.textContent = "Workflow type";
+    const workflowTypeSelect = document.createElement("select");
+    workflowTypeSelect.className = "mjr-select";
+    [
+        ["", "Any"],
+        ["T2I", "T2I"],
+        ["I2I", "I2I"],
+        ["T2V", "T2V"],
+        ["I2V", "I2V"],
+        ["V2V", "V2V"],
+        ["FLF", "FLF (First/Last Frame)"],
+        ["UPSCL", "UPSCL"],
+        ["INPT", "INPT"],
+        ["TTS", "TTS (Text to Speech)"],
+        ["A2A", "A2A (Audio to Audio)"],
+    ].forEach(([val, text]) => {
+        const opt = document.createElement("option");
+        opt.value = val;
+        opt.textContent = text;
+        workflowTypeSelect.appendChild(opt);
+    });
+    workflowTypeRow.appendChild(workflowTypeLabel);
+    workflowTypeRow.appendChild(workflowTypeSelect);
 
     const dateRow = document.createElement("div");
     dateRow.className = "mjr-popover-row";
@@ -90,6 +155,74 @@ export function createFilterPopoverView() {
     });
     dateRow.appendChild(dateLabel);
     dateRow.appendChild(dateRangeSelect);
+    dateRow.style.cssText = "display:grid; grid-template-columns: 110px 1fr; gap:8px; align-items:center; margin-bottom:8px;";
+
+    const sizeRow = document.createElement("div");
+    sizeRow.className = "mjr-popover-row";
+    sizeRow.style.cssText = "display:grid; grid-template-columns: 110px 1fr 1fr; gap:8px; align-items:center; margin-bottom:8px;";
+    const sizeLabel = document.createElement("div");
+    sizeLabel.className = "mjr-popover-label";
+    sizeLabel.textContent = "File size (MB)";
+    const minSizeInput = document.createElement("input");
+    minSizeInput.type = "number";
+    minSizeInput.min = "0";
+    minSizeInput.step = "0.1";
+    minSizeInput.className = "mjr-input";
+    minSizeInput.placeholder = "Min";
+    const maxSizeInput = document.createElement("input");
+    maxSizeInput.type = "number";
+    maxSizeInput.min = "0";
+    maxSizeInput.step = "0.1";
+    maxSizeInput.className = "mjr-input";
+    maxSizeInput.placeholder = "Max";
+    sizeRow.appendChild(sizeLabel);
+    sizeRow.appendChild(minSizeInput);
+    sizeRow.appendChild(maxSizeInput);
+
+    const resPresetRow = document.createElement("div");
+    resPresetRow.className = "mjr-popover-row";
+    resPresetRow.style.cssText = "display:grid; grid-template-columns: 110px 1fr; gap:8px; align-items:center; margin-bottom:8px;";
+    const resPresetLabel = document.createElement("div");
+    resPresetLabel.className = "mjr-popover-label";
+    resPresetLabel.textContent = "Resolution";
+    const resolutionPresetSelect = document.createElement("select");
+    resolutionPresetSelect.className = "mjr-select";
+    [
+        ["", "Any"],
+        ["hd", "HD (>=1280x720)"],
+        ["fhd", "FHD (>=1920x1080)"],
+        ["qhd", "QHD (>=2560x1440)"],
+        ["uhd", "4K (>=3840x2160)"],
+    ].forEach(([val, text]) => {
+        const opt = document.createElement("option");
+        opt.value = val;
+        opt.textContent = text;
+        resolutionPresetSelect.appendChild(opt);
+    });
+    resPresetRow.appendChild(resPresetLabel);
+    resPresetRow.appendChild(resolutionPresetSelect);
+
+    const resRow = document.createElement("div");
+    resRow.className = "mjr-popover-row";
+    resRow.style.cssText = "display:grid; grid-template-columns: 110px 1fr 1fr; gap:8px; align-items:center; margin-bottom:8px;";
+    const resLabel = document.createElement("div");
+    resLabel.className = "mjr-popover-label";
+    resLabel.textContent = "Min WxH";
+    const minWidthInput = document.createElement("input");
+    minWidthInput.type = "number";
+    minWidthInput.min = "0";
+    minWidthInput.step = "1";
+    minWidthInput.className = "mjr-input";
+    minWidthInput.placeholder = "Width";
+    const minHeightInput = document.createElement("input");
+    minHeightInput.type = "number";
+    minHeightInput.min = "0";
+    minHeightInput.step = "1";
+    minHeightInput.className = "mjr-input";
+    minHeightInput.placeholder = "Height";
+    resRow.appendChild(resLabel);
+    resRow.appendChild(minWidthInput);
+    resRow.appendChild(minHeightInput);
 
     const agendaRow = document.createElement("div");
     agendaRow.className = "mjr-popover-row";
@@ -111,17 +244,36 @@ export function createFilterPopoverView() {
     agendaContainer.appendChild(agendaInput);
     agendaRow.appendChild(agendaContainer);
 
-    filterPopover.appendChild(kindRow);
-    filterPopover.appendChild(wfRow);
-    filterPopover.appendChild(ratingRow);
-    filterPopover.appendChild(dateRow);
-    filterPopover.appendChild(agendaRow);
+    const groupMain = makeGroup("Core");
+    groupMain.appendChild(kindRow);
+    groupMain.appendChild(wfRow);
+    groupMain.appendChild(workflowTypeRow);
+    groupMain.appendChild(ratingRow);
+
+    const groupMedia = makeGroup("Media");
+    groupMedia.appendChild(sizeRow);
+    groupMedia.appendChild(resPresetRow);
+    groupMedia.appendChild(resRow);
+
+    const groupTime = makeGroup("Time");
+    groupTime.appendChild(dateRow);
+    groupTime.appendChild(agendaRow);
+
+    filterPopover.appendChild(groupMain);
+    filterPopover.appendChild(groupMedia);
+    filterPopover.appendChild(groupTime);
 
     return {
         filterPopover,
         kindSelect,
         wfCheckbox,
+        workflowTypeSelect,
         ratingSelect,
+        minSizeInput,
+        maxSizeInput,
+        resolutionPresetSelect,
+        minWidthInput,
+        minHeightInput,
         dateRangeSelect,
         dateExactInput: agendaInput,
         agendaContainer

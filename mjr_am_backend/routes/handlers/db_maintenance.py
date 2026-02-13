@@ -10,6 +10,7 @@ import shutil
 import sqlite3
 import threading
 import asyncio
+import os
 from pathlib import Path
 
 from aiohttp import web
@@ -56,7 +57,7 @@ async def _restart_watcher_if_needed(svc: dict | None, should_restart: bool) -> 
     try:
         from mjr_am_backend.features.index.watcher_scope import build_watch_paths
         scope_cfg = svc.get("watcher_scope") if isinstance(svc.get("watcher_scope"), dict) else {}
-        scope = (scope_cfg or {}).get("scope")
+        scope = str((scope_cfg or {}).get("scope") or "output")
         custom_root_id = (scope_cfg or {}).get("custom_root_id")
         paths = build_watch_paths(scope, custom_root_id)
         if paths:
@@ -132,6 +133,71 @@ async def _replace_db_from_backup(src: Path, dst: Path) -> None:
     for suffix in ("", "-wal", "-shm", "-journal"):
         await _remove_with_retry(Path(str(dst) + suffix))
     await asyncio.to_thread(shutil.copy2, src, dst)
+
+
+async def _cleanup_assets_case_duplicates(db) -> Result[dict[str, int]]:
+    """
+    Remove duplicate assets that differ only by filepath casing.
+
+    Keeps the most recent row per normalized filepath (mtime DESC, id DESC),
+    then deletes other rows. Intended for Windows environments where paths are
+    case-insensitive.
+    """
+    try:
+        rows_res = await db.aquery(
+            """
+            SELECT id, filepath, mtime
+            FROM assets
+            WHERE filepath IS NOT NULL AND filepath != ''
+            ORDER BY lower(filepath), mtime DESC, id DESC
+            """
+        )
+        if not rows_res.ok:
+            return Result.Err("DB_ERROR", rows_res.error or "Failed to scan assets for duplicates")
+        rows = rows_res.data or []
+        if not rows:
+            return Result.Ok({"groups": 0, "deleted": 0, "kept": 0})
+
+        keep_ids: set[int] = set()
+        delete_ids: list[int] = []
+        groups = 0
+        current_key = None
+        seen_in_group = 0
+
+        for row in rows:
+            try:
+                asset_id = int(row.get("id") or 0)
+            except Exception:
+                continue
+            if asset_id <= 0:
+                continue
+            key = str(row.get("filepath") or "").strip().lower()
+            if not key:
+                continue
+            if key != current_key:
+                if seen_in_group > 1:
+                    groups += 1
+                current_key = key
+                seen_in_group = 0
+                keep_ids.add(asset_id)
+                seen_in_group = 1
+            else:
+                delete_ids.append(asset_id)
+                seen_in_group += 1
+        if seen_in_group > 1:
+            groups += 1
+
+        if not delete_ids:
+            return Result.Ok({"groups": 0, "deleted": 0, "kept": len(keep_ids)})
+
+        placeholders = ",".join("?" for _ in delete_ids)
+        del_res = await db.aexecute(f"DELETE FROM assets WHERE id IN ({placeholders})", tuple(delete_ids))
+        if not del_res.ok:
+            return Result.Err("DB_ERROR", del_res.error or "Failed to delete duplicate assets")
+
+        return Result.Ok({"groups": int(groups), "deleted": len(delete_ids), "kept": len(keep_ids)})
+    except Exception as exc:
+        return Result.Err("DB_ERROR", safe_error_message(exc, "Failed to cleanup case duplicates"))
 
 
 def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
@@ -331,6 +397,74 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                 pass
             set_db_maintenance_active(False)
 
+    @routes.post("/mjr/am/db/cleanup-case-duplicates")
+    async def db_cleanup_case_duplicates(request: web.Request):
+        """
+        Cleanup historical duplicate assets caused by filepath case differences.
+        """
+        csrf = _csrf_error(request)
+        if csrf:
+            return _json_response(Result.Err("CSRF", csrf))
+
+        svc, error_result = await _require_services()
+        if error_result:
+            return _json_response(error_result)
+        db = svc.get("db") if isinstance(svc, dict) else None
+        if not db:
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Database service unavailable"))
+
+        # This maintenance action targets Windows case-insensitive filesystems.
+        if os.name != "nt":
+            return _json_response(
+                Result.Ok(
+                    {
+                        "ran": False,
+                        "reason": "non_windows",
+                        "groups": 0,
+                        "deleted": 0,
+                        "kept": 0,
+                    }
+                )
+            )
+
+        set_db_maintenance_active(True)
+        watcher_was_running = False
+        try:
+            watcher_was_running = await _stop_watcher_if_running(svc if isinstance(svc, dict) else None)
+            index_service = svc.get("index") if isinstance(svc, dict) else None
+            if index_service and hasattr(index_service, "stop_enrichment"):
+                try:
+                    await index_service.stop_enrichment(clear_queue=True)
+                except Exception:
+                    pass
+
+            async with db.atransaction(mode="immediate") as tx:
+                if not tx.ok:
+                    return _json_response(Result.Err("DB_ERROR", tx.error or "Failed to begin transaction"))
+                cleanup_res = await _cleanup_assets_case_duplicates(db)
+                if not cleanup_res.ok:
+                    return _json_response(cleanup_res)
+
+            if not tx.ok:
+                return _json_response(Result.Err("DB_ERROR", tx.error or "Commit failed"))
+
+            # Best-effort maintenance after cleanup.
+            try:
+                await db.aquery("PRAGMA optimize", ())
+            except Exception:
+                pass
+
+            payload = {"ran": True, **(cleanup_res.data or {})}
+            return _json_response(Result.Ok(payload))
+        except Exception as exc:
+            return _json_response(Result.Err("DB_ERROR", safe_error_message(exc, "Cleanup case-duplicates failed")))
+        finally:
+            try:
+                await _restart_watcher_if_needed(svc if isinstance(svc, dict) else None, watcher_was_running)
+            except Exception:
+                pass
+            set_db_maintenance_active(False)
+
     @routes.get("/mjr/am/db/backups")
     async def db_backups_list(_request: web.Request):
         """List archived DB backups (newest first)."""
@@ -404,7 +538,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
             if use_latest:
                 chosen = items[0]
             else:
-                chosen = next((x for x in items if str(x.get("name")) == requested_name), None)
+                chosen = next((x for x in items if str(x.get("name")) == requested_name), {})
                 if not chosen:
                     return _json_response(Result.Err("NOT_FOUND", f"Backup not found: {requested_name}"))
             src = _DB_ARCHIVE_DIR / str(chosen.get("name") or "")

@@ -3,7 +3,8 @@
  */
 
 import { APP_CONFIG, APP_DEFAULTS } from "./config.js";
-import { getSecuritySettings, setSecuritySettings, setProbeBackendMode, getOutputDirectorySetting, setOutputDirectorySetting, getWatcherStatus, toggleWatcher, getWatcherSettings, updateWatcherSettings, getRuntimeStatus } from "../api/client.js";
+import { getSecuritySettings, setSecuritySettings, setProbeBackendMode, getMetadataFallbackSettings, setMetadataFallbackSettings, getOutputDirectorySetting, setOutputDirectorySetting, getWatcherStatus, toggleWatcher, getWatcherSettings, updateWatcherSettings, getRuntimeStatus } from "../api/client.js";
+import { getSettingsApi } from "./comfyApiBridge.js";
 import { comfyToast } from "./toast.js";
 import { safeDispatchCustomEvent } from "../utils/events.js";
 import { t, initI18n, setLang, getCurrentLang, getSupportedLanguages } from "./i18n.js";
@@ -36,12 +37,13 @@ const DEFAULT_SETTINGS = {
         showDimensions: APP_DEFAULTS.GRID_SHOW_DETAILS_DIMENSIONS,
         showGenTime: APP_DEFAULTS.GRID_SHOW_DETAILS_GENTIME,
         showWorkflowDot: APP_DEFAULTS.GRID_SHOW_WORKFLOW_DOT,
-        videoHoverAutoplay: APP_DEFAULTS.GRID_VIDEO_HOVER_AUTOPLAY,
+        videoAutoplayMode: APP_DEFAULTS.GRID_VIDEO_AUTOPLAY_MODE,
         starColor: APP_DEFAULTS.BADGE_STAR_COLOR,
         badgeImageColor: APP_DEFAULTS.BADGE_IMAGE_COLOR,
         badgeVideoColor: APP_DEFAULTS.BADGE_VIDEO_COLOR,
         badgeAudioColor: APP_DEFAULTS.BADGE_AUDIO_COLOR,
         badgeModel3dColor: APP_DEFAULTS.BADGE_MODEL3D_COLOR,
+        badgeDuplicateAlertColor: APP_DEFAULTS.BADGE_DUPLICATE_ALERT_COLOR,
     },
     infiniteScroll: {
         enabled: APP_DEFAULTS.INFINITE_SCROLL_ENABLED,
@@ -94,6 +96,10 @@ const DEFAULT_SETTINGS = {
     },
     probeBackend: {
         mode: "auto",
+    },
+    metadataFallback: {
+        image: true,
+        media: true,
     },
     paths: {
         outputDirectory: "",
@@ -180,12 +186,16 @@ const detectGridSizePreset = (minSize) => {
     return "medium";
 };
 
+const _isUnsafeMergeKey = (key) =>
+    key === "__proto__" || key === "prototype" || key === "constructor";
+
 const deepMerge = (base, next) => {
     const output = { ...base };
     if (!next || typeof next !== "object") {
         return output;
     }
     Object.keys(next).forEach((key) => {
+        if (_isUnsafeMergeKey(key)) return;
         const value = next[key];
         if (value && typeof value === "object" && !Array.isArray(value)) {
             output[key] = deepMerge(base[key] || {}, value);
@@ -244,13 +254,13 @@ function ensureRuntimeStatusDashboard() {
 
 async function refreshRuntimeStatusDashboard() {
     const el = ensureRuntimeStatusDashboard();
-    if (!el) return;
+    if (!el) return false;
     try {
         const res = await getRuntimeStatus();
         if (!res?.ok || !res?.data) {
             el.textContent = "Runtime: unavailable";
             el.title = "Runtime metrics unavailable";
-            return;
+            return true;
         }
         const db = res.data.db || {};
         const idx = res.data.index || {};
@@ -260,18 +270,44 @@ async function refreshRuntimeStatusDashboard() {
         const pending = Number(w.pending_files || 0);
         el.textContent = `DB active: ${active} | Enrich Q: ${enrichQ} | Watcher pending: ${pending}`;
         el.title = `Runtime Metrics\nDB active connections: ${active}\nEnrichment queue: ${enrichQ}\nWatcher pending files: ${pending}`;
+        return true;
     } catch {
         el.textContent = "Runtime: unavailable";
         el.title = "Runtime metrics unavailable";
+        return true;
     }
 }
 
 export function startRuntimeStatusDashboard() {
     try {
         refreshRuntimeStatusDashboard().catch(() => {});
+        if (window.__MJR_RUNTIME_STATUS_INFLIGHT__ == null) {
+            window.__MJR_RUNTIME_STATUS_INFLIGHT__ = false;
+        }
+        if (window.__MJR_RUNTIME_STATUS_MISS_COUNT__ == null) {
+            window.__MJR_RUNTIME_STATUS_MISS_COUNT__ = 0;
+        }
         if (!window.__MJR_RUNTIME_STATUS_INTERVAL__) {
             window.__MJR_RUNTIME_STATUS_INTERVAL__ = setInterval(() => {
-                refreshRuntimeStatusDashboard().catch(() => {});
+                if (window.__MJR_RUNTIME_STATUS_INFLIGHT__) return;
+                window.__MJR_RUNTIME_STATUS_INFLIGHT__ = true;
+                refreshRuntimeStatusDashboard()
+                    .then((visible) => {
+                        if (visible) {
+                            window.__MJR_RUNTIME_STATUS_MISS_COUNT__ = 0;
+                            return;
+                        }
+                        window.__MJR_RUNTIME_STATUS_MISS_COUNT__ = Number(window.__MJR_RUNTIME_STATUS_MISS_COUNT__ || 0) + 1;
+                        // Stop background polling if panel is absent for ~30s.
+                        if (window.__MJR_RUNTIME_STATUS_MISS_COUNT__ >= 10 && window.__MJR_RUNTIME_STATUS_INTERVAL__) {
+                            clearInterval(window.__MJR_RUNTIME_STATUS_INTERVAL__);
+                            window.__MJR_RUNTIME_STATUS_INTERVAL__ = null;
+                        }
+                    })
+                    .catch(() => {})
+                    .finally(() => {
+                        window.__MJR_RUNTIME_STATUS_INFLIGHT__ = false;
+                    });
             }, 3000);
         }
     } catch {}
@@ -367,7 +403,18 @@ const applySettingsToConfig = (settings) => {
     APP_CONFIG.GRID_SHOW_DETAILS_DIMENSIONS = !!(settings.grid?.showDimensions ?? APP_DEFAULTS.GRID_SHOW_DETAILS_DIMENSIONS);
     APP_CONFIG.GRID_SHOW_DETAILS_GENTIME = !!(settings.grid?.showGenTime ?? APP_DEFAULTS.GRID_SHOW_DETAILS_GENTIME);
     APP_CONFIG.GRID_SHOW_WORKFLOW_DOT = !!(settings.grid?.showWorkflowDot ?? APP_DEFAULTS.GRID_SHOW_WORKFLOW_DOT);
-    APP_CONFIG.GRID_VIDEO_HOVER_AUTOPLAY = !!(settings.grid?.videoHoverAutoplay ?? APP_DEFAULTS.GRID_VIDEO_HOVER_AUTOPLAY);
+    // Video autoplay mode: migrate old boolean → new tri-state
+    {
+        let mode = settings.grid?.videoAutoplayMode ?? APP_DEFAULTS.GRID_VIDEO_AUTOPLAY_MODE;
+        // Backward compat: old boolean "videoHoverAutoplay" → "hover"
+        if (mode === undefined || mode === null) {
+            mode = settings.grid?.videoHoverAutoplay ? "hover" : "off";
+        }
+        if (mode === true) mode = "hover";
+        if (mode === false) mode = "off";
+        if (mode !== "hover" && mode !== "always") mode = "off";
+        APP_CONFIG.GRID_VIDEO_AUTOPLAY_MODE = mode;
+    }
 
     const _safeColor = (v, fallback) => {
         let c = String(v || "").trim();
@@ -379,6 +426,7 @@ const applySettingsToConfig = (settings) => {
     APP_CONFIG.BADGE_VIDEO_COLOR = _safeColor(settings.grid?.badgeVideoColor, APP_DEFAULTS.BADGE_VIDEO_COLOR);
     APP_CONFIG.BADGE_AUDIO_COLOR = _safeColor(settings.grid?.badgeAudioColor, APP_DEFAULTS.BADGE_AUDIO_COLOR);
     APP_CONFIG.BADGE_MODEL3D_COLOR = _safeColor(settings.grid?.badgeModel3dColor, APP_DEFAULTS.BADGE_MODEL3D_COLOR);
+    APP_CONFIG.BADGE_DUPLICATE_ALERT_COLOR = _safeColor(settings.grid?.badgeDuplicateAlertColor, APP_DEFAULTS.BADGE_DUPLICATE_ALERT_COLOR);
     APP_CONFIG.UI_CARD_HOVER_COLOR = _safeColor(settings.ui?.cardHoverColor, APP_DEFAULTS.UI_CARD_HOVER_COLOR);
     APP_CONFIG.UI_CARD_SELECTION_COLOR = _safeColor(settings.ui?.cardSelectionColor, APP_DEFAULTS.UI_CARD_SELECTION_COLOR);
     APP_CONFIG.UI_RATING_COLOR = _safeColor(settings.ui?.ratingColor, APP_DEFAULTS.UI_RATING_COLOR);
@@ -392,6 +440,7 @@ const applySettingsToConfig = (settings) => {
             root.style.setProperty("--mjr-badge-video", APP_CONFIG.BADGE_VIDEO_COLOR);
             root.style.setProperty("--mjr-badge-audio", APP_CONFIG.BADGE_AUDIO_COLOR);
             root.style.setProperty("--mjr-badge-model3d", APP_CONFIG.BADGE_MODEL3D_COLOR);
+            root.style.setProperty("--mjr-badge-duplicate-alert", APP_CONFIG.BADGE_DUPLICATE_ALERT_COLOR);
             root.style.setProperty("--mjr-card-hover-color", APP_CONFIG.UI_CARD_HOVER_COLOR);
             root.style.setProperty("--mjr-card-selection-color", APP_CONFIG.UI_CARD_SELECTION_COLOR);
             root.style.setProperty("--mjr-rating-color", APP_CONFIG.UI_RATING_COLOR);
@@ -478,6 +527,7 @@ export const registerMajoorSettings = (app, onApplied) => {
         "grid.badgeVideoColor",
         "grid.badgeAudioColor",
         "grid.badgeModel3dColor",
+        "grid.badgeDuplicateAlertColor",
         "ui.cardHoverColor",
         "ui.cardSelectionColor",
         "ui.ratingColor",
@@ -534,13 +584,7 @@ export const registerMajoorSettings = (app, onApplied) => {
     }
 
     const tryRegister = () => {
-        // ComfyUI API variants (legacy/new UI builds): try multiple known paths.
-        const settingsApi =
-            app?.ui?.settings ||
-            app?.settings ||
-            app?.ui?.api?.settings ||
-            app?.api?.settings ||
-            null;
+        const settingsApi = getSettingsApi(app);
         const addSetting = settingsApi?.addSetting;
         if (typeof addSetting !== "function") {
             try {
@@ -898,6 +942,21 @@ export const registerMajoorSettings = (app, onApplied) => {
             },
         });
 
+        safeAddSetting({
+            id: `${SETTINGS_PREFIX}.Badges.DuplicateAlertColor`,
+            category: colorCat(t("setting.badgeDuplicateAlertColor", "Duplicate alert badge color")),
+            name: t("setting.badgeDuplicateAlertColor", "Majoor: Duplicate alert badge color"),
+            tooltip: t("setting.badgeDuplicateAlertColor.tooltip", "Color for duplicate extension badges (PNG+, JPG+, etc)."),
+            type: "color",
+            defaultValue: normalizeHexColor(settings.grid?.badgeDuplicateAlertColor, APP_DEFAULTS.BADGE_DUPLICATE_ALERT_COLOR),
+            onChange: (value) => {
+                settings.grid.badgeDuplicateAlertColor = normalizeHexColor(value, APP_DEFAULTS.BADGE_DUPLICATE_ALERT_COLOR);
+                saveMajoorSettings(settings);
+                applySettingsToConfig(settings);
+                notifyApplied("grid.badgeDuplicateAlertColor");
+            },
+        });
+
         // ──────────────────────────────────────────────
         // Section: Grid
         // ──────────────────────────────────────────────
@@ -982,21 +1041,49 @@ export const registerMajoorSettings = (app, onApplied) => {
         });
 
         safeAddSetting({
-            id: `${SETTINGS_PREFIX}.Grid.VideoHoverAutoplay`,
-            category: cat(t("cat.grid"), t("setting.grid.videoHoverAutoplay.name", "Video hover autoplay").replace("Majoor: ", "")),
-            name: t("setting.grid.videoHoverAutoplay.name", "Majoor: Video hover autoplay"),
+            id: `${SETTINGS_PREFIX}.Grid.VideoAutoplayMode`,
+            category: cat(t("cat.grid"), t("setting.grid.videoAutoplayMode.name", "Video autoplay").replace("Majoor: ", "")),
+            name: t("setting.grid.videoAutoplayMode.name", "Majoor: Video autoplay"),
             tooltip: t(
-                "setting.grid.videoHoverAutoplay.desc",
-                "Play video thumbnails only while hovered and visible in the grid."
+                "setting.grid.videoAutoplayMode.desc",
+                "Controls video thumbnail playback in the grid. Off: static frame. Hover: play on mouse hover. Always: loop while visible."
             ),
-            type: "boolean",
-            defaultValue: !!(settings.grid?.videoHoverAutoplay ?? APP_DEFAULTS.GRID_VIDEO_HOVER_AUTOPLAY),
+            type: "combo",
+            defaultValue: (() => {
+                let mode = settings.grid?.videoAutoplayMode;
+                // Backward compat from old boolean
+                if (mode === undefined || mode === null) {
+                    mode = settings.grid?.videoHoverAutoplay ? "hover" : "off";
+                }
+                if (mode === true) mode = "hover";
+                if (mode === false) mode = "off";
+                if (mode !== "hover" && mode !== "always") mode = "off";
+                const labels = {
+                    off: t("setting.grid.videoAutoplayMode.off", "Off"),
+                    hover: t("setting.grid.videoAutoplayMode.hover", "Hover"),
+                    always: t("setting.grid.videoAutoplayMode.always", "Always"),
+                };
+                return labels[mode] || labels.off;
+            })(),
+            options: [
+                t("setting.grid.videoAutoplayMode.off", "Off"),
+                t("setting.grid.videoAutoplayMode.hover", "Hover"),
+                t("setting.grid.videoAutoplayMode.always", "Always"),
+            ],
             onChange: (value) => {
+                const labelToMode = {
+                    [t("setting.grid.videoAutoplayMode.off", "Off")]: "off",
+                    [t("setting.grid.videoAutoplayMode.hover", "Hover")]: "hover",
+                    [t("setting.grid.videoAutoplayMode.always", "Always")]: "always",
+                };
+                const mode = labelToMode[value] || "off";
                 settings.grid = settings.grid || {};
-                settings.grid.videoHoverAutoplay = !!value;
+                settings.grid.videoAutoplayMode = mode;
+                // Clean up legacy key
+                delete settings.grid.videoHoverAutoplay;
                 saveMajoorSettings(settings);
                 applySettingsToConfig(settings);
-                notifyApplied("grid.videoHoverAutoplay");
+                notifyApplied("grid.videoAutoplayMode");
             },
         });
 
@@ -1500,6 +1587,89 @@ export const registerMajoorSettings = (app, onApplied) => {
                 setProbeBackendMode(mode).catch(() => {});
             },
         });
+
+        safeAddSetting({
+            id: `${SETTINGS_PREFIX}.MetadataFallback.Image`,
+            category: cat(t("cat.advanced"), "Metadata"),
+            name: "Majoor: Metadata Fallback (Images)",
+            tooltip: "Enable Pillow fallback when ExifTool is missing or fails.",
+            type: "boolean",
+            defaultValue: settings.metadataFallback?.image ?? DEFAULT_SETTINGS.metadataFallback.image,
+            onChange: async (value) => {
+                const next = !!value;
+                const previous = !!(settings.metadataFallback?.image ?? DEFAULT_SETTINGS.metadataFallback.image);
+                settings.metadataFallback = settings.metadataFallback || {};
+                settings.metadataFallback.image = next;
+                saveMajoorSettings(settings);
+                notifyApplied("metadataFallback.image");
+                try {
+                    const res = await setMetadataFallbackSettings({
+                        image: next,
+                        media: settings.metadataFallback?.media ?? DEFAULT_SETTINGS.metadataFallback.media,
+                    });
+                    if (!res?.ok) throw new Error(res?.error || "Failed to update metadata fallback settings");
+                } catch (error) {
+                    settings.metadataFallback.image = previous;
+                    saveMajoorSettings(settings);
+                    notifyApplied("metadataFallback.image");
+                    comfyToast(error?.message || "Failed to update metadata fallback settings", "error");
+                }
+            },
+        });
+
+        safeAddSetting({
+            id: `${SETTINGS_PREFIX}.MetadataFallback.Media`,
+            category: cat(t("cat.advanced"), "Metadata"),
+            name: "Majoor: Metadata Fallback (Audio/Video)",
+            tooltip: "Enable hachoir fallback when ffprobe is missing or fails.",
+            type: "boolean",
+            defaultValue: settings.metadataFallback?.media ?? DEFAULT_SETTINGS.metadataFallback.media,
+            onChange: async (value) => {
+                const next = !!value;
+                const previous = !!(settings.metadataFallback?.media ?? DEFAULT_SETTINGS.metadataFallback.media);
+                settings.metadataFallback = settings.metadataFallback || {};
+                settings.metadataFallback.media = next;
+                saveMajoorSettings(settings);
+                notifyApplied("metadataFallback.media");
+                try {
+                    const res = await setMetadataFallbackSettings({
+                        image: settings.metadataFallback?.image ?? DEFAULT_SETTINGS.metadataFallback.image,
+                        media: next,
+                    });
+                    if (!res?.ok) throw new Error(res?.error || "Failed to update metadata fallback settings");
+                } catch (error) {
+                    settings.metadataFallback.media = previous;
+                    saveMajoorSettings(settings);
+                    notifyApplied("metadataFallback.media");
+                    comfyToast(error?.message || "Failed to update metadata fallback settings", "error");
+                }
+            },
+        });
+
+        try {
+            getMetadataFallbackSettings()
+                .then((res) => {
+                    if (!res?.ok || !res?.data?.prefs) return;
+                    const prefs = res.data.prefs || {};
+                    const image = !!(prefs.image ?? DEFAULT_SETTINGS.metadataFallback.image);
+                    const media = !!(prefs.media ?? DEFAULT_SETTINGS.metadataFallback.media);
+                    settings.metadataFallback = settings.metadataFallback || {};
+                    let changed = false;
+                    if (settings.metadataFallback.image !== image) {
+                        settings.metadataFallback.image = image;
+                        changed = true;
+                    }
+                    if (settings.metadataFallback.media !== media) {
+                        settings.metadataFallback.media = media;
+                        changed = true;
+                    }
+                    if (changed) {
+                        saveMajoorSettings(settings);
+                        notifyApplied("metadataFallback");
+                    }
+                })
+                .catch(() => {});
+        } catch {}
 
         safeAddSetting({
             id: `${SETTINGS_PREFIX}.Paths.OutputDirectory`,

@@ -28,6 +28,7 @@ dependencies = [
   "aiohttp>=3.8.0",
   "aiosqlite>=0.20.0",
   "pillow>=11.0.0",
+  "hachoir>=3.3.0",
   "send2trash>=1.8.0",
   "pywin32>=300; sys_platform == 'win32'",
   # Note: tkinter is required for native folder browser functionality
@@ -46,6 +47,20 @@ PublisherId = "majoor-waldi"
 DisplayName = "ComfyUI-Majoor-AssetsManager"
 Icon = "https://raw.githubusercontent.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/main/ressources/icon.png"
 includes = [] 
-# "requires-comfyui" = ">=1.0.0"  # ComfyUI version compatibility
+"requires-comfyui" = ">=0.13.0"
+
+[tool.black]
+line-length = 100
+target-version = ["py310", "py311", "py312", "py313"]
+include = '\.pyi?$'
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["mjr_am_backend", "mjr_am_shared", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
 
 

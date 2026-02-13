@@ -112,6 +112,31 @@ If dependencies are missing at startup, install them explicitly:
 python ComfyUI-Majoor-AssetsManager/scripts/install-requirements.py
 ```
 
+No dependency installation is executed automatically at import time.
+
+### Required Python Packages
+
+Runtime requirements are defined in `requirements.txt`:
+
+- `aiohttp>=3.8.0`
+- `aiosqlite>=0.20.0`
+- `pillow>=11.0.0`
+- `send2trash>=1.8.0`
+- `watchdog>=3.0.0`
+- `pywin32>=300` (Windows only)
+
+Install manually with one of:
+
+```bash
+pip install -r ComfyUI-Majoor-AssetsManager/requirements.txt
+```
+
+or
+
+```bash
+python ComfyUI-Majoor-AssetsManager/scripts/install-requirements.py
+```
+
 ### Tkinter Note (Embedded Python)
 The native folder picker requires built-in `tkinter`. On embedded Python builds (for example `python_embeded`), `tkinter` is often missing, so the UI falls back to manual path entry.
 
@@ -177,6 +202,37 @@ Package names can vary by distro (e.g. `perl-Image-ExifTool` on some).
   - to the ComfyUI canvas (staging/inject path),
   - or to your OS (single file or a ZIP for multi-selection).
 
+## Route Registration (Custom Nodes)
+
+To avoid duplicate middleware/route injection, use explicit initialization with an aiohttp app:
+
+```python
+from ComfyUI_Majoor_AssetsManager import init
+
+def setup_with_app(app):
+    init(app)
+```
+
+Auth-aware variant (recommended):
+
+```python
+from ComfyUI_Majoor_AssetsManager import register
+
+def setup_with_app(app, user_manager):
+    register(app, user_manager=user_manager)
+```
+
+Notes:
+- `register_routes(app)` is idempotent per app instance.
+- No `sys.modules` replacement is required.
+- Do not call both manual registration and another auto-registration path for the same app.
+
+### API Namespace & Versioning
+
+- Extension endpoints are namespaced under `/mjr/am/...` to avoid collisions with ComfyUI native APIs (for example `/api/assets/...`).
+- Versioned compatibility path is supported via middleware redirect: `/mjr/am/v1/...` -> `/mjr/am/...` (HTTP 308).
+- During startup, the extension performs a route-collision check against existing app routes and logs overlaps if detected.
+
 ## Hotkeys (high level)
 
 Hotkeys are ignored while typing inside inputs.
@@ -212,12 +268,33 @@ Remote access & API Token (new):
 
 This project supports Python 3.10 through 3.12, with upstream ComfyUI guidance recommending Python 3.13 (3.12 as the stable fallback). GitHub Actions now runs both `ci-python.yml` and `python-tests.yml` on `ubuntu-22.04` with `actions/setup-python@v4` targeting Python 3.12 so the runner closely matches the ComfyUI best-practice environment.
 
+ComfyUI compatibility baseline:
+- Minimum recommended ComfyUI: `0.13.0`
+- Tested frontend baseline: `1.38.x`
+- Older/development snapshots may break extension APIs; upgrade both ComfyUI backend and frontend together.
+
+API reference:
+- Full endpoint table: `docs/API_REFERENCE.md`
+
 Run tests across multiple Python versions locally with `tox` (requires those Python versions installed):
 
 ```bash
 pip install tox
 tox
 ```
+
+Frontend compatibility notes:
+- UI classes/components are namespaced with `mjr-am-*` to reduce CSS/JS collisions.
+- ComfyUI frontend API access is centralized in `js/app/comfyApiBridge.js` (API, settings, sidebar registration) for legacy/new frontend compatibility.
+- i18n detection supports legacy and newer ComfyUI frontend locale surfaces, with fallback:
+  1. Stored Majoor language
+  2. ComfyUI locale settings/runtime
+  3. Browser/document locale
+  4. `en-US`
+- Majoor API endpoints are namespaced under `/mjr/am/*`.
+- Frontend bundle hygiene checks:
+  - `npm run check:frontend-size`
+  - `npm run check:frontend-imports`
 - Auto-scan (on open / on startup)
 - Status poll interval
 - Sidebar position (left/right)
@@ -230,7 +307,9 @@ tox
 
 ## Environment Variables (backend)
 
-Both `MAJOOR_...` and `MJR_...` prefixes are used in this project. Where both variants exist, both are accepted for compatibility.
+Canonical namespace is now `MJR_AM_...` to avoid collisions with ComfyUI/global environment variables.
+
+Compatibility aliases are still accepted (`MAJOOR_...` and some `MJR_...` names), but new deployments should prefer `MJR_AM_...`.
 
 - `MAJOOR_OUTPUT_DIRECTORY` - override output directory
 - `MAJOOR_EXIFTOOL_PATH` / `MAJOOR_EXIFTOOL_BIN` - ExifTool path
@@ -348,6 +427,14 @@ Manual fallback (with ComfyUI stopped):
 python -m pytest -q
 ```
 
+Type/lint checks:
+
+```bash
+python -m mypy --config-file mypy.ini
+python -m ruff check mjr_am_backend mjr_am_shared tests
+python -m black --check mjr_am_backend mjr_am_shared tests
+```
+
 ### Tests (Windows)
 
 Batch runners generate both JUnit XML and a styled HTML report in `tests/__reports__/`:
@@ -375,12 +462,21 @@ pwsh -File scripts/make_release_zip.ps1
 
 ## Architecture
 
-- `backend/` - Python backend (routes + features)
+- `mjr_am_backend/` - Python backend (routes + features)
   - `features/index` (scan/search), `features/metadata` (extract), `features/tags` (sync), `features/collections`
   - `routes/handlers` (HTTP), `routes/core` (security/paths/response)
 - `js/` - frontend extension
   - `features/grid`, `features/panel`, `features/viewer`, `features/dnd`
   - `components` (Card/Viewer/Sidebar/menus), `app` (settings/bootstrap), `theme`
+
+## Upgrade Guide (Major ComfyUI Changes)
+
+When ComfyUI introduces major frontend/backend API changes:
+1. Update to a pinned ComfyUI stable tag first.
+2. Verify route registration and `/mjr/am/health` in the browser.
+3. Run compatibility tests (`tests/compat/*`) and full pytest.
+4. Check frontend bridge (`js/app/comfyApiBridge.js`) for API surface changes.
+5. Re-validate i18n + settings registration in UI.
 
 ## Viewer Roadmap (bigger items)
 

@@ -5,6 +5,7 @@ Simple, debug-friendly DI without framework magic.
 
 import asyncio
 from pathlib import Path
+from typing import Optional
 
 from .shared import Result, get_logger, log_success
 from .adapters.db.sqlite import Sqlite
@@ -31,7 +32,7 @@ from .config import (
 
 logger = get_logger(__name__)
 
-async def build_services(db_path: str = None) -> Result[dict]:
+async def build_services(db_path: Optional[str] = None) -> Result[dict]:
     """
     Build all services (DI container).
 
@@ -62,8 +63,8 @@ async def build_services(db_path: str = None) -> Result[dict]:
         return Result.Err(migrate_result.code or "DB_ERROR", f"Failed to initialize database: {migrate_result.error}")
 
     # Initialize adapters
-    exiftool = ExifTool(bin_name=EXIFTOOL_BIN, timeout=EXIFTOOL_TIMEOUT)
-    ffprobe = FFProbe(bin_name=FFPROBE_BIN, timeout=FFPROBE_TIMEOUT)
+    exiftool = ExifTool(bin_name=EXIFTOOL_BIN or "exiftool", timeout=EXIFTOOL_TIMEOUT)
+    ffprobe = FFProbe(bin_name=FFPROBE_BIN or "ffprobe", timeout=FFPROBE_TIMEOUT)
     settings_service = AppSettings(db)
 
     # Log tool availability
@@ -189,7 +190,9 @@ async def _create_watcher(index_service: IndexService) -> OutputWatcher:
     except Exception:
         scope_cfg = {"scope": "output", "custom_root_id": ""}
 
-    watch_paths = build_watch_paths(scope_cfg.get("scope"), scope_cfg.get("custom_root_id"))
+    scope = str((scope_cfg or {}).get("scope") or "output")
+    custom_root_id = (scope_cfg or {}).get("custom_root_id")
+    watch_paths = build_watch_paths(scope, custom_root_id)
 
     if watch_paths:
         loop = asyncio.get_event_loop()

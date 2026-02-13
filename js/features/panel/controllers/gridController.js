@@ -3,6 +3,23 @@ import { t } from "../../../app/i18n.js";
 export function createGridController({ gridContainer, loadAssets, loadAssetsFromList, getCollectionAssets, disposeGrid, getQuery, state }) {
     let _isReloading = false;
     let _pendingReload = false;
+    const RELOAD_WATCHDOG_MS = 30000;
+
+    const runWithWatchdog = async (promiseFactory, timeoutMs = RELOAD_WATCHDOG_MS) => {
+        let timer = null;
+        try {
+            const timeoutPromise = new Promise((_, reject) => {
+                timer = setTimeout(() => {
+                    const err = new Error(`Grid reload watchdog timeout (${timeoutMs}ms)`);
+                    err.name = "GridReloadTimeout";
+                    reject(err);
+                }, timeoutMs);
+            });
+            return await Promise.race([promiseFactory(), timeoutPromise]);
+        } finally {
+            if (timer) clearTimeout(timer);
+        }
+    };
 
     const runReloadOnce = async () => {
         // Expose the current query on the container so external listeners (ComfyUI executed events)
@@ -16,6 +33,11 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
         gridContainer.dataset.mjrFilterKind = state.kindFilter || "";
         gridContainer.dataset.mjrFilterWorkflowOnly = state.workflowOnly ? "1" : "0";
         gridContainer.dataset.mjrFilterMinRating = String(state.minRating || 0);
+        gridContainer.dataset.mjrFilterMinSizeMB = String(state.minSizeMB || 0);
+        gridContainer.dataset.mjrFilterMaxSizeMB = String(state.maxSizeMB || 0);
+        gridContainer.dataset.mjrFilterMinWidth = String(state.minWidth || 0);
+        gridContainer.dataset.mjrFilterMinHeight = String(state.minHeight || 0);
+        gridContainer.dataset.mjrFilterWorkflowType = String(state.workflowType || "");
         gridContainer.dataset.mjrFilterDateRange = state.dateRangeFilter || "";
         gridContainer.dataset.mjrFilterDateExact = state.dateExactFilter || "";
         gridContainer.dataset.mjrSort = state.sort || "mtime_desc";
@@ -82,7 +104,11 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
         try {
             while (_pendingReload) {
                 _pendingReload = false;
-                await runReloadOnce();
+                try {
+                    await runWithWatchdog(() => runReloadOnce());
+                } catch {
+                    // Keep UI responsive even if one reload got stuck.
+                }
             }
         } finally {
             _isReloading = false;

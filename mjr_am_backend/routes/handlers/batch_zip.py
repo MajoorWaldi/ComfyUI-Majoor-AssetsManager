@@ -101,7 +101,7 @@ def _cleanup_batch_zips() -> None:
             if created_at and now - created_at > _BATCH_TTL_SECONDS:
                 stale.append(token)
         for token in stale:
-            entry = _BATCH_CACHE.pop(token, None)
+            entry = _BATCH_CACHE.pop(token, {})
             path = entry.get("path") if isinstance(entry, dict) else None
             _release_token_lock(token)
             if isinstance(path, Path):
@@ -321,9 +321,16 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
 
                     try:
                         dt = time.localtime(float(getattr(st, "st_mtime", time.time())))
-                        date_time = tuple(int(x) for x in dt[:6])
+                        date_time = (
+                            int(dt[0]), int(dt[1]), int(dt[2]),
+                            int(dt[3]), int(dt[4]), int(dt[5]),
+                        )
                     except Exception:
-                        date_time = time.localtime(time.time())[:6]
+                        dt_now = time.localtime(time.time())
+                        date_time = (
+                            int(dt_now[0]), int(dt_now[1]), int(dt_now[2]),
+                            int(dt_now[3]), int(dt_now[4]), int(dt_now[5]),
+                        )
 
                     zi = zipfile.ZipInfo(filename=arc, date_time=date_time)
                     zi.compress_type = zipfile.ZIP_DEFLATED

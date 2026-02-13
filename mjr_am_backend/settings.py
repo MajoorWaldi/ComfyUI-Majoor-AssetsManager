@@ -16,6 +16,8 @@ logger = get_logger(__name__)
 
 _PROBE_BACKEND_KEY = "media_probe_backend"
 _OUTPUT_DIRECTORY_KEY = "output_directory_override"
+_METADATA_FALLBACK_IMAGE_KEY = "metadata_fallback_image"
+_METADATA_FALLBACK_MEDIA_KEY = "metadata_fallback_media"
 _SETTINGS_VERSION_KEY = "__settings_version"
 _VALID_PROBE_MODES = {"auto", "exiftool", "ffprobe", "both"}
 _SECURITY_PREFS_INFO: Mapping[str, dict[str, bool | str]] = {
@@ -60,6 +62,8 @@ class AppSettings:
         self._version_cached: int = 0
         self._version_cached_at: float = 0.0
         self._default_probe_mode = MEDIA_PROBE_BACKEND
+        self._default_metadata_fallback_image = True
+        self._default_metadata_fallback_media = True
 
     async def _read_setting(self, key: str) -> Optional[str]:
         result = await self._db.aquery("SELECT value FROM metadata WHERE key = ?", (key,))
@@ -206,6 +210,86 @@ class AppSettings:
                 return Result.Ok(normalized)
             return Result.Err("DB_ERROR", result.error or "Failed to persist probe backend")
 
+    async def get_metadata_fallback_prefs(self) -> dict[str, bool]:
+        """
+        Return fallback preferences for metadata extraction.
+
+        - image: Pillow-based fallback for image metadata
+        - media: hachoir-based fallback for audio/video metadata
+        """
+        async with self._lock:
+            current_version = await self._get_settings_version()
+            out: dict[str, bool] = {}
+            defaults = {
+                "image": self._default_metadata_fallback_image,
+                "media": self._default_metadata_fallback_media,
+            }
+            key_map = {
+                "image": _METADATA_FALLBACK_IMAGE_KEY,
+                "media": _METADATA_FALLBACK_MEDIA_KEY,
+            }
+            for logical_key, storage_key in key_map.items():
+                cached = self._cache.get(storage_key)
+                if cached is not None:
+                    try:
+                        ts = float(self._cache_at.get(storage_key) or 0.0)
+                    except Exception:
+                        ts = 0.0
+                    cached_ver = int(self._cache_version.get(storage_key) or 0)
+                    if cached_ver == int(current_version or 0) and ts and (time.monotonic() - ts) < self._cache_ttl_s:
+                        out[logical_key] = parse_bool(cached, defaults[logical_key])
+                        continue
+                raw = await self._read_setting(storage_key)
+                parsed = parse_bool(raw, defaults[logical_key]) if raw is not None else defaults[logical_key]
+                out[logical_key] = parsed
+                self._cache[storage_key] = "1" if parsed else "0"
+                self._cache_at[storage_key] = time.monotonic()
+                self._cache_version[storage_key] = int(current_version or 0)
+            return out
+
+    async def set_metadata_fallback_prefs(
+        self,
+        *,
+        image: Any = None,
+        media: Any = None,
+    ) -> Result[dict[str, bool]]:
+        """
+        Persist metadata fallback preferences and bump settings version.
+        """
+        to_write: dict[str, bool] = {}
+        if image is not None:
+            to_write[_METADATA_FALLBACK_IMAGE_KEY] = parse_bool(image, self._default_metadata_fallback_image)
+        if media is not None:
+            to_write[_METADATA_FALLBACK_MEDIA_KEY] = parse_bool(media, self._default_metadata_fallback_media)
+        if not to_write:
+            return Result.Err("INVALID_INPUT", "No metadata fallback settings provided")
+
+        async with self._lock:
+            for key, value in to_write.items():
+                res = await self._write_setting(key, "1" if value else "0")
+                if not res.ok:
+                    return Result.Err("DB_ERROR", res.error or f"Failed to persist {key}")
+
+            bump = await self._bump_settings_version_locked()
+            if not bump.ok:
+                try:
+                    logger.warning("Failed to bump settings version: %s", bump.error)
+                except Exception:
+                    pass
+
+            current_version = int(bump.data or await self._get_settings_version() or 0)
+            for key, value in to_write.items():
+                self._cache[key] = "1" if value else "0"
+                self._cache_at[key] = time.monotonic()
+                self._cache_version[key] = current_version
+
+            return Result.Ok(
+                {
+                    "image": parse_bool(self._cache.get(_METADATA_FALLBACK_IMAGE_KEY), self._default_metadata_fallback_image),
+                    "media": parse_bool(self._cache.get(_METADATA_FALLBACK_MEDIA_KEY), self._default_metadata_fallback_media),
+                }
+            )
+
     async def get_output_directory(self) -> str | None:
         """Return persisted output directory override, or None when unset."""
         async with self._lock:
@@ -213,7 +297,6 @@ class AppSettings:
             if not raw:
                 return None
             try:
-                import os
                 from pathlib import Path
                 return str(Path(raw).expanduser().resolve())
             except Exception:

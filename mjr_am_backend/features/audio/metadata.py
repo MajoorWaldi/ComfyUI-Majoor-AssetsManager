@@ -5,7 +5,7 @@ Audio metadata/geninfo extraction helpers.
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, List
 
 from ...shared import ErrorCode, Result
 from ..metadata.parsing_utils import (
@@ -134,8 +134,8 @@ def extract_audio_metadata(
     }
 
     try:
-        audio_stream = {}
-        fmt = {}
+        audio_stream: Dict[str, Any] = {}
+        fmt: Dict[str, Any] = {}
         if isinstance(ffprobe_data, dict):
             audio_stream = ffprobe_data.get("audio_stream") or {}
             fmt = ffprobe_data.get("format") or {}
@@ -170,11 +170,13 @@ def extract_audio_metadata(
             if metadata["quality"] != "full":
                 metadata["quality"] = "partial"
 
-        text_candidates = []
+        text_candidates: List[str] = []
         if isinstance(exif_data, dict):
             text_candidates.extend(v for v in exif_data.values() if isinstance(v, str))
         if isinstance(fmt, dict) and isinstance(fmt.get("tags"), dict):
-            text_candidates.extend(v for v in fmt.get("tags").values() if isinstance(v, str))
+            tags_dict = fmt.get("tags")
+            if isinstance(tags_dict, dict):
+                text_candidates.extend(v for v in tags_dict.values() if isinstance(v, str))
         for text in text_candidates:
             t = str(text or "").strip()
             if t.startswith("{") or t.startswith("["):

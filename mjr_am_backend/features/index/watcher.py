@@ -11,7 +11,7 @@ import time
 from collections import deque
 from pathlib import Path
 from threading import Lock
-from typing import Deque, Dict, Set, Tuple, Optional, Callable, Awaitable
+from typing import Deque, Dict, Set, Tuple, Optional, Callable, Awaitable, Coroutine, Any, cast
 
 from watchdog.observers import Observer
 from watchdog.events import (
@@ -299,7 +299,8 @@ class DebouncedWatchHandler(FileSystemEventHandler):
             return
         key = self._normalize_path(path)
         try:
-            asyncio.run_coroutine_threadsafe(self._on_files_removed([key]), self._loop)
+            coro = cast(Coroutine[Any, Any, None], self._on_files_removed([key]))
+            asyncio.run_coroutine_threadsafe(coro, self._loop)
         except Exception:
             return
 
@@ -320,7 +321,8 @@ class DebouncedWatchHandler(FileSystemEventHandler):
         # If extension changed from supported->unsupported, treat as deletion.
         if src_ok and not dst_ok and self._on_files_removed:
             try:
-                asyncio.run_coroutine_threadsafe(self._on_files_removed([src_norm]), self._loop)
+                coro = cast(Coroutine[Any, Any, None], self._on_files_removed([src_norm]))
+                asyncio.run_coroutine_threadsafe(coro, self._loop)
             except Exception:
                 pass
             return
@@ -332,7 +334,8 @@ class DebouncedWatchHandler(FileSystemEventHandler):
 
         if self._on_files_moved:
             try:
-                asyncio.run_coroutine_threadsafe(self._on_files_moved([(src_norm, dst_norm)]), self._loop)
+                coro = cast(Coroutine[Any, Any, None], self._on_files_moved([(src_norm, dst_norm)]))
+                asyncio.run_coroutine_threadsafe(coro, self._loop)
                 return
             except Exception:
                 pass
@@ -341,7 +344,8 @@ class DebouncedWatchHandler(FileSystemEventHandler):
         self._handle_file(dst_norm)
         if self._on_files_removed:
             try:
-                asyncio.run_coroutine_threadsafe(self._on_files_removed([src_norm]), self._loop)
+                coro = cast(Coroutine[Any, Any, None], self._on_files_removed([src_norm]))
+                asyncio.run_coroutine_threadsafe(coro, self._loop)
             except Exception:
                 pass
 
@@ -530,7 +534,7 @@ class OutputWatcher:
         self._index_callback = index_callback
         self._remove_callback = remove_callback
         self._move_callback = move_callback
-        self._observer: Optional[Observer] = None
+        self._observer: Optional[Any] = None
         self._handler: Optional[DebouncedWatchHandler] = None
         self._watched_paths: Dict[str, dict] = {}  # watch_key -> {path, source, root_id, watch}
         self._lock = Lock()
@@ -791,7 +795,7 @@ class OutputWatcher:
                     break
 
             if to_remove:
-                entry = self._watched_paths.pop(to_remove, None) or {}
+                entry = self._watched_paths.pop(to_remove, {"path": None, "source": None, "root_id": None, "watch": None})
                 try:
                     if self._observer and entry.get("watch"):
                         self._observer.unschedule(entry.get("watch"))

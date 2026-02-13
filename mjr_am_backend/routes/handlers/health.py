@@ -248,6 +248,7 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         probe_mode = MEDIA_PROBE_BACKEND
         output_root = await _runtime_output_root(svc)
         
+        settings_service = None
         if svc:
             settings_service = svc.get("settings")
             if settings_service:
@@ -262,6 +263,11 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
             "output_directory": output_root,
             "tool_paths": get_tool_paths(),
             "media_probe_backend": probe_mode,
+            "metadata_fallback": (
+                await settings_service.get_metadata_fallback_prefs()
+                if (svc and settings_service)
+                else {"image": True, "media": True}
+            ),
         }))
 
     @routes.get("/mjr/am/settings/output-directory")
@@ -330,6 +336,50 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         if result.ok:
             return _json_response(Result.Ok({"media_probe_backend": result.data}))
         return _json_response(result)
+
+    @routes.get("/mjr/am/settings/metadata-fallback")
+    async def get_metadata_fallback_settings(request):
+        svc, error_result = await _require_services()
+        if error_result:
+            return _json_response(error_result)
+
+        settings_service = svc.get("settings")
+        if not settings_service:
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Settings service unavailable"))
+
+        prefs = await settings_service.get_metadata_fallback_prefs()
+        return _json_response(Result.Ok({"prefs": prefs}))
+
+    @routes.post("/mjr/am/settings/metadata-fallback")
+    async def update_metadata_fallback_settings(request):
+        csrf = _csrf_error(request)
+        if csrf:
+            return _json_response(Result.Err(ErrorCode.CSRF, csrf))
+
+        svc, error_result = await _require_services()
+        if error_result:
+            return _json_response(error_result)
+
+        settings_service = svc.get("settings")
+        if not settings_service:
+            return _json_response(Result.Err(ErrorCode.SERVICE_UNAVAILABLE, "Settings service unavailable"))
+
+        body_res = await _read_json(request)
+        if not body_res.ok:
+            return _json_response(body_res)
+        body = body_res.data or {}
+
+        image = body.get("image", None)
+        media = body.get("media", None)
+        if image is None and media is None:
+            prefs = body.get("prefs") if isinstance(body.get("prefs"), dict) else {}
+            image = prefs.get("image", None) if isinstance(prefs, dict) else None
+            media = prefs.get("media", None) if isinstance(prefs, dict) else None
+
+        result = await settings_service.set_metadata_fallback_prefs(image=image, media=media)
+        if not result.ok:
+            return _json_response(result)
+        return _json_response(Result.Ok({"prefs": result.data or {}}))
 
     @routes.get("/mjr/am/settings/security")
     async def get_security_settings(request):

@@ -10,7 +10,7 @@ from __future__ import annotations
 import os
 from collections import deque
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, cast
 
 from ...shared import Result, get_logger
 
@@ -680,7 +680,7 @@ def _extract_lyrics_from_prompt_nodes(nodes_by_id: Dict[str, Dict[str, Any]]) ->
         is_acestep_task = ("acestep15tasktextencode" in ct) or ("acesteptasktextencode" in ct)
 
         lyrics = None
-        lyric_keys = ("lyrics", "lyric", "lyric_text", "text_lyrics")
+        lyric_keys: Tuple[str, ...] = ("lyrics", "lyric", "lyric_text", "text_lyrics")
         # ACEStep task encoders often store the full song text in a generic textbox.
         if is_acestep_task:
             lyric_keys = ("lyrics", "lyric", "lyric_text", "text_lyrics", "task_text", "task", "text")
@@ -1392,7 +1392,10 @@ def _detect_input_role(nodes_by_id: Dict[str, Any], subject_node_id: str) -> str
             
             for k, v in ins.items():
                 if _is_link(v):
-                    src_id, _ = _resolve_link(v)
+                    resolved = _resolve_link(v)
+                    if not resolved:
+                        continue
+                    src_id, _ = resolved
                     if str(src_id) in frontier:
                         linked = True
                         hit_input_name = str(k).lower()
@@ -1826,7 +1829,7 @@ def _normalize_graph_input(prompt_graph: Any, workflow: Any) -> Optional[Dict[st
             if isinstance(node, dict):
                 node_id = str(node.get("id"))
                 # Convert LiteGraph node to prompt-graph-like format
-                converted = {
+                converted: Dict[str, Any] = {
                     "class_type": node.get("type"),
                     "type": node.get("type"),  # Keep both for compatibility
                     "id": node.get("id"),
@@ -1868,25 +1871,27 @@ def _normalize_graph_input(prompt_graph: Any, workflow: Any) -> Optional[Dict[st
                                 widget_idx += 1
                 elif isinstance(raw_inputs, dict):
                     # Already in dict format (shouldn't happen for LiteGraph but handle it)
-                    converted["inputs"] = raw_inputs
+                    converted["inputs"] = cast(Dict[str, Any], raw_inputs)
                 
                 # Handle widgets_values as dict (VHS and some other nodes)
                 if isinstance(widgets_values, dict):
                     for k, v in widgets_values.items():
-                        if k not in converted["inputs"]:
-                            converted["inputs"][k] = v
+                        converted_inputs = converted.get("inputs")
+                        if isinstance(converted_inputs, dict) and k not in converted_inputs:
+                            converted_inputs[k] = v
                 
                 # Also copy widgets_values to inputs if they have meaningful names
                 # This helps with nodes that have prompts in widgets but no widget definition
                 if widgets_list:
                     # For text encoder nodes, widgets_values[0] is usually the text
                     node_type_lower = _lower(node.get("type"))
-                    if "text" not in converted["inputs"]:
+                    converted_inputs = converted.get("inputs")
+                    if isinstance(converted_inputs, dict) and "text" not in converted_inputs:
                         if any(x in node_type_lower for x in ["primitive", "string", "text", "encode"]):
                             for wv in widgets_list:
                                 if isinstance(wv, str) and len(wv.strip()) > 10:
-                                    converted["inputs"]["text"] = wv
-                                    converted["inputs"]["value"] = wv
+                                    converted_inputs["text"] = wv
+                                    converted_inputs["value"] = wv
                                     break
                 
                 nodes_by_id[node_id] = converted

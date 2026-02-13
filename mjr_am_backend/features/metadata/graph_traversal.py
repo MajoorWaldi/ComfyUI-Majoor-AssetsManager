@@ -10,7 +10,7 @@ how deeply it is tucked in.
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
-from typing import Any, Dict, Iterator, Set
+from typing import Any, Dict, Iterator, Set, cast
 
 
 def iter_nested_dicts(obj: Any, *, _seen: Set[int] | None = None) -> Iterator[Dict[str, Any]]:
@@ -30,7 +30,7 @@ def iter_nested_dicts(obj: Any, *, _seen: Set[int] | None = None) -> Iterator[Di
     _seen.add(obj_id)
 
     if isinstance(obj, Mapping):
-        yield obj
+        yield cast(Dict[str, Any], obj)
         for value in obj.values():
             yield from iter_nested_dicts(value, _seen=_seen)
     elif isinstance(obj, Iterable) and not isinstance(obj, (str, bytes, bytearray)):

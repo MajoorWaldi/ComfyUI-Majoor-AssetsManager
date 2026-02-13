@@ -5,7 +5,26 @@
 /**
  * Create file type badge (overlaid on thumbnail)
  */
-export function createFileBadge(filename, kind, nameCollision = false) {
+function _buildCollisionTitle({ ext = "", filename = "", count = 0, paths = [] } = {}) {
+    const safeExt = String(ext || "").trim();
+    const safeName = String(filename || "").trim();
+    const n = Math.max(0, Number(count) || 0);
+    const list = Array.isArray(paths) ? paths.map((p) => String(p || "").trim()).filter(Boolean) : [];
+    if (n < 2) return `${safeExt} file`;
+    const lines = [
+        `${safeExt}+ name collision in current view (${n})`,
+    ];
+    if (safeName) lines.push(`Name: ${safeName}`);
+    if (list.length) {
+        lines.push("Paths:");
+        for (const p of list.slice(0, 4)) lines.push(`- ${p}`);
+        if (list.length > 4) lines.push(`- ... +${list.length - 4} more`);
+    }
+    lines.push("Click to select collisions in current view");
+    return lines.join("\n");
+}
+
+export function createFileBadge(filename, kind, nameCollision = false, collisionMeta = null) {
     const badge = document.createElement("div");
     badge.className = "mjr-file-badge";
 
@@ -39,8 +58,18 @@ export function createFileBadge(filename, kind, nameCollision = false) {
         ? `var(${cssVar}, #607D8B)`
         : "#607D8B";
 
+    const alertBg = "var(--mjr-badge-duplicate-alert, #ff1744)";
+    const normalBg = bgColor;
+    const currentBg = nameCollision ? alertBg : normalBg;
     badge.textContent = ext + (nameCollision ? "+" : "");
-    badge.title = nameCollision ? `${ext} file (duplicate filename in view)` : `${ext} file`;
+    badge.title = nameCollision
+        ? _buildCollisionTitle({
+            ext,
+            filename,
+            count: collisionMeta?.count,
+            paths: collisionMeta?.paths,
+        })
+        : `${ext} file`;
     badge.style.cssText = `
         position: absolute;
         top: 6px;
@@ -49,7 +78,7 @@ export function createFileBadge(filename, kind, nameCollision = false) {
         border-radius: 4px;
         font-size: 10px;
         font-weight: 700;
-        background: ${bgColor};
+        background: ${currentBg};
         opacity: 0.85;
         color: white;
         text-transform: uppercase;
@@ -57,16 +86,32 @@ export function createFileBadge(filename, kind, nameCollision = false) {
         z-index: 10;
         letter-spacing: 0.5px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        cursor: ${nameCollision ? "pointer" : "default"};
     `;
+    try {
+        badge.dataset.mjrBadgeBg = normalBg;
+    } catch {}
 
     return badge;
 }
 
-export function setFileBadgeCollision(badgeEl, nameCollision) {
+export function setFileBadgeCollision(badgeEl, nameCollision, collisionMeta = null) {
     if (!badgeEl) return;
     try {
         const ext = badgeEl.dataset?.mjrExt || "";
+        const normalBg = badgeEl.dataset?.mjrBadgeBg || "var(--mjr-badge-image, #607D8B)";
+        const alertBg = "var(--mjr-badge-duplicate-alert, #ff1744)";
         badgeEl.textContent = String(ext || "") + (nameCollision ? "+" : "");
+        badgeEl.title = nameCollision
+            ? _buildCollisionTitle({
+                ext,
+                filename: collisionMeta?.filename || "",
+                count: collisionMeta?.count,
+                paths: collisionMeta?.paths,
+            })
+            : `${ext} file`;
+        badgeEl.style.background = nameCollision ? alertBg : normalBg;
+        badgeEl.style.cursor = nameCollision ? "pointer" : "default";
     } catch {}
 }
 

@@ -198,14 +198,14 @@ class FFProbe:
             Dict mapping file path to Result with metadata
         """
         if not self._available:
-            err = Result.Err(ErrorCode.TOOL_MISSING, "ffprobe not found in PATH", quality="none")
+            err: Result[dict] = Result.Err(ErrorCode.TOOL_MISSING, "ffprobe not found in PATH", quality="none")
             return {str(p): err for p in paths}
 
         if not paths:
             return {}
 
         from concurrent.futures import ThreadPoolExecutor, as_completed
-        results = {}
+        results: Dict[str, Result[dict]] = {}
 
         # Use thread pool for parallel execution (I/O bound)
         max_workers = min(self._max_workers, len(paths))
@@ -249,10 +249,11 @@ class FFProbe:
         """
         result = self.read(path)
         if not result.ok:
-            return result
+            return Result.Err(result.code or ErrorCode.FFPROBE_ERROR, result.error or "ffprobe failed")
 
         # Try format duration first
-        format_info = result.data.get("format", {})
+        data = result.data if isinstance(result.data, dict) else {}
+        format_info = data.get("format", {})
         duration_str = format_info.get("duration")
 
         if duration_str:
@@ -262,7 +263,7 @@ class FFProbe:
                 pass
 
         # Try video stream duration
-        video_stream = result.data.get("video_stream", {})
+        video_stream = data.get("video_stream", {})
         duration_str = video_stream.get("duration")
 
         if duration_str:
@@ -288,9 +289,10 @@ class FFProbe:
         """
         result = self.read(path)
         if not result.ok:
-            return result
+            return Result.Err(result.code or ErrorCode.FFPROBE_ERROR, result.error or "ffprobe failed")
 
-        video_stream = result.data.get("video_stream", {})
+        data = result.data if isinstance(result.data, dict) else {}
+        video_stream = data.get("video_stream", {})
         width = video_stream.get("width")
         height = video_stream.get("height")
 

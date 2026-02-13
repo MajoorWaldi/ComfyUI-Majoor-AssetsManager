@@ -24,7 +24,13 @@ export function createContextController({
     searchInputEl,
     kindSelect,
     wfCheckbox,
+    workflowTypeSelect,
     ratingSelect,
+    minSizeInput,
+    maxSizeInput,
+    minWidthInput,
+    minHeightInput,
+    resolutionPresetSelect,
     dateRangeSelect,
     dateExactInput,
     scopeController,
@@ -46,6 +52,7 @@ export function createContextController({
             root.style.setProperty("--mjr-badge-video", String(APP_CONFIG.BADGE_VIDEO_COLOR || "#9C27B0"));
             root.style.setProperty("--mjr-badge-audio", String(APP_CONFIG.BADGE_AUDIO_COLOR || "#FF9800"));
             root.style.setProperty("--mjr-badge-model3d", String(APP_CONFIG.BADGE_MODEL3D_COLOR || "#4CAF50"));
+            root.style.setProperty("--mjr-badge-duplicate-alert", String(APP_CONFIG.BADGE_DUPLICATE_ALERT_COLOR || "#FF1744"));
         } catch {}
     };
 
@@ -141,6 +148,38 @@ export function createContextController({
                 await reloadGrid?.();
             } catch {}
         },
+        clearWorkflowType: async () => {
+            try {
+                state.workflowType = "";
+                _safeSetValue(workflowTypeSelect, "");
+            } catch {}
+            try {
+                await reloadGrid?.();
+            } catch {}
+        },
+        clearSize: async () => {
+            try {
+                state.minSizeMB = 0;
+                state.maxSizeMB = 0;
+                _safeSetValue(minSizeInput, "");
+                _safeSetValue(maxSizeInput, "");
+            } catch {}
+            try {
+                await reloadGrid?.();
+            } catch {}
+        },
+        clearResolution: async () => {
+            try {
+                state.minWidth = 0;
+                state.minHeight = 0;
+                _safeSetValue(minWidthInput, "");
+                _safeSetValue(minHeightInput, "");
+                _safeSetValue(resolutionPresetSelect, "");
+            } catch {}
+            try {
+                await reloadGrid?.();
+            } catch {}
+        },
         clearDateRange: async () => {
             try {
                 state.dateRangeFilter = "";
@@ -180,6 +219,11 @@ export function createContextController({
                 state.kindFilter = "";
                 state.workflowOnly = false;
                 state.minRating = 0;
+                state.minSizeMB = 0;
+                state.maxSizeMB = 0;
+                state.minWidth = 0;
+                state.minHeight = 0;
+                state.workflowType = "";
                 state.dateRangeFilter = "";
                 state.dateExactFilter = "";
                 state.sort = "mtime_desc";
@@ -197,7 +241,13 @@ export function createContextController({
             try {
                 _safeSetValue(kindSelect, "");
                 _safeSetChecked(wfCheckbox, false);
+                _safeSetValue(workflowTypeSelect, "");
                 _safeSetValue(ratingSelect, "0");
+                _safeSetValue(minSizeInput, "");
+                _safeSetValue(maxSizeInput, "");
+                _safeSetValue(minWidthInput, "");
+                _safeSetValue(minHeightInput, "");
+                _safeSetValue(resolutionPresetSelect, "");
                 _safeSetValue(dateRangeSelect, "");
                 _safeSetValue(dateExactInput, "");
             } catch {}
@@ -224,6 +274,11 @@ export function createContextController({
             (state?.kindFilter || "")
             || state?.workflowOnly
             || (Number(state?.minRating || 0) || 0) > 0
+            || (Number(state?.minSizeMB || 0) || 0) > 0
+            || (Number(state?.maxSizeMB || 0) || 0) > 0
+            || (Number(state?.minWidth || 0) || 0) > 0
+            || (Number(state?.minHeight || 0) || 0) > 0
+            || String(state?.workflowType || "").trim().length > 0
             || (state?.dateRangeFilter || "")
             || (state?.dateExactFilter || "")
         );

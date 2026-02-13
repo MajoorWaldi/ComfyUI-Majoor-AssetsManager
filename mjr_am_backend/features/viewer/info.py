@@ -116,7 +116,10 @@ def build_viewer_media_info(asset: Dict[str, Any], resolved_path: Optional[Path]
         # Valid frame count sources
         for key in ("nb_frames", "nb_read_frames"):
             try:
-                val = int(vs.get(key))
+                raw_val = vs.get(key)
+                if raw_val is None:
+                    continue
+                val = int(raw_val)
                 if val > 0:
                     frame_count = val
                     break
@@ -139,15 +142,18 @@ def build_viewer_media_info(asset: Dict[str, Any], resolved_path: Optional[Path]
         except Exception:
             info["audio_codec"] = None
         try:
-            info["sample_rate"] = int(astream.get("sample_rate")) if astream.get("sample_rate") else None
+            sample_rate = astream.get("sample_rate")
+            info["sample_rate"] = int(sample_rate) if sample_rate is not None else None
         except Exception:
             info["sample_rate"] = None
         try:
-            info["channels"] = int(astream.get("channels")) if astream.get("channels") else None
+            channels = astream.get("channels")
+            info["channels"] = int(channels) if channels is not None else None
         except Exception:
             info["channels"] = None
         try:
-            info["bitrate"] = int(astream.get("bit_rate")) if astream.get("bit_rate") else None
+            bit_rate = astream.get("bit_rate")
+            info["bitrate"] = int(bit_rate) if bit_rate is not None else None
         except Exception:
             info["bitrate"] = None
 

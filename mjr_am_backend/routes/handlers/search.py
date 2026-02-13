@@ -4,6 +4,7 @@ Search and list endpoints.
 import datetime
 import asyncio
 import re
+import os
 from pathlib import Path
 from aiohttp import web
 
@@ -47,6 +48,48 @@ AUTOCOMPLETE_RATE_LIMIT_WINDOW_SECONDS = 60
 logger = get_logger(__name__)
 
 
+def _asset_dedupe_key(asset: dict) -> str:
+    fp = str((asset or {}).get("filepath") or "").strip()
+    if not fp:
+        return ""
+    # Windows paths are case-insensitive: normalize casing/slashes for stable dedupe.
+    if os.name == "nt":
+        try:
+            return os.path.normcase(os.path.normpath(fp))
+        except Exception:
+            return fp.lower()
+    return fp
+
+
+def _dedupe_assets_by_filepath(assets: list[dict]) -> list[dict]:
+    out: list[dict] = []
+    seen: set[str] = set()
+    for asset in assets or []:
+        if not isinstance(asset, dict):
+            continue
+        key = _asset_dedupe_key(asset)
+        if key:
+            if key in seen:
+                continue
+            seen.add(key)
+        out.append(asset)
+    return out
+
+
+def _dedupe_result_assets_payload(payload: dict | None) -> dict:
+    data = dict(payload or {})
+    assets = data.get("assets")
+    if isinstance(assets, list):
+        deduped = _dedupe_assets_by_filepath(assets)
+        data["assets"] = deduped
+        # Keep total consistent with visible results for stable pagination UI.
+        try:
+            data["total"] = len(deduped) if int(data.get("total") or 0) < len(deduped) else int(data.get("total") or 0)
+        except Exception:
+            data["total"] = len(deduped)
+    return data
+
+
 async def _runtime_output_root(svc: dict | None) -> str:
     try:
         settings_service = (svc or {}).get("settings") if isinstance(svc, dict) else None
@@ -66,6 +109,28 @@ def _touch_enrichment_pause(services: dict | None, seconds: float = 1.5) -> None
             idx.pause_enrichment_for_interaction(seconds=seconds)
     except Exception:
         pass
+
+
+def _is_under_root(root: str, fp: str) -> bool:
+    try:
+        root_p = Path(str(root)).resolve()
+        fp_p = Path(str(fp)).resolve()
+        common = os.path.commonpath([str(fp_p), str(root_p)])
+        return Path(common).resolve() == root_p
+    except Exception:
+        return False
+
+
+def _exclude_assets_under_root(assets: list[dict], root: str) -> list[dict]:
+    out: list[dict] = []
+    for a in assets or []:
+        if not isinstance(a, dict):
+            continue
+        fp = str((a or {}).get("filepath") or "")
+        if fp and _is_under_root(root, fp):
+            continue
+        out.append(a)
+    return out
 
 
 def _date_bounds_for_range(range_name, reference=None):
@@ -273,6 +338,38 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                 filters["min_rating"] = max(0, min(MAX_RATING, int(request.query["min_rating"])))
             except ValueError:
                 return _json_response(Result.Err("INVALID_INPUT", "Invalid min_rating"))
+        if "min_size_mb" in request.query:
+            try:
+                val = float(request.query["min_size_mb"])
+                if val > 0:
+                    filters["min_size_bytes"] = int(val * 1024 * 1024)
+            except ValueError:
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid min_size_mb"))
+        if "max_size_mb" in request.query:
+            try:
+                val = float(request.query["max_size_mb"])
+                if val > 0:
+                    filters["max_size_bytes"] = int(val * 1024 * 1024)
+            except ValueError:
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid max_size_mb"))
+        if "min_width" in request.query:
+            try:
+                val = int(request.query["min_width"])
+                if val > 0:
+                    filters["min_width"] = val
+            except ValueError:
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid min_width"))
+        if "min_height" in request.query:
+            try:
+                val = int(request.query["min_height"])
+                if val > 0:
+                    filters["min_height"] = val
+            except ValueError:
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid min_height"))
+        if "workflow_type" in request.query:
+            wf_type = str(request.query["workflow_type"] or "").strip().upper()
+            if wf_type:
+                filters["workflow_type"] = wf_type
         if "has_workflow" in request.query:
             filters["has_workflow"] = request.query["has_workflow"].lower() in ("true", "1", "yes")
 
@@ -332,6 +429,7 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                     # Add scope info to response
                     db_result.data["scope"] = "input"
 
+                    db_result.data = _dedupe_result_assets_payload(db_result.data)
                     return _json_response(db_result)
 
             # Fallback to filesystem if DB approach fails or is unavailable
@@ -349,6 +447,8 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                 index_service=(svc or {}).get("index") if isinstance(svc, dict) else None,
                 sort=sort_key,
             )
+            if result.ok and isinstance(result.data, dict):
+                result.data = _dedupe_result_assets_payload(result.data)
             return _json_response(result)
 
         if scope == "custom":
@@ -389,6 +489,7 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                     # Add scope info to response
                     db_result.data["scope"] = "custom"
 
+                    db_result.data = _dedupe_result_assets_payload(db_result.data)
                     return _json_response(db_result)
 
             # Fallback to filesystem if DB approach fails or is unavailable
@@ -407,6 +508,8 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                 index_service=(svc or {}).get("index") if isinstance(svc, dict) else None,
                 sort=sort_key,
             )
+            if result.ok and isinstance(result.data, dict):
+                result.data = _dedupe_result_assets_payload(result.data)
             return _json_response(result)
 
         svc, error_result = await _require_services()
@@ -472,19 +575,18 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                         else:
                             a["type"] = "output"
 
-                return _json_response(
-                    Result.Ok(
-                        {
-                            "assets": assets,
-                            "total": int(data.get("total") or 0),
-                            "limit": limit,
-                            "offset": offset,
-                            "query": query,
-                            "scope": scope,
-                            "sort": sort_key,
-                        }
-                    )
+                payload = _dedupe_result_assets_payload(
+                    {
+                        "assets": assets,
+                        "total": int(data.get("total") or 0),
+                        "limit": limit,
+                        "offset": offset,
+                        "query": query,
+                        "scope": scope,
+                        "sort": sort_key,
+                    }
                 )
+                return _json_response(Result.Ok(payload))
 
             if not limit:
                 # Keep behavior predictable when limit==0: return empty page but valid total.
@@ -531,7 +633,8 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                     if not in_total_res.ok:
                         return _json_response(in_total_res)
                     total = out_total + int((in_total_res.data or {}).get("total") or 0)
-                    return _json_response(Result.Ok({"assets": out_assets, "total": total, "limit": limit, "offset": offset, "query": query, "scope": scope, "sort": sort_key}))
+                    payload = _dedupe_result_assets_payload({"assets": out_assets, "total": total, "limit": limit, "offset": offset, "query": query, "scope": scope, "sort": sort_key})
+                    return _json_response(Result.Ok(payload))
 
                 # Need to spill over into inputs (or we're already past outputs).
                 need = max(0, limit - len(out_assets))
@@ -543,7 +646,8 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                 in_assets = in_data.get("assets") or []
                 total = out_total + int(in_data.get("total") or 0)
                 assets = [*out_assets, *in_assets]
-                return _json_response(Result.Ok({"assets": assets, "total": total, "limit": limit, "offset": offset, "query": query, "scope": scope, "sort": sort_key}))
+                payload = _dedupe_result_assets_payload({"assets": assets, "total": total, "limit": limit, "offset": offset, "query": query, "scope": scope, "sort": sort_key})
+                return _json_response(Result.Ok(payload))
 
             # Browse-all (`*`): merge by mtime for better UX, with chunked streaming merge.
             chunk = max(SEARCH_CHUNK_MIN, min(SEARCH_CHUNK_MAX, int(limit) * 2))
@@ -663,18 +767,20 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                     page = sorted(page, key=lambda a: str((a or {}).get("filename") or "").lower(), reverse=reverse)
                 elif sort_key == "mtime_asc":
                     page = sorted(page, key=lambda a: int((a or {}).get("mtime") or 0))
-            return _json_response(Result.Ok({"assets": page, "total": total, "limit": limit, "offset": offset, "query": query, "scope": scope, "sort": sort_key}))
+            payload = _dedupe_result_assets_payload({"assets": page, "total": total, "limit": limit, "offset": offset, "query": query, "scope": scope, "sort": sort_key})
+            return _json_response(Result.Ok(payload))
 
         if scope not in ("output", "outputs"):
             return _json_response(Result.Err("INVALID_INPUT", f"Unknown scope: {scope}"))
 
         # Use DB search for output scope
+        output_filters = {**(filters or {}), "source": "output", "exclude_root": input_root}
         out_res = await svc["index"].search_scoped(
             query,
             roots=[output_root],
             limit=limit,
             offset=offset,
-            filters={**(filters or {}), "source": "output"},
+            filters=output_filters,
             include_total=include_total,
             sort=sort_key,
         )
@@ -704,20 +810,36 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                     sort=sort_key,
                 )
                 if fs_res.ok and isinstance(fs_res.data, dict):
-                    for a in fs_res.data.get("assets") or []:
+                    filtered_assets = _exclude_assets_under_root(fs_res.data.get("assets") or [], input_root)
+                    fs_res.data["assets"] = filtered_assets
+                    for a in filtered_assets:
                         if isinstance(a, dict):
                             a["type"] = "output"
                     fs_res.data["scope"] = "output"
                     fs_res.data["mode"] = "filesystem"
+                    try:
+                        if "total" in fs_res.data:
+                            fs_res.data["total"] = len(filtered_assets)
+                    except Exception:
+                        pass
+                    fs_res.data = _dedupe_result_assets_payload(fs_res.data)
                 return _json_response(fs_res)
         except Exception:
             pass
 
         if not out_res.ok:
             return _json_response(out_res)
-        for a in out_res.data.get("assets") or []:
+        filtered_assets = _exclude_assets_under_root((out_res.data or {}).get("assets") or [], input_root)
+        out_res.data["assets"] = filtered_assets
+        try:
+            if "total" in out_res.data:
+                out_res.data["total"] = len(filtered_assets)
+        except Exception:
+            pass
+        for a in filtered_assets:
             a["type"] = "output"
-        return _json_response(Result.Ok({**out_res.data, "scope": "output", "sort": sort_key}))
+        payload = _dedupe_result_assets_payload({**out_res.data, "scope": "output", "sort": sort_key})
+        return _json_response(Result.Ok(payload))
 
     @routes.get("/mjr/am/search")
     async def search_assets(request):
@@ -773,6 +895,38 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
             except ValueError:
                 result = Result.Err("INVALID_INPUT", "Invalid min_rating")
                 return _json_response(result)
+        if "min_size_mb" in request.query:
+            try:
+                val = float(request.query["min_size_mb"])
+                if val > 0:
+                    filters["min_size_bytes"] = int(val * 1024 * 1024)
+            except ValueError:
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid min_size_mb"))
+        if "max_size_mb" in request.query:
+            try:
+                val = float(request.query["max_size_mb"])
+                if val > 0:
+                    filters["max_size_bytes"] = int(val * 1024 * 1024)
+            except ValueError:
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid max_size_mb"))
+        if "min_width" in request.query:
+            try:
+                val = int(request.query["min_width"])
+                if val > 0:
+                    filters["min_width"] = val
+            except ValueError:
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid min_width"))
+        if "min_height" in request.query:
+            try:
+                val = int(request.query["min_height"])
+                if val > 0:
+                    filters["min_height"] = val
+            except ValueError:
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid min_height"))
+        if "workflow_type" in request.query:
+            wf_type = str(request.query["workflow_type"] or "").strip().upper()
+            if wf_type:
+                filters["workflow_type"] = wf_type
         if "has_workflow" in request.query:
             filters["has_workflow"] = request.query["has_workflow"].lower() in ("true", "1", "yes")
 
@@ -787,6 +941,8 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
             filters if filters else None,
             include_total=include_total,
         )
+        if result.ok and isinstance(result.data, dict):
+            result.data = _dedupe_result_assets_payload(result.data)
         return _json_response(result)
 
     @routes.post("/mjr/am/assets/batch")

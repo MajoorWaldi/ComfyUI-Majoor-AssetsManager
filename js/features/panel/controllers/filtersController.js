@@ -4,7 +4,13 @@ export function bindFilters({
     state,
     kindSelect,
     wfCheckbox,
+    workflowTypeSelect,
     ratingSelect,
+    minSizeInput,
+    maxSizeInput,
+    resolutionPresetSelect,
+    minWidthInput,
+    minHeightInput,
     dateRangeSelect,
     dateExactInput,
     reloadGrid,
@@ -33,6 +39,61 @@ export function bindFilters({
         try { onFiltersChanged?.(); } catch {}
         await reloadGrid();
     });
+    if (workflowTypeSelect) {
+        workflowTypeSelect.addEventListener("change", async () => {
+            state.workflowType = String(workflowTypeSelect.value || "").trim().toUpperCase();
+            try { onFiltersChanged?.(); } catch {}
+            await reloadGrid();
+        });
+    }
+
+    const applySizeFilter = async () => {
+        const minVal = Number(minSizeInput?.value || 0);
+        const maxVal = Number(maxSizeInput?.value || 0);
+        state.minSizeMB = Number.isFinite(minVal) && minVal > 0 ? minVal : 0;
+        state.maxSizeMB = Number.isFinite(maxVal) && maxVal > 0 ? maxVal : 0;
+        if (state.maxSizeMB > 0 && state.minSizeMB > 0 && state.maxSizeMB < state.minSizeMB) {
+            state.maxSizeMB = state.minSizeMB;
+            if (maxSizeInput) maxSizeInput.value = String(state.maxSizeMB);
+        }
+        try { onFiltersChanged?.(); } catch {}
+        await reloadGrid();
+    };
+    minSizeInput?.addEventListener("change", applySizeFilter);
+    maxSizeInput?.addEventListener("change", applySizeFilter);
+
+    const applyResolutionFilter = async () => {
+        const minW = Number(minWidthInput?.value || 0);
+        const minH = Number(minHeightInput?.value || 0);
+        state.minWidth = Number.isFinite(minW) && minW > 0 ? Math.round(minW) : 0;
+        state.minHeight = Number.isFinite(minH) && minH > 0 ? Math.round(minH) : 0;
+        try {
+            if (resolutionPresetSelect) resolutionPresetSelect.value = "";
+        } catch {}
+        try { onFiltersChanged?.(); } catch {}
+        await reloadGrid();
+    };
+    minWidthInput?.addEventListener("change", applyResolutionFilter);
+    minHeightInput?.addEventListener("change", applyResolutionFilter);
+
+    if (resolutionPresetSelect) {
+        resolutionPresetSelect.addEventListener("change", async () => {
+            const preset = String(resolutionPresetSelect.value || "");
+            const map = {
+                hd: [1280, 720],
+                fhd: [1920, 1080],
+                qhd: [2560, 1440],
+                uhd: [3840, 2160],
+            };
+            const pair = map[preset] || [0, 0];
+            state.minWidth = Number(pair[0] || 0);
+            state.minHeight = Number(pair[1] || 0);
+            if (minWidthInput) minWidthInput.value = state.minWidth > 0 ? String(state.minWidth) : "";
+            if (minHeightInput) minHeightInput.value = state.minHeight > 0 ? String(state.minHeight) : "";
+            try { onFiltersChanged?.(); } catch {}
+            await reloadGrid();
+        });
+    }
     if (dateRangeSelect) {
         dateRangeSelect.addEventListener("change", async () => {
             state.dateRangeFilter = dateRangeSelect.value || "";

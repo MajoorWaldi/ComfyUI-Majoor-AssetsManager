@@ -202,12 +202,13 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             if root_id:
                 root_result = resolve_custom_root(str(root_id))
                 if root_result.ok:
+                    rp2: Path | None
                     try:
-                        rp = Path(str(root_result.data)).resolve(strict=False)
+                        rp2 = Path(str(root_result.data)).resolve(strict=False)
                     except Exception:
-                        rp = None
-                    if rp and _is_within_root(resolved, rp):
-                        base_dir = rp
+                        rp2 = None
+                    if rp2 and _is_within_root(resolved, rp2):
+                        base_dir = rp2
                         resolved_root_id = str(root_id)
                         source = "custom"
 

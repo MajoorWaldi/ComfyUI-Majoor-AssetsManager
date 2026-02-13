@@ -88,9 +88,10 @@ def has_exiftool() -> bool:
         return _TOOL_CACHE["exiftool"]
 
     try:
-        if shutil.which(EXIFTOOL_BIN) is None:
-            logger.debug("ExifTool binary not found in PATH: %s", EXIFTOOL_BIN)
-        result = _run_command([EXIFTOOL_BIN, "-ver"])
+        exiftool_bin = EXIFTOOL_BIN or "exiftool"
+        if shutil.which(exiftool_bin) is None:
+            logger.debug("ExifTool binary not found in PATH: %s", exiftool_bin)
+        result = _run_command([exiftool_bin, "-ver"])
         available = result.returncode == 0
         _TOOL_CACHE["exiftool"] = available
 
@@ -121,9 +122,10 @@ def has_ffprobe() -> bool:
         return _TOOL_CACHE["ffprobe"]
 
     try:
-        if shutil.which(FFPROBE_BIN) is None:
-            logger.debug("FFprobe binary not found in PATH: %s", FFPROBE_BIN)
-        result = _run_command([FFPROBE_BIN, "-version"])
+        ffprobe_bin = FFPROBE_BIN or "ffprobe"
+        if shutil.which(ffprobe_bin) is None:
+            logger.debug("FFprobe binary not found in PATH: %s", ffprobe_bin)
+        result = _run_command([ffprobe_bin, "-version"])
         available = result.returncode == 0
         _TOOL_CACHE["ffprobe"] = available
 

@@ -16,7 +16,7 @@ import os
 import asyncio
 from typing import Any
 
-from aiohttp import web, ClientSession
+from aiohttp import web, ClientSession, ClientTimeout
 
 from mjr_am_backend.shared import Result, get_logger, sanitize_error_message
 from ..core import _json_response
@@ -45,7 +45,7 @@ def register_releases_routes(routes: web.RouteTableDef) -> None:
         try:
             async with ClientSession() as session:
                 async def fetch(url: str) -> Any:
-                    async with session.get(url, headers=headers, timeout=30) as resp:
+                    async with session.get(url, headers=headers, timeout=ClientTimeout(total=30)) as resp:
                         if resp.status != 200:
                             text = await resp.text()
                             raise RuntimeError(f"GitHub API returned {resp.status}: {text}")

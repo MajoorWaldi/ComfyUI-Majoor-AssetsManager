@@ -2,7 +2,7 @@
  * Drag & Drop support for staging assets to input (video-focused).
  */
 
-import { app } from "../../../../scripts/app.js";
+import { getComfyApp } from "../../app/comfyApiBridge.js";
 import { get, post } from "../../api/client.js";
 import { ENDPOINTS, buildCustomViewURL, buildViewURL } from "../../api/endpoints.js";
 import { comfyToast } from "../../app/toast.js";
@@ -22,6 +22,8 @@ import {
     pickBestMediaPathWidget
 } from "./targets/node.js";
 import { stageToInput, stageToInputDetailed } from "./staging/stageToInput.js";
+
+const app = getComfyApp();
 
 const buildURL = (payload) =>
     buildPayloadViewURL(payload, { buildCustomViewURL, buildViewURL });
