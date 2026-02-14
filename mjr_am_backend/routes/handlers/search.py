@@ -5,6 +5,7 @@ import datetime
 import asyncio
 import re
 import os
+import json
 from pathlib import Path
 from aiohttp import web
 
@@ -20,6 +21,10 @@ except Exception:
 
 from mjr_am_backend.config import OUTPUT_ROOT, TO_THREAD_TIMEOUT_S
 from mjr_am_backend.custom_roots import resolve_custom_root
+from mjr_am_backend.features.browser import (
+    list_visible_subfolders,
+    list_filesystem_browser_entries,
+)
 from mjr_am_backend.shared import Result, get_logger
 from mjr_am_backend.features.index.metadata_helpers import MetadataHelpers
 from ..core import _json_response, _require_services, _read_json, safe_error_message
@@ -88,6 +93,90 @@ def _dedupe_result_assets_payload(payload: dict | None) -> dict:
         except Exception:
             data["total"] = len(deduped)
     return data
+
+
+def _norm_fp(fp: str) -> str:
+    try:
+        if os.name == "nt":
+            return os.path.normcase(os.path.normpath(str(fp or "")))
+    except Exception:
+        pass
+    return str(fp or "")
+
+
+async def _hydrate_browser_assets_from_db(svc: dict | None, assets: list[dict]) -> list[dict]:
+    if not isinstance(assets, list) or not assets:
+        return assets or []
+    db = (svc or {}).get("db") if isinstance(svc, dict) else None
+    if not db:
+        return assets
+
+    filepaths = []
+    for a in assets:
+        if not isinstance(a, dict):
+            continue
+        if str((a or {}).get("kind") or "").lower() == "folder":
+            continue
+        fp = str((a or {}).get("filepath") or "").strip()
+        if fp:
+            filepaths.append(fp)
+    if not filepaths:
+        return assets
+
+    try:
+        rows_res = await db.aquery_in(
+            """
+            SELECT a.id, a.filepath, COALESCE(m.rating, 0) AS rating, COALESCE(m.tags, '[]') AS tags
+            FROM assets a
+            LEFT JOIN asset_metadata m ON m.asset_id = a.id
+            WHERE {IN_CLAUSE}
+            """,
+            "a.filepath",
+            filepaths,
+        )
+        if not rows_res.ok:
+            return assets
+        rows = rows_res.data or []
+    except Exception:
+        return assets
+
+    by_fp: dict[str, dict] = {}
+    for row in rows:
+        try:
+            key = _norm_fp(str((row or {}).get("filepath") or ""))
+            if not key:
+                continue
+            by_fp[key] = row or {}
+        except Exception:
+            continue
+
+    for a in assets:
+        try:
+            if str((a or {}).get("kind") or "").lower() == "folder":
+                continue
+            key = _norm_fp(str((a or {}).get("filepath") or ""))
+            row = by_fp.get(key)
+            if not row:
+                continue
+            rid = (row or {}).get("id")
+            if rid is not None:
+                a["id"] = int(rid)
+            a["rating"] = int((row or {}).get("rating") or 0)
+            raw_tags = (row or {}).get("tags")
+            tags = []
+            if isinstance(raw_tags, str):
+                try:
+                    parsed = json.loads(raw_tags)
+                    if isinstance(parsed, list):
+                        tags = [str(t) for t in parsed if isinstance(t, str)]
+                except Exception:
+                    tags = []
+            elif isinstance(raw_tags, list):
+                tags = [str(t) for t in raw_tags if isinstance(t, str)]
+            a["tags"] = tags
+        except Exception:
+            continue
+    return assets
 
 
 async def _runtime_output_root(svc: dict | None) -> str:
@@ -454,43 +543,28 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
         if scope == "custom":
             subfolder = request.query.get("subfolder", "")
             root_id = request.query.get("custom_root_id", "") or request.query.get("root_id", "")
+            if not str(root_id or "").strip():
+                svc, _ = await _require_services()
+                browser_result = list_filesystem_browser_entries(
+                    subfolder,
+                    query,
+                    limit,
+                    offset,
+                    kind_filter=str(filters.get("kind") or "") if filters else "",
+                )
+                try:
+                    if browser_result.ok and isinstance(browser_result.data, dict):
+                        assets = browser_result.data.get("assets") or []
+                        browser_result.data["assets"] = await _hydrate_browser_assets_from_db(svc, assets)
+                except Exception:
+                    pass
+                return _json_response(browser_result)
             root_result = resolve_custom_root(str(root_id or ""))
             if not root_result.ok:
                 return _json_response(root_result)
             root_dir = root_result.data
             svc, _ = await _require_services()
             _touch_enrichment_pause(svc, seconds=1.5)
-
-            # If index service is available, try DB-first approach
-            if svc and svc.get("index"):
-                # Normalize root path for DB lookup
-                root_path = str(root_dir.resolve(strict=False))
-                scoped_filters = dict(filters or {})
-                scoped_filters["source"] = "custom"
-
-                # Call index searcher with filters, limit, and offset
-                db_result = await svc["index"].search_scoped(
-                    query,
-                    roots=[root_path],
-                    limit=limit,
-                    offset=offset,
-                    filters=scoped_filters,
-                    include_total=include_total,
-                    sort=sort_key,
-                )
-
-                if db_result.ok:
-                    # Add type and root_id to results for consistency
-                    for a in db_result.data.get("assets") or []:
-                        a["type"] = "custom"
-                        if root_id:
-                            a["root_id"] = root_id
-
-                    # Add scope info to response
-                    db_result.data["scope"] = "custom"
-
-                    db_result.data = _dedupe_result_assets_payload(db_result.data)
-                    return _json_response(db_result)
 
             # Fallback to filesystem if DB approach fails or is unavailable
             if query == "*" and offset == 0 and not filters:
@@ -510,6 +584,24 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
             )
             if result.ok and isinstance(result.data, dict):
                 result.data = _dedupe_result_assets_payload(result.data)
+                folder_result = list_visible_subfolders(root_dir, subfolder, str(root_id or ""))
+                if not folder_result.ok:
+                    return _json_response(folder_result)
+                folder_assets = folder_result.data or []
+                if query not in ("", "*"):
+                    ql = query.lower()
+                    folder_assets = [f for f in folder_assets if ql in str(f.get("filename") or "").lower()]
+                if filters and filters.get("kind"):
+                    folder_assets = []
+                file_assets = result.data.get("assets") or []
+                hybrid_assets = folder_assets + file_assets if offset == 0 else file_assets
+                result.data["assets"] = hybrid_assets
+                try:
+                    base_total = int(result.data.get("total") or 0)
+                except Exception:
+                    base_total = len(file_assets)
+                result.data["total"] = base_total + (len(folder_assets) if offset == 0 else 0)
+                result.data["scope"] = "custom"
             return _json_response(result)
 
         svc, error_result = await _require_services()

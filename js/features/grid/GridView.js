@@ -5,6 +5,7 @@
 import { get, hydrateAssetRatingTags } from "../../api/client.js";
 import { buildListURL } from "../../api/endpoints.js";
 import { createAssetCard, cleanupVideoThumbsIn, cleanupCardMediaHandlers } from "../../components/Card.js";
+import { createFolderCard } from "../../components/FolderCard.js";
 import { createRatingBadge, createTagsBadge, setFileBadgeCollision } from "../../components/Badges.js";
 import { APP_CONFIG } from "../../app/config.js";
 import { getViewerInstance } from "../../components/Viewer.js";
@@ -576,9 +577,28 @@ export function createGridContainer() {
              currentIndex = allAssets.findIndex(a => a.id === asset.id);
         }
 
-        // Open viewer
+        const isFolder = String(asset?.kind || "").toLowerCase() === "folder";
+        if (isFolder) {
+            try {
+                const nextSubfolder = String(asset?.subfolder || "").trim();
+                container.dataset.mjrSubfolder = nextSubfolder;
+                container.dispatchEvent?.(
+                    new CustomEvent("mjr:custom-subfolder-changed", {
+                        bubbles: true,
+                        detail: { subfolder: nextSubfolder },
+                    })
+                );
+                loadAssets(container, state?.query || "*", { reset: true }).catch(() => {});
+            } catch {}
+            return;
+        }
+
+        // Open viewer with non-folder assets only
+        const mediaAssets = (allAssets || []).filter((a) => String(a?.kind || "").toLowerCase() !== "folder");
+        const mediaIndex = mediaAssets.findIndex((a) => a?.id === asset?.id);
+        if (!mediaAssets.length || mediaIndex < 0) return;
         const viewer = getViewerInstance();
-        viewer.open(allAssets, currentIndex);
+        viewer.open(mediaAssets, mediaIndex);
     });
 
     return container;
@@ -880,7 +900,9 @@ function ensureVirtualGrid(gridContainer, state) {
         gap: APP_CONFIG.GRID_GAP || 10,
         bufferRows: 3, 
         createItem: (asset, _index) => {
-            const card = createAssetCard(asset);
+            const card = String(asset?.kind || "").toLowerCase() === "folder"
+                ? createFolderCard(asset)
+                : createAssetCard(asset);
             const selectedIds = getSelectedIdSet(gridContainer);
             // Handle selection
             if (asset && asset.id != null && selectedIds.has(String(asset.id))) {

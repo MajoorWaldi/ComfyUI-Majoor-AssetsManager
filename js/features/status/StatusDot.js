@@ -408,11 +408,13 @@ export function createStatusIndicator(options = {}) {
             const ctx = getScanContext ? getScanContext() : {};
             const scope = String(ctx?.scope || "output").toLowerCase();
             const customRootId = ctx?.customRootId || ctx?.custom_root_id || ctx?.root_id || null;
+            const isCustomBrowserMode = scope === "custom" && !customRootId;
             const isAll = scope === "all";
+            const effectiveScope = isCustomBrowserMode ? "all" : scope;
 
             const res = await resetIndex({
-                scope,
-                customRootId,
+                scope: effectiveScope,
+                customRootId: isCustomBrowserMode ? null : customRootId,
                 reindex: true,
                 maintenance_force: true,
                 hard_reset_db: isAll,
@@ -618,6 +620,17 @@ export async function triggerScan(statusDot, statusText, capabilitiesSection = n
     const section = statusText?.closest?.("#mjr-status-body")?.parentElement || statusText?.closest?.("div");
     const desiredScope = String(scanTarget?.scope || "output").toLowerCase();
     const desiredCustomRootId = scanTarget?.customRootId || scanTarget?.custom_root_id || scanTarget?.root_id || null;
+    const isCustomBrowserMode = desiredScope === "custom" && !desiredCustomRootId;
+    if (isCustomBrowserMode) {
+        statusDot.style.background = "var(--mjr-status-info, #64B5F6)";
+        applyStatusHighlight(section, "info");
+        setStatusWithHint(
+            statusText,
+            t("status.customBrowserScanDisabled", "Custom browser mode: scan is disabled"),
+            t("status.customBrowserScanDisabledHint", "Use Outputs, Inputs, or All to run indexing scans")
+        );
+        return;
+    }
 
     // Prevent overlapping scans (manual or polling-triggered).
     try {
@@ -910,8 +923,11 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
 
     const desiredScope = String(scanTarget?.scope || "output").toLowerCase();
     const desiredCustomRootId = scanTarget?.customRootId || scanTarget?.custom_root_id || scanTarget?.root_id || null;
+    const isCustomBrowserMode = desiredScope === "custom" && !desiredCustomRootId;
     const url =
-        desiredScope === "custom"
+        isCustomBrowserMode
+            ? `${ENDPOINTS.HEALTH_COUNTERS}?scope=all`
+            : desiredScope === "custom"
             ? `${ENDPOINTS.HEALTH_COUNTERS}?scope=custom&custom_root_id=${encodeURIComponent(String(desiredCustomRootId || ""))}`
             : `${ENDPOINTS.HEALTH_COUNTERS}?scope=${encodeURIComponent(desiredScope || "output")}`;
     const lightweight = !!options?.lightweight;
@@ -975,7 +991,7 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
             size: formatBytes(counters.db_size_bytes || 0),
         });
         const dbHealthLine = buildDbHealthLine(healthResult?.data || null, dbDiagResult?.data || null);
-        const indexHealthLine = buildIndexHealthLine(counters, desiredScope);
+        const indexHealthLine = buildIndexHealthLine(counters, isCustomBrowserMode ? "all" : desiredScope);
         const dbAvailable = Boolean(healthResult?.ok && healthResult?.data?.database?.available);
         const dbDiagnostics = dbDiagResult?.ok ? (dbDiagResult?.data?.diagnostics || {}) : {};
         const dbMalformed = Boolean(dbDiagnostics?.malformed);
@@ -1007,7 +1023,9 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
                 }
             }
         } catch {}
-        const watcherLine = formatWatcherLine(watcherInfo, desiredScope);
+        const watcherLine = isCustomBrowserMode
+            ? t("status.watcher.disabledScoped", "Watcher: disabled ({scope})", { scope: t("scope.custom", "Custom") })
+            : formatWatcherLine(watcherInfo, desiredScope);
 
         renderCapabilities(capabilitiesSection, toolAvailability, toolPaths);
         renderToolsStatusLine(capabilitiesSection, toolStatusData, toolAvailability);
@@ -1018,7 +1036,7 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
                 : desiredScope === "input"
                 ? t("scope.input", "Inputs")
                 : desiredScope === "custom"
-                ? t("scope.custom", "Custom")
+                ? t("scope.customBrowser", "Custom Browser")
                 : t("scope.output", "Outputs");
 
         if (healthTone === "error") {

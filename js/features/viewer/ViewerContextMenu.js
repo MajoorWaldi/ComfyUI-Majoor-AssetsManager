@@ -2,7 +2,7 @@ import { buildAssetViewURL, buildDownloadURL } from "../../api/endpoints.js";
 import { comfyPrompt } from "../../app/dialogs.js";
 import { comfyToast } from "../../app/toast.js";
 import { t } from "../../app/i18n.js";
-import { openInFolder, deleteAsset, renameAsset, getViewerInfo } from "../../api/client.js";
+import { openInFolder, deleteAsset, renameAsset, updateAssetRating, getViewerInfo } from "../../api/client.js";
 import { ASSET_RATING_CHANGED_EVENT, ASSET_TAGS_CHANGED_EVENT, VIEWER_INFO_REFRESHED_EVENT } from "../../app/events.js";
 import { createTagsEditor } from "../../components/TagsEditor.js";
 import { safeDispatchCustomEvent } from "../../utils/events.js";
@@ -149,7 +149,6 @@ function showTagsPopover(x, y, asset, onChanged) {
 
 function setRating(asset, rating, onChanged) {
     const assetId = asset?.id;
-    if (!assetId) return;
     try {
         asset.rating = rating;
     } catch {}
@@ -157,20 +156,26 @@ function setRating(asset, rating, onChanged) {
         onChanged?.();
     } catch {}
 
-    scheduleRatingUpdate(String(assetId), rating, {
-        successMessage: rating > 0 ? `Rating set to ${rating} stars` : "Rating cleared",
-        errorMessage: "Failed to update rating",
-        warnPrefix: "[ViewerContextMenu]",
-        onSuccess: () => {
-            safeDispatchCustomEvent(
-                ASSET_RATING_CHANGED_EVENT,
-                { assetId: String(assetId), rating },
-                { warnPrefix: "[ViewerContextMenu]" }
-            );
-        },
-        onFailure: (error) => {
-            reportError(error, "[ViewerContextMenu] Rating update", { showToast: true });
-        },
+    if (assetId) {
+        scheduleRatingUpdate(String(assetId), rating, {
+            successMessage: rating > 0 ? `Rating set to ${rating} stars` : "Rating cleared",
+            errorMessage: "Failed to update rating",
+            warnPrefix: "[ViewerContextMenu]",
+            onSuccess: () => {
+                safeDispatchCustomEvent(
+                    ASSET_RATING_CHANGED_EVENT,
+                    { assetId: String(assetId), rating },
+                    { warnPrefix: "[ViewerContextMenu]" }
+                );
+            },
+            onFailure: (error) => {
+                reportError(error, "[ViewerContextMenu] Rating update", { showToast: true });
+            },
+        });
+        return;
+    }
+    updateAssetRating(asset, rating).catch((error) => {
+        reportError(error, "[ViewerContextMenu] Rating update", { showToast: true });
     });
 }
 
@@ -262,14 +267,13 @@ export function bindViewerContextMenu({
 
         menu.appendChild(
             createItem("Open in Folder", "pi pi-folder-open", VIEWER_SHORTCUTS.OPEN_IN_FOLDER, withClose(async () => {
-                if (!asset?.id) return;
-                const res = await openInFolder(asset.id);
+                const res = await openInFolder(asset);
                 if (!res?.ok) {
                     comfyToast(res?.error || t("toast.openFolderFailed"), "error");
                 } else {
                     comfyToast(t("toast.openedInFolder"), "info", 2000);
                 }
-            }), { disabled: !asset?.id })
+            }), { disabled: !(asset?.id || asset?.filepath) })
         );
 
         menu.appendChild(
@@ -292,8 +296,9 @@ export function bindViewerContextMenu({
 
         menu.appendChild(separator());
 
-        const ratingRoot = createItem("Set rating", "pi pi-star", VIEWER_SHORTCUTS.RATING_SUBMENU + " ›", () => {}, { disabled: !asset?.id });
-        ratingRoot.style.cursor = !asset?.id ? "default" : "pointer";
+        const canRate = !!(asset?.id || asset?.filepath);
+        const ratingRoot = createItem("Set rating", "pi pi-star", VIEWER_SHORTCUTS.RATING_SUBMENU + " ›", () => {}, { disabled: !canRate });
+        ratingRoot.style.cursor = !canRate ? "default" : "pointer";
         menu.appendChild(ratingRoot);
 
         let hideTimer = null;
@@ -355,7 +360,7 @@ export function bindViewerContextMenu({
                         try {
                             hideMenu(menu);
                         } catch {}
-                    }, { disabled: !asset?.id })
+                    }, { disabled: !canRate })
                 );
             }
             ratingSubmenu.appendChild(separator());
@@ -366,14 +371,14 @@ export function bindViewerContextMenu({
                     try {
                         hideMenu(menu);
                     } catch {}
-                }, { disabled: !asset?.id })
+                }, { disabled: !canRate })
             );
         };
 
         ratingRoot.addEventListener(
             "mouseenter",
             () => {
-                if (!asset?.id) return;
+                if (!canRate) return;
                 cancelClose();
                 renderRatingSubmenu();
                 showSubmenuNextTo(ratingRoot, ratingSubmenu);
@@ -423,7 +428,7 @@ export function bindViewerContextMenu({
         // Rename option
         menu.appendChild(
             createItem("Rename...", "pi pi-pencil", VIEWER_SHORTCUTS.RENAME, withClose(async () => {
-                if (!asset?.id) return;
+                if (!(asset?.id || asset?.filepath)) return;
 
                 const currentName = asset.filename || "";
                 const rawInput = await comfyPrompt("Rename file", currentName);
@@ -436,7 +441,7 @@ export function bindViewerContextMenu({
                 }
 
                 try {
-                    const renameResult = await renameAsset(asset.id, newName);
+                    const renameResult = await renameAsset(asset, newName);
                     if (renameResult?.ok) {
                         // Update the asset object
                         asset.filename = newName;
@@ -450,19 +455,19 @@ export function bindViewerContextMenu({
                 } catch (error) {
                     comfyToast(`Error renaming file: ${error.message}`, "error");
                 }
-            }), { disabled: !asset?.id })
+            }), { disabled: !(asset?.id || asset?.filepath) })
         );
 
         // Delete option
         menu.appendChild(
             createItem("Delete...", "pi pi-trash", VIEWER_SHORTCUTS.DELETE, withClose(async () => {
-                if (!asset?.id) return;
+                if (!(asset?.id || asset?.filepath)) return;
 
                 const ok = await confirmDeletion(1, asset?.filename);
                 if (!ok) return;
 
                 try {
-                    const deleteResult = await deleteAsset(asset.id);
+                    const deleteResult = await deleteAsset(asset);
                     if (deleteResult?.ok) {
                         comfyToast(t("toast.fileDeletedSuccess"), "success");
                         // Close viewer or navigate to next asset
@@ -473,7 +478,7 @@ export function bindViewerContextMenu({
                 } catch (error) {
                     comfyToast(`Error deleting file: ${error.message}`, "error");
                 }
-            }), { disabled: !asset?.id })
+            }), { disabled: !(asset?.id || asset?.filepath) })
         );
 
         showAt(menu, e.clientX, e.clientY);

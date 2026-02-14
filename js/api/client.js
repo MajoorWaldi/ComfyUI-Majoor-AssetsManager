@@ -443,15 +443,17 @@ export async function hydrateAssetRatingTags(assetId) {
  * Works on /view URLs where ComfyUI provides type/filename/subfolder.
  */
 export async function getFileMetadataScoped(
-    { type = "output", filename = "", subfolder = "", root_id = "", rootId = "" } = {},
+    { type = "output", filename = "", subfolder = "", root_id = "", rootId = "", filepath = "" } = {},
     options = {}
 ) {
     const t = String(type || "output").trim().toLowerCase() || "output";
     const fn = String(filename || "").trim();
     const sub = String(subfolder || "").trim();
     const rid = String(root_id || rootId || "").trim();
+    const fp = String(filepath || "").trim();
     if (!fn) return { ok: false, data: null, error: "Missing filename", code: "INVALID_INPUT" };
     let url = `/mjr/am/metadata?type=${encodeURIComponent(t)}&filename=${encodeURIComponent(fn)}`;
+    if (fp) url += `&filepath=${encodeURIComponent(fp)}`;
     if (sub) url += `&subfolder=${encodeURIComponent(sub)}`;
     if (rid) url += `&root_id=${encodeURIComponent(rid)}`;
     return get(url, options);
@@ -490,8 +492,13 @@ export async function setSecuritySettings(prefs) {
     return post("/mjr/am/settings/security", body);
 }
 
-export async function openInFolder(assetId) {
-    return post("/mjr/am/open-in-folder", { asset_id: normalizeAssetId(assetId) });
+export async function openInFolder(assetOrId) {
+    if (assetOrId && typeof assetOrId === "object") {
+        const fp = String(assetOrId.filepath || assetOrId.path || assetOrId?.file_info?.filepath || "").trim();
+        if (assetOrId.id != null) return post("/mjr/am/open-in-folder", { asset_id: normalizeAssetId(assetOrId.id) });
+        return post("/mjr/am/open-in-folder", { filepath: fp });
+    }
+    return post("/mjr/am/open-in-folder", { asset_id: normalizeAssetId(assetOrId) });
 }
 
 export async function resetIndex(options = {}) {
@@ -623,10 +630,19 @@ export async function mergeDuplicateTags(keepAssetId, mergeAssetIds = []) {
     });
 }
 
-export async function deleteAsset(assetId) {
-    const id = normalizeAssetId(assetId);
-    const res = await post("/mjr/am/asset/delete", { asset_id: id });
-    if (res?.ok) _emitAssetsDeleted([id]);
+export async function deleteAsset(assetOrId) {
+    let id = "";
+    let payload = null;
+    if (assetOrId && typeof assetOrId === "object") {
+        id = normalizeAssetId(assetOrId.id);
+        const fp = String(assetOrId.filepath || assetOrId.path || assetOrId?.file_info?.filepath || "").trim();
+        payload = id ? { asset_id: id } : { filepath: fp };
+    } else {
+        id = normalizeAssetId(assetOrId);
+        payload = { asset_id: id };
+    }
+    const res = await post("/mjr/am/asset/delete", payload);
+    if (res?.ok && id) _emitAssetsDeleted([id]);
     return res;
 }
 
@@ -647,8 +663,14 @@ function _emitAssetsDeleted(ids) {
     } catch {}
 }
 
-export async function renameAsset(assetId, newName) {
-    return post("/mjr/am/asset/rename", { asset_id: normalizeAssetId(assetId), new_name: newName });
+export async function renameAsset(assetOrId, newName) {
+    if (assetOrId && typeof assetOrId === "object") {
+        const id = normalizeAssetId(assetOrId.id);
+        const fp = String(assetOrId.filepath || assetOrId.path || assetOrId?.file_info?.filepath || "").trim();
+        if (id) return post("/mjr/am/asset/rename", { asset_id: id, new_name: newName });
+        return post("/mjr/am/asset/rename", { filepath: fp, new_name: newName });
+    }
+    return post("/mjr/am/asset/rename", { asset_id: normalizeAssetId(assetOrId), new_name: newName });
 }
 
 // -----------------------------

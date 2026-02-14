@@ -32,6 +32,7 @@ export function createPanelState() {
         scope: allowedScopes.has(normalizedScope) ? normalizedScope : "output",
         customRootId: saved.customRootId || "",
         subfolder: saved.subfolder || "",
+        currentFolderRelativePath: saved.currentFolderRelativePath || saved.subfolder || "",
         collectionId: saved.collectionId || "",
         collectionName: saved.collectionName || "",
         kindFilter: saved.kindFilter || "",

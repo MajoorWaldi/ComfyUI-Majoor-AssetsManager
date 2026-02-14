@@ -156,6 +156,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     }, { signal: panelLifecycleAC?.signal });
 
     const { bar: summaryBar, update: updateSummaryBar } = createSummaryBarView();
+    const folderBreadcrumb = document.createElement("div");
+    folderBreadcrumb.className = "mjr-folder-breadcrumb";
+    folderBreadcrumb.style.cssText = "display:none; align-items:center; gap:6px; padding:4px 8px; margin:2px 0 4px 0; font-size:12px; opacity:0.85; overflow:auto; white-space:nowrap;";
 
     const content = document.createElement("div");
     content.classList.add("mjr-am-content");
@@ -298,8 +301,14 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         const scope = String(nextScope || state.scope || "output").toLowerCase();
         const settings = loadMajoorSettings();
         const wantsEnabled = !!settings?.watcher?.enabled;
-        const customRootId = String(state.customRootId || "").trim();
-        const shouldEnable = wantsEnabled && (scope !== "custom" || !!customRootId);
+        // Custom scope is a live filesystem browser; watcher must stay disabled there.
+        if (scope === "custom") {
+            try {
+                await toggleWatcher(false);
+            } catch {}
+            return;
+        }
+        const shouldEnable = wantsEnabled;
 
         try {
             await toggleWatcher(shouldEnable);
@@ -309,7 +318,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         try {
             await setWatcherScope({
                 scope,
-                customRootId: scope === "custom" ? customRootId : ""
+                customRootId: ""
             });
         } catch {}
     };
@@ -394,6 +403,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
 
     content.appendChild(statusSection);
     content.appendChild(searchSection);
+    content.appendChild(folderBreadcrumb);
     content.appendChild(summaryBar);
     content.appendChild(browseSection);
     container.appendChild(header);
@@ -420,9 +430,125 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     let _duplicatesAlert = null;
     let _dupPollTimer = null;
     let _autoLoadTimer = null;
+    const folderBackStack = [];
+    const folderForwardStack = [];
+    const normPath = (value) => String(value || "").trim().replaceAll("\\", "/");
+    const isWindowsDrive = (part) => /^[a-zA-Z]:$/.test(String(part || "").trim());
+    const currentFolderPath = () => normPath(state.currentFolderRelativePath || state.subfolder || "");
+    const setFolderPath = (next) => {
+        const v = normPath(next);
+        state.currentFolderRelativePath = v;
+        state.subfolder = v;
+        try {
+            if (gridContainer?.dataset) gridContainer.dataset.mjrSubfolder = v;
+        } catch {}
+    };
+    const navigateFolder = async (target, { pushHistory = true, clearForward = true } = {}) => {
+        const prev = currentFolderPath();
+        const next = normPath(target);
+        if (prev === next) return;
+        if (pushHistory) folderBackStack.push(prev);
+        if (clearForward) folderForwardStack.length = 0;
+        setFolderPath(next);
+        notifyContextChanged();
+        await gridController.reloadGrid();
+    };
+    const parentFolderPath = (pathValue) => {
+        const cur = normPath(pathValue);
+        if (!cur) return "";
+        const parts = cur.split("/").filter(Boolean);
+        if (!parts.length) return "";
+        if (parts.length === 1) {
+            return isWindowsDrive(parts[0]) ? `${parts[0]}/` : "";
+        }
+        parts.pop();
+        if (parts.length === 1 && isWindowsDrive(parts[0])) return `${parts[0]}/`;
+        return parts.join("/");
+    };
+    const renderFolderBreadcrumb = () => {
+        const isCustom = String(state.scope || "") === "custom";
+        const rel = String(state.currentFolderRelativePath || state.subfolder || "").trim().replaceAll("\\", "/");
+        if (!isCustom) {
+            folderBackStack.length = 0;
+            folderForwardStack.length = 0;
+            folderBreadcrumb.style.display = "none";
+            folderBreadcrumb.replaceChildren();
+            return;
+        }
+        folderBreadcrumb.style.display = "flex";
+        folderBreadcrumb.replaceChildren();
+
+        const backBtn = document.createElement("button");
+        backBtn.type = "button";
+        backBtn.textContent = "Back";
+        backBtn.className = "mjr-btn-link";
+        backBtn.disabled = folderBackStack.length === 0;
+        backBtn.style.cssText = "background:none;border:none;padding:0 4px 0 0;font:inherit;color:var(--mjr-accent, #7aa2ff);cursor:pointer;";
+        backBtn.addEventListener("click", async () => {
+            const prev = folderBackStack.pop();
+            if (prev == null) return;
+            folderForwardStack.push(currentFolderPath());
+            await navigateFolder(prev, { pushHistory: false, clearForward: false });
+        }, { signal: panelLifecycleAC?.signal });
+        folderBreadcrumb.appendChild(backBtn);
+
+        const upBtn = document.createElement("button");
+        upBtn.type = "button";
+        upBtn.textContent = "Up";
+        upBtn.className = "mjr-btn-link";
+        upBtn.disabled = !rel;
+        upBtn.style.cssText = "background:none;border:none;padding:0 4px 0 0;font:inherit;color:var(--mjr-accent, #7aa2ff);cursor:pointer;";
+        upBtn.addEventListener("click", async () => {
+            const parent = parentFolderPath(currentFolderPath());
+            await navigateFolder(parent);
+        }, { signal: panelLifecycleAC?.signal });
+        folderBreadcrumb.appendChild(upBtn);
+
+        const sep0 = document.createElement("span");
+        sep0.textContent = "|";
+        sep0.style.opacity = "0.5";
+        folderBreadcrumb.appendChild(sep0);
+
+        const mk = (label, target, isCurrent = false) => {
+            const el = document.createElement("button");
+            el.type = "button";
+            el.textContent = label;
+            el.className = "mjr-btn-link";
+            el.style.cssText = `background:none;border:none;padding:0;color:${isCurrent ? "var(--mjr-text, inherit)" : "var(--mjr-accent, #7aa2ff)"};cursor:${isCurrent ? "default" : "pointer"};font:inherit;`;
+            if (!isCurrent) {
+                el.addEventListener("click", async () => {
+                    await navigateFolder(target);
+                }, { signal: panelLifecycleAC?.signal });
+            } else {
+                el.disabled = true;
+            }
+            return el;
+        };
+
+        folderBreadcrumb.appendChild(mk("Computer", "", !rel));
+        if (!rel) return;
+        const parts = rel.split("/").filter(Boolean);
+        let acc = "";
+        for (let i = 0; i < parts.length; i++) {
+            const sep = document.createElement("span");
+            sep.textContent = "/";
+            sep.style.opacity = "0.6";
+            folderBreadcrumb.appendChild(sep);
+            if (!acc) {
+                acc = isWindowsDrive(parts[i]) ? `${parts[i]}/` : parts[i];
+            } else {
+                acc = `${acc}/${parts[i]}`.replace(/\/{2,}/g, "/");
+            }
+            folderBreadcrumb.appendChild(mk(parts[i], acc, i === parts.length - 1));
+        }
+    };
+
     const notifyContextChanged = () => {
         try {
             contextController?.update?.();
+        } catch {}
+        try {
+            renderFolderBreadcrumb();
         } catch {}
     };
 
@@ -464,6 +590,17 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             } catch {}
         };
         gridContainer.addEventListener("mjr:reload-grid", _reloadGridHandler);
+        const onCustomSubfolderChanged = (e) => {
+            const next = String(e?.detail?.subfolder || "").trim().replaceAll("\\", "/");
+            const prev = currentFolderPath();
+            if (next !== prev) {
+                folderBackStack.push(prev);
+                folderForwardStack.length = 0;
+                setFolderPath(next);
+                notifyContextChanged();
+            }
+        };
+        gridContainer.addEventListener("mjr:custom-subfolder-changed", onCustomSubfolderChanged);
         const onDuplicateBadgeFocus = (e) => {
             try {
                 const detail = e?.detail || {};
@@ -492,6 +629,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         registerSummaryDispose(() => {
             try {
                 if (_reloadGridHandler) gridContainer.removeEventListener("mjr:reload-grid", _reloadGridHandler);
+            } catch {}
+            try {
+                gridContainer.removeEventListener("mjr:custom-subfolder-changed", onCustomSubfolderChanged);
             } catch {}
             try {
                 gridContainer.removeEventListener("mjr:badge-duplicates-focus", onDuplicateBadgeFocus);
@@ -533,6 +673,12 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         }
     });
     customRootsController.bind({ customAddBtn, customRemoveBtn });
+    try {
+        window.addEventListener("mjr:custom-roots-changed", async (e) => {
+            const preferredId = String(e?.detail?.preferredId || "").trim() || null;
+            await customRootsController.refreshCustomRoots(preferredId);
+        }, { signal: panelLifecycleAC?.signal });
+    } catch {}
 
     scopeController = createScopeController({
         state,
@@ -543,6 +689,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         refreshCustomRoots: customRootsController.refreshCustomRoots,
         reloadGrid: gridController.reloadGrid,
         onChanged: () => {
+            state.currentFolderRelativePath = state.subfolder || "";
             notifyContextChanged();
         },
         onScopeChanged: async () => {
@@ -1034,6 +1181,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     );
 
     scopeController.setActiveTabStyles();
+    renderFolderBreadcrumb();
     
     // Initial loading of custom roots (restores selection from state if applicable)
     customRootsController.refreshCustomRoots().catch(() => {});

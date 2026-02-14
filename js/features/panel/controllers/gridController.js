@@ -1,5 +1,3 @@
-import { t } from "../../../app/i18n.js";
-
 export function createGridController({ gridContainer, loadAssets, loadAssetsFromList, getCollectionAssets, disposeGrid, getQuery, state }) {
     let _isReloading = false;
     let _pendingReload = false;
@@ -29,7 +27,8 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
         } catch {}
         gridContainer.dataset.mjrScope = state.scope;
         gridContainer.dataset.mjrCustomRootId = state.customRootId || "";
-        gridContainer.dataset.mjrSubfolder = state.subfolder || "";
+        const subfolder = state.currentFolderRelativePath || state.subfolder || "";
+        gridContainer.dataset.mjrSubfolder = subfolder;
         gridContainer.dataset.mjrFilterKind = state.kindFilter || "";
         gridContainer.dataset.mjrFilterWorkflowOnly = state.workflowOnly ? "1" : "0";
         gridContainer.dataset.mjrFilterMinRating = String(state.minRating || 0);
@@ -55,21 +54,13 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
             }
         } catch {}
 
-        if (state.scope === "custom" && !state.customRootId) {
+        if (state.scope === "custom" && !state.customRootId && !(state.currentFolderRelativePath || state.subfolder)) {
             try {
                 disposeGrid(gridContainer);
             } catch {}
-            gridContainer.replaceChildren();
-            const p = document.createElement("p");
-            p.className = "mjr-muted";
-            p.textContent = t("msg.addCustomFolder");
-            gridContainer.appendChild(p);
-            try {
-                state.lastGridCount = 0;
-                state.lastGridTotal = 0;
-                gridContainer.dispatchEvent?.(new CustomEvent("mjr:grid-stats", { detail: { count: 0, total: 0 } }));
-            } catch {}
-            return;
+            // Browser mode: no selected custom root required. Start at filesystem roots.
+            state.subfolder = "";
+            state.currentFolderRelativePath = "";
         }
 
         if (state.collectionId) {

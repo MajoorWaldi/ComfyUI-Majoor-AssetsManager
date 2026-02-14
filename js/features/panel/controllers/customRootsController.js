@@ -98,6 +98,8 @@ export function createCustomRootsController({
             // Only update state if not disabled (not in loading/error state)
             if (!customSelect.disabled) {
                 state.customRootId = customSelect.value || "";
+                state.subfolder = "";
+                state.currentFolderRelativePath = "";
                 customRemoveBtn.disabled = !state.customRootId;
                 try {
                     await onRootChanged?.(state);
@@ -136,6 +138,8 @@ export function createCustomRootsController({
                     }
                     // Refresh
                     comfyToast(t("toast.folderLinked", "Folder linked successfully"), "success");
+                    state.subfolder = "";
+                    state.currentFolderRelativePath = "";
                     await refreshCustomRoots(json.data?.id);
                     await reloadGrid();
                     return;
@@ -182,6 +186,8 @@ export function createCustomRootsController({
                 }
                 const newId = json.data?.id;
                 comfyToast(t("toast.folderLinked", "Folder linked successfully"), "success");
+                state.subfolder = "";
+                state.currentFolderRelativePath = "";
                 await refreshCustomRoots(newId);
                 await reloadGrid();
             } catch (err) {
@@ -215,6 +221,8 @@ export function createCustomRootsController({
                 }
                 comfyToast(t("toast.folderRemoved", "Folder removed"), "success");
                 state.customRootId = "";
+                state.subfolder = "";
+                state.currentFolderRelativePath = "";
                 await refreshCustomRoots();
                 await reloadGrid();
             } catch (err) {

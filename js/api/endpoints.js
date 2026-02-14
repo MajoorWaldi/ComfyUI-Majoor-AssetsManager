@@ -285,13 +285,16 @@ export function buildAssetViewURL(asset) {
         /^[a-zA-Z]:\//.test(subfolder) || subfolder.startsWith("/");
     // Fallback: non-native output/input roots (or broken absolute subfolder values)
     // cannot be served by ComfyUI `/view`, so use backend filepath streaming URL.
-    if (rawPath && (subfolderLooksAbsolute || (!hasNativeBucket && type !== "custom"))) {
+    if (rawPath && type !== "custom" && (subfolderLooksAbsolute || !hasNativeBucket)) {
         return buildDownloadURL(rawPath, { inline: true });
     }
 
     if (type === "custom") {
         const rid = String(pickRootId(asset) || "").trim();
         if (rid) return buildCustomViewURL(filename, subfolder, rid);
+        if (rawPath) {
+            return `${ENDPOINTS.CUSTOM_VIEW}?filepath=${encodeURIComponent(rawPath)}`;
+        }
         // Fallback for malformed custom assets without root id.
         const fallbackType = fromPath.type || "output";
         return buildViewURL(filename, subfolder, fallbackType);

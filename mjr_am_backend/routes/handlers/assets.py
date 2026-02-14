@@ -136,6 +136,18 @@ def _delete_file_best_effort(path: Path) -> Result[bool]:
 
 def register_asset_routes(routes: web.RouteTableDef) -> None:
     """Register asset CRUD routes (get, delete, rename)."""
+    def _resolve_body_filepath(body: dict | None) -> Path | None:
+        try:
+            raw = ""
+            if isinstance(body, dict):
+                raw = body.get("filepath") or body.get("path") or ""
+            candidate = _normalize_path(str(raw))
+            if not candidate:
+                return None
+            return candidate
+        except Exception:
+            return None
+
     async def _resolve_or_create_asset_id(
         *,
         services: dict,
@@ -155,9 +167,6 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         candidate = _normalize_path(filepath)
         if not candidate:
             return Result.Err("INVALID_INPUT", "Invalid filepath")
-
-        if not (_is_path_allowed(candidate) or _is_path_allowed_custom(candidate)):
-            return Result.Err("FORBIDDEN", "Path is not within allowed roots")
 
         try:
             resolved = candidate.resolve(strict=True)
@@ -212,8 +221,12 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                         resolved_root_id = str(root_id)
                         source = "custom"
 
+        # Unrestricted fallback: allow on-demand indexing for arbitrary file paths by
+        # treating parent directory as base for this file entry.
         if not base_dir:
-            return Result.Err("INVALID_INPUT", "Unable to infer asset root for filepath")
+            base_dir = resolved.parent
+            source = "custom"
+            resolved_root_id = None
 
         # Index the file (best-effort) so it gets a stable asset_id.
         try:
@@ -488,7 +501,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         """
         Open the asset's folder in the OS file manager and (when supported) select the file.
 
-        Body: {"asset_id": int}
+        Body: {"asset_id": int} or {"filepath": str}
         """
         csrf = _csrf_error(request)
         if csrf:
@@ -517,38 +530,34 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         body = body_res.data or {}
 
         asset_id = body.get("asset_id")
-        if not asset_id:
-            return _json_response(Result.Err("INVALID_INPUT", "Missing asset_id"))
+        candidate = None
 
-        try:
-            asset_id = int(asset_id)
-        except (ValueError, TypeError):
-            return _json_response(Result.Err("INVALID_INPUT", "Invalid asset_id"))
+        if asset_id is not None and str(asset_id).strip() != "":
+            try:
+                asset_id = int(asset_id)
+            except (ValueError, TypeError):
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid asset_id"))
 
-        db = svc.get("db") if isinstance(svc, dict) else None
-        if not db:
-            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Database service unavailable"))
+            db = svc.get("db") if isinstance(svc, dict) else None
+            if not db:
+                return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Database service unavailable"))
+            try:
+                res = await db.aquery("SELECT filepath FROM assets WHERE id = ?", (asset_id,))
+                if not res.ok or not res.data:
+                    return _json_response(Result.Err("NOT_FOUND", "Asset not found"))
+                raw_path = (res.data[0] or {}).get("filepath")
+            except Exception as exc:
+                return _json_response(
+                    Result.Err("DB_ERROR", _safe_error_message(exc, "Failed to load asset"))
+                )
+            if not raw_path or not isinstance(raw_path, str):
+                return _json_response(Result.Err("NOT_FOUND", "Asset path not available"))
+            candidate = _normalize_path(raw_path)
+        else:
+            candidate = _resolve_body_filepath(body)
 
-        try:
-            res = await db.aquery("SELECT filepath FROM assets WHERE id = ?", (asset_id,))
-            if not res.ok or not res.data:
-                return _json_response(Result.Err("NOT_FOUND", "Asset not found"))
-            raw_path = (res.data[0] or {}).get("filepath")
-        except Exception as exc:
-            return _json_response(
-                Result.Err("DB_ERROR", _safe_error_message(exc, "Failed to load asset"))
-            )
-
-        if not raw_path or not isinstance(raw_path, str):
-            return _json_response(Result.Err("NOT_FOUND", "Asset path not available"))
-
-        candidate = _normalize_path(raw_path)
         if not candidate:
-            return _json_response(Result.Err("INVALID_INPUT", "Invalid asset path"))
-
-        allowed = _is_path_allowed(candidate) or _is_path_allowed_custom(candidate)
-        if not allowed:
-            return _json_response(Result.Err("FORBIDDEN", "Path is not within allowed roots"))
+            return _json_response(Result.Err("INVALID_INPUT", "Missing filepath or asset_id"))
 
         try:
             # Require strict resolution to avoid following symlinks outside allowed roots.
@@ -678,7 +687,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         """
         Delete a single asset file and its database record.
 
-        Body: {"asset_id": int}
+        Body: {"asset_id": int} or {"filepath": str}
         """
         csrf = _csrf_error(request)
         if csrf:
@@ -707,35 +716,29 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         body = body_res.data or {}
 
         asset_id = body.get("asset_id")
-        if not asset_id:
-            return _json_response(Result.Err("INVALID_INPUT", "Missing asset_id"))
+        raw_path = None
+        if asset_id is not None and str(asset_id).strip() != "":
+            try:
+                asset_id = int(asset_id)
+            except (ValueError, TypeError):
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid asset_id"))
+            try:
+                res = await svc["db"].aquery("SELECT filepath FROM assets WHERE id = ?", (asset_id,))
+                if not res.ok or not res.data:
+                    return _json_response(Result.Err("NOT_FOUND", "Asset not found"))
+                raw_path = (res.data[0] or {}).get("filepath")
+            except Exception as exc:
+                return _json_response(
+                    Result.Err("DB_ERROR", _safe_error_message(exc, "Failed to load asset"))
+                )
+            if not raw_path or not isinstance(raw_path, str):
+                return _json_response(Result.Err("NOT_FOUND", "Asset path not available"))
+            candidate = _normalize_path(raw_path)
+        else:
+            candidate = _resolve_body_filepath(body)
 
-        try:
-            asset_id = int(asset_id)
-        except (ValueError, TypeError):
-            return _json_response(Result.Err("INVALID_INPUT", "Invalid asset_id"))
-
-        # Get file path from database
-        try:
-            res = await svc["db"].aquery("SELECT filepath FROM assets WHERE id = ?", (asset_id,))
-            if not res.ok or not res.data:
-                return _json_response(Result.Err("NOT_FOUND", "Asset not found"))
-            raw_path = (res.data[0] or {}).get("filepath")
-        except Exception as exc:
-            return _json_response(
-                Result.Err("DB_ERROR", _safe_error_message(exc, "Failed to load asset"))
-            )
-
-        if not raw_path or not isinstance(raw_path, str):
-            return _json_response(Result.Err("NOT_FOUND", "Asset path not available"))
-
-        candidate = _normalize_path(raw_path)
         if not candidate:
-            return _json_response(Result.Err("INVALID_INPUT", "Invalid asset path"))
-
-        allowed = _is_path_allowed(candidate) or _is_path_allowed_custom(candidate)
-        if not allowed:
-            return _json_response(Result.Err("FORBIDDEN", "Path is not within allowed roots"))
+            return _json_response(Result.Err("INVALID_INPUT", "Missing filepath or asset_id"))
 
         try:
             # Require strict resolution to avoid following symlinks outside allowed roots.
@@ -746,23 +749,26 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if not (resolved.exists() and resolved.is_file()):
             return _json_response(Result.Err("NOT_FOUND", "File does not exist"))
 
-        # DB-first with compensation: if file deletion fails, restore DB row.
-        row_res = await svc["db"].aquery(
-            "SELECT filename, subfolder, filepath, source, root_id, kind, ext, size, mtime, width, height, duration, created_at, updated_at, indexed_at, content_hash, phash, hash_state FROM assets WHERE id = ?",
-            (asset_id,),
-        )
-        if not row_res.ok or not row_res.data:
-            return _json_response(Result.Err("NOT_FOUND", "Asset not found"))
-        backup_row = row_res.data[0] or {}
+        backup_row = None
+        if asset_id is not None:
+            row_res = await svc["db"].aquery(
+                "SELECT filename, subfolder, filepath, source, root_id, kind, ext, size, mtime, width, height, duration, created_at, updated_at, indexed_at, content_hash, phash, hash_state FROM assets WHERE id = ?",
+                (asset_id,),
+            )
+            if row_res.ok and row_res.data:
+                backup_row = row_res.data[0] or {}
 
         deleted_db = False
         try:
             async with svc["db"].atransaction(mode="immediate"):
-                del_res = await svc["db"].aexecute("DELETE FROM assets WHERE id = ?", (asset_id,))
-                if not del_res.ok:
-                    return _json_response(Result.Err("DB_ERROR", str(del_res.error or "DB delete failed")))
-                deleted_db = True
-
+                if asset_id is not None:
+                    del_res = await svc["db"].aexecute("DELETE FROM assets WHERE id = ?", (asset_id,))
+                    if not del_res.ok:
+                        return _json_response(Result.Err("DB_ERROR", str(del_res.error or "DB delete failed")))
+                    deleted_db = True
+                else:
+                    # Browser mode can operate on files not yet indexed.
+                    await svc["db"].aexecute("DELETE FROM assets WHERE filepath = ?", (str(resolved),))
                 await svc["db"].aexecute("DELETE FROM scan_journal WHERE filepath = ?", (str(resolved),))
                 await svc["db"].aexecute("DELETE FROM metadata_cache WHERE filepath = ?", (str(resolved),))
         except Exception as exc:
@@ -779,7 +785,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             if not del_res.ok:
                 raise RuntimeError(str(del_res.error or "delete failed"))
         except Exception as exc:
-            if deleted_db:
+            if deleted_db and backup_row:
                 try:
                     await svc["db"].aexecute(
                         """
@@ -788,7 +794,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
-                            asset_id,
+                            int(asset_id),
                             backup_row.get("filename"),
                             backup_row.get("subfolder"),
                             backup_row.get("filepath"),
@@ -825,7 +831,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         """
         Rename an asset file and update its database record.
 
-        Body: {"asset_id": int, "new_name": str}
+        Body: {"asset_id": int, "new_name": str} or {"filepath": str, "new_name": str}
         """
         csrf = _csrf_error(request)
         if csrf:
@@ -852,15 +858,15 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         asset_id = body.get("asset_id")
         new_name = body.get("new_name")
 
-        if not asset_id:
-            return _json_response(Result.Err("INVALID_INPUT", "Missing asset_id"))
         if not new_name:
             return _json_response(Result.Err("INVALID_INPUT", "Missing new_name"))
-
-        try:
-            asset_id = int(asset_id)
-        except (ValueError, TypeError):
-            return _json_response(Result.Err("INVALID_INPUT", "Invalid asset_id"))
+        if asset_id is not None and str(asset_id).strip() != "":
+            try:
+                asset_id = int(asset_id)
+            except (ValueError, TypeError):
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid asset_id"))
+        else:
+            asset_id = None
 
         # Sanitize and validate new_name
         new_name = str(new_name).strip()
@@ -871,29 +877,31 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if len(new_name) > MAX_RENAME_LENGTH:
             return _json_response(Result.Err("INVALID_INPUT", f"New name is too long (max {MAX_RENAME_LENGTH} chars)"))
 
-        # Get current asset info from database
-        try:
-            res = await svc["db"].aquery("SELECT filepath, filename FROM assets WHERE id = ?", (asset_id,))
-            if not res.ok or not res.data:
-                return _json_response(Result.Err("NOT_FOUND", "Asset not found"))
-            row = res.data[0] or {}
-            current_filepath = row.get("filepath")
-            current_filename = row.get("filename")
-        except Exception as exc:
-            return _json_response(
-                Result.Err("DB_ERROR", _safe_error_message(exc, "Failed to load asset"))
-            )
+        current_filepath = ""
+        current_filename = ""
+        if asset_id is not None:
+            try:
+                res = await svc["db"].aquery("SELECT filepath, filename FROM assets WHERE id = ?", (asset_id,))
+                if not res.ok or not res.data:
+                    return _json_response(Result.Err("NOT_FOUND", "Asset not found"))
+                row = res.data[0] or {}
+                current_filepath = str(row.get("filepath") or "")
+                current_filename = str(row.get("filename") or "")
+            except Exception as exc:
+                return _json_response(
+                    Result.Err("DB_ERROR", _safe_error_message(exc, "Failed to load asset"))
+                )
+        else:
+            fp = _resolve_body_filepath(body)
+            current_filepath = str(fp) if fp else ""
+            current_filename = Path(current_filepath).name if current_filepath else ""
 
-        if not current_filepath or not isinstance(current_filepath, str):
-            return _json_response(Result.Err("NOT_FOUND", "Asset path not available"))
+        if not current_filepath:
+            return _json_response(Result.Err("INVALID_INPUT", "Missing filepath or asset_id"))
 
         current_path = _normalize_path(current_filepath)
         if not current_path:
             return _json_response(Result.Err("INVALID_INPUT", "Invalid current asset path"))
-
-        allowed = _is_path_allowed(current_path) or _is_path_allowed_custom(current_path)
-        if not allowed:
-            return _json_response(Result.Err("FORBIDDEN", "Current path is not within allowed roots"))
 
         try:
             # Require strict resolution to avoid following symlinks outside allowed roots.
@@ -941,12 +949,18 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                 if not defer_fk.ok:
                     return _json_response(Result.Err("DB_ERROR", defer_fk.error or "Failed to defer foreign key checks"))
 
-                update_res = await svc["db"].aexecute(
-                    "UPDATE assets SET filename = ?, filepath = ?, mtime = ? WHERE id = ?",
-                    (new_name, str(new_path), mtime, asset_id)
-                )
-                if not update_res.ok:
-                    return _json_response(Result.Err("DB_ERROR", update_res.error or "Failed to update assets filepath"))
+                if asset_id is not None:
+                    update_res = await svc["db"].aexecute(
+                        "UPDATE assets SET filename = ?, filepath = ?, mtime = ? WHERE id = ?",
+                        (new_name, str(new_path), mtime, asset_id)
+                    )
+                    if not update_res.ok:
+                        return _json_response(Result.Err("DB_ERROR", update_res.error or "Failed to update assets filepath"))
+                else:
+                    await svc["db"].aexecute(
+                        "UPDATE assets SET filename = ?, filepath = ?, mtime = ? WHERE filepath = ?",
+                        (new_name, str(new_path), mtime, str(current_resolved)),
+                    )
 
                 # Keep FK-linked tables in sync with renamed filepath.
                 sj_res = await svc["db"].aexecute(
@@ -1183,10 +1197,6 @@ async def download_asset(request: web.Request) -> web.StreamResponse:
     if not candidate:
         return web.Response(status=400, text="Invalid filepath")
 
-    # Check path is within allowed roots
-    if not (_is_path_allowed(candidate) or _is_path_allowed_custom(candidate)):
-        return web.Response(status=403, text="Path not within allowed directories")
-
     # Strict resolution to prevent symlink escapes
     try:
         resolved = candidate.resolve(strict=True)
@@ -1195,10 +1205,6 @@ async def download_asset(request: web.Request) -> web.StreamResponse:
 
     if not resolved.is_file():
         return web.Response(status=404, text="File not found")
-
-    # Re-validate after resolution (symlink could escape)
-    if not (_is_path_allowed(resolved) or _is_path_allowed_custom(resolved)):
-        return web.Response(status=403, text="Path escapes allowed directories")
 
     # Determine content type
     mime_type, _ = mimetypes.guess_type(str(resolved))

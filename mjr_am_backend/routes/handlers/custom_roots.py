@@ -169,38 +169,44 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
     @routes.get("/mjr/am/custom-view")
     async def custom_view(request):
         """
-        Serve a file from a registered custom root.
+        Serve a media file for custom scope.
 
         Query params:
           root_id: custom root id
           filename: file name
           subfolder: optional subfolder under the root
+          filepath: absolute file path (browser mode, no root_id required)
         """
         root_id = request.query.get("root_id", "").strip()
         filename = request.query.get("filename", "").strip()
         subfolder = request.query.get("subfolder", "").strip()
+        filepath = request.query.get("filepath", "").strip()
 
-        if not root_id or not filename:
-            return _json_response(Result.Err("INVALID_INPUT", "Missing root_id or filename"))
+        if filepath:
+            candidate = Path(filepath)
+            root_dir = None
+        else:
+            if not root_id or not filename:
+                return _json_response(Result.Err("INVALID_INPUT", "Missing root_id or filename"))
 
-        root_result = resolve_custom_root(root_id)
-        if not root_result.ok:
-            return _json_response(root_result)
+            root_result = resolve_custom_root(root_id)
+            if not root_result.ok:
+                return _json_response(root_result)
 
-        root_dir = root_result.data
-        rel = _safe_rel_path(subfolder)
-        if rel is None:
-            return _json_response(Result.Err("INVALID_INPUT", "Invalid subfolder"))
+            root_dir = root_result.data
+            rel = _safe_rel_path(subfolder)
+            if rel is None:
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid subfolder"))
 
-        # Ensure filename is a basename (no traversal)
-        if Path(filename).name != filename:
-            return _json_response(Result.Err("INVALID_INPUT", "Invalid filename"))
+            # Ensure filename is a basename (no traversal)
+            if Path(filename).name != filename:
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid filename"))
 
-        candidate = (root_dir / rel / filename)
+            candidate = (root_dir / rel / filename)
 
-        # SECURITY: Validate path is within root before any file operations
-        if not _is_within_root(candidate, root_dir):
-            return _json_response(Result.Err("INVALID_INPUT", "Path outside root"))
+            # SECURITY: Validate path is within root before any file operations
+            if not _is_within_root(candidate, root_dir):
+                return _json_response(Result.Err("INVALID_INPUT", "Path outside root"))
 
         def _validate_no_symlink_open(path: Path) -> bool:
             try:
@@ -222,8 +228,8 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
 
         try:
             resolved_path = candidate.resolve(strict=True)
-            # Prevent symlink/junction escapes: ensure the resolved target is still under the root.
-            if not _is_within_root(resolved_path, root_dir):
+            # Prevent symlink/junction escapes for rooted mode.
+            if root_dir is not None and not _is_within_root(resolved_path, root_dir):
                 return _json_response(Result.Err("FORBIDDEN", "Path escapes root"))
             if not resolved_path.is_file():
                 return _json_response(Result.Err("NOT_FOUND", "File not found or not a regular file"))

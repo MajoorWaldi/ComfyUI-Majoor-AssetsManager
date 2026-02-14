@@ -6,7 +6,8 @@ import { buildDownloadURL } from "../../api/endpoints.js";
 import { comfyPrompt } from "../../app/dialogs.js";
 import { comfyToast } from "../../app/toast.js";
 import { t } from "../../app/i18n.js";
-import { openInFolder, deleteAsset, renameAsset, removeFilepathsFromCollection } from "../../api/client.js";
+import { openInFolder, deleteAsset, renameAsset, updateAssetRating, removeFilepathsFromCollection, post } from "../../api/client.js";
+import { ENDPOINTS } from "../../api/endpoints.js";
 import { ASSET_RATING_CHANGED_EVENT, ASSET_TAGS_CHANGED_EVENT } from "../../app/events.js";
 import { createTagsEditor } from "../../components/TagsEditor.js";
 import { getViewerInstance } from "../../components/Viewer.js";
@@ -294,7 +295,6 @@ function showTagsPopover(x, y, asset, onChanged) {
 
 function setRating(asset, rating, onChanged) {
     const assetId = asset?.id;
-    if (!assetId) return;
     try {
         asset.rating = rating;
     } catch {}
@@ -302,20 +302,26 @@ function setRating(asset, rating, onChanged) {
         onChanged?.();
     } catch {}
 
-    scheduleRatingUpdate(String(assetId), rating, {
-        successMessage: rating > 0 ? `Rating set to ${rating} stars` : "Rating cleared",
-        errorMessage: "Failed to update rating",
-        warnPrefix: "[GridContextMenu]",
-        onSuccess: () => {
-            safeDispatchCustomEvent(
-                ASSET_RATING_CHANGED_EVENT,
-                { assetId: String(assetId), rating },
-                { warnPrefix: "[GridContextMenu]" }
-            );
-        },
-        onFailure: (error) => {
-            reportError(error, "[GridContextMenu] Rating update", { showToast: APP_CONFIG.DEBUG_VERBOSE_ERRORS });
-        },
+    if (assetId) {
+        scheduleRatingUpdate(String(assetId), rating, {
+            successMessage: rating > 0 ? `Rating set to ${rating} stars` : "Rating cleared",
+            errorMessage: "Failed to update rating",
+            warnPrefix: "[GridContextMenu]",
+            onSuccess: () => {
+                safeDispatchCustomEvent(
+                    ASSET_RATING_CHANGED_EVENT,
+                    { assetId: String(assetId), rating },
+                    { warnPrefix: "[GridContextMenu]" }
+                );
+            },
+            onFailure: (error) => {
+                reportError(error, "[GridContextMenu] Rating update", { showToast: APP_CONFIG.DEBUG_VERBOSE_ERRORS });
+            },
+        });
+        return;
+    }
+    updateAssetRating(asset, rating).catch((error) => {
+        reportError(error, "[GridContextMenu] Rating update", { showToast: APP_CONFIG.DEBUG_VERBOSE_ERRORS });
     });
 }
 
@@ -341,6 +347,7 @@ export function bindGridContextMenu({
 
         const asset = card._mjrAsset;
         if (!asset) return;
+        const isFolder = String(asset?.kind || "").toLowerCase() === "folder";
 
         const panelState = (() => {
             try {
@@ -356,41 +363,91 @@ export function bindGridContextMenu({
         let selectedIds = getSelectedAssetIds(gridContainer);
         
         // Implicit selection: if Right-Click on unselected item, select it exclusively.
-        if (asset && asset.id && !selectedIds.has(String(asset.id))) {
-             const newSelection = [String(asset.id)];
-             try {
-                 if (typeof gridContainer?._mjrSetSelection === "function") {
-                     gridContainer._mjrSetSelection(newSelection, newSelection[0]);
-                 } else {
-                     gridContainer.dataset.mjrSelectedAssetIds = JSON.stringify(newSelection);
-                     gridContainer.dataset.mjrSelectedAssetId = newSelection[0];
-                     safeDispatchCustomEvent("mjr:selection-changed", {
-                         selectedIds: newSelection,
-                         selectedAssets: [asset],
-                         activeId: newSelection[0]
-                     }, { target: gridContainer, warnPrefix: "[GridContextMenu]" });
-                 }
-             } catch {}
-             // Update local set for menu logic
-             selectedIds = new Set(newSelection);
-             
-             // Visually update immediately (toggle class) to give feedback
-             try {
-                // Clear others
+        const cardSelected = !!card?.classList?.contains?.("is-selected");
+        if (asset && !cardSelected) {
+            const nextId = asset?.id != null ? String(asset.id) : "";
+            const newSelection = nextId ? [nextId] : [];
+            try {
+                if (nextId && typeof gridContainer?._mjrSetSelection === "function") {
+                    gridContainer._mjrSetSelection(newSelection, newSelection[0]);
+                } else if (nextId) {
+                    gridContainer.dataset.mjrSelectedAssetIds = JSON.stringify(newSelection);
+                    gridContainer.dataset.mjrSelectedAssetId = newSelection[0];
+                } else {
+                    delete gridContainer.dataset.mjrSelectedAssetIds;
+                    delete gridContainer.dataset.mjrSelectedAssetId;
+                }
+            } catch {}
+            try {
+                safeDispatchCustomEvent("mjr:selection-changed", {
+                    selectedIds: newSelection,
+                    selectedAssets: [asset],
+                    activeId: nextId
+                }, { target: gridContainer, warnPrefix: "[GridContextMenu]" });
+            } catch {}
+            selectedIds = new Set(newSelection);
+            try {
                 gridContainer.querySelectorAll('.mjr-asset-card.is-selected').forEach(el => {
                     el.classList.remove('is-selected');
                     el.setAttribute?.('aria-selected', 'false');
                 });
-                // Select target
                 if (card) {
                     card.classList.add('is-selected');
                     card.setAttribute('aria-selected', 'true');
                 }
-             } catch {}
+            } catch {}
         }
+        const selectedAssetsNow = getSelectedAssets(gridContainer);
+        const effectiveSelectionCount = selectedAssetsNow.length || selectedIds.size;
+        const isMultiSelected = effectiveSelectionCount > 1;
+        const hasSelection = effectiveSelectionCount > 0;
 
-        const isMultiSelected = selectedIds.size > 1;
-        const hasSelection = selectedIds.size > 0;
+        if (isFolder) {
+            menu.appendChild(
+                createItem("Open folder", "pi pi-folder-open", null, () => {
+                    const subfolder = String(asset?.subfolder || "").trim().replaceAll("\\", "/");
+                    try {
+                        gridContainer.dispatchEvent(
+                            new CustomEvent("mjr:custom-subfolder-changed", {
+                                bubbles: true,
+                                detail: { subfolder },
+                            })
+                        );
+                        gridContainer.dispatchEvent(new CustomEvent("mjr:reload-grid", { bubbles: true }));
+                    } catch {}
+                })
+            );
+
+            menu.appendChild(
+                createItem("Pin as Custom Root", "pi pi-bookmark", null, async () => {
+                    const folderPath = String(asset?.filepath || "").trim();
+                    if (!folderPath) {
+                        comfyToast("Unable to resolve folder path", "error");
+                        return;
+                    }
+                    const label = await comfyPrompt("Label for the new custom root (optional)", String(asset?.filename || ""));
+                    const res = await post(ENDPOINTS.CUSTOM_ROOTS, {
+                        path: folderPath,
+                        label: String(label || "").trim() || undefined,
+                    });
+                    if (!res?.ok) {
+                        comfyToast(res?.error || "Failed to pin folder", "error");
+                        return;
+                    }
+                    comfyToast("Folder pinned as custom root", "success");
+                    try {
+                        window.dispatchEvent(
+                            new CustomEvent("mjr:custom-roots-changed", {
+                                detail: { preferredId: String(res?.data?.id || "") },
+                            })
+                        );
+                    } catch {}
+                })
+            );
+
+            showAt(menu, e.clientX, e.clientY);
+            return;
+        }
 
         // Open Viewer
         menu.appendChild(
@@ -400,14 +457,16 @@ export function bindGridContextMenu({
                 try {
                     const viewer = getViewerInstance();
                     const selectedAssets = hasSelection ? getSelectedAssets(gridContainer) : [];
-                    const selectedCount = selectedAssets.length;
+                    const mediaSelectedAssets = selectedAssets.filter((a) => String(a?.kind || "").toLowerCase() !== "folder");
+                    const selectedCount = mediaSelectedAssets.length;
                     if (selectedCount >= 2 && selectedCount <= 4) {
-                        viewer.open(selectedAssets, 0);
+                        viewer.open(mediaSelectedAssets, 0);
                         return;
                     }
 
-                    const allAssets = getAllAssetsInGrid(gridContainer);
+                    const allAssets = getAllAssetsInGrid(gridContainer).filter((a) => String(a?.kind || "").toLowerCase() !== "folder");
                     const idx = findIndexById(allAssets, asset?.id);
+                    if (!allAssets.length || idx < 0) return;
                     viewer.open(allAssets, Math.max(0, idx));
                 } catch {
                     // Fallback to the caller hook (legacy/optional).
@@ -436,14 +495,15 @@ export function bindGridContextMenu({
         );
 
         // Compare options (selection-only)
-        const selectedAssets = hasSelection ? getSelectedAssets(gridContainer) : [];
-        const selectedCount = selectedAssets.length;
+        const selectedAssets = hasSelection ? selectedAssetsNow : [];
+        const mediaSelectedAssets = selectedAssets.filter((a) => String(a?.kind || "").toLowerCase() !== "folder");
+        const selectedCount = mediaSelectedAssets.length;
         if (selectedCount === 2) {
             menu.appendChild(
                 createItem("Compare A/B (2 selected)", "pi pi-clone", getShortcutDisplay("COMPARE_AB"), () => {
                     try {
                         const viewer = getViewerInstance();
-                        viewer.open(selectedAssets, 0);
+                        viewer.open(mediaSelectedAssets, 0);
                         viewer.setMode?.("ab");
                     } catch {}
                 })
@@ -454,7 +514,7 @@ export function bindGridContextMenu({
                 createItem(`Side-by-side (2x2) (${selectedCount} selected)`, "pi pi-table", getShortcutDisplay("SIDE_BY_SIDE"), () => {
                     try {
                         const viewer = getViewerInstance();
-                        viewer.open(selectedAssets, 0);
+                        viewer.open(mediaSelectedAssets, 0);
                         viewer.setMode?.("sidebyside");
                     } catch {}
                 })
@@ -464,14 +524,13 @@ export function bindGridContextMenu({
         // Open in Folder
         menu.appendChild(
             createItem("Open in Folder", "pi pi-folder-open", getShortcutDisplay("OPEN_IN_FOLDER"), async () => {
-                if (!asset?.id) return;
-                const res = await openInFolder(asset.id);
+                const res = await openInFolder(asset);
                 if (!res?.ok) {
                     comfyToast(res?.error || t("toast.openFolderFailed"), "error");
                 } else {
                     comfyToast(t("toast.openedInFolder"), "info", 2000);
                 }
-            }, { disabled: !asset?.id })
+            }, { disabled: !(asset?.id || getAssetFilepath(asset)) })
         );
 
         // Copy file path
@@ -576,8 +635,9 @@ export function bindGridContextMenu({
 
         // Rating submenu (hover)
         menu.appendChild(separator());
-        const ratingRoot = createItem("Set rating", "pi pi-star", "1-5 ›", () => {}, { disabled: !asset?.id });
-        ratingRoot.style.cursor = !asset?.id ? "default" : "pointer";
+        const canRate = !!(asset?.id || getAssetFilepath(asset));
+        const ratingRoot = createItem("Set rating", "pi pi-star", "1-5 ›", () => {}, { disabled: !canRate });
+        ratingRoot.style.cursor = !canRate ? "default" : "pointer";
         menu.appendChild(ratingRoot);
 
         let hideTimer = null;
@@ -644,7 +704,7 @@ export function bindGridContextMenu({
                         try {
                             hideMenu(menu);
                         } catch {}
-                    }, { disabled: !asset?.id })
+                    }, { disabled: !canRate })
                 );
             }
             ratingSubmenu.appendChild(separator());
@@ -660,14 +720,14 @@ export function bindGridContextMenu({
                     try {
                         hideMenu(menu);
                     } catch {}
-                }, { disabled: !asset?.id })
+                }, { disabled: !canRate })
             );
         };
 
         ratingRoot.addEventListener(
             "mouseenter",
             () => {
-            if (!asset?.id) return;
+            if (!canRate) return;
             cancelClose();
             renderRatingSubmenu();
             showSubmenuNextTo(ratingRoot, ratingSubmenu);
@@ -689,7 +749,7 @@ export function bindGridContextMenu({
         // Rename (single only)
         menu.appendChild(
             createItem("Rename…", "pi pi-pencil", getShortcutDisplay("RENAME"), async () => {
-                if (!asset?.id) return;
+                if (!(asset?.id || getAssetFilepath(asset))) return;
                 
                 const currentName = asset.filename || "";
                 const rawInput = await comfyPrompt("Rename file", currentName);
@@ -702,7 +762,7 @@ export function bindGridContextMenu({
                 }
                 
                 try {
-                    const result = await renameAsset(asset.id, newName);
+                    const result = await renameAsset(asset, newName);
                     if (result?.ok) {
                         // Update the asset object and card UI
                         asset.filename = newName;
@@ -725,26 +785,32 @@ export function bindGridContextMenu({
                 } catch (error) {
                     comfyToast(`Error renaming file: ${error.message}`, "error");
                 }
-            }, { disabled: !asset?.id })
+            }, { disabled: !(asset?.id || getAssetFilepath(asset)) })
         );
 
         // Delete (single or multi)
         if (isMultiSelected) {
             menu.appendChild(
-                createItem(`Delete ${selectedIds.size} files...`, "pi pi-trash", getShortcutDisplay("DELETE"), async () => {
-                    const ok = await confirmDeletion(Number(selectedIds.size) || 0);
+                createItem(`Delete ${effectiveSelectionCount} files...`, "pi pi-trash", getShortcutDisplay("DELETE"), async () => {
+                    const ok = await confirmDeletion(Number(effectiveSelectionCount) || 0);
                     if (!ok) return;
                     try {
                         // Delete each asset individually
                         let successCount = 0;
                         let errorCount = 0;
                         const deletedIds = [];
+                        let deletedByFilepath = 0;
+                        const selectionList = selectedAssetsNow.length ? selectedAssetsNow : [asset];
 
-                        for (const assetId of selectedIds) {
-                            const result = await deleteAsset(assetId);
+                        for (const selectedAsset of selectionList) {
+                            const result = await deleteAsset(selectedAsset);
                             if (result?.ok) {
                                 successCount++;
-                                deletedIds.push(String(assetId));
+                                if (selectedAsset?.id != null) {
+                                    deletedIds.push(String(selectedAsset.id));
+                                } else {
+                                    deletedByFilepath++;
+                                }
                             } else {
                                 errorCount++;
                             }
@@ -757,6 +823,11 @@ export function bindGridContextMenu({
                                     panelState.selectedAssetIds = removal.selectedIds;
                                     panelState.activeAssetId = removal.selectedAssetIds[0] || "";
                                 }
+                            } catch {}
+                        }
+                        if (deletedByFilepath > 0) {
+                            try {
+                                gridContainer?.dispatchEvent?.(new CustomEvent("mjr:reload-grid"));
                             } catch {}
                         }
 
@@ -776,15 +847,21 @@ export function bindGridContextMenu({
                     const ok = await confirmDeletion(1, asset?.filename);
                     if (!ok) return;
                     try {
-                        const result = await deleteAsset(asset.id);
+                        const result = await deleteAsset(asset);
                         if (result?.ok) {
-                            const removal = removeAssetsFromGrid(gridContainer, [String(asset.id)]);
-                            try {
-                                if (panelState && Array.isArray(removal?.selectedIds)) {
-                                    panelState.selectedAssetIds = removal.selectedIds;
-                                    panelState.activeAssetId = removal.selectedAssetIds[0] || "";
-                                }
-                            } catch {}
+                            if (asset?.id) {
+                                const removal = removeAssetsFromGrid(gridContainer, [String(asset.id)]);
+                                try {
+                                    if (panelState && Array.isArray(removal?.selectedIds)) {
+                                        panelState.selectedAssetIds = removal.selectedIds;
+                                        panelState.activeAssetId = removal.selectedAssetIds[0] || "";
+                                    }
+                                } catch {}
+                            } else {
+                                try {
+                                    gridContainer?.dispatchEvent?.(new CustomEvent("mjr:reload-grid"));
+                                } catch {}
+                            }
                             comfyToast(t("toast.fileDeletedSuccess"), "success");
                         } else {
                             comfyToast(result?.error || t("toast.fileDeleteFailed"), "error");
@@ -792,7 +869,7 @@ export function bindGridContextMenu({
                     } catch (error) {
                         comfyToast(`Error deleting file: ${error.message}`, "error");
                     }
-                }, { disabled: !asset?.id })
+                }, { disabled: !(asset?.id || getAssetFilepath(asset)) })
             );
         }
 

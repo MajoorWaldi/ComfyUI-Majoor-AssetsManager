@@ -12,6 +12,7 @@ from ..core import (
     _check_rate_limit,
     _normalize_path,
     _is_path_allowed,
+    _is_path_allowed_custom,
     _is_within_root,
     _safe_rel_path,
 )
@@ -55,6 +56,7 @@ def register_metadata_routes(routes: web.RouteTableDef) -> None:
         filename = (request.query.get("filename") or "").strip()
         subfolder = (request.query.get("subfolder") or "").strip()
         root_id = (request.query.get("root_id") or request.query.get("custom_root_id") or "").strip()
+        filepath = (request.query.get("filepath") or "").strip()
         normalized = None
 
         if not filename:
@@ -67,38 +69,44 @@ def register_metadata_routes(routes: web.RouteTableDef) -> None:
         if not safe_name or len(safe_name.parts) != 1:
             return _json_response(Result.Err("INVALID_INPUT", "Invalid filename"))
 
-        safe_sub = _safe_rel_path(subfolder)
-        if safe_sub is None:
-            return _json_response(Result.Err("INVALID_INPUT", "Invalid subfolder"))
-
-        # Resolve base root
-        if file_type == "input":
-            base_root = folder_paths.get_input_directory()
-        elif file_type == "custom":
-            if not root_id:
-                return _json_response(Result.Err("INVALID_INPUT", "Missing custom root_id"))
-            root_res = resolve_custom_root(root_id)
-            if not root_res.ok:
-                return _json_response(Result.Err("INVALID_INPUT", root_res.error or "Invalid custom root"))
-            base_root = str(root_res.data)
+        # Browser-mode custom can pass absolute filepath directly.
+        if file_type == "custom" and filepath and not root_id:
+            normalized = _normalize_path(filepath)
+            if not normalized or not normalized.exists():
+                return _json_response(Result.Err("NOT_FOUND", "File not found"))
         else:
-            base_root = get_runtime_output_root()
+            safe_sub = _safe_rel_path(subfolder)
+            if safe_sub is None:
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid subfolder"))
 
-        # Build candidate and validate root containment
-        from pathlib import Path
+            # Resolve base root
+            if file_type == "input":
+                base_root = folder_paths.get_input_directory()
+            elif file_type == "custom":
+                if not root_id:
+                    return _json_response(Result.Err("INVALID_INPUT", "Missing custom root_id"))
+                root_res = resolve_custom_root(root_id)
+                if not root_res.ok:
+                    return _json_response(Result.Err("INVALID_INPUT", root_res.error or "Invalid custom root"))
+                base_root = str(root_res.data)
+            else:
+                base_root = get_runtime_output_root()
 
-        base_dir = Path(str(base_root)).resolve(strict=False)
-        candidate = base_dir / (safe_sub or Path("")) / safe_name
-        normalized = _normalize_path(str(candidate))
-        if not normalized or not normalized.exists():
-            return _json_response(Result.Err("NOT_FOUND", "File not found"))
+            # Build candidate and validate root containment
+            from pathlib import Path
 
-        if file_type == "custom":
-            if not _is_within_root(normalized, base_dir):
-                return _json_response(Result.Err("FORBIDDEN", "Source file outside custom root"))
-        else:
-            if not _is_path_allowed(normalized):
-                return _json_response(Result.Err("INVALID_INPUT", "Path not allowed"))
+            base_dir = Path(str(base_root)).resolve(strict=False)
+            candidate = base_dir / (safe_sub or Path("")) / safe_name
+            normalized = _normalize_path(str(candidate))
+            if not normalized or not normalized.exists():
+                return _json_response(Result.Err("NOT_FOUND", "File not found"))
+
+            if file_type == "custom":
+                if not _is_within_root(normalized, base_dir):
+                    return _json_response(Result.Err("FORBIDDEN", "Source file outside custom root"))
+            else:
+                if not _is_path_allowed(normalized):
+                    return _json_response(Result.Err("INVALID_INPUT", "Path not allowed"))
 
         try:
             mode = (request.query.get("mode") or "").strip().lower()

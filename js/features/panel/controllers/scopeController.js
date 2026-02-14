@@ -20,11 +20,9 @@ export function createScopeController({
             b?.classList?.toggle?.("is-active", active);
         });
 
-        customMenuBtn.style.display = state.scope === "custom" ? "inline-flex" : "none";
-        if (state.scope !== "custom") {
-            customPopover.style.display = "none";
-            popovers.close(customPopover);
-        }
+        customMenuBtn.style.display = "none";
+        customPopover.style.display = "none";
+        popovers.close(customPopover);
     };
 
     const setScope = async (scope) => {
@@ -40,11 +38,9 @@ export function createScopeController({
         state.scope = normalized === "outputs" ? "output" : normalized === "inputs" ? "input" : normalized;
         // Scope switch should reset folder context to avoid stale filtering behavior.
         state.subfolder = "";
+        state.currentFolderRelativePath = "";
         if (state.scope !== "custom") {
             state.customRootId = "";
-        } else {
-            await refreshCustomRoots();
-            if (requestedSeq !== scopeSwitchSeq) return;
         }
 
         setActiveTabStyles();

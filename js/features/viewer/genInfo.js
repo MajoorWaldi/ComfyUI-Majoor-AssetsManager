@@ -315,6 +315,7 @@ export async function ensureViewerMetadataAsset(
             const filename = String(full?.filename || full?.name || full?.file_info?.filename || "").trim();
             const subfolder = String(full?.subfolder || full?.file_info?.subfolder || "").trim();
             const root_id = String(full?.root_id || full?.rootId || full?.file_info?.root_id || "").trim();
+            const filepath = String(full?.filepath || full?.path || full?.file_info?.filepath || "").trim();
             if (filename) {
                 const res = await safeCall(
                     () =>
@@ -324,6 +325,7 @@ export async function ensureViewerMetadataAsset(
                                 filename,
                                 subfolder,
                                 root_id,
+                                filepath,
                             },
                             signal ? { signal } : {}
                         ),
