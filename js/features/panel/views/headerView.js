@@ -7,20 +7,12 @@ import {
     getStoredVersionUpdateState,
 } from "../../../app/versionCheck.js";
 
-const METADATA_URL = new URL("../../../comfyui_extension.json", import.meta.url);
 let _extensionMetadataPromise = null;
 
 function getExtensionMetadata() {
     if (!_extensionMetadataPromise) {
-        _extensionMetadataPromise = (async () => {
-            try {
-                const response = await fetch(METADATA_URL.toString(), { credentials: "same-origin" });
-                if (!response.ok) return {};
-                return await response.json();
-            } catch {
-                return {};
-            }
-        })();
+        // Keep API shape but avoid requesting a manifest file that may not exist.
+        _extensionMetadataPromise = Promise.resolve({});
     }
     return _extensionMetadataPromise;
 }
@@ -159,6 +151,7 @@ export function createHeaderView() {
     const filterBtn = createIconButton("pi-filter", "Filters");
     const sortBtn = createIconButton("pi-sort", "Sort");
     const collectionsBtn = createIconButton("pi-bookmark", "Collections");
+    const pinnedFoldersBtn = createIconButton("pi-folder", "Pinned folders");
 
     customMenuBtn.style.display = "none";
     headerTools.appendChild(customMenuBtn);
@@ -202,7 +195,8 @@ export function createHeaderView() {
         customMenuBtn,
         filterBtn,
         sortBtn,
-        collectionsBtn
+        collectionsBtn,
+        pinnedFoldersBtn
     };
 }
 

@@ -3,6 +3,7 @@ Custom roots management endpoints.
 """
 import os
 import errno
+import asyncio
 from pathlib import Path
 from aiohttp import web
 from mjr_am_backend.custom_roots import (
@@ -37,6 +38,70 @@ except ImportError:
     pass  # tkinter not available, native browser will not work
 
 logger = get_logger(__name__)
+
+
+def _compute_folder_stats(folder_path: Path, *, max_entries: int = 200000) -> dict:
+    files = 0
+    folders = 0
+    total_size = 0
+    scanned = 0
+    truncated = False
+
+    stack = [folder_path]
+    while stack:
+        cur = stack.pop()
+        try:
+            with os.scandir(cur) as it:
+                for entry in it:
+                    scanned += 1
+                    if scanned > max_entries:
+                        truncated = True
+                        break
+                    try:
+                        if entry.is_symlink():
+                            continue
+                    except Exception:
+                        continue
+                    try:
+                        if entry.is_dir(follow_symlinks=False):
+                            folders += 1
+                            try:
+                                stack.append(Path(entry.path))
+                            except Exception:
+                                continue
+                            continue
+                        if entry.is_file(follow_symlinks=False):
+                            files += 1
+                            try:
+                                total_size += int(entry.stat(follow_symlinks=False).st_size or 0)
+                            except Exception:
+                                continue
+                    except Exception:
+                        continue
+        except Exception:
+            continue
+        if truncated:
+            break
+
+    try:
+        st = folder_path.stat()
+        mtime = int(st.st_mtime)
+        ctime = int(st.st_ctime)
+    except Exception:
+        mtime = 0
+        ctime = 0
+
+    return {
+        "path": str(folder_path),
+        "name": folder_path.name or str(folder_path),
+        "files": int(files),
+        "folders": int(folders),
+        "size": int(total_size),
+        "mtime": int(mtime),
+        "ctime": int(ctime),
+        "scanned_entries": int(scanned),
+        "truncated": bool(truncated),
+    }
 
 
 def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
@@ -257,4 +322,59 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
             return _json_response(
                 Result.Err("VIEW_FAILED", sanitize_error_message(exc, "Failed to serve file"))
             )
+
+    @routes.get("/mjr/am/folder-info")
+    async def folder_info(request):
+        """
+        Return folder details for sidebar metadata panel.
+
+        Query params:
+          - filepath: absolute folder path (browser mode)
+          - root_id + subfolder: folder under a configured custom root
+        """
+        filepath = str(request.query.get("filepath", "") or "").strip()
+        root_id = str(request.query.get("root_id", "") or "").strip()
+        subfolder = str(request.query.get("subfolder", "") or "").strip()
+
+        target = None
+        base_root = None
+
+        if filepath:
+            try:
+                target = Path(filepath).resolve(strict=True)
+            except Exception:
+                return _json_response(Result.Err("DIR_NOT_FOUND", "Directory not found"))
+        else:
+            if not root_id:
+                return _json_response(Result.Err("INVALID_INPUT", "Missing filepath or root_id"))
+            root_result = resolve_custom_root(root_id)
+            if not root_result.ok:
+                return _json_response(root_result)
+            base_root = Path(root_result.data).resolve(strict=False)
+            rel = _safe_rel_path(subfolder or "")
+            if rel is None:
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid subfolder"))
+            target = (base_root / rel)
+            try:
+                target = target.resolve(strict=True)
+            except Exception:
+                return _json_response(Result.Err("DIR_NOT_FOUND", "Directory not found"))
+            if not _is_within_root(target, base_root):
+                return _json_response(Result.Err("FORBIDDEN", "Path outside root"))
+
+        if not target or not target.exists() or not target.is_dir():
+            return _json_response(Result.Err("DIR_NOT_FOUND", "Directory not found"))
+
+        try:
+            stats = await asyncio.to_thread(_compute_folder_stats, target)
+        except Exception:
+            stats = _compute_folder_stats(target)
+
+        if base_root is not None:
+            try:
+                stats["root_id"] = root_id
+                stats["relative_path"] = str(target.relative_to(base_root)).replace("\\", "/")
+            except Exception:
+                pass
+        return _json_response(Result.Ok(stats))
 

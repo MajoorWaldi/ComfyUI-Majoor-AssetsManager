@@ -1,7 +1,7 @@
 import { get } from "../../../api/client.js";
 import { debounce } from "../../../utils/debounce.js";
 
-export function createSearchView({ filterBtn, sortBtn, collectionsBtn, filterPopover, sortPopover, collectionsPopover }) {
+export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFoldersBtn, filterPopover, sortPopover, collectionsPopover, pinnedFoldersPopover }) {
     const searchSection = document.createElement("div");
     searchSection.classList.add("mjr-am-search");
 
@@ -75,9 +75,15 @@ export function createSearchView({ filterBtn, sortBtn, collectionsBtn, filterPop
     if (collectionsBtn) collectionsAnchor.appendChild(collectionsBtn);
     if (collectionsPopover) collectionsAnchor.appendChild(collectionsPopover);
 
+    const pinnedFoldersAnchor = document.createElement("div");
+    pinnedFoldersAnchor.className = "mjr-popover-anchor";
+    if (pinnedFoldersBtn) pinnedFoldersAnchor.appendChild(pinnedFoldersBtn);
+    if (pinnedFoldersPopover) pinnedFoldersAnchor.appendChild(pinnedFoldersPopover);
+
     searchTools.appendChild(filterAnchor);
     searchTools.appendChild(sortAnchor);
     searchTools.appendChild(collectionsAnchor);
+    searchTools.appendChild(pinnedFoldersAnchor);
     searchSection.appendChild(searchTools);
 
     return { searchSection, searchInputEl };

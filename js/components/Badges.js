@@ -1,6 +1,7 @@
 /**
  * Badges Component - File type, rating, tags badges
  */
+import { resolveAssetStatusDotColor } from "../features/status/AssetStatusDotTheme.js";
 
 /**
  * Create file type badge (overlaid on thumbnail)
@@ -160,21 +161,17 @@ export function createWorkflowDot(asset) {
         status = "pending";
         title = "Pending: database metadata enrichment in progress";
     }
-    applyAssetStatusDotState(dot, status, title);
+    applyAssetStatusDotState(dot, status, title, { asset });
     dot.textContent = "\u25CF";
     dot.title = `${title}\nClick to rescan this file`;
 
     return dot;
 }
 
-export function applyAssetStatusDotState(dot, state, title = "") {
+export function applyAssetStatusDotState(dot, state, title = "", context = {}) {
     if (!dot) return;
     const s = String(state || "").toLowerCase();
-    let color = "var(--mjr-status-neutral, #666)";
-    if (s === "pending" || s === "info") color = "var(--mjr-status-info, #64B5F6)";
-    else if (s === "success") color = "var(--mjr-status-success, #4CAF50)";
-    else if (s === "warning") color = "var(--mjr-status-warning, #FFA726)";
-    else if (s === "error") color = "var(--mjr-status-error, #f44336)";
+    const color = resolveAssetStatusDotColor(s, { dot, ...(context || {}) });
 
     try {
         dot.dataset.mjrStatus = s || "neutral";

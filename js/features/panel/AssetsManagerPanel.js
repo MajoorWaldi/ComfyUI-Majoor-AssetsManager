@@ -1,5 +1,5 @@
 
-import { comfyConfirm, comfyPrompt } from "../../app/dialogs.js";
+import { comfyConfirm } from "../../app/dialogs.js";
 import { comfyToast } from "../../app/toast.js";
 import { createStatusIndicator, setupStatusPolling, triggerScan, updateStatus } from "../status/StatusDot.js";
 import {
@@ -39,6 +39,7 @@ import { createCustomPopoverView } from "./views/customPopoverView.js";
 import { createFilterPopoverView } from "./views/filterPopoverView.js";
 import { createSortPopoverView } from "./views/sortPopoverView.js";
 import { createSearchView } from "./views/searchView.js";
+import { createPinnedFoldersPopoverView } from "./views/pinnedFoldersPopoverView.js";
 import { createSummaryBarView } from "./views/summaryBarView.js";
 import { createAgendaCalendar } from "../filters/calendar/AgendaCalendar.js";
 
@@ -115,7 +116,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     } catch {}
 
     const headerView = createHeaderView();
-    const { header, headerActions, tabButtons, customMenuBtn, filterBtn, sortBtn, collectionsBtn } = headerView;
+    const { header, headerActions, tabButtons, customMenuBtn, filterBtn, sortBtn, collectionsBtn, pinnedFoldersBtn } = headerView;
 
     const { customPopover, customSelect, customAddBtn, customRemoveBtn } = createCustomPopoverView();
     const {
@@ -135,6 +136,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     } = createFilterPopoverView();
     const { sortPopover, sortMenu } = createSortPopoverView();
     const { collectionsPopover, collectionsMenu } = createCollectionsPopoverView();
+    const { pinnedFoldersPopover, pinnedFoldersMenu } = createPinnedFoldersPopoverView();
 
     headerActions.appendChild(customPopover);
 
@@ -142,9 +144,11 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         filterBtn,
         sortBtn,
         collectionsBtn,
+        pinnedFoldersBtn,
         filterPopover,
         sortPopover,
-        collectionsPopover
+        collectionsPopover,
+        pinnedFoldersPopover
     });
     
     // Restore persistent search query
@@ -443,6 +447,13 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             if (gridContainer?.dataset) gridContainer.dataset.mjrSubfolder = v;
         } catch {}
     };
+    const resetToBrowserRoot = async () => {
+        state.customRootId = "";
+        setFolderPath("");
+        folderForwardStack.length = 0;
+        notifyContextChanged();
+        await gridController.reloadGrid();
+    };
     const navigateFolder = async (target, { pushHistory = true, clearForward = true } = {}) => {
         const prev = currentFolderPath();
         const next = normPath(target);
@@ -468,6 +479,16 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     const renderFolderBreadcrumb = () => {
         const isCustom = String(state.scope || "") === "custom";
         const rel = String(state.currentFolderRelativePath || state.subfolder || "").trim().replaceAll("\\", "/");
+        const selectedRootId = String(state.customRootId || "").trim();
+        const selectedRootLabel = (() => {
+            if (!selectedRootId) return "";
+            try {
+                const opt = customSelect?.selectedOptions?.[0] || null;
+                return String(opt?.textContent || "").trim();
+            } catch {
+                return "";
+            }
+        })();
         if (!isCustom) {
             folderBackStack.length = 0;
             folderForwardStack.length = 0;
@@ -482,13 +503,19 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         backBtn.type = "button";
         backBtn.textContent = "Back";
         backBtn.className = "mjr-btn-link";
-        backBtn.disabled = folderBackStack.length === 0;
+        const canBackToBrowserRoot = !!String(state.customRootId || "").trim() && !rel;
+        backBtn.disabled = folderBackStack.length === 0 && !canBackToBrowserRoot;
         backBtn.style.cssText = "background:none;border:none;padding:0 4px 0 0;font:inherit;color:var(--mjr-accent, #7aa2ff);cursor:pointer;";
         backBtn.addEventListener("click", async () => {
             const prev = folderBackStack.pop();
-            if (prev == null) return;
-            folderForwardStack.push(currentFolderPath());
-            await navigateFolder(prev, { pushHistory: false, clearForward: false });
+            if (prev != null) {
+                folderForwardStack.push(currentFolderPath());
+                await navigateFolder(prev, { pushHistory: false, clearForward: false });
+                return;
+            }
+            if (canBackToBrowserRoot) {
+                await resetToBrowserRoot();
+            }
         }, { signal: panelLifecycleAC?.signal });
         folderBreadcrumb.appendChild(backBtn);
 
@@ -517,6 +544,10 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             el.style.cssText = `background:none;border:none;padding:0;color:${isCurrent ? "var(--mjr-text, inherit)" : "var(--mjr-accent, #7aa2ff)"};cursor:${isCurrent ? "default" : "pointer"};font:inherit;`;
             if (!isCurrent) {
                 el.addEventListener("click", async () => {
+                    if (label === "Computer" && String(state.customRootId || "").trim()) {
+                        await resetToBrowserRoot();
+                        return;
+                    }
                     await navigateFolder(target);
                 }, { signal: panelLifecycleAC?.signal });
             } else {
@@ -526,6 +557,14 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         };
 
         folderBreadcrumb.appendChild(mk("Computer", "", !rel));
+        if (selectedRootId) {
+            const sepRoot = document.createElement("span");
+            sepRoot.textContent = "/";
+            sepRoot.style.opacity = "0.6";
+            folderBreadcrumb.appendChild(sepRoot);
+            // Root node: click returns to root of selected custom folder.
+            folderBreadcrumb.appendChild(mk(selectedRootLabel || selectedRootId, "", !rel));
+        }
         if (!rel) return;
         const parts = rel.split("/").filter(Boolean);
         let acc = "";
@@ -590,7 +629,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             } catch {}
         };
         gridContainer.addEventListener("mjr:reload-grid", _reloadGridHandler);
-        const onCustomSubfolderChanged = (e) => {
+        const onCustomSubfolderChanged = async (e) => {
             const next = String(e?.detail?.subfolder || "").trim().replaceAll("\\", "/");
             const prev = currentFolderPath();
             if (next !== prev) {
@@ -598,9 +637,15 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 folderForwardStack.length = 0;
                 setFolderPath(next);
                 notifyContextChanged();
+                try {
+                    await gridController.reloadGrid();
+                } catch {}
             }
         };
         gridContainer.addEventListener("mjr:custom-subfolder-changed", onCustomSubfolderChanged);
+        try {
+            gridContainer._mjrHasCustomSubfolderHandler = true;
+        } catch {}
         const onDuplicateBadgeFocus = (e) => {
             try {
                 const detail = e?.detail || {};
@@ -634,6 +679,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 gridContainer.removeEventListener("mjr:custom-subfolder-changed", onCustomSubfolderChanged);
             } catch {}
             try {
+                gridContainer._mjrHasCustomSubfolderHandler = false;
+            } catch {}
+            try {
                 gridContainer.removeEventListener("mjr:badge-duplicates-focus", onDuplicateBadgeFocus);
             } catch {}
             _reloadGridHandler = null;
@@ -657,13 +705,16 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         customSelect,
         customRemoveBtn,
         comfyConfirm,
-        comfyPrompt,
         comfyToast,
         get,
         post,
         ENDPOINTS,
         reloadGrid: gridController.reloadGrid,
         onRootChanged: async () => {
+            try {
+                folderBackStack.length = 0;
+                folderForwardStack.length = 0;
+            } catch {}
             try {
                 await applyWatcherForScope(state.scope);
             } catch {}
@@ -731,10 +782,12 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         filterPopover,
         sortPopover,
         collectionsPopover,
+        pinnedFoldersPopover,
         customMenuBtn,
         filterBtn,
         sortBtn,
-        collectionsBtn
+        collectionsBtn,
+        pinnedFoldersBtn
     ]);
 
     customMenuBtn.addEventListener("click", (e) => {
@@ -781,6 +834,154 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         }
     });
     collectionsController.bind();
+
+    const createPinnedMenuItem = (label, { right = null, danger = false } = {}) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "mjr-menu-item";
+        if (danger) btn.style.color = "var(--error-text, #f44336)";
+        btn.style.cssText = `
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            width:100%;
+            gap:10px;
+            padding:9px 10px;
+            border-radius:9px;
+            border:1px solid rgba(120,190,255,0.18);
+            background:linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+            transition: border-color 120ms ease, background 120ms ease;
+        `;
+        const left = document.createElement("span");
+        left.textContent = String(label || "");
+        left.style.cssText = "font-weight:600; color:var(--fg-color, #e6edf7);";
+        const rightWrap = document.createElement("span");
+        rightWrap.style.cssText = "display:flex; align-items:center; gap:8px;";
+        if (right) {
+            const hint = document.createElement("span");
+            hint.textContent = String(right);
+            hint.style.cssText = "opacity:0.68; font-size:11px;";
+            rightWrap.appendChild(hint);
+        }
+        btn.appendChild(left);
+        btn.appendChild(rightWrap);
+        btn.addEventListener("mouseenter", () => {
+            btn.style.borderColor = "rgba(145,205,255,0.4)";
+            btn.style.background = "linear-gradient(135deg, rgba(80,140,255,0.18), rgba(32,100,200,0.14))";
+        });
+        btn.addEventListener("mouseleave", () => {
+            btn.style.borderColor = "rgba(120,190,255,0.18)";
+            btn.style.background = "linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))";
+        });
+        return btn;
+    };
+
+    const renderPinnedFoldersMenu = async () => {
+        try {
+            pinnedFoldersMenu.replaceChildren();
+        } catch {}
+
+        let roots = [];
+        try {
+            const res = await get(ENDPOINTS.CUSTOM_ROOTS, panelLifecycleAC?.signal ? { signal: panelLifecycleAC.signal } : undefined);
+            roots = res?.ok && Array.isArray(res.data) ? res.data : [];
+        } catch {}
+
+        if (!roots.length) {
+            const empty = document.createElement("div");
+            empty.className = "mjr-muted";
+            empty.style.cssText = "padding:10px 12px; opacity:0.75;";
+            empty.textContent = "No pinned folders";
+            pinnedFoldersMenu.appendChild(empty);
+            return;
+        }
+
+        for (const r of roots) {
+            const id = String(r?.id || "").trim();
+            if (!id) continue;
+            const label = String(r?.name || r?.path || id).trim();
+            const path = String(r?.path || "").trim();
+
+            const row = document.createElement("div");
+            row.style.cssText = "display:flex; align-items:stretch; width:100%;";
+
+            const openBtn = createPinnedMenuItem(label, { right: path || null });
+            openBtn.style.flex = "1";
+            openBtn.addEventListener("click", async () => {
+                state.scope = "custom";
+                state.customRootId = id;
+                state.customRootLabel = label;
+                state.subfolder = "";
+                state.currentFolderRelativePath = "";
+                try {
+                    if (customSelect) customSelect.value = id;
+                } catch {}
+                try {
+                    scopeController?.setActiveTabStyles?.();
+                } catch {}
+                try {
+                    await applyWatcherForScope(state.scope);
+                } catch {}
+                try {
+                    await refreshDuplicateAlerts();
+                } catch {}
+                try {
+                    notifyContextChanged();
+                } catch {}
+                popovers.close(pinnedFoldersPopover);
+                await gridController.reloadGrid();
+            });
+
+            const unpinBtn = document.createElement("button");
+            unpinBtn.type = "button";
+            unpinBtn.className = "mjr-menu-item";
+            unpinBtn.title = "Unpin folder";
+            unpinBtn.style.cssText =
+                "width:42px; justify-content:center; padding:0; border:1px solid rgba(255,95,95,0.35); border-radius:9px; margin-left:6px; background: linear-gradient(135deg, rgba(255,70,70,0.16), rgba(160,20,20,0.12));";
+            const trash = document.createElement("i");
+            trash.className = "pi pi-times";
+            trash.style.cssText = "opacity:0.88; color: rgba(255,130,130,0.96);";
+            unpinBtn.appendChild(trash);
+            unpinBtn.addEventListener("click", async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const ok = await comfyConfirm(`Unpin folder "${label}"?`);
+                if (!ok) return;
+                const res = await post(ENDPOINTS.CUSTOM_ROOTS_REMOVE, { id });
+                if (!res?.ok) {
+                    comfyToast(res?.error || "Failed to unpin folder", "error");
+                    return;
+                }
+                if (String(state.customRootId || "") === id) {
+                    state.customRootId = "";
+                    state.customRootLabel = "";
+                    state.subfolder = "";
+                    state.currentFolderRelativePath = "";
+                }
+                try {
+                    await customRootsController.refreshCustomRoots();
+                } catch {}
+                await renderPinnedFoldersMenu();
+                await gridController.reloadGrid();
+            });
+
+            row.appendChild(openBtn);
+            row.appendChild(unpinBtn);
+            pinnedFoldersMenu.appendChild(row);
+        }
+    };
+
+    pinnedFoldersBtn?.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        try {
+            await renderPinnedFoldersMenu();
+        } catch {}
+        popovers.close(customPopover);
+        popovers.close(filterPopover);
+        popovers.close(sortPopover);
+        popovers.close(collectionsPopover);
+        popovers.toggle(pinnedFoldersPopover, pinnedFoldersBtn);
+    }, { signal: panelLifecycleAC?.signal });
 
     // Calendar UI (separate module) for day indicators.
     let agendaCalendar = null;
@@ -859,6 +1060,12 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             reloadGrid: () => gridController.reloadGrid(),
             getExtraContext: () => ({ duplicatesAlert: _duplicatesAlert }),
             extraActions: {
+                resetBrowserHistory: () => {
+                    try {
+                        folderBackStack.length = 0;
+                        folderForwardStack.length = 0;
+                    } catch {}
+                },
                 onDuplicateAlertClick: async (alert) => {
                     const current = alert || _duplicatesAlert || {};
                     const grp = current.firstGroup;

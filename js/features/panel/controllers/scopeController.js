@@ -4,7 +4,6 @@ export function createScopeController({
     customMenuBtn,
     customPopover,
     popovers,
-    refreshCustomRoots,
     reloadGrid,
     onChanged = null,
     onScopeChanged = null,

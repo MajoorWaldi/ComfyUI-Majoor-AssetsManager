@@ -459,6 +459,46 @@ export async function getFileMetadataScoped(
     return get(url, options);
 }
 
+export async function getFolderInfo({ filepath = "", root_id = "", subfolder = "" } = {}, options = {}) {
+    try {
+        if (globalThis.__mjrFolderInfoSupported === false) {
+            return { ok: false, data: null, error: "Folder info endpoint unavailable", code: "UNAVAILABLE" };
+        }
+        if (globalThis.__mjrFolderInfoSupported == null) {
+            const rr = await get("/mjr/am/routes");
+            if (rr?.ok && Array.isArray(rr.data)) {
+                const hasRoute = rr.data.some((r) => String(r?.path || "").trim() === "/mjr/am/folder-info");
+                globalThis.__mjrFolderInfoSupported = !!hasRoute;
+                if (!hasRoute) {
+                    return { ok: false, data: null, error: "Folder info endpoint unavailable", code: "UNAVAILABLE" };
+                }
+            } else {
+                // Soft-fail: keep null so future calls can retry route discovery.
+                globalThis.__mjrFolderInfoSupported = null;
+            }
+        }
+    } catch {}
+
+    const fp = String(filepath || "").trim();
+    const rid = String(root_id || "").trim();
+    const sub = String(subfolder || "").trim();
+    let url = ENDPOINTS.FOLDER_INFO;
+    const params = [];
+    if (fp) params.push(`filepath=${encodeURIComponent(fp)}`);
+    else {
+        if (rid) params.push(`root_id=${encodeURIComponent(rid)}`);
+        if (sub) params.push(`subfolder=${encodeURIComponent(sub)}`);
+    }
+    if (params.length) url += `?${params.join("&")}`;
+    const res = await get(url, options);
+    try {
+        if (!res?.ok && Number(res?.status || 0) === 404) {
+            globalThis.__mjrFolderInfoSupported = false;
+        }
+    } catch {}
+    return res;
+}
+
 export async function setProbeBackendMode(mode) {
     if (!mode || typeof mode !== "string") {
         return { ok: false, error: "Missing mode", code: "INVALID_INPUT" };

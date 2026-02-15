@@ -40,6 +40,12 @@ export function createContextController({
     extraActions = null,
     getExtraContext = null
 } = {}) {
+    const resetBrowserHistory = () => {
+        try {
+            extraActions?.resetBrowserHistory?.();
+        } catch {}
+    };
+
     const applyBadgeCssVars = () => {
         try {
             const root =
@@ -79,9 +85,14 @@ export function createContextController({
             let didSetScope = false;
             try {
                 state.customRootId = "";
+                state.customRootLabel = "";
                 state.subfolder = "";
+                state.currentFolderRelativePath = "";
                 delete gridContainer?.dataset?.mjrSubfolder;
-                if (typeof scopeController?.setScope === "function") {
+                const isCustom = String(state.scope || "").toLowerCase() === "custom";
+                if (isCustom) {
+                    resetBrowserHistory();
+                } else if (typeof scopeController?.setScope === "function") {
                     await scopeController.setScope("output");
                     didSetScope = true;
                 } else {
@@ -94,28 +105,25 @@ export function createContextController({
             } catch {}
         },
         clearCustomRoot: async () => {
-            let didSetScope = false;
             try {
                 state.customRootId = "";
-                if (String(state.scope || "").toLowerCase() === "custom") {
-                    if (typeof scopeController?.setScope === "function") {
-                        await scopeController.setScope("output");
-                        didSetScope = true;
-                    } else {
-                        state.scope = "output";
-                        scopeController?.setActiveTabStyles?.();
-                    }
-                }
+                state.customRootLabel = "";
+                state.subfolder = "";
+                state.currentFolderRelativePath = "";
+                delete gridContainer?.dataset?.mjrSubfolder;
+                resetBrowserHistory();
             } catch {}
             try {
-                if (!didSetScope) await reloadGrid?.();
+                await reloadGrid?.();
             } catch {}
         },
         clearFolder: async () => {
             try {
                 // Ensure state is cleared so it doesn't get restored
-                state.subfolder = ""; 
+                state.subfolder = "";
+                state.currentFolderRelativePath = "";
                 delete gridContainer?.dataset?.mjrSubfolder;
+                resetBrowserHistory();
             } catch {}
             try {
                 await reloadGrid?.();
@@ -228,9 +236,14 @@ export function createContextController({
                 state.dateExactFilter = "";
                 state.sort = "mtime_desc";
                 state.customRootId = "";
+                state.customRootLabel = "";
                 state.subfolder = "";
+                state.currentFolderRelativePath = "";
                 delete gridContainer?.dataset?.mjrSubfolder;
-                if (typeof scopeController?.setScope === "function") {
+                const isCustom = String(state.scope || "").toLowerCase() === "custom";
+                if (isCustom) {
+                    resetBrowserHistory();
+                } else if (typeof scopeController?.setScope === "function") {
                     await scopeController.setScope("output");
                     didSetScope = true;
                 } else {

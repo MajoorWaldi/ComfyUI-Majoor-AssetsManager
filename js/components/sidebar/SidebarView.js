@@ -5,13 +5,14 @@
  * while delegating UI rendering/parsing to `js/components/sidebar/sections/*` and `parsers/*`.
  */
 
-import { getAssetMetadata, getFileMetadataScoped } from "../../api/client.js";
+import { getAssetMetadata, getFileMetadataScoped, getFolderInfo } from "../../api/client.js";
 import { createSidebarHeader } from "./sections/HeaderSection.js";
 import { createPreviewSection } from "./sections/PreviewSection.js";
 import { createRatingTagsSection } from "./sections/RatingTagsSection.js";
 import { createFileInfoSection } from "./sections/FileInfoSection.js";
 import { createGenerationSection } from "./sections/GenerationSection.js";
 import { createWorkflowMinimapSection } from "./sections/WorkflowMinimapSection.js";
+import { createFolderDetailsSection } from "./sections/FolderDetailsSection.js";
 import { ASSET_RATING_CHANGED_EVENT, ASSET_TAGS_CHANGED_EVENT } from "../../app/events.js";
 import { loadMajoorSettings } from "../../app/settings.js";
 
@@ -124,6 +125,7 @@ const cleanupMinimapSections = (root) => {
  */
 export async function showAssetInSidebar(sidebar, asset, onUpdate) {
     if (!sidebar || !asset) return;
+    const isFolderAsset = String(asset?.kind || "").toLowerCase() === "folder";
 
     const hasMeaningfulMetadataRaw = (value) => {
         if (value == null) return false;
@@ -201,16 +203,20 @@ export async function showAssetInSidebar(sidebar, asset, onUpdate) {
         content.innerHTML = "";
         const settings = loadMajoorSettings();
         const showPreviewThumb = !!(settings?.sidebar?.showPreviewThumb ?? true);
-        content.appendChild(createPreviewSection(data, { showPreviewThumb }));
-        const ratingTagsSection = createRatingTagsSection(data, onUpdate);
-        sidebar._ratingTagsSection = ratingTagsSection;
-        content.appendChild(ratingTagsSection);
-        const fileInfoSection = createFileInfoSection(data);
-        if (fileInfoSection) content.appendChild(fileInfoSection);
-        const genMetadata = createGenerationSection(data);
-        if (genMetadata) content.appendChild(genMetadata);
-        const workflow = createWorkflowMinimapSection(data);
-        if (workflow) content.appendChild(workflow);
+        if (isFolderAsset) {
+            content.appendChild(createFolderDetailsSection(asset, data?.folder_info || data?.folderInfo || null));
+        } else {
+            content.appendChild(createPreviewSection(data, { showPreviewThumb }));
+            const ratingTagsSection = createRatingTagsSection(data, onUpdate);
+            sidebar._ratingTagsSection = ratingTagsSection;
+            content.appendChild(ratingTagsSection);
+            const fileInfoSection = createFileInfoSection(data);
+            if (fileInfoSection) content.appendChild(fileInfoSection);
+            const genMetadata = createGenerationSection(data);
+            if (genMetadata) content.appendChild(genMetadata);
+            const workflow = createWorkflowMinimapSection(data);
+            if (workflow) content.appendChild(workflow);
+        }
         sidebar._currentFullAsset = data;
     };
 
@@ -236,6 +242,25 @@ export async function showAssetInSidebar(sidebar, asset, onUpdate) {
         if (sidebar._requestSeq !== requestSeq || sidebar._currentAsset !== asset) return;
         const opts = buildFetchOptions();
         const signal = opts.signal;
+        if (isFolderAsset) {
+            try {
+                const filepath = String(fullAsset?.filepath || fullAsset?.subfolder || "").trim();
+                const root_id = String(fullAsset?.root_id || fullAsset?.rootId || "").trim();
+                const subfolder = root_id ? String(fullAsset?.subfolder || "").trim() : "";
+                const res = await getFolderInfo({ filepath, root_id, subfolder }, opts);
+                if (signal?.aborted) return;
+                if (res?.ok && res.data) {
+                    tryUpdateWith({ folder_info: res.data });
+                }
+            } catch (err) {
+                if (!(signal?.aborted)) console.warn("Failed to load folder details:", err);
+            } finally {
+                if (!signal?.aborted) {
+                    sidebar._currentFetchAbortController = null;
+                }
+            }
+            return;
+        }
         try {
             if (asset.id && (!hasGenerationLikeData(fullAsset) && !fullAsset.exif)) {
                 const result = await getAssetMetadata(asset.id, opts);

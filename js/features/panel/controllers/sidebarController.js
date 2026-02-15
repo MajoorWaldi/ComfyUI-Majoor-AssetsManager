@@ -22,7 +22,7 @@ async function rescanSingleAsset({ card, asset, sidebar, onAssetUpdated }) {
     const dot = card.querySelector(".mjr-workflow-dot");
     try {
         if (dot) {
-            applyAssetStatusDotState(dot, "pending", "Pending: metadata refresh in progress");
+            applyAssetStatusDotState(dot, "pending", "Pending: metadata refresh in progress", { asset });
             dot.classList.add("mjr-pulse-animation");
             dot.style.cursor = "progress";
             dot.title = "Pending: metadata refresh in progress";
@@ -44,7 +44,7 @@ async function rescanSingleAsset({ card, asset, sidebar, onAssetUpdated }) {
         const indexRes = await post(ENDPOINTS.INDEX_FILES, { files: [fileEntry], incremental: false });
         indexOk = !!indexRes?.ok;
         if (!indexOk && dot) {
-            applyAssetStatusDotState(dot, "error", "Error: metadata refresh failed");
+            applyAssetStatusDotState(dot, "error", "Error: metadata refresh failed", { asset });
             dot.classList.remove("mjr-pulse-animation");
             dot.style.cursor = "";
         }
@@ -58,7 +58,7 @@ async function rescanSingleAsset({ card, asset, sidebar, onAssetUpdated }) {
     } catch {
         try {
             if (dot) {
-                applyAssetStatusDotState(dot, "error", "Error: metadata refresh failed");
+                applyAssetStatusDotState(dot, "error", "Error: metadata refresh failed", { asset });
                 dot.classList.remove("mjr-pulse-animation");
                 dot.style.cursor = "";
             }

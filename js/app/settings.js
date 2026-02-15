@@ -408,11 +408,11 @@ const applySettingsToConfig = (settings) => {
         let mode = settings.grid?.videoAutoplayMode ?? APP_DEFAULTS.GRID_VIDEO_AUTOPLAY_MODE;
         // Backward compat: old boolean "videoHoverAutoplay" → "hover"
         if (mode === undefined || mode === null) {
-            mode = settings.grid?.videoHoverAutoplay ? "hover" : "off";
+            mode = settings.grid?.videoHoverAutoplay === false ? "off" : "hover";
         }
         if (mode === true) mode = "hover";
         if (mode === false) mode = "off";
-        if (mode !== "hover" && mode !== "always") mode = "off";
+        if (mode !== "hover" && mode !== "always" && mode !== "off") mode = "hover";
         APP_CONFIG.GRID_VIDEO_AUTOPLAY_MODE = mode;
     }
 
@@ -1053,11 +1053,11 @@ export const registerMajoorSettings = (app, onApplied) => {
                 let mode = settings.grid?.videoAutoplayMode;
                 // Backward compat from old boolean
                 if (mode === undefined || mode === null) {
-                    mode = settings.grid?.videoHoverAutoplay ? "hover" : "off";
+                    mode = settings.grid?.videoHoverAutoplay === false ? "off" : "hover";
                 }
                 if (mode === true) mode = "hover";
                 if (mode === false) mode = "off";
-                if (mode !== "hover" && mode !== "always") mode = "off";
+                if (mode !== "hover" && mode !== "always" && mode !== "off") mode = "hover";
                 const labels = {
                     off: t("setting.grid.videoAutoplayMode.off", "Off"),
                     hover: t("setting.grid.videoAutoplayMode.hover", "Hover"),

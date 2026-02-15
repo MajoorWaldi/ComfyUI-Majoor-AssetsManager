@@ -26,6 +26,7 @@ export const ENDPOINTS = {
     ROOTS: "/mjr/am/roots",
     CUSTOM_ROOTS: "/mjr/am/custom-roots",
     CUSTOM_ROOTS_REMOVE: "/mjr/am/custom-roots/remove",
+    FOLDER_INFO: "/mjr/am/folder-info",
 
     // Metadata
     METADATA: "/mjr/am/metadata",

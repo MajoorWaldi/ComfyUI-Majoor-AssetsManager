@@ -562,19 +562,17 @@ export function createGridContainer() {
         if (!asset) return;
 
         // Get all assets in current grid for navigation
-        let allAssets, currentIndex;
+        let allAssets;
         
         // Use state.assets if available (VirtualGrid support)
         const state = GRID_STATE.get(container);
         if (state && state.assets && state.assets.length > 0) {
              allAssets = state.assets;
-             currentIndex = allAssets.findIndex(a => a.id === asset.id);
         } else {
              // Fallback to DOM (legacy)
              const allCards = _getRenderedCards(container);
              // @ts-ignore
              allAssets = allCards.map(c => c._mjrAsset).filter(Boolean);
-             currentIndex = allAssets.findIndex(a => a.id === asset.id);
         }
 
         const isFolder = String(asset?.kind || "").toLowerCase() === "folder";
@@ -588,7 +586,10 @@ export function createGridContainer() {
                         detail: { subfolder: nextSubfolder },
                     })
                 );
-                loadAssets(container, state?.query || "*", { reset: true }).catch(() => {});
+                // Fallback: if no panel-level handler is attached, reload from grid directly.
+                if (!container?._mjrHasCustomSubfolderHandler) {
+                    loadAssets(container, state?.query || "*", { reset: true }).catch(() => {});
+                }
             } catch {}
             return;
         }
@@ -1277,6 +1278,20 @@ function appendAssets(gridContainer, assets, state) {
     }
 
     for (const asset of assets || []) {
+        // Browser/custom entries can arrive without numeric IDs; selection relies on a stable ID.
+        // Assign a deterministic synthetic ID for any item missing one.
+        try {
+            if (asset?.id == null || String(asset.id).trim() === "") {
+                const kindLower = String(asset?.kind || "").toLowerCase();
+                const fp = String(asset?.filepath || "").trim();
+                const sub = String(asset?.subfolder || "").trim();
+                const name = String(asset?.filename || "").trim();
+                const type = String(asset?.type || "").trim().toLowerCase();
+                const base = `${type}|${kindLower}|${fp}|${sub}|${name}`;
+                asset.id = `asset:${base || "unknown"}`;
+            }
+        } catch {}
+
         const filename = String(asset?.filename || "");
         const extUpper = _getExtUpper(filename);
         const stemLower = _getStemLower(filename);
@@ -1513,10 +1528,10 @@ async function fetchPage(gridContainer, query, limit, offset, { requestId = 0, s
 
         if (result.ok) {
             let assets = (result.data?.assets) || [];
+            const serverCount = Array.isArray(assets) ? assets.length : 0;
             const rawTotal = result.data?.total;
             const total = rawTotal == null ? null : (Number(rawTotal || 0) || 0);
-
-            return { ok: true, assets, total, count: assets.length, sortKey, safeQuery };
+            return { ok: true, assets, total, count: serverCount, sortKey, safeQuery };
         } else {
             try {
                 if (String(result?.code || "") === "ABORTED") return { ok: false, aborted: true, error: "Aborted" };

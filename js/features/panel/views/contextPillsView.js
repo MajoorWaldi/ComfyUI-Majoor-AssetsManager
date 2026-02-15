@@ -14,6 +14,14 @@ const _labelSort = (key) => {
     return "Newest first";
 };
 
+const _labelScope = (scope) => {
+    const s = String(scope || "").toLowerCase();
+    if (s === "custom") return "Browser";
+    if (s === "all") return "All";
+    if (s === "input" || s === "inputs") return "Inputs";
+    return "Outputs";
+};
+
 function _createPill({ label, value, onClear } = {}) {
     const pill = document.createElement("div");
     pill.className = "mjr-context-pill";
@@ -49,13 +57,12 @@ export function createContextPillsView() {
     const root = document.createElement("div");
     root.className = "mjr-am-context-pills";
 
-    const update = ({ state, gridContainer, rawQuery = "", actions = null } = {}) => {
+    const update = ({ state, rawQuery = "", actions = null } = {}) => {
         const safeActions = actions && typeof actions === "object" ? actions : {};
 
         const query = _safeText(rawQuery || "").trim();
         const isQueryActive = query.length > 0 && query !== "*";
 
-        const subfolder = _safeText(gridContainer?.dataset?.mjrSubfolder || "").trim();
         const isFilterActive = !!(
             _safeText(state?.kindFilter || "").trim()
             || !!state?.workflowOnly
@@ -70,19 +77,19 @@ export function createContextPillsView() {
         );
         const isSortActive = _safeText(state?.sort || "mtime_desc").trim() !== "mtime_desc";
         const isCollectionActive = _safeText(state?.collectionId || "").trim().length > 0;
-        const isScopeActive = String(state?.scope || "output") !== "output";
-        const isCustomActive = String(state?.scope || "") === "custom" && _safeText(state?.customRootId || "").trim().length > 0;
-        const isFolderActive = subfolder.length > 0 && !isCollectionActive && !isCustomActive;
+        const scopeValue = String(state?.scope || "output").toLowerCase();
+        const isBrowserScope = scopeValue === "custom";
+        const isScopeActive = scopeValue !== "output";
 
         const anyContext =
-            isQueryActive || isFilterActive || isSortActive || isCollectionActive || isScopeActive || isCustomActive || isFolderActive;
+            isQueryActive || isFilterActive || isSortActive || isCollectionActive || isScopeActive;
         void anyContext;
 
         try {
             root.replaceChildren();
         } catch {}
 
-        if (isCollectionActive) {
+        if (!isBrowserScope && isCollectionActive) {
             root.appendChild(
                 _createPill({
                     label: "Collection",
@@ -91,28 +98,11 @@ export function createContextPillsView() {
                 })
             );
         }
-        if (isCustomActive) {
-            root.appendChild(
-                _createPill({
-                    label: "Custom",
-                    value: _safeText(state?.customRootId || "").trim(),
-                    onClear: () => safeActions?.clearCustomRoot?.()
-                })
-            );
-        } else if (isFolderActive) {
-            root.appendChild(
-                _createPill({
-                    label: "Folder",
-                    value: subfolder,
-                    onClear: () => safeActions?.clearFolder?.()
-                })
-            );
-        }
-        if (isScopeActive) {
+        if (!isBrowserScope && isScopeActive) {
             root.appendChild(
                 _createPill({
                     label: "Scope",
-                    value: _safeText(state?.scope || "output"),
+                    value: _labelScope(state?.scope || "output"),
                     onClear: () => safeActions?.clearScope?.()
                 })
             );

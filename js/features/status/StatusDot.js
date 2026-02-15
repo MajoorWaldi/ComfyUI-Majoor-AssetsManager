@@ -96,6 +96,11 @@ function applyStatusHighlight(section, tone = "neutral", options = {}) {
             border: "rgba(244,67,54,0.62)",
             glow: "rgba(244,67,54,0.2)",
         },
+        browser: {
+            bg: "linear-gradient(135deg, rgba(0,150,136,0.18) 0%, rgba(38,166,154,0.08) 100%)",
+            border: "rgba(0,150,136,0.58)",
+            glow: "rgba(0,150,136,0.18)",
+        },
     };
     const style = map[tone] || map.neutral;
     const prevTone = String(section.dataset?.mjrStatusTone || "neutral");
@@ -115,6 +120,7 @@ function applyStatusHighlight(section, tone = "neutral", options = {}) {
                 success: t("status.toast.success", "Index status: ready"),
                 warning: t("status.toast.warning", "Index status: attention needed"),
                 error: t("status.toast.error", "Index status: error"),
+                browser: t("status.toast.browser", "Index status: browser scope"),
             };
             const level = tone === "error" ? "error" : tone === "warning" ? "warning" : tone === "success" ? "success" : "info";
             try {
@@ -431,7 +437,7 @@ export function createStatusIndicator(options = {}) {
                 statusDot.style.background = "var(--mjr-status-error, #f44336)";
                 applyStatusHighlight(section, "error");
             }
-        } catch (_error) {
+        } catch {
             statusDot.style.background = "var(--mjr-status-error, #f44336)";
             applyStatusHighlight(section, "error");
         } finally {
@@ -495,7 +501,7 @@ export function createStatusIndicator(options = {}) {
                 statusDot.style.background = "var(--mjr-status-error, #f44336)";
                 applyStatusHighlight(section, "error");
             }
-        } catch (_error) {
+        } catch {
             statusDot.style.background = "var(--mjr-status-error, #f44336)";
             applyStatusHighlight(section, "error");
         } finally {
@@ -1011,6 +1017,7 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
         } else if (dbLocked || !indexHealthy) {
             healthTone = "warning";
         }
+        const displayTone = isCustomBrowserMode && healthTone !== "error" ? "browser" : healthTone;
         let watcherInfo = counters.watcher;
         try {
             if (!watcherInfo || typeof watcherInfo.enabled !== "boolean") {
@@ -1025,7 +1032,7 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
             }
         } catch {}
         const watcherLine = isCustomBrowserMode
-            ? t("status.watcher.disabledScoped", "Watcher: disabled ({scope})", { scope: t("scope.custom", "Custom") })
+            ? t("status.watcher.disabledScoped", "Watcher: disabled ({scope})", { scope: t("scope.customBrowser", "Browser") })
             : formatWatcherLine(watcherInfo, desiredScope);
 
         renderCapabilities(capabilitiesSection, toolAvailability, toolPaths);
@@ -1051,14 +1058,27 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
             return counters;
         }
 
+        if (isCustomBrowserMode) {
+            statusDot.style.background = "var(--mjr-status-browser, #26A69A)";
+            applyStatusHighlight(section, "browser");
+            setStatusWithHint(
+                statusText,
+                t("status.ready", "Ready"),
+                [t("status.browserMetricsHidden", "Browser mode: global DB/index metrics hidden"), watcherLine].filter(Boolean).join("  |  ")
+            );
+            return counters;
+        }
+
         if (totalAssets === 0) {
             statusDot.style.background =
-                healthTone === "info"
+                displayTone === "browser"
+                    ? "var(--mjr-status-browser, #26A69A)"
+                    : healthTone === "info"
                     ? "var(--mjr-status-info, #64B5F6)"
                     : healthTone === "warning"
                     ? "var(--mjr-status-warning, #FFA726)"
                     : "var(--mjr-status-success, #4CAF50)";
-            applyStatusHighlight(section, healthTone);
+            applyStatusHighlight(section, displayTone);
             setStatusWithHint(
                 statusText,
                 t("status.noAssets", `No assets indexed yet (${scopeLabel})`, { scope: scopeLabel }),
@@ -1066,12 +1086,14 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
             );
         } else {
             statusDot.style.background =
-                healthTone === "info"
+                displayTone === "browser"
+                    ? "var(--mjr-status-browser, #26A69A)"
+                    : healthTone === "info"
                     ? "var(--mjr-status-info, #64B5F6)"
                     : healthTone === "warning"
                     ? "var(--mjr-status-warning, #FFA726)"
                     : "var(--mjr-status-success, #4CAF50)";
-            applyStatusHighlight(section, healthTone);
+            applyStatusHighlight(section, displayTone);
             setStatusLines(
                 statusText,
                 [

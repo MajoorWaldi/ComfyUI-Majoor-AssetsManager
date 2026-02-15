@@ -5,7 +5,6 @@ export function createCustomRootsController({
     customSelect,
     customRemoveBtn,
     comfyConfirm,
-    comfyPrompt,
     comfyToast,
     get,
     post,
@@ -13,34 +12,6 @@ export function createCustomRootsController({
     reloadGrid,
     onRootChanged = null
 }) {
-    const isSensitivePath = (input) => {
-        try {
-            const raw = String(input || "").trim();
-            if (!raw) return false;
-            const p = raw.replaceAll("\\", "/").toLowerCase();
-
-            // Very broad roots (drive root / filesystem root).
-            if (p === "/" || /^[a-z]:\/?$/.test(p)) return true;
-
-            // Common sensitive/system folders (best-effort heuristics).
-            const needles = [
-                "/windows",
-                "/program files",
-                "/program files (x86)",
-                "/users",
-                "/appdata",
-                "/system32",
-                "/etc",
-                "/usr",
-                "/bin",
-                "/var",
-            ];
-            return needles.some((n) => p === n || p.startsWith(n + "/") || p.includes(n + "/"));
-        } catch {
-            return false;
-        }
-    };
-
     const refreshCustomRoots = async (preferId = null) => {
         // Show loading state
         const originalPlaceholder = customSelect.querySelector('option[value=""]')?.textContent || t("label.selectFolder", "Select folder…");
@@ -74,9 +45,16 @@ export function createCustomRootsController({
             if (desired && roots.some((r) => r.id === desired)) {
                 customSelect.value = desired;
                 state.customRootId = desired;
+                try {
+                    const sel = customSelect.options[customSelect.selectedIndex];
+                    state.customRootLabel = String(sel?.text || "").trim();
+                } catch {
+                    state.customRootLabel = "";
+                }
             } else {
                 customSelect.value = "";
                 state.customRootId = "";
+                state.customRootLabel = "";
             }
             customRemoveBtn.disabled = !state.customRootId;
         } catch (err) {
@@ -98,6 +76,12 @@ export function createCustomRootsController({
             // Only update state if not disabled (not in loading/error state)
             if (!customSelect.disabled) {
                 state.customRootId = customSelect.value || "";
+                try {
+                    const sel = customSelect.options[customSelect.selectedIndex];
+                    state.customRootLabel = String(sel?.text || "").trim();
+                } catch {
+                    state.customRootLabel = "";
+                }
                 state.subfolder = "";
                 state.currentFolderRelativePath = "";
                 customRemoveBtn.disabled = !state.customRootId;
@@ -108,97 +92,9 @@ export function createCustomRootsController({
             }
         });
 
-        customAddBtn.addEventListener("click", async () => {
-            // Disable button during operation to prevent multiple clicks
-            customAddBtn.disabled = true;
-            customAddBtn.textContent = t("btn.adding");
-
-            try {
-                // Attempt to open the native folder selector via the backend
-                const response = await post("/mjr/sys/browse-folder", {});
-
-                if (response && response.ok && response.data && response.data.path) {
-                    // If a path is returned, use it directly
-                    const path = response.data.path;
-
-                    // (Optional) Security check as in the original code
-                    if (isSensitivePath(path)) {
-                        const ok = await comfyConfirm(
-                            t("dialog.securityWarning", "This looks like a system or very broad directory.\n\nAdding it can expose sensitive files via the viewer/custom roots feature.\n\nContinue?"),
-                            t("dialog.securityWarningTitle", "Majoor: Security Warning")
-                        );
-                        if (!ok) return;
-                    }
-
-                    // Send to backend for actual addition
-                    const json = await post(ENDPOINTS.CUSTOM_ROOTS, { path });
-                    if (!json?.ok) {
-                        comfyToast(json?.error || t("toast.failedAddFolder", "Failed to add custom folder"), "error");
-                        return;
-                    }
-                    // Refresh
-                    comfyToast(t("toast.folderLinked", "Folder linked successfully"), "success");
-                    state.subfolder = "";
-                    state.currentFolderRelativePath = "";
-                    await refreshCustomRoots(json.data?.id);
-                    await reloadGrid();
-                    return;
-                } else if (response && !response.ok && (response.code === "TKINTER_ERROR" || response.code === "HEADLESS_ENV" || response.code === "TKINTER_UNAVAILABLE")) {
-                    // Handle specific tkinter errors
-                    console.warn("Tkinter error:", response.error);
-                    comfyToast(t("toast.nativeBrowserUnavailable", "Native folder browser unavailable. Please enter path manually."), "warning");
-                }
-            } catch (e) {
-                console.log("Native selector failed or was cancelled, falling back to manual input...", e);
-            } finally {
-                // Re-enable button regardless of outcome
-                customAddBtn.disabled = false;
-                customAddBtn.textContent = t("btn.add");
-            }
-
-            // --- FALLBACK TO ORIGINAL METHOD (Text box) ---
-            const path = await comfyPrompt(
-                t("dialog.enterFolderPath", "Enter a folder path to add as a Custom root:"),
-                "",
-                t("dialog.customFoldersTitle", "Majoor: Custom Folders")
-            );
-            if (!path) return;
-
-            try {
-                if (isSensitivePath(path)) {
-                    const ok = await comfyConfirm(
-                        t("dialog.securityWarning", "This looks like a system or very broad directory.\n\nAdding it can expose sensitive files via the viewer/custom roots feature.\n\nContinue?"),
-                        t("dialog.securityWarningTitle", "Majoor: Security Warning")
-                    );
-                    if (!ok) return;
-                }
-            } catch {}
-
-            try {
-                // Show loading state
-                customAddBtn.disabled = true;
-                customAddBtn.textContent = t("btn.adding");
-
-                const json = await post(ENDPOINTS.CUSTOM_ROOTS, { path });
-                if (!json?.ok) {
-                    comfyToast(json?.error || t("toast.failedAddFolder", "Failed to add custom folder"), "error");
-                    return;
-                }
-                const newId = json.data?.id;
-                comfyToast(t("toast.folderLinked", "Folder linked successfully"), "success");
-                state.subfolder = "";
-                state.currentFolderRelativePath = "";
-                await refreshCustomRoots(newId);
-                await reloadGrid();
-            } catch (err) {
-                console.warn("Majoor: add custom root failed", err);
-                comfyToast(t("toast.errorAddingFolder", "An error occurred while adding the custom folder"), "error");
-            } finally {
-                // Re-enable button regardless of outcome
-                customAddBtn.disabled = false;
-                customAddBtn.textContent = t("btn.add");
-            }
-        });
+        // Temporary: custom-root add flow disabled.
+        customAddBtn.disabled = true;
+        customAddBtn.title = t("status.pending", "Pending");
 
         customRemoveBtn.addEventListener("click", async () => {
             if (!state.customRootId) return;
@@ -221,6 +117,7 @@ export function createCustomRootsController({
                 }
                 comfyToast(t("toast.folderRemoved", "Folder removed"), "success");
                 state.customRootId = "";
+                state.customRootLabel = "";
                 state.subfolder = "";
                 state.currentFolderRelativePath = "";
                 await refreshCustomRoots();
