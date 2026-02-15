@@ -2038,6 +2038,28 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 pass
             return _json_response(Result.Ok({"enabled": False, "directories": [], "scope": scope}))
 
+        # Idempotent scope update: avoid watcher stop/start churn when the
+        # requested scope resolves to the exact same set of directories.
+        try:
+            current_dirs = []
+            if watcher and watcher.is_running:
+                current_dirs = [os.path.normcase(os.path.normpath(str(p))) for p in (watcher.watched_directories or []) if p]
+
+            desired_dirs = []
+            for entry in watch_paths:
+                path_value = None
+                if isinstance(entry, dict):
+                    path_value = entry.get("path")
+                else:
+                    path_value = entry
+                if path_value:
+                    desired_dirs.append(os.path.normcase(os.path.normpath(str(path_value))))
+
+            if watcher and watcher.is_running and set(current_dirs) == set(desired_dirs):
+                return _json_response(Result.Ok({"enabled": True, "directories": watcher.watched_directories, "scope": scope}))
+        except Exception:
+            pass
+
         try:
             await watcher.stop()
         except Exception:
