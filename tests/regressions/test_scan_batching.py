@@ -8,7 +8,7 @@ async def test_scan_uses_batched_transactions(tmp_path: Path):
     """
     Large scans should not BEGIN/COMMIT per file.
 
-    We count `db.transaction()` invocations during a scan and ensure it's bounded
+    We count `db.atransaction()` invocations during a scan and ensure it's bounded
     by the batch size logic (<< number of files).
     """
     from mjr_am_backend.deps import build_services
@@ -30,15 +30,15 @@ async def test_scan_uses_batched_transactions(tmp_path: Path):
         files.append(p)
 
     txn_calls = {"count": 0}
-    original_txn = db.transaction
+    original_txn = db.atransaction
 
-    @contextlib.contextmanager
-    def counted_transaction(*args, **kwargs):
+    @contextlib.asynccontextmanager
+    async def counted_transaction(*args, **kwargs):
         txn_calls["count"] += 1
-        with original_txn(*args, **kwargs):
-            yield
+        async with original_txn(*args, **kwargs) as tx:
+            yield tx
 
-    db.transaction = counted_transaction  # type: ignore[assignment]
+    db.atransaction = counted_transaction  # type: ignore[assignment]
     try:
         res = await index.scan_directory(
             str(scan_dir),
@@ -51,7 +51,7 @@ async def test_scan_uses_batched_transactions(tmp_path: Path):
         )
         assert res.ok, res.error
     finally:
-        db.transaction = original_txn  # type: ignore[assignment]
+        db.atransaction = original_txn  # type: ignore[assignment]
 
     # With default batching for ~120 files we expect ~3 transactions (50-sized batches),
     # but allow a small buffer if batching logic changes slightly.

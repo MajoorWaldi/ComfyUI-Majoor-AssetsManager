@@ -137,7 +137,7 @@ def main():
         logger.info("=" * 60)
 
         # Cleanup
-        services["db"].close()
+        asyncio.run(services["db"].aclose())
         test_db = Path("test_integration.db")
         if test_db.exists():
             test_db.unlink()

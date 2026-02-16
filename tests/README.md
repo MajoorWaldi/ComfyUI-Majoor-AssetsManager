@@ -170,11 +170,12 @@ pytest tests/ --cov=backend --cov-report=html
 Each test should be independent using in-memory databases:
 
 ```python
-def test_example():
+@pytest.mark.asyncio
+async def test_example():
     db = Sqlite(":memory:")
-    migrate_schema(db)
+    await migrate_schema(db)
     # ... test logic
-    db.close()
+    await db.aclose()
 ```
 
 ### Result pattern
