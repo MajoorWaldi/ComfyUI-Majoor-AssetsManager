@@ -9,7 +9,7 @@ import { comfyToast } from "./toast.js";
 import { safeDispatchCustomEvent } from "../utils/events.js";
 import { t, initI18n, setLang, getCurrentLang, getSupportedLanguages } from "./i18n.js";
 
-import { SETTINGS_KEY } from "./settingsStore.js";
+import { SETTINGS_KEY, SETTINGS_SCHEMA_VERSION } from "./settingsStore.js";
 const SETTINGS_PREFIX = "Majoor";
 const SETTINGS_CATEGORY = "Majoor Assets Manager";
 const SETTINGS_REG_FLAG = "__mjrSettingsRegistered";
@@ -319,6 +319,19 @@ export const loadMajoorSettings = () => {
         const raw = localStorage.getItem(SETTINGS_KEY);
         if (!raw) return { ...DEFAULT_SETTINGS };
         const parsed = JSON.parse(raw);
+        const isWrapped =
+            parsed
+            && typeof parsed === "object"
+            && Number.isInteger(parsed.version)
+            && parsed.data
+            && typeof parsed.data === "object";
+        const isLegacyObject = parsed && typeof parsed === "object" && !Array.isArray(parsed);
+        if (!isWrapped && !isLegacyObject) return { ...DEFAULT_SETTINGS };
+        if (isWrapped && Number(parsed.version) > Number(SETTINGS_SCHEMA_VERSION)) {
+            console.warn("[Majoor] settings schema version is newer than this build, using defaults");
+            return { ...DEFAULT_SETTINGS };
+        }
+        const payload = isWrapped ? parsed.data : parsed;
         const allowed = new Set([
             "debug",
             "grid",
@@ -343,12 +356,19 @@ export const loadMajoorSettings = () => {
             "safety",
         ]);
         const sanitized = {};
-        if (parsed && typeof parsed === "object") {
-            for (const [key, value] of Object.entries(parsed)) {
+        if (payload && typeof payload === "object") {
+            for (const [key, value] of Object.entries(payload)) {
                 if (allowed.has(key)) sanitized[key] = value;
             }
         }
-        return deepMerge(DEFAULT_SETTINGS, sanitized);
+        const merged = deepMerge(DEFAULT_SETTINGS, sanitized);
+        // Auto-migrate legacy format to wrapped versioned format.
+        if (!isWrapped) {
+            try {
+                saveMajoorSettings(merged);
+            } catch {}
+        }
+        return merged;
     } catch (error) {
         console.warn("[Majoor] settings load failed, using defaults", error);
         return { ...DEFAULT_SETTINGS };
@@ -358,7 +378,11 @@ export const loadMajoorSettings = () => {
 export const saveMajoorSettings = (settings) => {
     if (typeof localStorage === "undefined") return;
     try {
-        localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+        const wrapped = {
+            version: SETTINGS_SCHEMA_VERSION,
+            data: settings,
+        };
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(wrapped));
     } catch (error) {
         console.warn("[Majoor] settings save failed", error);
         try {

@@ -122,6 +122,64 @@ class IndexScanner:
         step = 1.0 / limit if limit > 0.0 else 0.0
         self._scan_iops_next_ts = max(next_ts, now) + step
 
+    def _normalize_filepath_str(self, file_path: Path | str) -> str:
+        """
+        Build a canonical filepath key for DB/cache/journal lookups.
+        On Windows we normalize case to avoid duplicates that differ only by casing.
+        """
+        raw = str(file_path) if file_path is not None else ""
+        if not IS_WINDOWS:
+            return raw
+        try:
+            return os.path.normcase(os.path.normpath(raw))
+        except Exception:
+            return raw
+
+    def _diagnose_batch_failure(
+        self,
+        prepared: List[Dict[str, Any]],
+        batch_error: Exception,
+    ) -> tuple[Optional[str], str]:
+        """
+        Best-effort diagnosis for batch transaction failures.
+        Returns (filepath, reason) where filepath may be None if unknown.
+        """
+        try:
+            message = str(batch_error or "")
+            message_lower = message.lower()
+        except Exception:
+            message = ""
+            message_lower = ""
+
+        # Common hard failure: duplicate filepath in the same batch payload.
+        if "unique constraint failed" in message_lower and "assets.filepath" in message_lower:
+            seen: set[str] = set()
+            for entry in prepared:
+                fp = str(entry.get("filepath") or entry.get("file_path") or "").strip()
+                if not fp:
+                    continue
+                key = fp.lower() if IS_WINDOWS else fp
+                if key in seen:
+                    return fp, "duplicate filepath in batch payload (UNIQUE assets.filepath)"
+                seen.add(key)
+            # Could also be a duplicate against existing DB rows.
+            for entry in prepared:
+                fp = str(entry.get("filepath") or entry.get("file_path") or "").strip()
+                if fp:
+                    return fp, "filepath conflicts with existing database row (UNIQUE assets.filepath)"
+            return None, "UNIQUE constraint on assets.filepath"
+
+        # Generic fallback: provide first actionable entry.
+        for entry in prepared:
+            fp = str(entry.get("filepath") or entry.get("file_path") or "").strip()
+            if fp:
+                return fp, (message or type(batch_error).__name__)
+        return None, (message or type(batch_error).__name__)
+        try:
+            return os.path.normcase(os.path.normpath(raw))
+        except Exception:
+            return raw
+
     @staticmethod
     def _drain_walk_queue(q: "Queue[Optional[Path]]", max_items: int) -> list[Optional[Path]]:
         """Read one-or-more items from walk queue with bounded non-blocking drain."""
@@ -365,7 +423,7 @@ class IndexScanner:
         if not batch:
             return
 
-        filepaths = [str(p) for p in batch]
+        filepaths = [self._normalize_filepath_str(p) for p in batch]
         journal_map = (await self._get_journal_entries(filepaths)) if incremental and filepaths else {}
         existing_map: Dict[str, Dict[str, Any]] = {}
 
@@ -468,7 +526,7 @@ class IndexScanner:
                     if not batch:
                         continue
 
-                    filepaths = [str(p) for p in batch]
+                    filepaths = [self._normalize_filepath_str(p) for p in batch]
                     journal_map = (await self._get_journal_entries(filepaths)) if incremental and filepaths else {}
                     existing_map: Dict[str, Dict[str, Any]] = {}
 
@@ -556,7 +614,7 @@ class IndexScanner:
         needs_metadata: List[tuple[Path, str, int, int, int, str, Optional[int]]] = []  # (path, filepath, mtime_ns, mtime, size, state_hash, existing_id)
 
         # Prefetch metadata cache and asset_metadata entries for the entire batch to avoid N+1 queries
-        filepaths = [str(p) for p in batch]
+        filepaths = [self._normalize_filepath_str(p) for p in batch]
         cache_map = {}
         has_meta_set = set()
 
@@ -602,13 +660,24 @@ class IndexScanner:
                                 pass
 
         for file_path in batch:
-            fp = str(file_path)
+            fp = self._normalize_filepath_str(file_path)
             existing_state: Optional[Dict[str, Any]]
             if incremental and fp in journal_map:
                 existing_state = dict(existing_map.get(fp) or {})
                 existing_state["journal_state_hash"] = journal_map.get(fp)
             else:
                 existing_state = existing_map.get(fp)
+            if IS_WINDOWS and not existing_state:
+                try:
+                    existing_ci = await self.db.aquery(
+                        "SELECT id, mtime, filepath FROM assets WHERE filepath = ? COLLATE NOCASE LIMIT 1",
+                        (fp,),
+                    )
+                    if existing_ci.ok and existing_ci.data:
+                        existing_state = existing_ci.data[0]
+                        existing_map[fp] = existing_state
+                except Exception:
+                    pass
 
             # Stat the file
             stat_result = await self._stat_with_retry(file_path)
@@ -621,7 +690,7 @@ class IndexScanner:
             mtime_ns = stat.st_mtime_ns
             mtime = int(stat.st_mtime)
             size = int(stat.st_size)
-            filepath = str(file_path)
+            filepath = self._normalize_filepath_str(file_path)
             state_hash = self._compute_state_hash(filepath, mtime_ns, size)
 
             # Check journal skip
@@ -931,6 +1000,18 @@ class IndexScanner:
                 )
                 raise
             # If the entire batch transaction fails, fall back to processing items individually
+            suspect_fp, suspect_reason = self._diagnose_batch_failure(prepared, batch_error)
+            if suspect_fp:
+                logger.warning(
+                    "Batch transaction failed near file '%s' (%s). Falling back to individual processing.",
+                    suspect_fp,
+                    suspect_reason,
+                )
+            else:
+                logger.warning(
+                    "Batch transaction failed (%s). Falling back to individual processing.",
+                    suspect_reason,
+                )
             logger.warning("Batch transaction failed: %s. Falling back to individual processing.", str(batch_error))
             stats["batch_fallbacks"] = int(stats.get("batch_fallbacks") or 0) + 1
             with self._batch_fallback_lock:
@@ -1152,7 +1233,7 @@ class IndexScanner:
         mtime = int(stat.st_mtime)
         size = int(stat.st_size)
 
-        filepath = str(file_path)
+        filepath = self._normalize_filepath_str(file_path)
         state_hash = self._compute_state_hash(filepath, mtime_ns, size)
 
         journal_state_hash = None
@@ -1382,6 +1463,7 @@ class IndexScanner:
                 return file_path
 
     def _compute_state_hash(self, filepath: str, mtime_ns: int, size: int) -> str:
+        filepath = str(filepath or "")
         parts = [
             filepath.encode("utf-8"),
             str(mtime_ns).encode("utf-8"),
@@ -1500,7 +1582,7 @@ class IndexScanner:
                 pass
 
         # Compute file fingerprint before any caching or journal logic (prevents use-before-set bugs)
-        filepath = str(file_path)
+        filepath = self._normalize_filepath_str(file_path)
         state_hash = self._compute_state_hash(filepath, mtime_ns, size)
 
         # Skip unchanged files as early as possible (before running ExifTool/FFProbe).
