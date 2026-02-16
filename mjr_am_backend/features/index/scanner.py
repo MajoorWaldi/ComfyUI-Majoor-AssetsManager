@@ -175,10 +175,6 @@ class IndexScanner:
             if fp:
                 return fp, (message or type(batch_error).__name__)
         return None, (message or type(batch_error).__name__)
-        try:
-            return os.path.normcase(os.path.normpath(raw))
-        except Exception:
-            return raw
 
     @staticmethod
     def _drain_walk_queue(q: "Queue[Optional[Path]]", max_items: int) -> list[Optional[Path]]:
@@ -616,7 +612,7 @@ class IndexScanner:
         # Prefetch metadata cache and asset_metadata entries for the entire batch to avoid N+1 queries
         filepaths = [self._normalize_filepath_str(p) for p in batch]
         cache_map = {}
-        has_meta_set = set()
+        has_rich_meta_set = set()
 
         if filepaths:
             # Prefetch metadata_cache entries
@@ -646,7 +642,7 @@ class IndexScanner:
 
             if asset_ids:
                 meta_rows = await self.db.aquery_in(
-                    "SELECT asset_id FROM asset_metadata WHERE {IN_CLAUSE}",
+                    "SELECT asset_id, metadata_quality, metadata_raw FROM asset_metadata WHERE {IN_CLAUSE}",
                     "asset_id",
                     asset_ids,
                 )
@@ -655,7 +651,14 @@ class IndexScanner:
                         asset_id = row.get("asset_id")
                         if asset_id:
                             try:
-                                has_meta_set.add(int(asset_id))
+                                metadata_quality = str(row.get("metadata_quality") or "").strip().lower()
+                                metadata_raw = str(row.get("metadata_raw") or "").strip()
+                                has_rich = (
+                                    metadata_quality not in ("", "none")
+                                    or metadata_raw not in ("", "{}", "null")
+                                )
+                                if has_rich:
+                                    has_rich_meta_set.add(int(asset_id))
                             except Exception:
                                 pass
 
@@ -698,10 +701,6 @@ class IndexScanner:
             if isinstance(existing_state, dict) and "journal_state_hash" in existing_state:
                 journal_state_hash = existing_state.get("journal_state_hash")
 
-            if incremental and journal_state_hash and str(journal_state_hash) == state_hash:
-                prepared.append({"action": "skipped_journal"})
-                continue
-
             existing_id = 0
             existing_mtime = 0
             if isinstance(existing_state, dict) and existing_state.get("id") is not None:
@@ -710,6 +709,12 @@ class IndexScanner:
                     existing_mtime = int(existing_state.get("mtime") or 0)
                 except Exception:
                     pass
+
+            # Journal fast-path is safe only when we are not asking for richer metadata.
+            if incremental and journal_state_hash and str(journal_state_hash) == state_hash:
+                if fast or (existing_id and existing_id in has_rich_meta_set):
+                    prepared.append({"action": "skipped_journal"})
+                    continue
 
             # Check cache skip using prefetched data
             # Optimization: Skip processing if mtime matches, even for non-incremental scans.
@@ -734,7 +739,7 @@ class IndexScanner:
                     continue
 
                 # Check if asset has metadata using prefetched data
-                if existing_id in has_meta_set:
+                if existing_id in has_rich_meta_set:
                     prepared.append({"action": "skipped"})
                     continue
 
@@ -1240,11 +1245,8 @@ class IndexScanner:
         if isinstance(existing_state, dict) and "journal_state_hash" in existing_state:
             journal_state_hash = existing_state.get("journal_state_hash")
         elif incremental:
-            journal_entry = self._get_journal_entry(filepath)
+            journal_entry = await self._get_journal_entry(filepath)
             journal_state_hash = journal_entry.get("state_hash") if isinstance(journal_entry, dict) else None
-
-        if incremental and journal_state_hash and str(journal_state_hash) == state_hash:
-            return Result.Ok({"action": "skipped_journal"})
 
         existing_asset = existing_state if isinstance(existing_state, dict) and existing_state.get("id") is not None else None
         existing_id = 0
@@ -1256,6 +1258,13 @@ class IndexScanner:
             except Exception:
                 existing_id = 0
                 existing_mtime = 0
+
+        if incremental and journal_state_hash and str(journal_state_hash) == state_hash:
+            if fast:
+                return Result.Ok({"action": "skipped_journal"})
+            if existing_id:
+                if await self._asset_has_rich_metadata(existing_id):
+                    return Result.Ok({"action": "skipped_journal"})
 
         # If incremental and unchanged, try cached metadata first.
         if incremental and existing_id and existing_mtime == mtime:
@@ -1276,8 +1285,7 @@ class IndexScanner:
                     }
                 )
 
-            meta_row = await self.db.aquery("SELECT 1 FROM asset_metadata WHERE asset_id = ? LIMIT 1", (existing_id,))
-            if meta_row.ok and meta_row.data:
+            if await self._asset_has_rich_metadata(existing_id):
                 return Result.Ok({"action": "skipped"})
 
         # Compute metadata only when needed.
@@ -1541,6 +1549,23 @@ class IndexScanner:
                 logger.warning("Failed to stat %s after retries: %s", file_path, exc)
                 return False, exc
 
+    async def _asset_has_rich_metadata(self, asset_id: int) -> bool:
+        if not asset_id:
+            return False
+        row = await self.db.aquery(
+            "SELECT metadata_quality, metadata_raw FROM asset_metadata WHERE asset_id = ? LIMIT 1",
+            (int(asset_id),),
+        )
+        if not row.ok or not row.data:
+            return False
+        try:
+            data = row.data[0] or {}
+            metadata_quality = str(data.get("metadata_quality") or "").strip().lower()
+            metadata_raw = str(data.get("metadata_raw") or "").strip()
+            return metadata_quality not in ("", "none") or metadata_raw not in ("", "{}", "null")
+        except Exception:
+            return False
+
     async def _index_file(
         self,
         file_path: Path,
@@ -1593,9 +1618,6 @@ class IndexScanner:
             journal_entry = await self._get_journal_entry(filepath)
             journal_state_hash = journal_entry.get("state_hash") if isinstance(journal_entry, dict) else None
 
-        if incremental and journal_state_hash and str(journal_state_hash) == state_hash:
-            return Result.Ok({"action": "skipped_journal"})
-
         # Check if file already exists (allow caller to prefetch to avoid N+1 queries)
         existing_asset = None
         if isinstance(existing_state, dict) and existing_state.get("id") is not None:
@@ -1618,6 +1640,20 @@ class IndexScanner:
                         existing_asset = existing_ci.data[0]
                 except Exception:
                     pass
+
+        existing_id = 0
+        if existing_asset is not None:
+            try:
+                existing_id = int(existing_asset.get("id") or 0)
+            except Exception:
+                existing_id = 0
+
+        if incremental and journal_state_hash and str(journal_state_hash) == state_hash:
+            if fast:
+                return Result.Ok({"action": "skipped_journal"})
+            if existing_id:
+                if await self._asset_has_rich_metadata(existing_id):
+                    return Result.Ok({"action": "skipped_journal"})
 
         if existing_asset is not None:
             try:
@@ -1656,8 +1692,7 @@ class IndexScanner:
                     return Result.Ok({"action": action})
 
                 # If we already have a metadata row, don't rerun tools just for an incremental pass.
-                meta_row = await self.db.aquery("SELECT 1 FROM asset_metadata WHERE asset_id = ? LIMIT 1", (existing_id,))
-                if meta_row.ok and meta_row.data:
+                if await self._asset_has_rich_metadata(existing_id):
                     return Result.Ok({"action": "skipped"})
 
         # Compute metadata (may run tools) only when needed.

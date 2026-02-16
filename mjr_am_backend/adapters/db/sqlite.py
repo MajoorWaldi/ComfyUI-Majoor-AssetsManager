@@ -688,13 +688,17 @@ class Sqlite:
     async def _acquire_connection_async(self) -> aiosqlite.Connection:
         if self._async_sem is None:
             self._async_sem = asyncio.Semaphore(self._max_conn_limit)
-        
+
         # Check reset flag before acquiring
         if self._resetting:
             raise RuntimeError("Database is resetting - connection rejected")
 
-        await self._async_sem.acquire()
+        sem = self._async_sem
+        await sem.acquire()
         try:
+            # Re-check after waiting: reset may start while this waiter is queued.
+            if self._resetting:
+                raise RuntimeError("Database is resetting - connection rejected")
             try:
                 conn = self._pool.get_nowait()
             except Empty:
@@ -703,7 +707,7 @@ class Sqlite:
             self._active_conns_idle.clear()
             return conn
         except Exception:
-            self._async_sem.release()
+            sem.release()
             raise
 
     async def _release_connection_async(self, conn: aiosqlite.Connection):

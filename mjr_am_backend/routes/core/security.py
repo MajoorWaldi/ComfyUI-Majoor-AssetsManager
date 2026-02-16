@@ -660,6 +660,17 @@ def _csrf_error(request: web.Request) -> Optional[str]:
     if not host:
         return "Missing Host header"
 
+    # Behind a trusted reverse proxy, Host may reflect upstream internals while
+    # the browser-origin host is conveyed in X-Forwarded-Host.
+    try:
+        peer_ip = _extract_peer_ip(request)
+    except Exception:
+        peer_ip = "unknown"
+    if _is_trusted_proxy(peer_ip):
+        xf_host = str(request.headers.get("X-Forwarded-Host") or "").strip()
+        if xf_host:
+            host = xf_host.split(",")[0].strip()
+
     try:
         parsed = urlparse(origin)
     except Exception:

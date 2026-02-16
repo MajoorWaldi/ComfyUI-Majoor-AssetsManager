@@ -121,6 +121,22 @@ async def test_csrf_allows_loopback_aliases():
 
 
 @pytest.mark.asyncio
+async def test_csrf_accepts_forwarded_host_from_trusted_proxy():
+    req = make_mocked_request(
+        "POST",
+        "/mjr/am/scan",
+        headers={
+            "Host": "127.0.0.1:8188",
+            "X-Forwarded-Host": "public.example:443",
+            "Origin": "https://public.example:443",
+            "X-Requested-With": "XMLHttpRequest",
+        },
+        transport=_DummyTransport(("127.0.0.1", 5555)),
+    )
+    assert _csrf_error(req) is None
+
+
+@pytest.mark.asyncio
 async def test_csrf_checks_put_delete_patch():
     """All state-changing methods should be checked."""
     for method in ["PUT", "DELETE", "PATCH"]:

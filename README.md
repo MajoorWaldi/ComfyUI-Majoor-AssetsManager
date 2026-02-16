@@ -120,7 +120,7 @@ Runtime requirements are defined in `requirements.txt`:
 
 - `aiohttp>=3.8.0`
 - `aiosqlite>=0.20.0`
-- `pillow>=11.0.0`
+- `pillow>=10.0.0`
 - `send2trash>=1.8.0`
 - `watchdog>=3.0.0`
 - `pywin32>=300` (Windows only)

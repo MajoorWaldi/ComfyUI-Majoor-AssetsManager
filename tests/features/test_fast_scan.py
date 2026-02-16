@@ -1,6 +1,10 @@
-﻿import pytest
+import pytest
 import time
+import os
 from pathlib import Path
+
+from mjr_am_backend.shared import Result
+
 
 @pytest.mark.asyncio
 async def test_fast_scan_enriches_metadata_in_background(tmp_path: Path):
@@ -40,7 +44,7 @@ async def test_fast_scan_enriches_metadata_in_background(tmp_path: Path):
     )
     assert res.ok, res.error
 
-    filepaths = [str(f) for f in files]
+    filepaths = [os.path.normcase(os.path.normpath(str(f))) for f in files]
     placeholders = ", ".join(["?"] * len(files))
 
     # Immediately after fast scan: asset_metadata exists but metadata_raw is still '{}' (fast path).
@@ -85,3 +89,72 @@ async def test_fast_scan_enriches_metadata_in_background(tmp_path: Path):
     count = int((cache_res.data or [{}])[0].get("c") or 0)
     assert count == len(files)
 
+
+@pytest.mark.asyncio
+async def test_incremental_full_scan_does_not_skip_after_fast_scan(tmp_path: Path):
+    """
+    Regression: an incremental full scan after an incremental fast scan must still
+    enrich metadata when the file has no metadata row yet.
+    """
+    from mjr_am_backend.deps import build_services
+
+    db_path = tmp_path / "fast_to_full.db"
+    services_res = await build_services(db_path=str(db_path))
+    assert services_res.ok, services_res.error
+    services = services_res.data
+    index = services["index"]
+    db = services["db"]
+
+    scan_dir = tmp_path / "scan_root"
+    scan_dir.mkdir(parents=True, exist_ok=True)
+    fp = scan_dir / "x.png"
+    # 1x1 PNG
+    fp.write_bytes(
+        bytes.fromhex(
+            "89504E470D0A1A0A0000000D49484452000000010000000108060000001F15C489"
+            "0000000A49444154789C6360000000020001E221BC330000000049454E44AE426082"
+        )
+    )
+
+    fast_res = await index.scan_directory(
+        str(scan_dir),
+        recursive=False,
+        incremental=True,
+        source="output",
+        root_id=None,
+        fast=True,
+        background_metadata=False,
+    )
+    assert fast_res.ok, fast_res.error
+
+    async def _fake_get_metadata_batch(paths, scan_id=None):
+        return {
+            str(p): Result.Ok({"quality": "full", "parameters": "prompt: test"})
+            for p in (paths or [])
+        }
+
+    # Force deterministic metadata extraction on full scan.
+    index._scanner.metadata.get_metadata_batch = _fake_get_metadata_batch
+
+    full_res = await index.scan_directory(
+        str(scan_dir),
+        recursive=False,
+        incremental=True,
+        source="output",
+        root_id=None,
+        fast=False,
+        background_metadata=False,
+    )
+    assert full_res.ok, full_res.error
+
+    q = await db.aquery(
+        """
+        SELECT m.metadata_raw
+        FROM assets a
+        JOIN asset_metadata m ON a.id = m.asset_id
+        WHERE a.filepath = ?
+        """,
+        (os.path.normcase(os.path.normpath(str(fp))),),
+    )
+    assert q.ok, q.error
+    assert q.data and (q.data[0].get("metadata_raw") or "{}") != "{}"

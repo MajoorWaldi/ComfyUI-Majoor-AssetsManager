@@ -8,7 +8,7 @@ aiosqlite>=0.20.0
 
 # Image processing and thumbnails
 # Updated for security patches (CVE-2023-50447, CVE-2024-28219)
-pillow>=11.0.0
+pillow>=10.0.0
 
 # Pure-Python media metadata parser fallback (audio/video) when ffprobe is missing
 hachoir>=3.3.0
