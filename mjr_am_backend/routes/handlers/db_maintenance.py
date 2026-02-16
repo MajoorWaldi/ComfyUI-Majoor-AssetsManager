@@ -313,7 +313,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                     logger.warning("DB adapter areset() failed (%s), falling back to manual file delete", exc)
                     # Close whatever we can before manual delete
                     try:
-                        db.close()
+                        await db.aclose()
                     except Exception:
                         pass
 

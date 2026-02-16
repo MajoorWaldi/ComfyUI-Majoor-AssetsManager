@@ -14,8 +14,33 @@ export function bindFilters({
     dateRangeSelect,
     dateExactInput,
     reloadGrid,
-    onFiltersChanged = null
+    onFiltersChanged = null,
+    lifecycleSignal = null
 }) {
+    const disposers = [];
+    const addManagedListener = (target, event, handler, options) => {
+        if (!target?.addEventListener || typeof handler !== "function") return;
+        try {
+            target.addEventListener(event, handler, options);
+        } catch {
+            try {
+                target.addEventListener(event, handler);
+            } catch {
+                return;
+            }
+        }
+        if (lifecycleSignal) return;
+        disposers.push(() => {
+            try {
+                target.removeEventListener(event, handler, options);
+            } catch {
+                try {
+                    target.removeEventListener(event, handler);
+                } catch {}
+            }
+        });
+    };
+
     // Cleanup previous window listener to prevent accumulation
     if (_lastAgendaHandler) {
         try {
@@ -24,27 +49,27 @@ export function bindFilters({
         _lastAgendaHandler = null;
     }
 
-    kindSelect.addEventListener("change", async () => {
+    addManagedListener(kindSelect, "change", async () => {
         state.kindFilter = kindSelect.value || "";
         try { onFiltersChanged?.(); } catch {}
         await reloadGrid();
-    });
-    wfCheckbox.addEventListener("change", async () => {
+    }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
+    addManagedListener(wfCheckbox, "change", async () => {
         state.workflowOnly = Boolean(wfCheckbox.checked);
         try { onFiltersChanged?.(); } catch {}
         await reloadGrid();
-    });
-    ratingSelect.addEventListener("change", async () => {
+    }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
+    addManagedListener(ratingSelect, "change", async () => {
         state.minRating = Number(ratingSelect.value || 0) || 0;
         try { onFiltersChanged?.(); } catch {}
         await reloadGrid();
-    });
+    }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
     if (workflowTypeSelect) {
-        workflowTypeSelect.addEventListener("change", async () => {
+        addManagedListener(workflowTypeSelect, "change", async () => {
             state.workflowType = String(workflowTypeSelect.value || "").trim().toUpperCase();
             try { onFiltersChanged?.(); } catch {}
             await reloadGrid();
-        });
+        }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
     }
 
     const applySizeFilter = async () => {
@@ -59,8 +84,8 @@ export function bindFilters({
         try { onFiltersChanged?.(); } catch {}
         await reloadGrid();
     };
-    minSizeInput?.addEventListener("change", applySizeFilter);
-    maxSizeInput?.addEventListener("change", applySizeFilter);
+    addManagedListener(minSizeInput, "change", applySizeFilter, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
+    addManagedListener(maxSizeInput, "change", applySizeFilter, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
 
     const applyResolutionFilter = async () => {
         const minW = Number(minWidthInput?.value || 0);
@@ -73,11 +98,11 @@ export function bindFilters({
         try { onFiltersChanged?.(); } catch {}
         await reloadGrid();
     };
-    minWidthInput?.addEventListener("change", applyResolutionFilter);
-    minHeightInput?.addEventListener("change", applyResolutionFilter);
+    addManagedListener(minWidthInput, "change", applyResolutionFilter, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
+    addManagedListener(minHeightInput, "change", applyResolutionFilter, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
 
     if (resolutionPresetSelect) {
-        resolutionPresetSelect.addEventListener("change", async () => {
+        addManagedListener(resolutionPresetSelect, "change", async () => {
             const preset = String(resolutionPresetSelect.value || "");
             const map = {
                 hd: [1280, 720],
@@ -92,10 +117,10 @@ export function bindFilters({
             if (minHeightInput) minHeightInput.value = state.minHeight > 0 ? String(state.minHeight) : "";
             try { onFiltersChanged?.(); } catch {}
             await reloadGrid();
-        });
+        }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
     }
     if (dateRangeSelect) {
-        dateRangeSelect.addEventListener("change", async () => {
+        addManagedListener(dateRangeSelect, "change", async () => {
             state.dateRangeFilter = dateRangeSelect.value || "";
             if (state.dateRangeFilter && state.dateExactFilter) {
                 state.dateExactFilter = "";
@@ -105,14 +130,14 @@ export function bindFilters({
             }
             try { onFiltersChanged?.(); } catch {}
             await reloadGrid();
-        });
+        }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
     }
     if (dateExactInput) {
         const applyAgendaStyle = (status) => {
             dateExactInput.classList.toggle("mjr-agenda-filled", status === "filled");
             dateExactInput.classList.toggle("mjr-agenda-empty", status === "empty");
         };
-        dateExactInput.addEventListener("change", async () => {
+        addManagedListener(dateExactInput, "change", async () => {
             state.dateExactFilter = dateExactInput.value ? String(dateExactInput.value) : "";
             if (state.dateExactFilter && state.dateRangeFilter) {
                 state.dateRangeFilter = "";
@@ -125,7 +150,7 @@ export function bindFilters({
             }
             try { onFiltersChanged?.(); } catch {}
             await reloadGrid();
-        });
+        }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
         const handleAgendaStatus = (event) => {
             if (!event?.detail) return;
             const { date, hasResults } = event.detail;
@@ -137,9 +162,35 @@ export function bindFilters({
             applyAgendaStyle(hasResults ? "filled" : "empty");
         };
         try {
-            window?.addEventListener?.("MJR:AgendaStatus", handleAgendaStatus, { passive: true });
+            const opts = lifecycleSignal ? { passive: true, signal: lifecycleSignal } : { passive: true };
+            window?.addEventListener?.("MJR:AgendaStatus", handleAgendaStatus, opts);
             _lastAgendaHandler = handleAgendaStatus;
+            if (!lifecycleSignal) {
+                disposers.push(() => {
+                    try {
+                        window.removeEventListener("MJR:AgendaStatus", handleAgendaStatus);
+                    } catch {}
+                });
+            } else {
+                lifecycleSignal.addEventListener("abort", () => {
+                    if (_lastAgendaHandler === handleAgendaStatus) _lastAgendaHandler = null;
+                }, { once: true });
+            }
         } catch {}
     }
+
+    return () => {
+        for (const dispose of disposers.splice(0)) {
+            try {
+                dispose();
+            } catch {}
+        }
+        if (_lastAgendaHandler) {
+            try {
+                window.removeEventListener("MJR:AgendaStatus", _lastAgendaHandler);
+            } catch {}
+            _lastAgendaHandler = null;
+        }
+    };
 }
 

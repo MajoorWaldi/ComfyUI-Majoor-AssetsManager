@@ -87,6 +87,15 @@ def _validate_filename(name: str) -> tuple[bool, str]:
         
     return True, ""
 
+def _is_resolved_path_allowed(path: Path) -> bool:
+    """
+    Enforce allowed roots check on canonical paths.
+    """
+    try:
+        return bool(_is_path_allowed(path) or _is_path_allowed_custom(path))
+    except Exception:
+        return False
+
 
 
 def _delete_file_best_effort(path: Path) -> Result[bool]:
@@ -564,6 +573,8 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             resolved = candidate.resolve(strict=True)
         except Exception:
             return _json_response(Result.Err("NOT_FOUND", "File does not exist"))
+        if not _is_resolved_path_allowed(resolved):
+            return _json_response(Result.Err("FORBIDDEN", "Path is not within allowed roots"))
 
         def _execute_command(command: list[str]) -> None:
             if not shutil.which(command[0]):
@@ -745,6 +756,8 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             resolved = candidate.resolve(strict=True)
         except Exception:
             return _json_response(Result.Err("NOT_FOUND", "File does not exist"))
+        if not _is_resolved_path_allowed(resolved):
+            return _json_response(Result.Err("FORBIDDEN", "Path is not within allowed roots"))
 
         if not (resolved.exists() and resolved.is_file()):
             return _json_response(Result.Err("NOT_FOUND", "File does not exist"))
@@ -908,6 +921,8 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             current_resolved = current_path.resolve(strict=True)
         except Exception:
             return _json_response(Result.Err("NOT_FOUND", "Current file does not exist"))
+        if not _is_resolved_path_allowed(current_resolved):
+            return _json_response(Result.Err("FORBIDDEN", "Path is not within allowed roots"))
 
         if not current_resolved.exists() or not current_resolved.is_file():
             return _json_response(Result.Err("NOT_FOUND", "Current file does not exist"))
@@ -930,13 +945,22 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                 )
             )
 
+        async def _rollback_physical_rename() -> None:
+            try:
+                if new_path.exists() and not current_resolved.exists():
+                    new_path.rename(current_resolved)
+            except Exception as rollback_exc:
+                logger.error("Failed to rollback rename for asset %s: %s", asset_id, rollback_exc)
+
         # Update database record
         try:
             try:
                 mtime = int(new_path.stat().st_mtime)
             except FileNotFoundError:
+                await _rollback_physical_rename()
                 return _json_response(Result.Err("NOT_FOUND", "Renamed file does not exist"))
             except Exception as exc:
+                await _rollback_physical_rename()
                 return _json_response(
                     Result.Err(
                         "FS_ERROR",
@@ -947,7 +971,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             async with svc["db"].atransaction(mode="immediate"):
                 defer_fk = await svc["db"].aexecute("PRAGMA defer_foreign_keys = ON")
                 if not defer_fk.ok:
-                    return _json_response(Result.Err("DB_ERROR", defer_fk.error or "Failed to defer foreign key checks"))
+                    raise RuntimeError(defer_fk.error or "Failed to defer foreign key checks")
 
                 if asset_id is not None:
                     update_res = await svc["db"].aexecute(
@@ -955,12 +979,14 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                         (new_name, str(new_path), mtime, asset_id)
                     )
                     if not update_res.ok:
-                        return _json_response(Result.Err("DB_ERROR", update_res.error or "Failed to update assets filepath"))
+                        raise RuntimeError(update_res.error or "Failed to update assets filepath")
                 else:
-                    await svc["db"].aexecute(
+                    up2 = await svc["db"].aexecute(
                         "UPDATE assets SET filename = ?, filepath = ?, mtime = ? WHERE filepath = ?",
                         (new_name, str(new_path), mtime, str(current_resolved)),
                     )
+                    if not up2.ok:
+                        raise RuntimeError(up2.error or "Failed to update assets filepath")
 
                 # Keep FK-linked tables in sync with renamed filepath.
                 sj_res = await svc["db"].aexecute(
@@ -968,20 +994,16 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                     (str(new_path), str(current_resolved)),
                 )
                 if not sj_res.ok:
-                    return _json_response(Result.Err("DB_ERROR", sj_res.error or "Failed to update scan_journal filepath"))
+                    raise RuntimeError(sj_res.error or "Failed to update scan_journal filepath")
 
                 mc_res = await svc["db"].aexecute(
                     "UPDATE metadata_cache SET filepath = ? WHERE filepath = ?",
                     (str(new_path), str(current_resolved)),
                 )
                 if not mc_res.ok:
-                    return _json_response(Result.Err("DB_ERROR", mc_res.error or "Failed to update metadata_cache filepath"))
+                    raise RuntimeError(mc_res.error or "Failed to update metadata_cache filepath")
         except Exception as exc:
-            try:
-                if new_path.exists() and not current_resolved.exists():
-                    new_path.rename(current_resolved)
-            except Exception as rollback_exc:
-                logger.error("Failed to rollback rename for asset %s: %s", asset_id, rollback_exc)
+            await _rollback_physical_rename()
             return _json_response(
                 Result.Err(
                     "DB_ERROR",
@@ -1091,6 +1113,8 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                 resolved = candidate.resolve(strict=True)
             except Exception:
                 resolved = None
+            if resolved is not None and not _is_resolved_path_allowed(resolved):
+                return _json_response(Result.Err("FORBIDDEN", f"Path for asset ID {asset_id} is not within allowed roots"))
 
             validated_assets.append({"id": int(asset_id), "filepath": str(raw_path), "resolved": resolved})
 
@@ -1202,6 +1226,8 @@ async def download_asset(request: web.Request) -> web.StreamResponse:
         resolved = candidate.resolve(strict=True)
     except (OSError, RuntimeError, ValueError):
         return web.Response(status=404, text="File not found")
+    if not _is_resolved_path_allowed(resolved):
+        return web.Response(status=403, text="Path is not within allowed roots")
 
     if not resolved.is_file():
         return web.Response(status=404, text="File not found")

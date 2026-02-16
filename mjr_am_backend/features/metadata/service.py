@@ -206,6 +206,24 @@ class MetadataService:
             max_concurrency = 1
         self._extract_sem = asyncio.Semaphore(max_concurrency)
 
+    async def _exif_read(self, file_path: str) -> Result[Dict[str, Any]]:
+        aread = getattr(self.exiftool, "aread", None)
+        if callable(aread):
+            return await aread(file_path)
+        return await asyncio.to_thread(self.exiftool.read, file_path)
+
+    async def _ffprobe_read(self, file_path: str) -> Result[Dict[str, Any]]:
+        aread = getattr(self.ffprobe, "aread", None)
+        if callable(aread):
+            return await aread(file_path)
+        return await asyncio.to_thread(self.ffprobe.read, file_path)
+
+    async def _ffprobe_read_batch(self, paths: list[str]) -> Dict[str, Result[Dict[str, Any]]]:
+        aread_batch = getattr(self.ffprobe, "aread_batch", None)
+        if callable(aread_batch):
+            return await aread_batch(paths)
+        return await asyncio.to_thread(self.ffprobe.read_batch, paths)
+
     async def _enrich_with_geninfo_async(self, combined: Dict[str, Any]) -> None:
         """Helper to parse geninfo from prompt/workflow in combined metadata (Worker Thread)."""
         prompt_graph = combined.get("prompt")
@@ -355,7 +373,7 @@ class MetadataService:
         ext = os.path.splitext(file_path)[1].lower()
 
         exif_start = time.perf_counter()
-        exif_result = await asyncio.to_thread(self.exiftool.read, file_path)
+        exif_result = await self._exif_read(file_path)
         exif_duration = time.perf_counter() - exif_start
         exif_data = exif_result.data if exif_result.ok else None
         image_fallback_enabled, _ = await self._resolve_fallback_prefs()
@@ -411,7 +429,7 @@ class MetadataService:
         image_fallback_enabled, _ = await self._resolve_fallback_prefs()
         if allow_exif:
             exif_start = time.perf_counter()
-            exif_result = await asyncio.to_thread(self.exiftool.read, file_path)
+            exif_result = await self._exif_read(file_path)
             exif_duration = time.perf_counter() - exif_start
             exif_data = exif_result.data if exif_result.ok else None
             if not exif_result.ok:
@@ -479,7 +497,7 @@ class MetadataService:
         _, media_fallback_enabled = await self._resolve_fallback_prefs()
         if allow_exif:
             exif_start = time.perf_counter()
-            exif_result = await asyncio.to_thread(self.exiftool.read, file_path)
+            exif_result = await self._exif_read(file_path)
             exif_duration = time.perf_counter() - exif_start
             exif_data = exif_result.data if exif_result.ok else None
             if not exif_result.ok:
@@ -500,7 +518,7 @@ class MetadataService:
         ffprobe_duration = 0.0
         if allow_ffprobe:
             ffprobe_start = time.perf_counter()
-            ffprobe_result = await asyncio.to_thread(self.ffprobe.read, file_path)
+            ffprobe_result = await self._ffprobe_read(file_path)
             ffprobe_duration = time.perf_counter() - ffprobe_start
             if not ffprobe_result.ok:
                 self._log_metadata_issue(
@@ -593,7 +611,7 @@ class MetadataService:
 
         if allow_exif:
             exif_start = time.perf_counter()
-            exif_result = await asyncio.to_thread(self.exiftool.read, file_path)
+            exif_result = await self._exif_read(file_path)
             exif_duration = time.perf_counter() - exif_start
             exif_data = exif_result.data if exif_result.ok else None
             if not exif_result.ok:
@@ -609,7 +627,7 @@ class MetadataService:
 
         if allow_ffprobe:
             ffprobe_start = time.perf_counter()
-            ffprobe_result = await asyncio.to_thread(self.ffprobe.read, file_path)
+            ffprobe_result = await self._ffprobe_read(file_path)
             ffprobe_duration = time.perf_counter() - ffprobe_start
             ffprobe_data = ffprobe_result.data if ffprobe_result.ok else None
             if not ffprobe_result.ok:
@@ -736,7 +754,7 @@ class MetadataService:
             await self.exiftool.aread_batch(exif_targets) if exif_targets else {}
         )
         ffprobe_results: Dict[str, Result[Dict[str, Any]]] = (
-            await asyncio.to_thread(self.ffprobe.read_batch, ffprobe_targets) if ffprobe_targets else {}
+            await self._ffprobe_read_batch(ffprobe_targets) if ffprobe_targets else {}
         )
 
         def _exif_for(path: str) -> Optional[Dict[str, Any]]:

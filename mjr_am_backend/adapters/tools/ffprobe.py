@@ -5,6 +5,7 @@ import subprocess
 import json
 import shutil
 import os
+import asyncio
 from pathlib import Path
 from typing import Optional, List, Dict
 
@@ -184,6 +185,98 @@ class FFProbe:
                 quality="degraded"
             )
 
+    async def aread(self, path: str) -> Result[dict]:
+        """
+        Async variant of read() using native asyncio subprocess execution.
+        """
+        if not self._available:
+            return Result.Err(
+                ErrorCode.TOOL_MISSING,
+                "ffprobe not found in PATH",
+                quality="none"
+            )
+
+        try:
+            cmd = [
+                self._resolved_bin or self.bin,
+                "-v", "error",
+                "-print_format", "json",
+                "-show_format",
+                "-show_streams",
+                path,
+            ]
+
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                close_fds=os.name != "nt",
+            )
+
+            try:
+                stdout_b, stderr_b = await asyncio.wait_for(process.communicate(), timeout=self.timeout)
+            except asyncio.TimeoutError:
+                try:
+                    process.kill()
+                except Exception:
+                    pass
+                logger.error(f"ffprobe timeout for {path}")
+                return Result.Err(
+                    ErrorCode.TIMEOUT,
+                    f"ffprobe timeout after {self.timeout}s",
+                    quality="degraded"
+                )
+
+            stdout = (stdout_b or b"").decode("utf-8", errors="replace")
+            stderr = (stderr_b or b"").decode("utf-8", errors="replace")
+
+            if process.returncode != 0:
+                stderr_msg = stderr.strip()
+                logger.warning(f"ffprobe error for {path}: {stderr_msg}")
+                return Result.Err(
+                    ErrorCode.FFPROBE_ERROR,
+                    stderr_msg or "ffprobe command failed",
+                    quality="degraded"
+                )
+
+            if not stdout.strip():
+                logger.warning(f"ffprobe returned empty output for {path}")
+                return Result.Err(
+                    ErrorCode.FFPROBE_ERROR,
+                    "No ffprobe output",
+                    quality="degraded"
+                )
+
+            data = json.loads(stdout)
+            if not isinstance(data, dict):
+                return Result.Err(
+                    ErrorCode.PARSE_ERROR,
+                    "Invalid ffprobe output format",
+                    quality="degraded"
+                )
+
+            result = {
+                "format": data.get("format", {}),
+                "streams": data.get("streams", []),
+                "video_stream": self._find_video_stream(data.get("streams", [])),
+                "audio_stream": self._find_audio_stream(data.get("streams", [])),
+            }
+            return Result.Ok(result, quality="full")
+        except json.JSONDecodeError as e:
+            logger.error(f"ffprobe JSON parse error: {e}")
+            return Result.Err(
+                ErrorCode.PARSE_ERROR,
+                f"Failed to parse ffprobe output: {e}",
+                quality="degraded"
+            )
+        except Exception as e:
+            logger.error(f"ffprobe unexpected error: {e}")
+            return Result.Err(
+                ErrorCode.FFPROBE_ERROR,
+                str(e),
+                quality="degraded"
+            )
+
     def read_batch(self, paths: List[str]) -> Dict[str, Result[dict]]:
         """
         Read metadata from multiple video files.
@@ -221,6 +314,31 @@ class FFProbe:
                     logger.error(f"FFProbe batch error for {path}: {e}")
                     results[str(path)] = Result.Err(ErrorCode.FFPROBE_ERROR, str(e), quality="degraded")
 
+        return results
+
+    async def aread_batch(self, paths: List[str]) -> Dict[str, Result[dict]]:
+        """
+        Async batch variant using bounded asyncio concurrency.
+        """
+        if not self._available:
+            err: Result[dict] = Result.Err(ErrorCode.TOOL_MISSING, "ffprobe not found in PATH", quality="none")
+            return {str(p): err for p in paths}
+        if not paths:
+            return {}
+
+        max_workers = min(self._max_workers, len(paths))
+        sem = asyncio.Semaphore(max_workers)
+        results: Dict[str, Result[dict]] = {}
+
+        async def _one(path: str):
+            async with sem:
+                try:
+                    results[str(path)] = await self.aread(path)
+                except Exception as e:
+                    logger.error(f"FFProbe async batch error for {path}: {e}")
+                    results[str(path)] = Result.Err(ErrorCode.FFPROBE_ERROR, str(e), quality="degraded")
+
+        await asyncio.gather(*[_one(p) for p in paths])
         return results
 
     def _find_video_stream(self, streams: list) -> dict:

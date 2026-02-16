@@ -404,7 +404,7 @@ def _schema_fingerprint() -> str:
 
 
 async def _ensure_schema_fingerprint(db) -> Result[bool]:
-    if not db.has_table("metadata"):
+    if not await db.ahas_table("metadata"):
         return Result.Ok(True)
 
     try:

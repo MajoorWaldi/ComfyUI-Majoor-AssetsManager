@@ -44,6 +44,11 @@ MAX_TRANSACTION_BATCH_SIZE = 500
 MAX_SCAN_JOURNAL_LOOKUP = 5000
 STAT_RETRY_COUNT = 3
 STAT_RETRY_BASE_DELAY_S = 0.15
+try:
+    # 0 disables scan I/O throttling (default: current behavior).
+    SCAN_IOPS_LIMIT = float(os.getenv("MAJOOR_SCAN_IOPS_LIMIT", "0") or 0.0)
+except Exception:
+    SCAN_IOPS_LIMIT = 0.0
 
 # Extensions explicitly excluded from indexing
 _EXCLUDED_EXTENSIONS: set = {".psd", ".json", ".txt", ".csv", ".db", ".sqlite", ".log"}
@@ -97,6 +102,25 @@ class IndexScanner:
         self._current_scan_id: Optional[str] = None
         self._batch_fallback_count = 0
         self._batch_fallback_lock = threading.Lock()
+        # Throttle only directory walk I/O operations (scandir entry processing).
+        self._scan_iops_limit = max(0.0, float(SCAN_IOPS_LIMIT))
+        self._scan_iops_next_ts = 0.0
+
+    def _scan_iops_wait(self) -> None:
+        """
+        Best-effort I/O pacing for directory scans.
+        Runs in the walk producer thread to avoid blocking the event loop.
+        """
+        limit = self._scan_iops_limit
+        if limit <= 0.0:
+            return
+        now = time.perf_counter()
+        next_ts = self._scan_iops_next_ts
+        if next_ts > now:
+            time.sleep(next_ts - now)
+            now = time.perf_counter()
+        step = 1.0 / limit if limit > 0.0 else 0.0
+        self._scan_iops_next_ts = max(next_ts, now) + step
 
     @staticmethod
     def _drain_walk_queue(q: "Queue[Optional[Path]]", max_items: int) -> list[Optional[Path]]:
@@ -122,6 +146,8 @@ class IndexScanner:
 
     def _walk_and_enqueue(self, dir_path: Path, recursive: bool, stop_event: threading.Event, q: "Queue[Optional[Path]]") -> None:
         """Producer running on executor: walks filesystem and pushes paths into queue."""
+        # Reset pacing window for each full walk.
+        self._scan_iops_next_ts = 0.0
         try:
             for fp in self._iter_files(dir_path, recursive):
                 if stop_event.is_set():
@@ -1270,6 +1296,7 @@ class IndexScanner:
                 try:
                     with os.scandir(current) as it:
                         for entry in it:
+                            self._scan_iops_wait()
                             try:
                                 if entry.is_dir(follow_symlinks=False):
                                     stack.append(Path(entry.path))
@@ -1294,6 +1321,7 @@ class IndexScanner:
                     continue
         else:
             for item in directory.iterdir():
+                self._scan_iops_wait()
                 if item.is_file() and _is_supported(item):
                     yield item
 
@@ -1312,7 +1340,10 @@ class IndexScanner:
                 fallback_count = int(self._batch_fallback_count)
         except Exception:
             fallback_count = 0
-        return {"batch_fallbacks_total": fallback_count}
+        return {
+            "batch_fallbacks_total": fallback_count,
+            "scan_iops_limit": float(self._scan_iops_limit),
+        }
 
     def _chunk_file_batches(self, files: List[Path]) -> Iterable[List[Path]]:
         """Yield batches of files for bounded transactions."""

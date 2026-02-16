@@ -1,9 +1,9 @@
 """
 SQLite database connection manager.
 
-Implementation note (Option A migration):
+Implementation note (async-first migration):
 - This adapter uses `aiosqlite` internally.
-- The public API remains synchronous for compatibility with the existing codebase.
+- The public API exposes async methods as primary surface.
 
 Why this shape:
 - Most of the backend logic (scanner/searcher/updater/schema) is synchronous today.
@@ -27,7 +27,8 @@ import time
 import uuid
 import os
 import json
-from contextlib import contextmanager, asynccontextmanager
+import ctypes
+from contextlib import asynccontextmanager
 from pathlib import Path
 from queue import Empty, Queue
 from typing import Any, Dict, List, Optional, Tuple
@@ -381,8 +382,6 @@ class Sqlite:
         self._write_lock: Optional[asyncio.Lock] = None
         self._tx_write_lock_tokens: set[str] = set()
         self._tx_state_lock = threading.Lock()
-        # Thread-local storage for sync transactions (caller thread).
-        self._tx_local = threading.local()
         self._asset_locks: Dict[str, Dict[str, Any]] = {}
         self._asset_locks_lock = threading.Lock()
         self._malformed_recovery_lock = threading.Lock()
@@ -817,11 +816,6 @@ class Sqlite:
             raise
 
     def _tx_token(self) -> Optional[str]:
-        # Thread-local token for sync transaction() remains primary for back-compat.
-        # Fallback to ContextVar to support sync helper calls accidentally invoked from async flow.
-        tok = getattr(self._tx_local, "token", None) if hasattr(self, "_tx_local") else None
-        if tok:
-            return str(tok)
         try:
             ctx_tok = _TX_TOKEN.get()
         except Exception:
@@ -1008,20 +1002,6 @@ class Sqlite:
         except Exception:
             raise
 
-    def execute(self, query: str, params: Optional[tuple] = None, fetch: bool = False) -> Result[Any]:
-        """Execute SQL on the DB loop thread (sync)."""
-        try:
-            # Sync callers may be inside `transaction()` (token lives on the caller thread).
-            # Pass it explicitly because DB work runs on the loop thread.
-            token = self._tx_token()
-            return self._loop_thread.run(self._execute_async(query, params, fetch, tx_token=token))
-        except Exception as exc:
-            return Result.Err(ErrorCode.DB_ERROR, str(exc))
-
-    def query(self, sql: str, params: Optional[tuple] = None) -> Result[List[Dict[str, Any]]]:
-        """Execute a SELECT query and return rows (sync)."""
-        return self.execute(sql, params, fetch=True)
-
     async def aexecute(self, query: str, params: Optional[tuple] = None, fetch: bool = False) -> Result[Any]:
         """Execute SQL on the DB loop thread (async)."""
         token = _TX_TOKEN.get()
@@ -1031,44 +1011,6 @@ class Sqlite:
     async def aquery(self, sql: str, params: Optional[tuple] = None) -> Result[List[Dict[str, Any]]]:
         """Execute a SELECT query and return rows (async)."""
         return await self.aexecute(sql, params, fetch=True)
-
-    def query_in(
-        self,
-        base_query: str,
-        column: str,
-        values: List[Any],
-        additional_params: Optional[tuple] = None,
-    ) -> Result[List[Dict[str, Any]]]:
-        """
-        Execute a query with an IN clause safely.
-
-        `base_query` must contain the `{IN_CLAUSE}` placeholder, which will be replaced
-        with `<column> IN (?, ?, ...)` using parameter binding for values.
-        """
-        if not values:
-            return Result.Ok([])
-
-        if not isinstance(values, (list, tuple)):
-            return Result.Err(ErrorCode.INVALID_INPUT, "values must be a list or tuple")
-
-        ok_col, safe_col = _validate_and_repair_column_name(column)
-        if not ok_col or not safe_col:
-            return Result.Err(ErrorCode.INVALID_INPUT, f"Invalid column name: {column}")
-
-        ok_tpl, why = _validate_in_base_query(base_query)
-        if not ok_tpl:
-            return Result.Err(ErrorCode.INVALID_INPUT, why or "Invalid base_query template")
-
-        ok_q, query_or_err, _ = _build_in_query(str(base_query), safe_col, len(values))
-        if not ok_q:
-            return Result.Err(ErrorCode.INVALID_INPUT, str(query_or_err))
-        query = query_or_err
-
-        params = tuple(values)
-        if additional_params:
-            params = params + tuple(additional_params)
-
-        return self.query(query, params)
 
     async def aquery_in(
         self,
@@ -1185,14 +1127,6 @@ class Sqlite:
         except Exception:
             raise
 
-    def executemany(self, query: str, params_list: List[Tuple]) -> Result[int]:
-        """Execute a parameterized statement over multiple param tuples (sync)."""
-        try:
-            token = self._tx_token()
-            return self._loop_thread.run(self._executemany_async(query, params_list, tx_token=token))
-        except Exception as exc:
-            return Result.Err(ErrorCode.DB_ERROR, str(exc))
-
     async def aexecutemany(self, query: str, params_list: List[Tuple]) -> Result[int]:
         """Execute a parameterized statement over multiple param tuples (async)."""
         token = _TX_TOKEN.get()
@@ -1243,14 +1177,6 @@ class Sqlite:
                 return Result.Err(ErrorCode.DB_ERROR, str(exc))
         return await self._with_query_timeout(_execute_inner())
 
-    def executescript(self, script: str) -> Result[bool]:
-        """Execute a multi-statement SQL script (sync)."""
-        try:
-            token = self._tx_token()
-            return self._loop_thread.run(self._executescript_async(script, tx_token=token))
-        except Exception as exc:
-            return Result.Err(ErrorCode.DB_ERROR, str(exc))
-
     async def aexecutescript(self, script: str) -> Result[bool]:
         """Execute a multi-statement SQL script (async)."""
         token = _TX_TOKEN.get()
@@ -1271,26 +1197,10 @@ class Sqlite:
         finally:
             await self._release_connection_async(conn)
 
-    def vacuum(self) -> Result[bool]:
-        """Run SQLite VACUUM (sync)."""
-        try:
-            return self._loop_thread.run(self._vacuum_async())
-        except Exception as exc:
-            return Result.Err(ErrorCode.DB_ERROR, str(exc))
-
     async def avacuum(self) -> Result[bool]:
         """Run SQLite VACUUM (async)."""
         fut = self._loop_thread.submit(self._vacuum_async())
         return await asyncio.wrap_future(fut)
-
-    def has_table(self, table_name: str) -> bool:
-        """Return True if `table_name` exists in sqlite_master."""
-        result = self.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name = ?",
-            (table_name,),
-            fetch=True,
-        )
-        return bool(result.ok and result.data and len(result.data) > 0)
 
     async def ahas_table(self, table_name: str) -> bool:
         """Return True if `table_name` exists in sqlite_master (async)."""
@@ -1300,23 +1210,6 @@ class Sqlite:
             fetch=True,
         )
         return bool(result.ok and result.data and len(result.data) > 0)
-
-    def get_schema_version(self) -> int:
-        """Get the schema version from the `metadata` table (0 if missing)."""
-        if not self.has_table("metadata"):
-            return 0
-
-        result = self.execute(
-            "SELECT value FROM metadata WHERE key = 'schema_version'",
-            fetch=True,
-        )
-        if result.ok and result.data and len(result.data) > 0:
-            try:
-                return int(result.data[0]["value"])
-            except (ValueError, KeyError, TypeError):
-                logger.warning("Invalid schema_version value in database")
-                return 0
-        return 0
 
     async def aget_schema_version(self) -> int:
         """Get the schema version from the `metadata` table (0 if missing) (async)."""
@@ -1334,13 +1227,6 @@ class Sqlite:
                 logger.warning("Invalid schema_version value in database")
                 return 0
         return 0
-
-    def set_schema_version(self, version: int) -> Result[bool]:
-        """Set the schema version in the `metadata` table."""
-        return self.execute(
-            "INSERT OR REPLACE INTO metadata (key, value) VALUES ('schema_version', ?)",
-            (str(version),),
-        )
 
     async def aset_schema_version(self, version: int) -> Result[bool]:
         """Set the schema version in the `metadata` table (async)."""
@@ -1470,9 +1356,6 @@ class Sqlite:
                 except Exception:
                     pass
 
-    # NOTE: `transaction()` is defined later (sync back-compat). Keeping a single
-    # implementation avoids subtle bugs (e.g. missing `_tx_local`).
-
     async def _close_all_async(self):
         # 1. Close transaction connections first.
         tokens = list(self._tx_conns.keys())
@@ -1509,15 +1392,6 @@ class Sqlite:
         # Reset counters/semaphores as everything is closed
         self._async_sem = None
 
-    def close(self):
-        """Close connections and stop the DB loop thread (sync)."""
-        try:
-            self._loop_thread.run(self._close_all_async())
-        except Exception as exc:
-            logger.debug("DB close failed: %s", exc)
-        finally:
-            self._loop_thread.stop()
-
     async def aclose(self):
         """Close connections and stop the DB loop thread (async)."""
         fut = self._loop_thread.submit(self._close_all_async())
@@ -1530,12 +1404,60 @@ class Sqlite:
         """Prepare for reset: lock new connections, wait for active ones, close all."""
         self._resetting = True
 
+        # Best effort: force WAL checkpoint while connections are still alive.
+        # This reduces the chance of carrying stale WAL state into a reset on Windows.
+        try:
+            await self._checkpoint_wal_before_reset_async()
+        except Exception as exc:
+            logger.debug("DB Reset: WAL checkpoint pre-drain failed: %s", exc)
+
         # Wait deterministically for in-flight checkouts to drain (max 5s), then force close.
         drained = await asyncio.to_thread(self._active_conns_idle.wait, 5.0)
         if not drained and self._active_conns:
             logger.warning("DB Reset: Forced close with %d active connections", len(self._active_conns))
              
         await self._close_all_async()
+
+    async def _checkpoint_wal_before_reset_async(self) -> None:
+        """
+        Best-effort checkpoint prior to hard reset.
+        Must be called on DB loop thread while connections are still valid.
+        """
+        await self._ensure_initialized_async()
+        conn = await self._acquire_connection_async()
+        try:
+            for attempt in range(self._lock_retry_attempts + 1):
+                try:
+                    cur = await conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+                    try:
+                        await cur.fetchall()
+                    finally:
+                        try:
+                            await cur.close()
+                        except Exception:
+                            pass
+                    break
+                except sqlite3.OperationalError as exc:
+                    if self._is_locked_error(exc) and attempt < self._lock_retry_attempts:
+                        await self._sleep_backoff(attempt)
+                        continue
+                    raise
+        finally:
+            await self._release_connection_async(conn)
+
+    @staticmethod
+    def _schedule_delete_on_reboot(path: Path) -> bool:
+        """
+        Windows fallback: request deletion on next reboot for locked files.
+        """
+        if os.name != "nt":
+            return False
+        try:
+            MOVEFILE_DELAY_UNTIL_REBOOT = 0x4
+            ok = ctypes.windll.kernel32.MoveFileExW(str(path), None, MOVEFILE_DELAY_UNTIL_REBOOT)
+            return bool(ok)
+        except Exception:
+            return False
 
     async def areset(self) -> Result[bool]:
         """
@@ -1558,7 +1480,7 @@ class Sqlite:
             
             # 3. Delete files with RETRY logic
             base = str(self.db_path)
-            for ext in ["", "-wal", "-shm"]:
+            for ext in ["", "-wal", "-shm", "-journal"]:
                 p = Path(base + ext)
                 if not p.exists():
                     continue
@@ -1587,8 +1509,18 @@ class Sqlite:
                         logger.info(f"Renamed locked DB file to {trash}")
                         deleted = True
                     except Exception as rename_err:
-                        # If main file fails, it's fatal. WAL/SHM failures are also fatal here
-                        # because the user explicitly requested a hard reset.
+                        # Final fallback (Windows): schedule delete at reboot.
+                        # We still fail the reset to avoid reinitializing over potentially
+                        # stale sidecar files in the current process/session.
+                        scheduled = self._schedule_delete_on_reboot(p)
+                        with self._lock:
+                            self._resetting = False
+                        if scheduled:
+                            return Result.Err(
+                                "DELETE_PENDING_REBOOT",
+                                f"Could not delete {p} now; scheduled for deletion at reboot. "
+                                f"Delete error: {last_error} | Rename failed: {rename_err}",
+                            )
                         return Result.Err(
                             "DELETE_FAILED",
                             f"Could not delete {p}: {last_error} | Rename failed: {rename_err}",
@@ -1629,39 +1561,6 @@ class Sqlite:
     async def _rollback_tx_for_async(self, token: str) -> Result[bool]:
         fut = self._loop_thread.submit(self._rollback_tx_async(token))
         return await asyncio.wrap_future(fut)
-
-    @contextmanager
-    def transaction(self, mode: str = "immediate"):
-        """Context manager for a DB transaction (sync)."""
-        # Back-compat sync transaction: routes token via thread-local.
-        tx_state = Result.Ok(True)
-        begin_res = self._loop_thread.run(self._begin_tx_async(mode))
-        if not begin_res.ok or not begin_res.data:
-            tx_state = Result.Err(ErrorCode.DB_ERROR, str(begin_res.error or "Failed to begin transaction"))
-            yield tx_state
-            return
-
-        token = str(begin_res.data)
-        self._tx_local.token = token
-        try:
-            yield tx_state
-            commit_res = self._loop_thread.run(self._commit_tx_async(token))
-            if not commit_res.ok:
-                tx_state.ok = False
-                tx_state.code = str(getattr(commit_res, "code", None) or ErrorCode.DB_ERROR)
-                tx_state.error = str(commit_res.error or "Commit failed")
-        except Exception:
-            try:
-                self._loop_thread.run(self._rollback_tx_async(token))
-            except Exception:
-                pass
-            raise
-        finally:
-            try:
-                if hasattr(self._tx_local, "token"):
-                    del self._tx_local.token
-            except Exception:
-                pass
 
     @asynccontextmanager
     async def atransaction(self, mode: str = "immediate"):

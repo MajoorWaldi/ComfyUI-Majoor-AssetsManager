@@ -234,7 +234,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 updateSummaryBar?.({ state, gridContainer });
             } catch {}
         };
-        gridContainer.addEventListener("mjr:grid-stats", handler);
+        gridContainer.addEventListener("mjr:grid-stats", handler, { signal: panelLifecycleAC?.signal });
         registerSummaryDispose(() => {
             try {
                 gridContainer.removeEventListener("mjr:grid-stats", handler);
@@ -628,7 +628,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 gridController.reloadGrid();
             } catch {}
         };
-        gridContainer.addEventListener("mjr:reload-grid", _reloadGridHandler);
+        gridContainer.addEventListener("mjr:reload-grid", _reloadGridHandler, { signal: panelLifecycleAC?.signal });
         const onCustomSubfolderChanged = async (e) => {
             const next = String(e?.detail?.subfolder || "").trim().replaceAll("\\", "/");
             const prev = currentFolderPath();
@@ -642,7 +642,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 } catch {}
             }
         };
-        gridContainer.addEventListener("mjr:custom-subfolder-changed", onCustomSubfolderChanged);
+        gridContainer.addEventListener("mjr:custom-subfolder-changed", onCustomSubfolderChanged, { signal: panelLifecycleAC?.signal });
         try {
             gridContainer._mjrHasCustomSubfolderHandler = true;
         } catch {}
@@ -670,7 +670,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 } catch {}
             } catch {}
         };
-        gridContainer.addEventListener("mjr:badge-duplicates-focus", onDuplicateBadgeFocus);
+        gridContainer.addEventListener("mjr:badge-duplicates-focus", onDuplicateBadgeFocus, { signal: panelLifecycleAC?.signal });
         registerSummaryDispose(() => {
             try {
                 if (_reloadGridHandler) gridContainer.removeEventListener("mjr:reload-grid", _reloadGridHandler);
@@ -868,11 +868,11 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         btn.addEventListener("mouseenter", () => {
             btn.style.borderColor = "rgba(145,205,255,0.4)";
             btn.style.background = "linear-gradient(135deg, rgba(80,140,255,0.18), rgba(32,100,200,0.14))";
-        });
+        }, { signal: panelLifecycleAC?.signal });
         btn.addEventListener("mouseleave", () => {
             btn.style.borderColor = "rgba(120,190,255,0.18)";
             btn.style.background = "linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))";
-        });
+        }, { signal: panelLifecycleAC?.signal });
         return btn;
     };
 
@@ -930,7 +930,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 } catch {}
                 popovers.close(pinnedFoldersPopover);
                 await gridController.reloadGrid();
-            });
+            }, { signal: panelLifecycleAC?.signal });
 
             const unpinBtn = document.createElement("button");
             unpinBtn.type = "button";
@@ -963,7 +963,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 } catch {}
                 await renderPinnedFoldersMenu();
                 await gridController.reloadGrid();
-            });
+            }, { signal: panelLifecycleAC?.signal });
 
             row.appendChild(openBtn);
             row.appendChild(unpinBtn);
@@ -1012,7 +1012,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         });
     } catch {}
 
-    bindFilters({
+    const disposeFilters = bindFilters({
         state,
         kindSelect,
         wfCheckbox,
@@ -1026,6 +1026,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         dateRangeSelect,
         dateExactInput,
         reloadGrid: gridController.reloadGrid,
+        lifecycleSignal: panelLifecycleAC?.signal || null,
         onFiltersChanged: () => {
             try {
                 agendaCalendar?.refresh?.();
@@ -1118,9 +1119,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             } catch {}
             notifyContextChanged();
         };
-        gridContainer.addEventListener("mjr:grid-stats", onStats);
-        gridContainer.addEventListener("mjr:selection-changed", onSelectionChanged);
-        document.addEventListener?.("mjr-settings-changed", onStats);
+        gridContainer.addEventListener("mjr:grid-stats", onStats, { signal: panelLifecycleAC?.signal });
+        gridContainer.addEventListener("mjr:selection-changed", onSelectionChanged, { signal: panelLifecycleAC?.signal });
+        document.addEventListener?.("mjr-settings-changed", onStats, { signal: panelLifecycleAC?.signal });
 
         // Observe DOM changes for card count / selection class changes.
         let raf = null;
@@ -1228,6 +1229,12 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         } catch {}
         container._mjrVersionUpdateCleanup = null;
         try {
+            container._mjrPanelState?._mjrDispose?.();
+        } catch {}
+        try {
+            container._mjrPanelState = null;
+        } catch {}
+        try {
             if (_scrollTimer) clearTimeout(_scrollTimer);
             _scrollTimer = null;
         } catch {}
@@ -1244,6 +1251,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         } catch {}
         try {
             agendaCalendar?.dispose?.();
+        } catch {}
+        try {
+            disposeFilters?.();
         } catch {}
         try {
             if (searchTimeout) clearTimeout(searchTimeout);
@@ -1265,6 +1275,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         } catch {}
         try {
             gridContainer?._mjrSummaryBarDispose?.();
+        } catch {}
+        try {
+            gridContainer?._mjrSummaryBarObserver?.disconnect?.();
         } catch {}
         try {
             gridContainer?._mjrGridContextMenuUnbind?.();

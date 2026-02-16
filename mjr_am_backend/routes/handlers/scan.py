@@ -1327,7 +1327,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         if scope == "all" and (clear_scan_journal or clear_metadata_cache):
             # 1. Vacuum DB to reclaim space and rebuild file
             try:
-                await asyncio.to_thread(db.execute, "VACUUM")
+                await db.avacuum()
                 logger.info("Database VACUUM completed during index reset")
             except Exception as exc:
                 logger.warning(f"Failed to VACUUM database: {exc}")

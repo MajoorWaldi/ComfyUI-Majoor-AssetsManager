@@ -138,7 +138,9 @@ python ComfyUI-Majoor-AssetsManager/scripts/install-requirements.py
 ```
 
 ### Tkinter Note (Embedded Python)
-The native folder picker requires built-in `tkinter`. On embedded Python builds (for example `python_embeded`), `tkinter` is often missing, so the UI falls back to manual path entry.
+The native folder picker (`/mjr/sys/browse-folder`) requires built-in `tkinter`.  
+On embedded Python builds (for example `python_embeded` / `python_embedded`), `tkinter` is often missing.  
+In that case (or on headless Linux without `DISPLAY`), the backend returns a picker-unavailable error and the UI should use manual path entry.
 
 - The extension remains fully functional with manual path input.
 - `pip install tk` is not a replacement for built-in `tkinter`.
@@ -257,10 +259,11 @@ Hotkeys are ignored while typing inside inputs.
 
 Settings are stored under the `mjrSettings` key in `localStorage` (browser-side).
 
-Backend persistence is currently limited to `probeBackend.mode` (stored in the SQLite `metadata` table). It uses a version bump so changes propagate quickly even with multiple backend instances. Other settings are intentionally browser-local and won't sync across machines/browsers.
+Backend persistence includes `probeBackend.mode`, metadata fallback toggles, output-directory override, and security preferences (stored in SQLite `metadata`). UI layout/visual preferences remain browser-local (`localStorage`) and are not synced across machines/browsers.
 
-Remote access & API Token (new):
-- The UI now exposes **API token** settings allowing administrators to configure a token and enable remote access to the Assets Manager. Access is disabled by default and the token is stored in the backend settings; ensure you secure your network if enabling remote access. See the user guide for configuration details.
+Remote access & API Token:
+- The UI exposes an **API token** field for client-side header injection. The authoritative backend token still comes from environment variables (`MAJOOR_API_TOKEN` / `MJR_API_TOKEN`) at startup.
+- Remote write behavior is controlled by backend security settings/env vars (`MAJOOR_REQUIRE_AUTH`, `MAJOOR_ALLOW_REMOTE_WRITE`, and security prefs).
 
 - Page size (assets per request)
 
@@ -311,35 +314,28 @@ Canonical namespace is now `MJR_AM_...` to avoid collisions with ComfyUI/global 
 
 Compatibility aliases are still accepted (`MAJOOR_...` and some `MJR_...` names), but new deployments should prefer `MJR_AM_...`.
 
-- `MAJOOR_OUTPUT_DIRECTORY` - override output directory
-- `MAJOOR_EXIFTOOL_PATH` / `MAJOOR_EXIFTOOL_BIN` - ExifTool path
-- `MAJOOR_FFPROBE_PATH` / `MAJOOR_FFPROBE_BIN` - FFprobe path
-- `MAJOOR_MEDIA_PROBE_BACKEND` - `auto|exiftool|ffprobe|both`
-- `MAJOOR_EXIFTOOL_MIN_VERSION` - minimum ExifTool version required (optional, e.g. `12.40`)
-- `MAJOOR_FFPROBE_MIN_VERSION` - minimum FFprobe version required (optional, e.g. `6.0.0`)
-- `MAJOOR_ENABLE_FILE_WATCHER` - auto reindexing (default `false`)
-- `MAJOOR_WATCHER_INTERVAL` / `MAJOOR_WATCHER_JOIN_TIMEOUT` / `MAJOOR_WATCHER_PATHS`
-  - `MJR_WATCHER_DEBOUNCE_MS` - debounce delay (ms) for watcher batches (default `500`)
-  - `MJR_WATCHER_DEDUPE_TTL_MS` - dup suppression window (ms) before a file can be reprocessed (default `3000`)
-  - `MJR_WATCHER_PENDING_MAX` - max outstanding watcher events queued before new ones are dropped (default `5000`)
-  - `MJR_WATCHER_MAX_FLUSH_CONCURRENCY` - max concurrent watcher flush jobs (default `2`)
- - `MJR_DB_CONSISTENCY_SAMPLE` - how many random DB entries to poke during periodic consistency sweeps (default `32`)
- - `MJR_DB_CONSISTENCY_COOLDOWN_SECONDS` - minimum seconds between consistency sweeps (default `3600`)
-- `MAJOOR_DB_TIMEOUT` / `MAJOOR_DB_MAX_CONNECTIONS` / `MAJOOR_DB_QUERY_TIMEOUT`
-- `MAJOOR_TO_THREAD_TIMEOUT` - timeout (seconds) for `asyncio.to_thread(...)` work in HTTP handlers (default `30`)
-- `MAJOOR_MAX_METADATA_JSON_BYTES` - max metadata JSON size stored in DB/cache (default `2097152`)
+- `MJR_AM_OUTPUT_DIRECTORY` (alias: `MAJOOR_OUTPUT_DIRECTORY`) - override output directory
+- `MJR_AM_EXIFTOOL_PATH` / `MJR_AM_FFPROBE_PATH` (aliases: `MAJOOR_*`) - tool executable paths
+- `MJR_AM_MEDIA_PROBE_BACKEND` (alias: `MAJOOR_MEDIA_PROBE_BACKEND`) - `auto|exiftool|ffprobe|both`
+- `MJR_AM_EXIFTOOL_MIN_VERSION` / `MJR_AM_FFPROBE_MIN_VERSION` (aliases: `MAJOOR_*`)
+- `MJR_AM_ENABLE_WATCHER` (alias: `MJR_ENABLE_WATCHER`) - enable file watcher
+- `MJR_AM_WATCHER_DEBOUNCE_MS` / `MJR_AM_WATCHER_DEDUPE_TTL_MS` (aliases: `MJR_WATCHER_*`)
+- `MJR_AM_WATCHER_PENDING_MAX` / `MJR_AM_WATCHER_MAX_FLUSH_CONCURRENCY` (aliases: `MJR_WATCHER_*`)
+- `MJR_AM_WATCHER_MIN_FILE_SIZE_BYTES` / `MJR_AM_WATCHER_MAX_FILE_SIZE_BYTES` (aliases include legacy `MAJOOR_WATCHER_*`)
+- `MAJOOR_SCAN_IOPS_LIMIT` - optional scan I/O pacing (ops/sec) for directory walk on slow NAS/SMB (`0` disables)
+- `MJR_DB_CONSISTENCY_SAMPLE` / `MJR_DB_CONSISTENCY_COOLDOWN_SECONDS` - periodic consistency sweep tuning
+- `MJR_AM_DB_TIMEOUT` / `MJR_AM_DB_MAX_CONNECTIONS` / `MJR_AM_DB_QUERY_TIMEOUT` (aliases: `MAJOOR_*`)
+- `MJR_AM_TO_THREAD_TIMEOUT` (alias: `MAJOOR_TO_THREAD_TIMEOUT`) - timeout for `asyncio.to_thread(...)` work in HTTP handlers
+- `MJR_AM_MAX_METADATA_JSON_BYTES` (alias: `MAJOOR_MAX_METADATA_JSON_BYTES`)
 - `MJR_AM_CLEANUP_RESERVED_NAMES` - set to `1` to enable Windows reserved-name cleanup in `custom_nodes` (disabled by default)
 - `MJR_COLLECTION_MAX_ITEMS` - max items per collection JSON (default `50000`)
 - `MJR_ALLOW_SYMLINKS` - allow symlink/junction custom roots (default `off`)
 - `MAJOOR_TRUSTED_PROXIES` - comma-separated IPs/CIDRs allowed to supply `X-Forwarded-For`/`X-Real-IP` (default `127.0.0.1,::1`)
 - `MAJOOR_API_TOKEN` (or `MJR_API_TOKEN`) - optional token to authorize write operations (send via `X-MJR-Token` or `Authorization: Bearer <token>`)
-- `MAJOOR_REQUIRE_AUTH` - set to `1` to require `MAJOOR_API_TOKEN` even for localhost
-- `MAJOOR_ALLOW_REMOTE_WRITE` - set to `1` to allow write operations from non-local clients without a token (**unsafe**)
-- `MAJOOR_SAFE_MODE` - set to `0` to disable Safe Mode (default enabled)
-- `MAJOOR_ALLOW_WRITE` - set to `1` to allow rating/tags writes while Safe Mode is enabled
-- `MAJOOR_ALLOW_DELETE` - set to `1` to enable asset deletion (disabled by default)
-- `MAJOOR_ALLOW_RENAME` - set to `1` to enable asset renaming (disabled by default)
-- `MAJOOR_ALLOW_OPEN_IN_FOLDER` - set to `1` to enable `/mjr/am/open-in-folder` (disabled by default)
+- `MAJOOR_REQUIRE_AUTH` - require token auth even for localhost
+- `MAJOOR_ALLOW_REMOTE_WRITE` - allow non-local write operations without token (**unsafe**)
+- `MAJOOR_SAFE_MODE` - safe-mode gate for write operations
+- `MAJOOR_ALLOW_WRITE` / `MAJOOR_ALLOW_DELETE` / `MAJOOR_ALLOW_RENAME` / `MAJOOR_ALLOW_OPEN_IN_FOLDER` / `MAJOOR_ALLOW_RESET_INDEX` - operation gates (also configurable via persisted security preferences)
 
 ### API Token Setup
 
@@ -375,10 +371,10 @@ Once set, include the token in your API requests via one of these headers:
 
 ### Security Summary
 
-- Without token: write operations are localhost-only.
+- Without token: write operations are localhost-only (unless `MAJOOR_ALLOW_REMOTE_WRITE=1`).
 - With token: write operations require authentication.
-- Safe Mode is enabled by default.
-- Destructive operations (delete/rename/open-in-folder) are disabled by default and must be explicitly enabled.
+- Operation gates for delete/rename/open-in-folder/reset-index are enforced via security prefs and corresponding `MAJOOR_ALLOW_*` env vars.
+- Safe Mode behavior is controlled by `MAJOOR_SAFE_MODE` and persisted security preferences.
 You can persist the same secret in ComfyUI's Settings modal under **Security -> Majoor: API Token**. The Assets Manager stores it in browser storage and automatically sends both `X-MJR-Token` and `Authorization: Bearer ...` on behalf of the UI, so remote clients only need to match the shared secret between the backend environment and the settings field.
 The backend still requires the environment variable (`MAJOOR_API_TOKEN`/`MJR_API_TOKEN`) when ComfyUI starts; the UI control just remembers it for you so the headers stay in sync.
 
@@ -387,8 +383,8 @@ The backend still requires the environment variable (`MAJOOR_API_TOKEN`/`MJR_API
 - **CSRF**: state-changing endpoints require `X-Requested-With: XMLHttpRequest` (or `X-CSRF-Token`) and validate `Origin` vs `Host` when present.
 - **Rate limiting**: in-memory per-client limits exist on expensive endpoints (search/scan/metadata/batch-zip). Client identity is based on IP; `X-Forwarded-For` is only honored when the connection comes from `MAJOOR_TRUSTED_PROXIES`.
 - **Path safety**: file operations validate root containment for output/input/custom roots and reject paths outside allowed roots (symlink/junction handling is opt-in).
-- **Write access**: destructive actions are loopback-only by default unless a token is configured.
-- **Safe Mode**: write operations are disabled by default unless explicitly enabled via environment variables.
+- **Write access**: loopback-only by default when no token is configured (can be relaxed by `MAJOOR_ALLOW_REMOTE_WRITE=1`).
+- **Operation gating**: delete/rename/open-in-folder/reset-index and write behavior are enforced by security prefs + `MAJOOR_ALLOW_*` / `MAJOOR_SAFE_MODE`.
 - **Batch ZIP**: ZIP building streams from an open file handle (avoids TOCTOU rename/replace races).
 
 ## UI Preview
