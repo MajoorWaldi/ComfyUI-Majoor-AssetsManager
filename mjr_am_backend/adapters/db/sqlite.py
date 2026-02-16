@@ -1454,7 +1454,13 @@ class Sqlite:
             return False
         try:
             MOVEFILE_DELAY_UNTIL_REBOOT = 0x4
-            ok = ctypes.windll.kernel32.MoveFileExW(str(path), None, MOVEFILE_DELAY_UNTIL_REBOOT)
+            windll = getattr(ctypes, "windll", None)
+            if windll is None:
+                return False
+            kernel32 = getattr(windll, "kernel32", None)
+            if kernel32 is None:
+                return False
+            ok = kernel32.MoveFileExW(str(path), None, MOVEFILE_DELAY_UNTIL_REBOOT)
             return bool(ok)
         except Exception:
             return False

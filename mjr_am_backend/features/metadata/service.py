@@ -6,7 +6,7 @@ import logging
 import os
 import time
 import functools
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Callable, Awaitable
 
 from ...shared import Result, ErrorCode, get_logger, classify_file, log_structured
 from ...config import METADATA_EXTRACT_CONCURRENCY
@@ -25,6 +25,20 @@ from ..geninfo.parser import parse_geninfo_from_prompt
 from .parsing_utils import parse_auto1111_params
 
 logger = get_logger(__name__)
+_METADATA_TRANSIENT_RETRY_ATTEMPTS = 3
+_METADATA_TRANSIENT_RETRY_BASE_DELAY_S = 0.15
+_TRANSIENT_ERROR_HINTS = (
+    "in use",
+    "used by another process",
+    "sharing violation",
+    "permission denied",
+    "resource busy",
+    "temporarily unavailable",
+    "cannot open",
+    "i/o error",
+    "input/output error",
+    "file not found",
+)
 
 
 def _clean_model_name(value: Any) -> Optional[str]:
@@ -207,22 +221,70 @@ class MetadataService:
         self._extract_sem = asyncio.Semaphore(max_concurrency)
 
     async def _exif_read(self, file_path: str) -> Result[Dict[str, Any]]:
-        aread = getattr(self.exiftool, "aread", None)
-        if callable(aread):
-            return await aread(file_path)
-        return await asyncio.to_thread(self.exiftool.read, file_path)
+        async def _invoke() -> Result[Dict[str, Any]]:
+            aread = getattr(self.exiftool, "aread", None)
+            if callable(aread):
+                return await aread(file_path)
+            return await asyncio.to_thread(self.exiftool.read, file_path)
+
+        return await self._read_with_transient_retry(file_path, _invoke)
 
     async def _ffprobe_read(self, file_path: str) -> Result[Dict[str, Any]]:
-        aread = getattr(self.ffprobe, "aread", None)
-        if callable(aread):
-            return await aread(file_path)
-        return await asyncio.to_thread(self.ffprobe.read, file_path)
+        async def _invoke() -> Result[Dict[str, Any]]:
+            aread = getattr(self.ffprobe, "aread", None)
+            if callable(aread):
+                return await aread(file_path)
+            return await asyncio.to_thread(self.ffprobe.read, file_path)
+
+        return await self._read_with_transient_retry(file_path, _invoke)
 
     async def _ffprobe_read_batch(self, paths: list[str]) -> Dict[str, Result[Dict[str, Any]]]:
         aread_batch = getattr(self.ffprobe, "aread_batch", None)
         if callable(aread_batch):
             return await aread_batch(paths)
         return await asyncio.to_thread(self.ffprobe.read_batch, paths)
+
+    async def _read_with_transient_retry(
+        self,
+        file_path: str,
+        read_once: Callable[[], Awaitable[Result[Dict[str, Any]]]],
+    ) -> Result[Dict[str, Any]]:
+        last_result: Result[Dict[str, Any]] | None = None
+        attempts = max(1, int(_METADATA_TRANSIENT_RETRY_ATTEMPTS))
+        for attempt in range(attempts):
+            result = await read_once()
+            last_result = result
+            if result.ok:
+                return result
+            if attempt >= (attempts - 1):
+                break
+            if not self._is_transient_metadata_read_error(result, file_path):
+                break
+            delay = _METADATA_TRANSIENT_RETRY_BASE_DELAY_S * (2 ** attempt)
+            await asyncio.sleep(max(0.01, float(delay)))
+        return last_result if last_result is not None else Result.Err(ErrorCode.METADATA_FAILED, "Metadata read failed")
+
+    def _is_transient_metadata_read_error(self, result: Result[Dict[str, Any]], file_path: str) -> bool:
+        try:
+            if not os.path.exists(file_path):
+                return False
+        except Exception:
+            return False
+
+        code = str(result.code or "").strip().upper()
+        err_text = str(result.error or "").strip().lower()
+        if code == ErrorCode.NOT_FOUND.value:
+            return True
+        transient_codes = {
+            ErrorCode.TIMEOUT.value,
+            ErrorCode.EXIFTOOL_ERROR.value,
+            ErrorCode.FFPROBE_ERROR.value,
+            ErrorCode.PARSE_ERROR.value,
+            ErrorCode.METADATA_FAILED.value,
+        }
+        if code in transient_codes:
+            return True
+        return any(hint in err_text for hint in _TRANSIENT_ERROR_HINTS)
 
     async def _enrich_with_geninfo_async(self, combined: Dict[str, Any]) -> None:
         """Helper to parse geninfo from prompt/workflow in combined metadata (Worker Thread)."""
