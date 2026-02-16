@@ -17,6 +17,7 @@ except Exception:
 from mjr_am_backend.config import get_runtime_output_root
 from mjr_am_backend.custom_roots import resolve_custom_root
 from mjr_am_backend.shared import Result
+from .db_maintenance import is_db_maintenance_active
 from ..core import _json_response, _require_services, _csrf_error, _read_json
 
 
@@ -42,6 +43,8 @@ def _roots_for_scope(scope: str, custom_root_id: str = "") -> Result[list[str]]:
 def register_duplicates_routes(routes: web.RouteTableDef) -> None:
     @routes.post("/mjr/am/duplicates/analyze")
     async def start_duplicates_analysis(request):
+        if is_db_maintenance_active():
+            return _json_response(Result.Err("DB_MAINTENANCE", "Database maintenance in progress. Please wait."))
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
@@ -66,6 +69,8 @@ def register_duplicates_routes(routes: web.RouteTableDef) -> None:
 
     @routes.get("/mjr/am/duplicates/status")
     async def duplicates_status(request):
+        if is_db_maintenance_active():
+            return _json_response(Result.Err("DB_MAINTENANCE", "Database maintenance in progress. Please wait."))
         svc, error_result = await _require_services()
         if error_result:
             return _json_response(error_result)
@@ -76,6 +81,8 @@ def register_duplicates_routes(routes: web.RouteTableDef) -> None:
 
     @routes.get("/mjr/am/duplicates/alerts")
     async def duplicates_alerts(request):
+        if is_db_maintenance_active():
+            return _json_response(Result.Err("DB_MAINTENANCE", "Database maintenance in progress. Please wait."))
         svc, error_result = await _require_services()
         if error_result:
             return _json_response(error_result)
@@ -111,6 +118,8 @@ def register_duplicates_routes(routes: web.RouteTableDef) -> None:
 
     @routes.post("/mjr/am/duplicates/merge-tags")
     async def duplicates_merge_tags(request):
+        if is_db_maintenance_active():
+            return _json_response(Result.Err("DB_MAINTENANCE", "Database maintenance in progress. Please wait."))
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
