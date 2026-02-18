@@ -5,6 +5,7 @@ import os
 import sys
 import errno
 import asyncio
+import shutil
 from pathlib import Path
 from aiohttp import web
 from mjr_am_backend.custom_roots import (
@@ -19,13 +20,16 @@ from ..core import (
     _csrf_error,
     _safe_rel_path,
     _is_within_root,
+    _normalize_path,
+    _is_path_allowed,
+    _is_path_allowed_custom,
     _read_json,
     _guess_content_type_for_file,
     _is_allowed_view_media_file,
     _require_services,
 )
 from ..core.security import _check_rate_limit
-from .filesystem import _kickoff_background_scan
+from .filesystem import _kickoff_background_scan, _invalidate_fs_list_cache
 
 # Import tkinter only when needed to avoid startup issues
 tk = None
@@ -108,6 +112,29 @@ def _compute_folder_stats(folder_path: Path, *, max_entries: int = 200000) -> di
 def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
     """Register custom root directory routes."""
 
+    def _is_filesystem_root(path: Path) -> bool:
+        try:
+            p = path.resolve(strict=True)
+        except Exception:
+            return True
+        try:
+            if os.name == "nt":
+                text = str(p).replace("\\", "/").rstrip("/")
+                return len(text) == 2 and text[1] == ":"
+            return str(p) == "/"
+        except Exception:
+            return True
+
+    def _safe_folder_name(value: str) -> str:
+        name = str(value or "").strip()
+        if not name or "\x00" in name:
+            return ""
+        if name in (".", ".."):
+            return ""
+        if "/" in name or "\\" in name:
+            return ""
+        return name
+
     @routes.post("/mjr/sys/browse-folder")
     async def browse_folder_dialog(request):
         import os
@@ -153,7 +180,7 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
         except Exception as e:
             logger.error(f"Tkinter browse dialog failed: {e}")
             # Return an error that the frontend can handle
-            return _json_response(Result.Err("TKINTER_ERROR", f"Browse dialog failed: {str(e)}"))
+            return _json_response(Result.Err("TKINTER_ERROR", "Browse dialog failed"))
 
     @routes.get("/mjr/am/custom-roots")
     async def get_custom_roots(request):
@@ -248,9 +275,14 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
         filename = request.query.get("filename", "").strip()
         subfolder = request.query.get("subfolder", "").strip()
         filepath = request.query.get("filepath", "").strip()
+        browser_mode = str(request.query.get("browser_mode", "") or "").strip().lower() in {"1", "true", "yes", "on"}
 
         if filepath:
-            candidate = Path(filepath)
+            candidate = _normalize_path(filepath)
+            if not candidate:
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid filepath"))
+            if not (_is_path_allowed(candidate, must_exist=True) or _is_path_allowed_custom(candidate) or browser_mode):
+                return _json_response(Result.Err("FORBIDDEN", "Path is not within allowed roots"))
             root_dir = None
         else:
             if not root_id or not filename:
@@ -337,13 +369,19 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
         filepath = str(request.query.get("filepath", "") or "").strip()
         root_id = str(request.query.get("root_id", "") or "").strip()
         subfolder = str(request.query.get("subfolder", "") or "").strip()
+        browser_mode = str(request.query.get("browser_mode", "") or "").strip().lower() in {"1", "true", "yes", "on"}
 
         target = None
         base_root = None
 
         if filepath:
             try:
-                target = Path(filepath).resolve(strict=True)
+                normalized = _normalize_path(filepath)
+                if not normalized:
+                    return _json_response(Result.Err("INVALID_INPUT", "Invalid filepath"))
+                if not (_is_path_allowed(normalized, must_exist=True) or _is_path_allowed_custom(normalized) or browser_mode):
+                    return _json_response(Result.Err("FORBIDDEN", "Path is not within allowed roots"))
+                target = normalized.resolve(strict=True)
             except Exception:
                 return _json_response(Result.Err("DIR_NOT_FOUND", "Directory not found"))
         else:
@@ -379,4 +417,103 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
             except Exception:
                 pass
         return _json_response(Result.Ok(stats))
+
+    @routes.post("/mjr/am/browser/folder-op")
+    async def browser_folder_op(request):
+        csrf = _csrf_error(request)
+        if csrf:
+            return _json_response(Result.Err("CSRF", csrf))
+
+        allowed, retry_after = _check_rate_limit(request, "browser_folder_op", max_requests=20, window_seconds=30)
+        if not allowed:
+            return _json_response(Result.Err("RATE_LIMIT", "Too many folder operations", retry_after=retry_after))
+
+        body_res = await _read_json(request)
+        if not body_res.ok:
+            return _json_response(body_res)
+        body = body_res.data or {}
+
+        op = str(body.get("op") or "").strip().lower()
+        source_raw = str(body.get("path") or body.get("filepath") or "").strip()
+        source = _normalize_path(source_raw)
+        if not source:
+            return _json_response(Result.Err("INVALID_INPUT", "Invalid folder path"))
+
+        try:
+            source = source.resolve(strict=True)
+        except Exception:
+            return _json_response(Result.Err("DIR_NOT_FOUND", "Directory not found"))
+        if not source.is_dir():
+            return _json_response(Result.Err("INVALID_INPUT", "Path is not a directory"))
+
+        if op == "create":
+            parent = source
+            name = _safe_folder_name(str(body.get("name") or ""))
+            if not name:
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid folder name"))
+            target = (parent / name)
+            try:
+                target.mkdir(parents=False, exist_ok=False)
+                await _invalidate_fs_list_cache()
+                return _json_response(Result.Ok({"path": str(target.resolve(strict=False))}))
+            except FileExistsError:
+                return _json_response(Result.Err("ALREADY_EXISTS", "Folder already exists"))
+            except Exception as exc:
+                return _json_response(Result.Err("CREATE_FAILED", sanitize_error_message(exc, "Failed to create folder")))
+
+        if _is_filesystem_root(source):
+            return _json_response(Result.Err("FORBIDDEN", "Operation not allowed on filesystem root"))
+
+        if op == "rename":
+            name = _safe_folder_name(str(body.get("name") or ""))
+            if not name:
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid folder name"))
+            target = source.parent / name
+            try:
+                if target.exists():
+                    return _json_response(Result.Err("ALREADY_EXISTS", "Target folder already exists"))
+                source.rename(target)
+                await _invalidate_fs_list_cache()
+                return _json_response(Result.Ok({"path": str(target.resolve(strict=False))}))
+            except Exception as exc:
+                return _json_response(Result.Err("RENAME_FAILED", sanitize_error_message(exc, "Failed to rename folder")))
+
+        if op == "move":
+            destination_raw = str(body.get("destination") or body.get("dest") or "").strip()
+            dest_dir = _normalize_path(destination_raw)
+            if not dest_dir:
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid destination path"))
+            try:
+                dest_dir = dest_dir.resolve(strict=True)
+            except Exception:
+                return _json_response(Result.Err("DIR_NOT_FOUND", "Destination directory not found"))
+            if not dest_dir.is_dir():
+                return _json_response(Result.Err("INVALID_INPUT", "Destination is not a directory"))
+            try:
+                src_res = source.resolve(strict=True)
+                dst_res = dest_dir.resolve(strict=True)
+                if src_res == dst_res or _is_within_root(dst_res, src_res):
+                    return _json_response(Result.Err("INVALID_INPUT", "Cannot move folder into itself"))
+                target = dst_res / source.name
+                if target.exists():
+                    return _json_response(Result.Err("ALREADY_EXISTS", "Target folder already exists"))
+                moved = await asyncio.to_thread(shutil.move, str(src_res), str(dst_res))
+                await _invalidate_fs_list_cache()
+                return _json_response(Result.Ok({"path": str(Path(str(moved)).resolve(strict=False))}))
+            except Exception as exc:
+                return _json_response(Result.Err("MOVE_FAILED", sanitize_error_message(exc, "Failed to move folder")))
+
+        if op == "delete":
+            recursive = bool(body.get("recursive", True))
+            try:
+                if recursive:
+                    await asyncio.to_thread(shutil.rmtree, str(source))
+                else:
+                    source.rmdir()
+                await _invalidate_fs_list_cache()
+                return _json_response(Result.Ok({"deleted": True}))
+            except Exception as exc:
+                return _json_response(Result.Err("DELETE_FAILED", sanitize_error_message(exc, "Failed to delete folder")))
+
+        return _json_response(Result.Err("INVALID_INPUT", "Unsupported folder operation"))
 

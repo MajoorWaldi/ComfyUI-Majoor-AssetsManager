@@ -562,28 +562,16 @@ export function createGridContainer() {
         if (!asset) return;
 
         // Get all assets in current grid for navigation
-        let allAssets;
-        
-        // Use state.assets if available (VirtualGrid support)
         const state = GRID_STATE.get(container);
-        if (state && state.assets && state.assets.length > 0) {
-             allAssets = state.assets;
-        } else {
-             // Fallback to DOM (legacy)
-             const allCards = _getRenderedCards(container);
-             // @ts-ignore
-             allAssets = allCards.map(c => c._mjrAsset).filter(Boolean);
-        }
+        const allAssets = Array.isArray(state?.assets) ? state.assets : [];
 
         const isFolder = String(asset?.kind || "").toLowerCase() === "folder";
         if (isFolder) {
             try {
-                const nextSubfolder = String(asset?.subfolder || "").trim();
-                container.dataset.mjrSubfolder = nextSubfolder;
                 container.dispatchEvent?.(
-                    new CustomEvent("mjr:custom-subfolder-changed", {
+                    new CustomEvent("mjr:open-folder-asset", {
                         bubbles: true,
-                        detail: { subfolder: nextSubfolder },
+                        detail: { asset },
                     })
                 );
                 // Fallback: if no panel-level handler is attached, reload from grid directly.

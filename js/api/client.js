@@ -484,7 +484,10 @@ export async function getFolderInfo({ filepath = "", root_id = "", subfolder = "
     const sub = String(subfolder || "").trim();
     let url = ENDPOINTS.FOLDER_INFO;
     const params = [];
-    if (fp) params.push(`filepath=${encodeURIComponent(fp)}`);
+    if (fp) {
+        params.push(`filepath=${encodeURIComponent(fp)}`);
+        params.push("browser_mode=1");
+    }
     else {
         if (rid) params.push(`root_id=${encodeURIComponent(rid)}`);
         if (sub) params.push(`subfolder=${encodeURIComponent(sub)}`);
@@ -539,6 +542,17 @@ export async function openInFolder(assetOrId) {
         return post("/mjr/am/open-in-folder", { filepath: fp });
     }
     return post("/mjr/am/open-in-folder", { asset_id: normalizeAssetId(assetOrId) });
+}
+
+export async function browserFolderOp({ op = "", path = "", name = "", destination = "", recursive = true } = {}, options = {}) {
+    const body = {
+        op: String(op || "").trim().toLowerCase(),
+        path: String(path || "").trim(),
+    };
+    if (name != null && String(name).trim()) body.name = String(name).trim();
+    if (destination != null && String(destination).trim()) body.destination = String(destination).trim();
+    if (body.op === "delete") body.recursive = !!recursive;
+    return post(ENDPOINTS.BROWSER_FOLDER_OP, body, options);
 }
 
 export async function resetIndex(options = {}) {

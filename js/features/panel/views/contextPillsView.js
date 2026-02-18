@@ -98,7 +98,7 @@ export function createContextPillsView() {
                 })
             );
         }
-        if (!isBrowserScope && isScopeActive) {
+        if (isScopeActive) {
             root.appendChild(
                 _createPill({
                     label: "Scope",

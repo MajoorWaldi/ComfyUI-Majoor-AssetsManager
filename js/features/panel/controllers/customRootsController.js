@@ -114,7 +114,7 @@ export function createCustomRootsController({
                 label: String(label || "").trim() || undefined,
             });
             if (!createRes?.ok) {
-                comfyToast(createRes?.error || t("toast.failedAddFolder", "Failed to add custom folder"), "error");
+                comfyToast(createRes?.error || t("toast.failedAddFolder", "Failed to add browser folder"), "error");
                 return;
             }
 
@@ -133,7 +133,7 @@ export function createCustomRootsController({
             const selectedOption = customSelect.options[customSelect.selectedIndex];
             const folderName = selectedOption ? selectedOption.text : t("label.thisFolder", "this folder");
 
-            const ok = await comfyConfirm(t("dialog.removeFolder", `Remove the custom folder "${folderName}"?`, { name: folderName }), t("dialog.customFoldersTitle", "Majoor: Custom Folders"));
+            const ok = await comfyConfirm(t("dialog.removeFolder", `Remove the browser folder "${folderName}"?`, { name: folderName }), t("dialog.customFoldersTitle", "Majoor: Browser Folders"));
             if (!ok) return;
 
             // Show loading state
@@ -143,7 +143,7 @@ export function createCustomRootsController({
             try {
                 const json = await post(ENDPOINTS.CUSTOM_ROOTS_REMOVE, { id: state.customRootId });
                 if (!json?.ok) {
-                    comfyToast(json?.error || t("toast.failedRemoveFolder", "Failed to remove custom folder"), "error");
+                    comfyToast(json?.error || t("toast.failedRemoveFolder", "Failed to remove browser folder"), "error");
                     return;
                 }
                 comfyToast(t("toast.folderRemoved", "Folder removed"), "success");
@@ -154,7 +154,7 @@ export function createCustomRootsController({
                 await reloadGrid();
             } catch (err) {
                 console.warn("Majoor: remove custom root failed", err);
-                comfyToast(t("toast.errorRemovingFolder", "An error occurred while removing the custom folder"), "error");
+                comfyToast(t("toast.errorRemovingFolder", "An error occurred while removing the browser folder"), "error");
             } finally {
                 // Re-enable button regardless of outcome
                 customRemoveBtn.disabled = !state.customRootId; // Keep disabled if no selection

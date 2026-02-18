@@ -383,7 +383,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    margin: 0 0 8px 0;
+    margin: 0 0 6px 0;
     padding: 0;
     min-height: 16px;
     font-size: 11px;
@@ -400,14 +400,16 @@
 .mjr-assets-manager .mjr-am-summary-right {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     min-width: 0;
+    flex-wrap: wrap;
 }
 
 .mjr-assets-manager .mjr-am-context-pills {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
+    row-gap: 4px;
     flex-wrap: wrap;
     justify-content: flex-end;
 }
@@ -416,16 +418,16 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 4px 8px;
+    padding: 3px 7px;
     border-radius: 999px;
     border: 1px solid color-mix(in srgb, var(--mjr-accent) 55%, var(--mjr-border));
     background: color-mix(in srgb, var(--mjr-surface-2) 55%, var(--mjr-accent) 10%);
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--mjr-accent) 18%, transparent);
     color: var(--content-fg, #ddd);
-    font-size: 11px;
+    font-size: 10.5px;
     line-height: 1;
-    min-height: 24px;
-    max-width: 260px;
+    min-height: 22px;
+    max-width: 220px;
 }
 
 .mjr-assets-manager .mjr-context-pill:hover {

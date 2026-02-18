@@ -3,10 +3,10 @@
  */
 
 import { buildDownloadURL } from "../../api/endpoints.js";
-import { comfyPrompt } from "../../app/dialogs.js";
+import { comfyConfirm, comfyPrompt } from "../../app/dialogs.js";
 import { comfyToast } from "../../app/toast.js";
 import { t } from "../../app/i18n.js";
-import { openInFolder, deleteAsset, renameAsset, updateAssetRating, removeFilepathsFromCollection, post } from "../../api/client.js";
+import { openInFolder, deleteAsset, renameAsset, updateAssetRating, removeFilepathsFromCollection, post, browserFolderOp } from "../../api/client.js";
 import { ENDPOINTS } from "../../api/endpoints.js";
 import { ASSET_RATING_CHANGED_EVENT, ASSET_TAGS_CHANGED_EVENT } from "../../app/events.js";
 import { createTagsEditor } from "../../components/TagsEditor.js";
@@ -200,6 +200,23 @@ const createItem = createMenuItem;
 const separator = createMenuSeparator;
 const showAt = showMenuAt;
 
+const triggerBrowserGridReload = (gridContainer) => {
+    try {
+        gridContainer?.dispatchEvent?.(new CustomEvent("mjr:reload-grid", { bubbles: true }));
+    } catch {}
+    try {
+        window?.dispatchEvent?.(new CustomEvent("mjr:reload-grid"));
+    } catch {}
+    // Filesystem updates can be slightly delayed on some setups; refresh once more.
+    try {
+        setTimeout(() => {
+            try {
+                gridContainer?.dispatchEvent?.(new CustomEvent("mjr:reload-grid", { bubbles: true }));
+            } catch {}
+        }, 180);
+    } catch {}
+};
+
 function getOrCreateRatingSubmenu() {
     return getOrCreateMenu({
         selector: ".mjr-grid-rating-submenu",
@@ -338,17 +355,6 @@ export function bindGridContextMenu({
     const menu = createMenu();
 
     const handler = async (e) => {
-        // Check if the contextmenu event is on an asset card
-        const card = safeClosest(e.target, ".mjr-asset-card");
-        if (!card) return;
-        
-        e.preventDefault();
-        e.stopPropagation();
-
-        const asset = card._mjrAsset;
-        if (!asset) return;
-        const isFolder = String(asset?.kind || "").toLowerCase() === "folder";
-
         const panelState = (() => {
             try {
                 return getState?.() || {};
@@ -356,6 +362,45 @@ export function bindGridContextMenu({
                 return {};
             }
         })();
+        const isBrowserScope = String(panelState?.scope || "").toLowerCase() === "custom";
+
+        // Check if the contextmenu event is on an asset card
+        const card = safeClosest(e.target, ".mjr-asset-card");
+        if (!card) {
+            if (!isBrowserScope) return;
+            e.preventDefault();
+            e.stopPropagation();
+            menu.innerHTML = "";
+            const currentPath = String(gridContainer?.dataset?.mjrSubfolder || "").trim();
+            if (!currentPath) return;
+            menu.appendChild(
+                createItem("Create folder here...", "pi pi-plus", null, async () => {
+                    try {
+                        const name = await comfyPrompt("New folder name", "");
+                        const next = String(name || "").trim();
+                        if (!next) return;
+                        const res = await browserFolderOp({ op: "create", path: currentPath, name: next });
+                        if (!res?.ok) {
+                            comfyToast(res?.error || "Failed to create folder", "error");
+                            return;
+                        }
+                        triggerBrowserGridReload(gridContainer);
+                        comfyToast(`Folder created: ${next}`, "success");
+                    } catch (error) {
+                        comfyToast(`Create folder failed: ${error?.message || error}`, "error");
+                    }
+                })
+            );
+            showAt(menu, e.clientX, e.clientY);
+            return;
+        }
+        
+        e.preventDefault();
+        e.stopPropagation();
+
+        const asset = card._mjrAsset;
+        if (!asset) return;
+        const isFolder = String(asset?.kind || "").toLowerCase() === "folder";
 
         menu.innerHTML = "";
 
@@ -403,14 +448,15 @@ export function bindGridContextMenu({
         const hasSelection = effectiveSelectionCount > 0;
 
         if (isFolder) {
+            const isBrowserScope = String(panelState?.scope || "").toLowerCase() === "custom";
+            const folderPath = String(asset?.filepath || "").trim();
             menu.appendChild(
                 createItem("Open folder", "pi pi-folder-open", null, () => {
-                    const subfolder = String(asset?.subfolder || "").trim().replaceAll("\\", "/");
                     try {
                         gridContainer.dispatchEvent(
-                            new CustomEvent("mjr:custom-subfolder-changed", {
+                            new CustomEvent("mjr:open-folder-asset", {
                                 bubbles: true,
-                                detail: { subfolder },
+                                detail: { asset },
                             })
                         );
                     } catch {}
@@ -418,13 +464,12 @@ export function bindGridContextMenu({
             );
 
             menu.appendChild(
-                createItem("Pin as Custom Root", "pi pi-bookmark", null, async () => {
-                    const folderPath = String(asset?.filepath || "").trim();
+                createItem("Pin as Browser Root", "pi pi-bookmark", null, async () => {
                     if (!folderPath) {
                         comfyToast("Unable to resolve folder path", "error");
                         return;
                     }
-                    const label = await comfyPrompt("Label for the new custom root (optional)", String(asset?.filename || ""));
+                    const label = await comfyPrompt("Label for the new browser root (optional)", String(asset?.filename || ""));
                     const res = await post(ENDPOINTS.CUSTOM_ROOTS, {
                         path: folderPath,
                         label: String(label || "").trim() || undefined,
@@ -433,7 +478,7 @@ export function bindGridContextMenu({
                         comfyToast(res?.error || "Failed to pin folder", "error");
                         return;
                     }
-                    comfyToast("Folder pinned as custom root", "success");
+                    comfyToast("Folder pinned as browser root", "success");
                     try {
                         window.dispatchEvent(
                             new CustomEvent("mjr:custom-roots-changed", {
@@ -443,6 +488,83 @@ export function bindGridContextMenu({
                     } catch {}
                 })
             );
+
+            if (isBrowserScope && folderPath) {
+                menu.appendChild(separator());
+                menu.appendChild(
+                    createItem("Create folder here...", "pi pi-plus", null, async () => {
+                        try {
+                            const name = await comfyPrompt("New folder name", "");
+                            const next = String(name || "").trim();
+                            if (!next) return;
+                            const res = await browserFolderOp({ op: "create", path: folderPath, name: next });
+                            if (!res?.ok) {
+                                comfyToast(res?.error || "Failed to create folder", "error");
+                                return;
+                            }
+                            triggerBrowserGridReload(gridContainer);
+                            comfyToast(`Folder created: ${next}`, "success");
+                        } catch (error) {
+                            comfyToast(`Create folder failed: ${error?.message || error}`, "error");
+                        }
+                    })
+                );
+                menu.appendChild(
+                    createItem("Rename folder...", "pi pi-pencil", null, async () => {
+                        try {
+                            const current = String(asset?.filename || "").trim();
+                            const name = await comfyPrompt("Rename folder", current);
+                            const next = String(name || "").trim();
+                            if (!next || next === current) return;
+                            const res = await browserFolderOp({ op: "rename", path: folderPath, name: next });
+                            if (!res?.ok) {
+                                comfyToast(res?.error || "Failed to rename folder", "error");
+                                return;
+                            }
+                            triggerBrowserGridReload(gridContainer);
+                            comfyToast("Folder renamed", "success");
+                        } catch (error) {
+                            comfyToast(`Rename folder failed: ${error?.message || error}`, "error");
+                        }
+                    })
+                );
+                menu.appendChild(
+                    createItem("Move folder...", "pi pi-arrow-right", null, async () => {
+                        try {
+                            const destination = await comfyPrompt("Destination directory path", "");
+                            const dest = String(destination || "").trim();
+                            if (!dest) return;
+                            const res = await browserFolderOp({ op: "move", path: folderPath, destination: dest });
+                            if (!res?.ok) {
+                                comfyToast(res?.error || "Failed to move folder", "error");
+                                return;
+                            }
+                            triggerBrowserGridReload(gridContainer);
+                            comfyToast("Folder moved", "success");
+                        } catch (error) {
+                            comfyToast(`Move folder failed: ${error?.message || error}`, "error");
+                        }
+                    })
+                );
+                menu.appendChild(
+                    createItem("Delete folder...", "pi pi-trash", null, async () => {
+                        try {
+                            const folderName = String(asset?.filename || "this folder");
+                            const ok = await comfyConfirm(`Delete folder \"${folderName}\" and all its contents?`);
+                            if (!ok) return;
+                            const res = await browserFolderOp({ op: "delete", path: folderPath, recursive: true });
+                            if (!res?.ok) {
+                                comfyToast(res?.error || "Failed to delete folder", "error");
+                                return;
+                            }
+                            triggerBrowserGridReload(gridContainer);
+                            comfyToast("Folder deleted", "success");
+                        } catch (error) {
+                            comfyToast(`Delete folder failed: ${error?.message || error}`, "error");
+                        }
+                    })
+                );
+            }
 
             showAt(menu, e.clientX, e.clientY);
             return;

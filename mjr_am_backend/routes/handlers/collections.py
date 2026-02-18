@@ -12,7 +12,7 @@ from aiohttp import web
 from mjr_am_backend.shared import Result, classify_file, get_logger, sanitize_error_message
 from mjr_am_backend.features.collections import CollectionsService
 
-from ..core import _json_response, _require_services, _read_json
+from ..core import _json_response, _require_services, _read_json, _csrf_error, _require_write_access
 
 logger = get_logger(__name__)
 
@@ -88,6 +88,12 @@ def register_collections_routes(routes: web.RouteTableDef) -> None:
 
     @routes.post("/mjr/am/collections")
     async def create_collection(request):
+        csrf = _csrf_error(request)
+        if csrf:
+            return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
         body_res = await _read_json(request)
         body = body_res.data if body_res.ok else {}
         name = str((body or {}).get("name") or "").strip()
@@ -102,12 +108,24 @@ def register_collections_routes(routes: web.RouteTableDef) -> None:
 
     @routes.post(r"/mjr/am/collections/{collection_id}/delete")
     async def delete_collection(request):
+        csrf = _csrf_error(request)
+        if csrf:
+            return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
         cid = str(request.match_info.get("collection_id") or "").strip()
         result = _collections.delete(cid)
         return _json_response(result)
 
     @routes.post(r"/mjr/am/collections/{collection_id}/add")
     async def add_to_collection(request):
+        csrf = _csrf_error(request)
+        if csrf:
+            return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
         cid = str(request.match_info.get("collection_id") or "").strip()
         body_res = await _read_json(request)
         body = body_res.data if body_res.ok else {}
@@ -117,6 +135,12 @@ def register_collections_routes(routes: web.RouteTableDef) -> None:
 
     @routes.post(r"/mjr/am/collections/{collection_id}/remove")
     async def remove_from_collection(request):
+        csrf = _csrf_error(request)
+        if csrf:
+            return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
         cid = str(request.match_info.get("collection_id") or "").strip()
         body_res = await _read_json(request)
         body = body_res.data if body_res.ok else {}
