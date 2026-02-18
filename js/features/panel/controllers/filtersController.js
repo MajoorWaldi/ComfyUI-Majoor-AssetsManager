@@ -1,5 +1,13 @@
 let _lastAgendaHandler = null;
 
+const parseLooseNumber = (value) => {
+    const raw = String(value ?? "").trim();
+    if (!raw) return 0;
+    const normalized = raw.replace(",", ".");
+    const n = Number(normalized);
+    return Number.isFinite(n) ? n : 0;
+};
+
 export function bindFilters({
     state,
     kindSelect,
@@ -73,8 +81,8 @@ export function bindFilters({
     }
 
     const applySizeFilter = async () => {
-        const minVal = Number(minSizeInput?.value || 0);
-        const maxVal = Number(maxSizeInput?.value || 0);
+        const minVal = parseLooseNumber(minSizeInput?.value || 0);
+        const maxVal = parseLooseNumber(maxSizeInput?.value || 0);
         state.minSizeMB = Number.isFinite(minVal) && minVal > 0 ? minVal : 0;
         state.maxSizeMB = Number.isFinite(maxVal) && maxVal > 0 ? maxVal : 0;
         if (state.maxSizeMB > 0 && state.minSizeMB > 0 && state.maxSizeMB < state.minSizeMB) {
@@ -88,12 +96,21 @@ export function bindFilters({
     addManagedListener(maxSizeInput, "change", applySizeFilter, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
 
     const applyResolutionFilter = async () => {
-        const minW = Number(minWidthInput?.value || 0);
-        const minH = Number(minHeightInput?.value || 0);
+        const minW = parseLooseNumber(minWidthInput?.value || 0);
+        const minH = parseLooseNumber(minHeightInput?.value || 0);
         state.minWidth = Number.isFinite(minW) && minW > 0 ? Math.round(minW) : 0;
         state.minHeight = Number.isFinite(minH) && minH > 0 ? Math.round(minH) : 0;
         try {
-            if (resolutionPresetSelect) resolutionPresetSelect.value = "";
+            if (resolutionPresetSelect) {
+                const map = {
+                    "1280x720": "hd",
+                    "1920x1080": "fhd",
+                    "2560x1440": "qhd",
+                    "3840x2160": "uhd",
+                };
+                const key = `${state.minWidth || 0}x${state.minHeight || 0}`;
+                resolutionPresetSelect.value = map[key] || "";
+            }
         } catch {}
         try { onFiltersChanged?.(); } catch {}
         await reloadGrid();

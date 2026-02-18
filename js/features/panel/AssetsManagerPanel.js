@@ -1,5 +1,5 @@
 
-import { comfyConfirm } from "../../app/dialogs.js";
+import { comfyConfirm, comfyPrompt } from "../../app/dialogs.js";
 import { comfyToast } from "../../app/toast.js";
 import { createStatusIndicator, setupStatusPolling, triggerScan, updateStatus } from "../status/StatusDot.js";
 import {
@@ -45,6 +45,7 @@ import { createAgendaCalendar } from "../filters/calendar/AgendaCalendar.js";
 
 import { normalizeQuery } from "./controllers/query.js";
 import { createGridController } from "./controllers/gridController.js";
+import { createBrowserNavigationController } from "./controllers/browserNavigationController.js";
 import { createScopeController } from "./controllers/scopeController.js";
 import { createContextController } from "./controllers/contextController.js";
 import { createCustomRootsController } from "./controllers/customRootsController.js";
@@ -434,162 +435,33 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     let _duplicatesAlert = null;
     let _dupPollTimer = null;
     let _autoLoadTimer = null;
-    const folderBackStack = [];
-    const folderForwardStack = [];
-    const normPath = (value) => String(value || "").trim().replaceAll("\\", "/");
-    const isWindowsDrive = (part) => /^[a-zA-Z]:$/.test(String(part || "").trim());
-    const currentFolderPath = () => normPath(state.currentFolderRelativePath || state.subfolder || "");
-    const setFolderPath = (next) => {
-        const v = normPath(next);
-        state.currentFolderRelativePath = v;
-        state.subfolder = v;
-        try {
-            if (gridContainer?.dataset) gridContainer.dataset.mjrSubfolder = v;
-        } catch {}
-    };
-    const resetToBrowserRoot = async () => {
-        state.customRootId = "";
-        setFolderPath("");
-        folderForwardStack.length = 0;
-        notifyContextChanged();
-        await gridController.reloadGrid();
-    };
-    const navigateFolder = async (target, { pushHistory = true, clearForward = true } = {}) => {
-        const prev = currentFolderPath();
-        const next = normPath(target);
-        if (prev === next) return;
-        if (pushHistory) folderBackStack.push(prev);
-        if (clearForward) folderForwardStack.length = 0;
-        setFolderPath(next);
-        notifyContextChanged();
-        await gridController.reloadGrid();
-    };
-    const parentFolderPath = (pathValue) => {
-        const cur = normPath(pathValue);
-        if (!cur) return "";
-        const parts = cur.split("/").filter(Boolean);
-        if (!parts.length) return "";
-        if (parts.length === 1) {
-            return isWindowsDrive(parts[0]) ? `${parts[0]}/` : "";
-        }
-        parts.pop();
-        if (parts.length === 1 && isWindowsDrive(parts[0])) return `${parts[0]}/`;
-        return parts.join("/");
-    };
-    const renderFolderBreadcrumb = () => {
-        const isCustom = String(state.scope || "") === "custom";
-        const rel = String(state.currentFolderRelativePath || state.subfolder || "").trim().replaceAll("\\", "/");
-        const selectedRootId = String(state.customRootId || "").trim();
-        const selectedRootLabel = (() => {
-            if (!selectedRootId) return "";
-            try {
-                const opt = customSelect?.selectedOptions?.[0] || null;
-                return String(opt?.textContent || "").trim();
-            } catch {
-                return "";
-            }
-        })();
-        if (!isCustom) {
-            folderBackStack.length = 0;
-            folderForwardStack.length = 0;
-            folderBreadcrumb.style.display = "none";
-            folderBreadcrumb.replaceChildren();
-            return;
-        }
-        folderBreadcrumb.style.display = "flex";
-        folderBreadcrumb.replaceChildren();
-
-        const backBtn = document.createElement("button");
-        backBtn.type = "button";
-        backBtn.textContent = "Back";
-        backBtn.className = "mjr-btn-link";
-        const canBackToBrowserRoot = !!String(state.customRootId || "").trim() && !rel;
-        backBtn.disabled = folderBackStack.length === 0 && !canBackToBrowserRoot;
-        backBtn.style.cssText = "background:none;border:none;padding:0 4px 0 0;font:inherit;color:var(--mjr-accent, #7aa2ff);cursor:pointer;";
-        backBtn.addEventListener("click", async () => {
-            const prev = folderBackStack.pop();
-            if (prev != null) {
-                folderForwardStack.push(currentFolderPath());
-                await navigateFolder(prev, { pushHistory: false, clearForward: false });
-                return;
-            }
-            if (canBackToBrowserRoot) {
-                await resetToBrowserRoot();
-            }
-        }, { signal: panelLifecycleAC?.signal });
-        folderBreadcrumb.appendChild(backBtn);
-
-        const upBtn = document.createElement("button");
-        upBtn.type = "button";
-        upBtn.textContent = "Up";
-        upBtn.className = "mjr-btn-link";
-        upBtn.disabled = !rel;
-        upBtn.style.cssText = "background:none;border:none;padding:0 4px 0 0;font:inherit;color:var(--mjr-accent, #7aa2ff);cursor:pointer;";
-        upBtn.addEventListener("click", async () => {
-            const parent = parentFolderPath(currentFolderPath());
-            await navigateFolder(parent);
-        }, { signal: panelLifecycleAC?.signal });
-        folderBreadcrumb.appendChild(upBtn);
-
-        const sep0 = document.createElement("span");
-        sep0.textContent = "|";
-        sep0.style.opacity = "0.5";
-        folderBreadcrumb.appendChild(sep0);
-
-        const mk = (label, target, isCurrent = false) => {
-            const el = document.createElement("button");
-            el.type = "button";
-            el.textContent = label;
-            el.className = "mjr-btn-link";
-            el.style.cssText = `background:none;border:none;padding:0;color:${isCurrent ? "var(--mjr-text, inherit)" : "var(--mjr-accent, #7aa2ff)"};cursor:${isCurrent ? "default" : "pointer"};font:inherit;`;
-            if (!isCurrent) {
-                el.addEventListener("click", async () => {
-                    if (label === "Computer" && String(state.customRootId || "").trim()) {
-                        await resetToBrowserRoot();
-                        return;
-                    }
-                    await navigateFolder(target);
-                }, { signal: panelLifecycleAC?.signal });
-            } else {
-                el.disabled = true;
-            }
-            return el;
-        };
-
-        folderBreadcrumb.appendChild(mk("Computer", "", !rel));
-        if (selectedRootId) {
-            const sepRoot = document.createElement("span");
-            sepRoot.textContent = "/";
-            sepRoot.style.opacity = "0.6";
-            folderBreadcrumb.appendChild(sepRoot);
-            // Root node: click returns to root of selected custom folder.
-            folderBreadcrumb.appendChild(mk(selectedRootLabel || selectedRootId, "", !rel));
-        }
-        if (!rel) return;
-        const parts = rel.split("/").filter(Boolean);
-        let acc = "";
-        for (let i = 0; i < parts.length; i++) {
-            const sep = document.createElement("span");
-            sep.textContent = "/";
-            sep.style.opacity = "0.6";
-            folderBreadcrumb.appendChild(sep);
-            if (!acc) {
-                acc = isWindowsDrive(parts[i]) ? `${parts[i]}/` : parts[i];
-            } else {
-                acc = `${acc}/${parts[i]}`.replace(/\/{2,}/g, "/");
-            }
-            folderBreadcrumb.appendChild(mk(parts[i], acc, i === parts.length - 1));
-        }
-    };
+    let browserNav = null;
+    let _unbindBrowserFolderNav = null;
 
     const notifyContextChanged = () => {
         try {
             contextController?.update?.();
         } catch {}
         try {
-            renderFolderBreadcrumb();
+            browserNav?.renderBreadcrumb?.();
         } catch {}
     };
+    browserNav = createBrowserNavigationController({
+        state,
+        gridContainer,
+        folderBreadcrumb,
+        customSelect,
+        reloadGrid: () => gridController.reloadGrid(),
+        onContextChanged: () => {
+            try {
+                contextController?.update?.();
+            } catch {}
+        },
+        lifecycleSignal: panelLifecycleAC?.signal || null,
+    });
+    try {
+        _unbindBrowserFolderNav = browserNav.bindGridFolderNavigation();
+    } catch {}
 
     const refreshDuplicateAlerts = async () => {
         const scope = String(state.scope || "output").toLowerCase();
@@ -629,23 +501,6 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             } catch {}
         };
         gridContainer.addEventListener("mjr:reload-grid", _reloadGridHandler, { signal: panelLifecycleAC?.signal });
-        const onCustomSubfolderChanged = async (e) => {
-            const next = String(e?.detail?.subfolder || "").trim().replaceAll("\\", "/");
-            const prev = currentFolderPath();
-            if (next !== prev) {
-                folderBackStack.push(prev);
-                folderForwardStack.length = 0;
-                setFolderPath(next);
-                notifyContextChanged();
-                try {
-                    await gridController.reloadGrid();
-                } catch {}
-            }
-        };
-        gridContainer.addEventListener("mjr:custom-subfolder-changed", onCustomSubfolderChanged, { signal: panelLifecycleAC?.signal });
-        try {
-            gridContainer._mjrHasCustomSubfolderHandler = true;
-        } catch {}
         const onDuplicateBadgeFocus = (e) => {
             try {
                 const detail = e?.detail || {};
@@ -676,10 +531,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 if (_reloadGridHandler) gridContainer.removeEventListener("mjr:reload-grid", _reloadGridHandler);
             } catch {}
             try {
-                gridContainer.removeEventListener("mjr:custom-subfolder-changed", onCustomSubfolderChanged);
-            } catch {}
-            try {
-                gridContainer._mjrHasCustomSubfolderHandler = false;
+                _unbindBrowserFolderNav?.();
             } catch {}
             try {
                 gridContainer.removeEventListener("mjr:badge-duplicates-focus", onDuplicateBadgeFocus);
@@ -705,6 +557,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         customSelect,
         customRemoveBtn,
         comfyConfirm,
+        comfyPrompt,
         comfyToast,
         get,
         post,
@@ -712,8 +565,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         reloadGrid: gridController.reloadGrid,
         onRootChanged: async () => {
             try {
-                folderBackStack.length = 0;
-                folderForwardStack.length = 0;
+                browserNav?.resetHistory?.();
             } catch {}
             try {
                 await applyWatcherForScope(state.scope);
@@ -740,7 +592,6 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         refreshCustomRoots: customRootsController.refreshCustomRoots,
         reloadGrid: gridController.reloadGrid,
         onChanged: () => {
-            state.currentFolderRelativePath = state.subfolder || "";
             notifyContextChanged();
         },
         onScopeChanged: async () => {
@@ -911,7 +762,6 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 state.scope = "custom";
                 state.customRootId = id;
                 state.customRootLabel = label;
-                state.subfolder = "";
                 state.currentFolderRelativePath = "";
                 try {
                     if (customSelect) customSelect.value = id;
@@ -955,7 +805,6 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 if (String(state.customRootId || "") === id) {
                     state.customRootId = "";
                     state.customRootLabel = "";
-                    state.subfolder = "";
                     state.currentFolderRelativePath = "";
                 }
                 try {
@@ -1063,8 +912,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             extraActions: {
                 resetBrowserHistory: () => {
                     try {
-                        folderBackStack.length = 0;
-                        folderForwardStack.length = 0;
+                        browserNav?.resetHistory?.();
                     } catch {}
                 },
                 onDuplicateAlertClick: async (alert) => {
@@ -1401,7 +1249,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     );
 
     scopeController.setActiveTabStyles();
-    renderFolderBreadcrumb();
+    browserNav?.renderBreadcrumb?.();
     
     // Initial loading of custom roots (restores selection from state if applicable)
     customRootsController.refreshCustomRoots().catch(() => {});

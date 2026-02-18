@@ -926,10 +926,12 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                                 try:
                                     await db_adapter.aexecutemany("""
                                         INSERT INTO asset_metadata (asset_id, metadata_raw)
-                                        VALUES (?, ?)
+                                        SELECT ?, ?
+                                        WHERE EXISTS (SELECT 1 FROM assets WHERE id = ?)
                                         ON CONFLICT(asset_id) DO UPDATE SET
                                             metadata_raw = excluded.metadata_raw
-                                    """, upsert_params)
+                                        WHERE EXISTS (SELECT 1 FROM assets WHERE id = excluded.asset_id)
+                                    """, [(asset_id, new_json, asset_id) for asset_id, new_json in upsert_params])
                                 except Exception:
                                     logger.debug("Fallback SQL bulk upsert failed")
 

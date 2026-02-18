@@ -361,7 +361,8 @@ class MetadataHelpers:
             """
             INSERT INTO asset_metadata
             (asset_id, rating, tags, tags_text, has_workflow, has_generation_data, metadata_quality, metadata_raw)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            SELECT ?, ?, ?, ?, ?, ?, ?, ?
+            WHERE EXISTS (SELECT 1 FROM assets WHERE id = ?)
             ON CONFLICT(asset_id) DO UPDATE SET
                 rating = CASE
                     WHEN COALESCE(asset_metadata.rating, 0) = 0 THEN excluded.rating
@@ -391,6 +392,7 @@ class MetadataHelpers:
                     WHEN {should_upgrade} THEN excluded.metadata_raw
                     ELSE asset_metadata.metadata_raw
                 END
+            WHERE EXISTS (SELECT 1 FROM assets WHERE id = excluded.asset_id)
             """.format(should_upgrade=should_upgrade),
             (
                 asset_id,
@@ -401,6 +403,7 @@ class MetadataHelpers:
                 db_has_generation,
                 metadata_quality,
                 metadata_raw_json,
+                asset_id,
             ),
         )
 
@@ -614,14 +617,16 @@ class MetadataHelpers:
             """
             INSERT INTO metadata_cache
             (filepath, state_hash, metadata_hash, metadata_raw)
-            VALUES (?, ?, ?, ?)
+            SELECT ?, ?, ?, ?
+            WHERE EXISTS (SELECT 1 FROM assets WHERE filepath = ?)
             ON CONFLICT(filepath) DO UPDATE SET
                 state_hash = excluded.state_hash,
                 metadata_hash = excluded.metadata_hash,
                 metadata_raw = excluded.metadata_raw,
                 last_updated = CURRENT_TIMESTAMP
+            WHERE EXISTS (SELECT 1 FROM assets WHERE filepath = excluded.filepath)
             """,
-            (filepath, state_hash, metadata_hash, metadata_raw)
+            (filepath, state_hash, metadata_hash, metadata_raw, filepath)
         )
         try:
             await MetadataHelpers._maybe_cleanup_metadata_cache(db)

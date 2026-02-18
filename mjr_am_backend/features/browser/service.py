@@ -170,6 +170,10 @@ def list_filesystem_browser_entries(
     offset: int,
     *,
     kind_filter: str = "",
+    min_size_bytes: int = 0,
+    max_size_bytes: int = 0,
+    min_width: int = 0,
+    min_height: int = 0,
 ) -> Result[dict]:
     """
     Browser-mode listing for custom scope (no pre-selected root).
@@ -180,6 +184,12 @@ def list_filesystem_browser_entries(
     ql = q.lower()
     browse_all = q in ("", "*")
     filter_kind = str(kind_filter or "").strip().lower()
+    min_size = max(0, int(min_size_bytes or 0))
+    max_size = max(0, int(max_size_bytes or 0))
+    if max_size > 0 and min_size > 0 and max_size < min_size:
+        max_size = min_size
+    min_w = max(0, int(min_width or 0))
+    min_h = max(0, int(min_height or 0))
     if not str(path_value or "").strip():
         roots_res = list_browser_roots()
         if not roots_res.ok:
@@ -253,6 +263,11 @@ def list_filesystem_browser_entries(
                 if filter_kind and kind != filter_kind:
                     continue
                 st = entry.stat()
+                size = int(st.st_size or 0)
+                if min_size > 0 and size < min_size:
+                    continue
+                if max_size > 0 and size > max_size:
+                    continue
                 files.append(
                     {
                         "id": None,
@@ -261,7 +276,7 @@ def list_filesystem_browser_entries(
                         "filepath": str(entry),
                         "kind": kind,
                         "ext": entry.suffix.lower(),
-                        "size": st.st_size,
+                        "size": size,
                         "mtime": int(st.st_mtime),
                         "width": None,
                         "height": None,
@@ -280,6 +295,28 @@ def list_filesystem_browser_entries(
         return Result.Err("LIST_FAILED", f"Failed to list directory: {exc}")
 
     folders.sort(key=_folder_sort_key)
+    if min_w > 0 or min_h > 0:
+        # Browser-mode filesystem rows usually don't have probed dimensions yet.
+        # Apply resolution filter only when dimensions are known.
+        filtered_files: list[dict] = []
+        for f in files:
+            w_raw = f.get("width")
+            h_raw = f.get("height")
+            if w_raw is None or h_raw is None:
+                filtered_files.append(f)
+                continue
+            try:
+                w = int(w_raw or 0)
+                h = int(h_raw or 0)
+                if min_w > 0 and w < min_w:
+                    continue
+                if min_h > 0 and h < min_h:
+                    continue
+            except Exception:
+                continue
+            filtered_files.append(f)
+        files = filtered_files
+
     files.sort(key=lambda x: int(x.get("mtime") or 0), reverse=True)
     hybrid = folders + files
     total = len(hybrid)

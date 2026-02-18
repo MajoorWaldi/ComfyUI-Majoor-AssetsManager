@@ -288,13 +288,13 @@ def _check_write_access(*, peer_ip: str, headers: Mapping[str, str]) -> "Result[
     """
     Authorization guard for destructive/write endpoints.
 
-    Default policy (safe-by-default):
+    Default policy:
       - If a token is configured, it must be provided for *all* write operations.
-      - If no token is configured, allow only loopback clients (localhost / 127.0.0.1 / ::1).
+      - If no token is configured, allow local and remote clients by default.
 
     Overrides:
       - MAJOOR_REQUIRE_AUTH=1 forces token auth even for loopback (requires MAJOOR_API_TOKEN).
-      - MAJOOR_ALLOW_REMOTE_WRITE=1 disables the loopback-only restriction when no token is set.
+      - MAJOOR_ALLOW_REMOTE_WRITE=0 disables remote writes when no token is set (loopback-only mode).
 
     Returns a Result that never raises (route handlers should return 200 with this Result on error).
     """
@@ -305,8 +305,8 @@ def _check_write_access(*, peer_ip: str, headers: Mapping[str, str]) -> "Result[
 
     configured = _get_write_token()
     require_auth = _env_truthy("MAJOOR_REQUIRE_AUTH")
-    # By default, remote write access is NOT allowed unless explicitly configured.
-    allow_remote = _env_truthy("MAJOOR_ALLOW_REMOTE_WRITE", default=False)
+    # Default: allow remote writes when no token is configured.
+    allow_remote = _env_truthy("MAJOOR_ALLOW_REMOTE_WRITE", default=True)
 
     client_ip = _resolve_client_ip(peer_ip, headers)
 
@@ -338,7 +338,7 @@ def _check_write_access(*, peer_ip: str, headers: Mapping[str, str]) -> "Result[
 
     return Result.Err(
         "FORBIDDEN",
-        "Write operation blocked for non-local clients. If you exposed ComfyUI with --listen/tunnels, set MAJOOR_API_TOKEN (recommended) or MAJOOR_ALLOW_REMOTE_WRITE=1 (unsafe).",
+        "Write operation blocked for non-local clients. Configure MAJOOR_API_TOKEN (recommended) or set MAJOOR_ALLOW_REMOTE_WRITE=1 to allow remote writes when no token is configured.",
         auth="loopback_only",
         client_ip=client_ip,
     )

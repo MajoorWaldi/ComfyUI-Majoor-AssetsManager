@@ -56,3 +56,37 @@ def test_browser_entries_deep_nested_directory(tmp_path: Path) -> None:
     assert level4_res.ok
     level4_assets = level4_res.data.get("assets") if isinstance(level4_res.data, dict) else []
     assert any(str(item.get("filename")) == "image.png" for item in level4_assets)
+
+
+def test_browser_entries_size_filters_apply_in_browser_mode(tmp_path: Path) -> None:
+    small = tmp_path / "small.png"
+    big = tmp_path / "big.png"
+    small.write_bytes(b"\x89PNG\r\n\x1a\n" + b"a" * 8)
+    big.write_bytes(b"\x89PNG\r\n\x1a\n" + b"b" * 4096)
+
+    res = list_filesystem_browser_entries(
+        str(tmp_path),
+        "*",
+        200,
+        0,
+        min_size_bytes=1024,
+    )
+    assert res.ok
+    assets = res.data.get("assets") if isinstance(res.data, dict) else []
+    names = {str(item.get("filename")) for item in assets if str(item.get("kind")) != "folder"}
+    assert "big.png" in names
+    assert "small.png" not in names
+
+
+def test_browser_entries_size_max_lt_min_is_normalized(tmp_path: Path) -> None:
+    f = tmp_path / "x.png"
+    f.write_bytes(b"\x89PNG\r\n\x1a\n" + b"x" * 2048)
+    res = list_filesystem_browser_entries(
+        str(tmp_path),
+        "*",
+        200,
+        0,
+        min_size_bytes=1024,
+        max_size_bytes=10,
+    )
+    assert res.ok

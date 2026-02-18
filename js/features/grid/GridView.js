@@ -957,8 +957,52 @@ function ensureVirtualGrid(gridContainer, state) {
         },
         onItemUpdated: (asset, card) => {
             if (card) {
+                const oldCard = card;
+                const prevAsset = oldCard._mjrAsset || null;
+                const prevFnKey = _getFilenameKey(prevAsset?.filename);
+
+                // Rebuild full card so filename/thumb/meta/datasets stay in sync.
+                const replacement = String(asset?.kind || "").toLowerCase() === "folder"
+                    ? createFolderCard(asset)
+                    : createAssetCard(asset);
+
+                try {
+                    if (oldCard.classList.contains("is-selected")) {
+                        replacement.classList.add("is-selected");
+                        replacement.setAttribute("aria-selected", "true");
+                    }
+                } catch {}
+
+                try {
+                    oldCard.parentElement?.replaceChild?.(replacement, oldCard);
+                } catch {}
+                card = replacement;
+
+                const nextFnKey = _getFilenameKey(asset?.filename);
+                try {
+                    if (prevFnKey) {
+                        const oldList = state.renderedFilenameMap.get(prevFnKey);
+                        if (oldList) {
+                            const idx = oldList.indexOf(oldCard);
+                            if (idx > -1) oldList.splice(idx, 1);
+                            if (!oldList.length) state.renderedFilenameMap.delete(prevFnKey);
+                        }
+                    }
+                } catch {}
+                try {
+                    if (nextFnKey) {
+                        let nextList = state.renderedFilenameMap.get(nextFnKey);
+                        if (!nextList) {
+                            nextList = [];
+                            state.renderedFilenameMap.set(nextFnKey, nextList);
+                        }
+                        if (!nextList.includes(card)) nextList.push(card);
+                    }
+                } catch {}
+
                 card._mjrAsset = asset;
                 _updateCardRatingTagsBadges(card, asset.rating, asset.tags);
+                enqueueRatingTagsHydration(gridContainer, card, asset);
                 try {
                     state.virtualGrid?.scheduleRemeasure?.();
                 } catch {}
@@ -2015,13 +2059,7 @@ export async function loadAssetsFromList(gridContainer, assets, options = {}) {
     try {
         // Apply the current sort order for consistent UX.
         const sortKey = gridContainer.dataset.mjrSort || "mtime_desc";
-        const sorted = list.slice().sort((a, b) => {
-            const av = getSortValue(a, sortKey);
-            const bv = getSortValue(b, sortKey);
-            if (av < bv) return -1;
-            if (av > bv) return 1;
-            return 0;
-        });
+        const sorted = list.slice().sort((a, b) => compareAssets(a, b, sortKey));
 
         appendAssets(gridContainer, sorted, state);
 
@@ -2110,9 +2148,6 @@ export function removeAssetsFromGrid(gridContainer, assetIds, { updateSelection 
             state.assets = next;
             try {
                 if (Number.isFinite(state.total)) state.total = Math.max(0, Number(state.total) - removedCount);
-            } catch {}
-            try {
-                if (Number.isFinite(state.offset)) state.offset = Math.max(0, Number(state.offset) - removedCount);
             } catch {}
             if (state.virtualGrid) {
                 state.virtualGrid.setItems(state.assets);
@@ -2239,6 +2274,21 @@ function getSortValue(asset, sortKey) {
     }
 }
 
+function compareAssets(a, b, sortKey) {
+    if (sortKey === "name_desc") {
+        const av = String(a?.filename || "").toLowerCase();
+        const bv = String(b?.filename || "").toLowerCase();
+        if (av > bv) return -1;
+        if (av < bv) return 1;
+        return 0;
+    }
+    const av = getSortValue(a, sortKey);
+    const bv = getSortValue(b, sortKey);
+    if (av < bv) return -1;
+    if (av > bv) return 1;
+    return 0;
+}
+
 /**
  * Determine if an asset should be inserted before another based on sort order
  */
@@ -2362,13 +2412,7 @@ function _flushUpsertBatch(gridContainer) {
             if (state._mjrResortPending) {
                 try {
                     const sortKey = gridContainer.dataset.mjrSort || "mtime_desc";
-                    state.assets.sort((a, b) => {
-                        const av = getSortValue(a, sortKey);
-                        const bv = getSortValue(b, sortKey);
-                        if (av < bv) return -1;
-                        if (av > bv) return 1;
-                        return 0;
-                    });
+                    state.assets.sort((a, b) => compareAssets(a, b, sortKey));
                 } catch {}
                 try { state._mjrResortPending = false; } catch {}
             }

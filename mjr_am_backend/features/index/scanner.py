@@ -1532,9 +1532,10 @@ class IndexScanner:
             """
             INSERT OR REPLACE INTO scan_journal
             (filepath, dir_path, state_hash, mtime, size, last_seen)
-            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            SELECT ?, ?, ?, ?, ?, CURRENT_TIMESTAMP
+            WHERE EXISTS (SELECT 1 FROM assets WHERE filepath = ?)
             """,
-            (filepath, dir_path, state_hash, mtime, size)
+            (filepath, dir_path, state_hash, mtime, size, filepath)
         )
 
     async def _stat_with_retry(self, file_path: Path):

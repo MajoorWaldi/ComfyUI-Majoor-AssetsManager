@@ -594,12 +594,12 @@ export function createViewer() {
         gap: 20px;
     `;
 
-    const prevBtn = createIconButton("‹", "Previous (←)");
+    const prevBtn = createIconButton("<", "Previous (Left Arrow)");
     prevBtn.style.fontSize = "24px";
     const indexInfo = document.createElement("span");
     indexInfo.className = "mjr-viewer-index";
     indexInfo.style.cssText = "font-size: 14px;";
-    const nextBtn = createIconButton("›", "Next (→)");
+    const nextBtn = createIconButton(">", "Next (Right Arrow)");
     nextBtn.style.fontSize = "24px";
 
     const navBar = document.createElement("div");
@@ -670,7 +670,51 @@ export function createViewer() {
         getAssetMetadata,
         getAssetsBatch,
     });
+    const VIEWER_INFO_CACHE_TTL_MS = 5 * 60 * 1000;
+    const VIEWER_INFO_CACHE_MAX = 256;
     const _viewerInfoCache = new Map();
+    const _viewerInfoCachePrune = () => {
+        try {
+            const now = Date.now();
+            for (const [k, entry] of _viewerInfoCache.entries()) {
+                const ts = Number(entry?.at) || 0;
+                if (!ts || now - ts > VIEWER_INFO_CACHE_TTL_MS) _viewerInfoCache.delete(k);
+            }
+            if (_viewerInfoCache.size <= VIEWER_INFO_CACHE_MAX) return;
+            const ordered = Array.from(_viewerInfoCache.entries()).sort(
+                (a, b) => (Number(a?.[1]?.at) || 0) - (Number(b?.[1]?.at) || 0)
+            );
+            const overflow = _viewerInfoCache.size - VIEWER_INFO_CACHE_MAX;
+            for (let i = 0; i < overflow; i += 1) {
+                const key = ordered?.[i]?.[0];
+                if (key != null) _viewerInfoCache.delete(key);
+            }
+        } catch {}
+    };
+    const _viewerInfoCacheGet = (id) => {
+        try {
+            const key = String(id ?? "");
+            if (!key) return null;
+            const entry = _viewerInfoCache.get(key);
+            if (!entry || typeof entry !== "object") return null;
+            const ts = Number(entry?.at) || 0;
+            if (!ts || Date.now() - ts > VIEWER_INFO_CACHE_TTL_MS) {
+                _viewerInfoCache.delete(key);
+                return null;
+            }
+            return entry?.data || null;
+        } catch {
+            return null;
+        }
+    };
+    const _viewerInfoCacheSet = (id, data) => {
+        try {
+            const key = String(id ?? "");
+            if (!key || !data) return;
+            _viewerInfoCache.set(key, { data, at: Date.now() });
+            _viewerInfoCachePrune();
+        } catch {}
+    };
 
     const hydrateVisibleMetadata = async () => {
         try {
@@ -898,7 +942,7 @@ export function createViewer() {
 
     const renderGenInfoPanel = async () => {
         const canAB = state.assets.length === 2;
-        const canSide = state.assets.length >= 2;
+        const canSide = state.assets.length === 2;
         const mode = state.mode;
         const open = Boolean(state?.genInfoOpen) && !state?.distractionFree;
 
@@ -1033,8 +1077,7 @@ export function createViewer() {
             if (isDual) {
                 // Determine A and B
                 if (mode === VIEWER_MODES.SIDE_BY_SIDE) {
-                    // Fixed order: Left=[0], Right=[1] 
-                    // (Assuming 2 items for text comparison logic, or just first two)
+                    // Fixed order for two-up side-by-side mode.
                     assetLeft = state.assets[0];
                     assetRight = state.assets[1];
                 } else {
@@ -1882,7 +1925,7 @@ export function createViewer() {
 
                 // Apply cached viewer info immediately if present.
                 try {
-                    const cached = _viewerInfoCache.get(String(current?.id ?? ""));
+                    const cached = _viewerInfoCacheGet(current?.id);
                     if (cached) applyFromViewerInfo(cached);
                 } catch {}
 
@@ -1899,7 +1942,7 @@ export function createViewer() {
                         // Still the same active media element?
                         if (state._activeVideoEl !== mediaEl) return;
                         try {
-                            _viewerInfoCache.set(String(current?.id ?? ""), res.data);
+                            _viewerInfoCacheSet(current?.id, res.data);
                         } catch {}
                         applyFromViewerInfo(res.data);
                     } catch {}
@@ -2421,10 +2464,12 @@ export function createViewer() {
             state._prevFocusedElement = null;
         } catch {}
 
-        // Return hotkeys scope to panel
+        // Restore previous hotkeys scope if available.
         if (window._mjrHotkeysState) {
-            window._mjrHotkeysState.scope = "panel";
+            const prevScope = state?._prevHotkeyScope;
+            window._mjrHotkeysState.scope = prevScope || "panel";
         }
+        state._prevHotkeyScope = null;
     }
 
     // Public API
@@ -2479,6 +2524,7 @@ export function createViewer() {
 
             // Set hotkeys scope to viewer (takes priority over panel)
             if (!window._mjrHotkeysState) window._mjrHotkeysState = {};
+            state._prevHotkeyScope = window._mjrHotkeysState.scope || null;
             window._mjrHotkeysState.scope = "viewer";
 
             updateUI();
@@ -2513,6 +2559,9 @@ export function createViewer() {
             // Best-effort: never throw to UI.
             try {
                 closeViewer();
+            } catch {}
+            try {
+                _viewerInfoCache.clear();
             } catch {}
 
             try {

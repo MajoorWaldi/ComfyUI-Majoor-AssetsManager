@@ -18,7 +18,7 @@ from mjr_am_backend.config import get_runtime_output_root
 from mjr_am_backend.custom_roots import resolve_custom_root
 from mjr_am_backend.shared import Result
 from .db_maintenance import is_db_maintenance_active
-from ..core import _json_response, _require_services, _csrf_error, _read_json
+from ..core import _json_response, _require_services, _csrf_error, _read_json, safe_error_message
 
 
 def _roots_for_scope(scope: str, custom_root_id: str = "") -> Result[list[str]]:
@@ -108,13 +108,20 @@ def register_duplicates_routes(routes: web.RouteTableDef) -> None:
             phash_distance = int(request.query.get("phash_distance", "6"))
         except Exception:
             phash_distance = 6
-        result = await dup.get_alerts(
-            roots=roots_res.data,
-            max_groups=max_groups,
-            max_pairs=max_pairs,
-            phash_distance=phash_distance,
-        )
-        return _json_response(result)
+        try:
+            result = await dup.get_alerts(
+                roots=roots_res.data,
+                max_groups=max_groups,
+                max_pairs=max_pairs,
+                phash_distance=phash_distance,
+            )
+            return _json_response(result)
+        except Exception as exc:
+            msg = safe_error_message(exc, "Failed to get duplicate alerts")
+            low = str(exc).lower()
+            if "resetting" in low or "no active connection" in low:
+                return _json_response(Result.Err("DB_MAINTENANCE", "Database maintenance in progress. Please wait."))
+            return _json_response(Result.Err("DB_ERROR", msg))
 
     @routes.post("/mjr/am/duplicates/merge-tags")
     async def duplicates_merge_tags(request):

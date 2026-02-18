@@ -52,15 +52,17 @@ class AssetUpdater:
 
         # Update or insert asset_metadata (serialize per-asset to avoid race with enrichers)
         async with self.db.lock_for_asset(asset_id):
-            result = await self.db.aexecute(
-                """
-                INSERT INTO asset_metadata (asset_id, rating, tags)
-                VALUES (?, ?, '[]')
-                ON CONFLICT(asset_id) DO UPDATE SET
-                    rating = excluded.rating
-                """,
-                (asset_id, rating)
-            )
+                result = await self.db.aexecute(
+                    """
+                    INSERT INTO asset_metadata (asset_id, rating, tags)
+                    SELECT ?, ?, '[]'
+                    WHERE EXISTS (SELECT 1 FROM assets WHERE id = ?)
+                    ON CONFLICT(asset_id) DO UPDATE SET
+                        rating = excluded.rating
+                    WHERE EXISTS (SELECT 1 FROM assets WHERE id = excluded.asset_id)
+                    """,
+                    (asset_id, rating, asset_id)
+                )
 
         if not result.ok:
             return Result.Err("UPDATE_FAILED", result.error or "Failed to update rating")
@@ -108,22 +110,26 @@ class AssetUpdater:
                 result = await self.db.aexecute(
                     """
                     INSERT INTO asset_metadata (asset_id, rating, tags, tags_text)
-                    VALUES (?, 0, ?, ?)
+                    SELECT ?, 0, ?, ?
+                    WHERE EXISTS (SELECT 1 FROM assets WHERE id = ?)
                     ON CONFLICT(asset_id) DO UPDATE SET
                         tags = excluded.tags,
                         tags_text = excluded.tags_text
+                    WHERE EXISTS (SELECT 1 FROM assets WHERE id = excluded.asset_id)
                     """,
-                    (asset_id, tags_json, tags_text)
+                    (asset_id, tags_json, tags_text, asset_id)
                 )
             else:
                 result = await self.db.aexecute(
                     """
                     INSERT INTO asset_metadata (asset_id, rating, tags)
-                    VALUES (?, 0, ?)
+                    SELECT ?, 0, ?
+                    WHERE EXISTS (SELECT 1 FROM assets WHERE id = ?)
                     ON CONFLICT(asset_id) DO UPDATE SET
                         tags = excluded.tags
+                    WHERE EXISTS (SELECT 1 FROM assets WHERE id = excluded.asset_id)
                     """,
-                    (asset_id, tags_json)
+                    (asset_id, tags_json, asset_id)
                 )
 
         if not result.ok:

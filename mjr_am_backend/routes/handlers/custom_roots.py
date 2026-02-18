@@ -2,6 +2,7 @@
 Custom roots management endpoints.
 """
 import os
+import sys
 import errno
 import asyncio
 from pathlib import Path
@@ -120,9 +121,10 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
             logger.error("Tkinter is not available in this environment")
             return _json_response(Result.Err("TKINTER_UNAVAILABLE", "Tkinter is not available"))
 
-        # Check if we're in a headless environment (no display)
-        if os.getenv('DISPLAY') is None and os.name == 'posix':
-            # On Linux systems without a display, tkinter won't work
+        # Check if we're in a headless environment (Linux only).
+        # macOS does not rely on DISPLAY for native dialogs.
+        if os.getenv("DISPLAY") is None and sys.platform.startswith("linux"):
+            # On Linux systems without a display, tkinter won't work.
             logger.info("Running in headless environment, skipping tkinter dialog")
             return _json_response(Result.Err("HEADLESS_ENV", "No display available for folder browser"))
 

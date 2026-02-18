@@ -110,6 +110,13 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
                 if scope == "custom":
                     result.data["custom_root_id"] = custom_root_id
                 try:
+                    index_svc = svc.get("index") if isinstance(svc, dict) else None
+                    if index_svc and hasattr(index_svc, "get_runtime_status"):
+                        idx_rt = index_svc.get_runtime_status() or {}
+                        result.data["enrichment_queue_length"] = int(idx_rt.get("enrichment_queue_length") or 0)
+                except Exception:
+                    result.data["enrichment_queue_length"] = 0
+                try:
                     watcher = svc.get("watcher") if isinstance(svc, dict) else None
                     watcher_scope = svc.get("watcher_scope") if isinstance(svc, dict) else None
                     result.data["watcher"] = {
