@@ -298,9 +298,18 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                             base_path = str(Path(get_runtime_output_root()).resolve(strict=False))
                             _emit_restore_status("restarting_scan", "info", operation="delete_db")
                             asyncio.create_task(
-                                index_service.scan_directory(base_path, recursive=True, incremental=False)
+                                index_service.scan_directory(base_path, recursive=True, incremental=False, source="output")
                             )
                             started_scans.append(base_path)
+                        except Exception:
+                            pass
+                        try:
+                            import folder_paths  # type: ignore
+                            input_path = str(Path(folder_paths.get_input_directory()).resolve())
+                            asyncio.create_task(
+                                index_service.scan_directory(input_path, recursive=True, incremental=False, source="input")
+                            )
+                            started_scans.append(input_path)
                         except Exception:
                             pass
                     _emit_restore_status("done", "success", operation="delete_db")
@@ -348,6 +357,12 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
 
             if failed_files:
                 logger.error("Force-delete: could not remove files: %s", failed_files)
+                _emit_restore_status(
+                    "failed",
+                    "error",
+                    f"Could not delete: {', '.join(failed_files)}",
+                    operation="delete_db",
+                )
                 return _json_response(Result.Err(
                     "DELETE_FAILED",
                     f"Could not delete: {', '.join(failed_files)}. "
@@ -360,7 +375,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
             if db is not None:
                 try:
                     _emit_restore_status("recreate_db", "info", operation="delete_db")
-                    db._init_db()
+                    await db._ensure_initialized_async()
                     from mjr_am_backend.adapters.db.schema import ensure_tables_exist, ensure_indexes_and_triggers
                     await ensure_tables_exist(db)
                     await ensure_indexes_and_triggers(db)
@@ -375,9 +390,18 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                     base_path = str(Path(get_runtime_output_root()).resolve(strict=False))
                     _emit_restore_status("restarting_scan", "info", operation="delete_db")
                     asyncio.create_task(
-                        index_service.scan_directory(base_path, recursive=True, incremental=False)
+                        index_service.scan_directory(base_path, recursive=True, incremental=False, source="output")
                     )
                     started_scans.append(base_path)
+                except Exception:
+                    pass
+                try:
+                    import folder_paths  # type: ignore
+                    input_path = str(Path(folder_paths.get_input_directory()).resolve())
+                    asyncio.create_task(
+                        index_service.scan_directory(input_path, recursive=True, incremental=False, source="input")
+                    )
+                    started_scans.append(input_path)
                 except Exception:
                     pass
 
@@ -578,7 +602,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
             _emit_restore_status("replacing_files", "info", operation="restore_db")
             await _replace_db_from_backup(src, INDEX_DB_PATH)
             try:
-                db._init_db()
+                await db._ensure_initialized_async()
             except Exception:
                 pass
             try:

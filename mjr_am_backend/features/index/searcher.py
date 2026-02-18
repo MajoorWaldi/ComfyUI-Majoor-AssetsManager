@@ -159,7 +159,8 @@ def _build_filter_clauses(filters: Optional[Dict[str, Any]], alias: str = "a") -
     if isinstance(exclude_root, str) and exclude_root.strip():
         try:
             root = str(Path(exclude_root).resolve(strict=False))
-            esc = root.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            prefix = root.rstrip(os.sep) + os.sep
+            esc = prefix.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
             clauses.append(f"AND NOT ({alias}.filepath = ? OR {alias}.filepath LIKE ? ESCAPE '\\')")
             params.extend([root, f"{esc}%"])
         except Exception:

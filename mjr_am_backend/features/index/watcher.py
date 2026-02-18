@@ -202,7 +202,7 @@ class DebouncedWatchHandler(FileSystemEventHandler):
             return
         try:
             logger.warning(
-                "Watcher pending queue capped at %d entries; skipping %s",
+                "Watcher pending queue capped at %d entries; deferring %s",
                 _MAX_PENDING_FILES,
                 path,
             )
@@ -395,9 +395,26 @@ class DebouncedWatchHandler(FileSystemEventHandler):
             if not files:
                 return
 
-            files = _apply_flush_limit(files)
-            if not files:
-                return
+            # Backpressure handling: process a bounded chunk now and defer remainder.
+            if WATCHER_FLUSH_MAX_FILES > 0 and len(files) > WATCHER_FLUSH_MAX_FILES:
+                now = time.time()
+                deferred = files[WATCHER_FLUSH_MAX_FILES:]
+                files = files[:WATCHER_FLUSH_MAX_FILES]
+                with self._lock:
+                    for f in deferred:
+                        if f not in self._pending and f not in self._overflow:
+                            self._overflow[f] = now
+                try:
+                    logger.warning(
+                        "Watcher flush capped to %d files (requested %d); deferring %d for next flush.",
+                        WATCHER_FLUSH_MAX_FILES,
+                        len(files) + len(deferred),
+                        len(deferred),
+                    )
+                except Exception:
+                    pass
+                # Keep draining deferred backlog without waiting for fresh fs events.
+                self._schedule_flush()
 
             # Mark as recently processed
             with self._lock:

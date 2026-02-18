@@ -5,6 +5,7 @@ export function createCustomRootsController({
     customSelect,
     customRemoveBtn,
     comfyConfirm,
+    comfyPrompt,
     comfyToast,
     get,
     post,
@@ -82,7 +83,6 @@ export function createCustomRootsController({
                 } catch {
                     state.customRootLabel = "";
                 }
-                state.subfolder = "";
                 state.currentFolderRelativePath = "";
                 customRemoveBtn.disabled = !state.customRootId;
                 try {
@@ -92,9 +92,40 @@ export function createCustomRootsController({
             }
         });
 
-        // Temporary: custom-root add flow disabled.
-        customAddBtn.disabled = true;
-        customAddBtn.title = t("status.pending", "Pending");
+        customAddBtn.disabled = false;
+        customAddBtn.title = t("btn.add", "Add");
+        customAddBtn.addEventListener("click", async () => {
+            let pickedPath = "";
+            try {
+                const browseRes = await post(ENDPOINTS.BROWSE_FOLDER, {});
+                if (browseRes?.ok) {
+                    pickedPath = String(browseRes?.data?.path || "").trim();
+                }
+            } catch {}
+            if (!pickedPath) {
+                const manual = await comfyPrompt(t("dialog.enterFolderPath", "Enter folder path"), "");
+                pickedPath = String(manual || "").trim();
+            }
+            if (!pickedPath) return;
+
+            const label = await comfyPrompt(t("dialog.folderLabelOptional", "Folder label (optional)"), "");
+            const createRes = await post(ENDPOINTS.CUSTOM_ROOTS, {
+                path: pickedPath,
+                label: String(label || "").trim() || undefined,
+            });
+            if (!createRes?.ok) {
+                comfyToast(createRes?.error || t("toast.failedAddFolder", "Failed to add custom folder"), "error");
+                return;
+            }
+
+            const preferredId = String(createRes?.data?.id || "").trim() || null;
+            await refreshCustomRoots(preferredId);
+            try {
+                await onRootChanged?.(state);
+            } catch {}
+            await reloadGrid();
+            comfyToast(t("toast.folderAdded", "Folder added"), "success");
+        });
 
         customRemoveBtn.addEventListener("click", async () => {
             if (!state.customRootId) return;
@@ -118,7 +149,6 @@ export function createCustomRootsController({
                 comfyToast(t("toast.folderRemoved", "Folder removed"), "success");
                 state.customRootId = "";
                 state.customRootLabel = "";
-                state.subfolder = "";
                 state.currentFolderRelativePath = "";
                 await refreshCustomRoots();
                 await reloadGrid();

@@ -588,10 +588,17 @@ export function createStatusIndicator(options = {}) {
                 globalThis._mjrMaintenanceActive = false;
                 statusDot.style.background = "var(--mjr-status-success, #4CAF50)";
                 applyStatusHighlight(section, "success", { toast: false });
+                const op = String(detail?.operation || "");
+                const doneHint =
+                    op === "delete_db"
+                        ? t("toast.dbDeleteSuccess", "Database deleted and rebuilt. Files are being reindexed.")
+                        : op === "reset_index"
+                        ? t("toast.resetStarted", "Index reset started. Files will be reindexed in the background.")
+                        : t("toast.dbRestoreSuccess", "Database backup restored");
                 setStatusWithHint(
                     statusText,
                     t("status.ready", "Ready"),
-                    t("toast.dbRestoreSuccess", "Database backup restored")
+                    doneHint
                 );
                 try {
                     const target = getScanContext ? getScanContext() : null;
@@ -1004,7 +1011,12 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
         const dbMalformed = Boolean(dbDiagnostics?.malformed);
         const dbLocked = Boolean(dbDiagnostics?.locked);
         const dbMaintenance = Boolean(dbDiagnostics?.maintenance_active);
-        const enrichmentActive = !!globalThis?._mjrEnrichmentActive;
+        const enrichmentQueueLength = Math.max(0, Number(counters?.enrichment_queue_length || 0) || 0);
+        const enrichmentActive = !!globalThis?._mjrEnrichmentActive || enrichmentQueueLength > 0;
+        try {
+            globalThis._mjrEnrichmentQueueLength = enrichmentQueueLength;
+            globalThis._mjrEnrichmentActive = enrichmentActive;
+        } catch {}
         const hasIndexedAssets = Number(totalAssets) > 0;
         const hasIndexTimestamp = Boolean(counters?.last_index_end || counters?.last_scan_end);
         const indexHealthy = hasIndexedAssets && hasIndexTimestamp;
@@ -1034,6 +1046,9 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
         const watcherLine = isCustomBrowserMode
             ? t("status.watcher.disabledScoped", "Watcher: disabled ({scope})", { scope: t("scope.customBrowser", "Browser") })
             : formatWatcherLine(watcherInfo, desiredScope);
+        const enrichmentLine = enrichmentActive
+            ? t("status.enrichmentQueue", "Metadata enrichment queue: {count}", { count: enrichmentQueueLength })
+            : t("status.enrichmentIdle", "Metadata enrichment: idle");
 
         renderCapabilities(capabilitiesSection, toolAvailability, toolPaths);
         renderToolsStatusLine(capabilitiesSection, toolStatusData, toolAvailability);
@@ -1100,6 +1115,7 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
                     t("status.assetsIndexed", `${totalAssets.toLocaleString()} assets indexed (${scopeLabel})`, { count: totalAssets.toLocaleString(), scope: scopeLabel }),
                     t("status.imagesVideos", `Images: ${counters.images || 0}  -  Videos: ${counters.videos || 0}`, { images: counters.images || 0, videos: counters.videos || 0 }),
                     t("status.withWorkflows", `With workflows: ${withWorkflows}  -  Generation data: ${withGenerationData}`, { workflows: withWorkflows, gendata: withGenerationData }),
+                    enrichmentLine,
                     dbHealthLine,
                     indexHealthLine,
                     dbSizeLine,

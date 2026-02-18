@@ -386,6 +386,9 @@ class Sqlite:
         self._asset_locks_lock = threading.Lock()
         self._malformed_recovery_lock = threading.Lock()
         self._malformed_recovery_last_ts = 0.0
+        self._auto_reset_lock = threading.Lock()
+        self._auto_reset_last_ts = 0.0
+        self._auto_reset_cooldown_s = 30.0
         self._schema_repair_lock = threading.Lock()
         self._schema_repair_last_ts = 0.0
         self._diag_lock = threading.Lock()
@@ -402,6 +405,11 @@ class Sqlite:
             "recovery_attempts": 0,
             "recovery_successes": 0,
             "recovery_failures": 0,
+            "auto_reset_attempts": 0,
+            "auto_reset_successes": 0,
+            "auto_reset_failures": 0,
+            "last_auto_reset_at": None,
+            "last_auto_reset_error": None,
         }
 
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -507,10 +515,10 @@ class Sqlite:
 
     async def _maybe_auto_reset_on_corruption(self, error: Exception) -> None:
         """
-        Optionally auto-reset DB on corruption, gated by MAJOOR_DB_AUTO_RESET=true.
+        Auto-reset DB on corruption by default; can be disabled with MAJOOR_DB_AUTO_RESET=false.
         """
         try:
-            auto_reset = str(os.getenv("MAJOOR_DB_AUTO_RESET", "false")).strip().lower() in (
+            auto_reset = str(os.getenv("MAJOOR_DB_AUTO_RESET", "true")).strip().lower() in (
                 "1",
                 "true",
                 "yes",
@@ -521,19 +529,38 @@ class Sqlite:
 
         if not auto_reset:
             logger.error(
-                "Corruption detected (%s). To auto-reset DB, set MAJOOR_DB_AUTO_RESET=true",
+                "Corruption detected (%s). Auto-reset disabled (MAJOOR_DB_AUTO_RESET=false)",
                 error,
             )
             return
+
+        now = time.time()
+        with self._auto_reset_lock:
+            if now - float(self._auto_reset_last_ts or 0.0) < float(self._auto_reset_cooldown_s):
+                logger.warning("Corruption auto-reset throttled (cooldown %.1fs)", float(self._auto_reset_cooldown_s))
+                return
+            self._auto_reset_last_ts = now
+        with self._diag_lock:
+            self._diag["auto_reset_attempts"] = int(self._diag.get("auto_reset_attempts") or 0) + 1
+            self._diag["last_auto_reset_at"] = now
+            self._diag["last_auto_reset_error"] = None
 
         try:
             reset_res = await self.areset()
             if reset_res and reset_res.ok:
                 logger.warning("Database auto-reset completed after corruption")
+                with self._diag_lock:
+                    self._diag["auto_reset_successes"] = int(self._diag.get("auto_reset_successes") or 0) + 1
             else:
                 logger.error("Database auto-reset failed after corruption: %s", getattr(reset_res, "error", "unknown error"))
+                with self._diag_lock:
+                    self._diag["auto_reset_failures"] = int(self._diag.get("auto_reset_failures") or 0) + 1
+                    self._diag["last_auto_reset_error"] = str(getattr(reset_res, "error", "unknown error"))
         except Exception as exc:
             logger.error("Database auto-reset exception after corruption: %s", exc)
+            with self._diag_lock:
+                self._diag["auto_reset_failures"] = int(self._diag.get("auto_reset_failures") or 0) + 1
+                self._diag["last_auto_reset_error"] = str(exc)
 
     def get_diagnostics(self) -> Dict[str, Any]:
         with self._diag_lock:
@@ -728,7 +755,7 @@ class Sqlite:
             if self._async_sem:
                 self._async_sem.release()
 
-    async def _ensure_initialized_async(self):
+    async def _ensure_initialized_async(self, *, allow_during_reset: bool = False):
         if self._initialized:
             return
         # Only one caller initializes; lock is sync, but init runs once and quickly.
@@ -736,12 +763,23 @@ class Sqlite:
             if self._initialized:
                 return
             # mark initialized *after* successful probe
-        conn = await self._acquire_connection_async()
+        direct_conn = bool(self._resetting and allow_during_reset)
+        if direct_conn:
+            # Reset flow cannot use pooled acquisition because reset guard rejects it.
+            conn = await self._create_connection()
+        else:
+            conn = await self._acquire_connection_async()
         try:
             await self._apply_connection_pragmas(conn)
             await conn.commit()
         finally:
-            await self._release_connection_async(conn)
+            if direct_conn:
+                try:
+                    await conn.close()
+                except Exception:
+                    pass
+            else:
+                await self._release_connection_async(conn)
         with self._lock:
             self._initialized = True
         if self._write_lock is None:
@@ -1539,10 +1577,14 @@ class Sqlite:
             # 4. Reset initialization state
             with self._lock:
                 self._initialized = False
-                self._resetting = False # Unlock
-            
-            # 5. Re-initialize
-            self._init_db()
+                # Keep reset lock active until async re-init + schema complete.
+                self._resetting = True
+
+            # 5. Re-initialize (async-safe; do not call sync _init_db from DB loop thread).
+            await self._ensure_initialized_async(allow_during_reset=True)
+            # Release reset guard before schema helpers, which execute through normal DB APIs.
+            with self._lock:
+                self._resetting = False
 
             # 6. Re-apply schema
             from .schema import ensure_tables_exist, ensure_indexes_and_triggers
@@ -1556,7 +1598,8 @@ class Sqlite:
 
             return Result.Ok(True, deleted_files=deleted_files, renamed_files=renamed_files)
         except Exception as exc:
-            self._resetting = False # Ensure unlock on error
+            with self._lock:
+                self._resetting = False # Ensure unlock on error
             logger.error(f"DB Reset failed: {exc}")
             return Result.Err("RESET_FAILED", str(exc))
 

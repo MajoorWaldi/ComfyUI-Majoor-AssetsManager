@@ -138,7 +138,8 @@ export function createWorkflowDot(asset) {
 
     const hasWorkflow = toBoolish(asset?.has_workflow ?? asset?.hasWorkflow);
     const hasGen = toBoolish(asset?.has_generation_data ?? asset?.hasGenerationData);
-    const enrichmentActive = !!globalThis?._mjrEnrichmentActive;
+    const enrichmentQueue = Math.max(0, Number(globalThis?._mjrEnrichmentQueueLength || 0) || 0);
+    const enrichmentActive = !!globalThis?._mjrEnrichmentActive || enrichmentQueue > 0;
 
     let title = "Pending: parsing metadata\u2026";
 
@@ -159,7 +160,9 @@ export function createWorkflowDot(asset) {
     let status = anyUnknown ? "pending" : (hasWorkflow === true && hasGen === true ? "success" : anyTrue ? "warning" : "error");
     if (enrichmentActive && status !== "success") {
         status = "pending";
-        title = "Pending: database metadata enrichment in progress";
+        title = enrichmentQueue > 0
+            ? `Pending: database metadata enrichment in progress (${enrichmentQueue} queued)`
+            : "Pending: database metadata enrichment in progress";
     }
     applyAssetStatusDotState(dot, status, title, { asset });
     dot.textContent = "\u25CF";

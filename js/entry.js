@@ -206,9 +206,17 @@ app.registerExtension({
             api._mjrEnrichmentStatusHandler = (event) => {
                 try {
                     const detail = event?.detail || {};
-                    const active = !!detail?.active;
+                    const queued = Number(detail?.queued);
+                    const queueLeft = Number(detail?.queue_left);
+                    const queueLen = Number.isFinite(queued)
+                        ? Math.max(0, Math.floor(queued))
+                        : Number.isFinite(queueLeft)
+                        ? Math.max(0, Math.floor(queueLeft))
+                        : 0;
+                    const active = !!detail?.active || queueLen > 0;
                     const prev = !!globalThis?._mjrEnrichmentActive;
                     globalThis._mjrEnrichmentActive = active;
+                    globalThis._mjrEnrichmentQueueLength = queueLen;
                     window.dispatchEvent(new CustomEvent("mjr-enrichment-status", { detail }));
                     // Do not force a full grid reset on enrichment state flips.
                     // Panel-level listeners handle refresh with scroll/selection anchor preservation.

@@ -477,6 +477,13 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
 
         if inline_filters:
             filters.update(inline_filters)
+        try:
+            min_b = int(filters.get("min_size_bytes") or 0)
+            max_b = int(filters.get("max_size_bytes") or 0)
+            if min_b > 0 and max_b > 0 and max_b < min_b:
+                filters["max_size_bytes"] = min_b
+        except Exception:
+            pass
 
         # Keep default aligned with pre-refactor behavior:
         # list endpoints should include total unless explicitly disabled.
@@ -552,6 +559,10 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                     limit,
                     offset,
                     kind_filter=str(filters.get("kind") or "") if filters else "",
+                    min_size_bytes=int((filters or {}).get("min_size_bytes") or 0),
+                    max_size_bytes=int((filters or {}).get("max_size_bytes") or 0),
+                    min_width=int((filters or {}).get("min_width") or 0),
+                    min_height=int((filters or {}).get("min_height") or 0),
                 )
                 try:
                     if browser_result.ok and isinstance(browser_result.data, dict):
@@ -700,49 +711,8 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                 total = int((out_count.data or {}).get("total") or 0) + int((in_count.data or {}).get("total") or 0)
                 return _json_response(Result.Ok({"assets": [], "total": total, "limit": 0, "offset": offset, "query": query, "scope": scope, "sort": sort_key}))
 
-            # Non-browse queries keep deterministic concatenation: outputs first, then inputs.
-            # This enables cheap pagination by splitting offsets instead of fetching everything.
-            if not is_browse_all:
-                out_res = await svc["index"].search_scoped(
-                    query,
-                    roots=[output_root],
-                    limit=limit,
-                    offset=offset,
-                    filters={**(filters or {}), "source": "output"},
-                    include_total=True,
-                    sort=sort_key,
-                )
-                if not out_res.ok:
-                    return _json_response(out_res)
-                out_data = out_res.data or {}
-                out_assets = out_data.get("assets") or []
-                for a in out_assets:
-                    a["type"] = "output"
-                out_total = int(out_data.get("total") or 0)
-
-                # If the requested page fits within outputs, we're done.
-                if offset + limit <= out_total:
-                    in_total_res = await _list_filesystem_assets(Path(input_root), "", query, 0, 0, asset_type="input", filters=filters or None, sort=sort_key)
-                    if not in_total_res.ok:
-                        return _json_response(in_total_res)
-                    total = out_total + int((in_total_res.data or {}).get("total") or 0)
-                    payload = _dedupe_result_assets_payload({"assets": out_assets, "total": total, "limit": limit, "offset": offset, "query": query, "scope": scope, "sort": sort_key})
-                    return _json_response(Result.Ok(payload))
-
-                # Need to spill over into inputs (or we're already past outputs).
-                need = max(0, limit - len(out_assets))
-                in_offset = max(0, offset - out_total)
-                in_res = await _list_filesystem_assets(Path(input_root), "", query, need, in_offset, asset_type="input", filters=filters or None, sort=sort_key)
-                if not in_res.ok:
-                    return _json_response(in_res)
-                in_data = in_res.data or {}
-                in_assets = in_data.get("assets") or []
-                total = out_total + int(in_data.get("total") or 0)
-                assets = [*out_assets, *in_assets]
-                payload = _dedupe_result_assets_payload({"assets": assets, "total": total, "limit": limit, "offset": offset, "query": query, "scope": scope, "sort": sort_key})
-                return _json_response(Result.Ok(payload))
-
-            # Browse-all (`*`): merge by mtime for better UX, with chunked streaming merge.
+            # Fallback mode (input not indexed):
+            # Merge output(DB) + input(filesystem) in global sort order for stable pagination.
             chunk = max(SEARCH_CHUNK_MIN, min(SEARCH_CHUNK_MAX, int(limit) * 2))
             out_offset = 0
             in_offset = 0
@@ -759,12 +729,43 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                 except Exception:
                     return 0
 
+            def _name(item) -> str:
+                try:
+                    return str((item or {}).get("filename") or "").lower()
+                except Exception:
+                    return ""
+
+            def _path(item) -> str:
+                try:
+                    return str((item or {}).get("filepath") or "").lower()
+                except Exception:
+                    return ""
+
+            def _asset_key(item):
+                if sort_key == "name_asc":
+                    return (_name(item), _path(item))
+                if sort_key == "name_desc":
+                    return (_name(item), _path(item))
+                if sort_key == "mtime_asc":
+                    return (_mtime(item), _path(item))
+                # mtime_desc (default)
+                return (_mtime(item), _path(item))
+
+            def _pick_output_item(out_item, in_item) -> bool:
+                out_key = _asset_key(out_item)
+                in_key = _asset_key(in_item)
+                if sort_key == "name_desc":
+                    return out_key >= in_key
+                if sort_key == "mtime_desc":
+                    return out_key >= in_key
+                return out_key <= in_key
+
             async def _fill_out():
                 nonlocal out_total, out_offset
                 if out_total is not None and out_offset >= out_total:
                     return
                 res = await svc["index"].search_scoped(
-                    "*",
+                    query,
                     roots=[output_root],
                     limit=chunk,
                     offset=out_offset,
@@ -789,7 +790,16 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                 nonlocal in_total, in_offset
                 if in_total is not None and in_offset >= in_total:
                     return
-                res = await _list_filesystem_assets(Path(input_root), "", "*", chunk, in_offset, asset_type="input", filters=filters or None, sort=sort_key)
+                res = await _list_filesystem_assets(
+                    Path(input_root),
+                    "",
+                    query,
+                    chunk,
+                    in_offset,
+                    asset_type="input",
+                    filters=filters or None,
+                    sort=sort_key,
+                )
                 if not res.ok:
                     return res
                 data = res.data or {}
@@ -829,7 +839,7 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                 out_has = out_i < len(out_buf)
                 in_has = in_i < len(in_buf)
                 if out_has and in_has:
-                    pick_out = _mtime(out_buf[out_i]) >= _mtime(in_buf[in_i])
+                    pick_out = _pick_output_item(out_buf[out_i], in_buf[in_i])
                 elif out_has:
                     pick_out = True
 
@@ -854,12 +864,6 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                         break
                 produced += 1
 
-            if sort_key in ("name_asc", "name_desc", "mtime_asc"):
-                reverse = sort_key == "name_desc"
-                if sort_key.startswith("name_"):
-                    page = sorted(page, key=lambda a: str((a or {}).get("filename") or "").lower(), reverse=reverse)
-                elif sort_key == "mtime_asc":
-                    page = sorted(page, key=lambda a: int((a or {}).get("mtime") or 0))
             payload = _dedupe_result_assets_payload({"assets": page, "total": total, "limit": limit, "offset": offset, "query": query, "scope": scope, "sort": sort_key})
             return _json_response(Result.Ok(payload))
 
@@ -910,11 +914,6 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                             a["type"] = "output"
                     fs_res.data["scope"] = "output"
                     fs_res.data["mode"] = "filesystem"
-                    try:
-                        if "total" in fs_res.data:
-                            fs_res.data["total"] = len(filtered_assets)
-                    except Exception:
-                        pass
                     fs_res.data = _dedupe_result_assets_payload(fs_res.data)
                 return _json_response(fs_res)
         except Exception:
@@ -924,11 +923,6 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
             return _json_response(out_res)
         filtered_assets = _exclude_assets_under_root((out_res.data or {}).get("assets") or [], input_root)
         out_res.data["assets"] = filtered_assets
-        try:
-            if "total" in out_res.data:
-                out_res.data["total"] = len(filtered_assets)
-        except Exception:
-            pass
         for a in filtered_assets:
             a["type"] = "output"
         payload = _dedupe_result_assets_payload({**out_res.data, "scope": "output", "sort": sort_key})
@@ -1025,6 +1019,13 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
 
         if inline_filters:
             filters.update(inline_filters)
+        try:
+            min_b = int(filters.get("min_size_bytes") or 0)
+            max_b = int(filters.get("max_size_bytes") or 0)
+            if min_b > 0 and max_b > 0 and max_b < min_b:
+                filters["max_size_bytes"] = min_b
+        except Exception:
+            pass
 
         include_total = request.query.get("include_total", "1").strip().lower() not in ("0", "false", "no", "off")
         result = await svc["index"].search(

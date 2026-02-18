@@ -86,7 +86,6 @@ export function createContextController({
             try {
                 state.customRootId = "";
                 state.customRootLabel = "";
-                state.subfolder = "";
                 state.currentFolderRelativePath = "";
                 delete gridContainer?.dataset?.mjrSubfolder;
                 const isCustom = String(state.scope || "").toLowerCase() === "custom";
@@ -108,7 +107,6 @@ export function createContextController({
             try {
                 state.customRootId = "";
                 state.customRootLabel = "";
-                state.subfolder = "";
                 state.currentFolderRelativePath = "";
                 delete gridContainer?.dataset?.mjrSubfolder;
                 resetBrowserHistory();
@@ -120,7 +118,6 @@ export function createContextController({
         clearFolder: async () => {
             try {
                 // Ensure state is cleared so it doesn't get restored
-                state.subfolder = "";
                 state.currentFolderRelativePath = "";
                 delete gridContainer?.dataset?.mjrSubfolder;
                 resetBrowserHistory();
@@ -237,7 +234,6 @@ export function createContextController({
                 state.sort = "mtime_desc";
                 state.customRootId = "";
                 state.customRootLabel = "";
-                state.subfolder = "";
                 state.currentFolderRelativePath = "";
                 delete gridContainer?.dataset?.mjrSubfolder;
                 const isCustom = String(state.scope || "").toLowerCase() === "custom";

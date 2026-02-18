@@ -413,7 +413,6 @@ export function bindGridContextMenu({
                                 detail: { subfolder },
                             })
                         );
-                        gridContainer.dispatchEvent(new CustomEvent("mjr:reload-grid", { bubbles: true }));
                     } catch {}
                 })
             );

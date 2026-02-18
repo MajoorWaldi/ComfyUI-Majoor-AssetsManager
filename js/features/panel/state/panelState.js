@@ -31,7 +31,7 @@ export function createPanelState() {
     const state = {
         scope: allowedScopes.has(normalizedScope) ? normalizedScope : "output",
         customRootId: saved.customRootId || "",
-        subfolder: saved.subfolder || "",
+        // Backward-compatible migration from old saved `subfolder` key.
         currentFolderRelativePath: saved.currentFolderRelativePath || saved.subfolder || "",
         collectionId: saved.collectionId || "",
         collectionName: saved.collectionName || "",

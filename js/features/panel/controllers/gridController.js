@@ -27,7 +27,7 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
         } catch {}
         gridContainer.dataset.mjrScope = state.scope;
         gridContainer.dataset.mjrCustomRootId = state.customRootId || "";
-        const subfolder = state.currentFolderRelativePath || state.subfolder || "";
+        const subfolder = state.currentFolderRelativePath || "";
         gridContainer.dataset.mjrSubfolder = subfolder;
         gridContainer.dataset.mjrFilterKind = state.kindFilter || "";
         gridContainer.dataset.mjrFilterWorkflowOnly = state.workflowOnly ? "1" : "0";
@@ -54,12 +54,11 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
             }
         } catch {}
 
-        if (state.scope === "custom" && !state.customRootId && !(state.currentFolderRelativePath || state.subfolder)) {
+        if (state.scope === "custom" && !state.customRootId && !state.currentFolderRelativePath) {
             try {
                 disposeGrid(gridContainer);
             } catch {}
             // Browser mode: no selected custom root required. Start at filesystem roots.
-            state.subfolder = "";
             state.currentFolderRelativePath = "";
         }
 
