@@ -147,7 +147,7 @@ export function createHeaderView() {
     headerActions.appendChild(tabs);
     headerActions.appendChild(headerTools);
 
-    const customMenuBtn = createIconButton("pi-folder-open", "Custom folders");
+    const customMenuBtn = createIconButton("pi-folder-open", "Browser folders");
     const filterBtn = createIconButton("pi-filter", "Filters");
     const sortBtn = createIconButton("pi-sort", "Sort");
     const collectionsBtn = createIconButton("pi-bookmark", "Collections");

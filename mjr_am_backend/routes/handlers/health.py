@@ -1,4 +1,4 @@
-﻿"""
+"""
 Health check endpoints.
 """
 import asyncio
@@ -321,6 +321,9 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err(ErrorCode.CSRF, csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         svc, error_result = await _require_services()
         if error_result:
@@ -362,6 +365,9 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err(ErrorCode.CSRF, csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         svc, error_result = await _require_services()
         if error_result:
@@ -470,4 +476,3 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
             roots["custom_roots_error"] = custom.error
 
         return _json_response(Result.Ok(roots))
-

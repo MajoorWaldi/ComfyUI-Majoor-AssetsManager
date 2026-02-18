@@ -15,7 +15,7 @@ export function createTabsView() {
     const tabAll = makeTab("All", "all", "Browse all assets (inputs + outputs)");
     const tabInputs = makeTab("Inputs", "input", "Browse input folder assets");
     const tabOutputs = makeTab("Outputs", "output", "Browse generated outputs");
-    const tabCustom = makeTab("Custom", "custom", "Browse custom folders");
+    const tabCustom = makeTab("Browser", "custom", "Browse browser folders");
     tabs.appendChild(tabAll);
     tabs.appendChild(tabInputs);
     tabs.appendChild(tabOutputs);

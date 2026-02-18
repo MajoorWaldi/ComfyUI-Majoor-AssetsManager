@@ -88,10 +88,8 @@ export function createContextController({
                 state.customRootLabel = "";
                 state.currentFolderRelativePath = "";
                 delete gridContainer?.dataset?.mjrSubfolder;
-                const isCustom = String(state.scope || "").toLowerCase() === "custom";
-                if (isCustom) {
-                    resetBrowserHistory();
-                } else if (typeof scopeController?.setScope === "function") {
+                resetBrowserHistory();
+                if (typeof scopeController?.setScope === "function") {
                     await scopeController.setScope("output");
                     didSetScope = true;
                 } else {
@@ -236,10 +234,8 @@ export function createContextController({
                 state.customRootLabel = "";
                 state.currentFolderRelativePath = "";
                 delete gridContainer?.dataset?.mjrSubfolder;
-                const isCustom = String(state.scope || "").toLowerCase() === "custom";
-                if (isCustom) {
-                    resetBrowserHistory();
-                } else if (typeof scopeController?.setScope === "function") {
+                resetBrowserHistory();
+                if (typeof scopeController?.setScope === "function") {
                     await scopeController.setScope("output");
                     didSetScope = true;
                 } else {

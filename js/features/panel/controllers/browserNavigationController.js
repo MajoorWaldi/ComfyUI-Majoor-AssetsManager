@@ -40,6 +40,26 @@ export function createBrowserNavigationController({
         } catch {}
     };
 
+    const resolveFolderTargetPath = (asset) => {
+        const rawSubfolder = normPath(asset?.subfolder || "");
+        if (rawSubfolder) return rawSubfolder;
+
+        const rawFilepath = normPath(asset?.filepath || asset?.path || "");
+        if (rawFilepath) {
+            const kind = String(asset?.kind || "").toLowerCase();
+            if (kind === "folder") return rawFilepath;
+            // Defensive fallback: if a file path is emitted, browse its parent folder.
+            const parent = parentFolderPath(rawFilepath);
+            return parent || rawFilepath;
+        }
+
+        const name = normPath(asset?.filename || "");
+        if (!name) return currentFolderPath();
+        const base = currentFolderPath();
+        if (!base) return name;
+        return `${base}/${name}`.replace(/\/{2,}/g, "/");
+    };
+
     const parentFolderPath = (pathValue) => {
         const cur = normPath(pathValue);
         if (!cur) return "";
@@ -60,12 +80,27 @@ export function createBrowserNavigationController({
         } catch {}
     };
 
+    const resetGridScrollToTop = () => {
+        try {
+            if (gridContainer && typeof gridContainer.scrollTop === "number") {
+                gridContainer.scrollTop = 0;
+            }
+        } catch {}
+        try {
+            const parent = gridContainer?.parentElement || null;
+            if (parent && typeof parent.scrollTop === "number") {
+                parent.scrollTop = 0;
+            }
+        } catch {}
+    };
+
     const navigateFolder = async (target, { pushHistory = true } = {}) => {
         const prev = currentFolderPath();
         const next = normPath(target);
         if (prev === next) return;
         if (pushHistory) pushUniqueHistory(folderBackStack, prev);
         setFolderPath(next);
+        resetGridScrollToTop();
         notifyContext();
         await reloadGrid?.();
     };
@@ -73,6 +108,7 @@ export function createBrowserNavigationController({
     const resetToBrowserRoot = async () => {
         state.customRootId = "";
         setFolderPath("");
+        resetGridScrollToTop();
         notifyContext();
         await reloadGrid?.();
     };
@@ -206,12 +242,28 @@ export function createBrowserNavigationController({
     };
 
     const bindGridFolderNavigation = () => {
+        const onOpenFolderAsset = async (e) => {
+            const asset = e?.detail?.asset || null;
+            const target = resolveFolderTargetPath(asset || {});
+            const prev = currentFolderPath();
+            if (target !== prev) {
+                pushUniqueHistory(folderBackStack, prev);
+                setFolderPath(target);
+                resetGridScrollToTop();
+                notifyContext();
+                try {
+                    await reloadGrid?.();
+                } catch {}
+            }
+        };
+
         const onCustomSubfolderChanged = async (e) => {
             const next = String(e?.detail?.subfolder || "").trim().replaceAll("\\", "/");
             const prev = currentFolderPath();
             if (next !== prev) {
                 pushUniqueHistory(folderBackStack, prev);
                 setFolderPath(next);
+                resetGridScrollToTop();
                 notifyContext();
                 try {
                     await reloadGrid?.();
@@ -221,12 +273,18 @@ export function createBrowserNavigationController({
         gridContainer?.addEventListener?.("mjr:custom-subfolder-changed", onCustomSubfolderChanged, {
             signal: lifecycleSignal || undefined,
         });
+        gridContainer?.addEventListener?.("mjr:open-folder-asset", onOpenFolderAsset, {
+            signal: lifecycleSignal || undefined,
+        });
         try {
             gridContainer._mjrHasCustomSubfolderHandler = true;
         } catch {}
         return () => {
             try {
                 gridContainer?.removeEventListener?.("mjr:custom-subfolder-changed", onCustomSubfolderChanged);
+            } catch {}
+            try {
+                gridContainer?.removeEventListener?.("mjr:open-folder-asset", onOpenFolderAsset);
             } catch {}
             try {
                 gridContainer._mjrHasCustomSubfolderHandler = false;

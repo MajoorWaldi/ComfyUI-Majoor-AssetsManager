@@ -81,6 +81,8 @@ def _is_nightly_checkout(version: str, branch: str) -> bool:
     # treat it as nightly/development build.
     exact_tag = _run_git(["describe", "--tags", "--exact-match"])
     if exact_tag:
+        if _looks_nightly(exact_tag):
+            return True
         clean = str(version or "").strip().lstrip("v")
         return exact_tag not in {clean, f"v{clean}"}
     return False

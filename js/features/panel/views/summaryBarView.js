@@ -11,7 +11,7 @@ const _safeText = (v) => {
 const _titleScope = (scope) => {
     const s = String(scope || "").toLowerCase();
     if (s === "input" || s === "inputs") return "Inputs";
-    if (s === "custom") return "Custom";
+    if (s === "custom") return "Browser";
     if (s === "all") return "All";
     return "Outputs";
 };
@@ -45,6 +45,20 @@ export function createSummaryBarView() {
     bar.appendChild(right);
 
     const update = ({ state, gridContainer, context = null, actions = null } = {}) => {
+        const folderStats = (() => {
+            try {
+                const cards = Array.from(gridContainer?.querySelectorAll?.(".mjr-asset-card") || []);
+                let folders = 0;
+                for (const card of cards) {
+                    const kind = String(card?._mjrAsset?.kind || "").toLowerCase();
+                    if (kind === "folder") folders += 1;
+                }
+                return { total: cards.length, folders };
+            } catch {
+                return { total: 0, folders: 0 };
+            }
+        })();
+
         const cardsCount = (() => {
             try {
                 return Number(gridContainer?.querySelectorAll?.(".mjr-asset-card")?.length || 0) || 0;
@@ -77,7 +91,9 @@ export function createSummaryBarView() {
         const scope = _titleScope(state?.scope || gridContainer?.dataset?.mjrScope || "output");
 
         const countPart = total && total >= shown ? `${shown}/${total}` : `${shown}`;
-        const parts = [`assets: ${countPart}`];
+        const primaryLabel =
+            shown > 0 && folderStats.total > 0 && folderStats.folders === folderStats.total ? "folders" : "assets";
+        const parts = [`${primaryLabel}: ${countPart}`];
         if (selectedCount > 0) parts.push(`selected: ${selectedCount}`);
         parts.push(scope);
         try {

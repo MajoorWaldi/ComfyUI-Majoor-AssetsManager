@@ -243,18 +243,25 @@ export function createStatusIndicator(options = {}) {
         color: inherit;
     `;
     backupSelect.title = t("status.dbBackupSelectHint", "Select a DB backup to restore");
-    backupSelect.innerHTML = `<option value="">${t("status.dbBackupLoading", "Loading DB backups...")}</option>`;
+    const setSingleOption = (text) => {
+        backupSelect.replaceChildren();
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = String(text || "");
+        backupSelect.appendChild(opt);
+    };
+    setSingleOption(t("status.dbBackupLoading", "Loading DB backups..."));
 
     const refreshBackups = async () => {
         try {
             const res = await listDbBackups();
             if (!res?.ok) {
-                backupSelect.innerHTML = `<option value="">${t("status.dbBackupNone", "No DB backup found")}</option>`;
+                setSingleOption(t("status.dbBackupNone", "No DB backup found"));
                 return;
             }
             const items = Array.isArray(res?.data?.items) ? res.data.items : [];
             if (!items.length) {
-                backupSelect.innerHTML = `<option value="">${t("status.dbBackupNone", "No DB backup found")}</option>`;
+                setSingleOption(t("status.dbBackupNone", "No DB backup found"));
                 return;
             }
             backupSelect.replaceChildren();
@@ -271,7 +278,7 @@ export function createStatusIndicator(options = {}) {
                 backupSelect.appendChild(opt);
             }
         } catch {
-            backupSelect.innerHTML = `<option value="">${t("status.dbBackupNone", "No DB backup found")}</option>`;
+            setSingleOption(t("status.dbBackupNone", "No DB backup found"));
         }
     };
     void refreshBackups();

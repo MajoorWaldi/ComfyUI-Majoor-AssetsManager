@@ -163,7 +163,8 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     const { bar: summaryBar, update: updateSummaryBar } = createSummaryBarView();
     const folderBreadcrumb = document.createElement("div");
     folderBreadcrumb.className = "mjr-folder-breadcrumb";
-    folderBreadcrumb.style.cssText = "display:none; align-items:center; gap:6px; padding:4px 8px; margin:2px 0 4px 0; font-size:12px; opacity:0.85; overflow:auto; white-space:nowrap;";
+    folderBreadcrumb.style.cssText =
+        "display:none; align-items:center; gap:4px; padding:3px 6px; margin:1px 0 3px 0; font-size:11px; opacity:0.78; overflow:auto; white-space:nowrap; border-radius:8px; background:color-mix(in srgb, var(--mjr-surface-2, rgba(255,255,255,0.05)) 42%, transparent);";
 
     const content = document.createElement("div");
     content.classList.add("mjr-am-content");
@@ -529,9 +530,6 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         registerSummaryDispose(() => {
             try {
                 if (_reloadGridHandler) gridContainer.removeEventListener("mjr:reload-grid", _reloadGridHandler);
-            } catch {}
-            try {
-                _unbindBrowserFolderNav?.();
             } catch {}
             try {
                 gridContainer.removeEventListener("mjr:badge-duplicates-focus", onDuplicateBadgeFocus);
@@ -1129,6 +1127,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         } catch {}
         try {
             gridContainer?._mjrGridContextMenuUnbind?.();
+        } catch {}
+        try {
+            _unbindBrowserFolderNav?.();
         } catch {}
         try {
             disposeGridScanListeners();

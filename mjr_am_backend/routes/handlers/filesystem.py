@@ -59,6 +59,15 @@ _FS_LIST_CACHE_LOCK = asyncio.Lock()
 _FS_LIST_CACHE: OrderedDict[str, dict[str, Any]] = OrderedDict()
 
 
+async def _invalidate_fs_list_cache() -> None:
+    """Best-effort invalidation for filesystem listing cache."""
+    try:
+        async with _FS_LIST_CACHE_LOCK:
+            _FS_LIST_CACHE.clear()
+    except Exception:
+        return
+
+
 def _safe_mtime_int(value: Any) -> int:
     try:
         if isinstance(value, bool):

@@ -46,8 +46,6 @@ const getVideoAutoplayMode = () => {
     try {
         const mode = APP_CONFIG.GRID_VIDEO_AUTOPLAY_MODE;
         if (mode === "hover" || mode === "always") return mode;
-        // Backward compat: old boolean setting
-        if (mode === true || APP_CONFIG.GRID_VIDEO_HOVER_AUTOPLAY === true) return "hover";
     } catch {}
     return "off";
 };

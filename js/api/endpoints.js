@@ -26,6 +26,7 @@ export const ENDPOINTS = {
     ROOTS: "/mjr/am/roots",
     CUSTOM_ROOTS: "/mjr/am/custom-roots",
     CUSTOM_ROOTS_REMOVE: "/mjr/am/custom-roots/remove",
+    BROWSER_FOLDER_OP: "/mjr/am/browser/folder-op",
     BROWSE_FOLDER: "/mjr/sys/browse-folder",
     FOLDER_INFO: "/mjr/am/folder-info",
 
@@ -295,7 +296,7 @@ export function buildAssetViewURL(asset) {
         const rid = String(pickRootId(asset) || "").trim();
         if (rid) return buildCustomViewURL(filename, subfolder, rid);
         if (rawPath) {
-            return `${ENDPOINTS.CUSTOM_VIEW}?filepath=${encodeURIComponent(rawPath)}`;
+            return `${ENDPOINTS.CUSTOM_VIEW}?filepath=${encodeURIComponent(rawPath)}&browser_mode=1`;
         }
         // Fallback for malformed custom assets without root id.
         const fallbackType = fromPath.type || "output";
