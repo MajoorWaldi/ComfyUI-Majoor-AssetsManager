@@ -1,3 +1,5 @@
+import { t } from "../../../app/i18n.js";
+
 export function createTabsView() {
     const tabs = document.createElement("div");
     tabs.classList.add("mjr-tabs");
@@ -12,10 +14,10 @@ export function createTabsView() {
         return btn;
     };
 
-    const tabAll = makeTab("All", "all", "Browse all assets (inputs + outputs)");
-    const tabInputs = makeTab("Inputs", "input", "Browse input folder assets");
-    const tabOutputs = makeTab("Outputs", "output", "Browse generated outputs");
-    const tabCustom = makeTab("Browser", "custom", "Browse browser folders");
+    const tabAll = makeTab(t("tab.all"), "all", t("tooltip.tab.all"));
+    const tabInputs = makeTab(t("tab.input"), "input", t("tooltip.tab.input"));
+    const tabOutputs = makeTab(t("tab.output"), "output", t("tooltip.tab.output"));
+    const tabCustom = makeTab(t("tab.custom"), "custom", t("tooltip.tab.custom"));
     tabs.appendChild(tabAll);
     tabs.appendChild(tabInputs);
     tabs.appendChild(tabOutputs);

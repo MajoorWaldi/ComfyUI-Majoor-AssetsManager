@@ -294,8 +294,8 @@ app.registerExtension({
         if (registerSidebarTabCompat(app, {
                 id: "majoor-assets",
                 icon: "pi pi-folder",
-                title: "Assets Manager",
-                tooltip: "Majoor Assets Manager - Browse and search your outputs",
+                title: t("manager.title"),
+                tooltip: t("tooltip.sidebarTab"),
                 type: "custom",
                 render: (el) => {
                     void renderAssetsManager(el, { useComfyThemeUI: UI_FLAGS.useComfyThemeUI });

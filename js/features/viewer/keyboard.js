@@ -187,7 +187,7 @@ export function installViewerKeyboard({
                     const rate = controls.setPlaybackRate?.(deltaOrAbsolute);
                     if (Number.isFinite(Number(rate))) {
                         state.playbackRate = Number(rate);
-                        comfyToast(`Playback ${Number(rate).toFixed(2)}x`, "info", 1200);
+                        comfyToast(t("toast.playbackRate", "Playback {rate}x", { rate: Number(rate).toFixed(2) }), "info", 1200);
                         return true;
                     }
                     return false;
@@ -195,7 +195,7 @@ export function installViewerKeyboard({
                 const rate = controls.adjustPlaybackRate?.(deltaOrAbsolute);
                 if (Number.isFinite(Number(rate))) {
                     state.playbackRate = Number(rate);
-                    comfyToast(`Playback ${Number(rate).toFixed(2)}x`, "info", 1200);
+                    comfyToast(t("toast.playbackRate", "Playback {rate}x", { rate: Number(rate).toFixed(2) }), "info", 1200);
                     return true;
                 }
                 return false;
@@ -443,3 +443,4 @@ export function installViewerKeyboard({
         },
     };
 }
+

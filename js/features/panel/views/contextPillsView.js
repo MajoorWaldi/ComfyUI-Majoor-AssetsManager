@@ -1,3 +1,5 @@
+import { t } from "../../../app/i18n.js";
+
 const _safeText = (v) => {
     try {
         return String(v ?? "");
@@ -8,18 +10,18 @@ const _safeText = (v) => {
 
 const _labelSort = (key) => {
     const k = String(key || "");
-    if (k === "name_asc") return "Name A-Z";
-    if (k === "name_desc") return "Name Z-A";
-    if (k === "mtime_asc") return "Oldest first";
-    return "Newest first";
+    if (k === "name_asc") return t("sort.nameAZ");
+    if (k === "name_desc") return t("sort.nameZA");
+    if (k === "mtime_asc") return t("sort.oldest");
+    return t("sort.newest");
 };
 
 const _labelScope = (scope) => {
     const s = String(scope || "").toLowerCase();
-    if (s === "custom") return "Browser";
-    if (s === "all") return "All";
-    if (s === "input" || s === "inputs") return "Inputs";
-    return "Outputs";
+    if (s === "custom") return t("scope.customBrowser");
+    if (s === "all") return t("tab.all");
+    if (s === "input" || s === "inputs") return t("scope.input");
+    return t("scope.output");
 };
 
 function _createPill({ label, value, onClear } = {}) {
@@ -35,8 +37,8 @@ function _createPill({ label, value, onClear } = {}) {
         const x = document.createElement("button");
         x.type = "button";
         x.className = "mjr-context-pill-x";
-        x.title = `Clear ${label || "filter"}`;
-        x.setAttribute("aria-label", `Clear ${label || "filter"}`);
+        x.title = t("tooltip.clearFilter", { label: label || t("label.filters") });
+        x.setAttribute("aria-label", t("tooltip.clearFilter", { label: label || t("label.filters") }));
         x.textContent = "×";
         x.addEventListener("click", (e) => {
             try {
@@ -92,7 +94,7 @@ export function createContextPillsView() {
         if (!isBrowserScope && isCollectionActive) {
             root.appendChild(
                 _createPill({
-                    label: "Collection",
+                    label: t("label.collections"),
                     value: _safeText(state?.collectionName || state?.collectionId || "").trim(),
                     onClear: () => safeActions?.clearCollection?.()
                 })
@@ -101,7 +103,7 @@ export function createContextPillsView() {
         if (isScopeActive) {
             root.appendChild(
                 _createPill({
-                    label: "Scope",
+                    label: t("label.scope"),
                     value: _labelScope(state?.scope || "output"),
                     onClear: () => safeActions?.clearScope?.()
                 })
@@ -110,7 +112,7 @@ export function createContextPillsView() {
         if (isQueryActive) {
             root.appendChild(
                 _createPill({
-                    label: "Query",
+                    label: t("label.query"),
                     value: query,
                     onClear: () => safeActions?.clearQuery?.()
                 })
@@ -119,7 +121,7 @@ export function createContextPillsView() {
         if (_safeText(state?.kindFilter || "").trim()) {
             root.appendChild(
                 _createPill({
-                    label: "Type",
+                    label: t("label.type"),
                     value: _safeText(state?.kindFilter || "").trim(),
                     onClear: () => safeActions?.clearKind?.()
                 })
@@ -128,7 +130,7 @@ export function createContextPillsView() {
         if (Number(state?.minRating || 0) > 0) {
             root.appendChild(
                 _createPill({
-                    label: "Rating",
+                    label: t("label.rating"),
                     value: `>= ${Number(state?.minRating || 0)}`,
                     onClear: () => safeActions?.clearMinRating?.()
                 })
@@ -137,8 +139,8 @@ export function createContextPillsView() {
         if (state?.workflowOnly) {
             root.appendChild(
                 _createPill({
-                    label: "Workflow",
-                    value: "Only",
+                    label: t("label.workflow"),
+                    value: t("label.only"),
                     onClear: () => safeActions?.clearWorkflowOnly?.()
                 })
             );
@@ -146,7 +148,7 @@ export function createContextPillsView() {
         if (_safeText(state?.workflowType || "").trim()) {
             root.appendChild(
                 _createPill({
-                    label: "WF Type",
+                    label: t("label.workflowType"),
                     value: _safeText(state?.workflowType || "").trim(),
                     onClear: () => safeActions?.clearWorkflowType?.()
                 })
@@ -158,7 +160,7 @@ export function createContextPillsView() {
             const label = min > 0 && max > 0 ? `${min}-${max} MB` : min > 0 ? `>= ${min} MB` : `<= ${max} MB`;
             root.appendChild(
                 _createPill({
-                    label: "Size",
+                    label: t("sidebar.size"),
                     value: label,
                     onClear: () => safeActions?.clearSize?.()
                 })
@@ -169,7 +171,7 @@ export function createContextPillsView() {
             const h = Number(state?.minHeight || 0) || 0;
             root.appendChild(
                 _createPill({
-                    label: "Resolution",
+                    label: t("label.resolution"),
                     value: `>= ${w || 0}x${h || 0}`,
                     onClear: () => safeActions?.clearResolution?.()
                 })
@@ -178,7 +180,7 @@ export function createContextPillsView() {
         if (_safeText(state?.dateRangeFilter || "").trim()) {
             root.appendChild(
                 _createPill({
-                    label: "Date",
+                    label: t("sidebar.date"),
                     value: _safeText(state?.dateRangeFilter || "").trim(),
                     onClear: () => safeActions?.clearDateRange?.()
                 })
@@ -187,7 +189,7 @@ export function createContextPillsView() {
         if (_safeText(state?.dateExactFilter || "").trim()) {
             root.appendChild(
                 _createPill({
-                    label: "Day",
+                    label: t("label.day"),
                     value: _safeText(state?.dateExactFilter || "").trim(),
                     onClear: () => safeActions?.clearDateExact?.()
                 })
@@ -196,7 +198,7 @@ export function createContextPillsView() {
         if (isSortActive) {
             root.appendChild(
                 _createPill({
-                    label: "Sort",
+                    label: t("label.sort"),
                     value: _labelSort(state?.sort),
                     onClear: () => safeActions?.clearSort?.()
                 })

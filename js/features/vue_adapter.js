@@ -8,17 +8,65 @@
 // This file is in js/features/, so we go up one level.
 
 let vueModule = null;
+let vueScriptPromise = null;
+
+function getCspNonce() {
+    try {
+        const explicit = String(globalThis?.__mjrCspNonce || "").trim();
+        if (explicit) return explicit;
+    } catch {}
+    try {
+        const meta = document.querySelector('meta[name="csp-nonce"]');
+        const value = String(meta?.getAttribute("content") || "").trim();
+        if (value) return value;
+    } catch {}
+    try {
+        const script = document.querySelector("script[nonce]");
+        const value = String(script?.nonce || script?.getAttribute("nonce") || "").trim();
+        if (value) return value;
+    } catch {}
+    return "";
+}
+
+async function loadVueModuleViaScriptTag() {
+    if (vueScriptPromise) return vueScriptPromise;
+    vueScriptPromise = new Promise((resolve) => {
+        try {
+            if (globalThis?.MajoorVue) {
+                resolve(globalThis.MajoorVue);
+                return;
+            }
+            const existing = document.querySelector('script[data-mjr-vue-bundle="1"]');
+            if (existing) {
+                existing.addEventListener("load", () => resolve(globalThis?.MajoorVue || null), { once: true });
+                existing.addEventListener("error", () => resolve(null), { once: true });
+                return;
+            }
+            const s = document.createElement("script");
+            s.src = new URL("../vue/majoor-ui.umd.js", import.meta.url).href;
+            s.async = true;
+            s.dataset.mjrVueBundle = "1";
+            const nonce = getCspNonce();
+            if (nonce) s.nonce = nonce;
+            s.onload = () => resolve(globalThis?.MajoorVue || null);
+            s.onerror = () => resolve(null);
+            document.head.appendChild(s);
+        } catch {
+            resolve(null);
+        }
+    });
+    return vueScriptPromise;
+}
 
 export async function loadVueModule() {
     if (vueModule) return vueModule;
     try {
-        // Import the built module. Copilot build output is in js/vue/majoor-ui.mjs
-        // We use absolute path from root for import logic or relative ?
-        // Browsers load relative to this file.
-        // this file: js/features/vue_adapter.js
-        // target: js/vue/majoor-ui.mjs
-        // relative: ../vue/majoor-ui.mjs
-        vueModule = await import("../vue/majoor-ui.mjs");
+        // Prefer nonce-capable loader for strict CSP deployments.
+        vueModule = await loadVueModuleViaScriptTag();
+        if (!vueModule) {
+            // Fallback for environments where module import is permitted.
+            vueModule = await import("../vue/majoor-ui.mjs");
+        }
         console.log("[Majoor] Vue module loaded:", vueModule);
         return vueModule;
     } catch (e) {

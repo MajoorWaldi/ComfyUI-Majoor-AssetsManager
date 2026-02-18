@@ -9,7 +9,9 @@ const DEFAULT_LANG = "en-US";
 let currentLang = DEFAULT_LANG;
 let _langChangeListeners = [];
 const LANG_STORAGE_KEYS = ["mjr_lang", "majoor.lang"];
+const FOLLOW_COMFY_LANG_STORAGE_KEY = "mjr_lang_follow_comfy";
 const _missingTranslationKeys = new Set();
+let _comfyLangSyncTimer = null;
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // DICTIONARY - Full UI translations
@@ -109,7 +111,9 @@ const DICTIONARY = {
         // â”€â”€â”€ Panel: Tabs â”€â”€â”€
         "tab.output": "Output",
         "tab.input": "Input",
+        "tab.all": "All",
         "tab.custom": "Custom",
+        "manager.title": "Assets Manager",
 
         // â”€â”€â”€ Panel: Buttons â”€â”€â”€
         "btn.add": "Addâ€¦",
@@ -139,6 +143,12 @@ const DICTIONARY = {
         "label.dateRange": "Date range",
         "label.agenda": "Agenda",
         "label.sort": "Sort",
+        "label.scope": "Scope",
+        "label.query": "Query",
+        "label.only": "Only",
+        "label.workflowType": "WF Type",
+        "label.resolution": "Resolution",
+        "label.day": "Day",
         "label.collections": "Collections",
         "label.filters": "Filters",
         "label.selectFolder": "Select folderâ€¦",
@@ -338,6 +348,7 @@ const DICTIONARY = {
         "toast.openedInFolder": "Opened in folder",
         "toast.openFolderFailed": "Failed to open folder.",
         "toast.pathCopied": "File path copied to clipboard",
+        "toast.unableResolveFolderPath": "Unable to resolve folder path",
         "toast.pathCopyFailed": "Failed to copy path",
         "toast.noFilePath": "No file path available for this asset.",
         "toast.downloadingFile": "Downloading {filename}...",
@@ -359,6 +370,12 @@ const DICTIONARY = {
         "toast.filesDeletedShortPartial": "{success} deleted, {failed} failed",
         "toast.copiedToClipboardNamed": "{name} copied to clipboard!",
         "toast.rescanningFile": "Rescanning fileâ€¦",
+        "summary.assets": "assets",
+        "summary.folders": "folders",
+        "summary.selected": "selected",
+        "summary.hidden": "hidden",
+        "summary.duplicates": "duplicates",
+        "summary.similar": "similar",
 
         // â”€â”€â”€ Hotkeys â”€â”€â”€
         // Missing keys filled from runtime usage
@@ -406,6 +423,19 @@ const DICTIONARY = {
         "hotkey.delete": "Delete (Del)",
         "hotkey.viewer": "Open viewer (Enter)",
         "hotkey.escape": "Close (Esc)",
+        "tooltip.tab.all": "Browse all assets (inputs + outputs)",
+        "tooltip.tab.input": "Browse input folder assets",
+        "tooltip.tab.output": "Browse generated outputs",
+        "tooltip.tab.custom": "Browse browser folders",
+        "tooltip.browserFolders": "Browser folders",
+        "tooltip.pinnedFolders": "Pinned folders",
+        "tooltip.clearFilter": "Clear {label}",
+        "tooltip.duplicateSuggestions": "Duplicate/similarity suggestions",
+        "tooltip.closeSidebar": "Close sidebar",
+        "tooltip.closeSidebarEsc": "Close sidebar (Esc)",
+        "tooltip.supportKofi": "Buy Me a White Monster Drink",
+        "tooltip.sidebarTab": "Assets Manager - Browse and search your outputs",
+        "ctx.pinAsBrowserRoot": "Pin as Browser Root",
     },
 
     "fr-FR": {
@@ -502,7 +532,9 @@ const DICTIONARY = {
         // â”€â”€â”€ Panel: Onglets â”€â”€â”€
         "tab.output": "Sortie",
         "tab.input": "EntrÃ©e",
+        "tab.all": "Tout",
         "tab.custom": "PersonnalisÃ©",
+        "manager.title": "Gestionnaire d'assets",
 
         // â”€â”€â”€ Panel: Boutons â”€â”€â”€
         "btn.add": "Ajouterâ€¦",
@@ -532,6 +564,12 @@ const DICTIONARY = {
         "label.dateRange": "PÃ©riode",
         "label.agenda": "Agenda",
         "label.sort": "Trier",
+        "label.scope": "PortÃ©e",
+        "label.query": "RequÃªte",
+        "label.only": "Seulement",
+        "label.workflowType": "Type WF",
+        "label.resolution": "RÃ©solution",
+        "label.day": "Jour",
         "label.collections": "Collections",
         "label.filters": "Filtres",
         "label.selectFolder": "SÃ©lectionner un dossierâ€¦",
@@ -731,6 +769,7 @@ const DICTIONARY = {
         "toast.openedInFolder": "Ouvert dans le dossier",
         "toast.openFolderFailed": "Ã‰chec de l'ouverture du dossier.",
         "toast.pathCopied": "Chemin copiÃ© dans le presse-papiers",
+        "toast.unableResolveFolderPath": "Impossible de rÃ©soudre le chemin du dossier",
         "toast.pathCopyFailed": "Ã‰chec de la copie du chemin",
         "toast.noFilePath": "Aucun chemin de fichier disponible pour cet asset.",
         "toast.downloadingFile": "TÃ©lÃ©chargement de {filename}...",
@@ -752,6 +791,12 @@ const DICTIONARY = {
         "toast.filesDeletedShortPartial": "{success} supprimÃ©s, {failed} en Ã©chec",
         "toast.copiedToClipboardNamed": "{name} copiÃ© dans le presse-papiers !",
         "toast.rescanningFile": "Rescan du fichierâ€¦",
+        "summary.assets": "assets",
+        "summary.folders": "dossiers",
+        "summary.selected": "sÃ©lectionnÃ©s",
+        "summary.hidden": "masquÃ©s",
+        "summary.duplicates": "doublons",
+        "summary.similar": "similaires",
 
         // â”€â”€â”€ Raccourcis â”€â”€â”€
         // Clés manquantes remontées par le runtime
@@ -788,6 +833,19 @@ const DICTIONARY = {
         "hotkey.delete": "Supprimer (Suppr)",
         "hotkey.viewer": "Ouvrir visionneuse (EntrÃ©e)",
         "hotkey.escape": "Fermer (Ã‰chap)",
+        "tooltip.tab.all": "Parcourir tous les assets (entrÃ©es + sorties)",
+        "tooltip.tab.input": "Parcourir les assets du dossier d'entrÃ©e",
+        "tooltip.tab.output": "Parcourir les sorties gÃ©nÃ©rÃ©es",
+        "tooltip.tab.custom": "Parcourir les dossiers Browser",
+        "tooltip.browserFolders": "Dossiers Browser",
+        "tooltip.pinnedFolders": "Dossiers Ã©pinglÃ©s",
+        "tooltip.clearFilter": "Effacer {label}",
+        "tooltip.duplicateSuggestions": "Suggestions de doublons/similaires",
+        "tooltip.closeSidebar": "Fermer la barre latÃ©rale",
+        "tooltip.closeSidebarEsc": "Fermer la barre latÃ©rale (Ã‰chap)",
+        "tooltip.supportKofi": "Offrir un White Monster",
+        "tooltip.sidebarTab": "Gestionnaire d'assets - Parcourir et rechercher vos sorties",
+        "ctx.pinAsBrowserRoot": "Ã‰pingler comme racine Browser",
     }
 };
 
@@ -801,6 +859,21 @@ const LANGUAGE_NAMES = Object.freeze({
     "pt-PT": "Portuguese",
     "es-ES": "Spanish",
     "ru-RU": "Russian",
+    "de-DE": "German",
+    "it-IT": "Italian",
+    "nl-NL": "Dutch",
+    "pl-PL": "Polish",
+    "tr-TR": "Turkish",
+    "vi-VN": "Vietnamese",
+    "cs-CZ": "Czech",
+    "fa-IR": "Persian",
+    "id-ID": "Indonesian",
+    "uk-UA": "Ukrainian",
+    "hu-HU": "Hungarian",
+    "ar-SA": "Arabic",
+    "sv-SE": "Swedish",
+    "ro-RO": "Romanian",
+    "el-GR": "Greek",
 });
 
 // Register additional locales with safe fallback to English until translated keys are added.
@@ -812,6 +885,21 @@ const LANGUAGE_NAMES = Object.freeze({
     "pt-PT",
     "es-ES",
     "ru-RU",
+    "de-DE",
+    "it-IT",
+    "nl-NL",
+    "pl-PL",
+    "tr-TR",
+    "vi-VN",
+    "cs-CZ",
+    "fa-IR",
+    "id-ID",
+    "uk-UA",
+    "hu-HU",
+    "ar-SA",
+    "sv-SE",
+    "ro-RO",
+    "el-GR",
 ].forEach((code) => {
     if (!DICTIONARY[code]) DICTIONARY[code] = {};
 });
@@ -1247,6 +1335,441 @@ const CORE_TRANSLATIONS = {
         "toast.tagsUpdated": "Ð¢ÐµÐ³Ð¸ Ð¾Ð±Ð½Ð¾Ð²Ð»ÐµÐ½Ñ‹",
         "toast.pathCopied": "ÐŸÑƒÑ‚ÑŒ ÑÐºÐ¾Ð¿Ð¸Ñ€Ð¾Ð²Ð°Ð½ Ð² Ð±ÑƒÑ„ÐµÑ€ Ð¾Ð±Ð¼ÐµÐ½Ð°",
     },
+    "de-DE": {
+        "tab.custom": "Browser",
+        "scope.custom": "Browser",
+        "scope.customBrowser": "Browser",
+        "btn.back": "Zurück",
+        "btn.up": "Hoch",
+        "label.computer": "Computer",
+        "ctx.refreshMetadata": "Metadaten aktualisieren",
+        "msg.noPinnedFolders": "Keine angehefteten Ordner",
+        "ctx.createFolderHere": "Ordner hier erstellen...",
+        "ctx.renameFolder": "Ordner umbenennen...",
+        "ctx.moveFolder": "Ordner verschieben...",
+        "ctx.deleteFolder": "Ordner löschen...",
+        "dialog.newFolderName": "Neuer Ordnername",
+        "dialog.renameFolder": "Ordner umbenennen",
+        "dialog.destinationDirectoryPath": "Zielverzeichnispfad",
+        "dialog.deleteFolderRecursive": "Ordner \"{name}\" und gesamten Inhalt löschen?",
+        "dialog.browserRootLabelOptional": "Bezeichnung für neuen Browser-Root (optional)",
+        "toast.createFolderFailed": "Ordner konnte nicht erstellt werden",
+        "toast.renameFolderFailed": "Ordner konnte nicht umbenannt werden",
+        "toast.moveFolderFailed": "Ordner konnte nicht verschoben werden",
+        "toast.deleteFolderFailed": "Ordner konnte nicht gelöscht werden",
+        "toast.folderCreated": "Ordner erstellt: {name}",
+        "toast.folderRenamed": "Ordner umbenannt",
+        "toast.folderMoved": "Ordner verschoben",
+        "toast.folderDeleted": "Ordner gelöscht",
+        "toast.pinFolderFailed": "Ordner konnte nicht angeheftet werden",
+        "toast.folderPinnedAsBrowserRoot": "Ordner als Browser-Root angeheftet",
+    },
+    "it-IT": {
+        "tab.custom": "Browser",
+        "scope.custom": "Browser",
+        "scope.customBrowser": "Browser",
+        "btn.back": "Indietro",
+        "btn.up": "Su",
+        "label.computer": "Computer",
+        "ctx.refreshMetadata": "Aggiorna metadati",
+        "msg.noPinnedFolders": "Nessuna cartella fissata",
+        "ctx.createFolderHere": "Crea cartella qui...",
+        "ctx.renameFolder": "Rinomina cartella...",
+        "ctx.moveFolder": "Sposta cartella...",
+        "ctx.deleteFolder": "Elimina cartella...",
+        "dialog.newFolderName": "Nuovo nome cartella",
+        "dialog.renameFolder": "Rinomina cartella",
+        "dialog.destinationDirectoryPath": "Percorso cartella di destinazione",
+        "dialog.deleteFolderRecursive": "Eliminare la cartella \"{name}\" e tutto il contenuto?",
+        "dialog.browserRootLabelOptional": "Etichetta per la nuova root browser (opzionale)",
+        "toast.createFolderFailed": "Impossibile creare la cartella",
+        "toast.renameFolderFailed": "Impossibile rinominare la cartella",
+        "toast.moveFolderFailed": "Impossibile spostare la cartella",
+        "toast.deleteFolderFailed": "Impossibile eliminare la cartella",
+        "toast.folderCreated": "Cartella creata: {name}",
+        "toast.folderRenamed": "Cartella rinominata",
+        "toast.folderMoved": "Cartella spostata",
+        "toast.folderDeleted": "Cartella eliminata",
+        "toast.pinFolderFailed": "Impossibile fissare la cartella",
+        "toast.folderPinnedAsBrowserRoot": "Cartella fissata come root browser",
+    },
+    "nl-NL": {
+        "tab.custom": "Browser",
+        "scope.custom": "Browser",
+        "scope.customBrowser": "Browser",
+        "btn.back": "Terug",
+        "btn.up": "Omhoog",
+        "label.computer": "Computer",
+        "ctx.refreshMetadata": "Metadata vernieuwen",
+        "msg.noPinnedFolders": "Geen vastgezette mappen",
+        "ctx.createFolderHere": "Map hier maken...",
+        "ctx.renameFolder": "Map hernoemen...",
+        "ctx.moveFolder": "Map verplaatsen...",
+        "ctx.deleteFolder": "Map verwijderen...",
+        "dialog.newFolderName": "Nieuwe mapnaam",
+        "dialog.renameFolder": "Map hernoemen",
+        "dialog.destinationDirectoryPath": "Bestemmingsmap pad",
+        "dialog.deleteFolderRecursive": "Map \"{name}\" en alle inhoud verwijderen?",
+        "dialog.browserRootLabelOptional": "Label voor nieuwe browser-root (optioneel)",
+        "toast.createFolderFailed": "Maken van map mislukt",
+        "toast.renameFolderFailed": "Hernoemen van map mislukt",
+        "toast.moveFolderFailed": "Verplaatsen van map mislukt",
+        "toast.deleteFolderFailed": "Verwijderen van map mislukt",
+        "toast.folderCreated": "Map gemaakt: {name}",
+        "toast.folderRenamed": "Map hernoemd",
+        "toast.folderMoved": "Map verplaatst",
+        "toast.folderDeleted": "Map verwijderd",
+        "toast.pinFolderFailed": "Map vastzetten mislukt",
+        "toast.folderPinnedAsBrowserRoot": "Map vastgezet als browser-root",
+    },
+    "pl-PL": {
+        "tab.custom": "Przeglądarka",
+        "scope.custom": "Przeglądarka",
+        "scope.customBrowser": "Przeglądarka",
+        "btn.back": "Wstecz",
+        "btn.up": "Góra",
+        "label.computer": "Komputer",
+        "ctx.refreshMetadata": "Odśwież metadane",
+        "msg.noPinnedFolders": "Brak przypiętych folderów",
+        "ctx.createFolderHere": "Utwórz folder tutaj...",
+        "ctx.renameFolder": "Zmień nazwę folderu...",
+        "ctx.moveFolder": "Przenieś folder...",
+        "ctx.deleteFolder": "Usuń folder...",
+        "dialog.newFolderName": "Nowa nazwa folderu",
+        "dialog.renameFolder": "Zmień nazwę folderu",
+        "dialog.destinationDirectoryPath": "Ścieżka katalogu docelowego",
+        "dialog.deleteFolderRecursive": "Usunąć folder \"{name}\" i całą jego zawartość?",
+        "dialog.browserRootLabelOptional": "Etykieta nowego katalogu głównego przeglądarki (opcjonalnie)",
+        "toast.createFolderFailed": "Nie udało się utworzyć folderu",
+        "toast.renameFolderFailed": "Nie udało się zmienić nazwy folderu",
+        "toast.moveFolderFailed": "Nie udało się przenieść folderu",
+        "toast.deleteFolderFailed": "Nie udało się usunąć folderu",
+        "toast.folderCreated": "Utworzono folder: {name}",
+        "toast.folderRenamed": "Zmieniono nazwę folderu",
+        "toast.folderMoved": "Przeniesiono folder",
+        "toast.folderDeleted": "Usunięto folder",
+        "toast.pinFolderFailed": "Nie udało się przypiąć folderu",
+        "toast.folderPinnedAsBrowserRoot": "Folder przypięty jako katalog główny przeglądarki",
+    },
+    "tr-TR": {
+        "tab.custom": "Tarayıcı",
+        "scope.custom": "Tarayıcı",
+        "scope.customBrowser": "Tarayıcı",
+        "btn.back": "Geri",
+        "btn.up": "Yukarı",
+        "label.computer": "Bilgisayar",
+        "ctx.refreshMetadata": "Meta veriyi yenile",
+        "msg.noPinnedFolders": "Sabitlenmiş klasör yok",
+        "ctx.createFolderHere": "Burada klasör oluştur...",
+        "ctx.renameFolder": "Klasörü yeniden adlandır...",
+        "ctx.moveFolder": "Klasörü taşı...",
+        "ctx.deleteFolder": "Klasörü sil...",
+        "dialog.newFolderName": "Yeni klasör adı",
+        "dialog.renameFolder": "Klasörü yeniden adlandır",
+        "dialog.destinationDirectoryPath": "Hedef dizin yolu",
+        "dialog.deleteFolderRecursive": "\"{name}\" klasörü ve tüm içeriği silinsin mi?",
+        "dialog.browserRootLabelOptional": "Yeni tarayıcı kökü etiketi (isteğe bağlı)",
+        "toast.createFolderFailed": "Klasör oluşturulamadı",
+        "toast.renameFolderFailed": "Klasör yeniden adlandırılamadı",
+        "toast.moveFolderFailed": "Klasör taşınamadı",
+        "toast.deleteFolderFailed": "Klasör silinemedi",
+        "toast.folderCreated": "Klasör oluşturuldu: {name}",
+        "toast.folderRenamed": "Klasör yeniden adlandırıldı",
+        "toast.folderMoved": "Klasör taşındı",
+        "toast.folderDeleted": "Klasör silindi",
+        "toast.pinFolderFailed": "Klasör sabitlenemedi",
+        "toast.folderPinnedAsBrowserRoot": "Klasör tarayıcı kökü olarak sabitlendi",
+    },
+    "vi-VN": {
+        "tab.custom": "Trình duyệt",
+        "scope.custom": "Trình duyệt",
+        "scope.customBrowser": "Trình duyệt",
+        "btn.back": "Quay lại",
+        "btn.up": "Lên",
+        "label.computer": "Máy tính",
+        "ctx.refreshMetadata": "Làm mới metadata",
+        "msg.noPinnedFolders": "Không có thư mục ghim",
+        "ctx.createFolderHere": "Tạo thư mục tại đây...",
+        "ctx.renameFolder": "Đổi tên thư mục...",
+        "ctx.moveFolder": "Di chuyển thư mục...",
+        "ctx.deleteFolder": "Xóa thư mục...",
+        "dialog.newFolderName": "Tên thư mục mới",
+        "dialog.renameFolder": "Đổi tên thư mục",
+        "dialog.destinationDirectoryPath": "Đường dẫn thư mục đích",
+        "dialog.deleteFolderRecursive": "Xóa thư mục \"{name}\" và toàn bộ nội dung?",
+        "dialog.browserRootLabelOptional": "Nhãn cho gốc trình duyệt mới (tùy chọn)",
+        "toast.createFolderFailed": "Không thể tạo thư mục",
+        "toast.renameFolderFailed": "Không thể đổi tên thư mục",
+        "toast.moveFolderFailed": "Không thể di chuyển thư mục",
+        "toast.deleteFolderFailed": "Không thể xóa thư mục",
+        "toast.folderCreated": "Đã tạo thư mục: {name}",
+        "toast.folderRenamed": "Đã đổi tên thư mục",
+        "toast.folderMoved": "Đã di chuyển thư mục",
+        "toast.folderDeleted": "Đã xóa thư mục",
+        "toast.pinFolderFailed": "Không thể ghim thư mục",
+        "toast.folderPinnedAsBrowserRoot": "Đã ghim thư mục làm gốc trình duyệt",
+    },
+    "cs-CZ": {
+        "tab.custom": "Prohlížeč",
+        "scope.custom": "Prohlížeč",
+        "scope.customBrowser": "Prohlížeč",
+        "btn.back": "Zpět",
+        "btn.up": "Nahoru",
+        "label.computer": "Počítač",
+        "ctx.refreshMetadata": "Obnovit metadata",
+        "msg.noPinnedFolders": "Žádné připnuté složky",
+        "ctx.createFolderHere": "Vytvořit složku zde...",
+        "ctx.renameFolder": "Přejmenovat složku...",
+        "ctx.moveFolder": "Přesunout složku...",
+        "ctx.deleteFolder": "Smazat složku...",
+        "dialog.newFolderName": "Název nové složky",
+        "dialog.renameFolder": "Přejmenovat složku",
+        "dialog.destinationDirectoryPath": "Cesta cílového adresáře",
+        "dialog.deleteFolderRecursive": "Smazat složku \"{name}\" a celý její obsah?",
+        "dialog.browserRootLabelOptional": "Popisek pro nový kořen prohlížeče (volitelné)",
+        "toast.createFolderFailed": "Nepodařilo se vytvořit složku",
+        "toast.renameFolderFailed": "Nepodařilo se přejmenovat složku",
+        "toast.moveFolderFailed": "Nepodařilo se přesunout složku",
+        "toast.deleteFolderFailed": "Nepodařilo se smazat složku",
+        "toast.folderCreated": "Složka vytvořena: {name}",
+        "toast.folderRenamed": "Složka přejmenována",
+        "toast.folderMoved": "Složka přesunuta",
+        "toast.folderDeleted": "Složka smazána",
+        "toast.pinFolderFailed": "Nepodařilo se připnout složku",
+        "toast.folderPinnedAsBrowserRoot": "Složka připnuta jako kořen prohlížeče",
+    },
+    "fa-IR": {
+        "tab.custom": "مرورگر",
+        "scope.custom": "مرورگر",
+        "scope.customBrowser": "مرورگر",
+        "btn.back": "بازگشت",
+        "btn.up": "بالا",
+        "label.computer": "رایانه",
+        "ctx.refreshMetadata": "نوسازی فراداده",
+        "msg.noPinnedFolders": "پوشه پین‌شده‌ای وجود ندارد",
+        "ctx.createFolderHere": "ایجاد پوشه در اینجا...",
+        "ctx.renameFolder": "تغییر نام پوشه...",
+        "ctx.moveFolder": "انتقال پوشه...",
+        "ctx.deleteFolder": "حذف پوشه...",
+        "dialog.newFolderName": "نام پوشه جدید",
+        "dialog.renameFolder": "تغییر نام پوشه",
+        "dialog.destinationDirectoryPath": "مسیر پوشه مقصد",
+        "dialog.deleteFolderRecursive": "پوشه «{name}» و تمام محتوا حذف شود؟",
+        "dialog.browserRootLabelOptional": "برچسب برای ریشه جدید مرورگر (اختیاری)",
+        "toast.createFolderFailed": "ایجاد پوشه ناموفق بود",
+        "toast.renameFolderFailed": "تغییر نام پوشه ناموفق بود",
+        "toast.moveFolderFailed": "انتقال پوشه ناموفق بود",
+        "toast.deleteFolderFailed": "حذف پوشه ناموفق بود",
+        "toast.folderCreated": "پوشه ایجاد شد: {name}",
+        "toast.folderRenamed": "نام پوشه تغییر کرد",
+        "toast.folderMoved": "پوشه منتقل شد",
+        "toast.folderDeleted": "پوشه حذف شد",
+        "toast.pinFolderFailed": "پین کردن پوشه ناموفق بود",
+        "toast.folderPinnedAsBrowserRoot": "پوشه به‌عنوان ریشه مرورگر پین شد",
+    },
+    "id-ID": {
+        "tab.custom": "Browser",
+        "scope.custom": "Browser",
+        "scope.customBrowser": "Browser",
+        "btn.back": "Kembali",
+        "btn.up": "Naik",
+        "label.computer": "Komputer",
+        "ctx.refreshMetadata": "Segarkan metadata",
+        "msg.noPinnedFolders": "Tidak ada folder yang disematkan",
+        "ctx.createFolderHere": "Buat folder di sini...",
+        "ctx.renameFolder": "Ganti nama folder...",
+        "ctx.moveFolder": "Pindahkan folder...",
+        "ctx.deleteFolder": "Hapus folder...",
+        "dialog.newFolderName": "Nama folder baru",
+        "dialog.renameFolder": "Ganti nama folder",
+        "dialog.destinationDirectoryPath": "Path direktori tujuan",
+        "dialog.deleteFolderRecursive": "Hapus folder \"{name}\" beserta seluruh isinya?",
+        "dialog.browserRootLabelOptional": "Label untuk root browser baru (opsional)",
+        "toast.createFolderFailed": "Gagal membuat folder",
+        "toast.renameFolderFailed": "Gagal mengganti nama folder",
+        "toast.moveFolderFailed": "Gagal memindahkan folder",
+        "toast.deleteFolderFailed": "Gagal menghapus folder",
+        "toast.folderCreated": "Folder dibuat: {name}",
+        "toast.folderRenamed": "Folder diganti nama",
+        "toast.folderMoved": "Folder dipindahkan",
+        "toast.folderDeleted": "Folder dihapus",
+        "toast.pinFolderFailed": "Gagal menyematkan folder",
+        "toast.folderPinnedAsBrowserRoot": "Folder disematkan sebagai root browser",
+    },
+    "uk-UA": {
+        "tab.custom": "Браузер",
+        "scope.custom": "Браузер",
+        "scope.customBrowser": "Браузер",
+        "btn.back": "Назад",
+        "btn.up": "Вгору",
+        "label.computer": "Комп'ютер",
+        "ctx.refreshMetadata": "Оновити метадані",
+        "msg.noPinnedFolders": "Немає закріплених папок",
+        "ctx.createFolderHere": "Створити папку тут...",
+        "ctx.renameFolder": "Перейменувати папку...",
+        "ctx.moveFolder": "Перемістити папку...",
+        "ctx.deleteFolder": "Видалити папку...",
+        "dialog.newFolderName": "Нова назва папки",
+        "dialog.renameFolder": "Перейменувати папку",
+        "dialog.destinationDirectoryPath": "Шлях до цільової теки",
+        "dialog.deleteFolderRecursive": "Видалити папку \"{name}\" і весь її вміст?",
+        "dialog.browserRootLabelOptional": "Мітка для нового кореня браузера (необов'язково)",
+        "toast.createFolderFailed": "Не вдалося створити папку",
+        "toast.renameFolderFailed": "Не вдалося перейменувати папку",
+        "toast.moveFolderFailed": "Не вдалося перемістити папку",
+        "toast.deleteFolderFailed": "Не вдалося видалити папку",
+        "toast.folderCreated": "Папку створено: {name}",
+        "toast.folderRenamed": "Папку перейменовано",
+        "toast.folderMoved": "Папку переміщено",
+        "toast.folderDeleted": "Папку видалено",
+        "toast.pinFolderFailed": "Не вдалося закріпити папку",
+        "toast.folderPinnedAsBrowserRoot": "Папку закріплено як корінь браузера",
+    },
+    "hu-HU": {
+        "tab.custom": "Böngésző",
+        "scope.custom": "Böngésző",
+        "scope.customBrowser": "Böngésző",
+        "btn.back": "Vissza",
+        "btn.up": "Fel",
+        "label.computer": "Számítógép",
+        "ctx.refreshMetadata": "Metaadatok frissítése",
+        "msg.noPinnedFolders": "Nincsenek rögzített mappák",
+        "ctx.createFolderHere": "Mappa létrehozása itt...",
+        "ctx.renameFolder": "Mappa átnevezése...",
+        "ctx.moveFolder": "Mappa áthelyezése...",
+        "ctx.deleteFolder": "Mappa törlése...",
+        "dialog.newFolderName": "Új mappanév",
+        "dialog.renameFolder": "Mappa átnevezése",
+        "dialog.destinationDirectoryPath": "Célkönyvtár elérési útja",
+        "dialog.deleteFolderRecursive": "Törli a(z) \"{name}\" mappát és minden tartalmát?",
+        "dialog.browserRootLabelOptional": "Címke az új böngésző gyökérhez (opcionális)",
+        "toast.createFolderFailed": "A mappa létrehozása sikertelen",
+        "toast.renameFolderFailed": "A mappa átnevezése sikertelen",
+        "toast.moveFolderFailed": "A mappa áthelyezése sikertelen",
+        "toast.deleteFolderFailed": "A mappa törlése sikertelen",
+        "toast.folderCreated": "Mappa létrehozva: {name}",
+        "toast.folderRenamed": "Mappa átnevezve",
+        "toast.folderMoved": "Mappa áthelyezve",
+        "toast.folderDeleted": "Mappa törölve",
+        "toast.pinFolderFailed": "A mappa rögzítése sikertelen",
+        "toast.folderPinnedAsBrowserRoot": "Mappa rögzítve böngésző gyökérként",
+    },
+    "ar-SA": {
+        "tab.custom": "المتصفح",
+        "scope.custom": "المتصفح",
+        "scope.customBrowser": "المتصفح",
+        "btn.back": "رجوع",
+        "btn.up": "أعلى",
+        "label.computer": "الكمبيوتر",
+        "ctx.refreshMetadata": "تحديث البيانات الوصفية",
+        "msg.noPinnedFolders": "لا توجد مجلدات مثبتة",
+        "ctx.createFolderHere": "إنشاء مجلد هنا...",
+        "ctx.renameFolder": "إعادة تسمية المجلد...",
+        "ctx.moveFolder": "نقل المجلد...",
+        "ctx.deleteFolder": "حذف المجلد...",
+        "dialog.newFolderName": "اسم المجلد الجديد",
+        "dialog.renameFolder": "إعادة تسمية المجلد",
+        "dialog.destinationDirectoryPath": "مسار مجلد الوجهة",
+        "dialog.deleteFolderRecursive": "حذف المجلد \"{name}\" وكل محتوياته؟",
+        "dialog.browserRootLabelOptional": "تسمية لجذر المتصفح الجديد (اختياري)",
+        "toast.createFolderFailed": "فشل إنشاء المجلد",
+        "toast.renameFolderFailed": "فشل إعادة تسمية المجلد",
+        "toast.moveFolderFailed": "فشل نقل المجلد",
+        "toast.deleteFolderFailed": "فشل حذف المجلد",
+        "toast.folderCreated": "تم إنشاء المجلد: {name}",
+        "toast.folderRenamed": "تمت إعادة تسمية المجلد",
+        "toast.folderMoved": "تم نقل المجلد",
+        "toast.folderDeleted": "تم حذف المجلد",
+        "toast.pinFolderFailed": "فشل تثبيت المجلد",
+        "toast.folderPinnedAsBrowserRoot": "تم تثبيت المجلد كجذر للمتصفح",
+    },
+    "sv-SE": {
+        "tab.custom": "Webbläsare",
+        "scope.custom": "Webbläsare",
+        "scope.customBrowser": "Webbläsare",
+        "btn.back": "Tillbaka",
+        "btn.up": "Upp",
+        "label.computer": "Dator",
+        "ctx.refreshMetadata": "Uppdatera metadata",
+        "msg.noPinnedFolders": "Inga fästa mappar",
+        "ctx.createFolderHere": "Skapa mapp här...",
+        "ctx.renameFolder": "Byt namn på mapp...",
+        "ctx.moveFolder": "Flytta mapp...",
+        "ctx.deleteFolder": "Ta bort mapp...",
+        "dialog.newFolderName": "Nytt mappnamn",
+        "dialog.renameFolder": "Byt namn på mapp",
+        "dialog.destinationDirectoryPath": "Sökväg till målmapp",
+        "dialog.deleteFolderRecursive": "Ta bort mappen \"{name}\" och allt innehåll?",
+        "dialog.browserRootLabelOptional": "Etikett för ny browser-root (valfritt)",
+        "toast.createFolderFailed": "Det gick inte att skapa mappen",
+        "toast.renameFolderFailed": "Det gick inte att byta namn på mappen",
+        "toast.moveFolderFailed": "Det gick inte att flytta mappen",
+        "toast.deleteFolderFailed": "Det gick inte att ta bort mappen",
+        "toast.folderCreated": "Mapp skapad: {name}",
+        "toast.folderRenamed": "Mapp omdöpt",
+        "toast.folderMoved": "Mapp flyttad",
+        "toast.folderDeleted": "Mapp borttagen",
+        "toast.pinFolderFailed": "Det gick inte att fästa mappen",
+        "toast.folderPinnedAsBrowserRoot": "Mapp fäst som browser-root",
+    },
+    "ro-RO": {
+        "tab.custom": "Browser",
+        "scope.custom": "Browser",
+        "scope.customBrowser": "Browser",
+        "btn.back": "Înapoi",
+        "btn.up": "Sus",
+        "label.computer": "Calculator",
+        "ctx.refreshMetadata": "Reîmprospătează metadatele",
+        "msg.noPinnedFolders": "Nu există foldere fixate",
+        "ctx.createFolderHere": "Creează folder aici...",
+        "ctx.renameFolder": "Redenumește folderul...",
+        "ctx.moveFolder": "Mută folderul...",
+        "ctx.deleteFolder": "Șterge folderul...",
+        "dialog.newFolderName": "Nume folder nou",
+        "dialog.renameFolder": "Redenumește folderul",
+        "dialog.destinationDirectoryPath": "Cale director destinație",
+        "dialog.deleteFolderRecursive": "Ștergi folderul \"{name}\" și tot conținutul lui?",
+        "dialog.browserRootLabelOptional": "Etichetă pentru noul root browser (opțional)",
+        "toast.createFolderFailed": "Crearea folderului a eșuat",
+        "toast.renameFolderFailed": "Redenumirea folderului a eșuat",
+        "toast.moveFolderFailed": "Mutarea folderului a eșuat",
+        "toast.deleteFolderFailed": "Ștergerea folderului a eșuat",
+        "toast.folderCreated": "Folder creat: {name}",
+        "toast.folderRenamed": "Folder redenumit",
+        "toast.folderMoved": "Folder mutat",
+        "toast.folderDeleted": "Folder șters",
+        "toast.pinFolderFailed": "Fixarea folderului a eșuat",
+        "toast.folderPinnedAsBrowserRoot": "Folder fixat ca root browser",
+    },
+    "el-GR": {
+        "tab.custom": "Περιηγητής",
+        "scope.custom": "Περιηγητής",
+        "scope.customBrowser": "Περιηγητής",
+        "btn.back": "Πίσω",
+        "btn.up": "Πάνω",
+        "label.computer": "Υπολογιστής",
+        "ctx.refreshMetadata": "Ανανέωση μεταδεδομένων",
+        "msg.noPinnedFolders": "Δεν υπάρχουν καρφιτσωμένοι φάκελοι",
+        "ctx.createFolderHere": "Δημιουργία φακέλου εδώ...",
+        "ctx.renameFolder": "Μετονομασία φακέλου...",
+        "ctx.moveFolder": "Μετακίνηση φακέλου...",
+        "ctx.deleteFolder": "Διαγραφή φακέλου...",
+        "dialog.newFolderName": "Νέο όνομα φακέλου",
+        "dialog.renameFolder": "Μετονομασία φακέλου",
+        "dialog.destinationDirectoryPath": "Διαδρομή φακέλου προορισμού",
+        "dialog.deleteFolderRecursive": "Διαγραφή του φακέλου \"{name}\" και όλου του περιεχομένου του;",
+        "dialog.browserRootLabelOptional": "Ετικέτα για νέο root browser (προαιρετικό)",
+        "toast.createFolderFailed": "Αποτυχία δημιουργίας φακέλου",
+        "toast.renameFolderFailed": "Αποτυχία μετονομασίας φακέλου",
+        "toast.moveFolderFailed": "Αποτυχία μετακίνησης φακέλου",
+        "toast.deleteFolderFailed": "Αποτυχία διαγραφής φακέλου",
+        "toast.folderCreated": "Ο φάκελος δημιουργήθηκε: {name}",
+        "toast.folderRenamed": "Ο φάκελος μετονομάστηκε",
+        "toast.folderMoved": "Ο φάκελος μετακινήθηκε",
+        "toast.folderDeleted": "Ο φάκελος διαγράφηκε",
+        "toast.pinFolderFailed": "Αποτυχία καρφιτσώματος φακέλου",
+        "toast.folderPinnedAsBrowserRoot": "Ο φάκελος καρφιτσώθηκε ως root browser",
+    },
 };
 
 Object.entries(GENERATED_TRANSLATIONS || {}).forEach(([code, entries]) => {
@@ -1303,6 +1826,36 @@ function mapLocale(locale) {
 
     // Russian variants
     if (lower.startsWith("ru")) return "ru-RU";
+    // German variants
+    if (lower.startsWith("de")) return "de-DE";
+    // Italian variants
+    if (lower.startsWith("it")) return "it-IT";
+    // Dutch variants
+    if (lower.startsWith("nl")) return "nl-NL";
+    // Polish variants
+    if (lower.startsWith("pl")) return "pl-PL";
+    // Turkish variants
+    if (lower.startsWith("tr")) return "tr-TR";
+    // Vietnamese variants
+    if (lower.startsWith("vi")) return "vi-VN";
+    // Czech variants
+    if (lower.startsWith("cs")) return "cs-CZ";
+    // Persian variants
+    if (lower.startsWith("fa")) return "fa-IR";
+    // Indonesian variants
+    if (lower.startsWith("id")) return "id-ID";
+    // Ukrainian variants
+    if (lower.startsWith("uk")) return "uk-UA";
+    // Hungarian variants
+    if (lower.startsWith("hu")) return "hu-HU";
+    // Arabic variants
+    if (lower.startsWith("ar")) return "ar-SA";
+    // Swedish variants
+    if (lower.startsWith("sv")) return "sv-SE";
+    // Romanian variants
+    if (lower.startsWith("ro")) return "ro-RO";
+    // Greek variants
+    if (lower.startsWith("el")) return "el-GR";
     
     // Direct match
     if (DICTIONARY[raw]) return raw;
@@ -1327,6 +1880,23 @@ function _persistLang(lang) {
         // Keep legacy and new key in sync for smooth upgrades.
         localStorage.setItem(LANG_STORAGE_KEYS[0], lang);
         localStorage.setItem(LANG_STORAGE_KEYS[1], lang);
+    } catch {}
+}
+
+function _readFollowComfyLang() {
+    try {
+        if (typeof localStorage === "undefined") return true;
+        const raw = String(localStorage.getItem(FOLLOW_COMFY_LANG_STORAGE_KEY) || "").trim().toLowerCase();
+        if (!raw) return true;
+        return !["0", "false", "no", "off"].includes(raw);
+    } catch {}
+    return true;
+}
+
+function _persistFollowComfyLang(enabled) {
+    try {
+        if (typeof localStorage === "undefined") return;
+        localStorage.setItem(FOLLOW_COMFY_LANG_STORAGE_KEY, enabled ? "1" : "0");
     } catch {}
 }
 
@@ -1384,25 +1954,44 @@ function _readPlatformLocaleCandidates() {
  */
 export const initI18n = (app) => {
     try {
-        // 1) Respect explicit user choice first.
+        const followComfy = _readFollowComfyLang();
         const stored = _readStoredLang();
         const storedMapped = mapLocale(stored);
+        const applyFromComfy = () => {
+            const comfyCandidates = _readComfyLocaleCandidates(app);
+            for (const candidate of comfyCandidates) {
+                const mapped = mapLocale(candidate);
+                if (DICTIONARY[mapped]) {
+                    setLang(mapped);
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        // Auto mode: strictly follow ComfyUI and never fallback to browser locale
+        // (browser locale can be en-US and cause random flip to English).
+        if (followComfy) {
+            if (applyFromComfy()) return;
+            if (stored && DICTIONARY[storedMapped]) {
+                setLang(storedMapped);
+                return;
+            }
+            if (DICTIONARY[currentLang]) return;
+            setLang(DEFAULT_LANG);
+            return;
+        }
+
+        // Manual mode: explicit user choice first.
         if (stored && DICTIONARY[storedMapped]) {
             setLang(storedMapped);
             return;
         }
 
-        // 2) Try ComfyUI settings / runtime locale surfaces.
-        const comfyCandidates = _readComfyLocaleCandidates(app);
-        for (const candidate of comfyCandidates) {
-            const mapped = mapLocale(candidate);
-            if (DICTIONARY[mapped]) {
-                setLang(mapped);
-                return;
-            }
-        }
+        // Then try ComfyUI settings/runtime locale surfaces.
+        if (applyFromComfy()) return;
 
-        // 3) Browser / document locale fallback.
+        // Finally browser/document locale fallback.
         const platformCandidates = _readPlatformLocaleCandidates();
         for (const candidate of platformCandidates) {
             const mapped = mapLocale(candidate);
@@ -1412,7 +2001,7 @@ export const initI18n = (app) => {
             }
         }
 
-        // 4) Guaranteed fallback.
+        // Guaranteed fallback.
         setLang(DEFAULT_LANG);
     } catch (err) {
         console.warn("[Majoor i18n] Failed to detect language:", err);
@@ -1440,6 +2029,45 @@ export const setLang = (lang) => {
     _langChangeListeners.forEach(cb => {
         try { cb(lang); } catch {}
     });
+};
+
+export const setFollowComfyLanguage = (enabled) => {
+    _persistFollowComfyLang(!!enabled);
+};
+
+export const getFollowComfyLanguage = () => _readFollowComfyLang();
+
+export const startComfyLanguageSync = (app) => {
+    try {
+        if (typeof window !== "undefined" && window.__MJR_COMFY_LANG_SYNC_TIMER__) {
+            clearInterval(window.__MJR_COMFY_LANG_SYNC_TIMER__);
+            window.__MJR_COMFY_LANG_SYNC_TIMER__ = null;
+        }
+    } catch {}
+    try {
+        if (_comfyLangSyncTimer) {
+            clearInterval(_comfyLangSyncTimer);
+            _comfyLangSyncTimer = null;
+        }
+    } catch {}
+    _comfyLangSyncTimer = setInterval(() => {
+        try {
+            if (!_readFollowComfyLang()) return;
+            const comfyCandidates = _readComfyLocaleCandidates(app);
+            for (const candidate of comfyCandidates) {
+                const mapped = mapLocale(candidate);
+                if (DICTIONARY[mapped] && mapped !== currentLang) {
+                    setLang(mapped);
+                    return;
+                }
+            }
+        } catch {}
+    }, 2000);
+    try {
+        if (typeof window !== "undefined") {
+            window.__MJR_COMFY_LANG_SYNC_TIMER__ = _comfyLangSyncTimer;
+        }
+    } catch {}
 };
 
 /**

@@ -227,13 +227,13 @@ export function bindViewerContextMenu({
         const viewUrl = typeof getCurrentViewUrl === "function" ? getCurrentViewUrl(asset) : buildAssetViewURL(asset);
 
         menu.appendChild(
-            createItem("Open in New Tab", "pi pi-external-link", null, withClose(() => {
+            createItem(t("ctx.openInNewTab", "Open in New Tab"), "pi pi-external-link", null, withClose(() => {
                 window.open(viewUrl, "_blank");
             }))
         );
 
         menu.appendChild(
-            createItem("Copy file path", "pi pi-copy", VIEWER_SHORTCUTS.COPY_PATH, withClose(async () => {
+            createItem(t("ctx.copyPath", "Copy path"), "pi pi-copy", VIEWER_SHORTCUTS.COPY_PATH, withClose(async () => {
                 const p = asset?.filepath ? String(asset.filepath) : "";
                 if (!p) {
                     comfyToast(t("toast.noFilePath"), "error");
@@ -251,7 +251,7 @@ export function bindViewerContextMenu({
 
         // Download Original
         menu.appendChild(
-            createItem("Download Original", "pi pi-download", VIEWER_SHORTCUTS.DOWNLOAD, withClose(() => {
+            createItem(t("ctx.downloadOriginal", "Download Original"), "pi pi-download", VIEWER_SHORTCUTS.DOWNLOAD, withClose(() => {
                 if (!asset || !asset.filepath) return;
 
                 const url = buildDownloadURL(asset.filepath);
@@ -261,12 +261,12 @@ export function bindViewerContextMenu({
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                comfyToast(`Downloading ${asset.filename}...`, "info", 3000);
+                comfyToast(t("toast.downloadingFile", "Downloading {filename}...", { filename: asset.filename }), "info", 3000);
             }), { disabled: !asset?.filepath })
         );
 
         menu.appendChild(
-            createItem("Open in Folder", "pi pi-folder-open", VIEWER_SHORTCUTS.OPEN_IN_FOLDER, withClose(async () => {
+            createItem(t("ctx.openInFolder", "Open in folder"), "pi pi-folder-open", VIEWER_SHORTCUTS.OPEN_IN_FOLDER, withClose(async () => {
                 const res = await openInFolder(asset);
                 if (!res?.ok) {
                     comfyToast(res?.error || t("toast.openFolderFailed"), "error");
@@ -277,7 +277,7 @@ export function bindViewerContextMenu({
         );
 
         menu.appendChild(
-            createItem("Add to collection...", "pi pi-bookmark", VIEWER_SHORTCUTS.ADD_TO_COLLECTION, withClose(async () => {
+            createItem(t("ctx.addToCollection", "Add to collection"), "pi pi-bookmark", VIEWER_SHORTCUTS.ADD_TO_COLLECTION, withClose(async () => {
                 try {
                     await showAddToCollectionMenu({ x: e.clientX, y: e.clientY, assets: [asset] });
                 } catch (err) {
@@ -290,14 +290,14 @@ export function bindViewerContextMenu({
 
         menu.appendChild(separator());
 
-        menu.appendChild(createItem("Edit Tags...", "pi pi-tags", VIEWER_SHORTCUTS.EDIT_TAGS, withClose(() => {
+        menu.appendChild(createItem(t("ctx.editTags", "Edit tags"), "pi pi-tags", VIEWER_SHORTCUTS.EDIT_TAGS, withClose(() => {
             showTagsPopover(e.clientX + 6, e.clientY + 6, asset, onAssetChanged);
         })));
 
         menu.appendChild(separator());
 
         const canRate = !!(asset?.id || asset?.filepath);
-        const ratingRoot = createItem("Set rating", "pi pi-star", VIEWER_SHORTCUTS.RATING_SUBMENU + " ›", () => {}, { disabled: !canRate });
+        const ratingRoot = createItem(t("ctx.setRating", "Set rating"), "pi pi-star", VIEWER_SHORTCUTS.RATING_SUBMENU + " ›", () => {}, { disabled: !canRate });
         ratingRoot.style.cursor = !canRate ? "default" : "pointer";
         menu.appendChild(ratingRoot);
 
@@ -365,7 +365,7 @@ export function bindViewerContextMenu({
             }
             ratingSubmenu.appendChild(separator());
             ratingSubmenu.appendChild(
-                createItem("Reset rating", "pi pi-star", "0", async () => {
+                createItem(t("ctx.resetRating", "Reset rating"), "pi pi-star", "0", async () => {
                     setRating(asset, 0, onAssetChanged);
                     closeRatingSubmenu();
                     try {
@@ -396,12 +396,12 @@ export function bindViewerContextMenu({
         ratingSubmenu.addEventListener("mouseleave", () => scheduleClose(), { signal: ratingAC.signal });
 
         menu.appendChild(
-            createItem("Refresh metadata", "pi pi-sync", "R", withClose(async () => {
+            createItem(t("ctx.refreshMetadata", "Refresh metadata"), "pi pi-sync", "R", withClose(async () => {
                 if (!asset?.id) return;
                 try {
                     const res = await getViewerInfo(asset.id, { refresh: true });
                     if (!res?.ok || !res?.data) {
-                        comfyToast(res?.error || "Failed to refresh metadata.", "error");
+                        comfyToast(res?.error || t("toast.metadataRefreshFailed", "Failed to refresh metadata."), "error");
                         return;
                     }
                     const info = res.data;
@@ -417,7 +417,7 @@ export function bindViewerContextMenu({
                     if (sizeLabel) parts.push(sizeLabel);
                     if (info?.mime) parts.push(info.mime);
                     const suffix = parts.length ? ` (${parts.join(", ")})` : "";
-                    comfyToast(`Metadata refreshed${suffix}`, "success", 3000);
+                    comfyToast(t("toast.metadataRefreshed", "Metadata refreshed{suffix}", { suffix }), "success", 3000);
                 } catch (error) {
                     reportError(error, "[ViewerContextMenu] Metadata refresh", { showToast: true });
                 }
@@ -427,11 +427,11 @@ export function bindViewerContextMenu({
 
         // Rename option
         menu.appendChild(
-            createItem("Rename...", "pi pi-pencil", VIEWER_SHORTCUTS.RENAME, withClose(async () => {
+            createItem(t("ctx.rename", "Rename"), "pi pi-pencil", VIEWER_SHORTCUTS.RENAME, withClose(async () => {
                 if (!(asset?.id || asset?.filepath)) return;
 
                 const currentName = asset.filename || "";
-                const rawInput = await comfyPrompt("Rename file", currentName);
+                const rawInput = await comfyPrompt(t("dialog.rename.title", "Rename file"), currentName);
                 const newName = sanitizeFilename(rawInput);
                 if (!newName || newName === currentName) return;
                 const validation = validateFilename(newName);
@@ -453,14 +453,14 @@ export function bindViewerContextMenu({
                         comfyToast(renameResult?.error || t("toast.fileRenameFailed"), "error");
                     }
                 } catch (error) {
-                    comfyToast(`Error renaming file: ${error.message}`, "error");
+                    comfyToast(t("toast.errorRenaming", "Error renaming file: {error}", { error: error?.message || String(error || "") }), "error");
                 }
             }), { disabled: !(asset?.id || asset?.filepath) })
         );
 
         // Delete option
         menu.appendChild(
-            createItem("Delete...", "pi pi-trash", VIEWER_SHORTCUTS.DELETE, withClose(async () => {
+            createItem(t("ctx.delete", "Delete"), "pi pi-trash", VIEWER_SHORTCUTS.DELETE, withClose(async () => {
                 if (!(asset?.id || asset?.filepath)) return;
 
                 const ok = await confirmDeletion(1, asset?.filename);
@@ -476,7 +476,7 @@ export function bindViewerContextMenu({
                         comfyToast(deleteResult?.error || t("toast.fileDeleteFailed"), "error");
                     }
                 } catch (error) {
-                    comfyToast(`Error deleting file: ${error.message}`, "error");
+                    comfyToast(t("toast.errorDeleting", "Error deleting file: {error}", { error: error?.message || String(error || "") }), "error");
                 }
             }), { disabled: !(asset?.id || asset?.filepath) })
         );

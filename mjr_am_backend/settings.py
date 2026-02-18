@@ -9,7 +9,7 @@ import time
 from typing import Any, Mapping, Optional
 
 from .shared import Result, get_logger
-from .config import MEDIA_PROBE_BACKEND
+from .config import MEDIA_PROBE_BACKEND, OUTPUT_ROOT
 from .utils import env_bool, parse_bool
 
 logger = get_logger(__name__)
@@ -33,6 +33,7 @@ _SECURITY_PREFS_INFO: Mapping[str, dict[str, bool | str]] = {
 _SETTINGS_CACHE_TTL_S = 10.0
 _VERSION_CACHE_TTL_S = 1.0
 _MS_PER_S = 1000.0
+_ORIGINAL_OUTPUT_DIRECTORY_ENV = "MAJOOR_ORIGINAL_OUTPUT_DIRECTORY"
 
 # Frontend-consumed default settings payload (kept for cross-layer parity).
 DEFAULT_SETTINGS: dict[str, Any] = {
@@ -304,6 +305,45 @@ class AppSettings:
 
     async def set_output_directory(self, path: str) -> Result[str]:
         """Persist output directory override and bump settings version."""
+        def _apply_comfy_output_directory(target: str) -> None:
+            """
+            Best-effort runtime sync with ComfyUI output directory.
+            """
+            try:
+                import folder_paths  # type: ignore
+            except Exception:
+                return
+            try:
+                normalized_target = str(target or "").strip()
+                if not normalized_target:
+                    return
+                setter = getattr(folder_paths, "set_output_directory", None)
+                if callable(setter):
+                    try:
+                        setter(normalized_target)
+                        return
+                    except Exception:
+                        pass
+                # Fallback for Comfy versions exposing a module-level variable.
+                try:
+                    setattr(folder_paths, "output_directory", normalized_target)
+                except Exception:
+                    pass
+            except Exception:
+                return
+
+        def _get_current_comfy_output_directory() -> str:
+            try:
+                import folder_paths  # type: ignore
+                getter = getattr(folder_paths, "get_output_directory", None)
+                if callable(getter):
+                    cur = str(getter() or "").strip()
+                    if cur:
+                        return cur
+            except Exception:
+                pass
+            return ""
+
         normalized = str(path or "").strip()
         if not normalized:
             async with self._lock:
@@ -312,6 +352,21 @@ class AppSettings:
                     return Result.Err("DB_ERROR", result.error or "Failed to clear output directory")
                 try:
                     os.environ.pop("MAJOOR_OUTPUT_DIRECTORY", None)
+                    os.environ.pop("MJR_AM_OUTPUT_DIRECTORY", None)
+                except Exception:
+                    pass
+                try:
+                    original = str(os.environ.get(_ORIGINAL_OUTPUT_DIRECTORY_ENV) or "").strip()
+                except Exception:
+                    original = ""
+                try:
+                    restore_target = original or str(OUTPUT_ROOT or "").strip()
+                    if restore_target:
+                        _apply_comfy_output_directory(restore_target)
+                except Exception:
+                    pass
+                try:
+                    os.environ.pop(_ORIGINAL_OUTPUT_DIRECTORY_ENV, None)
                 except Exception:
                     pass
                 bump = await self._bump_settings_version_locked()
@@ -332,7 +387,16 @@ class AppSettings:
             if not result.ok:
                 return Result.Err("DB_ERROR", result.error or "Failed to persist output directory")
             try:
+                if not str(os.environ.get(_ORIGINAL_OUTPUT_DIRECTORY_ENV) or "").strip():
+                    current = _get_current_comfy_output_directory()
+                    if current:
+                        os.environ[_ORIGINAL_OUTPUT_DIRECTORY_ENV] = current
                 os.environ["MAJOOR_OUTPUT_DIRECTORY"] = normalized
+                os.environ["MJR_AM_OUTPUT_DIRECTORY"] = normalized
+            except Exception:
+                pass
+            try:
+                _apply_comfy_output_directory(normalized)
             except Exception:
                 pass
             bump = await self._bump_settings_version_locked()

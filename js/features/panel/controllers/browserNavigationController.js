@@ -1,3 +1,5 @@
+import { t } from "../../../app/i18n.js";
+
 export function createBrowserNavigationController({
     state,
     gridContainer,
@@ -139,7 +141,7 @@ export function createBrowserNavigationController({
 
         const backBtn = document.createElement("button");
         backBtn.type = "button";
-        backBtn.textContent = "Back";
+        backBtn.textContent = t("btn.back", "Back");
         backBtn.className = "mjr-btn-link";
         const hasSelectedRoot = !!String(state.customRootId || "").trim();
         const canBackToBrowserRoot = hasSelectedRoot && !rel;
@@ -172,7 +174,7 @@ export function createBrowserNavigationController({
 
         const upBtn = document.createElement("button");
         upBtn.type = "button";
-        upBtn.textContent = "Up";
+        upBtn.textContent = t("btn.up", "Up");
         upBtn.className = "mjr-btn-link";
         upBtn.disabled = !rel || parentFolderPath(currentFolderPath()) === currentFolderPath();
         upBtn.style.cssText = "background:rgba(122,162,255,0.10);border:1px solid rgba(122,162,255,0.30);border-radius:6px;padding:2px 8px;font:inherit;color:var(--mjr-accent, #7aa2ff);cursor:pointer;";
@@ -219,7 +221,7 @@ export function createBrowserNavigationController({
             return el;
         };
 
-        folderBreadcrumb.appendChild(mk("Computer", "", !rel));
+        folderBreadcrumb.appendChild(mk(t("label.computer", "Computer"), "", !rel));
         if (selectedRootId) {
             const sepRoot = document.createElement("span");
             sepRoot.textContent = "/";

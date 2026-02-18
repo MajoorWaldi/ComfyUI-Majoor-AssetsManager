@@ -1,6 +1,7 @@
 
 import { comfyConfirm, comfyPrompt } from "../../app/dialogs.js";
 import { comfyToast } from "../../app/toast.js";
+import { t } from "../../app/i18n.js";
 import { createStatusIndicator, setupStatusPolling, triggerScan, updateStatus } from "../status/StatusDot.js";
 import {
     createGridContainer,
@@ -522,7 +523,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 notifyContextChanged();
                 const n = Number(detail?.count || ids.length || cards.length || 0);
                 try {
-                    comfyToast(`Name collision in view: ${n} item(s) selected`, "info", 1800);
+                    comfyToast(t("toast.nameCollisionInView", "Name collision in view: {n} item(s) selected", { n }), "info", 1800);
                 } catch {}
             } catch {}
         };
@@ -740,7 +741,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             const empty = document.createElement("div");
             empty.className = "mjr-muted";
             empty.style.cssText = "padding:10px 12px; opacity:0.75;";
-            empty.textContent = "No pinned folders";
+            empty.textContent = t("msg.noPinnedFolders", "No pinned folders");
             pinnedFoldersMenu.appendChild(empty);
             return;
         }
@@ -783,7 +784,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             const unpinBtn = document.createElement("button");
             unpinBtn.type = "button";
             unpinBtn.className = "mjr-menu-item";
-            unpinBtn.title = "Unpin folder";
+            unpinBtn.title = t("ctx.unpinFolder", "Unpin folder");
             unpinBtn.style.cssText =
                 "width:42px; justify-content:center; padding:0; border:1px solid rgba(255,95,95,0.35); border-radius:9px; margin-left:6px; background: linear-gradient(135deg, rgba(255,70,70,0.16), rgba(160,20,20,0.12));";
             const trash = document.createElement("i");
@@ -793,11 +794,11 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             unpinBtn.addEventListener("click", async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                const ok = await comfyConfirm(`Unpin folder "${label}"?`);
+                const ok = await comfyConfirm(t("dialog.unpinFolder", "Unpin folder \"{name}\"?", { name: label }));
                 if (!ok) return;
                 const res = await post(ENDPOINTS.CUSTOM_ROOTS_REMOVE, { id });
                 if (!res?.ok) {
-                    comfyToast(res?.error || "Failed to unpin folder", "error");
+                    comfyToast(res?.error || t("toast.unpinFolderFailed", "Failed to unpin folder"), "error");
                     return;
                 }
                 if (String(state.customRootId || "") === id) {
@@ -920,31 +921,31 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                         const keep = grp.assets[0] || {};
                         const dupIds = grp.assets.slice(1).map((x) => Number(x?.id || 0)).filter((x) => x > 0);
                         if (dupIds.length) {
-                            const mergeOk = await comfyConfirm(`Exact duplicates detected (${grp.assets.length}). Merge tags into "${keep?.filename || keep?.id}"?`);
+                            const mergeOk = await comfyConfirm(t("dialog.mergeDuplicateTags", "Exact duplicates detected ({count}). Merge tags into \"{target}\"?", { count: grp.assets.length, target: keep?.filename || keep?.id }));
                             if (mergeOk) {
                                 const mergeRes = await mergeDuplicateTags(Number(keep?.id || 0), dupIds);
-                                if (mergeRes?.ok) comfyToast("Tags merged", "success", 2200);
-                                else comfyToast(`Tag merge failed: ${mergeRes?.error || "error"}`, "warning", 3500);
+                                if (mergeRes?.ok) comfyToast(t("toast.tagsMerged", "Tags merged"), "success", 2200);
+                                else comfyToast(t("toast.tagMergeFailed", "Tag merge failed: {error}", { error: mergeRes?.error || "error" }), "warning", 3500);
                             }
-                            const delOk = await comfyConfirm(`Delete ${dupIds.length} exact duplicate(s)?`);
+                            const delOk = await comfyConfirm(t("dialog.deleteExactDuplicates", "Delete {count} exact duplicate(s)?", { count: dupIds.length }));
                             if (delOk) {
                                 const delRes = await deleteAssets(dupIds);
                                 if (delRes?.ok) {
-                                    comfyToast("Duplicates deleted", "success", 2200);
+                                    comfyToast(t("toast.duplicatesDeleted", "Duplicates deleted"), "success", 2200);
                                     await gridController.reloadGrid();
                                 } else {
-                                    comfyToast(`Delete failed: ${delRes?.error || "error"}`, "warning", 3500);
+                                    comfyToast(t("toast.deleteFailed", "Delete failed: {error}", { error: delRes?.error || "error" }), "warning", 3500);
                                 }
                             }
                             await refreshDuplicateAlerts();
                             return;
                         }
                     }
-                    const startOk = await comfyConfirm("Start duplicate analysis in background?");
+                    const startOk = await comfyConfirm(t("dialog.startDuplicateAnalysis", "Start duplicate analysis in background?"));
                     if (!startOk) return;
                     const runRes = await startDuplicatesAnalysis(500);
-                    if (runRes?.ok) comfyToast("Duplicate analysis started", "info", 2200);
-                    else comfyToast(`Analysis not started: ${runRes?.error || "error"}`, "warning", 3500);
+                    if (runRes?.ok) comfyToast(t("toast.dupAnalysisStarted", "Duplicate analysis started"), "info", 2200);
+                    else comfyToast(t("toast.analysisNotStarted", "Analysis not started: {error}", { error: runRes?.error || "error" }), "warning", 3500);
                     await refreshDuplicateAlerts();
                 }
             }
@@ -1217,7 +1218,13 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             lastKnownTotalAssets = totalAssets;
         }
 
-        if (!hasNewScan && !(isDefaultBrowse && hasNewTotal)) return;
+        // Auto-reload should only happen in default output browsing mode.
+        // In Browser/Custom or filtered contexts it feels like random refresh storms.
+        if (!isDefaultBrowse) {
+            lastKnownScan = counters.last_scan_end;
+            return;
+        }
+        if (!hasNewScan && !hasNewTotal) return;
 
         // Global throttle against reload storms from frequent watcher/enrichment updates.
         try {
@@ -1369,3 +1376,4 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
 
     return { gridContainer };
 }
+

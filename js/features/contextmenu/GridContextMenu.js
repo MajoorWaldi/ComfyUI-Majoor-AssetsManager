@@ -385,9 +385,9 @@ export function bindGridContextMenu({
                             return;
                         }
                         triggerBrowserGridReload(gridContainer);
-                        comfyToast(`Folder created: ${next}`, "success");
+                        comfyToast(t("toast.folderCreated", "Folder created: {name}", { name: next }), "success");
                     } catch (error) {
-                        comfyToast(`Create folder failed: ${error?.message || error}`, "error");
+                        comfyToast(t("toast.createFolderFailedDetail", "Create folder failed: {error}", { error: error?.message || String(error || "") }), "error");
                     }
                 })
             );
@@ -464,21 +464,24 @@ export function bindGridContextMenu({
             );
 
             menu.appendChild(
-                createItem("Pin as Browser Root", "pi pi-bookmark", null, async () => {
+                createItem(t("ctx.pinAsBrowserRoot"), "pi pi-bookmark", null, async () => {
                     if (!folderPath) {
-                        comfyToast("Unable to resolve folder path", "error");
+                        comfyToast(t("toast.unableResolveFolderPath"), "error");
                         return;
                     }
-                    const label = await comfyPrompt("Label for the new browser root (optional)", String(asset?.filename || ""));
+                    const label = await comfyPrompt(
+                        t("dialog.browserRootLabelOptional"),
+                        String(asset?.filename || "")
+                    );
                     const res = await post(ENDPOINTS.CUSTOM_ROOTS, {
                         path: folderPath,
                         label: String(label || "").trim() || undefined,
                     });
                     if (!res?.ok) {
-                        comfyToast(res?.error || "Failed to pin folder", "error");
+                        comfyToast(res?.error || t("toast.pinFolderFailed"), "error");
                         return;
                     }
-                    comfyToast("Folder pinned as browser root", "success");
+                    comfyToast(t("toast.folderPinnedAsBrowserRoot"), "success");
                     try {
                         window.dispatchEvent(
                             new CustomEvent("mjr:custom-roots-changed", {
@@ -492,75 +495,77 @@ export function bindGridContextMenu({
             if (isBrowserScope && folderPath) {
                 menu.appendChild(separator());
                 menu.appendChild(
-                    createItem("Create folder here...", "pi pi-plus", null, async () => {
+                    createItem(t("ctx.createFolderHere"), "pi pi-plus", null, async () => {
                         try {
-                            const name = await comfyPrompt("New folder name", "");
+                            const name = await comfyPrompt(t("dialog.newFolderName"), "");
                             const next = String(name || "").trim();
                             if (!next) return;
                             const res = await browserFolderOp({ op: "create", path: folderPath, name: next });
                             if (!res?.ok) {
-                                comfyToast(res?.error || "Failed to create folder", "error");
+                                comfyToast(res?.error || t("toast.createFolderFailed"), "error");
                                 return;
                             }
                             triggerBrowserGridReload(gridContainer);
-                            comfyToast(`Folder created: ${next}`, "success");
+                            comfyToast(t("toast.folderCreated", { name: next }), "success");
                         } catch (error) {
-                            comfyToast(`Create folder failed: ${error?.message || error}`, "error");
+                            comfyToast(t("toast.createFolderFailedDetail", { error: error?.message || String(error || "") }), "error");
                         }
                     })
                 );
                 menu.appendChild(
-                    createItem("Rename folder...", "pi pi-pencil", null, async () => {
+                    createItem(t("ctx.renameFolder"), "pi pi-pencil", null, async () => {
                         try {
                             const current = String(asset?.filename || "").trim();
-                            const name = await comfyPrompt("Rename folder", current);
+                            const name = await comfyPrompt(t("dialog.renameFolder"), current);
                             const next = String(name || "").trim();
                             if (!next || next === current) return;
                             const res = await browserFolderOp({ op: "rename", path: folderPath, name: next });
                             if (!res?.ok) {
-                                comfyToast(res?.error || "Failed to rename folder", "error");
+                                comfyToast(res?.error || t("toast.renameFolderFailed"), "error");
                                 return;
                             }
                             triggerBrowserGridReload(gridContainer);
-                            comfyToast("Folder renamed", "success");
+                            comfyToast(t("toast.folderRenamed"), "success");
                         } catch (error) {
-                            comfyToast(`Rename folder failed: ${error?.message || error}`, "error");
+                            comfyToast(t("toast.renameFolderFailedDetail", { error: error?.message || String(error || "") }), "error");
                         }
                     })
                 );
                 menu.appendChild(
-                    createItem("Move folder...", "pi pi-arrow-right", null, async () => {
+                    createItem(t("ctx.moveFolder"), "pi pi-arrow-right", null, async () => {
                         try {
-                            const destination = await comfyPrompt("Destination directory path", "");
+                            const destination = await comfyPrompt(t("dialog.destinationDirectoryPath"), "");
                             const dest = String(destination || "").trim();
                             if (!dest) return;
                             const res = await browserFolderOp({ op: "move", path: folderPath, destination: dest });
                             if (!res?.ok) {
-                                comfyToast(res?.error || "Failed to move folder", "error");
+                                comfyToast(res?.error || t("toast.moveFolderFailed"), "error");
                                 return;
                             }
                             triggerBrowserGridReload(gridContainer);
-                            comfyToast("Folder moved", "success");
+                            comfyToast(t("toast.folderMoved"), "success");
                         } catch (error) {
-                            comfyToast(`Move folder failed: ${error?.message || error}`, "error");
+                            comfyToast(t("toast.moveFolderFailedDetail", { error: error?.message || String(error || "") }), "error");
                         }
                     })
                 );
                 menu.appendChild(
-                    createItem("Delete folder...", "pi pi-trash", null, async () => {
+                    createItem(t("ctx.deleteFolder"), "pi pi-trash", null, async () => {
                         try {
                             const folderName = String(asset?.filename || "this folder");
-                            const ok = await comfyConfirm(`Delete folder \"${folderName}\" and all its contents?`);
+                            const ok = await comfyConfirm(
+                                t("dialog.deleteFolderRecursive", { name: folderName })
+                            );
                             if (!ok) return;
                             const res = await browserFolderOp({ op: "delete", path: folderPath, recursive: true });
                             if (!res?.ok) {
-                                comfyToast(res?.error || "Failed to delete folder", "error");
+                                comfyToast(res?.error || t("toast.deleteFolderFailed"), "error");
                                 return;
                             }
                             triggerBrowserGridReload(gridContainer);
-                            comfyToast("Folder deleted", "success");
+                            comfyToast(t("toast.folderDeleted"), "success");
                         } catch (error) {
-                            comfyToast(`Delete folder failed: ${error?.message || error}`, "error");
+                            comfyToast(t("toast.deleteFolderFailedDetail", { error: error?.message || String(error || "") }), "error");
                         }
                     })
                 );
@@ -599,7 +604,7 @@ export function bindGridContextMenu({
         );
 
         menu.appendChild(
-            createItem("Show metadata panel", "pi pi-info-circle", getShortcutDisplay("METADATA_PANEL"), () => {
+            createItem(t("ctx.showMetadataPanel", "Show metadata panel"), "pi pi-info-circle", getShortcutDisplay("METADATA_PANEL"), () => {
                 try {
                     hideMenu(menu);
                 } catch {}
@@ -644,7 +649,7 @@ export function bindGridContextMenu({
 
         // Open in Folder
         menu.appendChild(
-            createItem("Open in Folder", "pi pi-folder-open", getShortcutDisplay("OPEN_IN_FOLDER"), async () => {
+            createItem(t("ctx.openInFolder", "Open in folder"), "pi pi-folder-open", getShortcutDisplay("OPEN_IN_FOLDER"), async () => {
                 const res = await openInFolder(asset);
                 if (!res?.ok) {
                     comfyToast(res?.error || t("toast.openFolderFailed"), "error");
@@ -656,7 +661,7 @@ export function bindGridContextMenu({
 
         // Copy file path
         menu.appendChild(
-            createItem("Copy file path", "pi pi-copy", getShortcutDisplay("COPY_PATH"), async () => {
+            createItem(t("ctx.copyPath", "Copy path"), "pi pi-copy", getShortcutDisplay("COPY_PATH"), async () => {
                 const p = asset?.filepath ? String(asset.filepath) : "";
                 if (!p) {
                     comfyToast(t("toast.noFilePath"), "error");
@@ -666,7 +671,7 @@ export function bindGridContextMenu({
                     await navigator.clipboard.writeText(p);
                     comfyToast(t("toast.pathCopied"), "success", 2000);
                 } catch (err) {
-                    console.warn("Clipboard copy failed", err);
+                    console.warn(t("log.clipboardCopyFailed", "Clipboard copy failed"), err);
                     comfyToast(t("toast.pathCopyFailed"), "error");
                 }
             })
@@ -674,7 +679,7 @@ export function bindGridContextMenu({
 
         // Download
         menu.appendChild(
-            createItem("Download", "pi pi-download", getShortcutDisplay("DOWNLOAD"), () => {
+            createItem(t("ctx.download", "Download"), "pi pi-download", getShortcutDisplay("DOWNLOAD"), () => {
                 if (!asset || !asset.filepath) {
                     console.error("No filepath for asset", asset);
                     return;
@@ -690,7 +695,7 @@ export function bindGridContextMenu({
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                comfyToast(`Downloading ${filename}...`, "info", 3000);
+                comfyToast(t("toast.downloadingFile", "Downloading {filename}...", { filename }), "info", 3000);
             }, { disabled: !asset?.filepath })
         );
 
@@ -741,7 +746,7 @@ export function bindGridContextMenu({
         menu.appendChild(separator());
 
         // Edit Tags
-        menu.appendChild(createItem("Edit Tags...", "pi pi-tags", getShortcutDisplay("EDIT_TAGS"), () => {
+        menu.appendChild(createItem(t("ctx.editTags", "Edit tags"), "pi pi-tags", getShortcutDisplay("EDIT_TAGS"), () => {
             try {
                 hideMenu(menu);
             } catch {}
@@ -757,7 +762,7 @@ export function bindGridContextMenu({
         // Rating submenu (hover)
         menu.appendChild(separator());
         const canRate = !!(asset?.id || getAssetFilepath(asset));
-        const ratingRoot = createItem("Set rating", "pi pi-star", "1-5 ›", () => {}, { disabled: !canRate });
+        const ratingRoot = createItem(t("ctx.setRating", "Set rating"), "pi pi-star", "1-5 ›", () => {}, { disabled: !canRate });
         ratingRoot.style.cursor = !canRate ? "default" : "pointer";
         menu.appendChild(ratingRoot);
 
@@ -830,7 +835,7 @@ export function bindGridContextMenu({
             }
             ratingSubmenu.appendChild(separator());
             ratingSubmenu.appendChild(
-                createItem("Reset rating", "pi pi-star", "0", async () => {
+                createItem(t("ctx.resetRating", "Reset rating"), "pi pi-star", "0", async () => {
                     setRating(asset, 0, () => {
                         const card = document.querySelector(
                             `[data-mjr-asset-id="${safeEscapeSelector(asset.id)}"]`
@@ -873,7 +878,7 @@ export function bindGridContextMenu({
                 if (!(asset?.id || getAssetFilepath(asset))) return;
                 
                 const currentName = asset.filename || "";
-                const rawInput = await comfyPrompt("Rename file", currentName);
+                const rawInput = await comfyPrompt(t("dialog.rename.title", "Rename file"), currentName);
                 const newName = sanitizeFilename(rawInput);
                 if (!newName || newName === currentName) return;
                 const validation = validateFilename(newName);
@@ -904,7 +909,7 @@ export function bindGridContextMenu({
                         comfyToast(result?.error || t("toast.fileRenameFailed"), "error");
                     }
                 } catch (error) {
-                    comfyToast(`Error renaming file: ${error.message}`, "error");
+                    comfyToast(t("toast.errorRenaming", "Error renaming file: {error}", { error: error?.message || String(error || "") }), "error");
                 }
             }, { disabled: !(asset?.id || getAssetFilepath(asset)) })
         );
@@ -953,18 +958,18 @@ export function bindGridContextMenu({
                         }
 
                         if (errorCount === 0) {
-                            comfyToast(`${successCount} files deleted successfully!`, "success");
+                            comfyToast(t("toast.filesDeletedSuccessN", "{n} files deleted successfully!", { n: successCount }), "success");
                         } else {
-                            comfyToast(`${successCount} files deleted, ${errorCount} failed.`, "warning");
+                            comfyToast(t("toast.filesDeletedPartial", "{success} files deleted, {failed} failed.", { success: successCount, failed: errorCount }), "warning");
                         }
                     } catch (error) {
-                        comfyToast(`Error deleting files: ${error.message}`, "error");
+                        comfyToast(t("toast.errorDeleting", "Error deleting file: {error}", { error: error?.message || String(error || "") }), "error");
                     }
                 })
             );
         } else {
             menu.appendChild(
-                createItem("Delete...", "pi pi-trash", getShortcutDisplay("DELETE"), async () => {
+                createItem(t("ctx.delete", "Delete"), "pi pi-trash", getShortcutDisplay("DELETE"), async () => {
                     const ok = await confirmDeletion(1, asset?.filename);
                     if (!ok) return;
                     try {
@@ -988,7 +993,7 @@ export function bindGridContextMenu({
                             comfyToast(result?.error || t("toast.fileDeleteFailed"), "error");
                         }
                     } catch (error) {
-                        comfyToast(`Error deleting file: ${error.message}`, "error");
+                        comfyToast(t("toast.errorDeleting", "Error deleting file: {error}", { error: error?.message || String(error || "") }), "error");
                     }
                 }, { disabled: !(asset?.id || getAssetFilepath(asset)) })
             );
@@ -1026,3 +1031,5 @@ export function bindGridContextMenu({
     gridContainer._mjrGridContextMenuUnbind = unbind;
     return unbind;
 }
+
+

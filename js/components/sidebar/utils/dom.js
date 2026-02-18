@@ -1,4 +1,5 @@
 import { comfyToast } from "../../../app/toast.js";
+import { t } from "../../../app/i18n.js";
 
 export function createSection(title) {
     const section = document.createElement("div");
@@ -59,15 +60,15 @@ export function createInfoBox(title, content, accentColor, options = {}) {
     const doCopy = async () => {
         try {
             await navigator.clipboard.writeText(content);
-            comfyToast(`${title} copied to clipboard!`, "success", 2000);
+            comfyToast(t("toast.copiedToClipboardNamed", "{name} copied to clipboard!", { name: title }), "success", 2000);
         } catch (err) {
-            console.warn("Clipboard copy failed", err);
-            comfyToast("Failed to copy to clipboard", "error");
+            console.warn(t("log.clipboardCopyFailed", "Clipboard copy failed"), err);
+            comfyToast(t("toast.copyClipboardFailed", "Failed to copy to clipboard"), "error");
         }
     };
     if (showCopyButton) {
         const copyBtn = document.createElement("div");
-        copyBtn.title = "Copy to clipboard";
+        copyBtn.title = t("action.copyToClipboard", "Copy to clipboard");
         copyBtn.style.cssText = `
             cursor: pointer;
             opacity: 0.7;
@@ -117,7 +118,7 @@ export function createInfoBox(title, content, accentColor, options = {}) {
         ${copyOnContentClick ? "cursor: pointer;" : ""}
     `;
     if (copyOnContentClick) {
-        text.title = "Click to copy";
+        text.title = t("action.clickToCopy", "Click to copy");
         text.addEventListener("click", async () => {
             await doCopy();
             try {
@@ -180,7 +181,10 @@ export function createParametersBox(title, fields, accentColor, options = {}) {
 
         const value = document.createElement("div");
         value.textContent = String(field.value);
-        value.title = `${field.label}: ${field.value} (click to copy)`;
+        value.title = t("tooltip.copyFieldValue", "{label}: {value} (click to copy)", {
+            label: field.label,
+            value: field.value,
+        });
         value.style.cssText = `
             font-size: 12px;
             color: var(--fg-color, rgba(255,255,255,0.95));

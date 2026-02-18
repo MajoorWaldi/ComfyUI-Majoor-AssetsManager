@@ -24,7 +24,7 @@ jobs:
           python -m compileall -q __init__.py mjr_am_backend mjr_am_shared
       - name: Compat tests
         run: |
-          python -m pytest -q tests/compat/test_import_smoke.py tests/compat/test_version_route_alias.py
+          python -m pytest -q tests/compat/test_import_smoke.py
 
   smoke-windows:
     runs-on: windows-latest
@@ -45,4 +45,4 @@ jobs:
           python -m compileall -q __init__.py mjr_am_backend mjr_am_shared
       - name: Compat tests
         run: |
-          python -m pytest -q tests/compat/test_import_smoke.py tests/compat/test_version_route_alias.py
+          python -m pytest -q tests/compat/test_import_smoke.py

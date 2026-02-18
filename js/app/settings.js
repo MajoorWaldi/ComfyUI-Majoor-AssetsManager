@@ -7,7 +7,7 @@ import { getSecuritySettings, setSecuritySettings, setProbeBackendMode, getMetad
 import { getSettingsApi } from "./comfyApiBridge.js";
 import { comfyToast } from "./toast.js";
 import { safeDispatchCustomEvent } from "../utils/events.js";
-import { t, initI18n, setLang, getCurrentLang, getSupportedLanguages } from "./i18n.js";
+import { t, initI18n, setLang, getCurrentLang, getSupportedLanguages, startComfyLanguageSync, setFollowComfyLanguage } from "./i18n.js";
 
 import { SETTINGS_KEY, SETTINGS_SCHEMA_VERSION } from "./settingsStore.js";
 const SETTINGS_PREFIX = "Majoor";
@@ -96,6 +96,9 @@ const DEFAULT_SETTINGS = {
     },
     probeBackend: {
         mode: "auto",
+    },
+    i18n: {
+        followComfyLanguage: true,
     },
     metadataFallback: {
         image: true,
@@ -345,6 +348,7 @@ export const loadMajoorSettings = () => {
             "observability",
             "sidebar",
             "probeBackend",
+            "i18n",
             "paths",
             "db",
             "ratingTagsSync",
@@ -535,9 +539,18 @@ export async function syncBackendSecuritySettings() {
 let _settingsStorageListenerBound = false;
 
 export const registerMajoorSettings = (app, onApplied) => {
-    initI18n(app);
     const settings = loadMajoorSettings();
+    settings.i18n = settings.i18n || {};
+    if (typeof settings.i18n.followComfyLanguage !== "boolean") {
+        settings.i18n.followComfyLanguage = true;
+        setFollowComfyLanguage(true);
+        saveMajoorSettings(settings);
+    } else {
+        setFollowComfyLanguage(!!settings.i18n.followComfyLanguage);
+    }
+    initI18n(app);
     applySettingsToConfig(settings);
+    startComfyLanguageSync(app);
     void syncBackendSecuritySettings();
 
     let notifyTimer = null;
@@ -1577,19 +1590,31 @@ export const registerMajoorSettings = (app, onApplied) => {
 
         const languages = getSupportedLanguages();
         const langOptions = languages.map(l => l.code);
+        const languageModeOptions = ["auto", ...langOptions];
         safeAddSetting({
             id: `${SETTINGS_PREFIX}.Language`,
             category: cat(t("cat.advanced"), t("setting.language.name", "Language")),
             name: t("setting.language.name", "Majoor: Language"),
-            tooltip: t("setting.language.desc", "Choose the language for the Assets Manager interface. Reload required to fully apply."),
+            tooltip: "Use auto to detect and follow ComfyUI language. Or choose a fixed language for Majoor only.",
             type: "combo",
-            defaultValue: getCurrentLang(),
-            options: langOptions,
+            defaultValue: settings.i18n?.followComfyLanguage ? "auto" : getCurrentLang(),
+            options: languageModeOptions,
             onChange: (value) => {
-                if (langOptions.includes(value)) {
-                    setLang(value);
+                settings.i18n = settings.i18n || {};
+                if (value === "auto") {
+                    settings.i18n.followComfyLanguage = true;
+                    setFollowComfyLanguage(true);
+                    initI18n(app);
+                    saveMajoorSettings(settings);
                     notifyApplied("language");
+                    return;
                 }
+                if (!langOptions.includes(value)) return;
+                settings.i18n.followComfyLanguage = false;
+                setFollowComfyLanguage(false);
+                setLang(value);
+                saveMajoorSettings(settings);
+                notifyApplied("language");
             },
         });
 

@@ -30,12 +30,23 @@ export function createFolderCard(asset) {
     thumb.style.display = "flex";
     thumb.style.alignItems = "center";
     thumb.style.justifyContent = "center";
-    thumb.innerHTML = `
-        <svg width="64" height="64" viewBox="0 0 24 24" aria-hidden="true">
-            <path fill="#F4C74A" d="M10 4l2 2h8a2 2 0 0 1 2 2v1H2V6a2 2 0 0 1 2-2h6z"></path>
-            <path fill="#D9A730" d="M2 9h22l-2 9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9z"></path>
-        </svg>
-    `;
+    try {
+        const svgNS = "http://www.w3.org/2000/svg";
+        const svg = document.createElementNS(svgNS, "svg");
+        svg.setAttribute("width", "64");
+        svg.setAttribute("height", "64");
+        svg.setAttribute("viewBox", "0 0 24 24");
+        svg.setAttribute("aria-hidden", "true");
+        const p1 = document.createElementNS(svgNS, "path");
+        p1.setAttribute("fill", "#F4C74A");
+        p1.setAttribute("d", "M10 4l2 2h8a2 2 0 0 1 2 2v1H2V6a2 2 0 0 1 2-2h6z");
+        const p2 = document.createElementNS(svgNS, "path");
+        p2.setAttribute("fill", "#D9A730");
+        p2.setAttribute("d", "M2 9h22l-2 9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9z");
+        svg.appendChild(p1);
+        svg.appendChild(p2);
+        thumb.appendChild(svg);
+    } catch {}
 
     card._mjrAsset = asset;
     card.appendChild(thumb);

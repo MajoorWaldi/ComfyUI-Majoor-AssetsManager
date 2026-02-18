@@ -1,4 +1,5 @@
 import { createContextPillsView } from "./contextPillsView.js";
+import { t } from "../../../app/i18n.js";
 
 const _safeText = (v) => {
     try {
@@ -10,10 +11,10 @@ const _safeText = (v) => {
 
 const _titleScope = (scope) => {
     const s = String(scope || "").toLowerCase();
-    if (s === "input" || s === "inputs") return "Inputs";
-    if (s === "custom") return "Browser";
-    if (s === "all") return "All";
-    return "Outputs";
+    if (s === "input" || s === "inputs") return t("scope.input");
+    if (s === "custom") return t("scope.customBrowser");
+    if (s === "all") return t("tab.all");
+    return t("scope.output");
 };
 
 export function createSummaryBarView() {
@@ -36,7 +37,7 @@ export function createSummaryBarView() {
     dupAlert.className = "mjr-am-dup-alert";
     dupAlert.style.cssText = "padding:2px 8px;border:1px solid var(--border-color,#555);background:var(--comfy-menu-bg,#222);color:var(--input-text,#eee);border-radius:999px;cursor:pointer;";
     dupAlert.style.display = "none";
-    dupAlert.title = "Duplicate/similarity suggestions";
+    dupAlert.title = t("tooltip.duplicateSuggestions");
     right.appendChild(dupAlert);
 
     left.appendChild(text);
@@ -92,14 +93,14 @@ export function createSummaryBarView() {
 
         const countPart = total && total >= shown ? `${shown}/${total}` : `${shown}`;
         const primaryLabel =
-            shown > 0 && folderStats.total > 0 && folderStats.folders === folderStats.total ? "folders" : "assets";
+            shown > 0 && folderStats.total > 0 && folderStats.folders === folderStats.total ? t("summary.folders") : t("summary.assets");
         const parts = [`${primaryLabel}: ${countPart}`];
-        if (selectedCount > 0) parts.push(`selected: ${selectedCount}`);
+        if (selectedCount > 0) parts.push(`${t("summary.selected")}: ${selectedCount}`);
         parts.push(scope);
         try {
             const hidden = Number(gridContainer?.dataset?.mjrHiddenPngSiblings || 0) || 0;
             const enabled = String(gridContainer?.dataset?.mjrHidePngSiblingsEnabled || "") === "1";
-            if (enabled && hidden > 0) parts.push(`hidden: ${hidden}`);
+            if (enabled && hidden > 0) parts.push(`${t("summary.hidden")}: ${hidden}`);
         } catch {}
 
         try {
@@ -116,7 +117,7 @@ export function createSummaryBarView() {
                 dupAlert.onclick = null;
             } else {
                 dupAlert.style.display = "";
-                dupAlert.textContent = `duplicates: ${exact} | similar: ${similar}`;
+                dupAlert.textContent = `${t("summary.duplicates")}: ${exact} | ${t("summary.similar")}: ${similar}`;
                 dupAlert.onclick = () => {
                     try {
                         actions?.onDuplicateAlertClick?.(alert);

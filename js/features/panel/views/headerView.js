@@ -2,6 +2,7 @@ import { createIconButton } from "./iconButton.js";
 import { createTabsView } from "./tabsView.js";
 import { get } from "../../../api/client.js";
 import { ENDPOINTS } from "../../../api/endpoints.js";
+import { t } from "../../../app/i18n.js";
 import {
     VERSION_UPDATE_EVENT,
     getStoredVersionUpdateState,
@@ -97,7 +98,7 @@ export function createHeaderView() {
 
     const headerTitle = document.createElement("div");
     headerTitle.classList.add("mjr-am-header-title");
-    headerTitle.textContent = "Assets Manager";
+    headerTitle.textContent = t("manager.title");
 
     // Version badge with link to Ko-fi
     const versionBadge = document.createElement("a");
@@ -107,7 +108,7 @@ export function createHeaderView() {
     versionBadge.className = "mjr-am-version-badge";
     versionBadge.style.position = "relative";
     versionBadge.textContent = IS_NIGHTLY ? "nightly" : `v${VERSION}`;
-    versionBadge.title = "Buy Me a White Monster Drink";
+    versionBadge.title = t("tooltip.supportKofi");
     versionBadge.style.cssText = `
         font-size: 10px;
         opacity: 0.6;
@@ -147,11 +148,11 @@ export function createHeaderView() {
     headerActions.appendChild(tabs);
     headerActions.appendChild(headerTools);
 
-    const customMenuBtn = createIconButton("pi-folder-open", "Browser folders");
-    const filterBtn = createIconButton("pi-filter", "Filters");
-    const sortBtn = createIconButton("pi-sort", "Sort");
-    const collectionsBtn = createIconButton("pi-bookmark", "Collections");
-    const pinnedFoldersBtn = createIconButton("pi-folder", "Pinned folders");
+    const customMenuBtn = createIconButton("pi-folder-open", t("tooltip.browserFolders"));
+    const filterBtn = createIconButton("pi-filter", t("label.filters"));
+    const sortBtn = createIconButton("pi-sort", t("label.sort"));
+    const collectionsBtn = createIconButton("pi-bookmark", t("label.collections"));
+    const pinnedFoldersBtn = createIconButton("pi-folder", t("tooltip.pinnedFolders"));
 
     customMenuBtn.style.display = "none";
     headerTools.appendChild(customMenuBtn);

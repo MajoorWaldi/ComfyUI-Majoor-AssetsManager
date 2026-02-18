@@ -127,7 +127,7 @@ function setRating(asset, rating, onChanged) {
         onChanged?.();
     } catch {}
 
-    const t = setTimeout(async () => {
+    const timerId = setTimeout(async () => {
         try {
             _ratingDebounceTimers.delete(id);
             const result = await updateAssetRating(assetId, rating);
@@ -147,7 +147,7 @@ function setRating(asset, rating, onChanged) {
         }
     }, 350);
 
-    _ratingDebounceTimers.set(id, t);
+    _ratingDebounceTimers.set(id, timerId);
 }
 
 /**
@@ -540,7 +540,7 @@ export function installGridKeyboard({
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                comfyToast(`Downloading ${asset.filename}...`, "info", 3000);
+                comfyToast(t("toast.downloadingFile", "Downloading {filename}...", { filename: asset.filename }), "info", 3000);
                 return;
             }
         }
@@ -564,7 +564,7 @@ export function installGridKeyboard({
             if (asset?.id) {
                 consume();
                 const currentName = asset.filename || "";
-                const newName = await comfyPrompt("Rename file", currentName);
+                const newName = await comfyPrompt(t("dialog.rename.title", "Rename file"), currentName);
                 if (newName && newName !== currentName) {
                     try {
                         const result = await renameAsset(asset.id, newName);
@@ -577,7 +577,7 @@ export function installGridKeyboard({
                             comfyToast(result?.error || t("toast.fileRenameFailed"), "error");
                         }
                     } catch (err) {
-                        comfyToast(`Error renaming: ${err.message}`, "error");
+                        comfyToast(t("toast.errorRenaming", "Error renaming file: {error}", { error: err?.message || String(err || "") }), "error");
                     }
                 }
                 return;
@@ -623,9 +623,14 @@ export function installGridKeyboard({
                 }
 
                 if (errorCount === 0) {
-                    comfyToast(`${successCount} file${successCount !== 1 ? 's' : ''} deleted`, "success");
+                    comfyToast(
+                        successCount === 1
+                            ? t("toast.filesDeletedShort", "{n} files deleted", { n: successCount })
+                            : t("toast.filesDeletedShort", "{n} files deleted", { n: successCount }),
+                        "success"
+                    );
                 } else {
-                    comfyToast(`${successCount} deleted, ${errorCount} failed`, "warning");
+                    comfyToast(t("toast.filesDeletedShortPartial", "{success} deleted, {failed} failed", { success: successCount, failed: errorCount }), "warning");
                 }
                 try {
                     if (typeof gridContainer?._mjrSetSelection === "function") {

@@ -42,6 +42,17 @@ export function getSettingValue(app, key) {
     }
 }
 
+export function setSettingValue(app, key, value) {
+    const settingsApi = getSettingsApi(app);
+    if (!settingsApi || typeof settingsApi?.setSettingValue !== "function") return false;
+    try {
+        settingsApi.setSettingValue(key, value);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 export function registerSidebarTabCompat(app, tabDef) {
     try {
         const manager = app?.extensionManager || app?.ui?.extensionManager || null;

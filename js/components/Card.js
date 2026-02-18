@@ -787,7 +787,11 @@ function createThumbnail(asset, viewUrl) {
              img.style.display = "none";
              const err = document.createElement("div");
              err.className = "mjr-thumb-error";
-             err.innerHTML = '<i class="pi pi-image" style="font-size:24px; opacity:0.5;"></i>';
+             const icon = document.createElement("i");
+             icon.className = "pi pi-image";
+             icon.style.fontSize = "24px";
+             icon.style.opacity = "0.5";
+             err.appendChild(icon);
              err.style.cssText = "display:flex; align-items:center; justify-content:center; width:100%; height:100%; background:rgba(255,50,50,0.1);";
              thumb.appendChild(err);
         };
@@ -819,7 +823,11 @@ function createThumbnail(asset, viewUrl) {
              video.style.display = "none";
              const err = document.createElement("div");
              err.className = "mjr-thumb-error";
-             err.innerHTML = '<i class="pi pi-video" style="font-size:24px; opacity:0.5;"></i>';
+             const icon = document.createElement("i");
+             icon.className = "pi pi-video";
+             icon.style.fontSize = "24px";
+             icon.style.opacity = "0.5";
+             err.appendChild(icon);
              err.style.cssText = "display:flex; align-items:center; justify-content:center; width:100%; height:100%; background:rgba(255,50,50,0.1);";
              thumb.appendChild(err);
         };
@@ -863,18 +871,28 @@ function createThumbnail(asset, viewUrl) {
         // Waveform SVG overlay
         const overlay = document.createElement("div");
         overlay.className = "mjr-audio-waveform-overlay";
-        overlay.innerHTML = `<svg viewBox="0 0 64 32" preserveAspectRatio="xMidYMid meet" fill="currentColor" opacity="0.35">
-            <rect x="2"  y="10" width="3" height="12" rx="1.5"/>
-            <rect x="8"  y="4"  width="3" height="24" rx="1.5"/>
-            <rect x="14" y="8"  width="3" height="16" rx="1.5"/>
-            <rect x="20" y="2"  width="3" height="28" rx="1.5"/>
-            <rect x="26" y="6"  width="3" height="20" rx="1.5"/>
-            <rect x="32" y="1"  width="3" height="30" rx="1.5"/>
-            <rect x="38" y="5"  width="3" height="22" rx="1.5"/>
-            <rect x="44" y="3"  width="3" height="26" rx="1.5"/>
-            <rect x="50" y="9"  width="3" height="14" rx="1.5"/>
-            <rect x="56" y="6"  width="3" height="20" rx="1.5"/>
-        </svg>`;
+        try {
+            const svgNS = "http://www.w3.org/2000/svg";
+            const svg = document.createElementNS(svgNS, "svg");
+            svg.setAttribute("viewBox", "0 0 64 32");
+            svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+            svg.setAttribute("fill", "currentColor");
+            svg.setAttribute("opacity", "0.35");
+            const bars = [
+                [2, 10, 3, 12], [8, 4, 3, 24], [14, 8, 3, 16], [20, 2, 3, 28], [26, 6, 3, 20],
+                [32, 1, 3, 30], [38, 5, 3, 22], [44, 3, 3, 26], [50, 9, 3, 14], [56, 6, 3, 20],
+            ];
+            for (const [x, y, w, h] of bars) {
+                const rect = document.createElementNS(svgNS, "rect");
+                rect.setAttribute("x", String(x));
+                rect.setAttribute("y", String(y));
+                rect.setAttribute("width", String(w));
+                rect.setAttribute("height", String(h));
+                rect.setAttribute("rx", "1.5");
+                svg.appendChild(rect);
+            }
+            overlay.appendChild(svg);
+        } catch {}
         overlay.style.cssText = `
             position: absolute;
             inset: 0;

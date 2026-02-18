@@ -131,3 +131,4 @@ variation_exif_dump.json
 run_tests_comfy_cli.bat
 scripts/sync_and_test_comfy_cli.bat
 .codex_filelist.txt
+.codex_existing_tests.txt

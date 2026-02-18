@@ -135,7 +135,7 @@ export function comfyToast(message, type = "info", duration = 3000) {
             if (severity === "warning") severity = "warn"; // Map warning -> warn
             
             // Allow passing an object { summary, detail } as message
-            let summary = "Majoor Assets Manager";
+            let summary = t("manager.title");
             let detail = message;
             
             if (typeof message === "object" && message?.summary) {

@@ -40,6 +40,7 @@ MAX_TOKEN_LENGTH = SEARCH_MAX_TOKEN_LENGTH
 MAX_ASSET_BATCH_IDS = SEARCH_MAX_BATCH_IDS
 MAX_FILEPATH_LOOKUP = SEARCH_MAX_FILEPATH_LOOKUP
 VALID_SORT_KEYS = {"mtime_desc", "mtime_asc", "name_asc", "name_desc"}
+_SAFE_SQL_FRAGMENT_RE = re.compile(r"^[\s\w\.\(\)=<>\?!,'\\%:-]+$")
 
 
 def _normalize_sort_key(sort: Optional[str]) -> str:
@@ -166,6 +167,17 @@ def _build_filter_clauses(filters: Optional[Dict[str, Any]], alias: str = "a") -
         except Exception:
             pass
     return clauses, params
+
+
+def _assert_safe_sql_fragment(fragment: str, *, label: str = "sql_fragment") -> None:
+    """
+    Fail closed if a dynamically composed SQL fragment contains unexpected characters.
+    """
+    text = str(fragment or "")
+    if not text:
+        return
+    if not _SAFE_SQL_FRAGMENT_RE.fullmatch(text):
+        raise ValueError(f"Unsafe {label}")
 
 
 class IndexSearcher:
@@ -451,7 +463,9 @@ class IndexSearcher:
                 escaped_prefix = _escape_like_pattern(prefix)
                 parts.append("(a.filepath = ? OR a.filepath LIKE ? ESCAPE '\\')")
                 params.extend([root, f"{escaped_prefix}%"])
-            return "(" + " OR ".join(parts) + ")", params
+            clause = "(" + " OR ".join(parts) + ")"
+            _assert_safe_sql_fragment(clause, label="roots_where")
+            return clause, params
 
         is_browse_all = query.strip() == "*"
 
@@ -479,6 +493,8 @@ class IndexSearcher:
             params.extend(roots_params)
 
             filter_clauses, filter_params = _build_filter_clauses(filters)
+            for c in filter_clauses:
+                _assert_safe_sql_fragment(c, label="filter_clause")
             sql_parts.extend(filter_clauses)
             params.extend(filter_params)
 
@@ -551,6 +567,8 @@ class IndexSearcher:
             params.extend(roots_params)
 
             filter_clauses, filter_params = _build_filter_clauses(filters)
+            for c in filter_clauses:
+                _assert_safe_sql_fragment(c, label="filter_clause")
             sql_parts.extend(filter_clauses)
             params.extend(filter_params)
 
@@ -685,7 +703,9 @@ class IndexSearcher:
                 escaped_prefix = _escape_like_pattern(prefix)
                 parts.append("(a.filepath = ? OR a.filepath LIKE ? ESCAPE '\\')")
                 params.extend([root, f"{escaped_prefix}%"])
-            return "(" + " OR ".join(parts) + ")", params
+            clause = "(" + " OR ".join(parts) + ")"
+            _assert_safe_sql_fragment(clause, label="roots_where")
+            return clause, params
 
         roots_clause, roots_params = _roots_where()
 

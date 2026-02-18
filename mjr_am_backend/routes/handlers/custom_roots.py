@@ -6,6 +6,7 @@ import sys
 import errno
 import asyncio
 import shutil
+import ipaddress
 from pathlib import Path
 from aiohttp import web
 from mjr_am_backend.custom_roots import (
@@ -135,9 +136,23 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
             return ""
         return name
 
+    def _is_loopback_request(request: web.Request) -> bool:
+        try:
+            peer = str(request.remote or "").strip()
+            if not peer:
+                return False
+            if "%" in peer:
+                peer = peer.split("%", 1)[0]
+            return ipaddress.ip_address(peer).is_loopback
+        except Exception:
+            return False
+
     @routes.post("/mjr/sys/browse-folder")
     async def browse_folder_dialog(request):
         import os
+        csrf = _csrf_error(request)
+        if csrf:
+            return _json_response(Result.Err("CSRF", csrf))
 
         allowed, retry_after = _check_rate_limit(request, "browse_folder", max_requests=3, window_seconds=30)
         if not allowed:
@@ -281,7 +296,8 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
             candidate = _normalize_path(filepath)
             if not candidate:
                 return _json_response(Result.Err("INVALID_INPUT", "Invalid filepath"))
-            if not (_is_path_allowed(candidate, must_exist=True) or _is_path_allowed_custom(candidate) or browser_mode):
+            allow_browser_mode = browser_mode and _is_loopback_request(request)
+            if not (_is_path_allowed(candidate, must_exist=True) or _is_path_allowed_custom(candidate) or allow_browser_mode):
                 return _json_response(Result.Err("FORBIDDEN", "Path is not within allowed roots"))
             root_dir = None
         else:
@@ -379,7 +395,8 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
                 normalized = _normalize_path(filepath)
                 if not normalized:
                     return _json_response(Result.Err("INVALID_INPUT", "Invalid filepath"))
-                if not (_is_path_allowed(normalized, must_exist=True) or _is_path_allowed_custom(normalized) or browser_mode):
+                allow_browser_mode = browser_mode and _is_loopback_request(request)
+                if not (_is_path_allowed(normalized, must_exist=True) or _is_path_allowed_custom(normalized) or allow_browser_mode):
                     return _json_response(Result.Err("FORBIDDEN", "Path is not within allowed roots"))
                 target = normalized.resolve(strict=True)
             except Exception:
@@ -445,6 +462,8 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
             return _json_response(Result.Err("DIR_NOT_FOUND", "Directory not found"))
         if not source.is_dir():
             return _json_response(Result.Err("INVALID_INPUT", "Path is not a directory"))
+        if not (_is_path_allowed(source, must_exist=True) or _is_path_allowed_custom(source)):
+            return _json_response(Result.Err("FORBIDDEN", "Path is not within allowed roots"))
 
         if op == "create":
             parent = source
@@ -489,6 +508,8 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
                 return _json_response(Result.Err("DIR_NOT_FOUND", "Destination directory not found"))
             if not dest_dir.is_dir():
                 return _json_response(Result.Err("INVALID_INPUT", "Destination is not a directory"))
+            if not (_is_path_allowed(dest_dir, must_exist=True) or _is_path_allowed_custom(dest_dir)):
+                return _json_response(Result.Err("FORBIDDEN", "Destination is not within allowed roots"))
             try:
                 src_res = source.resolve(strict=True)
                 dst_res = dest_dir.resolve(strict=True)
@@ -504,7 +525,7 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
                 return _json_response(Result.Err("MOVE_FAILED", sanitize_error_message(exc, "Failed to move folder")))
 
         if op == "delete":
-            recursive = bool(body.get("recursive", True))
+            recursive = bool(body.get("recursive", False))
             try:
                 if recursive:
                     await asyncio.to_thread(shutil.rmtree, str(source))
