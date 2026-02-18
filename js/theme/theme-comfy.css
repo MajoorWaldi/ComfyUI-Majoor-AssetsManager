@@ -390,6 +390,72 @@
     color: var(--mjr-muted, rgba(255, 255, 255, 0.65));
 }
 
+/* Toasts (global: can be mounted under document.body) */
+.mjr-toast-container {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    z-index: 1000001;
+    pointer-events: none;
+}
+
+.mjr-toast {
+    --mjr-toast-strip: var(--mjr-status-info, var(--comfy-status-info, #2196f3));
+    background: var(--comfy-menu-bg, #2a2a2a);
+    border: 1px solid var(--border-color, #3a3a3a);
+    border-left: 4px solid var(--mjr-toast-strip);
+    border-radius: 4px;
+    padding: 12px 16px;
+    color: var(--fg-color, #efefef);
+    font-family: var(--comfy-font, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif);
+    font-size: 14px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    opacity: 0;
+    transform: translateY(-15px);
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    white-space: pre-wrap;
+    width: max-content;
+    min-width: min(250px, calc(100vw - 24px));
+    max-width: min(400px, calc(100vw - 24px));
+    backdrop-filter: blur(4px);
+    cursor: default;
+    user-select: none;
+}
+
+.mjr-toast.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.mjr-toast-text {
+    flex: 1;
+}
+
+.mjr-toast-success {
+    --mjr-toast-strip: var(--mjr-status-success, var(--comfy-status-success, #4caf50));
+}
+
+.mjr-toast-error {
+    --mjr-toast-strip: var(--mjr-status-error, var(--comfy-status-error, #f44336));
+}
+
+.mjr-toast-warning {
+    --mjr-toast-strip: var(--mjr-status-warning, var(--comfy-status-warning, #ffa726));
+}
+
+.mjr-toast-info {
+    --mjr-toast-strip: var(--mjr-status-info, var(--comfy-status-info, #2196f3));
+}
+
 
 .mjr-assets-manager .mjr-am-summary-text {
     overflow: hidden;
