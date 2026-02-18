@@ -1,5 +1,6 @@
 import { get } from "../../../api/client.js";
 import { debounce } from "../../../utils/debounce.js";
+import { t } from "../../../app/i18n.js";
 
 export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFoldersBtn, filterPopover, sortPopover, collectionsPopover, pinnedFoldersPopover }) {
     const searchSection = document.createElement("div");
@@ -23,8 +24,8 @@ export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFol
     searchInputEl.type = "text";
     searchInputEl.id = "mjr-search-input";
     searchInputEl.classList.add("mjr-input");
-    searchInputEl.placeholder = "Search assets...";
-    searchInputEl.title = "Search by filename, tags, or attributes (e.g. rating:5, ext:png)";
+    searchInputEl.placeholder = t("search.placeholder", "Search assets...");
+    searchInputEl.title = t("search.title", "Search by filename, tags, or attributes (e.g. rating:5, ext:png)");
     searchInputEl.setAttribute("list", dataListId);
 
     // Autocomplete handler

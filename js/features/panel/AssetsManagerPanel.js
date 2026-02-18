@@ -130,6 +130,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         minSizeInput,
         maxSizeInput,
         resolutionPresetSelect,
+        resolutionCompareSelect,
         minWidthInput,
         minHeightInput,
         dateRangeSelect,
@@ -841,10 +842,12 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             ratingSelect.value = String(Number(state.minRating || 0) || 0);
             minSizeInput.value = Number(state.minSizeMB || 0) > 0 ? String(state.minSizeMB) : "";
             maxSizeInput.value = Number(state.maxSizeMB || 0) > 0 ? String(state.maxSizeMB) : "";
-            minWidthInput.value = Number(state.minWidth || 0) > 0 ? String(state.minWidth) : "";
-            minHeightInput.value = Number(state.minHeight || 0) > 0 ? String(state.minHeight) : "";
-            const w = Number(state.minWidth || 0) || 0;
-            const h = Number(state.minHeight || 0) || 0;
+            resolutionCompareSelect.value = String(state.resolutionCompare || "gte") === "lte" ? "lte" : "gte";
+            const useMax = resolutionCompareSelect.value === "lte";
+            minWidthInput.value = Number(useMax ? state.maxWidth : state.minWidth || 0) > 0 ? String(useMax ? state.maxWidth : state.minWidth) : "";
+            minHeightInput.value = Number(useMax ? state.maxHeight : state.minHeight || 0) > 0 ? String(useMax ? state.maxHeight : state.minHeight) : "";
+            const w = Number(useMax ? state.maxWidth : state.minWidth || 0) || 0;
+            const h = Number(useMax ? state.maxHeight : state.minHeight || 0) || 0;
             if (w >= 3840 && h >= 2160) resolutionPresetSelect.value = "uhd";
             else if (w >= 2560 && h >= 1440) resolutionPresetSelect.value = "qhd";
             else if (w >= 1920 && h >= 1080) resolutionPresetSelect.value = "fhd";
@@ -869,6 +872,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         minSizeInput,
         maxSizeInput,
         resolutionPresetSelect,
+        resolutionCompareSelect,
         minWidthInput,
         minHeightInput,
         dateRangeSelect,
@@ -901,6 +905,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             minWidthInput,
             minHeightInput,
             resolutionPresetSelect,
+            resolutionCompareSelect,
             dateRangeSelect,
             dateExactInput,
             scopeController,
@@ -1203,6 +1208,8 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             !(Number(state.maxSizeMB || 0) > 0) &&
             !(Number(state.minWidth || 0) > 0) &&
             !(Number(state.minHeight || 0) > 0) &&
+            !(Number(state.maxWidth || 0) > 0) &&
+            !(Number(state.maxHeight || 0) > 0) &&
             !String(state.workflowType || "").trim() &&
             !state.dateRangeFilter &&
             !state.dateExactFilter;

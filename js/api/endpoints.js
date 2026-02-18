@@ -115,8 +115,11 @@ export function buildListURL(params = {}) {
         minRating = null,
         minSizeMB = null,
         maxSizeMB = null,
+        resolutionCompare = null,
         minWidth = null,
         minHeight = null,
+        maxWidth = null,
+        maxHeight = null,
         workflowType = null,
         dateRange = null,
         dateExact = null,
@@ -151,6 +154,15 @@ export function buildListURL(params = {}) {
     }
     if (minHeight !== null && minHeight !== undefined && Number(minHeight) > 0) {
         url += `&min_height=${encodeURIComponent(String(minHeight))}`;
+    }
+    if (maxWidth !== null && maxWidth !== undefined && Number(maxWidth) > 0) {
+        url += `&max_width=${encodeURIComponent(String(maxWidth))}`;
+    }
+    if (maxHeight !== null && maxHeight !== undefined && Number(maxHeight) > 0) {
+        url += `&max_height=${encodeURIComponent(String(maxHeight))}`;
+    }
+    if (resolutionCompare) {
+        url += `&resolution_compare=${encodeURIComponent(String(resolutionCompare))}`;
     }
     if (workflowType) {
         url += `&workflow_type=${encodeURIComponent(String(workflowType))}`;

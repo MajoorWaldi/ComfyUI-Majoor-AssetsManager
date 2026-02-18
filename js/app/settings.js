@@ -261,8 +261,8 @@ async function refreshRuntimeStatusDashboard() {
     try {
         const res = await getRuntimeStatus();
         if (!res?.ok || !res?.data) {
-            el.textContent = "Runtime: unavailable";
-            el.title = "Runtime metrics unavailable";
+            el.textContent = t("runtime.unavailable", "Runtime: unavailable");
+            el.title = t("runtime.unavailable", "Runtime: unavailable");
             return true;
         }
         const db = res.data.db || {};
@@ -271,12 +271,16 @@ async function refreshRuntimeStatusDashboard() {
         const active = Number(db.active_connections || 0);
         const enrichQ = Number(idx.enrichment_queue_length || 0);
         const pending = Number(w.pending_files || 0);
-        el.textContent = `DB active: ${active} | Enrich Q: ${enrichQ} | Watcher pending: ${pending}`;
-        el.title = `Runtime Metrics\nDB active connections: ${active}\nEnrichment queue: ${enrichQ}\nWatcher pending files: ${pending}`;
+        el.textContent = t("runtime.metricsLine", "DB active: {active} | Enrich Q: {enrichQ} | Watcher pending: {pending}", { active, enrichQ, pending });
+        el.title = t(
+            "runtime.metricsTitle",
+            "Runtime Metrics\nDB active connections: {active}\nEnrichment queue: {enrichQ}\nWatcher pending files: {pending}",
+            { active, enrichQ, pending }
+        );
         return true;
     } catch {
-        el.textContent = "Runtime: unavailable";
-        el.title = "Runtime metrics unavailable";
+        el.textContent = t("runtime.unavailable", "Runtime: unavailable");
+        el.title = t("runtime.unavailable", "Runtime: unavailable");
         return true;
     }
 }

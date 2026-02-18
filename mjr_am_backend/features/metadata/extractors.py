@@ -626,6 +626,94 @@ def _apply_common_exif_fields(
     if date_created:
         metadata["generation_time"] = date_created
 
+    # Normalize visual dimensions from common ExifTool keys when present.
+    # This covers PNG/WEBP/JPG and fallback readers that expose ImageWidth/ImageHeight.
+    if metadata.get("width") is None or metadata.get("height") is None:
+        width_keys = (
+            "Image:ImageWidth",
+            "EXIF:ImageWidth",
+            "EXIF:ExifImageWidth",
+            "IFD0:ImageWidth",
+            "Composite:ImageWidth",
+            "QuickTime:ImageWidth",
+            "PNG:ImageWidth",
+            "File:ImageWidth",
+            "width",
+        )
+        height_keys = (
+            "Image:ImageHeight",
+            "EXIF:ImageHeight",
+            "EXIF:ExifImageHeight",
+            "IFD0:ImageHeight",
+            "Composite:ImageHeight",
+            "QuickTime:ImageHeight",
+            "PNG:ImageHeight",
+            "File:ImageHeight",
+            "height",
+        )
+
+        def _coerce_dim(value: Any) -> Optional[int]:
+            try:
+                if value is None:
+                    return None
+                if isinstance(value, str):
+                    txt = value.strip().lower().replace("px", "").strip()
+                    if not txt:
+                        return None
+                    if "x" in txt:
+                        # Avoid parsing "1920x1080" here (handled by pair parsing elsewhere).
+                        return None
+                    value = txt
+                out = int(float(value))
+                return out if out > 0 else None
+            except Exception:
+                return None
+
+        w = metadata.get("width")
+        h = metadata.get("height")
+        if w is None:
+            for k in width_keys:
+                w = _coerce_dim(exif_data.get(k))
+                if w is not None:
+                    break
+        if h is None:
+            for k in height_keys:
+                h = _coerce_dim(exif_data.get(k))
+                if h is not None:
+                    break
+
+        # Parse paired size string as a final fallback (e.g. "1920 1080", "1920x1080").
+        if w is None or h is None:
+            pair_keys = ("Composite:ImageSize", "Image:ImageSize", "QuickTime:ImageSize", "ImageSize")
+            for k in pair_keys:
+                raw = exif_data.get(k)
+                if not raw:
+                    continue
+                try:
+                    txt = str(raw).strip().lower().replace("px", "").replace("×", "x")
+                    txt = txt.replace(",", " ").replace(";", " ")
+                    if "x" in txt:
+                        a, b = [s.strip() for s in txt.split("x", 1)]
+                    else:
+                        parts = [p for p in txt.split() if p]
+                        if len(parts) < 2:
+                            continue
+                        a, b = parts[0], parts[1]
+                    ww = _coerce_dim(a)
+                    hh = _coerce_dim(b)
+                    if ww and hh:
+                        if w is None:
+                            w = ww
+                        if h is None:
+                            h = hh
+                        break
+                except Exception:
+                    continue
+
+        if w is not None and h is not None:
+            metadata["width"] = int(w)
+            metadata["height"] = int(h)
+
 
 def _build_a1111_geninfo(parsed: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Build a minimal geninfo payload from parsed A1111 parameters."""

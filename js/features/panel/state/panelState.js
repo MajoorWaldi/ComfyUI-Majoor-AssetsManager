@@ -42,8 +42,11 @@ export function createPanelState() {
         minRating: saved.minRating || 0,
         minSizeMB: Number(saved.minSizeMB || 0) || 0,
         maxSizeMB: Number(saved.maxSizeMB || 0) || 0,
+        resolutionCompare: saved.resolutionCompare === "lte" ? "lte" : "gte",
         minWidth: Number(saved.minWidth || 0) || 0,
         minHeight: Number(saved.minHeight || 0) || 0,
+        maxWidth: Number(saved.maxWidth || 0) || 0,
+        maxHeight: Number(saved.maxHeight || 0) || 0,
         workflowType: saved.workflowType || "",
         sort: saved.sort || "mtime_desc",
         // Search query and scroll position persistence

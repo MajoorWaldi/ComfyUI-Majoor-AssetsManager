@@ -51,7 +51,7 @@ export function createTagsEditor(asset, onUpdate) {
         tagsDisplay.innerHTML = "";
         if (currentTags.length === 0) {
             const placeholder = document.createElement("span");
-            placeholder.textContent = "No tags yet...";
+            placeholder.textContent = t("msg.noTagsYet", "No tags yet...");
             placeholder.style.cssText = "color: #666; font-size: 12px; font-style: italic;";
             tagsDisplay.appendChild(placeholder);
             return;
@@ -78,7 +78,7 @@ export function createTagsEditor(asset, onUpdate) {
 
     const input = document.createElement("input");
     input.type = "text";
-    input.placeholder = "Add tag...";
+    input.placeholder = t("sidebar.addTag", "Add tag...");
     input.className = "mjr-tag-input";
     try {
         input.setAttribute("aria-label", "Add tag");

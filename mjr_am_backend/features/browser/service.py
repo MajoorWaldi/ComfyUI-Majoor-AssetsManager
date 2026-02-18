@@ -174,6 +174,8 @@ def list_filesystem_browser_entries(
     max_size_bytes: int = 0,
     min_width: int = 0,
     min_height: int = 0,
+    max_width: int = 0,
+    max_height: int = 0,
 ) -> Result[dict]:
     """
     Browser-mode listing for custom scope (no pre-selected root).
@@ -190,6 +192,8 @@ def list_filesystem_browser_entries(
         max_size = min_size
     min_w = max(0, int(min_width or 0))
     min_h = max(0, int(min_height or 0))
+    max_w = max(0, int(max_width or 0))
+    max_h = max(0, int(max_height or 0))
     if not str(path_value or "").strip():
         roots_res = list_browser_roots()
         if not roots_res.ok:
@@ -295,7 +299,7 @@ def list_filesystem_browser_entries(
         return Result.Err("LIST_FAILED", f"Failed to list directory: {exc}")
 
     folders.sort(key=_folder_sort_key)
-    if min_w > 0 or min_h > 0:
+    if min_w > 0 or min_h > 0 or max_w > 0 or max_h > 0:
         # Browser-mode filesystem rows usually don't have probed dimensions yet.
         # Apply resolution filter only when dimensions are known.
         filtered_files: list[dict] = []
@@ -311,6 +315,10 @@ def list_filesystem_browser_entries(
                 if min_w > 0 and w < min_w:
                     continue
                 if min_h > 0 and h < min_h:
+                    continue
+                if max_w > 0 and w > max_w:
+                    continue
+                if max_h > 0 and h > max_h:
                     continue
             except Exception:
                 continue

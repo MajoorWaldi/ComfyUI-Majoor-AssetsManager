@@ -538,6 +538,7 @@ class MetadataService:
             "exif": exif_data,
             **(metadata_result.data or {})
         }
+        self._normalize_visual_dimensions(combined, exif_data=exif_data, ffprobe_data=None)
 
         # Optional: parse deterministic generation info from ComfyUI prompt graph (backend-first).
         # Uses worker thread to avoid blocking loop.
@@ -630,6 +631,7 @@ class MetadataService:
             "ffprobe": ffprobe_data,
             **(metadata_result.data or {})
         }
+        self._normalize_visual_dimensions(combined, exif_data=exif_data, ffprobe_data=ffprobe_data)
 
         try:
             await self._enrich_with_geninfo_async(combined)
@@ -861,6 +863,7 @@ class MetadataService:
                     "exif": exif_data,
                     **(metadata_result.data or {}),
                 }
+                self._normalize_visual_dimensions(combined, exif_data=exif_data, ffprobe_data=None)
                 await _finalize_ok(path, combined, metadata_result)
             else:
                 results[path] = metadata_result
@@ -876,12 +879,25 @@ class MetadataService:
 
             metadata_result = extract_video_metadata(path, exif_data, ffprobe_data)
             if metadata_result.ok:
+                payload = dict(metadata_result.data or {})
+                # Keep DB compatibility: expose width/height scalars even when extractor
+                # returns only a resolution tuple.
+                if payload.get("resolution") and (payload.get("width") is None or payload.get("height") is None):
+                    try:
+                        w, h = payload.get("resolution")
+                        if payload.get("width") is None:
+                            payload["width"] = int(w) if w is not None else None
+                        if payload.get("height") is None:
+                            payload["height"] = int(h) if h is not None else None
+                    except Exception:
+                        pass
                 combined = {
                     "file_info": self._get_file_info(path),
                     "exif": exif_data,
                     "ffprobe": ffprobe_data,
-                    **(metadata_result.data or {}),
+                    **payload,
                 }
+                self._normalize_visual_dimensions(combined, exif_data=exif_data, ffprobe_data=ffprobe_data)
                 await _finalize_ok(path, combined, metadata_result)
             else:
                 results[path] = metadata_result
@@ -1001,3 +1017,63 @@ class MetadataService:
         if birthtime is not None:
             info["birthtime"] = birthtime
         return info
+
+    @staticmethod
+    def _normalize_visual_dimensions(payload: Dict[str, Any], exif_data: Optional[Dict[str, Any]] = None, ffprobe_data: Optional[Dict[str, Any]] = None) -> None:
+        """
+        Ensure payload has scalar width/height when visual dimensions are available.
+        """
+        def _coerce(v: Any) -> Optional[int]:
+            try:
+                if v is None:
+                    return None
+                if isinstance(v, str):
+                    s = v.strip().lower().replace("px", "").strip()
+                    if not s:
+                        return None
+                    v = s
+                out = int(float(v))
+                return out if out > 0 else None
+            except Exception:
+                return None
+
+        w = _coerce(payload.get("width"))
+        h = _coerce(payload.get("height"))
+
+        if (w is None or h is None) and payload.get("resolution"):
+            try:
+                rw, rh = payload.get("resolution")
+                if w is None:
+                    w = _coerce(rw)
+                if h is None:
+                    h = _coerce(rh)
+            except Exception:
+                pass
+
+        if (w is None or h is None) and isinstance(ffprobe_data, dict):
+            try:
+                video_stream = ffprobe_data.get("video_stream") or {}
+                if w is None:
+                    w = _coerce(video_stream.get("width"))
+                if h is None:
+                    h = _coerce(video_stream.get("height"))
+            except Exception:
+                pass
+
+        if (w is None or h is None) and isinstance(exif_data, dict):
+            width_keys = ("Image:ImageWidth", "EXIF:ImageWidth", "EXIF:ExifImageWidth", "IFD0:ImageWidth", "Composite:ImageWidth", "QuickTime:ImageWidth", "PNG:ImageWidth", "File:ImageWidth", "width")
+            height_keys = ("Image:ImageHeight", "EXIF:ImageHeight", "EXIF:ExifImageHeight", "IFD0:ImageHeight", "Composite:ImageHeight", "QuickTime:ImageHeight", "PNG:ImageHeight", "File:ImageHeight", "height")
+            if w is None:
+                for k in width_keys:
+                    w = _coerce(exif_data.get(k))
+                    if w is not None:
+                        break
+            if h is None:
+                for k in height_keys:
+                    h = _coerce(exif_data.get(k))
+                    if h is not None:
+                        break
+
+        if w is not None and h is not None:
+            payload["width"] = int(w)
+            payload["height"] = int(h)

@@ -17,6 +17,7 @@ export function bindFilters({
     minSizeInput,
     maxSizeInput,
     resolutionPresetSelect,
+    resolutionCompareSelect,
     minWidthInput,
     minHeightInput,
     dateRangeSelect,
@@ -96,10 +97,23 @@ export function bindFilters({
     addManagedListener(maxSizeInput, "change", applySizeFilter, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
 
     const applyResolutionFilter = async () => {
-        const minW = parseLooseNumber(minWidthInput?.value || 0);
-        const minH = parseLooseNumber(minHeightInput?.value || 0);
-        state.minWidth = Number.isFinite(minW) && minW > 0 ? Math.round(minW) : 0;
-        state.minHeight = Number.isFinite(minH) && minH > 0 ? Math.round(minH) : 0;
+        const rawW = parseLooseNumber(minWidthInput?.value || 0);
+        const rawH = parseLooseNumber(minHeightInput?.value || 0);
+        const w = Number.isFinite(rawW) && rawW > 0 ? Math.round(rawW) : 0;
+        const h = Number.isFinite(rawH) && rawH > 0 ? Math.round(rawH) : 0;
+        const mode = String(resolutionCompareSelect?.value || state.resolutionCompare || "gte") === "lte" ? "lte" : "gte";
+        state.resolutionCompare = mode;
+        if (mode === "lte") {
+            state.minWidth = 0;
+            state.minHeight = 0;
+            state.maxWidth = w;
+            state.maxHeight = h;
+        } else {
+            state.minWidth = w;
+            state.minHeight = h;
+            state.maxWidth = 0;
+            state.maxHeight = 0;
+        }
         try {
             if (resolutionPresetSelect) {
                 const map = {
@@ -108,7 +122,7 @@ export function bindFilters({
                     "2560x1440": "qhd",
                     "3840x2160": "uhd",
                 };
-                const key = `${state.minWidth || 0}x${state.minHeight || 0}`;
+                const key = `${w || 0}x${h || 0}`;
                 resolutionPresetSelect.value = map[key] || "";
             }
         } catch {}
@@ -128,13 +142,27 @@ export function bindFilters({
                 uhd: [3840, 2160],
             };
             const pair = map[preset] || [0, 0];
-            state.minWidth = Number(pair[0] || 0);
-            state.minHeight = Number(pair[1] || 0);
-            if (minWidthInput) minWidthInput.value = state.minWidth > 0 ? String(state.minWidth) : "";
-            if (minHeightInput) minHeightInput.value = state.minHeight > 0 ? String(state.minHeight) : "";
+            const w = Number(pair[0] || 0);
+            const h = Number(pair[1] || 0);
+            if (String(state.resolutionCompare || "gte") === "lte") {
+                state.minWidth = 0;
+                state.minHeight = 0;
+                state.maxWidth = w;
+                state.maxHeight = h;
+            } else {
+                state.minWidth = w;
+                state.minHeight = h;
+                state.maxWidth = 0;
+                state.maxHeight = 0;
+            }
+            if (minWidthInput) minWidthInput.value = w > 0 ? String(w) : "";
+            if (minHeightInput) minHeightInput.value = h > 0 ? String(h) : "";
             try { onFiltersChanged?.(); } catch {}
             await reloadGrid();
         }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
+    }
+    if (resolutionCompareSelect) {
+        addManagedListener(resolutionCompareSelect, "change", applyResolutionFilter, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
     }
     if (dateRangeSelect) {
         addManagedListener(dateRangeSelect, "change", async () => {

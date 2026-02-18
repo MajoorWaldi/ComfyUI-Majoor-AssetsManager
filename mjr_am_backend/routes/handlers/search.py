@@ -451,6 +451,20 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                     filters["min_height"] = val
             except ValueError:
                 return _json_response(Result.Err("INVALID_INPUT", "Invalid min_height"))
+        if "max_width" in request.query:
+            try:
+                val = int(request.query["max_width"])
+                if val > 0:
+                    filters["max_width"] = val
+            except ValueError:
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid max_width"))
+        if "max_height" in request.query:
+            try:
+                val = int(request.query["max_height"])
+                if val > 0:
+                    filters["max_height"] = val
+            except ValueError:
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid max_height"))
         if "workflow_type" in request.query:
             wf_type = str(request.query["workflow_type"] or "").strip().upper()
             if wf_type:
@@ -482,6 +496,14 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
             max_b = int(filters.get("max_size_bytes") or 0)
             if min_b > 0 and max_b > 0 and max_b < min_b:
                 filters["max_size_bytes"] = min_b
+            min_w = int(filters.get("min_width") or 0)
+            max_w = int(filters.get("max_width") or 0)
+            if min_w > 0 and max_w > 0 and max_w < min_w:
+                filters["max_width"] = min_w
+            min_h = int(filters.get("min_height") or 0)
+            max_h = int(filters.get("max_height") or 0)
+            if min_h > 0 and max_h > 0 and max_h < min_h:
+                filters["max_height"] = min_h
         except Exception:
             pass
 
@@ -563,6 +585,8 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                     max_size_bytes=int((filters or {}).get("max_size_bytes") or 0),
                     min_width=int((filters or {}).get("min_width") or 0),
                     min_height=int((filters or {}).get("min_height") or 0),
+                    max_width=int((filters or {}).get("max_width") or 0),
+                    max_height=int((filters or {}).get("max_height") or 0),
                 )
                 try:
                     if browser_result.ok and isinstance(browser_result.data, dict):
@@ -1010,6 +1034,20 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                     filters["min_height"] = val
             except ValueError:
                 return _json_response(Result.Err("INVALID_INPUT", "Invalid min_height"))
+        if "max_width" in request.query:
+            try:
+                val = int(request.query["max_width"])
+                if val > 0:
+                    filters["max_width"] = val
+            except ValueError:
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid max_width"))
+        if "max_height" in request.query:
+            try:
+                val = int(request.query["max_height"])
+                if val > 0:
+                    filters["max_height"] = val
+            except ValueError:
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid max_height"))
         if "workflow_type" in request.query:
             wf_type = str(request.query["workflow_type"] or "").strip().upper()
             if wf_type:
@@ -1024,6 +1062,14 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
             max_b = int(filters.get("max_size_bytes") or 0)
             if min_b > 0 and max_b > 0 and max_b < min_b:
                 filters["max_size_bytes"] = min_b
+            min_w = int(filters.get("min_width") or 0)
+            max_w = int(filters.get("max_width") or 0)
+            if min_w > 0 and max_w > 0 and max_w < min_w:
+                filters["max_width"] = min_w
+            min_h = int(filters.get("min_height") or 0)
+            max_h = int(filters.get("max_height") or 0)
+            if min_h > 0 and max_h > 0 and max_h < min_h:
+                filters["max_height"] = min_h
         except Exception:
             pass
 

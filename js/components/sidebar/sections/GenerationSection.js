@@ -33,7 +33,7 @@ export function createGenerationSection(asset) {
                 return true;
             if (obj.models || obj.model || obj.checkpoint || obj.loras) return true;
             if (obj.sampler || obj.sampler_name || obj.steps || obj.cfg || obj.cfg_scale || obj.scheduler) return true;
-            if (obj.seed || obj.width || obj.height || obj.denoise || obj.denoising || obj.clip_skip) return true;
+            if (obj.seed || obj.denoise || obj.denoising || obj.clip_skip) return true;
             if (obj.voice || obj.language || obj.temperature || obj.top_k || obj.top_p || obj.repetition_penalty || obj.max_new_tokens) return true;
             if (obj.device || obj.voice_preset || obj.instruct || obj.dtype || obj.attn_implementation) return true;
             if (obj.enable_chunking !== undefined || obj.max_chars_per_chunk || obj.chunk_combination_method || obj.silence_between_chunks_ms) return true;
@@ -394,7 +394,6 @@ export function createGenerationSection(asset) {
     }
 
     const imageData = [];
-    if (metadata.width && metadata.height) imageData.push({ label: "Size", value: `${metadata.width}\u00D7${metadata.height}` });
     if (metadata.denoise || metadata.denoising) imageData.push({ label: "Denoise", value: metadata.denoise || metadata.denoising });
     if (metadata.clip_skip) imageData.push({ label: "Clip Skip", value: metadata.clip_skip });
     if (imageData.length > 0) {

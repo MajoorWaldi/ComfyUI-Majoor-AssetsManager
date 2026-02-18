@@ -1,4 +1,4 @@
-import { t } from "../../../app/i18n.js";
+﻿import { t } from "../../../app/i18n.js";
 
 const _safeText = (v) => {
     try {
@@ -39,7 +39,7 @@ function _createPill({ label, value, onClear } = {}) {
         x.className = "mjr-context-pill-x";
         x.title = t("tooltip.clearFilter", { label: label || t("label.filters") });
         x.setAttribute("aria-label", t("tooltip.clearFilter", { label: label || t("label.filters") }));
-        x.textContent = "×";
+        x.textContent = "x";
         x.addEventListener("click", (e) => {
             try {
                 e.preventDefault();
@@ -73,6 +73,8 @@ export function createContextPillsView() {
             || (Number(state?.maxSizeMB || 0) || 0) > 0
             || (Number(state?.minWidth || 0) || 0) > 0
             || (Number(state?.minHeight || 0) || 0) > 0
+            || (Number(state?.maxWidth || 0) || 0) > 0
+            || (Number(state?.maxHeight || 0) || 0) > 0
             || _safeText(state?.workflowType || "").trim()
             || _safeText(state?.dateRangeFilter || "").trim()
             || _safeText(state?.dateExactFilter || "").trim()
@@ -166,13 +168,19 @@ export function createContextPillsView() {
                 })
             );
         }
-        if ((Number(state?.minWidth || 0) || 0) > 0 || (Number(state?.minHeight || 0) || 0) > 0) {
-            const w = Number(state?.minWidth || 0) || 0;
-            const h = Number(state?.minHeight || 0) || 0;
+        if (
+            (Number(state?.minWidth || 0) || 0) > 0
+            || (Number(state?.minHeight || 0) || 0) > 0
+            || (Number(state?.maxWidth || 0) || 0) > 0
+            || (Number(state?.maxHeight || 0) || 0) > 0
+        ) {
+            const isLte = String(state?.resolutionCompare || "gte") === "lte";
+            const w = Number(isLte ? state?.maxWidth : state?.minWidth || 0) || 0;
+            const h = Number(isLte ? state?.maxHeight : state?.minHeight || 0) || 0;
             root.appendChild(
                 _createPill({
                     label: t("label.resolution"),
-                    value: `>= ${w || 0}x${h || 0}`,
+                    value: `${isLte ? "<=" : ">="} ${w || 0}x${h || 0} px`,
                     onClear: () => safeActions?.clearResolution?.()
                 })
             );
@@ -208,3 +216,4 @@ export function createContextPillsView() {
 
     return { wrap: root, update };
 }
+

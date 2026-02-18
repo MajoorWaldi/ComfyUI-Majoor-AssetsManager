@@ -15,6 +15,7 @@ import { createWorkflowMinimapSection } from "./sections/WorkflowMinimapSection.
 import { createFolderDetailsSection } from "./sections/FolderDetailsSection.js";
 import { ASSET_RATING_CHANGED_EVENT, ASSET_TAGS_CHANGED_EVENT } from "../../app/events.js";
 import { loadMajoorSettings } from "../../app/settings.js";
+import { t } from "../../app/i18n.js";
 
 /**
  * Create inline sidebar (for panel integration)
@@ -30,7 +31,7 @@ export function createSidebar(position = "right") {
 
     const placeholder = document.createElement("div");
     placeholder.className = "mjr-sidebar-placeholder";
-    placeholder.textContent = "Select an asset to view details";
+    placeholder.textContent = t("sidebar.placeholderSelectAsset", "Select an asset to view details");
 
     sidebar.appendChild(placeholder);
     sidebar._placeholder = placeholder;

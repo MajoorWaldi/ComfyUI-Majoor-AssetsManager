@@ -1516,8 +1516,11 @@ async function fetchPage(gridContainer, query, limit, offset, { requestId = 0, s
     const minRating = Number(gridContainer?.dataset?.mjrFilterMinRating || 0) || 0;
     const minSizeMB = Number(gridContainer?.dataset?.mjrFilterMinSizeMB || 0) || 0;
     const maxSizeMB = Number(gridContainer?.dataset?.mjrFilterMaxSizeMB || 0) || 0;
+    const resolutionCompare = String(gridContainer?.dataset?.mjrFilterResolutionCompare || "gte") === "lte" ? "lte" : "gte";
     const minWidth = Number(gridContainer?.dataset?.mjrFilterMinWidth || 0) || 0;
     const minHeight = Number(gridContainer?.dataset?.mjrFilterMinHeight || 0) || 0;
+    const maxWidth = Number(gridContainer?.dataset?.mjrFilterMaxWidth || 0) || 0;
+    const maxHeight = Number(gridContainer?.dataset?.mjrFilterMaxHeight || 0) || 0;
     const workflowType = String(gridContainer?.dataset?.mjrFilterWorkflowType || "").trim().toUpperCase();
     const dateRange = String(gridContainer?.dataset?.mjrFilterDateRange || "").trim().toLowerCase();
     const dateExact = String(gridContainer?.dataset?.mjrFilterDateExact || "").trim();
@@ -1540,8 +1543,11 @@ async function fetchPage(gridContainer, query, limit, offset, { requestId = 0, s
                 minRating: minRating > 0 ? minRating : null,
                 minSizeMB: minSizeMB > 0 ? minSizeMB : null,
                 maxSizeMB: maxSizeMB > 0 ? maxSizeMB : null,
+                resolutionCompare,
                 minWidth: minWidth > 0 ? minWidth : null,
                 minHeight: minHeight > 0 ? minHeight : null,
+                maxWidth: maxWidth > 0 ? maxWidth : null,
+                maxHeight: maxHeight > 0 ? maxHeight : null,
                 workflowType: workflowType || null,
                 dateRange: dateRange || null,
                 dateExact: dateExact || null,

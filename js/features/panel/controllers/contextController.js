@@ -31,6 +31,7 @@ export function createContextController({
     minWidthInput,
     minHeightInput,
     resolutionPresetSelect,
+    resolutionCompareSelect,
     dateRangeSelect,
     dateExactInput,
     scopeController,
@@ -175,9 +176,13 @@ export function createContextController({
             try {
                 state.minWidth = 0;
                 state.minHeight = 0;
+                state.maxWidth = 0;
+                state.maxHeight = 0;
+                state.resolutionCompare = "gte";
                 _safeSetValue(minWidthInput, "");
                 _safeSetValue(minHeightInput, "");
                 _safeSetValue(resolutionPresetSelect, "");
+                _safeSetValue(resolutionCompareSelect, "gte");
             } catch {}
             try {
                 await reloadGrid?.();
@@ -226,6 +231,9 @@ export function createContextController({
                 state.maxSizeMB = 0;
                 state.minWidth = 0;
                 state.minHeight = 0;
+                state.maxWidth = 0;
+                state.maxHeight = 0;
+                state.resolutionCompare = "gte";
                 state.workflowType = "";
                 state.dateRangeFilter = "";
                 state.dateExactFilter = "";
@@ -253,6 +261,7 @@ export function createContextController({
                 _safeSetValue(minWidthInput, "");
                 _safeSetValue(minHeightInput, "");
                 _safeSetValue(resolutionPresetSelect, "");
+                _safeSetValue(resolutionCompareSelect, "gte");
                 _safeSetValue(dateRangeSelect, "");
                 _safeSetValue(dateExactInput, "");
             } catch {}
@@ -283,6 +292,8 @@ export function createContextController({
             || (Number(state?.maxSizeMB || 0) || 0) > 0
             || (Number(state?.minWidth || 0) || 0) > 0
             || (Number(state?.minHeight || 0) || 0) > 0
+            || (Number(state?.maxWidth || 0) || 0) > 0
+            || (Number(state?.maxHeight || 0) || 0) > 0
             || String(state?.workflowType || "").trim().length > 0
             || (state?.dateRangeFilter || "")
             || (state?.dateExactFilter || "")

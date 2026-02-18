@@ -102,6 +102,12 @@ def _build_filter_clauses(filters: Optional[Dict[str, Any]], alias: str = "a") -
     if "min_height" in filters:
         clauses.append(f"AND COALESCE({alias}.height, 0) >= ?")
         params.append(int(filters["min_height"]))
+    if "max_width" in filters:
+        clauses.append(f"AND COALESCE({alias}.width, 0) <= ?")
+        params.append(int(filters["max_width"]))
+    if "max_height" in filters:
+        clauses.append(f"AND COALESCE({alias}.height, 0) <= ?")
+        params.append(int(filters["max_height"]))
     if "workflow_type" in filters:
         raw = str(filters.get("workflow_type") or "").strip().upper()
         alias_map = {

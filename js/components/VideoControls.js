@@ -1,5 +1,6 @@
 import { noop, safeCall, safeAddListener } from "../utils/safeCall.js";
 import { clamp, clamp01 } from "../features/viewer/state.js";
+import { t } from "../app/i18n.js";
 
 const MAX_MINOR_TICKS = 400;
 const SEEK_RANGE_MAX = 1000;
@@ -130,15 +131,15 @@ function _mountPreviewControls(video, hostEl) {
     controls.className = "mjr-video-controls mjr-video-controls--preview";
     try {
         controls.setAttribute("role", "group");
-        controls.setAttribute("aria-label", "Video preview controls");
+        controls.setAttribute("aria-label", t("video.previewControls", "Video preview controls"));
     } catch {}
 
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "mjr-video-preview-btn";
-    btn.title = "Play/Pause";
+    btn.title = t("video.playPause", "Play/Pause");
     try {
-        btn.setAttribute("aria-label", "Play/Pause");
+        btn.setAttribute("aria-label", t("video.playPause", "Play/Pause"));
     } catch {}
 
     const icon = document.createElement("span");
@@ -252,7 +253,7 @@ export function mountVideoControls(video, opts = {}) {
         const controls = document.createElement("div");
         controls.className = `mjr-video-controls mjr-video-controls--${variant}`;
         controls.setAttribute("role", "group");
-        controls.setAttribute("aria-label", "Video controls");
+        controls.setAttribute("aria-label", t("video.controls", "Video controls"));
 
         const rowTop = document.createElement("div");
         rowTop.className = "mjr-video-row mjr-video-row--top";
@@ -271,8 +272,8 @@ export function mountVideoControls(video, opts = {}) {
         seek.max = String(SEEK_RANGE_MAX);
         seek.step = "1";
         seek.value = "0";
-        seek.setAttribute("aria-label", "Seek");
-        seek.title = "Seek through video";
+        seek.setAttribute("aria-label", t("video.seek", "Seek"));
+        seek.title = t("video.seekThrough", "Seek through video");
 
         const seekOverlay = document.createElement("div");
         seekOverlay.className = "mjr-video-seek-overlay";
@@ -321,13 +322,13 @@ export function mountVideoControls(video, opts = {}) {
         // Draggable I/O handles (bigger hit area than the thin markers).
         const inHandle = document.createElement("div");
         inHandle.className = "mjr-video-seek-handle mjr-video-seek-handle--in";
-        inHandle.title = "Drag to set In";
-        inHandle.setAttribute("aria-label", "Drag to set In");
+        inHandle.title = t("video.dragSetIn", "Drag to set In");
+        inHandle.setAttribute("aria-label", t("video.dragSetIn", "Drag to set In"));
 
         const outHandle = document.createElement("div");
         outHandle.className = "mjr-video-seek-handle mjr-video-seek-handle--out";
-        outHandle.title = "Drag to set Out";
-        outHandle.setAttribute("aria-label", "Drag to set Out");
+        outHandle.title = t("video.dragSetOut", "Drag to set Out");
+        outHandle.setAttribute("aria-label", t("video.dragSetOut", "Drag to set Out"));
 
         seekWrap.appendChild(seek);
         if (seekZones) seekWrap.appendChild(seekZones);
@@ -341,7 +342,7 @@ export function mountVideoControls(video, opts = {}) {
         const timeLabel = document.createElement("span");
         timeLabel.className = "mjr-video-time";
         timeLabel.textContent = "0:00 / 0:00";
-        timeLabel.title = "Current time / Total duration";
+        timeLabel.title = t("video.currentTimeTotal", "Current time / Total duration");
 
         const rangeCountLabel = document.createElement("span");
         rangeCountLabel.className = "mjr-video-range-count";
@@ -358,41 +359,41 @@ export function mountVideoControls(video, opts = {}) {
         const frameLabel = document.createElement("span");
         frameLabel.className = "mjr-video-frame";
         frameLabel.textContent = "F: 0";
-        frameLabel.title = "Current frame number";
+        frameLabel.title = t("video.currentFrame", "Current frame number");
 
-        const playBtn = createBtn("mjr-video-btn--play", "Play", "Play/Pause (Space)");
-        const prevFrameBtn = createBtn("mjr-video-btn--step", "<", "Step back");
-        const nextFrameBtn = createBtn("mjr-video-btn--step", ">", "Step forward");
-        const toInBtn = createBtn("mjr-video-btn--jump mjr-video-btn--in", "|<", "Go to In");
-        const toOutBtn = createBtn("mjr-video-btn--jump mjr-video-btn--out", ">|", "Go to Out");
+        const playBtn = createBtn("mjr-video-btn--play", t("btn.play", "Play"), t("video.playPauseSpace", "Play/Pause (Space)"));
+        const prevFrameBtn = createBtn("mjr-video-btn--step", "<", t("video.stepBack", "Step back"));
+        const nextFrameBtn = createBtn("mjr-video-btn--step", ">", t("video.stepForward", "Step forward"));
+        const toInBtn = createBtn("mjr-video-btn--jump mjr-video-btn--in", "|<", t("video.goToIn", "Go to In"));
+        const toOutBtn = createBtn("mjr-video-btn--jump mjr-video-btn--out", ">|", t("video.goToOut", "Go to Out"));
 
-        const setInBtn = createBtn("mjr-video-btn--mark mjr-video-btn--in", "I", "Set In from current frame");
-        const setOutBtn = createBtn("mjr-video-btn--mark mjr-video-btn--out", "O", "Set Out from current frame");
-        const loopIcon = createIconBtn("mjr-video-btn--toggle", "pi-refresh", "Loop playback in range", "Loop");
+        const setInBtn = createBtn("mjr-video-btn--mark mjr-video-btn--in", "I", t("video.setInFromCurrent", "Set In from current frame"));
+        const setOutBtn = createBtn("mjr-video-btn--mark mjr-video-btn--out", "O", t("video.setOutFromCurrent", "Set Out from current frame"));
+        const loopIcon = createIconBtn("mjr-video-btn--toggle", "pi-refresh", t("video.loopPlaybackInRange", "Loop playback in range"), t("video.loop", "Loop"));
         const loopBtn = loopIcon.btn;
 
-        const inInput = createNumberInput("mjr-video-num--in", { min: 0, step: 1, value: 0, title: "In frame", ariaLabel: "In frame", widthPx: 72 });
-        const outInput = createNumberInput("mjr-video-num--out", { min: 0, step: 1, value: 0, title: "Out frame", ariaLabel: "Out frame", widthPx: 72 });
+        const inInput = createNumberInput("mjr-video-num--in", { min: 0, step: 1, value: 0, title: t("video.inFrame", "In frame"), ariaLabel: t("video.inFrame", "In frame"), widthPx: 72 });
+        const outInput = createNumberInput("mjr-video-num--out", { min: 0, step: 1, value: 0, title: t("video.outFrame", "Out frame"), ariaLabel: t("video.outFrame", "Out frame"), widthPx: 72 });
         const stepInput = createNumberInput("mjr-video-num--step", {
             min: 1,
             step: 1,
             value: 1,
-            title: "Frame increment",
-            ariaLabel: "Frame increment",
+            title: t("video.frameIncrement", "Frame increment"),
+            ariaLabel: t("video.frameIncrement", "Frame increment"),
             widthPx: 56
         });
         const fpsInput = createNumberInput("mjr-video-num--fps", {
             min: 1,
             step: 1,
             value: Math.max(1, Math.floor(initialFps || 30)),
-            title: "FPS (used for frame stepping)",
-            ariaLabel: "FPS",
+            title: t("video.fpsStepping", "FPS (used for frame stepping)"),
+            ariaLabel: t("video.fps", "FPS"),
             widthPx: 56
         });
         const speedSelect = document.createElement("select");
         speedSelect.className = "mjr-video-num mjr-video-num--speed";
-        speedSelect.title = "Playback speed";
-        speedSelect.setAttribute("aria-label", "Playback speed");
+        speedSelect.title = t("video.playbackSpeed", "Playback speed");
+        speedSelect.setAttribute("aria-label", t("video.playbackSpeed", "Playback speed"));
         speedSelect.style.width = "74px";
         const SPEED_OPTIONS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
         for (const rate of SPEED_OPTIONS) {
@@ -402,7 +403,7 @@ export function mountVideoControls(video, opts = {}) {
             speedSelect.appendChild(opt);
         }
 
-        const muteIcon = createIconBtn("mjr-video-btn--mute", "pi-volume-up", "Mute", "Mute");
+        const muteIcon = createIconBtn("mjr-video-btn--mute", "pi-volume-up", t("video.mute", "Mute"), t("video.mute", "Mute"));
         const muteBtn = muteIcon.btn;
         const volumeWrap = document.createElement("div");
         volumeWrap.className = "mjr-video-volume-wrap";
@@ -416,8 +417,8 @@ export function mountVideoControls(video, opts = {}) {
             volume.max = "1";
             volume.step = "0.02";
             volume.value = String(clamp01(Number(video.volume) || 0));
-            volume.setAttribute("aria-label", "Volume");
-            volume.title = "Volume";
+            volume.setAttribute("aria-label", t("video.volume", "Volume"));
+            volume.title = t("video.volume", "Volume");
             try {
                 volume.style.width = "120px";
             } catch {}
@@ -428,7 +429,7 @@ export function mountVideoControls(video, opts = {}) {
         inGroup.className = "mjr-video-group mjr-video-group--in";
         const inLabel = document.createElement("span");
         inLabel.textContent = "In";
-        inLabel.title = "Reset In to start";
+        inLabel.title = t("video.resetInToStart", "Reset In to start");
         inLabel.style.cssText = "cursor:pointer; user-select:none;";
         if (advanced) {
             inGroup.appendChild(inLabel);
@@ -439,7 +440,7 @@ export function mountVideoControls(video, opts = {}) {
         outGroup.className = "mjr-video-group mjr-video-group--out";
         const outLabel = document.createElement("span");
         outLabel.textContent = "Out";
-        outLabel.title = "Reset Out to end";
+        outLabel.title = t("video.resetOutToEnd", "Reset Out to end");
         outLabel.style.cssText = "cursor:pointer; user-select:none;";
         if (advanced) {
             outGroup.appendChild(outLabel);
@@ -451,9 +452,9 @@ export function mountVideoControls(video, opts = {}) {
         if (advanced) {
             // Requested: keep "I" (set in), FPS and Step on the left side of the player.
             leftAdjustGroup.appendChild(setInBtn);
-            leftAdjustGroup.appendChild(document.createTextNode("Step"));
+            leftAdjustGroup.appendChild(document.createTextNode(t("video.step", "Step")));
             leftAdjustGroup.appendChild(stepInput);
-            leftAdjustGroup.appendChild(document.createTextNode("FPS"));
+            leftAdjustGroup.appendChild(document.createTextNode(t("video.fps", "FPS")));
             leftAdjustGroup.appendChild(fpsInput);
         }
 
@@ -464,7 +465,7 @@ export function mountVideoControls(video, opts = {}) {
         }
         const speedGroup = document.createElement("div");
         speedGroup.className = "mjr-video-group mjr-video-group--speed";
-        speedGroup.appendChild(document.createTextNode("Speed"));
+        speedGroup.appendChild(document.createTextNode(t("video.speed", "Speed")));
         speedGroup.appendChild(speedSelect);
 
         // Top row: In (left) — seek — Out (right) — time — frame
@@ -681,7 +682,9 @@ export function mountVideoControls(video, opts = {}) {
 
         const setPlayLabel = () => {
             try {
-                playBtn.textContent = video?.paused ? "Play" : "Pause";
+                playBtn.textContent = video?.paused
+                    ? t("video.play", "Play")
+                    : t("video.pause", "Pause");
             } catch {}
         };
 
@@ -691,8 +694,9 @@ export function mountVideoControls(video, opts = {}) {
                 try {
                     muteIcon.icon.className = `pi ${muted ? "pi-volume-off" : "pi-volume-up"}`;
                 } catch {}
-                muteBtn.title = muted ? "Unmute" : "Mute";
-                muteBtn.setAttribute("aria-label", muted ? "Unmute" : "Mute");
+                const muteLabel = muted ? t("video.unmute", "Unmute") : t("video.mute", "Mute");
+                muteBtn.title = muteLabel;
+                muteBtn.setAttribute("aria-label", muteLabel);
             } catch {}
         };
 
@@ -1145,7 +1149,7 @@ export function mountVideoControls(video, opts = {}) {
                 })
             );
             try {
-                rangeCountLabel.title = "Reset player controls";
+                rangeCountLabel.title = t("video.resetPlayerControls", "Reset player controls");
                 rangeCountLabel.style.cursor = "pointer";
                 rangeCountLabel.style.userSelect = "none";
             } catch {}

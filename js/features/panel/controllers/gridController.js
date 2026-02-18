@@ -34,8 +34,11 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
         gridContainer.dataset.mjrFilterMinRating = String(state.minRating || 0);
         gridContainer.dataset.mjrFilterMinSizeMB = String(state.minSizeMB || 0);
         gridContainer.dataset.mjrFilterMaxSizeMB = String(state.maxSizeMB || 0);
+        gridContainer.dataset.mjrFilterResolutionCompare = String(state.resolutionCompare || "gte");
         gridContainer.dataset.mjrFilterMinWidth = String(state.minWidth || 0);
         gridContainer.dataset.mjrFilterMinHeight = String(state.minHeight || 0);
+        gridContainer.dataset.mjrFilterMaxWidth = String(state.maxWidth || 0);
+        gridContainer.dataset.mjrFilterMaxHeight = String(state.maxHeight || 0);
         gridContainer.dataset.mjrFilterWorkflowType = String(state.workflowType || "");
         gridContainer.dataset.mjrFilterDateRange = state.dateRangeFilter || "";
         gridContainer.dataset.mjrFilterDateExact = state.dateExactFilter || "";
