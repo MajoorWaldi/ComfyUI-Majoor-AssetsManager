@@ -365,10 +365,10 @@ class DuplicatesService:
         where, params = self._alerts_where_clause(roots)
         exact_groups_res = await self._query_exact_groups(where, params, max_groups=max_groups)
         if not exact_groups_res.ok:
-            return exact_groups_res
+            return Result.Err("DB_ERROR", exact_groups_res.error or "Duplicate query failed")
         sim_rows_res = await self._query_similarity_rows(where, params)
         if not sim_rows_res.ok:
-            return sim_rows_res
+            return Result.Err("DB_ERROR", sim_rows_res.error or "Similarity query failed")
         similar_pairs = self._build_similar_pairs(
             sim_rows_res.data or [],
             phash_distance=phash_distance,

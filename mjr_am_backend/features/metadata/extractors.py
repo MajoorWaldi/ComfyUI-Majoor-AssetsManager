@@ -218,14 +218,14 @@ def _fill_missing_dims_from_pairs(
     return width, height
 
 
-def _extract_ffprobe_format_tags(ffprobe_data: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+def _extract_ffprobe_format_tags(ffprobe_data: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     if not isinstance(ffprobe_data, dict):
-        return None
+        return {}
     fmt = ffprobe_data.get("format") or {}
     if not isinstance(fmt, dict):
-        return None
+        return {}
     tags = fmt.get("tags")
-    return tags if isinstance(tags, dict) else None
+    return tags if isinstance(tags, dict) else {}
 
 
 def _extract_ffprobe_stream_tag_dicts(ffprobe_data: Optional[Dict[str, Any]]) -> list[Dict[str, Any]]:
@@ -1298,7 +1298,7 @@ def _collect_video_text_candidates(
     exif_data: Dict[str, Any],
     format_tags: Dict[str, Any],
     stream_tag_dicts: List[Dict[str, Any]],
-) -> List[str]:
+) -> List[Tuple[str, str]]:
     text_candidates = _collect_text_candidates(exif_data)
     if format_tags:
         text_candidates.extend(_collect_text_candidates(format_tags))

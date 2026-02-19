@@ -48,8 +48,11 @@ async def _read_json(request: web.Request, *, max_bytes: Optional[int] = None) -
         return length_error
     body = await _read_request_body_limited(request, limit)
     if not body.ok:
-        return body
-    return _decode_and_parse_json_dict(body.data)
+        return Result.Err(body.code or ErrorCode.INVALID_JSON, body.error or "Invalid request body", **(body.meta or {}))
+    payload = body.data
+    if not isinstance(payload, (bytes, bytearray)):
+        return Result.Err(ErrorCode.INVALID_JSON, "Invalid request body payload")
+    return _decode_and_parse_json_dict(bytes(payload))
 
 
 def _content_length_error(request: web.Request, limit: int) -> Optional[Result[dict]]:

@@ -109,6 +109,8 @@ async def build_services(db_path: Optional[str] = None) -> Result[dict]:
     if not db_res.ok:
         return Result.Err(db_res.code or "DB_ERROR", db_res.error or "Failed to initialize database")
     db = db_res.data
+    if db is None:
+        return Result.Err("DB_ERROR", "Failed to initialize database")
 
     migrate_result = await _migrate_db_or_error(db)
     if not migrate_result.ok:

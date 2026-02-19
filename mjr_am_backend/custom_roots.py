@@ -184,6 +184,7 @@ def add_custom_root(path: str, label: Optional[str] = None) -> Result[Dict[str, 
     validation = _validate_new_root_path(normalized)
     if validation is not None:
         return validation
+    assert normalized is not None
 
     payload = _new_root_payload(normalized, label=label)
     resolved = payload["resolved"]

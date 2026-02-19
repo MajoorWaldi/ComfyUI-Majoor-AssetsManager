@@ -3021,8 +3021,9 @@ def _apply_guider_cfg_fallback(values: Dict[str, Any], trace: Dict[str, Any], fi
     if trace.get("guider_cfg_value") is None:
         return
     values["cfg"] = trace.get("guider_cfg_value")
-    if trace.get("guider_cfg_source"):
-        field_sources["cfg"] = trace.get("guider_cfg_source")
+    cfg_source = trace.get("guider_cfg_source")
+    if cfg_source:
+        field_sources["cfg"] = str(cfg_source)
 
 
 def _extract_sampler_values(
@@ -3116,7 +3117,7 @@ def _upscaler_model_entry(node: Any, node_id: Any) -> Optional[Dict[str, Any]]:
         return None
     if not _is_upscaler_loader_type(_lower(_node_type(node))):
         return None
-    name = _clean_model_id(_upscaler_model_name(_inputs(node)))
+    name: Optional[str] = _clean_model_id(_upscaler_model_name(_inputs(node)))
     if not name:
         return None
     return {"name": name, "confidence": "medium", "source": f"{_node_type(node)}:{node_id}"}
