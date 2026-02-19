@@ -659,7 +659,7 @@ class IndexScanner:
             )
             await asyncio.sleep(0)
 
-    async def _journal_map_for_batch(self, filepaths: List[str], incremental: bool) -> Dict[str, Dict[str, Any]]:
+    async def _journal_map_for_batch(self, filepaths: List[str], incremental: bool) -> Dict[str, str]:
         if not incremental or not filepaths:
             return {}
         return await self._get_journal_entries(filepaths)
@@ -1443,9 +1443,26 @@ class IndexScanner:
             return invalid_refresh
 
         try:
+            if not isinstance(metadata_result, Result):
+                if fallback_mode:
+                    return False
+                stats["skipped"] += 1
+                return True
+            if asset_id is None:
+                if fallback_mode:
+                    return False
+                stats["skipped"] += 1
+                return True
+            try:
+                asset_id_int = int(asset_id)
+            except Exception:
+                if fallback_mode:
+                    return False
+                stats["skipped"] += 1
+                return True
             refreshed = await MetadataHelpers.refresh_metadata_if_needed(
                 self.db,
-                int(asset_id),
+                asset_id_int,
                 metadata_result,
                 *self._refresh_entry_context(entry, base_dir),
                 self._write_scan_journal_entry,
@@ -1480,11 +1497,11 @@ class IndexScanner:
         return True
 
     @staticmethod
-    def _refresh_entry_context(entry: Dict[str, Any], base_dir: str) -> tuple[str, str, int, int]:
+    def _refresh_entry_context(entry: Dict[str, Any], base_dir: str) -> tuple[str, str, str, int, int]:
         return (
-            entry.get("filepath") or "",
+            str(entry.get("filepath") or ""),
             base_dir,
-            entry.get("state_hash") or "",
+            str(entry.get("state_hash") or ""),
             int(entry.get("mtime") or 0),
             int(entry.get("size") or 0),
         )

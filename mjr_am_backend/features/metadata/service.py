@@ -1278,10 +1278,13 @@ class MetadataService:
         h: Optional[int],
         coerce: Callable[[Any], Optional[int]],
     ) -> tuple[Optional[int], Optional[int]]:
-        if (w is not None and h is not None) or not payload.get("resolution"):
+        resolution = payload.get("resolution")
+        if (w is not None and h is not None) or not resolution:
+            return w, h
+        if not isinstance(resolution, (list, tuple)) or len(resolution) < 2:
             return w, h
         try:
-            rw, rh = payload.get("resolution")
+            rw, rh = resolution[0], resolution[1]
             if w is None:
                 w = coerce(rw)
             if h is None:

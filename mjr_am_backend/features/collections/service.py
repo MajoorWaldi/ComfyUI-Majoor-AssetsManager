@@ -140,8 +140,10 @@ class CollectionsService:
         """List collections with basic metadata and item counts."""
         base_res = self._resolve_collections_base_dir()
         if not base_res.ok:
-            return base_res
+            return Result.Err(base_res.code or ErrorCode.DB_ERROR, base_res.error or "Collections dir unavailable")
         base = base_res.data
+        if not isinstance(base, Path):
+            return Result.Err(ErrorCode.DB_ERROR, "Collections dir unavailable")
 
         items: List[CollectionSummary] = []
         with self._lock:

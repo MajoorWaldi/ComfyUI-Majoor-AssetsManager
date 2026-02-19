@@ -290,8 +290,11 @@ class HealthService:
     @staticmethod
     def _result_count(result: object) -> int:
         try:
-            if getattr(result, "ok", False) and getattr(result, "data", None):
-                return int(result.data[0].get("count") or 0)
+            data = getattr(result, "data", None)
+            if getattr(result, "ok", False) and isinstance(data, list) and data:
+                first = data[0]
+                if isinstance(first, dict):
+                    return int(first.get("count") or 0)
         except Exception:
             return 0
         return 0
@@ -299,8 +302,13 @@ class HealthService:
     @staticmethod
     def _kind_counts(kind_result: object) -> dict:
         try:
-            if getattr(kind_result, "ok", False) and getattr(kind_result, "data", None):
-                return {row["kind"]: row["count"] for row in kind_result.data}
+            data = getattr(kind_result, "data", None)
+            if getattr(kind_result, "ok", False) and isinstance(data, list):
+                return {
+                    row["kind"]: row["count"]
+                    for row in data
+                    if isinstance(row, dict) and "kind" in row and "count" in row
+                }
         except Exception:
             return {}
         return {}

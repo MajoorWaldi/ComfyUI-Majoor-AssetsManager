@@ -125,6 +125,8 @@ def write_exif_rating_tags(exiftool: ExifTool, file_path: str, rating: int, tags
     if not path_res.ok:
         return Result.Err(path_res.code or ErrorCode.INVALID_INPUT, path_res.error or "Invalid file path")
     p = path_res.data
+    if not isinstance(p, Path):
+        return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")
 
     stars = max(0, min(5, int(rating or 0)))
     tags_norm = _normalize_tags(tags)
@@ -304,6 +306,8 @@ def write_windows_rating_tags(file_path: str, rating: int, tags: List[str]) -> R
     if not path_res.ok:
         return Result.Err(path_res.code or ErrorCode.INVALID_INPUT, path_res.error or "Invalid file path")
     p = path_res.data
+    if not isinstance(p, Path):
+        return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")
 
     stars = max(0, min(5, int(rating or 0)))
     rating_val = _windows_rating_percent(stars)

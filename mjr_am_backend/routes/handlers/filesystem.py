@@ -571,7 +571,7 @@ async def _fs_cache_get_or_build(
 
     async with _FS_LIST_CACHE_LOCK:
         cached = _FS_LIST_CACHE.get(cache_key)
-        if _cache_entry_matches_dir_state(cached, dir_mtime_ns=dir_mtime_ns, watch_token=watch_token):
+        if isinstance(cached, dict) and _cache_entry_matches_dir_state(cached, dir_mtime_ns=dir_mtime_ns, watch_token=watch_token):
             if _cache_entry_is_fresh(cached):
                 _FS_LIST_CACHE.move_to_end(cache_key)
                 return Result.Ok({"entries": cached["entries"], "dir_mtime_ns": dir_mtime_ns})
@@ -1129,7 +1129,8 @@ async def _dispatch_filesystem_listing_path(
     offset: int,
     index_service: Optional[Any],
 ) -> Result[dict[str, Any]]:
-    opts = listing_args.get("opts") if isinstance(listing_args.get("opts"), Mapping) else {}
+    raw_opts = listing_args.get("opts")
+    opts: Mapping[str, Any] = raw_opts if isinstance(raw_opts, Mapping) else {}
     if _can_use_listing_fast_path(opts):
         return await _list_filesystem_assets_fast_path(
             base,

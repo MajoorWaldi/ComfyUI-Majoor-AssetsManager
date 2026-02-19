@@ -311,7 +311,7 @@ class ExifTool:
         tags_res = _validate_exiftool_tags(tags)
         if tags_res.ok:
             return tags_res.data or []
-        err = Result.Err(tags_res.code, tags_res.error or "Invalid tags", **(tags_res.meta or {}))
+        err: Result[Dict[str, Any]] = Result.Err(tags_res.code, tags_res.error or "Invalid tags", **(tags_res.meta or {}))
         self._assign_result_for_paths(valid_paths, results, err)
         return None
 
@@ -397,38 +397,38 @@ class ExifTool:
 
         if not stdout.strip():
             if process.returncode != 0:
-                err = Result.Err(
+                err_result: Result[Dict[str, Any]] = Result.Err(
                     ErrorCode.EXIFTOOL_ERROR,
                     (stderr.strip() or f"ExifTool batch failed with return code {int(process.returncode)}"),
                     return_code=int(process.returncode),
                     quality="degraded",
                 )
             else:
-                err = Result.Err(
+                err_result = Result.Err(
                     ErrorCode.PARSE_ERROR,
                     "ExifTool returned empty output",
                     quality="degraded",
                 )
-            self._assign_result_for_paths(valid_paths, results, err)
+            self._assign_result_for_paths(valid_paths, results, err_result)
             return None, had_replacements
 
         try:
             data = json.loads(stdout)
         except json.JSONDecodeError as e:
             logger.error(f"ExifTool batch JSON parse error: {e}")
-            err = Result.Err(
+            err_result = Result.Err(
                 ErrorCode.PARSE_ERROR,
                 f"Failed to parse ExifTool output: {e}",
                 quality="degraded",
             )
-            self._assign_result_for_paths(valid_paths, results, err)
+            self._assign_result_for_paths(valid_paths, results, err_result)
             return None, had_replacements
 
         if not isinstance(data, list):
-            err = Result.Err(
+            err_result = Result.Err(
                 ErrorCode.PARSE_ERROR, "ExifTool batch returned non-list", quality="degraded"
             )
-            self._assign_result_for_paths(valid_paths, results, err)
+            self._assign_result_for_paths(valid_paths, results, err_result)
             return None, had_replacements
         return data, had_replacements
 
@@ -498,7 +498,7 @@ class ExifTool:
             return results
 
         logger.error(f"ExifTool batch unexpected error: {exc}")
-        err = Result.Err(ErrorCode.EXIFTOOL_ERROR, str(exc), quality="degraded")
+        err: Result[Dict[str, Any]] = Result.Err(ErrorCode.EXIFTOOL_ERROR, str(exc), quality="degraded")
         self._assign_result_for_paths(valid_paths, results, err, only_missing=True)
         return results
 

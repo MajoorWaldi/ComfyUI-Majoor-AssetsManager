@@ -188,8 +188,9 @@ def _collect_geninfo_extras(meta: Dict[str, Any]) -> list[str]:
 
 def _collect_named_values(container: Any, field: str) -> list[str]:
     out: list[str] = []
+    values: list[Any]
     if isinstance(container, dict):
-        values = container.values()
+        values = list(container.values())
     elif isinstance(container, list):
         values = container
     else:

@@ -168,8 +168,15 @@ class FFProbe:
             process = await self._spawn_ffprobe_process(cmd)
             communicated = await self._communicate_with_timeout(process, path)
             if not communicated.ok:
-                return communicated
-            stdout, stderr = communicated.data
+                return Result.Err(
+                    communicated.code or ErrorCode.FFPROBE_ERROR,
+                    communicated.error or "ffprobe communication failed",
+                    **(communicated.meta or {}),
+                )
+            data = communicated.data
+            if not isinstance(data, tuple) or len(data) != 2:
+                return Result.Err(ErrorCode.FFPROBE_ERROR, "Invalid ffprobe process output", quality="degraded")
+            stdout, stderr = data
             return self._parse_ffprobe_output(stdout, stderr, process.returncode, path)
         except json.JSONDecodeError as e:
             logger.error(f"ffprobe JSON parse error: {e}")

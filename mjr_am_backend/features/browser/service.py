@@ -36,8 +36,11 @@ def list_visible_subfolders(root_dir: Path, subfolder: str, root_id: str) -> Res
     """
     resolved = _resolve_browser_target_dir(root_dir, subfolder)
     if not resolved.ok:
-        return resolved
-    base, target_resolved = resolved.data
+        return Result.Err(resolved.code or "INVALID_INPUT", resolved.error or "Invalid target directory")
+    data = resolved.data
+    if not isinstance(data, tuple) or len(data) != 2:
+        return Result.Err("INVALID_INPUT", "Invalid target directory")
+    base, target_resolved = data
 
     folders: list[dict] = []
     try:
@@ -425,8 +428,10 @@ def _list_browser_path_mode_entries(
     if not collect_res.ok:
         return collect_res
     data = collect_res.data if isinstance(collect_res.data, dict) else {}
-    folders = data.get("folders") if isinstance(data.get("folders"), list) else []
-    files = data.get("files") if isinstance(data.get("files"), list) else []
+    raw_folders = data.get("folders")
+    raw_files = data.get("files")
+    folders: list[dict] = raw_folders if isinstance(raw_folders, list) else []
+    files: list[dict] = raw_files if isinstance(raw_files, list) else []
 
     folders.sort(key=_folder_sort_key)
     files = _filter_browser_files_by_dimensions(
