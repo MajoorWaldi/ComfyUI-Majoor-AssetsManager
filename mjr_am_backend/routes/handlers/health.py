@@ -32,6 +32,7 @@ SECURITY_PREF_KEYS = {
     "allow_rename",
     "allow_open_in_folder",
     "allow_reset_index",
+    "api_token",
 }
 
 
@@ -404,7 +405,7 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         if not settings_service:
             return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Settings service unavailable"))
 
-        prefs = await settings_service.get_security_prefs()
+        prefs = await settings_service.get_security_prefs(include_secret=False)
         return _json_response(Result.Ok({"prefs": prefs}))
 
     @routes.post("/mjr/am/settings/security")
@@ -433,7 +434,12 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         prefs = {}
         for key in SECURITY_PREF_KEYS:
             if key in body:
-                prefs[key] = parse_bool(body[key], False)
+                if key == "api_token":
+                    prefs[key] = str(body[key] or "").strip()
+                else:
+                    prefs[key] = parse_bool(body[key], False)
+        if "apiToken" in body and "api_token" not in prefs:
+            prefs["api_token"] = str(body.get("apiToken") or "").strip()
         if not prefs:
             return _json_response(Result.Err("INVALID_INPUT", "No security settings provided"))
 
@@ -442,6 +448,48 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
             current_prefs = result.data or (await settings_service.get_security_prefs())
             return _json_response(Result.Ok({"prefs": current_prefs}))
         return _json_response(result)
+
+    @routes.post("/mjr/am/settings/security/rotate-token")
+    async def rotate_security_token(request):
+        csrf = _csrf_error(request)
+        if csrf:
+            return _json_response(Result.Err("CSRF", csrf))
+
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
+
+        svc, error_result = await _require_services()
+        if error_result:
+            return _json_response(error_result)
+
+        settings_service = svc.get("settings")
+        if not settings_service:
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Settings service unavailable"))
+
+        result = await settings_service.rotate_api_token()
+        if not result.ok:
+            return _json_response(result)
+        return _json_response(Result.Ok({"token": (result.data or {}).get("api_token", "")}))
+
+    @routes.post("/mjr/am/settings/security/bootstrap-token")
+    async def bootstrap_security_token(request):
+        csrf = _csrf_error(request)
+        if csrf:
+            return _json_response(Result.Err("CSRF", csrf))
+
+        svc, error_result = await _require_services()
+        if error_result:
+            return _json_response(error_result)
+
+        settings_service = svc.get("settings")
+        if not settings_service:
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Settings service unavailable"))
+
+        result = await settings_service.bootstrap_api_token()
+        if not result.ok:
+            return _json_response(result)
+        return _json_response(Result.Ok({"token": (result.data or {}).get("api_token", "")}))
 
     @routes.get("/mjr/am/tools/status")
     async def tools_status(request):

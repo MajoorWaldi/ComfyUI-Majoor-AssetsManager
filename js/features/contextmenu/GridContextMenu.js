@@ -6,14 +6,15 @@ import { buildDownloadURL } from "../../api/endpoints.js";
 import { comfyConfirm, comfyPrompt } from "../../app/dialogs.js";
 import { comfyToast } from "../../app/toast.js";
 import { t } from "../../app/i18n.js";
-import { openInFolder, deleteAsset, renameAsset, updateAssetRating, removeFilepathsFromCollection, post, browserFolderOp } from "../../api/client.js";
+import { openInFolder, deleteAsset, renameAsset, updateAssetRating, removeFilepathsFromCollection, post, browserFolderOp, getAssetMetadata } from "../../api/client.js";
 import { ENDPOINTS } from "../../api/endpoints.js";
 import { ASSET_RATING_CHANGED_EVENT, ASSET_TAGS_CHANGED_EVENT } from "../../app/events.js";
 import { createTagsEditor } from "../../components/TagsEditor.js";
 import { getViewerInstance } from "../../components/Viewer.js";
 import { APP_CONFIG } from "../../app/config.js";
 import { safeDispatchCustomEvent } from "../../utils/events.js";
-import { sanitizeFilename, validateFilename } from "../../utils/filenames.js";
+import { normalizeRenameFilename, validateFilename } from "../../utils/filenames.js";
+import { createWorkflowDot } from "../../components/Badges.js";
 import { reportError } from "../../utils/logging.js";
 import { safeClosest } from "../../utils/dom.js";
 import { showAddToCollectionMenu } from "../collections/contextmenu/addToCollectionMenu.js";
@@ -202,20 +203,46 @@ const showAt = showMenuAt;
 
 const triggerBrowserGridReload = (gridContainer) => {
     try {
-        gridContainer?.dispatchEvent?.(new CustomEvent("mjr:reload-grid", { bubbles: true }));
-    } catch {}
-    try {
-        window?.dispatchEvent?.(new CustomEvent("mjr:reload-grid"));
-    } catch {}
-    // Filesystem updates can be slightly delayed on some setups; refresh once more.
-    try {
-        setTimeout(() => {
-            try {
-                gridContainer?.dispatchEvent?.(new CustomEvent("mjr:reload-grid", { bubbles: true }));
-            } catch {}
-        }, 180);
+        const reason = gridContainer ? "grid-contextmenu" : "grid-contextmenu-global";
+        window?.dispatchEvent?.(new CustomEvent("mjr:reload-grid", { detail: { reason } }));
     } catch {}
 };
+
+async function resetIndexForSingleAsset(asset, gridContainer) {
+    if (!asset) return { ok: false, error: "Missing asset" };
+
+    const fileEntry = {
+        filename: String(asset.filename || "").trim(),
+        subfolder: String(asset.subfolder || "").trim(),
+        type: String(asset.type || asset.source || "output").trim().toLowerCase() || "output",
+        root_id: String(asset.root_id || asset.rootId || asset?.file_info?.root_id || "").trim() || undefined,
+    };
+    if (!fileEntry.filename) return { ok: false, error: "Missing filename" };
+
+    const indexRes = await post(ENDPOINTS.INDEX_FILES, { files: [fileEntry], incremental: false });
+    if (!indexRes?.ok) return indexRes || { ok: false, error: "Index refresh failed" };
+
+    if (asset?.id != null) {
+        try {
+            const fresh = await getAssetMetadata(asset.id);
+            if (fresh?.ok && fresh?.data && typeof fresh.data === "object") {
+                Object.assign(asset, fresh.data);
+                const card = document.querySelector(`[data-mjr-asset-id="${safeEscapeSelector(asset.id)}"]`);
+                if (card && card._mjrAsset) {
+                    card._mjrAsset = { ...card._mjrAsset, ...fresh.data };
+                    const oldDot = card.querySelector(".mjr-workflow-dot");
+                    if (oldDot) {
+                        const nextDot = createWorkflowDot(card._mjrAsset);
+                        if (nextDot) oldDot.replaceWith(nextDot);
+                    }
+                }
+            }
+        } catch {}
+    }
+
+    try { triggerBrowserGridReload(gridContainer); } catch {}
+    return { ok: true, data: { refreshed: true } };
+}
 
 function getOrCreateRatingSubmenu() {
     return getOrCreateMenu({
@@ -737,7 +764,7 @@ export function bindGridContextMenu({
 
                     // Refresh the collection view (best effort).
                     try {
-                        gridContainer?.dispatchEvent?.(new CustomEvent("mjr:reload-grid"));
+                        triggerBrowserGridReload(gridContainer);
                     } catch {}
                 })
             );
@@ -872,6 +899,29 @@ export function bindGridContextMenu({
 
         menu.appendChild(separator());
 
+        // Targeted index reset/rebuild for this file only.
+        menu.appendChild(
+            createItem(t("ctx.resetIndexFile", "Reset index (this file)"), "pi pi-refresh", null, async () => {
+                if (!(asset?.filename || asset?.id)) return;
+                try {
+                    comfyToast(t("toast.rescanningFile", "Rescanning file..."), "info", 1600);
+                } catch {}
+                try {
+                    const res = await resetIndexForSingleAsset(asset, gridContainer);
+                    if (res?.ok) {
+                        comfyToast(t("toast.metadataRefreshed", "Metadata refreshed{suffix}", { suffix: "" }), "success", 1800);
+                    } else {
+                        comfyToast(res?.error || t("toast.resetFailed", "Failed to reset index"), "error");
+                    }
+                } catch (error) {
+                    comfyToast(
+                        t("toast.resetFailed", "Failed to reset index") + `: ${error?.message || String(error || "")}`,
+                        "error"
+                    );
+                }
+            }, { disabled: !(asset?.filename || asset?.id) })
+        );
+
         // Rename (single only)
         menu.appendChild(
             createItem("Rename…", "pi pi-pencil", getShortcutDisplay("RENAME"), async () => {
@@ -879,7 +929,7 @@ export function bindGridContextMenu({
                 
                 const currentName = asset.filename || "";
                 const rawInput = await comfyPrompt(t("dialog.rename.title", "Rename file"), currentName);
-                const newName = sanitizeFilename(rawInput);
+                const newName = normalizeRenameFilename(rawInput, currentName);
                 if (!newName || newName === currentName) return;
                 const validation = validateFilename(newName);
                 if (!validation.valid) {
@@ -890,9 +940,19 @@ export function bindGridContextMenu({
                 try {
                     const result = await renameAsset(asset, newName);
                     if (result?.ok) {
-                        // Update the asset object and card UI
-                        asset.filename = newName;
-                        asset.filepath = asset.filepath.replace(/[^\\/]+$/, newName);
+                        const fresh = result?.data?.asset;
+                        if (fresh && typeof fresh === "object") {
+                            Object.assign(asset, fresh);
+                        } else {
+                            asset.filename = newName;
+                            asset.filepath = asset.filepath.replace(/[^\\/]+$/, newName);
+                            if (asset.path) asset.path = String(asset.path).replace(/[^\\/]+$/, newName);
+                            if (asset.file_info && typeof asset.file_info === "object") {
+                                asset.file_info.filename = newName;
+                                if (asset.file_info.filepath) asset.file_info.filepath = String(asset.file_info.filepath).replace(/[^\\/]+$/, newName);
+                                if (asset.file_info.path) asset.file_info.path = String(asset.file_info.path).replace(/[^\\/]+$/, newName);
+                            }
+                        }
                         
                         // Update card UI
                         const card = document.querySelector(`[data-mjr-asset-id="${safeEscapeSelector(asset.id)}"]`);
@@ -905,6 +965,7 @@ export function bindGridContextMenu({
                         }
                         
                         comfyToast(t("toast.fileRenamedSuccess"), "success");
+                        triggerBrowserGridReload(gridContainer);
                     } else {
                         comfyToast(result?.error || t("toast.fileRenameFailed"), "error");
                     }
@@ -953,7 +1014,7 @@ export function bindGridContextMenu({
                         }
                         if (deletedByFilepath > 0) {
                             try {
-                                gridContainer?.dispatchEvent?.(new CustomEvent("mjr:reload-grid"));
+                                triggerBrowserGridReload(gridContainer);
                             } catch {}
                         }
 
@@ -985,7 +1046,7 @@ export function bindGridContextMenu({
                                 } catch {}
                             } else {
                                 try {
-                                    gridContainer?.dispatchEvent?.(new CustomEvent("mjr:reload-grid"));
+                                    triggerBrowserGridReload(gridContainer);
                                 } catch {}
                             }
                             comfyToast(t("toast.fileDeletedSuccess"), "success");

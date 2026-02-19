@@ -497,11 +497,22 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     // Allow context menus to request a refresh (e.g. after "Remove from collection").
     let _reloadGridHandler = null;
     let _globalReloadGridHandler = null;
+    let _lastReloadRequestAt = 0;
+    const requestQueuedReload = () => {
+        try {
+            const now = Date.now();
+            if (now - Number(_lastReloadRequestAt || 0) < 180) return;
+            _lastReloadRequestAt = now;
+        } catch {}
+        queuedReload().catch((err) => {
+            try {
+                console.warn("[Majoor] queuedReload failed", err);
+            } catch {}
+        });
+    };
     try {
         _reloadGridHandler = () => {
-            try {
-                gridController.reloadGrid();
-            } catch {}
+            requestQueuedReload();
         };
         gridContainer.addEventListener("mjr:reload-grid", _reloadGridHandler, { signal: panelLifecycleAC?.signal });
         const onDuplicateBadgeFocus = (e) => {
@@ -547,7 +558,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             try {
                 if (globalThis?._mjrMaintenanceActive) return;
             } catch {}
-            queuedReload().catch(() => {});
+            requestQueuedReload();
         };
         window.addEventListener("mjr:reload-grid", _globalReloadGridHandler, { signal: panelLifecycleAC?.signal });
     } catch {}

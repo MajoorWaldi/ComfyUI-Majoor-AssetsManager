@@ -205,6 +205,34 @@ def _get_write_token() -> str:
         raw = ""
     return raw
 
+def _hash_token(value: str) -> str:
+    try:
+        normalized = str(value or "").strip()
+    except Exception:
+        normalized = ""
+    try:
+        pepper = str(os.environ.get("MAJOOR_API_TOKEN_PEPPER") or "").strip()
+    except Exception:
+        pepper = ""
+    payload = f"{pepper}\0{normalized}".encode("utf-8", errors="ignore")
+    return hashlib.sha256(payload).hexdigest()
+
+def _get_write_token_hash() -> str:
+    try:
+        configured_hash = (
+            os.environ.get("MAJOOR_API_TOKEN_HASH")
+            or os.environ.get("MJR_API_TOKEN_HASH")
+            or ""
+        ).strip().lower()
+    except Exception:
+        configured_hash = ""
+    if configured_hash:
+        return configured_hash
+    configured_plain = _get_write_token()
+    if configured_plain:
+        return _hash_token(configured_plain)
+    return ""
+
 
 def _extract_bearer_token(headers: Mapping[str, str]) -> str:
     try:
@@ -302,7 +330,7 @@ def _check_write_access(*, peer_ip: str, headers: Mapping[str, str]) -> "Result[
     # Local import to avoid cycles: core/security must remain lightweight.
     from ...shared import Result
 
-    configured = _get_write_token()
+    configured_hash = _get_write_token_hash()
     require_auth = _env_truthy("MAJOOR_REQUIRE_AUTH")
     # Default: allow remote writes when no token is configured.
     allow_remote = _env_truthy("MAJOOR_ALLOW_REMOTE_WRITE", default=True)
@@ -310,9 +338,9 @@ def _check_write_access(*, peer_ip: str, headers: Mapping[str, str]) -> "Result[
     client_ip = _resolve_client_ip(peer_ip, headers)
 
     provided = _extract_write_token_from_headers(headers)
-    if configured:
+    if configured_hash:
         # Prevent timing attacks
-        if provided and hmac.compare_digest(provided, configured):
+        if provided and hmac.compare_digest(_hash_token(provided), configured_hash):
             return Result.Ok(True, auth="token", client_ip=client_ip)
         return Result.Err(
             "AUTH_REQUIRED",

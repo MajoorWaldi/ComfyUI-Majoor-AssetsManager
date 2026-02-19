@@ -6,6 +6,8 @@ from __future__ import annotations
 import os
 import asyncio
 import time
+import secrets
+import hashlib
 from typing import Any, Mapping, Optional
 
 from .shared import Result, get_logger
@@ -19,6 +21,8 @@ _OUTPUT_DIRECTORY_KEY = "output_directory_override"
 _METADATA_FALLBACK_IMAGE_KEY = "metadata_fallback_image"
 _METADATA_FALLBACK_MEDIA_KEY = "metadata_fallback_media"
 _SETTINGS_VERSION_KEY = "__settings_version"
+_SECURITY_API_TOKEN_KEY = "security_api_token"
+_SECURITY_API_TOKEN_HASH_KEY = "security_api_token_hash"
 _VALID_PROBE_MODES = {"auto", "exiftool", "ffprobe", "both"}
 _SECURITY_PREFS_INFO: Mapping[str, dict[str, bool | str]] = {
     "safe_mode": {"env": "MAJOOR_SAFE_MODE", "default": False},
@@ -66,6 +70,92 @@ class AppSettings:
         self._default_metadata_fallback_image = True
         self._default_metadata_fallback_media = True
 
+    def _generate_api_token(self) -> str:
+        # 256-bit token (URL-safe) for write authorization.
+        return secrets.token_urlsafe(32)
+
+    def _token_pepper(self) -> str:
+        try:
+            return str(os.environ.get("MAJOOR_API_TOKEN_PEPPER") or "").strip()
+        except Exception:
+            return ""
+
+    def _hash_api_token(self, token: str) -> str:
+        try:
+            normalized = str(token or "").strip()
+        except Exception:
+            normalized = ""
+        payload = f"{self._token_pepper()}\0{normalized}".encode("utf-8", errors="ignore")
+        return hashlib.sha256(payload).hexdigest()
+
+    async def _get_stored_api_token_hash_locked(self) -> str:
+        token_hash = str(await self._read_setting(_SECURITY_API_TOKEN_HASH_KEY) or "").strip().lower()
+        if token_hash:
+            return token_hash
+        legacy_token = str(await self._read_setting(_SECURITY_API_TOKEN_KEY) or "").strip()
+        if not legacy_token:
+            return ""
+        token_hash = self._hash_api_token(legacy_token)
+        write_res = await self._write_setting(_SECURITY_API_TOKEN_HASH_KEY, token_hash)
+        if not write_res.ok:
+            logger.warning("Failed to migrate legacy API token to hash: %s", write_res.error)
+            return ""
+        await self._delete_setting(_SECURITY_API_TOKEN_KEY)
+        return token_hash
+
+    async def _get_or_create_api_token_locked(self) -> str:
+        token = ""
+        try:
+            token = (os.environ.get("MAJOOR_API_TOKEN") or os.environ.get("MJR_API_TOKEN") or "").strip()
+        except Exception:
+            token = ""
+        if token:
+            token_hash = self._hash_api_token(token)
+            write_res = await self._write_setting(_SECURITY_API_TOKEN_HASH_KEY, token_hash)
+            if not write_res.ok:
+                logger.warning("Failed to persist API token hash: %s", write_res.error)
+            await self._delete_setting(_SECURITY_API_TOKEN_KEY)
+            try:
+                os.environ["MAJOOR_API_TOKEN_HASH"] = token_hash
+                os.environ["MJR_API_TOKEN_HASH"] = token_hash
+            except Exception:
+                pass
+            return token
+
+        token_hash = await self._get_stored_api_token_hash_locked()
+        if token_hash:
+            # Hash-only persistence means we cannot recover the previous plaintext token.
+            # Regenerate a fresh token so authenticated clients can bootstrap automatically.
+            token = self._generate_api_token()
+            new_hash = self._hash_api_token(token)
+            write_res = await self._write_setting(_SECURITY_API_TOKEN_HASH_KEY, new_hash)
+            if not write_res.ok:
+                logger.warning("Failed to persist regenerated API token hash: %s", write_res.error)
+            try:
+                os.environ["MAJOOR_API_TOKEN"] = token
+                os.environ["MJR_API_TOKEN"] = token
+                os.environ["MAJOOR_API_TOKEN_HASH"] = new_hash
+                os.environ["MJR_API_TOKEN_HASH"] = new_hash
+            except Exception:
+                pass
+            return token
+
+        token = self._generate_api_token()
+        token_hash = self._hash_api_token(token)
+        write_res = await self._write_setting(_SECURITY_API_TOKEN_HASH_KEY, token_hash)
+        if not write_res.ok:
+            logger.warning("Failed to persist auto-generated API token hash: %s", write_res.error)
+        await self._delete_setting(_SECURITY_API_TOKEN_KEY)
+
+        try:
+            os.environ["MAJOOR_API_TOKEN"] = token
+            os.environ["MJR_API_TOKEN"] = token
+            os.environ["MAJOOR_API_TOKEN_HASH"] = token_hash
+            os.environ["MJR_API_TOKEN_HASH"] = token_hash
+        except Exception:
+            pass
+        return token
+
     async def _read_setting(self, key: str) -> Optional[str]:
         result = await self._db.aquery("SELECT value FROM metadata WHERE key = ?", (key,))
         if not result.ok or not result.data:
@@ -84,8 +174,15 @@ class AppSettings:
     async def _delete_setting(self, key: str) -> Result[str]:
         return await self._db.aexecute("DELETE FROM metadata WHERE key = ?", (key,))
 
-    async def _get_security_prefs_locked(self) -> dict[str, bool]:
-        output: dict[str, bool] = {}
+    async def ensure_security_bootstrap(self) -> None:
+        """
+        Ensure write-token security is initialized at startup.
+        """
+        async with self._lock:
+            await self._get_or_create_api_token_locked()
+
+    async def _get_security_prefs_locked(self, *, include_secret: bool = False) -> dict[str, Any]:
+        output: dict[str, Any] = {}
         for key, info in _SECURITY_PREFS_INFO.items():
             raw = await self._read_setting(key)
             if raw is not None:
@@ -94,18 +191,27 @@ class AppSettings:
                 default = bool(info.get("default", False))
                 env_var = str(info.get("env") or "")
                 output[key] = env_bool(env_var, default)
+        if include_secret:
+            output["api_token"] = await self._get_or_create_api_token_locked()
         return output
 
-    async def get_security_prefs(self) -> dict[str, bool]:
+    async def get_security_prefs(self, *, include_secret: bool = False) -> dict[str, Any]:
         async with self._lock:
-            return await self._get_security_prefs_locked()
+            return await self._get_security_prefs_locked(include_secret=include_secret)
 
-    async def set_security_prefs(self, prefs: Mapping[str, Any]) -> Result[dict[str, bool]]:
+    async def set_security_prefs(self, prefs: Mapping[str, Any]) -> Result[dict[str, Any]]:
         to_write: dict[str, bool] = {}
         for key in _SECURITY_PREFS_INFO:
             if key in prefs:
                 to_write[key] = parse_bool(prefs[key], False)
-        if not to_write:
+        token_in_payload = (
+            prefs.get("api_token")
+            if isinstance(prefs, Mapping) and "api_token" in prefs
+            else prefs.get("apiToken")
+            if isinstance(prefs, Mapping) and "apiToken" in prefs
+            else None
+        )
+        if not to_write and token_in_payload is None:
             return Result.Err("INVALID_INPUT", "No security settings provided")
         async with self._lock:
             for key, value in to_write.items():
@@ -119,13 +225,59 @@ class AppSettings:
                         os.environ[env_var] = "1" if value else "0"
                 except Exception:
                     pass
+            if token_in_payload is not None:
+                token = str(token_in_payload or "").strip()
+                if not token:
+                    token = self._generate_api_token()
+                token_hash = self._hash_api_token(token)
+                res = await self._write_setting(_SECURITY_API_TOKEN_HASH_KEY, token_hash)
+                if not res.ok:
+                    return Result.Err("DB_ERROR", res.error or "Failed to persist api_token")
+                await self._delete_setting(_SECURITY_API_TOKEN_KEY)
+                try:
+                    os.environ["MAJOOR_API_TOKEN"] = token
+                    os.environ["MJR_API_TOKEN"] = token
+                    os.environ["MAJOOR_API_TOKEN_HASH"] = token_hash
+                    os.environ["MJR_API_TOKEN_HASH"] = token_hash
+                except Exception:
+                    pass
             bump = await self._bump_settings_version_locked()
             if not bump.ok:
                 try:
                     logger.warning("Failed to bump settings version: %s", bump.error)
                 except Exception:
                     pass
-            return Result.Ok(await self._get_security_prefs_locked())
+            return Result.Ok(await self._get_security_prefs_locked(include_secret=False))
+
+    async def rotate_api_token(self) -> Result[dict[str, str]]:
+        async with self._lock:
+            token = self._generate_api_token()
+            token_hash = self._hash_api_token(token)
+            res = await self._write_setting(_SECURITY_API_TOKEN_HASH_KEY, token_hash)
+            if not res.ok:
+                return Result.Err("DB_ERROR", res.error or "Failed to persist rotated api token")
+            await self._delete_setting(_SECURITY_API_TOKEN_KEY)
+            try:
+                os.environ["MAJOOR_API_TOKEN"] = token
+                os.environ["MJR_API_TOKEN"] = token
+                os.environ["MAJOOR_API_TOKEN_HASH"] = token_hash
+                os.environ["MJR_API_TOKEN_HASH"] = token_hash
+            except Exception:
+                pass
+            bump = await self._bump_settings_version_locked()
+            if not bump.ok:
+                try:
+                    logger.warning("Failed to bump settings version after rotate: %s", bump.error)
+                except Exception:
+                    pass
+            return Result.Ok({"api_token": token})
+
+    async def bootstrap_api_token(self) -> Result[dict[str, str]]:
+        async with self._lock:
+            token = await self._get_or_create_api_token_locked()
+            if not token:
+                return Result.Err("AUTH_REQUIRED", "API token bootstrap unavailable")
+            return Result.Ok({"api_token": token})
 
     async def _read_settings_version(self) -> int:
         try:

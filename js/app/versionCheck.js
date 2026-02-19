@@ -1,4 +1,4 @@
-import { get } from "../api/client.js";
+﻿import { get } from "../api/client.js";
 import { ENDPOINTS } from "../api/endpoints.js";
 import { comfyToast } from "./toast.js";
 import { comfyAlert } from "./dialogs.js";
@@ -8,6 +8,7 @@ export const VERSION_UPDATE_EVENT = "mjr:version-update-available";
 export const VERSION_UPDATE_STATE_KEY = "__MJR_VERSION_UPDATE_STATE__";
 const LATEST_RELEASE_URL = "https://api.github.com/repos/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/latest";
 const LAST_CHECK_KEY = "majoor_last_update_check";
+const VERSION_TOAST_NOTICE_VERSION_KEY = "majoor_version_toast_notice_version";
 const DB_RESET_NOTICE_VERSION_KEY = "majoor_db_reset_notice_version";
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
@@ -134,7 +135,7 @@ export async function checkMajoorVersion({ force = false } = {}) {
     try {
         remoteVersion = await fetchLatestReleaseVersion();
     } catch (error) {
-        console.warn("Impossible de vérifier les mises à jour Majoor :", error);
+        console.warn("Unable to check Majoor updates:", error);
         emitVersionUpdateState({ available: false });
         return null;
     } finally {
@@ -156,17 +157,25 @@ export async function checkMajoorVersion({ force = false } = {}) {
         latest: remoteVersion,
     });
 
-    comfyToast(
-        {
-            summary: t("msg.newVersionTitle", "Majoor Assets Manager"),
-            detail: t("msg.newVersionDetail", "New version available: {latest} (Current: {current})", {
-                latest: remoteVersion,
-                current: localVersion,
-            }),
-        },
-        "info",
-        10000
-    );
+    try {
+        const toastShownFor = String(window.localStorage.getItem(VERSION_TOAST_NOTICE_VERSION_KEY) || "").trim();
+        if (toastShownFor !== remoteVersion) {
+            comfyToast(
+                {
+                    summary: t("msg.newVersionTitle", "Majoor Assets Manager"),
+                    detail: t("msg.newVersionDetail", "A new version is available: {latest} (Current: {current})", {
+                        latest: remoteVersion,
+                        current: localVersion,
+                    }),
+                },
+                "info",
+                0
+            );
+            try {
+                window.localStorage.setItem(VERSION_TOAST_NOTICE_VERSION_KEY, remoteVersion);
+            } catch {}
+        }
+    } catch {}
 
     try {
         const alreadyShownFor = String(window.localStorage.getItem(DB_RESET_NOTICE_VERSION_KEY) || "").trim();
@@ -188,3 +197,4 @@ export async function checkMajoorVersion({ force = false } = {}) {
 
     return { current: localVersion, latest: remoteVersion };
 }
+

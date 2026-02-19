@@ -9,6 +9,7 @@ import shutil
 import ipaddress
 from pathlib import Path
 from aiohttp import web
+from mjr_am_backend.config import OUTPUT_ROOT
 from mjr_am_backend.custom_roots import (
     add_custom_root,
     list_custom_roots,
@@ -28,6 +29,7 @@ from ..core import (
     _guess_content_type_for_file,
     _is_allowed_view_media_file,
     _require_services,
+    _require_write_access,
 )
 from ..core.security import _check_rate_limit
 from .filesystem import _kickoff_background_scan, _invalidate_fs_list_cache
@@ -147,6 +149,44 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
         except Exception:
             return False
 
+    def _infer_scan_scope(path: Path) -> tuple[str, str | None]:
+        try:
+            p = path.resolve(strict=False)
+        except Exception:
+            p = path
+        try:
+            out_root = Path(OUTPUT_ROOT).resolve(strict=False)
+        except Exception:
+            out_root = Path(OUTPUT_ROOT)
+        try:
+            import folder_paths  # type: ignore
+            in_root = Path(folder_paths.get_input_directory()).resolve(strict=False)
+        except Exception:
+            in_root = Path(__file__).resolve().parents[3] / "input"
+            in_root = in_root.resolve(strict=False)
+
+        if _is_within_root(p, out_root):
+            return "output", None
+        if _is_within_root(p, in_root):
+            return "input", None
+
+        roots_res = list_custom_roots()
+        if roots_res.ok:
+            for item in roots_res.data or []:
+                if not isinstance(item, dict):
+                    continue
+                rid = str(item.get("id") or "").strip()
+                rp_raw = str(item.get("path") or "").strip()
+                if not rid or not rp_raw:
+                    continue
+                try:
+                    rp = Path(rp_raw).resolve(strict=False)
+                except Exception:
+                    continue
+                if _is_within_root(p, rp):
+                    return "custom", rid
+        return "output", None
+
     @routes.post("/mjr/sys/browse-folder")
     async def browse_folder_dialog(request):
         import os
@@ -207,6 +247,9 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         body_res = await _read_json(request)
         if not body_res.ok:
@@ -240,6 +283,9 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         body_res = await _read_json(request)
         if not body_res.ok:
@@ -440,6 +486,9 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         allowed, retry_after = _check_rate_limit(request, "browser_folder_op", max_requests=20, window_seconds=30)
         if not allowed:
@@ -493,6 +542,14 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
                     return _json_response(Result.Err("ALREADY_EXISTS", "Target folder already exists"))
                 source.rename(target)
                 await _invalidate_fs_list_cache()
+                try:
+                    src_parent = target.parent
+                    src_scope, src_root_id = _infer_scan_scope(src_parent)
+                    await _kickoff_background_scan(str(src_parent), source=src_scope, root_id=src_root_id, recursive=False, incremental=True)
+                    tgt_scope, tgt_root_id = _infer_scan_scope(target)
+                    await _kickoff_background_scan(str(target), source=tgt_scope, root_id=tgt_root_id, recursive=True, incremental=True)
+                except Exception as exc:
+                    logger.debug("Folder rename targeted scan kickoff skipped: %s", exc)
                 return _json_response(Result.Ok({"path": str(target.resolve(strict=False))}))
             except Exception as exc:
                 return _json_response(Result.Err("RENAME_FAILED", sanitize_error_message(exc, "Failed to rename folder")))
@@ -520,6 +577,15 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
                     return _json_response(Result.Err("ALREADY_EXISTS", "Target folder already exists"))
                 moved = await asyncio.to_thread(shutil.move, str(src_res), str(dst_res))
                 await _invalidate_fs_list_cache()
+                try:
+                    src_parent = src_res.parent
+                    src_scope, src_root_id = _infer_scan_scope(src_parent)
+                    await _kickoff_background_scan(str(src_parent), source=src_scope, root_id=src_root_id, recursive=False, incremental=True)
+                    moved_path = Path(str(moved)).resolve(strict=False)
+                    tgt_scope, tgt_root_id = _infer_scan_scope(moved_path)
+                    await _kickoff_background_scan(str(moved_path), source=tgt_scope, root_id=tgt_root_id, recursive=True, incremental=True)
+                except Exception as exc:
+                    logger.debug("Folder move targeted scan kickoff skipped: %s", exc)
                 return _json_response(Result.Ok({"path": str(Path(str(moved)).resolve(strict=False))}))
             except Exception as exc:
                 return _json_response(Result.Err("MOVE_FAILED", sanitize_error_message(exc, "Failed to move folder")))

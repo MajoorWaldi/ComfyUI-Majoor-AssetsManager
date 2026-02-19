@@ -12,12 +12,13 @@
 import { comfyToast } from "../../app/toast.js";
 import { t } from "../../app/i18n.js";
 import { comfyPrompt } from "../../app/dialogs.js";
-import { openInFolder, updateAssetRating, deleteAsset, renameAsset } from "../../api/client.js";
+import { openInFolder, updateAssetRating, deleteAsset, renameAsset, removeFilepathsFromCollection } from "../../api/client.js";
 import { buildDownloadURL } from "../../api/endpoints.js";
 import { ASSET_RATING_CHANGED_EVENT } from "../../app/events.js";
 import { safeDispatchCustomEvent } from "../../utils/events.js";
 import { getViewerInstance } from "../../components/Viewer.js";
 import { showAddToCollectionMenu } from "../collections/contextmenu/addToCollectionMenu.js";
+import { normalizeRenameFilename, validateFilename } from "../../utils/filenames.js";
 
 /**
  * Keyboard shortcut definitions
@@ -507,10 +508,28 @@ export function installGridKeyboard({
             const collectionId = state?.collectionId;
             if (collectionId && (selected.length > 0 || asset)) {
                 consume();
-                // Trigger reload to remove
                 try {
-                    gridContainer.dispatchEvent(new CustomEvent("mjr:reload-grid"));
-                } catch {}
+                    const list = selected.length > 0 ? selected : [asset];
+                    const filepaths = list
+                        .map((a) => String(a?.filepath || a?.path || a?.file_info?.filepath || "").trim())
+                        .filter(Boolean);
+                    if (!filepaths.length) {
+                        comfyToast(t("toast.removeFromCollectionFailed", "No valid files to remove from collection"), "warning");
+                        return;
+                    }
+                    const res = await removeFilepathsFromCollection(collectionId, filepaths);
+                    if (!res?.ok) {
+                        comfyToast(res?.error || t("toast.removeFromCollectionFailed", "Failed to remove from collection"), "error");
+                        return;
+                    }
+                    try { window.dispatchEvent(new CustomEvent("mjr:reload-grid", { detail: { reason: "remove-from-collection" } })); } catch {}
+                    comfyToast(t("toast.removedFromCollection", "Removed from collection"), "success", 1400);
+                } catch (err) {
+                    comfyToast(
+                        t("toast.removeFromCollectionError", "Error removing from collection: {error}", { error: err?.message || String(err || "") }),
+                        "error"
+                    );
+                }
                 return;
             }
         }
@@ -564,14 +583,32 @@ export function installGridKeyboard({
             if (asset?.id) {
                 consume();
                 const currentName = asset.filename || "";
-                const newName = await comfyPrompt(t("dialog.rename.title", "Rename file"), currentName);
+                const rawInput = await comfyPrompt(t("dialog.rename.title", "Rename file"), currentName);
+                const newName = normalizeRenameFilename(rawInput, currentName);
                 if (newName && newName !== currentName) {
+                    const validation = validateFilename(newName);
+                    if (!validation.valid) {
+                        comfyToast(validation.reason, "error");
+                        return;
+                    }
                     try {
-                        const result = await renameAsset(asset.id, newName);
+                        const result = await renameAsset(asset, newName);
                         if (result?.ok) {
-                            asset.filename = newName;
-                            asset.filepath = asset.filepath?.replace(/[^\\/]+$/, newName);
+                            const fresh = result?.data?.asset;
+                            if (fresh && typeof fresh === "object") {
+                                Object.assign(asset, fresh);
+                            } else {
+                                asset.filename = newName;
+                                asset.filepath = asset.filepath?.replace(/[^\\/]+$/, newName);
+                                if (asset.path) asset.path = String(asset.path).replace(/[^\\/]+$/, newName);
+                                if (asset.file_info && typeof asset.file_info === "object") {
+                                    asset.file_info.filename = newName;
+                                    if (asset.file_info.filepath) asset.file_info.filepath = String(asset.file_info.filepath).replace(/[^\\/]+$/, newName);
+                                    if (asset.file_info.path) asset.file_info.path = String(asset.file_info.path).replace(/[^\\/]+$/, newName);
+                                }
+                            }
                             comfyToast(t("toast.fileRenamedSuccess"), "success");
+                            try { window.dispatchEvent(new CustomEvent("mjr:reload-grid", { detail: { reason: "rename-keyboard" } })); } catch {}
                             onAssetChanged();
                         } else {
                             comfyToast(result?.error || t("toast.fileRenameFailed"), "error");

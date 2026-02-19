@@ -263,7 +263,7 @@ const DICTIONARY = {
         "msg.rawMetadata": "Raw metadata",
         "msg.noPinnedFolders": "No pinned folders",
         "msg.newVersionTitle": "Majoor Assets Manager",
-        "msg.newVersionDetail": "A new version is available",
+        "msg.newVersionDetail": "A new version is available: {latest} (Current: {current})",
         "msg.dbResetNotice": "Database reset required",
 
         // --- Viewer ---

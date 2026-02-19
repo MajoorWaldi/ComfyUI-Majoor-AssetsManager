@@ -57,8 +57,8 @@ const getComfyDialogCtor = () => {
 };
 
 const DIALOG_Z_INDEX = 999_999;
-const DIALOG_WIDTH_PX = 420;
-const DIALOG_RADIUS_PX = 10;
+const DIALOG_WIDTH_PX = 560;
+const DIALOG_RADIUS_PX = 12;
 
 const styleDialog = (dialog) => {
     try {
@@ -66,11 +66,29 @@ const styleDialog = (dialog) => {
         dialog.element.style.zIndex = String(DIALOG_Z_INDEX);
         dialog.element.style.width = `${DIALOG_WIDTH_PX}px`;
         dialog.element.style.padding = "0";
-        dialog.element.style.backgroundColor = "var(--comfy-menu-bg, #2a2a2a)";
-        dialog.element.style.border = "1px solid var(--border-color, #3a3a3a)";
+        dialog.element.style.backgroundColor = "var(--comfy-menu-bg, #131722)";
+        dialog.element.style.border = "1px solid rgba(255,255,255,0.14)";
         dialog.element.style.borderRadius = `${DIALOG_RADIUS_PX}px`;
         dialog.element.style.boxSizing = "border-box";
         dialog.element.style.overflow = "hidden";
+        dialog.element.style.boxShadow = "0 18px 48px rgba(0,0,0,0.48)";
+    } catch {}
+};
+
+const hideDialogNativeClose = (dialog) => {
+    try {
+        const root = dialog?.element;
+        if (!root) return;
+        const maybeClose = root.querySelectorAll("button,[role='button']");
+        for (const el of maybeClose) {
+            const text = String(el?.textContent || "").trim().toLowerCase();
+            const aria = String(el?.getAttribute?.("aria-label") || "").trim().toLowerCase();
+            if (text === "close" || aria === "close") {
+                try {
+                    el.style.display = "none";
+                } catch {}
+            }
+        }
     } catch {}
 };
 
@@ -98,39 +116,49 @@ export const comfyAlert = async (message, title = "Majoor") => {
             style: {
                 display: "flex",
                 flexDirection: "column",
-                gap: "12px",
-                padding: "16px",
+                gap: "18px",
+                padding: "18px 20px 18px 20px",
             },
         }, [
             $el("div", {
-                textContent: title,
                 style: {
-                    fontWeight: "600",
-                    fontSize: "14px",
-                    color: "rgba(255,255,255,0.95)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "flex-start",
                 },
-            }),
+            }, [
+                $el("div", {
+                    textContent: title,
+                    style: {
+                        fontWeight: "700",
+                        fontSize: "30px",
+                        color: "rgba(255,255,255,0.96)",
+                        lineHeight: "1.2",
+                    },
+                }),
+            ]),
             $el("div", {
                 textContent: String(message || ""),
                 style: {
-                    fontSize: "13px",
-                    color: "rgba(255,255,255,0.80)",
+                    fontSize: "22px",
+                    color: "rgba(255,255,255,0.86)",
                     whiteSpace: "pre-wrap",
-                    lineHeight: "1.4",
+                    lineHeight: "1.45",
                 },
             }),
             $el("div", {
                 style: { display: "flex", justifyContent: "flex-end", gap: "10px" },
             }, [
                 $el("button", {
-                    textContent: "OK",
+                    textContent: "Confirm",
                     onclick: close,
                     style: {
-                        padding: "8px 12px",
-                        borderRadius: "8px",
-                        border: "1px solid rgba(255,255,255,0.12)",
-                        background: "rgba(0,0,0,0.25)",
-                        color: "rgba(255,255,255,0.9)",
+                        padding: "10px 16px",
+                        borderRadius: "10px",
+                        border: "1px solid rgba(17,132,255,0.75)",
+                        background: "#1184ff",
+                        color: "rgba(255,255,255,0.98)",
+                        fontWeight: "600",
                         cursor: "pointer",
                     },
                 }),
@@ -139,6 +167,7 @@ export const comfyAlert = async (message, title = "Majoor") => {
 
         try {
             dialog.show(content);
+            setTimeout(() => hideDialogNativeClose(dialog), 0);
         } catch {
             try {
                 window.alert(message);
@@ -173,25 +202,34 @@ export const comfyConfirm = async (message, title = "Majoor") => {
             style: {
                 display: "flex",
                 flexDirection: "column",
-                gap: "12px",
-                padding: "16px",
+                gap: "18px",
+                padding: "18px 20px 18px 20px",
             },
         }, [
             $el("div", {
-                textContent: title,
                 style: {
-                    fontWeight: "600",
-                    fontSize: "14px",
-                    color: "rgba(255,255,255,0.95)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "flex-start",
                 },
-            }),
+            }, [
+                $el("div", {
+                    textContent: title,
+                    style: {
+                        fontWeight: "700",
+                        fontSize: "30px",
+                        color: "rgba(255,255,255,0.96)",
+                        lineHeight: "1.2",
+                    },
+                }),
+            ]),
             $el("div", {
                 textContent: String(message || ""),
                 style: {
-                    fontSize: "13px",
-                    color: "rgba(255,255,255,0.80)",
+                    fontSize: "22px",
+                    color: "rgba(255,255,255,0.86)",
                     whiteSpace: "pre-wrap",
-                    lineHeight: "1.4",
+                    lineHeight: "1.45",
                 },
             }),
             $el("div", {
@@ -201,23 +239,25 @@ export const comfyConfirm = async (message, title = "Majoor") => {
                     textContent: "Cancel",
                     onclick: () => finish(false),
                     style: {
-                        padding: "8px 12px",
-                        borderRadius: "8px",
-                        border: "1px solid rgba(255,255,255,0.12)",
-                        background: "rgba(0,0,0,0.25)",
+                        padding: "10px 16px",
+                        borderRadius: "10px",
+                        border: "1px solid rgba(255,255,255,0.18)",
+                        background: "rgba(255,255,255,0.06)",
                         color: "rgba(255,255,255,0.85)",
+                        fontWeight: "600",
                         cursor: "pointer",
                     },
                 }),
                 $el("button", {
-                    textContent: "OK",
+                    textContent: "Confirm",
                     onclick: () => finish(true),
                     style: {
-                        padding: "8px 12px",
-                        borderRadius: "8px",
-                        border: "1px solid rgba(95,179,255,0.45)",
-                        background: "rgba(95,179,255,0.18)",
-                        color: "rgba(255,255,255,0.95)",
+                        padding: "10px 16px",
+                        borderRadius: "10px",
+                        border: "1px solid rgba(17,132,255,0.75)",
+                        background: "#1184ff",
+                        color: "rgba(255,255,255,0.98)",
+                        fontWeight: "600",
                         cursor: "pointer",
                     },
                 }),
@@ -226,6 +266,7 @@ export const comfyConfirm = async (message, title = "Majoor") => {
 
         try {
             dialog.show(content);
+            setTimeout(() => hideDialogNativeClose(dialog), 0);
         } catch {
             try {
                 resolve(!!window.confirm(message));
@@ -335,6 +376,7 @@ export const comfyPrompt = async (message, defaultValue = "", title = "Majoor") 
 
         try {
             dialog.show(content);
+            setTimeout(() => hideDialogNativeClose(dialog), 0);
             setTimeout(() => {
                 try {
                     input.focus();

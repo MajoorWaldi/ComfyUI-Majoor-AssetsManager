@@ -75,6 +75,51 @@ function _readAuthToken() {
     }
 }
 
+function _persistAuthToken(token) {
+    const normalized = String(token || "").trim();
+    if (!normalized) return false;
+    try {
+        const raw = localStorage?.getItem?.(SETTINGS_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        const next = parsed && typeof parsed === "object" ? parsed : {};
+        next.security = next.security && typeof next.security === "object" ? next.security : {};
+        if (String(next.security.apiToken || "").trim() === normalized) {
+            _authTokenCache = { value: normalized, at: Date.now() };
+            return true;
+        }
+        next.security.apiToken = normalized;
+        localStorage?.setItem?.(SETTINGS_KEY, JSON.stringify(next));
+        _authTokenCache = { value: normalized, at: Date.now() };
+        try {
+            window?.dispatchEvent?.(new CustomEvent("mjr-settings-changed", { detail: { key: "security.apiToken" } }));
+        } catch {}
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+async function _refreshAuthTokenFromServer() {
+    try {
+        const response = await fetch("/mjr/am/settings/security/bootstrap-token", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            body: "{}"
+        });
+        const contentType = response.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) return false;
+        const payload = await response.json().catch(() => null);
+        if (!payload || typeof payload !== "object" || !payload.ok) return false;
+        const token = String(payload?.data?.token || "").trim();
+        return _persistAuthToken(token);
+    } catch {
+        return false;
+    }
+}
+
 const MAX_RETRIES = 3;
 const RETRY_BASE_DELAY_MS = 400;
 
@@ -261,6 +306,21 @@ export async function fetchAPI(url, options = {}, retryCount = 0) {
                 result.status = response.status;
             } catch {}
         }
+        const authRetryDone = !!options?._authRetryDone;
+        const shouldTryAuthRefresh =
+            !authRetryDone &&
+            ["POST", "PUT", "DELETE", "PATCH"].includes(method) &&
+            !result?.ok &&
+            (String(result?.code || "").toUpperCase() === "AUTH_REQUIRED" || Number(result?.status || 0) === 401);
+
+        if (shouldTryAuthRefresh) {
+            const refreshed = await _refreshAuthTokenFromServer();
+            if (refreshed) {
+                const retryOptions = { ...options, _authRetryDone: true };
+                return await fetchAPI(url, retryOptions, retryCount);
+            }
+        }
+
         return result; // Backend returns {ok, data, error, code, meta}
     } catch (error) {
         try {
@@ -535,6 +595,17 @@ export async function setSecuritySettings(prefs) {
     return post("/mjr/am/settings/security", body);
 }
 
+export async function bootstrapSecurityToken() {
+    const res = await post("/mjr/am/settings/security/bootstrap-token", {});
+    if (res?.ok) {
+        try {
+            const token = String(res?.data?.token || "").trim();
+            if (token) _persistAuthToken(token);
+        } catch {}
+    }
+    return res;
+}
+
 export async function openInFolder(assetOrId) {
     if (assetOrId && typeof assetOrId === "object") {
         const fp = String(assetOrId.filepath || assetOrId.path || assetOrId?.file_info?.filepath || "").trim();
@@ -718,13 +789,34 @@ function _emitAssetsDeleted(ids) {
 }
 
 export async function renameAsset(assetOrId, newName) {
+    let id = "";
     if (assetOrId && typeof assetOrId === "object") {
-        const id = normalizeAssetId(assetOrId.id);
+        id = normalizeAssetId(assetOrId.id);
         const fp = String(assetOrId.filepath || assetOrId.path || assetOrId?.file_info?.filepath || "").trim();
-        if (id) return post("/mjr/am/asset/rename", { asset_id: id, new_name: newName });
-        return post("/mjr/am/asset/rename", { filepath: fp, new_name: newName });
+        const res = id
+            ? await post("/mjr/am/asset/rename", { asset_id: id, new_name: newName })
+            : await post("/mjr/am/asset/rename", { filepath: fp, new_name: newName });
+        if (res?.ok && id) {
+            try {
+                const fresh = await getAssetMetadata(id);
+                if (fresh?.ok && fresh?.data) {
+                    res.data = { ...(res.data || {}), asset: fresh.data };
+                }
+            } catch {}
+        }
+        return res;
     }
-    return post("/mjr/am/asset/rename", { asset_id: normalizeAssetId(assetOrId), new_name: newName });
+    id = normalizeAssetId(assetOrId);
+    const res = await post("/mjr/am/asset/rename", { asset_id: id, new_name: newName });
+    if (res?.ok && id) {
+        try {
+            const fresh = await getAssetMetadata(id);
+            if (fresh?.ok && fresh?.data) {
+                res.data = { ...(res.data || {}), asset: fresh.data };
+            }
+        } catch {}
+    }
+    return res;
 }
 
 // -----------------------------

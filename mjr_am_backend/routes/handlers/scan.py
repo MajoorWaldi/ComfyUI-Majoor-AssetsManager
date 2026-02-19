@@ -52,6 +52,9 @@ from ..core import (
     _is_path_allowed_custom,
     _safe_rel_path,
     _is_within_root,
+    _require_write_access,
+    _require_operation_enabled,
+    _resolve_security_prefs,
 )
 
 logger = get_logger(__name__)
@@ -407,6 +410,9 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         allowed, retry_after = _check_rate_limit(request, "scan", max_requests=3, window_seconds=60)
         if not allowed:
@@ -628,6 +634,9 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         body_res = await _read_json(request)
         if not body_res.ok:
@@ -977,10 +986,17 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         svc, error_result = await _require_services()
         if error_result:
             return _json_response(error_result)
+        prefs = await _resolve_security_prefs(svc)
+        op = _require_operation_enabled("reset_index", prefs=prefs)
+        if not op.ok:
+            return _json_response(op)
         if is_db_maintenance_active():
             return _json_response(Result.Err("DB_MAINTENANCE", "Database maintenance in progress. Please wait."))
 
@@ -988,8 +1004,6 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         if not body_res.ok:
             return _json_response(body_res)
         body = body_res.data or {}
-        # Access model aligned with DB maintenance endpoints (force-delete / backup-restore):
-        # CSRF check only, no additional write-token / allow_reset_index gate.
         _emit_maintenance_status("started", "info", operation="reset_index")
 
         def _bool_option(keys, default):
@@ -1463,6 +1477,9 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         body_res = await _read_json(request)
         if not body_res.ok:
@@ -1709,6 +1726,9 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         try:
             reader = await request.multipart()
@@ -1788,6 +1808,9 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         watcher = svc.get("watcher")
         if not watcher:
@@ -1812,6 +1835,9 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         body_res = await _read_json(request)
         if not body_res.ok:
@@ -1937,6 +1963,9 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         body_res = await _read_json(request)
         if not body_res.ok:
@@ -1996,6 +2025,9 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         body_res = await _read_json(request)
         if not body_res.ok:

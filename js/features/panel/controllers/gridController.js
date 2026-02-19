@@ -1,6 +1,7 @@
 export function createGridController({ gridContainer, loadAssets, loadAssetsFromList, getCollectionAssets, disposeGrid, getQuery, state }) {
     let _isReloading = false;
     let _pendingReload = false;
+    let _lastReloadErrorAt = 0;
     const RELOAD_WATCHDOG_MS = 30000;
 
     const runWithWatchdog = async (promiseFactory, timeoutMs = RELOAD_WATCHDOG_MS) => {
@@ -99,8 +100,15 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
                 _pendingReload = false;
                 try {
                     await runWithWatchdog(() => runReloadOnce());
-                } catch {
-                    // Keep UI responsive even if one reload got stuck.
+                } catch (err) {
+                    // Keep UI responsive even if one reload got stuck, but don't fail silently.
+                    try {
+                        const now = Date.now();
+                        if (now - Number(_lastReloadErrorAt || 0) > 2000) {
+                            _lastReloadErrorAt = now;
+                            console.warn("[Majoor] Grid reload failed", err);
+                        }
+                    } catch {}
                 }
             }
         } finally {
