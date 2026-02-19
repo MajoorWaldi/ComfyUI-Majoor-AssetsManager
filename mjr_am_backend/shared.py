@@ -1,4 +1,4 @@
-﻿"""Backend-facing alias for shared utilities.
+"""Backend-facing alias for shared utilities.
 
 This file exists because ComfyUI can load custom nodes either:
 - as a pseudo-package via file paths under `custom_nodes/`, or
@@ -57,4 +57,3 @@ __all__ = _root_shared.__all__ + [
     "EXTENSIONS",
     "sanitize_error_message",
 ]
-

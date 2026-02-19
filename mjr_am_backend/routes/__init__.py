@@ -1,4 +1,4 @@
-﻿"""
+"""
 Modular route system for ComfyUI Majoor Assets Manager.
 Importing this package is side-effect free; route registration is explicit.
 """

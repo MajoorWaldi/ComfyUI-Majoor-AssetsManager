@@ -72,79 +72,107 @@ def _env_bool(default: bool, *names: str) -> bool:
     return default
 
 def _resolve_output_root() -> Path:
-    env_path = _env_raw("MJR_AM_OUTPUT_DIRECTORY", "MAJOOR_OUTPUT_DIRECTORY")
-    if env_path:
-        try:
-            return Path(env_path).expanduser().resolve()
-        except (OSError, RuntimeError):
-            logger.warning(f"Failed to resolve MAJOOR_OUTPUT_DIRECTORY: {env_path}, using fallback")
+    resolved = _resolve_output_root_from_env()
+    if resolved is not None:
+        return resolved
+    resolved = _resolve_output_root_from_comfy_cli()
+    if resolved is not None:
+        return resolved
+    resolved = _resolve_output_root_from_folder_paths()
+    if resolved is not None:
+        return resolved
+    return _resolve_output_root_fallback()
 
-    # ComfyUI CLI flag support: --output-directory
+
+def _resolve_output_root_from_env() -> Path | None:
+    env_path = _env_raw("MJR_AM_OUTPUT_DIRECTORY", "MAJOOR_OUTPUT_DIRECTORY")
+    if not env_path:
+        return None
+    try:
+        return Path(env_path).expanduser().resolve()
+    except (OSError, RuntimeError):
+        logger.warning("Failed to resolve MAJOOR_OUTPUT_DIRECTORY: %s, using fallback", env_path)
+        return None
+
+
+def _resolve_output_root_from_comfy_cli() -> Path | None:
     try:
         from comfy.cli_args import args as comfy_args  # type: ignore
+
         cli_out = getattr(comfy_args, "output_directory", None)
         if cli_out:
             return Path(str(cli_out)).expanduser().resolve()
     except Exception:
-        pass
-    
-    # Try to use already-loaded folder_paths first (ComfyUI runtime), then import.
+        return None
+    return None
+
+
+def _resolve_output_root_from_folder_paths() -> Path | None:
+    output_dir = _folder_paths_output_dir_from_loaded_module()
+    if output_dir is not None:
+        return output_dir
+    try:
+        import folder_paths
+
+        return Path(folder_paths.get_output_directory()).resolve()
+    except (ImportError, ModuleNotFoundError):
+        logger.warning("folder_paths module not available, using fallback path detection")
+    except (AttributeError, TypeError) as exc:
+        logger.warning("folder_paths.get_output_directory() failed: %s, using fallback", exc)
+    except (OSError, RuntimeError) as exc:
+        logger.warning("Failed to resolve output directory from folder_paths: %s, using fallback", exc)
+    return None
+
+
+def _folder_paths_output_dir_from_loaded_module() -> Path | None:
     try:
         fp_mod = sys.modules.get("folder_paths")
         if fp_mod and hasattr(fp_mod, "get_output_directory"):
-            output_dir = fp_mod.get_output_directory()
-            return Path(output_dir).resolve()
+            return Path(fp_mod.get_output_directory()).resolve()
     except Exception:
-        pass
-    try:
-        import folder_paths
-        output_dir = folder_paths.get_output_directory()
-        return Path(output_dir).resolve()
-    except (ImportError, ModuleNotFoundError):
-        logger.warning("folder_paths module not available, using fallback path detection")
-    except (AttributeError, TypeError) as e:
-        logger.warning(f"folder_paths.get_output_directory() failed: {e}, using fallback")
-    except (OSError, RuntimeError) as e:
-        logger.warning(f"Failed to resolve output directory from folder_paths: {e}, using fallback")
-    
-    # Multiple fallback strategies
-    try:
-        current_file = Path(__file__).resolve()
+        return None
+    return None
 
-        # Strategy 1: detect ComfyUI root by signature files and prefer its output dir.
-        comfy_root = None
-        for parent in current_file.parents:
-            if (parent / "main.py").is_file() and (parent / "folder_paths.py").is_file():
-                comfy_root = parent
-                break
-        if comfy_root is None and len(current_file.parents) > 3:
-            # Typical layout: ComfyUI/custom_nodes/<ext>/mjr_am_backend/config.py
-            comfy_root = current_file.parents[3]
-        # Strategy 1b: parse raw argv for --output-directory as extra fallback.
-        try:
-            argv = list(sys.argv or [])
-            for i, tok in enumerate(argv):
-                if tok == "--output-directory" and i + 1 < len(argv):
-                    return Path(str(argv[i + 1])).expanduser().resolve()
-                if isinstance(tok, str) and tok.startswith("--output-directory="):
-                    return Path(tok.split("=", 1)[1]).expanduser().resolve()
-        except Exception:
-            pass
+
+def _resolve_output_root_fallback() -> Path:
+    try:
+        argv_output = _resolve_output_root_from_argv()
+        if argv_output is not None:
+            return argv_output
+        comfy_root = _detect_comfy_root(Path(__file__).resolve())
         if comfy_root is not None:
             output_dir = comfy_root / "output"
             if output_dir.is_dir():
                 return output_dir.resolve()
-
-        # Strategy 2: fallback to CWD/output.
         logger.warning("Output directory not found from ComfyUI hints, creating fallback in current working directory")
         fallback_dir = Path.cwd() / "output"
         fallback_dir.mkdir(exist_ok=True)
         return fallback_dir.resolve()
-        
-    except (OSError, RuntimeError) as e:
-        logger.error(f"All fallback strategies failed: {e}")
-        # Last resort: return a path that will be handled gracefully elsewhere
+    except (OSError, RuntimeError) as exc:
+        logger.error("All fallback strategies failed: %s", exc)
         return Path.cwd() / "output"
+
+
+def _resolve_output_root_from_argv() -> Path | None:
+    try:
+        argv = list(sys.argv or [])
+        for i, token in enumerate(argv):
+            if token == "--output-directory" and i + 1 < len(argv):
+                return Path(str(argv[i + 1])).expanduser().resolve()
+            if isinstance(token, str) and token.startswith("--output-directory="):
+                return Path(token.split("=", 1)[1]).expanduser().resolve()
+    except Exception:
+        return None
+    return None
+
+
+def _detect_comfy_root(current_file: Path) -> Path | None:
+    for parent in current_file.parents:
+        if (parent / "main.py").is_file() and (parent / "folder_paths.py").is_file():
+            return parent
+    if len(current_file.parents) > 3:
+        return current_file.parents[3]
+    return None
 
 OUTPUT_ROOT_PATH = _resolve_output_root()
 OUTPUT_ROOT = str(OUTPUT_ROOT_PATH)

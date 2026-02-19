@@ -109,6 +109,22 @@ class CollectionSummary:
     updated_at: str
 
 
+def _read_collection_summary_row(path: Path) -> Optional[CollectionSummary]:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    if not isinstance(data, dict):
+        return None
+    cid = str(data.get("id") or path.stem)
+    if not _safe_id(cid):
+        return None
+    name = str(data.get("name") or "").strip() or cid
+    count = int(len(data.get("items") or []))
+    updated_at = str(data.get("updated_at") or "")
+    return CollectionSummary(cid, name, count, updated_at)
+
+
 class CollectionsService:
     """Filesystem-backed collections service (JSON files under `COLLECTIONS_DIR`)."""
 
@@ -122,32 +138,30 @@ class CollectionsService:
 
     def list(self) -> Result[List[Dict[str, Any]]]:
         """List collections with basic metadata and item counts."""
-        try:
-            base = self._base.resolve(strict=False)
-        except Exception as exc:
-            return Result.Err(ErrorCode.DB_ERROR, f"Collections dir unavailable: {exc}")
+        base_res = self._resolve_collections_base_dir()
+        if not base_res.ok:
+            return base_res
+        base = base_res.data
 
         items: List[CollectionSummary] = []
         with self._lock:
             try:
                 for p in base.glob("*.json"):
-                    try:
-                        data = json.loads(p.read_text(encoding="utf-8"))
-                    except Exception:
-                        continue
-                    cid = str(data.get("id") or p.stem)
-                    name = str(data.get("name") or "").strip() or cid
-                    count = int(len(data.get("items") or []))
-                    updated_at = str(data.get("updated_at") or "")
-                    if not _safe_id(cid):
-                        continue
-                    items.append(CollectionSummary(cid, name, count, updated_at))
+                    summary = _read_collection_summary_row(p)
+                    if summary is not None:
+                        items.append(summary)
             except Exception as exc:
                 return Result.Err(ErrorCode.DB_ERROR, f"Failed to list collections: {exc}")
 
         # Sort newest-ish first (fallback to id)
         items.sort(key=lambda x: (x.updated_at or "", x.id), reverse=True)
         return Result.Ok([i.__dict__ for i in items])
+
+    def _resolve_collections_base_dir(self) -> Result[Path]:
+        try:
+            return Result.Ok(self._base.resolve(strict=False))
+        except Exception as exc:
+            return Result.Err(ErrorCode.DB_ERROR, f"Collections dir unavailable: {exc}")
 
     def create(self, name: str) -> Result[Dict[str, Any]]:
         """Create a new empty collection."""
@@ -182,26 +196,32 @@ class CollectionsService:
         path = _collection_path(collection_id)
         if not path:
             return Result.Err(ErrorCode.INVALID_INPUT, "Invalid collection id")
+        loaded = self._load_collection_data(path)
+        if not loaded.ok:
+            return loaded
+        return self._build_collection_get_result(loaded.data or {}, collection_id)
+
+    @staticmethod
+    def _load_collection_data(path: Path) -> Result[Dict[str, Any]]:
         try:
-            data = json.loads(path.read_text(encoding="utf-8"))
+            return Result.Ok(json.loads(path.read_text(encoding="utf-8")))
         except FileNotFoundError:
             return Result.Err(ErrorCode.NOT_FOUND, "Collection not found")
         except Exception as exc:
             return Result.Err(ErrorCode.PARSE_ERROR, f"Failed to read collection: {exc}")
 
+    @staticmethod
+    def _build_collection_get_result(data: Dict[str, Any], collection_id: str) -> Result[Dict[str, Any]]:
         cid = str(data.get("id") or collection_id)
         if not _safe_id(cid):
             return Result.Err(ErrorCode.PARSE_ERROR, "Collection file is corrupted (bad id)")
-        name = str(data.get("name") or "").strip() or cid
-        items = data.get("items") if isinstance(data.get("items"), list) else []
-
         return Result.Ok(
             {
                 "id": cid,
-                "name": name,
+                "name": str(data.get("name") or "").strip() or cid,
                 "created_at": data.get("created_at") or "",
                 "updated_at": data.get("updated_at") or "",
-                "items": items,
+                "items": data.get("items") if isinstance(data.get("items"), list) else [],
             }
         )
 
@@ -241,29 +261,113 @@ class CollectionsService:
             data["items"] = []
         return path, data, None
 
+    @staticmethod
+    def _normalize_add_asset_item(asset: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        if not isinstance(asset, dict):
+            return None
+        fp = str(asset.get("filepath") or "").strip()
+        if not fp:
+            return None
+        root_id = CollectionsService._normalize_asset_root_id(asset)
+        kind = CollectionsService._normalize_asset_kind(asset, fp)
+        return {
+            "filepath": fp,
+            "filename": str(asset.get("filename") or "").strip(),
+            "subfolder": str(asset.get("subfolder") or "").strip(),
+            "type": str(asset.get("type") or "output").strip().lower(),
+            "root_id": root_id,
+            "kind": kind,
+            "added_at": _now_iso(),
+        }
+
+    @staticmethod
+    def _normalize_asset_root_id(asset: Dict[str, Any]) -> Optional[str]:
+        root_id = str(
+            asset.get("root_id")
+            or asset.get("rootId")
+            or asset.get("custom_root_id")
+            or ""
+        ).strip()
+        return root_id or None
+
+    @staticmethod
+    def _normalize_asset_kind(asset: Dict[str, Any], filepath: str) -> str:
+        return str(asset.get("kind") or classify_file(filepath) or "unknown").strip().lower()
+
+    def _clean_add_assets_input(self, assets: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        cleaned: List[Dict[str, Any]] = []
+        for asset in assets:
+            item = self._normalize_add_asset_item(asset)
+            if item is None:
+                continue
+            cleaned.append(item)
+        return cleaned
+
+    @staticmethod
+    def _existing_items_with_indexes(raw_items: Any) -> Tuple[List[Dict[str, Any]], set[str], set[str]]:
+        existing: List[Dict[str, Any]] = (
+            [it for it in raw_items if isinstance(it, dict)] if isinstance(raw_items, list) else []
+        )
+        seen: set[str] = set()
+        existing_seen: set[str] = set()
+        for item in existing:
+            existing_fp = item.get("filepath")
+            if not existing_fp:
+                continue
+            key = _normalize_fp(str(existing_fp))
+            seen.add(key)
+            existing_seen.add(key)
+        return existing, seen, existing_seen
+
+    def _append_collection_items(
+        self,
+        existing: List[Dict[str, Any]],
+        cleaned: List[Dict[str, Any]],
+        seen: set[str],
+        existing_seen: set[str],
+    ) -> Dict[str, int]:
+        added = 0
+        skipped_existing = 0
+        skipped_duplicate = 0
+        skipped_limit = 0
+        for item in cleaned:
+            if len(existing) >= _MAX_COLLECTION_ITEMS:
+                skipped_limit += 1
+                continue
+            key = _normalize_fp(item["filepath"])
+            if key in seen:
+                if key in existing_seen:
+                    skipped_existing += 1
+                else:
+                    skipped_duplicate += 1
+                continue
+            existing.append(item)
+            seen.add(key)
+            added += 1
+        return {
+            "added": int(added),
+            "skipped_existing": int(skipped_existing),
+            "skipped_duplicate": int(skipped_duplicate),
+            "skipped_limit": int(skipped_limit),
+        }
+
+    @staticmethod
+    def _write_collection_payload(path: Path, data: Dict[str, Any]) -> Optional[Result[Any]]:
+        try:
+            path.write_text(
+                json.dumps(data, ensure_ascii=False, separators=(",", ":")),
+                encoding="utf-8",
+            )
+        except Exception as exc:
+            return Result.Err(ErrorCode.DB_ERROR, f"Failed to update collection: {exc}")
+        return None
+
     def add_assets(self, collection_id: str, assets: List[Dict[str, Any]]) -> Result[Dict[str, Any]]:
         """Add assets (by filepath) to a collection (deduplicated, bounded)."""
         if not isinstance(assets, list) or not assets:
             return Result.Err(ErrorCode.INVALID_INPUT, "No assets provided")
 
-        cleaned: List[Dict[str, Any]] = []
-        for a in assets:
-            if not isinstance(a, dict):
-                continue
-            fp = str(a.get("filepath") or "").strip()
-            if not fp:
-                continue
-            item = {
-                "filepath": fp,
-                "filename": str(a.get("filename") or "").strip(),
-                "subfolder": str(a.get("subfolder") or "").strip(),
-                "type": str(a.get("type") or "output").strip().lower(),
-                "root_id": str(a.get("root_id") or a.get("rootId") or a.get("custom_root_id") or "").strip() or None,
-                "kind": str(a.get("kind") or classify_file(fp) or "unknown").strip().lower(),
-                "added_at": _now_iso(),
-            }
-            cleaned.append(item)
-
+        cleaned = self._clean_add_assets_input(assets)
         if not cleaned:
             return Result.Err(ErrorCode.INVALID_INPUT, "No valid assets provided")
 
@@ -273,55 +377,23 @@ class CollectionsService:
                 return err
             assert path is not None and data is not None
 
-            raw_items = data.get("items")
-            existing: List[Dict[str, Any]] = (
-                [it for it in raw_items if isinstance(it, dict)] if isinstance(raw_items, list) else []
-            )
-            seen = set()
-            existing_seen = set()
-            for it in existing:
-                if isinstance(it, dict):
-                    existing_fp = it.get("filepath")
-                    if existing_fp:
-                        k = _normalize_fp(str(existing_fp))
-                        seen.add(k)
-                        existing_seen.add(k)
-
-            added = 0
-            skipped_existing = 0
-            skipped_duplicate = 0
-            skipped_limit = 0
-            for it in cleaned:
-                if len(existing) >= _MAX_COLLECTION_ITEMS:
-                    skipped_limit += 1
-                    continue
-                key = _normalize_fp(it["filepath"])
-                if key in seen:
-                    # Already in collection (or duplicated in the same request); report as skipped.
-                    if key in existing_seen:
-                        skipped_existing += 1
-                    else:
-                        skipped_duplicate += 1
-                    continue
-                existing.append(it)
-                seen.add(key)
-                added += 1
+            existing, seen, existing_seen = self._existing_items_with_indexes(data.get("items"))
+            counts = self._append_collection_items(existing, cleaned, seen, existing_seen)
 
             data["items"] = existing
             data["updated_at"] = _now_iso()
 
-            try:
-                path.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-            except Exception as exc:
-                return Result.Err(ErrorCode.DB_ERROR, f"Failed to update collection: {exc}")
+            write_err = self._write_collection_payload(path, data)
+            if write_err:
+                return write_err
 
         return Result.Ok(
             {
                 "id": str(data.get("id") or collection_id),
-                "added": int(added),
-                "skipped_existing": int(skipped_existing),
-                "skipped_duplicate": int(skipped_duplicate),
-                "skipped_limit": int(skipped_limit),
+                "added": counts["added"],
+                "skipped_existing": counts["skipped_existing"],
+                "skipped_duplicate": counts["skipped_duplicate"],
+                "skipped_limit": counts["skipped_limit"],
                 "max_items": int(_MAX_COLLECTION_ITEMS),
                 "count": len(existing),
             }
@@ -329,11 +401,10 @@ class CollectionsService:
 
     def remove_filepaths(self, collection_id: str, filepaths: List[str]) -> Result[Dict[str, Any]]:
         """Remove items from a collection by filepath."""
-        if not isinstance(filepaths, list) or not filepaths:
-            return Result.Err(ErrorCode.INVALID_INPUT, "No filepaths provided")
-        targets = set(_normalize_fp(str(p)) for p in filepaths if str(p or "").strip())
-        if not targets:
-            return Result.Err(ErrorCode.INVALID_INPUT, "No valid filepaths provided")
+        targets_res = self._remove_targets(filepaths)
+        if not targets_res.ok:
+            return Result.Err(targets_res.code or ErrorCode.INVALID_INPUT, targets_res.error or "No valid filepaths provided")
+        targets = targets_res.data or set()
 
         with self._lock:
             path, data, err = self._load_for_update(collection_id)
@@ -341,26 +412,37 @@ class CollectionsService:
                 return err
             assert path is not None and data is not None
 
-            raw_items = data.get("items")
-            existing: List[Dict[str, Any]] = (
-                [it for it in raw_items if isinstance(it, dict)] if isinstance(raw_items, list) else []
-            )
-            kept: List[Any] = []
-            removed = 0
-            for it in existing:
-                fp = it.get("filepath")
-                if fp and _normalize_fp(str(fp)) in targets:
-                    removed += 1
-                    continue
-                kept.append(it)
-
+            existing = self._collection_items_as_dicts(data.get("items"))
+            kept, removed = self._partition_removed_items(existing, targets)
             data["items"] = kept
             data["updated_at"] = _now_iso()
-
-            try:
-                path.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-            except Exception as exc:
-                return Result.Err(ErrorCode.DB_ERROR, f"Failed to update collection: {exc}")
+            write_err = self._write_collection_payload(path, data)
+            if write_err:
+                return write_err
 
         return Result.Ok({"id": str(data.get("id") or collection_id), "removed": int(removed), "count": len(kept)})
 
+    @staticmethod
+    def _remove_targets(filepaths: List[str]) -> Result[set[str]]:
+        if not isinstance(filepaths, list) or not filepaths:
+            return Result.Err(ErrorCode.INVALID_INPUT, "No filepaths provided")
+        targets = set(_normalize_fp(str(p)) for p in filepaths if str(p or "").strip())
+        if not targets:
+            return Result.Err(ErrorCode.INVALID_INPUT, "No valid filepaths provided")
+        return Result.Ok(targets)
+
+    @staticmethod
+    def _collection_items_as_dicts(raw_items: Any) -> List[Dict[str, Any]]:
+        return [it for it in raw_items if isinstance(it, dict)] if isinstance(raw_items, list) else []
+
+    @staticmethod
+    def _partition_removed_items(existing: List[Dict[str, Any]], targets: set[str]) -> Tuple[List[Any], int]:
+        kept: List[Any] = []
+        removed = 0
+        for item in existing:
+            fp = item.get("filepath")
+            if fp and _normalize_fp(str(fp)) in targets:
+                removed += 1
+                continue
+            kept.append(item)
+        return kept, removed

@@ -107,6 +107,12 @@ _KNOWN_COLUMNS = {
     "m.has_generation_data",
 }
 _KNOWN_COLUMNS_LOWER = {c.lower(): c for c in _KNOWN_COLUMNS}
+_SCHEMA_TABLE_ALIASES = {
+    "assets": "a",
+    "asset_metadata": "m",
+    "scan_journal": None,
+    "metadata_cache": None,
+}
 
 
 def _is_missing_column_error(exc: Exception) -> bool:
@@ -129,31 +135,33 @@ def _populate_known_columns_from_schema(db_path: Path) -> None:
     try:
         if not db_path.exists():
             return
-        tables = {
-            "assets": "a",
-            "asset_metadata": "m",
-            "scan_journal": None,
-            "metadata_cache": None,
-        }
         with sqlite3.connect(str(db_path)) as conn:
             cursor = conn.cursor()
-            for table, alias in tables.items():
-                try:
-                    cursor.execute(f"PRAGMA table_info({table})")
-                    for row in cursor.fetchall() or []:
-                        if not row or len(row) < 2:
-                            continue
-                        col = str(row[1]).strip()
-                        if not col:
-                            continue
-                        _KNOWN_COLUMNS.add(col)
-                        if alias:
-                            _KNOWN_COLUMNS.add(f"{alias}.{col}")
-                except Exception:
-                    pass
+            for table, alias in _SCHEMA_TABLE_ALIASES.items():
+                _populate_table_columns(cursor, table, alias)
             _KNOWN_COLUMNS_LOWER = {c.lower(): c for c in _KNOWN_COLUMNS}
     except Exception as exc:
         logger.warning("Failed to refresh known columns from schema: %s", exc)
+
+
+def _populate_table_columns(cursor: sqlite3.Cursor, table: str, alias: Optional[str]) -> None:
+    try:
+        cursor.execute(f"PRAGMA table_info({table})")
+        for row in cursor.fetchall() or []:
+            col = _extract_schema_column_name(row)
+            if not col:
+                continue
+            _KNOWN_COLUMNS.add(col)
+            if alias:
+                _KNOWN_COLUMNS.add(f"{alias}.{col}")
+    except Exception:
+        pass
+
+
+def _extract_schema_column_name(row: Any) -> str:
+    if not row or len(row) < 2:
+        return ""
+    return str(row[1]).strip()
 
 _IN_QUERY_FORBIDDEN = re.compile(
     r"(--|/\*|\*/|;|\bpragma\b|\battach\b|\bdetach\b|\bvacuum\b|\balter\b|\bdrop\b|\binsert\b|\bupdate\b|\bdelete\b)",
@@ -362,13 +370,13 @@ class Sqlite:
         self._initialized = False
         self._lock = threading.Lock()
         self._async_sem: Optional[asyncio.Semaphore] = None
-        
+
         # Reset mechanics
         self._resetting = False
         self._active_conns: set[aiosqlite.Connection] = set()
         self._active_conns_idle = threading.Event()
         self._active_conns_idle.set()
-        
+
         self._timeout = float(user_config.get("timeout", timeout))
         self._query_timeout = float(user_config.get("queryTimeout", DB_QUERY_TIMEOUT if DB_QUERY_TIMEOUT is not None else 0.0))
         self._lock_retry_attempts = 6
@@ -425,42 +433,52 @@ class Sqlite:
         2) <db parent>/db_config.json
         """
         try:
-            cfg_path_raw = os.getenv("MAJOOR_DB_CONFIG_PATH", "").strip()
-            cfg_path = Path(cfg_path_raw).expanduser() if cfg_path_raw else (self.db_path.parent / "db_config.json")
-            if not cfg_path.exists() or not cfg_path.is_file():
-                return {}
-
-            with cfg_path.open("r", encoding="utf-8") as f:
-                data = json.load(f)
+            cfg_path = self._resolve_user_db_config_path()
+            data = self._read_user_db_config_file(cfg_path)
             if not isinstance(data, dict):
                 return {}
-
-            out: Dict[str, Any] = {}
-            try:
-                if "timeout" in data:
-                    timeout_raw = data.get("timeout")
-                    if timeout_raw is not None:
-                        out["timeout"] = max(1.0, float(timeout_raw))
-            except Exception:
-                pass
-            try:
-                if "maxConnections" in data:
-                    max_connections_raw = data.get("maxConnections")
-                    if max_connections_raw is not None:
-                        out["maxConnections"] = max(1, int(max_connections_raw))
-            except Exception:
-                pass
-            try:
-                if "queryTimeout" in data:
-                    query_timeout_raw = data.get("queryTimeout")
-                    if query_timeout_raw is not None:
-                        out["queryTimeout"] = max(0.0, float(query_timeout_raw))
-            except Exception:
-                pass
-            return out
+            return self._normalize_user_db_config(data)
         except Exception as exc:
             logger.debug("Ignoring invalid DB user config: %s", exc)
             return {}
+
+    def _resolve_user_db_config_path(self) -> Path:
+        cfg_path_raw = os.getenv("MAJOOR_DB_CONFIG_PATH", "").strip()
+        return Path(cfg_path_raw).expanduser() if cfg_path_raw else (self.db_path.parent / "db_config.json")
+
+    @staticmethod
+    def _read_user_db_config_file(cfg_path: Path) -> Any:
+        if not cfg_path.exists() or not cfg_path.is_file():
+            return {}
+        with cfg_path.open("r", encoding="utf-8") as f:
+            return json.load(f)
+
+    @staticmethod
+    def _normalize_user_db_config(data: Dict[str, Any]) -> Dict[str, Any]:
+        out: Dict[str, Any] = {}
+        Sqlite._maybe_set_config_number(out, data, "timeout", min_value=1.0, cast=float)
+        Sqlite._maybe_set_config_number(out, data, "maxConnections", min_value=1, cast=int)
+        Sqlite._maybe_set_config_number(out, data, "queryTimeout", min_value=0.0, cast=float)
+        return out
+
+    @staticmethod
+    def _maybe_set_config_number(
+        out: Dict[str, Any],
+        data: Dict[str, Any],
+        key: str,
+        *,
+        min_value: float,
+        cast,
+    ) -> None:
+        try:
+            if key not in data:
+                return
+            raw = data.get(key)
+            if raw is None:
+                return
+            out[key] = max(min_value, cast(raw))
+        except Exception:
+            return
 
     def _is_locked_error(self, exc: Exception) -> bool:
         try:
@@ -517,17 +535,7 @@ class Sqlite:
         """
         Auto-reset DB on corruption by default; can be disabled with MAJOOR_DB_AUTO_RESET=false.
         """
-        try:
-            auto_reset = str(os.getenv("MAJOOR_DB_AUTO_RESET", "true")).strip().lower() in (
-                "1",
-                "true",
-                "yes",
-                "on",
-            )
-        except Exception:
-            auto_reset = False
-
-        if not auto_reset:
+        if not self._is_auto_reset_enabled():
             logger.error(
                 "Corruption detected (%s). Auto-reset disabled (MAJOOR_DB_AUTO_RESET=false)",
                 error,
@@ -535,32 +543,56 @@ class Sqlite:
             return
 
         now = time.time()
-        with self._auto_reset_lock:
-            if now - float(self._auto_reset_last_ts or 0.0) < float(self._auto_reset_cooldown_s):
-                logger.warning("Corruption auto-reset throttled (cooldown %.1fs)", float(self._auto_reset_cooldown_s))
-                return
-            self._auto_reset_last_ts = now
-        with self._diag_lock:
-            self._diag["auto_reset_attempts"] = int(self._diag.get("auto_reset_attempts") or 0) + 1
-            self._diag["last_auto_reset_at"] = now
-            self._diag["last_auto_reset_error"] = None
+        if self._is_auto_reset_throttled(now):
+            logger.warning("Corruption auto-reset throttled (cooldown %.1fs)", float(self._auto_reset_cooldown_s))
+            return
+        self._mark_auto_reset_attempt(now)
 
         try:
             reset_res = await self.areset()
-            if reset_res and reset_res.ok:
-                logger.warning("Database auto-reset completed after corruption")
-                with self._diag_lock:
-                    self._diag["auto_reset_successes"] = int(self._diag.get("auto_reset_successes") or 0) + 1
-            else:
-                logger.error("Database auto-reset failed after corruption: %s", getattr(reset_res, "error", "unknown error"))
-                with self._diag_lock:
-                    self._diag["auto_reset_failures"] = int(self._diag.get("auto_reset_failures") or 0) + 1
-                    self._diag["last_auto_reset_error"] = str(getattr(reset_res, "error", "unknown error"))
+            self._record_auto_reset_result(reset_res)
         except Exception as exc:
             logger.error("Database auto-reset exception after corruption: %s", exc)
             with self._diag_lock:
                 self._diag["auto_reset_failures"] = int(self._diag.get("auto_reset_failures") or 0) + 1
                 self._diag["last_auto_reset_error"] = str(exc)
+
+    @staticmethod
+    def _is_auto_reset_enabled() -> bool:
+        try:
+            return str(os.getenv("MAJOOR_DB_AUTO_RESET", "true")).strip().lower() in (
+                "1",
+                "true",
+                "yes",
+                "on",
+            )
+        except Exception:
+            return False
+
+    def _is_auto_reset_throttled(self, now: float) -> bool:
+        with self._auto_reset_lock:
+            if now - float(self._auto_reset_last_ts or 0.0) < float(self._auto_reset_cooldown_s):
+                return True
+            self._auto_reset_last_ts = now
+            return False
+
+    def _mark_auto_reset_attempt(self, now: float) -> None:
+        with self._diag_lock:
+            self._diag["auto_reset_attempts"] = int(self._diag.get("auto_reset_attempts") or 0) + 1
+            self._diag["last_auto_reset_at"] = now
+            self._diag["last_auto_reset_error"] = None
+
+    def _record_auto_reset_result(self, reset_res: Any) -> None:
+        if reset_res and reset_res.ok:
+            logger.warning("Database auto-reset completed after corruption")
+            with self._diag_lock:
+                self._diag["auto_reset_successes"] = int(self._diag.get("auto_reset_successes") or 0) + 1
+            return
+        error_text = str(getattr(reset_res, "error", "unknown error"))
+        logger.error("Database auto-reset failed after corruption: %s", error_text)
+        with self._diag_lock:
+            self._diag["auto_reset_failures"] = int(self._diag.get("auto_reset_failures") or 0) + 1
+            self._diag["last_auto_reset_error"] = error_text
 
     def get_diagnostics(self) -> Dict[str, Any]:
         with self._diag_lock:
@@ -789,37 +821,48 @@ class Sqlite:
         if not self._asset_locks:
             return
         cutoff = now - float(ASSET_LOCKS_TTL_S)
+        self._prune_asset_locks_by_ttl(cutoff)
+        self._prune_asset_locks_by_cap()
+
+    def _prune_asset_locks_by_ttl(self, cutoff: float) -> None:
         try:
             for key, entry in list(self._asset_locks.items()):
-                try:
-                    lock = entry.get("lock")
-                    last = float(entry.get("last") or 0)
-                except Exception:
+                last = self._asset_lock_last(entry)
+                if not last or last >= cutoff:
                     continue
-                try:
-                    if lock is not None and getattr(lock, "locked", None) and lock.locked():
-                        continue
-                except Exception:
-                    pass
-                if last and last < cutoff:
-                    self._asset_locks.pop(key, None)
+                if self._asset_lock_is_locked(entry):
+                    continue
+                self._asset_locks.pop(key, None)
         except Exception:
-            pass
+            return
 
-        if ASSET_LOCKS_MAX > 0 and len(self._asset_locks) > ASSET_LOCKS_MAX:
-            try:
-                items = sorted(self._asset_locks.items(), key=lambda kv: float(kv[1].get("last") or 0))
-                to_drop = max(0, len(items) - ASSET_LOCKS_MAX)
-                for key, entry in items[:to_drop]:
-                    try:
-                        lock = entry.get("lock")
-                        if lock is not None and getattr(lock, "locked", None) and lock.locked():
-                            continue
-                    except Exception:
-                        pass
-                    self._asset_locks.pop(key, None)
-            except Exception:
-                pass
+    def _prune_asset_locks_by_cap(self) -> None:
+        if ASSET_LOCKS_MAX <= 0 or len(self._asset_locks) <= ASSET_LOCKS_MAX:
+            return
+        try:
+            items = sorted(self._asset_locks.items(), key=lambda kv: self._asset_lock_last(kv[1]))
+            to_drop = max(0, len(items) - ASSET_LOCKS_MAX)
+            for key, entry in items[:to_drop]:
+                if self._asset_lock_is_locked(entry):
+                    continue
+                self._asset_locks.pop(key, None)
+        except Exception:
+            return
+
+    @staticmethod
+    def _asset_lock_last(entry: Dict[str, Any]) -> float:
+        try:
+            return float(entry.get("last") or 0)
+        except Exception:
+            return 0.0
+
+    @staticmethod
+    def _asset_lock_is_locked(entry: Dict[str, Any]) -> bool:
+        try:
+            lock = entry.get("lock")
+            return bool(lock is not None and getattr(lock, "locked", None) and lock.locked())
+        except Exception:
+            return False
 
     def _get_or_create_asset_lock(self, asset_id: Any) -> asyncio.Lock:
         key = _asset_lock_key(asset_id)
@@ -1017,24 +1060,13 @@ class Sqlite:
         try:
             for attempt in range(self._lock_retry_attempts + 1):
                 try:
-                    cursor = await conn.execute(query, params or ())
-                    try:
-                        if fetch:
-                            rows = await cursor.fetchall()
-                            return Result.Ok(self._rows_to_dicts(rows))
-                        if commit:
-                            await conn.commit()
-                        # aiosqlite cursor has lastrowid/rowcount, but may be None.
-                        last_id = getattr(cursor, "lastrowid", None)
-                        rowcount = getattr(cursor, "rowcount", None)
-                        if last_id:
-                            return Result.Ok(last_id)
-                        return Result.Ok(rowcount if rowcount is not None else 0)
-                    finally:
-                        try:
-                            await cursor.close()
-                        except Exception:
-                            pass
+                    return await self._execute_with_cursor_result(
+                        conn,
+                        query,
+                        params,
+                        fetch=fetch,
+                        commit=commit,
+                    )
                 except sqlite3.OperationalError as exc:
                     if self._is_locked_error(exc) and attempt < self._lock_retry_attempts:
                         await self._sleep_backoff(attempt)
@@ -1043,6 +1075,37 @@ class Sqlite:
             return Result.Err(ErrorCode.DB_ERROR, "Query failed after retries")
         except Exception:
             raise
+
+    async def _execute_with_cursor_result(
+        self,
+        conn: aiosqlite.Connection,
+        query: str,
+        params: Optional[tuple],
+        *,
+        fetch: bool,
+        commit: bool,
+    ) -> Result[Any]:
+        cursor = await conn.execute(query, params or ())
+        try:
+            if fetch:
+                rows = await cursor.fetchall()
+                return Result.Ok(self._rows_to_dicts(rows))
+            if commit:
+                await conn.commit()
+            return self._cursor_write_result(cursor)
+        finally:
+            try:
+                await cursor.close()
+            except Exception:
+                pass
+
+    @staticmethod
+    def _cursor_write_result(cursor: Any) -> Result[Any]:
+        last_id = getattr(cursor, "lastrowid", None)
+        rowcount = getattr(cursor, "rowcount", None)
+        if last_id:
+            return Result.Ok(last_id)
+        return Result.Ok(rowcount if rowcount is not None else 0)
 
     async def aexecute(self, query: str, params: Optional[tuple] = None, fetch: bool = False) -> Result[Any]:
         """Execute SQL on the DB loop thread (async)."""
@@ -1277,6 +1340,89 @@ class Sqlite:
             (str(version),),
         )
 
+    @staticmethod
+    def _begin_stmt_for_mode(mode: str) -> str:
+        begin_stmt = "BEGIN IMMEDIATE"
+        if isinstance(mode, str) and mode.lower() in ("deferred", "immediate", "exclusive"):
+            begin_stmt = f"BEGIN {mode.upper()}"
+        elif isinstance(mode, str) and mode.strip() == "":
+            begin_stmt = "BEGIN"
+        return begin_stmt
+
+    async def _begin_tx_with_retry(self, conn: aiosqlite.Connection, begin_stmt: str) -> None:
+        for attempt in range(self._lock_retry_attempts + 1):
+            try:
+                await conn.execute(begin_stmt)
+                return
+            except sqlite3.OperationalError as exc:
+                if self._is_locked_error(exc) and attempt < self._lock_retry_attempts:
+                    await self._sleep_backoff(attempt)
+                    continue
+                raise
+
+    def _register_tx_token(self, token: str, conn: aiosqlite.Connection, lock: Optional[asyncio.Lock]) -> None:
+        with self._tx_state_lock:
+            self._tx_conns[token] = conn
+            if lock is not None:
+                self._tx_write_lock_tokens.add(token)
+
+    async def _abort_begin_tx(
+        self,
+        conn: aiosqlite.Connection,
+        lock: Optional[asyncio.Lock],
+    ) -> None:
+        try:
+            await conn.rollback()
+        except Exception:
+            pass
+        await self._release_connection_async(conn)
+        if lock is not None:
+            try:
+                lock.release()
+            except Exception:
+                pass
+
+    def _get_tx_state(self, token: str) -> tuple[Optional[aiosqlite.Connection], bool]:
+        try:
+            with self._tx_state_lock:
+                conn = self._tx_conns.get(token)
+                had_write_lock = token in self._tx_write_lock_tokens
+        except Exception:
+            return None, False
+        return conn, had_write_lock
+
+    async def _commit_with_retry(self, conn: aiosqlite.Connection) -> None:
+        for attempt in range(self._lock_retry_attempts + 1):
+            try:
+                await conn.commit()
+                return
+            except sqlite3.OperationalError as exc:
+                if self._is_locked_error(exc) and attempt < self._lock_retry_attempts:
+                    await self._sleep_backoff(attempt)
+                    continue
+                raise
+
+    async def _cleanup_tx_state(
+        self,
+        token: str,
+        conn: aiosqlite.Connection,
+        had_write_lock: bool,
+        lock: Optional[asyncio.Lock],
+    ) -> None:
+        try:
+            with self._tx_state_lock:
+                self._tx_conns.pop(token, None)
+                if had_write_lock:
+                    self._tx_write_lock_tokens.discard(token)
+        except Exception:
+            pass
+        await self._release_connection_async(conn)
+        if lock is not None and had_write_lock:
+            try:
+                lock.release()
+            except Exception:
+                pass
+
     async def _begin_tx_async(self, mode: str) -> Result[str]:
         await self._ensure_initialized_async()
         lock = self._write_lock
@@ -1285,64 +1431,23 @@ class Sqlite:
         conn = await self._acquire_connection_async()
         token = f"tx_{uuid.uuid4().hex}"
 
-        begin_stmt = "BEGIN IMMEDIATE"
-        if isinstance(mode, str) and mode.lower() in ("deferred", "immediate", "exclusive"):
-            begin_stmt = f"BEGIN {mode.upper()}"
-        elif isinstance(mode, str) and mode.strip() == "":
-            begin_stmt = "BEGIN"
+        begin_stmt = self._begin_stmt_for_mode(mode)
 
         try:
-            for attempt in range(self._lock_retry_attempts + 1):
-                try:
-                    await conn.execute(begin_stmt)
-                    break
-                except sqlite3.OperationalError as exc:
-                    if self._is_locked_error(exc) and attempt < self._lock_retry_attempts:
-                        await self._sleep_backoff(attempt)
-                        continue
-                    raise
-            try:
-                with self._tx_state_lock:
-                    self._tx_conns[token] = conn
-                    if lock is not None:
-                        self._tx_write_lock_tokens.add(token)
-            except Exception:
-                raise
+            await self._begin_tx_with_retry(conn, begin_stmt)
+            self._register_tx_token(token, conn, lock)
             return Result.Ok(token)
         except Exception as exc:
-            try:
-                await conn.rollback()
-            except Exception:
-                pass
-            await self._release_connection_async(conn)
-            if lock is not None:
-                try:
-                    lock.release()
-                except Exception:
-                    pass
+            await self._abort_begin_tx(conn, lock)
             return Result.Err(ErrorCode.DB_ERROR, str(exc))
 
     async def _commit_tx_async(self, token: str) -> Result[bool]:
         lock = self._write_lock
-        try:
-            with self._tx_state_lock:
-                conn = self._tx_conns.get(token)
-                had_write_lock = token in self._tx_write_lock_tokens
-        except Exception:
-            conn = None
-            had_write_lock = False
+        conn, had_write_lock = self._get_tx_state(token)
         if not conn:
             return Result.Err(ErrorCode.DB_ERROR, "Transaction connection missing")
         try:
-            for attempt in range(self._lock_retry_attempts + 1):
-                try:
-                    await conn.commit()
-                    break
-                except sqlite3.OperationalError as exc:
-                    if self._is_locked_error(exc) and attempt < self._lock_retry_attempts:
-                        await self._sleep_backoff(attempt)
-                        continue
-                    raise
+            await self._commit_with_retry(conn)
             return Result.Ok(True)
         except Exception as exc:
             # Best-effort rollback to avoid returning a connection with an open transaction to the pool.
@@ -1352,19 +1457,7 @@ class Sqlite:
                 pass
             return Result.Err(ErrorCode.DB_ERROR, str(exc))
         finally:
-            try:
-                with self._tx_state_lock:
-                    self._tx_conns.pop(token, None)
-                    if had_write_lock:
-                        self._tx_write_lock_tokens.discard(token)
-            except Exception:
-                pass
-            await self._release_connection_async(conn)
-            if lock is not None and had_write_lock:
-                try:
-                    lock.release()
-                except Exception:
-                    pass
+            await self._cleanup_tx_state(token, conn, had_write_lock, lock)
 
     async def _rollback_tx_async(self, token: str) -> Result[bool]:
         lock = self._write_lock
@@ -1420,7 +1513,7 @@ class Sqlite:
                 await conn.close()
             except Exception:
                 pass
-        
+
         # 3. FORCE CLOSE any checked-out connections (critical for reset)
         active_list = list(self._active_conns)
         for conn in active_list:
@@ -1457,7 +1550,7 @@ class Sqlite:
         drained = await asyncio.to_thread(self._active_conns_idle.wait, 5.0)
         if not drained and self._active_conns:
             logger.warning("DB Reset: Forced close with %d active connections", len(self._active_conns))
-             
+
         await self._close_all_async()
 
     async def _checkpoint_wal_before_reset_async(self) -> None:
@@ -1518,61 +1611,12 @@ class Sqlite:
         try:
             deleted_files: list[str] = []
             renamed_files: list[dict[str, str]] = []
-            # 1. Drain and close on loop thread
-            fut = self._loop_thread.submit(self._drain_for_reset_async())
-            await asyncio.wrap_future(fut)
-            
-            # 2. Wait a bit for OS to release file locks & FORCE GC
-            await asyncio.sleep(0.5)
-            gc.collect()
-            
-            # 3. Delete files with RETRY logic
-            base = str(self.db_path)
-            for ext in ["", "-wal", "-shm", "-journal"]:
-                p = Path(base + ext)
-                if not p.exists():
-                    continue
-                
-                deleted = False
-                last_error = None
-                for attempt in range(5):
-                    try:
-                        p.unlink()
-                        deleted = True
-                        deleted_files.append(str(p))
-                        break
-                    except Exception as e:
-                        last_error = e
-                        await asyncio.sleep(0.5 + (attempt * 0.2))
-                        gc.collect() # aggressive gc
-                
-                if not deleted:
-                    logger.warning(f"Failed to delete {p} after retries: {last_error}")
-                    # Final Hail Mary: Try rename if delete fails (Windows hack).
-                    # We do this for main DB and WAL/SHM to guarantee the old files disappear.
-                    try:
-                        trash = p.with_name(f"{p.name}.trash_{uuid.uuid4().hex}")
-                        p.rename(trash)
-                        renamed_files.append({"from": str(p), "to": str(trash)})
-                        logger.info(f"Renamed locked DB file to {trash}")
-                        deleted = True
-                    except Exception as rename_err:
-                        # Final fallback (Windows): schedule delete at reboot.
-                        # We still fail the reset to avoid reinitializing over potentially
-                        # stale sidecar files in the current process/session.
-                        scheduled = self._schedule_delete_on_reboot(p)
-                        with self._lock:
-                            self._resetting = False
-                        if scheduled:
-                            return Result.Err(
-                                "DELETE_PENDING_REBOOT",
-                                f"Could not delete {p} now; scheduled for deletion at reboot. "
-                                f"Delete error: {last_error} | Rename failed: {rename_err}",
-                            )
-                        return Result.Err(
-                            "DELETE_FAILED",
-                            f"Could not delete {p}: {last_error} | Rename failed: {rename_err}",
-                        )
+            await self._drain_for_reset()
+            delete_err = await self._delete_reset_files(deleted_files, renamed_files)
+            if delete_err is not None:
+                with self._lock:
+                    self._resetting = False
+                return delete_err
 
             # 4. Reset initialization state
             with self._lock:
@@ -1591,7 +1635,7 @@ class Sqlite:
             schema_res = await ensure_tables_exist(self)
             if not schema_res.ok:
                 return schema_res
-            
+
             indexes_res = await ensure_indexes_and_triggers(self)
             if not indexes_res.ok:
                 return indexes_res
@@ -1602,6 +1646,80 @@ class Sqlite:
                 self._resetting = False # Ensure unlock on error
             logger.error(f"DB Reset failed: {exc}")
             return Result.Err("RESET_FAILED", str(exc))
+
+    async def _drain_for_reset(self) -> None:
+        # 1. Drain and close on loop thread.
+        fut = self._loop_thread.submit(self._drain_for_reset_async())
+        await asyncio.wrap_future(fut)
+        # 2. Wait a bit for OS to release file locks & force GC.
+        await asyncio.sleep(0.5)
+        gc.collect()
+
+    async def _delete_reset_files(
+        self,
+        deleted_files: list[str],
+        renamed_files: list[dict[str, str]],
+    ) -> Optional[Result[bool]]:
+        base = str(self.db_path)
+        for ext in ["", "-wal", "-shm", "-journal"]:
+            path = Path(base + ext)
+            if not path.exists():
+                continue
+            err = await self._delete_or_recover_reset_file(path, deleted_files, renamed_files)
+            if err is not None:
+                return err
+        return None
+
+    async def _delete_or_recover_reset_file(
+        self,
+        path: Path,
+        deleted_files: list[str],
+        renamed_files: list[dict[str, str]],
+    ) -> Optional[Result[bool]]:
+        deleted, last_error = await self._delete_reset_file_with_retries(path, deleted_files)
+        if deleted:
+            return None
+        logger.warning(f"Failed to delete {path} after retries: {last_error}")
+        recover = self._rename_or_schedule_delete(path, renamed_files, last_error)
+        return None if recover.ok else recover
+
+    async def _delete_reset_file_with_retries(self, path: Path, deleted_files: list[str]) -> tuple[bool, Optional[Exception]]:
+        last_error: Optional[Exception] = None
+        for attempt in range(5):
+            try:
+                path.unlink()
+                deleted_files.append(str(path))
+                return True, None
+            except Exception as exc:
+                last_error = exc
+                await asyncio.sleep(0.5 + (attempt * 0.2))
+                gc.collect()
+        return False, last_error
+
+    def _rename_or_schedule_delete(
+        self,
+        path: Path,
+        renamed_files: list[dict[str, str]],
+        last_error: Optional[Exception],
+    ) -> Result[bool]:
+        try:
+            trash = path.with_name(f"{path.name}.trash_{uuid.uuid4().hex}")
+            path.rename(trash)
+            renamed_files.append({"from": str(path), "to": str(trash)})
+            logger.info(f"Renamed locked DB file to {trash}")
+            return Result.Ok(True)
+        except Exception as rename_err:
+            scheduled = self._schedule_delete_on_reboot(path)
+            if scheduled:
+                return Result.Err(
+                    "DELETE_PENDING_REBOOT",
+                    f"Could not delete {path} now; scheduled for deletion at reboot. "
+                    f"Delete error: {last_error} | Rename failed: {rename_err}",
+                )
+            return Result.Err(
+                "DELETE_FAILED",
+                f"Could not delete {path}: {last_error} | Rename failed: {rename_err}",
+            )
 
     async def _begin_tx_for_async(self, mode: str) -> Result[str]:
         fut = self._loop_thread.submit(self._begin_tx_async(mode))

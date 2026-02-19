@@ -69,6 +69,22 @@ def _build_filter_clauses(filters: Optional[Dict[str, Any]], alias: str = "a") -
     params: List[Any] = []
     if not filters:
         return clauses, params
+    _append_kind_and_source_filters(filters, alias, clauses, params)
+    _append_extension_filter(filters, alias, clauses, params)
+    _append_numeric_range_filters(filters, alias, clauses, params)
+    _append_workflow_type_filter(filters, clauses, params)
+    _append_has_workflow_filter(filters, clauses)
+    _append_mtime_filters(filters, alias, clauses, params)
+    _append_exclude_root_filter(filters, alias, clauses, params)
+    return clauses, params
+
+
+def _append_kind_and_source_filters(
+    filters: Dict[str, Any],
+    alias: str,
+    clauses: List[str],
+    params: List[Any],
+) -> None:
     kind = filters.get("kind")
     if isinstance(kind, str) and kind:
         clauses.append(f"AND {alias}.kind = ?")
@@ -77,103 +93,119 @@ def _build_filter_clauses(filters: Optional[Dict[str, Any]], alias: str = "a") -
     if isinstance(source, str) and source.strip():
         clauses.append(f"AND LOWER({alias}.source) = ?")
         params.append(source.strip().lower())
+
+
+def _append_extension_filter(filters: Dict[str, Any], alias: str, clauses: List[str], params: List[Any]) -> None:
     extensions = filters.get("extensions")
-    if isinstance(extensions, list):
-        normalized_exts = []
-        for ext in extensions:
-            norm = _normalize_extension(ext)
-            if norm:
-                normalized_exts.append(norm)
-        if normalized_exts:
-            placeholders = ", ".join("?" for _ in normalized_exts)
-            clauses.append(f"AND LOWER({alias}.ext) IN ({placeholders})")
-            params.extend(normalized_exts)
+    if not isinstance(extensions, list):
+        return
+    normalized_exts = [_normalize_extension(ext) for ext in extensions]
+    normalized_exts = [ext for ext in normalized_exts if ext]
+    if not normalized_exts:
+        return
+    placeholders = ", ".join("?" for _ in normalized_exts)
+    clauses.append(f"AND LOWER({alias}.ext) IN ({placeholders})")
+    params.extend(normalized_exts)
+
+
+def _append_numeric_range_filters(filters: Dict[str, Any], alias: str, clauses: List[str], params: List[Any]) -> None:
+    int_specs = [
+        ("min_size_bytes", f"AND COALESCE({alias}.size, 0) >= ?"),
+        ("max_size_bytes", f"AND COALESCE({alias}.size, 0) <= ?"),
+        ("min_width", f"AND COALESCE({alias}.width, 0) >= ?"),
+        ("min_height", f"AND COALESCE({alias}.height, 0) >= ?"),
+        ("max_width", f"AND COALESCE({alias}.width, 0) <= ?"),
+        ("max_height", f"AND COALESCE({alias}.height, 0) <= ?"),
+    ]
     if "min_rating" in filters:
         clauses.append("AND COALESCE(m.rating, 0) >= ?")
         params.append(filters["min_rating"])
-    if "min_size_bytes" in filters:
-        clauses.append(f"AND COALESCE({alias}.size, 0) >= ?")
-        params.append(int(filters["min_size_bytes"]))
-    if "max_size_bytes" in filters:
-        clauses.append(f"AND COALESCE({alias}.size, 0) <= ?")
-        params.append(int(filters["max_size_bytes"]))
-    if "min_width" in filters:
-        clauses.append(f"AND COALESCE({alias}.width, 0) >= ?")
-        params.append(int(filters["min_width"]))
-    if "min_height" in filters:
-        clauses.append(f"AND COALESCE({alias}.height, 0) >= ?")
-        params.append(int(filters["min_height"]))
-    if "max_width" in filters:
-        clauses.append(f"AND COALESCE({alias}.width, 0) <= ?")
-        params.append(int(filters["max_width"]))
-    if "max_height" in filters:
-        clauses.append(f"AND COALESCE({alias}.height, 0) <= ?")
-        params.append(int(filters["max_height"]))
-    if "workflow_type" in filters:
-        raw = str(filters.get("workflow_type") or "").strip().upper()
-        alias_map = {
-            "T2I": ["T2I"],
-            "I2I": ["I2I"],
-            "T2V": ["T2V"],
-            "I2V": ["I2V"],
-            "V2V": ["V2V"],
-            "A2A": ["A2A"],
-            "TTS": ["TTS", "T2A"],
-            "UPSCL": ["UPSCL", "UPSCALE", "UPSCALER"],
-            "INPT": ["INPT", "INPUT", "LOAD_INPUT"],
-            "FLF": ["FLF", "FIRST_LAST_FRAME", "FIRST_FRAME_LAST_FRAME"],
-        }
-        variants = alias_map.get(raw, [raw] if raw else [])
-        if variants:
-            placeholders = ", ".join("?" for _ in variants)
-            clauses.append(
-                "AND UPPER(COALESCE("
-                "json_extract(m.metadata_raw, '$.workflow_type'), "
-                "json_extract(m.metadata_raw, '$.geninfo.engine.type'), "
-                "json_extract(m.metadata_raw, '$.engine.type'), "
-                "''"
-                f")) IN ({placeholders})"
-            )
-            params.extend(variants)
-    if "has_workflow" in filters:
-        # Backward-compatible: older/stale rows may have has_workflow=0 even though metadata_raw
-        # contains a workflow/prompt. Prefer not to hide such assets when filtering.
-        want_workflow = bool(filters.get("has_workflow"))
-        if want_workflow:
-            clauses.append(
-                "AND ("
-                "COALESCE(m.has_workflow, 0) = 1 "
-                "OR json_extract(m.metadata_raw, '$.workflow') IS NOT NULL "
-                "OR json_extract(m.metadata_raw, '$.prompt') IS NOT NULL "
-                "OR json_extract(m.metadata_raw, '$.parameters') IS NOT NULL"
-                ")"
-            )
-        else:
-            clauses.append(
-                "AND ("
-                "COALESCE(m.has_workflow, 0) = 0 "
-                "AND json_extract(m.metadata_raw, '$.workflow') IS NULL "
-                "AND json_extract(m.metadata_raw, '$.prompt') IS NULL "
-                "AND json_extract(m.metadata_raw, '$.parameters') IS NULL"
-                ")"
-            )
+    for key, clause in int_specs:
+        if key in filters:
+            clauses.append(clause)
+            params.append(int(filters[key]))
+
+
+def _append_workflow_type_filter(filters: Dict[str, Any], clauses: List[str], params: List[Any]) -> None:
+    if "workflow_type" not in filters:
+        return
+    raw = str(filters.get("workflow_type") or "").strip().upper()
+    variants = _workflow_type_variants(raw)
+    if not variants:
+        return
+    placeholders = ", ".join("?" for _ in variants)
+    clauses.append(
+        "AND UPPER(COALESCE("
+        "json_extract(m.metadata_raw, '$.workflow_type'), "
+        "json_extract(m.metadata_raw, '$.geninfo.engine.type'), "
+        "json_extract(m.metadata_raw, '$.engine.type'), "
+        "''"
+        f")) IN ({placeholders})"
+    )
+    params.extend(variants)
+
+
+def _workflow_type_variants(raw: str) -> List[str]:
+    alias_map = {
+        "T2I": ["T2I"],
+        "I2I": ["I2I"],
+        "T2V": ["T2V"],
+        "I2V": ["I2V"],
+        "V2V": ["V2V"],
+        "A2A": ["A2A"],
+        "TTS": ["TTS", "T2A"],
+        "UPSCL": ["UPSCL", "UPSCALE", "UPSCALER"],
+        "INPT": ["INPT", "INPUT", "LOAD_INPUT"],
+        "FLF": ["FLF", "FIRST_LAST_FRAME", "FIRST_FRAME_LAST_FRAME"],
+    }
+    return alias_map.get(raw, [raw] if raw else [])
+
+
+def _append_has_workflow_filter(filters: Dict[str, Any], clauses: List[str]) -> None:
+    if "has_workflow" not in filters:
+        return
+    want_workflow = bool(filters.get("has_workflow"))
+    if want_workflow:
+        clauses.append(
+            "AND ("
+            "COALESCE(m.has_workflow, 0) = 1 "
+            "OR json_extract(m.metadata_raw, '$.workflow') IS NOT NULL "
+            "OR json_extract(m.metadata_raw, '$.prompt') IS NOT NULL "
+            "OR json_extract(m.metadata_raw, '$.parameters') IS NOT NULL"
+            ")"
+        )
+        return
+    clauses.append(
+        "AND ("
+        "COALESCE(m.has_workflow, 0) = 0 "
+        "AND json_extract(m.metadata_raw, '$.workflow') IS NULL "
+        "AND json_extract(m.metadata_raw, '$.prompt') IS NULL "
+        "AND json_extract(m.metadata_raw, '$.parameters') IS NULL"
+        ")"
+    )
+
+
+def _append_mtime_filters(filters: Dict[str, Any], alias: str, clauses: List[str], params: List[Any]) -> None:
     if "mtime_start" in filters:
         clauses.append(f"AND {alias}.mtime >= ?")
         params.append(filters["mtime_start"])
     if "mtime_end" in filters:
         clauses.append(f"AND {alias}.mtime < ?")
         params.append(filters["mtime_end"])
+
+
+def _append_exclude_root_filter(filters: Dict[str, Any], alias: str, clauses: List[str], params: List[Any]) -> None:
     exclude_root = filters.get("exclude_root")
-    if isinstance(exclude_root, str) and exclude_root.strip():
-        try:
-            root = str(Path(exclude_root).resolve(strict=False))
-            prefix = root.rstrip(os.sep) + os.sep
-            esc = prefix.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-            clauses.append(f"AND NOT ({alias}.filepath = ? OR {alias}.filepath LIKE ? ESCAPE '\\')")
-            params.extend([root, f"{esc}%"])
-        except Exception:
-            pass
-    return clauses, params
+    if not isinstance(exclude_root, str) or not exclude_root.strip():
+        return
+    try:
+        root = str(Path(exclude_root).resolve(strict=False))
+        prefix = root.rstrip(os.sep) + os.sep
+        esc = prefix.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        clauses.append(f"AND NOT ({alias}.filepath = ? OR {alias}.filepath LIKE ? ESCAPE '\\')")
+        params.extend([root, f"{esc}%"])
+    except Exception:
+        return
 
 
 def _assert_safe_sql_fragment(fragment: str, *, label: str = "sql_fragment") -> None:
@@ -185,6 +217,195 @@ def _assert_safe_sql_fragment(fragment: str, *, label: str = "sql_fragment") -> 
         return
     if not _SAFE_SQL_FRAGMENT_RE.fullmatch(text):
         raise ValueError(f"Unsafe {label}")
+
+
+def _normalize_pagination(limit: int, offset: int) -> tuple[int, int]:
+    limit_i = max(0, min(SEARCH_MAX_LIMIT, int(limit)))
+    offset_i = max(0, min(SEARCH_MAX_OFFSET, int(offset)))
+    return limit_i, offset_i
+
+
+def _escape_like_pattern(pattern: str) -> str:
+    return pattern.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+def _resolve_search_roots(roots: List[str]) -> List[str]:
+    cleaned_roots: List[str] = []
+    for raw in roots or []:
+        if not raw:
+            continue
+        try:
+            cleaned_roots.append(str(Path(raw).resolve()))
+        except Exception:
+            continue
+    return cleaned_roots
+
+
+def _build_roots_where_clause(roots: List[str], alias: str = "a") -> Tuple[str, List[Any]]:
+    parts: List[str] = []
+    params: List[Any] = []
+    for root in roots:
+        prefix = root.rstrip(os.sep) + os.sep
+        escaped_prefix = _escape_like_pattern(prefix)
+        parts.append(f"({alias}.filepath = ? OR {alias}.filepath LIKE ? ESCAPE '\\')")
+        params.extend([root, f"{escaped_prefix}%"])
+    clause = "(" + " OR ".join(parts) + ")"
+    _assert_safe_sql_fragment(clause, label="roots_where")
+    return clause, params
+
+
+def _normalize_month_range(month_start: int, month_end: int) -> Optional[Tuple[int, int]]:
+    try:
+        start_i = int(month_start)
+        end_i = int(month_end)
+    except Exception:
+        return None
+    if start_i <= 0 or end_i <= 0 or end_i <= start_i:
+        return None
+    return start_i, end_i
+
+
+def _sanitize_histogram_filters(filters: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    safe_filters = dict(filters or {})
+    safe_filters.pop("mtime_start", None)
+    safe_filters.pop("mtime_end", None)
+    return safe_filters
+
+
+def _build_histogram_query(
+    roots_clause: str,
+    roots_params: List[Any],
+    start_i: int,
+    end_i: int,
+    filters: Optional[Dict[str, Any]],
+) -> Tuple[str, Tuple[Any, ...]]:
+    sql_parts = [
+        """
+        SELECT
+            strftime('%Y-%m-%d', a.mtime, 'unixepoch', 'localtime') AS day,
+            COUNT(*) AS count
+        FROM assets a
+        LEFT JOIN asset_metadata m ON a.id = m.asset_id
+        WHERE
+        """,
+        roots_clause,
+        "AND a.mtime >= ? AND a.mtime < ?",
+    ]
+    params: List[Any] = []
+    params.extend(roots_params)
+    params.extend([start_i, end_i])
+    filter_clauses, filter_params = _build_filter_clauses(_sanitize_histogram_filters(filters))
+    sql_parts.extend(filter_clauses)
+    params.extend(filter_params)
+    sql_parts.append("GROUP BY day ORDER BY day ASC")
+    return " ".join(sql_parts), tuple(params)
+
+
+def _coerce_histogram_days(rows: Any) -> Dict[str, int]:
+    days: Dict[str, int] = {}
+    for row in rows or []:
+        try:
+            day = str(row.get("day") or "").strip()
+            count = int(row.get("count") or 0)
+        except Exception:
+            continue
+        if day:
+            days[day] = max(0, count)
+    return days
+
+
+def _normalize_asset_ids(asset_ids: List[int]) -> List[int]:
+    cleaned: List[int] = []
+    seen = set()
+    for raw in asset_ids or []:
+        try:
+            n = int(raw)
+        except Exception:
+            continue
+        if n <= 0 or n in seen:
+            continue
+        seen.add(n)
+        cleaned.append(n)
+        if len(cleaned) >= MAX_ASSET_BATCH_IDS:
+            break
+    return cleaned
+
+
+def _map_assets_by_id(rows: Any, hydrator) -> Dict[int, Dict[str, Any]]:
+    by_id: Dict[int, Dict[str, Any]] = {}
+    for row in rows or []:
+        try:
+            asset = hydrator(dict(row))
+            raw_id = asset.get("id")
+            if raw_id is None:
+                continue
+            by_id[int(raw_id)] = asset
+        except Exception:
+            continue
+    return by_id
+
+
+def _assets_in_requested_order(cleaned: List[int], by_id: Dict[int, Dict[str, Any]]) -> List[Dict[str, Any]]:
+    out: List[Dict[str, Any]] = []
+    for aid in cleaned:
+        item = by_id.get(aid)
+        if item:
+            out.append(item)
+    return out
+
+
+def _normalize_lookup_filepaths(filepaths: List[str]) -> List[str]:
+    cleaned = [str(p) for p in (filepaths or []) if p]
+    if len(cleaned) > MAX_FILEPATH_LOOKUP:
+        return cleaned[:MAX_FILEPATH_LOOKUP]
+    return cleaned
+
+
+def _hydrate_lookup_row(row: Dict[str, Any]) -> Optional[tuple[str, Dict[str, Any]]]:
+    fp = row.get("filepath")
+    if not fp:
+        return None
+    item = dict(row)
+    tags_raw = item.get("tags")
+    if tags_raw:
+        try:
+            item["tags"] = json.loads(tags_raw) if isinstance(tags_raw, str) else tags_raw
+        except Exception:
+            item["tags"] = []
+    else:
+        item["tags"] = []
+    return str(fp), item
+
+
+def _map_lookup_rows(rows: Any) -> Dict[str, Dict[str, Any]]:
+    out: Dict[str, Dict[str, Any]] = {}
+    for row in rows or []:
+        if not isinstance(row, dict):
+            continue
+        hydrated = _hydrate_lookup_row(row)
+        if hydrated is None:
+            continue
+        fp, item = hydrated
+        out[fp] = item
+    return out
+
+
+def _hydrate_search_rows(rows: List[Dict[str, Any]], *, include_highlight: bool) -> List[Dict[str, Any]]:
+    assets: List[Dict[str, Any]] = []
+    for row in rows:
+        asset = dict(row)
+        if asset.get("tags"):
+            try:
+                asset["tags"] = json.loads(asset["tags"])
+            except (ValueError, json.JSONDecodeError, TypeError):
+                asset["tags"] = []
+        else:
+            asset["tags"] = []
+        asset.setdefault("tags_text", "")
+        if include_highlight:
+            asset["highlight"] = asset.get("highlight") or None
+        assets.append(asset)
+    return assets
 
 
 class IndexSearcher:
@@ -239,11 +460,399 @@ class IndexSearcher:
             )
             if not res.ok:
                 return Result.Ok([])
-            
+
             terms = [str(r["term"]) for r in res.data or []]
             return Result.Ok(terms)
         except Exception:
             return Result.Ok([])
+
+    def _validate_search_query(self, query: str) -> Optional[Result[Any]]:
+        if not query or not query.strip():
+            return Result.Err("EMPTY_QUERY", "Search query cannot be empty")
+        validation = self._validate_search_input(query)
+        if validation and not validation.ok:
+            return validation
+        return None
+
+    def _filter_clauses(
+        self,
+        filters: Optional[Dict[str, Any]],
+        *,
+        assert_safe: bool = False,
+    ) -> Tuple[List[str], List[Any]]:
+        filter_clauses, filter_params = _build_filter_clauses(filters)
+        if assert_safe:
+            for clause in filter_clauses:
+                _assert_safe_sql_fragment(clause, label="filter_clause")
+        return filter_clauses, filter_params
+
+    async def _run_search_query_rows(
+        self,
+        sql: str,
+        params: List[Any],
+        *,
+        failure_message: str,
+    ) -> Result[List[Dict[str, Any]]]:
+        result = await self.db.aquery(sql, tuple(params))
+        if result.ok:
+            return Result.Ok(result.data or [])
+        if self._is_malformed_match_error(result.error):
+            return Result.Err("INVALID_INPUT", "Invalid search query syntax")
+        return Result.Err("SEARCH_FAILED", result.error or failure_message)
+
+    @staticmethod
+    def _search_rows_total(data: Any) -> tuple[List[Dict[str, Any]], Optional[int]]:
+        if not isinstance(data, dict):
+            return [], None
+        rows = data.get("rows")
+        total = data.get("total")
+        if not isinstance(rows, list):
+            rows = []
+        return rows, total
+
+    def _build_search_payload(
+        self,
+        *,
+        assets: List[Dict[str, Any]],
+        limit: int,
+        offset: int,
+        query: str,
+        include_total: bool,
+        total: Optional[int],
+        sort: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        payload: Dict[str, Any] = {
+            "assets": assets,
+            "limit": limit,
+            "offset": offset,
+            "query": query,
+            "total": int(total or 0) if include_total else None,
+        }
+        if sort is not None:
+            payload["sort"] = _normalize_sort_key(sort)
+        return payload
+
+    async def _search_global_browse_rows(
+        self,
+        *,
+        limit: int,
+        offset: int,
+        filters: Optional[Dict[str, Any]],
+        include_total: bool,
+        metadata_tags_text_clause: str,
+    ) -> Result[Dict[str, Any]]:
+        sql_parts = [
+            f"""
+            SELECT
+                a.id, a.filename, a.subfolder, a.filepath, a.kind,
+                a.source, a.root_id,
+                a.width, a.height, a.duration, a.size, a.mtime,
+                COALESCE(m.rating, 0) as rating,
+                COALESCE(m.tags, '[]') as tags,
+{metadata_tags_text_clause}                    m.has_workflow as has_workflow,
+                m.has_generation_data as has_generation_data,
+                NULL as generation_time_ms,
+                NULL as file_creation_time,
+                NULL as file_birth_time
+            FROM assets a
+            LEFT JOIN asset_metadata m ON a.id = m.asset_id
+            WHERE 1=1
+            """
+        ]
+        params: List[Any] = []
+
+        filter_clauses, filter_params = self._filter_clauses(filters)
+        sql_parts.extend(filter_clauses)
+        params.extend(filter_params)
+        sql_parts.append("ORDER BY a.mtime DESC")
+        sql_parts.append("LIMIT ? OFFSET ?")
+        params.extend([limit, offset])
+
+        rows_res = await self._run_search_query_rows(
+            " ".join(sql_parts),
+            params,
+            failure_message="Search query failed",
+        )
+        if not rows_res.ok:
+            return Result.Err(rows_res.code, rows_res.error or "Search query failed")
+        rows = rows_res.data or []
+
+        total: Optional[int] = None
+        if include_total:
+            count_sql = "SELECT COUNT(*) as total FROM assets a LEFT JOIN asset_metadata m ON a.id = m.asset_id WHERE 1=1"
+            count_params: List[Any] = []
+            if filter_clauses:
+                count_sql += " " + " ".join(filter_clauses)
+                count_params.extend(filter_params)
+            count_result = await self.db.aquery(count_sql, tuple(count_params))
+            total = count_result.data[0]["total"] if count_result.ok and count_result.data else 0
+        return Result.Ok({"rows": rows, "total": total})
+
+    async def _search_global_fts_rows(
+        self,
+        *,
+        fts_query: str,
+        limit: int,
+        offset: int,
+        filters: Optional[Dict[str, Any]],
+        include_total: bool,
+        metadata_tags_text_clause: str,
+    ) -> Result[Dict[str, Any]]:
+        total_field = "COUNT(*) OVER() as _total," if include_total else ""
+        sql_parts = [self._global_fts_select_sql(total_field, metadata_tags_text_clause)]
+        params: List[Any] = [fts_query, fts_query]
+
+        filter_clauses, filter_params = self._filter_clauses(filters)
+        sql_parts.extend(filter_clauses)
+        params.extend(filter_params)
+        sql_parts.append("ORDER BY rank")
+        sql_parts.append("LIMIT ? OFFSET ?")
+        params.extend([limit, offset])
+
+        rows_res = await self._run_search_query_rows(
+            " ".join(sql_parts),
+            params,
+            failure_message="Search query failed",
+        )
+        if not rows_res.ok:
+            return Result.Err(rows_res.code, rows_res.error or "Search query failed")
+        rows = rows_res.data or []
+
+        total: Optional[int] = None
+        if include_total and rows and "_total" in rows[0]:
+            total = rows[0]["_total"]
+        if include_total and total is None:
+            total = await self._global_fts_total_count(fts_query, filter_clauses, filter_params)
+        return Result.Ok({"rows": rows, "total": total})
+
+    @staticmethod
+    def _global_fts_select_sql(total_field: str, metadata_tags_text_clause: str) -> str:
+        return f"""
+            WITH matches AS (
+                SELECT rowid AS asset_id, bm25(assets_fts) AS rank
+                FROM assets_fts
+                WHERE assets_fts MATCH ?
+
+                UNION ALL
+
+                SELECT rowid AS asset_id, (bm25(asset_metadata_fts) + 8.0) AS rank
+                FROM asset_metadata_fts
+                WHERE asset_metadata_fts MATCH ?
+            ),
+            best AS (
+                SELECT asset_id, MIN(rank) AS rank
+                FROM matches
+                GROUP BY asset_id
+            )
+            SELECT
+                {total_field}
+                a.id, a.filename, a.subfolder, a.filepath, a.kind,
+                a.source, a.root_id,
+                a.width, a.height, a.duration, a.size, a.mtime,
+                COALESCE(m.rating, 0) as rating,
+                COALESCE(m.tags, '[]') as tags,
+{metadata_tags_text_clause}                    m.has_workflow as has_workflow,
+                m.has_generation_data as has_generation_data,
+                NULL as generation_time_ms,
+                NULL as file_creation_time,
+                NULL as file_birth_time,
+                best.rank as rank
+            FROM best
+            JOIN assets a ON best.asset_id = a.id
+            LEFT JOIN asset_metadata m ON a.id = m.asset_id
+            WHERE 1=1
+        """
+
+    async def _global_fts_total_count(
+        self,
+        fts_query: str,
+        filter_clauses: List[str],
+        filter_params: List[Any],
+    ) -> int:
+        count_sql = """
+            WITH matches AS (
+                SELECT rowid AS asset_id
+                FROM assets_fts
+                WHERE assets_fts MATCH ?
+
+                UNION
+
+                SELECT rowid AS asset_id
+                FROM asset_metadata_fts
+                WHERE asset_metadata_fts MATCH ?
+            )
+            SELECT COUNT(*) as total
+            FROM (SELECT DISTINCT asset_id FROM matches) t
+            JOIN assets a ON t.asset_id = a.id
+            LEFT JOIN asset_metadata m ON a.id = m.asset_id
+            WHERE 1=1
+        """
+        count_params: List[Any] = [fts_query, fts_query]
+        if filter_clauses:
+            count_sql += " " + " ".join(filter_clauses)
+            count_params.extend(filter_params)
+        count_result = await self.db.aquery(count_sql, tuple(count_params))
+        if count_result.ok and count_result.data:
+            return count_result.data[0]["total"]
+        return 0
+
+    async def _search_scoped_browse_rows(
+        self,
+        *,
+        roots_clause: str,
+        roots_params: List[Any],
+        limit: int,
+        offset: int,
+        filters: Optional[Dict[str, Any]],
+        include_total: bool,
+        metadata_tags_text_clause: str,
+        sort: Optional[str],
+    ) -> Result[Dict[str, Any]]:
+        sql_parts = [
+            f"""
+            SELECT
+                a.id, a.filename, a.subfolder, a.filepath, a.kind,
+                a.width, a.height, a.duration, a.size, a.mtime,
+                COALESCE(m.rating, 0) as rating,
+                COALESCE(m.tags, '[]') as tags,
+{metadata_tags_text_clause}                    m.has_workflow as has_workflow,
+                m.has_generation_data as has_generation_data,
+                NULL as generation_time_ms,
+                NULL as file_creation_time,
+                NULL as file_birth_time
+            FROM assets a
+            LEFT JOIN asset_metadata m ON a.id = m.asset_id
+            WHERE {roots_clause}
+            """
+        ]
+        params: List[Any] = list(roots_params)
+
+        filter_clauses, filter_params = self._filter_clauses(filters, assert_safe=True)
+        sql_parts.extend(filter_clauses)
+        params.extend(filter_params)
+        sql_parts.append(_build_sort_sql(sort, table_alias="a"))
+        sql_parts.append("LIMIT ? OFFSET ?")
+        params.extend([limit, offset])
+
+        rows_res = await self._run_search_query_rows(
+            " ".join(sql_parts),
+            params,
+            failure_message="Scoped search query failed",
+        )
+        if not rows_res.ok:
+            return Result.Err(rows_res.code, rows_res.error or "Scoped search query failed")
+        rows = rows_res.data or []
+
+        total: Optional[int] = None
+        if include_total:
+            count_sql = f"""
+                SELECT COUNT(*) as total
+                FROM assets a
+                LEFT JOIN asset_metadata m ON a.id = m.asset_id
+                WHERE {roots_clause}
+            """
+            count_params: List[Any] = list(roots_params)
+            if filter_clauses:
+                count_sql += " " + " ".join(filter_clauses)
+                count_params.extend(filter_params)
+            count_result = await self.db.aquery(count_sql, tuple(count_params))
+            total = count_result.data[0]["total"] if count_result.ok and count_result.data else 0
+        return Result.Ok({"rows": rows, "total": total})
+
+    async def _search_scoped_fts_rows(
+        self,
+        *,
+        fts_query: str,
+        roots_clause: str,
+        roots_params: List[Any],
+        limit: int,
+        offset: int,
+        filters: Optional[Dict[str, Any]],
+        include_total: bool,
+        metadata_tags_text_clause: str,
+        sort: Optional[str],
+    ) -> Result[Dict[str, Any]]:
+        sql_parts = [
+            f"""
+            WITH matches AS (
+                SELECT rowid AS asset_id, bm25(assets_fts) AS rank
+                FROM assets_fts
+                WHERE assets_fts MATCH ?
+
+                UNION ALL
+
+                SELECT rowid AS asset_id, (bm25(asset_metadata_fts) + 8.0) AS rank
+                FROM asset_metadata_fts
+                WHERE asset_metadata_fts MATCH ?
+            ),
+            best AS (
+                SELECT asset_id, MIN(rank) AS rank
+                FROM matches
+                GROUP BY asset_id
+            )
+            SELECT
+                a.id, a.filename, a.subfolder, a.filepath, a.kind,
+                a.width, a.height, a.duration, a.size, a.mtime,
+                COALESCE(m.rating, 0) as rating,
+                COALESCE(m.tags, '[]') as tags,
+{metadata_tags_text_clause}                    m.has_workflow as has_workflow,
+                m.has_generation_data as has_generation_data,
+                NULL as generation_time_ms,
+                NULL as file_creation_time,
+                NULL as file_birth_time,                    best.rank as rank
+            FROM best
+            JOIN assets a ON best.asset_id = a.id
+            LEFT JOIN asset_metadata m ON a.id = m.asset_id
+            WHERE {roots_clause}
+            """
+        ]
+        params: List[Any] = [fts_query, fts_query]
+        params.extend(roots_params)
+
+        filter_clauses, filter_params = self._filter_clauses(filters, assert_safe=True)
+        sql_parts.extend(filter_clauses)
+        params.extend(filter_params)
+        sql_parts.append(_build_sort_sql(sort, table_alias="a", rank_alias="best.rank"))
+        sql_parts.append("LIMIT ? OFFSET ?")
+        params.extend([limit, offset])
+
+        rows_res = await self._run_search_query_rows(
+            " ".join(sql_parts),
+            params,
+            failure_message="Scoped search query failed",
+        )
+        if not rows_res.ok:
+            return Result.Err(rows_res.code, rows_res.error or "Scoped search query failed")
+        rows = rows_res.data or []
+
+        total: Optional[int] = None
+        if include_total:
+            count_sql = f"""
+                WITH matches AS (
+                    SELECT rowid AS asset_id
+                    FROM assets_fts
+                    WHERE assets_fts MATCH ?
+
+                    UNION
+
+                    SELECT rowid AS asset_id
+                    FROM asset_metadata_fts
+                    WHERE asset_metadata_fts MATCH ?
+                )
+                SELECT COUNT(*) as total
+                FROM (SELECT DISTINCT asset_id FROM matches) t
+                JOIN assets a ON t.asset_id = a.id
+                LEFT JOIN asset_metadata m ON a.id = m.asset_id
+                WHERE {roots_clause}
+            """
+            count_params: List[Any] = [fts_query, fts_query]
+            count_params.extend(roots_params)
+            if filter_clauses:
+                count_sql += " " + " ".join(filter_clauses)
+                count_params.extend(filter_params)
+            count_result = await self.db.aquery(count_sql, tuple(count_params))
+            total = count_result.data[0]["total"] if count_result.ok and count_result.data else 0
+        return Result.Ok({"rows": rows, "total": total})
     async def search(
         self,
         query: str,
@@ -255,173 +864,52 @@ class IndexSearcher:
         """
         Search assets using FTS5 or browse mode when query is '*'.
         """
-        limit = max(0, min(SEARCH_MAX_LIMIT, int(limit)))
-        offset = max(0, min(SEARCH_MAX_OFFSET, int(offset)))
-
-        if not query or not query.strip():
-            return Result.Err("EMPTY_QUERY", "Search query cannot be empty")
-
-        validation = self._validate_search_input(query)
-        if validation and not validation.ok:
+        limit, offset = _normalize_pagination(limit, offset)
+        validation = self._validate_search_query(query)
+        if validation:
             return validation
 
         include_total = bool(include_total)
         logger.debug("Searching for: %s (limit=%s, offset=%s)", query, limit, offset)
         metadata_tags_text_clause = self._build_tags_text_clause()
-        is_browse_all = query.strip() == "*"
 
-        if is_browse_all:
-            sql_parts = [
-                f"""
-                SELECT
-                    a.id, a.filename, a.subfolder, a.filepath, a.kind,
-                    a.source, a.root_id,
-                    a.width, a.height, a.duration, a.size, a.mtime,
-                    COALESCE(m.rating, 0) as rating,
-                    COALESCE(m.tags, '[]') as tags,
-{metadata_tags_text_clause}                    m.has_workflow as has_workflow,
-                    m.has_generation_data as has_generation_data,
-                    NULL as generation_time_ms,
-                    NULL as file_creation_time,
-                    NULL as file_birth_time
-                FROM assets a
-                LEFT JOIN asset_metadata m ON a.id = m.asset_id
-                WHERE 1=1
-                """
-            ]
-            params: List[Any] = []
-
-            filter_clauses, filter_params = _build_filter_clauses(filters)
-            sql_parts.extend(filter_clauses)
-            params.extend(filter_params)
-
-            sql_parts.append("ORDER BY a.mtime DESC")
-            sql_parts.append("LIMIT ? OFFSET ?")
-            params.extend([limit, offset])
-
-            result = await self.db.aquery(" ".join(sql_parts), tuple(params))
-            if not result.ok:
-                if self._is_malformed_match_error(result.error):
-                    return Result.Err("INVALID_INPUT", "Invalid search query syntax")
-                return Result.Err("SEARCH_FAILED", result.error or "Search query failed")
-            rows = result.data or []
-
-            total = None
-            if include_total:
-                count_sql = "SELECT COUNT(*) as total FROM assets a LEFT JOIN asset_metadata m ON a.id = m.asset_id WHERE 1=1"
-                count_params: List[Any] = []
-                if filter_clauses:
-                    count_sql += " " + " ".join(filter_clauses)
-                    count_params.extend(filter_params)
-                count_result = await self.db.aquery(count_sql, tuple(count_params))
-                total = count_result.data[0]["total"] if count_result.ok and count_result.data else 0
+        if query.strip() == "*":
+            rows_total_res = await self._search_global_browse_rows(
+                limit=limit,
+                offset=offset,
+                filters=filters,
+                include_total=include_total,
+                metadata_tags_text_clause=metadata_tags_text_clause,
+            )
         else:
             fts_query = self._sanitize_fts_query(query)
             if not fts_query:
                 return Result.Err("INVALID_INPUT", "Invalid search query syntax")
-            total_field = "COUNT(*) OVER() as _total," if include_total else ""
-            sql_parts = [
-                f"""
-                WITH matches AS (
-                    SELECT rowid AS asset_id, bm25(assets_fts) AS rank
-                    FROM assets_fts
-                    WHERE assets_fts MATCH ?
+            rows_total_res = await self._search_global_fts_rows(
+                fts_query=fts_query,
+                limit=limit,
+                offset=offset,
+                filters=filters,
+                include_total=include_total,
+                metadata_tags_text_clause=metadata_tags_text_clause,
+            )
 
-                    UNION ALL
+        if not rows_total_res.ok:
+            return Result.Err(rows_total_res.code, rows_total_res.error or "Search query failed")
 
-                    SELECT rowid AS asset_id, (bm25(asset_metadata_fts) + 8.0) AS rank
-                    FROM asset_metadata_fts
-                    WHERE asset_metadata_fts MATCH ?
-                ),
-                best AS (
-                    SELECT asset_id, MIN(rank) AS rank
-                    FROM matches
-                    GROUP BY asset_id
-                )
-                SELECT
-                    {total_field}
-                    a.id, a.filename, a.subfolder, a.filepath, a.kind,
-                    a.source, a.root_id,
-                    a.width, a.height, a.duration, a.size, a.mtime,
-                    COALESCE(m.rating, 0) as rating,
-                    COALESCE(m.tags, '[]') as tags,
-{metadata_tags_text_clause}                    m.has_workflow as has_workflow,
-                    m.has_generation_data as has_generation_data,
-                    NULL as generation_time_ms,
-                    NULL as file_creation_time,
-                    NULL as file_birth_time,
-                    best.rank as rank
-                FROM best
-                JOIN assets a ON best.asset_id = a.id
-                LEFT JOIN asset_metadata m ON a.id = m.asset_id
-                WHERE 1=1
-                """
-            ]
-            params = [fts_query, fts_query]
-
-            filter_clauses, filter_params = _build_filter_clauses(filters)
-            sql_parts.extend(filter_clauses)
-            params.extend(filter_params)
-
-            sql_parts.append("ORDER BY rank")
-            sql_parts.append("LIMIT ? OFFSET ?")
-            params.extend([limit, offset])
-
-            result = await self.db.aquery(" ".join(sql_parts), tuple(params))
-            if not result.ok:
-                if self._is_malformed_match_error(result.error):
-                    return Result.Err("INVALID_INPUT", "Invalid search query syntax")
-                return Result.Err("SEARCH_FAILED", result.error or "Search query failed")
-            rows = result.data or []
-
-            total = None
-            if include_total and rows and "_total" in rows[0]:
-                total = rows[0]["_total"]
-            if include_total and total is None:
-                count_sql = """
-                    WITH matches AS (
-                        SELECT rowid AS asset_id
-                        FROM assets_fts
-                        WHERE assets_fts MATCH ?
-
-                        UNION
-
-                        SELECT rowid AS asset_id
-                        FROM asset_metadata_fts
-                        WHERE asset_metadata_fts MATCH ?
-                    )
-                    SELECT COUNT(*) as total
-                    FROM (SELECT DISTINCT asset_id FROM matches) t
-                    JOIN assets a ON t.asset_id = a.id
-                    LEFT JOIN asset_metadata m ON a.id = m.asset_id
-                    WHERE 1=1
-                """
-                count_params2 = [fts_query, fts_query]
-                if filter_clauses:
-                    count_sql += " " + " ".join(filter_clauses)
-                    count_params2.extend(filter_params)
-                count_result = await self.db.aquery(count_sql, tuple(count_params2))
-                total = count_result.data[0]["total"] if count_result.ok and count_result.data else 0
-
-        assets = []
-        for row in rows:
-            asset = dict(row)
-            if asset.get("tags"):
-                try:
-                    asset["tags"] = json.loads(asset["tags"])
-                except (ValueError, json.JSONDecodeError, TypeError):
-                    asset["tags"] = []
-            else:
-                asset["tags"] = []
-            asset.setdefault("tags_text", "")
-            asset["highlight"] = asset.get("highlight") or None
-            assets.append(asset)
-
+        rows, total = self._search_rows_total(rows_total_res.data)
+        assets = _hydrate_search_rows(rows, include_highlight=True)
         logger.debug("Found %s results (total=%s)", len(assets), total if include_total else "skipped")
-        payload: Dict[str, Any] = {"assets": assets, "limit": limit, "offset": offset, "query": query}
-        payload["total"] = int(total or 0) if include_total else None
-
-        return Result.Ok(payload)
+        return Result.Ok(
+            self._build_search_payload(
+                assets=assets,
+                limit=limit,
+                offset=offset,
+                query=query,
+                include_total=include_total,
+                total=total,
+            )
+        )
     async def search_scoped(
         self,
         query: str,
@@ -437,218 +925,64 @@ class IndexSearcher:
 
         This is used for UI scopes like Outputs / Inputs / All without breaking the existing DB structure.
         """
-        cleaned_roots: List[str] = []
-        for r in roots or []:
-            if not r:
-                continue
-            try:
-                cleaned_roots.append(str(Path(r).resolve()))
-            except Exception:
-                continue
-
+        cleaned_roots = _resolve_search_roots(roots)
         if not cleaned_roots:
             return Result.Err("INVALID_INPUT", "Missing or invalid roots")
 
-        # Reuse the existing search logic but inject a filepath prefix constraint.
-        limit = max(0, min(SEARCH_MAX_LIMIT, int(limit)))
-        offset = max(0, min(SEARCH_MAX_OFFSET, int(offset)))
-
-        if not query or not query.strip():
-            return Result.Err("EMPTY_QUERY", "Search query cannot be empty")
-
-        validation = self._validate_search_input(query)
-        if validation and not validation.ok:
+        limit, offset = _normalize_pagination(limit, offset)
+        validation = self._validate_search_query(query)
+        if validation:
             return validation
 
         include_total = bool(include_total)
         logger.debug(f"Searching (scoped) for: {query} (limit={limit}, offset={offset}, roots={len(cleaned_roots)})")
         metadata_tags_text_clause = self._build_tags_text_clause()
 
-        def _escape_like_pattern(pattern: str) -> str:
-            """Escape LIKE special characters (% and _) for safe prefix matching."""
-            return pattern.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-
-        def _roots_where() -> Tuple[str, List[Any]]:
-            parts = []
-            params: List[Any] = []
-            for root in cleaned_roots:
-                prefix = root.rstrip(os.sep) + os.sep
-                escaped_prefix = _escape_like_pattern(prefix)
-                parts.append("(a.filepath = ? OR a.filepath LIKE ? ESCAPE '\\')")
-                params.extend([root, f"{escaped_prefix}%"])
-            clause = "(" + " OR ".join(parts) + ")"
-            _assert_safe_sql_fragment(clause, label="roots_where")
-            return clause, params
-
         is_browse_all = query.strip() == "*"
-
-        roots_clause, roots_params = _roots_where()
-
+        roots_clause, roots_params = _build_roots_where_clause(cleaned_roots)
         if is_browse_all:
-            sql_parts = [
-                f"""
-                SELECT
-                    a.id, a.filename, a.subfolder, a.filepath, a.kind,
-                    a.width, a.height, a.duration, a.size, a.mtime,
-                    COALESCE(m.rating, 0) as rating,
-                    COALESCE(m.tags, '[]') as tags,
-{metadata_tags_text_clause}                    m.has_workflow as has_workflow,
-                    m.has_generation_data as has_generation_data,
-                    NULL as generation_time_ms,
-                    NULL as file_creation_time,
-                    NULL as file_birth_time
-                FROM assets a
-                LEFT JOIN asset_metadata m ON a.id = m.asset_id
-                WHERE {roots_clause}
-                """
-            ]
-            params: List[Any] = []
-            params.extend(roots_params)
-
-            filter_clauses, filter_params = _build_filter_clauses(filters)
-            for c in filter_clauses:
-                _assert_safe_sql_fragment(c, label="filter_clause")
-            sql_parts.extend(filter_clauses)
-            params.extend(filter_params)
-
-            sql_parts.append(_build_sort_sql(sort, table_alias="a"))
-            sql_parts.append("LIMIT ? OFFSET ?")
-            params.extend([limit, offset])
-
-            sql = " ".join(sql_parts)
-            result = await self.db.aquery(sql, tuple(params))
-            if not result.ok:
-                if self._is_malformed_match_error(result.error):
-                    return Result.Err("INVALID_INPUT", "Invalid search query syntax")
-                return Result.Err("SEARCH_FAILED", result.error or "Scoped search query failed")
-
-            rows = result.data or []
-
-            total = None
-            if include_total:
-                count_sql = f"""
-                    SELECT COUNT(*) as total
-                    FROM assets a
-                    LEFT JOIN asset_metadata m ON a.id = m.asset_id
-                    WHERE {roots_clause}
-                """
-                count_params: List[Any] = []
-                count_params.extend(roots_params)
-
-                if filter_clauses:
-                    count_sql += " " + " ".join(filter_clauses)
-                    count_params.extend(filter_params)
-
-                count_result = await self.db.aquery(count_sql, tuple(count_params))
-                total = count_result.data[0]["total"] if count_result.ok and count_result.data else 0
+            rows_total_res = await self._search_scoped_browse_rows(
+                roots_clause=roots_clause,
+                roots_params=roots_params,
+                limit=limit,
+                offset=offset,
+                filters=filters,
+                include_total=include_total,
+                metadata_tags_text_clause=metadata_tags_text_clause,
+                sort=sort,
+            )
         else:
             fts_query = self._sanitize_fts_query(query)
             if not fts_query:
                 return Result.Err("INVALID_INPUT", "Invalid search query syntax")
-            sql_parts = [
-                f"""
-                WITH matches AS (
-                    SELECT rowid AS asset_id, bm25(assets_fts) AS rank
-                    FROM assets_fts
-                    WHERE assets_fts MATCH ?
+            rows_total_res = await self._search_scoped_fts_rows(
+                fts_query=fts_query,
+                roots_clause=roots_clause,
+                roots_params=roots_params,
+                limit=limit,
+                offset=offset,
+                filters=filters,
+                include_total=include_total,
+                metadata_tags_text_clause=metadata_tags_text_clause,
+                sort=sort,
+            )
 
-                    UNION ALL
+        if not rows_total_res.ok:
+            return Result.Err(rows_total_res.code, rows_total_res.error or "Scoped search query failed")
 
-                    SELECT rowid AS asset_id, (bm25(asset_metadata_fts) + 8.0) AS rank
-                    FROM asset_metadata_fts
-                    WHERE asset_metadata_fts MATCH ?
-                ),
-                best AS (
-                    SELECT asset_id, MIN(rank) AS rank
-                    FROM matches
-                    GROUP BY asset_id
-                )
-                SELECT
-                    a.id, a.filename, a.subfolder, a.filepath, a.kind,
-                    a.width, a.height, a.duration, a.size, a.mtime,
-                    COALESCE(m.rating, 0) as rating,
-                    COALESCE(m.tags, '[]') as tags,
-{metadata_tags_text_clause}                    m.has_workflow as has_workflow,
-                    m.has_generation_data as has_generation_data,
-                    NULL as generation_time_ms,
-                    NULL as file_creation_time,
-                    NULL as file_birth_time,                    best.rank as rank
-                FROM best
-                JOIN assets a ON best.asset_id = a.id
-                LEFT JOIN asset_metadata m ON a.id = m.asset_id
-                WHERE {roots_clause}
-                """
-            ]
-
-            params = [fts_query, fts_query]
-            params.extend(roots_params)
-
-            filter_clauses, filter_params = _build_filter_clauses(filters)
-            for c in filter_clauses:
-                _assert_safe_sql_fragment(c, label="filter_clause")
-            sql_parts.extend(filter_clauses)
-            params.extend(filter_params)
-
-            sql_parts.append(_build_sort_sql(sort, table_alias="a", rank_alias="best.rank"))
-            sql_parts.append("LIMIT ? OFFSET ?")
-            params.extend([limit, offset])
-
-            sql = " ".join(sql_parts)
-            result = await self.db.aquery(sql, tuple(params))
-            if not result.ok:
-                if self._is_malformed_match_error(result.error):
-                    return Result.Err("INVALID_INPUT", "Invalid search query syntax")
-                return Result.Err("SEARCH_FAILED", result.error or "Scoped search query failed")
-
-            rows = result.data or []
-
-            total = None
-            if include_total:
-                count_sql = f"""
-                    WITH matches AS (
-                        SELECT rowid AS asset_id
-                        FROM assets_fts
-                        WHERE assets_fts MATCH ?
-
-                        UNION
-
-                        SELECT rowid AS asset_id
-                        FROM asset_metadata_fts
-                        WHERE asset_metadata_fts MATCH ?
-                    )
-                    SELECT COUNT(*) as total
-                    FROM (SELECT DISTINCT asset_id FROM matches) t
-                    JOIN assets a ON t.asset_id = a.id
-                    LEFT JOIN asset_metadata m ON a.id = m.asset_id
-                    WHERE {roots_clause}
-                """
-                count_params2: List[Any] = [fts_query, fts_query]
-                count_params2.extend(roots_params)
-
-                if filter_clauses:
-                    count_sql += " " + " ".join(filter_clauses)
-                    count_params2.extend(filter_params)
-
-                count_result = await self.db.aquery(count_sql, tuple(count_params2))
-                total = count_result.data[0]["total"] if count_result.ok and count_result.data else 0
-
-        assets = []
-        for row in rows:
-            asset = dict(row)
-            if asset.get("tags"):
-                try:
-                    asset["tags"] = json.loads(asset["tags"])
-                except Exception:
-                    asset["tags"] = []
-            else:
-                asset["tags"] = []
-            asset.setdefault("tags_text", "")
-            assets.append(asset)
-
-        payload: Dict[str, Any] = {"assets": assets, "limit": limit, "offset": offset, "query": query}
-        payload["total"] = int(total or 0) if include_total else None
-        payload["sort"] = _normalize_sort_key(sort)
-        return Result.Ok(payload)
+        rows, total = self._search_rows_total(rows_total_res.data)
+        assets = _hydrate_search_rows(rows, include_highlight=False)
+        return Result.Ok(
+            self._build_search_payload(
+                assets=assets,
+                limit=limit,
+                offset=offset,
+                query=query,
+                include_total=include_total,
+                total=total,
+                sort=sort,
+            )
+        )
 
     async def has_assets_under_root(self, root: str) -> Result[bool]:
         """
@@ -690,87 +1024,20 @@ class IndexSearcher:
         - Uses localtime conversion to match the UI's date filters (which use local time).
         - Intended for calendar "days with assets" indicators (no query/FTS).
         """
-        cleaned_roots: List[str] = []
-        for r in roots or []:
-            if not r:
-                continue
-            try:
-                cleaned_roots.append(str(Path(r).resolve()))
-            except Exception:
-                continue
-
+        cleaned_roots = _resolve_search_roots(roots)
         if not cleaned_roots:
             return Result.Err("INVALID_INPUT", "Missing or invalid roots")
 
-        try:
-            start_i = int(month_start)
-            end_i = int(month_end)
-        except Exception:
+        month_range = _normalize_month_range(month_start, month_end)
+        if month_range is None:
             return Result.Err("INVALID_INPUT", "Invalid month range")
-
-        if start_i <= 0 or end_i <= 0 or end_i <= start_i:
-            return Result.Err("INVALID_INPUT", "Invalid month range")
-
-        def _escape_like_pattern(pattern: str) -> str:
-            return pattern.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-
-        def _roots_where() -> Tuple[str, List[Any]]:
-            parts = []
-            params: List[Any] = []
-            for root in cleaned_roots:
-                prefix = root.rstrip(os.sep) + os.sep
-                escaped_prefix = _escape_like_pattern(prefix)
-                parts.append("(a.filepath = ? OR a.filepath LIKE ? ESCAPE '\\')")
-                params.extend([root, f"{escaped_prefix}%"])
-            clause = "(" + " OR ".join(parts) + ")"
-            _assert_safe_sql_fragment(clause, label="roots_where")
-            return clause, params
-
-        roots_clause, roots_params = _roots_where()
-
-        # Do not allow callers to inject their own mtime window beyond the month we requested.
-        safe_filters = dict(filters or {})
-        safe_filters.pop("mtime_start", None)
-        safe_filters.pop("mtime_end", None)
-
-        sql_parts = [
-            """
-            SELECT
-                strftime('%Y-%m-%d', a.mtime, 'unixepoch', 'localtime') AS day,
-                COUNT(*) AS count
-            FROM assets a
-            LEFT JOIN asset_metadata m ON a.id = m.asset_id
-            WHERE
-            """,
-            roots_clause,
-            "AND a.mtime >= ? AND a.mtime < ?",
-        ]
-        params: List[Any] = []
-        params.extend(roots_params)
-        params.extend([start_i, end_i])
-
-        filter_clauses, filter_params = _build_filter_clauses(safe_filters)
-        sql_parts.extend(filter_clauses)
-        params.extend(filter_params)
-
-        sql_parts.append("GROUP BY day ORDER BY day ASC")
-
-        sql = " ".join(sql_parts)
-        result = await self.db.aquery(sql, tuple(params))
+        start_i, end_i = month_range
+        roots_clause, roots_params = _build_roots_where_clause(cleaned_roots, alias="a")
+        sql, params = _build_histogram_query(roots_clause, roots_params, start_i, end_i, filters)
+        result = await self.db.aquery(sql, params)
         if not result.ok:
             return Result.Err("DB_ERROR", result.error or "Histogram query failed")
-
-        days: Dict[str, int] = {}
-        for row in result.data or []:
-            try:
-                day = str(row.get("day") or "").strip()
-                count = int(row.get("count") or 0)
-            except Exception:
-                continue
-            if day:
-                days[day] = max(0, count)
-
-        return Result.Ok(days)
+        return Result.Ok(_coerce_histogram_days(result.data))
 
     async def get_asset(self, asset_id: int) -> Result[Optional[Dict[str, Any]]]:
         """
@@ -816,22 +1083,7 @@ class IndexSearcher:
 
         Intended for UI batching (viewer preloading) without triggering per-asset metadata extraction.
         """
-        cleaned: List[int] = []
-        seen = set()
-        for raw in asset_ids or []:
-            try:
-                n = int(raw)
-            except Exception:
-                continue
-            if n <= 0:
-                continue
-            if n in seen:
-                continue
-            seen.add(n)
-            cleaned.append(n)
-            if len(cleaned) >= MAX_ASSET_BATCH_IDS:
-                break
-
+        cleaned = _normalize_asset_ids(asset_ids)
         if not cleaned:
             return Result.Ok([])
 
@@ -858,28 +1110,8 @@ class IndexSearcher:
         if not result.ok:
             return Result.Err("QUERY_FAILED", result.error or "Batch asset lookup failed")
 
-        by_id: Dict[int, Dict[str, Any]] = {}
-        for row in result.data or []:
-            try:
-                asset = self._hydrate_asset_payload(dict(row))
-            except Exception:
-                continue
-            try:
-                raw_id = asset.get("id")
-                if raw_id is None:
-                    continue
-                aid = int(raw_id)
-            except Exception:
-                continue
-            by_id[aid] = asset
-
-        # Preserve requested ordering.
-        out: List[Dict[str, Any]] = []
-        for aid in cleaned:
-            item = by_id.get(aid)
-            if item:
-                out.append(item)
-        return Result.Ok(out)
+        by_id = _map_assets_by_id(result.data, self._hydrate_asset_payload)
+        return Result.Ok(_assets_in_requested_order(cleaned, by_id))
 
     def _hydrate_asset_payload(self, asset: Dict[str, Any]) -> Dict[str, Any]:
         # Parse tags JSON (stored as string in DB)
@@ -916,12 +1148,9 @@ class IndexSearcher:
         This is used to enrich filesystem listings (input/custom) without requiring
         a full directory scan on every request.
         """
-        cleaned = [str(p) for p in (filepaths or []) if p]
+        cleaned = _normalize_lookup_filepaths(filepaths)
         if not cleaned:
             return Result.Ok({})
-        # Guard against overly large IN clauses
-        if len(cleaned) > MAX_FILEPATH_LOOKUP:
-            cleaned = cleaned[:MAX_FILEPATH_LOOKUP]
 
         result = await self.db.aquery_in(
             """
@@ -943,25 +1172,7 @@ class IndexSearcher:
         )
         if not result.ok:
             return Result.Err("DB_ERROR", result.error or "Filepath lookup failed")
-
-        out: Dict[str, Dict[str, Any]] = {}
-        for row in result.data or []:
-            if not isinstance(row, dict):
-                continue
-            fp = row.get("filepath")
-            if not fp:
-                continue
-            item = dict(row)
-            tags_raw = item.get("tags")
-            if tags_raw:
-                try:
-                    item["tags"] = json.loads(tags_raw) if isinstance(tags_raw, str) else tags_raw
-                except Exception:
-                    item["tags"] = []
-            else:
-                item["tags"] = []
-            out[str(fp)] = item
-        return Result.Ok(out)
+        return Result.Ok(_map_lookup_rows(result.data))
 
     def _sanitize_fts_query(self, query: str) -> str:
         """
@@ -1004,33 +1215,50 @@ class IndexSearcher:
         # Allow "browse all" queries.
         if trimmed == "*" or (trimmed and all(token == "*" for token in trimmed.split())):
             return None
-        if len(trimmed) > MAX_SEARCH_QUERY_LENGTH:
-            return Result.Err(
-                "QUERY_TOO_LONG",
-                f"Search queries must be at most {MAX_SEARCH_QUERY_LENGTH} characters"
-            )
-
+        length_error = self._validate_query_length(trimmed)
+        if length_error:
+            return length_error
         tokens = trimmed.split()
+        token_error = self._validate_query_tokens(tokens)
+        if token_error:
+            return token_error
+        wildcard_error = self._validate_wildcard_mix(tokens)
+        if wildcard_error:
+            return wildcard_error
+
+        return None
+
+    @staticmethod
+    def _validate_query_length(trimmed: str) -> Optional[Result[Any]]:
+        if len(trimmed) <= MAX_SEARCH_QUERY_LENGTH:
+            return None
+        return Result.Err(
+            "QUERY_TOO_LONG",
+            f"Search queries must be at most {MAX_SEARCH_QUERY_LENGTH} characters"
+        )
+
+    @staticmethod
+    def _validate_query_tokens(tokens: List[str]) -> Optional[Result[Any]]:
         if len(tokens) > MAX_SEARCH_TOKENS:
             return Result.Err(
                 "QUERY_TOO_COMPLEX",
                 f"Use at most {MAX_SEARCH_TOKENS} tokens for search queries"
             )
-
         if any(len(token) > MAX_TOKEN_LENGTH for token in tokens):
             return Result.Err(
                 "TOKEN_TOO_LONG",
                 f"Each search token must be under {MAX_TOKEN_LENGTH} characters"
             )
+        return None
 
-        # Reject suspicious patterns (repeated wildcard tokens)
+    @staticmethod
+    def _validate_wildcard_mix(tokens: List[str]) -> Optional[Result[Any]]:
         wildcard_hits = sum(1 for token in tokens if token == "*")
         if wildcard_hits > 0 and wildcard_hits >= len(tokens) - 1:
             return Result.Err(
                 "QUERY_TOO_GENERAL",
                 "Search query must contain at least one non-wildcard term"
             )
-
         return None
 
     def _build_tags_text_clause(self) -> str:

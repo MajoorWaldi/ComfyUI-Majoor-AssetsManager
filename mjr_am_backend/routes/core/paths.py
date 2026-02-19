@@ -1,4 +1,4 @@
-﻿"""
+"""
 Path validation and security utilities.
 """
 import os
@@ -80,37 +80,46 @@ def _normalize_path(value: str) -> Optional[Path]:
 def _is_path_allowed(candidate: Optional[Path], *, must_exist: bool = False) -> bool:
     if not candidate:
         return False
-
-    # Prefer strict resolution when possible (prevents symlink/junction escapes).
-    cand_norm = candidate
-    try:
-        if must_exist:
-            cand_norm = cand_norm.resolve(strict=True)
-        elif cand_norm.exists():
-            cand_norm = cand_norm.resolve(strict=True)
-        else:
-            cand_norm = cand_norm.resolve(strict=False)
-    except (OSError, RuntimeError, ValueError):
+    cand_norm = _resolve_candidate_path(candidate, must_exist=must_exist)
+    if cand_norm is None:
         return False
 
     for root in _get_allowed_directories():
-        try:
-            root_resolved = root.resolve(strict=True) if root.exists() else root.resolve(strict=False)
-        except OSError:
+        root_resolved = _resolve_root_path(root)
+        if root_resolved is None:
             continue
-
-        try:
-            if cand_norm == root_resolved or cand_norm.is_relative_to(root_resolved):
-                return True
-        except AttributeError:
-            # Fallback when is_relative_to is unavailable
-            try:
-                if os.path.commonpath([str(cand_norm), str(root_resolved)]) == str(root_resolved):
-                    return True
-            except ValueError:
-                continue
+        if _path_relative_to(cand_norm, root_resolved):
+            return True
 
     return False
+
+
+def _resolve_candidate_path(candidate: Path, *, must_exist: bool) -> Optional[Path]:
+    try:
+        if must_exist:
+            return candidate.resolve(strict=True)
+        if candidate.exists():
+            return candidate.resolve(strict=True)
+        return candidate.resolve(strict=False)
+    except (OSError, RuntimeError, ValueError):
+        return None
+
+
+def _resolve_root_path(root: Path) -> Optional[Path]:
+    try:
+        return root.resolve(strict=True) if root.exists() else root.resolve(strict=False)
+    except OSError:
+        return None
+
+
+def _path_relative_to(candidate: Path, root: Path) -> bool:
+    try:
+        return candidate == root or candidate.is_relative_to(root)
+    except AttributeError:
+        try:
+            return os.path.commonpath([str(candidate), str(root)]) == str(root)
+        except ValueError:
+            return False
 
 
 def _is_path_allowed_custom(candidate: Optional[Path]) -> bool:
@@ -268,4 +277,3 @@ def _is_allowed_view_media_file(path: Path) -> bool:
         return ct.startswith("image/") or ct.startswith("video/") or ct.startswith("audio/")
     except Exception:
         return False
-

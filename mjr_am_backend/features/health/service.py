@@ -197,79 +197,23 @@ class HealthService:
         try:
             where_sql, where_params = self._roots_where(roots) if roots else ("1=1", [])
             params = tuple(where_params)
+            counts = await self._counter_query_results(where_sql, params)
+            last_scan_end = await self._metadata_value("last_scan_end")
+            last_index_end = await self._metadata_value("last_index_end")
 
-            total_result = await self.db.aexecute(
-                f"SELECT COUNT(*) as count FROM assets a WHERE {where_sql}",
-                params,
-                fetch=True,
-            )
-
-            kind_result = await self.db.aexecute(
-                f"SELECT a.kind, COUNT(*) as count FROM assets a WHERE {where_sql} GROUP BY a.kind",
-                params,
-                fetch=True,
-            )
-
-            rated_result = await self.db.aexecute(
-                f"""
-                SELECT COUNT(*) as count
-                FROM asset_metadata m
-                JOIN assets a ON a.id = m.asset_id
-                WHERE m.rating > 0 AND {where_sql}
-                """,
-                params,
-                fetch=True,
-            )
-
-            workflow_result = await self.db.aexecute(
-                f"""
-                SELECT COUNT(*) as count
-                FROM asset_metadata m
-                JOIN assets a ON a.id = m.asset_id
-                WHERE m.has_workflow = 1 AND {where_sql}
-                """,
-                params,
-                fetch=True,
-            )
-
-            generation_result = await self.db.aexecute(
-                f"""
-                SELECT COUNT(*) as count
-                FROM asset_metadata m
-                JOIN assets a ON a.id = m.asset_id
-                WHERE m.has_generation_data = 1 AND {where_sql}
-                """,
-                params,
-                fetch=True,
-            )
-
-            last_scan_result = await self.db.aexecute(
-                "SELECT value FROM metadata WHERE key = 'last_scan_end'",
-                fetch=True
-            )
-            last_scan_end = last_scan_result.data[0]["value"] if last_scan_result.ok and last_scan_result.data else None
-
-            last_index_result = await self.db.aexecute(
-                "SELECT value FROM metadata WHERE key = 'last_index_end'",
-                fetch=True
-            )
-            last_index_end = last_index_result.data[0]["value"] if last_index_result.ok and last_index_result.data else None
-
-            # Get counts by kind
-            by_kind = {}
-            if kind_result.ok and kind_result.data and len(kind_result.data) > 0:
-                by_kind = {row["kind"]: row["count"] for row in kind_result.data}
-
-            workflow_count = workflow_result.data[0]["count"] if workflow_result.ok and workflow_result.data else 0
-            generation_count = generation_result.data[0]["count"] if generation_result.ok and generation_result.data else 0
+            by_kind = self._kind_counts(counts["kind"])
+            total_count = self._result_count(counts["total"])
+            rated_count = self._result_count(counts["rated"])
+            workflow_count = self._result_count(counts["workflow"])
+            generation_count = self._result_count(counts["generation"])
 
             counters = {
-                "total_assets": total_result.data[0]["count"] if total_result.ok and total_result.data else 0,
+                "total_assets": total_count,
                 "images": by_kind.get("image", 0),
                 "videos": by_kind.get("video", 0),
                 "audio": by_kind.get("audio", 0),
                 "by_kind": by_kind,  # Keep for backward compatibility
-                "rated": rated_result.data[0]["count"] if rated_result.ok and rated_result.data else 0,
+                "rated": rated_count,
                 "with_workflow": workflow_count,
                 "with_workflows": workflow_count,
                 "with_generation_data": generation_count,
@@ -288,6 +232,78 @@ class HealthService:
             else:
                 logger.error(f"Failed to get counters: {e}")
             return Result.Err("DB_ERROR", str(e))
+
+    async def _counter_query_results(self, where_sql: str, params: tuple[str, ...]) -> dict:
+        return {
+            "total": await self.db.aexecute(
+                f"SELECT COUNT(*) as count FROM assets a WHERE {where_sql}",
+                params,
+                fetch=True,
+            ),
+            "kind": await self.db.aexecute(
+                f"SELECT a.kind, COUNT(*) as count FROM assets a WHERE {where_sql} GROUP BY a.kind",
+                params,
+                fetch=True,
+            ),
+            "rated": await self.db.aexecute(
+                f"""
+                SELECT COUNT(*) as count
+                FROM asset_metadata m
+                JOIN assets a ON a.id = m.asset_id
+                WHERE m.rating > 0 AND {where_sql}
+                """,
+                params,
+                fetch=True,
+            ),
+            "workflow": await self.db.aexecute(
+                f"""
+                SELECT COUNT(*) as count
+                FROM asset_metadata m
+                JOIN assets a ON a.id = m.asset_id
+                WHERE m.has_workflow = 1 AND {where_sql}
+                """,
+                params,
+                fetch=True,
+            ),
+            "generation": await self.db.aexecute(
+                f"""
+                SELECT COUNT(*) as count
+                FROM asset_metadata m
+                JOIN assets a ON a.id = m.asset_id
+                WHERE m.has_generation_data = 1 AND {where_sql}
+                """,
+                params,
+                fetch=True,
+            ),
+        }
+
+    async def _metadata_value(self, key: str) -> Optional[str]:
+        result = await self.db.aexecute(
+            "SELECT value FROM metadata WHERE key = ?",
+            (key,),
+            fetch=True,
+        )
+        if result.ok and result.data:
+            return result.data[0].get("value")
+        return None
+
+    @staticmethod
+    def _result_count(result: object) -> int:
+        try:
+            if getattr(result, "ok", False) and getattr(result, "data", None):
+                return int(result.data[0].get("count") or 0)
+        except Exception:
+            return 0
+        return 0
+
+    @staticmethod
+    def _kind_counts(kind_result: object) -> dict:
+        try:
+            if getattr(kind_result, "ok", False) and getattr(kind_result, "data", None):
+                return {row["kind"]: row["count"] for row in kind_result.data}
+        except Exception:
+            return {}
+        return {}
 
     def _get_tool_capabilities(self) -> dict:
         """Report availability of required tooling (ExifTool/FFprobe)."""

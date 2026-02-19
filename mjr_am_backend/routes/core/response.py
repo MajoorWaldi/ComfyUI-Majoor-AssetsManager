@@ -1,4 +1,4 @@
-﻿"""
+"""
 Response utilities for route handlers.
 """
 from typing import Optional
@@ -59,4 +59,3 @@ def _json_response(result: Result, status: Optional[int] = None):
         pass
 
     return response
-

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Version reporting endpoint.
 """
 from aiohttp import web
@@ -18,4 +18,3 @@ def register_version_routes(routes: web.RouteTableDef) -> None:
 
     routes.get("/mjr/am/version")(_get_version)
     routes.get("/majoor/version")(_get_version)
-

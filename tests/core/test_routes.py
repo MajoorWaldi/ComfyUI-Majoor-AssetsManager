@@ -1,4 +1,4 @@
-﻿"""
+"""
 Test routes registration without starting full ComfyUI.
 """
 import sys
@@ -37,4 +37,3 @@ async def test_routes():
 if __name__ == "__main__":
     import asyncio
     asyncio.run(test_routes())
-

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Asset management endpoints: ratings, tags, service retry.
 """
 from aiohttp import web
@@ -10,6 +10,7 @@ import subprocess
 import sys
 import mimetypes
 from pathlib import Path
+from typing import Any, Optional
 
 from mjr_am_backend.shared import Result, get_logger, sanitize_error_message as _safe_error_message
 from mjr_am_backend.config import TO_THREAD_TIMEOUT_S, get_runtime_output_root
@@ -56,36 +57,57 @@ _WINDOWS_RESERVED = {
 
 def _validate_filename(name: str) -> tuple[bool, str]:
     """Validate a filename for safety."""
-    if not name or not name.strip():
+    normalized = _normalize_filename(name)
+    if not normalized:
         return False, "Filename cannot be empty"
-    
-    name = name.strip()
-    
-    # Check for path separators
-    if "/" in name or "\\" in name:
-        return False, "Filename cannot contain path separators"
-    
-    # Check for null bytes
-    if "\x00" in name:
-        return False, "Filename cannot contain null bytes"
-        
-    # Check for control characters
-    for char in name:
-        if ord(char) < 32:
-            return False, "Filename cannot contain control characters"
+    separator_error = _filename_separator_error(normalized)
+    if separator_error:
+        return False, separator_error
+    char_error = _filename_char_error(normalized)
+    if char_error:
+        return False, char_error
+    boundary_error = _filename_boundary_error(normalized)
+    if boundary_error:
+        return False, boundary_error
+    reserved_error = _filename_reserved_error(normalized)
+    if reserved_error:
+        return False, reserved_error
+    return True, ""
 
-    # Check for leading/trailing dots or spaces (Windows)
+
+def _normalize_filename(name: str) -> str:
+    if not name:
+        return ""
+    return name.strip()
+
+
+def _filename_separator_error(name: str) -> str:
+    if "/" in name or "\\" in name:
+        return "Filename cannot contain path separators"
+    return ""
+
+
+def _filename_char_error(name: str) -> str:
+    if "\x00" in name:
+        return "Filename cannot contain null bytes"
+    if any(ord(char) < 32 for char in name):
+        return "Filename cannot contain control characters"
+    return ""
+
+
+def _filename_boundary_error(name: str) -> str:
     if name.startswith('.') or name.startswith(' '):
-        return False, "Filename cannot start with dot or space"
+        return "Filename cannot start with dot or space"
     if name.endswith('.') or name.endswith(' '):
-        return False, "Filename cannot end with dot or space"
-            
-    # Check for reserved names (Windows)
+        return "Filename cannot end with dot or space"
+    return ""
+
+
+def _filename_reserved_error(name: str) -> str:
     base = name.split('.')[0].upper()
     if base in _WINDOWS_RESERVED:
-        return False, "Filename uses a reserved Windows name"
-        
-    return True, ""
+        return "Filename uses a reserved Windows name"
+    return ""
 
 def _is_resolved_path_allowed(path: Path) -> bool:
     """
@@ -1266,74 +1288,69 @@ async def download_asset(request: web.Request) -> web.StreamResponse:
 
     Query param: filepath (absolute path, must be within allowed roots)
     """
-    # Optional preview mode for in-app media display (viewer/grid fallback URLs).
-    # Preview mode can trigger many concurrent thumbnail requests from the grid, so it
-    # needs a much higher bucket than user-triggered downloads.
-    preview = str(request.query.get("preview", "")).strip().lower() in ("1", "true", "yes", "on")
-
-    # Rate limiting
-    if preview:
-        allowed, retry_after = _check_rate_limit(
-            request,
-            "download_asset_preview",
-            max_requests=2000,
-            window_seconds=60,
-        )
-    else:
-        allowed, retry_after = _check_rate_limit(
-            request,
-            "download_asset",
-            max_requests=30,
-            window_seconds=60,
-        )
-    if not allowed:
-        return web.Response(status=429, text=f"Rate limit exceeded. Retry after {retry_after}s")
+    preview = _is_preview_download_request(request)
+    rate_limited = _download_rate_limit_response_or_none(request, preview=preview)
+    if rate_limited is not None:
+        return rate_limited
 
     filepath = request.query.get("filepath")
     if not filepath:
         return web.Response(status=400, text="Missing 'filepath' parameter")
 
-    # Normalize and validate path
+    resolved_path = _resolve_download_path(filepath)
+    if not isinstance(resolved_path, Path):
+        return resolved_path
+    return _build_download_response(resolved_path, preview=preview)
+
+
+def _is_preview_download_request(request: web.Request) -> bool:
+    return str(request.query.get("preview", "")).strip().lower() in ("1", "true", "yes", "on")
+
+
+def _download_rate_limit_response_or_none(request: web.Request, *, preview: bool) -> Optional[web.Response]:
+    key = "download_asset_preview" if preview else "download_asset"
+    max_requests = 2000 if preview else 30
+    allowed, retry_after = _check_rate_limit(request, key, max_requests=max_requests, window_seconds=60)
+    if allowed:
+        return None
+    return web.Response(status=429, text=f"Rate limit exceeded. Retry after {retry_after}s")
+
+
+def _resolve_download_path(filepath: Any) -> Path | web.Response:
     candidate = _normalize_path(filepath)
     if not candidate:
         return web.Response(status=400, text="Invalid filepath")
-
-    # Strict resolution to prevent symlink escapes
     try:
         resolved = candidate.resolve(strict=True)
     except (OSError, RuntimeError, ValueError):
         return web.Response(status=404, text="File not found")
     if not _is_resolved_path_allowed(resolved):
         return web.Response(status=403, text="Path is not within allowed roots")
-
     if not resolved.is_file():
         return web.Response(status=404, text="File not found")
+    return resolved
 
-    # Determine content type
+
+def _build_download_response(resolved: Path, *, preview: bool) -> web.StreamResponse:
     mime_type, _ = mimetypes.guess_type(str(resolved))
-    if mime_type is None:
-        mime_type = "application/octet-stream"
-
-    # Sanitize filename for Content-Disposition header
-    filename = resolved.name.replace('"', '').replace('\r', '').replace('\n', '')[:255]
-
-    # Use FileResponse so aiohttp handles efficient file streaming and HTTP range
-    # semantics for media previews.
-    response = web.FileResponse(path=str(resolved))
+    safe_mime = mime_type or "application/octet-stream"
+    filename = _safe_download_filename(resolved.name)
     disposition = "inline" if preview else "attachment"
+
+    response = web.FileResponse(path=str(resolved))
     try:
-        response.headers["Content-Type"] = mime_type
+        response.headers["Content-Type"] = safe_mime
         response.headers["Content-Disposition"] = f'{disposition}; filename="{filename}"'
         response.headers["X-Content-Type-Options"] = "nosniff"
-        if preview:
-            response.headers["Cache-Control"] = "private, max-age=60"
-        else:
-            response.headers["Cache-Control"] = "private, no-cache"
+        response.headers["Cache-Control"] = "private, max-age=60" if preview else "private, no-cache"
     except Exception:
         pass
     return response
 
 
+def _safe_download_filename(name: str) -> str:
+    return str(name or "").replace('"', "").replace("\r", "").replace("\n", "")[:255]
+
+
 def register_download_routes(routes: web.RouteTableDef):
     routes.get("/mjr/am/download")(download_asset)
-

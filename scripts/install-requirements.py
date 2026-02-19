@@ -1,4 +1,4 @@
-﻿"""Install Majoor Assets Manager runtime dependencies explicitly.
+"""Install Majoor Assets Manager runtime dependencies explicitly.
 
 Usage:
     python scripts/install-requirements.py

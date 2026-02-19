@@ -1,4 +1,4 @@
-﻿"""
+"""
 Tests for importing ratings and tags logic, ensuring no data loss or incorrect overwrites.
 """
 import pytest
@@ -68,4 +68,3 @@ async def test_does_not_override_existing_db_rating_tags(tmp_path: Path):
         assert row["tags_text"] == "keep"
     finally:
         await db.aclose()
-

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Collections endpoints.
 
 Collections are small JSON files that store a user-curated list of assets (by filepath + basic fields).
@@ -46,11 +46,7 @@ def _minimal_asset_from_item(item: Dict[str, Any]) -> Dict[str, Any]:
     asset_type = str(item.get("type") or "output").lower()
     root_id = item.get("root_id") or item.get("rootId") or item.get("custom_root_id") or None
 
-    stat = None
-    try:
-        stat = p.stat()
-    except Exception:
-        stat = None
+    stat_size, stat_mtime = _safe_file_stat_fields(p)
 
     return {
         "id": None,
@@ -59,8 +55,8 @@ def _minimal_asset_from_item(item: Dict[str, Any]) -> Dict[str, Any]:
         "filepath": fp,
         "kind": kind,
         "ext": p.suffix.lower(),
-        "size": int(getattr(stat, "st_size", 0) or 0) if stat else 0,
-        "mtime": int(getattr(stat, "st_mtime", 0) or 0) if stat else 0,
+        "size": stat_size,
+        "mtime": stat_mtime,
         "width": None,
         "height": None,
         "duration": None,
@@ -71,6 +67,14 @@ def _minimal_asset_from_item(item: Dict[str, Any]) -> Dict[str, Any]:
         "type": asset_type,
         "root_id": root_id,
     }
+
+
+def _safe_file_stat_fields(path: Path) -> tuple[int, int]:
+    try:
+        stat = path.stat()
+        return int(getattr(stat, "st_size", 0) or 0), int(getattr(stat, "st_mtime", 0) or 0)
+    except Exception:
+        return 0, 0
 
 
 def register_collections_routes(routes: web.RouteTableDef) -> None:
@@ -199,5 +203,3 @@ def register_collections_routes(routes: web.RouteTableDef) -> None:
             logger.debug("Collections assets enrichment skipped: %s", exc)
 
         return _json_response(Result.Ok({"id": cid, "name": collection.get("name"), "assets": assets}))
-
-

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Route registration system.
 Coordinates all route handlers and registers them with PromptServer or aiohttp app.
 """
@@ -10,7 +10,7 @@ from mjr_am_backend.shared import get_logger
 from mjr_am_backend.observability import ensure_observability
 from .core import _json_response, _require_authenticated_user
 from mjr_am_backend.shared import Result
-from typing import Awaitable, Callable, ClassVar, Protocol, cast
+from typing import Any, Awaitable, Callable, ClassVar, Optional, Protocol, cast
 
 # --- CONFIGURATION ---
 API_PREFIX = "/mjr/am/"
@@ -203,29 +203,45 @@ async def auth_required_middleware(
     """
     Require authenticated ComfyUI user for sensitive Majoor routes when auth is enabled.
     """
-    try:
-        path = request.path or ""
-        method = str(request.method or "GET").upper()
-    except Exception:
-        path = ""
-        method = "GET"
-
-    if path.startswith(API_PREFIX) and method in _SENSITIVE_METHODS:
-        auth = _require_authenticated_user(request)
-        if not auth.ok:
-            return _json_response(
-                Result.Err(
-                    auth.code or "AUTH_REQUIRED",
-                    auth.error or "Authentication required. Please sign in first.",
-                ),
-                status=401,
-            )
-        try:
-            request["mjr_user_id"] = str(auth.data or "").strip()
-        except Exception:
-            pass
+    path, method = _request_path_and_method(request)
+    if _requires_auth(path, method):
+        failure = _auth_error_response_or_none(request)
+        if failure is not None:
+            return failure
 
     return await handler(request)
+
+
+def _request_path_and_method(request: web.Request) -> tuple[str, str]:
+    try:
+        return request.path or "", str(request.method or "GET").upper()
+    except Exception:
+        return "", "GET"
+
+
+def _requires_auth(path: str, method: str) -> bool:
+    return path.startswith(API_PREFIX) and method in _SENSITIVE_METHODS
+
+
+def _auth_error_response_or_none(request: web.Request) -> Optional[web.StreamResponse]:
+    auth = _require_authenticated_user(request)
+    if not auth.ok:
+        return _json_response(
+            Result.Err(
+                auth.code or "AUTH_REQUIRED",
+                auth.error or "Authentication required. Please sign in first.",
+            ),
+            status=401,
+        )
+    _store_request_user_id(request, auth.data)
+    return None
+
+
+def _store_request_user_id(request: web.Request, user_id: Any) -> None:
+    try:
+        request["mjr_user_id"] = str(user_id or "").strip()
+    except Exception:
+        pass
 
 
 def _install_security_middlewares(app: web.Application) -> None:
@@ -380,4 +396,3 @@ def _install_observability_on_prompt_server() -> None:
     except Exception as exc:
         logger.debug("Observability not installed on PromptServer app: %s", exc)
         return
-

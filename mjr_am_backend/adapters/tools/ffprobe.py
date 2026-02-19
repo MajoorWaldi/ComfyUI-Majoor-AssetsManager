@@ -46,34 +46,43 @@ class FFProbe:
         actual ffprobe binary (not an arbitrary command string).
         """
         raw = (bin_name or "").strip()
+        if not self._is_safe_executable_token(raw):
+            return None
+        resolved = self._resolve_executable_path(raw)
+        if not resolved:
+            return None
+        return resolved if self._is_ffprobe_name(resolved) else None
+
+    @staticmethod
+    def _is_safe_executable_token(raw: str) -> bool:
         if not raw:
-            return None
+            return False
         if "\x00" in raw or "\n" in raw or "\r" in raw:
-            return None
+            return False
         if any(ch in raw for ch in ("&", "|", ";", ">", "<")):
-            return None
+            return False
+        return True
 
+    @staticmethod
+    def _resolve_executable_path(raw: str) -> Optional[str]:
         resolved = shutil.which(raw)
-        if not resolved:
-            try:
-                candidate = Path(raw)
-                if candidate.is_file():
-                    resolved = str(candidate.resolve(strict=True))
-            except (OSError, RuntimeError, ValueError):
-                return None
-
-        if not resolved:
+        if resolved:
+            return resolved
+        try:
+            candidate = Path(raw)
+            if candidate.is_file():
+                return str(candidate.resolve(strict=True))
+        except (OSError, RuntimeError, ValueError):
             return None
+        return None
 
+    @staticmethod
+    def _is_ffprobe_name(resolved: str) -> bool:
         try:
             name = Path(resolved).name.lower()
         except Exception:
             name = str(resolved).lower()
-
-        if not name.startswith("ffprobe"):
-            return None
-
-        return resolved
+        return name.startswith("ffprobe")
 
     def _check_available(self) -> bool:
         """Check if ffprobe is available in PATH."""
@@ -105,71 +114,10 @@ class FFProbe:
             )
 
         try:
-            # Build command
-            cmd = [
-                self._resolved_bin or self.bin,
-                "-v", "error",              # Hide verbose output
-                "-print_format", "json",     # JSON output
-                "-show_format",              # Show container format
-                "-show_streams",             # Show stream info
-                path
-            ]
-
-            # Run command
-            process = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                check=False,
-                timeout=self.timeout,
-                shell=False,
-                close_fds=os.name != "nt",
-            )
-
-            if process.returncode != 0:
-                stderr = process.stderr.strip()
-                logger.warning(f"ffprobe error for {path}: {stderr}")
-                return Result.Err(
-                    ErrorCode.FFPROBE_ERROR,
-                    stderr or "ffprobe command failed",
-                    quality="degraded"
-                )
-
-            # Parse JSON output
-            if not process.stdout or not process.stdout.strip():
-                logger.warning(f"ffprobe returned empty output for {path}")
-                return Result.Err(
-                    ErrorCode.FFPROBE_ERROR,
-                    "No ffprobe output",
-                    quality="degraded"
-                )
-
-            data = json.loads(process.stdout)
-
-            if not isinstance(data, dict):
-                return Result.Err(
-                    ErrorCode.PARSE_ERROR,
-                    "Invalid ffprobe output format",
-                    quality="degraded"
-                )
-
-            # Extract useful metadata
-            result = {
-                "format": data.get("format", {}),
-                "streams": data.get("streams", []),
-                "video_stream": self._find_video_stream(data.get("streams", [])),
-                "audio_stream": self._find_audio_stream(data.get("streams", [])),
-            }
-
-            return Result.Ok(result, quality="full")
-
+            process = self._run_ffprobe_cmd(self._build_ffprobe_cmd(path))
+            return self._parse_ffprobe_output(process.stdout, process.stderr, process.returncode, path)
         except subprocess.TimeoutExpired:
-            logger.error(f"ffprobe timeout for {path}")
-            return Result.Err(
-                ErrorCode.TIMEOUT,
-                f"ffprobe timeout after {self.timeout}s",
-                quality="degraded"
-            )
+            return self._ffprobe_timeout_error(path)
         except json.JSONDecodeError as e:
             logger.error(f"ffprobe JSON parse error: {e}")
             return Result.Err(
@@ -184,6 +132,25 @@ class FFProbe:
                 str(e),
                 quality="degraded"
             )
+
+    def _run_ffprobe_cmd(self, cmd: List[str]) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=self.timeout,
+            shell=False,
+            close_fds=os.name != "nt",
+        )
+
+    def _ffprobe_timeout_error(self, path: str) -> Result[dict]:
+        logger.error(f"ffprobe timeout for {path}")
+        return Result.Err(
+            ErrorCode.TIMEOUT,
+            f"ffprobe timeout after {self.timeout}s",
+            quality="degraded",
+        )
 
     async def aread(self, path: str) -> Result[dict]:
         """
@@ -197,71 +164,13 @@ class FFProbe:
             )
 
         try:
-            cmd = [
-                self._resolved_bin or self.bin,
-                "-v", "error",
-                "-print_format", "json",
-                "-show_format",
-                "-show_streams",
-                path,
-            ]
-
-            process = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                close_fds=os.name != "nt",
-            )
-
-            try:
-                stdout_b, stderr_b = await asyncio.wait_for(process.communicate(), timeout=self.timeout)
-            except asyncio.TimeoutError:
-                try:
-                    process.kill()
-                except Exception:
-                    pass
-                logger.error(f"ffprobe timeout for {path}")
-                return Result.Err(
-                    ErrorCode.TIMEOUT,
-                    f"ffprobe timeout after {self.timeout}s",
-                    quality="degraded"
-                )
-
-            stdout = (stdout_b or b"").decode("utf-8", errors="replace")
-            stderr = (stderr_b or b"").decode("utf-8", errors="replace")
-
-            if process.returncode != 0:
-                stderr_msg = stderr.strip()
-                logger.warning(f"ffprobe error for {path}: {stderr_msg}")
-                return Result.Err(
-                    ErrorCode.FFPROBE_ERROR,
-                    stderr_msg or "ffprobe command failed",
-                    quality="degraded"
-                )
-
-            if not stdout.strip():
-                logger.warning(f"ffprobe returned empty output for {path}")
-                return Result.Err(
-                    ErrorCode.FFPROBE_ERROR,
-                    "No ffprobe output",
-                    quality="degraded"
-                )
-
-            data = json.loads(stdout)
-            if not isinstance(data, dict):
-                return Result.Err(
-                    ErrorCode.PARSE_ERROR,
-                    "Invalid ffprobe output format",
-                    quality="degraded"
-                )
-
-            result = {
-                "format": data.get("format", {}),
-                "streams": data.get("streams", []),
-                "video_stream": self._find_video_stream(data.get("streams", [])),
-                "audio_stream": self._find_audio_stream(data.get("streams", [])),
-            }
-            return Result.Ok(result, quality="full")
+            cmd = self._build_ffprobe_cmd(path)
+            process = await self._spawn_ffprobe_process(cmd)
+            communicated = await self._communicate_with_timeout(process, path)
+            if not communicated.ok:
+                return communicated
+            stdout, stderr = communicated.data
+            return self._parse_ffprobe_output(stdout, stderr, process.returncode, path)
         except json.JSONDecodeError as e:
             logger.error(f"ffprobe JSON parse error: {e}")
             return Result.Err(
@@ -276,6 +185,83 @@ class FFProbe:
                 str(e),
                 quality="degraded"
             )
+
+    def _build_ffprobe_cmd(self, path: str) -> List[str]:
+        return [
+            self._resolved_bin or self.bin,
+            "-v", "error",
+            "-print_format", "json",
+            "-show_format",
+            "-show_streams",
+            path,
+        ]
+
+    async def _spawn_ffprobe_process(self, cmd: List[str]) -> asyncio.subprocess.Process:
+        return await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            close_fds=os.name != "nt",
+        )
+
+    async def _communicate_with_timeout(
+        self,
+        process: asyncio.subprocess.Process,
+        path: str,
+    ) -> Result[tuple[str, str]]:
+        try:
+            stdout_b, stderr_b = await asyncio.wait_for(process.communicate(), timeout=self.timeout)
+        except asyncio.TimeoutError:
+            try:
+                process.kill()
+            except Exception:
+                pass
+            logger.error(f"ffprobe timeout for {path}")
+            return Result.Err(
+                ErrorCode.TIMEOUT,
+                f"ffprobe timeout after {self.timeout}s",
+                quality="degraded"
+            )
+        stdout = (stdout_b or b"").decode("utf-8", errors="replace")
+        stderr = (stderr_b or b"").decode("utf-8", errors="replace")
+        return Result.Ok((stdout, stderr), quality="full")
+
+    def _parse_ffprobe_output(
+        self,
+        stdout: str,
+        stderr: str,
+        returncode: Optional[int],
+        path: str,
+    ) -> Result[dict]:
+        if returncode != 0:
+            stderr_msg = stderr.strip()
+            logger.warning(f"ffprobe error for {path}: {stderr_msg}")
+            return Result.Err(
+                ErrorCode.FFPROBE_ERROR,
+                stderr_msg or "ffprobe command failed",
+                quality="degraded"
+            )
+        if not stdout.strip():
+            logger.warning(f"ffprobe returned empty output for {path}")
+            return Result.Err(
+                ErrorCode.FFPROBE_ERROR,
+                "No ffprobe output",
+                quality="degraded"
+            )
+        data = json.loads(stdout)
+        if not isinstance(data, dict):
+            return Result.Err(
+                ErrorCode.PARSE_ERROR,
+                "Invalid ffprobe output format",
+                quality="degraded"
+            )
+        result = {
+            "format": data.get("format", {}),
+            "streams": data.get("streams", []),
+            "video_stream": self._find_video_stream(data.get("streams", [])),
+            "audio_stream": self._find_audio_stream(data.get("streams", [])),
+        }
+        return Result.Ok(result, quality="full")
 
     def read_batch(self, paths: List[str]) -> Dict[str, Result[dict]]:
         """

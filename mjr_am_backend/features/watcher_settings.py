@@ -1,4 +1,4 @@
-﻿"""
+"""
 Runtime watcher tuning knobs (debounce + dedupe) that can be updated without restarting.
 """
 from __future__ import annotations
@@ -42,4 +42,3 @@ def update_watcher_settings(*, debounce_ms: Optional[int] = None, dedupe_ttl_ms:
         if dedupe_ttl_ms is not None:
             _state["dedupe_ttl_ms"] = _clamp(int(dedupe_ttl_ms), 100, 30_000)
         return get_watcher_settings()
-

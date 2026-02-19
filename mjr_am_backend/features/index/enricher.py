@@ -105,23 +105,12 @@ class MetadataEnricher:
         Args:
             filepaths: List of file paths to enqueue
         """
-        cleaned = [str(p) for p in (filepaths or []) if p]
+        cleaned = self._clean_paths(filepaths)
         if not cleaned:
             return
         async with self._enrich_lock:
-            existing = {fp for _, fp in self._enrich_queue}
-            for fp in cleaned:
-                if fp in existing:
-                    continue
-                self._enrich_queue.append((0, fp))
-                existing.add(fp)
-            # Keep highest priority first (negative = higher priority).
-            self._enrich_queue.sort(key=lambda item: item[0])
-            if self._enrich_running and self._enrich_task and not self._enrich_task.done():
-                return
-            self._emit_status(True, queued=len(self._enrich_queue))
-            self._enrich_running = True
-            self._enrich_task = asyncio.create_task(self._enrichment_worker())
+            self._append_queue_items(cleaned, priority=0)
+            self._ensure_worker_started_locked(emit_on_running=False)
 
     async def enqueue(self, path: str, priority: int = 0) -> None:
         """
@@ -132,21 +121,40 @@ class MetadataEnricher:
         if not fp:
             return
         async with self._enrich_lock:
-            existing = {p for _, p in self._enrich_queue}
+            self._append_queue_items([fp], priority=priority)
+            self._ensure_worker_started_locked(emit_on_running=True)
+
+    @staticmethod
+    def _clean_paths(filepaths: List[str]) -> List[str]:
+        return [str(p) for p in (filepaths or []) if p]
+
+    @staticmethod
+    def _normalize_priority(priority: int) -> int:
+        try:
+            return int(priority)
+        except Exception:
+            return 0
+
+    def _append_queue_items(self, filepaths: List[str], priority: int) -> None:
+        existing = {fp for _, fp in self._enrich_queue}
+        prio = self._normalize_priority(priority)
+        for fp in filepaths:
             if fp in existing:
-                return
-            try:
-                prio = int(priority)
-            except Exception:
-                prio = 0
+                continue
             self._enrich_queue.append((prio, fp))
-            self._enrich_queue.sort(key=lambda item: item[0])
-            if self._enrich_running and self._enrich_task and not self._enrich_task.done():
+            existing.add(fp)
+        # Keep highest priority first (negative = higher priority).
+        self._enrich_queue.sort(key=lambda item: item[0])
+
+    def _ensure_worker_started_locked(self, emit_on_running: bool) -> None:
+        running = self._enrich_running and self._enrich_task and not self._enrich_task.done()
+        if running:
+            if emit_on_running:
                 self._emit_status(True, queued=len(self._enrich_queue))
-                return
-            self._emit_status(True, queued=len(self._enrich_queue))
-            self._enrich_running = True
-            self._enrich_task = asyncio.create_task(self._enrichment_worker())
+            return
+        self._emit_status(True, queued=len(self._enrich_queue))
+        self._enrich_running = True
+        self._enrich_task = asyncio.create_task(self._enrichment_worker())
 
     async def stop_enrichment(self, clear_queue: bool = True) -> None:
         """
@@ -198,24 +206,15 @@ class MetadataEnricher:
                 queue_left = len(self._enrich_queue)
             self._emit_status(False, queue_left=queue_left)
 
-    async def _enrich_metadata_chunk(self, filepaths: List[str]) -> None:
-        """
-        Process a chunk of files for metadata enrichment.
-
-        Args:
-            filepaths: List of file paths to process
-        """
-        cleaned = [str(p) for p in (filepaths or []) if p]
-        if not cleaned:
-            return
-
+    async def _load_asset_ids_for_filepaths(self, filepaths: List[str]) -> Result[Dict[str, int]]:
         id_res = await self.db.aquery_in(
             "SELECT id, filepath FROM assets WHERE {IN_CLAUSE}",
             "filepath",
-            cleaned,
+            filepaths,
         )
         if not id_res.ok:
-            return
+            return Result.Err(id_res.code, id_res.error or "Failed to query asset ids")
+
         id_by_fp: Dict[str, int] = {}
         for row in id_res.data or []:
             if not isinstance(row, dict):
@@ -227,182 +226,291 @@ class MetadataEnricher:
                 aid = 0
             if fp and aid:
                 id_by_fp[str(fp)] = aid
+        return Result.Ok(id_by_fp)
 
+    def _build_state_hash_for_file(self, filepath: str) -> Optional[str]:
+        try:
+            stat = os.stat(filepath)
+        except Exception:
+            return None
+        mtime_ns = getattr(stat, "st_mtime_ns", int(stat.st_mtime * 1_000_000_000))
+        return self._compute_state_hash(filepath, int(mtime_ns), int(stat.st_size))
+
+    @staticmethod
+    def _extract_dimensions(metadata_result: Result[Dict[str, Any]]) -> tuple[Any, Any, Any]:
+        width = None
+        height = None
+        duration = None
+        if metadata_result.ok and metadata_result.data:
+            meta = metadata_result.data
+            width = meta.get("width")
+            height = meta.get("height")
+            duration = meta.get("duration")
+        return width, height, duration
+
+    def _build_update_item(
+        self,
+        asset_id: int,
+        filepath: str,
+        metadata_result: Result[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        width, height, duration = self._extract_dimensions(metadata_result)
+        return {
+            "asset_id": asset_id,
+            "width": width,
+            "height": height,
+            "duration": duration,
+            "metadata_result": metadata_result,
+            "filepath": filepath,
+        }
+
+    async def _prepare_updates_from_cache(
+        self,
+        cleaned: List[str],
+        id_by_fp: Dict[str, int],
+        metadata_helpers_cls: Any,
+    ) -> tuple[List[Dict[str, Any]], List[tuple[str, int, str]]]:
         updates: List[Dict[str, Any]] = []
-        retry_paths: List[str] = []
-
-        # Import helper locally to use shared logic (including FTS population)
-        from .metadata_helpers import MetadataHelpers
-
         to_extract: List[tuple[str, int, str]] = []
         for fp in cleaned:
             asset_id = id_by_fp.get(fp)
             if not asset_id:
                 continue
-            try:
-                stat = os.stat(fp)
-            except Exception:
-                continue
-            mtime_ns = getattr(stat, "st_mtime_ns", int(stat.st_mtime * 1_000_000_000))
-            state_hash = self._compute_state_hash(fp, int(mtime_ns), int(stat.st_size))
 
-            # Try cache first to avoid tool work.
-            metadata_result = await MetadataHelpers.retrieve_cached_metadata(self.db, fp, state_hash)
+            state_hash = self._build_state_hash_for_file(fp)
+            if not state_hash:
+                continue
+
+            metadata_result = await metadata_helpers_cls.retrieve_cached_metadata(
+                self.db,
+                fp,
+                state_hash,
+            )
             if not (metadata_result and metadata_result.ok):
                 to_extract.append((fp, int(asset_id), state_hash))
                 continue
-            if not metadata_result.ok:
-                metadata_result = self._metadata_error_payload(metadata_result, fp)
+            updates.append(self._build_update_item(int(asset_id), fp, metadata_result))
+        return updates, to_extract
 
-            width = None
-            height = None
-            duration = None
-            if metadata_result.ok and metadata_result.data:
-                meta = metadata_result.data
-                width = meta.get("width")
-                height = meta.get("height")
-                duration = meta.get("duration")
-
-            updates.append(
-                {
-                    "asset_id": asset_id,
-                    "width": width,
-                    "height": height,
-                    "duration": duration,
-                    "metadata_result": metadata_result,
-                    "filepath": fp,
-                }
-            )
-
-        if to_extract:
-            batch_results = await self.metadata.get_metadata_batch([fp for fp, _, _ in to_extract], scan_id=None)
-            for fp, asset_id, state_hash in to_extract:
-                metadata_result = batch_results.get(fp)
-                if not metadata_result:
-                    metadata_result = self._metadata_error_payload(Result.Err("METADATA_MISSING", "No metadata returned"), fp)
-                elif not metadata_result.ok:
-                    metadata_result = self._metadata_error_payload(metadata_result, fp)
-                else:
-                    try:
-                        await MetadataHelpers.store_metadata_cache(self.db, fp, state_hash, metadata_result)
-                    except Exception:
-                        pass
-
-                width = None
-                height = None
-                duration = None
-                if metadata_result.ok and metadata_result.data:
-                    meta = metadata_result.data
-                    width = meta.get("width")
-                    height = meta.get("height")
-                    duration = meta.get("duration")
-
-                updates.append(
-                    {
-                        "asset_id": asset_id,
-                        "width": width,
-                        "height": height,
-                        "duration": duration,
-                        "metadata_result": metadata_result,
-                        "filepath": fp,
-                    }
+    async def _prepare_updates_from_extraction(
+        self,
+        to_extract: List[tuple[str, int, str]],
+        metadata_helpers_cls: Any,
+    ) -> List[Dict[str, Any]]:
+        if not to_extract:
+            return []
+        updates: List[Dict[str, Any]] = []
+        batch_results = await self.metadata.get_metadata_batch(
+            [fp for fp, _, _ in to_extract],
+            scan_id=None,
+        )
+        for fp, asset_id, state_hash in to_extract:
+            metadata_result = batch_results.get(fp)
+            if not metadata_result:
+                metadata_result = self._metadata_error_payload(
+                    Result.Err("METADATA_MISSING", "No metadata returned"),
+                    fp,
                 )
+            elif not metadata_result.ok:
+                metadata_result = self._metadata_error_payload(metadata_result, fp)
+            else:
+                try:
+                    await metadata_helpers_cls.store_metadata_cache(
+                        self.db,
+                        fp,
+                        state_hash,
+                        metadata_result,
+                    )
+                except Exception:
+                    pass
+            updates.append(self._build_update_item(asset_id, fp, metadata_result))
+        return updates
+
+    async def _notify_asset_updated(self, asset_id: int) -> None:
+        try:
+            res = await self.db.aquery(
+                """
+                SELECT a.id, m.has_workflow AS has_workflow,
+                       m.has_generation_data AS has_generation_data
+                FROM assets a
+                LEFT JOIN asset_metadata m ON a.id = m.asset_id
+                WHERE a.id = ?
+                LIMIT 1
+                """,
+                (int(asset_id),),
+            )
+            if res.ok and res.data:
+                payload = dict(res.data[0])
+                from ...routes.registry import PromptServer
+                PromptServer.instance.send_sync("mjr-asset-updated", payload)
+        except Exception:
+            pass
+
+    async def _apply_update_item(self, item: Dict[str, Any], metadata_helpers_cls: Any) -> Optional[str]:
+        asset_id = item.get("asset_id")
+        if not asset_id:
+            return None
+        meta_res = item.get("metadata_result")
+        if not isinstance(meta_res, Result):
+            return None
+        fp = str(item.get("filepath") or "")
+
+        try:
+            update_error = await self._apply_metadata_update_transaction(
+                asset_id=asset_id,
+                item=item,
+                meta_res=meta_res,
+                metadata_helpers_cls=metadata_helpers_cls,
+            )
+            if update_error is not None:
+                return update_error
+            if fp:
+                self._retry_counts.pop(fp, None)
+            await self._notify_asset_updated(int(asset_id))
+            return None
+        except Exception as exc:
+            if _is_transient_db_error(exc):
+                logger.info(
+                    "Metadata enrichment deferred for asset_id=%s due to DB contention/reset: %s",
+                    asset_id,
+                    exc,
+                )
+                return fp or None
+            logger.warning("Metadata enrichment update failed for asset_id=%s: %s", asset_id, exc)
+            return None
+
+    async def _apply_metadata_update_transaction(
+        self,
+        *,
+        asset_id: Any,
+        item: Dict[str, Any],
+        meta_res: Result[Dict[str, Any]],
+        metadata_helpers_cls: Any,
+    ) -> Optional[str]:
+        fp = str(item.get("filepath") or "")
+        async with self.db.lock_for_asset(asset_id):
+            async with self.db.atransaction(mode="deferred") as tx:
+                if not tx.ok:
+                    logger.warning(
+                        "Metadata enrichment skipped (transaction begin failed) for asset_id=%s: %s",
+                        asset_id,
+                        tx.error,
+                    )
+                    return fp or None
+                await self._apply_metadata_update_queries(asset_id, item, meta_res, metadata_helpers_cls)
+            if not tx.ok:
+                logger.warning(
+                    "Metadata enrichment commit failed for asset_id=%s: %s",
+                    asset_id,
+                    tx.error,
+                )
+                return fp or None
+        return None
+
+    async def _apply_metadata_update_queries(
+        self,
+        asset_id: Any,
+        item: Dict[str, Any],
+        meta_res: Result[Dict[str, Any]],
+        metadata_helpers_cls: Any,
+    ) -> None:
+        await self.db.aexecute(
+            """
+            UPDATE assets
+            SET width = COALESCE(?, width),
+                height = COALESCE(?, height),
+                duration = COALESCE(?, duration),
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            """,
+            (
+                item.get("width"),
+                item.get("height"),
+                item.get("duration"),
+                asset_id,
+            ),
+        )
+        await metadata_helpers_cls.write_asset_metadata_row(
+            self.db,
+            asset_id,
+            meta_res,
+            filepath=item.get("filepath"),
+        )
+
+    async def _apply_updates_and_collect_retries(
+        self,
+        updates: List[Dict[str, Any]],
+        metadata_helpers_cls: Any,
+    ) -> List[str]:
+        retry_paths: List[str] = []
+        for item in updates:
+            retry_fp = await self._apply_update_item(item, metadata_helpers_cls)
+            if retry_fp:
+                retry_paths.append(retry_fp)
+        return retry_paths
+
+    async def _requeue_retry_paths(self, retry_paths: List[str]) -> None:
+        if not retry_paths:
+            return
+        to_requeue: List[str] = []
+        for fp in retry_paths:
+            try:
+                count = int(self._retry_counts.get(fp, 0)) + 1
+            except Exception:
+                count = 1
+            self._retry_counts[fp] = count
+            if count <= _MAX_ENRICH_RETRIES:
+                to_requeue.append(fp)
+                continue
+            logger.warning(
+                "Metadata enrichment dropped after max retries (%s): %s",
+                _MAX_ENRICH_RETRIES,
+                fp,
+            )
+            self._retry_counts.pop(fp, None)
+        if to_requeue:
+            await asyncio.sleep(0.2)
+            await self.start_enrichment(to_requeue)
+
+    async def _enrich_metadata_chunk(self, filepaths: List[str]) -> None:
+        """
+        Process a chunk of files for metadata enrichment.
+
+        Args:
+            filepaths: List of file paths to process
+        """
+        cleaned = [str(p) for p in (filepaths or []) if p]
+        if not cleaned:
+            return
+
+        id_map_res = await self._load_asset_ids_for_filepaths(cleaned)
+        if not id_map_res.ok:
+            return
+        id_by_fp = id_map_res.data or {}
+
+        # Import helper locally to use shared logic (including FTS population)
+        from .metadata_helpers import MetadataHelpers
+
+        updates, to_extract = await self._prepare_updates_from_cache(
+            cleaned,
+            id_by_fp,
+            MetadataHelpers,
+        )
+        extracted_updates = await self._prepare_updates_from_extraction(
+            to_extract,
+            MetadataHelpers,
+        )
+        if extracted_updates:
+            updates.extend(extracted_updates)
 
         if not updates:
             return
 
-        for item in updates:
-            asset_id = item.get("asset_id")
-            if not asset_id:
-                continue
-            meta_res = item.get("metadata_result")
-            if not isinstance(meta_res, Result):
-                continue
-            try:
-                async with self.db.lock_for_asset(asset_id):
-                    # Use deferred tx to reduce lock contention with concurrent search/sort reads.
-                    async with self.db.atransaction(mode="deferred") as tx:
-                        if not tx.ok:
-                            logger.warning(
-                                "Metadata enrichment skipped (transaction begin failed) for asset_id=%s: %s",
-                                asset_id,
-                                tx.error,
-                            )
-                            fp = str(item.get("filepath") or "")
-                            if fp:
-                                retry_paths.append(fp)
-                            continue
-                        await self.db.aexecute(
-                            """
-                            UPDATE assets
-                            SET width = COALESCE(?, width),
-                                height = COALESCE(?, height),
-                                duration = COALESCE(?, duration),
-                                updated_at = CURRENT_TIMESTAMP
-                            WHERE id = ?
-                            """,
-                            (item.get("width"), item.get("height"), item.get("duration"), asset_id),
-                        )
-                        # Use shared helper to write metadata (ensures tags_text/FTS is populated with prompt/geninfo)
-                        await MetadataHelpers.write_asset_metadata_row(
-                            self.db,
-                            asset_id,
-                            meta_res,
-                            filepath=item.get("filepath"),
-                        )
-                    if not tx.ok:
-                        logger.warning("Metadata enrichment commit failed for asset_id=%s: %s", asset_id, tx.error)
-                        fp = str(item.get("filepath") or "")
-                        if fp:
-                            retry_paths.append(fp)
-                    else:
-                        fp = str(item.get("filepath") or "")
-                        if fp:
-                            self._retry_counts.pop(fp, None)
-                        # Notify frontend so workflow dot updates promptly.
-                        try:
-                            res = await self.db.aquery(
-                                """
-                                SELECT a.id, m.has_workflow AS has_workflow,
-                                       m.has_generation_data AS has_generation_data
-                                FROM assets a
-                                LEFT JOIN asset_metadata m ON a.id = m.asset_id
-                                WHERE a.id = ?
-                                LIMIT 1
-                                """,
-                                (int(asset_id),),
-                            )
-                            if res.ok and res.data:
-                                payload = dict(res.data[0])
-                                from ...routes.registry import PromptServer
-                                PromptServer.instance.send_sync("mjr-asset-updated", payload)
-                        except Exception:
-                            pass
-            except Exception as exc:
-                fp = str(item.get("filepath") or "")
-                if _is_transient_db_error(exc):
-                    logger.info("Metadata enrichment deferred for asset_id=%s due to DB contention/reset: %s", asset_id, exc)
-                    if fp:
-                        retry_paths.append(fp)
-                else:
-                    logger.warning("Metadata enrichment update failed for asset_id=%s: %s", asset_id, exc)
-
-        if retry_paths:
-            to_requeue: List[str] = []
-            for fp in retry_paths:
-                try:
-                    c = int(self._retry_counts.get(fp, 0)) + 1
-                except Exception:
-                    c = 1
-                self._retry_counts[fp] = c
-                if c <= _MAX_ENRICH_RETRIES:
-                    to_requeue.append(fp)
-                else:
-                    logger.warning("Metadata enrichment dropped after max retries (%s): %s", _MAX_ENRICH_RETRIES, fp)
-                    self._retry_counts.pop(fp, None)
-            if to_requeue:
-                await asyncio.sleep(0.2)
-                await self.start_enrichment(to_requeue)
+        retry_paths = await self._apply_updates_and_collect_retries(
+            updates,
+            MetadataHelpers,
+        )
+        await self._requeue_retry_paths(retry_paths)
 
     def get_queue_length(self) -> int:
         """Return pending enrichment queue length."""

@@ -1,4 +1,4 @@
-﻿import importlib.util
+import importlib.util
 from pathlib import Path
 
 

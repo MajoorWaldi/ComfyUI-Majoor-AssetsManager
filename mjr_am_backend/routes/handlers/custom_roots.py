@@ -1,4 +1,4 @@
-﻿"""
+"""
 Custom roots management endpoints.
 """
 import os
@@ -8,6 +8,7 @@ import asyncio
 import shutil
 import ipaddress
 from pathlib import Path
+from typing import Optional
 from aiohttp import web
 from mjr_am_backend.config import OUTPUT_ROOT
 from mjr_am_backend.custom_roots import (
@@ -58,38 +59,17 @@ def _compute_folder_stats(folder_path: Path, *, max_entries: int = 200000) -> di
     stack = [folder_path]
     while stack:
         cur = stack.pop()
-        try:
-            with os.scandir(cur) as it:
-                for entry in it:
-                    scanned += 1
-                    if scanned > max_entries:
-                        truncated = True
-                        break
-                    try:
-                        if entry.is_symlink():
-                            continue
-                    except Exception:
-                        continue
-                    try:
-                        if entry.is_dir(follow_symlinks=False):
-                            folders += 1
-                            try:
-                                stack.append(Path(entry.path))
-                            except Exception:
-                                continue
-                            continue
-                        if entry.is_file(follow_symlinks=False):
-                            files += 1
-                            try:
-                                total_size += int(entry.stat(follow_symlinks=False).st_size or 0)
-                            except Exception:
-                                continue
-                    except Exception:
-                        continue
-        except Exception:
-            continue
         if truncated:
             break
+        files, folders, total_size, scanned, truncated = _scan_single_folder(
+            cur,
+            stack=stack,
+            files=files,
+            folders=folders,
+            total_size=total_size,
+            scanned=scanned,
+            max_entries=max_entries,
+        )
 
     try:
         st = folder_path.stat()
@@ -110,6 +90,65 @@ def _compute_folder_stats(folder_path: Path, *, max_entries: int = 200000) -> di
         "scanned_entries": int(scanned),
         "truncated": bool(truncated),
     }
+
+
+def _scan_single_folder(
+    cur: Path,
+    *,
+    stack: list[Path],
+    files: int,
+    folders: int,
+    total_size: int,
+    scanned: int,
+    max_entries: int,
+) -> tuple[int, int, int, int, bool]:
+    truncated = False
+    try:
+        with os.scandir(cur) as it:
+            for entry in it:
+                scanned += 1
+                if scanned > max_entries:
+                    truncated = True
+                    break
+                if _is_symlink_entry(entry):
+                    continue
+                entry_stats = _folder_entry_stats(entry)
+                if entry_stats is None:
+                    continue
+                files += entry_stats.get("files", 0)
+                folders += entry_stats.get("folders", 0)
+                total_size += entry_stats.get("size", 0)
+                next_path = entry_stats.get("next_path")
+                if isinstance(next_path, Path):
+                    stack.append(next_path)
+    except Exception:
+        return files, folders, total_size, scanned, False
+    return files, folders, total_size, scanned, truncated
+
+
+def _is_symlink_entry(entry) -> bool:
+    try:
+        return bool(entry.is_symlink())
+    except Exception:
+        return True
+
+
+def _folder_entry_stats(entry) -> Optional[dict]:
+    try:
+        if entry.is_dir(follow_symlinks=False):
+            try:
+                return {"files": 0, "folders": 1, "size": 0, "next_path": Path(entry.path)}
+            except Exception:
+                return {"files": 0, "folders": 1, "size": 0, "next_path": None}
+        if entry.is_file(follow_symlinks=False):
+            try:
+                size = int(entry.stat(follow_symlinks=False).st_size or 0)
+            except Exception:
+                size = 0
+            return {"files": 1, "folders": 0, "size": size, "next_path": None}
+    except Exception:
+        return None
+    return None
 
 
 def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
@@ -603,4 +642,3 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
                 return _json_response(Result.Err("DELETE_FAILED", sanitize_error_message(exc, "Failed to delete folder")))
 
         return _json_response(Result.Err("INVALID_INPUT", "Unsupported folder operation"))
-

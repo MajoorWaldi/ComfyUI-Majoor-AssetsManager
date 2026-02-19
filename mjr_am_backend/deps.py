@@ -32,6 +32,66 @@ from .config import (
 
 logger = get_logger(__name__)
 
+def _resolve_db_path(db_path: Optional[str]) -> str:
+    return db_path if db_path is not None else INDEX_DB
+
+
+def _init_db_or_error(db_path: str) -> Result[Sqlite]:
+    logger.info(f"Initializing database: {db_path}")
+    try:
+        return Result.Ok(Sqlite(db_path, max_connections=DB_MAX_CONNECTIONS, timeout=DB_TIMEOUT))
+    except Exception as exc:
+        logger.error("Failed to initialize database: %s", exc)
+        return Result.Err("DB_ERROR", f"Failed to initialize database: {exc}")
+
+
+async def _migrate_db_or_error(db: Sqlite) -> Result[bool]:
+    migrate_result = await migrate_schema(db)
+    if not migrate_result.ok:
+        logger.error(f"Schema migration failed: {migrate_result.error}")
+        return Result.Err(migrate_result.code or "DB_ERROR", f"Failed to initialize database: {migrate_result.error}")
+    return Result.Ok(True)
+
+
+def _init_tools_and_settings(db: Sqlite) -> tuple[ExifTool, FFProbe, AppSettings]:
+    exiftool = ExifTool(bin_name=EXIFTOOL_BIN or "exiftool", timeout=EXIFTOOL_TIMEOUT)
+    ffprobe = FFProbe(bin_name=FFPROBE_BIN or "ffprobe", timeout=FFPROBE_TIMEOUT)
+    settings_service = AppSettings(db)
+    return exiftool, ffprobe, settings_service
+
+
+def _log_tool_availability(exiftool: ExifTool, ffprobe: FFProbe) -> None:
+    if exiftool.is_available():
+        log_success(logger, "ExifTool is available")
+    else:
+        logger.warning("ExifTool not found - metadata extraction will be limited")
+    if ffprobe.is_available():
+        log_success(logger, "ffprobe is available")
+    else:
+        logger.warning("ffprobe not found - video metadata will be limited")
+
+
+def _build_services_dict(
+    db: Sqlite,
+    exiftool: ExifTool,
+    ffprobe: FFProbe,
+    metadata_service: MetadataService,
+    health_service: HealthService,
+    index_service: IndexService,
+    settings_service: AppSettings,
+) -> dict:
+    return {
+        "db": db,
+        "exiftool": exiftool,
+        "ffprobe": ffprobe,
+        "metadata": metadata_service,
+        "health": health_service,
+        "index": index_service,
+        "settings": settings_service,
+        "duplicates": DuplicatesService(db),
+    }
+
+
 async def build_services(db_path: Optional[str] = None) -> Result[dict]:
     """
     Build all services (DI container).
@@ -44,43 +104,23 @@ async def build_services(db_path: Optional[str] = None) -> Result[dict]:
     """
     logger.info("Building services...")
 
-    # Default database path from config
-    if db_path is None:
-        db_path = INDEX_DB
+    db_path = _resolve_db_path(db_path)
+    db_res = _init_db_or_error(db_path)
+    if not db_res.ok:
+        return Result.Err(db_res.code or "DB_ERROR", db_res.error or "Failed to initialize database")
+    db = db_res.data
 
-    # Initialize database
-    logger.info(f"Initializing database: {db_path}")
-    try:
-        db = Sqlite(db_path, max_connections=DB_MAX_CONNECTIONS, timeout=DB_TIMEOUT)
-    except Exception as exc:
-        logger.error("Failed to initialize database: %s", exc)
-        return Result.Err("DB_ERROR", f"Failed to initialize database: {exc}")
-
-    # Run migrations
-    migrate_result = await migrate_schema(db)
+    migrate_result = await _migrate_db_or_error(db)
     if not migrate_result.ok:
-        logger.error(f"Schema migration failed: {migrate_result.error}")
-        return Result.Err(migrate_result.code or "DB_ERROR", f"Failed to initialize database: {migrate_result.error}")
+        return migrate_result  # type: ignore[return-value]
 
-    # Initialize adapters
-    exiftool = ExifTool(bin_name=EXIFTOOL_BIN or "exiftool", timeout=EXIFTOOL_TIMEOUT)
-    ffprobe = FFProbe(bin_name=FFPROBE_BIN or "ffprobe", timeout=FFPROBE_TIMEOUT)
-    settings_service = AppSettings(db)
+    exiftool, ffprobe, settings_service = _init_tools_and_settings(db)
     try:
         await settings_service.ensure_security_bootstrap()
     except Exception as exc:
         logger.warning("Security bootstrap failed: %s", exc)
 
-    # Log tool availability
-    if exiftool.is_available():
-        log_success(logger, "ExifTool is available")
-    else:
-        logger.warning("ExifTool not found - metadata extraction will be limited")
-
-    if ffprobe.is_available():
-        log_success(logger, "ffprobe is available")
-    else:
-        logger.warning("ffprobe not found - video metadata will be limited")
+    _log_tool_availability(exiftool, ffprobe)
 
     # Build services
     metadata_service = MetadataService(
@@ -97,23 +137,22 @@ async def build_services(db_path: Optional[str] = None) -> Result[dict]:
 
     # Check for optional columns
     matches = await table_has_column(db, "asset_metadata", "tags_text")
-    
+
     index_service = IndexService(
         db=db,
         metadata_service=metadata_service,
         has_tags_text_column=matches
     )
 
-    services = {
-        "db": db,
-        "exiftool": exiftool,
-        "ffprobe": ffprobe,
-        "metadata": metadata_service,
-        "health": health_service,
-        "index": index_service,
-        "settings": settings_service,
-        "duplicates": DuplicatesService(db),
-    }
+    services = _build_services_dict(
+        db,
+        exiftool,
+        ffprobe,
+        metadata_service,
+        health_service,
+        index_service,
+        settings_service,
+    )
     try:
         services["watcher_scope"] = await load_watcher_scope(db)
     except Exception:

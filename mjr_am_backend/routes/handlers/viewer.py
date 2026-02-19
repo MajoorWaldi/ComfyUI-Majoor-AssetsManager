@@ -1,4 +1,4 @@
-﻿"""
+"""
 Viewer helper endpoints.
 
 These endpoints provide lightweight media info for the frontend viewer without
@@ -93,4 +93,3 @@ def register_viewer_routes(routes: web.RouteTableDef) -> None:
             info["mime"] = None
 
         return _json_response(Result.Ok(info))
-

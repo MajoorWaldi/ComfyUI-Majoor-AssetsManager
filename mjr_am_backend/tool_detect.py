@@ -1,4 +1,4 @@
-﻿"""
+"""
 Tool detection helpers for ExifTool and FFprobe.
 Cached detection to avoid repeated subprocess calls.
 """
@@ -178,4 +178,3 @@ def reset_tool_cache():
     global _TOOL_CACHE, _TOOL_VERSIONS
     _TOOL_CACHE = {"exiftool": None, "ffprobe": None}
     _TOOL_VERSIONS = {"exiftool": None, "ffprobe": None}
-

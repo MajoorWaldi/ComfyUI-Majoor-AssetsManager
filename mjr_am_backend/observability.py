@@ -134,53 +134,73 @@ def _should_emit_log(key: str, *, window_ms: float) -> bool:
 
 
 def _should_log(request: web.Request, *, status: Optional[int], duration_ms: float) -> bool:
-    # Only log Majoor endpoints by default to avoid spamming ComfyUI logs.
-    try:
-        path = request.path or ""
-    except Exception:
-        path = ""
-
-    if not path.startswith("/mjr/am/"):
+    path = _request_path_or_empty(request)
+    if not _is_majoor_route(path):
         return False
 
-    # Client-side control (e.g. ComfyUI settings toggle).
-    try:
-        client_flag = (request.headers.get("X-MJR-OBS") or "").strip().lower()
-    except Exception:
-        client_flag = ""
-    if client_flag in ("0", "false", "off", "disable", "disabled", "no"):
+    client_flag, client_explicit_on = _client_observability_flags(request)
+    if _is_obs_client_opt_out(client_flag):
         return False
 
-    client_explicit_on = client_flag in ("1", "true", "on", "enable", "enabled", "yes")
-
-    # Allow opt-in verbose logging
     if _env_flag("MJR_OBS_LOG_ALL", default=False):
         return True
 
-    # Health polling can be extremely chatty; never log successful polls by default.
-    if path in ("/mjr/am/health", "/mjr/am/health/counters"):
-        if status is not None and status >= 400:
-            return True
-        return False
+    if _is_health_poll_path(path):
+        return _is_error_status(status)
 
-    # Always log errors (unless client explicitly opted out above).
-    if status is not None and status >= 400:
+    if _is_error_status(status):
         return True
 
-    # By default, do NOT log successes (otherwise polling endpoints spam).
     if not _env_flag("MJR_OBS_LOG_SUCCESS", default=False):
         return False
 
-    # If the client did not explicitly enable observability, keep successful requests quiet.
     if not client_explicit_on:
         return False
 
-    # Optional: log slow successful requests (threshold configurable).
     if not _env_flag("MJR_OBS_LOG_SLOW", default=False):
         return False
 
     slow_ms = env_float("MJR_OBS_SLOW_MS", _DEFAULT_SLOW_MS)
     return duration_ms >= slow_ms
+
+
+def _request_path_or_empty(request: web.Request) -> str:
+    try:
+        return request.path or ""
+    except Exception:
+        return ""
+
+
+def _is_majoor_route(path: str) -> bool:
+    return path.startswith("/mjr/am/")
+
+
+def _is_health_poll_path(path: str) -> bool:
+    return path in ("/mjr/am/health", "/mjr/am/health/counters")
+
+
+def _is_error_status(status: Optional[int]) -> bool:
+    return status is not None and status >= 400
+
+
+def _client_observability_flags(request: web.Request) -> tuple[str, bool]:
+    client_flag = _request_header_lower(request, "X-MJR-OBS")
+    return client_flag, _is_obs_client_opt_in(client_flag)
+
+
+def _request_header_lower(request: web.Request, header_name: str) -> str:
+    try:
+        return (request.headers.get(header_name) or "").strip().lower()
+    except Exception:
+        return ""
+
+
+def _is_obs_client_opt_out(value: str) -> bool:
+    return value in ("0", "false", "off", "disable", "disabled", "no")
+
+
+def _is_obs_client_opt_in(value: str) -> bool:
+    return value in ("1", "true", "on", "enable", "enabled", "yes")
 
 
 @web.middleware
@@ -191,83 +211,125 @@ async def request_context_middleware(request: web.Request, handler):
 
     rid = _get_request_id(request)
     request["mjr_request_id"] = rid
-    token = None
-    try:
-        if request_id_var is not None:
-            token = request_id_var.set(rid)
-    except Exception:
-        token = None
+    token = _set_request_id_context(rid)
     start = time.perf_counter()
     status: Optional[int] = None
     error: Optional[str] = None
     error_type: Optional[str] = None
     try:
         response = await handler(request)
-        try:
-            status = int(getattr(response, "status", 200) or 200)
-        except Exception:
-            status = 200
-        response.headers["X-Request-ID"] = rid
+        status = _response_status_code(response)
+        _attach_request_id_header(response, rid)
         return response
     except web.HTTPException as exc:
-        try:
-            status = int(getattr(exc, "status", 500) or 500)
-        except Exception:
-            status = 500
-        error_type = exc.__class__.__name__
-        try:
-            error = str(exc)
-        except Exception:
-            error = "HTTPException"
-        try:
-            exc.headers["X-Request-ID"] = rid
-        except (AttributeError, TypeError, KeyError) as exc2:
-            logger.debug("Unable to attach X-Request-ID to HTTPException: %s", exc2)
+        status = _http_exception_status_code(exc)
+        error_type, error = _exception_error_fields(exc, fallback="HTTPException")
+        _attach_request_id_header_to_http_exception(exc, rid)
         raise
     except Exception as exc:
         status = 500
-        error_type = exc.__class__.__name__
-        try:
-            error = str(exc)
-        except Exception:
-            error = "Unhandled error"
+        error_type, error = _exception_error_fields(exc, fallback="Unhandled error")
         raise
     finally:
         duration_ms = (time.perf_counter() - start) * 1000.0
         request["mjr_duration_ms"] = duration_ms
+        _reset_request_id_context(token)
+        _emit_request_log(request, status=status, duration_ms=duration_ms, error=error, error_type=error_type)
+
+
+def _response_status_code(response: Any) -> int:
+    try:
+        return int(getattr(response, "status", 200) or 200)
+    except Exception:
+        return 200
+
+
+def _http_exception_status_code(exc: web.HTTPException) -> int:
+    try:
+        return int(getattr(exc, "status", 500) or 500)
+    except Exception:
+        return 500
+
+
+def _exception_error_fields(exc: Exception, *, fallback: str) -> tuple[str, str]:
+    error_type = exc.__class__.__name__
+    try:
+        return error_type, str(exc)
+    except Exception:
+        return error_type, fallback
+
+
+def _attach_request_id_header(response: Any, rid: str) -> None:
+    try:
+        response.headers["X-Request-ID"] = rid
+    except Exception:
+        return
+
+
+def _attach_request_id_header_to_http_exception(exc: web.HTTPException, rid: str) -> None:
+    try:
+        exc.headers["X-Request-ID"] = rid
+    except (AttributeError, TypeError, KeyError) as exc2:
+        logger.debug("Unable to attach X-Request-ID to HTTPException: %s", exc2)
+
+
+def _set_request_id_context(rid: str):
+    try:
+        if request_id_var is not None:
+            return request_id_var.set(rid)
+    except Exception:
+        return None
+    return None
+
+
+def _reset_request_id_context(token: Any) -> None:
+    try:
+        if token is not None and request_id_var is not None:
+            request_id_var.reset(token)
+    except Exception:
+        return
+
+
+def _emit_request_log(
+    request: web.Request,
+    *,
+    status: Optional[int],
+    duration_ms: float,
+    error: Optional[str],
+    error_type: Optional[str],
+) -> None:
+    try:
+        fields = build_request_log_fields(request, response_status=status)
+        if error:
+            fields["error"] = error
+            fields["error_type"] = error_type
+        if not _should_log(request, status=status, duration_ms=duration_ms):
+            return
+        key = _request_log_key(request, status)
+        window_ms = env_float("MJR_OBS_RATELIMIT_MS", _DEFAULT_LOG_RATELIMIT_MS)
+        if _should_emit_log(key, window_ms=window_ms):
+            _emit_request_log_by_status(status, fields)
+    except Exception as exc:
         try:
-            if token is not None and request_id_var is not None:
-                request_id_var.reset(token)
+            logger.debug("Observability log emit failed: %s", exc)
         except Exception:
-            pass
-        try:
-            fields = build_request_log_fields(request, response_status=status)
-            if error:
-                fields["error"] = error
-                fields["error_type"] = error_type
+            return
 
-            if _should_log(request, status=status, duration_ms=duration_ms):
-                # Rate-limit repetitive logs (especially error loops / polling).
-                window_ms = env_float("MJR_OBS_RATELIMIT_MS", _DEFAULT_LOG_RATELIMIT_MS)
-                try:
-                    key = f"{request.method}:{request.path}:{status}"
-                except Exception:
-                    key = f"unknown:{status}"
 
-                should_emit = _should_emit_log(key, window_ms=window_ms)
-                if should_emit:
-                    if status is not None and status >= 500:
-                        logger.error("Request handled", extra=fields)
-                    elif status is not None and status >= 400:
-                        logger.warning("Request handled", extra=fields)
-                    else:
-                        logger.info("Request handled", extra=fields)
-        except Exception as exc:
-            # Never let logging failures interfere with the request.
-            try:
-                logger.debug("Observability log emit failed: %s", exc)
-            except Exception:
-                _ = None
+def _request_log_key(request: web.Request, status: Optional[int]) -> str:
+    try:
+        return f"{request.method}:{request.path}:{status}"
+    except Exception:
+        return f"unknown:{status}"
+
+
+def _emit_request_log_by_status(status: Optional[int], fields: Dict[str, Any]) -> None:
+    if status is not None and status >= 500:
+        logger.error("Request handled", extra=fields)
+    elif status is not None and status >= 400:
+        logger.warning("Request handled", extra=fields)
+    else:
+        logger.info("Request handled", extra=fields)
 
 
 def ensure_observability(app: web.Application) -> None:

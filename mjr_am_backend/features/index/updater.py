@@ -88,26 +88,37 @@ class AssetUpdater:
         if not check_result.ok or not check_result.data or len(check_result.data) == 0:
             return Result.Err("NOT_FOUND", f"Asset not found: {asset_id}")
 
-        # Sanitize tags
-        sanitized = []
+        sanitized = self._sanitize_tags(tags)
+        tags_json, tags_text = self._build_tags_payload(sanitized)
+        result = await self._write_asset_tags(asset_id, tags_json, tags_text)
+
+        if not result.ok:
+            return Result.Err("UPDATE_FAILED", result.error or "Failed to update tags")
+
+        return Result.Ok({"asset_id": asset_id, "tags": sanitized})
+
+    def _sanitize_tags(self, tags: List[str]) -> List[str]:
+        sanitized: List[str] = []
         for tag in tags:
             if not isinstance(tag, str):
                 continue
-            tag = str(tag).strip()
-            if not tag or len(tag) > MAX_TAG_LENGTH:
+            cleaned = str(tag).strip()
+            if not cleaned or len(cleaned) > MAX_TAG_LENGTH:
                 continue
-            if tag not in sanitized:  # Deduplicate
-                sanitized.append(tag)
+            if cleaned in sanitized:
+                continue
+            sanitized.append(cleaned)
+        return sanitized
 
+    def _build_tags_payload(self, sanitized: List[str]) -> tuple[str, str | None]:
         tags_json = json.dumps(sanitized, ensure_ascii=False)
-
-        # Build tags_text for FTS5 (if column exists)
         tags_text = " ".join(sanitized) if self._has_tags_text_column else None
+        return tags_json, tags_text
 
-        # Update or insert asset_metadata (serialize per-asset to avoid race with enrichers)
+    async def _write_asset_tags(self, asset_id: int, tags_json: str, tags_text: str | None) -> Result[Any]:
         async with self.db.lock_for_asset(asset_id):
             if self._has_tags_text_column:
-                result = await self.db.aexecute(
+                return await self.db.aexecute(
                     """
                     INSERT INTO asset_metadata (asset_id, rating, tags, tags_text)
                     SELECT ?, 0, ?, ?
@@ -119,23 +130,17 @@ class AssetUpdater:
                     """,
                     (asset_id, tags_json, tags_text, asset_id)
                 )
-            else:
-                result = await self.db.aexecute(
-                    """
-                    INSERT INTO asset_metadata (asset_id, rating, tags)
-                    SELECT ?, 0, ?
-                    WHERE EXISTS (SELECT 1 FROM assets WHERE id = ?)
-                    ON CONFLICT(asset_id) DO UPDATE SET
-                        tags = excluded.tags
-                    WHERE EXISTS (SELECT 1 FROM assets WHERE id = excluded.asset_id)
-                    """,
-                    (asset_id, tags_json, asset_id)
-                )
-
-        if not result.ok:
-            return Result.Err("UPDATE_FAILED", result.error or "Failed to update tags")
-
-        return Result.Ok({"asset_id": asset_id, "tags": sanitized})
+            return await self.db.aexecute(
+                """
+                INSERT INTO asset_metadata (asset_id, rating, tags)
+                SELECT ?, 0, ?
+                WHERE EXISTS (SELECT 1 FROM assets WHERE id = ?)
+                ON CONFLICT(asset_id) DO UPDATE SET
+                    tags = excluded.tags
+                WHERE EXISTS (SELECT 1 FROM assets WHERE id = excluded.asset_id)
+                """,
+                (asset_id, tags_json, asset_id)
+            )
 
     async def get_all_tags(self) -> Result[List[str]]:
         """
@@ -155,20 +160,29 @@ class AssetUpdater:
         if not result.ok:
             return Result.Err("DB_ERROR", result.error or "Failed to read tags")
 
-        # Collect all unique tags
-        all_tags = set()
-        for row in result.data or []:
-            tags_json = row.get("tags")
-            if not tags_json:
-                continue
-            try:
-                tags = json.loads(tags_json) if isinstance(tags_json, str) else tags_json
-                if isinstance(tags, list):
-                    for tag in tags:
-                        if isinstance(tag, str) and tag.strip():
-                            all_tags.add(tag.strip())
-            except Exception:
-                continue
+        all_tags = self._collect_unique_tags(result.data or [])
+        return Result.Ok(sorted(all_tags))
 
-        sorted_tags = sorted(all_tags)
-        return Result.Ok(sorted_tags)
+    def _collect_unique_tags(self, rows: List[Dict[str, Any]]) -> set[str]:
+        all_tags: set[str] = set()
+        for row in rows:
+            for tag in self._row_tags(row):
+                all_tags.add(tag)
+        return all_tags
+
+    @staticmethod
+    def _row_tags(row: Dict[str, Any]) -> List[str]:
+        tags_json = row.get("tags")
+        if not tags_json:
+            return []
+        try:
+            tags = json.loads(tags_json) if isinstance(tags_json, str) else tags_json
+        except Exception:
+            return []
+        if not isinstance(tags, list):
+            return []
+        out: List[str] = []
+        for tag in tags:
+            if isinstance(tag, str) and tag.strip():
+                out.append(tag.strip())
+        return out

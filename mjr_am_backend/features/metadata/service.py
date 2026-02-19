@@ -64,23 +64,7 @@ def _build_geninfo_from_parameters(meta: Dict[str, Any]) -> Optional[Dict[str, A
     if not isinstance(meta, dict):
         return None
 
-    parsed_meta = dict(meta)
-    params_text = parsed_meta.get("parameters")
-    if isinstance(params_text, str) and params_text.strip():
-        parsed_params = parse_auto1111_params(params_text)
-        if parsed_params:
-            if logger.isEnabledFor(logging.DEBUG):
-                logger.debug(
-                    "Parsed PNG:Parameters for geninfo fallback (%s keys)",
-                    ", ".join(sorted(parsed_params.keys())),
-                )
-            for key, value in parsed_params.items():
-                if value is None:
-                    continue
-                parsed_meta[key] = value
-        elif logger.isEnabledFor(logging.DEBUG):
-            logger.debug("Auto1111 parameter parser returned no fields for provided PNG:Parameters text.")
-
+    parsed_meta = _merge_parsed_params(meta)
     pos = parsed_meta.get("prompt")
     neg = parsed_meta.get("negative_prompt")
     steps = parsed_meta.get("steps")
@@ -92,51 +76,91 @@ def _build_geninfo_from_parameters(meta: Dict[str, Any]) -> Optional[Dict[str, A
     h = parsed_meta.get("height")
     model = parsed_meta.get("model")
 
-    has_any = any(v is not None and v != "" for v in (pos, neg, steps, sampler, cfg, seed, w, h, model))
+    has_any = _has_any_parameter_signal(pos, neg, steps, sampler, cfg, seed, w, h, model)
     if not has_any:
         # Return an empty dict instead of None to ensure geninfo is always a dict
         return {}
 
     out: Dict[str, Any] = {"engine": {"parser_version": "geninfo-params-v1", "source": "parameters"}}
 
+    _apply_prompt_fields(out, pos, neg)
+    _apply_sampler_fields(out, sampler, scheduler)
+    _apply_numeric_fields(out, steps, cfg, seed)
+    _apply_size_field(out, w, h)
+    _apply_checkpoint_fields(out, model)
+
+    return out if len(out.keys()) > 1 else None
+
+
+def _merge_parsed_params(meta: Dict[str, Any]) -> Dict[str, Any]:
+    parsed_meta = dict(meta)
+    params_text = parsed_meta.get("parameters")
+    if not isinstance(params_text, str) or not params_text.strip():
+        return parsed_meta
+    parsed_params = parse_auto1111_params(params_text)
+    if parsed_params:
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(
+                "Parsed PNG:Parameters for geninfo fallback (%s keys)",
+                ", ".join(sorted(parsed_params.keys())),
+            )
+        for key, value in parsed_params.items():
+            if value is not None:
+                parsed_meta[key] = value
+        return parsed_meta
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug("Auto1111 parameter parser returned no fields for provided PNG:Parameters text.")
+    return parsed_meta
+
+
+def _has_any_parameter_signal(*values: Any) -> bool:
+    return any(value is not None and value != "" for value in values)
+
+
+def _apply_prompt_fields(out: Dict[str, Any], pos: Any, neg: Any) -> None:
     if isinstance(pos, str) and pos.strip():
         out["positive"] = {"value": pos.strip(), "confidence": "high", "source": "parameters"}
     if isinstance(neg, str) and neg.strip():
         out["negative"] = {"value": neg.strip(), "confidence": "high", "source": "parameters"}
 
+
+def _apply_sampler_fields(out: Dict[str, Any], sampler: Any, scheduler: Any) -> None:
     if sampler is not None:
         out["sampler"] = {"name": str(sampler), "confidence": "high", "source": "parameters"}
     if scheduler is not None:
         out["scheduler"] = {"name": str(scheduler), "confidence": "high", "source": "parameters"}
 
-    if steps is not None:
-        try:
-            out["steps"] = {"value": int(steps), "confidence": "high", "source": "parameters"}
-        except Exception:
-            pass
-    if cfg is not None:
-        try:
-            out["cfg"] = {"value": float(cfg), "confidence": "high", "source": "parameters"}
-        except Exception:
-            pass
-    if seed is not None:
-        try:
-            out["seed"] = {"value": int(seed), "confidence": "high", "source": "parameters"}
-        except Exception:
-            pass
 
-    if w is not None and h is not None:
-        try:
-            out["size"] = {"width": int(w), "height": int(h), "confidence": "high", "source": "parameters"}
-        except Exception:
-            pass
+def _apply_numeric_fields(out: Dict[str, Any], steps: Any, cfg: Any, seed: Any) -> None:
+    _set_numeric_field(out, "steps", steps, int)
+    _set_numeric_field(out, "cfg", cfg, float)
+    _set_numeric_field(out, "seed", seed, int)
 
+
+def _set_numeric_field(out: Dict[str, Any], key: str, value: Any, caster: Callable[[Any], Any]) -> None:
+    if value is None:
+        return
+    try:
+        out[key] = {"value": caster(value), "confidence": "high", "source": "parameters"}
+    except Exception:
+        return
+
+
+def _apply_size_field(out: Dict[str, Any], width: Any, height: Any) -> None:
+    if width is None or height is None:
+        return
+    try:
+        out["size"] = {"width": int(width), "height": int(height), "confidence": "high", "source": "parameters"}
+    except Exception:
+        return
+
+
+def _apply_checkpoint_fields(out: Dict[str, Any], model: Any) -> None:
     ckpt = _clean_model_name(model)
-    if ckpt:
-        out["checkpoint"] = {"name": ckpt, "confidence": "high", "source": "parameters"}
-        out["models"] = {"checkpoint": out["checkpoint"]}
-
-    return out if len(out.keys()) > 1 else None
+    if not ckpt:
+        return
+    out["checkpoint"] = {"name": ckpt, "confidence": "high", "source": "parameters"}
+    out["models"] = {"checkpoint": out["checkpoint"]}
 
 
 def _looks_like_media_pipeline(prompt_graph: Any) -> bool:
@@ -148,28 +172,44 @@ def _looks_like_media_pipeline(prompt_graph: Any) -> bool:
     if not isinstance(prompt_graph, dict) or not prompt_graph:
         return False
     try:
-        types = []
-        for node in prompt_graph.values():
-            if not isinstance(node, dict):
-                continue
-            ct = str(node.get("class_type") or node.get("type") or "").lower()
-            if ct:
-                types.append(ct)
+        types = _collect_prompt_graph_types(prompt_graph)
         if not types:
             return False
 
-        # If any sampler-like node exists, it's not media-only.
-        if any(("ksampler" in t and "select" not in t) or ("samplercustom" in t) for t in types):
-            return False
-        if any("sampler" in t and "select" not in t for t in types):
+        if _has_generation_sampler(types):
             return False
 
-        has_load = any("loadvideo" in t or "vhs_loadvideo" in t for t in types)
-        has_combine = any("videocombine" in t or "video_combine" in t or "vhs_videocombine" in t for t in types)
-        has_save = any(t.startswith("save") or "savevideo" in t or "savegif" in t or "saveanimatedwebp" in t for t in types)
+        has_load, has_combine, has_save = _classify_media_nodes(types)
         return has_load and (has_combine or has_save)
     except Exception:
         return False
+
+
+def _collect_prompt_graph_types(prompt_graph: Dict[str, Any]) -> list[str]:
+    types: list[str] = []
+    for node in prompt_graph.values():
+        if not isinstance(node, dict):
+            continue
+        ct = str(node.get("class_type") or node.get("type") or "").lower()
+        if ct:
+            types.append(ct)
+    return types
+
+
+def _has_generation_sampler(types: list[str]) -> bool:
+    if any(("ksampler" in token and "select" not in token) or ("samplercustom" in token) for token in types):
+        return True
+    return any("sampler" in token and "select" not in token for token in types)
+
+
+def _classify_media_nodes(types: list[str]) -> tuple[bool, bool, bool]:
+    has_load = any("loadvideo" in token or "vhs_loadvideo" in token for token in types)
+    has_combine = any("videocombine" in token or "video_combine" in token or "vhs_videocombine" in token for token in types)
+    has_save = any(
+        token.startswith("save") or "savevideo" in token or "savegif" in token or "saveanimatedwebp" in token
+        for token in types
+    )
+    return has_load, has_combine, has_save
 
 
 def _should_parse_geninfo(meta: Dict[str, Any]) -> bool:
@@ -191,6 +231,81 @@ def _should_parse_geninfo(meta: Dict[str, Any]) -> bool:
     except Exception:
         return False
     return False
+
+
+def _group_existing_paths(paths: list[str]) -> tuple[list[str], list[str], list[str], list[str]]:
+    images: list[str] = []
+    videos: list[str] = []
+    audios: list[str] = []
+    others: list[str] = []
+    for path in paths:
+        if not os.path.exists(path):
+            continue
+        kind = classify_file(path)
+        if kind == "image":
+            images.append(path)
+        elif kind == "video":
+            videos.append(path)
+        elif kind == "audio":
+            audios.append(path)
+        else:
+            others.append(path)
+    return images, videos, audios, others
+
+
+def _build_batch_probe_targets(paths: list[str], probe_mode: str) -> tuple[list[str], list[str]]:
+    exif_targets: list[str] = []
+    ffprobe_targets: list[str] = []
+    seen_exif: set[str] = set()
+    seen_ffprobe: set[str] = set()
+    for path in paths:
+        backends = pick_probe_backend(path, settings_override=probe_mode)
+        if "exiftool" in backends and path not in seen_exif:
+            seen_exif.add(path)
+            exif_targets.append(path)
+        if "ffprobe" in backends and path not in seen_ffprobe:
+            seen_ffprobe.add(path)
+            ffprobe_targets.append(path)
+    return exif_targets, ffprobe_targets
+
+
+def _batch_tool_data(
+    result_map: Dict[str, Result[Dict[str, Any]]],
+    path: str,
+) -> Optional[Dict[str, Any]]:
+    item = result_map.get(path)
+    return item.data if item and item.ok else None
+
+
+def _expand_resolution_scalars(payload: Dict[str, Any]) -> None:
+    resolution = payload.get("resolution")
+    if not resolution:
+        return
+    if payload.get("width") is not None and payload.get("height") is not None:
+        return
+    dims = _coerce_resolution_pair(resolution)
+    if dims is None:
+        return
+    w, h = dims
+    if payload.get("width") is None:
+        payload["width"] = _coerce_dimension_value(w)
+    if payload.get("height") is None:
+        payload["height"] = _coerce_dimension_value(h)
+
+
+def _coerce_resolution_pair(resolution: Any) -> Optional[tuple[Any, Any]]:
+    try:
+        w, h = resolution
+        return w, h
+    except Exception:
+        return None
+
+
+def _coerce_dimension_value(value: Any) -> Any:
+    try:
+        return int(value) if value is not None else None
+    except Exception:
+        return value
 
 class MetadataService:
     """
@@ -433,39 +548,16 @@ class MetadataService:
             return Result.Ok({"workflow": None, "prompt": None, "quality": "none"}, quality="none")
 
         ext = os.path.splitext(file_path)[1].lower()
-
-        exif_start = time.perf_counter()
-        exif_result = await self._exif_read(file_path)
-        exif_duration = time.perf_counter() - exif_start
-        exif_data = exif_result.data if exif_result.ok else None
         image_fallback_enabled, _ = await self._resolve_fallback_prefs()
-        if not exif_result.ok:
-            self._log_metadata_issue(
-                logging.DEBUG,
-                "ExifTool failed while reading workflow-only metadata",
-                file_path,
-                scan_id=scan_id,
-                tool="exiftool",
-                error=exif_result.error,
-                duration_seconds=exif_duration,
-            )
-            if kind == "image" and image_fallback_enabled:
-                exif_data = await asyncio.to_thread(read_image_exif_like, file_path)
-            else:
-                exif_data = {}
+        exif_data = await self._read_workflow_only_exif(
+            file_path=file_path,
+            kind=kind,
+            image_fallback_enabled=image_fallback_enabled,
+            scan_id=scan_id,
+        )
         if not exif_data:
             return Result.Ok({"workflow": None, "prompt": None, "quality": "none"}, quality="none")
-
-        if kind == "image":
-            if ext == ".png":
-                res = extract_png_metadata(file_path, exif_data)
-            elif ext == ".webp":
-                res = extract_webp_metadata(file_path, exif_data)
-            else:
-                res = Result.Ok({"workflow": None, "prompt": None, "quality": "none"}, quality="none")
-        else:
-            # No ffprobe here (can be slow); extractor supports workflow/prompt from ExifTool tags.
-            res = extract_video_metadata(file_path, exif_data, ffprobe_data=None)
+        res = self._extract_workflow_only_payload(kind, ext, file_path, exif_data)
 
         if not res.ok:
             return res
@@ -478,6 +570,50 @@ class MetadataService:
         }
         return Result.Ok(payload, quality=payload.get("quality", "none"))
 
+    async def _read_workflow_only_exif(
+        self,
+        *,
+        file_path: str,
+        kind: str,
+        image_fallback_enabled: bool,
+        scan_id: Optional[str],
+    ) -> Dict[str, Any]:
+        exif_start = time.perf_counter()
+        exif_result = await self._exif_read(file_path)
+        exif_duration = time.perf_counter() - exif_start
+        exif_data = exif_result.data if exif_result.ok else None
+        if exif_result.ok:
+            return exif_data or {}
+        self._log_metadata_issue(
+            logging.DEBUG,
+            "ExifTool failed while reading workflow-only metadata",
+            file_path,
+            scan_id=scan_id,
+            tool="exiftool",
+            error=exif_result.error,
+            duration_seconds=exif_duration,
+        )
+        if kind == "image" and image_fallback_enabled:
+            fallback = await asyncio.to_thread(read_image_exif_like, file_path)
+            return fallback or {}
+        return {}
+
+    @staticmethod
+    def _extract_workflow_only_payload(
+        kind: str,
+        ext: str,
+        file_path: str,
+        exif_data: Dict[str, Any],
+    ) -> Result[Dict[str, Any]]:
+        if kind == "image":
+            if ext == ".png":
+                return extract_png_metadata(file_path, exif_data)
+            if ext == ".webp":
+                return extract_webp_metadata(file_path, exif_data)
+            return Result.Ok({"workflow": None, "prompt": None, "quality": "none"}, quality="none")
+        # No ffprobe here (can be slow); extractor supports workflow/prompt from ExifTool tags.
+        return extract_video_metadata(file_path, exif_data, ffprobe_data=None)
+
     async def _extract_image_metadata(
         self,
         file_path: str,
@@ -486,40 +622,8 @@ class MetadataService:
     ) -> Result[Dict[str, Any]]:
         """Extract metadata from image file."""
         ext = os.path.splitext(file_path)[1].lower()
-
-        exif_data = None
-        image_fallback_enabled, _ = await self._resolve_fallback_prefs()
-        if allow_exif:
-            exif_start = time.perf_counter()
-            exif_result = await self._exif_read(file_path)
-            exif_duration = time.perf_counter() - exif_start
-            exif_data = exif_result.data if exif_result.ok else None
-            if not exif_result.ok:
-                self._log_metadata_issue(
-                    logging.WARNING,
-                    "ExifTool failed while reading image metadata",
-                    file_path,
-                    scan_id=scan_id,
-                    tool="exiftool",
-                    error=exif_result.error,
-                    duration_seconds=exif_duration
-                )
-        if not exif_data and image_fallback_enabled:
-            exif_data = await asyncio.to_thread(read_image_exif_like, file_path)
-
-        # Extract based on format
-        if ext == ".png":
-            metadata_result = extract_png_metadata(file_path, exif_data)
-        elif ext == ".webp":
-            metadata_result = extract_webp_metadata(file_path, exif_data)
-        else:
-            # Generic image
-            metadata_result = Result.Ok({
-                "workflow": None,
-                "prompt": None,
-                "quality": "partial" if exif_data else "none"
-            })
-            
+        exif_data = await self._resolve_image_exif_data(file_path, scan_id=scan_id, allow_exif=allow_exif)
+        metadata_result = self._extract_image_by_extension(file_path, ext, exif_data)
         if not metadata_result.ok:
             self._log_metadata_issue(
                 logging.WARNING,
@@ -528,16 +632,11 @@ class MetadataService:
                 scan_id=scan_id,
                 tool="extractor",
                 error=metadata_result.error,
-                duration_seconds=exif_duration
+                duration_seconds=0.0,
             )
             return metadata_result
 
-        # Combine results
-        combined = {
-            "file_info": self._get_file_info(file_path),
-            "exif": exif_data,
-            **(metadata_result.data or {})
-        }
+        combined = self._build_image_metadata_payload(file_path, exif_data, metadata_result)
         self._normalize_visual_dimensions(combined, exif_data=exif_data, ffprobe_data=None)
 
         # Optional: parse deterministic generation info from ComfyUI prompt graph (backend-first).
@@ -547,6 +646,69 @@ class MetadataService:
         quality = metadata_result.meta.get("quality", "none")
         return Result.Ok(combined, quality=quality)
 
+    async def _resolve_image_exif_data(
+        self,
+        file_path: str,
+        *,
+        scan_id: Optional[str],
+        allow_exif: bool,
+    ) -> Optional[Dict[str, Any]]:
+        exif_data: Optional[Dict[str, Any]] = None
+        image_fallback_enabled, _ = await self._resolve_fallback_prefs()
+        if allow_exif:
+            exif_data = await self._read_image_exif_if_allowed(file_path, scan_id=scan_id)
+        if not exif_data and image_fallback_enabled:
+            exif_data = await asyncio.to_thread(read_image_exif_like, file_path)
+        return exif_data
+
+    async def _read_image_exif_if_allowed(
+        self,
+        file_path: str,
+        *,
+        scan_id: Optional[str],
+    ) -> Optional[Dict[str, Any]]:
+        exif_start = time.perf_counter()
+        exif_result = await self._exif_read(file_path)
+        exif_duration = time.perf_counter() - exif_start
+        if exif_result.ok:
+            return exif_result.data if isinstance(exif_result.data, dict) else None
+        self._log_metadata_issue(
+            logging.WARNING,
+            "ExifTool failed while reading image metadata",
+            file_path,
+            scan_id=scan_id,
+            tool="exiftool",
+            error=exif_result.error,
+            duration_seconds=exif_duration,
+        )
+        return None
+
+    @staticmethod
+    def _extract_image_by_extension(file_path: str, ext: str, exif_data: Optional[Dict[str, Any]]) -> Result[Dict[str, Any]]:
+        if ext == ".png":
+            return extract_png_metadata(file_path, exif_data)
+        if ext == ".webp":
+            return extract_webp_metadata(file_path, exif_data)
+        return Result.Ok(
+            {
+                "workflow": None,
+                "prompt": None,
+                "quality": "partial" if exif_data else "none",
+            }
+        )
+
+    def _build_image_metadata_payload(
+        self,
+        file_path: str,
+        exif_data: Optional[Dict[str, Any]],
+        metadata_result: Result[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        return {
+            "file_info": self._get_file_info(file_path),
+            "exif": exif_data,
+            **(metadata_result.data or {}),
+        }
+
     async def _extract_video_metadata(
         self,
         file_path: str,
@@ -555,47 +717,9 @@ class MetadataService:
         allow_ffprobe: bool = True,
     ) -> Result[Dict[str, Any]]:
         """Extract metadata from video file."""
-        exif_data: Dict[str, Any] | None = {}
-        exif_duration = 0.0
         _, media_fallback_enabled = await self._resolve_fallback_prefs()
-        if allow_exif:
-            exif_start = time.perf_counter()
-            exif_result = await self._exif_read(file_path)
-            exif_duration = time.perf_counter() - exif_start
-            exif_data = exif_result.data if exif_result.ok else None
-            if not exif_result.ok:
-                self._log_metadata_issue(
-                    logging.WARNING,
-                    "ExifTool failed while reading video metadata",
-                    file_path,
-                    scan_id=scan_id,
-                    tool="exiftool",
-                    error=exif_result.error,
-                    duration_seconds=exif_duration
-                )
-                exif_data = None
-        else:
-            exif_data = {}
-
-        ffprobe_data: Dict[str, Any] | None = {}
-        ffprobe_duration = 0.0
-        if allow_ffprobe:
-            ffprobe_start = time.perf_counter()
-            ffprobe_result = await self._ffprobe_read(file_path)
-            ffprobe_duration = time.perf_counter() - ffprobe_start
-            if not ffprobe_result.ok:
-                self._log_metadata_issue(
-                    logging.WARNING,
-                    "FFprobe failed while reading video metadata",
-                    file_path,
-                    scan_id=scan_id,
-                    tool="ffprobe",
-                    error=ffprobe_result.error,
-                    duration_seconds=ffprobe_duration
-                )
-                ffprobe_data = None
-            else:
-                ffprobe_data = ffprobe_result.data or {}
+        exif_data, exif_duration = await self._read_video_exif_if_allowed(file_path, scan_id, allow_exif)
+        ffprobe_data, ffprobe_duration = await self._read_video_ffprobe_if_allowed(file_path, scan_id, allow_ffprobe)
         if not ffprobe_data and media_fallback_enabled:
             ffprobe_data = await asyncio.to_thread(read_media_probe_like, file_path)
 
@@ -614,15 +738,7 @@ class MetadataService:
             )
             return metadata_result
 
-        # Unpack resolution tuple to width/height for DB compatibility
-        data = metadata_result.data or {}
-        if data.get("resolution"):
-            try:
-                w, h = data["resolution"]
-                data["width"] = w
-                data["height"] = h
-            except (ValueError, TypeError):
-                pass
+        self._expand_video_resolution_fields(metadata_result)
 
         # Combine results
         combined = {
@@ -650,63 +766,11 @@ class MetadataService:
     ) -> Result[Dict[str, Any]]:
         """Extract metadata from audio file."""
         if not allow_exif and not allow_ffprobe:
-            _, media_fallback_enabled = await self._resolve_fallback_prefs()
-            fallback_ffprobe = (
-                await asyncio.to_thread(read_media_probe_like, file_path)
-                if media_fallback_enabled
-                else None
-            )
-            metadata_result = extract_audio_metadata(file_path, exif_data=None, ffprobe_data=fallback_ffprobe or None)
-            if not metadata_result.ok:
-                return metadata_result
-            combined = {
-                "file_info": self._get_file_info(file_path),
-                "exif": None,
-                "ffprobe": fallback_ffprobe or None,
-                **(metadata_result.data or {}),
-            }
-            quality = metadata_result.meta.get("quality", "none") if metadata_result.ok else "none"
-            return Result.Ok(combined, quality=quality)
+            return await self._extract_audio_metadata_fallback_only(file_path)
 
-        exif_data = None
-        ffprobe_data = None
-        exif_duration = 0.0
-        ffprobe_duration = 0.0
-
-        if allow_exif:
-            exif_start = time.perf_counter()
-            exif_result = await self._exif_read(file_path)
-            exif_duration = time.perf_counter() - exif_start
-            exif_data = exif_result.data if exif_result.ok else None
-            if not exif_result.ok:
-                self._log_metadata_issue(
-                    logging.WARNING,
-                    "ExifTool failed while reading audio metadata",
-                    file_path,
-                    scan_id=scan_id,
-                    tool="exiftool",
-                    error=exif_result.error,
-                    duration_seconds=exif_duration,
-                )
-
-        if allow_ffprobe:
-            ffprobe_start = time.perf_counter()
-            ffprobe_result = await self._ffprobe_read(file_path)
-            ffprobe_duration = time.perf_counter() - ffprobe_start
-            ffprobe_data = ffprobe_result.data if ffprobe_result.ok else None
-            if not ffprobe_result.ok:
-                self._log_metadata_issue(
-                    logging.WARNING,
-                    "FFprobe failed while reading audio metadata",
-                    file_path,
-                    scan_id=scan_id,
-                    tool="ffprobe",
-                    error=ffprobe_result.error,
-                    duration_seconds=ffprobe_duration,
-                )
-        _, media_fallback_enabled = await self._resolve_fallback_prefs()
-        if not ffprobe_data and media_fallback_enabled:
-            ffprobe_data = await asyncio.to_thread(read_media_probe_like, file_path)
+        exif_data, exif_duration = await self._read_audio_exif_if_allowed(file_path, scan_id, allow_exif)
+        ffprobe_data, ffprobe_duration = await self._read_audio_ffprobe_if_allowed(file_path, scan_id, allow_ffprobe)
+        ffprobe_data = await self._maybe_audio_ffprobe_fallback(file_path, ffprobe_data)
 
         metadata_result = extract_audio_metadata(file_path, exif_data=exif_data, ffprobe_data=ffprobe_data)
         if not metadata_result.ok:
@@ -721,6 +785,144 @@ class MetadataService:
             )
             return metadata_result
 
+        return await self._finalize_audio_metadata_ok(file_path, exif_data, ffprobe_data, metadata_result)
+
+    async def _extract_audio_metadata_fallback_only(self, file_path: str) -> Result[Dict[str, Any]]:
+        _, media_fallback_enabled = await self._resolve_fallback_prefs()
+        fallback_ffprobe = await asyncio.to_thread(read_media_probe_like, file_path) if media_fallback_enabled else None
+        metadata_result = extract_audio_metadata(file_path, exif_data=None, ffprobe_data=fallback_ffprobe or None)
+        if not metadata_result.ok:
+            return metadata_result
+        combined = {
+            "file_info": self._get_file_info(file_path),
+            "exif": None,
+            "ffprobe": fallback_ffprobe or None,
+            **(metadata_result.data or {}),
+        }
+        quality = metadata_result.meta.get("quality", "none")
+        return Result.Ok(combined, quality=quality)
+
+    async def _read_video_exif_if_allowed(
+        self, file_path: str, scan_id: Optional[str], allow_exif: bool
+    ) -> tuple[Dict[str, Any] | None, float]:
+        if not allow_exif:
+            return {}, 0.0
+        exif_start = time.perf_counter()
+        exif_result = await self._exif_read(file_path)
+        exif_duration = time.perf_counter() - exif_start
+        if exif_result.ok:
+            return exif_result.data or {}, exif_duration
+        self._log_metadata_issue(
+            logging.WARNING,
+            "ExifTool failed while reading video metadata",
+            file_path,
+            scan_id=scan_id,
+            tool="exiftool",
+            error=exif_result.error,
+            duration_seconds=exif_duration,
+        )
+        return None, exif_duration
+
+    async def _read_video_ffprobe_if_allowed(
+        self, file_path: str, scan_id: Optional[str], allow_ffprobe: bool
+    ) -> tuple[Dict[str, Any] | None, float]:
+        if not allow_ffprobe:
+            return {}, 0.0
+        ffprobe_start = time.perf_counter()
+        ffprobe_result = await self._ffprobe_read(file_path)
+        ffprobe_duration = time.perf_counter() - ffprobe_start
+        if ffprobe_result.ok:
+            return ffprobe_result.data or {}, ffprobe_duration
+        self._log_metadata_issue(
+            logging.WARNING,
+            "FFprobe failed while reading video metadata",
+            file_path,
+            scan_id=scan_id,
+            tool="ffprobe",
+            error=ffprobe_result.error,
+            duration_seconds=ffprobe_duration,
+        )
+        return None, ffprobe_duration
+
+    @staticmethod
+    def _expand_video_resolution_fields(metadata_result: Result[Dict[str, Any]]) -> None:
+        data = metadata_result.data or {}
+        if not data.get("resolution"):
+            return
+        try:
+            w, h = data["resolution"]
+            data["width"] = w
+            data["height"] = h
+        except (ValueError, TypeError):
+            return
+
+    async def _read_audio_exif_if_allowed(
+        self,
+        file_path: str,
+        scan_id: Optional[str],
+        allow_exif: bool,
+    ) -> tuple[Optional[Dict[str, Any]], float]:
+        if not allow_exif:
+            return None, 0.0
+        exif_start = time.perf_counter()
+        exif_result = await self._exif_read(file_path)
+        exif_duration = time.perf_counter() - exif_start
+        exif_data = exif_result.data if exif_result.ok else None
+        if not exif_result.ok:
+            self._log_metadata_issue(
+                logging.WARNING,
+                "ExifTool failed while reading audio metadata",
+                file_path,
+                scan_id=scan_id,
+                tool="exiftool",
+                error=exif_result.error,
+                duration_seconds=exif_duration,
+            )
+        return exif_data, exif_duration
+
+    async def _read_audio_ffprobe_if_allowed(
+        self,
+        file_path: str,
+        scan_id: Optional[str],
+        allow_ffprobe: bool,
+    ) -> tuple[Optional[Dict[str, Any]], float]:
+        if not allow_ffprobe:
+            return None, 0.0
+        ffprobe_start = time.perf_counter()
+        ffprobe_result = await self._ffprobe_read(file_path)
+        ffprobe_duration = time.perf_counter() - ffprobe_start
+        ffprobe_data = ffprobe_result.data if ffprobe_result.ok else None
+        if not ffprobe_result.ok:
+            self._log_metadata_issue(
+                logging.WARNING,
+                "FFprobe failed while reading audio metadata",
+                file_path,
+                scan_id=scan_id,
+                tool="ffprobe",
+                error=ffprobe_result.error,
+                duration_seconds=ffprobe_duration,
+            )
+        return ffprobe_data, ffprobe_duration
+
+    async def _maybe_audio_ffprobe_fallback(
+        self,
+        file_path: str,
+        ffprobe_data: Optional[Dict[str, Any]],
+    ) -> Optional[Dict[str, Any]]:
+        if ffprobe_data:
+            return ffprobe_data
+        _, media_fallback_enabled = await self._resolve_fallback_prefs()
+        if not media_fallback_enabled:
+            return ffprobe_data
+        return await asyncio.to_thread(read_media_probe_like, file_path)
+
+    async def _finalize_audio_metadata_ok(
+        self,
+        file_path: str,
+        exif_data: Optional[Dict[str, Any]],
+        ffprobe_data: Optional[Dict[str, Any]],
+        metadata_result: Result[Dict[str, Any]],
+    ) -> Result[Dict[str, Any]]:
         combined = {
             "file_info": self._get_file_info(file_path),
             "exif": exif_data,
@@ -763,6 +965,103 @@ class MetadataService:
                 probe_mode_override=probe_mode_override,
             )
 
+    async def _finalize_batch_ok(
+        self,
+        combined: Dict[str, Any],
+        metadata_result: Result[Dict[str, Any]],
+    ) -> Result[Dict[str, Any]]:
+        if _should_parse_geninfo(combined):
+            await self._enrich_with_geninfo_async(combined)
+        elif "geninfo" not in combined:
+            combined["geninfo"] = {}
+        quality = metadata_result.meta.get("quality", "none")
+        return Result.Ok(combined, quality=quality)
+
+    async def _process_image_batch_item(
+        self,
+        path: str,
+        exif_data: Optional[Dict[str, Any]],
+        image_fallback_enabled: bool,
+    ) -> Result[Dict[str, Any]]:
+        resolved_exif = exif_data
+        if not resolved_exif and image_fallback_enabled:
+            resolved_exif = read_image_exif_like(path)
+
+        ext = os.path.splitext(path)[1].lower()
+        if ext == ".png":
+            metadata_result = extract_png_metadata(path, resolved_exif)
+        elif ext == ".webp":
+            metadata_result = extract_webp_metadata(path, resolved_exif)
+        else:
+            metadata_result = Result.Ok(
+                {
+                    "workflow": None,
+                    "prompt": None,
+                    "quality": "partial" if resolved_exif else "none",
+                }
+            )
+
+        if not metadata_result.ok:
+            return metadata_result
+
+        combined = {
+            "file_info": self._get_file_info(path),
+            "exif": resolved_exif,
+            **(metadata_result.data or {}),
+        }
+        self._normalize_visual_dimensions(combined, exif_data=resolved_exif, ffprobe_data=None)
+        return await self._finalize_batch_ok(combined, metadata_result)
+
+    async def _process_video_batch_item(
+        self,
+        path: str,
+        exif_data: Optional[Dict[str, Any]],
+        ffprobe_data: Optional[Dict[str, Any]],
+        media_fallback_enabled: bool,
+    ) -> Result[Dict[str, Any]]:
+        resolved_ffprobe = ffprobe_data
+        if not resolved_ffprobe and media_fallback_enabled:
+            resolved_ffprobe = read_media_probe_like(path)
+
+        metadata_result = extract_video_metadata(path, exif_data, resolved_ffprobe)
+        if not metadata_result.ok:
+            return metadata_result
+
+        payload = dict(metadata_result.data or {})
+        _expand_resolution_scalars(payload)
+
+        combined = {
+            "file_info": self._get_file_info(path),
+            "exif": exif_data,
+            "ffprobe": resolved_ffprobe,
+            **payload,
+        }
+        self._normalize_visual_dimensions(combined, exif_data=exif_data, ffprobe_data=resolved_ffprobe)
+        return await self._finalize_batch_ok(combined, metadata_result)
+
+    async def _process_audio_batch_item(
+        self,
+        path: str,
+        exif_data: Optional[Dict[str, Any]],
+        ffprobe_data: Optional[Dict[str, Any]],
+        media_fallback_enabled: bool,
+    ) -> Result[Dict[str, Any]]:
+        resolved_ffprobe = ffprobe_data
+        if not resolved_ffprobe and media_fallback_enabled:
+            resolved_ffprobe = read_media_probe_like(path)
+
+        metadata_result = extract_audio_metadata(path, exif_data=exif_data, ffprobe_data=resolved_ffprobe)
+        if not metadata_result.ok:
+            return metadata_result
+
+        combined = {
+            "file_info": self._get_file_info(path),
+            "exif": exif_data,
+            "ffprobe": resolved_ffprobe,
+            **(metadata_result.data or {}),
+        }
+        return await self._finalize_batch_ok(combined, metadata_result)
+
     async def _get_metadata_batch_impl(
         self,
         file_paths: list[str],
@@ -772,47 +1071,12 @@ class MetadataService:
         if not file_paths:
             return {}
 
-        from ...shared import classify_file
-
-        def _group_existing_paths(paths: list[str]):
-            images: list[str] = []
-            videos: list[str] = []
-            audios: list[str] = []
-            others: list[str] = []
-            for path in paths:
-                if not os.path.exists(path):
-                    continue
-                kind = classify_file(path)
-                if kind == "image":
-                    images.append(path)
-                elif kind == "video":
-                    videos.append(path)
-                elif kind == "audio":
-                    audios.append(path)
-                else:
-                    others.append(path)
-            return images, videos, audios, others
-
         images, videos, audios, others = _group_existing_paths(file_paths)
-
         results: Dict[str, Result[Dict[str, Any]]] = {}
         probe_mode = await self._resolve_probe_mode(probe_mode_override)
         image_fallback_enabled, media_fallback_enabled = await self._resolve_fallback_prefs()
 
-        # Schedule tool targets (dedupe to avoid duplicate subprocess work).
-        exif_targets: list[str] = []
-        ffprobe_targets: list[str] = []
-        seen_exif: set[str] = set()
-        seen_ffprobe: set[str] = set()
-
-        for path in [*images, *videos, *audios]:
-            backends = pick_probe_backend(path, settings_override=probe_mode)
-            if "exiftool" in backends and path not in seen_exif:
-                seen_exif.add(path)
-                exif_targets.append(path)
-            if "ffprobe" in backends and path not in seen_ffprobe:
-                seen_ffprobe.add(path)
-                ffprobe_targets.append(path)
+        exif_targets, ffprobe_targets = _build_batch_probe_targets([*images, *videos, *audios], probe_mode)
 
         exif_results: Dict[str, Result[Dict[str, Any]]] = (
             await self.exiftool.aread_batch(exif_targets) if exif_targets else {}
@@ -821,114 +1085,74 @@ class MetadataService:
             await self._ffprobe_read_batch(ffprobe_targets) if ffprobe_targets else {}
         )
 
-        def _exif_for(path: str) -> Optional[Dict[str, Any]]:
-            ex_res = exif_results.get(path)
-            return ex_res.data if ex_res and ex_res.ok else None
+        await self._fill_image_batch_results(results, images, exif_results, image_fallback_enabled)
+        await self._fill_video_batch_results(results, videos, exif_results, ffprobe_results, media_fallback_enabled)
+        await self._fill_audio_batch_results(results, audios, exif_results, ffprobe_results, media_fallback_enabled)
+        self._fill_other_batch_results(results, others)
 
-        def _ffprobe_for(path: str) -> Optional[Dict[str, Any]]:
-            ff_res = ffprobe_results.get(path)
-            return ff_res.data if ff_res and ff_res.ok else None
+        return results
 
-        async def _finalize_ok(path: str, combined: Dict[str, Any], metadata_result: Result[Dict[str, Any]]):
-            if _should_parse_geninfo(combined):
-                await self._enrich_with_geninfo_async(combined)
-            elif "geninfo" not in combined:
-                combined["geninfo"] = {}
-            quality = metadata_result.meta.get("quality", "none")
-            results[path] = Result.Ok(combined, quality=quality)
-
-        # Images
-        for path in images:
+    async def _fill_image_batch_results(
+        self,
+        results: Dict[str, Result[Dict[str, Any]]],
+        paths: list[str],
+        exif_results: Dict[str, Result[Dict[str, Any]]],
+        image_fallback_enabled: bool,
+    ) -> None:
+        for path in paths:
             if path in results:
                 continue
-            ext = os.path.splitext(path)[1].lower()
-            exif_data = _exif_for(path)
-            if not exif_data and image_fallback_enabled:
-                exif_data = read_image_exif_like(path)
+            results[path] = await self._process_image_batch_item(
+                path,
+                _batch_tool_data(exif_results, path),
+                image_fallback_enabled,
+            )
 
-            if ext == ".png":
-                metadata_result = extract_png_metadata(path, exif_data)
-            elif ext == ".webp":
-                metadata_result = extract_webp_metadata(path, exif_data)
-            else:
-                metadata_result = Result.Ok({
-                    "workflow": None,
-                    "prompt": None,
-                    "quality": "partial" if exif_data else "none",
-                })
-
-            if metadata_result.ok:
-                combined = {
-                    "file_info": self._get_file_info(path),
-                    "exif": exif_data,
-                    **(metadata_result.data or {}),
-                }
-                self._normalize_visual_dimensions(combined, exif_data=exif_data, ffprobe_data=None)
-                await _finalize_ok(path, combined, metadata_result)
-            else:
-                results[path] = metadata_result
-
-        # Videos
-        for path in videos:
+    async def _fill_video_batch_results(
+        self,
+        results: Dict[str, Result[Dict[str, Any]]],
+        paths: list[str],
+        exif_results: Dict[str, Result[Dict[str, Any]]],
+        ffprobe_results: Dict[str, Result[Dict[str, Any]]],
+        media_fallback_enabled: bool,
+    ) -> None:
+        for path in paths:
             if path in results:
                 continue
-            exif_data = _exif_for(path)
-            ffprobe_data = _ffprobe_for(path)
-            if not ffprobe_data and media_fallback_enabled:
-                ffprobe_data = read_media_probe_like(path)
+            results[path] = await self._process_video_batch_item(
+                path,
+                _batch_tool_data(exif_results, path),
+                _batch_tool_data(ffprobe_results, path),
+                media_fallback_enabled,
+            )
 
-            metadata_result = extract_video_metadata(path, exif_data, ffprobe_data)
-            if metadata_result.ok:
-                payload = dict(metadata_result.data or {})
-                # Keep DB compatibility: expose width/height scalars even when extractor
-                # returns only a resolution tuple.
-                if payload.get("resolution") and (payload.get("width") is None or payload.get("height") is None):
-                    try:
-                        w, h = payload.get("resolution")
-                        if payload.get("width") is None:
-                            payload["width"] = int(w) if w is not None else None
-                        if payload.get("height") is None:
-                            payload["height"] = int(h) if h is not None else None
-                    except Exception:
-                        pass
-                combined = {
-                    "file_info": self._get_file_info(path),
-                    "exif": exif_data,
-                    "ffprobe": ffprobe_data,
-                    **payload,
-                }
-                self._normalize_visual_dimensions(combined, exif_data=exif_data, ffprobe_data=ffprobe_data)
-                await _finalize_ok(path, combined, metadata_result)
-            else:
-                results[path] = metadata_result
-
-        # Audio
-        for path in audios:
+    async def _fill_audio_batch_results(
+        self,
+        results: Dict[str, Result[Dict[str, Any]]],
+        paths: list[str],
+        exif_results: Dict[str, Result[Dict[str, Any]]],
+        ffprobe_results: Dict[str, Result[Dict[str, Any]]],
+        media_fallback_enabled: bool,
+    ) -> None:
+        for path in paths:
             if path in results:
                 continue
-            exif_data = _exif_for(path)
-            ffprobe_data = _ffprobe_for(path)
-            if not ffprobe_data and media_fallback_enabled:
-                ffprobe_data = read_media_probe_like(path)
-            metadata_result = extract_audio_metadata(path, exif_data=exif_data, ffprobe_data=ffprobe_data)
-            if metadata_result.ok:
-                combined = {
-                    "file_info": self._get_file_info(path),
-                    "exif": exif_data,
-                    "ffprobe": ffprobe_data,
-                    **(metadata_result.data or {}),
-                }
-                await _finalize_ok(path, combined, metadata_result)
-            else:
-                results[path] = metadata_result
+            results[path] = await self._process_audio_batch_item(
+                path,
+                _batch_tool_data(exif_results, path),
+                _batch_tool_data(ffprobe_results, path),
+                media_fallback_enabled,
+            )
 
-        # Other
-        for path in others:
+    def _fill_other_batch_results(
+        self,
+        results: Dict[str, Result[Dict[str, Any]]],
+        paths: list[str],
+    ) -> None:
+        for path in paths:
             if path in results:
                 continue
             results[path] = Result.Ok({"file_info": self._get_file_info(path), "quality": "none"}, quality="none")
-
-        return results
 
     def extract_rating_tags_only(self, file_path: str, scan_id: Optional[str] = None) -> Result[Dict[str, Any]]:
         """
@@ -1039,41 +1263,97 @@ class MetadataService:
 
         w = _coerce(payload.get("width"))
         h = _coerce(payload.get("height"))
-
-        if (w is None or h is None) and payload.get("resolution"):
-            try:
-                rw, rh = payload.get("resolution")
-                if w is None:
-                    w = _coerce(rw)
-                if h is None:
-                    h = _coerce(rh)
-            except Exception:
-                pass
-
-        if (w is None or h is None) and isinstance(ffprobe_data, dict):
-            try:
-                video_stream = ffprobe_data.get("video_stream") or {}
-                if w is None:
-                    w = _coerce(video_stream.get("width"))
-                if h is None:
-                    h = _coerce(video_stream.get("height"))
-            except Exception:
-                pass
-
-        if (w is None or h is None) and isinstance(exif_data, dict):
-            width_keys = ("Image:ImageWidth", "EXIF:ImageWidth", "EXIF:ExifImageWidth", "IFD0:ImageWidth", "Composite:ImageWidth", "QuickTime:ImageWidth", "PNG:ImageWidth", "File:ImageWidth", "width")
-            height_keys = ("Image:ImageHeight", "EXIF:ImageHeight", "EXIF:ExifImageHeight", "IFD0:ImageHeight", "Composite:ImageHeight", "QuickTime:ImageHeight", "PNG:ImageHeight", "File:ImageHeight", "height")
-            if w is None:
-                for k in width_keys:
-                    w = _coerce(exif_data.get(k))
-                    if w is not None:
-                        break
-            if h is None:
-                for k in height_keys:
-                    h = _coerce(exif_data.get(k))
-                    if h is not None:
-                        break
+        w, h = MetadataService._fill_dims_from_resolution(payload, w, h, _coerce)
+        w, h = MetadataService._fill_dims_from_ffprobe(ffprobe_data, w, h, _coerce)
+        w, h = MetadataService._fill_dims_from_exif(exif_data, w, h, _coerce)
 
         if w is not None and h is not None:
             payload["width"] = int(w)
             payload["height"] = int(h)
+
+    @staticmethod
+    def _fill_dims_from_resolution(
+        payload: Dict[str, Any],
+        w: Optional[int],
+        h: Optional[int],
+        coerce: Callable[[Any], Optional[int]],
+    ) -> tuple[Optional[int], Optional[int]]:
+        if (w is not None and h is not None) or not payload.get("resolution"):
+            return w, h
+        try:
+            rw, rh = payload.get("resolution")
+            if w is None:
+                w = coerce(rw)
+            if h is None:
+                h = coerce(rh)
+        except Exception:
+            return w, h
+        return w, h
+
+    @staticmethod
+    def _fill_dims_from_ffprobe(
+        ffprobe_data: Optional[Dict[str, Any]],
+        w: Optional[int],
+        h: Optional[int],
+        coerce: Callable[[Any], Optional[int]],
+    ) -> tuple[Optional[int], Optional[int]]:
+        if w is not None and h is not None:
+            return w, h
+        if not isinstance(ffprobe_data, dict):
+            return w, h
+        try:
+            video_stream = ffprobe_data.get("video_stream") or {}
+            if w is None:
+                w = coerce(video_stream.get("width"))
+            if h is None:
+                h = coerce(video_stream.get("height"))
+        except Exception:
+            return w, h
+        return w, h
+
+    @staticmethod
+    def _fill_dims_from_exif(
+        exif_data: Optional[Dict[str, Any]],
+        w: Optional[int],
+        h: Optional[int],
+        coerce: Callable[[Any], Optional[int]],
+    ) -> tuple[Optional[int], Optional[int]]:
+        if w is not None and h is not None:
+            return w, h
+        if not isinstance(exif_data, dict):
+            return w, h
+        width_keys = (
+            "Image:ImageWidth",
+            "EXIF:ImageWidth",
+            "EXIF:ExifImageWidth",
+            "IFD0:ImageWidth",
+            "Composite:ImageWidth",
+            "QuickTime:ImageWidth",
+            "PNG:ImageWidth",
+            "File:ImageWidth",
+            "width",
+        )
+        height_keys = (
+            "Image:ImageHeight",
+            "EXIF:ImageHeight",
+            "EXIF:ExifImageHeight",
+            "IFD0:ImageHeight",
+            "Composite:ImageHeight",
+            "QuickTime:ImageHeight",
+            "PNG:ImageHeight",
+            "File:ImageHeight",
+            "height",
+        )
+        if w is None:
+            w = MetadataService._pick_first_coerced(exif_data, width_keys, coerce)
+        if h is None:
+            h = MetadataService._pick_first_coerced(exif_data, height_keys, coerce)
+        return w, h
+
+    @staticmethod
+    def _pick_first_coerced(source: Dict[str, Any], keys: tuple[str, ...], coerce: Callable[[Any], Optional[int]]) -> Optional[int]:
+        for key in keys:
+            value = coerce(source.get(key))
+            if value is not None:
+                return value
+        return None

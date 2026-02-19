@@ -1,4 +1,4 @@
-﻿"""
+"""
 Security utilities: CSRF protection and rate limiting.
 """
 
@@ -100,10 +100,7 @@ def _require_operation_enabled(operation: str, *, prefs: Mapping[str, Any] | Non
     from ...shared import Result
 
     op = str(operation or "").strip().lower()
-    if prefs and "safe_mode" in prefs:
-        safe_mode = bool(prefs.get("safe_mode"))
-    else:
-        safe_mode = _safe_mode_enabled()
+    safe_mode = bool(prefs.get("safe_mode")) if (prefs and "safe_mode" in prefs) else _safe_mode_enabled()
 
     def _pref_truthy(key: str, env_var: str) -> bool:
         if prefs is not None and key in prefs:
@@ -113,50 +110,16 @@ def _require_operation_enabled(operation: str, *, prefs: Mapping[str, Any] | Non
                 pass
         return _env_truthy(env_var)
 
-    if op in ("reset_index",):
-        if _pref_truthy("allow_reset_index", "MAJOOR_ALLOW_RESET_INDEX"):
+    static_gates = _operation_static_gates()
+    for ops, pref_key, env_var, message in static_gates:
+        if op not in ops:
+            continue
+        if _pref_truthy(pref_key, env_var):
             return Result.Ok(True, operation=op, safe_mode=safe_mode)
-        return Result.Err(
-            "FORBIDDEN",
-            "Reset index is disabled by default. Enable 'allow_reset_index' in settings or set MAJOOR_ALLOW_RESET_INDEX=1.",
-            operation=op,
-            safe_mode=safe_mode,
-        )
-
-    if op in ("delete", "asset_delete", "assets_delete"):
-        if _pref_truthy("allow_delete", "MAJOOR_ALLOW_DELETE"):
-            return Result.Ok(True, operation=op, safe_mode=safe_mode)
-        return Result.Err(
-            "FORBIDDEN",
-            "Delete is disabled by default. Set MAJOOR_ALLOW_DELETE=1 to enable asset deletion.",
-            operation=op,
-            safe_mode=safe_mode,
-        )
-
-    if op in ("rename", "asset_rename"):
-        if _pref_truthy("allow_rename", "MAJOOR_ALLOW_RENAME"):
-            return Result.Ok(True, operation=op, safe_mode=safe_mode)
-        return Result.Err(
-            "FORBIDDEN",
-            "Rename is disabled by default. Set MAJOOR_ALLOW_RENAME=1 to enable asset renaming.",
-            operation=op,
-            safe_mode=safe_mode,
-        )
-
-    if op in ("open_in_folder", "open-in-folder"):
-        if _pref_truthy("allow_open_in_folder", "MAJOOR_ALLOW_OPEN_IN_FOLDER"):
-            return Result.Ok(True, operation=op, safe_mode=safe_mode)
-        return Result.Err(
-            "FORBIDDEN",
-            "Open-in-folder is disabled by default. Set MAJOOR_ALLOW_OPEN_IN_FOLDER=1 to enable it.",
-            operation=op,
-            safe_mode=safe_mode,
-        )
+        return Result.Err("FORBIDDEN", message, operation=op, safe_mode=safe_mode)
 
     if op in ("write", "rating", "tags", "asset_rating", "asset_tags"):
-        if not safe_mode:
-            return Result.Ok(True, operation=op, safe_mode=safe_mode)
-        if _pref_truthy("allow_write", "MAJOOR_ALLOW_WRITE"):
+        if _write_allowed_in_context(safe_mode=safe_mode, pref_truthy=_pref_truthy):
             return Result.Ok(True, operation=op, safe_mode=safe_mode)
         return Result.Err(
             "FORBIDDEN",
@@ -174,6 +137,41 @@ def _require_operation_enabled(operation: str, *, prefs: Mapping[str, Any] | Non
             safe_mode=safe_mode,
         )
     return Result.Ok(True, operation=op, safe_mode=safe_mode)
+
+
+def _operation_static_gates() -> tuple[tuple[tuple[str, ...], str, str, str], ...]:
+    return (
+        (
+            ("reset_index",),
+            "allow_reset_index",
+            "MAJOOR_ALLOW_RESET_INDEX",
+            "Reset index is disabled by default. Enable 'allow_reset_index' in settings or set MAJOOR_ALLOW_RESET_INDEX=1.",
+        ),
+        (
+            ("delete", "asset_delete", "assets_delete"),
+            "allow_delete",
+            "MAJOOR_ALLOW_DELETE",
+            "Delete is disabled by default. Set MAJOOR_ALLOW_DELETE=1 to enable asset deletion.",
+        ),
+        (
+            ("rename", "asset_rename"),
+            "allow_rename",
+            "MAJOOR_ALLOW_RENAME",
+            "Rename is disabled by default. Set MAJOOR_ALLOW_RENAME=1 to enable asset renaming.",
+        ),
+        (
+            ("open_in_folder", "open-in-folder"),
+            "allow_open_in_folder",
+            "MAJOOR_ALLOW_OPEN_IN_FOLDER",
+            "Open-in-folder is disabled by default. Set MAJOOR_ALLOW_OPEN_IN_FOLDER=1 to enable it.",
+        ),
+    )
+
+
+def _write_allowed_in_context(*, safe_mode: bool, pref_truthy) -> bool:
+    if not safe_mode:
+        return True
+    return bool(pref_truthy("allow_write", "MAJOOR_ALLOW_WRITE"))
 
 
 async def _resolve_security_prefs(services: Mapping[str, Any] | None) -> Mapping[str, Any] | None:
@@ -278,30 +276,44 @@ def _resolve_client_ip(peer_ip: str, headers: Mapping[str, str]) -> str:
         return "unknown"
 
     if _is_trusted_proxy(peer):
-        try:
-            forwarded_for = str(headers.get("X-Forwarded-For") or "").strip()
-        except Exception:
-            forwarded_for = ""
-        if forwarded_for:
-            cand = forwarded_for.split(",")[0].strip()
-            try:
-                ipaddress.ip_address(cand)
-                return cand
-            except Exception:
-                return peer
-
-        try:
-            real_ip = str(headers.get("X-Real-IP") or "").strip()
-        except Exception:
-            real_ip = ""
+        forwarded_ip = _forwarded_for_ip(headers)
+        if forwarded_ip:
+            return forwarded_ip
+        real_ip = _real_ip_from_header(headers)
         if real_ip:
-            try:
-                ipaddress.ip_address(real_ip)
-                return real_ip
-            except Exception:
-                return peer
+            return real_ip
 
     return peer
+
+
+def _forwarded_for_ip(headers: Mapping[str, str]) -> str:
+    forwarded_for = _header_value(headers, "X-Forwarded-For")
+    if not forwarded_for:
+        return ""
+    candidate = forwarded_for.split(",")[0].strip()
+    return candidate if _is_valid_ip(candidate) else ""
+
+
+def _real_ip_from_header(headers: Mapping[str, str]) -> str:
+    real_ip = _header_value(headers, "X-Real-IP")
+    if not real_ip:
+        return ""
+    return real_ip if _is_valid_ip(real_ip) else ""
+
+
+def _header_value(headers: Mapping[str, str], key: str) -> str:
+    try:
+        return str(headers.get(key) or "").strip()
+    except Exception:
+        return ""
+
+
+def _is_valid_ip(value: str) -> bool:
+    try:
+        ipaddress.ip_address(value)
+        return True
+    except Exception:
+        return False
 
 
 def _is_loopback_ip(value: str) -> bool:
@@ -395,24 +407,39 @@ def _get_comfy_user_manager(request: web.Request | None = None) -> Any:
     """
     Best-effort resolver for ComfyUI user manager object.
     """
-    # Prefer explicit user manager injected in app context.
-    if request is not None:
-        try:
-            app_mgr = request.app.get("_mjr_user_manager")
-            if app_mgr is not None:
-                return app_mgr
-            for key in request.app.keys():
-                try:
-                    key_name = getattr(key, "name", "")
-                except Exception:
-                    key_name = ""
-                if key_name == "_mjr_user_manager":
-                    cand = request.app.get(key)
-                    if cand is not None:
-                        return cand
-        except Exception:
-            pass
+    app_manager = _request_app_user_manager(request)
+    if app_manager is not None:
+        return app_manager
+    return _server_module_user_manager()
 
+
+def _request_app_user_manager(request: web.Request | None) -> Any:
+    if request is None:
+        return None
+    try:
+        app_mgr = request.app.get("_mjr_user_manager")
+        if app_mgr is not None:
+            return app_mgr
+        for key in request.app.keys():
+            key_name = _app_key_name(key)
+            if key_name != "_mjr_user_manager":
+                continue
+            candidate = request.app.get(key)
+            if candidate is not None:
+                return candidate
+    except Exception:
+        return None
+    return None
+
+
+def _app_key_name(key: Any) -> str:
+    try:
+        return str(getattr(key, "name", "") or "")
+    except Exception:
+        return ""
+
+
+def _server_module_user_manager() -> Any:
     try:
         import sys
 
@@ -420,9 +447,9 @@ def _get_comfy_user_manager(request: web.Request | None = None) -> Any:
         if server_mod is None:
             return None
         for key in ("USER_MANAGER", "user_manager"):
-            mgr = getattr(server_mod, key, None)
-            if mgr is not None:
-                return mgr
+            manager = getattr(server_mod, key, None)
+            if manager is not None:
+                return manager
     except Exception:
         return None
     return None
@@ -663,77 +690,82 @@ def _csrf_error(request: web.Request) -> Optional[str]:
       1) Require an anti-CSRF header for state-changing methods (X-Requested-With or X-CSRF-Token)
       2) If Origin is present, validate it against Host (with loopback allowance)
     """
-    method = request.method.upper()
-    if method not in ("POST", "PUT", "DELETE", "PATCH"):
+    if request.method.upper() not in ("POST", "PUT", "DELETE", "PATCH"):
         return None
-
-    try:
-        has_xrw = bool(request.headers.get("X-Requested-With"))
-        has_token = bool(request.headers.get("X-CSRF-Token"))
-    except Exception:
-        has_xrw = False
-        has_token = False
-    if not has_xrw and not has_token:
+    if not _has_csrf_header(request):
         return "Missing anti-CSRF header (X-Requested-With or X-CSRF-Token)"
-
     origin = request.headers.get("Origin")
     if not origin:
         return None
     if origin == "null":
         return "Cross-site request blocked (Origin=null)"
-
-    host = request.headers.get("Host")
+    host = _resolve_effective_host(request)
     if not host:
         return "Missing Host header"
+    parsed = _parse_origin(origin)
+    if parsed is None:
+        return "Cross-site request blocked (invalid Origin)"
+    if parsed.netloc == host:
+        return None
+    if _is_loopback_origin_host_match(parsed, host):
+        return None
+    return f"Cross-site request blocked ({parsed.netloc} != {host})"
 
-    # Behind a trusted reverse proxy, Host may reflect upstream internals while
-    # the browser-origin host is conveyed in X-Forwarded-Host.
+
+def _has_csrf_header(request: web.Request) -> bool:
+    try:
+        return bool(request.headers.get("X-Requested-With")) or bool(request.headers.get("X-CSRF-Token"))
+    except Exception:
+        return False
+
+
+def _resolve_effective_host(request: web.Request) -> str:
+    host = request.headers.get("Host") or ""
+    if not host:
+        return ""
     try:
         peer_ip = _extract_peer_ip(request)
     except Exception:
         peer_ip = "unknown"
-    if _is_trusted_proxy(peer_ip):
-        xf_host = str(request.headers.get("X-Forwarded-Host") or "").strip()
-        if xf_host:
-            host = xf_host.split(",")[0].strip()
+    if not _is_trusted_proxy(peer_ip):
+        return host
+    xf_host = str(request.headers.get("X-Forwarded-Host") or "").strip()
+    if not xf_host:
+        return host
+    return xf_host.split(",")[0].strip()
 
+
+def _parse_origin(origin: str):
     try:
         parsed = urlparse(origin)
     except Exception:
-        return "Cross-site request blocked (invalid Origin)"
-
+        return None
     if not parsed.scheme or not parsed.netloc:
-        return "Cross-site request blocked (invalid Origin)"
+        return None
+    return parsed
 
-    if parsed.netloc != host:
-        # Allow loopback aliases (localhost, 127.0.0.1, ::1) to interoperate when the
-        # user opens ComfyUI via a different hostname than the server reports.
-        try:
-            origin_host = parsed.hostname or ""
-            origin_port = parsed.port
-        except Exception:
-            origin_host = ""
-            origin_port = None
 
-        try:
-            if ":" in host and not host.endswith("]"):
-                host_name, host_port_raw = host.rsplit(":", 1)
-                host_port = int(host_port_raw)
-            else:
-                host_name = host
-                host_port = None
-        except Exception:
-            host_name = host
-            host_port = None
+def _is_loopback_origin_host_match(parsed_origin: Any, host: str) -> bool:
+    try:
+        origin_host = parsed_origin.hostname or ""
+        origin_port = parsed_origin.port
+    except Exception:
+        return False
+    host_name, host_port = _split_host_port(host)
+    loopback = {"localhost", "127.0.0.1", "::1"}
+    if origin_host not in loopback or host_name not in loopback:
+        return False
+    return origin_port is None or host_port is None or origin_port == host_port
 
-        loopback = {"localhost", "127.0.0.1", "::1"}
-        if origin_host in loopback and host_name in loopback:
-            if origin_port is None or host_port is None or origin_port == host_port:
-                return None
 
-        return f"Cross-site request blocked ({parsed.netloc} != {host})"
-
-    return None
+def _split_host_port(host: str) -> tuple[str, Optional[int]]:
+    try:
+        if ":" in host and not host.endswith("]"):
+            host_name, host_port_raw = host.rsplit(":", 1)
+            return host_name, int(host_port_raw)
+    except Exception:
+        return host, None
+    return host, None
 
 
 def _reset_security_state_for_tests() -> None:
@@ -742,4 +774,3 @@ def _reset_security_state_for_tests() -> None:
             _rate_limit_state.clear()
     except Exception:
         pass
-
