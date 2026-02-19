@@ -23,7 +23,10 @@ import {
 } from "./targets/node.js";
 import { stageToInput, stageToInputDetailed } from "./staging/stageToInput.js";
 
-const app = getComfyApp();
+const _resolveApp = () => {
+    const app = getComfyApp();
+    return app && typeof app === "object" ? app : null;
+};
 
 const buildURL = (payload) =>
     buildPayloadViewURL(payload, { buildCustomViewURL, buildViewURL });
@@ -53,9 +56,10 @@ const cleanupWorkflowCache = () => {
     }
 };
 
-export const tryLoadWorkflowToCanvas = async (payload, fallbackAbsPath = null) => {
+const tryLoadWorkflowToCanvas = async (payload, fallbackAbsPath = null) => {
     const pl = payload && typeof payload === "object" ? payload : null;
     const rootId = pickRootId(pl);
+    const app = _resolveApp();
 
     // Check cache first
     const cacheKey = pl?.filename
@@ -217,9 +221,6 @@ export const bindAssetDragStart = (containerEl) => {
     );
 };
 
-// Stable alias (entry-point contract).
-export const enableAssetDrag = bindAssetDragStart;
-
 export const initDragDrop = () => {
     const existing = (() => {
         try {
@@ -240,6 +241,7 @@ export const initDragDrop = () => {
     }
 
     const onDragOver = (event) => {
+        const app = _resolveApp();
         const types = Array.from(event?.dataTransfer?.types || []);
         if (!types.includes(DND_MIME)) return;
         const payload = getDraggedAsset(event, DND_MIME);
@@ -266,6 +268,7 @@ export const initDragDrop = () => {
     };
 
     const onDrop = async (event) => {
+        const app = _resolveApp();
         const types = Array.from(event?.dataTransfer?.types || []);
         if (!types.includes(DND_MIME)) return;
         const payload = getDraggedAsset(event, DND_MIME);
@@ -342,6 +345,7 @@ export const initDragDrop = () => {
     };
 
     const onDragLeave = () => {
+        const app = _resolveApp();
         clearHighlight(app, markCanvasDirty);
         dndLog("dragleave");
     };
@@ -369,7 +373,7 @@ export const initDragDrop = () => {
         } catch {}
 
         try {
-            clearHighlight(app, markCanvasDirty);
+            clearHighlight(_resolveApp(), markCanvasDirty);
         } catch {}
 
         try {
@@ -390,6 +394,3 @@ export const initDragDrop = () => {
     return dispose;
 };
 
-export const DND_CONSTANTS = {
-    DND_MIME
-};

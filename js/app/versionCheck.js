@@ -5,7 +5,7 @@ import { comfyAlert } from "./dialogs.js";
 import { t } from "./i18n.js";
 
 export const VERSION_UPDATE_EVENT = "mjr:version-update-available";
-export const VERSION_UPDATE_STATE_KEY = "__MJR_VERSION_UPDATE_STATE__";
+const VERSION_UPDATE_STATE_KEY = "__MJR_VERSION_UPDATE_STATE__";
 const LATEST_RELEASE_URL = "https://api.github.com/repos/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/latest";
 const LAST_CHECK_KEY = "majoor_last_update_check";
 const VERSION_TOAST_NOTICE_VERSION_KEY = "majoor_version_toast_notice_version";
@@ -91,8 +91,6 @@ function emitVersionUpdateState(state) {
 export function getStoredVersionUpdateState() {
     return _versionUpdateState;
 }
-
-emitVersionUpdateState({ available: false });
 
 export async function checkMajoorVersion({ force = false } = {}) {
     if (typeof window === "undefined" || !window.localStorage) {

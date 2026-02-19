@@ -1,6 +1,6 @@
-import { noop, safeAddListener, safeCall } from "../../utils/safeCall.js";
+import { safeAddListener, safeCall } from "../../utils/safeCall.js";
 
-export { noop, safeAddListener, safeCall };
+export { safeAddListener, safeCall };
 
 export function destroyMediaProcessorsIn(rootEl) {
     if (!rootEl) return;

@@ -6,9 +6,7 @@ import { updateAssetTags, getAvailableTags } from "../api/client.js";
 import { ASSET_TAGS_CHANGED_EVENT } from "../app/events.js";
 import { comfyToast } from "../app/toast.js";
 import { t } from "../app/i18n.js";
-import { getPopoverManagerForElement } from "../features/panel/views/popoverManager.js";
 import { safeDispatchCustomEvent } from "../utils/events.js";
-import { MENU_Z_INDEX } from "./contextmenu/MenuCore.js";
 
 /**
  * Create interactive tags editor
@@ -465,102 +463,3 @@ function createTagChip(tag, onRemove) {
     return chip;
 }
 
-/**
- * Show tags editor in a popover
- * @param {HTMLElement} anchor - Element to anchor popover to
- * @param {Object} asset - Asset object
- * @param {Function} onUpdate - Callback when tags change
- */
-export function showTagsPopover(anchor, asset, onUpdate) {
-    const existing = document.querySelector(".mjr-tags-popover");
-    if (existing) {
-        try {
-            existing.remove();
-        } catch {}
-    }
-
-    const popover = document.createElement("div");
-    popover.className = "mjr-popover mjr-tags-popover";
-
-    const popovers = getPopoverManagerForElement(anchor);
-    const host = anchor?.closest?.(".mjr-am-container") || null;
-
-    const editor = createTagsEditor(asset, (tags) => {
-        try {
-            onUpdate?.(tags);
-        } catch {}
-        // Keep the editor open; caller can close explicitly if desired.
-    });
-    popover.appendChild(editor);
-    (host || document.body).appendChild(popover);
-    popover.style.display = "block";
-
-    if (popovers) {
-        popovers.open(popover, anchor);
-        return popover;
-    }
-
-    // Fallback positioning when used outside the Assets Manager panel.
-    const rect = anchor.getBoundingClientRect();
-    const popoverRect = popover.getBoundingClientRect();
-    let top = rect.bottom + 8;
-    let left = rect.left;
-    if (top + popoverRect.height > window.innerHeight) {
-        top = rect.top - popoverRect.height - 8;
-    }
-    if (left + popoverRect.width > window.innerWidth) {
-        left = window.innerWidth - popoverRect.width - 8;
-    }
-    popover.style.position = "fixed";
-    popover.style.top = `${top}px`;
-    popover.style.left = `${left}px`;
-    popover.style.zIndex = String(MENU_Z_INDEX?.POPOVER ?? 10003);
-
-    const closeOnClickOutside = (e) => {
-        if (!popover.contains(e.target) && !anchor.contains(e.target)) {
-            try {
-                editor?._mjrDestroy?.();
-            } catch {}
-            try {
-                popover.remove();
-            } catch {}
-            try {
-                popover?._mjrDocClickAC?.abort?.();
-            } catch {}
-            popover._mjrDocClickAC = null;
-            try {
-                if (popover._mjrDocClickRAF != null) cancelAnimationFrame(popover._mjrDocClickRAF);
-            } catch {}
-            try {
-                if (popover._mjrDocClickRAF2 != null) cancelAnimationFrame(popover._mjrDocClickRAF2);
-            } catch {}
-            popover._mjrDocClickRAF = null;
-            popover._mjrDocClickRAF2 = null;
-        }
-    };
-    try {
-        const ac = typeof AbortController !== "undefined" ? new AbortController() : null;
-        popover._mjrDocClickAC = ac;
-        popover._mjrDocClickRAF = requestAnimationFrame(() => {
-            popover._mjrDocClickRAF2 = requestAnimationFrame(() => {
-                try {
-                    popover._mjrDocClickRAF = null;
-                    popover._mjrDocClickRAF2 = null;
-                } catch {}
-                try {
-                    if (!popover.isConnected) {
-                        ac?.abort?.();
-                        return;
-                    }
-                    if (ac) document.addEventListener("click", closeOnClickOutside, { signal: ac.signal, capture: true });
-                    else document.addEventListener("click", closeOnClickOutside, { capture: true });
-                } catch {}
-            });
-        });
-    } catch {
-        try {
-            document.addEventListener("click", closeOnClickOutside, { capture: true });
-        } catch {}
-    }
-    return popover;
-}

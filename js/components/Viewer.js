@@ -37,7 +37,7 @@ import { createIconButton } from "./buttons.js";
 /**
  * Viewer modes
  */
-export const VIEWER_MODES = {
+const VIEWER_MODES = {
     SINGLE: 'single',
     AB_COMPARE: 'ab',
     SIDE_BY_SIDE: 'sidebyside'
@@ -74,7 +74,7 @@ function saveViewerPrefs(state) {
 /**
  * Create the main viewer overlay
  */
-export function createViewer() {
+function createViewer() {
     const overlay = document.createElement("div");
     // mjr-assets-manager class allows access to theme variables (colors, fonts)
     overlay.className = "mjr-viewer-overlay mjr-assets-manager";

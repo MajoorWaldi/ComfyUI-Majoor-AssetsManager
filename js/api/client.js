@@ -43,6 +43,48 @@ const DEFAULT_TAGS_CACHE_TTL_MS = TAGS_CACHE_TTL_MS;
 const CLIENT_GLOBAL_KEY = "__MJR_API_CLIENT__";
 const SETTINGS_FAST_CACHE_TTL_MS = 2000;
 const MAX_BATCH_ASSET_IDS = 200;
+const WRITE_METHODS = new Set(["POST", "PUT", "DELETE", "PATCH"]);
+const BOOTSTRAP_TOKEN_PATH = "/mjr/am/settings/security/bootstrap-token";
+
+function _methodIsWrite(method) {
+    return WRITE_METHODS.has(String(method || "").toUpperCase());
+}
+
+function _normalizeUrlPath(url) {
+    try {
+        const raw = String(url || "").trim();
+        if (!raw) return "";
+        if (raw.startsWith("http://") || raw.startsWith("https://")) {
+            const base =
+                (typeof globalThis !== "undefined" && globalThis?.location?.origin)
+                    ? String(globalThis.location.origin)
+                    : "http://localhost";
+            return new URL(raw, base).pathname || "";
+        }
+        return raw.split("?")[0] || "";
+    } catch {
+        return "";
+    }
+}
+
+function _isMajoorApiUrl(url) {
+    const path = _normalizeUrlPath(url);
+    return path.startsWith("/mjr/am/");
+}
+
+function _isBootstrapTokenUrl(url) {
+    return _normalizeUrlPath(url) === BOOTSTRAP_TOKEN_PATH;
+}
+
+function _coerceBool(value, fallback = false) {
+    if (typeof value === "boolean") return value;
+    if (typeof value === "string") {
+        const s = value.trim().toLowerCase();
+        if (["1", "true", "yes", "on", "enabled", "enable"].includes(s)) return true;
+        if (["0", "false", "no", "off", "disabled", "disable"].includes(s)) return false;
+    }
+    return Boolean(fallback);
+}
 
 function _getTagsCacheTTL() {
     try {
@@ -120,6 +162,15 @@ async function _refreshAuthTokenFromServer() {
     }
 }
 
+async function ensureWriteAuthToken({ force = false } = {}) {
+    const existing = _readAuthToken();
+    if (existing && !force) return existing;
+    try {
+        await _refreshAuthTokenFromServer();
+    } catch {}
+    return _readAuthToken();
+}
+
 const MAX_RETRIES = 3;
 const RETRY_BASE_DELAY_MS = 400;
 
@@ -149,15 +200,15 @@ function _isRetryableError(error) {
     }
 }
 
-export function invalidateObsCache() {
+function invalidateObsCache() {
     _obsCache = { value: null, at: 0 };
 }
 
-export function invalidateRatingTagsSyncCache() {
+function invalidateRatingTagsSyncCache() {
     _rtSyncCache = { value: null, at: 0 };
 }
 
-export function invalidateTagsCache() {
+function invalidateTagsCache() {
     _tagsCache = { value: null, at: 0 };
 }
 
@@ -219,14 +270,18 @@ const _readRatingTagsSyncEnabled = () => {
     try {
         const raw = localStorage?.getItem?.(SETTINGS_KEY);
         if (!raw) {
-            _rtSyncCache = { value: false, at: now };
+            _rtSyncCache = { value: true, at: now };
             return _rtSyncCache.value;
         }
         const parsed = JSON.parse(raw);
-        _rtSyncCache = { value: !!parsed?.ratingTagsSync?.enabled, at: now };
+        const configured = parsed?.ratingTagsSync?.enabled;
+        _rtSyncCache = {
+            value: configured === undefined || configured === null ? true : _coerceBool(configured, true),
+            at: now
+        };
         return _rtSyncCache.value;
     } catch {
-        _rtSyncCache = { value: false, at: now };
+        _rtSyncCache = { value: true, at: now };
         return _rtSyncCache.value;
     }
 };
@@ -236,13 +291,14 @@ const _readRatingTagsSyncEnabled = () => {
  * Never throws - returns error object instead
  */
 /** @returns {Promise<ApiResult<any>>} */
-export async function fetchAPI(url, options = {}, retryCount = 0) {
+async function fetchAPI(url, options = {}, retryCount = 0) {
     try {
         const headers = typeof Headers !== "undefined" ? new Headers(options.headers || {}) : { ...options.headers };
+        const method = (options.method || "GET").toUpperCase();
+        const authRetryDone = !!options?._authRetryDone;
 
         // Add anti-CSRF header for state-changing requests
-        const method = (options.method || "GET").toUpperCase();
-        if (["POST", "PUT", "DELETE", "PATCH"].includes(method)) {
+        if (_methodIsWrite(method)) {
             try {
                 if (headers instanceof Headers) {
                     if (!headers.has("X-Requested-With")) headers.set("X-Requested-With", "XMLHttpRequest");
@@ -263,7 +319,13 @@ export async function fetchAPI(url, options = {}, retryCount = 0) {
             }
         } catch {}
 
-        const authToken = _readAuthToken();
+        let authToken = _readAuthToken();
+        if (!authToken && _methodIsWrite(method) && _isMajoorApiUrl(url) && !_isBootstrapTokenUrl(url)) {
+            try {
+                await ensureWriteAuthToken();
+            } catch {}
+            authToken = _readAuthToken();
+        }
         if (authToken) {
             try {
                 if (headers instanceof Headers) {
@@ -279,6 +341,19 @@ export async function fetchAPI(url, options = {}, retryCount = 0) {
         const response = await fetch(url, { ...options, headers });
         const contentType = response.headers.get("content-type") || "";
         if (!contentType.includes("application/json")) {
+            if (
+                !authRetryDone &&
+                _methodIsWrite(method) &&
+                _isMajoorApiUrl(url) &&
+                !_isBootstrapTokenUrl(url) &&
+                Number(response.status || 0) === 401
+            ) {
+                const refreshed = await _refreshAuthTokenFromServer();
+                if (refreshed) {
+                    const retryOptions = { ...options, _authRetryDone: true };
+                    return await fetchAPI(url, retryOptions, retryCount);
+                }
+            }
             return {
                 ok: false,
                 error: `Server returned non-JSON response (${response.status})`,
@@ -306,10 +381,10 @@ export async function fetchAPI(url, options = {}, retryCount = 0) {
                 result.status = response.status;
             } catch {}
         }
-        const authRetryDone = !!options?._authRetryDone;
         const shouldTryAuthRefresh =
             !authRetryDone &&
-            ["POST", "PUT", "DELETE", "PATCH"].includes(method) &&
+            _methodIsWrite(method) &&
+            !_isBootstrapTokenUrl(url) &&
             !result?.ok &&
             (String(result?.code || "").toUpperCase() === "AUTH_REQUIRED" || Number(result?.status || 0) === 401);
 
@@ -699,15 +774,6 @@ export async function getRuntimeStatus(options = {}) {
 }
 
 /**
- * Best-effort database maintenance (PRAGMA optimize / ANALYZE).
- * Returns 200 even on degraded runs; check `ok/code`.
- */
-/** @returns {Promise<ApiResult<{steps?: string[], degraded?: boolean}>>} */
-export async function optimizeDb() {
-    return post("/mjr/am/db/optimize", {});
-}
-
-/**
  * Emergency force-delete the SQLite database and recreate it.
  * Bypasses DB-dependent security checks (works even when DB is corrupted).
  * Closes connections, force-removes DB files from disk, reinitializes, and triggers a rescan.
@@ -836,11 +902,6 @@ export async function listCollections() {
 
 export async function createCollection(name) {
     return post("/mjr/am/collections", { name: String(name || "").trim() });
-}
-
-export async function getCollection(collectionId) {
-    const id = String(collectionId || "").trim();
-    return get(`/mjr/am/collections/${encodeURIComponent(id)}`);
 }
 
 export async function deleteCollection(collectionId) {

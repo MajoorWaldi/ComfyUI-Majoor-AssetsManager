@@ -71,17 +71,26 @@ function updateVersionDot(dot, visible) {
     if (!dot) return;
     dot.style.display = visible ? "block" : "none";
 }
-// Detect branch from global or injected variable, fallback to nightly if present
-let branch = "main";
-if (window?.MajoorAssetsManagerBranch) {
-    branch = window.MajoorAssetsManagerBranch;
-} else if (typeof process !== "undefined" && process.env && process.env.MAJOR_ASSETS_MANAGER_BRANCH) {
-    branch = process.env.MAJOR_ASSETS_MANAGER_BRANCH;
+
+function resolveRuntimeBranch() {
+    try {
+        if (typeof window !== "undefined" && window?.MajoorAssetsManagerBranch) {
+            return String(window.MajoorAssetsManagerBranch);
+        }
+    } catch {}
+    try {
+        if (typeof process !== "undefined" && process?.env?.MAJOR_ASSETS_MANAGER_BRANCH) {
+            return String(process.env.MAJOR_ASSETS_MANAGER_BRANCH);
+        }
+    } catch {}
+    return "main";
 }
-const IS_NIGHTLY = branch === "nightly";
-const VERSION = IS_NIGHTLY ? "nightly" : "?";
 
 export function createHeaderView() {
+    const branch = resolveRuntimeBranch();
+    const isNightly = branch === "nightly";
+    const version = isNightly ? "nightly" : "?";
+
     const header = document.createElement("div");
     header.classList.add("mjr-am-header");
 
@@ -107,7 +116,7 @@ export function createHeaderView() {
     versionBadge.rel = "noopener noreferrer";
     versionBadge.className = "mjr-am-version-badge";
     versionBadge.style.position = "relative";
-    versionBadge.textContent = IS_NIGHTLY ? "nightly" : `v${VERSION}`;
+    versionBadge.textContent = isNightly ? "nightly" : `v${version}`;
     versionBadge.title = t("tooltip.supportKofi");
     versionBadge.style.cssText = `
         font-size: 10px;
@@ -184,8 +193,8 @@ export function createHeaderView() {
         } catch {}
     };
 
-    applyExtensionMetadata(versionBadge, IS_NIGHTLY);
-    void hydrateBackendVersionBadge(versionBadge, IS_NIGHTLY);
+    applyExtensionMetadata(versionBadge, isNightly);
+    void hydrateBackendVersionBadge(versionBadge, isNightly);
 
     return {
         header,

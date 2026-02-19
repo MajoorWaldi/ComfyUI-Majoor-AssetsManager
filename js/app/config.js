@@ -2,57 +2,6 @@
  * App Configuration
  */
 
-import { get } from "../api/client.js";
-import { ENDPOINTS } from "../api/endpoints.js";
-
-// Cache for output directory
-let outputDirectory = null;
-let outputDirectoryAt = 0;
-const OUTPUT_DIR_CACHE_TTL_MS = 30_000;
-
-try {
-    const w = typeof window !== "undefined" ? window : null;
-    if (w) {
-        w.addEventListener?.("mjr-settings-changed", (event) => {
-            try {
-                const key = String(event?.detail?.key || "");
-                if (!key || key === "paths.outputDirectory") {
-                    invalidateOutputDirectoryCache();
-                }
-            } catch {}
-        });
-    }
-} catch {}
-
-export function invalidateOutputDirectoryCache() {
-    outputDirectory = null;
-    outputDirectoryAt = 0;
-}
-
-/**
- * Get ComfyUI output directory
- * Cached after first fetch
- */
-export async function getOutputDirectory() {
-    try {
-        const now = Date.now();
-        if (outputDirectory && now - (outputDirectoryAt || 0) < OUTPUT_DIR_CACHE_TTL_MS) return outputDirectory;
-    } catch {}
-
-    const result = await get(ENDPOINTS.CONFIG);
-    if (result.ok) {
-        outputDirectory = result.data.output_directory;
-        try {
-            outputDirectoryAt = Date.now();
-        } catch {}
-        console.log("📂 Majoor [ℹ️]: Output directory:", outputDirectory);
-        return outputDirectory;
-    }
-
-    console.error("📂 Majoor [❌]: Failed to get output directory");
-    return "output"; // fallback
-}
-
 // App constants
 export const APP_DEFAULTS = Object.freeze({
     // Debug / diagnostics (opt-in)
@@ -138,3 +87,4 @@ export const APP_DEFAULTS = Object.freeze({
 export const APP_CONFIG = {
     ...APP_DEFAULTS,
 };
+

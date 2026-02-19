@@ -259,10 +259,3 @@ export function createPopoverManager(container) {
     };
 }
 
-export function getPopoverManagerForElement(el) {
-    try {
-        const host = el?.closest?.(".mjr-am-container");
-        return host?._mjrPopoverManager || null;
-    } catch {}
-    return null;
-}

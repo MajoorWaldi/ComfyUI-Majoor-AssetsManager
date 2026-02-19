@@ -515,7 +515,7 @@ const applySettingsToConfig = (settings) => {
     );
 };
 
-export async function syncBackendSecuritySettings() {
+async function syncBackendSecuritySettings() {
     try {
         const res = await getSecuritySettings();
         if (!res?.ok) return;

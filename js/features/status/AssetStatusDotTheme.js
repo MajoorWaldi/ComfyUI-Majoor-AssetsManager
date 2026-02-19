@@ -2,7 +2,7 @@ function _norm(value) {
     return String(value || "").trim().toLowerCase();
 }
 
-export function isCustomBrowserScope({ dot = null, asset = null, scope = "" } = {}) {
+function isCustomBrowserScope({ dot = null, asset = null, scope = "" } = {}) {
     const explicit = _norm(scope);
     if (explicit) return explicit === "custom";
 

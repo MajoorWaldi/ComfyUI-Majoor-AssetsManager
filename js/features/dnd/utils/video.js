@@ -1,26 +1,26 @@
 import { AUDIO_EXTS, VIDEO_EXTS } from "./constants.js";
 
-export const isVideoFilename = (filename) => {
+const isVideoFilename = (filename) => {
     if (!filename) return false;
     const dot = filename.lastIndexOf(".");
     if (dot === -1) return false;
     return VIDEO_EXTS.has(filename.slice(dot).toLowerCase());
 };
 
-export const isVideoPayload = (payload) => {
+const isVideoPayload = (payload) => {
     if (!payload) return false;
     if (payload.kind === "video") return true;
     return isVideoFilename(payload.filename);
 };
 
-export const isAudioFilename = (filename) => {
+const isAudioFilename = (filename) => {
     if (!filename) return false;
     const dot = filename.lastIndexOf(".");
     if (dot === -1) return false;
     return AUDIO_EXTS.has(filename.slice(dot).toLowerCase());
 };
 
-export const isAudioPayload = (payload) => {
+const isAudioPayload = (payload) => {
     if (!payload) return false;
     if (String(payload.kind || "").toLowerCase() === "audio") return true;
     return isAudioFilename(payload.filename);

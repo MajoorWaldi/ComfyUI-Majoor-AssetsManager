@@ -6,9 +6,7 @@ import { updateAssetRating } from "../api/client.js";
 import { ASSET_RATING_CHANGED_EVENT } from "../app/events.js";
 import { comfyToast } from "../app/toast.js";
 import { t } from "../app/i18n.js";
-import { getPopoverManagerForElement } from "../features/panel/views/popoverManager.js";
 import { safeDispatchCustomEvent } from "../utils/events.js";
-import { MENU_Z_INDEX } from "./contextmenu/MenuCore.js";
 
 /**
  * Create interactive star rating editor
@@ -222,109 +220,3 @@ function updateStarColors(container, rating) {
     });
 }
 
-/**
- * Show rating editor in a popover
- * @param {HTMLElement} anchor - Element to anchor popover to
- * @param {Object} asset - Asset object
- * @param {Function} onUpdate - Callback when rating changes
- */
-export function showRatingPopover(anchor, asset, onUpdate) {
-    const existing = document.querySelector(".mjr-rating-popover");
-    if (existing) {
-        try {
-            existing.remove();
-        } catch {}
-    }
-
-    const popover = document.createElement("div");
-    popover.className = "mjr-popover mjr-rating-popover";
-
-    const popovers = getPopoverManagerForElement(anchor);
-    const host = anchor?.closest?.(".mjr-am-container") || null;
-
-    const editor = createRatingEditor(asset, (newRating) => {
-        try {
-            onUpdate?.(newRating);
-        } catch {}
-        try {
-            if (popover._mjrCloseTimer) clearTimeout(popover._mjrCloseTimer);
-        } catch {}
-        popover._mjrCloseTimer = setTimeout(() => {
-            try {
-                popovers?.close?.(popover);
-            } catch {}
-            try {
-                popover.remove();
-            } catch {}
-            try {
-                if (popover._mjrCloseTimer) clearTimeout(popover._mjrCloseTimer);
-            } catch {}
-            popover._mjrCloseTimer = null;
-        }, 150);
-    });
-
-    popover.appendChild(editor);
-    (host || document.body).appendChild(popover);
-    popover.style.display = "block";
-
-    if (popovers) {
-        popovers.open(popover, anchor);
-        return popover;
-    }
-
-    // Fallback positioning when used outside the Assets Manager panel.
-    const rect = anchor.getBoundingClientRect();
-    popover.style.position = "fixed";
-    popover.style.top = `${rect.bottom + 8}px`;
-    popover.style.left = `${rect.left}px`;
-    popover.style.zIndex = String(MENU_Z_INDEX?.POPOVER ?? 10003);
-
-    const closeOnClickOutside = (e) => {
-        if (!popover.contains(e.target) && !anchor.contains(e.target)) {
-            try {
-                if (popover._mjrCloseTimer) clearTimeout(popover._mjrCloseTimer);
-            } catch {}
-            popover._mjrCloseTimer = null;
-            try {
-                popover.remove();
-            } catch {}
-            try {
-                popover?._mjrDocClickAC?.abort?.();
-            } catch {}
-            popover._mjrDocClickAC = null;
-            try {
-                if (popover._mjrDocClickRAF != null) cancelAnimationFrame(popover._mjrDocClickRAF);
-            } catch {}
-            try {
-                if (popover._mjrDocClickRAF2 != null) cancelAnimationFrame(popover._mjrDocClickRAF2);
-            } catch {}
-            popover._mjrDocClickRAF = null;
-            popover._mjrDocClickRAF2 = null;
-        }
-    };
-    try {
-        const ac = typeof AbortController !== "undefined" ? new AbortController() : null;
-        popover._mjrDocClickAC = ac;
-        popover._mjrDocClickRAF = requestAnimationFrame(() => {
-            popover._mjrDocClickRAF2 = requestAnimationFrame(() => {
-                try {
-                    popover._mjrDocClickRAF = null;
-                    popover._mjrDocClickRAF2 = null;
-                } catch {}
-                try {
-                    if (!popover.isConnected) {
-                        ac?.abort?.();
-                        return;
-                    }
-                    if (ac) document.addEventListener("click", closeOnClickOutside, { signal: ac.signal, capture: true });
-                    else document.addEventListener("click", closeOnClickOutside, { capture: true });
-                } catch {}
-            });
-        });
-    } catch {
-        try {
-            document.addEventListener("click", closeOnClickOutside, { capture: true });
-        } catch {}
-    }
-    return popover;
-}

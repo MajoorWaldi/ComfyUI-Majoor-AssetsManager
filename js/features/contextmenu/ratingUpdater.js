@@ -17,7 +17,7 @@ function _clearPending(assetId) {
     _pending.delete(assetId);
 }
 
-export function cancelRatingUpdate(assetId) {
+function cancelRatingUpdate(assetId) {
     if (!assetId) return;
     _clearPending(String(assetId));
 }

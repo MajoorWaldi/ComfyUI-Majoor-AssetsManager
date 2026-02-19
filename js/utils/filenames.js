@@ -61,7 +61,7 @@ export function validateFilename(filename) {
     }
 }
 
-export function sanitizeFilename(filename) {
+function sanitizeFilename(filename) {
     try {
         return String(filename ?? "").trim();
     } catch {

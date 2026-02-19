@@ -151,4 +151,3 @@ export function createRatingHotkeysController({ gridContainer, createRatingBadge
     return { bind, dispose };
 }
 
-export const RATING_EVENT_NAME = EVENT_NAME;

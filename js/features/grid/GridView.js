@@ -1109,7 +1109,7 @@ function _setSelectedIdsDataset(gridContainer, selectedSet, activeId = "") {
     return list;
 }
 
-export function syncSelectionClasses(gridContainer, selectedIds) {
+function syncSelectionClasses(gridContainer, selectedIds) {
     if (!gridContainer) return;
     const set = selectedIds instanceof Set ? selectedIds : new Set(Array.from(selectedIds || []).map(String));
     try {
@@ -1126,7 +1126,7 @@ export function syncSelectionClasses(gridContainer, selectedIds) {
     } catch {}
 }
 
-export function setSelectionIds(gridContainer, selectedIds, { activeId = "" } = {}) {
+function setSelectionIds(gridContainer, selectedIds, { activeId = "" } = {}) {
     if (!gridContainer) return [];
     const set = new Set(Array.from(selectedIds || []).map(String).filter(Boolean));
     const list = _setSelectedIdsDataset(gridContainer, set, activeId);
@@ -2454,14 +2454,6 @@ export function upsertAsset(gridContainer, asset) {
 }
 
 /**
- * Force flush any pending upsert batch (call before operations that need up-to-date grid)
- * @param {HTMLElement} gridContainer 
- */
-export function flushUpsertBatch(gridContainer) {
-    _flushUpsertBatch(gridContainer);
-}
-
-/**
  * Capture scroll anchor before making changes
  */
 export function captureAnchor(gridContainer) {
@@ -2545,29 +2537,6 @@ export async function restoreAnchor(gridContainer, anchor) {
 }
 
 /**
- * Check if user is at bottom of grid (within threshold)
- */
-export function isAtBottom(gridContainer, threshold = null) {
-    const state = getOrCreateState(gridContainer);
-    const scrollContainer = _getScrollContainer(gridContainer, state);
-    if (!scrollContainer) return false;
-
-    const effectiveThreshold = Number(threshold) || Number(APP_CONFIG.BOTTOM_GAP_PX) || 80;
-    const atBottom = (scrollContainer.scrollHeight - (scrollContainer.scrollTop + scrollContainer.clientHeight)) < effectiveThreshold;
-    return atBottom;
-}
-
-/**
- * Scroll to bottom of grid
- */
-export function scrollToBottom(gridContainer) {
-    const state = getOrCreateState(gridContainer);
-    const scrollContainer = _getScrollContainer(gridContainer, state);
-    if (!scrollContainer) return;
-    scrollContainer.scrollTop = scrollContainer.scrollHeight;
-}
-
-/**
  * Force specific refresh of the grid visuals (e.g. after settings change).
  */
 export function refreshGrid(gridContainer) {
@@ -2588,25 +2557,6 @@ export function refreshGrid(gridContainer) {
         }
     } catch {}
 }
-
-/**
- * Clear grid placeholder
- */
-  export function clearGrid(gridContainer) {
-      try {
-          const state = GRID_STATE.get(gridContainer);
-          if (state) {
-              stopObserver(state);
-              state.offset = 0;
-              state.total = null;
-              state.done = false;
-              state.loading = false;
-              state.seenKeys = new Set();
-          }
-      } catch {}
-      clearGridMessage(gridContainer);
-      setGridMessage(gridContainer, "Type to search or wait for the scan to finish");
-  }
 
 // [ISSUE 1] Real-time Refresh Implementation
 // Manages the global scan-complete handlers so we can teardown on panel unload.

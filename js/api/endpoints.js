@@ -321,14 +321,6 @@ export function buildAssetViewURL(asset) {
 }
 
 /**
- * Build search URL with query params
- */
-export function buildSearchURL(params = {}) {
-    const { q = "*", limit = DEFAULT_QUERY_LIMIT, offset = DEFAULT_QUERY_OFFSET } = params;
-    return `${ENDPOINTS.SEARCH}?q=${encodeURIComponent(q)}&limit=${limit}&offset=${offset}`;
-}
-
-/**
  * Build download URL for asset
  */
 export function buildDownloadURL(filepath, options = {}) {

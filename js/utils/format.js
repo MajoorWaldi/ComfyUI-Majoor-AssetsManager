@@ -12,13 +12,6 @@ function parseDate(input) {
     return date;
 }
 
-export function formatDateTime(input) {
-    const date = parseDate(input);
-    if (!date) return "";
-    const pad = (n) => String(n).padStart(2, "0");
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
 export function formatDate(input) {
     const date = parseDate(input);
     if (!date) return "";
@@ -34,22 +27,6 @@ export function formatTime(input) {
     const minutes = date.getMinutes().toString().padStart(2, '0');
     return `${hours}:${minutes}`;
 }
-
-// Format timestamp (unix seconds or date string) to human readable string
-export function formatTimestamp(input) {
-    const date = parseDate(input);
-    if (!date) return "";
-    
-    // Always show date and time for better precision
-    // Example: 04/07 14:30
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    
-    return `${day}/${month} ${hours}:${minutes}`;
-}
-
 
 // Format duration (seconds) to human readable string (e.g. 1m 30s)
 export function formatDuration(seconds) {

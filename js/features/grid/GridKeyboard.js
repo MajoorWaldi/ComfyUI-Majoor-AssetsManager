@@ -24,7 +24,7 @@ import { normalizeRenameFilename, validateFilename } from "../../utils/filenames
  * Keyboard shortcut definitions
  * Format: { key, ctrl, shift, alt, action, description }
  */
-export const GRID_SHORTCUTS = {
+const GRID_SHORTCUTS = {
     // Viewing
     OPEN_VIEWER: { key: "Enter", description: "Open selected in viewer" },
     OPEN_VIEWER_ALT: { key: " ", description: "Open selected in viewer" },
@@ -69,7 +69,7 @@ export const GRID_SHORTCUTS = {
  * @param {Object} shortcut - Shortcut definition
  * @returns {string} Formatted shortcut string (e.g., "Ctrl+Shift+C")
  */
-export function formatShortcut(shortcut) {
+function formatShortcut(shortcut) {
     if (!shortcut) return "";
     const parts = [];
     if (shortcut.ctrl) parts.push("Ctrl");

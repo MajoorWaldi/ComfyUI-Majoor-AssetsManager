@@ -132,6 +132,7 @@ const DICTIONARY = {
         "btn.retryServices": "Retry services",
         "btn.retrying": "Retrying...",
         "btn.loadWorkflow": "Load Workflow",
+        "btn.play": "Play",
         "btn.copyPrompt": "Copy Prompt",
         "btn.close": "Close",
 
@@ -148,6 +149,14 @@ const DICTIONARY = {
         "label.only": "Only",
         "label.workflowType": "WF Type",
         "label.resolution": "Resolution",
+        "label.fileSizeMB": "File size (MB)",
+        "label.min": "Min",
+        "label.max": "Max",
+        "label.resolutionPx": "Resolution (px)",
+        "label.compare": "Compare",
+        "label.resolutionWxHpx": "Resolution WxH (px)",
+        "label.widthPx": "Width (px)",
+        "label.heightPx": "Height (px)",
         "label.day": "Day",
         "label.collections": "Collections",
         "label.filters": "Filters",
@@ -159,6 +168,12 @@ const DICTIONARY = {
         "action.copyToClipboard": "Copy to clipboard",
         "action.clickToCopy": "Click to copy",
         "tooltip.copyFieldValue": "Copy value",
+        "tooltip.filterByFileType": "Filter by file type",
+        "tooltip.filterWorkflowOnly": "Show only assets with embedded workflow data",
+        "tooltip.filterMinRating": "Filter by minimum rating",
+        "tooltip.filterByDateRange": "Filter by date range",
+        "tooltip.widthPx": "Width in pixels",
+        "tooltip.heightPx": "Height in pixels",
         "log.clipboardCopyFailed": "Failed to copy to clipboard",
         "btn.back": "Back",
         "btn.up": "Up",
@@ -167,11 +182,15 @@ const DICTIONARY = {
 
         // --- Panel: Filters ---
         "filter.all": "All",
+        "filter.any": "Any",
         "filter.images": "Images",
         "filter.videos": "Videos",
+        "filter.audio": "Audio",
         "filter.onlyWithWorkflow": "Only with workflow",
         "filter.anyRating": "Any rating",
         "filter.minStars": "{n}+ stars",
+        "filter.resolutionAtLeast": "At least (>=)",
+        "filter.resolutionAtMost": "At most (<=)",
         "filter.anytime": "Anytime",
         "filter.today": "Today",
         "filter.yesterday": "Yesterday",
@@ -179,6 +198,9 @@ const DICTIONARY = {
         "filter.thisMonth": "This month",
         "filter.last7days": "Last 7 days",
         "filter.last30days": "Last 30 days",
+        "group.core": "Core",
+        "group.media": "Media",
+        "group.time": "Time",
 
         // --- Panel: Sort ---
         "sort.newest": "Newest first",
@@ -245,6 +267,7 @@ const DICTIONARY = {
         "scope.input": "Inputs",
         "scope.output": "Outputs",
         "scope.custom": "Custom",
+        "scope.customBrowser": "Browser",
 
         // --- Tools ---
         "tool.exiftool": "ExifTool metadata",
@@ -262,6 +285,7 @@ const DICTIONARY = {
         "msg.noGenerationData": "No generation data found for this file.",
         "msg.rawMetadata": "Raw metadata",
         "msg.noPinnedFolders": "No pinned folders",
+        "msg.noTagsYet": "No tags yet...",
         "msg.newVersionTitle": "Majoor Assets Manager",
         "msg.newVersionDetail": "A new version is available: {latest} (Current: {current})",
         "msg.dbResetNotice": "Database reset required",
@@ -274,8 +298,43 @@ const DICTIONARY = {
         "viewer.noMetadata": "No metadata available",
         "viewer.copySuccess": "Copied to clipboard!",
         "viewer.copyFailed": "Failed to copy",
+        "video.controls": "Video controls",
+        "video.previewControls": "Video preview controls",
+        "video.playPause": "Play/Pause",
+        "video.playPauseSpace": "Play/Pause (Space)",
+        "video.play": "Play",
+        "video.pause": "Pause",
+        "video.seek": "Seek",
+        "video.seekThrough": "Seek through video",
+        "video.dragSetIn": "Drag to set In",
+        "video.dragSetOut": "Drag to set Out",
+        "video.currentTimeTotal": "Current time / Total duration",
+        "video.currentFrame": "Current frame number",
+        "video.stepBack": "Step back",
+        "video.stepForward": "Step forward",
+        "video.goToIn": "Go to In",
+        "video.goToOut": "Go to Out",
+        "video.setInFromCurrent": "Set In from current frame",
+        "video.setOutFromCurrent": "Set Out from current frame",
+        "video.loopPlaybackInRange": "Loop playback in range",
+        "video.loop": "Loop",
+        "video.inFrame": "In frame",
+        "video.outFrame": "Out frame",
+        "video.frameIncrement": "Frame increment",
+        "video.fpsStepping": "FPS (used for frame stepping)",
+        "video.fps": "FPS",
+        "video.playbackSpeed": "Playback speed",
+        "video.mute": "Mute",
+        "video.unmute": "Unmute",
+        "video.volume": "Volume",
+        "video.resetInToStart": "Reset In to start",
+        "video.resetOutToEnd": "Reset Out to end",
+        "video.step": "Step",
+        "video.speed": "Speed",
+        "video.resetPlayerControls": "Reset player controls",
 
         // --- Sidebar ---
+        "sidebar.placeholderSelectAsset": "Select an asset to see details",
         "sidebar.details": "Details",
         "sidebar.preview": "Preview",
         "sidebar.rating": "Rating",
@@ -306,6 +365,7 @@ const DICTIONARY = {
         "ctx.moveFolder": "Move folder...",
         "ctx.deleteFolder": "Delete folder...",
         "ctx.refreshMetadata": "Refresh metadata",
+        "ctx.resetIndexFile": "Reset index (this file)",
         "ctx.openInNewTab": "Open in New Tab",
         "ctx.downloadOriginal": "Download Original",
         "ctx.download": "Download",
@@ -384,6 +444,7 @@ const DICTIONARY = {
         "toast.failedCreateCollectionDot": "Failed to create collection.",
         "toast.failedAddAssetsToCollection": "Failed to add assets to collection.",
         "toast.removeFromCollectionFailed": "Failed to remove from collection.",
+        "toast.removeFromCollectionError": "Error removing from collection: {error}",
         "toast.copyClipboardFailed": "Failed to copy to clipboard",
         "toast.metadataRefreshFailed": "Failed to refresh metadata.",
         "toast.ratingCleared": "Rating cleared",
@@ -915,8 +976,6 @@ export const setFollowComfyLanguage = (enabled) => {
     _persistFollowComfyLang(!!enabled);
 };
 
-export const getFollowComfyLanguage = () => _readFollowComfyLang();
-
 export const startComfyLanguageSync = (app) => {
     try {
         if (typeof window !== "undefined" && window.__MJR_COMFY_LANG_SYNC_TIMER__) {
@@ -1007,20 +1066,4 @@ export const t = (key, defaultOrParams, params) => {
     return text;
 };
 
-/**
- * Subscribe to language changes.
- */
-export const onLangChange = (callback) => {
-    if (typeof callback === "function") {
-        _langChangeListeners.push(callback);
-    }
-    return () => {
-        _langChangeListeners = _langChangeListeners.filter(cb => cb !== callback);
-    };
-};
-
-/**
- * Check if a language is supported.
- */
-export const isLangSupported = (lang) => !!DICTIONARY[lang];
 

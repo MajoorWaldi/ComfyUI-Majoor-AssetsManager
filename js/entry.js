@@ -7,7 +7,13 @@ import { testAPI, triggerStartupScan } from "./app/bootstrap.js";
 import { checkMajoorVersion } from "./app/versionCheck.js";
 import { ensureStyleLoaded } from "./app/style.js";
 import { registerMajoorSettings, startRuntimeStatusDashboard } from "./app/settings.js";
-import { getComfyApi, registerSidebarTabCompat } from "./app/comfyApiBridge.js";
+import {
+    getComfyApi,
+    registerSidebarTabCompat,
+    setComfyApp,
+    waitForComfyApi,
+    waitForComfyApp
+} from "./app/comfyApiBridge.js";
 import { initDragDrop } from "./features/dnd/DragDrop.js";
 import { loadAssets, upsertAsset, removeAssetsFromGrid } from "./features/grid/GridView.js";
 import { renderAssetsManager, getActiveGridContainer } from "./features/panel/AssetsManagerPanel.js";
@@ -24,19 +30,21 @@ const UI_FLAGS = {
 
 // Runtime cleanup key (used for hot-reload cleanup in ComfyUI)
 const ENTRY_RUNTIME_KEY = "__MJR_ENTRY_RUNTIME__";
-const ENTRY_ABORT = typeof AbortController !== "undefined" ? new AbortController() : null;
-try {
-    if (typeof window !== "undefined") {
-        // Replace previous runtime entry to allow cleanup on hot-reload
-        try {
-            const prev = window[ENTRY_RUNTIME_KEY];
-            if (prev && prev.controller && typeof prev.controller.abort === "function") {
-                try { prev.controller.abort(); } catch {}
-            }
-        } catch {}
-        window[ENTRY_RUNTIME_KEY] = { controller: ENTRY_ABORT };
-    }
-} catch {}
+function installEntryRuntimeController() {
+    try {
+        if (typeof window !== "undefined") {
+            const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+            // Replace previous runtime entry to allow cleanup on hot-reload
+            try {
+                const prev = window[ENTRY_RUNTIME_KEY];
+                if (prev && prev.controller && typeof prev.controller.abort === "function") {
+                    try { prev.controller.abort(); } catch {}
+                }
+            } catch {}
+            window[ENTRY_RUNTIME_KEY] = { controller };
+        }
+    } catch {}
+}
 
 // Deduplication for executed events (ComfyUI can fire multiple times for same file)
 const DEDUPE_TTL_MS = 2000;
@@ -84,6 +92,10 @@ app.registerExtension({
     name: "Majoor.AssetsManager",
 
     async setup() {
+        installEntryRuntimeController();
+        const runtimeApp = (await waitForComfyApp({ timeoutMs: 6000 })) || app;
+        setComfyApp(runtimeApp);
+
         // Initialize core services
         testAPI();
         ensureStyleLoaded({ enabled: UI_FLAGS.useComfyThemeUI });
@@ -94,17 +106,16 @@ app.registerExtension({
         } catch {}
 
         setTimeout(() => {
-            registerMajoorSettings(app, () => {
+            registerMajoorSettings(runtimeApp, () => {
                 const grid = getActiveGridContainer();
                 if (grid) loadAssets(grid);
             });
         }, 500);
 
-        triggerStartupScan();
         void checkMajoorVersion();
 
         // Get ComfyUI API
-        const api = getComfyApi(app);
+        const api = (await waitForComfyApi({ app: runtimeApp, timeoutMs: 4000 })) || getComfyApi(runtimeApp);
         if (api) {
             // Clean up previous handlers (hot-reload safety)
             try {
@@ -284,14 +295,14 @@ app.registerExtension({
                 } catch {}
             };
             window.addEventListener("mjr:assets-deleted", window._mjrAssetsDeletedHandler);
-
+            triggerStartupScan();
             console.log("📂 Majoor [✅] Real-time listener registered");
         } else {
             console.warn("📂 Majoor [⚠️] API not available, real-time updates disabled");
         }
 
         // Register sidebar tab
-        if (registerSidebarTabCompat(app, {
+        if (registerSidebarTabCompat(runtimeApp, {
                 id: "majoor-assets",
                 icon: "pi pi-folder",
                 title: t("manager.title"),
@@ -308,3 +319,4 @@ app.registerExtension({
         }
     },
 });
+

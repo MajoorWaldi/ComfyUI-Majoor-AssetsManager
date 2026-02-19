@@ -106,7 +106,7 @@ export const ensureComboHasValue = (widget, value) => {
     target.values = vals;
 };
 
-export const pickBestVideoPathWidget = (node, droppedExt) => {
+const pickBestVideoPathWidget = (node, droppedExt) => {
     const widgets = node?.widgets;
     if (!Array.isArray(widgets) || !widgets.length) return null;
 

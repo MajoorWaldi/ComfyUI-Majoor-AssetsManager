@@ -48,8 +48,6 @@ export function cleanupMenu(menu) {
     } catch {}
 }
 
-export { cleanupMenu as destroyMenu };
-
 export function setMenuSessionCleanup(menu, fn) {
     if (!menu) return;
     try {

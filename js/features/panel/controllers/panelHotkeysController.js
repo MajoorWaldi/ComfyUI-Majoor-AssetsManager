@@ -1,15 +1,18 @@
-// Global state for suspended hotkeys (when dialogs/popovers are open)
-// Using window global to make it accessible across modules
-if (!window._mjrHotkeysState) {
-    window._mjrHotkeysState = { suspended: false };
+// Lazily initialize shared hotkeys state to avoid module-load side effects.
+function ensureHotkeysState() {
+    const root = typeof globalThis !== "undefined" ? globalThis : null;
+    if (!root) return null;
+    if (!root._mjrHotkeysState || typeof root._mjrHotkeysState !== "object") {
+        root._mjrHotkeysState = { suspended: false };
+    }
+    return root._mjrHotkeysState;
 }
 
 export function setHotkeysSuspended(suspended) {
-    window._mjrHotkeysState.suspended = Boolean(suspended);
+    const state = ensureHotkeysState();
+    if (!state) return;
+    state.suspended = Boolean(suspended);
 }
-
-// Also attach to window for easy access from other modules
-window.setHotkeysSuspended = setHotkeysSuspended;
 
 export function createPanelHotkeysController({
     onTriggerScan,
@@ -19,6 +22,7 @@ export function createPanelHotkeysController({
     onClearSearch,
     allowListKeys,
 } = {}) {
+    ensureHotkeysState();
     let panelFocused = false;
     let panelHovered = false;
     let boundEl = null;

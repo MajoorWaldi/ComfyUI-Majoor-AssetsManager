@@ -1,4 +1,4 @@
-export const getCanvasRect = (app) => {
+const getCanvasRect = (app) => {
     const canvas = app?.canvas?.canvas || document.querySelector("canvas");
     if (!canvas) return null;
     return canvas.getBoundingClientRect();
