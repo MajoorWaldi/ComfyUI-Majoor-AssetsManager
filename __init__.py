@@ -1,4 +1,4 @@
-﻿"""
+"""
 ComfyUI-Majoor-AssetsManager
 Advanced asset browser for ComfyUI with ratings, tags, and metadata management.
 """

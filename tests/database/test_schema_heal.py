@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 import sqlite3
 
 
@@ -132,5 +132,3 @@ async def test_sqlite_query_missing_column_triggers_self_heal(tmp_path):
             await db.aclose()
         except Exception:
             pass
-
-

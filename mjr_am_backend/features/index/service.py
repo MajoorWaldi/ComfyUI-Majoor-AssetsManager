@@ -1,4 +1,4 @@
-﻿"""
+"""
 Index Service - file scanning, incremental updates, and FTS search.
 
 This service coordinates multiple specialized components:
@@ -24,6 +24,52 @@ from .metadata_helpers import MetadataHelpers
 
 
 logger = get_logger(__name__)
+
+
+def _normalize_rename_paths(old_filepath: str, new_filepath: str) -> tuple[str, str]:
+    return str(old_filepath or ""), str(new_filepath or "")
+
+
+def _extract_rename_target_info(new_fp: str) -> tuple[str, str, Optional[int]]:
+    new_path = Path(new_fp)
+    filename = new_path.name
+    subfolder = str(new_path.parent)
+    mtime: Optional[int] = None
+    try:
+        if new_path.exists():
+            mtime = int(new_path.stat().st_mtime)
+    except Exception:
+        mtime = None
+    return filename, subfolder, mtime
+
+
+async def _update_assets_filepath_row(db, old_fp: str, new_fp: str, filename: str, subfolder: str, mtime: Optional[int]) -> Result[Any]:
+    if mtime is None:
+        return await db.aexecute(
+            "UPDATE assets SET filepath = ?, filename = ?, subfolder = ?, updated_at = CURRENT_TIMESTAMP WHERE filepath = ?",
+            (new_fp, filename, subfolder, old_fp),
+        )
+    return await db.aexecute(
+        "UPDATE assets SET filepath = ?, filename = ?, subfolder = ?, mtime = ?, updated_at = CURRENT_TIMESTAMP WHERE filepath = ?",
+        (new_fp, filename, subfolder, mtime, old_fp),
+    )
+
+
+async def _update_path_keyed_index_tables(db, old_fp: str, new_fp: str, subfolder: str, mtime: Optional[int]) -> Result[bool]:
+    sj = await db.aexecute(
+        "UPDATE scan_journal SET filepath = ?, dir_path = ?, mtime = COALESCE(?, mtime), last_seen = CURRENT_TIMESTAMP WHERE filepath = ?",
+        (new_fp, subfolder, mtime, old_fp),
+    )
+    if not sj.ok:
+        return Result.Err("DB_ERROR", sj.error or "Failed to update scan_journal filepath")
+
+    mc = await db.aexecute(
+        "UPDATE metadata_cache SET filepath = ?, last_updated = CURRENT_TIMESTAMP WHERE filepath = ?",
+        (new_fp, old_fp),
+    )
+    if not mc.ok:
+        return Result.Err("DB_ERROR", mc.error or "Failed to update metadata_cache filepath")
+    return Result.Ok(True)
 
 
 class IndexService:
@@ -176,55 +222,27 @@ class IndexService:
 
         This keeps DB metadata attached to the asset while updating path-keyed tables.
         """
-        old_fp = str(old_filepath or "")
-        new_fp = str(new_filepath or "")
+        old_fp, new_fp = _normalize_rename_paths(old_filepath, new_filepath)
         if not old_fp or not new_fp:
             return Result.Err("INVALID_INPUT", "Missing old/new filepath")
         if old_fp == new_fp:
             return Result.Ok(True)
 
         try:
-            new_path = Path(new_fp)
-            filename = new_path.name
-            subfolder = str(new_path.parent)
-            mtime = None
-            try:
-                if new_path.exists():
-                    mtime = int(new_path.stat().st_mtime)
-            except Exception:
-                mtime = None
+            filename, subfolder, mtime = _extract_rename_target_info(new_fp)
 
             async with self.db.atransaction(mode="immediate"):
                 defer_fk = await self.db.aexecute("PRAGMA defer_foreign_keys = ON")
                 if not defer_fk.ok:
                     return Result.Err("DB_ERROR", defer_fk.error or "Failed to defer foreign key checks")
 
-                if mtime is None:
-                    upd = await self.db.aexecute(
-                        "UPDATE assets SET filepath = ?, filename = ?, subfolder = ?, updated_at = CURRENT_TIMESTAMP WHERE filepath = ?",
-                        (new_fp, filename, subfolder, old_fp),
-                    )
-                else:
-                    upd = await self.db.aexecute(
-                        "UPDATE assets SET filepath = ?, filename = ?, subfolder = ?, mtime = ?, updated_at = CURRENT_TIMESTAMP WHERE filepath = ?",
-                        (new_fp, filename, subfolder, mtime, old_fp),
-                    )
+                upd = await _update_assets_filepath_row(self.db, old_fp, new_fp, filename, subfolder, mtime)
                 if not upd.ok:
                     return Result.Err("DB_ERROR", upd.error or "Failed to update asset filepath")
 
-                sj = await self.db.aexecute(
-                    "UPDATE scan_journal SET filepath = ?, dir_path = ?, mtime = COALESCE(?, mtime), last_seen = CURRENT_TIMESTAMP WHERE filepath = ?",
-                    (new_fp, subfolder, mtime, old_fp),
-                )
-                if not sj.ok:
-                    return Result.Err("DB_ERROR", sj.error or "Failed to update scan_journal filepath")
-
-                mc = await self.db.aexecute(
-                    "UPDATE metadata_cache SET filepath = ?, last_updated = CURRENT_TIMESTAMP WHERE filepath = ?",
-                    (new_fp, old_fp),
-                )
-                if not mc.ok:
-                    return Result.Err("DB_ERROR", mc.error or "Failed to update metadata_cache filepath")
+                side_updates = await _update_path_keyed_index_tables(self.db, old_fp, new_fp, subfolder, mtime)
+                if not side_updates.ok:
+                    return side_updates
         except Exception as exc:
             return Result.Err("DB_ERROR", str(exc))
 
@@ -388,4 +406,3 @@ class IndexService:
         return {
             "enrichment_queue_length": queue_len,
         }
-

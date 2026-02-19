@@ -1,4 +1,4 @@
-﻿"""
+"""
 Calendar / date histogram endpoints.
 
 Used by the UI to mark days that have assets (per month).
@@ -128,4 +128,3 @@ def register_calendar_routes(routes: web.RouteTableDef) -> None:
             return _json_response(res)
 
         return _json_response(Result.Ok({"month": month, "days": res.data or {}}))
-

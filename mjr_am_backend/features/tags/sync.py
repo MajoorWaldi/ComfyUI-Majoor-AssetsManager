@@ -59,17 +59,7 @@ def _normalize_tags(tags: List[str]) -> List[str]:
     return out
 
 
-def write_exif_rating_tags(exiftool: ExifTool, file_path: str, rating: int, tags: List[str]) -> Result[bool]:
-    """
-    Try writing rating/tags into the file metadata via ExifTool.
-    """
-    try:
-        if not exiftool or not exiftool.is_available():
-            return Result.Err(ErrorCode.TOOL_MISSING, "ExifTool not available")
-    except (AttributeError, TypeError, ValueError) as exc:
-        logger.debug("ExifTool availability check failed: %s", exc)
-        return Result.Err(ErrorCode.TOOL_MISSING, "ExifTool not available")
-
+def _validate_exiftool_file_path(file_path: str) -> Result[Path]:
     try:
         p = Path(str(file_path))
     except (OSError, TypeError, ValueError) as exc:
@@ -77,57 +67,75 @@ def write_exif_rating_tags(exiftool: ExifTool, file_path: str, rating: int, tags
         return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")
     if not p.exists() or not p.is_file():
         return Result.Err(ErrorCode.NOT_FOUND, f"File not found: {file_path}")
+    return Result.Ok(p)
+
+
+def _build_exiftool_rating_tags_payload(stars: int, tags_norm: List[str]) -> Dict[str, Any]:
+    joined = "; ".join(tags_norm)
+    payload: Dict[str, Any] = {
+        "XMP:Rating": stars,
+        "xmp:rating": stars,
+        "rating": stars,
+        "ratingpercent": _windows_rating_percent(stars),
+        # Windows Property System (best-effort; writable depends on container/handler)
+        "Microsoft:SharedUserRating": _windows_rating_percent(stars),
+        "Microsoft:Category": joined,
+        "XMP:Subject": tags_norm,
+        "IPTC:Keywords": tags_norm,
+        "XPKeywords": joined,
+        "Keywords": joined,
+        "Subject": joined,
+    }
+    if tags_norm == []:
+        payload["XMP:Subject"] = []
+        payload["IPTC:Keywords"] = []
+        payload["Microsoft:Category"] = ""
+        payload["XPKeywords"] = ""
+        payload["Keywords"] = ""
+        payload["Subject"] = ""
+    return payload
+
+
+def _exiftool_available(exiftool: ExifTool) -> bool:
+    try:
+        return bool(exiftool and exiftool.is_available())
+    except (AttributeError, TypeError, ValueError) as exc:
+        logger.debug("ExifTool availability check failed: %s", exc)
+        return False
+
+
+def _write_exiftool_payload(exiftool: ExifTool, path: Path, payload: Dict[str, Any]) -> Result[bool]:
+    try:
+        res = exiftool.write(str(path), payload, preserve_workflow=True)
+    except Exception as exc:
+        return Result.Err(ErrorCode.EXIFTOOL_ERROR, f"ExifTool write failed: {exc}")
+    if not res.ok:
+        return Result.Err(res.code or ErrorCode.EXIFTOOL_ERROR, res.error or "ExifTool write failed")
+    return Result.Ok(True)
+
+
+def write_exif_rating_tags(exiftool: ExifTool, file_path: str, rating: int, tags: List[str]) -> Result[bool]:
+    """
+    Try writing rating/tags into the file metadata via ExifTool.
+    """
+    if not _exiftool_available(exiftool):
+        return Result.Err(ErrorCode.TOOL_MISSING, "ExifTool not available")
+
+    path_res = _validate_exiftool_file_path(file_path)
+    if not path_res.ok:
+        return Result.Err(path_res.code or ErrorCode.INVALID_INPUT, path_res.error or "Invalid file path")
+    p = path_res.data
 
     stars = max(0, min(5, int(rating or 0)))
     tags_norm = _normalize_tags(tags)
-    joined = "; ".join(tags_norm)
 
-    try:
-        original_mtime = None
-        try:
-            original_mtime = os.path.getmtime(str(p))
-        except OSError:
-            original_mtime = None
-
-        # Multi-namespace writes to maximize Windows Explorer compatibility.
-        # Arrays are written as repeated values by the ExifTool adapter.
-        payload: Dict[str, Any] = {
-            "XMP:Rating": stars,
-            "xmp:rating": stars,
-            "rating": stars,
-            "ratingpercent": _windows_rating_percent(stars),
-            # Windows Property System (best-effort; writable depends on container/handler)
-            "Microsoft:SharedUserRating": _windows_rating_percent(stars),
-            "Microsoft:Category": joined,
-            "XMP:Subject": tags_norm,
-            "IPTC:Keywords": tags_norm,
-            "XPKeywords": joined,
-            "Keywords": joined,
-            "Subject": joined,
-        }
-
-        # Clear tags when explicitly empty.
-        if tags_norm == []:
-            payload["XMP:Subject"] = []
-            payload["IPTC:Keywords"] = []
-            payload["Microsoft:Category"] = ""
-            payload["XPKeywords"] = ""
-            payload["Keywords"] = ""
-            payload["Subject"] = ""
-
-        res = exiftool.write(str(p), payload, preserve_workflow=True)
-        if not res.ok:
-            return Result.Err(res.code or ErrorCode.EXIFTOOL_ERROR, res.error or "ExifTool write failed")
-
-        if original_mtime is not None:
-            try:
-                os.utime(str(p), (original_mtime, original_mtime))
-            except OSError as exc:
-                logger.debug("Failed to restore mtime after ExifTool write: %s", exc)
-
-        return Result.Ok(True)
-    except Exception as exc:
-        return Result.Err(ErrorCode.EXIFTOOL_ERROR, f"ExifTool write failed: {exc}")
+    original_mtime = _get_file_mtime(p)
+    payload = _build_exiftool_rating_tags_payload(stars, tags_norm)
+    write_result = _write_exiftool_payload(exiftool, p, payload)
+    if not write_result.ok:
+        return write_result
+    _restore_file_mtime(p, original_mtime)
+    return Result.Ok(True)
 
 
 @dataclass(frozen=True)
@@ -174,28 +182,108 @@ def _resolve_shell_indices(folder) -> tuple[int, int]:
     if _WIN_RATING_IDX is not None and _WIN_TAGS_IDX is not None:
         return _WIN_RATING_IDX, _WIN_TAGS_IDX
 
-    # Common Windows Explorer column indices; will be replaced by discovery below.
-    rating_idx = WIN_SHELL_DEFAULT_RATING_COL_IDX
-    tags_idx = WIN_SHELL_DEFAULT_TAGS_COL_IDX
-    try:
-        for i in range(0, WIN_SHELL_COL_SCAN_MAX):
-            name = _normalize_label(folder.GetDetailsOf(None, i))
-            if not name:
-                continue
-            if _WIN_RATING_IDX is None and any(k in name for k in _RATING_KEYS):
-                _WIN_RATING_IDX = i
-            if _WIN_TAGS_IDX is None and any(k in name for k in _TAGS_KEYS):
-                _WIN_TAGS_IDX = i
-            if _WIN_RATING_IDX is not None and _WIN_TAGS_IDX is not None:
-                break
-    except Exception as exc:
-        logger.debug("Windows shell column discovery failed (fallback indices will be used): %s", exc)
-
+    rating_idx, tags_idx = _discover_shell_indices(folder)
     if _WIN_RATING_IDX is None:
         _WIN_RATING_IDX = rating_idx
     if _WIN_TAGS_IDX is None:
         _WIN_TAGS_IDX = tags_idx
     return _WIN_RATING_IDX, _WIN_TAGS_IDX
+
+
+def _discover_shell_indices(folder) -> tuple[int, int]:
+    rating_idx = WIN_SHELL_DEFAULT_RATING_COL_IDX
+    tags_idx = WIN_SHELL_DEFAULT_TAGS_COL_IDX
+    try:
+        for i in range(0, WIN_SHELL_COL_SCAN_MAX):
+            name = _shell_column_label(folder, i)
+            if not name:
+                continue
+            if _should_pick_rating_index(name):
+                rating_idx = i
+            if _should_pick_tags_index(name):
+                tags_idx = i
+            if _indices_discovery_complete(rating_idx, tags_idx):
+                break
+    except Exception as exc:
+        logger.debug("Windows shell column discovery failed (fallback indices will be used): %s", exc)
+    return rating_idx, tags_idx
+
+
+def _shell_column_label(folder, index: int) -> str:
+    return _normalize_label(folder.GetDetailsOf(None, index))
+
+
+def _should_pick_rating_index(name: str) -> bool:
+    return _WIN_RATING_IDX is None and any(key in name for key in _RATING_KEYS)
+
+
+def _should_pick_tags_index(name: str) -> bool:
+    return _WIN_TAGS_IDX is None and any(key in name for key in _TAGS_KEYS)
+
+
+def _indices_discovery_complete(rating_idx: int, tags_idx: int) -> bool:
+    rating_done = _WIN_RATING_IDX is not None or rating_idx != WIN_SHELL_DEFAULT_RATING_COL_IDX
+    tags_done = _WIN_TAGS_IDX is not None or tags_idx != WIN_SHELL_DEFAULT_TAGS_COL_IDX
+    return rating_done and tags_done
+
+
+def _validate_sync_file_path(file_path: str) -> Result[Path]:
+    try:
+        path = Path(str(file_path))
+    except (OSError, TypeError, ValueError) as exc:
+        logger.debug("Invalid file path for Windows shell rating/tags sync: %s", exc)
+        return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")
+    if not path.exists() or not path.is_file():
+        return Result.Err(ErrorCode.NOT_FOUND, f"File not found: {file_path}")
+    return Result.Ok(path)
+
+
+def _get_file_mtime(path: Path) -> Optional[float]:
+    try:
+        return os.path.getmtime(str(path))
+    except OSError:
+        return None
+
+
+def _restore_file_mtime(path: Path, mtime: Optional[float]) -> None:
+    if mtime is None:
+        return
+    try:
+        os.utime(str(path), (mtime, mtime))
+    except OSError as exc:
+        logger.debug("Failed to restore mtime after Windows shell write: %s", exc)
+
+
+def _write_shell_rating_and_tags(folder, item, rating_idx: int, tags_idx: int, rating_val: int, tags_norm: List[str]) -> None:
+    try:
+        folder.GetDetailsOf(item, rating_idx)
+        folder.SetDetailsOf(item, rating_idx, str(rating_val))
+    except Exception as exc:
+        logger.debug("Windows shell rating write skipped: %s", exc)
+
+    try:
+        folder.GetDetailsOf(item, tags_idx)
+        folder.SetDetailsOf(item, tags_idx, "; ".join(tags_norm) if tags_norm else "")
+    except Exception as exc:
+        logger.debug("Windows shell tags write skipped: %s", exc)
+
+
+def _co_initialize_pythoncom() -> Any:
+    try:
+        import pythoncom  # type: ignore
+
+        pythoncom.CoInitialize()
+        return pythoncom
+    except Exception:
+        return None
+
+
+def _shell_write_for_path(win32com, path: Path, rating_val: int, tags_norm: List[str]) -> None:
+    shell = win32com.Dispatch("Shell.Application")
+    folder = shell.Namespace(str(path.parent))
+    item = folder.ParseName(path.name)
+    rating_idx, tags_idx = _resolve_shell_indices(folder)
+    _write_shell_rating_and_tags(folder, item, rating_idx, tags_idx, rating_val, tags_norm)
 
 
 def write_windows_rating_tags(file_path: str, rating: int, tags: List[str]) -> Result[bool]:
@@ -212,51 +300,20 @@ def write_windows_rating_tags(file_path: str, rating: int, tags: List[str]) -> R
     if not win32com:
         return Result.Err(ErrorCode.TOOL_MISSING, "pywin32 not installed (win32com unavailable)")
 
-    try:
-        p = Path(str(file_path))
-    except (OSError, TypeError, ValueError) as exc:
-        logger.debug("Invalid file path for Windows shell rating/tags sync: %s", exc)
-        return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")
-    if not p.exists() or not p.is_file():
-        return Result.Err(ErrorCode.NOT_FOUND, f"File not found: {file_path}")
+    path_res = _validate_sync_file_path(file_path)
+    if not path_res.ok:
+        return Result.Err(path_res.code or ErrorCode.INVALID_INPUT, path_res.error or "Invalid file path")
+    p = path_res.data
 
     stars = max(0, min(5, int(rating or 0)))
     rating_val = _windows_rating_percent(stars)
     tags_norm = _normalize_tags(tags)
-
-    original_mtime = None
-    try:
-        original_mtime = os.path.getmtime(str(p))
-    except OSError:
-        original_mtime = None
+    original_mtime = _get_file_mtime(p)
 
     try:
-        pythoncom_mod: Any = None
+        pythoncom_mod = _co_initialize_pythoncom()
         try:
-            import pythoncom  # type: ignore
-
-            pythoncom_mod = pythoncom
-            pythoncom_mod.CoInitialize()
-        except Exception:
-            pythoncom_mod = None
-
-        try:
-            shell = win32com.Dispatch("Shell.Application")
-            folder = shell.Namespace(str(p.parent))
-            item = folder.ParseName(p.name)
-            rating_idx, tags_idx = _resolve_shell_indices(folder)
-
-            try:
-                folder.GetDetailsOf(item, rating_idx)
-                folder.SetDetailsOf(item, rating_idx, str(rating_val))
-            except Exception as exc:
-                logger.debug("Windows shell rating write skipped: %s", exc)
-
-            try:
-                folder.GetDetailsOf(item, tags_idx)
-                folder.SetDetailsOf(item, tags_idx, "; ".join(tags_norm) if tags_norm else "")
-            except Exception as exc:
-                logger.debug("Windows shell tags write skipped: %s", exc)
+            _shell_write_for_path(win32com, p, rating_val, tags_norm)
         finally:
             if pythoncom_mod is not None:
                 try:
@@ -264,12 +321,7 @@ def write_windows_rating_tags(file_path: str, rating: int, tags: List[str]) -> R
                 except Exception as exc:
                     logger.debug("pythoncom.CoUninitialize failed: %s", exc)
 
-        if original_mtime is not None:
-            try:
-                os.utime(str(p), (original_mtime, original_mtime))
-            except OSError as exc:
-                logger.debug("Failed to restore mtime after Windows shell write: %s", exc)
-
+        _restore_file_mtime(p, original_mtime)
         return Result.Ok(True)
     except Exception as exc:
         return Result.Err(ErrorCode.UPDATE_FAILED, f"Windows metadata sync failed: {exc}")

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Expose repository refs (tags/branches) and a ZIP template for programmatic installs.
 
 Endpoint: GET /mjr/am/releases
@@ -82,4 +82,3 @@ def register_releases_routes(routes: web.RouteTableDef) -> None:
                     },
                 )
             )
-

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Search and list endpoints.
 """
 import datetime
@@ -6,6 +6,7 @@ import asyncio
 import re
 import os
 import json
+from typing import Any
 from pathlib import Path
 from aiohttp import web
 
@@ -100,25 +101,24 @@ def _norm_fp(fp: str) -> str:
     return str(fp or "")
 
 
-async def _hydrate_browser_assets_from_db(svc: dict | None, assets: list[dict]) -> list[dict]:
-    if not isinstance(assets, list) or not assets:
-        return assets or []
-    db = (svc or {}).get("db") if isinstance(svc, dict) else None
-    if not db:
-        return assets
+def _is_folder_asset(asset: dict) -> bool:
+    return str((asset or {}).get("kind") or "").lower() == "folder"
 
-    filepaths = []
-    for a in assets:
-        if not isinstance(a, dict):
+
+def _collect_hydration_filepaths(assets: list[dict]) -> list[str]:
+    filepaths: list[str] = []
+    for asset in assets:
+        if not isinstance(asset, dict):
             continue
-        if str((a or {}).get("kind") or "").lower() == "folder":
+        if _is_folder_asset(asset):
             continue
-        fp = str((a or {}).get("filepath") or "").strip()
+        fp = str(asset.get("filepath") or "").strip()
         if fp:
             filepaths.append(fp)
-    if not filepaths:
-        return assets
+    return filepaths
 
+
+async def _query_browser_asset_rows(db: Any, filepaths: list[str]) -> list[dict] | None:
     try:
         rows_res = await db.aquery_in(
             """
@@ -130,12 +130,15 @@ async def _hydrate_browser_assets_from_db(svc: dict | None, assets: list[dict]) 
             "a.filepath",
             filepaths,
         )
-        if not rows_res.ok:
-            return assets
-        rows = rows_res.data or []
     except Exception:
-        return assets
+        return None
+    if not rows_res.ok:
+        return None
+    rows = rows_res.data or []
+    return rows if isinstance(rows, list) else []
 
+
+def _index_rows_by_filepath(rows: list[dict]) -> dict[str, dict]:
     by_fp: dict[str, dict] = {}
     for row in rows:
         try:
@@ -145,34 +148,66 @@ async def _hydrate_browser_assets_from_db(svc: dict | None, assets: list[dict]) 
             by_fp[key] = row or {}
         except Exception:
             continue
+    return by_fp
 
-    for a in assets:
+
+def _coerce_browser_tags(raw_tags: Any) -> list[str]:
+    if isinstance(raw_tags, str):
         try:
-            if str((a or {}).get("kind") or "").lower() == "folder":
-                continue
-            key = _norm_fp(str((a or {}).get("filepath") or ""))
-            row = by_fp.get(key)
-            if not row:
-                continue
-            rid = (row or {}).get("id")
-            if rid is not None:
-                a["id"] = int(rid)
-            a["rating"] = int((row or {}).get("rating") or 0)
-            raw_tags = (row or {}).get("tags")
-            tags = []
-            if isinstance(raw_tags, str):
-                try:
-                    parsed = json.loads(raw_tags)
-                    if isinstance(parsed, list):
-                        tags = [str(t) for t in parsed if isinstance(t, str)]
-                except Exception:
-                    tags = []
-            elif isinstance(raw_tags, list):
-                tags = [str(t) for t in raw_tags if isinstance(t, str)]
-            a["tags"] = tags
+            parsed = json.loads(raw_tags)
+        except Exception:
+            return []
+        if isinstance(parsed, list):
+            return [str(t) for t in parsed if isinstance(t, str)]
+        return []
+    if isinstance(raw_tags, list):
+        return [str(t) for t in raw_tags if isinstance(t, str)]
+    return []
+
+
+def _hydrate_browser_asset_from_row(asset: dict, by_fp: dict[str, dict]) -> None:
+    if _is_folder_asset(asset):
+        return
+    key = _norm_fp(str(asset.get("filepath") or ""))
+    row = by_fp.get(key)
+    if not row:
+        return
+    rid = row.get("id")
+    if rid is not None:
+        asset["id"] = int(rid)
+    asset["rating"] = int(row.get("rating") or 0)
+    asset["tags"] = _coerce_browser_tags(row.get("tags"))
+
+
+async def _hydrate_browser_assets_from_db(svc: dict | None, assets: list[dict]) -> list[dict]:
+    normalized_assets = assets if isinstance(assets, list) else []
+    if not normalized_assets:
+        return normalized_assets
+    db = _search_db_from_services(svc)
+    if not db:
+        return normalized_assets
+    filepaths = _collect_hydration_filepaths(normalized_assets)
+    if not filepaths:
+        return normalized_assets
+    rows = await _query_browser_asset_rows(db, filepaths)
+    if rows is None:
+        return normalized_assets
+    _apply_browser_hydration_rows(normalized_assets, rows)
+    return normalized_assets
+
+
+def _search_db_from_services(svc: dict | None) -> Any:
+    return (svc or {}).get("db") if isinstance(svc, dict) else None
+
+
+def _apply_browser_hydration_rows(assets: list[dict], rows: list[dict]) -> None:
+    by_fp = _index_rows_by_filepath(rows)
+    for asset in assets:
+        try:
+            if isinstance(asset, dict):
+                _hydrate_browser_asset_from_row(asset, by_fp)
         except Exception:
             continue
-    return assets
 
 
 async def _runtime_output_root(svc: dict | None) -> str:
@@ -286,35 +321,53 @@ def _parse_inline_query_filters(raw_query):
     cleaned = []
     filters = {}
     for token in tokens:
-        if ":" not in token:
+        consumed = _consume_inline_filter_token(token, filters)
+        if not consumed:
             cleaned.append(token)
-            continue
-        key, _, value = token.partition(":")
-        key = (key or "").strip().lower()
-        value = (value or "").strip().strip(",;")
-        if not key or not value:
-            cleaned.append(token)
-            continue
-        if key in ("ext", "extension"):
-            ext = _normalize_extension(value)
-            if ext:
-                filters.setdefault("extensions", [])
-                if ext not in filters["extensions"]:
-                    filters["extensions"].append(ext)
-            continue
-        if key == "kind":
-            kind_value = (value or "").strip().lower()
-            if kind_value in VALID_KIND_FILTERS:
-                filters["kind"] = kind_value
-                continue
-        if key == "rating":
-            match = re.match(r"^(\d+)", value)
-            if match:
-                rating_val = max(0, min(MAX_RATING, int(match.group(1))))
-                filters["min_rating"] = rating_val
-                continue
-        cleaned.append(token)
     return " ".join(cleaned).strip(), filters
+
+
+def _consume_inline_filter_token(token: str, filters: dict) -> bool:
+    if ":" not in token:
+        return False
+    key, _, value = token.partition(":")
+    key = (key or "").strip().lower()
+    value = (value or "").strip().strip(",;")
+    if not key or not value:
+        return False
+    if key in ("ext", "extension"):
+        return _consume_inline_extension(value, filters)
+    if key == "kind":
+        return _consume_inline_kind(value, filters)
+    if key == "rating":
+        return _consume_inline_rating(value, filters)
+    return False
+
+
+def _consume_inline_extension(value: str, filters: dict) -> bool:
+    ext = _normalize_extension(value)
+    if not ext:
+        return False
+    filters.setdefault("extensions", [])
+    if ext not in filters["extensions"]:
+        filters["extensions"].append(ext)
+    return True
+
+
+def _consume_inline_kind(value: str, filters: dict) -> bool:
+    kind_value = (value or "").strip().lower()
+    if kind_value not in VALID_KIND_FILTERS:
+        return False
+    filters["kind"] = kind_value
+    return True
+
+
+def _consume_inline_rating(value: str, filters: dict) -> bool:
+    match = re.match(r"^(\d+)", value)
+    if not match:
+        return False
+    filters["min_rating"] = max(0, min(MAX_RATING, int(match.group(1))))
+    return True
 
 
 def _normalize_sort_key(value: str | None) -> str:
@@ -330,7 +383,7 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
     async def autocomplete_assets(request):
         """
         Autocomplete tags/terms.
-        
+
         Query params:
           q: prefix to complete
           limit: max results (default 10)
@@ -1265,4 +1318,3 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                 pass
 
         return _json_response(result)
-

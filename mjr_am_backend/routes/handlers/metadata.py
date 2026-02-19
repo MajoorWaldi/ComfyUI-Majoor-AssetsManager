@@ -1,4 +1,4 @@
-﻿"""
+"""
 Metadata extraction endpoint.
 """
 import asyncio
@@ -124,4 +124,3 @@ def register_metadata_routes(routes: web.RouteTableDef) -> None:
             )
 
         return _json_response(result)
-

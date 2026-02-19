@@ -1,4 +1,4 @@
-﻿"""
+"""
 Directory scanning and file indexing endpoints.
 """
 import asyncio
@@ -23,9 +23,9 @@ except Exception:
 
 from mjr_am_backend.adapters.db.schema import rebuild_fts
 from mjr_am_backend.config import (
-    OUTPUT_ROOT, 
-    TO_THREAD_TIMEOUT_S, 
-    INDEX_DIR_PATH, 
+    OUTPUT_ROOT,
+    TO_THREAD_TIMEOUT_S,
+    INDEX_DIR_PATH,
     COLLECTIONS_DIR_PATH
 )
 from mjr_am_backend.custom_roots import resolve_custom_root
@@ -116,15 +116,23 @@ def _is_db_malformed_result(res: Any) -> bool:
 
 
 def _allowed_upload_exts() -> set[str]:
+    allowed = _default_allowed_upload_exts()
+    _add_env_upload_extensions(allowed)
+    return allowed
+
+
+def _default_allowed_upload_exts() -> set[str]:
     try:
         from mjr_am_backend.shared import EXTENSIONS  # type: ignore
+
         allowed: set[str] = set()
         for exts in (EXTENSIONS or {}).values():
             for ext in exts or []:
                 allowed.add(str(ext).lower())
         allowed.update({".json", ".txt", ".csv"})
+        return allowed
     except Exception:
-        allowed = {
+        return {
             ".png",
             ".jpg",
             ".jpeg",
@@ -150,18 +158,27 @@ def _allowed_upload_exts() -> set[str]:
             ".csv",
         }
 
+
+def _add_env_upload_extensions(allowed: set[str]) -> None:
     try:
         extra = os.environ.get("MJR_UPLOAD_EXTRA_EXT", "")
-        if extra:
-            for item in extra.split(","):
-                e = item.strip().lower()
-                if e and not e.startswith("."):
-                    e = "." + e
-                if e:
-                    allowed.add(e)
     except Exception:
-        pass
-    return allowed
+        return
+    if not extra:
+        return
+    for item in extra.split(","):
+        normalized = _normalize_upload_extension(item)
+        if normalized:
+            allowed.add(normalized)
+
+
+def _normalize_upload_extension(value: str) -> str:
+    ext = str(value or "").strip().lower()
+    if not ext:
+        return ""
+    if not ext.startswith("."):
+        ext = "." + ext
+    return ext
 
 
 async def _write_multipart_file_atomic(dest_dir: Path, filename: str, field) -> Result[Path]:
@@ -177,53 +194,73 @@ async def _write_multipart_file_atomic(dest_dir: Path, filename: str, field) -> 
             sanitize_error_message(exc, "Cannot create destination directory"),
         )
 
-    safe_name = Path(str(filename)).name
-    if not safe_name or "\x00" in safe_name or safe_name.startswith(".") or ".." in safe_name:
+    safe_name = _validate_upload_filename(filename)
+    if safe_name is None:
         return Result.Err("INVALID_INPUT", "Invalid filename")
 
     ext = Path(safe_name).suffix.lower()
     if ext not in _allowed_upload_exts():
         return Result.Err("INVALID_INPUT", "File extension not allowed")
 
-    total = 0
     fd = None
     tmp_path = None
     try:
         fd, tmp_path = tempfile.mkstemp(dir=str(dest_dir), prefix=".upload_", suffix=ext)
-        with os.fdopen(fd, "wb") as f:
+        with os.fdopen(fd, "wb") as handle:
             fd = None
-            while True:
-                chunk = await field.read_chunk(size=_UPLOAD_READ_CHUNK_BYTES)
-                if not chunk:
-                    break
-                total += len(chunk)
-                if total > _MAX_UPLOAD_SIZE:
-                    raise ValueError(f"File exceeds maximum size ({_MAX_UPLOAD_SIZE} bytes)")
-                # Avoid blocking the event loop on large writes.
-                await asyncio.to_thread(f.write, chunk)
+            await _write_upload_chunks(field, handle)
 
         tmp_obj = Path(str(tmp_path))
-        final = dest_dir / safe_name
-        counter = 0
-        while final.exists():
-            counter += 1
-            if counter > _MAX_RENAME_ATTEMPTS:
-                raise RuntimeError("Too many rename attempts")
-            final = dest_dir / f"{Path(safe_name).stem}_{counter}{ext}"
+        final = _unique_upload_destination(dest_dir, safe_name, ext)
         tmp_obj.replace(final)
         return Result.Ok(final)
     except Exception as exc:
-        try:
-            if fd is not None:
-                os.close(fd)
-        except Exception:
-            pass
-        try:
-            if tmp_path:
-                Path(str(tmp_path)).unlink(missing_ok=True)
-        except Exception:
-            pass
+        _cleanup_temp_upload_file(fd, tmp_path)
         return Result.Err("UPLOAD_FAILED", safe_error_message(exc, "Upload failed"))
+
+
+def _validate_upload_filename(filename: str) -> Optional[str]:
+    safe_name = Path(str(filename)).name
+    if not safe_name or "\x00" in safe_name or safe_name.startswith(".") or ".." in safe_name:
+        return None
+    return safe_name
+
+
+async def _write_upload_chunks(field, handle) -> None:
+    total = 0
+    while True:
+        chunk = await field.read_chunk(size=_UPLOAD_READ_CHUNK_BYTES)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > _MAX_UPLOAD_SIZE:
+            raise ValueError(f"File exceeds maximum size ({_MAX_UPLOAD_SIZE} bytes)")
+        # Avoid blocking the event loop on large writes.
+        await asyncio.to_thread(handle.write, chunk)
+
+
+def _unique_upload_destination(dest_dir: Path, safe_name: str, ext: str) -> Path:
+    final = dest_dir / safe_name
+    counter = 0
+    while final.exists():
+        counter += 1
+        if counter > _MAX_RENAME_ATTEMPTS:
+            raise RuntimeError("Too many rename attempts")
+        final = dest_dir / f"{Path(safe_name).stem}_{counter}{ext}"
+    return final
+
+
+def _cleanup_temp_upload_file(fd: Optional[int], tmp_path: Optional[str]) -> None:
+    try:
+        if fd is not None:
+            os.close(fd)
+    except Exception:
+        pass
+    try:
+        if tmp_path:
+            Path(str(tmp_path)).unlink(missing_ok=True)
+    except Exception:
+        pass
 
 
 def _schedule_index_task(fn) -> None:
@@ -245,35 +282,48 @@ def _files_equal_content(src: Path, dst: Path, *, chunk_size: int = _FILE_COMPAR
 
     Used to avoid creating *_1 duplicates when re-staging the exact same file.
     """
+    if not _files_exist_and_are_regular(src, dst):
+        return False
+
+    if _paths_are_same_file(src, dst):
+        return True
+    if not _file_sizes_equal(src, dst):
+        return False
+
+    return _stream_content_equal(src, dst, chunk_size)
+
+
+def _files_exist_and_are_regular(src: Path, dst: Path) -> bool:
     try:
-        if not src.exists() or not dst.exists():
-            return False
-        if not src.is_file() or not dst.is_file():
-            return False
+        return src.exists() and dst.exists() and src.is_file() and dst.is_file()
     except Exception:
         return False
 
+
+def _paths_are_same_file(src: Path, dst: Path) -> bool:
     try:
         import os
-        if os.path.samefile(str(src), str(dst)):
-            return True
-    except Exception:
-        pass
-
-    try:
-        if src.stat().st_size != dst.stat().st_size:
-            return False
+        return os.path.samefile(str(src), str(dst))
     except Exception:
         return False
 
+
+def _file_sizes_equal(src: Path, dst: Path) -> bool:
+    try:
+        return src.stat().st_size == dst.stat().st_size
+    except Exception:
+        return False
+
+
+def _stream_content_equal(src: Path, dst: Path, chunk_size: int) -> bool:
     try:
         with open(src, "rb") as fs, open(dst, "rb") as fd:
             while True:
-                bs = fs.read(chunk_size)
-                bd = fd.read(chunk_size)
-                if bs != bd:
+                left = fs.read(chunk_size)
+                right = fd.read(chunk_size)
+                if left != right:
                     return False
-                if not bs:
+                if not left:
                     return True
     except Exception:
         return False
@@ -331,31 +381,11 @@ def _resolve_scan_root(directory: str) -> Result[Path]:
 async def _run_consistency_check(db: Any) -> None:
     if not db:
         return
-    try:
-        res = await db.aquery(
-            "SELECT id, filepath FROM assets WHERE filepath IS NOT NULL ORDER BY RANDOM() LIMIT ?",
-            (_DB_CONSISTENCY_SAMPLE,),
-        )
-    except Exception as exc:
-        logger.debug("Consistency check query failed: %s", exc)
-        return
-
+    res = await _query_consistency_sample(db)
     if not res.ok or not isinstance(res.data, list):
         return
 
-    missing = []
-    for row in res.data:
-        if not isinstance(row, dict):
-            continue
-        asset_id = row.get("id")
-        filepath = row.get("filepath")
-        if asset_id is None or not filepath:
-            continue
-        candidate = _normalize_path(str(filepath))
-        if not candidate or candidate.exists():
-            continue
-        missing.append((asset_id, str(filepath)))
-
+    missing = _collect_missing_asset_rows(res.data)
     if not missing:
         return
 
@@ -363,7 +393,43 @@ async def _run_consistency_check(db: Any) -> None:
         "Consistency check removed %d stale asset records",
         len(missing),
     )
+    await _delete_missing_asset_rows(db, missing)
 
+
+async def _query_consistency_sample(db: Any) -> Any:
+    try:
+        return await db.aquery(
+            "SELECT id, filepath FROM assets WHERE filepath IS NOT NULL ORDER BY RANDOM() LIMIT ?",
+            (_DB_CONSISTENCY_SAMPLE,),
+        )
+    except Exception as exc:
+        logger.debug("Consistency check query failed: %s", exc)
+        return Result.Err("QUERY_FAILED", str(exc))
+
+
+def _collect_missing_asset_rows(rows: list[Any]) -> list[tuple[Any, str]]:
+    missing: list[tuple[Any, str]] = []
+    for row in rows:
+        pair = _missing_asset_row(row)
+        if pair is not None:
+            missing.append(pair)
+    return missing
+
+
+def _missing_asset_row(row: Any) -> Optional[tuple[Any, str]]:
+    if not isinstance(row, dict):
+        return None
+    asset_id = row.get("id")
+    filepath = row.get("filepath")
+    if asset_id is None or not filepath:
+        return None
+    candidate = _normalize_path(str(filepath))
+    if not candidate or candidate.exists():
+        return None
+    return asset_id, str(filepath)
+
+
+async def _delete_missing_asset_rows(db: Any, missing: list[tuple[Any, str]]) -> None:
     try:
         async with db.atransaction(mode="immediate"):
             for asset_id, filepath in missing:
@@ -480,12 +546,12 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                         fast,
                         background_metadata,
                     )
-                    
+
                     results = await asyncio.wait_for(
                         asyncio.gather(out_coro, in_coro, return_exceptions=True),
                         timeout=TO_THREAD_TIMEOUT_S
                     )
-                    
+
                     out_res = results[0]
                     in_res = results[1]
 
@@ -496,7 +562,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                     if isinstance(in_res, Exception):
                         logger.error("Input scan failed: %s", in_res)
                         return _json_response(Result.Err("SCAN_FAILED", safe_error_message(in_res, "Input scan failed")))
-                    
+
                 except asyncio.TimeoutError:
                     return _json_response(Result.Err("TIMEOUT", "Scan timed out"))
                 if not out_res.ok:
@@ -851,7 +917,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 if not fname: continue
                 s_name = item.get("subfolder") or ""
                 s_src = (item.get("type") or "output").lower()
-                
+
                 # Check duplication in params list
                 # (Simple dedupe by tuple key)
                 key = (fname, str(s_name), s_src)
@@ -2160,5 +2226,3 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         await new_watcher.start(watch_paths, loop)
         svc["watcher"] = new_watcher
         return _json_response(Result.Ok({"enabled": True, "directories": new_watcher.watched_directories, "scope": scope}))
-
-

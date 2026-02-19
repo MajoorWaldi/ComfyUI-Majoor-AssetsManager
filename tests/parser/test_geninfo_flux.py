@@ -1,4 +1,4 @@
-﻿from mjr_am_backend.features.geninfo.parser import parse_geninfo_from_prompt
+from mjr_am_backend.features.geninfo.parser import parse_geninfo_from_prompt
 
 def test_geninfo_flux_standard_advanced_sampler():
     """
@@ -8,7 +8,7 @@ def test_geninfo_flux_standard_advanced_sampler():
         # 1. Output Sink
         "100": {
             "class_type": "SaveImage",
-            "inputs": {"images": [90, 0]} 
+            "inputs": {"images": [90, 0]}
         },
         # 2. VAE Decode
         "90": {
@@ -69,7 +69,7 @@ def test_geninfo_flux_standard_advanced_sampler():
         "10": { "class_type": "VAELoader", "inputs": {"vae_name": "ae.safetensors"}},
         "20": { "class_type": "LoadDiffusionModel", "inputs": {"unet_name": "flux1-dev.safetensors"} },
         "25": { "class_type": "DualCLIPLoader", "inputs": {"clip_name1": "t5XXL.fp16.safetensors", "clip_name2": "clip_l.safetensors"} },
-        
+
         # 9. Prompt
         "30": {
             "class_type": "CLIPTextEncode",
@@ -80,20 +80,20 @@ def test_geninfo_flux_standard_advanced_sampler():
         },
         "15": { "class_type": "EmptyLatentImage", "inputs": {"width": 1024, "height": 1024} }
     }
-    
+
     result = parse_geninfo_from_prompt(prompt_graph)
     assert result.ok, result.error
     data = result.data
     assert data is not None
-    
+
     # Check sampler params
     assert data["steps"]["value"] == 25
     assert data["seed"]["value"] == 99999
     assert data["cfg"]["value"] == 3.5 # Extracted from FluxGuidance
-    
+
     # Check Prompt
     assert data["positive"]["value"] == "A photo of a cat"
-    
+
 def test_geninfo_flux_gguf_fp8_variant():
     """
     Test variant with UnetLoaderGGUF and potentially distinct structure.
@@ -146,20 +146,18 @@ def test_geninfo_flux_gguf_fp8_variant():
     result = parse_geninfo_from_prompt(prompt_graph)
     assert result.ok
     data = result.data
-    
+
     # Parser maps UNET/Diffusion models to 'checkpoint' field for compatibility
     assert data["checkpoint"]["name"] == "flux1-dev-Q8_0"
-    
-    # CFG might be missing if no FluxGuidance? 
+
+    # CFG might be missing if no FluxGuidance?
     # Or BasicGuider doesn't have CFG.
-    
+
     # The parser currently doesn't default CFG if missing.
     # But it should extract seed, steps.
     assert data["steps"]["value"] == 20
     assert data["seed"]["value"] == 12345
-    
+
     # Verify Prompt was extracted
     # "GGUF cat" via BasicGuider -> conditioning
     assert data["positive"]["value"] == "GGUF cat"
-
-

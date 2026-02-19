@@ -11,7 +11,7 @@ import time
 from collections import deque
 from pathlib import Path
 from threading import Lock
-from typing import Deque, Dict, Set, Tuple, Optional, Callable, Awaitable, Coroutine, Any, cast
+from typing import Deque, Dict, Set, Tuple, Optional, Callable, Awaitable, Coroutine, Any, cast, List
 
 from watchdog.observers import Observer
 from watchdog.events import (
@@ -312,125 +312,150 @@ class DebouncedWatchHandler(FileSystemEventHandler):
         src_ok = self._is_supported(src_path)
         dst_ok = self._is_supported(dest_path)
 
-        if not src_ok and not dst_ok:
-            return
-
         src_norm = self._normalize_path(src_path)
         dst_norm = self._normalize_path(dest_path)
-
-        # If extension changed from supported->unsupported, treat as deletion.
-        if src_ok and not dst_ok and self._on_files_removed:
-            try:
-                coro = cast(Coroutine[Any, Any, None], self._on_files_removed([src_norm]))
-                asyncio.run_coroutine_threadsafe(coro, self._loop)
-            except Exception:
-                pass
+        mode = self._moved_file_mode(src_ok=src_ok, dst_ok=dst_ok)
+        if mode == "ignore":
             return
-
-        # If extension changed from unsupported->supported, treat as creation.
-        if dst_ok and not src_ok:
+        if mode == "delete":
+            self._emit_removed_files([src_norm])
+            return
+        if mode == "create":
             self._handle_file(dst_norm)
             return
-
-        if self._on_files_moved:
-            try:
-                coro = cast(Coroutine[Any, Any, None], self._on_files_moved([(src_norm, dst_norm)]))
-                asyncio.run_coroutine_threadsafe(coro, self._loop)
-                return
-            except Exception:
-                pass
+        if mode == "move" and self._emit_moved_files([(src_norm, dst_norm)]):
+            return
 
         # Fallback: index new path and remove old path as separate operations.
         self._handle_file(dst_norm)
-        if self._on_files_removed:
-            try:
-                coro = cast(Coroutine[Any, Any, None], self._on_files_removed([src_norm]))
-                asyncio.run_coroutine_threadsafe(coro, self._loop)
-            except Exception:
-                pass
+        self._emit_removed_files([src_norm])
+
+    @staticmethod
+    def _moved_file_mode(*, src_ok: bool, dst_ok: bool) -> str:
+        if not src_ok and not dst_ok:
+            return "ignore"
+        if src_ok and not dst_ok:
+            return "delete"
+        if dst_ok and not src_ok:
+            return "create"
+        return "move"
+
+    def _emit_removed_files(self, paths: List[str]) -> None:
+        if not self._on_files_removed:
+            return
+        try:
+            coro = cast(Coroutine[Any, Any, None], self._on_files_removed(paths))
+            asyncio.run_coroutine_threadsafe(coro, self._loop)
+        except Exception:
+            return
+
+    def _emit_moved_files(self, moves: List[Tuple[str, str]]) -> bool:
+        if not self._on_files_moved:
+            return False
+        try:
+            coro = cast(Coroutine[Any, Any, None], self._on_files_moved(moves))
+            asyncio.run_coroutine_threadsafe(coro, self._loop)
+            return True
+        except Exception:
+            return False
 
     async def _flush(self):
         """Flush pending files to the indexer."""
         self._refresh_runtime_settings()
-        with self._lock:
-            if not self._pending and not self._overflow:
+        candidates = self._drain_pending_candidates()
+        if not candidates:
+            return
+
+        async with self._flush_semaphore:
+            _record_flush_volume(len(candidates))
+            files = self._filter_flush_candidates(candidates)
+            if not files:
                 return
 
-            now = time.time()
+            files = self._apply_flush_backpressure(files)
+            self._mark_recent_files(files)
+            try:
+                await self._on_files_ready(files)
+            except Exception as e:
+                logger.debug("Watcher flush error: %s", e)
+
+    def _drain_pending_candidates(self) -> List[str]:
+        with self._lock:
+            if not self._pending and not self._overflow:
+                return []
             candidates = list(self._pending.keys())
             if self._overflow:
                 candidates.extend(list(self._overflow.keys()))
             self._pending.clear()
             self._overflow.clear()
             self._flush_timer = None
+            return candidates
 
-        async with self._flush_semaphore:
-            _record_flush_volume(len(candidates))
+    def _filter_flush_candidates(self, candidates: List[str]) -> List[str]:
+        files: List[str] = []
+        for f in candidates:
+            if _is_recent_generated(f):
+                continue
+            if not self._is_supported_flush_file(f):
+                continue
+            size = self._flush_file_size_if_eligible(f)
+            if size is None:
+                continue
+            max_size = MAX_FILE_SIZE
+            if max_size > 0 and size > max_size:
+                logger.debug("Watcher skipping oversized file %s (%d bytes > %d)", f, size, max_size)
+                continue
+            files.append(f)
+        return files
 
-            # Filter out files that are too small (still being written), vanished,
-            # or recently indexed via the frontend executed-event path.
-            # TOCTOU: re-validate extension at flush time in case file was renamed.
-            files = []
-            for f in candidates:
-                if _is_recent_generated(f):
-                    continue
-                try:
-                    ext = Path(f).suffix.lower()
-                    if ext in EXCLUDED_EXTENSIONS or ext not in SUPPORTED_EXTENSIONS:
-                        continue
-                except Exception:
-                    continue
-                try:
-                    size = os.path.getsize(f)
-                except OSError:
-                    continue
-                if size < MIN_FILE_SIZE:
-                    continue
-                max_size = MAX_FILE_SIZE
-                if max_size > 0 and size > max_size:
-                    logger.debug("Watcher skipping oversized file %s (%d bytes > %d)", f, size, max_size)
-                    continue
-                files.append(f)
+    @staticmethod
+    def _is_supported_flush_file(filepath: str) -> bool:
+        try:
+            ext = Path(filepath).suffix.lower()
+            return ext not in EXCLUDED_EXTENSIONS and ext in SUPPORTED_EXTENSIONS
+        except Exception:
+            return False
 
-            if not files:
-                return
+    @staticmethod
+    def _flush_file_size_if_eligible(filepath: str) -> Optional[int]:
+        try:
+            size = os.path.getsize(filepath)
+        except OSError:
+            return None
+        if size < MIN_FILE_SIZE:
+            return None
+        return size
 
-            # Backpressure handling: process a bounded chunk now and defer remainder.
-            if WATCHER_FLUSH_MAX_FILES > 0 and len(files) > WATCHER_FLUSH_MAX_FILES:
-                now = time.time()
-                deferred = files[WATCHER_FLUSH_MAX_FILES:]
-                files = files[:WATCHER_FLUSH_MAX_FILES]
-                with self._lock:
-                    for f in deferred:
-                        if f not in self._pending and f not in self._overflow:
-                            self._overflow[f] = now
-                try:
-                    logger.warning(
-                        "Watcher flush capped to %d files (requested %d); deferring %d for next flush.",
-                        WATCHER_FLUSH_MAX_FILES,
-                        len(files) + len(deferred),
-                        len(deferred),
-                    )
-                except Exception:
-                    pass
-                # Keep draining deferred backlog without waiting for fresh fs events.
-                self._schedule_flush()
+    def _apply_flush_backpressure(self, files: List[str]) -> List[str]:
+        if WATCHER_FLUSH_MAX_FILES <= 0 or len(files) <= WATCHER_FLUSH_MAX_FILES:
+            return files
+        now = time.time()
+        deferred = files[WATCHER_FLUSH_MAX_FILES:]
+        files = files[:WATCHER_FLUSH_MAX_FILES]
+        with self._lock:
+            for f in deferred:
+                if f not in self._pending and f not in self._overflow:
+                    self._overflow[f] = now
+        try:
+            logger.warning(
+                "Watcher flush capped to %d files (requested %d); deferring %d for next flush.",
+                WATCHER_FLUSH_MAX_FILES,
+                len(files) + len(deferred),
+                len(deferred),
+            )
+        except Exception:
+            pass
+        self._schedule_flush()
+        return files
 
-            # Mark as recently processed
-            with self._lock:
-                now = time.time()
-                for f in files:
-                    self._recent[f] = now
-
-                # Prune old entries from recent
-                to_remove = [k for k, v in self._recent.items() if (now - v) > self._dedupe_ttl_s * 2]
-                for k in to_remove:
-                    self._recent.pop(k, None)
-
-            try:
-                await self._on_files_ready(files)
-            except Exception as e:
-                logger.debug("Watcher flush error: %s", e)
+    def _mark_recent_files(self, files: List[str]) -> None:
+        with self._lock:
+            now = time.time()
+            for f in files:
+                self._recent[f] = now
+            to_remove = [k for k, v in self._recent.items() if (now - v) > self._dedupe_ttl_s * 2]
+            for k in to_remove:
+                self._recent.pop(k, None)
 
 
 def _normalize_recent_key(path: str) -> str:
@@ -444,19 +469,28 @@ def _is_recent_generated(path: str) -> bool:
     key = _normalize_recent_key(path)
     if not key:
         return False
-    now = time.time()
     try:
         with _RECENT_GENERATED_LOCK:
-            if _RECENT_GENERATED:
-                to_remove = [k for k, ts in _RECENT_GENERATED.items() if (now - float(ts or 0)) > _RECENT_GENERATED_TTL_S]
-                for k in to_remove:
-                    _RECENT_GENERATED.pop(k, None)
-            ts = _RECENT_GENERATED.get(key)
-            if ts and (now - float(ts or 0)) <= _RECENT_GENERATED_TTL_S:
-                return True
+            now = time.time()
+            _prune_recent_generated(now)
+            return _is_recent_generated_key_locked(key, now)
     except Exception:
         return False
-    return False
+
+
+def _prune_recent_generated(now: float) -> None:
+    if not _RECENT_GENERATED:
+        return
+    to_remove = [k for k, ts in _RECENT_GENERATED.items() if (now - float(ts or 0)) > _RECENT_GENERATED_TTL_S]
+    for key in to_remove:
+        _RECENT_GENERATED.pop(key, None)
+
+
+def _is_recent_generated_key_locked(key: str, now: float) -> bool:
+    ts = _RECENT_GENERATED.get(key)
+    if not ts:
+        return False
+    return (now - float(ts or 0)) <= _RECENT_GENERATED_TTL_S
 
 
 def is_recent_generated(path: str) -> bool:
@@ -503,28 +537,39 @@ def _record_flush_volume(count: int) -> None:
         return
     now = time.time()
     window = WATCHER_STREAM_ALERT_WINDOW_SECONDS
-    cutoff_time = now - window
     with _STREAM_LOCK:
         _STREAM_EVENTS.append((now, count))
         _STREAM_TOTAL_FILES += count
-        while _STREAM_EVENTS and _STREAM_EVENTS[0][0] < cutoff_time:
-            _, stale = _STREAM_EVENTS.popleft()
-            _STREAM_TOTAL_FILES -= stale
-        if _STREAM_TOTAL_FILES < 0:
-            _STREAM_TOTAL_FILES = 0
-        cooldown = max(WATCHER_STREAM_ALERT_COOLDOWN_SECONDS, 0.0)
-        if _STREAM_TOTAL_FILES >= WATCHER_STREAM_ALERT_THRESHOLD:
-            if cooldown <= 0 or (now - _LAST_STREAM_ALERT_TIME) >= cooldown:
-                _LAST_STREAM_ALERT_TIME = now
-                try:
-                    logger.warning(
-                        "Watcher ingest rate high: %d files in the last %.1f seconds (threshold=%d).",
-                        _STREAM_TOTAL_FILES,
-                        window,
-                        WATCHER_STREAM_ALERT_THRESHOLD,
-                    )
-                except Exception:
-                    pass
+        _prune_stream_events(now, window)
+        if not _should_emit_stream_alert(now):
+            return
+        _LAST_STREAM_ALERT_TIME = now
+        try:
+            logger.warning(
+                "Watcher ingest rate high: %d files in the last %.1f seconds (threshold=%d).",
+                _STREAM_TOTAL_FILES,
+                window,
+                WATCHER_STREAM_ALERT_THRESHOLD,
+            )
+        except Exception:
+            pass
+
+
+def _prune_stream_events(now: float, window: float) -> None:
+    global _STREAM_TOTAL_FILES
+    cutoff_time = now - window
+    while _STREAM_EVENTS and _STREAM_EVENTS[0][0] < cutoff_time:
+        _, stale = _STREAM_EVENTS.popleft()
+        _STREAM_TOTAL_FILES -= stale
+    if _STREAM_TOTAL_FILES < 0:
+        _STREAM_TOTAL_FILES = 0
+
+
+def _should_emit_stream_alert(now: float) -> bool:
+    if _STREAM_TOTAL_FILES < WATCHER_STREAM_ALERT_THRESHOLD:
+        return False
+    cooldown = max(WATCHER_STREAM_ALERT_COOLDOWN_SECONDS, 0.0)
+    return cooldown <= 0 or (now - _LAST_STREAM_ALERT_TIME) >= cooldown
 
 
 class OutputWatcher:
@@ -565,144 +610,9 @@ class OutputWatcher:
 
         loop = loop or asyncio.get_event_loop()
         self._allowed_sources = set()
-
-        async def on_files_ready(files: list):
-            if not files:
-                return
-            # Group by watched root for proper base_dir
-            by_dir: Dict[str, dict] = {}
-            for f in files:
-                try:
-                    # Find the watched root this file belongs to
-                    normalized_f = os.path.normcase(os.path.normpath(f))
-                    best = None
-                    best_len = -1
-                    for entry in self._watched_paths.values():
-                        watched = entry.get("path")
-                        if not watched:
-                            continue
-                        normalized_watched = os.path.normcase(os.path.normpath(watched))
-                        if _is_under_path(normalized_f, normalized_watched) and len(normalized_watched) > best_len:
-                            best = entry
-                            best_len = len(normalized_watched)
-
-                    if not best:
-                        continue
-
-                    base = best.get("path")
-                    if not base:
-                        continue
-                    key = str(base)
-                    if key not in by_dir:
-                        by_dir[key] = {
-                            "files": [],
-                            "source": best.get("source"),
-                            "root_id": best.get("root_id"),
-                        }
-                    by_dir[key]["files"].append(f)
-                except Exception:
-                    pass
-
-            for base_dir, payload in by_dir.items():
-                try:
-                    await self._index_callback(
-                        payload.get("files") or [],
-                        base_dir,
-                        payload.get("source"),
-                        payload.get("root_id"),
-                    )
-                except Exception as e:
-                    logger.debug("Watcher index error: %s", e)
-
-        async def on_files_removed(files: list):
-            if not files or not callable(self._remove_callback):
-                return
-            by_dir: Dict[str, dict] = {}
-            for f in files:
-                try:
-                    normalized_f = os.path.normcase(os.path.normpath(f))
-                    best = None
-                    best_len = -1
-                    for entry in self._watched_paths.values():
-                        watched = entry.get("path")
-                        if not watched:
-                            continue
-                        normalized_watched = os.path.normcase(os.path.normpath(watched))
-                        if _is_under_path(normalized_f, normalized_watched) and len(normalized_watched) > best_len:
-                            best = entry
-                            best_len = len(normalized_watched)
-                    if not best:
-                        continue
-                    base = best.get("path")
-                    if not base:
-                        continue
-                    key = str(base)
-                    if key not in by_dir:
-                        by_dir[key] = {"files": [], "source": best.get("source"), "root_id": best.get("root_id")}
-                    by_dir[key]["files"].append(f)
-                except Exception:
-                    continue
-            for base_dir, payload in by_dir.items():
-                try:
-                    await self._remove_callback(
-                        payload.get("files") or [],
-                        base_dir,
-                        payload.get("source"),
-                        payload.get("root_id"),
-                    )
-                except Exception as e:
-                    logger.debug("Watcher remove error: %s", e)
-
-        async def on_files_moved(moves: list):
-            if not moves:
-                return
-            if callable(self._move_callback):
-                by_dir: Dict[str, dict] = {}
-                for src, dst in moves:
-                    try:
-                        normalized_dst = os.path.normcase(os.path.normpath(dst))
-                        best = None
-                        best_len = -1
-                        for entry in self._watched_paths.values():
-                            watched = entry.get("path")
-                            if not watched:
-                                continue
-                            normalized_watched = os.path.normcase(os.path.normpath(watched))
-                            if _is_under_path(normalized_dst, normalized_watched) and len(normalized_watched) > best_len:
-                                best = entry
-                                best_len = len(normalized_watched)
-                        if not best:
-                            continue
-                        base = best.get("path")
-                        if not base:
-                            continue
-                        key = str(base)
-                        if key not in by_dir:
-                            by_dir[key] = {"moves": [], "source": best.get("source"), "root_id": best.get("root_id")}
-                        by_dir[key]["moves"].append((src, dst))
-                    except Exception:
-                        continue
-                for base_dir, payload in by_dir.items():
-                    try:
-                        await self._move_callback(
-                            payload.get("moves") or [],
-                            base_dir,
-                            payload.get("source"),
-                            payload.get("root_id"),
-                        )
-                    except Exception as e:
-                        logger.debug("Watcher move error: %s", e)
-                return
-            # Fallback if no move callback: reindex destination and remove source.
-            try:
-                src_files = [m[0] for m in moves if isinstance(m, (list, tuple)) and len(m) == 2]
-                dst_files = [m[1] for m in moves if isinstance(m, (list, tuple)) and len(m) == 2]
-                if dst_files:
-                    await on_files_ready(dst_files)
-                if src_files:
-                    await on_files_removed(src_files)
-            except Exception:
-                return
+        on_files_ready = self._handle_ready_files
+        on_files_removed = self._handle_removed_files
+        on_files_moved = self._handle_moved_files
 
         self._handler = DebouncedWatchHandler(
             on_files_ready,
@@ -717,30 +627,8 @@ class OutputWatcher:
 
         for path in paths:
             try:
-                if isinstance(path, dict):
-                    raw_path = path.get("path")
-                    source = path.get("source")
-                    root_id = path.get("root_id")
-                else:
-                    raw_path = path
-                    source = None
-                    root_id = None
-
-                if not raw_path:
-                    continue
-                normalized = os.path.normpath(raw_path)
-                if os.path.isdir(normalized):
-                    watch = self._observer.schedule(self._handler, normalized, recursive=True)
-                    source_norm = str(source or "").strip().lower() if source is not None else None
-                    if source_norm:
-                        self._allowed_sources.add(source_norm)
-                    self._watched_paths[str(id(watch))] = {
-                        "path": normalized,
-                        "source": source_norm,
-                        "root_id": root_id,
-                        "watch": watch,
-                    }
-                    logger.info("Watcher started for: %s", normalized)
+                raw_path, source, root_id = self._resolve_watch_path(path)
+                self._register_watch_path(raw_path, source=source, root_id=root_id, log_label="started")
             except Exception as e:
                 logger.warning("Failed to watch %s: %s", path, e)
 
@@ -748,6 +636,83 @@ class OutputWatcher:
             self._observer.start()
             self._running = True
             logger.info("File watcher started for %d directories", len(self._watched_paths))
+
+    async def _handle_ready_files(self, files: list) -> None:
+        if not files:
+            return
+        grouped = self._group_files_by_watched_root(files)
+        await self._dispatch_file_groups(grouped, self._index_callback, "index")
+
+    async def _handle_removed_files(self, files: list) -> None:
+        if not files or not callable(self._remove_callback):
+            return
+        grouped = self._group_files_by_watched_root(files)
+        await self._dispatch_file_groups(grouped, self._remove_callback, "remove")
+
+    async def _handle_moved_files(self, moves: list) -> None:
+        if not moves:
+            return
+        if callable(self._move_callback):
+            await self._dispatch_move_groups(self._group_moves_by_watched_root(moves))
+            return
+        await self._handle_move_fallback(moves)
+
+    async def _dispatch_move_groups(self, grouped_moves: Dict[str, dict]) -> None:
+        if not callable(self._move_callback):
+            return
+        for base_dir, payload in grouped_moves.items():
+            try:
+                await self._move_callback(
+                    payload.get("moves") or [],
+                    base_dir,
+                    payload.get("source"),
+                    payload.get("root_id"),
+                )
+            except Exception as exc:
+                logger.debug("Watcher move error: %s", exc)
+
+    async def _handle_move_fallback(self, moves: list) -> None:
+        # Fallback if no move callback: reindex destination and remove source.
+        try:
+            src_files, dst_files = self._split_move_pairs(moves)
+            if dst_files:
+                await self._handle_ready_files(dst_files)
+            if src_files:
+                await self._handle_removed_files(src_files)
+        except Exception:
+            return
+
+    @staticmethod
+    def _resolve_watch_path(path: Any) -> tuple[Any, Optional[str], Optional[str]]:
+        if isinstance(path, dict):
+            return path.get("path"), path.get("source"), path.get("root_id")
+        return path, None, None
+
+    def _register_watch_path(
+        self,
+        raw_path: Any,
+        *,
+        source: Optional[str],
+        root_id: Optional[str],
+        log_label: str,
+    ) -> bool:
+        if not self._observer or not self._handler or not raw_path:
+            return False
+        normalized = os.path.normpath(raw_path)
+        if not os.path.isdir(normalized):
+            return False
+        watch = self._observer.schedule(self._handler, normalized, recursive=True)
+        source_norm = self._normalize_source(source)
+        if source_norm:
+            self._allowed_sources.add(source_norm)
+        self._watched_paths[str(id(watch))] = {
+            "path": normalized,
+            "source": source_norm,
+            "root_id": root_id,
+            "watch": watch,
+        }
+        logger.info("Watcher %s for: %s", log_label, normalized)
+        return True
 
     async def stop(self):
         """Stop watching all directories."""
@@ -774,28 +739,115 @@ class OutputWatcher:
 
         try:
             normalized = os.path.normpath(path)
-            if os.path.isdir(normalized):
-                # Check if already watched
-                for entry in self._watched_paths.values():
-                    if entry.get("path") == normalized:
-                        return
-                source_norm = str(source or "").strip().lower() if source is not None else None
-                if not self._allows_source(source_norm):
-                    try:
-                        logger.debug("Watcher ignored path (scope mismatch): %s (source=%s)", normalized, source_norm)
-                    except Exception:
-                        pass
-                    return
-                watch = self._observer.schedule(self._handler, normalized, recursive=True)
-                self._watched_paths[str(id(watch))] = {
-                    "path": normalized,
-                    "source": source_norm,
-                    "root_id": root_id,
-                    "watch": watch,
-                }
-                logger.info("Watcher added: %s", normalized)
+            if not os.path.isdir(normalized):
+                return
+            if self._is_already_watched(normalized):
+                return
+            source_norm = self._normalize_source(source)
+            if not self._allows_source(source_norm):
+                try:
+                    logger.debug("Watcher ignored path (scope mismatch): %s (source=%s)", normalized, source_norm)
+                except Exception:
+                    pass
+                return
+            watch = self._observer.schedule(self._handler, normalized, recursive=True)
+            self._watched_paths[str(id(watch))] = {
+                "path": normalized,
+                "source": source_norm,
+                "root_id": root_id,
+                "watch": watch,
+            }
+            logger.info("Watcher added: %s", normalized)
         except Exception as e:
             logger.warning("Failed to add watch for %s: %s", path, e)
+
+    def _normalize_source(self, source: Optional[str]) -> Optional[str]:
+        return str(source or "").strip().lower() if source is not None else None
+
+    def _is_already_watched(self, normalized: str) -> bool:
+        for entry in self._watched_paths.values():
+            if entry.get("path") == normalized:
+                return True
+        return False
+
+    def _best_watched_entry_for_path(self, path_value: str) -> Optional[dict]:
+        normalized_path = os.path.normcase(os.path.normpath(path_value))
+        best = None
+        best_len = -1
+        for entry in self._watched_paths.values():
+            watched = entry.get("path")
+            if not watched:
+                continue
+            normalized_watched = os.path.normcase(os.path.normpath(watched))
+            if _is_under_path(normalized_path, normalized_watched) and len(normalized_watched) > best_len:
+                best = entry
+                best_len = len(normalized_watched)
+        return best
+
+    def _group_files_by_watched_root(self, files: List[str]) -> Dict[str, dict]:
+        by_dir: Dict[str, dict] = {}
+        for file_path in files:
+            try:
+                best = self._best_watched_entry_for_path(file_path)
+                if not best:
+                    continue
+                base = best.get("path")
+                if not base:
+                    continue
+                key = str(base)
+                if key not in by_dir:
+                    by_dir[key] = {"files": [], "source": best.get("source"), "root_id": best.get("root_id")}
+                by_dir[key]["files"].append(file_path)
+            except Exception:
+                continue
+        return by_dir
+
+    def _group_moves_by_watched_root(self, moves: List[Any]) -> Dict[str, dict]:
+        by_dir: Dict[str, dict] = {}
+        for move in moves:
+            try:
+                src, dst = move
+            except Exception:
+                continue
+            best = self._best_watched_entry_for_path(str(dst))
+            if not best:
+                continue
+            base = best.get("path")
+            if not base:
+                continue
+            key = str(base)
+            if key not in by_dir:
+                by_dir[key] = {"moves": [], "source": best.get("source"), "root_id": best.get("root_id")}
+            by_dir[key]["moves"].append((src, dst))
+        return by_dir
+
+    async def _dispatch_file_groups(
+        self,
+        grouped: Dict[str, dict],
+        callback: Callable[[list, str, Optional[str], Optional[str]], Awaitable[None]],
+        label: str,
+    ) -> None:
+        for base_dir, payload in grouped.items():
+            try:
+                await callback(
+                    payload.get("files") or [],
+                    base_dir,
+                    payload.get("source"),
+                    payload.get("root_id"),
+                )
+            except Exception as exc:
+                logger.debug("Watcher %s error: %s", label, exc)
+
+    @staticmethod
+    def _split_move_pairs(moves: List[Any]) -> tuple[List[str], List[str]]:
+        src_files: List[str] = []
+        dst_files: List[str] = []
+        for move in moves:
+            if not isinstance(move, (list, tuple)) or len(move) != 2:
+                continue
+            src_files.append(str(move[0]))
+            dst_files.append(str(move[1]))
+        return src_files, dst_files
 
     def remove_path(self, path: str):
         """Remove a path from watching (e.g., when custom root is removed)."""

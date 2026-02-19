@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 
 
 from mjr_am_backend.routes.core.security import _check_write_access
@@ -92,4 +92,3 @@ async def test_require_auth_without_token_blocks(monkeypatch):
     res = _check_write_access(peer_ip="127.0.0.1", headers={})
     assert not res.ok
     assert res.code == "AUTH_REQUIRED"
-

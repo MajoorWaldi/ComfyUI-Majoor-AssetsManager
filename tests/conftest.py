@@ -1,4 +1,4 @@
-﻿import sys
+import sys
 import pytest_asyncio
 
 from .repo_root import REPO_ROOT
@@ -22,4 +22,3 @@ async def services(tmp_path):
             await svc.get("db").aclose()
         except Exception:
             pass
-

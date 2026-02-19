@@ -1,4 +1,4 @@
-﻿"""
+"""
 Database maintenance endpoints (safe, opt-in).
 """
 
@@ -135,6 +135,45 @@ async def _replace_db_from_backup(src: Path, dst: Path) -> None:
     await asyncio.to_thread(shutil.copy2, src, dst)
 
 
+def _normalize_asset_row_for_case_cleanup(row: dict) -> tuple[int, str]:
+    try:
+        asset_id = int(row.get("id") or 0)
+    except Exception:
+        return 0, ""
+    if asset_id <= 0:
+        return 0, ""
+    key = str(row.get("filepath") or "").strip().lower()
+    if not key:
+        return 0, ""
+    return asset_id, key
+
+
+def _collect_case_duplicate_ids(rows: list[dict]) -> tuple[int, list[int], int]:
+    keep_ids: set[int] = set()
+    delete_ids: list[int] = []
+    groups = 0
+    current_key = None
+    seen_in_group = 0
+
+    for row in rows:
+        asset_id, key = _normalize_asset_row_for_case_cleanup(row)
+        if asset_id <= 0 or not key:
+            continue
+        if key != current_key:
+            if seen_in_group > 1:
+                groups += 1
+            current_key = key
+            seen_in_group = 1
+            keep_ids.add(asset_id)
+            continue
+        delete_ids.append(asset_id)
+        seen_in_group += 1
+
+    if seen_in_group > 1:
+        groups += 1
+    return groups, delete_ids, len(keep_ids)
+
+
 async def _cleanup_assets_case_duplicates(db) -> Result[dict[str, int]]:
     """
     Remove duplicate assets that differ only by filepath casing.
@@ -158,44 +197,17 @@ async def _cleanup_assets_case_duplicates(db) -> Result[dict[str, int]]:
         if not rows:
             return Result.Ok({"groups": 0, "deleted": 0, "kept": 0})
 
-        keep_ids: set[int] = set()
-        delete_ids: list[int] = []
-        groups = 0
-        current_key = None
-        seen_in_group = 0
-
-        for row in rows:
-            try:
-                asset_id = int(row.get("id") or 0)
-            except Exception:
-                continue
-            if asset_id <= 0:
-                continue
-            key = str(row.get("filepath") or "").strip().lower()
-            if not key:
-                continue
-            if key != current_key:
-                if seen_in_group > 1:
-                    groups += 1
-                current_key = key
-                seen_in_group = 0
-                keep_ids.add(asset_id)
-                seen_in_group = 1
-            else:
-                delete_ids.append(asset_id)
-                seen_in_group += 1
-        if seen_in_group > 1:
-            groups += 1
+        groups, delete_ids, kept_count = _collect_case_duplicate_ids(rows)
 
         if not delete_ids:
-            return Result.Ok({"groups": 0, "deleted": 0, "kept": len(keep_ids)})
+            return Result.Ok({"groups": 0, "deleted": 0, "kept": kept_count})
 
         placeholders = ",".join("?" for _ in delete_ids)
         del_res = await db.aexecute(f"DELETE FROM assets WHERE id IN ({placeholders})", tuple(delete_ids))
         if not del_res.ok:
             return Result.Err("DB_ERROR", del_res.error or "Failed to delete duplicate assets")
 
-        return Result.Ok({"groups": int(groups), "deleted": len(delete_ids), "kept": len(keep_ids)})
+        return Result.Ok({"groups": int(groups), "deleted": len(delete_ids), "kept": kept_count})
     except Exception as exc:
         return Result.Err("DB_ERROR", safe_error_message(exc, "Failed to cleanup case duplicates"))
 
@@ -670,4 +682,3 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                 }
             )
         )
-

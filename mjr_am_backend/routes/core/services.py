@@ -1,4 +1,4 @@
-﻿"""
+"""
 Service management and initialization.
 """
 import asyncio
@@ -86,4 +86,3 @@ async def _require_services() -> tuple[dict[str, Any] | None, Result[Any] | None
 def get_services_error():
     """Get the current services error if any."""
     return _services_error
-

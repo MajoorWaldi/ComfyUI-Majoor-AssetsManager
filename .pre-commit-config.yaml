@@ -1,0 +1,28 @@
+minimum_pre_commit_version: "3.6.0"
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+
+  - repo: local
+    hooks:
+      - id: check-no-bom
+        name: Check Python files encoding (no UTF-8 BOM)
+        entry: uv run python scripts/check_no_bom.py mjr_am_backend mjr_am_shared tests __init__.py scripts
+        language: system
+        pass_filenames: false
+
+      - id: mypy
+        name: Mypy (manual / pre-push)
+        entry: uv run python -m mypy --config-file mypy.ini
+        language: system
+        pass_filenames: false
+        stages: [pre-push, manual]

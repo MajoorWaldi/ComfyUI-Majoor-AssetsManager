@@ -1,4 +1,4 @@
-﻿"""
+"""
 Batch ZIP builder for drag-out (AssetsManager -> OS).
 
 Used by the frontend to support multi-selection drag-out via "DownloadURL".
@@ -94,87 +94,116 @@ def _sanitize_token(token: Any) -> str:
 
 def _cleanup_batch_zips() -> None:
     now = time.time()
-    stale: List[str] = []
     with _BATCH_LOCK:
-        for token, entry in list(_BATCH_CACHE.items()):
-            created_at = float(entry.get("created_at") or 0)
-            if created_at and now - created_at > _BATCH_TTL_SECONDS:
-                stale.append(token)
-        for token in stale:
-            entry = _BATCH_CACHE.pop(token, {})
-            path = entry.get("path") if isinstance(entry, dict) else None
-            _release_token_lock(token)
-            if isinstance(path, Path):
-                try:
-                    if path.exists():
-                        path.unlink()
-                        logger.debug("Cleaned up stale batch zip: %s", path.name)
-                except Exception as exc:
-                    logger.warning("Failed to cleanup batch zip %s: %s", path.name if path else token, exc)
+        _cleanup_stale_batch_entries(now)
+        _cleanup_batch_cache_cap()
 
-        # Cap cache size in case of unexpected usage.
-        if len(_BATCH_CACHE) > _BATCH_MAX:
-            items = sorted(_BATCH_CACHE.items(), key=lambda kv: float(kv[1].get("created_at") or 0))
-            to_drop = items[: max(0, len(items) - _BATCH_MAX)]
-            for token, entry in to_drop:
-                _BATCH_CACHE.pop(token, None)
-                _release_token_lock(token)
-                path = entry.get("path") if isinstance(entry, dict) else None
-                if isinstance(path, Path):
-                    try:
-                        if path.exists():
-                            path.unlink()
-                            logger.debug("Cleaned up batch zip (cache cap): %s", path.name)
-                    except Exception as exc:
-                        logger.warning("Failed to cleanup batch zip %s: %s", path.name if path else token, exc)
+
+def _cleanup_stale_batch_entries(now: float) -> None:
+    stale: List[str] = []
+    for token, entry in list(_BATCH_CACHE.items()):
+        created_at = float(entry.get("created_at") or 0)
+        if created_at and now - created_at > _BATCH_TTL_SECONDS:
+            stale.append(token)
+    for token in stale:
+        entry = _BATCH_CACHE.pop(token, {})
+        _release_token_lock(token)
+        _delete_batch_zip_path(entry, token, "Cleaned up stale batch zip: %s")
+
+
+def _cleanup_batch_cache_cap() -> None:
+    if len(_BATCH_CACHE) <= _BATCH_MAX:
+        return
+    items = sorted(_BATCH_CACHE.items(), key=lambda kv: float(kv[1].get("created_at") or 0))
+    to_drop = items[: max(0, len(items) - _BATCH_MAX)]
+    for token, entry in to_drop:
+        _BATCH_CACHE.pop(token, None)
+        _release_token_lock(token)
+        _delete_batch_zip_path(entry, token, "Cleaned up batch zip (cache cap): %s")
+
+
+def _delete_batch_zip_path(entry: Any, token: str, success_log: str) -> None:
+    path = entry.get("path") if isinstance(entry, dict) else None
+    if not isinstance(path, Path):
+        return
+    try:
+        if path.exists():
+            path.unlink()
+            logger.debug(success_log, path.name)
+    except Exception as exc:
+        logger.warning("Failed to cleanup batch zip %s: %s", path.name if path else token, exc)
 
 
 def _resolve_item_path(item: Dict[str, Any]) -> Optional[Path]:
+    filename_rel, subfolder_rel, typ = _normalized_batch_zip_item_parts(item)
+    if filename_rel is None or subfolder_rel is None:
+        return None
+    base_dir = _resolve_base_dir(item, typ)
+    if base_dir is None:
+        return None
+    candidate = _resolve_candidate_path(base_dir, subfolder_rel, filename_rel)
+    if not _is_valid_candidate_path(candidate, base_dir):
+        return None
+    return candidate
+
+
+def _normalized_batch_zip_item_parts(item: Dict[str, Any]) -> tuple[Optional[Path], Optional[Path], str]:
     filename_raw = (item or {}).get("filename")
     subfolder_raw = (item or {}).get("subfolder", "") or ""
     typ = str((item or {}).get("type") or "output").lower()
-
     filename_rel = _safe_rel_path(str(filename_raw or ""))
     if not filename_rel or len(filename_rel.parts) != 1:
-        return None
-
+        return None, None, typ
     subfolder_rel = _safe_rel_path(str(subfolder_raw))
     if subfolder_rel is None:
-        return None
+        return None, None, typ
+    return filename_rel, subfolder_rel, typ
 
-    base_dir: Optional[Path] = None
+
+def _is_valid_candidate_path(candidate: Optional[Path], base_dir: Path) -> bool:
+    if candidate is None:
+        return False
+    if not _is_within_root(candidate, base_dir):
+        return False
+    return candidate.exists() and candidate.is_file()
+
+
+def _resolve_base_dir(item: Dict[str, Any], typ: str) -> Optional[Path]:
     if typ == "input":
-        try:
-            if folder_paths is not None:
-                base_dir = Path(str(folder_paths.get_input_directory())).resolve(strict=True)
-        except Exception:
-            base_dir = None
-        if base_dir is None:
-            return None
-    elif typ == "custom":
-        root_id = (item or {}).get("root_id") or (item or {}).get("rootId") or (item or {}).get("custom_root_id") or ""
-        root_res = resolve_custom_root(str(root_id))
-        if not root_res.ok or not isinstance(root_res.data, Path):
-            return None
-        try:
-            base_dir = root_res.data.resolve(strict=True)
-        except Exception:
-            return None
-    else:
-        try:
-            base_dir = OUTPUT_ROOT_PATH.resolve(strict=True)
-        except Exception:
-            return None
-
+        return _resolve_input_base_dir()
+    if typ == "custom":
+        return _resolve_custom_base_dir(item)
     try:
-        candidate = (base_dir / subfolder_rel / filename_rel).resolve(strict=True)
+        return OUTPUT_ROOT_PATH.resolve(strict=True)
     except Exception:
         return None
-    if not _is_within_root(candidate, base_dir):
+
+
+def _resolve_input_base_dir() -> Optional[Path]:
+    try:
+        if folder_paths is None:
+            return None
+        return Path(str(folder_paths.get_input_directory())).resolve(strict=True)
+    except Exception:
         return None
-    if not candidate.exists() or not candidate.is_file():
+
+
+def _resolve_custom_base_dir(item: Dict[str, Any]) -> Optional[Path]:
+    root_id = (item or {}).get("root_id") or (item or {}).get("rootId") or (item or {}).get("custom_root_id") or ""
+    root_res = resolve_custom_root(str(root_id))
+    if not root_res.ok or not isinstance(root_res.data, Path):
         return None
-    return candidate
+    try:
+        return root_res.data.resolve(strict=True)
+    except Exception:
+        return None
+
+
+def _resolve_candidate_path(base_dir: Path, subfolder_rel: Path, filename_rel: Path) -> Optional[Path]:
+    try:
+        return (base_dir / subfolder_rel / filename_rel).resolve(strict=True)
+    except Exception:
+        return None
 
 
 def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
@@ -427,4 +456,3 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
         except Exception as exc:
             logger.debug("FileResponse failed: %s", exc)
             return _json_response(Result.Err("IO_ERROR", "Failed to serve zip"), status=500)
-

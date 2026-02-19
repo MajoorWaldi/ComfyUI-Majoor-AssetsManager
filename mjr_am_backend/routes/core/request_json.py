@@ -1,4 +1,4 @@
-﻿"""
+"""
 Safe JSON request parsing with size limits.
 
 Guarantees:
@@ -43,17 +43,29 @@ async def _read_json(request: web.Request, *, max_bytes: Optional[int] = None) -
     limit = int(max_bytes) if max_bytes is not None else _max_json_bytes()
     limit = max(MIN_JSON_BYTES, limit)
 
-    # Fast path: reject obviously too large bodies by Content-Length.
+    length_error = _content_length_error(request, limit)
+    if length_error is not None:
+        return length_error
+    body = await _read_request_body_limited(request, limit)
+    if not body.ok:
+        return body
+    return _decode_and_parse_json_dict(body.data)
+
+
+def _content_length_error(request: web.Request, limit: int) -> Optional[Result[dict]]:
     try:
         cl = request.headers.get("Content-Length")
-        if cl:
-            size = int(cl)
-            if size > limit:
-                return Result.Err(ErrorCode.INVALID_INPUT, f"JSON body too large ({size} > {limit})", limit=limit, size=size)
+        if not cl:
+            return None
+        size = int(cl)
+        if size <= limit:
+            return None
+        return Result.Err(ErrorCode.INVALID_INPUT, f"JSON body too large ({size} > {limit})", limit=limit, size=size)
     except Exception:
-        pass
+        return None
 
-    # Stream the body to enforce the limit even when Content-Length is missing/incorrect.
+
+async def _read_request_body_limited(request: web.Request, limit: int) -> Result[bytes]:
     buf = bytearray()
     try:
         async for chunk in request.content.iter_chunked(REQUEST_STREAM_CHUNK_BYTES):
@@ -64,18 +76,18 @@ async def _read_json(request: web.Request, *, max_bytes: Optional[int] = None) -
                 return Result.Err(ErrorCode.INVALID_INPUT, f"JSON body too large (> {limit})", limit=limit, size=len(buf))
     except Exception as exc:
         return Result.Err(ErrorCode.INVALID_JSON, f"Failed to read request body: {exc}")
+    return Result.Ok(bytes(buf))
 
+
+def _decode_and_parse_json_dict(body: bytes) -> Result[dict]:
     try:
-        text = bytes(buf).decode("utf-8", errors="strict")
+        text = body.decode("utf-8", errors="strict")
     except Exception as exc:
         return Result.Err(ErrorCode.INVALID_JSON, f"Invalid UTF-8 JSON body: {exc}")
-
     try:
         parsed: Any = json.loads(text) if text else {}
     except Exception as exc:
         return Result.Err(ErrorCode.INVALID_JSON, f"Invalid JSON body: {exc}")
-
     if not isinstance(parsed, dict):
         return Result.Err(ErrorCode.INVALID_JSON, "JSON body must be an object")
     return Result.Ok(parsed)
-

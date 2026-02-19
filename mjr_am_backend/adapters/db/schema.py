@@ -3,7 +3,7 @@ Database schema and migrations.
 """
 import hashlib
 import re
-from typing import List
+from typing import List, Tuple
 
 from ...shared import Result, get_logger, log_success
 
@@ -292,6 +292,87 @@ async def _fts_has_column(db, table: str, col: str) -> bool:
         return False
 
 
+async def _sqlite_object_sql(db, obj_type: str, name: str) -> str:
+    try:
+        row = await db.aquery(
+            "SELECT sql FROM sqlite_master WHERE type=? AND name=? LIMIT 1",
+            (obj_type, name),
+        )
+        if row.ok and row.data:
+            return str(row.data[0].get("sql") or "")
+    except Exception:
+        return ""
+    return ""
+
+
+async def _asset_metadata_fts_needs_repair(db) -> Tuple[bool, bool]:
+    ddl_lower = (await _sqlite_object_sql(db, "table", "asset_metadata_fts")).lower()
+    trig_lower = (await _sqlite_object_sql(db, "trigger", "asset_metadata_fts_update")).lower()
+    needs_table_rebuild = ("content_rowid" in ddl_lower and "asset_id" in ddl_lower)
+    needs_trigger_rebuild = ("update asset_metadata_fts" in trig_lower)
+    missing_tags_text = not await _fts_has_column(db, "asset_metadata_fts", "tags_text")
+    if missing_tags_text:
+        needs_table_rebuild = True
+    return needs_table_rebuild, needs_trigger_rebuild
+
+
+async def _drop_asset_metadata_fts_objects(db, *, include_table: bool) -> None:
+    script_parts = [
+        "DROP TRIGGER IF EXISTS asset_metadata_fts_insert;",
+        "DROP TRIGGER IF EXISTS asset_metadata_fts_delete;",
+        "DROP TRIGGER IF EXISTS asset_metadata_fts_update;",
+    ]
+    if include_table:
+        script_parts.append("DROP TABLE IF EXISTS asset_metadata_fts;")
+    await db.aexecutescript("\n".join(script_parts))
+
+
+async def _create_asset_metadata_fts_table_if_needed(db, *, needs_table_rebuild: bool) -> None:
+    if not needs_table_rebuild:
+        return
+    await db.aexecutescript(
+        """
+        CREATE VIRTUAL TABLE IF NOT EXISTS asset_metadata_fts USING fts5(
+            tags,
+            tags_text,
+            content=''
+        );
+        """
+    )
+
+
+async def _create_asset_metadata_fts_triggers(db) -> None:
+    await db.aexecutescript(
+        """
+        CREATE TRIGGER IF NOT EXISTS asset_metadata_fts_insert AFTER INSERT ON asset_metadata BEGIN
+            INSERT INTO asset_metadata_fts(rowid, tags, tags_text)
+            VALUES (new.asset_id, COALESCE(new.tags, ''), COALESCE(new.tags_text, ''));
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS asset_metadata_fts_delete AFTER DELETE ON asset_metadata BEGIN
+            INSERT INTO asset_metadata_fts(asset_metadata_fts, rowid) VALUES('delete', old.asset_id);
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS asset_metadata_fts_update AFTER UPDATE ON asset_metadata BEGIN
+            INSERT INTO asset_metadata_fts(asset_metadata_fts, rowid) VALUES('delete', old.asset_id);
+            INSERT INTO asset_metadata_fts(rowid, tags, tags_text)
+            VALUES (new.asset_id, COALESCE(new.tags, ''), COALESCE(new.tags_text, ''));
+        END;
+        """
+    )
+
+
+async def _reindex_asset_metadata_fts(db) -> None:
+    await db.aexecutescript(
+        """
+        DELETE FROM asset_metadata_fts;
+        INSERT INTO asset_metadata_fts(rowid, tags, tags_text)
+        SELECT asset_id, COALESCE(tags, ''), COALESCE(tags_text, '')
+        FROM asset_metadata;
+        """
+    )
+
+
 async def _repair_asset_metadata_fts(db) -> Result[bool]:
     """
     Repair legacy/incorrect FTS definition for asset metadata.
@@ -301,25 +382,7 @@ async def _repair_asset_metadata_fts(db) -> Result[bool]:
     Also check for missing `tags_text` column in existing FTS tables.
     """
     try:
-        table_row = await db.aquery("SELECT sql FROM sqlite_master WHERE type='table' AND name='asset_metadata_fts' LIMIT 1")
-        ddl = ""
-        if table_row.ok and table_row.data:
-            ddl = str(table_row.data[0].get("sql") or "")
-        ddl_lower = ddl.lower()
-
-        trig_row = await db.aquery("SELECT sql FROM sqlite_master WHERE type='trigger' AND name='asset_metadata_fts_update' LIMIT 1")
-        trig_sql = ""
-        if trig_row.ok and trig_row.data:
-            trig_sql = str(trig_row.data[0].get("sql") or "")
-        trig_lower = trig_sql.lower()
-
-        needs_table_rebuild = ("content_rowid" in ddl_lower and "asset_id" in ddl_lower)
-        needs_trigger_rebuild = ("update asset_metadata_fts" in trig_lower)
-        missing_tags_text = not await _fts_has_column(db, "asset_metadata_fts", "tags_text")
-
-        if missing_tags_text:
-            needs_table_rebuild = True
-
+        needs_table_rebuild, needs_trigger_rebuild = await _asset_metadata_fts_needs_repair(db)
         if not (needs_table_rebuild or needs_trigger_rebuild):
             return Result.Ok(True)
     except Exception:
@@ -331,60 +394,10 @@ async def _repair_asset_metadata_fts(db) -> Result[bool]:
         async with db.atransaction(mode="immediate") as tx:
             if not tx.ok:
                 return Result.Err("DB_ERROR", tx.error or "Failed to begin transaction")
-            if needs_table_rebuild:
-                await db.aexecutescript(
-                    """
-                    DROP TRIGGER IF EXISTS asset_metadata_fts_insert;
-                    DROP TRIGGER IF EXISTS asset_metadata_fts_delete;
-                    DROP TRIGGER IF EXISTS asset_metadata_fts_update;
-                    DROP TABLE IF EXISTS asset_metadata_fts;
-                    """
-                )
-                await db.aexecutescript(
-                    """
-                    CREATE VIRTUAL TABLE IF NOT EXISTS asset_metadata_fts USING fts5(
-                        tags,
-                        tags_text,
-                        content=''
-                    );
-                    """
-                )
-            else:
-                await db.aexecutescript(
-                    """
-                    DROP TRIGGER IF EXISTS asset_metadata_fts_insert;
-                    DROP TRIGGER IF EXISTS asset_metadata_fts_delete;
-                    DROP TRIGGER IF EXISTS asset_metadata_fts_update;
-                    """
-                )
-
-            await db.aexecutescript(
-                """
-                CREATE TRIGGER IF NOT EXISTS asset_metadata_fts_insert AFTER INSERT ON asset_metadata BEGIN
-                    INSERT INTO asset_metadata_fts(rowid, tags, tags_text)
-                    VALUES (new.asset_id, COALESCE(new.tags, ''), COALESCE(new.tags_text, ''));
-                END;
-
-                CREATE TRIGGER IF NOT EXISTS asset_metadata_fts_delete AFTER DELETE ON asset_metadata BEGIN
-                    INSERT INTO asset_metadata_fts(asset_metadata_fts, rowid) VALUES('delete', old.asset_id);
-                END;
-
-                CREATE TRIGGER IF NOT EXISTS asset_metadata_fts_update AFTER UPDATE ON asset_metadata BEGIN
-                    INSERT INTO asset_metadata_fts(asset_metadata_fts, rowid) VALUES('delete', old.asset_id);
-                    INSERT INTO asset_metadata_fts(rowid, tags, tags_text)
-                    VALUES (new.asset_id, COALESCE(new.tags, ''), COALESCE(new.tags_text, ''));
-                END;
-                """
-            )
-
-            await db.aexecutescript(
-                """
-                DELETE FROM asset_metadata_fts;
-                INSERT INTO asset_metadata_fts(rowid, tags, tags_text)
-                SELECT asset_id, COALESCE(tags, ''), COALESCE(tags_text, '')
-                FROM asset_metadata;
-                """
-            )
+            await _drop_asset_metadata_fts_objects(db, include_table=needs_table_rebuild)
+            await _create_asset_metadata_fts_table_if_needed(db, needs_table_rebuild=needs_table_rebuild)
+            await _create_asset_metadata_fts_triggers(db)
+            await _reindex_asset_metadata_fts(db)
         if not tx.ok:
             return Result.Err("DB_ERROR", tx.error or "Commit failed")
         return Result.Ok(True)
@@ -466,22 +479,7 @@ async def _repair_assets_fts(db) -> Result[bool]:
     triggers were not present or the FTS table got out of sync.
     """
     try:
-        table_row = await db.aquery("SELECT sql FROM sqlite_master WHERE type='table' AND name='assets_fts' LIMIT 1")
-        ddl = ""
-        if table_row.ok and table_row.data:
-            ddl = str(table_row.data[0].get("sql") or "")
-        ddl_lower = ddl.lower()
-
-        # Check existing trigger presence
-        trig_row = await db.aquery("SELECT name FROM sqlite_master WHERE type='trigger' AND name LIKE 'assets_fts_%'")
-        triggers_exist = trig_row.ok and bool(trig_row.data)
-
-        needs_rebuild = False
-        # If virtual table ddl looks wrong or triggers missing -> rebuild
-        if not ddl_lower or "fts5" not in ddl_lower or not triggers_exist:
-            needs_rebuild = True
-
-        if not needs_rebuild:
+        if not await _assets_fts_needs_rebuild(db):
             return Result.Ok(True)
     except Exception:
         return Result.Ok(True)
@@ -492,52 +490,10 @@ async def _repair_assets_fts(db) -> Result[bool]:
             if not tx.ok:
                 return Result.Err("DB_ERROR", tx.error or "Failed to begin transaction")
 
-            await db.aexecutescript(
-                """
-                DROP TRIGGER IF EXISTS assets_fts_insert;
-                DROP TRIGGER IF EXISTS assets_fts_delete;
-                DROP TRIGGER IF EXISTS assets_fts_update;
-                DROP TABLE IF EXISTS assets_fts;
-                """
-            )
-
-            await db.aexecutescript(
-                """
-                CREATE VIRTUAL TABLE IF NOT EXISTS assets_fts USING fts5(
-                    filename,
-                    subfolder,
-                    content='assets',
-                    content_rowid='id'
-                );
-                """
-            )
-
-            await db.aexecutescript(
-                """
-                CREATE TRIGGER IF NOT EXISTS assets_fts_insert AFTER INSERT ON assets BEGIN
-                    INSERT INTO assets_fts(rowid, filename, subfolder)
-                    VALUES (new.id, new.filename, new.subfolder);
-                END;
-
-                CREATE TRIGGER IF NOT EXISTS assets_fts_delete AFTER DELETE ON assets BEGIN
-                    DELETE FROM assets_fts WHERE rowid = old.id;
-                END;
-
-                CREATE TRIGGER IF NOT EXISTS assets_fts_update AFTER UPDATE ON assets BEGIN
-                    UPDATE assets_fts SET filename = new.filename, subfolder = new.subfolder
-                    WHERE rowid = new.id;
-                END;
-                """
-            )
-
-            # Rebuild FTS contents from assets table
-            await db.aexecutescript(
-                """
-                DELETE FROM assets_fts;
-                INSERT INTO assets_fts(rowid, filename, subfolder)
-                SELECT id, COALESCE(filename, ''), COALESCE(subfolder, '') FROM assets;
-                """
-            )
+            await _drop_assets_fts_objects(db)
+            await _create_assets_fts_table(db)
+            await _create_assets_fts_triggers(db)
+            await _rebuild_assets_fts_content(db)
 
         if not tx.ok:
             return Result.Err("DB_ERROR", tx.error or "Commit failed")
@@ -545,6 +501,67 @@ async def _repair_assets_fts(db) -> Result[bool]:
     except Exception as exc:
         logger.warning("Failed to repair assets_fts: %s", exc)
         return Result.Err("FTS_REPAIR_FAILED", str(exc))
+
+
+async def _assets_fts_needs_rebuild(db) -> bool:
+    ddl_lower = (await _sqlite_object_sql(db, "table", "assets_fts")).lower()
+    trig_row = await db.aquery("SELECT name FROM sqlite_master WHERE type='trigger' AND name LIKE 'assets_fts_%'")
+    triggers_exist = bool(trig_row.ok and trig_row.data)
+    return bool((not ddl_lower) or ("fts5" not in ddl_lower) or (not triggers_exist))
+
+
+async def _drop_assets_fts_objects(db) -> None:
+    await db.aexecutescript(
+        """
+        DROP TRIGGER IF EXISTS assets_fts_insert;
+        DROP TRIGGER IF EXISTS assets_fts_delete;
+        DROP TRIGGER IF EXISTS assets_fts_update;
+        DROP TABLE IF EXISTS assets_fts;
+        """
+    )
+
+
+async def _create_assets_fts_table(db) -> None:
+    await db.aexecutescript(
+        """
+        CREATE VIRTUAL TABLE IF NOT EXISTS assets_fts USING fts5(
+            filename,
+            subfolder,
+            content='assets',
+            content_rowid='id'
+        );
+        """
+    )
+
+
+async def _create_assets_fts_triggers(db) -> None:
+    await db.aexecutescript(
+        """
+        CREATE TRIGGER IF NOT EXISTS assets_fts_insert AFTER INSERT ON assets BEGIN
+            INSERT INTO assets_fts(rowid, filename, subfolder)
+            VALUES (new.id, new.filename, new.subfolder);
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS assets_fts_delete AFTER DELETE ON assets BEGIN
+            DELETE FROM assets_fts WHERE rowid = old.id;
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS assets_fts_update AFTER UPDATE ON assets BEGIN
+            UPDATE assets_fts SET filename = new.filename, subfolder = new.subfolder
+            WHERE rowid = new.id;
+        END;
+        """
+    )
+
+
+async def _rebuild_assets_fts_content(db) -> None:
+    await db.aexecutescript(
+        """
+        DELETE FROM assets_fts;
+        INSERT INTO assets_fts(rowid, filename, subfolder)
+        SELECT id, COALESCE(filename, ''), COALESCE(subfolder, '') FROM assets;
+        """
+    )
 
 
 async def init_schema(db) -> Result[bool]:

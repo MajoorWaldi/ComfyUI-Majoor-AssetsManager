@@ -186,60 +186,70 @@ class ExifTool:
         invoking an actual exiftool binary (not an arbitrary command string).
         """
         raw = (bin_name or "").strip()
+        if not self._is_safe_executable_name(raw):
+            return None
+        resolved = self._resolve_executable_path(raw)
+        if not resolved:
+            return None
+        if not self._is_under_trusted_dirs(resolved):
+            return None
+        return resolved if self._looks_like_exiftool_name(resolved) else None
+
+    @staticmethod
+    def _is_safe_executable_name(raw: str) -> bool:
         if not raw:
-            return None
+            return False
         if "\x00" in raw or "\n" in raw or "\r" in raw:
-            return None
-        if any(ch in raw for ch in ("&", "|", ";", ">", "<")):
-            return None
+            return False
+        return not any(ch in raw for ch in ("&", "|", ";", ">", "<"))
 
+    @staticmethod
+    def _resolve_executable_path(raw: str) -> Optional[str]:
         resolved = shutil.which(raw)
-        if not resolved:
-            try:
-                candidate = Path(raw)
-                if candidate.is_file():
-                    resolved = str(candidate.resolve(strict=True))
-            except (OSError, RuntimeError, ValueError):
-                return None
-
-        if not resolved:
+        if resolved:
+            return resolved
+        try:
+            candidate = Path(raw)
+            if candidate.is_file():
+                return str(candidate.resolve(strict=True))
+        except (OSError, RuntimeError, ValueError):
             return None
+        return None
 
-        # Optional hardening: when MAJOOR_EXIFTOOL_TRUSTED_DIRS is set, require the
-        # resolved binary to live under one of the configured directories.
+    @staticmethod
+    def _is_under_trusted_dirs(resolved: str) -> bool:
         trusted_dirs_raw = str(os.getenv("MAJOOR_EXIFTOOL_TRUSTED_DIRS", "") or "").strip()
-        if trusted_dirs_raw:
-            try:
-                resolved_path = Path(resolved).resolve(strict=True)
-                trusted_roots: List[Path] = []
-                for item in trusted_dirs_raw.split(os.pathsep):
-                    item = item.strip()
-                    if not item:
-                        continue
-                    try:
-                        trusted_roots.append(Path(item).expanduser().resolve(strict=True))
-                    except Exception:
-                        continue
-                if trusted_roots:
-                    ok = any(
-                        resolved_path == root or root in resolved_path.parents
-                        for root in trusted_roots
-                    )
-                    if not ok:
-                        return None
-            except Exception:
-                return None
+        if not trusted_dirs_raw:
+            return True
+        try:
+            resolved_path = Path(resolved).resolve(strict=True)
+            trusted_roots = ExifTool._trusted_roots(trusted_dirs_raw)
+            if not trusted_roots:
+                return True
+            return any(resolved_path == root or root in resolved_path.parents for root in trusted_roots)
+        except Exception:
+            return False
 
+    @staticmethod
+    def _trusted_roots(trusted_dirs_raw: str) -> List[Path]:
+        roots: List[Path] = []
+        for item in trusted_dirs_raw.split(os.pathsep):
+            item = item.strip()
+            if not item:
+                continue
+            try:
+                roots.append(Path(item).expanduser().resolve(strict=True))
+            except Exception:
+                continue
+        return roots
+
+    @staticmethod
+    def _looks_like_exiftool_name(resolved: str) -> bool:
         try:
             name = Path(resolved).name.lower()
         except Exception:
             name = str(resolved).lower()
-
-        # Allow exiftool.exe, exiftool(-k).exe, etc.
-        if not name.startswith("exiftool"):
-            return None
-
-        return resolved
+        return name.startswith("exiftool")
 
     def _check_available(self) -> bool:
         """Check if ExifTool is available in PATH."""
@@ -253,6 +263,370 @@ class ExifTool:
         """Check if ExifTool is available."""
         return self._available
 
+    @staticmethod
+    def _assign_result_for_paths(
+        paths: List[str],
+        results: Dict[str, Result[Dict[str, Any]]],
+        value: Result[Dict[str, Any]],
+        *,
+        only_missing: bool = False,
+    ) -> None:
+        for path in paths:
+            if only_missing and path in results:
+                continue
+            results[path] = value
+
+    @staticmethod
+    def _collect_valid_batch_paths(
+        paths: List[str],
+    ) -> Tuple[List[str], Dict[str, Result[Dict[str, Any]]]]:
+        valid_paths: List[str] = []
+        results: Dict[str, Result[Dict[str, Any]]] = {}
+        for path in paths:
+            if not path or "\x00" in str(path):
+                results[str(path)] = Result.Err(
+                    ErrorCode.INVALID_INPUT, "Invalid file path", quality="none"
+                )
+                continue
+            try:
+                p = Path(str(path))
+                if not p.exists() or not p.is_file():
+                    results[str(path)] = Result.Err(
+                        ErrorCode.NOT_FOUND, f"File not found: {path}", quality="none"
+                    )
+                    continue
+                valid_paths.append(str(path))
+            except Exception:
+                results[str(path)] = Result.Err(
+                    ErrorCode.INVALID_INPUT, "Invalid file path", quality="none"
+                )
+        return valid_paths, results
+
+    def _validate_batch_tags(
+        self,
+        tags: Optional[List[str]],
+        valid_paths: List[str],
+        results: Dict[str, Result[Dict[str, Any]]],
+    ) -> Optional[List[str]]:
+        tags_res = _validate_exiftool_tags(tags)
+        if tags_res.ok:
+            return tags_res.data or []
+        err = Result.Err(tags_res.code, tags_res.error or "Invalid tags", **(tags_res.meta or {}))
+        self._assign_result_for_paths(valid_paths, results, err)
+        return None
+
+    def _build_batch_command(
+        self,
+        cmd_paths: List[str],
+        safe_tags: List[str],
+    ) -> Tuple[List[str], Optional[bytes], float]:
+        cmd = [self.bin, "-j", "-G1", "-ee", "-a", "-U", "-s"]
+        if safe_tags:
+            cmd.extend([f"-{tag}" for tag in safe_tags])
+
+        stdin_input: Optional[bytes] = None
+        if os.name == "nt":
+            cmd.extend(["-charset", "filename=utf8", "-@", "-"])
+            stdin_lines = "".join(f"{p}\r\n" for p in cmd_paths)
+            stdin_input = stdin_lines.encode("utf-8", errors="replace")
+        else:
+            cmd.extend(cmd_paths)
+
+        timeout_s = self.timeout * len(cmd_paths)
+        return cmd, stdin_input, timeout_s
+
+    @staticmethod
+    def _run_batch_subprocess(
+        cmd: List[str],
+        timeout_s: float,
+        stdin_input: Optional[bytes],
+    ) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            cmd,
+            capture_output=True,
+            text=False,
+            check=False,
+            timeout=timeout_s,
+            input=stdin_input,
+            shell=False,
+        )
+
+    def _retry_windows_batch_file_not_found(
+        self,
+        process: subprocess.CompletedProcess,
+        safe_tags: List[str],
+        cmd_paths: List[str],
+        timeout_s: float,
+    ) -> subprocess.CompletedProcess:
+        if os.name != "nt" or process.returncode == 0:
+            return process
+        stderr0, _ = _decode_bytes_best_effort(process.stderr)
+        if "file not found" not in (stderr0 or "").lower():
+            return process
+
+        retry_cmd = [self.bin, "-j", "-G1", "-ee", "-a", "-U", "-s"]
+        if safe_tags:
+            retry_cmd.extend([f"-{tag}" for tag in safe_tags])
+        retry_cmd.extend(["-charset", "filename=utf8", "-@", "-"])
+        stdin_lines = "".join(f"{p}\r\n" for p in cmd_paths)
+        retry_process = self._run_batch_subprocess(
+            retry_cmd,
+            timeout_s,
+            stdin_lines.encode("utf-8", errors="replace"),
+        )
+        if retry_process.returncode == 0:
+            return retry_process
+        return process
+
+    def _parse_batch_output(
+        self,
+        process: subprocess.CompletedProcess,
+        valid_paths: List[str],
+        results: Dict[str, Result[Dict[str, Any]]],
+    ) -> Tuple[Optional[List[Dict[str, Any]]], bool]:
+        stdout, stdout_rep = _decode_bytes_best_effort(process.stdout)
+        stderr, stderr_rep = _decode_bytes_best_effort(process.stderr)
+        had_replacements = bool(stdout_rep or stderr_rep)
+
+        if had_replacements:
+            logger.warning("ExifTool batch output contained decoding replacement characters")
+
+        if process.returncode != 0:
+            stderr_msg = stderr.strip()
+            logger.warning(f"ExifTool batch error: {stderr_msg}")
+
+        if not stdout.strip():
+            if process.returncode != 0:
+                err = Result.Err(
+                    ErrorCode.EXIFTOOL_ERROR,
+                    (stderr.strip() or f"ExifTool batch failed with return code {int(process.returncode)}"),
+                    return_code=int(process.returncode),
+                    quality="degraded",
+                )
+            else:
+                err = Result.Err(
+                    ErrorCode.PARSE_ERROR,
+                    "ExifTool returned empty output",
+                    quality="degraded",
+                )
+            self._assign_result_for_paths(valid_paths, results, err)
+            return None, had_replacements
+
+        try:
+            data = json.loads(stdout)
+        except json.JSONDecodeError as e:
+            logger.error(f"ExifTool batch JSON parse error: {e}")
+            err = Result.Err(
+                ErrorCode.PARSE_ERROR,
+                f"Failed to parse ExifTool output: {e}",
+                quality="degraded",
+            )
+            self._assign_result_for_paths(valid_paths, results, err)
+            return None, had_replacements
+
+        if not isinstance(data, list):
+            err = Result.Err(
+                ErrorCode.PARSE_ERROR, "ExifTool batch returned non-list", quality="degraded"
+            )
+            self._assign_result_for_paths(valid_paths, results, err)
+            return None, had_replacements
+        return data, had_replacements
+
+    @staticmethod
+    def _map_batch_results(
+        data: List[Dict[str, Any]],
+        key_to_paths: Dict[str, List[str]],
+        results: Dict[str, Result[Dict[str, Any]]],
+        *,
+        had_replacements: bool,
+    ) -> None:
+        for file_data in data:
+            if not isinstance(file_data, dict):
+                logger.warning(f"ExifTool batch returned non-dict item: {type(file_data)}")
+                continue
+
+            source_file = file_data.get("SourceFile")
+            if not source_file:
+                logger.warning("ExifTool result missing SourceFile field")
+                continue
+
+            source_key = _normalize_match_path(str(source_file))
+            if not source_key:
+                logger.warning(f"Failed to normalize SourceFile path {source_file}")
+                continue
+
+            matched_paths = key_to_paths.get(source_key)
+            if matched_paths:
+                for path in matched_paths:
+                    results[path] = Result.Ok(
+                        file_data,
+                        quality="full" if not had_replacements else "degraded",
+                    )
+            else:
+                logger.warning(f"ExifTool returned data for unexpected file: {source_file}")
+
+    @staticmethod
+    def _fill_missing_batch_results(
+        valid_paths: List[str],
+        results: Dict[str, Result[Dict[str, Any]]],
+    ) -> None:
+        for path in valid_paths:
+            if path in results:
+                continue
+            results[path] = Result.Err(
+                ErrorCode.PARSE_ERROR,
+                "No metadata returned by ExifTool",
+                quality="none",
+            )
+
+    def _handle_batch_exception(
+        self,
+        exc: Exception,
+        valid_paths: List[str],
+        results: Dict[str, Result[Dict[str, Any]]],
+        safe_tags: List[str],
+    ) -> Dict[str, Result[Dict[str, Any]]]:
+        if getattr(exc, "winerror", None) == _WINDOWS_CMDLINE_TOO_LONG:
+            logger.warning(
+                "ExifTool batch hit WinError 206; falling back to per-file extraction for %d files",
+                len(valid_paths),
+            )
+            for path in valid_paths:
+                if path in results:
+                    continue
+                results[path] = self.read(path, safe_tags)
+            return results
+
+        logger.error(f"ExifTool batch unexpected error: {exc}")
+        err = Result.Err(ErrorCode.EXIFTOOL_ERROR, str(exc), quality="degraded")
+        self._assign_result_for_paths(valid_paths, results, err, only_missing=True)
+        return results
+
+    @staticmethod
+    def _validate_single_read_path(path: str) -> Result[str]:
+        if not path or "\x00" in str(path):
+            return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path", quality="none")
+        try:
+            p = Path(str(path))
+        except Exception:
+            return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path", quality="none")
+        if not p.exists() or not p.is_file():
+            return Result.Err(ErrorCode.NOT_FOUND, f"File not found: {path}", quality="none")
+        return Result.Ok(str(path))
+
+    @staticmethod
+    def _validate_single_read_tags(tags: Optional[List[str]]) -> Result[List[str]]:
+        tags_res = _validate_exiftool_tags(tags)
+        if tags_res.ok:
+            return Result.Ok(tags_res.data or [])
+        return Result.Err(tags_res.code, tags_res.error or "Invalid tags", **(tags_res.meta or {}))
+
+    @staticmethod
+    def _run_exiftool_process(
+        cmd: List[str],
+        *,
+        timeout: float,
+        stdin_input: Optional[str] = None,
+    ) -> subprocess.CompletedProcess:
+        stdin_bytes: Optional[bytes]
+        if stdin_input is None:
+            stdin_bytes = None
+        else:
+            stdin_bytes = str(stdin_input).encode("utf-8", errors="replace")
+        return subprocess.run(
+            cmd,
+            capture_output=True,
+            text=False,
+            check=False,
+            timeout=timeout,
+            input=stdin_bytes,
+            shell=False,
+        )
+
+    def _build_single_read_command(
+        self,
+        path: str,
+        safe_tags: List[str],
+    ) -> Tuple[List[str], Optional[str]]:
+        cmd = [self.bin, "-j", "-G1", "-ee", "-a", "-U", "-s"]
+        if safe_tags:
+            cmd.extend([f"-{tag}" for tag in safe_tags])
+        if os.name == "nt":
+            cmd.extend(["-charset", "filename=utf8", str(path)])
+            return cmd, None
+        cmd.append(path)
+        return cmd, None
+
+    def _retry_windows_single_read_file_not_found(
+        self,
+        process: subprocess.CompletedProcess,
+        path: str,
+        safe_tags: List[str],
+    ) -> subprocess.CompletedProcess:
+        if os.name != "nt" or process.returncode == 0:
+            return process
+        stderr_msg, _ = _decode_bytes_best_effort(process.stderr)
+        stderr_msg = stderr_msg.strip()
+        if "file not found" not in stderr_msg.lower():
+            return process
+
+        retry_cmd = [self.bin, "-j", "-G1", "-ee", "-a", "-U", "-s"]
+        if safe_tags:
+            retry_cmd.extend([f"-{tag}" for tag in safe_tags])
+        retry_cmd.extend(["-charset", "filename=utf8", "-@", "-"])
+        retry_process = self._run_exiftool_process(
+            retry_cmd,
+            timeout=self.timeout,
+            stdin_input=f"{path}\r\n",
+        )
+        if retry_process.returncode == 0:
+            return retry_process
+        return process
+
+    @staticmethod
+    def _parse_single_read_process(
+        process: subprocess.CompletedProcess,
+        path: str,
+    ) -> Result[Dict[str, Any]]:
+        stdout, stdout_rep = _decode_bytes_best_effort(process.stdout)
+        stderr, stderr_rep = _decode_bytes_best_effort(process.stderr)
+        had_replacements = bool(stdout_rep or stderr_rep)
+        if had_replacements:
+            logger.warning("ExifTool output contained decoding replacement characters for %s", path)
+
+        if process.returncode != 0:
+            stderr_msg = stderr.strip()
+            logger.warning(f"ExifTool error for {path}: {stderr_msg}")
+            return Result.Err(
+                ErrorCode.EXIFTOOL_ERROR,
+                stderr_msg or "ExifTool command failed",
+                return_code=int(process.returncode),
+                quality="degraded",
+            )
+
+        if not stdout.strip():
+            return Result.Err(
+                ErrorCode.PARSE_ERROR,
+                "ExifTool returned empty output",
+                quality="degraded",
+            )
+        try:
+            data = json.loads(stdout)
+        except json.JSONDecodeError as exc:
+            logger.error(f"ExifTool JSON parse error: {exc}")
+            return Result.Err(
+                ErrorCode.PARSE_ERROR,
+                f"Failed to parse ExifTool output: {exc}",
+                quality="degraded",
+            )
+        if isinstance(data, list) and len(data) > 0:
+            return Result.Ok(data[0], quality="full" if not had_replacements else "degraded")
+        return Result.Err(
+            ErrorCode.PARSE_ERROR,
+            "No metadata found",
+            quality="none",
+        )
+
     def read(self, path: str, tags: Optional[List[str]] = None) -> Result[Dict[str, Any]]:
         """
         Read metadata from file using ExifTool.
@@ -264,132 +638,14 @@ class ExifTool:
         Returns:
             Result with metadata dict or error
         """
-        if not self._available:
-            return Result.Err(
-                ErrorCode.TOOL_MISSING,
-                "ExifTool not found in PATH",
-                quality="none"
-            )
-
-        if not path or "\x00" in str(path):
-            return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path", quality="none")
-        try:
-            p = Path(str(path))
-        except Exception:
-            return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path", quality="none")
-        if not p.exists() or not p.is_file():
-            return Result.Err(ErrorCode.NOT_FOUND, f"File not found: {path}", quality="none")
-
-        tags_res = _validate_exiftool_tags(tags)
-        if not tags_res.ok:
-            return Result.Err(tags_res.code, tags_res.error or "Invalid tags", **(tags_res.meta or {}))
-        safe_tags = tags_res.data or []
-
-        def _run(cmd: List[str], stdin_input: Optional[str]) -> subprocess.CompletedProcess:
-            stdin_bytes: Optional[bytes]
-            if stdin_input is None:
-                stdin_bytes = None
-            else:
-                stdin_bytes = str(stdin_input).encode("utf-8", errors="replace")
-            return subprocess.run(
-                cmd,
-                capture_output=True,
-                text=False,
-                check=False,
-                timeout=self.timeout,
-                input=stdin_bytes,
-                shell=False,
-            )
+        safe_tags_or_error = self._prepare_single_read_inputs(path, tags)
+        if isinstance(safe_tags_or_error, Result):
+            return safe_tags_or_error
+        safe_tags = safe_tags_or_error
 
         try:
-            # Build command with comprehensive extraction flags
-            # -j: JSON output
-            # -G1: Group names with family 1
-            # -ee: Extract embedded data (critical for ComfyUI workflows)
-            # -a: Allow duplicate tags
-            # -U: Extract unknown tags
-            # -s: Short tag names
-            cmd = [self.bin, "-j", "-G1", "-ee", "-a", "-U", "-s"]
-            if safe_tags:
-                cmd.extend([f"-{tag}" for tag in safe_tags])
-
-            # Windows Unicode compatibility:
-            # - Prefer argv (most robust with Win32 wide-char argv).
-            # - If ExifTool reports "File not found" (common when filename charset handling
-            #   is buggy), retry via stdin argfile with explicit filename charset.
-            stdin_input: Optional[str] = None
-            if os.name == "nt":
-                cmd.extend(["-charset", "filename=utf8", str(path)])
-            else:
-                cmd.append(path)
-
-            # Run command
-            process = _run(cmd, stdin_input)
-
-            if os.name == "nt" and process.returncode != 0:
-                stderr_msg, _ = _decode_bytes_best_effort(process.stderr)
-                stderr_msg = stderr_msg.strip()
-                # Retry only for the specific "file not found" failure mode; avoid
-                # masking other errors (invalid tags, parse errors, etc.).
-                if "file not found" in stderr_msg.lower():
-                    retry_cmd = [self.bin, "-j", "-G1", "-ee", "-a", "-U", "-s"]
-                    if safe_tags:
-                        retry_cmd.extend([f"-{tag}" for tag in safe_tags])
-                    retry_cmd.extend(["-charset", "filename=utf8", "-@", "-"])
-                    # Prefer CRLF on Windows to match typical ExifTool stdin parsing behavior.
-                    retry_process = _run(retry_cmd, f"{path}\r\n")
-                    if retry_process.returncode == 0:
-                        process = retry_process
-
-            stdout, stdout_rep = _decode_bytes_best_effort(process.stdout)
-            stderr, stderr_rep = _decode_bytes_best_effort(process.stderr)
-            had_replacements = bool(stdout_rep or stderr_rep)
-            if had_replacements:
-                logger.warning("ExifTool output contained decoding replacement characters for %s", path)
-
-            if process.returncode != 0:
-                stderr_msg = stderr.strip()
-                logger.warning(f"ExifTool error for {path}: {stderr_msg}")
-                return Result.Err(
-                    ErrorCode.EXIFTOOL_ERROR,
-                    stderr_msg or "ExifTool command failed",
-                    return_code=int(process.returncode),
-                    quality="degraded"
-                )
-
-            # Parse JSON output
-            if not stdout.strip():
-                if process.returncode != 0:
-                    stderr_msg = stderr.strip()
-                    return Result.Err(
-                        ErrorCode.EXIFTOOL_ERROR,
-                        stderr_msg or f"ExifTool failed with return code {int(process.returncode)}",
-                        return_code=int(process.returncode),
-                        quality="degraded",
-                    )
-                return Result.Err(
-                    ErrorCode.PARSE_ERROR,
-                    "ExifTool returned empty output",
-                    quality="degraded"
-                )
-            try:
-                data = json.loads(stdout)
-            except json.JSONDecodeError as e:
-                logger.error(f"ExifTool JSON parse error: {e}")
-                return Result.Err(
-                    ErrorCode.PARSE_ERROR,
-                    f"Failed to parse ExifTool output: {e}",
-                    quality="degraded"
-                )
-            if isinstance(data, list) and len(data) > 0:
-                return Result.Ok(data[0], quality="full" if not had_replacements else "degraded")
-
-            return Result.Err(
-                ErrorCode.PARSE_ERROR,
-                "No metadata found",
-                quality="none"
-            )
-
+            process = self._run_single_read_process(path, safe_tags)
+            return self._parse_single_read_process(process, path)
         except subprocess.TimeoutExpired:
             logger.error(f"ExifTool timeout for {path}")
             return Result.Err(
@@ -411,6 +667,44 @@ class ExifTool:
                 str(e),
                 quality="degraded"
             )
+
+    def _prepare_single_read_inputs(
+        self,
+        path: str,
+        tags: Optional[List[str]],
+    ) -> Result[Dict[str, Any]] | List[str]:
+        availability_error = self._single_read_availability_error()
+        if availability_error is not None:
+            return availability_error
+        path_res = self._validate_single_read_path(path)
+        if not path_res.ok:
+            return Result.Err(path_res.code, path_res.error or "Invalid file path", **(path_res.meta or {}))
+        tags_res = self._validate_single_read_tags(tags)
+        if not tags_res.ok:
+            return Result.Err(tags_res.code, tags_res.error or "Invalid tags", **(tags_res.meta or {}))
+        return tags_res.data or []
+
+    def _single_read_availability_error(self) -> Optional[Result[Dict[str, Any]]]:
+        if self._available:
+            return None
+        return Result.Err(
+            ErrorCode.TOOL_MISSING,
+            "ExifTool not found in PATH",
+            quality="none"
+        )
+
+    def _run_single_read_process(
+        self,
+        path: str,
+        safe_tags: List[str],
+    ) -> subprocess.CompletedProcess:
+        cmd, stdin_input = self._build_single_read_command(path, safe_tags)
+        process = self._run_exiftool_process(
+            cmd,
+            timeout=self.timeout,
+            stdin_input=stdin_input,
+        )
+        return self._retry_windows_single_read_file_not_found(process, path, safe_tags)
 
     def read_batch(self, paths: List[str], tags: Optional[List[str]] = None) -> Dict[str, Result[Dict[str, Any]]]:
         """
@@ -434,187 +728,34 @@ class ExifTool:
         if not paths:
             return {}
 
-        # Filter valid paths
-        valid_paths: List[str] = []
-        results: Dict[str, Result[Dict[str, Any]]] = {}
-
-        for path in paths:
-            if not path or "\x00" in str(path):
-                results[str(path)] = Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path", quality="none")
-                continue
-            try:
-                p = Path(str(path))
-                if not p.exists() or not p.is_file():
-                    results[str(path)] = Result.Err(ErrorCode.NOT_FOUND, f"File not found: {path}", quality="none")
-                    continue
-                valid_paths.append(str(path))
-            except Exception:
-                results[str(path)] = Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path", quality="none")
-
+        valid_paths, results = self._collect_valid_batch_paths(paths)
         if not valid_paths:
             return results
 
-        tags_res = _validate_exiftool_tags(tags)
-        if not tags_res.ok:
-            err = Result.Err(tags_res.code, tags_res.error or "Invalid tags", **(tags_res.meta or {}))
-            for path in valid_paths:
-                results[path] = err
+        safe_tags = self._validate_batch_tags(tags, valid_paths, results)
+        if safe_tags is None:
             return results
-        safe_tags = tags_res.data or []
 
         key_to_paths, cmd_paths = _build_match_map(valid_paths)
 
         try:
-            # Build batch command
-            cmd = [self.bin, "-j", "-G1", "-ee", "-a", "-U", "-s"]
-            if safe_tags:
-                cmd.extend([f"-{tag}" for tag in safe_tags])
-
-            stdin_input: Optional[bytes] = None
-            if os.name == "nt":
-                # Avoid WinError 206 by passing file list via stdin argfile.
-                cmd.extend(["-charset", "filename=utf8", "-@", "-"])
-                stdin_lines = "".join(f"{p}\r\n" for p in cmd_paths)
-                stdin_input = stdin_lines.encode("utf-8", errors="replace")
-            else:
-                # Add all paths (de-duplicated by normalized key to avoid repeated work)
-                cmd.extend(cmd_paths)
-
-            timeout_s = self.timeout * len(cmd_paths)
-
-            # Run command
-            process = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=False,
-                check=False,
-                timeout=timeout_s,  # Scale timeout with file count
-                input=stdin_input,
-                shell=False,
-            )
-
-            # Windows retry path: use stdin argfile in UTF-8 when argv path decoding fails.
-            if os.name == "nt" and process.returncode != 0:
-                stderr0, _ = _decode_bytes_best_effort(process.stderr)
-                if "file not found" in (stderr0 or "").lower():
-                    retry_cmd = [self.bin, "-j", "-G1", "-ee", "-a", "-U", "-s"]
-                    if safe_tags:
-                        retry_cmd.extend([f"-{tag}" for tag in safe_tags])
-                    retry_cmd.extend(["-charset", "filename=utf8", "-@", "-"])
-                    stdin_lines = "".join(f"{p}\r\n" for p in cmd_paths)
-                    retry_process = subprocess.run(
-                        retry_cmd,
-                        capture_output=True,
-                        text=False,
-                        check=False,
-                        timeout=timeout_s,
-                        input=stdin_lines.encode("utf-8", errors="replace"),
-                        shell=False,
-                    )
-                    if retry_process.returncode == 0:
-                        process = retry_process
-
-            stdout, stdout_rep = _decode_bytes_best_effort(process.stdout)
-            stderr, stderr_rep = _decode_bytes_best_effort(process.stderr)
-            had_replacements = bool(stdout_rep or stderr_rep)
-
-            if had_replacements:
-                logger.warning("ExifTool batch output contained decoding replacement characters")
-
-            if process.returncode != 0:
-                stderr_msg = stderr.strip()
-                logger.warning(f"ExifTool batch error: {stderr_msg}")
-                # Partial failure - some files may have succeeded
-
-            # Parse JSON output
-            if not stdout.strip():
-                if process.returncode != 0:
-                    err = Result.Err(
-                        ErrorCode.EXIFTOOL_ERROR,
-                        (stderr.strip() or f"ExifTool batch failed with return code {int(process.returncode)}"),
-                        return_code=int(process.returncode),
-                        quality="degraded",
-                    )
-                else:
-                    err = Result.Err(ErrorCode.PARSE_ERROR, "ExifTool returned empty output", quality="degraded")
-                for path in valid_paths:
-                    results[path] = err
+            cmd, stdin_input, timeout_s = self._build_batch_command(cmd_paths, safe_tags)
+            process = self._run_batch_subprocess(cmd, timeout_s, stdin_input)
+            process = self._retry_windows_batch_file_not_found(process, safe_tags, cmd_paths, timeout_s)
+            data, had_replacements = self._parse_batch_output(process, valid_paths, results)
+            if data is None:
                 return results
-
-            try:
-                data = json.loads(stdout)
-            except json.JSONDecodeError as e:
-                logger.error(f"ExifTool batch JSON parse error: {e}")
-                err = Result.Err(ErrorCode.PARSE_ERROR, f"Failed to parse ExifTool output: {e}", quality="degraded")
-                for path in valid_paths:
-                    results[path] = err
-                return results
-
-            if not isinstance(data, list):
-                err = Result.Err(ErrorCode.PARSE_ERROR, "ExifTool batch returned non-list", quality="degraded")
-                for path in valid_paths:
-                    results[path] = err
-                return results
-
-            # Match results to input paths using SourceFile field.
-            # ExifTool may skip corrupted files, so we CANNOT rely on array index matching.
-            for file_data in data:
-                if not isinstance(file_data, dict):
-                    logger.warning(f"ExifTool batch returned non-dict item: {type(file_data)}")
-                    continue
-
-                # Get the source file from ExifTool result
-                source_file = file_data.get("SourceFile")
-                if not source_file:
-                    logger.warning("ExifTool result missing SourceFile field")
-                    continue
-
-                source_key = _normalize_match_path(str(source_file))
-                if not source_key:
-                    logger.warning(f"Failed to normalize SourceFile path {source_file}")
-                    continue
-
-                matched_paths = key_to_paths.get(source_key)
-                if matched_paths:
-                    for path in matched_paths:
-                        results[path] = Result.Ok(
-                            file_data,
-                            quality="full" if not had_replacements else "degraded",
-                        )
-                else:
-                    logger.warning(f"ExifTool returned data for unexpected file: {source_file}")
-
-            # Handle files that didn't return results (corrupted, unsupported, etc.)
-            for path in valid_paths:
-                if path not in results:
-                    results[path] = Result.Err(ErrorCode.PARSE_ERROR, "No metadata returned by ExifTool", quality="none")
-
+            self._map_batch_results(data, key_to_paths, results, had_replacements=had_replacements)
+            self._fill_missing_batch_results(valid_paths, results)
             return results
 
         except subprocess.TimeoutExpired:
             logger.error(f"ExifTool batch timeout for {len(valid_paths)} files")
             err = Result.Err(ErrorCode.TIMEOUT, "ExifTool batch timeout", quality="degraded")
-            for path in valid_paths:
-                if path not in results:
-                    results[path] = err
+            self._assign_result_for_paths(valid_paths, results, err, only_missing=True)
             return results
         except Exception as e:
-            if getattr(e, "winerror", None) == _WINDOWS_CMDLINE_TOO_LONG:
-                logger.warning(
-                    "ExifTool batch hit WinError 206; falling back to per-file extraction for %d files",
-                    len(valid_paths),
-                )
-                for path in valid_paths:
-                    if path in results:
-                        continue
-                    results[path] = self.read(path, safe_tags)
-                return results
-            logger.error(f"ExifTool batch unexpected error: {e}")
-            err = Result.Err(ErrorCode.EXIFTOOL_ERROR, str(e), quality="degraded")
-            for path in valid_paths:
-                if path not in results:
-                    results[path] = err
-            return results
+            return self._handle_batch_exception(e, valid_paths, results, safe_tags)
 
     def write(self, path: str, metadata: dict, preserve_workflow: bool = True) -> Result[bool]:
         """
@@ -628,98 +769,22 @@ class ExifTool:
         Returns:
             Result with success boolean
         """
-        if not self._available:
+        availability_error = self._validate_write_preconditions(path)
+        if availability_error is not None:
+            return availability_error
+
+        invalid_keys = self._invalid_write_keys(metadata)
+        if invalid_keys:
             return Result.Err(
-                ErrorCode.TOOL_MISSING,
-                "ExifTool not found in PATH"
+                ErrorCode.INVALID_INPUT,
+                "Invalid ExifTool tag format",
+                invalid_tags=invalid_keys,
             )
 
-        if not path or "\x00" in str(path):
-            return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")
+        cmd, stdin_input = self._build_write_command(path, metadata, preserve_workflow)
         try:
-            p = Path(str(path))
-        except Exception:
-            return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")
-        if not p.exists() or not p.is_file():
-            return Result.Err(ErrorCode.NOT_FOUND, f"File not found: {path}")
-
-        try:
-            # Build command
-            cmd = [self.bin]
-
-            # Preserve existing metadata if requested
-            if preserve_workflow:
-                cmd.extend(["-tagsFromFile", "@"])
-
-            invalid_keys: List[str] = []
-            for key in (metadata or {}).keys():
-                if not isinstance(key, str):
-                    invalid_keys.append(str(key))
-                    continue
-                if not _is_safe_exiftool_tag(key.strip()):
-                    invalid_keys.append(key.strip())
-            if invalid_keys:
-                return Result.Err(
-                    ErrorCode.INVALID_INPUT,
-                    "Invalid ExifTool tag format",
-                    invalid_tags=invalid_keys,
-                )
-
-            # Add metadata tags
-            # - Scalars: `-Tag=Value`
-            # - Lists: clear then append (`-Tag=` then `-Tag+=Item`)
-            # This matches ExifTool's array semantics (XMP arrays, IPTC keyword lists, etc.).
-            for key, value in (metadata or {}).items():
-                if value is None:
-                    cmd.append(f"-{key}=")
-                    continue
-                if isinstance(value, list):
-                    cmd.append(f"-{key}=")
-                    for item in value:
-                        if item is None:
-                            continue
-                        text = str(item).strip()
-                        if text:
-                            cmd.append(f"-{key}+={text}")
-                    continue
-                cmd.append(f"-{key}={value}")
-
-            stdin_input = None
-            if os.name == "nt":
-                cmd.extend(["-charset", "filename=utf8", "-@", "-"])
-                stdin_input = f"{path}\n"
-                cmd.append("-overwrite_original")
-            else:
-                # Overwrite original file
-                cmd.extend(["-overwrite_original", path])
-
-            # Run command
-            process = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=False,
-                check=False,
-                timeout=self.timeout,
-                input=(stdin_input.encode("utf-8", errors="replace") if stdin_input is not None else None),
-                shell=False,
-            )
-
-            stdout, stdout_rep = _decode_bytes_best_effort(process.stdout)
-            stderr, stderr_rep = _decode_bytes_best_effort(process.stderr)
-            if stdout_rep or stderr_rep:
-                logger.warning("ExifTool write output contained decoding replacement characters for %s", path)
-
-            if process.returncode != 0:
-                stderr_msg = stderr.strip()
-                logger.warning(f"ExifTool write error for {path}: {stderr_msg}")
-                return Result.Err(
-                    ErrorCode.EXIFTOOL_ERROR,
-                    stderr_msg or "ExifTool write failed",
-                    return_code=int(process.returncode),
-                )
-
-            logger.debug(f"Metadata written to {path}")
-            return Result.Ok(True)
+            process = self._run_write_command(cmd, stdin_input)
+            return self._handle_write_process_result(process, path)
 
         except subprocess.TimeoutExpired:
             logger.error(f"ExifTool write timeout for {path}")
@@ -733,6 +798,92 @@ class ExifTool:
                 ErrorCode.EXIFTOOL_ERROR,
                 str(e)
             )
+
+    def _validate_write_preconditions(self, path: str) -> Optional[Result[bool]]:
+        if not self._available:
+            return Result.Err(ErrorCode.TOOL_MISSING, "ExifTool not found in PATH")
+        if not path or "\x00" in str(path):
+            return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")
+        try:
+            file_path = Path(str(path))
+        except Exception:
+            return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")
+        if not file_path.exists() or not file_path.is_file():
+            return Result.Err(ErrorCode.NOT_FOUND, f"File not found: {path}")
+        return None
+
+    @staticmethod
+    def _invalid_write_keys(metadata: dict) -> List[str]:
+        invalid_keys: List[str] = []
+        for key in (metadata or {}).keys():
+            if not isinstance(key, str):
+                invalid_keys.append(str(key))
+                continue
+            if not _is_safe_exiftool_tag(key.strip()):
+                invalid_keys.append(key.strip())
+        return invalid_keys
+
+    def _build_write_command(self, path: str, metadata: dict, preserve_workflow: bool) -> tuple[List[str], Optional[str]]:
+        cmd = [self.bin]
+        if preserve_workflow:
+            cmd.extend(["-tagsFromFile", "@"])
+        self._append_metadata_write_args(cmd, metadata)
+        return self._append_write_target_args(cmd, path)
+
+    @staticmethod
+    def _append_metadata_write_args(cmd: List[str], metadata: dict) -> None:
+        for key, value in (metadata or {}).items():
+            if value is None:
+                cmd.append(f"-{key}=")
+                continue
+            if isinstance(value, list):
+                cmd.append(f"-{key}=")
+                for item in value:
+                    if item is None:
+                        continue
+                    text = str(item).strip()
+                    if text:
+                        cmd.append(f"-{key}+={text}")
+                continue
+            cmd.append(f"-{key}={value}")
+
+    @staticmethod
+    def _append_write_target_args(cmd: List[str], path: str) -> tuple[List[str], Optional[str]]:
+        stdin_input: Optional[str] = None
+        if os.name == "nt":
+            cmd.extend(["-charset", "filename=utf8", "-@", "-"])
+            stdin_input = f"{path}\n"
+            cmd.append("-overwrite_original")
+        else:
+            cmd.extend(["-overwrite_original", path])
+        return cmd, stdin_input
+
+    def _run_write_command(self, cmd: List[str], stdin_input: Optional[str]):
+        return subprocess.run(
+            cmd,
+            capture_output=True,
+            text=False,
+            check=False,
+            timeout=self.timeout,
+            input=(stdin_input.encode("utf-8", errors="replace") if stdin_input is not None else None),
+            shell=False,
+        )
+
+    def _handle_write_process_result(self, process: subprocess.CompletedProcess, path: str) -> Result[bool]:
+        stdout, stdout_rep = _decode_bytes_best_effort(process.stdout)
+        stderr, stderr_rep = _decode_bytes_best_effort(process.stderr)
+        if stdout_rep or stderr_rep:
+            logger.warning("ExifTool write output contained decoding replacement characters for %s", path)
+        if process.returncode != 0:
+            stderr_msg = stderr.strip()
+            logger.warning(f"ExifTool write error for {path}: {stderr_msg}")
+            return Result.Err(
+                ErrorCode.EXIFTOOL_ERROR,
+                stderr_msg or "ExifTool write failed",
+                return_code=int(process.returncode),
+            )
+        logger.debug(f"Metadata written to {path}")
+        return Result.Ok(True)
 
     async def aread(self, path: str, tags: Optional[List[str]] = None) -> Result[Dict[str, Any]]:
         """Async wrapper for read() executed off the event loop thread."""

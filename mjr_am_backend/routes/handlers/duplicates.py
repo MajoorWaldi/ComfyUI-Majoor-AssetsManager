@@ -1,4 +1,4 @@
-﻿"""
+"""
 Duplicate and similarity detection endpoints.
 """
 from pathlib import Path
@@ -158,4 +158,3 @@ def register_duplicates_routes(routes: web.RouteTableDef) -> None:
             return _json_response(Result.Err("INVALID_INPUT", "merge_asset_ids must be a list"))
         result = await dup.merge_tags_for_group(keep_asset_id, merge_asset_ids)
         return _json_response(result)
-

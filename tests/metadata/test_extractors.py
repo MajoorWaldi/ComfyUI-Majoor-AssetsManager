@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 from mjr_am_backend.features.metadata.parsing_utils import looks_like_comfyui_prompt_graph
 
 
@@ -12,4 +12,3 @@ async def test_prompt_graph_accepts_colon_ids():
     }
 
     assert looks_like_comfyui_prompt_graph(prompt_graph)
-

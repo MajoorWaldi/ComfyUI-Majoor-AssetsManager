@@ -1,4 +1,4 @@
-﻿"""
+"""
 Best-effort filesystem event watcher for invalidating directory listing caches.
 
 Uses watchdog when available; must never raise to callers (anti-crash rule).
@@ -133,5 +133,3 @@ def stop_global_fs_list_cache_watcher() -> None:
         obs.join(timeout=2.0)
     except Exception:
         pass
-
-

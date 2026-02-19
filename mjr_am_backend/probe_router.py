@@ -1,4 +1,4 @@
-﻿"""
+"""
 ProbeRouter: Decides which metadata extraction tools to use based on settings.
 """
 from typing import List
@@ -31,65 +31,65 @@ def pick_probe_backend(
     Returns:
         List of backends to use, in order: ["exiftool"], ["ffprobe"], or ["exiftool", "ffprobe"]
     """
-    mode = settings_override or MEDIA_PROBE_BACKEND
-
-    # Validate mode
-    if mode not in ("auto", "exiftool", "ffprobe", "both"):
-        logger.warning(f"Invalid media_probe_backend '{mode}', falling back to 'auto'")
-        mode = "auto"
-
-    # Determine file type
-    ext = Path(filepath).suffix.lower()
-    is_video = ext in VIDEO_EXTS
-    is_audio = ext in AUDIO_EXTENSIONS
-
-    # Simple modes
+    mode = _normalize_probe_mode(settings_override or MEDIA_PROBE_BACKEND)
+    is_media = _is_audio_or_video(filepath)
     if mode == "exiftool":
-        if has_exiftool():
-            return ["exiftool"]
-        logger.warning("ExifTool requested but not available, trying ffprobe")
-        if has_ffprobe():
-            return ["ffprobe"]
-        return []
-
+        return _single_mode_fallback(primary="exiftool", secondary="ffprobe")
     if mode == "ffprobe":
-        if has_ffprobe():
-            return ["ffprobe"]
-        logger.warning("FFprobe requested but not available, trying exiftool")
-        if has_exiftool():
-            return ["exiftool"]
-        return []
-
+        return _single_mode_fallback(primary="ffprobe", secondary="exiftool")
     if mode == "both":
-        tools = []
-        if has_exiftool():
-            tools.append("exiftool")
-        if has_ffprobe():
-            tools.append("ffprobe")
-        return tools
+        return _available_tools_pair()
+    return _auto_mode_tools(is_media=is_media, want_generation_tags=want_generation_tags)
 
-    # Auto mode (recommended)
-    if mode == "auto":
-        if is_video or is_audio:
-            # For videos: use both if available
-            # ExifTool for generation tags, FFprobe for tech metadata
-            tools = []
-            if has_exiftool():
-                tools.append("exiftool")
-            if has_ffprobe():
-                tools.append("ffprobe")
-            return tools if tools else []
-        else:
-            # For images: ExifTool is sufficient
-            if has_exiftool():
-                return ["exiftool"]
-            # Fallback to ffprobe if available (won't get generation tags though)
-            if has_ffprobe():
-                logger.debug("Using ffprobe for image (ExifTool not available)")
-                return ["ffprobe"]
-            return []
 
+def _normalize_probe_mode(mode: str) -> str:
+    if mode in ("auto", "exiftool", "ffprobe", "both"):
+        return mode
+    logger.warning("Invalid media_probe_backend '%s', falling back to 'auto'", mode)
+    return "auto"
+
+
+def _is_audio_or_video(filepath: str | Path) -> bool:
+    ext = Path(filepath).suffix.lower()
+    return ext in VIDEO_EXTS or ext in AUDIO_EXTENSIONS
+
+
+def _single_mode_fallback(primary: str, secondary: str) -> List[str]:
+    if _tool_available(primary):
+        return [primary]
+    logger.warning("%s requested but not available, trying %s", primary.capitalize(), secondary)
+    if _tool_available(secondary):
+        return [secondary]
     return []
+
+
+def _available_tools_pair() -> List[str]:
+    tools: List[str] = []
+    if has_exiftool():
+        tools.append("exiftool")
+    if has_ffprobe():
+        tools.append("ffprobe")
+    return tools
+
+
+def _auto_mode_tools(*, is_media: bool, want_generation_tags: bool) -> List[str]:
+    _ = want_generation_tags
+    if is_media:
+        return _available_tools_pair()
+    if has_exiftool():
+        return ["exiftool"]
+    if has_ffprobe():
+        logger.debug("Using ffprobe for image (ExifTool not available)")
+        return ["ffprobe"]
+    return []
+
+
+def _tool_available(name: str) -> bool:
+    if name == "exiftool":
+        return has_exiftool()
+    if name == "ffprobe":
+        return has_ffprobe()
+    return False
 
 
 def get_probe_strategy_description(filepath: str | Path) -> str:
@@ -103,4 +103,3 @@ def get_probe_strategy_description(filepath: str | Path) -> str:
     if len(backends) == 1:
         return f"Using {backends[0]} only"
     return f"Using {' + '.join(backends)}"
-
