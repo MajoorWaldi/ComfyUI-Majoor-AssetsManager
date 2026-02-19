@@ -112,6 +112,7 @@ function getToastContainer() {
  */
 export function comfyToast(message, type = "info", duration = 3000) {
     message = translateToastMessage(message);
+    const persistent = !(Number.isFinite(Number(duration)) && Number(duration) > 0);
     const app = getComfyApp();
     // 1. Try ComfyUI extensionManager toast (ComfyUI v1.3+ standard)
     // See: ComfyUI-Majoor-NodeFlow reference implementation
@@ -132,12 +133,9 @@ export function comfyToast(message, type = "info", duration = 3000) {
                  try { detail = message.message || String(message); } catch {}
             }
 
-            toastApi.add({ 
-                severity, 
-                summary, 
-                detail, 
-                life: duration 
-            });
+            const payload = { severity, summary, detail };
+            if (!persistent) payload.life = duration;
+            toastApi.add(payload);
             return;
         }
     } catch(e) {
@@ -204,7 +202,7 @@ export function comfyToast(message, type = "info", duration = 3000) {
     });
 
     // Auto Remove
-    const timer = setTimeout(() => {
+    const timer = persistent ? null : setTimeout(() => {
         removeToast(el);
     }, duration);
 
@@ -213,7 +211,7 @@ export function comfyToast(message, type = "info", duration = 3000) {
         if (!element.parentNode) return;
         element.classList.remove("is-visible");
         element.onclick = null;
-        clearTimeout(timer);
+        if (timer) clearTimeout(timer);
         setTimeout(() => {
             if (element.parentNode) element.parentNode.removeChild(element);
         }, 300);

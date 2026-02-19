@@ -3,7 +3,7 @@
  */
 
 import { APP_CONFIG, APP_DEFAULTS } from "./config.js";
-import { getSecuritySettings, setSecuritySettings, setProbeBackendMode, getMetadataFallbackSettings, setMetadataFallbackSettings, getOutputDirectorySetting, setOutputDirectorySetting, getWatcherStatus, toggleWatcher, getWatcherSettings, updateWatcherSettings, getRuntimeStatus } from "../api/client.js";
+import { getSecuritySettings, setSecuritySettings, bootstrapSecurityToken, setProbeBackendMode, getMetadataFallbackSettings, setMetadataFallbackSettings, getOutputDirectorySetting, setOutputDirectorySetting, getWatcherStatus, toggleWatcher, getWatcherSettings, updateWatcherSettings, getRuntimeStatus } from "../api/client.js";
 import { getSettingsApi } from "./comfyApiBridge.js";
 import { comfyToast } from "./toast.js";
 import { safeDispatchCustomEvent } from "../utils/events.js";
@@ -531,6 +531,17 @@ export async function syncBackendSecuritySettings() {
         settings.security.allowRename = _safeBool(prefs.allow_rename, settings.security.allowRename);
         settings.security.allowOpenInFolder = _safeBool(prefs.allow_open_in_folder, settings.security.allowOpenInFolder);
         settings.security.allowResetIndex = _safeBool(prefs.allow_reset_index, settings.security.allowResetIndex);
+        // Security settings endpoint intentionally does not expose the token.
+        // Bootstrap it once so write actions work without manual user input.
+        if (!String(settings.security.apiToken || "").trim()) {
+            try {
+                const boot = await bootstrapSecurityToken();
+                const bootToken = String(boot?.data?.token || "").trim();
+                if (boot?.ok && bootToken) {
+                    settings.security.apiToken = bootToken;
+                }
+            } catch {}
+        }
         saveMajoorSettings(settings);
         applySettingsToConfig(settings);
         safeDispatchCustomEvent("mjr-settings-changed", { key: "security" }, { warnPrefix: "[Majoor]" });
@@ -1571,13 +1582,24 @@ export const registerMajoorSettings = (app, onApplied) => {
             type: "text",
             defaultValue: settings.security?.apiToken || "",
             attrs: {
-                placeholder: t("setting.sec.token.placeholder", "Leave blank to disable."),
+                placeholder: t("setting.sec.token.placeholder", "Auto-generated and synced."),
             },
             onChange: (value) => {
                 settings.security = settings.security || {};
                 settings.security.apiToken = typeof value === "string" ? value.trim() : "";
                 saveMajoorSettings(settings);
                 notifyApplied("security.apiToken");
+                try {
+                    setSecuritySettings({ api_token: settings.security.apiToken })
+                        .then((res) => {
+                            if (res?.ok && res.data?.prefs) {
+                                syncBackendSecuritySettings();
+                            } else if (res && res.ok === false) {
+                                console.warn("[Majoor] backend token update failed", res.error || res);
+                            }
+                        })
+                        .catch(() => {});
+                } catch {}
             },
         });
 

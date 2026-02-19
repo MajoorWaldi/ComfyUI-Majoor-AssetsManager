@@ -17,7 +17,7 @@ from aiohttp import web
 
 from mjr_am_backend.config import INDEX_DB_PATH, get_runtime_output_root
 from mjr_am_backend.shared import Result, get_logger
-from ..core import _json_response, _csrf_error, _require_services, safe_error_message
+from ..core import _json_response, _csrf_error, _require_services, safe_error_message, _require_write_access
 
 logger = get_logger(__name__)
 
@@ -213,6 +213,9 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         svc, error_result = await _require_services()
         if error_result:
@@ -259,6 +262,9 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         set_db_maintenance_active(True)
         _emit_restore_status("started", "info", operation="delete_db")
@@ -429,6 +435,9 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         svc, error_result = await _require_services()
         if error_result:
@@ -507,6 +516,9 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         svc, error_result = await _require_services()
         if error_result:
@@ -546,6 +558,9 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         try:
             payload = await request.json()

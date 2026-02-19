@@ -66,6 +66,10 @@ async def build_services(db_path: Optional[str] = None) -> Result[dict]:
     exiftool = ExifTool(bin_name=EXIFTOOL_BIN or "exiftool", timeout=EXIFTOOL_TIMEOUT)
     ffprobe = FFProbe(bin_name=FFPROBE_BIN or "ffprobe", timeout=FFPROBE_TIMEOUT)
     settings_service = AppSettings(db)
+    try:
+        await settings_service.ensure_security_bootstrap()
+    except Exception as exc:
+        logger.warning("Security bootstrap failed: %s", exc)
 
     # Log tool availability
     if exiftool.is_available():

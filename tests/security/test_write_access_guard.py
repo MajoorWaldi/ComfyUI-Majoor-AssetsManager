@@ -8,6 +8,9 @@ def _clear_auth_env(monkeypatch):
     for key in (
         "MAJOOR_API_TOKEN",
         "MJR_API_TOKEN",
+        "MAJOOR_API_TOKEN_HASH",
+        "MJR_API_TOKEN_HASH",
+        "MAJOOR_API_TOKEN_PEPPER",
         "MAJOOR_SAFE_MODE",
         "MAJOOR_ALLOW_WRITE",
         "MAJOOR_ALLOW_DELETE",
@@ -56,6 +59,20 @@ async def test_write_token_accepts_bearer_header(monkeypatch):
 
     res = _check_write_access(peer_ip="127.0.0.1", headers={"Authorization": "Bearer secret"})
     assert res.ok, res.error
+
+
+@pytest.mark.asyncio
+async def test_write_accepts_hashed_token_env(monkeypatch):
+    _clear_auth_env(monkeypatch)
+    import hashlib
+
+    token = "secret"
+    token_hash = hashlib.sha256(f"\0{token}".encode("utf-8")).hexdigest()
+    monkeypatch.setenv("MAJOOR_API_TOKEN_HASH", token_hash)
+
+    res = _check_write_access(peer_ip="127.0.0.1", headers={"X-MJR-Token": token})
+    assert res.ok, res.error
+    assert (res.meta or {}).get("auth") == "token"
 
 
 @pytest.mark.asyncio

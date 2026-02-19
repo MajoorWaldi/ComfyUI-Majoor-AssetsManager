@@ -18,7 +18,7 @@ from mjr_am_backend.config import get_runtime_output_root
 from mjr_am_backend.custom_roots import resolve_custom_root
 from mjr_am_backend.shared import Result
 from .db_maintenance import is_db_maintenance_active
-from ..core import _json_response, _require_services, _csrf_error, _read_json, safe_error_message
+from ..core import _json_response, _require_services, _csrf_error, _read_json, safe_error_message, _require_write_access
 
 
 def _roots_for_scope(scope: str, custom_root_id: str = "") -> Result[list[str]]:
@@ -48,6 +48,9 @@ def register_duplicates_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         svc, error_result = await _require_services()
         if error_result:
@@ -130,6 +133,9 @@ def register_duplicates_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         svc, error_result = await _require_services()
         if error_result:

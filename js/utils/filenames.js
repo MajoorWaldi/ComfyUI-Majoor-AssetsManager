@@ -68,3 +68,22 @@ export function sanitizeFilename(filename) {
         return "";
     }
 }
+
+function splitNameExt(filename) {
+    const name = sanitizeFilename(filename);
+    if (!name) return { stem: "", ext: "" };
+    const idx = name.lastIndexOf(".");
+    // Keep dotfiles (".env") as extension-less names.
+    if (idx <= 0 || idx === name.length - 1) return { stem: name, ext: "" };
+    return { stem: name.slice(0, idx), ext: name.slice(idx) };
+}
+
+export function normalizeRenameFilename(inputName, currentName) {
+    const nextRaw = sanitizeFilename(inputName);
+    if (!nextRaw) return "";
+    const current = splitNameExt(currentName);
+    const next = splitNameExt(nextRaw);
+    // If user did not type an extension, preserve the current one.
+    if (!next.ext && current.ext) return `${nextRaw}${current.ext}`;
+    return nextRaw;
+}

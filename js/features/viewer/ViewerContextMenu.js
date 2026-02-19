@@ -18,7 +18,7 @@ import {
 import { hideMenu, clearMenu } from "../../components/contextmenu/MenuCore.js";
 import { showAddToCollectionMenu } from "../collections/contextmenu/addToCollectionMenu.js";
 import { confirmDeletion } from "../../utils/deleteGuard.js";
-import { sanitizeFilename, validateFilename } from "../../utils/filenames.js";
+import { normalizeRenameFilename, validateFilename } from "../../utils/filenames.js";
 import { reportError } from "../../utils/logging.js";
 import { scheduleRatingUpdate, cancelAllRatingUpdates } from "../contextmenu/ratingUpdater.js";
 
@@ -432,7 +432,7 @@ export function bindViewerContextMenu({
 
                 const currentName = asset.filename || "";
                 const rawInput = await comfyPrompt(t("dialog.rename.title", "Rename file"), currentName);
-                const newName = sanitizeFilename(rawInput);
+                const newName = normalizeRenameFilename(rawInput, currentName);
                 if (!newName || newName === currentName) return;
                 const validation = validateFilename(newName);
                 if (!validation.valid) {
@@ -443,11 +443,22 @@ export function bindViewerContextMenu({
                 try {
                     const renameResult = await renameAsset(asset, newName);
                     if (renameResult?.ok) {
-                        // Update the asset object
-                        asset.filename = newName;
-                        asset.filepath = asset.filepath.replace(/[^\\/]+$/, newName);
+                        const fresh = renameResult?.data?.asset;
+                        if (fresh && typeof fresh === "object") {
+                            Object.assign(asset, fresh);
+                        } else {
+                            asset.filename = newName;
+                            asset.filepath = asset.filepath.replace(/[^\\/]+$/, newName);
+                            if (asset.path) asset.path = String(asset.path).replace(/[^\\/]+$/, newName);
+                            if (asset.file_info && typeof asset.file_info === "object") {
+                                asset.file_info.filename = newName;
+                                if (asset.file_info.filepath) asset.file_info.filepath = String(asset.file_info.filepath).replace(/[^\\/]+$/, newName);
+                                if (asset.file_info.path) asset.file_info.path = String(asset.file_info.path).replace(/[^\\/]+$/, newName);
+                            }
+                        }
 
                         comfyToast(t("toast.fileRenamedSuccess"), "success");
+                        try { window.dispatchEvent(new CustomEvent("mjr:reload-grid")); } catch {}
                         onAssetChanged?.();
                     } else {
                         comfyToast(renameResult?.error || t("toast.fileRenameFailed"), "error");

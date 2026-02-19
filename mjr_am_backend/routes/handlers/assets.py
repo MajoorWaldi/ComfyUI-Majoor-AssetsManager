@@ -276,6 +276,40 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                 _safe_error_message(exc, "Failed to resolve asset id"),
             )
 
+    async def _infer_source_and_root_id_from_path(path: Path, output_root: str) -> tuple[str, str | None]:
+        try:
+            out_root = Path(output_root).resolve(strict=False)
+        except Exception:
+            out_root = Path(get_runtime_output_root()).resolve(strict=False)
+        try:
+            in_root = Path(folder_paths.get_input_directory()).resolve(strict=False)
+        except Exception:
+            in_root = Path(__file__).resolve().parents[3] / "input"
+            in_root = in_root.resolve(strict=False)
+
+        if _is_within_root(path, out_root):
+            return "output", None
+        if _is_within_root(path, in_root):
+            return "input", None
+
+        roots_res = list_custom_roots()
+        if roots_res.ok:
+            for item in roots_res.data or []:
+                if not isinstance(item, dict):
+                    continue
+                rid = str(item.get("id") or "").strip()
+                root_path = str(item.get("path") or "").strip()
+                if not rid or not root_path:
+                    continue
+                try:
+                    rp = Path(root_path).resolve(strict=False)
+                except Exception:
+                    continue
+                if _is_within_root(path, rp):
+                    return "custom", rid
+
+        return "output", None
+
     def _get_rating_tags_sync_mode(request: web.Request) -> str:
         try:
             raw = (request.headers.get("X-MJR-RTSYNC") or "").strip().lower()
@@ -522,6 +556,13 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         svc, error_result = await _require_services()
         if error_result:
             return _json_response(error_result)
+        prefs = await _resolve_security_prefs(svc)
+        op = _require_operation_enabled("open_in_folder", prefs=prefs)
+        if not op.ok:
+            return _json_response(op)
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         allowed, retry_after = _check_rate_limit(request, "open_in_folder", max_requests=1, window_seconds=2)
         if not allowed:
@@ -701,6 +742,13 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         svc, error_result = await _require_services()
         if error_result:
             return _json_response(error_result)
+        prefs = await _resolve_security_prefs(svc)
+        op = _require_operation_enabled("asset_delete", prefs=prefs)
+        if not op.ok:
+            return _json_response(op)
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         allowed, retry_after = _check_rate_limit(request, "asset_delete", max_requests=20, window_seconds=60)
         if not allowed:
@@ -838,6 +886,13 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         svc, error_result = await _require_services()
         if error_result:
             return _json_response(error_result)
+        prefs = await _resolve_security_prefs(svc)
+        op = _require_operation_enabled("asset_rename", prefs=prefs)
+        if not op.ok:
+            return _json_response(op)
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         body_res = await _read_json(request)
         if not body_res.ok:
@@ -868,14 +923,18 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
 
         current_filepath = ""
         current_filename = ""
+        current_source = ""
+        current_root_id = ""
         if asset_id is not None:
             try:
-                res = await svc["db"].aquery("SELECT filepath, filename FROM assets WHERE id = ?", (asset_id,))
+                res = await svc["db"].aquery("SELECT filepath, filename, source, root_id FROM assets WHERE id = ?", (asset_id,))
                 if not res.ok or not res.data:
                     return _json_response(Result.Err("NOT_FOUND", "Asset not found"))
                 row = res.data[0] or {}
                 current_filepath = str(row.get("filepath") or "")
                 current_filename = str(row.get("filename") or "")
+                current_source = str(row.get("source") or "").strip().lower()
+                current_root_id = str(row.get("root_id") or "").strip()
             except Exception as exc:
                 return _json_response(
                     Result.Err("DB_ERROR", _safe_error_message(exc, "Failed to load asset"))
@@ -987,12 +1046,56 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                 )
             )
 
+        # Targeted index refresh for the renamed file only (no full rescan).
+        try:
+            source = current_source
+            root_id = current_root_id or None
+            if not source:
+                inferred_source, inferred_root_id = await _infer_source_and_root_id_from_path(new_path, get_runtime_output_root())
+                source = inferred_source
+                root_id = inferred_root_id
+            index_svc = svc.get("index") if isinstance(svc, dict) else None
+            if index_svc and hasattr(index_svc, "index_paths"):
+                await asyncio.wait_for(
+                    index_svc.index_paths(
+                        [new_path],
+                        str(new_path.parent),
+                        False,  # force refresh to avoid stale row/path mismatch
+                        source or "output",
+                        root_id,
+                    ),
+                    timeout=TO_THREAD_TIMEOUT_S,
+                )
+        except Exception as exc:
+            logger.debug("Post-rename targeted reindex skipped: %s", exc)
+
+        fresh_asset = None
+        if asset_id is not None:
+            try:
+                fr = await svc["db"].aquery(
+                    """
+                    SELECT a.id, a.filename, a.subfolder, a.filepath, a.source, a.root_id, a.kind, a.ext,
+                           a.size, a.mtime, a.width, a.height, a.duration,
+                           COALESCE(m.rating, 0) AS rating, COALESCE(m.tags, '[]') AS tags
+                    FROM assets a
+                    LEFT JOIN asset_metadata m ON m.asset_id = a.id
+                    WHERE a.id = ?
+                    LIMIT 1
+                    """,
+                    (asset_id,),
+                )
+                if fr.ok and fr.data:
+                    fresh_asset = fr.data[0]
+            except Exception:
+                fresh_asset = None
+
         return _json_response(Result.Ok({
             "renamed": 1,
             "old_name": current_filename,
             "new_name": new_name,
             "old_path": str(current_resolved),
-            "new_path": str(new_path)
+            "new_path": str(new_path),
+            "asset": fresh_asset,
         }))
 
     @routes.post("/mjr/am/assets/delete")
@@ -1009,6 +1112,13 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         svc, error_result = await _require_services()
         if error_result:
             return _json_response(error_result)
+        prefs = await _resolve_security_prefs(svc)
+        op = _require_operation_enabled("assets_delete", prefs=prefs)
+        if not op.ok:
+            return _json_response(op)
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         allowed, retry_after = _check_rate_limit(request, "assets_delete", max_requests=10, window_seconds=60)
         if not allowed:

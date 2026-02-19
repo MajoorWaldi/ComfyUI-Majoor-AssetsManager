@@ -41,6 +41,7 @@ MAX_ASSET_BATCH_IDS = SEARCH_MAX_BATCH_IDS
 MAX_FILEPATH_LOOKUP = SEARCH_MAX_FILEPATH_LOOKUP
 VALID_SORT_KEYS = {"mtime_desc", "mtime_asc", "name_asc", "name_desc"}
 _SAFE_SQL_FRAGMENT_RE = re.compile(r"^[\s\w\.\(\)=<>\?!,'\\%:-]+$")
+_FTS_RESERVED = {"AND", "OR", "NOT", "NEAR"}
 
 
 def _normalize_sort_key(sort: Optional[str]) -> str:
@@ -300,6 +301,8 @@ class IndexSearcher:
 
             result = await self.db.aquery(" ".join(sql_parts), tuple(params))
             if not result.ok:
+                if self._is_malformed_match_error(result.error):
+                    return Result.Err("INVALID_INPUT", "Invalid search query syntax")
                 return Result.Err("SEARCH_FAILED", result.error or "Search query failed")
             rows = result.data or []
 
@@ -314,6 +317,8 @@ class IndexSearcher:
                 total = count_result.data[0]["total"] if count_result.ok and count_result.data else 0
         else:
             fts_query = self._sanitize_fts_query(query)
+            if not fts_query:
+                return Result.Err("INVALID_INPUT", "Invalid search query syntax")
             total_field = "COUNT(*) OVER() as _total," if include_total else ""
             sql_parts = [
                 f"""
@@ -364,6 +369,8 @@ class IndexSearcher:
 
             result = await self.db.aquery(" ".join(sql_parts), tuple(params))
             if not result.ok:
+                if self._is_malformed_match_error(result.error):
+                    return Result.Err("INVALID_INPUT", "Invalid search query syntax")
                 return Result.Err("SEARCH_FAILED", result.error or "Search query failed")
             rows = result.data or []
 
@@ -511,6 +518,8 @@ class IndexSearcher:
             sql = " ".join(sql_parts)
             result = await self.db.aquery(sql, tuple(params))
             if not result.ok:
+                if self._is_malformed_match_error(result.error):
+                    return Result.Err("INVALID_INPUT", "Invalid search query syntax")
                 return Result.Err("SEARCH_FAILED", result.error or "Scoped search query failed")
 
             rows = result.data or []
@@ -534,6 +543,8 @@ class IndexSearcher:
                 total = count_result.data[0]["total"] if count_result.ok and count_result.data else 0
         else:
             fts_query = self._sanitize_fts_query(query)
+            if not fts_query:
+                return Result.Err("INVALID_INPUT", "Invalid search query syntax")
             sql_parts = [
                 f"""
                 WITH matches AS (
@@ -585,6 +596,8 @@ class IndexSearcher:
             sql = " ".join(sql_parts)
             result = await self.db.aquery(sql, tuple(params))
             if not result.ok:
+                if self._is_malformed_match_error(result.error):
+                    return Result.Err("INVALID_INPUT", "Invalid search query syntax")
                 return Result.Err("SEARCH_FAILED", result.error or "Scoped search query failed")
 
             rows = result.data or []
@@ -969,9 +982,22 @@ class IndexSearcher:
         if not sanitized:
             return "*"
 
-        # Apply prefix matching to every token to allow partial matches (e.g. "dark" -> "dark*")
-        tokens = sanitized.split()
-        return " ".join(f'"{token}"*' for token in tokens)
+        # Normalize case for stable behavior (FTS is case-insensitive anyway).
+        sanitized = sanitized.lower()
+
+        # Apply prefix matching to every token to allow partial matches (e.g. "dark" -> "dark*").
+        # Avoid FTS reserved operators to prevent malformed MATCH expressions.
+        tokens = [tok for tok in sanitized.split() if tok and tok.upper() not in _FTS_RESERVED]
+        if not tokens:
+            return ""
+        return " ".join(f"{token}*" for token in tokens)
+
+    def _is_malformed_match_error(self, err: Any) -> bool:
+        try:
+            msg = str(err or "").lower()
+        except Exception:
+            return False
+        return "malformed match expression" in msg or "fts5: syntax error" in msg
 
     def _validate_search_input(self, query: str) -> Optional[Result[Any]]:
         trimmed = query.strip()
