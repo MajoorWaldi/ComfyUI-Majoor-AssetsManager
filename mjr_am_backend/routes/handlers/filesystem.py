@@ -53,6 +53,7 @@ _BACKGROUND_SCAN_HISTORY_MAX = 1000
 _SCAN_PENDING_LOCK = asyncio.Lock()
 _SCAN_PENDING: OrderedDict[str, dict[str, Any]] = OrderedDict()
 _SCAN_TASK: Optional[asyncio.Task[Any]] = None
+_WORKER_STOP = asyncio.Event()
 _SCAN_PENDING_MAX = int(SCAN_PENDING_MAX)
 
 _FS_LIST_CACHE_LOCK = asyncio.Lock()
@@ -218,6 +219,7 @@ def _ensure_worker() -> None:
     if _SCAN_TASK and not _SCAN_TASK.done():
         return
 
+    _WORKER_STOP.clear()
     _SCAN_TASK = asyncio.create_task(_worker_loop())
 
 
@@ -232,7 +234,7 @@ def _set_background_entry(key: str, value: dict[str, Any]) -> None:
 
 
 async def _worker_loop() -> None:
-    while True:
+    while not _WORKER_STOP.is_set():
         task = await _pop_pending_scan_task()
         if not task:
             await asyncio.sleep(0.5)
@@ -333,7 +335,7 @@ async def _run_scan_directory_task(svc: dict[str, Any], task: dict[str, Any]) ->
 
 
 def _record_scan_failure(directory: str, source: str, code: str, error: str) -> None:
-    # No async lock needed for simple append/pop in main thread
+    # No lock needed: called on the asyncio event loop (single-threaded task context).
     _BACKGROUND_SCAN_FAILURES.insert(0, {
         "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "directory": directory,
@@ -364,6 +366,31 @@ def _build_task_key(task: dict[str, Any]) -> str:
     root_id = str(task.get("root_id") or "")
     directory = normalize_scan_directory(str(task.get("directory") or ""))
     return f"{source}|{root_id}|{directory}"
+
+
+async def stop_background_scan_worker(*, drain: bool = True, timeout_s: float = 5.0) -> None:
+    """
+    Best-effort shutdown for the background scan worker.
+    """
+    global _SCAN_TASK
+    _WORKER_STOP.set()
+    if drain:
+        deadline = time.monotonic() + max(0.0, float(timeout_s))
+        while time.monotonic() < deadline:
+            async with _SCAN_PENDING_LOCK:
+                if not _SCAN_PENDING:
+                    break
+            await asyncio.sleep(0.05)
+    task = _SCAN_TASK
+    if task and not task.done():
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+        except Exception:
+            pass
+    _SCAN_TASK = None
 
 
 def _collect_filesystem_entries(

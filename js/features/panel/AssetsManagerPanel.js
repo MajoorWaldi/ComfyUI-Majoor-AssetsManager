@@ -153,7 +153,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         collectionsPopover,
         pinnedFoldersPopover
     });
-    
+
     // Restore persistent search query
     if (state.searchQuery) {
         searchInputEl.value = state.searchQuery;
@@ -198,7 +198,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
 
     // NOTE: Scroll restoration is done AFTER grid loads (see initialLoadPromise below).
     // Restoring scroll on an empty grid would be useless.
-    
+
     let _scrollTimer = null;
     let _lastUserInteractionAt = 0;
     const markUserInteraction = () => {
@@ -277,6 +277,10 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
 
         try {
             sidebar.dataset.position = pos;
+            const isOpen = sidebar.classList?.contains?.("is-open");
+            const borderColor = "var(--mjr-border, rgba(255,255,255,0.12))";
+            sidebar.style.borderLeft = pos === "left" ? "none" : (isOpen ? `1px solid ${borderColor}` : "none");
+            sidebar.style.borderRight = pos === "left" ? (isOpen ? `1px solid ${borderColor}` : "none") : "none";
         } catch {}
 
         try {
@@ -370,10 +374,10 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             if (/^#[0-9a-fA-F]{3,8}$/.test(tagColor)) {
                 document.documentElement.style.setProperty("--mjr-tag-color", tagColor);
             }
-            
+
             // 1. Sidebar position
             applySidebarPosition(s.sidebar?.position || "right");
-            
+
             // 2. Grid visuals (badges, details, sizes)
             // Refresh only when a relevant setting changed to avoid reload storms.
             if (shouldRefreshGrid) {
@@ -1072,7 +1076,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         window._mjrHotkeysState = window._mjrHotkeysState || {};
         window._mjrHotkeysState.scope = "grid";
     } catch {}
-    
+
     // Attach controllers to container for cleanup on re-render
     try {
         container._mjrHotkeys = hotkeys;
@@ -1276,7 +1280,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
 
     scopeController.setActiveTabStyles();
     browserNav?.renderBreadcrumb?.();
-    
+
     // Initial loading of custom roots (restores selection from state if applicable)
     customRootsController.refreshCustomRoots().catch(() => {});
 
@@ -1319,7 +1323,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             refreshDuplicateAlerts().catch(() => {});
         }, 15000);
     } catch {}
-    
+
     // Restore scroll, selection visuals, and sidebar AFTER grid loads.
     const restoreUIState = async () => {
         try {
@@ -1394,4 +1398,3 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
 
     return { gridContainer };
 }
-

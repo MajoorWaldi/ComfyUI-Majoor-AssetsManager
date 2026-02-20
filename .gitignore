@@ -147,3 +147,4 @@ reports/radon_cc_parser.json
 reports/radon_cc_triplet.json
 reports/radon_cc_watcher.json
 uv.lock
+AUDIT_REPORT.md

@@ -26,7 +26,7 @@ const DEFAULT_SETTINGS = {
     grid: {
         pageSize: APP_DEFAULTS.DEFAULT_PAGE_SIZE,
         minSize: APP_DEFAULTS.GRID_MIN_SIZE,
-        minSizePreset: "small",
+        minSizePreset: "medium",
         gap: APP_DEFAULTS.GRID_GAP,
         showExtBadge: APP_DEFAULTS.GRID_SHOW_BADGES_EXTENSION,
         showRatingBadge: APP_DEFAULTS.GRID_SHOW_BADGES_RATING,
@@ -93,6 +93,7 @@ const DEFAULT_SETTINGS = {
     sidebar: {
         position: "right",
         showPreviewThumb: true,
+        widthPx: 360,
     },
     probeBackend: {
         mode: "auto",
@@ -139,7 +140,7 @@ const DEFAULT_SETTINGS = {
     security: {
         safeMode: false,
         allowWrite: true,
-        allowRemoteWrite: true,
+        allowRemoteWrite: false,
         allowDelete: true,
         allowRename: true,
         allowOpenInFolder: true,
@@ -169,9 +170,9 @@ const _safeOneOf = (value, allowed, fallback) => {
 };
 
 const GRID_SIZE_PRESETS = Object.freeze({
-    small: 140,
-    medium: 200,
-    large: 280,
+    small: 80,
+    medium: 120,
+    large: 180,
 });
 
 const GRID_SIZE_PRESET_OPTIONS = Object.freeze(["small", "medium", "large"]);
@@ -184,8 +185,8 @@ const resolveGridMinSize = (grid = {}) => {
 
 const detectGridSizePreset = (minSize) => {
     const val = Math.round(_safeNum(minSize, APP_DEFAULTS.GRID_MIN_SIZE));
-    if (val <= 160) return "small";
-    if (val >= 250) return "large";
+    if (val <= 100) return "small";
+    if (val >= 150) return "large";
     return "medium";
 };
 
@@ -793,82 +794,80 @@ export const registerMajoorSettings = (app, onApplied) => {
             },
         });
 
-        if (settings.grid?.showDetails !== false) {
-            safeAddSetting({
-                id: `${SETTINGS_PREFIX}.Grid.ShowFilename`,
-                category: cardCat("Show filename"),
-                name: "Show filename",
-                tooltip: "Display filename in details panel",
-                type: "boolean",
-                defaultValue: !!settings.grid?.showFilename,
-                onChange: (value) => {
-                    settings.grid.showFilename = !!value;
-                    saveMajoorSettings(settings);
-                    applySettingsToConfig(settings);
-                    notifyApplied("grid.showFilename");
-                },
-            });
+        safeAddSetting({
+            id: `${SETTINGS_PREFIX}.Grid.ShowFilename`,
+            category: cardCat("Show filename"),
+            name: "Show filename",
+            tooltip: "Display filename in details panel",
+            type: "boolean",
+            defaultValue: !!settings.grid?.showFilename,
+            onChange: (value) => {
+                settings.grid.showFilename = !!value;
+                saveMajoorSettings(settings);
+                applySettingsToConfig(settings);
+                notifyApplied("grid.showFilename");
+            },
+        });
 
-            safeAddSetting({
-                id: `${SETTINGS_PREFIX}.Grid.ShowDate`,
-                category: cardCat("Show date/time"),
-                name: "Show date/time",
-                tooltip: "Display date and time in details panel",
-                type: "boolean",
-                defaultValue: !!settings.grid?.showDate,
-                onChange: (value) => {
-                    settings.grid.showDate = !!value;
-                    saveMajoorSettings(settings);
-                    applySettingsToConfig(settings);
-                    notifyApplied("grid.showDate");
-                },
-            });
+        safeAddSetting({
+            id: `${SETTINGS_PREFIX}.Grid.ShowDate`,
+            category: cardCat("Show date/time"),
+            name: "Show date/time",
+            tooltip: "Display date and time in details panel",
+            type: "boolean",
+            defaultValue: !!settings.grid?.showDate,
+            onChange: (value) => {
+                settings.grid.showDate = !!value;
+                saveMajoorSettings(settings);
+                applySettingsToConfig(settings);
+                notifyApplied("grid.showDate");
+            },
+        });
 
-            safeAddSetting({
-                id: `${SETTINGS_PREFIX}.Grid.ShowDimensions`,
-                category: cardCat("Show dimensions"),
-                name: "Show dimensions",
-                tooltip: "Display resolution (WxH) in details panel",
-                type: "boolean",
-                defaultValue: !!settings.grid?.showDimensions,
-                onChange: (value) => {
-                    settings.grid.showDimensions = !!value;
-                    saveMajoorSettings(settings);
-                    applySettingsToConfig(settings);
-                    notifyApplied("grid.showDimensions");
-                },
-            });
+        safeAddSetting({
+            id: `${SETTINGS_PREFIX}.Grid.ShowDimensions`,
+            category: cardCat("Show dimensions"),
+            name: "Show dimensions",
+            tooltip: "Display resolution (WxH) in details panel",
+            type: "boolean",
+            defaultValue: !!settings.grid?.showDimensions,
+            onChange: (value) => {
+                settings.grid.showDimensions = !!value;
+                saveMajoorSettings(settings);
+                applySettingsToConfig(settings);
+                notifyApplied("grid.showDimensions");
+            },
+        });
 
-            safeAddSetting({
-                id: `${SETTINGS_PREFIX}.Grid.ShowGenTime`,
-                category: cardCat("Show generation time"),
-                name: "Show generation time",
-                tooltip: "Display seconds taken to generate the asset (if available)",
-                type: "boolean",
-                defaultValue: !!settings.grid?.showGenTime,
-                onChange: (value) => {
-                    settings.grid.showGenTime = !!value;
-                    saveMajoorSettings(settings);
-                    applySettingsToConfig(settings);
-                    notifyApplied("grid.showGenTime");
-                },
-            });
+        safeAddSetting({
+            id: `${SETTINGS_PREFIX}.Grid.ShowGenTime`,
+            category: cardCat("Show generation time"),
+            name: "Show generation time",
+            tooltip: "Display seconds taken to generate the asset (if available)",
+            type: "boolean",
+            defaultValue: !!settings.grid?.showGenTime,
+            onChange: (value) => {
+                settings.grid.showGenTime = !!value;
+                saveMajoorSettings(settings);
+                applySettingsToConfig(settings);
+                notifyApplied("grid.showGenTime");
+            },
+        });
 
-            safeAddSetting({
-                id: `${SETTINGS_PREFIX}.Grid.ShowWorkflowDot`,
-                category: cardCat("Show workflow dot"),
-                name: "Show workflow indicator",
-                tooltip: "Display the green dot indicating workflow metadata availability (bottom right of card)",
-                type: "boolean",
-                defaultValue: !!settings.grid?.showWorkflowDot,
-                onChange: (value) => {
-                    settings.grid.showWorkflowDot = !!value;
-                    saveMajoorSettings(settings);
-                    applySettingsToConfig(settings);
-                    notifyApplied("grid.showWorkflowDot");
-                },
-            });
-        }
+        safeAddSetting({
+            id: `${SETTINGS_PREFIX}.Grid.ShowWorkflowDot`,
+            category: cardCat("Show workflow dot"),
+            name: "Show workflow indicator",
+            tooltip: "Display the green dot indicating workflow metadata availability (bottom right of card)",
+            type: "boolean",
+            defaultValue: !!settings.grid?.showWorkflowDot,
+            onChange: (value) => {
+                settings.grid.showWorkflowDot = !!value;
+                saveMajoorSettings(settings);
+                applySettingsToConfig(settings);
+                notifyApplied("grid.showWorkflowDot");
+            },
+        });
 
         // ──────────────────────────────────────────────
         // Section: Badges
@@ -1074,6 +1073,26 @@ export const registerMajoorSettings = (app, onApplied) => {
                 settings.sidebar.showPreviewThumb = !!value;
                 saveMajoorSettings(settings);
                 notifyApplied("sidebar.showPreviewThumb");
+            },
+        });
+
+        safeAddSetting({
+            id: `${SETTINGS_PREFIX}.Sidebar.WidthPx`,
+            category: cat(t("cat.grid"), "Sidebar width"),
+            name: "Sidebar width (px)",
+            tooltip: "Set the details sidebar width in pixels (240-640).",
+            type: "number",
+            defaultValue: Math.max(240, Math.min(640, Number(settings.sidebar?.widthPx) || 360)),
+            attrs: {
+                min: 240,
+                max: 640,
+                step: 10,
+            },
+            onChange: (value) => {
+                settings.sidebar = settings.sidebar || {};
+                settings.sidebar.widthPx = Math.max(240, Math.min(640, Math.round(Number(value) || 360)));
+                saveMajoorSettings(settings);
+                notifyApplied("sidebar.widthPx");
             },
         });
 
@@ -1541,7 +1560,7 @@ export const registerMajoorSettings = (app, onApplied) => {
                         setSecuritySettings({
                             safe_mode: _safeBool(sec.safeMode, false),
                             allow_write: _safeBool(sec.allowWrite, true),
-                            allow_remote_write: _safeBool(sec.allowRemoteWrite, true),
+                            allow_remote_write: _safeBool(sec.allowRemoteWrite, false),
                             allow_delete: _safeBool(sec.allowDelete, true),
                             allow_rename: _safeBool(sec.allowRename, true),
                             allow_open_in_folder: _safeBool(sec.allowOpenInFolder, true),

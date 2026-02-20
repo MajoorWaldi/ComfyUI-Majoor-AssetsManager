@@ -17,6 +17,45 @@ import { ASSET_RATING_CHANGED_EVENT, ASSET_TAGS_CHANGED_EVENT } from "../../app/
 import { loadMajoorSettings } from "../../app/settings.js";
 import { t } from "../../app/i18n.js";
 
+const SIDEBAR_OPEN_WIDTH_PX = 360;
+const SIDEBAR_MIN_WIDTH_PX = 240;
+const SIDEBAR_MAX_WIDTH_PX = 640;
+
+function _sidebarWidthFromSettings() {
+    try {
+        const settings = loadMajoorSettings();
+        const raw = Number(settings?.sidebar?.widthPx);
+        if (!Number.isFinite(raw)) return SIDEBAR_OPEN_WIDTH_PX;
+        return Math.max(SIDEBAR_MIN_WIDTH_PX, Math.min(SIDEBAR_MAX_WIDTH_PX, Math.round(raw)));
+    } catch {
+        return SIDEBAR_OPEN_WIDTH_PX;
+    }
+}
+
+function _applySidebarOpenState(sidebar, open) {
+    if (!sidebar) return;
+    const isLeft = String(sidebar?.dataset?.position || "right").toLowerCase() === "left";
+    const borderColor = "var(--mjr-border, rgba(255,255,255,0.12))";
+    if (open) {
+        const w = `${_sidebarWidthFromSettings()}px`;
+        sidebar.style.flex = `0 0 ${w}`;
+        sidebar.style.width = w;
+        sidebar.style.maxWidth = w;
+        sidebar.style.minWidth = "0";
+        sidebar.style.overflow = "hidden";
+        sidebar.style.borderLeft = isLeft ? "none" : `1px solid ${borderColor}`;
+        sidebar.style.borderRight = isLeft ? `1px solid ${borderColor}` : "none";
+    } else {
+        sidebar.style.flex = "0 0 0px";
+        sidebar.style.width = "0";
+        sidebar.style.maxWidth = "0";
+        sidebar.style.minWidth = "0";
+        sidebar.style.overflow = "hidden";
+        sidebar.style.borderLeft = "none";
+        sidebar.style.borderRight = "none";
+    }
+}
+
 /**
  * Create inline sidebar (for panel integration)
  * @param {string} position - "left" or "right"
@@ -28,6 +67,14 @@ export function createSidebar(position = "right") {
     sidebar.dataset.position = position;
     sidebar._requestSeq = 0;
     sidebar._closeTimer = null;
+    sidebar.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        background: var(--mjr-surface-1, #262626);
+        transition: width 140ms ease, max-width 140ms ease, flex-basis 140ms ease, border-color 140ms ease;
+        contain: layout paint style;
+    `;
+    _applySidebarOpenState(sidebar, false);
 
     const placeholder = document.createElement("div");
     placeholder.className = "mjr-sidebar-placeholder";
@@ -172,6 +219,7 @@ export async function showAssetInSidebar(sidebar, asset, onUpdate) {
     sidebar._currentFetchAbortController = null;
 
     sidebar.classList.add("is-open");
+    _applySidebarOpenState(sidebar, true);
 
     if (sidebar._placeholder && sidebar._placeholder.parentNode) {
         sidebar._placeholder.remove();
@@ -318,6 +366,7 @@ export function closeSidebar(sidebar) {
 
     sidebar._requestSeq = (sidebar._requestSeq || 0) + 1;
     sidebar.classList.remove("is-open");
+    _applySidebarOpenState(sidebar, false);
     sidebar._currentAsset = null;
     sidebar._currentFetchAbortController?.abort?.();
     sidebar._currentFetchAbortController = null;
