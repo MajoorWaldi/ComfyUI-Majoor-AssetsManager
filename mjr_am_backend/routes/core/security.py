@@ -9,8 +9,10 @@ import ipaddress
 import os
 import threading
 import time
-from collections import defaultdict, OrderedDict
-from typing import Any, Mapping, Optional, Tuple
+from collections import OrderedDict, defaultdict
+from collections.abc import Mapping
+from functools import lru_cache
+from typing import Any
 from urllib.parse import urlparse
 
 from aiohttp import web
@@ -50,7 +52,7 @@ try:
 except Exception:
     _CLIENT_ID_HASH_HEX_CHARS = _DEFAULT_CLIENT_ID_HASH_HEX_CHARS
 
-_rate_limit_state: "OrderedDict[str, dict[str, list[float]]]" = OrderedDict()
+_rate_limit_state: OrderedDict[str, dict[str, list[float]]] = OrderedDict()
 # threading.Lock is intentional here: rate-limit updates are synchronous and never await.
 # Do not add `await` inside a `with _rate_limit_lock:` critical section.
 _rate_limit_lock = threading.Lock()
@@ -84,7 +86,7 @@ def _safe_mode_enabled() -> bool:
     return str(raw).strip().lower() in ("1", "true", "yes", "on")
 
 
-def _require_operation_enabled(operation: str, *, prefs: Mapping[str, Any] | None = None) -> "Result[bool]":
+def _require_operation_enabled(operation: str, *, prefs: Mapping[str, Any] | None = None) -> Result[bool]:
     """
     Gate "dangerous" or state-changing operations behind explicit opt-ins.
 
@@ -325,7 +327,7 @@ def _is_loopback_ip(value: str) -> bool:
         return False
 
 
-def _check_write_access(*, peer_ip: str, headers: Mapping[str, str]) -> "Result[bool]":
+def _check_write_access(*, peer_ip: str, headers: Mapping[str, str]) -> Result[bool]:
     """
     Authorization guard for destructive/write endpoints.
 
@@ -385,7 +387,7 @@ def _check_write_access(*, peer_ip: str, headers: Mapping[str, str]) -> "Result[
     )
 
 
-def _require_write_access(request: web.Request) -> "Result[bool]":
+def _require_write_access(request: web.Request) -> Result[bool]:
     """
     Request-level wrapper for `_check_write_access()`.
 
@@ -497,7 +499,7 @@ def _resolve_request_user_id(request: web.Request) -> str:
     return ""
 
 
-def _require_authenticated_user(request: web.Request) -> "Result[str]":
+def _require_authenticated_user(request: web.Request) -> Result[str]:
     """
     Require an authenticated ComfyUI user when Comfy auth is enabled.
     """
@@ -520,10 +522,10 @@ def _require_authenticated_user(request: web.Request) -> "Result[str]":
     )
 
 
-def _parse_trusted_proxies() -> list["ipaddress._BaseNetwork"]:
+def _parse_trusted_proxies() -> list[ipaddress._BaseNetwork]:
     raw = os.environ.get("MAJOOR_TRUSTED_PROXIES", _DEFAULT_TRUSTED_PROXIES)
     allow_insecure = _env_truthy("MAJOOR_ALLOW_INSECURE_TRUSTED_PROXIES", default=False)
-    out: list["ipaddress._BaseNetwork"] = []
+    out: list[ipaddress._BaseNetwork] = []
     for part in (raw or "").split(","):
         s = part.strip()
         if not s:
@@ -539,7 +541,7 @@ def _parse_trusted_proxies() -> list["ipaddress._BaseNetwork"]:
             continue
     # Refuse universal trust by default. This blocks spoofing via X-Forwarded-For from arbitrary peers.
     if not allow_insecure:
-        filtered: list["ipaddress._BaseNetwork"] = []
+        filtered: list[ipaddress._BaseNetwork] = []
         for net in out:
             try:
                 if int(getattr(net, "prefixlen", 0)) == 0:
@@ -554,6 +556,7 @@ def _parse_trusted_proxies() -> list["ipaddress._BaseNetwork"]:
 _TRUSTED_PROXY_NETS = _parse_trusted_proxies()
 
 
+@lru_cache(maxsize=2048)
 def _is_trusted_proxy(ip: str) -> bool:
     try:
         addr = ipaddress.ip_address(str(ip or "").strip())
@@ -647,7 +650,7 @@ def _check_rate_limit(
     endpoint: str,
     max_requests: int = 10,
     window_seconds: int = 60
-) -> Tuple[bool, Optional[int]]:
+) -> tuple[bool, int | None]:
     """
     Check if the current client exceeded the rate limit.
 
@@ -684,7 +687,7 @@ def _check_rate_limit(
         return True, None
 
 
-def _csrf_error(request: web.Request) -> Optional[str]:
+def _csrf_error(request: web.Request) -> str | None:
     """
     Enhanced CSRF protection for state-changing endpoints.
 
@@ -760,7 +763,7 @@ def _is_loopback_origin_host_match(parsed_origin: Any, host: str) -> bool:
     return origin_port is None or host_port is None or origin_port == host_port
 
 
-def _split_host_port(host: str) -> tuple[str, Optional[int]]:
+def _split_host_port(host: str) -> tuple[str, int | None]:
     try:
         if ":" in host and not host.endswith("]"):
             host_name, host_port_raw = host.rsplit(":", 1)

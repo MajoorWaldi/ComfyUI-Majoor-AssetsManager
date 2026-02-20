@@ -3,15 +3,16 @@ Application settings persisted in the local metadata store.
 """
 from __future__ import annotations
 
-import os
 import asyncio
-import time
-import secrets
 import hashlib
-from typing import Any, Mapping, Optional
+import os
+import secrets
+import time
+from collections.abc import Mapping
+from typing import Any
 
-from .shared import Result, get_logger
 from .config import MEDIA_PROBE_BACKEND, OUTPUT_ROOT
+from .shared import Result, get_logger
 from .utils import env_bool, parse_bool
 
 logger = get_logger(__name__)
@@ -150,7 +151,7 @@ class AppSettings:
         except Exception:
             pass
 
-    async def _read_setting(self, key: str) -> Optional[str]:
+    async def _read_setting(self, key: str) -> str | None:
         result = await self._db.aquery("SELECT value FROM metadata WHERE key = ?", (key,))
         if not result.ok or not result.data:
             return None
@@ -223,7 +224,7 @@ class AppSettings:
             return prefs.get("apiToken")
         return None
 
-    async def _persist_security_pref_flags(self, to_write: Mapping[str, bool]) -> Optional[Result[dict[str, Any]]]:
+    async def _persist_security_pref_flags(self, to_write: Mapping[str, bool]) -> Result[dict[str, Any]] | None:
         for key, value in to_write.items():
             res = await self._write_setting(key, "1" if value else "0")
             if not res.ok:
@@ -240,7 +241,7 @@ class AppSettings:
         except Exception:
             return
 
-    async def _persist_security_api_token(self, token_payload: Any) -> Optional[Result[dict[str, Any]]]:
+    async def _persist_security_api_token(self, token_payload: Any) -> Result[dict[str, Any]] | None:
         token = str(token_payload or "").strip() or self._generate_api_token()
         token_hash = self._hash_api_token(token)
         res = await self._write_setting(_SECURITY_API_TOKEN_HASH_KEY, token_hash)
@@ -425,7 +426,7 @@ class AppSettings:
         storage_key: str,
         default: bool,
         current_version: int,
-    ) -> Optional[bool]:
+    ) -> bool | None:
         cached = self._cache.get(storage_key)
         if cached is None:
             return None
@@ -499,7 +500,7 @@ class AppSettings:
             to_write[_METADATA_FALLBACK_MEDIA_KEY] = parse_bool(media, self._default_metadata_fallback_media)
         return to_write
 
-    async def _write_metadata_fallback_payload(self, to_write: dict[str, bool]) -> Optional[Result[Any]]:
+    async def _write_metadata_fallback_payload(self, to_write: dict[str, bool]) -> Result[Any] | None:
         for key, value in to_write.items():
             res = await self._write_setting(key, "1" if value else "0")
             if not res.ok:
@@ -607,7 +608,7 @@ class AppSettings:
             except Exception:
                 pass
         try:
-            setattr(folder_paths, "output_directory", normalized_target)
+            folder_paths.output_directory = normalized_target
         except Exception:
             return
 

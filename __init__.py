@@ -5,19 +5,21 @@ Advanced asset browser for ComfyUI with ratings, tags, and metadata management.
 
 from __future__ import annotations
 
+import importlib
+import logging
 import os
 import re
 import sys
-import importlib
 from pathlib import Path
+from typing import Any
 
 # ComfyUI extension metadata
-NODE_CLASS_MAPPINGS = {}
-NODE_DISPLAY_NAME_MAPPINGS = {}
+NODE_CLASS_MAPPINGS: dict[str, Any] = {}
+NODE_DISPLAY_NAME_MAPPINGS: dict[str, str] = {}
 # Resolved below after `root` is known; keep None as sentinel so imports
 # executed before root assignment don't accidentally use a relative path.
 WEB_DIRECTORY = None
-import logging
+
 _logger = logging.getLogger("majoor_assets_manager")
 _REGISTRY_HOOKS_DONE = False
 _REGISTERED_APPS: set[int] = set()

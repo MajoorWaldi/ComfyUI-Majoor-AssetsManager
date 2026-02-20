@@ -2,18 +2,19 @@
 Metadata extraction endpoint.
 """
 import asyncio
+
 from aiohttp import web
-from mjr_am_backend.shared import Result, sanitize_error_message
 from mjr_am_backend.config import TO_THREAD_TIMEOUT_S, get_runtime_output_root
 from mjr_am_backend.custom_roots import resolve_custom_root
+from mjr_am_backend.shared import Result, sanitize_error_message
+
 from ..core import (
-    _json_response,
-    _require_services,
     _check_rate_limit,
-    _normalize_path,
     _is_path_allowed,
-    _is_path_allowed_custom,
     _is_within_root,
+    _json_response,
+    _normalize_path,
+    _require_services,
     _safe_rel_path,
 )
 

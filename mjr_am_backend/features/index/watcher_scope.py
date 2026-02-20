@@ -4,7 +4,6 @@ Watcher scope persistence and watch path resolution.
 from __future__ import annotations
 
 import os
-from typing import Optional
 
 from ...config import get_runtime_output_root
 
@@ -12,14 +11,14 @@ WATCHER_SCOPE_KEY = "watcher_scope"
 WATCHER_CUSTOM_ROOT_ID_KEY = "watcher_custom_root_id"
 
 
-def normalize_scope(scope: Optional[str]) -> str:
+def normalize_scope(scope: str | None) -> str:
     s = str(scope or "").strip().lower()
     if s in ("custom",):
         return "custom"
     return "output"
 
 
-def build_watch_paths(scope: str, custom_root_id: Optional[str]) -> list[dict]:
+def build_watch_paths(scope: str, custom_root_id: str | None) -> list[dict]:
     watch_paths: list[dict] = []
     s = normalize_scope(scope)
 
@@ -38,14 +37,14 @@ def build_watch_paths(scope: str, custom_root_id: Optional[str]) -> list[dict]:
     return watch_paths
 
 
-def _output_watch_entry() -> Optional[dict]:
+def _output_watch_entry() -> dict | None:
     output_root = str(get_runtime_output_root() or "")
     if output_root and os.path.isdir(output_root):
         return {"path": output_root, "source": "output", "root_id": None}
     return None
 
 
-def _custom_watch_entry(custom_root_id: Optional[str]) -> Optional[dict]:
+def _custom_watch_entry(custom_root_id: str | None) -> dict | None:
     rid = str(custom_root_id or "").strip()
     if not rid:
         return None

@@ -1,13 +1,14 @@
 """
 Search and list endpoints.
 """
-import datetime
 import asyncio
-import re
-import os
+import datetime
 import json
-from typing import Any
+import os
+import re
 from pathlib import Path
+from typing import Any
+
 from aiohttp import web
 
 try:
@@ -22,11 +23,12 @@ except Exception:
 
 from mjr_am_backend.config import OUTPUT_ROOT, TO_THREAD_TIMEOUT_S
 from mjr_am_backend.custom_roots import resolve_custom_root
-from mjr_am_backend.shared import Result, get_logger
 from mjr_am_backend.features.index.metadata_helpers import MetadataHelpers
-from ..core import _json_response, _require_services, _read_json, safe_error_message
+from mjr_am_backend.shared import Result, get_logger
+
+from ..core import _json_response, _read_json, _require_services, safe_error_message
 from ..core.security import _check_rate_limit
-from .filesystem import _list_filesystem_assets, _kickoff_background_scan
+from .filesystem import _kickoff_background_scan, _list_filesystem_assets
 
 DEFAULT_LIST_LIMIT = 50
 DEFAULT_LIST_OFFSET = 0
@@ -624,8 +626,8 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
 
         if scope == "custom":
             from mjr_am_backend.features.browser import (
-                list_visible_subfolders,
                 list_filesystem_browser_entries,
+                list_visible_subfolders,
             )
             subfolder = request.query.get("subfolder", "")
             root_id = request.query.get("custom_root_id", "") or request.query.get("root_id", "")
@@ -708,8 +710,6 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
         if scope == "all":
             # Prefer a single DB query when Inputs have been indexed (fast LIMIT/OFFSET, avoids O(offset) merges).
             # Fallback to the legacy Output(DB)+Input(filesystem) behavior until the Input root is present in DB.
-            is_browse_all = query == "*"
-
             input_indexed = False
             try:
                 has_input = await svc["index"].has_assets_under_root(input_root)

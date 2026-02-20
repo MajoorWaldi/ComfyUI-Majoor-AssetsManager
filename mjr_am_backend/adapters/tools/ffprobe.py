@@ -1,16 +1,15 @@
 """
 FFprobe adapter for video metadata extraction.
 """
-import subprocess
-import json
-import shutil
-import os
 import asyncio
+import json
+import os
+import shutil
+import subprocess
 from pathlib import Path
-from typing import Optional, List, Dict
 
 from ...config import FFPROBE_TIMEOUT
-from ...shared import Result, ErrorCode, get_logger
+from ...shared import ErrorCode, Result, get_logger
 
 logger = get_logger(__name__)
 
@@ -21,7 +20,7 @@ class FFProbe:
     Never raises exceptions - always returns Result.
     """
 
-    def __init__(self, bin_name: str = "ffprobe", timeout: Optional[float] = None):
+    def __init__(self, bin_name: str = "ffprobe", timeout: float | None = None):
         """
         Initialize FFprobe adapter.
 
@@ -35,10 +34,10 @@ class FFProbe:
             self._max_workers = max(1, int(os.getenv("MAJOOR_FFPROBE_MAX_WORKERS", "4")))
         except Exception:
             self._max_workers = 4
-        self._resolved_bin: Optional[str] = None
+        self._resolved_bin: str | None = None
         self._available = self._check_available()
 
-    def _resolve_executable(self, bin_name: str) -> Optional[str]:
+    def _resolve_executable(self, bin_name: str) -> str | None:
         """
         Resolve and validate the ffprobe executable.
 
@@ -64,7 +63,7 @@ class FFProbe:
         return True
 
     @staticmethod
-    def _resolve_executable_path(raw: str) -> Optional[str]:
+    def _resolve_executable_path(raw: str) -> str | None:
         resolved = shutil.which(raw)
         if resolved:
             return resolved
@@ -133,7 +132,7 @@ class FFProbe:
                 quality="degraded"
             )
 
-    def _run_ffprobe_cmd(self, cmd: List[str]) -> subprocess.CompletedProcess[str]:
+    def _run_ffprobe_cmd(self, cmd: list[str]) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             cmd,
             capture_output=True,
@@ -193,7 +192,7 @@ class FFProbe:
                 quality="degraded"
             )
 
-    def _build_ffprobe_cmd(self, path: str) -> List[str]:
+    def _build_ffprobe_cmd(self, path: str) -> list[str]:
         return [
             self._resolved_bin or self.bin,
             "-v", "error",
@@ -203,7 +202,7 @@ class FFProbe:
             path,
         ]
 
-    async def _spawn_ffprobe_process(self, cmd: List[str]) -> asyncio.subprocess.Process:
+    async def _spawn_ffprobe_process(self, cmd: list[str]) -> asyncio.subprocess.Process:
         return await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
@@ -237,7 +236,7 @@ class FFProbe:
         self,
         stdout: str,
         stderr: str,
-        returncode: Optional[int],
+        returncode: int | None,
         path: str,
     ) -> Result[dict]:
         if returncode != 0:
@@ -270,7 +269,7 @@ class FFProbe:
         }
         return Result.Ok(result, quality="full")
 
-    def read_batch(self, paths: List[str]) -> Dict[str, Result[dict]]:
+    def read_batch(self, paths: list[str]) -> dict[str, Result[dict]]:
         """
         Read metadata from multiple video files.
 
@@ -291,7 +290,7 @@ class FFProbe:
             return {}
 
         from concurrent.futures import ThreadPoolExecutor, as_completed
-        results: Dict[str, Result[dict]] = {}
+        results: dict[str, Result[dict]] = {}
 
         # Use thread pool for parallel execution (I/O bound)
         max_workers = min(self._max_workers, len(paths))
@@ -309,7 +308,7 @@ class FFProbe:
 
         return results
 
-    async def aread_batch(self, paths: List[str]) -> Dict[str, Result[dict]]:
+    async def aread_batch(self, paths: list[str]) -> dict[str, Result[dict]]:
         """
         Async batch variant using bounded asyncio concurrency.
         """
@@ -321,7 +320,7 @@ class FFProbe:
 
         max_workers = min(self._max_workers, len(paths))
         sem = asyncio.Semaphore(max_workers)
-        results: Dict[str, Result[dict]] = {}
+        results: dict[str, Result[dict]] = {}
 
         async def _one(path: str):
             async with sem:

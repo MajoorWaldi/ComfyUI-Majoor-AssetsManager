@@ -1,5 +1,4 @@
 from aiohttp import web
-
 from mjr_am_backend.routes.handlers.version import register_version_routes
 
 

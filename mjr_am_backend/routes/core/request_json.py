@@ -10,11 +10,10 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any, Optional
+from typing import Any
 
 from aiohttp import web
-
-from mjr_am_backend.shared import Result, ErrorCode
+from mjr_am_backend.shared import ErrorCode, Result
 
 DEFAULT_MAX_JSON_BYTES = 10 * 1024 * 1024  # 10MB
 MIN_JSON_BYTES = 1024
@@ -33,7 +32,7 @@ def _max_json_bytes() -> int:
     return DEFAULT_MAX_JSON_BYTES
 
 
-async def _read_json(request: web.Request, *, max_bytes: Optional[int] = None) -> Result[dict]:
+async def _read_json(request: web.Request, *, max_bytes: int | None = None) -> Result[dict]:
     """
     Read and decode a JSON request body with a strict max size.
 
@@ -55,7 +54,7 @@ async def _read_json(request: web.Request, *, max_bytes: Optional[int] = None) -
     return _decode_and_parse_json_dict(bytes(payload))
 
 
-def _content_length_error(request: web.Request, limit: int) -> Optional[Result[dict]]:
+def _content_length_error(request: web.Request, limit: int) -> Result[dict] | None:
     try:
         cl = request.headers.get("Content-Length")
         if not cl:

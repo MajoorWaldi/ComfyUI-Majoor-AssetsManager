@@ -17,24 +17,25 @@ Critical guarantee:
 
 from __future__ import annotations
 
-import gc
 import asyncio
+import concurrent.futures
 import contextvars
+import ctypes
+import gc
+import json
+import os
 import random
 import re
+import sqlite3
 import threading
 import time
 import uuid
-import os
-import json
-import ctypes
 from contextlib import asynccontextmanager
 from pathlib import Path
 from queue import Empty, Queue
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import aiosqlite
-import sqlite3
 
 from ...config import DB_MAX_CONNECTIONS, DB_QUERY_TIMEOUT, DB_TIMEOUT
 from ...shared import ErrorCode, Result, get_logger
@@ -46,8 +47,16 @@ SQLITE_BUSY_TIMEOUT_MS = max(1000, int(float(DB_TIMEOUT) * 1000))
 SQLITE_CACHE_SIZE_KIB = -64000
 ASSET_LOCKS_MAX = int(os.getenv("MAJOOR_ASSET_LOCKS_MAX", "10000") or 10000)
 ASSET_LOCKS_TTL_S = float(os.getenv("MAJOOR_ASSET_LOCKS_TTL_SECONDS", "600") or 600.0)
+ASSET_LOCKS_PRUNE_INTERVAL_S = float(os.getenv("MAJOOR_ASSET_LOCKS_PRUNE_INTERVAL_SECONDS", "60") or 60.0)
+ASYNC_LOOP_RUN_TIMEOUT_S = float(
+    os.getenv(
+        "MAJOOR_DB_LOOP_RUN_TIMEOUT_SECONDS",
+        str(max(5.0, float(DB_QUERY_TIMEOUT) if DB_QUERY_TIMEOUT else 60.0)),
+    )
+    or 60.0
+)
 
-_TX_TOKEN: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar("mjr_db_tx_token", default=None)
+_TX_TOKEN: contextvars.ContextVar[str | None] = contextvars.ContextVar("mjr_db_tx_token", default=None)
 _COLUMN_NAME_PATTERN = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?$")
 _KNOWN_COLUMNS = {
     # assets
@@ -107,6 +116,7 @@ _KNOWN_COLUMNS = {
     "m.has_generation_data",
 }
 _KNOWN_COLUMNS_LOWER = {c.lower(): c for c in _KNOWN_COLUMNS}
+_KNOWN_COLUMNS_LOCK = threading.RLock()
 _SCHEMA_TABLE_ALIASES = {
     "assets": "a",
     "asset_metadata": "m",
@@ -135,16 +145,17 @@ def _populate_known_columns_from_schema(db_path: Path) -> None:
     try:
         if not db_path.exists():
             return
-        with sqlite3.connect(str(db_path)) as conn:
-            cursor = conn.cursor()
-            for table, alias in _SCHEMA_TABLE_ALIASES.items():
-                _populate_table_columns(cursor, table, alias)
-            _KNOWN_COLUMNS_LOWER = {c.lower(): c for c in _KNOWN_COLUMNS}
+        with _KNOWN_COLUMNS_LOCK:
+            with sqlite3.connect(str(db_path)) as conn:
+                cursor = conn.cursor()
+                for table, alias in _SCHEMA_TABLE_ALIASES.items():
+                    _populate_table_columns(cursor, table, alias)
+                _KNOWN_COLUMNS_LOWER = {c.lower(): c for c in _KNOWN_COLUMNS}
     except Exception as exc:
         logger.warning("Failed to refresh known columns from schema: %s", exc)
 
 
-def _populate_table_columns(cursor: sqlite3.Cursor, table: str, alias: Optional[str]) -> None:
+def _populate_table_columns(cursor: sqlite3.Cursor, table: str, alias: str | None) -> None:
     try:
         cursor.execute(f"PRAGMA table_info({table})")
         for row in cursor.fetchall() or []:
@@ -169,7 +180,7 @@ _IN_QUERY_FORBIDDEN = re.compile(
 )
 
 
-def _validate_in_base_query(base_query: str) -> Tuple[bool, str]:
+def _validate_in_base_query(base_query: str) -> tuple[bool, str]:
     """
     Validate the `base_query` template used by `query_in`.
 
@@ -200,7 +211,7 @@ def _validate_in_base_query(base_query: str) -> Tuple[bool, str]:
     return True, ""
 
 
-def _build_in_query(base_query: str, safe_column: str, value_count: int) -> Tuple[bool, str, tuple]:
+def _build_in_query(base_query: str, safe_column: str, value_count: int) -> tuple[bool, str, tuple]:
     """
     Build a parameterized IN-clause query from a validated template.
 
@@ -228,7 +239,7 @@ def _build_in_query(base_query: str, safe_column: str, value_count: int) -> Tupl
     return True, query, tuple(["?"] * n)
 
 
-def _try_repair_column_name(column: str) -> Optional[str]:
+def _try_repair_column_name(column: str) -> str | None:
     if not column or not isinstance(column, str):
         return None
 
@@ -237,7 +248,8 @@ def _try_repair_column_name(column: str) -> Optional[str]:
         return None
 
     # Case-insensitive match against known columns/aliases.
-    hit = _KNOWN_COLUMNS_LOWER.get(normalized.lower())
+    with _KNOWN_COLUMNS_LOCK:
+        hit = _KNOWN_COLUMNS_LOWER.get(normalized.lower())
     if hit:
         return hit
 
@@ -245,12 +257,13 @@ def _try_repair_column_name(column: str) -> Optional[str]:
     cleaned = re.sub(r"[^a-zA-Z0-9_.]", "", normalized)
     if not cleaned:
         return None
-    if cleaned.lower() in _KNOWN_COLUMNS_LOWER:
-        return _KNOWN_COLUMNS_LOWER[cleaned.lower()]
+    with _KNOWN_COLUMNS_LOCK:
+        if cleaned.lower() in _KNOWN_COLUMNS_LOWER:
+            return _KNOWN_COLUMNS_LOWER[cleaned.lower()]
     return None
 
 
-def _validate_and_repair_column_name(column: str) -> Tuple[bool, Optional[str]]:
+def _validate_and_repair_column_name(column: str) -> tuple[bool, str | None]:
     """
     Validate a SQL column identifier (optionally with table alias), and best-effort
     repair common user/legacy mistakes without weakening injection protections.
@@ -283,11 +296,12 @@ def _asset_lock_key(asset_id: Any) -> str:
 
 
 class _AsyncLoopThread:
-    def __init__(self):
-        self._loop: Optional[asyncio.AbstractEventLoop] = None
-        self._thread: Optional[threading.Thread] = None
-        self._thread_ident: Optional[int] = None
+    def __init__(self, run_timeout_s: float = ASYNC_LOOP_RUN_TIMEOUT_S):
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self._thread: threading.Thread | None = None
+        self._thread_ident: int | None = None
         self._ready = threading.Event()
+        self._run_timeout_s = max(1.0, float(run_timeout_s))
 
     def start(self) -> asyncio.AbstractEventLoop:
         if self._loop and self._thread and self._thread.is_alive():
@@ -332,7 +346,13 @@ class _AsyncLoopThread:
                 "Synchronous DB API called from DB loop thread; use async DB methods to avoid deadlock"
             )
         fut = asyncio.run_coroutine_threadsafe(coro, loop)
-        return fut.result()
+        try:
+            return fut.result(timeout=self._run_timeout_s)
+        except concurrent.futures.TimeoutError as exc:
+            fut.cancel()
+            raise TimeoutError(
+                f"Timed out waiting for DB async loop result after {self._run_timeout_s:.1f}s"
+            ) from exc
 
     def submit(self, coro):
         loop = self.start()
@@ -356,7 +376,7 @@ class Sqlite:
     Synchronous API, async execution on a dedicated loop thread.
     """
 
-    def __init__(self, db_path: str, max_connections: Optional[int] = None, timeout: float = 30.0):
+    def __init__(self, db_path: str, max_connections: int | None = None, timeout: float = 30.0):
         self.db_path = Path(db_path)
         user_config = self._load_user_db_config()
         max_conn = (
@@ -366,10 +386,10 @@ class Sqlite:
         )
         max_conn = max(1, max_conn)
         self._max_conn_limit = max_conn
-        self._pool: "Queue[aiosqlite.Connection]" = Queue(maxsize=max_conn)
+        self._pool: Queue[aiosqlite.Connection] = Queue(maxsize=max_conn)
         self._initialized = False
         self._lock = threading.Lock()
-        self._async_sem: Optional[asyncio.Semaphore] = None
+        self._async_sem: asyncio.Semaphore | None = None
 
         # Reset mechanics
         self._resetting = False
@@ -384,14 +404,17 @@ class Sqlite:
         self._lock_retry_max_seconds = 0.75
 
         # Transaction connections live on the loop thread; keyed by token.
-        self._tx_conns: Dict[str, aiosqlite.Connection] = {}
+        self._tx_conns: dict[str, aiosqlite.Connection] = {}
 
-        self._loop_thread = _AsyncLoopThread()
-        self._write_lock: Optional[asyncio.Lock] = None
+        loop_run_timeout = self._query_timeout if self._query_timeout and self._query_timeout > 0 else ASYNC_LOOP_RUN_TIMEOUT_S
+        self._loop_thread = _AsyncLoopThread(run_timeout_s=loop_run_timeout)
+        self._write_lock: asyncio.Lock | None = None
         self._tx_write_lock_tokens: set[str] = set()
         self._tx_state_lock = threading.Lock()
-        self._asset_locks: Dict[str, Dict[str, Any]] = {}
+        self._asset_locks: dict[str, dict[str, Any]] = {}
         self._asset_locks_lock = threading.Lock()
+        self._asset_locks_stop = threading.Event()
+        self._asset_locks_pruner: threading.Thread | None = None
         self._malformed_recovery_lock = threading.Lock()
         self._malformed_recovery_last_ts = 0.0
         self._auto_reset_lock = threading.Lock()
@@ -400,7 +423,7 @@ class Sqlite:
         self._schema_repair_lock = threading.Lock()
         self._schema_repair_last_ts = 0.0
         self._diag_lock = threading.Lock()
-        self._diag: Dict[str, Any] = {
+        self._diag: dict[str, Any] = {
             "locked": False,
             "last_locked_error": None,
             "last_locked_at": None,
@@ -423,8 +446,44 @@ class Sqlite:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
         _populate_known_columns_from_schema(self.db_path)
+        self._start_asset_lock_pruner()
 
-    def _load_user_db_config(self) -> Dict[str, Any]:
+    def _start_asset_lock_pruner(self) -> None:
+        interval = max(5.0, float(ASSET_LOCKS_PRUNE_INTERVAL_S))
+        if interval <= 0:
+            return
+        if self._asset_locks_pruner and self._asset_locks_pruner.is_alive():
+            return
+        self._asset_locks_stop.clear()
+
+        def _run() -> None:
+            while not self._asset_locks_stop.wait(interval):
+                now = time.time()
+                try:
+                    with self._asset_locks_lock:
+                        self._prune_asset_locks_locked(now)
+                except Exception:
+                    continue
+
+        self._asset_locks_pruner = threading.Thread(target=_run, name="mjr-asset-lock-pruner", daemon=True)
+        self._asset_locks_pruner.start()
+
+    def _stop_asset_lock_pruner(self) -> None:
+        self._asset_locks_stop.set()
+        t = self._asset_locks_pruner
+        self._asset_locks_pruner = None
+        if t and t.is_alive():
+            try:
+                t.join(timeout=1.0)
+            except Exception:
+                pass
+        try:
+            with self._asset_locks_lock:
+                self._asset_locks.clear()
+        except Exception:
+            pass
+
+    def _load_user_db_config(self) -> dict[str, Any]:
         """
         Load optional user DB overrides from JSON file.
 
@@ -454,8 +513,8 @@ class Sqlite:
             return json.load(f)
 
     @staticmethod
-    def _normalize_user_db_config(data: Dict[str, Any]) -> Dict[str, Any]:
-        out: Dict[str, Any] = {}
+    def _normalize_user_db_config(data: dict[str, Any]) -> dict[str, Any]:
+        out: dict[str, Any] = {}
         Sqlite._maybe_set_config_number(out, data, "timeout", min_value=1.0, cast=float)
         Sqlite._maybe_set_config_number(out, data, "maxConnections", min_value=1, cast=int)
         Sqlite._maybe_set_config_number(out, data, "queryTimeout", min_value=0.0, cast=float)
@@ -463,8 +522,8 @@ class Sqlite:
 
     @staticmethod
     def _maybe_set_config_number(
-        out: Dict[str, Any],
-        data: Dict[str, Any],
+        out: dict[str, Any],
+        data: dict[str, Any],
         key: str,
         *,
         min_value: float,
@@ -518,7 +577,7 @@ class Sqlite:
             self._diag["last_malformed_at"] = now
             self._diag["last_malformed_error"] = str(exc)
 
-    def _set_recovery_state(self, state: str, error: Optional[str] = None) -> None:
+    def _set_recovery_state(self, state: str, error: str | None = None) -> None:
         now = time.time()
         with self._diag_lock:
             self._diag["recovery_state"] = str(state)
@@ -594,7 +653,7 @@ class Sqlite:
             self._diag["auto_reset_failures"] = int(self._diag.get("auto_reset_failures") or 0) + 1
             self._diag["last_auto_reset_error"] = error_text
 
-    def get_diagnostics(self) -> Dict[str, Any]:
+    def get_diagnostics(self) -> dict[str, Any]:
         with self._diag_lock:
             data = dict(self._diag)
         # reset volatile "locked" flag if no recent lock event
@@ -619,7 +678,7 @@ class Sqlite:
                 return False
             self._malformed_recovery_last_ts = now
 
-        async def _run_pragma_with_lock_retry(sql: str, fetch_one: bool = False) -> Optional[Any]:
+        async def _run_pragma_with_lock_retry(sql: str, fetch_one: bool = False) -> Any | None:
             for attempt in range(self._lock_retry_attempts + 1):
                 try:
                     cur = await conn.execute(sql)
@@ -711,7 +770,7 @@ class Sqlite:
             pass
         await asyncio.sleep(delay)
 
-    def get_runtime_status(self) -> Dict[str, Any]:
+    def get_runtime_status(self) -> dict[str, Any]:
         """Return lightweight runtime counters for diagnostics/dashboard."""
         try:
             active = len(self._active_conns)
@@ -850,14 +909,14 @@ class Sqlite:
             return
 
     @staticmethod
-    def _asset_lock_last(entry: Dict[str, Any]) -> float:
+    def _asset_lock_last(entry: dict[str, Any]) -> float:
         try:
             return float(entry.get("last") or 0)
         except Exception:
             return 0.0
 
     @staticmethod
-    def _asset_lock_is_locked(entry: Dict[str, Any]) -> bool:
+    def _asset_lock_is_locked(entry: dict[str, Any]) -> bool:
         try:
             lock = entry.get("lock")
             return bool(lock is not None and getattr(lock, "locked", None) and lock.locked())
@@ -900,7 +959,7 @@ class Sqlite:
             logger.error("Failed to initialize database: %s", exc)
             raise
 
-    def _tx_token(self) -> Optional[str]:
+    def _tx_token(self) -> str | None:
         try:
             ctx_tok = _TX_TOKEN.get()
         except Exception:
@@ -908,14 +967,14 @@ class Sqlite:
         return str(ctx_tok) if ctx_tok else None
 
     @staticmethod
-    def _rows_to_dicts(rows: Any) -> List[Dict[str, Any]]:
+    def _rows_to_dicts(rows: Any) -> list[dict[str, Any]]:
         if not rows:
             return []
         try:
             return [dict(r) for r in rows]
         except Exception:
             # Best-effort fallback if driver returns mixed row shapes.
-            out: List[Dict[str, Any]] = []
+            out: list[dict[str, Any]] = []
             for r in rows:
                 try:
                     out.append(dict(r))
@@ -938,10 +997,10 @@ class Sqlite:
     async def _execute_async(
         self,
         query: str,
-        params: Optional[tuple],
+        params: tuple | None,
         fetch: bool,
         *,
-        tx_token: Optional[str] = None,
+        tx_token: str | None = None,
     ) -> Result[Any]:
         await self._ensure_initialized_async()
 
@@ -974,11 +1033,11 @@ class Sqlite:
         self,
         conn: aiosqlite.Connection,
         query: str,
-        params: Optional[tuple],
+        params: tuple | None,
         fetch: bool,
         *,
         commit: bool,
-        tx_token: Optional[str] = None,
+        tx_token: str | None = None,
     ) -> Result[Any]:
         async def _execute_inner() -> Result[Any]:
             try:
@@ -1052,7 +1111,7 @@ class Sqlite:
         self,
         conn: aiosqlite.Connection,
         query: str,
-        params: Optional[tuple],
+        params: tuple | None,
         fetch: bool,
         *,
         commit: bool,
@@ -1080,7 +1139,7 @@ class Sqlite:
         self,
         conn: aiosqlite.Connection,
         query: str,
-        params: Optional[tuple],
+        params: tuple | None,
         *,
         fetch: bool,
         commit: bool,
@@ -1107,13 +1166,13 @@ class Sqlite:
             return Result.Ok(last_id)
         return Result.Ok(rowcount if rowcount is not None else 0)
 
-    async def aexecute(self, query: str, params: Optional[tuple] = None, fetch: bool = False) -> Result[Any]:
+    async def aexecute(self, query: str, params: tuple | None = None, fetch: bool = False) -> Result[Any]:
         """Execute SQL on the DB loop thread (async)."""
         token = _TX_TOKEN.get()
         fut = self._loop_thread.submit(self._execute_async(query, params, fetch, tx_token=token))
         return await asyncio.wrap_future(fut)
 
-    async def aquery(self, sql: str, params: Optional[tuple] = None) -> Result[List[Dict[str, Any]]]:
+    async def aquery(self, sql: str, params: tuple | None = None) -> Result[list[dict[str, Any]]]:
         """Execute a SELECT query and return rows (async)."""
         return await self.aexecute(sql, params, fetch=True)
 
@@ -1121,9 +1180,9 @@ class Sqlite:
         self,
         base_query: str,
         column: str,
-        values: List[Any],
-        additional_params: Optional[tuple] = None,
-    ) -> Result[List[Dict[str, Any]]]:
+        values: list[Any],
+        additional_params: tuple | None = None,
+    ) -> Result[list[dict[str, Any]]]:
         """Async variant of `query_in()` for IN-clause queries."""
         if not values:
             return Result.Ok([])
@@ -1149,9 +1208,9 @@ class Sqlite:
     async def _executemany_async(
         self,
         query: str,
-        params_list: List[Tuple],
+        params_list: list[tuple],
         *,
-        tx_token: Optional[str] = None,
+        tx_token: str | None = None,
     ) -> Result[int]:
         await self._ensure_initialized_async()
         token = tx_token or self._tx_token()
@@ -1171,10 +1230,10 @@ class Sqlite:
         self,
         conn: aiosqlite.Connection,
         query: str,
-        params_list: List[Tuple],
+        params_list: list[tuple],
         *,
         commit: bool,
-        tx_token: Optional[str] = None,
+        tx_token: str | None = None,
     ) -> Result[int]:
         async def _execute_inner() -> Result[int]:
             try:
@@ -1207,7 +1266,7 @@ class Sqlite:
         return await self._with_query_timeout(_execute_inner())
 
     async def _executemany_on_conn_locked_async(
-        self, conn: aiosqlite.Connection, query: str, params_list: List[Tuple], *, commit: bool
+        self, conn: aiosqlite.Connection, query: str, params_list: list[tuple], *, commit: bool
     ) -> Result[int]:
         try:
             for attempt in range(self._lock_retry_attempts + 1):
@@ -1232,13 +1291,13 @@ class Sqlite:
         except Exception:
             raise
 
-    async def aexecutemany(self, query: str, params_list: List[Tuple]) -> Result[int]:
+    async def aexecutemany(self, query: str, params_list: list[tuple]) -> Result[int]:
         """Execute a parameterized statement over multiple param tuples (async)."""
         token = _TX_TOKEN.get()
         fut = self._loop_thread.submit(self._executemany_async(query, params_list, tx_token=token))
         return await asyncio.wrap_future(fut)
 
-    async def _executescript_async(self, script: str, *, tx_token: Optional[str] = None) -> Result[bool]:
+    async def _executescript_async(self, script: str, *, tx_token: str | None = None) -> Result[bool]:
         await self._ensure_initialized_async()
         token = tx_token or self._tx_token()
         if token:
@@ -1360,7 +1419,7 @@ class Sqlite:
                     continue
                 raise
 
-    def _register_tx_token(self, token: str, conn: aiosqlite.Connection, lock: Optional[asyncio.Lock]) -> None:
+    def _register_tx_token(self, token: str, conn: aiosqlite.Connection, lock: asyncio.Lock | None) -> None:
         with self._tx_state_lock:
             self._tx_conns[token] = conn
             if lock is not None:
@@ -1369,7 +1428,7 @@ class Sqlite:
     async def _abort_begin_tx(
         self,
         conn: aiosqlite.Connection,
-        lock: Optional[asyncio.Lock],
+        lock: asyncio.Lock | None,
     ) -> None:
         try:
             await conn.rollback()
@@ -1382,7 +1441,7 @@ class Sqlite:
             except Exception:
                 pass
 
-    def _get_tx_state(self, token: str) -> tuple[Optional[aiosqlite.Connection], bool]:
+    def _get_tx_state(self, token: str) -> tuple[aiosqlite.Connection | None, bool]:
         try:
             with self._tx_state_lock:
                 conn = self._tx_conns.get(token)
@@ -1407,7 +1466,7 @@ class Sqlite:
         token: str,
         conn: aiosqlite.Connection,
         had_write_lock: bool,
-        lock: Optional[asyncio.Lock],
+        lock: asyncio.Lock | None,
     ) -> None:
         try:
             with self._tx_state_lock:
@@ -1533,6 +1592,7 @@ class Sqlite:
         try:
             await asyncio.wrap_future(fut)
         finally:
+            self._stop_asset_lock_pruner()
             self._loop_thread.stop()
 
     async def _drain_for_reset_async(self):
@@ -1631,7 +1691,7 @@ class Sqlite:
                 self._resetting = False
 
             # 6. Re-apply schema
-            from .schema import ensure_tables_exist, ensure_indexes_and_triggers
+            from .schema import ensure_indexes_and_triggers, ensure_tables_exist
             schema_res = await ensure_tables_exist(self)
             if not schema_res.ok:
                 return schema_res
@@ -1659,7 +1719,7 @@ class Sqlite:
         self,
         deleted_files: list[str],
         renamed_files: list[dict[str, str]],
-    ) -> Optional[Result[bool]]:
+    ) -> Result[bool] | None:
         base = str(self.db_path)
         for ext in ["", "-wal", "-shm", "-journal"]:
             path = Path(base + ext)
@@ -1675,7 +1735,7 @@ class Sqlite:
         path: Path,
         deleted_files: list[str],
         renamed_files: list[dict[str, str]],
-    ) -> Optional[Result[bool]]:
+    ) -> Result[bool] | None:
         deleted, last_error = await self._delete_reset_file_with_retries(path, deleted_files)
         if deleted:
             return None
@@ -1683,8 +1743,8 @@ class Sqlite:
         recover = self._rename_or_schedule_delete(path, renamed_files, last_error)
         return None if recover.ok else recover
 
-    async def _delete_reset_file_with_retries(self, path: Path, deleted_files: list[str]) -> tuple[bool, Optional[Exception]]:
-        last_error: Optional[Exception] = None
+    async def _delete_reset_file_with_retries(self, path: Path, deleted_files: list[str]) -> tuple[bool, Exception | None]:
+        last_error: Exception | None = None
         for attempt in range(5):
             try:
                 path.unlink()
@@ -1700,7 +1760,7 @@ class Sqlite:
         self,
         path: Path,
         renamed_files: list[dict[str, str]],
-        last_error: Optional[Exception],
+        last_error: Exception | None,
     ) -> Result[bool]:
         try:
             trash = path.with_name(f"{path.name}.trash_{uuid.uuid4().hex}")

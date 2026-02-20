@@ -5,12 +5,31 @@ Coordinates all route handlers and registers them with PromptServer or aiohttp a
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
+from typing import Any, ClassVar, Protocol, cast
+
 from aiohttp import web
-from mjr_am_backend.shared import get_logger
 from mjr_am_backend.observability import ensure_observability
+from mjr_am_backend.shared import Result, get_logger
+
 from .core import _json_response, _require_authenticated_user
-from mjr_am_backend.shared import Result
-from typing import Any, Awaitable, Callable, ClassVar, Optional, Protocol, cast
+from .handlers import (
+    register_asset_routes,
+    register_batch_zip_routes,
+    register_calendar_routes,
+    register_collections_routes,
+    register_custom_roots_routes,
+    register_db_maintenance_routes,
+    register_download_routes,
+    register_duplicates_routes,
+    register_health_routes,
+    register_metadata_routes,
+    register_releases_routes,
+    register_scan_routes,
+    register_search_routes,
+    register_version_routes,
+    register_viewer_routes,
+)
 
 # --- CONFIGURATION ---
 API_PREFIX = "/mjr/am/"
@@ -54,7 +73,7 @@ def _get_prompt_server() -> type[_PromptServer]:
         _server_mod = sys.modules.get("server")
         if _server_mod is None or not hasattr(_server_mod, "PromptServer"):
             raise ImportError("ComfyUI server not loaded")
-        return cast(type[_PromptServer], getattr(_server_mod, "PromptServer"))
+        return cast(type[_PromptServer], _server_mod.PromptServer)
     except Exception:
         return cast(type[_PromptServer], _PromptServerStub)
 
@@ -67,24 +86,6 @@ class _PromptServerProxy:
 
 # Public compatibility symbol used by several modules.
 PromptServer = _PromptServerProxy()
-
-from .handlers import (
-    register_health_routes,
-    register_metadata_routes,
-    register_custom_roots_routes,
-    register_search_routes,
-    register_scan_routes,
-    register_asset_routes,
-    register_collections_routes,
-    register_batch_zip_routes,
-    register_calendar_routes,
-    register_viewer_routes,
-    register_db_maintenance_routes,
-    register_releases_routes,
-    register_version_routes,
-    register_download_routes,
-    register_duplicates_routes,
-)
 
 logger = get_logger(__name__)
 _ROUTES_REGISTERED = False
@@ -224,7 +225,7 @@ def _requires_auth(path: str, method: str) -> bool:
     return path.startswith(API_PREFIX) and method in _SENSITIVE_METHODS
 
 
-def _auth_error_response_or_none(request: web.Request) -> Optional[web.StreamResponse]:
+def _auth_error_response_or_none(request: web.Request) -> web.StreamResponse | None:
     auth = _require_authenticated_user(request)
     if not auth.ok:
         return _json_response(

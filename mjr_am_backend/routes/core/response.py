@@ -1,7 +1,7 @@
 """
 Response utilities for route handlers.
 """
-from typing import Optional
+
 from aiohttp import web
 from mjr_am_backend.shared import Result
 
@@ -25,7 +25,7 @@ def safe_error_message(exc: Exception, generic_message: str) -> str:
     return generic_message
 
 
-def _json_response(result: Result, status: Optional[int] = None):
+def _json_response(result: Result, status: int | None = None):
     """
     Convert Result to JSON response.
 

@@ -1,44 +1,55 @@
 """
 Index scanner - handles directory scanning and file indexing operations.
 """
+import asyncio
 import hashlib
 import logging
 import os
-import time
-import threading
-import asyncio
 import sqlite3
+import threading
+import time
+from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from pathlib import Path
 from queue import Empty, Queue
-from typing import List, Dict, Any, Iterable, Optional, cast
-from datetime import datetime
+from typing import Any, cast
 from uuid import uuid4
 
-from ...shared import get_logger, Result, classify_file, FileKind, ErrorCode, log_structured, EXTENSIONS
 from ...adapters.db.sqlite import Sqlite
 from ...config import (
-    SCAN_BATCH_SMALL_THRESHOLD,
-    SCAN_BATCH_MED_THRESHOLD,
-    SCAN_BATCH_LARGE_THRESHOLD,
-    SCAN_BATCH_SMALL,
-    SCAN_BATCH_MED,
-    SCAN_BATCH_LARGE,
-    SCAN_BATCH_XL,
-    SCAN_BATCH_INITIAL,
-    SCAN_BATCH_MIN,
-    MAX_TO_ENRICH_ITEMS,
     IS_WINDOWS,
+    MAX_TO_ENRICH_ITEMS,
+    SCAN_BATCH_INITIAL,
+    SCAN_BATCH_LARGE,
+    SCAN_BATCH_LARGE_THRESHOLD,
+    SCAN_BATCH_MED,
+    SCAN_BATCH_MED_THRESHOLD,
+    SCAN_BATCH_MIN,
+    SCAN_BATCH_SMALL,
+    SCAN_BATCH_SMALL_THRESHOLD,
+    SCAN_BATCH_XL,
+)
+from ...shared import (
+    EXTENSIONS,
+    ErrorCode,
+    FileKind,
+    Result,
+    classify_file,
+    get_logger,
+    log_structured,
 )
 from ..metadata import MetadataService
 from .metadata_helpers import MetadataHelpers
 
-
 logger = get_logger(__name__)
 
-# Single-thread executor to ensure the directory walk generator is never advanced from
-# different threads (which can cause subtle corruption / deadlocks).
-_FS_WALK_EXECUTOR = ThreadPoolExecutor(max_workers=1, thread_name_prefix="mjr-fs-walk")
+try:
+    _FS_WALK_MAX_WORKERS = max(1, int(os.getenv("MAJOOR_FS_WALK_MAX_WORKERS", "4") or 4))
+except Exception:
+    _FS_WALK_MAX_WORKERS = 4
+# Each scan has its own producer/queue; allow moderate parallelism across independent scans.
+_FS_WALK_EXECUTOR = ThreadPoolExecutor(max_workers=_FS_WALK_MAX_WORKERS, thread_name_prefix="mjr-fs-walk")
 
 MAX_TRANSACTION_BATCH_SIZE = 500
 MAX_SCAN_JOURNAL_LOOKUP = 5000
@@ -53,7 +64,7 @@ except Exception:
 # Extensions explicitly excluded from indexing
 _EXCLUDED_EXTENSIONS: set = {".psd", ".json", ".txt", ".csv", ".db", ".sqlite", ".log"}
 
-_EXT_TO_KIND: Dict[str, FileKind] = {}
+_EXT_TO_KIND: dict[str, FileKind] = {}
 try:
     for _kind, _exts in (EXTENSIONS or {}).items():
         for _ext in _exts or []:
@@ -85,7 +96,7 @@ class IndexScanner:
         db: Sqlite,
         metadata_service: MetadataService,
         scan_lock: asyncio.Lock,
-        index_lock: Optional[asyncio.Lock] = None,
+        index_lock: asyncio.Lock | None = None,
     ):
         """
         Initialize index scanner.
@@ -99,7 +110,7 @@ class IndexScanner:
         self.metadata = metadata_service
         self._scan_lock = scan_lock
         self._index_lock = index_lock or scan_lock
-        self._current_scan_id: Optional[str] = None
+        self._current_scan_id: str | None = None
         self._batch_fallback_count = 0
         self._batch_fallback_lock = threading.Lock()
         # Throttle only directory walk I/O operations (scandir entry processing).
@@ -137,9 +148,9 @@ class IndexScanner:
 
     def _diagnose_batch_failure(
         self,
-        prepared: List[Dict[str, Any]],
+        prepared: list[dict[str, Any]],
         batch_error: Exception,
-    ) -> tuple[Optional[str], str]:
+    ) -> tuple[str | None, str]:
         """
         Best-effort diagnosis for batch transaction failures.
         Returns (filepath, reason) where filepath may be None if unknown.
@@ -164,7 +175,7 @@ class IndexScanner:
     def _is_unique_filepath_error(message_lower: str) -> bool:
         return "unique constraint failed" in message_lower and "assets.filepath" in message_lower
 
-    def _diagnose_unique_filepath_error(self, prepared: List[Dict[str, Any]]) -> Optional[tuple[Optional[str], str]]:
+    def _diagnose_unique_filepath_error(self, prepared: list[dict[str, Any]]) -> tuple[str | None, str] | None:
         duplicate = self._first_duplicate_filepath_in_batch(prepared)
         if duplicate:
             return duplicate, "duplicate filepath in batch payload (UNIQUE assets.filepath)"
@@ -174,7 +185,7 @@ class IndexScanner:
         return None, "UNIQUE constraint on assets.filepath"
 
     @staticmethod
-    def _first_duplicate_filepath_in_batch(prepared: List[Dict[str, Any]]) -> Optional[str]:
+    def _first_duplicate_filepath_in_batch(prepared: list[dict[str, Any]]) -> str | None:
         seen: set[str] = set()
         for entry in prepared:
             fp = IndexScanner._prepared_filepath(entry)
@@ -187,7 +198,7 @@ class IndexScanner:
         return None
 
     @staticmethod
-    def _first_prepared_filepath(prepared: List[Dict[str, Any]]) -> Optional[str]:
+    def _first_prepared_filepath(prepared: list[dict[str, Any]]) -> str | None:
         for entry in prepared:
             fp = IndexScanner._prepared_filepath(entry)
             if fp:
@@ -195,13 +206,13 @@ class IndexScanner:
         return None
 
     @staticmethod
-    def _prepared_filepath(entry: Dict[str, Any]) -> str:
+    def _prepared_filepath(entry: dict[str, Any]) -> str:
         return str(entry.get("filepath") or entry.get("file_path") or "").strip()
 
     @staticmethod
-    def _drain_walk_queue(q: "Queue[Optional[Path]]", max_items: int) -> list[Optional[Path]]:
+    def _drain_walk_queue(q: "Queue[Path | None]", max_items: int) -> list[Path | None]:
         """Read one-or-more items from walk queue with bounded non-blocking drain."""
-        items: list[Optional[Path]] = []
+        items: list[Path | None] = []
         try:
             first = q.get()
         except Exception:
@@ -220,7 +231,7 @@ class IndexScanner:
                 break
         return items
 
-    def _walk_and_enqueue(self, dir_path: Path, recursive: bool, stop_event: threading.Event, q: "Queue[Optional[Path]]") -> None:
+    def _walk_and_enqueue(self, dir_path: Path, recursive: bool, stop_event: threading.Event, q: "Queue[Path | None]") -> None:
         """Producer running on executor: walks filesystem and pushes paths into queue."""
         # Reset pacing window for each full walk.
         self._scan_iops_next_ts = 0.0
@@ -247,10 +258,10 @@ class IndexScanner:
         recursive: bool = True,
         incremental: bool = True,
         source: str = "output",
-        root_id: Optional[str] = None,
+        root_id: str | None = None,
         fast: bool = False,
         background_metadata: bool = False,
-    ) -> Result[Dict[str, Any]]:
+    ) -> Result[dict[str, Any]]:
         """
         Scan a directory for asset files.
 
@@ -266,7 +277,7 @@ class IndexScanner:
         Returns:
             Result with scan statistics
         """
-        to_enrich: List[str] = []
+        to_enrich: list[str] = []
         async with self._scan_lock:
             dir_path = Path(directory)
             validation_error = self._validate_scan_directory(dir_path, directory)
@@ -286,7 +297,7 @@ class IndexScanner:
                 files_root=str(dir_path)
             )
 
-            stats: Dict[str, Any] = self._new_scan_stats()
+            stats: dict[str, Any] = self._new_scan_stats()
 
             try:
                 await self._run_scan_streaming_loop(
@@ -341,7 +352,7 @@ class IndexScanner:
         return Result.Ok(stats)
 
     @staticmethod
-    def _new_scan_stats() -> Dict[str, Any]:
+    def _new_scan_stats() -> dict[str, Any]:
         return {
             "scanned": 0,
             "added": 0,
@@ -354,7 +365,7 @@ class IndexScanner:
         }
 
     @staticmethod
-    def _validate_scan_directory(dir_path: Path, directory: str) -> Optional[Result[Dict[str, Any]]]:
+    def _validate_scan_directory(dir_path: Path, directory: str) -> Result[dict[str, Any]] | None:
         if not dir_path.exists():
             return Result.Err("DIR_NOT_FOUND", f"Directory not found: {directory}")
         if not dir_path.is_dir():
@@ -385,14 +396,14 @@ class IndexScanner:
         recursive: bool,
         incremental: bool,
         source: str,
-        root_id: Optional[str],
+        root_id: str | None,
         fast: bool,
-        stats: Dict[str, Any],
-        to_enrich: List[str],
+        stats: dict[str, Any],
+        to_enrich: list[str],
     ) -> None:
         loop = asyncio.get_running_loop()
         stop_event = threading.Event()
-        q: "Queue[Optional[Path]]" = Queue(maxsize=max(1000, int(SCAN_BATCH_XL) * 4))
+        q: Queue[Path | None] = Queue(maxsize=max(1000, int(SCAN_BATCH_XL) * 4))
         walk_future = loop.run_in_executor(
             _FS_WALK_EXECUTOR,
             self._walk_and_enqueue,
@@ -423,17 +434,17 @@ class IndexScanner:
     async def _consume_scan_queue(
         self,
         *,
-        q: "Queue[Optional[Path]]",
+        q: "Queue[Path | None]",
         directory: str,
         incremental: bool,
         source: str,
-        root_id: Optional[str],
+        root_id: str | None,
         fast: bool,
-        stats: Dict[str, Any],
-        to_enrich: List[str],
+        stats: dict[str, Any],
+        to_enrich: list[str],
         stop_event: threading.Event,
     ) -> None:
-        batch: List[Path] = []
+        batch: list[Path] = []
         done = False
         try:
             while not done:
@@ -479,14 +490,14 @@ class IndexScanner:
     async def _process_scan_batch(
         self,
         *,
-        batch: List[Path],
+        batch: list[Path],
         directory: str,
         incremental: bool,
         source: str,
-        root_id: Optional[str],
+        root_id: str | None,
         fast: bool,
-        stats: Dict[str, Any],
-        to_enrich: List[str],
+        stats: dict[str, Any],
+        to_enrich: list[str],
     ) -> None:
         await self._scan_stream_batch(
             batch=batch,
@@ -502,14 +513,14 @@ class IndexScanner:
     async def _scan_stream_batch(
         self,
         *,
-        batch: List[Path],
+        batch: list[Path],
         base_dir: str,
         incremental: bool,
         source: str,
-        root_id: Optional[str],
+        root_id: str | None,
         fast: bool,
-        stats: Dict[str, Any],
-        to_enrich: List[str],
+        stats: dict[str, Any],
+        to_enrich: list[str],
     ) -> None:
         if not batch:
             return
@@ -531,17 +542,17 @@ class IndexScanner:
             to_enrich=to_enrich,
         )
 
-    async def _existing_map_for_filepaths(self, filepaths: List[str]) -> Dict[str, Dict[str, Any]]:
+    async def _existing_map_for_filepaths(self, filepaths: list[str]) -> dict[str, dict[str, Any]]:
         return await self._existing_map_for_batch(filepaths)
 
     async def index_paths(
         self,
-        paths: List[Path],
+        paths: list[Path],
         base_dir: str,
         incremental: bool = True,
         source: str = "output",
-        root_id: Optional[str] = None,
-    ) -> Result[Dict[str, Any]]:
+        root_id: str | None = None,
+    ) -> Result[dict[str, Any]]:
         """
         Index a list of file paths (no directory scan).
 
@@ -565,7 +576,7 @@ class IndexScanner:
             scan_start = time.perf_counter()
             self._log_index_paths_start(paths, base_dir, incremental)
             stats = self._new_index_stats(len(paths))
-            added_ids: List[int] = []
+            added_ids: list[int] = []
             try:
                 await self._index_paths_batches(paths, base_dir, incremental, source, root_id, stats, added_ids)
             finally:
@@ -578,8 +589,8 @@ class IndexScanner:
         return Result.Ok(stats)
 
     @staticmethod
-    def _filter_indexable_paths(paths: List[Path]) -> List[Path]:
-        filtered_paths: List[Path] = []
+    def _filter_indexable_paths(paths: list[Path]) -> list[Path]:
+        filtered_paths: list[Path] = []
         for p in paths:
             try:
                 ext = p.suffix.lower() if p.suffix else ""
@@ -593,7 +604,7 @@ class IndexScanner:
         return filtered_paths
 
     @staticmethod
-    def _empty_index_stats() -> Dict[str, Any]:
+    def _empty_index_stats() -> dict[str, Any]:
         now = datetime.now().isoformat()
         return {
             "scanned": 0,
@@ -605,7 +616,7 @@ class IndexScanner:
             "end_time": now,
         }
 
-    def _log_index_paths_start(self, paths: List[Path], base_dir: str, incremental: bool) -> None:
+    def _log_index_paths_start(self, paths: list[Path], base_dir: str, incremental: bool) -> None:
         start_log_level = logging.DEBUG if len(paths) == 1 else logging.INFO
         self._log_scan_event(
             start_log_level,
@@ -616,7 +627,7 @@ class IndexScanner:
         )
 
     @staticmethod
-    def _new_index_stats(scanned: int) -> Dict[str, Any]:
+    def _new_index_stats(scanned: int) -> dict[str, Any]:
         return {
             "scanned": scanned,
             "added": 0,
@@ -630,13 +641,13 @@ class IndexScanner:
 
     async def _index_paths_batches(
         self,
-        paths: List[Path],
+        paths: list[Path],
         base_dir: str,
         incremental: bool,
         source: str,
-        root_id: Optional[str],
-        stats: Dict[str, Any],
-        added_ids: List[int],
+        root_id: str | None,
+        stats: dict[str, Any],
+        added_ids: list[int],
     ) -> None:
         for batch in self._chunk_file_batches(paths):
             if not batch:
@@ -659,13 +670,13 @@ class IndexScanner:
             )
             await asyncio.sleep(0)
 
-    async def _journal_map_for_batch(self, filepaths: List[str], incremental: bool) -> Dict[str, str]:
+    async def _journal_map_for_batch(self, filepaths: list[str], incremental: bool) -> dict[str, str]:
         if not incremental or not filepaths:
             return {}
         return await self._get_journal_entries(filepaths)
 
-    async def _existing_map_for_batch(self, filepaths: List[str]) -> Dict[str, Dict[str, Any]]:
-        existing_map: Dict[str, Dict[str, Any]] = {}
+    async def _existing_map_for_batch(self, filepaths: list[str]) -> dict[str, dict[str, Any]]:
+        existing_map: dict[str, dict[str, Any]] = {}
         if not filepaths:
             return existing_map
         existing_rows = await self.db.aquery_in(
@@ -681,7 +692,7 @@ class IndexScanner:
                 existing_map[str(fp)] = row
         return existing_map
 
-    async def _finalize_index_paths(self, scan_start: float, stats: Dict[str, Any]) -> None:
+    async def _finalize_index_paths(self, scan_start: float, stats: dict[str, Any]) -> None:
         stats["end_time"] = datetime.now().isoformat()
         duration = time.perf_counter() - scan_start
         await MetadataHelpers.set_metadata_value(self.db, "last_index_end", stats["end_time"])
@@ -700,17 +711,17 @@ class IndexScanner:
 
     async def _index_batch(
         self,
-        batch: List[Path],
+        batch: list[Path],
         base_dir: str,
         incremental: bool,
         source: str,
-        root_id: Optional[str],
+        root_id: str | None,
         fast: bool,
-        journal_map: Dict[str, str],
-        existing_map: Dict[str, Dict[str, Any]],
-        stats: Dict[str, Any],
-        to_enrich: Optional[List[str]] = None,
-        added_ids: Optional[List[int]] = None,
+        journal_map: dict[str, str],
+        existing_map: dict[str, dict[str, Any]],
+        stats: dict[str, Any],
+        to_enrich: list[str] | None = None,
+        added_ids: list[int] | None = None,
     ) -> None:
         # Index a batch of files using one DB transaction for writes.
         batch_start = time.perf_counter()
@@ -761,10 +772,10 @@ class IndexScanner:
 
     async def _prefetch_batch_cache_and_rich_meta(
         self,
-        filepaths: List[str],
-        existing_map: Dict[str, Dict[str, Any]],
-    ) -> tuple[Dict[tuple[str, str], Any], set[int]]:
-        cache_map: Dict[tuple[str, str], Any] = {}
+        filepaths: list[str],
+        existing_map: dict[str, dict[str, Any]],
+    ) -> tuple[dict[tuple[str, str], Any], set[int]]:
+        cache_map: dict[tuple[str, str], Any] = {}
         has_rich_meta_set: set[int] = set()
         if not filepaths:
             return cache_map, has_rich_meta_set
@@ -779,8 +790,8 @@ class IndexScanner:
 
     async def _prefetch_metadata_cache_rows(
         self,
-        filepaths: List[str],
-        cache_map: Dict[tuple[str, str], Any],
+        filepaths: list[str],
+        cache_map: dict[tuple[str, str], Any],
     ) -> None:
         cache_rows = await self.db.aquery_in(
             "SELECT filepath, state_hash, metadata_raw FROM metadata_cache WHERE {IN_CLAUSE}",
@@ -796,8 +807,8 @@ class IndexScanner:
                 cache_map[(str(fp), str(state_hash))] = row.get("metadata_raw")
 
     @staticmethod
-    def _asset_ids_from_existing_rows(filepaths: List[str], existing_map: Dict[str, Dict[str, Any]]) -> List[int]:
-        asset_ids: List[int] = []
+    def _asset_ids_from_existing_rows(filepaths: list[str], existing_map: dict[str, dict[str, Any]]) -> list[int]:
+        asset_ids: list[int] = []
         for fp in filepaths:
             existing_row = existing_map.get(fp)
             if not existing_row or not existing_row.get("id"):
@@ -810,7 +821,7 @@ class IndexScanner:
                 asset_ids.append(existing_id)
         return asset_ids
 
-    async def _prefetch_rich_metadata_rows(self, asset_ids: List[int], has_rich_meta_set: set[int]) -> None:
+    async def _prefetch_rich_metadata_rows(self, asset_ids: list[int], has_rich_meta_set: set[int]) -> None:
         meta_rows = await self.db.aquery_in(
             "SELECT asset_id, metadata_quality, metadata_raw FROM asset_metadata WHERE {IN_CLAUSE}",
             "asset_id",
@@ -833,18 +844,18 @@ class IndexScanner:
 
     async def _prepare_batch_entries(
         self,
-        batch: List[Path],
+        batch: list[Path],
         base_dir: str,
         incremental: bool,
         fast: bool,
-        journal_map: Dict[str, str],
-        existing_map: Dict[str, Dict[str, Any]],
-        cache_map: Dict[tuple[str, str], Any],
+        journal_map: dict[str, str],
+        existing_map: dict[str, dict[str, Any]],
+        cache_map: dict[tuple[str, str], Any],
         has_rich_meta_set: set[int],
-        stats: Dict[str, Any],
-    ) -> tuple[List[Dict[str, Any]], List[tuple[Path, str, int, int, int, str, Optional[int]]]]:
-        prepared: List[Dict[str, Any]] = []
-        needs_metadata: List[tuple[Path, str, int, int, int, str, Optional[int]]] = []
+        stats: dict[str, Any],
+    ) -> tuple[list[dict[str, Any]], list[tuple[Path, str, int, int, int, str, int | None]]]:
+        prepared: list[dict[str, Any]] = []
+        needs_metadata: list[tuple[Path, str, int, int, int, str, int | None]] = []
 
         for file_path in batch:
             prepared_entry, metadata_item = await self._prepare_single_batch_entry(
@@ -876,7 +887,7 @@ class IndexScanner:
         mtime: int,
         size: int,
         state_hash: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if existing_id:
             return self._build_updated_entry(
                 asset_id=existing_id,
@@ -915,7 +926,7 @@ class IndexScanner:
     def _should_skip_by_journal(
         *,
         incremental: bool,
-        journal_state_hash: Optional[str],
+        journal_state_hash: str | None,
         state_hash: str,
         fast: bool,
         existing_id: int,
@@ -931,10 +942,10 @@ class IndexScanner:
         existing_id: int,
         existing_mtime: int,
         mtime: int,
-        cache_map: Dict[tuple[str, str], Any],
+        cache_map: dict[tuple[str, str], Any],
         filepath: str,
         state_hash: str,
-    ) -> tuple[Optional[Any], bool]:
+    ) -> tuple[Any | None, bool]:
         if not (existing_id and existing_mtime == mtime):
             return None, False
         cached_raw = cache_map.get((filepath, state_hash))
@@ -953,7 +964,7 @@ class IndexScanner:
         mtime: int,
         size: int,
         fast: bool,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         return self._build_refresh_entry(
             asset_id=existing_id,
             metadata_result=Result.Ok({"metadata_raw": cached_raw}, source="cache"),
@@ -967,7 +978,7 @@ class IndexScanner:
         )
 
     @staticmethod
-    def _journal_state_hash(existing_state: Optional[Dict[str, Any]]) -> Optional[str]:
+    def _journal_state_hash(existing_state: dict[str, Any] | None) -> str | None:
         if isinstance(existing_state, dict):
             return existing_state.get("journal_state_hash")
         return None
@@ -981,7 +992,7 @@ class IndexScanner:
         size: int,
         state_hash: str,
         existing_id: int,
-    ) -> tuple[Path, str, int, int, int, str, Optional[int]]:
+    ) -> tuple[Path, str, int, int, int, str, int | None]:
         return (
             file_path,
             filepath,
@@ -998,12 +1009,12 @@ class IndexScanner:
         base_dir: str,
         incremental: bool,
         fast: bool,
-        journal_map: Dict[str, str],
-        existing_map: Dict[str, Dict[str, Any]],
-        cache_map: Dict[tuple[str, str], Any],
+        journal_map: dict[str, str],
+        existing_map: dict[str, dict[str, Any]],
+        cache_map: dict[tuple[str, str], Any],
         has_rich_meta_set: set[int],
-        stats: Dict[str, Any],
-    ) -> tuple[Optional[Dict[str, Any]], Optional[tuple[Path, str, int, int, int, str, Optional[int]]]]:
+        stats: dict[str, Any],
+    ) -> tuple[dict[str, Any] | None, tuple[Path, str, int, int, int, str, int | None] | None]:
         fp = self._normalize_filepath_str(file_path)
         existing_state = await self._resolve_existing_state_for_batch(
             fp=fp,
@@ -1093,10 +1104,10 @@ class IndexScanner:
         self,
         fp: str,
         incremental: bool,
-        journal_map: Dict[str, str],
-        existing_map: Dict[str, Dict[str, Any]],
-    ) -> Optional[Dict[str, Any]]:
-        existing_state: Optional[Dict[str, Any]]
+        journal_map: dict[str, str],
+        existing_map: dict[str, dict[str, Any]],
+    ) -> dict[str, Any] | None:
+        existing_state: dict[str, Any] | None
         if incremental and fp in journal_map:
             existing_state = dict(existing_map.get(fp) or {})
             existing_state["journal_state_hash"] = journal_map.get(fp)
@@ -1118,8 +1129,8 @@ class IndexScanner:
 
     async def _append_batch_metadata_entries(
         self,
-        prepared: List[Dict[str, Any]],
-        needs_metadata: List[tuple[Path, str, int, int, int, str, Optional[int]]],
+        prepared: list[dict[str, Any]],
+        needs_metadata: list[tuple[Path, str, int, int, int, str, int | None]],
         base_dir: str,
         fast: bool,
     ) -> None:
@@ -1133,7 +1144,7 @@ class IndexScanner:
         )
 
         for file_path, filepath, mtime_ns, mtime, size, state_hash, existing_id_opt in needs_metadata:
-            metadata_result: Optional[Result[Dict[str, Any]]] = batch_metadata.get(str(file_path))
+            metadata_result: Result[dict[str, Any]] | None = batch_metadata.get(str(file_path))
             if not metadata_result:
                 metadata_result = MetadataHelpers.metadata_error_payload(
                     Result.Err("METADATA_MISSING", "No metadata returned"),
@@ -1185,13 +1196,13 @@ class IndexScanner:
 
     async def _persist_prepared_entries(
         self,
-        prepared: List[Dict[str, Any]],
+        prepared: list[dict[str, Any]],
         base_dir: str,
         source: str,
-        root_id: Optional[str],
-        stats: Dict[str, Any],
-        to_enrich: Optional[List[str]],
-        added_ids: Optional[List[int]],
+        root_id: str | None,
+        stats: dict[str, Any],
+        to_enrich: list[str] | None,
+        added_ids: list[int] | None,
     ) -> None:
         try:
             await self._persist_prepared_entries_tx(
@@ -1239,13 +1250,13 @@ class IndexScanner:
 
     async def _persist_prepared_entries_tx(
         self,
-        prepared: List[Dict[str, Any]],
+        prepared: list[dict[str, Any]],
         base_dir: str,
         source: str,
-        root_id: Optional[str],
-        stats: Dict[str, Any],
-        to_enrich: Optional[List[str]],
-        added_ids: Optional[List[int]],
+        root_id: str | None,
+        stats: dict[str, Any],
+        to_enrich: list[str] | None,
+        added_ids: list[int] | None,
     ) -> None:
         async with self.db.atransaction(mode="immediate") as tx:
             if not tx.ok:
@@ -1265,13 +1276,13 @@ class IndexScanner:
 
     async def _process_prepared_entry_tx(
         self,
-        entry: Dict[str, Any],
+        entry: dict[str, Any],
         base_dir: str,
         source: str,
-        root_id: Optional[str],
-        stats: Dict[str, Any],
-        to_enrich: Optional[List[str]],
-        added_ids: Optional[List[int]],
+        root_id: str | None,
+        stats: dict[str, Any],
+        to_enrich: list[str] | None,
+        added_ids: list[int] | None,
     ) -> None:
         action = entry.get("action")
         if action in ("skipped", "skipped_journal"):
@@ -1319,18 +1330,18 @@ class IndexScanner:
 
     async def _persist_prepared_entries_fallback(
         self,
-        prepared: List[Dict[str, Any]],
+        prepared: list[dict[str, Any]],
         base_dir: str,
         source: str,
-        root_id: Optional[str],
-        stats: Dict[str, Any],
-        to_enrich: Optional[List[str]],
+        root_id: str | None,
+        stats: dict[str, Any],
+        to_enrich: list[str] | None,
     ) -> None:
         stats["batch_fallbacks"] = int(stats.get("batch_fallbacks") or 0) + 1
         with self._batch_fallback_lock:
             self._batch_fallback_count += 1
         stats["errors"] += len(prepared)
-        failed_entries: List[str] = []
+        failed_entries: list[str] = []
 
         for entry in prepared:
             action = entry.get("action")
@@ -1381,12 +1392,12 @@ class IndexScanner:
 
     async def _process_prepared_entry_fallback(
         self,
-        entry: Dict[str, Any],
+        entry: dict[str, Any],
         base_dir: str,
         source: str,
-        root_id: Optional[str],
-        stats: Dict[str, Any],
-        to_enrich: Optional[List[str]],
+        root_id: str | None,
+        stats: dict[str, Any],
+        to_enrich: list[str] | None,
     ) -> bool:
         action = entry.get("action")
         if action == "refresh":
@@ -1429,10 +1440,10 @@ class IndexScanner:
 
     async def _process_refresh_entry(
         self,
-        entry: Dict[str, Any],
+        entry: dict[str, Any],
         base_dir: str,
-        stats: Dict[str, Any],
-        to_enrich: Optional[List[str]],
+        stats: dict[str, Any],
+        to_enrich: list[str] | None,
         fallback_mode: bool,
         respect_enrich_limit: bool,
     ) -> bool:
@@ -1486,9 +1497,9 @@ class IndexScanner:
     def _invalid_refresh_entry(
         asset_id: Any,
         metadata_result: Any,
-        stats: Dict[str, Any],
+        stats: dict[str, Any],
         fallback_mode: bool,
-    ) -> Optional[bool]:
+    ) -> bool | None:
         if asset_id and isinstance(metadata_result, Result):
             return None
         if fallback_mode:
@@ -1497,7 +1508,7 @@ class IndexScanner:
         return True
 
     @staticmethod
-    def _refresh_entry_context(entry: Dict[str, Any], base_dir: str) -> tuple[str, str, str, int, int]:
+    def _refresh_entry_context(entry: dict[str, Any], base_dir: str) -> tuple[str, str, str, int, int]:
         return (
             str(entry.get("filepath") or ""),
             base_dir,
@@ -1509,11 +1520,11 @@ class IndexScanner:
     def _record_refresh_outcome(
         self,
         *,
-        stats: Dict[str, Any],
+        stats: dict[str, Any],
         fallback_mode: bool,
         refreshed: bool,
-        entry: Dict[str, Any],
-        to_enrich: Optional[List[str]],
+        entry: dict[str, Any],
+        to_enrich: list[str] | None,
         respect_enrich_limit: bool,
     ) -> None:
         stats["skipped"] += 1
@@ -1528,13 +1539,13 @@ class IndexScanner:
 
     async def _process_updated_entry(
         self,
-        entry: Dict[str, Any],
+        entry: dict[str, Any],
         base_dir: str,
         source: str,
-        root_id: Optional[str],
-        stats: Dict[str, Any],
-        to_enrich: Optional[List[str]],
-        added_ids: Optional[List[int]],
+        root_id: str | None,
+        stats: dict[str, Any],
+        to_enrich: list[str] | None,
+        added_ids: list[int] | None,
         fallback_mode: bool,
         respect_enrich_limit: bool,
     ) -> bool:
@@ -1561,13 +1572,13 @@ class IndexScanner:
 
     async def _process_added_entry(
         self,
-        entry: Dict[str, Any],
+        entry: dict[str, Any],
         base_dir: str,
         source: str,
-        root_id: Optional[str],
-        stats: Dict[str, Any],
-        to_enrich: Optional[List[str]],
-        added_ids: Optional[List[int]],
+        root_id: str | None,
+        stats: dict[str, Any],
+        to_enrich: list[str] | None,
+        added_ids: list[int] | None,
         fallback_mode: bool,
         respect_enrich_limit: bool,
     ) -> bool:
@@ -1594,7 +1605,7 @@ class IndexScanner:
         )
         return True
 
-    def _extract_update_entry_context(self, entry: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _extract_update_entry_context(self, entry: dict[str, Any]) -> dict[str, Any] | None:
         asset_id = entry.get("asset_id")
         metadata_result = entry.get("metadata_result")
         file_path_value = entry.get("file_path")
@@ -1606,7 +1617,7 @@ class IndexScanner:
             "file_path": file_path_value,
         }
 
-    def _extract_add_entry_context(self, entry: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _extract_add_entry_context(self, entry: dict[str, Any]) -> dict[str, Any] | None:
         metadata_result = entry.get("metadata_result")
         kind_value = entry.get("kind")
         file_path_value = entry.get("file_path")
@@ -1623,20 +1634,20 @@ class IndexScanner:
         }
 
     @staticmethod
-    def _handle_invalid_prepared_entry(stats: Dict[str, Any], fallback_mode: bool) -> bool:
+    def _handle_invalid_prepared_entry(stats: dict[str, Any], fallback_mode: bool) -> bool:
         if fallback_mode:
             return False
         stats["errors"] += 1
         return True
 
     @staticmethod
-    def _handle_update_or_add_failure(stats: Dict[str, Any], fallback_mode: bool) -> bool:
+    def _handle_update_or_add_failure(stats: dict[str, Any], fallback_mode: bool) -> bool:
         if fallback_mode:
             return False
         stats["errors"] += 1
         return True
 
-    async def _maybe_store_entry_cache(self, entry: Dict[str, Any], metadata_result: Result[Any]) -> None:
+    async def _maybe_store_entry_cache(self, entry: dict[str, Any], metadata_result: Result[Any]) -> None:
         if not bool(entry.get("cache_store")):
             return
         try:
@@ -1651,10 +1662,10 @@ class IndexScanner:
 
     async def _apply_update_entry(
         self,
-        entry: Dict[str, Any],
-        ctx: Dict[str, Any],
+        entry: dict[str, Any],
+        ctx: dict[str, Any],
         source: str,
-        root_id: Optional[str],
+        root_id: str | None,
     ) -> bool:
         res = await self._update_asset(
             ctx["asset_id"],
@@ -1670,11 +1681,11 @@ class IndexScanner:
 
     async def _apply_add_entry(
         self,
-        entry: Dict[str, Any],
-        ctx: Dict[str, Any],
+        entry: dict[str, Any],
+        ctx: dict[str, Any],
         source: str,
-        root_id: Optional[str],
-    ) -> Result[Dict[str, Any]]:
+        root_id: str | None,
+    ) -> Result[dict[str, Any]]:
         return await self._add_asset(
             entry.get("filename") or "",
             entry.get("subfolder") or "",
@@ -1689,7 +1700,7 @@ class IndexScanner:
             write_metadata=True,
         )
 
-    async def _write_entry_scan_journal(self, entry: Dict[str, Any], base_dir: str) -> None:
+    async def _write_entry_scan_journal(self, entry: dict[str, Any], base_dir: str) -> None:
         await self._write_scan_journal_entry(
             entry.get("filepath") or "",
             base_dir,
@@ -1699,7 +1710,7 @@ class IndexScanner:
         )
 
     @staticmethod
-    def _added_asset_id_from_result(add_result: Result[Dict[str, Any]]) -> Optional[int]:
+    def _added_asset_id_from_result(add_result: Result[dict[str, Any]]) -> int | None:
         try:
             if add_result.data and add_result.data.get("asset_id"):
                 return int(add_result.data["asset_id"])
@@ -1710,13 +1721,13 @@ class IndexScanner:
     def _record_index_entry_success(
         self,
         *,
-        stats: Dict[str, Any],
+        stats: dict[str, Any],
         fallback_mode: bool,
-        added_ids: Optional[List[int]],
-        added_asset_id: Optional[int],
-        entry: Dict[str, Any],
+        added_ids: list[int] | None,
+        added_asset_id: int | None,
+        entry: dict[str, Any],
         action: str,
-        to_enrich: Optional[List[str]],
+        to_enrich: list[str] | None,
         respect_enrich_limit: bool,
     ) -> None:
         stats[action] += 1
@@ -1739,7 +1750,7 @@ class IndexScanner:
         except Exception:
             pass
 
-    def _entry_state_drifted(self, entry: Dict[str, Any], stats: Dict[str, Any]) -> bool:
+    def _entry_state_drifted(self, entry: dict[str, Any], stats: dict[str, Any]) -> bool:
         file_path_value = entry.get("file_path")
         if not isinstance(file_path_value, Path):
             return False
@@ -1753,8 +1764,8 @@ class IndexScanner:
 
     def _append_to_enrich(
         self,
-        entry: Dict[str, Any],
-        to_enrich: Optional[List[str]],
+        entry: dict[str, Any],
+        to_enrich: list[str] | None,
         respect_limit: bool,
     ) -> None:
         if to_enrich is None or not entry.get("fast"):
@@ -1764,18 +1775,18 @@ class IndexScanner:
         to_enrich.append(self._entry_display_path(entry))
 
     @staticmethod
-    def _fallback_correct_error(stats: Dict[str, Any]) -> None:
+    def _fallback_correct_error(stats: dict[str, Any]) -> None:
         stats["errors"] = max(0, int(stats.get("errors") or 0) - 1)
 
     @staticmethod
-    def _entry_display_path(entry: Dict[str, Any]) -> str:
+    def _entry_display_path(entry: dict[str, Any]) -> str:
         return str(entry.get("filepath") or entry.get("file_path") or "unknown")
 
     @staticmethod
     def _build_refresh_entry(
         *,
         asset_id: int,
-        metadata_result: Result[Dict[str, Any]],
+        metadata_result: Result[dict[str, Any]],
         filepath: str,
         file_path: Path,
         state_hash: str,
@@ -1783,7 +1794,7 @@ class IndexScanner:
         size: int,
         fast: bool,
         cache_store: bool,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         return {
             "action": "refresh",
             "asset_id": asset_id,
@@ -1801,7 +1812,7 @@ class IndexScanner:
     def _build_updated_entry(
         *,
         asset_id: int,
-        metadata_result: Result[Dict[str, Any]],
+        metadata_result: Result[dict[str, Any]],
         filepath: str,
         file_path: Path,
         state_hash: str,
@@ -1809,9 +1820,9 @@ class IndexScanner:
         size: int,
         fast: bool,
         cache_store: bool,
-        mtime_ns: Optional[int] = None,
-    ) -> Dict[str, Any]:
-        entry: Dict[str, Any] = {
+        mtime_ns: int | None = None,
+    ) -> dict[str, Any]:
+        entry: dict[str, Any] = {
             "action": "updated",
             "asset_id": asset_id,
             "metadata_result": metadata_result,
@@ -1834,16 +1845,16 @@ class IndexScanner:
         subfolder: str,
         filepath: str,
         kind: FileKind,
-        metadata_result: Result[Dict[str, Any]],
+        metadata_result: Result[dict[str, Any]],
         file_path: Path,
         state_hash: str,
         mtime: int,
         size: int,
         fast: bool,
         cache_store: bool,
-        mtime_ns: Optional[int] = None,
-    ) -> Dict[str, Any]:
-        entry: Dict[str, Any] = {
+        mtime_ns: int | None = None,
+    ) -> dict[str, Any]:
+        entry: dict[str, Any] = {
             "action": "added",
             "filename": filename,
             "subfolder": subfolder,
@@ -1865,7 +1876,7 @@ class IndexScanner:
         self,
         filepath: str,
         fast: bool,
-    ) -> tuple[Result[Dict[str, Any]], bool]:
+    ) -> tuple[Result[dict[str, Any]], bool]:
         if fast:
             return Result.Ok({}), False
         metadata_result = await self.metadata.get_metadata(filepath, scan_id=self._current_scan_id)
@@ -1878,11 +1889,11 @@ class IndexScanner:
         file_path: Path,
         base_dir: str,
         incremental: bool,
-        existing_state: Optional[Dict[str, Any]] = None,
+        existing_state: dict[str, Any] | None = None,
         source: str = "output",
-        root_id: Optional[str] = None,
+        root_id: str | None = None,
         fast: bool = False,
-    ) -> Result[Dict[str, Any]]:
+    ) -> Result[dict[str, Any]]:
         """
         Prepare indexing work for a file (stat + incremental decision + metadata extraction),
         but do not write to the DB. DB writes are applied in a batch transaction.
@@ -1934,9 +1945,9 @@ class IndexScanner:
     async def _prepare_index_entry_context(
         self,
         file_path: Path,
-        existing_state: Optional[Dict[str, Any]],
+        existing_state: dict[str, Any] | None,
         incremental: bool,
-    ) -> tuple[Optional[Dict[str, Any]], Optional[str]]:
+    ) -> tuple[dict[str, Any] | None, str | None]:
         stat_result = await self._stat_with_retry(file_path)
         if not stat_result[0]:
             return None, str(stat_result[1])
@@ -1962,11 +1973,11 @@ class IndexScanner:
     async def _maybe_skip_prepare_for_incremental(
         self,
         *,
-        prepare_ctx: Dict[str, Any],
+        prepare_ctx: dict[str, Any],
         incremental: bool,
         fast: bool,
         file_path: Path,
-    ) -> Optional[Result[Dict[str, Any]]]:
+    ) -> Result[dict[str, Any]] | None:
         if await self._should_skip_by_journal_state(prepare_ctx, incremental=incremental, fast=fast):
             return Result.Ok({"action": "skipped_journal"})
         if not self._is_incremental_unchanged(prepare_ctx, incremental):
@@ -1980,7 +1991,7 @@ class IndexScanner:
 
     async def _should_skip_by_journal_state(
         self,
-        prepare_ctx: Dict[str, Any],
+        prepare_ctx: dict[str, Any],
         *,
         incremental: bool,
         fast: bool,
@@ -1998,11 +2009,11 @@ class IndexScanner:
 
     async def _refresh_entry_from_cached_metadata(
         self,
-        prepare_ctx: Dict[str, Any],
+        prepare_ctx: dict[str, Any],
         *,
         file_path: Path,
         fast: bool,
-    ) -> Optional[Result[Dict[str, Any]]]:
+    ) -> Result[dict[str, Any]] | None:
         cached = await MetadataHelpers.retrieve_cached_metadata(self.db, prepare_ctx["filepath"], prepare_ctx["state_hash"])
         if not (cached and cached.ok):
             return None
@@ -2021,18 +2032,18 @@ class IndexScanner:
         )
 
     @staticmethod
-    def _is_incremental_unchanged(prepare_ctx: Dict[str, Any], incremental: bool) -> bool:
+    def _is_incremental_unchanged(prepare_ctx: dict[str, Any], incremental: bool) -> bool:
         return bool(incremental and prepare_ctx["existing_id"] and prepare_ctx["existing_mtime"] == prepare_ctx["mtime"])
 
     def _build_added_entry_from_prepare_ctx(
         self,
-        prepare_ctx: Dict[str, Any],
+        prepare_ctx: dict[str, Any],
         file_path: Path,
         base_dir: str,
-        metadata_result: Result[Dict[str, Any]],
+        metadata_result: Result[dict[str, Any]],
         cache_store: bool,
         fast: bool,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         rel_path = self._safe_relative_path(file_path, base_dir)
         filename = file_path.name
         subfolder = str(rel_path.parent) if rel_path.parent != Path(".") else ""
@@ -2099,7 +2110,7 @@ class IndexScanner:
         return classify_file(str(path)) != "unknown"
 
     @staticmethod
-    def _iter_files_next_dir(entry) -> Optional[Path]:
+    def _iter_files_next_dir(entry) -> Path | None:
         try:
             if entry.is_dir(follow_symlinks=False):
                 return Path(entry.path)
@@ -2107,7 +2118,7 @@ class IndexScanner:
             return None
         return None
 
-    def _iter_files_candidate(self, entry) -> Optional[Path]:
+    def _iter_files_candidate(self, entry) -> Path | None:
         try:
             # Keep historical behavior: index symlinks to files, but do not recurse into symlinked dirs.
             if not entry.is_file(follow_symlinks=True):
@@ -2131,7 +2142,7 @@ class IndexScanner:
         except Exception:
             return True
 
-    def get_runtime_status(self) -> Dict[str, Any]:
+    def get_runtime_status(self) -> dict[str, Any]:
         try:
             with self._batch_fallback_lock:
                 fallback_count = int(self._batch_fallback_count)
@@ -2142,7 +2153,7 @@ class IndexScanner:
             "scan_iops_limit": float(self._scan_iops_limit),
         }
 
-    def _chunk_file_batches(self, files: List[Path]) -> Iterable[List[Path]]:
+    def _chunk_file_batches(self, files: list[Path]) -> Iterable[list[Path]]:
         """Yield batches of files for bounded transactions."""
         total = len(files)
         if total <= 0:
@@ -2191,7 +2202,7 @@ class IndexScanner:
             h.update(b"\x00")
         return h.hexdigest()
 
-    async def _get_journal_entry(self, filepath: str) -> Optional[Dict[str, Any]]:
+    async def _get_journal_entry(self, filepath: str) -> dict[str, Any] | None:
         result = await self.db.aquery(
             "SELECT state_hash FROM scan_journal WHERE filepath = ?",
             (filepath,)
@@ -2200,7 +2211,7 @@ class IndexScanner:
             return None
         return result.data[0]
 
-    async def _get_journal_entries(self, filepaths: List[str]) -> Dict[str, str]:
+    async def _get_journal_entries(self, filepaths: list[str]) -> dict[str, str]:
         """
         Batch lookup scan_journal state_hash for a list of filepaths.
         Returns {filepath: state_hash}.
@@ -2218,15 +2229,15 @@ class IndexScanner:
         return self._journal_rows_to_map(res.data or [])
 
     @staticmethod
-    def _clean_journal_lookup_paths(filepaths: List[str]) -> List[str]:
+    def _clean_journal_lookup_paths(filepaths: list[str]) -> list[str]:
         cleaned = [str(p) for p in (filepaths or []) if p]
         if len(cleaned) > MAX_SCAN_JOURNAL_LOOKUP:
             return cleaned[:MAX_SCAN_JOURNAL_LOOKUP]
         return cleaned
 
     @staticmethod
-    def _journal_rows_to_map(rows: List[Any]) -> Dict[str, str]:
-        out: Dict[str, str] = {}
+    def _journal_rows_to_map(rows: list[Any]) -> dict[str, str]:
+        out: dict[str, str] = {}
         for row in rows:
             if not isinstance(row, dict):
                 continue
@@ -2289,11 +2300,11 @@ class IndexScanner:
         file_path: Path,
         base_dir: str,
         incremental: bool,
-        existing_state: Optional[Dict[str, Any]] = None,
+        existing_state: dict[str, Any] | None = None,
         source: str = "output",
-        root_id: Optional[str] = None,
+        root_id: str | None = None,
         fast: bool = False,
-    ) -> Result[Dict[str, str]]:
+    ) -> Result[dict[str, str]]:
         """
         Index a single file.
 
@@ -2390,7 +2401,7 @@ class IndexScanner:
     async def _build_index_file_state(
         self,
         file_path: Path,
-    ) -> Result[Dict[str, str]] | tuple[Path, str, str, int, int]:
+    ) -> Result[dict[str, str]] | tuple[Path, str, str, int, int]:
         stat_result = await self._stat_with_retry(file_path)
         if not stat_result[0]:
             return Result.Err("STAT_FAILED", f"Failed to stat file: {stat_result[1]}")
@@ -2416,11 +2427,11 @@ class IndexScanner:
         self,
         *,
         incremental: bool,
-        journal_state_hash: Optional[str],
+        journal_state_hash: str | None,
         state_hash: str,
         fast: bool,
         existing_id: int,
-    ) -> Optional[Result[Dict[str, str]]]:
+    ) -> Result[dict[str, str]] | None:
         if not (incremental and journal_state_hash and str(journal_state_hash) == state_hash):
             return None
         if fast:
@@ -2432,11 +2443,11 @@ class IndexScanner:
     async def _get_journal_state_hash_for_index_file(
         self,
         filepath: str,
-        existing_state: Optional[Dict[str, Any]],
+        existing_state: dict[str, Any] | None,
         incremental: bool,
-    ) -> Optional[str]:
+    ) -> str | None:
         if isinstance(existing_state, dict) and "journal_state_hash" in existing_state:
-            return cast(Optional[str], existing_state.get("journal_state_hash"))
+            return cast(str | None, existing_state.get("journal_state_hash"))
         if not incremental:
             return None
         journal_entry = await self._get_journal_entry(filepath)
@@ -2448,8 +2459,8 @@ class IndexScanner:
     async def _resolve_existing_asset_for_index_file(
         self,
         filepath: str,
-        existing_state: Optional[Dict[str, Any]],
-    ) -> Optional[Dict[str, Any]]:
+        existing_state: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
         if isinstance(existing_state, dict) and existing_state.get("id") is not None:
             return existing_state
 
@@ -2475,7 +2486,7 @@ class IndexScanner:
         return None
 
     @staticmethod
-    def _extract_existing_asset_state(existing_asset: Optional[Dict[str, Any]]) -> tuple[int, int]:
+    def _extract_existing_asset_state(existing_asset: dict[str, Any] | None) -> tuple[int, int]:
         if not isinstance(existing_asset, dict):
             return 0, 0
         try:
@@ -2495,7 +2506,7 @@ class IndexScanner:
         state_hash: str,
         base_dir: str,
         size: int,
-    ) -> Optional[Result[Dict[str, str]]]:
+    ) -> Result[dict[str, str]] | None:
         if not (incremental and existing_id and existing_mtime == mtime):
             return None
 
@@ -2519,13 +2530,13 @@ class IndexScanner:
         self,
         *,
         existing_id: int,
-        cached_metadata: Result[Dict[str, Any]],
+        cached_metadata: Result[dict[str, Any]],
         filepath: str,
         base_dir: str,
         state_hash: str,
         mtime: int,
         size: int,
-    ) -> Result[Dict[str, str]]:
+    ) -> Result[dict[str, str]]:
         tx_state, refreshed = await self._refresh_from_cached_metadata_tx(
             existing_id=existing_id,
             cached_metadata=cached_metadata,
@@ -2546,13 +2557,13 @@ class IndexScanner:
         self,
         *,
         existing_id: int,
-        cached_metadata: Result[Dict[str, Any]],
+        cached_metadata: Result[dict[str, Any]],
         filepath: str,
         base_dir: str,
         state_hash: str,
         mtime: int,
         size: int,
-    ) -> tuple[Optional[Any], bool]:
+    ) -> tuple[Any | None, bool]:
         refreshed = False
         async with self.db.atransaction(mode="immediate") as tx:
             if not tx.ok:
@@ -2583,7 +2594,7 @@ class IndexScanner:
         filepath: str,
         state_hash: str,
         fast: bool,
-    ) -> Result[Dict[str, Any]]:
+    ) -> Result[dict[str, Any]]:
         if fast:
             return Result.Ok({})
 
@@ -2628,8 +2639,8 @@ class IndexScanner:
         state_hash: str,
         base_dir: str,
         size: int,
-        metadata_result: Result[Dict[str, Any]],
-    ) -> Optional[Result[Dict[str, str]]]:
+        metadata_result: Result[dict[str, Any]],
+    ) -> Result[dict[str, str]] | None:
         if not (incremental and existing_id and existing_mtime == mtime):
             return None
 
@@ -2655,7 +2666,7 @@ class IndexScanner:
     async def _run_incremental_metadata_refresh_locked(
         self,
         existing_id: int,
-        metadata_result: Result[Dict[str, Any]],
+        metadata_result: Result[dict[str, Any]],
         filepath: str,
         base_dir: str,
         state_hash: str,
@@ -2685,7 +2696,7 @@ class IndexScanner:
     async def _run_incremental_metadata_refresh_tx(
         self,
         existing_id: int,
-        metadata_result: Result[Dict[str, Any]],
+        metadata_result: Result[dict[str, Any]],
         filepath: str,
         base_dir: str,
         state_hash: str,
@@ -2720,12 +2731,12 @@ class IndexScanner:
         mtime: int,
         size: int,
         file_path: Path,
-        metadata_result: Result[Dict[str, Any]],
+        metadata_result: Result[dict[str, Any]],
         base_dir: str,
         state_hash: str,
         source: str,
-        root_id: Optional[str],
-    ) -> Result[Dict[str, str]]:
+        root_id: str | None,
+    ) -> Result[dict[str, str]]:
         try:
             tx_state, result = await self._insert_new_asset_tx(
                 filename,
@@ -2764,12 +2775,12 @@ class IndexScanner:
         mtime: int,
         size: int,
         file_path: Path,
-        metadata_result: Result[Dict[str, Any]],
+        metadata_result: Result[dict[str, Any]],
         base_dir: str,
         state_hash: str,
         source: str,
-        root_id: Optional[str],
-    ) -> tuple[Any, Result[Dict[str, str]]]:
+        root_id: str | None,
+    ) -> tuple[Any, Result[dict[str, str]]]:
         async with self.db.atransaction(mode="immediate") as tx:
             if not tx.ok:
                 return tx, Result.Err("DB_ERROR", tx.error or "Failed to begin transaction")
@@ -2800,12 +2811,12 @@ class IndexScanner:
         mtime: int,
         size: int,
         file_path: Path,
-        metadata_result: Result[Dict[str, Any]],
+        metadata_result: Result[dict[str, Any]],
         source: str = "output",
-        root_id: Optional[str] = None,
+        root_id: str | None = None,
         write_metadata: bool = True,
         skip_lock: bool = False,
-    ) -> Result[Dict[str, str]]:
+    ) -> Result[dict[str, str]]:
         """
         Add new asset to database.
         """
@@ -2851,7 +2862,7 @@ class IndexScanner:
         return Result.Ok({"action": "added", "asset_id": asset_id})
 
     @staticmethod
-    def _asset_dimensions_from_metadata(metadata_result: Result[Dict[str, Any]]) -> tuple[Any, Any, Any]:
+    def _asset_dimensions_from_metadata(metadata_result: Result[dict[str, Any]]) -> tuple[Any, Any, Any]:
         if metadata_result.ok and metadata_result.data:
             meta = metadata_result.data
             return meta.get("width"), meta.get("height"), meta.get("duration")
@@ -2860,7 +2871,7 @@ class IndexScanner:
     async def _write_asset_metadata_if_needed(
         self,
         asset_id: Any,
-        metadata_result: Result[Dict[str, Any]],
+        metadata_result: Result[dict[str, Any]],
         *,
         filepath: str,
         write_metadata: bool,
@@ -2890,12 +2901,12 @@ class IndexScanner:
         file_path: Path,
         mtime: int,
         size: int,
-        metadata_result: Result[Dict[str, Any]],
+        metadata_result: Result[dict[str, Any]],
         source: str = "output",
-        root_id: Optional[str] = None,
+        root_id: str | None = None,
         write_metadata: bool = True,
         skip_lock: bool = False,
-    ) -> Result[Dict[str, str]]:
+    ) -> Result[dict[str, str]]:
         """
         Update existing asset in database.
         """
@@ -2955,7 +2966,7 @@ class IndexScanner:
 
         return Result.Ok({"action": "updated", "asset_id": asset_id})
 
-    def _scan_context(self, **kwargs) -> Dict[str, Any]:
+    def _scan_context(self, **kwargs) -> dict[str, Any]:
         context = {"scan_id": self._current_scan_id} if self._current_scan_id else {}
         context.update(kwargs)
         return context
@@ -2966,8 +2977,8 @@ class IndexScanner:
     async def _write_metadata_row(
         self,
         asset_id: int,
-        metadata_result: Result[Dict[str, Any]],
-        filepath: Optional[str] = None,
+        metadata_result: Result[dict[str, Any]],
+        filepath: str | None = None,
     ) -> None:
         if not metadata_result.ok:
             return

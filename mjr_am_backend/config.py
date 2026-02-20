@@ -1,9 +1,9 @@
 """
 Configuration for Majoor Assets Manager.
 """
+import logging
 import os
 import sys
-import logging
 from pathlib import Path
 
 from .utils import env_bool

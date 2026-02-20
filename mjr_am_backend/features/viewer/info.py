@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-def _parse_fps(value: Any) -> Optional[float]:
+def _parse_fps(value: Any) -> float | None:
     """Safely parse FPS from various formats (number, string, fraction)."""
     if value is None:
         return None
@@ -43,7 +43,7 @@ def _parse_fps(value: Any) -> Optional[float]:
         return None
 
 
-def _pick_ffprobe_video_stream(metadata_raw: Any) -> Dict[str, Any]:
+def _pick_ffprobe_video_stream(metadata_raw: Any) -> dict[str, Any]:
     if not isinstance(metadata_raw, dict):
         return {}
     ff = metadata_raw.get("raw_ffprobe")
@@ -53,7 +53,7 @@ def _pick_ffprobe_video_stream(metadata_raw: Any) -> Dict[str, Any]:
     return vs if isinstance(vs, dict) else {}
 
 
-def _pick_ffprobe_audio_stream(metadata_raw: Any) -> Dict[str, Any]:
+def _pick_ffprobe_audio_stream(metadata_raw: Any) -> dict[str, Any]:
     if not isinstance(metadata_raw, dict):
         return {}
     ff = metadata_raw.get("raw_ffprobe")
@@ -72,7 +72,7 @@ def _safe_cast(value: Any, caster: Any) -> Any:
         return None
 
 
-def _asset_field(asset: Dict[str, Any], key: str, caster: Any) -> Any:
+def _asset_field(asset: dict[str, Any], key: str, caster: Any) -> Any:
     try:
         value = asset.get(key)
     except Exception:
@@ -80,7 +80,7 @@ def _asset_field(asset: Dict[str, Any], key: str, caster: Any) -> Any:
     return _safe_cast(value, caster)
 
 
-def _extract_video_fields(info: Dict[str, Any], metadata_raw: Any) -> None:
+def _extract_video_fields(info: dict[str, Any], metadata_raw: Any) -> None:
     vs = _pick_ffprobe_video_stream(metadata_raw)
     fps_raw = _extract_fps_raw(metadata_raw, vs)
     fps = _parse_fps(fps_raw)
@@ -89,7 +89,7 @@ def _extract_video_fields(info: Dict[str, Any], metadata_raw: Any) -> None:
     info["frame_count"] = _extract_frame_count(vs, info, fps)
 
 
-def _extract_fps_raw(metadata_raw: Any, video_stream: Dict[str, Any]) -> Any:
+def _extract_fps_raw(metadata_raw: Any, video_stream: dict[str, Any]) -> Any:
     if isinstance(metadata_raw, dict):
         fps_raw = metadata_raw.get("fps")
         if fps_raw is not None:
@@ -97,14 +97,14 @@ def _extract_fps_raw(metadata_raw: Any, video_stream: Dict[str, Any]) -> Any:
     return video_stream.get("avg_frame_rate") or video_stream.get("r_frame_rate")
 
 
-def _extract_frame_count(video_stream: Dict[str, Any], info: Dict[str, Any], fps: Optional[float]) -> Optional[int]:
+def _extract_frame_count(video_stream: dict[str, Any], info: dict[str, Any], fps: float | None) -> int | None:
     frame_count = _extract_stream_frame_count(video_stream)
     if frame_count is not None:
         return frame_count
     return _estimate_frame_count(info.get("duration_s"), fps)
 
 
-def _extract_stream_frame_count(video_stream: Dict[str, Any]) -> Optional[int]:
+def _extract_stream_frame_count(video_stream: dict[str, Any]) -> int | None:
     for key in ("nb_frames", "nb_read_frames"):
         try:
             raw_val = video_stream.get(key)
@@ -118,7 +118,7 @@ def _extract_stream_frame_count(video_stream: Dict[str, Any]) -> Optional[int]:
     return None
 
 
-def _estimate_frame_count(duration_s: Any, fps: Optional[float]) -> Optional[int]:
+def _estimate_frame_count(duration_s: Any, fps: float | None) -> int | None:
     if not fps or not isinstance(duration_s, (int, float)) or duration_s <= 0:
         return None
     try:
@@ -127,7 +127,7 @@ def _estimate_frame_count(duration_s: Any, fps: Optional[float]) -> Optional[int
         return None
 
 
-def _extract_audio_fields(info: Dict[str, Any], metadata_raw: Any) -> None:
+def _extract_audio_fields(info: dict[str, Any], metadata_raw: Any) -> None:
     astream = _pick_ffprobe_audio_stream(metadata_raw)
     info["audio_codec"] = str(astream.get("codec_name")) if astream.get("codec_name") else None
     info["sample_rate"] = _safe_cast(astream.get("sample_rate"), int)
@@ -135,7 +135,7 @@ def _extract_audio_fields(info: Dict[str, Any], metadata_raw: Any) -> None:
     info["bitrate"] = _safe_cast(astream.get("bit_rate"), int)
 
 
-def _apply_live_stats(info: Dict[str, Any], resolved_path: Optional[Path]) -> None:
+def _apply_live_stats(info: dict[str, Any], resolved_path: Path | None) -> None:
     if resolved_path is None:
         return
     try:
@@ -148,7 +148,7 @@ def _apply_live_stats(info: Dict[str, Any], resolved_path: Optional[Path]) -> No
         logger.debug(f"Unexpected error reading stats {resolved_path}: {exc}")
 
 
-def build_viewer_media_info(asset: Dict[str, Any], resolved_path: Optional[Path] = None, refresh: bool = False) -> Dict[str, Any]:
+def build_viewer_media_info(asset: dict[str, Any], resolved_path: Path | None = None, refresh: bool = False) -> dict[str, Any]:
     """
     Build a compact media info payload for the viewer UI.
     Must be safe to call on partially populated assets.
@@ -156,7 +156,7 @@ def build_viewer_media_info(asset: Dict[str, Any], resolved_path: Optional[Path]
     if not isinstance(asset, dict):
         return {}
 
-    info: Dict[str, Any] = {}
+    info: dict[str, Any] = {}
 
     # Basic Info
     info["asset_id"] = asset.get("id")

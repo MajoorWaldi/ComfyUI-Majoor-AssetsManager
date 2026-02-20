@@ -13,11 +13,11 @@ import os
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 from uuid import uuid4
 
-from .shared import Result, get_logger
 from .config import INDEX_DIR, OUTPUT_ROOT
+from .shared import Result, get_logger
 
 logger = get_logger(__name__)
 
@@ -43,7 +43,7 @@ def _is_symlink_like(path: Path) -> bool:
         st = path.lstat()
         # Windows: reparse points cover symlinks/junctions.
         if hasattr(st, "st_file_attributes"):
-            return bool(int(getattr(st, "st_file_attributes") or 0) & 0x400)
+            return bool(int(st.st_file_attributes or 0) & 0x400)
     except Exception:
         pass
     return False
@@ -59,7 +59,7 @@ def _path_is_relative_to(path: Path, root: Path) -> bool:
         return False
 
 
-def _normalize_dir_path(path: str) -> Optional[Path]:
+def _normalize_dir_path(path: str) -> Path | None:
     if not path or "\x00" in path:
         return None
     try:
@@ -89,7 +89,7 @@ def _canonical_path_key(path_value: str) -> str:
         return str(path_value or "").strip().lower()
 
 
-def _read_store() -> Dict[str, Any]:
+def _read_store() -> dict[str, Any]:
     if not _STORE_PATH.exists():
         return {"version": 1, "roots": []}
     try:
@@ -126,12 +126,12 @@ def _write_store(data: dict) -> Result[bool]:
         return Result.Err("STORE_WRITE_FAILED", f"Failed to persist custom roots: {exc}")
 
 
-def list_custom_roots() -> Result[List[Dict[str, Any]]]:
+def list_custom_roots() -> Result[list[dict[str, Any]]]:
     """List configured custom root directories (id/path/label/created_at)."""
     with _LOCK:
         store = _read_store()
         roots = store.get("roots") or []
-        cleaned: List[Dict[str, Any]] = []
+        cleaned: list[dict[str, Any]] = []
         for r in roots:
             normalized_row = _normalize_custom_root_row(r)
             if normalized_row is not None:
@@ -139,7 +139,7 @@ def list_custom_roots() -> Result[List[Dict[str, Any]]]:
         return Result.Ok(cleaned)
 
 
-def _normalize_custom_root_row(row: Any) -> Optional[Dict[str, Any]]:
+def _normalize_custom_root_row(row: Any) -> dict[str, Any] | None:
     if not isinstance(row, dict):
         return None
     rid = str(row.get("id") or "").strip()
@@ -159,7 +159,7 @@ def _normalize_custom_root_row(row: Any) -> Optional[Dict[str, Any]]:
     return _normalized_root_payload(row, rid=rid, normalized=normalized)
 
 
-def _normalized_root_payload(row: Dict[str, Any], *, rid: str, normalized: Path) -> Dict[str, Any]:
+def _normalized_root_payload(row: dict[str, Any], *, rid: str, normalized: Path) -> dict[str, Any]:
     exists, is_dir = _path_exists_and_is_dir(normalized)
     offline = not (exists and is_dir)
     return {
@@ -171,14 +171,14 @@ def _normalized_root_payload(row: Dict[str, Any], *, rid: str, normalized: Path)
     }
 
 
-def _path_exists_and_is_dir(path: Path) -> Tuple[bool, bool]:
+def _path_exists_and_is_dir(path: Path) -> tuple[bool, bool]:
     try:
         return path.exists(), path.is_dir()
     except Exception:
         return False, False
 
 
-def add_custom_root(path: str, label: Optional[str] = None) -> Result[Dict[str, Any]]:
+def add_custom_root(path: str, label: str | None = None) -> Result[dict[str, Any]]:
     """Add a custom root directory, or return the existing one if present."""
     normalized = _normalize_dir_path(path)
     validation = _validate_new_root_path(normalized)
@@ -222,7 +222,7 @@ def add_custom_root(path: str, label: Optional[str] = None) -> Result[Dict[str, 
     return Result.Ok(_root_row(root_id, resolved, safe_label, created_at))
 
 
-def _validate_new_root_path(normalized: Optional[Path]) -> Optional[Result[Dict[str, Any]]]:
+def _validate_new_root_path(normalized: Path | None) -> Result[dict[str, Any]] | None:
     if not normalized:
         return Result.Err("INVALID_INPUT", "Invalid path")
     if not normalized.exists():
@@ -232,7 +232,7 @@ def _validate_new_root_path(normalized: Optional[Path]) -> Optional[Result[Dict[
     return None
 
 
-def _new_root_payload(normalized: Path, *, label: Optional[str]) -> Dict[str, str]:
+def _new_root_payload(normalized: Path, *, label: str | None) -> dict[str, str]:
     resolved = str(normalized)
     return {
         "resolved": resolved,
@@ -243,13 +243,13 @@ def _new_root_payload(normalized: Path, *, label: Optional[str]) -> Dict[str, st
     }
 
 
-def _root_row(root_id: str, resolved: str, safe_label: str, created_at: str) -> Dict[str, Any]:
+def _root_row(root_id: str, resolved: str, safe_label: str, created_at: str) -> dict[str, Any]:
     return {"id": root_id, "path": resolved, "label": safe_label, "created_at": created_at}
 
 
-def _resolve_builtin_roots() -> tuple[Optional[Path], Optional[Path]]:
-    output_root: Optional[Path] = None
-    input_root: Optional[Path] = None
+def _resolve_builtin_roots() -> tuple[Path | None, Path | None]:
+    output_root: Path | None = None
+    input_root: Path | None = None
     try:
         if OUTPUT_ROOT:
             output_root = Path(OUTPUT_ROOT).resolve()
@@ -266,9 +266,9 @@ def _resolve_builtin_roots() -> tuple[Optional[Path], Optional[Path]]:
 
 def _check_builtin_root_overlap(
     normalized: Path,
-    output_root: Optional[Path],
-    input_root: Optional[Path],
-) -> Optional[Result[Dict[str, Any]]]:
+    output_root: Path | None,
+    input_root: Path | None,
+) -> Result[dict[str, Any]] | None:
     if output_root and (_path_is_relative_to(normalized, output_root) or _path_is_relative_to(output_root, normalized)):
         return Result.Err("OVERLAP", f"Root overlaps with output: {output_root}")
     if input_root and (_path_is_relative_to(normalized, input_root) or _path_is_relative_to(input_root, normalized)):
@@ -278,14 +278,14 @@ def _check_builtin_root_overlap(
 
 def _find_existing_or_overlap_root(
     *,
-    roots: List[Any],
+    roots: list[Any],
     normalized: Path,
     normalized_key: str,
     fallback_id: str,
     resolved: str,
     safe_label: str,
     created_at: str,
-) -> Optional[Result[Dict[str, Any]]]:
+) -> Result[dict[str, Any]] | None:
     for root in roots:
         if not isinstance(root, dict):
             continue
@@ -308,7 +308,7 @@ def _find_existing_or_overlap_root(
     return None
 
 
-def _existing_root_overlap(normalized: Path, existing_path: Any) -> Optional[Path]:
+def _existing_root_overlap(normalized: Path, existing_path: Any) -> Path | None:
     if not existing_path:
         return None
     try:
@@ -355,14 +355,14 @@ def resolve_custom_root(root_id: str) -> Result[Path]:
     return Result.Err("NOT_FOUND", f"Custom root not found: {rid}")
 
 
-def _find_custom_root_row_by_id(rows: List[Dict[str, Any]], rid: str) -> Optional[Dict[str, Any]]:
+def _find_custom_root_row_by_id(rows: list[dict[str, Any]], rid: str) -> dict[str, Any] | None:
     for row in rows:
         if str(row.get("id") or "") == rid:
             return row
     return None
 
 
-def _resolve_custom_root_path_from_row(row: Dict[str, Any]) -> Result[Path]:
+def _resolve_custom_root_path_from_row(row: dict[str, Any]) -> Result[Path]:
     normalized = _normalize_dir_path(str(row.get("path") or ""))
     if not normalized:
         return Result.Err("INVALID_INPUT", "Invalid stored path")

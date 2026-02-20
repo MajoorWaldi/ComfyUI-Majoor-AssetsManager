@@ -16,7 +16,7 @@ def __getattr__(name: str):
 
         return _MetadataService
     if name in ("extract_png_metadata", "extract_webp_metadata", "extract_video_metadata"):
-        from .extractors import extract_png_metadata, extract_webp_metadata, extract_video_metadata
+        from .extractors import extract_png_metadata, extract_video_metadata, extract_webp_metadata
 
         mapping = {
             "extract_png_metadata": extract_png_metadata,

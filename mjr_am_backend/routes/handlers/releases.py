@@ -12,13 +12,13 @@ If GitHub is unreachable, returns a `Result.Err` with code `DEGRADED`.
 """
 from __future__ import annotations
 
-import os
 import asyncio
+import os
 from typing import Any
 
-from aiohttp import web, ClientSession, ClientTimeout
-
+from aiohttp import ClientSession, ClientTimeout, web
 from mjr_am_backend.shared import Result, get_logger, sanitize_error_message
+
 from ..core import _json_response
 
 logger = get_logger(__name__)

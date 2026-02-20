@@ -5,28 +5,27 @@ Collections are small JSON files that store a user-curated list of assets (by fi
 """
 
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from aiohttp import web
-
-from mjr_am_backend.shared import Result, classify_file, get_logger, sanitize_error_message
 from mjr_am_backend.features.collections import CollectionsService
+from mjr_am_backend.shared import Result, classify_file, get_logger, sanitize_error_message
 
-from ..core import _json_response, _require_services, _read_json, _csrf_error, _require_write_access
+from ..core import _csrf_error, _json_response, _read_json, _require_services, _require_write_access
 
 logger = get_logger(__name__)
 
 _collections = CollectionsService()
 
 
-def _as_list(value: Any) -> List[Any]:
+def _as_list(value: Any) -> list[Any]:
     if isinstance(value, list):
         return value
     return []
 
 
-def _safe_assets_payload(value: Any) -> List[Dict[str, Any]]:
-    out: List[Dict[str, Any]] = []
+def _safe_assets_payload(value: Any) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
     for item in _as_list(value):
         if not isinstance(item, dict):
             continue
@@ -37,7 +36,7 @@ def _safe_assets_payload(value: Any) -> List[Dict[str, Any]]:
     return out
 
 
-def _minimal_asset_from_item(item: Dict[str, Any]) -> Dict[str, Any]:
+def _minimal_asset_from_item(item: dict[str, Any]) -> dict[str, Any]:
     fp = str(item.get("filepath") or "")
     p = Path(fp)
     kind = str(item.get("kind") or classify_file(fp) or "unknown").lower()
@@ -168,7 +167,7 @@ def register_collections_routes(routes: web.RouteTableDef) -> None:
         items_list = items if isinstance(items, list) else []
 
         assets = []
-        filepaths: List[str] = []
+        filepaths: list[str] = []
         for it in items_list:
             if not isinstance(it, dict):
                 continue

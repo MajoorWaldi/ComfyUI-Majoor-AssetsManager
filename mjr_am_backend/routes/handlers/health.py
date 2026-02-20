@@ -3,6 +3,7 @@ Health check endpoints.
 """
 import asyncio
 from pathlib import Path
+
 from aiohttp import web
 
 try:
@@ -15,14 +16,19 @@ except Exception:
 
     folder_paths = _FolderPathsStub()  # type: ignore
 
-from mjr_am_backend.config import OUTPUT_ROOT, get_tool_paths, MEDIA_PROBE_BACKEND
-from mjr_am_backend.config import TO_THREAD_TIMEOUT_S
+from mjr_am_backend.config import (
+    MEDIA_PROBE_BACKEND,
+    OUTPUT_ROOT,
+    TO_THREAD_TIMEOUT_S,
+    get_tool_paths,
+)
 from mjr_am_backend.custom_roots import resolve_custom_root
-from mjr_am_backend.shared import Result, ErrorCode, sanitize_error_message
+from mjr_am_backend.shared import ErrorCode, Result, sanitize_error_message
 from mjr_am_backend.tool_detect import get_tool_status
 from mjr_am_backend.utils import parse_bool
+
+from ..core import _csrf_error, _json_response, _read_json, _require_services, _require_write_access
 from .db_maintenance import is_db_maintenance_active
-from ..core import _json_response, _require_services, _csrf_error, _require_write_access, _read_json
 
 SECURITY_PREF_KEYS = {
     "safe_mode",
@@ -252,10 +258,10 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         Get configuration (output directory, etc.).
         """
         svc, _ = await _require_services()
-        
+
         probe_mode = MEDIA_PROBE_BACKEND
         output_root = await _runtime_output_root(svc)
-        
+
         settings_service = None
         if svc:
             settings_service = svc.get("settings")
@@ -266,7 +272,7 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
                 except Exception:
                     # fallback to defaults
                     pass
-                    
+
         return _json_response(Result.Ok({
             "output_directory": output_root,
             "tool_paths": get_tool_paths(),

@@ -106,25 +106,56 @@ function _sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, Math.max(0, Number(ms) || 0)));
 }
 
-export async function waitForComfyApp({ timeoutMs = 4000, intervalMs = READY_POLL_INTERVAL_MS } = {}) {
+function _warnTimeout(label, timeoutMs) {
+    try {
+        console.warn(`[Majoor] ${label} timed out after ${Math.max(0, Number(timeoutMs) || 0)}ms`);
+    } catch {}
+}
+
+export async function waitForComfyApp({
+    timeoutMs = 4000,
+    intervalMs = READY_POLL_INTERVAL_MS,
+    warnOnTimeout = true,
+    rejectOnTimeout = false,
+} = {}) {
     const start = Date.now();
-    while (Date.now() - start < Math.max(0, Number(timeoutMs) || 0)) {
+    const timeout = Math.max(0, Number(timeoutMs) || 0);
+    while (Date.now() - start < timeout) {
         const app = getComfyApp();
         if (app && typeof app === "object") return app;
         await _sleep(intervalMs);
     }
-    return getComfyApp();
+    const fallback = getComfyApp();
+    if (fallback && typeof fallback === "object") return fallback;
+    if (warnOnTimeout) _warnTimeout("waitForComfyApp", timeout);
+    if (rejectOnTimeout) {
+        throw new Error(`waitForComfyApp timeout after ${timeout}ms`);
+    }
+    return null;
 }
 
 export async function waitForComfyApi(
-    { app = null, timeoutMs = 4000, intervalMs = READY_POLL_INTERVAL_MS } = {}
+    {
+        app = null,
+        timeoutMs = 4000,
+        intervalMs = READY_POLL_INTERVAL_MS,
+        warnOnTimeout = true,
+        rejectOnTimeout = false,
+    } = {}
 ) {
     const start = Date.now();
-    while (Date.now() - start < Math.max(0, Number(timeoutMs) || 0)) {
+    const timeout = Math.max(0, Number(timeoutMs) || 0);
+    while (Date.now() - start < timeout) {
         const runtimeApp = app || getComfyApp();
         const api = getComfyApi(runtimeApp);
         if (api) return api;
         await _sleep(intervalMs);
     }
-    return getComfyApi(app || getComfyApp());
+    const fallback = getComfyApi(app || getComfyApp());
+    if (fallback) return fallback;
+    if (warnOnTimeout) _warnTimeout("waitForComfyApi", timeout);
+    if (rejectOnTimeout) {
+        throw new Error(`waitForComfyApi timeout after ${timeout}ms`);
+    }
+    return null;
 }

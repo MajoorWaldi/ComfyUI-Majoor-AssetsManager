@@ -10,18 +10,18 @@ This service coordinates multiple specialized components:
 """
 import asyncio
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Any
 
-from ...shared import get_logger, Result
 from mjr_am_shared.scan_throttle import mark_directory_indexed
+
 from ...adapters.db.sqlite import Sqlite
+from ...shared import Result, get_logger
 from ..metadata import MetadataService
+from .enricher import MetadataEnricher
+from .metadata_helpers import MetadataHelpers
 from .scanner import IndexScanner
 from .searcher import IndexSearcher
 from .updater import AssetUpdater
-from .enricher import MetadataEnricher
-from .metadata_helpers import MetadataHelpers
-
 
 logger = get_logger(__name__)
 
@@ -30,11 +30,11 @@ def _normalize_rename_paths(old_filepath: str, new_filepath: str) -> tuple[str, 
     return str(old_filepath or ""), str(new_filepath or "")
 
 
-def _extract_rename_target_info(new_fp: str) -> tuple[str, str, Optional[int]]:
+def _extract_rename_target_info(new_fp: str) -> tuple[str, str, int | None]:
     new_path = Path(new_fp)
     filename = new_path.name
     subfolder = str(new_path.parent)
-    mtime: Optional[int] = None
+    mtime: int | None = None
     try:
         if new_path.exists():
             mtime = int(new_path.stat().st_mtime)
@@ -43,7 +43,7 @@ def _extract_rename_target_info(new_fp: str) -> tuple[str, str, Optional[int]]:
     return filename, subfolder, mtime
 
 
-async def _update_assets_filepath_row(db, old_fp: str, new_fp: str, filename: str, subfolder: str, mtime: Optional[int]) -> Result[Any]:
+async def _update_assets_filepath_row(db, old_fp: str, new_fp: str, filename: str, subfolder: str, mtime: int | None) -> Result[Any]:
     if mtime is None:
         return await db.aexecute(
             "UPDATE assets SET filepath = ?, filename = ?, subfolder = ?, updated_at = CURRENT_TIMESTAMP WHERE filepath = ?",
@@ -55,7 +55,7 @@ async def _update_assets_filepath_row(db, old_fp: str, new_fp: str, filename: st
     )
 
 
-async def _update_path_keyed_index_tables(db, old_fp: str, new_fp: str, subfolder: str, mtime: Optional[int]) -> Result[bool]:
+async def _update_path_keyed_index_tables(db, old_fp: str, new_fp: str, subfolder: str, mtime: int | None) -> Result[bool]:
     sj = await db.aexecute(
         "UPDATE scan_journal SET filepath = ?, dir_path = ?, mtime = COALESCE(?, mtime), last_seen = CURRENT_TIMESTAMP WHERE filepath = ?",
         (new_fp, subfolder, mtime, old_fp),
@@ -113,10 +113,10 @@ class IndexService:
         recursive: bool = True,
         incremental: bool = True,
         source: str = "output",
-        root_id: Optional[str] = None,
+        root_id: str | None = None,
         fast: bool = False,
         background_metadata: bool = False,
-    ) -> Result[Dict[str, Any]]:
+    ) -> Result[dict[str, Any]]:
         """
         Scan a directory for asset files.
 
@@ -132,15 +132,19 @@ class IndexService:
         Returns:
             Result with scan statistics
         """
-        result = await self._scanner.scan_directory(
-            directory,
-            recursive,
-            incremental,
-            source,
-            root_id,
-            fast,
-            background_metadata,
-        )
+        self._enricher.begin_scan_pause()
+        try:
+            result = await self._scanner.scan_directory(
+                directory,
+                recursive,
+                incremental,
+                source,
+                root_id,
+                fast,
+                background_metadata,
+            )
+        finally:
+            self._enricher.end_scan_pause()
 
         if result.ok:
             try:
@@ -168,12 +172,12 @@ class IndexService:
 
     async def index_paths(
         self,
-        paths: List[Path],
+        paths: list[Path],
         base_dir: str,
         incremental: bool = True,
         source: str = "output",
-        root_id: Optional[str] = None,
-    ) -> Result[Dict[str, Any]]:
+        root_id: str | None = None,
+    ) -> Result[dict[str, Any]]:
         """
         Index a list of file paths (no directory scan).
 
@@ -256,9 +260,9 @@ class IndexService:
         query: str,
         limit: int = 50,
         offset: int = 0,
-        filters: Optional[Dict[str, Any]] = None,
+        filters: dict[str, Any] | None = None,
         include_total: bool = True,
-    ) -> Result[Dict[str, Any]]:
+    ) -> Result[dict[str, Any]]:
         """
         Search assets using FTS5 full-text search, or browse all if query is '*'.
 
@@ -276,13 +280,13 @@ class IndexService:
     async def search_scoped(
         self,
         query: str,
-        roots: List[str],
+        roots: list[str],
         limit: int = 50,
         offset: int = 0,
-        filters: Optional[Dict[str, Any]] = None,
+        filters: dict[str, Any] | None = None,
         include_total: bool = True,
-        sort: Optional[str] = None,
-    ) -> Result[Dict[str, Any]]:
+        sort: str | None = None,
+    ) -> Result[dict[str, Any]]:
         """
         Search assets but restrict results to files whose absolute filepath is under one of the provided roots.
 
@@ -306,11 +310,11 @@ class IndexService:
 
     async def date_histogram_scoped(
         self,
-        roots: List[str],
+        roots: list[str],
         month_start: int,
         month_end: int,
-        filters: Optional[Dict[str, Any]] = None,
-    ) -> Result[Dict[str, int]]:
+        filters: dict[str, Any] | None = None,
+    ) -> Result[dict[str, int]]:
         """
         Return a day->count mapping for assets within a month for the given roots.
 
@@ -318,12 +322,12 @@ class IndexService:
         """
         return await self.searcher.date_histogram_scoped(roots, month_start, month_end, filters)
 
-    async def get_asset(self, asset_id: int) -> Result[Optional[Dict[str, Any]]]:
+    async def get_asset(self, asset_id: int) -> Result[dict[str, Any] | None]:
         """Fetch a single asset row by id."""
         # Async path: return the DB row; deep "self-heal" is handled by scan/enrich flows.
         return await self.searcher.get_asset(asset_id)
 
-    async def get_assets_batch(self, asset_ids: List[int]) -> Result[List[Dict[str, Any]]]:
+    async def get_assets_batch(self, asset_ids: list[int]) -> Result[list[dict[str, Any]]]:
         """
         Batch fetch assets by ID (single query).
 
@@ -332,7 +336,7 @@ class IndexService:
         """
         return await self.searcher.get_assets(asset_ids)
 
-    async def lookup_assets_by_filepaths(self, filepaths: List[str]) -> Result[Dict[str, Dict[str, Any]]]:
+    async def lookup_assets_by_filepaths(self, filepaths: list[str]) -> Result[dict[str, dict[str, Any]]]:
         """
         Lookup DB-enriched asset fields for a set of absolute filepaths.
 
@@ -343,7 +347,7 @@ class IndexService:
 
     # ==================== Update Operations ====================
 
-    async def update_asset_rating(self, asset_id: int, rating: int) -> Result[Dict[str, Any]]:
+    async def update_asset_rating(self, asset_id: int, rating: int) -> Result[dict[str, Any]]:
         """
         Update the rating for an asset.
 
@@ -356,7 +360,7 @@ class IndexService:
         """
         return await self._updater.update_asset_rating(asset_id, rating)
 
-    async def update_asset_tags(self, asset_id: int, tags: List[str]) -> Result[Dict[str, Any]]:
+    async def update_asset_tags(self, asset_id: int, tags: list[str]) -> Result[dict[str, Any]]:
         """
         Update the tags for an asset.
 
@@ -369,7 +373,7 @@ class IndexService:
         """
         return await self._updater.update_asset_tags(asset_id, tags)
 
-    async def get_all_tags(self) -> Result[List[str]]:
+    async def get_all_tags(self) -> Result[list[str]]:
         """
         Get all unique tags from the database for autocomplete.
 
@@ -397,7 +401,7 @@ class IndexService:
         except Exception:
             pass
 
-    def get_runtime_status(self) -> Dict[str, Any]:
+    def get_runtime_status(self) -> dict[str, Any]:
         """Return lightweight runtime counters for diagnostics/dashboard."""
         try:
             queue_len = int(self._enricher.get_queue_length())

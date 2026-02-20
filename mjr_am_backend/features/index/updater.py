@@ -2,10 +2,10 @@
 Asset updater - handles rating and tag updates.
 """
 import json
-from typing import List, Dict, Any
+from typing import Any
 
-from ...shared import Result
 from ...adapters.db.sqlite import Sqlite
+from ...shared import Result
 
 MAX_TAG_LENGTH = 100
 
@@ -29,7 +29,7 @@ class AssetUpdater:
         self.db = db
         self._has_tags_text_column = has_tags_text_column
 
-    async def update_asset_rating(self, asset_id: int, rating: int) -> Result[Dict[str, Any]]:
+    async def update_asset_rating(self, asset_id: int, rating: int) -> Result[dict[str, Any]]:
         """
         Update the rating for an asset.
 
@@ -69,7 +69,7 @@ class AssetUpdater:
 
         return Result.Ok({"asset_id": asset_id, "rating": rating})
 
-    async def update_asset_tags(self, asset_id: int, tags: List[str]) -> Result[Dict[str, Any]]:
+    async def update_asset_tags(self, asset_id: int, tags: list[str]) -> Result[dict[str, Any]]:
         """
         Update the tags for an asset.
 
@@ -97,8 +97,8 @@ class AssetUpdater:
 
         return Result.Ok({"asset_id": asset_id, "tags": sanitized})
 
-    def _sanitize_tags(self, tags: List[str]) -> List[str]:
-        sanitized: List[str] = []
+    def _sanitize_tags(self, tags: list[str]) -> list[str]:
+        sanitized: list[str] = []
         for tag in tags:
             if not isinstance(tag, str):
                 continue
@@ -110,7 +110,7 @@ class AssetUpdater:
             sanitized.append(cleaned)
         return sanitized
 
-    def _build_tags_payload(self, sanitized: List[str]) -> tuple[str, str | None]:
+    def _build_tags_payload(self, sanitized: list[str]) -> tuple[str, str | None]:
         tags_json = json.dumps(sanitized, ensure_ascii=False)
         tags_text = " ".join(sanitized) if self._has_tags_text_column else None
         return tags_json, tags_text
@@ -142,7 +142,7 @@ class AssetUpdater:
                 (asset_id, tags_json, asset_id)
             )
 
-    async def get_all_tags(self) -> Result[List[str]]:
+    async def get_all_tags(self) -> Result[list[str]]:
         """
         Get all unique tags from the database for autocomplete.
 
@@ -163,7 +163,7 @@ class AssetUpdater:
         all_tags = self._collect_unique_tags(result.data or [])
         return Result.Ok(sorted(all_tags))
 
-    def _collect_unique_tags(self, rows: List[Dict[str, Any]]) -> set[str]:
+    def _collect_unique_tags(self, rows: list[dict[str, Any]]) -> set[str]:
         all_tags: set[str] = set()
         for row in rows:
             for tag in self._row_tags(row):
@@ -171,7 +171,7 @@ class AssetUpdater:
         return all_tags
 
     @staticmethod
-    def _row_tags(row: Dict[str, Any]) -> List[str]:
+    def _row_tags(row: dict[str, Any]) -> list[str]:
         tags_json = row.get("tags")
         if not tags_json:
             return []
@@ -181,7 +181,7 @@ class AssetUpdater:
             return []
         if not isinstance(tags, list):
             return []
-        out: List[str] = []
+        out: list[str] = []
         for tag in tags:
             if isinstance(tag, str) and tag.strip():
                 out.append(tag.strip())

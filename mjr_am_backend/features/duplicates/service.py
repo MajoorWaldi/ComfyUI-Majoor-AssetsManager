@@ -7,7 +7,7 @@ import asyncio
 import hashlib
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from PIL import Image
 
@@ -35,7 +35,7 @@ def _compute_file_hash(path: Path) -> str:
     return h.hexdigest()
 
 
-def _compute_phash_hex(path: Path) -> Optional[str]:
+def _compute_phash_hex(path: Path) -> str | None:
     try:
         with Image.open(path) as im:
             g = im.convert("L").resize((8, 8), Image.Resampling.LANCZOS)
@@ -59,7 +59,7 @@ def _hamming_hex(a: str, b: str) -> int:
         return 64
 
 
-def _build_known_hash_fields(row: Dict[str, Any]) -> tuple[str, str, str]:
+def _build_known_hash_fields(row: dict[str, Any]) -> tuple[str, str, str]:
     return (
         str(row.get("hash_state") or ""),
         str(row.get("content_hash") or ""),
@@ -67,7 +67,7 @@ def _build_known_hash_fields(row: Dict[str, Any]) -> tuple[str, str, str]:
     )
 
 
-def _exact_group_item(row: Dict[str, Any]) -> Dict[str, Any]:
+def _exact_group_item(row: dict[str, Any]) -> dict[str, Any]:
     row_data = row or {}
     return {
         "id": _safe_int(row_data.get("id")),
@@ -77,7 +77,7 @@ def _exact_group_item(row: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _similar_pair_side(row: Dict[str, Any]) -> Dict[str, Any]:
+def _similar_pair_side(row: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": _safe_int(row.get("id")),
         "filepath": row.get("filepath"),
@@ -85,7 +85,7 @@ def _similar_pair_side(row: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _similar_pair_row(distance: int, left: Dict[str, Any], right: Dict[str, Any]) -> Dict[str, Any]:
+def _similar_pair_row(distance: int, left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
     return {
         "distance": distance,
         "left": _similar_pair_side(left),
@@ -93,7 +93,7 @@ def _similar_pair_row(distance: int, left: Dict[str, Any], right: Dict[str, Any]
     }
 
 
-def _phash_value(row: Dict[str, Any]) -> str:
+def _phash_value(row: dict[str, Any]) -> str:
     return str((row or {}).get("phash") or "")
 
 
@@ -101,8 +101,8 @@ class DuplicatesService:
     def __init__(self, db: Sqlite):
         self.db = db
         self._lock = asyncio.Lock()
-        self._task: Optional[asyncio.Task] = None
-        self._status: Dict[str, Any] = {
+        self._task: asyncio.Task | None = None
+        self._status: dict[str, Any] = {
             "running": False,
             "processed": 0,
             "updated": 0,
@@ -116,7 +116,7 @@ class DuplicatesService:
         except Exception:
             pass
 
-    async def start_background_analysis(self, limit: int = 250) -> Result[Dict[str, Any]]:
+    async def start_background_analysis(self, limit: int = 250) -> Result[dict[str, Any]]:
         async with self._lock:
             if self._task and not self._task.done():
                 return Result.Ok({"started": False, "running": True, "status": self._status})
@@ -124,7 +124,7 @@ class DuplicatesService:
             self._task = asyncio.create_task(self._run_background(limit=max(10, min(5000, int(limit or 250)))))
             return Result.Ok({"started": True, "running": True, "status": self._status})
 
-    async def get_status(self) -> Result[Dict[str, Any]]:
+    async def get_status(self) -> Result[dict[str, Any]]:
         running = bool(self._task and not self._task.done())
         self._set_status(running=running)
         return Result.Ok(dict(self._status))
@@ -162,7 +162,7 @@ class DuplicatesService:
             (int(limit),),
         )
 
-    def _build_row_context(self, row: Dict[str, Any]) -> Dict[str, Any]:
+    def _build_row_context(self, row: dict[str, Any]) -> dict[str, Any]:
         row_data = row or {}
         aid = _safe_int(row_data.get("id"))
         fp = str(row_data.get("filepath") or "")
@@ -181,11 +181,11 @@ class DuplicatesService:
             "known_phash": known_phash,
         }
 
-    def _is_row_processable(self, item: Dict[str, Any]) -> bool:
+    def _is_row_processable(self, item: dict[str, Any]) -> bool:
         path = item["path"]
         return bool(item["aid"] and item["fp"] and path.exists() and path.is_file())
 
-    def _row_is_up_to_date(self, item: Dict[str, Any]) -> bool:
+    def _row_is_up_to_date(self, item: dict[str, Any]) -> bool:
         if item["known_state"] != item["current_state"]:
             return False
         if not item["known_content"]:
@@ -194,7 +194,7 @@ class DuplicatesService:
             return False
         return True
 
-    async def _process_hash_update(self, item: Dict[str, Any]) -> None:
+    async def _process_hash_update(self, item: dict[str, Any]) -> None:
         try:
             content_hash = await asyncio.to_thread(_compute_file_hash, item["path"])
             phash = await asyncio.to_thread(_compute_phash_hex, item["path"]) if item["kind"] == "image" else None
@@ -218,11 +218,11 @@ class DuplicatesService:
         self._status[key] = _safe_int(self._status.get(key)) + int(amount)
 
     @staticmethod
-    def _alerts_where_clause(roots: List[str]) -> tuple[str, List[Any]]:
-        params: List[Any] = []
+    def _alerts_where_clause(roots: list[str]) -> tuple[str, list[Any]]:
+        params: list[Any] = []
         if not roots:
             return "", params
-        clauses: List[str] = []
+        clauses: list[str] = []
         for root in roots:
             clauses.append("a.filepath LIKE ?")
             params.append(str(Path(str(root)).resolve(strict=False)) + "%")
@@ -283,8 +283,8 @@ class DuplicatesService:
         """
 
     @staticmethod
-    def _build_exact_groups(rows: List[Dict[str, Any]], max_groups: int) -> List[Dict[str, Any]]:
-        groups: Dict[str, List[Dict[str, Any]]] = {}
+    def _build_exact_groups(rows: list[dict[str, Any]], max_groups: int) -> list[dict[str, Any]]:
+        groups: dict[str, list[dict[str, Any]]] = {}
         for row in rows or []:
             row_data = row or {}
             key = str(row_data.get("content_hash") or "")
@@ -292,7 +292,7 @@ class DuplicatesService:
                 continue
             groups.setdefault(key, []).append(_exact_group_item(row_data))
 
-        exact_groups: List[Dict[str, Any]] = []
+        exact_groups: list[dict[str, Any]] = []
         for key, items in groups.items():
             if len(items) < 2:
                 continue
@@ -302,12 +302,12 @@ class DuplicatesService:
 
     @staticmethod
     def _build_similar_pairs(
-        images: List[Dict[str, Any]],
+        images: list[dict[str, Any]],
         *,
         phash_distance: int,
         max_pairs: int,
-    ) -> List[Dict[str, Any]]:
-        similar_pairs: List[Dict[str, Any]] = []
+    ) -> list[dict[str, Any]]:
+        similar_pairs: list[dict[str, Any]] = []
         for i, left_raw in enumerate(images):
             left = left_raw or {}
             lp = _phash_value(left)
@@ -328,10 +328,10 @@ class DuplicatesService:
 
     @staticmethod
     def _append_similar_pairs_for_left(
-        similar_pairs: List[Dict[str, Any]],
-        left: Dict[str, Any],
+        similar_pairs: list[dict[str, Any]],
+        left: dict[str, Any],
         left_phash: str,
-        right_rows: List[Dict[str, Any]],
+        right_rows: list[dict[str, Any]],
         *,
         phash_distance: int,
         max_pairs: int,
@@ -351,11 +351,11 @@ class DuplicatesService:
 
     async def get_alerts(
         self,
-        roots: Optional[List[str]] = None,
+        roots: list[str] | None = None,
         max_groups: int = 6,
         max_pairs: int = 10,
         phash_distance: int = 6,
-    ) -> Result[Dict[str, Any]]:
+    ) -> Result[dict[str, Any]]:
         roots, max_groups, max_pairs, phash_distance = self._normalize_alert_args(
             roots=roots,
             max_groups=max_groups,
@@ -383,11 +383,11 @@ class DuplicatesService:
     @staticmethod
     def _normalize_alert_args(
         *,
-        roots: Optional[List[str]],
+        roots: list[str] | None,
         max_groups: int,
         max_pairs: int,
         phash_distance: int,
-    ) -> tuple[List[str], int, int, int]:
+    ) -> tuple[list[str], int, int, int]:
         return (
             roots or [],
             max(1, min(50, int(max_groups or 6))),
@@ -395,19 +395,19 @@ class DuplicatesService:
             max(0, min(32, int(phash_distance or 6))),
         )
 
-    async def _query_exact_groups(self, where: str, params: List[Any], *, max_groups: int) -> Result[List[Dict[str, Any]]]:
+    async def _query_exact_groups(self, where: str, params: list[Any], *, max_groups: int) -> Result[list[dict[str, Any]]]:
         dup_rows = await self.db.aquery(self._exact_duplicates_query(where), tuple(params))
         if not dup_rows.ok:
             return Result.Err("DB_ERROR", dup_rows.error or "Duplicate query failed")
         return Result.Ok(self._build_exact_groups(dup_rows.data or [], max_groups))
 
-    async def _query_similarity_rows(self, where: str, params: List[Any]) -> Result[List[Dict[str, Any]]]:
+    async def _query_similarity_rows(self, where: str, params: list[Any]) -> Result[list[dict[str, Any]]]:
         sim_rows = await self.db.aquery(self._similarity_query(where), tuple(params))
         if not sim_rows.ok:
             return Result.Err("DB_ERROR", sim_rows.error or "Similarity query failed")
         return Result.Ok(sim_rows.data or [])
 
-    async def merge_tags_for_group(self, keep_asset_id: int, merge_asset_ids: List[int]) -> Result[Dict[str, Any]]:
+    async def merge_tags_for_group(self, keep_asset_id: int, merge_asset_ids: list[int]) -> Result[dict[str, Any]]:
         keep_asset_id = int(keep_asset_id or 0)
         merge_ids = self._normalize_merge_ids(keep_asset_id, merge_asset_ids)
         if not keep_asset_id or not merge_ids:
@@ -432,16 +432,16 @@ class DuplicatesService:
             return Result.Err("DB_ERROR", upd.error or "Failed to update tags")
         return Result.Ok({"asset_id": keep_asset_id, "tags": merged, "merged_from": merge_ids})
 
-    def _normalize_merge_ids(self, keep_asset_id: int, merge_asset_ids: List[int]) -> List[int]:
-        out: List[int] = []
+    def _normalize_merge_ids(self, keep_asset_id: int, merge_asset_ids: list[int]) -> list[int]:
+        out: list[int] = []
         for value in merge_asset_ids or []:
             candidate = int(value or 0)
             if candidate > 0 and candidate != keep_asset_id:
                 out.append(candidate)
         return out
 
-    def _collect_merged_tags(self, rows: List[Dict[str, Any]]) -> List[str]:
-        merged: List[str] = []
+    def _collect_merged_tags(self, rows: list[dict[str, Any]]) -> list[str]:
+        merged: list[str] = []
         seen: set[str] = set()
         for row in rows:
             for tag in self._extract_tags_from_row(row):
@@ -455,7 +455,7 @@ class DuplicatesService:
                 merged.append(normalized)
         return merged
 
-    def _extract_tags_from_row(self, row: Dict[str, Any]) -> List[str]:
+    def _extract_tags_from_row(self, row: dict[str, Any]) -> list[str]:
         raw = (row or {}).get("tags")
         if isinstance(raw, list):
             return [value for value in raw if isinstance(value, str)]

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from mjr_am_backend.features.browser import list_visible_subfolders, list_filesystem_browser_entries
+from mjr_am_backend.features.browser import list_filesystem_browser_entries, list_visible_subfolders
 
 
 def test_list_visible_subfolders_filters_dot_hidden(tmp_path: Path) -> None:
@@ -44,17 +44,17 @@ def test_browser_entries_deep_nested_directory(tmp_path: Path) -> None:
 
     root_res = list_filesystem_browser_entries(str(tmp_path), "*", 200, 0)
     assert root_res.ok
-    root_assets = root_res.data.get("assets") if isinstance(root_res.data, dict) else []
+    root_assets = (root_res.data.get("assets") or []) if isinstance(root_res.data, dict) else []
     assert any(str(item.get("filename")) == "a" and str(item.get("kind")) == "folder" for item in root_assets)
 
     level2_res = list_filesystem_browser_entries(str(tmp_path / "a" / "b"), "*", 200, 0)
     assert level2_res.ok
-    level2_assets = level2_res.data.get("assets") if isinstance(level2_res.data, dict) else []
+    level2_assets = (level2_res.data.get("assets") or []) if isinstance(level2_res.data, dict) else []
     assert any(str(item.get("filename")) == "c" and str(item.get("kind")) == "folder" for item in level2_assets)
 
     level4_res = list_filesystem_browser_entries(str(deep_dir), "*", 200, 0)
     assert level4_res.ok
-    level4_assets = level4_res.data.get("assets") if isinstance(level4_res.data, dict) else []
+    level4_assets = (level4_res.data.get("assets") or []) if isinstance(level4_res.data, dict) else []
     assert any(str(item.get("filename")) == "image.png" for item in level4_assets)
 
 
@@ -72,7 +72,7 @@ def test_browser_entries_size_filters_apply_in_browser_mode(tmp_path: Path) -> N
         min_size_bytes=1024,
     )
     assert res.ok
-    assets = res.data.get("assets") if isinstance(res.data, dict) else []
+    assets = (res.data.get("assets") or []) if isinstance(res.data, dict) else []
     names = {str(item.get("filename")) for item in assets if str(item.get("kind")) != "folder"}
     assert "big.png" in names
     assert "small.png" not in names

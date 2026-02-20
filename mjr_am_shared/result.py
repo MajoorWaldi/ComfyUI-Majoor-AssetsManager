@@ -2,9 +2,10 @@
 Result pattern for error handling without exceptions.
 All service methods return Result[T] to avoid HTTP 500 errors.
 """
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Generic, Optional, TypeVar, cast
+from typing import Any, Generic, TypeVar, cast
 
 from .types import ErrorCode
 
@@ -23,8 +24,8 @@ class Result(Generic[T]):
             return Result.Ok({"filename": path})
     """
     ok: bool
-    data: Optional[T] = None
-    error: Optional[str] = None
+    data: T | None = None
+    error: str | None = None
     code: str = "OK"  # OK, DEGRADED, TOOL_MISSING, DB_ERROR, UNSUPPORTED, etc.
     meta: dict[str, Any] = field(default_factory=dict)
 

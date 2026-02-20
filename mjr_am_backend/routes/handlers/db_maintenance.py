@@ -4,20 +4,26 @@ Database maintenance endpoints (safe, opt-in).
 
 from __future__ import annotations
 
+import asyncio
 import datetime
 import gc
+import os
 import shutil
 import sqlite3
 import threading
-import asyncio
-import os
 from pathlib import Path
 
 from aiohttp import web
-
 from mjr_am_backend.config import INDEX_DB_PATH, get_runtime_output_root
 from mjr_am_backend.shared import Result, get_logger
-from ..core import _json_response, _csrf_error, _require_services, safe_error_message, _require_write_access
+
+from ..core import (
+    _csrf_error,
+    _json_response,
+    _require_services,
+    _require_write_access,
+    safe_error_message,
+)
 
 logger = get_logger(__name__)
 
@@ -269,6 +275,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
         import asyncio
         import gc
         from pathlib import Path
+
         from mjr_am_backend.config import INDEX_DB_PATH
 
         csrf = _csrf_error(request)
@@ -394,7 +401,10 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                 try:
                     _emit_restore_status("recreate_db", "info", operation="delete_db")
                     await db._ensure_initialized_async()
-                    from mjr_am_backend.adapters.db.schema import ensure_tables_exist, ensure_indexes_and_triggers
+                    from mjr_am_backend.adapters.db.schema import (
+                        ensure_indexes_and_triggers,
+                        ensure_tables_exist,
+                    )
                     await ensure_tables_exist(db)
                     await ensure_indexes_and_triggers(db)
                     logger.info("DB re-initialized after force delete")

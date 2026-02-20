@@ -5,7 +5,7 @@ Cached detection to avoid repeated subprocess calls.
 import re
 import shutil
 import subprocess
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from mjr_am_backend.config import (
     EXIFTOOL_BIN,
@@ -18,19 +18,19 @@ from mjr_am_backend.shared import get_logger
 logger = get_logger(__name__)
 
 # Cache tool availability (None = not checked, True/False = result)
-_TOOL_CACHE: Dict[str, Optional[bool]] = {
+_TOOL_CACHE: dict[str, bool | None] = {
     "exiftool": None,
     "ffprobe": None,
 }
 
 # Cache tool versions
-_TOOL_VERSIONS: Dict[str, Optional[str]] = {
+_TOOL_VERSIONS: dict[str, str | None] = {
     "exiftool": None,
     "ffprobe": None,
 }
 
 
-def parse_tool_version(value: Optional[str]) -> Tuple[int, ...]:
+def parse_tool_version(value: str | None) -> tuple[int, ...]:
     if not value:
         return ()
     parts = re.findall(r"\d+", value)
@@ -43,7 +43,7 @@ def parse_tool_version(value: Optional[str]) -> Tuple[int, ...]:
     return tuple(out)
 
 
-def version_satisfies_minimum(actual: Optional[str], minimum: str) -> bool:
+def version_satisfies_minimum(actual: str | None, minimum: str) -> bool:
     if not minimum:
         return True
     minimum_parts = parse_tool_version(minimum)
@@ -58,7 +58,7 @@ def version_satisfies_minimum(actual: Optional[str], minimum: str) -> bool:
     return tuple(padded_actual) >= tuple(padded_minimum)
 
 
-def _enforce_min_version(name: str, actual: Optional[str], minimum: str) -> bool:
+def _enforce_min_version(name: str, actual: str | None, minimum: str) -> bool:
     if not minimum:
         return True
     if version_satisfies_minimum(actual, minimum):
@@ -151,7 +151,7 @@ def has_ffprobe() -> bool:
         return False
 
 
-def get_tool_status() -> Dict[str, Any]:
+def get_tool_status() -> dict[str, Any]:
     """
     Get the status of all tools.
     Returns: {

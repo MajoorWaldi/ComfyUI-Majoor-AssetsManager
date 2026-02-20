@@ -5,34 +5,33 @@ Simple, debug-friendly DI without framework magic.
 
 import asyncio
 from pathlib import Path
-from typing import Optional
 
-from .shared import Result, get_logger, log_success
-from .adapters.db.sqlite import Sqlite
 from .adapters.db.schema import migrate_schema, table_has_column
+from .adapters.db.sqlite import Sqlite
 from .adapters.tools import ExifTool, FFProbe
-from .features.metadata import MetadataService
-from .features.health import HealthService
-from .features.index import IndexService
-from .features.index.watcher import OutputWatcher
-from .features.index.watcher_scope import load_watcher_scope, build_watch_paths
-from .features.tags import RatingTagsSyncWorker
-from .features.duplicates import DuplicatesService
-from .settings import AppSettings
 from .config import (
-    INDEX_DB,
+    DB_MAX_CONNECTIONS,
+    DB_TIMEOUT,
     EXIFTOOL_BIN,
     EXIFTOOL_TIMEOUT,
     FFPROBE_BIN,
     FFPROBE_TIMEOUT,
-    DB_TIMEOUT,
-    DB_MAX_CONNECTIONS,
+    INDEX_DB,
     WATCHER_ENABLED,
 )
+from .features.duplicates import DuplicatesService
+from .features.health import HealthService
+from .features.index import IndexService
+from .features.index.watcher import OutputWatcher
+from .features.index.watcher_scope import build_watch_paths, load_watcher_scope
+from .features.metadata import MetadataService
+from .features.tags import RatingTagsSyncWorker
+from .settings import AppSettings
+from .shared import Result, get_logger, log_success
 
 logger = get_logger(__name__)
 
-def _resolve_db_path(db_path: Optional[str]) -> str:
+def _resolve_db_path(db_path: str | None) -> str:
     return db_path if db_path is not None else INDEX_DB
 
 
@@ -92,7 +91,7 @@ def _build_services_dict(
     }
 
 
-async def build_services(db_path: Optional[str] = None) -> Result[dict]:
+async def build_services(db_path: str | None = None) -> Result[dict]:
     """
     Build all services (DI container).
 

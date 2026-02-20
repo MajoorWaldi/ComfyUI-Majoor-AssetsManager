@@ -17,26 +17,29 @@ from __future__ import annotations
 
 from typing import Protocol, cast
 
+# Re-export for any code that might reference these.
+from .config import OUTPUT_ROOT  # noqa: F401
+
 # Import the modular routes system which auto-registers everything.
 from .routes import (  # noqa: F401
-    register_routes,
-    register_all_routes,
     COMFY_OUTPUT_DIR,
+    register_all_routes,
+    register_routes,
 )
 
 # Re-export core utilities for backward compatibility.
 from .routes.core import (  # noqa: F401
-    _json_response,
-    _normalize_path,
-    _is_path_allowed,
-    _is_path_allowed_custom,
-    _safe_rel_path,
-    _is_within_root,
-    _get_allowed_directories,
+    _build_services,
     _check_rate_limit,
     _csrf_error,
+    _get_allowed_directories,
+    _is_path_allowed,
+    _is_path_allowed_custom,
+    _is_within_root,
+    _json_response,
+    _normalize_path,
     _require_services,
-    _build_services,
+    _safe_rel_path,
 )
 
 # Re-export filesystem utilities.
@@ -44,9 +47,6 @@ from .routes.handlers.filesystem import (  # noqa: F401
     _kickoff_background_scan,
     _list_filesystem_assets,
 )
-
-# Re-export for any code that might reference these.
-from .config import OUTPUT_ROOT  # noqa: F401
 from .shared import Result, get_logger  # noqa: F401
 
 logger = get_logger(__name__)
@@ -96,7 +96,7 @@ try:
     class _PromptServer(Protocol):
         instance: _PromptServerInstance
 
-    PromptServer = cast(_PromptServer, getattr(_server_mod, "PromptServer"))
+    PromptServer = cast(_PromptServer, _server_mod.PromptServer)
 except Exception:  # pragma: no cover
     from aiohttp import web
 
@@ -137,4 +137,3 @@ __all__ = [
     "Result",
     "logger",
 ]
-

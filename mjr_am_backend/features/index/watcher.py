@@ -9,41 +9,45 @@ import asyncio
 import os
 import time
 from collections import deque
+from collections.abc import Awaitable, Callable, Coroutine
 from pathlib import Path
 from threading import Lock
-from typing import Deque, Dict, Set, Tuple, Optional, Callable, Awaitable, Coroutine, Any, cast, List
+from typing import (
+    Any,
+    cast,
+)
 
-from watchdog.observers import Observer
 from watchdog.events import (
-    FileSystemEventHandler,
+    DirCreatedEvent,
     FileCreatedEvent,
     FileDeletedEvent,
     FileMovedEvent,
-    DirCreatedEvent,
+    FileSystemEventHandler,
 )
+from watchdog.observers import Observer
 
-from ...shared import get_logger, EXTENSIONS
 from ...config import (
     WATCHER_DEBOUNCE_MS,
     WATCHER_DEDUPE_TTL_MS,
     WATCHER_FLUSH_MAX_FILES,
     WATCHER_MAX_FILE_SIZE_BYTES,
-    WATCHER_MIN_FILE_SIZE_BYTES,
     WATCHER_MAX_FLUSH_CONCURRENCY,
+    WATCHER_MIN_FILE_SIZE_BYTES,
+    WATCHER_PENDING_MAX,
     WATCHER_STREAM_ALERT_COOLDOWN_SECONDS,
     WATCHER_STREAM_ALERT_THRESHOLD,
     WATCHER_STREAM_ALERT_WINDOW_SECONDS,
-    WATCHER_PENDING_MAX,
 )
+from ...shared import EXTENSIONS, get_logger
 from ..watcher_settings import get_watcher_settings
 
 logger = get_logger(__name__)
 
 # Extensions explicitly excluded even if they ever appear in EXTENSIONS
-EXCLUDED_EXTENSIONS: Set[str] = {".psd", ".json", ".txt", ".csv", ".db", ".sqlite", ".log"}
+EXCLUDED_EXTENSIONS: set[str] = {".psd", ".json", ".txt", ".csv", ".db", ".sqlite", ".log"}
 
 # Supported extensions (flattened)
-SUPPORTED_EXTENSIONS: Set[str] = set()
+SUPPORTED_EXTENSIONS: set[str] = set()
 try:
     for kind in ("image", "video", "audio"):
         for ext in (EXTENSIONS or {}).get(kind, []):
@@ -86,9 +90,9 @@ MIN_FILE_SIZE = max(0, int(WATCHER_MIN_FILE_SIZE_BYTES))
 MAX_FILE_SIZE = max(0, int(WATCHER_MAX_FILE_SIZE_BYTES))
 _RECENT_GENERATED_TTL_S = 30.0
 _RECENT_GENERATED_LOCK = Lock()
-_RECENT_GENERATED: Dict[str, float] = {}
+_RECENT_GENERATED: dict[str, float] = {}
 _MAX_PENDING_FILES = max(0, WATCHER_PENDING_MAX)
-_STREAM_EVENTS: Deque[Tuple[float, int]] = deque()
+_STREAM_EVENTS: deque[tuple[float, int]] = deque()
 _STREAM_TOTAL_FILES = 0
 _STREAM_LOCK = Lock()
 _LAST_STREAM_ALERT_TIME = 0.0
@@ -108,8 +112,8 @@ class DebouncedWatchHandler(FileSystemEventHandler):
     def __init__(
         self,
         on_files_ready: Callable[[list], Awaitable[None]],
-        on_files_removed: Optional[Callable[[list], Awaitable[None]]],
-        on_files_moved: Optional[Callable[[list], Awaitable[None]]],
+        on_files_removed: Callable[[list], Awaitable[None]] | None,
+        on_files_moved: Callable[[list], Awaitable[None]] | None,
         loop: asyncio.AbstractEventLoop,
         debounce_ms: int = 500,
         dedupe_ttl_ms: int = 3000,
@@ -124,10 +128,10 @@ class DebouncedWatchHandler(FileSystemEventHandler):
         self._dedupe_ttl_s = dedupe_ttl_ms / 1000.0
 
         self._lock = Lock()
-        self._pending: Dict[str, float] = {}  # filepath -> timestamp
-        self._overflow: Dict[str, float] = {}  # overflow queue when pending cap is reached
-        self._recent: Dict[str, float] = {}   # filepath -> last processed timestamp
-        self._flush_timer: Optional[asyncio.TimerHandle] = None
+        self._pending: dict[str, float] = {}  # filepath -> timestamp
+        self._overflow: dict[str, float] = {}  # overflow queue when pending cap is reached
+        self._recent: dict[str, float] = {}   # filepath -> last processed timestamp
+        self._flush_timer: asyncio.TimerHandle | None = None
         concurrency = max(1, flush_concurrency or 1)
         self._flush_semaphore = asyncio.Semaphore(concurrency)
         self._last_pending_warning = 0.0
@@ -340,7 +344,7 @@ class DebouncedWatchHandler(FileSystemEventHandler):
             return "create"
         return "move"
 
-    def _emit_removed_files(self, paths: List[str]) -> None:
+    def _emit_removed_files(self, paths: list[str]) -> None:
         if not self._on_files_removed:
             return
         try:
@@ -349,7 +353,7 @@ class DebouncedWatchHandler(FileSystemEventHandler):
         except Exception:
             return
 
-    def _emit_moved_files(self, moves: List[Tuple[str, str]]) -> bool:
+    def _emit_moved_files(self, moves: list[tuple[str, str]]) -> bool:
         if not self._on_files_moved:
             return False
         try:
@@ -379,7 +383,7 @@ class DebouncedWatchHandler(FileSystemEventHandler):
             except Exception as e:
                 logger.debug("Watcher flush error: %s", e)
 
-    def _drain_pending_candidates(self) -> List[str]:
+    def _drain_pending_candidates(self) -> list[str]:
         with self._lock:
             if not self._pending and not self._overflow:
                 return []
@@ -391,8 +395,8 @@ class DebouncedWatchHandler(FileSystemEventHandler):
             self._flush_timer = None
             return candidates
 
-    def _filter_flush_candidates(self, candidates: List[str]) -> List[str]:
-        files: List[str] = []
+    def _filter_flush_candidates(self, candidates: list[str]) -> list[str]:
+        files: list[str] = []
         for f in candidates:
             if _is_recent_generated(f):
                 continue
@@ -417,7 +421,7 @@ class DebouncedWatchHandler(FileSystemEventHandler):
             return False
 
     @staticmethod
-    def _flush_file_size_if_eligible(filepath: str) -> Optional[int]:
+    def _flush_file_size_if_eligible(filepath: str) -> int | None:
         try:
             size = os.path.getsize(filepath)
         except OSError:
@@ -426,7 +430,7 @@ class DebouncedWatchHandler(FileSystemEventHandler):
             return None
         return size
 
-    def _apply_flush_backpressure(self, files: List[str]) -> List[str]:
+    def _apply_flush_backpressure(self, files: list[str]) -> list[str]:
         if WATCHER_FLUSH_MAX_FILES <= 0 or len(files) <= WATCHER_FLUSH_MAX_FILES:
             return files
         now = time.time()
@@ -448,7 +452,7 @@ class DebouncedWatchHandler(FileSystemEventHandler):
         self._schedule_flush()
         return files
 
-    def _mark_recent_files(self, files: List[str]) -> None:
+    def _mark_recent_files(self, files: list[str]) -> None:
         with self._lock:
             now = time.time()
             for f in files:
@@ -585,9 +589,9 @@ class OutputWatcher:
 
     def __init__(
         self,
-        index_callback: Callable[[list, str, Optional[str], Optional[str]], Awaitable[None]],
-        remove_callback: Optional[Callable[[list, str, Optional[str], Optional[str]], Awaitable[None]]] = None,
-        move_callback: Optional[Callable[[list, str, Optional[str], Optional[str]], Awaitable[None]]] = None,
+        index_callback: Callable[[list, str, str | None, str | None], Awaitable[None]],
+        remove_callback: Callable[[list, str, str | None, str | None], Awaitable[None]] | None = None,
+        move_callback: Callable[[list, str, str | None, str | None], Awaitable[None]] | None = None,
     ):
         """
         Args:
@@ -596,14 +600,14 @@ class OutputWatcher:
         self._index_callback = index_callback
         self._remove_callback = remove_callback
         self._move_callback = move_callback
-        self._observer: Optional[Any] = None
-        self._handler: Optional[DebouncedWatchHandler] = None
-        self._watched_paths: Dict[str, dict] = {}  # watch_key -> {path, source, root_id, watch}
+        self._observer: Any | None = None
+        self._handler: DebouncedWatchHandler | None = None
+        self._watched_paths: dict[str, dict] = {}  # watch_key -> {path, source, root_id, watch}
         self._lock = Lock()
         self._running = False
         self._allowed_sources: set[str] = set()
 
-    async def start(self, paths: list, loop: Optional[asyncio.AbstractEventLoop] = None):
+    async def start(self, paths: list, loop: asyncio.AbstractEventLoop | None = None):
         """Start watching the given directories."""
         if self._running:
             return
@@ -657,7 +661,7 @@ class OutputWatcher:
             return
         await self._handle_move_fallback(moves)
 
-    async def _dispatch_move_groups(self, grouped_moves: Dict[str, dict]) -> None:
+    async def _dispatch_move_groups(self, grouped_moves: dict[str, dict]) -> None:
         if not callable(self._move_callback):
             return
         for base_dir, payload in grouped_moves.items():
@@ -683,7 +687,7 @@ class OutputWatcher:
             return
 
     @staticmethod
-    def _resolve_watch_path(path: Any) -> tuple[Any, Optional[str], Optional[str]]:
+    def _resolve_watch_path(path: Any) -> tuple[Any, str | None, str | None]:
         if isinstance(path, dict):
             return path.get("path"), path.get("source"), path.get("root_id")
         return path, None, None
@@ -692,8 +696,8 @@ class OutputWatcher:
         self,
         raw_path: Any,
         *,
-        source: Optional[str],
-        root_id: Optional[str],
+        source: str | None,
+        root_id: str | None,
         log_label: str,
     ) -> bool:
         if not self._observer or not self._handler or not raw_path:
@@ -732,7 +736,7 @@ class OutputWatcher:
         self._running = False
         logger.info("File watcher stopped")
 
-    def add_path(self, path: str, *, source: Optional[str] = None, root_id: Optional[str] = None):
+    def add_path(self, path: str, *, source: str | None = None, root_id: str | None = None):
         """Add a new path to watch (e.g., when custom root is added)."""
         if not self._running or not self._observer or not self._handler:
             return
@@ -761,7 +765,7 @@ class OutputWatcher:
         except Exception as e:
             logger.warning("Failed to add watch for %s: %s", path, e)
 
-    def _normalize_source(self, source: Optional[str]) -> Optional[str]:
+    def _normalize_source(self, source: str | None) -> str | None:
         return str(source or "").strip().lower() if source is not None else None
 
     def _is_already_watched(self, normalized: str) -> bool:
@@ -770,7 +774,7 @@ class OutputWatcher:
                 return True
         return False
 
-    def _best_watched_entry_for_path(self, path_value: str) -> Optional[dict]:
+    def _best_watched_entry_for_path(self, path_value: str) -> dict | None:
         normalized_path = os.path.normcase(os.path.normpath(path_value))
         best = None
         best_len = -1
@@ -784,8 +788,8 @@ class OutputWatcher:
                 best_len = len(normalized_watched)
         return best
 
-    def _group_files_by_watched_root(self, files: List[str]) -> Dict[str, dict]:
-        by_dir: Dict[str, dict] = {}
+    def _group_files_by_watched_root(self, files: list[str]) -> dict[str, dict]:
+        by_dir: dict[str, dict] = {}
         for file_path in files:
             try:
                 best = self._best_watched_entry_for_path(file_path)
@@ -802,8 +806,8 @@ class OutputWatcher:
                 continue
         return by_dir
 
-    def _group_moves_by_watched_root(self, moves: List[Any]) -> Dict[str, dict]:
-        by_dir: Dict[str, dict] = {}
+    def _group_moves_by_watched_root(self, moves: list[Any]) -> dict[str, dict]:
+        by_dir: dict[str, dict] = {}
         for move in moves:
             try:
                 src, dst = move
@@ -823,8 +827,8 @@ class OutputWatcher:
 
     async def _dispatch_file_groups(
         self,
-        grouped: Dict[str, dict],
-        callback: Callable[[list, str, Optional[str], Optional[str]], Awaitable[None]],
+        grouped: dict[str, dict],
+        callback: Callable[[list, str, str | None, str | None], Awaitable[None]],
         label: str,
     ) -> None:
         for base_dir, payload in grouped.items():
@@ -839,9 +843,9 @@ class OutputWatcher:
                 logger.debug("Watcher %s error: %s", label, exc)
 
     @staticmethod
-    def _split_move_pairs(moves: List[Any]) -> tuple[List[str], List[str]]:
-        src_files: List[str] = []
-        dst_files: List[str] = []
+    def _split_move_pairs(moves: list[Any]) -> tuple[list[str], list[str]]:
+        src_files: list[str] = []
+        dst_files: list[str] = []
         for move in moves:
             if not isinstance(move, (list, tuple)) or len(move) != 2:
                 continue
@@ -882,7 +886,7 @@ class OutputWatcher:
     def watched_directories(self) -> list:
         return [entry.get("path") for entry in self._watched_paths.values() if entry.get("path")]
 
-    def _allows_source(self, source: Optional[str]) -> bool:
+    def _allows_source(self, source: str | None) -> bool:
         if not self._allowed_sources:
             return True
         if not source:

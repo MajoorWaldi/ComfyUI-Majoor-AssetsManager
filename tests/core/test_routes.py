@@ -2,16 +2,18 @@
 Test routes registration without starting full ComfyUI.
 """
 import sys
+
 import pytest
 
 # Fix Windows console encoding
 if sys.platform == "win32":
     import os
     os.system("")
-    sys.stdout.reconfigure(encoding='utf-8')
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding='utf-8')
 
-from mjr_am_shared import get_logger, log_success
 from aiohttp import web
+from mjr_am_shared import get_logger, log_success
 
 logger = get_logger(__name__)
 

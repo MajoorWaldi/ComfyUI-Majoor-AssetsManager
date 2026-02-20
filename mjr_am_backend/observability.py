@@ -8,10 +8,10 @@ in unit tests where we create our own aiohttp app.
 from __future__ import annotations
 
 import asyncio
-import time
 import os
 import threading
-from typing import Any, Dict, Optional
+import time
+from typing import Any
 from uuid import uuid4
 
 from aiohttp import web
@@ -73,7 +73,7 @@ _DEFAULT_RATELIMIT_CLEAN_MIN_CUTOFF_MS = 120_000.0
 # Prevent log spam when a client polls rapidly or an endpoint repeatedly errors (e.g. 404 loop).
 # This rate limiter is intentionally simple and process-local.
 _LOG_RATELIMIT_LOCK = threading.Lock()
-_LOG_RATELIMIT_STATE: Dict[str, float] = {}
+_LOG_RATELIMIT_STATE: dict[str, float] = {}
 _LOG_RATELIMIT_CLEAN_AT = 0.0
 
 # Runtime-configured values are read from env at call time (tests rely on monkeypatching env).
@@ -133,7 +133,7 @@ def _should_emit_log(key: str, *, window_ms: float) -> bool:
     return True
 
 
-def _should_log(request: web.Request, *, status: Optional[int], duration_ms: float) -> bool:
+def _should_log(request: web.Request, *, status: int | None, duration_ms: float) -> bool:
     path = _request_path_or_empty(request)
     if not _is_majoor_route(path):
         return False
@@ -179,7 +179,7 @@ def _is_health_poll_path(path: str) -> bool:
     return path in ("/mjr/am/health", "/mjr/am/health/counters")
 
 
-def _is_error_status(status: Optional[int]) -> bool:
+def _is_error_status(status: int | None) -> bool:
     return status is not None and status >= 400
 
 
@@ -213,9 +213,9 @@ async def request_context_middleware(request: web.Request, handler):
     request["mjr_request_id"] = rid
     token = _set_request_id_context(rid)
     start = time.perf_counter()
-    status: Optional[int] = None
-    error: Optional[str] = None
-    error_type: Optional[str] = None
+    status: int | None = None
+    error: str | None = None
+    error_type: str | None = None
     try:
         response = await handler(request)
         status = _response_status_code(response)
@@ -293,10 +293,10 @@ def _reset_request_id_context(token: Any) -> None:
 def _emit_request_log(
     request: web.Request,
     *,
-    status: Optional[int],
+    status: int | None,
     duration_ms: float,
-    error: Optional[str],
-    error_type: Optional[str],
+    error: str | None,
+    error_type: str | None,
 ) -> None:
     try:
         fields = build_request_log_fields(request, response_status=status)
@@ -316,14 +316,14 @@ def _emit_request_log(
             return
 
 
-def _request_log_key(request: web.Request, status: Optional[int]) -> str:
+def _request_log_key(request: web.Request, status: int | None) -> str:
     try:
         return f"{request.method}:{request.path}:{status}"
     except Exception:
         return f"unknown:{status}"
 
 
-def _emit_request_log_by_status(status: Optional[int], fields: Dict[str, Any]) -> None:
+def _emit_request_log_by_status(status: int | None, fields: dict[str, Any]) -> None:
     if status is not None and status >= 500:
         logger.error("Request handled", extra=fields)
     elif status is not None and status >= 400:
@@ -380,7 +380,7 @@ def _install_asyncio_exception_handler() -> None:
 
     original_handler = loop.get_exception_handler()
 
-    def _quiet_exception_handler(loop: asyncio.AbstractEventLoop, context: Dict[str, Any]) -> None:
+    def _quiet_exception_handler(loop: asyncio.AbstractEventLoop, context: dict[str, Any]) -> None:
         """
         Custom exception handler that silences client disconnect errors.
         """
@@ -404,7 +404,7 @@ def _install_asyncio_exception_handler() -> None:
         logger.debug("Failed to install asyncio exception handler: %s", exc)
 
 
-def build_request_log_fields(request: web.Request, response_status: Optional[int] = None) -> Dict[str, Any]:
+def build_request_log_fields(request: web.Request, response_status: int | None = None) -> dict[str, Any]:
     """Build a JSON-serializable dict of request/response fields for logs."""
     stats = request.get("mjr_stats")
     return {

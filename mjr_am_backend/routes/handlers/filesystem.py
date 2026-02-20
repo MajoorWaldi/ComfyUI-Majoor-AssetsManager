@@ -9,32 +9,34 @@ import datetime
 import os
 import time
 from collections import OrderedDict
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Dict, Mapping, Optional
+from typing import Any
 
-from mjr_am_backend.shared import Result, classify_file, get_logger, sanitize_error_message
-from mjr_am_backend.config import (
-    FS_LIST_CACHE_MAX,
-    FS_LIST_CACHE_TTL_SECONDS,
-    BG_SCAN_FAILURE_HISTORY_MAX,
-    SCAN_PENDING_MAX,
-    MANUAL_BG_SCAN_GRACE_SECONDS,
-    BG_SCAN_ON_LIST,
-    BG_SCAN_MIN_INTERVAL_SECONDS,
-)
 from mjr_am_backend.adapters.fs.list_cache_watcher import (
     ensure_fs_list_cache_watching,
     get_fs_list_cache_token,
 )
+from mjr_am_backend.config import (
+    BG_SCAN_FAILURE_HISTORY_MAX,
+    BG_SCAN_MIN_INTERVAL_SECONDS,
+    BG_SCAN_ON_LIST,
+    FS_LIST_CACHE_MAX,
+    FS_LIST_CACHE_TTL_SECONDS,
+    MANUAL_BG_SCAN_GRACE_SECONDS,
+    SCAN_PENDING_MAX,
+)
+from mjr_am_backend.shared import Result, classify_file, get_logger, sanitize_error_message
 from mjr_am_shared.scan_throttle import normalize_scan_directory, should_skip_background_scan
+
+from ..core import _is_within_root, _require_services, _safe_rel_path
 from .db_maintenance import is_db_maintenance_active
-from ..core import _safe_rel_path, _is_within_root, _require_services
 
 logger = get_logger(__name__)
 VALID_SORT_KEYS = {"mtime_desc", "mtime_asc", "name_asc", "name_desc", "none"}
 
 
-def _normalize_sort_key(sort: Optional[str]) -> str:
+def _normalize_sort_key(sort: str | None) -> str:
     s = str(sort or "").strip().lower()
     if s in VALID_SORT_KEYS:
         return s
@@ -52,7 +54,7 @@ _BACKGROUND_SCAN_HISTORY_MAX = 1000
 
 _SCAN_PENDING_LOCK = asyncio.Lock()
 _SCAN_PENDING: OrderedDict[str, dict[str, Any]] = OrderedDict()
-_SCAN_TASK: Optional[asyncio.Task[Any]] = None
+_SCAN_TASK: asyncio.Task[Any] | None = None
 _WORKER_STOP = asyncio.Event()
 _SCAN_PENDING_MAX = int(SCAN_PENDING_MAX)
 
@@ -93,11 +95,14 @@ async def _get_background_scan_lock(key: str) -> asyncio.Lock:
             _BACKGROUND_SCAN_LOCKS[key] = lock
         _BACKGROUND_SCAN_LOCKS_ORDER[key] = None
         _BACKGROUND_SCAN_LOCKS_ORDER.move_to_end(key)
-        while len(_BACKGROUND_SCAN_LOCKS_ORDER) > _BACKGROUND_SCAN_LOCKS_MAX:
-            removed = False
-            # Bounded sweep: never loop forever when many old locks are still in use.
-            sweep = max(1, len(_BACKGROUND_SCAN_LOCKS_ORDER))
-            for _ in range(sweep):
+        # Soft-cap pruning: prefer removing old unlocked locks, but allow temporary overflow
+        # when all candidates are active to avoid churn under load.
+        overflow = len(_BACKGROUND_SCAN_LOCKS_ORDER) - _BACKGROUND_SCAN_LOCKS_MAX
+        if overflow > 0:
+            sweep = len(_BACKGROUND_SCAN_LOCKS_ORDER)
+            for _ in range(max(1, sweep)):
+                if overflow <= 0:
+                    break
                 old_key, _ = _BACKGROUND_SCAN_LOCKS_ORDER.popitem(last=False)
                 old_lock = _BACKGROUND_SCAN_LOCKS.get(old_key)
                 if old_key == key:
@@ -110,13 +115,11 @@ async def _get_background_scan_lock(key: str) -> asyncio.Lock:
                         _BACKGROUND_SCAN_LOCKS_ORDER.move_to_end(old_key)
                         continue
                 except Exception:
-                    pass
+                    _BACKGROUND_SCAN_LOCKS_ORDER[old_key] = None
+                    _BACKGROUND_SCAN_LOCKS_ORDER.move_to_end(old_key)
+                    continue
                 _BACKGROUND_SCAN_LOCKS.pop(old_key, None)
-                removed = True
-                break
-            if not removed:
-                # No removable unlocked entries right now; keep table as-is and exit.
-                break
+                overflow -= 1
         return lock
 
 
@@ -145,7 +148,7 @@ def _normalize_extension(value: Any) -> str:
     return text.lower()
 
 
-def _normalize_extensions(raw_list: Optional[Any]) -> list[str]:
+def _normalize_extensions(raw_list: Any | None) -> list[str]:
     if not isinstance(raw_list, list):
         return []
     normalized: list[str] = []
@@ -160,7 +163,7 @@ async def _kickoff_background_scan(
     directory: str,
     *,
     source: str = "output",
-    root_id: Optional[str] = None,
+    root_id: str | None = None,
     recursive: bool = True,
     incremental: bool = True,
     fast: bool = True,
@@ -243,7 +246,7 @@ async def _worker_loop() -> None:
             await asyncio.sleep(0.5)
             continue
 
-        entry: Optional[dict[str, Any]] = None
+        entry: dict[str, Any] | None = None
         try:
             key = _build_task_key(task)
             entry = _ensure_background_entry(key)
@@ -274,7 +277,7 @@ async def _worker_loop() -> None:
         await asyncio.sleep(0)
 
 
-async def _pop_pending_scan_task() -> Optional[dict[str, Any]]:
+async def _pop_pending_scan_task() -> dict[str, Any] | None:
     async with _SCAN_PENDING_LOCK:
         if not _SCAN_PENDING:
             return None
@@ -397,7 +400,7 @@ def _collect_filesystem_entries(
     target_dir_resolved: Path,
     base: Path,
     asset_type: str,
-    root_id: Optional[str],
+    root_id: str | None,
 ) -> list[dict[str, Any]]:
     entries: list[dict[str, Any]] = []
     for entry in target_dir_resolved.iterdir():
@@ -445,7 +448,7 @@ def _collect_filesystem_entries_window(
     target_dir_resolved: Path,
     base: Path,
     asset_type: str,
-    root_id: Optional[str],
+    root_id: str | None,
     *,
     query_lower: str,
     browse_all: bool,
@@ -496,7 +499,7 @@ def _filesystem_entry_window_decision(
     browse_all: bool,
     filter_kind: str,
     filter_extensions: list[str],
-) -> Optional[tuple[str, str]]:
+) -> tuple[str, str] | None:
     if not _is_regular_dir_entry_file(entry):
         return None
     filename = str(entry.name or "")
@@ -549,8 +552,8 @@ def _build_filesystem_window_row(
     kind: str,
     base: Path,
     asset_type: str,
-    root_id: Optional[str],
-) -> Optional[dict[str, Any]]:
+    root_id: str | None,
+) -> dict[str, Any] | None:
     try:
         stat = entry.stat()
     except OSError:
@@ -585,7 +588,7 @@ async def _fs_cache_get_or_build(
     base: Path,
     target_dir_resolved: Path,
     asset_type: str,
-    root_id: Optional[str],
+    root_id: str | None,
 ) -> Result[dict[str, Any]]:
     # Made async to allow async locking if needed, though mostly sync logic
     dir_stat = _filesystem_dir_cache_state(base, target_dir_resolved)
@@ -649,7 +652,7 @@ def _filesystem_dir_cache_state(base: Path, target_dir_resolved: Path) -> Result
 
 
 def _cache_entry_matches_dir_state(
-    cached: Optional[dict[str, Any]], *, dir_mtime_ns: int, watch_token: int
+    cached: dict[str, Any] | None, *, dir_mtime_ns: int, watch_token: int
 ) -> bool:
     return bool(
         cached
@@ -702,8 +705,8 @@ def _resolve_filesystem_listing_target(
 
 def _parse_filesystem_listing_filters(
     query: str,
-    filters: Optional[Mapping[str, Any]],
-    sort: Optional[str],
+    filters: Mapping[str, Any] | None,
+    sort: str | None,
 ) -> dict[str, Any]:
     q = (query or "*").strip()
     q_lower = q.lower()
@@ -763,7 +766,7 @@ def _build_filesystem_listing_payload(
 
 
 async def _enrich_filesystem_entries_from_db(
-    index_service: Optional[Any],
+    index_service: Any | None,
     entries: list[dict[str, Any]],
     *,
     log_label: str,
@@ -783,9 +786,9 @@ async def _enrich_filesystem_entries_from_db(
 
 
 def _resolve_filesystem_lookup(
-    index_service: Optional[Any],
+    index_service: Any | None,
     entries: list[dict[str, Any]],
-) -> tuple[Optional[Any], list[str]]:
+) -> tuple[Any | None, list[str]]:
     lookup = getattr(index_service, "lookup_assets_by_filepaths", None)
     if not callable(lookup) or not entries:
         return None, []
@@ -793,7 +796,7 @@ def _resolve_filesystem_lookup(
     return lookup, [p for p in filepaths if p]
 
 
-def _extract_enrichment_mapping(enrich_result: Any) -> Optional[dict]:
+def _extract_enrichment_mapping(enrich_result: Any) -> dict | None:
     if not enrich_result or not getattr(enrich_result, "ok", False):
         return None
     if not isinstance(getattr(enrich_result, "data", None), dict):
@@ -821,7 +824,7 @@ async def _list_filesystem_assets_fast_path(
     base: Path,
     target_dir_resolved: Path,
     asset_type: str,
-    root_id: Optional[str],
+    root_id: str | None,
     *,
     q: str,
     q_lower: str,
@@ -831,7 +834,7 @@ async def _list_filesystem_assets_fast_path(
     sort_key: str,
     limit: int,
     offset: int,
-    index_service: Optional[Any],
+    index_service: Any | None,
 ) -> Result[dict[str, Any]]:
     try:
         entries_window, total_window = await asyncio.to_thread(
@@ -927,8 +930,8 @@ def _entry_passes_listing_post_filters(
     filter_kind: str,
     filter_min_rating: int,
     filter_workflow_only: bool,
-    filter_mtime_start: Optional[int],
-    filter_mtime_end: Optional[int],
+    filter_mtime_start: int | None,
+    filter_mtime_end: int | None,
     browse_all: bool,
     q_lower: str,
 ) -> bool:
@@ -973,7 +976,7 @@ def _item_mtime_or_zero(item: dict[str, Any]) -> int:
         return 0
 
 
-def _passes_mtime_window(item: dict[str, Any], start: Optional[int], end: Optional[int]) -> bool:
+def _passes_mtime_window(item: dict[str, Any], start: int | None, end: int | None) -> bool:
     entry_mtime = _item_mtime_or_zero(item)
     if start is not None and entry_mtime < start:
         return False
@@ -995,8 +998,8 @@ def _paginate_filesystem_listing_entries(
     filter_kind: str,
     filter_min_rating: int,
     filter_workflow_only: bool,
-    filter_mtime_start: Optional[int],
-    filter_mtime_end: Optional[int],
+    filter_mtime_start: int | None,
+    filter_mtime_end: int | None,
     browse_all: bool,
     q_lower: str,
     limit: int,
@@ -1032,7 +1035,7 @@ async def _list_filesystem_assets_cached_path(
     base: Path,
     target_dir_resolved: Path,
     asset_type: str,
-    root_id: Optional[str],
+    root_id: str | None,
     *,
     q: str,
     q_lower: str,
@@ -1041,12 +1044,12 @@ async def _list_filesystem_assets_cached_path(
     filter_min_rating: int,
     filter_workflow_only: bool,
     filter_extensions: list[str],
-    filter_mtime_start: Optional[int],
-    filter_mtime_end: Optional[int],
+    filter_mtime_start: int | None,
+    filter_mtime_end: int | None,
     sort_key: str,
     limit: int,
     offset: int,
-    index_service: Optional[Any],
+    index_service: Any | None,
 ) -> Result[dict[str, Any]]:
     cache_result = await _fs_cache_get_or_build(base, target_dir_resolved, asset_type, root_id)
     if not cache_result.ok:
@@ -1101,10 +1104,10 @@ async def _list_filesystem_assets(
     limit: int,
     offset: int,
     asset_type: str,
-    root_id: Optional[str] = None,
-    filters: Optional[Mapping[str, Any]] = None,
-    index_service: Optional[Any] = None,
-    sort: Optional[str] = None,
+    root_id: str | None = None,
+    filters: Mapping[str, Any] | None = None,
+    index_service: Any | None = None,
+    sort: str | None = None,
 ) -> Result[dict[str, Any]]:
     target_result = _resolve_filesystem_listing_target(root_dir, subfolder)
     if not target_result.ok:
@@ -1129,7 +1132,7 @@ async def _list_filesystem_assets(
     )
 
 
-def _listing_args_from_opts(opts: Mapping[str, Any]) -> Dict[str, Any]:
+def _listing_args_from_opts(opts: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "q": str(opts.get("q") or "*"),
         "q_lower": str(opts.get("q_lower") or ""),
@@ -1149,12 +1152,12 @@ async def _dispatch_filesystem_listing_path(
     base: Path,
     target_dir_resolved: Path,
     asset_type: str,
-    root_id: Optional[str],
+    root_id: str | None,
     *,
-    listing_args: Dict[str, Any],
+    listing_args: dict[str, Any],
     limit: int,
     offset: int,
-    index_service: Optional[Any],
+    index_service: Any | None,
 ) -> Result[dict[str, Any]]:
     raw_opts = listing_args.get("opts")
     opts: Mapping[str, Any] = raw_opts if isinstance(raw_opts, Mapping) else {}

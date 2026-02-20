@@ -65,6 +65,9 @@ export class VirtualGrid {
         this._layoutGuardThreshold = 1;
         this._itemsVersion = 0;
         this._lastLayoutItemsVersion = -1;
+        this._pool = [];
+        this._maxPoolSize = Math.max(32, Number(options.maxPoolSize) || 256);
+        this._resizeDeltaThreshold = 2;
 
         // Observer for container width changes
         const scheduleResize = (width) => {
@@ -82,16 +85,23 @@ export class VirtualGrid {
         };
 
         this.resizeObserver = new ResizeObserver((entries) => {
-            // Use the container's actual content width (excludes border/scrollbar of itself)
-            // entry.contentRect.width is reliable for the observed element
             for (const entry of entries) {
-                 if (entry.target === this.container) {
-                     const width = entry.contentRect.width;
-                     if (width > 0 && Math.abs(width - this.lastWidth) > 1) {
-                         scheduleResize(width);
-                      }
-                      break; // Only care about container
-                  }
+                if (entry.target !== this.container) continue;
+                const borderBox = entry.borderBoxSize;
+                let width = 0;
+                if (Array.isArray(borderBox) && borderBox.length > 0) {
+                    width = Number(borderBox[0]?.inlineSize || 0);
+                } else if (borderBox && typeof borderBox === "object") {
+                    width = Number(borderBox.inlineSize || 0);
+                }
+                if (!(width > 0)) {
+                    width = Number(entry.contentRect?.width || 0);
+                }
+                width = Math.round(width);
+                if (width > 0 && Math.abs(width - this.lastWidth) >= this._resizeDeltaThreshold) {
+                    scheduleResize(width);
+                }
+                break; // Only care about container
             }
         });
         // Always observe container for correct width relative to parent padding/scrollbars
@@ -101,9 +111,7 @@ export class VirtualGrid {
 
         // Dedicated scroll-container mode: normally scrollElement is an HTMLElement.
         // Keep a safety fallback for legacy configurations.
-        this.scrollTarget = (this.scrollElement === document.body || this.scrollElement === document.documentElement)
-            ? window
-            : this.scrollElement;
+        this.scrollTarget = this._resolveScrollTarget(this.scrollElement);
 
         if (this.scrollTarget) {
             this.scrollTarget.addEventListener("scroll", this.onScrollBound, { passive: true });
@@ -112,8 +120,7 @@ export class VirtualGrid {
         // Style the container for absolute positioning
         this.container.style.position = "relative";
         this.container.style.display = "block"; // Override 'grid'
-        // Use overflow: visible so IntersectionObserver can properly detect sentinel
-        // Parent wrapper (gridWrapper) handles scrolling and clipping with overflow: auto
+        // Keep cell overflow visible; the parent wrapper handles scrolling/clipping.
         this.container.style.overflow = "visible";
         this.container.style.width = "100%";
     }
@@ -217,6 +224,7 @@ export class VirtualGrid {
         this.renderPending = false;
         this.container.innerHTML = "";
         this.renderedItems.clear();
+        this._pool.length = 0;
     }
 
     getRenderedCards() {
@@ -363,6 +371,46 @@ export class VirtualGrid {
         this.render();
     }
 
+    _resolveScrollTarget(scrollElement) {
+        if (
+            scrollElement === window
+            || scrollElement === document.body
+            || scrollElement === document.documentElement
+        ) {
+            return window;
+        }
+        return scrollElement || null;
+    }
+
+    _getScrollElement() {
+        if (this.scrollTarget === window) {
+            return document.scrollingElement || document.documentElement || document.body;
+        }
+        return this.scrollTarget || this.scrollElement || null;
+    }
+
+    _recycleToPool(el) {
+        if (!el) return;
+        const card = this._getCard(el);
+        if (card) {
+            try {
+                this.options.onItemRecycled(card);
+            } catch {}
+        }
+        try {
+            el.remove();
+        } catch {}
+        if (this._pool.length >= this._maxPoolSize) {
+            return;
+        }
+        this._pool.push(el);
+    }
+
+    _takeFromPool() {
+        if (!this._pool.length) return null;
+        return this._pool.pop() || null;
+    }
+
     /**
      * Detects dynamic height of items by sampling the first few rendered elements.
      * @param {HTMLElement} element The card element to measure
@@ -434,7 +482,8 @@ export class VirtualGrid {
             }
         };
         const containerRect = safeRect(this.container);
-        const rootRect = this.scrollTarget === window ? null : safeRect(this.scrollElement);
+        const scrollEl = this._getScrollElement();
+        const rootRect = this.scrollTarget === window ? null : safeRect(scrollEl);
 
         if (this.scrollTarget === window) {
             viewportHeight = window.innerHeight || document.documentElement.clientHeight;
@@ -444,11 +493,11 @@ export class VirtualGrid {
                 scrollTop = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
             }
         } else {
-            viewportHeight = this.scrollElement?.clientHeight || 0;
+            viewportHeight = scrollEl?.clientHeight || 0;
             if (containerRect && rootRect) {
                 scrollTop = Math.max(0, -(containerRect.top - rootRect.top));
             } else {
-                scrollTop = this.scrollElement?.scrollTop || 0;
+                scrollTop = scrollEl?.scrollTop || 0;
             }
         }
 
@@ -492,12 +541,8 @@ export class VirtualGrid {
                 );
 
                 if (el && !isSameItem) {
-                    // Fix: onItemRecycled should receive the card context, not the wrapper.
-                    const card = this._getCard(el);
-                    if (card) this.options.onItemRecycled(card);
-
-                    el.remove();
                     this.renderedItems.delete(i);
+                    this._recycleToPool(el);
                     el = undefined;
                 } else if (el && isSameItem && el._virtualItem !== item) {
                     // Update reference but keep DOM
@@ -506,23 +551,38 @@ export class VirtualGrid {
                 }
 
                 if (!el) {
-                    // Create wrapper for positioning
-                    el = document.createElement("div");
-                    el.className = "mjr-virtual-cell";
-                    el.style.position = "absolute";
+                    let fromPool = false;
+                    el = this._takeFromPool();
+                    if (!el) {
+                        // Create wrapper for positioning
+                        el = document.createElement("div");
+                        el.className = "mjr-virtual-cell";
+                        el.style.position = "absolute";
+                        fromPool = false;
+                    } else {
+                        fromPool = true;
+                    }
+
                     // CRITICAL: Set width BEFORE appending/measuring so content flows correctly
                     el.style.width = `${this.itemWidth}px`;
 
-                    let card;
-                    try {
-                        card = this.options.createItem(item, i);
-                    } catch (e) {
-                         this._warn("createItem failed", e);
-                         card = document.createElement("div");
+                    let card = this._getCard(el);
+                    if (!card || !fromPool) {
+                        try {
+                            card = this.options.createItem(item, i);
+                        } catch (e) {
+                            this._warn("createItem failed", e);
+                            card = document.createElement("div");
+                        }
+                        el.textContent = "";
+                        el.appendChild(card);
+                    } else {
+                        try {
+                            this.options.onItemUpdated(item, card);
+                        } catch (e) {
+                            this._warn("onItemUpdated failed", e);
+                        }
                     }
-
-                    // Add to wrapper
-                    el.appendChild(card);
 
                     el._virtualItem = item;
 
@@ -576,9 +636,7 @@ export class VirtualGrid {
             // Cleanup
             for (const [i, el] of this.renderedItems) {
                 if (!desiredIndices.has(i)) {
-                    const card = el.firstElementChild;
-                    if (card) this.options.onItemRecycled(card);
-                    el.remove();
+                    this._recycleToPool(el);
                     this.renderedItems.delete(i);
                 }
             }
@@ -609,8 +667,9 @@ export class VirtualGrid {
                 } else if (absTop < scrollY) {
                     window.scrollTo({ top: absTop, behavior: "auto" });
                 }
-            } else if (this.scrollElement) {
-                const el = this.scrollElement;
+            } else {
+                const el = this._getScrollElement();
+                if (!el) return;
                 const viewportH = el.clientHeight;
 
                 if (itemBottom > el.scrollTop + viewportH) {

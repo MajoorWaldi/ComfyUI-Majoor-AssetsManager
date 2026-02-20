@@ -1,13 +1,12 @@
 """
 ProbeRouter: Decides which metadata extraction tools to use based on settings.
 """
-from typing import List
 from pathlib import Path
 
 from mjr_am_backend.config import MEDIA_PROBE_BACKEND
-from mjr_am_backend.tool_detect import has_exiftool, has_ffprobe
-from mjr_am_backend.shared import get_logger
 from mjr_am_backend.features.audio import AUDIO_EXTENSIONS
+from mjr_am_backend.shared import get_logger
+from mjr_am_backend.tool_detect import has_exiftool, has_ffprobe
 
 logger = get_logger(__name__)
 
@@ -19,7 +18,7 @@ def pick_probe_backend(
     filepath: str | Path,
     want_generation_tags: bool = True,
     settings_override: str | None = None
-) -> List[str]:
+) -> list[str]:
     """
     Pick which probe backend(s) to use for metadata extraction.
 
@@ -54,7 +53,7 @@ def _is_audio_or_video(filepath: str | Path) -> bool:
     return ext in VIDEO_EXTS or ext in AUDIO_EXTENSIONS
 
 
-def _single_mode_fallback(primary: str, secondary: str) -> List[str]:
+def _single_mode_fallback(primary: str, secondary: str) -> list[str]:
     if _tool_available(primary):
         return [primary]
     logger.warning("%s requested but not available, trying %s", primary.capitalize(), secondary)
@@ -63,8 +62,8 @@ def _single_mode_fallback(primary: str, secondary: str) -> List[str]:
     return []
 
 
-def _available_tools_pair() -> List[str]:
-    tools: List[str] = []
+def _available_tools_pair() -> list[str]:
+    tools: list[str] = []
     if has_exiftool():
         tools.append("exiftool")
     if has_ffprobe():
@@ -72,7 +71,7 @@ def _available_tools_pair() -> List[str]:
     return tools
 
 
-def _auto_mode_tools(*, is_media: bool, want_generation_tags: bool) -> List[str]:
+def _auto_mode_tools(*, is_media: bool, want_generation_tags: bool) -> list[str]:
     _ = want_generation_tags
     if is_media:
         return _available_tools_pair()

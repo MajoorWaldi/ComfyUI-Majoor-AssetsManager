@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-
 UTF8_BOM = b"\xef\xbb\xbf"
 SKIP_DIRS = {
     ".git",
