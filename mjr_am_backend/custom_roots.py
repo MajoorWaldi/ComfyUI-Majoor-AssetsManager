@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
@@ -42,8 +43,8 @@ def _is_symlink_like(path: Path) -> bool:
     try:
         st = path.lstat()
         # Windows: reparse points cover symlinks/junctions.
-        if hasattr(st, "st_file_attributes"):
-            return bool(int(st.st_file_attributes or 0) & 0x400)
+        if sys.platform == "win32" and hasattr(st, "st_file_attributes"):
+            return bool(int(getattr(st, "st_file_attributes", 0)) & 0x400)
     except Exception:
         pass
     return False
