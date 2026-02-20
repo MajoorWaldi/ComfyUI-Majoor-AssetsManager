@@ -7,7 +7,6 @@ import os
 import threading
 import time
 from pathlib import Path
-from typing import Optional
 
 from mjr_am_backend.config import MANUAL_BG_SCAN_GRACE_SECONDS
 
@@ -31,7 +30,7 @@ def normalize_scan_directory(directory: str) -> str:
             return str(directory)
 
 
-def _scan_key(directory: str, source: str, root_id: Optional[str]) -> str:
+def _scan_key(directory: str, source: str, root_id: str | None) -> str:
     norm_dir = normalize_scan_directory(directory or "")
     return f"{str(source or 'output')}|{str(root_id or '')}|{norm_dir}"
 
@@ -39,7 +38,7 @@ def _scan_key(directory: str, source: str, root_id: Optional[str]) -> str:
 def mark_directory_indexed(
     directory: str,
     source: str = "output",
-    root_id: Optional[str] = None,
+    root_id: str | None = None,
     metadata_complete: bool = True,
 ) -> None:
     """
@@ -58,7 +57,7 @@ def mark_directory_indexed(
 def mark_directory_scanned(
     directory: str,
     source: str = "output",
-    root_id: Optional[str] = None,
+    root_id: str | None = None,
 ) -> None:
     """
     Record that a background scan was scheduled/executed, regardless of metadata completeness.
@@ -74,7 +73,7 @@ def mark_directory_scanned(
 def should_skip_background_scan(
     directory: str,
     source: str = "output",
-    root_id: Optional[str] = None,
+    root_id: str | None = None,
     grace_seconds: float = MANUAL_BG_SCAN_GRACE_SECONDS,
     include_recent: bool = False,
 ) -> bool:

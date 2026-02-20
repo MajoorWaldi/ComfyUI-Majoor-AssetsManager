@@ -3,15 +3,14 @@ Metadata enricher - handles background metadata enrichment for assets.
 """
 from __future__ import annotations
 
-import os
 import asyncio
+import os
 import time
-from typing import List, Dict, Any, Optional
+from typing import Any
 
-from ...shared import get_logger, Result
 from ...adapters.db.sqlite import Sqlite
+from ...shared import Result, get_logger
 from ..metadata import MetadataService
-
 
 logger = get_logger(__name__)
 _DB_RESETTING_MSG = "database is resetting - connection rejected"
@@ -69,11 +68,12 @@ class MetadataEnricher:
         self._prepare_metadata_fields = prepare_metadata_fields_fn
         self._metadata_error_payload = metadata_error_payload_fn
         self._enrich_lock = asyncio.Lock()
-        self._enrich_queue: List[tuple[int, str]] = []
-        self._enrich_task: Optional[asyncio.Task[None]] = None
+        self._enrich_queue: list[tuple[int, str]] = []
+        self._enrich_task: asyncio.Task[None] | None = None
         self._enrich_running = False
-        self._retry_counts: Dict[str, int] = {}
+        self._retry_counts: dict[str, int] = {}
         self._pause_until_monotonic: float = 0.0
+        self._scan_pause_count: int = 0
         self._status_active: bool = False
 
     def _emit_status(self, active: bool, **extra: Any) -> None:
@@ -98,7 +98,21 @@ class MetadataEnricher:
         now = time.monotonic()
         self._pause_until_monotonic = max(self._pause_until_monotonic, now + ttl)
 
-    async def start_enrichment(self, filepaths: List[str]) -> None:
+    def begin_scan_pause(self) -> None:
+        """Pause enrichment while a scan is actively writing to the DB."""
+        try:
+            self._scan_pause_count = max(0, int(self._scan_pause_count)) + 1
+        except Exception:
+            self._scan_pause_count = 1
+
+    def end_scan_pause(self) -> None:
+        """Release one active scan pause token."""
+        try:
+            self._scan_pause_count = max(0, int(self._scan_pause_count) - 1)
+        except Exception:
+            self._scan_pause_count = 0
+
+    async def start_enrichment(self, filepaths: list[str]) -> None:
         """
         Enqueue files for background metadata enrichment.
 
@@ -125,7 +139,7 @@ class MetadataEnricher:
             self._ensure_worker_started_locked(emit_on_running=True)
 
     @staticmethod
-    def _clean_paths(filepaths: List[str]) -> List[str]:
+    def _clean_paths(filepaths: list[str]) -> list[str]:
         return [str(p) for p in (filepaths or []) if p]
 
     @staticmethod
@@ -135,7 +149,7 @@ class MetadataEnricher:
         except Exception:
             return 0
 
-    def _append_queue_items(self, filepaths: List[str], priority: int) -> None:
+    def _append_queue_items(self, filepaths: list[str], priority: int) -> None:
         existing = {fp for _, fp in self._enrich_queue}
         prio = self._normalize_priority(priority)
         for fp in filepaths:
@@ -160,7 +174,7 @@ class MetadataEnricher:
         """
         Stop background enrichment worker and optionally clear pending queue.
         """
-        task: Optional[asyncio.Task[None]] = None
+        task: asyncio.Task[None] | None = None
         async with self._enrich_lock:
             task = self._enrich_task
             self._enrich_task = None
@@ -182,6 +196,9 @@ class MetadataEnricher:
         """Background worker that processes the enrichment queue."""
         try:
             while True:
+                if self._scan_pause_count > 0:
+                    await asyncio.sleep(0.25)
+                    continue
                 now = time.monotonic()
                 if self._pause_until_monotonic > now:
                     await asyncio.sleep(min(0.25, self._pause_until_monotonic - now))
@@ -206,7 +223,7 @@ class MetadataEnricher:
                 queue_left = len(self._enrich_queue)
             self._emit_status(False, queue_left=queue_left)
 
-    async def _load_asset_ids_for_filepaths(self, filepaths: List[str]) -> Result[Dict[str, int]]:
+    async def _load_asset_ids_for_filepaths(self, filepaths: list[str]) -> Result[dict[str, int]]:
         id_res = await self.db.aquery_in(
             "SELECT id, filepath FROM assets WHERE {IN_CLAUSE}",
             "filepath",
@@ -215,7 +232,7 @@ class MetadataEnricher:
         if not id_res.ok:
             return Result.Err(id_res.code, id_res.error or "Failed to query asset ids")
 
-        id_by_fp: Dict[str, int] = {}
+        id_by_fp: dict[str, int] = {}
         for row in id_res.data or []:
             if not isinstance(row, dict):
                 continue
@@ -228,7 +245,7 @@ class MetadataEnricher:
                 id_by_fp[str(fp)] = aid
         return Result.Ok(id_by_fp)
 
-    def _build_state_hash_for_file(self, filepath: str) -> Optional[str]:
+    def _build_state_hash_for_file(self, filepath: str) -> str | None:
         try:
             stat = os.stat(filepath)
         except Exception:
@@ -237,7 +254,7 @@ class MetadataEnricher:
         return self._compute_state_hash(filepath, int(mtime_ns), int(stat.st_size))
 
     @staticmethod
-    def _extract_dimensions(metadata_result: Result[Dict[str, Any]]) -> tuple[Any, Any, Any]:
+    def _extract_dimensions(metadata_result: Result[dict[str, Any]]) -> tuple[Any, Any, Any]:
         width = None
         height = None
         duration = None
@@ -252,8 +269,8 @@ class MetadataEnricher:
         self,
         asset_id: int,
         filepath: str,
-        metadata_result: Result[Dict[str, Any]],
-    ) -> Dict[str, Any]:
+        metadata_result: Result[dict[str, Any]],
+    ) -> dict[str, Any]:
         width, height, duration = self._extract_dimensions(metadata_result)
         return {
             "asset_id": asset_id,
@@ -266,12 +283,12 @@ class MetadataEnricher:
 
     async def _prepare_updates_from_cache(
         self,
-        cleaned: List[str],
-        id_by_fp: Dict[str, int],
+        cleaned: list[str],
+        id_by_fp: dict[str, int],
         metadata_helpers_cls: Any,
-    ) -> tuple[List[Dict[str, Any]], List[tuple[str, int, str]]]:
-        updates: List[Dict[str, Any]] = []
-        to_extract: List[tuple[str, int, str]] = []
+    ) -> tuple[list[dict[str, Any]], list[tuple[str, int, str]]]:
+        updates: list[dict[str, Any]] = []
+        to_extract: list[tuple[str, int, str]] = []
         for fp in cleaned:
             asset_id = id_by_fp.get(fp)
             if not asset_id:
@@ -294,12 +311,12 @@ class MetadataEnricher:
 
     async def _prepare_updates_from_extraction(
         self,
-        to_extract: List[tuple[str, int, str]],
+        to_extract: list[tuple[str, int, str]],
         metadata_helpers_cls: Any,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         if not to_extract:
             return []
-        updates: List[Dict[str, Any]] = []
+        updates: list[dict[str, Any]] = []
         batch_results = await self.metadata.get_metadata_batch(
             [fp for fp, _, _ in to_extract],
             scan_id=None,
@@ -346,7 +363,7 @@ class MetadataEnricher:
         except Exception:
             pass
 
-    async def _apply_update_item(self, item: Dict[str, Any], metadata_helpers_cls: Any) -> Optional[str]:
+    async def _apply_update_item(self, item: dict[str, Any], metadata_helpers_cls: Any) -> str | None:
         asset_id = item.get("asset_id")
         if not asset_id:
             return None
@@ -383,10 +400,10 @@ class MetadataEnricher:
         self,
         *,
         asset_id: Any,
-        item: Dict[str, Any],
-        meta_res: Result[Dict[str, Any]],
+        item: dict[str, Any],
+        meta_res: Result[dict[str, Any]],
         metadata_helpers_cls: Any,
-    ) -> Optional[str]:
+    ) -> str | None:
         fp = str(item.get("filepath") or "")
         async with self.db.lock_for_asset(asset_id):
             async with self.db.atransaction(mode="deferred") as tx:
@@ -410,8 +427,8 @@ class MetadataEnricher:
     async def _apply_metadata_update_queries(
         self,
         asset_id: Any,
-        item: Dict[str, Any],
-        meta_res: Result[Dict[str, Any]],
+        item: dict[str, Any],
+        meta_res: Result[dict[str, Any]],
         metadata_helpers_cls: Any,
     ) -> None:
         await self.db.aexecute(
@@ -439,20 +456,20 @@ class MetadataEnricher:
 
     async def _apply_updates_and_collect_retries(
         self,
-        updates: List[Dict[str, Any]],
+        updates: list[dict[str, Any]],
         metadata_helpers_cls: Any,
-    ) -> List[str]:
-        retry_paths: List[str] = []
+    ) -> list[str]:
+        retry_paths: list[str] = []
         for item in updates:
             retry_fp = await self._apply_update_item(item, metadata_helpers_cls)
             if retry_fp:
                 retry_paths.append(retry_fp)
         return retry_paths
 
-    async def _requeue_retry_paths(self, retry_paths: List[str]) -> None:
+    async def _requeue_retry_paths(self, retry_paths: list[str]) -> None:
         if not retry_paths:
             return
-        to_requeue: List[str] = []
+        to_requeue: list[str] = []
         for fp in retry_paths:
             try:
                 count = int(self._retry_counts.get(fp, 0)) + 1
@@ -472,7 +489,7 @@ class MetadataEnricher:
             await asyncio.sleep(0.2)
             await self.start_enrichment(to_requeue)
 
-    async def _enrich_metadata_chunk(self, filepaths: List[str]) -> None:
+    async def _enrich_metadata_chunk(self, filepaths: list[str]) -> None:
         """
         Process a chunk of files for metadata enrichment.
 

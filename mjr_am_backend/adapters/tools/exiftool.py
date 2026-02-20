@@ -1,17 +1,17 @@
 """
 ExifTool adapter for reading and writing metadata.
 """
-import os
 import asyncio
-import subprocess
 import json
-import shutil
+import os
 import re
-from typing import Optional, List, Dict, Any, Tuple
+import shutil
+import subprocess
 from pathlib import Path
+from typing import Any
 
 from ...config import EXIFTOOL_TIMEOUT
-from ...shared import Result, ErrorCode, get_logger
+from ...shared import ErrorCode, Result, get_logger
 
 logger = get_logger(__name__)
 
@@ -19,7 +19,7 @@ _TAG_SAFE_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_:-]*$")
 _WINDOWS_CMDLINE_TOO_LONG = 206
 
 
-def _decode_bytes_best_effort(blob: Optional[bytes]) -> Tuple[str, bool]:
+def _decode_bytes_best_effort(blob: bytes | None) -> tuple[str, bool]:
     """
     Decode subprocess bytes robustly across Windows code pages.
 
@@ -83,7 +83,7 @@ def _is_safe_exiftool_tag(tag: str) -> bool:
     return bool(_TAG_SAFE_PATTERN.match(s))
 
 
-def _validate_exiftool_tags(tags: Optional[List[str]]) -> Result[List[str]]:
+def _validate_exiftool_tags(tags: list[str] | None) -> Result[list[str]]:
     """
     Validate a tag list and return a cleaned list, or Err on any invalid tags.
 
@@ -94,8 +94,8 @@ def _validate_exiftool_tags(tags: Optional[List[str]]) -> Result[List[str]]:
     if not isinstance(tags, list):
         return Result.Err(ErrorCode.INVALID_INPUT, "tags must be a list", quality="none")
 
-    cleaned: List[str] = []
-    invalid: List[str] = []
+    cleaned: list[str] = []
+    invalid: list[str] = []
     for t in tags:
         if not isinstance(t, str):
             invalid.append(str(t))
@@ -116,7 +116,7 @@ def _validate_exiftool_tags(tags: Optional[List[str]]) -> Result[List[str]]:
     return Result.Ok(cleaned)
 
 
-def _normalize_match_path(path_value: str) -> Optional[str]:
+def _normalize_match_path(path_value: str) -> str | None:
     """
     Normalize a filesystem path string for robust equality matching.
 
@@ -140,14 +140,14 @@ def _normalize_match_path(path_value: str) -> Optional[str]:
             return None
 
 
-def _build_match_map(valid_paths: List[str]) -> Tuple[Dict[str, List[str]], List[str]]:
+def _build_match_map(valid_paths: list[str]) -> tuple[dict[str, list[str]], list[str]]:
     """
     Build:
     - a map from normalized path key -> list of original input paths to fill
     - a de-duplicated list of command paths (first occurrence per key)
     """
-    key_to_paths: Dict[str, List[str]] = {}
-    cmd_paths: List[str] = []
+    key_to_paths: dict[str, list[str]] = {}
+    cmd_paths: list[str] = []
 
     for original in valid_paths:
         key = _normalize_match_path(original) or str(original)
@@ -166,7 +166,7 @@ class ExifTool:
     Never raises exceptions - always returns Result.
     """
 
-    def __init__(self, bin_name: str = "exiftool", timeout: Optional[float] = None):
+    def __init__(self, bin_name: str = "exiftool", timeout: float | None = None):
         """
         Initialize ExifTool adapter.
 
@@ -178,7 +178,7 @@ class ExifTool:
         self.timeout = float(timeout) if timeout is not None else float(EXIFTOOL_TIMEOUT)
         self._available = self._check_available()
 
-    def _resolve_executable(self, bin_name: str) -> Optional[str]:
+    def _resolve_executable(self, bin_name: str) -> str | None:
         """
         Resolve and validate the exiftool executable.
 
@@ -204,7 +204,7 @@ class ExifTool:
         return not any(ch in raw for ch in ("&", "|", ";", ">", "<"))
 
     @staticmethod
-    def _resolve_executable_path(raw: str) -> Optional[str]:
+    def _resolve_executable_path(raw: str) -> str | None:
         resolved = shutil.which(raw)
         if resolved:
             return resolved
@@ -231,8 +231,8 @@ class ExifTool:
             return False
 
     @staticmethod
-    def _trusted_roots(trusted_dirs_raw: str) -> List[Path]:
-        roots: List[Path] = []
+    def _trusted_roots(trusted_dirs_raw: str) -> list[Path]:
+        roots: list[Path] = []
         for item in trusted_dirs_raw.split(os.pathsep):
             item = item.strip()
             if not item:
@@ -265,9 +265,9 @@ class ExifTool:
 
     @staticmethod
     def _assign_result_for_paths(
-        paths: List[str],
-        results: Dict[str, Result[Dict[str, Any]]],
-        value: Result[Dict[str, Any]],
+        paths: list[str],
+        results: dict[str, Result[dict[str, Any]]],
+        value: Result[dict[str, Any]],
         *,
         only_missing: bool = False,
     ) -> None:
@@ -278,10 +278,10 @@ class ExifTool:
 
     @staticmethod
     def _collect_valid_batch_paths(
-        paths: List[str],
-    ) -> Tuple[List[str], Dict[str, Result[Dict[str, Any]]]]:
-        valid_paths: List[str] = []
-        results: Dict[str, Result[Dict[str, Any]]] = {}
+        paths: list[str],
+    ) -> tuple[list[str], dict[str, Result[dict[str, Any]]]]:
+        valid_paths: list[str] = []
+        results: dict[str, Result[dict[str, Any]]] = {}
         for path in paths:
             if not path or "\x00" in str(path):
                 results[str(path)] = Result.Err(
@@ -304,27 +304,27 @@ class ExifTool:
 
     def _validate_batch_tags(
         self,
-        tags: Optional[List[str]],
-        valid_paths: List[str],
-        results: Dict[str, Result[Dict[str, Any]]],
-    ) -> Optional[List[str]]:
+        tags: list[str] | None,
+        valid_paths: list[str],
+        results: dict[str, Result[dict[str, Any]]],
+    ) -> list[str] | None:
         tags_res = _validate_exiftool_tags(tags)
         if tags_res.ok:
             return tags_res.data or []
-        err: Result[Dict[str, Any]] = Result.Err(tags_res.code, tags_res.error or "Invalid tags", **(tags_res.meta or {}))
+        err: Result[dict[str, Any]] = Result.Err(tags_res.code, tags_res.error or "Invalid tags", **(tags_res.meta or {}))
         self._assign_result_for_paths(valid_paths, results, err)
         return None
 
     def _build_batch_command(
         self,
-        cmd_paths: List[str],
-        safe_tags: List[str],
-    ) -> Tuple[List[str], Optional[bytes], float]:
+        cmd_paths: list[str],
+        safe_tags: list[str],
+    ) -> tuple[list[str], bytes | None, float]:
         cmd = [self.bin, "-j", "-G1", "-ee", "-a", "-U", "-s"]
         if safe_tags:
             cmd.extend([f"-{tag}" for tag in safe_tags])
 
-        stdin_input: Optional[bytes] = None
+        stdin_input: bytes | None = None
         if os.name == "nt":
             cmd.extend(["-charset", "filename=utf8", "-@", "-"])
             stdin_lines = "".join(f"{p}\r\n" for p in cmd_paths)
@@ -337,9 +337,9 @@ class ExifTool:
 
     @staticmethod
     def _run_batch_subprocess(
-        cmd: List[str],
+        cmd: list[str],
         timeout_s: float,
-        stdin_input: Optional[bytes],
+        stdin_input: bytes | None,
     ) -> subprocess.CompletedProcess:
         return subprocess.run(
             cmd,
@@ -354,8 +354,8 @@ class ExifTool:
     def _retry_windows_batch_file_not_found(
         self,
         process: subprocess.CompletedProcess,
-        safe_tags: List[str],
-        cmd_paths: List[str],
+        safe_tags: list[str],
+        cmd_paths: list[str],
         timeout_s: float,
     ) -> subprocess.CompletedProcess:
         if os.name != "nt" or process.returncode == 0:
@@ -381,9 +381,9 @@ class ExifTool:
     def _parse_batch_output(
         self,
         process: subprocess.CompletedProcess,
-        valid_paths: List[str],
-        results: Dict[str, Result[Dict[str, Any]]],
-    ) -> Tuple[Optional[List[Dict[str, Any]]], bool]:
+        valid_paths: list[str],
+        results: dict[str, Result[dict[str, Any]]],
+    ) -> tuple[list[dict[str, Any]] | None, bool]:
         stdout, stdout_rep = _decode_bytes_best_effort(process.stdout)
         stderr, stderr_rep = _decode_bytes_best_effort(process.stderr)
         had_replacements = bool(stdout_rep or stderr_rep)
@@ -397,7 +397,7 @@ class ExifTool:
 
         if not stdout.strip():
             if process.returncode != 0:
-                err_result: Result[Dict[str, Any]] = Result.Err(
+                err_result: Result[dict[str, Any]] = Result.Err(
                     ErrorCode.EXIFTOOL_ERROR,
                     (stderr.strip() or f"ExifTool batch failed with return code {int(process.returncode)}"),
                     return_code=int(process.returncode),
@@ -434,9 +434,9 @@ class ExifTool:
 
     @staticmethod
     def _map_batch_results(
-        data: List[Dict[str, Any]],
-        key_to_paths: Dict[str, List[str]],
-        results: Dict[str, Result[Dict[str, Any]]],
+        data: list[dict[str, Any]],
+        key_to_paths: dict[str, list[str]],
+        results: dict[str, Result[dict[str, Any]]],
         *,
         had_replacements: bool,
     ) -> None:
@@ -467,8 +467,8 @@ class ExifTool:
 
     @staticmethod
     def _fill_missing_batch_results(
-        valid_paths: List[str],
-        results: Dict[str, Result[Dict[str, Any]]],
+        valid_paths: list[str],
+        results: dict[str, Result[dict[str, Any]]],
     ) -> None:
         for path in valid_paths:
             if path in results:
@@ -482,10 +482,10 @@ class ExifTool:
     def _handle_batch_exception(
         self,
         exc: Exception,
-        valid_paths: List[str],
-        results: Dict[str, Result[Dict[str, Any]]],
-        safe_tags: List[str],
-    ) -> Dict[str, Result[Dict[str, Any]]]:
+        valid_paths: list[str],
+        results: dict[str, Result[dict[str, Any]]],
+        safe_tags: list[str],
+    ) -> dict[str, Result[dict[str, Any]]]:
         if getattr(exc, "winerror", None) == _WINDOWS_CMDLINE_TOO_LONG:
             logger.warning(
                 "ExifTool batch hit WinError 206; falling back to per-file extraction for %d files",
@@ -498,7 +498,7 @@ class ExifTool:
             return results
 
         logger.error(f"ExifTool batch unexpected error: {exc}")
-        err: Result[Dict[str, Any]] = Result.Err(ErrorCode.EXIFTOOL_ERROR, str(exc), quality="degraded")
+        err: Result[dict[str, Any]] = Result.Err(ErrorCode.EXIFTOOL_ERROR, str(exc), quality="degraded")
         self._assign_result_for_paths(valid_paths, results, err, only_missing=True)
         return results
 
@@ -515,7 +515,7 @@ class ExifTool:
         return Result.Ok(str(path))
 
     @staticmethod
-    def _validate_single_read_tags(tags: Optional[List[str]]) -> Result[List[str]]:
+    def _validate_single_read_tags(tags: list[str] | None) -> Result[list[str]]:
         tags_res = _validate_exiftool_tags(tags)
         if tags_res.ok:
             return Result.Ok(tags_res.data or [])
@@ -523,12 +523,12 @@ class ExifTool:
 
     @staticmethod
     def _run_exiftool_process(
-        cmd: List[str],
+        cmd: list[str],
         *,
         timeout: float,
-        stdin_input: Optional[str] = None,
+        stdin_input: str | None = None,
     ) -> subprocess.CompletedProcess:
-        stdin_bytes: Optional[bytes]
+        stdin_bytes: bytes | None
         if stdin_input is None:
             stdin_bytes = None
         else:
@@ -546,8 +546,8 @@ class ExifTool:
     def _build_single_read_command(
         self,
         path: str,
-        safe_tags: List[str],
-    ) -> Tuple[List[str], Optional[str]]:
+        safe_tags: list[str],
+    ) -> tuple[list[str], str | None]:
         cmd = [self.bin, "-j", "-G1", "-ee", "-a", "-U", "-s"]
         if safe_tags:
             cmd.extend([f"-{tag}" for tag in safe_tags])
@@ -561,7 +561,7 @@ class ExifTool:
         self,
         process: subprocess.CompletedProcess,
         path: str,
-        safe_tags: List[str],
+        safe_tags: list[str],
     ) -> subprocess.CompletedProcess:
         if os.name != "nt" or process.returncode == 0:
             return process
@@ -587,7 +587,7 @@ class ExifTool:
     def _parse_single_read_process(
         process: subprocess.CompletedProcess,
         path: str,
-    ) -> Result[Dict[str, Any]]:
+    ) -> Result[dict[str, Any]]:
         stdout, stdout_rep = _decode_bytes_best_effort(process.stdout)
         stderr, stderr_rep = _decode_bytes_best_effort(process.stderr)
         had_replacements = bool(stdout_rep or stderr_rep)
@@ -627,7 +627,7 @@ class ExifTool:
             quality="none",
         )
 
-    def read(self, path: str, tags: Optional[List[str]] = None) -> Result[Dict[str, Any]]:
+    def read(self, path: str, tags: list[str] | None = None) -> Result[dict[str, Any]]:
         """
         Read metadata from file using ExifTool.
 
@@ -671,8 +671,8 @@ class ExifTool:
     def _prepare_single_read_inputs(
         self,
         path: str,
-        tags: Optional[List[str]],
-    ) -> Result[Dict[str, Any]] | List[str]:
+        tags: list[str] | None,
+    ) -> Result[dict[str, Any]] | list[str]:
         availability_error = self._single_read_availability_error()
         if availability_error is not None:
             return availability_error
@@ -684,7 +684,7 @@ class ExifTool:
             return Result.Err(tags_res.code, tags_res.error or "Invalid tags", **(tags_res.meta or {}))
         return tags_res.data or []
 
-    def _single_read_availability_error(self) -> Optional[Result[Dict[str, Any]]]:
+    def _single_read_availability_error(self) -> Result[dict[str, Any]] | None:
         if self._available:
             return None
         return Result.Err(
@@ -696,7 +696,7 @@ class ExifTool:
     def _run_single_read_process(
         self,
         path: str,
-        safe_tags: List[str],
+        safe_tags: list[str],
     ) -> subprocess.CompletedProcess:
         cmd, stdin_input = self._build_single_read_command(path, safe_tags)
         process = self._run_exiftool_process(
@@ -706,7 +706,7 @@ class ExifTool:
         )
         return self._retry_windows_single_read_file_not_found(process, path, safe_tags)
 
-    def read_batch(self, paths: List[str], tags: Optional[List[str]] = None) -> Dict[str, Result[Dict[str, Any]]]:
+    def read_batch(self, paths: list[str], tags: list[str] | None = None) -> dict[str, Result[dict[str, Any]]]:
         """
         Read metadata from multiple files using a single ExifTool invocation.
 
@@ -720,7 +720,7 @@ class ExifTool:
             Dict mapping file path to Result with metadata
         """
         if not self._available:
-            err: Result[Dict[str, Any]] = Result.Err(
+            err: Result[dict[str, Any]] = Result.Err(
                 ErrorCode.TOOL_MISSING, "ExifTool not found in PATH", quality="none"
             )
             return {str(p): err for p in paths}
@@ -799,7 +799,7 @@ class ExifTool:
                 str(e)
             )
 
-    def _validate_write_preconditions(self, path: str) -> Optional[Result[bool]]:
+    def _validate_write_preconditions(self, path: str) -> Result[bool] | None:
         if not self._available:
             return Result.Err(ErrorCode.TOOL_MISSING, "ExifTool not found in PATH")
         if not path or "\x00" in str(path):
@@ -813,8 +813,8 @@ class ExifTool:
         return None
 
     @staticmethod
-    def _invalid_write_keys(metadata: dict) -> List[str]:
-        invalid_keys: List[str] = []
+    def _invalid_write_keys(metadata: dict) -> list[str]:
+        invalid_keys: list[str] = []
         for key in (metadata or {}).keys():
             if not isinstance(key, str):
                 invalid_keys.append(str(key))
@@ -823,7 +823,7 @@ class ExifTool:
                 invalid_keys.append(key.strip())
         return invalid_keys
 
-    def _build_write_command(self, path: str, metadata: dict, preserve_workflow: bool) -> tuple[List[str], Optional[str]]:
+    def _build_write_command(self, path: str, metadata: dict, preserve_workflow: bool) -> tuple[list[str], str | None]:
         cmd = [self.bin]
         if preserve_workflow:
             cmd.extend(["-tagsFromFile", "@"])
@@ -831,7 +831,7 @@ class ExifTool:
         return self._append_write_target_args(cmd, path)
 
     @staticmethod
-    def _append_metadata_write_args(cmd: List[str], metadata: dict) -> None:
+    def _append_metadata_write_args(cmd: list[str], metadata: dict) -> None:
         for key, value in (metadata or {}).items():
             if value is None:
                 cmd.append(f"-{key}=")
@@ -848,8 +848,8 @@ class ExifTool:
             cmd.append(f"-{key}={value}")
 
     @staticmethod
-    def _append_write_target_args(cmd: List[str], path: str) -> tuple[List[str], Optional[str]]:
-        stdin_input: Optional[str] = None
+    def _append_write_target_args(cmd: list[str], path: str) -> tuple[list[str], str | None]:
+        stdin_input: str | None = None
         if os.name == "nt":
             cmd.extend(["-charset", "filename=utf8", "-@", "-"])
             stdin_input = f"{path}\n"
@@ -858,7 +858,7 @@ class ExifTool:
             cmd.extend(["-overwrite_original", path])
         return cmd, stdin_input
 
-    def _run_write_command(self, cmd: List[str], stdin_input: Optional[str]):
+    def _run_write_command(self, cmd: list[str], stdin_input: str | None):
         return subprocess.run(
             cmd,
             capture_output=True,
@@ -885,13 +885,13 @@ class ExifTool:
         logger.debug(f"Metadata written to {path}")
         return Result.Ok(True)
 
-    async def aread(self, path: str, tags: Optional[List[str]] = None) -> Result[Dict[str, Any]]:
+    async def aread(self, path: str, tags: list[str] | None = None) -> Result[dict[str, Any]]:
         """Async wrapper for read() executed off the event loop thread."""
         return await asyncio.to_thread(self.read, path, tags)
 
     async def aread_batch(
-        self, paths: List[str], tags: Optional[List[str]] = None
-    ) -> Dict[str, Result[Dict[str, Any]]]:
+        self, paths: list[str], tags: list[str] | None = None
+    ) -> dict[str, Result[dict[str, Any]]]:
         """Async wrapper for read_batch() executed off the event loop thread."""
         return await asyncio.to_thread(self.read_batch, paths, tags)
 

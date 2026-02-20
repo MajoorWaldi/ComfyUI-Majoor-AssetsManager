@@ -3,12 +3,12 @@ from __future__ import annotations
 import argparse
 import html
 import os
+import sys
 import posixpath
 import re
 import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
-
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DOCS_DIR = REPO_ROOT / "docs"
@@ -215,7 +215,8 @@ def _md_to_html(md: str, *, doc_prefix: str, doc_id_by_md_name: dict[str, str]) 
             else:
                 in_code = False
                 lang_attr = f' class="language-{_escape(code_lang)}"' if code_lang else ""
-                out.append(f"<pre><code{lang_attr}>{_escape('\\n'.join(code_lines))}</code></pre>")
+                code_content = _escape('\n'.join(code_lines))
+                out.append(f"<pre><code{lang_attr}>{code_content}</code></pre>")
                 code_lang = ""
                 code_lines = []
             i += 1
@@ -750,4 +751,4 @@ def main(argv: list[str]) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main(os.sys.argv[1:]))
+    raise SystemExit(main(sys.argv[1:]))

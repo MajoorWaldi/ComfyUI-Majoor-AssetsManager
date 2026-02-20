@@ -2,9 +2,9 @@
 Version reporting endpoint.
 """
 from aiohttp import web
-
 from mjr_am_backend.shared import Result
 from mjr_am_shared.version import get_version_info
+
 from ..core import _json_response
 
 

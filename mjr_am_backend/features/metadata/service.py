@@ -2,26 +2,27 @@
 Metadata service - coordinates metadata extraction from multiple sources.
 """
 import asyncio
+import functools
 import logging
 import os
 import time
-import functools
-from typing import Dict, Any, Optional, Callable, Awaitable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
-from ...shared import Result, ErrorCode, get_logger, classify_file, log_structured
-from ...config import METADATA_EXTRACT_CONCURRENCY
 from ...adapters.tools import ExifTool, FFProbe
-from ...settings import AppSettings
+from ...config import METADATA_EXTRACT_CONCURRENCY
 from ...probe_router import pick_probe_backend
-from .extractors import (
-    extract_png_metadata,
-    extract_webp_metadata,
-    extract_video_metadata,
-    extract_rating_tags_from_exif,
-)
-from .fallback_readers import read_image_exif_like, read_media_probe_like
+from ...settings import AppSettings
+from ...shared import ErrorCode, Result, classify_file, get_logger, log_structured
 from ..audio import extract_audio_metadata
 from ..geninfo.parser import parse_geninfo_from_prompt
+from .extractors import (
+    extract_png_metadata,
+    extract_rating_tags_from_exif,
+    extract_video_metadata,
+    extract_webp_metadata,
+)
+from .fallback_readers import read_image_exif_like, read_media_probe_like
 from .parsing_utils import parse_auto1111_params
 
 logger = get_logger(__name__)
@@ -41,7 +42,7 @@ _TRANSIENT_ERROR_HINTS = (
 )
 
 
-def _clean_model_name(value: Any) -> Optional[str]:
+def _clean_model_name(value: Any) -> str | None:
     if value is None:
         return None
     s = str(value).strip()
@@ -55,7 +56,7 @@ def _clean_model_name(value: Any) -> Optional[str]:
     return s
 
 
-def _build_geninfo_from_parameters(meta: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _build_geninfo_from_parameters(meta: dict[str, Any]) -> dict[str, Any] | None:
     """
     Build a backend `geninfo` object from explicit A1111/Forge-style parameters data.
 
@@ -81,7 +82,7 @@ def _build_geninfo_from_parameters(meta: Dict[str, Any]) -> Optional[Dict[str, A
         # Return an empty dict instead of None to ensure geninfo is always a dict
         return {}
 
-    out: Dict[str, Any] = {"engine": {"parser_version": "geninfo-params-v1", "source": "parameters"}}
+    out: dict[str, Any] = {"engine": {"parser_version": "geninfo-params-v1", "source": "parameters"}}
 
     _apply_prompt_fields(out, pos, neg)
     _apply_sampler_fields(out, sampler, scheduler)
@@ -92,7 +93,7 @@ def _build_geninfo_from_parameters(meta: Dict[str, Any]) -> Optional[Dict[str, A
     return out if len(out.keys()) > 1 else None
 
 
-def _merge_parsed_params(meta: Dict[str, Any]) -> Dict[str, Any]:
+def _merge_parsed_params(meta: dict[str, Any]) -> dict[str, Any]:
     parsed_meta = dict(meta)
     params_text = parsed_meta.get("parameters")
     if not isinstance(params_text, str) or not params_text.strip():
@@ -117,27 +118,27 @@ def _has_any_parameter_signal(*values: Any) -> bool:
     return any(value is not None and value != "" for value in values)
 
 
-def _apply_prompt_fields(out: Dict[str, Any], pos: Any, neg: Any) -> None:
+def _apply_prompt_fields(out: dict[str, Any], pos: Any, neg: Any) -> None:
     if isinstance(pos, str) and pos.strip():
         out["positive"] = {"value": pos.strip(), "confidence": "high", "source": "parameters"}
     if isinstance(neg, str) and neg.strip():
         out["negative"] = {"value": neg.strip(), "confidence": "high", "source": "parameters"}
 
 
-def _apply_sampler_fields(out: Dict[str, Any], sampler: Any, scheduler: Any) -> None:
+def _apply_sampler_fields(out: dict[str, Any], sampler: Any, scheduler: Any) -> None:
     if sampler is not None:
         out["sampler"] = {"name": str(sampler), "confidence": "high", "source": "parameters"}
     if scheduler is not None:
         out["scheduler"] = {"name": str(scheduler), "confidence": "high", "source": "parameters"}
 
 
-def _apply_numeric_fields(out: Dict[str, Any], steps: Any, cfg: Any, seed: Any) -> None:
+def _apply_numeric_fields(out: dict[str, Any], steps: Any, cfg: Any, seed: Any) -> None:
     _set_numeric_field(out, "steps", steps, int)
     _set_numeric_field(out, "cfg", cfg, float)
     _set_numeric_field(out, "seed", seed, int)
 
 
-def _set_numeric_field(out: Dict[str, Any], key: str, value: Any, caster: Callable[[Any], Any]) -> None:
+def _set_numeric_field(out: dict[str, Any], key: str, value: Any, caster: Callable[[Any], Any]) -> None:
     if value is None:
         return
     try:
@@ -146,7 +147,7 @@ def _set_numeric_field(out: Dict[str, Any], key: str, value: Any, caster: Callab
         return
 
 
-def _apply_size_field(out: Dict[str, Any], width: Any, height: Any) -> None:
+def _apply_size_field(out: dict[str, Any], width: Any, height: Any) -> None:
     if width is None or height is None:
         return
     try:
@@ -155,7 +156,7 @@ def _apply_size_field(out: Dict[str, Any], width: Any, height: Any) -> None:
         return
 
 
-def _apply_checkpoint_fields(out: Dict[str, Any], model: Any) -> None:
+def _apply_checkpoint_fields(out: dict[str, Any], model: Any) -> None:
     ckpt = _clean_model_name(model)
     if not ckpt:
         return
@@ -185,7 +186,7 @@ def _looks_like_media_pipeline(prompt_graph: Any) -> bool:
         return False
 
 
-def _collect_prompt_graph_types(prompt_graph: Dict[str, Any]) -> list[str]:
+def _collect_prompt_graph_types(prompt_graph: dict[str, Any]) -> list[str]:
     types: list[str] = []
     for node in prompt_graph.values():
         if not isinstance(node, dict):
@@ -212,7 +213,7 @@ def _classify_media_nodes(types: list[str]) -> tuple[bool, bool, bool]:
     return has_load, has_combine, has_save
 
 
-def _should_parse_geninfo(meta: Dict[str, Any]) -> bool:
+def _should_parse_geninfo(meta: dict[str, Any]) -> bool:
     """
     Fast gate to avoid expensive geninfo parsing when generation signals are absent.
     """
@@ -270,14 +271,14 @@ def _build_batch_probe_targets(paths: list[str], probe_mode: str) -> tuple[list[
 
 
 def _batch_tool_data(
-    result_map: Dict[str, Result[Dict[str, Any]]],
+    result_map: dict[str, Result[dict[str, Any]]],
     path: str,
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     item = result_map.get(path)
     return item.data if item and item.ok else None
 
 
-def _expand_resolution_scalars(payload: Dict[str, Any]) -> None:
+def _expand_resolution_scalars(payload: dict[str, Any]) -> None:
     resolution = payload.get("resolution")
     if not resolution:
         return
@@ -293,7 +294,7 @@ def _expand_resolution_scalars(payload: Dict[str, Any]) -> None:
         payload["height"] = _coerce_dimension_value(h)
 
 
-def _coerce_resolution_pair(resolution: Any) -> Optional[tuple[Any, Any]]:
+def _coerce_resolution_pair(resolution: Any) -> tuple[Any, Any] | None:
     try:
         w, h = resolution
         return w, h
@@ -335,8 +336,8 @@ class MetadataService:
             max_concurrency = 1
         self._extract_sem = asyncio.Semaphore(max_concurrency)
 
-    async def _exif_read(self, file_path: str) -> Result[Dict[str, Any]]:
-        async def _invoke() -> Result[Dict[str, Any]]:
+    async def _exif_read(self, file_path: str) -> Result[dict[str, Any]]:
+        async def _invoke() -> Result[dict[str, Any]]:
             aread = getattr(self.exiftool, "aread", None)
             if callable(aread):
                 return await aread(file_path)
@@ -344,8 +345,8 @@ class MetadataService:
 
         return await self._read_with_transient_retry(file_path, _invoke)
 
-    async def _ffprobe_read(self, file_path: str) -> Result[Dict[str, Any]]:
-        async def _invoke() -> Result[Dict[str, Any]]:
+    async def _ffprobe_read(self, file_path: str) -> Result[dict[str, Any]]:
+        async def _invoke() -> Result[dict[str, Any]]:
             aread = getattr(self.ffprobe, "aread", None)
             if callable(aread):
                 return await aread(file_path)
@@ -353,7 +354,7 @@ class MetadataService:
 
         return await self._read_with_transient_retry(file_path, _invoke)
 
-    async def _ffprobe_read_batch(self, paths: list[str]) -> Dict[str, Result[Dict[str, Any]]]:
+    async def _ffprobe_read_batch(self, paths: list[str]) -> dict[str, Result[dict[str, Any]]]:
         aread_batch = getattr(self.ffprobe, "aread_batch", None)
         if callable(aread_batch):
             return await aread_batch(paths)
@@ -362,9 +363,9 @@ class MetadataService:
     async def _read_with_transient_retry(
         self,
         file_path: str,
-        read_once: Callable[[], Awaitable[Result[Dict[str, Any]]]],
-    ) -> Result[Dict[str, Any]]:
-        last_result: Result[Dict[str, Any]] | None = None
+        read_once: Callable[[], Awaitable[Result[dict[str, Any]]]],
+    ) -> Result[dict[str, Any]]:
+        last_result: Result[dict[str, Any]] | None = None
         attempts = max(1, int(_METADATA_TRANSIENT_RETRY_ATTEMPTS))
         for attempt in range(attempts):
             result = await read_once()
@@ -379,7 +380,7 @@ class MetadataService:
             await asyncio.sleep(max(0.01, float(delay)))
         return last_result if last_result is not None else Result.Err(ErrorCode.METADATA_FAILED, "Metadata read failed")
 
-    def _is_transient_metadata_read_error(self, result: Result[Dict[str, Any]], file_path: str) -> bool:
+    def _is_transient_metadata_read_error(self, result: Result[dict[str, Any]], file_path: str) -> bool:
         try:
             if not os.path.exists(file_path):
                 return False
@@ -401,7 +402,7 @@ class MetadataService:
             return True
         return any(hint in err_text for hint in _TRANSIENT_ERROR_HINTS)
 
-    async def _enrich_with_geninfo_async(self, combined: Dict[str, Any]) -> None:
+    async def _enrich_with_geninfo_async(self, combined: dict[str, Any]) -> None:
         """Helper to parse geninfo from prompt/workflow in combined metadata (Worker Thread)."""
         prompt_graph = combined.get("prompt")
         workflow = combined.get("workflow")
@@ -426,14 +427,14 @@ class MetadataService:
             if not gi and _looks_like_media_pipeline(prompt_graph):
                 combined["geninfo_status"] = {"kind": "media_pipeline", "reason": "no_sampler"}
 
-    async def _resolve_probe_mode(self, override: Optional[str]) -> str:
+    async def _resolve_probe_mode(self, override: str | None) -> str:
         if isinstance(override, str):
             normalized = override.strip().lower()
             if normalized in ("auto", "exiftool", "ffprobe", "both"):
                 return normalized
         return await self._settings.get_probe_backend()
 
-    async def _probe_backends(self, file_path: str, override: Optional[str]) -> tuple[str, list[str]]:
+    async def _probe_backends(self, file_path: str, override: str | None) -> tuple[str, list[str]]:
         mode = await self._resolve_probe_mode(override)
         return mode, pick_probe_backend(file_path, settings_override=mode)
 
@@ -458,9 +459,9 @@ class MetadataService:
     async def get_metadata(
         self,
         file_path: str,
-        scan_id: Optional[str] = None,
-        probe_mode_override: Optional[str] = None
-    ) -> Result[Dict[str, Any]]:
+        scan_id: str | None = None,
+        probe_mode_override: str | None = None
+    ) -> Result[dict[str, Any]]:
         """
         Extract metadata from file.
 
@@ -484,9 +485,9 @@ class MetadataService:
     async def _get_metadata_impl(
         self,
         file_path: str,
-        scan_id: Optional[str] = None,
-        probe_mode_override: Optional[str] = None
-    ) -> Result[Dict[str, Any]]:
+        scan_id: str | None = None,
+        probe_mode_override: str | None = None
+    ) -> Result[dict[str, Any]]:
         # Get file kind
         kind = classify_file(file_path)
         if kind == "unknown":
@@ -534,7 +535,7 @@ class MetadataService:
                 quality="degraded"
             )
 
-    async def get_workflow_only(self, file_path: str, scan_id: Optional[str] = None) -> Result[Dict[str, Any]]:
+    async def get_workflow_only(self, file_path: str, scan_id: str | None = None) -> Result[dict[str, Any]]:
         """
         Fast path for extracting only embedded ComfyUI workflow/prompt (no ffprobe, no geninfo).
 
@@ -576,8 +577,8 @@ class MetadataService:
         file_path: str,
         kind: str,
         image_fallback_enabled: bool,
-        scan_id: Optional[str],
-    ) -> Dict[str, Any]:
+        scan_id: str | None,
+    ) -> dict[str, Any]:
         exif_start = time.perf_counter()
         exif_result = await self._exif_read(file_path)
         exif_duration = time.perf_counter() - exif_start
@@ -603,8 +604,8 @@ class MetadataService:
         kind: str,
         ext: str,
         file_path: str,
-        exif_data: Dict[str, Any],
-    ) -> Result[Dict[str, Any]]:
+        exif_data: dict[str, Any],
+    ) -> Result[dict[str, Any]]:
         if kind == "image":
             if ext == ".png":
                 return extract_png_metadata(file_path, exif_data)
@@ -617,9 +618,9 @@ class MetadataService:
     async def _extract_image_metadata(
         self,
         file_path: str,
-        scan_id: Optional[str] = None,
+        scan_id: str | None = None,
         allow_exif: bool = True
-    ) -> Result[Dict[str, Any]]:
+    ) -> Result[dict[str, Any]]:
         """Extract metadata from image file."""
         ext = os.path.splitext(file_path)[1].lower()
         exif_data = await self._resolve_image_exif_data(file_path, scan_id=scan_id, allow_exif=allow_exif)
@@ -650,10 +651,10 @@ class MetadataService:
         self,
         file_path: str,
         *,
-        scan_id: Optional[str],
+        scan_id: str | None,
         allow_exif: bool,
-    ) -> Optional[Dict[str, Any]]:
-        exif_data: Optional[Dict[str, Any]] = None
+    ) -> dict[str, Any] | None:
+        exif_data: dict[str, Any] | None = None
         image_fallback_enabled, _ = await self._resolve_fallback_prefs()
         if allow_exif:
             exif_data = await self._read_image_exif_if_allowed(file_path, scan_id=scan_id)
@@ -665,8 +666,8 @@ class MetadataService:
         self,
         file_path: str,
         *,
-        scan_id: Optional[str],
-    ) -> Optional[Dict[str, Any]]:
+        scan_id: str | None,
+    ) -> dict[str, Any] | None:
         exif_start = time.perf_counter()
         exif_result = await self._exif_read(file_path)
         exif_duration = time.perf_counter() - exif_start
@@ -684,7 +685,7 @@ class MetadataService:
         return None
 
     @staticmethod
-    def _extract_image_by_extension(file_path: str, ext: str, exif_data: Optional[Dict[str, Any]]) -> Result[Dict[str, Any]]:
+    def _extract_image_by_extension(file_path: str, ext: str, exif_data: dict[str, Any] | None) -> Result[dict[str, Any]]:
         if ext == ".png":
             return extract_png_metadata(file_path, exif_data)
         if ext == ".webp":
@@ -700,9 +701,9 @@ class MetadataService:
     def _build_image_metadata_payload(
         self,
         file_path: str,
-        exif_data: Optional[Dict[str, Any]],
-        metadata_result: Result[Dict[str, Any]],
-    ) -> Dict[str, Any]:
+        exif_data: dict[str, Any] | None,
+        metadata_result: Result[dict[str, Any]],
+    ) -> dict[str, Any]:
         return {
             "file_info": self._get_file_info(file_path),
             "exif": exif_data,
@@ -712,10 +713,10 @@ class MetadataService:
     async def _extract_video_metadata(
         self,
         file_path: str,
-        scan_id: Optional[str] = None,
+        scan_id: str | None = None,
         allow_exif: bool = True,
         allow_ffprobe: bool = True,
-    ) -> Result[Dict[str, Any]]:
+    ) -> Result[dict[str, Any]]:
         """Extract metadata from video file."""
         _, media_fallback_enabled = await self._resolve_fallback_prefs()
         exif_data, exif_duration = await self._read_video_exif_if_allowed(file_path, scan_id, allow_exif)
@@ -760,10 +761,10 @@ class MetadataService:
     async def _extract_audio_metadata(
         self,
         file_path: str,
-        scan_id: Optional[str] = None,
+        scan_id: str | None = None,
         allow_exif: bool = True,
         allow_ffprobe: bool = True,
-    ) -> Result[Dict[str, Any]]:
+    ) -> Result[dict[str, Any]]:
         """Extract metadata from audio file."""
         if not allow_exif and not allow_ffprobe:
             return await self._extract_audio_metadata_fallback_only(file_path)
@@ -787,7 +788,7 @@ class MetadataService:
 
         return await self._finalize_audio_metadata_ok(file_path, exif_data, ffprobe_data, metadata_result)
 
-    async def _extract_audio_metadata_fallback_only(self, file_path: str) -> Result[Dict[str, Any]]:
+    async def _extract_audio_metadata_fallback_only(self, file_path: str) -> Result[dict[str, Any]]:
         _, media_fallback_enabled = await self._resolve_fallback_prefs()
         fallback_ffprobe = await asyncio.to_thread(read_media_probe_like, file_path) if media_fallback_enabled else None
         metadata_result = extract_audio_metadata(file_path, exif_data=None, ffprobe_data=fallback_ffprobe or None)
@@ -803,8 +804,8 @@ class MetadataService:
         return Result.Ok(combined, quality=quality)
 
     async def _read_video_exif_if_allowed(
-        self, file_path: str, scan_id: Optional[str], allow_exif: bool
-    ) -> tuple[Dict[str, Any] | None, float]:
+        self, file_path: str, scan_id: str | None, allow_exif: bool
+    ) -> tuple[dict[str, Any] | None, float]:
         if not allow_exif:
             return {}, 0.0
         exif_start = time.perf_counter()
@@ -824,8 +825,8 @@ class MetadataService:
         return None, exif_duration
 
     async def _read_video_ffprobe_if_allowed(
-        self, file_path: str, scan_id: Optional[str], allow_ffprobe: bool
-    ) -> tuple[Dict[str, Any] | None, float]:
+        self, file_path: str, scan_id: str | None, allow_ffprobe: bool
+    ) -> tuple[dict[str, Any] | None, float]:
         if not allow_ffprobe:
             return {}, 0.0
         ffprobe_start = time.perf_counter()
@@ -845,7 +846,7 @@ class MetadataService:
         return None, ffprobe_duration
 
     @staticmethod
-    def _expand_video_resolution_fields(metadata_result: Result[Dict[str, Any]]) -> None:
+    def _expand_video_resolution_fields(metadata_result: Result[dict[str, Any]]) -> None:
         data = metadata_result.data or {}
         if not data.get("resolution"):
             return
@@ -859,9 +860,9 @@ class MetadataService:
     async def _read_audio_exif_if_allowed(
         self,
         file_path: str,
-        scan_id: Optional[str],
+        scan_id: str | None,
         allow_exif: bool,
-    ) -> tuple[Optional[Dict[str, Any]], float]:
+    ) -> tuple[dict[str, Any] | None, float]:
         if not allow_exif:
             return None, 0.0
         exif_start = time.perf_counter()
@@ -883,9 +884,9 @@ class MetadataService:
     async def _read_audio_ffprobe_if_allowed(
         self,
         file_path: str,
-        scan_id: Optional[str],
+        scan_id: str | None,
         allow_ffprobe: bool,
-    ) -> tuple[Optional[Dict[str, Any]], float]:
+    ) -> tuple[dict[str, Any] | None, float]:
         if not allow_ffprobe:
             return None, 0.0
         ffprobe_start = time.perf_counter()
@@ -907,8 +908,8 @@ class MetadataService:
     async def _maybe_audio_ffprobe_fallback(
         self,
         file_path: str,
-        ffprobe_data: Optional[Dict[str, Any]],
-    ) -> Optional[Dict[str, Any]]:
+        ffprobe_data: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
         if ffprobe_data:
             return ffprobe_data
         _, media_fallback_enabled = await self._resolve_fallback_prefs()
@@ -919,10 +920,10 @@ class MetadataService:
     async def _finalize_audio_metadata_ok(
         self,
         file_path: str,
-        exif_data: Optional[Dict[str, Any]],
-        ffprobe_data: Optional[Dict[str, Any]],
-        metadata_result: Result[Dict[str, Any]],
-    ) -> Result[Dict[str, Any]]:
+        exif_data: dict[str, Any] | None,
+        ffprobe_data: dict[str, Any] | None,
+        metadata_result: Result[dict[str, Any]],
+    ) -> Result[dict[str, Any]]:
         combined = {
             "file_info": self._get_file_info(file_path),
             "exif": exif_data,
@@ -939,9 +940,9 @@ class MetadataService:
     async def get_metadata_batch(
         self,
         file_paths: list[str],
-        scan_id: Optional[str] = None,
-        probe_mode_override: Optional[str] = None,
-    ) -> Dict[str, Result[Dict[str, Any]]]:
+        scan_id: str | None = None,
+        probe_mode_override: str | None = None,
+    ) -> dict[str, Result[dict[str, Any]]]:
         """
         Extract metadata from multiple files in batch (much faster than individual calls).
 
@@ -967,9 +968,9 @@ class MetadataService:
 
     async def _finalize_batch_ok(
         self,
-        combined: Dict[str, Any],
-        metadata_result: Result[Dict[str, Any]],
-    ) -> Result[Dict[str, Any]]:
+        combined: dict[str, Any],
+        metadata_result: Result[dict[str, Any]],
+    ) -> Result[dict[str, Any]]:
         if _should_parse_geninfo(combined):
             await self._enrich_with_geninfo_async(combined)
         elif "geninfo" not in combined:
@@ -980,9 +981,9 @@ class MetadataService:
     async def _process_image_batch_item(
         self,
         path: str,
-        exif_data: Optional[Dict[str, Any]],
+        exif_data: dict[str, Any] | None,
         image_fallback_enabled: bool,
-    ) -> Result[Dict[str, Any]]:
+    ) -> Result[dict[str, Any]]:
         resolved_exif = exif_data
         if not resolved_exif and image_fallback_enabled:
             resolved_exif = read_image_exif_like(path)
@@ -1015,10 +1016,10 @@ class MetadataService:
     async def _process_video_batch_item(
         self,
         path: str,
-        exif_data: Optional[Dict[str, Any]],
-        ffprobe_data: Optional[Dict[str, Any]],
+        exif_data: dict[str, Any] | None,
+        ffprobe_data: dict[str, Any] | None,
         media_fallback_enabled: bool,
-    ) -> Result[Dict[str, Any]]:
+    ) -> Result[dict[str, Any]]:
         resolved_ffprobe = ffprobe_data
         if not resolved_ffprobe and media_fallback_enabled:
             resolved_ffprobe = read_media_probe_like(path)
@@ -1042,10 +1043,10 @@ class MetadataService:
     async def _process_audio_batch_item(
         self,
         path: str,
-        exif_data: Optional[Dict[str, Any]],
-        ffprobe_data: Optional[Dict[str, Any]],
+        exif_data: dict[str, Any] | None,
+        ffprobe_data: dict[str, Any] | None,
         media_fallback_enabled: bool,
-    ) -> Result[Dict[str, Any]]:
+    ) -> Result[dict[str, Any]]:
         resolved_ffprobe = ffprobe_data
         if not resolved_ffprobe and media_fallback_enabled:
             resolved_ffprobe = read_media_probe_like(path)
@@ -1065,23 +1066,23 @@ class MetadataService:
     async def _get_metadata_batch_impl(
         self,
         file_paths: list[str],
-        scan_id: Optional[str] = None,
-        probe_mode_override: Optional[str] = None,
-    ) -> Dict[str, Result[Dict[str, Any]]]:
+        scan_id: str | None = None,
+        probe_mode_override: str | None = None,
+    ) -> dict[str, Result[dict[str, Any]]]:
         if not file_paths:
             return {}
 
         images, videos, audios, others = _group_existing_paths(file_paths)
-        results: Dict[str, Result[Dict[str, Any]]] = {}
+        results: dict[str, Result[dict[str, Any]]] = {}
         probe_mode = await self._resolve_probe_mode(probe_mode_override)
         image_fallback_enabled, media_fallback_enabled = await self._resolve_fallback_prefs()
 
         exif_targets, ffprobe_targets = _build_batch_probe_targets([*images, *videos, *audios], probe_mode)
 
-        exif_results: Dict[str, Result[Dict[str, Any]]] = (
+        exif_results: dict[str, Result[dict[str, Any]]] = (
             await self.exiftool.aread_batch(exif_targets) if exif_targets else {}
         )
-        ffprobe_results: Dict[str, Result[Dict[str, Any]]] = (
+        ffprobe_results: dict[str, Result[dict[str, Any]]] = (
             await self._ffprobe_read_batch(ffprobe_targets) if ffprobe_targets else {}
         )
 
@@ -1094,9 +1095,9 @@ class MetadataService:
 
     async def _fill_image_batch_results(
         self,
-        results: Dict[str, Result[Dict[str, Any]]],
+        results: dict[str, Result[dict[str, Any]]],
         paths: list[str],
-        exif_results: Dict[str, Result[Dict[str, Any]]],
+        exif_results: dict[str, Result[dict[str, Any]]],
         image_fallback_enabled: bool,
     ) -> None:
         for path in paths:
@@ -1110,10 +1111,10 @@ class MetadataService:
 
     async def _fill_video_batch_results(
         self,
-        results: Dict[str, Result[Dict[str, Any]]],
+        results: dict[str, Result[dict[str, Any]]],
         paths: list[str],
-        exif_results: Dict[str, Result[Dict[str, Any]]],
-        ffprobe_results: Dict[str, Result[Dict[str, Any]]],
+        exif_results: dict[str, Result[dict[str, Any]]],
+        ffprobe_results: dict[str, Result[dict[str, Any]]],
         media_fallback_enabled: bool,
     ) -> None:
         for path in paths:
@@ -1128,10 +1129,10 @@ class MetadataService:
 
     async def _fill_audio_batch_results(
         self,
-        results: Dict[str, Result[Dict[str, Any]]],
+        results: dict[str, Result[dict[str, Any]]],
         paths: list[str],
-        exif_results: Dict[str, Result[Dict[str, Any]]],
-        ffprobe_results: Dict[str, Result[Dict[str, Any]]],
+        exif_results: dict[str, Result[dict[str, Any]]],
+        ffprobe_results: dict[str, Result[dict[str, Any]]],
         media_fallback_enabled: bool,
     ) -> None:
         for path in paths:
@@ -1146,7 +1147,7 @@ class MetadataService:
 
     def _fill_other_batch_results(
         self,
-        results: Dict[str, Result[Dict[str, Any]]],
+        results: dict[str, Result[dict[str, Any]]],
         paths: list[str],
     ) -> None:
         for path in paths:
@@ -1154,7 +1155,7 @@ class MetadataService:
                 continue
             results[path] = Result.Ok({"file_info": self._get_file_info(path), "quality": "none"}, quality="none")
 
-    def extract_rating_tags_only(self, file_path: str, scan_id: Optional[str] = None) -> Result[Dict[str, Any]]:
+    def extract_rating_tags_only(self, file_path: str, scan_id: str | None = None) -> Result[dict[str, Any]]:
         """
         Lightweight extraction for rating/tags only (no workflow/geninfo parsing).
 
@@ -1205,12 +1206,12 @@ class MetadataService:
         level: int,
         message: str,
         file_path: str,
-        scan_id: Optional[str] = None,
-        tool: Optional[str] = None,
-        error: Optional[str] = None,
-        duration_seconds: Optional[float] = None
+        scan_id: str | None = None,
+        tool: str | None = None,
+        error: str | None = None,
+        duration_seconds: float | None = None
     ):
-        context: Dict[str, Any] = {"file_path": file_path}
+        context: dict[str, Any] = {"file_path": file_path}
         if scan_id:
             context["scan_id"] = scan_id
         if tool:
@@ -1224,7 +1225,7 @@ class MetadataService:
                 context["duration_seconds"] = duration_seconds
         log_structured(logger, level, message, **context)
 
-    def _get_file_info(self, file_path: str) -> Dict[str, Any]:
+    def _get_file_info(self, file_path: str) -> dict[str, Any]:
         """Get basic file information."""
         stat = os.stat(file_path)
         info = {
@@ -1243,11 +1244,11 @@ class MetadataService:
         return info
 
     @staticmethod
-    def _normalize_visual_dimensions(payload: Dict[str, Any], exif_data: Optional[Dict[str, Any]] = None, ffprobe_data: Optional[Dict[str, Any]] = None) -> None:
+    def _normalize_visual_dimensions(payload: dict[str, Any], exif_data: dict[str, Any] | None = None, ffprobe_data: dict[str, Any] | None = None) -> None:
         """
         Ensure payload has scalar width/height when visual dimensions are available.
         """
-        def _coerce(v: Any) -> Optional[int]:
+        def _coerce(v: Any) -> int | None:
             try:
                 if v is None:
                     return None
@@ -1273,11 +1274,11 @@ class MetadataService:
 
     @staticmethod
     def _fill_dims_from_resolution(
-        payload: Dict[str, Any],
-        w: Optional[int],
-        h: Optional[int],
-        coerce: Callable[[Any], Optional[int]],
-    ) -> tuple[Optional[int], Optional[int]]:
+        payload: dict[str, Any],
+        w: int | None,
+        h: int | None,
+        coerce: Callable[[Any], int | None],
+    ) -> tuple[int | None, int | None]:
         resolution = payload.get("resolution")
         if (w is not None and h is not None) or not resolution:
             return w, h
@@ -1295,11 +1296,11 @@ class MetadataService:
 
     @staticmethod
     def _fill_dims_from_ffprobe(
-        ffprobe_data: Optional[Dict[str, Any]],
-        w: Optional[int],
-        h: Optional[int],
-        coerce: Callable[[Any], Optional[int]],
-    ) -> tuple[Optional[int], Optional[int]]:
+        ffprobe_data: dict[str, Any] | None,
+        w: int | None,
+        h: int | None,
+        coerce: Callable[[Any], int | None],
+    ) -> tuple[int | None, int | None]:
         if w is not None and h is not None:
             return w, h
         if not isinstance(ffprobe_data, dict):
@@ -1316,11 +1317,11 @@ class MetadataService:
 
     @staticmethod
     def _fill_dims_from_exif(
-        exif_data: Optional[Dict[str, Any]],
-        w: Optional[int],
-        h: Optional[int],
-        coerce: Callable[[Any], Optional[int]],
-    ) -> tuple[Optional[int], Optional[int]]:
+        exif_data: dict[str, Any] | None,
+        w: int | None,
+        h: int | None,
+        coerce: Callable[[Any], int | None],
+    ) -> tuple[int | None, int | None]:
         if w is not None and h is not None:
             return w, h
         if not isinstance(exif_data, dict):
@@ -1354,7 +1355,7 @@ class MetadataService:
         return w, h
 
     @staticmethod
-    def _pick_first_coerced(source: Dict[str, Any], keys: tuple[str, ...], coerce: Callable[[Any], Optional[int]]) -> Optional[int]:
+    def _pick_first_coerced(source: dict[str, Any], keys: tuple[str, ...], coerce: Callable[[Any], int | None]) -> int | None:
         for key in keys:
             value = coerce(source.get(key))
             if value is not None:

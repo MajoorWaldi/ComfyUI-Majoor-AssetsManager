@@ -5,20 +5,19 @@ import json
 import os
 import re
 from pathlib import Path
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Any
 
-from ...shared import get_logger, Result
 from ...adapters.db.sqlite import Sqlite
 from ...config import (
-    SEARCH_MAX_QUERY_LENGTH,
-    SEARCH_MAX_TOKENS,
-    SEARCH_MAX_TOKEN_LENGTH,
     SEARCH_MAX_BATCH_IDS,
     SEARCH_MAX_FILEPATH_LOOKUP,
     SEARCH_MAX_LIMIT,
     SEARCH_MAX_OFFSET,
+    SEARCH_MAX_QUERY_LENGTH,
+    SEARCH_MAX_TOKEN_LENGTH,
+    SEARCH_MAX_TOKENS,
 )
-
+from ...shared import Result, get_logger
 
 logger = get_logger(__name__)
 
@@ -44,14 +43,14 @@ _SAFE_SQL_FRAGMENT_RE = re.compile(r"^[\s\w\.\(\)=<>\?!,'\\%:-]+$")
 _FTS_RESERVED = {"AND", "OR", "NOT", "NEAR"}
 
 
-def _normalize_sort_key(sort: Optional[str]) -> str:
+def _normalize_sort_key(sort: str | None) -> str:
     s = str(sort or "").strip().lower()
     if s in VALID_SORT_KEYS:
         return s
     return "mtime_desc"
 
 
-def _build_sort_sql(sort: Optional[str], *, table_alias: str = "a", rank_alias: Optional[str] = None) -> str:
+def _build_sort_sql(sort: str | None, *, table_alias: str = "a", rank_alias: str | None = None) -> str:
     key = _normalize_sort_key(sort)
     if key == "name_asc":
         return f"ORDER BY LOWER({table_alias}.filename) ASC, {table_alias}.id DESC"
@@ -64,9 +63,9 @@ def _build_sort_sql(sort: Optional[str], *, table_alias: str = "a", rank_alias: 
     return f"ORDER BY {table_alias}.mtime DESC, {table_alias}.id DESC"
 
 
-def _build_filter_clauses(filters: Optional[Dict[str, Any]], alias: str = "a") -> Tuple[List[str], List[Any]]:
-    clauses: List[str] = []
-    params: List[Any] = []
+def _build_filter_clauses(filters: dict[str, Any] | None, alias: str = "a") -> tuple[list[str], list[Any]]:
+    clauses: list[str] = []
+    params: list[Any] = []
     if not filters:
         return clauses, params
     _append_kind_and_source_filters(filters, alias, clauses, params)
@@ -80,10 +79,10 @@ def _build_filter_clauses(filters: Optional[Dict[str, Any]], alias: str = "a") -
 
 
 def _append_kind_and_source_filters(
-    filters: Dict[str, Any],
+    filters: dict[str, Any],
     alias: str,
-    clauses: List[str],
-    params: List[Any],
+    clauses: list[str],
+    params: list[Any],
 ) -> None:
     kind = filters.get("kind")
     if isinstance(kind, str) and kind:
@@ -95,7 +94,7 @@ def _append_kind_and_source_filters(
         params.append(source.strip().lower())
 
 
-def _append_extension_filter(filters: Dict[str, Any], alias: str, clauses: List[str], params: List[Any]) -> None:
+def _append_extension_filter(filters: dict[str, Any], alias: str, clauses: list[str], params: list[Any]) -> None:
     extensions = filters.get("extensions")
     if not isinstance(extensions, list):
         return
@@ -108,7 +107,7 @@ def _append_extension_filter(filters: Dict[str, Any], alias: str, clauses: List[
     params.extend(normalized_exts)
 
 
-def _append_numeric_range_filters(filters: Dict[str, Any], alias: str, clauses: List[str], params: List[Any]) -> None:
+def _append_numeric_range_filters(filters: dict[str, Any], alias: str, clauses: list[str], params: list[Any]) -> None:
     int_specs = [
         ("min_size_bytes", f"AND COALESCE({alias}.size, 0) >= ?"),
         ("max_size_bytes", f"AND COALESCE({alias}.size, 0) <= ?"),
@@ -126,7 +125,7 @@ def _append_numeric_range_filters(filters: Dict[str, Any], alias: str, clauses: 
             params.append(int(filters[key]))
 
 
-def _append_workflow_type_filter(filters: Dict[str, Any], clauses: List[str], params: List[Any]) -> None:
+def _append_workflow_type_filter(filters: dict[str, Any], clauses: list[str], params: list[Any]) -> None:
     if "workflow_type" not in filters:
         return
     raw = str(filters.get("workflow_type") or "").strip().upper()
@@ -145,7 +144,7 @@ def _append_workflow_type_filter(filters: Dict[str, Any], clauses: List[str], pa
     params.extend(variants)
 
 
-def _workflow_type_variants(raw: str) -> List[str]:
+def _workflow_type_variants(raw: str) -> list[str]:
     alias_map = {
         "T2I": ["T2I"],
         "I2I": ["I2I"],
@@ -161,7 +160,7 @@ def _workflow_type_variants(raw: str) -> List[str]:
     return alias_map.get(raw, [raw] if raw else [])
 
 
-def _append_has_workflow_filter(filters: Dict[str, Any], clauses: List[str]) -> None:
+def _append_has_workflow_filter(filters: dict[str, Any], clauses: list[str]) -> None:
     if "has_workflow" not in filters:
         return
     want_workflow = bool(filters.get("has_workflow"))
@@ -185,7 +184,7 @@ def _append_has_workflow_filter(filters: Dict[str, Any], clauses: List[str]) -> 
     )
 
 
-def _append_mtime_filters(filters: Dict[str, Any], alias: str, clauses: List[str], params: List[Any]) -> None:
+def _append_mtime_filters(filters: dict[str, Any], alias: str, clauses: list[str], params: list[Any]) -> None:
     if "mtime_start" in filters:
         clauses.append(f"AND {alias}.mtime >= ?")
         params.append(filters["mtime_start"])
@@ -194,7 +193,7 @@ def _append_mtime_filters(filters: Dict[str, Any], alias: str, clauses: List[str
         params.append(filters["mtime_end"])
 
 
-def _append_exclude_root_filter(filters: Dict[str, Any], alias: str, clauses: List[str], params: List[Any]) -> None:
+def _append_exclude_root_filter(filters: dict[str, Any], alias: str, clauses: list[str], params: list[Any]) -> None:
     exclude_root = filters.get("exclude_root")
     if not isinstance(exclude_root, str) or not exclude_root.strip():
         return
@@ -229,8 +228,8 @@ def _escape_like_pattern(pattern: str) -> str:
     return pattern.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
-def _resolve_search_roots(roots: List[str]) -> List[str]:
-    cleaned_roots: List[str] = []
+def _resolve_search_roots(roots: list[str]) -> list[str]:
+    cleaned_roots: list[str] = []
     for raw in roots or []:
         if not raw:
             continue
@@ -241,9 +240,9 @@ def _resolve_search_roots(roots: List[str]) -> List[str]:
     return cleaned_roots
 
 
-def _build_roots_where_clause(roots: List[str], alias: str = "a") -> Tuple[str, List[Any]]:
-    parts: List[str] = []
-    params: List[Any] = []
+def _build_roots_where_clause(roots: list[str], alias: str = "a") -> tuple[str, list[Any]]:
+    parts: list[str] = []
+    params: list[Any] = []
     for root in roots:
         prefix = root.rstrip(os.sep) + os.sep
         escaped_prefix = _escape_like_pattern(prefix)
@@ -254,7 +253,7 @@ def _build_roots_where_clause(roots: List[str], alias: str = "a") -> Tuple[str, 
     return clause, params
 
 
-def _normalize_month_range(month_start: int, month_end: int) -> Optional[Tuple[int, int]]:
+def _normalize_month_range(month_start: int, month_end: int) -> tuple[int, int] | None:
     try:
         start_i = int(month_start)
         end_i = int(month_end)
@@ -265,7 +264,7 @@ def _normalize_month_range(month_start: int, month_end: int) -> Optional[Tuple[i
     return start_i, end_i
 
 
-def _sanitize_histogram_filters(filters: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+def _sanitize_histogram_filters(filters: dict[str, Any] | None) -> dict[str, Any]:
     safe_filters = dict(filters or {})
     safe_filters.pop("mtime_start", None)
     safe_filters.pop("mtime_end", None)
@@ -274,11 +273,11 @@ def _sanitize_histogram_filters(filters: Optional[Dict[str, Any]]) -> Dict[str, 
 
 def _build_histogram_query(
     roots_clause: str,
-    roots_params: List[Any],
+    roots_params: list[Any],
     start_i: int,
     end_i: int,
-    filters: Optional[Dict[str, Any]],
-) -> Tuple[str, Tuple[Any, ...]]:
+    filters: dict[str, Any] | None,
+) -> tuple[str, tuple[Any, ...]]:
     sql_parts = [
         """
         SELECT
@@ -291,7 +290,7 @@ def _build_histogram_query(
         roots_clause,
         "AND a.mtime >= ? AND a.mtime < ?",
     ]
-    params: List[Any] = []
+    params: list[Any] = []
     params.extend(roots_params)
     params.extend([start_i, end_i])
     filter_clauses, filter_params = _build_filter_clauses(_sanitize_histogram_filters(filters))
@@ -301,8 +300,8 @@ def _build_histogram_query(
     return " ".join(sql_parts), tuple(params)
 
 
-def _coerce_histogram_days(rows: Any) -> Dict[str, int]:
-    days: Dict[str, int] = {}
+def _coerce_histogram_days(rows: Any) -> dict[str, int]:
+    days: dict[str, int] = {}
     for row in rows or []:
         try:
             day = str(row.get("day") or "").strip()
@@ -314,8 +313,8 @@ def _coerce_histogram_days(rows: Any) -> Dict[str, int]:
     return days
 
 
-def _normalize_asset_ids(asset_ids: List[int]) -> List[int]:
-    cleaned: List[int] = []
+def _normalize_asset_ids(asset_ids: list[int]) -> list[int]:
+    cleaned: list[int] = []
     seen = set()
     for raw in asset_ids or []:
         try:
@@ -331,8 +330,8 @@ def _normalize_asset_ids(asset_ids: List[int]) -> List[int]:
     return cleaned
 
 
-def _map_assets_by_id(rows: Any, hydrator) -> Dict[int, Dict[str, Any]]:
-    by_id: Dict[int, Dict[str, Any]] = {}
+def _map_assets_by_id(rows: Any, hydrator) -> dict[int, dict[str, Any]]:
+    by_id: dict[int, dict[str, Any]] = {}
     for row in rows or []:
         try:
             asset = hydrator(dict(row))
@@ -345,8 +344,8 @@ def _map_assets_by_id(rows: Any, hydrator) -> Dict[int, Dict[str, Any]]:
     return by_id
 
 
-def _assets_in_requested_order(cleaned: List[int], by_id: Dict[int, Dict[str, Any]]) -> List[Dict[str, Any]]:
-    out: List[Dict[str, Any]] = []
+def _assets_in_requested_order(cleaned: list[int], by_id: dict[int, dict[str, Any]]) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
     for aid in cleaned:
         item = by_id.get(aid)
         if item:
@@ -354,14 +353,14 @@ def _assets_in_requested_order(cleaned: List[int], by_id: Dict[int, Dict[str, An
     return out
 
 
-def _normalize_lookup_filepaths(filepaths: List[str]) -> List[str]:
+def _normalize_lookup_filepaths(filepaths: list[str]) -> list[str]:
     cleaned = [str(p) for p in (filepaths or []) if p]
     if len(cleaned) > MAX_FILEPATH_LOOKUP:
         return cleaned[:MAX_FILEPATH_LOOKUP]
     return cleaned
 
 
-def _hydrate_lookup_row(row: Dict[str, Any]) -> Optional[tuple[str, Dict[str, Any]]]:
+def _hydrate_lookup_row(row: dict[str, Any]) -> tuple[str, dict[str, Any]] | None:
     fp = row.get("filepath")
     if not fp:
         return None
@@ -377,8 +376,8 @@ def _hydrate_lookup_row(row: Dict[str, Any]) -> Optional[tuple[str, Dict[str, An
     return str(fp), item
 
 
-def _map_lookup_rows(rows: Any) -> Dict[str, Dict[str, Any]]:
-    out: Dict[str, Dict[str, Any]] = {}
+def _map_lookup_rows(rows: Any) -> dict[str, dict[str, Any]]:
+    out: dict[str, dict[str, Any]] = {}
     for row in rows or []:
         if not isinstance(row, dict):
             continue
@@ -390,8 +389,8 @@ def _map_lookup_rows(rows: Any) -> Dict[str, Dict[str, Any]]:
     return out
 
 
-def _hydrate_search_rows(rows: List[Dict[str, Any]], *, include_highlight: bool) -> List[Dict[str, Any]]:
-    assets: List[Dict[str, Any]] = []
+def _hydrate_search_rows(rows: list[dict[str, Any]], *, include_highlight: bool) -> list[dict[str, Any]]:
+    assets: list[dict[str, Any]] = []
     for row in rows:
         asset = dict(row)
         if asset.get("tags"):
@@ -441,7 +440,7 @@ class IndexSearcher:
             # Silent fail if fts5vocab not available
             self.fts_vocab_ready = False
 
-    async def autocomplete(self, prefix: str, limit: int = 10) -> Result[List[str]]:
+    async def autocomplete(self, prefix: str, limit: int = 10) -> Result[list[str]]:
         """
         Suggest completions for the given prefix using FTS5 vocabulary.
         """
@@ -466,7 +465,7 @@ class IndexSearcher:
         except Exception:
             return Result.Ok([])
 
-    def _validate_search_query(self, query: str) -> Optional[Result[Any]]:
+    def _validate_search_query(self, query: str) -> Result[Any] | None:
         if not query or not query.strip():
             return Result.Err("EMPTY_QUERY", "Search query cannot be empty")
         validation = self._validate_search_input(query)
@@ -476,10 +475,10 @@ class IndexSearcher:
 
     def _filter_clauses(
         self,
-        filters: Optional[Dict[str, Any]],
+        filters: dict[str, Any] | None,
         *,
         assert_safe: bool = False,
-    ) -> Tuple[List[str], List[Any]]:
+    ) -> tuple[list[str], list[Any]]:
         filter_clauses, filter_params = _build_filter_clauses(filters)
         if assert_safe:
             for clause in filter_clauses:
@@ -489,10 +488,10 @@ class IndexSearcher:
     async def _run_search_query_rows(
         self,
         sql: str,
-        params: List[Any],
+        params: list[Any],
         *,
         failure_message: str,
-    ) -> Result[List[Dict[str, Any]]]:
+    ) -> Result[list[dict[str, Any]]]:
         result = await self.db.aquery(sql, tuple(params))
         if result.ok:
             return Result.Ok(result.data or [])
@@ -501,7 +500,7 @@ class IndexSearcher:
         return Result.Err("SEARCH_FAILED", result.error or failure_message)
 
     @staticmethod
-    def _search_rows_total(data: Any) -> tuple[List[Dict[str, Any]], Optional[int]]:
+    def _search_rows_total(data: Any) -> tuple[list[dict[str, Any]], int | None]:
         if not isinstance(data, dict):
             return [], None
         rows = data.get("rows")
@@ -513,15 +512,15 @@ class IndexSearcher:
     def _build_search_payload(
         self,
         *,
-        assets: List[Dict[str, Any]],
+        assets: list[dict[str, Any]],
         limit: int,
         offset: int,
         query: str,
         include_total: bool,
-        total: Optional[int],
-        sort: Optional[str] = None,
-    ) -> Dict[str, Any]:
-        payload: Dict[str, Any] = {
+        total: int | None,
+        sort: str | None = None,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
             "assets": assets,
             "limit": limit,
             "offset": offset,
@@ -537,10 +536,10 @@ class IndexSearcher:
         *,
         limit: int,
         offset: int,
-        filters: Optional[Dict[str, Any]],
+        filters: dict[str, Any] | None,
         include_total: bool,
         metadata_tags_text_clause: str,
-    ) -> Result[Dict[str, Any]]:
+    ) -> Result[dict[str, Any]]:
         sql_parts = [
             f"""
             SELECT
@@ -559,7 +558,7 @@ class IndexSearcher:
             WHERE 1=1
             """
         ]
-        params: List[Any] = []
+        params: list[Any] = []
 
         filter_clauses, filter_params = self._filter_clauses(filters)
         sql_parts.extend(filter_clauses)
@@ -577,10 +576,10 @@ class IndexSearcher:
             return Result.Err(rows_res.code, rows_res.error or "Search query failed")
         rows = rows_res.data or []
 
-        total: Optional[int] = None
+        total: int | None = None
         if include_total:
             count_sql = "SELECT COUNT(*) as total FROM assets a LEFT JOIN asset_metadata m ON a.id = m.asset_id WHERE 1=1"
-            count_params: List[Any] = []
+            count_params: list[Any] = []
             if filter_clauses:
                 count_sql += " " + " ".join(filter_clauses)
                 count_params.extend(filter_params)
@@ -594,13 +593,13 @@ class IndexSearcher:
         fts_query: str,
         limit: int,
         offset: int,
-        filters: Optional[Dict[str, Any]],
+        filters: dict[str, Any] | None,
         include_total: bool,
         metadata_tags_text_clause: str,
-    ) -> Result[Dict[str, Any]]:
+    ) -> Result[dict[str, Any]]:
         total_field = "COUNT(*) OVER() as _total," if include_total else ""
         sql_parts = [self._global_fts_select_sql(total_field, metadata_tags_text_clause)]
-        params: List[Any] = [fts_query, fts_query]
+        params: list[Any] = [fts_query, fts_query]
 
         filter_clauses, filter_params = self._filter_clauses(filters)
         sql_parts.extend(filter_clauses)
@@ -618,7 +617,7 @@ class IndexSearcher:
             return Result.Err(rows_res.code, rows_res.error or "Search query failed")
         rows = rows_res.data or []
 
-        total: Optional[int] = None
+        total: int | None = None
         if include_total and rows and "_total" in rows[0]:
             total = rows[0]["_total"]
         if include_total and total is None:
@@ -666,8 +665,8 @@ class IndexSearcher:
     async def _global_fts_total_count(
         self,
         fts_query: str,
-        filter_clauses: List[str],
-        filter_params: List[Any],
+        filter_clauses: list[str],
+        filter_params: list[Any],
     ) -> int:
         count_sql = """
             WITH matches AS (
@@ -687,7 +686,7 @@ class IndexSearcher:
             LEFT JOIN asset_metadata m ON a.id = m.asset_id
             WHERE 1=1
         """
-        count_params: List[Any] = [fts_query, fts_query]
+        count_params: list[Any] = [fts_query, fts_query]
         if filter_clauses:
             count_sql += " " + " ".join(filter_clauses)
             count_params.extend(filter_params)
@@ -700,14 +699,14 @@ class IndexSearcher:
         self,
         *,
         roots_clause: str,
-        roots_params: List[Any],
+        roots_params: list[Any],
         limit: int,
         offset: int,
-        filters: Optional[Dict[str, Any]],
+        filters: dict[str, Any] | None,
         include_total: bool,
         metadata_tags_text_clause: str,
-        sort: Optional[str],
-    ) -> Result[Dict[str, Any]]:
+        sort: str | None,
+    ) -> Result[dict[str, Any]]:
         sql_parts = [
             f"""
             SELECT
@@ -725,7 +724,7 @@ class IndexSearcher:
             WHERE {roots_clause}
             """
         ]
-        params: List[Any] = list(roots_params)
+        params: list[Any] = list(roots_params)
 
         filter_clauses, filter_params = self._filter_clauses(filters, assert_safe=True)
         sql_parts.extend(filter_clauses)
@@ -743,7 +742,7 @@ class IndexSearcher:
             return Result.Err(rows_res.code, rows_res.error or "Scoped search query failed")
         rows = rows_res.data or []
 
-        total: Optional[int] = None
+        total: int | None = None
         if include_total:
             count_sql = f"""
                 SELECT COUNT(*) as total
@@ -751,7 +750,7 @@ class IndexSearcher:
                 LEFT JOIN asset_metadata m ON a.id = m.asset_id
                 WHERE {roots_clause}
             """
-            count_params: List[Any] = list(roots_params)
+            count_params: list[Any] = list(roots_params)
             if filter_clauses:
                 count_sql += " " + " ".join(filter_clauses)
                 count_params.extend(filter_params)
@@ -764,14 +763,14 @@ class IndexSearcher:
         *,
         fts_query: str,
         roots_clause: str,
-        roots_params: List[Any],
+        roots_params: list[Any],
         limit: int,
         offset: int,
-        filters: Optional[Dict[str, Any]],
+        filters: dict[str, Any] | None,
         include_total: bool,
         metadata_tags_text_clause: str,
-        sort: Optional[str],
-    ) -> Result[Dict[str, Any]]:
+        sort: str | None,
+    ) -> Result[dict[str, Any]]:
         sql_parts = [
             f"""
             WITH matches AS (
@@ -806,7 +805,7 @@ class IndexSearcher:
             WHERE {roots_clause}
             """
         ]
-        params: List[Any] = [fts_query, fts_query]
+        params: list[Any] = [fts_query, fts_query]
         params.extend(roots_params)
 
         filter_clauses, filter_params = self._filter_clauses(filters, assert_safe=True)
@@ -825,7 +824,7 @@ class IndexSearcher:
             return Result.Err(rows_res.code, rows_res.error or "Scoped search query failed")
         rows = rows_res.data or []
 
-        total: Optional[int] = None
+        total: int | None = None
         if include_total:
             count_sql = f"""
                 WITH matches AS (
@@ -845,7 +844,7 @@ class IndexSearcher:
                 LEFT JOIN asset_metadata m ON a.id = m.asset_id
                 WHERE {roots_clause}
             """
-            count_params: List[Any] = [fts_query, fts_query]
+            count_params: list[Any] = [fts_query, fts_query]
             count_params.extend(roots_params)
             if filter_clauses:
                 count_sql += " " + " ".join(filter_clauses)
@@ -858,9 +857,9 @@ class IndexSearcher:
         query: str,
         limit: int = 50,
         offset: int = 0,
-        filters: Optional[Dict[str, Any]] = None,
+        filters: dict[str, Any] | None = None,
         include_total: bool = False,
-    ) -> Result[Dict[str, Any]]:
+    ) -> Result[dict[str, Any]]:
         """
         Search assets using FTS5 or browse mode when query is '*'.
         """
@@ -913,13 +912,13 @@ class IndexSearcher:
     async def search_scoped(
         self,
         query: str,
-        roots: List[str],
+        roots: list[str],
         limit: int = 50,
         offset: int = 0,
-        filters: Optional[Dict[str, Any]] = None,
+        filters: dict[str, Any] | None = None,
         include_total: bool = False,
-        sort: Optional[str] = None,
-    ) -> Result[Dict[str, Any]]:
+        sort: str | None = None,
+    ) -> Result[dict[str, Any]]:
         """
         Search assets but restrict results to files whose absolute filepath is under one of the provided roots.
 
@@ -1012,11 +1011,11 @@ class IndexSearcher:
 
     async def date_histogram_scoped(
         self,
-        roots: List[str],
+        roots: list[str],
         month_start: int,
         month_end: int,
-        filters: Optional[Dict[str, Any]] = None,
-    ) -> Result[Dict[str, int]]:
+        filters: dict[str, Any] | None = None,
+    ) -> Result[dict[str, int]]:
         """
         Return a day->count mapping for assets whose mtime falls inside [month_start, month_end).
 
@@ -1039,7 +1038,7 @@ class IndexSearcher:
             return Result.Err("DB_ERROR", result.error or "Histogram query failed")
         return Result.Ok(_coerce_histogram_days(result.data))
 
-    async def get_asset(self, asset_id: int) -> Result[Optional[Dict[str, Any]]]:
+    async def get_asset(self, asset_id: int) -> Result[dict[str, Any] | None]:
         """
         Get a single asset by ID.
 
@@ -1077,7 +1076,7 @@ class IndexSearcher:
         asset = self._hydrate_asset_payload(dict(result.data[0]))
         return Result.Ok(asset)
 
-    async def get_assets(self, asset_ids: List[int]) -> Result[List[Dict[str, Any]]]:
+    async def get_assets(self, asset_ids: list[int]) -> Result[list[dict[str, Any]]]:
         """
         Batch fetch assets by ID (single query).
 
@@ -1113,7 +1112,7 @@ class IndexSearcher:
         by_id = _map_assets_by_id(result.data, self._hydrate_asset_payload)
         return Result.Ok(_assets_in_requested_order(cleaned, by_id))
 
-    def _hydrate_asset_payload(self, asset: Dict[str, Any]) -> Dict[str, Any]:
+    def _hydrate_asset_payload(self, asset: dict[str, Any]) -> dict[str, Any]:
         # Parse tags JSON (stored as string in DB)
         tags_raw = asset.get("tags") or ""
         if tags_raw:
@@ -1141,7 +1140,7 @@ class IndexSearcher:
 
         return asset
 
-    async def lookup_assets_by_filepaths(self, filepaths: List[str]) -> Result[Dict[str, Dict[str, Any]]]:
+    async def lookup_assets_by_filepaths(self, filepaths: list[str]) -> Result[dict[str, dict[str, Any]]]:
         """
         Lookup DB-enriched asset fields for a set of absolute filepaths.
 
@@ -1210,7 +1209,7 @@ class IndexSearcher:
             return False
         return "malformed match expression" in msg or "fts5: syntax error" in msg
 
-    def _validate_search_input(self, query: str) -> Optional[Result[Any]]:
+    def _validate_search_input(self, query: str) -> Result[Any] | None:
         trimmed = query.strip()
         # Allow "browse all" queries.
         if trimmed == "*" or (trimmed and all(token == "*" for token in trimmed.split())):
@@ -1229,7 +1228,7 @@ class IndexSearcher:
         return None
 
     @staticmethod
-    def _validate_query_length(trimmed: str) -> Optional[Result[Any]]:
+    def _validate_query_length(trimmed: str) -> Result[Any] | None:
         if len(trimmed) <= MAX_SEARCH_QUERY_LENGTH:
             return None
         return Result.Err(
@@ -1238,7 +1237,7 @@ class IndexSearcher:
         )
 
     @staticmethod
-    def _validate_query_tokens(tokens: List[str]) -> Optional[Result[Any]]:
+    def _validate_query_tokens(tokens: list[str]) -> Result[Any] | None:
         if len(tokens) > MAX_SEARCH_TOKENS:
             return Result.Err(
                 "QUERY_TOO_COMPLEX",
@@ -1252,7 +1251,7 @@ class IndexSearcher:
         return None
 
     @staticmethod
-    def _validate_wildcard_mix(tokens: List[str]) -> Optional[Result[Any]]:
+    def _validate_wildcard_mix(tokens: list[str]) -> Result[Any] | None:
         wildcard_hits = sum(1 for token in tokens if token == "*")
         if wildcard_hits > 0 and wildcard_hits >= len(tokens) - 1:
             return Result.Err(

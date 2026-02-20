@@ -2,13 +2,13 @@
 Health service - system status and tool availability.
 """
 import os
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Optional, Sequence, Tuple, List
 
-from ...shared import Result, get_logger
 from ...adapters.db.sqlite import Sqlite
 from ...adapters.tools import ExifTool, FFProbe
 from ...config import get_tool_paths
+from ...shared import Result, get_logger
 
 logger = get_logger(__name__)
 
@@ -146,12 +146,12 @@ class HealthService:
         else:
             return "degraded"  # No external tools but DB works
 
-    def _roots_where(self, roots: Sequence[str]) -> Tuple[str, List[str]]:
+    def _roots_where(self, roots: Sequence[str]) -> tuple[str, list[str]]:
         def _escape_like_pattern(pattern: str) -> str:
             return pattern.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
         clauses = []
-        params: List[str] = []
+        params: list[str] = []
         for root in roots:
             if not root:
                 continue
@@ -187,7 +187,7 @@ class HealthService:
         except Exception:
             return 0
 
-    async def get_counters(self, roots: Optional[Sequence[str]] = None) -> Result[dict]:
+    async def get_counters(self, roots: Sequence[str] | None = None) -> Result[dict]:
         """
         Get database counters.
 
@@ -277,7 +277,7 @@ class HealthService:
             ),
         }
 
-    async def _metadata_value(self, key: str) -> Optional[str]:
+    async def _metadata_value(self, key: str) -> str | None:
         result = await self.db.aexecute(
             "SELECT value FROM metadata WHERE key = ?",
             (key,),

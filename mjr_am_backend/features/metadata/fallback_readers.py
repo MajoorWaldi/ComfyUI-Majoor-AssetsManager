@@ -7,12 +7,12 @@ are unavailable.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any
 
-from PIL import Image, ExifTags
+from PIL import ExifTags, Image
 
 
-def _apply_image_info_exif_like(out: Dict[str, Any], info: Dict[str, Any]) -> None:
+def _apply_image_info_exif_like(out: dict[str, Any], info: dict[str, Any]) -> None:
     for key, value in info.items():
         if value is None:
             continue
@@ -39,7 +39,7 @@ def _apply_image_info_exif_like(out: Dict[str, Any], info: Dict[str, Any]) -> No
         out[f"Pillow:{key_s}"] = value
 
 
-def _safe_image_exif_dict(img: Any) -> Dict[Any, Any]:
+def _safe_image_exif_dict(img: Any) -> dict[Any, Any]:
     try:
         exif = img.getexif()
     except Exception:
@@ -47,7 +47,7 @@ def _safe_image_exif_dict(img: Any) -> Dict[Any, Any]:
     return dict(exif) if exif else {}
 
 
-def _apply_pillow_exif_fields(out: Dict[str, Any], exif_map: Dict[Any, Any]) -> None:
+def _apply_pillow_exif_fields(out: dict[str, Any], exif_map: dict[Any, Any]) -> None:
     for tag_id, value in exif_map.items():
         try:
             tag_name = ExifTags.TAGS.get(tag_id, str(tag_id))
@@ -62,13 +62,13 @@ def _apply_pillow_exif_fields(out: Dict[str, Any], exif_map: Dict[Any, Any]) -> 
             out["IFD0:Model"] = value
 
 
-def read_image_exif_like(path: str) -> Dict[str, Any]:
+def read_image_exif_like(path: str) -> dict[str, Any]:
     """
     Build an ExifTool-like dict from Pillow data for image files.
 
     Returns an empty dict on failure.
     """
-    out: Dict[str, Any] = {}
+    out: dict[str, Any] = {}
     try:
         with Image.open(path) as img:
             out["Composite:ImageSize"] = f"{img.width} {img.height}"
@@ -83,7 +83,7 @@ def read_image_exif_like(path: str) -> Dict[str, Any]:
     return out
 
 
-def read_media_probe_like(path: str) -> Dict[str, Any]:
+def read_media_probe_like(path: str) -> dict[str, Any]:
     """
     Build an ffprobe-like dict from hachoir (if installed) for audio/video files.
 
@@ -96,9 +96,9 @@ def read_media_probe_like(path: str) -> Dict[str, Any]:
     if lines is None:
         return {}
 
-    format_info: Dict[str, Any] = {"tags": {}}
-    video_stream: Dict[str, Any] = {}
-    audio_stream: Dict[str, Any] = {}
+    format_info: dict[str, Any] = {"tags": {}}
+    video_stream: dict[str, Any] = {}
+    audio_stream: dict[str, Any] = {}
 
     for raw_line in lines:
         _apply_probe_line(str(raw_line), format_info, video_stream, audio_stream)
@@ -108,8 +108,8 @@ def read_media_probe_like(path: str) -> Dict[str, Any]:
 
 def _load_hachoir_parser(path: str):
     try:
-        from hachoir.parser import createParser
         from hachoir.metadata import extractMetadata
+        from hachoir.parser import createParser
     except Exception:
         return None, None
     try:
@@ -121,7 +121,7 @@ def _load_hachoir_parser(path: str):
     return parser, extractMetadata
 
 
-def _extract_hachoir_lines(parser: Any, extract_metadata: Any) -> Optional[list[Any]]:
+def _extract_hachoir_lines(parser: Any, extract_metadata: Any) -> list[Any] | None:
     try:
         with parser:
             meta = extract_metadata(parser)
@@ -134,9 +134,9 @@ def _extract_hachoir_lines(parser: Any, extract_metadata: Any) -> Optional[list[
 
 def _apply_probe_line(
     raw_line: str,
-    format_info: Dict[str, Any],
-    video_stream: Dict[str, Any],
-    audio_stream: Dict[str, Any],
+    format_info: dict[str, Any],
+    video_stream: dict[str, Any],
+    audio_stream: dict[str, Any],
 ) -> None:
     line = str(raw_line).strip()
     if ":" not in line:
@@ -153,9 +153,9 @@ def _apply_probe_line(
 def _apply_known_probe_line(
     key_l: str,
     val: str,
-    format_info: Dict[str, Any],
-    video_stream: Dict[str, Any],
-    audio_stream: Dict[str, Any],
+    format_info: dict[str, Any],
+    video_stream: dict[str, Any],
+    audio_stream: dict[str, Any],
 ) -> bool:
     if key_l == "duration":
         format_info["duration"] = val
@@ -184,7 +184,7 @@ def _apply_known_probe_line(
     return False
 
 
-def _apply_probe_bitrate(val: str, format_info: Dict[str, Any], audio_stream: Dict[str, Any]) -> None:
+def _apply_probe_bitrate(val: str, format_info: dict[str, Any], audio_stream: dict[str, Any]) -> None:
     bitrate = _to_int(val)
     if bitrate is None:
         return
@@ -193,23 +193,23 @@ def _apply_probe_bitrate(val: str, format_info: Dict[str, Any], audio_stream: Di
     audio_stream["bit_rate"] = bitrate_str
 
 
-def _set_int_if_present(target: Dict[str, Any], key: str, value: Any) -> None:
+def _set_int_if_present(target: dict[str, Any], key: str, value: Any) -> None:
     parsed = _to_int(value)
     if parsed is not None:
         target[key] = parsed
 
 
-def _set_int_or_raw(target: Dict[str, Any], key: str, value: Any) -> None:
+def _set_int_or_raw(target: dict[str, Any], key: str, value: Any) -> None:
     parsed = _to_int(value)
     target[key] = parsed if parsed is not None else value
 
 
 def _build_media_probe_payload(
-    format_info: Dict[str, Any],
-    video_stream: Dict[str, Any],
-    audio_stream: Dict[str, Any],
-) -> Dict[str, Any]:
-    streams: list[Dict[str, Any]] = []
+    format_info: dict[str, Any],
+    video_stream: dict[str, Any],
+    audio_stream: dict[str, Any],
+) -> dict[str, Any]:
+    streams: list[dict[str, Any]] = []
     if video_stream:
         video_stream["codec_type"] = "video"
         streams.append(video_stream)
@@ -226,7 +226,7 @@ def _build_media_probe_payload(
     }
 
 
-def _to_int(text: Any) -> Optional[int]:
+def _to_int(text: Any) -> int | None:
     s = str(text or "")
     digits = "".join(ch for ch in s if ch.isdigit())
     if not digits:

@@ -8,17 +8,17 @@ requiring the full metadata payload.
 from __future__ import annotations
 
 from aiohttp import web
-
 from mjr_am_backend.features.viewer.info import build_viewer_media_info
 from mjr_am_backend.shared import Result, get_logger
+
 from ..core import (
-    _json_response,
-    _normalize_path,
+    _guess_content_type_for_file,
     _is_path_allowed,
     _is_path_allowed_custom,
+    _json_response,
+    _normalize_path,
     _require_services,
     safe_error_message,
-    _guess_content_type_for_file,
 )
 
 logger = get_logger(__name__)

@@ -8,7 +8,8 @@ import tempfile
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
+
 from aiohttp import web
 
 try:
@@ -23,39 +24,40 @@ except Exception:
 
 from mjr_am_backend.adapters.db.schema import rebuild_fts
 from mjr_am_backend.config import (
+    COLLECTIONS_DIR_PATH,
+    INDEX_DIR_PATH,
     OUTPUT_ROOT,
     TO_THREAD_TIMEOUT_S,
-    INDEX_DIR_PATH,
-    COLLECTIONS_DIR_PATH
 )
 from mjr_am_backend.custom_roots import resolve_custom_root
-from mjr_am_backend.shared import Result, get_logger, sanitize_error_message
-from mjr_am_backend.utils import env_float, parse_bool
 from mjr_am_backend.features.index.metadata_helpers import MetadataHelpers
-from mjr_am_backend.features.watcher_settings import get_watcher_settings, update_watcher_settings
 from mjr_am_backend.features.index.watcher_scope import (
+    WATCHER_CUSTOM_ROOT_ID_KEY,
+    WATCHER_SCOPE_KEY,
     build_watch_paths,
     normalize_scope,
-    WATCHER_SCOPE_KEY,
-    WATCHER_CUSTOM_ROOT_ID_KEY,
 )
-from .db_maintenance import is_db_maintenance_active
+from mjr_am_backend.features.watcher_settings import get_watcher_settings, update_watcher_settings
+from mjr_am_backend.shared import Result, get_logger, sanitize_error_message
+from mjr_am_backend.utils import env_float, parse_bool
+
 from ..core import (
-    _json_response,
-    _require_services,
-    _csrf_error,
     _check_rate_limit,
-    _read_json,
-    safe_error_message,
-    _normalize_path,
+    _csrf_error,
     _is_path_allowed,
     _is_path_allowed_custom,
-    _safe_rel_path,
     _is_within_root,
-    _require_write_access,
+    _json_response,
+    _normalize_path,
+    _read_json,
     _require_operation_enabled,
+    _require_services,
+    _require_write_access,
     _resolve_security_prefs,
+    _safe_rel_path,
+    safe_error_message,
 )
+from .db_maintenance import is_db_maintenance_active
 
 logger = get_logger(__name__)
 
@@ -219,7 +221,7 @@ async def _write_multipart_file_atomic(dest_dir: Path, filename: str, field) -> 
         return Result.Err("UPLOAD_FAILED", safe_error_message(exc, "Upload failed"))
 
 
-def _validate_upload_filename(filename: str) -> Optional[str]:
+def _validate_upload_filename(filename: str) -> str | None:
     safe_name = Path(str(filename)).name
     if not safe_name or "\x00" in safe_name or safe_name.startswith(".") or ".." in safe_name:
         return None
@@ -250,7 +252,7 @@ def _unique_upload_destination(dest_dir: Path, safe_name: str, ext: str) -> Path
     return final
 
 
-def _cleanup_temp_upload_file(fd: Optional[int], tmp_path: Optional[str]) -> None:
+def _cleanup_temp_upload_file(fd: int | None, tmp_path: str | None) -> None:
     try:
         if fd is not None:
             os.close(fd)
@@ -416,7 +418,7 @@ def _collect_missing_asset_rows(rows: list[Any]) -> list[tuple[Any, str]]:
     return missing
 
 
-def _missing_asset_row(row: Any) -> Optional[tuple[Any, str]]:
+def _missing_asset_row(row: Any) -> tuple[Any, str] | None:
     if not isinstance(row, dict):
         return None
     asset_id = row.get("id")
@@ -717,7 +719,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
 
         output_root = await _runtime_output_root(svc)
         incremental = body.get("incremental", True)
-        grouped_paths: Dict[Tuple[str, str, str], list] = {}
+        grouped_paths: dict[tuple[str, str, str], list] = {}
         recent_generated_paths: list[str] = []
 
         for item in files:
@@ -907,14 +909,15 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
 
         # POST-PROCESSING: Enhance metadata with frontend-provided info (e.g. generation_time_ms)
         # We process this via a temporary table batch update to avoid N+1 queries.
-        _enhancement_map: Dict[str, Dict[str, Any]] = {}
+        _enhancement_map: dict[str, dict[str, Any]] = {}
 
         insert_params = []
         for item in files:
             gen_time = item.get("generation_time_ms") or item.get("duration_ms")
             if gen_time and isinstance(gen_time, (int, float)) and gen_time > 0:
                 fname = item.get("filename")
-                if not fname: continue
+                if not fname:
+                    continue
                 s_name = item.get("subfolder") or ""
                 s_src = (item.get("type") or "output").lower()
 
@@ -1575,7 +1578,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         errors = []
         pending_ops = []
 
-        def _safe_filename(name: str) -> Optional[str]:
+        def _safe_filename(name: str) -> str | None:
             if not name or "\x00" in name:
                 return None
             cleaned = Path(name).name
@@ -1583,7 +1586,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 return None
             return cleaned
 
-        def _safe_rel_subfolder(value: Any) -> Optional[Path]:
+        def _safe_rel_subfolder(value: Any) -> Path | None:
             if value is None:
                 return None
             if not isinstance(value, str):
@@ -1734,7 +1737,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 result = Result.Err("STAGE_FAILED", safe_error_message(exc, "Failed to stage files"), errors=errors)
                 return _json_response(result)
 
-            for op, r in zip(pending_ops, results):
+            for op, r in zip(pending_ops, results, strict=True):
                 if not isinstance(r, dict) or not r.get("ok"):
                     errors.append(
                         {
@@ -2038,14 +2041,14 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             return _json_response(body_res)
         body = body_res.data or {}
 
-        def _parse_int(name: str) -> Optional[int]:
+        def _parse_int(name: str) -> int | None:
             if name not in body:
                 return None
             value = body.get(name)
             try:
                 return int(value)
-            except (TypeError, ValueError):
-                raise ValueError(f"Invalid value for {name}")
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f"Invalid value for {name}") from exc
 
         try:
             debounce_ms = _parse_int("debounce_ms")

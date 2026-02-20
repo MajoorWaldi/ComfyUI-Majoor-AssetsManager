@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import threading
 from pathlib import Path
-from typing import Dict, Optional
 
 from mjr_am_backend.shared import get_logger
 
@@ -16,11 +15,11 @@ logger = get_logger(__name__)
 
 _LOCK = threading.Lock()
 _OBSERVER = None
-_TOKENS: Dict[str, int] = {}
-_WATCHED: Dict[str, object] = {}
+_TOKENS: dict[str, int] = {}
+_WATCHED: dict[str, object] = {}
 
 
-def _normalize_watch_path(path: str) -> Optional[str]:
+def _normalize_watch_path(path: str) -> str | None:
     try:
         if not path:
             return None

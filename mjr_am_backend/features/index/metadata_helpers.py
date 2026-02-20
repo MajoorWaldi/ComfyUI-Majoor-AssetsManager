@@ -1,24 +1,24 @@
 """
 Metadata helpers - shared utilities for metadata operations.
 """
-import hashlib
 import asyncio
+import hashlib
 import json
 import time
 from datetime import datetime, timedelta, timezone
-from typing import Dict, Any, Tuple, Optional
+from typing import Any
 
+from ...adapters.db.sqlite import Sqlite
 from ...config import (
     MAX_METADATA_JSON_BYTES,
+    METADATA_CACHE_CLEANUP_INTERVAL_SECONDS,
     METADATA_CACHE_MAX,
     METADATA_CACHE_TTL_SECONDS,
-    METADATA_CACHE_CLEANUP_INTERVAL_SECONDS,
 )
 from ...shared import Result, get_logger
-from ...adapters.db.sqlite import Sqlite
 from ..metadata.parsing_utils import (
-    looks_like_comfyui_workflow,
     looks_like_comfyui_prompt_graph,
+    looks_like_comfyui_workflow,
     try_parse_json_text,
 )
 
@@ -42,9 +42,9 @@ def _metadata_quality_should_upgrade_sql() -> str:
 
 def _apply_metadata_json_size_guard(
     asset_id: int,
-    metadata_result: Result[Dict[str, Any]],
+    metadata_result: Result[dict[str, Any]],
     metadata_raw_json: str,
-    filepath: Optional[str] = None,
+    filepath: str | None = None,
 ) -> str:
     max_bytes = _safe_max_metadata_bytes()
     truncated, original_bytes, metadata_raw_json = _truncate_metadata_json_if_needed(
@@ -90,7 +90,7 @@ def _truncate_metadata_json_if_needed(metadata_raw_json: str, max_bytes: int) ->
     return True, int(nbytes), truncated
 
 
-def _mark_metadata_truncated(metadata_result: Result[Dict[str, Any]], *, original_bytes: int, max_bytes: int) -> None:
+def _mark_metadata_truncated(metadata_result: Result[dict[str, Any]], *, original_bytes: int, max_bytes: int) -> None:
     try:
         metadata_result.meta["truncated"] = True
         metadata_result.meta["original_bytes"] = int(original_bytes)
@@ -100,8 +100,8 @@ def _mark_metadata_truncated(metadata_result: Result[Dict[str, Any]], *, origina
 
 
 def _resolve_metadata_filepath(
-    metadata_result: Result[Dict[str, Any]], filepath: Optional[str]
-) -> Optional[str]:
+    metadata_result: Result[dict[str, Any]], filepath: str | None
+) -> str | None:
     if filepath:
         return filepath
     if metadata_result and isinstance(metadata_result.data, dict):
@@ -112,9 +112,9 @@ def _resolve_metadata_filepath(
 
 def _log_metadata_truncation(
     asset_id: int,
-    metadata_result: Result[Dict[str, Any]],
+    metadata_result: Result[dict[str, Any]],
     *,
-    filepath: Optional[str],
+    filepath: str | None,
     original_bytes: int,
     max_bytes: int,
 ) -> None:
@@ -148,7 +148,7 @@ def _sanitize_metadata_tags(raw_tags: Any) -> list[str]:
     return cleaned
 
 
-def _extract_rating_and_tags(metadata_result: Result[Dict[str, Any]]) -> tuple[int, str, str]:
+def _extract_rating_and_tags(metadata_result: Result[dict[str, Any]]) -> tuple[int, str, str]:
     extracted_rating = 0
     extracted_tags_json = "[]"
     extracted_tags_text = ""
@@ -173,7 +173,7 @@ def _extract_rating_and_tags(metadata_result: Result[Dict[str, Any]]) -> tuple[i
     return extracted_rating, extracted_tags_json, extracted_tags_text
 
 
-def _collect_geninfo_extras(meta: Dict[str, Any]) -> list[str]:
+def _collect_geninfo_extras(meta: dict[str, Any]) -> list[str]:
     extras: list[str] = []
     geninfo = meta.get("geninfo")
     if not isinstance(geninfo, dict):
@@ -204,7 +204,7 @@ def _collect_named_values(container: Any, field: str) -> list[str]:
     return out
 
 
-def _collect_nested_text_values(geninfo: Dict[str, Any], paths: list[tuple[str, str]]) -> list[str]:
+def _collect_nested_text_values(geninfo: dict[str, Any], paths: list[tuple[str, str]]) -> list[str]:
     out: list[str] = []
     for parent_key, child_key in paths:
         parent = geninfo.get(parent_key)
@@ -230,7 +230,7 @@ def _collect_input_filenames(inputs: Any) -> list[str]:
 
 
 def _enrich_tags_text_with_metadata(
-    metadata_result: Result[Dict[str, Any]],
+    metadata_result: Result[dict[str, Any]],
     extracted_tags_text: str,
 ) -> str:
     if not (metadata_result and metadata_result.ok and metadata_result.data):
@@ -251,7 +251,7 @@ def _append_extra_tags(extracted_tags_text: str, extras: list[str]) -> str:
     return extra_text
 
 
-def _build_metadata_payload_preview(meta: Dict[str, Any], extracted_tags_text: str, extras: list[str]) -> None:
+def _build_metadata_payload_preview(meta: dict[str, Any], extracted_tags_text: str, extras: list[str]) -> None:
     # Keep this payload preparation for parity with previous behavior.
     meta_fields = [extracted_tags_text] + extras
     if meta.get("prompt"):
@@ -298,7 +298,7 @@ def _node_looks_like_sampler(node: Any, *, require_sampling_inputs: bool) -> boo
     return _sampler_inputs_look_sampling(node.get("inputs"))
 
 
-def _sampler_class_type(node: Dict[str, Any]) -> str:
+def _sampler_class_type(node: dict[str, Any]) -> str:
     return str(node.get("class_type") or node.get("type") or "").lower()
 
 
@@ -316,7 +316,7 @@ def _sampler_inputs_look_sampling(inputs: Any) -> bool:
     return any(key in inputs for key in ("steps", "cfg", "cfg_scale", "seed", "denoise"))
 
 
-def _coerce_json_dict(value: Any) -> Optional[Dict[str, Any]]:
+def _coerce_json_dict(value: Any) -> dict[str, Any] | None:
     if isinstance(value, dict):
         return value
     if isinstance(value, str):
@@ -325,7 +325,7 @@ def _coerce_json_dict(value: Any) -> Optional[Dict[str, Any]]:
     return None
 
 
-def _metadata_presence_flags(meta: Dict[str, Any]) -> Tuple[bool, bool]:
+def _metadata_presence_flags(meta: dict[str, Any]) -> tuple[bool, bool]:
     raw_workflow = meta.get("workflow")
     raw_prompt = meta.get("prompt")
     workflow_obj = _coerce_json_dict(raw_workflow)
@@ -337,11 +337,11 @@ def _metadata_presence_flags(meta: Dict[str, Any]) -> Tuple[bool, bool]:
 
 
 def _has_workflow_payload(
-    meta: Dict[str, Any],
+    meta: dict[str, Any],
     raw_workflow: Any,
     raw_prompt: Any,
-    workflow_obj: Optional[Dict[str, Any]],
-    prompt_obj: Optional[Dict[str, Any]],
+    workflow_obj: dict[str, Any] | None,
+    prompt_obj: dict[str, Any] | None,
 ) -> bool:
     workflow_ok = bool(workflow_obj and looks_like_comfyui_workflow(workflow_obj))
     prompt_ok = bool(prompt_obj and looks_like_comfyui_prompt_graph(prompt_obj))
@@ -349,11 +349,11 @@ def _has_workflow_payload(
 
 
 def _has_generation_payload(
-    meta: Dict[str, Any],
+    meta: dict[str, Any],
     raw_workflow: Any,
     raw_prompt: Any,
-    workflow_obj: Optional[Dict[str, Any]],
-    prompt_obj: Optional[Dict[str, Any]],
+    workflow_obj: dict[str, Any] | None,
+    prompt_obj: dict[str, Any] | None,
 ) -> bool:
     if meta.get("parameters") or meta.get("geninfo") or meta.get("model") or meta.get("seed"):
         return True
@@ -371,7 +371,7 @@ class MetadataHelpers:
     """
 
     @staticmethod
-    def prepare_metadata_fields(metadata_result: Result[Dict[str, Any]]) -> Tuple[Optional[bool], Optional[bool], str, str]:
+    def prepare_metadata_fields(metadata_result: Result[dict[str, Any]]) -> tuple[bool | None, bool | None, str, str]:
         """
         Extract the workflow/generation metadata attributes and JSON payload.
 
@@ -381,8 +381,8 @@ class MetadataHelpers:
         Returns:
             Tuple of (has_workflow, has_generation_data, metadata_quality, metadata_raw_json)
         """
-        has_workflow: Optional[bool] = None
-        has_generation_data: Optional[bool] = None
+        has_workflow: bool | None = None
+        has_generation_data: bool | None = None
         metadata_quality = "none"
         metadata_raw_json = "{}"
 
@@ -396,7 +396,7 @@ class MetadataHelpers:
         return has_workflow, has_generation_data, metadata_quality, metadata_raw_json
 
     @staticmethod
-    def _bool_to_db(value: Optional[bool]) -> Optional[int]:
+    def _bool_to_db(value: bool | None) -> int | None:
         if value is True:
             return 1
         if value is False:
@@ -404,7 +404,7 @@ class MetadataHelpers:
         return None
 
     @staticmethod
-    def metadata_error_payload(metadata_result: Result[Dict[str, Any]], filepath: str) -> Result[Dict[str, Any]]:
+    def metadata_error_payload(metadata_result: Result[dict[str, Any]], filepath: str) -> Result[dict[str, Any]]:
         """
         Build a degraded metadata payload when extraction failed.
 
@@ -436,8 +436,8 @@ class MetadataHelpers:
     async def write_asset_metadata_row(
         db: Sqlite,
         asset_id: int,
-        metadata_result: Result[Dict[str, Any]],
-        filepath: Optional[str] = None,
+        metadata_result: Result[dict[str, Any]],
+        filepath: str | None = None,
     ) -> Result[Any]:
         """
         Insert or update the asset_metadata row with the latest metadata flags.
@@ -473,7 +473,7 @@ class MetadataHelpers:
         should_upgrade = _metadata_quality_should_upgrade_sql()
 
         return await db.aexecute(
-            """
+            f"""
             INSERT INTO asset_metadata
             (asset_id, rating, tags, tags_text, has_workflow, has_generation_data, metadata_quality, metadata_raw)
             SELECT ?, ?, ?, ?, ?, ?, ?, ?
@@ -508,7 +508,7 @@ class MetadataHelpers:
                     ELSE asset_metadata.metadata_raw
                 END
             WHERE EXISTS (SELECT 1 FROM assets WHERE id = excluded.asset_id)
-            """.format(should_upgrade=should_upgrade),
+            """,
             (
                 asset_id,
                 extracted_rating,
@@ -526,7 +526,7 @@ class MetadataHelpers:
     async def refresh_metadata_if_needed(
         db: Sqlite,
         asset_id: int,
-        metadata_result: Result[Dict[str, Any]],
+        metadata_result: Result[dict[str, Any]],
         filepath: str,
         base_dir: str,
         state_hash: str,
@@ -580,7 +580,7 @@ class MetadataHelpers:
             return write_result.ok
 
     @staticmethod
-    async def retrieve_cached_metadata(db: Sqlite, filepath: str, state_hash: str) -> Optional[Result[Dict[str, Any]]]:
+    async def retrieve_cached_metadata(db: Sqlite, filepath: str, state_hash: str) -> Result[dict[str, Any]] | None:
         """
         Retrieve metadata from cache if available.
 
@@ -638,7 +638,7 @@ class MetadataHelpers:
                 await _cleanup_cache_by_max_entries(db, max_entries)
 
     @staticmethod
-    async def store_metadata_cache(db: Sqlite, filepath: str, state_hash: str, metadata_result: Result[Dict[str, Any]]) -> Result[Any]:
+    async def store_metadata_cache(db: Sqlite, filepath: str, state_hash: str, metadata_result: Result[dict[str, Any]]) -> Result[Any]:
         """
         Store metadata in cache for future use.
         """
@@ -673,7 +673,7 @@ class MetadataHelpers:
         return write_res
 
     @staticmethod
-    def _metadata_json_payload(metadata: Dict[str, Any]) -> str:
+    def _metadata_json_payload(metadata: dict[str, Any]) -> str:
         return json.dumps(
             metadata,
             ensure_ascii=False,
@@ -682,7 +682,7 @@ class MetadataHelpers:
         )
 
     @staticmethod
-    def _metadata_payload_size_guard(metadata_raw: str, filepath: str) -> Optional[Result[Any]]:
+    def _metadata_payload_size_guard(metadata_raw: str, filepath: str) -> Result[Any] | None:
         max_bytes = MetadataHelpers._max_metadata_json_bytes()
         if not max_bytes:
             return None

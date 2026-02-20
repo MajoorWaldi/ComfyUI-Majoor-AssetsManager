@@ -1,8 +1,8 @@
 import datetime
-import pytest
 
-from mjr_am_backend.routes.handlers import search as search_mod
+import pytest
 from mjr_am_backend.features.index import searcher as searcher_mod
+from mjr_am_backend.routes.handlers import search as search_mod
 
 
 def test_parse_inline_query_filters_extracts_extensions_and_rating():

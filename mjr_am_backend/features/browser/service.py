@@ -9,8 +9,8 @@ import stat
 from pathlib import Path
 from typing import Any
 
-from mjr_am_backend.shared import Result, classify_file
 from mjr_am_backend.routes.core import _is_within_root, _safe_rel_path
+from mjr_am_backend.shared import Result, classify_file
 
 
 def _is_hidden_directory(entry: Path) -> bool:

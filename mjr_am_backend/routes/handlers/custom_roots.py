@@ -1,14 +1,14 @@
 """
 Custom roots management endpoints.
 """
-import os
-import sys
-import errno
 import asyncio
-import shutil
+import errno
 import ipaddress
+import os
+import shutil
+import sys
 from pathlib import Path
-from typing import Optional
+
 from aiohttp import web
 from mjr_am_backend.config import OUTPUT_ROOT
 from mjr_am_backend.custom_roots import (
@@ -18,22 +18,23 @@ from mjr_am_backend.custom_roots import (
     resolve_custom_root,
 )
 from mjr_am_backend.shared import Result, get_logger, sanitize_error_message
+
 from ..core import (
-    _json_response,
     _csrf_error,
-    _safe_rel_path,
-    _is_within_root,
-    _normalize_path,
-    _is_path_allowed,
-    _is_path_allowed_custom,
-    _read_json,
     _guess_content_type_for_file,
     _is_allowed_view_media_file,
+    _is_path_allowed,
+    _is_path_allowed_custom,
+    _is_within_root,
+    _json_response,
+    _normalize_path,
+    _read_json,
     _require_services,
     _require_write_access,
+    _safe_rel_path,
 )
 from ..core.security import _check_rate_limit
-from .filesystem import _kickoff_background_scan, _invalidate_fs_list_cache
+from .filesystem import _invalidate_fs_list_cache, _kickoff_background_scan
 
 # Import tkinter only when needed to avoid startup issues
 tk = None
@@ -133,7 +134,7 @@ def _is_symlink_entry(entry) -> bool:
         return True
 
 
-def _folder_entry_stats(entry) -> Optional[dict]:
+def _folder_entry_stats(entry) -> dict | None:
     try:
         if entry.is_dir(follow_symlinks=False):
             try:

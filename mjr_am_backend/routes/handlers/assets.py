@@ -1,20 +1,21 @@
 """
 Asset management endpoints: ratings, tags, service retry.
 """
-from aiohttp import web
 import asyncio
 import json
+import mimetypes
 import os
 import shutil
 import subprocess
 import sys
-import mimetypes
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
-from mjr_am_backend.shared import Result, get_logger, sanitize_error_message as _safe_error_message
+from aiohttp import web
 from mjr_am_backend.config import TO_THREAD_TIMEOUT_S, get_runtime_output_root
 from mjr_am_backend.custom_roots import list_custom_roots, resolve_custom_root
+from mjr_am_backend.shared import Result, get_logger
+from mjr_am_backend.shared import sanitize_error_message as _safe_error_message
 
 try:
     import folder_paths  # type: ignore
@@ -27,20 +28,20 @@ except Exception:  # pragma: no cover
     folder_paths = _FolderPathsStub()  # type: ignore
 
 from ..core import (
-    _json_response,
-    _require_services,
+    _build_services,
     _check_rate_limit,
     _csrf_error,
-    _require_operation_enabled,
-    _resolve_security_prefs,
-    _require_write_access,
-    _read_json,
-    _build_services,
-    get_services_error,
-    _normalize_path,
     _is_path_allowed,
     _is_path_allowed_custom,
     _is_within_root,
+    _json_response,
+    _normalize_path,
+    _read_json,
+    _require_operation_enabled,
+    _require_services,
+    _require_write_access,
+    _resolve_security_prefs,
+    get_services_error,
 )
 
 logger = get_logger(__name__)
@@ -993,9 +994,17 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         # Determine the new file path
         new_path = current_resolved.parent / new_name
 
-        # Check if new name already exists
+        # Check if new name already exists (allow case-only rename on case-insensitive filesystems).
         if new_path.exists():
-            return _json_response(Result.Err("CONFLICT", f"File '{new_name}' already exists"))
+            same_file = False
+            try:
+                same_file = bool(new_path.samefile(current_resolved))
+            except Exception:
+                same_file = False
+            case_insensitive_fs = (os.name == "nt") or (sys.platform == "darwin")
+            same_path_ignoring_case = str(new_path).lower() == str(current_resolved).lower()
+            if not (case_insensitive_fs and same_file and same_path_ignoring_case):
+                return _json_response(Result.Err("CONFLICT", f"File '{new_name}' already exists"))
 
         # Perform the rename
         try:
@@ -1225,8 +1234,9 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
 
         validated_assets.sort(key=lambda x: x["id"])
 
-        # PHASE 3: Delete files first; abort DB deletion if any file deletion fails.
+        # PHASE 3: Delete files first and track per-asset outcomes for partial success.
         file_deletion_errors = []
+        assets_ready_for_db_delete = []
         for asset_info in validated_assets:
             resolved = asset_info["resolved"]
             if resolved and resolved.exists() and resolved.is_file():
@@ -1234,7 +1244,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                     del_res = _delete_file_best_effort(resolved)
                     if not del_res.ok:
                         file_deletion_errors.append({"asset_id": asset_info["id"], "error": str(del_res.error or "delete failed")})
-                        break
+                        continue
                 except Exception as exc:
                     file_deletion_errors.append(
                         {
@@ -1242,31 +1252,97 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                             "error": _safe_error_message(exc, "File deletion failed"),
                         }
                     )
-                    break
+                    continue
+            assets_ready_for_db_delete.append(asset_info)
 
-        if file_deletion_errors:
-            return _json_response(Result.Err("DELETE_FAILED", "Failed to delete files", errors=file_deletion_errors, aborted=True))
+        # PHASE 4: Delete DB rows for assets that were physically deleted (or had no file to delete).
+        async def _db_delete_many(selected_assets: list[dict[str, Any]]) -> Result:
+            if not selected_assets:
+                return Result.Ok({"deleted_ids": [], "db_errors": [], "deleted": 0})
 
-        # PHASE 4: Delete database rows in a single transaction
-        async def _db_delete_many() -> Result:
-            async with svc["db"].atransaction(mode="immediate"):
-                deleted_count = 0
-                for asset_info in validated_assets:
-                    aid = asset_info["id"]
-                    filepath = asset_info["filepath"]
+            deleted_ids: list[int] = []
+            db_errors: list[dict[str, Any]] = []
+            unique_ids = sorted({int(asset_info["id"]) for asset_info in selected_assets})
+            unique_paths = sorted({str(asset_info["filepath"]) for asset_info in selected_assets if asset_info.get("filepath")})
 
+            def _chunks(values: list[Any], size: int) -> list[list[Any]]:
+                if size <= 0:
+                    return [values]
+                return [values[i:i + size] for i in range(0, len(values), size)]
+
+            SQLITE_IN_MAX = 900
+
+            async def _delete_where_in(column: str, table: str, values: list[Any]) -> Result:
+                if not values:
+                    return Result.Ok(True)
+                for chunk in _chunks(values, SQLITE_IN_MAX):
+                    placeholders = ",".join(["?"] * len(chunk))
+                    q = f"DELETE FROM {table} WHERE {column} IN ({placeholders})"
+                    dr = await svc["db"].aexecute(q, tuple(chunk))
+                    if not dr.ok:
+                        return Result.Err("DB_ERROR", str(dr.error or f"Failed deleting from {table}"))
+                return Result.Ok(True)
+
+            # Fast path: batch delete in a single transaction (O(1) queries for common batch sizes).
+            try:
+                async with svc["db"].atransaction(mode="immediate"):
+                    assets_del = await _delete_where_in("id", "assets", unique_ids)
+                    if not assets_del.ok:
+                        raise RuntimeError(str(assets_del.error or "assets batch delete failed"))
+                    sj_del = await _delete_where_in("filepath", "scan_journal", unique_paths)
+                    if not sj_del.ok:
+                        raise RuntimeError(str(sj_del.error or "scan_journal batch delete failed"))
+                    mc_del = await _delete_where_in("filepath", "metadata_cache", unique_paths)
+                    if not mc_del.ok:
+                        raise RuntimeError(str(mc_del.error or "metadata_cache batch delete failed"))
+                deleted_ids.extend(unique_ids)
+                return Result.Ok({"deleted_ids": deleted_ids, "db_errors": db_errors, "deleted": len(deleted_ids)})
+            except Exception as exc:
+                logger.warning("Batch delete failed, falling back to per-asset deletion: %s", exc)
+
+            # Fallback path: preserve partial success information when a batch query fails.
+            for asset_info in selected_assets:
+                aid = int(asset_info["id"])
+                filepath = str(asset_info["filepath"])
+                try:
                     del_res = await svc["db"].aexecute("DELETE FROM assets WHERE id = ?", (aid,))
                     if not del_res.ok:
-                        return Result.Err("DB_ERROR", f"Failed to delete asset ID {aid}: {del_res.error}")
-
+                        db_errors.append({"asset_id": aid, "error": str(del_res.error or "DB delete failed")})
+                        continue
                     await svc["db"].aexecute("DELETE FROM scan_journal WHERE filepath = ?", (filepath,))
                     await svc["db"].aexecute("DELETE FROM metadata_cache WHERE filepath = ?", (filepath,))
-                    deleted_count += 1
-            return Result.Ok({"deleted": deleted_count})
+                    deleted_ids.append(aid)
+                except Exception as exc:
+                    db_errors.append({"asset_id": aid, "error": _safe_error_message(exc, "DB delete failed")})
+
+            return Result.Ok({"deleted_ids": deleted_ids, "db_errors": db_errors, "deleted": len(deleted_ids)})
 
         try:
-            db_res = await _db_delete_many()
-            return _json_response(db_res)
+            db_res = await _db_delete_many(assets_ready_for_db_delete)
+            if not db_res.ok:
+                return _json_response(db_res)
+
+            payload = db_res.data or {}
+            deleted_ids = [int(x) for x in (payload.get("deleted_ids") or [])]
+            db_errors = payload.get("db_errors") or []
+            failed_ids = [int(item.get("asset_id")) for item in file_deletion_errors if isinstance(item, dict) and item.get("asset_id") is not None]
+            failed_ids += [int(item.get("asset_id")) for item in db_errors if isinstance(item, dict) and item.get("asset_id") is not None]
+
+            if file_deletion_errors or db_errors:
+                return _json_response(Result.Ok(
+                    {
+                        "deleted": len(deleted_ids),
+                        "deleted_ids": deleted_ids,
+                        "failed_ids": sorted(set(failed_ids)),
+                    },
+                    partial=True,
+                    errors=[*file_deletion_errors, *db_errors],
+                    attempted=len(validated_assets),
+                    deleted=len(deleted_ids),
+                    failed=len(set(failed_ids)),
+                ))
+
+            return _json_response(Result.Ok({"deleted": len(deleted_ids), "deleted_ids": deleted_ids}))
         except Exception as exc:
             logger.error("Database deletion failed: %s", exc)
             return _json_response(
@@ -1313,7 +1389,7 @@ def _is_preview_download_request(request: web.Request) -> bool:
     return str(request.query.get("preview", "")).strip().lower() in ("1", "true", "yes", "on")
 
 
-def _download_rate_limit_response_or_none(request: web.Request, *, preview: bool) -> Optional[web.Response]:
+def _download_rate_limit_response_or_none(request: web.Request, *, preview: bool) -> web.Response | None:
     key = "download_asset_preview" if preview else "download_asset"
     max_requests = 2000 if preview else 30
     allowed, retry_after = _check_rate_limit(request, key, max_requests=max_requests, window_seconds=60)

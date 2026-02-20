@@ -5,8 +5,9 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Iterator, Optional
+
 
 def now() -> float:
     """Get current timestamp in seconds (float)."""
@@ -16,7 +17,7 @@ def ms() -> int:
     """Get current timestamp in milliseconds (int)."""
     return int(time.time() * 1000)
 
-def format_timestamp(ts: Optional[float] = None) -> str:
+def format_timestamp(ts: float | None = None) -> str:
     """
     Format timestamp as ISO 8601 string.
 
@@ -31,7 +32,7 @@ def format_timestamp(ts: Optional[float] = None) -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(ts))
 
 @contextmanager
-def timer(label: str, logger: Optional[logging.Logger] = None) -> Iterator[None]:
+def timer(label: str, logger: logging.Logger | None = None) -> Iterator[None]:
     """
     Context manager for timing operations.
 

@@ -5,7 +5,7 @@ import json
 import logging
 from contextvars import ContextVar
 from datetime import datetime, timezone
-from typing import Any, Final, Optional
+from typing import Any, Final
 
 # Emoji indicators for log levels
 EMOJI_MAP: Final[dict[str, str]] = {
@@ -29,9 +29,9 @@ class CorrelationFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         """Attach `record.request_id` for correlation; always returns True."""
         try:
-            setattr(record, "request_id", request_id_var.get(""))
+            record.request_id = request_id_var.get("")
         except Exception:
-            setattr(record, "request_id", "")
+            record.request_id = ""
         return True
 
 
@@ -53,7 +53,7 @@ class EmojiFormatter(logging.Formatter):
         formatter = logging.Formatter(log_format)
         return formatter.format(record)
 
-def get_logger(name: str, level: Optional[int] = None) -> logging.Logger:
+def get_logger(name: str, level: int | None = None) -> logging.Logger:
     """
     Get a logger with Majoor prefix and emoji indicators.
 

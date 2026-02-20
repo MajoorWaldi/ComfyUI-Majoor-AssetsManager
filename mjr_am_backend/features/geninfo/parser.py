@@ -9,8 +9,9 @@ from __future__ import annotations
 
 import os
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, cast
+from typing import Any, cast
 
 from ...shared import Result, get_logger
 
@@ -21,7 +22,7 @@ DEFAULT_MAX_LINK_NODES = int(os.environ.get("MJR_MAX_LINK_NODES", "200"))
 DEFAULT_MAX_GRAPH_DEPTH = int(os.environ.get("MJR_MAX_GRAPH_DEPTH", "100"))
 
 
-SINK_CLASS_TYPES: Set[str] = {
+SINK_CLASS_TYPES: set[str] = {
     "saveimage",
     "saveimagewebsocket",
     "previewimage",
@@ -36,9 +37,9 @@ SINK_CLASS_TYPES: Set[str] = {
 }
 
 
-_VIDEO_SINK_TYPES: Set[str] = {"savevideo", "vhs_savevideo", "vhs_videocombine"}
-_AUDIO_SINK_TYPES: Set[str] = {"saveaudio", "save_audio", "vhs_saveaudio"}
-_IMAGE_SINK_TYPES: Set[str] = {"saveimage", "saveimagewebsocket", "saveanimatedwebp", "savegif"}
+_VIDEO_SINK_TYPES: set[str] = {"savevideo", "vhs_savevideo", "vhs_videocombine"}
+_AUDIO_SINK_TYPES: set[str] = {"saveaudio", "save_audio", "vhs_saveaudio"}
+_IMAGE_SINK_TYPES: set[str] = {"saveimage", "saveimagewebsocket", "saveanimatedwebp", "savegif"}
 
 
 def _sink_group(ct: str) -> int:
@@ -69,21 +70,21 @@ def _sink_is_preview(ct: str) -> bool:
     return ct == "previewimage" or "preview" in ct
 
 
-def _sink_images_tiebreak(node: Dict[str, Any]) -> int:
+def _sink_images_tiebreak(node: dict[str, Any]) -> int:
     try:
         return 0 if _is_link(_inputs(node).get("images")) else 1
     except Exception:
         return 1
 
 
-def _sink_node_id_tiebreak(node_id: Optional[str]) -> int:
+def _sink_node_id_tiebreak(node_id: str | None) -> int:
     try:
         return -int(node_id) if node_id is not None else 0
     except Exception:
         return 0
 
 
-def _sink_priority(node: Dict[str, Any], node_id: Optional[str] = None) -> Tuple[int, int, int]:
+def _sink_priority(node: dict[str, Any], node_id: str | None = None) -> tuple[int, int, int]:
     """
     Rank sinks so we pick the "real" output when multiple sinks exist.
 
@@ -95,7 +96,7 @@ def _sink_priority(node: Dict[str, Any], node_id: Optional[str] = None) -> Tuple
     # print(f"DEBUG: Sink {node_id} priority {prio}")
     return prio
 
-_MODEL_EXTS: Tuple[str, ...] = (
+_MODEL_EXTS: tuple[str, ...] = (
     ".safetensors",
     ".ckpt",
     ".pt",
@@ -106,7 +107,7 @@ _MODEL_EXTS: Tuple[str, ...] = (
 )
 
 
-def _clean_model_id(value: Any) -> Optional[str]:
+def _clean_model_id(value: Any) -> str | None:
     if value is None:
         return None
     s = str(value).strip()
@@ -121,7 +122,7 @@ def _clean_model_id(value: Any) -> Optional[str]:
     return s
 
 
-def _to_int(value: Any) -> Optional[int]:
+def _to_int(value: Any) -> int | None:
     try:
         if value is None:
             return None
@@ -155,7 +156,7 @@ def _is_link(value: Any) -> bool:
     return _looks_like_node_id(a) and _to_int(b) is not None
 
 
-def _resolve_link(value: Any) -> Optional[Tuple[str, int]]:
+def _resolve_link(value: Any) -> tuple[str, int] | None:
     if not _is_link(value):
         return None
     a, b = value[0], value[1]
@@ -168,7 +169,7 @@ def _node_type(node: Any) -> str:
     return str(node.get("class_type") or node.get("type") or "")
 
 
-def _inputs(node: Any) -> Dict[str, Any]:
+def _inputs(node: Any) -> dict[str, Any]:
     if not isinstance(node, dict):
         return {}
     ins = node.get("inputs")
@@ -203,16 +204,16 @@ def _looks_like_prompt_string(value: Any) -> bool:
     return any(ch.isalpha() for ch in s)
 
 
-def _is_reroute(node: Dict[str, Any]) -> bool:
+def _is_reroute(node: dict[str, Any]) -> bool:
     ct = _lower(_node_type(node))
     return ct == "reroute" or "reroute" in ct
 
 
 def _walk_passthrough(
-    nodes_by_id: Dict[str, Dict[str, Any]],
+    nodes_by_id: dict[str, dict[str, Any]],
     start_link: Any,
     max_hops: int = 50,
-) -> Optional[str]:
+) -> str | None:
     """
     Follow link through obvious pass-through nodes (Reroute).
     Returns the final source node id (string) or None.
@@ -252,25 +253,25 @@ class _Field:
     source: str
 
 
-def _field(value: Any, confidence: str, source: str) -> Optional[Dict[str, Any]]:
+def _field(value: Any, confidence: str, source: str) -> dict[str, Any] | None:
     if value is None or value == "":
         return None
     return {"value": value, "confidence": confidence, "source": source}
 
 
-def _field_name(name: Any, confidence: str, source: str) -> Optional[Dict[str, Any]]:
+def _field_name(name: Any, confidence: str, source: str) -> dict[str, Any] | None:
     if not name:
         return None
     return {"name": name, "confidence": confidence, "source": source}
 
 
-def _field_size(width: Any, height: Any, confidence: str, source: str) -> Optional[Dict[str, Any]]:
+def _field_size(width: Any, height: Any, confidence: str, source: str) -> dict[str, Any] | None:
     if width is None or height is None:
         return None
     return {"width": width, "height": height, "confidence": confidence, "source": source}
 
 
-def _pick_sink_inputs(node: Dict[str, Any]) -> Optional[Any]:
+def _pick_sink_inputs(node: dict[str, Any]) -> Any | None:
     ins = _inputs(node)
     preferred = ["audio", "audios", "waveform", "images", "image", "frames", "video", "samples", "latent", "latent_image"]
     for k in preferred:
@@ -283,8 +284,8 @@ def _pick_sink_inputs(node: Dict[str, Any]) -> Optional[Any]:
     return None
 
 
-def _find_candidate_sinks(nodes_by_id: Dict[str, Dict[str, Any]]) -> List[str]:
-    sinks: List[str] = []
+def _find_candidate_sinks(nodes_by_id: dict[str, dict[str, Any]]) -> list[str]:
+    sinks: list[str] = []
     for node_id, node in nodes_by_id.items():
         ct = _lower(_node_type(node))
         if ct in SINK_CLASS_TYPES:
@@ -301,11 +302,11 @@ def _find_candidate_sinks(nodes_by_id: Dict[str, Dict[str, Any]]) -> List[str]:
 
 
 def _collect_upstream_nodes(
-    nodes_by_id: Dict[str, Dict[str, Any]],
+    nodes_by_id: dict[str, dict[str, Any]],
     start_node_id: str,
     max_nodes: int = DEFAULT_MAX_GRAPH_NODES,
     max_depth: int = DEFAULT_MAX_GRAPH_DEPTH
-) -> Dict[str, int]:
+) -> dict[str, int]:
     """
     BFS upstream from a node id, returning node->distance.
 
@@ -315,8 +316,8 @@ def _collect_upstream_nodes(
         max_nodes: Maximum number of nodes to visit
         max_depth: Maximum depth to traverse (prevents DoS)
     """
-    dist: Dict[str, int] = {}
-    q: deque[Tuple[str, int]] = deque([(start_node_id, 0)])
+    dist: dict[str, int] = {}
+    q: deque[tuple[str, int]] = deque([(start_node_id, 0)])
 
     while q and len(dist) < max_nodes:
         nid, d = q.popleft()
@@ -344,7 +345,7 @@ def _collect_upstream_nodes(
     return dist
 
 
-def _is_sampler(node: Dict[str, Any]) -> bool:
+def _is_sampler(node: dict[str, Any]) -> bool:
     """
     Return True for sampler-like nodes that represent the core diffusion step.
 
@@ -373,7 +374,7 @@ def _is_named_sampler_type(ct: str) -> bool:
     return ct == "flux2" or "flux_2" in ct
 
 
-def _has_core_sampler_signature(node: Dict[str, Any]) -> bool:
+def _has_core_sampler_signature(node: dict[str, Any]) -> bool:
     try:
         ins = _inputs(node)
     except Exception:
@@ -384,7 +385,7 @@ def _has_core_sampler_signature(node: Dict[str, Any]) -> bool:
     return has_steps and has_cfg and has_seed
 
 
-def _is_custom_sampler(node: Dict[str, Any], ct: str) -> bool:
+def _is_custom_sampler(node: dict[str, Any], ct: str) -> bool:
     if "sampler" not in ct or "select" in ct or "ksamplerselect" in ct:
         return False
     try:
@@ -398,7 +399,7 @@ def _is_custom_sampler(node: Dict[str, Any], ct: str) -> bool:
     return _is_link(ins.get("text_embeds")) or _is_link(ins.get("hyvid_embeds"))
 
 
-def _is_advanced_sampler(node: Dict[str, Any]) -> bool:
+def _is_advanced_sampler(node: dict[str, Any]) -> bool:
     """
     Flux/SD3 pipelines can use SamplerCustomAdvanced which orchestrates multiple nodes:
     - noise -> RandomNoise(noise_seed)
@@ -428,8 +429,8 @@ def _is_advanced_sampler(node: Dict[str, Any]) -> bool:
 
 
 def _extract_posneg_from_text_embeds(
-    nodes_by_id: Dict[str, Dict[str, Any]], text_embeds_link: Any
-) -> Tuple[Optional[Tuple[str, str]], Optional[Tuple[str, str]]]:
+    nodes_by_id: dict[str, dict[str, Any]], text_embeds_link: Any
+) -> tuple[tuple[str, str] | None, tuple[str, str] | None]:
     """
     Wan/video stacks often encode prompts into "text_embeds" via nodes like
     WanVideoTextEncode which keep positive/negative as plain string inputs.
@@ -442,7 +443,7 @@ def _extract_posneg_from_text_embeds(
         return None, None
     ins = _inputs(node)
 
-    def _get_str(*keys: str) -> Optional[str]:
+    def _get_str(*keys: str) -> str | None:
         for k in keys:
             v = ins.get(k)
             if isinstance(v, str) and v.strip():
@@ -460,22 +461,22 @@ def _extract_posneg_from_text_embeds(
 
 
 def _select_primary_sampler(
-    nodes_by_id: Dict[str, Dict[str, Any]], sink_node_id: str
-) -> Tuple[Optional[str], str]:
+    nodes_by_id: dict[str, dict[str, Any]], sink_node_id: str
+) -> tuple[str | None, str]:
     return _select_sampler_from_sink(nodes_by_id, sink_node_id, _is_sampler)
 
 
 def _select_advanced_sampler(
-    nodes_by_id: Dict[str, Dict[str, Any]], sink_node_id: str
-) -> Tuple[Optional[str], str]:
+    nodes_by_id: dict[str, dict[str, Any]], sink_node_id: str
+) -> tuple[str | None, str]:
     return _select_sampler_from_sink(nodes_by_id, sink_node_id, _is_advanced_sampler)
 
 
 def _select_sampler_from_sink(
-    nodes_by_id: Dict[str, Dict[str, Any]],
+    nodes_by_id: dict[str, dict[str, Any]],
     sink_node_id: str,
-    selector: Callable[[Dict[str, Any]], bool],
-) -> Tuple[Optional[str], str]:
+    selector: Callable[[dict[str, Any]], bool],
+) -> tuple[str | None, str]:
     start_src = _sink_start_source(nodes_by_id, sink_node_id)
     if not start_src:
         return None, "none"
@@ -483,7 +484,7 @@ def _select_sampler_from_sink(
     return _best_candidate(candidates)
 
 
-def _sink_start_source(nodes_by_id: Dict[str, Dict[str, Any]], sink_node_id: str) -> Optional[str]:
+def _sink_start_source(nodes_by_id: dict[str, dict[str, Any]], sink_node_id: str) -> str | None:
     sink = nodes_by_id.get(sink_node_id)
     if not isinstance(sink, dict):
         return None
@@ -492,12 +493,12 @@ def _sink_start_source(nodes_by_id: Dict[str, Dict[str, Any]], sink_node_id: str
 
 
 def _upstream_sampler_candidates(
-    nodes_by_id: Dict[str, Dict[str, Any]],
+    nodes_by_id: dict[str, dict[str, Any]],
     start_src: str,
-    selector: Callable[[Dict[str, Any]], bool],
-) -> List[Tuple[str, int]]:
+    selector: Callable[[dict[str, Any]], bool],
+) -> list[tuple[str, int]]:
     dist = _collect_upstream_nodes(nodes_by_id, start_src)
-    candidates: List[Tuple[str, int]] = []
+    candidates: list[tuple[str, int]] = []
     for nid, depth in dist.items():
         node = nodes_by_id.get(nid)
         if isinstance(node, dict) and selector(node):
@@ -505,7 +506,7 @@ def _upstream_sampler_candidates(
     return candidates
 
 
-def _best_candidate(candidates: List[Tuple[str, int]]) -> Tuple[Optional[str], str]:
+def _best_candidate(candidates: list[tuple[str, int]]) -> tuple[str | None, str]:
     if not candidates:
         return None, "none"
     candidates.sort(key=lambda item: item[1])
@@ -516,7 +517,7 @@ def _best_candidate(candidates: List[Tuple[str, int]]) -> Tuple[Optional[str], s
     return best[0], "medium"
 
 
-def _select_any_sampler(nodes_by_id: Dict[str, Dict[str, Any]]) -> Tuple[Optional[str], str]:
+def _select_any_sampler(nodes_by_id: dict[str, dict[str, Any]]) -> tuple[str | None, str]:
     """
     Last resort when sinks exist but are not linked to the generation branch.
     Choose the "best" sampler-like node in the whole prompt graph.
@@ -528,8 +529,8 @@ def _select_any_sampler(nodes_by_id: Dict[str, Dict[str, Any]]) -> Tuple[Optiona
     return candidates[0][2], "low"
 
 
-def _global_sampler_candidates(nodes_by_id: Dict[str, Dict[str, Any]]) -> List[Tuple[int, int, str]]:
-    candidates: List[Tuple[int, int, str]] = []
+def _global_sampler_candidates(nodes_by_id: dict[str, dict[str, Any]]) -> list[tuple[int, int, str]]:
+    candidates: list[tuple[int, int, str]] = []
     for nid, node in nodes_by_id.items():
         if not isinstance(node, dict) or not _is_sampler(node):
             continue
@@ -538,7 +539,7 @@ def _global_sampler_candidates(nodes_by_id: Dict[str, Dict[str, Any]]) -> List[T
     return candidates
 
 
-def _sampler_candidate_score(ins: Dict[str, Any]) -> int:
+def _sampler_candidate_score(ins: dict[str, Any]) -> int:
     score = 0
     if _is_link(ins.get("model")):
         score += 3
@@ -557,7 +558,7 @@ def _stable_numeric_node_id(node_id: str) -> int:
         return 10**9
 
 
-def _trace_sampler_name(nodes_by_id: Dict[str, Dict[str, Any]], link: Any) -> Optional[Tuple[str, str]]:
+def _trace_sampler_name(nodes_by_id: dict[str, dict[str, Any]], link: Any) -> tuple[str, str] | None:
     src_id = _walk_passthrough(nodes_by_id, link)
     if not src_id:
         return None
@@ -571,7 +572,7 @@ def _trace_sampler_name(nodes_by_id: Dict[str, Dict[str, Any]], link: Any) -> Op
     return str(val), f"{_node_type(node)}:{src_id}"
 
 
-def _trace_noise_seed(nodes_by_id: Dict[str, Dict[str, Any]], link: Any) -> Optional[Tuple[Any, str]]:
+def _trace_noise_seed(nodes_by_id: dict[str, dict[str, Any]], link: Any) -> tuple[Any, str] | None:
     src_id = _walk_passthrough(nodes_by_id, link)
     if not src_id:
         return None
@@ -587,8 +588,8 @@ def _trace_noise_seed(nodes_by_id: Dict[str, Dict[str, Any]], link: Any) -> Opti
 
 
 def _trace_scheduler_sigmas(
-    nodes_by_id: Dict[str, Dict[str, Any]], link: Any
-) -> Tuple[Optional[Any], Optional[Any], Optional[Any], Optional[Any], Optional[Tuple[str, str]], Optional[str]]:
+    nodes_by_id: dict[str, dict[str, Any]], link: Any
+) -> tuple[Any | None, Any | None, Any | None, Any | None, tuple[str, str] | None, str | None]:
     """
     For advanced sampler pipelines, `sigmas` points to a scheduler node that carries steps/scheduler/denoise
     and sometimes a `model` link.
@@ -601,7 +602,7 @@ def _trace_scheduler_sigmas(
         return (None, None, None, None, None, None)
     ins = _inputs(node)
     steps = _scalar(ins.get("steps"))
-    steps_confidence: Optional[str] = "high" if steps is not None else None
+    steps_confidence: str | None = "high" if steps is not None else None
     if steps is None:
         steps, steps_confidence = _steps_from_manual_sigmas(ins)
     scheduler = _scalar(ins.get("scheduler"))
@@ -611,7 +612,7 @@ def _trace_scheduler_sigmas(
     return (steps, scheduler, denoise, model_link, (src_id, src), steps_confidence)
 
 
-def _steps_from_manual_sigmas(ins: Dict[str, Any]) -> Tuple[Optional[Any], Optional[str]]:
+def _steps_from_manual_sigmas(ins: dict[str, Any]) -> tuple[Any | None, str | None]:
     # Some video workflows use manual sigma schedules instead of explicit `steps`.
     numeric = _count_numeric_sigma_values(ins.get("sigmas"))
     if numeric >= 2:
@@ -637,12 +638,12 @@ def _count_numeric_sigma_values(sigmas: Any) -> int:
         return 0
 
 
-def _trace_guidance_from_conditioning(nodes_by_id: Dict[str, Dict[str, Any]], conditioning_link: Any) -> Optional[Tuple[Any, str]]:
+def _trace_guidance_from_conditioning(nodes_by_id: dict[str, dict[str, Any]], conditioning_link: Any) -> tuple[Any, str] | None:
     start_id = _walk_passthrough(nodes_by_id, conditioning_link)
     if not start_id:
         return None
     dist = _collect_upstream_nodes(nodes_by_id, start_id)
-    for nid, d in sorted(dist.items(), key=lambda x: x[1]):
+    for nid, _ in sorted(dist.items(), key=lambda x: x[1]):
         node = nodes_by_id.get(nid)
         if not isinstance(node, dict):
             continue
@@ -654,7 +655,7 @@ def _trace_guidance_from_conditioning(nodes_by_id: Dict[str, Dict[str, Any]], co
     return None
 
 
-def _scalar(value: Any) -> Optional[Any]:
+def _scalar(value: Any) -> Any | None:
     if value is None:
         return None
     if isinstance(value, (int, float, str)):
@@ -662,13 +663,13 @@ def _scalar(value: Any) -> Optional[Any]:
     return None
 
 
-def _extract_ksampler_widget_params(node: Dict[str, Any]) -> Dict[str, Any]:
+def _extract_ksampler_widget_params(node: dict[str, Any]) -> dict[str, Any]:
     """
     Fallback extraction for KSampler values stored in LiteGraph `widgets_values`.
     Common order:
       [seed, control_after_generate, steps, cfg, sampler_name, scheduler, denoise]
     """
-    out: Dict[str, Any] = {}
+    out: dict[str, Any] = {}
     if not isinstance(node, dict):
         return out
     ct = _lower(_node_type(node))
@@ -680,7 +681,7 @@ def _extract_ksampler_widget_params(node: Dict[str, Any]) -> Dict[str, Any]:
     return _ksampler_values_from_widgets(widgets)
 
 
-def _ksampler_values_from_widgets(widgets: List[Any]) -> Dict[str, Any]:
+def _ksampler_values_from_widgets(widgets: list[Any]) -> dict[str, Any]:
     index_map = {
         "seed": 0,
         "steps": 2,
@@ -689,7 +690,7 @@ def _ksampler_values_from_widgets(widgets: List[Any]) -> Dict[str, Any]:
         "scheduler": 5,
         "denoise": 6,
     }
-    out: Dict[str, Any] = {}
+    out: dict[str, Any] = {}
     for field, idx in index_map.items():
         value = _widget_value_at(widgets, idx)
         if value is not None:
@@ -697,13 +698,13 @@ def _ksampler_values_from_widgets(widgets: List[Any]) -> Dict[str, Any]:
     return out
 
 
-def _widget_value_at(widgets: List[Any], index: int) -> Optional[Any]:
+def _widget_value_at(widgets: list[Any], index: int) -> Any | None:
     if index < 0 or index >= len(widgets):
         return None
     return widgets[index]
 
 
-def _extract_lyrics_from_prompt_nodes(nodes_by_id: Dict[str, Dict[str, Any]]) -> Tuple[Optional[str], Optional[Any], Optional[str]]:
+def _extract_lyrics_from_prompt_nodes(nodes_by_id: dict[str, dict[str, Any]]) -> tuple[str | None, Any | None, str | None]:
     """
     Best-effort lyrics extraction for audio text-encode nodes (AceStep-like nodes).
     Returns: (lyrics, lyrics_strength, source)
@@ -720,15 +721,15 @@ def _extract_lyrics_from_prompt_nodes(nodes_by_id: Dict[str, Dict[str, Any]]) ->
     return None, None, None
 
 
-def _extract_lyrics_from_node(node: Dict[str, Any], ct: str) -> Tuple[Optional[str], Optional[Any]]:
+def _extract_lyrics_from_node(node: dict[str, Any], ct: str) -> tuple[str | None, Any | None]:
     ins = _inputs(node)
     lyrics = _extract_lyrics_from_inputs(ins, ct)
     strength = _extract_lyrics_strength(ins)
     return _apply_lyrics_widget_fallback(node.get("widgets_values"), lyrics, strength)
 
 
-def _extract_lyrics_from_inputs(ins: Dict[str, Any], ct: str) -> Optional[str]:
-    lyric_keys: Tuple[str, ...] = ("lyrics", "lyric", "lyric_text", "text_lyrics")
+def _extract_lyrics_from_inputs(ins: dict[str, Any], ct: str) -> str | None:
+    lyric_keys: tuple[str, ...] = ("lyrics", "lyric", "lyric_text", "text_lyrics")
     if "acestep15tasktextencode" in ct or "acesteptasktextencode" in ct:
         lyric_keys = ("lyrics", "lyric", "lyric_text", "text_lyrics", "task_text", "task", "text")
     for key in lyric_keys:
@@ -738,7 +739,7 @@ def _extract_lyrics_from_inputs(ins: Dict[str, Any], ct: str) -> Optional[str]:
     return None
 
 
-def _extract_lyrics_strength(ins: Dict[str, Any]) -> Optional[Any]:
+def _extract_lyrics_strength(ins: dict[str, Any]) -> Any | None:
     for key in ("lyrics_strength", "lyric_strength"):
         value = _scalar(ins.get(key))
         if value is not None:
@@ -746,7 +747,7 @@ def _extract_lyrics_strength(ins: Dict[str, Any]) -> Optional[Any]:
     return None
 
 
-def _apply_lyrics_widget_fallback(widgets: Any, lyrics: Optional[str], strength: Optional[Any]) -> Tuple[Optional[str], Optional[Any]]:
+def _apply_lyrics_widget_fallback(widgets: Any, lyrics: str | None, strength: Any | None) -> tuple[str | None, Any | None]:
     if isinstance(widgets, list):
         return _lyrics_widget_fallback_from_list(widgets, lyrics, strength)
     if isinstance(widgets, dict):
@@ -755,8 +756,8 @@ def _apply_lyrics_widget_fallback(widgets: Any, lyrics: Optional[str], strength:
 
 
 def _lyrics_widget_fallback_from_list(
-    widgets: list[Any], lyrics: Optional[str], strength: Optional[Any]
-) -> Tuple[Optional[str], Optional[Any]]:
+    widgets: list[Any], lyrics: str | None, strength: Any | None
+) -> tuple[str | None, Any | None]:
     if not lyrics and len(widgets) > 1 and isinstance(widgets[1], str) and widgets[1].strip():
         lyrics = widgets[1].strip()
     if strength is None and len(widgets) > 2:
@@ -765,8 +766,8 @@ def _lyrics_widget_fallback_from_list(
 
 
 def _lyrics_widget_fallback_from_dict(
-    widgets: Dict[str, Any], lyrics: Optional[str], strength: Optional[Any]
-) -> Tuple[Optional[str], Optional[Any]]:
+    widgets: dict[str, Any], lyrics: str | None, strength: Any | None
+) -> tuple[str | None, Any | None]:
     lyrics = lyrics or _first_non_empty_string(
         widgets, ("lyrics", "lyric_text", "text_lyrics", "task_text", "task", "text")
     )
@@ -775,7 +776,7 @@ def _lyrics_widget_fallback_from_dict(
     return lyrics, strength
 
 
-def _first_non_empty_string(source: Dict[str, Any], keys: Tuple[str, ...]) -> Optional[str]:
+def _first_non_empty_string(source: dict[str, Any], keys: tuple[str, ...]) -> str | None:
     for key in keys:
         value = source.get(key)
         if isinstance(value, str) and value.strip():
@@ -783,7 +784,7 @@ def _first_non_empty_string(source: Dict[str, Any], keys: Tuple[str, ...]) -> Op
     return None
 
 
-def _first_non_none_scalar(source: Dict[str, Any], keys: Tuple[str, ...]) -> Optional[Any]:
+def _first_non_none_scalar(source: dict[str, Any], keys: tuple[str, ...]) -> Any | None:
     for key in keys:
         value = _scalar(source.get(key))
         if value is not None:
@@ -791,7 +792,7 @@ def _first_non_none_scalar(source: Dict[str, Any], keys: Tuple[str, ...]) -> Opt
     return None
 
 
-def _resolve_scalar_from_link(nodes_by_id: Dict[str, Dict[str, Any]], value: Any) -> Optional[Any]:
+def _resolve_scalar_from_link(nodes_by_id: dict[str, dict[str, Any]], value: Any) -> Any | None:
     src_id = _walk_passthrough(nodes_by_id, value)
     if not src_id:
         return None
@@ -810,7 +811,7 @@ def _resolve_scalar_from_link(nodes_by_id: Dict[str, Dict[str, Any]], value: Any
     return None
 
 
-def _extract_text(nodes_by_id: Dict[str, Dict[str, Any]], link: Any) -> Optional[Tuple[str, str]]:
+def _extract_text(nodes_by_id: dict[str, dict[str, Any]], link: Any) -> tuple[str, str] | None:
     node_id = _walk_passthrough(nodes_by_id, link)
     if not node_id:
         return None
@@ -819,7 +820,7 @@ def _extract_text(nodes_by_id: Dict[str, Dict[str, Any]], link: Any) -> Optional
         return None
     ins = _inputs(node)
     # Text-encode nodes vary: SDXL often uses text_g/text_l, some nodes use "prompt".
-    candidates: List[str] = []
+    candidates: list[str] = []
     for key in ("text", "prompt", "text_g", "text_l"):
         v = ins.get(key)
         if isinstance(v, str) and v.strip():
@@ -829,7 +830,7 @@ def _extract_text(nodes_by_id: Dict[str, Dict[str, Any]], link: Any) -> Optional
     return None
 
 
-def _looks_like_text_encoder(node: Dict[str, Any]) -> bool:
+def _looks_like_text_encoder(node: dict[str, Any]) -> bool:
     """
     Conservative signal: a node that has textual inputs AND a linked `clip` input.
     This avoids "guessing" prompts from unrelated nodes.
@@ -849,7 +850,7 @@ def _looks_like_text_encoder(node: Dict[str, Any]) -> bool:
         return False
 
 
-def _looks_like_conditioning_text(node: Dict[str, Any]) -> bool:
+def _looks_like_conditioning_text(node: dict[str, Any]) -> bool:
     """
     Some custom nodes output CONDITIONING directly without an explicit `clip` link
     but still store the prompt text in a `text`/`prompt` field. Only accept nodes
@@ -872,12 +873,12 @@ def _looks_like_conditioning_text(node: Dict[str, Any]) -> bool:
 
 
 def _collect_text_encoder_nodes_from_conditioning(
-    nodes_by_id: Dict[str, Dict[str, Any]],
+    nodes_by_id: dict[str, dict[str, Any]],
     start_link: Any,
     max_nodes: int = DEFAULT_MAX_LINK_NODES,
     max_depth: int = DEFAULT_MAX_GRAPH_DEPTH,
-    branch: Optional[str] = None
-) -> List[str]:
+    branch: str | None = None
+) -> list[str]:
     """
     DFS upstream from a conditioning link, collecting "text-encoder-like" node ids.
     Traversal expands only through nodes that look like conditioning composition or
@@ -894,9 +895,9 @@ def _collect_text_encoder_nodes_from_conditioning(
     if not start_id:
         return []
 
-    visited: Set[str] = set()
-    stack: List[Tuple[str, int]] = [(start_id, 0)]
-    found: List[str] = []
+    visited: set[str] = set()
+    stack: list[tuple[str, int]] = [(start_id, 0)]
+    found: list[str] = []
 
     while stack and len(visited) < max_nodes:
         nid, depth = stack.pop()
@@ -915,7 +916,7 @@ def _collect_text_encoder_nodes_from_conditioning(
         _expand_conditioning_frontier(nodes_by_id, stack, visited, _inputs(node), depth, branch)
 
     # Stable ordering: node id is usually numeric
-    def _nid_key(x: str) -> Tuple[int, str]:
+    def _nid_key(x: str) -> tuple[int, str]:
         try:
             return int(x), x
         except Exception:
@@ -925,7 +926,7 @@ def _collect_text_encoder_nodes_from_conditioning(
     return found
 
 
-def _conditioning_should_expand(node: Dict[str, Any], branch: Optional[str]) -> bool:
+def _conditioning_should_expand(node: dict[str, Any], branch: str | None) -> bool:
     ct = _lower(_node_type(node))
     if _conditioning_is_blocked_by_branch(ct, branch):
         return False
@@ -940,27 +941,27 @@ def _conditioning_should_expand(node: Dict[str, Any], branch: Optional[str]) -> 
         return False
 
 
-def _conditioning_is_blocked_by_branch(ct: str, branch: Optional[str]) -> bool:
+def _conditioning_is_blocked_by_branch(ct: str, branch: str | None) -> bool:
     return branch == "negative" and "conditioningzeroout" in ct
 
 
-def _conditioning_is_expand_node(ct: str, node: Dict[str, Any]) -> bool:
+def _conditioning_is_expand_node(ct: str, node: dict[str, Any]) -> bool:
     return "conditioningsetarea" in ct or _is_reroute(node) or "conditioning" in ct
 
 
-def _conditioning_has_branch_links(ins: Dict[str, Any], branch: Optional[str]) -> bool:
+def _conditioning_has_branch_links(ins: dict[str, Any], branch: str | None) -> bool:
     if branch in ("positive", "negative") and _is_link(ins.get(branch)):
         return True
     return _is_link(ins.get("positive")) or _is_link(ins.get("negative"))
 
 
 def _expand_conditioning_frontier(
-    nodes_by_id: Dict[str, Dict[str, Any]],
-    stack: List[Tuple[str, int]],
-    visited: Set[str],
-    ins: Dict[str, Any],
+    nodes_by_id: dict[str, dict[str, Any]],
+    stack: list[tuple[str, int]],
+    visited: set[str],
+    ins: dict[str, Any],
     depth: int,
-    branch: Optional[str],
+    branch: str | None,
 ) -> None:
     if branch in ("positive", "negative") and _is_link(ins.get(branch)):
         src_id = _walk_passthrough(nodes_by_id, ins.get(branch))
@@ -977,7 +978,7 @@ def _expand_conditioning_frontier(
             stack.append((src_id, depth + 1))
 
 
-def _conditioning_key_allowed(key: Any, branch: Optional[str]) -> bool:
+def _conditioning_key_allowed(key: Any, branch: str | None) -> bool:
     key_s = str(key).lower()
     if branch == "positive":
         return key_s not in ("negative", "neg", "negative_prompt") and not key_s.startswith("negative_")
@@ -987,20 +988,20 @@ def _conditioning_key_allowed(key: Any, branch: Optional[str]) -> bool:
 
 
 def _collect_texts_from_conditioning(
-    nodes_by_id: Dict[str, Dict[str, Any]], start_link: Any, max_nodes: int = DEFAULT_MAX_LINK_NODES, branch: Optional[str] = None
-) -> List[Tuple[str, str]]:
+    nodes_by_id: dict[str, dict[str, Any]], start_link: Any, max_nodes: int = DEFAULT_MAX_LINK_NODES, branch: str | None = None
+) -> list[tuple[str, str]]:
     """
     Collect prompt text fragments from a conditioning link, returning (text, source).
     Deterministic order; never invents text when none is present.
     """
     node_ids = _collect_text_encoder_nodes_from_conditioning(nodes_by_id, start_link, max_nodes=max_nodes, branch=branch)
-    out: List[Tuple[str, str]] = []
+    out: list[tuple[str, str]] = []
     for nid in node_ids:
         node = nodes_by_id.get(nid)
         if not isinstance(node, dict):
             continue
         ins = _inputs(node)
-        candidates: List[str] = []
+        candidates: list[str] = []
         for key in ("text", "prompt", "text_g", "text_l", "instruction"):
             v = ins.get(key)
             if isinstance(v, str) and v.strip():
@@ -1014,7 +1015,7 @@ def _collect_texts_from_conditioning(
     return out
 
 
-def _first_model_string_from_inputs(ins: Dict[str, Any]) -> Optional[str]:
+def _first_model_string_from_inputs(ins: dict[str, Any]) -> str | None:
     for key in (
         "ckpt_name",
         "checkpoint",
@@ -1043,16 +1044,16 @@ def _first_model_string_from_inputs(ins: Dict[str, Any]) -> Optional[str]:
     return None
 
 
-def _is_lora_loader_node(ct: str, ins: Dict[str, Any]) -> bool:
+def _is_lora_loader_node(ct: str, ins: dict[str, Any]) -> bool:
     return ("lora" in ct) or (ins.get("lora_name") is not None and _is_link(ins.get("model")))
 
 
 def _append_lora_entries(
-    node: Dict[str, Any],
+    node: dict[str, Any],
     node_id: str,
-    ins: Dict[str, Any],
+    ins: dict[str, Any],
     confidence: str,
-    loras: List[Dict[str, Any]],
+    loras: list[dict[str, Any]],
 ) -> None:
     for key, value in ins.items():
         payload = _build_lora_payload_from_nested_value(
@@ -1072,12 +1073,12 @@ def _append_lora_entries(
 
 def _build_lora_payload_from_nested_value(
     *,
-    node: Dict[str, Any],
+    node: dict[str, Any],
     node_id: str,
     key: Any,
     value: Any,
     confidence: str,
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     if not _is_nested_lora_key(key) or not isinstance(value, dict):
         return None
     if not _is_enabled_lora_value(value):
@@ -1098,25 +1099,25 @@ def _is_nested_lora_key(key: Any) -> bool:
     return str(key).lower().startswith("lora_")
 
 
-def _is_enabled_lora_value(value: Dict[str, Any]) -> bool:
+def _is_enabled_lora_value(value: dict[str, Any]) -> bool:
     return value.get("on") is not False
 
 
-def _nested_lora_name(value: Dict[str, Any]) -> Optional[str]:
+def _nested_lora_name(value: dict[str, Any]) -> str | None:
     return _clean_model_id(value.get("lora") or value.get("lora_name") or value.get("name"))
 
 
-def _nested_lora_strength(value: Dict[str, Any]) -> Any:
+def _nested_lora_strength(value: dict[str, Any]) -> Any:
     return value.get("strength") or value.get("strength_model") or value.get("weight") or value.get("lora_strength")
 
 
 def _build_lora_payload_from_inputs(
     *,
-    node: Dict[str, Any],
+    node: dict[str, Any],
     node_id: str,
-    ins: Dict[str, Any],
+    ins: dict[str, Any],
     confidence: str,
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     name = _clean_model_id(ins.get("lora_name") or ins.get("lora") or ins.get("name"))
     if not name:
         return None
@@ -1154,7 +1155,7 @@ def _is_generic_model_loader_node(ct: str) -> bool:
     )
 
 
-def _is_checkpoint_loader_node(ct: str, ins: Dict[str, Any]) -> bool:
+def _is_checkpoint_loader_node(ct: str, ins: dict[str, Any]) -> bool:
     if ins.get("ckpt_name") is not None:
         return True
     return any(
@@ -1168,18 +1169,18 @@ def _is_checkpoint_loader_node(ct: str, ins: Dict[str, Any]) -> bool:
     )
 
 
-def _chain_result(next_link: Optional[Any], should_stop: bool) -> Tuple[Optional[Any], bool]:
+def _chain_result(next_link: Any | None, should_stop: bool) -> tuple[Any | None, bool]:
     return next_link, should_stop
 
 
 def _handle_lora_chain_node(
-    node: Dict[str, Any],
+    node: dict[str, Any],
     node_id: str,
     ct: str,
-    ins: Dict[str, Any],
-    loras: List[Dict[str, Any]],
+    ins: dict[str, Any],
+    loras: list[dict[str, Any]],
     confidence: str,
-) -> Optional[Tuple[Optional[Any], bool]]:
+) -> tuple[Any | None, bool] | None:
     if not _is_lora_loader_node(ct, ins):
         return None
     _append_lora_entries(node, node_id, ins, confidence, loras)
@@ -1189,20 +1190,20 @@ def _handle_lora_chain_node(
     return _chain_result(None, True)
 
 
-def _handle_modelsampling_chain_node(ct: str, ins: Dict[str, Any]) -> Optional[Tuple[Optional[Any], bool]]:
+def _handle_modelsampling_chain_node(ct: str, ins: dict[str, Any]) -> tuple[Any | None, bool] | None:
     if ("modelsampling" in ct or "model_sampling" in ct) and _is_link(ins.get("model")):
         return _chain_result(ins.get("model"), False)
     return None
 
 
 def _handle_diffusion_loader_chain_node(
-    node: Dict[str, Any],
+    node: dict[str, Any],
     node_id: str,
     ct: str,
-    ins: Dict[str, Any],
-    models: Dict[str, Dict[str, Any]],
+    ins: dict[str, Any],
+    models: dict[str, dict[str, Any]],
     confidence: str,
-) -> Optional[Tuple[Optional[Any], bool]]:
+) -> tuple[Any | None, bool] | None:
     if not _is_diffusion_loader_node(ct):
         return None
     source = f"{_node_type(node)}:{node_id}"
@@ -1226,9 +1227,9 @@ def _handle_diffusion_loader_chain_node(
 
 
 def _set_model_entry_if_missing(
-    models: Dict[str, Dict[str, Any]],
+    models: dict[str, dict[str, Any]],
     key: str,
-    name: Optional[str],
+    name: str | None,
     confidence: str,
     source: str,
 ) -> None:
@@ -1236,7 +1237,7 @@ def _set_model_entry_if_missing(
         models[key] = {"name": name, "confidence": confidence, "source": source}
 
 
-def _chain_result_from_model_input(ins: Dict[str, Any]) -> Tuple[Optional[Any], bool]:
+def _chain_result_from_model_input(ins: dict[str, Any]) -> tuple[Any | None, bool]:
     next_model = ins.get("model")
     if _is_link(next_model):
         return _chain_result(next_model, False)
@@ -1244,13 +1245,13 @@ def _chain_result_from_model_input(ins: Dict[str, Any]) -> Tuple[Optional[Any], 
 
 
 def _handle_generic_loader_chain_node(
-    node: Dict[str, Any],
+    node: dict[str, Any],
     node_id: str,
     ct: str,
-    ins: Dict[str, Any],
-    models: Dict[str, Dict[str, Any]],
+    ins: dict[str, Any],
+    models: dict[str, dict[str, Any]],
     confidence: str,
-) -> Optional[Tuple[Optional[Any], bool]]:
+) -> tuple[Any | None, bool] | None:
     if not _is_generic_model_loader_node(ct):
         return None
     name = _clean_model_id(_first_model_string_from_inputs(ins))
@@ -1263,13 +1264,13 @@ def _handle_generic_loader_chain_node(
 
 
 def _handle_checkpoint_loader_chain_node(
-    node: Dict[str, Any],
+    node: dict[str, Any],
     node_id: str,
     ct: str,
-    ins: Dict[str, Any],
-    models: Dict[str, Dict[str, Any]],
+    ins: dict[str, Any],
+    models: dict[str, dict[str, Any]],
     confidence: str,
-) -> Optional[Tuple[Optional[Any], bool]]:
+) -> tuple[Any | None, bool] | None:
     if not _is_checkpoint_loader_node(ct, ins):
         return None
     ckpt = _clean_model_id(ins.get("ckpt_name") or ins.get("model_name"))
@@ -1281,7 +1282,7 @@ def _handle_checkpoint_loader_chain_node(
     return _chain_result(None, True)
 
 
-def _handle_switch_selector_chain_node(ct: str, ins: Dict[str, Any]) -> Optional[Tuple[Optional[Any], bool]]:
+def _handle_switch_selector_chain_node(ct: str, ins: dict[str, Any]) -> tuple[Any | None, bool] | None:
     if ("switch" in ct or "selector" in ct) and not _is_link(ins.get("model")):
         links = [value for value in ins.values() if _is_link(value)]
         if len(links) == 1:
@@ -1290,12 +1291,12 @@ def _handle_switch_selector_chain_node(ct: str, ins: Dict[str, Any]) -> Optional
 
 
 def _handle_fallback_chain_node(
-    node: Dict[str, Any],
+    node: dict[str, Any],
     node_id: str,
-    ins: Dict[str, Any],
-    models: Dict[str, Dict[str, Any]],
+    ins: dict[str, Any],
+    models: dict[str, dict[str, Any]],
     confidence: str,
-) -> Tuple[Optional[Any], bool]:
+) -> tuple[Any | None, bool]:
     name = _clean_model_id(_first_model_string_from_inputs(ins))
     if name and "checkpoint" not in models:
         models["checkpoint"] = {"name": name, "confidence": confidence, "source": f"{_node_type(node)}:{node_id}"}
@@ -1306,14 +1307,14 @@ def _handle_fallback_chain_node(
 
 
 def _process_model_chain_node(
-    node: Dict[str, Any],
+    node: dict[str, Any],
     node_id: str,
     ct: str,
-    ins: Dict[str, Any],
-    models: Dict[str, Dict[str, Any]],
-    loras: List[Dict[str, Any]],
+    ins: dict[str, Any],
+    models: dict[str, dict[str, Any]],
+    loras: list[dict[str, Any]],
     confidence: str,
-) -> Tuple[Optional[Any], bool]:
+) -> tuple[Any | None, bool]:
     for handler in (
         lambda: _handle_lora_chain_node(node, node_id, ct, ins, loras, confidence),
         lambda: _handle_modelsampling_chain_node(ct, ins),
@@ -1329,10 +1330,10 @@ def _process_model_chain_node(
 
 
 def _trace_model_chain(
-    nodes_by_id: Dict[str, Dict[str, Any]], model_link: Any, confidence: str
-) -> Tuple[Dict[str, Dict[str, Any]], List[Dict[str, Any]]]:
-    loras: List[Dict[str, Any]] = []
-    models: Dict[str, Dict[str, Any]] = {}
+    nodes_by_id: dict[str, dict[str, Any]], model_link: Any, confidence: str
+) -> tuple[dict[str, dict[str, Any]], list[dict[str, Any]]]:
+    loras: list[dict[str, Any]] = []
+    models: dict[str, dict[str, Any]] = {}
 
     current_link = model_link
     hops = 0
@@ -1361,7 +1362,7 @@ def _trace_model_chain(
     return models, loras
 
 
-def _trace_named_loader(nodes_by_id: Dict[str, Dict[str, Any]], link: Any, keys: Tuple[str, ...], confidence: str) -> Optional[Dict[str, Any]]:
+def _trace_named_loader(nodes_by_id: dict[str, dict[str, Any]], link: Any, keys: tuple[str, ...], confidence: str) -> dict[str, Any] | None:
     current_link = link
     hops = 0
     while current_link is not None and hops < 80:
@@ -1384,8 +1385,8 @@ def _trace_named_loader(nodes_by_id: Dict[str, Dict[str, Any]], link: Any, keys:
 
 
 def _extract_named_loader_model(
-    ins: Dict[str, Any], keys: Tuple[str, ...], *, confidence: str, source: str
-) -> Optional[Dict[str, Any]]:
+    ins: dict[str, Any], keys: tuple[str, ...], *, confidence: str, source: str
+) -> dict[str, Any] | None:
     dual_clip = _extract_dual_clip_name(ins, keys)
     if dual_clip is not None:
         return {"name": dual_clip, "confidence": confidence, "source": source}
@@ -1396,7 +1397,7 @@ def _extract_named_loader_model(
     return None
 
 
-def _extract_dual_clip_name(ins: Dict[str, Any], keys: Tuple[str, ...]) -> Optional[str]:
+def _extract_dual_clip_name(ins: dict[str, Any], keys: tuple[str, ...]) -> str | None:
     if "clip_name1" not in keys or "clip_name2" not in keys:
         return None
     c1 = _clean_model_id(ins.get("clip_name1"))
@@ -1406,7 +1407,7 @@ def _extract_dual_clip_name(ins: Dict[str, Any], keys: Tuple[str, ...]) -> Optio
     return None
 
 
-def _next_named_loader_link(ins: Dict[str, Any]) -> Optional[Any]:
+def _next_named_loader_link(ins: dict[str, Any]) -> Any | None:
     for key in ("clip", "vae", "model"):
         value = ins.get(key)
         if _is_link(value):
@@ -1414,9 +1415,9 @@ def _next_named_loader_link(ins: Dict[str, Any]) -> Optional[Any]:
     return None
 
 
-def _trace_vae_from_sink(nodes_by_id: Dict[str, Dict[str, Any]], sink_start_id: str, confidence: str) -> Optional[Dict[str, Any]]:
+def _trace_vae_from_sink(nodes_by_id: dict[str, dict[str, Any]], sink_start_id: str, confidence: str) -> dict[str, Any] | None:
     dist = _collect_upstream_nodes(nodes_by_id, sink_start_id)
-    candidates: List[Tuple[str, int]] = []
+    candidates: list[tuple[str, int]] = []
     for nid, d in dist.items():
         node = nodes_by_id.get(nid)
         if not isinstance(node, dict):
@@ -1435,7 +1436,7 @@ def _trace_vae_from_sink(nodes_by_id: Dict[str, Dict[str, Any]], sink_start_id: 
     return None
 
 
-def _trace_clip_from_text_encoder(nodes_by_id: Dict[str, Dict[str, Any]], encoder_link: Any, confidence: str) -> Optional[Dict[str, Any]]:
+def _trace_clip_from_text_encoder(nodes_by_id: dict[str, dict[str, Any]], encoder_link: Any, confidence: str) -> dict[str, Any] | None:
     encoder_id = _walk_passthrough(nodes_by_id, encoder_link)
     if encoder_id:
         node = nodes_by_id.get(encoder_id)
@@ -1462,7 +1463,7 @@ def _trace_clip_from_text_encoder(nodes_by_id: Dict[str, Dict[str, Any]], encode
     )
 
 
-def _trace_clip_skip(nodes_by_id: Dict[str, Dict[str, Any]], clip_link: Any, confidence: str) -> Optional[Dict[str, Any]]:
+def _trace_clip_skip(nodes_by_id: dict[str, dict[str, Any]], clip_link: Any, confidence: str) -> dict[str, Any] | None:
     current_link = clip_link
     hops = 0
     while current_link is not None and hops < 60:
@@ -1487,7 +1488,7 @@ def _trace_clip_skip(nodes_by_id: Dict[str, Dict[str, Any]], clip_link: Any, con
     return None
 
 
-def _trace_size(nodes_by_id: Dict[str, Dict[str, Any]], latent_link: Any, confidence: str) -> Optional[Dict[str, Any]]:
+def _trace_size(nodes_by_id: dict[str, dict[str, Any]], latent_link: Any, confidence: str) -> dict[str, Any] | None:
     current_link = latent_link
     hops = 0
     while current_link is not None and hops < 80:
@@ -1511,12 +1512,12 @@ def _trace_size(nodes_by_id: Dict[str, Dict[str, Any]], latent_link: Any, confid
 
 
 def _size_field_from_node(
-    node: Dict[str, Any],
+    node: dict[str, Any],
     node_id: str,
     node_type: str,
-    ins: Dict[str, Any],
+    ins: dict[str, Any],
     confidence: str,
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     width = _scalar(ins.get("width"))
     height = _scalar(ins.get("height"))
     if "emptylatentimage" in node_type:
@@ -1526,7 +1527,7 @@ def _size_field_from_node(
     return _field_size(width, height, confidence, f"{_node_type(node)}:{node_id}")
 
 
-def _next_latent_link(ins: Dict[str, Any]) -> Optional[Any]:
+def _next_latent_link(ins: dict[str, Any]) -> Any | None:
     for key in ("samples", "latent", "latent_image", "image"):
         value = ins.get(key)
         if _is_link(value):
@@ -1534,7 +1535,7 @@ def _next_latent_link(ins: Dict[str, Any]) -> Optional[Any]:
     return None
 
 
-def _trace_guidance_value(nodes_by_id: Dict[str, Dict[str, Any]], start_link: Any, max_hops: int = 15) -> Optional[Tuple[float, str]]:
+def _trace_guidance_value(nodes_by_id: dict[str, dict[str, Any]], start_link: Any, max_hops: int = 15) -> tuple[float, str] | None:
     """
     Traverse conditioning chain upstream to find a node providing 'guidance' (Flux).
     """
@@ -1570,7 +1571,7 @@ def _trace_guidance_value(nodes_by_id: Dict[str, Dict[str, Any]], start_link: An
     return None
 
 
-def _guidance_should_expand(node: Dict[str, Any], ins: Dict[str, Any]) -> bool:
+def _guidance_should_expand(node: dict[str, Any], ins: dict[str, Any]) -> bool:
     if _is_reroute(node):
         return True
     ct = _lower(_node_type(node))
@@ -1580,9 +1581,9 @@ def _guidance_should_expand(node: Dict[str, Any], ins: Dict[str, Any]) -> bool:
 
 
 def _iter_guidance_conditioning_sources(
-    nodes_by_id: Dict[str, Dict[str, Any]], ins: Dict[str, Any]
-) -> List[str]:
-    sources: List[str] = []
+    nodes_by_id: dict[str, dict[str, Any]], ins: dict[str, Any]
+) -> list[str]:
+    sources: list[str] = []
     for key, value in ins.items():
         if "conditioning" not in str(key).lower() or not _is_link(value):
             continue
@@ -1592,7 +1593,7 @@ def _iter_guidance_conditioning_sources(
     return sources
 
 
-def _extract_workflow_metadata(workflow: Any) -> Dict[str, Any]:
+def _extract_workflow_metadata(workflow: Any) -> dict[str, Any]:
     meta = {}
     if isinstance(workflow, dict):
         extra = workflow.get("extra", {})
@@ -1604,7 +1605,7 @@ def _extract_workflow_metadata(workflow: Any) -> Dict[str, Any]:
 
 
 
-_INPUT_ROLE_PRIORITY: Tuple[str, ...] = (
+_INPUT_ROLE_PRIORITY: tuple[str, ...] = (
     "first_frame",
     "last_frame",
     "mask/inpaint",
@@ -1616,7 +1617,7 @@ _INPUT_ROLE_PRIORITY: Tuple[str, ...] = (
     "style/reference",
     "frame_range",
 )
-_INPUT_FILENAME_KEYS: Tuple[str, ...] = (
+_INPUT_FILENAME_KEYS: tuple[str, ...] = (
     "image",
     "video",
     "filename",
@@ -1630,8 +1631,8 @@ _INPUT_FILENAME_KEYS: Tuple[str, ...] = (
 )
 
 
-def _subject_role_hints(subject: Optional[Dict[str, Any]]) -> Set[str]:
-    roles: Set[str] = set()
+def _subject_role_hints(subject: dict[str, Any] | None) -> set[str]:
+    roles: set[str] = set()
     if not isinstance(subject, dict):
         return roles
     title = _lower(subject.get("_meta", {}).get("title", "") or subject.get("title", ""))
@@ -1653,24 +1654,24 @@ def _subject_role_hints(subject: Optional[Dict[str, Any]]) -> Set[str]:
     return roles
 
 
-def _contains_any_token(value: str, tokens: Tuple[str, ...]) -> bool:
+def _contains_any_token(value: str, tokens: tuple[str, ...]) -> bool:
     return any(token in value for token in tokens)
 
 
 def _add_subject_role_if_match(
-    roles: Set[str],
+    roles: set[str],
     role: str,
     *,
     title: str,
     filename: str,
-    title_tokens: Tuple[str, ...],
-    filename_tokens: Tuple[str, ...],
+    title_tokens: tuple[str, ...],
+    filename_tokens: tuple[str, ...],
 ) -> None:
     if _contains_any_token(title, title_tokens) or _contains_any_token(filename, filename_tokens):
         roles.add(role)
 
 
-def _linked_input_from_frontier(node: Dict[str, Any], frontier: Set[str]) -> Optional[str]:
+def _linked_input_from_frontier(node: dict[str, Any], frontier: set[str]) -> str | None:
     for key, value in _inputs(node).items():
         if not _is_link(value):
             continue
@@ -1687,7 +1688,7 @@ def _classify_control_or_mask_role(
     target_type: str,
     hit_input_name: str,
     subject_is_video: bool,
-) -> Optional[str]:
+) -> str | None:
     if "ipadapter" in target_type:
         return "style/reference"
     if "controlnet" in target_type:
@@ -1699,7 +1700,7 @@ def _classify_control_or_mask_role(
     return None
 
 
-def _classify_vace_or_range_role(target_type: str, hit_input_name: str) -> Optional[str]:
+def _classify_vace_or_range_role(target_type: str, hit_input_name: str) -> str | None:
     if _is_vace_target_type(target_type):
         edge_role = _frame_edge_role(hit_input_name)
         if "control" in hit_input_name or "reference" in hit_input_name:
@@ -1718,7 +1719,7 @@ def _is_frame_range_target_type(target_type: str) -> bool:
     return "starttoend" in target_type or "framerange" in target_type
 
 
-def _frame_edge_role(hit_input_name: str) -> Optional[str]:
+def _frame_edge_role(hit_input_name: str) -> str | None:
     if "start" in hit_input_name or "first" in hit_input_name:
         return "first_frame"
     if "end" in hit_input_name or "last" in hit_input_name:
@@ -1726,7 +1727,7 @@ def _frame_edge_role(hit_input_name: str) -> Optional[str]:
     return None
 
 
-def _classify_generic_source_role(target_type: str, hit_input_name: str) -> Optional[str]:
+def _classify_generic_source_role(target_type: str, hit_input_name: str) -> str | None:
     edge_role = _edge_role_from_input_name(hit_input_name)
     if edge_role:
         return edge_role
@@ -1737,7 +1738,7 @@ def _classify_generic_source_role(target_type: str, hit_input_name: str) -> Opti
     return None
 
 
-def _edge_role_from_input_name(hit_input_name: str) -> Optional[str]:
+def _edge_role_from_input_name(hit_input_name: str) -> str | None:
     if "first" in hit_input_name or "start" in hit_input_name:
         return "first_frame"
     if "last" in hit_input_name or "end" in hit_input_name:
@@ -1757,7 +1758,7 @@ def _classify_downstream_input_role(
     target_type: str,
     hit_input_name: str,
     subject_is_video: bool,
-) -> Tuple[Optional[str], bool]:
+) -> tuple[str | None, bool]:
     role = _classify_control_or_mask_role(target_type, hit_input_name, subject_is_video)
     if role:
         return role, False
@@ -1770,7 +1771,7 @@ def _classify_downstream_input_role(
     return None, True
 
 
-def _detect_input_role(nodes_by_id: Dict[str, Any], subject_node_id: str) -> str:
+def _detect_input_role(nodes_by_id: dict[str, Any], subject_node_id: str) -> str:
     """
     Determine how an input node is used (e.g. 'first_frame', 'last_frame', 'reference',
     'control_video', 'control_image', 'mask/inpaint', 'source', 'style', 'depth').
@@ -1789,13 +1790,13 @@ def _detect_input_role(nodes_by_id: Dict[str, Any], subject_node_id: str) -> str
 
 
 def _detect_roles_from_downstream(
-    nodes_by_id: Dict[str, Any],
+    nodes_by_id: dict[str, Any],
     subject_id: str,
     subject_is_video: bool,
-) -> Set[str]:
-    roles: Set[str] = set()
-    frontier: Set[str] = {subject_id}
-    visited: Set[str] = {subject_id}
+) -> set[str]:
+    roles: set[str] = set()
+    frontier: set[str] = {subject_id}
+    visited: set[str] = {subject_id}
     for _ in range(8):
         if not frontier:
             break
@@ -1812,13 +1813,13 @@ def _detect_roles_from_downstream(
 
 
 def _scan_downstream_frontier(
-    nodes_by_id: Dict[str, Any],
-    frontier: Set[str],
-    visited: Set[str],
+    nodes_by_id: dict[str, Any],
+    frontier: set[str],
+    visited: set[str],
     subject_is_video: bool,
-    roles: Set[str],
-) -> Set[str]:
-    next_frontier: Set[str] = set()
+    roles: set[str],
+) -> set[str]:
+    next_frontier: set[str] = set()
     for nid, node in nodes_by_id.items():
         nid_s = str(nid)
         if nid_s in visited or not isinstance(node, dict):
@@ -1838,7 +1839,7 @@ def _scan_downstream_frontier(
     return next_frontier
 
 
-def _loader_kind_from_node_type(node_type: str) -> Optional[str]:
+def _loader_kind_from_node_type(node_type: str) -> str | None:
     ntype_clean = node_type.replace(" ", "").replace("_", "").replace("-", "")
     is_image_load = _node_type_matches_any(ntype_clean, ("loadimage", "imageloader", "inputimage"))
     is_video_load = _node_type_matches_any(ntype_clean, ("loadvideo", "videoloader", "inputvideo"))
@@ -1854,18 +1855,18 @@ def _loader_kind_from_node_type(node_type: str) -> Optional[str]:
     return None
 
 
-def _node_type_matches_any(node_type_clean: str, needles: Tuple[str, ...]) -> bool:
+def _node_type_matches_any(node_type_clean: str, needles: tuple[str, ...]) -> bool:
     return any(needle in node_type_clean for needle in needles)
 
 
-def _extract_loader_filename(node: Dict[str, Any], ins: Dict[str, Any]) -> Optional[str]:
+def _extract_loader_filename(node: dict[str, Any], ins: dict[str, Any]) -> str | None:
     direct = _loader_filename_from_inputs(ins)
     if direct:
         return direct
     return _loader_filename_from_widgets(node.get("widgets_values"))
 
 
-def _loader_filename_from_inputs(ins: Dict[str, Any]) -> Optional[str]:
+def _loader_filename_from_inputs(ins: dict[str, Any]) -> str | None:
     for key in _INPUT_FILENAME_KEYS:
         value = ins.get(key)
         if isinstance(value, str) and value:
@@ -1873,7 +1874,7 @@ def _loader_filename_from_inputs(ins: Dict[str, Any]) -> Optional[str]:
     return None
 
 
-def _loader_filename_from_widgets(widgets: Any) -> Optional[str]:
+def _loader_filename_from_widgets(widgets: Any) -> str | None:
     if not isinstance(widgets, list):
         return None
     for widget_value in widgets:
@@ -1888,12 +1889,12 @@ def _looks_like_loader_filename(value: Any) -> bool:
     return ("." in value or "/" in value or "\\" in value) and len(value) > 4
 
 
-def _extract_input_files(nodes_by_id: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _extract_input_files(nodes_by_id: dict[str, Any]) -> list[dict[str, Any]]:
     """
     Extract input file references (LoadImage/LoadVideo/LoadAudio, etc) with usage context.
     """
-    inputs: List[Dict[str, Any]] = []
-    seen: Set[Tuple[str, str, str]] = set()
+    inputs: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str]] = set()
 
     for nid, node in nodes_by_id.items():
         if not isinstance(node, dict):
@@ -1929,10 +1930,10 @@ def _extract_input_files(nodes_by_id: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 
 def _collect_all_prompts_from_sinks(
-    nodes_by_id: Dict[str, Any],
-    sinks: List[str],
+    nodes_by_id: dict[str, Any],
+    sinks: list[str],
     max_sinks: int = 20
-) -> Tuple[List[str], List[str]]:
+) -> tuple[list[str], list[str]]:
     """
     Collect all distinct positive and negative prompts from multiple sinks.
 
@@ -1942,10 +1943,10 @@ def _collect_all_prompts_from_sinks(
     Returns:
         (all_positive_prompts, all_negative_prompts) - deduplicated lists
     """
-    all_positive: List[str] = []
-    all_negative: List[str] = []
-    seen_pos: Set[str] = set()
-    seen_neg: Set[str] = set()
+    all_positive: list[str] = []
+    all_negative: list[str] = []
+    seen_pos: set[str] = set()
+    seen_neg: set[str] = set()
 
     for sink_id in sinks[:max_sinks]:
         try:
@@ -1961,7 +1962,7 @@ def _collect_all_prompts_from_sinks(
     return all_positive, all_negative
 
 
-def _resolve_sink_sampler_node(nodes_by_id: Dict[str, Any], sink_id: str) -> Optional[Dict[str, Any]]:
+def _resolve_sink_sampler_node(nodes_by_id: dict[str, Any], sink_id: str) -> dict[str, Any] | None:
     sampler_id, _ = _select_primary_sampler(nodes_by_id, sink_id)
     if not sampler_id:
         sampler_id, _ = _select_advanced_sampler(nodes_by_id, sink_id)
@@ -1972,11 +1973,11 @@ def _resolve_sink_sampler_node(nodes_by_id: Dict[str, Any], sink_id: str) -> Opt
 
 
 def _collect_prompt_branch_from_input(
-    nodes_by_id: Dict[str, Any],
+    nodes_by_id: dict[str, Any],
     input_value: Any,
     branch: str,
-    seen: Set[str],
-    out: List[str],
+    seen: set[str],
+    out: list[str],
 ) -> None:
     if not _is_link(input_value):
         return
@@ -1995,7 +1996,7 @@ def _workflow_sink_suffix(sink_type: str) -> str:
     return "A" if is_audio_out else ("V" if is_video_out else "I")
 
 
-def _scan_graph_input_kinds(nodes_by_id: Dict[str, Any]) -> Tuple[bool, bool, bool]:
+def _scan_graph_input_kinds(nodes_by_id: dict[str, Any]) -> tuple[bool, bool, bool]:
     has_image_input = False
     has_video_input = False
     has_audio_input = False
@@ -2034,7 +2035,7 @@ def _is_audio_loader_node_type(ct: str) -> bool:
     return "loadaudio" in ct or "audioloader" in ct or ("load" in ct and "audio" in ct)
 
 
-def _vae_pixel_input_kind(nodes_by_id: Dict[str, Any], vae_node: Dict[str, Any]) -> Optional[str]:
+def _vae_pixel_input_kind(nodes_by_id: dict[str, Any], vae_node: dict[str, Any]) -> str | None:
     vae_ins = _inputs(vae_node)
     pixel_link = vae_ins.get("pixels") or vae_ins.get("image")
     if not _is_link(pixel_link):
@@ -2050,7 +2051,7 @@ def _vae_pixel_input_kind(nodes_by_id: Dict[str, Any], vae_node: Dict[str, Any])
     return None
 
 
-def _next_latent_upstream_id(nodes_by_id: Dict[str, Any], node: Dict[str, Any]) -> Optional[str]:
+def _next_latent_upstream_id(nodes_by_id: dict[str, Any], node: dict[str, Any]) -> str | None:
     for key in ("samples", "latent", "latent_image"):
         value = _inputs(node).get(key)
         if _is_link(value):
@@ -2059,11 +2060,11 @@ def _next_latent_upstream_id(nodes_by_id: Dict[str, Any], node: Dict[str, Any]) 
 
 
 def _trace_sampler_latent_input_kind(
-    nodes_by_id: Dict[str, Any],
-    sampler_id: Optional[str],
+    nodes_by_id: dict[str, Any],
+    sampler_id: str | None,
     has_image_input: bool,
     has_video_input: bool,
-) -> Tuple[bool, bool]:
+) -> tuple[bool, bool]:
     if not sampler_id:
         return has_image_input, has_video_input
     sampler = nodes_by_id.get(sampler_id)
@@ -2097,12 +2098,12 @@ def _trace_sampler_latent_input_kind(
 
 
 def _update_inputs_from_latent_node(
-    nodes_by_id: Dict[str, Any],
-    node: Dict[str, Any],
+    nodes_by_id: dict[str, Any],
+    node: dict[str, Any],
     *,
     has_image_input: bool,
     has_video_input: bool,
-) -> Tuple[bool, bool, bool]:
+) -> tuple[bool, bool, bool]:
     ct = _lower(_node_type(node))
     if "emptylatent" in ct:
         return has_image_input, has_video_input, True
@@ -2128,7 +2129,7 @@ def _workflow_input_prefix(has_image_input: bool, has_video_input: bool, has_aud
     return "T"
 
 
-def _determine_workflow_type(nodes_by_id: Dict[str, Any], sink_node_id: str, sampler_id: Optional[str]) -> str:
+def _determine_workflow_type(nodes_by_id: dict[str, Any], sink_node_id: str, sampler_id: str | None) -> str:
     """
     Classify: T2I/I2I/T2V/I2V/V2V and audio variants (T2A/A2A)
 
@@ -2150,7 +2151,7 @@ def _determine_workflow_type(nodes_by_id: Dict[str, Any], sink_node_id: str, sam
     return f"{prefix}2{suffix}"
 
 
-def parse_geninfo_from_prompt(prompt_graph: Any, workflow: Any = None) -> Result[Optional[Dict[str, Any]]]:
+def parse_geninfo_from_prompt(prompt_graph: Any, workflow: Any = None) -> Result[dict[str, Any] | None]:
     """
     Parse generation information from a ComfyUI prompt graph (dict of nodes).
     Returns Ok(None) when not enough information is available (do-not-lie).
@@ -2200,12 +2201,12 @@ def parse_geninfo_from_prompt(prompt_graph: Any, workflow: Any = None) -> Result
         return _geninfo_metadata_only_result(workflow_meta)
 
 
-def _geninfo_metadata_only_result(workflow_meta: Optional[Dict[str, Any]]) -> Result[Optional[Dict[str, Any]]]:
+def _geninfo_metadata_only_result(workflow_meta: dict[str, Any] | None) -> Result[dict[str, Any] | None]:
     if workflow_meta:
         return Result.Ok({"metadata": workflow_meta})
     return Result.Ok(None)
 
-def _resolve_graph_target(prompt_graph: Any, workflow: Any) -> Optional[Dict[str, Any]]:
+def _resolve_graph_target(prompt_graph: Any, workflow: Any) -> dict[str, Any] | None:
     if isinstance(prompt_graph, dict) and prompt_graph:
         return prompt_graph
     if isinstance(workflow, dict) and "nodes" in workflow:
@@ -2213,8 +2214,8 @@ def _resolve_graph_target(prompt_graph: Any, workflow: Any) -> Optional[Dict[str
     return None
 
 
-def _build_link_source_map(links: Any) -> Dict[int, Tuple[int, int]]:
-    link_to_source: Dict[int, Tuple[int, int]] = {}
+def _build_link_source_map(links: Any) -> dict[int, tuple[int, int]]:
+    link_to_source: dict[int, tuple[int, int]] = {}
     if not isinstance(links, list):
         return link_to_source
     for link in links:
@@ -2225,9 +2226,9 @@ def _build_link_source_map(links: Any) -> Dict[int, Tuple[int, int]]:
 
 
 def _convert_litegraph_node(
-    node: Dict[str, Any],
-    link_to_source: Dict[int, Tuple[int, int]],
-) -> Dict[str, Any]:
+    node: dict[str, Any],
+    link_to_source: dict[int, tuple[int, int]],
+) -> dict[str, Any]:
     converted = _init_litegraph_converted_node(node)
     raw_inputs = node.get("inputs", [])
     widgets_values = node.get("widgets_values", [])
@@ -2238,7 +2239,7 @@ def _convert_litegraph_node(
     return converted
 
 
-def _init_litegraph_converted_node(node: Dict[str, Any]) -> Dict[str, Any]:
+def _init_litegraph_converted_node(node: dict[str, Any]) -> dict[str, Any]:
     return {
         "class_type": node.get("type"),
         "type": node.get("type"),
@@ -2253,26 +2254,26 @@ def _init_litegraph_converted_node(node: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _populate_converted_inputs(
-    converted: Dict[str, Any],
+    converted: dict[str, Any],
     raw_inputs: Any,
-    widgets_list: List[Any],
-    link_to_source: Dict[int, Tuple[int, int]],
-) -> Dict[str, Any]:
+    widgets_list: list[Any],
+    link_to_source: dict[int, tuple[int, int]],
+) -> dict[str, Any]:
     converted_inputs = converted.get("inputs")
     if isinstance(raw_inputs, list) and isinstance(converted_inputs, dict):
         _populate_converted_inputs_from_list(converted_inputs, raw_inputs, widgets_list, link_to_source)
         return converted_inputs
     if isinstance(raw_inputs, dict):
-        converted["inputs"] = cast(Dict[str, Any], raw_inputs)
+        converted["inputs"] = cast(dict[str, Any], raw_inputs)
         converted_inputs = converted.get("inputs")
-    return cast(Dict[str, Any], converted_inputs or {})
+    return cast(dict[str, Any], converted_inputs or {})
 
 
 def _populate_converted_inputs_from_list(
-    converted_inputs: Dict[str, Any],
-    raw_inputs: List[Any],
-    widgets_list: List[Any],
-    link_to_source: Dict[int, Tuple[int, int]],
+    converted_inputs: dict[str, Any],
+    raw_inputs: list[Any],
+    widgets_list: list[Any],
+    link_to_source: dict[int, tuple[int, int]],
 ) -> None:
     widget_idx = 0
     for inp in raw_inputs:
@@ -2292,7 +2293,7 @@ def _populate_converted_inputs_from_list(
             widget_idx += 1
 
 
-def _merge_widget_dict_inputs(converted_inputs: Dict[str, Any], widgets_values: Any) -> None:
+def _merge_widget_dict_inputs(converted_inputs: dict[str, Any], widgets_values: Any) -> None:
     if not isinstance(widgets_values, dict):
         return
     for key, value in widgets_values.items():
@@ -2300,7 +2301,7 @@ def _merge_widget_dict_inputs(converted_inputs: Dict[str, Any], widgets_values: 
             converted_inputs[key] = value
 
 
-def _set_text_fallback_from_widgets(converted_inputs: Dict[str, Any], widgets_list: List[Any], node: Dict[str, Any]) -> None:
+def _set_text_fallback_from_widgets(converted_inputs: dict[str, Any], widgets_list: list[Any], node: dict[str, Any]) -> None:
     if not widgets_list or "text" in converted_inputs:
         return
     node_type_lower = _lower(node.get("type"))
@@ -2313,7 +2314,7 @@ def _set_text_fallback_from_widgets(converted_inputs: Dict[str, Any], widgets_li
             return
 
 
-def _normalize_graph_input(prompt_graph: Any, workflow: Any) -> Optional[Dict[str, Dict[str, Any]]]:
+def _normalize_graph_input(prompt_graph: Any, workflow: Any) -> dict[str, dict[str, Any]] | None:
     """Normalize prompt graph or workflow into nodes_by_id dict.
 
     Handles both ComfyUI prompt-graph format and LiteGraph workflow format.
@@ -2327,7 +2328,7 @@ def _normalize_graph_input(prompt_graph: Any, workflow: Any) -> Optional[Dict[st
     if not isinstance(target_graph, dict):
         return None
 
-    nodes_by_id: Dict[str, Dict[str, Any]] = {}
+    nodes_by_id: dict[str, dict[str, Any]] = {}
 
     if "nodes" in target_graph and isinstance(target_graph["nodes"], list):
         link_to_source = _build_link_source_map(target_graph.get("links", []))
@@ -2344,7 +2345,7 @@ def _normalize_graph_input(prompt_graph: Any, workflow: Any) -> Optional[Dict[st
     return nodes_by_id if nodes_by_id else None
 
 
-def _set_named_field(out: Dict[str, Any], key: str, value: Any, source: str, confidence: str = "high") -> None:
+def _set_named_field(out: dict[str, Any], key: str, value: Any, source: str, confidence: str = "high") -> None:
     if value is None:
         return
     name = str(value).strip()
@@ -2353,17 +2354,17 @@ def _set_named_field(out: Dict[str, Any], key: str, value: Any, source: str, con
     out[key] = {"name": name, "confidence": confidence, "source": source}
 
 
-def _set_value_field(out: Dict[str, Any], key: str, value: Any, source: str, confidence: str = "high") -> None:
+def _set_value_field(out: dict[str, Any], key: str, value: Any, source: str, confidence: str = "high") -> None:
     if value is None:
         return
     out[key] = {"value": value, "confidence": confidence, "source": source}
 
 
-def _find_tts_nodes(nodes_by_id: Dict[str, Any]) -> Tuple[Optional[str], Optional[Dict[str, Any]], Optional[str], Optional[Dict[str, Any]]]:
-    text_node_id: Optional[str] = None
-    text_node: Optional[Dict[str, Any]] = None
-    engine_node_id: Optional[str] = None
-    engine_node: Optional[Dict[str, Any]] = None
+def _find_tts_nodes(nodes_by_id: dict[str, Any]) -> tuple[str | None, dict[str, Any] | None, str | None, dict[str, Any] | None]:
+    text_node_id: str | None = None
+    text_node: dict[str, Any] | None = None
+    engine_node_id: str | None = None
+    engine_node: dict[str, Any] | None = None
 
     for nid, node in nodes_by_id.items():
         if not isinstance(node, dict):
@@ -2390,10 +2391,10 @@ def _is_tts_engine_node_type(ct: str) -> bool:
 
 
 def _apply_tts_text_node_fields(
-    out: Dict[str, Any],
-    nodes_by_id: Dict[str, Any],
+    out: dict[str, Any],
+    nodes_by_id: dict[str, Any],
     text_node_id: str,
-    text_node: Dict[str, Any],
+    text_node: dict[str, Any],
 ) -> None:
     tins = _inputs(text_node)
     source = f"{_node_type(text_node)}:{text_node_id}"
@@ -2404,7 +2405,7 @@ def _apply_tts_text_node_fields(
     _apply_tts_narrator_link_voice(out, nodes_by_id, tins)
 
 
-def _apply_tts_text_direct_fields(out: Dict[str, Any], tins: Dict[str, Any], source: str) -> None:
+def _apply_tts_text_direct_fields(out: dict[str, Any], tins: dict[str, Any], source: str) -> None:
     text_value = tins.get("text")
     if isinstance(text_value, str) and text_value.strip():
         out["positive"] = {"value": text_value.strip(), "confidence": "high", "source": source}
@@ -2422,7 +2423,7 @@ def _apply_tts_text_direct_fields(out: Dict[str, Any], tins: Dict[str, Any], sou
         _set_value_field(out, key, _scalar(tins.get(key)), source)
 
 
-def _apply_tts_text_widget_fallback(out: Dict[str, Any], widgets: Any, source: str) -> None:
+def _apply_tts_text_widget_fallback(out: dict[str, Any], widgets: Any, source: str) -> None:
     if not isinstance(widgets, list):
         return
     if "positive" not in out:
@@ -2439,7 +2440,7 @@ def _apply_tts_text_widget_fallback(out: Dict[str, Any], widgets: Any, source: s
             out["voice"] = {"name": voice_name, "confidence": "medium", "source": source}
 
 
-def _first_long_widget_text(widgets: List[Any]) -> Optional[str]:
+def _first_long_widget_text(widgets: list[Any]) -> str | None:
     for value in widgets:
         if not isinstance(value, str):
             continue
@@ -2449,7 +2450,7 @@ def _first_long_widget_text(widgets: List[Any]) -> Optional[str]:
     return None
 
 
-def _first_nonnegative_int_scalar(widgets: List[Any]) -> Optional[int]:
+def _first_nonnegative_int_scalar(widgets: list[Any]) -> int | None:
     for value in widgets:
         scalar_value = _scalar(value)
         if isinstance(scalar_value, int) and scalar_value >= 0:
@@ -2457,7 +2458,7 @@ def _first_nonnegative_int_scalar(widgets: List[Any]) -> Optional[int]:
     return None
 
 
-def _widget_voice_name(widgets: List[Any]) -> Optional[str]:
+def _widget_voice_name(widgets: list[Any]) -> str | None:
     if len(widgets) < 2:
         return None
     voice = widgets[1]
@@ -2466,7 +2467,7 @@ def _widget_voice_name(widgets: List[Any]) -> Optional[str]:
     return None
 
 
-def _apply_tts_narrator_link_voice(out: Dict[str, Any], nodes_by_id: Dict[str, Any], tins: Dict[str, Any]) -> None:
+def _apply_tts_narrator_link_voice(out: dict[str, Any], nodes_by_id: dict[str, Any], tins: dict[str, Any]) -> None:
     narrator_link = tins.get("opt_narrator")
     narrator_id = _walk_passthrough(nodes_by_id, narrator_link) if _is_link(narrator_link) else None
     narrator_node = nodes_by_id.get(narrator_id) if narrator_id else None
@@ -2482,14 +2483,14 @@ def _apply_tts_narrator_link_voice(out: Dict[str, Any], nodes_by_id: Dict[str, A
     }
 
 
-def _apply_tts_engine_node_fields(out: Dict[str, Any], engine_node_id: str, engine_node: Dict[str, Any]) -> None:
+def _apply_tts_engine_node_fields(out: dict[str, Any], engine_node_id: str, engine_node: dict[str, Any]) -> None:
     eins = _inputs(engine_node)
     source = f"{_node_type(engine_node)}:{engine_node_id}"
     _apply_tts_engine_direct_fields(out, eins, source)
     _apply_tts_engine_widget_fields(out, engine_node, source)
 
 
-def _apply_tts_engine_direct_fields(out: Dict[str, Any], eins: Dict[str, Any], source: str) -> None:
+def _apply_tts_engine_direct_fields(out: dict[str, Any], eins: dict[str, Any], source: str) -> None:
     model_name = _clean_model_id(eins.get("model_size") or eins.get("model") or eins.get("checkpoint") or eins.get("model_name"))
     if model_name:
         out["checkpoint"] = {"name": model_name, "confidence": "high", "source": source}
@@ -2512,7 +2513,7 @@ def _apply_tts_engine_direct_fields(out: Dict[str, Any], eins: Dict[str, Any], s
         _set_value_field(out, key, _scalar(eins.get(key)), source)
 
 
-def _apply_tts_engine_widget_fields(out: Dict[str, Any], engine_node: Dict[str, Any], source: str) -> None:
+def _apply_tts_engine_widget_fields(out: dict[str, Any], engine_node: dict[str, Any], source: str) -> None:
     ewidgets = engine_node.get("widgets_values")
     if not isinstance(ewidgets, list):
         return
@@ -2523,7 +2524,7 @@ def _apply_tts_engine_widget_fields(out: Dict[str, Any], engine_node: Dict[str, 
         _apply_tts_engine_qwen_widgets(out, ewidgets, source)
 
 
-def _apply_tts_engine_widget_checkpoint(out: Dict[str, Any], ewidgets: List[Any], source: str) -> None:
+def _apply_tts_engine_widget_checkpoint(out: dict[str, Any], ewidgets: list[Any], source: str) -> None:
     if "checkpoint" in out or not ewidgets:
         return
     guess_model = _clean_model_id(ewidgets[0])
@@ -2533,7 +2534,7 @@ def _apply_tts_engine_widget_checkpoint(out: Dict[str, Any], ewidgets: List[Any]
     out["models"] = {"checkpoint": out["checkpoint"]}
 
 
-def _apply_tts_engine_widget_language(out: Dict[str, Any], ewidgets: List[Any], ect: str, source: str) -> None:
+def _apply_tts_engine_widget_language(out: dict[str, Any], ewidgets: list[Any], ect: str, source: str) -> None:
     if "language" in out:
         return
     guess_lang = _scalar(ewidgets[3]) if "qwen3ttsengine" in ect and len(ewidgets) > 3 else None
@@ -2546,7 +2547,7 @@ def _apply_tts_engine_widget_language(out: Dict[str, Any], ewidgets: List[Any], 
         out["language"] = {"value": str(guess_lang).strip(), "confidence": "medium", "source": source}
 
 
-def _apply_tts_engine_qwen_widgets(out: Dict[str, Any], ewidgets: List[Any], source: str) -> None:
+def _apply_tts_engine_qwen_widgets(out: dict[str, Any], ewidgets: list[Any], source: str) -> None:
     qwen_widget_indices = {
         "device": 1,
         "voice_preset": 2,
@@ -2569,12 +2570,12 @@ def _apply_tts_engine_qwen_widgets(out: Dict[str, Any], ewidgets: List[Any], sou
         }
 
 
-def _extract_tts_geninfo_fallback(nodes_by_id: Dict[str, Any], workflow_meta: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+def _extract_tts_geninfo_fallback(nodes_by_id: dict[str, Any], workflow_meta: dict[str, Any] | None) -> dict[str, Any] | None:
     text_node_id, text_node, engine_node_id, engine_node = _find_tts_nodes(nodes_by_id)
     if not text_node and not engine_node:
         return None
 
-    out: Dict[str, Any] = {
+    out: dict[str, Any] = {
         "engine": {
             "parser_version": "geninfo-tts-v1",
             "type": "tts",
@@ -2594,9 +2595,9 @@ def _extract_tts_geninfo_fallback(nodes_by_id: Dict[str, Any], workflow_meta: Op
 
 
 def _apply_tts_text_node_fields_safe(
-    out: Dict[str, Any],
-    nodes_by_id: Dict[str, Any],
-    text_node_id: Optional[str],
+    out: dict[str, Any],
+    nodes_by_id: dict[str, Any],
+    text_node_id: str | None,
     text_node: Any,
 ) -> None:
     try:
@@ -2607,8 +2608,8 @@ def _apply_tts_text_node_fields_safe(
 
 
 def _apply_tts_engine_node_fields_safe(
-    out: Dict[str, Any],
-    engine_node_id: Optional[str],
+    out: dict[str, Any],
+    engine_node_id: str | None,
     engine_node: Any,
 ) -> None:
     try:
@@ -2618,13 +2619,13 @@ def _apply_tts_engine_node_fields_safe(
         pass
 
 
-def _apply_tts_input_files(out: Dict[str, Any], nodes_by_id: Dict[str, Any]) -> None:
+def _apply_tts_input_files(out: dict[str, Any], nodes_by_id: dict[str, Any]) -> None:
     input_files = _extract_input_files(nodes_by_id)
     if input_files:
         out["inputs"] = input_files
 
 
-def _find_special_sampler_id(nodes_by_id: Dict[str, Any]) -> Optional[str]:
+def _find_special_sampler_id(nodes_by_id: dict[str, Any]) -> str | None:
     for nid, node in nodes_by_id.items():
         ct = _lower(_node_type(node))
         if "marigold" in ct:
@@ -2634,7 +2635,7 @@ def _find_special_sampler_id(nodes_by_id: Dict[str, Any]) -> Optional[str]:
     return None
 
 
-def _select_sampler_context(nodes_by_id: Dict[str, Any], sink_id: str) -> Tuple[Optional[str], str, str]:
+def _select_sampler_context(nodes_by_id: dict[str, Any], sink_id: str) -> tuple[str | None, str, str]:
     sampler_id, sampler_conf = _select_primary_sampler(nodes_by_id, sink_id)
     sampler_mode = "primary"
 
@@ -2658,12 +2659,12 @@ def _select_sampler_context(nodes_by_id: Dict[str, Any], sink_id: str) -> Tuple[
     return sampler_id, sampler_conf, sampler_mode
 
 
-def _build_no_sampler_result(nodes_by_id: Dict[str, Any], workflow_meta: Optional[Dict[str, Any]]) -> Result:
+def _build_no_sampler_result(nodes_by_id: dict[str, Any], workflow_meta: dict[str, Any] | None) -> Result:
     tts_fallback = _extract_tts_geninfo_fallback(nodes_by_id, workflow_meta)
     if tts_fallback:
         return Result.Ok(tts_fallback)
 
-    out_fallback: Dict[str, Any] = {}
+    out_fallback: dict[str, Any] = {}
     if workflow_meta:
         out_fallback["metadata"] = workflow_meta
 
@@ -2676,7 +2677,7 @@ def _build_no_sampler_result(nodes_by_id: Dict[str, Any], workflow_meta: Optiona
     return Result.Ok(None)
 
 
-def _source_from_items(items: List[Tuple[str, str]]) -> Optional[Tuple[str, str]]:
+def _source_from_items(items: list[tuple[str, str]]) -> tuple[str, str] | None:
     if not items:
         return None
     text = "\n".join([t for t, _ in items]).strip()
@@ -2687,7 +2688,7 @@ def _source_from_items(items: List[Tuple[str, str]]) -> Optional[Tuple[str, str]
     return text, source
 
 
-def _extract_prompt_from_conditioning(nodes_by_id: Dict[str, Any], link: Any, branch: Optional[str] = None) -> Optional[Tuple[str, str]]:
+def _extract_prompt_from_conditioning(nodes_by_id: dict[str, Any], link: Any, branch: str | None = None) -> tuple[str, str] | None:
     if not _is_link(link):
         return None
     items = _collect_texts_from_conditioning(nodes_by_id, link, branch=branch)
@@ -2695,9 +2696,9 @@ def _extract_prompt_from_conditioning(nodes_by_id: Dict[str, Any], link: Any, br
 
 
 def _apply_advanced_guider_prompt_trace(
-    nodes_by_id: Dict[str, Any],
+    nodes_by_id: dict[str, Any],
     guider_link: Any,
-    trace: Dict[str, Any],
+    trace: dict[str, Any],
 ) -> None:
     guider_id = _walk_passthrough(nodes_by_id, guider_link)
     guider_node = nodes_by_id.get(guider_id) if guider_id else None
@@ -2722,7 +2723,7 @@ def _apply_advanced_guider_prompt_trace(
         trace["guider_model_link"] = gins.get("model")
 
 
-def _apply_guider_conditioning_prompt_hints(nodes_by_id: Dict[str, Any], gins: Dict[str, Any], trace: Dict[str, Any]) -> None:
+def _apply_guider_conditioning_prompt_hints(nodes_by_id: dict[str, Any], gins: dict[str, Any], trace: dict[str, Any]) -> None:
     conditioning = gins.get("conditioning")
     if not _is_link(conditioning):
         return
@@ -2732,7 +2733,7 @@ def _apply_guider_conditioning_prompt_hints(nodes_by_id: Dict[str, Any], gins: D
         trace["pos_val"] = extracted
 
 
-def _apply_guider_positive_prompt_hints(nodes_by_id: Dict[str, Any], gins: Dict[str, Any], trace: Dict[str, Any]) -> None:
+def _apply_guider_positive_prompt_hints(nodes_by_id: dict[str, Any], gins: dict[str, Any], trace: dict[str, Any]) -> None:
     positive = gins.get("positive")
     if not _is_link(positive):
         return
@@ -2744,7 +2745,7 @@ def _apply_guider_positive_prompt_hints(nodes_by_id: Dict[str, Any], gins: Dict[
         trace["pos_val"] = extracted
 
 
-def _apply_guider_negative_prompt_hints(nodes_by_id: Dict[str, Any], gins: Dict[str, Any], trace: Dict[str, Any]) -> None:
+def _apply_guider_negative_prompt_hints(nodes_by_id: dict[str, Any], gins: dict[str, Any], trace: dict[str, Any]) -> None:
     negative = gins.get("negative")
     if trace.get("neg_val") or not _is_link(negative):
         return
@@ -2754,13 +2755,13 @@ def _apply_guider_negative_prompt_hints(nodes_by_id: Dict[str, Any], gins: Dict[
 
 
 def _extract_prompt_trace(
-    nodes_by_id: Dict[str, Any],
-    sampler_node: Dict[str, Any],
+    nodes_by_id: dict[str, Any],
+    sampler_node: dict[str, Any],
     sampler_id: str,
-    ins: Dict[str, Any],
+    ins: dict[str, Any],
     advanced: bool,
-) -> Dict[str, Any]:
-    trace: Dict[str, Any] = {
+) -> dict[str, Any]:
+    trace: dict[str, Any] = {
         "pos_val": None,
         "neg_val": None,
         "conditioning_link": None,
@@ -2781,10 +2782,10 @@ def _extract_prompt_trace(
 
 
 def _apply_direct_sampler_prompt_hints(
-    trace: Dict[str, Any],
-    sampler_node: Dict[str, Any],
+    trace: dict[str, Any],
+    sampler_node: dict[str, Any],
     sampler_id: str,
-    ins: Dict[str, Any],
+    ins: dict[str, Any],
     sampler_ct: str,
 ) -> None:
     if "instruction" in sampler_ct and "qwen" in sampler_ct:
@@ -2797,7 +2798,7 @@ def _apply_direct_sampler_prompt_hints(
             trace["pos_val"] = (prompt_value.strip(), f"{_node_type(sampler_node)}:{sampler_id}:prompt")
 
 
-def _apply_embed_prompt_hints(trace: Dict[str, Any], nodes_by_id: Dict[str, Any], ins: Dict[str, Any]) -> None:
+def _apply_embed_prompt_hints(trace: dict[str, Any], nodes_by_id: dict[str, Any], ins: dict[str, Any]) -> None:
     if not (_is_link(ins.get("text_embeds")) or _is_link(ins.get("hyvid_embeds"))):
         return
     embeds_link = ins.get("text_embeds") or ins.get("hyvid_embeds")
@@ -2806,7 +2807,7 @@ def _apply_embed_prompt_hints(trace: Dict[str, Any], nodes_by_id: Dict[str, Any]
     trace["neg_val"] = trace["neg_val"] or neg_embed
 
 
-def _apply_conditioning_prompt_hints(trace: Dict[str, Any], nodes_by_id: Dict[str, Any], ins: Dict[str, Any]) -> None:
+def _apply_conditioning_prompt_hints(trace: dict[str, Any], nodes_by_id: dict[str, Any], ins: dict[str, Any]) -> None:
     if _is_link(ins.get("positive")):
         extracted = _extract_prompt_from_conditioning(nodes_by_id, ins.get("positive"), branch="positive")
         if extracted:
@@ -2818,7 +2819,7 @@ def _apply_conditioning_prompt_hints(trace: Dict[str, Any], nodes_by_id: Dict[st
             trace["neg_val"] = extracted
 
 
-def _apply_prompt_text_fallback(trace: Dict[str, Any], sampler_node: Dict[str, Any], sampler_id: str, ins: Dict[str, Any]) -> None:
+def _apply_prompt_text_fallback(trace: dict[str, Any], sampler_node: dict[str, Any], sampler_id: str, ins: dict[str, Any]) -> None:
     if not trace.get("pos_val"):
         trace["pos_val"] = _first_prompt_field(
             ins,
@@ -2833,7 +2834,7 @@ def _apply_prompt_text_fallback(trace: Dict[str, Any], sampler_node: Dict[str, A
         )
 
 
-def _first_prompt_field(ins: Dict[str, Any], keys: Tuple[str, ...], source_prefix: str) -> Optional[Tuple[str, str]]:
+def _first_prompt_field(ins: dict[str, Any], keys: tuple[str, ...], source_prefix: str) -> tuple[str, str] | None:
     for key in keys:
         value = ins.get(key)
         if _looks_like_prompt_string(value):
@@ -2841,7 +2842,7 @@ def _first_prompt_field(ins: Dict[str, Any], keys: Tuple[str, ...], source_prefi
     return None
 
 
-def _init_sampler_values(nodes_by_id: Dict[str, Any], sampler_node: Dict[str, Any], ins: Dict[str, Any]) -> Dict[str, Any]:
+def _init_sampler_values(nodes_by_id: dict[str, Any], sampler_node: dict[str, Any], ins: dict[str, Any]) -> dict[str, Any]:
     sampler_name = _sampler_name_from_inputs(sampler_node, ins)
     seed_val = _seed_value_from_inputs(nodes_by_id, ins)
     return {
@@ -2854,7 +2855,7 @@ def _init_sampler_values(nodes_by_id: Dict[str, Any], sampler_node: Dict[str, An
     }
 
 
-def _sampler_name_from_inputs(sampler_node: Dict[str, Any], ins: Dict[str, Any]) -> Any:
+def _sampler_name_from_inputs(sampler_node: dict[str, Any], ins: dict[str, Any]) -> Any:
     sampler_name = _scalar(ins.get("sampler_name")) or _scalar(ins.get("sampler"))
     if sampler_name:
         return sampler_name
@@ -2863,7 +2864,7 @@ def _sampler_name_from_inputs(sampler_node: Dict[str, Any], ins: Dict[str, Any])
     return None
 
 
-def _seed_value_from_inputs(nodes_by_id: Dict[str, Any], ins: Dict[str, Any]) -> Any:
+def _seed_value_from_inputs(nodes_by_id: dict[str, Any], ins: dict[str, Any]) -> Any:
     seed_val = _scalar(ins.get("seed"))
     if seed_val is not None:
         return seed_val
@@ -2872,7 +2873,7 @@ def _seed_value_from_inputs(nodes_by_id: Dict[str, Any], ins: Dict[str, Any]) ->
     return None
 
 
-def _cfg_value_from_inputs(ins: Dict[str, Any]) -> Any:
+def _cfg_value_from_inputs(ins: dict[str, Any]) -> Any:
     for key in ("cfg", "cfg_scale", "guidance", "guidance_scale", "embedded_guidance_scale"):
         value = _scalar(ins.get(key))
         if value is not None:
@@ -2880,7 +2881,7 @@ def _cfg_value_from_inputs(ins: Dict[str, Any]) -> Any:
     return None
 
 
-def _apply_widget_sampler_values(values: Dict[str, Any], sampler_node: Dict[str, Any]) -> None:
+def _apply_widget_sampler_values(values: dict[str, Any], sampler_node: dict[str, Any]) -> None:
     if not any(values.get(key) is None for key in ("sampler_name", "scheduler", "steps", "cfg", "denoise", "seed_val")):
         return
     ks_w = _extract_ksampler_widget_params(sampler_node)
@@ -2898,7 +2899,7 @@ def _apply_widget_sampler_values(values: Dict[str, Any], sampler_node: Dict[str,
         values["seed_val"] = _scalar(ks_w.get("seed"))
 
 
-def _resolve_model_link_for_chain(ins: Dict[str, Any], trace: Dict[str, Any]) -> Any:
+def _resolve_model_link_for_chain(ins: dict[str, Any], trace: dict[str, Any]) -> Any:
     model_link_for_chain = ins.get("model") if _is_link(ins.get("model")) else None
     if model_link_for_chain is None and _is_link(trace.get("guider_model_link")):
         model_link_for_chain = trace.get("guider_model_link")
@@ -2906,12 +2907,12 @@ def _resolve_model_link_for_chain(ins: Dict[str, Any], trace: Dict[str, Any]) ->
 
 
 def _apply_advanced_sampler_values(
-    nodes_by_id: Dict[str, Any],
-    ins: Dict[str, Any],
-    values: Dict[str, Any],
-    trace: Dict[str, Any],
-    field_sources: Dict[str, str],
-    field_confidence: Dict[str, str],
+    nodes_by_id: dict[str, Any],
+    ins: dict[str, Any],
+    values: dict[str, Any],
+    trace: dict[str, Any],
+    field_sources: dict[str, str],
+    field_confidence: dict[str, str],
     model_link_for_chain: Any,
 ) -> Any:
     _apply_advanced_sampler_name(nodes_by_id, ins, values)
@@ -2923,7 +2924,7 @@ def _apply_advanced_sampler_values(
     return model_link_for_chain
 
 
-def _apply_advanced_sampler_name(nodes_by_id: Dict[str, Any], ins: Dict[str, Any], values: Dict[str, Any]) -> None:
+def _apply_advanced_sampler_name(nodes_by_id: dict[str, Any], ins: dict[str, Any], values: dict[str, Any]) -> None:
     if not _is_link(ins.get("sampler")) or values.get("sampler_name"):
         return
     traced_sampler = _trace_sampler_name(nodes_by_id, ins.get("sampler"))
@@ -2932,11 +2933,11 @@ def _apply_advanced_sampler_name(nodes_by_id: Dict[str, Any], ins: Dict[str, Any
 
 
 def _apply_advanced_sigmas(
-    nodes_by_id: Dict[str, Any],
-    ins: Dict[str, Any],
-    values: Dict[str, Any],
-    field_sources: Dict[str, str],
-    field_confidence: Dict[str, str],
+    nodes_by_id: dict[str, Any],
+    ins: dict[str, Any],
+    values: dict[str, Any],
+    field_sources: dict[str, str],
+    field_confidence: dict[str, str],
     model_link_for_chain: Any,
 ) -> Any:
     if not _is_link(ins.get("sigmas")):
@@ -2959,15 +2960,15 @@ def _apply_advanced_sigmas(
 
 
 def _assign_advanced_sigma_values(
-    values: Dict[str, Any],
-    field_sources: Dict[str, str],
-    field_confidence: Dict[str, str],
+    values: dict[str, Any],
+    field_sources: dict[str, str],
+    field_confidence: dict[str, str],
     *,
     steps: Any,
     scheduler: Any,
     denoise: Any,
-    source_name: Optional[str],
-    steps_confidence: Optional[str],
+    source_name: str | None,
+    steps_confidence: str | None,
 ) -> None:
     steps_assigned = _assign_advanced_sigma_field(values, field_sources, "steps", steps, source_name)
     _assign_advanced_sigma_field(values, field_sources, "scheduler", scheduler, source_name)
@@ -2977,7 +2978,7 @@ def _assign_advanced_sigma_values(
 
 
 def _assign_advanced_sigma_field(
-    values: Dict[str, Any], field_sources: Dict[str, str], key: str, value: Any, source_name: Optional[str]
+    values: dict[str, Any], field_sources: dict[str, str], key: str, value: Any, source_name: str | None
 ) -> bool:
     if value is None or values.get(key) is not None:
         return False
@@ -2988,10 +2989,10 @@ def _assign_advanced_sigma_field(
 
 
 def _apply_advanced_noise_seed(
-    nodes_by_id: Dict[str, Any],
-    ins: Dict[str, Any],
-    values: Dict[str, Any],
-    field_sources: Dict[str, str],
+    nodes_by_id: dict[str, Any],
+    ins: dict[str, Any],
+    values: dict[str, Any],
+    field_sources: dict[str, str],
 ) -> None:
     if not _is_link(ins.get("noise")) or values.get("seed_val") is not None:
         return
@@ -3002,10 +3003,10 @@ def _apply_advanced_noise_seed(
 
 
 def _apply_advanced_cfg_from_conditioning(
-    nodes_by_id: Dict[str, Any],
-    trace: Dict[str, Any],
-    values: Dict[str, Any],
-    field_sources: Dict[str, str],
+    nodes_by_id: dict[str, Any],
+    trace: dict[str, Any],
+    values: dict[str, Any],
+    field_sources: dict[str, str],
 ) -> None:
     if not trace.get("conditioning_link") or values.get("cfg") is not None:
         return
@@ -3015,7 +3016,7 @@ def _apply_advanced_cfg_from_conditioning(
         field_sources["cfg"] = traced_cfg[1]
 
 
-def _apply_guider_cfg_fallback(values: Dict[str, Any], trace: Dict[str, Any], field_sources: Dict[str, str]) -> None:
+def _apply_guider_cfg_fallback(values: dict[str, Any], trace: dict[str, Any], field_sources: dict[str, str]) -> None:
     if values.get("cfg") is not None:
         return
     if trace.get("guider_cfg_value") is None:
@@ -3027,17 +3028,17 @@ def _apply_guider_cfg_fallback(values: Dict[str, Any], trace: Dict[str, Any], fi
 
 
 def _extract_sampler_values(
-    nodes_by_id: Dict[str, Any],
-    sampler_node: Dict[str, Any],
+    nodes_by_id: dict[str, Any],
+    sampler_node: dict[str, Any],
     sampler_id: str,
-    ins: Dict[str, Any],
+    ins: dict[str, Any],
     advanced: bool,
     confidence: str,
-    trace: Dict[str, Any],
-) -> Dict[str, Any]:
+    trace: dict[str, Any],
+) -> dict[str, Any]:
     _ = sampler_id, confidence
-    field_sources: Dict[str, str] = {}
-    field_confidence: Dict[str, str] = {}
+    field_sources: dict[str, str] = {}
+    field_confidence: dict[str, str] = {}
 
     values = _init_sampler_values(nodes_by_id, sampler_node, ins)
     _apply_widget_sampler_values(values, sampler_node)
@@ -3064,13 +3065,13 @@ def _extract_sampler_values(
 
 
 def _collect_model_related_fields(
-    nodes_by_id: Dict[str, Any],
-    ins: Dict[str, Any],
+    nodes_by_id: dict[str, Any],
+    ins: dict[str, Any],
     confidence: str,
-    sink_start_id: Optional[str],
+    sink_start_id: str | None,
     conditioning_link: Any,
     model_link_for_chain: Any,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     models, loras = _trace_models_and_loras(nodes_by_id, model_link_for_chain, confidence)
     _ensure_upscaler_model(nodes_by_id, models)
     size = _trace_size(nodes_by_id, ins.get("latent_image"), confidence) if _is_link(ins.get("latent_image")) else None
@@ -3089,16 +3090,16 @@ def _collect_model_related_fields(
 
 
 def _trace_models_and_loras(
-    nodes_by_id: Dict[str, Any],
+    nodes_by_id: dict[str, Any],
     model_link_for_chain: Any,
     confidence: str,
-) -> Tuple[Dict[str, Dict[str, Any]], List[Dict[str, Any]]]:
+) -> tuple[dict[str, dict[str, Any]], list[dict[str, Any]]]:
     if model_link_for_chain and _is_link(model_link_for_chain):
         return _trace_model_chain(nodes_by_id, model_link_for_chain, confidence)
     return {}, []
 
 
-def _ensure_upscaler_model(nodes_by_id: Dict[str, Any], models: Dict[str, Dict[str, Any]]) -> None:
+def _ensure_upscaler_model(nodes_by_id: dict[str, Any], models: dict[str, dict[str, Any]]) -> None:
     if "upscaler" in models:
         return
     try:
@@ -3112,12 +3113,12 @@ def _ensure_upscaler_model(nodes_by_id: Dict[str, Any], models: Dict[str, Dict[s
         return
 
 
-def _upscaler_model_entry(node: Any, node_id: Any) -> Optional[Dict[str, Any]]:
+def _upscaler_model_entry(node: Any, node_id: Any) -> dict[str, Any] | None:
     if not isinstance(node, dict):
         return None
     if not _is_upscaler_loader_type(_lower(_node_type(node))):
         return None
-    name: Optional[str] = _clean_model_id(_upscaler_model_name(_inputs(node)))
+    name: str | None = _clean_model_id(_upscaler_model_name(_inputs(node)))
     if not name:
         return None
     return {"name": name, "confidence": "medium", "source": f"{_node_type(node)}:{node_id}"}
@@ -3127,11 +3128,11 @@ def _is_upscaler_loader_type(node_type: str) -> bool:
     return "upscalemodelloader" in node_type or "upscale_model" in node_type or "latentupscale" in node_type
 
 
-def _upscaler_model_name(ins: Dict[str, Any]) -> Any:
+def _upscaler_model_name(ins: dict[str, Any]) -> Any:
     return ins.get("model_name") or ins.get("upscale_model") or ins.get("upscale_model_name")
 
 
-def _trace_clip_skip_from_conditioning(nodes_by_id: Dict[str, Any], conditioning_link: Any, confidence: str) -> Optional[Dict[str, Any]]:
+def _trace_clip_skip_from_conditioning(nodes_by_id: dict[str, Any], conditioning_link: Any, confidence: str) -> dict[str, Any] | None:
     if not conditioning_link or not _is_link(conditioning_link):
         return None
     encoders = _collect_text_encoder_nodes_from_conditioning(nodes_by_id, conditioning_link, branch="positive")
@@ -3142,11 +3143,11 @@ def _trace_clip_skip_from_conditioning(nodes_by_id: Dict[str, Any], conditioning
     return _trace_clip_skip(nodes_by_id, _inputs(pos_node).get("clip"), confidence)
 
 
-def _merge_models_payload(models: Dict[str, Dict[str, Any]], clip: Optional[Dict[str, Any]], vae: Optional[Dict[str, Any]]) -> Optional[Dict[str, Dict[str, Any]]]:
+def _merge_models_payload(models: dict[str, dict[str, Any]], clip: dict[str, Any] | None, vae: dict[str, Any] | None) -> dict[str, dict[str, Any]] | None:
     if not models and not clip and not vae:
         return None
 
-    merged: Dict[str, Dict[str, Any]] = {}
+    merged: dict[str, dict[str, Any]] = {}
     for key in ("checkpoint", "unet", "diffusion", "upscaler"):
         if models.get(key):
             merged[key] = models[key]
@@ -3158,21 +3159,21 @@ def _merge_models_payload(models: Dict[str, Dict[str, Any]], clip: Optional[Dict
 
 
 def _build_geninfo_payload(
-    nodes_by_id: Dict[str, Any],
-    sinks: List[str],
+    nodes_by_id: dict[str, Any],
+    sinks: list[str],
     sink_id: str,
     sampler_id: str,
     sampler_mode: str,
     sampler_source: str,
     confidence: str,
-    workflow_meta: Optional[Dict[str, Any]],
-    trace: Dict[str, Any],
-    sampler_values: Dict[str, Any],
-    model_related: Dict[str, Any],
-) -> Dict[str, Any]:
+    workflow_meta: dict[str, Any] | None,
+    trace: dict[str, Any],
+    sampler_values: dict[str, Any],
+    model_related: dict[str, Any],
+) -> dict[str, Any]:
     wf_type = _determine_workflow_type(nodes_by_id, sink_id, sampler_id)
 
-    out: Dict[str, Any] = {
+    out: dict[str, Any] = {
         "engine": {
             "parser_version": "geninfo-v1",
             "sink": str(_node_type(nodes_by_id.get(sink_id, {}))),
@@ -3194,14 +3195,14 @@ def _build_geninfo_payload(
     return out
 
 
-def _apply_trace_prompt_fields(out: Dict[str, Any], trace: Dict[str, Any], confidence: str) -> None:
+def _apply_trace_prompt_fields(out: dict[str, Any], trace: dict[str, Any], confidence: str) -> None:
     if trace.get("pos_val"):
         out["positive"] = {"value": trace["pos_val"][0], "confidence": confidence, "source": trace["pos_val"][1]}
     if trace.get("neg_val"):
         out["negative"] = {"value": trace["neg_val"][0], "confidence": confidence, "source": trace["neg_val"][1]}
 
 
-def _apply_lyrics_fields(out: Dict[str, Any], nodes_by_id: Dict[str, Any], sampler_source: str) -> None:
+def _apply_lyrics_fields(out: dict[str, Any], nodes_by_id: dict[str, Any], sampler_source: str) -> None:
     lyrics_text, lyrics_strength, lyrics_source = _extract_lyrics_from_prompt_nodes(nodes_by_id)
     if lyrics_text:
         out["lyrics"] = {"value": lyrics_text, "confidence": "high", "source": lyrics_source or sampler_source}
@@ -3211,7 +3212,7 @@ def _apply_lyrics_fields(out: Dict[str, Any], nodes_by_id: Dict[str, Any], sampl
             out["lyrics_strength"] = lyric_field
 
 
-def _apply_model_fields(out: Dict[str, Any], model_related: Dict[str, Any]) -> None:
+def _apply_model_fields(out: dict[str, Any], model_related: dict[str, Any]) -> None:
     models = model_related.get("models") or {}
     loras = model_related.get("loras") or []
     clip = model_related.get("clip")
@@ -3225,7 +3226,7 @@ def _apply_model_fields(out: Dict[str, Any], model_related: Dict[str, Any]) -> N
         out["models"] = merged_models
 
 
-def _apply_preferred_checkpoint_field(out: Dict[str, Any], models: Dict[str, Any]) -> None:
+def _apply_preferred_checkpoint_field(out: dict[str, Any], models: dict[str, Any]) -> None:
     if not models:
         return
     preferred = models.get("checkpoint") or models.get("unet") or models.get("diffusion")
@@ -3233,12 +3234,12 @@ def _apply_preferred_checkpoint_field(out: Dict[str, Any], models: Dict[str, Any
         out["checkpoint"] = preferred
 
 
-def _set_if_present(out: Dict[str, Any], key: str, value: Any) -> None:
+def _set_if_present(out: dict[str, Any], key: str, value: Any) -> None:
     if value:
         out[key] = value
 
 
-def _apply_sampler_fields(out: Dict[str, Any], sampler_values: Dict[str, Any], confidence: str, sampler_source: str) -> None:
+def _apply_sampler_fields(out: dict[str, Any], sampler_values: dict[str, Any], confidence: str, sampler_source: str) -> None:
     sampler_name_field = _field_name(sampler_values.get("sampler_name"), confidence, sampler_source)
     if sampler_name_field:
         out["sampler"] = sampler_name_field
@@ -3256,20 +3257,20 @@ def _apply_sampler_fields(out: Dict[str, Any], sampler_values: Dict[str, Any], c
             out[key] = field_value
 
 
-def _apply_optional_model_metrics(out: Dict[str, Any], model_related: Dict[str, Any]) -> None:
+def _apply_optional_model_metrics(out: dict[str, Any], model_related: dict[str, Any]) -> None:
     if model_related.get("size"):
         out["size"] = model_related["size"]
     if model_related.get("clip_skip"):
         out["clip_skip"] = model_related["clip_skip"]
 
 
-def _apply_input_files_field(out: Dict[str, Any], nodes_by_id: Dict[str, Any]) -> None:
+def _apply_input_files_field(out: dict[str, Any], nodes_by_id: dict[str, Any]) -> None:
     input_files = _extract_input_files(nodes_by_id)
     if input_files:
         out["inputs"] = input_files
 
 
-def _apply_multi_sink_prompt_fields(out: Dict[str, Any], nodes_by_id: Dict[str, Any], sinks: List[str]) -> None:
+def _apply_multi_sink_prompt_fields(out: dict[str, Any], nodes_by_id: dict[str, Any], sinks: list[str]) -> None:
     if len(sinks) <= 1:
         return
     all_pos, all_neg = _collect_all_prompts_from_sinks(nodes_by_id, sinks)
@@ -3279,7 +3280,7 @@ def _apply_multi_sink_prompt_fields(out: Dict[str, Any], nodes_by_id: Dict[str, 
         out["all_negative_prompts"] = all_neg
 
 
-def _extract_geninfo(nodes_by_id: Dict[str, Any], sinks: List[str], workflow_meta: Optional[Dict]) -> Result:
+def _extract_geninfo(nodes_by_id: dict[str, Any], sinks: list[str], workflow_meta: dict | None) -> Result:
     sink_id = sinks[0]
     sampler_id, sampler_conf, sampler_mode = _select_sampler_context(nodes_by_id, sink_id)
 

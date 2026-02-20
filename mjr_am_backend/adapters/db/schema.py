@@ -3,7 +3,6 @@ Database schema and migrations.
 """
 import hashlib
 import re
-from typing import List, Tuple
 
 from ...shared import Result, get_logger, log_success
 
@@ -199,7 +198,7 @@ def _is_safe_identifier(value: str) -> bool:
     return bool(value and isinstance(value, str) and _SAFE_IDENT_RE.match(value))
 
 
-async def _get_table_columns(db, table_name: str) -> Result[List[str]]:
+async def _get_table_columns(db, table_name: str) -> Result[list[str]]:
     if not _is_safe_identifier(table_name):
         return Result.Err("INVALID_INPUT", f"Invalid table name: {table_name}")
     result = await db.aquery(f"PRAGMA table_info('{table_name}')")
@@ -305,7 +304,7 @@ async def _sqlite_object_sql(db, obj_type: str, name: str) -> str:
     return ""
 
 
-async def _asset_metadata_fts_needs_repair(db) -> Tuple[bool, bool]:
+async def _asset_metadata_fts_needs_repair(db) -> tuple[bool, bool]:
     ddl_lower = (await _sqlite_object_sql(db, "table", "asset_metadata_fts")).lower()
     trig_lower = (await _sqlite_object_sql(db, "trigger", "asset_metadata_fts_update")).lower()
     needs_table_rebuild = ("content_rowid" in ddl_lower and "asset_id" in ddl_lower)

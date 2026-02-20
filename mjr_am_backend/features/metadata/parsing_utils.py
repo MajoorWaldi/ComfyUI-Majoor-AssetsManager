@@ -1,12 +1,12 @@
 """
 Shared parsing utilities for metadata extraction (used by both generic extractors.py and native_extractors.py).
 """
-import json
 import base64
+import json
+import logging
 import re
 import zlib
-import logging
-from typing import Optional, Dict, Any
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ _BASE64_RE = re.compile(r"^[A-Za-z0-9+/=\s]+$")
 _AUTO1111_KV_RE = re.compile(r"(?:^|,\s*)([^:,]+):\s*")
 
 
-def _safe_zlib_decompress(data: bytes, max_size: int = MAX_DECOMPRESSED_SIZE) -> Optional[bytes]:
+def _safe_zlib_decompress(data: bytes, max_size: int = MAX_DECOMPRESSED_SIZE) -> bytes | None:
     """
     Safely decompress zlib data with size limit.
     """
@@ -50,7 +50,7 @@ def _safe_zlib_decompress(data: bytes, max_size: int = MAX_DECOMPRESSED_SIZE) ->
         return None
 
 
-def try_parse_json_text(text: str) -> Optional[Dict[str, Any]]:
+def try_parse_json_text(text: str) -> dict[str, Any] | None:
     """Parse JSON embedded in text, handling standard ComfyUI prefixes."""
     if not isinstance(text, str):
         return None
@@ -93,7 +93,7 @@ def _strip_known_json_prefix(raw: str) -> str:
     return raw
 
 
-def _loads_maybe_dict(text: str) -> Optional[Dict[str, Any]]:
+def _loads_maybe_dict(text: str) -> dict[str, Any] | None:
     try:
         parsed = json.loads(text)
     except Exception:
@@ -109,7 +109,7 @@ def _loads_maybe_dict(text: str) -> Optional[Dict[str, Any]]:
     return None
 
 
-def _decode_base64_candidate(raw: str) -> Optional[bytes]:
+def _decode_base64_candidate(raw: str) -> bytes | None:
     if len(raw) < MIN_BASE64_CANDIDATE_LEN or len(raw) > (MAX_METADATA_JSON_SIZE * 2):
         return None
     if not _BASE64_RE.match(raw):
@@ -127,14 +127,14 @@ def _maybe_decompress_zlib(decoded: bytes) -> bytes:
     return decompressed if decompressed is not None else decoded
 
 
-def _decode_utf8_text(decoded: bytes) -> Optional[str]:
+def _decode_utf8_text(decoded: bytes) -> str | None:
     try:
         return decoded.decode("utf-8", errors="replace").strip()
     except Exception:
         return None
 
 
-def parse_json_value(value: Any) -> Optional[Dict[str, Any]]:
+def parse_json_value(value: Any) -> dict[str, Any] | None:
     """Try to parse a JSON payload from a tag value. Accept strings or lists."""
     candidates = []
     if isinstance(value, str):
@@ -164,7 +164,7 @@ def looks_like_prompt_node_id(value: Any) -> bool:
     return all(part.isdigit() for part in parts)
 
 
-def looks_like_comfyui_workflow(value: Optional[Dict[str, Any]]) -> bool:
+def looks_like_comfyui_workflow(value: dict[str, Any] | None) -> bool:
     """Heuristic check for ComfyUI workflow graph."""
     if not isinstance(value, dict):
         return False
@@ -193,7 +193,7 @@ def _looks_like_workflow_node(node: Any) -> bool:
     return any(key in node for key in ("title", "outputs", "inputs"))
 
 
-def looks_like_comfyui_prompt_graph(value: Optional[Dict[str, Any]]) -> bool:
+def looks_like_comfyui_prompt_graph(value: dict[str, Any] | None) -> bool:
     """Heuristic check for ComfyUI prompt graph (runtime prompt dict)."""
     if not isinstance(value, dict) or not value:
         return False
@@ -208,7 +208,7 @@ def looks_like_comfyui_prompt_graph(value: Optional[Dict[str, Any]]) -> bool:
     return digit_keys >= threshold and valid_nodes >= threshold
 
 
-def _prompt_graph_key_and_node_counts(graph: Dict[str, Any], keys: list[Any]) -> tuple[int, int]:
+def _prompt_graph_key_and_node_counts(graph: dict[str, Any], keys: list[Any]) -> tuple[int, int]:
     digit_keys = 0
     valid_nodes = 0
     for key in keys:
@@ -227,7 +227,7 @@ def _prompt_graph_node_looks_valid(node: Any) -> bool:
     return isinstance(ct, str) and isinstance(ins, dict)
 
 
-def parse_auto1111_params(params_text: str) -> Optional[Dict[str, Any]]:
+def parse_auto1111_params(params_text: str) -> dict[str, Any] | None:
     """Parse Auto1111/Forge parameters text."""
     if not params_text:
         return None
@@ -237,7 +237,7 @@ def parse_auto1111_params(params_text: str) -> Optional[Dict[str, Any]]:
         if not text:
             return None
 
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
         remaining = _split_auto1111_prompt_and_remaining(text, result)
         if remaining:
             _parse_auto1111_kv_block(remaining, result)
@@ -249,7 +249,7 @@ def parse_auto1111_params(params_text: str) -> Optional[Dict[str, Any]]:
         return None
 
 
-def _split_auto1111_prompt_and_remaining(text: str, result: Dict[str, Any]) -> str:
+def _split_auto1111_prompt_and_remaining(text: str, result: dict[str, Any]) -> str:
     neg_marker = "Negative prompt:"
     neg_idx = text.find(neg_marker)
     if neg_idx != -1:
@@ -268,14 +268,14 @@ def _split_auto1111_prompt_and_remaining(text: str, result: Dict[str, Any]) -> s
     return _fallback_split_prompt_and_remaining(text, result)
 
 
-def _find_auto1111_params_start(text: str) -> Optional[int]:
+def _find_auto1111_params_start(text: str) -> int | None:
     match = re.search(r"\n(?:Steps|Size|Model|Seed|CFG|Sampler|Denoising|Ens|Version):", text)
     if not match:
         return None
     return match.start()
 
 
-def _fallback_split_prompt_and_remaining(text: str, result: Dict[str, Any]) -> str:
+def _fallback_split_prompt_and_remaining(text: str, result: dict[str, Any]) -> str:
     steps_idx = text.find("\nSteps:")
     if steps_idx == -1:
         if text.startswith("Steps:"):
@@ -287,7 +287,7 @@ def _fallback_split_prompt_and_remaining(text: str, result: Dict[str, Any]) -> s
     return text[steps_idx:].lstrip()
 
 
-def _parse_auto1111_kv_block(remaining: str, result: Dict[str, Any]) -> None:
+def _parse_auto1111_kv_block(remaining: str, result: dict[str, Any]) -> None:
     matches = list(_AUTO1111_KV_RE.finditer(remaining))
     for i, match in enumerate(matches):
         key = match.group(1).strip().lower().replace(" ", "_")
@@ -303,7 +303,7 @@ def _extract_auto1111_kv_value(remaining: str, matches: list[Any], idx: int, mat
     return remaining[value_start:value_end].strip().strip(",").strip()
 
 
-def _apply_auto1111_kv(result: Dict[str, Any], key: str, value: str) -> None:
+def _apply_auto1111_kv(result: dict[str, Any], key: str, value: str) -> None:
     if key == "steps":
         _set_int_kv(result, "steps", value)
         return
@@ -323,21 +323,21 @@ def _apply_auto1111_kv(result: Dict[str, Any], key: str, value: str) -> None:
         result["model"] = value
 
 
-def _set_int_kv(result: Dict[str, Any], key: str, value: str) -> None:
+def _set_int_kv(result: dict[str, Any], key: str, value: str) -> None:
     try:
         result[key] = int(value)
     except (ValueError, TypeError):
         return
 
 
-def _set_float_kv(result: Dict[str, Any], key: str, value: str) -> None:
+def _set_float_kv(result: dict[str, Any], key: str, value: str) -> None:
     try:
         result[key] = float(value)
     except (ValueError, TypeError):
         return
 
 
-def _set_size_kv(result: Dict[str, Any], value: str) -> None:
+def _set_size_kv(result: dict[str, Any], value: str) -> None:
     if "x" not in value:
         return
     w, h = value.split("x", 1)

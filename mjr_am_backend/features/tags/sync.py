@@ -14,10 +14,10 @@ import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ...adapters.tools.exiftool import ExifTool
-from ...shared import Result, ErrorCode, get_logger
+from ...shared import ErrorCode, Result, get_logger
 
 logger = get_logger(__name__)
 
@@ -25,6 +25,10 @@ MAX_TAG_LENGTH = 100
 WIN_SHELL_COL_SCAN_MAX = 256
 WIN_SHELL_DEFAULT_RATING_COL_IDX = 14
 WIN_SHELL_DEFAULT_TAGS_COL_IDX = 21
+try:
+    RT_SYNC_PENDING_MAX = max(128, int(os.getenv("MAJOOR_RT_SYNC_PENDING_MAX", "5000") or 5000))
+except Exception:
+    RT_SYNC_PENDING_MAX = 5000
 
 
 # Windows Property System stores ratings as a pseudo-percent (0..99).
@@ -43,8 +47,8 @@ def _windows_rating_percent(stars: int) -> int:
     return WIN_RATING_PERCENT_MAP[stars]
 
 
-def _normalize_tags(tags: List[str]) -> List[str]:
-    out: List[str] = []
+def _normalize_tags(tags: list[str]) -> list[str]:
+    out: list[str] = []
     seen = set()
     for t in tags or []:
         if not isinstance(t, str):
@@ -70,9 +74,9 @@ def _validate_exiftool_file_path(file_path: str) -> Result[Path]:
     return Result.Ok(p)
 
 
-def _build_exiftool_rating_tags_payload(stars: int, tags_norm: List[str]) -> Dict[str, Any]:
+def _build_exiftool_rating_tags_payload(stars: int, tags_norm: list[str]) -> dict[str, Any]:
     joined = "; ".join(tags_norm)
-    payload: Dict[str, Any] = {
+    payload: dict[str, Any] = {
         "XMP:Rating": stars,
         "xmp:rating": stars,
         "rating": stars,
@@ -104,7 +108,7 @@ def _exiftool_available(exiftool: ExifTool) -> bool:
         return False
 
 
-def _write_exiftool_payload(exiftool: ExifTool, path: Path, payload: Dict[str, Any]) -> Result[bool]:
+def _write_exiftool_payload(exiftool: ExifTool, path: Path, payload: dict[str, Any]) -> Result[bool]:
     try:
         res = exiftool.write(str(path), payload, preserve_workflow=True)
     except Exception as exc:
@@ -114,7 +118,7 @@ def _write_exiftool_payload(exiftool: ExifTool, path: Path, payload: Dict[str, A
     return Result.Ok(True)
 
 
-def write_exif_rating_tags(exiftool: ExifTool, file_path: str, rating: int, tags: List[str]) -> Result[bool]:
+def write_exif_rating_tags(exiftool: ExifTool, file_path: str, rating: int, tags: list[str]) -> Result[bool]:
     """
     Try writing rating/tags into the file metadata via ExifTool.
     """
@@ -145,14 +149,14 @@ class RatingTagsSyncTask:
     """Coalesced update request for a single file."""
     file_path: str
     rating: int
-    tags: List[str]
+    tags: list[str]
     mode: str  # "off" | "on" | "exiftool"
 
 
 _WIN32COM_CHECKED = False
 _WIN32COM = None
-_WIN_RATING_IDX: Optional[int] = None
-_WIN_TAGS_IDX: Optional[int] = None
+_WIN_RATING_IDX: int | None = None
+_WIN_TAGS_IDX: int | None = None
 _RATING_KEYS = ("rating", "note", "notation", "evaluation", "star", "stars", "etoile", "etoiles")
 _TAGS_KEYS = ("tag", "tags", "keywords", "keyword", "category", "categories", "categorie", "catégorie", "catégories")
 
@@ -240,14 +244,14 @@ def _validate_sync_file_path(file_path: str) -> Result[Path]:
     return Result.Ok(path)
 
 
-def _get_file_mtime(path: Path) -> Optional[float]:
+def _get_file_mtime(path: Path) -> float | None:
     try:
         return os.path.getmtime(str(path))
     except OSError:
         return None
 
 
-def _restore_file_mtime(path: Path, mtime: Optional[float]) -> None:
+def _restore_file_mtime(path: Path, mtime: float | None) -> None:
     if mtime is None:
         return
     try:
@@ -256,7 +260,7 @@ def _restore_file_mtime(path: Path, mtime: Optional[float]) -> None:
         logger.debug("Failed to restore mtime after Windows shell write: %s", exc)
 
 
-def _write_shell_rating_and_tags(folder, item, rating_idx: int, tags_idx: int, rating_val: int, tags_norm: List[str]) -> None:
+def _write_shell_rating_and_tags(folder, item, rating_idx: int, tags_idx: int, rating_val: int, tags_norm: list[str]) -> None:
     try:
         folder.GetDetailsOf(item, rating_idx)
         folder.SetDetailsOf(item, rating_idx, str(rating_val))
@@ -280,7 +284,7 @@ def _co_initialize_pythoncom() -> Any:
         return None
 
 
-def _shell_write_for_path(win32com, path: Path, rating_val: int, tags_norm: List[str]) -> None:
+def _shell_write_for_path(win32com, path: Path, rating_val: int, tags_norm: list[str]) -> None:
     shell = win32com.Dispatch("Shell.Application")
     folder = shell.Namespace(str(path.parent))
     item = folder.ParseName(path.name)
@@ -288,7 +292,7 @@ def _shell_write_for_path(win32com, path: Path, rating_val: int, tags_norm: List
     _write_shell_rating_and_tags(folder, item, rating_idx, tags_idx, rating_val, tags_norm)
 
 
-def write_windows_rating_tags(file_path: str, rating: int, tags: List[str]) -> Result[bool]:
+def write_windows_rating_tags(file_path: str, rating: int, tags: list[str]) -> Result[bool]:
     """
     Windows-only fallback using Shell.Application SetDetailsOf.
 
@@ -340,7 +344,7 @@ class RatingTagsSyncWorker:
         self._exiftool = exiftool
         self._lock = threading.Lock()
         self._event = threading.Event()
-        self._pending: Dict[str, RatingTagsSyncTask] = {}
+        self._pending: dict[str, RatingTagsSyncTask] = {}
         self._stop = False
         self._thread = threading.Thread(target=self._run, name="mjr-rating-tags-sync", daemon=True)
         self._thread.start()
@@ -354,7 +358,7 @@ class RatingTagsSyncWorker:
         except Exception as exc:
             logger.debug("RatingTagsSyncWorker stop failed: %s", exc)
 
-    def enqueue(self, file_path: str, rating: int, tags: List[str], mode: str) -> None:
+    def enqueue(self, file_path: str, rating: int, tags: list[str], mode: str) -> None:
         """Queue a rating/tags update (coalesced per filepath)."""
         mode_norm = str(mode or "off").strip().lower()
         # Backward compatible: "sidecar"/"both" now map to "on" (no sidecar writes).
@@ -367,10 +371,20 @@ class RatingTagsSyncWorker:
         except (TypeError, ValueError):
             return
         with self._lock:
+            # Keep newest update semantics and bounded memory:
+            # if the same file is enqueued repeatedly, replace and move to most recent.
+            if task.file_path in self._pending:
+                self._pending.pop(task.file_path, None)
             self._pending[task.file_path] = task
+            # Soft cap: drop oldest pending entries under burst load.
+            while len(self._pending) > RT_SYNC_PENDING_MAX:
+                try:
+                    self._pending.pop(next(iter(self._pending)))
+                except Exception:
+                    break
             self._event.set()
 
-    def _drain_one(self) -> Optional[RatingTagsSyncTask]:
+    def _drain_one(self) -> RatingTagsSyncTask | None:
         with self._lock:
             if not self._pending:
                 self._event.clear()

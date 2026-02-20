@@ -1,5 +1,6 @@
 from mjr_am_backend.features.geninfo.parser import parse_geninfo_from_prompt
 
+
 def test_geninfo_flux_standard_advanced_sampler():
     """
     Simulate a standard Flux workflow with SamplerCustomAdvanced, BasicGuider, BasicScheduler, FluxGuidance.

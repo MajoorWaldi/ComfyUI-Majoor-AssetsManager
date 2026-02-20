@@ -12,17 +12,16 @@ import threading
 import time
 import zipfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from aiohttp import web
-
 from mjr_am_backend.config import OUTPUT_ROOT_PATH
 from mjr_am_backend.custom_roots import resolve_custom_root
-from mjr_am_backend.shared import Result, get_logger, sanitize_error_message
 from mjr_am_backend.routes.core.paths import _is_within_root, _safe_rel_path
-from mjr_am_backend.routes.core.response import _json_response
 from mjr_am_backend.routes.core.request_json import _read_json
+from mjr_am_backend.routes.core.response import _json_response
 from mjr_am_backend.routes.core.security import _check_rate_limit, _csrf_error
+from mjr_am_backend.shared import Result, get_logger, sanitize_error_message
 
 try:
     import folder_paths  # type: ignore
@@ -35,8 +34,8 @@ _BATCH_DIR = Path(
     os.environ.get("MAJOOR_BATCH_ZIP_DIR") or str(OUTPUT_ROOT_PATH / "_mjr_batch_zips")
 )
 _BATCH_LOCK = threading.Lock()
-_BATCH_CACHE: Dict[str, Dict[str, Any]] = {}
-_TOKEN_LOCKS: Dict[str, threading.Lock] = {}
+_BATCH_CACHE: dict[str, dict[str, Any]] = {}
+_TOKEN_LOCKS: dict[str, threading.Lock] = {}
 _TOKEN_LOCKS_LOCK = threading.Lock()
 
 
@@ -102,7 +101,7 @@ def _cleanup_batch_zips() -> None:
 
 
 def _cleanup_stale_batch_entries(now: float) -> None:
-    stale: List[str] = []
+    stale: list[str] = []
     for token, entry in list(_BATCH_CACHE.items()):
         created_at = float(entry.get("created_at") or 0)
         if created_at and now - created_at > _BATCH_TTL_SECONDS:
@@ -136,7 +135,7 @@ def _delete_batch_zip_path(entry: Any, token: str, success_log: str) -> None:
         logger.warning("Failed to cleanup batch zip %s: %s", path.name if path else token, exc)
 
 
-def _resolve_item_path(item: Dict[str, Any]) -> Optional[Path]:
+def _resolve_item_path(item: dict[str, Any]) -> Path | None:
     filename_rel, subfolder_rel, typ = _normalized_batch_zip_item_parts(item)
     if filename_rel is None or subfolder_rel is None:
         return None
@@ -149,7 +148,7 @@ def _resolve_item_path(item: Dict[str, Any]) -> Optional[Path]:
     return candidate
 
 
-def _normalized_batch_zip_item_parts(item: Dict[str, Any]) -> tuple[Optional[Path], Optional[Path], str]:
+def _normalized_batch_zip_item_parts(item: dict[str, Any]) -> tuple[Path | None, Path | None, str]:
     filename_raw = (item or {}).get("filename")
     subfolder_raw = (item or {}).get("subfolder", "") or ""
     typ = str((item or {}).get("type") or "output").lower()
@@ -162,7 +161,7 @@ def _normalized_batch_zip_item_parts(item: Dict[str, Any]) -> tuple[Optional[Pat
     return filename_rel, subfolder_rel, typ
 
 
-def _is_valid_candidate_path(candidate: Optional[Path], base_dir: Path) -> bool:
+def _is_valid_candidate_path(candidate: Path | None, base_dir: Path) -> bool:
     if candidate is None:
         return False
     if not _is_within_root(candidate, base_dir):
@@ -170,7 +169,7 @@ def _is_valid_candidate_path(candidate: Optional[Path], base_dir: Path) -> bool:
     return candidate.exists() and candidate.is_file()
 
 
-def _resolve_base_dir(item: Dict[str, Any], typ: str) -> Optional[Path]:
+def _resolve_base_dir(item: dict[str, Any], typ: str) -> Path | None:
     if typ == "input":
         return _resolve_input_base_dir()
     if typ == "custom":
@@ -181,7 +180,7 @@ def _resolve_base_dir(item: Dict[str, Any], typ: str) -> Optional[Path]:
         return None
 
 
-def _resolve_input_base_dir() -> Optional[Path]:
+def _resolve_input_base_dir() -> Path | None:
     try:
         if folder_paths is None:
             return None
@@ -190,7 +189,7 @@ def _resolve_input_base_dir() -> Optional[Path]:
         return None
 
 
-def _resolve_custom_base_dir(item: Dict[str, Any]) -> Optional[Path]:
+def _resolve_custom_base_dir(item: dict[str, Any]) -> Path | None:
     root_id = (item or {}).get("root_id") or (item or {}).get("rootId") or (item or {}).get("custom_root_id") or ""
     root_res = resolve_custom_root(str(root_id))
     if not root_res.ok or not isinstance(root_res.data, Path):
@@ -201,7 +200,7 @@ def _resolve_custom_base_dir(item: Dict[str, Any]) -> Optional[Path]:
         return None
 
 
-def _resolve_candidate_path(base_dir: Path, subfolder_rel: Path, filename_rel: Path) -> Optional[Path]:
+def _resolve_candidate_path(base_dir: Path, subfolder_rel: Path, filename_rel: Path) -> Path | None:
     try:
         return (base_dir / subfolder_rel / filename_rel).resolve(strict=True)
     except Exception:

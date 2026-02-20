@@ -6,6 +6,7 @@ Used by the UI to mark days that have assets (per month).
 import datetime
 from pathlib import Path
 from typing import Any
+
 from aiohttp import web
 
 try:
@@ -21,6 +22,7 @@ except Exception:
 from mjr_am_backend.config import get_runtime_output_root
 from mjr_am_backend.custom_roots import resolve_custom_root
 from mjr_am_backend.shared import Result, sanitize_error_message
+
 from ..core import _json_response, _require_services
 
 

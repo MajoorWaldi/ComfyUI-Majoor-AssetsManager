@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import threading
 from dataclasses import dataclass
-from typing import Optional
 
 from mjr_am_backend.config import WATCHER_DEFAULT_DEBOUNCE_MS, WATCHER_DEFAULT_DEDUPE_TTL_MS
 
@@ -35,7 +34,7 @@ def get_watcher_settings() -> WatcherSettings:
         )
 
 
-def update_watcher_settings(*, debounce_ms: Optional[int] = None, dedupe_ttl_ms: Optional[int] = None) -> WatcherSettings:
+def update_watcher_settings(*, debounce_ms: int | None = None, dedupe_ttl_ms: int | None = None) -> WatcherSettings:
     with _lock:
         if debounce_ms is not None:
             _state["debounce_ms"] = _clamp(int(debounce_ms), 50, 5000)

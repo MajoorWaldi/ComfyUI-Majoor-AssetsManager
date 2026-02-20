@@ -6,6 +6,7 @@ Collections are stored as JSON files under `config.COLLECTIONS_DIR`.
 
 from __future__ import annotations
 
+import builtins
 import json
 import os
 import re
@@ -13,11 +14,11 @@ import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 from uuid import uuid4
 
 from ...config import COLLECTIONS_DIR_PATH
-from ...shared import Result, ErrorCode, get_logger, classify_file
+from ...shared import ErrorCode, Result, classify_file, get_logger
 
 logger = get_logger(__name__)
 
@@ -68,7 +69,7 @@ def _normalize_fp(fp: str) -> str:
         return fallback
 
 
-def _safe_id(value: str) -> Optional[str]:
+def _safe_id(value: str) -> str | None:
     s = str(value or "").strip()
     if not s:
         return None
@@ -77,7 +78,7 @@ def _safe_id(value: str) -> Optional[str]:
     return s
 
 
-def _safe_name(value: str) -> Optional[str]:
+def _safe_name(value: str) -> str | None:
     s = str(value or "").strip()
     if not s:
         return None
@@ -86,7 +87,7 @@ def _safe_name(value: str) -> Optional[str]:
     return s or None
 
 
-def _collection_path(collection_id: str) -> Optional[Path]:
+def _collection_path(collection_id: str) -> Path | None:
     cid = _safe_id(collection_id)
     if not cid:
         return None
@@ -109,7 +110,7 @@ class CollectionSummary:
     updated_at: str
 
 
-def _read_collection_summary_row(path: Path) -> Optional[CollectionSummary]:
+def _read_collection_summary_row(path: Path) -> CollectionSummary | None:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except Exception:
@@ -128,7 +129,7 @@ def _read_collection_summary_row(path: Path) -> Optional[CollectionSummary]:
 class CollectionsService:
     """Filesystem-backed collections service (JSON files under `COLLECTIONS_DIR`)."""
 
-    def __init__(self, base_dir: Optional[str | Path] = None):
+    def __init__(self, base_dir: str | Path | None = None):
         self._base = Path(base_dir) if base_dir is not None else Path(COLLECTIONS_DIR_PATH)
         self._lock = threading.Lock()
         try:
@@ -136,7 +137,7 @@ class CollectionsService:
         except Exception:
             pass
 
-    def list(self) -> Result[List[Dict[str, Any]]]:
+    def list(self) -> Result[builtins.list[dict[str, Any]]]:
         """List collections with basic metadata and item counts."""
         base_res = self._resolve_collections_base_dir()
         if not base_res.ok:
@@ -145,7 +146,7 @@ class CollectionsService:
         if not isinstance(base, Path):
             return Result.Err(ErrorCode.DB_ERROR, "Collections dir unavailable")
 
-        items: List[CollectionSummary] = []
+        items: list[CollectionSummary] = []
         with self._lock:
             try:
                 for p in base.glob("*.json"):
@@ -165,7 +166,7 @@ class CollectionsService:
         except Exception as exc:
             return Result.Err(ErrorCode.DB_ERROR, f"Collections dir unavailable: {exc}")
 
-    def create(self, name: str) -> Result[Dict[str, Any]]:
+    def create(self, name: str) -> Result[dict[str, Any]]:
         """Create a new empty collection."""
         cname = _safe_name(name)
         if not cname:
@@ -176,7 +177,7 @@ class CollectionsService:
         if not path:
             return Result.Err(ErrorCode.DB_ERROR, "Failed to allocate collection id")
 
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             "id": cid,
             "name": cname,
             "created_at": _now_iso(),
@@ -193,7 +194,7 @@ class CollectionsService:
 
         return Result.Ok({"id": cid, "name": cname})
 
-    def get(self, collection_id: str) -> Result[Dict[str, Any]]:
+    def get(self, collection_id: str) -> Result[dict[str, Any]]:
         """Get a collection by id (including items)."""
         path = _collection_path(collection_id)
         if not path:
@@ -204,7 +205,7 @@ class CollectionsService:
         return self._build_collection_get_result(loaded.data or {}, collection_id)
 
     @staticmethod
-    def _load_collection_data(path: Path) -> Result[Dict[str, Any]]:
+    def _load_collection_data(path: Path) -> Result[dict[str, Any]]:
         try:
             return Result.Ok(json.loads(path.read_text(encoding="utf-8")))
         except FileNotFoundError:
@@ -213,7 +214,7 @@ class CollectionsService:
             return Result.Err(ErrorCode.PARSE_ERROR, f"Failed to read collection: {exc}")
 
     @staticmethod
-    def _build_collection_get_result(data: Dict[str, Any], collection_id: str) -> Result[Dict[str, Any]]:
+    def _build_collection_get_result(data: dict[str, Any], collection_id: str) -> Result[dict[str, Any]]:
         cid = str(data.get("id") or collection_id)
         if not _safe_id(cid):
             return Result.Err(ErrorCode.PARSE_ERROR, "Collection file is corrupted (bad id)")
@@ -245,7 +246,7 @@ class CollectionsService:
                 return Result.Err(ErrorCode.DB_ERROR, f"Failed to delete collection: {exc}")
         return Result.Ok(True)
 
-    def _load_for_update(self, collection_id: str) -> Tuple[Optional[Path], Optional[Dict[str, Any]], Optional[Result[Any]]]:
+    def _load_for_update(self, collection_id: str) -> tuple[Path | None, dict[str, Any] | None, Result[Any] | None]:
         path = _collection_path(collection_id)
         if not path:
             return None, None, Result.Err(ErrorCode.INVALID_INPUT, "Invalid collection id")
@@ -264,7 +265,7 @@ class CollectionsService:
         return path, data, None
 
     @staticmethod
-    def _normalize_add_asset_item(asset: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _normalize_add_asset_item(asset: dict[str, Any]) -> dict[str, Any] | None:
         if not isinstance(asset, dict):
             return None
         fp = str(asset.get("filepath") or "").strip()
@@ -283,7 +284,7 @@ class CollectionsService:
         }
 
     @staticmethod
-    def _normalize_asset_root_id(asset: Dict[str, Any]) -> Optional[str]:
+    def _normalize_asset_root_id(asset: dict[str, Any]) -> str | None:
         root_id = str(
             asset.get("root_id")
             or asset.get("rootId")
@@ -293,11 +294,11 @@ class CollectionsService:
         return root_id or None
 
     @staticmethod
-    def _normalize_asset_kind(asset: Dict[str, Any], filepath: str) -> str:
+    def _normalize_asset_kind(asset: dict[str, Any], filepath: str) -> str:
         return str(asset.get("kind") or classify_file(filepath) or "unknown").strip().lower()
 
-    def _clean_add_assets_input(self, assets: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        cleaned: List[Dict[str, Any]] = []
+    def _clean_add_assets_input(self, assets: builtins.list[dict[str, Any]]) -> builtins.list[dict[str, Any]]:
+        cleaned: list[dict[str, Any]] = []
         for asset in assets:
             item = self._normalize_add_asset_item(asset)
             if item is None:
@@ -306,8 +307,8 @@ class CollectionsService:
         return cleaned
 
     @staticmethod
-    def _existing_items_with_indexes(raw_items: Any) -> Tuple[List[Dict[str, Any]], set[str], set[str]]:
-        existing: List[Dict[str, Any]] = (
+    def _existing_items_with_indexes(raw_items: Any) -> tuple[builtins.list[dict[str, Any]], set[str], set[str]]:
+        existing: list[dict[str, Any]] = (
             [it for it in raw_items if isinstance(it, dict)] if isinstance(raw_items, list) else []
         )
         seen: set[str] = set()
@@ -323,11 +324,11 @@ class CollectionsService:
 
     def _append_collection_items(
         self,
-        existing: List[Dict[str, Any]],
-        cleaned: List[Dict[str, Any]],
+        existing: builtins.list[dict[str, Any]],
+        cleaned: builtins.list[dict[str, Any]],
         seen: set[str],
         existing_seen: set[str],
-    ) -> Dict[str, int]:
+    ) -> dict[str, int]:
         added = 0
         skipped_existing = 0
         skipped_duplicate = 0
@@ -354,7 +355,7 @@ class CollectionsService:
         }
 
     @staticmethod
-    def _write_collection_payload(path: Path, data: Dict[str, Any]) -> Optional[Result[Any]]:
+    def _write_collection_payload(path: Path, data: dict[str, Any]) -> Result[Any] | None:
         try:
             path.write_text(
                 json.dumps(data, ensure_ascii=False, separators=(",", ":")),
@@ -364,7 +365,7 @@ class CollectionsService:
             return Result.Err(ErrorCode.DB_ERROR, f"Failed to update collection: {exc}")
         return None
 
-    def add_assets(self, collection_id: str, assets: List[Dict[str, Any]]) -> Result[Dict[str, Any]]:
+    def add_assets(self, collection_id: str, assets: builtins.list[dict[str, Any]]) -> Result[dict[str, Any]]:
         """Add assets (by filepath) to a collection (deduplicated, bounded)."""
         if not isinstance(assets, list) or not assets:
             return Result.Err(ErrorCode.INVALID_INPUT, "No assets provided")
@@ -401,7 +402,7 @@ class CollectionsService:
             }
         )
 
-    def remove_filepaths(self, collection_id: str, filepaths: List[str]) -> Result[Dict[str, Any]]:
+    def remove_filepaths(self, collection_id: str, filepaths: builtins.list[str]) -> Result[dict[str, Any]]:
         """Remove items from a collection by filepath."""
         targets_res = self._remove_targets(filepaths)
         if not targets_res.ok:
@@ -425,7 +426,7 @@ class CollectionsService:
         return Result.Ok({"id": str(data.get("id") or collection_id), "removed": int(removed), "count": len(kept)})
 
     @staticmethod
-    def _remove_targets(filepaths: List[str]) -> Result[set[str]]:
+    def _remove_targets(filepaths: builtins.list[str]) -> Result[set[str]]:
         if not isinstance(filepaths, list) or not filepaths:
             return Result.Err(ErrorCode.INVALID_INPUT, "No filepaths provided")
         targets = set(_normalize_fp(str(p)) for p in filepaths if str(p or "").strip())
@@ -434,12 +435,12 @@ class CollectionsService:
         return Result.Ok(targets)
 
     @staticmethod
-    def _collection_items_as_dicts(raw_items: Any) -> List[Dict[str, Any]]:
+    def _collection_items_as_dicts(raw_items: Any) -> builtins.list[dict[str, Any]]:
         return [it for it in raw_items if isinstance(it, dict)] if isinstance(raw_items, list) else []
 
     @staticmethod
-    def _partition_removed_items(existing: List[Dict[str, Any]], targets: set[str]) -> Tuple[List[Any], int]:
-        kept: List[Any] = []
+    def _partition_removed_items(existing: builtins.list[dict[str, Any]], targets: set[str]) -> tuple[builtins.list[Any], int]:
+        kept: list[Any] = []
         removed = 0
         for item in existing:
             fp = item.get("filepath")

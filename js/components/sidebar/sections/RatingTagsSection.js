@@ -24,8 +24,23 @@ export function createRatingTagsSection(asset, onUpdate) {
         background: rgba(0,0,0,0.3);
         border-radius: 6px;
         padding: 8px;
-        display: inline-flex;
+        display: flex;
+        width: 100%;
+        box-sizing: border-box;
+        justify-content: space-between;
+        gap: 6px;
     `;
+    try {
+        const stars = ratingEditor.querySelectorAll(".mjr-rating-star");
+        stars.forEach((star) => {
+            star.style.flex = "1 1 0";
+            star.style.display = "flex";
+            star.style.alignItems = "center";
+            star.style.justifyContent = "center";
+            star.style.fontSize = "24px";
+            star.style.padding = "8px 0";
+        });
+    } catch {}
 
     ratingContainer.appendChild(ratingLabel);
     ratingContainer.appendChild(ratingEditor);

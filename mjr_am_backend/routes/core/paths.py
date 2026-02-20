@@ -1,11 +1,10 @@
 """
 Path validation and security utilities.
 """
+import mimetypes
 import os
 import threading
 from pathlib import Path
-from typing import Optional
-import mimetypes
 
 try:
     import folder_paths  # type: ignore
@@ -23,8 +22,8 @@ except Exception:
 
 from mjr_am_backend.config import get_runtime_output_root
 from mjr_am_backend.custom_roots import list_custom_roots
-from mjr_am_backend.shared import get_logger
 from mjr_am_backend.features.audio import AUDIO_VIEW_MIME_TYPES
+from mjr_am_backend.shared import get_logger
 
 logger = get_logger(__name__)
 
@@ -64,7 +63,7 @@ def _get_allowed_directories():
         return list(_ALLOWED_DIRECTORIES or [])
 
 
-def _normalize_path(value: str) -> Optional[Path]:
+def _normalize_path(value: str) -> Path | None:
     if not value:
         return None
     if "\x00" in value:
@@ -77,7 +76,7 @@ def _normalize_path(value: str) -> Optional[Path]:
         return None
 
 
-def _is_path_allowed(candidate: Optional[Path], *, must_exist: bool = False) -> bool:
+def _is_path_allowed(candidate: Path | None, *, must_exist: bool = False) -> bool:
     if not candidate:
         return False
     cand_norm = _resolve_candidate_path(candidate, must_exist=must_exist)
@@ -94,7 +93,7 @@ def _is_path_allowed(candidate: Optional[Path], *, must_exist: bool = False) -> 
     return False
 
 
-def _resolve_candidate_path(candidate: Path, *, must_exist: bool) -> Optional[Path]:
+def _resolve_candidate_path(candidate: Path, *, must_exist: bool) -> Path | None:
     try:
         if must_exist:
             return candidate.resolve(strict=True)
@@ -105,7 +104,7 @@ def _resolve_candidate_path(candidate: Path, *, must_exist: bool) -> Optional[Pa
         return None
 
 
-def _resolve_root_path(root: Path) -> Optional[Path]:
+def _resolve_root_path(root: Path) -> Path | None:
     try:
         return root.resolve(strict=True) if root.exists() else root.resolve(strict=False)
     except OSError:
@@ -122,7 +121,7 @@ def _path_relative_to(candidate: Path, root: Path) -> bool:
             return False
 
 
-def _is_path_allowed_custom(candidate: Optional[Path]) -> bool:
+def _is_path_allowed_custom(candidate: Path | None) -> bool:
     """
     Allow paths within any registered custom root.
     """
@@ -144,7 +143,7 @@ def _is_path_allowed_custom(candidate: Optional[Path]) -> bool:
     return False
 
 
-def _safe_rel_path(value: str) -> Optional[Path]:
+def _safe_rel_path(value: str) -> Path | None:
     if value is None:
         return Path("")
     raw = str(value).strip()

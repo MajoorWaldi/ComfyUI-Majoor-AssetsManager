@@ -3,15 +3,15 @@ Metadata extractors for different file types.
 Extracts ComfyUI workflow and generation parameters from PNG, WEBP, MP4.
 """
 import os
-from typing import Optional, Dict, Any, Tuple, Set, List
+from typing import Any
 
-from ...shared import Result, ErrorCode, get_logger
+from ...shared import ErrorCode, Result, get_logger
 from .parsing_utils import (
-    try_parse_json_text,
-    parse_json_value,
-    looks_like_comfyui_workflow,
     looks_like_comfyui_prompt_graph,
-    parse_auto1111_params
+    looks_like_comfyui_workflow,
+    parse_auto1111_params,
+    parse_json_value,
+    try_parse_json_text,
 )
 
 logger = get_logger(__name__)
@@ -84,7 +84,7 @@ _DIM_HEIGHT_KEYS = (
 _DIM_PAIR_KEYS = ("Composite:ImageSize", "Image:ImageSize", "QuickTime:ImageSize", "ImageSize")
 
 
-def _inspect_json_field(container: Any, key_names: Tuple[str, ...]) -> Optional[Any]:
+def _inspect_json_field(container: Any, key_names: tuple[str, ...]) -> Any | None:
     if not isinstance(container, dict):
         return None
     for key in key_names:
@@ -94,7 +94,7 @@ def _inspect_json_field(container: Any, key_names: Tuple[str, ...]) -> Optional[
     return None
 
 
-def _unwrap_workflow_prompt_container(container: Any) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+def _unwrap_workflow_prompt_container(container: Any) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     """
     Some pipelines embed:
       {"workflow": {...}, "prompt": "{...json...}"}
@@ -110,11 +110,11 @@ def _unwrap_workflow_prompt_container(container: Any) -> Tuple[Optional[Dict[str
     return wf_out, pr_out
 
 
-def _container_json_candidate(container: Dict[str, Any], key: str) -> Any:
+def _container_json_candidate(container: dict[str, Any], key: str) -> Any:
     return container.get(key) or container.get(key.capitalize())
 
 
-def _prompt_graph_from_container_value(value: Any) -> Optional[Dict[str, Any]]:
+def _prompt_graph_from_container_value(value: Any) -> dict[str, Any] | None:
     if isinstance(value, dict) and looks_like_comfyui_prompt_graph(value):
         return value
     if not isinstance(value, str):
@@ -127,12 +127,12 @@ def _prompt_graph_from_container_value(value: Any) -> Optional[Dict[str, Any]]:
 
 def _merge_workflow_prompt_candidate(
     candidate: Any,
-    workflow: Optional[Dict[str, Any]],
-    prompt: Optional[Dict[str, Any]],
-) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]], bool]:
+    workflow: dict[str, Any] | None,
+    prompt: dict[str, Any] | None,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None, bool]:
     matched = False
-    wf_candidate: Optional[Dict[str, Any]] = None
-    pr_candidate: Optional[Dict[str, Any]] = None
+    wf_candidate: dict[str, Any] | None = None
+    pr_candidate: dict[str, Any] | None = None
 
     if looks_like_comfyui_workflow(candidate):
         wf_candidate = candidate
@@ -150,7 +150,7 @@ def _merge_workflow_prompt_candidate(
     return workflow, prompt, matched
 
 
-def _coerce_dim(value: Any) -> Optional[int]:
+def _coerce_dim(value: Any) -> int | None:
     try:
         if value is None:
             return None
@@ -165,7 +165,7 @@ def _coerce_dim(value: Any) -> Optional[int]:
         return None
 
 
-def _first_available_dim(exif_data: Dict[str, Any], keys: Tuple[str, ...]) -> Optional[int]:
+def _first_available_dim(exif_data: dict[str, Any], keys: tuple[str, ...]) -> int | None:
     for key in keys:
         value = _coerce_dim(exif_data.get(key))
         if value is not None:
@@ -173,7 +173,7 @@ def _first_available_dim(exif_data: Dict[str, Any], keys: Tuple[str, ...]) -> Op
     return None
 
 
-def _parse_size_pair(raw: Any) -> Tuple[Optional[int], Optional[int]]:
+def _parse_size_pair(raw: Any) -> tuple[int | None, int | None]:
     if raw is None:
         return (None, None)
     try:
@@ -191,7 +191,7 @@ def _parse_size_pair(raw: Any) -> Tuple[Optional[int], Optional[int]]:
         return (None, None)
 
 
-def _apply_dimensions_from_exif(metadata: Dict[str, Any], exif_data: Dict[str, Any]) -> None:
+def _apply_dimensions_from_exif(metadata: dict[str, Any], exif_data: dict[str, Any]) -> None:
     width = metadata.get("width") or _first_available_dim(exif_data, _DIM_WIDTH_KEYS)
     height = metadata.get("height") or _first_available_dim(exif_data, _DIM_HEIGHT_KEYS)
     width, height = _fill_missing_dims_from_pairs(width, height, exif_data)
@@ -201,10 +201,10 @@ def _apply_dimensions_from_exif(metadata: Dict[str, Any], exif_data: Dict[str, A
 
 
 def _fill_missing_dims_from_pairs(
-    width: Optional[int],
-    height: Optional[int],
-    exif_data: Dict[str, Any],
-) -> tuple[Optional[int], Optional[int]]:
+    width: int | None,
+    height: int | None,
+    exif_data: dict[str, Any],
+) -> tuple[int | None, int | None]:
     if width is not None and height is not None:
         return width, height
     for key in _DIM_PAIR_KEYS:
@@ -218,7 +218,7 @@ def _fill_missing_dims_from_pairs(
     return width, height
 
 
-def _extract_ffprobe_format_tags(ffprobe_data: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+def _extract_ffprobe_format_tags(ffprobe_data: dict[str, Any] | None) -> dict[str, Any]:
     if not isinstance(ffprobe_data, dict):
         return {}
     fmt = ffprobe_data.get("format") or {}
@@ -228,8 +228,8 @@ def _extract_ffprobe_format_tags(ffprobe_data: Optional[Dict[str, Any]]) -> Dict
     return tags if isinstance(tags, dict) else {}
 
 
-def _extract_ffprobe_stream_tag_dicts(ffprobe_data: Optional[Dict[str, Any]]) -> list[Dict[str, Any]]:
-    out: list[Dict[str, Any]] = []
+def _extract_ffprobe_stream_tag_dicts(ffprobe_data: dict[str, Any] | None) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
     if not isinstance(ffprobe_data, dict):
         return out
     streams = ffprobe_data.get("streams")
@@ -244,10 +244,10 @@ def _extract_ffprobe_stream_tag_dicts(ffprobe_data: Optional[Dict[str, Any]]) ->
     return out
 
 
-def _collect_text_candidates(container: Any) -> list[Tuple[str, str]]:
+def _collect_text_candidates(container: Any) -> list[tuple[str, str]]:
     if not isinstance(container, dict):
         return []
-    out: list[Tuple[str, str]] = []
+    out: list[tuple[str, str]] = []
     for key, value in container.items():
         if isinstance(value, str):
             out.append((str(key), value))
@@ -259,10 +259,10 @@ def _collect_text_candidates(container: Any) -> list[Tuple[str, str]]:
 
 
 def _apply_auto1111_text_candidates(
-    metadata: Dict[str, Any],
-    candidates: list[Tuple[str, str]],
+    metadata: dict[str, Any],
+    candidates: list[tuple[str, str]],
     *,
-    prompt_graph: Optional[Dict[str, Any]],
+    prompt_graph: dict[str, Any] | None,
     preserve_existing_prompt_text: bool,
 ) -> None:
     if metadata.get("parameters") is not None:
@@ -283,8 +283,8 @@ def _apply_auto1111_text_candidates(
         return
 
 
-def _workflow_build_link_lookup(links: Any) -> Dict[Any, Tuple[Any, Any, Any, Any]]:
-    link_lookup: Dict[Any, Tuple[Any, Any, Any, Any]] = {}
+def _workflow_build_link_lookup(links: Any) -> dict[Any, tuple[Any, Any, Any, Any]]:
+    link_lookup: dict[Any, tuple[Any, Any, Any, Any]] = {}
     if not isinstance(links, list):
         return link_lookup
     for link in links:
@@ -294,11 +294,11 @@ def _workflow_build_link_lookup(links: Any) -> Dict[Any, Tuple[Any, Any, Any, An
 
 
 def _workflow_get_source_data(
-    node_map: Dict[Any, Dict[str, Any]],
-    link_lookup: Dict[Any, Tuple[Any, Any, Any, Any]],
+    node_map: dict[Any, dict[str, Any]],
+    link_lookup: dict[Any, tuple[Any, Any, Any, Any]],
     target_node_id: Any,
     input_name: str,
-) -> Optional[Tuple[Optional[Dict[str, Any]], Any]]:
+) -> tuple[dict[str, Any] | None, Any] | None:
     target_node = node_map.get(target_node_id)
     if not isinstance(target_node, dict):
         return None
@@ -319,7 +319,7 @@ def _workflow_get_source_data(
     return (node_map.get(origin_id), link_id)
 
 
-def _workflow_get_node_text(node: Dict[str, Any], context: Optional[str] = None) -> Optional[str]:
+def _workflow_get_node_text(node: dict[str, Any], context: str | None = None) -> str | None:
     widgets = node.get("widgets_values")
     if not isinstance(widgets, list) or not widgets:
         return None
@@ -335,20 +335,20 @@ def _workflow_get_node_text(node: Dict[str, Any], context: Optional[str] = None)
 
 
 def _workflow_find_upstream_text(
-    node_map: Dict[Any, Dict[str, Any]],
-    link_lookup: Dict[Any, Tuple[Any, Any, Any, Any]],
-    start_node: Optional[Dict[str, Any]],
+    node_map: dict[Any, dict[str, Any]],
+    link_lookup: dict[Any, tuple[Any, Any, Any, Any]],
+    start_node: dict[str, Any] | None,
     *,
-    context: Optional[str] = None,
+    context: str | None = None,
     depth: int = 0,
-    seen: Optional[Set[Any]] = None,
-) -> List[str]:
+    seen: set[Any] | None = None,
+) -> list[str]:
     if not isinstance(start_node, dict):
         return []
 
-    local_seen: Set[Any] = seen if seen is not None else set()
-    found_texts: List[str] = []
-    stack: List[Tuple[Dict[str, Any], int]] = [(start_node, depth)]
+    local_seen: set[Any] = seen if seen is not None else set()
+    found_texts: list[str] = []
+    stack: list[tuple[dict[str, Any], int]] = [(start_node, depth)]
     max_depth = 32
 
     while stack:
@@ -360,7 +360,7 @@ def _workflow_find_upstream_text(
     return found_texts
 
 
-def _workflow_trace_node_allowed(node: Any, depth: int, max_depth: int, local_seen: Set[Any]) -> bool:
+def _workflow_trace_node_allowed(node: Any, depth: int, max_depth: int, local_seen: set[Any]) -> bool:
     if not isinstance(node, dict) or depth > max_depth:
         return False
     node_id = node.get("id")
@@ -372,7 +372,7 @@ def _workflow_trace_node_allowed(node: Any, depth: int, max_depth: int, local_se
     return True
 
 
-def _workflow_collect_node_text(node: Dict[str, Any], context: Optional[str], found_texts: List[str]) -> None:
+def _workflow_collect_node_text(node: dict[str, Any], context: str | None, found_texts: list[str]) -> None:
     node_type = str(node.get("type", "")).lower()
     if "loader" in node_type or "checkpoint" in node_type or "loadimage" in node_type:
         return
@@ -382,12 +382,12 @@ def _workflow_collect_node_text(node: Dict[str, Any], context: Optional[str], fo
 
 
 def _workflow_push_upstream_inputs(
-    node_map: Dict[Any, Dict[str, Any]],
-    link_lookup: Dict[Any, Tuple[Any, Any, Any, Any]],
-    node: Dict[str, Any],
-    context: Optional[str],
+    node_map: dict[Any, dict[str, Any]],
+    link_lookup: dict[Any, tuple[Any, Any, Any, Any]],
+    node: dict[str, Any],
+    context: str | None,
     depth: int,
-    stack: List[Tuple[Dict[str, Any], int]],
+    stack: list[tuple[dict[str, Any], int]],
 ) -> None:
     inputs = node.get("inputs", [])
     if not isinstance(inputs, list) or not inputs:
@@ -408,7 +408,7 @@ def _workflow_push_upstream_inputs(
             stack.append((origin_node, depth + 1))
 
 
-def _workflow_input_context_allowed(inp: Dict[str, Any], context: Optional[str]) -> bool:
+def _workflow_input_context_allowed(inp: dict[str, Any], context: str | None) -> bool:
     input_name = str(inp.get("name", "")).lower()
     if context == "positive" and "negative" in input_name:
         return False
@@ -417,14 +417,14 @@ def _workflow_input_context_allowed(inp: Dict[str, Any], context: Optional[str])
     return True
 
 
-def _workflow_apply_sampler_widget_params(params: Dict[str, Any], widgets: Any) -> None:
+def _workflow_apply_sampler_widget_params(params: dict[str, Any], widgets: Any) -> None:
     if not isinstance(widgets, list):
         return
     for value in widgets:
         _workflow_apply_sampler_widget_value(params, value)
 
 
-def _workflow_apply_sampler_widget_value(params: Dict[str, Any], value: Any) -> None:
+def _workflow_apply_sampler_widget_value(params: dict[str, Any], value: Any) -> None:
     if isinstance(value, int):
         _workflow_apply_sampler_int(params, value)
         return
@@ -436,14 +436,14 @@ def _workflow_apply_sampler_widget_value(params: Dict[str, Any], value: Any) -> 
         _workflow_apply_sampler_name(params, value)
 
 
-def _workflow_apply_sampler_int(params: Dict[str, Any], value: int) -> None:
+def _workflow_apply_sampler_int(params: dict[str, Any], value: int) -> None:
     if value > 10000 and "seed" not in params:
         params["seed"] = value
     elif 1 <= value <= 200 and "steps" not in params:
         params["steps"] = value
 
 
-def _workflow_apply_sampler_name(params: Dict[str, Any], value: str) -> None:
+def _workflow_apply_sampler_name(params: dict[str, Any], value: str) -> None:
     if "sampler" in params:
         return
     if value.lower() in ["euler", "euler_a", "dpm++", "ddim", "uni_pc"]:
@@ -451,13 +451,13 @@ def _workflow_apply_sampler_name(params: Dict[str, Any], value: str) -> None:
 
 
 def _workflow_trace_sampler_fields(
-    node: Dict[str, Any],
-    node_map: Dict[Any, Dict[str, Any]],
-    link_lookup: Dict[Any, Tuple[Any, Any, Any, Any]],
-    params: Dict[str, Any],
-    unique_prompts: Set[str],
-    unique_negatives: Set[str],
-    visited_nodes: Set[Any],
+    node: dict[str, Any],
+    node_map: dict[Any, dict[str, Any]],
+    link_lookup: dict[Any, tuple[Any, Any, Any, Any]],
+    params: dict[str, Any],
+    unique_prompts: set[str],
+    unique_negatives: set[str],
+    visited_nodes: set[Any],
 ) -> None:
     node_id = node.get("id")
     if node_id is None:
@@ -471,12 +471,12 @@ def _workflow_trace_sampler_fields(
 
 
 def _workflow_trace_guider_fields(
-    node_map: Dict[Any, Dict[str, Any]],
-    link_lookup: Dict[Any, Tuple[Any, Any, Any, Any]],
+    node_map: dict[Any, dict[str, Any]],
+    link_lookup: dict[Any, tuple[Any, Any, Any, Any]],
     node_id: Any,
-    unique_prompts: Set[str],
-    unique_negatives: Set[str],
-    visited_nodes: Set[Any],
+    unique_prompts: set[str],
+    unique_negatives: set[str],
+    visited_nodes: set[Any],
 ) -> None:
     guider_info = _workflow_get_source_data(node_map, link_lookup, node_id, "guider")
     if not guider_info or not isinstance(guider_info[0], dict):
@@ -493,10 +493,10 @@ def _workflow_trace_guider_fields(
 
 
 def _workflow_trace_model_field(
-    node_map: Dict[Any, Dict[str, Any]],
-    link_lookup: Dict[Any, Tuple[Any, Any, Any, Any]],
+    node_map: dict[Any, dict[str, Any]],
+    link_lookup: dict[Any, tuple[Any, Any, Any, Any]],
     node_id: Any,
-    params: Dict[str, Any],
+    params: dict[str, Any],
 ) -> None:
     model_info = _workflow_get_source_data(node_map, link_lookup, node_id, "model")
     if not model_info or not isinstance(model_info[0], dict):
@@ -508,13 +508,13 @@ def _workflow_trace_model_field(
 
 
 def _workflow_collect_source_texts(
-    node_map: Dict[Any, Dict[str, Any]],
-    link_lookup: Dict[Any, Tuple[Any, Any, Any, Any]],
+    node_map: dict[Any, dict[str, Any]],
+    link_lookup: dict[Any, tuple[Any, Any, Any, Any]],
     node_id: Any,
     source_name: str,
     context: str,
-    out: Set[str],
-    visited_nodes: Set[Any],
+    out: set[str],
+    visited_nodes: set[Any],
 ) -> None:
     source_info = _workflow_get_source_data(node_map, link_lookup, node_id, source_name)
     if source_info:
@@ -522,14 +522,14 @@ def _workflow_collect_source_texts(
 
 
 def _workflow_collect_from_source_info(
-    node_map: Dict[Any, Dict[str, Any]],
-    link_lookup: Dict[Any, Tuple[Any, Any, Any, Any]],
-    source_info: Tuple[Any, Any],
+    node_map: dict[Any, dict[str, Any]],
+    link_lookup: dict[Any, tuple[Any, Any, Any, Any]],
+    source_info: tuple[Any, Any],
     context: str,
-    out: Set[str],
-    visited_nodes: Set[Any],
+    out: set[str],
+    visited_nodes: set[Any],
 ) -> None:
-    trace_seen: Set[Any] = set()
+    trace_seen: set[Any] = set()
     texts = _workflow_find_upstream_text(
         node_map,
         link_lookup,
@@ -542,12 +542,12 @@ def _workflow_collect_from_source_info(
 
 
 def _workflow_classify_unconnected_node(
-    start_node: Dict[str, Any],
-    node_map: Dict[Any, Dict[str, Any]],
-    link_lookup: Dict[Any, Tuple[Any, Any, Any, Any]],
+    start_node: dict[str, Any],
+    node_map: dict[Any, dict[str, Any]],
+    link_lookup: dict[Any, tuple[Any, Any, Any, Any]],
     *,
     depth: int = 0,
-    visited_trace: Optional[Set[Any]] = None,
+    visited_trace: set[Any] | None = None,
 ) -> str:
     local_visited = visited_trace if visited_trace is not None else set()
     nid = start_node.get("id")
@@ -578,8 +578,8 @@ def _workflow_classify_unconnected_node(
     return "unknown"
 
 
-def _workflow_iter_output_link_ids(outputs: List[Any]) -> List[Any]:
-    link_ids: List[Any] = []
+def _workflow_iter_output_link_ids(outputs: list[Any]) -> list[Any]:
+    link_ids: list[Any] = []
     for output in outputs:
         if not isinstance(output, dict):
             continue
@@ -595,9 +595,9 @@ def _workflow_iter_output_link_ids(outputs: List[Any]) -> List[Any]:
 
 def _workflow_target_node_from_link(
     link_id: Any,
-    node_map: Dict[Any, Dict[str, Any]],
-    link_lookup: Dict[Any, Tuple[Any, Any, Any, Any]],
-) -> Optional[Dict[str, Any]]:
+    node_map: dict[Any, dict[str, Any]],
+    link_lookup: dict[Any, tuple[Any, Any, Any, Any]],
+) -> dict[str, Any] | None:
     link_target = link_lookup.get(link_id)
     if not link_target:
         return None
@@ -605,7 +605,7 @@ def _workflow_target_node_from_link(
     return tgt_node if isinstance(tgt_node, dict) else None
 
 
-def _workflow_role_from_target_input_link(target_node: Dict[str, Any], link_id: Any) -> str:
+def _workflow_role_from_target_input_link(target_node: dict[str, Any], link_id: Any) -> str:
     tgt_inputs = target_node.get("inputs", [])
     if not isinstance(tgt_inputs, list):
         return "unknown"
@@ -623,12 +623,12 @@ def _workflow_role_from_target_input_link(target_node: Dict[str, Any], link_id: 
 
 
 def _workflow_collect_unconnected_texts(
-    nodes: List[Dict[str, Any]],
-    node_map: Dict[Any, Dict[str, Any]],
-    link_lookup: Dict[Any, Tuple[Any, Any, Any, Any]],
-    unique_prompts: Set[str],
-    unique_negatives: Set[str],
-    visited_nodes: Set[Any],
+    nodes: list[dict[str, Any]],
+    node_map: dict[Any, dict[str, Any]],
+    link_lookup: dict[Any, tuple[Any, Any, Any, Any]],
+    unique_prompts: set[str],
+    unique_negatives: set[str],
+    visited_nodes: set[Any],
     sampler_found: bool,
 ) -> None:
     for node in nodes:
@@ -660,11 +660,11 @@ def _workflow_collect_unconnected_texts(
 def _workflow_store_unconnected_text(
     text: str,
     title: str,
-    node: Dict[str, Any],
-    node_map: Dict[Any, Dict[str, Any]],
-    link_lookup: Dict[Any, Tuple[Any, Any, Any, Any]],
-    unique_prompts: Set[str],
-    unique_negatives: Set[str],
+    node: dict[str, Any],
+    node_map: dict[Any, dict[str, Any]],
+    link_lookup: dict[Any, tuple[Any, Any, Any, Any]],
+    unique_prompts: set[str],
+    unique_negatives: set[str],
     sampler_found: bool,
 ) -> None:
     if "negative" in title:
@@ -683,9 +683,9 @@ def _workflow_store_unconnected_text(
 
 
 def _workflow_apply_prompt_fallback(
-    nodes: List[Dict[str, Any]],
-    unique_prompts: Set[str],
-    unique_negatives: Set[str],
+    nodes: list[dict[str, Any]],
+    unique_prompts: set[str],
+    unique_negatives: set[str],
 ) -> None:
     if unique_prompts or unique_negatives:
         return
@@ -711,7 +711,7 @@ def _workflow_is_text_prompt_node(node_type: str) -> bool:
     return "text" in node_type or "string" in node_type or "prompt" in node_type
 
 
-def _workflow_first_nontrivial_text(widgets: List[Any]) -> Optional[str]:
+def _workflow_first_nontrivial_text(widgets: list[Any]) -> str | None:
     for value in widgets:
         if isinstance(value, str) and len(value) > 2:
             return value
@@ -723,9 +723,9 @@ def _workflow_is_negative_prompt_node(title: str, node_type: str) -> bool:
 
 
 def _workflow_finalize_params(
-    params: Dict[str, Any],
-    unique_prompts: Set[str],
-    unique_negatives: Set[str],
+    params: dict[str, Any],
+    unique_prompts: set[str],
+    unique_negatives: set[str],
 ) -> None:
     if unique_prompts:
         params["positive_prompt"] = "\n".join(unique_prompts)
@@ -739,8 +739,8 @@ def _workflow_finalize_params(
         params["parameters"] = "\n".join(fake_text_parts)
 
 
-def _workflow_prompt_lines(params: Dict[str, Any]) -> List[str]:
-    out: List[str] = []
+def _workflow_prompt_lines(params: dict[str, Any]) -> list[str]:
+    out: list[str] = []
     if "positive_prompt" in params:
         out.append(params["positive_prompt"])
     if "negative_prompt" in params:
@@ -748,8 +748,8 @@ def _workflow_prompt_lines(params: Dict[str, Any]) -> List[str]:
     return out
 
 
-def _workflow_detail_lines(params: Dict[str, Any]) -> List[str]:
-    out: List[str] = []
+def _workflow_detail_lines(params: dict[str, Any]) -> list[str]:
+    out: list[str] = []
     if "steps" in params:
         out.append(f"Steps: {params['steps']}")
     if "sampler" in params:
@@ -763,12 +763,12 @@ def _workflow_detail_lines(params: Dict[str, Any]) -> List[str]:
     return out
 
 
-def _reconstruct_params_from_workflow(workflow: Dict[str, Any]) -> Dict[str, Any]:
+def _reconstruct_params_from_workflow(workflow: dict[str, Any]) -> dict[str, Any]:
     """
     Fallback: Extract prompts and parameters directly from the Workflow nodes.
     Uses link traversal to distinguish Positive vs Negative prompts.
     """
-    params: Dict[str, Any] = {}
+    params: dict[str, Any] = {}
     raw_nodes = workflow.get("nodes", [])
     links = workflow.get("links", [])
     if not isinstance(raw_nodes, list) or not raw_nodes:
@@ -778,9 +778,9 @@ def _reconstruct_params_from_workflow(workflow: Dict[str, Any]) -> Dict[str, Any
     node_map = {node["id"]: node for node in nodes if "id" in node}
     link_lookup = _workflow_build_link_lookup(links)
 
-    unique_prompts: Set[str] = set()
-    unique_negatives: Set[str] = set()
-    visited_nodes: Set[Any] = set()
+    unique_prompts: set[str] = set()
+    unique_negatives: set[str] = set()
+    visited_nodes: set[Any] = set()
     sampler_found = False
 
     for node in nodes:
@@ -812,7 +812,7 @@ def _reconstruct_params_from_workflow(workflow: Dict[str, Any]) -> Dict[str, Any
     return params
 
 
-def _coerce_rating_to_stars(value: Any) -> Optional[int]:
+def _coerce_rating_to_stars(value: Any) -> int | None:
     """
     Normalize rating values to 0..5 stars.
 
@@ -830,7 +830,7 @@ def _coerce_rating_to_stars(value: Any) -> Optional[int]:
     return _coerce_percent_rating_to_stars(v)
 
 
-def _coerce_rating_number(value: Any) -> Optional[float]:
+def _coerce_rating_number(value: Any) -> float | None:
     if value is None:
         return None
     try:
@@ -886,7 +886,7 @@ def _split_tags(text: str) -> list[str]:
     return out
 
 
-def _extract_rating_tags(exif_data: Optional[Dict]) -> tuple[Optional[int], list[str]]:
+def _extract_rating_tags(exif_data: dict | None) -> tuple[int | None, list[str]]:
     if not exif_data or not isinstance(exif_data, dict):
         return (None, [])
     norm = _build_exif_norm_map(exif_data)
@@ -895,8 +895,8 @@ def _extract_rating_tags(exif_data: Optional[Dict]) -> tuple[Optional[int], list
     return (rating, _dedupe_tag_list(tags))
 
 
-def _build_exif_norm_map(data: Dict[str, Any]) -> Dict[str, Any]:
-    out: Dict[str, Any] = {}
+def _build_exif_norm_map(data: dict[str, Any]) -> dict[str, Any]:
+    out: dict[str, Any] = {}
     for key, value in data.items():
         kl = _normalized_exif_key(key)
         if not kl:
@@ -916,7 +916,7 @@ def _normalized_exif_key(key: Any) -> str:
     return text.strip().lower()
 
 
-def _add_exif_aliases(out: Dict[str, Any], key_lower: str, value: Any) -> None:
+def _add_exif_aliases(out: dict[str, Any], key_lower: str, value: Any) -> None:
     if ":" not in key_lower:
         return
     group, tag = key_lower.split(":", 1)
@@ -928,7 +928,7 @@ def _add_exif_aliases(out: Dict[str, Any], key_lower: str, value: Any) -> None:
         out.setdefault(f"{group_last}:{tag}", value)
 
 
-def _extract_rating_from_norm(norm: Dict[str, Any]) -> Optional[int]:
+def _extract_rating_from_norm(norm: dict[str, Any]) -> int | None:
     for key in _RATING_CANDIDATE_KEYS:
         if key not in norm:
             continue
@@ -938,7 +938,7 @@ def _extract_rating_from_norm(norm: Dict[str, Any]) -> Optional[int]:
     return None
 
 
-def _extract_tags_from_norm(norm: Dict[str, Any]) -> list[str]:
+def _extract_tags_from_norm(norm: dict[str, Any]) -> list[str]:
     tags: list[str] = []
     for key in _TAG_CANDIDATE_KEYS:
         if key not in norm:
@@ -960,7 +960,7 @@ def _split_tag_value(value: Any) -> list[str]:
 
 
 def _dedupe_tag_list(tags: list[str]) -> list[str]:
-    seen: Set[str] = set()
+    seen: set[str] = set()
     deduped: list[str] = []
     for tag in tags:
         if tag in seen:
@@ -970,7 +970,7 @@ def _dedupe_tag_list(tags: list[str]) -> list[str]:
     return deduped
 
 
-def _extract_date_created(exif_data: Optional[Dict[str, Any]]) -> Optional[str]:
+def _extract_date_created(exif_data: dict[str, Any] | None) -> str | None:
     """
     Extract the best candidate for 'Generation Time' (Content Creation) from Exif.
     """
@@ -1001,7 +1001,7 @@ def _extract_date_created(exif_data: Optional[Dict[str, Any]]) -> Optional[str]:
     return None
 
 
-def extract_rating_tags_from_exif(exif_data: Optional[Dict]) -> tuple[Optional[int], list[str]]:
+def extract_rating_tags_from_exif(exif_data: dict | None) -> tuple[int | None, list[str]]:
     """
     Public wrapper for rating/tags extraction from ExifTool metadata dict.
 
@@ -1009,7 +1009,7 @@ def extract_rating_tags_from_exif(exif_data: Optional[Dict]) -> tuple[Optional[i
     """
     return _extract_rating_tags(exif_data)
 
-def _bump_quality(metadata: Dict[str, Any], quality: str) -> None:
+def _bump_quality(metadata: dict[str, Any], quality: str) -> None:
     """
     Upgrade metadata["quality"] without downgrading.
 
@@ -1025,10 +1025,10 @@ def _bump_quality(metadata: Dict[str, Any], quality: str) -> None:
 
 
 def _resolve_workflow_prompt_fields(
-    exif_data: Dict[str, Any],
-    workflow: Optional[Dict[str, Any]],
-    prompt: Optional[Dict[str, Any]],
-) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+    exif_data: dict[str, Any],
+    workflow: dict[str, Any] | None,
+    prompt: dict[str, Any] | None,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     wf = workflow
     pr = prompt
     if wf is None or pr is None:
@@ -1041,9 +1041,9 @@ def _resolve_workflow_prompt_fields(
 
 
 def _apply_workflow_prompt_quality(
-    metadata: Dict[str, Any],
-    workflow: Optional[Dict[str, Any]],
-    prompt: Optional[Dict[str, Any]],
+    metadata: dict[str, Any],
+    workflow: dict[str, Any] | None,
+    prompt: dict[str, Any] | None,
 ) -> None:
     if looks_like_comfyui_workflow(workflow):
         metadata["workflow"] = workflow
@@ -1054,7 +1054,7 @@ def _apply_workflow_prompt_quality(
             _bump_quality(metadata, "partial")
 
 
-def _apply_reconstructed_workflow_params(metadata: Dict[str, Any]) -> None:
+def _apply_reconstructed_workflow_params(metadata: dict[str, Any]) -> None:
     if not metadata.get("workflow") or metadata.get("parameters"):
         return
     reconstructed = _reconstruct_params_from_workflow(metadata["workflow"])
@@ -1065,7 +1065,7 @@ def _apply_reconstructed_workflow_params(metadata: Dict[str, Any]) -> None:
         _bump_quality(metadata, "partial")
 
 
-def _apply_rating_tags_and_generation_time(metadata: Dict[str, Any], exif_data: Dict[str, Any]) -> None:
+def _apply_rating_tags_and_generation_time(metadata: dict[str, Any], exif_data: dict[str, Any]) -> None:
     rating, tags = _extract_rating_tags(exif_data)
     if rating is not None:
         metadata["rating"] = rating
@@ -1078,11 +1078,11 @@ def _apply_rating_tags_and_generation_time(metadata: Dict[str, Any], exif_data: 
 
 
 def _apply_common_exif_fields(
-    metadata: Dict[str, Any],
-    exif_data: Dict[str, Any],
+    metadata: dict[str, Any],
+    exif_data: dict[str, Any],
     *,
-    workflow: Optional[Dict[str, Any]] = None,
-    prompt: Optional[Dict[str, Any]] = None,
+    workflow: dict[str, Any] | None = None,
+    prompt: dict[str, Any] | None = None,
 ) -> None:
     """
     Apply workflow/prompt + rating/tags into an existing metadata dict.
@@ -1095,12 +1095,12 @@ def _apply_common_exif_fields(
         _apply_dimensions_from_exif(metadata, exif_data)
 
 
-def _build_a1111_geninfo(parsed: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _build_a1111_geninfo(parsed: dict[str, Any]) -> dict[str, Any] | None:
     """Build a minimal geninfo payload from parsed A1111 parameters."""
     if not isinstance(parsed, dict):
         return None
 
-    out: Dict[str, Any] = {"engine": {"parser_version": "geninfo-params-v1", "source": "parameters"}}
+    out: dict[str, Any] = {"engine": {"parser_version": "geninfo-params-v1", "source": "parameters"}}
 
     _apply_a1111_prompt_fields(out, parsed)
     _apply_a1111_numeric_fields(out, parsed)
@@ -1110,7 +1110,7 @@ def _build_a1111_geninfo(parsed: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     return out if len(out) > 1 else None
 
 
-def _apply_a1111_prompt_fields(out: Dict[str, Any], parsed: Dict[str, Any]) -> None:
+def _apply_a1111_prompt_fields(out: dict[str, Any], parsed: dict[str, Any]) -> None:
     pos = parsed.get("prompt")
     neg = parsed.get("negative_prompt")
     if isinstance(pos, str) and pos.strip():
@@ -1119,13 +1119,13 @@ def _apply_a1111_prompt_fields(out: Dict[str, Any], parsed: Dict[str, Any]) -> N
         out["negative"] = {"value": neg.strip(), "confidence": "high", "source": "parameters"}
 
 
-def _apply_a1111_numeric_fields(out: Dict[str, Any], parsed: Dict[str, Any]) -> None:
+def _apply_a1111_numeric_fields(out: dict[str, Any], parsed: dict[str, Any]) -> None:
     _apply_a1111_numeric_field(out, "steps", parsed.get("steps"), int)
     _apply_a1111_numeric_field(out, "cfg", parsed.get("cfg"), float)
     _apply_a1111_numeric_field(out, "seed", parsed.get("seed"), int)
 
 
-def _apply_a1111_numeric_field(out: Dict[str, Any], key: str, value: Any, caster: Any) -> None:
+def _apply_a1111_numeric_field(out: dict[str, Any], key: str, value: Any, caster: Any) -> None:
     if value is None:
         return
     try:
@@ -1134,7 +1134,7 @@ def _apply_a1111_numeric_field(out: Dict[str, Any], key: str, value: Any, caster
         return
 
 
-def _apply_a1111_size_field(out: Dict[str, Any], parsed: Dict[str, Any]) -> None:
+def _apply_a1111_size_field(out: dict[str, Any], parsed: dict[str, Any]) -> None:
     width = parsed.get("width")
     height = parsed.get("height")
     if width is None or height is None:
@@ -1150,7 +1150,7 @@ def _apply_a1111_size_field(out: Dict[str, Any], parsed: Dict[str, Any]) -> None
         return
 
 
-def _apply_a1111_checkpoint_field(out: Dict[str, Any], parsed: Dict[str, Any]) -> None:
+def _apply_a1111_checkpoint_field(out: dict[str, Any], parsed: dict[str, Any]) -> None:
     model = parsed.get("model")
     if not isinstance(model, str) or not model.strip():
         return
@@ -1164,7 +1164,7 @@ def _apply_a1111_checkpoint_field(out: Dict[str, Any], parsed: Dict[str, Any]) -
         out["checkpoint"] = {"name": checkpoint, "confidence": "high", "source": "parameters"}
 
 
-def extract_png_metadata(file_path: str, exif_data: Optional[Dict] = None) -> Result[Dict[str, Any]]:
+def extract_png_metadata(file_path: str, exif_data: dict | None = None) -> Result[dict[str, Any]]:
     if not os.path.exists(file_path):
         return Result.Err(ErrorCode.NOT_FOUND, f"File not found: {file_path}")
 
@@ -1197,10 +1197,10 @@ def extract_png_metadata(file_path: str, exif_data: Optional[Dict] = None) -> Re
 
 
 def _merge_scanned_workflow_prompt(
-    workflow: Optional[Dict[str, Any]],
-    prompt: Optional[Dict[str, Any]],
-    container: Optional[Dict[str, Any]],
-) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+    workflow: dict[str, Any] | None,
+    prompt: dict[str, Any] | None,
+    container: dict[str, Any] | None,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     if not isinstance(container, dict):
         return workflow, prompt
     scanned_workflow, scanned_prompt = _extract_json_fields(container)
@@ -1212,11 +1212,11 @@ def _merge_scanned_workflow_prompt(
 
 
 def _scan_webp_text_fields(
-    metadata: Dict[str, Any],
-    exif_data: Dict[str, Any],
-    workflow: Optional[Dict[str, Any]],
-    prompt: Optional[Dict[str, Any]],
-) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+    metadata: dict[str, Any],
+    exif_data: dict[str, Any],
+    workflow: dict[str, Any] | None,
+    prompt: dict[str, Any] | None,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     for key in _WEBP_TEXT_KEYS:
         candidate = exif_data.get(key)
         if not isinstance(candidate, str) or not candidate:
@@ -1230,9 +1230,9 @@ def _scan_webp_text_fields(
 
 def _try_merge_webp_json_candidate(
     candidate_text: str,
-    workflow: Optional[Dict[str, Any]],
-    prompt: Optional[Dict[str, Any]],
-) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]], bool]:
+    workflow: dict[str, Any] | None,
+    prompt: dict[str, Any] | None,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None, bool]:
     parsed_json = try_parse_json_text(candidate_text)
     if parsed_json is None:
         return workflow, prompt, False
@@ -1240,9 +1240,9 @@ def _try_merge_webp_json_candidate(
 
 
 def _apply_webp_auto1111_candidate(
-    metadata: Dict[str, Any],
+    metadata: dict[str, Any],
     candidate_text: str,
-    prompt: Optional[Dict[str, Any]],
+    prompt: dict[str, Any] | None,
 ) -> None:
     parsed_a1111 = parse_auto1111_params(candidate_text)
     if not parsed_a1111:
@@ -1255,7 +1255,7 @@ def _apply_webp_auto1111_candidate(
         metadata["prompt"] = parsed_a1111["prompt"]
 
 
-def _apply_video_ffprobe_fields(metadata: Dict[str, Any], ffprobe_data: Optional[Dict[str, Any]]) -> None:
+def _apply_video_ffprobe_fields(metadata: dict[str, Any], ffprobe_data: dict[str, Any] | None) -> None:
     if not isinstance(ffprobe_data, dict):
         return
     video_stream = ffprobe_data.get("video_stream", {})
@@ -1269,11 +1269,11 @@ def _apply_video_ffprobe_fields(metadata: Dict[str, Any], ffprobe_data: Optional
 
 
 def _scan_video_workflow_prompt_from_sources(
-    exif_data: Dict[str, Any],
-    ffprobe_data: Optional[Dict[str, Any]],
-) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]], Dict[str, Any], List[Dict[str, Any]]]:
-    workflow: Optional[Dict[str, Any]] = None
-    prompt: Optional[Dict[str, Any]] = None
+    exif_data: dict[str, Any],
+    ffprobe_data: dict[str, Any] | None,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None, dict[str, Any], list[dict[str, Any]]]:
+    workflow: dict[str, Any] | None = None
+    prompt: dict[str, Any] | None = None
     potential_workflow = _inspect_json_field(exif_data, _VIDEO_WORKFLOW_KEYS)
     potential_prompt = _inspect_json_field(exif_data, _VIDEO_PROMPT_KEYS)
     workflow, prompt, _ = _merge_workflow_prompt_candidate(potential_workflow, workflow, prompt)
@@ -1295,10 +1295,10 @@ def _scan_video_workflow_prompt_from_sources(
 
 
 def _collect_video_text_candidates(
-    exif_data: Dict[str, Any],
-    format_tags: Dict[str, Any],
-    stream_tag_dicts: List[Dict[str, Any]],
-) -> List[Tuple[str, str]]:
+    exif_data: dict[str, Any],
+    format_tags: dict[str, Any],
+    stream_tag_dicts: list[dict[str, Any]],
+) -> list[tuple[str, str]]:
     text_candidates = _collect_text_candidates(exif_data)
     if format_tags:
         text_candidates.extend(_collect_text_candidates(format_tags))
@@ -1306,7 +1306,7 @@ def _collect_video_text_candidates(
         text_candidates.extend(_collect_text_candidates(tags))
     return text_candidates
 
-def extract_webp_metadata(file_path: str, exif_data: Optional[Dict] = None) -> Result[Dict[str, Any]]:
+def extract_webp_metadata(file_path: str, exif_data: dict | None = None) -> Result[dict[str, Any]]:
     """
     Extract ComfyUI metadata from WEBP file.
     Handles JSON in EXIF:Make/Model and text fields (ImageDescription) with prefixes.
@@ -1347,7 +1347,7 @@ def extract_webp_metadata(file_path: str, exif_data: Optional[Dict] = None) -> R
         logger.warning(f"WEBP metadata extraction error: {e}")
         return Result.Err(ErrorCode.PARSE_ERROR, str(e), quality="degraded")
 
-def extract_video_metadata(file_path: str, exif_data: Optional[Dict] = None, ffprobe_data: Optional[Dict] = None) -> Result[Dict[str, Any]]:
+def extract_video_metadata(file_path: str, exif_data: dict | None = None, ffprobe_data: dict | None = None) -> Result[dict[str, Any]]:
     """
     Extract ComfyUI metadata from video file (MP4, MOV, WEBM, MKV).
 
@@ -1366,7 +1366,7 @@ def extract_video_metadata(file_path: str, exif_data: Optional[Dict] = None, ffp
 
     exif_data = exif_data or {}
     # Start with all raw data
-    metadata: Dict[str, Any] = {
+    metadata: dict[str, Any] = {
         "raw": exif_data or {},
         "raw_ffprobe": ffprobe_data or {},
         "workflow": None,
@@ -1396,13 +1396,13 @@ def extract_video_metadata(file_path: str, exif_data: Optional[Dict] = None, ffp
         logger.warning(f"Video metadata extraction error: {e}")
         return Result.Err(ErrorCode.PARSE_ERROR, str(e), quality="degraded")
 
-def _extract_json_fields(exif_data: Dict[str, Any]) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+def _extract_json_fields(exif_data: dict[str, Any]) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     """
     Optimized scan of EXIF/ffprobe metadata for workflow/prompt JSON fields.
     Prioritizes known keys before scanning strictly.
     """
-    workflow: Optional[Dict[str, Any]] = None
-    prompt: Optional[Dict[str, Any]] = None
+    workflow: dict[str, Any] | None = None
+    prompt: dict[str, Any] | None = None
     for key, value in _priority_sorted_exif_items(exif_data):
         if workflow and prompt:
             break
@@ -1415,7 +1415,7 @@ def _extract_json_fields(exif_data: Dict[str, Any]) -> Tuple[Optional[Dict[str, 
     return workflow, prompt
 
 
-def _priority_sorted_exif_items(exif_data: Dict[str, Any]) -> List[Tuple[Any, Any]]:
+def _priority_sorted_exif_items(exif_data: dict[str, Any]) -> list[tuple[Any, Any]]:
     priority_keys = (
         "UserComment",
         "Comment",
@@ -1434,18 +1434,18 @@ def _priority_sorted_exif_items(exif_data: Dict[str, Any]) -> List[Tuple[Any, An
     )
 
 
-def _is_priority_key(key: str, priority_keys: Tuple[str, ...]) -> bool:
+def _is_priority_key(key: str, priority_keys: tuple[str, ...]) -> bool:
     key_lower = key.lower()
     return any(token.lower() in key_lower for token in priority_keys)
 
 
 def _merge_json_candidate(
-    workflow: Optional[Dict[str, Any]],
-    prompt: Optional[Dict[str, Any]],
+    workflow: dict[str, Any] | None,
+    prompt: dict[str, Any] | None,
     parsed: Any,
     key: Any,
     value: Any,
-) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     workflow, prompt = _merge_container_candidate(workflow, prompt, parsed)
     workflow = _merge_direct_workflow_candidate(workflow, parsed)
     prompt = _merge_direct_prompt_candidate(prompt, parsed)
@@ -1453,10 +1453,10 @@ def _merge_json_candidate(
 
 
 def _merge_container_candidate(
-    workflow: Optional[Dict[str, Any]],
-    prompt: Optional[Dict[str, Any]],
+    workflow: dict[str, Any] | None,
+    prompt: dict[str, Any] | None,
     parsed: Any,
-) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     if workflow is not None and prompt is not None:
         return workflow, prompt
     wf_candidate, pr_candidate = _unwrap_workflow_prompt_container(parsed)
@@ -1467,25 +1467,25 @@ def _merge_container_candidate(
     return workflow, prompt
 
 
-def _merge_direct_workflow_candidate(workflow: Optional[Dict[str, Any]], parsed: Any) -> Optional[Dict[str, Any]]:
+def _merge_direct_workflow_candidate(workflow: dict[str, Any] | None, parsed: Any) -> dict[str, Any] | None:
     if workflow is None and looks_like_comfyui_workflow(parsed):
         return parsed
     return workflow
 
 
-def _merge_direct_prompt_candidate(prompt: Optional[Dict[str, Any]], parsed: Any) -> Optional[Dict[str, Any]]:
+def _merge_direct_prompt_candidate(prompt: dict[str, Any] | None, parsed: Any) -> dict[str, Any] | None:
     if prompt is None and looks_like_comfyui_prompt_graph(parsed):
         return parsed
     return prompt
 
 
 def _merge_prefixed_json_candidate(
-    workflow: Optional[Dict[str, Any]],
-    prompt: Optional[Dict[str, Any]],
+    workflow: dict[str, Any] | None,
+    prompt: dict[str, Any] | None,
     parsed: Any,
     key: Any,
     value: Any,
-) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     if not isinstance(value, str):
         return workflow, prompt
     normalized = _normalized_json_key(key)

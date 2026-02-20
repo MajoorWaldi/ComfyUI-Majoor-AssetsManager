@@ -3,10 +3,9 @@ from __future__ import annotations
 import argparse
 import datetime as _dt
 import html
-from pathlib import Path
 import sys
 import xml.etree.ElementTree as ET
-
+from pathlib import Path
 
 _CSS = r"""
 :root {
