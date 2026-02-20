@@ -6,6 +6,7 @@
  * Supports absolute positioning efficient updates.
  */
 export class VirtualGrid {
+    static DETAILS_META_MIN_HEIGHT = 36;
     /**
      * @param {HTMLElement} container The container to render items into (wrapper)
      * @param {HTMLElement|Window} scrollElement The element that scrolls (usually parent or window)
@@ -24,7 +25,7 @@ export class VirtualGrid {
 
         /** @type {HTMLElement|Window} */
         this.scrollElement = scrollElement;
-        
+
         /** @type {Required<typeof options>} */
         this.options = {
             minItemWidth: options.minItemWidth || 120,
@@ -38,29 +39,30 @@ export class VirtualGrid {
 
         /** @type {any[]} List of data items to render */
         this.items = [];
-        
+
         this.visibleRange = { start: 0, end: 0 };
-        
+
         /** @type {Map<number, HTMLElement>} Map of index -> rendered wrapper element */
-        this.renderedItems = new Map(); 
-        
+        this.renderedItems = new Map();
+
         // Metrics
         this.columnCount = 1;
         this.itemWidth = this.options.minItemWidth;
-        this.rowHeight = 200; // Initial guess
+        this.rowHeight = this.itemWidth;
         this.metaHeight = 0;  // Height of non-image part
         this.measured = false;
-        
+
         /** @type {number[]} Samples for dynamic height calculation */
         this.measureSamples = [];
-        
+
         this.renderPending = false;
         this.rafId = 0;
+        this._disposed = false;
         this.lastWidth = 0;
         this._resizeDebounce = 0;
         this._lastLayoutWidth = 0;
         this._lastLayoutHeight = 0;
-        this._layoutGuardThreshold = 12;
+        this._layoutGuardThreshold = 1;
         this._itemsVersion = 0;
         this._lastLayoutItemsVersion = -1;
 
@@ -71,6 +73,7 @@ export class VirtualGrid {
             }
             this._resizeDebounce = window.setTimeout(() => {
                 this._resizeDebounce = 0;
+                if (this._disposed) return;
                 if (width > 0) {
                     this.lastWidth = width;
                     this.onResize();
@@ -84,7 +87,7 @@ export class VirtualGrid {
             for (const entry of entries) {
                  if (entry.target === this.container) {
                      const width = entry.contentRect.width;
-                      if (width > 0 && Math.abs(width - this.lastWidth) > 20) {
+                     if (width > 0 && Math.abs(width - this.lastWidth) > 1) {
                          scheduleResize(width);
                       }
                       break; // Only care about container
@@ -95,13 +98,13 @@ export class VirtualGrid {
         this.resizeObserver.observe(this.container);
 
         this.onScrollBound = this.onScroll.bind(this);
-        
+
         // Dedicated scroll-container mode: normally scrollElement is an HTMLElement.
         // Keep a safety fallback for legacy configurations.
         this.scrollTarget = (this.scrollElement === document.body || this.scrollElement === document.documentElement)
             ? window
             : this.scrollElement;
-        
+
         if (this.scrollTarget) {
             this.scrollTarget.addEventListener("scroll", this.onScrollBound, { passive: true });
         }
@@ -136,10 +139,12 @@ export class VirtualGrid {
      * @param {boolean} [force=false] Force re-creation of DOM elements (e.g. settings change)
      */
     setItems(items, force = false) {
+        if (this._disposed) return;
         // Fix: Cancel pending scroll render to prevent race conditions
         if (this.renderPending && this.rafId) {
             cancelAnimationFrame(this.rafId);
             this.renderPending = false;
+            this.rafId = 0;
         }
 
         if (force) {
@@ -162,6 +167,10 @@ export class VirtualGrid {
 
         this.items = items || [];
         this._itemsVersion += 1;
+        if (this.items.length > 0) {
+            this.updateMetrics();
+            return;
+        }
         this.updateLayout(force);
     }
 
@@ -171,7 +180,8 @@ export class VirtualGrid {
      * @param {number} [conf.minItemWidth]
      * @param {number} [conf.gap]
      */
-    updateConfig({ minItemWidth, gap }) {
+    updateConfig({ minItemWidth, gap }, { relayout = true } = {}) {
+        if (this._disposed) return;
         let changed = false;
         if (minItemWidth != null && minItemWidth !== this.options.minItemWidth) {
             this.options.minItemWidth = Number(minItemWidth);
@@ -181,9 +191,9 @@ export class VirtualGrid {
             this.options.gap = Number(gap);
             changed = true;
         }
-        if (changed) {
+        if (changed && relayout) {
             // Force re-measure and layout
-            this.onResize(); 
+            this.onResize();
         }
     }
 
@@ -191,10 +201,20 @@ export class VirtualGrid {
      * Clean up observers and listeners when grid is destroyed.
      */
     dispose() {
+        this._disposed = true;
         this.resizeObserver.disconnect();
         if (this.scrollTarget) {
             this.scrollTarget.removeEventListener("scroll", this.onScrollBound);
         }
+        if (this._resizeDebounce) {
+            clearTimeout(this._resizeDebounce);
+            this._resizeDebounce = 0;
+        }
+        if (this.rafId) {
+            cancelAnimationFrame(this.rafId);
+            this.rafId = 0;
+        }
+        this.renderPending = false;
         this.container.innerHTML = "";
         this.renderedItems.clear();
     }
@@ -215,6 +235,7 @@ export class VirtualGrid {
      * @private
      */
     onResize() {
+        if (this._disposed) return;
         this.updateMetrics();
         this.render();
     }
@@ -224,11 +245,16 @@ export class VirtualGrid {
      * @private
      */
     onScroll() {
+        if (this._disposed) return;
         if (!this.renderPending) {
             this.renderPending = true;
             this.rafId = requestAnimationFrame(() => {
-                this.render();
-                this.renderPending = false;
+                try {
+                    if (!this._disposed) this.render();
+                } finally {
+                    this.renderPending = false;
+                    this.rafId = 0;
+                }
             });
         }
     }
@@ -253,17 +279,19 @@ export class VirtualGrid {
      * @private
      */
     updateMetrics() {
+        if (this._disposed) return;
         // Use container's clientWidth as the source of truth.
         // This automatically accounts for parent padding and parent scrollbars.
         let containerWidth = this.container.clientWidth;
-        
+
         // Fallback or sanity check
         if (!containerWidth) return;
 
         const gap = this.options.gap;
         const minW = this.options.minItemWidth;
 
-        // Derive effective usable width from style and scrollbar metrics (no hardcoded magic gap).
+        // Derive effective usable width from container/scroll-root geometry.
+        // Do not subtract scrollbars twice: container/client widths already account for them.
         let padL = 0;
         let padR = 0;
         try {
@@ -271,25 +299,31 @@ export class VirtualGrid {
             padL = Number.parseFloat(cs?.paddingLeft || "0") || 0;
             padR = Number.parseFloat(cs?.paddingRight || "0") || 0;
         } catch {}
-        let scrollbar = 0;
+        const safety = 2;
+        let baseWidth = containerWidth;
         try {
             const se = this.scrollElement;
             if (se && se !== window && se instanceof HTMLElement) {
-                scrollbar = Math.max(0, Number(se.offsetWidth || 0) - Number(se.clientWidth || 0));
+                const sw = Number(se.clientWidth || 0);
+                if (sw > 0) baseWidth = Math.min(baseWidth, sw);
             }
         } catch {}
-        const safety = 2;
-        let availWidth = Math.max(1, Math.floor(containerWidth - padL - padR - scrollbar - safety));
+        let availWidth = Math.max(1, Math.floor(baseWidth - padL - padR - safety));
 
-        this.columnCount = Math.max(1, Math.floor((availWidth + gap) / (minW + gap))); 
-        
-        // Calculate exact item width to fill space (like auto-fill)
-        this.itemWidth = Math.floor((availWidth - (this.columnCount - 1) * gap) / this.columnCount);
+        this.columnCount = Math.max(1, Math.floor((availWidth + gap) / (minW + gap)));
 
-        // Update row height estimate if we have a measured meta height
+        // Flex behavior: card width follows available row space.
+        this.itemWidth = Math.max(1, Math.floor((availWidth - (this.columnCount - 1) * gap) / this.columnCount));
+
+        const detailsEnabled = !!this.container?.classList?.contains?.("mjr-show-details");
+
+        // Keep cards square by default; when details are shown, reserve a small metadata strip.
+        // Once measured, use measured meta height but never below a readable minimum.
         if (this.measured && this.metaHeight > 0) {
-            // Assume 1:1 aspect ratio for image part + meta height
-            this.rowHeight = this.itemWidth + this.metaHeight;
+            const minMeta = detailsEnabled ? VirtualGrid.DETAILS_META_MIN_HEIGHT : 0;
+            this.rowHeight = this.itemWidth + Math.max(this.metaHeight, minMeta);
+        } else {
+            this.rowHeight = this.itemWidth + (detailsEnabled ? VirtualGrid.DETAILS_META_MIN_HEIGHT : 0);
         }
 
         this.updateLayout();
@@ -300,6 +334,7 @@ export class VirtualGrid {
      * @private
      */
     updateLayout(force = false) {
+        if (this._disposed) return;
         if (!this.items.length) {
             this.container.style.height = "0px";
             return;
@@ -308,7 +343,7 @@ export class VirtualGrid {
         const gap = this.options.gap;
         const totalRows = Math.ceil(this.items.length / this.columnCount);
         const totalHeight = totalRows * this.rowHeight + (totalRows - 1) * gap;
-        
+
         const containerWidth = this.container.clientWidth || this.container.offsetWidth || this.lastWidth || 0;
         const itemsChanged = this._lastLayoutItemsVersion !== this._itemsVersion;
         if (!force && !itemsChanged && containerWidth > 0) {
@@ -341,8 +376,8 @@ export class VirtualGrid {
             const rect = element.getBoundingClientRect();
             if (rect.height > 0) {
                 const fullHeight = rect.height;
-                const meta = fullHeight - this.itemWidth;
-                
+                const meta = Math.max(0, fullHeight - this.itemWidth);
+
                 this.measureSamples.push(meta);
 
                 // Sample at least 3 items to avoid outliers
@@ -350,16 +385,14 @@ export class VirtualGrid {
                      // Calculate median meta height
                      const sorted = [...this.measureSamples].sort((a,b) => a-b);
                      const mid = Math.floor(sorted.length / 2);
-                     this.metaHeight = sorted[mid];
-                     if (this.metaHeight < 20) this.metaHeight = 50; 
+                     this.metaHeight = Math.max(0, sorted[mid]);
 
                     this.rowHeight = this.itemWidth + this.metaHeight;
                     this.measured = true;
                     this.updateLayout(true);
                 } else if (this.measureSamples.length === 1) {
                      // Initial update to ensure grid has some height
-                     let tempMeta = meta;
-                     if (tempMeta < 20) tempMeta = 50;
+                     let tempMeta = Math.max(0, meta);
                      this.rowHeight = this.itemWidth + tempMeta;
                      this.updateLayout(true);
                 }
@@ -387,6 +420,7 @@ export class VirtualGrid {
      * Core render loop. Calculates visible range and creates/removes DOM elements.
      */
     render() {
+        if (this._disposed) return;
         if (!this.items.length || this.columnCount < 1) return;
 
         // Cache layout rects to avoid repeated DOM reads
@@ -417,7 +451,7 @@ export class VirtualGrid {
                 scrollTop = this.scrollElement?.scrollTop || 0;
             }
         }
-        
+
         // Sanity check
         if (viewportHeight <= 0) viewportHeight = 600;
 
@@ -427,40 +461,41 @@ export class VirtualGrid {
         // Calculate visible row range
         const startRow = Math.floor(scrollTop / rowTotal);
         const visibleRows = Math.ceil(viewportHeight / rowTotal);
-        
+
         const buffer = this.options.bufferRows;
-        
+
         // Determine index range
         const firstRow = Math.max(0, startRow - buffer);
         const lastRow = startRow + visibleRows + buffer;
-        
+
         const startIndex = firstRow * this.columnCount;
         const endIndex = Math.min(this.items.length, (lastRow + 1) * this.columnCount);
 
             const fragment = document.createDocumentFragment();
+            let firstNewCard = null;
             let createdCount = 0;
             // Track used keys (indices) to cleanup later
             const desiredIndices = new Set();
-    
+
             // Render loop
             for (let i = startIndex; i < endIndex; i++) {
                 desiredIndices.add(i);
-                
+
                 let el = this.renderedItems.get(i);
                 const item = this.items[i];
-                
+
                 // Check if element matches data (handle list mutations)
                 // Fix: Use ID check to avoid re-creating DOM when object ref changes but item is same
                 const isSameItem = el && (
-                    el._virtualItem === item || 
+                    el._virtualItem === item ||
                     (item.id != null && el._virtualItem?.id === item.id)
                 );
-    
+
                 if (el && !isSameItem) {
                     // Fix: onItemRecycled should receive the card context, not the wrapper.
                     const card = this._getCard(el);
                     if (card) this.options.onItemRecycled(card);
-                    
+
                     el.remove();
                     this.renderedItems.delete(i);
                     el = undefined;
@@ -469,7 +504,7 @@ export class VirtualGrid {
                     el._virtualItem = item;
                     this.options.onItemUpdated(item, this._getCard(el));
                 }
-    
+
                 if (!el) {
                     // Create wrapper for positioning
                     el = document.createElement("div");
@@ -477,7 +512,7 @@ export class VirtualGrid {
                     el.style.position = "absolute";
                     // CRITICAL: Set width BEFORE appending/measuring so content flows correctly
                     el.style.width = `${this.itemWidth}px`;
-                    
+
                     let card;
                     try {
                         card = this.options.createItem(item, i);
@@ -485,42 +520,42 @@ export class VirtualGrid {
                          this._warn("createItem failed", e);
                          card = document.createElement("div");
                     }
-                    
+
                     // Add to wrapper
                     el.appendChild(card);
-                    
+
                     el._virtualItem = item;
-                    
+
                     fragment.appendChild(el);
                     createdCount += 1;
                     this.renderedItems.set(i, el);
-                    
+
                     // IMPORTANT: The card element inside is what we measure and update
                     // But VirtualGrid manages the 'el' wrapper position.
-                    
-                    if (!this.measured) {
-                        this.measureItem(card);
+
+                    if (!this.measured && !firstNewCard) {
+                        firstNewCard = card;
                     }
-                    
+
                     this.options.onItemRendered(item, card);
                 }
-    
+
                 // Update position for everyone in range (in case resize happened)
                 if (el) {
                     const row = Math.floor(i / this.columnCount);
                     const col = i % this.columnCount;
                     const x = col * (this.itemWidth + gap);
                     const y = row * (this.rowHeight + gap);
-                    
+
                     // CRITICAL FIX: Use left/top instead of transform to avoid being overwritten by
                     // selection state CSS which applies transform: scale().
                     el.style.transform = ""; // clear any legacy transform
                     el.style.left = `${x}px`;
                     el.style.top = `${y}px`;
-                    
+
                     el.style.width = `${this.itemWidth}px`;
-                    el.style.height = `${this.rowHeight}px`; 
-                    
+                    el.style.height = `${this.rowHeight}px`;
+
                     // Force child card to fill wrapper?
                     // The wrapper is absolute. The card inside should probably be width 100%.
                     const card = el.firstElementChild;
@@ -533,8 +568,11 @@ export class VirtualGrid {
 
             if (createdCount > 0) {
                 this.container.appendChild(fragment);
+                if (!this.measured && firstNewCard) {
+                    this.measureItem(firstNewCard);
+                }
             }
-    
+
             // Cleanup
             for (const [i, el] of this.renderedItems) {
                 if (!desiredIndices.has(i)) {

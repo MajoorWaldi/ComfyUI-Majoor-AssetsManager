@@ -31,7 +31,9 @@ except Exception:
 
 logger = get_logger(__name__)
 
-_BATCH_DIR = OUTPUT_ROOT_PATH / "_mjr_batch_zips"
+_BATCH_DIR = Path(
+    os.environ.get("MAJOOR_BATCH_ZIP_DIR") or str(OUTPUT_ROOT_PATH / "_mjr_batch_zips")
+)
 _BATCH_LOCK = threading.Lock()
 _BATCH_CACHE: Dict[str, Dict[str, Any]] = {}
 _TOKEN_LOCKS: Dict[str, threading.Lock] = {}
@@ -59,7 +61,7 @@ _DEFAULT_BUILD_TIMEOUT_S = 120.0
 _DEFAULT_ZIP_COPY_CHUNK_BYTES = 1024 * 1024  # 1MB
 
 _TOKEN_MAX_LEN = 200
-_TOKEN_MIN_LEN = 16
+_TOKEN_MIN_LEN = 32
 _ZIP_NAME_MAX_LEN = 255
 _MAX_REQUEST_BYTES = 5 * 1024 * 1024
 
@@ -210,6 +212,7 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
     """Register batch-zip creation and download routes."""
     @routes.post("/mjr/am/batch-zip")
     async def create_batch_zip(request: web.Request) -> web.Response:
+        loop = asyncio.get_running_loop()
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
@@ -400,7 +403,7 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
                 entry["error"] = error
                 entry["count"] = count
                 try:
-                    entry["event"].set()
+                    loop.call_soon_threadsafe(entry["event"].set)
                 except Exception:
                     pass
 

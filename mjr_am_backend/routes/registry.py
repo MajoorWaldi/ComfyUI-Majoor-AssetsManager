@@ -21,6 +21,7 @@ _APP_KEY_SECURITY_MIDDLEWARES_INSTALLED: web.AppKey[bool] = web.AppKey(
 _APP_KEY_ROUTES_REGISTERED: web.AppKey[bool] = web.AppKey("_mjr_routes_registered", bool)
 _APP_KEY_OBSERVABILITY_INSTALLED: web.AppKey[bool] = web.AppKey("_mjr_observability_installed", bool)
 _APP_KEY_USER_MANAGER: web.AppKey[object] = web.AppKey("_mjr_user_manager", object)
+_APP_KEY_BG_SCAN_CLEANUP_INSTALLED: web.AppKey[bool] = web.AppKey("_mjr_bg_scan_cleanup_installed", bool)
 
 
 class _PromptServerInstance(Protocol):
@@ -256,6 +257,28 @@ def _install_security_middlewares(app: web.Application) -> None:
         logger.debug("Failed to install security middlewares: %s", exc)
 
 
+def _install_background_scan_cleanup(app: web.Application) -> None:
+    try:
+        if app.get(_APP_KEY_BG_SCAN_CLEANUP_INSTALLED):
+            return
+    except Exception:
+        pass
+
+    async def _on_cleanup(_app: web.Application) -> None:
+        try:
+            from .handlers.filesystem import stop_background_scan_worker
+
+            await stop_background_scan_worker(drain=True, timeout_s=2.0)
+        except Exception:
+            return
+
+    try:
+        app.on_cleanup.append(_on_cleanup)
+        app[_APP_KEY_BG_SCAN_CLEANUP_INSTALLED] = True
+    except Exception as exc:
+        logger.debug("Failed to install background scan cleanup hook: %s", exc)
+
+
 def register_all_routes() -> web.RouteTableDef:
     """
     Register all route handlers and return the RouteTableDef.
@@ -315,6 +338,7 @@ def register_all_routes() -> web.RouteTableDef:
     logger.info("  POST /mjr/am/open-in-folder")
     logger.info("  GET /mjr/am/search?q=<query>")
     logger.info("  GET /mjr/am/asset/{asset_id}")
+    logger.info("  POST /mjr/am/asset/rename")
     logger.info("  POST /mjr/am/assets/delete")
     logger.info("  POST /mjr/am/assets/rename")
     logger.info("  GET /mjr/am/collections")
@@ -361,6 +385,10 @@ def register_routes(app: web.Application, user_manager=None) -> None:
         _install_security_middlewares(app)
     except Exception as exc:
         logger.debug("Security middlewares not installed on aiohttp app: %s", exc)
+    try:
+        _install_background_scan_cleanup(app)
+    except Exception as exc:
+        logger.debug("Background scan cleanup hook not installed: %s", exc)
 
     try:
         if app.get(_APP_KEY_ROUTES_REGISTERED):

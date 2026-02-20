@@ -27,7 +27,7 @@ _VALID_PROBE_MODES = {"auto", "exiftool", "ffprobe", "both"}
 _SECURITY_PREFS_INFO: Mapping[str, dict[str, bool | str]] = {
     "safe_mode": {"env": "MAJOOR_SAFE_MODE", "default": False},
     "allow_write": {"env": "MAJOOR_ALLOW_WRITE", "default": False},
-    "allow_remote_write": {"env": "MAJOOR_ALLOW_REMOTE_WRITE", "default": True},
+    "allow_remote_write": {"env": "MAJOOR_ALLOW_REMOTE_WRITE", "default": False},
     "allow_delete": {"env": "MAJOOR_ALLOW_DELETE", "default": True},
     "allow_rename": {"env": "MAJOOR_ALLOW_RENAME", "default": True},
     "allow_open_in_folder": {"env": "MAJOOR_ALLOW_OPEN_IN_FOLDER", "default": True},

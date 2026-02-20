@@ -51,6 +51,8 @@ except Exception:
     _CLIENT_ID_HASH_HEX_CHARS = _DEFAULT_CLIENT_ID_HASH_HEX_CHARS
 
 _rate_limit_state: "OrderedDict[str, dict[str, list[float]]]" = OrderedDict()
+# threading.Lock is intentional here: rate-limit updates are synchronous and never await.
+# Do not add `await` inside a `with _rate_limit_lock:` critical section.
 _rate_limit_lock = threading.Lock()
 _rate_limit_cleanup_counter = 0
 
@@ -329,11 +331,11 @@ def _check_write_access(*, peer_ip: str, headers: Mapping[str, str]) -> "Result[
 
     Default policy:
       - If a token is configured, it must be provided for *all* write operations.
-      - If no token is configured, allow local and remote clients by default.
+      - If no token is configured, allow loopback clients only by default.
 
     Overrides:
       - MAJOOR_REQUIRE_AUTH=1 forces token auth even for loopback (requires MAJOOR_API_TOKEN).
-      - MAJOOR_ALLOW_REMOTE_WRITE=0 disables remote writes when no token is set (loopback-only mode).
+      - MAJOOR_ALLOW_REMOTE_WRITE=1 allows remote writes when no token is set.
 
     Returns a Result that never raises (route handlers should return 200 with this Result on error).
     """
@@ -344,8 +346,8 @@ def _check_write_access(*, peer_ip: str, headers: Mapping[str, str]) -> "Result[
 
     configured_hash = _get_write_token_hash()
     require_auth = _env_truthy("MAJOOR_REQUIRE_AUTH")
-    # Default: allow remote writes when no token is configured.
-    allow_remote = _env_truthy("MAJOOR_ALLOW_REMOTE_WRITE", default=True)
+    # Default: deny remote writes when no token is configured.
+    allow_remote = _env_truthy("MAJOOR_ALLOW_REMOTE_WRITE", default=False)
 
     client_ip = _resolve_client_ip(peer_ip, headers)
 

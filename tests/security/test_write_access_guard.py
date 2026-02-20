@@ -30,13 +30,14 @@ async def test_write_allowed_on_loopback_when_no_token(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_write_allowed_for_forwarded_remote_when_no_token_by_default(monkeypatch):
+async def test_write_blocked_for_forwarded_remote_when_no_token_by_default(monkeypatch):
     _clear_auth_env(monkeypatch)
     # 127.0.0.1 is a trusted proxy by default (see MAJOOR_TRUSTED_PROXIES default),
     # so X-Forwarded-For should be honored and treated as the true client.
     res = _check_write_access(peer_ip="127.0.0.1", headers={"X-Forwarded-For": "8.8.8.8"})
-    assert res.ok
-    assert (res.meta or {}).get("auth") in ("allow_remote_no_token", "loopback")
+    assert not res.ok
+    assert res.code == "FORBIDDEN"
+    assert (res.meta or {}).get("auth") == "loopback_only"
 
 
 @pytest.mark.asyncio

@@ -18,8 +18,8 @@ import { loadMajoorSettings } from "../../app/settings.js";
 import { VirtualGrid } from "./VirtualGrid.js";
 import { installGridKeyboard } from "./GridKeyboard.js";
 
-/** 
- * Strict typing for State management 
+/**
+ * Strict typing for State management
  * @typedef {Object} GridState
  * @property {string} query Current search string
  * @property {number} offset Pagination offset
@@ -90,7 +90,7 @@ function _getRenderedCards(gridContainer) {
 
 /**
  * Get hydration state for a grid.
- * @param {HTMLElement} gridContainer 
+ * @param {HTMLElement} gridContainer
  * @returns {{queue: any[], inflight: number, seen: Set<string>, active: Set<string>, lastPruneAt: number}|null}
  */
 function _getRtHydrateState(gridContainer) {
@@ -98,8 +98,8 @@ function _getRtHydrateState(gridContainer) {
         if (!gridContainer) return null;
         let s = RT_HYDRATE_STATE.get(gridContainer);
         if (!s) {
-            s = { 
-                queue: [], 
+            s = {
+                queue: [],
                 inflight: 0,
                 seen: new Set(),
                 active: new Set(),
@@ -127,7 +127,7 @@ function pruneRatingTagsHydrateSeen(st) {
         rtHydrateSeenPruneBudget -= 1;
         return;
     }
-    
+
     // Simple prune: clear all if oversize (easiest logic for set) -> actually Set doesn't sort by time.
     // If we want LRU we need Map. But here we just clear or we accept unbounded growth until hard reset.
     // Logic: if too big or too old, clear it.
@@ -281,7 +281,7 @@ function enqueueRatingTagsHydration(gridContainer, card, asset) {
  */
 function _updateGridSettingsClasses(container) {
     if (!container) return;
-    
+
     // Inject dynamic styles if not present (ensures reactivity behaves correctly)
     const styleId = "mjr-grid-settings-styles";
     if (!document.getElementById(styleId)) {
@@ -290,7 +290,7 @@ function _updateGridSettingsClasses(container) {
         style.textContent = `
             /* Reactive visibility toggles */
             /* Ensure card uses flex column to fill space when info is hidden */
-            .mjr-grid .mjr-asset-card, 
+            .mjr-grid .mjr-asset-card,
             .mjr-grid .mjr-card {
                 display: flex;
                 flex-direction: column;
@@ -309,11 +309,11 @@ function _updateGridSettingsClasses(container) {
                 object-fit: cover;
                 display: block;
             }
-            
+
             .mjr-grid .mjr-asset-card:hover {
                 background-color: var(--mjr-card-hover-color) !important;
             }
-            
+
             .mjr-grid .mjr-asset-card.is-selected {
                 outline: 2px solid var(--mjr-card-selection-color) !important;
                 box-shadow: 0 0 0 2px var(--mjr-card-selection-color) !important;
@@ -321,7 +321,7 @@ function _updateGridSettingsClasses(container) {
 
             .mjr-grid .mjr-card-filename { display: none; }
             .mjr-grid.mjr-show-filename .mjr-card-filename { display: block; }
-            
+
             .mjr-grid .mjr-card-dot-wrapper { display: none; }
             .mjr-grid.mjr-show-dot .mjr-card-dot-wrapper { display: inline-flex; }
             .mjr-grid .mjr-asset-status-dot {
@@ -356,7 +356,7 @@ function _updateGridSettingsClasses(container) {
 
             .mjr-grid .mjr-badge-tags { display: none !important; }
             .mjr-grid.mjr-show-badges-tags .mjr-badge-tags { display: flex !important; }
-            
+
             /* Info container management */
             /* Default to hidden to prevent flash or "black box" if js is slow */
             .mjr-grid .mjr-card-info { display: none !important; }
@@ -377,7 +377,7 @@ function _updateGridSettingsClasses(container) {
         `;
         document.head.appendChild(style);
     }
-    
+
     // Helper to toggle class based on config bool
     const toggle = (cls, enabled) => {
         if (enabled) container.classList.add(cls);
@@ -390,14 +390,14 @@ function _updateGridSettingsClasses(container) {
     toggle("mjr-show-gentime", APP_CONFIG.GRID_SHOW_DETAILS_GENTIME);
     // toggle("mjr-show-time", APP_CONFIG.GRID_SHOW_DETAILS_TIME); // If we add explicit time setting
     toggle("mjr-show-dot", APP_CONFIG.GRID_SHOW_WORKFLOW_DOT);
-    
+
     toggle("mjr-show-badges-ext", APP_CONFIG.GRID_SHOW_BADGES_EXTENSION);
     toggle("mjr-show-badges-rating", APP_CONFIG.GRID_SHOW_BADGES_RATING);
     toggle("mjr-show-badges-tags", APP_CONFIG.GRID_SHOW_BADGES_TAGS);
-    
+
     // Overall details vs generic show
     toggle("mjr-show-details", APP_CONFIG.GRID_SHOW_DETAILS);
-    
+
     // Helper for CSS vars
     container.style.setProperty("--mjr-grid-min-size", `${APP_CONFIG.GRID_MIN_SIZE}px`);
     container.style.setProperty("--mjr-grid-gap", `${APP_CONFIG.GRID_GAP}px`);
@@ -457,7 +457,7 @@ export function createGridContainer() {
             if (idx >= 0) state.virtualGrid.scrollToIndex(idx);
         };
     } catch {}
-    
+
     // Initial class application
     _updateGridSettingsClasses(container);
 
@@ -480,7 +480,7 @@ export function createGridContainer() {
             refreshGrid(container);
         }, SETTINGS_REFRESH_DEBOUNCE_MS);
     };
-    
+
     // We bind to the custom event dispatched by settings.js
     // Note: The event is dispatched on `window` usually via safeDispatchCustomEvent
     try {
@@ -721,7 +721,7 @@ function sanitizeQuery(query) {
 
 /**
  * Retrieve current grid state or initialize default.
- * @param {HTMLElement} gridContainer 
+ * @param {HTMLElement} gridContainer
  * @returns {GridState}
  */
 function getOrCreateState(gridContainer) {
@@ -741,8 +741,8 @@ function getOrCreateState(gridContainer) {
             // Virtual Grid mappings
             stemMap: new Map(), // stem -> [Asset]
             renderedFilenameMap: new Map(), // filenameKey -> [DOMElement] (only currently rendered)
-            
-            
+
+
             sentinel: null,
             observer: null,
             scrollRoot: null,
@@ -869,13 +869,13 @@ function _getScrollContainer(gridContainer, state) {
 
 /**
  * Initializes the VirtualGrid renderer for this container.
- * @param {HTMLElement} gridContainer 
- * @param {GridState} state 
+ * @param {HTMLElement} gridContainer
+ * @param {GridState} state
  * @returns {VirtualGrid}
  */
 function ensureVirtualGrid(gridContainer, state) {
     if (state.virtualGrid) return state.virtualGrid;
-    
+
     const scrollRoot = _getScrollContainer(gridContainer, state);
 
     try {
@@ -887,7 +887,7 @@ function ensureVirtualGrid(gridContainer, state) {
     state.virtualGrid = new VirtualGrid(gridContainer, scrollRoot, {
         minItemWidth: APP_CONFIG.GRID_MIN_SIZE || 120,
         gap: APP_CONFIG.GRID_GAP || 10,
-        bufferRows: 3, 
+        bufferRows: 3,
         createItem: (asset, _index) => {
             const card = String(asset?.kind || "").toLowerCase() === "folder"
                 ? createFolderCard(asset)
@@ -931,7 +931,7 @@ function ensureVirtualGrid(gridContainer, state) {
             try {
                 state.virtualGrid?.scheduleRemeasure?.();
             } catch {}
-            
+
             // Track rendered card for live updates (collisions)
             const fnKey = _getFilenameKey(asset?.filename);
             if (fnKey) {
@@ -1000,7 +1000,7 @@ function ensureVirtualGrid(gridContainer, state) {
                     card.classList.remove("is-active");
                     card.setAttribute("aria-selected", "false");
                 } catch {}
-                
+
                 const selectedIds = getSelectedIdSet(gridContainer);
                 if (selectedIds && asset.id != null) {
                     if (selectedIds.has(String(asset.id))) {
@@ -1026,7 +1026,7 @@ function ensureVirtualGrid(gridContainer, state) {
                     }
                 }
             } catch {}
-            
+
               // Cleanup video thumbs
               try {
                    // Use the exported cleanup if available or implement inline
@@ -1057,7 +1057,7 @@ function ensureVirtualGrid(gridContainer, state) {
         state._cardKeydownHandler = handler;
         gridContainer.addEventListener("keydown", handler, true);
     }
-    
+
     return state.virtualGrid;
 }
 
@@ -1231,7 +1231,7 @@ function appendAssets(gridContainer, assets, state) {
     state.stemMap = stemMap;
     const assetIdSet = state.assetIdSet || new Set();
     state.assetIdSet = assetIdSet;
-    
+
     const filenameToAssets = new Map();
     for (const existing of state.assets || []) {
         const key = _getFilenameKey(existing?.filename);
@@ -1243,11 +1243,11 @@ function appendAssets(gridContainer, assets, state) {
         }
         list.push(existing);
     }
-    
+
     let addedCount = 0;
     let needsUpdate = false;
     const validNewAssets = [];
-    
+
     // [OPTIMIZATION] Single pass removal for PNG siblings
     const assetsToRemoveFromState = new Set();
 
@@ -1293,14 +1293,14 @@ function appendAssets(gridContainer, assets, state) {
             }
         } catch {}
     };
-    
+
     // Pre-pass: identify video stems only.
     // The setting is "hide PNG previews when a corresponding video exists",
     // so sidecars like .json/.txt must not hide PNG assets.
     if (hidePngSiblings) {
         for (const asset of assets || []) {
             const filename = String(asset?.filename || "");
-            const extUpper = _getExtUpper(filename); 
+            const extUpper = _getExtUpper(filename);
             const kind = _detectKind(asset, extUpper);
             if (kind === "video") {
                 const stem = _getStemLower(filename);
@@ -1333,7 +1333,7 @@ function appendAssets(gridContainer, assets, state) {
         if (hidePngSiblings && stemLower) {
             if (kind === "video") {
                 // nonImageStems already updated in pre-pass
-                
+
                 // Check if we need to hide EXISTING PNG siblings (retroactive hiding)
                 const list = stemMap.get(stemLower);
                 if (list) {
@@ -1361,7 +1361,7 @@ function appendAssets(gridContainer, assets, state) {
             }
             bucket.push(asset);
         }
-        
+
         const key = assetKey(asset);
         if (!key) continue;
         if (state.seenKeys.has(key)) continue;
@@ -1369,9 +1369,9 @@ function appendAssets(gridContainer, assets, state) {
         if (asset.id != null && assetIdSet.has(String(asset.id))) continue;
         state.seenKeys.add(key);
         if (asset.id != null) assetIdSet.add(String(asset.id));
-        
+
         validNewAssets.push(asset);
-        
+
         // Update stemMap
         if (stemLower) {
             let list = stemMap.get(stemLower);
@@ -1381,7 +1381,7 @@ function appendAssets(gridContainer, assets, state) {
             }
             list.push(asset);
         }
-        
+
         addedCount++;
     }
 
@@ -1418,7 +1418,7 @@ function appendAssets(gridContainer, assets, state) {
         applyFilenameCollisions();
         // Update the virtual grid
         vg.setItems(state.assets);
-        
+
         // Ensure sentinel is at the bottom
         if (state.sentinel) {
             gridContainer.appendChild(state.sentinel);
@@ -1429,7 +1429,7 @@ function appendAssets(gridContainer, assets, state) {
         gridContainer.dataset.mjrHidePngSiblingsEnabled = hidePngSiblings ? "1" : "0";
         gridContainer.dataset.mjrHiddenPngSiblings = String(Number(state.hiddenPngSiblings || 0) || 0);
     } catch {}
-    
+
     return addedCount;
 }
 
@@ -1437,7 +1437,7 @@ function ensureSentinel(gridContainer, state) {
     let sentinel = state.sentinel;
     // Fix: Force ensure it is last child
     if (sentinel && sentinel.isConnected && sentinel.parentNode === gridContainer && !sentinel.nextSibling) return sentinel;
-    
+
     if (sentinel) {
         sentinel.remove();
     } else {
@@ -1448,7 +1448,7 @@ function ensureSentinel(gridContainer, state) {
         state.sentinel = sentinel;
     }
     gridContainer.appendChild(sentinel);
-    
+
     if (state.observer) {
         try { state.observer.observe(sentinel); } catch {}
     }
@@ -1480,7 +1480,7 @@ function stopObserver(state) {
 function captureScrollMetrics(state) {
     const root = state?.scrollRoot;
     if (!root) return null;
-    
+
     // Dedicated scroll container only
     const clientHeight = Number(root.clientHeight) || 0;
     const scrollHeight = Number(root.scrollHeight) || 0;
@@ -1493,16 +1493,16 @@ function captureScrollMetrics(state) {
 function maybeKeepPinnedToBottom(_state, _before) {
     // Disabled: Standard infinite scroll should not force pin to bottom on append.
     // This logic is problematic for grids where we want to seeing new content naturally.
-    return; 
+    return;
 }
 
 /**
  * Fetch a page of assets from the backend.
- * @param {HTMLElement} gridContainer 
+ * @param {HTMLElement} gridContainer
  * @param {string} query Search query
  * @param {number} limit Page size
  * @param {number} offset Offset
- * @param {Object} options 
+ * @param {Object} options
  * @param {number} [options.requestId]
  * @param {AbortSignal} [options.signal]
  * @returns {Promise<{ok: boolean, assets?: any[], total?: number, count?: number, error?: string, aborted?: boolean, stale?: boolean, sortKey?: string, safeQuery?: string}>}
@@ -1629,18 +1629,18 @@ async function loadNextPage(gridContainer, state) {
             if (page.aborted || page.stale) return;
             state.done = true;
             stopObserver(state);
-            
+
             // [ISSUE 5] Error Retry Mechanism
             const errDiv = document.createElement("div");
             errDiv.style.padding = "20px";
             errDiv.style.textAlign = "center";
             errDiv.style.gridColumn = "1 / -1";
-            
+
             const msg = document.createElement("p");
             msg.className = "mjr-muted";
             msg.style.color = "var(--error-text, #f44336)";
             msg.textContent = `Error loading: ${page.error}`;
-            
+
             const retryBtn = document.createElement("button");
             retryBtn.textContent = "Retry";
             retryBtn.className = "mjr-btn mjr-btn-secondary"; // Use existing class if available
@@ -1652,7 +1652,7 @@ async function loadNextPage(gridContainer, state) {
                 // Retry immediately
                 loadNextPage(gridContainer, state);
             };
-            
+
             errDiv.appendChild(msg);
             errDiv.appendChild(retryBtn);
             gridContainer.appendChild(errDiv);
@@ -1690,8 +1690,8 @@ async function loadNextPage(gridContainer, state) {
 
         // Fix: Conservative stop condition.
         // We ignore state.total because it might be approximate.
-        // We only stop if we received 0 items. 
-        // Note: We could also stop if count < limit, but relying on 0 is safer against 
+        // We only stop if we received 0 items.
+        // Note: We could also stop if count < limit, but relying on 0 is safer against
         // backends that might return partial pages due to filtering/timeouts.
         if ((page.count || 0) === 0) {
             state.done = true;
@@ -1786,7 +1786,7 @@ function startInfiniteScroll(gridContainer, state) {
                 // the grid doesn't fill the viewport yet (initial fill).
                 const metrics = captureScrollMetrics(state);
                 const fillsViewport = metrics ? metrics.scrollHeight > metrics.clientHeight + 40 : false;
-                
+
                 if (!state.userScrolled && fillsViewport && !state.allowUntilFilled) {
                     return;
                 }
@@ -1877,7 +1877,7 @@ export async function loadAssets(gridContainer, query = "*", options = {}) {
         // We don't clear innerHTML directly if VirtualGrid is active, as it manages it.
         // But showLoadingOverlay expects to be appended.
         // VirtualGrid sets container to relative. Overlay is absolute inset 0. It works.
-        
+
         showLoadingOverlay(gridContainer, state.query === "*" ? "Loading assets..." : `Searching for "${state.query}"...`);
     }
 
@@ -2043,10 +2043,10 @@ export async function loadAssetsFromList(gridContainer, assets, options = {}) {
         try {
             gridContainer.dataset.mjrHiddenPngSiblings = "0";
         } catch {}
-        
+
         const vg = ensureVirtualGrid(gridContainer, state);
         if (vg) vg.setItems([]);
-        
+
         showLoadingOverlay(gridContainer, list.length ? `Loading ${title}...` : `${title} is empty`);
     }
 
@@ -2187,7 +2187,7 @@ export function disposeGrid(gridContainer) {
     const state = GRID_STATE.get(gridContainer);
     if (!state) return;
     stopObserver(state);
-    
+
     // Dispose virtual grid
     if (state.virtualGrid) {
         try {
@@ -2339,7 +2339,7 @@ function _flushUpsertBatch(gridContainer) {
     const batchState = UPSERT_BATCH_STATE.get(gridContainer);
     if (!batchState || batchState.pending.size === 0) return;
     if (batchState.flushing) return; // Prevent re-entrancy
-    
+
     batchState.flushing = true;
     if (batchState.timer) {
         clearTimeout(batchState.timer);
@@ -2348,11 +2348,11 @@ function _flushUpsertBatch(gridContainer) {
 
     const state = getOrCreateState(gridContainer);
     const vg = ensureVirtualGrid(gridContainer, state);
-    
+
     try {
         // Process all pending assets
         let modified = false;
-        
+
         for (const [assetId, asset] of batchState.pending.entries()) {
             const key = assetKey(asset);
             const existingIndex = state.assets.findIndex(a => String(a.id) === assetId);
@@ -2362,9 +2362,9 @@ function _flushUpsertBatch(gridContainer) {
                 const existingAsset = state.assets[existingIndex];
                 const collision = existingAsset._mjrNameCollision;
                 const collisionCount = existingAsset._mjrNameCollisionCount;
-                
+
                 Object.assign(existingAsset, asset);
-                
+
                 if (collision && !asset._mjrNameCollision) {
                     existingAsset._mjrNameCollision = true;
                     existingAsset._mjrNameCollisionCount = collisionCount;
@@ -2423,7 +2423,7 @@ function _flushUpsertBatch(gridContainer) {
 /**
  * Update or insert a single asset in the grid (Live Update).
  * Uses batching to avoid multiple setItems calls in rapid succession.
- * @param {HTMLElement} gridContainer 
+ * @param {HTMLElement} gridContainer
  * @param {Object} asset The new or updated asset data
  * @returns {boolean} True if asset was queued for update
  */
@@ -2432,7 +2432,7 @@ export function upsertAsset(gridContainer, asset) {
 
     const state = getOrCreateState(gridContainer);
     const assetId = String(asset.id);
-    
+
     const vg = ensureVirtualGrid(gridContainer, state);
     if (!vg) return false;
 
@@ -2548,9 +2548,9 @@ export function refreshGrid(gridContainer) {
                  state.virtualGrid.updateConfig({
                      minItemWidth: APP_CONFIG.GRID_MIN_SIZE,
                      gap: APP_CONFIG.GRID_GAP
-                 });
+                 }, { relayout: false });
             }
-            
+
             // Re-setting items triggers a re-render of the visible range.
             // Pass force=true to ensure Card.js re-reads APP_CONFIG for badges/details updates.
             state.virtualGrid.setItems(state.assets, true);
@@ -2630,4 +2630,3 @@ export function bindGridScanListeners() {
 export function disposeGridScanListeners() {
     _detachGridScanListeners();
 }
-

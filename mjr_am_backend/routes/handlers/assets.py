@@ -330,6 +330,10 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                 if _is_within_root(path, rp):
                     return "custom", rid
 
+        logger.warning(
+            "Post-rename: could not classify %s under any known root; defaulting to 'output'",
+            path,
+        )
         return "output", None
 
     def _get_rating_tags_sync_mode(request: web.Request) -> str:
@@ -342,7 +346,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if raw in ("1", "true", "on", "enable", "enabled"):
             return "on"
         # Backward compatible values from previous iterations.
-        if raw in ("sidecar", "both", "exiftool", "on", "off"):
+        if raw in ("sidecar", "both", "exiftool"):
             return raw
         return "off"
 
@@ -743,6 +747,8 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             {"method": "GET", "path": "/mjr/am/asset/{asset_id}", "description": "Get single asset by ID"},
             {"method": "POST", "path": "/mjr/am/asset/rating", "description": "Update asset rating (0-5 stars)"},
             {"method": "POST", "path": "/mjr/am/asset/tags", "description": "Update asset tags"},
+            {"method": "POST", "path": "/mjr/am/asset/rename", "description": "Rename a single asset file"},
+            {"method": "POST", "path": "/mjr/am/assets/rename", "description": "Alias: rename a single asset file"},
             {"method": "POST", "path": "/mjr/am/open-in-folder", "description": "Open asset in OS file manager"},
             {"method": "GET", "path": "/mjr/am/tags", "description": "Get all unique tags for autocomplete"},
             {"method": "POST", "path": "/mjr/am/retry-services", "description": "Retry service initialization"},

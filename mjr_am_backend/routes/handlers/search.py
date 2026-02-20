@@ -86,7 +86,9 @@ def _dedupe_result_assets_payload(payload: dict | None) -> dict:
         data["assets"] = deduped
         # Keep total consistent with visible results for stable pagination UI.
         try:
-            data["total"] = len(deduped) if int(data.get("total") or 0) < len(deduped) else int(data.get("total") or 0)
+            db_total = int(data.get("total") or 0)
+            deduped_count = len(deduped)
+            data["total"] = min(db_total, deduped_count) if deduped_count < db_total else db_total
         except Exception:
             data["total"] = len(deduped)
     return data
@@ -543,7 +545,9 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
             filters["mtime_end"] = mtime_end
 
         if inline_filters:
-            filters.update(inline_filters)
+            merged = dict(inline_filters)
+            merged.update(filters)
+            filters = merged
         try:
             min_b = int(filters.get("min_size_bytes") or 0)
             max_b = int(filters.get("max_size_bytes") or 0)
@@ -1109,7 +1113,9 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
             filters["has_workflow"] = request.query["has_workflow"].lower() in ("true", "1", "yes")
 
         if inline_filters:
-            filters.update(inline_filters)
+            merged = dict(inline_filters)
+            merged.update(filters)
+            filters = merged
         try:
             min_b = int(filters.get("min_size_bytes") or 0)
             max_b = int(filters.get("max_size_bytes") or 0)

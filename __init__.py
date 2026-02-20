@@ -20,6 +20,7 @@ WEB_DIRECTORY = None
 import logging
 _logger = logging.getLogger("majoor_assets_manager")
 _REGISTRY_HOOKS_DONE = False
+_REGISTERED_APPS: set[int] = set()
 
 
 def _read_version_from_pyproject() -> str:
@@ -29,7 +30,7 @@ def _read_version_from_pyproject() -> str:
         if not pyproject_path.exists():
             return "0.0.0"
         raw = pyproject_path.read_text(encoding="utf-8")
-        match = re.search(r'^version\\s*=\\s*"(.*?)"', raw, flags=re.MULTILINE)
+        match = re.search(r'^version\s*=\s*"(.*?)"', raw, flags=re.MULTILINE)
         if match:
             return match.group(1).strip()
     except Exception:
@@ -95,7 +96,10 @@ def init_prompt_server() -> None:
             _logger.debug("PromptServer app is not available yet; route table registered only")
             return
         if callable(register_routes):
-            register_routes(app)
+            app_id = id(app)
+            if app_id not in _REGISTERED_APPS:
+                register_routes(app)
+                _REGISTERED_APPS.add(app_id)
     except Exception:
         _logger.exception("failed to initialize prompt server routes")
 
@@ -106,7 +110,10 @@ def init(app) -> None:
         raise ValueError("init(app) requires a valid aiohttp app instance")
     try:
         from mjr_am_backend.routes.registry import register_routes
-        register_routes(app)
+        app_id = id(app)
+        if app_id not in _REGISTERED_APPS:
+            register_routes(app)
+            _REGISTERED_APPS.add(app_id)
     except Exception:
         _logger.exception("failed to initialize routes on provided app")
 
@@ -123,7 +130,10 @@ def register(app, user_manager=None) -> None:
         raise ValueError("register(app, user_manager=None) requires a valid aiohttp app instance")
     try:
         from mjr_am_backend.routes.registry import register_routes
-        register_routes(app, user_manager=user_manager)
+        app_id = id(app)
+        if app_id not in _REGISTERED_APPS:
+            register_routes(app, user_manager=user_manager)
+            _REGISTERED_APPS.add(app_id)
     except Exception:
         _logger.exception("failed to register routes on provided app")
 
