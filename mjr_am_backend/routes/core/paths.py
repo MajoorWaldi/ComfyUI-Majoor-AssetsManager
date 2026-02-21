@@ -116,7 +116,8 @@ def _path_relative_to(candidate: Path, root: Path) -> bool:
         return candidate == root or candidate.is_relative_to(root)
     except AttributeError:
         try:
-            return os.path.commonpath([str(candidate), str(root)]) == str(root)
+            common = os.path.commonpath([str(candidate), str(root)])
+            return os.path.normcase(common) == os.path.normcase(str(root))
         except ValueError:
             return False
 
@@ -177,7 +178,8 @@ def _is_within_root(candidate: Path, root: Path) -> bool:
         return cand_resolved == root_resolved or cand_resolved.is_relative_to(root_resolved)
     except AttributeError:
         try:
-            return os.path.commonpath([str(cand_resolved), str(root_resolved)]) == str(root_resolved)
+            common = os.path.commonpath([str(cand_resolved), str(root_resolved)])
+            return os.path.normcase(common) == os.path.normcase(str(root_resolved))
         except ValueError:
             return False
 

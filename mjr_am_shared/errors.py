@@ -12,12 +12,14 @@ from .log import get_logger
 logger = get_logger(__name__)
 _DEBUG_MODE = os.getenv("MJR_DEBUG", "").strip().lower() in ("1", "true", "yes", "on")
 _WINDOWS_PATH_RE = re.compile(r"[A-Za-z]:\\[^\s]+")
+_UNC_PATH_RE = re.compile(r"\\\\[^\s\\]+\\[^\s]+")
 _UNIX_PATH_RE = re.compile(r"/[^\s]+")
 
 
 def _mask_paths(value: str) -> str:
     """Mask path-looking substrings to avoid leaking filesystem structure."""
     cleaned = _WINDOWS_PATH_RE.sub("[path]", value)
+    cleaned = _UNC_PATH_RE.sub("[path]", cleaned)
     cleaned = _UNIX_PATH_RE.sub("[path]", cleaned)
     return cleaned
 
@@ -47,7 +49,8 @@ def sanitize_error_message(exc: Any, fallback: str) -> str:
     if not raw:
         return fallback
 
-    sanitized = _mask_paths(raw.replace(os.getcwd(), "[cwd]"))
+    expanded = os.path.expandvars(raw)
+    sanitized = _mask_paths(expanded.replace(os.getcwd(), "[cwd]"))
     sanitized = " ".join(sanitized.splitlines()).strip()
 
     if _DEBUG_MODE:

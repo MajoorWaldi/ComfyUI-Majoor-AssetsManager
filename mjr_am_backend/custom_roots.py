@@ -47,6 +47,16 @@ def _is_symlink_like(path: Path) -> bool:
             return bool(int(getattr(st, "st_file_attributes", 0)) & 0x400)
     except Exception:
         pass
+    # Detect symlink/junction traversal in parent segments.
+    # If canonical real path differs from normalized absolute path,
+    # a link-like indirection is involved.
+    try:
+        abs_norm = os.path.normcase(os.path.normpath(os.path.abspath(str(path))))
+        real_norm = os.path.normcase(os.path.normpath(os.path.realpath(str(path))))
+        if abs_norm and real_norm and abs_norm != real_norm:
+            return True
+    except Exception:
+        pass
     return False
 
 
