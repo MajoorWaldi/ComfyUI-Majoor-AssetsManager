@@ -2,6 +2,7 @@
 Response utilities for route handlers.
 """
 
+import math
 from aiohttp import web
 from mjr_am_backend.shared import Result
 
@@ -41,13 +42,17 @@ def _json_response(result: Result, status: int | None = None):
     if status is None:
         status = 200
 
-    response = web.json_response({
-        "ok": result.ok,
-        "data": result.data,
-        "error": result.error,
-        "code": result.code,
-        "meta": result.meta,
-    }, status=status)
+    payload = _sanitize_json_payload(
+        {
+            "ok": result.ok,
+            "data": result.data,
+            "error": result.error,
+            "code": result.code,
+            "meta": result.meta,
+        }
+    )
+
+    response = web.json_response(payload, status=status)
 
     # Optional standard headers derived from Result meta.
     try:
@@ -59,3 +64,20 @@ def _json_response(result: Result, status: int | None = None):
         pass
 
     return response
+
+
+def _sanitize_json_payload(value):
+    """
+    Normalize payload values so they are always valid strict JSON.
+    - Converts NaN/Infinity floats to None.
+    - Recurses through dict/list/tuple containers.
+    """
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, dict):
+        return {k: _sanitize_json_payload(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_sanitize_json_payload(v) for v in value]
+    if isinstance(value, tuple):
+        return [_sanitize_json_payload(v) for v in value]
+    return value
