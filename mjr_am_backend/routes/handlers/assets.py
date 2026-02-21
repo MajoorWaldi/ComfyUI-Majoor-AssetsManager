@@ -1431,7 +1431,7 @@ def _build_download_response(resolved: Path, *, preview: bool) -> web.StreamResp
 
 
 def _safe_download_filename(name: str) -> str:
-    return str(name or "").replace('"', "").replace("\r", "").replace("\n", "")[:255]
+    return str(name or "").replace('"', "").replace(";", "").replace("\r", "").replace("\n", "")[:255]
 
 
 def register_download_routes(routes: web.RouteTableDef):

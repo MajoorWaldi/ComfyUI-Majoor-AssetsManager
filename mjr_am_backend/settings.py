@@ -70,6 +70,8 @@ class AppSettings:
         self._default_probe_mode = MEDIA_PROBE_BACKEND
         self._default_metadata_fallback_image = True
         self._default_metadata_fallback_media = True
+        self._runtime_api_token: str = ""
+        self._runtime_api_token_hash: str = ""
 
     def _generate_api_token(self) -> str:
         # 256-bit token (URL-safe) for write authorization.
@@ -105,10 +107,16 @@ class AppSettings:
         return token_hash
 
     async def _get_or_create_api_token_locked(self) -> str:
+        runtime_token = str(self._runtime_api_token or "").strip()
+        runtime_hash = str(self._runtime_api_token_hash or "").strip().lower()
+        if runtime_token and runtime_hash:
+            return runtime_token
+
         token = self._env_api_token()
         if token:
             token_hash = await self._persist_api_token_hash_with_warning(token, "Failed to persist API token hash")
             await self._delete_setting(_SECURITY_API_TOKEN_KEY)
+            self._set_runtime_api_token(token, token_hash)
             self._set_api_token_env(token, token_hash, include_plain=False)
             return token
 
@@ -118,13 +126,15 @@ class AppSettings:
             # Regenerate a fresh token so authenticated clients can bootstrap automatically.
             token = self._generate_api_token()
             new_hash = await self._persist_api_token_hash_with_warning(token, "Failed to persist regenerated API token hash")
-            self._set_api_token_env(token, new_hash, include_plain=True)
+            self._set_runtime_api_token(token, new_hash)
+            self._set_api_token_env(token, new_hash, include_plain=False)
             return token
 
         token = self._generate_api_token()
         token_hash = await self._persist_api_token_hash_with_warning(token, "Failed to persist auto-generated API token hash")
         await self._delete_setting(_SECURITY_API_TOKEN_KEY)
-        self._set_api_token_env(token, token_hash, include_plain=True)
+        self._set_runtime_api_token(token, token_hash)
+        self._set_api_token_env(token, token_hash, include_plain=False)
         return token
 
     def _env_api_token(self) -> str:
@@ -140,12 +150,25 @@ class AppSettings:
             logger.warning("%s: %s", warning_message, write_res.error)
         return token_hash
 
+    def _set_runtime_api_token(self, token: str, token_hash: str) -> None:
+        try:
+            self._runtime_api_token = str(token or "").strip()
+        except Exception:
+            self._runtime_api_token = ""
+        try:
+            self._runtime_api_token_hash = str(token_hash or "").strip().lower()
+        except Exception:
+            self._runtime_api_token_hash = ""
+
     @staticmethod
     def _set_api_token_env(token: str, token_hash: str, *, include_plain: bool) -> None:
         try:
             if include_plain:
                 os.environ["MAJOOR_API_TOKEN"] = token
                 os.environ["MJR_API_TOKEN"] = token
+            else:
+                os.environ.pop("MAJOOR_API_TOKEN", None)
+                os.environ.pop("MJR_API_TOKEN", None)
             os.environ["MAJOOR_API_TOKEN_HASH"] = token_hash
             os.environ["MJR_API_TOKEN_HASH"] = token_hash
         except Exception:
@@ -248,13 +271,8 @@ class AppSettings:
         if not res.ok:
             return Result.Err("DB_ERROR", res.error or "Failed to persist api_token")
         await self._delete_setting(_SECURITY_API_TOKEN_KEY)
-        try:
-            os.environ["MAJOOR_API_TOKEN"] = token
-            os.environ["MJR_API_TOKEN"] = token
-            os.environ["MAJOOR_API_TOKEN_HASH"] = token_hash
-            os.environ["MJR_API_TOKEN_HASH"] = token_hash
-        except Exception:
-            pass
+        self._set_runtime_api_token(token, token_hash)
+        self._set_api_token_env(token, token_hash, include_plain=False)
         return None
 
     async def _warn_if_bump_fails(self, message: str) -> None:
@@ -273,13 +291,8 @@ class AppSettings:
             if not res.ok:
                 return Result.Err("DB_ERROR", res.error or "Failed to persist rotated api token")
             await self._delete_setting(_SECURITY_API_TOKEN_KEY)
-            try:
-                os.environ["MAJOOR_API_TOKEN"] = token
-                os.environ["MJR_API_TOKEN"] = token
-                os.environ["MAJOOR_API_TOKEN_HASH"] = token_hash
-                os.environ["MJR_API_TOKEN_HASH"] = token_hash
-            except Exception:
-                pass
+            self._set_runtime_api_token(token, token_hash)
+            self._set_api_token_env(token, token_hash, include_plain=False)
             bump = await self._bump_settings_version_locked()
             if not bump.ok:
                 try:

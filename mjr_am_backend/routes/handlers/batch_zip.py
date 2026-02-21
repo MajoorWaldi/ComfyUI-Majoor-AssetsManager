@@ -451,7 +451,7 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
             return _json_response(Result.Err("NOT_FOUND", "File missing"), status=404)
 
         name = entry.get("filename") or f"{token}.zip"
-        safe_name = str(name).replace('"', "").replace("\r", "").replace("\n", "")[:_ZIP_NAME_MAX_LEN]
+        safe_name = str(name).replace('"', "").replace(";", "").replace("\r", "").replace("\n", "")[:_ZIP_NAME_MAX_LEN]
         headers = {"Content-Disposition": f'attachment; filename="{safe_name}"'}
         try:
             return web.FileResponse(path, headers=headers)

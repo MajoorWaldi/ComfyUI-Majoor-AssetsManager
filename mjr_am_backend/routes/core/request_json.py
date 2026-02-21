@@ -42,6 +42,9 @@ async def _read_json(request: web.Request, *, max_bytes: int | None = None) -> R
     limit = int(max_bytes) if max_bytes is not None else _max_json_bytes()
     limit = max(MIN_JSON_BYTES, limit)
 
+    content_type_error = _content_type_error(request)
+    if content_type_error is not None:
+        return content_type_error
     length_error = _content_length_error(request, limit)
     if length_error is not None:
         return length_error
@@ -52,6 +55,22 @@ async def _read_json(request: web.Request, *, max_bytes: int | None = None) -> R
     if not isinstance(payload, (bytes, bytearray)):
         return Result.Err(ErrorCode.INVALID_JSON, "Invalid request body payload")
     return _decode_and_parse_json_dict(bytes(payload))
+
+
+def _content_type_error(request: web.Request) -> Result[dict] | None:
+    """
+    Enforce JSON content type when explicitly provided.
+    """
+    try:
+        content_type = str(request.headers.get("Content-Type") or "").strip().lower()
+    except Exception:
+        content_type = ""
+    if not content_type:
+        return None
+    media_type = content_type.split(";", 1)[0].strip()
+    if media_type == "application/json" or media_type.endswith("+json"):
+        return None
+    return Result.Err(ErrorCode.INVALID_INPUT, "Content-Type must be application/json")
 
 
 def _content_length_error(request: web.Request, limit: int) -> Result[dict] | None:

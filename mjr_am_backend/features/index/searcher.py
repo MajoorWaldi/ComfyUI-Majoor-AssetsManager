@@ -396,6 +396,8 @@ def _hydrate_search_rows(rows: list[dict[str, Any]], *, include_highlight: bool)
         if asset.get("tags"):
             try:
                 asset["tags"] = json.loads(asset["tags"])
+                if not isinstance(asset["tags"], list):
+                    asset["tags"] = []
             except (ValueError, json.JSONDecodeError, TypeError):
                 asset["tags"] = []
         else:
@@ -1118,6 +1120,8 @@ class IndexSearcher:
         if tags_raw:
             try:
                 asset["tags"] = json.loads(tags_raw)
+                if not isinstance(asset["tags"], list):
+                    asset["tags"] = []
             except (ValueError, json.JSONDecodeError, TypeError):
                 asset["tags"] = []
         else:
