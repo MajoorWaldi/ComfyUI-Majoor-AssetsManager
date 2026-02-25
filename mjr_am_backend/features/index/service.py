@@ -19,6 +19,7 @@ from ...shared import Result, get_logger
 from ..metadata import MetadataService
 from .enricher import MetadataEnricher
 from .metadata_helpers import MetadataHelpers
+from .scan_batch_utils import compute_state_hash
 from .scanner import IndexScanner
 from .searcher import IndexSearcher
 from .updater import AssetUpdater
@@ -100,7 +101,7 @@ class IndexService:
         self._enricher = MetadataEnricher(
             db,
             metadata_service,
-            self._scanner._compute_state_hash,
+            compute_state_hash,
             MetadataHelpers.prepare_metadata_fields,
             MetadataHelpers.metadata_error_payload,
         )
@@ -135,13 +136,13 @@ class IndexService:
         self._enricher.begin_scan_pause()
         try:
             result = await self._scanner.scan_directory(
-                directory,
-                recursive,
-                incremental,
-                source,
-                root_id,
-                fast,
-                background_metadata,
+                directory=directory,
+                recursive=recursive,
+                incremental=incremental,
+                source=source,
+                root_id=root_id,
+                fast=fast,
+                background_metadata=background_metadata,
             )
         finally:
             self._enricher.end_scan_pause()
@@ -191,7 +192,13 @@ class IndexService:
         Returns:
             Result with indexing statistics
         """
-        res = await self._scanner.index_paths(paths, base_dir, incremental, source, root_id)
+        res = await self._scanner.index_paths(
+            paths=paths,
+            base_dir=base_dir,
+            incremental=incremental,
+            source=source,
+            root_id=root_id,
+        )
         if res.ok:
             try:
                 # Notify frontend (useful for drag-drop staging updates)
