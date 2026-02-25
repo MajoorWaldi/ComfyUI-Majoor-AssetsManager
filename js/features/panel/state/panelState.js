@@ -1,9 +1,11 @@
+import { SettingsStore } from "../../../app/settings/SettingsStore.js";
+
 const STORAGE_KEY = "mjr_panel_state";
 let _lastSavedSerialized = "";
 
 function loadPanelState() {
     try {
-        const raw = localStorage.getItem(STORAGE_KEY);
+        const raw = SettingsStore.get(STORAGE_KEY);
         if (raw) return JSON.parse(raw);
     } catch {}
     return null;
@@ -18,7 +20,7 @@ function savePanelState(state) {
         const serialized = JSON.stringify(toSave);
         if (serialized === _lastSavedSerialized) return;
         _lastSavedSerialized = serialized;
-        localStorage.setItem(STORAGE_KEY, serialized);
+        SettingsStore.set(STORAGE_KEY, serialized);
     } catch {}
 }
 

@@ -1,10 +1,41 @@
 import { createInfoBox, createParametersBox } from "../utils/dom.js";
+import { buildViewURL } from "../../../api/endpoints.js";
 import {
     formatLoRAItem,
     formatModelLabel,
     normalizeGenerationMetadata,
     normalizePromptsForDisplay,
 } from "../parsers/geninfoParser.js";
+
+function _inputPreviewCandidates(inp) {
+    const filename = String(inp?.filename || "").trim();
+    if (!filename) return [];
+    const subfolder = String(inp?.subfolder || "").trim();
+    const preferredType = String(inp?.folder_type || "input").trim().toLowerCase();
+    const candidates = [];
+    const pushType = (t) => {
+        if (!t) return;
+        const url = buildViewURL(filename, subfolder, t);
+        if (url && !candidates.includes(url)) candidates.push(url);
+    };
+    if (preferredType === "input" || preferredType === "output") pushType(preferredType);
+    pushType("input");
+    pushType("output");
+    return candidates;
+}
+
+function _setPreviewSrcWithFallback(el, candidates) {
+    if (!el || !Array.isArray(candidates) || !candidates.length) return;
+    let idx = 0;
+    const apply = () => {
+        if (idx >= candidates.length) return;
+        const next = candidates[idx++];
+        if (!next) return apply();
+        el.src = next;
+    };
+    el.addEventListener("error", () => apply(), { once: false });
+    apply();
+}
 
 export function createGenerationSection(asset) {
     let metadata = null;
@@ -434,18 +465,13 @@ export function createGenerationSection(asset) {
             thumb.style.cssText = "width: 64px; height: 64px; background: #222; border-radius: 4px; overflow: hidden; position: relative; cursor: pointer; display: flex; align-items: center; justify-content: center;";
             thumb.title = `${inp.filename} (click to copy, double-click to open in new tab)`;
             
-            const params = new URLSearchParams({
-                filename: inp.filename,
-                type: inp.folder_type || "input",
-                subfolder: inp.subfolder || ""
-            });
-            const src = `./view?${params.toString()}`;
-            
+            const srcCandidates = _inputPreviewCandidates(inp);
+
             const isVideo = inp.type === "video" || inp.filename.match(/\.(mp4|mov|webm)$/i);
 
             if (isVideo) {
                 const vid = document.createElement("video");
-                vid.src = src;
+                _setPreviewSrcWithFallback(vid, srcCandidates);
                 vid.muted = true;
                 vid.loop = true;
                 vid.autoplay = false; // Hover to play? Or just poster?
@@ -457,7 +483,7 @@ export function createGenerationSection(asset) {
                 thumb.appendChild(vid);
             } else {
                 const img = document.createElement("img");
-                img.src = src;
+                _setPreviewSrcWithFallback(img, srcCandidates);
                 img.style.cssText = "width: 100%; height: 100%; object-fit: cover;";
                 thumb.appendChild(img);
             }

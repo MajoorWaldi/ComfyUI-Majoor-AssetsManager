@@ -4,6 +4,7 @@
  */
 import { GENERATED_TRANSLATIONS } from "./i18n.generated.js";
 import { getSettingValue } from "./comfyApiBridge.js";
+import { SettingsStore } from "./settings/SettingsStore.js";
 
 const DEFAULT_LANG = "en-US";
 let currentLang = DEFAULT_LANG;
@@ -806,9 +807,8 @@ function mapLocale(locale) {
 
 function _readStoredLang() {
     try {
-        if (typeof localStorage === "undefined") return "";
         for (const key of LANG_STORAGE_KEYS) {
-            const value = String(localStorage.getItem(key) || "").trim();
+            const value = String(SettingsStore.get(key) || "").trim();
             if (value) return value;
         }
     } catch {}
@@ -817,17 +817,15 @@ function _readStoredLang() {
 
 function _persistLang(lang) {
     try {
-        if (typeof localStorage === "undefined") return;
         // Keep legacy and new key in sync for smooth upgrades.
-        localStorage.setItem(LANG_STORAGE_KEYS[0], lang);
-        localStorage.setItem(LANG_STORAGE_KEYS[1], lang);
+        SettingsStore.set(LANG_STORAGE_KEYS[0], lang);
+        SettingsStore.set(LANG_STORAGE_KEYS[1], lang);
     } catch {}
 }
 
 function _readFollowComfyLang() {
     try {
-        if (typeof localStorage === "undefined") return true;
-        const raw = String(localStorage.getItem(FOLLOW_COMFY_LANG_STORAGE_KEY) || "").trim().toLowerCase();
+        const raw = String(SettingsStore.get(FOLLOW_COMFY_LANG_STORAGE_KEY) || "").trim().toLowerCase();
         if (!raw) return true;
         return !["0", "false", "no", "off"].includes(raw);
     } catch {}
@@ -836,8 +834,7 @@ function _readFollowComfyLang() {
 
 function _persistFollowComfyLang(enabled) {
     try {
-        if (typeof localStorage === "undefined") return;
-        localStorage.setItem(FOLLOW_COMFY_LANG_STORAGE_KEY, enabled ?"1" : "0");
+        SettingsStore.set(FOLLOW_COMFY_LANG_STORAGE_KEY, enabled ?"1" : "0");
     } catch {}
 }
 

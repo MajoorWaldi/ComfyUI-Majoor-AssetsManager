@@ -3,6 +3,7 @@ import { ENDPOINTS } from "../api/endpoints.js";
 import { comfyToast } from "./toast.js";
 import { comfyAlert } from "./dialogs.js";
 import { t } from "./i18n.js";
+import { SettingsStore } from "./settings/SettingsStore.js";
 
 export const VERSION_UPDATE_EVENT = "mjr:version-update-available";
 const VERSION_UPDATE_STATE_KEY = "__MJR_VERSION_UPDATE_STATE__";
@@ -93,13 +94,13 @@ export function getStoredVersionUpdateState() {
 }
 
 export async function checkMajoorVersion({ force = false } = {}) {
-    if (typeof window === "undefined" || !window.localStorage) {
+    if (typeof window === "undefined") {
         return null;
     }
 
     try {
         if (!force) {
-            const lastCheck = Number(window.localStorage.getItem(LAST_CHECK_KEY) || 0);
+            const lastCheck = Number(SettingsStore.get(LAST_CHECK_KEY) || 0);
             if (Number.isFinite(lastCheck) && Date.now() - lastCheck < CHECK_INTERVAL_MS) {
                 return null;
             }
@@ -138,7 +139,7 @@ export async function checkMajoorVersion({ force = false } = {}) {
         return null;
     } finally {
         try {
-            window.localStorage.setItem(LAST_CHECK_KEY, String(Date.now()));
+            SettingsStore.set(LAST_CHECK_KEY, String(Date.now()));
         } catch {
             // ignore
         }
@@ -156,7 +157,7 @@ export async function checkMajoorVersion({ force = false } = {}) {
     });
 
     try {
-        const toastShownFor = String(window.localStorage.getItem(VERSION_TOAST_NOTICE_VERSION_KEY) || "").trim();
+        const toastShownFor = String(SettingsStore.get(VERSION_TOAST_NOTICE_VERSION_KEY) || "").trim();
         if (toastShownFor !== remoteVersion) {
             comfyToast(
                 {
@@ -170,13 +171,13 @@ export async function checkMajoorVersion({ force = false } = {}) {
                 0
             );
             try {
-                window.localStorage.setItem(VERSION_TOAST_NOTICE_VERSION_KEY, remoteVersion);
+                SettingsStore.set(VERSION_TOAST_NOTICE_VERSION_KEY, remoteVersion);
             } catch {}
         }
     } catch {}
 
     try {
-        const alreadyShownFor = String(window.localStorage.getItem(DB_RESET_NOTICE_VERSION_KEY) || "").trim();
+        const alreadyShownFor = String(SettingsStore.get(DB_RESET_NOTICE_VERSION_KEY) || "").trim();
         if (alreadyShownFor !== remoteVersion) {
             setTimeout(() => {
                 comfyAlert(
@@ -187,7 +188,7 @@ export async function checkMajoorVersion({ force = false } = {}) {
                 );
             }, 1000);
             try {
-                window.localStorage.setItem(DB_RESET_NOTICE_VERSION_KEY, remoteVersion);
+                SettingsStore.set(DB_RESET_NOTICE_VERSION_KEY, remoteVersion);
             } catch {}
         }
     } catch {}
