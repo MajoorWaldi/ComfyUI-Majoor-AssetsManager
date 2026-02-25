@@ -2,7 +2,7 @@ from tests.repo_root import REPO_ROOT
 
 
 def test_areset_does_not_call_sync_init_from_async_flow() -> None:
-    p = REPO_ROOT / "mjr_am_backend" / "adapters" / "db" / "sqlite.py"
+    p = REPO_ROOT / "mjr_am_backend" / "adapters" / "db" / "sqlite_facade.py"
     s = p.read_text(encoding="utf-8", errors="replace")
     marker = "async def areset(self) -> Result[bool]:"
     i = s.find(marker)
@@ -13,7 +13,7 @@ def test_areset_does_not_call_sync_init_from_async_flow() -> None:
 
 
 def test_areset_unlocks_after_reinit_success() -> None:
-    p = REPO_ROOT / "mjr_am_backend" / "adapters" / "db" / "sqlite.py"
+    p = REPO_ROOT / "mjr_am_backend" / "adapters" / "db" / "sqlite_facade.py"
     s = p.read_text(encoding="utf-8", errors="replace")
     marker = "async def areset(self) -> Result[bool]:"
     i = s.find(marker)
