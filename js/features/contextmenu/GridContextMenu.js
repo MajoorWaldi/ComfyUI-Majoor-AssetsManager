@@ -373,6 +373,7 @@ export function bindGridContextMenu({
     gridContainer,
     getState = () => ({}),
     onRequestOpenViewer = () => {},
+    getViewer = null,
 } = {}) {
     if (!gridContainer) return;
     if (gridContainer._mjrGridContextMenuBound && typeof gridContainer._mjrGridContextMenuUnbind === "function") {
@@ -380,6 +381,7 @@ export function bindGridContextMenu({
     }
 
     const menu = createMenu();
+    const resolveViewer = typeof getViewer === "function" ? getViewer : getViewerInstance;
 
     const handler = async (e) => {
         const panelState = (() => {
@@ -608,7 +610,7 @@ export function bindGridContextMenu({
                 // For a small selection set, open the selection (useful for quick compare).
                 // Otherwise open the whole grid so navigation works.
                 try {
-                    const viewer = getViewerInstance();
+                    const viewer = resolveViewer();
                     const selectedAssets = hasSelection ? getSelectedAssets(gridContainer) : [];
                     const mediaSelectedAssets = selectedAssets.filter((a) => String(a?.kind || "").toLowerCase() !== "folder");
                     const selectedCount = mediaSelectedAssets.length;
@@ -655,7 +657,7 @@ export function bindGridContextMenu({
             menu.appendChild(
                 createItem("Compare A/B (2 selected)", "pi pi-clone", getShortcutDisplay("COMPARE_AB"), () => {
                     try {
-                        const viewer = getViewerInstance();
+                        const viewer = resolveViewer();
                         viewer.open(mediaSelectedAssets, 0);
                         viewer.setMode?.("ab");
                     } catch {}
@@ -666,7 +668,7 @@ export function bindGridContextMenu({
             menu.appendChild(
                 createItem(`Side-by-side (2x2) (${selectedCount} selected)`, "pi pi-table", getShortcutDisplay("SIDE_BY_SIDE"), () => {
                     try {
-                        const viewer = getViewerInstance();
+                        const viewer = resolveViewer();
                         viewer.open(mediaSelectedAssets, 0);
                         viewer.setMode?.("sidebyside");
                     } catch {}

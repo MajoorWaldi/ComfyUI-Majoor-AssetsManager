@@ -10,10 +10,12 @@ import { registerMajoorSettings, startRuntimeStatusDashboard } from "./app/setti
 import {
     getComfyApi,
     registerSidebarTabCompat,
+    setComfyApi,
     setComfyApp,
     waitForComfyApi,
     waitForComfyApp
 } from "./app/comfyApiBridge.js";
+import { EVENTS } from "./app/events.js";
 import { initDragDrop } from "./features/dnd/DragDrop.js";
 import { loadAssets, upsertAsset, removeAssetsFromGrid } from "./features/grid/GridView.js";
 import { renderAssetsManager, getActiveGridContainer } from "./features/panel/AssetsManagerPanel.js";
@@ -116,6 +118,7 @@ app.registerExtension({
 
         // Get ComfyUI API
         const api = (await waitForComfyApi({ app: runtimeApp, timeoutMs: 4000 })) || getComfyApi(runtimeApp);
+        setComfyApi(api || null);
         if (api) {
             // Clean up previous handlers (hot-reload safety)
             try {
@@ -129,7 +132,7 @@ app.registerExtension({
                     api.removeEventListener("mjr-asset-updated", api._mjrAssetUpdatedHandler);
                 }
                 if (api._mjrScanCompleteHandler) {
-                    api.removeEventListener("mjr-scan-complete", api._mjrScanCompleteHandler);
+                    api.removeEventListener(EVENTS.SCAN_COMPLETE, api._mjrScanCompleteHandler);
                 }
                 if (api._mjrExecutionStartHandler) {
                     api.removeEventListener("execution_start", api._mjrExecutionStartHandler);
@@ -140,16 +143,16 @@ app.registerExtension({
                     api.removeEventListener("execution_interrupted", api._mjrExecutionEndHandler);
                 }
                 if (api._mjrEnrichmentStatusHandler) {
-                    api.removeEventListener("mjr-enrichment-status", api._mjrEnrichmentStatusHandler);
+                    api.removeEventListener(EVENTS.ENRICHMENT_STATUS, api._mjrEnrichmentStatusHandler);
                 }
                 if (api._mjrDbRestoreStatusHandler) {
-                    api.removeEventListener("mjr-db-restore-status", api._mjrDbRestoreStatusHandler);
+                    api.removeEventListener(EVENTS.DB_RESTORE_STATUS, api._mjrDbRestoreStatusHandler);
                 }
             } catch {}
 
             try {
                 if (window._mjrAssetsDeletedHandler) {
-                    window.removeEventListener("mjr:assets-deleted", window._mjrAssetsDeletedHandler);
+                    window.removeEventListener(EVENTS.ASSETS_DELETED, window._mjrAssetsDeletedHandler);
                 }
             } catch {}
 
@@ -209,10 +212,10 @@ app.registerExtension({
             api._mjrScanCompleteHandler = (event) => {
                 try {
                     const detail = event?.detail || {};
-                    window.dispatchEvent(new CustomEvent("mjr-scan-complete", { detail }));
+                    window.dispatchEvent(new CustomEvent(EVENTS.SCAN_COMPLETE, { detail }));
                 } catch {}
             };
-            api.addEventListener("mjr-scan-complete", api._mjrScanCompleteHandler);
+            api.addEventListener(EVENTS.SCAN_COMPLETE, api._mjrScanCompleteHandler);
 
             api._mjrEnrichmentStatusHandler = (event) => {
                 try {
@@ -228,7 +231,7 @@ app.registerExtension({
                     const prev = !!globalThis?._mjrEnrichmentActive;
                     globalThis._mjrEnrichmentActive = active;
                     globalThis._mjrEnrichmentQueueLength = queueLen;
-                    window.dispatchEvent(new CustomEvent("mjr-enrichment-status", { detail }));
+                    window.dispatchEvent(new CustomEvent(EVENTS.ENRICHMENT_STATUS, { detail }));
                     // Do not force a full grid reset on enrichment state flips.
                     // Panel-level listeners handle refresh with scroll/selection anchor preservation.
                     if (prev && !active) {
@@ -236,7 +239,7 @@ app.registerExtension({
                     }
                 } catch {}
             };
-            api.addEventListener("mjr-enrichment-status", api._mjrEnrichmentStatusHandler);
+            api.addEventListener(EVENTS.ENRICHMENT_STATUS, api._mjrEnrichmentStatusHandler);
 
             api._mjrDbRestoreStatusHandler = (event) => {
                 try {
@@ -244,7 +247,7 @@ app.registerExtension({
                     const step = String(detail?.step || "");
                     const level = String(detail?.level || "info");
                     const op = String(detail?.operation || "");
-                    window.dispatchEvent(new CustomEvent("mjr-db-restore-status", { detail }));
+                    window.dispatchEvent(new CustomEvent(EVENTS.DB_RESTORE_STATUS, { detail }));
                     const isDelete = op === "delete_db";
                     const isReset = op === "reset_index";
                     if (isDelete && !["started", "done", "failed"].includes(step)) {
@@ -282,7 +285,7 @@ app.registerExtension({
                     comfyToast(msg, tone, step === "done" || step === "failed" ? 2800 : 1800);
                 } catch {}
             };
-            api.addEventListener("mjr-db-restore-status", api._mjrDbRestoreStatusHandler);
+            api.addEventListener(EVENTS.DB_RESTORE_STATUS, api._mjrDbRestoreStatusHandler);
 
             window._mjrAssetsDeletedHandler = (event) => {
                 try {
@@ -294,7 +297,7 @@ app.registerExtension({
                     if (grid) removeAssetsFromGrid(grid, ids);
                 } catch {}
             };
-            window.addEventListener("mjr:assets-deleted", window._mjrAssetsDeletedHandler);
+            window.addEventListener(EVENTS.ASSETS_DELETED, window._mjrAssetsDeletedHandler);
             triggerStartupScan();
             console.log("📂 Majoor [✅] Real-time listener registered");
         } else {

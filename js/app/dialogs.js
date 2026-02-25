@@ -1,13 +1,14 @@
 /**
  * ComfyUI-native-ish dialogs for extensions.
  *
- * Uses ComfyDialog if available (window.comfyAPI.ui.ComfyDialog) to avoid browser
+ * Uses ComfyDialog if available from the injected Comfy app UI to avoid browser
  * alert/confirm/prompt popups. Falls back to window.* when unavailable.
  */
 
 const getComfyUi = () => {
     try {
-        return window?.comfyAPI?.ui || null;
+        const app = getComfyApp();
+        return app?.ui || null;
     } catch {
         return null;
     }
@@ -392,3 +393,4 @@ export const comfyPrompt = async (message, defaultValue = "", title = "Majoor") 
         }
     });
 };
+import { getComfyApp } from "./comfyApiBridge.js";

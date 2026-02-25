@@ -21,6 +21,9 @@ const TOOL_CAPABILITIES = [
     }
 ];
 
+let _maintenanceActive = false;
+let _dbRestoreStatusHandler = null;
+
 function formatBytes(bytes) {
     const n = Number(bytes);
     if (!Number.isFinite(n) || n <= 0) return "0 B";
@@ -299,7 +302,7 @@ export function createStatusIndicator(options = {}) {
     `;
     saveDbBtn.onclick = async (event) => {
         event.stopPropagation();
-        globalThis._mjrMaintenanceActive = true;
+        _maintenanceActive = true;
         const original = saveDbBtn.textContent;
         saveDbBtn.disabled = true;
         saveDbBtn.textContent = t("btn.saving", "Saving...");
@@ -316,7 +319,7 @@ export function createStatusIndicator(options = {}) {
         } catch (error) {
             comfyToast(error?.message || t("toast.dbSaveFailed", "Failed to save DB backup"), "error");
         } finally {
-            globalThis._mjrMaintenanceActive = false;
+            _maintenanceActive = false;
             saveDbBtn.disabled = false;
             saveDbBtn.textContent = original;
             try {
@@ -350,7 +353,7 @@ export function createStatusIndicator(options = {}) {
         const confirmed = confirm(t("dialog.dbRestore.confirm", "Restore selected DB backup? Current DB will be replaced."));
         if (!confirmed) return;
         comfyToast(t("toast.dbRestoreStarted", "DB restore started"), "info", 1800);
-        globalThis._mjrMaintenanceActive = true;
+        _maintenanceActive = true;
         const original = restoreDbBtn.textContent;
         restoreDbBtn.disabled = true;
         restoreDbBtn.textContent = t("btn.restoring", "Restoring...");
@@ -366,7 +369,7 @@ export function createStatusIndicator(options = {}) {
         } catch (error) {
             comfyToast(error?.message || t("toast.dbRestoreFailed", "Failed to restore DB backup"), "error");
         } finally {
-            globalThis._mjrMaintenanceActive = false;
+            _maintenanceActive = false;
             restoreDbBtn.disabled = false;
             restoreDbBtn.textContent = original;
             emitGlobalGridReload("db-restore");
@@ -407,7 +410,7 @@ export function createStatusIndicator(options = {}) {
     };
     resetBtn.onclick = async (event) => {
         event.stopPropagation();
-        globalThis._mjrMaintenanceActive = true;
+        _maintenanceActive = true;
 
         const originalText = resetBtn.textContent;
         resetBtn.disabled = true;
@@ -448,7 +451,7 @@ export function createStatusIndicator(options = {}) {
             statusDot.style.background = "var(--mjr-status-error, #f44336)";
             applyStatusHighlight(section, "error");
         } finally {
-            globalThis._mjrMaintenanceActive = false;
+            _maintenanceActive = false;
             resetBtn.disabled = false;
             resetBtn.textContent = originalText;
             emitGlobalGridReload("index-reset");
@@ -488,7 +491,7 @@ export function createStatusIndicator(options = {}) {
 
         const confirmed = confirm(t("dialog.dbDelete.confirm"));
         if (!confirmed) return;
-        globalThis._mjrMaintenanceActive = true;
+        _maintenanceActive = true;
 
         const originalText = deleteDbBtn.textContent;
         deleteDbBtn.disabled = true;
@@ -512,7 +515,7 @@ export function createStatusIndicator(options = {}) {
             statusDot.style.background = "var(--mjr-status-error, #f44336)";
             applyStatusHighlight(section, "error");
         } finally {
-            globalThis._mjrMaintenanceActive = false;
+            _maintenanceActive = false;
             deleteDbBtn.disabled = false;
             deleteDbBtn.textContent = originalText;
             resetBtn.disabled = false;
@@ -569,7 +572,7 @@ export function createStatusIndicator(options = {}) {
                 step === "replacing_files" ||
                 step === "restarting_scan"
             ) {
-                globalThis._mjrMaintenanceActive = true;
+                _maintenanceActive = true;
                 statusDot.style.background = "var(--mjr-status-info, #64B5F6)";
                 applyStatusHighlight(section, "info", { toast: false });
                 setStatusWithHint(
@@ -581,7 +584,7 @@ export function createStatusIndicator(options = {}) {
             }
 
             if (step === "failed") {
-                globalThis._mjrMaintenanceActive = false;
+                _maintenanceActive = false;
                 statusDot.style.background = "var(--mjr-status-error, #f44336)";
                 applyStatusHighlight(section, "error", { toast: false });
                 setStatusLines(statusText, [
@@ -592,7 +595,7 @@ export function createStatusIndicator(options = {}) {
             }
 
             if (step === "done") {
-                globalThis._mjrMaintenanceActive = false;
+                _maintenanceActive = false;
                 statusDot.style.background = "var(--mjr-status-success, #4CAF50)";
                 applyStatusHighlight(section, "success", { toast: false });
                 const op = String(detail?.operation || "");
@@ -617,11 +620,11 @@ export function createStatusIndicator(options = {}) {
         } catch {}
     };
     try {
-        const old = window.__MJR_DB_RESTORE_STATUS_HANDLER;
+        const old = _dbRestoreStatusHandler;
         if (typeof old === "function") {
             window.removeEventListener("mjr-db-restore-status", old);
         }
-        window.__MJR_DB_RESTORE_STATUS_HANDLER = onDbRestoreStatus;
+        _dbRestoreStatusHandler = onDbRestoreStatus;
         section._mjrDbRestoreStatusHandler = onDbRestoreStatus;
         window.addEventListener("mjr-db-restore-status", onDbRestoreStatus);
     } catch {}
@@ -633,7 +636,7 @@ export function createStatusIndicator(options = {}) {
  * Trigger a scan
  */
 export async function triggerScan(statusDot, statusText, capabilitiesSection = null, scanTarget = null) {
-    if (globalThis?._mjrMaintenanceActive) {
+    if (_maintenanceActive) {
         comfyToast(t("status.maintenanceBusy", "Database maintenance in progress. Please wait."), "warning", 2200);
         return;
     }
@@ -933,7 +936,7 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
         if (!statusDot?.isConnected || !statusText?.isConnected) return null;
     } catch {}
     try {
-        if (!force && globalThis?._mjrMaintenanceActive) return null;
+        if (!force && _maintenanceActive) return null;
     } catch {}
     // Optional: caller-provided object to read the last HTTP error details from.
     // (Used by the polling loop to avoid relying on string matching.)

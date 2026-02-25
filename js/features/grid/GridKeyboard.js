@@ -174,11 +174,13 @@ export function installGridKeyboard({
     onOpenTagsEditor = () => {},
     onSelectionChanged = () => {},
     onAssetChanged = () => {},
+    getViewer = null,
 } = {}) {
     if (!gridContainer) return { bind: () => {}, unbind: () => {}, dispose: () => {} };
 
     let keydownHandler = null;
     let bound = false;
+    const resolveViewer = typeof getViewer === "function" ? getViewer : getViewerInstance;
 
     const getSelection = () => {
         try {
@@ -416,7 +418,7 @@ export function installGridKeyboard({
             if (selected.length > 0) {
                 consume();
                 try {
-                    const viewer = getViewerInstance();
+                    const viewer = resolveViewer();
                     if (selected.length >= 2 && selected.length <= 4) {
                         viewer.open(selected, 0);
                     } else {
@@ -457,7 +459,7 @@ export function installGridKeyboard({
             if (selected.length === 2) {
                 consume();
                 try {
-                    const viewer = getViewerInstance();
+                    const viewer = resolveViewer();
                     viewer.open(selected, 0);
                     viewer.setMode?.("ab");
                 } catch {}
@@ -470,7 +472,7 @@ export function installGridKeyboard({
             if (selected.length >= 2 && selected.length <= 4) {
                 consume();
                 try {
-                    const viewer = getViewerInstance();
+                    const viewer = resolveViewer();
                     viewer.open(selected, 0);
                     viewer.setMode?.("sidebyside");
                 } catch {}

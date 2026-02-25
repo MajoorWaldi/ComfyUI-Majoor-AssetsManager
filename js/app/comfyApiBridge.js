@@ -4,30 +4,11 @@
  */
 
 let _comfyAppRef = null;
+let _comfyApiRef = null;
 const READY_POLL_INTERVAL_MS = 50;
 
 function _isObject(value) {
     return !!value && typeof value === "object";
-}
-
-function _resolveWindowComfyApp() {
-    try {
-        if (typeof window === "undefined") return null;
-        const comfyRoot = window?.comfyAPI?.app;
-        // Modern frontend shim exports module object at comfyAPI.app, with real instance at comfyAPI.app.app
-        if (_isObject(comfyRoot?.app)) return comfyRoot.app;
-        if (
-            _isObject(comfyRoot)
-            && (
-                typeof comfyRoot?.registerExtension === "function"
-                || _isObject(comfyRoot?.extensionManager)
-                || _isObject(comfyRoot?.ui)
-            )
-        ) {
-            return comfyRoot;
-        }
-    } catch {}
-    return null;
 }
 
 export function setComfyApp(app) {
@@ -37,15 +18,20 @@ export function setComfyApp(app) {
     return _comfyAppRef;
 }
 
+export function setComfyApi(api) {
+    if (api && typeof api === "object") {
+        _comfyApiRef = api;
+    }
+    return _comfyApiRef;
+}
+
 export function getComfyApi(app) {
+    if (_isObject(_comfyApiRef)) return _comfyApiRef;
     const runtimeApp = _isObject(app) ? app : getComfyApp();
     const fromApp = runtimeApp?.api || runtimeApp?.ui?.api || runtimeApp?.ui?.app?.api || null;
     if (_isObject(fromApp)) return fromApp;
     try {
-        if (typeof window !== "undefined") {
-            const shimApi = window?.comfyAPI?.api?.api || window?.comfyAPI?.api || window?.api || null;
-            if (_isObject(shimApi)) return shimApi;
-        }
+        if (typeof window !== "undefined" && _isObject(window?.api)) return window.api;
     } catch {}
     try {
         if (typeof globalThis !== "undefined" && _isObject(globalThis?.api)) return globalThis.api;
@@ -60,10 +46,6 @@ export function getComfyApp() {
     } catch {}
     try {
         if (typeof window !== "undefined" && window?.app) return window.app;
-    } catch {}
-    try {
-        const comfyApp = _resolveWindowComfyApp();
-        if (_isObject(comfyApp)) return comfyApp;
     } catch {}
     return null;
 }

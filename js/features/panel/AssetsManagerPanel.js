@@ -56,6 +56,7 @@ import { bindSidebarOpen } from "./controllers/sidebarController.js";
 import { createPanelHotkeysController } from "./controllers/panelHotkeysController.js";
 import { createRatingHotkeysController } from "./controllers/ratingHotkeysController.js";
 import { bindGridContextMenu } from "../contextmenu/GridContextMenu.js";
+import { getViewerInstance } from "../../components/Viewer.js";
 
 let _activeGridContainer = null;
 
@@ -256,6 +257,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         onRequestOpenViewer: (asset) => {
             gridContainer?.dispatchEvent?.(new CustomEvent("mjr:open-viewer", { detail: { asset } }));
         },
+        getViewer: getViewerInstance,
     });
 
     const settings = loadMajoorSettings();

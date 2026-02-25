@@ -451,7 +451,8 @@ export function createGridContainer() {
             },
             onOpenDetails: () => {
                  safeDispatchCustomEvent('mjr:open-sidebar', { tab: 'details' });
-            }
+            },
+            getViewer: getViewerInstance,
         });
         kbd.bind();
         // @ts-ignore
