@@ -34,7 +34,7 @@ async def test_prepare_metadata_for_entry_non_fast_error(monkeypatch):
     async def _get_metadata(filepath, scan_id):
         return Result.Err("FAIL", "extraction failed")
 
-    async def _error_payload(result, filepath):
+    def _error_payload(result, filepath):
         return Result.Ok({"error": "extraction failed"})
 
     scanner = SimpleNamespace(

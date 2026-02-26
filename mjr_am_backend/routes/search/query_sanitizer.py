@@ -106,7 +106,7 @@ def parse_inline_filters(raw_query):
         return "", {}
     tokens = str(raw_query).strip().split()
     cleaned = []
-    filters = {}
+    filters: dict[str, object] = {}
     for token in tokens:
         consumed = consume_filter_token(token, filters)
         if not consumed:

@@ -85,11 +85,12 @@ def ensure_fs_list_cache_watching(path: str) -> None:
 
             if key in _WATCHED:
                 return
+            watch_key = key
 
             class _Handler(FileSystemEventHandler):
                 def on_any_event(self, event):  # type: ignore[override]
                     try:
-                        _bump(key)
+                        _bump(watch_key)
                     except Exception:
                         return
 

@@ -3,7 +3,6 @@ Asset management endpoints: ratings, tags, service retry.
 """
 import asyncio
 import json
-import mimetypes
 import os
 import shutil
 import subprocess
@@ -17,19 +16,10 @@ from mjr_am_backend.custom_roots import list_custom_roots, resolve_custom_root
 from mjr_am_backend.shared import Result, get_logger
 from mjr_am_backend.shared import sanitize_error_message as _safe_error_message
 
-from ..assets.filename_validator import (
-    filename_boundary_error as _filename_boundary_error,
-    filename_char_error as _filename_char_error,
-    filename_reserved_error as _filename_reserved_error,
-    filename_separator_error as _filename_separator_error,
-    normalize_filename as _normalize_filename,
-    validate_filename as _validate_filename,
-)
 from ..assets.path_guard import (
     build_download_response as _pg_build_download_response,
     delete_file_best_effort as _delete_file_best_effort,
     is_resolved_path_allowed as _is_resolved_path_allowed,
-    resolve_download_path as _pg_resolve_download_path,
     safe_download_filename as _pg_safe_download_filename,
 )
 
@@ -79,7 +69,6 @@ _validate_filename = _fv.validate_filename
 
 _is_resolved_path_allowed = _pg.is_resolved_path_allowed
 _delete_file_best_effort = _pg.delete_file_best_effort
-_pg_resolve_download_path = _pg.resolve_download_path
 _pg_build_download_response = _pg.build_download_response
 _pg_safe_download_filename = _pg.safe_download_filename
 
@@ -233,27 +222,40 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if _is_within_root(path, in_root):
             return "input", None
 
-        roots_res = list_custom_roots()
-        if roots_res.ok:
-            for item in roots_res.data or []:
-                if not isinstance(item, dict):
-                    continue
-                rid = str(item.get("id") or "").strip()
-                root_path = str(item.get("path") or "").strip()
-                if not rid or not root_path:
-                    continue
-                try:
-                    rp = Path(root_path).resolve(strict=False)
-                except Exception:
-                    continue
-                if _is_within_root(path, rp):
-                    return "custom", rid
+        custom_root_id = _match_custom_root_id_for_path(path)
+        if custom_root_id:
+            return "custom", custom_root_id
 
         logger.warning(
             "Post-rename: could not classify %s under any known root; defaulting to 'output'",
             path,
         )
         return "output", None
+
+    def _match_custom_root_id_for_path(path: Path) -> str | None:
+        roots_res = list_custom_roots()
+        if not roots_res.ok:
+            return None
+        for item in roots_res.data or []:
+            candidate = _custom_root_candidate(item)
+            if not candidate:
+                continue
+            rid, rp = candidate
+            if _is_within_root(path, rp):
+                return rid
+        return None
+
+    def _custom_root_candidate(item: object) -> tuple[str, Path] | None:
+        if not isinstance(item, dict):
+            return None
+        rid = str(item.get("id") or "").strip()
+        root_path = str(item.get("path") or "").strip()
+        if not rid or not root_path:
+            return None
+        try:
+            return rid, Path(root_path).resolve(strict=False)
+        except Exception:
+            return None
 
     def _get_rating_tags_sync_mode(request: web.Request) -> str:
         try:
@@ -283,40 +285,125 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if not worker or not db:
             return
 
-        try:
-            fp_res = await db.aquery("SELECT filepath FROM assets WHERE id = ?", (asset_id,))
-            if not fp_res.ok or not fp_res.data:
-                return
-            filepath = fp_res.data[0].get("filepath")
-            if not filepath or not isinstance(filepath, str):
-                return
-        except Exception:
+        filepath = await _fetch_asset_filepath(db, asset_id)
+        if not filepath:
             return
 
-        rating = 0
-        tags = []
-        try:
-            meta_res = await db.aquery("SELECT rating, tags FROM asset_metadata WHERE asset_id = ?", (asset_id,))
-            if meta_res.ok and meta_res.data:
-                row = meta_res.data[0] or {}
-                rating = int(row.get("rating") or 0)
-                raw_tags = row.get("tags")
-                if isinstance(raw_tags, str):
-                    try:
-                        parsed = json.loads(raw_tags)
-                    except Exception:
-                        parsed = []
-                    tags = parsed if isinstance(parsed, list) else []
-                elif isinstance(raw_tags, list):
-                    tags = raw_tags
-        except Exception:
-            rating = 0
-            tags = []
+        rating, tags = await _fetch_asset_rating_tags(db, asset_id)
 
         try:
             worker.enqueue(filepath, rating, tags, mode)
         except Exception:
             return
+
+    async def _fetch_asset_filepath(db: Any, asset_id: int) -> str | None:
+        try:
+            fp_res = await db.aquery("SELECT filepath FROM assets WHERE id = ?", (asset_id,))
+            if not fp_res.ok or not fp_res.data:
+                return None
+            filepath = fp_res.data[0].get("filepath")
+            return filepath if isinstance(filepath, str) and filepath else None
+        except Exception:
+            return None
+
+    def _normalize_tags_payload(raw_tags: object) -> list:
+        if isinstance(raw_tags, list):
+            return raw_tags
+        if isinstance(raw_tags, str):
+            try:
+                parsed = json.loads(raw_tags)
+            except Exception:
+                parsed = []
+            return parsed if isinstance(parsed, list) else []
+        return []
+
+    async def _fetch_asset_rating_tags(db: Any, asset_id: int) -> tuple[int, list]:
+        try:
+            meta_res = await db.aquery(
+                "SELECT rating, tags FROM asset_metadata WHERE asset_id = ?",
+                (asset_id,),
+            )
+            if not meta_res.ok or not meta_res.data:
+                return 0, []
+            row = meta_res.data[0] or {}
+            rating = int(row.get("rating") or 0)
+            tags = _normalize_tags_payload(row.get("tags"))
+            return rating, tags
+        except Exception:
+            return 0, []
+
+    async def _resolve_rating_asset_id(body: dict[str, Any], svc: dict[str, Any]) -> Result[int]:
+        asset_id = body.get("asset_id")
+        if asset_id is not None:
+            try:
+                return Result.Ok(int(asset_id))
+            except (ValueError, TypeError):
+                return Result.Err("INVALID_INPUT", "Invalid asset_id")
+        fp = body.get("filepath") or body.get("path") or ""
+        typ = body.get("type") or ""
+        rid = body.get("root_id") or body.get("custom_root_id") or ""
+        return await _resolve_or_create_asset_id(
+            services=svc,
+            filepath=str(fp),
+            file_type=str(typ),
+            root_id=str(rid),
+        )
+
+    def _parse_rating_value(value: object) -> Result[int]:
+        try:
+            return Result.Ok(max(0, min(5, int(value or 0))))
+        except (ValueError, TypeError):
+            return Result.Err("INVALID_INPUT", "Invalid rating")
+
+    async def _require_asset_rating_services() -> Result[dict[str, Any]]:
+        svc, error_result = await _require_services()
+        if error_result:
+            return Result.Err(error_result.code or "SERVICE_UNAVAILABLE", error_result.error or "Service unavailable")
+        return Result.Ok(svc)
+
+    async def _check_asset_rating_permissions(request: web.Request, svc: dict[str, Any]) -> Result[bool]:
+        prefs = await _resolve_security_prefs(svc)
+        op = _require_operation_enabled("asset_rating", prefs=prefs)
+        if not op.ok:
+            return Result.Err(op.code or "FORBIDDEN", op.error or "Operation not allowed")
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return Result.Err(auth.code or "FORBIDDEN", auth.error or "Write access required")
+        allowed, retry_after = _check_rate_limit(request, "asset_rating", max_requests=30, window_seconds=60)
+        if not allowed:
+            return Result.Err(
+                "RATE_LIMITED",
+                "Rate limit exceeded. Please wait before retrying.",
+                retry_after=retry_after,
+            )
+        return Result.Ok(True)
+
+    async def _read_asset_rating_body(request: web.Request) -> Result[dict[str, Any]]:
+        body_res = await _read_json(request)
+        if not body_res.ok:
+            return Result.Err(body_res.code or "INVALID_INPUT", body_res.error or "Invalid request body")
+        body = body_res.data if isinstance(body_res.data, dict) else {}
+        return Result.Ok(body)
+
+    def _normalize_result_error(res: Result[Any], default_code: str, default_error: str) -> Result[Any]:
+        return Result.Err(res.code if res.code else default_code, res.error if res.error else default_error)
+
+    async def _prepare_asset_rating_request(request: web.Request) -> Result[tuple[dict[str, Any], dict[str, Any]]]:
+        csrf = _csrf_error(request)
+        if csrf:
+            return Result.Err("CSRF", csrf)
+        svc_res = await _require_asset_rating_services()
+        if not svc_res.ok:
+            return _normalize_result_error(svc_res, "SERVICE_UNAVAILABLE", "Service unavailable")
+        svc = svc_res.data or {}
+        perm_res = await _check_asset_rating_permissions(request, svc)
+        if not perm_res.ok:
+            return _normalize_result_error(perm_res, "FORBIDDEN", "Operation not allowed")
+        body_res = await _read_asset_rating_body(request)
+        if not body_res.ok:
+            return _normalize_result_error(body_res, "INVALID_INPUT", "Invalid request body")
+        body = body_res.data or {}
+        return Result.Ok((svc, body))
 
     @routes.post("/mjr/am/retry-services")
     async def retry_services(request):
@@ -346,53 +433,19 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
           - {"asset_id": int, "rating": int}
           - OR {"filepath": str, "type": "output|input|custom", "root_id"?: str, "rating": int}
         """
-        csrf = _csrf_error(request)
-        if csrf:
-            return _json_response(Result.Err("CSRF", csrf))
+        prep = await _prepare_asset_rating_request(request)
+        if not prep.ok:
+            return _json_response(prep)
+        svc, body = prep.data or ({}, {})
 
-        svc, error_result = await _require_services()
-        if error_result:
-            return _json_response(error_result)
-
-        prefs = await _resolve_security_prefs(svc)
-        op = _require_operation_enabled("asset_rating", prefs=prefs)
-        if not op.ok:
-            return _json_response(op)
-
-        auth = _require_write_access(request)
-        if not auth.ok:
-            return _json_response(auth)
-
-        allowed, retry_after = _check_rate_limit(request, "asset_rating", max_requests=30, window_seconds=60)
-        if not allowed:
-            return _json_response(Result.Err("RATE_LIMITED", "Rate limit exceeded. Please wait before retrying.", retry_after=retry_after))
-
-        body_res = await _read_json(request)
-        if not body_res.ok:
-            return _json_response(body_res)
-        body = body_res.data or {}
-
-        asset_id = body.get("asset_id")
-        rating = body.get("rating")
-
-        if asset_id is None:
-            fp = body.get("filepath") or body.get("path") or ""
-            typ = body.get("type") or ""
-            rid = body.get("root_id") or body.get("custom_root_id") or ""
-            resolved = await _resolve_or_create_asset_id(services=svc, filepath=str(fp), file_type=str(typ), root_id=str(rid))
-            if not resolved.ok:
-                return _json_response(resolved)
-            asset_id = resolved.data
-        else:
-            try:
-                asset_id = int(asset_id)
-            except (ValueError, TypeError):
-                return _json_response(Result.Err("INVALID_INPUT", "Invalid asset_id"))
-
-        try:
-            rating = max(0, min(5, int(rating or 0)))
-        except (ValueError, TypeError):
-            return _json_response(Result.Err("INVALID_INPUT", "Invalid rating"))
+        asset_res = await _resolve_rating_asset_id(body, svc)
+        if not asset_res.ok:
+            return _json_response(asset_res)
+        rating_res = _parse_rating_value(body.get("rating"))
+        if not rating_res.ok:
+            return _json_response(rating_res)
+        asset_id = int(asset_res.data or 0)
+        rating = int(rating_res.data or 0)
 
         try:
             result = await svc["index"].update_asset_rating(asset_id, rating)

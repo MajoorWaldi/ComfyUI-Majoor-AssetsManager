@@ -589,6 +589,63 @@ class Sqlite:
     def get_diagnostics(self) -> dict[str, Any]:
         return pool_diagnostics(self)
 
+    def _mark_malformed_recovery_window(self, now: float) -> bool:
+        with self._malformed_recovery_lock:
+            if now - float(self._malformed_recovery_last_ts or 0.0) < 5.0:
+                return False
+            self._malformed_recovery_last_ts = now
+            return True
+
+    async def _run_recovery_pragma(
+        self,
+        rec_conn: aiosqlite.Connection,
+        sql: str,
+        *,
+        fetch_one: bool = False,
+    ) -> Any | None:
+        for attempt in range(self._lock_retry_attempts + 1):
+            try:
+                cur = await rec_conn.execute(sql)
+                try:
+                    if fetch_one:
+                        return await cur.fetchone()
+                    await cur.fetchall()
+                    return True
+                finally:
+                    try:
+                        await cur.close()
+                    except Exception:
+                        pass
+            except sqlite3.OperationalError as exc:
+                if self._is_locked_error(exc) and attempt < self._lock_retry_attempts:
+                    await self._sleep_backoff(attempt)
+                    continue
+                raise
+        return None
+
+    async def _rebuild_fts_during_recovery(self, rec_conn: aiosqlite.Connection) -> None:
+        lock = self._write_lock
+        fts_lock_acquired = False
+        if lock is not None and not lock.locked():
+            await lock.acquire()
+            fts_lock_acquired = True
+        try:
+            for stmt in (
+                "INSERT INTO assets_fts(assets_fts) VALUES('rebuild')",
+                "INSERT INTO asset_metadata_fts(asset_metadata_fts) VALUES('rebuild')",
+            ):
+                try:
+                    await self._run_recovery_pragma(rec_conn, stmt)
+                except sqlite3.OperationalError as fts_exc:
+                    if tx_is_missing_table_error(fts_exc):
+                        continue
+                    logger.warning("FTS rebuild skipped during recovery: %s", fts_exc)
+                except Exception as fts_exc:
+                    logger.warning("FTS rebuild error during recovery: %s", fts_exc)
+        finally:
+            if fts_lock_acquired and lock is not None:
+                lock.release()
+
     async def _attempt_malformed_recovery_async(self) -> bool:
         """
         Best-effort online recovery for transient malformed errors.
@@ -597,10 +654,8 @@ class Sqlite:
         FTS rebuild acquires the write lock when available.
         """
         now = time.time()
-        with self._malformed_recovery_lock:
-            if now - float(self._malformed_recovery_last_ts or 0.0) < 5.0:
-                return False
-            self._malformed_recovery_last_ts = now
+        if not self._mark_malformed_recovery_window(now):
+            return False
 
         rec_conn: aiosqlite.Connection | None = None
         try:
@@ -614,59 +669,16 @@ class Sqlite:
                 self._set_recovery_state("failed", str(conn_exc))
                 return False
 
-            async def _run_pragma_with_lock_retry(sql: str, fetch_one: bool = False) -> Any | None:
-                for attempt in range(self._lock_retry_attempts + 1):
-                    try:
-                        cur = await rec_conn.execute(sql)
-                        try:
-                            if fetch_one:
-                                return await cur.fetchone()
-                            await cur.fetchall()
-                            return True
-                        finally:
-                            try:
-                                await cur.close()
-                            except Exception:
-                                pass
-                    except sqlite3.OperationalError as exc:
-                        if self._is_locked_error(exc) and attempt < self._lock_retry_attempts:
-                            await self._sleep_backoff(attempt)
-                            continue
-                        raise
-                return None
-
             # Flush/merge WAL first; malformed bursts can come from partial WAL state.
-            await _run_pragma_with_lock_retry("PRAGMA wal_checkpoint(TRUNCATE)")
+            await self._run_recovery_pragma(rec_conn, "PRAGMA wal_checkpoint(TRUNCATE)")
 
             # Lightweight consistency check.
-            row = await _run_pragma_with_lock_retry("PRAGMA quick_check", fetch_one=True)
+            row = await self._run_recovery_pragma(rec_conn, "PRAGMA quick_check", fetch_one=True)
             if not row or str(row[0]).lower() != "ok":
                 self._set_recovery_state("failed", "quick_check failed")
                 return False
 
-            # Rebuild FTS tables if present (best-effort; structural check already passed).
-            # Acquire write lock when not already held to avoid concurrent write conflicts.
-            lock = self._write_lock
-            fts_lock_acquired = False
-            if lock is not None and not lock.locked():
-                await lock.acquire()
-                fts_lock_acquired = True
-            try:
-                for stmt in (
-                    "INSERT INTO assets_fts(assets_fts) VALUES('rebuild')",
-                    "INSERT INTO asset_metadata_fts(asset_metadata_fts) VALUES('rebuild')",
-                ):
-                    try:
-                        await _run_pragma_with_lock_retry(stmt)
-                    except sqlite3.OperationalError as fts_exc:
-                        if tx_is_missing_table_error(fts_exc):
-                            continue  # FTS table not yet created; not fatal.
-                        logger.warning("FTS rebuild skipped during recovery: %s", fts_exc)
-                    except Exception as fts_exc:
-                        logger.warning("FTS rebuild error during recovery: %s", fts_exc)
-            finally:
-                if fts_lock_acquired and lock is not None:
-                    lock.release()
+            await self._rebuild_fts_during_recovery(rec_conn)
 
             self._set_recovery_state("success")
             return True

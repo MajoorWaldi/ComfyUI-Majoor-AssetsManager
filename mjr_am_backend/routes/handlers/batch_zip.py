@@ -100,6 +100,46 @@ def _cleanup_batch_zips() -> None:
         _cleanup_batch_cache_cap()
 
 
+def _get_batch_entry(token: str) -> dict[str, Any] | None:
+    with _BATCH_LOCK:
+        entry = _BATCH_CACHE.get(token)
+    return entry if isinstance(entry, dict) else None
+
+
+async def _wait_batch_entry_ready(entry: dict[str, Any]) -> Result[bool]:
+    event = entry.get("event")
+    if not isinstance(event, asyncio.Event) or entry.get("ready"):
+        return Result.Ok(True)
+    try:
+        await asyncio.wait_for(event.wait(), timeout=15.0)
+        return Result.Ok(True)
+    except asyncio.TimeoutError:
+        return Result.Err("NOT_READY", "Zip not ready")
+    except Exception:
+        return Result.Err("NOT_READY", "Zip not ready")
+
+
+def _batch_entry_ready_or_error(entry: dict[str, Any] | None) -> Result[dict[str, Any]]:
+    if not entry or not entry.get("ready"):
+        err = str((entry or {}).get("error") or "Not ready")
+        return Result.Err("NOT_READY", err)
+    return Result.Ok(entry)
+
+
+def _batch_file_response(entry: dict[str, Any], token: str) -> web.StreamResponse:
+    path = entry.get("path")
+    if not isinstance(path, Path) or not path.exists():
+        return _json_response(Result.Err("NOT_FOUND", "File missing"), status=404)
+    name = entry.get("filename") or f"{token}.zip"
+    safe_name = str(name).replace('"', "").replace(";", "").replace("\r", "").replace("\n", "")[:_ZIP_NAME_MAX_LEN]
+    headers = {"Content-Disposition": f'attachment; filename="{safe_name}"'}
+    try:
+        return web.FileResponse(path, headers=headers)
+    except Exception as exc:
+        logger.debug("FileResponse failed: %s", exc)
+        return _json_response(Result.Err("IO_ERROR", "Failed to serve zip"), status=500)
+
+
 def _cleanup_stale_batch_entries(now: float) -> None:
     stale: list[str] = []
     for token, entry in list(_BATCH_CACHE.items()):
@@ -425,36 +465,16 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
 
         _cleanup_batch_zips()
 
-        with _BATCH_LOCK:
-            entry = _BATCH_CACHE.get(token)
-
+        entry = _get_batch_entry(token)
         if not entry:
             return _json_response(Result.Err("NOT_FOUND", "Not found"), status=404)
 
-        event = entry.get("event")
-        if isinstance(event, asyncio.Event) and not entry.get("ready"):
-            try:
-                await asyncio.wait_for(event.wait(), timeout=15.0)
-            except asyncio.TimeoutError:
-                return _json_response(Result.Err("NOT_READY", "Zip not ready"), status=404)
-            except Exception:
-                return _json_response(Result.Err("NOT_READY", "Zip not ready"), status=404)
+        ready_res = await _wait_batch_entry_ready(entry)
+        if not ready_res.ok:
+            return _json_response(ready_res, status=404)
 
-        with _BATCH_LOCK:
-            entry = _BATCH_CACHE.get(token)
-        if not entry or not entry.get("ready"):
-            err = str((entry or {}).get("error") or "Not ready")
-            return _json_response(Result.Err("NOT_READY", err), status=404)
-
-        path = entry.get("path")
-        if not isinstance(path, Path) or not path.exists():
-            return _json_response(Result.Err("NOT_FOUND", "File missing"), status=404)
-
-        name = entry.get("filename") or f"{token}.zip"
-        safe_name = str(name).replace('"', "").replace(";", "").replace("\r", "").replace("\n", "")[:_ZIP_NAME_MAX_LEN]
-        headers = {"Content-Disposition": f'attachment; filename="{safe_name}"'}
-        try:
-            return web.FileResponse(path, headers=headers)
-        except Exception as exc:
-            logger.debug("FileResponse failed: %s", exc)
-            return _json_response(Result.Err("IO_ERROR", "Failed to serve zip"), status=500)
+        entry = _get_batch_entry(token)
+        entry_res = _batch_entry_ready_or_error(entry)
+        if not entry_res.ok:
+            return _json_response(entry_res, status=404)
+        return _batch_file_response(entry_res.data or {}, token)

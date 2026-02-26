@@ -34,7 +34,7 @@ logger = get_logger(__name__)
 
 _ALLOWED_DIRECTORIES = None
 _ALLOWED_DIRECTORIES_LOCK = threading.Lock()
-_ALLOWED_DIRECTORIES_STATE = {"output": None, "input": None}
+_ALLOWED_DIRECTORIES_STATE: dict[str, str | None] = {"output": None, "input": None}
 
 
 def _get_allowed_directories():

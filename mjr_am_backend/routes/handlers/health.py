@@ -42,6 +42,70 @@ SECURITY_PREF_KEYS = {
 }
 
 
+def _extract_probe_mode(body: dict) -> str:
+    raw_mode = body.get("mode") or body.get("media_probe_backend") or ""
+    return str(raw_mode).strip()
+
+
+def _extract_metadata_fallback_payload(body: dict) -> tuple[object | None, object | None]:
+    image = body.get("image", None)
+    media = body.get("media", None)
+    if image is not None or media is not None:
+        return image, media
+    prefs = body.get("prefs") if isinstance(body.get("prefs"), dict) else {}
+    image = prefs.get("image", None) if isinstance(prefs, dict) else None
+    media = prefs.get("media", None) if isinstance(prefs, dict) else None
+    return image, media
+
+
+def _build_security_prefs(body: dict) -> dict[str, object]:
+    prefs: dict[str, object] = {}
+    for key in SECURITY_PREF_KEYS:
+        if key not in body:
+            continue
+        if key == "api_token":
+            prefs[key] = str(body[key] or "").strip()
+        else:
+            prefs[key] = parse_bool(body[key], False)
+    if "apiToken" in body and "api_token" not in prefs:
+        prefs["api_token"] = str(body.get("apiToken") or "").strip()
+    return prefs
+
+
+def _safe_runtime_status(service: object) -> dict:
+    try:
+        getter = getattr(service, "get_runtime_status", None)
+        if callable(getter):
+            payload = getter()
+            if isinstance(payload, dict):
+                return payload
+    except Exception:
+        pass
+    return {}
+
+
+def _safe_watcher_pending_count(watcher: object) -> int:
+    try:
+        get_pending = getattr(watcher, "get_pending_count", None)
+        if callable(get_pending):
+            return int(get_pending() or 0)
+    except Exception:
+        pass
+    return 0
+
+
+def _runtime_status_payload(db: object, index: object, watcher: object) -> dict:
+    return {
+        "db": _safe_runtime_status(db),
+        "index": _safe_runtime_status(index),
+        "watcher": {
+            "enabled": bool(watcher is not None and getattr(watcher, "is_running", False)),
+            "pending_files": _safe_watcher_pending_count(watcher),
+        },
+        "maintenance_active": is_db_maintenance_active(),
+    }
+
+
 def register_health_routes(routes: web.RouteTableDef) -> None:
     """Register health and diagnostics routes."""
     async def _runtime_output_root(svc: dict | None) -> str:
@@ -216,40 +280,7 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         index = svc.get("index") if isinstance(svc, dict) else None
         watcher = svc.get("watcher") if isinstance(svc, dict) else None
 
-        db_status = {}
-        try:
-            get_db_status = getattr(db, "get_runtime_status", None)
-            if callable(get_db_status):
-                db_status = get_db_status() or {}
-        except Exception:
-            db_status = {}
-
-        index_status = {}
-        try:
-            get_index_status = getattr(index, "get_runtime_status", None)
-            if callable(get_index_status):
-                index_status = get_index_status() or {}
-        except Exception:
-            index_status = {}
-
-        watcher_pending = 0
-        try:
-            if watcher:
-                get_pending = getattr(watcher, "get_pending_count", None)
-                if callable(get_pending):
-                    watcher_pending = int(get_pending() or 0)
-        except Exception:
-            watcher_pending = 0
-
-        payload = {
-            "db": db_status,
-            "index": index_status,
-            "watcher": {
-                "enabled": bool(watcher is not None and getattr(watcher, "is_running", False)),
-                "pending_files": int(watcher_pending),
-            },
-            "maintenance_active": is_db_maintenance_active(),
-        }
+        payload = _runtime_status_payload(db, index, watcher)
         return _json_response(Result.Ok(payload))
 
     @routes.get("/mjr/am/config")
@@ -345,7 +376,7 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
             return _json_response(body_res)
         body = body_res.data or {}
 
-        mode = (body.get("mode") or body.get("media_probe_backend") or "").strip()
+        mode = _extract_probe_mode(body)
         if not mode:
             return _json_response(Result.Err("INVALID_INPUT", "Missing probe backend mode"))
 
@@ -389,12 +420,7 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
             return _json_response(body_res)
         body = body_res.data or {}
 
-        image = body.get("image", None)
-        media = body.get("media", None)
-        if image is None and media is None:
-            prefs = body.get("prefs") if isinstance(body.get("prefs"), dict) else {}
-            image = prefs.get("image", None) if isinstance(prefs, dict) else None
-            media = prefs.get("media", None) if isinstance(prefs, dict) else None
+        image, media = _extract_metadata_fallback_payload(body)
 
         result = await settings_service.set_metadata_fallback_prefs(image=image, media=media)
         if not result.ok:
@@ -437,15 +463,7 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
             return _json_response(body_res)
         body = body_res.data or {}
 
-        prefs = {}
-        for key in SECURITY_PREF_KEYS:
-            if key in body:
-                if key == "api_token":
-                    prefs[key] = str(body[key] or "").strip()
-                else:
-                    prefs[key] = parse_bool(body[key], False)
-        if "apiToken" in body and "api_token" not in prefs:
-            prefs["api_token"] = str(body.get("apiToken") or "").strip()
+        prefs = _build_security_prefs(body)
         if not prefs:
             return _json_response(Result.Err("INVALID_INPUT", "No security settings provided"))
 

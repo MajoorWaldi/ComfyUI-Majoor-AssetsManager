@@ -366,18 +366,34 @@ def register_routes(app: web.Application, user_manager=None) -> None:
     This is primarily used for unit tests; in ComfyUI, routes are registered
     via PromptServer decorators at import time.
     """
+    if not _prepare_route_table(app, user_manager):
+        return
+    _install_app_middlewares_best_effort(app)
+    if _is_app_routes_registered(app):
+        logger.debug("register_routes(app) skipped: routes already registered on this app")
+        return
+    _register_app_routes_best_effort(app)
+
+
+def _prepare_route_table(app: web.Application, user_manager: object | None) -> bool:
     try:
         if user_manager is not None:
-            try:
-                app[_APP_KEY_USER_MANAGER] = user_manager
-            except Exception:
-                pass
-        # Ensure decorators are registered exactly once globally.
+            _set_user_manager_best_effort(app, user_manager)
         register_all_routes()
+        return True
     except Exception as exc:
         logger.warning("Failed to prepare route table: %s", exc)
+        return False
+
+
+def _set_user_manager_best_effort(app: web.Application, user_manager: object) -> None:
+    try:
+        app[_APP_KEY_USER_MANAGER] = user_manager
+    except Exception:
         return
 
+
+def _install_app_middlewares_best_effort(app: web.Application) -> None:
     try:
         ensure_observability(app)
     except Exception as exc:
@@ -391,23 +407,29 @@ def register_routes(app: web.Application, user_manager=None) -> None:
     except Exception as exc:
         logger.debug("Background scan cleanup hook not installed: %s", exc)
 
-    try:
-        if app.get(_APP_KEY_ROUTES_REGISTERED):
-            logger.debug("register_routes(app) skipped: routes already registered on this app")
-            return
-    except Exception:
-        pass
 
+def _is_app_routes_registered(app: web.Application) -> bool:
+    try:
+        return bool(app.get(_APP_KEY_ROUTES_REGISTERED))
+    except Exception:
+        return False
+
+
+def _register_app_routes_best_effort(app: web.Application) -> None:
     try:
         route_table = _get_prompt_server().instance.routes
         _log_route_collisions(app, route_table)
         app.add_routes(route_table)
-        try:
-            app[_APP_KEY_ROUTES_REGISTERED] = True
-        except Exception:
-            pass
+        _mark_routes_registered_best_effort(app)
     except Exception as exc:
         logger.warning("Failed to register routes on aiohttp app: %s", exc)
+
+
+def _mark_routes_registered_best_effort(app: web.Application) -> None:
+    try:
+        app[_APP_KEY_ROUTES_REGISTERED] = True
+    except Exception:
+        return
 
 
 def _install_observability_on_prompt_server() -> None:

@@ -72,8 +72,10 @@ def test_async_loop_thread_deadlock_guard():
     t = s._AsyncLoopThread(run_timeout_s=2.0)
     _ = t.start()
     t._thread_ident = __import__("threading").get_ident()
+    coro = asyncio.sleep(0)
     with pytest.raises(RuntimeError):
-        t.run(asyncio.sleep(0))
+        t.run(coro)
+    coro.close()
     t.stop()
 
 
