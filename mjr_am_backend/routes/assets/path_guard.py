@@ -1,5 +1,7 @@
 """Path and download guards extracted from handlers/assets.py."""
+import errno
 import mimetypes
+import os
 from pathlib import Path
 from typing import Any
 
@@ -50,6 +52,11 @@ def resolve_download_path(filepath: Any) -> Path | web.Response:
     if not candidate:
         return web.Response(status=400, text="Invalid filepath")
     try:
+        if candidate.is_symlink():
+            return web.Response(status=403, text="Symlinked file not allowed")
+    except Exception:
+        pass
+    try:
         resolved = candidate.resolve(strict=True)
     except (OSError, RuntimeError, ValueError):
         return web.Response(status=404, text="File not found")
@@ -57,7 +64,27 @@ def resolve_download_path(filepath: Any) -> Path | web.Response:
         return web.Response(status=403, text="Path is not within allowed roots")
     if not resolved.is_file():
         return web.Response(status=404, text="File not found")
+    if not _validate_no_symlink_open(resolved):
+        return web.Response(status=403, text="Symlinked file not allowed")
     return resolved
+
+
+def _validate_no_symlink_open(path: Path) -> bool:
+    try:
+        flags = os.O_RDONLY
+        if os.name == "nt" and hasattr(os, "O_BINARY"):
+            flags |= os.O_BINARY
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+        fd = os.open(str(path), flags)
+        os.close(fd)
+        return True
+    except OSError as exc:
+        if getattr(exc, "errno", None) in (errno.ELOOP, errno.EACCES, errno.EPERM):
+            return False
+        return False
+    except Exception:
+        return False
 
 
 def safe_download_filename(name: str) -> str:

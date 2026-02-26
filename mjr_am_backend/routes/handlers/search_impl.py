@@ -26,7 +26,7 @@ from mjr_am_backend.custom_roots import resolve_custom_root
 from mjr_am_backend.features.index.metadata_helpers import MetadataHelpers
 from mjr_am_backend.shared import Result, get_logger
 
-from ..core import _json_response, _read_json, _require_services, safe_error_message
+from ..core import _is_loopback_request, _json_response, _read_json, _require_services, safe_error_message
 from ..core.security import _check_rate_limit
 from .filesystem import _kickoff_background_scan, _list_filesystem_assets
 
@@ -380,7 +380,12 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
             )
             subfolder = request.query.get("subfolder", "")
             root_id = request.query.get("custom_root_id", "") or request.query.get("root_id", "")
+            browser_mode = str(request.query.get("browser_mode", "") or "").strip().lower() in {"1", "true", "yes", "on"}
             if not str(root_id or "").strip():
+                if not browser_mode:
+                    return _json_response(Result.Err("INVALID_INPUT", "Missing custom_root_id"))
+                if not _is_loopback_request(request):
+                    return _json_response(Result.Err("FORBIDDEN", "Custom browser mode is loopback-only"))
                 svc, _ = await _require_services()
                 browser_result = await asyncio.to_thread(
                     list_filesystem_browser_entries,

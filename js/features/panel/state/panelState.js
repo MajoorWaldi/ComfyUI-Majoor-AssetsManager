@@ -2,11 +2,66 @@ import { SettingsStore } from "../../../app/settings/SettingsStore.js";
 
 const STORAGE_KEY = "mjr_panel_state";
 let _lastSavedSerialized = "";
+const ALLOWED_SCOPES = new Set(["output", "input", "all", "custom"]);
+
+function _toBool(value, fallback = false) {
+    if (typeof value === "boolean") return value;
+    if (typeof value === "string") {
+        const normalized = value.trim().toLowerCase();
+        if (["1", "true", "yes", "on"].includes(normalized)) return true;
+        if (["0", "false", "no", "off"].includes(normalized)) return false;
+    }
+    return !!fallback;
+}
+
+function _toNumber(value, fallback = 0) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+}
+
+function _toString(value, fallback = "") {
+    if (value === null || value === undefined) return fallback;
+    return String(value);
+}
+
+function sanitizePanelState(raw) {
+    if (!raw || typeof raw !== "object") return {};
+    const out = {};
+    const rawScope = _toString(raw.scope || "output").toLowerCase();
+    const normalizedScope = rawScope === "outputs" ? "output" : rawScope === "inputs" ? "input" : rawScope;
+    out.scope = ALLOWED_SCOPES.has(normalizedScope) ? normalizedScope : "output";
+    out.customRootId = _toString(raw.customRootId || "");
+    out.currentFolderRelativePath = _toString(raw.currentFolderRelativePath || raw.subfolder || "");
+    out.collectionId = _toString(raw.collectionId || "");
+    out.collectionName = _toString(raw.collectionName || "");
+    out.kindFilter = _toString(raw.kindFilter || "");
+    out.dateRangeFilter = _toString(raw.dateRangeFilter || "");
+    out.dateExactFilter = _toString(raw.dateExactFilter || "");
+    out.workflowOnly = _toBool(raw.workflowOnly, false);
+    out.minRating = Math.max(0, Math.min(5, Math.floor(_toNumber(raw.minRating, 0))));
+    out.minSizeMB = Math.max(0, _toNumber(raw.minSizeMB, 0));
+    out.maxSizeMB = Math.max(0, _toNumber(raw.maxSizeMB, 0));
+    out.resolutionCompare = raw.resolutionCompare === "lte" ? "lte" : "gte";
+    out.minWidth = Math.max(0, Math.floor(_toNumber(raw.minWidth, 0)));
+    out.minHeight = Math.max(0, Math.floor(_toNumber(raw.minHeight, 0)));
+    out.maxWidth = Math.max(0, Math.floor(_toNumber(raw.maxWidth, 0)));
+    out.maxHeight = Math.max(0, Math.floor(_toNumber(raw.maxHeight, 0)));
+    out.workflowType = _toString(raw.workflowType || "");
+    out.sort = _toString(raw.sort || "mtime_desc");
+    out.searchQuery = _toString(raw.searchQuery || "");
+    out.scrollTop = Math.max(0, Math.floor(_toNumber(raw.scrollTop, 0)));
+    out.activeAssetId = _toString(raw.activeAssetId || "");
+    out.selectedAssetIds = Array.isArray(raw.selectedAssetIds)
+        ? raw.selectedAssetIds.map((x) => _toString(x || "").trim()).filter(Boolean).slice(0, 5000)
+        : [];
+    out.sidebarOpen = _toBool(raw.sidebarOpen, false);
+    return out;
+}
 
 function loadPanelState() {
     try {
         const raw = SettingsStore.get(STORAGE_KEY);
-        if (raw) return JSON.parse(raw);
+        if (raw) return sanitizePanelState(JSON.parse(raw));
     } catch {}
     return null;
 }
@@ -26,12 +81,8 @@ function savePanelState(state) {
 
 export function createPanelState() {
     const saved = loadPanelState() || {};
-    const allowedScopes = new Set(["output", "input", "all", "custom"]);
-    const rawScope = String(saved.scope || "output").toLowerCase();
-    const normalizedScope = rawScope === "outputs" ? "output" : rawScope === "inputs" ? "input" : rawScope;
-    
     const state = {
-        scope: allowedScopes.has(normalizedScope) ? normalizedScope : "output",
+        scope: saved.scope || "output",
         customRootId: saved.customRootId || "",
         // Backward-compatible migration from old saved `subfolder` key.
         currentFolderRelativePath: saved.currentFolderRelativePath || saved.subfolder || "",
@@ -81,7 +132,7 @@ export function createPanelState() {
         if (event.key !== STORAGE_KEY) return;
         if (!event.newValue) return;
         try {
-            const updated = JSON.parse(event.newValue);
+            const updated = sanitizePanelState(JSON.parse(event.newValue));
             Object.assign(state, updated || {});
         } catch {}
     };

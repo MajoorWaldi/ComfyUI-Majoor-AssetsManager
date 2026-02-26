@@ -78,6 +78,8 @@ async def test_browse_folder_tkinter_unavailable(monkeypatch):
     app = _app()
     monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
     monkeypatch.setattr(m, "_check_rate_limit", lambda *_args, **_kwargs: (True, None))
+    monkeypatch.setattr(m, "_require_authenticated_user", lambda _request: Result.Ok({"user_id": "u1"}))
+    monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
     monkeypatch.setattr(m, "tk", None)
     monkeypatch.setattr(m, "filedialog", None)
 
@@ -181,6 +183,8 @@ async def test_browse_folder_csrf_and_rate_limit(monkeypatch):
 
     monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
     monkeypatch.setattr(m, "_check_rate_limit", lambda *_args, **_kwargs: (False, 5))
+    monkeypatch.setattr(m, "_require_authenticated_user", lambda _request: Result.Ok({"user_id": "u1"}))
+    monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
     req2 = make_mocked_request("POST", "/mjr/sys/browse-folder", app=app)
     resp2 = await (await app.router.resolve(req2)).handler(req2)
     assert _json(resp2).get("code") == "RATE_LIMIT"
@@ -371,6 +375,8 @@ async def test_browse_folder_headless_and_success_and_cancel(monkeypatch):
     app = _app()
     monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
     monkeypatch.setattr(m, "_check_rate_limit", lambda *_args, **_kwargs: (True, None))
+    monkeypatch.setattr(m, "_require_authenticated_user", lambda _request: Result.Ok({"user_id": "u1"}))
+    monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
 
     class _Tk:
         def withdraw(self):

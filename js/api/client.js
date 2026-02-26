@@ -45,6 +45,9 @@ const SETTINGS_FAST_CACHE_TTL_MS = 2000;
 const MAX_BATCH_ASSET_IDS = 200;
 const WRITE_METHODS = new Set(["POST", "PUT", "DELETE", "PATCH"]);
 const BOOTSTRAP_TOKEN_PATH = "/mjr/am/settings/security/bootstrap-token";
+const DEFAULT_FETCH_TIMEOUT_MS = 20_000;
+const MAX_FETCH_TIMEOUT_MS = 120_000;
+let _authTokenRefreshInFlight = null;
 
 function _methodIsWrite(method) {
     return WRITE_METHODS.has(String(method || "").toUpperCase());
@@ -165,8 +168,17 @@ async function _refreshAuthTokenFromServer() {
 async function ensureWriteAuthToken({ force = false } = {}) {
     const existing = _readAuthToken();
     if (existing && !force) return existing;
+    if (!_authTokenRefreshInFlight) {
+        _authTokenRefreshInFlight = (async () => {
+            try {
+                await _refreshAuthTokenFromServer();
+            } finally {
+                _authTokenRefreshInFlight = null;
+            }
+        })();
+    }
     try {
-        await _refreshAuthTokenFromServer();
+        await _authTokenRefreshInFlight;
     } catch {}
     return _readAuthToken();
 }
@@ -198,6 +210,63 @@ function _isRetryableError(error) {
     } catch {
         return false;
     }
+}
+
+function _resolveFetchTimeoutMs(options = {}) {
+    try {
+        const raw = Number(options?.timeoutMs);
+        if (!Number.isFinite(raw)) return DEFAULT_FETCH_TIMEOUT_MS;
+        return Math.max(1_000, Math.min(MAX_FETCH_TIMEOUT_MS, Math.floor(raw)));
+    } catch {
+        return DEFAULT_FETCH_TIMEOUT_MS;
+    }
+}
+
+function _buildTimedSignal(options = {}) {
+    const upstreamSignal = options?.signal || null;
+    if (typeof AbortController === "undefined") {
+        return {
+            signal: upstreamSignal || undefined,
+            timeoutMs: _resolveFetchTimeoutMs(options),
+            cleanup: () => {},
+        };
+    }
+    const timeoutMs = _resolveFetchTimeoutMs(options);
+    const ctrl = new AbortController();
+    let timer = null;
+    const onAbort = () => {
+        try {
+            ctrl.abort();
+        } catch {}
+    };
+    try {
+        timer = setTimeout(() => {
+            try {
+                ctrl.abort();
+            } catch {}
+        }, timeoutMs);
+    } catch {}
+    try {
+        if (upstreamSignal) {
+            if (upstreamSignal.aborted) {
+                onAbort();
+            } else {
+                upstreamSignal.addEventListener("abort", onAbort, { once: true });
+            }
+        }
+    } catch {}
+    return {
+        signal: ctrl.signal,
+        timeoutMs,
+        cleanup: () => {
+            try {
+                if (timer) clearTimeout(timer);
+            } catch {}
+            try {
+                if (upstreamSignal) upstreamSignal.removeEventListener("abort", onAbort);
+            } catch {}
+        },
+    };
 }
 
 function invalidateObsCache() {
@@ -292,6 +361,7 @@ const _readRatingTagsSyncEnabled = () => {
  */
 /** @returns {Promise<ApiResult<any>>} */
 async function fetchAPI(url, options = {}, retryCount = 0) {
+    const timed = _buildTimedSignal(options);
     try {
         const headers = typeof Headers !== "undefined" ? new Headers(options.headers || {}) : { ...options.headers };
         const method = (options.method || "GET").toUpperCase();
@@ -338,7 +408,12 @@ async function fetchAPI(url, options = {}, retryCount = 0) {
             } catch {}
         }
 
-        const response = await fetch(url, { ...options, headers });
+        const fetchOptions = { ...options, headers, signal: timed.signal };
+        try {
+            delete fetchOptions._authRetryDone;
+            delete fetchOptions.timeoutMs;
+        } catch {}
+        const response = await fetch(url, fetchOptions);
         const contentType = response.headers.get("content-type") || "";
         if (!contentType.includes("application/json")) {
             if (
@@ -400,7 +475,16 @@ async function fetchAPI(url, options = {}, retryCount = 0) {
     } catch (error) {
         try {
             if (String(error?.name || "") === "AbortError") {
-                return { ok: false, error: "Aborted", code: "ABORTED", data: null };
+                if (options?.signal && options.signal.aborted) {
+                    return { ok: false, error: "Aborted", code: "ABORTED", data: null };
+                }
+                return {
+                    ok: false,
+                    error: `Request timed out after ${timed.timeoutMs}ms`,
+                    code: "TIMEOUT",
+                    data: null,
+                    timeout_ms: timed.timeoutMs,
+                };
             }
         } catch {}
         // Retry network failures a few times (best-effort).
@@ -419,6 +503,10 @@ async function fetchAPI(url, options = {}, retryCount = 0) {
             data: null,
             retries: retryCount
         };
+    } finally {
+        try {
+            timed.cleanup?.();
+        } catch {}
     }
 }
 

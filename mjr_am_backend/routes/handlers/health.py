@@ -27,7 +27,15 @@ from mjr_am_backend.shared import ErrorCode, Result, sanitize_error_message
 from mjr_am_backend.tool_detect import get_tool_status
 from mjr_am_backend.utils import parse_bool
 
-from ..core import _csrf_error, _json_response, _read_json, _require_services, _require_write_access
+from ..core import (
+    _csrf_error,
+    _is_loopback_request,
+    _json_response,
+    _read_json,
+    _require_authenticated_user,
+    _require_services,
+    _require_write_access,
+)
 from .db_maintenance import is_db_maintenance_active
 
 SECURITY_PREF_KEYS = {
@@ -501,6 +509,11 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            user_auth = _require_authenticated_user(request)
+            if not (user_auth.ok and _is_loopback_request(request)):
+                return _json_response(auth)
 
         svc, error_result = await _require_services()
         if error_result:

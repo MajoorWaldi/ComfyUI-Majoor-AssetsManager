@@ -9,7 +9,7 @@ import ipaddress
 import os
 import threading
 import time
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 from collections.abc import Mapping
 from functools import lru_cache
 from typing import Any
@@ -21,6 +21,7 @@ from mjr_am_backend.shared import Result
 # Per-client rate limiting state: {client_id: {endpoint: [timestamps]}}
 # Use LRU eviction to prevent unbounded memory growth from spoofed client IPs.
 _DEFAULT_MAX_RATE_LIMIT_CLIENTS = 1_000
+_DEFAULT_MAX_RATE_LIMIT_ENDPOINTS_PER_CLIENT = 32
 _DEFAULT_RATE_LIMIT_CLEANUP_INTERVAL = 100
 _DEFAULT_RATE_LIMIT_MIN_WINDOW_SECONDS = 60
 _DEFAULT_CLIENT_ID_HASH_HEX_CHARS = 16
@@ -51,6 +52,16 @@ try:
     )
 except Exception:
     _CLIENT_ID_HASH_HEX_CHARS = _DEFAULT_CLIENT_ID_HASH_HEX_CHARS
+
+try:
+    _MAX_RATE_LIMIT_ENDPOINTS_PER_CLIENT = int(
+        os.environ.get(
+            "MAJOOR_RATE_LIMIT_MAX_ENDPOINTS_PER_CLIENT",
+            str(_DEFAULT_MAX_RATE_LIMIT_ENDPOINTS_PER_CLIENT),
+        )
+    )
+except Exception:
+    _MAX_RATE_LIMIT_ENDPOINTS_PER_CLIENT = _DEFAULT_MAX_RATE_LIMIT_ENDPOINTS_PER_CLIENT
 
 _rate_limit_state: OrderedDict[str, dict[str, list[float]]] = OrderedDict()
 # threading.Lock is intentional here: rate-limit updates are synchronous and never await.
@@ -327,7 +338,7 @@ def _is_loopback_ip(value: str) -> bool:
         return False
 
 
-def _check_write_access(*, peer_ip: str, headers: Mapping[str, str]) -> Result[bool]:
+def _check_write_access(*, peer_ip: str, headers: Mapping[str, str], request_scheme: str = "") -> Result[bool]:
     """
     Authorization guard for destructive/write endpoints.
 
@@ -357,6 +368,14 @@ def _check_write_access(*, peer_ip: str, headers: Mapping[str, str]) -> Result[b
     if configured_hash:
         # Prevent timing attacks
         if provided and hmac.compare_digest(_hash_token(provided), configured_hash):
+            if not _request_transport_is_secure(peer_ip=peer_ip, headers=headers, request_scheme=request_scheme):
+                if not _env_truthy("MAJOOR_ALLOW_INSECURE_TOKEN_TRANSPORT", default=False):
+                    return Result.Err(
+                        "FORBIDDEN",
+                        "Write operation blocked: API token over insecure transport. Use HTTPS (or trusted proxy with X-Forwarded-Proto=https), or set MAJOOR_ALLOW_INSECURE_TOKEN_TRANSPORT=1.",
+                        auth="token_insecure_transport",
+                        client_ip=client_ip,
+                    )
             return Result.Ok(True, auth="token", client_ip=client_ip)
         return Result.Err(
             "AUTH_REQUIRED",
@@ -399,12 +418,48 @@ def _require_write_access(request: web.Request) -> Result[bool]:
         peer = ""
     if not peer:
         peer = _extract_peer_ip(request)
+    try:
+        request_scheme = str(getattr(request, "scheme", "") or "").strip().lower()
+    except Exception:
+        request_scheme = ""
     headers: Mapping[str, str]
     try:
         headers = request.headers  # CIMultiDictProxy
     except Exception:
         headers = {}
-    return _check_write_access(peer_ip=peer, headers=headers)
+    return _check_write_access(peer_ip=peer, headers=headers, request_scheme=request_scheme)
+
+
+def _is_loopback_request(request: web.Request) -> bool:
+    try:
+        peer = _extract_peer_ip(request)
+    except Exception:
+        peer = "unknown"
+    try:
+        headers = request.headers
+    except Exception:
+        headers = {}
+    client_ip = _resolve_client_ip(peer, headers)
+    return _is_loopback_ip(client_ip)
+
+
+def _request_transport_is_secure(*, peer_ip: str, headers: Mapping[str, str], request_scheme: str) -> bool:
+    scheme = str(request_scheme or "").strip().lower()
+    if scheme == "https":
+        return True
+
+    client_ip = _resolve_client_ip(peer_ip, headers)
+    if _is_loopback_ip(client_ip):
+        return True
+
+    if not _is_trusted_proxy(peer_ip):
+        return False
+
+    forwarded_proto = _header_value(headers, "X-Forwarded-Proto")
+    if not forwarded_proto:
+        return False
+    first = forwarded_proto.split(",")[0].strip().lower()
+    return first == "https"
 
 
 def _get_comfy_user_manager(request: web.Request | None = None) -> Any:
@@ -628,9 +683,22 @@ def _get_or_create_client_state(client_id: str) -> dict[str, list[float]]:
         except KeyError:
             pass
     _evict_oldest_clients_if_needed()
-    state: dict[str, list[float]] = defaultdict(list)
+    state: dict[str, list[float]] = {}
     _rate_limit_state[client_id] = state
     return state
+
+
+def _evict_oldest_endpoint_if_needed(client_state: dict[str, list[float]], endpoint: str) -> None:
+    if endpoint in client_state:
+        return
+    cap = max(1, int(_MAX_RATE_LIMIT_ENDPOINTS_PER_CLIENT or 1))
+    while len(client_state) >= cap:
+        try:
+            # Dict preserves insertion order in modern Python.
+            oldest_key = next(iter(client_state))
+            client_state.pop(oldest_key, None)
+        except Exception:
+            break
 
 
 def _cleanup_rate_limit_state_locked(now: float, window_seconds: int) -> None:
@@ -674,7 +742,9 @@ def _check_rate_limit(
                 _rate_limit_cleanup_counter = 0
 
             client_state = _get_or_create_client_state(client_id)
-            recent = [ts for ts in client_state[endpoint] if now - ts < window_seconds]
+            _evict_oldest_endpoint_if_needed(client_state, endpoint)
+            previous = client_state.get(endpoint, [])
+            recent = [ts for ts in previous if now - ts < window_seconds]
 
             if len(recent) >= max_requests:
                 retry_after = int(window_seconds - (now - recent[0])) + 1

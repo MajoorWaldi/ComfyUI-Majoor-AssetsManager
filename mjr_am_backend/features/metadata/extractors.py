@@ -18,6 +18,8 @@ logger = get_logger(__name__)
 
 # Constants removed (moved to parsing_utils)
 MAX_TAG_LENGTH = 100
+MAX_METADATA_JSON_CHARS = 2_000_000
+MAX_METADATA_JSON_TOPLEVEL_KEYS = 20_000
 _WEBP_WORKFLOW_KEYS = ("EXIF:Make", "IFD0:Make", "Keys:Workflow", "comfyui:workflow")
 _WEBP_PROMPT_KEYS = ("EXIF:Model", "IFD0:Model", "Keys:Prompt", "comfyui:prompt")
 _WEBP_TEXT_KEYS = (
@@ -119,7 +121,14 @@ def _prompt_graph_from_container_value(value: Any) -> dict[str, Any] | None:
         return value
     if not isinstance(value, str):
         return None
-    parsed = try_parse_json_text(value)
+    text = value.strip()
+    if not text or len(text) > MAX_METADATA_JSON_CHARS:
+        return None
+    if not text.startswith("{"):
+        return None
+    parsed = try_parse_json_text(text)
+    if isinstance(parsed, dict) and len(parsed) > MAX_METADATA_JSON_TOPLEVEL_KEYS:
+        return None
     if isinstance(parsed, dict) and looks_like_comfyui_prompt_graph(parsed):
         return parsed
     return None

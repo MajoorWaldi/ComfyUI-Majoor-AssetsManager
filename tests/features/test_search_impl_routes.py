@@ -291,6 +291,7 @@ async def test_list_custom_root_missing_and_browser_mode(monkeypatch) -> None:
     monkeypatch.setattr(search_impl, "_require_services", _svc)
     monkeypatch.setattr(search_impl, "_check_rate_limit", lambda *args, **kwargs: (True, None))
     monkeypatch.setattr(search_impl, "_touch_enrichment_pause", lambda *args, **kwargs: None)
+    monkeypatch.setattr(search_impl, "_is_loopback_request", lambda _request: True)
 
     def _browser_entries(*_args, **_kwargs):
         return Result.Ok({"assets": [{"kind": "image", "filepath": "C:/x.png"}], "total": 1})
@@ -306,7 +307,7 @@ async def test_list_custom_root_missing_and_browser_mode(monkeypatch) -> None:
     )
 
     app = _build_search_app()
-    req = make_mocked_request("GET", "/mjr/am/list?scope=custom&q=cat", app=app)
+    req = make_mocked_request("GET", "/mjr/am/list?scope=custom&q=cat&browser_mode=1", app=app)
     resp = await (await app.router.resolve(req)).handler(req)
     assert json.loads(resp.text).get("ok") is True
 

@@ -116,7 +116,11 @@ export function stopObserver(state) {
 export function captureScrollMetrics(state) {
     const root = state?.scrollRoot;
     if (!root) return null;
+    try {
+        if (!root.isConnected) return null;
+    } catch {}
     const clientHeight = Number(root.clientHeight) || 0;
+    if (clientHeight <= 0) return null;
     const scrollHeight = Number(root.scrollHeight) || 0;
     const scrollTop = Number(root.scrollTop) || 0;
     const bottomGap = scrollHeight - (scrollTop + clientHeight);
@@ -180,6 +184,7 @@ export function startInfiniteScroll(gridContainer, state, deps) {
             if (!entry.isIntersecting) continue;
             if (state.loading || state.done) return;
             const metrics = captureScrollMetrics(state);
+            if (!metrics) return;
             const fillsViewport = metrics ? metrics.scrollHeight > metrics.clientHeight + 40 : false;
             if (!state.userScrolled && fillsViewport && !state.allowUntilFilled) return;
             try {
