@@ -1,11 +1,8 @@
 /**
  * Settings facade.
- * Public API remains stable while implementation lives in settings/SettingsPanel.js.
+ * Public API remains stable while implementation is split across sub-modules.
  */
 
-export {
-  startRuntimeStatusDashboard,
-  loadMajoorSettings,
-  saveMajoorSettings,
-  registerMajoorSettings,
-} from "./settings/SettingsPanel.js";
+export { startRuntimeStatusDashboard } from "./settings/settingsRuntime.js";
+export { loadMajoorSettings, saveMajoorSettings } from "./settings/settingsCore.js";
+export { registerMajoorSettings } from "./settings/SettingsPanel.js";
