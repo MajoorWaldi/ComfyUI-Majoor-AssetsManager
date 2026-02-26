@@ -22,9 +22,12 @@ env.bak/
 # Pytest
 .pytest_cache/
 tests/__pytest_tmp__/
+tests/__pytest_tmp_*/
+tests/__pytest_tmp_cov__/
 
 # Coverage
 .coverage
+.coverage.*
 htmlcov/
 
 # Databases / runtime data
@@ -150,3 +153,6 @@ uv.lock
 AUDIT_REPORT.md
 examples/FASTWAN 5B I2V_00001.mp4
 REFACTOR_PLAN.md
+.claude/settings.json
+mjr_am_backend/features/geninfo/parser_impl.py.bak
+_cleanup_dead_code.py
