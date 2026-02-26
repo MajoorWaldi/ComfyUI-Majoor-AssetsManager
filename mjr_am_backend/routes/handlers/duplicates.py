@@ -57,6 +57,8 @@ def _parse_int_query(request: web.Request, key: str, default: int) -> int:
 
 
 def _parse_keep_asset_id(raw_value: object) -> Result[int]:
+    if not isinstance(raw_value, (int, float, str, bytes, bytearray)):
+        return Result.Err("INVALID_INPUT", "Invalid keep_asset_id")
     try:
         return Result.Ok(int(raw_value))
     except Exception:
@@ -104,6 +106,8 @@ async def _get_duplicate_alerts_safe(
     max_pairs: int,
     phash_distance: int,
 ) -> Result:
+    if not hasattr(dup, "get_alerts"):
+        return Result.Err("SERVICE_UNAVAILABLE", "Duplicate service unavailable")
     try:
         return await dup.get_alerts(
             roots=roots,

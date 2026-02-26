@@ -2,6 +2,7 @@
 Custom roots management endpoints.
 """
 import asyncio
+from collections.abc import Sequence
 import errno
 import ipaddress
 import os
@@ -69,7 +70,7 @@ def _find_matching_custom_root_id(path: Path) -> str | None:
     return None
 
 
-def _iter_custom_root_rows(rows: list[object]) -> list[tuple[str, Path]]:
+def _iter_custom_root_rows(rows: Sequence[object]) -> list[tuple[str, Path]]:
     out: list[tuple[str, Path]] = []
     for item in rows:
         if not isinstance(item, dict):

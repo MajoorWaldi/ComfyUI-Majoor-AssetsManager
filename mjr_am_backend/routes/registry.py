@@ -410,7 +410,9 @@ def _install_app_middlewares_best_effort(app: web.Application) -> None:
 
 def _is_app_routes_registered(app: web.Application) -> bool:
     try:
-        return bool(app.get(_APP_KEY_ROUTES_REGISTERED))
+        return bool(app[_APP_KEY_ROUTES_REGISTERED])
+    except KeyError:
+        return False
     except Exception:
         return False
 

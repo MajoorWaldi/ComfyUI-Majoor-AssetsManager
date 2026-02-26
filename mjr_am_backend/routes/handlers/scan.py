@@ -474,6 +474,8 @@ def _watcher_settings_from_body(body: dict[str, Any]) -> tuple[int | None, int |
         if name not in body:
             return None
         value = body.get(name)
+        if value is None:
+            return None
         try:
             return int(value)
         except (TypeError, ValueError) as exc:
@@ -499,12 +501,13 @@ async def _read_upload_file_field(request: web.Request) -> tuple[Any | None, str
         field = await reader.next()
     except Exception as exc:
         return None, None, Result.Err("UPLOAD_FAILED", sanitize_error_message(exc, "Upload failed"))
-    if field.name != "file":
+    field_obj: Any = field
+    if str(getattr(field_obj, "name", "") or "") != "file":
         return None, None, Result.Err("INVALID_INPUT", "Expected 'file' field")
-    filename = field.filename
+    filename = getattr(field_obj, "filename", None)
     if not filename:
         return None, None, Result.Err("INVALID_INPUT", "No filename provided")
-    return field, str(filename), None
+    return field_obj, str(filename), None
 
 
 async def _index_uploaded_input_best_effort(dest_path: Path, input_dir: Path) -> None:

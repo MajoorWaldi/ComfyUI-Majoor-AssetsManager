@@ -350,6 +350,8 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         )
 
     def _parse_rating_value(value: object) -> Result[int]:
+        if not isinstance(value, (int, float, str, bytes, bytearray)) and value is not None:
+            return Result.Err("INVALID_INPUT", "Invalid rating")
         try:
             return Result.Ok(max(0, min(5, int(value or 0))))
         except (ValueError, TypeError):
@@ -359,6 +361,8 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         svc, error_result = await _require_services()
         if error_result:
             return Result.Err(error_result.code or "SERVICE_UNAVAILABLE", error_result.error or "Service unavailable")
+        if not isinstance(svc, dict):
+            return Result.Err("SERVICE_UNAVAILABLE", "Service unavailable")
         return Result.Ok(svc)
 
     async def _check_asset_rating_permissions(request: web.Request, svc: dict[str, Any]) -> Result[bool]:

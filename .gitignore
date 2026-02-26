@@ -164,3 +164,11 @@ reports_radon_cc_js.json
 reports_radon_raw_backend.json
 reports_vulture.txt
 reports_vulture_backend.txt
+
+# Extra local temp artifacts (pytest/radon scratch)
+.tmp_*
+tests/__pytest_tmp_py*/
+tests/__pytest_tmp_cov__/
+tests/__pytest_tmp__/
+reports_radon*
+radon_*

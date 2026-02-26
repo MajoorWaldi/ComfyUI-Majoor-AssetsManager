@@ -590,24 +590,62 @@ async def _fs_cache_get_or_build(
     asset_type: str,
     root_id: str | None,
 ) -> Result[dict[str, Any]]:
-    # Made async to allow async locking if needed, though mostly sync logic
-    dir_stat = _filesystem_dir_cache_state(base, target_dir_resolved)
-    if not dir_stat.ok:
-        return dir_stat
-    state = dir_stat.data if isinstance(dir_stat.data, dict) else {}
+    cache_state = _resolve_fs_cache_state(base, target_dir_resolved, asset_type, root_id)
+    if not cache_state.ok:
+        return Result.Err(cache_state.code or "LIST_FAILED", cache_state.error or "Failed to list directory")
+    state = cache_state.data if isinstance(cache_state.data, dict) else {}
     dir_mtime_ns = int(state.get("dir_mtime_ns") or 0)
     watch_token = int(state.get("watch_token") or 0)
-    cache_key = f"{str(base)}|{str(target_dir_resolved)}|{asset_type}|{str(root_id or '')}"
+    cache_key = str(state.get("cache_key") or "")
 
     cached = await _get_fs_cache_hit(cache_key, dir_mtime_ns=dir_mtime_ns, watch_token=watch_token)
     if cached is not None:
         return Result.Ok({"entries": cached, "dir_mtime_ns": dir_mtime_ns})
 
+    return await _build_fs_cache_entries(
+        cache_key=cache_key,
+        dir_mtime_ns=dir_mtime_ns,
+        watch_token=watch_token,
+        target_dir_resolved=target_dir_resolved,
+        base=base,
+        asset_type=asset_type,
+        root_id=root_id,
+    )
+
+
+def _resolve_fs_cache_state(
+    base: Path,
+    target_dir_resolved: Path,
+    asset_type: str,
+    root_id: str | None,
+) -> Result[dict[str, Any]]:
+    dir_stat = _filesystem_dir_cache_state(base, target_dir_resolved)
+    if not dir_stat.ok:
+        return Result.Err(dir_stat.code or "LIST_FAILED", dir_stat.error or "Failed to list directory")
+    state = dir_stat.data if isinstance(dir_stat.data, dict) else {}
+    return Result.Ok(
+        {
+            "dir_mtime_ns": int(state.get("dir_mtime_ns") or 0),
+            "watch_token": int(state.get("watch_token") or 0),
+            "cache_key": f"{str(base)}|{str(target_dir_resolved)}|{asset_type}|{str(root_id or '')}",
+        }
+    )
+
+
+async def _build_fs_cache_entries(
+    *,
+    cache_key: str,
+    dir_mtime_ns: int,
+    watch_token: int,
+    target_dir_resolved: Path,
+    base: Path,
+    asset_type: str,
+    root_id: str | None,
+) -> Result[dict[str, Any]]:
     collect = await _collect_filesystem_entries_safe(target_dir_resolved, base, asset_type, root_id)
     if not collect.ok:
-        return collect
+        return Result.Err(collect.code or "LIST_FAILED", collect.error or "Failed to list directory")
     entries = collect.data if isinstance(collect.data, list) else []
-
     await _store_fs_cache_entry(cache_key, dir_mtime_ns=dir_mtime_ns, watch_token=watch_token, entries=entries)
     return Result.Ok({"entries": entries, "dir_mtime_ns": dir_mtime_ns})
 
