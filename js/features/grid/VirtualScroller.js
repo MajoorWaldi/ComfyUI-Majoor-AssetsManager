@@ -41,7 +41,14 @@ export function getScrollContainer(gridContainer, state) {
 }
 
 export function ensureVirtualGrid(gridContainer, state, deps) {
-    if (state.virtualGrid) return state.virtualGrid;
+    if (state.virtualGrid) {
+        // Guard: a disposed instance has its DOM detached; discard it so a fresh one is created.
+        if (state.virtualGrid._disposed) {
+            state.virtualGrid = null;
+        } else {
+            return state.virtualGrid;
+        }
+    }
     const scrollRoot = getScrollContainer(gridContainer, state);
     try {
         deps.gridDebug("virtualGrid:scrollRoot", {

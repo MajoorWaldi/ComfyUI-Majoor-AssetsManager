@@ -402,7 +402,7 @@ async def run_incremental_metadata_refresh_locked(
         except sqlite3.OperationalError as exc:
             if scanner.db._is_locked_error(exc):
                 logger.warning("Database busy while refreshing metadata (asset=%s): %s", existing_id, exc)
-            raise
+            raise RuntimeError("Incremental metadata refresh transaction failed") from exc
 
 
 async def run_incremental_metadata_refresh_tx(
@@ -472,7 +472,7 @@ async def insert_new_asset_for_index_file(
         if scanner.db._is_locked_error(exc):
             logger.warning("Database busy while inserting asset %s: %s", filepath, exc)
             return Result.Err("DB_BUSY", "Database busy while inserting asset")
-        raise
+        raise RuntimeError("Asset insert transaction failed") from exc
 
     if not tx_state or not tx_state.ok:
         return Result.Err("DB_ERROR", tx_state.error or "Commit failed")

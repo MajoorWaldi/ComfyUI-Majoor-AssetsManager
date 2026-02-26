@@ -35,6 +35,13 @@ dependencies = [
   # tkinter is included in standard Python distribution but may be missing in minimal installs
 ]
 
+[project.optional-dependencies]
+dev = [
+  "radon>=6.0.1",
+  "flake8>=7.1.0",
+  "flake8-cognitive-complexity>=0.1.0",
+]
+
 [project.urls]
 Homepage = "https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager"
 Repository = "https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager"

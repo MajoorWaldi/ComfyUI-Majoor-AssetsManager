@@ -10,6 +10,7 @@ import { safeDispatchCustomEvent } from "../../utils/events.js";
 import { t, initI18n, setLang, getCurrentLang, getSupportedLanguages, startComfyLanguageSync, setFollowComfyLanguage } from "../i18n.js";
 import { SettingsStore } from "./SettingsStore.js";
 import { registerSettingsSections } from "./SettingsSections.js";
+import { debounce } from "../../utils/debounce.js";
 
 import { SETTINGS_KEY, SETTINGS_SCHEMA_VERSION } from "../settingsStore.js";
 const SETTINGS_PREFIX = "Majoor";
@@ -569,8 +570,6 @@ export const registerMajoorSettings = (app, onApplied) => {
     startComfyLanguageSync(app);
     void syncBackendSecuritySettings();
 
-    let notifyTimer = null;
-    let notifyColorTimer = null;
     const pendingKeys = new Set();
     const pendingColorKeys = new Set();
     const COLOR_NOTIFY_DEBOUNCE_MS = 450;
@@ -587,7 +586,6 @@ export const registerMajoorSettings = (app, onApplied) => {
         "ui.tagColor",
     ]);
     const flushNotify = () => {
-        notifyTimer = null;
         if (!pendingKeys.size) return;
         const keys = Array.from(pendingKeys);
         pendingKeys.clear();
@@ -596,7 +594,6 @@ export const registerMajoorSettings = (app, onApplied) => {
         }
     };
     const flushColorNotify = () => {
-        notifyColorTimer = null;
         if (!pendingColorKeys.size) return;
         const keys = Array.from(pendingColorKeys);
         pendingColorKeys.clear();
@@ -604,15 +601,15 @@ export const registerMajoorSettings = (app, onApplied) => {
             safeDispatchCustomEvent("mjr-settings-changed", { key: pendingKey }, { warnPrefix: "[Majoor]" });
         }
     };
+    const scheduleNotifyFlush = debounce(flushNotify, 120);
+    const scheduleColorNotifyFlush = debounce(flushColorNotify, COLOR_NOTIFY_DEBOUNCE_MS);
     const scheduleNotify = (key) => {
         if (typeof key === "string") pendingKeys.add(key);
-        if (notifyTimer) return;
-        notifyTimer = setTimeout(flushNotify, 120);
+        scheduleNotifyFlush();
     };
     const scheduleColorNotify = (key) => {
         if (typeof key === "string") pendingColorKeys.add(key);
-        if (notifyColorTimer) clearTimeout(notifyColorTimer);
-        notifyColorTimer = setTimeout(flushColorNotify, COLOR_NOTIFY_DEBOUNCE_MS);
+        scheduleColorNotifyFlush();
     };
 
     const refreshFromStorage = () => {

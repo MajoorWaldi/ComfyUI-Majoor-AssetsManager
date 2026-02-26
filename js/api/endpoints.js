@@ -3,6 +3,7 @@
  */
 
 import { pickRootId } from "../utils/ids.js";
+import { hasWindowsDrivePrefix, splitFilenameAndSubfolder, toPosixPath } from "../utils/path.js";
 
 const DEFAULT_QUERY_LIMIT = 100;
 const DEFAULT_QUERY_OFFSET = 0;
@@ -224,7 +225,7 @@ export function buildDateHistogramURL(params = {}) {
 }
 
 export function buildAssetViewURL(asset) {
-    const rawPath = String(
+    const rawPath = toPosixPath(String(
         asset?.filepath ||
         asset?.path ||
         asset?.fullpath ||
@@ -232,7 +233,7 @@ export function buildAssetViewURL(asset) {
         asset?.file_info?.filepath ||
         asset?.file_info?.path ||
         ""
-    ).trim().replace(/\\/g, "/");
+    ).trim());
     let filename = String(
         asset?.filename ||
         asset?.name ||
@@ -246,7 +247,7 @@ export function buildAssetViewURL(asset) {
     ).trim();
     const pickFromPath = (p) => {
         const out = { type: "", subfolder: "", filename: "" };
-        const normalized = String(p || "").replace(/\\/g, "/");
+        const normalized = toPosixPath(p);
         if (!normalized) return out;
         const idxOut = normalized.toLowerCase().indexOf("/output/");
         const idxIn = normalized.toLowerCase().indexOf("/input/");
@@ -268,8 +269,8 @@ export function buildAssetViewURL(asset) {
                 out.filename = rel;
             }
         } else {
-            const slash = normalized.lastIndexOf("/");
-            out.filename = slash >= 0 ? normalized.slice(slash + 1) : normalized;
+            const split = splitFilenameAndSubfolder(normalized);
+            out.filename = split.filename;
         }
         return out;
     };
@@ -296,8 +297,7 @@ export function buildAssetViewURL(asset) {
     if (!type) type = "output";
 
     const hasNativeBucket = rawPath.includes("/output/") || rawPath.includes("/input/");
-    const subfolderLooksAbsolute =
-        /^[a-zA-Z]:\//.test(subfolder) || subfolder.startsWith("/");
+    const subfolderLooksAbsolute = hasWindowsDrivePrefix(subfolder) || subfolder.startsWith("/");
     // Fallback: non-native output/input roots (or broken absolute subfolder values)
     // cannot be served by ComfyUI `/view`, so use backend filepath streaming URL.
     if (rawPath && type !== "custom" && (subfolderLooksAbsolute || !hasNativeBucket)) {

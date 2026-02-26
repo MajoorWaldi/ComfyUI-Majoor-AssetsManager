@@ -42,59 +42,8 @@ _AUDIO_SINK_TYPES: set[str] = {"saveaudio", "save_audio", "vhs_saveaudio"}
 _IMAGE_SINK_TYPES: set[str] = {"saveimage", "saveimagewebsocket", "saveanimatedwebp", "savegif"}
 
 
-def _sink_group(ct: str) -> int:
-    if _sink_is_video(ct):
-        return 0
-    if _sink_is_audio(ct):
-        return 1
-    if _sink_is_image(ct):
-        return 2
-    if _sink_is_preview(ct):
-        return 3
-    return 4
-
-
-def _sink_is_video(ct: str) -> bool:
-    return ct in _VIDEO_SINK_TYPES or (("save" in ct) and ("video" in ct))
-
-
-def _sink_is_audio(ct: str) -> bool:
-    return ct in _AUDIO_SINK_TYPES or (("save" in ct) and ("audio" in ct))
-
-
-def _sink_is_image(ct: str) -> bool:
-    return ct in _IMAGE_SINK_TYPES or (("save" in ct) and ("image" in ct))
-
-
-def _sink_is_preview(ct: str) -> bool:
-    return ct == "previewimage" or "preview" in ct
-
-
-def _sink_images_tiebreak(node: dict[str, Any]) -> int:
-    try:
-        return 0 if _is_link(_inputs(node).get("images")) else 1
-    except Exception:
-        return 1
-
-
-def _sink_node_id_tiebreak(node_id: str | None) -> int:
-    try:
-        return -int(node_id) if node_id is not None else 0
-    except Exception:
-        return 0
-
-
-def _sink_priority(node: dict[str, Any], node_id: str | None = None) -> tuple[int, int, int]:
-    """
-    Rank sinks so we pick the "real" output when multiple sinks exist.
-
-    Video graphs often contain both PreviewImage and SaveVideo; PreviewImage can be
-    attached to intermediate nodes and does not reliably reflect the final render.
-    """
-    ct = _lower(_node_type(node))
-    prio = (_sink_group(ct), _sink_images_tiebreak(node), _sink_node_id_tiebreak(node_id))
-    # print(f"DEBUG: Sink {node_id} priority {prio}")
-    return prio
+# Sink and graph-link helpers are delegated to `graph_converter` near the end
+# of this module (P2-D cleanup). Keep only non-delegated helpers here.
 
 _MODEL_EXTS: tuple[str, ...] = (
     ".safetensors",
@@ -131,53 +80,6 @@ def _to_int(value: Any) -> int | None:
         return None
 
 
-def _looks_like_node_id(value: Any) -> bool:
-    """
-    Prompt-graph link node ids are usually integers, but some exporters encode ids like
-    "57:35" (multi-part numeric ids). Accept only digit-or-digit+colon patterns.
-    """
-    if value is None:
-        return False
-    if isinstance(value, int):
-        return True
-    if not isinstance(value, str):
-        return False
-    s = value.strip()
-    if not s:
-        return False
-    parts = s.split(":")
-    return all(p.isdigit() for p in parts if p != "")
-
-
-def _is_link(value: Any) -> bool:
-    if not isinstance(value, (list, tuple)) or len(value) != 2:
-        return False
-    a, b = value[0], value[1]
-    return _looks_like_node_id(a) and _to_int(b) is not None
-
-
-def _resolve_link(value: Any) -> tuple[str, int] | None:
-    if not _is_link(value):
-        return None
-    a, b = value[0], value[1]
-    return str(a).strip(), int(_to_int(b) or 0)
-
-
-def _node_type(node: Any) -> str:
-    if not isinstance(node, dict):
-        return ""
-    return str(node.get("class_type") or node.get("type") or "")
-
-
-def _inputs(node: Any) -> dict[str, Any]:
-    if not isinstance(node, dict):
-        return {}
-    ins = node.get("inputs")
-    return ins if isinstance(ins, dict) else {}
-
-
-def _lower(s: Any) -> str:
-    return str(s or "").lower()
 
 
 def _is_numeric_like_text(value: str) -> bool:
@@ -204,46 +106,6 @@ def _looks_like_prompt_string(value: Any) -> bool:
     return any(ch.isalpha() for ch in s)
 
 
-def _is_reroute(node: dict[str, Any]) -> bool:
-    ct = _lower(_node_type(node))
-    return ct == "reroute" or "reroute" in ct
-
-
-def _walk_passthrough(
-    nodes_by_id: dict[str, dict[str, Any]],
-    start_link: Any,
-    max_hops: int = 50,
-) -> str | None:
-    """
-    Follow link through obvious pass-through nodes (Reroute).
-    Returns the final source node id (string) or None.
-    """
-    link = _resolve_link(start_link)
-    if not link:
-        return None
-    node_id, _ = link
-    hops = 0
-    while hops < max_hops:
-        hops += 1
-        node = nodes_by_id.get(node_id)
-        if not isinstance(node, dict):
-            return node_id
-        if not _is_reroute(node):
-            return node_id
-        ins = _inputs(node)
-        # Reroute nodes typically have a single link input.
-        next_link = None
-        for v in ins.values():
-            if _is_link(v):
-                next_link = v
-                break
-        if not next_link:
-            return node_id
-        resolved = _resolve_link(next_link)
-        if not resolved:
-            return node_id
-        node_id, _ = resolved
-    return node_id
 
 
 @dataclass(frozen=True)
@@ -271,78 +133,6 @@ def _field_size(width: Any, height: Any, confidence: str, source: str) -> dict[s
     return {"width": width, "height": height, "confidence": confidence, "source": source}
 
 
-def _pick_sink_inputs(node: dict[str, Any]) -> Any | None:
-    ins = _inputs(node)
-    preferred = ["audio", "audios", "waveform", "images", "image", "frames", "video", "samples", "latent", "latent_image"]
-    for k in preferred:
-        v = ins.get(k)
-        if _is_link(v):
-            return v
-    for v in ins.values():
-        if _is_link(v):
-            return v
-    return None
-
-
-def _find_candidate_sinks(nodes_by_id: dict[str, dict[str, Any]]) -> list[str]:
-    sinks: list[str] = []
-    for node_id, node in nodes_by_id.items():
-        ct = _lower(_node_type(node))
-        if ct in SINK_CLASS_TYPES:
-            sinks.append(node_id)
-            continue
-
-        # Heuristic for custom save nodes (e.g. WAS, Impact, CR, etc)
-        # Must contain "save" or "preview" AND media hint
-        if ("save" in ct or "preview" in ct) and ("image" in ct or "video" in ct or "audio" in ct):
-            sinks.append(node_id)
-            continue
-
-    return sinks
-
-
-def _collect_upstream_nodes(
-    nodes_by_id: dict[str, dict[str, Any]],
-    start_node_id: str,
-    max_nodes: int = DEFAULT_MAX_GRAPH_NODES,
-    max_depth: int = DEFAULT_MAX_GRAPH_DEPTH
-) -> dict[str, int]:
-    """
-    BFS upstream from a node id, returning node->distance.
-
-    Args:
-        nodes_by_id: Dictionary of node_id -> node data
-        start_node_id: Starting node for traversal
-        max_nodes: Maximum number of nodes to visit
-        max_depth: Maximum depth to traverse (prevents DoS)
-    """
-    dist: dict[str, int] = {}
-    q: deque[tuple[str, int]] = deque([(start_node_id, 0)])
-
-    while q and len(dist) < max_nodes:
-        nid, d = q.popleft()
-
-        # Depth limit check
-        if d > max_depth:
-            continue
-
-        if nid in dist:
-            continue
-        dist[nid] = d
-
-        node = nodes_by_id.get(nid)
-        if not isinstance(node, dict):
-            continue
-
-        for v in _inputs(node).values():
-            if not _is_link(v):
-                continue
-            resolved = _resolve_link(v)
-            if not resolved:
-                continue
-            src_id, _ = resolved
-            q.append((src_id, d + 1))
-    return dist
 
 
 def _is_sampler(node: dict[str, Any]) -> bool:
@@ -2197,7 +1987,7 @@ def parse_geninfo_from_prompt(prompt_graph: Any, workflow: Any = None) -> Result
         return _geninfo_metadata_only_result(workflow_meta)
     except Exception as e:
         # Unexpected error - log with full traceback for debugging
-        logger.exception(f"Unexpected error in GenInfo parsing: {e}")
+        logger.error("Unexpected error in GenInfo parsing: %s", e, exc_info=True)
         return _geninfo_metadata_only_result(workflow_meta)
 
 

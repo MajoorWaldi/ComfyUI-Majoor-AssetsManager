@@ -7,6 +7,7 @@ import { buildAssetViewURL } from "../api/endpoints.js";
 import { createFileBadge, createRatingBadge, createTagsBadge, createWorkflowDot } from "./Badges.js";
 import { formatDuration, formatDate, formatTime } from "../utils/format.js";
 import { APP_CONFIG } from "../app/config.js";
+import { createMediaErrorPlaceholder } from "../utils/dom.js";
 
 const AUDIO_THUMB_URL = (() => {
     try {
@@ -785,14 +786,7 @@ function createThumbnail(asset, viewUrl) {
         // Critical: Handle broken images
         img.onerror = () => {
              img.style.display = "none";
-             const err = document.createElement("div");
-             err.className = "mjr-thumb-error";
-             const icon = document.createElement("i");
-             icon.className = "pi pi-image";
-             icon.style.fontSize = "24px";
-             icon.style.opacity = "0.5";
-             err.appendChild(icon);
-             err.style.cssText = "display:flex; align-items:center; justify-content:center; width:100%; height:100%; background:rgba(255,50,50,0.1);";
+             const err = createMediaErrorPlaceholder("pi pi-image");
              thumb.appendChild(err);
         };
 
@@ -821,14 +815,7 @@ function createThumbnail(asset, viewUrl) {
         
         video.onerror = () => {
              video.style.display = "none";
-             const err = document.createElement("div");
-             err.className = "mjr-thumb-error";
-             const icon = document.createElement("i");
-             icon.className = "pi pi-video";
-             icon.style.fontSize = "24px";
-             icon.style.opacity = "0.5";
-             err.appendChild(icon);
-             err.style.cssText = "display:flex; align-items:center; justify-content:center; width:100%; height:100%; background:rgba(255,50,50,0.1);";
+             const err = createMediaErrorPlaceholder("pi pi-video");
              thumb.appendChild(err);
         };
 

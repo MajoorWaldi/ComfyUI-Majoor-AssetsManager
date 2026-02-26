@@ -12,6 +12,7 @@ import { getViewerInstance } from "../../components/Viewer.js";
 // Context menus are bound by the panel (GridContextMenu) to avoid duplicate handlers.
 import { ASSET_RATING_CHANGED_EVENT, ASSET_TAGS_CHANGED_EVENT } from "../../app/events.js";
 import { safeDispatchCustomEvent } from "../../utils/events.js";
+import { debounce } from "../../utils/debounce.js";
 import { pickRootId } from "../../utils/ids.js";
 import { bindAssetDragStart } from "../dnd/DragDrop.js";
 import { loadMajoorSettings } from "../../app/settings.js";
@@ -373,8 +374,10 @@ export function createGridContainer() {
     _updateGridSettingsClasses(container);
 
     // Listen for settings changes to update CSS classes reactively
-    let settingsRefreshTimer = null;
     const SETTINGS_REFRESH_DEBOUNCE_MS = 180;
+    const scheduleSettingsRefresh = debounce(() => {
+        refreshGrid(container);
+    }, SETTINGS_REFRESH_DEBOUNCE_MS);
     const onSettingsChanged = () => {
         // Apply class/CSS var updates immediately (cheap) for responsive UI.
         requestAnimationFrame(() => {
@@ -382,14 +385,7 @@ export function createGridContainer() {
         });
 
         // Heavy virtual-grid redraw is debounced to avoid picker-drag freeze.
-        if (settingsRefreshTimer) {
-            clearTimeout(settingsRefreshTimer);
-            settingsRefreshTimer = null;
-        }
-        settingsRefreshTimer = setTimeout(() => {
-            settingsRefreshTimer = null;
-            refreshGrid(container);
-        }, SETTINGS_REFRESH_DEBOUNCE_MS);
+        scheduleSettingsRefresh();
     };
 
     // We bind to the custom event dispatched by settings.js
@@ -400,12 +396,6 @@ export function createGridContainer() {
         container._mjrSettingsChangedCleanup = () => {
             try {
                 window.removeEventListener("mjr-settings-changed", onSettingsChanged);
-            } catch {}
-            try {
-                if (settingsRefreshTimer) {
-                    clearTimeout(settingsRefreshTimer);
-                    settingsRefreshTimer = null;
-                }
             } catch {}
         };
     } catch {}
@@ -1131,8 +1121,13 @@ export async function loadAssets(gridContainer, query = "*", options = {}) {
             // Check if items present in state, not just DOM (logic shift)
             const hasItems = state.assets && state.assets.length > 0;
                   if (!hasItems && state.offset === 0) {
-                  // Manually clear to show message
-                  if (state.virtualGrid) state.virtualGrid.setItems([]);
+                  // Dispose VirtualGrid before setGridMessage clears the DOM via replaceChildren().
+                  // Without this, state.virtualGrid keeps a stale (detached) instance and the next
+                  // search renders assets into a detached container → blank grid.
+                  if (state.virtualGrid) {
+                      try { state.virtualGrid.dispose(); } catch {}
+                      state.virtualGrid = null;
+                  }
                   setGridMessage(gridContainer, "No assets found", { clear: true });
               } else {
                   startInfiniteScroll(gridContainer, state);
@@ -1287,7 +1282,10 @@ export async function loadAssetsFromList(gridContainer, assets, options = {}) {
             hideLoadingOverlay(gridContainer);
             const hasItems = state.assets && state.assets.length > 0;
               if (!hasItems) {
-                  if (state.virtualGrid) state.virtualGrid.setItems([]);
+                  if (state.virtualGrid) {
+                      try { state.virtualGrid.dispose(); } catch {}
+                      state.virtualGrid = null;
+                  }
                   setGridMessage(gridContainer, "No assets found", { clear: true });
               }
         }
@@ -1610,7 +1608,11 @@ export async function restoreAnchor(gridContainer, anchor) {
     await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
     const el = findAssetElement(gridContainer, anchor.id);
-    if (!el) return;
+    if (!el) {
+        // Element no longer in DOM (selection lost after reload); restore raw scroll position.
+        scrollContainer.scrollTop = anchor.scrollTop || 0;
+        return;
+    }
 
     const rect = el.getBoundingClientRect();
     const containerRect = gridContainer.getBoundingClientRect();

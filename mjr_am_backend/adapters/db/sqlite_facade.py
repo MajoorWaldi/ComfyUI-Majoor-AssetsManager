@@ -589,12 +589,12 @@ class Sqlite:
     def get_diagnostics(self) -> dict[str, Any]:
         return pool_diagnostics(self)
 
-    async def _attempt_malformed_recovery_async(self, conn: aiosqlite.Connection) -> bool:
+    async def _attempt_malformed_recovery_async(self) -> bool:
         """
         Best-effort online recovery for transient malformed errors.
 
-        This is intentionally conservative: checkpoint WAL, run quick check,
-        and rebuild FTS indexes if available. Hard reset remains an explicit operation.
+        Uses a fresh connection (not the dirty one that triggered the error).
+        FTS rebuild acquires the write lock when available.
         """
         now = time.time()
         with self._malformed_recovery_lock:
@@ -602,30 +602,38 @@ class Sqlite:
                 return False
             self._malformed_recovery_last_ts = now
 
-        async def _run_pragma_with_lock_retry(sql: str, fetch_one: bool = False) -> Any | None:
-            for attempt in range(self._lock_retry_attempts + 1):
-                try:
-                    cur = await conn.execute(sql)
-                    try:
-                        if fetch_one:
-                            return await cur.fetchone()
-                        await cur.fetchall()
-                        return True
-                    finally:
-                        try:
-                            await cur.close()
-                        except Exception:
-                            pass
-                except sqlite3.OperationalError as exc:
-                    if self._is_locked_error(exc) and attempt < self._lock_retry_attempts:
-                        await self._sleep_backoff(attempt)
-                        continue
-                    raise
-            return None
-
+        rec_conn: aiosqlite.Connection | None = None
         try:
             self._set_recovery_state("in_progress")
             logger.warning("DB malformed detected; attempting online recovery")
+
+            try:
+                rec_conn = await self._acquire_connection_async()
+            except Exception as conn_exc:
+                logger.warning("Online recovery: could not acquire fresh connection: %s", conn_exc)
+                self._set_recovery_state("failed", str(conn_exc))
+                return False
+
+            async def _run_pragma_with_lock_retry(sql: str, fetch_one: bool = False) -> Any | None:
+                for attempt in range(self._lock_retry_attempts + 1):
+                    try:
+                        cur = await rec_conn.execute(sql)
+                        try:
+                            if fetch_one:
+                                return await cur.fetchone()
+                            await cur.fetchall()
+                            return True
+                        finally:
+                            try:
+                                await cur.close()
+                            except Exception:
+                                pass
+                    except sqlite3.OperationalError as exc:
+                        if self._is_locked_error(exc) and attempt < self._lock_retry_attempts:
+                            await self._sleep_backoff(attempt)
+                            continue
+                        raise
+                return None
 
             # Flush/merge WAL first; malformed bursts can come from partial WAL state.
             await _run_pragma_with_lock_retry("PRAGMA wal_checkpoint(TRUNCATE)")
@@ -633,18 +641,32 @@ class Sqlite:
             # Lightweight consistency check.
             row = await _run_pragma_with_lock_retry("PRAGMA quick_check", fetch_one=True)
             if not row or str(row[0]).lower() != "ok":
+                self._set_recovery_state("failed", "quick_check failed")
                 return False
 
-            # Rebuild FTS tables if present (best-effort).
-            for stmt in (
-                "INSERT INTO assets_fts(assets_fts) VALUES('rebuild')",
-                "INSERT INTO asset_metadata_fts(asset_metadata_fts) VALUES('rebuild')",
-            ):
-                try:
-                    await _run_pragma_with_lock_retry(stmt)
-                except Exception:
-                    # Not fatal: FTS table may not exist yet.
-                    pass
+            # Rebuild FTS tables if present (best-effort; structural check already passed).
+            # Acquire write lock when not already held to avoid concurrent write conflicts.
+            lock = self._write_lock
+            fts_lock_acquired = False
+            if lock is not None and not lock.locked():
+                await lock.acquire()
+                fts_lock_acquired = True
+            try:
+                for stmt in (
+                    "INSERT INTO assets_fts(assets_fts) VALUES('rebuild')",
+                    "INSERT INTO asset_metadata_fts(asset_metadata_fts) VALUES('rebuild')",
+                ):
+                    try:
+                        await _run_pragma_with_lock_retry(stmt)
+                    except sqlite3.OperationalError as fts_exc:
+                        if tx_is_missing_table_error(fts_exc):
+                            continue  # FTS table not yet created; not fatal.
+                        logger.warning("FTS rebuild skipped during recovery: %s", fts_exc)
+                    except Exception as fts_exc:
+                        logger.warning("FTS rebuild error during recovery: %s", fts_exc)
+            finally:
+                if fts_lock_acquired and lock is not None:
+                    lock.release()
 
             self._set_recovery_state("success")
             return True
@@ -658,6 +680,9 @@ class Sqlite:
             self._set_recovery_state("failed", str(rec_exc))
             logger.error("Online recovery failed: %s", rec_exc)
             return False
+        finally:
+            if rec_conn is not None:
+                await self._release_connection_async(rec_conn)
 
     async def _attempt_missing_table_recovery_async(self) -> bool:
         """
@@ -749,6 +774,9 @@ class Sqlite:
             if not self._active_conns:
                 self._active_conns_idle.set()
             if not conn:
+                return
+            # Skip connections closed during malformed error recovery.
+            if getattr(conn, "_mjr_closed", False):
                 return
             if not self._pool.full():
                 self._pool.put(conn)
@@ -936,13 +964,24 @@ class Sqlite:
                     logger.error("Database error: %s", exc)
                     return Result.Err(ErrorCode.DB_ERROR, str(exc))
                 self._mark_malformed_event(exc)
-                recovered = await self._attempt_malformed_recovery_async(conn)
+                # Close the dirty connection before recovery; mark it so _release_connection_async skips pooling.
+                try:
+                    await conn.close()
+                    conn._mjr_closed = True  # type: ignore[attr-defined]
+                except Exception:
+                    conn._mjr_closed = True  # type: ignore[attr-defined]
+                recovered = await self._attempt_malformed_recovery_async()
                 if recovered:
+                    retry_conn: aiosqlite.Connection | None = None
                     try:
-                        return await self._execute_on_conn_locked_async(conn, query, params, fetch, commit=commit)
+                        retry_conn = await self._acquire_connection_async()
+                        return await self._execute_on_conn_locked_async(retry_conn, query, params, fetch, commit=commit)
                     except Exception as retry_exc:
                         logger.error("Database malformed after recovery retry: %s", retry_exc)
                         return Result.Err(ErrorCode.DB_ERROR, str(retry_exc))
+                    finally:
+                        if retry_conn is not None:
+                            await self._release_connection_async(retry_conn)
                 await self._maybe_auto_reset_on_corruption(exc)
                 logger.error("Database malformed and recovery failed: %s", exc)
                 return Result.Err(ErrorCode.DB_ERROR, str(exc))

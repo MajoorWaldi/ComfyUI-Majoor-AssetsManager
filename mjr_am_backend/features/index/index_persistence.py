@@ -51,7 +51,7 @@ async def persist_prepared_entries(
                 type(batch_error).__name__,
                 exc_info=batch_error,
             )
-            raise
+            raise RuntimeError("Fatal database error during batch persistence") from batch_error
 
         suspect_fp, suspect_reason = scanner._diagnose_batch_failure(prepared, batch_error)
         if suspect_fp:

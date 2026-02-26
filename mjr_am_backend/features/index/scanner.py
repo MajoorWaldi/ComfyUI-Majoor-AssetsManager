@@ -8,7 +8,7 @@ from typing import Any
 
 from ...adapters.db.sqlite import Sqlite
 from ...config import MAX_TO_ENRICH_ITEMS
-from ...shared import get_logger, log_structured
+from ...shared import get_logger
 from ..metadata import MetadataService
 from .fs_walker import SCAN_IOPS_LIMIT, FileSystemWalker
 from .index_batching import append_batch_metadata_entries, existing_map_for_batch, journal_map_for_batch, prefetch_batch_cache_and_rich_meta, prefetch_metadata_cache_rows, prefetch_rich_metadata_rows, prepare_batch_entries, prepare_single_batch_entry, resolve_existing_state_for_batch
@@ -168,6 +168,8 @@ class IndexScanner:
         return context
 
     def _log_scan_event(self, level: int, message: str, **context):
-        log_structured(logger, level, message, **self._scan_context(**context))
+        full_context = self._scan_context(**context)
+        parts = [f"{k}={v}" for k, v in full_context.items()]
+        logger.log(level, "%s | %s", message, " ".join(parts))
 
     _write_metadata_row = write_metadata_row

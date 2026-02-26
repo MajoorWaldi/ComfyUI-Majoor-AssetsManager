@@ -21,13 +21,16 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install xenon
+          pip install xenon radon flake8 flake8-cognitive-complexity
 
       - name: Check Python files encoding (no UTF-8 BOM)
         run: python scripts/check_no_bom.py mjr_am_backend mjr_am_shared tests __init__.py scripts
 
       - name: Complexity gate (stage A)
         run: python -m xenon -b F -m D -a C mjr_am_backend mjr_am_shared tests __init__.py
+
+      - name: Complexity gate (new files, CC <= 10)
+        run: python scripts/check_cc_changed.py
 
   test:
     runs-on: ubuntu-22.04

@@ -672,7 +672,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             except Exception as exc:
                 logger.debug("Failed to attach scan stats: %s", exc)
         except Exception as exc:
-            logger.exception("Unhandled error while scanning directory")
+            logger.error("Unhandled error while scanning directory", exc_info=True)
             error_result = Result.Err(
                 "SCAN_FAILED",
                 "Internal error while scanning assets",
@@ -1186,7 +1186,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 else:
                     reset_res = await db.areset()
             except Exception as exc:
-                logger.exception("Hard reset DB failed")
+                logger.error("Hard reset DB failed", exc_info=True)
                 _emit_maintenance_status("failed", "error", sanitize_error_message(exc, "Hard reset failed"), operation="reset_index")
                 return _json_response(
                     Result.Err("RESET_FAILED", sanitize_error_message(exc, "Hard reset failed"))
@@ -1231,7 +1231,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                         _emit_maintenance_status("failed", "error", "Index reset scan timed out", operation="reset_index")
                         return _json_response(Result.Err("TIMEOUT", "Index reset scan timed out"))
                     except Exception as exc:
-                        logger.exception("Index reset scan failed")
+                        logger.error("Index reset scan failed", exc_info=True)
                         _emit_maintenance_status("failed", "error", sanitize_error_message(exc, "Index reset scan failed"), operation="reset_index")
                         return _json_response(
                             Result.Err(
@@ -1364,7 +1364,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             else:
                 res = await _do_clears()
         except Exception as exc:
-            logger.exception("Index reset clear phase failed")
+            logger.error("Index reset clear phase failed", exc_info=True)
             _emit_maintenance_status("failed", "error", sanitize_error_message(exc, "Index reset failed during clear phase"), operation="reset_index")
             return _json_response(
                 Result.Err(
@@ -1383,7 +1383,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                     else:
                         reset_res = await db.areset()
                 except Exception as exc:
-                    logger.exception("Fallback hard reset after malformed DB failed")
+                    logger.error("Fallback hard reset after malformed DB failed", exc_info=True)
                     _emit_maintenance_status("failed", "error", sanitize_error_message(exc, "Malformed DB and fallback hard reset failed"), operation="reset_index")
                     return _json_response(
                         Result.Err(
@@ -1466,7 +1466,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                     _emit_maintenance_status("failed", "error", "Index reset scan timed out", operation="reset_index")
                     return _json_response(Result.Err("TIMEOUT", "Index reset scan timed out"))
                 except Exception as exc:
-                    logger.exception("Index reset scan failed")
+                    logger.error("Index reset scan failed", exc_info=True)
                     _emit_maintenance_status("failed", "error", sanitize_error_message(exc, "Index reset scan failed"), operation="reset_index")
                     return _json_response(
                         Result.Err(
@@ -1508,7 +1508,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 if not tx.ok:
                     return _json_response(Result.Err("DB_ERROR", tx.error or "Commit failed"))
             except Exception as exc:
-                logger.exception("FTS rebuild failed during index reset")
+                logger.error("FTS rebuild failed during index reset", exc_info=True)
                 _emit_maintenance_status("failed", "error", sanitize_error_message(exc, "FTS rebuild failed"), operation="reset_index")
                 return _json_response(
                     Result.Err("DB_ERROR", sanitize_error_message(exc, "FTS rebuild failed"))

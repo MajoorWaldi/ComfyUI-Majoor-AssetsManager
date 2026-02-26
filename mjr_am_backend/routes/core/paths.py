@@ -24,6 +24,11 @@ from mjr_am_backend.config import get_runtime_output_root
 from mjr_am_backend.custom_roots import list_custom_roots
 from mjr_am_backend.features.audio import AUDIO_VIEW_MIME_TYPES
 from mjr_am_backend.shared import get_logger
+from mjr_am_backend.path_utils import (
+    is_within_root as shared_is_within_root,
+    normalize_path as shared_normalize_path,
+    safe_rel_path as shared_safe_rel_path,
+)
 
 logger = get_logger(__name__)
 
@@ -64,16 +69,7 @@ def _get_allowed_directories():
 
 
 def _normalize_path(value: str) -> Path | None:
-    if not value:
-        return None
-    if "\x00" in value:
-        return None
-    try:
-        candidate = Path(value).expanduser()
-        # Resolve without requiring file to exist (strict=False) to support directories pending creation
-        return candidate.resolve(strict=False)
-    except (OSError, ValueError):
-        return None
+    return shared_normalize_path(value)
 
 
 def _is_path_allowed(candidate: Path | None, *, must_exist: bool = False) -> bool:
@@ -145,43 +141,11 @@ def _is_path_allowed_custom(candidate: Path | None) -> bool:
 
 
 def _safe_rel_path(value: str) -> Path | None:
-    if value is None:
-        return Path("")
-    raw = str(value).strip()
-    if raw == "":
-        return Path("")
-    if "\x00" in raw:
-        return None
-    try:
-        rel = Path(raw)
-    except (OSError, ValueError):
-        return None
-    if getattr(rel, "drive", ""):
-        return None
-    if rel.is_absolute():
-        return None
-    # Disallow traversal
-    if any(part == ".." for part in rel.parts):
-        return None
-    return rel
+    return shared_safe_rel_path(value)
 
 
 def _is_within_root(candidate: Path, root: Path) -> bool:
-    try:
-        # SECURITY: require strict resolution so symlinks are fully resolved.
-        # If we cannot resolve a path to a real filesystem location, treat it as unsafe.
-        root_resolved = root.resolve(strict=True)
-        cand_resolved = candidate.resolve(strict=True)
-    except (OSError, RuntimeError, ValueError):
-        return False
-    try:
-        return cand_resolved == root_resolved or cand_resolved.is_relative_to(root_resolved)
-    except AttributeError:
-        try:
-            common = os.path.commonpath([str(cand_resolved), str(root_resolved)])
-            return os.path.normcase(common) == os.path.normcase(str(root_resolved))
-        except ValueError:
-            return False
+    return shared_is_within_root(candidate, root)
 
 
 # -----------------------------------------------------------------------------

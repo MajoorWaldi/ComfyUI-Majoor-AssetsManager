@@ -118,7 +118,7 @@ async def consume_scan_queue(
             )
     except asyncio.CancelledError:
         stop_event.set()
-        raise
+        raise asyncio.CancelledError()
 
 
 async def process_scan_batch(

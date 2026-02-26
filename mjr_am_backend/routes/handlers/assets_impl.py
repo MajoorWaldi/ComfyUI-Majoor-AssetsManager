@@ -26,11 +26,11 @@ from ..assets.filename_validator import (
     validate_filename as _validate_filename,
 )
 from ..assets.path_guard import (
-    build_download_response as _build_download_response,
+    build_download_response as _pg_build_download_response,
     delete_file_best_effort as _delete_file_best_effort,
     is_resolved_path_allowed as _is_resolved_path_allowed,
-    resolve_download_path as _resolve_download_path,
-    safe_download_filename as _safe_download_filename,
+    resolve_download_path as _pg_resolve_download_path,
+    safe_download_filename as _pg_safe_download_filename,
 )
 
 try:
@@ -66,122 +66,6 @@ MAX_TAGS_PER_ASSET = 50
 MAX_TAG_LENGTH = 100
 MAX_RENAME_LENGTH = 255
 
-_WINDOWS_RESERVED = {
-    'CON', 'PRN', 'AUX', 'NUL',
-    'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9',
-    'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'
-}
-
-def _validate_filename(name: str) -> tuple[bool, str]:
-    """Validate a filename for safety."""
-    normalized = _normalize_filename(name)
-    if not normalized:
-        return False, "Filename cannot be empty"
-    separator_error = _filename_separator_error(normalized)
-    if separator_error:
-        return False, separator_error
-    char_error = _filename_char_error(normalized)
-    if char_error:
-        return False, char_error
-    boundary_error = _filename_boundary_error(normalized)
-    if boundary_error:
-        return False, boundary_error
-    reserved_error = _filename_reserved_error(normalized)
-    if reserved_error:
-        return False, reserved_error
-    return True, ""
-
-
-def _normalize_filename(name: str) -> str:
-    if not name:
-        return ""
-    return name.strip()
-
-
-def _filename_separator_error(name: str) -> str:
-    if "/" in name or "\\" in name:
-        return "Filename cannot contain path separators"
-    return ""
-
-
-def _filename_char_error(name: str) -> str:
-    if "\x00" in name:
-        return "Filename cannot contain null bytes"
-    if any(ord(char) < 32 for char in name):
-        return "Filename cannot contain control characters"
-    return ""
-
-
-def _filename_boundary_error(name: str) -> str:
-    if name.startswith('.') or name.startswith(' '):
-        return "Filename cannot start with dot or space"
-    if name.endswith('.') or name.endswith(' '):
-        return "Filename cannot end with dot or space"
-    return ""
-
-
-def _filename_reserved_error(name: str) -> str:
-    base = name.split('.')[0].upper()
-    if base in _WINDOWS_RESERVED:
-        return "Filename uses a reserved Windows name"
-    return ""
-
-def _is_resolved_path_allowed(path: Path) -> bool:
-    """
-    Enforce allowed roots check on canonical paths.
-    """
-    try:
-        return bool(_is_path_allowed(path) or _is_path_allowed_custom(path))
-    except Exception:
-        return False
-
-
-
-def _delete_file_best_effort(path: Path) -> Result[bool]:
-    """
-    Prefer moving to recycle bin (send2trash) when available, fallback to permanent delete.
-
-    Never raises: returns Result.
-    """
-    try:
-        if not path.exists() or not path.is_file():
-            return Result.Ok(True, method="noop")
-    except Exception as exc:
-        return Result.Err(
-            "DELETE_FAILED", _safe_error_message(exc, "Failed to stat file")
-        )
-
-    # Prefer recycle bin when possible.
-    try:
-        from send2trash import send2trash  # type: ignore
-
-        try:
-            send2trash(str(path))
-            return Result.Ok(True, method="send2trash")
-        except Exception as exc:
-            # Fall back to unlink (still acceptable; better than aborting UX).
-            try:
-                path.unlink(missing_ok=True)
-                return Result.Ok(
-                    True,
-                    method="unlink_fallback",
-                    warning=_safe_error_message(exc, "send2trash failed"),
-                )
-            except Exception as exc2:
-                return Result.Err(
-                    "DELETE_FAILED", _safe_error_message(exc2, "Failed to delete file")
-                )
-    except Exception:
-        # send2trash not available or failed to import.
-        try:
-            path.unlink(missing_ok=True)
-            return Result.Ok(True, method="unlink")
-        except Exception as exc:
-            return Result.Err(
-                "DELETE_FAILED", _safe_error_message(exc, "Failed to delete file")
-            )
-
-
 # P2-E-05/06 delegation to extracted modules.
 from ..assets import filename_validator as _fv
 from ..assets import path_guard as _pg
@@ -195,9 +79,9 @@ _validate_filename = _fv.validate_filename
 
 _is_resolved_path_allowed = _pg.is_resolved_path_allowed
 _delete_file_best_effort = _pg.delete_file_best_effort
-_resolve_download_path = _pg.resolve_download_path
-_build_download_response = _pg.build_download_response
-_safe_download_filename = _pg.safe_download_filename
+_pg_resolve_download_path = _pg.resolve_download_path
+_pg_build_download_response = _pg.build_download_response
+_pg_safe_download_filename = _pg.safe_download_filename
 
 
 def register_asset_routes(routes: web.RouteTableDef) -> None:
@@ -1448,24 +1332,11 @@ def _resolve_download_path(filepath: Any) -> Path | web.Response:
 
 
 def _build_download_response(resolved: Path, *, preview: bool) -> web.StreamResponse:
-    mime_type, _ = mimetypes.guess_type(str(resolved))
-    safe_mime = mime_type or "application/octet-stream"
-    filename = _safe_download_filename(resolved.name)
-    disposition = "inline" if preview else "attachment"
-
-    response = web.FileResponse(path=str(resolved))
-    try:
-        response.headers["Content-Type"] = safe_mime
-        response.headers["Content-Disposition"] = f'{disposition}; filename="{filename}"'
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["Cache-Control"] = "private, max-age=60" if preview else "private, no-cache"
-    except Exception:
-        pass
-    return response
+    return _pg_build_download_response(resolved, preview=preview)
 
 
 def _safe_download_filename(name: str) -> str:
-    return str(name or "").replace('"', "").replace(";", "").replace("\r", "").replace("\n", "")[:255]
+    return _pg_safe_download_filename(name)
 
 
 def register_download_routes(routes: web.RouteTableDef):

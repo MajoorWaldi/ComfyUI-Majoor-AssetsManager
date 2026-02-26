@@ -1,5 +1,6 @@
 import { comfyToast } from "../../../app/toast.js";
 import { t } from "../../../app/i18n.js";
+import { copyTextToClipboard } from "../../../utils/dom.js";
 
 export function createSection(title) {
     const section = document.createElement("div");
@@ -58,11 +59,11 @@ export function createInfoBox(title, content, accentColor, options = {}) {
     header.appendChild(titleSpan);
 
     const doCopy = async () => {
-        try {
-            await navigator.clipboard.writeText(content);
+        const ok = await copyTextToClipboard(content);
+        if (ok) {
             comfyToast(t("toast.copiedToClipboardNamed", "{name} copied to clipboard!", { name: title }), "success", 2000);
-        } catch (err) {
-            console.warn(t("log.clipboardCopyFailed", "Clipboard copy failed"), err);
+        } else {
+            console.warn(t("log.clipboardCopyFailed", "Clipboard copy failed"));
             comfyToast(t("toast.copyClipboardFailed", "Failed to copy to clipboard"), "error");
         }
     };
@@ -195,11 +196,11 @@ export function createParametersBox(title, fields, accentColor, options = {}) {
         `;
         
         value.addEventListener("click", async () => {
-            try {
-                await navigator.clipboard.writeText(String(field.value));
+            const ok = await copyTextToClipboard(String(field.value));
+            if (ok) {
                 value.style.background = "rgba(76, 175, 80, 0.3)";
                 setTimeout(() => { value.style.background = ""; }, 300);
-            } catch {}
+            }
         });
 
         grid.appendChild(label);

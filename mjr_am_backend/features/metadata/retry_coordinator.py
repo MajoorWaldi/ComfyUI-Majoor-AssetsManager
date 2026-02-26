@@ -3,7 +3,7 @@ import os
 import time
 from typing import Any
 
-from ...shared import ErrorCode, Result, log_structured
+from ...shared import ErrorCode, Result
 from .extractors import extract_rating_tags_from_exif
 
 
@@ -49,7 +49,8 @@ def log_metadata_issue(logger, level: int, message: str, file_path: str, scan_id
             context["duration_seconds"] = round(float(duration_seconds), 3)
         except Exception:
             context["duration_seconds"] = duration_seconds
-    log_structured(logger, level, message, **context)
+    parts = [f"{k}={v}" for k, v in context.items()]
+    logger.log(level, "%s | %s", message, " ".join(parts))
 
 
 def extract_rating_tags_only(exiftool: Any, file_path: str, logger: Any, scan_id: str | None = None) -> Result[dict[str, Any]]:
