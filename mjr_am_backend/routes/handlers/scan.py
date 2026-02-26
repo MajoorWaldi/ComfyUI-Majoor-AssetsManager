@@ -457,6 +457,170 @@ async def _maybe_schedule_consistency_check(db: Any) -> None:
         logger.debug("Failed to schedule consistency check: %s", exc)
 
 
+def _resolve_input_directory() -> Path:
+    try:
+        return Path(folder_paths.get_input_directory()).resolve()
+    except Exception:
+        return (Path(__file__).parent.parent.parent.parent / "input").resolve()
+
+
+def _upload_skip_index(request: web.Request) -> bool:
+    purpose = str(request.query.get("purpose", "") or "").lower().strip()
+    return purpose == "node_drop"
+
+
+def _watcher_settings_from_body(body: dict[str, Any]) -> tuple[int | None, int | None]:
+    def _parse_int(name: str) -> int | None:
+        if name not in body:
+            return None
+        value = body.get(name)
+        try:
+            return int(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"Invalid value for {name}") from exc
+
+    return _parse_int("debounce_ms"), _parse_int("dedupe_ttl_ms")
+
+
+def _refresh_watcher_runtime_settings(svc: dict[str, Any]) -> None:
+    watcher = svc.get("watcher")
+    refresh_fn = getattr(watcher, "refresh_runtime_settings", None)
+    if not callable(refresh_fn):
+        return
+    try:
+        refresh_fn()
+    except Exception as exc:
+        logger.debug("Failed to refresh watcher settings: %s", exc)
+
+
+async def _read_upload_file_field(request: web.Request) -> tuple[Any | None, str | None, Result[Any] | None]:
+    try:
+        reader = await request.multipart()
+        field = await reader.next()
+    except Exception as exc:
+        return None, None, Result.Err("UPLOAD_FAILED", sanitize_error_message(exc, "Upload failed"))
+    if field.name != "file":
+        return None, None, Result.Err("INVALID_INPUT", "Expected 'file' field")
+    filename = field.filename
+    if not filename:
+        return None, None, Result.Err("INVALID_INPUT", "No filename provided")
+    return field, str(filename), None
+
+
+async def _index_uploaded_input_best_effort(dest_path: Path, input_dir: Path) -> None:
+    try:
+        svc, _error_result = await _require_services()
+        if svc and svc.get("index"):
+            _schedule_index_task(
+                lambda: svc["index"].index_paths(
+                    [dest_path],
+                    str(input_dir),
+                    True,
+                    "input",
+                )
+            )
+    except Exception as exc:
+        logger.debug("Indexing uploaded file skipped: %s", exc)
+
+
+def _watcher_scope_config(svc: dict[str, Any]) -> tuple[str, str | None]:
+    scope_cfg = svc.get("watcher_scope") if isinstance(svc, dict) else None
+    desired_scope = normalize_scope((scope_cfg or {}).get("scope"))
+    desired_root_id = (scope_cfg or {}).get("custom_root_id") or (scope_cfg or {}).get("root_id")
+    return desired_scope, desired_root_id
+
+
+async def _delay_for_recent_generated_marker() -> None:
+    try:
+        await asyncio.sleep(0.2)
+    except Exception:
+        return
+
+
+def _filter_recent_generated_files(filepaths: list[Any] | None) -> list[Any]:
+    try:
+        from mjr_am_backend.features.index.watcher import is_recent_generated
+
+        return [f for f in (filepaths or []) if f and not is_recent_generated(f)]
+    except Exception:
+        return [f for f in (filepaths or []) if f]
+
+
+def _build_watcher_callbacks(index_service: Any):
+    async def index_callback(filepaths, base_dir, source=None, root_id=None):
+        if not filepaths:
+            return
+        await _delay_for_recent_generated_marker()
+        filepaths = _filter_recent_generated_files(filepaths)
+        if not filepaths:
+            return
+        paths = [Path(f) for f in filepaths if f]
+        if paths:
+            await index_service.index_paths(
+                paths=paths,
+                base_dir=base_dir,
+                incremental=True,
+                source=source or "watcher",
+                root_id=root_id,
+            )
+
+    async def remove_callback(filepaths, _base_dir, _source=None, _root_id=None):
+        if not filepaths:
+            return
+        for fp in filepaths:
+            try:
+                await index_service.remove_file(str(fp))
+            except Exception:
+                continue
+
+    async def move_callback(moves, _base_dir, source=None, root_id=None):
+        if not moves:
+            return
+        for move in moves:
+            try:
+                old_fp, new_fp = move
+            except Exception:
+                continue
+            try:
+                res = await index_service.rename_file(str(old_fp), str(new_fp))
+                if not res.ok:
+                    await index_service.remove_file(str(old_fp))
+                    await index_service.index_paths(
+                        paths=[Path(str(new_fp))],
+                        base_dir=str(_base_dir),
+                        incremental=True,
+                        source=source or "watcher",
+                        root_id=root_id,
+                    )
+            except Exception:
+                continue
+
+    return index_callback, remove_callback, move_callback
+
+
+async def _start_watcher_for_scope(svc: dict[str, Any], index_service: Any) -> Result[dict[str, Any]]:
+    from mjr_am_backend.features.index.watcher import OutputWatcher
+
+    index_callback, remove_callback, move_callback = _build_watcher_callbacks(index_service)
+    new_watcher = OutputWatcher(index_callback, remove_callback=remove_callback, move_callback=move_callback)
+    desired_scope, desired_root_id = _watcher_scope_config(svc)
+    watch_paths = build_watch_paths(desired_scope, desired_root_id)
+    if not watch_paths:
+        return Result.Err("NO_DIRECTORIES", "No directories to watch")
+    loop = asyncio.get_event_loop()
+    await new_watcher.start(watch_paths, loop)
+    svc["watcher"] = new_watcher
+    svc["watcher_scope"] = {"scope": desired_scope, "custom_root_id": desired_root_id or ""}
+    return Result.Ok({"enabled": True, "directories": new_watcher.watched_directories})
+
+
+async def _stop_watcher_if_running(svc: dict[str, Any], watcher: Any) -> Result[dict[str, Any]]:
+    if watcher:
+        await watcher.stop()
+        svc["watcher"] = None
+    return Result.Ok({"enabled": False, "directories": []})
+
+
 def register_scan_routes(routes: web.RouteTableDef) -> None:
     """Register scan/index/stage/open-in-folder routes."""
     @routes.post("/mjr/am/scan")
@@ -1800,49 +1964,24 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             return _json_response(auth)
 
         try:
-            reader = await request.multipart()
+            field, filename, upload_err = await _read_upload_file_field(request)
+            if upload_err:
+                return _json_response(upload_err)
+            if field is None or filename is None:
+                return _json_response(Result.Err("UPLOAD_FAILED", "Upload failed"))
 
-            # Get the file from multipart data
-            field = await reader.next()
-            if field.name != 'file':
-                return _json_response(Result.Err("INVALID_INPUT", "Expected 'file' field"))
+            skip_index = _upload_skip_index(request)
 
-            filename = field.filename
-            if not filename:
-                return _json_response(Result.Err("INVALID_INPUT", "No filename provided"))
+            input_dir = _resolve_input_directory()
 
-            # Get purpose from query params
-            purpose = request.query.get("purpose", "").lower().strip()
-            skip_index = (purpose == "node_drop")
-
-            # Get input directory (use module-level `folder_paths` so tests can monkeypatch)
-            try:
-                input_dir = Path(folder_paths.get_input_directory()).resolve()
-            except Exception:
-                input_dir = Path(__file__).parent.parent.parent.parent / "input"
-                input_dir = input_dir.resolve()
-
-            write_res = await _write_multipart_file_atomic(input_dir, str(filename), field)
+            write_res = await _write_multipart_file_atomic(input_dir, filename, field)
             if not write_res.ok:
                 return _json_response(write_res)
             dest_path = write_res.data
 
             # Optionally index the file (skip for fast path)
             if not skip_index:
-                try:
-                    svc, error_result = await _require_services()
-                    if svc and svc.get("index"):
-                        # Index in the background so upload returns quickly
-                        _schedule_index_task(
-                            lambda: svc['index'].index_paths(
-                                [dest_path],
-                                str(input_dir),
-                                True,  # incremental
-                                "input",
-                            )
-                        )
-                except Exception as exc:
-                    logger.debug("Indexing uploaded file skipped: %s", exc)
+                await _index_uploaded_input_best_effort(dest_path, input_dir)
 
             return _json_response(Result.Ok({
                 "name": dest_path.name,
@@ -1917,92 +2056,14 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         watcher = svc.get("watcher")
 
         if enabled:
-            # Start watcher
             if watcher and watcher.is_running:
                 return _json_response(Result.Ok({"enabled": True, "directories": watcher.watched_directories}))
-
-            from mjr_am_backend.features.index.watcher import OutputWatcher
 
             index_service = svc.get("index")
             if not index_service:
                 return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Index service not available"))
-
-            async def index_callback(filepaths, base_dir, source=None, root_id=None):
-                if not filepaths:
-                    return
-                try:
-                    # Give executed-event a moment to mark generated files.
-                    await asyncio.sleep(0.2)
-                except Exception:
-                    pass
-                try:
-                    from mjr_am_backend.features.index.watcher import is_recent_generated
-                    filepaths = [f for f in (filepaths or []) if f and not is_recent_generated(f)]
-                except Exception:
-                    pass
-                if not filepaths:
-                    return
-                paths = [Path(f) for f in filepaths if f]
-                if paths:
-                    await index_service.index_paths(
-                        paths=paths,
-                        base_dir=base_dir,
-                        incremental=True,
-                        source=source or "watcher",
-                        root_id=root_id,
-                    )
-
-            async def remove_callback(filepaths, _base_dir, _source=None, _root_id=None):
-                if not filepaths:
-                    return
-                for fp in filepaths:
-                    try:
-                        await index_service.remove_file(str(fp))
-                    except Exception:
-                        continue
-
-            async def move_callback(moves, _base_dir, source=None, root_id=None):
-                if not moves:
-                    return
-                for move in moves:
-                    try:
-                        old_fp, new_fp = move
-                    except Exception:
-                        continue
-                    try:
-                        res = await index_service.rename_file(str(old_fp), str(new_fp))
-                        if not res.ok:
-                            await index_service.remove_file(str(old_fp))
-                            await index_service.index_paths(
-                                paths=[Path(str(new_fp))],
-                                base_dir=str(_base_dir),
-                                incremental=True,
-                                source=source or "watcher",
-                                root_id=root_id,
-                            )
-                    except Exception:
-                        continue
-
-            new_watcher = OutputWatcher(index_callback, remove_callback=remove_callback, move_callback=move_callback)
-            scope_cfg = svc.get("watcher_scope") if isinstance(svc, dict) else None
-            desired_scope = normalize_scope((scope_cfg or {}).get("scope"))
-            desired_root_id = (scope_cfg or {}).get("custom_root_id") or (scope_cfg or {}).get("root_id")
-            watch_paths = build_watch_paths(desired_scope, desired_root_id)
-
-            if watch_paths:
-                loop = asyncio.get_event_loop()
-                await new_watcher.start(watch_paths, loop)
-                svc["watcher"] = new_watcher
-                svc["watcher_scope"] = {"scope": desired_scope, "custom_root_id": desired_root_id or ""}
-                return _json_response(Result.Ok({"enabled": True, "directories": new_watcher.watched_directories}))
-            else:
-                return _json_response(Result.Err("NO_DIRECTORIES", "No directories to watch"))
-        else:
-            # Stop watcher
-            if watcher:
-                await watcher.stop()
-                svc["watcher"] = None
-            return _json_response(Result.Ok({"enabled": False, "directories": []}))
+            return _json_response(await _start_watcher_for_scope(svc, index_service))
+        return _json_response(await _stop_watcher_if_running(svc, watcher))
 
     @routes.get("/mjr/am/watcher/settings")
     async def watcher_settings_get(request):
@@ -2041,18 +2102,8 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             return _json_response(body_res)
         body = body_res.data or {}
 
-        def _parse_int(name: str) -> int | None:
-            if name not in body:
-                return None
-            value = body.get(name)
-            try:
-                return int(value)
-            except (TypeError, ValueError) as exc:
-                raise ValueError(f"Invalid value for {name}") from exc
-
         try:
-            debounce_ms = _parse_int("debounce_ms")
-            dedupe_ttl_ms = _parse_int("dedupe_ttl_ms")
+            debounce_ms, dedupe_ttl_ms = _watcher_settings_from_body(body)
         except ValueError as exc:
             return _json_response(Result.Err("INVALID_INPUT", str(exc)))
 
@@ -2067,13 +2118,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         except Exception as exc:
             return _json_response(Result.Err("DEGRADED", safe_error_message(exc, "Failed to update watcher settings")))
 
-        watcher = svc.get("watcher")
-        refresh_fn = getattr(watcher, "refresh_runtime_settings", None)
-        if callable(refresh_fn):
-            try:
-                refresh_fn()
-            except Exception as exc:
-                logger.debug("Failed to refresh watcher settings: %s", exc)
+        _refresh_watcher_runtime_settings(svc)
 
         return _json_response(
             Result.Ok(

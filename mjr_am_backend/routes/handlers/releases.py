@@ -24,37 +24,66 @@ from ..core import _json_response
 logger = get_logger(__name__)
 
 
+def _parse_per_page(raw_value: str | None) -> int:
+    try:
+        value = int(raw_value or "100")
+    except Exception:
+        return 100
+    return max(1, min(200, value))
+
+
+def _github_headers() -> dict[str, str]:
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("MAJOOR_GITHUB_TOKEN")
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    if token:
+        headers["Authorization"] = f"token {token}"
+    return headers
+
+
+def _github_refs_urls(owner: str, repo: str, per_page: int) -> tuple[str, str]:
+    base = f"https://api.github.com/repos/{owner}/{repo}"
+    return (
+        f"{base}/tags?per_page={per_page}",
+        f"{base}/branches?per_page={per_page}",
+    )
+
+
+def _extract_ref_names(payload: Any) -> list[str]:
+    out: list[str] = []
+    for item in payload or []:
+        if isinstance(item, dict):
+            name = item.get("name")
+            if name:
+                out.append(str(name))
+    return out
+
+
+async def _fetch_github_json(session: ClientSession, url: str, headers: dict[str, str]) -> Any:
+    async with session.get(url, headers=headers, timeout=ClientTimeout(total=30)) as resp:
+        if resp.status != 200:
+            text = await resp.text()
+            raise RuntimeError(f"GitHub API returned {resp.status}: {text}")
+        return await resp.json()
+
+
 def register_releases_routes(routes: web.RouteTableDef) -> None:
     @routes.get("/mjr/am/releases")
     async def get_releases(request: web.Request) -> web.Response:
         owner = (request.query.get("owner") or "MajoorWaldi").strip()
         repo = (request.query.get("repo") or "ComfyUI-Majoor-AssetsManager").strip()
-        try:
-            per_page = int(request.query.get("per_page") or "100")
-        except Exception:
-            per_page = 100
-
-        token = os.environ.get("GITHUB_TOKEN") or os.environ.get("MAJOOR_GITHUB_TOKEN")
-        headers = {"Accept": "application/vnd.github.v3+json"}
-        if token:
-            headers["Authorization"] = f"token {token}"
-
-        tags_url = f"https://api.github.com/repos/{owner}/{repo}/tags?per_page={per_page}"
-        branches_url = f"https://api.github.com/repos/{owner}/{repo}/branches?per_page={per_page}"
+        per_page = _parse_per_page(request.query.get("per_page"))
+        headers = _github_headers()
+        tags_url, branches_url = _github_refs_urls(owner, repo, per_page)
 
         try:
             async with ClientSession() as session:
-                async def fetch(url: str) -> Any:
-                    async with session.get(url, headers=headers, timeout=ClientTimeout(total=30)) as resp:
-                        if resp.status != 200:
-                            text = await resp.text()
-                            raise RuntimeError(f"GitHub API returned {resp.status}: {text}")
-                        return await resp.json()
+                tags_json, branches_json = await asyncio.gather(
+                    _fetch_github_json(session, tags_url, headers),
+                    _fetch_github_json(session, branches_url, headers),
+                )
 
-                tags_json, branches_json = await asyncio.gather(fetch(tags_url), fetch(branches_url))
-
-            tags = [t.get("name") for t in (tags_json or []) if isinstance(t, dict) and t.get("name")]
-            branches = [b.get("name") for b in (branches_json or []) if isinstance(b, dict) and b.get("name")]
+            tags = _extract_ref_names(tags_json)
+            branches = _extract_ref_names(branches_json)
 
             zip_url_template = f"https://github.com/{owner}/{repo}/archive/refs/{{ref}}.zip"
 

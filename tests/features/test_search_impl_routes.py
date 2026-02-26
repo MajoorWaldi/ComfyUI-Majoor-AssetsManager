@@ -854,7 +854,14 @@ async def test_get_asset_not_found_and_hydrate_timeout(monkeypatch) -> None:
 
     monkeypatch.setattr(search_impl, "_require_services", _svc)
 
-    async def _wait_for(*args, **kwargs):
+    async def _wait_for(awaitable, *args, **kwargs):
+        try:
+            # Close the created coroutine to avoid "was never awaited" warning in test path.
+            close = getattr(awaitable, "close", None)
+            if callable(close):
+                close()
+        except Exception:
+            pass
         raise asyncio.TimeoutError()
 
     monkeypatch.setattr(search_impl.asyncio, "wait_for", _wait_for)

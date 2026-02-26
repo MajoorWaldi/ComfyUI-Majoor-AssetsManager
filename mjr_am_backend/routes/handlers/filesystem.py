@@ -599,14 +599,41 @@ async def _fs_cache_get_or_build(
     watch_token = int(state.get("watch_token") or 0)
     cache_key = f"{str(base)}|{str(target_dir_resolved)}|{asset_type}|{str(root_id or '')}"
 
+    cached = await _get_fs_cache_hit(cache_key, dir_mtime_ns=dir_mtime_ns, watch_token=watch_token)
+    if cached is not None:
+        return Result.Ok({"entries": cached, "dir_mtime_ns": dir_mtime_ns})
+
+    collect = await _collect_filesystem_entries_safe(target_dir_resolved, base, asset_type, root_id)
+    if not collect.ok:
+        return collect
+    entries = collect.data if isinstance(collect.data, list) else []
+
+    await _store_fs_cache_entry(cache_key, dir_mtime_ns=dir_mtime_ns, watch_token=watch_token, entries=entries)
+    return Result.Ok({"entries": entries, "dir_mtime_ns": dir_mtime_ns})
+
+
+async def _get_fs_cache_hit(cache_key: str, *, dir_mtime_ns: int, watch_token: int) -> list[dict[str, Any]] | None:
     async with _FS_LIST_CACHE_LOCK:
         cached = _FS_LIST_CACHE.get(cache_key)
-        if isinstance(cached, dict) and _cache_entry_matches_dir_state(cached, dir_mtime_ns=dir_mtime_ns, watch_token=watch_token):
-            if _cache_entry_is_fresh(cached):
-                _FS_LIST_CACHE.move_to_end(cache_key)
-                return Result.Ok({"entries": cached["entries"], "dir_mtime_ns": dir_mtime_ns})
-            _FS_LIST_CACHE.move_to_end(cache_key)
+        if not (
+            isinstance(cached, dict)
+            and _cache_entry_matches_dir_state(cached, dir_mtime_ns=dir_mtime_ns, watch_token=watch_token)
+        ):
+            return None
+        _FS_LIST_CACHE.move_to_end(cache_key)
+        if _cache_entry_is_fresh(cached):
+            entries = cached.get("entries")
+            if isinstance(entries, list):
+                return entries
+    return None
 
+
+async def _collect_filesystem_entries_safe(
+    target_dir_resolved: Path,
+    base: Path,
+    asset_type: str,
+    root_id: str | None,
+) -> Result[list[dict[str, Any]]]:
     try:
         entries = await asyncio.to_thread(
             _collect_filesystem_entries,
@@ -615,11 +642,18 @@ async def _fs_cache_get_or_build(
             asset_type,
             root_id,
         )
+        return Result.Ok(entries)
     except OSError as exc:
-        return Result.Err(
-            "LIST_FAILED", sanitize_error_message(exc, "Failed to list directory")
-        )
+        return Result.Err("LIST_FAILED", sanitize_error_message(exc, "Failed to list directory"))
 
+
+async def _store_fs_cache_entry(
+    cache_key: str,
+    *,
+    dir_mtime_ns: int,
+    watch_token: int,
+    entries: list[dict[str, Any]],
+) -> None:
     async with _FS_LIST_CACHE_LOCK:
         _FS_LIST_CACHE[cache_key] = {
             "dir_mtime_ns": dir_mtime_ns,
@@ -631,8 +665,6 @@ async def _fs_cache_get_or_build(
         _FS_LIST_CACHE.move_to_end(cache_key)
         while len(_FS_LIST_CACHE) > int(FS_LIST_CACHE_MAX):
             _FS_LIST_CACHE.popitem(last=False)
-
-    return Result.Ok({"entries": entries, "dir_mtime_ns": dir_mtime_ns})
 
 
 def _filesystem_dir_cache_state(base: Path, target_dir_resolved: Path) -> Result[dict[str, int]]:

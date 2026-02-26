@@ -96,8 +96,6 @@ VERSION
 AGENTS.md
 eslint.config.js
 VERSION
-package-lock.json
-package.json
 .claude/settings.local.json
 .claude/settings.local.json
 
@@ -156,3 +154,13 @@ REFACTOR_PLAN.md
 .claude/settings.json
 mjr_am_backend/features/geninfo/parser_impl.py.bak
 _cleanup_dead_code.py
+
+# Local analysis/tooling artifacts
+.mypy_cache/
+.ruff_cache/
+coverage_backend.json
+reports_radon_cc_backend.json
+reports_radon_cc_js.json
+reports_radon_raw_backend.json
+reports_vulture.txt
+reports_vulture_backend.txt

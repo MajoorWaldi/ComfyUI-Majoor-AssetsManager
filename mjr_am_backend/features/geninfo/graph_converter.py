@@ -133,6 +133,20 @@ def _is_reroute(node: dict[str, Any]) -> bool:
     return ct == "reroute" or "reroute" in ct
 
 
+def _next_reroute_link(node: dict[str, Any]) -> Any | None:
+    ins = _inputs(node)
+    next_link = ins.get("")
+    if _is_link(next_link):
+        return next_link
+    next_link = ins.get("input")
+    if _is_link(next_link):
+        return next_link
+    for val in ins.values():
+        if _is_link(val):
+            return val
+    return None
+
+
 def _walk_passthrough(nodes_by_id: dict[str, dict[str, Any]], start_link: Any, max_hops: int = 50) -> str | None:
     resolved = _resolve_link(start_link)
     if not resolved:
@@ -146,14 +160,7 @@ def _walk_passthrough(nodes_by_id: dict[str, dict[str, Any]], start_link: Any, m
             return node_id
         if not _is_reroute(node):
             return node_id
-        next_link = _inputs(node).get("")
-        if not _is_link(next_link):
-            next_link = _inputs(node).get("input")
-        if not _is_link(next_link):
-            for val in _inputs(node).values():
-                if _is_link(val):
-                    next_link = val
-                    break
+        next_link = _next_reroute_link(node)
         if not _is_link(next_link):
             return node_id
         resolved = _resolve_link(next_link)

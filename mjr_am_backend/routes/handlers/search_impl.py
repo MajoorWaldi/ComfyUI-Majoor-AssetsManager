@@ -87,6 +87,49 @@ _consume_inline_rating = _qs.consume_rating
 _normalize_sort_key = _qs.normalize_sort_key
 
 
+def _parse_asset_ids(raw_ids: object, max_ids: int) -> Result[list[int]]:
+    if not isinstance(raw_ids, list):
+        return Result.Err("INVALID_INPUT", "asset_ids must be a list")
+    ids: list[int] = []
+    for raw in raw_ids:
+        try:
+            n = int(raw)
+        except Exception:
+            continue
+        if n <= 0:
+            continue
+        ids.append(n)
+        if len(ids) >= max_ids:
+            break
+    return Result.Ok(ids)
+
+
+def _workflow_quick_query_parts(
+    filename: str,
+    subfolder: str,
+    asset_type: str,
+    root_id: str,
+) -> tuple[str, tuple[object, ...]]:
+    where_parts = ["a.filename = ?", "a.subfolder = ?", "a.source = ?"]
+    params: list[object] = [filename, subfolder, asset_type]
+    if root_id:
+        where_parts.append("a.root_id = ?")
+        params.append(root_id)
+    return " AND ".join(where_parts), tuple(params)
+
+
+def _extract_workflow_from_metadata_raw(metadata_raw: object, has_workflow: object) -> object | None:
+    if not metadata_raw or not (has_workflow or has_workflow is None):
+        return None
+    try:
+        metadata = json.loads(metadata_raw) if isinstance(metadata_raw, str) else metadata_raw
+    except Exception:
+        return None
+    if not isinstance(metadata, dict):
+        return None
+    return metadata.get("workflow")
+
+
 def register_search_routes(routes: web.RouteTableDef) -> None:
     """Register listing/search routes."""
     @routes.get("/mjr/am/autocomplete")
@@ -856,20 +899,10 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
         body = body_res.data or {}
 
         raw_ids = body.get("asset_ids") or body.get("ids") or []
-        if not isinstance(raw_ids, list):
-            return _json_response(Result.Err("INVALID_INPUT", "asset_ids must be a list"))
-
-        ids = []
-        for raw in raw_ids:
-            try:
-                n = int(raw)
-            except Exception:
-                continue
-            if n <= 0:
-                continue
-            ids.append(n)
-            if len(ids) >= SEARCH_MAX_BATCH_IDS:
-                break
+        parsed_ids = _parse_asset_ids(raw_ids, SEARCH_MAX_BATCH_IDS)
+        if not parsed_ids.ok:
+            return _json_response(parsed_ids)
+        ids = parsed_ids.data or []
 
         result = await svc["index"].get_assets_batch(ids)
         return _json_response(result)
@@ -906,15 +939,7 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
         root_id = request.query.get("root_id", "").strip()
 
         try:
-            # Direct SQL query without self-heal for maximum speed
-            where_parts = ["a.filename = ?", "a.subfolder = ?", "a.source = ?"]
-            params = [filename, subfolder, asset_type]
-
-            if root_id:
-                where_parts.append("a.root_id = ?")
-                params.append(root_id)
-
-            where_clause = " AND ".join(where_parts)
+            where_clause, params = _workflow_quick_query_parts(filename, subfolder, asset_type, root_id)
 
             result = await svc["index"].db.aquery(
                 f"""
@@ -924,23 +949,15 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                 WHERE {where_clause}
                 LIMIT 1
                 """,
-                tuple(params),
+                params,
             )
 
             if result.ok and result.data and len(result.data) > 0:
                 metadata_raw = result.data[0].get("metadata_raw")
                 has_workflow = result.data[0].get("has_workflow")
-
-                # Check if we have workflow data in metadata_raw
-                if metadata_raw and (has_workflow or has_workflow is None):
-                    try:
-                        import json
-                        metadata = json.loads(metadata_raw) if isinstance(metadata_raw, str) else metadata_raw
-                        workflow = metadata.get("workflow") if isinstance(metadata, dict) else None
-                        if workflow:
-                            return web.json_response({"ok": True, "workflow": workflow})
-                    except Exception:
-                        pass
+                workflow = _extract_workflow_from_metadata_raw(metadata_raw, has_workflow)
+                if workflow:
+                    return web.json_response({"ok": True, "workflow": workflow})
 
             return web.json_response({"ok": True, "workflow": None})
 

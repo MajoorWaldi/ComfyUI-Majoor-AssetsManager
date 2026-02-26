@@ -91,6 +91,31 @@ def _build_services_dict(
     }
 
 
+async def _load_watcher_scope_or_default(db: Sqlite) -> dict:
+    try:
+        return await load_watcher_scope(db)
+    except Exception:
+        return {"scope": "output", "custom_root_id": ""}
+
+
+def _attach_rating_tags_sync_worker(services: dict, exiftool: ExifTool) -> None:
+    try:
+        services["rating_tags_sync"] = RatingTagsSyncWorker(exiftool)
+    except Exception as exc:
+        logger.debug("RatingTagsSyncWorker disabled: %s", exc)
+
+
+async def _attach_watcher_if_enabled(services: dict, index_service: IndexService) -> None:
+    if not WATCHER_ENABLED:
+        return
+    try:
+        watcher = await _create_watcher(index_service)
+        services["watcher"] = watcher
+        log_success(logger, "File watcher enabled")
+    except Exception as exc:
+        logger.warning("File watcher disabled: %s", exc)
+
+
 async def build_services(db_path: str | None = None) -> Result[dict]:
     """
     Build all services (DI container).
@@ -154,25 +179,9 @@ async def build_services(db_path: str | None = None) -> Result[dict]:
         index_service,
         settings_service,
     )
-    try:
-        services["watcher_scope"] = await load_watcher_scope(db)
-    except Exception:
-        services["watcher_scope"] = {"scope": "output", "custom_root_id": ""}
-
-    # Best-effort filesystem sync for rating/tags (sidecar / ExifTool).
-    try:
-        services["rating_tags_sync"] = RatingTagsSyncWorker(exiftool)
-    except Exception as exc:
-        logger.debug("RatingTagsSyncWorker disabled: %s", exc)
-
-    # File watcher for manual additions (enabled by default; disable with MJR_ENABLE_WATCHER=0)
-    if WATCHER_ENABLED:
-        try:
-            watcher = await _create_watcher(index_service)
-            services["watcher"] = watcher
-            log_success(logger, "File watcher enabled")
-        except Exception as exc:
-            logger.warning("File watcher disabled: %s", exc)
+    services["watcher_scope"] = await _load_watcher_scope_or_default(db)
+    _attach_rating_tags_sync_worker(services, exiftool)
+    await _attach_watcher_if_enabled(services, index_service)
 
     log_success(logger, "All services initialized")
     return Result.Ok(services)

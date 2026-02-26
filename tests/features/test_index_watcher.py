@@ -154,12 +154,22 @@ def test_handle_file_rejects_and_adds(handler):
 def test_handle_deleted_and_emit_paths(monkeypatch):
     removed = []
 
+    async def _ready(_files):
+        return None
+
     async def _removed(paths):
         removed.extend(paths)
 
-    h = w.DebouncedWatchHandler(lambda _: asyncio.sleep(0), _removed, None, _FakeLoop(), debounce_ms=100, dedupe_ttl_ms=200)
+    h = w.DebouncedWatchHandler(_ready, _removed, None, _FakeLoop(), debounce_ms=100, dedupe_ttl_ms=200)
     calls = []
-    monkeypatch.setattr(w.asyncio, "run_coroutine_threadsafe", lambda c, loop: calls.append((c, loop)))
+
+    def _run_coroutine_threadsafe(coro, loop):
+        calls.append((coro, loop))
+        close = getattr(coro, "close", None)
+        if callable(close):
+            close()
+
+    monkeypatch.setattr(w.asyncio, "run_coroutine_threadsafe", _run_coroutine_threadsafe)
 
     h._handle_deleted_file("x.txt")
     h._handle_deleted_file("x.png")
@@ -232,7 +242,10 @@ def test_filter_flush_candidates_size_and_recent(monkeypatch, handler):
 
 
 def test_output_watcher_helpers_grouping_and_split():
-    ow = w.OutputWatcher(lambda *_args: asyncio.sleep(0))
+    async def _index(_files, _base, _source, _rid):
+        return None
+
+    ow = w.OutputWatcher(_index)
     ow._watched_paths = {
         "1": {"path": "C:/root", "source": "output", "root_id": "r1", "watch": object()},
         "2": {"path": "C:/root/sub", "source": "output", "root_id": "r2", "watch": object()},
@@ -317,7 +330,10 @@ async def test_output_watcher_start_add_remove_stop(monkeypatch, tmp_path: Path)
 
 
 def test_output_watcher_misc_helpers():
-    ow = w.OutputWatcher(lambda *_args: asyncio.sleep(0))
+    async def _index(_files, _base, _source, _rid):
+        return None
+
+    ow = w.OutputWatcher(_index)
     assert ow._normalize_source(" OutPut ") == "output"
     assert ow._normalize_source(None) is None
     ow._allowed_sources = {"output"}
@@ -328,7 +344,10 @@ def test_output_watcher_misc_helpers():
 
 @pytest.mark.asyncio
 async def test_output_watcher_handler_passthroughs():
-    ow = w.OutputWatcher(lambda *_args: asyncio.sleep(0))
+    async def _index(_files, _base, _source, _rid):
+        return None
+
+    ow = w.OutputWatcher(_index)
     assert ow.flush_pending() is False
     assert ow.get_pending_count() == 0
 

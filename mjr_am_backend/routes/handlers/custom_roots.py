@@ -50,6 +50,101 @@ except ImportError:
 logger = get_logger(__name__)
 
 
+def _resolve_scan_input_root() -> Path:
+    try:
+        import folder_paths  # type: ignore
+
+        return Path(folder_paths.get_input_directory()).resolve(strict=False)
+    except Exception:
+        return (Path(__file__).resolve().parents[3] / "input").resolve(strict=False)
+
+
+def _find_matching_custom_root_id(path: Path) -> str | None:
+    roots_res = list_custom_roots()
+    if not roots_res.ok:
+        return None
+    for rid, root_path in _iter_custom_root_rows(roots_res.data or []):
+        if _is_within_root(path, root_path):
+            return rid
+    return None
+
+
+def _iter_custom_root_rows(rows: list[object]) -> list[tuple[str, Path]]:
+    out: list[tuple[str, Path]] = []
+    for item in rows:
+        if not isinstance(item, dict):
+            continue
+        rid = str(item.get("id") or "").strip()
+        rp_raw = str(item.get("path") or "").strip()
+        if not rid or not rp_raw:
+            continue
+        try:
+            out.append((rid, Path(rp_raw).resolve(strict=False)))
+        except Exception:
+            continue
+    return out
+
+
+def _parse_add_custom_root_body(body: dict) -> tuple[str, str | None]:
+    path = body.get("path") or body.get("directory") or body.get("root")
+    label = body.get("label")
+    return str(path or ""), (str(label) if label is not None else None)
+
+
+async def _attach_custom_root_watcher(root_path: str, root_id: str) -> None:
+    try:
+        svc, _ = await _require_services()
+        watcher = svc.get("watcher") if svc else None
+        if watcher and root_path:
+            watcher.add_path(root_path, source="custom", root_id=root_id)
+    except Exception:
+        return
+
+
+async def _kickoff_custom_root_scan(root_path: str, root_id: str) -> None:
+    if not root_path or not root_id:
+        return
+    try:
+        await _kickoff_background_scan(
+            root_path,
+            source="custom",
+            root_id=root_id,
+            recursive=True,
+            incremental=True,
+        )
+    except Exception as exc:
+        logger.debug("Background scan kickoff skipped: %s", exc)
+
+
+def _resolve_custom_root_path_safe(root_id: object) -> str | None:
+    try:
+        resolved = resolve_custom_root(str(root_id or ""))
+        if resolved.ok:
+            value = resolved.data
+            return str(value) if value is not None else None
+    except Exception:
+        return None
+    return None
+
+
+async def _remove_custom_root_runtime_artifacts(root_path: str, rid: object) -> None:
+    try:
+        svc, _ = await _require_services()
+        if not svc:
+            return
+        watcher = svc.get("watcher")
+        if watcher:
+            watcher.remove_path(str(root_path))
+        db = svc.get("db")
+        if db:
+            await db.aexecute(
+                "DELETE FROM assets WHERE source = 'custom' AND root_id = ?",
+                (str(rid or ""),),
+            )
+    except Exception:
+        return
+
+
 def _compute_folder_stats(folder_path: Path, *, max_entries: int = 200000) -> dict:
     files = 0
     folders = 0
@@ -198,33 +293,16 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
             out_root = Path(OUTPUT_ROOT).resolve(strict=False)
         except Exception:
             out_root = Path(OUTPUT_ROOT)
-        try:
-            import folder_paths  # type: ignore
-            in_root = Path(folder_paths.get_input_directory()).resolve(strict=False)
-        except Exception:
-            in_root = Path(__file__).resolve().parents[3] / "input"
-            in_root = in_root.resolve(strict=False)
+        in_root = _resolve_scan_input_root()
 
         if _is_within_root(p, out_root):
             return "output", None
         if _is_within_root(p, in_root):
             return "input", None
 
-        roots_res = list_custom_roots()
-        if roots_res.ok:
-            for item in roots_res.data or []:
-                if not isinstance(item, dict):
-                    continue
-                rid = str(item.get("id") or "").strip()
-                rp_raw = str(item.get("path") or "").strip()
-                if not rid or not rp_raw:
-                    continue
-                try:
-                    rp = Path(rp_raw).resolve(strict=False)
-                except Exception:
-                    continue
-                if _is_within_root(p, rp):
-                    return "custom", rid
+        custom_root_id = _find_matching_custom_root_id(p)
+        if custom_root_id:
+            return "custom", custom_root_id
         return "output", None
 
     @routes.post("/mjr/sys/browse-folder")
@@ -296,26 +374,13 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
             return _json_response(body_res)
         body = body_res.data or {}
 
-        path = body.get("path") or body.get("directory") or body.get("root")
-        label = body.get("label")
-        result = add_custom_root(str(path or ""), label=str(label) if label is not None else None)
+        path, label = _parse_add_custom_root_body(body)
+        result = add_custom_root(path, label=label)
         if result.ok and isinstance(result.data, dict):
             root_path = str(result.data.get("path") or "")
             root_id = str(result.data.get("id") or "")
-            # Add to watcher if available
-            try:
-                svc, _ = await _require_services()
-                watcher = svc.get("watcher") if svc else None
-                if watcher and root_path:
-                    watcher.add_path(root_path, source="custom", root_id=root_id)
-            except Exception:
-                pass
-            # Trigger background scan
-            try:
-                if root_path and root_id:
-                    await _kickoff_background_scan(root_path, source="custom", root_id=root_id, recursive=True, incremental=True)
-            except Exception as exc:
-                logger.debug("Background scan kickoff skipped: %s", exc)
+            await _attach_custom_root_watcher(root_path, root_id)
+            await _kickoff_custom_root_scan(root_path, root_id)
         return _json_response(result)
 
     @routes.post("/mjr/am/custom-roots/remove")
@@ -333,32 +398,11 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
         body = body_res.data or {}
 
         rid = body.get("id") or body.get("root_id")
-        root_path = None
-        try:
-            resolved = resolve_custom_root(str(rid or ""))
-            if resolved.ok:
-                root_path = resolved.data
-        except Exception:
-            root_path = None
+        root_path = _resolve_custom_root_path_safe(rid)
 
         result = remove_custom_root(str(rid or ""))
         if result.ok and root_path:
-            try:
-                svc, _ = await _require_services()
-                if svc:
-                    # Remove from watcher
-                    watcher = svc.get("watcher")
-                    if watcher:
-                        watcher.remove_path(str(root_path))
-                    # Clean up database
-                    db = svc.get("db")
-                    if db:
-                        await db.aexecute(
-                            "DELETE FROM assets WHERE source = 'custom' AND root_id = ?",
-                            (str(rid or ""),),
-                        )
-            except Exception:
-                pass
+            await _remove_custom_root_runtime_artifacts(str(root_path), rid)
         return _json_response(result)
 
     @routes.get("/mjr/am/custom-view")
@@ -394,7 +438,10 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
             if not root_result.ok:
                 return _json_response(root_result)
 
-            root_dir = root_result.data
+            root_dir_raw = root_result.data
+            if root_dir_raw is None:
+                return _json_response(Result.Err("INVALID_INPUT", "Custom root not found"))
+            root_dir = Path(root_dir_raw).resolve(strict=False)
             rel = _safe_rel_path(subfolder)
             if rel is None:
                 return _json_response(Result.Err("INVALID_INPUT", "Invalid subfolder"))
@@ -493,7 +540,10 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
             root_result = resolve_custom_root(root_id)
             if not root_result.ok:
                 return _json_response(root_result)
-            base_root = Path(root_result.data).resolve(strict=False)
+            base_root_raw = root_result.data
+            if base_root_raw is None:
+                return _json_response(Result.Err("INVALID_INPUT", "Custom root not found"))
+            base_root = Path(base_root_raw).resolve(strict=False)
             rel = _safe_rel_path(subfolder or "")
             if rel is None:
                 return _json_response(Result.Err("INVALID_INPUT", "Invalid subfolder"))

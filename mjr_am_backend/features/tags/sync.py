@@ -292,6 +292,23 @@ def _shell_write_for_path(win32com, path: Path, rating_val: int, tags_norm: list
     _write_shell_rating_and_tags(folder, item, rating_idx, tags_idx, rating_val, tags_norm)
 
 
+def _co_uninitialize_pythoncom_best_effort(pythoncom_mod: Any) -> None:
+    if pythoncom_mod is None:
+        return
+    try:
+        pythoncom_mod.CoUninitialize()
+    except Exception as exc:
+        logger.debug("pythoncom.CoUninitialize failed: %s", exc)
+
+
+def _shell_write_with_pythoncom(win32com, path: Path, rating_val: int, tags_norm: list[str]) -> None:
+    pythoncom_mod = _co_initialize_pythoncom()
+    try:
+        _shell_write_for_path(win32com, path, rating_val, tags_norm)
+    finally:
+        _co_uninitialize_pythoncom_best_effort(pythoncom_mod)
+
+
 def write_windows_rating_tags(file_path: str, rating: int, tags: list[str]) -> Result[bool]:
     """
     Windows-only fallback using Shell.Application SetDetailsOf.
@@ -319,16 +336,7 @@ def write_windows_rating_tags(file_path: str, rating: int, tags: list[str]) -> R
     original_mtime = _get_file_mtime(p)
 
     try:
-        pythoncom_mod = _co_initialize_pythoncom()
-        try:
-            _shell_write_for_path(win32com, p, rating_val, tags_norm)
-        finally:
-            if pythoncom_mod is not None:
-                try:
-                    pythoncom_mod.CoUninitialize()
-                except Exception as exc:
-                    logger.debug("pythoncom.CoUninitialize failed: %s", exc)
-
+        _shell_write_with_pythoncom(win32com, p, rating_val, tags_norm)
         _restore_file_mtime(p, original_mtime)
         return Result.Ok(True)
     except Exception as exc:

@@ -219,7 +219,7 @@ class DebouncedWatchHandler(FileSystemEventHandler):
             return
         if not isinstance(event, FileCreatedEvent):
             return
-        self._handle_file(event.src_path)
+        self._handle_file(str(event.src_path))
 
     def on_modified(self, event):
         # Modified events are needed for slow/network writes where the create event
@@ -229,15 +229,15 @@ class DebouncedWatchHandler(FileSystemEventHandler):
                 return
         except Exception:
             return
-        self._handle_file(getattr(event, "src_path", ""))
+        self._handle_file(str(getattr(event, "src_path", "")))
 
     def on_deleted(self, event):
         if isinstance(event, FileDeletedEvent):
-            self._handle_deleted_file(event.src_path)
+            self._handle_deleted_file(str(event.src_path))
 
     def on_moved(self, event):
         if isinstance(event, FileMovedEvent):
-            self._handle_moved_file(event.src_path, event.dest_path)
+            self._handle_moved_file(str(event.src_path), str(event.dest_path))
 
     def _handle_file(self, path: str):
         """Queue a file for indexing with deduplication."""

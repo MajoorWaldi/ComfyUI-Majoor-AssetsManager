@@ -1,0 +1,12 @@
+{
+  "name": "comfyui-majoor-assetsmanager",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:js": "vitest run",
+    "test:js:watch": "vitest"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.9"
+  }
+}
