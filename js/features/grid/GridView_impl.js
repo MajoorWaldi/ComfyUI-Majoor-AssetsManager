@@ -88,10 +88,8 @@ const GRID_STATE = new WeakMap();
 
 const RT_HYDRATE_CONCURRENCY = APP_CONFIG.RT_HYDRATE_CONCURRENCY ?? 2;
 const RT_HYDRATE_QUEUE_MAX = APP_CONFIG.RT_HYDRATE_QUEUE_MAX ?? 100;
-// Globals removed to prevent cross-grid contamination
 const RT_HYDRATE_SEEN_MAX = APP_CONFIG.RT_HYDRATE_SEEN_MAX ?? 20000;
 const RT_HYDRATE_SEEN_TTL_MS = APP_CONFIG.RT_HYDRATE_SEEN_TTL_MS ?? (10 * 60 * 1000);
-let rtHydrateSeenPruneBudget = 0;
 // RT_HYDRATE_STATE remains as the per-grid state map
 const RT_HYDRATE_STATE = new WeakMap(); // gridContainer -> { queue, inflight, seen, active, lastPruneAt }
 
@@ -144,11 +142,21 @@ function _getRtHydrateState(gridContainer) {
     return rtGetRtHydrateState(gridContainer, RT_HYDRATE_STATE);
 }
 
+function _rtPruneBudgetRef(st) {
+    return {
+        get value() {
+            return Number(st?.pruneBudget || 0) || 0;
+        },
+        set value(v) {
+            try {
+                st.pruneBudget = Number(v) || 0;
+            } catch {}
+        },
+    };
+}
+
 function pruneRatingTagsHydrateSeen(st) {
-    return rtPruneRatingTagsHydrateSeen(st, RT_HYDRATE_SEEN_MAX, RT_HYDRATE_SEEN_TTL_MS, {
-        get value() { return rtHydrateSeenPruneBudget; },
-        set value(v) { rtHydrateSeenPruneBudget = v; },
-    });
+    return rtPruneRatingTagsHydrateSeen(st, RT_HYDRATE_SEEN_MAX, RT_HYDRATE_SEEN_TTL_MS, _rtPruneBudgetRef(st));
 }
 
 function _updateCardRatingTagsBadges(card, rating, tags) {
@@ -168,15 +176,13 @@ function _pumpRatingTagsHydration(gridContainer) {
 }
 
 function enqueueRatingTagsHydration(gridContainer, card, asset) {
+    const st = _getRtHydrateState(gridContainer);
     return rtEnqueueRatingTagsHydration(gridContainer, card, asset, {
         stateMap: RT_HYDRATE_STATE,
         queueMax: RT_HYDRATE_QUEUE_MAX,
         seenMax: RT_HYDRATE_SEEN_MAX,
         seenTtlMs: RT_HYDRATE_SEEN_TTL_MS,
-        pruneBudgetRef: {
-            get value() { return rtHydrateSeenPruneBudget; },
-            set value(v) { rtHydrateSeenPruneBudget = v; },
-        },
+        pruneBudgetRef: _rtPruneBudgetRef(st),
         concurrency: RT_HYDRATE_CONCURRENCY,
         hydrateAssetRatingTags,
         createRatingBadge,

@@ -20,7 +20,7 @@ from mjr_am_backend.custom_roots import resolve_custom_root
 from mjr_am_backend.routes.core.paths import _is_within_root, _safe_rel_path
 from mjr_am_backend.routes.core.request_json import _read_json
 from mjr_am_backend.routes.core.response import _json_response
-from mjr_am_backend.routes.core.security import _check_rate_limit, _csrf_error
+from mjr_am_backend.routes.core.security import _check_rate_limit, _csrf_error, _require_write_access
 from mjr_am_backend.shared import Result, get_logger, sanitize_error_message
 
 try:
@@ -255,6 +255,9 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         allowed, retry_after = _check_rate_limit(
             request,

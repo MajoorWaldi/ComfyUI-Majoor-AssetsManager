@@ -5,7 +5,7 @@ export function getRtHydrateState(gridContainer, mapRef) {
         if (!gridContainer) return null;
         let s = mapRef.get(gridContainer);
         if (!s) {
-            s = { queue: [], inflight: 0, seen: new Set(), active: new Set(), lastPruneAt: 0 };
+            s = { queue: [], inflight: 0, seen: new Set(), active: new Set(), lastPruneAt: 0, pruneBudget: 0 };
             mapRef.set(gridContainer, s);
         }
         return s;

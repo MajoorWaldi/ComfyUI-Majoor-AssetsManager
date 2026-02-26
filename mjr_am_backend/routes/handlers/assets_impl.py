@@ -133,11 +133,13 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                     if not isinstance(item, dict):
                         continue
                     rid = str(item.get("id") or "")
-                    rpath = item.get("path")
-                    if not rpath:
+                    if not rid:
+                        continue
+                    root_result = resolve_custom_root(rid)
+                    if not root_result.ok or not root_result.data:
                         continue
                     try:
-                        rp = Path(str(rpath)).resolve(strict=False)
+                        rp = Path(str(root_result.data)).resolve(strict=False)
                     except Exception:
                         continue
                     if _is_within_root(resolved, rp):
@@ -160,12 +162,8 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                         resolved_root_id = str(root_id)
                         source = "custom"
 
-        # Unrestricted fallback: allow on-demand indexing for arbitrary file paths by
-        # treating parent directory as base for this file entry.
         if not base_dir:
-            base_dir = resolved.parent
-            source = "custom"
-            resolved_root_id = None
+            return Result.Err("FORBIDDEN", "Path is not within allowed roots")
 
         # Index the file (best-effort) so it gets a stable asset_id.
         try:
@@ -293,7 +291,8 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
 
         try:
             worker.enqueue(filepath, rating, tags, mode)
-        except Exception:
+        except Exception as exc:
+            logger.debug("Failed to enqueue rating/tags sync for asset_id=%s: %s", asset_id, exc)
             return
 
     async def _fetch_asset_filepath(db: Any, asset_id: int) -> str | None:

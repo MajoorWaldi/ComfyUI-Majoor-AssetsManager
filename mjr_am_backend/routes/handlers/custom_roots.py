@@ -4,7 +4,6 @@ Custom roots management endpoints.
 import asyncio
 from collections.abc import Sequence
 import errno
-import ipaddress
 import os
 import shutil
 import sys
@@ -26,10 +25,12 @@ from ..core import (
     _is_allowed_view_media_file,
     _is_path_allowed,
     _is_path_allowed_custom,
+    _is_loopback_request,
     _is_within_root,
     _json_response,
     _normalize_path,
     _read_json,
+    _require_authenticated_user,
     _require_services,
     _require_write_access,
     _safe_rel_path,
@@ -274,17 +275,6 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
             return ""
         return name
 
-    def _is_loopback_request(request: web.Request) -> bool:
-        try:
-            peer = str(request.remote or "").strip()
-            if not peer:
-                return False
-            if "%" in peer:
-                peer = peer.split("%", 1)[0]
-            return ipaddress.ip_address(peer).is_loopback
-        except Exception:
-            return False
-
     def _infer_scan_scope(path: Path) -> tuple[str, str | None]:
         try:
             p = path.resolve(strict=False)
@@ -312,6 +302,15 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
+        user_auth = _require_authenticated_user(request)
+        if not user_auth.ok:
+            return _json_response(
+                Result.Err(user_auth.code or "AUTH_REQUIRED", user_auth.error or "Authentication required"),
+                status=401,
+            )
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         allowed, retry_after = _check_rate_limit(request, "browse_folder", max_requests=3, window_seconds=30)
         if not allowed:

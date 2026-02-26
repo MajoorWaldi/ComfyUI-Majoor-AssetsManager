@@ -41,6 +41,7 @@ async def test_batch_zip_create_invalid_and_get_not_found(monkeypatch):
     app = _app()
     monkeypatch.setattr(bz, "_csrf_error", lambda _r: None)
     monkeypatch.setattr(bz, "_check_rate_limit", lambda *args, **kwargs: (True, None))
+    monkeypatch.setattr(bz, "_require_write_access", lambda _r: Result.Ok({}))
 
     async def _read_json(_request, max_bytes=None):
         _ = max_bytes
@@ -67,6 +68,7 @@ async def test_batch_zip_create_and_fetch_ready(monkeypatch, tmp_path: Path):
     app = _app()
     monkeypatch.setattr(bz, "_csrf_error", lambda _r: None)
     monkeypatch.setattr(bz, "_check_rate_limit", lambda *args, **kwargs: (True, None))
+    monkeypatch.setattr(bz, "_require_write_access", lambda _r: Result.Ok({}))
     monkeypatch.setattr(bz, "_BATCH_DIR", tmp_path)
     monkeypatch.setattr(bz, "_BATCH_CACHE", {})
 

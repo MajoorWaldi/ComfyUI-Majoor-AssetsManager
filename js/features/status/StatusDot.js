@@ -7,6 +7,7 @@ import { ENDPOINTS } from "../../api/endpoints.js";
 import { APP_CONFIG } from "../../app/config.js";
 import { comfyToast } from "../../app/toast.js";
 import { t } from "../../app/i18n.js";
+import { getEnrichmentState, setEnrichmentState } from "../../app/runtimeState.js";
 
 const TOOL_CAPABILITIES = [
     {
@@ -1022,11 +1023,9 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
         const dbLocked = Boolean(dbDiagnostics?.locked);
         const dbMaintenance = Boolean(dbDiagnostics?.maintenance_active);
         const enrichmentQueueLength = Math.max(0, Number(counters?.enrichment_queue_length || 0) || 0);
-        const enrichmentActive = !!globalThis?._mjrEnrichmentActive || enrichmentQueueLength > 0;
-        try {
-            globalThis._mjrEnrichmentQueueLength = enrichmentQueueLength;
-            globalThis._mjrEnrichmentActive = enrichmentActive;
-        } catch {}
+        const runtimeEnrichment = getEnrichmentState();
+        const enrichmentActive = runtimeEnrichment.active || enrichmentQueueLength > 0;
+        setEnrichmentState(enrichmentActive, enrichmentQueueLength);
         const hasIndexedAssets = Number(totalAssets) > 0;
         const hasIndexTimestamp = Boolean(counters?.last_index_end || counters?.last_scan_end);
         const indexHealthy = hasIndexedAssets && hasIndexTimestamp;

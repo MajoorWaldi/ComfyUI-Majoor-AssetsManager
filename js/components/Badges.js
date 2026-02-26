@@ -2,6 +2,7 @@
  * Badges Component - File type, rating, tags badges
  */
 import { resolveAssetStatusDotColor } from "../features/status/AssetStatusDotTheme.js";
+import { getEnrichmentState } from "../app/runtimeState.js";
 
 /**
  * Create file type badge (overlaid on thumbnail)
@@ -138,8 +139,9 @@ export function createWorkflowDot(asset) {
 
     const hasWorkflow = toBoolish(asset?.has_workflow ?? asset?.hasWorkflow);
     const hasGen = toBoolish(asset?.has_generation_data ?? asset?.hasGenerationData);
-    const enrichmentQueue = Math.max(0, Number(globalThis?._mjrEnrichmentQueueLength || 0) || 0);
-    const enrichmentActive = !!globalThis?._mjrEnrichmentActive || enrichmentQueue > 0;
+    const enrichment = getEnrichmentState();
+    const enrichmentQueue = enrichment.queueLength;
+    const enrichmentActive = enrichment.active || enrichmentQueue > 0;
 
     let title = "Pending: parsing metadata\u2026";
 

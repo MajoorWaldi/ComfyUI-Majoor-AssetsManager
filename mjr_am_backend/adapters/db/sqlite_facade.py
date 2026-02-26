@@ -202,7 +202,11 @@ def _populate_known_columns_from_schema(db_path: Path) -> None:
 
 def _populate_table_columns(cursor: sqlite3.Cursor, table: str, alias: str | None) -> None:
     try:
-        cursor.execute(f"PRAGMA table_info({table})")
+        safe_table = _safe_schema_table_name(table)
+        if not safe_table:
+            return
+        # NOTE: SQLite does not parameterize PRAGMA identifiers; keep strict validation.
+        cursor.execute(f'PRAGMA table_info("{safe_table}")')
         for row in cursor.fetchall() or []:
             col = _extract_schema_column_name(row)
             if not col:
@@ -212,6 +216,18 @@ def _populate_table_columns(cursor: sqlite3.Cursor, table: str, alias: str | Non
                 _KNOWN_COLUMNS.add(f"{alias}.{col}")
     except Exception:
         pass
+
+
+def _safe_schema_table_name(table: str) -> str | None:
+    try:
+        normalized = str(table or "").strip()
+    except Exception:
+        return None
+    if not normalized or normalized not in _SCHEMA_TABLE_ALIASES:
+        return None
+    if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", normalized):
+        return None
+    return normalized
 
 
 def _extract_schema_column_name(row: Any) -> str:
@@ -323,9 +339,12 @@ def _validate_and_repair_column_name(column: str) -> tuple[bool, str | None]:
     if not stripped:
         return False, None
 
-    # Fast path: already valid after trimming.
+    # Fast path: syntactically valid and allowlisted.
     if _COLUMN_NAME_PATTERN.match(stripped):
-        return True, stripped
+        with _KNOWN_COLUMNS_LOCK:
+            hit = _KNOWN_COLUMNS_LOWER.get(stripped.lower())
+        if hit:
+            return True, hit
 
     repaired = _try_repair_column_name(stripped)
     if repaired and _COLUMN_NAME_PATTERN.match(repaired):

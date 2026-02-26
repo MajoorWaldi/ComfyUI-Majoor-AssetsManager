@@ -14,9 +14,27 @@ const getComfyUi = () => {
     }
 };
 
+const BLOCKED_PROP_KEYS = new Set(["__proto__", "constructor", "prototype", "innerHTML", "outerHTML", "srcdoc"]);
+const ALLOWED_DIRECT_PROPS = new Set([
+    "id",
+    "name",
+    "value",
+    "type",
+    "checked",
+    "disabled",
+    "placeholder",
+    "title",
+    "textContent",
+    "htmlFor",
+    "role",
+    "tabIndex",
+]);
+
 const fallbackEl = (tag, props = {}, children = []) => {
     const el = document.createElement(tag);
     Object.entries(props || {}).forEach(([key, value]) => {
+        const propKey = String(key || "");
+        if (!propKey || BLOCKED_PROP_KEYS.has(propKey)) return;
         if (key === "style" && value && typeof value === "object") {
             Object.assign(el.style, value);
             return;
@@ -25,18 +43,30 @@ const fallbackEl = (tag, props = {}, children = []) => {
             el.className = String(value);
             return;
         }
-        if (key.startsWith("on") && typeof value === "function") {
-            el.addEventListener(key.slice(2).toLowerCase(), value);
+        if (propKey.startsWith("on")) {
+            if (typeof value === "function") {
+                el.addEventListener(propKey.slice(2).toLowerCase(), value);
+            }
             return;
         }
-        try {
-            el[key] = value;
-        } catch {
-            el.setAttribute(key, String(value));
+        if (ALLOWED_DIRECT_PROPS.has(propKey)) {
+            try {
+                el[propKey] = value;
+                return;
+            } catch {}
         }
+        try {
+            el.setAttribute(propKey, String(value));
+        } catch {}
     });
     const childList = Array.isArray(children) ? children : [children];
-    childList.filter(Boolean).forEach((c) => el.appendChild(c));
+    childList.filter(Boolean).forEach((c) => {
+        try {
+            el.appendChild(c);
+        } catch {
+            el.appendChild(document.createTextNode(String(c)));
+        }
+    });
     return el;
 };
 

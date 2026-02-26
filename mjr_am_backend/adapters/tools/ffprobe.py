@@ -112,11 +112,20 @@ class FFProbe:
                 quality="none"
             )
 
+        path_res = self._validate_probe_path(path)
+        if not path_res.ok:
+            return Result.Err(
+                path_res.code or ErrorCode.INVALID_INPUT,
+                path_res.error or "Invalid file path",
+                quality="none",
+            )
+        safe_path = str(path_res.data or "")
+
         try:
-            process = self._run_ffprobe_cmd(self._build_ffprobe_cmd(path))
-            return self._parse_ffprobe_output(process.stdout, process.stderr, process.returncode, path)
+            process = self._run_ffprobe_cmd(self._build_ffprobe_cmd(safe_path))
+            return self._parse_ffprobe_output(process.stdout, process.stderr, process.returncode, safe_path)
         except subprocess.TimeoutExpired:
-            return self._ffprobe_timeout_error(path)
+            return self._ffprobe_timeout_error(safe_path)
         except json.JSONDecodeError as e:
             logger.error(f"ffprobe JSON parse error: {e}")
             return Result.Err(
@@ -162,10 +171,19 @@ class FFProbe:
                 quality="none"
             )
 
+        path_res = self._validate_probe_path(path)
+        if not path_res.ok:
+            return Result.Err(
+                path_res.code or ErrorCode.INVALID_INPUT,
+                path_res.error or "Invalid file path",
+                quality="none",
+            )
+        safe_path = str(path_res.data or "")
+
         try:
-            cmd = self._build_ffprobe_cmd(path)
+            cmd = self._build_ffprobe_cmd(safe_path)
             process = await self._spawn_ffprobe_process(cmd)
-            communicated = await self._communicate_with_timeout(process, path)
+            communicated = await self._communicate_with_timeout(process, safe_path)
             if not communicated.ok:
                 return Result.Err(
                     communicated.code or ErrorCode.FFPROBE_ERROR,
@@ -176,7 +194,7 @@ class FFProbe:
             if not isinstance(data, tuple) or len(data) != 2:
                 return Result.Err(ErrorCode.FFPROBE_ERROR, "Invalid ffprobe process output", quality="degraded")
             stdout, stderr = data
-            return self._parse_ffprobe_output(stdout, stderr, process.returncode, path)
+            return self._parse_ffprobe_output(stdout, stderr, process.returncode, safe_path)
         except json.JSONDecodeError as e:
             logger.error(f"ffprobe JSON parse error: {e}")
             return Result.Err(
@@ -199,8 +217,23 @@ class FFProbe:
             "-print_format", "json",
             "-show_format",
             "-show_streams",
+            "--",
             path,
         ]
+
+    def _validate_probe_path(self, path: str) -> Result[str]:
+        try:
+            normalized = str(path or "").strip()
+        except Exception:
+            normalized = ""
+        if not normalized:
+            return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")
+        if "\x00" in normalized:
+            return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")
+        # Prevent ffprobe option injection via user-controlled leading dash.
+        if normalized.startswith("-"):
+            return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")
+        return Result.Ok(normalized)
 
     async def _spawn_ffprobe_process(self, cmd: list[str]) -> asyncio.subprocess.Process:
         return await asyncio.create_subprocess_exec(
