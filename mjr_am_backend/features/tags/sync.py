@@ -13,7 +13,7 @@ import os
 import threading
 import time
 from dataclasses import dataclass
-from pathlib import Path, PosixPath, WindowsPath
+from pathlib import Path
 from typing import Any
 
 from ...adapters.tools.exiftool import ExifTool
@@ -259,12 +259,8 @@ def _validate_existing_file_path(file_path: str) -> Result[Path]:
     try:
         path = Path(raw)
     except NotImplementedError:
-        # Tests may monkeypatch os.name; build a native concrete path class.
-        try:
-            path = WindowsPath(raw) if os.path.sep == "\\" else PosixPath(raw)
-        except (OSError, TypeError, ValueError) as exc:
-            logger.debug("Invalid file path for rating/tags sync: %s", exc)
-            return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")
+        # Path flavor became incompatible with the runtime platform.
+        return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")
     except (OSError, TypeError, ValueError) as exc:
         logger.debug("Invalid file path for rating/tags sync: %s", exc)
         return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")

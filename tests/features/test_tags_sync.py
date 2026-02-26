@@ -103,6 +103,7 @@ def test_write_windows_rating_tags_pywin32_missing(monkeypatch):
 def test_write_windows_rating_tags_success(tmp_path: Path, monkeypatch):
     p = tmp_path / "f.png"
     p.write_bytes(b"x")
+    assert p.is_file()
     monkeypatch.setattr(sync, "_is_windows_os", lambda: True)
     monkeypatch.setattr(sync, "_safe_import_win32com", lambda: object())
     monkeypatch.setattr(sync, "_co_initialize_pythoncom", lambda: SimpleNamespace(CoUninitialize=lambda: None))
@@ -116,6 +117,7 @@ def test_write_windows_rating_tags_success(tmp_path: Path, monkeypatch):
 def test_write_windows_rating_tags_failure_wrap(tmp_path: Path, monkeypatch):
     p = tmp_path / "f.png"
     p.write_bytes(b"x")
+    assert p.is_file()
     monkeypatch.setattr(sync, "_is_windows_os", lambda: True)
     monkeypatch.setattr(sync, "_safe_import_win32com", lambda: object())
     monkeypatch.setattr(sync, "_co_initialize_pythoncom", lambda: None)

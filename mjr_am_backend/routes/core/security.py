@@ -16,6 +16,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from aiohttp import web
+from multidict import CIMultiDict
 from mjr_am_backend.shared import Result
 
 # Per-client rate limiting state: {client_id: {endpoint: [timestamps]}}
@@ -426,7 +427,7 @@ def _require_write_access(request: web.Request) -> Result[bool]:
     try:
         headers = request.headers  # CIMultiDictProxy
     except Exception:
-        headers = {}
+        headers = CIMultiDict()
     return _check_write_access(peer_ip=peer, headers=headers, request_scheme=request_scheme)
 
 
@@ -439,7 +440,7 @@ def _is_loopback_request(request: web.Request) -> bool:
     try:
         headers = request.headers
     except Exception:
-        headers = {}
+        headers = CIMultiDict()
     client_ip = _resolve_client_ip(peer, headers)
     return _is_loopback_ip(client_ip)
 
