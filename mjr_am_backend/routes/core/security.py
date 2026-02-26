@@ -435,6 +435,7 @@ def _is_loopback_request(request: web.Request) -> bool:
         peer = _extract_peer_ip(request)
     except Exception:
         peer = "unknown"
+    headers: Mapping[str, str]
     try:
         headers = request.headers
     except Exception:

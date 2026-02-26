@@ -5,7 +5,7 @@ Shared path normalization and safety helpers.
 from __future__ import annotations
 
 import os
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 
 def normalize_path(value: str) -> Path | None:
@@ -30,6 +30,13 @@ def safe_rel_path(value: str) -> Path | None:
     try:
         rel = Path(raw)
     except (OSError, ValueError):
+        return None
+    win_path = PureWindowsPath(raw)
+    if win_path.drive:
+        return None
+    if win_path.root in ("\\", "/"):
+        return None
+    if win_path.is_absolute():
         return None
     if getattr(rel, "drive", ""):
         return None

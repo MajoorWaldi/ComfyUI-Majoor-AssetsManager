@@ -13,7 +13,7 @@ import os
 import threading
 import time
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PosixPath, WindowsPath
 from typing import Any
 
 from ...adapters.tools.exiftool import ExifTool
@@ -64,13 +64,12 @@ def _normalize_tags(tags: list[str]) -> list[str]:
 
 
 def _validate_exiftool_file_path(file_path: str) -> Result[Path]:
-    try:
-        p = Path(str(file_path))
-    except (OSError, TypeError, ValueError) as exc:
-        logger.debug("Invalid file path for rating/tags sync: %s", exc)
+    p_res = _validate_existing_file_path(file_path)
+    if not p_res.ok:
+        return Result.Err(p_res.code or ErrorCode.INVALID_INPUT, p_res.error or "Invalid file path")
+    p = p_res.data
+    if not isinstance(p, Path):
         return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")
-    if not p.exists() or not p.is_file():
-        return Result.Err(ErrorCode.NOT_FOUND, f"File not found: {file_path}")
     return Result.Ok(p)
 
 
@@ -234,13 +233,41 @@ def _indices_discovery_complete(rating_idx: int, tags_idx: int) -> bool:
 
 
 def _validate_sync_file_path(file_path: str) -> Result[Path]:
-    try:
-        path = Path(str(file_path))
-    except (OSError, TypeError, ValueError) as exc:
-        logger.debug("Invalid file path for Windows shell rating/tags sync: %s", exc)
+    p_res = _validate_existing_file_path(file_path)
+    if not p_res.ok:
+        return Result.Err(p_res.code or ErrorCode.INVALID_INPUT, p_res.error or "Invalid file path")
+    p = p_res.data
+    if not isinstance(p, Path):
         return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")
-    if not path.exists() or not path.is_file():
+    return Result.Ok(p)
+
+
+def _validate_existing_file_path(file_path: str) -> Result[Path]:
+    try:
+        raw = os.fspath(file_path)
+    except (OSError, TypeError, ValueError) as exc:
+        logger.debug("Invalid file path for rating/tags sync: %s", exc)
+        return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")
+    if not isinstance(raw, str):
+        raw = str(raw)
+    if not raw:
+        return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")
+    if "\x00" in raw:
+        return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")
+    if not os.path.isfile(raw):
         return Result.Err(ErrorCode.NOT_FOUND, f"File not found: {file_path}")
+    try:
+        path = Path(raw)
+    except NotImplementedError:
+        # Tests may monkeypatch os.name; build a native concrete path class.
+        try:
+            path = WindowsPath(raw) if os.path.sep == "\\" else PosixPath(raw)
+        except (OSError, TypeError, ValueError) as exc:
+            logger.debug("Invalid file path for rating/tags sync: %s", exc)
+            return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")
+    except (OSError, TypeError, ValueError) as exc:
+        logger.debug("Invalid file path for rating/tags sync: %s", exc)
+        return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")
     return Result.Ok(path)
 
 
@@ -284,6 +311,10 @@ def _co_initialize_pythoncom() -> Any:
         return None
 
 
+def _is_windows_os() -> bool:
+    return os.name == "nt"
+
+
 def _shell_write_for_path(win32com, path: Path, rating_val: int, tags_norm: list[str]) -> None:
     shell = win32com.Dispatch("Shell.Application")
     folder = shell.Namespace(str(path.parent))
@@ -316,7 +347,7 @@ def write_windows_rating_tags(file_path: str, rating: int, tags: list[str]) -> R
     This is best-effort and requires pywin32. It is used only when ExifTool is
     unavailable or fails.
     """
-    if os.name != "nt":
+    if not _is_windows_os():
         return Result.Err(ErrorCode.UNSUPPORTED, "Windows metadata sync not supported on this OS")
 
     win32com = _safe_import_win32com()

@@ -86,14 +86,14 @@ def test_write_exif_rating_tags_success(tmp_path: Path, monkeypatch):
 
 
 def test_write_windows_rating_tags_unsupported(monkeypatch):
-    monkeypatch.setattr(sync.os, "name", "posix")
+    monkeypatch.setattr(sync, "_is_windows_os", lambda: False)
     res = sync.write_windows_rating_tags("x", 1, [])
     assert not res.ok
     assert res.code == ErrorCode.UNSUPPORTED
 
 
 def test_write_windows_rating_tags_pywin32_missing(monkeypatch):
-    monkeypatch.setattr(sync.os, "name", "nt")
+    monkeypatch.setattr(sync, "_is_windows_os", lambda: True)
     monkeypatch.setattr(sync, "_safe_import_win32com", lambda: None)
     res = sync.write_windows_rating_tags("x", 1, [])
     assert not res.ok
@@ -103,7 +103,7 @@ def test_write_windows_rating_tags_pywin32_missing(monkeypatch):
 def test_write_windows_rating_tags_success(tmp_path: Path, monkeypatch):
     p = tmp_path / "f.png"
     p.write_bytes(b"x")
-    monkeypatch.setattr(sync.os, "name", "nt")
+    monkeypatch.setattr(sync, "_is_windows_os", lambda: True)
     monkeypatch.setattr(sync, "_safe_import_win32com", lambda: object())
     monkeypatch.setattr(sync, "_co_initialize_pythoncom", lambda: SimpleNamespace(CoUninitialize=lambda: None))
     monkeypatch.setattr(sync, "_shell_write_for_path", lambda *_args, **_kwargs: None)
@@ -116,7 +116,7 @@ def test_write_windows_rating_tags_success(tmp_path: Path, monkeypatch):
 def test_write_windows_rating_tags_failure_wrap(tmp_path: Path, monkeypatch):
     p = tmp_path / "f.png"
     p.write_bytes(b"x")
-    monkeypatch.setattr(sync.os, "name", "nt")
+    monkeypatch.setattr(sync, "_is_windows_os", lambda: True)
     monkeypatch.setattr(sync, "_safe_import_win32com", lambda: object())
     monkeypatch.setattr(sync, "_co_initialize_pythoncom", lambda: None)
     monkeypatch.setattr(sync, "_shell_write_for_path", lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("bad")))
