@@ -611,6 +611,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             try:
                 db_adapter = svc['db']
 
+                gen_time_by_id: dict = {}
                 async with db_adapter.atransaction() as tx:
                     if not tx.ok:
                         raise RuntimeError(tx.error or "Failed to begin transaction")
@@ -650,6 +651,10 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                             new_json = json.dumps(current_meta, ensure_ascii=False)
 
                             upsert_params.append((asset_id, new_json))
+                            try:
+                                gen_time_by_id[int(asset_id)] = int(new_time)
+                            except Exception:
+                                pass
 
                         # D. Bulk Upsert (INSERT or UPDATE)
                         # Prefer per-asset locked writes using MetadataHelpers to avoid races
@@ -696,6 +701,17 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                     await db_adapter.aexecute("DROP TABLE IF EXISTS temp_gen_updates")
                 if not tx.ok:
                     raise RuntimeError(tx.error or "Commit failed")
+
+                if gen_time_by_id:
+                    try:
+                        from ..registry import PromptServer
+                        for _aid, _gt in gen_time_by_id.items():
+                            PromptServer.instance.send_sync(
+                                "mjr-asset-updated",
+                                {"id": _aid, "generation_time_ms": _gt},
+                            )
+                    except Exception:
+                        pass
 
             except Exception as ex:
                 logger.debug("Failed during batch metadata enhancement: %s", ex)
