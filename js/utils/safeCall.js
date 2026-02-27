@@ -13,7 +13,7 @@ function _debugEnabled(flag) {
 function _warn(label, err) {
     try {
         console.warn(`[Majoor] ${label}`, err);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 export function safeCall(fn, label = "safeCall") {

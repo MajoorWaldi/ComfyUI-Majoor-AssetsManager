@@ -5,14 +5,14 @@ const _safeSetValue = (el, value) => {
     if (!el) return;
     try {
         el.value = value;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 };
 
 const _safeSetChecked = (el, checked) => {
     if (!el) return;
     try {
         el.checked = !!checked;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 };
 
 export function createContextController({
@@ -44,7 +44,7 @@ export function createContextController({
     const resetBrowserHistory = () => {
         try {
             extraActions?.resetBrowserHistory?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const applyBadgeCssVars = () => {
@@ -60,7 +60,7 @@ export function createContextController({
             root.style.setProperty("--mjr-badge-audio", String(APP_CONFIG.BADGE_AUDIO_COLOR || "#FF9800"));
             root.style.setProperty("--mjr-badge-model3d", String(APP_CONFIG.BADGE_MODEL3D_COLOR || "#4CAF50"));
             root.style.setProperty("--mjr-badge-duplicate-alert", String(APP_CONFIG.BADGE_DUPLICATE_ALERT_COLOR || "#FF1744"));
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const actions = {
@@ -68,19 +68,19 @@ export function createContextController({
             try {
                 _safeSetValue(searchInputEl, "");
                 state.searchQuery = "";
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 await reloadGrid?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
         clearCollection: async () => {
             try {
                 state.collectionId = "";
                 state.collectionName = "";
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 await reloadGrid?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
         clearScope: async () => {
             let didSetScope = false;
@@ -97,10 +97,10 @@ export function createContextController({
                     state.scope = "output";
                     scopeController?.setActiveTabStyles?.();
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 if (!didSetScope) await reloadGrid?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
         clearCustomRoot: async () => {
             try {
@@ -109,10 +109,10 @@ export function createContextController({
                 state.currentFolderRelativePath = "";
                 delete gridContainer?.dataset?.mjrSubfolder;
                 resetBrowserHistory();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 await reloadGrid?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
         clearFolder: async () => {
             try {
@@ -120,46 +120,46 @@ export function createContextController({
                 state.currentFolderRelativePath = "";
                 delete gridContainer?.dataset?.mjrSubfolder;
                 resetBrowserHistory();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 await reloadGrid?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
         clearKind: async () => {
             try {
                 state.kindFilter = "";
                 _safeSetValue(kindSelect, "");
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 await reloadGrid?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
         clearMinRating: async () => {
             try {
                 state.minRating = 0;
                 _safeSetValue(ratingSelect, "0");
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 await reloadGrid?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
         clearWorkflowOnly: async () => {
             try {
                 state.workflowOnly = false;
                 _safeSetChecked(wfCheckbox, false);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 await reloadGrid?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
         clearWorkflowType: async () => {
             try {
                 state.workflowType = "";
                 _safeSetValue(workflowTypeSelect, "");
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 await reloadGrid?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
         clearSize: async () => {
             try {
@@ -167,10 +167,10 @@ export function createContextController({
                 state.maxSizeMB = 0;
                 _safeSetValue(minSizeInput, "");
                 _safeSetValue(maxSizeInput, "");
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 await reloadGrid?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
         clearResolution: async () => {
             try {
@@ -183,44 +183,44 @@ export function createContextController({
                 _safeSetValue(minHeightInput, "");
                 _safeSetValue(resolutionPresetSelect, "");
                 _safeSetValue(resolutionCompareSelect, "gte");
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 await reloadGrid?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
         clearDateRange: async () => {
             try {
                 state.dateRangeFilter = "";
                 _safeSetValue(dateRangeSelect, "");
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 await reloadGrid?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
         clearDateExact: async () => {
             try {
                 state.dateExactFilter = "";
                 _safeSetValue(dateExactInput, "");
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 await reloadGrid?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
         clearSort: async () => {
             try {
                 state.sort = "mtime_desc";
                 sortController?.setSortIcon?.(state.sort);
                 sortController?.renderSortMenu?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 await reloadGrid?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
         clearAll: async () => {
             let didSetScope = false;
             try {
                 _safeSetValue(searchInputEl, "");
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 state.collectionId = "";
                 state.collectionName = "";
@@ -250,7 +250,7 @@ export function createContextController({
                     state.scope = "output";
                     scopeController?.setActiveTabStyles?.();
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 _safeSetValue(kindSelect, "");
                 _safeSetChecked(wfCheckbox, false);
@@ -264,14 +264,14 @@ export function createContextController({
                 _safeSetValue(resolutionCompareSelect, "gte");
                 _safeSetValue(dateRangeSelect, "");
                 _safeSetValue(dateExactInput, "");
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 sortController?.setSortIcon?.(state.sort);
                 sortController?.renderSortMenu?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 if (!didSetScope) await reloadGrid?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
     };
     if (extraActions && typeof extraActions === "object") {
@@ -307,7 +307,7 @@ export function createContextController({
             filterBtn?.classList?.toggle?.("mjr-context-active", filterActive);
             sortBtn?.classList?.toggle?.("mjr-context-active", sortActive);
             collectionsBtn?.classList?.toggle?.("mjr-context-active", collectionsActive);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         try {
             const extraContext = (typeof getExtraContext === "function" ? (getExtraContext() || {}) : {}) || {};
@@ -317,7 +317,7 @@ export function createContextController({
                 context: { rawQuery: rawQuery || normalizedQuery, ...extraContext },
                 actions
             });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         // Keep badge CSS vars aligned with live settings/theme changes.
         applyBadgeCssVars();

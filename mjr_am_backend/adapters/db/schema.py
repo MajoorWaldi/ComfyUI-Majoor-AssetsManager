@@ -192,6 +192,7 @@ END;
 """
 
 _SAFE_IDENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+_SAFE_COLUMN_DEF_SUFFIX_RE = re.compile(r"^[A-Za-z0-9_(),{}'\s]+$")
 
 
 def _is_safe_identifier(value: str) -> bool:
@@ -203,6 +204,26 @@ def _quoted_identifier(value: str) -> str:
         raise ValueError(f"Invalid identifier: {value!r}")
     safe = value.replace('"', '""')
     return f'"{safe}"'
+
+
+def _safe_column_definition_parts(column_name: str, definition: str) -> tuple[str, str] | None:
+    if not _is_safe_identifier(column_name):
+        return None
+    try:
+        raw = str(definition or "")
+    except Exception:
+        return None
+    prefix = f"{column_name} "
+    if not raw.startswith(prefix):
+        return None
+    suffix = raw[len(prefix):].strip()
+    if not suffix:
+        return None
+    if ";" in suffix or "--" in suffix or "/*" in suffix or "*/" in suffix:
+        return None
+    if not _SAFE_COLUMN_DEF_SUFFIX_RE.match(suffix):
+        return None
+    return _quoted_identifier(column_name), suffix
 
 
 async def _get_table_columns(db, table_name: str) -> Result[list[str]]:
@@ -249,8 +270,12 @@ async def _ensure_column(db, table_name: str, column_name: str, definition: str)
         table_ident = _quoted_identifier(table_name)
     except ValueError:
         return Result.Err("INVALID_INPUT", f"Invalid table name: {table_name}")
+    definition_parts = _safe_column_definition_parts(column_name, definition)
+    if definition_parts is None:
+        return Result.Err("INVALID_INPUT", f"Invalid column definition for {table_name}.{column_name}")
+    column_ident, column_suffix = definition_parts
     alter_result = await db.aexecute(
-        f"ALTER TABLE {table_ident} ADD COLUMN {definition}"
+        f"ALTER TABLE {table_ident} ADD COLUMN {column_ident} {column_suffix}"
     )
     return alter_result
 

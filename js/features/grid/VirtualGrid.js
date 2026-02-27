@@ -137,7 +137,7 @@ export class VirtualGrid {
         try {
             if (!this._debugEnabled()) return;
             console.warn("[Majoor][VirtualGrid]", ...args);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     /**
@@ -160,7 +160,7 @@ export class VirtualGrid {
                 // Try to clean up
                 const card = this._getCard(el);
                 if (card) {
-                    try { this.options.onItemRecycled(card); } catch {}
+                    try { this.options.onItemRecycled(card); } catch (e) { console.debug?.(e); }
                 }
                 el.remove();
             }
@@ -234,7 +234,7 @@ export class VirtualGrid {
                 const card = this._getCard(el);
                 if (card) out.push(card);
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         return out;
     }
 
@@ -306,7 +306,7 @@ export class VirtualGrid {
             const cs = window.getComputedStyle(this.container);
             padL = Number.parseFloat(cs?.paddingLeft || "0") || 0;
             padR = Number.parseFloat(cs?.paddingRight || "0") || 0;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         const safety = 2;
         let baseWidth = containerWidth;
         try {
@@ -315,7 +315,7 @@ export class VirtualGrid {
                 const sw = Number(se.clientWidth || 0);
                 if (sw > 0) baseWidth = Math.min(baseWidth, sw);
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         let availWidth = Math.max(1, Math.floor(baseWidth - padL - padR - safety));
 
         this.columnCount = Math.max(1, Math.floor((availWidth + gap) / (minW + gap)));
@@ -395,11 +395,11 @@ export class VirtualGrid {
         if (card) {
             try {
                 this.options.onItemRecycled(card);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
         try {
             el.remove();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         if (this._pool.length >= this._maxPoolSize) {
             return;
         }
@@ -445,7 +445,7 @@ export class VirtualGrid {
                      this.updateLayout(true);
                 }
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     /**
@@ -456,12 +456,12 @@ export class VirtualGrid {
         if (this.measured) return;
         try {
             requestAnimationFrame(() => {
-                try { this.updateMetrics(); } catch {}
+                try { this.updateMetrics(); } catch (e) { console.debug?.(e); }
             });
             setTimeout(() => {
-                try { this.updateMetrics(); } catch {}
+                try { this.updateMetrics(); } catch (e) { console.debug?.(e); }
             }, 60);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     /**

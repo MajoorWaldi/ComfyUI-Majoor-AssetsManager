@@ -13,25 +13,25 @@ function setAbortableTimeout(signal, ms, fn) {
             try {
                 if (signal?.aborted) return;
                 fn?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }, Math.max(0, Math.floor(Number(ms) || 0)));
 
         const onAbort = () => {
             try {
                 clearTimeout(id);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
         try {
             signal?.addEventListener?.("abort", onAbort, { once: true });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         return () => {
             try {
                 clearTimeout(id);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 signal?.removeEventListener?.("abort", onAbort);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
     } catch {
         return noop;
@@ -61,7 +61,7 @@ function createBtn(className, text, title) {
     if (title) b.title = title;
     try {
         b.setAttribute("aria-label", title || text || "Button");
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     b.textContent = text;
     return b;
 }
@@ -73,7 +73,7 @@ function createIconBtn(className, iconClass, title, ariaLabel) {
     if (title) b.title = title;
     try {
         b.setAttribute("aria-label", ariaLabel || title || "Button");
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const icon = document.createElement("span");
     icon.className = `pi ${iconClass || ""}`.trim();
@@ -125,14 +125,14 @@ function _mountPreviewControls(video, hostEl) {
         video.muted = true;
         video.playsInline = true;
         video.autoplay = true;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const controls = document.createElement("div");
     controls.className = "mjr-video-controls mjr-video-controls--preview";
     try {
         controls.setAttribute("role", "group");
         controls.setAttribute("aria-label", t("video.previewControls", "Video preview controls"));
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const btn = document.createElement("button");
     btn.type = "button";
@@ -140,13 +140,13 @@ function _mountPreviewControls(video, hostEl) {
     btn.title = t("video.playPause", "Play/Pause");
     try {
         btn.setAttribute("aria-label", t("video.playPause", "Play/Pause"));
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const icon = document.createElement("span");
     icon.className = "pi pi-play";
     try {
         icon.setAttribute("aria-hidden", "true");
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     btn.appendChild(icon);
     controls.appendChild(btn);
 
@@ -154,38 +154,38 @@ function _mountPreviewControls(video, hostEl) {
         try {
             const paused = Boolean(video?.paused);
             icon.className = `pi ${paused ? "pi-play" : "pi-pause"}`;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const tryPlay = () => {
         try {
             const p = video.play?.();
             if (p && typeof p.catch === "function") p.catch(() => {});
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const toggle = (e) => {
         try {
             e?.stopPropagation?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             if (video.paused) {
                 tryPlay();
             } else {
                 video.pause?.();
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         setIcon();
     };
 
     try {
         hostEl.appendChild(controls);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     // Best-effort autoplay.
     try {
         tryPlay();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     unsubs.push(safeAddListener(video, "loadedmetadata", () => tryPlay(), { passive: true }));
     unsubs.push(safeAddListener(video, "canplay", () => tryPlay(), { passive: true }));
 
@@ -195,17 +195,17 @@ function _mountPreviewControls(video, hostEl) {
     unsubs.push(safeAddListener(video, "ended", () => tryPlay(), { passive: true }));
     try {
         setIcon();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     return {
         controlsEl: controls,
         destroy: () => {
             try {
                 for (const u of unsubs) safeCall(() => u?.());
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 controls.remove?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
     };
 }
@@ -240,7 +240,7 @@ export function mountVideoControls(video, opts = {}) {
         // We manage looping ourselves (Loop/Once + in/out range); disable native looping to avoid conflicts.
         try {
             video.loop = false;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         safeCall(() => hostEl.classList?.add("mjr-video-host"));
         safeCall(() => video.classList?.add("mjr-video-el"));
@@ -349,7 +349,7 @@ export function mountVideoControls(video, opts = {}) {
         rangeCountLabel.textContent = "";
         try {
             rangeCountLabel.style.display = "none";
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         const timeGroup = document.createElement("div");
         timeGroup.className = "mjr-video-timegroup";
@@ -421,7 +421,7 @@ export function mountVideoControls(video, opts = {}) {
             volume.title = t("video.volume", "Volume");
             try {
                 volume.style.width = "120px";
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             volumeWrap.appendChild(volume);
         }
 
@@ -504,12 +504,12 @@ export function mountVideoControls(video, opts = {}) {
         const stop = (e) => {
             try {
                 e.stopPropagation?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
         const preventStop = (e) => {
             try {
                 e.preventDefault?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             stop(e);
         };
 
@@ -527,7 +527,7 @@ export function mountVideoControls(video, opts = {}) {
         unsubs.push(() => {
             try {
                 timersAC.abort();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         });
         // Must NOT run in capture phase, otherwise it blocks pointerdown on child controls
         // like the draggable In/Out handles. We stop bubbling instead, and rely on the
@@ -543,12 +543,12 @@ export function mountVideoControls(video, opts = {}) {
         unsubs.push(safeAddListener(window, "dblclick", (e) => {
             try {
                 if (controls.contains?.(e?.target)) preventStop(e);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }, { capture: true }));
         unsubs.push(safeAddListener(window, "wheel", (e) => {
             try {
                 if (controls.contains?.(e?.target)) preventStop(e);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }, { capture: true, passive: false }));
 
         const state = {
@@ -570,22 +570,22 @@ export function mountVideoControls(video, opts = {}) {
                 frameLabel.classList.add("is-step");
                 try {
                     _stepFlashCancel?.();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 _stepFlashCancel = setAbortableTimeout(timersAC.signal, STEP_FLASH_MS, () => {
                     try {
                         frameLabel.classList.remove("is-step");
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 });
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
         unsubs.push(() => {
             try {
                 _stepFlashCancel?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             _stepFlashCancel = null;
             try {
                 frameLabel?.classList?.remove?.("is-step");
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         });
 
         const setToggleBtn = (btn, on) => {
@@ -593,7 +593,7 @@ export function mountVideoControls(video, opts = {}) {
                 if (!btn) return;
                 if (on) btn.classList.add("is-on");
                 else btn.classList.remove("is-on");
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
 
         const setPlaybackRate = (nextRate) => {
@@ -604,10 +604,10 @@ export function mountVideoControls(video, opts = {}) {
                 state.playbackRate = rate;
                 try {
                     video.playbackRate = rate;
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     if (!speedSelect.matches?.(":focus")) speedSelect.value = String(rate);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 return rate;
             } catch {
                 return state.playbackRate;
@@ -619,8 +619,8 @@ export function mountVideoControls(video, opts = {}) {
                 setToggleBtn(loopBtn, Boolean(state.loop));
                 try {
                     if (loopIcon?.icon) loopIcon.icon.className = "pi pi-refresh";
-                } catch {}
-            } catch {}
+                } catch (e) { console.debug?.(e); }
+            } catch (e) { console.debug?.(e); }
         };
 
         const durationFrames = () => {
@@ -666,7 +666,7 @@ export function mountVideoControls(video, opts = {}) {
                     state.inFrame = inF;
                     state.outFrame = outF;
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
 
         const getEffectiveInOut = () => {
@@ -685,7 +685,7 @@ export function mountVideoControls(video, opts = {}) {
                 playBtn.textContent = video?.paused
                     ? t("video.play", "Play")
                     : t("video.pause", "Pause");
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
 
         const setMuteLabel = () => {
@@ -693,11 +693,11 @@ export function mountVideoControls(video, opts = {}) {
                 const muted = Boolean(video?.muted) || (Number(video?.volume) || 0) <= 0.001;
                 try {
                     muteIcon.icon.className = `pi ${muted ? "pi-volume-off" : "pi-volume-up"}`;
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 const muteLabel = muted ? t("video.unmute", "Unmute") : t("video.mute", "Mute");
                 muteBtn.title = muteLabel;
                 muteBtn.setAttribute("aria-label", muteLabel);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
 
         const updateTimeUI = () => {
@@ -715,12 +715,12 @@ export function mountVideoControls(video, opts = {}) {
                     if (!Number.isNaN(v) && !seek.matches?.(":active")) seek.value = String(v);
                     try {
                         playhead.style.left = `${p * 100}%`;
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 } else {
                     seek.value = "0";
                     try {
                         playhead.style.left = "0%";
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 }
 
                 if (advanced) {
@@ -738,7 +738,7 @@ export function mountVideoControls(video, opts = {}) {
                         } else {
                             playheadLabel.style.display = "none";
                         }
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                     if (!inInput.matches?.(":focus")) inInput.value = String(state.inFrame ?? 0);
                     if (!outInput.matches?.(":focus")) outInput.value = String(state.outFrame ?? maxF);
 
@@ -753,9 +753,9 @@ export function mountVideoControls(video, opts = {}) {
                         } else {
                             rangeCountLabel.style.display = "none";
                         }
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
 
         const updateSeekRangeStyle = () => {
@@ -770,7 +770,7 @@ export function mountVideoControls(video, opts = {}) {
                 // Prefer overlay zones over range background for cross-browser reliability.
                 try {
                     seek.style.background = "";
-                } catch {}
+                } catch (e) { console.debug?.(e); }
 
                 try {
                     const inP = clamp01(inPct / 100) * 100;
@@ -791,17 +791,17 @@ export function mountVideoControls(video, opts = {}) {
                         try {
                             seekZones.classList.toggle("is-trimmed", !fullRange);
                             seekZones.classList.toggle("is-fullrange", fullRange);
-                        } catch {}
+                        } catch (e) { console.debug?.(e); }
                     }
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     inMark.style.left = `${inPct}%`;
                     outMark.style.left = `${outPct}%`;
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     inHandle.style.left = `${inPct}%`;
                     outHandle.style.left = `${outPct}%`;
-                } catch {}
+                } catch (e) { console.debug?.(e); }
 
                 // Nuke-like tick ruler. Clamp tick density so we don't create thousands of ticks for long clips.
                 try {
@@ -824,15 +824,15 @@ export function mountVideoControls(video, opts = {}) {
                             const key = `${maxF}|${framesPerTick}`;
                             if (labelsBar?.dataset?.mjrLabelKey === key) return;
                             labelsBar.dataset.mjrLabelKey = key;
-                        } catch {}
+                        } catch (e) { console.debug?.(e); }
                         try {
                             labelsBar.replaceChildren();
-                        } catch {}
+                        } catch (e) { console.debug?.(e); }
                         const MAX_LABELS = 22;
                         let majorFrames = Math.max(1, framesPerTick * 10);
                         try {
                             while (majorFrames > 0 && Math.ceil(maxF / majorFrames) > MAX_LABELS) majorFrames *= 2;
-                        } catch {}
+                        } catch (e) { console.debug?.(e); }
 
                         const makeLabel = (frame) => {
                             const s = document.createElement("span");
@@ -845,19 +845,19 @@ export function mountVideoControls(video, opts = {}) {
 
                         try {
                             labelsBar.appendChild(makeLabel(0));
-                        } catch {}
+                        } catch (e) { console.debug?.(e); }
                         for (let f = majorFrames; f < maxF; f += majorFrames) {
                             try {
                                 labelsBar.appendChild(makeLabel(f));
-                            } catch {}
+                            } catch (e) { console.debug?.(e); }
                         }
                         try {
                             labelsBar.appendChild(makeLabel(maxF));
-                        } catch {}
+                        } catch (e) { console.debug?.(e); }
                     };
                     rebuildLabels();
-                } catch {}
-            } catch {}
+                } catch (e) { console.debug?.(e); }
+            } catch (e) { console.debug?.(e); }
         };
 
         const applyRangeChange = ({ prefer = null } = {}) => {
@@ -875,7 +875,7 @@ export function mountVideoControls(video, opts = {}) {
                     if (cf < inF) goToFrame(inF);
                     else if (cf > outF) goToFrame(outF);
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
 
         const resetInToStart = () => {
@@ -885,7 +885,7 @@ export function mountVideoControls(video, opts = {}) {
                 updateTimeUI();
                 updateSeekRangeStyle();
                 applyRangeChange({ prefer: "in" });
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
 
         const resetOutToEnd = () => {
@@ -896,7 +896,7 @@ export function mountVideoControls(video, opts = {}) {
                 updateTimeUI();
                 updateSeekRangeStyle();
                 applyRangeChange({ prefer: "out" });
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
 
         const resetPlayerAll = () => {
@@ -910,16 +910,16 @@ export function mountVideoControls(video, opts = {}) {
                 setPlaybackRate(1);
                 try {
                     stepInput.value = "1";
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     if (!speedSelect.matches?.(":focus")) speedSelect.value = "1";
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 normalizeRange();
                 applyLoopOnceUI();
                 updateTimeUI();
                 updateSeekRangeStyle();
                 applyRangeChange({ prefer: "in" });
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
 
         const updateVolumeUI = () => {
@@ -927,9 +927,9 @@ export function mountVideoControls(video, opts = {}) {
                 const v = clamp01(Number(video?.volume) || 0);
                 try {
                     if (volume && !volume.matches?.(":active")) volume.value = String(v);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 setMuteLabel();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
 
         const goToFrame = (frame) => {
@@ -937,7 +937,7 @@ export function mountVideoControls(video, opts = {}) {
                 const { maxF } = getEffectiveInOut();
                 const f = clamp(frame, 0, maxF > 0 ? maxF : Infinity);
                 video.currentTime = frameToTime(f);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             updateTimeUI();
         };
 
@@ -955,10 +955,10 @@ export function mountVideoControls(video, opts = {}) {
                 }
                 try {
                     video.pause?.();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 goToFrame(next);
                 flashFrameStep();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
 
         const ensureInRangeBeforePlay = () => {
@@ -968,7 +968,7 @@ export function mountVideoControls(video, opts = {}) {
                 const { inF, outF } = getEffectiveInOut();
                 const cf = currentFrame();
                 if (cf < inF || cf > outF) goToFrame(inF);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
 
         const togglePlay = () => {
@@ -980,7 +980,7 @@ export function mountVideoControls(video, opts = {}) {
                 } else {
                     video.pause?.();
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             setPlayLabel();
         };
 
@@ -989,7 +989,7 @@ export function mountVideoControls(video, opts = {}) {
             safeAddListener(video, "click", (e) => {
                 try {
                     if (e?.target !== video) return;
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 togglePlay();
             })
         );
@@ -1049,7 +1049,7 @@ export function mountVideoControls(video, opts = {}) {
                     const v = Number(seek.value);
                     const p = clamp01((Number.isFinite(v) ? v : 0) / 1000);
                     video.currentTime = p * d;
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 updateTimeUI();
             })
         );
@@ -1082,7 +1082,7 @@ export function mountVideoControls(video, opts = {}) {
                         const v = Number(inInput.value);
                         state.inFrame = Number.isFinite(v) ? Math.max(0, Math.floor(v)) : null;
                         normalizeRange();
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                     updateTimeUI();
                     updateSeekRangeStyle();
                     applyRangeChange({ prefer: "in" });
@@ -1095,7 +1095,7 @@ export function mountVideoControls(video, opts = {}) {
                         const v = Number(outInput.value);
                         state.outFrame = Number.isFinite(v) ? Math.max(0, Math.floor(v)) : null;
                         normalizeRange();
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                     updateTimeUI();
                     updateSeekRangeStyle();
                     applyRangeChange({ prefer: "out" });
@@ -1107,7 +1107,7 @@ export function mountVideoControls(video, opts = {}) {
                     try {
                         state.step = Math.max(1, Math.floor(Number(stepInput.value) || 1));
                         stepInput.value = String(state.step);
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 })
             );
             unsubs.push(
@@ -1117,7 +1117,7 @@ export function mountVideoControls(video, opts = {}) {
                         state.fps = Math.max(1, Math.floor(Number(fpsInput.value) || 30));
                         fpsInput.value = String(state.fps);
                         normalizeRange();
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                     updateTimeUI();
                     updateSeekRangeStyle();
                 })
@@ -1152,7 +1152,7 @@ export function mountVideoControls(video, opts = {}) {
                 rangeCountLabel.title = t("video.resetPlayerControls", "Reset player controls");
                 rangeCountLabel.style.cursor = "pointer";
                 rangeCountLabel.style.userSelect = "none";
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
 
         unsubs.push(
@@ -1162,7 +1162,7 @@ export function mountVideoControls(video, opts = {}) {
                     if (!volumeWrap) return;
                     const open = volumeWrap.style.display !== "none";
                     volumeWrap.style.display = open ? "none" : "inline-flex";
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 updateVolumeUI();
             })
         );
@@ -1171,7 +1171,7 @@ export function mountVideoControls(video, opts = {}) {
                 preventStop(e);
                 try {
                     video.muted = !video.muted;
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 updateVolumeUI();
             })
         );
@@ -1181,7 +1181,7 @@ export function mountVideoControls(video, opts = {}) {
                     if (!volumeWrap || volumeWrap.style.display === "none") return;
                     if (muteBtn.contains?.(e?.target) || volumeWrap.contains?.(e?.target)) return;
                     volumeWrap.style.display = "none";
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }, { capture: true })
         );
         if (volume) {
@@ -1192,7 +1192,7 @@ export function mountVideoControls(video, opts = {}) {
                         const v = clamp01(Number(volume.value) || 0);
                         video.volume = v;
                         if (v > 0.001) video.muted = false;
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                     updateVolumeUI();
                 })
             );
@@ -1202,14 +1202,14 @@ export function mountVideoControls(video, opts = {}) {
                 stop(e);
                 try {
                     setPlaybackRate(Number(speedSelect.value) || 1);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             })
         );
         unsubs.push(
             safeAddListener(video, "ratechange", () => {
                 try {
                     setPlaybackRate(Number(video.playbackRate) || state.playbackRate || 1);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             })
         );
         const enforceRange = () => {
@@ -1233,23 +1233,23 @@ export function mountVideoControls(video, opts = {}) {
                         try {
                             const p = video.play?.();
                             if (p && typeof p.catch === "function") p.catch(() => {});
-                        } catch {}
+                        } catch (e) { console.debug?.(e); }
                     } else if (state.once) {
                         try {
                             video.pause?.();
-                        } catch {}
+                        } catch (e) { console.debug?.(e); }
                         goToFrame(outF);
                     } else {
                         // Default behavior when a range is set: stop at Out (Nuke-like playback range).
                         try {
                             video.pause?.();
-                        } catch {}
+                        } catch (e) { console.debug?.(e); }
                         goToFrame(outF);
                     }
                 } else if (cf < inF) {
                     goToFrame(inF);
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
 
         // Keep UI synced with media events.
@@ -1276,8 +1276,8 @@ export function mountVideoControls(video, opts = {}) {
                         try {
                             const p = video.play?.();
                             if (p && typeof p.catch === "function") p.catch(() => {});
-                        } catch {}
-                    } catch {}
+                        } catch (e) { console.debug?.(e); }
+                    } catch (e) { console.debug?.(e); }
                 },
                 { passive: true }
             )
@@ -1299,7 +1299,7 @@ export function mountVideoControls(video, opts = {}) {
                             state.outFrame = maxF;
                             normalizeRange();
                         }
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                     updateSeekRangeStyle();
                 })
             );
@@ -1316,7 +1316,7 @@ export function mountVideoControls(video, opts = {}) {
             normalizeRange();
             applyLoopOnceUI();
             setPlaybackRate(state.playbackRate);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         safeCall(setPlayLabel);
         safeCall(updateTimeUI);
         safeCall(updateSeekRangeStyle);
@@ -1339,14 +1339,14 @@ export function mountVideoControls(video, opts = {}) {
                                     state.outFrame = null;
                                 }
                             }
-                        } catch {}
+                        } catch (e) { console.debug?.(e); }
                     }
                     state.fps = newFps;
                     try {
                         if (!fpsInput?.matches?.(":focus")) fpsInput.value = String(state.fps);
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 const fc = Number(info?.frameCount);
                 state.frameCount = Number.isFinite(fc) && fc > 0 ? Math.floor(fc) : null;
@@ -1358,7 +1358,7 @@ export function mountVideoControls(video, opts = {}) {
                 applyLoopOnceUI();
                 updateTimeUI();
                 updateSeekRangeStyle();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
 
         // Best-effort: initialize from caller-provided media info (metadata/fps hints).
@@ -1370,7 +1370,7 @@ export function mountVideoControls(video, opts = {}) {
                     setMediaInfo({ fps: initFps, frameCount: initFrames });
                 }
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         // Drag In/Out handles on the seek bar.
         if (advanced) {
@@ -1392,7 +1392,7 @@ export function mountVideoControls(video, opts = {}) {
                 preventStop(e);
                 try {
                     drag.ac?.abort?.();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 drag.ac = null;
                 drag.active = true;
                 drag.which = which;
@@ -1407,10 +1407,10 @@ export function mountVideoControls(video, opts = {}) {
                 }
                 try {
                     drag.captureEl?.setPointerCapture?.(e.pointerId);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     seekWrap.setPointerCapture?.(e.pointerId);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
 
                 try {
                     const ac = new AbortController();
@@ -1419,7 +1419,7 @@ export function mountVideoControls(video, opts = {}) {
                     window.addEventListener("pointermove", moveDrag, { passive: false, capture: true, signal: ac.signal });
                     window.addEventListener("pointerup", endDrag, { passive: false, capture: true, signal: ac.signal });
                     window.addEventListener("pointercancel", endDrag, { passive: false, capture: true, signal: ac.signal });
-                } catch {}
+                } catch (e) { console.debug?.(e); }
 
                 const f = frameFromClientX(e.clientX);
                 if (which === "in") state.inFrame = f;
@@ -1447,18 +1447,18 @@ export function mountVideoControls(video, opts = {}) {
                 drag.active = false;
                 try {
                     seekWrap.releasePointerCapture?.(drag.pointerId);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     drag.captureEl?.releasePointerCapture?.(drag.pointerId);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 drag.captureEl = null;
                 drag.pointerId = null;
                 try {
                     applyRangeChange({ prefer: drag.which });
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     drag.ac?.abort?.();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 drag.ac = null;
             };
 

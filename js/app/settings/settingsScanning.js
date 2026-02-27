@@ -94,7 +94,7 @@ export function registerScanningSettings(safeAddSetting, settings, notifyApplied
                 return;
             }
             applyWatcherSettingsFromBackend(res.data || {});
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     safeAddSetting({
@@ -246,7 +246,7 @@ export function registerScanningSettings(safeAddSetting, settings, notifyApplied
 
     try {
         syncWatcherRuntimeSettings().catch(() => {});
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.RatingTagsSync.Enabled`,

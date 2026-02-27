@@ -72,7 +72,7 @@ export function registerSecuritySettings(safeAddSetting, settings, notifyApplied
                             }
                         })
                         .catch(() => {});
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             },
         });
     };
@@ -119,7 +119,7 @@ export function registerSecuritySettings(safeAddSetting, settings, notifyApplied
                         }
                     })
                     .catch(() => {});
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
     });
 

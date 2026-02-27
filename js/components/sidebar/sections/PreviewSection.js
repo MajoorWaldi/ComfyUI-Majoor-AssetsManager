@@ -53,15 +53,15 @@ export function createPreviewSection(asset, options = {}) {
                     try {
                         const p = video.play?.();
                         if (p && typeof p.catch === "function") p.catch(() => {});
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 };
                 video.addEventListener("loadedmetadata", tryPlay, { passive: true });
                 video.addEventListener("canplay", tryPlay, { passive: true });
                 tryPlay();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 mountVideoControls(video, { variant: "preview", hostEl: previewContainer });
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         } else if (asset.kind === "audio") {
             const audio = document.createElement("audio");
             audio.src = viewUrl;

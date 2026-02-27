@@ -12,7 +12,7 @@ function isCustomBrowserScope({ dot = null, asset = null, scope = "" } = {}) {
     try {
         const fromGrid = _norm(dot?.closest?.(".mjr-grid")?.dataset?.mjrScope);
         if (fromGrid) return fromGrid === "custom";
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     return false;
 }

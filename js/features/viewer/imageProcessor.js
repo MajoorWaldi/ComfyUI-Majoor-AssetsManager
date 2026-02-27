@@ -8,7 +8,7 @@ export function drawMediaError(canvas, message) {
             canvas.width = 960;
             canvas.height = 540;
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     const ctx = (() => {
         try {
             return canvas.getContext?.("2d");
@@ -19,11 +19,11 @@ export function drawMediaError(canvas, message) {
     if (!ctx) return;
     try {
         ctx.save();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         ctx.fillStyle = "rgba(0,0,0,0.85)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         ctx.fillStyle = "rgba(255, 120, 120, 0.95)";
         ctx.font = "14px system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
@@ -32,10 +32,10 @@ export function drawMediaError(canvas, message) {
         ctx.fillText(text, 14, 14);
         ctx.fillStyle = "rgba(255,255,255,0.7)";
         ctx.fillText("Check file permissions / path, or try re-indexing.", 14, 34);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         ctx.restore();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 export function createImageProcessor({
@@ -50,10 +50,10 @@ export function createImageProcessor({
     const image = new Image();
     try {
         image.decoding = "async";
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         image.crossOrigin = "anonymous";
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const ctx = (() => {
         try {
@@ -99,7 +99,7 @@ export function createImageProcessor({
                 if (p) setParams(p);
                 return;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         if (proc._connectRAF != null) return;
         proc._connectTries = (Number(proc._connectTries) || 0) + 1;
         if (proc._connectTries > 20) {
@@ -166,7 +166,7 @@ export function createImageProcessor({
         if (!canvas?.isConnected) {
             try {
                 proc._pendingParams = params || proc.lastParams || getGradeParams?.() || null;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             scheduleWhenConnected();
             return;
         }
@@ -186,7 +186,7 @@ export function createImageProcessor({
                 ctx.drawImage(srcCanvas, 0, 0);
                 return;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         let dst = proc._buffer;
         if (!dst || dst.width !== w || dst.height !== h) {
@@ -295,18 +295,18 @@ export function createImageProcessor({
             if (i < total) {
                 try {
                     proc._rafId = requestAnimationFrame(step);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 return;
             }
 
             try {
                 ctx.putImageData(dst, 0, 0);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
 
         try {
             proc._rafId = requestAnimationFrame(step);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const setParams = (nextParams) => {
@@ -315,7 +315,7 @@ export function createImageProcessor({
         if (!canvas?.isConnected) {
             try {
                 proc._pendingParams = proc.lastParams;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             scheduleWhenConnected();
             return;
         }
@@ -323,7 +323,7 @@ export function createImageProcessor({
         const jobId = proc.jobId;
         try {
             runProcessing(jobId, proc.lastParams);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const onLoaded = () => {
@@ -348,7 +348,7 @@ export function createImageProcessor({
             try {
                 srcCtx?.clearRect(0, 0, w, h);
                 srcCtx?.drawImage(image, 0, 0, w, h);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
 
             proc.ready = true;
             proc.srcData = null;
@@ -357,7 +357,7 @@ export function createImageProcessor({
         } finally {
             try {
                 onReady?.({ naturalW: proc.naturalW, naturalH: proc.naturalH, pixelScale: proc.scale });
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
     };
 
@@ -365,17 +365,17 @@ export function createImageProcessor({
         proc.ready = false;
         try {
             drawMediaError(canvas, "Failed to load image");
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     try {
         image.onload = onLoaded;
         image.onerror = onError;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     try {
         image.src = url;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     return {
         setParams,
@@ -385,31 +385,31 @@ export function createImageProcessor({
             proc._destroyed = true;
             try {
                 proc.jobId++;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 if (proc._rafId != null) cancelAnimationFrame(proc._rafId);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 if (proc._connectRAF != null) cancelAnimationFrame(proc._connectRAF);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             proc._connectRAF = null;
             proc._connectTries = 0;
             proc._pendingParams = null;
             try {
                 image.onload = null;
                 image.onerror = null;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 image.src = "";
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 srcCanvas.width = 0;
                 srcCanvas.height = 0;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 canvas.width = 0;
                 canvas.height = 0;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             proc.srcData = null;
             proc._buffer = null;
         },

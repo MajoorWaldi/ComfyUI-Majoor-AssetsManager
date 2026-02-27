@@ -101,12 +101,12 @@ export function createViewerToolbar({
         icon.className = "pi pi-times";
         icon.setAttribute("aria-hidden", "true");
         closeBtn.appendChild(icon);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const fullscreenBtn = createIconButton("⛶", "Toggle Fullscreen (F)");
     try {
         fullscreenBtn.classList.add("mjr-viewer-fs");
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     fullscreenBtn.style.fontSize = "16px";
     try {
         fullscreenBtn.style.position = "absolute";
@@ -132,7 +132,7 @@ export function createViewerToolbar({
                 const isFs = document.fullscreenElement != null;
                 icon.className = isFs ? "pi pi-window-minimize" : "pi pi-window-maximize";
                 fullscreenBtn.title = isFs ? "Exit Fullscreen (F)" : "Enter Fullscreen (F)";
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
         
         fullscreenBtn.onclick = (e) => {
@@ -148,14 +148,14 @@ export function createViewerToolbar({
                 document.addEventListener("fullscreenchange", updateFsIcon);
                 // Attach a one-time cleanup to the element itself to avoid global leaks
                 const cleanup = () => {
-                    try { document.removeEventListener("fullscreenchange", updateFsIcon); } catch {}
+                    try { document.removeEventListener("fullscreenchange", updateFsIcon); } catch (e) { console.debug?.(e); }
                 };
                 if (header._mjrCleanup) header._mjrCleanup.push(cleanup);
                 else header._mjrCleanup = [cleanup];
-             } catch {}
+             } catch (e) { console.debug?.(e); }
         }
         updateFsIcon();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const leftArea = document.createElement("div");
     leftArea.className = "mjr-viewer-header-area mjr-viewer-header-area--left";
@@ -191,7 +191,7 @@ export function createViewerToolbar({
         closeBtn.style.alignItems = "center";
         closeBtn.style.justifyContent = "center";
         closeBtn.style.borderRadius = "8px";
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     headerTop.appendChild(fullscreenBtn);
     headerTop.appendChild(closeBtn);
     header.appendChild(headerTop);
@@ -285,7 +285,7 @@ export function createViewerToolbar({
         if (accentRgb) {
             try {
                 b.dataset.accentRgb = String(accentRgb);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
         if (iconClass) {
             const icon = document.createElement("span");
@@ -325,7 +325,7 @@ export function createViewerToolbar({
             b.dataset.active = on ? "1" : "0";
             try {
                 b.setAttribute("aria-pressed", on ? "true" : "false");
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             const rgb = String(b.dataset?.accentRgb || "").trim();
             if (on && rgb) {
                 b.style.background = `rgba(${rgb}, 0.12)`;
@@ -391,7 +391,7 @@ export function createViewerToolbar({
             selectEl.style.borderColor = `rgba(${rgb},0.55)`;
             selectEl.style.background = `rgba(${rgb},0.14)`;
             selectEl.style.boxShadow = `0 0 0 1px rgba(${rgb},0.14) inset`;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const setChannelSelectStyle = (channel) => {
@@ -440,7 +440,7 @@ export function createViewerToolbar({
             }
             channelsSelect.style.borderColor = baseBorder;
             channelsSelect.style.background = baseBg;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const setValueHighlighted = (el, { accentRgb, active } = {}) => {
@@ -454,7 +454,7 @@ export function createViewerToolbar({
             const rgb = String(accentRgb || "").trim();
             if (!rgb) return;
             el.style.color = `rgb(${rgb})`;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const setGroupHighlighted = (groupEl, { accentRgb, active } = {}) => {
@@ -472,7 +472,7 @@ export function createViewerToolbar({
             groupEl.style.background = `rgba(${rgb},0.10)`;
             groupEl.style.borderColor = `rgba(${rgb},0.38)`;
             groupEl.style.boxShadow = `0 0 0 1px rgba(${rgb},0.12) inset`;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const zebraToggle = createToggle("Zebra", "Zebra Highlights (Z)", { iconClass: "pi-bars", accentRgb: ACCENT.zebra });
@@ -552,7 +552,7 @@ export function createViewerToolbar({
     exportBtn.appendChild(exportIcon);
     try {
         exportBtn.style.display = "none";
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const copyBtn = document.createElement("button");
     copyBtn.type = "button";
@@ -567,7 +567,7 @@ export function createViewerToolbar({
     copyBtn.appendChild(copyIcon);
     try {
         copyBtn.style.display = "none";
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const chGroup = toolsGroup({ key: "channel", label: "Channel", accentRgb: ACCENT.channel });
     chGroup.appendChild(channelsSelect);
@@ -584,22 +584,22 @@ export function createViewerToolbar({
     const resetExposure = () => {
         try {
             state.exposureEV = 0;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             exposureCtl.input.value = "0";
             exposureCtl.out.textContent = "0.0EV";
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         safeCall(onToolsChanged);
     };
 
     const resetGamma = () => {
         try {
             state.gamma = 1.0;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             gammaCtl.input.value = "1";
             gammaCtl.out.textContent = "1.00";
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         safeCall(onToolsChanged);
     };
 
@@ -611,12 +611,12 @@ export function createViewerToolbar({
             evLabel.style.cursor = "pointer";
             evLabel.style.userSelect = "none";
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         exposureCtl.out.title = "Reset EV to 0";
         exposureCtl.out.style.cursor = "pointer";
         exposureCtl.out.style.userSelect = "none";
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         const gLabel = gamGroup.querySelector?.(".mjr-viewer-tools-group-label");
         if (gLabel) {
@@ -624,12 +624,12 @@ export function createViewerToolbar({
             gLabel.style.cursor = "pointer";
             gLabel.style.userSelect = "none";
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         gammaCtl.out.title = "Reset Gamma to 1.00";
         gammaCtl.out.style.cursor = "pointer";
         gammaCtl.out.style.userSelect = "none";
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const anaGroup = toolsGroup({ key: "analysis", label: "Analysis", accentRgb: ACCENT.analysis });
     anaGroup.appendChild(zebraToggle.b);
@@ -747,7 +747,7 @@ export function createViewerToolbar({
 
         helpPop.appendChild(title);
         helpPop.appendChild(grid);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     helpWrap.appendChild(helpBtn);
     helpWrap.appendChild(helpPop);
@@ -765,7 +765,7 @@ export function createViewerToolbar({
         safeAddListener(channelsSelect, "change", () => {
             try {
                 state.channel = String(channelsSelect.value || "rgb");
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             safeCall(onToolsChanged);
         })
     );
@@ -774,7 +774,7 @@ export function createViewerToolbar({
         safeAddListener(compareModeSelect, "change", () => {
             try {
                 state.abCompareMode = String(compareModeSelect.value || "wipe");
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             safeCall(onCompareModeChanged);
             safeCall(onToolsChanged);
         })
@@ -783,7 +783,7 @@ export function createViewerToolbar({
         safeAddListener(audioVizModeSelect, "change", () => {
             try {
                 state.audioVisualizerMode = String(audioVizModeSelect.value || "artistic");
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             safeCall(onAudioVizModeChanged);
             safeCall(onToolsChanged);
         })
@@ -795,7 +795,7 @@ export function createViewerToolbar({
             state.exposureEV = Math.round(ev * 10) / 10;
             try {
                 exposureCtl.out.textContent = `${state.exposureEV.toFixed(1)}EV`;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             safeCall(onToolsChanged);
         })
     );
@@ -809,7 +809,7 @@ export function createViewerToolbar({
             state.gamma = Math.round(g * 100) / 100;
             try {
                 gammaCtl.out.textContent = state.gamma.toFixed(2);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             safeCall(onToolsChanged);
         })
     );
@@ -831,8 +831,8 @@ export function createViewerToolbar({
                 state.scopesMode = next;
                 try {
                     scopesSelect.value = String(next);
-                } catch {}
-            } catch {}
+                } catch (e) { console.debug?.(e); }
+            } catch (e) { console.debug?.(e); }
             safeCall(onToolsChanged);
         })
     );
@@ -844,7 +844,7 @@ export function createViewerToolbar({
             } catch {
                 try {
                     state.scopesMode = "off";
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
             safeCall(onToolsChanged);
         })
@@ -863,7 +863,7 @@ export function createViewerToolbar({
             } catch {
                 try {
                     state.gridMode = 0;
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
             safeCall(onToolsChanged);
         })
@@ -872,7 +872,7 @@ export function createViewerToolbar({
         safeAddListener(maskToggle.b, "click", () => {
             try {
                 state.overlayMaskEnabled = !state.overlayMaskEnabled;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             safeCall(onToolsChanged);
         })
     );
@@ -883,7 +883,7 @@ export function createViewerToolbar({
             } catch {
                 try {
                     state.overlayFormat = "image";
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
             safeCall(onToolsChanged);
         })
@@ -895,7 +895,7 @@ export function createViewerToolbar({
                 const clamped = Math.max(0, Math.min(0.9, Number.isFinite(v) ? v : 0.65));
                 state.overlayMaskOpacity = Math.round(clamped * 100) / 100;
                 maskOpacityCtl.out.textContent = state.overlayMaskOpacity.toFixed(2);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             safeCall(onToolsChanged);
         })
     );
@@ -927,7 +927,7 @@ export function createViewerToolbar({
         safeAddListener(genInfoToggle.b, "click", () => {
             try {
                 state.genInfoOpen = !state.genInfoOpen;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             safeCall(onToolsChanged);
         })
     );
@@ -938,7 +938,7 @@ export function createViewerToolbar({
                 state.exposureEV = 0;
                 state.gamma = 1.0;
                 state.analysisMode = "none";
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             safeCall(onToolsChanged);
         })
     );
@@ -946,21 +946,21 @@ export function createViewerToolbar({
         safeAddListener(exportBtn, "click", () => {
             try {
                 void onExportFrame?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         })
     );
     unsubs.push(
         safeAddListener(copyBtn, "click", () => {
             try {
                 void onCopyFrame?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         })
     );
 
     const syncToolsUIFromState = () => {
         try {
             channelsSelect.value = String(state.channel || "rgb");
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             compareModeSelect.value = String(state.abCompareMode || "wipe");
             const abOk = typeof getCanAB === "function" ? !!getCanAB() : false;
@@ -973,33 +973,33 @@ export function createViewerToolbar({
                 cmpGroup.style.display = showCompare ? "" : "none";
                 setGroupHighlighted(cmpGroup, { accentRgb: ACCENT.compare, active: showCompare });
                 cmpGroup.title = showCompare ? "Compare tools (active)" : "Compare tools";
-            } catch {}
-        } catch {}
+            } catch (e) { console.debug?.(e); }
+        } catch (e) { console.debug?.(e); }
         try {
             const current = state?.assets?.[state?.currentIndex] || null;
             const isAudio = String(current?.kind || "") === "audio";
             audGroup.style.display = isAudio ? "" : "none";
             audioVizModeSelect.disabled = !isAudio;
             audioVizModeSelect.value = String(state.audioVisualizerMode || "artistic");
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             const ev = Math.round((Number(state.exposureEV) || 0) * 10) / 10;
             exposureCtl.input.value = String(ev);
             exposureCtl.out.textContent = `${ev.toFixed(1)}EV`;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             const g = Math.max(0.1, Math.min(3, Number(state.gamma) || 1));
             gammaCtl.input.value = String(g);
             gammaCtl.out.textContent = g.toFixed(2);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             zebraToggle.setActive(state.analysisMode === "zebra");
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             const m = String(state.scopesMode || "off");
             scopesToggle.setActive(m !== "off");
             scopesSelect.value = m;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             // Export is meaningful mainly for video frames (videoProcessor canvas).
             const current = state?.assets?.[state?.currentIndex] || null;
@@ -1010,46 +1010,46 @@ export function createViewerToolbar({
             // Clipboard copy is best-effort; hide if unsupported even for videos.
             const canClip = !!(globalThis?.ClipboardItem && navigator?.clipboard?.write);
             copyBtn.style.display = show && canClip ? "" : "none";
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             gridToggle.setActive((Number(state.gridMode) || 0) !== 0);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             gridModeSelect.value = String(Number(state.gridMode) || 0);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             maskToggle.setActive(Boolean(state.overlayMaskEnabled));
             formatSelect.value = String(state.overlayFormat || "image");
             maskOpacityCtl.input.value = String(Number(state.overlayMaskOpacity ?? 0.65));
             maskOpacityCtl.out.textContent = Number(state.overlayMaskOpacity ?? 0.65).toFixed(2);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             probeToggle.setActive(Boolean(state.probeEnabled));
             loupeToggle.setActive(Boolean(state.loupeEnabled));
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             hudToggle.setActive(Boolean(state.hudEnabled));
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             focusToggle.setActive(Boolean(state.distractionFree));
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             genInfoToggle.setActive(Boolean(state.genInfoOpen));
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         // Highlight menus + values when non-default.
         try {
             const channel = String(state.channel || "rgb");
             setChannelSelectStyle(channel);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             const ev = Math.round((Number(state.exposureEV) || 0) * 10) / 10;
             setValueHighlighted(exposureCtl.out, { accentRgb: ACCENT.exposure, active: Math.abs(ev) > 0.0001 });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             const g = Math.round((Number(state.gamma) || 1) * 100) / 100;
             setValueHighlighted(gammaCtl.out, { accentRgb: ACCENT.gamma, active: Math.abs(g - 1) > 0.0001 });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             const m = String(state.scopesMode || "off");
             setSelectHighlighted(scopesSelect, {
@@ -1057,7 +1057,7 @@ export function createViewerToolbar({
                 active: m !== "off",
                 title: m !== "off" ? "Scopes (active)" : "Scopes",
             });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             const gm = Number(state.gridMode) || 0;
             setSelectHighlighted(gridModeSelect, {
@@ -1065,7 +1065,7 @@ export function createViewerToolbar({
                 active: gm !== 0,
                 title: gm !== 0 ? "Grid Overlay (active)" : "Grid Overlay",
             });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             const fmt = String(state.overlayFormat || "image");
             setSelectHighlighted(formatSelect, {
@@ -1073,7 +1073,7 @@ export function createViewerToolbar({
                 active: fmt !== "image",
                 title: fmt !== "image" ? "Format (active)" : "Format",
             });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             const abOk = typeof getCanAB === "function" ? !!getCanAB() : false;
             const showCompare = state.mode === VIEWER_MODES.AB_COMPARE && abOk;
@@ -1083,7 +1083,7 @@ export function createViewerToolbar({
                 active: showCompare && cm !== "wipe",
                 title: showCompare && cm !== "wipe" ? "Compare Mode (modified)" : "A/B Compare Mode",
             });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             const current = state?.assets?.[state?.currentIndex] || null;
             const isAudio = String(current?.kind || "") === "audio";
@@ -1093,7 +1093,7 @@ export function createViewerToolbar({
                 active: isAudio && mode !== "simple",
                 title: "Audio visualizer mode",
             });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         // Highlight GenInfo when open.
         try {
@@ -1103,7 +1103,7 @@ export function createViewerToolbar({
                 btn.style.borderColor = `rgba(${ACCENT.geninfo},0.55)`;
                 btn.style.background = `rgba(${ACCENT.geninfo},0.14)`;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const syncModeButtons = ({ canAB, canSide } = {}) => {
@@ -1120,8 +1120,8 @@ export function createViewerToolbar({
                 singleBtn.setAttribute("aria-pressed", state.mode === VIEWER_MODES.SINGLE ? "true" : "false");
                 abBtn.setAttribute("aria-pressed", state.mode === VIEWER_MODES.AB_COMPARE ? "true" : "false");
                 sideBtn.setAttribute("aria-pressed", state.mode === VIEWER_MODES.SIDE_BY_SIDE ? "true" : "false");
-            } catch {}
-        } catch {}
+            } catch (e) { console.debug?.(e); }
+        } catch (e) { console.debug?.(e); }
     };
 
     // Help toggle wiring
@@ -1130,18 +1130,18 @@ export function createViewerToolbar({
         const hideHelp = () => {
             try {
                 helpAC?.abort?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             helpAC = null;
             try {
                 helpPop.style.display = "none";
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
         const showHelp = () => {
             hideHelp();
             helpAC = new AbortController();
             try {
                 helpPop.style.display = "";
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 document.addEventListener(
                     "mousedown",
@@ -1158,7 +1158,7 @@ export function createViewerToolbar({
                     { capture: true, signal: helpAC.signal }
                 );
                 document.addEventListener("scroll", hideHelp, { capture: true, passive: true, signal: helpAC.signal });
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
         unsubs.push(() => hideHelp());
         unsubs.push(
@@ -1168,7 +1168,7 @@ export function createViewerToolbar({
                 else showHelp();
             })
         );
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     return {
         headerEl: header,

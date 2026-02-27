@@ -45,7 +45,7 @@ export function createViewerGrid({
             for (const a of list) {
                 try {
                     if (a?.id != null && String(a.id) === String(id)) return a;
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
             return state?.assets?.[state?.currentIndex] || null;
         } catch {
@@ -70,20 +70,20 @@ export function createViewerGrid({
                 const aw = Number(assetHint?.width) || 0;
                 const ah = Number(assetHint?.height) || 0;
                 if (aw > 0 && ah > 0) return { w: aw, h: ah };
-            } catch {}
+            } catch (e) { console.debug?.(e); }
 
             // Fallbacks (before processors report natural size).
             try {
                 const sw = Number(state?._mediaW) || 0;
                 const sh = Number(state?._mediaH) || 0;
                 if (sw > 0 && sh > 0) return { w: sw, h: sh };
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 const cur = state?.assets?.[state?.currentIndex] || null;
                 const aw = Number(cur?.width) || 0;
                 const ah = Number(cur?.height) || 0;
                 if (aw > 0 && ah > 0) return { w: aw, h: ah };
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             return { w: 0, h: 0 };
         } catch {
             return { w: 0, h: 0 };
@@ -177,7 +177,7 @@ export function createViewerGrid({
         } catch {
             try {
                 ctx.restore();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
     };
 
@@ -191,7 +191,7 @@ export function createViewerGrid({
             try {
                 if (gridCanvas?.width !== w) gridCanvas.width = w;
                 if (gridCanvas?.height !== h) gridCanvas.height = h;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             return { w, h, dpr };
         } catch {
             return { w: 0, h: 0, dpr: 1 };
@@ -267,7 +267,7 @@ export function createViewerGrid({
         } catch {
             try {
                 ctx.restore();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
     };
 
@@ -276,7 +276,7 @@ export function createViewerGrid({
             ctx.save();
             try {
                 ctx.setLineDash?.([Math.max(2, 4 * dpr), Math.max(2, 3 * dpr)]);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             ctx.strokeStyle = "rgba(255,255,255,0.22)";
             ctx.lineWidth = Math.max(1, Math.floor(1 * dpr));
             ctx.strokeRect(rect.x + 0.5, rect.y + 0.5, rect.w - 1, rect.h - 1);
@@ -284,7 +284,7 @@ export function createViewerGrid({
         } catch {
             try {
                 ctx.restore();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
     };
 
@@ -294,7 +294,7 @@ export function createViewerGrid({
             if (!ctx) return;
             try {
                 clearCanvas?.(ctx, w, h);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
 
             const vp = getViewportRect?.();
             if (!vp) return;
@@ -373,7 +373,7 @@ export function createViewerGrid({
                                 const hw = Number(assetHint?.width) || Number(nat.w) || 0;
                                 const hh = Number(assetHint?.height) || Number(nat.h) || 0;
                                 if (hw > 0 && hh > 0) return `${hw}x${hh}`;
-                            } catch {}
+                            } catch (e) { console.debug?.(e); }
                             return "";
                         })(),
                     };
@@ -385,7 +385,7 @@ export function createViewerGrid({
                     };
                     if (rb.w > 1 && rb.h > 1) baseRects.push(rb);
                     if (rf.w > 1 && rf.h > 1) rects.push(rf);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
             if (!rects.length && !baseRects.length) return;
             const formatRects = rects.length ? rects : baseRects;
@@ -399,10 +399,10 @@ export function createViewerGrid({
                     for (const r of formatRects) {
                         try {
                             _drawFormatOutline(ctx, r, dpr);
-                        } catch {}
+                        } catch (e) { console.debug?.(e); }
                     }
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
 
             // Nuke-like format box per image (single mode only).
             try {
@@ -417,14 +417,14 @@ export function createViewerGrid({
                         } catch {
                             try {
                                 ctx.restore();
-                            } catch {}
+                            } catch (e) { console.debug?.(e); }
                         }
                         try {
                             _drawHudSizeLabel(ctx, r, r._sizeLabel || "", dpr);
-                        } catch {}
+                        } catch (e) { console.debug?.(e); }
                     }
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
 
             // Only draw guide lines in single mode (mask can apply in any mode).
             if (state?.mode !== VIEWER_MODES?.SINGLE) return;
@@ -445,7 +445,7 @@ export function createViewerGrid({
                         ctx.moveTo(Math.round(x1) + 0.5, Math.round(y1) + 0.5);
                         ctx.lineTo(Math.round(x2) + 0.5, Math.round(y2) + 0.5);
                         ctx.stroke();
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 };
 
                 if (state.gridMode === 1) {
@@ -469,10 +469,10 @@ export function createViewerGrid({
                             const rw = Math.round(rect.w * (1 - inset * 2));
                             const rh = Math.round(rect.h * (1 - inset * 2));
                             ctx.strokeRect(ix + 0.5, iy + 0.5, rw, rh);
-                        } catch {} finally {
+                        } catch (e) { console.debug?.(e); } finally {
                             try {
                                 ctx.restore();
-                            } catch {}
+                            } catch (e) { console.debug?.(e); }
                         }
                     };
                     // Approx Nuke-like: action safe 90% (5%), title safe 80% (10%)
@@ -487,12 +487,12 @@ export function createViewerGrid({
                     drawLine(0, rect.h * g0, rect.w, rect.h * g0);
                     drawLine(0, rect.h * g1, rect.w, rect.h * g1);
                 }
-            } catch {} finally {
+            } catch (e) { console.debug?.(e); } finally {
                 try {
                     ctx.restore();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     return { ensureCanvasSize, redrawGrid };

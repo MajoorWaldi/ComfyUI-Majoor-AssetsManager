@@ -58,10 +58,10 @@ export function setCollisionTooltip(card, filename, count) {
             row.title = `${String(filename || "")}\nName collision: ${n} items in this view`;
             return;
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         card.title = `Name collision: ${n} items in this view`;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 export function buildCollisionPaths(bucket) {
@@ -152,7 +152,7 @@ export function appendAssets(gridContainer, assets, state, deps) {
                     }
                 }
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
     if (hidePngSiblings) {
         for (const asset of assets || []) {
@@ -176,7 +176,7 @@ export function appendAssets(gridContainer, assets, state, deps) {
                 const base = `${type}|${kindLower}|${fp}|${sub}|${name}`;
                 asset.id = `asset:${base || "unknown"}`;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         const filename = String(asset?.filename || "");
         const extUpper = getExtUpper(filename);
         const stemLower = getStemLower(filename);
@@ -229,7 +229,7 @@ export function appendAssets(gridContainer, assets, state, deps) {
         for (const removed of assetsToRemoveFromState) {
             try {
                 if (removed?.id != null) assetIdSet.delete(String(removed.id));
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
         try {
             for (const removed of assetsToRemoveFromState) {
@@ -241,7 +241,7 @@ export function appendAssets(gridContainer, assets, state, deps) {
                 if (idx > -1) bucket.splice(idx, 1);
                 if (!bucket.length) filenameToAssets.delete(key);
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         needsUpdate = true;
     }
     if (validNewAssets.length > 0) {
@@ -258,7 +258,7 @@ export function appendAssets(gridContainer, assets, state, deps) {
     try {
         gridContainer.dataset.mjrHidePngSiblingsEnabled = hidePngSiblings ? "1" : "0";
         gridContainer.dataset.mjrHiddenPngSiblings = String(Number(state.hiddenPngSiblings || 0) || 0);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return addedCount;
 }
 

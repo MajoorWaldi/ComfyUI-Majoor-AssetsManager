@@ -21,7 +21,7 @@ export function safeClosest(target, selector) {
         if (parent && typeof parent.closest === "function") {
             return parent.closest(selector);
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return null;
 }
 

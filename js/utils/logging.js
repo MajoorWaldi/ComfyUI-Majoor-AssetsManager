@@ -9,10 +9,10 @@ export function reportError(err, context = "Majoor", { showToast = false, toastT
         } else {
             console.debug(`[Majoor][${context}]`, message);
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     if (showToast && APP_CONFIG.DEBUG_VERBOSE_ERRORS) {
         try {
             comfyToast(`${context}: ${message}`, toastType, 4000);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 }

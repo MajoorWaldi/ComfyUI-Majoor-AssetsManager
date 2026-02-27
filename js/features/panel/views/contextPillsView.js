@@ -44,10 +44,10 @@ function _createPill({ label, value, onClear } = {}) {
             try {
                 e.preventDefault();
                 e.stopPropagation();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 onClear();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         });
         pill.appendChild(x);
     }
@@ -93,7 +93,7 @@ export function createContextPillsView() {
 
         try {
             root.replaceChildren();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         if (!isBrowserScope && isCollectionActive) {
             root.appendChild(

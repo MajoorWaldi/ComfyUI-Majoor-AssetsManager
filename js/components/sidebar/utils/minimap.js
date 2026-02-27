@@ -269,11 +269,11 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
         if (isNode && bypassed && settings.renderBypassState) {
             try {
                 ctx.setLineDash([3, 2]);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         } else {
             try {
                 ctx.setLineDash([]);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
 
         ctx.lineWidth = 1;
@@ -282,7 +282,7 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
         if (isNode && errored && settings.renderErrorState) {
             try {
                 ctx.setLineDash([]);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             ctx.strokeStyle = "rgba(244,67,54,0.95)";
             ctx.lineWidth = 1.5;
             ctx.strokeRect(x - 0.5, y - 0.5, w + 1, h + 1);
@@ -336,7 +336,7 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
                 ctx.strokeRect(rx, ry, rw, rh);
                 ctx.restore();
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     ctx.globalAlpha = 1;

@@ -80,7 +80,7 @@ function safeSetHiddenInputValue(hiddenInput, nextValue) {
         if (prev !== hiddenInput.value) {
             hiddenInput.dispatchEvent?.(new Event("change", { bubbles: true }));
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 async function fetchHistogram({ state, monthKey }) {
@@ -257,7 +257,7 @@ export function createAgendaCalendar({ container, hiddenInput, state, onRequestR
         safeSetHiddenInputValue(hiddenInput, "");
         try {
             onRequestReloadGrid?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     });
 
     refreshBtn.addEventListener("click", async () => {
@@ -285,7 +285,7 @@ export function createAgendaCalendar({ container, hiddenInput, state, onRequestR
             disposed = true;
             try {
                 root.remove();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
     };
 }

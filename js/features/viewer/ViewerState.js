@@ -28,5 +28,5 @@ export function saveViewerPrefs(state) {
             audioVisualizerMode: String(state.audioVisualizerMode || "artistic"),
         };
         SettingsStore.set(VIEWER_PREFS_KEY, JSON.stringify(prefs));
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }

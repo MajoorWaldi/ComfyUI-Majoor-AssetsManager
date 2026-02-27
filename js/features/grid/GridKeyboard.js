@@ -121,13 +121,13 @@ function setRating(asset, rating, onChanged) {
     try {
         const prev = _ratingDebounceTimers.get(id);
         if (prev) clearTimeout(prev);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     // Optimistic UI
     try {
         asset.rating = rating;
         onChanged?.();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const timerId = setTimeout(async () => {
         try {
@@ -197,7 +197,7 @@ export function installGridKeyboard({
                 const cards = gridContainer._mjrGetRenderedCards();
                 if (Array.isArray(cards)) return cards;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             return Array.from(gridContainer.querySelectorAll(".mjr-asset-card"));
         } catch {
@@ -220,13 +220,13 @@ export function installGridKeyboard({
     const getAllAssets = () => {
         try {
             if (Array.isArray(getState?.()?.assets) && getState().assets.length) return getState().assets;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             if (typeof gridContainer?._mjrGetAssets === "function") {
                 const list = gridContainer._mjrGetAssets();
                 if (Array.isArray(list) && list.length) return list;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             return getRenderedCards()
                 .map((card) => card?._mjrAsset)
@@ -257,7 +257,7 @@ export function installGridKeyboard({
                 const hostW = Math.max(1, Math.round(hostRect.width));
                 return Math.max(1, Math.floor(hostW / cardW));
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         return 1;
     };
 
@@ -271,7 +271,7 @@ export function installGridKeyboard({
                 gridContainer.dataset.mjrSelectedAssetIds = JSON.stringify(list);
                 gridContainer.dataset.mjrSelectedAssetId = active;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const scrollToAssetId = (assetId) => {
@@ -283,13 +283,13 @@ export function installGridKeyboard({
                 gridContainer._mjrScrollToAssetId(id);
                 return;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         // Fallback: DOM-based scroll (only works if the card is already rendered)
         try {
             const esc = typeof CSS !== "undefined" && CSS?.escape ? CSS.escape(id) : id.replace(/["\\]/g, "\\$&");
             const card = gridContainer.querySelector(`.mjr-asset-card[data-mjr-asset-id="${esc}"]`);
             card?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const handleGridNavigation = (e) => {
@@ -341,7 +341,7 @@ export function installGridKeyboard({
         scrollToAssetId(nextId);
         try {
             onSelectionChanged?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         return true;
     };
 
@@ -385,7 +385,7 @@ export function installGridKeyboard({
                 consume();
                 return;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         const selected = getSelection();
         const asset = getActive();
@@ -463,7 +463,7 @@ export function installGridKeyboard({
                     const viewer = resolveViewer();
                     viewer.open(selected, 0);
                     viewer.setMode?.("ab");
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 return;
             }
         }
@@ -476,7 +476,7 @@ export function installGridKeyboard({
                     const viewer = resolveViewer();
                     viewer.open(selected, 0);
                     viewer.setMode?.("sidebyside");
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 return;
             }
         }
@@ -525,7 +525,7 @@ export function installGridKeyboard({
                         comfyToast(res?.error || t("toast.removeFromCollectionFailed", "Failed to remove from collection"), "error");
                         return;
                     }
-                    try { window.dispatchEvent(new CustomEvent("mjr:reload-grid", { detail: { reason: "remove-from-collection" } })); } catch {}
+                    try { window.dispatchEvent(new CustomEvent("mjr:reload-grid", { detail: { reason: "remove-from-collection" } })); } catch (e) { console.debug?.(e); }
                     comfyToast(t("toast.removedFromCollection", "Removed from collection"), "success", 1400);
                 } catch (err) {
                     comfyToast(
@@ -611,7 +611,7 @@ export function installGridKeyboard({
                                 }
                             }
                             comfyToast(t("toast.fileRenamedSuccess"), "success");
-                            try { window.dispatchEvent(new CustomEvent("mjr:reload-grid", { detail: { reason: "rename-keyboard" } })); } catch {}
+                            try { window.dispatchEvent(new CustomEvent("mjr:reload-grid", { detail: { reason: "rename-keyboard" } })); } catch (e) { console.debug?.(e); }
                             onAssetChanged();
                         } else {
                             comfyToast(result?.error || t("toast.fileRenameFailed"), "error");
@@ -659,7 +659,7 @@ export function installGridKeyboard({
                                 card?.remove?.();
                             }
                         }
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 }
 
                 if (errorCount === 0) {
@@ -677,7 +677,7 @@ export function installGridKeyboard({
                         const remaining = selected.filter(a => !deletedIds.includes(String(a?.id || ""))).map(a => String(a?.id || "")).filter(Boolean);
                         gridContainer._mjrSetSelection(remaining, remaining[0] || "");
                     }
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 onSelectionChanged();
                 return;
             }
@@ -694,11 +694,11 @@ export function installGridKeyboard({
                     const list = gridContainer._mjrGetAssets();
                     if (Array.isArray(list)) ids = list.map(a => String(a?.id || "")).filter(Boolean);
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             if (!ids.length) {
                 try {
                     ids = getRenderedCards().map(card => String(card?._mjrAsset?.id || "")).filter(Boolean);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
             try {
                 if (typeof gridContainer?._mjrSetSelection === "function") {
@@ -712,7 +712,7 @@ export function installGridKeyboard({
                     gridContainer.dataset.mjrSelectedAssetIds = JSON.stringify(ids);
                     gridContainer.dataset.mjrSelectedAssetId = String(ids[0] || "");
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             onSelectionChanged();
             return;
         }
@@ -732,7 +732,7 @@ export function installGridKeyboard({
                     delete gridContainer.dataset.mjrSelectedAssetIds;
                     delete gridContainer.dataset.mjrSelectedAssetId;
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             onSelectionChanged();
             return;
         }
@@ -751,7 +751,7 @@ export function installGridKeyboard({
         keydownHandler = null;
         bound = false;
         for (const t of _ratingDebounceTimers.values()) {
-            try { clearTimeout(t); } catch {}
+            try { clearTimeout(t); } catch (e) { console.debug?.(e); }
         }
         _ratingDebounceTimers.clear();
     };
@@ -760,7 +760,7 @@ export function installGridKeyboard({
         unbind();
         // Clear pending timers
         for (const t of _ratingDebounceTimers.values()) {
-            try { clearTimeout(t); } catch {}
+            try { clearTimeout(t); } catch (e) { console.debug?.(e); }
         }
         _ratingDebounceTimers.clear();
     };

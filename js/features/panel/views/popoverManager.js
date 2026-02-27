@@ -28,7 +28,7 @@ export function createPopoverManager(container) {
         popover.classList.add("mjr-popover-portal");
         try {
             document.body.appendChild(popover);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const restorePopoverFromPortal = (popover) => {
@@ -44,7 +44,7 @@ export function createPopoverManager(container) {
                     parent.appendChild(popover);
                 }
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const positionPopover = (popover, anchor) => {
@@ -93,7 +93,7 @@ export function createPopoverManager(container) {
 
             popover.style.left = `${Math.round(left)}px`;
             popover.style.top = `${Math.round(top)}px`;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const scheduleReposition = () => {
@@ -112,54 +112,54 @@ export function createPopoverManager(container) {
             window.addEventListener("resize", scheduleReposition, { passive: true, signal: repositionController.signal });
                 windowResizeHandlerBound = true;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             if (!windowScrollHandlerBound) {
                 // Scroll doesn't bubble; use capture to catch nested scroll containers.
             window.addEventListener("scroll", scheduleReposition, { passive: true, capture: true, signal: repositionController.signal });
                 windowScrollHandlerBound = true;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             if (!resizeObserver) {
                 resizeObserver = new ResizeObserver(scheduleReposition);
                 resizeObserver.observe(container);
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             if (!containerScrollHandlerBound) {
                 // Bind to panel root as a fallback when window capture doesn't fire reliably.
                 container.addEventListener("scroll", scheduleReposition, { passive: true });
                 containerScrollHandlerBound = true;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const maybeRemoveRepositionListeners = () => {
         if (openPopovers.size) return;
         try {
             if (windowResizeHandlerBound) window.removeEventListener("resize", scheduleReposition);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         windowResizeHandlerBound = false;
         try {
             if (windowScrollHandlerBound) window.removeEventListener("scroll", scheduleReposition, { capture: true });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         // Safari/Chromium ignore the options object mismatch sometimes; best-effort extra removal.
         try {
             if (windowScrollHandlerBound) window.removeEventListener("scroll", scheduleReposition, true);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         windowScrollHandlerBound = false;
         try {
             if (containerScrollHandlerBound) container.removeEventListener("scroll", scheduleReposition);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         containerScrollHandlerBound = false;
         try {
             if (resizeObserver) resizeObserver.disconnect();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         resizeObserver = null;
         try {
             repositionController.abort();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         if (!disposed) repositionController = new AbortController();
     };
 
@@ -167,10 +167,10 @@ export function createPopoverManager(container) {
         if (!popover) return;
         try {
             popover.style.display = "none";
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             restorePopoverFromPortal(popover);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         openPopovers.delete(popover);
         maybeRemoveRepositionListeners();
     };
@@ -196,7 +196,7 @@ export function createPopoverManager(container) {
         for (const item of openPopovers.values()) {
             try {
                 restorePopoverFromPortal(item.popover);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
         for (const popover of Array.from(openPopovers.keys())) close(popover);
         openPopovers.clear();
@@ -214,15 +214,15 @@ export function createPopoverManager(container) {
         for (const item of openPopovers.values()) {
             try {
                 if (item?.popover && item.popover.contains(target)) return;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 if (item?.anchor && item.anchor.contains(target)) return;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
         for (const el of dismissWhitelist) {
             try {
                 if (el && typeof el.contains === "function" && el.contains(target)) return;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
         closeAll();
     };
@@ -235,17 +235,17 @@ export function createPopoverManager(container) {
         disposed = true;
         try {
             document.removeEventListener("mousedown", onDocMouseDown);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             maybeRemoveRepositionListeners();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             repositionController.abort();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         repositionController = null;
         try {
             closeAll();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     init();

@@ -811,7 +811,7 @@ function _readStoredLang() {
             const value = String(SettingsStore.get(key) || "").trim();
             if (value) return value;
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return "";
 }
 
@@ -820,7 +820,7 @@ function _persistLang(lang) {
         // Keep legacy and new key in sync for smooth upgrades.
         SettingsStore.set(LANG_STORAGE_KEYS[0], lang);
         SettingsStore.set(LANG_STORAGE_KEYS[1], lang);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 function _readFollowComfyLang() {
@@ -828,14 +828,14 @@ function _readFollowComfyLang() {
         const raw = String(SettingsStore.get(FOLLOW_COMFY_LANG_STORAGE_KEY) || "").trim().toLowerCase();
         if (!raw) return true;
         return !["0", "false", "no", "off"].includes(raw);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return true;
 }
 
 function _persistFollowComfyLang(enabled) {
     try {
         SettingsStore.set(FOLLOW_COMFY_LANG_STORAGE_KEY, enabled ?"1" : "0");
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 function _readComfyLocaleCandidates(app) {
@@ -875,14 +875,14 @@ function _readPlatformLocaleCandidates() {
         if (typeof document !== "undefined") {
             pushCandidate(document?.documentElement?.lang);
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         if (typeof navigator !== "undefined") {
             pushCandidate(navigator?.language);
             const langs = Array.isArray(navigator?.languages) ?navigator.languages : [];
             for (const lang of langs) pushCandidate(lang);
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return out;
 }
 
@@ -965,7 +965,7 @@ export const setLang = (lang) => {
     
     // Notify listeners
     Array.from(_langChangeListeners).forEach(cb => {
-        try { cb(lang); } catch {}
+        try { cb(lang); } catch (e) { console.debug?.(e); }
     });
 };
 
@@ -975,7 +975,7 @@ export const subscribeLangChange = (callback) => {
     return () => {
         try {
             _langChangeListeners.delete(callback);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 };
 
@@ -989,13 +989,13 @@ export const startComfyLanguageSync = (app) => {
             clearInterval(window.__MJR_COMFY_LANG_SYNC_TIMER__);
             window.__MJR_COMFY_LANG_SYNC_TIMER__ = null;
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         if (_comfyLangSyncTimer) {
             clearInterval(_comfyLangSyncTimer);
             _comfyLangSyncTimer = null;
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     _comfyLangSyncTimer = setInterval(() => {
         try {
             if (!_readFollowComfyLang()) return;
@@ -1007,13 +1007,13 @@ export const startComfyLanguageSync = (app) => {
                     return;
                 }
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }, 2000);
     try {
         if (typeof window !== "undefined") {
             window.__MJR_COMFY_LANG_SYNC_TIMER__ = _comfyLangSyncTimer;
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 };
 
 /**
@@ -1047,14 +1047,14 @@ export const t = (key, defaultOrParams, params) => {
             _missingTranslationKeys.add(missingId);
             try {
                 console.warn(`[Majoor i18n] Missing translation key "${key}" for locale "${currentLang}"`);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
                     window.dispatchEvent(new CustomEvent("mjr-i18n-missing-key", {
                         detail: { key: String(key || ""), locale: currentLang }
                     }));
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
         // Return default or key
         if (typeof defaultOrParams === "string") return defaultOrParams;

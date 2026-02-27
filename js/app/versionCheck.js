@@ -65,25 +65,25 @@ function createFetchTimeoutSignal(timeoutMs) {
         if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
             return { signal: AbortSignal.timeout(ms), cleanup: () => {} };
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         if (typeof AbortController !== "undefined") {
             const controller = new AbortController();
             const timer = setTimeout(() => {
                 try {
                     controller.abort();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }, ms);
             return {
                 signal: controller.signal,
                 cleanup: () => {
                     try {
                         clearTimeout(timer);
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 },
             };
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return { signal: undefined, cleanup: () => {} };
 }
 
@@ -112,10 +112,10 @@ function emitVersionUpdateState(state) {
     if (w) {
         try {
             w[VERSION_UPDATE_STATE_KEY] = _versionUpdateState;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             w.dispatchEvent(new CustomEvent(VERSION_UPDATE_EVENT, { detail: _versionUpdateState }));
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 }
 
@@ -202,9 +202,9 @@ export async function checkMajoorVersion({ force = false } = {}) {
             );
             try {
                 SettingsStore.set(VERSION_TOAST_NOTICE_VERSION_KEY, remoteVersion);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     try {
         const alreadyShownFor = String(SettingsStore.get(DB_RESET_NOTICE_VERSION_KEY) || "").trim();
@@ -219,9 +219,9 @@ export async function checkMajoorVersion({ force = false } = {}) {
             }, 1000);
             try {
                 SettingsStore.set(DB_RESET_NOTICE_VERSION_KEY, remoteVersion);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
 
     return { current: localVersion, latest: remoteVersion };

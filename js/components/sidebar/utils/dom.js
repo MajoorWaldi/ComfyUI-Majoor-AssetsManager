@@ -9,6 +9,50 @@ const _ALLOWED_VALUE_STYLE_PROPS = new Set([
     "opacity",
     "text-decoration",
 ]);
+const _SVG_NS = "http://www.w3.org/2000/svg";
+
+function _buildCopyIcon() {
+    const svg = document.createElementNS(_SVG_NS, "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("width", "14");
+    svg.setAttribute("height", "14");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "2");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+
+    const rect = document.createElementNS(_SVG_NS, "rect");
+    rect.setAttribute("x", "9");
+    rect.setAttribute("y", "9");
+    rect.setAttribute("width", "13");
+    rect.setAttribute("height", "13");
+    rect.setAttribute("rx", "2");
+    rect.setAttribute("ry", "2");
+    svg.appendChild(rect);
+
+    const path = document.createElementNS(_SVG_NS, "path");
+    path.setAttribute("d", "M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1");
+    svg.appendChild(path);
+    return svg;
+}
+
+function _buildCheckIcon() {
+    const svg = document.createElementNS(_SVG_NS, "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("width", "14");
+    svg.setAttribute("height", "14");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "2");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+
+    const polyline = document.createElementNS(_SVG_NS, "polyline");
+    polyline.setAttribute("points", "20 6 9 17 4 12");
+    svg.appendChild(polyline);
+    return svg;
+}
 
 export function createSection(title) {
     const section = document.createElement("div");
@@ -88,29 +132,18 @@ export function createInfoBox(title, content, accentColor, options = {}) {
             width: 16px; 
             height: 16px;
         `;
-        // safe: static SVG literal, no user-controlled interpolation
-        copyBtn.innerHTML = `
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg>
-        `;
+        copyBtn.replaceChildren(_buildCopyIcon());
         copyBtn.onmouseenter = () => { copyBtn.style.opacity = "1"; };
         copyBtn.onmouseleave = () => { copyBtn.style.opacity = "0.7"; };
         copyBtn.onclick = async (e) => {
             e.stopPropagation();
-            const originalHTML = copyBtn.innerHTML;
+            const originalIcon = _buildCopyIcon();
             await doCopy();
-            // safe: static SVG literal, no user-controlled interpolation
-            copyBtn.innerHTML = `
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-            `;
+            copyBtn.replaceChildren(_buildCheckIcon());
             copyBtn.style.color = "#4CAF50";
             copyBtn.style.transform = "scale(1.1)";
             setTimeout(() => {
-                copyBtn.innerHTML = originalHTML;
+                copyBtn.replaceChildren(originalIcon);
                 copyBtn.style.color = "inherit";
                 copyBtn.style.transform = "scale(1)";
             }, 1000);
@@ -139,7 +172,7 @@ export function createInfoBox(title, content, accentColor, options = {}) {
                     text.style.background = "";
                     text.style.borderRadius = "";
                 }, 320);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         });
     }
 
@@ -234,7 +267,7 @@ function _applySafeValueStyle(el, rawStyle) {
         if (!_ALLOWED_VALUE_STYLE_PROPS.has(prop)) continue;
         try {
             el.style.setProperty(prop, val);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 }
 

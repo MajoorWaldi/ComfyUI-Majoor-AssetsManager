@@ -120,7 +120,7 @@ export const registerMajoorSettings = (app, onApplied) => {
         try {
             window.addEventListener("storage", storageListener);
             _settingsStorageListenerBound = true;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     const tryRegister = () => {
@@ -132,7 +132,7 @@ export const registerMajoorSettings = (app, onApplied) => {
                     console.info("[Majoor] Waiting for ComfyUI settings API...");
                     window[SETTINGS_DEBUG_KEY] = { ...(window?.[SETTINGS_DEBUG_KEY] || {}), waitingLogged: true };
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             return false;
         }
 
@@ -140,7 +140,7 @@ export const registerMajoorSettings = (app, onApplied) => {
             if (settingsApi[SETTINGS_REG_FLAG]) {
                 return true;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         const safeAddSetting = (payload) => {
             if (!payload || typeof payload !== "object") return;
@@ -149,7 +149,7 @@ export const registerMajoorSettings = (app, onApplied) => {
                 if (typeof payload.name === "string") {
                     payload.name = payload.name.replace(SETTINGS_NAME_PREFIX_RE, "").trim();
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             // Enforce Majoor namespace for every setting category.
             try {
                 const cat = payload.category;
@@ -187,7 +187,7 @@ export const registerMajoorSettings = (app, onApplied) => {
                                 err2: String(err2?.message || err2 || ""),
                                 err3: String(err3?.message || err3 || ""),
                             });
-                        } catch {}
+                        } catch (e) { console.debug?.(e); }
                     }
                 }
             }
@@ -217,11 +217,11 @@ export const registerMajoorSettings = (app, onApplied) => {
 
         try {
             settingsApi[SETTINGS_REG_FLAG] = true;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             console.info("[Majoor] Settings registered successfully.");
             window[SETTINGS_DEBUG_KEY] = { ...(window?.[SETTINGS_DEBUG_KEY] || {}), registered: true };
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         return true;
     };
@@ -243,13 +243,13 @@ export const registerMajoorSettings = (app, onApplied) => {
                             );
                             window[SETTINGS_DEBUG_KEY] = { ...debug, failedLogged: true };
                         }
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                     return;
                 }
                 setTimeout(tick, delayMs);
             };
             setTimeout(tick, delayMs);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     startRuntimeStatusDashboard();
@@ -260,7 +260,7 @@ export const registerMajoorSettings = (app, onApplied) => {
         setTimeout(() => {
             toggleWatcher(desired).catch(() => {});
         }, 0);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     return settings;
 };
@@ -280,4 +280,4 @@ try {
             })
             .catch(() => {});
     }
-} catch {}
+} catch (e) { console.debug?.(e); }

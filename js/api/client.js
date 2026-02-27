@@ -116,7 +116,7 @@ function _readAuthToken() {
             _authTokenCache = { value: sessionToken, at: now };
             return sessionToken;
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     try {
         const raw = localStorage?.getItem?.(SETTINGS_KEY);
@@ -126,7 +126,7 @@ function _readAuthToken() {
         if (token) {
             try {
                 sessionStorage?.setItem?.(RUNTIME_TOKEN_KEY, token);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 const mutable = parsed && typeof parsed === "object" ? parsed : {};
                 const target = mutable?.data && typeof mutable.data === "object" ? mutable.data : mutable;
@@ -135,7 +135,7 @@ function _readAuthToken() {
                     localStorage?.setItem?.(SETTINGS_KEY, JSON.stringify(mutable));
                     window?.dispatchEvent?.(new CustomEvent("mjr-settings-changed", { detail: { key: "security.apiToken" } }));
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
         _authTokenCache = { value: token, at: now };
         return token;
@@ -160,10 +160,10 @@ function _persistAuthToken(token) {
                 target.security.apiToken = "";
                 localStorage?.setItem?.(SETTINGS_KEY, JSON.stringify(next));
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             window?.dispatchEvent?.(new CustomEvent("mjr-settings-changed", { detail: { key: "security.apiToken" } }));
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         return true;
     } catch {
         return false;
@@ -206,7 +206,7 @@ async function ensureWriteAuthToken({ force = false } = {}) {
     }
     try {
         await _authTokenRefreshInFlight;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return _readAuthToken();
 }
 
@@ -264,15 +264,15 @@ function _buildTimedSignal(options = {}) {
     const onAbort = () => {
         try {
             ctrl.abort();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
     try {
         timer = setTimeout(() => {
             try {
                 ctrl.abort();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }, timeoutMs);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         if (upstreamSignal) {
             if (upstreamSignal.aborted) {
@@ -281,17 +281,17 @@ function _buildTimedSignal(options = {}) {
                 upstreamSignal.addEventListener("abort", onAbort, { once: true });
             }
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return {
         signal: ctrl.signal,
         timeoutMs,
         cleanup: () => {
             try {
                 if (timer) clearTimeout(timer);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 if (upstreamSignal) upstreamSignal.removeEventListener("abort", onAbort);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
     };
 }
@@ -326,7 +326,7 @@ try {
                     invalidateTagsCache();
                     invalidateAuthTokenCache();
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         });
 
         w.addEventListener?.("mjr-settings-changed", () => {
@@ -336,7 +336,7 @@ try {
             invalidateAuthTokenCache();
         });
     }
-} catch {}
+} catch (e) { console.debug?.(e); }
 
 const _readObsEnabled = () => {
     const now = Date.now();
@@ -402,7 +402,7 @@ async function fetchAPI(url, options = {}, retryCount = 0) {
                 } else if (!headers["X-Requested-With"]) {
                     headers["X-Requested-With"] = "XMLHttpRequest";
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
 
         // Per-client switch: control backend observability logs.
@@ -414,13 +414,13 @@ async function fetchAPI(url, options = {}, retryCount = 0) {
             } else if (!("X-MJR-OBS" in headers)) {
                 headers["X-MJR-OBS"] = obsEnabled ? "on" : "off";
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         let authToken = _readAuthToken();
         if (!authToken && _methodIsWrite(method) && _isMajoorApiUrl(url) && !_isBootstrapTokenUrl(url)) {
             try {
                 await ensureWriteAuthToken();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             authToken = _readAuthToken();
         }
         if (authToken) {
@@ -432,14 +432,14 @@ async function fetchAPI(url, options = {}, retryCount = 0) {
                     if (!("X-MJR-Token" in headers)) headers["X-MJR-Token"] = authToken;
                     if (!("Authorization" in headers)) headers["Authorization"] = `Bearer ${authToken}`;
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
 
         const fetchOptions = { ...options, headers, signal: timed.signal };
         try {
             delete fetchOptions._authRetryDone;
             delete fetchOptions.timeoutMs;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         const response = await fetch(url, fetchOptions);
         const contentType = response.headers.get("content-type") || "";
         if (!contentType.includes("application/json")) {
@@ -481,7 +481,7 @@ async function fetchAPI(url, options = {}, retryCount = 0) {
         if (!("status" in result)) {
             try {
                 result.status = response.status;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
         const shouldTryAuthRefresh =
             !authRetryDone &&
@@ -513,15 +513,15 @@ async function fetchAPI(url, options = {}, retryCount = 0) {
                     timeout_ms: timed.timeoutMs,
                 };
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         // Retry network failures a few times (best-effort).
         if (retryCount < MAX_RETRIES && _isRetryableError(error)) {
             try {
                 await _delay(RETRY_BASE_DELAY_MS * (retryCount + 1));
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 return await fetchAPI(url, options, retryCount + 1);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
         return {
             ok: false,
@@ -533,7 +533,7 @@ async function fetchAPI(url, options = {}, retryCount = 0) {
     } finally {
         try {
             timed.cleanup?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 }
 
@@ -727,7 +727,7 @@ export async function getFolderInfo({ filepath = "", root_id = "", subfolder = "
                 globalThis.__mjrFolderInfoSupported = null;
             }
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const fp = String(filepath || "").trim();
     const rid = String(root_id || "").trim();
@@ -748,7 +748,7 @@ export async function getFolderInfo({ filepath = "", root_id = "", subfolder = "
         if (!res?.ok && Number(res?.status || 0) === 404) {
             globalThis.__mjrFolderInfoSupported = false;
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return res;
 }
 
@@ -791,7 +791,7 @@ export async function bootstrapSecurityToken() {
         try {
             const token = String(res?.data?.token || "").trim();
             if (token) _persistAuthToken(token);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
     return res;
 }
@@ -966,7 +966,7 @@ function _emitAssetsDeleted(ids) {
             .filter(Boolean);
         if (!normalized.length) return;
         window.dispatchEvent(new CustomEvent("mjr:assets-deleted", { detail: { ids: normalized } }));
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 export async function renameAsset(assetOrId, newName) {
@@ -983,7 +983,7 @@ export async function renameAsset(assetOrId, newName) {
                 if (fresh?.ok && fresh?.data) {
                     res.data = { ...(res.data || {}), asset: fresh.data };
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
         return res;
     }
@@ -995,7 +995,7 @@ export async function renameAsset(assetOrId, newName) {
             if (fresh?.ok && fresh?.data) {
                 res.data = { ...(res.data || {}), asset: fresh.data };
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
     return res;
 }

@@ -60,10 +60,16 @@ _WRITE_TOKEN_COOKIE_NAME = "mjr_write_token"
 logger = get_logger(__name__)
 
 
-def _extract_probe_mode(body: dict) -> str:
-    raw_mode = body.get("mode") or body.get("media_probe_backend") or ""
-    mode = str(raw_mode).strip().lower()
-    return mode if mode in _VALID_PROBE_MODES else ""
+def _extract_probe_mode(body: dict) -> tuple[str, str | None]:
+    raw_mode = body.get("mode")
+    if raw_mode is None:
+        raw_mode = body.get("media_probe_backend")
+    normalized = str(raw_mode or "").strip().lower()
+    if not normalized:
+        return "", "Missing probe backend mode"
+    if normalized not in _VALID_PROBE_MODES:
+        return "", f"Invalid probe backend mode: {normalized}"
+    return normalized, None
 
 
 def _hash_api_token(token: str) -> str:
@@ -497,9 +503,9 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
             return _json_response(body_res)
         body = body_res.data or {}
 
-        mode = _extract_probe_mode(body)
+        mode, mode_error = _extract_probe_mode(body)
         if not mode:
-            return _json_response(Result.Err("INVALID_INPUT", "Missing probe backend mode"))
+            return _json_response(Result.Err("INVALID_INPUT", mode_error or "Missing probe backend mode"))
 
         result = await settings_service.set_probe_backend(mode)
         if result.ok:

@@ -47,7 +47,7 @@ const getVideoAutoplayMode = () => {
     try {
         const mode = APP_CONFIG.GRID_VIDEO_AUTOPLAY_MODE;
         if (mode === "hover" || mode === "always") return mode;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return "off";
 };
 
@@ -60,9 +60,9 @@ export function cleanupVideoThumbsIn(rootEl) {
         for (const v of vids) {
             try {
                 mgr?.unobserve?.(v);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 export function cleanupCardMediaHandlers(rootEl) {
@@ -73,21 +73,21 @@ export function cleanupCardMediaHandlers(rootEl) {
             try {
                 img.onerror = null;
                 img.onload = null;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
         const vids = rootEl?.querySelectorAll?.("video.mjr-thumb-media") || [];
         for (const video of vids) {
             try {
                 video.onerror = null;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 const getVideoThumbManager = () => {
     try {
         if (window?.[VIDEO_THUMBS_KEY]) return window[VIDEO_THUMBS_KEY];
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const playing = new Set();
     const prepared = new Set();
@@ -101,31 +101,31 @@ const getVideoThumbManager = () => {
             for (const v of Array.from(playing)) {
                 try {
                     if (!v || !v.isConnected) playing.delete(v);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             for (const v of Array.from(prepared)) {
                 try {
                     if (!v || !v.isConnected) prepared.delete(v);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             while (prepared.size > VIDEO_THUMB_MAX_PREPARED) {
                 const oldest = prepared.values().next().value;
                 prepared.delete(oldest);
                 try {
                     oldest?.pause?.();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     if (oldest?.getAttribute?.("src")) {
                         oldest.removeAttribute("src");
                         oldest.load?.();
                     }
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const waitForLoadedData = (video, timeoutMs = VIDEO_THUMB_LOAD_TIMEOUT_MS) =>
@@ -133,7 +133,7 @@ const getVideoThumbManager = () => {
             if (!video) return resolve(false);
             try {
                 if (video.readyState >= 2) return resolve(true);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
 
             let done = false;
             const finish = (ok) => {
@@ -143,7 +143,7 @@ const getVideoThumbManager = () => {
                     video.removeEventListener("loadeddata", onLoaded);
                     video.removeEventListener("loadedmetadata", onMetadata);
                     video.removeEventListener("error", onError);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 resolve(ok);
             };
             const onLoaded = () => finish(true);
@@ -160,7 +160,7 @@ const getVideoThumbManager = () => {
 
             try {
                 setTimeout(() => finish(false), timeoutMs);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         });
 
     const ensureFirstFrame = (video) =>
@@ -176,9 +176,9 @@ const getVideoThumbManager = () => {
             const finish = () => {
                 if (done) return;
                 done = true;
-                try { video.removeEventListener("seeked", onSeeked); } catch {}
-                try { video.removeEventListener("error", onSeekError); } catch {}
-                try { video.pause(); } catch {}
+                try { video.removeEventListener("seeked", onSeeked); } catch (e) { console.debug?.(e); }
+                try { video.removeEventListener("error", onSeekError); } catch (e) { console.debug?.(e); }
+                try { video.pause(); } catch (e) { console.debug?.(e); }
                 resolve();
             };
             const onSeeked = () => finish();
@@ -211,33 +211,33 @@ const getVideoThumbManager = () => {
                 if (!Number.isFinite(video.currentTime) || video.currentTime <= 0) {
                     video.currentTime = 0.05;
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         });
 
     const stopVideo = (video, { releaseSrc = true } = {}) => {
         if (!video) return;
         try {
             video.pause();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             video.currentTime = 0;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         if (releaseSrc) {
             try {
                 if (video.getAttribute("src")) {
                     video.removeAttribute("src");
                     video.load();
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
         prepared.delete(video);
         try {
             playing.delete(video);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             const overlay = video._mjrPlayOverlay || null;
             if (overlay) overlay.style.opacity = "1";
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const ensurePrepared = async (video) => {
@@ -254,7 +254,7 @@ const getVideoThumbManager = () => {
                     video.load();
                 }
                 video.preload = "metadata";
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
 
         const ok = await waitForLoadedData(video);
@@ -293,7 +293,7 @@ const getVideoThumbManager = () => {
         playing.delete(video);
         try {
             video.pause();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         // Keep a decoded frame visible (prevents "grey tiles" after hover ends).
         await ensurePrepared(video);
     };
@@ -306,7 +306,7 @@ const getVideoThumbManager = () => {
             try {
                 const overlay = v._mjrPlayOverlay || null;
                 if (overlay) overlay.style.opacity = "1";
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
     };
 
@@ -318,8 +318,8 @@ const getVideoThumbManager = () => {
             if (!(v instanceof HTMLVideoElement)) continue;
             const overlay = v._mjrPlayOverlay || null;
             if (!enabled) {
-                try { v._mjrHovered = false; } catch {}
-                try { v._mjrResumeOnVisible = false; } catch {}
+                try { v._mjrHovered = false; } catch (e) { console.debug?.(e); }
+                try { v._mjrResumeOnVisible = false; } catch (e) { console.debug?.(e); }
                 if (v._mjrVisible) pauseVideo(v);
                 else stopVideo(v);
                 if (overlay) overlay.style.opacity = "1";
@@ -342,7 +342,7 @@ const getVideoThumbManager = () => {
         removeVisibilityListener = () => {
             try {
                 document.removeEventListener("visibilitychange", onVisibility);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             removeVisibilityListener = null;
         };
         // Periodic cleanup for videos detached from DOM (memory leak prevention)
@@ -359,9 +359,9 @@ const getVideoThumbManager = () => {
                         if (isPlaying) stopVideo(v);
                         else {
                             // Just unbind
-                            try { observer?.unobserve?.(v); } catch {}
+                            try { observer?.unobserve?.(v); } catch (e) { console.debug?.(e); }
                         }
-                        try { observed.delete(v); } catch {}
+                        try { observed.delete(v); } catch (e) { console.debug?.(e); }
                     }
                 }
             };
@@ -373,7 +373,7 @@ const getVideoThumbManager = () => {
         removeSettingsListener = () => {
             try {
                 window.removeEventListener?.("mjr-settings-changed", onSettingsChanged);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             removeSettingsListener = null;
         };
     } catch (e) {
@@ -393,25 +393,25 @@ const getVideoThumbManager = () => {
                           const always = mode === "always";
 
                           if (!video.isConnected || document.hidden) {
-                              try { video._mjrVisible = false; } catch {}
+                              try { video._mjrVisible = false; } catch (e) { console.debug?.(e); }
                               playing.delete(video);
                               stopVideo(video);
                               try {
                                   observer?.unobserve?.(video);
-                              } catch {}
+                              } catch (e) { console.debug?.(e); }
                               if (overlay) overlay.style.opacity = "1";
                               continue;
                           }
 
                           const isVisible = entry.isIntersecting && entry.intersectionRatio >= 0.2;
-                          try { video._mjrVisible = isVisible; } catch {}
+                          try { video._mjrVisible = isVisible; } catch (e) { console.debug?.(e); }
 
                           // "always": play when visible; "hover": play when visible + hovered
                           const shouldPlay = autoplayEnabled && isVisible
                               && (always || !!video._mjrHovered || !!video._mjrResumeOnVisible);
 
                           if (shouldPlay) {
-                              try { video._mjrResumeOnVisible = false; } catch {}
+                              try { video._mjrResumeOnVisible = false; } catch (e) { console.debug?.(e); }
                               playVideo(video);
                               if (overlay) overlay.style.opacity = "0";
                           } else {
@@ -432,7 +432,7 @@ const getVideoThumbManager = () => {
             try {
                 if (video._mjrThumbBound) return;
                 video._mjrThumbBound = true;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
 
             try {
                 video.addEventListener("error", () => {
@@ -441,9 +441,9 @@ const getVideoThumbManager = () => {
                     try {
                         const overlay = video._mjrPlayOverlay || null;
                         if (overlay) overlay.style.opacity = "1";
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 });
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
         observe(video) {
             if (!observer || !video) return;
@@ -452,18 +452,18 @@ const getVideoThumbManager = () => {
                     clearTimeout(video._mjrReleaseTimer);
                     video._mjrReleaseTimer = null;
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 api._bindVideo(video);
                 observed.add(video);
                 observer.observe(video);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
         unobserve(video) {
             if (!observer || !video) return;
             try {
                 observer.unobserve(video);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             observed.delete(video);
             const wasPlaying = playing.has(video) || !!video._mjrHovered;
             playing.delete(video);
@@ -471,10 +471,10 @@ const getVideoThumbManager = () => {
             stopVideo(video, { releaseSrc: false });
             try {
                 prepared.delete(video);
-            } catch {}
-            try { video._mjrVisible = false; } catch {}
-            try { video._mjrHovered = false; } catch {}
-            try { video._mjrResumeOnVisible = !!wasPlaying; } catch {}
+            } catch (e) { console.debug?.(e); }
+            try { video._mjrVisible = false; } catch (e) { console.debug?.(e); }
+            try { video._mjrHovered = false; } catch (e) { console.debug?.(e); }
+            try { video._mjrResumeOnVisible = !!wasPlaying; } catch (e) { console.debug?.(e); }
             // Release decoded resources later if the node stays detached.
             try {
                 if (video._mjrReleaseTimer) {
@@ -482,13 +482,13 @@ const getVideoThumbManager = () => {
                     video._mjrReleaseTimer = null;
                 }
                 video._mjrReleaseTimer = setTimeout(() => {
-                    try { video._mjrReleaseTimer = null; } catch {}
+                    try { video._mjrReleaseTimer = null; } catch (e) { console.debug?.(e); }
                     try {
                         if (video.isConnected || observed.has(video)) return;
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                     stopVideo(video, { releaseSrc: true });
                 }, 15_000);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             
             // Cleanup hover listeners on parent thumb
             try {
@@ -496,20 +496,20 @@ const getVideoThumbManager = () => {
                 if (thumb && thumb._mjrHoverCleanup) {
                      thumb._mjrHoverCleanup();
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
         bindHover(thumb, video) {
             if (!thumb || !video) return;
             try {
                 if (thumb._mjrHoverBound) return;
                 thumb._mjrHoverBound = true;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
 
             const showOverlay = (opacity) => {
                 try {
                     const overlay = video._mjrPlayOverlay || null;
                     if (overlay) overlay.style.opacity = opacity;
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             };
 
             const onEnter = () => {
@@ -519,7 +519,7 @@ const getVideoThumbManager = () => {
                     return;
                 }
                 // In "always" mode the IO handles play; just track hover state.
-                try { video._mjrHovered = true; } catch {}
+                try { video._mjrHovered = true; } catch (e) { console.debug?.(e); }
                 if (mode === "always") return;
                 // "hover" mode: play on enter
                 const canPlay = !!video?._mjrVisible && !document.hidden;
@@ -531,7 +531,7 @@ const getVideoThumbManager = () => {
                 }
             };
             const onLeave = () => {
-                try { video._mjrHovered = false; } catch {}
+                try { video._mjrHovered = false; } catch (e) { console.debug?.(e); }
                 // In "always" mode the IO keeps it playing; don't pause.
                 if (isVideoAutoplayAlways()) return;
                 showOverlay("1");
@@ -552,37 +552,37 @@ const getVideoThumbManager = () => {
                     thumb._mjrHoverBound = false;
                     thumb._mjrHoverCleanup = null;
                 };
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
         dispose() {
             try {
                 if (cleanupTimer) clearInterval(cleanupTimer);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             cleanupTimer = null;
             try {
                 removeVisibilityListener?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 removeSettingsListener?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             // Disconnect the IntersectionObserver so it stops firing after dispose.
             // observed.clear() alone does not stop the observer from holding
             // references to previously-observed elements.
             try {
                 if (observer) observer.disconnect();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 playing.clear();
                 prepared.clear();
                 observed.clear();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
     };
 
     try {
         window.addEventListener?.("pagehide", () => api.dispose());
         window[VIDEO_THUMBS_KEY] = api;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return api;
 };
 
@@ -605,7 +605,7 @@ export function createAssetCard(asset) {
     if (asset?.id != null) {
         try {
             card.dataset.mjrAssetId = String(asset.id);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     // Helpful datasets for cross-card behaviors (selection, siblings hide, name collisions).
@@ -619,7 +619,7 @@ export function createAssetCard(asset) {
         card.dataset.mjrStem = String(stem || "").trim().toLowerCase();
         
         displayName = stem;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const viewUrl = buildAssetViewURL(asset);
 
@@ -656,7 +656,7 @@ export function createAssetCard(asset) {
                 })
             );
         });
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     thumb.appendChild(fileBadge);
 
     const ratingBadge = createRatingBadge(asset.rating || 0);
@@ -818,7 +818,7 @@ function createThumbnail(asset, viewUrl) {
         try {
             img.loading = "lazy";
             img.decoding = "async";
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         
         // Critical: Handle broken images
         img.onerror = () => {
@@ -848,7 +848,7 @@ function createThumbnail(asset, viewUrl) {
         video.style.pointerEvents = "none";
         try {
             video.disablePictureInPicture = true;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         
         video.onerror = () => {
              video.style.display = "none";
@@ -868,7 +868,7 @@ function createThumbnail(asset, viewUrl) {
         playIcon.appendChild(playIconEl);
         try {
             video._mjrPlayOverlay = playIcon;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         thumb.appendChild(video);
         thumb.appendChild(playIcon);
         // Observe after insertion for reliable IntersectionObserver behavior.
@@ -887,7 +887,7 @@ function createThumbnail(asset, viewUrl) {
             try {
                 img.loading = "lazy";
                 img.decoding = "async";
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             img.onerror = () => { img.style.display = "none"; };
             thumb.appendChild(img);
         }
@@ -916,7 +916,7 @@ function createThumbnail(asset, viewUrl) {
                 svg.appendChild(rect);
             }
             overlay.appendChild(svg);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         overlay.style.cssText = `
             position: absolute;
             inset: 0;
@@ -926,7 +926,7 @@ function createThumbnail(asset, viewUrl) {
             pointer-events: none;
             color: white;
         `;
-        try { overlay.querySelector("svg").style.cssText = "width: 60%; max-width: 120px; height: auto; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));"; } catch {}
+        try { overlay.querySelector("svg").style.cssText = "width: 60%; max-width: 120px; height: auto; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));"; } catch (e) { console.debug?.(e); }
         thumb.appendChild(overlay);
     }
 

@@ -53,11 +53,11 @@ const fallbackEl = (tag, props = {}, children = []) => {
             try {
                 el[propKey] = value;
                 return;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
         try {
             el.setAttribute(propKey, String(value));
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     });
     const childList = Array.isArray(children) ? children : [children];
     childList.filter(Boolean).forEach((c) => {
@@ -103,7 +103,7 @@ const styleDialog = (dialog) => {
         dialog.element.style.boxSizing = "border-box";
         dialog.element.style.overflow = "hidden";
         dialog.element.style.boxShadow = "0 18px 48px rgba(0,0,0,0.48)";
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 };
 
 const hideDialogNativeClose = (dialog) => {
@@ -117,10 +117,10 @@ const hideDialogNativeClose = (dialog) => {
             if (text === "close" || aria === "close") {
                 try {
                     el.style.display = "none";
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 };
 
 export const comfyAlert = async (message, title = "Majoor") => {
@@ -128,7 +128,7 @@ export const comfyAlert = async (message, title = "Majoor") => {
     if (!Dialog) {
         try {
             window.alert(message);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         return;
     }
 
@@ -139,7 +139,7 @@ export const comfyAlert = async (message, title = "Majoor") => {
         const close = () => {
             try {
                 dialog.close();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             resolve();
         };
 
@@ -202,7 +202,7 @@ export const comfyAlert = async (message, title = "Majoor") => {
         } catch {
             try {
                 window.alert(message);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             resolve();
         }
     });
@@ -225,7 +225,7 @@ export const comfyConfirm = async (message, title = "Majoor") => {
         const finish = (value) => {
             try {
                 dialog.close();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             resolve(!!value);
         };
 
@@ -325,7 +325,7 @@ export const comfyPrompt = async (message, defaultValue = "", title = "Majoor") 
         const finish = (value) => {
             try {
                 dialog.close();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             resolve(value ?? null);
         };
 
@@ -412,7 +412,7 @@ export const comfyPrompt = async (message, defaultValue = "", title = "Majoor") 
                 try {
                     input.focus();
                     input.select();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }, 0);
         } catch {
             try {

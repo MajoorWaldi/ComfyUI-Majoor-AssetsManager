@@ -9,10 +9,10 @@ export function renderSideBySideView({
 } = {}) {
     try {
         destroyMediaProcessorsIn?.(sideView);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         if (sideView) sideView.innerHTML = "";
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     if (!sideView || !state || !currentAsset) return;
 
@@ -28,7 +28,7 @@ export function renderSideBySideView({
             sideView.style.gridTemplateRows = "1fr 1fr";
             sideView.style.gap = "2px";
             sideView.style.padding = "2px";
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         for (let i = 0; i < 4; i++) {
             const cell = document.createElement("div");
@@ -44,15 +44,15 @@ export function renderSideBySideView({
                 let u = "";
                 try {
                     u = buildAssetViewURL?.(a) || "";
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     const media = createMediaElement?.(a, u);
                     if (media) cell.appendChild(media);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
             try {
                 sideView.appendChild(cell);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
         return;
     }
@@ -98,11 +98,11 @@ export function renderSideBySideView({
         sideView.style.flexDirection = "row";
         sideView.style.gap = "2px";
         sideView.style.padding = "0";
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         sideView.appendChild(leftPanel);
         sideView.appendChild(rightPanel);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     // Tag roles for the global viewer bar (so it controls the "A" side by default).
     try {
@@ -114,7 +114,7 @@ export function renderSideBySideView({
         if (rightVideo?.dataset) rightVideo.dataset.mjrCompareRole = "B";
         if (leftAudio?.dataset) leftAudio.dataset.mjrCompareRole = "A";
         if (rightAudio?.dataset) rightAudio.dataset.mjrCompareRole = "B";
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     // Video sync is handled centrally by the viewer bar (Viewer.js) so we avoid double-sync here.
 }

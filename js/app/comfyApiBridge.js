@@ -11,6 +11,17 @@ function _isObject(value) {
     return !!value && typeof value === "object";
 }
 
+function _safeOwnValue(host, key) {
+    try {
+        if (!host || (typeof host !== "object" && typeof host !== "function")) return null;
+        const desc = Object.getOwnPropertyDescriptor(host, key);
+        if (!desc || !("value" in desc)) return null;
+        return desc.value;
+    } catch {
+        return null;
+    }
+}
+
 function _looksLikeComfyApi(value) {
     if (!_isObject(value)) return false;
     return (
@@ -51,22 +62,26 @@ export function getComfyApi(app) {
     const fromApp = runtimeApp?.api || runtimeApp?.ui?.api || runtimeApp?.ui?.app?.api || null;
     if (_looksLikeComfyApi(fromApp)) return fromApp;
     try {
-        if (typeof window !== "undefined" && _looksLikeComfyApi(window?.api)) return window.api;
-    } catch {}
+        const api = typeof window !== "undefined" ? _safeOwnValue(window, "api") : null;
+        if (_looksLikeComfyApi(api)) return api;
+    } catch (e) { console.debug?.(e); }
     try {
-        if (typeof globalThis !== "undefined" && _looksLikeComfyApi(globalThis?.api)) return globalThis.api;
-    } catch {}
+        const api = typeof globalThis !== "undefined" ? _safeOwnValue(globalThis, "api") : null;
+        if (_looksLikeComfyApi(api)) return api;
+    } catch (e) { console.debug?.(e); }
     return null;
 }
 
 export function getComfyApp() {
     if (_looksLikeComfyApp(_comfyAppRef)) return _comfyAppRef;
     try {
-        if (typeof globalThis !== "undefined" && _looksLikeComfyApp(globalThis?.app)) return globalThis.app;
-    } catch {}
+        const app = typeof globalThis !== "undefined" ? _safeOwnValue(globalThis, "app") : null;
+        if (_looksLikeComfyApp(app)) return app;
+    } catch (e) { console.debug?.(e); }
     try {
-        if (typeof window !== "undefined" && _looksLikeComfyApp(window?.app)) return window.app;
-    } catch {}
+        const app = typeof window !== "undefined" ? _safeOwnValue(window, "app") : null;
+        if (_looksLikeComfyApp(app)) return app;
+    } catch (e) { console.debug?.(e); }
     return null;
 }
 
@@ -100,7 +115,7 @@ export function registerSidebarTabCompat(app, tabDef) {
             manager.registerSidebarTab(tabDef);
             return true;
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return false;
 }
 
@@ -111,7 +126,7 @@ function _sleep(ms) {
 function _warnTimeout(label, timeoutMs) {
     try {
         console.warn(`[Majoor] ${label} timed out after ${Math.max(0, Number(timeoutMs) || 0)}ms`);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 export async function waitForComfyApp({

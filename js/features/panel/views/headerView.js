@@ -82,12 +82,12 @@ function resolveRuntimeBranch() {
         if (typeof window !== "undefined" && window?.MajoorAssetsManagerBranch) {
             return String(window.MajoorAssetsManagerBranch);
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         if (typeof process !== "undefined" && process?.env?.MAJOR_ASSETS_MANAGER_BRANCH) {
             return String(process.env.MAJOR_ASSETS_MANAGER_BRANCH);
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return "main";
 }
 
@@ -180,21 +180,21 @@ export function createHeaderView() {
     };
     try {
         applyDotState(getStoredVersionUpdateState());
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     let versionUpdateListener = null;
     const dispose = () => {
         try {
             if (versionUpdateListener && typeof window !== "undefined") {
                 window.removeEventListener(VERSION_UPDATE_EVENT, versionUpdateListener);
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         versionUpdateListener = null;
     };
     if (typeof window !== "undefined") {
         versionUpdateListener = (event) => {
             try {
                 applyDotState(event?.detail);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
         window.addEventListener(VERSION_UPDATE_EVENT, versionUpdateListener);
     }

@@ -139,7 +139,7 @@ export function createVideoProcessor({
              try {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             return;
         }
 
@@ -154,7 +154,7 @@ export function createVideoProcessor({
                 // Fallback if readback fails (e.g. tainted canvas)
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             return;
         }
 
@@ -275,7 +275,7 @@ export function createVideoProcessor({
 
         try {
             ctx.putImageData(dst, 0, 0);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const renderOnce = () => {
@@ -296,7 +296,7 @@ export function createVideoProcessor({
                 proc._lastFrameTime = t;
                 proc._lastHeavySig = sig;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         renderProcessedFrame();
     };
 
@@ -309,7 +309,7 @@ export function createVideoProcessor({
                 scheduleRender();
                 return;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         if (proc._connectRAF != null) return;
         proc._connectTries = (Number(proc._connectTries) || 0) + 1;
         if (proc._connectTries > 20) {
@@ -354,15 +354,15 @@ export function createVideoProcessor({
             if (now < nextOkAt) {
                 try {
                     if (proc._throttleTimer) clearTimeout(proc._throttleTimer);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     proc._throttleTimer = setTimeout(() => {
                         try {
                             proc._throttleTimer = null;
-                        } catch {}
+                        } catch (e) { console.debug?.(e); }
                         scheduleRender();
                     }, Math.min(250, Math.max(0, nextOkAt - now)));
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 return;
             }
         }
@@ -375,7 +375,7 @@ export function createVideoProcessor({
                 renderOnce();
                 try {
                     if (heavy) proc._lastHeavyRenderAt = Date.now();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             });
         } catch {
             proc._rendering = false;
@@ -393,13 +393,13 @@ export function createVideoProcessor({
                 videoEl.cancelVideoFrameCallback(proc._rvfc);
                 proc._rvfc = null;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             if (proc._rafIdLoop != null) {
                 cancelAnimationFrame(proc._rafIdLoop);
                 proc._rafIdLoop = null;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             if (typeof videoEl?.requestVideoFrameCallback === "function") {
                 const cb = () => {
@@ -409,15 +409,15 @@ export function createVideoProcessor({
                     if (!videoEl.paused) {
                         try {
                             proc._rvfc = videoEl.requestVideoFrameCallback(cb);
-                        } catch {}
+                        } catch (e) { console.debug?.(e); }
                     }
                 };
                 try {
                     proc._rvfc = videoEl.requestVideoFrameCallback(cb);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 return;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         const loop = () => {
             if (proc._destroyed) return;
             if (!canvas?.isConnected) return;
@@ -425,12 +425,12 @@ export function createVideoProcessor({
             if (!videoEl.paused) {
                 try {
                     proc._rafIdLoop = requestAnimationFrame(loop);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
         };
         try {
             proc._rafIdLoop = requestAnimationFrame(loop);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const setParams = (params) => {
@@ -473,7 +473,7 @@ export function createVideoProcessor({
         scheduleRender();
         try {
             onReady?.({ naturalW: proc.naturalW, naturalH: proc.naturalH, pixelScale: proc.scale });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     try {
@@ -482,7 +482,7 @@ export function createVideoProcessor({
             proc.ready = false;
             try {
                 drawMediaError(canvas, "Failed to load video (unsupported codec/format?)");
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
 
         unsubs.push(safeAddListener?.(videoEl, "loadedmetadata", onMeta, { once: true }) || (() => {}));
@@ -491,7 +491,7 @@ export function createVideoProcessor({
         unsubs.push(safeAddListener?.(videoEl, "play", onPlay, { passive: true }) || (() => {}));
         unsubs.push(safeAddListener?.(videoEl, "timeupdate", scheduleRender, { passive: true }) || (() => {}));
         unsubs.push(safeAddListener?.(videoEl, "error", onError, { passive: true }) || (() => {}));
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     return {
         setParams,
@@ -502,35 +502,35 @@ export function createVideoProcessor({
             proc._destroyed = true;
             try {
                 if (proc._throttleTimer) clearTimeout(proc._throttleTimer);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             proc._throttleTimer = null;
             try {
                 if (proc._connectRAF != null) cancelAnimationFrame(proc._connectRAF);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             proc._connectRAF = null;
             proc._connectTries = 0;
             try {
                 if (proc._rvfc != null && typeof videoEl?.cancelVideoFrameCallback === "function") {
                     videoEl.cancelVideoFrameCallback(proc._rvfc);
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 if (proc._rafIdLoop != null) cancelAnimationFrame(proc._rafIdLoop);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 if (proc._rafIdSchedule != null) cancelAnimationFrame(proc._rafIdSchedule);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 for (const u of unsubs) safeCall?.(u);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 srcCanvas.width = 0;
                 srcCanvas.height = 0;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 canvas.width = 0;
                 canvas.height = 0;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             proc._buffer = null;
         },
     };

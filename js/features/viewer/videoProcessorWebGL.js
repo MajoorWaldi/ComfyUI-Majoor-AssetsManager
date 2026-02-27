@@ -86,7 +86,7 @@ function createProgram(gl, vs, fs) {
         console.warn("WebGL Program Error:", gl.getProgramInfoLog(program));
         try {
             gl.deleteProgram(program);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         return null; // Return null to fallback
     }
     return program;
@@ -122,11 +122,11 @@ export function createWebGLVideoProcessor(opts) {
         try {
             // Keep default back-buffer behavior for lower per-frame GPU cost.
             ctx = canvas.getContext("webgl", { alpha: false, preserveDrawingBuffer: false });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         if (!ctx) {
             try {
                 ctx = canvas.getContext("experimental-webgl", { alpha: false });
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
         if (ctx) {
             maxTextureSize = ctx.getParameter(ctx.MAX_TEXTURE_SIZE) || 4096;
@@ -147,22 +147,22 @@ export function createWebGLVideoProcessor(opts) {
         const { positionBuffer, texture, program } = resources;
         try {
             gl.bindTexture(gl.TEXTURE_2D, null);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             gl.bindBuffer(gl.ARRAY_BUFFER, null);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             gl.useProgram(null);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             gl.deleteTexture(texture);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             gl.deleteBuffer(positionBuffer);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             gl.deleteProgram(program);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         resources = null;
     };
 
@@ -318,7 +318,7 @@ export function createWebGLVideoProcessor(opts) {
             proc.ready = false;
             cleanupResources();
             if (gl) {
-                try { gl.getExtension("WEBGL_lose_context")?.loseContext?.(); } catch {}
+                try { gl.getExtension("WEBGL_lose_context")?.loseContext?.(); } catch (e) { console.debug?.(e); }
             }
             canvas.removeEventListener("webglcontextlost", handleContextLost);
             canvas.removeEventListener("webglcontextrestored", handleContextRestored);

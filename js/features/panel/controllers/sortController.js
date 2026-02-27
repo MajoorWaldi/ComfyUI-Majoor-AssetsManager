@@ -69,7 +69,7 @@ export function createSortController({ state, sortBtn, sortMenu, sortPopover, po
                 renderSortMenu();
                 try {
                     onChanged?.();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 sortPopover.style.display = "none";
                 popovers.close(sortPopover);
                 await reloadGrid();
@@ -86,7 +86,7 @@ export function createSortController({ state, sortBtn, sortMenu, sortPopover, po
             e.stopPropagation();
             try {
                 onBeforeToggle?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             renderSortMenu();
             popovers.toggle(sortPopover, sortBtn);
         });

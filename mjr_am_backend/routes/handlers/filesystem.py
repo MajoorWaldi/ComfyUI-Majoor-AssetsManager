@@ -7,6 +7,7 @@ from __future__ import annotations
 import asyncio
 import datetime
 import os
+import threading
 import time
 from collections import OrderedDict
 from collections.abc import Mapping
@@ -49,6 +50,7 @@ _BACKGROUND_SCAN_LOCKS_ORDER: OrderedDict[str, None] = OrderedDict()
 _BACKGROUND_SCAN_LOCKS_MAX = max(32, int(os.getenv("MAJOOR_BG_SCAN_LOCKS_MAX", "1024") or 1024))
 _BACKGROUND_SCAN_LAST: OrderedDict[str, dict[str, Any]] = OrderedDict()
 _BACKGROUND_SCAN_FAILURES: list[dict[str, Any]] = []
+_BACKGROUND_SCAN_FAILURES_LOCK = threading.Lock()
 _MAX_FAILURE_HISTORY = int(BG_SCAN_FAILURE_HISTORY_MAX)
 _BACKGROUND_SCAN_HISTORY_MAX = 1000
 
@@ -343,16 +345,17 @@ def _record_scan_failure(directory: str, source: str, code: str, error: str) -> 
     except RuntimeError:
         logger.warning("Ignoring background scan failure update outside event loop thread")
         return
-    _BACKGROUND_SCAN_FAILURES.insert(0, {
-        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        "directory": directory,
-        "source": source,
-        "code": code,
-        "error": error
-    })
-    # Trim
-    while len(_BACKGROUND_SCAN_FAILURES) > _MAX_FAILURE_HISTORY:
-        _BACKGROUND_SCAN_FAILURES.pop()
+    with _BACKGROUND_SCAN_FAILURES_LOCK:
+        _BACKGROUND_SCAN_FAILURES.insert(0, {
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "directory": directory,
+            "source": source,
+            "code": code,
+            "error": error
+        })
+        # Trim
+        while len(_BACKGROUND_SCAN_FAILURES) > _MAX_FAILURE_HISTORY:
+            _BACKGROUND_SCAN_FAILURES.pop()
 
 
 def _ensure_background_entry(key: str) -> dict[str, Any]:

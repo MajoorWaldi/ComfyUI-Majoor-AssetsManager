@@ -27,7 +27,7 @@ export function installFollowerVideoSync(leader, followers, { threshold = 0.15 }
             try {
                 const p = v.play?.();
                 if (p && typeof p.catch === "function") p.catch(() => {});
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
 
         const syncTimeToLeader = () => {
@@ -56,7 +56,7 @@ export function installFollowerVideoSync(leader, followers, { threshold = 0.15 }
                 try {
                     if (playing) tryPlay(f);
                     else f.pause?.();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
         };
 
@@ -66,7 +66,7 @@ export function installFollowerVideoSync(leader, followers, { threshold = 0.15 }
                 try {
                     f.muted = Boolean(leader.muted);
                     f.volume = Number(leader.volume) || 0;
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
         };
 
@@ -75,7 +75,7 @@ export function installFollowerVideoSync(leader, followers, { threshold = 0.15 }
             for (const f of list) {
                 try {
                     f.playbackRate = Number(leader.playbackRate) || 1;
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
         };
 
@@ -84,12 +84,12 @@ export function installFollowerVideoSync(leader, followers, { threshold = 0.15 }
             for (const f of list) {
                 try {
                     f.muted = true;
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     f.loop = false;
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         // Initial sync (best-effort).
         try {
@@ -97,7 +97,7 @@ export function installFollowerVideoSync(leader, followers, { threshold = 0.15 }
             syncRate();
             syncTimeToLeader();
             if (!leader.paused) syncPlayState(true);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         leader.addEventListener("play", () => syncPlayState(true), { signal: ac.signal, passive: true });
         leader.addEventListener("pause", () => syncPlayState(false), { signal: ac.signal, passive: true });
@@ -120,32 +120,32 @@ export function installFollowerVideoSync(leader, followers, { threshold = 0.15 }
                             try {
                                 syncing = true;
                                 f.currentTime = Number(leader.currentTime) || 0;
-                            } catch {} finally {
+                            } catch (e) { console.debug?.(e); } finally {
                                 syncing = false;
                             }
                             try {
                                 if (!leader.paused) tryPlay(f);
-                            } catch {}
+                            } catch (e) { console.debug?.(e); }
                         },
                         { signal: ac.signal, passive: true }
                     );
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         // Followers might load later; resync once metadata is ready.
         try {
             for (const f of list) {
                 try {
                     f.addEventListener("loadedmetadata", syncTimeToLeader, { signal: ac.signal, passive: true, once: true });
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     } catch (e) {
         if (_debug()) {
             try {
                 console.warn("[Viewer] follower video sync setup failed", e);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
     }
     return ac;

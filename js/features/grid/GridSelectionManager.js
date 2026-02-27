@@ -15,11 +15,11 @@ export function getSelectedIdSet(gridContainer) {
             }
             return selected;
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         const id = gridContainer.dataset?.mjrSelectedAssetId;
         if (id) selected.add(String(id));
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return selected;
 }
 
@@ -35,7 +35,7 @@ export function setSelectedIdsDataset(gridContainer, selectedSet, activeId = "")
             delete gridContainer.dataset.mjrSelectedAssetIds;
             delete gridContainer.dataset.mjrSelectedAssetId;
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return list;
 }
 
@@ -54,7 +54,7 @@ export function syncSelectionClasses(gridContainer, selectedIds, getRenderedCard
                 card.setAttribute("aria-selected", "false");
             }
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 export function setSelectionIds(gridContainer, selectedIds, { activeId = "" } = {}, getRenderedCards) {
@@ -66,7 +66,7 @@ export function setSelectionIds(gridContainer, selectedIds, { activeId = "" } = 
         gridContainer.dispatchEvent?.(
             new CustomEvent("mjr:selection-changed", { detail: { selectedIds: list, activeId: activeId || list[0] || "" } })
         );
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return list;
 }
 

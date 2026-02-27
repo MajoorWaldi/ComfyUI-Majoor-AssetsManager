@@ -25,7 +25,7 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
         // can decide whether to do incremental upserts or avoid disrupting an active search.
         try {
             gridContainer.dataset.mjrQuery = String(getQuery?.() ?? "*") || "*";
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         gridContainer.dataset.mjrScope = state.scope;
         gridContainer.dataset.mjrCustomRootId = state.customRootId || "";
         const subfolder = state.currentFolderRelativePath || "";
@@ -56,12 +56,12 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
                 delete gridContainer.dataset.mjrSelectedAssetIds;
                 delete gridContainer.dataset.mjrSelectedAssetId;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         if (state.scope === "custom" && !state.customRootId && !state.currentFolderRelativePath) {
             try {
                 disposeGrid(gridContainer);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             // Browser mode: no selected custom root required. Start at filesystem roots.
             state.currentFolderRelativePath = "";
         }
@@ -75,7 +75,7 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
                     state.lastGridCount = Number(result?.count || 0) || 0;
                     state.lastGridTotal = Number(result?.total || 0) || 0;
                     gridContainer.dispatchEvent?.(new CustomEvent("mjr:grid-stats", { detail: result || {} }));
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 return;
             }
             // If collection fetch fails, fall back to normal loading and clear the broken state.
@@ -88,7 +88,7 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
             state.lastGridCount = Number(result?.count || 0) || 0;
             state.lastGridTotal = Number(result?.total || 0) || 0;
             gridContainer.dispatchEvent?.(new CustomEvent("mjr:grid-stats", { detail: result || {} }));
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     let _debounceTimer = null;
@@ -110,7 +110,7 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
                             _lastReloadErrorAt = now;
                             console.warn("[Majoor] Grid reload failed", err);
                         }
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 }
             }
         } finally {

@@ -62,7 +62,7 @@ function loadPanelState() {
     try {
         const raw = SettingsStore.get(STORAGE_KEY);
         if (raw) return sanitizePanelState(JSON.parse(raw));
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return null;
 }
 
@@ -76,7 +76,7 @@ function savePanelState(state) {
         if (serialized === _lastSavedSerialized) return;
         _lastSavedSerialized = serialized;
         SettingsStore.set(STORAGE_KEY, serialized);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 export function createPanelState() {
@@ -138,20 +138,20 @@ export function createPanelState() {
             for (const [k, v] of Object.entries(updated || {})) {
                 target[k] = v;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
     try {
         window.addEventListener("storage", storageHandler);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const dispose = () => {
         try {
             if (debounceTimer) clearTimeout(debounceTimer);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         debounceTimer = null;
         try {
             window.removeEventListener("storage", storageHandler);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     proxy = new Proxy(state, {

@@ -129,7 +129,7 @@ function applyStatusHighlight(section, tone = "neutral", options = {}) {
             const level = tone === "error" ? "error" : tone === "warning" ? "warning" : tone === "success" ? "success" : "info";
             try {
                 comfyToast(messages[tone] || messages.info, level, 1800);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
     }
 }
@@ -169,7 +169,7 @@ function emitGlobalGridReload(reason = "status-action") {
         window?.dispatchEvent?.(
             new CustomEvent("mjr:reload-grid", { detail: { reason: String(reason || "status-action") } })
         );
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 /**
@@ -326,7 +326,7 @@ export function createStatusIndicator(options = {}) {
             try {
                 const target = getScanContext ? getScanContext() : null;
                 await updateStatus(statusDot, statusText, capabilities, target, null, { force: true });
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
     };
     backupRow.appendChild(saveDbBtn);
@@ -377,7 +377,7 @@ export function createStatusIndicator(options = {}) {
             try {
                 const target = getScanContext ? getScanContext() : null;
                 await updateStatus(statusDot, statusText, capabilities, target, null, { force: true });
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
     };
     backupRow.appendChild(restoreDbBtn);
@@ -459,7 +459,7 @@ export function createStatusIndicator(options = {}) {
             try {
                 const target = getScanContext ? getScanContext() : null;
                 await updateStatus(statusDot, statusText, capabilities, target, null, { force: true });
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
     };
 
@@ -524,7 +524,7 @@ export function createStatusIndicator(options = {}) {
             try {
                 const target = getScanContext ? getScanContext() : null;
                 await updateStatus(statusDot, statusText, capabilities, target, null, { force: true });
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
     };
 
@@ -616,9 +616,9 @@ export function createStatusIndicator(options = {}) {
                     setTimeout(() => {
                         void updateStatus(statusDot, statusText, capabilities, target, null, { force: true });
                     }, 600);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
     try {
         const old = _dbRestoreStatusHandler;
@@ -628,7 +628,7 @@ export function createStatusIndicator(options = {}) {
         _dbRestoreStatusHandler = onDbRestoreStatus;
         section._mjrDbRestoreStatusHandler = onDbRestoreStatus;
         window.addEventListener("mjr-db-restore-status", onDbRestoreStatus);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     return section;
 }
@@ -672,14 +672,14 @@ export async function triggerScan(statusDot, statusText, capabilitiesSection = n
             }
         }
         globalThis._mjrScanInFlight = { at: now, scope: desiredScope, root_id: desiredCustomRootId || null };
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const clearScanInFlight = () => {
         try {
             if (globalThis?._mjrScanInFlight) {
                 globalThis._mjrScanInFlight = null;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     // Incremental is always favored.
@@ -691,7 +691,7 @@ export async function triggerScan(statusDot, statusText, capabilitiesSection = n
     try {
         const rootsResult = await get(ENDPOINTS.ROOTS);
         if (rootsResult.ok) roots = rootsResult.data;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     // Fallback to config for output directory if roots endpoint is unavailable
     if (!roots) {
@@ -932,13 +932,13 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
     const force = !!options?.force;
     try {
         if (signal?.aborted) return null;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         if (!statusDot?.isConnected || !statusText?.isConnected) return null;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         if (!force && _maintenanceActive) return null;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     // Optional: caller-provided object to read the last HTTP error details from.
     // (Used by the polling loop to avoid relying on string matching.)
     if (meta && typeof meta === "object") {
@@ -978,7 +978,7 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
         try {
             const toolsResult = await getToolsStatus(signal ? { signal } : undefined);
             if (toolsResult?.ok) toolStatusData = toolsResult.data;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         if (meta && typeof meta === "object") {
             meta._auxCached = true;
             meta._healthCache = healthResult;
@@ -993,10 +993,10 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
     }
     try {
         if (signal?.aborted) return null;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         if (!statusDot?.isConnected || !statusText?.isConnected) return null;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     if (meta && typeof meta === "object") {
         meta.lastCode = result?.code || null;
@@ -1051,7 +1051,7 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
                     };
                 }
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         const watcherLine = isCustomBrowserMode
             ? t("status.watcher.disabledScoped", "Watcher: disabled ({scope})", { scope: t("scope.customBrowser", "Browser") })
             : formatWatcherLine(watcherInfo, desiredScope);
@@ -1222,7 +1222,7 @@ export function setupStatusPolling(
     const handleUpdate = async () => {
         try {
             if (pollingAC?.signal?.aborted) return null;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         pollMeta._pollTick = Number(pollMeta._pollTick || 0) + 1;
         const lightweight = pollMeta._pollTick > 1 && (pollMeta._pollTick % 4 !== 0);
         const target = typeof getScanTarget === "function" ? getScanTarget() : null;
@@ -1233,7 +1233,7 @@ export function setupStatusPolling(
         if (counters && typeof onCountersUpdate === "function") {
             try {
                 await onCountersUpdate(counters);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
         return counters;
     };
@@ -1243,13 +1243,13 @@ export function setupStatusPolling(
 
     try {
         section._mjrStatusPollDispose?.();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     // Ensure only one polling loop exists globally (panel rerenders can otherwise duplicate timers).
     try {
         const oldGlobalDispose = window?.[GLOBAL_POLL_KEY];
         if (typeof oldGlobalDispose === "function") oldGlobalDispose();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     // Poll using a dynamic interval so settings changes apply without reload.
     let pollTimerId = null;
@@ -1260,7 +1260,7 @@ export function setupStatusPolling(
             const hidden = typeof document !== "undefined" && !!document.hidden;
             const unfocused = typeof document !== "undefined" && typeof document.hasFocus === "function" && !document.hasFocus();
             if (hidden || unfocused) return 4;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         return 1;
     };
 
@@ -1276,7 +1276,7 @@ export function setupStatusPolling(
         pollTimerId = setTimeout(async () => {
             try {
                 if (pollingAC?.signal?.aborted) return;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             const counters = await handleUpdate();
 
             // If the backend routes aren't loaded, ComfyUI returns an HTML 404 page (non-JSON).
@@ -1294,7 +1294,7 @@ export function setupStatusPolling(
             if (lastWasMissingEndpoint && consecutiveFailures >= 3) {
                 try {
                     section._mjrStatusPollDispose?.();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 return;
             }
             scheduleNext();
@@ -1303,13 +1303,13 @@ export function setupStatusPolling(
     section._mjrStatusPollDispose = () => {
         try {
             pollingAC?.abort?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         if (pollTimerId) clearTimeout(pollTimerId);
         pollTimerId = null;
     };
     try {
         window[GLOBAL_POLL_KEY] = section._mjrStatusPollDispose;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     scheduleNext();
 
     const statusDotEl = section.querySelector("#mjr-status-dot");

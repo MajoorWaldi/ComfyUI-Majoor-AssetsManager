@@ -16,6 +16,7 @@ from ...shared import ErrorCode, Result, get_logger
 logger = get_logger(__name__)
 
 _TAG_SAFE_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_:-]*$")
+_EXIFTOOL_EXECUTABLE_RE = re.compile(r"^exiftool(?:\(-k\))?(?:\.exe)?$", re.IGNORECASE)
 _WINDOWS_CMDLINE_TOO_LONG = 206
 _MAX_WRITE_VALUE_CHARS = 8192
 
@@ -275,7 +276,7 @@ class ExifTool:
             name = Path(resolved).name.lower()
         except Exception:
             name = str(resolved).lower()
-        return name.startswith("exiftool")
+        return bool(_EXIFTOOL_EXECUTABLE_RE.match(name))
 
     def _check_available(self) -> bool:
         """Check if ExifTool is available in PATH."""

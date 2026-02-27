@@ -30,7 +30,7 @@ function _clearReleaseTimer(video) {
             clearTimeout(video._mjrFilmstripReleaseTimer);
             video._mjrFilmstripReleaseTimer = null;
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 function _ensureVideoSource(video) {
@@ -43,7 +43,7 @@ function _ensureVideoSource(video) {
             video.src = src;
             video.load();
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 function _tryPlayVideo(video) {
@@ -53,14 +53,14 @@ function _tryPlayVideo(video) {
         if (p && typeof p.catch === "function") {
             p.catch(() => {});
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 function _pauseVideo(video) {
     if (!video) return;
     try {
         video.pause?.();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 function _stopVideo(video, { releaseSrc = true } = {}) {
@@ -69,14 +69,14 @@ function _stopVideo(video, { releaseSrc = true } = {}) {
     _pauseVideo(video);
     try {
         video._mjrFilmstripInView = false;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     if (!releaseSrc) return;
     try {
         if (video.getAttribute("src")) {
             video.removeAttribute("src");
             video.load();
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 /**
@@ -138,7 +138,7 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
                         const inView = entry.isIntersecting || entry.intersectionRatio > 0;
                         try {
                             video._mjrFilmstripInView = inView;
-                        } catch {}
+                        } catch (e) { console.debug?.(e); }
 
                         if (inView) {
                             _clearReleaseTimer(video);
@@ -165,9 +165,9 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
                                         if (!video._mjrFilmstripInView) {
                                             _stopVideo(video, { releaseSrc: true });
                                         }
-                                    } catch {}
+                                    } catch (e) { console.debug?.(e); }
                                 }, VIDEO_RELEASE_DELAY_MS);
-                            } catch {}
+                            } catch (e) { console.debug?.(e); }
                         }
                     }
                 },
@@ -186,12 +186,12 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
         if (!video) return;
         try {
             video._mjrFilmstripInView = false;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         _videos.add(video);
         try {
             if (!_obs) _obs = _makeVideoObserver();
             _obs?.observe?.(video);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const _pauseAllVideos = ({ releaseSrc = false } = {}) => {
@@ -207,14 +207,14 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
                 if (!video?.isConnected) continue;
                 _ensureVideoSource(video);
                 _tryPlayVideo(video);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
     };
 
     const _cleanupVideoResources = ({ releaseSrc = true } = {}) => {
         try {
             _obs?.disconnect?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         _obs = null;
         _pauseAllVideos({ releaseSrc });
         _videos.clear();
@@ -232,7 +232,7 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
         if (!item || _prefersReducedMotion()) return;
         try {
             item._mjrFilmstripBounce?.cancel?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             if (typeof item.animate !== "function") return;
             const peak = Math.min(1.18, settleScale + 0.07);
@@ -253,9 +253,9 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
             anim.onfinish = () => {
                 try {
                     if (item._mjrFilmstripBounce === anim) item._mjrFilmstripBounce = null;
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             };
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     // -------------------------------------------------------------------------
@@ -304,7 +304,7 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
             `;
             try {
                 video.disablePictureInPicture = true;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             video.addEventListener(
                 "loadeddata",
                 () => {
@@ -312,7 +312,7 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
                         if (video._mjrFilmstripInView && wrapper.style.display !== "none" && !document.hidden) {
                             _tryPlayVideo(video);
                         }
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 },
                 { passive: true }
             );
@@ -321,7 +321,7 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
                 () => {
                     try {
                         video.style.display = "none";
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                     _stopVideo(video, { releaseSrc: true });
                     _showVideoIcon(item);
                 },
@@ -355,7 +355,7 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
                     () => {
                         try {
                             img.style.display = "none";
-                        } catch {}
+                        } catch (e) { console.debug?.(e); }
                         _showAudioIcon(item);
                     },
                     { once: true }
@@ -387,7 +387,7 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
                 () => {
                     try {
                         img.style.display = "none";
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 },
                 { once: true }
             );
@@ -413,7 +413,7 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
         icon.textContent = "VIDEO";
         try {
             container.appendChild(icon);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     function _showAudioIcon(container) {
@@ -429,7 +429,7 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
         icon.textContent = "AUDIO";
         try {
             container.appendChild(icon);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     function _showUnknownIcon(container) {
@@ -443,7 +443,7 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
         icon.textContent = "?";
         try {
             container.appendChild(icon);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     function _appendVideoBadge(container) {
@@ -569,7 +569,7 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
             try {
                 const left = activeEl.offsetLeft - wrapper.clientWidth / 2 + activeEl.offsetWidth / 2;
                 wrapper.scrollTo({ left: Math.max(0, left), behavior: animate ? "smooth" : "instant" });
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
     }
 
@@ -593,7 +593,7 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
                 } else {
                     onNavigate(idx);
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
         true
     );
@@ -604,7 +604,7 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
         (e) => {
             try {
                 e.stopPropagation();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
         { passive: true, capture: true }
     );
