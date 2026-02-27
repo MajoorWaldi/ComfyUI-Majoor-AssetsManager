@@ -17,9 +17,17 @@ from ...shared import Result, get_logger
 
 logger = get_logger(__name__)
 
-DEFAULT_MAX_GRAPH_NODES = int(os.environ.get("MJR_MAX_GRAPH_NODES", "5000"))
-DEFAULT_MAX_LINK_NODES = int(os.environ.get("MJR_MAX_LINK_NODES", "200"))
-DEFAULT_MAX_GRAPH_DEPTH = int(os.environ.get("MJR_MAX_GRAPH_DEPTH", "100"))
+def _env_int(name: str, default: int, *, minimum: int = 1) -> int:
+    try:
+        value = int(os.environ.get(name, str(default)))
+    except Exception:
+        value = default
+    return max(minimum, value)
+
+
+DEFAULT_MAX_GRAPH_NODES = _env_int("MJR_MAX_GRAPH_NODES", 5000, minimum=100)
+DEFAULT_MAX_LINK_NODES = _env_int("MJR_MAX_LINK_NODES", 200, minimum=10)
+DEFAULT_MAX_GRAPH_DEPTH = _env_int("MJR_MAX_GRAPH_DEPTH", 100, minimum=5)
 
 
 SINK_CLASS_TYPES: set[str] = {

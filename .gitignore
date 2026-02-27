@@ -172,3 +172,4 @@ tests/__pytest_tmp_cov__/
 tests/__pytest_tmp__/
 reports_radon*
 radon_*
+audit_findings.md

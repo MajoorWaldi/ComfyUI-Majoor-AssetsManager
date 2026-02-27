@@ -25,7 +25,11 @@ logger = get_logger(__name__)
 _LOCK = threading.Lock()
 _STORE_PATH = Path(INDEX_DIR) / "custom_roots.json"
 _DEFAULT_MAX_STORE_BYTES = 1024 * 1024  # 1MB
-_MAX_STORE_BYTES = int(os.environ.get("MJR_CUSTOM_ROOTS_MAX_BYTES", str(_DEFAULT_MAX_STORE_BYTES)))
+try:
+    _MAX_STORE_BYTES = int(os.environ.get("MJR_CUSTOM_ROOTS_MAX_BYTES", str(_DEFAULT_MAX_STORE_BYTES)))
+except Exception:
+    _MAX_STORE_BYTES = _DEFAULT_MAX_STORE_BYTES
+_MAX_STORE_BYTES = max(1024, int(_MAX_STORE_BYTES or _DEFAULT_MAX_STORE_BYTES))
 
 
 def _utc_now_iso() -> str:

@@ -29,6 +29,7 @@ from mjr_am_backend.utils import parse_bool
 
 from ..core import (
     _csrf_error,
+    _has_configured_write_token,
     _is_loopback_request,
     _json_response,
     _read_json,
@@ -514,6 +515,14 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
             user_auth = _require_authenticated_user(request)
             if not (user_auth.ok and _is_loopback_request(request)):
                 return _json_response(auth)
+
+        if _has_configured_write_token():
+            return _json_response(
+                Result.Err(
+                    "FORBIDDEN",
+                    "Bootstrap token is disabled when an API token is already configured. Use rotate-token instead.",
+                )
+            )
 
         svc, error_result = await _require_services()
         if error_result:

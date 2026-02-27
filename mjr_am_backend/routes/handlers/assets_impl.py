@@ -2,6 +2,7 @@
 Asset management endpoints: ratings, tags, service retry.
 """
 import asyncio
+import errno
 import json
 import os
 import shutil
@@ -731,6 +732,169 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         ]
         return _json_response(Result.Ok({"routes": routes_info}))
 
+    async def _collect_asset_delete_backups(db: Any, *, filepath: str) -> dict[str, dict[str, Any] | None]:
+        backups: dict[str, dict[str, Any] | None] = {
+            "asset": None,
+            "asset_metadata": None,
+            "scan_journal": None,
+            "metadata_cache": None,
+        }
+
+        async def _query_one(sql: str, params: tuple[Any, ...]) -> dict[str, Any] | None:
+            try:
+                res = await db.aquery(sql, params)
+                if not res.ok or not res.data:
+                    return None
+                row = res.data[0] or {}
+                return row if isinstance(row, dict) else None
+            except Exception:
+                return None
+
+        asset_row = await _query_one(
+            """
+            SELECT id, filename, subfolder, filepath, source, root_id, kind, ext, size, mtime,
+                   width, height, duration, created_at, updated_at, indexed_at, content_hash, phash, hash_state
+            FROM assets
+            WHERE filepath = ?
+            LIMIT 1
+            """,
+            (filepath,),
+        )
+        backups["asset"] = asset_row
+
+        asset_id: int | None = None
+        try:
+            if isinstance(asset_row, dict) and asset_row.get("id") is not None:
+                asset_id = int(asset_row.get("id"))
+        except Exception:
+            asset_id = None
+
+        if asset_id is not None:
+            backups["asset_metadata"] = await _query_one(
+                """
+                SELECT asset_id, rating, tags, tags_text, workflow_hash, has_workflow,
+                       has_generation_data, metadata_quality, metadata_raw
+                FROM asset_metadata
+                WHERE asset_id = ?
+                LIMIT 1
+                """,
+                (asset_id,),
+            )
+
+        backups["scan_journal"] = await _query_one(
+            """
+            SELECT filepath, dir_path, state_hash, mtime, size, last_seen
+            FROM scan_journal
+            WHERE filepath = ?
+            LIMIT 1
+            """,
+            (filepath,),
+        )
+        backups["metadata_cache"] = await _query_one(
+            """
+            SELECT filepath, state_hash, metadata_hash, metadata_raw, last_updated
+            FROM metadata_cache
+            WHERE filepath = ?
+            LIMIT 1
+            """,
+            (filepath,),
+        )
+        return backups
+
+    async def _restore_asset_delete_backups(db: Any, backups: dict[str, dict[str, Any] | None]) -> None:
+        if not isinstance(backups, dict):
+            return
+        asset = backups.get("asset") if isinstance(backups.get("asset"), dict) else None
+        asset_meta = backups.get("asset_metadata") if isinstance(backups.get("asset_metadata"), dict) else None
+        scan_journal = backups.get("scan_journal") if isinstance(backups.get("scan_journal"), dict) else None
+        metadata_cache = backups.get("metadata_cache") if isinstance(backups.get("metadata_cache"), dict) else None
+        if not any((asset, asset_meta, scan_journal, metadata_cache)):
+            return
+
+        try:
+            async with db.atransaction(mode="immediate"):
+                if asset:
+                    await db.aexecute(
+                        """
+                        INSERT OR REPLACE INTO assets
+                        (id, filename, subfolder, filepath, source, root_id, kind, ext, size, mtime, width, height, duration, created_at, updated_at, indexed_at, content_hash, phash, hash_state)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            asset.get("id"),
+                            asset.get("filename"),
+                            asset.get("subfolder"),
+                            asset.get("filepath"),
+                            asset.get("source"),
+                            asset.get("root_id"),
+                            asset.get("kind"),
+                            asset.get("ext"),
+                            asset.get("size"),
+                            asset.get("mtime"),
+                            asset.get("width"),
+                            asset.get("height"),
+                            asset.get("duration"),
+                            asset.get("created_at"),
+                            asset.get("updated_at"),
+                            asset.get("indexed_at"),
+                            asset.get("content_hash"),
+                            asset.get("phash"),
+                            asset.get("hash_state"),
+                        ),
+                    )
+                if asset_meta:
+                    await db.aexecute(
+                        """
+                        INSERT OR REPLACE INTO asset_metadata
+                        (asset_id, rating, tags, tags_text, workflow_hash, has_workflow, has_generation_data, metadata_quality, metadata_raw)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            asset_meta.get("asset_id"),
+                            asset_meta.get("rating"),
+                            asset_meta.get("tags"),
+                            asset_meta.get("tags_text"),
+                            asset_meta.get("workflow_hash"),
+                            asset_meta.get("has_workflow"),
+                            asset_meta.get("has_generation_data"),
+                            asset_meta.get("metadata_quality"),
+                            asset_meta.get("metadata_raw"),
+                        ),
+                    )
+                if scan_journal:
+                    await db.aexecute(
+                        """
+                        INSERT OR REPLACE INTO scan_journal
+                        (filepath, dir_path, state_hash, mtime, size, last_seen)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            scan_journal.get("filepath"),
+                            scan_journal.get("dir_path"),
+                            scan_journal.get("state_hash"),
+                            scan_journal.get("mtime"),
+                            scan_journal.get("size"),
+                            scan_journal.get("last_seen"),
+                        ),
+                    )
+                if metadata_cache:
+                    await db.aexecute(
+                        """
+                        INSERT OR REPLACE INTO metadata_cache
+                        (filepath, state_hash, metadata_hash, metadata_raw, last_updated)
+                        VALUES (?, ?, ?, ?, ?)
+                        """,
+                        (
+                            metadata_cache.get("filepath"),
+                            metadata_cache.get("state_hash"),
+                            metadata_cache.get("metadata_hash"),
+                            metadata_cache.get("metadata_raw"),
+                            metadata_cache.get("last_updated"),
+                        ),
+                    )
+        except Exception as exc:
+            logger.error("Failed to restore DB state after file delete failure: %s", exc)
+
     @routes.post("/mjr/am/asset/delete")
     async def delete_asset(request):
         """
@@ -798,14 +962,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if not (resolved.exists() and resolved.is_file()):
             return _json_response(Result.Err("NOT_FOUND", "File does not exist"))
 
-        backup_row = None
-        if asset_id is not None:
-            row_res = await svc["db"].aquery(
-                "SELECT filename, subfolder, filepath, source, root_id, kind, ext, size, mtime, width, height, duration, created_at, updated_at, indexed_at, content_hash, phash, hash_state FROM assets WHERE id = ?",
-                (asset_id,),
-            )
-            if row_res.ok and row_res.data:
-                backup_row = row_res.data[0] or {}
+        backups = await _collect_asset_delete_backups(svc["db"], filepath=str(resolved))
 
         deleted_db = False
         try:
@@ -817,9 +974,16 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                     deleted_db = True
                 else:
                     # Browser mode can operate on files not yet indexed.
-                    await svc["db"].aexecute("DELETE FROM assets WHERE filepath = ?", (str(resolved),))
-                await svc["db"].aexecute("DELETE FROM scan_journal WHERE filepath = ?", (str(resolved),))
-                await svc["db"].aexecute("DELETE FROM metadata_cache WHERE filepath = ?", (str(resolved),))
+                    del_res = await svc["db"].aexecute("DELETE FROM assets WHERE filepath = ?", (str(resolved),))
+                    if not del_res.ok:
+                        return _json_response(Result.Err("DB_ERROR", str(del_res.error or "DB delete failed")))
+                    deleted_db = True
+                sj_res = await svc["db"].aexecute("DELETE FROM scan_journal WHERE filepath = ?", (str(resolved),))
+                if not sj_res.ok:
+                    return _json_response(Result.Err("DB_ERROR", str(sj_res.error or "DB delete failed")))
+                mc_res = await svc["db"].aexecute("DELETE FROM metadata_cache WHERE filepath = ?", (str(resolved),))
+                if not mc_res.ok:
+                    return _json_response(Result.Err("DB_ERROR", str(mc_res.error or "DB delete failed")))
         except Exception as exc:
             logger.error("Database deletion failed: %s", exc)
             return _json_response(
@@ -834,38 +998,8 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             if not del_res.ok:
                 raise RuntimeError(str(del_res.error or "delete failed"))
         except Exception as exc:
-            if deleted_db and backup_row:
-                try:
-                    await svc["db"].aexecute(
-                        """
-                        INSERT OR REPLACE INTO assets
-                        (id, filename, subfolder, filepath, source, root_id, kind, ext, size, mtime, width, height, duration, created_at, updated_at, indexed_at, content_hash, phash, hash_state)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """,
-                        (
-                            int(asset_id),
-                            backup_row.get("filename"),
-                            backup_row.get("subfolder"),
-                            backup_row.get("filepath"),
-                            backup_row.get("source"),
-                            backup_row.get("root_id"),
-                            backup_row.get("kind"),
-                            backup_row.get("ext"),
-                            backup_row.get("size"),
-                            backup_row.get("mtime"),
-                            backup_row.get("width"),
-                            backup_row.get("height"),
-                            backup_row.get("duration"),
-                            backup_row.get("created_at"),
-                            backup_row.get("updated_at"),
-                            backup_row.get("indexed_at"),
-                            backup_row.get("content_hash"),
-                            backup_row.get("phash"),
-                            backup_row.get("hash_state"),
-                        ),
-                    )
-                except Exception as restore_exc:
-                    logger.error("Failed to restore DB row for asset %s after delete failure: %s", asset_id, restore_exc)
+            if deleted_db:
+                await _restore_asset_delete_backups(svc["db"], backups)
             return _json_response(Result.Err(
                 "DELETE_FAILED",
                 "Failed to delete file",
@@ -1377,6 +1511,11 @@ def _resolve_download_path(filepath: Any) -> Path | web.Response:
     if not candidate:
         return web.Response(status=400, text="Invalid filepath")
     try:
+        if candidate.is_symlink():
+            return web.Response(status=403, text="Symlinked file not allowed")
+    except Exception:
+        pass
+    try:
         resolved = candidate.resolve(strict=True)
     except (OSError, RuntimeError, ValueError):
         return web.Response(status=404, text="File not found")
@@ -1384,7 +1523,27 @@ def _resolve_download_path(filepath: Any) -> Path | web.Response:
         return web.Response(status=403, text="Path is not within allowed roots")
     if not resolved.is_file():
         return web.Response(status=404, text="File not found")
+    if not _validate_no_symlink_open(resolved):
+        return web.Response(status=403, text="Symlinked file not allowed")
     return resolved
+
+
+def _validate_no_symlink_open(path: Path) -> bool:
+    try:
+        flags = os.O_RDONLY
+        if os.name == "nt" and hasattr(os, "O_BINARY"):
+            flags |= os.O_BINARY
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+        fd = os.open(str(path), flags)
+        os.close(fd)
+        return True
+    except OSError as exc:
+        if getattr(exc, "errno", None) in (errno.ELOOP, errno.EACCES, errno.EPERM):
+            return False
+        return False
+    except Exception:
+        return False
 
 
 def _build_download_response(resolved: Path, *, preview: bool) -> web.StreamResponse:
