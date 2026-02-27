@@ -37,6 +37,7 @@ import { createImagePreloader } from "../features/viewer/imagePreloader.js";
 import { getViewerInstance as _getViewerInstance } from "../features/viewer/viewerInstanceManager.js";
 import { createPlayerBarManager } from "../features/viewer/playerBarManager.js";
 import { getHotkeysState, setHotkeysScope } from "../features/panel/controllers/hotkeysState.js";
+import { createFilmstrip } from "../features/viewer/filmstrip.js";
 
 /**
  * Viewer modes
@@ -594,8 +595,45 @@ function createViewer() {
     footer.appendChild(navBar);
     footer.appendChild(playerBarHost);
 
+    // Filmstrip — horizontal thumbnail strip between content and footer.
+    const filmstrip = createFilmstrip({
+        state,
+        buildAssetViewURL,
+        onNavigate: (idx) => {
+            try {
+                // Plain click exits filmstrip-compare AB mode before navigating
+                if (state.compareAsset != null) {
+                    state.compareAsset = null;
+                    state.mode = VIEWER_MODES.SINGLE;
+                }
+                state.currentIndex = idx;
+                updateUI();
+            } catch {}
+        },
+        onCompare: (idx) => {
+            try {
+                const assets = Array.isArray(state.assets) ? state.assets : [];
+                const chosen = assets[idx];
+                if (!chosen) return;
+                // Ctrl+Click the current A asset → ignore
+                if (chosen === assets[state.currentIndex]) return;
+                // Ctrl+Click the current B asset → toggle off compare mode
+                if (chosen === state.compareAsset) {
+                    state.compareAsset = null;
+                    state.mode = VIEWER_MODES.SINGLE;
+                    updateUI();
+                    return;
+                }
+                state.compareAsset = chosen;
+                state.mode = VIEWER_MODES.AB_COMPARE;
+                updateUI();
+            } catch {}
+        },
+    });
+
     overlay.appendChild(header);
     overlay.appendChild(contentRow);
+    overlay.appendChild(filmstrip.el);
     overlay.appendChild(footer);
     overlay.appendChild(genInfoOverlay);
     overlay.appendChild(genInfoOverlayLeft);
@@ -1249,7 +1287,7 @@ function createViewer() {
     };
 
     function canAB() {
-        return state.assets.length === 2;
+        return state.assets.length === 2 || state.compareAsset != null;
     }
 
     function canSide() {
@@ -1286,13 +1324,25 @@ function createViewer() {
         state.panY = 0;
         state.targetZoom = 1;
 
+        // Clear filmstrip compare asset when leaving AB_COMPARE mode
+        try {
+            if (state.mode !== VIEWER_MODES.AB_COMPARE && state.compareAsset != null) {
+                state.compareAsset = null;
+            }
+        } catch {}
+
         // Update filename
         const current = state.assets[state.currentIndex];
         const isAB = state.mode === VIEWER_MODES.AB_COMPARE && canAB();
         const isSide = state.mode === VIEWER_MODES.SIDE_BY_SIDE && canSide();
-        const leftAsset = isAB || isSide ? state.assets?.[0] || null : current || null;
+        // In filmstrip-compare AB mode, A = current navigated asset, B = compareAsset.
+        // In traditional AB mode (exactly 2 assets), A = assets[0], B = assets[1].
+        const isFilmCompareAB = isAB && state.compareAsset != null;
+        const leftAsset = isAB || isSide
+            ? (isFilmCompareAB ? current : state.assets?.[0]) || null
+            : current || null;
         const rightAsset = isAB
-            ? state.assets?.[1] || null
+            ? (isFilmCompareAB ? state.compareAsset : state.assets?.[1]) || null
             : isSide && Array.isArray(state.assets) && state.assets.length >= 2
               ? state.assets[state.assets.length - 1]
               : null;
@@ -1385,6 +1435,12 @@ function createViewer() {
                     renderBadges();
                 } catch {}
             });
+        } catch {}
+
+        // Sync filmstrip highlight and scroll position.
+        try {
+            const isSingle = state.mode === VIEWER_MODES.SINGLE;
+            filmstrip.sync({ isSingle });
         } catch {}
     }
 
@@ -1974,6 +2030,8 @@ function createViewer() {
             bindOpenListeners();
             state.assets = Array.isArray(assets) ? assets : [assets];
             state.currentIndex = Math.max(0, Math.min(startIndex, state.assets.length - 1));
+            // Rebuild the filmstrip thumbnail strip for the new asset list.
+            try { filmstrip.rebuild(); } catch {}
             state.zoom = 1;
             state.panX = 0;
             state.panY = 0;
