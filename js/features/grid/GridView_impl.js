@@ -96,7 +96,7 @@ const RT_HYDRATE_STATE = new WeakMap(); // gridContainer -> { queue, inflight, s
 // ─────────────────────────────────────────────────────────────────────────────
 // Upsert Batching - Accumulate upserts and flush once for performance
 // ─────────────────────────────────────────────────────────────────────────────
-const UPSERT_BATCH_DEBOUNCE_MS = 50;     // Debounce window for batch flush
+const UPSERT_BATCH_DEBOUNCE_MS = 200;    // Debounce window for batch flush
 const UPSERT_BATCH_MAX_SIZE = 50;        // Max items before forced flush
 const UPSERT_BATCH_STATE = new WeakMap(); // gridContainer -> { pending: Map<id, asset>, timer: number|null }
 

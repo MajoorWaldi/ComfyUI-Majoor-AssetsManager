@@ -166,10 +166,13 @@ app.registerExtension({
 
         void checkMajoorVersion();
 
-        // Get ComfyUI API
-        const api = (await waitForComfyApi({ app: runtimeApp, timeoutMs: 4000 })) || getComfyApi(runtimeApp);
-        setComfyApi(api || null);
-        if (api) {
+        // Initialize API listeners in the background so sidebar tab registration
+        // is not blocked by API readiness polling.
+        void (async () => {
+            // Get ComfyUI API
+            const api = (await waitForComfyApi({ app: runtimeApp, timeoutMs: 4000 })) || getComfyApi(runtimeApp);
+            setComfyApi(api || null);
+            if (api) {
             let runtime = null;
             try {
                 runtime = typeof window !== "undefined" ? (window[ENTRY_RUNTIME_KEY] || null) : null;
@@ -353,6 +356,7 @@ app.registerExtension({
         } else {
             console.warn("📂 Majoor [⚠️] API not available, real-time updates disabled");
         }
+        })();
 
         // Register sidebar tab
         if (registerSidebarTabCompat(runtimeApp, {

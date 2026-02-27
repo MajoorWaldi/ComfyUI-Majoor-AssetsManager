@@ -206,6 +206,21 @@ class IndexService:
                 PromptServer.instance.send_sync("mjr-scan-complete", res.data)
             except Exception as e:
                 logger.debug("Failed to emit scan-complete event: %s", e)
+            # Push newly-added assets immediately so the frontend can upsert them
+            # into the grid without waiting for the next polling cycle.
+            added_ids = (res.data or {}).get("added_ids") or []
+            if added_ids:
+                try:
+                    from ...routes.registry import PromptServer
+                    batch_res = await self.get_assets_batch(list(added_ids[:20]))
+                    if batch_res.ok and batch_res.data:
+                        for asset in batch_res.data:
+                            try:
+                                PromptServer.instance.send_sync("mjr-asset-added", dict(asset))
+                            except Exception:
+                                pass
+                except Exception as e:
+                    logger.debug("Failed to emit mjr-asset-added events: %s", e)
             mark_directory_indexed(base_dir, source, root_id)
         return res
 
