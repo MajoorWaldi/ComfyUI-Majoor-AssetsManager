@@ -359,6 +359,7 @@ async def test_security_empty_input_and_token_routes(monkeypatch) -> None:
     monkeypatch.setattr(health_mod, "_require_services", _svc)
     monkeypatch.setattr(health_mod, "_csrf_error", lambda _req: None)
     monkeypatch.setattr(health_mod, "_require_write_access", lambda _req: Result.Ok({}))
+    monkeypatch.setattr(health_mod, "_has_configured_write_token", lambda: False)
     monkeypatch.setattr(health_mod, "_read_json", _read_empty)
 
     app = _build_health_app()
@@ -373,6 +374,24 @@ async def test_security_empty_input_and_token_routes(monkeypatch) -> None:
     req3 = make_mocked_request("POST", "/mjr/am/settings/security/bootstrap-token", app=app)
     resp3 = await (await app.router.resolve(req3)).handler(req3)
     assert json.loads(resp3.text).get("ok") is True
+
+
+@pytest.mark.asyncio
+async def test_bootstrap_token_blocked_when_token_already_configured(monkeypatch) -> None:
+    settings = _Settings()
+
+    async def _svc():
+        return {"settings": settings}, None
+
+    monkeypatch.setattr(health_mod, "_require_services", _svc)
+    monkeypatch.setattr(health_mod, "_csrf_error", lambda _req: None)
+    monkeypatch.setattr(health_mod, "_require_write_access", lambda _req: Result.Ok({}))
+    monkeypatch.setattr(health_mod, "_has_configured_write_token", lambda: True)
+
+    app = _build_health_app()
+    req = make_mocked_request("POST", "/mjr/am/settings/security/bootstrap-token", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    assert json.loads(resp.text).get("code") == "FORBIDDEN"
 
 
 @pytest.mark.asyncio

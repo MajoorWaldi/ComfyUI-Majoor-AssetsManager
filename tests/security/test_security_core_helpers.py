@@ -45,15 +45,31 @@ def test_hash_and_write_token_hash(monkeypatch) -> None:
     assert sec._get_write_token_hash() == "deadbeef"
 
 
+def test_has_configured_write_token(monkeypatch) -> None:
+    monkeypatch.delenv("MAJOOR_API_TOKEN", raising=False)
+    monkeypatch.delenv("MJR_API_TOKEN", raising=False)
+    monkeypatch.delenv("MAJOOR_API_TOKEN_HASH", raising=False)
+    monkeypatch.delenv("MJR_API_TOKEN_HASH", raising=False)
+    assert sec._has_configured_write_token() is False
+
+    monkeypatch.setenv("MAJOOR_API_TOKEN_HASH", "abc123")
+    assert sec._has_configured_write_token() is True
+
+
 def test_ip_helpers_and_resolve_client_ip(monkeypatch) -> None:
     assert sec._is_valid_ip("127.0.0.1")
     assert not sec._is_valid_ip("bad")
     assert sec._is_loopback_ip("::1")
 
-    monkeypatch.setattr(sec, "_is_trusted_proxy", lambda ip: ip == "127.0.0.1")
-    headers = {"X-Forwarded-For": "8.8.8.8, 1.1.1.1"}
+    monkeypatch.setattr(sec, "_is_trusted_proxy", lambda ip: ip in {"127.0.0.1", "10.0.0.5"})
+    headers = {"X-Forwarded-For": "8.8.8.8, 10.0.0.5"}
     assert sec._resolve_client_ip("127.0.0.1", headers) == "8.8.8.8"
     assert sec._resolve_client_ip("9.9.9.9", headers) == "9.9.9.9"
+
+    # Spoofed leading XFF value should not win when a trusted proxy appends the real client.
+    monkeypatch.setattr(sec, "_is_trusted_proxy", lambda ip: ip == "127.0.0.1")
+    spoofed = {"X-Forwarded-For": "1.2.3.4, 203.0.113.10"}
+    assert sec._resolve_client_ip("127.0.0.1", spoofed) == "203.0.113.10"
 
 
 def test_require_operation_enabled_paths(monkeypatch) -> None:

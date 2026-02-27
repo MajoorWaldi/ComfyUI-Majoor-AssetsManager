@@ -20,7 +20,10 @@ logger = get_logger(__name__)
 # ---------------------------------------------------------------------------
 
 _DEFAULT_MAX_UPLOAD_SIZE_BYTES = 500 * 1024 * 1024
-_DB_CONSISTENCY_SAMPLE = int(os.environ.get("MJR_DB_CONSISTENCY_SAMPLE", "32"))
+try:
+    _DB_CONSISTENCY_SAMPLE = int(os.environ.get("MJR_DB_CONSISTENCY_SAMPLE", "32"))
+except Exception:
+    _DB_CONSISTENCY_SAMPLE = 32
 _DB_CONSISTENCY_COOLDOWN_SECONDS = env_float("MJR_DB_CONSISTENCY_COOLDOWN_SECONDS", 3600.0)
 _DEFAULT_MAX_RENAME_ATTEMPTS = 1000
 _DEFAULT_MAX_CONCURRENT_INDEX = 10
@@ -28,9 +31,17 @@ _UPLOAD_READ_CHUNK_BYTES = 256 * 1024
 _FILE_COMPARE_CHUNK_BYTES = 4 * 1024 * 1024
 _MAX_FILENAME_LEN = 255
 
-_MAX_UPLOAD_SIZE = int(os.environ.get("MJR_MAX_UPLOAD_SIZE", str(_DEFAULT_MAX_UPLOAD_SIZE_BYTES)))
-_MAX_RENAME_ATTEMPTS = int(os.environ.get("MJR_MAX_RENAME_ATTEMPTS", str(_DEFAULT_MAX_RENAME_ATTEMPTS)))
-_MAX_CONCURRENT_INDEX = int(os.environ.get("MJR_MAX_CONCURRENT_INDEX", str(_DEFAULT_MAX_CONCURRENT_INDEX)))
+def _env_int(name: str, default: int, *, minimum: int = 1) -> int:
+    try:
+        value = int(os.environ.get(name, str(default)))
+    except Exception:
+        value = default
+    return max(minimum, value)
+
+
+_MAX_UPLOAD_SIZE = _env_int("MJR_MAX_UPLOAD_SIZE", _DEFAULT_MAX_UPLOAD_SIZE_BYTES, minimum=1024)
+_MAX_RENAME_ATTEMPTS = _env_int("MJR_MAX_RENAME_ATTEMPTS", _DEFAULT_MAX_RENAME_ATTEMPTS, minimum=1)
+_MAX_CONCURRENT_INDEX = _env_int("MJR_MAX_CONCURRENT_INDEX", _DEFAULT_MAX_CONCURRENT_INDEX, minimum=1)
 _INDEX_SEMAPHORE = asyncio.Semaphore(max(1, _MAX_CONCURRENT_INDEX))
 
 

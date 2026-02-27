@@ -292,7 +292,8 @@ def _resolve_client_ip(peer_ip: str, headers: Mapping[str, str]) -> str:
         return "unknown"
 
     if _is_trusted_proxy(peer):
-        forwarded_ip = _forwarded_for_ip(headers)
+        forwarded_chain = _forwarded_for_chain(headers)
+        forwarded_ip = _client_ip_from_forwarded_chain(forwarded_chain, peer=peer)
         if forwarded_ip:
             return forwarded_ip
         real_ip = _real_ip_from_header(headers)
@@ -300,6 +301,41 @@ def _resolve_client_ip(peer_ip: str, headers: Mapping[str, str]) -> str:
             return real_ip
 
     return peer
+
+
+def _forwarded_for_chain(headers: Mapping[str, str]) -> list[str]:
+    forwarded_for = _header_value(headers, "X-Forwarded-For")
+    if not forwarded_for:
+        return []
+    out: list[str] = []
+    for part in forwarded_for.split(","):
+        candidate = part.strip()
+        if _is_valid_ip(candidate):
+            out.append(candidate)
+    return out
+
+
+def _client_ip_from_forwarded_chain(forwarded_chain: list[str], *, peer: str) -> str:
+    """
+    Resolve client IP from X-Forwarded-For using trusted-proxy chain semantics.
+
+    We trim trusted proxies from the right side (closest hop first), then pick the
+    nearest untrusted hop. This is safer than blindly taking the first XFF value.
+    """
+    if not forwarded_chain:
+        return ""
+    hops = list(forwarded_chain)
+    hops.append(str(peer or "").strip())
+    while hops:
+        tail = str(hops[-1] or "").strip()
+        if not tail:
+            hops.pop()
+            continue
+        if _is_trusted_proxy(tail):
+            hops.pop()
+            continue
+        return tail
+    return ""
 
 
 def _forwarded_for_ip(headers: Mapping[str, str]) -> str:
@@ -405,6 +441,13 @@ def _check_write_access(*, peer_ip: str, headers: Mapping[str, str], request_sch
         auth="loopback_only",
         client_ip=client_ip,
     )
+
+
+def _has_configured_write_token() -> bool:
+    try:
+        return bool(_get_write_token_hash())
+    except Exception:
+        return False
 
 
 def _require_write_access(request: web.Request) -> Result[bool]:

@@ -16,6 +16,7 @@ from .response import _json_response, safe_error_message
 from .security import (
     _check_rate_limit,
     _csrf_error,
+    _has_configured_write_token,
     _is_loopback_request,
     _require_authenticated_user,
     _require_operation_enabled,
@@ -37,6 +38,7 @@ __all__ = [
     "_is_allowed_view_media_file",
     "_check_rate_limit",
     "_csrf_error",
+    "_has_configured_write_token",
     "_is_loopback_request",
     "_require_operation_enabled",
     "_resolve_security_prefs",

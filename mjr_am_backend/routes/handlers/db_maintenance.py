@@ -20,6 +20,7 @@ from mjr_am_backend.shared import Result, get_logger
 from ..core import (
     _csrf_error,
     _json_response,
+    _read_json,
     _require_services,
     _require_write_access,
     safe_error_message,
@@ -584,11 +585,10 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
         if not auth.ok:
             return _json_response(auth)
 
-        try:
-            payload = await request.json()
-        except Exception:
-            payload = {}
-        payload = payload if isinstance(payload, dict) else {}
+        payload_res = await _read_json(request)
+        if not payload_res.ok:
+            return _json_response(payload_res)
+        payload = payload_res.data or {}
         requested_name = str(payload.get("name") or "").strip()
         use_latest = bool(payload.get("use_latest") or not requested_name)
 

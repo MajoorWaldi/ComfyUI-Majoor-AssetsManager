@@ -67,11 +67,31 @@ _MAX_REQUEST_BYTES = 5 * 1024 * 1024
 _RATE_LIMIT_MAX_REQUESTS = 30
 _RATE_LIMIT_WINDOW_SECONDS = 60
 
-_BATCH_TTL_SECONDS = int(os.environ.get("MAJOOR_BATCH_ZIP_TTL_SECONDS", str(_DEFAULT_BATCH_TTL_SECONDS)))
-_BATCH_MAX = int(os.environ.get("MAJOOR_BATCH_ZIP_MAX", str(_DEFAULT_BATCH_MAX)))
-_MAX_ITEMS = int(os.environ.get("MAJOOR_MAX_BATCH_SIZE", str(_DEFAULT_MAX_ITEMS)))
-_BUILD_TIMEOUT_S = float(os.environ.get("MAJOOR_BATCH_ZIP_BUILD_TIMEOUT_S", str(_DEFAULT_BUILD_TIMEOUT_S)))
-_ZIP_COPY_CHUNK_BYTES = int(os.environ.get("MAJOOR_BATCH_ZIP_CHUNK_BYTES", str(_DEFAULT_ZIP_COPY_CHUNK_BYTES)))
+def _env_int(name: str, default: int, *, minimum: int | None = None) -> int:
+    try:
+        value = int(os.environ.get(name, str(default)))
+    except Exception:
+        value = default
+    if minimum is not None:
+        value = max(minimum, value)
+    return value
+
+
+def _env_float(name: str, default: float, *, minimum: float | None = None) -> float:
+    try:
+        value = float(os.environ.get(name, str(default)))
+    except Exception:
+        value = default
+    if minimum is not None:
+        value = max(minimum, value)
+    return value
+
+
+_BATCH_TTL_SECONDS = _env_int("MAJOOR_BATCH_ZIP_TTL_SECONDS", _DEFAULT_BATCH_TTL_SECONDS, minimum=1)
+_BATCH_MAX = _env_int("MAJOOR_BATCH_ZIP_MAX", _DEFAULT_BATCH_MAX, minimum=1)
+_MAX_ITEMS = _env_int("MAJOOR_MAX_BATCH_SIZE", _DEFAULT_MAX_ITEMS, minimum=1)
+_BUILD_TIMEOUT_S = _env_float("MAJOOR_BATCH_ZIP_BUILD_TIMEOUT_S", _DEFAULT_BUILD_TIMEOUT_S, minimum=1.0)
+_ZIP_COPY_CHUNK_BYTES = _env_int("MAJOOR_BATCH_ZIP_CHUNK_BYTES", _DEFAULT_ZIP_COPY_CHUNK_BYTES, minimum=16 * 1024)
 
 
 def _sanitize_token(token: Any) -> str:
