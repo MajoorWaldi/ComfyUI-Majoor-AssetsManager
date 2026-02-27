@@ -24,7 +24,24 @@ export function bindFilters({
     onFiltersChanged = null,
     lifecycleSignal = null
 }) {
+    // Shared debounce: batch rapid filter changes into a single grid reload.
+    // The gridController already coalesces concurrent reloads, but this prevents
+    // the "one extra reload" that happens when a previous reload completes between
+    // two filter changes that are slightly spaced apart (e.g., keyboard navigation).
+    let _filterReloadTimer = null;
+    const scheduleReload = () => {
+        if (_filterReloadTimer) clearTimeout(_filterReloadTimer);
+        _filterReloadTimer = setTimeout(() => {
+            _filterReloadTimer = null;
+            reloadGrid().catch(() => {});
+        }, 250);
+    };
+
     const disposers = [];
+    disposers.push(() => {
+        if (_filterReloadTimer) { clearTimeout(_filterReloadTimer); _filterReloadTimer = null; }
+    });
+
     const addManagedListener = (target, event, handler, options) => {
         if (!target?.addEventListener || typeof handler !== "function") return;
         try {
@@ -47,30 +64,30 @@ export function bindFilters({
         });
     };
 
-    addManagedListener(kindSelect, "change", async () => {
+    addManagedListener(kindSelect, "change", () => {
         state.kindFilter = kindSelect.value || "";
         try { onFiltersChanged?.(); } catch {}
-        await reloadGrid();
+        scheduleReload();
     }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
-    addManagedListener(wfCheckbox, "change", async () => {
+    addManagedListener(wfCheckbox, "change", () => {
         state.workflowOnly = Boolean(wfCheckbox.checked);
         try { onFiltersChanged?.(); } catch {}
-        await reloadGrid();
+        scheduleReload();
     }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
-    addManagedListener(ratingSelect, "change", async () => {
+    addManagedListener(ratingSelect, "change", () => {
         state.minRating = Number(ratingSelect.value || 0) || 0;
         try { onFiltersChanged?.(); } catch {}
-        await reloadGrid();
+        scheduleReload();
     }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
     if (workflowTypeSelect) {
-        addManagedListener(workflowTypeSelect, "change", async () => {
+        addManagedListener(workflowTypeSelect, "change", () => {
             state.workflowType = String(workflowTypeSelect.value || "").trim().toUpperCase();
             try { onFiltersChanged?.(); } catch {}
-            await reloadGrid();
+            scheduleReload();
         }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
     }
 
-    const applySizeFilter = async () => {
+    const applySizeFilter = () => {
         const minVal = parseLooseNumber(minSizeInput?.value || 0);
         const maxVal = parseLooseNumber(maxSizeInput?.value || 0);
         state.minSizeMB = Number.isFinite(minVal) && minVal > 0 ? minVal : 0;
@@ -80,12 +97,12 @@ export function bindFilters({
             if (maxSizeInput) maxSizeInput.value = String(state.maxSizeMB);
         }
         try { onFiltersChanged?.(); } catch {}
-        await reloadGrid();
+        scheduleReload();
     };
     addManagedListener(minSizeInput, "change", applySizeFilter, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
     addManagedListener(maxSizeInput, "change", applySizeFilter, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
 
-    const applyResolutionFilter = async () => {
+    const applyResolutionFilter = () => {
         const rawW = parseLooseNumber(minWidthInput?.value || 0);
         const rawH = parseLooseNumber(minHeightInput?.value || 0);
         const w = Number.isFinite(rawW) && rawW > 0 ? Math.round(rawW) : 0;
@@ -116,13 +133,13 @@ export function bindFilters({
             }
         } catch {}
         try { onFiltersChanged?.(); } catch {}
-        await reloadGrid();
+        scheduleReload();
     };
     addManagedListener(minWidthInput, "change", applyResolutionFilter, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
     addManagedListener(minHeightInput, "change", applyResolutionFilter, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
 
     if (resolutionPresetSelect) {
-        addManagedListener(resolutionPresetSelect, "change", async () => {
+        addManagedListener(resolutionPresetSelect, "change", () => {
             const preset = String(resolutionPresetSelect.value || "");
             const map = {
                 hd: [1280, 720],
@@ -147,14 +164,14 @@ export function bindFilters({
             if (minWidthInput) minWidthInput.value = w > 0 ? String(w) : "";
             if (minHeightInput) minHeightInput.value = h > 0 ? String(h) : "";
             try { onFiltersChanged?.(); } catch {}
-            await reloadGrid();
+            scheduleReload();
         }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
     }
     if (resolutionCompareSelect) {
         addManagedListener(resolutionCompareSelect, "change", applyResolutionFilter, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
     }
     if (dateRangeSelect) {
-        addManagedListener(dateRangeSelect, "change", async () => {
+        addManagedListener(dateRangeSelect, "change", () => {
             state.dateRangeFilter = dateRangeSelect.value || "";
             if (state.dateRangeFilter && state.dateExactFilter) {
                 state.dateExactFilter = "";
@@ -163,7 +180,7 @@ export function bindFilters({
                 }
             }
             try { onFiltersChanged?.(); } catch {}
-            await reloadGrid();
+            scheduleReload();
         }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
     }
     if (dateExactInput) {
@@ -171,7 +188,7 @@ export function bindFilters({
             dateExactInput.classList.toggle("mjr-agenda-filled", status === "filled");
             dateExactInput.classList.toggle("mjr-agenda-empty", status === "empty");
         };
-        addManagedListener(dateExactInput, "change", async () => {
+        addManagedListener(dateExactInput, "change", () => {
             state.dateExactFilter = dateExactInput.value ? String(dateExactInput.value) : "";
             if (state.dateExactFilter && state.dateRangeFilter) {
                 state.dateRangeFilter = "";
@@ -183,7 +200,7 @@ export function bindFilters({
                 applyAgendaStyle("");
             }
             try { onFiltersChanged?.(); } catch {}
-            await reloadGrid();
+            scheduleReload();
         }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
         const handleAgendaStatus = (event) => {
             if (!event?.detail) return;

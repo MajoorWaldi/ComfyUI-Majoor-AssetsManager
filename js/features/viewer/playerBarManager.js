@@ -162,6 +162,16 @@ export function createPlayerBarManager({
                 }
             } catch {}
 
+            // Last-resort: the media element may have already detected FPS via _attachFpsDetection
+            // (synchronous asset-metadata emit fires before this listener is registered).
+            // Reading _mjrDetectedFps from the video element bridges that timing gap.
+            try {
+                if (initialFps == null) {
+                    const detected = Number(mediaEl?._mjrDetectedFps);
+                    if (Number.isFinite(detected) && detected > 0) initialFps = detected;
+                }
+            } catch {}
+
             const mediaKind = String(current?.kind || "").toLowerCase() === "audio" ? "audio" : "video";
             const mounted = mountUnifiedMediaControls(mediaEl, {
                 variant: "viewerbar",

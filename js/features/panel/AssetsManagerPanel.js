@@ -401,20 +401,10 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     try {
         window.addEventListener?.("mjr-settings-changed", onSettingsChanged, { signal: panelLifecycleAC?.signal });
     } catch {}
-    try {
-        const onEnrichmentStatus = (e) => {
-            try {
-                if (panelLifecycleAC?.signal?.aborted) return;
-            } catch {}
-            const detail = e?.detail || {};
-            const active = !!detail?.active;
-            // Ensure card workflow/status dots reflect final metadata once enrichment ends.
-            if (!active) {
-                gridController.reloadGrid().catch(() => {});
-            }
-        };
-        window.addEventListener?.("mjr-enrichment-status", onEnrichmentStatus, { signal: panelLifecycleAC?.signal });
-    } catch {}
+    // Enrichment-complete reload removed: handleCountersUpdate (path B) already
+    // detects new assets and triggers queuedReload with proper throttle + anchor
+    // preservation. A second unconditional reload here caused systematic double
+    // reloads after every watcher flush that triggers metadata enrichment.
 
     content.appendChild(statusSection);
     content.appendChild(searchSection);
@@ -508,7 +498,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     const requestQueuedReload = () => {
         try {
             const now = Date.now();
-            if (now - Number(_lastReloadRequestAt || 0) < 180) return;
+            if (now - Number(_lastReloadRequestAt || 0) < 500) return;
             _lastReloadRequestAt = now;
         } catch {}
         queuedReload().catch((err) => {

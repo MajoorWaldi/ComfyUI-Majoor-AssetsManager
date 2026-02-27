@@ -146,8 +146,8 @@ def stop_cleanup_thread(timeout: float = 2.0) -> None:
     if thread and thread.is_alive():
         try:
             thread.join(timeout=max(0.1, float(timeout)))
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Batch ZIP cleanup thread join interrupted: %s", exc)
     with _CLEANUP_THREAD_LOCK:
         if _CLEANUP_THREAD is thread and (thread is None or not thread.is_alive()):
             _CLEANUP_THREAD = None

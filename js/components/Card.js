@@ -163,25 +163,56 @@ const getVideoThumbManager = () => {
             } catch {}
         });
 
-    const ensureFirstFrame = async (video) => {
-        if (!video) return;
-        try {
-            if (video.readyState < 2) return;
-        } catch {}
-        try {
-            // Prefer a later frame to avoid black/fade-in thumbnails when frame 0 is empty.
-            video.currentTime = VIDEO_THUMB_FIRST_FRAME_SEEK_S;
-        } catch {}
-        try {
-            // Fallback for very short clips where 1.0s may be out of range.
-            if (!Number.isFinite(video.currentTime) || video.currentTime <= 0) {
-                video.currentTime = 0.05;
+    const ensureFirstFrame = (video) =>
+        new Promise((resolve) => {
+            if (!video) return resolve();
+            try {
+                if (video.readyState < 2) return resolve();
+            } catch {
+                return resolve();
             }
-        } catch {}
-        try {
-            video.pause();
-        } catch {}
-    };
+
+            let done = false;
+            const finish = () => {
+                if (done) return;
+                done = true;
+                try { video.removeEventListener("seeked", onSeeked); } catch {}
+                try { video.removeEventListener("error", onSeekError); } catch {}
+                try { video.pause(); } catch {}
+                resolve();
+            };
+            const onSeeked = () => finish();
+            const onSeekError = () => finish();
+
+            // 1.5s fallback so a stalled seek never blocks the thumbnail pipeline.
+            const fallbackTimer = setTimeout(finish, 1500);
+            const finishWithTimer = () => { clearTimeout(fallbackTimer); finish(); };
+            const onSeekedWithTimer = () => finishWithTimer();
+            const onSeekErrorWithTimer = () => finishWithTimer();
+
+            try {
+                video.addEventListener("seeked", onSeekedWithTimer, { once: true });
+                video.addEventListener("error", onSeekErrorWithTimer, { once: true });
+            } catch {
+                clearTimeout(fallbackTimer);
+                return resolve();
+            }
+
+            try {
+                // Prefer a later frame to avoid black/fade-in thumbnails when frame 0 is empty.
+                video.currentTime = VIDEO_THUMB_FIRST_FRAME_SEEK_S;
+            } catch {
+                clearTimeout(fallbackTimer);
+                return resolve();
+            }
+
+            try {
+                // Fallback for very short clips where 1.0s may be out of range.
+                if (!Number.isFinite(video.currentTime) || video.currentTime <= 0) {
+                    video.currentTime = 0.05;
+                }
+            } catch {}
+        });
 
     const stopVideo = (video, { releaseSrc = true } = {}) => {
         if (!video) return;
@@ -533,6 +564,12 @@ const getVideoThumbManager = () => {
             } catch {}
             try {
                 removeSettingsListener?.();
+            } catch {}
+            // Disconnect the IntersectionObserver so it stops firing after dispose.
+            // observed.clear() alone does not stop the observer from holding
+            // references to previously-observed elements.
+            try {
+                if (observer) observer.disconnect();
             } catch {}
             try {
                 playing.clear();
