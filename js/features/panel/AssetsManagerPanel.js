@@ -583,7 +583,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             } catch {}
         }
     });
-    customRootsController.bind({ customAddBtn, customRemoveBtn });
+    const disposeCustomRootsBindings = customRootsController.bind({ customAddBtn, customRemoveBtn });
     try {
         window.addEventListener("mjr:custom-roots-changed", async (e) => {
             const preferredId = String(e?.detail?.preferredId || "").trim() || null;
@@ -1136,6 +1136,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         } catch {}
         try {
             gridContainer?._mjrGridContextMenuUnbind?.();
+        } catch {}
+        try {
+            disposeCustomRootsBindings?.();
         } catch {}
         try {
             _unbindBrowserFolderNav?.();

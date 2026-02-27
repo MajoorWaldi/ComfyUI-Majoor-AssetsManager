@@ -217,7 +217,7 @@ export function bindFilters({
             window?.addEventListener?.("MJR:AgendaStatus", handleAgendaStatus, opts);
             disposers.push(() => {
                 try {
-                    window.removeEventListener("MJR:AgendaStatus", handleAgendaStatus);
+                    window.removeEventListener("MJR:AgendaStatus", handleAgendaStatus, opts);
                 } catch {}
             });
         } catch {}

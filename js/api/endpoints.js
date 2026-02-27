@@ -134,6 +134,9 @@ export function buildListURL(params = {}) {
     }
     if (customRootId) {
         url += `&custom_root_id=${encodeURIComponent(customRootId)}`;
+    } else if (String(scope || "").toLowerCase() === "custom") {
+        // Browser scope without selected root uses absolute filesystem paths.
+        url += "&browser_mode=1";
     }
     if (kind) {
         url += `&kind=${encodeURIComponent(kind)}`;

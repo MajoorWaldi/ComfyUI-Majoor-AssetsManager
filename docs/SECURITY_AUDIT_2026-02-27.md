@@ -10,11 +10,11 @@ Conducted with static analysis of every source file.
 | Severity | Count |
 |---|---|
 | CRITICAL | 4 |
-| HIGH | 11 |
+| HIGH | 13 (+2 from browser deep-audit 2026-02-27) |
 | MEDIUM | 14 |
-| LOW | 10 |
+| LOW | 11 (+1 from browser deep-audit 2026-02-27) |
 | INFO / Closed | 6 |
-| **Total** | **45** |
+| **Total** | **48** |
 
 ### Progress vs. previous audit (2026-02-26)
 
@@ -887,6 +887,69 @@ tooling (`run_tests.bat` or a new `scripts/audit.sh`).
 
 ---
 
+### H-12 — `window.open(viewUrl)` in ViewerContextMenu — scheme not validated, missing `noopener`
+
+**File:** `js/features/viewer/ViewerContextMenu.js:231`
+
+**Description:**
+The "Open in New Tab" context menu item calls `window.open(viewUrl, "_blank")` without:
+1. A scheme allowlist check — if `buildAssetViewURL()` ever returns a `javascript:` or `data:text/html,...` URL (e.g., via a compromised database record or SQL injection per C-01), it executes arbitrary JavaScript in a new tab.
+2. The `noopener,noreferrer` flags — the opened page can access the opener's `window` object via `window.opener`, enabling tab-napping attacks.
+
+```javascript
+// ViewerContextMenu.js:231 — current
+window.open(viewUrl, "_blank");
+
+// Fixed
+if (_isSafeUrl(viewUrl)) {
+    window.open(viewUrl, "_blank", "noopener,noreferrer");
+}
+```
+
+The `_isSafeUrl` helper already exists in `GenerationSection.js` (C-03 fix); extract it to a shared utility.
+
+**Impact:** Stored XSS via crafted asset URL; tab-napping via missing `noopener`.
+
+---
+
+### H-13 — `customRootsController.js` — `bind()` leaks three DOM event listeners
+
+**File:** `js/features/panel/controllers/customRootsController.js:75-163`
+
+**Description:**
+`bind({ customAddBtn, customRemoveBtn })` registers three persistent event listeners:
+- `customSelect.addEventListener("change", ...)` — line 76
+- `customAddBtn.addEventListener("click", ...)` — line 97
+- `customRemoveBtn.addEventListener("click", ...)` — line 130
+
+The function returns `{ refreshCustomRoots, bind }` with **no `dispose()` method**. If the panel is destroyed and re-mounted (or if `bind()` is called a second time), all three listeners accumulate on the DOM elements. Each accumulation means user interactions trigger N versions of the handler simultaneously, causing multiple redundant API calls (`POST /custom-roots`, `POST /custom-roots/remove`) per click.
+
+**Suggested fix:**
+
+```javascript
+const bind = ({ customAddBtn, customRemoveBtn }) => {
+    const changeHandler = async () => { ... };
+    const addHandler   = async () => { ... };
+    const removeHandler = async () => { ... };
+
+    customSelect.addEventListener("change", changeHandler);
+    customAddBtn.addEventListener("click", addHandler);
+    customRemoveBtn.addEventListener("click", removeHandler);
+
+    return () => {  // dispose
+        customSelect.removeEventListener("change", changeHandler);
+        customAddBtn.removeEventListener("click", addHandler);
+        customRemoveBtn.removeEventListener("click", removeHandler);
+    };
+};
+
+return { refreshCustomRoots, bind };
+```
+
+Callers should store and invoke the returned dispose function on panel teardown.
+
+---
+
 ### LF-01 — Dead code: `agendaHandler` variable
 
 **File:** `js/features/panel/controllers/filtersController.js:28`
@@ -894,6 +957,33 @@ tooling (`run_tests.bat` or a new `scripts/audit.sh`).
 ```javascript
 // Remove this unused declaration
 let agendaHandler = null;
+```
+
+---
+
+### LF-02 — `removeEventListener` in `filtersController.js` missing options object
+
+**File:** `js/features/panel/controllers/filtersController.js:220`
+
+**Description:**
+The `MJR:AgendaStatus` listener is added with `{ passive: true, signal }` but removed without
+options:
+
+```javascript
+// Added with options
+window.addEventListener("MJR:AgendaStatus", handleAgendaStatus, { passive: true, signal });
+// Removed without options (line 220)
+window.removeEventListener("MJR:AgendaStatus", handleAgendaStatus);
+```
+
+`passive` does not affect listener identity for removal (only `capture` does), so this is
+functionally correct. However, the inconsistency is a code-hygiene trap — if `capture: true` is
+added in a future refactor, the removal will silently fail.
+
+**Suggested fix:** Pass the same options to `removeEventListener`:
+
+```javascript
+window.removeEventListener("MJR:AgendaStatus", handleAgendaStatus, { passive: true });
 ```
 
 ---
@@ -915,19 +1005,20 @@ let agendaHandler = null;
 
 | Priority | ID | Effort | Impact |
 |---|---|---|---|
-| 1 | C-03 | Low (2 lines) | Prevents stored XSS via crafted metadata |
+| 1 | C-03 / H-12 | Low (2–4 lines each) | Prevents stored XSS via crafted asset URL in viewer + generation panel |
 | 2 | C-01 | Low (add assert + double-quote) | Hardens SQL injection defence |
-| 3 | H-01 | Low (1 line regex change) | Closes SSRF residual gap |
-| 4 | M-14 | Low (1 line regex) | Fixes header injection |
-| 5 | LF-01 | Trivial | Remove dead code |
-| 6 | H-02 | Medium | Fixes silent cleanup failure + shutdown hang |
-| 7 | M-06 | Low | Prevents theoretical infinite loop in ZIP builder |
-| 8 | M-08 | Low (add log line) | Surfaces rate-limit failures |
-| 9 | M-09 | Medium | Prevents rate-limit bypass via XFF spoofing |
-| 10 | H-03 | Low | Reduces burst API call load |
-| 11 | C-04 | Medium | Tightens bootstrap-token auth |
-| 12 | C-02 / H-06 | High (architectural) | Removes token from response body / localStorage |
-| 13 | H-04 | Medium | Deep workflow validation |
-| 14 | MT-01/02/03 | Medium | Integration test coverage for security paths |
-| 15 | M-10 | Low (CI config) | Adds dependency vuln scanning |
-| 16 | H-08 / H-09 | Low (CI config) | SHA pins + permission scoping |
+| 3 | H-13 | Low (refactor bind to return dispose) | Fixes listener accumulation on panel remount |
+| 4 | H-01 | Low (1 line regex change) | Closes SSRF residual gap |
+| 5 | M-14 | Low (1 line regex) | Fixes header injection |
+| 6 | LF-01 / LF-02 | Trivial | Remove dead code; fix removeEventListener options |
+| 7 | H-02 | Medium | Fixes silent cleanup failure + shutdown hang |
+| 8 | M-06 | Low | Prevents theoretical infinite loop in ZIP builder |
+| 9 | M-08 | Low (add log line) | Surfaces rate-limit failures |
+| 10 | M-09 | Medium | Prevents rate-limit bypass via XFF spoofing |
+| 11 | H-03 | Low | Reduces burst API call load |
+| 12 | C-04 | Medium | Tightens bootstrap-token auth |
+| 13 | C-02 / H-06 | High (architectural) | Removes token from response body / localStorage |
+| 14 | H-04 | Medium | Deep workflow validation |
+| 15 | MT-01/02/03 | Medium | Integration test coverage for security paths |
+| 16 | M-10 | Low (CI config) | Adds dependency vuln scanning |
+| 17 | H-08 / H-09 | Low (CI config) | SHA pins + permission scoping |

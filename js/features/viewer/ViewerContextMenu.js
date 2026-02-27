@@ -40,6 +40,18 @@ const VIEWER_SHORTCUTS = {
 const MENU_SELECTOR = ".mjr-viewer-context-menu";
 const POPOVER_SELECTOR = ".mjr-viewer-popover";
 
+function _isSafeUrl(url) {
+    const value = String(url || "").trim();
+    if (!value) return false;
+    if (value.startsWith("/")) return true;
+    try {
+        const parsed = new URL(value);
+        return parsed.protocol === "http:" || parsed.protocol === "https:";
+    } catch {
+        return false;
+    }
+}
+
 function createMenu() {
     return getOrCreateMenu({
         selector: MENU_SELECTOR,
@@ -228,7 +240,8 @@ export function bindViewerContextMenu({
 
         menu.appendChild(
             createItem(t("ctx.openInNewTab", "Open in New Tab"), "pi pi-external-link", null, withClose(() => {
-                window.open(viewUrl, "_blank");
+                if (!_isSafeUrl(viewUrl)) return;
+                window.open(viewUrl, "_blank", "noopener,noreferrer");
             }))
         );
 

@@ -173,3 +173,5 @@ tests/__pytest_tmp__/
 reports_radon*
 radon_*
 audit_findings.md
+docs/SECURITY_AUDIT_2026-02-27.md
+docs/SECURITY_AUDIT_2026-02-27.md

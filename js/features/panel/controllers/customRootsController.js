@@ -73,7 +73,22 @@ export function createCustomRootsController({
     };
 
     const bind = ({ customAddBtn, customRemoveBtn }) => {
-        customSelect.addEventListener("change", async () => {
+        const disposers = [];
+        const addManagedListener = (target, event, handler) => {
+            if (!target?.addEventListener || typeof handler !== "function") return;
+            try {
+                target.addEventListener(event, handler);
+            } catch {
+                return;
+            }
+            disposers.push(() => {
+                try {
+                    target.removeEventListener(event, handler);
+                } catch {}
+            });
+        };
+
+        const onCustomRootChange = async () => {
             // Only update state if not disabled (not in loading/error state)
             if (!customSelect.disabled) {
                 state.customRootId = customSelect.value || "";
@@ -90,11 +105,14 @@ export function createCustomRootsController({
                 } catch {}
                 await reloadGrid();
             }
-        });
+        };
+        addManagedListener(customSelect, "change", onCustomRootChange);
 
-        customAddBtn.disabled = false;
-        customAddBtn.title = t("btn.add", "Add");
-        customAddBtn.addEventListener("click", async () => {
+        if (customAddBtn) {
+            customAddBtn.disabled = false;
+            customAddBtn.title = t("btn.add", "Add");
+        }
+        const onCustomAddClick = async () => {
             let pickedPath = "";
             try {
                 const browseRes = await post(ENDPOINTS.BROWSE_FOLDER, {});
@@ -125,9 +143,10 @@ export function createCustomRootsController({
             } catch {}
             await reloadGrid();
             comfyToast(t("toast.folderAdded", "Folder added"), "success");
-        });
+        };
+        addManagedListener(customAddBtn, "click", onCustomAddClick);
 
-        customRemoveBtn.addEventListener("click", async () => {
+        const onCustomRemoveClick = async () => {
             if (!state.customRootId) return;
 
             const selectedOption = customSelect.options[customSelect.selectedIndex];
@@ -160,7 +179,16 @@ export function createCustomRootsController({
                 customRemoveBtn.disabled = !state.customRootId; // Keep disabled if no selection
                 customRemoveBtn.textContent = t("btn.remove");
             }
-        });
+        };
+        addManagedListener(customRemoveBtn, "click", onCustomRemoveClick);
+
+        return () => {
+            for (const dispose of disposers.splice(0)) {
+                try {
+                    dispose();
+                } catch {}
+            }
+        };
     };
 
     return { refreshCustomRoots, bind };
