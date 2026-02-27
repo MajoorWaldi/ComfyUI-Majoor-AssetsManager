@@ -47,7 +47,7 @@ jobs:
         with:
           submodules: true
       - name: Publish Custom Node
-        uses: Comfy-Org/publish-node-action@d2366e798764f607447f2ef9d5ebcdd4d360f193
+        uses: Comfy-Org/publish-node-action@7578cdb0c1410f2515e6f9b1443c6859cab94f05 # 1.0.1
         with:
           ## Add your own personal access token to your Github Repository secrets and reference it here.
           personal_access_token: ${{ secrets.REGISTRY_ACCESS_TOKEN }}
