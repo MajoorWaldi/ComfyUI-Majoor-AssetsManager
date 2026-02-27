@@ -157,14 +157,12 @@ app.registerExtension({
             initDragDrop();
         } catch {}
 
-        setTimeout(() => {
-            registerMajoorSettings(runtimeApp, () => {
-                const grid = getActiveGridContainer();
-                if (grid) loadAssets(grid);
-            });
-        }, 500);
+        registerMajoorSettings(runtimeApp, () => {
+            const grid = getActiveGridContainer();
+            if (grid) loadAssets(grid);
+        });
 
-        void checkMajoorVersion();
+        setTimeout(() => { void checkMajoorVersion(); }, 5000);
 
         // Initialize API listeners in the background so sidebar tab registration
         // is not blocked by API readiness polling.

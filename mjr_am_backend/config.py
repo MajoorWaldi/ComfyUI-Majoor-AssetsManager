@@ -258,7 +258,7 @@ FFPROBE_TIMEOUT = _env_int(10, "MJR_AM_FFPROBE_TIMEOUT", "MAJOOR_FFPROBE_TIMEOUT
 
 # Database tuning.
 # 2 MiB default metadata JSON cap limits DB bloat from oversized embedded metadata blobs.
-DB_TIMEOUT = _env_float(30.0, "MJR_AM_DB_TIMEOUT", "MAJOOR_DB_TIMEOUT", min_value=1.0, max_value=300.0)
+DB_TIMEOUT = _env_float(10.0, "MJR_AM_DB_TIMEOUT", "MAJOOR_DB_TIMEOUT", min_value=1.0, max_value=300.0)
 DB_MAX_CONNECTIONS = _env_int(8, "MJR_AM_DB_MAX_CONNECTIONS", "MAJOOR_DB_MAX_CONNECTIONS", min_value=1, max_value=64)
 DB_QUERY_TIMEOUT = _env_float(60.0, "MJR_AM_DB_QUERY_TIMEOUT", "MAJOOR_DB_QUERY_TIMEOUT", min_value=1.0, max_value=600.0)
 TO_THREAD_TIMEOUT_S = _env_float(30.0, "MJR_AM_TO_THREAD_TIMEOUT", "MAJOOR_TO_THREAD_TIMEOUT", min_value=1.0, max_value=300.0)

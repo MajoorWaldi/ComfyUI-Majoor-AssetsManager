@@ -98,3 +98,8 @@ async def _require_services() -> tuple[dict[str, Any] | None, Result[Any] | None
 def get_services_error():
     """Get the current services error if any."""
     return _services_error
+
+
+async def prewarm_services() -> None:
+    """Pre-warm services in the background so the first user request is fast."""
+    await _build_services()

@@ -61,7 +61,7 @@ export const APP_DEFAULTS = Object.freeze({
     STATUS_POLL_INTERVAL: 5000, // 5 seconds
 
     // Auto-scan on startup
-    AUTO_SCAN_ON_STARTUP: true,
+    AUTO_SCAN_ON_STARTUP: false,
 
     // Rating/tags hydration (grid)
     RT_HYDRATE_CONCURRENCY: 2,

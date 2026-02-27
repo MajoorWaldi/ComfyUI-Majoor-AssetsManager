@@ -117,7 +117,7 @@ export function startRuntimeStatusDashboard() {
                     .finally(() => {
                         window.__MJR_RUNTIME_STATUS_INFLIGHT__ = false;
                     });
-            }, 3000);
+            }, 10000);
         }
     } catch {}
 }

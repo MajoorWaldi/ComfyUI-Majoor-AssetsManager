@@ -373,6 +373,23 @@ def register_routes(app: web.Application, user_manager=None) -> None:
         logger.debug("register_routes(app) skipped: routes already registered on this app")
         return
     _register_app_routes_best_effort(app)
+    _schedule_services_prewarm()
+
+
+def _schedule_services_prewarm() -> None:
+    """Schedule build_services() as a fire-and-forget background task so the
+    first real API request doesn't incur the full DB + watcher init latency."""
+    import asyncio
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return  # No running loop at import time; services will lazy-init on first request.
+    try:
+        from mjr_am_backend.routes.core.services import prewarm_services
+        loop.create_task(prewarm_services())
+        logger.debug("Services pre-warm task scheduled")
+    except Exception as exc:
+        logger.debug("Could not schedule services pre-warm: %s", exc)
 
 
 def _prepare_route_table(app: web.Application, user_manager: object | None) -> bool:
