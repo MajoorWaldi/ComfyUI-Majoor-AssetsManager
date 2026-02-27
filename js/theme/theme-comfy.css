@@ -1328,8 +1328,8 @@
     justify-content: space-between;
     align-items: center;
     padding: 12px 20px;
-    background: rgba(0, 0, 0, 0.8);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(170deg, rgba(24, 27, 33, 0.96), rgba(17, 19, 25, 0.97));
+    border-bottom: 0.8px solid rgba(196, 202, 210, 0.2);
     color: white;
 }
 
@@ -1349,28 +1349,40 @@
 
 .mjr-viewer-mode-buttons button {
     padding: 4px 12px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: white;
+    background: linear-gradient(180deg, rgba(206, 211, 218, 0.1), rgba(206, 211, 218, 0.03));
+    border: 0.8px solid rgba(196, 202, 210, 0.3);
+    color: rgba(230, 233, 238, 0.95);
     border-radius: 4px;
     cursor: pointer;
     font-size: 12px;
-    transition: all 0.2s;
+    transition: all 0.16s;
 }
 
 .mjr-viewer-mode-buttons button:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: linear-gradient(180deg, rgba(210, 214, 220, 0.14), rgba(210, 214, 220, 0.06));
+    border-color: rgba(214, 218, 224, 0.42);
 }
 
 /* Viewer close button pinned to overlay corner */
-.mjr-viewer-close {
-    border-color: rgba(255, 255, 255, 0.18) !important;
-    background: rgba(0, 0, 0, 0.35) !important;
+.mjr-viewer-close,
+.mjr-viewer-fs {
+    border-color: rgba(196, 202, 210, 0.26) !important;
+    border-width: 0.8px !important;
+    background: linear-gradient(180deg, rgba(206, 211, 218, 0.08), rgba(206, 211, 218, 0.02)),
+        rgba(20, 23, 29, 0.94) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
 }
 
 .mjr-viewer-close:hover {
-    background: rgba(255, 70, 70, 0.18) !important;
-    border-color: rgba(255, 70, 70, 0.35) !important;
+    background: linear-gradient(180deg, rgba(224, 128, 128, 0.14), rgba(224, 128, 128, 0.05)),
+        rgba(40, 23, 23, 0.95) !important;
+    border-color: rgba(220, 150, 150, 0.42) !important;
+}
+
+.mjr-viewer-fs:hover {
+    background: linear-gradient(180deg, rgba(210, 214, 220, 0.14), rgba(210, 214, 220, 0.06)),
+        rgba(23, 26, 32, 0.95) !important;
+    border-color: rgba(214, 218, 224, 0.38) !important;
 }
 
 .mjr-viewer-close .pi {
@@ -1460,10 +1472,72 @@
     background: rgba(255, 255, 255, 0.1);
 }
 
+.mjr-viewer-nav {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.mjr-viewer-nav-btn {
+    width: 40px !important;
+    height: 40px !important;
+    padding: 0 !important;
+    border-radius: 10px !important;
+    border: 1px solid rgba(196, 202, 210, 0.42) !important;
+    background:
+        linear-gradient(180deg, rgba(194, 200, 208, 0.18), rgba(194, 200, 208, 0.07)),
+        rgba(34, 38, 44, 0.92) !important;
+    color: rgba(234, 236, 240, 0.96) !important;
+    font-size: 20px !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    text-shadow: none;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    transition: transform 0.14s ease, background-color 0.14s ease, border-color 0.14s ease !important;
+}
+
+.mjr-viewer-nav-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    border-color: rgba(214, 218, 224, 0.56) !important;
+    background:
+        linear-gradient(180deg, rgba(207, 212, 219, 0.2), rgba(207, 212, 219, 0.1)),
+        rgba(39, 43, 49, 0.94) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.mjr-viewer-nav-btn:active:not(:disabled) {
+    transform: translateY(0) scale(0.98);
+    filter: none;
+}
+
+.mjr-viewer-nav-btn:disabled {
+    opacity: 0.34 !important;
+    filter: grayscale(0.25);
+    box-shadow: none;
+    border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
 .mjr-viewer-index {
-    font-size: 14px;
-    min-width: 60px;
+    font-size: 13px;
+    min-width: 74px;
     text-align: center;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+    color: rgba(226, 228, 233, 0.94);
+    background: linear-gradient(180deg, rgba(197, 203, 211, 0.15), rgba(197, 203, 211, 0.06));
+    border: 1px solid rgba(197, 203, 211, 0.34);
+    border-radius: 999px;
+    padding: 5px 11px;
+    text-shadow: none;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.mjr-viewer-playerbar {
+    border-radius: 12px;
+    border: 0.8px solid rgba(194, 200, 208, 0.2);
+    background: linear-gradient(160deg, rgba(24, 27, 32, 0.96), rgba(16, 18, 24, 0.97));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    overflow: hidden;
 }
 
 .mjr-viewer-tools {
@@ -1472,7 +1546,7 @@
 
 .mjr-viewer-tools-group {
     padding: 0 10px 0 10px;
-    border-left: 2px solid rgba(255,255,255,0.10);
+    border-left: 1px solid rgba(196, 202, 210, 0.16);
 }
 
 .mjr-viewer-tools-group:first-child {
@@ -2044,13 +2118,37 @@
     max-width: none;
     margin: 0;
     padding: 10px 12px;
-    border-radius: 8px;
-    background: rgba(0, 0, 0, 0.78);
+    border-radius: 12px;
+    border: 0.8px solid rgba(196, 202, 210, 0.2);
+    background:
+        linear-gradient(180deg, rgba(198, 203, 210, 0.03), rgba(198, 203, 210, 0.008)),
+        linear-gradient(165deg, rgba(20, 24, 30, 0.92), rgba(14, 16, 22, 0.94));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
 }
 
 .mjr-video-controls--viewerbar .mjr-video-btn {
     padding: 6px 8px;
     font-size: 12px;
+    border-radius: 9px;
+    background: linear-gradient(180deg, rgba(210, 214, 220, 0.06), rgba(210, 214, 220, 0.015));
+    border-color: rgba(194, 201, 208, 0.22);
+    border-width: 0.8px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    transition: transform 0.12s ease, background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.mjr-video-controls--viewerbar .mjr-video-btn:hover {
+    transform: translateY(-1px);
+    border-color: rgba(220, 224, 230, 0.34);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.mjr-video-controls--viewerbar .mjr-video-btn.is-on {
+    background: linear-gradient(180deg, rgba(220, 224, 231, 0.09), rgba(220, 224, 231, 0.035));
+    border-color: rgba(220, 224, 231, 0.38);
+    box-shadow: none;
 }
 
 .mjr-video-controls--viewerbar .mjr-video-btn .pi {
@@ -2061,6 +2159,8 @@
 .mjr-video-controls--viewerbar .mjr-video-time,
 .mjr-video-controls--viewerbar .mjr-video-frame {
     font-variant-numeric: tabular-nums;
+    color: rgba(228, 230, 234, 0.92);
+    text-shadow: none;
 }
 
 .mjr-video-controls--viewerbar .mjr-video-frame {
@@ -2075,6 +2175,15 @@
 
 .mjr-video-controls--viewerbar .mjr-video-range--seek {
     height: 18px;
+    accent-color: rgba(214, 218, 224, 0.92);
+}
+
+.mjr-video-controls--viewerbar .mjr-video-range-count {
+    color: rgba(222, 225, 230, 0.95);
+    border-color: rgba(194, 201, 209, 0.26);
+    border-width: 0.8px;
+    background: rgba(194, 201, 209, 0.08);
+    text-shadow: none;
 }
 
 .mjr-video-range--volume {

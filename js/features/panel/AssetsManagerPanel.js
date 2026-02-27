@@ -1164,6 +1164,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     };
 
     let lastKnownScan = null;
+    let lastKnownIndexEnd = null;
     let lastKnownTotalAssets = null;
     let hasSeenFirstCounters = false;
     let pendingReloadCount = 0;
@@ -1194,11 +1195,15 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         if (!hasSeenFirstCounters) {
             hasSeenFirstCounters = true;
             lastKnownScan = counters.last_scan_end;
+            lastKnownIndexEnd = counters.last_index_end;
             lastKnownTotalAssets = Number(counters.total_assets ?? null);
             return;
         }
 
         const hasNewScan = counters.last_scan_end && counters.last_scan_end !== lastKnownScan;
+        // last_index_end is updated by index_paths (individual file indexing, e.g. after a workflow run).
+        // last_scan_end is only updated by full directory scans. Both must be checked to catch generation events.
+        const hasNewIndexEnd = counters.last_index_end && counters.last_index_end !== lastKnownIndexEnd;
         const totalAssets = Number(counters.total_assets ?? null);
 
         // Fallback for "new files appeared" without a full scan end update (e.g. incremental indexing).
@@ -1235,9 +1240,10 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         // In Browser/Custom or filtered contexts it feels like random refresh storms.
         if (!isDefaultBrowse) {
             lastKnownScan = counters.last_scan_end;
+            lastKnownIndexEnd = counters.last_index_end;
             return;
         }
-        if (!hasNewScan && !hasNewTotal) return;
+        if (!hasNewScan && !hasNewIndexEnd && !hasNewTotal) return;
 
         // Global throttle against reload storms from frequent watcher/enrichment updates.
         try {
@@ -1252,6 +1258,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         } catch {}
 
         lastKnownScan = counters.last_scan_end;
+        lastKnownIndexEnd = counters.last_index_end;
         await queuedReload();
         try {
             _lastAutoReloadAt = Date.now();

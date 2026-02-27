@@ -1,46 +1,83 @@
 /**
- * Viewer Filmstrip — horizontal thumbnail strip at the bottom of the viewer.
+ * Viewer Filmstrip - horizontal thumbnail strip at the bottom of the viewer.
  *
  * - Shows one thumbnail per asset in state.assets.
  * - Clicking a thumbnail navigates to that asset (onNavigate callback).
  * - Active thumbnail is highlighted and kept in view (smooth scroll).
- * - Only shown when there are ≥ 2 assets and the viewer is in SINGLE mode.
- * - Images: native <img loading="lazy">. Videos: lazy <video preload="metadata">
- *   loaded via IntersectionObserver, shows first frame.
+ * - Images: native <img loading="lazy">.
+ * - Videos: lazy-loaded <video> with autoplay+loop only when visible.
+ * - Audio: lightweight static thumbnail (no audio decode in filmstrip).
  */
 
-const ITEM_W = 84;  // px (inner, border not included)
-const ITEM_H = 56;  // px
+const ITEM_W = 84; // px (inner, border not included)
+const ITEM_H = 56; // px
 const STRIP_H = 74; // px total (item + vertical padding)
-const VIDEO_SEEK_S = 0.001; // seek target to force first-frame display
+const VIDEO_PLAY_MIN_RATIO = 0.45;
+const VIDEO_PREFETCH_MARGIN = "0px 240px 0px 240px";
+const VIDEO_RELEASE_DELAY_MS = 3500;
 
-/** Build an IntersectionObserver that lazy-loads video thumbnails. */
-function _makeVideoLazyObserver() {
+const AUDIO_THUMB_URL = (() => {
     try {
-        return new IntersectionObserver(
-            (entries) => {
-                for (const entry of entries) {
-                    if (!entry.isIntersecting) continue;
-                    const video = entry.target;
-                    try {
-                        const src = video.dataset.lazySrc;
-                        if (src && !video.src) {
-                            video.src = src;
-                        }
-                    } catch {}
-                    try {
-                        _obs?.unobserve(video);
-                    } catch {}
-                }
-            },
-            { root: null, rootMargin: "0px 200px 0px 200px", threshold: 0 }
-        );
+        return new URL("../../assets/audio-thumbnails.png", import.meta.url).href;
     } catch {
-        return null;
+        return "";
     }
+})();
+
+function _clearReleaseTimer(video) {
+    try {
+        if (video?._mjrFilmstripReleaseTimer) {
+            clearTimeout(video._mjrFilmstripReleaseTimer);
+            video._mjrFilmstripReleaseTimer = null;
+        }
+    } catch {}
 }
 
-let _obs = null; // shared observer across rebuild calls
+function _ensureVideoSource(video) {
+    if (!video) return;
+    const src = String(video.dataset.lazySrc || "").trim();
+    if (!src) return;
+    try {
+        const current = String(video.getAttribute("src") || "").trim();
+        if (!current) {
+            video.src = src;
+            video.load();
+        }
+    } catch {}
+}
+
+function _tryPlayVideo(video) {
+    if (!video) return;
+    try {
+        const p = video.play?.();
+        if (p && typeof p.catch === "function") {
+            p.catch(() => {});
+        }
+    } catch {}
+}
+
+function _pauseVideo(video) {
+    if (!video) return;
+    try {
+        video.pause?.();
+    } catch {}
+}
+
+function _stopVideo(video, { releaseSrc = true } = {}) {
+    if (!video) return;
+    _clearReleaseTimer(video);
+    _pauseVideo(video);
+    try {
+        video._mjrFilmstripInView = false;
+    } catch {}
+    if (!releaseSrc) return;
+    try {
+        if (video.getAttribute("src")) {
+            video.removeAttribute("src");
+            video.load();
+        }
+    } catch {}
+}
 
 /**
  * @param {{
@@ -51,7 +88,6 @@ let _obs = null; // shared observer across rebuild calls
  * }} opts
  */
 export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompare }) {
-
     // -------------------------------------------------------------------------
     // Root wrapper (scrollable horizontal lane)
     // -------------------------------------------------------------------------
@@ -85,6 +121,142 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
     wrapper.appendChild(track);
 
     let _items = [];
+    let _obs = null;
+    const _videos = new Set();
+    let _lastActiveIdx = -1;
+    let _lastCompareIdx = -1;
+
+    const _makeVideoObserver = () => {
+        try {
+            return new IntersectionObserver(
+                (entries) => {
+                    const stripVisible = wrapper.style.display !== "none";
+                    const tabVisible = !document.hidden;
+                    for (const entry of entries) {
+                        const video = entry.target;
+                        if (!(video instanceof HTMLVideoElement)) continue;
+                        const inView = entry.isIntersecting || entry.intersectionRatio > 0;
+                        try {
+                            video._mjrFilmstripInView = inView;
+                        } catch {}
+
+                        if (inView) {
+                            _clearReleaseTimer(video);
+                            _ensureVideoSource(video);
+                        }
+
+                        const shouldPlay =
+                            inView &&
+                            entry.intersectionRatio >= VIDEO_PLAY_MIN_RATIO &&
+                            stripVisible &&
+                            tabVisible;
+                        if (shouldPlay) _tryPlayVideo(video);
+                        else _pauseVideo(video);
+
+                        if (!inView) {
+                            _clearReleaseTimer(video);
+                            try {
+                                video._mjrFilmstripReleaseTimer = setTimeout(() => {
+                                    try {
+                                        if (!video.isConnected) {
+                                            _stopVideo(video, { releaseSrc: true });
+                                            return;
+                                        }
+                                        if (!video._mjrFilmstripInView) {
+                                            _stopVideo(video, { releaseSrc: true });
+                                        }
+                                    } catch {}
+                                }, VIDEO_RELEASE_DELAY_MS);
+                            } catch {}
+                        }
+                    }
+                },
+                {
+                    root: wrapper,
+                    rootMargin: VIDEO_PREFETCH_MARGIN,
+                    threshold: [0, VIDEO_PLAY_MIN_RATIO],
+                }
+            );
+        } catch {
+            return null;
+        }
+    };
+
+    const _observeVideo = (video) => {
+        if (!video) return;
+        try {
+            video._mjrFilmstripInView = false;
+        } catch {}
+        _videos.add(video);
+        try {
+            if (!_obs) _obs = _makeVideoObserver();
+            _obs?.observe?.(video);
+        } catch {}
+    };
+
+    const _pauseAllVideos = ({ releaseSrc = false } = {}) => {
+        for (const video of Array.from(_videos)) {
+            _stopVideo(video, { releaseSrc });
+        }
+    };
+
+    const _resumeVisibleVideos = () => {
+        for (const video of Array.from(_videos)) {
+            try {
+                if (!video?._mjrFilmstripInView) continue;
+                if (!video?.isConnected) continue;
+                _ensureVideoSource(video);
+                _tryPlayVideo(video);
+            } catch {}
+        }
+    };
+
+    const _cleanupVideoResources = ({ releaseSrc = true } = {}) => {
+        try {
+            _obs?.disconnect?.();
+        } catch {}
+        _obs = null;
+        _pauseAllVideos({ releaseSrc });
+        _videos.clear();
+    };
+
+    const _prefersReducedMotion = () => {
+        try {
+            return !!window?.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+        } catch {
+            return false;
+        }
+    };
+
+    const _bounceItem = (item, settleScale = 1.08) => {
+        if (!item || _prefersReducedMotion()) return;
+        try {
+            item._mjrFilmstripBounce?.cancel?.();
+        } catch {}
+        try {
+            if (typeof item.animate !== "function") return;
+            const peak = Math.min(1.18, settleScale + 0.07);
+            const dip = Math.max(1.0, settleScale - 0.03);
+            const anim = item.animate(
+                [
+                    { transform: `scale(${settleScale})` },
+                    { transform: `scale(${peak})` },
+                    { transform: `scale(${dip})` },
+                    { transform: `scale(${settleScale})` },
+                ],
+                {
+                    duration: 420,
+                    easing: "cubic-bezier(0.22, 0.9, 0.32, 1.15)",
+                }
+            );
+            item._mjrFilmstripBounce = anim;
+            anim.onfinish = () => {
+                try {
+                    if (item._mjrFilmstripBounce === anim) item._mjrFilmstripBounce = null;
+                } catch {}
+            };
+        } catch {}
+    };
 
     // -------------------------------------------------------------------------
     // Build one thumbnail item
@@ -105,19 +277,20 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
             box-sizing: border-box;
             background: rgba(255,255,255,0.07);
             opacity: 0.5;
-            transition: border-color 0.12s ease, opacity 0.12s ease;
+            transform: scale(1);
+            transition: border-color 0.16s ease, opacity 0.16s ease, transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
         `;
 
         const kind = String(asset?.kind || "").toLowerCase();
         const url = buildAssetViewURL(asset);
 
         if (url && kind === "video") {
-            // Lazy <video> — loaded only when the item scrolls into view.
+            // Lazy <video>: load only near viewport and play only when visible.
             const video = document.createElement("video");
             video.className = "mjr-filmstrip-thumb";
             video.muted = true;
-            video.loop = false;
-            video.autoplay = false;
+            video.loop = true;
+            video.autoplay = true;
             video.controls = false;
             video.playsInline = true;
             video.preload = "none";
@@ -129,25 +302,73 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
                 display: block;
                 pointer-events: none;
             `;
-            video.addEventListener("loadedmetadata", () => {
-                try { video.currentTime = VIDEO_SEEK_S; } catch {}
-            }, { once: true });
-            video.addEventListener("error", () => {
-                try { video.style.display = "none"; } catch {}
-                _showVideoIcon(item);
-            }, { once: true });
-            item.appendChild(video);
-
-            // Lazy-load via observer
             try {
-                if (!_obs) _obs = _makeVideoLazyObserver();
-                _obs?.observe(video);
+                video.disablePictureInPicture = true;
             } catch {}
-
-            // Small play badge
+            video.addEventListener(
+                "loadeddata",
+                () => {
+                    try {
+                        if (video._mjrFilmstripInView && wrapper.style.display !== "none" && !document.hidden) {
+                            _tryPlayVideo(video);
+                        }
+                    } catch {}
+                },
+                { passive: true }
+            );
+            video.addEventListener(
+                "error",
+                () => {
+                    try {
+                        video.style.display = "none";
+                    } catch {}
+                    _stopVideo(video, { releaseSrc: true });
+                    _showVideoIcon(item);
+                },
+                { once: true }
+            );
+            item.appendChild(video);
             _appendVideoBadge(item);
+            _observeVideo(video);
+            return item;
+        }
 
-        } else if (url) {
+        if (kind === "audio") {
+            const thumbUrl = String(asset?.thumbnail_url || asset?.thumb_url || AUDIO_THUMB_URL || "").trim();
+            if (thumbUrl) {
+                const img = document.createElement("img");
+                img.className = "mjr-filmstrip-thumb";
+                img.loading = "lazy";
+                img.decoding = "async";
+                img.src = thumbUrl;
+                img.alt = String(asset?.filename || "Audio");
+                img.draggable = false;
+                img.style.cssText = `
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    display: block;
+                    pointer-events: none;
+                `;
+                img.addEventListener(
+                    "error",
+                    () => {
+                        try {
+                            img.style.display = "none";
+                        } catch {}
+                        _showAudioIcon(item);
+                    },
+                    { once: true }
+                );
+                item.appendChild(img);
+            } else {
+                _showAudioIcon(item);
+            }
+            _appendAudioBadge(item);
+            return item;
+        }
+
+        if (url) {
             // Image (including GIF / WebP)
             const img = document.createElement("img");
             img.className = "mjr-filmstrip-thumb";
@@ -161,15 +382,21 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
                 display: block;
                 pointer-events: none;
             `;
-            img.addEventListener("error", () => {
-                try { img.style.display = "none"; } catch {}
-            }, { once: true });
+            img.addEventListener(
+                "error",
+                () => {
+                    try {
+                        img.style.display = "none";
+                    } catch {}
+                },
+                { once: true }
+            );
             item.appendChild(img);
-        } else {
-            // Unknown / no URL — show placeholder
-            _showUnknownIcon(item);
+            return item;
         }
 
+        // Unknown / no URL
+        _showUnknownIcon(item);
         return item;
     };
 
@@ -178,11 +405,31 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
         icon.style.cssText = `
             position: absolute; inset: 0;
             display: flex; align-items: center; justify-content: center;
-            font-size: 22px; color: rgba(255,255,255,0.4);
+            font-size: 10px; font-weight: 700;
+            color: rgba(255,255,255,0.55);
             pointer-events: none;
+            letter-spacing: 0.04em;
         `;
-        icon.textContent = "▶";
-        try { container.appendChild(icon); } catch {}
+        icon.textContent = "VIDEO";
+        try {
+            container.appendChild(icon);
+        } catch {}
+    }
+
+    function _showAudioIcon(container) {
+        const icon = document.createElement("div");
+        icon.style.cssText = `
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; font-weight: 700;
+            color: rgba(255,255,255,0.45);
+            pointer-events: none;
+            letter-spacing: 0.04em;
+        `;
+        icon.textContent = "AUDIO";
+        try {
+            container.appendChild(icon);
+        } catch {}
     }
 
     function _showUnknownIcon(container) {
@@ -194,7 +441,9 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
             pointer-events: none;
         `;
         icon.textContent = "?";
-        try { container.appendChild(icon); } catch {}
+        try {
+            container.appendChild(icon);
+        } catch {}
     }
 
     function _appendVideoBadge(container) {
@@ -202,26 +451,34 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
         badge.style.cssText = `
             position: absolute; bottom: 2px; right: 2px;
             font-size: 7px; line-height: 1;
-            background: rgba(0,0,0,0.55); color: rgba(255,255,255,0.8);
+            background: rgba(0,0,0,0.55); color: rgba(255,255,255,0.85);
             padding: 2px 3px; border-radius: 2px;
             pointer-events: none;
+            letter-spacing: 0.02em;
         `;
-        badge.textContent = "▶";
+        badge.textContent = "VID";
+        container.appendChild(badge);
+    }
+
+    function _appendAudioBadge(container) {
+        const badge = document.createElement("div");
+        badge.style.cssText = `
+            position: absolute; bottom: 2px; right: 2px;
+            font-size: 7px; line-height: 1;
+            background: rgba(0,0,0,0.55); color: rgba(255,255,255,0.85);
+            padding: 2px 3px; border-radius: 2px;
+            pointer-events: none;
+            letter-spacing: 0.02em;
+        `;
+        badge.textContent = "AUD";
         container.appendChild(badge);
     }
 
     // -------------------------------------------------------------------------
-    // rebuild() — call when state.assets changes (viewer open)
+    // rebuild() - call when state.assets changes (viewer open)
     // -------------------------------------------------------------------------
     const rebuild = () => {
-        // Disconnect old video observers
-        try {
-            if (_obs) {
-                _obs.disconnect();
-                _obs = null;
-            }
-        } catch {}
-
+        _cleanupVideoResources({ releaseSrc: true });
         track.innerHTML = "";
         _items = [];
 
@@ -238,31 +495,33 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
             _items.push(item);
         }
 
-        // Immediate sync (no animation) for first display
+        // Immediate sync (no animation) for first display.
         _applyActive(false);
     };
 
     // -------------------------------------------------------------------------
-    // sync() — call on every updateUI() (index changed)
+    // sync() - call on every updateUI() (index changed)
     // -------------------------------------------------------------------------
     const sync = (opts = {}) => {
         const isSingle = opts.isSingle !== false;
-        // Keep filmstrip visible in filmstrip-compare AB mode so user can re-pick B
+        // Keep filmstrip visible in filmstrip-compare AB mode so user can re-pick B.
         const isFilmCompare = onCompare != null && state.compareAsset != null;
 
-        // Hide filmstrip in compare modes (no linear navigation)
+        // Hide filmstrip in compare modes (no linear navigation).
         const assets = Array.isArray(state.assets) ? state.assets : [];
         if ((!isSingle && !isFilmCompare) || assets.length < 2) {
             wrapper.style.display = "none";
+            _pauseAllVideos({ releaseSrc: false });
             return;
         }
         wrapper.style.display = "";
+        _resumeVisibleVideos();
         _applyActive(true);
     };
 
     function _applyActive(animate) {
         const idx = Number(state.currentIndex) || 0;
-        // Find B-side (compare) index for filmstrip-compare mode
+        // Find B-side (compare) index for filmstrip-compare mode.
         let cmpIdx = -1;
         if (onCompare && state.compareAsset != null) {
             const assets = Array.isArray(state.assets) ? state.assets : [];
@@ -272,17 +531,32 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
             const isActive = i === idx;
             const isCompare = i === cmpIdx;
             if (isActive) {
-                _items[i].style.borderColor = "rgba(255, 255, 255, 0.9)";
+                _items[i].style.borderColor = "rgba(255, 255, 255, 0.98)";
                 _items[i].style.opacity = "1";
+                _items[i].style.transform = "scale(1.08)";
+                _items[i].style.filter = "saturate(1.12) brightness(1.08)";
+                _items[i].style.boxShadow =
+                    "0 0 0 1px rgba(255,255,255,0.45), 0 0 18px rgba(160,220,255,0.38), 0 8px 16px rgba(0,0,0,0.38)";
             } else if (isCompare) {
-                _items[i].style.borderColor = "rgba(100, 160, 255, 0.9)";
-                _items[i].style.opacity = "1";
+                _items[i].style.borderColor = "rgba(120, 186, 255, 0.98)";
+                _items[i].style.opacity = "0.96";
+                _items[i].style.transform = "scale(1.04)";
+                _items[i].style.filter = "saturate(1.07) brightness(1.03)";
+                _items[i].style.boxShadow =
+                    "0 0 0 1px rgba(120,186,255,0.38), 0 0 14px rgba(120,186,255,0.32), 0 6px 14px rgba(0,0,0,0.32)";
             } else {
                 _items[i].style.borderColor = "transparent";
                 _items[i].style.opacity = "0.5";
+                _items[i].style.transform = "scale(1)";
+                _items[i].style.filter = "none";
+                _items[i].style.boxShadow = "none";
             }
         }
-        // Scroll active item into view
+        if (idx !== _lastActiveIdx && _items[idx]) _bounceItem(_items[idx], 1.08);
+        if (cmpIdx >= 0 && cmpIdx !== _lastCompareIdx && _items[cmpIdx]) _bounceItem(_items[cmpIdx], 1.04);
+        _lastActiveIdx = idx;
+        _lastCompareIdx = cmpIdx;
+        // Scroll active item into view.
         const activeEl = _items[idx];
         if (!activeEl) return;
         try {
@@ -300,30 +574,40 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
     }
 
     // -------------------------------------------------------------------------
-    // Click — delegated on wrapper (capture to beat overlay dismiss handler)
+    // Click - delegated on wrapper (capture to beat overlay dismiss handler).
     // Ctrl/Cmd+Click triggers compare mode (onCompare); plain click navigates.
     // -------------------------------------------------------------------------
-    wrapper.addEventListener("click", (e) => {
-        try {
-            e.stopPropagation();
-            const item = e.target.closest("[data-fidx]");
-            if (!item) return;
-            const idx = Number(item.dataset.fidx);
-            if (!Number.isFinite(idx) || idx < 0) return;
-            const assets = Array.isArray(state.assets) ? state.assets : [];
-            if (idx >= assets.length) return;
-            if (onCompare && (e.ctrlKey || e.metaKey)) {
-                onCompare(idx);
-            } else {
-                onNavigate(idx);
-            }
-        } catch {}
-    }, true);
+    wrapper.addEventListener(
+        "click",
+        (e) => {
+            try {
+                e.stopPropagation();
+                const item = e.target.closest("[data-fidx]");
+                if (!item) return;
+                const idx = Number(item.dataset.fidx);
+                if (!Number.isFinite(idx) || idx < 0) return;
+                const assets = Array.isArray(state.assets) ? state.assets : [];
+                if (idx >= assets.length) return;
+                if (onCompare && (e.ctrlKey || e.metaKey)) {
+                    onCompare(idx);
+                } else {
+                    onNavigate(idx);
+                }
+            } catch {}
+        },
+        true
+    );
 
-    // Prevent wheel from bubbling to viewer pan/zoom handler
-    wrapper.addEventListener("wheel", (e) => {
-        try { e.stopPropagation(); } catch {}
-    }, { passive: true, capture: true });
+    // Prevent wheel from bubbling to viewer pan/zoom handler.
+    wrapper.addEventListener(
+        "wheel",
+        (e) => {
+            try {
+                e.stopPropagation();
+            } catch {}
+        },
+        { passive: true, capture: true }
+    );
 
     // -------------------------------------------------------------------------
     // Public API

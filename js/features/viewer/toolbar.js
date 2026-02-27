@@ -28,8 +28,8 @@ export function createViewerToolbar({
         flex-direction: column;
         gap: 8px;
         padding: 12px 20px;
-        background: rgba(0, 0, 0, 0.8);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        background: linear-gradient(170deg, rgba(24, 27, 33, 0.96), rgba(17, 19, 25, 0.97));
+        border-bottom: 0.8px solid rgba(196, 202, 210, 0.2);
         color: white;
         box-sizing: border-box;
     `;
@@ -104,6 +104,9 @@ export function createViewerToolbar({
     } catch {}
 
     const fullscreenBtn = createIconButton("⛶", "Toggle Fullscreen (F)");
+    try {
+        fullscreenBtn.classList.add("mjr-viewer-fs");
+    } catch {}
     fullscreenBtn.style.fontSize = "16px";
     try {
         fullscreenBtn.style.position = "absolute";
@@ -202,7 +205,8 @@ export function createViewerToolbar({
         gap: 10px;
         flex-wrap: wrap;
         padding: 6px 4px 2px;
-        border-top: 1px solid rgba(255, 255, 255, 0.06);
+        border-top: 0.8px solid rgba(196, 202, 210, 0.16);
+        background: rgba(12, 14, 19, 0.28);
     `;
 
     const toolsGroup = ({ key, label, accentRgb } = {}) => {
@@ -229,9 +233,9 @@ export function createViewerToolbar({
             height: 26px;
             padding: 0 8px;
             border-radius: 6px;
-            border: 1px solid rgba(255,255,255,0.14);
-            background: rgba(255,255,255,0.08);
-            color: rgba(255,255,255,0.92);
+            border: 0.8px solid rgba(196, 202, 210, 0.24);
+            background: linear-gradient(180deg, rgba(210, 214, 220, 0.06), rgba(210, 214, 220, 0.02));
+            color: rgba(230,233,238,0.92);
             font-size: 12px;
             outline: none;
         `;
@@ -303,9 +307,9 @@ export function createViewerToolbar({
             height: 26px;
             padding: 0 10px;
             border-radius: 6px;
-            border: 1px solid rgba(255,255,255,0.14);
-            background: rgba(255,255,255,0.08);
-            color: rgba(255,255,255,0.92);
+            border: 0.8px solid rgba(196, 202, 210, 0.24);
+            background: linear-gradient(180deg, rgba(210,214,220,0.06), rgba(210,214,220,0.02));
+            color: rgba(230,233,238,0.92);
             cursor: pointer;
             font-size: 12px;
             user-select: none;
@@ -324,12 +328,12 @@ export function createViewerToolbar({
             } catch {}
             const rgb = String(b.dataset?.accentRgb || "").trim();
             if (on && rgb) {
-                b.style.background = `rgba(${rgb}, 0.18)`;
-                b.style.borderColor = `rgba(${rgb}, 0.50)`;
-                b.style.boxShadow = `0 0 0 1px rgba(${rgb}, 0.10) inset`;
+                b.style.background = `rgba(${rgb}, 0.12)`;
+                b.style.borderColor = `rgba(${rgb}, 0.38)`;
+                b.style.boxShadow = `0 0 0 0.8px rgba(${rgb}, 0.12) inset`;
             } else {
-                b.style.background = on ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.08)";
-                b.style.borderColor = on ? "rgba(255,255,255,0.30)" : "rgba(255,255,255,0.14)";
+                b.style.background = on ? "rgba(214,218,224,0.12)" : "rgba(210,214,220,0.06)";
+                b.style.borderColor = on ? "rgba(214,218,224,0.38)" : "rgba(196,202,210,0.24)";
                 b.style.boxShadow = "";
             }
         };

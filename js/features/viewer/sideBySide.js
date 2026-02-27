@@ -18,8 +18,9 @@ export function renderSideBySideView({
 
     const items = Array.isArray(state.assets) ? state.assets.slice(0, 4) : [];
     const count = items.length;
+    const hasFilmstripCompare = !!state.compareAsset;
 
-    if (count > 2) {
+    if (count > 2 && !hasFilmstripCompare) {
         // 2x2 grid (3 or 4 items). Do not wrap in another container: theme CSS targets direct children.
         try {
             sideView.style.display = "grid";
