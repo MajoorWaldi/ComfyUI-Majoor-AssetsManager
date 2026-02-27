@@ -17,7 +17,6 @@ from typing import Any
 from urllib.parse import urlparse
 
 from aiohttp import web
-from multidict import CIMultiDict
 from mjr_am_backend.shared import Result, get_logger
 
 logger = get_logger(__name__)
@@ -494,7 +493,7 @@ def _require_write_access(request: web.Request) -> Result[bool]:
     try:
         headers = request.headers  # CIMultiDictProxy
     except Exception:
-        headers = CIMultiDict()
+        headers = {}
     return _check_write_access(peer_ip=peer, headers=headers, request_scheme=request_scheme)
 
 
@@ -507,7 +506,7 @@ def _is_loopback_request(request: web.Request) -> bool:
     try:
         headers = request.headers
     except Exception:
-        headers = CIMultiDict()
+        headers = {}
     client_ip = _resolve_client_ip(peer, headers)
     return _is_loopback_ip(client_ip)
 
@@ -717,10 +716,11 @@ def _extract_peer_ip(request: web.Request) -> str:
 
 def _get_client_identifier(request: web.Request) -> str:
     peer_ip = _extract_peer_ip(request)
+    headers: Mapping[str, str]
     try:
         headers = request.headers
     except Exception:
-        headers = CIMultiDict()
+        headers = {}
     client_ip = _resolve_client_ip(peer_ip, headers)
     return hashlib.sha256(client_ip.encode("utf-8", errors="ignore")).hexdigest()[:_CLIENT_ID_HASH_HEX_CHARS]
 

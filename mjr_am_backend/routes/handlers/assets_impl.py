@@ -754,8 +754,10 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
 
         asset_id: int | None = None
         try:
-            if isinstance(asset_row, dict) and asset_row.get("id") is not None:
-                asset_id = int(asset_row.get("id"))
+            if isinstance(asset_row, dict):
+                raw_asset_id = asset_row.get("id")
+                if raw_asset_id is not None:
+                    asset_id = int(raw_asset_id)
         except Exception:
             asset_id = None
 

@@ -76,7 +76,8 @@ def _task_done_logger(label: str):
         except Exception:
             return
         if exc is not None:
-            logger.warning("Background task '%s' failed: %s", label, safe_error_message(exc, "task failed"))
+            error_text = safe_error_message(exc, "task failed") if isinstance(exc, Exception) else "task failed"
+            logger.warning("Background task '%s' failed: %s", label, error_text)
 
     return _done
 

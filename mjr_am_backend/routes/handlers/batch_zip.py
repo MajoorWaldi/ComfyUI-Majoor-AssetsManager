@@ -389,12 +389,12 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
         except Exception:
             return _json_response(Result.Err("INVALID_INPUT", "Invalid zip path"))
 
-        event = asyncio.Event()
+        ready_event = asyncio.Event()
         filename = f"Majoor_Batch_{len(items)}.zip"
         with _BATCH_LOCK:
             _BATCH_CACHE[token] = {
                 "path": zip_path,
-                "event": event,
+                "event": ready_event,
                 "ready": False,
                 "created_at": time.time(),
                 "filename": filename,
@@ -561,12 +561,12 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
                 entry["ready"] = ok
                 entry["error"] = error
                 entry["count"] = count
-                event = entry.get("event")
+                cache_event = entry.get("event")
             else:
-                event = None
-        if isinstance(event, asyncio.Event):
+                cache_event = None
+        if isinstance(cache_event, asyncio.Event):
             try:
-                loop.call_soon_threadsafe(event.set)
+                loop.call_soon_threadsafe(cache_event.set)
             except Exception:
                 pass
 

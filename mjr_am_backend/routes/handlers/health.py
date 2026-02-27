@@ -5,6 +5,7 @@ import asyncio
 import hashlib
 import os
 import re
+from collections.abc import Mapping
 from pathlib import Path
 
 from aiohttp import web
@@ -99,6 +100,7 @@ def _is_secure_request_transport(request: web.Request) -> bool:
         scheme = str(getattr(request, "scheme", "") or "").strip().lower()
     except Exception:
         scheme = ""
+    headers: Mapping[str, str]
     try:
         headers = request.headers
     except Exception:

@@ -725,7 +725,8 @@ class MetadataHelpers:
 
     @staticmethod
     def compute_metadata_hash(raw_json: str) -> str:
-        return hashlib.md5(raw_json.encode("utf-8")).hexdigest()
+        # Non-cryptographic cache key; MD5 keeps stable compact digests for legacy metadata entries.
+        return hashlib.md5(raw_json.encode("utf-8"), usedforsecurity=False).hexdigest()
 
     @staticmethod
     async def set_metadata_value(db: Sqlite, key: str, value: str) -> Result[Any]:
