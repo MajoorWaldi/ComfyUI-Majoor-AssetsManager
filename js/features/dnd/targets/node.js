@@ -5,8 +5,19 @@ import {
     looksLikeVideoPath
 } from "../utils/video.js";
 
-let highlightedNode = null;
-let highlightedNodePrev = null;
+const highlightState = new WeakMap();
+
+const getHighlightState = (app) => {
+    if (!app || typeof app !== "object") {
+        return { node: null, prev: null };
+    }
+    let state = highlightState.get(app);
+    if (!state) {
+        state = { node: null, prev: null };
+        highlightState.set(app, state);
+    }
+    return state;
+};
 
 export const getNodeUnderClientXY = (app, clientX, clientY) => {
     const canvasEl = app?.canvas?.canvas || document.querySelector("canvas");
@@ -52,25 +63,27 @@ export const getNodeUnderClientXY = (app, clientX, clientY) => {
 };
 
 export const applyHighlight = (app, node, markCanvasDirty) => {
-    if (!node || highlightedNode === node) return;
+    const state = getHighlightState(app);
+    if (!node || state.node === node) return;
     clearHighlight(app, markCanvasDirty);
-    highlightedNode = node;
-    highlightedNodePrev = { color: node.color, bgcolor: node.bgcolor };
+    state.node = node;
+    state.prev = { color: node.color, bgcolor: node.bgcolor };
     node.bgcolor = "#3355ff";
     node.color = "#a9c4ff";
     markCanvasDirty(app);
 };
 
 export const clearHighlight = (app, markCanvasDirty) => {
-    if (!highlightedNode) return;
+    const state = getHighlightState(app);
+    if (!state.node) return;
     try {
-        if (highlightedNodePrev) {
-            highlightedNode.color = highlightedNodePrev.color;
-            highlightedNode.bgcolor = highlightedNodePrev.bgcolor;
+        if (state.prev) {
+            state.node.color = state.prev.color;
+            state.node.bgcolor = state.prev.bgcolor;
         }
     } catch {}
-    highlightedNode = null;
-    highlightedNodePrev = null;
+    state.node = null;
+    state.prev = null;
     markCanvasDirty(app);
 };
 

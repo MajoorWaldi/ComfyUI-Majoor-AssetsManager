@@ -37,6 +37,18 @@ function _setPreviewSrcWithFallback(el, candidates) {
     apply();
 }
 
+function _isSafeOpenUrl(url) {
+    const value = String(url || "").trim();
+    if (!value) return false;
+    if (value.startsWith("/")) return true;
+    try {
+        const parsed = new URL(value);
+        return parsed.protocol === "http:" || parsed.protocol === "https:";
+    } catch {
+        return false;
+    }
+}
+
 export function createGenerationSection(asset) {
     let metadata = null;
 
@@ -534,7 +546,9 @@ export function createGenerationSection(asset) {
             };
             thumb.ondblclick = (e) => {
                 e.stopPropagation();
-                window.open(src, "_blank");
+                const src = Array.isArray(srcCandidates) && srcCandidates.length ? String(srcCandidates[0] || "") : "";
+                if (!_isSafeOpenUrl(src)) return;
+                window.open(src, "_blank", "noopener,noreferrer");
             };
             
             grid.appendChild(thumb);

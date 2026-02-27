@@ -108,3 +108,12 @@ def _cleanup_locked(now: float) -> None:
     keys_to_remove = [k for k, v in _RECENT_SCAN_TIMES.items() if v < cutoff]
     for k in keys_to_remove:
         _RECENT_SCAN_TIMES.pop(k, None)
+
+
+def _reset_scan_throttle_state_for_tests() -> None:
+    """
+    Test helper: clear all in-memory scan throttle state.
+    """
+    with _LOCK:
+        _MANUAL_SCAN_TIMES.clear()
+        _RECENT_SCAN_TIMES.clear()

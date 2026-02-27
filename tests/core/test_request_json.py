@@ -32,6 +32,9 @@ def test_content_type_and_length_errors() -> None:
     bad_ct = _DummyRequest(headers={"Content-Type": "text/plain"})
     assert rq._content_type_error(bad_ct) is not None
 
+    missing_ct = _DummyRequest(headers={})
+    assert rq._content_type_error(missing_ct) is not None
+
     ok_ct = _DummyRequest(headers={"Content-Type": "application/ld+json"})
     assert rq._content_type_error(ok_ct) is None
 
@@ -82,3 +85,14 @@ async def test_read_json_end_to_end() -> None:
     bad_req = _DummyRequest(headers={"Content-Type": "text/plain"}, chunks=[b"{}"])
     out2 = await rq._read_json(bad_req, max_bytes=100)
     assert not out2.ok
+
+
+@pytest.mark.asyncio
+async def test_read_json_rejects_content_length_mismatch_over_limit() -> None:
+    req = _DummyRequest(
+        headers={"Content-Type": "application/json", "Content-Length": "2"},
+        chunks=[b"{", b'"k":"', b"x" * 2048, b'"}'],
+    )
+    out = await rq._read_json(req, max_bytes=64)
+    assert out.ok is False
+    assert out.code == "INVALID_INPUT"

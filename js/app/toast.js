@@ -108,9 +108,9 @@ function getToastContainer() {
  * Shows a toast notification.
  * @param {string} message The message to display
  * @param {'info'|'success'|'warning'|'error'} type The type of message
- * @param {number} duration Duration in ms (default 3000)
+ * @param {number} duration Duration in ms (default 5000)
  */
-export function comfyToast(message, type = "info", duration = 3000) {
+export function comfyToast(message, type = "info", duration = 5000) {
     message = translateToastMessage(message);
     const persistent = !(Number.isFinite(Number(duration)) && Number(duration) > 0);
     const app = getComfyApp();
@@ -169,7 +169,7 @@ export function comfyToast(message, type = "info", duration = 3000) {
             break;
         case "error":
             icon = "";
-            duration = duration < 4000 ? 5000 : duration;
+            duration = duration < 7000 ? 8000 : duration;
             break;
         case "warning":
             icon = "";

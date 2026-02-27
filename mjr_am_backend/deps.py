@@ -18,6 +18,7 @@ from .config import (
     FFPROBE_TIMEOUT,
     INDEX_DB,
     WATCHER_ENABLED,
+    initialize_directories,
 )
 from .features.duplicates import DuplicatesService
 from .features.health import HealthService
@@ -94,7 +95,8 @@ def _build_services_dict(
 async def _load_watcher_scope_or_default(db: Sqlite) -> dict:
     try:
         return await load_watcher_scope(db)
-    except Exception:
+    except Exception as exc:
+        logger.debug("Falling back to default watcher scope: %s", exc)
         return {"scope": "output", "custom_root_id": ""}
 
 
@@ -127,6 +129,11 @@ async def build_services(db_path: str | None = None) -> Result[dict]:
         Result[dict] of service instances
     """
     logger.info("Building services...")
+    try:
+        initialize_directories()
+    except Exception as exc:
+        logger.error("Failed to initialize directories: %s", exc)
+        return Result.Err("DB_ERROR", f"Failed to initialize directories: {exc}")
 
     db_path = _resolve_db_path(db_path)
     db_res = _init_db_or_error(db_path)
@@ -210,7 +217,8 @@ async def _create_watcher(index_service: IndexService) -> OutputWatcher:
         for fp in filepaths:
             try:
                 await index_service.remove_file(str(fp))
-            except Exception:
+            except Exception as exc:
+                logger.debug("Watcher remove callback failed for %s: %s", fp, exc)
                 continue
 
     async def move_callback(moves: list, _base_dir: str, _source: str | None = None, _root_id: str | None = None):
@@ -219,7 +227,8 @@ async def _create_watcher(index_service: IndexService) -> OutputWatcher:
         for move in moves:
             try:
                 old_fp, new_fp = move
-            except Exception:
+            except Exception as exc:
+                logger.debug("Watcher move payload invalid (%r): %s", move, exc)
                 continue
             try:
                 res = await index_service.rename_file(str(old_fp), str(new_fp))
@@ -232,7 +241,8 @@ async def _create_watcher(index_service: IndexService) -> OutputWatcher:
                         source=_source or "watcher",
                         root_id=_root_id,
                     )
-            except Exception:
+            except Exception as exc:
+                logger.debug("Watcher move callback failed (%s -> %s): %s", old_fp, new_fp, exc)
                 continue
 
     watcher = OutputWatcher(index_callback, remove_callback=remove_callback, move_callback=move_callback)
@@ -240,7 +250,8 @@ async def _create_watcher(index_service: IndexService) -> OutputWatcher:
     # Collect directories to watch
     try:
         scope_cfg = await load_watcher_scope(index_service.db)
-    except Exception:
+    except Exception as exc:
+        logger.debug("Failed to load watcher scope; using defaults: %s", exc)
         scope_cfg = {"scope": "output", "custom_root_id": ""}
 
     scope = str((scope_cfg or {}).get("scope") or "output")
@@ -248,7 +259,7 @@ async def _create_watcher(index_service: IndexService) -> OutputWatcher:
     watch_paths = build_watch_paths(scope, custom_root_id)
 
     if watch_paths:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         await watcher.start(watch_paths, loop)
 
     return watcher

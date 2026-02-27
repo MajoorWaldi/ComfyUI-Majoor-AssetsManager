@@ -22,6 +22,9 @@ Welcome to the comprehensive documentation for the Majoor Assets Manager for Com
 - [TESTING.md](TESTING.md) - Running tests and reading reports
 - [DB_MAINTENANCE.md](DB_MAINTENANCE.md) - Database maintenance, corruption recovery, and Delete DB
 
+### Security Audits
+- [SECURITY_AUDIT_2026-02-27.md](SECURITY_AUDIT_2026-02-27.md) - Full security & code quality audit (4 CRITICAL · 11 HIGH · 14 MEDIUM)
+
 ### Complete Guides
 - [COMPLETE_USER_GUIDE.md](COMPLETE_USER_GUIDE.md) - Step-by-step user guide with workflows
 

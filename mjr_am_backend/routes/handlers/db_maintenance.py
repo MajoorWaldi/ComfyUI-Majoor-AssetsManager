@@ -33,6 +33,62 @@ _DB_MAINTENANCE_ACTIVE = False
 _DB_MAINT_LOCK = threading.Lock()
 
 
+def _archive_root_resolved() -> Path:
+    try:
+        return _DB_ARCHIVE_DIR.resolve(strict=False)
+    except Exception:
+        return _DB_ARCHIVE_DIR
+
+
+def _resolve_archive_source(name: str) -> Path | None:
+    safe_name = str(name or "").strip()
+    if not safe_name:
+        return None
+    if "/" in safe_name or "\\" in safe_name or "\x00" in safe_name:
+        return None
+    try:
+        src = (_DB_ARCHIVE_DIR / safe_name).resolve(strict=False)
+    except Exception:
+        return None
+    try:
+        src.relative_to(_archive_root_resolved())
+    except Exception:
+        return None
+    return src
+
+
+def _basename_list(paths: list[str]) -> str:
+    names: list[str] = []
+    for p in paths or []:
+        try:
+            names.append(Path(str(p)).name)
+        except Exception:
+            continue
+    return ", ".join(names)
+
+
+def _task_done_logger(label: str):
+    def _done(task: asyncio.Task) -> None:
+        try:
+            exc = task.exception()
+        except asyncio.CancelledError:
+            return
+        except Exception:
+            return
+        if exc is not None:
+            logger.warning("Background task '%s' failed: %s", label, safe_error_message(exc, "task failed"))
+
+    return _done
+
+
+def _spawn_background_task(coro, *, label: str) -> None:
+    try:
+        task = asyncio.create_task(coro)
+        task.add_done_callback(_task_done_logger(label))
+    except Exception as exc:
+        logger.debug("Unable to start background task '%s': %s", label, exc)
+
+
 def is_db_maintenance_active() -> bool:
     with _DB_MAINT_LOCK:
         return bool(_DB_MAINTENANCE_ACTIVE)
@@ -89,7 +145,6 @@ def _list_backup_files() -> list[dict[str, str | int]]:
             rows.append(
                 {
                     "name": p.name,
-                    "path": str(p),
                     "size_bytes": int(st.st_size),
                     "mtime": int(st.st_mtime),
                 }
@@ -323,8 +378,9 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                         try:
                             base_path = str(Path(get_runtime_output_root()).resolve(strict=False))
                             _emit_restore_status("restarting_scan", "info", operation="delete_db")
-                            asyncio.create_task(
-                                index_service.scan_directory(base_path, recursive=True, incremental=False, source="output")
+                            _spawn_background_task(
+                                index_service.scan_directory(base_path, recursive=True, incremental=False, source="output"),
+                                label="db_force_delete_scan_output",
                             )
                             started_scans.append(base_path)
                         except Exception:
@@ -332,8 +388,9 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                         try:
                             import folder_paths  # type: ignore
                             input_path = str(Path(folder_paths.get_input_directory()).resolve())
-                            asyncio.create_task(
-                                index_service.scan_directory(input_path, recursive=True, incremental=False, source="input")
+                            _spawn_background_task(
+                                index_service.scan_directory(input_path, recursive=True, incremental=False, source="input"),
+                                label="db_force_delete_scan_input",
                             )
                             started_scans.append(input_path)
                         except Exception:
@@ -383,15 +440,16 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
 
             if failed_files:
                 logger.error("Force-delete: could not remove files: %s", failed_files)
+                failed_basenames = _basename_list(failed_files)
                 _emit_restore_status(
                     "failed",
                     "error",
-                    f"Could not delete: {', '.join(failed_files)}",
+                    f"Could not delete: {failed_basenames}",
                     operation="delete_db",
                 )
                 return _json_response(Result.Err(
                     "DELETE_FAILED",
-                    f"Could not delete: {', '.join(failed_files)}. "
+                    f"Could not delete: {failed_basenames}. "
                     "Stop ComfyUI, manually delete the files, then restart.",
                 ))
 
@@ -418,8 +476,9 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                 try:
                     base_path = str(Path(get_runtime_output_root()).resolve(strict=False))
                     _emit_restore_status("restarting_scan", "info", operation="delete_db")
-                    asyncio.create_task(
-                        index_service.scan_directory(base_path, recursive=True, incremental=False, source="output")
+                    _spawn_background_task(
+                        index_service.scan_directory(base_path, recursive=True, incremental=False, source="output"),
+                        label="db_force_delete_scan_output",
                     )
                     started_scans.append(base_path)
                 except Exception:
@@ -427,8 +486,9 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                 try:
                     import folder_paths  # type: ignore
                     input_path = str(Path(folder_paths.get_input_directory()).resolve())
-                    asyncio.create_task(
-                        index_service.scan_directory(input_path, recursive=True, incremental=False, source="input")
+                    _spawn_background_task(
+                        index_service.scan_directory(input_path, recursive=True, incremental=False, source="input"),
+                        label="db_force_delete_scan_input",
                     )
                     started_scans.append(input_path)
                 except Exception:
@@ -527,7 +587,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
         try:
             rows = _list_backup_files()
             latest = rows[0]["name"] if rows else None
-            return _json_response(Result.Ok({"archive_dir": str(_DB_ARCHIVE_DIR), "items": rows, "latest": latest}))
+            return _json_response(Result.Ok({"archive_dir": _DB_ARCHIVE_DIR.name, "items": rows, "latest": latest}))
         except Exception as exc:
             return _json_response(Result.Err("DB_ERROR", safe_error_message(exc, "Failed to list DB backups")))
 
@@ -564,9 +624,8 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
             Result.Ok(
                 {
                     "saved": True,
-                    "archive_dir": str(_DB_ARCHIVE_DIR),
+                    "archive_dir": _DB_ARCHIVE_DIR.name,
                     "name": target.name,
-                    "path": str(target),
                     "size_bytes": int(target.stat().st_size) if target.exists() else 0,
                 }
             )
@@ -602,7 +661,9 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                 chosen = next((x for x in items if str(x.get("name")) == requested_name), {})
                 if not chosen:
                     return _json_response(Result.Err("NOT_FOUND", f"Backup not found: {requested_name}"))
-            src = _DB_ARCHIVE_DIR / str(chosen.get("name") or "")
+            src = _resolve_archive_source(str(chosen.get("name") or ""))
+            if src is None:
+                return _json_response(Result.Err("INVALID_INPUT", "Invalid backup name"))
             if not src.exists():
                 return _json_response(Result.Err("NOT_FOUND", f"Backup file missing: {src.name}"))
         except Exception as exc:
@@ -654,14 +715,20 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                 _emit_restore_status("restarting_scan", "info", operation="restore_db")
                 try:
                     out_path = str(Path(get_runtime_output_root()).resolve(strict=False))
-                    asyncio.create_task(index_service.scan_directory(out_path, recursive=True, incremental=False, source="output"))
+                    _spawn_background_task(
+                        index_service.scan_directory(out_path, recursive=True, incremental=False, source="output"),
+                        label="db_restore_scan_output",
+                    )
                     scans_triggered.append(out_path)
                 except Exception:
                     pass
                 try:
                     import folder_paths  # type: ignore
                     input_path = str(Path(folder_paths.get_input_directory()).resolve())
-                    asyncio.create_task(index_service.scan_directory(input_path, recursive=True, incremental=False, source="input"))
+                    _spawn_background_task(
+                        index_service.scan_directory(input_path, recursive=True, incremental=False, source="input"),
+                        label="db_restore_scan_input",
+                    )
                     scans_triggered.append(input_path)
                 except Exception:
                     pass
@@ -680,7 +747,6 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                 {
                     "restored": True,
                     "name": src.name,
-                    "path": str(src),
                     "scans_triggered": scans_triggered if "scans_triggered" in locals() else [],
                     "steps": [
                         "stopping_workers",

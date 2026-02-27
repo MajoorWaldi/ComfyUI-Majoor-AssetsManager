@@ -10,9 +10,7 @@ from mjr_am_shared import scan_throttle as th
 
 def _reset_state():
     """Clear module-level dicts between tests."""
-    with th._LOCK:
-        th._MANUAL_SCAN_TIMES.clear()
-        th._RECENT_SCAN_TIMES.clear()
+    th._reset_scan_throttle_state_for_tests()
 
 
 @pytest.fixture(autouse=True)
@@ -94,3 +92,11 @@ def test_cleanup_locked_removes_old():
     th._cleanup_locked(now)
     assert "old_key" not in th._MANUAL_SCAN_TIMES
     assert "old_key" not in th._RECENT_SCAN_TIMES
+
+
+def test_reset_helper_clears_state():
+    th.mark_directory_indexed("/x")
+    th.mark_directory_scanned("/x")
+    th._reset_scan_throttle_state_for_tests()
+    assert not th._MANUAL_SCAN_TIMES
+    assert not th._RECENT_SCAN_TIMES

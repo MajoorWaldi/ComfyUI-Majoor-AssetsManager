@@ -61,6 +61,8 @@ def _is_client_disconnect(exc: BaseException) -> bool:
 logger = get_logger(__name__)
 
 _APPKEY_OBS_INSTALLED = web.AppKey("mjr_observability_installed", bool)
+_OBS_INSTALL_LOCK = threading.Lock()
+_ASYNCIO_HANDLER_LOCK = threading.Lock()
 
 # Time constants (ms) / tunables
 MS_PER_S = 1000.0
@@ -75,6 +77,19 @@ _DEFAULT_RATELIMIT_CLEAN_MIN_CUTOFF_MS = 120_000.0
 _LOG_RATELIMIT_LOCK = threading.Lock()
 _LOG_RATELIMIT_STATE: dict[str, float] = {}
 _LOG_RATELIMIT_CLEAN_AT = 0.0
+_SENSITIVE_QUERY_KEYS = frozenset(
+    {
+        "token",
+        "api_token",
+        "apikey",
+        "api_key",
+        "authorization",
+        "auth",
+        "password",
+        "secret",
+        "key",
+    }
+)
 
 # Runtime-configured values are read from env at call time (tests rely on monkeypatching env).
 
@@ -345,17 +360,18 @@ def ensure_observability(app: web.Application) -> None:
     """
     Install middleware once.
     """
-    try:
-        if app.get(_APPKEY_OBS_INSTALLED):
+    with _OBS_INSTALL_LOCK:
+        try:
+            if app.get(_APPKEY_OBS_INSTALLED):
+                return
+            app[_APPKEY_OBS_INSTALLED] = True
+        except Exception:
             return
-        app[_APPKEY_OBS_INSTALLED] = True
-    except Exception:
-        return
 
-    try:
-        app.middlewares.append(request_context_middleware)
-    except Exception as exc:
-        logger.debug("Failed to install observability middleware: %s", exc)
+        try:
+            app.middlewares.append(request_context_middleware)
+        except Exception as exc:
+            logger.debug("Failed to install observability middleware: %s", exc)
 
     # Install asyncio exception handler to silence benign client disconnects.
     # These errors occur at the transport level (after middleware) when clients
@@ -376,41 +392,64 @@ def _install_asyncio_exception_handler() -> None:
     connection before the server finished sending data.
     """
     global _ASYNCIO_HANDLER_INSTALLED
-    if _ASYNCIO_HANDLER_INSTALLED:
-        return
-
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        # No running loop yet (e.g., during module import).
-        # This is fine; the handler will be installed when ensure_observability
-        # is called at runtime with an active loop.
-        return
-
-    original_handler = loop.get_exception_handler()
-
-    def _quiet_exception_handler(loop: asyncio.AbstractEventLoop, context: dict[str, Any]) -> None:
-        """
-        Custom exception handler that silences client disconnect errors.
-        """
-        exc = context.get("exception")
-        if exc is not None and _is_client_disconnect(exc):
-            # Silently ignore client disconnect errors.
-            # These are benign and expected in web servers.
+    with _ASYNCIO_HANDLER_LOCK:
+        if _ASYNCIO_HANDLER_INSTALLED:
             return
 
-        # For all other exceptions, use the original handler or default.
-        if original_handler is not None:
-            original_handler(loop, context)
-        else:
-            loop.default_exception_handler(context)
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            # No running loop yet (e.g., during module import).
+            # This is fine; the handler will be installed when ensure_observability
+            # is called at runtime with an active loop.
+            return
 
+        original_handler = loop.get_exception_handler()
+
+        def _quiet_exception_handler(loop: asyncio.AbstractEventLoop, context: dict[str, Any]) -> None:
+            """
+            Custom exception handler that silences client disconnect errors.
+            """
+            exc = context.get("exception")
+            if exc is not None and _is_client_disconnect(exc):
+                # Silently ignore client disconnect errors.
+                # These are benign and expected in web servers.
+                return
+
+            # For all other exceptions, use the original handler or default.
+            if original_handler is not None:
+                original_handler(loop, context)
+            else:
+                loop.default_exception_handler(context)
+
+        try:
+            loop.set_exception_handler(_quiet_exception_handler)
+            _ASYNCIO_HANDLER_INSTALLED = True
+            logger.debug("Installed asyncio exception handler for client disconnect errors")
+        except Exception as exc:
+            logger.debug("Failed to install asyncio exception handler: %s", exc)
+
+
+def _sanitize_query_params(request: web.Request) -> dict[str, Any]:
+    out: dict[str, Any] = {}
     try:
-        loop.set_exception_handler(_quiet_exception_handler)
-        _ASYNCIO_HANDLER_INSTALLED = True
-        logger.debug("Installed asyncio exception handler for client disconnect errors")
-    except Exception as exc:
-        logger.debug("Failed to install asyncio exception handler: %s", exc)
+        iterator = request.query.items()
+    except Exception:
+        return out
+    for key, value in iterator:
+        k = str(key or "")
+        lower = k.lower()
+        if lower in _SENSITIVE_QUERY_KEYS or lower.endswith("_token") or lower.endswith("_key"):
+            out[k] = "[redacted]"
+            continue
+        try:
+            text = str(value or "")
+        except Exception:
+            text = ""
+        if len(text) > 256:
+            text = text[:256] + "..."
+        out[k] = text
+    return out
 
 
 def build_request_log_fields(request: web.Request, response_status: int | None = None) -> dict[str, Any]:
@@ -420,7 +459,7 @@ def build_request_log_fields(request: web.Request, response_status: int | None =
         "request_id": request.get("mjr_request_id"),
         "method": request.method,
         "path": request.path,
-        "query": dict(request.query),
+        "query": _sanitize_query_params(request),
         "status": response_status,
         "duration_ms": request.get("mjr_duration_ms"),
         "remote": getattr(request, "remote", None),

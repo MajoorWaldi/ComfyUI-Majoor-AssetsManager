@@ -3,6 +3,24 @@ import { comfyToast } from "../../../app/toast.js";
 import { listCollections, createCollection, deleteCollection } from "../../../api/client.js";
 import { t } from "../../../app/i18n.js";
 
+const MAX_COLLECTION_NAME_LEN = 128;
+
+function normalizeCollectionName(value) {
+    try {
+        const name = String(value ?? "").trim();
+        if (!name) return "";
+        if (name.length > MAX_COLLECTION_NAME_LEN) return "";
+        if (name.includes("\x00")) return "";
+        for (let i = 0; i < name.length; i += 1) {
+            const code = name.charCodeAt(i);
+            if (code <= 31 || code === 127) return "";
+        }
+        return name;
+    } catch {
+        return "";
+    }
+}
+
 function createMenuItem(label, { right = null, checked = false, danger = false } = {}) {
     const btn = document.createElement("button");
     btn.type = "button";
@@ -75,13 +93,18 @@ export function createCollectionsController({ state, collectionsBtn, collections
         createBtn.addEventListener("click", async () => {
             const name = await comfyPrompt(t("dialog.createCollection"), t("dialog.collectionPlaceholder"));
             if (!name) return;
-            const res = await createCollection(name);
+            const normalizedName = normalizeCollectionName(name);
+            if (!normalizedName) {
+                comfyToast(t("toast.invalidCollectionName", "Invalid collection name"), "error");
+                return;
+            }
+            const res = await createCollection(normalizedName);
             if (!res?.ok) {
                 comfyToast(res?.error || t("toast.failedCreateCollection"), "error");
                 return;
             }
             state.collectionId = String(res.data?.id || "");
-            state.collectionName = String(res.data?.name || name);
+            state.collectionName = String(res.data?.name || normalizedName);
             try {
                 onChanged?.();
             } catch {}

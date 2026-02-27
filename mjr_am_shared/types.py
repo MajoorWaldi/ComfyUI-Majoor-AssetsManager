@@ -1,6 +1,7 @@
 """
 Shared types, enums, and constants.
 """
+import os
 from enum import Enum
 from typing import Final, Literal
 
@@ -58,7 +59,6 @@ def classify_file(filename: str) -> FileKind:
     Returns:
         File kind (image, video, audio, model3d, unknown)
     """
-    import os
     ext = os.path.splitext(filename)[1].lower()
 
     for kind, exts in EXTENSIONS.items():

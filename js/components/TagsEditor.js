@@ -235,6 +235,8 @@ export function createTagsEditor(asset, onUpdate) {
     let savePending = false;
     let saveAC = null;
     let lastSaved = Array.isArray(asset.tags) ? [...asset.tags] : [];
+    const retryDelay = (attemptIndex) => Math.min(100 * (2 ** Math.max(0, attemptIndex - 1)), 2000);
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     const saveTags = async () => {
         if (saveInFlight) {
             savePending = true;
@@ -244,7 +246,12 @@ export function createTagsEditor(asset, onUpdate) {
             return;
         }
         saveInFlight = true;
-        while (true) {
+        let attempts = 0;
+        while (attempts < 10) {
+            if (attempts > 0) {
+                await wait(retryDelay(attempts));
+            }
+            attempts += 1;
             const snapshot = [...currentTags];
             const ac = typeof AbortController !== "undefined" ? new AbortController() : null;
             saveAC = ac;
@@ -289,6 +296,12 @@ export function createTagsEditor(asset, onUpdate) {
         comfyToast(t("toast.tagsUpdated"), "success", 1000);
             if (!savePending) break;
             savePending = false;
+        }
+        if (attempts >= 10) {
+            currentTags.splice(0, currentTags.length, ...lastSaved);
+            asset.tags = [...lastSaved];
+            renderTags();
+            comfyToast(t("toast.tagsUpdateFailed"), "error");
         }
         saveInFlight = false;
         saveAC = null;

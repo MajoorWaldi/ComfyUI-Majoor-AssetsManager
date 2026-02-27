@@ -7,6 +7,7 @@ export function createPopoverManager(container) {
     let windowScrollHandlerBound = false;
     let windowResizeHandlerBound = false;
     let repositionController = new AbortController();
+    let disposed = false;
 
     const POPOVER_GAP_PX = 8;
     const POPOVER_PAD_PX = 8;
@@ -159,7 +160,7 @@ export function createPopoverManager(container) {
         try {
             repositionController.abort();
         } catch {}
-        repositionController = new AbortController();
+        if (!disposed) repositionController = new AbortController();
     };
 
     const close = (popover) => {
@@ -231,6 +232,7 @@ export function createPopoverManager(container) {
     };
 
     const dispose = () => {
+        disposed = true;
         try {
             document.removeEventListener("mousedown", onDocMouseDown);
         } catch {}
@@ -240,7 +242,7 @@ export function createPopoverManager(container) {
         try {
             repositionController.abort();
         } catch {}
-        repositionController = new AbortController();
+        repositionController = null;
         try {
             closeAll();
         } catch {}

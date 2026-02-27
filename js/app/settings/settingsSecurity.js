@@ -106,6 +106,9 @@ export function registerSecuritySettings(safeAddSetting, settings, notifyApplied
             settings.security.apiToken = typeof value === "string" ? value.trim() : "";
             saveMajoorSettings(settings);
             notifyApplied("security.apiToken");
+            // Skip backend call when token is empty: the token is auto-generated and
+            // managed server-side, so an empty field just means "use the auto-generated one".
+            if (!settings.security.apiToken) return;
             try {
                 setSecuritySettings({ api_token: settings.security.apiToken })
                     .then((res) => {

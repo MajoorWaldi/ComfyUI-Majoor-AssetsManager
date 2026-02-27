@@ -11,6 +11,7 @@ from typing import Any
 import aiosqlite
 
 
+# Allow bare column names and qualified table.column identifiers.
 _COLUMN_NAME_PATTERN = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?$")
 _IN_QUERY_FORBIDDEN = re.compile(
     r"(--|/\*|\*/|;|\bpragma\b|\battach\b|\bdetach\b|\bvacuum\b|\balter\b|\bdrop\b|\binsert\b|\bupdate\b|\bdelete\b)",

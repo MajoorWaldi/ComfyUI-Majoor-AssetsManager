@@ -38,7 +38,7 @@ async def test_custom_roots_get_and_post_csrf(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_custom_roots_post_success_with_watcher(monkeypatch):
+async def test_custom_roots_post_success_with_watcher(monkeypatch, tmp_path: Path):
     app = _app()
     calls = {"added": 0, "scan": 0}
 
@@ -51,7 +51,7 @@ async def test_custom_roots_post_success_with_watcher(monkeypatch):
         return {"watcher": _Watcher()}, None
 
     async def _read_json(_request):
-        return Result.Ok({"path": "C:/tmp/abc", "label": "abc"})
+        return Result.Ok({"path": str(tmp_path / "abc"), "label": "abc"})
 
     async def _scan(*_args, **_kwargs):
         calls["scan"] += 1
@@ -191,7 +191,7 @@ async def test_browse_folder_csrf_and_rate_limit(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_custom_roots_remove_success(monkeypatch):
+async def test_custom_roots_remove_success(monkeypatch, tmp_path: Path):
     app = _app()
     calls = {"removed": 0}
 
@@ -210,7 +210,7 @@ async def test_custom_roots_remove_success(monkeypatch):
     monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
     monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
     monkeypatch.setattr(m, "_read_json", _read_json)
-    monkeypatch.setattr(m, "resolve_custom_root", lambda _rid: Result.Ok(Path("C:/tmp/root")))
+    monkeypatch.setattr(m, "resolve_custom_root", lambda _rid: Result.Ok(tmp_path / "root"))
     monkeypatch.setattr(m, "remove_custom_root", lambda _rid: Result.Ok({"removed": True}))
     monkeypatch.setattr(m, "_require_services", _services)
 
@@ -223,14 +223,14 @@ async def test_custom_roots_remove_success(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_custom_view_guards(monkeypatch):
+async def test_custom_view_guards(monkeypatch, tmp_path: Path):
     app = _app()
 
     req1 = make_mocked_request("GET", "/mjr/am/custom-view", app=app)
     resp1 = await (await app.router.resolve(req1)).handler(req1)
     assert _json(resp1).get("code") == "INVALID_INPUT"
 
-    monkeypatch.setattr(m, "resolve_custom_root", lambda _rid: Result.Ok(Path("C:/tmp")))
+    monkeypatch.setattr(m, "resolve_custom_root", lambda _rid: Result.Ok(tmp_path))
     monkeypatch.setattr(m, "_safe_rel_path", lambda _s: None)
     req2 = make_mocked_request("GET", "/mjr/am/custom-view?root_id=r1&filename=a.png&subfolder=..", app=app)
     resp2 = await (await app.router.resolve(req2)).handler(req2)
@@ -371,7 +371,7 @@ async def test_browser_folder_op_move_and_invalid(monkeypatch, tmp_path: Path):
     assert _json(resp2).get("code") == "INVALID_INPUT"
 
 @pytest.mark.asyncio
-async def test_browse_folder_headless_and_success_and_cancel(monkeypatch):
+async def test_browse_folder_headless_and_success_and_cancel(monkeypatch, tmp_path: Path):
     app = _app()
     monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
     monkeypatch.setattr(m, "_check_rate_limit", lambda *_args, **_kwargs: (True, None))
@@ -415,7 +415,7 @@ async def test_browse_folder_headless_and_success_and_cancel(monkeypatch):
         @staticmethod
         def askdirectory(title=None):
             _ = title
-            return "C:/tmp"
+            return str(tmp_path)
 
     monkeypatch.setattr(m, "filedialog", _FD2)
     req3 = make_mocked_request("POST", "/mjr/sys/browse-folder", app=app)

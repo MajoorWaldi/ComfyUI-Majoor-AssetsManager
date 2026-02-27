@@ -25,21 +25,27 @@ authors = [
 # ]
 
 dependencies = [
-  "aiohttp>=3.8.0",
-  "aiosqlite>=0.20.0",
-  "pillow>=10.0.0",
-  "hachoir>=3.3.0",
-  "send2trash>=1.8.0",
-  "pywin32>=300; sys_platform == 'win32'",
+  "aiohttp>=3.8.0,<4.0.0",
+  "aiosqlite>=0.20.0,<1.0.0",
+  "pillow>=10.0.0,<13.0.0",
+  "hachoir>=3.3.0,<4.0.0",
+  "send2trash>=1.8.0,<2.0.0",
+  "watchdog>=3.0.0,<7.0.0",
+  "pywin32>=300,<311; sys_platform == 'win32'",
   # Note: tkinter is required for native folder browser functionality
   # tkinter is included in standard Python distribution but may be missing in minimal installs
 ]
 
 [project.optional-dependencies]
 dev = [
-  "radon>=6.0.1",
-  "flake8>=7.1.0",
-  "flake8-cognitive-complexity>=0.1.0",
+  "pytest>=8.0.0,<9.0.0",
+  "pytest-asyncio>=0.22.0,<1.0.0",
+  "pyflakes>=3.4.0,<4.0.0",
+  "radon>=6.0.1,<7.0.0",
+  "flake8>=7.1.0,<8.0.0",
+  "flake8-cognitive-complexity>=0.1.0,<1.0.0",
+  "pip-audit>=2.9.0,<3.0.0",
+  "bandit>=1.8.0,<2.0.0",
 ]
 
 [project.urls]

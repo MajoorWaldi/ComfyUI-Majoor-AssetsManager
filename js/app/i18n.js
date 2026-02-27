@@ -8,7 +8,7 @@ import { SettingsStore } from "./settings/SettingsStore.js";
 
 const DEFAULT_LANG = "en-US";
 let currentLang = DEFAULT_LANG;
-let _langChangeListeners = [];
+const _langChangeListeners = new Set();
 const LANG_STORAGE_KEYS = ["mjr_lang", "majoor.lang"];
 const FOLLOW_COMFY_LANG_STORAGE_KEY = "mjr_lang_follow_comfy";
 const _missingTranslationKeys = new Set();
@@ -964,9 +964,19 @@ export const setLang = (lang) => {
     _persistLang(lang);
     
     // Notify listeners
-    _langChangeListeners.forEach(cb => {
+    Array.from(_langChangeListeners).forEach(cb => {
         try { cb(lang); } catch {}
     });
+};
+
+export const subscribeLangChange = (callback) => {
+    if (typeof callback !== "function") return () => {};
+    _langChangeListeners.add(callback);
+    return () => {
+        try {
+            _langChangeListeners.delete(callback);
+        } catch {}
+    };
 };
 
 export const setFollowComfyLanguage = (enabled) => {

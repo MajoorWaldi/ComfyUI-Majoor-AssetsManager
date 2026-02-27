@@ -170,7 +170,6 @@ export function createViewerMetadataHydrator({
             safeCall(() => cache.clear());
         },
         cleanupCache: () => safeCall(cleanupCache) || undefined,
-        _unsafeCache: cache,
         _noop: noop,
     };
 }

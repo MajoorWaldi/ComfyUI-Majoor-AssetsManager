@@ -198,10 +198,19 @@ def _is_safe_identifier(value: str) -> bool:
     return bool(value and isinstance(value, str) and _SAFE_IDENT_RE.match(value))
 
 
+def _quoted_identifier(value: str) -> str:
+    if not _is_safe_identifier(value):
+        raise ValueError(f"Invalid identifier: {value!r}")
+    safe = value.replace('"', '""')
+    return f'"{safe}"'
+
+
 async def _get_table_columns(db, table_name: str) -> Result[list[str]]:
-    if not _is_safe_identifier(table_name):
+    try:
+        table_ident = _quoted_identifier(table_name)
+    except ValueError:
         return Result.Err("INVALID_INPUT", f"Invalid table name: {table_name}")
-    result = await db.aquery(f"PRAGMA table_info('{table_name}')")
+    result = await db.aquery(f"PRAGMA table_info({table_ident})")
     if not result.ok:
         return Result.Err("PRAGMA_FAILED", f"Unable to inspect {table_name}: {result.error}")
     return Result.Ok([row["name"] for row in result.data or []])
@@ -236,8 +245,12 @@ async def _ensure_column(db, table_name: str, column_name: str, definition: str)
         return Result.Ok(True)
 
     logger.info("Adding missing column %s.%s", table_name, column_name)
+    try:
+        table_ident = _quoted_identifier(table_name)
+    except ValueError:
+        return Result.Err("INVALID_INPUT", f"Invalid table name: {table_name}")
     alter_result = await db.aexecute(
-        f"ALTER TABLE {table_name} ADD COLUMN {definition}"
+        f"ALTER TABLE {table_ident} ADD COLUMN {definition}"
     )
     return alter_result
 
@@ -282,8 +295,11 @@ async def ensure_indexes_and_triggers(db) -> Result[bool]:
 
 async def _fts_has_column(db, table: str, col: str) -> bool:
     """Check if an FTS table has a specific column."""
+    if not _is_safe_identifier(table) or not _is_safe_identifier(col):
+        return False
     try:
-        r = await db.aquery(f"PRAGMA table_info({table})")
+        table_ident = _quoted_identifier(table)
+        r = await db.aquery(f"PRAGMA table_info({table_ident})")
         if not r.ok or not r.data:
             return False
         return any((row.get("name") == col) for row in r.data)

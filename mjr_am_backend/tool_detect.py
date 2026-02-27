@@ -5,6 +5,7 @@ Cached detection to avoid repeated subprocess calls.
 import re
 import shutil
 import subprocess
+import threading
 from typing import Any
 
 from mjr_am_backend.config import (
@@ -28,6 +29,7 @@ _TOOL_VERSIONS: dict[str, str | None] = {
     "exiftool": None,
     "ffprobe": None,
 }
+_TOOL_CACHE_LOCK = threading.Lock()
 
 
 def parse_tool_version(value: str | None) -> tuple[int, ...]:
@@ -84,71 +86,73 @@ def _run_command(cmd: list[str]) -> subprocess.CompletedProcess[str]:
 
 def has_exiftool() -> bool:
     """Check if ExifTool is available."""
-    if _TOOL_CACHE["exiftool"] is not None:
-        return _TOOL_CACHE["exiftool"]
+    with _TOOL_CACHE_LOCK:
+        if _TOOL_CACHE["exiftool"] is not None:
+            return bool(_TOOL_CACHE["exiftool"])
 
-    try:
-        exiftool_bin = EXIFTOOL_BIN or "exiftool"
-        if shutil.which(exiftool_bin) is None:
-            logger.debug("ExifTool binary not found in PATH: %s", exiftool_bin)
-        result = _run_command([exiftool_bin, "-ver"])
-        available = result.returncode == 0
-        _TOOL_CACHE["exiftool"] = available
+        try:
+            exiftool_bin = EXIFTOOL_BIN or "exiftool"
+            if shutil.which(exiftool_bin) is None:
+                logger.debug("ExifTool binary not found in PATH: %s", exiftool_bin)
+            result = _run_command([exiftool_bin, "-ver"])
+            available = result.returncode == 0
+            _TOOL_CACHE["exiftool"] = available
 
-        if available:
-            version = result.stdout.strip()
-            _TOOL_VERSIONS["exiftool"] = version
-            if not _enforce_min_version("ExifTool", version, EXIFTOOL_MIN_VERSION):
-                _TOOL_CACHE["exiftool"] = False
-                return False
-            logger.info("ExifTool detected: version %s", version)
-        else:
-            logger.warning("ExifTool not found or failed to start: %s", result.stderr.strip())
+            if available:
+                version = result.stdout.strip()
+                _TOOL_VERSIONS["exiftool"] = version
+                if not _enforce_min_version("ExifTool", version, EXIFTOOL_MIN_VERSION):
+                    _TOOL_CACHE["exiftool"] = False
+                    return False
+                logger.info("ExifTool detected: version %s", version)
+            else:
+                logger.warning("ExifTool not found or failed to start: %s", result.stderr.strip())
 
-        return available
-    except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
-        logger.warning("ExifTool detection failed: %s", exc)
-        _TOOL_CACHE["exiftool"] = False
-        return False
-    except Exception as exc:
-        logger.warning("ExifTool detection raised unexpected error: %s", exc)
-        _TOOL_CACHE["exiftool"] = False
-        return False
+            return available
+        except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
+            logger.warning("ExifTool detection failed: %s", exc)
+            _TOOL_CACHE["exiftool"] = False
+            return False
+        except Exception as exc:
+            logger.warning("ExifTool detection raised unexpected error: %s", exc)
+            _TOOL_CACHE["exiftool"] = False
+            return False
 
 
 def has_ffprobe() -> bool:
     """Check if FFprobe is available."""
-    if _TOOL_CACHE["ffprobe"] is not None:
-        return _TOOL_CACHE["ffprobe"]
+    with _TOOL_CACHE_LOCK:
+        if _TOOL_CACHE["ffprobe"] is not None:
+            return bool(_TOOL_CACHE["ffprobe"])
 
-    try:
-        ffprobe_bin = FFPROBE_BIN or "ffprobe"
-        if shutil.which(ffprobe_bin) is None:
-            logger.debug("FFprobe binary not found in PATH: %s", ffprobe_bin)
-        result = _run_command([ffprobe_bin, "-version"])
-        available = result.returncode == 0
-        _TOOL_CACHE["ffprobe"] = available
+        try:
+            ffprobe_bin = FFPROBE_BIN or "ffprobe"
+            if shutil.which(ffprobe_bin) is None:
+                logger.debug("FFprobe binary not found in PATH: %s", ffprobe_bin)
+            result = _run_command([ffprobe_bin, "-version"])
+            available = result.returncode == 0
+            _TOOL_CACHE["ffprobe"] = available
 
-        if available:
-            version_line = result.stdout.split("\n")[0] if result.stdout else ""
-            version = version_line.strip()
-            _TOOL_VERSIONS["ffprobe"] = version
-            if not _enforce_min_version("FFprobe", version, FFPROBE_MIN_VERSION):
-                _TOOL_CACHE["ffprobe"] = False
-                return False
-            logger.info("FFprobe detected: %s", version)
-        else:
-            logger.warning("FFprobe not found or failed to start: %s", result.stderr.strip())
+            if available:
+                version_line = result.stdout.split("\n")[0] if result.stdout else ""
+                version = version_line.strip()
+                _TOOL_VERSIONS["ffprobe"] = version
+                if not _enforce_min_version("FFprobe", version, FFPROBE_MIN_VERSION):
+                    _TOOL_CACHE["ffprobe"] = False
+                    return False
+                logger.info("FFprobe detected: %s", version)
+            else:
+                logger.warning("FFprobe not found or failed to start: %s", result.stderr.strip())
 
-        return available
-    except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
-        logger.warning("FFprobe detection failed: %s", exc)
-        _TOOL_CACHE["ffprobe"] = False
-        return False
-    except Exception as exc:
-        logger.warning("FFprobe detection raised unexpected error: %s", exc)
-        _TOOL_CACHE["ffprobe"] = False
-        return False
+            return available
+        except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
+            logger.warning("FFprobe detection failed: %s", exc)
+            _TOOL_CACHE["ffprobe"] = False
+            return False
+        except Exception as exc:
+            logger.warning("FFprobe detection raised unexpected error: %s", exc)
+            _TOOL_CACHE["ffprobe"] = False
+            return False
 
 
 def get_tool_status() -> dict[str, Any]:
@@ -176,5 +180,6 @@ def get_tool_status() -> dict[str, Any]:
 def reset_tool_cache():
     """Reset tool detection cache (for testing or manual refresh)."""
     global _TOOL_CACHE, _TOOL_VERSIONS
-    _TOOL_CACHE = {"exiftool": None, "ffprobe": None}
-    _TOOL_VERSIONS = {"exiftool": None, "ffprobe": None}
+    with _TOOL_CACHE_LOCK:
+        _TOOL_CACHE = {"exiftool": None, "ffprobe": None}
+        _TOOL_VERSIONS = {"exiftool": None, "ffprobe": None}

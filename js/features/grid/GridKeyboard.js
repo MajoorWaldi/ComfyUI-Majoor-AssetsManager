@@ -19,6 +19,7 @@ import { safeDispatchCustomEvent } from "../../utils/events.js";
 import { getViewerInstance } from "../../components/Viewer.js";
 import { showAddToCollectionMenu } from "../collections/contextmenu/addToCollectionMenu.js";
 import { normalizeRenameFilename, validateFilename } from "../../utils/filenames.js";
+import { getHotkeysState, isHotkeysSuspended } from "../panel/controllers/hotkeysState.js";
 
 /**
  * Keyboard shortcut definitions
@@ -352,9 +353,9 @@ export function installGridKeyboard({
         }
 
         // Skip if hotkeys suspended (dialog open, etc.)
-        if (globalThis?._mjrHotkeysState?.suspended) return;
+        if (isHotkeysSuspended()) return;
         // Viewer must have priority over grid shortcuts.
-        if (globalThis?._mjrHotkeysState?.scope === "viewer") return;
+        if (getHotkeysState().scope === "viewer") return;
 
         // Skip if grid not visible/focused
         // Allow if focus is:
@@ -391,7 +392,7 @@ export function installGridKeyboard({
         const state = getState();
 
         // Rating shortcuts (1-5, 0 for reset) - handled by dedicated rating controller when enabled.
-        const ratingHotkeysActive = !!globalThis?._mjrRatingHotkeysActive;
+        const ratingHotkeysActive = !!getHotkeysState().ratingHotkeysActive;
         if (!e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
             if (!ratingHotkeysActive && matchesShortcut(e, GRID_SHORTCUTS.RATING_1)) {
                 if (asset?.id) { consume(); setRating(asset, 1, onAssetChanged); return; }
@@ -749,6 +750,10 @@ export function installGridKeyboard({
         document.removeEventListener("keydown", keydownHandler, true);
         keydownHandler = null;
         bound = false;
+        for (const t of _ratingDebounceTimers.values()) {
+            try { clearTimeout(t); } catch {}
+        }
+        _ratingDebounceTimers.clear();
     };
 
     const dispose = () => {

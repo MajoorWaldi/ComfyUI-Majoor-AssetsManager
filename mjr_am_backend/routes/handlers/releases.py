@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 from typing import Any
 
 from aiohttp import ClientSession, ClientTimeout, web
@@ -22,6 +23,7 @@ from mjr_am_backend.shared import Result, get_logger, sanitize_error_message
 from ..core import _json_response
 
 logger = get_logger(__name__)
+_SAFE_GITHUB_SEGMENT_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9._-]{0,98}[A-Za-z0-9])?$")
 
 
 def _parse_per_page(raw_value: str | None) -> int:
@@ -30,6 +32,20 @@ def _parse_per_page(raw_value: str | None) -> int:
     except Exception:
         return 100
     return max(1, min(200, value))
+
+
+def _is_safe_github_segment(value: str) -> bool:
+    try:
+        normalized = str(value or "").strip()
+    except Exception:
+        return False
+    if not normalized:
+        return False
+    if ".." in normalized:
+        return False
+    if normalized.startswith(".") or normalized.endswith("."):
+        return False
+    return bool(_SAFE_GITHUB_SEGMENT_RE.match(normalized))
 
 
 def _github_headers() -> dict[str, str]:
@@ -61,8 +77,7 @@ def _extract_ref_names(payload: Any) -> list[str]:
 async def _fetch_github_json(session: ClientSession, url: str, headers: dict[str, str]) -> Any:
     async with session.get(url, headers=headers, timeout=ClientTimeout(total=30)) as resp:
         if resp.status != 200:
-            text = await resp.text()
-            raise RuntimeError(f"GitHub API returned {resp.status}: {text}")
+            raise RuntimeError(f"GitHub API returned {resp.status}")
         return await resp.json()
 
 
@@ -71,6 +86,8 @@ def register_releases_routes(routes: web.RouteTableDef) -> None:
     async def get_releases(request: web.Request) -> web.Response:
         owner = (request.query.get("owner") or "MajoorWaldi").strip()
         repo = (request.query.get("repo") or "ComfyUI-Majoor-AssetsManager").strip()
+        if not _is_safe_github_segment(owner) or not _is_safe_github_segment(repo):
+            return _json_response(Result.Err("INVALID_INPUT", "Invalid owner/repo format"))
         per_page = _parse_per_page(request.query.get("per_page"))
         headers = _github_headers()
         tags_url, branches_url = _github_refs_urls(owner, repo, per_page)

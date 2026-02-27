@@ -78,10 +78,10 @@ async def test_db_backup_restore_not_found_and_save_service_unavailable(monkeypa
     monkeypatch.setattr(m, "_require_services", _require_services_ok)
     req_restore = make_mocked_request("POST", "/mjr/am/db/backup-restore", app=app)
 
-    async def _json():
-        return {"use_latest": True}
+    async def _read_json(_request):
+        return Result.Ok({"use_latest": True})
 
-    req_restore.json = _json
+    monkeypatch.setattr(m, "_read_json", _read_json)
     match_restore = await app.router.resolve(req_restore)
     resp_restore = await match_restore.handler(req_restore)
     body_restore = json.loads(resp_restore.text)
@@ -101,10 +101,10 @@ async def test_db_backup_restore_requested_name_not_found_and_missing_db(monkeyp
     monkeypatch.setattr(m, "_require_services", _require_services_missing_db)
     req = make_mocked_request("POST", "/mjr/am/db/backup-restore", app=app)
 
-    async def _json():
-        return {"name": "missing.sqlite"}
+    async def _read_json(_request):
+        return Result.Ok({"name": "missing.sqlite"})
 
-    req.json = _json
+    monkeypatch.setattr(m, "_read_json", _read_json)
     match = await app.router.resolve(req)
     resp = await match.handler(req)
     body = json.loads(resp.text)
@@ -130,10 +130,10 @@ async def test_db_backup_restore_reset_fail_and_replace_fail(monkeypatch, tmp_pa
     monkeypatch.setattr(m, "_require_services", _require_services_reset_fail)
     req1 = make_mocked_request("POST", "/mjr/am/db/backup-restore", app=app)
 
-    async def _json_latest():
-        return {"use_latest": True}
+    async def _read_json(_request):
+        return Result.Ok({"use_latest": True})
 
-    req1.json = _json_latest
+    monkeypatch.setattr(m, "_read_json", _read_json)
     match1 = await app.router.resolve(req1)
     resp1 = await match1.handler(req1)
     body1 = json.loads(resp1.text)
@@ -156,7 +156,6 @@ async def test_db_backup_restore_reset_fail_and_replace_fail(monkeypatch, tmp_pa
 
     monkeypatch.setattr(m, "_replace_db_from_backup", _replace_fail)
     req2 = make_mocked_request("POST", "/mjr/am/db/backup-restore", app=app)
-    req2.json = _json_latest
     match2 = await app.router.resolve(req2)
     resp2 = await match2.handler(req2)
     body2 = json.loads(resp2.text)

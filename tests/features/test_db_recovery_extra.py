@@ -55,6 +55,22 @@ def test_populate_table_columns_cursor_execute_raises() -> None:
     assert len(known) == 0
 
 
+def test_populate_table_columns_rejects_unsafe_table_identifier() -> None:
+    calls = {"execute": 0}
+
+    class _Cursor:
+        def execute(self, _sql: str) -> None:
+            calls["execute"] += 1
+
+        def fetchall(self):
+            return [(0, "id")]
+
+    known: set[str] = set()
+    dr.populate_table_columns(_Cursor(), "assets;DROP TABLE assets--", "a", known)
+    assert calls["execute"] == 0
+    assert not known
+
+
 def test_populate_known_columns_from_schema_nonexistent_db(tmp_path: Path) -> None:
     """Line 143 — db_path does not exist → early return with empty lowercase map."""
     db = tmp_path / "does_not_exist.db"

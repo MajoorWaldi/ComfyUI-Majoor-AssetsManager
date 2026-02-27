@@ -87,7 +87,9 @@ export function createContextPillsView() {
 
         const anyContext =
             isQueryActive || isFilterActive || isSortActive || isCollectionActive || isScopeActive;
-        void anyContext;
+        if (!anyContext && !root.childElementCount) {
+            return;
+        }
 
         try {
             root.replaceChildren();

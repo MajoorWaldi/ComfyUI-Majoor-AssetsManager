@@ -4,11 +4,14 @@ Configuration for Majoor Assets Manager.
 import logging
 import os
 import sys
+import threading
 from pathlib import Path
 
 from .utils import env_bool
 
 logger = logging.getLogger(__name__)
+_INIT_LOCK = threading.Lock()
+_DIRS_INITIALIZED = False
 
 
 def _env_raw(*names: str, default: str | None = None) -> str | None:
@@ -150,7 +153,12 @@ def _resolve_output_root_fallback() -> Path:
         return fallback_dir.resolve()
     except (OSError, RuntimeError) as exc:
         logger.error("All fallback strategies failed: %s", exc)
-        return Path.cwd() / "output"
+        fallback = Path.cwd() / "output"
+        try:
+            fallback.mkdir(exist_ok=True)
+        except Exception as mkdir_exc:
+            logger.warning("Failed to create fallback output directory %s: %s", fallback, mkdir_exc)
+        return fallback
 
 
 def _resolve_output_root_from_argv() -> Path | None:
@@ -211,9 +219,17 @@ INDEX_DB = str(INDEX_DB_PATH)
 COLLECTIONS_DIR_PATH = INDEX_DIR_PATH / "collections"
 COLLECTIONS_DIR = str(COLLECTIONS_DIR_PATH)
 
-# Create index directory if it doesn't exist
-os.makedirs(INDEX_DIR, exist_ok=True)
-os.makedirs(COLLECTIONS_DIR, exist_ok=True)
+
+def initialize_directories() -> None:
+    global _DIRS_INITIALIZED
+    if _DIRS_INITIALIZED:
+        return
+    with _INIT_LOCK:
+        if _DIRS_INITIALIZED:
+            return
+        os.makedirs(INDEX_DIR, exist_ok=True)
+        os.makedirs(COLLECTIONS_DIR, exist_ok=True)
+        _DIRS_INITIALIZED = True
 
 # External tool overrides (portable vs. system-wide)
 EXIFTOOL_BIN = _env_raw("MJR_AM_EXIFTOOL_PATH", "MAJOOR_EXIFTOOL_PATH", "MAJOOR_EXIFTOOL_BIN", default="exiftool")
@@ -233,7 +249,6 @@ FFPROBE_MIN_VERSION = str(_env_raw("MJR_AM_FFPROBE_MIN_VERSION", "MAJOOR_FFPROBE
 
 # Media probe backend setting
 # Options: "auto" (recommended), "exiftool", "ffprobe", "both"
-MEDIA_PROBE_BACKEND = os.getenv("MAJOOR_MEDIA_PROBE_BACKEND", "auto")
 MEDIA_PROBE_BACKEND = str(_env_raw("MJR_AM_MEDIA_PROBE_BACKEND", "MAJOOR_MEDIA_PROBE_BACKEND", default="auto") or "auto")
 
 # Tool timeouts.

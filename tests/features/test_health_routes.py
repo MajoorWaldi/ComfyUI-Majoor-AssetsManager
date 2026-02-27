@@ -129,6 +129,32 @@ async def test_update_output_directory_csrf_block(monkeypatch) -> None:
     body = json.loads(resp.text)
     assert body.get("code") == "CSRF"
 
+
+@pytest.mark.asyncio
+async def test_update_output_directory_real_csrf_and_auth_guards(monkeypatch) -> None:
+    monkeypatch.setenv("MAJOOR_REQUIRE_AUTH", "1")
+    monkeypatch.delenv("MAJOOR_API_TOKEN", raising=False)
+    monkeypatch.delenv("MJR_API_TOKEN", raising=False)
+    monkeypatch.delenv("MAJOOR_API_TOKEN_HASH", raising=False)
+    monkeypatch.delenv("MJR_API_TOKEN_HASH", raising=False)
+
+    app = _build_health_app()
+
+    req_missing_csrf = make_mocked_request("POST", "/mjr/am/settings/output-directory", app=app)
+    resp_missing_csrf = await (await app.router.resolve(req_missing_csrf)).handler(req_missing_csrf)
+    body_missing_csrf = json.loads(resp_missing_csrf.text)
+    assert body_missing_csrf.get("code") == "CSRF"
+
+    req_missing_auth = make_mocked_request(
+        "POST",
+        "/mjr/am/settings/output-directory",
+        headers={"X-Requested-With": "XMLHttpRequest"},
+        app=app,
+    )
+    resp_missing_auth = await (await app.router.resolve(req_missing_auth)).handler(req_missing_auth)
+    body_missing_auth = json.loads(resp_missing_auth.text)
+    assert body_missing_auth.get("code") == "AUTH_REQUIRED"
+
 class _Settings:
     def __init__(self):
         self.output = ""
@@ -176,7 +202,7 @@ class _Settings:
 
 
 @pytest.mark.asyncio
-async def test_health_and_counters_success_timeout_degraded(monkeypatch) -> None:
+async def test_health_and_counters_success_timeout_degraded(monkeypatch, tmp_path: Path) -> None:
     class _Health:
         async def status(self):
             return Result.Ok({"up": True})
@@ -189,7 +215,7 @@ async def test_health_and_counters_success_timeout_degraded(monkeypatch) -> None
         return {"health": _Health(), "index": object()}, None
 
     monkeypatch.setattr(health_mod, "_require_services", _svc)
-    monkeypatch.setattr(health_mod, "resolve_custom_root", lambda _rid: Result.Ok(Path("C:/tmp")))
+    monkeypatch.setattr(health_mod, "resolve_custom_root", lambda _rid: Result.Ok(tmp_path))
 
     app = _build_health_app()
     req1 = make_mocked_request("GET", "/mjr/am/health", app=app)
@@ -259,14 +285,14 @@ async def test_health_db_success_and_error(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_output_and_probe_settings_routes(monkeypatch) -> None:
+async def test_output_and_probe_settings_routes(monkeypatch, tmp_path: Path) -> None:
     settings = _Settings()
 
     async def _svc():
         return {"settings": settings}, None
 
     async def _read_json(_request):
-        return Result.Ok({"output_directory": "C:/out", "mode": "ffprobe"})
+        return Result.Ok({"output_directory": str(tmp_path), "mode": "ffprobe"})
 
     monkeypatch.setattr(health_mod, "_require_services", _svc)
     monkeypatch.setattr(health_mod, "_csrf_error", lambda _req: None)
@@ -361,6 +387,8 @@ async def test_security_empty_input_and_token_routes(monkeypatch) -> None:
     monkeypatch.setattr(health_mod, "_require_write_access", lambda _req: Result.Ok({}))
     monkeypatch.setattr(health_mod, "_has_configured_write_token", lambda: False)
     monkeypatch.setattr(health_mod, "_read_json", _read_empty)
+    monkeypatch.setattr(health_mod, "_is_secure_request_transport", lambda _req: True)
+    monkeypatch.setattr(health_mod, "_bootstrap_enabled", lambda: True)
 
     app = _build_health_app()
     req1 = make_mocked_request("POST", "/mjr/am/settings/security", app=app)
@@ -387,11 +415,53 @@ async def test_bootstrap_token_blocked_when_token_already_configured(monkeypatch
     monkeypatch.setattr(health_mod, "_csrf_error", lambda _req: None)
     monkeypatch.setattr(health_mod, "_require_write_access", lambda _req: Result.Ok({}))
     monkeypatch.setattr(health_mod, "_has_configured_write_token", lambda: True)
+    monkeypatch.setattr(health_mod, "_bootstrap_enabled", lambda: True)
 
     app = _build_health_app()
     req = make_mocked_request("POST", "/mjr/am/settings/security/bootstrap-token", app=app)
     resp = await (await app.router.resolve(req)).handler(req)
     assert json.loads(resp.text).get("code") == "FORBIDDEN"
+
+
+@pytest.mark.asyncio
+async def test_bootstrap_token_disabled_without_env_gate(monkeypatch) -> None:
+    settings = _Settings()
+
+    async def _svc():
+        return {"settings": settings}, None
+
+    monkeypatch.setattr(health_mod, "_require_services", _svc)
+    monkeypatch.setattr(health_mod, "_csrf_error", lambda _req: None)
+    monkeypatch.setattr(health_mod, "_require_write_access", lambda _req: Result.Ok({}))
+    monkeypatch.setattr(health_mod, "_has_configured_write_token", lambda: False)
+    monkeypatch.setattr(health_mod, "_bootstrap_enabled", lambda: False)
+
+    app = _build_health_app()
+    req = make_mocked_request("POST", "/mjr/am/settings/security/bootstrap-token", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    assert json.loads(resp.text).get("code") == "BOOTSTRAP_DISABLED"
+
+
+@pytest.mark.asyncio
+async def test_bootstrap_token_requires_authenticated_comfy_user_when_write_auth_fails(monkeypatch) -> None:
+    settings = _Settings()
+
+    async def _svc():
+        return {"settings": settings}, None
+
+    monkeypatch.setattr(health_mod, "_require_services", _svc)
+    monkeypatch.setattr(health_mod, "_csrf_error", lambda _req: None)
+    monkeypatch.setattr(health_mod, "_require_write_access", lambda _req: Result.Err("AUTH_REQUIRED", "missing"))
+    monkeypatch.setattr(health_mod, "_is_loopback_request", lambda _req: True)
+    monkeypatch.setattr(health_mod, "_require_authenticated_user", lambda _req: Result.Ok("", auth_mode="disabled"))
+    monkeypatch.setattr(health_mod, "_has_configured_write_token", lambda: False)
+    monkeypatch.setattr(health_mod, "_is_secure_request_transport", lambda _req: True)
+    monkeypatch.setattr(health_mod, "_bootstrap_enabled", lambda: True)
+
+    app = _build_health_app()
+    req = make_mocked_request("POST", "/mjr/am/settings/security/bootstrap-token", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    assert json.loads(resp.text).get("code") == "AUTH_REQUIRED"
 
 
 @pytest.mark.asyncio

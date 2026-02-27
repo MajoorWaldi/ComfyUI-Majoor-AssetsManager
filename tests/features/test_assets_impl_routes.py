@@ -169,7 +169,7 @@ class _DummyDB:
         return Result.Ok([])
 
     async def aquery_in(self, _sql, _column, values):
-        return Result.Ok([{"id": int(v), "filepath": f"C:/tmp/{int(v)}.png"} for v in values])
+        return Result.Ok([{"id": int(v), "filepath": str(Path("tmp") / f"{int(v)}.png")} for v in values])
 
     async def aexecute(self, sql, params=()):
         self.execs.append((sql, params))
@@ -780,6 +780,18 @@ async def test_download_asset_rate_and_missing_filepath(monkeypatch):
     req2 = make_mocked_request("GET", "/mjr/am/asset/download", app=app)
     resp2 = await (await app.router.resolve(req2)).handler(req2)
     assert resp2.status == 400
+
+
+@pytest.mark.asyncio
+async def test_download_asset_blocks_path_traversal_query(monkeypatch):
+    app = web.Application()
+    app.router.add_get("/mjr/am/asset/download", m.download_asset)
+    monkeypatch.setattr(m, "_check_rate_limit", lambda *_args, **_kwargs: (True, None))
+    monkeypatch.setattr(m, "_is_resolved_path_allowed", lambda _p: False)
+
+    req = make_mocked_request("GET", "/mjr/am/asset/download?filepath=../../etc/passwd", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    assert resp.status in {403, 404}
 
 
 @pytest.mark.asyncio

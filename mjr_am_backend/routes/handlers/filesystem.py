@@ -338,7 +338,11 @@ async def _run_scan_directory_task(svc: dict[str, Any], task: dict[str, Any]) ->
 
 
 def _record_scan_failure(directory: str, source: str, code: str, error: str) -> None:
-    # No lock needed: called on the asyncio event loop (single-threaded task context).
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        logger.warning("Ignoring background scan failure update outside event loop thread")
+        return
     _BACKGROUND_SCAN_FAILURES.insert(0, {
         "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "directory": directory,

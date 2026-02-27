@@ -132,22 +132,18 @@ class AppSettings:
 
         token_hash = await self._get_stored_api_token_hash_locked()
         if token_hash:
-            stored_token = await self._get_stored_api_token_plain_locked(token_hash)
-            if stored_token:
-                self._set_runtime_api_token(stored_token, token_hash)
-                self._set_api_token_env(stored_token, token_hash, include_plain=False)
-                return stored_token
+            self._set_runtime_api_token("", token_hash)
+            self._set_api_token_env("", token_hash, include_plain=False)
+            return ""
 
-            token = self._generate_api_token()
-            new_hash = await self._persist_api_token_hash_with_warning(token, "Failed to persist regenerated API token hash")
-            self._set_runtime_api_token(token, new_hash)
-            self._set_api_token_env(token, new_hash, include_plain=False)
-            return token
-
+        # Auto-generate a session token.
+        # Not persisted to DB, not injected into env — this keeps loopback connections
+        # accessible without any token by default (no user action required).
+        # The token is held in memory only and delivered to the frontend via the
+        # bootstrap endpoint on loopback, which caches it in sessionStorage.
         token = self._generate_api_token()
-        token_hash = await self._persist_api_token_hash_with_warning(token, "Failed to persist auto-generated API token hash")
+        token_hash = self._hash_api_token(token)
         self._set_runtime_api_token(token, token_hash)
-        self._set_api_token_env(token, token_hash, include_plain=False)
         return token
 
     def _env_api_token(self) -> str:
@@ -161,9 +157,6 @@ class AppSettings:
         write_res = await self._write_setting(_SECURITY_API_TOKEN_HASH_KEY, token_hash)
         if not write_res.ok:
             logger.warning("%s: %s", warning_message, write_res.error)
-        plain_res = await self._write_setting(_SECURITY_API_TOKEN_KEY, str(token or "").strip())
-        if not plain_res.ok:
-            logger.warning("%s (plain token cache): %s", warning_message, plain_res.error)
         return token_hash
 
     def _set_runtime_api_token(self, token: str, token_hash: str) -> None:
@@ -236,13 +229,18 @@ class AppSettings:
     async def set_security_prefs(self, prefs: Mapping[str, Any]) -> Result[dict[str, Any]]:
         to_write = self._extract_security_prefs_to_write(prefs)
         token_in_payload = self._extract_token_from_prefs_payload(prefs)
-        if not to_write and token_in_payload is None:
+        token_hash_in_payload = self._extract_token_hash_from_prefs_payload(prefs)
+        if not to_write and token_in_payload is None and token_hash_in_payload is None:
             return Result.Err("INVALID_INPUT", "No security settings provided")
         async with self._lock:
             write_err = await self._persist_security_pref_flags(to_write)
             if write_err is not None:
                 return write_err
-            if token_in_payload is not None:
+            if token_hash_in_payload is not None:
+                token_err = await self._persist_security_api_token_hash(token_hash_in_payload)
+                if token_err is not None:
+                    return token_err
+            elif token_in_payload is not None:
                 token_err = await self._persist_security_api_token(token_in_payload)
                 if token_err is not None:
                     return token_err
@@ -262,6 +260,19 @@ class AppSettings:
         if isinstance(prefs, Mapping) and "apiToken" in prefs:
             return prefs.get("apiToken")
         return None
+
+    def _extract_token_hash_from_prefs_payload(self, prefs: Mapping[str, Any]) -> str | None:
+        if not isinstance(prefs, Mapping):
+            return None
+        raw = prefs.get("api_token_hash")
+        if raw is None:
+            return None
+        value = str(raw or "").strip().lower()
+        if len(value) != 64:
+            return None
+        if any(ch not in "0123456789abcdef" for ch in value):
+            return None
+        return value
 
     async def _persist_security_pref_flags(self, to_write: Mapping[str, bool]) -> Result[dict[str, Any]] | None:
         for key, value in to_write.items():
@@ -286,11 +297,19 @@ class AppSettings:
         hash_res = await self._write_setting(_SECURITY_API_TOKEN_HASH_KEY, token_hash)
         if not hash_res.ok:
             return Result.Err("DB_ERROR", hash_res.error or "Failed to persist api_token")
-        plain_res = await self._write_setting(_SECURITY_API_TOKEN_KEY, token)
-        if not plain_res.ok:
-            return Result.Err("DB_ERROR", plain_res.error or "Failed to persist api_token")
         self._set_runtime_api_token(token, token_hash)
         self._set_api_token_env(token, token_hash, include_plain=False)
+        return None
+
+    async def _persist_security_api_token_hash(self, token_hash: str) -> Result[dict[str, Any]] | None:
+        value = str(token_hash or "").strip().lower()
+        if len(value) != 64 or any(ch not in "0123456789abcdef" for ch in value):
+            return Result.Err("INVALID_INPUT", "Invalid api_token_hash")
+        hash_res = await self._write_setting(_SECURITY_API_TOKEN_HASH_KEY, value)
+        if not hash_res.ok:
+            return Result.Err("DB_ERROR", hash_res.error or "Failed to persist api_token_hash")
+        self._set_runtime_api_token("", value)
+        self._set_api_token_env("", value, include_plain=False)
         return None
 
     async def _warn_if_bump_fails(self, message: str) -> None:
@@ -308,9 +327,6 @@ class AppSettings:
             hash_res = await self._write_setting(_SECURITY_API_TOKEN_HASH_KEY, token_hash)
             if not hash_res.ok:
                 return Result.Err("DB_ERROR", hash_res.error or "Failed to persist rotated api token")
-            plain_res = await self._write_setting(_SECURITY_API_TOKEN_KEY, token)
-            if not plain_res.ok:
-                return Result.Err("DB_ERROR", plain_res.error or "Failed to persist rotated api token")
             self._set_runtime_api_token(token, token_hash)
             self._set_api_token_env(token, token_hash, include_plain=False)
             bump = await self._bump_settings_version_locked()

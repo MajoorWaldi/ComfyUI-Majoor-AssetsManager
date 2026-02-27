@@ -59,13 +59,43 @@ function isNewerVersion(remote, local) {
     return false;
 }
 
+function createFetchTimeoutSignal(timeoutMs) {
+    const ms = Math.max(1, Number(timeoutMs) || 10000);
+    try {
+        if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+            return { signal: AbortSignal.timeout(ms), cleanup: () => {} };
+        }
+    } catch {}
+    try {
+        if (typeof AbortController !== "undefined") {
+            const controller = new AbortController();
+            const timer = setTimeout(() => {
+                try {
+                    controller.abort();
+                } catch {}
+            }, ms);
+            return {
+                signal: controller.signal,
+                cleanup: () => {
+                    try {
+                        clearTimeout(timer);
+                    } catch {}
+                },
+            };
+        }
+    } catch {}
+    return { signal: undefined, cleanup: () => {} };
+}
+
 async function fetchLatestReleaseVersion() {
+    const { signal, cleanup } = createFetchTimeoutSignal(10_000);
     const response = await fetch(LATEST_RELEASE_URL, {
         cache: "no-cache",
+        signal,
         headers: {
             Accept: "application/vnd.github+json",
         },
-    });
+    }).finally(() => cleanup());
     if (!response.ok) {
         throw new Error(`GitHub release request failed (${response.status})`);
     }

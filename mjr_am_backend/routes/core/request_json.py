@@ -59,14 +59,14 @@ async def _read_json(request: web.Request, *, max_bytes: int | None = None) -> R
 
 def _content_type_error(request: web.Request) -> Result[dict] | None:
     """
-    Enforce JSON content type when explicitly provided.
+    Enforce JSON content type.
     """
     try:
         content_type = str(request.headers.get("Content-Type") or "").strip().lower()
     except Exception:
         content_type = ""
     if not content_type:
-        return None
+        return Result.Err(ErrorCode.INVALID_INPUT, "Missing Content-Type header (application/json required)")
     media_type = content_type.split(";", 1)[0].strip()
     if media_type == "application/json" or media_type.endswith("+json"):
         return None

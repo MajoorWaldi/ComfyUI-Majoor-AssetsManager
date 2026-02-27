@@ -119,8 +119,8 @@ def test_apply_flush_limit(monkeypatch):
 def test_handler_path_support_and_ignore(handler):
     assert handler._is_supported("x.png") is True
     assert handler._is_supported("x.txt") is False
-    assert handler._is_ignored_path("C:/tmp/.git/a.png") is True
-    assert handler._is_ignored_path("C:/tmp/ok/a.png") is False
+    assert handler._is_ignored_path("/tmp/.git/a.png") is True
+    assert handler._is_ignored_path("/tmp/ok/a.png") is False
 
 
 def test_handler_normalize_path_fallback(handler, monkeypatch):
@@ -143,11 +143,11 @@ def test_handler_pending_count(handler):
 
 def test_handle_file_rejects_and_adds(handler):
     handler._handle_file("")
-    handler._handle_file("C:/tmp/.git/a.png")
-    handler._handle_file("C:/tmp/a.txt")
+    handler._handle_file("/tmp/.git/a.png")
+    handler._handle_file("/tmp/a.txt")
     assert not handler._pending
 
-    handler._handle_file("C:/tmp/a.png")
+    handler._handle_file("/tmp/a.png")
     assert len(handler._pending) == 1
 
 
@@ -209,10 +209,10 @@ async def test_flush_pipeline_filters_backpressure_and_mark(monkeypatch, handler
     monkeypatch.setattr(w, "MAX_FILE_SIZE", 10_000)
     monkeypatch.setattr(w.os.path, "getsize", lambda p: 100 if "ok" in p else 0)
     handler._pending = {
-        "C:/tmp/ok1.png": 1,
-        "C:/tmp/ok2.png": 1,
-        "C:/tmp/ok3.png": 1,
-        "C:/tmp/no.txt": 1,
+        "/tmp/ok1.png": 1,
+        "/tmp/ok2.png": 1,
+        "/tmp/ok3.png": 1,
+        "/tmp/no.txt": 1,
     }
 
     flushed = []

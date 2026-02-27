@@ -1,6 +1,7 @@
 import { safeAddListener, safeCall } from "./lifecycle.js";
 import { comfyToast } from "../../app/toast.js";
 import { t } from "../../app/i18n.js";
+import { isHotkeysSuspended } from "../panel/controllers/hotkeysState.js";
 
 export function installViewerKeyboard({
     overlay,
@@ -86,7 +87,7 @@ export function installViewerKeyboard({
         };
 
         // Check if hotkeys are suspended (e.g. when dialogs/popovers are open)
-        if (globalThis?._mjrHotkeysState?.suspended) return;
+        if (isHotkeysSuspended()) return;
 
         try {
             if (overlay?.style?.display === "none") return;

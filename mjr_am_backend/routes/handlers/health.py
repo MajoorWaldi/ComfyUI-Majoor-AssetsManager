@@ -2,6 +2,9 @@
 Health check endpoints.
 """
 import asyncio
+import hashlib
+import os
+import re
 from pathlib import Path
 
 from aiohttp import web
@@ -23,7 +26,7 @@ from mjr_am_backend.config import (
     get_tool_paths,
 )
 from mjr_am_backend.custom_roots import resolve_custom_root
-from mjr_am_backend.shared import ErrorCode, Result, sanitize_error_message
+from mjr_am_backend.shared import ErrorCode, Result, get_logger, sanitize_error_message
 from mjr_am_backend.tool_detect import get_tool_status
 from mjr_am_backend.utils import parse_bool
 
@@ -37,6 +40,7 @@ from ..core import (
     _require_services,
     _require_write_access,
 )
+from ..core.security import _refresh_trusted_proxy_cache, _request_transport_is_secure, _safe_mode_enabled
 from .db_maintenance import is_db_maintenance_active
 
 SECURITY_PREF_KEYS = {
@@ -49,11 +53,103 @@ SECURITY_PREF_KEYS = {
     "allow_reset_index",
     "api_token",
 }
+_VALID_PROBE_MODES = {"auto", "exiftool", "ffprobe", "both"}
+_CUSTOM_ROOT_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
+_WRITE_TOKEN_COOKIE_NAME = "mjr_write_token"
+logger = get_logger(__name__)
 
 
 def _extract_probe_mode(body: dict) -> str:
     raw_mode = body.get("mode") or body.get("media_probe_backend") or ""
-    return str(raw_mode).strip()
+    mode = str(raw_mode).strip().lower()
+    return mode if mode in _VALID_PROBE_MODES else ""
+
+
+def _hash_api_token(token: str) -> str:
+    try:
+        normalized = str(token or "").strip()
+    except Exception:
+        normalized = ""
+    try:
+        pepper = str(os.environ.get("MAJOOR_API_TOKEN_PEPPER") or "").strip()
+    except Exception:
+        pepper = ""
+    payload = f"{pepper}\0{normalized}".encode("utf-8", errors="ignore")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _is_valid_custom_root_id(value: object) -> bool:
+    try:
+        return bool(_CUSTOM_ROOT_ID_RE.match(str(value or "")))
+    except Exception:
+        return False
+
+
+def _is_secure_request_transport(request: web.Request) -> bool:
+    try:
+        peer = str(getattr(request, "remote", "") or "").strip()
+    except Exception:
+        peer = ""
+    if not peer:
+        try:
+            peer = str(getattr(request.transport, "get_extra_info", lambda *_args, **_kwargs: None)("peername") or "")
+        except Exception:
+            peer = ""
+    try:
+        scheme = str(getattr(request, "scheme", "") or "").strip().lower()
+    except Exception:
+        scheme = ""
+    try:
+        headers = request.headers
+    except Exception:
+        headers = {}
+    return bool(_request_transport_is_secure(peer_ip=peer, headers=headers, request_scheme=scheme))
+
+
+def _bootstrap_enabled() -> bool:
+    try:
+        raw = str(os.environ.get("MAJOOR_ALLOW_BOOTSTRAP") or "").strip().lower()
+    except Exception:
+        raw = ""
+    return raw in {"1", "true", "yes", "on"}
+
+
+def _should_expose_token_response() -> bool:
+    try:
+        raw = str(os.environ.get("MAJOOR_EXPOSE_TOKEN_IN_RESPONSE") or "").strip().lower()
+    except Exception:
+        raw = ""
+    return raw in {"1", "true", "yes", "on"}
+
+
+def _token_hint(token: object) -> str:
+    normalized = str(token or "").strip()
+    if not normalized:
+        return ""
+    tail = normalized[-4:] if len(normalized) >= 4 else normalized
+    return f"...{tail}"
+
+
+def _set_write_token_cookie(response: web.StreamResponse, request: web.Request, token: str) -> None:
+    normalized = str(token or "").strip()
+    if not normalized:
+        return
+    try:
+        scheme = str(getattr(request, "scheme", "") or "").strip().lower()
+    except Exception:
+        scheme = ""
+    secure_cookie = scheme == "https"
+    try:
+        response.set_cookie(
+            _WRITE_TOKEN_COOKIE_NAME,
+            normalized,
+            httponly=True,
+            samesite="Strict",
+            secure=secure_cookie,
+            path="/",
+        )
+    except Exception:
+        return
 
 
 def _extract_metadata_fallback_payload(body: dict) -> tuple[object | None, object | None]:
@@ -73,11 +169,15 @@ def _build_security_prefs(body: dict) -> dict[str, object]:
         if key not in body:
             continue
         if key == "api_token":
-            prefs[key] = str(body[key] or "").strip()
+            token = str(body[key] or "").strip()
+            if token:
+                prefs["api_token_hash"] = _hash_api_token(token)
         else:
             prefs[key] = parse_bool(body[key], False)
-    if "apiToken" in body and "api_token" not in prefs:
-        prefs["api_token"] = str(body.get("apiToken") or "").strip()
+    if "apiToken" in body and "api_token_hash" not in prefs:
+        token = str(body.get("apiToken") or "").strip()
+        if token:
+            prefs["api_token_hash"] = _hash_api_token(token)
     return prefs
 
 
@@ -168,6 +268,8 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
                 str(Path(folder_paths.get_input_directory()).resolve(strict=False)),
             ]
         elif scope == "custom":
+            if not _is_valid_custom_root_id(custom_root_id):
+                return _json_response(Result.Err(ErrorCode.INVALID_INPUT, "Invalid custom_root_id"))
             root_result = resolve_custom_root(str(custom_root_id or ""))
             if not root_result.ok:
                 return _json_response(Result.Err(ErrorCode.INVALID_INPUT, root_result.error))
@@ -355,6 +457,14 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         body = body_res.data or {}
         raw_value = body.get("output_directory")
         value = "" if raw_value is None else str(raw_value).strip()
+        if value:
+            try:
+                normalized_path = Path(value).expanduser().resolve(strict=True)
+            except Exception:
+                return _json_response(Result.Err("INVALID_INPUT", "output_directory must be an existing directory"))
+            if not normalized_path.is_dir():
+                return _json_response(Result.Err("INVALID_INPUT", "output_directory must be a directory"))
+            value = str(normalized_path)
         result = await settings_service.set_output_directory(value)
         if not result.ok:
             return _json_response(result)
@@ -478,6 +588,14 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
 
         result = await settings_service.set_security_prefs(prefs)
         if result.ok:
+            try:
+                _safe_mode_enabled.cache_clear()
+            except Exception:
+                pass
+            try:
+                _refresh_trusted_proxy_cache()
+            except Exception:
+                pass
             current_prefs = result.data or (await settings_service.get_security_prefs())
             return _json_response(Result.Ok({"prefs": current_prefs}))
         return _json_response(result)
@@ -499,24 +617,68 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         settings_service = svc.get("settings")
         if not settings_service:
             return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Settings service unavailable"))
+        if not _is_secure_request_transport(request):
+            return _json_response(
+                Result.Err(
+                    "FORBIDDEN",
+                    "Token rotation response is only allowed over HTTPS or loopback transport.",
+                )
+            )
 
         result = await settings_service.rotate_api_token()
         if not result.ok:
             return _json_response(result)
-        return _json_response(Result.Ok({"token": (result.data or {}).get("api_token", "")}))
+        token = str((result.data or {}).get("api_token") or "").strip()
+        if _is_loopback_request(request):
+            try:
+                scheme = str(getattr(request, "scheme", "") or "").strip().lower()
+            except Exception:
+                scheme = ""
+            if scheme != "https":
+                logger.warning("Token rotation requested over plain HTTP loopback transport.")
+        payload = {"token_hint": _token_hint(token)}
+        if token and _should_expose_token_response():
+            payload["token"] = token
+        response = _json_response(Result.Ok(payload))
+        _set_write_token_cookie(response, request, token)
+        return response
 
     @routes.post("/mjr/am/settings/security/bootstrap-token")
     async def bootstrap_security_token(request):
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
+
+        is_loopback = _is_loopback_request(request)
+
+        # Remote requests must explicitly opt-in via MAJOOR_ALLOW_BOOTSTRAP=1.
+        # Loopback is always allowed: only local processes can reach it, and the
+        # auto-generated session token must be deliverable without user configuration.
+        if not is_loopback and not _bootstrap_enabled():
+            return _json_response(
+                Result.Err(
+                    "BOOTSTRAP_DISABLED",
+                    "Bootstrap token is disabled. Set MAJOOR_ALLOW_BOOTSTRAP=1 for initial token provisioning.",
+                )
+            )
+
         auth = _require_write_access(request)
         if not auth.ok:
-            user_auth = _require_authenticated_user(request)
-            if not (user_auth.ok and _is_loopback_request(request)):
+            if not is_loopback:
                 return _json_response(auth)
+            user_auth = _require_authenticated_user(request)
+            auth_mode = str((user_auth.meta or {}).get("auth_mode") or "").strip().lower()
+            if not (user_auth.ok and auth_mode == "comfy_user"):
+                return _json_response(
+                    Result.Err(
+                        "AUTH_REQUIRED",
+                        "Bootstrap requires an authenticated ComfyUI user on loopback when API token auth is unavailable.",
+                    )
+                )
 
-        if _has_configured_write_token():
+        # Remote: block when a persistent token is already configured (use rotate-token instead).
+        # Loopback: always deliver the session token — the user never configured it manually.
+        if not is_loopback and _has_configured_write_token():
             return _json_response(
                 Result.Err(
                     "FORBIDDEN",
@@ -531,11 +693,34 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         settings_service = svc.get("settings")
         if not settings_service:
             return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Settings service unavailable"))
+        if not _is_secure_request_transport(request):
+            return _json_response(
+                Result.Err(
+                    "FORBIDDEN",
+                    "Token bootstrap response is only allowed over HTTPS or loopback transport.",
+                )
+            )
 
         result = await settings_service.bootstrap_api_token()
         if not result.ok:
             return _json_response(result)
-        return _json_response(Result.Ok({"token": (result.data or {}).get("api_token", "")}))
+        token = str((result.data or {}).get("api_token") or "").strip()
+        if is_loopback:
+            try:
+                scheme = str(getattr(request, "scheme", "") or "").strip().lower()
+            except Exception:
+                scheme = ""
+            if scheme != "https":
+                logger.warning("Token bootstrap requested over plain HTTP loopback transport.")
+        payload = {"token_hint": _token_hint(token)}
+        # Include plain token in body for loopback: only local processes can reach loopback,
+        # so returning the token in the JSON body is safe and allows the frontend to cache
+        # it in sessionStorage without any user action.
+        if token and (is_loopback or _should_expose_token_response()):
+            payload["token"] = token
+        response = _json_response(Result.Ok(payload))
+        _set_write_token_cookie(response, request, token)
+        return response
 
     @routes.get("/mjr/am/tools/status")
     async def tools_status(request):
