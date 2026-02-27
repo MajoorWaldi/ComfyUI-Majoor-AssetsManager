@@ -10,10 +10,10 @@ function _clearPending(assetId) {
     if (!entry) return;
     try {
         clearTimeout(entry.timer);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         entry.controller?.abort?.();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     _pending.delete(assetId);
 }
 

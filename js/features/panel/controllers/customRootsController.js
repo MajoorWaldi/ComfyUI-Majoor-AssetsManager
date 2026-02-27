@@ -84,7 +84,7 @@ export function createCustomRootsController({
             disposers.push(() => {
                 try {
                     target.removeEventListener(event, handler);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             });
         };
 
@@ -102,7 +102,7 @@ export function createCustomRootsController({
                 customRemoveBtn.disabled = !state.customRootId;
                 try {
                     await onRootChanged?.(state);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 await reloadGrid();
             }
         };
@@ -119,7 +119,7 @@ export function createCustomRootsController({
                 if (browseRes?.ok) {
                     pickedPath = String(browseRes?.data?.path || "").trim();
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             if (!pickedPath) {
                 const manual = await comfyPrompt(t("dialog.enterFolderPath", "Enter folder path"), "");
                 pickedPath = String(manual || "").trim();
@@ -140,7 +140,7 @@ export function createCustomRootsController({
             await refreshCustomRoots(preferredId);
             try {
                 await onRootChanged?.(state);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             await reloadGrid();
             comfyToast(t("toast.folderAdded", "Folder added"), "success");
         };
@@ -186,7 +186,7 @@ export function createCustomRootsController({
             for (const dispose of disposers.splice(0)) {
                 try {
                     dispose();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
         };
     };

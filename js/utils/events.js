@@ -12,7 +12,7 @@ export function safeDispatchCustomEvent(eventName, detail, { target = null, warn
     } catch (e) {
         try {
             console.warn(`${warnPrefix} Failed to dispatch event: ${eventName}`, e);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         return false;
     }
 }

@@ -33,7 +33,7 @@ export function createFileBadge(filename, kind, nameCollision = false, collision
     const ext = String(filename || "").split(".").pop()?.toUpperCase?.() || "";
     try {
         badge.dataset.mjrExt = ext;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     let category = "unknown";
     switch (ext) {
@@ -92,7 +92,7 @@ export function createFileBadge(filename, kind, nameCollision = false, collision
     `;
     try {
         badge.dataset.mjrBadgeBg = normalBg;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     return badge;
 }
@@ -114,7 +114,7 @@ export function setFileBadgeCollision(badgeEl, nameCollision, collisionMeta = nu
             : `${ext} file`;
         badgeEl.style.background = nameCollision ? alertBg : normalBg;
         badgeEl.style.cursor = nameCollision ? "pointer" : "default";
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 /**
@@ -180,7 +180,7 @@ export function applyAssetStatusDotState(dot, state, title = "", context = {}) {
 
     try {
         dot.dataset.mjrStatus = s || "neutral";
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     dot.style.cssText = `
         color: ${color};
         margin-left: 4px;
@@ -191,7 +191,7 @@ export function applyAssetStatusDotState(dot, state, title = "", context = {}) {
     if (title) {
         try {
             dot.title = String(title);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 }
 

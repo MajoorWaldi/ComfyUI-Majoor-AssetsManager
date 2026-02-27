@@ -21,7 +21,7 @@ export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFol
             if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
                 return `mjr-search-autocomplete-${crypto.randomUUID()}`;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         return `mjr-search-autocomplete-${Math.random().toString(36).slice(2, 11)}`;
     })();
     const dataList = document.createElement("datalist");

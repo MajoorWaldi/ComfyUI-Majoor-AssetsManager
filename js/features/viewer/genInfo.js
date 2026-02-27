@@ -37,7 +37,7 @@ const _pruneCache = (cache, ttl, maxEntries) => {
             const key = sorted[i]?.[0];
             if (key != null) cache.delete(key);
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 };
 
 const _cacheGet = (cache, key, ttl) => {
@@ -58,7 +58,7 @@ const _cacheSet = (cache, key, data, ttl, maxEntries) => {
     try {
         cache.set(key, { at: Date.now(), data });
         _pruneCache(cache, ttl, maxEntries);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 };
 
 const _getCacheKey = (asset) => {
@@ -71,7 +71,7 @@ const _getCacheKey = (asset) => {
         const sub = String(asset?.subfolder || "").trim();
         const type = String(asset?.source || asset?.type || "output").trim().toLowerCase();
         if (name) return `name:${type}:${sub}:${name}`;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return null;
 };
 
@@ -94,7 +94,7 @@ const setGenInfoStatus = (asset, status) => {
         // Keep a flat copy for legacy consumers.
         try {
             asset.geninfo_status = status;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         // Prefer embedding under metadata_raw to survive merges.
         try {
@@ -106,11 +106,11 @@ const setGenInfoStatus = (asset, status) => {
             }
             // If `metadata_raw` is a string (raw JSON/text), preserve it.
             if (typeof raw === "string") return;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             asset.metadata_raw = { geninfo_status: status };
-        } catch {}
-    } catch {}
+        } catch (e) { console.debug?.(e); }
+    } catch (e) { console.debug?.(e); }
 };
 
 const _hasUsefulGenOrWorkflowPayload = (asset) => {
@@ -216,7 +216,7 @@ const ensureMediaPipelineStatus = (asset) => {
         }
         rawObj.geninfo_status = { kind: "media_pipeline" };
         asset.metadata_raw = rawObj;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 };
 
 const mergeFileMetadata = (asset, fileMeta) => {
@@ -224,22 +224,22 @@ const mergeFileMetadata = (asset, fileMeta) => {
     if (!md) return asset;
     try {
         asset.prompt = asset.prompt ?? md.prompt;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         asset.workflow = asset.workflow ?? md.workflow;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         asset.geninfo = asset.geninfo ?? md.geninfo;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         asset.geninfo_status = asset.geninfo_status ?? md.geninfo_status;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         asset.exif = asset.exif ?? md.exif;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         asset.ffprobe = asset.ffprobe ?? md.ffprobe;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         if (asset.metadata_raw == null) {
             asset.metadata_raw = md;
@@ -253,7 +253,7 @@ const mergeFileMetadata = (asset, fileMeta) => {
                 asset.metadata_raw = rawObj;
             }
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return asset;
 };
 
@@ -273,7 +273,7 @@ export async function ensureViewerMetadataAsset(
 
     const cachedError = cacheKey ? _cacheGet(GENINFO_ERROR_CACHE, cacheKey, GENINFO_ERROR_TTL_MS) : null;
     if (cachedError) {
-        try { setGenInfoStatus(full, cachedError); } catch {}
+        try { setGenInfoStatus(full, cachedError); } catch (e) { console.debug?.(e); }
         return full;
     }
 
@@ -283,7 +283,7 @@ export async function ensureViewerMetadataAsset(
             if (inflight && typeof inflight.then === "function") {
                 return await inflight;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     const run = async () => {
@@ -342,7 +342,7 @@ export async function ensureViewerMetadataAsset(
                     };
                 }
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     ensureMediaPipelineStatus(full);
@@ -363,14 +363,14 @@ export async function ensureViewerMetadataAsset(
 
     if (cacheKey) {
         const onAbort = () => {
-            try { GENINFO_INFLIGHT.delete(cacheKey); } catch {}
+            try { GENINFO_INFLIGHT.delete(cacheKey); } catch (e) { console.debug?.(e); }
         };
         try {
             signal?.addEventListener?.("abort", onAbort, { once: true });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         const p = run().finally(() => {
-            try { signal?.removeEventListener?.("abort", onAbort); } catch {}
-            try { GENINFO_INFLIGHT.delete(cacheKey); } catch {}
+            try { signal?.removeEventListener?.("abort", onAbort); } catch (e) { console.debug?.(e); }
+            try { GENINFO_INFLIGHT.delete(cacheKey); } catch (e) { console.debug?.(e); }
         });
         GENINFO_INFLIGHT.set(cacheKey, p);
         return await p;
@@ -404,12 +404,12 @@ export function buildViewerMetadataBlocks({ title, asset, ui } = {}) {
             const box = createInfoBox("Error Loading Metadata", content, "var(--mjr-status-error, #F44336)");
             try {
                 box.style.cursor = "pointer";
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 if (typeof ui?.onRetry === "function") {
                     box.onclick = () => safeCall(() => ui.onRetry());
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             block.appendChild(box);
         });
     }

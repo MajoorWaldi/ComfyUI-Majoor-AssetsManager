@@ -77,7 +77,7 @@ function drawPanel(ctx, { x, y, w, h, title }) {
             ctx.fillText(String(title), x + PANEL_TITLE_PAD_X, y + PANEL_TITLE_PAD_Y);
         }
         ctx.restore();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 function computeHistogramFromImageData(img, { sampleStep = DEFAULT_HIST_SAMPLE_STEP } = {}) {
@@ -164,7 +164,7 @@ function drawHistogram(ctx, rect, hist, { channel = "rgb" } = {}) {
             drawChannel(hist.hl, "rgba(255,255,255,0.45)");
         }
         ctx.restore();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 function computeWaveformFromImageData(
@@ -239,7 +239,7 @@ function drawWaveform(ctx, rect, wf) {
             }
         }
         ctx.restore();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 /**
@@ -310,5 +310,5 @@ export function drawScopesLight(ctx, viewport, sourceCanvas, opts = {}) {
             const wf = computeWaveformFromImageData(img, { columns: 180, rows: 96, sampleStep });
             drawWaveform(ctx, rect, wf);
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }

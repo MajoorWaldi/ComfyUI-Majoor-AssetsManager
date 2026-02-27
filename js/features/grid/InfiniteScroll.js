@@ -51,7 +51,7 @@ export async function fetchPage(gridContainer, query, limit, offset, deps, { req
             if (state && Number(state.requestId) !== Number(requestId)) {
                 return { ok: false, stale: true, error: "Stale response" };
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         if (result.ok) {
             const assets = (result.data?.assets) || [];
             const serverCount = Array.isArray(assets) ? assets.length : 0;
@@ -61,12 +61,12 @@ export async function fetchPage(gridContainer, query, limit, offset, deps, { req
         }
         try {
             if (String(result?.code || "") === "ABORTED") return { ok: false, aborted: true, error: "Aborted" };
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         return { ok: false, error: result.error };
     } catch (error) {
         try {
             if (String(error?.name || "") === "AbortError") return { ok: false, aborted: true, error: "Aborted" };
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         return { ok: false, error: error.message };
     }
 }
@@ -75,7 +75,7 @@ export function emitAgendaStatus(dateExact, hasResults) {
     if (!dateExact) return;
     try {
         window?.dispatchEvent?.(new CustomEvent("MJR:AgendaStatus", { detail: { date: dateExact, hasResults: Boolean(hasResults) } }));
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 export async function loadNextPage(gridContainer, state, deps) {

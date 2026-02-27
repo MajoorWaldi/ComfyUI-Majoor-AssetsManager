@@ -33,7 +33,7 @@ export function updateCardRatingTagsBadges(card, rating, tags, deps) {
     if (!card) return;
     try {
         if (!card.isConnected) return;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     const thumb = card.querySelector?.(".mjr-thumb");
     if (!thumb) return;
 
@@ -42,7 +42,7 @@ export function updateCardRatingTagsBadges(card, rating, tags, deps) {
     if (ratingValue <= 0) {
         try {
             oldRatingBadge?.remove?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     } else if (!oldRatingBadge) {
         const nextRatingBadge = deps.createRatingBadge(ratingValue);
         if (nextRatingBadge) thumb.appendChild(nextRatingBadge);
@@ -60,7 +60,7 @@ export function updateCardRatingTagsBadges(card, rating, tags, deps) {
                 }
                 oldRatingBadge.replaceChildren(...stars);
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     const oldTagsBadge = thumb.querySelector?.(".mjr-tags-badge");
@@ -96,7 +96,7 @@ export function pumpRatingTagsHydration(gridContainer, deps) {
                     job.asset.rating = rating;
                     job.asset.tags = tags;
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             updateCardRatingTagsBadges(job.card, rating, tags, deps);
             deps.safeDispatchCustomEvent(deps.events.rating, { assetId: String(job.id), rating }, { warnPrefix: "[GridView]" });
             deps.safeDispatchCustomEvent(deps.events.tags, { assetId: String(job.id), tags }, { warnPrefix: "[GridView]" });
@@ -105,7 +105,7 @@ export function pumpRatingTagsHydration(gridContainer, deps) {
             .finally(() => {
                 try {
                     st.active.delete(String(job.id));
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 st.inflight -= 1;
                 pumpRatingTagsHydration(gridContainer, deps);
             });
@@ -135,17 +135,17 @@ export function enqueueRatingTagsHydration(gridContainer, card, asset, deps) {
             const dropped = st.queue.shift();
             try {
                 if (dropped?.id) st.active.delete(String(dropped.id));
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 if (dropped?.id) st.seen.delete(String(dropped.id));
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     st.seen.add(id);
     pruneRatingTagsHydrateSeen(st, deps.seenMax, deps.seenTtlMs, deps.pruneBudgetRef);
     try {
         st.active.add(id);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     st.queue.push({ id, card, asset });
     pumpRatingTagsHydration(gridContainer, deps);
 }

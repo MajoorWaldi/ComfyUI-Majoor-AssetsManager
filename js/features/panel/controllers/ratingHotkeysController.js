@@ -11,12 +11,12 @@ function getSelectedCards(gridContainer, fallbackEventTarget = null) {
     try {
         const selected = Array.from(gridContainer.querySelectorAll(".mjr-asset-card.is-selected"));
         if (selected.length) return selected;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     try {
         const card = fallbackEventTarget?.closest?.(".mjr-asset-card");
         if (card && gridContainer.contains(card)) return [card];
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     return [];
 }
@@ -39,7 +39,7 @@ function updateCardRatingBadge(card, createRatingBadge, rating) {
         } else if (!oldRatingBadge && newBadge) {
             thumb.appendChild(newBadge);
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 async function runWithConcurrencyLimit(items, worker, limit = 5) {
@@ -52,7 +52,7 @@ async function runWithConcurrencyLimit(items, worker, limit = 5) {
             index += 1;
             try {
                 await worker(items[cur], cur);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
     };
     for (let i = 0; i < Math.min(max, items.length); i += 1) {
@@ -138,16 +138,16 @@ export function createRatingHotkeysController({ gridContainer, createRatingBadge
                     `.mjr-asset-card[data-mjr-asset-id="${CSS?.escape ? CSS.escape(String(assetId)) : String(assetId)}"]`
                 );
                 if (card) updateCardRatingBadge(card, createRatingBadge, rating);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
 
         try {
             // Use window-level listener with capture phase to ensure it works regardless of focus
             window.addEventListener("keydown", onKeyDown, { capture: true });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             window.addEventListener(EVENT_NAME, onRatingEvent);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const dispose = () => {
@@ -157,10 +157,10 @@ export function createRatingHotkeysController({ gridContainer, createRatingBadge
         try {
             // Remove window-level listener
             window.removeEventListener("keydown", onKeyDown, { capture: true });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             window.removeEventListener(EVENT_NAME, onRatingEvent);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         onKeyDown = null;
         onRatingEvent = null;
     };

@@ -58,6 +58,7 @@ def test_executable_resolution_helpers(monkeypatch, tmp_path: Path):
     assert m.ExifTool._is_safe_executable_name("bad|x") is False
     assert m.ExifTool._resolve_executable_path("exiftool") == str(exep)
     assert m.ExifTool._looks_like_exiftool_name(str(exep)) is True
+    assert m.ExifTool._looks_like_exiftool_name(str(tmp_path / "exiftool_malicious.exe")) is False
 
 
 def test_trusted_roots_and_under_trusted_dirs(monkeypatch, tmp_path: Path):

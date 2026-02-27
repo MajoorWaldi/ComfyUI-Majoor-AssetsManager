@@ -13,13 +13,13 @@ export function ensureStyleLoaded({ enabled = true } = {}) {
         link.onerror = () => {
             try {
                 link.remove();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
         document.head.appendChild(link);
         link.onload = () => {
             try {
                 document.documentElement.dataset.mjrThemeComfy = "1";
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
     } catch (err) {
         console.warn("Majoor: failed to load Comfy theme CSS", err);

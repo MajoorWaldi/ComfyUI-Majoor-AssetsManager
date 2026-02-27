@@ -72,7 +72,7 @@ export function getActiveGridContainer() {
         if (grid && grid.isConnected) {
             return grid;
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return null;
 }
 
@@ -87,25 +87,25 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     // Cleanup previous instance before re-render to prevent listener leaks
     try {
         container._eventCleanup?.();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         container._mjrPanelState?._mjrDispose?.();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         container._mjrPopoverManager?.dispose?.();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         container._mjrHotkeys?.dispose?.();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         container._mjrRatingHotkeys?.dispose?.();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         container._mjrSidebarController?.dispose?.();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         container._mjrGridContextMenuUnbind?.();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     container.replaceChildren();
     container.classList.add("mjr-am-container");
@@ -113,11 +113,11 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     const popovers = createPopoverManager(container);
     try {
         container._mjrPopoverManager = popovers;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     const state = createPanelState();
     try {
         container._mjrPanelState = state;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const headerView = createHeaderView();
     const { header, headerActions, tabButtons, customMenuBtn, filterBtn, sortBtn, collectionsBtn, pinnedFoldersBtn } = headerView;
@@ -216,7 +216,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         _scrollTimer = setTimeout(() => {
             try {
                 state.scrollTop = gridWrapper.scrollTop;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }, 100);
     }, { passive: true, signal: panelLifecycleAC?.signal });
 
@@ -231,25 +231,25 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         for (const fn of summaryBarDisposers.splice(0)) {
             try {
                 fn();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
     };
     try {
         const handler = () => {
             try {
                 updateSummaryBar?.({ state, gridContainer });
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
         gridContainer.addEventListener("mjr:grid-stats", handler, { signal: panelLifecycleAC?.signal });
         registerSummaryDispose(() => {
             try {
                 gridContainer.removeEventListener("mjr:grid-stats", handler);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         });
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         bindGridScanListeners();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     // Bind grid context menu
     container._mjrGridContextMenuUnbind = bindGridContextMenu({
@@ -276,7 +276,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         try {
             scrollTop = Number(gridWrapper?.scrollTop || 0) || 0;
             scrollLeft = Number(gridWrapper?.scrollLeft || 0) || 0;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         try {
             sidebar.dataset.position = pos;
@@ -284,7 +284,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             const borderColor = "var(--mjr-border, rgba(255,255,255,0.12))";
             sidebar.style.borderLeft = pos === "left" ? "none" : (isOpen ? `1px solid ${borderColor}` : "none");
             sidebar.style.borderRight = pos === "left" ? (isOpen ? `1px solid ${borderColor}` : "none") : "none";
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         try {
             if (pos === "left") {
@@ -295,20 +295,20 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 browseSection.appendChild(gridWrapper);
                 browseSection.appendChild(sidebar);
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         try {
             requestAnimationFrame(() => {
                 try {
                     gridWrapper.scrollTop = scrollTop;
                     gridWrapper.scrollLeft = scrollLeft;
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             });
         } catch {
             try {
                 gridWrapper.scrollTop = scrollTop;
                 gridWrapper.scrollLeft = scrollLeft;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
     };
 
@@ -320,14 +320,14 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         if (scope === "custom") {
             try {
                 await toggleWatcher(false);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             return;
         }
         const shouldEnable = wantsEnabled;
 
         try {
             await toggleWatcher(shouldEnable);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         if (!shouldEnable) return;
 
         try {
@@ -335,14 +335,14 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 scope,
                 customRootId: ""
             });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     // Initial position (no reload needed).
     try {
         _sidebarPosition = ""; // force apply
         applySidebarPosition(settings.sidebar?.position || "right");
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     // Live updates when ComfyUI settings change.
     const onSettingsChanged = (_e) => {
@@ -389,18 +389,18 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             if (shouldRefreshSidebar && state.sidebarOpen && state.activeAssetId) {
                 sidebarController?.refreshActiveAsset?.();
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             if (!shouldApplyWatcher) return;
             applyWatcherForScope(state.scope);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
     try {
         onSettingsChanged({ detail: { key: "__init__" } });
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         window.addEventListener?.("mjr-settings-changed", onSettingsChanged, { signal: panelLifecycleAC?.signal });
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     // Enrichment-complete reload removed: handleCountersUpdate (path B) already
     // detects new assets and triggers queuedReload with proper throttle + anchor
     // preservation. A second unconditional reload here caused systematic double
@@ -414,7 +414,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     container.appendChild(header);
     try {
         container._mjrVersionUpdateCleanup?.();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     container._mjrVersionUpdateCleanup = headerView.dispose || header._mjrVersionUpdateCleanup;
     container.appendChild(content);
 
@@ -441,10 +441,10 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     const notifyContextChanged = () => {
         try {
             contextController?.update?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             browserNav?.renderBreadcrumb?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
     browserNav = createBrowserNavigationController({
         state,
@@ -455,13 +455,13 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         onContextChanged: () => {
             try {
                 contextController?.update?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
         lifecycleSignal: panelLifecycleAC?.signal || null,
     });
     try {
         _unbindBrowserFolderNav = browserNav.bindGridFolderNavigation();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const refreshDuplicateAlerts = async () => {
         const scope = String(state.scope || "output").toLowerCase();
@@ -488,7 +488,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 firstPair: Array.isArray(data.similar_pairs) ? data.similar_pairs[0] : null
             };
             notifyContextChanged();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     // Allow context menus to request a refresh (e.g. after "Remove from collection").
@@ -500,11 +500,11 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             const now = Date.now();
             if (now - Number(_lastReloadRequestAt || 0) < 500) return;
             _lastReloadRequestAt = now;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         queuedReload().catch((err) => {
             try {
                 console.warn("[Majoor] queuedReload failed", err);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         });
     };
     try {
@@ -533,32 +533,32 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 const n = Number(detail?.count || ids.length || cards.length || 0);
                 try {
                     comfyToast(t("toast.nameCollisionInView", "Name collision in view: {n} item(s) selected", { n }), "info", 1800);
-                } catch {}
-            } catch {}
+                } catch (e) { console.debug?.(e); }
+            } catch (e) { console.debug?.(e); }
         };
         gridContainer.addEventListener("mjr:badge-duplicates-focus", onDuplicateBadgeFocus, { signal: panelLifecycleAC?.signal });
         registerSummaryDispose(() => {
             try {
                 if (_reloadGridHandler) gridContainer.removeEventListener("mjr:reload-grid", _reloadGridHandler);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 gridContainer.removeEventListener("mjr:badge-duplicates-focus", onDuplicateBadgeFocus);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             _reloadGridHandler = null;
         });
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         _globalReloadGridHandler = () => {
             try {
                 if (panelLifecycleAC?.signal?.aborted) return;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 if (globalThis?._mjrMaintenanceActive) return;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             requestQueuedReload();
         };
         window.addEventListener("mjr:reload-grid", _globalReloadGridHandler, { signal: panelLifecycleAC?.signal });
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const customRootsController = createCustomRootsController({
         state,
@@ -574,13 +574,13 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         onRootChanged: async () => {
             try {
                 browserNav?.resetHistory?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 await applyWatcherForScope(state.scope);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 await refreshDuplicateAlerts();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
     });
     const disposeCustomRootsBindings = customRootsController.bind({ customAddBtn, customRemoveBtn });
@@ -589,7 +589,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             const preferredId = String(e?.detail?.preferredId || "").trim() || null;
             await customRootsController.refreshCustomRoots(preferredId);
         }, { signal: panelLifecycleAC?.signal });
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     scopeController = createScopeController({
         state,
@@ -605,16 +605,16 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         onScopeChanged: async () => {
             try {
                 await applyWatcherForScope(state.scope);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 await refreshDuplicateAlerts();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
         onBeforeReload: async () => {
             // Prevent stale cards overlap during fast scope switches.
             try {
                 prepareGridForScopeSwitch(gridContainer);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             // Force an immediate counters refresh for this scope instead of waiting polling tick.
             try {
                 await updateStatus(
@@ -625,7 +625,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                     null,
                     { signal: panelLifecycleAC?.signal || null }
                 );
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
     });
 
@@ -738,13 +738,13 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     const renderPinnedFoldersMenu = async () => {
         try {
             pinnedFoldersMenu.replaceChildren();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         let roots = [];
         try {
             const res = await get(ENDPOINTS.CUSTOM_ROOTS, panelLifecycleAC?.signal ? { signal: panelLifecycleAC.signal } : undefined);
             roots = res?.ok && Array.isArray(res.data) ? res.data : [];
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         if (!roots.length) {
             const empty = document.createElement("div");
@@ -773,19 +773,19 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 state.currentFolderRelativePath = "";
                 try {
                     if (customSelect) customSelect.value = id;
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     scopeController?.setActiveTabStyles?.();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     await applyWatcherForScope(state.scope);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     await refreshDuplicateAlerts();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     notifyContextChanged();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 popovers.close(pinnedFoldersPopover);
                 await gridController.reloadGrid();
             }, { signal: panelLifecycleAC?.signal });
@@ -817,7 +817,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 }
                 try {
                     await customRootsController.refreshCustomRoots();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 await renderPinnedFoldersMenu();
                 await gridController.reloadGrid();
             }, { signal: panelLifecycleAC?.signal });
@@ -832,7 +832,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         e.stopPropagation();
         try {
             await renderPinnedFoldersMenu();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         popovers.close(customPopover);
         popovers.close(filterPopover);
         popovers.close(sortPopover);
@@ -862,14 +862,14 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             else if (w >= 1280 && h >= 720) resolutionPresetSelect.value = "hd";
             else resolutionPresetSelect.value = "";
             dateRangeSelect.value = state.dateRangeFilter || "";
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         agendaCalendar = createAgendaCalendar({
             container: agendaContainer,
             hiddenInput: dateExactInput,
             state,
             onRequestReloadGrid: () => gridController.reloadGrid()
         });
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const disposeFilters = bindFilters({
         state,
@@ -890,7 +890,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         onFiltersChanged: () => {
             try {
                 agendaCalendar?.refresh?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             notifyContextChanged();
         }
     });
@@ -925,7 +925,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 resetBrowserHistory: () => {
                     try {
                         browserNav?.resetHistory?.();
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 },
                 onDuplicateAlertClick: async (alert) => {
                     const current = alert || _duplicatesAlert || {};
@@ -963,7 +963,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 }
             }
         });
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     // Summary bar updates: selection changes, load changes, scope/collection changes.
     try {
@@ -976,7 +976,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 const ids = Array.isArray(detail.selectedIds) ? detail.selectedIds.map(String).filter(Boolean) : [];
                 state.selectedAssetIds = ids;
                 state.activeAssetId = String(detail.activeId || ids[0] || "");
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             notifyContextChanged();
         };
         gridContainer.addEventListener("mjr:grid-stats", onStats, { signal: panelLifecycleAC?.signal });
@@ -998,18 +998,18 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         registerSummaryDispose(() => {
             try {
                 gridContainer.removeEventListener("mjr:grid-stats", onStats);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 gridContainer.removeEventListener("mjr:selection-changed", onSelectionChanged);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 document.removeEventListener?.("mjr-settings-changed", onStats);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 mo.disconnect();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         });
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     sidebarController = bindSidebarOpen({
         gridContainer,
@@ -1034,14 +1034,14 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 // Move cursor to end for immediate typing.
                 const len = searchInputEl?.value?.length || 0;
                 searchInputEl?.setSelectionRange?.(len, len);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
         onClearSearch: () => {
             try {
                 if (!searchInputEl) return;
                 searchInputEl.value = "";
                 searchInputEl.dispatchEvent?.(new Event("input", { bubbles: true }));
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
         getScanContext: () => ({
             scope: state.scope,
@@ -1060,7 +1060,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     if (container._eventCleanup) {
         try {
             container._eventCleanup();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     hotkeys.bind(content);
@@ -1072,95 +1072,95 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         container._mjrHotkeys = hotkeys;
         container._mjrRatingHotkeys = ratingHotkeys;
         container._mjrSidebarController = sidebarController;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     container._eventCleanup = () => {
         try {
             panelLifecycleAC?.abort?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             statusSection?._mjrStatusPollDispose?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             container._mjrVersionUpdateCleanup?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         container._mjrVersionUpdateCleanup = null;
         try {
             container._mjrPanelState?._mjrDispose?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             container._mjrPanelState = null;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             if (_scrollTimer) clearTimeout(_scrollTimer);
             _scrollTimer = null;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             hotkeys.dispose();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             ratingHotkeys.dispose();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         if (getHotkeysState().scope === "grid") {
             setHotkeysScope(null);
         }
         try {
             agendaCalendar?.dispose?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             disposeFilters?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             if (searchTimeout) clearTimeout(searchTimeout);
             searchTimeout = null;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             sidebar?.dispose?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             sidebarController?.dispose?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             if (_dupPollTimer) clearInterval(_dupPollTimer);
             _dupPollTimer = null;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             if (_autoLoadTimer) clearTimeout(_autoLoadTimer);
             _autoLoadTimer = null;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             gridContainer?._mjrSummaryBarDispose?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             gridContainer?._mjrSummaryBarObserver?.disconnect?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             gridContainer?._mjrGridContextMenuUnbind?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             disposeCustomRootsBindings?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             _unbindBrowserFolderNav?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             disposeGridScanListeners();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             if (gridContainer) disposeGrid(gridContainer);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         if (_activeGridContainer === gridContainer) {
             _activeGridContainer = null;
         }
         gridContainer = null;
         try {
             popovers.dispose();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             if (container._mjrPopoverManager === popovers) {
                 container._mjrPopoverManager = null;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     let lastKnownScan = null;
@@ -1184,7 +1184,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 await gridController.reloadGrid();
                 try {
                     await restoreAnchor(gridContainer, anchor);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
         } finally {
             isReloading = false;
@@ -1253,13 +1253,13 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         try {
             const now = Date.now();
             if (now - Number(_lastAutoReloadAt || 0) < 8000) return;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         // Avoid disruptive auto-reload while user is actively interacting.
         try {
             const recentInteraction = (Date.now() - Number(_lastUserInteractionAt || 0)) < 1500;
             if (recentInteraction) return;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         lastKnownScan = counters.last_scan_end;
         lastKnownIndexEnd = counters.last_index_end;
@@ -1316,21 +1316,21 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     const initialLoadPromise = gridController.reloadGrid();
     try {
         await refreshDuplicateAlerts();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         _dupPollTimer = setInterval(() => {
             try {
                 if (panelLifecycleAC?.signal?.aborted) return;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             refreshDuplicateAlerts().catch(() => {});
         }, 15000);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     // Restore scroll, selection visuals, and sidebar AFTER grid loads.
     const restoreUIState = async () => {
         try {
             await initialLoadPromise;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         // Wait one frame for DOM to settle before restoring.
         requestAnimationFrame(() => {
@@ -1338,7 +1338,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             if (state.scrollTop > 0) {
                 try {
                     gridWrapper.scrollTop = state.scrollTop;
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
 
             // 2. Restore selection visuals on cards
@@ -1366,14 +1366,14 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                             }
                         }
                     }
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
 
             // 3. Restore sidebar if it was open
             if (state.sidebarOpen && state.activeAssetId) {
                 try {
                     sidebarController?.toggleDetails?.();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
         });
     };
@@ -1382,7 +1382,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     const checkAndAutoLoad = async () => {
         try {
             await initialLoadPromise;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         const hasCards = gridContainer.querySelector(".mjr-card") != null;
         if (hasCards) return;
@@ -1394,7 +1394,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             if (statusData?.ok && (statusData.data?.total_assets || 0) > 0) {
                 await loadAssets(gridContainer);
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
     _autoLoadTimer = setTimeout(checkAndAutoLoad, 2000);
 

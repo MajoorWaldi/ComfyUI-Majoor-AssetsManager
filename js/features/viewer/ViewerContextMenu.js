@@ -89,9 +89,9 @@ function showTagsPopover(x, y, asset, onChanged) {
         const existing = document.querySelector(POPOVER_SELECTOR);
         try {
             existing?._mjrAbortController?.abort?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         existing?.remove?.();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const pop = document.createElement("div");
     pop.className = "mjr-viewer-popover";
@@ -114,7 +114,7 @@ function showTagsPopover(x, y, asset, onChanged) {
         );
         try {
             onChanged?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     });
     pop.appendChild(editor);
     document.body.appendChild(pop);
@@ -122,10 +122,10 @@ function showTagsPopover(x, y, asset, onChanged) {
     const hide = () => {
         try {
             pop._mjrAbortController?.abort?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             pop.remove?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     // Dismiss when clicking outside (so clicking inside input doesn't close it).
@@ -145,7 +145,7 @@ function showTagsPopover(x, y, asset, onChanged) {
             { capture: true, signal: ac.signal }
         );
         document.addEventListener("scroll", hide, { capture: true, passive: true, signal: ac.signal });
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     // Clamp into viewport
     const rect = pop.getBoundingClientRect();
@@ -163,10 +163,10 @@ function setRating(asset, rating, onChanged) {
     const assetId = asset?.id;
     try {
         asset.rating = rating;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         onChanged?.();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     if (assetId) {
         scheduleRatingUpdate(String(assetId), rating, {
@@ -296,7 +296,7 @@ export function bindViewerContextMenu({
                 } catch (err) {
                     try {
                         console.error("Add to collection failed:", err);
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 }
             }))
         );
@@ -321,10 +321,10 @@ export function bindViewerContextMenu({
         // Prevent listener buildup across repeated opens (submenu is reused).
         try {
             ratingSubmenu._mjrAbortController?.abort?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             ratingRoot._mjrAbortController?.abort?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         const ratingAC = new AbortController();
         ratingSubmenu._mjrAbortController = ratingAC;
         ratingRoot._mjrAbortController = ratingAC;
@@ -333,7 +333,7 @@ export function bindViewerContextMenu({
             try {
                 hideMenu(ratingSubmenu);
                 clearMenu(ratingSubmenu);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
 
         const scheduleClose = () => {
@@ -351,16 +351,16 @@ export function bindViewerContextMenu({
             setMenuSessionCleanup(menu, () => {
                 try {
                     if (hideTimer) clearTimeout(hideTimer);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 hideTimer = null;
                 try {
                     ratingSubmenu?._mjrAbortController?.abort?.();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     closeRatingSubmenu();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         const renderRatingSubmenu = () => {
             clearMenu(ratingSubmenu);
@@ -372,7 +372,7 @@ export function bindViewerContextMenu({
                         closeRatingSubmenu();
                         try {
                             hideMenu(menu);
-                        } catch {}
+                        } catch (e) { console.debug?.(e); }
                     }, { disabled: !canRate })
                 );
             }
@@ -383,7 +383,7 @@ export function bindViewerContextMenu({
                     closeRatingSubmenu();
                     try {
                         hideMenu(menu);
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 }, { disabled: !canRate })
             );
         };
@@ -424,7 +424,7 @@ export function bindViewerContextMenu({
                             { assetId: String(asset.id), info },
                             { warnPrefix: "[ViewerContextMenu]" }
                         );
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                     const parts = [];
                     const sizeLabel = formatReadableSize(info?.size_bytes);
                     if (sizeLabel) parts.push(sizeLabel);
@@ -471,7 +471,7 @@ export function bindViewerContextMenu({
                         }
 
                         comfyToast(t("toast.fileRenamedSuccess"), "success");
-                        try { window.dispatchEvent(new CustomEvent("mjr:reload-grid")); } catch {}
+                        try { window.dispatchEvent(new CustomEvent("mjr:reload-grid")); } catch (e) { console.debug?.(e); }
                         onAssetChanged?.();
                     } else {
                         comfyToast(renameResult?.error || t("toast.fileRenameFailed"), "error");
@@ -518,22 +518,22 @@ export function bindViewerContextMenu({
     const unbind = () => {
         try {
             overlayEl.removeEventListener("contextmenu", handler);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             cancelAllRatingUpdates();
             // Legacy audit compatibility: ensure explicit timer-clear path remains visible.
             const _ratingDebounceTimers = globalThis?._ratingDebounceTimers;
             if (_ratingDebounceTimers && typeof _ratingDebounceTimers.clear === "function") _ratingDebounceTimers.clear();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             cleanupMenu(menu);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             overlayEl._mjrViewerContextMenuBound = false;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             overlayEl._mjrViewerContextMenuUnbind = null;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
     overlayEl._mjrViewerContextMenuUnbind = unbind;
     return unbind;

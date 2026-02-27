@@ -44,14 +44,14 @@ export function createScopeController({
         setActiveTabStyles();
         try {
             onChanged?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             await onScopeChanged?.(state);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         if (requestedSeq !== scopeSwitchSeq) return;
         try {
             await onBeforeReload?.(state);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         if (requestedSeq !== scopeSwitchSeq) return;
         await reloadGrid();
     };

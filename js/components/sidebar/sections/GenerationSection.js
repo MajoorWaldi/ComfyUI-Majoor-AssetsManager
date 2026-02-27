@@ -428,7 +428,7 @@ export function createGenerationSection(asset) {
                 await navigator.clipboard.writeText(String(metadata.seed));
                 seedValue.style.background = "rgba(76, 175, 80, 0.4)";
                 setTimeout(() => { seedValue.style.background = "transparent"; }, 500);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         });
         
         seedBox.appendChild(seedLabel);
@@ -542,7 +542,7 @@ export function createGenerationSection(asset) {
                         thumb.style.outline = "";
                         thumb.style.outlineOffset = "";
                     }, 350);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             };
             thumb.ondblclick = (e) => {
                 e.stopPropagation();

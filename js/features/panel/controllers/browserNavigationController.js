@@ -39,7 +39,7 @@ export function createBrowserNavigationController({
         state.currentFolderRelativePath = v;
         try {
             if (gridContainer?.dataset) gridContainer.dataset.mjrSubfolder = v;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const resolveFolderTargetPath = (asset) => {
@@ -76,10 +76,10 @@ export function createBrowserNavigationController({
     const notifyContext = () => {
         try {
             onContextChanged?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             renderBreadcrumb();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const resetGridScrollToTop = () => {
@@ -87,13 +87,13 @@ export function createBrowserNavigationController({
             if (gridContainer && typeof gridContainer.scrollTop === "number") {
                 gridContainer.scrollTop = 0;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             const parent = gridContainer?.parentElement || null;
             if (parent && typeof parent.scrollTop === "number") {
                 parent.scrollTop = 0;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const navigateFolder = async (target, { pushHistory = true } = {}) => {
@@ -255,7 +255,7 @@ export function createBrowserNavigationController({
                 notifyContext();
                 try {
                     await reloadGrid?.();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
         };
 
@@ -269,7 +269,7 @@ export function createBrowserNavigationController({
                 notifyContext();
                 try {
                     await reloadGrid?.();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
         };
         gridContainer?.addEventListener?.("mjr:custom-subfolder-changed", onCustomSubfolderChanged, {
@@ -280,17 +280,17 @@ export function createBrowserNavigationController({
         });
         try {
             gridContainer._mjrHasCustomSubfolderHandler = true;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         return () => {
             try {
                 gridContainer?.removeEventListener?.("mjr:custom-subfolder-changed", onCustomSubfolderChanged);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 gridContainer?.removeEventListener?.("mjr:open-folder-asset", onOpenFolderAsset);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 gridContainer._mjrHasCustomSubfolderHandler = false;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
     };
 

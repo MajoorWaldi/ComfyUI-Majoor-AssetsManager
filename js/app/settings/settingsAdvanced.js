@@ -166,7 +166,7 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
                 }
             })
             .catch(() => {});
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     // ── OutputDirectory ───────────────────────────────────────────────────
 
@@ -198,13 +198,13 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
                     clearTimeout(_outputDirSaveTimer);
                     _outputDirSaveTimer = null;
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             _outputDirSaveTimer = setTimeout(async () => {
                 _outputDirSaveTimer = null;
                 const seq = ++_outputDirSaveSeq;
                 try {
                     _outputDirSaveAbort?.abort?.();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 _outputDirSaveAbort = typeof AbortController !== "undefined" ? new AbortController() : null;
                 try {
                     const res = await setOutputDirectorySetting(
@@ -247,7 +247,7 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
                 }
             })
             .catch(() => {});
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     // ── Database ──────────────────────────────────────────────────────────
 

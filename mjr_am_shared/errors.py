@@ -13,7 +13,7 @@ logger = get_logger(__name__)
 _DEBUG_MODE = os.getenv("MJR_DEBUG", "").strip().lower() in ("1", "true", "yes", "on")
 _WINDOWS_PATH_RE = re.compile(r"[A-Za-z]:\\[^\s]+")
 _UNC_PATH_RE = re.compile(r"\\\\[^\s\\]+\\[^\s]+")
-_UNIX_PATH_RE = re.compile(r"(?<![A-Za-z0-9:/])/[^\s]+")
+_UNIX_PATH_RE = re.compile(r"(?<![A-Za-z0-9:/?&=#%])/(?!/)[^\s#?]+")
 
 
 def _mask_paths(value: str) -> str:

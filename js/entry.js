@@ -88,14 +88,14 @@ function installEntryRuntimeController() {
             try {
                 const prev = window[ENTRY_RUNTIME_KEY];
                 if (prev && prev.controller && typeof prev.controller.abort === "function") {
-                    try { prev.controller.abort(); } catch {}
+                    try { prev.controller.abort(); } catch (e) { console.debug?.(e); }
                 }
                 removeApiHandlers(prev?.api || null);
                 removeRuntimeWindowHandlers(prev);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             window[ENTRY_RUNTIME_KEY] = { controller, api: null, assetsDeletedHandler: null };
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 // Deduplication for executed events (ComfyUI can fire multiple times for same file)
@@ -155,7 +155,7 @@ app.registerExtension({
 
         try {
             initDragDrop();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         registerMajoorSettings(runtimeApp, () => {
             const grid = getActiveGridContainer();
@@ -174,7 +174,7 @@ app.registerExtension({
             let runtime = null;
             try {
                 runtime = typeof window !== "undefined" ? (window[ENTRY_RUNTIME_KEY] || null) : null;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             removeApiHandlers(runtime?.api || null);
             removeApiHandlers(api);
             removeRuntimeWindowHandlers(runtime);
@@ -257,7 +257,7 @@ app.registerExtension({
                 try {
                     const detail = event?.detail || {};
                     window.dispatchEvent(new CustomEvent(EVENTS.SCAN_COMPLETE, { detail }));
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             };
             api.addEventListener(EVENTS.SCAN_COMPLETE, api._mjrScanCompleteHandler);
 
@@ -280,7 +280,7 @@ app.registerExtension({
                     if (prev && !active) {
                         comfyToast(t("toast.enrichmentComplete", "Metadata enrichment complete"), "success", 2600);
                     }
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             };
             api.addEventListener(EVENTS.ENRICHMENT_STATUS, api._mjrEnrichmentStatusHandler);
 
@@ -326,7 +326,7 @@ app.registerExtension({
                     if (!msg) return;
                     const tone = level === "error" || step === "failed" ? "error" : step === "done" ? "success" : "info";
                     comfyToast(msg, tone, step === "done" || step === "failed" ? 2800 : 1800);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             };
             api.addEventListener(EVENTS.DB_RESTORE_STATUS, api._mjrDbRestoreStatusHandler);
 
@@ -338,7 +338,7 @@ app.registerExtension({
                     if (!ids.length) return;
                     const grid = getActiveGridContainer();
                     if (grid) removeAssetsFromGrid(grid, ids);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             };
             window.addEventListener(EVENTS.ASSETS_DELETED, assetsDeletedHandler);
             try {

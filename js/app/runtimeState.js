@@ -34,7 +34,7 @@ export function setRuntimeStatePatch(patch = {}) {
     const state = getRuntimeState();
     try {
         Object.assign(state, patch || {});
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return state;
 }
 

@@ -24,7 +24,7 @@ export function safeEscapeSelector(value) {
     const str = String(value ?? "");
     try {
         if (typeof CSS?.escape === "function") return CSS.escape(str);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     // Fallback: escape special CSS selector characters (conservative).
     return str.replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1");
 }
@@ -33,26 +33,26 @@ export function cleanupMenu(menu) {
     if (!menu) return;
     try {
         menu._mjrAbortController?.abort?.();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         menu._mjrAbortController = null;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         menu._mjrOnHideCallbacks = [];
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         menu._mjrSessionCleanup = null;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         menu.remove?.();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 export function setMenuSessionCleanup(menu, fn) {
     if (!menu) return;
     try {
         menu._mjrSessionCleanup = typeof fn === "function" ? fn : null;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 export function getOrCreateMenu({
@@ -73,7 +73,7 @@ export function getOrCreateMenu({
         try {
             if (!Array.isArray(existing._mjrOnHideCallbacks)) existing._mjrOnHideCallbacks = [];
             if (typeof onHide === "function") existing._mjrOnHideCallbacks.push(onHide);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         return existing;
     }
 
@@ -82,14 +82,14 @@ export function getOrCreateMenu({
     try {
         menu.setAttribute("role", "menu");
         menu.setAttribute("aria-label", "Context menu");
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     // Prefer CSS for visuals; keep only dynamic values inline (width + z-index).
     try {
         menu.style.position = "fixed";
         menu.style.display = "none";
         menu.style.minWidth = `${Math.max(180, Number(minWidth) || 220)}px`;
         menu.style.zIndex = String(Number(zIndex) || _DEFAULT_Z);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const ac = new AbortController();
     menu._mjrAbortController = ac;
@@ -111,7 +111,7 @@ export function getOrCreateMenu({
                         active.dispatchEvent(
                             new MouseEvent("mouseenter", { bubbles: true, cancelable: true })
                         );
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 }
                 return;
             }
@@ -121,7 +121,7 @@ export function getOrCreateMenu({
             const next =
                 ((current >= 0 ? current : 0) + direction + items.length) % items.length;
             items[next]?.focus();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     menu._mjrNavHandler = navHandler;
@@ -130,7 +130,7 @@ export function getOrCreateMenu({
     try {
         menu._mjrOnHideCallbacks = [];
         if (typeof onHide === "function") menu._mjrOnHideCallbacks.push(onHide);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const runOnHide = () => {
         try {
@@ -143,9 +143,9 @@ export function getOrCreateMenu({
                 }
                 try {
                     menu._mjrSessionCleanup = null;
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         try {
             const list = Array.isArray(menu._mjrOnHideCallbacks) ? menu._mjrOnHideCallbacks : [];
@@ -156,13 +156,13 @@ export function getOrCreateMenu({
                     console.error("[MenuCore] onHide failed:", err);
                 }
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const hide = () => {
         try {
             menu.style.display = "none";
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         runOnHide();
     };
 
@@ -208,7 +208,7 @@ export function hideMenu(menu) {
         }
         // Cleanup orphans immediately after hiding to avoid leaking detached menus.
         cleanupMenu(menu);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 export function hideAllMenus() {
@@ -218,28 +218,28 @@ export function hideAllMenus() {
             try {
                 if (typeof menu?._mjrHide === "function") menu._mjrHide();
                 else menu.style.display = "none";
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 export function clearMenu(menu) {
     if (!menu) return;
     try {
         menu.replaceChildren();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         menu.innerHTML = "";
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         menu.style.display = "none";
         menu.style.pointerEvents = "";
         menu.style.opacity = "";
         menu.style.visibility = "";
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         menu.classList.remove("active", "open", "is-open", "mjr-open", "mjr-active");
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 export function showMenuAt(menu, x, y) {
@@ -267,7 +267,7 @@ export function createMenuItem(label, iconClass, rightHint, onClick, { disabled 
         item.setAttribute("role", "menuitem");
         item.setAttribute("tabindex", disabled ? "-1" : "0");
         item.setAttribute("aria-disabled", disabled ? "true" : "false");
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     item.style.cssText = `
         padding: 8px 14px;
         display: flex;
@@ -317,7 +317,7 @@ export function createMenuItem(label, iconClass, rightHint, onClick, { disabled 
             item.dataset.executing = "1";
             item.style.pointerEvents = "none";
             item.style.opacity = "0.7";
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             await onClick?.();
         } catch (err) {
@@ -327,7 +327,7 @@ export function createMenuItem(label, iconClass, rightHint, onClick, { disabled 
                 item.dataset.executing = "0";
                 item.style.pointerEvents = "";
                 item.style.opacity = disabled ? "0.45" : "1";
-            } catch {}
+            } catch (e) { console.debug?.(e); }
 
             // Close the menu if this item has a close callback configured
             try {
@@ -347,7 +347,7 @@ export function createMenuItem(label, iconClass, rightHint, onClick, { disabled 
                 } else if (menu) {
                      menu.style.display = 'none';
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
     });
 

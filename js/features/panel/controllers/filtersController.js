@@ -59,30 +59,30 @@ export function bindFilters({
             } catch {
                 try {
                     target.removeEventListener(event, handler);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
         });
     };
 
     addManagedListener(kindSelect, "change", () => {
         state.kindFilter = kindSelect.value || "";
-        try { onFiltersChanged?.(); } catch {}
+        try { onFiltersChanged?.(); } catch (e) { console.debug?.(e); }
         scheduleReload();
     }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
     addManagedListener(wfCheckbox, "change", () => {
         state.workflowOnly = Boolean(wfCheckbox.checked);
-        try { onFiltersChanged?.(); } catch {}
+        try { onFiltersChanged?.(); } catch (e) { console.debug?.(e); }
         scheduleReload();
     }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
     addManagedListener(ratingSelect, "change", () => {
         state.minRating = Number(ratingSelect.value || 0) || 0;
-        try { onFiltersChanged?.(); } catch {}
+        try { onFiltersChanged?.(); } catch (e) { console.debug?.(e); }
         scheduleReload();
     }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
     if (workflowTypeSelect) {
         addManagedListener(workflowTypeSelect, "change", () => {
             state.workflowType = String(workflowTypeSelect.value || "").trim().toUpperCase();
-            try { onFiltersChanged?.(); } catch {}
+            try { onFiltersChanged?.(); } catch (e) { console.debug?.(e); }
             scheduleReload();
         }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
     }
@@ -96,7 +96,7 @@ export function bindFilters({
             state.maxSizeMB = state.minSizeMB;
             if (maxSizeInput) maxSizeInput.value = String(state.maxSizeMB);
         }
-        try { onFiltersChanged?.(); } catch {}
+        try { onFiltersChanged?.(); } catch (e) { console.debug?.(e); }
         scheduleReload();
     };
     addManagedListener(minSizeInput, "change", applySizeFilter, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
@@ -131,8 +131,8 @@ export function bindFilters({
                 const key = `${w || 0}x${h || 0}`;
                 resolutionPresetSelect.value = map[key] || "";
             }
-        } catch {}
-        try { onFiltersChanged?.(); } catch {}
+        } catch (e) { console.debug?.(e); }
+        try { onFiltersChanged?.(); } catch (e) { console.debug?.(e); }
         scheduleReload();
     };
     addManagedListener(minWidthInput, "change", applyResolutionFilter, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
@@ -163,7 +163,7 @@ export function bindFilters({
             }
             if (minWidthInput) minWidthInput.value = w > 0 ? String(w) : "";
             if (minHeightInput) minHeightInput.value = h > 0 ? String(h) : "";
-            try { onFiltersChanged?.(); } catch {}
+            try { onFiltersChanged?.(); } catch (e) { console.debug?.(e); }
             scheduleReload();
         }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
     }
@@ -179,7 +179,7 @@ export function bindFilters({
                     dateExactInput.value = "";
                 }
             }
-            try { onFiltersChanged?.(); } catch {}
+            try { onFiltersChanged?.(); } catch (e) { console.debug?.(e); }
             scheduleReload();
         }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
     }
@@ -199,7 +199,7 @@ export function bindFilters({
             if (!state.dateExactFilter) {
                 applyAgendaStyle("");
             }
-            try { onFiltersChanged?.(); } catch {}
+            try { onFiltersChanged?.(); } catch (e) { console.debug?.(e); }
             scheduleReload();
         }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
         const handleAgendaStatus = (event) => {
@@ -218,16 +218,16 @@ export function bindFilters({
             disposers.push(() => {
                 try {
                     window.removeEventListener("MJR:AgendaStatus", handleAgendaStatus, opts);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     return () => {
         for (const dispose of disposers.splice(0)) {
             try {
                 dispose();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
     };
 }

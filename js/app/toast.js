@@ -17,7 +17,7 @@ function _dismissAllFallbackErrorToasts() {
     const toRemove = Array.from(_fallbackErrorToastDismissers);
     _fallbackErrorToastDismissers.clear();
     for (const fn of toRemove) {
-        try { fn(); } catch {}
+        try { fn(); } catch (e) { console.debug?.(e); }
     }
 }
 
@@ -143,7 +143,7 @@ export function comfyToast(message, type = "info", duration = 5000) {
 
             // On success: remove grouped error toasts (PrimeVue removeGroup).
             if (type === "success") {
-                try { toastApi.removeGroup?.(MJR_ERROR_TOAST_GROUP); } catch {}
+                try { toastApi.removeGroup?.(MJR_ERROR_TOAST_GROUP); } catch (e) { console.debug?.(e); }
             }
 
             // Allow passing an object { summary, detail } as message
@@ -154,7 +154,7 @@ export function comfyToast(message, type = "info", duration = 5000) {
                 summary = message.summary;
                 detail = message.detail || "";
             } else if (typeof message !== "string") {
-                 try { detail = message.message || String(message); } catch {}
+                 try { detail = message.message || String(message); } catch (e) { console.debug?.(e); }
             }
 
             const payload = { severity, summary, detail };

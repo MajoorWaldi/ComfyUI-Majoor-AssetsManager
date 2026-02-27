@@ -654,7 +654,7 @@ export function registerSettingsSections(ctx) {
                     return;
                 }
                 applyWatcherSettingsFromBackend(res.data || {});
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
 
         safeAddSetting({
@@ -806,7 +806,7 @@ export function registerSettingsSections(ctx) {
 
         try {
             syncWatcherRuntimeSettings().catch(() => {});
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         safeAddSetting({
             id: `${SETTINGS_PREFIX}.RatingTagsSync.Enabled`,
@@ -875,7 +875,7 @@ export function registerSettingsSections(ctx) {
                                 }
                             })
                             .catch(() => {});
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 },
             });
         };
@@ -919,7 +919,7 @@ export function registerSettingsSections(ctx) {
                             }
                         })
                         .catch(() => {});
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             },
         });
 
@@ -1064,7 +1064,7 @@ export function registerSettingsSections(ctx) {
                     }
                 })
                 .catch(() => {});
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         let _outputDirCommittedValue = String(settings.paths?.outputDirectory || "");
         let _outputDirSaveTimer = null;
@@ -1094,13 +1094,13 @@ export function registerSettingsSections(ctx) {
                         clearTimeout(_outputDirSaveTimer);
                         _outputDirSaveTimer = null;
                     }
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 _outputDirSaveTimer = setTimeout(async () => {
                     _outputDirSaveTimer = null;
                     const seq = ++_outputDirSaveSeq;
                     try {
                         _outputDirSaveAbort?.abort?.();
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                     _outputDirSaveAbort = typeof AbortController !== "undefined" ? new AbortController() : null;
                     try {
                         const res = await setOutputDirectorySetting(
@@ -1143,7 +1143,7 @@ export function registerSettingsSections(ctx) {
                     }
                 })
                 .catch(() => {});
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         safeAddSetting({
             id: `${SETTINGS_PREFIX}.Db.Timeout`,

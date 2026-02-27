@@ -15,7 +15,7 @@ export function createFolderCard(asset) {
     if (asset?.id != null) {
         try {
             card.dataset.mjrAssetId = String(asset.id);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     const filename = String(asset?.filename || "");
@@ -23,7 +23,7 @@ export function createFolderCard(asset) {
         card.dataset.mjrFilenameKey = filename.trim().toLowerCase();
         card.dataset.mjrExt = "FOLDER";
         card.dataset.mjrStem = filename.trim().toLowerCase();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const thumb = document.createElement("div");
     thumb.className = "mjr-thumb";
@@ -46,7 +46,7 @@ export function createFolderCard(asset) {
         svg.appendChild(p1);
         svg.appendChild(p2);
         thumb.appendChild(svg);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     card._mjrAsset = asset;
     card.appendChild(thumb);

@@ -37,12 +37,12 @@ export function createViewerMediaFactory({
         try {
             const ext = String(asset?.ext || "").trim().toLowerCase();
             if (ext) return ext.startsWith(".") ? ext : `.${ext}`;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             const name = String(asset?.filename || asset?.filepath || "").trim();
             const idx = name.lastIndexOf(".");
             if (idx >= 0) return name.slice(idx).toLowerCase();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         return "";
     };
 
@@ -58,17 +58,17 @@ export function createViewerMediaFactory({
         img.className = "mjr-viewer-media";
         try {
             if (asset?.id != null && img?.dataset) img.dataset.mjrAssetId = String(asset.id);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         img.alt = String(asset?.filename || "") || "image";
         try {
             img.decoding = "async";
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             img.loading = "eager";
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             img.draggable = false;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         img.src = url;
         img.style.cssText = `
             max-width: 100%;
@@ -87,12 +87,12 @@ export function createViewerMediaFactory({
                             clampPanToBounds?.();
                             applyTransform?.();
                         }
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 });
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 scheduleOverlayRedraw?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
 
         const onError = () => {
@@ -101,7 +101,7 @@ export function createViewerMediaFactory({
                 canvas.className = "mjr-viewer-media";
                 try {
                     if (asset?.id != null && canvas?.dataset) canvas.dataset.mjrAssetId = String(asset.id);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 _seedNaturalSizeFromAsset(canvas, asset);
                 canvas.style.cssText = `
                     max-width: 100%;
@@ -112,15 +112,15 @@ export function createViewerMediaFactory({
                 `;
                 drawMediaError(canvas, "Failed to load image");
                 img.replaceWith(canvas);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
 
         try {
             img.addEventListener("load", onLoad, { once: true });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             img.addEventListener("error", onError, { once: true });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         return img;
     };
@@ -136,7 +136,7 @@ export function createViewerMediaFactory({
                 canvas._mjrNaturalW = w;
                 canvas._mjrNaturalH = h;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const _parseFps = (v) => {
@@ -153,7 +153,7 @@ export function createViewerMediaFactory({
             }
             const f = Number.parseFloat(s);
             if (Number.isFinite(f) && f > 0) return f;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         return null;
     };
 
@@ -185,14 +185,14 @@ export function createViewerMediaFactory({
                     },
                 })
             );
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const _attachFpsDetection = (video, asset) => {
         try {
             const fromMeta = _fpsFromAssetMeta(asset);
             if (fromMeta) _emitDetectedFps(video, asset, fromMeta, "asset-metadata");
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         try {
             video.addEventListener(
@@ -201,11 +201,11 @@ export function createViewerMediaFactory({
                     try {
                         const fromMeta = _fpsFromAssetMeta(asset);
                         if (fromMeta) _emitDetectedFps(video, asset, fromMeta, "loadedmetadata");
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 },
                 { once: true }
             );
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         // Runtime estimate via media timestamps (best effort, modern browsers only).
         try {
@@ -237,10 +237,10 @@ export function createViewerMediaFactory({
                     if (samples < maxSamples) {
                         video.requestVideoFrameCallback(onFrame);
                     }
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             };
             video.requestVideoFrameCallback(onFrame);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const _createAudioElement = (asset, url, { compare = false } = {}) => {
@@ -327,7 +327,7 @@ export function createViewerMediaFactory({
             canvas.className = "mjr-viewer-media";
             try {
                 if (asset?.id != null && canvas?.dataset) canvas.dataset.mjrAssetId = String(asset.id);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             _seedNaturalSizeFromAsset(canvas, asset);
             canvas.style.cssText = `
                 max-width: 100%;
@@ -338,7 +338,7 @@ export function createViewerMediaFactory({
             `;
             try {
                 drawMediaError(canvas, `Unsupported file type: ${kind}`);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             return canvas;
         }
 
@@ -349,7 +349,7 @@ export function createViewerMediaFactory({
             canvas.className = "mjr-viewer-media";
             try {
                 if (asset?.id != null && canvas?.dataset) canvas.dataset.mjrAssetId = String(asset.id);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             _seedNaturalSizeFromAsset(canvas, asset);
             canvas.style.cssText = `
                 max-width: 100%;
@@ -395,16 +395,16 @@ export function createViewerMediaFactory({
                                         clampPanToBounds?.();
                                         applyTransform?.();
                                     }
-                                } catch {}
+                                } catch (e) { console.debug?.(e); }
                             });
-                        } catch {}
+                        } catch (e) { console.debug?.(e); }
                         try {
                             scheduleOverlayRedraw?.();
-                        } catch {}
+                        } catch (e) { console.debug?.(e); }
                     },
                 });
                 canvas._mjrProc?.setParams?.(getGradeParams?.());
-            } catch {}
+            } catch (e) { console.debug?.(e); }
 
             try {
                 video.addEventListener(
@@ -416,18 +416,18 @@ export function createViewerMediaFactory({
                                 p.catch(() => {
                                     try {
                                         drawMediaError(canvas, "Autoplay blocked (press Space / Play)");
-                                    } catch {}
+                                    } catch (e) { console.debug?.(e); }
                                 });
                             }
                         } catch {
                             try {
                                 drawMediaError(canvas, "Autoplay blocked (press Space / Play)");
-                            } catch {}
+                            } catch (e) { console.debug?.(e); }
                         }
                     },
                     { once: true }
                 );
-            } catch {}
+            } catch (e) { console.debug?.(e); }
 
             container.appendChild(canvas);
             container.appendChild(video);
@@ -442,7 +442,7 @@ export function createViewerMediaFactory({
         canvas.className = "mjr-viewer-media";
         try {
             if (asset?.id != null && canvas?.dataset) canvas.dataset.mjrAssetId = String(asset.id);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         _seedNaturalSizeFromAsset(canvas, asset);
         canvas.style.cssText = `
             max-width: 100%;
@@ -470,16 +470,16 @@ export function createViewerMediaFactory({
                                     clampPanToBounds?.();
                                     applyTransform?.();
                                 }
-                            } catch {}
+                            } catch (e) { console.debug?.(e); }
                         });
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                     try {
                         scheduleOverlayRedraw?.();
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 },
             });
             canvas._mjrProc?.setParams?.(getGradeParams?.());
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         return canvas;
     }
 
@@ -492,7 +492,7 @@ export function createViewerMediaFactory({
             canvas.className = "mjr-viewer-media";
             try {
                 if (asset?.id != null && canvas?.dataset) canvas.dataset.mjrAssetId = String(asset.id);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             _seedNaturalSizeFromAsset(canvas, asset);
             canvas.style.cssText = `
                 max-width: 100%;
@@ -503,7 +503,7 @@ export function createViewerMediaFactory({
             `;
             try {
                 drawMediaError(canvas, `Unsupported file type: ${kind}`);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             return canvas;
         }
 
@@ -517,7 +517,7 @@ export function createViewerMediaFactory({
             canvas.className = "mjr-viewer-media";
             try {
                 if (asset?.id != null && canvas?.dataset) canvas.dataset.mjrAssetId = String(asset.id);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             _seedNaturalSizeFromAsset(canvas, asset);
             canvas.style.cssText = `
                 max-width: 100%;
@@ -561,16 +561,16 @@ export function createViewerMediaFactory({
                                             clampPanToBounds?.();
                                             applyTransform?.();
                                         }
-                                    } catch {}
+                                    } catch (e) { console.debug?.(e); }
                                 });
-                            } catch {}
+                            } catch (e) { console.debug?.(e); }
                             try {
                                 scheduleOverlayRedraw?.();
-                            } catch {}
+                            } catch (e) { console.debug?.(e); }
                         },
                     });
                     canvas._mjrProc?.setParams?.(getGradeParams?.());
-                } catch {}
+                } catch (e) { console.debug?.(e); }
 
             wrap.appendChild(canvas);
             wrap.appendChild(video);
@@ -585,7 +585,7 @@ export function createViewerMediaFactory({
         canvas.className = "mjr-viewer-media";
         try {
             if (asset?.id != null && canvas?.dataset) canvas.dataset.mjrAssetId = String(asset.id);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         _seedNaturalSizeFromAsset(canvas, asset);
         canvas.style.cssText = `
             max-width: 100%;
@@ -612,16 +612,16 @@ export function createViewerMediaFactory({
                                     clampPanToBounds?.();
                                     applyTransform?.();
                                 }
-                            } catch {}
+                            } catch (e) { console.debug?.(e); }
                         });
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                     try {
                         scheduleOverlayRedraw?.();
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 },
             });
             canvas._mjrProc?.setParams?.(getGradeParams?.());
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         return canvas;
     }
 
@@ -633,9 +633,9 @@ export function createViewerMediaFactory({
             for (const el of els) {
                 try {
                     el.style.transform = t;
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     return {

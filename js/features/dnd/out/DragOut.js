@@ -64,7 +64,7 @@ const _getSelectedAssets = (containerEl, draggedCard) => {
             const parsed = JSON.parse(raw);
             if (Array.isArray(parsed)) selectedIds = parsed.map(String).filter(Boolean);
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     // If dataset is available, use full asset list (VirtualGrid-safe).
     if (selectedIds.length) {
@@ -77,7 +77,7 @@ const _getSelectedAssets = (containerEl, draggedCard) => {
                 if (id && selectedIds.includes(id)) out.push(a);
             }
             if (out.length) return out;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     // Fallback: DOM selection state (visible cards only).
@@ -117,7 +117,7 @@ export const applyDragOutToOS = ({ dt, asset, containerEl, card, viewUrl }) => {
             // Fire-and-forget zip build. Never block dragstart.
             try {
                 post(ENDPOINTS.BATCH_ZIP_CREATE, { token, items }).catch(() => {});
-            } catch {}
+            } catch (e) { console.debug?.(e); }
 
             const url = _abs(buildBatchZipDownloadURL(token));
             const zipName = `Majoor_Batch_${items.length}.zip`;
@@ -125,7 +125,7 @@ export const applyDragOutToOS = ({ dt, asset, containerEl, card, viewUrl }) => {
                 dt.setData("text/uri-list", url);
                 dt.setData("DownloadURL", `application/zip:${zipName}:${url}`);
                 dt.effectAllowed = "copy";
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             return;
         }
     }
@@ -140,5 +140,5 @@ export const applyDragOutToOS = ({ dt, asset, containerEl, card, viewUrl }) => {
         dt.setData("text/uri-list", url);
         dt.setData("DownloadURL", `${mime}:${filename}:${url}`);
         dt.effectAllowed = "copy";
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 };

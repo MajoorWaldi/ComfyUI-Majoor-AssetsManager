@@ -81,7 +81,7 @@ export const clearHighlight = (app, markCanvasDirty) => {
             state.node.color = state.prev.color;
             state.node.bgcolor = state.prev.bgcolor;
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     state.node = null;
     state.prev = null;
     markCanvasDirty(app);
@@ -202,7 +202,7 @@ const pickBestVideoPathWidget = (node, droppedExt) => {
     if (!best || best.score < 20) return null;
     try {
         best.w.__mjrVideoPickScore = best.score;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return best.w;
 };
 
@@ -294,6 +294,6 @@ export const pickBestMediaPathWidget = (node, payload, droppedExt) => {
     if (!best || best.score < 20) return null;
     try {
         best.w.__mjrAudioPickScore = best.score;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return best.w;
 };

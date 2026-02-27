@@ -69,7 +69,7 @@ function formatAddResultMessage({ collectionName, selectedCount, addRes }) {
 export async function showAddToCollectionMenu({ x, y, assets }) {
     try {
         window.dispatchEvent(new CustomEvent("mjr-close-all-menus"));
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     hideAllMenus();
 
     const selected = Array.isArray(assets) ? assets.map(simplifyAsset).filter(Boolean) : [];

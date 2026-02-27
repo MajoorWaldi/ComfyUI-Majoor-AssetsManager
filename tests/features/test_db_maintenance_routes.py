@@ -1,10 +1,11 @@
+import asyncio
 import json
 import os
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 from aiohttp import web
+from aiohttp.streams import StreamReader
 from aiohttp.test_utils import make_mocked_request
 
 from mjr_am_backend.routes.handlers import db_maintenance as m
@@ -17,6 +18,36 @@ def _app():
     m.register_db_maintenance_routes(routes)
     app.add_routes(routes)
     return app
+
+
+class _StreamProtocol:
+    def __init__(self):
+        self._reading_paused = False
+
+    def pause_reading(self):
+        self._reading_paused = True
+
+    def resume_reading(self):
+        self._reading_paused = False
+
+
+def _json_post_request(
+    app: web.Application,
+    path: str,
+    body: bytes,
+    *,
+    declared_content_length: int | None = None,
+):
+    payload = StreamReader(_StreamProtocol(), limit=2**16, loop=asyncio.get_running_loop())
+    payload.feed_data(body)
+    payload.feed_eof()
+    headers = {
+        "Content-Type": "application/json",
+        "Content-Length": str(
+            int(declared_content_length) if declared_content_length is not None else len(body)
+        ),
+    }
+    return make_mocked_request("POST", path, headers=headers, payload=payload, app=app)
 
 
 def test_maintenance_flag_roundtrip():
@@ -282,9 +313,6 @@ async def test_db_backup_restore_success(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
     monkeypatch.setattr(m, "_require_services", _require_services)
     monkeypatch.setattr(m, "get_runtime_output_root", lambda: str(tmp_path))
-    async def _read_json(_request):
-        return Result.Ok({"use_latest": True})
-    monkeypatch.setattr(m, "_read_json", _read_json)
 
     def _create_task(coro):
         try:
@@ -296,9 +324,30 @@ async def test_db_backup_restore_success(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(m.asyncio, "create_task", _create_task)
 
     app = _app()
-    req = make_mocked_request("POST", "/mjr/am/db/backup-restore", app=app)
+    req = _json_post_request(app, "/mjr/am/db/backup-restore", b'{"use_latest": true}')
     match = await app.router.resolve(req)
     resp = await match.handler(req)
     payload = json.loads(resp.text)
     assert payload.get("ok") is True
     assert payload.get("data", {}).get("restored") is True
+
+
+@pytest.mark.asyncio
+async def test_db_backup_restore_rejects_oversized_json_when_content_length_is_small(monkeypatch):
+    monkeypatch.setenv("MJR_MAX_JSON_SIZE", "64")
+    monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
+
+    app = _app()
+    large_body = b'{"name":"' + (b"x" * 4096) + b'"}'
+    req = _json_post_request(
+        app,
+        "/mjr/am/db/backup-restore",
+        large_body,
+        declared_content_length=2,
+    )
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    payload = json.loads(resp.text)
+    assert payload.get("ok") is False
+    assert payload.get("code") == "INVALID_INPUT"

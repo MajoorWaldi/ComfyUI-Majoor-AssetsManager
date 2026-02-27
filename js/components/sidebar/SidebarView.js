@@ -92,13 +92,13 @@ export function createSidebar(position = "right") {
     const disposeSidebar = () => {
         try {
             ac?.abort?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             for (const u of unsubs) u?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             unsubs.length = 0;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
     sidebar.dispose = disposeSidebar;
     sidebar._dispose = disposeSidebar;
@@ -119,7 +119,7 @@ export function createSidebar(position = "right") {
             if (sidebar._currentAsset) sidebar._currentAsset.rating = rating;
             if (sidebar._currentFullAsset) sidebar._currentFullAsset.rating = rating;
             sidebar._ratingTagsSection?._mjrSetRating?.(rating);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const onTagsChanged = (ev) => {
@@ -132,7 +132,7 @@ export function createSidebar(position = "right") {
             if (sidebar._currentAsset) sidebar._currentAsset.tags = tags;
             if (sidebar._currentFullAsset) sidebar._currentFullAsset.tags = tags;
             sidebar._ratingTagsSection?._mjrSetTags?.(tags);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     try {
@@ -145,12 +145,12 @@ export function createSidebar(position = "right") {
             unsubs.push(() => {
                 try {
                     window.removeEventListener(ASSET_RATING_CHANGED_EVENT, onRatingChanged);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     window.removeEventListener(ASSET_TAGS_CHANGED_EVENT, onTagsChanged);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     return sidebar;
@@ -163,9 +163,9 @@ const cleanupMinimapSections = (root) => {
         sections.forEach((section) => {
             try {
                 section._mjrMinimapCleanup?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         });
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 };
 
 /**
@@ -212,7 +212,7 @@ export async function showAssetInSidebar(sidebar, asset, onUpdate) {
             clearTimeout(sidebar._closeTimer);
             sidebar._closeTimer = null;
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const requestSeq = (sidebar._requestSeq = (sidebar._requestSeq || 0) + 1);
     sidebar._currentFetchAbortController?.abort?.();
@@ -277,7 +277,7 @@ export async function showAssetInSidebar(sidebar, asset, onUpdate) {
         renderContent(fullAsset);
         try {
             if (typeof onUpdate === "function") onUpdate(fullAsset);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const buildFetchOptions = () => {
@@ -374,7 +374,7 @@ export function closeSidebar(sidebar) {
     // Dispatch event so controllers can update their state
     try {
         sidebar.dispatchEvent?.(new CustomEvent("mjr:sidebar-closed", { bubbles: true }));
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
 }
 

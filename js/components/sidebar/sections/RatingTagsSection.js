@@ -40,7 +40,7 @@ export function createRatingTagsSection(asset, onUpdate) {
             star.style.fontSize = "24px";
             star.style.padding = "8px 0";
         });
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     ratingContainer.appendChild(ratingLabel);
     ratingContainer.appendChild(ratingEditor);
@@ -75,10 +75,10 @@ export function createRatingTagsSection(asset, onUpdate) {
     // (hotkeys, viewer shortcuts, etc.) without re-mounting the whole sidebar.
     try {
         section._mjrSetRating = (rating) => ratingEditor?._mjrSetRating?.(rating);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         section._mjrSetTags = (tags) => tagsEditor?._mjrSetTags?.(tags);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     return section;
 }

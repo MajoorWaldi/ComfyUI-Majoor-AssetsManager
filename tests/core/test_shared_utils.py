@@ -116,3 +116,8 @@ def test_get_logger_does_not_duplicate_correlation_filter() -> None:
 def test_sanitize_error_message_does_not_mask_mime_type() -> None:
     msg = errors_mod.sanitize_error_message(ValueError("application/json parse failed"), "bad")
     assert "application/json" in msg
+
+
+def test_sanitize_error_message_does_not_mask_url_fragment_path() -> None:
+    msg = errors_mod.sanitize_error_message(ValueError("navigate to #/settings/general"), "bad")
+    assert "#/settings/general" in msg

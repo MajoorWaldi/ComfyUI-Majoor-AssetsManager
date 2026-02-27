@@ -12,12 +12,12 @@ function resolveMode(modeOverride) {
         if (direct === "simple" || direct === "artistic") return direct;
         // Legacy fallback if old state/config contains removed modes.
         if (direct === "webgl" || direct === "webgl3d") return "simple";
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         const raw = String(APP_CONFIG?.VIEWER_AUDIO_VISUALIZER_MODE || "simple").toLowerCase();
         if (raw === "artistic") return "artistic";
         if (raw === "webgl3d" || raw === "webgl") return "simple";
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return "simple";
 }
 
@@ -114,7 +114,7 @@ function createMinimal2DDrawer(canvas) {
                     ctx.fillStyle = "rgba(255,255,255,0.96)";
                     ctx.fillRect(x - barW * 0.5, midY + 1, barW, lenDown);
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
         destroy() {},
     };
@@ -248,13 +248,13 @@ void main() {
                     down[i * 2 + 1] = y;
                 }
                 drawStrip(down, [1, 1, 1, 0.9]);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
         destroy() {
-            try { gl.deleteBuffer(buffer); } catch {}
-            try { gl.deleteProgram(program); } catch {}
-            try { gl.deleteShader(vsh); } catch {}
-            try { gl.deleteShader(fsh); } catch {}
+            try { gl.deleteBuffer(buffer); } catch (e) { console.debug?.(e); }
+            try { gl.deleteProgram(program); } catch (e) { console.debug?.(e); }
+            try { gl.deleteShader(vsh); } catch (e) { console.debug?.(e); }
+            try { gl.deleteShader(fsh); } catch (e) { console.debug?.(e); }
         },
     };
 }
@@ -282,7 +282,7 @@ export function createAudioVisualizer({ canvas, audioEl, mode: modeOverride } = 
             const h = Math.max(24, Math.floor((canvas.clientHeight || 140) * dpr));
             if (canvas.width !== w) canvas.width = w;
             if (canvas.height !== h) canvas.height = h;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const init = () => {
@@ -323,7 +323,7 @@ export function createAudioVisualizer({ canvas, audioEl, mode: modeOverride } = 
             analyser.getByteFrequencyData(freqData);
             analyser.getByteTimeDomainData(timeData);
             drawer.draw(freqData, timeData, ts);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const start = async () => {
@@ -333,16 +333,16 @@ export function createAudioVisualizer({ canvas, audioEl, mode: modeOverride } = 
             if (audioCtx.state === "suspended") {
                 try {
                     await audioCtx.resume();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
             if (raf == null) raf = requestAnimationFrame(tick);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const stop = () => {
         try {
             if (raf != null) cancelAnimationFrame(raf);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         raf = null;
     };
 
@@ -351,13 +351,13 @@ export function createAudioVisualizer({ canvas, audioEl, mode: modeOverride } = 
     const onEnded = () => stop();
     const onResize = () => resize();
 
-    try { resize(); } catch {}
+    try { resize(); } catch (e) { console.debug?.(e); }
     try {
         audioEl.addEventListener("play", onPlay, { passive: true });
         audioEl.addEventListener("pause", onPause, { passive: true });
         audioEl.addEventListener("ended", onEnded, { passive: true });
         window.addEventListener("resize", onResize, { passive: true });
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     return {
         destroy() {
@@ -369,11 +369,11 @@ export function createAudioVisualizer({ canvas, audioEl, mode: modeOverride } = 
                 audioEl.removeEventListener("pause", onPause);
                 audioEl.removeEventListener("ended", onEnded);
                 window.removeEventListener("resize", onResize);
-            } catch {}
-            try { drawer?.destroy?.(); } catch {}
-            try { source?.disconnect?.(); } catch {}
-            try { analyser?.disconnect?.(); } catch {}
-            try { audioCtx?.close?.(); } catch {}
+            } catch (e) { console.debug?.(e); }
+            try { drawer?.destroy?.(); } catch (e) { console.debug?.(e); }
+            try { source?.disconnect?.(); } catch (e) { console.debug?.(e); }
+            try { analyser?.disconnect?.(); } catch (e) { console.debug?.(e); }
+            try { audioCtx?.close?.(); } catch (e) { console.debug?.(e); }
             source = null;
             analyser = null;
             audioCtx = null;

@@ -87,7 +87,7 @@ function createViewer() {
             if (typeof prefs.genInfoOpen === "boolean") state.genInfoOpen = prefs.genInfoOpen;
             if (typeof prefs.audioVisualizerMode === "string") state.audioVisualizerMode = prefs.audioVisualizerMode || "artistic";
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     const IMAGE_PRELOAD_EXTENSIONS = new Set([
         "png", "jpg", "jpeg", "webp", "gif", "bmp", "tiff", "avif", "heic", "hdr", "svg", "apng"
     ]);
@@ -106,25 +106,25 @@ function createViewer() {
     function clampPanToBounds() {
         try {
             panzoom?.clampPanToBounds?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     function applyTransform() {
         try {
             panzoom?.applyTransform?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     function setZoom(next, opts) {
         try {
             panzoom?.setZoom?.(next, opts);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     function updatePanCursor() {
         try {
             panzoom?.updatePanCursor?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     function getPrimaryMedia() {
@@ -162,7 +162,7 @@ function createViewer() {
     function updateMediaNaturalSize() {
         try {
             panzoom?.updateMediaNaturalSize?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     function createMediaElement(asset, url) {
@@ -211,7 +211,7 @@ function createViewer() {
     try {
         header.appendChild(filename);
         header.appendChild(badgesBar);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     try {
         toolbar = createViewerToolbar({
@@ -224,13 +224,13 @@ function createViewer() {
                     if (!document.fullscreenElement) {
                         try {
                             overlay.requestFullscreen();
-                        } catch {}
+                        } catch (e) { console.debug?.(e); }
                     } else {
                         try {
                             document.exitFullscreen();
-                        } catch {}
+                        } catch (e) { console.debug?.(e); }
                     }
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             },
             // Close button should fully tear down the viewer (remove overlay + listeners) to avoid leaks/ghost UI.
             onClose: () => _requestCloseFromButton?.(),
@@ -242,23 +242,23 @@ function createViewer() {
                     updateUI();
                     try {
                         toolbar?.syncToolsUIFromState?.();
-                    } catch {}
-                } catch {}
+                    } catch (e) { console.debug?.(e); }
+                } catch (e) { console.debug?.(e); }
             },
             onZoomIn: () => {
                 try {
                     setZoom((Number(state.zoom) || 1) + 0.25, { clientX: state._lastPointerX, clientY: state._lastPointerY });
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             },
             onZoomOut: () => {
                 try {
                     setZoom((Number(state.zoom) || 1) - 0.25, { clientX: state._lastPointerX, clientY: state._lastPointerY });
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             },
             onZoomReset: () => {
                 try {
                     setZoom(1);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             },
             onZoomOneToOne: () => {
                 try {
@@ -276,13 +276,13 @@ function createViewer() {
                         requestAnimationFrame(() => {
                             try {
                                 updateMediaNaturalSize();
-                            } catch {}
+                            } catch (e) { console.debug?.(e); }
                             try {
                                 tryApply();
-                            } catch {}
+                            } catch (e) { console.debug?.(e); }
                         });
-                    } catch {}
-                } catch {}
+                    } catch (e) { console.debug?.(e); }
+                } catch (e) { console.debug?.(e); }
             },
             onCompareModeChanged: () => {
                 try {
@@ -291,17 +291,17 @@ function createViewer() {
                         // Rebind the player bar to the newly created video elements (wipe/difference re-renders AB view).
                         syncPlayerBar();
                     }
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             },
             onExportFrame: () => {
                 try {
                     void exportCurrentFrame({ toClipboard: false });
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             },
             onCopyFrame: () => {
                 try {
                     void exportCurrentFrame({ toClipboard: true });
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             },
             onAudioVizModeChanged: () => {
                 try {
@@ -309,18 +309,18 @@ function createViewer() {
                     if (String(current?.kind || "") !== "audio") return;
                     renderAsset();
                     syncPlayerBar();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             },
             onToolsChanged: () => {
                 try {
                     toolbar?.syncToolsUIFromState?.();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     saveViewerPrefs(state);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     applyDistractionFreeUI();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     if (state.mode === VIEWER_MODES.AB_COMPARE) {
                         const m = String(state.abCompareMode || "wipe");
@@ -328,22 +328,22 @@ function createViewer() {
                             abView?._mjrDiffRequest?.();
                         }
                     }
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     if (!state.probeEnabled) probeTooltip.style.display = "none";
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     if (!state.loupeEnabled) loupeWrap.style.display = "none";
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     scheduleOverlayRedraw();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     scheduleApplyGrade?.();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     void renderGenInfoPanel();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             },
         });
         if (toolbar?.headerEl) header = toolbar.headerEl;
@@ -352,7 +352,7 @@ function createViewer() {
         if (toolbar?.filenameRightEl) filenameRight = toolbar.filenameRightEl;
         if (toolbar?.badgesBarRightEl) badgesBarRight = toolbar.badgesBarRightEl;
         if (toolbar?.rightMetaEl) rightMeta = toolbar.rightMetaEl;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     // Content area (stage + optional right sidebar)
     const contentRow = document.createElement("div");
@@ -556,7 +556,7 @@ function createViewer() {
     // Mount the row (stage)
     try {
         contentRow.appendChild(content);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     // Footer with navigation
     const footer = document.createElement("div");
@@ -610,7 +610,7 @@ function createViewer() {
                 }
                 state.currentIndex = idx;
                 updateUI();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
         onCompare: (idx) => {
             try {
@@ -635,7 +635,7 @@ function createViewer() {
                         ? VIEWER_MODES.SIDE_BY_SIDE
                         : VIEWER_MODES.AB_COMPARE;
                 updateUI();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
     });
 
@@ -682,9 +682,9 @@ function createViewer() {
                     return;
                 }
                 _requestCloseFromButton();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         });
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const metadataHydrator = createViewerMetadataHydrator({
         state,
@@ -712,7 +712,7 @@ function createViewer() {
                 const key = ordered?.[i]?.[0];
                 if (key != null) _viewerInfoCache.delete(key);
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
     const _viewerInfoCacheGet = (id) => {
         try {
@@ -736,13 +736,13 @@ function createViewer() {
             if (!key || !data) return;
             _viewerInfoCache.set(key, { data, at: Date.now() });
             _viewerInfoCachePrune();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const hydrateVisibleMetadata = async () => {
         try {
             await metadataHydrator?.hydrateVisibleMetadata?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     try {
@@ -764,7 +764,7 @@ function createViewer() {
     const clearCanvas = (ctx, w, h) => {
         try {
             ctx.clearRect(0, 0, w, h);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     // Overlay drawing (grid + probe + loupe)
@@ -779,7 +779,7 @@ function createViewer() {
                 }
                 try {
                     redrawOverlays();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 return;
             }
             if (_overlayRAF != null) return;
@@ -787,9 +787,9 @@ function createViewer() {
                 _overlayRAF = null;
                 try {
                     redrawOverlays();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     const getOverlayMedia = () => {
@@ -803,7 +803,7 @@ function createViewer() {
             if (state?.mode === VIEWER_MODES.SIDE_BY_SIDE) {
                 return sideView?.querySelector?.(".mjr-viewer-media") || null;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         return null;
     };
 
@@ -832,7 +832,7 @@ function createViewer() {
             const showMask = Boolean(state?.overlayMaskEnabled);
             gridCanvas.style.display =
                 state.gridMode === 0 && !showMask && !hasPanHint && !showHud && !showScopes ? "none" : "";
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         const size = grid.ensureCanvasSize();
         if (!(size.w > 0 && size.h > 0)) return;
@@ -846,7 +846,7 @@ function createViewer() {
             try {
                 const ctx = gridCanvas.getContext("2d");
                 if (ctx) clearCanvas(ctx, size.w, size.h);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
 
         if (hasPanHint) {
@@ -888,7 +888,7 @@ function createViewer() {
                     ctx.fillText(msg, tx, ty);
                     ctx.restore();
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
 
         // HUD: bbox + image WxH label (drawn in `grid.js`). No filename overlay here.
@@ -908,15 +908,15 @@ function createViewer() {
                     }
                 }
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         if (state.mode !== VIEWER_MODES.SINGLE) {
             try {
                 probeTooltip.style.display = "none";
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 loupeWrap.style.display = "none";
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
     };
 
@@ -927,11 +927,11 @@ function createViewer() {
     const stopGenInfoFetch = () => {
         try {
             state._genInfoAbort?.abort?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         state._genInfoAbort = null;
         try {
             state._genInfoReqId = (Number(state._genInfoReqId) || 0) + 1;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const ensureGenInfoAsset = async (asset, { signal } = {}) => {
@@ -984,8 +984,8 @@ function createViewer() {
 
             if (!open) {
                 stopGenInfoFetch();
-                try { genInfoBody.innerHTML = ""; } catch {}
-                try { genInfoBodyLeft.innerHTML = ""; } catch {}
+                try { genInfoBody.innerHTML = ""; } catch (e) { console.debug?.(e); }
+                try { genInfoBodyLeft.innerHTML = ""; } catch (e) { console.debug?.(e); }
                 return;
             }
         } catch {
@@ -994,19 +994,19 @@ function createViewer() {
 
         stopGenInfoFetch();
         const reqId = (Number(state?._genInfoReqId) || 0) + 1;
-        try { state._genInfoReqId = reqId; } catch {}
+        try { state._genInfoReqId = reqId; } catch (e) { console.debug?.(e); }
         const ac = new AbortController();
         state._genInfoAbort = ac;
 
         const renderNow = ({ left, right, single }) => {
-            try { genInfoBody.innerHTML = ""; } catch {}
-            try { genInfoBodyLeft.innerHTML = ""; } catch {}
+            try { genInfoBody.innerHTML = ""; } catch (e) { console.debug?.(e); }
+            try { genInfoBodyLeft.innerHTML = ""; } catch (e) { console.debug?.(e); }
 
             const onRetry = () => {
                 try {
                     if (!state?.genInfoOpen) state.genInfoOpen = true;
                     void renderGenInfoPanel();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             };
 
             const addBlockTo = (targetBody, title, assetObj, loading) => {
@@ -1021,7 +1021,7 @@ function createViewer() {
                             })
                         );
                         return;
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                     
                     // Fallback manual rendering
                     const block = document.createElement("div");
@@ -1062,9 +1062,9 @@ function createViewer() {
                             details.appendChild(pre);
                             block.appendChild(details);
                         }
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                     targetBody.appendChild(block);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             };
 
             if (isDual) {
@@ -1173,7 +1173,7 @@ function createViewer() {
                 });
             }
 
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     // No close button in panel (toggle via toolbar / shortcut).
@@ -1192,7 +1192,7 @@ function createViewer() {
         const clear = (el) => {
             try {
                 if (el) el.innerHTML = "";
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
         clear(badgesBar);
         clear(badgesBarRight);
@@ -1228,7 +1228,7 @@ function createViewer() {
                 extBadge.style.fontSize = "10px";
                 extBadge.style.borderRadius = "6px";
                 extBadge.style.pointerEvents = "none";
-            } catch {}
+            } catch (e) { console.debug?.(e); }
 
             const stars = createRatingBadge(asset.rating || 0);
             if (stars) {
@@ -1238,7 +1238,7 @@ function createViewer() {
                     stars.style.right = "";
                     stars.style.padding = "2px 6px";
                     stars.style.fontSize = "12px";
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
 
             const tags = createTagsBadge(Array.isArray(asset.tags) ? asset.tags : []);
@@ -1249,7 +1249,7 @@ function createViewer() {
                     tags.style.left = "";
                     tags.style.maxWidth = "220px";
                     tags.style.pointerEvents = "none";
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
 
             pill.appendChild(extBadge);
@@ -1259,7 +1259,7 @@ function createViewer() {
 
             try {
                 if (asset.filepath) pill.title = String(asset.filepath);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             return pill;
         };
 
@@ -1285,10 +1285,10 @@ function createViewer() {
             const rightPill = makePill(rightAsset, { showName: false });
             try {
                 if (leftPill) badgesBar.appendChild(leftPill);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 if (rightPill) badgesBarRight.appendChild(rightPill);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             return;
         }
 
@@ -1303,7 +1303,7 @@ function createViewer() {
             if (!pill) continue;
             try {
                 badgesBar.appendChild(pill);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
     };
 
@@ -1320,13 +1320,13 @@ function createViewer() {
         const on = Boolean(state?.distractionFree);
         try {
             header.style.display = on ? "none" : "";
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             footer.style.display = on ? "none" : "";
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             overlay.classList.toggle("mjr-viewer-focus", on);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             if (on) {
                 overlay.style.paddingRight = "0px";
@@ -1334,7 +1334,7 @@ function createViewer() {
                 genInfoOverlay.style.display = "none";
                 genInfoOverlayLeft.style.display = "none";
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     // Update UI based on state
@@ -1354,7 +1354,7 @@ function createViewer() {
             ) {
                 state.compareAsset = null;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         // Update filename
         const current = state.assets[state.currentIndex];
@@ -1380,7 +1380,7 @@ function createViewer() {
                 : null;
         try {
             filename.textContent = leftAsset?.filename || "";
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             if (rightMeta && filenameRight && rightAsset && rightAsset !== leftAsset) {
                 rightMeta.style.display = "flex";
@@ -1389,7 +1389,7 @@ function createViewer() {
                 rightMeta.style.display = "none";
                 filenameRight.textContent = "";
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         // Update index
         if (state.mode === VIEWER_MODES.AB_COMPARE && canAB()) {
             indexInfo.textContent = "2 selected";
@@ -1403,7 +1403,7 @@ function createViewer() {
         if (state.mode === VIEWER_MODES.SIDE_BY_SIDE && !canSide()) state.mode = VIEWER_MODES.SINGLE;
         try {
             toolbar?.syncModeButtons?.({ canAB, canSide });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         // Show/hide views
         singleView.style.display = state.mode === VIEWER_MODES.SINGLE ? 'flex' : 'none';
@@ -1416,19 +1416,19 @@ function createViewer() {
                 destroyMediaProcessorsIn(singleView);
                 singleView.innerHTML = "";
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             if (state.mode !== VIEWER_MODES.AB_COMPARE) {
                 destroyMediaProcessorsIn(abView);
                 abView.innerHTML = "";
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             if (state.mode !== VIEWER_MODES.SIDE_BY_SIDE) {
                 destroyMediaProcessorsIn(sideView);
                 sideView.innerHTML = "";
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         renderBadges();
 
@@ -1439,7 +1439,7 @@ function createViewer() {
         try {
             prevBtn.style.display = hideNav ? "none" : "";
             nextBtn.style.display = hideNav ? "none" : "";
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         // Render current asset
         renderAsset();
@@ -1448,32 +1448,32 @@ function createViewer() {
         syncPlayerBar();
         try {
             toolbar?.syncToolsUIFromState?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             applyDistractionFreeUI();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             scheduleApplyGrade?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         scheduleOverlayRedraw();
         try {
             void renderGenInfoPanel();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         // Hydrate rating/tags for visible assets and refresh the badge bar.
         try {
             void hydrateVisibleMetadata().then(() => {
                 try {
                     renderBadges();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         // Sync filmstrip highlight and scroll position.
         try {
             const isSingle = state.mode === VIEWER_MODES.SINGLE;
             filmstrip.sync({ isSingle });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     // Render the current asset based on mode
@@ -1485,7 +1485,7 @@ function createViewer() {
         if (!viewUrl) {
             try {
                 destroyMediaProcessorsIn(singleView);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 singleView.innerHTML = "";
                 const err = document.createElement("div");
@@ -1493,14 +1493,14 @@ function createViewer() {
                 err.style.cssText = "color:#ff9a9a; font-size:13px; padding:16px; text-align:center;";
                 err.textContent = "Cannot open asset: missing or invalid filename/path.";
                 singleView.appendChild(err);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             return;
         }
 
         if (state.mode === VIEWER_MODES.SINGLE) {
             try {
                 destroyMediaProcessorsIn(singleView);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             singleView.innerHTML = '';
             state._mediaW = 0;
             state._mediaH = 0;
@@ -1587,15 +1587,15 @@ function createViewer() {
                 try {
                     const proc = el?._mjrProc;
                     if (proc?.setParams) proc.setParams(params);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         // If A/B compare is showing a computed diff canvas, force a refresh after grade changes.
         try {
             if (state?.mode === VIEWER_MODES.AB_COMPARE) {
                 abView?._mjrDiffRequest?.();
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const isDefaultGrade = (params) => {
@@ -1670,15 +1670,15 @@ function createViewer() {
                 _gradeRAF = null;
                 try {
                     applyGradeToVisibleMedia();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const syncToolsUIFromState = () => {
         try {
             toolbar?.syncToolsUIFromState?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     // Mouse wheel zoom (trackpad-friendly). Capture + preventDefault so ComfyUI canvas doesn't zoom underneath.
@@ -1702,18 +1702,18 @@ function createViewer() {
             if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) {
                 return;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         // Only zoom when hovering the viewer content area.
         try {
             if (!content.contains(e.target)) return;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         try {
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         if (e.shiftKey) {
             const delta = Number(e.deltaY) || 0;
@@ -1753,7 +1753,7 @@ function createViewer() {
             y = Math.max(pad, Math.min(y, v.height - h - pad));
             el.style.left = `${Math.round(x)}px`;
             el.style.top = `${Math.round(y)}px`;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     const loupe = createViewerLoupe({
@@ -1784,25 +1784,25 @@ function createViewer() {
         if (!content._mjrOverlayResizeBound && "ResizeObserver" in window) {
             try {
                 overlay._mjrResizeObserver?.disconnect?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             const ro = new ResizeObserver(() => {
                 try {
                     state._viewportCache = null;
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 scheduleOverlayRedraw();
             });
             try {
                 ro.observe(content);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             overlay._mjrResizeObserver = ro;
             lifecycleUnsubs.push(() => {
                 try {
                     ro.disconnect();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             });
             content._mjrOverlayResizeBound = true;
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     // Keyboard shortcuts (installed on capture phase to avoid ComfyUI/global handlers eating events).
     const keyboard = installViewerKeyboard({
@@ -1841,11 +1841,11 @@ function createViewer() {
     const disposeOpenListeners = () => {
         try {
             for (const u of _openUnsubs) safeCall(u);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         _openUnsubs = [];
         try {
             keyboard?.unbind?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
     const bindOpenListeners = () => {
         disposeOpenListeners();
@@ -1854,14 +1854,14 @@ function createViewer() {
                 safeAddListener(overlay, "click", (e) => {
                     try {
                         if (e.target !== overlay) return;
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                     closeViewer();
                 })
             );
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             _openUnsubs.push(safeAddListener(content, "wheel", onWheelZoom, { passive: false, capture: true }));
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             _openUnsubs.push(
                 safeAddListener(
@@ -1871,15 +1871,15 @@ function createViewer() {
                         try {
                             state._lastPointerX = e.clientX;
                             state._lastPointerY = e.clientY;
-                        } catch {}
+                        } catch (e) { console.debug?.(e); }
                     },
                     { passive: true, capture: true }
                 )
             );
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             keyboard?.bind?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     // Keep viewer badges in sync when tags/ratings change elsewhere (sidebar, panel hotkeys, etc.).
@@ -1897,9 +1897,9 @@ function createViewer() {
                     }
                     try {
                         metadataHydrator?.deleteCached?.(id);
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                     renderBadges();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             };
             const onTagsSync = (e) => {
                 try {
@@ -1913,61 +1913,61 @@ function createViewer() {
                     }
                     try {
                         metadataHydrator?.deleteCached?.(id);
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                     renderBadges();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             };
             lifecycleUnsubs.push(safeAddListener(window, ASSET_RATING_CHANGED_EVENT, onRatingSync, { passive: true }));
             lifecycleUnsubs.push(safeAddListener(window, ASSET_TAGS_CHANGED_EVENT, onTagsSync, { passive: true }));
             overlay._mjrBadgeSyncBound = true;
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     function closeViewer() {
         try {
             metadataHydrator?.abort?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             destroyPlayerBar();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             state._scopesVideoAbort?.abort?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         state._scopesVideoAbort = null;
         // Clear any pending hint timers (avoid callbacks after close/dispose).
         try {
             if (state._panHintTimer) clearTimeout(state._panHintTimer);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         state._panHintTimer = null;
         try {
             state._panHintAt = 0;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         // Abort compare-mode background work (sync listeners, diff loops).
         try {
             abView?._mjrSyncAbort?.abort?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             abView?._mjrDiffAbort?.abort?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             abView._mjrSyncAbort = null;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             abView._mjrDiffAbort = null;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             sideView?._mjrSyncAbort?.abort?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             sideView._mjrSyncAbort = null;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             abView?._mjrSliderAbort?.abort?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             abView._mjrSliderAbort = null;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         // Ensure media playback is fully stopped when closing the overlay.
         // Hiding the overlay alone does not stop HTMLMediaElement audio in all browsers.
         try {
@@ -1976,13 +1976,13 @@ function createViewer() {
                 for (const el of mediaEls) {
                     try {
                         el.muted = true;
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                     try {
                         el.pause?.();
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                     try {
                         el.currentTime = 0;
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                     try {
                         // Remove all <source> children (if any) and unload the element.
                         const sources = el.querySelectorAll?.("source");
@@ -1990,49 +1990,49 @@ function createViewer() {
                             for (const s of sources) {
                                 try {
                                     s.remove();
-                                } catch {}
+                                } catch (e) { console.debug?.(e); }
                             }
                         }
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                     try {
                         el.removeAttribute?.("src");
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                     try {
                         // Some browsers keep playing unless we force a reload after removing src.
                         el.load?.();
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 }
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         // Free DOM resources (and ensure playback stops even if `pause()` was ignored).
         try {
             destroyMediaProcessorsIn(singleView);
             singleView.innerHTML = "";
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             destroyMediaProcessorsIn(abView);
             abView.innerHTML = "";
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             destroyMediaProcessorsIn(sideView);
             sideView.innerHTML = "";
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         try {
             state.genInfoOpen = false;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             stopGenInfoFetch();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             genInfoOverlay.style.display = "none";
             genInfoBody.innerHTML = "";
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             genInfoOverlayLeft.style.display = "none";
             genInfoBodyLeft.innerHTML = "";
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         overlay.style.display = 'none';
         disposeOpenListeners();
@@ -2048,7 +2048,7 @@ function createViewer() {
                 state._prevFocusedElement.focus();
             }
             state._prevFocusedElement = null;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         // Restore previous hotkeys scope if available.
         const prevScope = state?._prevHotkeyScope;
@@ -2063,7 +2063,7 @@ function createViewer() {
             state.assets = Array.isArray(assets) ? assets : [assets];
             state.currentIndex = Math.max(0, Math.min(startIndex, state.assets.length - 1));
             // Rebuild the filmstrip thumbnail strip for the new asset list.
-            try { filmstrip.rebuild(); } catch {}
+            try { filmstrip.rebuild(); } catch (e) { console.debug?.(e); }
             state.zoom = 1;
             state.panX = 0;
             state.panY = 0;
@@ -2072,7 +2072,7 @@ function createViewer() {
             state._panHintAt = 0;
             try {
                 if (state._panHintTimer) clearTimeout(state._panHintTimer);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             state._panHintTimer = null;
             state._lastPointerX = null;
             state._lastPointerY = null;
@@ -2084,10 +2084,10 @@ function createViewer() {
             state._probe = null;
             try {
                 probeTooltip.style.display = "none";
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 loupeWrap.style.display = "none";
-            } catch {}
+            } catch (e) { console.debug?.(e); }
 
             overlay.style.display = 'flex';
 
@@ -2115,10 +2115,10 @@ function createViewer() {
             updateUI();
             try {
                 syncToolsUIFromState();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 scheduleApplyGrade();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             scheduleOverlayRedraw();
             // No animation loop needed - transforms are applied directly
         },
@@ -2144,67 +2144,67 @@ function createViewer() {
             // Best-effort: never throw to UI.
             try {
                 closeViewer();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 _viewerInfoCache.clear();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
 
             try {
                 destroyMediaProcessorsIn(singleView);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 destroyMediaProcessorsIn(abView);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 destroyMediaProcessorsIn(sideView);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
 
             try {
                 if (_overlayRAF != null) cancelAnimationFrame(_overlayRAF);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 if (_gradeRAF != null) cancelAnimationFrame(_gradeRAF);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 probe?.dispose?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 keyboard?.dispose?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
 
             try {
                 overlay._mjrResizeObserver?.disconnect?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 overlay._mjrResizeObserver = null;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 metadataHydrator?.dispose?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
 
             try {
                 for (const u of overlay._mjrViewerUnsubs || []) safeCall(u);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 overlay._mjrViewerUnsubs = [];
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 state._preloadRefs?.clear?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 state._preloadedAssetKeys?.clear?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
 
             try {
                 overlay.remove?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
     };
 
     // Upgrade the toolbar close button to a full dispose once API is available.
     try {
         _requestCloseFromButton = () => api.dispose();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     overlay._mjrViewerAPI = api;
 
@@ -2217,10 +2217,10 @@ function createViewer() {
             onAssetChanged: () => {
                 try {
                     renderBadges();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             },
         });
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     return overlay;
 }

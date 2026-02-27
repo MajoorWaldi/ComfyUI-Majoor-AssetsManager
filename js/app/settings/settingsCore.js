@@ -199,7 +199,7 @@ export const loadMajoorSettings = () => {
         if (!isWrapped) {
             try {
                 saveMajoorSettings(merged);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
         return merged;
     } catch (error) {
@@ -230,10 +230,10 @@ export const saveMajoorSettings = (settings) => {
                     .then(({ comfyAlert }) => comfyAlert("Majoor: Failed to save settings (browser storage full or blocked)."))
                     .catch(() => {});
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             safeDispatchCustomEvent("mjr-settings-save-failed", { error: String(error?.message || error || "") }, { warnPrefix: "[Majoor]" });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 };
 
@@ -308,7 +308,7 @@ export const applySettingsToConfig = (settings) => {
             root.style.setProperty("--mjr-rating-color", APP_CONFIG.UI_RATING_COLOR);
             root.style.setProperty("--mjr-tag-color", APP_CONFIG.UI_TAG_COLOR);
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     APP_CONFIG.INFINITE_SCROLL_ENABLED = !!settings.infiniteScroll?.enabled;
     APP_CONFIG.INFINITE_SCROLL_ROOT_MARGIN = String(settings.infiniteScroll?.rootMargin || APP_DEFAULTS.INFINITE_SCROLL_ROOT_MARGIN);
@@ -372,7 +372,7 @@ export async function syncBackendSecuritySettings() {
                 if (boot?.ok && bootToken) {
                     settings.security.apiToken = bootToken;
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
         saveMajoorSettings(settings);
         applySettingsToConfig(settings);

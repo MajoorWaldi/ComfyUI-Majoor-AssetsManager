@@ -141,14 +141,14 @@ const tryLoadWorkflowToCanvas = async (payload, fallbackAbsPath = null) => {
                         app.canvas.graph.configure(cached.workflow);
                         try {
                             app.canvas.setDirty?.(true, true);
-                        } catch {}
+                        } catch (e) { console.debug?.(e); }
                         return true;
                     }
                     if (typeof app?.graph?.configure === "function") {
                         app.graph.configure(cached.workflow);
                         return true;
                     }
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
             // Cached but no workflow (already tried and failed)
             return false;
@@ -213,14 +213,14 @@ const tryLoadWorkflowToCanvas = async (payload, fallbackAbsPath = null) => {
             app.canvas.graph.configure(workflow);
             try {
                 app.canvas.setDirty?.(true, true);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             return true;
         }
         if (typeof app?.graph?.configure === "function") {
             app.graph.configure(workflow);
             return true;
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return false;
 };
 
@@ -258,13 +258,13 @@ export const bindAssetDragStart = (containerEl) => {
                     const viewUrl = buildURL(payload);
                     applyDragOutToOS({ dt, asset, containerEl, card, viewUrl });
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
 
             const preview = card.querySelector("img") || card.querySelector("video");
             if (preview && preview instanceof HTMLElement) {
                 try {
                     dt.setDragImage(preview, 10, 10);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
         },
         true
@@ -287,7 +287,7 @@ export const initDragDrop = () => {
         }
         try {
             existing.dispose?.({ force: true });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     const onDragOver = (event) => {
@@ -388,7 +388,7 @@ export const initDragDrop = () => {
         widget.value = relativePath;
         try {
             widget.callback?.(widget.value);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         markCanvasDirty(app);
         dndLog("drop inject", { node: node?.title, widget: widget?.name, value: relativePath });
@@ -420,17 +420,17 @@ export const initDragDrop = () => {
             window.removeEventListener("dragover", onDragOver, true);
             window.removeEventListener("drop", onDrop, true);
             window.removeEventListener("dragleave", onDragLeave, true);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         try {
             clearHighlight(_resolveApp(), markCanvasDirty);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         try {
             if (window?.[DND_GLOBAL_KEY]?.dispose === dispose) {
                 delete window[DND_GLOBAL_KEY];
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     try {
@@ -439,7 +439,7 @@ export const initDragDrop = () => {
             version: DND_INSTANCE_VERSION,
             dispose
         };
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     return dispose;
 };

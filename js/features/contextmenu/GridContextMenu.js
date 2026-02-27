@@ -51,7 +51,7 @@ const getSelectedAssetIds = (gridContainer) => {
                  if (id) selected.add(String(id));
              }
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return selected;
 };
 
@@ -72,14 +72,14 @@ const getSelectedAssets = (gridContainer) => {
                 if (assets.length) return assets;
             }
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         const cards = gridContainer.querySelectorAll(".mjr-asset-card.is-selected");
         for (const card of cards) {
             const a = card?._mjrAsset;
             if (a) assets.push(a);
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return assets;
 };
 
@@ -104,11 +104,11 @@ const clearSelection = (gridContainer) => {
             card.classList.remove('is-selected');
             card.setAttribute('aria-selected', 'false');
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         delete gridContainer.dataset.mjrSelectedAssetIds;
         delete gridContainer.dataset.mjrSelectedAssetId;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     safeDispatchCustomEvent(
         "mjr:selection-changed",
         { selectedIds: [] },
@@ -120,12 +120,12 @@ const selectCardForDetails = (gridContainer, card, asset, state) => {
     if (!gridContainer) return;
     try {
         clearSelection(gridContainer);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     if (card) {
         try {
             card.classList.add('is-selected');
             card.setAttribute('aria-selected', 'true');
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
     const id = asset?.id != null ? String(asset.id) : "";
     if (id) {
@@ -136,22 +136,22 @@ const selectCardForDetails = (gridContainer, card, asset, state) => {
                 gridContainer.dataset.mjrSelectedAssetIds = JSON.stringify([id]);
                 gridContainer.dataset.mjrSelectedAssetId = id;
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     } else {
         try {
             delete gridContainer.dataset.mjrSelectedAssetIds;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             delete gridContainer.dataset.mjrSelectedAssetId;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
     if (state && typeof state === 'object') {
         try {
             state.selectedAssetIds = id ? [id] : [];
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             state.activeAssetId = id;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 };
 
@@ -164,14 +164,14 @@ const getAllAssetsInGrid = (gridContainer) => {
             const list = getter();
             if (Array.isArray(list) && list.length) return list;
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         const cards = gridContainer.querySelectorAll(".mjr-asset-card");
         for (const card of cards) {
             const a = card?._mjrAsset;
             if (a) assets.push(a);
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     return assets;
 };
 
@@ -205,7 +205,7 @@ const triggerBrowserGridReload = (gridContainer) => {
     try {
         const reason = gridContainer ? "grid-contextmenu" : "grid-contextmenu-global";
         window?.dispatchEvent?.(new CustomEvent("mjr:reload-grid", { detail: { reason } }));
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 };
 
 async function resetIndexForSingleAsset(asset, gridContainer) {
@@ -237,10 +237,10 @@ async function resetIndexForSingleAsset(asset, gridContainer) {
                     }
                 }
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
-    try { triggerBrowserGridReload(gridContainer); } catch {}
+    try { triggerBrowserGridReload(gridContainer); } catch (e) { console.debug?.(e); }
     return { ok: true, data: { refreshed: true } };
 }
 
@@ -267,9 +267,9 @@ function showTagsPopover(x, y, asset, onChanged) {
         const existing = document.querySelector(POPOVER_SELECTOR);
         try {
             existing?._mjrAbortController?.abort?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         existing?.remove?.();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const pop = document.createElement("div");
     pop.className = "mjr-grid-popover";
@@ -292,7 +292,7 @@ function showTagsPopover(x, y, asset, onChanged) {
         );
         try {
             onChanged?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     });
     pop.appendChild(editor);
     document.body.appendChild(pop);
@@ -300,10 +300,10 @@ function showTagsPopover(x, y, asset, onChanged) {
     const hide = () => {
         try {
             pop._mjrAbortController?.abort?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             pop.remove?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     // Dismiss when clicking outside (so clicking inside input doesn't close it).
@@ -323,7 +323,7 @@ function showTagsPopover(x, y, asset, onChanged) {
             { capture: true, signal: ac.signal }
         );
         document.addEventListener("scroll", hide, { capture: true, passive: true, signal: ac.signal });
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     // Clamp into viewport
     const rect = pop.getBoundingClientRect();
@@ -341,10 +341,10 @@ function setRating(asset, rating, onChanged) {
     const assetId = asset?.id;
     try {
         asset.rating = rating;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         onChanged?.();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     if (assetId) {
         scheduleRatingUpdate(String(assetId), rating, {
@@ -451,14 +451,14 @@ export function bindGridContextMenu({
                     delete gridContainer.dataset.mjrSelectedAssetIds;
                     delete gridContainer.dataset.mjrSelectedAssetId;
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 safeDispatchCustomEvent("mjr:selection-changed", {
                     selectedIds: newSelection,
                     selectedAssets: [asset],
                     activeId: nextId
                 }, { target: gridContainer, warnPrefix: "[GridContextMenu]" });
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             selectedIds = new Set(newSelection);
             try {
                 gridContainer.querySelectorAll('.mjr-asset-card.is-selected').forEach(el => {
@@ -469,7 +469,7 @@ export function bindGridContextMenu({
                     card.classList.add('is-selected');
                     card.setAttribute('aria-selected', 'true');
                 }
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
         const selectedAssetsNow = getSelectedAssets(gridContainer);
         const effectiveSelectionCount = selectedAssetsNow.length || selectedIds.size;
@@ -488,7 +488,7 @@ export function bindGridContextMenu({
                                 detail: { asset },
                             })
                         );
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 })
             );
 
@@ -517,7 +517,7 @@ export function bindGridContextMenu({
                                 detail: { preferredId: String(res?.data?.id || "") },
                             })
                         );
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 })
             );
 
@@ -627,7 +627,7 @@ export function bindGridContextMenu({
                     // Fallback to the caller hook (legacy/optional).
                     try {
                         onRequestOpenViewer(asset);
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 }
             })
         );
@@ -636,16 +636,16 @@ export function bindGridContextMenu({
             createItem(t("ctx.showMetadataPanel", "Show metadata panel"), "pi pi-info-circle", getShortcutDisplay("METADATA_PANEL"), () => {
                 try {
                     hideMenu(menu);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     selectCardForDetails(gridContainer, card, asset, panelState);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     const toggleDetails = gridContainer?._mjrOpenDetails;
                     if (typeof toggleDetails === "function") {
                         toggleDetails();
                     }
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             })
         );
 
@@ -660,7 +660,7 @@ export function bindGridContextMenu({
                         const viewer = resolveViewer();
                         viewer.open(mediaSelectedAssets, 0);
                         viewer.setMode?.("ab");
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 })
             );
         }
@@ -671,7 +671,7 @@ export function bindGridContextMenu({
                         const viewer = resolveViewer();
                         viewer.open(mediaSelectedAssets, 0);
                         viewer.setMode?.("sidebyside");
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 })
             );
         }
@@ -733,7 +733,7 @@ export function bindGridContextMenu({
                 createItem("Add to collection...", "pi pi-bookmark", getShortcutDisplay("ADD_TO_COLLECTION"), async () => {
                     try {
                         hideMenu(menu);
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                     const selectedAssets = getSelectedAssets(gridContainer);
                     const list = selectedAssets.length ? selectedAssets : [asset];
                     await showAddToCollectionMenu({ x: e.clientX, y: e.clientY, assets: list });
@@ -751,7 +751,7 @@ export function bindGridContextMenu({
                 createItem(label, "pi pi-bookmark", null, async () => {
                     try {
                         hideMenu(menu);
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                     if (!filepaths.length) {
                         comfyToast(t("toast.noFilePath"), "error");
                         return;
@@ -767,7 +767,7 @@ export function bindGridContextMenu({
                     // Refresh the collection view (best effort).
                     try {
                         triggerBrowserGridReload(gridContainer);
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 })
             );
         }
@@ -778,7 +778,7 @@ export function bindGridContextMenu({
         menu.appendChild(createItem(t("ctx.editTags", "Edit tags"), "pi pi-tags", getShortcutDisplay("EDIT_TAGS"), () => {
             try {
                 hideMenu(menu);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             showTagsPopover(e.clientX + 6, e.clientY + 6, asset, () => {
                 // Update card UI after tags change
                 const card = document.querySelector(`[data-mjr-asset-id="${safeEscapeSelector(asset.id)}"]`);
@@ -802,10 +802,10 @@ export function bindGridContextMenu({
         // Prevent listener buildup across repeated opens (submenu is reused).
         try {
             ratingSubmenu._mjrAbortController?.abort?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             ratingRoot._mjrAbortController?.abort?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         const ratingAC = new AbortController();
         ratingSubmenu._mjrAbortController = ratingAC;
         ratingRoot._mjrAbortController = ratingAC;
@@ -814,7 +814,7 @@ export function bindGridContextMenu({
             try {
                 hideMenu(ratingSubmenu);
                 clearMenu(ratingSubmenu);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
 
         const scheduleClose = () => {
@@ -832,16 +832,16 @@ export function bindGridContextMenu({
             setMenuSessionCleanup(menu, () => {
                 try {
                     if (hideTimer) clearTimeout(hideTimer);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 hideTimer = null;
                 try {
                     ratingSubmenu?._mjrAbortController?.abort?.();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     closeRatingSubmenu();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         const renderRatingSubmenu = () => {
             clearMenu(ratingSubmenu);
@@ -858,7 +858,7 @@ export function bindGridContextMenu({
                         closeRatingSubmenu();
                         try {
                             hideMenu(menu);
-                        } catch {}
+                        } catch (e) { console.debug?.(e); }
                     }, { disabled: !canRate })
                 );
             }
@@ -874,7 +874,7 @@ export function bindGridContextMenu({
                     closeRatingSubmenu();
                     try {
                         hideMenu(menu);
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 }, { disabled: !canRate })
             );
         };
@@ -907,7 +907,7 @@ export function bindGridContextMenu({
                 if (!(asset?.filename || asset?.id)) return;
                 try {
                     comfyToast(t("toast.rescanningFile", "Rescanning file..."), "info", 1600);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     const res = await resetIndexForSingleAsset(asset, gridContainer);
                     if (res?.ok) {
@@ -1012,12 +1012,12 @@ export function bindGridContextMenu({
                                     panelState.selectedAssetIds = removal.selectedIds;
                                     panelState.activeAssetId = removal.selectedAssetIds[0] || "";
                                 }
-                            } catch {}
+                            } catch (e) { console.debug?.(e); }
                         }
                         if (deletedByFilepath > 0) {
                             try {
                                 triggerBrowserGridReload(gridContainer);
-                            } catch {}
+                            } catch (e) { console.debug?.(e); }
                         }
 
                         if (errorCount === 0) {
@@ -1045,11 +1045,11 @@ export function bindGridContextMenu({
                                         panelState.selectedAssetIds = removal.selectedIds;
                                         panelState.activeAssetId = removal.selectedAssetIds[0] || "";
                                     }
-                                } catch {}
+                                } catch (e) { console.debug?.(e); }
                             } else {
                                 try {
                                     triggerBrowserGridReload(gridContainer);
-                                } catch {}
+                                } catch (e) { console.debug?.(e); }
                             }
                             comfyToast(t("toast.fileDeletedSuccess"), "success");
                         } else {
@@ -1077,19 +1077,19 @@ export function bindGridContextMenu({
     const unbind = () => {
         try {
             gridContainer.removeEventListener("contextmenu", handler);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             gridContainer._mjrGridContextMenuBound = false;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             cancelAllRatingUpdates();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             gridContainer._mjrGridContextMenuUnbind = null;
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         try {
             cleanupMenu(menu);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
     gridContainer._mjrGridContextMenuUnbind = unbind;
     return unbind;

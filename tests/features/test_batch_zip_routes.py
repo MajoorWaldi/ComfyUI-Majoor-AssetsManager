@@ -1,6 +1,7 @@
 import json
 import tempfile
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from aiohttp import web
@@ -106,3 +107,44 @@ async def test_batch_zip_create_and_fetch_ready(monkeypatch, tmp_path: Path):
     match2 = await app.router.resolve(req2)
     resp2 = await match2.handler(req2)
     assert getattr(resp2, "status", 200) in {200, 206}
+
+
+@pytest.mark.asyncio
+async def test_batch_zip_rejects_inode_swap_to_mitigate_toctou(monkeypatch, tmp_path: Path):
+    app = _app()
+    monkeypatch.setattr(bz, "_csrf_error", lambda _r: None)
+    monkeypatch.setattr(bz, "_check_rate_limit", lambda *args, **kwargs: (True, None))
+    monkeypatch.setattr(bz, "_require_write_access", lambda _r: Result.Ok({}))
+    monkeypatch.setattr(bz, "_BATCH_DIR", tmp_path)
+    monkeypatch.setattr(bz, "_BATCH_CACHE", {})
+
+    src = tmp_path / "toctou.png"
+    src.write_bytes(b"data")
+    token = "c" * 40
+
+    async def _read_json(_request, max_bytes=None):
+        _ = max_bytes
+        return Result.Ok({"token": token, "items": [{"filename": "toctou.png", "subfolder": "", "type": "output"}]})
+
+    monkeypatch.setattr(bz, "_read_json", _read_json)
+    monkeypatch.setattr(bz, "_resolve_item_path", lambda _item: (src, tmp_path))
+
+    real_fstat = bz.os.fstat
+
+    def _fstat_inode_mismatch(fd):
+        st = real_fstat(fd)
+        return SimpleNamespace(
+            st_mode=int(getattr(st, "st_mode", 0)),
+            st_mtime=float(getattr(st, "st_mtime", 0.0)),
+            st_size=int(getattr(st, "st_size", 0)),
+            st_ino=int(getattr(st, "st_ino", 0)) + 1,
+        )
+
+    monkeypatch.setattr(bz.os, "fstat", _fstat_inode_mismatch)
+
+    req = make_mocked_request("POST", "/mjr/am/batch-zip", app=app)
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+    assert body.get("ok") is False
+    assert body.get("code") == "NO_VALID_FILES"

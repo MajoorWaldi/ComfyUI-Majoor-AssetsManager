@@ -25,7 +25,7 @@ const loadSettings = () => {
         const main = loadMajoorSettings?.();
         const w = main?.workflowMinimap;
         if (w && typeof w === "object") return w;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     // Legacy migration (one-time best effort).
     try {
@@ -38,7 +38,7 @@ const loadSettings = () => {
             next.workflowMinimap = { ...next.workflowMinimap, ...parsed };
             saveMajoorSettings(next);
             localStorage?.removeItem?.(MINIMAP_LEGACY_SETTINGS_KEY);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         return parsed;
     } catch {
         return null;
@@ -50,7 +50,7 @@ const saveSettings = (workflowMinimap) => {
         const next = loadMajoorSettings();
         next.workflowMinimap = { ...next.workflowMinimap, ...workflowMinimap };
         saveMajoorSettings(next);
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 };
 
 const coerceWorkflow = (asset) => {
@@ -310,9 +310,9 @@ export function createWorkflowMinimapSection(asset) {
         section._mjrMinimapCleanup = () => {
             try {
                 ro.disconnect();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         };
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     layout.appendChild(panel);
     layout.appendChild(canvas);

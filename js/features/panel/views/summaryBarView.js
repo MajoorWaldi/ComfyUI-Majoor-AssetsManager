@@ -45,14 +45,34 @@ export function createSummaryBarView() {
     bar.appendChild(left);
     bar.appendChild(right);
 
-    const update = ({ state, gridContainer, context = null, actions = null } = {}) => {
-        const cards = (() => {
-            try {
-                return Array.from(gridContainer?.querySelectorAll?.(".mjr-asset-card") || []);
-            } catch {
-                return [];
+    const _readRenderedCards = (gridContainer) => {
+        try {
+            const getter = gridContainer?._mjrGetRenderedCards;
+            if (typeof getter === "function") {
+                const cards = getter();
+                return Array.isArray(cards) ? cards : [];
             }
-        })();
+        } catch (e) { console.debug?.(e); }
+        return [];
+    };
+
+    const _selectedCountFromDataset = (gridContainer) => {
+        try {
+            const rawList = String(gridContainer?.dataset?.mjrSelectedAssetIds || "").trim();
+            if (rawList) {
+                const parsed = JSON.parse(rawList);
+                if (Array.isArray(parsed)) return parsed.length;
+            }
+        } catch (e) { console.debug?.(e); }
+        try {
+            const activeId = String(gridContainer?.dataset?.mjrSelectedAssetId || "").trim();
+            if (activeId) return 1;
+        } catch (e) { console.debug?.(e); }
+        return 0;
+    };
+
+    const update = ({ state, gridContainer, context = null, actions = null } = {}) => {
+        const cards = _readRenderedCards(gridContainer);
 
         const folderStats = (() => {
             try {
@@ -75,16 +95,8 @@ export function createSummaryBarView() {
             try {
                 const fromState = Array.isArray(state?.selectedAssetIds) ? state.selectedAssetIds.length : 0;
                 if (fromState > 0) return fromState;
-            } catch {}
-            try {
-                let selected = 0;
-                for (const card of cards) {
-                    if (card?.classList?.contains?.("is-selected")) selected += 1;
-                }
-                return selected;
-            } catch {
-                return 0;
-            }
+            } catch (e) { console.debug?.(e); }
+            return _selectedCountFromDataset(gridContainer);
         })();
 
         const datasetTotal = Number(gridContainer?.dataset?.mjrTotal || 0) || 0;
@@ -108,11 +120,11 @@ export function createSummaryBarView() {
             const hidden = Number(gridContainer?.dataset?.mjrHiddenPngSiblings || 0) || 0;
             const enabled = String(gridContainer?.dataset?.mjrHidePngSiblingsEnabled || "") === "1";
             if (enabled && hidden > 0) parts.push(`${t("summary.hidden")}: ${hidden}`);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         try {
             text.textContent = parts.filter(Boolean).join(" | ");
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         try {
             const alert = context?.duplicatesAlert || null;
@@ -128,15 +140,15 @@ export function createSummaryBarView() {
                 dupAlert.onclick = () => {
                     try {
                         actions?.onDuplicateAlertClick?.(alert);
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 };
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         const rawQuery = _safeText(context?.rawQuery || "").trim();
         try {
             pillsView.update({ state, gridContainer, rawQuery, actions });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     };
 
     return { bar, update };

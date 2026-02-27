@@ -11,15 +11,15 @@ export function getViewerInstance(createViewer) {
             if (el === keep) continue;
             try {
                 el?._mjrViewerAPI?.dispose?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 el.remove?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         }
         if (keep && keep._mjrViewerAPI) return keep._mjrViewerAPI;
         try {
             keep?.remove?.();
-        } catch {}
+        } catch (e) { console.debug?.(e); }
     }
 
     const viewer = createViewer();

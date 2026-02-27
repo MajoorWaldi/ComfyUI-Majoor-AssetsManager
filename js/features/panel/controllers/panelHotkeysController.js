@@ -79,7 +79,7 @@ export function createPanelHotkeysController({
                 try {
                     const ctx = typeof getScanContext === "function" ? getScanContext() : null;
                     onTriggerScan?.(ctx);
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 return;
             }
 
@@ -90,7 +90,7 @@ export function createPanelHotkeysController({
                 event.stopImmediatePropagation?.();
                 try {
                     onFocusSearch?.();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 return;
             }
 
@@ -101,7 +101,7 @@ export function createPanelHotkeysController({
                 event.stopImmediatePropagation?.();
                 try {
                     onClearSearch?.();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 return;
             }
 
@@ -113,7 +113,7 @@ export function createPanelHotkeysController({
                 event.stopImmediatePropagation?.();
                 try {
                     onToggleDetails?.();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 return;
             }
 
@@ -139,12 +139,12 @@ export function createPanelHotkeysController({
             boundEl.addEventListener("focusout", handlers.focusout);
             boundEl.addEventListener("mouseenter", handlers.mouseenter);
             boundEl.addEventListener("mouseleave", handlers.mouseleave);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         // Use global listener with capture phase for keydown to ensure it works regardless of focus
         try {
             window.addEventListener("keydown", handlers.keydown, { capture: true });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         setHotkeysScope("panel");
     };
 
@@ -155,12 +155,12 @@ export function createPanelHotkeysController({
             boundEl.removeEventListener("focusout", handlers.focusout);
             boundEl.removeEventListener("mouseenter", handlers.mouseenter);
             boundEl.removeEventListener("mouseleave", handlers.mouseleave);
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         // Remove global listener for keydown
         try {
             window.removeEventListener("keydown", handlers.keydown, { capture: true });
-        } catch {}
+        } catch (e) { console.debug?.(e); }
         if (getHotkeysState().scope === "panel") {
             setHotkeysScope(null);
         }

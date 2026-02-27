@@ -107,7 +107,7 @@ export function createCollectionsController({ state, collectionsBtn, collections
             state.collectionName = String(res.data?.name || normalizedName);
             try {
                 onChanged?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             popovers.close(collectionsPopover);
             await reloadGrid();
         });
@@ -120,7 +120,7 @@ export function createCollectionsController({ state, collectionsBtn, collections
                     state.collectionName = "";
                     try {
                         onChanged?.();
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                     popovers.close(collectionsPopover);
                     await reloadGrid();
                 });
@@ -157,7 +157,7 @@ export function createCollectionsController({ state, collectionsBtn, collections
                 state.collectionName = name;
                 try {
                     onChanged?.();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 popovers.close(collectionsPopover);
                 await reloadGrid();
             });
@@ -197,7 +197,7 @@ export function createCollectionsController({ state, collectionsBtn, collections
                     state.collectionName = "";
                     try {
                         onChanged?.();
-                    } catch {}
+                    } catch (e) { console.debug?.(e); }
                 }
                 await render();
                 await reloadGrid();
@@ -215,10 +215,10 @@ export function createCollectionsController({ state, collectionsBtn, collections
             e.stopPropagation();
             try {
                 window.dispatchEvent(new CustomEvent("mjr-close-all-menus"));
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 await render();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             popovers.toggle(collectionsPopover, collectionsBtn);
         });
     };

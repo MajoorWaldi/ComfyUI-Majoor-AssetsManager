@@ -18,7 +18,7 @@ function ensureRuntimeStatusDashboard() {
         if (!host) {
             try {
                 existing?.remove?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             return null;
         }
 
@@ -29,7 +29,7 @@ function ensureRuntimeStatusDashboard() {
             if (!hostPos || hostPos === "static") {
                 host.style.position = "relative";
             }
-        } catch {}
+        } catch (e) { console.debug?.(e); }
 
         let el = document.getElementById(RUNTIME_DASHBOARD_ID);
         if (!el) {
@@ -119,5 +119,5 @@ export function startRuntimeStatusDashboard() {
                     });
             }, 10000);
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }

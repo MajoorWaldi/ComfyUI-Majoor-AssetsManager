@@ -4,6 +4,7 @@ Shared helper functions and constants for scan/upload/stage handlers.
 import asyncio
 import os
 import tempfile
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -43,7 +44,19 @@ def _env_int(name: str, default: int, *, minimum: int = 1) -> int:
 _MAX_UPLOAD_SIZE = _env_int("MJR_MAX_UPLOAD_SIZE", _DEFAULT_MAX_UPLOAD_SIZE_BYTES, minimum=1024)
 _MAX_RENAME_ATTEMPTS = _env_int("MJR_MAX_RENAME_ATTEMPTS", _DEFAULT_MAX_RENAME_ATTEMPTS, minimum=1)
 _MAX_CONCURRENT_INDEX = _env_int("MJR_MAX_CONCURRENT_INDEX", _DEFAULT_MAX_CONCURRENT_INDEX, minimum=1)
-_INDEX_SEMAPHORE = asyncio.Semaphore(max(1, _MAX_CONCURRENT_INDEX))
+_INDEX_SEMAPHORE: asyncio.Semaphore | None = None
+_INDEX_SEMAPHORE_GUARD = threading.Lock()
+
+
+def _get_index_semaphore() -> asyncio.Semaphore:
+    global _INDEX_SEMAPHORE
+    sem = _INDEX_SEMAPHORE
+    if sem is not None:
+        return sem
+    with _INDEX_SEMAPHORE_GUARD:
+        if _INDEX_SEMAPHORE is None:
+            _INDEX_SEMAPHORE = asyncio.Semaphore(max(1, _MAX_CONCURRENT_INDEX))
+        return _INDEX_SEMAPHORE
 
 
 # ---------------------------------------------------------------------------
@@ -270,7 +283,7 @@ def _cleanup_temp_upload_file(fd: int | None, tmp_path: str | None) -> None:
 def _schedule_index_task(fn) -> None:
     async def _runner():
         try:
-            async with _INDEX_SEMAPHORE:
+            async with _get_index_semaphore():
                 await fn()
         except Exception:
             return

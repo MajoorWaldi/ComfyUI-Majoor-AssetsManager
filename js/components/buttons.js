@@ -12,7 +12,7 @@ export function createIconButton(label, title) {
     btn.title = title || "";
     try {
         btn.setAttribute("aria-label", title || label || "Button");
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     
     // Unified style from toolbar.js
     btn.style.cssText = `
@@ -50,7 +50,7 @@ export function createModeButton(label, mode) {
     try {
         btn.setAttribute("aria-label", label);
         btn.setAttribute("aria-pressed", "false");
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     
     // Unified style from toolbar.js
     btn.style.cssText = `

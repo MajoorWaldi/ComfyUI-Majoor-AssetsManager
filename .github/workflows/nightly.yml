@@ -40,7 +40,7 @@ jobs:
           -x "*.zip"
 
       - name: Update Nightly Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@f43927f8b9f890f7c14835e6ca0844af754a128d
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: nightly

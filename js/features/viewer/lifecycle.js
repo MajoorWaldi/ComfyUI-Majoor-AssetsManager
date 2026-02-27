@@ -6,10 +6,10 @@ export function destroyMediaProcessorsIn(rootEl) {
     if (!rootEl) return;
     try {
         rootEl._mjrSyncAbort?.abort?.();
-    } catch {}
+    } catch (e) { console.debug?.(e); }
     try {
         rootEl._mjrSyncAbort = null;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     // Stop any media elements first (best-effort).
     try {
@@ -18,25 +18,25 @@ export function destroyMediaProcessorsIn(rootEl) {
             for (const el of mediaEls) {
                 try {
                     el.pause?.();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     el?._mjrAudioViz?.destroy?.();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     el._mjrAudioViz = null;
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     el.currentTime = 0;
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     el.removeAttribute?.("src");
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     el.load?.();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     try {
         const canvases = rootEl.querySelectorAll?.(".mjr-viewer-media, .mjr-viewer-audio-viz");
@@ -44,24 +44,24 @@ export function destroyMediaProcessorsIn(rootEl) {
             for (const c of canvases) {
                 try {
                     c?._mjrProc?.destroy?.();
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     c._mjrProc = null;
-                } catch {}
+                } catch (e) { console.debug?.(e); }
                 try {
                     c.width = 0;
                     c.height = 0;
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             }
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 }
 
 export function createViewerLifecycle(overlay) {
     const unsubs = [];
     try {
         overlay._mjrViewerUnsubs = unsubs;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     const lifecycle = {
         unsubs,
@@ -72,13 +72,13 @@ export function createViewerLifecycle(overlay) {
         disposeAll: () => {
             try {
                 lifecycle._observer?.disconnect?.();
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 for (const u of unsubs) safeCall(u);
-            } catch {}
+            } catch (e) { console.debug?.(e); }
             try {
                 unsubs.length = 0;
-            } catch {}
+            } catch (e) { console.debug?.(e); }
         },
     };
 
@@ -90,10 +90,10 @@ export function createViewerLifecycle(overlay) {
                     if (!document.contains(overlay)) {
                         try {
                             obs.disconnect();
-                        } catch {}
+                        } catch (e) { console.debug?.(e); }
                         safeCall(() => lifecycle.disposeAll?.(), "lifecycle:autoDispose");
                     }
-                } catch {}
+                } catch (e) { console.debug?.(e); }
             });
             const targetNode = overlay?.parentElement;
             if (targetNode) {
@@ -103,11 +103,11 @@ export function createViewerLifecycle(overlay) {
             }
             lifecycle._observer = obs;
         }
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     try {
         overlay._mjrViewerLifecycle = lifecycle;
-    } catch {}
+    } catch (e) { console.debug?.(e); }
 
     return lifecycle;
 }
