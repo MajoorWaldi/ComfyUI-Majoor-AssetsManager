@@ -1649,75 +1649,9 @@ export function refreshGrid(gridContainer) {
     } catch {}
 }
 
-// [ISSUE 1] Real-time Refresh Implementation
-// Manages the global scan-complete handlers so we can teardown on panel unload.
-const GRID_SCAN_EVENT_NAMES = ["mjr-scan-complete", "mjr:scan-complete"];
-const GRID_SCAN_REFRESH_DEBOUNCE_MS = Number(APP_CONFIG?.GRID_SCAN_REFRESH_DEBOUNCE_MS) || 300;
-let _gridScanListenersBound = false;
-
-const _onScanComplete = (_e) => {
-    try {
-        if (typeof document === "undefined" || !document.querySelectorAll) return;
-        const grids = document.querySelectorAll(".mjr-grid");
-        for (const grid of grids) {
-            try {
-                if (!grid?.isConnected) continue;
-
-                const state = GRID_STATE.get(grid);
-                if (!state) continue;
-
-                if (grid._mjrRefreshTimer) clearTimeout(grid._mjrRefreshTimer);
-
-                grid._mjrRefreshTimer = setTimeout(() => {
-                    grid._mjrRefreshTimer = null;
-                    if (!grid.isConnected) return;
-                    loadAssets(grid, state.query, { reset: true });
-                }, GRID_SCAN_REFRESH_DEBOUNCE_MS);
-            } catch (err) {
-                console.warn("[Majoor] Auto-refresh error:", err);
-            }
-        }
-    } catch {
-        // swallow to avoid leaking errors into the global listener
-    }
-};
-
-const _attachGridScanListeners = () => {
-    if (_gridScanListenersBound) return;
-    if (typeof window === "undefined") return;
-
-    try {
-        for (const name of GRID_SCAN_EVENT_NAMES) {
-            window.addEventListener(name, _onScanComplete);
-        }
-        _gridScanListenersBound = true;
-    } catch (err) {
-        console.warn("Failed to register global scan listener:", err);
-    }
-};
-
-const _detachGridScanListeners = () => {
-    if (!_gridScanListenersBound) return;
-    if (typeof window === "undefined") {
-        _gridScanListenersBound = false;
-        return;
-    }
-
-    try {
-        for (const name of GRID_SCAN_EVENT_NAMES) {
-            window.removeEventListener(name, _onScanComplete);
-        }
-    } catch (err) {
-        console.warn("Failed to unregister global scan listener:", err);
-    } finally {
-        _gridScanListenersBound = false;
-    }
-};
-
-export function bindGridScanListeners() {
-    _attachGridScanListeners();
-}
-
-export function disposeGridScanListeners() {
-    _detachGridScanListeners();
-}
+// Scan-complete auto-refresh removed: the panel's handleCountersUpdate (path B)
+// is the sole auto-reload trigger for both watcher and manual scans.
+// Manual scans also emit mjr:reload-grid via StatusDot → requestQueuedReload.
+// Having a third path here (direct loadAssets bypass) caused duplicate reloads.
+export function bindGridScanListeners() {}
+export function disposeGridScanListeners() {}

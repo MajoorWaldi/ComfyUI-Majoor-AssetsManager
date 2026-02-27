@@ -8,6 +8,18 @@ import { getComfyApp } from "./comfyApiBridge.js";
 import { t } from "./i18n.js";
 
 const TOAST_CONTAINER_ID = "mjr-toast-container";
+// Group name used for error toasts in PrimeVue-based ComfyUI toast (enables removeGroup on success).
+const MJR_ERROR_TOAST_GROUP = "mjr-errors";
+// Tracks dismiss functions for active fallback DOM error toasts.
+const _fallbackErrorToastDismissers = new Set();
+
+function _dismissAllFallbackErrorToasts() {
+    const toRemove = Array.from(_fallbackErrorToastDismissers);
+    _fallbackErrorToastDismissers.clear();
+    for (const fn of toRemove) {
+        try { fn(); } catch {}
+    }
+}
 
 function translateToastMessage(message) {
     if (typeof message !== "string") return message;
@@ -112,8 +124,15 @@ function getToastContainer() {
  */
 export function comfyToast(message, type = "info", duration = 5000) {
     message = translateToastMessage(message);
-    const persistent = !(Number.isFinite(Number(duration)) && Number(duration) > 0);
+    // Errors always require manual dismissal regardless of the duration argument.
+    const persistent = type === "error" || !(Number.isFinite(Number(duration)) && Number(duration) > 0);
     const app = getComfyApp();
+
+    // On success: dismiss any open error toasts (fallback DOM path).
+    if (type === "success") {
+        _dismissAllFallbackErrorToasts();
+    }
+
     // 1. Try ComfyUI extensionManager toast (ComfyUI v1.3+ standard)
     // See: ComfyUI-Majoor-NodeFlow reference implementation
     try {
@@ -121,11 +140,16 @@ export function comfyToast(message, type = "info", duration = 5000) {
         if (toastApi && typeof toastApi.add === "function") {
             let severity = type;
             if (severity === "warning") severity = "warn"; // Map warning -> warn
-            
+
+            // On success: remove grouped error toasts (PrimeVue removeGroup).
+            if (type === "success") {
+                try { toastApi.removeGroup?.(MJR_ERROR_TOAST_GROUP); } catch {}
+            }
+
             // Allow passing an object { summary, detail } as message
             let summary = t("manager.title");
             let detail = message;
-            
+
             if (typeof message === "object" && message?.summary) {
                 summary = message.summary;
                 detail = message.detail || "";
@@ -135,6 +159,8 @@ export function comfyToast(message, type = "info", duration = 5000) {
 
             const payload = { severity, summary, detail };
             if (!persistent) payload.life = duration;
+            // Group error toasts so they can be mass-removed when a success arrives.
+            if (type === "error") payload.group = MJR_ERROR_TOAST_GROUP;
             toastApi.add(payload);
             return;
         }
@@ -169,7 +195,7 @@ export function comfyToast(message, type = "info", duration = 5000) {
             break;
         case "error":
             icon = "";
-            duration = duration < 7000 ? 8000 : duration;
+            // duration boost removed: error toasts are persistent (no auto-dismiss)
             break;
         case "warning":
             icon = "";
@@ -188,18 +214,8 @@ export function comfyToast(message, type = "info", duration = 5000) {
     const textSpan = document.createElement("span");
     textSpan.className = "mjr-toast-text";
     textSpan.textContent = (icon ? icon + " " : "") + message;
-    
+
     el.appendChild(textSpan);
-    
-    // Click to dismiss
-    el.onclick = () => removeToast(el);
-
-    container.appendChild(el);
-
-    // Animate In
-    requestAnimationFrame(() => {
-        el.classList.add("is-visible");
-    });
 
     // Auto Remove
     const timer = persistent ? null : setTimeout(() => {
@@ -211,9 +227,27 @@ export function comfyToast(message, type = "info", duration = 5000) {
         if (!element.parentNode) return;
         element.classList.remove("is-visible");
         element.onclick = null;
+        _fallbackErrorToastDismissers.delete(dismissThis);
         if (timer) clearTimeout(timer);
         setTimeout(() => {
             if (element.parentNode) element.parentNode.removeChild(element);
         }, 300);
     }
+
+    const dismissThis = () => removeToast(el);
+
+    // Click to dismiss
+    el.onclick = dismissThis;
+
+    // Track error toasts for success-triggered auto-dismissal.
+    if (type === "error") {
+        _fallbackErrorToastDismissers.add(dismissThis);
+    }
+
+    container.appendChild(el);
+
+    // Animate In
+    requestAnimationFrame(() => {
+        el.classList.add("is-visible");
+    });
 }

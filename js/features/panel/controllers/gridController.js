@@ -91,7 +91,9 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
         } catch {}
     };
 
-    const reloadGrid = async () => {
+    let _debounceTimer = null;
+
+    const _doReload = async () => {
         _pendingReload = true;
         if (_isReloading) return;
         _isReloading = true;
@@ -114,6 +116,19 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
         } finally {
             _isReloading = false;
         }
+    };
+
+    // Input debounce: batches rapid reloadGrid() calls (e.g., scope switch +
+    // watcher event arriving simultaneously) into a single _doReload execution.
+    // The inner coalescing loop still handles calls that arrive mid-reload.
+    const reloadGrid = () => {
+        return new Promise((resolve) => {
+            if (_debounceTimer) clearTimeout(_debounceTimer);
+            _debounceTimer = setTimeout(() => {
+                _debounceTimer = null;
+                _doReload().then(resolve).catch(resolve);
+            }, 150);
+        });
     };
 
     return { reloadGrid };

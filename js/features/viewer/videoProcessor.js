@@ -384,6 +384,22 @@ export function createVideoProcessor({
 
     const startFrameLoop = () => {
         if (proc._destroyed) return;
+        // Cancel any previously-registered frame loops before starting new ones.
+        // Without this, every pause→play cycle (including seeks that temporarily
+        // pause the video) accumulates an extra rVFC/RAF callback.  After N cycles
+        // N callbacks fire every frame, each enqueuing a redundant scheduleRender().
+        try {
+            if (proc._rvfc != null && typeof videoEl?.cancelVideoFrameCallback === "function") {
+                videoEl.cancelVideoFrameCallback(proc._rvfc);
+                proc._rvfc = null;
+            }
+        } catch {}
+        try {
+            if (proc._rafIdLoop != null) {
+                cancelAnimationFrame(proc._rafIdLoop);
+                proc._rafIdLoop = null;
+            }
+        } catch {}
         try {
             if (typeof videoEl?.requestVideoFrameCallback === "function") {
                 const cb = () => {

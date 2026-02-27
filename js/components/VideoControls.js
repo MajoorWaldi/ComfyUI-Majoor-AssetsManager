@@ -1326,7 +1326,22 @@ export function mountVideoControls(video, opts = {}) {
             try {
                 const fps = Number(info?.fps);
                 if (Number.isFinite(fps) && fps > 0) {
-                    state.fps = Math.max(1, Math.floor(fps));
+                    const newFps = Math.max(1, Math.floor(fps));
+                    // If FPS changes and the out-point was set to the video's full extent
+                    // (auto-initialized by loadedmetadata), reset it so normalizeRange()
+                    // recalculates the correct frame count for the new FPS.
+                    if (newFps !== state.fps) {
+                        try {
+                            const d = Number(video?.duration);
+                            if (Number.isFinite(d) && d > 0) {
+                                const oldMax = Math.max(0, Math.floor(d * state.fps));
+                                if (oldMax > 0 && state.outFrame != null && state.outFrame >= oldMax - 1) {
+                                    state.outFrame = null;
+                                }
+                            }
+                        } catch {}
+                    }
+                    state.fps = newFps;
                     try {
                         if (!fpsInput?.matches?.(":focus")) fpsInput.value = String(state.fps);
                     } catch {}

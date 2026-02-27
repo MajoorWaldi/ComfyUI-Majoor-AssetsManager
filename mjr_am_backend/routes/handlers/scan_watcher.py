@@ -46,6 +46,16 @@ def _watcher_scope_config(svc: dict[str, Any]) -> tuple[str, str | None]:
 
 
 async def _delay_for_recent_generated_marker() -> None:
+    # Skip the delay when there are no recently-generated entries to filter out.
+    # The 200ms window exists so ComfyUI's own "executed" indexing path can mark
+    # a file before the watcher callback processes it.  If the cache is empty no
+    # ComfyUI generation is in-flight, so the delay is unnecessary.
+    try:
+        from mjr_am_backend.features.index.watcher import _RECENT_GENERATED
+        if not _RECENT_GENERATED:
+            return
+    except Exception:
+        pass
     try:
         await asyncio.sleep(0.2)
     except Exception:
