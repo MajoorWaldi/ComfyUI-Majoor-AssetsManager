@@ -1243,7 +1243,11 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             lastKnownIndexEnd = counters.last_index_end;
             return;
         }
-        if (!hasNewScan && !hasNewIndexEnd && !hasNewTotal) return;
+        // hasNewIndexEnd alone does NOT trigger a full reload: the backend pushes
+        // mjr-asset-added immediately after index_paths, which handles it via upsert.
+        // A full reload would flash the loading overlay over already-visible assets.
+        if (hasNewIndexEnd) lastKnownIndexEnd = counters.last_index_end;
+        if (!hasNewScan && !hasNewTotal) return;
 
         // Global throttle against reload storms from frequent watcher/enrichment updates.
         try {
