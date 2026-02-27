@@ -55,13 +55,13 @@ export function createModeButton(label, mode) {
     // Unified style from toolbar.js
     btn.style.cssText = `
         padding: 4px 12px;
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        color: white;
+        background: linear-gradient(180deg, rgba(206, 211, 218, 0.1), rgba(206, 211, 218, 0.03));
+        border: 0.8px solid rgba(196, 202, 210, 0.3);
+        color: rgba(230, 233, 238, 0.95);
         border-radius: 4px;
         cursor: pointer;
         font-size: 12px;
-        transition: all 0.2s;
+        transition: all 0.16s;
     `;
 
     return btn;

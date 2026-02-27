@@ -573,11 +573,13 @@ function createViewer() {
     `;
 
     const prevBtn = createIconButton("<", "Previous (Left Arrow)");
+    prevBtn.classList.add("mjr-viewer-nav-btn", "mjr-viewer-nav-btn--prev");
     prevBtn.style.fontSize = "24px";
     const indexInfo = document.createElement("span");
     indexInfo.className = "mjr-viewer-index";
     indexInfo.style.cssText = "font-size: 14px;";
     const nextBtn = createIconButton(">", "Next (Right Arrow)");
+    nextBtn.classList.add("mjr-viewer-nav-btn", "mjr-viewer-nav-btn--next");
     nextBtn.style.fontSize = "24px";
 
     const navBar = document.createElement("div");
@@ -601,7 +603,7 @@ function createViewer() {
         buildAssetViewURL,
         onNavigate: (idx) => {
             try {
-                // Plain click exits filmstrip-compare AB mode before navigating
+                // Plain click exits filmstrip compare mode before navigating
                 if (state.compareAsset != null) {
                     state.compareAsset = null;
                     state.mode = VIEWER_MODES.SINGLE;
@@ -624,8 +626,14 @@ function createViewer() {
                     updateUI();
                     return;
                 }
+                const preferSideBySide =
+                    state.mode === VIEWER_MODES.SIDE_BY_SIDE ||
+                    state.mode === VIEWER_MODES.SINGLE;
                 state.compareAsset = chosen;
-                state.mode = VIEWER_MODES.AB_COMPARE;
+                state.mode =
+                    preferSideBySide && canSide()
+                        ? VIEWER_MODES.SIDE_BY_SIDE
+                        : VIEWER_MODES.AB_COMPARE;
                 updateUI();
             } catch {}
         },
@@ -956,15 +964,15 @@ function createViewer() {
     };
 
     const renderGenInfoPanel = async () => {
-        const canAB = state.assets.length === 2;
-        const canSide = state.assets.length === 2;
+        const canABMode = canAB();
+        const canSideMode = canSide();
         const mode = state.mode;
         const open = Boolean(state?.genInfoOpen) && !state?.distractionFree;
 
         // Determine if we should show split panels
         const isDual = open && (
-            (mode === VIEWER_MODES.AB_COMPARE && canAB) ||
-            (mode === VIEWER_MODES.SIDE_BY_SIDE && canSide)
+            (mode === VIEWER_MODES.AB_COMPARE && canABMode) ||
+            (mode === VIEWER_MODES.SIDE_BY_SIDE && canSideMode)
         );
 
         try {
@@ -1092,9 +1100,14 @@ function createViewer() {
             if (isDual) {
                 // Determine A and B
                 if (mode === VIEWER_MODES.SIDE_BY_SIDE) {
-                    // Fixed order for two-up side-by-side mode.
-                    assetLeft = state.assets[0];
-                    assetRight = state.assets[1];
+                    // Side-by-side can be fixed-order (2-up set) or filmstrip compare (A=current, B=chosen).
+                    if (state?.compareAsset) {
+                        assetLeft = current;
+                        assetRight = state.compareAsset;
+                    } else {
+                        assetLeft = state.assets[0];
+                        assetRight = state.assets[1];
+                    }
                 } else {
                     // AB_COMPARE: Swappable roles (Current vs Other)
                     assetLeft = current;
@@ -1256,12 +1269,20 @@ function createViewer() {
 
         // A/B and Side-by-side: when we have a right badge bar, split per side to keep the header readable.
         if ((isAB || isSide) && badgesBarRight) {
-            const a0 = state.assets?.[0] || null;
-            const a1 = isAB
-                ? state.assets?.[1] || null
-                : state.assets?.[Math.max(0, (state.assets?.length || 1) - 1)] || null;
-            const leftPill = makePill(a0, { showName: false });
-            const rightPill = makePill(a1, { showName: false });
+            const current = state.assets?.[state.currentIndex] || null;
+            const sideUsesCompare = isSide && state.compareAsset != null;
+            const leftAsset = isAB
+                ? (state.compareAsset != null ? current : state.assets?.[0] || null)
+                : sideUsesCompare
+                    ? current
+                    : state.assets?.[0] || null;
+            const rightAsset = isAB
+                ? (state.compareAsset != null ? state.compareAsset : state.assets?.[1] || null)
+                : sideUsesCompare
+                    ? state.compareAsset
+                    : state.assets?.[Math.max(0, (state.assets?.length || 1) - 1)] || null;
+            const leftPill = makePill(leftAsset, { showName: false });
+            const rightPill = makePill(rightAsset, { showName: false });
             try {
                 if (leftPill) badgesBar.appendChild(leftPill);
             } catch {}
@@ -1292,7 +1313,7 @@ function createViewer() {
 
     function canSide() {
         const n = state.assets.length;
-        return n >= 2 && n <= 4;
+        return (n >= 2 && n <= 4) || (n >= 1 && state.compareAsset != null);
     }
 
     function applyDistractionFreeUI() {
@@ -1324,9 +1345,13 @@ function createViewer() {
         state.panY = 0;
         state.targetZoom = 1;
 
-        // Clear filmstrip compare asset when leaving AB_COMPARE mode
+        // Clear filmstrip compare asset when leaving compare modes
         try {
-            if (state.mode !== VIEWER_MODES.AB_COMPARE && state.compareAsset != null) {
+            if (
+                state.mode !== VIEWER_MODES.AB_COMPARE &&
+                state.mode !== VIEWER_MODES.SIDE_BY_SIDE &&
+                state.compareAsset != null
+            ) {
                 state.compareAsset = null;
             }
         } catch {}
@@ -1338,14 +1363,21 @@ function createViewer() {
         // In filmstrip-compare AB mode, A = current navigated asset, B = compareAsset.
         // In traditional AB mode (exactly 2 assets), A = assets[0], B = assets[1].
         const isFilmCompareAB = isAB && state.compareAsset != null;
-        const leftAsset = isAB || isSide
+        const isFilmCompareSide = isSide && state.compareAsset != null;
+        const leftAsset = isAB
             ? (isFilmCompareAB ? current : state.assets?.[0]) || null
-            : current || null;
+            : isSide
+                ? (isFilmCompareSide ? current : state.assets?.[0]) || null
+                : current || null;
         const rightAsset = isAB
             ? (isFilmCompareAB ? state.compareAsset : state.assets?.[1]) || null
-            : isSide && Array.isArray(state.assets) && state.assets.length >= 2
-              ? state.assets[state.assets.length - 1]
-              : null;
+            : isSide
+                ? (isFilmCompareSide
+                    ? state.compareAsset
+                    : Array.isArray(state.assets) && state.assets.length >= 2
+                        ? state.assets[state.assets.length - 1]
+                        : null)
+                : null;
         try {
             filename.textContent = leftAsset?.filename || "";
         } catch {}
@@ -1362,7 +1394,7 @@ function createViewer() {
         if (state.mode === VIEWER_MODES.AB_COMPARE && canAB()) {
             indexInfo.textContent = "2 selected";
         } else if (state.mode === VIEWER_MODES.SIDE_BY_SIDE && canSide()) {
-            indexInfo.textContent = `${state.assets.length} selected`;
+            indexInfo.textContent = state.compareAsset != null ? "2 selected" : `${state.assets.length} selected`;
         } else {
             indexInfo.textContent = `${state.currentIndex + 1} / ${state.assets.length}`;
         }
