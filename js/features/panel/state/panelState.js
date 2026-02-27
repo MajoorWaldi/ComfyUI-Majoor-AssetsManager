@@ -117,6 +117,7 @@ export function createPanelState() {
         // Sidebar open state for restoring across panel close/reopen.
         sidebarOpen: saved.sidebarOpen || false
     };
+    let proxy = null;
     
     let debounceTimer = null;
     const debouncedSave = (targetState) => {
@@ -133,7 +134,10 @@ export function createPanelState() {
         if (!event.newValue) return;
         try {
             const updated = sanitizePanelState(JSON.parse(event.newValue));
-            Object.assign(state, updated || {});
+            const target = proxy || state;
+            for (const [k, v] of Object.entries(updated || {})) {
+                target[k] = v;
+            }
         } catch {}
     };
     try {
@@ -150,7 +154,7 @@ export function createPanelState() {
         } catch {}
     };
 
-    const proxy = new Proxy(state, {
+    proxy = new Proxy(state, {
         set(target, prop, value) {
             target[prop] = value;
             debouncedSave(target);

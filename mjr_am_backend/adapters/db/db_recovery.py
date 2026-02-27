@@ -2,6 +2,7 @@
 Database recovery and diagnostics helpers extracted from sqlite.py.
 """
 import os
+import re
 import sqlite3
 import time
 from pathlib import Path
@@ -10,6 +11,21 @@ from typing import Any
 from ...shared import get_logger
 
 logger = get_logger(__name__)
+_SAFE_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _is_safe_identifier(value: str) -> bool:
+    try:
+        return bool(_SAFE_IDENTIFIER_RE.match(str(value or "")))
+    except Exception:
+        return False
+
+
+def _quoted_identifier(value: str) -> str:
+    if not _is_safe_identifier(value):
+        raise ValueError(f"Invalid identifier: {value!r}")
+    safe = str(value).replace('"', '""')
+    return f'"{safe}"'
 
 
 def is_locked_error(exc: Exception) -> bool:
@@ -21,8 +37,7 @@ def is_locked_error(exc: Exception) -> bool:
         "database is locked" in msg
         or "database table is locked" in msg
         or "database schema is locked" in msg
-        or "busy" in msg
-        or "locked" in msg
+        or "sqlite_busy" in msg
     )
 
 
@@ -121,7 +136,12 @@ def populate_table_columns(
     known_columns: set[str],
 ) -> None:
     try:
-        cursor.execute(f"PRAGMA table_info({table})")
+        table_ident = _quoted_identifier(table)
+    except ValueError:
+        logger.warning("Refusing unsafe table identifier in schema refresh: %r", table)
+        return
+    try:
+        cursor.execute(f"PRAGMA table_info({table_ident})")
         for row in cursor.fetchall() or []:
             col = extract_schema_column_name(row)
             if not col:
@@ -129,8 +149,8 @@ def populate_table_columns(
             known_columns.add(col)
             if alias:
                 known_columns.add(f"{alias}.{col}")
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("Failed to inspect table columns for %s: %s", table, exc)
 
 
 def populate_known_columns_from_schema(

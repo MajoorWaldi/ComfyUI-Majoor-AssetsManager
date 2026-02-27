@@ -4,6 +4,8 @@ import pytest
 
 from mjr_am_backend.routes.core import security as sec
 
+TEST_TOKEN = "unit-test-token"
+
 
 class _DummyTransport:
     def __init__(self, peername):
@@ -32,14 +34,17 @@ def test_env_truthy_and_token_extractors(monkeypatch) -> None:
 
     assert sec._extract_bearer_token({"Authorization": "Bearer abc"}) == "abc"
     assert sec._extract_write_token_from_headers({"X-MJR-Token": "x"}) == "x"
+    assert sec._extract_write_token_from_headers({"Cookie": "mjr_write_token=cookie-token"}) == "cookie-token"
 
 
 def test_hash_and_write_token_hash(monkeypatch) -> None:
-    monkeypatch.setenv("MAJOOR_API_TOKEN", "secret")
+    monkeypatch.setenv("MAJOOR_API_TOKEN", TEST_TOKEN)
     monkeypatch.delenv("MAJOOR_API_TOKEN_HASH", raising=False)
+    monkeypatch.delenv("MJR_API_TOKEN_HASH", raising=False)
+    monkeypatch.delenv("MAJOOR_API_TOKEN_PEPPER", raising=False)
     h = sec._get_write_token_hash()
     assert h
-    assert h == sec._hash_token("secret")
+    assert h == sec._hash_token(TEST_TOKEN)
 
     monkeypatch.setenv("MAJOOR_API_TOKEN_HASH", "deadbeef")
     assert sec._get_write_token_hash() == "deadbeef"
@@ -139,6 +144,28 @@ def test_client_identifier_and_rate_limit(monkeypatch) -> None:
     allowed, retry = sec._check_rate_limit(req, "ep", max_requests=2, window_seconds=60)
     assert not allowed
     assert isinstance(retry, int)
+
+
+def test_check_write_access_uses_constant_time_compare(monkeypatch) -> None:
+    import hmac
+
+    token = TEST_TOKEN
+    token_hash = sec._hash_token(token)
+    monkeypatch.setenv("MAJOOR_API_TOKEN_HASH", token_hash)
+    monkeypatch.delenv("MAJOOR_API_TOKEN", raising=False)
+
+    calls = {"count": 0}
+    real_compare = hmac.compare_digest
+
+    def _compare(a, b):
+        calls["count"] += 1
+        return real_compare(a, b)
+
+    monkeypatch.setattr(hmac, "compare_digest", _compare)
+
+    out = sec._check_write_access(peer_ip="127.0.0.1", headers={"X-MJR-Token": token})
+    assert out.ok
+    assert calls["count"] >= 1
 
 
 def test_csrf_and_origin_checks(monkeypatch) -> None:

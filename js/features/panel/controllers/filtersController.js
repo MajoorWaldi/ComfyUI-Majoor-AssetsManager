@@ -1,5 +1,3 @@
-let _lastAgendaHandler = null;
-
 const parseLooseNumber = (value) => {
     const raw = String(value ?? "").trim();
     if (!raw) return 0;
@@ -38,7 +36,6 @@ export function bindFilters({
                 return;
             }
         }
-        if (lifecycleSignal) return;
         disposers.push(() => {
             try {
                 target.removeEventListener(event, handler, options);
@@ -49,14 +46,6 @@ export function bindFilters({
             }
         });
     };
-
-    // Cleanup previous window listener to prevent accumulation
-    if (_lastAgendaHandler) {
-        try {
-            window.removeEventListener("MJR:AgendaStatus", _lastAgendaHandler);
-        } catch {}
-        _lastAgendaHandler = null;
-    }
 
     addManagedListener(kindSelect, "change", async () => {
         state.kindFilter = kindSelect.value || "";
@@ -209,18 +198,11 @@ export function bindFilters({
         try {
             const opts = lifecycleSignal ? { passive: true, signal: lifecycleSignal } : { passive: true };
             window?.addEventListener?.("MJR:AgendaStatus", handleAgendaStatus, opts);
-            _lastAgendaHandler = handleAgendaStatus;
-            if (!lifecycleSignal) {
-                disposers.push(() => {
-                    try {
-                        window.removeEventListener("MJR:AgendaStatus", handleAgendaStatus);
-                    } catch {}
-                });
-            } else {
-                lifecycleSignal.addEventListener("abort", () => {
-                    if (_lastAgendaHandler === handleAgendaStatus) _lastAgendaHandler = null;
-                }, { once: true });
-            }
+            disposers.push(() => {
+                try {
+                    window.removeEventListener("MJR:AgendaStatus", handleAgendaStatus);
+                } catch {}
+            });
         } catch {}
     }
 
@@ -229,12 +211,6 @@ export function bindFilters({
             try {
                 dispose();
             } catch {}
-        }
-        if (_lastAgendaHandler) {
-            try {
-                window.removeEventListener("MJR:AgendaStatus", _lastAgendaHandler);
-            } catch {}
-            _lastAgendaHandler = null;
         }
     };
 }

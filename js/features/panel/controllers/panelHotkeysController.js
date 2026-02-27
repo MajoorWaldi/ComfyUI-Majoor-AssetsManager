@@ -1,17 +1,12 @@
-// Lazily initialize shared hotkeys state to avoid module-load side effects.
-function ensureHotkeysState() {
-    const root = typeof globalThis !== "undefined" ? globalThis : null;
-    if (!root) return null;
-    if (!root._mjrHotkeysState || typeof root._mjrHotkeysState !== "object") {
-        root._mjrHotkeysState = { suspended: false };
-    }
-    return root._mjrHotkeysState;
-}
+import {
+    getHotkeysState,
+    isHotkeysSuspended,
+    setHotkeysScope,
+    setHotkeysSuspendedFlag,
+} from "./hotkeysState.js";
 
 export function setHotkeysSuspended(suspended) {
-    const state = ensureHotkeysState();
-    if (!state) return;
-    state.suspended = Boolean(suspended);
+    setHotkeysSuspendedFlag(suspended);
 }
 
 export function createPanelHotkeysController({
@@ -22,7 +17,6 @@ export function createPanelHotkeysController({
     onClearSearch,
     allowListKeys,
 } = {}) {
-    ensureHotkeysState();
     let panelFocused = false;
     let panelHovered = false;
     let boundEl = null;
@@ -62,10 +56,10 @@ export function createPanelHotkeysController({
         },
         keydown: (event) => {
             // Check if hotkeys are suspended (e.g. when dialogs/popovers are open)
-            if (window._mjrHotkeysState?.suspended) return;
+            if (isHotkeysSuspended()) return;
 
             // Check if viewer has hotkey priority
-            if (window._mjrHotkeysState?.scope === "viewer") return;
+            if (getHotkeysState().scope === "viewer") return;
 
             // Check if panel is active before processing hotkeys
             // This ensures hotkeys only work when the panel is hovered or focused
@@ -151,6 +145,7 @@ export function createPanelHotkeysController({
         try {
             window.addEventListener("keydown", handlers.keydown, { capture: true });
         } catch {}
+        setHotkeysScope("panel");
     };
 
     const dispose = () => {
@@ -166,6 +161,9 @@ export function createPanelHotkeysController({
         try {
             window.removeEventListener("keydown", handlers.keydown, { capture: true });
         } catch {}
+        if (getHotkeysState().scope === "panel") {
+            setHotkeysScope(null);
+        }
         boundEl = null;
     };
 

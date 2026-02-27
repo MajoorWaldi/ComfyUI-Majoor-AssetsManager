@@ -275,9 +275,11 @@ export function createContextController({
         }
     };
     if (extraActions && typeof extraActions === "object") {
-        try {
-            Object.assign(actions, extraActions);
-        } catch {}
+        const blocked = new Set(["__proto__", "constructor", "prototype"]);
+        for (const [key, value] of Object.entries(extraActions)) {
+            if (blocked.has(String(key))) continue;
+            actions[key] = value;
+        }
     }
 
     const update = () => {

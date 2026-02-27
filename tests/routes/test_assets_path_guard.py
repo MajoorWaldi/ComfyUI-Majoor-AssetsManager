@@ -57,3 +57,15 @@ def test_resolve_download_path_and_build_response(monkeypatch, tmp_path: Path):
 
     resp = g.build_download_response(f, preview=True)
     assert resp.headers.get("X-Content-Type-Options") == "nosniff"
+
+
+def test_resolve_download_path_rejects_when_final_open_detects_symlink_swap(monkeypatch, tmp_path: Path):
+    f = tmp_path / "a.png"
+    f.write_bytes(b"x")
+
+    monkeypatch.setattr(g, "_normalize_path", lambda _fp: f)
+    monkeypatch.setattr(g, "is_resolved_path_allowed", lambda _p: True)
+    monkeypatch.setattr(g, "_validate_no_symlink_open", lambda _p: False)
+
+    out = g.resolve_download_path(str(f))
+    assert getattr(out, "status", None) == 403

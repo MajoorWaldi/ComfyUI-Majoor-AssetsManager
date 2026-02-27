@@ -24,6 +24,7 @@ from ..core import (
     _require_write_access,
 )
 from .scan_helpers import (
+    _MAX_UPLOAD_SIZE,
     _read_upload_file_field,
     _schedule_index_task,
     _upload_skip_index,
@@ -84,6 +85,14 @@ def register_upload_routes(routes: web.RouteTableDef, *, deps: dict | None = Non
         auth = _require_write_access_(request)
         if not auth.ok:
             return _json_response(auth)
+        try:
+            content_length = int(request.content_length or 0)
+        except Exception:
+            content_length = 0
+        if content_length > int(_MAX_UPLOAD_SIZE):
+            return _json_response(
+                Result.Err("FILE_TOO_LARGE", f"Upload exceeds {_MAX_UPLOAD_SIZE} bytes")
+            )
 
         try:
             field, filename, upload_err = await _read_upload_file_field(request)

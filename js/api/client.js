@@ -41,6 +41,7 @@ let _authTokenCache = { value: "", at: 0 };
 const TAGS_CACHE_TTL_MS = 30_000;
 const DEFAULT_TAGS_CACHE_TTL_MS = TAGS_CACHE_TTL_MS;
 const CLIENT_GLOBAL_KEY = "__MJR_API_CLIENT__";
+const RUNTIME_TOKEN_KEY = "__mjr_write_token";
 const SETTINGS_FAST_CACHE_TTL_MS = 2000;
 const MAX_BATCH_ASSET_IDS = 200;
 const WRITE_METHODS = new Set(["POST", "PUT", "DELETE", "PATCH"]);
@@ -108,10 +109,34 @@ function _readAuthToken() {
     if (elapsed >= 0 && elapsed < AUTH_TOKEN_CACHE_TTL_MS) {
         return _authTokenCache.value;
     }
+
+    try {
+        const sessionToken = String(sessionStorage?.getItem?.(RUNTIME_TOKEN_KEY) || "").trim();
+        if (sessionToken) {
+            _authTokenCache = { value: sessionToken, at: now };
+            return sessionToken;
+        }
+    } catch {}
+
     try {
         const raw = localStorage?.getItem?.(SETTINGS_KEY);
         const parsed = raw ? JSON.parse(raw) : null;
-        const token = String(parsed?.security?.apiToken || "").trim();
+        const payload = parsed?.data && typeof parsed.data === "object" ? parsed.data : parsed;
+        const token = String(payload?.security?.apiToken || "").trim();
+        if (token) {
+            try {
+                sessionStorage?.setItem?.(RUNTIME_TOKEN_KEY, token);
+            } catch {}
+            try {
+                const mutable = parsed && typeof parsed === "object" ? parsed : {};
+                const target = mutable?.data && typeof mutable.data === "object" ? mutable.data : mutable;
+                if (target?.security && typeof target.security === "object") {
+                    target.security.apiToken = "";
+                    localStorage?.setItem?.(SETTINGS_KEY, JSON.stringify(mutable));
+                    window?.dispatchEvent?.(new CustomEvent("mjr-settings-changed", { detail: { key: "security.apiToken" } }));
+                }
+            } catch {}
+        }
         _authTokenCache = { value: token, at: now };
         return token;
     } catch {
@@ -124,17 +149,18 @@ function _persistAuthToken(token) {
     const normalized = String(token || "").trim();
     if (!normalized) return false;
     try {
-        const raw = localStorage?.getItem?.(SETTINGS_KEY);
-        const parsed = raw ? JSON.parse(raw) : {};
-        const next = parsed && typeof parsed === "object" ? parsed : {};
-        next.security = next.security && typeof next.security === "object" ? next.security : {};
-        if (String(next.security.apiToken || "").trim() === normalized) {
-            _authTokenCache = { value: normalized, at: Date.now() };
-            return true;
-        }
-        next.security.apiToken = normalized;
-        localStorage?.setItem?.(SETTINGS_KEY, JSON.stringify(next));
+        sessionStorage?.setItem?.(RUNTIME_TOKEN_KEY, normalized);
         _authTokenCache = { value: normalized, at: Date.now() };
+        try {
+            const raw = localStorage?.getItem?.(SETTINGS_KEY);
+            const parsed = raw ? JSON.parse(raw) : {};
+            const next = parsed && typeof parsed === "object" ? parsed : {};
+            const target = next?.data && typeof next.data === "object" ? next.data : next;
+            if (target?.security && typeof target.security === "object" && String(target.security.apiToken || "").trim()) {
+                target.security.apiToken = "";
+                localStorage?.setItem?.(SETTINGS_KEY, JSON.stringify(next));
+            }
+        } catch {}
         try {
             window?.dispatchEvent?.(new CustomEvent("mjr-settings-changed", { detail: { key: "security.apiToken" } }));
         } catch {}
@@ -159,7 +185,8 @@ async function _refreshAuthTokenFromServer() {
         const payload = await response.json().catch(() => null);
         if (!payload || typeof payload !== "object" || !payload.ok) return false;
         const token = String(payload?.data?.token || "").trim();
-        return _persistAuthToken(token);
+        if (token) return _persistAuthToken(token);
+        return true;
     } catch {
         return false;
     }

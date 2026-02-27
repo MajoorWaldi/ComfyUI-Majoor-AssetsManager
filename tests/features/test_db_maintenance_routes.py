@@ -282,6 +282,9 @@ async def test_db_backup_restore_success(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
     monkeypatch.setattr(m, "_require_services", _require_services)
     monkeypatch.setattr(m, "get_runtime_output_root", lambda: str(tmp_path))
+    async def _read_json(_request):
+        return Result.Ok({"use_latest": True})
+    monkeypatch.setattr(m, "_read_json", _read_json)
 
     def _create_task(coro):
         try:
@@ -294,11 +297,6 @@ async def test_db_backup_restore_success(monkeypatch, tmp_path: Path):
 
     app = _app()
     req = make_mocked_request("POST", "/mjr/am/db/backup-restore", app=app)
-
-    async def _json():
-        return {"use_latest": True}
-
-    req.json = _json
     match = await app.router.resolve(req)
     resp = await match.handler(req)
     payload = json.loads(resp.text)

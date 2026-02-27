@@ -13,7 +13,10 @@ let _extensionMetadataPromise = null;
 function getExtensionMetadata() {
     if (!_extensionMetadataPromise) {
         // Keep API shape but avoid requesting a manifest file that may not exist.
-        _extensionMetadataPromise = Promise.resolve({});
+        _extensionMetadataPromise = Promise.resolve({}).catch((err) => {
+            _extensionMetadataPromise = null;
+            throw err;
+        });
     }
     return _extensionMetadataPromise;
 }
@@ -26,7 +29,9 @@ function applyExtensionMetadata(badge, isNightly) {
                 badge.textContent = `v${version}`;
             }
         }
-    }).catch(() => {});
+    }).catch(() => {
+        _extensionMetadataPromise = null;
+    });
 }
 
 async function hydrateBackendVersionBadge(badge, isNightly) {
@@ -177,6 +182,14 @@ export function createHeaderView() {
         applyDotState(getStoredVersionUpdateState());
     } catch {}
     let versionUpdateListener = null;
+    const dispose = () => {
+        try {
+            if (versionUpdateListener && typeof window !== "undefined") {
+                window.removeEventListener(VERSION_UPDATE_EVENT, versionUpdateListener);
+            }
+        } catch {}
+        versionUpdateListener = null;
+    };
     if (typeof window !== "undefined") {
         versionUpdateListener = (event) => {
             try {
@@ -185,13 +198,7 @@ export function createHeaderView() {
         };
         window.addEventListener(VERSION_UPDATE_EVENT, versionUpdateListener);
     }
-    header._mjrVersionUpdateCleanup = () => {
-        try {
-            if (versionUpdateListener && typeof window !== "undefined") {
-                window.removeEventListener(VERSION_UPDATE_EVENT, versionUpdateListener);
-            }
-        } catch {}
-    };
+    header._mjrVersionUpdateCleanup = dispose;
 
     applyExtensionMetadata(versionBadge, isNightly);
     void hydrateBackendVersionBadge(versionBadge, isNightly);
@@ -206,7 +213,8 @@ export function createHeaderView() {
         filterBtn,
         sortBtn,
         collectionsBtn,
-        pinnedFoldersBtn
+        pinnedFoldersBtn,
+        dispose,
     };
 }
 

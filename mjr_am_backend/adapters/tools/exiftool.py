@@ -17,6 +17,7 @@ logger = get_logger(__name__)
 
 _TAG_SAFE_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_:-]*$")
 _WINDOWS_CMDLINE_TOO_LONG = 206
+_MAX_WRITE_VALUE_CHARS = 8192
 
 
 def _decode_bytes_best_effort(blob: bytes | None) -> tuple[str, bool]:
@@ -157,6 +158,31 @@ def _build_match_map(valid_paths: list[str]) -> tuple[dict[str, list[str]], list
         key_to_paths[key].append(original)
 
     return key_to_paths, cmd_paths
+
+
+def _sanitize_exiftool_value(value: Any) -> str:
+    try:
+        text = str(value)
+    except Exception:
+        text = ""
+    if not text:
+        return ""
+    text = text.replace("\x00", "").replace("\r", " ").replace("\n", " ").strip()
+    if len(text) > _MAX_WRITE_VALUE_CHARS:
+        text = text[:_MAX_WRITE_VALUE_CHARS]
+    return text
+
+
+def _sanitize_windows_stdin_path(path: str) -> str:
+    try:
+        text = str(path or "")
+    except Exception:
+        text = ""
+    if not text:
+        return ""
+    if "\x00" in text or "\n" in text or "\r" in text:
+        return ""
+    return text
 
 
 class ExifTool:
@@ -802,7 +828,7 @@ class ExifTool:
     def _validate_write_preconditions(self, path: str) -> Result[bool] | None:
         if not self._available:
             return Result.Err(ErrorCode.TOOL_MISSING, "ExifTool not found in PATH")
-        if not path or "\x00" in str(path):
+        if not path or any(ch in str(path) for ch in ("\x00", "\n", "\r")):
             return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")
         try:
             file_path = Path(str(path))
@@ -841,18 +867,21 @@ class ExifTool:
                 for item in value:
                     if item is None:
                         continue
-                    text = str(item).strip()
+                    text = _sanitize_exiftool_value(item)
                     if text:
                         cmd.append(f"-{key}+={text}")
                 continue
-            cmd.append(f"-{key}={value}")
+            cmd.append(f"-{key}={_sanitize_exiftool_value(value)}")
 
     @staticmethod
     def _append_write_target_args(cmd: list[str], path: str) -> tuple[list[str], str | None]:
         stdin_input: str | None = None
         if os.name == "nt":
             cmd.extend(["-charset", "filename=utf8", "-@", "-"])
-            stdin_input = f"{path}\n"
+            safe_path = _sanitize_windows_stdin_path(path)
+            if not safe_path:
+                return cmd, None
+            stdin_input = f"{safe_path}\n"
             cmd.append("-overwrite_original")
         else:
             cmd.extend(["-overwrite_original", path])

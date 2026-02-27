@@ -12,33 +12,29 @@ import time
 from collections import OrderedDict
 from collections.abc import Mapping
 from functools import lru_cache
+from http.cookies import SimpleCookie
 from typing import Any
 from urllib.parse import urlparse
 
 from aiohttp import web
 from multidict import CIMultiDict
-from mjr_am_backend.shared import Result
+from mjr_am_backend.shared import Result, get_logger
+
+logger = get_logger(__name__)
 
 # Per-client rate limiting state: {client_id: {endpoint: [timestamps]}}
 # Use LRU eviction to prevent unbounded memory growth from spoofed client IPs.
 _DEFAULT_MAX_RATE_LIMIT_CLIENTS = 1_000
 _DEFAULT_MAX_RATE_LIMIT_ENDPOINTS_PER_CLIENT = 32
-_DEFAULT_RATE_LIMIT_CLEANUP_INTERVAL = 100
 _DEFAULT_RATE_LIMIT_MIN_WINDOW_SECONDS = 60
 _DEFAULT_CLIENT_ID_HASH_HEX_CHARS = 16
 _DEFAULT_TRUSTED_PROXIES = "127.0.0.1,::1"
+_DEFAULT_RATE_LIMIT_BACKGROUND_CLEANUP_SECONDS = 60
 
 try:
     _MAX_RATE_LIMIT_CLIENTS = int(os.environ.get("MAJOOR_RATE_LIMIT_MAX_CLIENTS", str(_DEFAULT_MAX_RATE_LIMIT_CLIENTS)))
 except Exception:
     _MAX_RATE_LIMIT_CLIENTS = _DEFAULT_MAX_RATE_LIMIT_CLIENTS
-
-try:
-    _rate_limit_cleanup_interval = int(
-        os.environ.get("MAJOOR_RATE_LIMIT_CLEANUP_INTERVAL", str(_DEFAULT_RATE_LIMIT_CLEANUP_INTERVAL))
-    )
-except Exception:
-    _rate_limit_cleanup_interval = _DEFAULT_RATE_LIMIT_CLEANUP_INTERVAL
 
 try:
     _RATE_LIMIT_MIN_WINDOW_SECONDS = int(
@@ -68,7 +64,19 @@ _rate_limit_state: OrderedDict[str, dict[str, list[float]]] = OrderedDict()
 # threading.Lock is intentional here: rate-limit updates are synchronous and never await.
 # Do not add `await` inside a `with _rate_limit_lock:` critical section.
 _rate_limit_lock = threading.Lock()
-_rate_limit_cleanup_counter = 0
+_rate_limit_cleanup_thread: threading.Thread | None = None
+_rate_limit_cleanup_thread_lock = threading.Lock()
+_rate_limit_cleanup_stop = threading.Event()
+try:
+    _RATE_LIMIT_BACKGROUND_CLEANUP_SECONDS = int(
+        os.environ.get(
+            "MAJOOR_RATE_LIMIT_BACKGROUND_CLEANUP_SECONDS",
+            str(_DEFAULT_RATE_LIMIT_BACKGROUND_CLEANUP_SECONDS),
+        )
+    )
+except Exception:
+    _RATE_LIMIT_BACKGROUND_CLEANUP_SECONDS = _DEFAULT_RATE_LIMIT_BACKGROUND_CLEANUP_SECONDS
+_RATE_LIMIT_BACKGROUND_CLEANUP_SECONDS = max(10, _RATE_LIMIT_BACKGROUND_CLEANUP_SECONDS)
 
 
 def _env_truthy(name: str, default: bool = False) -> bool:
@@ -81,6 +89,7 @@ def _env_truthy(name: str, default: bool = False) -> bool:
     return str(raw).strip().lower() in ("1", "true", "yes", "on")
 
 
+@lru_cache(maxsize=1)
 def _safe_mode_enabled() -> bool:
     """
     Return True when Majoor Safe Mode is enabled.
@@ -277,7 +286,23 @@ def _extract_write_token_from_headers(headers: Mapping[str, str]) -> str:
         token = str(headers.get("X-MJR-Token") or "").strip()
     except Exception:
         token = ""
-    return token
+    if token:
+        return token
+
+    try:
+        cookie_header = str(headers.get("Cookie") or "").strip()
+    except Exception:
+        cookie_header = ""
+    if cookie_header:
+        try:
+            parsed = SimpleCookie()
+            parsed.load(cookie_header)
+            raw = parsed.get("mjr_write_token")
+            if raw is not None:
+                return str(raw.value or "").strip()
+        except Exception:
+            pass
+    return ""
 
 
 def _resolve_client_ip(peer_ip: str, headers: Mapping[str, str]) -> str:
@@ -338,14 +363,6 @@ def _client_ip_from_forwarded_chain(forwarded_chain: list[str], *, peer: str) ->
     return ""
 
 
-def _forwarded_for_ip(headers: Mapping[str, str]) -> str:
-    forwarded_for = _header_value(headers, "X-Forwarded-For")
-    if not forwarded_for:
-        return ""
-    candidate = forwarded_for.split(",")[0].strip()
-    return candidate if _is_valid_ip(candidate) else ""
-
-
 def _real_ip_from_header(headers: Mapping[str, str]) -> str:
     real_ip = _header_value(headers, "X-Real-IP")
     if not real_ip:
@@ -380,11 +397,12 @@ def _check_write_access(*, peer_ip: str, headers: Mapping[str, str], request_sch
     Authorization guard for destructive/write endpoints.
 
     Default policy:
-      - If a token is configured, it must be provided for *all* write operations.
-      - If no token is configured, allow loopback clients only by default.
+      - Loopback clients are trusted by default (same machine = same user).
+      - If a token is configured AND the client is remote: token is required.
+      - If no token is configured: allow loopback, deny remote.
 
     Overrides:
-      - MAJOOR_REQUIRE_AUTH=1 forces token auth even for loopback (requires MAJOOR_API_TOKEN).
+      - MAJOOR_REQUIRE_AUTH=1 forces token auth even for loopback.
       - MAJOOR_ALLOW_REMOTE_WRITE=1 allows remote writes when no token is set.
 
     Returns a Result that never raises (route handlers should return 200 with this Result on error).
@@ -403,7 +421,7 @@ def _check_write_access(*, peer_ip: str, headers: Mapping[str, str], request_sch
 
     provided = _extract_write_token_from_headers(headers)
     if configured_hash:
-        # Prevent timing attacks
+        # If the client provides a valid token, always accept it (any transport policy applies).
         if provided and hmac.compare_digest(_hash_token(provided), configured_hash):
             if not _request_transport_is_secure(peer_ip=peer_ip, headers=headers, request_scheme=request_scheme):
                 if not _env_truthy("MAJOOR_ALLOW_INSECURE_TOKEN_TRANSPORT", default=False):
@@ -414,6 +432,12 @@ def _check_write_access(*, peer_ip: str, headers: Mapping[str, str], request_sch
                         client_ip=client_ip,
                     )
             return Result.Ok(True, auth="token", client_ip=client_ip)
+        # Token missing or invalid.
+        # Loopback clients (same machine) are trusted by default unless MAJOOR_REQUIRE_AUTH=1
+        # is explicitly set. This prevents auto-generated or rotated token hashes that were
+        # persisted in the database from locking out local users who never configured a token.
+        if not require_auth and _is_loopback_ip(client_ip):
+            return Result.Ok(True, auth="loopback", client_ip=client_ip)
         return Result.Err(
             "AUTH_REQUIRED",
             "Write operation blocked: missing or invalid API token. Set MAJOOR_API_TOKEN and send it via X-MJR-Token or Authorization: Bearer <token>.",
@@ -656,6 +680,15 @@ def _parse_trusted_proxies() -> list[ipaddress._BaseNetwork]:
 _TRUSTED_PROXY_NETS = _parse_trusted_proxies()
 
 
+def _refresh_trusted_proxy_cache() -> None:
+    global _TRUSTED_PROXY_NETS
+    _TRUSTED_PROXY_NETS = _parse_trusted_proxies()
+    try:
+        _is_trusted_proxy.cache_clear()
+    except Exception:
+        pass
+
+
 @lru_cache(maxsize=2048)
 def _is_trusted_proxy(ip: str) -> bool:
     try:
@@ -684,27 +717,11 @@ def _extract_peer_ip(request: web.Request) -> str:
 
 def _get_client_identifier(request: web.Request) -> str:
     peer_ip = _extract_peer_ip(request)
-
-    # Only trust X-Forwarded-For / X-Real-IP when we are behind a trusted proxy.
-    forwarded_for = request.headers.get("X-Forwarded-For") if _is_trusted_proxy(peer_ip) else None
-    if forwarded_for:
-        cand = forwarded_for.split(",")[0].strip()
-        try:
-            ipaddress.ip_address(cand)
-            client_ip = cand
-        except Exception:
-            client_ip = peer_ip
-    else:
-        real_ip = request.headers.get("X-Real-IP") if _is_trusted_proxy(peer_ip) else None
-        if real_ip:
-            cand = real_ip.strip()
-            try:
-                ipaddress.ip_address(cand)
-                client_ip = cand
-            except Exception:
-                client_ip = peer_ip
-        else:
-            client_ip = peer_ip
+    try:
+        headers = request.headers
+    except Exception:
+        headers = CIMultiDict()
+    client_ip = _resolve_client_ip(peer_ip, headers)
     return hashlib.sha256(client_ip.encode("utf-8", errors="ignore")).hexdigest()[:_CLIENT_ID_HASH_HEX_CHARS]
 
 def _evict_oldest_clients_if_needed() -> None:
@@ -758,6 +775,30 @@ def _cleanup_rate_limit_state_locked(now: float, window_seconds: int) -> None:
             _rate_limit_state.pop(client_id, None)
 
 
+def _rate_limit_cleanup_loop() -> None:
+    while not _rate_limit_cleanup_stop.wait(timeout=float(_RATE_LIMIT_BACKGROUND_CLEANUP_SECONDS)):
+        try:
+            now = time.time()
+            with _rate_limit_lock:
+                _cleanup_rate_limit_state_locked(now, max(_RATE_LIMIT_MIN_WINDOW_SECONDS, 60))
+        except Exception as exc:
+            logger.debug("Rate limit background cleanup failed: %s", exc)
+
+
+def _ensure_rate_limit_cleanup_thread() -> None:
+    global _rate_limit_cleanup_thread
+    with _rate_limit_cleanup_thread_lock:
+        if _rate_limit_cleanup_thread and _rate_limit_cleanup_thread.is_alive():
+            return
+        _rate_limit_cleanup_stop.clear()
+        _rate_limit_cleanup_thread = threading.Thread(
+            target=_rate_limit_cleanup_loop,
+            name="mjr-rate-limit-cleanup",
+            daemon=True,
+        )
+        _rate_limit_cleanup_thread.start()
+
+
 def _check_rate_limit(
     request: web.Request,
     endpoint: str,
@@ -770,22 +811,18 @@ def _check_rate_limit(
     Returns:
         (allowed, retry_after_seconds)
     """
-    global _rate_limit_cleanup_counter
+    _ensure_rate_limit_cleanup_thread()
 
     try:
         client_id = _get_client_identifier(request)
         now = time.time()
-    except Exception:
+    except Exception as exc:
         # If we can't identify the client, fail open to avoid breaking UI.
+        logger.warning("Rate limit identity resolution failed; failing open: %s", exc)
         return True, None
 
     try:
         with _rate_limit_lock:
-            _rate_limit_cleanup_counter += 1
-            if _rate_limit_cleanup_counter >= _rate_limit_cleanup_interval:
-                _cleanup_rate_limit_state_locked(now, max(window_seconds, _RATE_LIMIT_MIN_WINDOW_SECONDS))
-                _rate_limit_cleanup_counter = 0
-
             client_state = _get_or_create_client_state(client_id)
             _evict_oldest_endpoint_if_needed(client_state, endpoint)
             previous = client_state.get(endpoint, [])
@@ -798,7 +835,8 @@ def _check_rate_limit(
             recent.append(now)
             client_state[endpoint] = recent
             return True, None
-    except Exception:
+    except Exception as exc:
+        logger.error("Rate limit check raised unexpectedly; failing open: %s", exc, exc_info=True)
         return True, None
 
 
@@ -892,5 +930,17 @@ def _reset_security_state_for_tests() -> None:
     try:
         with _rate_limit_lock:
             _rate_limit_state.clear()
+    except Exception:
+        pass
+    try:
+        _rate_limit_cleanup_stop.set()
+    except Exception:
+        pass
+    try:
+        _is_trusted_proxy.cache_clear()
+    except Exception:
+        pass
+    try:
+        _safe_mode_enabled.cache_clear()
     except Exception:
         pass

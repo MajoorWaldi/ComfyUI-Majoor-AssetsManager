@@ -199,7 +199,8 @@ def add_custom_root(path: str, label: str | None = None) -> Result[dict[str, Any
     validation = _validate_new_root_path(normalized)
     if validation is not None:
         return validation
-    assert normalized is not None
+    if normalized is None:
+        return Result.Err("INVALID_INPUT", "Invalid path")
 
     payload = _new_root_payload(normalized, label=label)
     resolved = payload["resolved"]

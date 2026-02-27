@@ -8,8 +8,11 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
+import stat
 import threading
 import time
+import uuid
 import zipfile
 from pathlib import Path
 from typing import Any
@@ -37,6 +40,9 @@ _BATCH_LOCK = threading.Lock()
 _BATCH_CACHE: dict[str, dict[str, Any]] = {}
 _TOKEN_LOCKS: dict[str, threading.Lock] = {}
 _TOKEN_LOCKS_LOCK = threading.Lock()
+_CLEANUP_THREAD: threading.Thread | None = None
+_CLEANUP_THREAD_LOCK = threading.Lock()
+_CLEANUP_STOP = threading.Event()
 
 
 def _get_token_lock(token: str) -> threading.Lock:
@@ -92,6 +98,59 @@ _BATCH_MAX = _env_int("MAJOOR_BATCH_ZIP_MAX", _DEFAULT_BATCH_MAX, minimum=1)
 _MAX_ITEMS = _env_int("MAJOOR_MAX_BATCH_SIZE", _DEFAULT_MAX_ITEMS, minimum=1)
 _BUILD_TIMEOUT_S = _env_float("MAJOOR_BATCH_ZIP_BUILD_TIMEOUT_S", _DEFAULT_BUILD_TIMEOUT_S, minimum=1.0)
 _ZIP_COPY_CHUNK_BYTES = _env_int("MAJOOR_BATCH_ZIP_CHUNK_BYTES", _DEFAULT_ZIP_COPY_CHUNK_BYTES, minimum=16 * 1024)
+
+
+def _cleanup_interval_seconds() -> float:
+    return max(30.0, min(float(_BATCH_TTL_SECONDS), 300.0))
+
+
+def _run_cleanup_loop() -> None:
+    interval = _cleanup_interval_seconds()
+    consecutive_errors = 0
+    while True:
+        wait_seconds = min(interval * (2 ** min(consecutive_errors, 6)), 3600.0)
+        if _CLEANUP_STOP.wait(timeout=wait_seconds):
+            break
+        try:
+            _cleanup_batch_zips()
+            consecutive_errors = 0
+        except Exception as exc:
+            consecutive_errors += 1
+            logger.warning(
+                "Batch ZIP cleanup failed (attempt %s): %s",
+                consecutive_errors,
+                exc,
+                exc_info=True,
+            )
+
+
+def _ensure_cleanup_thread() -> None:
+    global _CLEANUP_THREAD
+    with _CLEANUP_THREAD_LOCK:
+        if _CLEANUP_THREAD and _CLEANUP_THREAD.is_alive():
+            return
+        _CLEANUP_STOP.clear()
+        _CLEANUP_THREAD = threading.Thread(
+            target=_run_cleanup_loop,
+            name="mjr-batch-zip-cleaner",
+            daemon=True,
+        )
+        _CLEANUP_THREAD.start()
+
+
+def stop_cleanup_thread(timeout: float = 2.0) -> None:
+    global _CLEANUP_THREAD
+    with _CLEANUP_THREAD_LOCK:
+        _CLEANUP_STOP.set()
+        thread = _CLEANUP_THREAD
+    if thread and thread.is_alive():
+        try:
+            thread.join(timeout=max(0.1, float(timeout)))
+        except Exception:
+            pass
+    with _CLEANUP_THREAD_LOCK:
+        if _CLEANUP_THREAD is thread and (thread is None or not thread.is_alive()):
+            _CLEANUP_THREAD = None
 
 
 def _sanitize_token(token: Any) -> str:
@@ -151,7 +210,10 @@ def _batch_file_response(entry: dict[str, Any], token: str) -> web.StreamRespons
     if not isinstance(path, Path) or not path.exists():
         return _json_response(Result.Err("NOT_FOUND", "File missing"), status=404)
     name = entry.get("filename") or f"{token}.zip"
-    safe_name = str(name).replace('"', "").replace(";", "").replace("\r", "").replace("\n", "")[:_ZIP_NAME_MAX_LEN]
+    safe_name = re.sub(r'[^\x20-\x7e]', "_", str(name)).strip()
+    safe_name = safe_name.replace('"', "_").replace(";", "_")[:_ZIP_NAME_MAX_LEN]
+    if not safe_name:
+        safe_name = f"{token}.zip"
     headers = {"Content-Disposition": f'attachment; filename="{safe_name}"'}
     try:
         return web.FileResponse(path, headers=headers)
@@ -195,17 +257,17 @@ def _delete_batch_zip_path(entry: Any, token: str, success_log: str) -> None:
         logger.warning("Failed to cleanup batch zip %s: %s", path.name if path else token, exc)
 
 
-def _resolve_item_path(item: dict[str, Any]) -> Path | None:
+def _resolve_item_path(item: dict[str, Any]) -> tuple[Path | None, Path | None]:
     filename_rel, subfolder_rel, typ = _normalized_batch_zip_item_parts(item)
     if filename_rel is None or subfolder_rel is None:
-        return None
+        return None, None
     base_dir = _resolve_base_dir(item, typ)
     if base_dir is None:
-        return None
+        return None, None
     candidate = _resolve_candidate_path(base_dir, subfolder_rel, filename_rel)
     if not _is_valid_candidate_path(candidate, base_dir):
-        return None
-    return candidate
+        return None, None
+    return candidate, base_dir
 
 
 def _normalized_batch_zip_item_parts(item: dict[str, Any]) -> tuple[Path | None, Path | None, str]:
@@ -226,7 +288,7 @@ def _is_valid_candidate_path(candidate: Path | None, base_dir: Path) -> bool:
         return False
     if not _is_within_root(candidate, base_dir):
         return False
-    return candidate.exists() and candidate.is_file()
+    return True
 
 
 def _resolve_base_dir(item: dict[str, Any], typ: str) -> Path | None:
@@ -269,6 +331,8 @@ def _resolve_candidate_path(base_dir: Path, subfolder_rel: Path, filename_rel: P
 
 def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
     """Register batch-zip creation and download routes."""
+    _ensure_cleanup_thread()
+
     @routes.post("/mjr/am/batch-zip")
     async def create_batch_zip(request: web.Request) -> web.Response:
         loop = asyncio.get_running_loop()
@@ -350,7 +414,7 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
                     for raw in items:
                         if not isinstance(raw, dict):
                             continue
-                        target = _resolve_item_path(raw)
+                        target, base_dir = _resolve_item_path(raw)
                         if not target:
                             continue
 
@@ -374,25 +438,39 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
                         candidate = arc_base[:_ZIP_NAME_MAX_LEN]
                         if candidate in used_names:
                             n = 2
-                            while True:
+                            max_attempts = max(32, len(items) + 200)
+                            attempts = 0
+                            while attempts < max_attempts:
                                 attempt = f"{stem} ({n}){suffix}" if suffix else f"{stem} ({n})"
                                 attempt = attempt[:_ZIP_NAME_MAX_LEN]
                                 if attempt not in used_names:
                                     candidate = attempt
                                     break
                                 n += 1
+                                attempts += 1
+                            if candidate in used_names:
+                                suffix_part = suffix if suffix else ""
+                                candidate = f"{uuid.uuid4().hex[:12]}{suffix_part}"[:_ZIP_NAME_MAX_LEN]
+                                while candidate in used_names:
+                                    candidate = f"{uuid.uuid4().hex[:12]}{suffix_part}"[:_ZIP_NAME_MAX_LEN]
                         used_names.add(candidate)
 
                         arc = candidate
                         try:
-                            ok = _zip_add_file_open_handle(zf, target, arc)
+                            ok = _zip_add_file_open_handle(zf, target, arc, base_dir=base_dir)
                             if ok:
                                 count += 1
                         except Exception:
                             continue
                 return count
 
-        def _zip_add_file_open_handle(zf: zipfile.ZipFile, path: Path, arcname: str) -> bool:
+        def _zip_add_file_open_handle(
+            zf: zipfile.ZipFile,
+            path: Path,
+            arcname: str,
+            *,
+            base_dir: Path | None = None,
+        ) -> bool:
             """
             Avoid TOCTOU by opening the file once and streaming bytes into the zip entry.
 
@@ -412,6 +490,25 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
                         st = os.fstat(f.fileno())
                     except Exception:
                         st = path.stat()
+                    try:
+                        if not stat.S_ISREG(int(getattr(st, "st_mode", 0) or 0)):
+                            return False
+                    except Exception:
+                        return False
+                    try:
+                        if base_dir is not None:
+                            current = path.resolve(strict=True)
+                            if not _is_within_root(current, base_dir):
+                                return False
+                        path_st = path.stat()
+                        if (
+                            hasattr(st, "st_ino")
+                            and hasattr(path_st, "st_ino")
+                            and int(getattr(st, "st_ino", -1)) != int(getattr(path_st, "st_ino", -2))
+                        ):
+                            return False
+                    except Exception:
+                        return False
 
                     try:
                         dt = time.localtime(float(getattr(st, "st_mtime", time.time())))
@@ -464,10 +561,14 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
                 entry["ready"] = ok
                 entry["error"] = error
                 entry["count"] = count
-                try:
-                    loop.call_soon_threadsafe(entry["event"].set)
-                except Exception:
-                    pass
+                event = entry.get("event")
+            else:
+                event = None
+        if isinstance(event, asyncio.Event):
+            try:
+                loop.call_soon_threadsafe(event.set)
+            except Exception:
+                pass
 
         if not ok:
             try:

@@ -16,7 +16,14 @@ export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFol
     searchIcon.appendChild(searchIconEl);
 
     // Autocomplete datalist
-    const dataListId = "mjr-search-autocomplete-" + Math.random().toString(36).substr(2, 9);
+    const dataListId = (() => {
+        try {
+            if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+                return `mjr-search-autocomplete-${crypto.randomUUID()}`;
+            }
+        } catch {}
+        return `mjr-search-autocomplete-${Math.random().toString(36).slice(2, 11)}`;
+    })();
     const dataList = document.createElement("datalist");
     dataList.id = dataListId;
     

@@ -55,6 +55,7 @@ import { createSortController } from "./controllers/sortController.js";
 import { bindSidebarOpen } from "./controllers/sidebarController.js";
 import { createPanelHotkeysController } from "./controllers/panelHotkeysController.js";
 import { createRatingHotkeysController } from "./controllers/ratingHotkeysController.js";
+import { getHotkeysState, setHotkeysScope } from "./controllers/hotkeysState.js";
 import { bindGridContextMenu } from "../contextmenu/GridContextMenu.js";
 import { getViewerInstance } from "../../components/Viewer.js";
 
@@ -424,7 +425,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     try {
         container._mjrVersionUpdateCleanup?.();
     } catch {}
-    container._mjrVersionUpdateCleanup = header._mjrVersionUpdateCleanup;
+    container._mjrVersionUpdateCleanup = headerView.dispose || header._mjrVersionUpdateCleanup;
     container.appendChild(content);
 
     const getQuery = () => normalizeQuery(searchInputEl);
@@ -1074,10 +1075,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
 
     hotkeys.bind(content);
     ratingHotkeys.bind();
-    try {
-        window._mjrHotkeysState = window._mjrHotkeysState || {};
-        window._mjrHotkeysState.scope = "grid";
-    } catch {}
+    setHotkeysScope("grid");
 
     // Attach controllers to container for cleanup on re-render
     try {
@@ -1113,11 +1111,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         try {
             ratingHotkeys.dispose();
         } catch {}
-        try {
-            if (window._mjrHotkeysState?.scope === "grid") {
-                window._mjrHotkeysState.scope = null;
-            }
-        } catch {}
+        if (getHotkeysState().scope === "grid") {
+            setHotkeysScope(null);
+        }
         try {
             agendaCalendar?.dispose?.();
         } catch {}

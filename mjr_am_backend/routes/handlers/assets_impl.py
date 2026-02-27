@@ -554,6 +554,9 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         csrf = _csrf_error(request)
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
 
         svc, error_result = await _require_services()
         if error_result:
@@ -562,9 +565,6 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         op = _require_operation_enabled("open_in_folder", prefs=prefs)
         if not op.ok:
             return _json_response(op)
-        auth = _require_write_access(request)
-        if not auth.ok:
-            return _json_response(auth)
 
         allowed, retry_after = _check_rate_limit(request, "open_in_folder", max_requests=1, window_seconds=2)
         if not allowed:
@@ -632,6 +632,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             selected = True
         elif os.name == "nt":
             commands.append(["explorer.exe", f"/select,{str(resolved)}"])
+            fallback_command = ["explorer.exe", str(resolved.parent)]
             selected = True
         else:
             commands.append(["xdg-open", str(resolved.parent)])
@@ -655,17 +656,6 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                 return _json_response(
                     Result.Ok(
                         {"opened": True, "selected": False, "fallback": "open"}
-                    )
-                )
-            except Exception as exc:
-                last_exception = exc
-
-        if os.name == "nt":
-            try:
-                os.startfile(str(resolved.parent))
-                return _json_response(
-                    Result.Ok(
-                        {"opened": True, "selected": False, "fallback": "startfile"}
                     )
                 )
             except Exception as exc:

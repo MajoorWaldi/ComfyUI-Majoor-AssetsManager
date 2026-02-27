@@ -46,9 +46,16 @@ export function createSummaryBarView() {
     bar.appendChild(right);
 
     const update = ({ state, gridContainer, context = null, actions = null } = {}) => {
+        const cards = (() => {
+            try {
+                return Array.from(gridContainer?.querySelectorAll?.(".mjr-asset-card") || []);
+            } catch {
+                return [];
+            }
+        })();
+
         const folderStats = (() => {
             try {
-                const cards = Array.from(gridContainer?.querySelectorAll?.(".mjr-asset-card") || []);
                 let folders = 0;
                 for (const card of cards) {
                     const kind = String(card?._mjrAsset?.kind || "").toLowerCase();
@@ -61,11 +68,7 @@ export function createSummaryBarView() {
         })();
 
         const cardsCount = (() => {
-            try {
-                return Number(gridContainer?.querySelectorAll?.(".mjr-asset-card")?.length || 0) || 0;
-            } catch {
-                return 0;
-            }
+            return Number(cards.length || 0) || 0;
         })();
 
         const selectedCount = (() => {
@@ -74,7 +77,11 @@ export function createSummaryBarView() {
                 if (fromState > 0) return fromState;
             } catch {}
             try {
-                return Number(gridContainer?.querySelectorAll?.(".mjr-asset-card.is-selected")?.length || 0) || 0;
+                let selected = 0;
+                for (const card of cards) {
+                    if (card?.classList?.contains?.("is-selected")) selected += 1;
+                }
+                return selected;
             } catch {
                 return 0;
             }

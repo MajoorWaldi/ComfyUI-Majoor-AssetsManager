@@ -11,41 +11,61 @@ function _isObject(value) {
     return !!value && typeof value === "object";
 }
 
+function _looksLikeComfyApi(value) {
+    if (!_isObject(value)) return false;
+    return (
+        typeof value.fetchApi === "function"
+        || typeof value.apiURL === "function"
+        || _isObject(value.settings)
+    );
+}
+
+function _looksLikeComfyApp(value) {
+    if (!_isObject(value)) return false;
+    return (
+        _isObject(value.ui)
+        || _isObject(value.canvas)
+        || _isObject(value.graph)
+        || typeof value.loadGraphData === "function"
+        || _looksLikeComfyApi(value.api)
+    );
+}
+
 export function setComfyApp(app) {
-    if (app && typeof app === "object") {
+    if (_looksLikeComfyApp(app)) {
         _comfyAppRef = app;
     }
     return _comfyAppRef;
 }
 
 export function setComfyApi(api) {
-    if (api && typeof api === "object") {
+    if (_looksLikeComfyApi(api)) {
         _comfyApiRef = api;
     }
     return _comfyApiRef;
 }
 
 export function getComfyApi(app) {
-    if (_isObject(_comfyApiRef)) return _comfyApiRef;
+    if (_looksLikeComfyApi(_comfyApiRef)) return _comfyApiRef;
     const runtimeApp = _isObject(app) ? app : getComfyApp();
     const fromApp = runtimeApp?.api || runtimeApp?.ui?.api || runtimeApp?.ui?.app?.api || null;
-    if (_isObject(fromApp)) return fromApp;
+    if (_looksLikeComfyApi(fromApp)) return fromApp;
     try {
-        if (typeof window !== "undefined" && _isObject(window?.api)) return window.api;
+        if (typeof window !== "undefined" && _looksLikeComfyApi(window?.api)) return window.api;
     } catch {}
     try {
-        if (typeof globalThis !== "undefined" && _isObject(globalThis?.api)) return globalThis.api;
+        if (typeof globalThis !== "undefined" && _looksLikeComfyApi(globalThis?.api)) return globalThis.api;
     } catch {}
     return null;
 }
 
 export function getComfyApp() {
-    if (_comfyAppRef && typeof _comfyAppRef === "object") return _comfyAppRef;
+    if (_looksLikeComfyApp(_comfyAppRef)) return _comfyAppRef;
     try {
-        if (typeof globalThis !== "undefined" && globalThis?.app) return globalThis.app;
+        if (typeof globalThis !== "undefined" && _looksLikeComfyApp(globalThis?.app)) return globalThis.app;
     } catch {}
     try {
-        if (typeof window !== "undefined" && window?.app) return window.app;
+        if (typeof window !== "undefined" && _looksLikeComfyApp(window?.app)) return window.app;
     } catch {}
     return null;
 }

@@ -22,7 +22,8 @@ logger = get_logger(__name__)
 _DEFAULT_MAX_UPLOAD_SIZE_BYTES = 500 * 1024 * 1024
 try:
     _DB_CONSISTENCY_SAMPLE = int(os.environ.get("MJR_DB_CONSISTENCY_SAMPLE", "32"))
-except Exception:
+except Exception as exc:
+    logger.warning("Invalid MJR_DB_CONSISTENCY_SAMPLE value; using default 32 (%s)", exc)
     _DB_CONSISTENCY_SAMPLE = 32
 _DB_CONSISTENCY_COOLDOWN_SECONDS = env_float("MJR_DB_CONSISTENCY_COOLDOWN_SECONDS", 3600.0)
 _DEFAULT_MAX_RENAME_ATTEMPTS = 1000
@@ -193,6 +194,7 @@ async def _write_multipart_file_atomic(dest_dir: Path, filename: str, field) -> 
 
     fd = None
     tmp_path = None
+    claimed_final: Path | None = None
     try:
         fd, tmp_path = tempfile.mkstemp(dir=str(dest_dir), prefix=".upload_", suffix=ext)
         with os.fdopen(fd, "wb") as handle:
@@ -200,10 +202,15 @@ async def _write_multipart_file_atomic(dest_dir: Path, filename: str, field) -> 
             await _write_upload_chunks(field, handle)
 
         tmp_obj = Path(str(tmp_path))
-        final = _unique_upload_destination(dest_dir, safe_name, ext)
-        tmp_obj.replace(final)
-        return Result.Ok(final)
+        claimed_final = _unique_upload_destination(dest_dir, safe_name, ext)
+        tmp_obj.replace(claimed_final)
+        return Result.Ok(claimed_final)
     except Exception as exc:
+        if claimed_final is not None:
+            try:
+                claimed_final.unlink(missing_ok=True)
+            except Exception:
+                pass
         _cleanup_temp_upload_file(fd, tmp_path)
         return Result.Err("UPLOAD_FAILED", safe_error_message(exc, "Upload failed"))
 
@@ -229,14 +236,18 @@ async def _write_upload_chunks(field, handle) -> None:
 
 
 def _unique_upload_destination(dest_dir: Path, safe_name: str, ext: str) -> Path:
-    final = dest_dir / safe_name
     counter = 0
-    while final.exists():
-        counter += 1
-        if counter > _MAX_RENAME_ATTEMPTS:
-            raise RuntimeError("Too many rename attempts")
-        final = dest_dir / f"{Path(safe_name).stem}_{counter}{ext}"
-    return final
+    while True:
+        final = dest_dir / safe_name if counter == 0 else dest_dir / f"{Path(safe_name).stem}_{counter}{ext}"
+        try:
+            # Atomically claim the destination to avoid TOCTOU races across concurrent uploads.
+            with final.open("xb"):
+                pass
+            return final
+        except FileExistsError:
+            counter += 1
+            if counter > _MAX_RENAME_ATTEMPTS:
+                raise RuntimeError("Too many rename attempts") from None
 
 
 def _cleanup_temp_upload_file(fd: int | None, tmp_path: str | None) -> None:

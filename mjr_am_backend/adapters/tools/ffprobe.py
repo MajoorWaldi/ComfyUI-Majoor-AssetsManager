@@ -228,7 +228,7 @@ class FFProbe:
             normalized = ""
         if not normalized:
             return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")
-        if "\x00" in normalized:
+        if "\x00" in normalized or "\n" in normalized or "\r" in normalized:
             return Result.Err(ErrorCode.INVALID_INPUT, "Invalid file path")
         # Prevent ffprobe option injection via user-controlled leading dash.
         if normalized.startswith("-"):

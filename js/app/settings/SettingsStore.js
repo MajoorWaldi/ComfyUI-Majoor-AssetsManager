@@ -5,6 +5,7 @@
 
 const _subscribers = new Map();
 let _storageListenerBound = false;
+let _storageListener = null;
 
 function _getStorage() {
     try {
@@ -30,11 +31,12 @@ function _emit(key, nextValue, previousValue) {
 function _bindStorageListener() {
     if (_storageListenerBound) return;
     try {
-        window.addEventListener("storage", (event) => {
+        _storageListener = (event) => {
             const key = String(event?.key || "");
             if (!key) return;
             _emit(key, event?.newValue ?? null, event?.oldValue ?? null);
-        });
+        };
+        window.addEventListener("storage", _storageListener);
         _storageListenerBound = true;
     } catch {}
 }
@@ -103,6 +105,17 @@ export const SettingsStore = {
             }
         } catch {}
         return out;
+    },
+
+    dispose() {
+        try {
+            if (_storageListenerBound && _storageListener && typeof window !== "undefined") {
+                window.removeEventListener("storage", _storageListener);
+            }
+        } catch {}
+        _storageListenerBound = false;
+        _storageListener = null;
+        _subscribers.clear();
     },
 };
 

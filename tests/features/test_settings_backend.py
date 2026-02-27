@@ -46,7 +46,7 @@ class _DB:
 
 
 @pytest.fixture(autouse=True)
-def _clean_token_env():
+def _clean_token_env(monkeypatch):
     keys = (
         "MAJOOR_API_TOKEN",
         "MJR_API_TOKEN",
@@ -55,14 +55,14 @@ def _clean_token_env():
         "MAJOOR_API_TOKEN_PEPPER",
     )
     for k in keys:
-        os.environ.pop(k, None)
+        monkeypatch.delenv(k, raising=False)
     yield
     try:
         sec._reset_security_state_for_tests()
     except Exception:
         pass
     for k in keys:
-        os.environ.pop(k, None)
+        monkeypatch.delenv(k, raising=False)
 
 
 @pytest.mark.asyncio
@@ -105,14 +105,15 @@ async def test_get_or_create_api_token_from_env(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_get_or_create_api_token_from_hash_regenerates(monkeypatch):
+async def test_get_or_create_api_token_from_hash_loads_hash_without_regeneration(monkeypatch):
     db = _DB()
     s = AppSettings(db)
     db.store[_SECURITY_API_TOKEN_HASH_KEY] = s._hash_api_token("old")
     monkeypatch.delenv("MAJOOR_API_TOKEN", raising=False)
     t = await s._get_or_create_api_token_locked()
-    assert t
-    assert t != "old"
+    assert t == ""
+    assert os.environ.get("MAJOOR_API_TOKEN") is None
+    assert os.environ.get("MAJOOR_API_TOKEN_HASH") == db.store[_SECURITY_API_TOKEN_HASH_KEY]
 
 
 @pytest.mark.asyncio

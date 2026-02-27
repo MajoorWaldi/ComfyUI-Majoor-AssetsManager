@@ -1,33 +1,29 @@
 # ComfyUI-Majoor-AssetsManager Python Dependencies
 
 # Core web framework
-aiohttp>=3.8.0
+aiohttp>=3.8.0,<4.0.0
 
 # Async SQLite (non-blocking DB adapter)
-aiosqlite>=0.20.0
+aiosqlite>=0.20.0,<1.0.0
 
 # Image processing and thumbnails
 # Updated for security patches (CVE-2023-50447, CVE-2024-28219)
-pillow>=10.0.0
+pillow>=10.0.0,<13.0.0
 
 # Pure-Python media metadata parser fallback (audio/video) when ffprobe is missing
-hachoir>=3.3.0
+hachoir>=3.3.0,<4.0.0
 
 # Safe file deletion (recycle bin support)
-send2trash>=1.8.0
+send2trash>=1.8.0,<2.0.0
 
 # File system monitoring for auto-reindexing (optional, enable with MJR_ENABLE_WATCHER=1)
-watchdog>=3.0.0
+watchdog>=3.0.0,<7.0.0
 
 # Windows-specific: Windows Property System metadata support
 # Only required on Windows; gracefully skipped on other platforms
-pywin32>=300; sys_platform == 'win32'
+pywin32>=300,<311; sys_platform == 'win32'
 
 # Note: tkinter is required for native folder browser functionality
 # tkinter is included in standard Python distribution but may be missing in minimal installs
 
-# Testing helpers
-pytest-asyncio>=0.22.0
-
-# Static analysis
-pyflakes>=3.4.0
+# Dev/test tools are intentionally kept out of runtime requirements.

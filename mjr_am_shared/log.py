@@ -53,6 +53,22 @@ class EmojiFormatter(logging.Formatter):
         formatter = logging.Formatter(log_format)
         return formatter.format(record)
 
+
+def _has_correlation_filter(logger: logging.Logger) -> bool:
+    try:
+        return any(isinstance(f, CorrelationFilter) for f in list(logger.filters or []))
+    except Exception:
+        return False
+
+
+def _ensure_correlation_filter(logger: logging.Logger) -> None:
+    if _has_correlation_filter(logger):
+        return
+    try:
+        logger.addFilter(CorrelationFilter())
+    except Exception:
+        pass
+
 def get_logger(name: str, level: int | None = None) -> logging.Logger:
     """
     Get a logger with Majoor prefix and emoji indicators.
@@ -77,10 +93,7 @@ def get_logger(name: str, level: int | None = None) -> logging.Logger:
             name = ".".join(parts[idx:])
 
     logger = logging.getLogger(f"majoor.{name}")
-    try:
-        logger.addFilter(CorrelationFilter())
-    except Exception:
-        pass
+    _ensure_correlation_filter(logger)
 
     if level is not None:
         logger.setLevel(level)

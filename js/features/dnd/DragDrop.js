@@ -35,6 +35,66 @@ const buildURL = (payload) =>
 const _workflowCache = new Map();
 const WORKFLOW_CACHE_TTL_MS = 60_000; // 1 minute
 const WORKFLOW_CACHE_MAX = 100;
+const MAX_WORKFLOW_BYTES = 5 * 1024 * 1024;
+const MAX_WORKFLOW_NODE_COUNT = 5000;
+const MAX_WORKFLOW_LINK_COUNT = 20000;
+const MAX_WORKFLOW_NODE_TYPE_LENGTH = 256;
+const MAX_WORKFLOW_WIDGET_STRING_LENGTH = 8192;
+const _NODE_TYPE_CTRL_RE = /[\u0000-\u001f\u007f]/;
+const _NUL_RE = /\u0000/;
+
+const _hasNodeTypeControlChars = (value) => _NODE_TYPE_CTRL_RE.test(String(value || ""));
+const _hasNulByte = (value) => _NUL_RE.test(String(value || ""));
+
+const _isSafeWorkflowNode = (node) => {
+    if (!node || typeof node !== "object" || Array.isArray(node)) return false;
+    const id = Number(node.id);
+    if (!Number.isFinite(id)) return false;
+
+    const nodeType = node.type == null ? "" : String(node.type);
+    if (nodeType) {
+        if (nodeType.length > MAX_WORKFLOW_NODE_TYPE_LENGTH) return false;
+        if (_hasNodeTypeControlChars(nodeType)) return false;
+    }
+
+    const widgetsValues = node.widgets_values;
+    if (Array.isArray(widgetsValues)) {
+        for (const value of widgetsValues) {
+            if (typeof value === "string") {
+                if (value.length > MAX_WORKFLOW_WIDGET_STRING_LENGTH) return false;
+                if (_hasNulByte(value)) return false;
+            }
+        }
+    }
+
+    return true;
+};
+
+const _isSafeWorkflowLink = (link) => {
+    if (Array.isArray(link)) return link.length >= 4;
+    if (link && typeof link === "object") {
+        const id = Number(link.id);
+        if (!Number.isFinite(id)) return false;
+        return true;
+    }
+    return false;
+};
+
+const isValidWorkflowShape = (workflow) => {
+    if (!workflow || typeof workflow !== "object") return false;
+    if (!Array.isArray(workflow.nodes) || !Array.isArray(workflow.links)) return false;
+    if (workflow.nodes.length > MAX_WORKFLOW_NODE_COUNT) return false;
+    if (workflow.links.length > MAX_WORKFLOW_LINK_COUNT) return false;
+    if (!workflow.nodes.every(_isSafeWorkflowNode)) return false;
+    if (!workflow.links.every(_isSafeWorkflowLink)) return false;
+    try {
+        const size = JSON.stringify(workflow).length;
+        if (!Number.isFinite(size) || size <= 0 || size > MAX_WORKFLOW_BYTES) return false;
+    } catch {
+        return false;
+    }
+    return true;
+};
 
 const cleanupWorkflowCache = () => {
     if (_workflowCache.size <= WORKFLOW_CACHE_MAX) return;
@@ -71,7 +131,7 @@ const tryLoadWorkflowToCanvas = async (payload, fallbackAbsPath = null) => {
         const now = Date.now();
 
         if (cached && now - (cached.at || 0) < WORKFLOW_CACHE_TTL_MS) {
-            if (cached.workflow) {
+            if (cached.workflow && isValidWorkflowShape(cached.workflow)) {
                 try {
                     if (typeof app?.loadGraphData === "function") {
                         app.loadGraphData(cached.workflow);
@@ -129,22 +189,12 @@ const tryLoadWorkflowToCanvas = async (payload, fallbackAbsPath = null) => {
         if (!workflow && url) {
             const res = await get(url);
             if (!res?.ok || !res.data) {
-                // Cache negative result to avoid retrying
-                if (cacheKey) {
-                    _workflowCache.set(cacheKey, { workflow: null, at: Date.now() });
-                    cleanupWorkflowCache();
-                }
                 return false;
             }
             workflow = res.data?.workflow;
         }
 
-        if (!workflow || typeof workflow !== "object") {
-            // Cache negative result
-            if (cacheKey) {
-                _workflowCache.set(cacheKey, { workflow: null, at: Date.now() });
-                cleanupWorkflowCache();
-            }
+        if (!isValidWorkflowShape(workflow)) {
             return false;
         }
 

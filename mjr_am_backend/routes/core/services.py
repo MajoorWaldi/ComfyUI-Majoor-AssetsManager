@@ -2,6 +2,7 @@
 Service management and initialization.
 """
 import asyncio
+import threading
 from typing import Any
 
 from mjr_am_backend.deps import build_services
@@ -11,7 +12,18 @@ logger = get_logger(__name__)
 
 _services = None
 _services_error = None
-_services_lock = asyncio.Lock()
+_services_lock: asyncio.Lock | None = None
+_services_lock_guard = threading.Lock()
+
+
+def _get_services_lock() -> asyncio.Lock:
+    global _services_lock
+    if _services_lock is not None:
+        return _services_lock
+    with _services_lock_guard:
+        if _services_lock is None:
+            _services_lock = asyncio.Lock()
+        return _services_lock
 
 
 async def _dispose_services():
@@ -46,7 +58,7 @@ async def _dispose_services():
 
 async def _build_services(force: bool = False):
     global _services, _services_error
-    async with _services_lock:
+    async with _get_services_lock():
         if _services and not force:
             return _services
 

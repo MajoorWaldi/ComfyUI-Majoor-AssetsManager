@@ -2,6 +2,14 @@ import { comfyToast } from "../../../app/toast.js";
 import { t } from "../../../app/i18n.js";
 import { copyTextToClipboard } from "../../../utils/dom.js";
 
+const _ALLOWED_VALUE_STYLE_PROPS = new Set([
+    "color",
+    "font-weight",
+    "font-style",
+    "opacity",
+    "text-decoration",
+]);
+
 export function createSection(title) {
     const section = document.createElement("div");
     section.className = "mjr-sidebar-section";
@@ -80,6 +88,7 @@ export function createInfoBox(title, content, accentColor, options = {}) {
             width: 16px; 
             height: 16px;
         `;
+        // safe: static SVG literal, no user-controlled interpolation
         copyBtn.innerHTML = `
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -92,6 +101,7 @@ export function createInfoBox(title, content, accentColor, options = {}) {
             e.stopPropagation();
             const originalHTML = copyBtn.innerHTML;
             await doCopy();
+            // safe: static SVG literal, no user-controlled interpolation
             copyBtn.innerHTML = `
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="20 6 9 17 4 12"></polyline>
@@ -192,8 +202,8 @@ export function createParametersBox(title, fields, accentColor, options = {}) {
             word-break: break-word;
             white-space: pre-wrap;
             cursor: pointer;
-            ${field.valueStyle || ""}
         `;
+        _applySafeValueStyle(value, field?.valueStyle);
         
         value.addEventListener("click", async () => {
             const ok = await copyTextToClipboard(String(field.value));
@@ -209,6 +219,23 @@ export function createParametersBox(title, fields, accentColor, options = {}) {
 
     box.appendChild(grid);
     return box;
+}
+
+function _applySafeValueStyle(el, rawStyle) {
+    if (!el || !rawStyle) return;
+    const text = String(rawStyle || "");
+    const declarations = text.split(";");
+    for (const decl of declarations) {
+        const idx = decl.indexOf(":");
+        if (idx <= 0) continue;
+        const prop = decl.slice(0, idx).trim().toLowerCase();
+        const val = decl.slice(idx + 1).trim();
+        if (!prop || !val) continue;
+        if (!_ALLOWED_VALUE_STYLE_PROPS.has(prop)) continue;
+        try {
+            el.style.setProperty(prop, val);
+        } catch {}
+    }
 }
 
 function hexToRgba(hex, alpha) {

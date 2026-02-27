@@ -45,9 +45,10 @@ To reduce risk, Majoor blocks destructive/write operations from non-local client
 #### Overrides (use with care)
 - `MAJOOR_REQUIRE_AUTH=1` forces token auth even for loopback (requires `MAJOOR_API_TOKEN`).
 - `MAJOOR_ALLOW_REMOTE_WRITE=1` allows remote write operations without a token (**unsafe**).
+- `MAJOOR_ALLOW_BOOTSTRAP=1` temporarily enables initial `/bootstrap-token` provisioning. Disable it after first successful bootstrap.
 
-### Client-side token storage
-Set the same secret inside ComfyUI's Settings modal at **Security → Majoor: API Token**. The Assets Manager saves it in browser storage and automatically includes both `X-MJR-Token` and `Authorization: Bearer …` on outbound requests, so remote clients always send the expected header without manual tooling. The backend still needs the matching `MAJOOR_API_TOKEN`/`MJR_API_TOKEN` environment variable at startup for write endpoints to accept the secret.
+### Client-side token handling
+Set the same secret inside ComfyUI's Settings modal at **Security -> Majoor: API Token**. Runtime tokens are kept in `sessionStorage` (tab/session scoped) and bootstrap/rotate responses set an `httpOnly` cookie (`mjr_write_token`) so JavaScript does not need to read plaintext secrets from API responses.
 
 ### Safe Mode (default enabled)
 Safe Mode adds an explicit opt-in layer for operations that modify files or user metadata.

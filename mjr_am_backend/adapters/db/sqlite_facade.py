@@ -762,9 +762,13 @@ class Sqlite:
     async def _apply_connection_pragmas(self, conn: aiosqlite.Connection):
         await conn.execute("PRAGMA journal_mode=WAL")
         await conn.execute("PRAGMA synchronous=NORMAL")
+        # Int constants only: never interpolate user-controlled values into PRAGMA SQL.
+        assert isinstance(SQLITE_CACHE_SIZE_KIB, int), "SQLITE_CACHE_SIZE_KIB must be int"
         await conn.execute(f"PRAGMA cache_size={SQLITE_CACHE_SIZE_KIB}")
         await conn.execute("PRAGMA temp_store=MEMORY")
-        await conn.execute(f"PRAGMA busy_timeout = {SQLITE_BUSY_TIMEOUT_MS}")
+        # Int constants only: never interpolate user-controlled values into PRAGMA SQL.
+        assert isinstance(SQLITE_BUSY_TIMEOUT_MS, int), "SQLITE_BUSY_TIMEOUT_MS must be int"
+        await conn.execute(f"PRAGMA busy_timeout={SQLITE_BUSY_TIMEOUT_MS}")
         await conn.execute("PRAGMA foreign_keys=ON")
 
     async def _create_connection(self) -> aiosqlite.Connection:

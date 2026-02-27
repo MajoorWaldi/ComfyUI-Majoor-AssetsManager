@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import re
 import subprocess
+from functools import lru_cache
 from pathlib import Path
 from typing import TypedDict
 
@@ -43,7 +44,8 @@ def _resolve_branch_from_env() -> str:
     return ""
 
 
-def _run_git(args: list[str]) -> str:
+@lru_cache(maxsize=16)
+def _run_git(*args: str) -> str:
     try:
         root = Path(__file__).resolve().parent.parent
         result = subprocess.run(
@@ -61,7 +63,7 @@ def _run_git(args: list[str]) -> str:
 
 
 def _resolve_branch_from_git() -> str:
-    branch = _run_git(["rev-parse", "--abbrev-ref", "HEAD"])
+    branch = _run_git("rev-parse", "--abbrev-ref", "HEAD")
     # Detached HEAD commonly returns literal "HEAD".
     if not branch or branch.upper() == "HEAD":
         return ""
@@ -79,7 +81,7 @@ def _is_nightly_checkout(version: str, branch: str) -> bool:
 
     # If running from git and HEAD isn't exactly the stable release tag,
     # treat it as nightly/development build.
-    exact_tag = _run_git(["describe", "--tags", "--exact-match"])
+    exact_tag = _run_git("describe", "--tags", "--exact-match")
     if exact_tag:
         if _looks_nightly(exact_tag):
             return True

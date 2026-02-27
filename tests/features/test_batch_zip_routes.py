@@ -36,6 +36,18 @@ def test_batch_zip_sanitize_and_cleanup_helpers(monkeypatch):
         assert token not in bz._BATCH_CACHE
 
 
+def test_batch_file_response_sanitizes_content_disposition(tmp_path: Path) -> None:
+    token = "a" * 40
+    zip_path = tmp_path / "payload.zip"
+    zip_path.write_bytes(b"zip")
+    entry = {"path": zip_path, "filename": 'bad\r\nname";\x01.zip'}
+    response = bz._batch_file_response(entry, token)
+    header = str(response.headers.get("Content-Disposition") or "")
+    assert "\r" not in header
+    assert "\n" not in header
+    assert '"' in header
+
+
 @pytest.mark.asyncio
 async def test_batch_zip_create_invalid_and_get_not_found(monkeypatch):
     app = _app()
@@ -81,7 +93,7 @@ async def test_batch_zip_create_and_fetch_ready(monkeypatch, tmp_path: Path):
         return Result.Ok({"token": token, "items": [{"filename": "a.png", "subfolder": "", "type": "output"}]})
 
     monkeypatch.setattr(bz, "_read_json", _read_json)
-    monkeypatch.setattr(bz, "_resolve_item_path", lambda _item: src)
+    monkeypatch.setattr(bz, "_resolve_item_path", lambda _item: (src, tmp_path))
 
     req = make_mocked_request("POST", "/mjr/am/batch-zip", app=app)
     match = await app.router.resolve(req)

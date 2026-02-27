@@ -364,11 +364,11 @@ export function createViewerMediaFactory({
             video.className = "mjr-viewer-video-src";
             video.src = url;
             video.controls = false;
-            video.autoplay = true;
             // Default: loop videos in the viewer. If custom controls are mounted, they may disable native looping.
             video.loop = true;
             video.playsInline = true;
             video.muted = true;
+            video.autoplay = true;
             video.preload = "metadata";
             video.style.cssText = "position:absolute; width:1px; height:1px; opacity:0; pointer-events:none;";
             _attachFpsDetection(video, asset);

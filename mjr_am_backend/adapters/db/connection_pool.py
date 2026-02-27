@@ -11,6 +11,7 @@ from typing import Any
 from ...shared import get_logger
 
 logger = get_logger(__name__)
+_MAX_DB_CONFIG_BYTES = 1024 * 1024
 
 
 def init_db(sqlite_obj: Any) -> None:
@@ -35,12 +36,28 @@ def load_user_db_config(sqlite_obj: Any) -> dict[str, Any]:
 
 
 def resolve_user_db_config_path(sqlite_obj: Any) -> Path:
+    default_path = sqlite_obj.db_path.parent / "db_config.json"
     cfg_path_raw = os.getenv("MAJOOR_DB_CONFIG_PATH", "").strip()
-    return Path(cfg_path_raw).expanduser() if cfg_path_raw else (sqlite_obj.db_path.parent / "db_config.json")
+    if not cfg_path_raw:
+        return default_path
+    try:
+        candidate = Path(cfg_path_raw).expanduser().resolve(strict=False)
+        base_dir = sqlite_obj.db_path.parent.resolve(strict=False)
+        candidate.relative_to(base_dir)
+        return candidate
+    except Exception:
+        logger.warning("Ignoring MAJOOR_DB_CONFIG_PATH outside index directory: %s", cfg_path_raw)
+        return default_path
 
 
 def read_user_db_config_file(cfg_path: Path) -> Any:
     if not cfg_path.exists() or not cfg_path.is_file():
+        return {}
+    try:
+        if cfg_path.stat().st_size > _MAX_DB_CONFIG_BYTES:
+            logger.warning("Ignoring oversized db config file (%s bytes): %s", cfg_path.stat().st_size, cfg_path)
+            return {}
+    except Exception:
         return {}
     with cfg_path.open("r", encoding="utf-8") as f:
         return json.load(f)

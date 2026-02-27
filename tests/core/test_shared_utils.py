@@ -8,6 +8,8 @@ from enum import Enum
 
 import pytest
 
+from mjr_am_shared import errors as errors_mod
+from mjr_am_shared import log as log_mod
 from mjr_am_shared import result as result_mod
 from mjr_am_shared import time as time_mod
 
@@ -102,3 +104,15 @@ def test_result_unwrap_or_default():
 
 def test_result_unwrap_or_ok():
     assert result_mod.Result.Ok(7).unwrap_or(99) == 7
+
+
+def test_get_logger_does_not_duplicate_correlation_filter() -> None:
+    logger = log_mod.get_logger("test_shared_utils_logger")
+    logger = log_mod.get_logger("test_shared_utils_logger")
+    filters = [f for f in list(logger.filters or []) if isinstance(f, log_mod.CorrelationFilter)]
+    assert len(filters) == 1
+
+
+def test_sanitize_error_message_does_not_mask_mime_type() -> None:
+    msg = errors_mod.sanitize_error_message(ValueError("application/json parse failed"), "bad")
+    assert "application/json" in msg

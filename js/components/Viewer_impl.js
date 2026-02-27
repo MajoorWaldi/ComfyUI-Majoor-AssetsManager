@@ -36,6 +36,7 @@ import { createFrameExporter } from "../features/viewer/frameExport.js";
 import { createImagePreloader } from "../features/viewer/imagePreloader.js";
 import { getViewerInstance as _getViewerInstance } from "../features/viewer/viewerInstanceManager.js";
 import { createPlayerBarManager } from "../features/viewer/playerBarManager.js";
+import { getHotkeysState, setHotkeysScope } from "../features/panel/controllers/hotkeysState.js";
 
 /**
  * Viewer modes
@@ -535,7 +536,8 @@ function createViewer() {
         z-index: 10001;
     `;
     const genInfoHeaderLeft = genInfoHeader.cloneNode(true); // Shallow clone structure
-    genInfoHeaderLeft.innerHTML = ""; // Clear content
+    // safe: clearing existing static node content only
+    genInfoHeaderLeft.innerHTML = "";
     const genInfoTitleLeft = document.createElement("div");
     genInfoTitleLeft.textContent = "Generation Info (A)";
     genInfoTitleLeft.style.cssText = "font-size: 13px; font-weight: 600;";
@@ -1961,10 +1963,8 @@ function createViewer() {
         } catch {}
 
         // Restore previous hotkeys scope if available.
-        if (window._mjrHotkeysState) {
-            const prevScope = state?._prevHotkeyScope;
-            window._mjrHotkeysState.scope = prevScope || "panel";
-        }
+        const prevScope = state?._prevHotkeyScope;
+        setHotkeysScope(prevScope || "panel");
         state._prevHotkeyScope = null;
     }
 
@@ -2019,9 +2019,8 @@ function createViewer() {
             document.body.style.overflow = 'hidden';
 
             // Set hotkeys scope to viewer (takes priority over panel)
-            if (!window._mjrHotkeysState) window._mjrHotkeysState = {};
-            state._prevHotkeyScope = window._mjrHotkeysState.scope || null;
-            window._mjrHotkeysState.scope = "viewer";
+            state._prevHotkeyScope = getHotkeysState().scope || null;
+            setHotkeysScope("viewer");
 
             updateUI();
             try {

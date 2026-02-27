@@ -46,7 +46,7 @@ def test_helper_functions_cover_smoke():
     assert m._normalize_pagination(999999, 99999999)[0] == m.SEARCH_MAX_LIMIT
     assert m._escape_like_pattern("a%_\\")
     assert m._resolve_search_roots(["."])
-    where, params = m._build_roots_where_clause(["C:/tmp"])
+    where, params = m._build_roots_where_clause(["/tmp"])
     assert "LIKE" in where and params
     assert m._normalize_month_range("1", "2") == (1, 2)
     assert m._sanitize_histogram_filters({"mtime_start": 1, "x": 2}) == {"x": 2}

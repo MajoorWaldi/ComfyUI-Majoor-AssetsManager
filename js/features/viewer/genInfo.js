@@ -362,7 +362,14 @@ export async function ensureViewerMetadataAsset(
     };
 
     if (cacheKey) {
+        const onAbort = () => {
+            try { GENINFO_INFLIGHT.delete(cacheKey); } catch {}
+        };
+        try {
+            signal?.addEventListener?.("abort", onAbort, { once: true });
+        } catch {}
         const p = run().finally(() => {
+            try { signal?.removeEventListener?.("abort", onAbort); } catch {}
             try { GENINFO_INFLIGHT.delete(cacheKey); } catch {}
         });
         GENINFO_INFLIGHT.set(cacheKey, p);

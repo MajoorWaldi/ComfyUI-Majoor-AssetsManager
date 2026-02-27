@@ -2,6 +2,7 @@ import { updateAssetRating } from "../../../api/client.js";
 import { ASSET_RATING_CHANGED_EVENT } from "../../../app/events.js";
 import { comfyToast } from "../../../app/toast.js";
 import { t } from "../../../app/i18n.js";
+import { getHotkeysState, isHotkeysSuspended, setRatingHotkeysActive } from "./hotkeysState.js";
 
 const EVENT_NAME = ASSET_RATING_CHANGED_EVENT;
 
@@ -41,6 +42,25 @@ function updateCardRatingBadge(card, createRatingBadge, rating) {
     } catch {}
 }
 
+async function runWithConcurrencyLimit(items, worker, limit = 5) {
+    const max = Math.max(1, Number(limit) || 1);
+    let index = 0;
+    const runners = [];
+    const runOne = async () => {
+        while (index < items.length) {
+            const cur = index;
+            index += 1;
+            try {
+                await worker(items[cur], cur);
+            } catch {}
+        }
+    };
+    for (let i = 0; i < Math.min(max, items.length); i += 1) {
+        runners.push(runOne());
+    }
+    await Promise.all(runners);
+}
+
 export function createRatingHotkeysController({ gridContainer, createRatingBadge } = {}) {
     let bound = false;
     let onKeyDown = null;
@@ -69,14 +89,14 @@ export function createRatingHotkeysController({ gridContainer, createRatingBadge
     const bind = () => {
         if (bound || !gridContainer) return;
         bound = true;
-        try { window._mjrRatingHotkeysActive = true; } catch {}
+        setRatingHotkeysActive(true);
 
         onKeyDown = async (e) => {
             // Check if hotkeys are suspended (e.g. when dialogs/popovers are open)
-            if (window._mjrHotkeysState?.suspended) return;
+            if (isHotkeysSuspended()) return;
 
             // Check if viewer has hotkey priority
-            if (window._mjrHotkeysState?.scope === "viewer") return;
+            if (getHotkeysState().scope === "viewer") return;
 
             if (e.defaultPrevented) return;
             const k = String(e.key || "");
@@ -105,10 +125,7 @@ export function createRatingHotkeysController({ gridContainer, createRatingBadge
                 e.stopImmediatePropagation?.();
             }
 
-            // Apply sequentially to avoid hammering the backend on large multi-select.
-            for (const card of cards) {
-                await applyRatingToCard(card, rating);
-            }
+            await runWithConcurrencyLimit(cards, (card) => applyRatingToCard(card, rating), 5);
         };
 
         onRatingEvent = (ev) => {
@@ -136,7 +153,7 @@ export function createRatingHotkeysController({ gridContainer, createRatingBadge
     const dispose = () => {
         if (!bound) return;
         bound = false;
-        try { window._mjrRatingHotkeysActive = false; } catch {}
+        setRatingHotkeysActive(false);
         try {
             // Remove window-level listener
             window.removeEventListener("keydown", onKeyDown, { capture: true });

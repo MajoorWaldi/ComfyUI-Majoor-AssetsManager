@@ -210,9 +210,13 @@ export const loadMajoorSettings = () => {
 
 export const saveMajoorSettings = (settings) => {
     try {
+        const sanitized = JSON.parse(JSON.stringify(settings || {}));
+        if (sanitized?.security && typeof sanitized.security === "object") {
+            sanitized.security.apiToken = "";
+        }
         const wrapped = {
             version: SETTINGS_SCHEMA_VERSION,
-            data: settings,
+            data: sanitized,
         };
         SettingsStore.set(SETTINGS_KEY, JSON.stringify(wrapped));
     } catch (error) {

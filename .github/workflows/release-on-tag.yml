@@ -5,16 +5,17 @@ on:
     tags:
       - "v*.*.*" # Se déclenche sur les tags comme v1.0.0, v0.2.1, etc.
 
-permissions:
-  contents: write
+permissions: {}
 
 jobs:
   create-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           submodules: true
 
@@ -33,7 +34,7 @@ jobs:
           -x "*.zip"
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@f43927f8b9f890f7c14835e6ca0844af754a128d
         with:
           files: ComfyUI-Majoor-AssetsManager_release.zip
           generate_release_notes: true
@@ -47,14 +48,16 @@ jobs:
     needs: create-release
     name: Publish to Comfy Registry
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     # Condition extraite de votre fichier publish.yml original
     if: ${{ github.repository_owner == 'MajoorWaldi' }} 
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           submodules: true
       - name: Publish Custom Node
-        uses: Comfy-Org/publish-node-action@v1
+        uses: Comfy-Org/publish-node-action@d2366e798764f607447f2ef9d5ebcdd4d360f193
         with:
           personal_access_token: ${{ secrets.REGISTRY_ACCESS_TOKEN }}
