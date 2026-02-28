@@ -468,6 +468,12 @@ class DebouncedWatchHandler(FileSystemEventHandler):
                 self._recent.pop(k, None)
 
 
+def _apply_flush_limit(files: list[str]) -> list[str]:
+    if WATCHER_FLUSH_MAX_FILES > 0:
+        return files[:WATCHER_FLUSH_MAX_FILES]
+    return files
+
+
 def _normalize_recent_key(path: str) -> str:
     try:
         return os.path.normcase(os.path.normpath(path))

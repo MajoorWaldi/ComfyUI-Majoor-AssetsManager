@@ -659,5 +659,10 @@ async def rebuild_fts(db) -> Result[bool]:
         logger.error(f"Failed to rebuild asset_metadata_fts: {repair_result.error}")
         return repair_result
 
+    # Always fully reindex the contentless FTS table from source data.
+    # contentless FTS5 (content='') does not support the 'rebuild' command, and
+    # trigger-based inserts in autocommit mode can leave the FTS stats inconsistent.
+    await _reindex_asset_metadata_fts(db)
+
     log_success(logger, "FTS index rebuilt")
     return Result.Ok(True)

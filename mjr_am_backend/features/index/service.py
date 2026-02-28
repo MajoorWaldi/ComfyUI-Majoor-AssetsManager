@@ -40,6 +40,18 @@ async def _get_rename_mtime(new_path: Path) -> int | None:
         return None
 
 
+def _extract_rename_target_info(filepath: str) -> tuple[str, str, int | None]:
+    import os
+    p = Path(filepath)
+    name = p.name
+    subfolder = str(p.parent)
+    try:
+        mtime = int(os.path.getmtime(filepath))
+    except Exception:
+        mtime = None
+    return name, subfolder, mtime
+
+
 async def _update_assets_filepath_row(db, old_fp: str, new_fp: str, filename: str, subfolder: str, mtime: int | None) -> Result[Any]:
     if mtime is None:
         return await db.aexecute(
@@ -209,18 +221,20 @@ class IndexService:
                 logger.debug("Failed to emit scan-complete event: %s", e)
             # Push newly-added assets immediately so the frontend can upsert them
             # into the grid without waiting for the next polling cycle.
+            # Limit raised to 50 so batch workflows (e.g. grid/xyz nodes) get full
+            # immediate coverage; files beyond 50 still appear on next counter poll.
             added_ids = (res.data or {}).get("added_ids") or []
             if added_ids and _PS is not None:
                 try:
-                    batch_res = await self.get_assets_batch(list(added_ids[:20]))
+                    batch_res = await self.get_assets_batch(list(added_ids[:50]))
                     if batch_res.ok and batch_res.data:
                         for asset in batch_res.data:
                             try:
                                 _PS.instance.send_sync("mjr-asset-added", dict(asset))
-                            except Exception:
-                                pass
+                            except Exception as exc:
+                                logger.debug("Failed to push mjr-asset-added for one asset: %s", exc)
                 except Exception as e:
-                    logger.debug("Failed to emit mjr-asset-added events: %s", e)
+                    logger.warning("Failed to emit mjr-asset-added events: %s", e)
             mark_directory_indexed(base_dir, source, root_id)
         return res
 

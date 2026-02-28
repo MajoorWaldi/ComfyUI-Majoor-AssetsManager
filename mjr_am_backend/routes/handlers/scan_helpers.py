@@ -71,7 +71,9 @@ def _emit_maintenance_status(step: str, level: str = "info", message: str | None
             payload["message"] = str(message)
         if extra:
             payload.update(extra)
-        PromptServer.instance.send_sync("mjr-db-restore-status", payload)
+        _ps = getattr(PromptServer, "instance", None)
+        if _ps is not None:
+            _ps.send_sync("mjr-db-restore-status", payload)
     except Exception:
         pass
 

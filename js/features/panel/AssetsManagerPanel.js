@@ -223,6 +223,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     gridContainer = createGridContainer();
     gridWrapper.appendChild(gridContainer);
     _activeGridContainer = gridContainer;
+    try { gridContainer.dataset.mjrScope = state.scope; } catch (e) { console.debug?.(e); }
     const summaryBarDisposers = [];
     const registerSummaryDispose = (fn) => {
         if (typeof fn === "function") summaryBarDisposers.push(fn);
@@ -600,6 +601,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         refreshCustomRoots: customRootsController.refreshCustomRoots,
         reloadGrid: gridController.reloadGrid,
         onChanged: () => {
+            try { if (gridContainer) gridContainer.dataset.mjrScope = state.scope; } catch (e) { console.debug?.(e); }
             notifyContextChanged();
         },
         onScopeChanged: async () => {
@@ -768,6 +770,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             openBtn.style.flex = "1";
             openBtn.addEventListener("click", async () => {
                 state.scope = "custom";
+                try { if (gridContainer) gridContainer.dataset.mjrScope = "custom"; } catch (e) { console.debug?.(e); }
                 state.customRootId = id;
                 state.customRootLabel = label;
                 state.currentFolderRelativePath = "";

@@ -242,6 +242,10 @@ app.registerExtension({
                 try {
                     const grid = getActiveGridContainer();
                     if (grid && event?.detail) {
+                        // Only upsert generated/indexed assets when the active grid shows output
+                        // or "all" scope — never inject output files into the input/custom grid.
+                        const scope = grid.dataset?.mjrScope || "output";
+                        if (scope !== "output" && scope !== "all") return;
                         upsertAsset(grid, event.detail);
                     }
                 } catch (error) {

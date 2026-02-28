@@ -649,18 +649,30 @@ class Sqlite:
             await lock.acquire()
             fts_lock_acquired = True
         try:
-            for stmt in (
-                "INSERT INTO assets_fts(assets_fts) VALUES('rebuild')",
-                "INSERT INTO asset_metadata_fts(asset_metadata_fts) VALUES('rebuild')",
-            ):
-                try:
-                    await self._run_recovery_pragma(rec_conn, stmt)
-                except sqlite3.OperationalError as fts_exc:
-                    if tx_is_missing_table_error(fts_exc):
-                        continue
+            # Rebuild content-backed FTS (supports the 'rebuild' command).
+            try:
+                await self._run_recovery_pragma(rec_conn, "INSERT INTO assets_fts(assets_fts) VALUES('rebuild')")
+            except sqlite3.OperationalError as fts_exc:
+                if not tx_is_missing_table_error(fts_exc):
                     logger.warning("FTS rebuild skipped during recovery: %s", fts_exc)
-                except Exception as fts_exc:
-                    logger.warning("FTS rebuild error during recovery: %s", fts_exc)
+            except Exception as fts_exc:
+                logger.warning("FTS rebuild error during recovery: %s", fts_exc)
+
+            # Reindex contentless FTS (content='' does not support the 'rebuild' command).
+            # Use DELETE + INSERT to reset it from the source table.
+            try:
+                await self._run_recovery_pragma(rec_conn, "DELETE FROM asset_metadata_fts")
+                await self._run_recovery_pragma(
+                    rec_conn,
+                    "INSERT INTO asset_metadata_fts(rowid, tags, tags_text)"
+                    " SELECT asset_id, COALESCE(tags, ''), COALESCE(tags_text, '')"
+                    " FROM asset_metadata",
+                )
+            except sqlite3.OperationalError as fts_exc:
+                if not tx_is_missing_table_error(fts_exc):
+                    logger.warning("FTS reindex skipped during recovery (asset_metadata_fts): %s", fts_exc)
+            except Exception as fts_exc:
+                logger.warning("FTS reindex error during recovery (asset_metadata_fts): %s", fts_exc)
         finally:
             if fts_lock_acquired and lock is not None:
                 lock.release()
