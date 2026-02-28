@@ -41,7 +41,7 @@ logger = get_logger(__name__)
 def _watcher_scope_config(svc: dict[str, Any]) -> tuple[str, str | None]:
     scope_cfg = svc.get("watcher_scope") if isinstance(svc, dict) else None
     desired_scope = normalize_scope((scope_cfg or {}).get("scope"))
-    desired_root_id = (scope_cfg or {}).get("custom_root_id") or (scope_cfg or {}).get("root_id")
+    desired_root_id = (scope_cfg or {}).get("custom_root_id")
     return desired_scope, desired_root_id
 
 
@@ -138,7 +138,7 @@ async def _start_watcher_for_scope(svc: dict[str, Any], index_service: Any, *, _
     watch_paths = _build_watch_paths(desired_scope, desired_root_id)
     if not watch_paths:
         return Result.Err("NO_DIRECTORIES", "No directories to watch")
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     await new_watcher.start(watch_paths, loop)
     svc["watcher"] = new_watcher
     svc["watcher_scope"] = {"scope": desired_scope, "custom_root_id": desired_root_id or ""}
@@ -413,64 +413,11 @@ def register_watcher_routes(routes: web.RouteTableDef, *, deps: dict | None = No
         except Exception:
             pass
 
-        async def index_callback(filepaths, base_dir, source=None, root_id=None):
-            if not filepaths:
-                return
-            try:
-                # Give executed-event a moment to mark generated files.
-                await asyncio.sleep(0.2)
-            except Exception:
-                pass
-            try:
-                from mjr_am_backend.features.index.watcher import is_recent_generated
-                filepaths = [f for f in (filepaths or []) if f and not is_recent_generated(f)]
-            except Exception:
-                pass
-            if not filepaths:
-                return
-            paths = [Path(f) for f in filepaths if f]
-            if paths:
-                await index_service.index_paths(
-                    paths=paths,
-                    base_dir=base_dir,
-                    incremental=True,
-                    source=source or "watcher",
-                    root_id=root_id,
-                )
-
-        async def remove_callback(filepaths, _base_dir, _source=None, _root_id=None):
-            if not filepaths:
-                return
-            for fp in filepaths:
-                try:
-                    await index_service.remove_file(str(fp))
-                except Exception:
-                    continue
-
-        async def move_callback(moves, _base_dir, source=None, root_id=None):
-            if not moves:
-                return
-            for move in moves:
-                try:
-                    old_fp, new_fp = move
-                except Exception:
-                    continue
-                try:
-                    res = await index_service.rename_file(str(old_fp), str(new_fp))
-                    if not res.ok:
-                        await index_service.remove_file(str(old_fp))
-                        await index_service.index_paths(
-                            paths=[Path(str(new_fp))],
-                            base_dir=str(_base_dir),
-                            incremental=True,
-                            source=source or "watcher",
-                            root_id=root_id,
-                        )
-                except Exception:
-                    continue
-
-        new_watcher = OutputWatcher(index_callback, remove_callback=remove_callback, move_callback=move_callback)
-        loop = asyncio.get_event_loop()
+        # Use the shared callback builder so all watcher instances share the same
+        # recent-generated filtering logic (BUG-02: was previously duplicated inline).
+        index_cb, remove_cb, move_cb = _build_watcher_callbacks(index_service)
+        new_watcher = OutputWatcher(index_cb, remove_callback=remove_cb, move_callback=move_cb)
+        loop = asyncio.get_running_loop()
         await new_watcher.start(watch_paths, loop)
         svc["watcher"] = new_watcher
         return _json_response(Result.Ok({"enabled": True, "directories": new_watcher.watched_directories, "scope": scope}))

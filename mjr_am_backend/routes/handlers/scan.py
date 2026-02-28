@@ -207,42 +207,36 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 fast = bool(body.get("fast") or body.get("mode") == "fast" or body.get("manifest_only") is True)
                 background_metadata = bool(body.get("background_metadata") or body.get("enrich_metadata") or body.get("enqueue_metadata"))
                 try:
-                    # [OPTIMIZATION] Parallel Scan (Output + Input)
-                    # Use gather instead of sequential await
-                    out_coro = svc['index'].scan_directory(
-                        str(Path(output_root).resolve()),
-                        recursive,
-                        incremental,
-                        "output",
-                        None,
-                        fast,
-                        background_metadata,
-                    )
-                    in_coro = svc['index'].scan_directory(
-                        str(Path(folder_paths.get_input_directory()).resolve()),
-                        recursive,
-                        incremental,
-                        "input",
-                        None,
-                        fast,
-                        background_metadata,
-                    )
+                    # Note: output and input scans share the same _scan_lock so they
+                    # serialize naturally — no actual concurrency gain from gather here.
+                    # Sequential awaits are clearer and equally performant (BUG-03).
+                    try:
+                        out_res = await asyncio.wait_for(
+                            svc['index'].scan_directory(
+                                str(Path(output_root).resolve()),
+                                recursive, incremental, "output", None, fast, background_metadata,
+                            ),
+                            timeout=TO_THREAD_TIMEOUT_S,
+                        )
+                    except asyncio.TimeoutError:
+                        return _json_response(Result.Err("TIMEOUT", "Output scan timed out"))
+                    except Exception as exc:
+                        logger.error("Output scan failed: %s", exc)
+                        return _json_response(Result.Err("SCAN_FAILED", safe_error_message(exc, "Output scan failed")))
 
-                    results = await asyncio.wait_for(
-                        asyncio.gather(out_coro, in_coro, return_exceptions=True),
-                        timeout=TO_THREAD_TIMEOUT_S
-                    )
-
-                    out_res = results[0]
-                    in_res = results[1]
-
-                    # Handle exceptions if any (never raise to UI).
-                    if isinstance(out_res, Exception):
-                        logger.error("Output scan failed: %s", out_res)
-                        return _json_response(Result.Err("SCAN_FAILED", safe_error_message(out_res, "Output scan failed")))
-                    if isinstance(in_res, Exception):
-                        logger.error("Input scan failed: %s", in_res)
-                        return _json_response(Result.Err("SCAN_FAILED", safe_error_message(in_res, "Input scan failed")))
+                    try:
+                        in_res = await asyncio.wait_for(
+                            svc['index'].scan_directory(
+                                str(Path(folder_paths.get_input_directory()).resolve()),
+                                recursive, incremental, "input", None, fast, background_metadata,
+                            ),
+                            timeout=TO_THREAD_TIMEOUT_S,
+                        )
+                    except asyncio.TimeoutError:
+                        return _json_response(Result.Err("TIMEOUT", "Input scan timed out"))
+                    except Exception as exc:
+                        logger.error("Input scan failed: %s", exc)
+                        return _json_response(Result.Err("SCAN_FAILED", safe_error_message(exc, "Input scan failed")))
 
                 except asyncio.TimeoutError:
                     return _json_response(Result.Err("TIMEOUT", "Scan timed out"))
@@ -586,121 +580,65 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             total_stats["skipped"] += stats.get("skipped", 0)
             total_stats["errors"] += stats.get("errors", 0)
 
-        # POST-PROCESSING: Enhance metadata with frontend-provided info (e.g. generation_time_ms)
-        # We process this via a temporary table batch update to avoid N+1 queries.
-        _enhancement_map: dict[str, dict[str, Any]] = {}
-
-        insert_params = []
+        # POST-PROCESSING: Enhance metadata with frontend-provided info (e.g. generation_time_ms).
+        # BUG-04: replaced SQLite TEMP TABLE (connection-affinity issue with pool) with a direct
+        # IN-clause query.  BUG-09: metadata_raw is fetched once in the batch query and reused
+        # directly — no per-asset re-read (was N+1 before).
+        import json
+        gen_time_lookup: dict[tuple[str, str, str], int] = {}
         for item in files:
             gen_time = item.get("generation_time_ms") or item.get("duration_ms")
             if gen_time and isinstance(gen_time, (int, float)) and gen_time > 0:
                 fname = item.get("filename")
                 if not fname:
                     continue
-                s_name = item.get("subfolder") or ""
-                s_src = (item.get("type") or "output").lower()
+                key = (str(fname), str(item.get("subfolder") or ""), (item.get("type") or "output").lower())
+                gen_time_lookup.setdefault(key, int(gen_time))
 
-                # Check duplication in params list
-                # (Simple dedupe by tuple key)
-                key = (fname, str(s_name), s_src)
-                if key not in _enhancement_map:
-                    _enhancement_map[key] = True
-                    insert_params.append((str(fname), str(s_name), s_src, int(gen_time)))
-
-        if insert_params:
+        if gen_time_lookup:
             try:
                 db_adapter = svc['db']
-
-                gen_time_by_id: dict = {}
-                async with db_adapter.atransaction() as tx:
-                    if not tx.ok:
-                        raise RuntimeError(tx.error or "Failed to begin transaction")
-                    # A. Create Temp Table for Batch Processing
-                    await db_adapter.aexecute("CREATE TEMPORARY TABLE IF NOT EXISTS temp_gen_updates (filename TEXT, subfolder TEXT, source TEXT, gen_time INTEGER)")
-                    await db_adapter.aexecute("DELETE FROM temp_gen_updates")
-
-                    # B. Bulk Insert
-                    await db_adapter.aexecutemany("INSERT INTO temp_gen_updates (filename, subfolder, source, gen_time) VALUES (?, ?, ?, ?)", insert_params)
-
-                    # C. Fetch joined data in ONE query
-                    q_res = await db_adapter.aquery("""
-                        SELECT a.id, am.metadata_raw, t.gen_time
-                        FROM temp_gen_updates t
-                        JOIN assets a ON a.filename = t.filename AND a.subfolder = t.subfolder AND a.source = t.source
-                        LEFT JOIN asset_metadata am ON a.id = am.asset_id
-                    """)
-
-                    if q_res.ok and q_res.data:
-                        import json
-                        upsert_params = []
-
-                        for row in q_res.data:
-                            asset_id = row["id"]
-                            raw = row["metadata_raw"]
-                            new_time = row["gen_time"]
-
-                            current_meta = {}
-                            if raw:
-                                try:
-                                    current_meta = json.loads(raw)
-                                except (json.JSONDecodeError, TypeError, ValueError):
-                                    pass
-
-                            # Merge updates
-                            current_meta["generation_time_ms"] = new_time
-                            new_json = json.dumps(current_meta, ensure_ascii=False)
-
-                            upsert_params.append((asset_id, new_json))
+                fnames = list({k[0] for k in gen_time_lookup})
+                placeholders = ",".join("?" * len(fnames))
+                # Single batch query — no temp table, no connection-affinity risk.
+                q_res = await db_adapter.aquery(
+                    f"SELECT a.id, a.filename, a.subfolder, a.source, am.metadata_raw "
+                    f"FROM assets a LEFT JOIN asset_metadata am ON a.id = am.asset_id "
+                    f"WHERE a.filename IN ({placeholders})",
+                    tuple(fnames),
+                )
+                gen_time_by_id: dict[int, int] = {}
+                if q_res.ok and q_res.data:
+                    for row in q_res.data:
+                        key = (
+                            str(row.get("filename") or ""),
+                            str(row.get("subfolder") or ""),
+                            str(row.get("source") or "output"),
+                        )
+                        gt = gen_time_lookup.get(key)
+                        if gt is None:
+                            continue
+                        asset_id = row.get("id")
+                        if not asset_id:
+                            continue
+                        # Reuse metadata_raw already fetched in this query (BUG-09: was re-read).
+                        cur_meta: dict[str, Any] = {}
+                        raw = row.get("metadata_raw")
+                        if raw:
                             try:
-                                gen_time_by_id[int(asset_id)] = int(new_time)
+                                cur_meta = json.loads(raw)
                             except Exception:
                                 pass
-
-                        # D. Bulk Upsert (INSERT or UPDATE)
-                        # Prefer per-asset locked writes using MetadataHelpers to avoid races
-                        # with other concurrent metadata writers (background enrichers, manual edits).
-                        if upsert_params:
-                            try:
-                                for asset_id, new_json in upsert_params:
-                                    try:
-                                        async with db_adapter.lock_for_asset(int(asset_id)):
-                                            cur = await db_adapter.aquery("SELECT metadata_raw FROM asset_metadata WHERE asset_id = ? LIMIT 1", (int(asset_id),))
-                                            cur_meta = {}
-                                            if cur.ok and cur.data and cur.data[0].get("metadata_raw"):
-                                                try:
-                                                    cur_meta = json.loads(cur.data[0].get("metadata_raw") or "{}")
-                                                except Exception:
-                                                    cur_meta = {}
-
-                                            incoming_meta = {}
-                                            try:
-                                                incoming_meta = json.loads(new_json) if new_json else {}
-                                            except Exception:
-                                                incoming_meta = {}
-
-                                            merged = dict(cur_meta)
-                                            merged.update(incoming_meta)
-
-                                            await MetadataHelpers.write_asset_metadata_row(db_adapter, int(asset_id), Result.Ok(merged))
-                                    except Exception:
-                                        logger.debug("Failed to upsert generation time for asset %s", asset_id)
-                            except Exception:
-                                try:
-                                    await db_adapter.aexecutemany("""
-                                        INSERT INTO asset_metadata (asset_id, metadata_raw)
-                                        SELECT ?, ?
-                                        WHERE EXISTS (SELECT 1 FROM assets WHERE id = ?)
-                                        ON CONFLICT(asset_id) DO UPDATE SET
-                                            metadata_raw = excluded.metadata_raw
-                                        WHERE EXISTS (SELECT 1 FROM assets WHERE id = excluded.asset_id)
-                                    """, [(asset_id, new_json, asset_id) for asset_id, new_json in upsert_params])
-                                except Exception:
-                                    logger.debug("Fallback SQL bulk upsert failed")
-
-                    # Cleanup
-                    await db_adapter.aexecute("DROP TABLE IF EXISTS temp_gen_updates")
-                if not tx.ok:
-                    raise RuntimeError(tx.error or "Commit failed")
+                        merged = dict(cur_meta)
+                        merged["generation_time_ms"] = gt
+                        try:
+                            async with db_adapter.lock_for_asset(int(asset_id)):
+                                await MetadataHelpers.write_asset_metadata_row(
+                                    db_adapter, int(asset_id), Result.Ok(merged)
+                                )
+                            gen_time_by_id[int(asset_id)] = gt
+                        except Exception:
+                            logger.debug("Failed to upsert generation time for asset %s", asset_id)
 
                 if gen_time_by_id:
                     try:
