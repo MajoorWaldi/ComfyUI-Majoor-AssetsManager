@@ -20,7 +20,7 @@ export async function triggerStartupScan() {
     startupScanDone = true;
 
     try {
-        console.log("📂 Majoor [ℹ️]: Starting startup scan of output directory...");
+        console.debug("[Majoor] Starting startup scan of output directory...");
 
         const result = await post(ENDPOINTS.SCAN, {
             recursive: true,
@@ -31,7 +31,7 @@ export async function triggerStartupScan() {
 
         if (result.ok) {
             const stats = result.data;
-            console.log(`📂 Majoor [✅]: Startup scan complete! Added: ${stats.added}, Updated: ${stats.updated}, Skipped: ${stats.skipped}`);
+            console.debug(`[Majoor] Startup scan complete — added: ${stats.added}, updated: ${stats.updated}, skipped: ${stats.skipped}`);
         } else {
             console.warn("📂 Majoor [⚠️]: Startup scan failed:", result.error);
         }
@@ -45,12 +45,11 @@ export async function triggerStartupScan() {
  */
 export async function testAPI() {
     try {
-        console.log("📂 Majoor: Testing API connection...");
+        console.debug("[Majoor] Testing API connection...");
         const data = await get(ENDPOINTS.HEALTH);
 
         if (data?.ok) {
-            console.log("📂 Majoor [✅]: API connection successful!");
-            console.log("📂 Majoor [ℹ️]: Health status:", data.data.overall);
+            console.debug("[Majoor] API connection successful, health:", data.data.overall);
         } else {
             console.error("📂 Majoor [❌]: API health check failed:", data?.error);
         }

@@ -44,6 +44,9 @@ class MetadataEnricher:
     scans that skip metadata extraction during the initial pass.
     """
 
+    # Batch size configurable via MAJOOR_ENRICHER_CHUNK_SIZE.
+    _CHUNK_SIZE = int(os.getenv("MAJOOR_ENRICHER_CHUNK_SIZE", 64))
+
     def __init__(
         self,
         db: Sqlite,
@@ -78,11 +81,14 @@ class MetadataEnricher:
 
     def _emit_status(self, active: bool, **extra: Any) -> None:
         try:
-            if self._status_active == bool(active):
+            active = bool(active)
+            # Suppress redundant inactive→inactive transitions; always emit active updates
+            # so the frontend receives queue-depth changes while the worker is running (MED-02).
+            if not active and not self._status_active:
                 return
-            self._status_active = bool(active)
+            self._status_active = active
             from ...routes.registry import PromptServer
-            payload = {"active": bool(active), **extra}
+            payload = {"active": active, **extra}
             PromptServer.instance.send_sync("mjr-enrichment-status", payload)
         except Exception:
             pass
@@ -206,7 +212,7 @@ class MetadataEnricher:
                 async with self._enrich_lock:
                     if not self._enrich_queue:
                         return
-                    size = max(1, int(self._CHUNK_SIZE or 64))
+                    size = max(1, self._CHUNK_SIZE)
                     chunk_items = self._enrich_queue[:size]
                     del self._enrich_queue[:size]
                     chunk = [fp for _, fp in chunk_items if fp]
@@ -535,5 +541,3 @@ class MetadataEnricher:
             return int(len(self._enrich_queue))
         except Exception:
             return 0
-    # Batch size configurable via MAJOOR_ENRICHER_CHUNK_SIZE.
-    _CHUNK_SIZE = int(os.getenv("MAJOOR_ENRICHER_CHUNK_SIZE", 64))

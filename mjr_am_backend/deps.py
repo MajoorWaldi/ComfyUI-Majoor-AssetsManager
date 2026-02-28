@@ -201,6 +201,17 @@ async def _create_watcher(index_service: IndexService) -> OutputWatcher:
         """Called by watcher when files are ready to index."""
         if not filepaths:
             return
+        # Mirror the same recent-generated guard used in scan_watcher._build_watcher_callbacks
+        # so the startup watcher also skips files that ComfyUI just generated (BUG-02).
+        try:
+            from .features.index.watcher import _RECENT_GENERATED, is_recent_generated
+            if _RECENT_GENERATED:
+                await asyncio.sleep(0.2)
+            filepaths = [f for f in filepaths if f and not is_recent_generated(f)]
+        except Exception:
+            pass
+        if not filepaths:
+            return
         paths = [Path(f) for f in filepaths if f]
         if paths:
             await index_service.index_paths(

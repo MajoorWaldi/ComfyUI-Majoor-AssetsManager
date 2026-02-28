@@ -350,7 +350,7 @@ app.registerExtension({
                 reportError(error, "entry.runtime_store");
             }
             triggerStartupScan();
-            console.log("📂 Majoor [✅] Real-time listener registered");
+            console.debug("[Majoor] Real-time listener registered");
         } else {
             console.warn("📂 Majoor [⚠️] API not available, real-time updates disabled");
         }
@@ -368,7 +368,7 @@ app.registerExtension({
                 },
             })) {
 
-            console.log("📂 Majoor Assets Manager: Sidebar tab registered");
+            console.debug("[Majoor] Sidebar tab registered");
         } else {
             console.warn("📂 Majoor Assets Manager: extensionManager.registerSidebarTab is unavailable");
         }

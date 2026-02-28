@@ -31,17 +31,13 @@ def _normalize_rename_paths(old_filepath: str, new_filepath: str) -> tuple[str, 
     return str(old_filepath or ""), str(new_filepath or "")
 
 
-def _extract_rename_target_info(new_fp: str) -> tuple[str, str, int | None]:
-    new_path = Path(new_fp)
-    filename = new_path.name
-    subfolder = str(new_path.parent)
-    mtime: int | None = None
+async def _get_rename_mtime(new_path: Path) -> int | None:
+    """Async-safe mtime read — offloads blocking stat() to a thread (BUG-08)."""
     try:
-        if new_path.exists():
-            mtime = int(new_path.stat().st_mtime)
+        stat = await asyncio.to_thread(new_path.stat)
+        return int(stat.st_mtime)
     except Exception:
-        mtime = None
-    return filename, subfolder, mtime
+        return None
 
 
 async def _update_assets_filepath_row(db, old_fp: str, new_fp: str, filename: str, subfolder: str, mtime: int | None) -> Result[Any]:
@@ -200,23 +196,27 @@ class IndexService:
             root_id=root_id,
         )
         if res.ok:
+            # Single import shared by both notifications below (MED-05).
             try:
-                # Notify frontend (useful for drag-drop staging updates)
-                from ...routes.registry import PromptServer
-                PromptServer.instance.send_sync("mjr-scan-complete", res.data)
+                from ...routes.registry import PromptServer as _PS
+            except Exception:
+                _PS = None
+            try:
+                if _PS is not None:
+                    # Notify frontend (useful for drag-drop staging updates)
+                    _PS.instance.send_sync("mjr-scan-complete", res.data)
             except Exception as e:
                 logger.debug("Failed to emit scan-complete event: %s", e)
             # Push newly-added assets immediately so the frontend can upsert them
             # into the grid without waiting for the next polling cycle.
             added_ids = (res.data or {}).get("added_ids") or []
-            if added_ids:
+            if added_ids and _PS is not None:
                 try:
-                    from ...routes.registry import PromptServer
                     batch_res = await self.get_assets_batch(list(added_ids[:20]))
                     if batch_res.ok and batch_res.data:
                         for asset in batch_res.data:
                             try:
-                                PromptServer.instance.send_sync("mjr-asset-added", dict(asset))
+                                _PS.instance.send_sync("mjr-asset-added", dict(asset))
                             except Exception:
                                 pass
                 except Exception as e:
@@ -255,9 +255,16 @@ class IndexService:
             return Result.Ok(True)
 
         try:
-            filename, subfolder, mtime = _extract_rename_target_info(new_fp)
+            new_path = Path(new_fp)
+            filename = new_path.name
+            subfolder = str(new_path.parent)
+            mtime = await _get_rename_mtime(new_path)
 
             async with self.db.atransaction(mode="immediate"):
+                # PRAGMA defer_foreign_keys is per-connection and per-transaction.
+                # atransaction pins all operations to a single connection via _TX_TOKEN
+                # (see sqlite_facade.py), so the PRAGMA and the subsequent UPDATEs are
+                # guaranteed to run on the same physical connection (LOW-05).
                 defer_fk = await self.db.aexecute("PRAGMA defer_foreign_keys = ON")
                 if not defer_fk.ok:
                     return Result.Err("DB_ERROR", defer_fk.error or "Failed to defer foreign key checks")

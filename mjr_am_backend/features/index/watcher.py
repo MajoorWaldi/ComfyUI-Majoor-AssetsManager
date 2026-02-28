@@ -138,12 +138,18 @@ class DebouncedWatchHandler(FileSystemEventHandler):
         self._refresh_runtime_settings()
 
     def _is_ignored_path(self, path: str) -> bool:
-        """Check if path is inside an ignored directory."""
+        """Check if path is inside an ignored directory or is a hidden file."""
         try:
             parts = Path(path).parts
             for part in parts:
-                if part.lower() in IGNORED_DIRS or part.startswith("."):
+                if part.lower() in IGNORED_DIRS:
                     return True
+            # Apply the dot-prefix check only to the filename itself, not to parent
+            # directory components.  A blanket check on all parts would silently ignore
+            # files whose configured output root contains a dot-segment (e.g.
+            # ~/.config/ComfyUI/outputs/ on Linux/macOS) — MED-04.
+            if parts and parts[-1].startswith("."):
+                return True
         except Exception:
             pass
         return False
@@ -244,9 +250,7 @@ class DebouncedWatchHandler(FileSystemEventHandler):
         if not path:
             return
 
-        self._refresh_runtime_settings()
-
-        # Fast rejections
+        # Fast rejections — settings refresh happens inside _schedule_flush (MED-03: was double-called)
         if self._is_ignored_path(path):
             return
         if not self._is_supported(path):
@@ -285,9 +289,11 @@ class DebouncedWatchHandler(FileSystemEventHandler):
             self._refresh_runtime_settings()
             if self._flush_timer:
                 self._flush_timer.cancel()
+            # BUG-10: call_later callback runs in the event loop thread, so use
+            # create_task (not run_coroutine_threadsafe which is for cross-thread use).
             self._flush_timer = self._loop.call_later(
                 self._debounce_s,
-                lambda: asyncio.run_coroutine_threadsafe(self._flush(), self._loop)
+                lambda: self._loop.create_task(self._flush()),
             )
         except Exception:
             pass
@@ -519,22 +525,6 @@ def mark_recent_generated(paths: list[str]) -> None:
         return
 
 
-def _apply_flush_limit(files: list[str]) -> list[str]:
-    if WATCHER_FLUSH_MAX_FILES <= 0:
-        return files
-    if len(files) <= WATCHER_FLUSH_MAX_FILES:
-        return files
-    try:
-        logger.warning(
-            "Watcher flush capped to %d files (requested %d); check for bulk imports or attacks.",
-            WATCHER_FLUSH_MAX_FILES,
-            len(files),
-        )
-    except Exception:
-        pass
-    return files[:WATCHER_FLUSH_MAX_FILES]
-
-
 def _record_flush_volume(count: int) -> None:
     global _STREAM_TOTAL_FILES, _LAST_STREAM_ALERT_TIME
     if count <= 0 or WATCHER_STREAM_ALERT_THRESHOLD <= 0 or WATCHER_STREAM_ALERT_WINDOW_SECONDS <= 0:
@@ -639,7 +629,18 @@ class OutputWatcher:
         if self._watched_paths:
             self._observer.start()
             self._running = True
-            logger.info("File watcher started for %d directories", len(self._watched_paths))
+            # Log which OS-level backend watchdog selected (inotify on Linux,
+            # ReadDirectoryChangesW on Windows, FSEvents/kqueue on macOS).
+            # watchdog.observers.Observer auto-selects the best native backend.
+            try:
+                backend = type(self._observer).__name__
+                logger.info(
+                    "File watcher started for %d directories (backend: %s)",
+                    len(self._watched_paths),
+                    backend,
+                )
+            except Exception:
+                logger.info("File watcher started for %d directories", len(self._watched_paths))
 
     async def _handle_ready_files(self, files: list) -> None:
         if not files:

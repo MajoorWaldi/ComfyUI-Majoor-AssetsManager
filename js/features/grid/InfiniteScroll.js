@@ -180,11 +180,14 @@ export function flushUpsertBatch(gridContainer, deps) {
         clearTimeout(batchState.timer);
         batchState.timer = null;
     }
+    // Snapshot the current batch so items arriving during the flush are not lost (BUG-01).
+    const snapshot = new Map(batchState.pending);
+    for (const key of snapshot.keys()) batchState.pending.delete(key);
     const state = deps.getOrCreateState(gridContainer);
     const vg = deps.ensureVirtualGrid(gridContainer, state);
     try {
         let modified = false;
-        for (const [assetId, asset] of batchState.pending.entries()) {
+        for (const [assetId, asset] of snapshot.entries()) {
             const key = deps.assetKey(asset);
             const existingIndex = state.assets.findIndex((a) => String(a.id) === assetId);
             if (existingIndex > -1) {
@@ -199,16 +202,21 @@ export function flushUpsertBatch(gridContainer, deps) {
                     const insertPos = findInsertPosition(state.assets, asset, sortKey);
                     state.seenKeys.add(key);
                     if (asset.id != null) state.assetIdSet?.add?.(assetId);
-                    if (insertPos === -1) state.assets.push(asset);
-                    else state.assets.splice(insertPos, 0, asset);
+                    state.assets.splice(insertPos, 0, asset); // findInsertPosition never returns -1
                     modified = true;
                 }
             }
         }
         if (modified && vg) vg.setItems(state.assets);
     } finally {
-        batchState.pending.clear();
         batchState.flushing = false;
+        // Items may have arrived during the flush — reschedule if needed (BUG-01).
+        if (batchState.pending.size > 0 && !batchState.timer) {
+            batchState.timer = setTimeout(() => {
+                batchState.timer = null;
+                flushUpsertBatch(gridContainer, deps);
+            }, deps.debounceMs);
+        }
     }
 }
 
