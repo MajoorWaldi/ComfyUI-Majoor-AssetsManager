@@ -8,6 +8,7 @@ export {
   removeAssetsFromGrid,
   disposeGrid,
   upsertAsset,
+  scrollGridToTop,
   captureAnchor,
   restoreAnchor,
   refreshGrid,

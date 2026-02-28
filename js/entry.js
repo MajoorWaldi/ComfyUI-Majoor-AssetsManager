@@ -18,7 +18,7 @@ import {
 import { EVENTS } from "./app/events.js";
 import { initDragDrop } from "./features/dnd/DragDrop.js";
 import { initLiveStreamTracker } from "./features/viewer/LiveStreamTracker.js";
-import { loadAssets, upsertAsset, removeAssetsFromGrid } from "./features/grid/GridView.js";
+import { loadAssets, upsertAsset, scrollGridToTop, removeAssetsFromGrid } from "./features/grid/GridView.js";
 import { renderAssetsManager, getActiveGridContainer } from "./features/panel/AssetsManagerPanel.js";
 import { extractOutputFiles } from "./utils/extractOutputFiles.js";
 import { post } from "./api/client.js";
@@ -239,12 +239,17 @@ app.registerExtension({
                     try {
                         const grid = getActiveGridContainer();
                         if (grid && event?.detail) {
-                            // Only upsert generated/indexed assets when the active grid shows output
-                            // or "all" scope — never inject output files into the input/custom grid.
+                            // Only reload when the active grid shows output or "all" scope.
                             const scope = grid.dataset?.mjrScope || "output";
                             if (scope !== "output" && scope !== "all") return;
-                            upsertAsset(grid, event.detail);
-                            // Signal that upsert ran so handleCountersUpdate can skip its fallback reload.
+                            // Scroll to top first so the grid shows position 0 as soon as the
+                            // reload response arrives — new asset appears at the top.
+                            scrollGridToTop(grid);
+                            // Full reload so the new asset is correctly sorted by the server.
+                            const query = grid.dataset?.mjrQuery || "*";
+                            loadAssets(grid, query).catch(() => {});
+                            // Signal that we handled this event so handleCountersUpdate skips
+                            // its own fallback reload within the next 6 s.
                             try { window.__mjrLastAssetUpsert = Date.now(); } catch (e) { console.debug?.(e); }
                         }
                     } catch (error) {

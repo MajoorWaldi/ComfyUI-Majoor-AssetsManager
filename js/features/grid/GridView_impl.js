@@ -1628,6 +1628,19 @@ export async function restoreAnchor(gridContainer, anchor) {
 }
 
 /**
+ * Scroll the grid to the top (scrollTop = 0).
+ * Called after upserting a newly generated asset so it becomes visible at position 0.
+ */
+export function scrollGridToTop(gridContainer) {
+    try {
+        const state = GRID_STATE.get(gridContainer);
+        if (!state) return;
+        const scrollContainer = _getScrollContainer(gridContainer, state);
+        if (scrollContainer) scrollContainer.scrollTop = 0;
+    } catch (e) { console.debug?.(e); }
+}
+
+/**
  * Force specific refresh of the grid visuals (e.g. after settings change).
  */
 export function refreshGrid(gridContainer) {
