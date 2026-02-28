@@ -7,6 +7,7 @@ import {
     VERSION_UPDATE_EVENT,
     getStoredVersionUpdateState,
 } from "../../../app/versionCheck.js";
+import { EVENTS } from "../../../app/events.js";
 
 let _extensionMetadataPromise = null;
 
@@ -171,6 +172,13 @@ export function createHeaderView() {
     customMenuBtn.style.display = "none";
     headerTools.appendChild(customMenuBtn);
 
+    // Floating Viewer toggle button — opens/closes the MFV overlay.
+    const mfvBtn = createIconButton("pi-window-maximize", t("tooltip.openMFV", "Open Floating Viewer"));
+    mfvBtn.addEventListener("click", () => {
+        window.dispatchEvent(new CustomEvent(EVENTS.MFV_TOGGLE));
+    });
+    headerTools.appendChild(mfvBtn);
+
     headerRow.appendChild(headerLeft);
     headerRow.appendChild(headerActions);
     header.appendChild(headerRow);
@@ -214,6 +222,7 @@ export function createHeaderView() {
         sortBtn,
         collectionsBtn,
         pinnedFoldersBtn,
+        mfvBtn,
         dispose,
     };
 }
