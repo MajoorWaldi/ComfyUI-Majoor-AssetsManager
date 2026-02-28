@@ -18,7 +18,7 @@
 
 ## Samples
 
-![Majoor Assets Manager Sample](examples/Capture d'écran 2026-02-28 210333.png)
+![Majoor Assets Manager Sample](<examples/Capture d'écran 2026-02-28 210333.png>)
 
 ## Quick Start
 
@@ -39,7 +39,7 @@ Useful links:
 ## Table of Contents
 
 - [Main Features](#main-features)
-- [What's New in v2.3.3](#whats-new-in-v233)
+- [What's New in v2.4.0](#whats-new-in-v240)
 - [Installation](#installation)
 - [Basic Usage](#basic-usage)
 - [Majoor Floating Viewer (MFV)](#majoor-floating-viewer-mfv)
@@ -81,7 +81,7 @@ Useful links:
 
 ---
 
-## What's New in v2.3.3
+## What's New in v2.4.0
 
 ### 🎉 Majoor Floating Viewer (MFV) — NEW! 🎯
 A lightweight floating viewer panel for real-time generation comparison:
@@ -642,4 +642,4 @@ Optional attribution request: See [`NOTICE`](NOTICE) file for details.
 ---
 
 *Last updated: February 28, 2026*  
-*Version: 2.3.3*
+*Version: 2.4.0*
