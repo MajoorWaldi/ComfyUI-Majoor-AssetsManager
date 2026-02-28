@@ -643,7 +643,7 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
             except Exception:
                 scheme = ""
             if scheme != "https":
-                logger.warning("Token rotation requested over plain HTTP loopback transport.")
+                logger.debug("Token rotation over plain HTTP loopback (expected for local ComfyUI).")
         payload = {"token_hint": _token_hint(token)}
         if token and _should_expose_token_response():
             payload["token"] = token
@@ -719,7 +719,7 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
             except Exception:
                 scheme = ""
             if scheme != "https":
-                logger.warning("Token bootstrap requested over plain HTTP loopback transport.")
+                logger.debug("Token bootstrap over plain HTTP loopback (expected for local ComfyUI).")
         payload = {"token_hint": _token_hint(token)}
         # Include plain token in body for loopback: only local processes can reach loopback,
         # so returning the token in the JSON body is safe and allows the frontend to cache

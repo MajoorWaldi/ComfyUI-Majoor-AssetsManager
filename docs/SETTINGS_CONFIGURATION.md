@@ -1,7 +1,12 @@
 # Majoor Assets Manager - Settings & Configuration Guide
 
+**Version**: 2.3.3  
+**Last Updated**: February 28, 2026
+
 ## Overview
 The Majoor Assets Manager offers extensive configuration options to customize the interface, performance, and functionality to match your workflow. This guide covers all available settings and configuration options.
+
+**New in v2.3.3**: New settings for Floating Viewer, Live Stream Mode, and output path configuration from UI.
 
 ## Browser-Based Settings
 

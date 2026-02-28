@@ -1,20 +1,25 @@
 # Majoor Assets Manager - Installation Guide
 
+**Version**: 2.3.3  
+**Last Updated**: February 28, 2026
+
 ## Overview
 This guide provides detailed instructions for installing and configuring the Majoor Assets Manager for ComfyUI. Follow these steps to get the extension up and running with all its features.
+
+**New in v2.3.3**: Full Linux support, Majoor Floating Viewer (MFV), improved performance.
 
 ## Prerequisites
 
 ### System Requirements
-- ComfyUI installation
-- Python 3.10–3.12 (ComfyUI upstream recommends 3.13 with 3.12 as the stable fallback, so running 3.12 keeps the Assets Manager aligned with the official guidance).
+- ComfyUI installation (≥ 0.13.0 recommended)
+- Python 3.10, 3.11, or 3.12 (3.13 compatible)
 - At least 500MB free disk space for the extension and dependencies
 - Administrator privileges (for installation and optional tool installations)
 
 ### Supported Platforms
-- Windows 10/11
-- macOS 10.15 or higher
-- Linux (Ubuntu 22.04+, Debian 12+, or equivalent)
+- **Windows**: 10/11
+- **macOS**: 10.15 or higher
+- **Linux**: Ubuntu 22.04+, Debian 12+, Fedora, or equivalent
 
 ## Quick Installation (Recommended)
 

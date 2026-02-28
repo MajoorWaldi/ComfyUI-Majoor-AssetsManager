@@ -1,8 +1,11 @@
 # Testing
 
-This project uses `pytest`. On Windows, batch runners are provided for convenience and generate both:
+**Version**: 2.3.3  
+**Last Updated**: February 28, 2026
+
+This project uses **pytest** (backend) and **Vitest** (frontend) for comprehensive test coverage. On Windows, batch runners are provided for convenience and generate both:
 - JUnit XML (`.xml`)
-- a styled HTML report (`.html`)
+- Styled HTML report (`.html`)
 
 Reports are written to:
 - `tests/__reports__/`
@@ -10,18 +13,61 @@ Reports are written to:
 Open the index:
 - `tests/__reports__/index.html`
 
-## Quick commands
+## Test Coverage
 
-From the repo root:
+### Backend (Python)
+- Core functionality (index, search, routes)
+- Metadata extraction (ExifTool, FFprobe, geninfo)
+- Database operations (schema, migrations)
+- Security (CSRF, auth, path validation)
+- Feature tests (collections, batch ZIP, viewer)
+- Regression tests
 
+### Frontend (JavaScript)
+- Vue.js components
+- API client
+- UI utilities
+- Event handling
+- Drag & drop
+
+---
+
+## Quick Commands
+
+### All Tests (Cross-Platform)
 ```bash
+# From repo root
 python -m pytest -q
+
+# With verbose output
+python -m pytest -v
+
+# With coverage
+pytest tests/ --cov=mjr_am_backend --cov-report=html
 ```
 
-Run a single folder:
-
+### Single Test File
 ```bash
-python -m pytest tests/metadata -q
+python -m pytest tests/core/test_index.py -v
+```
+
+### Single Test Folder
+```bash
+python -m pytest tests/metadata/ -v
+```
+
+### Single Test Function
+```bash
+python -m pytest tests/core/test_index.py::test_scan_recursive -v
+```
+
+### Frontend Tests
+```bash
+# Run JavaScript tests
+npm run test:js
+
+# Watch mode
+npm run test:js:watch
 ```
 
 ## Batch runners (Windows)

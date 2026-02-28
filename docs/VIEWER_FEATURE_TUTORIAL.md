@@ -1,31 +1,219 @@
 # Majoor Assets Manager - Viewer Feature Tutorial
 
+**Version**: 2.3.3  
+**Last Updated**: February 28, 2026
+
 ## Overview
-The advanced viewer provides powerful tools for examining, enhancing, and analyzing your assets. It supports various file types including images and videos, with specialized tools for each format.
+The Majoor Assets Manager provides **two viewer experiences**:
 
-## Opening the Viewer
+### 1. Majoor Floating Viewer (MFV) — NEW! 🎉
+A lightweight, draggable floating panel for **real-time generation comparison**:
+- **Live Stream Mode**: Automatically follows new generations
+- **Compare Modes**: Simple, A/B Compare, Side-by-Side
+- **Node Tracking**: Click nodes to preview their content
+- **Real-time Updates**: Watch generations as they complete
+- **Portable**: Move anywhere on screen, resize, dock
 
-### Methods to Open
-There are several ways to open the viewer:
+**Best for**: Real-time workflow monitoring, quick comparisons, node preview
 
-1. **Double-click Method**:
-   - Double-click any asset in the grid view
-   - Opens the asset with adjacent assets available for navigation
+### 2. Standard Viewer
+A full-featured overlay viewer with **advanced analysis tools**:
+- **Enhancement Tools**: Exposure, gamma, channel isolation
+- **Analysis Tools**: False color, zebra, histogram, waveform, vectorscope
+- **Visual Overlays**: Grid, pixel probe, loupe
+- **Video Controls**: Timeline, in/out points, speed control
 
-2. **Context Menu Method**:
-   - Right-click on an asset
-   - Select "Open in Viewer" from the context menu
+**Best for**: Detailed analysis, quality inspection, metadata review
 
-3. **Keyboard Method**:
-   - Select an asset in the grid
-   - Press Enter to open in viewer
+---
 
-### Viewer Layout
-The viewer consists of:
-- **Main View Area**: Displays the selected asset
-- **Toolbar**: Contains viewing and analysis tools
-- **Sidebar**: Shows metadata and generation info
-- **Navigation Controls**: Move between assets in the current set
+## Table of Contents
+
+### Majoor Floating Viewer (MFV)
+- [Opening the Floating Viewer](#opening-the-floating-viewer)
+- [Live Stream Mode](#live-stream-mode)
+- [Compare Modes](#compare-modes)
+- [Node Tracking](#node-tracking)
+- [MFV Controls](#mfv-controls)
+- [MFV Keyboard Shortcuts](#mfv-keyboard-shortcuts)
+
+### Standard Viewer
+- [Opening the Standard Viewer](#opening-the-standard-viewer)
+- [Viewer Layout](#viewer-layout)
+- [Viewer Navigation](#viewer-navigation)
+- [Image Enhancement Tools](#image-enhancement-tools)
+- [Analysis Tools](#analysis-tools)
+- [Visual Overlays](#visual-overlays)
+- [Professional Analysis Tools (Scopes)](#professional-analysis-tools-scopes)
+- [Video-Specific Features](#video-specific-features)
+- [Export Capabilities](#export-capabilities)
+- [Standard Viewer Hotkeys](#standard-viewer-hotkeys)
+
+### Both Viewers
+- [Troubleshooting](#troubleshooting-viewer-issues)
+- [Best Practices](#best-practices)
+
+---
+
+## Majoor Floating Viewer (MFV)
+
+### Opening the Floating Viewer
+
+There are several ways to open the Majoor Floating Viewer:
+
+#### Method 1: Toolbar Button
+1. Open the Assets Manager panel
+2. Click the **Floating Viewer** button in the toolbar (icon: overlapping rectangles)
+3. The MFV panel appears on screen
+
+#### Method 2: Context Menu
+1. Right-click on any asset in the grid
+2. Select **"Open in Floating Viewer"**
+3. The MFV panel opens with that asset
+
+#### Method 3: Node Tracking
+1. Click on any **LoadImage** or **SaveImage** node in ComfyUI
+2. The MFV automatically opens (if enabled in settings)
+3. Shows the node's current content
+
+#### Method 4: Keyboard Shortcut
+- Press the configured hotkey (default: not assigned, can be set in settings)
+
+### Live Stream Mode
+
+**Live Stream Mode** automatically tracks new generations in real-time:
+
+#### Enabling Live Stream
+1. Open the Floating Viewer
+2. Click the **Live Stream** button (icon: broadcast tower)
+3. Or press **Shift+M** to toggle
+
+#### How It Works
+- Monitors ComfyUI execution events
+- Automatically switches to newly generated images
+- Follows SaveImage/LoadImage node outputs
+- No manual refresh needed
+
+#### Use Cases
+- **Workflow Development**: Watch intermediate results
+- **Batch Generation**: Monitor progress across multiple prompts
+- **Parameter Tuning**: See changes in real-time
+- **Node Debugging**: Track data flow through workflow
+
+### Compare Modes
+
+The MFV supports three comparison modes:
+
+#### Simple Mode (Default)
+- Single image display
+- Full resolution preview
+- Standard navigation
+
+**Shortcut**: Press **M** until Simple mode is active
+
+#### A/B Compare Mode
+- Toggle between two images rapidly
+- Click asset to set as A or B
+- Useful for subtle difference detection
+
+**How to Use**:
+1. Enable A/B Compare mode (press **M**)
+2. Click first asset → Set as A
+3. Click second asset → Set as B
+4. Click or press **Tab** to toggle between them
+
+**Use Cases**:
+- Compare different sampler results
+- Check before/after edits
+- Evaluate parameter changes
+
+#### Side-by-Side Mode
+- Display both images simultaneously
+- Split view (vertical or horizontal)
+- Synchronized zoom and pan
+
+**How to Use**:
+1. Enable Side-by-Side mode (press **M**)
+2. Select two assets
+3. Both display side by side
+4. Use **\\** to toggle split orientation
+
+**Use Cases**:
+- Direct visual comparison
+- Composition analysis
+- Color grading comparison
+
+### Node Tracking
+
+**Node Tracking** lets you preview node content instantly:
+
+#### Enabling Node Tracking
+1. Open the Floating Viewer
+2. Click the **Node Tracking** button (icon: node graph)
+3. Or press **N** to toggle
+
+#### How It Works
+- Click any **LoadImage** node → Preview that image
+- Click any **SaveImage** node → Preview generated output
+- Click intermediate nodes → See their current state
+- Automatically updates when node content changes
+
+#### Use Cases
+- **Debugging**: Check intermediate tensor values
+- **Workflow Building**: Verify node connections
+- **Quality Control**: Inspect outputs at each stage
+- **Teaching**: Show workflow data flow
+
+### MFV Controls
+
+#### Panel Controls
+- **Move**: Drag from panel header
+- **Resize**: Drag panel edges or corners
+- **Close**: Click X button or press **Esc**
+- **Minimize**: Click minimize button (optional)
+
+#### Zoom & Pan
+- **Zoom In**: Mouse wheel up or **Up Arrow**
+- **Zoom Out**: Mouse wheel down or **Down Arrow**
+- **Reset Zoom**: Press **0** (fit to screen)
+- **Actual Size**: Press **1** (1:1 pixel)
+- **Pan**: Click and drag when zoomed in
+
+#### Navigation
+- **Previous Asset**: **Left Arrow**
+- **Next Asset**: **Right Arrow**
+- **First Asset**: **Home**
+- **Last Asset**: **End**
+
+### MFV Keyboard Shortcuts
+
+#### General
+| Shortcut | Action |
+|----------|--------|
+| **Esc** | Close Floating Viewer |
+| **F** | Toggle Fullscreen |
+| **M** | Cycle Compare Mode |
+| **Shift+M** | Toggle Live Stream Mode |
+| **N** | Toggle Node Tracking |
+
+#### Compare Mode
+| Shortcut | Action |
+|----------|--------|
+| **Tab** | Swap A/B Images |
+| **\\** | Toggle Split Orientation |
+
+#### Video Controls
+| Shortcut | Action |
+|----------|--------|
+| **Space** | Play/Pause Video |
+| **[** | Set In Point |
+| **]** | Set Out Point |
+
+See [HOTKEYS_SHORTCUTS.md](HOTKEYS_SHORTCUTS.md) for complete shortcut list.
+
+---
+
+## Standard Viewer
 
 ## Viewer Navigation
 
