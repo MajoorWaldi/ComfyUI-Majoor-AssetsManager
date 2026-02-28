@@ -34,7 +34,7 @@ jobs:
           -x "*.zip"
 
       - name: Create Release
-        uses: softprops/action-gh-release@f43927f8b9f890f7c14835e6ca0844af754a128d
+        uses: softprops/action-gh-release@v1
         with:
           files: ComfyUI-Majoor-AssetsManager_release.zip
           generate_release_notes: true
