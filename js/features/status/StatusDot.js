@@ -468,7 +468,7 @@ export function createStatusIndicator(options = {}) {
     const deleteDbBtn = document.createElement("button");
     deleteDbBtn.type = "button";
     deleteDbBtn.textContent = t("btn.deleteDb");
-    deleteDbBtn.title = "Force-delete the database, unlock files, and rebuild from scratch.";
+    deleteDbBtn.title = t("tooltip.deleteDb", "Force-delete database and rebuild from scratch");
     deleteDbBtn.style.cssText = `
         padding: 5px 12px;
         font-size: 11px;

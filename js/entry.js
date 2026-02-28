@@ -84,17 +84,14 @@ function removeRuntimeWindowHandlers(runtime) {
 function installEntryRuntimeController() {
     try {
         if (typeof window !== "undefined") {
-            const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-            // Replace previous runtime entry to allow cleanup on hot-reload
+            // Replace previous runtime entry to allow cleanup on hot-reload.
+            // Handlers are removed explicitly via removeApiHandlers / removeRuntimeWindowHandlers.
             try {
                 const prev = window[ENTRY_RUNTIME_KEY];
-                if (prev && prev.controller && typeof prev.controller.abort === "function") {
-                    try { prev.controller.abort(); } catch (e) { console.debug?.(e); }
-                }
                 removeApiHandlers(prev?.api || null);
                 removeRuntimeWindowHandlers(prev);
             } catch (e) { console.debug?.(e); }
-            window[ENTRY_RUNTIME_KEY] = { controller, api: null, assetsDeletedHandler: null };
+            window[ENTRY_RUNTIME_KEY] = { api: null, assetsDeletedHandler: null };
         }
     } catch (e) { console.debug?.(e); }
 }
@@ -176,198 +173,200 @@ app.registerExtension({
             const api = (await waitForComfyApi({ app: runtimeApp, timeoutMs: 4000 })) || getComfyApi(runtimeApp);
             setComfyApi(api || null);
             if (api) {
-            let runtime = null;
-            try {
-                runtime = typeof window !== "undefined" ? (window[ENTRY_RUNTIME_KEY] || null) : null;
-            } catch (e) { console.debug?.(e); }
-            removeApiHandlers(runtime?.api || null);
-            removeApiHandlers(api);
-            removeRuntimeWindowHandlers(runtime);
-
-            // Listen for ComfyUI execution - extract output files and send to backend
-            api._mjrExecutedHandler = (event) => {
+                let runtime = null;
                 try {
-                    const outputFiles = dedupeFiles(extractOutputFiles(event?.detail?.output));
-                    if (!outputFiles.length) return;
+                    runtime = typeof window !== "undefined" ? (window[ENTRY_RUNTIME_KEY] || null) : null;
+                } catch (e) { console.debug?.(e); }
+                removeApiHandlers(runtime?.api || null);
+                removeApiHandlers(api);
+                removeRuntimeWindowHandlers(runtime);
 
-                    const promptId = event?.detail?.prompt_id || event?.detail?.promptId;
-                    const startTs = promptId ? executionStarts.get(String(promptId)) : null;
-                    const genTimeMs = startTs ? Math.max(0, Date.now() - startTs) : 0;
-
-                    const files = genTimeMs > 0
-                        ? outputFiles.map((f) => ({ ...f, generation_time_ms: genTimeMs }))
-                        : outputFiles;
-
-                    // Notify the MFV (and any other subscriber) that new files were generated.
+                // Listen for ComfyUI execution - extract output files and send to backend
+                api._mjrExecutedHandler = (event) => {
                     try {
-                        window.dispatchEvent(new CustomEvent(EVENTS.NEW_GENERATION_OUTPUT, { detail: { files } }));
+                        const outputFiles = dedupeFiles(extractOutputFiles(event?.detail?.output));
+                        if (!outputFiles.length) return;
+
+                        const promptId = event?.detail?.prompt_id || event?.detail?.promptId;
+                        const startTs = promptId ? executionStarts.get(String(promptId)) : null;
+                        const genTimeMs = startTs ? Math.max(0, Date.now() - startTs) : 0;
+
+                        const files = genTimeMs > 0
+                            ? outputFiles.map((f) => ({ ...f, generation_time_ms: genTimeMs }))
+                            : outputFiles;
+
+                        // Notify the MFV (and any other subscriber) that new files were generated.
+                        try {
+                            window.dispatchEvent(new CustomEvent(EVENTS.NEW_GENERATION_OUTPUT, { detail: { files } }));
+                        } catch (e) { console.debug?.(e); }
+
+                        post(ENDPOINTS.INDEX_FILES, { files, origin: "generation" })
+                            .catch((error) => reportError(error, "entry.executed.index"));
+                    } catch (error) {
+                        reportError(error, "entry.executed");
+                    }
+                };
+                api.addEventListener("executed", api._mjrExecutedHandler);
+
+                // Track execution start/end to compute duration
+                api._mjrExecutionStartHandler = (event) => {
+                    try {
+                        const promptId = event?.detail?.prompt_id || event?.detail?.promptId;
+                        const ts = event?.detail?.timestamp;
+                        rememberExecutionStart(promptId, ts);
+                    } catch (error) {
+                        reportError(error, "entry.execution_start");
+                    }
+                };
+                api._mjrExecutionEndHandler = (event) => {
+                    try {
+                        const promptId = event?.detail?.prompt_id || event?.detail?.promptId;
+                        if (promptId) {
+                            executionStarts.delete(String(promptId));
+                        }
+                        pruneExecutionStarts();
+                    } catch (error) {
+                        reportError(error, "entry.execution_end");
+                    }
+                };
+                api.addEventListener("execution_start", api._mjrExecutionStartHandler);
+                api.addEventListener("execution_success", api._mjrExecutionEndHandler);
+                api.addEventListener("execution_error", api._mjrExecutionEndHandler);
+                api.addEventListener("execution_interrupted", api._mjrExecutionEndHandler);
+
+                // Listen for backend push - upsert asset directly to grid
+                api._mjrAssetAddedHandler = (event) => {
+                    try {
+                        const grid = getActiveGridContainer();
+                        if (grid && event?.detail) {
+                            // Only upsert generated/indexed assets when the active grid shows output
+                            // or "all" scope — never inject output files into the input/custom grid.
+                            const scope = grid.dataset?.mjrScope || "output";
+                            if (scope !== "output" && scope !== "all") return;
+                            upsertAsset(grid, event.detail);
+                            // Signal that upsert ran so handleCountersUpdate can skip its fallback reload.
+                            try { window.__mjrLastAssetUpsert = Date.now(); } catch (e) { console.debug?.(e); }
+                        }
+                    } catch (error) {
+                        reportError(error, "entry.asset_added");
+                    }
+                };
+                api.addEventListener("mjr-asset-added", api._mjrAssetAddedHandler);
+
+                api._mjrAssetUpdatedHandler = (event) => {
+                    try {
+                        const grid = getActiveGridContainer();
+                        if (grid && event?.detail) {
+                            upsertAsset(grid, event.detail);
+                        }
+                    } catch (error) {
+                        reportError(error, "entry.asset_updated");
+                    }
+                };
+                api.addEventListener("mjr-asset-updated", api._mjrAssetUpdatedHandler);
+
+                // Listen for scan-complete events to avoid "Unknown message type" warnings
+                api._mjrScanCompleteHandler = (event) => {
+                    try {
+                        const detail = event?.detail || {};
+                        window.dispatchEvent(new CustomEvent(EVENTS.SCAN_COMPLETE, { detail }));
                     } catch (e) { console.debug?.(e); }
+                };
+                api.addEventListener(EVENTS.SCAN_COMPLETE, api._mjrScanCompleteHandler);
 
-                    post(ENDPOINTS.INDEX_FILES, { files, origin: "generation" })
-                        .catch((error) => reportError(error, "entry.executed.index"));
-                } catch (error) {
-                    reportError(error, "entry.executed");
-                }
-            };
-            api.addEventListener("executed", api._mjrExecutedHandler);
+                api._mjrEnrichmentStatusHandler = (event) => {
+                    try {
+                        const detail = event?.detail || {};
+                        const queued = Number(detail?.queued);
+                        const queueLeft = Number(detail?.queue_left);
+                        const queueLen = Number.isFinite(queued)
+                            ? Math.max(0, Math.floor(queued))
+                            : Number.isFinite(queueLeft)
+                            ? Math.max(0, Math.floor(queueLeft))
+                            : 0;
+                        const active = !!detail?.active || queueLen > 0;
+                        const prev = getEnrichmentState().active;
+                        setEnrichmentState(active, queueLen);
+                        window.dispatchEvent(new CustomEvent(EVENTS.ENRICHMENT_STATUS, { detail }));
+                        // Do not force a full grid reset on enrichment state flips.
+                        // Panel-level listeners handle refresh with scroll/selection anchor preservation.
+                        if (prev && !active) {
+                            comfyToast(t("toast.enrichmentComplete", "Metadata enrichment complete"), "success", 2600);
+                        }
+                    } catch (e) { console.debug?.(e); }
+                };
+                api.addEventListener(EVENTS.ENRICHMENT_STATUS, api._mjrEnrichmentStatusHandler);
 
-            // Track execution start/end to compute duration
-            api._mjrExecutionStartHandler = (event) => {
+                api._mjrDbRestoreStatusHandler = (event) => {
+                    try {
+                        const detail = event?.detail || {};
+                        const step = String(detail?.step || "");
+                        const level = String(detail?.level || "info");
+                        const op = String(detail?.operation || "");
+                        window.dispatchEvent(new CustomEvent(EVENTS.DB_RESTORE_STATUS, { detail }));
+                        const isDelete = op === "delete_db";
+                        const isReset = op === "reset_index";
+                        if (isDelete && !["started", "done", "failed"].includes(step)) {
+                            return;
+                        }
+                        const map = {
+                            started: isDelete
+                                ? t("toast.dbDeleteTriggered", "Deleting database and rebuilding...")
+                                : isReset
+                                ? t("toast.resetTriggered", "Reset triggered: Reindexing all files...")
+                                : t("toast.dbRestoreStarted", "DB restore started"),
+                            stopping_workers: t("toast.dbRestoreStopping", "Stopping running workers"),
+                            resetting_db: t("toast.dbRestoreResetting", "Unlocking and resetting database"),
+                            delete_db: t("toast.dbDeleteTriggered", "Deleting database and rebuilding..."),
+                            recreate_db: t("toast.dbRestoreReplacing", "Recreating database"),
+                            replacing_files: t("toast.dbRestoreReplacing", "Replacing database files"),
+                            restarting_scan: t("toast.dbRestoreRescan", "Restarting scan"),
+                            done: isDelete
+                                ? t("toast.dbDeleteSuccess", "Database deleted and rebuilt. Files are being reindexed.")
+                                : isReset
+                                ? t("toast.resetStarted", "Index reset started. Files will be reindexed in the background.")
+                                : t("toast.dbRestoreSuccess", "Database backup restored"),
+                            failed: String(
+                                detail?.message
+                                    || (isDelete
+                                        ? t("toast.dbDeleteFailed", "Failed to delete database")
+                                        : isReset
+                                        ? t("toast.resetFailed", "Failed to reset index")
+                                        : t("toast.dbRestoreFailed", "Failed to restore DB backup"))
+                            ),
+                        };
+                        const msg = map[step] || String(detail?.message || "");
+                        if (!msg) return;
+                        const tone = level === "error" || step === "failed" ? "error" : step === "done" ? "success" : "info";
+                        comfyToast(msg, tone, step === "done" || step === "failed" ? 2800 : 1800);
+                    } catch (e) { console.debug?.(e); }
+                };
+                api.addEventListener(EVENTS.DB_RESTORE_STATUS, api._mjrDbRestoreStatusHandler);
+
+                const assetsDeletedHandler = (event) => {
+                    try {
+                        const ids = Array.isArray(event?.detail?.ids)
+                            ? event.detail.ids.map((x) => String(x || "")).filter(Boolean)
+                            : [];
+                        if (!ids.length) return;
+                        const grid = getActiveGridContainer();
+                        if (grid) removeAssetsFromGrid(grid, ids);
+                    } catch (e) { console.debug?.(e); }
+                };
+                window.addEventListener(EVENTS.ASSETS_DELETED, assetsDeletedHandler);
                 try {
-                    const promptId = event?.detail?.prompt_id || event?.detail?.promptId;
-                    const ts = event?.detail?.timestamp;
-                    rememberExecutionStart(promptId, ts);
-                } catch (error) {
-                    reportError(error, "entry.execution_start");
-                }
-            };
-            api._mjrExecutionEndHandler = (event) => {
-                try {
-                    const promptId = event?.detail?.prompt_id || event?.detail?.promptId;
-                    if (promptId) {
-                        executionStarts.delete(String(promptId));
+                    if (runtime && typeof runtime === "object") {
+                        runtime.api = api;
+                        runtime.assetsDeletedHandler = assetsDeletedHandler;
                     }
-                    pruneExecutionStarts();
                 } catch (error) {
-                    reportError(error, "entry.execution_end");
+                    reportError(error, "entry.runtime_store");
                 }
-            };
-            api.addEventListener("execution_start", api._mjrExecutionStartHandler);
-            api.addEventListener("execution_success", api._mjrExecutionEndHandler);
-            api.addEventListener("execution_error", api._mjrExecutionEndHandler);
-            api.addEventListener("execution_interrupted", api._mjrExecutionEndHandler);
-
-            // Listen for backend push - upsert asset directly to grid
-            api._mjrAssetAddedHandler = (event) => {
-                try {
-                    const grid = getActiveGridContainer();
-                    if (grid && event?.detail) {
-                        // Only upsert generated/indexed assets when the active grid shows output
-                        // or "all" scope — never inject output files into the input/custom grid.
-                        const scope = grid.dataset?.mjrScope || "output";
-                        if (scope !== "output" && scope !== "all") return;
-                        upsertAsset(grid, event.detail);
-                    }
-                } catch (error) {
-                    reportError(error, "entry.asset_added");
-                }
-            };
-            api.addEventListener("mjr-asset-added", api._mjrAssetAddedHandler);
-
-            api._mjrAssetUpdatedHandler = (event) => {
-                try {
-                    const grid = getActiveGridContainer();
-                    if (grid && event?.detail) {
-                        upsertAsset(grid, event.detail);
-                    }
-                } catch (error) {
-                    reportError(error, "entry.asset_updated");
-                }
-            };
-            api.addEventListener("mjr-asset-updated", api._mjrAssetUpdatedHandler);
-
-            // Listen for scan-complete events to avoid "Unknown message type" warnings
-            api._mjrScanCompleteHandler = (event) => {
-                try {
-                    const detail = event?.detail || {};
-                    window.dispatchEvent(new CustomEvent(EVENTS.SCAN_COMPLETE, { detail }));
-                } catch (e) { console.debug?.(e); }
-            };
-            api.addEventListener(EVENTS.SCAN_COMPLETE, api._mjrScanCompleteHandler);
-
-            api._mjrEnrichmentStatusHandler = (event) => {
-                try {
-                    const detail = event?.detail || {};
-                    const queued = Number(detail?.queued);
-                    const queueLeft = Number(detail?.queue_left);
-                    const queueLen = Number.isFinite(queued)
-                        ? Math.max(0, Math.floor(queued))
-                        : Number.isFinite(queueLeft)
-                        ? Math.max(0, Math.floor(queueLeft))
-                        : 0;
-                    const active = !!detail?.active || queueLen > 0;
-                    const prev = getEnrichmentState().active;
-                    setEnrichmentState(active, queueLen);
-                    window.dispatchEvent(new CustomEvent(EVENTS.ENRICHMENT_STATUS, { detail }));
-                    // Do not force a full grid reset on enrichment state flips.
-                    // Panel-level listeners handle refresh with scroll/selection anchor preservation.
-                    if (prev && !active) {
-                        comfyToast(t("toast.enrichmentComplete", "Metadata enrichment complete"), "success", 2600);
-                    }
-                } catch (e) { console.debug?.(e); }
-            };
-            api.addEventListener(EVENTS.ENRICHMENT_STATUS, api._mjrEnrichmentStatusHandler);
-
-            api._mjrDbRestoreStatusHandler = (event) => {
-                try {
-                    const detail = event?.detail || {};
-                    const step = String(detail?.step || "");
-                    const level = String(detail?.level || "info");
-                    const op = String(detail?.operation || "");
-                    window.dispatchEvent(new CustomEvent(EVENTS.DB_RESTORE_STATUS, { detail }));
-                    const isDelete = op === "delete_db";
-                    const isReset = op === "reset_index";
-                    if (isDelete && !["started", "done", "failed"].includes(step)) {
-                        return;
-                    }
-                    const map = {
-                        started: isDelete
-                            ? t("toast.dbDeleteTriggered", "Deleting database and rebuilding...")
-                            : isReset
-                            ? t("toast.resetTriggered", "Reset triggered: Reindexing all files...")
-                            : t("toast.dbRestoreStarted", "DB restore started"),
-                        stopping_workers: t("toast.dbRestoreStopping", "Stopping running workers"),
-                        resetting_db: t("toast.dbRestoreResetting", "Unlocking and resetting database"),
-                        delete_db: t("toast.dbDeleteTriggered", "Deleting database and rebuilding..."),
-                        recreate_db: t("toast.dbRestoreReplacing", "Recreating database"),
-                        replacing_files: t("toast.dbRestoreReplacing", "Replacing database files"),
-                        restarting_scan: t("toast.dbRestoreRescan", "Restarting scan"),
-                        done: isDelete
-                            ? t("toast.dbDeleteSuccess", "Database deleted and rebuilt. Files are being reindexed.")
-                            : isReset
-                            ? t("toast.resetStarted", "Index reset started. Files will be reindexed in the background.")
-                            : t("toast.dbRestoreSuccess", "Database backup restored"),
-                        failed: String(
-                            detail?.message
-                                || (isDelete
-                                    ? t("toast.dbDeleteFailed", "Failed to delete database")
-                                    : isReset
-                                    ? t("toast.resetFailed", "Failed to reset index")
-                                    : t("toast.dbRestoreFailed", "Failed to restore DB backup"))
-                        ),
-                    };
-                    const msg = map[step] || String(detail?.message || "");
-                    if (!msg) return;
-                    const tone = level === "error" || step === "failed" ? "error" : step === "done" ? "success" : "info";
-                    comfyToast(msg, tone, step === "done" || step === "failed" ? 2800 : 1800);
-                } catch (e) { console.debug?.(e); }
-            };
-            api.addEventListener(EVENTS.DB_RESTORE_STATUS, api._mjrDbRestoreStatusHandler);
-
-            const assetsDeletedHandler = (event) => {
-                try {
-                    const ids = Array.isArray(event?.detail?.ids)
-                        ? event.detail.ids.map((x) => String(x || "")).filter(Boolean)
-                        : [];
-                    if (!ids.length) return;
-                    const grid = getActiveGridContainer();
-                    if (grid) removeAssetsFromGrid(grid, ids);
-                } catch (e) { console.debug?.(e); }
-            };
-            window.addEventListener(EVENTS.ASSETS_DELETED, assetsDeletedHandler);
-            try {
-                if (runtime && typeof runtime === "object") {
-                    runtime.api = api;
-                    runtime.assetsDeletedHandler = assetsDeletedHandler;
-                }
-            } catch (error) {
-                reportError(error, "entry.runtime_store");
+                triggerStartupScan();
+                console.debug("[Majoor] Real-time listener registered");
+            } else {
+                console.warn("📂 Majoor [⚠️] API not available, real-time updates disabled");
             }
-            triggerStartupScan();
-            console.debug("[Majoor] Real-time listener registered");
-        } else {
-            console.warn("📂 Majoor [⚠️] API not available, real-time updates disabled");
-        }
         })();
 
         // Register sidebar tab
@@ -386,6 +385,15 @@ app.registerExtension({
         } else {
             console.warn("📂 Majoor Assets Manager: extensionManager.registerSidebarTab is unavailable");
         }
+
+        // Export metrics for debugging (accessible via console)
+        if (typeof window !== "undefined") {
+            window.MajoorDebug = {
+                exportMetrics: () => window.MajoorMetrics?.exportMetrics?.(),
+                getMetrics: () => window.MajoorMetrics?.getMetricsReport?.(),
+                resetMetrics: () => window.MajoorMetrics?.resetMetrics?.(),
+            };
+            console.log("[Majoor] Debug commands available: window.MajoorDebug.exportMetrics(), window.MajoorDebug.getMetrics(), window.MajoorDebug.resetMetrics()");
+        }
     },
 });
-

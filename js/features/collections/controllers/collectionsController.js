@@ -165,7 +165,7 @@ export function createCollectionsController({ state, collectionsBtn, collections
             const delBtn = document.createElement("button");
             delBtn.type = "button";
             delBtn.className = "mjr-menu-item";
-            delBtn.title = "Delete collection";
+            delBtn.title = t("tooltip.deleteCollection", "Delete collection");
             delBtn.style.cssText =
                 "width:42px; justify-content:center; padding:0; border:1px solid rgba(255,95,95,0.35); border-radius:9px; margin-left:6px; background: linear-gradient(135deg, rgba(255,70,70,0.16), rgba(160,20,20,0.12));";
 

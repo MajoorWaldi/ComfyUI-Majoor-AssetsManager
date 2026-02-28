@@ -417,6 +417,7 @@
 
 .mjr-toast {
     --mjr-toast-strip: var(--mjr-status-info, var(--comfy-status-info, #2196f3));
+    --mjr-toast-icon-color: var(--mjr-status-info, var(--comfy-status-info, #2196f3));
     background: var(--comfy-menu-bg, #2a2a2a);
     border: 1px solid var(--border-color, #3a3a3a);
     border-left: 4px solid var(--mjr-toast-strip);
@@ -449,22 +450,41 @@
 
 .mjr-toast-text {
     flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Toast icon styling */
+.mjr-toast-text::before {
+    content: attr(data-icon);
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--mjr-toast-icon-color);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 16px;
 }
 
 .mjr-toast-success {
     --mjr-toast-strip: var(--mjr-status-success, var(--comfy-status-success, #4caf50));
+    --mjr-toast-icon-color: var(--mjr-status-success, var(--comfy-status-success, #4caf50));
 }
 
 .mjr-toast-error {
     --mjr-toast-strip: var(--mjr-status-error, var(--comfy-status-error, #f44336));
+    --mjr-toast-icon-color: var(--mjr-status-error, var(--comfy-status-error, #f44336));
 }
 
 .mjr-toast-warning {
     --mjr-toast-strip: var(--mjr-status-warning, var(--comfy-status-warning, #ffa726));
+    --mjr-toast-icon-color: var(--mjr-status-warning, var(--comfy-status-warning, #ffa726));
 }
 
 .mjr-toast-info {
     --mjr-toast-strip: var(--mjr-status-info, var(--comfy-status-info, #2196f3));
+    --mjr-toast-icon-color: var(--mjr-status-info, var(--comfy-status-info, #2196f3));
 }
 
 

@@ -2,6 +2,7 @@ import { createFieldRow, createSection } from "../utils/dom.js";
 import { drawWorkflowMinimap, synthesizeWorkflowFromPromptGraph } from "../utils/minimap.js";
 import { loadMajoorSettings, saveMajoorSettings } from "../../../app/settings.js";
 import { MINIMAP_LEGACY_SETTINGS_KEY } from "../../../app/settingsStore.js";
+import { t } from "../../../app/i18n.js";
 
 const coerceMetadataRawObject = (asset) => {
     const raw = asset?.metadata_raw ?? null;
@@ -151,7 +152,7 @@ export function createWorkflowMinimapSection(asset) {
     const toolsBtn = document.createElement("button");
     toolsBtn.type = "button";
     toolsBtn.className = "mjr-btn mjr-icon-btn";
-    toolsBtn.title = "Minimap settings";
+    toolsBtn.title = t("tooltip.minimapSettings", "Minimap settings");
     toolsBtn.style.cssText = `
         width: 28px;
         height: 28px;

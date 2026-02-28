@@ -115,7 +115,7 @@ export function registerScanningSettings(safeAddSetting, settings, notifyApplied
                     settings.watcher.enabled = !value;
                     saveMajoorSettings(settings);
                     notifyApplied("watcher.enabled");
-                    comfyToast(res?.error || "Failed to toggle watcher", "error");
+                    comfyToast(res?.error || t("toast.failedToggleWatcher", "Failed to toggle watcher"), "error");
                 }
             } catch {
                 settings.watcher.enabled = !value;

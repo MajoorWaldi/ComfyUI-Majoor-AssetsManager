@@ -2,6 +2,16 @@
 import { comfyConfirm, comfyPrompt } from "../../app/dialogs.js";
 import { comfyToast } from "../../app/toast.js";
 import { t } from "../../app/i18n.js";
+import { 
+    startTimer, 
+    endTimer, 
+    trackGridRender, 
+    trackSearchQuery, 
+    trackApiCall, 
+    trackError,
+    mark,
+    measure 
+} from "../../app/metrics.js";
 import { createStatusIndicator, setupStatusPolling, triggerScan, updateStatus } from "../status/StatusDot.js";
 import {
     createGridContainer,
@@ -77,6 +87,10 @@ export function getActiveGridContainer() {
 }
 
 export async function renderAssetsManager(container, { useComfyThemeUI = true } = {}) {
+    // Start performance timing
+    startTimer('panelRender');
+    mark('panelRender');
+    
     const panelLifecycleAC = typeof AbortController !== "undefined" ? new AbortController() : null;
     if (useComfyThemeUI) {
         container.classList.add("mjr-assets-manager");
@@ -1246,11 +1260,16 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             lastKnownIndexEnd = counters.last_index_end;
             return;
         }
-        // hasNewIndexEnd alone does NOT trigger a full reload: the backend pushes
-        // mjr-asset-added immediately after index_paths, which handles it via upsert.
-        // A full reload would flash the loading overlay over already-visible assets.
+        // hasNewIndexEnd: files were indexed (e.g. after a generation run).
+        // Primary handler: mjr-asset-added WS push → upsertAsset (instant, no flash).
+        // Fallback: reload when the upsert didn't run recently (panel was hidden, wrong
+        // scope, or WS event was missed). Skip the reload when upsert ran within the
+        // last 6 s to avoid a flash over assets that are already visible.
         if (hasNewIndexEnd) lastKnownIndexEnd = counters.last_index_end;
-        if (!hasNewScan && !hasNewTotal) return;
+        const needsFallbackReload =
+            hasNewIndexEnd && !hasNewScan && !hasNewTotal &&
+            (Date.now() - Number(window.__mjrLastAssetUpsert || 0) > 6000);
+        if (!hasNewScan && !hasNewTotal && !needsFallbackReload) return;
 
         // Global throttle against reload storms from frequent watcher/enrichment updates.
         try {
@@ -1266,7 +1285,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
 
         lastKnownScan = counters.last_scan_end;
         lastKnownIndexEnd = counters.last_index_end;
-        await queuedReload();
+        try {
+            await queuedReload();
+        } catch (e) { console.debug?.(e); }
         try {
             _lastAutoReloadAt = Date.now();
         } catch {
@@ -1299,6 +1320,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
 
         // Immediate search for empty / browse-all queries.
         if (value.length === 0 || value === "*") {
+            startTimer('searchQuery');
             gridController.reloadGrid();
             return;
         }
@@ -1306,11 +1328,13 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         // Debounce for normal searches.
         searchTimeout = setTimeout(() => {
             searchTimeout = null;
+            startTimer('searchQuery');
             gridController.reloadGrid();
         }, 200);
     }, { signal: panelLifecycleAC?.signal });
     searchInputEl.addEventListener("keypress", (e) => {
         if (e.key === "Enter") {
+            startTimer('searchQuery');
             gridController.reloadGrid();
             notifyContextChanged();
         }
@@ -1400,6 +1424,10 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         } catch (e) { console.debug?.(e); }
     };
     _autoLoadTimer = setTimeout(checkAndAutoLoad, 2000);
+
+    // End performance timing and record metrics
+    const renderDuration = endTimer('panelRender', 'gridRender');
+    trackGridRender(renderDuration);
 
     return { gridContainer };
 }

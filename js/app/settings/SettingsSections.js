@@ -675,7 +675,7 @@ export function registerSettingsSections(ctx) {
                         settings.watcher.enabled = !value;
                         saveMajoorSettings(settings);
                         notifyApplied("watcher.enabled");
-                        comfyToast(res?.error || "Failed to toggle watcher", "error");
+                        comfyToast(res?.error || t("toast.failedToggleWatcher", "Failed to toggle watcher"), "error");
                     }
                 } catch {
                     settings.watcher.enabled = !value;
@@ -1002,12 +1002,12 @@ export function registerSettingsSections(ctx) {
                         image: next,
                         media: settings.metadataFallback?.media ?? DEFAULT_SETTINGS.metadataFallback.media,
                     });
-                    if (!res?.ok) throw new Error(res?.error || "Failed to update metadata fallback settings");
+                    if (!res?.ok) throw new Error(res?.error || t("toast.failedUpdateMetadataFallback", "Failed to update metadata fallback settings"));
                 } catch (error) {
                     settings.metadataFallback.image = previous;
                     saveMajoorSettings(settings);
                     notifyApplied("metadataFallback.image");
-                    comfyToast(error?.message || "Failed to update metadata fallback settings", "error");
+                    comfyToast(error?.message || t("toast.failedUpdateMetadataFallback", "Failed to update metadata fallback settings"), "error");
                 }
             },
         });
@@ -1031,12 +1031,12 @@ export function registerSettingsSections(ctx) {
                         image: settings.metadataFallback?.image ?? DEFAULT_SETTINGS.metadataFallback.image,
                         media: next,
                     });
-                    if (!res?.ok) throw new Error(res?.error || "Failed to update metadata fallback settings");
+                    if (!res?.ok) throw new Error(res?.error || t("toast.failedUpdateMetadataFallback", "Failed to update metadata fallback settings"));
                 } catch (error) {
                     settings.metadataFallback.media = previous;
                     saveMajoorSettings(settings);
                     notifyApplied("metadataFallback.media");
-                    comfyToast(error?.message || "Failed to update metadata fallback settings", "error");
+                    comfyToast(error?.message || t("toast.failedUpdateMetadataFallback", "Failed to update metadata fallback settings"), "error");
                 }
             },
         });
@@ -1109,7 +1109,7 @@ export function registerSettingsSections(ctx) {
                         );
                         if (seq !== _outputDirSaveSeq) return;
                         if (!res?.ok) {
-                            throw new Error(res?.error || "Failed to set output directory");
+                            throw new Error(res?.error || t("toast.failedSetOutputDirectory", "Failed to set output directory"));
                         }
                         const serverValue = String(res?.data?.output_directory || next).trim();
                         settings.paths.outputDirectory = serverValue;
@@ -1123,7 +1123,7 @@ export function registerSettingsSections(ctx) {
                         settings.paths.outputDirectory = _outputDirCommittedValue;
                         saveMajoorSettings(settings);
                         notifyApplied("paths.outputDirectory");
-                        comfyToast(error?.message || "Failed to set output directory", "error");
+                        comfyToast(error?.message || t("toast.failedSetOutputDirectory", "Failed to set output directory"), "error");
                     }
                 }, 700);
             },

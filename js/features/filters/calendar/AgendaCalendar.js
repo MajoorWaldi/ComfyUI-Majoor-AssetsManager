@@ -1,5 +1,6 @@
 import { get } from "../../../api/client.js";
 import { buildDateHistogramURL } from "../../../api/endpoints.js";
+import { t } from "../../../app/i18n.js";
 
 const pad2 = (n) => String(n).padStart(2, "0");
 
@@ -209,7 +210,7 @@ export function createAgendaCalendar({ container, hiddenInput, state, onRequestR
                 cell.classList.add("mjr-agenda-day--has-assets");
                 cell.title = `${count} asset${count === 1 ? "" : "s"}`;
             } else {
-                cell.title = "No assets";
+                cell.title = t("tooltip.noAssetsDay", "No assets on this day");
             }
             if (key === selectedKey) {
                 cell.classList.add("mjr-agenda-day--selected");

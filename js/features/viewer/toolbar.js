@@ -1,5 +1,6 @@
 import { safeAddListener, safeCall } from "./lifecycle.js";
 import { createIconButton, createModeButton } from "../../components/buttons.js";
+import { t } from "../../app/i18n.js";
 
 export function createViewerToolbar({
     VIEWER_MODES,
@@ -82,11 +83,11 @@ export function createViewerToolbar({
     modeButtons.style.cssText = "display: flex; gap: 6px;";
 
     const singleBtn = createModeButton("Single", VIEWER_MODES.SINGLE);
-    singleBtn.title = "Single view mode (1 image)";
+    singleBtn.title = t("tooltip.singleViewMode", "Single view mode (one image)");
     const abBtn = createModeButton("A/B", VIEWER_MODES.AB_COMPARE);
-    abBtn.title = "A/B compare mode (overlay two images)";
+    abBtn.title = t("tooltip.compareOverlayMode", "A/B compare mode (overlay)");
     const sideBtn = createModeButton("Side", VIEWER_MODES.SIDE_BY_SIDE);
-    sideBtn.title = "Side-by-side comparison mode";
+    sideBtn.title = t("tooltip.compareSideBySide", "Side-by-side comparison mode");
 
     modeButtons.appendChild(singleBtn);
     modeButtons.appendChild(abBtn);
@@ -349,7 +350,7 @@ export function createViewerToolbar({
         { value: "a", label: "Alpha" },
         { value: "l", label: "Luma" },
     ]);
-    channelsSelect.title = "View individual color channels or luminance";
+    channelsSelect.title = t("tooltip.colorChannels", "View color channels or luminance");
 
     const exposureCtl = createRange("Exposure (EV)", { min: -10, max: 10, step: 0.1, value: 0 });
     const gammaCtl = createRange("Gamma", { min: 0.1, max: 3.0, step: 0.01, value: 1.0 });
@@ -483,7 +484,7 @@ export function createViewerToolbar({
         { value: "wave", label: "Waveform" },
         { value: "both", label: "Both" },
     ]);
-    scopesSelect.title = "Show analysis scopes (histogram/waveform)";
+    scopesSelect.title = t("tooltip.scopesHistogram", "Show histogram/waveform scopes");
     const gridToggle = createToggle("Grid", "Grid (G)", { iconClass: "pi-th-large", accentRgb: ACCENT.overlay });
     const gridModeSelect = createSelect("Grid Overlay", [
         { value: 0, label: "Off" },
@@ -492,7 +493,7 @@ export function createViewerToolbar({
         { value: 3, label: "Safe" },
         { value: 4, label: "Golden" },
     ]);
-    gridModeSelect.title = "Choose grid overlay type (rule of thirds, center, etc.)";
+    gridModeSelect.title = t("tooltip.gridOverlay", "Grid overlay (rule of thirds, center)");
     const maskToggle = createToggle("Mask", "Format mask (dim outside)", { iconClass: "pi-stop", accentRgb: ACCENT.overlay });
     const formatSelect = createSelect("Format", [
         { value: "image", label: "Image" },
@@ -502,7 +503,7 @@ export function createViewerToolbar({
         { value: "2.39", label: "2.39" },
         { value: "9:16", label: "9:16" },
     ]);
-    formatSelect.title = "Choose aspect ratio for format mask overlay";
+    formatSelect.title = t("tooltip.aspectRatioMask", "Aspect ratio overlay mask");
     const maskOpacityCtl = createRange("Mask Opacity", { min: 0, max: 0.9, step: 0.05, value: 0.65 });
     const probeToggle = createToggle("Probe", "Pixel Probe (I)", { iconClass: "pi-eye", accentRgb: ACCENT.probe });
     const loupeToggle = createToggle("Loupe", "Loupe (L)", { iconClass: "pi-search-plus", accentRgb: ACCENT.loupe });
@@ -526,14 +527,14 @@ export function createViewerToolbar({
         { value: "multiply", label: "Multiply" },
         { value: "screen", label: "Screen" },
     ]);
-    compareModeSelect.title = "Choose how to blend/compare the two images";
+    compareModeSelect.title = t("tooltip.compareBlendMode", "Compare blend mode");
     const audioVizModeSelect = createSelect("Audio Visualizer", [
         { value: "simple", label: "Simple" },
         { value: "artistic", label: "Artistic" },
     ]);
-    audioVizModeSelect.title = "Choose audio visualizer mode";
+    audioVizModeSelect.title = t("tooltip.audioVisualizer", "Audio visualizer mode");
 
-    const resetGradeBtn = createIconButton("Reset", "Reset Exposure/Gamma/Channel");
+    const resetGradeBtn = createIconButton("Reset", t("tooltip.resetExposure", "Reset Exposure/Gamma/Channel"));
     resetGradeBtn.style.height = "26px";
     resetGradeBtn.style.fontSize = "12px";
     resetGradeBtn.style.padding = "0 10px";
@@ -541,8 +542,8 @@ export function createViewerToolbar({
 
     const exportBtn = document.createElement("button");
     exportBtn.type = "button";
-    exportBtn.title = "Save current frame as PNG";
-    exportBtn.setAttribute("aria-label", "Save frame as PNG");
+    exportBtn.title = t("tooltip.exportFrame", "Save current frame as PNG");
+    exportBtn.setAttribute("aria-label", t("tooltip.exportFrame", "Save frame as PNG"));
     exportBtn.className = "mjr-viewer-tool-btn mjr-viewer-tool-btn--reset";
     exportBtn.style.cssText = "height:26px; padding:0 10px; display:inline-flex; align-items:center; justify-content:center;";
     const exportIcon = document.createElement("span");
@@ -556,8 +557,8 @@ export function createViewerToolbar({
 
     const copyBtn = document.createElement("button");
     copyBtn.type = "button";
-    copyBtn.title = "Copy current frame to clipboard";
-    copyBtn.setAttribute("aria-label", "Copy frame to clipboard");
+    copyBtn.title = t("tooltip.copyFrame", "Copy current frame to clipboard");
+    copyBtn.setAttribute("aria-label", t("tooltip.copyFrame", "Copy frame to clipboard"));
     copyBtn.className = "mjr-viewer-tool-btn mjr-viewer-tool-btn--reset";
     copyBtn.style.cssText = "height:26px; padding:0 10px; display:inline-flex; align-items:center; justify-content:center;";
     const copyIcon = document.createElement("span");
@@ -607,26 +608,26 @@ export function createViewerToolbar({
     try {
         const evLabel = expGroup.querySelector?.(".mjr-viewer-tools-group-label");
         if (evLabel) {
-            evLabel.title = "Reset EV to 0";
+            evLabel.title = t("tooltip.resetExposure", "Reset EV to 0");
             evLabel.style.cursor = "pointer";
             evLabel.style.userSelect = "none";
         }
     } catch (e) { console.debug?.(e); }
     try {
-        exposureCtl.out.title = "Reset EV to 0";
+        exposureCtl.out.title = t("tooltip.resetExposure", "Reset EV to 0");
         exposureCtl.out.style.cursor = "pointer";
         exposureCtl.out.style.userSelect = "none";
     } catch (e) { console.debug?.(e); }
     try {
         const gLabel = gamGroup.querySelector?.(".mjr-viewer-tools-group-label");
         if (gLabel) {
-            gLabel.title = "Reset Gamma to 1.00";
+            gLabel.title = t("tooltip.resetGamma", "Reset Gamma to 1.00");
             gLabel.style.cursor = "pointer";
             gLabel.style.userSelect = "none";
         }
     } catch (e) { console.debug?.(e); }
     try {
-        gammaCtl.out.title = "Reset Gamma to 1.00";
+        gammaCtl.out.title = t("tooltip.resetGamma", "Reset Gamma to 1.00");
         gammaCtl.out.style.cursor = "pointer";
         gammaCtl.out.style.userSelect = "none";
     } catch (e) { console.debug?.(e); }
@@ -672,8 +673,8 @@ export function createViewerToolbar({
 
     const helpBtn = document.createElement("button");
     helpBtn.type = "button";
-    helpBtn.title = "Viewer shortcuts";
-    helpBtn.setAttribute("aria-label", "Viewer shortcuts");
+    helpBtn.title = t("tooltip.viewerShortcuts", "Viewer shortcuts");
+    helpBtn.setAttribute("aria-label", t("tooltip.viewerShortcuts", "Viewer shortcuts"));
     helpBtn.style.cssText = `
         height: 26px;
         padding: 0 10px;

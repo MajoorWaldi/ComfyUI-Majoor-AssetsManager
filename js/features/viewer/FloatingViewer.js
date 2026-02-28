@@ -7,6 +7,7 @@
  */
 
 import { EVENTS } from "../../app/events.js";
+import { t } from "../../app/i18n.js";
 import { buildViewURL, buildAssetViewURL } from "../../api/endpoints.js";
 import { ensureViewerMetadataAsset } from "./genInfo.js";
 import { getAssetMetadata, getFileMetadataScoped } from "../../api/client.js";
@@ -205,7 +206,7 @@ export class FloatingViewer {
         const closeBtn = document.createElement("button");
         closeBtn.type = "button";
         closeBtn.className = "mjr-icon-btn";
-        closeBtn.title = "Close";
+        closeBtn.title = t("tooltip.closeViewer", "Close viewer");
         closeBtn.innerHTML = '<i class="pi pi-times" aria-hidden="true"></i>';
         closeBtn.addEventListener("click", () => {
             window.dispatchEvent(new CustomEvent(EVENTS.MFV_CLOSE));
@@ -238,7 +239,7 @@ export class FloatingViewer {
         this._liveBtn = document.createElement("button");
         this._liveBtn.type = "button";
         this._liveBtn.className = "mjr-icon-btn";
-        this._liveBtn.title = "Live Stream: OFF — click to follow new generations";
+        this._liveBtn.title = t("tooltip.liveStreamOff", "Live Stream: OFF — click to follow");
         this._liveBtn.innerHTML = '<i class="pi pi-circle" aria-hidden="true"></i>';
         this._liveBtn.addEventListener("click", () => {
             window.dispatchEvent(new CustomEvent(EVENTS.MFV_LIVE_TOGGLE));
@@ -265,7 +266,7 @@ export class FloatingViewer {
         this._captureBtn = document.createElement("button");
         this._captureBtn.type = "button";
         this._captureBtn.className = "mjr-icon-btn";
-        this._captureBtn.title = "Save view as image";
+        this._captureBtn.title = t("tooltip.captureView", "Save view as image");
         this._captureBtn.innerHTML = '<i class="pi pi-download" aria-hidden="true"></i>';
         this._captureBtn.addEventListener("click", () => this._captureView());
         bar.appendChild(this._captureBtn);
@@ -435,10 +436,10 @@ export class FloatingViewer {
         this._liveBtn.classList.toggle("mjr-live-active", Boolean(active));
         if (active) {
             this._liveBtn.innerHTML = '<i class="pi pi-circle-fill" aria-hidden="true"></i>';
-            this._liveBtn.title = "Live Stream: ON — click to disable";
+            this._liveBtn.title = t("tooltip.liveStreamOn", "Live Stream: ON — click to disable");
         } else {
             this._liveBtn.innerHTML = '<i class="pi pi-circle" aria-hidden="true"></i>';
-            this._liveBtn.title = "Live Stream: OFF — click to follow new generations";
+            this._liveBtn.title = t("tooltip.liveStreamOff", "Live Stream: OFF — click to follow");
         }
     }
 

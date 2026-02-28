@@ -1,5 +1,6 @@
 import { createInfoBox, createParametersBox } from "../utils/dom.js";
 import { buildViewURL } from "../../../api/endpoints.js";
+import { t } from "../../../app/i18n.js";
 import {
     formatLoRAItem,
     formatModelLabel,
@@ -208,10 +209,10 @@ export function createGenerationSection(asset) {
             padding: 12px;
             margin-top: 4px;
         `;
-        
+
         const header = document.createElement("div");
         header.textContent = `All Prompts (${metadata.all_positive_prompts.length} variants)`;
-        header.title = "This workflow generates multiple outputs with different prompts";
+        header.title = t("tooltip.workflowMultiOutput", "Multiple outputs with different prompts");
         header.style.cssText = `
              font-size: 11px;
              font-weight: 600;
@@ -455,10 +456,10 @@ export function createGenerationSection(asset) {
             padding: 12px;
             margin-top: 10px;
         `;
-        
+
         const header = document.createElement("div");
         header.textContent = "Source Files";
-        header.title = "Input files used in generation (images, videos, etc.)";
+        header.title = t("tooltip.generationInputs", "Input files used in generation");
         header.style.cssText = `
              font-size: 11px;
              font-weight: 600;
@@ -525,7 +526,7 @@ export function createGenerationSection(asset) {
             if (isVideo && !inp.role) {
                 const icon = document.createElement("div");
                 icon.innerHTML = "▶";
-                icon.title = "Video file";
+                icon.title = t("tooltip.videoFile", "Video file");
                 icon.style.cssText = "position: absolute; color: white; opacity: 0.7; font-size: 16px; pointer-events: none;";
                 thumb.appendChild(icon);
             }

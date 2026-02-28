@@ -84,6 +84,15 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
         }
 
         const result = await loadAssets(gridContainer, getQuery());
+        
+        // Track search query timing if timer was started
+        try {
+            const searchDuration = window.MajoorMetrics?.endTimer?.('searchQuery', 'searchQuery');
+            if (typeof searchDuration === 'number' && searchDuration > 0) {
+                window.MajoorMetrics?.trackSearchQuery?.(searchDuration);
+            }
+        } catch (e) { console.debug?.(e); }
+        
         try {
             state.lastGridCount = Number(result?.count || 0) || 0;
             state.lastGridTotal = Number(result?.total || 0) || 0;

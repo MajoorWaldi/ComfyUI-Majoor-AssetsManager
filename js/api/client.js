@@ -388,6 +388,8 @@ const _readRatingTagsSyncEnabled = () => {
  */
 /** @returns {Promise<ApiResult<any>>} */
 async function fetchAPI(url, options = {}, retryCount = 0) {
+    // Start API call timing
+    const apiStartTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
     const timed = _buildTimedSignal(options);
     try {
         const headers = typeof Headers !== "undefined" ? new Headers(options.headers || {}) : { ...options.headers };
@@ -531,6 +533,15 @@ async function fetchAPI(url, options = {}, retryCount = 0) {
             retries: retryCount
         };
     } finally {
+        // Track API call timing
+        try {
+            const apiEndTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+            const duration = apiEndTime - apiStartTime;
+            if (typeof window !== 'undefined' && window.MajoorMetrics) {
+                window.MajoorMetrics.trackApiCall(duration, !result?.ok);
+            }
+        } catch (e) { console.debug?.(e); }
+        
         try {
             timed.cleanup?.();
         } catch (e) { console.debug?.(e); }

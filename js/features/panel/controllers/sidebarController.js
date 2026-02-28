@@ -4,6 +4,7 @@ import { ENDPOINTS } from "../../../api/endpoints.js";
 import { pickRootId } from "../../../utils/ids.js";
 import { safeClosest } from "../../../utils/dom.js";
 import { comfyToast } from "../../../app/toast.js";
+import { t } from "../../../app/i18n.js";
 
 const RESCAN_FLAG = "_mjrRescanning";
 const RESCAN_TTL_MS = 1500;
@@ -25,7 +26,7 @@ async function rescanSingleAsset({ card, asset, sidebar, onAssetUpdated }) {
             applyAssetStatusDotState(dot, "pending", "Pending: metadata refresh in progress", { asset });
             dot.classList.add("mjr-pulse-animation");
             dot.style.cursor = "progress";
-            dot.title = "Pending: metadata refresh in progress";
+            dot.title = t("tooltip.pendingRefresh", "Pending: metadata refresh in progress");
         }
     } catch (e) { console.debug?.(e); }
 

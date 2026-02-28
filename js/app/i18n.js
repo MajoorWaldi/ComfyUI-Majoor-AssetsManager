@@ -1,6 +1,14 @@
 ﻿/**
  * Internationalization support for Majoor Assets Manager.
  * Detects ComfyUI language and provides translations for the entire UI.
+ * 
+ * Features:
+ * - Multi-language support with 22 registered locales
+ * - Auto-generation via i18n.generated.js for translated content
+ * - ComfyUI locale sync with automatic detection
+ * - Fallback chain: Current → English → Default string
+ * - Missing key tracking with console warnings
+ * - RTL language support for Arabic/Persian
  */
 import { GENERATED_TRANSLATIONS } from "./i18n.generated.js";
 import { getSettingValue } from "./comfyApiBridge.js";
@@ -11,8 +19,69 @@ let currentLang = DEFAULT_LANG;
 const _langChangeListeners = new Set();
 const LANG_STORAGE_KEYS = ["mjr_lang", "majoor.lang"];
 const FOLLOW_COMFY_LANG_STORAGE_KEY = "mjr_lang_follow_comfy";
+
+// Missing key tracking with bounded size to prevent memory leaks
+const MAX_MISSING_KEYS = 500;
 const _missingTranslationKeys = new Set();
 let _comfyLangSyncTimer = null;
+
+// RTL languages that require right-to-left text direction
+const RTL_LANGUAGES = new Set(["ar-SA", "fa-IR", "he-IL"]);
+
+// Locale mapping lookup table for O(1) access
+const LOCALE_MAP = {
+    // French
+    "fr": "fr-FR", "fr-fr": "fr-FR", "fr_FR": "fr-FR", "frfr": "fr-FR",
+    // English
+    "en": "en-US", "en-us": "en-US", "en_US": "en-US", "enus": "en-US",
+    "en-gb": "en-US", "en_gb": "en-US", "engb": "en-US",
+    // Chinese
+    "zh": "zh-CN", "zh-cn": "zh-CN", "zh_CN": "zh-CN", "zhcn": "zh-CN",
+    "zh-tw": "zh-CN", "zh_tw": "zh-CN", "zhtw": "zh-CN",
+    // Japanese
+    "ja": "ja-JP", "ja-jp": "ja-JP", "ja_jp": "ja-JP", "jajp": "ja-JP",
+    // Korean
+    "ko": "ko-KR", "ko-kr": "ko-KR", "ko_kr": "ko-KR", "kokr": "ko-KR",
+    // Hindi
+    "hi": "hi-IN", "hi-in": "hi-IN", "hi_in": "hi-IN", "hiin": "hi-IN",
+    // Portuguese
+    "pt": "pt-PT", "pt-pt": "pt-PT", "pt_pt": "pt-PT", "ptpt": "pt-PT",
+    "pt-br": "pt-PT", "pt_br": "pt-PT", "ptbr": "pt-PT",
+    // Spanish
+    "es": "es-ES", "es-es": "es-ES", "es_es": "es-ES", "eses": "es-ES",
+    // Russian
+    "ru": "ru-RU", "ru-ru": "ru-RU", "ru_ru": "ru-RU", "ruru": "ru-RU",
+    // German
+    "de": "de-DE", "de-de": "de-DE", "de_de": "de-DE", "dede": "de-DE",
+    // Italian
+    "it": "it-IT", "it-it": "it-IT", "it_it": "it-IT", "itit": "it-IT",
+    // Dutch
+    "nl": "nl-NL", "nl-nl": "nl-NL", "nl_nl": "nl-NL", "nlnl": "nl-NL",
+    // Polish
+    "pl": "pl-PL", "pl-pl": "pl-PL", "pl_pl": "pl-PL", "plpl": "pl-PL",
+    // Turkish
+    "tr": "tr-TR", "tr-tr": "tr-TR", "tr_tr": "tr-TR", "trtr": "tr-TR",
+    // Vietnamese
+    "vi": "vi-VN", "vi-vn": "vi-VN", "vi_vn": "vi-VN", "vivn": "vi-VN",
+    // Czech
+    "cs": "cs-CZ", "cs-cz": "cs-CZ", "cs_cz": "cs-CZ", "cscz": "cs-CZ",
+    // Persian
+    "fa": "fa-IR", "fa-ir": "fa-IR", "fa_ir": "fa-IR", "fair": "fa-IR",
+    // Indonesian
+    "id": "id-ID", "id-id": "id-ID", "id_id": "id-ID", "idid": "id-ID",
+    // Ukrainian
+    "uk": "uk-UA", "uk-ua": "uk-UA", "uk_ua": "uk-UA", "ukua": "uk-UA",
+    // Hungarian
+    "hu": "hu-HU", "hu-hu": "hu-HU", "hu_hu": "hu-HU", "huhu": "hu-HU",
+    // Arabic
+    "ar": "ar-SA", "ar-sa": "ar-SA", "ar_sa": "ar-SA", "arsa": "ar-SA",
+    // Swedish
+    "sv": "sv-SE", "sv-se": "sv-SE", "sv_se": "sv-SE", "svse": "sv-SE",
+    // Romanian
+    "ro": "ro-RO", "ro-ro": "ro-RO", "ro_ro": "ro-RO", "roro": "ro-RO",
+    // Greek
+    "el": "el-GR", "el-gr": "el-GR", "el_gr": "el-GR", "elgr": "el-GR",
+};
 
 // -----------------------------------------------------------------------------
 // DICTIONARY - Full UI translations
@@ -28,6 +97,7 @@ const DICTIONARY = {
         "cat.advanced": "Advanced",
         "cat.security": "Security",
         "cat.remote": "Remote Access",
+        "cat.search": "Search",
 
         // --- Settings: Grid ---
         "setting.grid.minsize.name": "Majoor: Thumbnail Size (px)",
@@ -48,6 +118,11 @@ const DICTIONARY = {
         "setting.nav.infinite.desc": "Automatically load more files when scrolling.",
         "setting.grid.pagesize.name": "Majoor: Grid Page Size",
         "setting.grid.pagesize.desc": "Number of assets loaded per page/request in the grid.",
+        "setting.grid.videoAutoplayMode.name": "Majoor: Video Autoplay",
+        "setting.grid.videoAutoplayMode.desc": "Controls video thumbnail playback in the grid. Off: static frame. Hover: play on mouse hover. Always: loop while visible.",
+        "setting.grid.videoAutoplayMode.off": "Off",
+        "setting.grid.videoAutoplayMode.hover": "Hover",
+        "setting.grid.videoAutoplayMode.always": "Always",
 
         // --- Settings: Viewer ---
         "setting.viewer.pan.name": "Majoor: Pan without Zoom",
@@ -60,11 +135,14 @@ const DICTIONARY = {
         "setting.scan.startup.desc": "Start a background scan as soon as ComfyUI loads.",
         "setting.watcher.name": "Majoor: File Watcher",
         "setting.watcher.desc": "Watch output and custom folders for manually added files and auto-index them in real time.",
+        "setting.watcher.enabled.label": "Watcher enabled",
         "setting.watcher.debounce.name": "Majoor: Watcher debounce delay",
         "setting.watcher.debounce.desc": "Delay (ms) for batching watcher events before indexing.",
+        "setting.watcher.debounce.label": "Watcher debounce (ms)",
         "setting.watcher.debounce.error": "Failed to update watcher debounce delay.",
         "setting.watcher.dedupe.name": "Majoor: Watcher dedupe window",
         "setting.watcher.dedupe.desc": "Duration (ms) a file is treated as already processed after an event.",
+        "setting.watcher.dedupe.label": "Watcher dedupe window (ms)",
         "setting.watcher.dedupe.error": "Failed to update watcher dedupe window.",
         "setting.sync.rating.name": "Majoor: Sync Rating/Tags to Files",
         "setting.sync.rating.desc": "Write ratings and tags into file metadata (ExifTool).",
@@ -81,6 +159,8 @@ const DICTIONARY = {
         "setting.badgeAudioColor.tooltip": "Color for audio badges: MP3, WAV, OGG, FLAC (hex)",
         "setting.badgeModel3dColor": "3D model badge color",
         "setting.badgeModel3dColor.tooltip": "Color for 3D model badges: OBJ, FBX, GLB, GLTF (hex)",
+        "setting.badgeDuplicateAlertColor": "Duplicate alert badge color",
+        "setting.badgeDuplicateAlertColor.tooltip": "Alert color used when duplicate extension badges are shown (e.g. PNG+).",
 
         // --- Settings: Advanced ---
         "setting.obs.enabled.name": "Majoor: Enable Detailed Logs",
@@ -89,6 +169,8 @@ const DICTIONARY = {
         "setting.probe.mode.desc": "Choose the tool used directly to extract metadata.",
         "setting.language.name": "Majoor: Language",
         "setting.language.desc": "Choose the language for the Assets Manager interface. Reload required to fully apply.",
+        "setting.search.maxResults.name": "Majoor: Search max results",
+        "setting.search.maxResults.desc": "Maximum number of results returned by search endpoints.",
 
         // --- Settings: Security ---
         "setting.sec.safe.name": "Majoor: Safe Mode",
@@ -136,6 +218,12 @@ const DICTIONARY = {
         "btn.play": "Play",
         "btn.copyPrompt": "Copy Prompt",
         "btn.close": "Close",
+        "btn.dbSave": "Save DB",
+        "btn.dbRestore": "Restore DB",
+        "btn.back": "Back",
+        "btn.up": "Up",
+        "btn.saving": "Saving...",
+        "btn.restoring": "Restoring...",
 
         // --- Panel: Labels ---
         "label.folder": "Folder",
@@ -176,10 +264,50 @@ const DICTIONARY = {
         "tooltip.widthPx": "Width in pixels",
         "tooltip.heightPx": "Height in pixels",
         "log.clipboardCopyFailed": "Failed to copy to clipboard",
-        "btn.back": "Back",
-        "btn.up": "Up",
-        "btn.saving": "Saving...",
-        "btn.restoring": "Restoring...",
+        "tooltip.tab.all": "Browse all assets (inputs + outputs)",
+        "tooltip.tab.input": "Browse input folder assets",
+        "tooltip.tab.output": "Browse generated outputs",
+        "tooltip.tab.custom": "Browse browser folders",
+        "tooltip.browserFolders": "Browser folders",
+        "tooltip.pinnedFolders": "Pinned folders",
+        "tooltip.clearFilter": "Clear {label}",
+        "tooltip.duplicateSuggestions": "Duplicate/similarity suggestions",
+        "tooltip.closeSidebar": "Close sidebar",
+        "tooltip.closeSidebarEsc": "Close sidebar (Esc)",
+        "tooltip.supportKofi": "Buy Me a White Monster Drink",
+        "tooltip.sidebarTab": "Assets Manager - Browse and search your outputs",
+        "tooltip.openMFV": "Open Floating Viewer",
+        "tooltip.closeMFV": "Close Floating Viewer",
+        "tooltip.deleteDb": "Force-delete database and rebuild from scratch",
+        "tooltip.workflowMultiOutput": "Multiple outputs with different prompts",
+        "tooltip.generationInputs": "Input files used in generation",
+        "tooltip.videoFile": "Video file",
+        "tooltip.minimapSettings": "Minimap settings",
+        "tooltip.closeViewer": "Close viewer",
+        "tooltip.liveStreamOff": "Live Stream: OFF — click to follow",
+        "tooltip.liveStreamOn": "Live Stream: ON — click to disable",
+        "tooltip.captureView": "Save view as image",
+        "tooltip.pendingRefresh": "Pending: metadata refresh in progress",
+        "tooltip.noAssetsDay": "No assets on this day",
+        "tooltip.deleteCollection": "Delete collection",
+        "tooltip.viewerShortcuts": "Viewer keyboard shortcuts",
+        "tooltip.singleViewMode": "Single view mode (one image)",
+        "tooltip.compareOverlayMode": "A/B compare mode (overlay)",
+        "tooltip.compareSideBySide": "Side-by-side comparison mode",
+        "tooltip.colorChannels": "View color channels or luminance",
+        "tooltip.scopesHistogram": "Show histogram/waveform scopes",
+        "tooltip.gridOverlay": "Grid overlay (rule of thirds, center)",
+        "tooltip.aspectRatioMask": "Aspect ratio overlay mask",
+        "tooltip.compareBlendMode": "Compare blend mode",
+        "tooltip.audioVisualizer": "Audio visualizer mode",
+        "tooltip.exportFrame": "Save current frame as PNG",
+        "tooltip.copyFrame": "Copy current frame to clipboard",
+        "tooltip.resetExposure": "Reset exposure to 0",
+        "tooltip.resetGamma": "Reset gamma to 1.00",
+        "tooltip.resetInPoint": "Reset In point to start",
+        "tooltip.resetOutPoint": "Reset Out point to end",
+        "tooltip.maintenanceTools": "Database maintenance tools",
+        "tooltip.resetPlayerControls": "Reset all player controls",
 
         // --- Panel: Filters ---
         "filter.all": "All",
@@ -255,12 +383,33 @@ const DICTIONARY = {
         "status.customBrowserScanDisabled": "Scan is disabled in Browser scope",
         "status.customBrowserScanDisabledHint": "Use Outputs, Inputs, or All to run indexing scans",
         "status.dbBackupNone": "No DB backup available",
+        "status.dbBackupSelectHint": "Select a DB backup to restore",
+        "status.dbBackupLoading": "Loading DB backups...",
+        "status.dbSaveHint": "Create a DB backup snapshot now.",
+        "status.dbRestoreHint": "Restore selected DB backup and restart indexing.",
         "status.dbHealthLocked": "DB health: locked",
+        "status.dbHealthOk": "DB health: ok",
+        "status.dbHealthError": "DB health: error",
+        "status.dbRestoreInProgress": "DB restore in progress",
         "status.enrichmentIdle": "idle",
         "status.enrichmentQueue": "Enrich queue: {count}",
         "status.maintenanceBusy": "Maintenance in progress",
         "status.scanInProgress": "Scan in progress",
         "status.scanInProgressHint": "Please wait for scan completion",
+        "status.scanningScope": "Scanning scope: {scope}",
+        "status.indexHealthOk": "Index health: ok",
+        "status.indexHealthPartial": "Index health: partial",
+        "status.indexHealthEmpty": "Index health: empty",
+        "status.pending": "Pending",
+        "status.toast.info": "Index status: checking",
+        "status.toast.success": "Index status: ready",
+        "status.toast.warning": "Index status: attention needed",
+        "status.toast.error": "Index status: error",
+        "status.toast.browser": "Index status: browser scope",
+        "status.browserMetricsHidden": "Browser mode: global DB/index metrics hidden",
+        "runtime.unavailable": "Runtime: unavailable",
+        "runtime.metricsTitle": "Runtime Metrics\nDB active connections: {active}\nEnrichment queue: {enrichQ}\nWatcher pending files: {pending}",
+        "runtime.metricsLine": "DB active: {active} | Enrich Q: {enrichQ} | Watcher pending: {pending}",
 
         // --- Scopes ---
         "scope.all": "Inputs + Outputs",
@@ -375,6 +524,7 @@ const DICTIONARY = {
         "ctx.resetRating": "Reset rating",
         "ctx.showMetadataPanel": "Show metadata panel",
         "ctx.unpinFolder": "Unpin folder",
+        "ctx.pinAsBrowserRoot": "Pin as Browser Root",
 
         // --- Dialogs ---
         "dialog.confirm": "Confirm",
@@ -406,6 +556,7 @@ const DICTIONARY = {
         "dialog.mergeDuplicateTags": "Merge duplicate tags?",
         "dialog.deleteExactDuplicates": "Delete exact duplicates?",
         "dialog.startDuplicateAnalysis": "Start duplicate analysis?",
+        "dialog.dbDelete.confirm": "This will permanently delete the index database and rebuild it from scratch. All ratings, tags, and cached metadata will be lost.\n\nContinue?",
 
         // --- Toasts ---
         "toast.scanStarted": "Scan started",
@@ -414,11 +565,10 @@ const DICTIONARY = {
         "toast.resetTriggered": "Reset triggered: Reindexing all files...",
         "toast.resetStarted": "Index reset started. Files will be reindexed in the background.",
         "toast.resetFailed": "Failed to reset index",
-        "toast.resetFailedCorrupt": "Reset failed ? database is corrupted. Use the \"Delete DB\" button to force-delete and rebuild.",
+        "toast.resetFailedCorrupt": "Reset failed – database is corrupted. Use the \"Delete DB\" button to force-delete and rebuild.",
         "toast.dbDeleteTriggered": "Deleting database and rebuilding...",
         "toast.dbDeleteSuccess": "Database deleted and rebuilt. Files are being reindexed.",
         "toast.dbDeleteFailed": "Failed to delete database",
-        "dialog.dbDelete.confirm": "This will permanently delete the index database and rebuild it from scratch. All ratings, tags, and cached metadata will be lost.\n\nContinue?",
         "toast.deleted": "File deleted",
         "toast.renamed": "File renamed",
         "toast.addedToCollection": "Added to collection",
@@ -472,6 +622,11 @@ const DICTIONARY = {
         "toast.dbRestoreStarted": "DB restore started",
         "toast.dbRestoreFailed": "Failed to restore DB backup",
         "toast.dbRestoreSelect": "Select a DB backup first",
+        "toast.dbRestoreStopping": "Stopping running workers",
+        "toast.dbRestoreResetting": "Unlocking and resetting database",
+        "toast.dbRestoreReplacing": "Replacing database files",
+        "toast.dbRestoreRescan": "Restarting scan",
+        "toast.dbRestoreSuccess": "Database backup restored",
         "toast.nameCollisionInView": "Name collision in current view",
         "toast.fileRenamedSuccess": "File renamed successfully!",
         "toast.fileRenameFailed": "Failed to rename file.",
@@ -502,6 +657,12 @@ const DICTIONARY = {
         "toast.filesDeletedShortPartial": "{success} deleted, {failed} failed",
         "toast.copiedToClipboardNamed": "{name} copied to clipboard!",
         "toast.rescanningFile": "Rescanning file",
+        "toast.failedToggleWatcher": "Failed to toggle watcher",
+        "toast.failedUpdateMetadataFallback": "Failed to update metadata fallback settings",
+        "toast.failedSetOutputDirectory": "Failed to set output directory",
+        "toast.nativeBrowserUnavailable": "Native folder browser unavailable. Please enter path manually.",
+
+        // --- Summary ---
         "summary.assets": "assets",
         "summary.folders": "folders",
         "summary.selected": "selected",
@@ -510,70 +671,16 @@ const DICTIONARY = {
         "summary.similar": "similar",
 
         // --- Hotkeys ---
-        // Missing keys filled from runtime usage
-        "cat.search": "Search",
-        "setting.badgeDuplicateAlertColor": "Duplicate alert badge color",
-        "setting.badgeDuplicateAlertColor.tooltip": "Alert color used when duplicate extension badges are shown (e.g. PNG+).",
-        "setting.grid.videoAutoplayMode.name": "Majoor: Video Autoplay",
-        "setting.grid.videoAutoplayMode.desc": "Controls video thumbnail playback in the grid. Off: static frame. Hover: play on mouse hover. Always: loop while visible.",
-        "setting.grid.videoAutoplayMode.off": "Off",
-        "setting.grid.videoAutoplayMode.hover": "Hover",
-        "setting.grid.videoAutoplayMode.always": "Always",
-        "setting.watcher.enabled.label": "Watcher enabled",
-        "setting.watcher.debounce.label": "Watcher debounce (ms)",
-        "setting.watcher.dedupe.label": "Watcher dedupe window (ms)",
-        "setting.search.maxResults.name": "Majoor: Search max results",
-        "setting.search.maxResults.desc": "Maximum number of results returned by search endpoints.",
-        "btn.dbSave": "Save DB",
-        "btn.dbRestore": "Restore DB",
-        "status.dbBackupSelectHint": "Select a DB backup to restore",
-        "status.dbBackupLoading": "Loading DB backups...",
-        "status.dbSaveHint": "Create a DB backup snapshot now.",
-        "status.dbRestoreHint": "Restore selected DB backup and restart indexing.",
-        "status.dbHealthOk": "DB health: ok",
-        "runtime.unavailable": "Runtime: unavailable",
-        "runtime.metricsTitle": "Runtime Metrics\nDB active connections: {active}\nEnrichment queue: {enrichQ}\nWatcher pending files: {pending}",
-        "runtime.metricsLine": "DB active: {active} | Enrich Q: {enrichQ} | Watcher pending: {pending}",
-        "status.dbHealthError": "DB health: error",
-        "status.indexHealthOk": "Index health: ok",
-        "status.indexHealthPartial": "Index health: partial",
-        "status.indexHealthEmpty": "Index health: empty",
-        "status.pending": "Pending",
-        "status.dbRestoreInProgress": "DB restore in progress",
-        "status.scanningScope": "Scanning scope: {scope}",
-        "status.toast.info": "Index status: checking",
-        "status.toast.success": "Index status: ready",
-        "status.toast.warning": "Index status: attention needed",
-        "status.toast.error": "Index status: error",
-        "status.toast.browser": "Index status: browser scope",
-        "status.browserMetricsHidden": "Browser mode: global DB/index metrics hidden",
-        "toast.dbRestoreStopping": "Stopping running workers",
-        "toast.dbRestoreResetting": "Unlocking and resetting database",
-        "toast.dbRestoreReplacing": "Replacing database files",
-        "toast.dbRestoreRescan": "Restarting scan",
-        "toast.dbRestoreSuccess": "Database backup restored",
         "hotkey.scan": "Scan (S)",
         "hotkey.search": "Search (Ctrl+F)",
         "hotkey.details": "Toggle details (D)",
         "hotkey.delete": "Delete (Del)",
         "hotkey.viewer": "Open viewer (Enter)",
         "hotkey.escape": "Close (Esc)",
-        "tooltip.tab.all": "Browse all assets (inputs + outputs)",
-        "tooltip.tab.input": "Browse input folder assets",
-        "tooltip.tab.output": "Browse generated outputs",
-        "tooltip.tab.custom": "Browse browser folders",
-        "tooltip.browserFolders": "Browser folders",
-        "tooltip.pinnedFolders": "Pinned folders",
-        "tooltip.clearFilter": "Clear {label}",
-        "tooltip.duplicateSuggestions": "Duplicate/similarity suggestions",
-        "tooltip.closeSidebar": "Close sidebar",
-        "tooltip.closeSidebarEsc": "Close sidebar (Esc)",
-        "tooltip.supportKofi": "Buy Me a White Monster Drink",
-        "tooltip.sidebarTab": "Assets Manager - Browse and search your outputs",
-        "ctx.pinAsBrowserRoot": "Pin as Browser Root",
     },
 
     "fr-FR": {
+        // --- French translations (partial - ~50 keys) ---
         "tab.output": "Sortie",
         "tab.input": "Entree",
         "tab.all": "Tout",
@@ -687,43 +794,13 @@ const LANGUAGE_NAMES = Object.freeze({
     if (!DICTIONARY[code]) DICTIONARY[code] = {};
 });
 
-const CORE_TRANSLATIONS = {
-    "en-US": { "tab.custom": "Browser", "scope.custom": "Browser", "scope.customBrowser": "Browser" },
-    "fr-FR": { "tab.custom": "Navigateur", "scope.custom": "Navigateur", "scope.customBrowser": "Navigateur" },
-    "zh-CN": { "tab.custom": "Browser", "scope.custom": "Browser", "scope.customBrowser": "Browser" },
-    "ja-JP": { "tab.custom": "Browser", "scope.custom": "Browser", "scope.customBrowser": "Browser" },
-    "ko-KR": { "tab.custom": "Browser", "scope.custom": "Browser", "scope.customBrowser": "Browser" },
-    "hi-IN": { "tab.custom": "Browser", "scope.custom": "Browser", "scope.customBrowser": "Browser" },
-    "pt-PT": { "tab.custom": "Browser", "scope.custom": "Browser", "scope.customBrowser": "Browser" },
-    "es-ES": { "tab.custom": "Browser", "scope.custom": "Browser", "scope.customBrowser": "Browser" },
-    "ru-RU": { "tab.custom": "Browser", "scope.custom": "Browser", "scope.customBrowser": "Browser" },
-    "de-DE": { "tab.custom": "Browser", "scope.custom": "Browser", "scope.customBrowser": "Browser" },
-    "it-IT": { "tab.custom": "Browser", "scope.custom": "Browser", "scope.customBrowser": "Browser" },
-    "nl-NL": { "tab.custom": "Browser", "scope.custom": "Browser", "scope.customBrowser": "Browser" },
-    "pl-PL": { "tab.custom": "Browser", "scope.custom": "Browser", "scope.customBrowser": "Browser" },
-    "tr-TR": { "tab.custom": "Browser", "scope.custom": "Browser", "scope.customBrowser": "Browser" },
-    "vi-VN": { "tab.custom": "Browser", "scope.custom": "Browser", "scope.customBrowser": "Browser" },
-    "cs-CZ": { "tab.custom": "Browser", "scope.custom": "Browser", "scope.customBrowser": "Browser" },
-    "fa-IR": { "tab.custom": "Browser", "scope.custom": "Browser", "scope.customBrowser": "Browser" },
-    "id-ID": { "tab.custom": "Browser", "scope.custom": "Browser", "scope.customBrowser": "Browser" },
-    "uk-UA": { "tab.custom": "Browser", "scope.custom": "Browser", "scope.customBrowser": "Browser" },
-    "hu-HU": { "tab.custom": "Browser", "scope.custom": "Browser", "scope.customBrowser": "Browser" },
-    "ar-SA": { "tab.custom": "Browser", "scope.custom": "Browser", "scope.customBrowser": "Browser" },
-    "sv-SE": { "tab.custom": "Browser", "scope.custom": "Browser", "scope.customBrowser": "Browser" },
-    "ro-RO": { "tab.custom": "Browser", "scope.custom": "Browser", "scope.customBrowser": "Browser" },
-    "el-GR": { "tab.custom": "Browser", "scope.custom": "Browser", "scope.customBrowser": "Browser" },
-};
-
-Object.entries(CORE_TRANSLATIONS).forEach(([code, entries]) => {
-    DICTIONARY[code] = { ...(DICTIONARY[code] || {}), ...entries };
-});
-
+// Merge generated translations (from i18n.generated.js) into DICTIONARY
 Object.entries(GENERATED_TRANSLATIONS || {}).forEach(([code, entries]) => {
     DICTIONARY[code] = { ...(DICTIONARY[code] || {}), ...(entries || {}) };
 });
 
 // Ensure complete key coverage for all registered locales:
-// any missing key falls back to the English string inside each locale pack.
+// Any missing key falls back to the English string inside each locale pack.
 const EN_US_DICT = DICTIONARY["en-US"] || {};
 Object.keys(DICTIONARY).forEach((code) => {
     if (code === "en-US") return;
@@ -736,72 +813,21 @@ Object.keys(DICTIONARY).forEach((code) => {
 
 /**
  * Map various locale codes to our supported languages.
+ * Uses lookup table for O(1) performance instead of sequential if statements.
+ * @param {string} locale - Locale code to map
+ * @returns {string} Mapped language code
  */
 function mapLocale(locale) {
     if (!locale) return DEFAULT_LANG;
     const raw = String(locale || "").trim();
     const lower = raw.toLowerCase();
-    
-    // French variants
-    if (lower.startsWith("fr")) return "fr-FR";
-    
-    // English variants
-    if (lower.startsWith("en")) return "en-US";
 
-    // Chinese variants
-    if (lower.startsWith("zh")) return "zh-CN";
+    // Fast lookup in mapping table
+    if (LOCALE_MAP[lower]) return LOCALE_MAP[lower];
 
-    // Japanese variants
-    if (lower.startsWith("ja")) return "ja-JP";
-
-    // Korean variants
-    if (lower.startsWith("ko")) return "ko-KR";
-
-    // Hindi variants
-    if (lower.startsWith("hi")) return "hi-IN";
-
-    // Portuguese variants
-    if (lower.startsWith("pt")) return "pt-PT";
-
-    // Spanish variants
-    if (lower.startsWith("es")) return "es-ES";
-
-    // Russian variants
-    if (lower.startsWith("ru")) return "ru-RU";
-    // German variants
-    if (lower.startsWith("de")) return "de-DE";
-    // Italian variants
-    if (lower.startsWith("it")) return "it-IT";
-    // Dutch variants
-    if (lower.startsWith("nl")) return "nl-NL";
-    // Polish variants
-    if (lower.startsWith("pl")) return "pl-PL";
-    // Turkish variants
-    if (lower.startsWith("tr")) return "tr-TR";
-    // Vietnamese variants
-    if (lower.startsWith("vi")) return "vi-VN";
-    // Czech variants
-    if (lower.startsWith("cs")) return "cs-CZ";
-    // Persian variants
-    if (lower.startsWith("fa")) return "fa-IR";
-    // Indonesian variants
-    if (lower.startsWith("id")) return "id-ID";
-    // Ukrainian variants
-    if (lower.startsWith("uk")) return "uk-UA";
-    // Hungarian variants
-    if (lower.startsWith("hu")) return "hu-HU";
-    // Arabic variants
-    if (lower.startsWith("ar")) return "ar-SA";
-    // Swedish variants
-    if (lower.startsWith("sv")) return "sv-SE";
-    // Romanian variants
-    if (lower.startsWith("ro")) return "ro-RO";
-    // Greek variants
-    if (lower.startsWith("el")) return "el-GR";
-    
-    // Direct match
+    // Direct match for full locale codes
     if (DICTIONARY[raw]) return raw;
-    
+
     return DEFAULT_LANG;
 }
 
@@ -834,7 +860,7 @@ function _readFollowComfyLang() {
 
 function _persistFollowComfyLang(enabled) {
     try {
-        SettingsStore.set(FOLLOW_COMFY_LANG_STORAGE_KEY, enabled ?"1" : "0");
+        SettingsStore.set(FOLLOW_COMFY_LANG_STORAGE_KEY, enabled ? "1" : "0");
     } catch (e) { console.debug?.(e); }
 }
 
@@ -879,11 +905,23 @@ function _readPlatformLocaleCandidates() {
     try {
         if (typeof navigator !== "undefined") {
             pushCandidate(navigator?.language);
-            const langs = Array.isArray(navigator?.languages) ?navigator.languages : [];
+            const langs = Array.isArray(navigator?.languages) ? navigator.languages : [];
             for (const lang of langs) pushCandidate(lang);
         }
     } catch (e) { console.debug?.(e); }
     return out;
+}
+
+/**
+ * Apply RTL direction for RTL languages.
+ */
+function _applyRTL() {
+    try {
+        if (typeof document !== "undefined" && document.documentElement) {
+            const isRTL = RTL_LANGUAGES.has(currentLang);
+            document.documentElement.dir = isRTL ? "rtl" : "ltr";
+        }
+    } catch (e) { console.debug?.(e); }
 }
 
 /**
@@ -949,20 +987,24 @@ export const initI18n = (app) => {
 
 /**
  * Set the current language.
+ * @param {string} lang - Language code to set
  */
 export const setLang = (lang) => {
     if (!DICTIONARY[lang]) {
         console.warn(`[Majoor i18n] Unknown language: ${lang}, falling back to ${DEFAULT_LANG}`);
         lang = DEFAULT_LANG;
     }
-    
+
     if (currentLang === lang) return;
-    
+
     currentLang = lang;
-    
+
     // Persist preference
     _persistLang(lang);
-    
+
+    // Apply RTL direction for RTL languages
+    _applyRTL();
+
     // Notify listeners
     Array.from(_langChangeListeners).forEach(cb => {
         try { cb(lang); } catch (e) { console.debug?.(e); }
@@ -983,19 +1025,23 @@ export const setFollowComfyLanguage = (enabled) => {
     _persistFollowComfyLang(!!enabled);
 };
 
+/**
+ * Start syncing language with ComfyUI settings.
+ * Uses timer guard to prevent multiple intervals running simultaneously.
+ */
 export const startComfyLanguageSync = (app) => {
-    try {
-        if (typeof window !== "undefined" && window.__MJR_COMFY_LANG_SYNC_TIMER__) {
-            clearInterval(window.__MJR_COMFY_LANG_SYNC_TIMER__);
-            window.__MJR_COMFY_LANG_SYNC_TIMER__ = null;
-        }
-    } catch (e) { console.debug?.(e); }
+    // Clear any existing timer (guard against multiple calls)
     try {
         if (_comfyLangSyncTimer) {
             clearInterval(_comfyLangSyncTimer);
             _comfyLangSyncTimer = null;
         }
+        if (typeof window !== "undefined" && window.__MJR_COMFY_LANG_SYNC_TIMER__) {
+            clearInterval(window.__MJR_COMFY_LANG_SYNC_TIMER__);
+            window.__MJR_COMFY_LANG_SYNC_TIMER__ = null;
+        }
     } catch (e) { console.debug?.(e); }
+
     _comfyLangSyncTimer = setInterval(() => {
         try {
             if (!_readFollowComfyLang()) return;
@@ -1009,6 +1055,7 @@ export const startComfyLanguageSync = (app) => {
             }
         } catch (e) { console.debug?.(e); }
     }, 2000);
+
     try {
         if (typeof window !== "undefined") {
             window.__MJR_COMFY_LANG_SYNC_TIMER__ = _comfyLangSyncTimer;
@@ -1018,11 +1065,13 @@ export const startComfyLanguageSync = (app) => {
 
 /**
  * Get the current language code.
+ * @returns {string} Current language code
  */
 export const getCurrentLang = () => currentLang;
 
 /**
  * Get list of supported languages.
+ * @returns {Array<{code: string, name: string}>} Array of supported languages
  */
 export const getSupportedLanguages = () => Object.keys(DICTIONARY).map(code => ({
     code,
@@ -1030,24 +1079,44 @@ export const getSupportedLanguages = () => Object.keys(DICTIONARY).map(code => (
 }));
 
 /**
+ * Check if current language is RTL (right-to-left).
+ * @returns {boolean} True if current language is RTL
+ */
+export const isRTL = () => RTL_LANGUAGES.has(currentLang);
+
+/**
  * Translate a key.
  * @param {string} key - Translation key
  * @param {string|object} defaultOrParams - Default text or params object
  * @param {object} params - Parameters for interpolation (e.g., {n: 5})
+ * @returns {string} Translated text
  */
 export const t = (key, defaultOrParams, params) => {
     const dict = DICTIONARY[currentLang] || DICTIONARY[DEFAULT_LANG];
     const fallbackDict = DICTIONARY[DEFAULT_LANG];
-    
+
     let text = dict[key] || fallbackDict[key];
-    
+
     if (!text) {
         const missingId = `${currentLang}:${String(key || "")}`;
+        
+        // Bounded missing key tracking to prevent memory leaks
         if (!_missingTranslationKeys.has(missingId)) {
+            if (_missingTranslationKeys.size >= MAX_MISSING_KEYS) {
+                // Remove oldest entries (first 20%) when limit reached
+                const toRemove = Math.floor(MAX_MISSING_KEYS * 0.2);
+                const iterator = _missingTranslationKeys.values();
+                for (let i = 0; i < toRemove; i++) {
+                    const val = iterator.next().value;
+                    if (val) _missingTranslationKeys.delete(val);
+                }
+            }
             _missingTranslationKeys.add(missingId);
+            
             try {
                 console.warn(`[Majoor i18n] Missing translation key "${key}" for locale "${currentLang}"`);
             } catch (e) { console.debug?.(e); }
+            
             try {
                 if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
                     window.dispatchEvent(new CustomEvent("mjr-i18n-missing-key", {
@@ -1060,17 +1129,23 @@ export const t = (key, defaultOrParams, params) => {
         if (typeof defaultOrParams === "string") return defaultOrParams;
         return key;
     }
-    
-    // Handle params
-    const actualParams = typeof defaultOrParams === "object" ?defaultOrParams : params;
+
+    // Handle params - support both {key} syntax (without spaces)
+    const actualParams = typeof defaultOrParams === "object" ? defaultOrParams : params;
     if (actualParams && typeof actualParams === "object") {
-        // Replace {key} with values
+        // Replace {key} with values (regex handles {key} without spaces)
         Object.entries(actualParams).forEach(([k, v]) => {
             text = text.replace(new RegExp(`\\{${k}\\}`, "g"), String(v));
         });
     }
-    
+
     return text;
 };
 
-
+/**
+ * Clear missing translation keys cache.
+ * Useful for testing or when translations are dynamically added.
+ */
+export const clearMissingKeysCache = () => {
+    _missingTranslationKeys.clear();
+};
