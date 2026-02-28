@@ -16,6 +16,10 @@
 
 ![Majoor Assets Manager Demo](examples/ComfyUI_Majoor_AssetsManager_Video.gif)
 
+## Samples
+
+![Majoor Assets Manager Sample](examples/Capture d'écran 2026-02-28 210333.png)
+
 ## Quick Start
 
 - **Install** from [ComfyUI Manager](https://github.com/ltdrdata/ComfyUI-Manager) (recommended), then restart ComfyUI
