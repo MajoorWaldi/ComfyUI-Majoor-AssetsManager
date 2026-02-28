@@ -168,6 +168,17 @@
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--mjr-accent) 35%, transparent);
 }
 
+/* Floating Viewer button — teal glow when viewer is open */
+.mjr-assets-manager .mjr-icon-btn.mjr-mfv-btn-active {
+    color: #4dd9c0;
+    border-color: rgba(77, 217, 192, 0.55);
+    background: rgba(77, 217, 192, 0.1);
+    box-shadow: 0 0 0 1px rgba(77, 217, 192, 0.25);
+}
+.mjr-assets-manager .mjr-icon-btn.mjr-mfv-btn-active .pi {
+    opacity: 1;
+}
+
 .mjr-assets-manager .mjr-icon-btn .pi {
     font-size: 13px;
     line-height: 1;
@@ -1537,7 +1548,9 @@
     border: 0.8px solid rgba(194, 200, 208, 0.2);
     background: linear-gradient(160deg, rgba(24, 27, 32, 0.96), rgba(16, 18, 24, 0.97));
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    overflow: hidden;
+    /* overflow must stay visible so the seek ruler ticks/labels (top:-16px / top:-34px)
+       that are absolutely positioned above the seek bar are not clipped. */
+    overflow: visible;
 }
 
 .mjr-viewer-tools {
@@ -2272,7 +2285,7 @@
     color: var(--content-fg, var(--input-text, #ddd));
     box-sizing: border-box;
 
-    /* Visual chrome — geometry (position/size/display/resize) stays inline */
+    /* Visual chrome */
     background: var(--mjr-surface-1);
     border: 1px solid var(--mjr-border);
     border-radius: 8px;
@@ -2424,10 +2437,242 @@
     background: var(--mjr-accent, #5fb3ff);
 }
 
-. m j r - v i e w e r - o v e r l a y : f u l l s c r e e n 
- 
- . m j r - v i e w e r - h e a d e r 
- 
-   d i s p l a y :   n o n e ;   
- 
- 
+/* ══════════════════════════════════════════════════════════════════════════
+   MFV Geometry & Layout Classes (replaces inline styles in FloatingViewer.js)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Main MFV container geometry */
+.mjr-mfv {
+    position: fixed;
+    top: 60px;
+    right: 20px;
+    width: 480px;
+    height: 380px;
+    min-width: 220px;
+    min-height: 160px;
+    display: none;        /* shown via .mjr-mfv.is-visible or JS show() */
+    flex-direction: column;
+    resize: both;
+    overflow: hidden;
+    z-index: 10000;
+}
+
+.mjr-mfv.is-visible {
+    display: flex;
+}
+
+/* Media elements (img/video) sizing variants */
+.mjr-mfv-media {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.mjr-mfv-media--fill {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+/* Video element specific styles */
+.mjr-mfv-media-video {
+    /* Inherits from .mjr-mfv-media or .mjr-mfv-media--fill */
+}
+
+/* Gen info overlay — all modes share base layout */
+.mjr-mfv-geninfo,
+.mjr-mfv-geninfo-a,
+.mjr-mfv-geninfo-b {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    background: rgba(0, 0, 0, 0.65);
+    color: #fff;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    max-height: 40%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    word-break: break-word;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Shared style for all gen info overlay variants */
+.mjr-mfv-geninfo strong,
+.mjr-mfv-geninfo-a strong,
+.mjr-mfv-geninfo-b strong {
+    font-weight: 600;
+    margin-right: 4px;
+    color: rgba(255, 255, 255, 0.95); /* default — overridden per field below */
+}
+
+/* Per-field label colors */
+.mjr-mfv-geninfo [data-field="prompt"] strong,
+.mjr-mfv-geninfo-a [data-field="prompt"] strong,
+.mjr-mfv-geninfo-b [data-field="prompt"] strong { color: #7ec8ff; } /* blue   — Prompt */
+
+.mjr-mfv-geninfo [data-field="seed"] strong,
+.mjr-mfv-geninfo-a [data-field="seed"] strong,
+.mjr-mfv-geninfo-b [data-field="seed"] strong   { color: #ffd47a; } /* amber  — Seed   */
+
+.mjr-mfv-geninfo [data-field="model"] strong,
+.mjr-mfv-geninfo-a [data-field="model"] strong,
+.mjr-mfv-geninfo-b [data-field="model"] strong  { color: #7dda8a; } /* green  — Model  */
+
+.mjr-mfv-geninfo [data-field="lora"] strong,
+.mjr-mfv-geninfo-a [data-field="lora"] strong,
+.mjr-mfv-geninfo-b [data-field="lora"] strong   { color: #d48cff; } /* violet — LoRA   */
+
+.mjr-mfv-geninfo div,
+.mjr-mfv-geninfo-a div,
+.mjr-mfv-geninfo-b div {
+    line-height: 1.35;
+    margin-bottom: 3px;
+}
+
+.mjr-mfv-geninfo div:last-child,
+.mjr-mfv-geninfo-a div:last-child,
+.mjr-mfv-geninfo-b div:last-child {
+    margin-bottom: 0;
+}
+
+
+/* Simple mode container */
+.mjr-mfv-simple-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+}
+
+/* AB mode container */
+.mjr-mfv-ab-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+}
+
+/* AB mode layers */
+.mjr-mfv-ab-layer {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mjr-mfv-ab-layer--b {
+    /* clip-path applied inline for dynamic divider position */
+}
+
+/* Side-by-side mode container */
+.mjr-mfv-side-container {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    gap: 2px;
+    background: #111;
+    overflow: hidden;
+}
+
+/* Side-by-side half panels */
+.mjr-mfv-side-panel {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    background: #0d0d0d;
+}
+
+/* Gen info active state — button glows when at least one field is selected */
+.mjr-mfv .mjr-icon-btn.is-on {
+    border-color: rgba(var(--mjr-group-accent, 95, 179, 255), 0.55);
+    color: var(--mjr-accent, #5fb3ff);
+    background: color-mix(in srgb, var(--mjr-surface-2, #333) 80%, var(--mjr-accent, #5fb3ff) 15%);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--mjr-accent, #5fb3ff) 25%, transparent);
+}
+
+/* Gen info dropdown panel */
+.mjr-mfv-gen-dropdown {
+    position: absolute;
+    z-index: 10001;
+    background: color-mix(in srgb, var(--mjr-surface-1, #2a2a2a) 96%, transparent);
+    color: var(--content-fg, #ddd);
+    padding: 6px 4px;
+    border-radius: 8px;
+    border: 1px solid rgba(196, 202, 210, 0.18);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.3);
+    display: none;
+    min-width: 150px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.mjr-mfv-gen-dropdown::before {
+    content: "GEN INFO";
+    display: block;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    color: rgba(255, 255, 255, 0.35);
+    padding: 2px 10px 6px;
+    border-bottom: 1px solid rgba(196, 202, 210, 0.1);
+    margin-bottom: 4px;
+}
+
+.mjr-mfv-gen-dropdown.is-visible {
+    display: block;
+}
+
+.mjr-mfv-gen-dropdown-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 100ms ease;
+    user-select: none;
+}
+
+.mjr-mfv-gen-dropdown-row:hover {
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.mjr-mfv-gen-dropdown-row input[type="checkbox"] {
+    width: 13px;
+    height: 13px;
+    accent-color: var(--mjr-accent, #5fb3ff);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+/* Transform for pan/zoom - applied inline for dynamic values */
+.mjr-mfv-media--transform {
+    transform-origin: center;
+}
+
+/* Cursor feedback for pan/zoom interactions */
+.mjr-mfv-content--grab {
+    cursor: grab;
+}
+
+.mjr-mfv-content--grabbing {
+    cursor: grabbing;
+}

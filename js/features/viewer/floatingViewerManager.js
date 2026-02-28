@@ -153,11 +153,13 @@ export const floatingViewerManager = {
         _bindSelectionListener();
         // KEY FIX: immediately show whatever is selected in the grid.
         _syncCurrentGridSelection();
+        window.dispatchEvent(new CustomEvent(EVENTS.MFV_VISIBILITY_CHANGED, { detail: { visible: true } }));
     },
 
     close() {
         if (_instance) _instance.hide();
         _unbindSelectionListener();
+        window.dispatchEvent(new CustomEvent(EVENTS.MFV_VISIBILITY_CHANGED, { detail: { visible: false } }));
     },
 
     toggle() {

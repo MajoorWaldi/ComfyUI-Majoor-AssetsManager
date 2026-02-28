@@ -160,9 +160,11 @@ export function createViewerMediaFactory({
     const _fpsFromAssetMeta = (asset) => {
         try {
             const raw = asset?.metadata_raw;
-            const ff = raw?.raw_ffprobe || {};
+            const rawObj = raw && typeof raw === "object" ? raw : null;
+            const ff = rawObj?.raw_ffprobe || {};
             const vs = ff?.video_stream || {};
-            return _parseFps(raw?.fps ?? vs?.avg_frame_rate ?? vs?.r_frame_rate);
+            // Priority: raw.fps → raw.frame_rate (gen_info) → asset.fps → ffprobe streams
+            return _parseFps(rawObj?.fps ?? rawObj?.frame_rate ?? asset?.fps ?? vs?.avg_frame_rate ?? vs?.r_frame_rate);
         } catch {
             return null;
         }
