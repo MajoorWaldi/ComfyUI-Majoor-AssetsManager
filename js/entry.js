@@ -17,6 +17,7 @@ import {
 } from "./app/comfyApiBridge.js";
 import { EVENTS } from "./app/events.js";
 import { initDragDrop } from "./features/dnd/DragDrop.js";
+import { initLiveStreamTracker } from "./features/viewer/LiveStreamTracker.js";
 import { loadAssets, upsertAsset, removeAssetsFromGrid } from "./features/grid/GridView.js";
 import { renderAssetsManager, getActiveGridContainer } from "./features/panel/AssetsManagerPanel.js";
 import { extractOutputFiles } from "./utils/extractOutputFiles.js";
@@ -157,6 +158,10 @@ app.registerExtension({
             initDragDrop();
         } catch (e) { console.debug?.(e); }
 
+        try {
+            initLiveStreamTracker(runtimeApp);
+        } catch (e) { console.debug?.(e); }
+
         registerMajoorSettings(runtimeApp, () => {
             const grid = getActiveGridContainer();
             if (grid) loadAssets(grid);
@@ -192,6 +197,11 @@ app.registerExtension({
                     const files = genTimeMs > 0
                         ? outputFiles.map((f) => ({ ...f, generation_time_ms: genTimeMs }))
                         : outputFiles;
+
+                    // Notify the MFV (and any other subscriber) that new files were generated.
+                    try {
+                        window.dispatchEvent(new CustomEvent(EVENTS.NEW_GENERATION_OUTPUT, { detail: { files } }));
+                    } catch (e) { console.debug?.(e); }
 
                     post(ENDPOINTS.INDEX_FILES, { files, origin: "generation" })
                         .catch((error) => reportError(error, "entry.executed.index"));

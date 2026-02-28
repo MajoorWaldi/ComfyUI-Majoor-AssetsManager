@@ -15,5 +15,11 @@ export const EVENTS = Object.freeze({
     RELOAD_GRID: "mjr:reload-grid",
     AGENDA_STATUS: "MJR:AgendaStatus",
     VERSION_UPDATE_AVAILABLE: "mjr:version-update-available",
+    // Floating Viewer (MFV)
+    MFV_OPEN: "mjr:mfv-open",
+    MFV_CLOSE: "mjr:mfv-close",
+    MFV_TOGGLE: "mjr:mfv-toggle",
+    MFV_LIVE_TOGGLE: "mjr:mfv-live-toggle",
+    NEW_GENERATION_OUTPUT: "mjr:new-generation-output",
 });
 

@@ -617,23 +617,24 @@ function createViewer() {
                 const assets = Array.isArray(state.assets) ? state.assets : [];
                 const chosen = assets[idx];
                 if (!chosen) return;
-                // Ctrl+Click the current A asset → ignore
+                // Ignore if user clicks the current A asset
                 if (chosen === assets[state.currentIndex]) return;
-                // Ctrl+Click the current B asset → toggle off compare mode
+                // Toggle off compare mode if clicking the current B asset
                 if (chosen === state.compareAsset) {
                     state.compareAsset = null;
                     state.mode = VIEWER_MODES.SINGLE;
                     updateUI();
                     return;
                 }
-                const preferSideBySide =
-                    state.mode === VIEWER_MODES.SIDE_BY_SIDE ||
-                    state.mode === VIEWER_MODES.SINGLE;
-                state.compareAsset = chosen;
-                state.mode =
-                    preferSideBySide && canSide()
-                        ? VIEWER_MODES.SIDE_BY_SIDE
-                        : VIEWER_MODES.AB_COMPARE;
+                // If only two assets, always use AB_COMPARE for clarity
+                if (assets.length === 2) {
+                    state.compareAsset = assets[1 - state.currentIndex];
+                    state.mode = VIEWER_MODES.AB_COMPARE;
+                } else {
+                    // Otherwise, prefer Side-by-Side if possible
+                    state.compareAsset = chosen;
+                    state.mode = canSide() ? VIEWER_MODES.SIDE_BY_SIDE : VIEWER_MODES.AB_COMPARE;
+                }
                 updateUI();
             } catch (e) { console.debug?.(e); }
         },

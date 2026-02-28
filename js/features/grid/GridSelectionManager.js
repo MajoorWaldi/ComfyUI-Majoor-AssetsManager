@@ -62,10 +62,13 @@ export function setSelectionIds(gridContainer, selectedIds, { activeId = "" } = 
     const set = new Set(Array.from(selectedIds || []).map(String).filter(Boolean));
     const list = setSelectedIdsDataset(gridContainer, set, activeId);
     syncSelectionClasses(gridContainer, set, getRenderedCards);
+    const selectionDetail = { selectedIds: list, activeId: activeId || list[0] || "" };
     try {
-        gridContainer.dispatchEvent?.(
-            new CustomEvent("mjr:selection-changed", { detail: { selectedIds: list, activeId: activeId || list[0] || "" } })
-        );
+        gridContainer.dispatchEvent?.(new CustomEvent("mjr:selection-changed", { detail: selectionDetail }));
+    } catch (e) { console.debug?.(e); }
+    // Also dispatch on window so floating overlays (MFV) can subscribe globally.
+    try {
+        window.dispatchEvent(new CustomEvent("mjr:selection-changed", { detail: selectionDetail }));
     } catch (e) { console.debug?.(e); }
     return list;
 }

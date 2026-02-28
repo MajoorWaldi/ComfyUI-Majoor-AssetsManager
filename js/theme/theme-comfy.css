@@ -2251,6 +2251,179 @@
     display: none;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   Majoor Floating Viewer (MFV) — portaled to document.body
+   Redeclares CSS variables so the panel works outside .mjr-assets-manager
+   (same pattern as .mjr-popover)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.mjr-mfv {
+    --mjr-surface-0: var(--content-bg, #1e1e1e);
+    --mjr-surface-1: var(--comfy-menu-bg, #2a2a2a);
+    --mjr-surface-2: var(--comfy-menu-secondary-bg, #333);
+    --mjr-border: var(--border-color, rgba(255, 255, 255, 0.12));
+    --mjr-muted: var(--descrip-text, rgba(255, 255, 255, 0.65));
+    --mjr-accent: var(--comfy-accent, #5fb3ff);
+    --mjr-status-success: var(--comfy-status-success, #4CAF50);
+
+    font-family: var(--comfy-font, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif);
+    font-size: 13px;
+    line-height: 1.35;
+    color: var(--content-fg, var(--input-text, #ddd));
+    box-sizing: border-box;
+
+    /* Visual chrome — geometry (position/size/display/resize) stays inline */
+    background: var(--mjr-surface-1);
+    border: 1px solid var(--mjr-border);
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.mjr-mfv * {
+    box-sizing: border-box;
+}
+
+/* ── Header (drag handle) ─────────────────────────────────────────────── */
+.mjr-mfv-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px;
+    background: var(--mjr-surface-1);
+    border-bottom: 1px solid var(--mjr-border);
+    cursor: move;
+    user-select: none;
+    flex-shrink: 0;
+    gap: 6px;
+    min-height: 30px;
+}
+
+.mjr-mfv-header-title {
+    font-size: 11px;
+    opacity: 0.6;
+    pointer-events: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    letter-spacing: 0.2px;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────────── */
+.mjr-mfv-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 3px 7px;
+    background: color-mix(in srgb, var(--mjr-surface-0) 50%, var(--mjr-surface-1) 50%);
+    border-bottom: 1px solid var(--mjr-border);
+    flex-shrink: 0;
+    min-height: 28px;
+}
+
+.mjr-mfv-toolbar-sep {
+    width: 1px;
+    height: 14px;
+    background: var(--mjr-border);
+    margin: 0 2px;
+    flex-shrink: 0;
+}
+
+/* ── Icon buttons inside MFV (outside .mjr-assets-manager scope) ─────── */
+.mjr-mfv .mjr-icon-btn {
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    border: 1px solid var(--mjr-border);
+    background: var(--mjr-surface-2);
+    color: var(--content-fg, #ddd);
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+    transition: transform 120ms ease, background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.mjr-mfv .mjr-icon-btn:hover {
+    border-color: color-mix(in srgb, var(--mjr-accent) 45%, var(--mjr-border));
+    background: color-mix(in srgb, var(--mjr-surface-2) 80%, var(--mjr-accent) 8%);
+    transform: translateY(-1px);
+}
+
+.mjr-mfv .mjr-icon-btn .pi {
+    font-size: 12px;
+    line-height: 1;
+    opacity: 0.9;
+}
+
+.mjr-mfv .mjr-icon-btn.mjr-live-active {
+    border-color: color-mix(in srgb, var(--mjr-status-success) 60%, var(--mjr-border));
+    color: var(--mjr-status-success);
+    background: color-mix(in srgb, var(--mjr-surface-2) 80%, var(--mjr-status-success) 12%);
+}
+
+/* ── Content area ────────────────────────────────────────────────────── */
+.mjr-mfv-content {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    background: #0d0d0d;
+    min-height: 0;
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────── */
+.mjr-mfv-empty {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.25);
+    font-size: 11px;
+    pointer-events: none;
+    text-align: center;
+    padding: 12px;
+}
+
+/* ── Compare labels ──────────────────────────────────────────────────── */
+.mjr-mfv-label {
+    position: absolute;
+    top: 8px;
+    background: rgba(0, 0, 0, 0.58);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 20;
+    letter-spacing: 0.4px;
+}
+
+.mjr-mfv-label.label-left  { left: 8px; }
+.mjr-mfv-label.label-right { right: 8px; }
+
+/* ── AB divider ──────────────────────────────────────────────────────── */
+.mjr-mfv-ab-divider {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    cursor: col-resize;
+    z-index: 10;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.4);
+    transition: background 100ms ease;
+}
+
+.mjr-mfv-ab-divider:hover,
+.mjr-mfv-ab-divider:active {
+    background: var(--mjr-accent, #5fb3ff);
+}
+
 . m j r - v i e w e r - o v e r l a y : f u l l s c r e e n 
  
  . m j r - v i e w e r - h e a d e r 
