@@ -1,7 +1,12 @@
 # Majoor Assets Manager - Ratings, Tags & Collections Guide
 
+**Version**: 2.3.3  
+**Last Updated**: February 28, 2026
+
 ## Overview
 The Majoor Assets Manager provides powerful organizational tools including ratings, tags, and collections to help you manage and organize your generated assets. This guide covers all features related to asset organization and categorization.
+
+**New in v2.3.3**: Improved bulk operations, better Windows Explorer rating sync, and collection performance optimizations.
 
 ## Rating System
 

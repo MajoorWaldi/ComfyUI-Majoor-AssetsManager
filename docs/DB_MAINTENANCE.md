@@ -1,6 +1,11 @@
 # Database Maintenance
 
+**Version**: 2.3.3  
+**Last Updated**: February 28, 2026
+
 Majoor Assets Manager stores its index in an SQLite database at `<output>/_mjr_index/assets.sqlite`. This document covers the maintenance tools available in the UI and the recovery procedures for corruption scenarios.
+
+**New in v2.3.3**: Improved corruption detection, automatic health monitoring, and faster DB rebuild.
 
 ## Buttons in the Status Panel
 

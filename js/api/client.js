@@ -450,7 +450,7 @@ async function fetchAPI(url, options = {}, retryCount = 0) {
                 !_isBootstrapTokenUrl(url) &&
                 Number(response.status || 0) === 401
             ) {
-                const refreshed = await _refreshAuthTokenFromServer();
+                const refreshed = await ensureWriteAuthToken({ force: true });
                 if (refreshed) {
                     const retryOptions = { ...options, _authRetryDone: true };
                     return await fetchAPI(url, retryOptions, retryCount);
@@ -491,7 +491,7 @@ async function fetchAPI(url, options = {}, retryCount = 0) {
             (String(result?.code || "").toUpperCase() === "AUTH_REQUIRED" || Number(result?.status || 0) === 401);
 
         if (shouldTryAuthRefresh) {
-            const refreshed = await _refreshAuthTokenFromServer();
+            const refreshed = await ensureWriteAuthToken({ force: true });
             if (refreshed) {
                 const retryOptions = { ...options, _authRetryDone: true };
                 return await fetchAPI(url, retryOptions, retryCount);
