@@ -1094,16 +1094,15 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         # Determine the new file path
         new_path = current_resolved.parent / new_name
 
-        # Check if new name already exists (allow case-only rename on case-insensitive filesystems).
+        # Check if new name already exists (allow case-only rename on any filesystem).
         if new_path.exists():
             same_file = False
             try:
                 same_file = bool(new_path.samefile(current_resolved))
             except Exception:
                 same_file = False
-            case_insensitive_fs = (os.name == "nt") or (sys.platform == "darwin")
             same_path_ignoring_case = str(new_path).lower() == str(current_resolved).lower()
-            if not (case_insensitive_fs and same_file and same_path_ignoring_case):
+            if not (same_file and same_path_ignoring_case):
                 return _json_response(Result.Err("CONFLICT", f"File '{new_name}' already exists"))
 
         # Perform the rename

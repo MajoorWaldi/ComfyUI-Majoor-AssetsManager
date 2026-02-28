@@ -658,14 +658,13 @@ class Sqlite:
             except Exception as fts_exc:
                 logger.warning("FTS rebuild error during recovery: %s", fts_exc)
 
-            # Reindex contentless FTS (content='' does not support the 'rebuild' command).
-            # Use DELETE + INSERT to reset it from the source table.
+            # Reindex standard FTS table from source data (DELETE + INSERT is valid for non-contentless tables).
             try:
                 await self._run_recovery_pragma(rec_conn, "DELETE FROM asset_metadata_fts")
                 await self._run_recovery_pragma(
                     rec_conn,
-                    "INSERT INTO asset_metadata_fts(rowid, tags, tags_text)"
-                    " SELECT asset_id, COALESCE(tags, ''), COALESCE(tags_text, '')"
+                    "INSERT INTO asset_metadata_fts(rowid, tags, tags_text, metadata_text)"
+                    " SELECT asset_id, COALESCE(tags, ''), COALESCE(tags_text, ''), COALESCE(metadata_text, '')"
                     " FROM asset_metadata",
                 )
             except sqlite3.OperationalError as fts_exc:

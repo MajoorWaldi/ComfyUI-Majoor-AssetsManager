@@ -173,10 +173,18 @@ export function createHeaderView() {
     headerTools.appendChild(customMenuBtn);
 
     // Floating Viewer toggle button — opens/closes the MFV overlay.
-    const mfvBtn = createIconButton("pi-window-maximize", t("tooltip.openMFV", "Open Floating Viewer"));
+    const mfvBtn = createIconButton("pi-eye", t("tooltip.openMFV", "Open Floating Viewer"));
     mfvBtn.addEventListener("click", () => {
         window.dispatchEvent(new CustomEvent(EVENTS.MFV_TOGGLE));
     });
+    const _mfvVisibilityHandler = (e) => {
+        const active = Boolean(e?.detail?.visible);
+        mfvBtn.classList.toggle("mjr-mfv-btn-active", active);
+        mfvBtn.title = active
+            ? t("tooltip.closeMFV", "Close Floating Viewer")
+            : t("tooltip.openMFV", "Open Floating Viewer");
+    };
+    window.addEventListener(EVENTS.MFV_VISIBILITY_CHANGED, _mfvVisibilityHandler);
     headerTools.appendChild(mfvBtn);
 
     headerRow.appendChild(headerLeft);
@@ -197,6 +205,7 @@ export function createHeaderView() {
             }
         } catch (e) { console.debug?.(e); }
         versionUpdateListener = null;
+        try { window.removeEventListener(EVENTS.MFV_VISIBILITY_CHANGED, _mfvVisibilityHandler); } catch (e) { console.debug?.(e); }
     };
     if (typeof window !== "undefined") {
         versionUpdateListener = (event) => {

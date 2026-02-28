@@ -92,31 +92,61 @@ function _buildMediaEl(fileData, { fill = false } = {}) {
     const url = _resolveUrl(fileData);
     if (!url) return null;
     const kind = _mediaKind(fileData);
-    const sizeStyle = fill
-        ? "width:100%; height:100%; object-fit:contain; display:block;"
-        : "max-width:100%; max-height:100%; object-fit:contain; display:block;";
 
     if (kind === "video") {
         const v = document.createElement("video");
-        v.className = "mjr-mfv-media";
+        v.className = `mjr-mfv-media${fill ? " mjr-mfv-media--fill" : ""}`;
         v.src = url;
         v.controls = true;
         v.loop = true;
         v.muted = true;
         v.autoplay = true;
         v.playsInline = true;
-        v.style.cssText = sizeStyle;
         return v;
     }
 
     // gif and image — use <img>
     const img = document.createElement("img");
-    img.className = "mjr-mfv-media";
+    img.className = `mjr-mfv-media${fill ? " mjr-mfv-media--fill" : ""}`;
     img.src = url;
     img.alt = String(fileData?.filename || "");
     img.draggable = false;
-    img.style.cssText = sizeStyle;
     return img;
+}
+
+// ── Canvas capture helpers ────────────────────────────────────────────────────
+
+/** Draw a rounded rect path (uses native roundRect when available). */
+function _canvasRoundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    if (typeof ctx.roundRect === "function") {
+        ctx.roundRect(x, y, w, h, r);
+    } else {
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+    }
+}
+
+/** Draw an A/B pill label at (x, y) on canvas. */
+function _canvasLabel(ctx, text, x, y) {
+    ctx.save();
+    ctx.font = "bold 10px system-ui, sans-serif";
+    const pad = 5;
+    const tw = ctx.measureText(text).width;
+    ctx.fillStyle = "rgba(0,0,0,0.58)";
+    _canvasRoundRect(ctx, x, y, tw + pad * 2, 18, 4);
+    ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.fillText(text, x + pad, y + 13);
+    ctx.restore();
 }
 
 // ── FloatingViewer class ──────────────────────────────────────────────────────
@@ -130,6 +160,7 @@ export class FloatingViewer {
         this._liveBtn    = null;
         this._genBtn     = null;
         this._genDropdown = null;
+        this._captureBtn = null;
         this._genInfoSelections = new Set(["prompt"]);
         this._mode       = MFV_MODES.SIMPLE;
         this._mediaA     = null;
@@ -149,21 +180,6 @@ export class FloatingViewer {
     render() {
         const el = document.createElement("div");
         el.className = "mjr-mfv";
-        // Only geometry + display lives in inline styles; everything else is CSS.
-        Object.assign(el.style, {
-            position:  "fixed",
-            top:       "60px",
-            right:     "20px",
-            width:     "480px",
-            height:    "380px",
-            minWidth:  "220px",
-            minHeight: "160px",
-            display:   "none",       // shown via show()
-            flexDirection: "column", // flex container
-            resize:    "both",
-            overflow:  "hidden",
-            zIndex:    "10000",
-        });
 
         this.element = el;
         el.appendChild(this._buildHeader());
@@ -233,17 +249,26 @@ export class FloatingViewer {
         this._genBtn = document.createElement("button");
         this._genBtn.type = "button";
         this._genBtn.className = "mjr-icon-btn";
-        this._genBtn.title = "Gen Info";
         this._genBtn.innerHTML = '<i class="pi pi-info-circle" aria-hidden="true"></i>';
         this._genBtn.addEventListener("click", (e) => {
             e.stopPropagation();
-            if (this._genDropdown?.style?.display === "block") {
+            if (this._genDropdown?.classList?.contains("is-visible")) {
                 this._closeGenDropdown();
             } else {
                 this._openGenDropdown();
             }
         });
         bar.appendChild(this._genBtn);
+        this._updateGenBtnUI();
+
+        // Download / capture button
+        this._captureBtn = document.createElement("button");
+        this._captureBtn.type = "button";
+        this._captureBtn.className = "mjr-icon-btn";
+        this._captureBtn.title = "Save view as image";
+        this._captureBtn.innerHTML = '<i class="pi pi-download" aria-hidden="true"></i>';
+        this._captureBtn.addEventListener("click", () => this._captureView());
+        bar.appendChild(this._captureBtn);
 
         // Close dropdown when clicking outside
         this._handleDocClick = (ev) => {
@@ -261,8 +286,6 @@ export class FloatingViewer {
         if (!this.element) return;
         if (!this._genDropdown) {
             this._genDropdown = this._buildGenDropdown();
-            this._genDropdown.style.position = "absolute";
-            this._genDropdown.style.zIndex = "10001";
             this.element.appendChild(this._genDropdown);
         }
         const rect = this._genBtn.getBoundingClientRect();
@@ -271,18 +294,28 @@ export class FloatingViewer {
         const top = rect.bottom - parentRect.top + 6;
         this._genDropdown.style.left = `${left}px`;
         this._genDropdown.style.top = `${top}px`;
-        this._genDropdown.style.display = "block";
+        this._genDropdown.classList.add("is-visible");
     }
 
     _closeGenDropdown() {
         if (!this._genDropdown) return;
-        this._genDropdown.style.display = "none";
+        this._genDropdown.classList.remove("is-visible");
+    }
+
+    /** Reflect how many fields are enabled on the gen info button. */
+    _updateGenBtnUI() {
+        if (!this._genBtn) return;
+        const count = this._genInfoSelections.size;
+        const isOn = count > 0;
+        this._genBtn.classList.toggle("is-on", isOn);
+        this._genBtn.title = isOn
+            ? `Gen Info (${count} field${count > 1 ? "s" : ""} shown) — click to configure`
+            : "Gen Info — click to show overlay";
     }
 
     _buildGenDropdown() {
         const d = document.createElement("div");
         d.className = "mjr-mfv-gen-dropdown";
-        d.style.cssText = "background:rgba(0,0,0,0.9); color:#fff; padding:8px; border-radius:6px; display:block; min-width:140px;";
         const opts = [
             ["prompt", "Prompt"],
             ["seed", "Seed"],
@@ -291,13 +324,14 @@ export class FloatingViewer {
         ];
         for (const [key, label] of opts) {
             const row = document.createElement("label");
-            row.style.cssText = "display:flex; align-items:center; gap:8px; font-size:12px; margin:4px 0; cursor:pointer;";
+            row.className = "mjr-mfv-gen-dropdown-row";
             const cb = document.createElement("input");
             cb.type = "checkbox";
             cb.checked = this._genInfoSelections.has(key);
             cb.addEventListener("change", () => {
                 if (cb.checked) this._genInfoSelections.add(key);
                 else this._genInfoSelections.delete(key);
+                this._updateGenBtnUI();
                 this._refresh();
             });
             const span = document.createElement("span");
@@ -311,24 +345,29 @@ export class FloatingViewer {
 
     _getGenFields(fileData) {
         if (!fileData) return {};
-        // Prefer normalized geninfo objects produced by backend pipeline
+        // Prefer normalized geninfo objects produced by backend pipeline.
+        // fileData.geninfo is the raw geninfo object ({positive:{value:...}, checkpoint:...}).
+        // normalizeGenerationMetadata expects to find it under raw.geninfo, so we wrap it.
         try {
-            const candidate = fileData.geninfo || fileData.metadata || fileData.metadata_raw || fileData;
+            const candidate = fileData.geninfo
+                ? { geninfo: fileData.geninfo }
+                : (fileData.metadata || fileData.metadata_raw || fileData);
             const norm = normalizeGenerationMetadata(candidate) || null;
             const out = { prompt: "", seed: "", model: "", lora: "" };
             if (norm && typeof norm === "object") {
+                // Extract positive prompt (primary field)
                 if (norm.prompt) out.prompt = String(norm.prompt);
                 if (norm.seed != null) out.seed = String(norm.seed);
                 if (norm.model) out.model = Array.isArray(norm.model) ? norm.model.join(", ") : String(norm.model);
-                if (Array.isArray(norm.loras)) out.lora = norm.loras.map((l) => (typeof l === "string" ? l : (l?.name || l?.lora_name || ""))).filter(Boolean).join(", ");
-                // Also accept flat keys
+                if (Array.isArray(norm.loras)) out.lora = norm.loras.map((l) => (typeof l === "string" ? l : (l?.name || l?.lora_name || l?.model_name || ""))).filter(Boolean).join(", ");
+                // Fallback to candidate prompt if norm.prompt is empty
                 if (!out.prompt && candidate?.prompt) out.prompt = String(candidate.prompt || "");
                 return out;
             }
-        } catch (e) { /* ignore and fall back */ }
+        } catch (e) { console.debug?.("[MFV] _getGenFields error:", e); }
         // Fallback: inspect common metadata fields
         const meta = fileData.meta || fileData.metadata || fileData.parsed || fileData.parsed_meta || fileData;
-        const out = {};
+        const out = { prompt: "", seed: "", model: "", lora: "" };
         out.prompt = meta?.prompt || meta?.text || "";
         out.seed = (meta?.seed != null) ? String(meta.seed) : (meta?.noise_seed != null ? String(meta.noise_seed) : "");
         if (meta?.model) out.model = Array.isArray(meta.model) ? meta.model.join(", ") : String(meta.model);
@@ -342,17 +381,20 @@ export class FloatingViewer {
         const fields = this._getGenFields(fileData);
         if (!fields) return "";
         const parts = [];
+        // Show only selected fields from dropdown (prompt, seed, model, lora)
         const order = ["prompt", "seed", "model", "lora"];
         for (const k of order) {
+            // Only show if user has selected this field in the dropdown
             if (!this._genInfoSelections.has(k)) continue;
             const v = (fields[k] != null) ? String(fields[k]) : "";
             if (!v) continue;
             const label = k === "lora" ? "LoRA" : k.charAt(0).toUpperCase() + k.slice(1);
             if (k === "prompt") {
+                // Truncate long prompts to 240 chars
                 const short = v.length > 240 ? v.slice(0, 240) + "…" : v;
-                parts.push(`<div style=\"margin-bottom:6px;line-height:1.2;\"><strong>${label}:</strong> ${escapeHtml(short)}</div>`);
+                parts.push(`<div data-field="${k}"><strong>${label}:</strong> ${escapeHtml(short)}</div>`);
             } else {
-                parts.push(`<div style=\"margin-bottom:4px;line-height:1.2;\"><strong>${label}:</strong> ${escapeHtml(v)}</div>`);
+                parts.push(`<div data-field="${k}"><strong>${label}:</strong> ${escapeHtml(v)}</div>`);
             }
         }
         return parts.join("");
@@ -481,9 +523,11 @@ export class FloatingViewer {
             el.style.transform = t;
             el.style.transformOrigin = "center";
         }
-        // Cursor feedback
-        this._contentEl.style.cursor =
-            z > 1.01 ? (this._dragging ? "grabbing" : "grab") : "";
+        // Cursor feedback — use CSS classes
+        this._contentEl.classList.remove("mjr-mfv-content--grab", "mjr-mfv-content--grabbing");
+        if (z > 1.01) {
+            this._contentEl.classList.add(this._dragging ? "mjr-mfv-content--grabbing" : "mjr-mfv-content--grab");
+        }
     }
 
     /**
@@ -606,15 +650,13 @@ export class FloatingViewer {
             return;
         }
         const wrap = document.createElement("div");
-        wrap.style.cssText =
-            "width:100%; height:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative;";
+        wrap.className = "mjr-mfv-simple-container";
         wrap.appendChild(mediaEl);
         // Gen info overlay for SIMPLE mode
         const infoHtml = this._formatGenInfoHTML(this._mediaA);
         if (infoHtml) {
             const ol = document.createElement("div");
             ol.className = "mjr-mfv-geninfo";
-            ol.style.cssText = "position:absolute; left:8px; right:8px; bottom:8px; background:rgba(0,0,0,0.6); color:#fff; padding:8px; border-radius:6px; font-size:12px; max-height:40%; overflow:auto;";
             ol.innerHTML = infoHtml;
             wrap.appendChild(ol);
         }
@@ -636,20 +678,18 @@ export class FloatingViewer {
         }
 
         const container = document.createElement("div");
-        container.style.cssText = "position:relative; width:100%; height:100%; overflow:hidden; background:#000;";
+        container.className = "mjr-mfv-ab-container";
 
         // Layer A — full-size backdrop
         const layerA = document.createElement("div");
-        layerA.style.cssText =
-            "position:absolute; inset:0; display:flex; align-items:center; justify-content:center;";
+        layerA.className = "mjr-mfv-ab-layer";
         if (elA) layerA.appendChild(elA);
 
         // Layer B — clipped from the left edge to the divider
         const layerB = document.createElement("div");
+        layerB.className = "mjr-mfv-ab-layer mjr-mfv-ab-layer--b";
         const pct = Math.round(this._abDividerX * 100);
-        layerB.style.cssText =
-            `position:absolute; inset:0; display:flex; align-items:center; justify-content:center;` +
-            `clip-path:inset(0 0 0 ${pct}%);`;
+        layerB.style.clipPath = `inset(0 0 0 ${pct}%)`;
         layerB.appendChild(elB);
 
         // Draggable divider bar
@@ -677,28 +717,29 @@ export class FloatingViewer {
             divider.addEventListener("pointerup", onUp);
         });
 
-        container.appendChild(layerA);
-        container.appendChild(layerB);
-        container.appendChild(divider);
-        container.appendChild(_makeLabel("A", "left"));
-        container.appendChild(_makeLabel("B", "right"));
-        // Gen info overlays for AB (left/right)
+        // Gen info overlays live inside their respective layers.
+        // geninfo-b is inside layerB — the layer's clip-path clips the overlay
+        // to the B side of the divider automatically.
         const infoA = this._formatGenInfoHTML(this._mediaA);
         if (infoA) {
             const oa = document.createElement("div");
             oa.className = "mjr-mfv-geninfo-a";
-            oa.style.cssText = "position:absolute; left:8px; bottom:8px; background:rgba(0,0,0,0.6); color:#fff; padding:6px; border-radius:6px; font-size:12px; max-width:46%; max-height:40%; overflow:auto;";
             oa.innerHTML = infoA;
-            container.appendChild(oa);
+            layerA.appendChild(oa);
         }
         const infoB = this._formatGenInfoHTML(this._mediaB);
         if (infoB) {
             const ob = document.createElement("div");
             ob.className = "mjr-mfv-geninfo-b";
-            ob.style.cssText = "position:absolute; right:8px; bottom:8px; background:rgba(0,0,0,0.6); color:#fff; padding:6px; border-radius:6px; font-size:12px; max-width:46%; max-height:40%; overflow:auto; text-align:left;";
             ob.innerHTML = infoB;
-            container.appendChild(ob);
+            layerB.appendChild(ob);
         }
+
+        container.appendChild(layerA);
+        container.appendChild(layerB);
+        container.appendChild(divider);
+        container.appendChild(_makeLabel("A", "left"));
+        container.appendChild(_makeLabel("B", "right"));
         this._contentEl.appendChild(container);
     }
 
@@ -712,15 +753,10 @@ export class FloatingViewer {
         }
 
         const container = document.createElement("div");
-        container.style.cssText =
-            "display:flex; width:100%; height:100%; gap:2px; background:#111; overflow:hidden;";
-
-        const halfStyle =
-            "flex:1; min-width:0; display:flex; align-items:center; justify-content:center;" +
-            "overflow:hidden; position:relative; background:#0d0d0d;";
+        container.className = "mjr-mfv-side-container";
 
         const sideA = document.createElement("div");
-        sideA.style.cssText = halfStyle;
+        sideA.className = "mjr-mfv-side-panel";
         if (elA) sideA.appendChild(elA);
         else sideA.appendChild(_makeEmptyState("—"));
         sideA.appendChild(_makeLabel("A", "left"));
@@ -730,13 +766,12 @@ export class FloatingViewer {
         if (infoA) {
             const oa = document.createElement("div");
             oa.className = "mjr-mfv-geninfo-a";
-            oa.style.cssText = "position:absolute; left:8px; bottom:8px; background:rgba(0,0,0,0.6); color:#fff; padding:6px; border-radius:6px; font-size:12px; max-width:46%; max-height:40%; overflow:auto;";
             oa.innerHTML = infoA;
             sideA.appendChild(oa);
         }
 
         const sideB = document.createElement("div");
-        sideB.style.cssText = halfStyle;
+        sideB.className = "mjr-mfv-side-panel";
         if (elB) sideB.appendChild(elB);
         else sideB.appendChild(_makeEmptyState("—"));
         sideB.appendChild(_makeLabel("B", "right"));
@@ -746,7 +781,6 @@ export class FloatingViewer {
         if (infoB) {
             const ob = document.createElement("div");
             ob.className = "mjr-mfv-geninfo-b";
-            ob.style.cssText = "position:absolute; right:8px; bottom:8px; background:rgba(0,0,0,0.6); color:#fff; padding:6px; border-radius:6px; font-size:12px; max-width:46%; max-height:40%; overflow:auto;";
             ob.innerHTML = infoB;
             sideB.appendChild(ob);
         }
@@ -760,13 +794,13 @@ export class FloatingViewer {
 
     show() {
         if (!this.element) return;
-        this.element.style.display = "flex";
+        this.element.classList.add("is-visible");
         this.isVisible = true;
     }
 
     hide() {
         if (!this.element) return;
-        this.element.style.display = "none";
+        this.element.classList.remove("is-visible");
         this.isVisible = false;
     }
 
@@ -802,19 +836,230 @@ export class FloatingViewer {
         });
     }
 
+    // ── Canvas capture ────────────────────────────────────────────────────────
+
+    /**
+     * Draw a media asset (image or current video frame) letterboxed into
+     * the canvas region (ox, oy, w, h).  preferredVideo is used for multi-
+     * video modes so we grab the right element.
+     */
+    async _drawMediaFit(ctx, fileData, ox, oy, w, h, preferredVideo) {
+        if (!fileData) return;
+        const kind = _mediaKind(fileData);
+        let drawable = null;
+
+        if (kind === "video") {
+            drawable = (preferredVideo instanceof HTMLVideoElement)
+                ? preferredVideo
+                : (this._contentEl?.querySelector("video") || null);
+        }
+        if (!drawable) {
+            const url = _resolveUrl(fileData);
+            if (!url) return;
+            drawable = await new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                img.onload  = () => resolve(img);
+                img.onerror = () => resolve(null);
+                img.src = url;
+            });
+        }
+        if (!drawable) return;
+
+        const sw = drawable.videoWidth  || drawable.naturalWidth  || w;
+        const sh = drawable.videoHeight || drawable.naturalHeight || h;
+        if (!sw || !sh) return;
+        const scale = Math.min(w / sw, h / sh);
+        ctx.drawImage(drawable,
+            ox + (w - sw * scale) / 2,
+            oy + (h - sh * scale) / 2,
+            sw * scale, sh * scale);
+    }
+
+    /** Render the gen-info overlay onto the canvas region (ox, oy, w, h). */
+    _drawGenInfoOverlay(ctx, fileData, ox, oy, w, h) {
+        if (!fileData || !this._genInfoSelections.size) return;
+        const fields = this._getGenFields(fileData);
+        const LABEL_COLORS = { prompt: "#7ec8ff", seed: "#ffd47a", model: "#7dda8a", lora: "#d48cff" };
+        const order = ["prompt", "seed", "model", "lora"];
+
+        const entries = [];
+        for (const k of order) {
+            if (!this._genInfoSelections.has(k)) continue;
+            const v = (fields[k] != null) ? String(fields[k]) : "";
+            if (!v) continue;
+            const label = k === "lora" ? "LoRA" : k.charAt(0).toUpperCase() + k.slice(1);
+            const val = (k === "prompt" && v.length > 160) ? v.slice(0, 160) + "…" : v;
+            entries.push({ label: `${label}: `, value: val, color: LABEL_COLORS[k] });
+        }
+        if (!entries.length) return;
+
+        const fontSize = 11;
+        const lh = 16;
+        const pad = 8;
+
+        ctx.save();
+
+        // Measure to fit box width
+        let maxLine = 0;
+        for (const { label, value } of entries) {
+            ctx.font = `bold ${fontSize}px system-ui, sans-serif`;
+            const lw = ctx.measureText(label).width;
+            ctx.font = `${fontSize}px system-ui, sans-serif`;
+            maxLine = Math.max(maxLine, lw + ctx.measureText(value).width);
+        }
+
+        const boxW = Math.min(maxLine + pad * 2, w - pad * 2);
+        const boxH = entries.length * lh + pad * 2;
+        const boxX = ox + pad;
+        const boxY = oy + h - boxH - pad;
+
+        // Background
+        ctx.globalAlpha = 0.72;
+        ctx.fillStyle = "#000";
+        _canvasRoundRect(ctx, boxX, boxY, boxW, boxH, 6);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Text lines
+        let ty = boxY + pad + fontSize;
+        for (const { label, value, color } of entries) {
+            // Colored bold label
+            ctx.font = `bold ${fontSize}px system-ui, sans-serif`;
+            ctx.fillStyle = color;
+            ctx.fillText(label, boxX + pad, ty);
+            const lw = ctx.measureText(label).width;
+
+            // White value (clipped to box)
+            ctx.font = `${fontSize}px system-ui, sans-serif`;
+            ctx.fillStyle = "rgba(255,255,255,0.88)";
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(boxX + pad + lw, ty - fontSize, boxW - pad * 2 - lw, lh + 2);
+            ctx.clip();
+            ctx.fillText(value, boxX + pad + lw, ty);
+            ctx.restore();
+
+            ty += lh;
+        }
+        ctx.restore();
+    }
+
+    /** Capture the current view to PNG and trigger a browser download. */
+    async _captureView() {
+        if (!this._contentEl) return;
+
+        // Visual feedback: briefly disable button
+        if (this._captureBtn) this._captureBtn.disabled = true;
+
+        const w = this._contentEl.clientWidth  || 480;
+        const h = this._contentEl.clientHeight || 360;
+
+        const canvas = document.createElement("canvas");
+        canvas.width  = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+
+        ctx.fillStyle = "#0d0d0d";
+        ctx.fillRect(0, 0, w, h);
+
+        try {
+            if (this._mode === MFV_MODES.SIMPLE) {
+                if (this._mediaA) {
+                    await this._drawMediaFit(ctx, this._mediaA, 0, 0, w, h);
+                    this._drawGenInfoOverlay(ctx, this._mediaA, 0, 0, w, h);
+                }
+
+            } else if (this._mode === MFV_MODES.AB) {
+                const divX = Math.round(this._abDividerX * w);
+                const vidA = this._contentEl.querySelector(".mjr-mfv-ab-layer:not(.mjr-mfv-ab-layer--b) video");
+                const vidB = this._contentEl.querySelector(".mjr-mfv-ab-layer--b video");
+
+                // Draw A full-width (background layer)
+                if (this._mediaA) await this._drawMediaFit(ctx, this._mediaA, 0, 0, w, h, vidA);
+
+                // Draw B clipped to the right of the divider
+                if (this._mediaB) {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.rect(divX, 0, w - divX, h);
+                    ctx.clip();
+                    await this._drawMediaFit(ctx, this._mediaB, 0, 0, w, h, vidB);
+                    ctx.restore();
+                }
+
+                // Divider line
+                ctx.save();
+                ctx.strokeStyle = "rgba(255,255,255,0.88)";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(divX, 0);
+                ctx.lineTo(divX, h);
+                ctx.stroke();
+                ctx.restore();
+
+                // A/B labels and overlays
+                _canvasLabel(ctx, "A", 8, 8);
+                _canvasLabel(ctx, "B", divX + 8, 8);
+                if (this._mediaA) this._drawGenInfoOverlay(ctx, this._mediaA, 0, 0, divX, h);
+                if (this._mediaB) this._drawGenInfoOverlay(ctx, this._mediaB, divX, 0, w - divX, h);
+
+            } else if (this._mode === MFV_MODES.SIDE) {
+                const half = Math.floor(w / 2);
+                const vidA = this._contentEl.querySelector(".mjr-mfv-side-panel:first-child video");
+                const vidB = this._contentEl.querySelector(".mjr-mfv-side-panel:last-child video");
+
+                if (this._mediaA) {
+                    await this._drawMediaFit(ctx, this._mediaA, 0, 0, half, h, vidA);
+                    this._drawGenInfoOverlay(ctx, this._mediaA, 0, 0, half, h);
+                }
+                // Gap between panels
+                ctx.fillStyle = "#111";
+                ctx.fillRect(half, 0, 2, h);
+                if (this._mediaB) {
+                    await this._drawMediaFit(ctx, this._mediaB, half, 0, half, h, vidB);
+                    this._drawGenInfoOverlay(ctx, this._mediaB, half, 0, half, h);
+                }
+                _canvasLabel(ctx, "A", 8, 8);
+                _canvasLabel(ctx, "B", half + 8, 8);
+            }
+        } catch (e) {
+            console.debug("[MFV] capture error:", e);
+        }
+
+        // Trigger download — toDataURL is synchronous so the click stays within
+        // the user-gesture chain and is never blocked by the browser.
+        const prefix = { [MFV_MODES.AB]: "mfv-ab", [MFV_MODES.SIDE]: "mfv-side" }[this._mode] ?? "mfv";
+        const filename = `${prefix}-${Date.now()}.png`;
+        try {
+            const dataUrl = canvas.toDataURL("image/png");
+            const a = document.createElement("a");
+            a.href = dataUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => document.body.removeChild(a), 100);
+        } catch (e) {
+            console.warn("[MFV] download failed:", e);
+        } finally {
+            if (this._captureBtn) this._captureBtn.disabled = false;
+        }
+    }
+
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     dispose() {
         this._destroyPanZoom();
         try { this.element?.remove(); } catch (e) { console.debug?.(e); }
-        this.element    = null;
-        this._contentEl = null;
-        this._modeBtn   = null;
-        this._liveBtn     = null;
+        this.element     = null;
+        this._contentEl  = null;
+        this._modeBtn    = null;
+        this._liveBtn    = null;
+        this._captureBtn = null;
         try { document.removeEventListener("click", this._handleDocClick); } catch {}
         try { this._genDropdown?.remove(); } catch {}
-        this._mediaA      = null;
-        this._mediaB      = null;
-        this.isVisible    = false;
+        this._mediaA     = null;
+        this._mediaB     = null;
+        this.isVisible   = false;
     }
 }

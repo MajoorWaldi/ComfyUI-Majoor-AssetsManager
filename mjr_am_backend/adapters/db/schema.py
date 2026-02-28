@@ -134,8 +134,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS assets_fts USING fts5(
 CREATE VIRTUAL TABLE IF NOT EXISTS asset_metadata_fts USING fts5(
     tags,
     tags_text,
-     metadata_text,
-    content=''
+    metadata_text
 );
 
 CREATE INDEX IF NOT EXISTS idx_assets_filename ON assets(filename);
@@ -181,13 +180,15 @@ CREATE TRIGGER IF NOT EXISTS asset_metadata_fts_insert AFTER INSERT ON asset_met
 END;
 
 CREATE TRIGGER IF NOT EXISTS asset_metadata_fts_delete AFTER DELETE ON asset_metadata BEGIN
-    INSERT INTO asset_metadata_fts(asset_metadata_fts, rowid) VALUES('delete', old.asset_id);
+    DELETE FROM asset_metadata_fts WHERE rowid = old.asset_id;
 END;
 
 CREATE TRIGGER IF NOT EXISTS asset_metadata_fts_update AFTER UPDATE ON asset_metadata BEGIN
-    INSERT INTO asset_metadata_fts(asset_metadata_fts, rowid) VALUES('delete', old.asset_id);
-     INSERT INTO asset_metadata_fts(rowid, tags, tags_text, metadata_text)
-     VALUES (new.asset_id, COALESCE(new.tags, ''), COALESCE(new.tags_text, ''), COALESCE(new.metadata_text, ''));
+    UPDATE asset_metadata_fts
+    SET tags = COALESCE(new.tags, ''),
+        tags_text = COALESCE(new.tags_text, ''),
+        metadata_text = COALESCE(new.metadata_text, '')
+    WHERE rowid = new.asset_id;
 END;
 """
 
@@ -348,10 +349,16 @@ async def _sqlite_object_sql(db, obj_type: str, name: str) -> str:
 async def _asset_metadata_fts_needs_repair(db) -> tuple[bool, bool]:
     ddl_lower = (await _sqlite_object_sql(db, "table", "asset_metadata_fts")).lower()
     trig_lower = (await _sqlite_object_sql(db, "trigger", "asset_metadata_fts_update")).lower()
-    needs_table_rebuild = ("content_rowid" in ddl_lower and "asset_id" in ddl_lower)
-    needs_trigger_rebuild = ("update asset_metadata_fts" in trig_lower)
+    needs_table_rebuild = (
+        ("content_rowid" in ddl_lower and "asset_id" in ddl_lower)
+        or "content=''" in ddl_lower
+        or 'content=""' in ddl_lower
+    )
+    # Old contentless triggers used VALUES('delete', rowid) for deletions; new triggers use DELETE/UPDATE.
+    needs_trigger_rebuild = "values('delete'" in trig_lower
     missing_tags_text = not await _fts_has_column(db, "asset_metadata_fts", "tags_text")
-    if missing_tags_text:
+    missing_metadata_text = not await _fts_has_column(db, "asset_metadata_fts", "metadata_text")
+    if missing_tags_text or missing_metadata_text:
         needs_table_rebuild = True
     return needs_table_rebuild, needs_trigger_rebuild
 
@@ -375,7 +382,7 @@ async def _create_asset_metadata_fts_table_if_needed(db, *, needs_table_rebuild:
         CREATE VIRTUAL TABLE IF NOT EXISTS asset_metadata_fts USING fts5(
             tags,
             tags_text,
-            content=''
+            metadata_text
         );
         """
     )
@@ -385,18 +392,20 @@ async def _create_asset_metadata_fts_triggers(db) -> None:
     await db.aexecutescript(
         """
         CREATE TRIGGER IF NOT EXISTS asset_metadata_fts_insert AFTER INSERT ON asset_metadata BEGIN
-            INSERT INTO asset_metadata_fts(rowid, tags, tags_text)
-            VALUES (new.asset_id, COALESCE(new.tags, ''), COALESCE(new.tags_text, ''));
+            INSERT INTO asset_metadata_fts(rowid, tags, tags_text, metadata_text)
+            VALUES (new.asset_id, COALESCE(new.tags, ''), COALESCE(new.tags_text, ''), COALESCE(new.metadata_text, ''));
         END;
 
         CREATE TRIGGER IF NOT EXISTS asset_metadata_fts_delete AFTER DELETE ON asset_metadata BEGIN
-            INSERT INTO asset_metadata_fts(asset_metadata_fts, rowid) VALUES('delete', old.asset_id);
+            DELETE FROM asset_metadata_fts WHERE rowid = old.asset_id;
         END;
 
         CREATE TRIGGER IF NOT EXISTS asset_metadata_fts_update AFTER UPDATE ON asset_metadata BEGIN
-            INSERT INTO asset_metadata_fts(asset_metadata_fts, rowid) VALUES('delete', old.asset_id);
-            INSERT INTO asset_metadata_fts(rowid, tags, tags_text)
-            VALUES (new.asset_id, COALESCE(new.tags, ''), COALESCE(new.tags_text, ''));
+            UPDATE asset_metadata_fts
+            SET tags = COALESCE(new.tags, ''),
+                tags_text = COALESCE(new.tags_text, ''),
+                metadata_text = COALESCE(new.metadata_text, '')
+            WHERE rowid = new.asset_id;
         END;
         """
     )
@@ -406,8 +415,8 @@ async def _reindex_asset_metadata_fts(db) -> None:
     await db.aexecutescript(
         """
         DELETE FROM asset_metadata_fts;
-        INSERT INTO asset_metadata_fts(rowid, tags, tags_text)
-        SELECT asset_id, COALESCE(tags, ''), COALESCE(tags_text, '')
+        INSERT INTO asset_metadata_fts(rowid, tags, tags_text, metadata_text)
+        SELECT asset_id, COALESCE(tags, ''), COALESCE(tags_text, ''), COALESCE(metadata_text, '')
         FROM asset_metadata;
         """
     )

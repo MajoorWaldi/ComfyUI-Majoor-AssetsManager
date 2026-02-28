@@ -136,12 +136,13 @@ export function createPlayerBarManager({
                 const pickFromMeta = (assetMeta) => {
                     try {
                         const raw = assetMeta?.metadata_raw;
-                        if (!raw || typeof raw !== "object") return { fps: null, frameCount: null };
-                        const ff = raw?.raw_ffprobe || {};
+                        const rawObj = raw && typeof raw === "object" ? raw : null;
+                        const ff = rawObj?.raw_ffprobe || {};
                         const vs = ff?.video_stream || {};
-                        const fpsRaw = raw?.fps ?? vs?.avg_frame_rate ?? vs?.r_frame_rate;
+                        // Priority: raw.fps → raw.frame_rate (gen_info) → asset.fps → ffprobe streams
+                        const fpsRaw = rawObj?.fps ?? rawObj?.frame_rate ?? assetMeta?.fps ?? vs?.avg_frame_rate ?? vs?.r_frame_rate;
                         const fps = parseFps(fpsRaw);
-                        const frameCount = parseFrameCount(vs?.nb_frames ?? vs?.nb_read_frames ?? raw?.frame_count ?? raw?.frames);
+                        const frameCount = parseFrameCount(vs?.nb_frames ?? vs?.nb_read_frames ?? rawObj?.frame_count ?? rawObj?.frames);
                         return { fps, frameCount };
                     } catch {
                         return { fps: null, frameCount: null };
