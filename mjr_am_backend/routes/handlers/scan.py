@@ -901,6 +901,11 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             return _json_response(Result.Ok({"cleared": cleared, "scan_summary": scan_summary, "rebuild_fts": None}))
 
         async def _clear_table(table: str, prefixes: list[str] | None) -> Result[int]:
+            # Allowlist guards against accidental SQL injection if callers ever pass
+            # non-literal table names.
+            _allowed_tables = frozenset({"assets", "scan_journal", "metadata_cache", "asset_metadata"})
+            if table not in _allowed_tables:
+                return Result.Err("INVALID_INPUT", f"Attempt to clear unknown table: {table!r}")
             total_deleted = 0
             if prefixes is None:
                 res = await db.aexecute(f"DELETE FROM {table}")
@@ -1054,13 +1059,18 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             # Verify we are cleaning the right folder and safeguard critical files
             if reindex and INDEX_DIR_PATH.exists():
                 def _cleanup_index_dir():
+                    # Keep-list: every name/prefix listed here is preserved unchanged.
+                    # IMPORTANT: when adding a new persistent state file to the index directory,
+                    # register its name (or prefix) below to prevent it from being wiped on
+                    # a full reindex. Using an explicit constant avoids silent data loss.
+                    _KEEP_PREFIXES: frozenset[str] = frozenset({"assets.sqlite"})  # DB + WAL/SHM
+                    _KEEP_NAMES: frozenset[str] = frozenset({"custom_roots.json"})
                     for item in INDEX_DIR_PATH.iterdir():
-                        if item.name.startswith("assets.sqlite"):
+                        if any(item.name.startswith(p) for p in _KEEP_PREFIXES):
                             continue
                         if item == COLLECTIONS_DIR_PATH:
                             continue
-                        # Preserve user configuration/state stored in the index directory.
-                        if item.name == "custom_roots.json":
+                        if item.name in _KEEP_NAMES:
                             continue
 
                         try:

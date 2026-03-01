@@ -16,6 +16,7 @@ from mjr_am_shared.scan_throttle import mark_directory_indexed
 
 from ...adapters.db.sqlite import Sqlite
 from ...shared import Result, get_logger
+from ...utils import sanitize_for_json
 from ..metadata import MetadataService
 from .enricher import MetadataEnricher
 from .metadata_helpers import MetadataHelpers
@@ -230,7 +231,7 @@ class IndexService:
                     if batch_res.ok and batch_res.data:
                         for asset in batch_res.data:
                             try:
-                                _PS.instance.send_sync("mjr-asset-added", dict(asset))
+                                _PS.instance.send_sync("mjr-asset-added", sanitize_for_json(dict(asset)))
                             except Exception as exc:
                                 logger.debug("Failed to push mjr-asset-added for one asset: %s", exc)
                 except Exception as e:

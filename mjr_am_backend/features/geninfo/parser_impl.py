@@ -675,7 +675,7 @@ def _collect_all_samplers_from_sinks(
             
             sampler_values = _extract_sampler_values(nodes_by_id, sampler_node, sampler_id, ins, advanced, confidence, trace)
             
-            export_sampler = {}
+            export_sampler: dict[str, Any] = {}
             for k in ["sampler_name", "scheduler"]:
                 if k in sampler_values and sampler_values[k] is not None:
                     export_sampler[k] = str(sampler_values[k])

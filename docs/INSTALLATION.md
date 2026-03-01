@@ -54,6 +54,12 @@ cd ComfyUI-Majoor-AssetsManager
 pip install -r requirements.txt
 ```
 
+> **Faster installs with `uv`**: If you have [uv](https://github.com/astral-sh/uv) installed, you can use it as a drop-in replacement for significantly faster dependency resolution:
+> ```bash
+> uv pip install -r requirements.txt
+> ```
+> Install `uv` with `pip install uv` or see the [uv documentation](https://docs.astral.sh/uv/) for other methods.
+
 ### Step 3: Restart ComfyUI
 Stop your ComfyUI server completely and restart it to load the new extension.
 

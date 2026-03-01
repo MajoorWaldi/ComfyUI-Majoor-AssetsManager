@@ -35,6 +35,11 @@ function _startCleanerTimer() {
         for (const fn of toRemove) {
             _fallbackErrorToastDismissers.delete(fn);
         }
+        // Stop the interval when no active toasts remain (prevents a timer leak).
+        if (_fallbackErrorToastDismissers.size === 0) {
+            clearInterval(_cleanerTimer);
+            _cleanerTimer = null;
+        }
     }, 30000);
 }
 

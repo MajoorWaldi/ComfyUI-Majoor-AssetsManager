@@ -222,7 +222,7 @@ export class VirtualGrid {
             this.rafId = 0;
         }
         this.renderPending = false;
-        this.container.innerHTML = "";
+        this.container.replaceChildren();
         this.renderedItems.clear();
         this._pool.length = 0;
     }

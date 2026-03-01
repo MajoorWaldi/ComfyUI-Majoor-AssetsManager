@@ -539,7 +539,7 @@ function createViewer() {
     `;
     const genInfoHeaderLeft = genInfoHeader.cloneNode(true); // Shallow clone structure
     // safe: clearing existing static node content only
-    genInfoHeaderLeft.innerHTML = "";
+    genInfoHeaderLeft.replaceChildren();
     const genInfoTitleLeft = document.createElement("div");
     genInfoTitleLeft.textContent = "Generation Info (A)";
     genInfoTitleLeft.style.cssText = "font-size: 13px; font-weight: 600;";
@@ -988,8 +988,8 @@ function createViewer() {
 
             if (!open) {
                 stopGenInfoFetch();
-                try { genInfoBody.innerHTML = ""; } catch (e) { console.debug?.(e); }
-                try { genInfoBodyLeft.innerHTML = ""; } catch (e) { console.debug?.(e); }
+                try { genInfoBody.replaceChildren(); } catch (e) { console.debug?.(e); }
+                try { genInfoBodyLeft.replaceChildren(); } catch (e) { console.debug?.(e); }
                 return;
             }
         } catch {
@@ -1003,8 +1003,8 @@ function createViewer() {
         state._genInfoAbort = ac;
 
         const renderNow = ({ left, leftExtra, right, rightExtra, single }) => {
-            try { genInfoBody.innerHTML = ""; } catch (e) { console.debug?.(e); }
-            try { genInfoBodyLeft.innerHTML = ""; } catch (e) { console.debug?.(e); }
+            try { genInfoBody.replaceChildren(); } catch (e) { console.debug?.(e); }
+            try { genInfoBodyLeft.replaceChildren(); } catch (e) { console.debug?.(e); }
 
             const onRetry = () => {
                 try {
@@ -1219,7 +1219,7 @@ function createViewer() {
     const renderBadges = () => {
         const clear = (el) => {
             try {
-                if (el) el.innerHTML = "";
+                if (el) el.replaceChildren();
             } catch (e) { console.debug?.(e); }
         };
         clear(badgesBar);
@@ -1442,19 +1442,19 @@ function createViewer() {
         try {
             if (state.mode !== VIEWER_MODES.SINGLE) {
                 destroyMediaProcessorsIn(singleView);
-                singleView.innerHTML = "";
+                singleView.replaceChildren();
             }
         } catch (e) { console.debug?.(e); }
         try {
             if (state.mode !== VIEWER_MODES.AB_COMPARE) {
                 destroyMediaProcessorsIn(abView);
-                abView.innerHTML = "";
+                abView.replaceChildren();
             }
         } catch (e) { console.debug?.(e); }
         try {
             if (state.mode !== VIEWER_MODES.SIDE_BY_SIDE) {
                 destroyMediaProcessorsIn(sideView);
-                sideView.innerHTML = "";
+                sideView.replaceChildren();
             }
         } catch (e) { console.debug?.(e); }
 
@@ -1515,7 +1515,7 @@ function createViewer() {
                 destroyMediaProcessorsIn(singleView);
             } catch (e) { console.debug?.(e); }
             try {
-                singleView.innerHTML = "";
+                singleView.replaceChildren();
                 const err = document.createElement("div");
                 err.className = "mjr-viewer-media";
                 err.style.cssText = "color:#ff9a9a; font-size:13px; padding:16px; text-align:center;";
@@ -2036,15 +2036,15 @@ function createViewer() {
         // Free DOM resources (and ensure playback stops even if `pause()` was ignored).
         try {
             destroyMediaProcessorsIn(singleView);
-            singleView.innerHTML = "";
+            singleView.replaceChildren();
         } catch (e) { console.debug?.(e); }
         try {
             destroyMediaProcessorsIn(abView);
-            abView.innerHTML = "";
+            abView.replaceChildren();
         } catch (e) { console.debug?.(e); }
         try {
             destroyMediaProcessorsIn(sideView);
-            sideView.innerHTML = "";
+            sideView.replaceChildren();
         } catch (e) { console.debug?.(e); }
 
         try {
@@ -2055,11 +2055,11 @@ function createViewer() {
         } catch (e) { console.debug?.(e); }
         try {
             genInfoOverlay.style.display = "none";
-            genInfoBody.innerHTML = "";
+            genInfoBody.replaceChildren();
         } catch (e) { console.debug?.(e); }
         try {
             genInfoOverlayLeft.style.display = "none";
-            genInfoBodyLeft.innerHTML = "";
+            genInfoBodyLeft.replaceChildren();
         } catch (e) { console.debug?.(e); }
 
         overlay.style.display = 'none';

@@ -20,7 +20,7 @@ import { reportError } from "../../utils/logging.js";
 
 /** @type {FloatingViewer | null} */
 let _instance = null;
-let _liveActive = false;
+let _liveActive = true;
 let _selectionListenerBound = false;
 let _fetchAC = null; // AbortController for the latest in-flight batch fetch
 

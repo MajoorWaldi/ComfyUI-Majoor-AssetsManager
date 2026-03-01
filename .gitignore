@@ -91,13 +91,10 @@ AGENTS.md
 ROADMAP.md
 VERSION
 eslint.config.js
-ROADMAP.md
-VERSION
-AGENTS.md
-eslint.config.js
-VERSION
 .claude/settings.local.json
-.claude/settings.local.json
+
+# Local directories that must never be tracked
+Users/
 
 # Local untracked docs, assets, and test outputs (added by assistant)
 AUDIT_EVENTS.md
@@ -165,6 +162,9 @@ reports_radon_raw_backend.json
 reports_vulture.txt
 reports_vulture_backend.txt
 
+# Accidental files that must never reappear in git
+{console.error(e)
+
 # Extra local temp artifacts (pytest/radon scratch)
 .tmp_*
 tests/__pytest_tmp_py*/
@@ -174,10 +174,10 @@ reports_radon*
 radon_*
 audit_findings.md
 docs/SECURITY_AUDIT_2026-02-27.md
-docs/SECURITY_AUDIT_2026-02-27.md
 audit_tracking.md
 docs/CODE_AUDIT_2026-02-28.md
 docs/GENINFO_AUDIT_REPORT.md
 docs/GENINFO_FIXES_SUMMARY.md
 docs/REFACTORING_SUMMARY.md
 README.md.backup
+docs/CODE_AUDIT_2026-03-01.md

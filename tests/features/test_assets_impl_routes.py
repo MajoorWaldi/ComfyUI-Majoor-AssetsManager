@@ -357,7 +357,7 @@ async def test_delete_asset_validation_paths(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(m, "_read_json", _read_json2)
     monkeypatch.setattr(m, "_normalize_path", lambda v: Path(v) if v else None)
     monkeypatch.setattr(m, "_is_resolved_path_allowed", lambda _p: True)
-    monkeypatch.setattr(m, "_delete_file_best_effort", lambda _p: Result.Ok(True))
+    monkeypatch.setattr(m, "_delete_file_safe", lambda _p: Result.Ok(True))
 
     req2 = make_mocked_request("POST", "/mjr/am/asset/delete", app=app)
     resp2 = await (await app.router.resolve(req2)).handler(req2)
@@ -450,7 +450,7 @@ async def test_assets_delete_bulk_paths(monkeypatch, tmp_path: Path):
 
     db.aquery_in = _aquery_in
     monkeypatch.setattr(m, "_read_json", _read_json_ok)
-    monkeypatch.setattr(m, "_delete_file_best_effort", lambda _p: Result.Ok(True))
+    monkeypatch.setattr(m, "_delete_file_safe", lambda _p: Result.Ok(True))
 
     req2 = make_mocked_request("POST", "/mjr/am/assets/delete", app=app)
     resp2 = await (await app.router.resolve(req2)).handler(req2)
@@ -649,7 +649,7 @@ async def test_assets_delete_partial_errors(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(m, "_is_path_allowed", lambda *_args, **_kwargs: True)
     monkeypatch.setattr(m, "_is_path_allowed_custom", lambda *_args, **_kwargs: False)
     monkeypatch.setattr(m, "_is_resolved_path_allowed", lambda _p: True)
-    monkeypatch.setattr(m, "_delete_file_best_effort", _del)
+    monkeypatch.setattr(m, "_delete_file_safe", _del)
 
     req = make_mocked_request("POST", "/mjr/am/assets/delete", app=app)
     resp = await (await app.router.resolve(req)).handler(req)
@@ -935,7 +935,7 @@ async def test_delete_asset_db_error_and_delete_failure(monkeypatch, tmp_path: P
     monkeypatch.setattr(m, "_read_json", _read_json)
     monkeypatch.setattr(m, "_is_resolved_path_allowed", lambda _p: True)
 
-    monkeypatch.setattr(m, "_delete_file_best_effort", lambda _p: Result.Err("DELETE_FAILED", "bad"))
+    monkeypatch.setattr(m, "_delete_file_safe", lambda _p: Result.Err("DELETE_FAILED", "bad"))
     req = make_mocked_request("POST", "/mjr/am/asset/delete", app=app)
     resp = await (await app.router.resolve(req)).handler(req)
     assert _json(resp).get("code") == "DELETE_FAILED"

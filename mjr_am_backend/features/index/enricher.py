@@ -365,7 +365,8 @@ class MetadataEnricher:
             if res.ok and res.data:
                 payload = dict(res.data[0])
                 from ...routes.registry import PromptServer
-                PromptServer.instance.send_sync("mjr-asset-updated", payload)
+                from ...utils import sanitize_for_json
+                PromptServer.instance.send_sync("mjr-asset-updated", sanitize_for_json(payload))
         except Exception:
             pass
 

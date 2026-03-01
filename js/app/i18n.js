@@ -1135,7 +1135,9 @@ export const t = (key, defaultOrParams, params) => {
     if (actualParams && typeof actualParams === "object") {
         // Replace {key} with values (regex handles {key} without spaces)
         Object.entries(actualParams).forEach(([k, v]) => {
-            text = text.replace(new RegExp(`\\{${k}\\}`, "g"), String(v));
+            // Use replaceAll with a literal template string instead of new RegExp to avoid
+            // ReDoS risk when keys contain regex metacharacters.
+            text = text.replaceAll(`{${k}}`, String(v));
         });
     }
 

@@ -405,8 +405,8 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                     if browser_result.ok and isinstance(browser_result.data, dict):
                         assets = browser_result.data.get("assets") or []
                         browser_result.data["assets"] = await _hydrate_browser_assets_from_db(svc, assets)
-                except Exception:
-                    pass
+                except Exception as _e:
+                    logger.debug("Failed to hydrate browser assets from DB: %s", _e)
                 return _json_response(browser_result)
             root_result = resolve_custom_root(str(root_id or ""))
             if not root_result.ok:

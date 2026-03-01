@@ -95,6 +95,12 @@ def _safe_mode_enabled() -> bool:
 
     Safe Mode is enabled by default to reduce risk when ComfyUI is exposed to remote clients
     (via --listen, tunnels, reverse proxies, etc.).
+
+    NOTE: This result is cached on the first call via @lru_cache and does NOT update at
+    runtime. Changing the MAJOOR_SAFE_MODE environment variable requires a **process
+    restart** to take effect. This is intentional — safe mode is a startup-time security
+    policy, not a hot-reloadable setting. The cache is cleared in tests via
+    ``_safe_mode_enabled.cache_clear()``.
     """
     # Default: enabled when unset.
     try:

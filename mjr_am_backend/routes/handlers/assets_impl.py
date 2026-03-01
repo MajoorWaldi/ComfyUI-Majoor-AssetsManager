@@ -20,7 +20,7 @@ from mjr_am_backend.shared import sanitize_error_message as _safe_error_message
 
 from ..assets.path_guard import (
     build_download_response as _pg_build_download_response,
-    delete_file_best_effort as _delete_file_best_effort,
+    delete_file_best_effort as _delete_file_safe,
     is_resolved_path_allowed as _is_resolved_path_allowed,
     safe_download_filename as _pg_safe_download_filename,
 )
@@ -70,7 +70,7 @@ _filename_reserved_error = _fv.filename_reserved_error
 _validate_filename = _fv.validate_filename
 
 _is_resolved_path_allowed = _pg.is_resolved_path_allowed
-_delete_file_best_effort = _pg.delete_file_best_effort
+_delete_file_safe = _pg.delete_file_best_effort
 _pg_build_download_response = _pg.build_download_response
 _pg_safe_download_filename = _pg.safe_download_filename
 
@@ -987,7 +987,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             )
 
         try:
-            del_res = _delete_file_best_effort(resolved)
+            del_res = _delete_file_safe(resolved)
             if not del_res.ok:
                 raise RuntimeError(str(del_res.error or "delete failed"))
         except Exception as exc:
@@ -1341,7 +1341,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             resolved = asset_info["resolved"]
             if resolved and resolved.exists() and resolved.is_file():
                 try:
-                    del_res = _delete_file_best_effort(resolved)
+                    del_res = _delete_file_safe(resolved)
                     if not del_res.ok:
                         file_deletion_errors.append({"asset_id": asset_info["id"], "error": str(del_res.error or "delete failed")})
                         continue
@@ -1373,6 +1373,14 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             SQLITE_IN_MAX = 900
 
             async def _delete_where_in(column: str, table: str, values: list[Any]) -> Result:
+                # Allowlist guards against SQL injection if callers ever pass non-literal names.
+                _allowed: dict[str, frozenset[str]] = {
+                    "assets":         frozenset({"id", "filepath"}),
+                    "scan_journal":   frozenset({"id", "filepath"}),
+                    "metadata_cache": frozenset({"id", "filepath"}),
+                }
+                if table not in _allowed or column not in _allowed[table]:
+                    return Result.Err("INVALID_INPUT", f"Disallowed delete target: {table!r}.{column!r}")
                 if not values:
                     return Result.Ok(True)
                 for chunk in _chunks(values, SQLITE_IN_MAX):
@@ -1505,8 +1513,10 @@ def _resolve_download_path(filepath: Any) -> Path | web.Response:
     try:
         if candidate.is_symlink():
             return web.Response(status=403, text="Symlinked file not allowed")
-    except Exception:
-        pass
+    except Exception as _e:
+        # is_symlink() can raise on some platforms/edge cases; the path
+        # will be re-checked by resolve(strict=True) below.
+        logger.debug("is_symlink check failed (OS edge case): %s", _e)
     try:
         resolved = candidate.resolve(strict=True)
     except (OSError, RuntimeError, ValueError):

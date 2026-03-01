@@ -22,6 +22,10 @@ from ...shared import Result, get_logger
 logger = get_logger(__name__)
 
 def _normalize_extension(value) -> str:
+    # NOTE: This is an intentional local copy of the same helper in
+    # mjr_am_backend/routes/handlers/filesystem.py. A shared import would
+    # create a cross-package dependency (features/index → routes/handlers)
+    # which would invert the dependency hierarchy. Keep both copies in sync.
     if value is None:
         return ""
     try:
@@ -479,9 +483,10 @@ class IndexSearcher:
             return Result.Ok([])
 
         try:
+            escaped_prefix = _escape_like_pattern(clean_prefix)
             res = await self.db.aquery(
-                "SELECT term FROM asset_metadata_vocab WHERE term LIKE ? ORDER BY doc DESC LIMIT ?",
-                (f"{clean_prefix}%", limit)
+                "SELECT term FROM asset_metadata_vocab WHERE term LIKE ? ESCAPE '\\' ORDER BY doc DESC LIMIT ?",
+                (f"{escaped_prefix}%", limit)
             )
             if not res.ok:
                 return Result.Ok([])

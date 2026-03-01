@@ -1,3 +1,15 @@
+/**
+ * Global state key registry for Majoor Assets Manager.
+ *
+ * All `window`-level keys used by this extension are listed here to avoid
+ * accidental collisions with other extensions or user scripts.
+ *
+ * | Key / Symbol                                              | File            | Purpose                          |
+ * |-----------------------------------------------------------|-----------------|----------------------------------|
+ * | Symbol.for("majoor.assets_manager.runtime_state")         | runtimeState.js | Extension runtime state object   |
+ * | window["__MJR_VIDEO_THUMBS__"]                            | Card.js         | Video thumbnail manager singleton|
+ */
+
 const RUNTIME_STATE_KEY = Symbol.for("majoor.assets_manager.runtime_state");
 
 function _runtimeRoot() {

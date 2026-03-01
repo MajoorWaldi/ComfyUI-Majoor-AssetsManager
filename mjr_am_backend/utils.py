@@ -3,6 +3,7 @@ Utility helpers shared across backend modules.
 """
 from __future__ import annotations
 
+import math
 import os
 from typing import Any
 
@@ -53,3 +54,18 @@ def env_float(name: str, default: float) -> float:
         return float(raw)
     except (ValueError, TypeError):
         return default
+
+
+def sanitize_for_json(obj: Any) -> Any:
+    """Recursively replace NaN/Infinity float values with ``None`` so the
+    result is valid JSON.  ComfyUI nodes routinely store ``float('nan')`` in
+    ``is_changed`` to signal *always re-execute*; Python's ``json.dumps``
+    emits that as the bare token ``NaN`` which browsers reject.
+    """
+    if isinstance(obj, float):
+        return None if (math.isnan(obj) or math.isinf(obj)) else obj
+    if isinstance(obj, dict):
+        return {k: sanitize_for_json(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [sanitize_for_json(v) for v in obj]
+    return obj

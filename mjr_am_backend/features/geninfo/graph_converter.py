@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import deque
-from typing import Any, cast
+from typing import Any, TypeGuard, cast
 
 DEFAULT_MAX_GRAPH_NODES = 5000
 DEFAULT_MAX_GRAPH_DEPTH = 100
@@ -97,7 +97,7 @@ def _sink_priority(node: dict[str, Any], node_id: str | None = None) -> tuple[in
     return (_sink_group(ct), _sink_images_tiebreak(node), _sink_node_id_tiebreak(node_id))
 
 
-def _is_link(value: Any) -> bool:
+def _is_link(value: Any) -> TypeGuard[list]:
     if not isinstance(value, (list, tuple)) or len(value) != 2:
         return False
     a, b = value[0], value[1]

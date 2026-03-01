@@ -162,7 +162,7 @@ export class FloatingViewer {
         this._genBtn     = null;
         this._genDropdown = null;
         this._captureBtn = null;
-        this._genInfoSelections = new Set(["prompt"]);
+        this._genInfoSelections = new Set(["genTime"]);
         this._mode       = MFV_MODES.SIMPLE;
         this._mediaA     = null;
         this._mediaB     = null;
@@ -207,7 +207,10 @@ export class FloatingViewer {
         closeBtn.type = "button";
         closeBtn.className = "mjr-icon-btn";
         closeBtn.title = t("tooltip.closeViewer", "Close viewer");
-        closeBtn.innerHTML = '<i class="pi pi-times" aria-hidden="true"></i>';
+        const _closeBtnIcon = document.createElement("i");
+        _closeBtnIcon.className = "pi pi-times";
+        _closeBtnIcon.setAttribute("aria-hidden", "true");
+        closeBtn.appendChild(_closeBtnIcon);
         closeBtn.addEventListener("click", () => {
             window.dispatchEvent(new CustomEvent(EVENTS.MFV_CLOSE));
         });
@@ -250,7 +253,10 @@ export class FloatingViewer {
         this._genBtn = document.createElement("button");
         this._genBtn.type = "button";
         this._genBtn.className = "mjr-icon-btn";
-        this._genBtn.innerHTML = '<i class="pi pi-info-circle" aria-hidden="true"></i>';
+        const _genBtnIcon = document.createElement("i");
+        _genBtnIcon.className = "pi pi-info-circle";
+        _genBtnIcon.setAttribute("aria-hidden", "true");
+        this._genBtn.appendChild(_genBtnIcon);
         this._genBtn.addEventListener("click", (e) => {
             e.stopPropagation();
             if (this._genDropdown?.classList?.contains("is-visible")) {
@@ -267,7 +273,10 @@ export class FloatingViewer {
         this._captureBtn.type = "button";
         this._captureBtn.className = "mjr-icon-btn";
         this._captureBtn.title = t("tooltip.captureView", "Save view as image");
-        this._captureBtn.innerHTML = '<i class="pi pi-download" aria-hidden="true"></i>';
+        const _captureBtnIcon = document.createElement("i");
+        _captureBtnIcon.className = "pi pi-download";
+        _captureBtnIcon.setAttribute("aria-hidden", "true");
+        this._captureBtn.appendChild(_captureBtnIcon);
         this._captureBtn.addEventListener("click", () => this._captureView());
         bar.appendChild(this._captureBtn);
 
@@ -373,7 +382,7 @@ export class FloatingViewer {
                 // Fallback to candidate prompt if norm.prompt is empty
                 if (!out.prompt && candidate?.prompt) out.prompt = String(candidate.prompt || "");
 
-                const genTimeMs = fileData.generation_time_ms ?? candidate?.generation_time_ms ?? candidate?.geninfo?.generation_time_ms ?? 0;
+                const genTimeMs = fileData.generation_time_ms ?? fileData.metadata_raw?.generation_time_ms ?? candidate?.generation_time_ms ?? candidate?.geninfo?.generation_time_ms ?? 0;
                 if (genTimeMs && Number.isFinite(Number(genTimeMs)) && genTimeMs > 0 && genTimeMs < 86400000) {
                     out.genTime = (Number(genTimeMs) / 1000).toFixed(1) + "s";
                 }
@@ -395,39 +404,59 @@ export class FloatingViewer {
         out.cfg = (meta?.cfg != null) ? String(meta.cfg) : (meta?.cfg_scale != null ? String(meta.cfg_scale) : "");
         out.step = (meta?.steps != null) ? String(meta.steps) : "";
 
-        const genTimeMsFallback = fileData.generation_time_ms ?? meta?.generation_time_ms ?? 0;
+        const genTimeMsFallback = fileData.generation_time_ms ?? fileData.metadata_raw?.generation_time_ms ?? meta?.generation_time_ms ?? 0;
         if (genTimeMsFallback && Number.isFinite(Number(genTimeMsFallback)) && genTimeMsFallback > 0 && genTimeMsFallback < 86400000) {
             out.genTime = (Number(genTimeMsFallback) / 1000).toFixed(1) + "s";
         }
         return out;
     }
 
-    _formatGenInfoHTML(fileData) {
+    /**
+     * Build a DocumentFragment of gen-info rows using the DOM API.
+     * Returns null when no fields are selected or all are empty.
+     * Using the DOM API instead of innerHTML string concatenation eliminates
+     * any XSS risk from metadata values and avoids fragile HTML escaping.
+     */
+    _buildGenInfoDOM(fileData) {
         const fields = this._getGenFields(fileData);
-        if (!fields) return "";
-        const parts = [];
-        // Show only selected fields from dropdown
+        if (!fields) return null;
+        const frag = document.createDocumentFragment();
         const order = ["prompt", "seed", "model", "lora", "sampler", "scheduler", "cfg", "step", "genTime"];
         for (const k of order) {
-            // Only show if user has selected this field in the dropdown
             if (!this._genInfoSelections.has(k)) continue;
             const v = (fields[k] != null) ? String(fields[k]) : "";
             if (!v) continue;
-            
             let label = k.charAt(0).toUpperCase() + k.slice(1);
             if (k === "lora") label = "LoRA";
             else if (k === "cfg") label = "CFG";
             else if (k === "genTime") label = "Gen Time";
-            
+            const div = document.createElement("div");
+            div.dataset.field = k;
+            const strong = document.createElement("strong");
+            strong.textContent = `${label}: `;
+            div.appendChild(strong);
             if (k === "prompt") {
                 // Truncate long prompts to 240 chars
-                const short = v.length > 240 ? v.slice(0, 240) + "…" : v;
-                parts.push(`<div data-field="${k}"><strong>${label}:</strong> ${escapeHtml(short)}</div>`);
+                const short = v.length > 240 ? v.slice(0, 240) + "\u2026" : v;
+                div.appendChild(document.createTextNode(short));
+            } else if (k === "genTime") {
+                // Color-code gen time (matches FileInfoSection.js colour scheme)
+                const secs = parseFloat(v);
+                let gtColor = "#4CAF50"; // green  < 10s
+                if (secs >= 60)      gtColor = "#FF9800"; // orange
+                else if (secs >= 30) gtColor = "#FFC107"; // yellow
+                else if (secs >= 10) gtColor = "#8BC34A"; // light green
+                const span = document.createElement("span");
+                span.style.color = gtColor;
+                span.style.fontWeight = "600";
+                span.textContent = v;
+                div.appendChild(span);
             } else {
-                parts.push(`<div data-field="${k}"><strong>${label}:</strong> ${escapeHtml(v)}</div>`);
+                div.appendChild(document.createTextNode(v));
             }
+            frag.appendChild(div);
         }
-        return parts.join("");
+        return frag.childNodes.length > 0 ? frag : null;
     }
 
     // ── Mode ──────────────────────────────────────────────────────────────────
@@ -454,7 +483,10 @@ export class FloatingViewer {
             [MFV_MODES.SIDE]:   { icon: "pi-table",   label: "Mode: Side-by-Side (click to switch)" },
         };
         const { icon = "pi-image", label = "" } = cfg[this._mode] || {};
-        this._modeBtn.innerHTML = `<i class="pi ${icon}" aria-hidden="true"></i>`;
+        const _modeBtnIcon = document.createElement("i");
+        _modeBtnIcon.className = `pi ${icon}`;
+        _modeBtnIcon.setAttribute("aria-hidden", "true");
+        this._modeBtn.replaceChildren(_modeBtnIcon);
         this._modeBtn.title = label;
     }
 
@@ -464,10 +496,16 @@ export class FloatingViewer {
         if (!this._liveBtn) return;
         this._liveBtn.classList.toggle("mjr-live-active", Boolean(active));
         if (active) {
-            this._liveBtn.innerHTML = '<i class="pi pi-circle-fill" aria-hidden="true"></i>';
+            const _liveIconActive = document.createElement("i");
+            _liveIconActive.className = "pi pi-circle-fill";
+            _liveIconActive.setAttribute("aria-hidden", "true");
+            this._liveBtn.replaceChildren(_liveIconActive);
             this._liveBtn.title = t("tooltip.liveStreamOn", "Live Stream: ON — click to disable");
         } else {
-            this._liveBtn.innerHTML = '<i class="pi pi-circle" aria-hidden="true"></i>';
+            const _liveIconInactive = document.createElement("i");
+            _liveIconInactive.className = "pi pi-circle";
+            _liveIconInactive.setAttribute("aria-hidden", "true");
+            this._liveBtn.replaceChildren(_liveIconInactive);
             this._liveBtn.title = t("tooltip.liveStreamOff", "Live Stream: OFF — click to follow");
         }
     }
@@ -611,7 +649,7 @@ export class FloatingViewer {
             this._dragging = true;
             startX = e.clientX; startY = e.clientY;
             startPanX = this._panX; startPanY = this._panY;
-            try { contentEl.setPointerCapture(e.pointerId); } catch {}
+            try { contentEl.setPointerCapture(e.pointerId); } catch (e) { console.debug?.(e); }
             this._applyTransform();
         }, sig);
 
@@ -626,7 +664,7 @@ export class FloatingViewer {
             if (!panActive) return;
             panActive = false;
             this._dragging = false;
-            try { contentEl.releasePointerCapture(e.pointerId); } catch {}
+            try { contentEl.releasePointerCapture(e.pointerId); } catch (e) { console.debug?.(e); }
             this._applyTransform();
         };
         contentEl.addEventListener("pointerup",     endPan, sig);
@@ -645,7 +683,7 @@ export class FloatingViewer {
 
     /** Remove all pan/zoom event listeners. */
     _destroyPanZoom() {
-        try { this._panzoomAC?.abort(); } catch {}
+        try { this._panzoomAC?.abort(); } catch (e) { console.debug?.(e); }
         this._panzoomAC = null;
         this._dragging  = false;
     }
@@ -683,11 +721,11 @@ export class FloatingViewer {
         wrap.className = "mjr-mfv-simple-container";
         wrap.appendChild(mediaEl);
         // Gen info overlay for SIMPLE mode
-        const infoHtml = this._formatGenInfoHTML(this._mediaA);
-        if (infoHtml) {
+        const infoFrag = this._buildGenInfoDOM(this._mediaA);
+        if (infoFrag) {
             const ol = document.createElement("div");
             ol.className = "mjr-mfv-geninfo";
-            ol.innerHTML = infoHtml;
+            ol.appendChild(infoFrag);
             wrap.appendChild(ol);
         }
         this._contentEl.appendChild(wrap);
@@ -730,21 +768,21 @@ export class FloatingViewer {
         // Gen info overlays are placed at the container level (outside the clipped
         // layers) so they are never truncated by layerB's clip-path. Each overlay
         // is bounded to its own half, mirroring the canvas capture layout.
-        const infoA = this._formatGenInfoHTML(this._mediaA);
+        const fragA = this._buildGenInfoDOM(this._mediaA);
         let genInfoAEl = null;
-        if (infoA) {
+        if (fragA) {
             genInfoAEl = document.createElement("div");
             genInfoAEl.className = "mjr-mfv-geninfo-a";
-            genInfoAEl.innerHTML = infoA;
+            genInfoAEl.appendChild(fragA);
             // Limit right edge to divider so it doesn't bleed into B side.
             genInfoAEl.style.right = `calc(${100 - pct}% + 8px)`;
         }
-        const infoB = this._formatGenInfoHTML(this._mediaB);
+        const fragB = this._buildGenInfoDOM(this._mediaB);
         let genInfoBEl = null;
-        if (infoB) {
+        if (fragB) {
             genInfoBEl = document.createElement("div");
             genInfoBEl.className = "mjr-mfv-geninfo-b";
-            genInfoBEl.innerHTML = infoB;
+            genInfoBEl.appendChild(fragB);
             // Start at the divider — overrides CSS left:8px so it is never
             // clipped by layerB's clip-path.
             genInfoBEl.style.left = `calc(${pct}% + 8px)`;
@@ -801,11 +839,11 @@ export class FloatingViewer {
         sideA.appendChild(_makeLabel("A", "left"));
 
         // Gen info overlay for left
-        const infoA = this._formatGenInfoHTML(this._mediaA);
-        if (infoA) {
+        const fragSideA = this._buildGenInfoDOM(this._mediaA);
+        if (fragSideA) {
             const oa = document.createElement("div");
             oa.className = "mjr-mfv-geninfo-a";
-            oa.innerHTML = infoA;
+            oa.appendChild(fragSideA);
             sideA.appendChild(oa);
         }
 
@@ -816,11 +854,11 @@ export class FloatingViewer {
         sideB.appendChild(_makeLabel("B", "right"));
 
         // Gen info overlay for right
-        const infoB = this._formatGenInfoHTML(this._mediaB);
-        if (infoB) {
+        const fragSideB = this._buildGenInfoDOM(this._mediaB);
+        if (fragSideB) {
             const ob = document.createElement("div");
             ob.className = "mjr-mfv-geninfo-b";
-            ob.innerHTML = infoB;
+            ob.appendChild(fragSideB);
             sideB.appendChild(ob);
         }
 
@@ -1140,8 +1178,8 @@ export class FloatingViewer {
         this._modeBtn    = null;
         this._liveBtn    = null;
         this._captureBtn = null;
-        try { document.removeEventListener("click", this._handleDocClick); } catch {}
-        try { this._genDropdown?.remove(); } catch {}
+        try { document.removeEventListener("click", this._handleDocClick); } catch (e) { console.debug?.(e); }
+        try { this._genDropdown?.remove(); } catch (e) { console.debug?.(e); }
         this._mediaA     = null;
         this._mediaB     = null;
         this.isVisible   = false;
