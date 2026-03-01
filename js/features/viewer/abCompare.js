@@ -327,7 +327,55 @@ export function renderABCompareView({
                     return doSubtract();
                 }
 
-                // Default math modes: difference / absdiff
+                const doAbsDiff = () => {
+                    // CPU pixel path: |A-B| per channel, auto-normalized to full 0-255 range.
+                    // Falls back to canvas "difference" composite for video or very large frames.
+                    if (isVideo) return doComposite("difference");
+                    if (!(px > 0 && px <= 1_000_000)) return doComposite("difference");
+                    try {
+                        // Capture A
+                        ctx.globalCompositeOperation = "copy";
+                        ctx.drawImage(aCanvas, 0, 0, w, h);
+                        const aImg = ctx.getImageData(0, 0, w, h);
+                        // Capture B
+                        ctx.clearRect(0, 0, w, h);
+                        ctx.drawImage(bCanvas, 0, 0, w, h);
+                        const bImg = ctx.getImageData(0, 0, w, h);
+                        const da = aImg.data;
+                        const db = bImg.data;
+                        // Compute |A-B| and track max for normalization
+                        let maxVal = 0;
+                        for (let i = 0; i < da.length; i += 4) {
+                            db[i]     = Math.abs((da[i]     || 0) - (db[i]     || 0));
+                            db[i + 1] = Math.abs((da[i + 1] || 0) - (db[i + 1] || 0));
+                            db[i + 2] = Math.abs((da[i + 2] || 0) - (db[i + 2] || 0));
+                            db[i + 3] = 255;
+                            if (db[i]     > maxVal) maxVal = db[i];
+                            if (db[i + 1] > maxVal) maxVal = db[i + 1];
+                            if (db[i + 2] > maxVal) maxVal = db[i + 2];
+                        }
+                        // Auto-normalize: stretch so the largest difference maps to 255
+                        if (maxVal > 0 && maxVal < 255) {
+                            const scale = 255 / maxVal;
+                            for (let i = 0; i < db.length; i += 4) {
+                                db[i]     = Math.min(255, Math.round(db[i]     * scale));
+                                db[i + 1] = Math.min(255, Math.round(db[i + 1] * scale));
+                                db[i + 2] = Math.min(255, Math.round(db[i + 2] * scale));
+                            }
+                        }
+                        ctx.putImageData(bImg, 0, 0);
+                        ctx.globalCompositeOperation = "source-over";
+                        return true;
+                    } catch {
+                        return doComposite("difference");
+                    }
+                };
+
+                if (mode === "absdiff") {
+                    return doAbsDiff();
+                }
+
+                // Default: difference = |A-B| boosted 4× for subtle-change visibility
                 const ok = doComposite("difference");
                 if (!ok) return false;
 

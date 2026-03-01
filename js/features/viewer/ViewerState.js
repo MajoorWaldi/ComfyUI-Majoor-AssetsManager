@@ -26,6 +26,7 @@ export function saveViewerPrefs(state) {
             hudEnabled: !!state.hudEnabled,
             genInfoOpen: !!state.genInfoOpen,
             audioVisualizerMode: String(state.audioVisualizerMode || "artistic"),
+            abWipePercent: Number.isFinite(Number(state._abWipePercent)) ? Number(state._abWipePercent) : 50,
         };
         SettingsStore.set(VIEWER_PREFS_KEY, JSON.stringify(prefs));
     } catch (e) { console.debug?.(e); }

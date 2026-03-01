@@ -36,7 +36,7 @@ MAX_LIST_LIMIT = 5000
 MAX_LIST_OFFSET = 1_000_000
 MAX_RATING = 5
 VALID_KIND_FILTERS = {"image", "video", "audio", "model3d"}
-VALID_SORT_KEYS = {"mtime_desc", "mtime_asc", "name_asc", "name_desc", "none"}
+VALID_SORT_KEYS = {"mtime_desc", "mtime_asc", "name_asc", "name_desc", "rating_desc", "size_desc", "size_asc", "none"}
 
 LIST_RATE_LIMIT_MAX_REQUESTS = 50
 LIST_RATE_LIMIT_WINDOW_SECONDS = 60

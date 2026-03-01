@@ -267,13 +267,23 @@ export function createGenerationSection(asset) {
     };
 
     if (models) {
-        const ckpt = pickModelName(models.checkpoint);
+        const allCkpts = Array.isArray(metadata.all_checkpoints) && metadata.all_checkpoints.length > 1
+            ? metadata.all_checkpoints
+            : null;
+        if (allCkpts) {
+            allCkpts.forEach((c, i) => {
+                const name = pickModelName(c);
+                if (name) modelData.push({ label: `Checkpoint ${i + 1}`, value: name });
+            });
+        } else {
+            const ckpt = pickModelName(models.checkpoint);
+            if (ckpt) modelData.push({ label: "Checkpoint", value: ckpt });
+        }
         const unet = pickModelName(models.unet);
         const diffusion = pickModelName(models.diffusion);
         const upscaler = pickModelName(models.upscaler);
         const clip = pickModelName(models.clip);
         const vae = pickModelName(models.vae);
-        if (ckpt) modelData.push({ label: "Checkpoint", value: ckpt });
         if (unet) modelData.push({ label: "UNet", value: unet });
         if (diffusion) modelData.push({ label: "Diffusion", value: diffusion });
         if (upscaler) modelData.push({ label: "Upscaler", value: upscaler });
@@ -314,6 +324,69 @@ export function createGenerationSection(asset) {
     if (metadata.steps) samplingData.push({ label: "Steps", value: metadata.steps });
     if (metadata.cfg || metadata.cfg_scale) samplingData.push({ label: "CFG Scale", value: metadata.cfg || metadata.cfg_scale });
     if (metadata.scheduler) samplingData.push({ label: "Scheduler", value: metadata.scheduler });
+
+    if (metadata.all_samplers && Array.isArray(metadata.all_samplers) && metadata.all_samplers.length > 1) {
+        const multiBox = document.createElement("div");
+        multiBox.style.cssText = `
+            background: var(--comfy-menu-bg, rgba(0,0,0,0.3));
+            border: 1px solid var(--border-color, rgba(255,255,255,0.12));
+            border-left: 3px solid #9C27B0;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 4px;
+        `;
+
+        const header = document.createElement("div");
+        header.textContent = `All Samplers (${metadata.all_samplers.length} variants)`;
+        header.title = t("tooltip.workflowMultiOutputSamplers", "Multiple outputs with different samplers");
+        header.style.cssText = `
+            font-size: 11px;
+            font-weight: 600;
+            color: #9C27B0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            cursor: pointer;
+        `;
+
+        const list = document.createElement("div");
+        list.style.cssText = "display: none; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto;";
+
+        metadata.all_samplers.forEach((p, i) => {
+            const item = document.createElement("div");
+            item.style.cssText = `
+                font-size: 11px;
+                color: var(--fg-color, #ddd);
+                padding: 6px 8px;
+                background: rgba(127,127,127,0.12);
+                border-radius: 4px;
+                word-break: break-word;
+            `;
+            let label = p.sampler_name || p.sampler || p.name || p.type || "Unknown Sampler";
+            let details = [];
+            if (p.scheduler) details.push(`Scheduler: ${p.scheduler}`);
+            if (p.steps) details.push(`Steps: ${p.steps}`);
+            if (p.cfg) details.push(`CFG: ${p.cfg}`);
+            
+            item.textContent = `${i + 1}. ${label} ${details.length ? '(' + details.join(', ') + ')' : ''}`;
+            item.title = `Variant ${i + 1}: ${label}`;
+            list.appendChild(item);
+        });
+
+        let expanded = false;
+        header.onclick = () => {
+            expanded = !expanded;
+            list.style.display = expanded ? "flex" : "none";
+            header.textContent = expanded
+                ? `All Samplers (${metadata.all_samplers.length} variants) ▲`
+                : `All Samplers (${metadata.all_samplers.length} variants) ▼`;
+        };
+        header.textContent += " ▼";
+
+        multiBox.appendChild(header);
+        multiBox.appendChild(list);
+        container.appendChild(multiBox);
+    }
     if (samplingData.length > 0) {
         container.appendChild(createParametersBox("Sampling", samplingData, "#FF9800", { emphasis: true }));
     }

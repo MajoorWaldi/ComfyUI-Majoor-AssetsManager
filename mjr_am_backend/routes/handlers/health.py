@@ -24,6 +24,7 @@ from mjr_am_backend.config import (
     MEDIA_PROBE_BACKEND,
     OUTPUT_ROOT,
     TO_THREAD_TIMEOUT_S,
+    get_runtime_output_root,
     get_tool_paths,
 )
 from mjr_am_backend.custom_roots import resolve_custom_root
@@ -43,6 +44,7 @@ from ..core import (
 )
 from ..core.security import _refresh_trusted_proxy_cache, _request_transport_is_secure, _safe_mode_enabled
 from .db_maintenance import is_db_maintenance_active
+from .filesystem import _invalidate_fs_list_cache, _kickoff_background_scan
 
 SECURITY_PREF_KEYS = {
     "safe_mode",
@@ -436,6 +438,12 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
 
     @routes.get("/mjr/am/settings/output-directory")
     async def get_output_directory_setting(request):
+        user_auth = _require_authenticated_user(request)
+        if not user_auth.ok:
+            return _json_response(
+                Result.Err(user_auth.code or "AUTH_REQUIRED", user_auth.error or "Authentication required"),
+                status=401,
+            )
         svc, error_result = await _require_services()
         if error_result:
             return _json_response(error_result)
@@ -473,9 +481,42 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
             if not normalized_path.is_dir():
                 return _json_response(Result.Err("INVALID_INPUT", "output_directory must be a directory"))
             value = str(normalized_path)
+        old_output_dir = get_runtime_output_root()
         result = await settings_service.set_output_directory(value)
         if not result.ok:
             return _json_response(result)
+        new_output_dir = get_runtime_output_root()
+        # Best-effort: update the watcher, invalidate the listing cache, and
+        # kick off an initial scan for the new directory.
+        try:
+            watcher = svc.get("watcher") if isinstance(svc, dict) else None
+            if watcher and old_output_dir != new_output_dir:
+                try:
+                    watcher.remove_path(old_output_dir)
+                except Exception:
+                    pass
+                if new_output_dir:
+                    try:
+                        watcher.add_path(new_output_dir, source="output", root_id=None)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+        try:
+            await _invalidate_fs_list_cache()
+        except Exception:
+            pass
+        if new_output_dir and new_output_dir != old_output_dir:
+            try:
+                await _kickoff_background_scan(
+                    new_output_dir,
+                    source="output",
+                    root_id=None,
+                    recursive=True,
+                    incremental=True,
+                )
+            except Exception:
+                pass
         return _json_response(Result.Ok({"output_directory": result.data}))
 
     @routes.post("/mjr/am/settings/probe-backend")

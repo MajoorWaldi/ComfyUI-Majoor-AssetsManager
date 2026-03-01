@@ -108,6 +108,16 @@ export function normalizeGenerationMetadata(raw) {
             if (Array.isArray(geninfo.all_negative_prompts) && geninfo.all_negative_prompts.length > 1) {
                 mapped.all_negative_prompts = geninfo.all_negative_prompts;
             }
+            
+            // Multi-output workflow samplers
+            if (Array.isArray(geninfo.all_samplers) && geninfo.all_samplers.length > 1) {
+                mapped.all_samplers = geninfo.all_samplers;
+            }
+
+            // Multi-pass workflow checkpoints
+            if (Array.isArray(geninfo.all_checkpoints) && geninfo.all_checkpoints.length > 1) {
+                mapped.all_checkpoints = geninfo.all_checkpoints;
+            }
 
             const size = geninfo.size || null;
             if (size && typeof size === "object") {

@@ -123,7 +123,7 @@ function createMinimal2DDrawer(canvas) {
 function _createMinimalWebGLDrawer(canvas, { pseudo3d = false } = {}) {
     let gl = null;
     try {
-        gl = canvas.getContext("webgl", { antialias: true, alpha: false, preserveDrawingBuffer: false });
+        gl = canvas.getContext("webgl", { antialias: true, alpha: false, preserveDrawingBuffer: true });
     } catch {
         gl = null;
     }

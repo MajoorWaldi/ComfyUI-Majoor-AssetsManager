@@ -152,6 +152,10 @@ async def build_services(db_path: str | None = None) -> Result[dict]:
         await settings_service.ensure_security_bootstrap()
     except Exception as exc:
         logger.warning("Security bootstrap failed: %s", exc)
+    try:
+        await settings_service.apply_output_directory_override_on_startup()
+    except Exception as exc:
+        logger.warning("Output directory override restore failed: %s", exc)
 
     _log_tool_availability(exiftool, ffprobe)
 

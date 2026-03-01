@@ -173,32 +173,75 @@ def _stable_numeric_node_id(node_id: str) -> int:
         return 10**9
 
 
-def _trace_sampler_name(nodes_by_id: dict[str, dict[str, Any]], link: Any) -> tuple[str, str] | None:
+def _trace_sampler_name(nodes_by_id: dict[str, dict[str, Any]], link: Any, memo: set[str] | None = None) -> tuple[str, str] | None:
+    if memo is None:
+        memo = set()
     src_id = _walk_passthrough(nodes_by_id, link)
-    if not src_id:
+    if not src_id or src_id in memo:
         return None
+    memo.add(src_id)
     node = nodes_by_id.get(src_id)
     if not isinstance(node, dict):
         return None
     ins = _inputs(node)
-    val = _scalar(ins.get("sampler_name")) or _scalar(ins.get("sampler"))
-    if val is None:
-        return None
-    return str(val), f"{_node_type(node)}:{src_id}"
+    
+    for key in ("sampler_name", "sampler", "name"):
+        val = ins.get(key)
+        if val is None:
+            continue
+        scalar_val = _scalar(val)
+        if scalar_val is not None:
+            return str(scalar_val), f"{_node_type(node)}:{src_id}"
+        if _is_link(val):
+            resolved = _trace_sampler_name(nodes_by_id, val, memo)
+            if resolved:
+                return resolved
+
+    for fallback_key in ("base_ctx", "pipe", "pipe_to", "any_1", "any_2", "any_3", "any", "context"):
+        val = ins.get(fallback_key)
+        if _is_link(val):
+            resolved = _trace_sampler_name(nodes_by_id, val, memo)
+            if resolved:
+                return resolved
+
+    return None
 
 
-def _trace_noise_seed(nodes_by_id: dict[str, dict[str, Any]], link: Any) -> tuple[Any, str] | None:
+def _trace_noise_seed(nodes_by_id: dict[str, dict[str, Any]], link: Any, memo: set[str] | None = None) -> tuple[Any, str] | None:
+    if memo is None:
+        memo = set()
     src_id = _walk_passthrough(nodes_by_id, link)
-    if not src_id:
+    if not src_id or src_id in memo:
         return None
+    memo.add(src_id)
     node = nodes_by_id.get(src_id)
     if not isinstance(node, dict):
         return None
     ins = _inputs(node)
+    
+    # Direct match
     for key in ("noise_seed", "seed", "value", "int", "number"):
-        value = _scalar(ins.get(key))
-        if value is not None:
-            return value, f"{_node_type(node)}:{src_id}"
+        val = ins.get(key)
+        if val is None:
+            continue
+        # If it's a direct scalar value
+        scalar_val = _scalar(val)
+        if scalar_val is not None:
+            return scalar_val, f"{_node_type(node)}:{src_id}"
+        # If it's a link, traverse it
+        if _is_link(val):
+            resolved = _trace_noise_seed(nodes_by_id, val, memo)
+            if resolved:
+                return resolved
+
+    # Context / Pipe / Switch fallbacks
+    for fallback_key in ("base_ctx", "pipe", "pipe_to", "any_1", "any_2", "any_3", "any", "context"):
+        val = ins.get(fallback_key)
+        if _is_link(val):
+            resolved = _trace_noise_seed(nodes_by_id, val, memo)
+            if resolved:
+                return resolved
+
     return None
 
 
@@ -227,18 +270,33 @@ def _steps_from_manual_sigmas(ins: dict[str, Any]) -> tuple[Any | None, str | No
     return None, None
 
 
-def _trace_scheduler_sigmas(nodes_by_id: dict[str, dict[str, Any]], link: Any) -> tuple[Any | None, Any | None, Any | None, Any | None, tuple[str, str] | None, str | None]:
+def _trace_scheduler_sigmas(nodes_by_id: dict[str, dict[str, Any]], link: Any, memo: set[str] | None = None) -> tuple[Any | None, Any | None, Any | None, Any | None, tuple[str, str] | None, str | None]:
+    if memo is None:
+        memo = set()
     src_id = _walk_passthrough(nodes_by_id, link)
-    if not src_id:
+    if not src_id or src_id in memo:
         return (None, None, None, None, None, None)
+    memo.add(src_id)
     node = nodes_by_id.get(src_id)
     if not isinstance(node, dict):
         return (None, None, None, None, None, None)
     ins = _inputs(node)
+
+    for fallback_key in ("base_ctx", "pipe", "pipe_to", "any_1", "any_2", "any_3", "any", "context", "sigmas"):
+        val = ins.get(fallback_key)
+        if _is_link(val):
+            resolved = _trace_scheduler_sigmas(nodes_by_id, val, memo)
+            if resolved[0] is not None or resolved[1] is not None:
+                return resolved
+
     steps = _scalar(ins.get("steps"))
     steps_confidence: str | None = "high" if steps is not None else None
     if steps is None:
         steps, steps_confidence = _steps_from_manual_sigmas(ins)
+    
+    if steps is None and ins.get("scheduler") is None and ins.get("denoise") is None:
+        return (None, None, None, None, None, None)
+
     scheduler = _scalar(ins.get("scheduler"))
     denoise = _scalar(ins.get("denoise"))
     model_link = ins.get("model") if _is_link(ins.get("model")) else None

@@ -793,6 +793,7 @@ def _parse_filesystem_listing_filters(
     filter_kind = str(source.get("kind") or "").strip().lower()
     filter_min_rating = int(source.get("min_rating") or 0)
     filter_workflow_only = bool(source.get("has_workflow"))
+    filter_workflow_type = str(source.get("workflow_type") or "").strip().upper()
     filter_extensions = _normalize_extensions(source.get("extensions"))
 
     mtime_start_raw = source.get("mtime_start")
@@ -807,6 +808,7 @@ def _parse_filesystem_listing_filters(
         "filter_kind": filter_kind,
         "filter_min_rating": filter_min_rating,
         "filter_workflow_only": filter_workflow_only,
+        "filter_workflow_type": filter_workflow_type,
         "filter_extensions": filter_extensions,
         "filter_mtime_start": filter_mtime_start,
         "filter_mtime_end": filter_mtime_end,
@@ -819,6 +821,7 @@ def _can_use_listing_fast_path(opts: Mapping[str, Any]) -> bool:
         str(opts.get("sort_key") or "") == "none"
         and int(opts.get("filter_min_rating") or 0) <= 0
         and not bool(opts.get("filter_workflow_only"))
+        and not bool(opts.get("filter_workflow_type"))
         and opts.get("filter_mtime_start") is None
         and opts.get("filter_mtime_end") is None
     )
@@ -893,6 +896,7 @@ def _apply_db_enrichment_row(asset: Any, mapping: dict) -> None:
     asset["tags"] = db_row.get("tags") or []
     asset["has_workflow"] = db_row.get("has_workflow")
     asset["has_generation_data"] = db_row.get("has_generation_data")
+    asset["workflow_type"] = db_row.get("workflow_type")
     if db_row.get("root_id"):
         asset["root_id"] = db_row.get("root_id")
 
@@ -1007,6 +1011,7 @@ def _entry_passes_listing_post_filters(
     filter_kind: str,
     filter_min_rating: int,
     filter_workflow_only: bool,
+    filter_workflow_type: str,
     filter_mtime_start: int | None,
     filter_mtime_end: int | None,
     browse_all: bool,
@@ -1019,6 +1024,8 @@ def _entry_passes_listing_post_filters(
     if not _passes_rating_filter(item, filter_min_rating):
         return False
     if not _passes_workflow_filter(item, filter_workflow_only):
+        return False
+    if not _passes_workflow_type_filter(item, filter_workflow_type):
         return False
     if not _passes_mtime_window(item, filter_mtime_start, filter_mtime_end):
         return False
@@ -1044,6 +1051,13 @@ def _passes_rating_filter(item: dict[str, Any], filter_min_rating: int) -> bool:
 
 def _passes_workflow_filter(item: dict[str, Any], filter_workflow_only: bool) -> bool:
     return not (filter_workflow_only and not _is_truthy_boolish(item.get("has_workflow")))
+
+
+def _passes_workflow_type_filter(item: dict[str, Any], filter_workflow_type: str) -> bool:
+    if not filter_workflow_type:
+        return True
+    item_type = str(item.get("workflow_type") or "").strip().upper()
+    return item_type == filter_workflow_type
 
 
 def _item_mtime_or_zero(item: dict[str, Any]) -> int:
@@ -1075,6 +1089,7 @@ def _paginate_filesystem_listing_entries(
     filter_kind: str,
     filter_min_rating: int,
     filter_workflow_only: bool,
+    filter_workflow_type: str,
     filter_mtime_start: int | None,
     filter_mtime_end: int | None,
     browse_all: bool,
@@ -1095,6 +1110,7 @@ def _paginate_filesystem_listing_entries(
             filter_kind=filter_kind,
             filter_min_rating=filter_min_rating,
             filter_workflow_only=filter_workflow_only,
+            filter_workflow_type=filter_workflow_type,
             filter_mtime_start=filter_mtime_start,
             filter_mtime_end=filter_mtime_end,
             browse_all=browse_all,
@@ -1120,6 +1136,7 @@ async def _list_filesystem_assets_cached_path(
     filter_kind: str,
     filter_min_rating: int,
     filter_workflow_only: bool,
+    filter_workflow_type: str,
     filter_extensions: list[str],
     filter_mtime_start: int | None,
     filter_mtime_end: int | None,
@@ -1155,6 +1172,7 @@ async def _list_filesystem_assets_cached_path(
         filter_kind=filter_kind,
         filter_min_rating=filter_min_rating,
         filter_workflow_only=filter_workflow_only,
+        filter_workflow_type=filter_workflow_type,
         filter_mtime_start=filter_mtime_start,
         filter_mtime_end=filter_mtime_end,
         browse_all=browse_all,
@@ -1217,6 +1235,7 @@ def _listing_args_from_opts(opts: Mapping[str, Any]) -> dict[str, Any]:
         "filter_kind": str(opts.get("filter_kind") or ""),
         "filter_min_rating": int(opts.get("filter_min_rating") or 0),
         "filter_workflow_only": bool(opts.get("filter_workflow_only")),
+        "filter_workflow_type": str(opts.get("filter_workflow_type") or "").strip().upper(),
         "filter_extensions": list(opts.get("filter_extensions") or []),
         "filter_mtime_start": opts.get("filter_mtime_start"),
         "filter_mtime_end": opts.get("filter_mtime_end"),
@@ -1265,6 +1284,7 @@ async def _dispatch_filesystem_listing_path(
         filter_kind=listing_args["filter_kind"],
         filter_min_rating=listing_args["filter_min_rating"],
         filter_workflow_only=listing_args["filter_workflow_only"],
+        filter_workflow_type=listing_args["filter_workflow_type"],
         filter_extensions=listing_args["filter_extensions"],
         filter_mtime_start=listing_args["filter_mtime_start"],
         filter_mtime_end=listing_args["filter_mtime_end"],

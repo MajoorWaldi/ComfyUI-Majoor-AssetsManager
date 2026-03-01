@@ -30,8 +30,9 @@ export function createContextController({
     maxSizeInput,
     minWidthInput,
     minHeightInput,
+    maxWidthInput,
+    maxHeightInput,
     resolutionPresetSelect,
-    resolutionCompareSelect,
     dateRangeSelect,
     dateExactInput,
     scopeController,
@@ -178,11 +179,11 @@ export function createContextController({
                 state.minHeight = 0;
                 state.maxWidth = 0;
                 state.maxHeight = 0;
-                state.resolutionCompare = "gte";
                 _safeSetValue(minWidthInput, "");
                 _safeSetValue(minHeightInput, "");
+                _safeSetValue(maxWidthInput, "");
+                _safeSetValue(maxHeightInput, "");
                 _safeSetValue(resolutionPresetSelect, "");
-                _safeSetValue(resolutionCompareSelect, "gte");
             } catch (e) { console.debug?.(e); }
             try {
                 await reloadGrid?.();
@@ -260,8 +261,9 @@ export function createContextController({
                 _safeSetValue(maxSizeInput, "");
                 _safeSetValue(minWidthInput, "");
                 _safeSetValue(minHeightInput, "");
+                _safeSetValue(maxWidthInput, "");
+                _safeSetValue(maxHeightInput, "");
                 _safeSetValue(resolutionPresetSelect, "");
-                _safeSetValue(resolutionCompareSelect, "gte");
                 _safeSetValue(dateRangeSelect, "");
                 _safeSetValue(dateExactInput, "");
             } catch (e) { console.debug?.(e); }

@@ -673,3 +673,31 @@ class AppSettings:
         except Exception:
             return ""
         return ""
+
+    async def apply_output_directory_override_on_startup(self) -> None:
+        """
+        Re-apply the persisted output directory override to folder_paths and
+        env vars after a server restart.
+
+        At startup the ComfyUI process starts fresh — env vars and
+        ``folder_paths.output_directory`` revert to their defaults.  This
+        method reads the stored override from the DB and, if one is present,
+        re-applies it so that ``get_runtime_output_root()`` continues to return
+        the user-configured value before any request is handled.
+        """
+        try:
+            async with self._lock:
+                raw = await self._read_setting(_OUTPUT_DIRECTORY_KEY)
+                if not raw:
+                    return
+                try:
+                    from pathlib import Path as _Path
+                    normalized = str(_Path(raw).expanduser().resolve())
+                except Exception:
+                    normalized = str(raw).strip()
+                if normalized:
+                    self._set_output_directory_env_vars(normalized)
+                    self._apply_comfy_output_directory(normalized)
+                    logger.info("Restored output directory override on startup: %s", normalized)
+        except Exception as exc:
+            logger.warning("Failed to restore output directory override on startup: %s", exc)

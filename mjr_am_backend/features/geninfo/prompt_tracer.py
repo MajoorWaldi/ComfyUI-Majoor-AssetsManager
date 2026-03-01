@@ -314,22 +314,42 @@ def _first_non_none_scalar(source: dict[str, Any], keys: tuple[str, ...]) -> Any
 
 
 
-def _resolve_scalar_from_link(nodes_by_id: dict[str, dict[str, Any]], value: Any) -> Any | None:
+def _resolve_scalar_from_link(nodes_by_id: dict[str, dict[str, Any]], value: Any, memo: set[str] | None = None) -> Any | None:
+    if memo is None:
+        memo = set()
     src_id = _walk_passthrough(nodes_by_id, value)
-    if not src_id:
+    if not src_id or src_id in memo:
         return None
+    memo.add(src_id)
     node = nodes_by_id.get(src_id)
     if not isinstance(node, dict):
         return None
     ins = _inputs(node)
+    
+    # Check explicitly matching fields
     for k in (
         "seed", "value", "number", "int", "float", "text",
         "string", "prompt", "input", "text_a", "text_b"
     ):
         v = ins.get(k)
+        if v is None:
+            continue
         s = _scalar(v)
         if s is not None:
             return s
+        if _is_link(v):
+            resolved = _resolve_scalar_from_link(nodes_by_id, v, memo)
+            if resolved is not None:
+                return resolved
+                
+    # Context / Pipe / Switch fallbacks
+    for fallback_key in ("base_ctx", "pipe", "pipe_to", "any_1", "any_2", "any_3", "any", "context"):
+        v = ins.get(fallback_key)
+        if _is_link(v):
+            resolved = _resolve_scalar_from_link(nodes_by_id, v, memo)
+            if resolved is not None:
+                return resolved
+
     return None
 
 

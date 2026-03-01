@@ -167,10 +167,10 @@ export function createFilterPopoverView() {
     resolutionPresetSelect.className = "mjr-select";
     [
         ["", t("filter.any", "Any")],
-        ["hd", "HD (>=1280x720)"],
-        ["fhd", "FHD (>=1920x1080)"],
-        ["qhd", "QHD (>=2560x1440)"],
-        ["uhd", "4K (>=3840x2160)"],
+        ["hd", "HD (1280×720)"],
+        ["fhd", "FHD (1920×1080)"],
+        ["qhd", "QHD (2560×1440)"],
+        ["uhd", "4K (3840×2160)"],
     ].forEach(([val, text]) => {
         const opt = document.createElement("option");
         opt.value = val;
@@ -180,49 +180,53 @@ export function createFilterPopoverView() {
     resPresetRow.appendChild(resPresetLabel);
     resPresetRow.appendChild(resolutionPresetSelect);
 
-    const resModeRow = document.createElement("div");
-    resModeRow.className = "mjr-popover-row";
-    resModeRow.style.cssText = "display:grid; grid-template-columns: 110px 1fr; gap:8px; align-items:center; margin-bottom:8px;";
-    const resModeLabel = document.createElement("div");
-    resModeLabel.className = "mjr-popover-label";
-    resModeLabel.textContent = t("label.compare", "Compare");
-    const resolutionCompareSelect = document.createElement("select");
-    resolutionCompareSelect.className = "mjr-select";
-    [
-        ["gte", t("filter.resolutionAtLeast", "At least (>=)")],
-        ["lte", t("filter.resolutionAtMost", "At most (<=)")],
-    ].forEach(([val, text]) => {
-        const opt = document.createElement("option");
-        opt.value = val;
-        opt.textContent = text;
-        resolutionCompareSelect.appendChild(opt);
-    });
-    resModeRow.appendChild(resModeLabel);
-    resModeRow.appendChild(resolutionCompareSelect);
-
-    const resRow = document.createElement("div");
-    resRow.className = "mjr-popover-row";
-    resRow.style.cssText = "display:grid; grid-template-columns: 110px 1fr 1fr; gap:8px; align-items:center; margin-bottom:8px;";
-    const resLabel = document.createElement("div");
-    resLabel.className = "mjr-popover-label";
-    resLabel.textContent = t("label.resolutionWxHpx", "Resolution WxH (px)");
+    const resMinRow = document.createElement("div");
+    resMinRow.className = "mjr-popover-row";
+    resMinRow.style.cssText = "display:grid; grid-template-columns: 110px 1fr 1fr; gap:8px; align-items:center; margin-bottom:8px;";
+    const resMinLabel = document.createElement("div");
+    resMinLabel.className = "mjr-popover-label";
+    resMinLabel.textContent = t("label.resolutionMinWxH", "Min WxH (px)");
     const minWidthInput = document.createElement("input");
     minWidthInput.type = "number";
     minWidthInput.min = "0";
     minWidthInput.step = "1";
     minWidthInput.className = "mjr-input";
-    minWidthInput.placeholder = t("label.widthPx", "Width (px)");
-    minWidthInput.title = t("tooltip.widthPx", "Width in pixels");
+    minWidthInput.placeholder = t("label.widthPx", "W (px)");
+    minWidthInput.title = t("tooltip.widthPx", "Minimum width in pixels");
     const minHeightInput = document.createElement("input");
     minHeightInput.type = "number";
     minHeightInput.min = "0";
     minHeightInput.step = "1";
     minHeightInput.className = "mjr-input";
-    minHeightInput.placeholder = t("label.heightPx", "Height (px)");
-    minHeightInput.title = t("tooltip.heightPx", "Height in pixels");
-    resRow.appendChild(resLabel);
-    resRow.appendChild(minWidthInput);
-    resRow.appendChild(minHeightInput);
+    minHeightInput.placeholder = t("label.heightPx", "H (px)");
+    minHeightInput.title = t("tooltip.heightPx", "Minimum height in pixels");
+    resMinRow.appendChild(resMinLabel);
+    resMinRow.appendChild(minWidthInput);
+    resMinRow.appendChild(minHeightInput);
+
+    const resMaxRow = document.createElement("div");
+    resMaxRow.className = "mjr-popover-row";
+    resMaxRow.style.cssText = "display:grid; grid-template-columns: 110px 1fr 1fr; gap:8px; align-items:center; margin-bottom:8px;";
+    const resMaxLabel = document.createElement("div");
+    resMaxLabel.className = "mjr-popover-label";
+    resMaxLabel.textContent = t("label.resolutionMaxWxH", "Max WxH (px)");
+    const maxWidthInput = document.createElement("input");
+    maxWidthInput.type = "number";
+    maxWidthInput.min = "0";
+    maxWidthInput.step = "1";
+    maxWidthInput.className = "mjr-input";
+    maxWidthInput.placeholder = t("label.widthPx", "W (px)");
+    maxWidthInput.title = t("tooltip.widthPx", "Maximum width in pixels");
+    const maxHeightInput = document.createElement("input");
+    maxHeightInput.type = "number";
+    maxHeightInput.min = "0";
+    maxHeightInput.step = "1";
+    maxHeightInput.className = "mjr-input";
+    maxHeightInput.placeholder = t("label.heightPx", "H (px)");
+    maxHeightInput.title = t("tooltip.heightPx", "Maximum height in pixels");
+    resMaxRow.appendChild(resMaxLabel);
+    resMaxRow.appendChild(maxWidthInput);
+    resMaxRow.appendChild(maxHeightInput);
 
     const agendaRow = document.createElement("div");
     agendaRow.className = "mjr-popover-row";
@@ -253,8 +257,8 @@ export function createFilterPopoverView() {
     const groupMedia = makeGroup(t("group.media", "Media"));
     groupMedia.appendChild(sizeRow);
     groupMedia.appendChild(resPresetRow);
-    groupMedia.appendChild(resModeRow);
-    groupMedia.appendChild(resRow);
+    groupMedia.appendChild(resMinRow);
+    groupMedia.appendChild(resMaxRow);
 
     const groupTime = makeGroup(t("group.time", "Time"));
     groupTime.appendChild(dateRow);
@@ -273,9 +277,10 @@ export function createFilterPopoverView() {
         minSizeInput,
         maxSizeInput,
         resolutionPresetSelect,
-        resolutionCompareSelect,
         minWidthInput,
         minHeightInput,
+        maxWidthInput,
+        maxHeightInput,
         dateRangeSelect,
         dateExactInput: agendaInput,
         agendaContainer

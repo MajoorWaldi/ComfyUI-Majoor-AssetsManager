@@ -146,9 +146,10 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         minSizeInput,
         maxSizeInput,
         resolutionPresetSelect,
-        resolutionCompareSelect,
         minWidthInput,
         minHeightInput,
+        maxWidthInput,
+        maxHeightInput,
         dateRangeSelect,
         dateExactInput,
         agendaContainer
@@ -669,6 +670,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         e.stopPropagation();
         popovers.close(filterPopover);
         popovers.close(sortPopover);
+        popovers.close(collectionsPopover);
         popovers.toggle(customPopover, customMenuBtn);
     }, { signal: panelLifecycleAC?.signal });
 
@@ -676,6 +678,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         e.stopPropagation();
         popovers.close(customPopover);
         popovers.close(sortPopover);
+        popovers.close(collectionsPopover);
         popovers.toggle(filterPopover, filterBtn);
     }, { signal: panelLifecycleAC?.signal });
 
@@ -694,6 +697,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         onBeforeToggle: () => {
             popovers.close(customPopover);
             popovers.close(filterPopover);
+            popovers.close(collectionsPopover);
         }
     });
 
@@ -708,7 +712,13 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             notifyContextChanged();
         }
     });
-    collectionsController.bind();
+    collectionsController.bind({
+        onBeforeToggle: () => {
+            popovers.close(customPopover);
+            popovers.close(filterPopover);
+            popovers.close(sortPopover);
+        }
+    });
 
     const createPinnedMenuItem = (label, { right = null, danger = false } = {}) => {
         const btn = document.createElement("button");
@@ -867,16 +877,16 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             ratingSelect.value = String(Number(state.minRating || 0) || 0);
             minSizeInput.value = Number(state.minSizeMB || 0) > 0 ? String(state.minSizeMB) : "";
             maxSizeInput.value = Number(state.maxSizeMB || 0) > 0 ? String(state.maxSizeMB) : "";
-            resolutionCompareSelect.value = String(state.resolutionCompare || "gte") === "lte" ? "lte" : "gte";
-            const useMax = resolutionCompareSelect.value === "lte";
-            minWidthInput.value = Number(useMax ? state.maxWidth : state.minWidth || 0) > 0 ? String(useMax ? state.maxWidth : state.minWidth) : "";
-            minHeightInput.value = Number(useMax ? state.maxHeight : state.minHeight || 0) > 0 ? String(useMax ? state.maxHeight : state.minHeight) : "";
-            const w = Number(useMax ? state.maxWidth : state.minWidth || 0) || 0;
-            const h = Number(useMax ? state.maxHeight : state.minHeight || 0) || 0;
-            if (w >= 3840 && h >= 2160) resolutionPresetSelect.value = "uhd";
-            else if (w >= 2560 && h >= 1440) resolutionPresetSelect.value = "qhd";
-            else if (w >= 1920 && h >= 1080) resolutionPresetSelect.value = "fhd";
-            else if (w >= 1280 && h >= 720) resolutionPresetSelect.value = "hd";
+            minWidthInput.value = Number(state.minWidth || 0) > 0 ? String(state.minWidth) : "";
+            minHeightInput.value = Number(state.minHeight || 0) > 0 ? String(state.minHeight) : "";
+            maxWidthInput.value = Number(state.maxWidth || 0) > 0 ? String(state.maxWidth) : "";
+            maxHeightInput.value = Number(state.maxHeight || 0) > 0 ? String(state.maxHeight) : "";
+            const minW = Number(state.minWidth || 0) || 0;
+            const minH = Number(state.minHeight || 0) || 0;
+            if (minW >= 3840 && minH >= 2160) resolutionPresetSelect.value = "uhd";
+            else if (minW >= 2560 && minH >= 1440) resolutionPresetSelect.value = "qhd";
+            else if (minW >= 1920 && minH >= 1080) resolutionPresetSelect.value = "fhd";
+            else if (minW >= 1280 && minH >= 720) resolutionPresetSelect.value = "hd";
             else resolutionPresetSelect.value = "";
             dateRangeSelect.value = state.dateRangeFilter || "";
         } catch (e) { console.debug?.(e); }
@@ -897,9 +907,10 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         minSizeInput,
         maxSizeInput,
         resolutionPresetSelect,
-        resolutionCompareSelect,
         minWidthInput,
         minHeightInput,
+        maxWidthInput,
+        maxHeightInput,
         dateRangeSelect,
         dateExactInput,
         reloadGrid: gridController.reloadGrid,
@@ -929,8 +940,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             maxSizeInput,
             minWidthInput,
             minHeightInput,
+            maxWidthInput,
+            maxHeightInput,
             resolutionPresetSelect,
-            resolutionCompareSelect,
             dateRangeSelect,
             dateExactInput,
             scopeController,

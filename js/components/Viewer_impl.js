@@ -86,6 +86,7 @@ function createViewer() {
             if (typeof prefs.hudEnabled === "boolean") state.hudEnabled = prefs.hudEnabled;
             if (typeof prefs.genInfoOpen === "boolean") state.genInfoOpen = prefs.genInfoOpen;
             if (typeof prefs.audioVisualizerMode === "string") state.audioVisualizerMode = prefs.audioVisualizerMode || "artistic";
+            if (typeof prefs.abWipePercent === "number" && Number.isFinite(prefs.abWipePercent) && prefs.abWipePercent >= 0 && prefs.abWipePercent <= 100) state._abWipePercent = prefs.abWipePercent;
         }
     } catch (e) { console.debug?.(e); }
     const IMAGE_PRELOAD_EXTENSIONS = new Set([
@@ -975,6 +976,8 @@ function createViewer() {
             (mode === VIEWER_MODES.AB_COMPARE && canABMode) ||
             (mode === VIEWER_MODES.SIDE_BY_SIDE && canSideMode)
         );
+        // Grid mode: 3-4 assets in 2x2 grid (no filmstrip compare)
+        const isGrid = isDual && mode === VIEWER_MODES.SIDE_BY_SIDE && !state?.compareAsset && (state?.assets?.length ?? 0) > 2;
 
         try {
             genInfoOverlay.style.display = open ? "flex" : "none";
@@ -999,7 +1002,7 @@ function createViewer() {
         const ac = new AbortController();
         state._genInfoAbort = ac;
 
-        const renderNow = ({ left, right, single }) => {
+        const renderNow = ({ left, leftExtra, right, rightExtra, single }) => {
             try { genInfoBody.innerHTML = ""; } catch (e) { console.debug?.(e); }
             try { genInfoBodyLeft.innerHTML = ""; } catch (e) { console.debug?.(e); }
 
@@ -1071,11 +1074,17 @@ function createViewer() {
             if (isDual) {
                  if (left) {
                      genInfoTitleLeft.textContent = left.title || "Asset A";
-                     addBlockTo(genInfoBodyLeft, "", left.asset, left.loading);
+                     addBlockTo(genInfoBodyLeft, leftExtra ? "Asset A" : "", left.asset, left.loading);
+                 }
+                 if (leftExtra) {
+                     addBlockTo(genInfoBodyLeft, "Asset C", leftExtra.asset, leftExtra.loading);
                  }
                  if (right) {
                      genInfoTitle.textContent = right.title || "Asset B";
-                     addBlockTo(genInfoBody, "", right.asset, right.loading);
+                     addBlockTo(genInfoBody, rightExtra ? "Asset B" : "", right.asset, right.loading);
+                 }
+                 if (rightExtra) {
+                     addBlockTo(genInfoBody, "Asset D", rightExtra.asset, rightExtra.loading);
                  }
             } else {
                  // Single mode
@@ -1096,6 +1105,8 @@ function createViewer() {
 
             let assetLeft = null;
             let assetRight = null;
+            let assetC = null;
+            let assetD = null;
             let assetSingle = null;
 
             if (isDual) {
@@ -1106,8 +1117,12 @@ function createViewer() {
                         assetLeft = current;
                         assetRight = state.compareAsset;
                     } else {
-                        assetLeft = state.assets[0];
-                        assetRight = state.assets[1];
+                        assetLeft = state.assets[0] || null;
+                        assetRight = state.assets[1] || null;
+                        if (isGrid) {
+                            assetC = state.assets[2] || null;
+                            assetD = state.assets[3] || null;
+                        }
                     }
                 } else {
                     // AB_COMPARE: Swappable roles (Current vs Other)
@@ -1125,14 +1140,22 @@ function createViewer() {
             
             renderNow({
                 left: isDual ? {
-                    title: "Asset A",
+                    title: isGrid ? "Assets A & C" : "Asset A",
                     asset: getCached(assetLeft),
                     loading: shouldShowGenInfoLoading(getCached(assetLeft))
                 } : null,
+                leftExtra: isGrid && assetC ? {
+                    asset: getCached(assetC),
+                    loading: shouldShowGenInfoLoading(getCached(assetC))
+                } : null,
                 right: isDual ? {
-                    title: "Asset B",
+                    title: isGrid ? "Assets B & D" : "Asset B",
                     asset: getCached(assetRight),
                     loading: shouldShowGenInfoLoading(getCached(assetRight))
+                } : null,
+                rightExtra: isGrid && assetD ? {
+                    asset: getCached(assetD),
+                    loading: shouldShowGenInfoLoading(getCached(assetD))
                 } : null,
                 single: !isDual ? {
                     title: "Generation Info",
@@ -1147,19 +1170,23 @@ function createViewer() {
             if (isDual) {
                 const lFull = assetLeft ? await ensureGenInfoAsset(assetLeft, { signal: ac.signal }) : null;
                 const rFull = assetRight ? await ensureGenInfoAsset(assetRight, { signal: ac.signal }) : null;
+                const cFull = assetC ? await ensureGenInfoAsset(assetC, { signal: ac.signal }) : null;
+                const dFull = assetD ? await ensureGenInfoAsset(assetD, { signal: ac.signal }) : null;
                 if (state._genInfoReqId !== reqId) return;
                 
                 renderNow({
                     left: {
-                        title: "Asset A",
+                        title: isGrid ? "Assets A & C" : "Asset A",
                         asset: lFull,
                         loading: false
                     },
+                    leftExtra: isGrid && cFull ? { asset: cFull, loading: false } : null,
                     right: {
-                         title: "Asset B",
+                         title: isGrid ? "Assets B & D" : "Asset B",
                          asset: rFull,
                          loading: false
-                    }
+                    },
+                    rightExtra: isGrid && dFull ? { asset: dFull, loading: false } : null,
                 });
             } else {
                 const sFull = assetSingle ? await ensureGenInfoAsset(assetSingle, { signal: ac.signal }) : null;

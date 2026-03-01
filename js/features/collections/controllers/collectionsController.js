@@ -209,12 +209,12 @@ export function createCollectionsController({ state, collectionsBtn, collections
         }
     };
 
-    const bind = () => {
+    const bind = ({ onBeforeToggle } = {}) => {
         if (!collectionsBtn) return;
         collectionsBtn.addEventListener("click", async (e) => {
             e.stopPropagation();
             try {
-                window.dispatchEvent(new CustomEvent("mjr-close-all-menus"));
+                onBeforeToggle?.();
             } catch (e) { console.debug?.(e); }
             try {
                 await render();

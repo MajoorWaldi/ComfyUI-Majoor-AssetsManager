@@ -322,6 +322,11 @@ export class FloatingViewer {
             ["seed", "Seed"],
             ["model", "Model"],
             ["lora", "LoRA"],
+            ["sampler", "Sampler"],
+            ["scheduler", "Scheduler"],
+            ["cfg", "CFG"],
+            ["step", "Step"],
+            ["genTime", "Gen Time"],
         ];
         for (const [key, label] of opts) {
             const row = document.createElement("label");
@@ -354,27 +359,46 @@ export class FloatingViewer {
                 ? { geninfo: fileData.geninfo }
                 : (fileData.metadata || fileData.metadata_raw || fileData);
             const norm = normalizeGenerationMetadata(candidate) || null;
-            const out = { prompt: "", seed: "", model: "", lora: "" };
+            const out = { prompt: "", seed: "", model: "", lora: "", sampler: "", scheduler: "", cfg: "", step: "", genTime: "" };
             if (norm && typeof norm === "object") {
                 // Extract positive prompt (primary field)
                 if (norm.prompt) out.prompt = String(norm.prompt);
                 if (norm.seed != null) out.seed = String(norm.seed);
                 if (norm.model) out.model = Array.isArray(norm.model) ? norm.model.join(", ") : String(norm.model);
                 if (Array.isArray(norm.loras)) out.lora = norm.loras.map((l) => (typeof l === "string" ? l : (l?.name || l?.lora_name || l?.model_name || ""))).filter(Boolean).join(", ");
+                if (norm.sampler) out.sampler = String(norm.sampler);
+                if (norm.scheduler) out.scheduler = String(norm.scheduler);
+                if (norm.cfg != null) out.cfg = String(norm.cfg);
+                if (norm.steps != null) out.step = String(norm.steps);
                 // Fallback to candidate prompt if norm.prompt is empty
                 if (!out.prompt && candidate?.prompt) out.prompt = String(candidate.prompt || "");
+
+                const genTimeMs = fileData.generation_time_ms ?? candidate?.generation_time_ms ?? candidate?.geninfo?.generation_time_ms ?? 0;
+                if (genTimeMs && Number.isFinite(Number(genTimeMs)) && genTimeMs > 0 && genTimeMs < 86400000) {
+                    out.genTime = (Number(genTimeMs) / 1000).toFixed(1) + "s";
+                }
+
                 return out;
             }
         } catch (e) { console.debug?.("[MFV] _getGenFields error:", e); }
         // Fallback: inspect common metadata fields
         const meta = fileData.meta || fileData.metadata || fileData.parsed || fileData.parsed_meta || fileData;
-        const out = { prompt: "", seed: "", model: "", lora: "" };
+        const out = { prompt: "", seed: "", model: "", lora: "", sampler: "", scheduler: "", cfg: "", step: "", genTime: "" };
         out.prompt = meta?.prompt || meta?.text || "";
         out.seed = (meta?.seed != null) ? String(meta.seed) : (meta?.noise_seed != null ? String(meta.noise_seed) : "");
         if (meta?.model) out.model = Array.isArray(meta.model) ? meta.model.join(", ") : String(meta.model);
         else out.model = meta?.model_name || "";
         out.lora = meta?.lora || meta?.loras || "";
         if (Array.isArray(out.lora)) out.lora = out.lora.join(", ");
+        out.sampler = meta?.sampler || meta?.sampler_name || "";
+        out.scheduler = meta?.scheduler || "";
+        out.cfg = (meta?.cfg != null) ? String(meta.cfg) : (meta?.cfg_scale != null ? String(meta.cfg_scale) : "");
+        out.step = (meta?.steps != null) ? String(meta.steps) : "";
+
+        const genTimeMsFallback = fileData.generation_time_ms ?? meta?.generation_time_ms ?? 0;
+        if (genTimeMsFallback && Number.isFinite(Number(genTimeMsFallback)) && genTimeMsFallback > 0 && genTimeMsFallback < 86400000) {
+            out.genTime = (Number(genTimeMsFallback) / 1000).toFixed(1) + "s";
+        }
         return out;
     }
 
@@ -382,14 +406,19 @@ export class FloatingViewer {
         const fields = this._getGenFields(fileData);
         if (!fields) return "";
         const parts = [];
-        // Show only selected fields from dropdown (prompt, seed, model, lora)
-        const order = ["prompt", "seed", "model", "lora"];
+        // Show only selected fields from dropdown
+        const order = ["prompt", "seed", "model", "lora", "sampler", "scheduler", "cfg", "step", "genTime"];
         for (const k of order) {
             // Only show if user has selected this field in the dropdown
             if (!this._genInfoSelections.has(k)) continue;
             const v = (fields[k] != null) ? String(fields[k]) : "";
             if (!v) continue;
-            const label = k === "lora" ? "LoRA" : k.charAt(0).toUpperCase() + k.slice(1);
+            
+            let label = k.charAt(0).toUpperCase() + k.slice(1);
+            if (k === "lora") label = "LoRA";
+            else if (k === "cfg") label = "CFG";
+            else if (k === "genTime") label = "Gen Time";
+            
             if (k === "prompt") {
                 // Truncate long prompts to 240 chars
                 const short = v.length > 240 ? v.slice(0, 240) + "…" : v;
@@ -698,6 +727,29 @@ export class FloatingViewer {
         divider.className = "mjr-mfv-ab-divider";
         divider.style.left = `${pct}%`;
 
+        // Gen info overlays are placed at the container level (outside the clipped
+        // layers) so they are never truncated by layerB's clip-path. Each overlay
+        // is bounded to its own half, mirroring the canvas capture layout.
+        const infoA = this._formatGenInfoHTML(this._mediaA);
+        let genInfoAEl = null;
+        if (infoA) {
+            genInfoAEl = document.createElement("div");
+            genInfoAEl.className = "mjr-mfv-geninfo-a";
+            genInfoAEl.innerHTML = infoA;
+            // Limit right edge to divider so it doesn't bleed into B side.
+            genInfoAEl.style.right = `calc(${100 - pct}% + 8px)`;
+        }
+        const infoB = this._formatGenInfoHTML(this._mediaB);
+        let genInfoBEl = null;
+        if (infoB) {
+            genInfoBEl = document.createElement("div");
+            genInfoBEl.className = "mjr-mfv-geninfo-b";
+            genInfoBEl.innerHTML = infoB;
+            // Start at the divider — overrides CSS left:8px so it is never
+            // clipped by layerB's clip-path.
+            genInfoBEl.style.left = `calc(${pct}% + 8px)`;
+        }
+
         divider.addEventListener("pointerdown", (e) => {
             e.preventDefault();
             divider.setPointerCapture(e.pointerId);
@@ -709,6 +761,8 @@ export class FloatingViewer {
                 const p = Math.round(x * 100);
                 layerB.style.clipPath = `inset(0 0 0 ${p}%)`;
                 divider.style.left = `${p}%`;
+                if (genInfoAEl) genInfoAEl.style.right = `calc(${100 - p}% + 8px)`;
+                if (genInfoBEl) genInfoBEl.style.left = `calc(${p}% + 8px)`;
             };
             const onUp = () => {
                 divider.removeEventListener("pointermove", onMove);
@@ -718,27 +772,11 @@ export class FloatingViewer {
             divider.addEventListener("pointerup", onUp);
         });
 
-        // Gen info overlays live inside their respective layers.
-        // geninfo-b is inside layerB — the layer's clip-path clips the overlay
-        // to the B side of the divider automatically.
-        const infoA = this._formatGenInfoHTML(this._mediaA);
-        if (infoA) {
-            const oa = document.createElement("div");
-            oa.className = "mjr-mfv-geninfo-a";
-            oa.innerHTML = infoA;
-            layerA.appendChild(oa);
-        }
-        const infoB = this._formatGenInfoHTML(this._mediaB);
-        if (infoB) {
-            const ob = document.createElement("div");
-            ob.className = "mjr-mfv-geninfo-b";
-            ob.innerHTML = infoB;
-            layerB.appendChild(ob);
-        }
-
         container.appendChild(layerA);
         container.appendChild(layerB);
         container.appendChild(divider);
+        if (genInfoAEl) container.appendChild(genInfoAEl);
+        if (genInfoBEl) container.appendChild(genInfoBEl);
         container.appendChild(_makeLabel("A", "left"));
         container.appendChild(_makeLabel("B", "right"));
         this._contentEl.appendChild(container);
@@ -881,37 +919,82 @@ export class FloatingViewer {
     _drawGenInfoOverlay(ctx, fileData, ox, oy, w, h) {
         if (!fileData || !this._genInfoSelections.size) return;
         const fields = this._getGenFields(fileData);
-        const LABEL_COLORS = { prompt: "#7ec8ff", seed: "#ffd47a", model: "#7dda8a", lora: "#d48cff" };
-        const order = ["prompt", "seed", "model", "lora"];
+        const LABEL_COLORS = { 
+            prompt: "#7ec8ff", 
+            seed: "#ffd47a", 
+            model: "#7dda8a", 
+            lora: "#d48cff",
+            sampler: "#ff9f7a",
+            scheduler: "#ff7a9f",
+            cfg: "#7a9fff",
+            step: "#7affd4",
+            genTime: "#e0ff7a"
+        };
+        const order = ["prompt", "seed", "model", "lora", "sampler", "scheduler", "cfg", "step", "genTime"];
 
         const entries = [];
         for (const k of order) {
             if (!this._genInfoSelections.has(k)) continue;
             const v = (fields[k] != null) ? String(fields[k]) : "";
             if (!v) continue;
-            const label = k === "lora" ? "LoRA" : k.charAt(0).toUpperCase() + k.slice(1);
-            const val = (k === "prompt" && v.length > 160) ? v.slice(0, 160) + "…" : v;
-            entries.push({ label: `${label}: `, value: val, color: LABEL_COLORS[k] });
+            
+            let labelText = k.charAt(0).toUpperCase() + k.slice(1);
+            if (k === "lora") labelText = "LoRA";
+            else if (k === "cfg") labelText = "CFG";
+            else if (k === "genTime") labelText = "Gen Time";
+            
+            // Generous cap — word wrap handles display, not hard truncation
+            const raw = k === "prompt" && v.length > 500 ? v.slice(0, 500) + "…" : v;
+            entries.push({ label: `${labelText}: `, value: raw, color: LABEL_COLORS[k] || "#ffffff" });
         }
         if (!entries.length) return;
 
         const fontSize = 11;
         const lh = 16;
         const pad = 8;
+        // Box always spans the full region width so word-wrapped lines have room.
+        const boxW = Math.max(100, w - pad * 2);
 
         ctx.save();
 
-        // Measure to fit box width
-        let maxLine = 0;
-        for (const { label, value } of entries) {
+        // Build rows with word-wrapped lines (mirrors CSS word-break: break-word).
+        const rows = [];
+        for (const { label, value, color } of entries) {
             ctx.font = `bold ${fontSize}px system-ui, sans-serif`;
-            const lw = ctx.measureText(label).width;
+            const labelW = ctx.measureText(label).width;
             ctx.font = `${fontSize}px system-ui, sans-serif`;
-            maxLine = Math.max(maxLine, lw + ctx.measureText(value).width);
+            const availW = boxW - pad * 2 - labelW;
+            const lines = [];
+            let line = "";
+            for (const word of value.split(" ")) {
+                const test = line ? line + " " + word : word;
+                if (ctx.measureText(test).width > availW && line) {
+                    lines.push(line);
+                    line = word;
+                } else {
+                    line = test;
+                }
+            }
+            if (line) lines.push(line);
+            rows.push({ label, labelW, lines, color });
         }
 
-        const boxW = Math.min(maxLine + pad * 2, w - pad * 2);
-        const boxH = entries.length * lh + pad * 2;
+        // Cap height at 40% of region (mirrors CSS max-height: 40%)
+        const maxVisibleLines = Math.max(1, Math.floor((h * 0.4 - pad * 2) / lh));
+        const visibleRows = [];
+        let lineCount = 0;
+        for (const row of rows) {
+            if (lineCount >= maxVisibleLines) break;
+            const kept = [];
+            for (const ln of row.lines) {
+                if (lineCount >= maxVisibleLines) break;
+                kept.push(ln);
+                lineCount++;
+            }
+            if (kept.length > 0) visibleRows.push({ ...row, lines: kept });
+        }
+
+        const boxH = lineCount * lh + pad * 2;
         const boxX = ox + pad;
         const boxY = oy + h - boxH - pad;
 
@@ -922,26 +1005,26 @@ export class FloatingViewer {
         ctx.fill();
         ctx.globalAlpha = 1;
 
-        // Text lines
+        // Draw word-wrapped text
         let ty = boxY + pad + fontSize;
-        for (const { label, value, color } of entries) {
-            // Colored bold label
-            ctx.font = `bold ${fontSize}px system-ui, sans-serif`;
-            ctx.fillStyle = color;
-            ctx.fillText(label, boxX + pad, ty);
-            const lw = ctx.measureText(label).width;
-
-            // White value (clipped to box)
-            ctx.font = `${fontSize}px system-ui, sans-serif`;
-            ctx.fillStyle = "rgba(255,255,255,0.88)";
-            ctx.save();
-            ctx.beginPath();
-            ctx.rect(boxX + pad + lw, ty - fontSize, boxW - pad * 2 - lw, lh + 2);
-            ctx.clip();
-            ctx.fillText(value, boxX + pad + lw, ty);
-            ctx.restore();
-
-            ty += lh;
+        for (const { label, labelW, lines, color } of visibleRows) {
+            for (let i = 0; i < lines.length; i++) {
+                if (i === 0) {
+                    // First line: colored bold label then value
+                    ctx.font = `bold ${fontSize}px system-ui, sans-serif`;
+                    ctx.fillStyle = color;
+                    ctx.fillText(label, boxX + pad, ty);
+                    ctx.font = `${fontSize}px system-ui, sans-serif`;
+                    ctx.fillStyle = "rgba(255,255,255,0.88)";
+                    ctx.fillText(lines[i], boxX + pad + labelW, ty);
+                } else {
+                    // Continuation: indented to align under value start
+                    ctx.font = `${fontSize}px system-ui, sans-serif`;
+                    ctx.fillStyle = "rgba(255,255,255,0.88)";
+                    ctx.fillText(lines[i], boxX + pad + labelW, ty);
+                }
+                ty += lh;
+            }
         }
         ctx.restore();
     }

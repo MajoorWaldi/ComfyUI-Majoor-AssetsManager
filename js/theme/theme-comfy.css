@@ -2550,6 +2550,26 @@
 .mjr-mfv-geninfo-a [data-field="lora"] strong,
 .mjr-mfv-geninfo-b [data-field="lora"] strong   { color: #d48cff; } /* violet — LoRA   */
 
+.mjr-mfv-geninfo [data-field="sampler"] strong,
+.mjr-mfv-geninfo-a [data-field="sampler"] strong,
+.mjr-mfv-geninfo-b [data-field="sampler"] strong { color: #ff9f7a; } /* orange — Sampler */
+
+.mjr-mfv-geninfo [data-field="scheduler"] strong,
+.mjr-mfv-geninfo-a [data-field="scheduler"] strong,
+.mjr-mfv-geninfo-b [data-field="scheduler"] strong { color: #ff7a9f; } /* pink   — Scheduler */
+
+.mjr-mfv-geninfo [data-field="cfg"] strong,
+.mjr-mfv-geninfo-a [data-field="cfg"] strong,
+.mjr-mfv-geninfo-b [data-field="cfg"] strong    { color: #7a9fff; } /* indigo — CFG */
+
+.mjr-mfv-geninfo [data-field="step"] strong,
+.mjr-mfv-geninfo-a [data-field="step"] strong,
+.mjr-mfv-geninfo-b [data-field="step"] strong   { color: #7affd4; } /* teal   — Step */
+
+.mjr-mfv-geninfo [data-field="genTime"] strong,
+.mjr-mfv-geninfo-a [data-field="genTime"] strong,
+.mjr-mfv-geninfo-b [data-field="genTime"] strong { color: #e0ff7a; } /* lime   — Gen Time */
+
 .mjr-mfv-geninfo div,
 .mjr-mfv-geninfo-a div,
 .mjr-mfv-geninfo-b div {

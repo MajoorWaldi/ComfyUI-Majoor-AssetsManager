@@ -5,6 +5,7 @@ import asyncio
 import errno
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -519,12 +520,12 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if len(tags) > MAX_TAGS_PER_ASSET:
             return _json_response(Result.Err("INVALID_INPUT", f"Too many tags (max {MAX_TAGS_PER_ASSET}, got {len(tags)})"))
 
-        # Validate and sanitize tags
+        # Validate and sanitize tags: strip control chars, deduplicate, enforce limits
         sanitized_tags = []
         for tag in tags:
             if not isinstance(tag, str):
                 continue
-            tag = str(tag).strip()
+            tag = re.sub(r"[\x00-\x1f\x7f]", "", str(tag)).strip()
             if not tag or len(tag) > MAX_TAG_LENGTH:
                 continue
             tag_lower = tag.lower()

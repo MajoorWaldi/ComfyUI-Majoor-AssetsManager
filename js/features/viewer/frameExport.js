@@ -59,6 +59,10 @@ export function createFrameExporter({ state, VIEWER_MODES, singleView, abView, s
             const src = _getExportSourceCanvas();
             if (!src) return false;
 
+            // Wait one animation frame so video processors have time to paint the
+            // current video frame onto their canvases before we read pixel data.
+            await new Promise((r) => requestAnimationFrame(r));
+
             let canvas = null;
             if (src instanceof HTMLCanvasElement) {
                 canvas = src;

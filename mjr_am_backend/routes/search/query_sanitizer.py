@@ -3,8 +3,10 @@ import datetime
 import re
 
 MAX_RATING = 5
+MAX_TAG_LENGTH = 50
+MAX_TAG_TOKENS = 10
 VALID_KIND_FILTERS = {"image", "video", "audio", "model3d"}
-VALID_SORT_KEYS = {"mtime_desc", "mtime_asc", "name_asc", "name_desc", "none"}
+VALID_SORT_KEYS = {"mtime_desc", "mtime_asc", "name_asc", "name_desc", "rating_desc", "size_desc", "size_asc", "none"}
 
 
 def reference_as_utc(reference=None):
@@ -84,6 +86,19 @@ def consume_rating(value: str, filters: dict) -> bool:
     return True
 
 
+def consume_tag(value: str, filters: dict) -> bool:
+    tag = re.sub(r"[\x00-\x1f\x7f]", "", str(value or "")).strip().lower()
+    tag = tag[:MAX_TAG_LENGTH]
+    if not tag:
+        return False
+    tags_list = filters.setdefault("tags", [])
+    if len(tags_list) >= MAX_TAG_TOKENS:
+        return True  # consumed but silently dropped over limit
+    if tag not in tags_list:
+        tags_list.append(tag)
+    return True
+
+
 def consume_filter_token(token: str, filters: dict) -> bool:
     if ":" not in token:
         return False
@@ -98,6 +113,8 @@ def consume_filter_token(token: str, filters: dict) -> bool:
         return consume_kind(value, filters)
     if key == "rating":
         return consume_rating(value, filters)
+    if key in ("tag", "tags"):
+        return consume_tag(value, filters)
     return False
 
 
@@ -119,3 +136,8 @@ def normalize_sort_key(value: str | None) -> str:
     if s in VALID_SORT_KEYS:
         return s
     return "mtime_desc"
+
+
+def sanitize_tag_value(tag: str) -> str:
+    """Strip control characters and excessive whitespace from a tag value."""
+    return re.sub(r"[\x00-\x1f\x7f]", "", str(tag or "")).strip()

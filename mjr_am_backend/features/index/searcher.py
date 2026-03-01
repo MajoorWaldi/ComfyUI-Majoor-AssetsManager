@@ -38,7 +38,7 @@ MAX_SEARCH_TOKENS = SEARCH_MAX_TOKENS
 MAX_TOKEN_LENGTH = SEARCH_MAX_TOKEN_LENGTH
 MAX_ASSET_BATCH_IDS = SEARCH_MAX_BATCH_IDS
 MAX_FILEPATH_LOOKUP = SEARCH_MAX_FILEPATH_LOOKUP
-VALID_SORT_KEYS = {"mtime_desc", "mtime_asc", "name_asc", "name_desc"}
+VALID_SORT_KEYS = {"mtime_desc", "mtime_asc", "name_asc", "name_desc", "rating_desc", "size_desc", "size_asc"}
 _SAFE_SQL_FRAGMENT_RE = re.compile(r"^[\s\w\.\(\)=<>\?!,'\\%:-]+$")
 _FTS_RESERVED = {"AND", "OR", "NOT", "NEAR"}
 
@@ -58,9 +58,32 @@ def _build_sort_sql(sort: str | None, *, table_alias: str = "a", rank_alias: str
         return f"ORDER BY LOWER({table_alias}.filename) DESC, {table_alias}.id DESC"
     if key == "mtime_asc":
         return f"ORDER BY {table_alias}.mtime ASC, {table_alias}.id ASC"
+    if key == "rating_desc":
+        return f"ORDER BY COALESCE(m.rating, 0) DESC, {table_alias}.mtime DESC, {table_alias}.id DESC"
+    if key == "size_desc":
+        return f"ORDER BY COALESCE({table_alias}.size, 0) DESC, {table_alias}.mtime DESC, {table_alias}.id DESC"
+    if key == "size_asc":
+        return f"ORDER BY COALESCE({table_alias}.size, 0) ASC, {table_alias}.mtime DESC, {table_alias}.id DESC"
     if rank_alias:
         return f"ORDER BY {table_alias}.mtime DESC, {rank_alias} ASC, {table_alias}.id DESC"
     return f"ORDER BY {table_alias}.mtime DESC, {table_alias}.id DESC"
+
+
+def _append_tag_filter(filters: dict[str, Any], clauses: list[str], params: list[Any]) -> None:
+    tags = filters.get("tags")
+    if not isinstance(tags, list):
+        return
+    for tag in tags:
+        tag_clean = str(tag or "").strip().lower()[:100]
+        if not tag_clean:
+            continue
+        clauses.append(
+            "AND EXISTS ("
+            "SELECT 1 FROM json_each(NULLIF(m.tags, '')) "
+            "WHERE LOWER(value) = ?"
+            ")"
+        )
+        params.append(tag_clean)
 
 
 def _build_filter_clauses(filters: dict[str, Any] | None, alias: str = "a") -> tuple[list[str], list[Any]]:
@@ -71,6 +94,7 @@ def _build_filter_clauses(filters: dict[str, Any] | None, alias: str = "a") -> t
     _append_kind_and_source_filters(filters, alias, clauses, params)
     _append_extension_filter(filters, alias, clauses, params)
     _append_numeric_range_filters(filters, alias, clauses, params)
+    _append_tag_filter(filters, clauses, params)
     _append_workflow_type_filter(filters, clauses, params)
     _append_has_workflow_filter(filters, clauses)
     _append_mtime_filters(filters, alias, clauses, params)
@@ -541,6 +565,7 @@ class IndexSearcher:
         filters: dict[str, Any] | None,
         include_total: bool,
         metadata_tags_text_clause: str,
+        sort: str | None = None,
     ) -> Result[dict[str, Any]]:
         sql_parts = [
             f"""
@@ -565,7 +590,7 @@ class IndexSearcher:
         filter_clauses, filter_params = self._filter_clauses(filters)
         sql_parts.extend(filter_clauses)
         params.extend(filter_params)
-        sql_parts.append("ORDER BY a.mtime DESC")
+        sql_parts.append(_build_sort_sql(sort, table_alias="a"))
         sql_parts.append("LIMIT ? OFFSET ?")
         params.extend([limit, offset])
 
@@ -1165,7 +1190,8 @@ class IndexSearcher:
                 COALESCE(m.rating, 0) as rating,
                 COALESCE(m.tags, '[]') as tags,
                 m.has_workflow as has_workflow,
-                m.has_generation_data as has_generation_data
+                m.has_generation_data as has_generation_data,
+                json_extract(m.metadata_raw, '$.workflow_type') as workflow_type
             FROM assets a
             LEFT JOIN asset_metadata m ON a.id = m.asset_id
             WHERE {IN_CLAUSE}

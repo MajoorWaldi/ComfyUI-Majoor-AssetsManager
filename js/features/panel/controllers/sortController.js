@@ -6,6 +6,9 @@ export function createSortController({ state, sortBtn, sortMenu, sortPopover, po
         { key: "mtime_asc", label: t("sort.oldest") },
         { key: "name_asc", label: t("sort.nameAZ") },
         { key: "name_desc", label: t("sort.nameZA") },
+        { key: "rating_desc", label: t("sort.ratingHigh") },
+        { key: "size_desc", label: t("sort.sizeDesc") },
+        { key: "size_asc", label: t("sort.sizeAsc") },
     ];
 
     const setSortIcon = (key) => {
@@ -14,6 +17,9 @@ export function createSortController({ state, sortBtn, sortMenu, sortPopover, po
         if (key === "name_asc") icon.className = "pi pi-sort-alpha-down";
         else if (key === "name_desc") icon.className = "pi pi-sort-alpha-up";
         else if (key === "mtime_asc") icon.className = "pi pi-sort-amount-up-alt";
+        else if (key === "rating_desc") icon.className = "pi pi-star-fill";
+        else if (key === "size_desc") icon.className = "pi pi-sort-numeric-down-alt";
+        else if (key === "size_asc") icon.className = "pi pi-sort-numeric-up-alt";
         else icon.className = "pi pi-sort-amount-down";
     };
 

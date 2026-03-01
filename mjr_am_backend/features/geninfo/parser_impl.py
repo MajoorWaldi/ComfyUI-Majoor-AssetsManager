@@ -642,6 +642,232 @@ def _collect_all_prompts_from_sinks(
     return all_positive, all_negative
 
 
+def _collect_all_samplers_from_sinks(
+    nodes_by_id: dict[str, Any],
+    sinks: list[str],
+    max_sinks: int = 20
+) -> list[dict[str, Any]]:
+    """
+    Collect all distinct sampler configurations from multiple sinks.
+    """
+    import json
+    from .prompt_tracer import _extract_prompt_trace
+    from .sampler_tracer import _select_sampler_context
+
+    all_samplers: list[dict[str, Any]] = []
+    seen_hashes: set[str] = set()
+
+    for sink_id in sinks[:max_sinks]:
+        try:
+            sampler_id, sampler_conf, _ = _select_sampler_context(nodes_by_id, sink_id)
+            if not sampler_id:
+                continue
+
+            sampler_node = nodes_by_id.get(sampler_id)
+            if not isinstance(sampler_node, dict):
+                continue
+
+            ins = _inputs(sampler_node)
+            advanced = _is_advanced_sampler(sampler_node)
+            
+            trace = _extract_prompt_trace(nodes_by_id, sampler_node, sampler_id, ins, advanced)
+            confidence = sampler_conf if sampler_conf != "none" else "low"
+            
+            sampler_values = _extract_sampler_values(nodes_by_id, sampler_node, sampler_id, ins, advanced, confidence, trace)
+            
+            export_sampler = {}
+            for k in ["sampler_name", "scheduler"]:
+                if k in sampler_values and sampler_values[k] is not None:
+                    export_sampler[k] = str(sampler_values[k])
+            if "steps" in sampler_values and sampler_values["steps"] is not None:
+                try: export_sampler["steps"] = int(sampler_values["steps"])
+                except Exception: pass
+            if "cfg" in sampler_values and sampler_values["cfg"] is not None:
+                try: export_sampler["cfg"] = float(sampler_values["cfg"])
+                except Exception: pass
+            if "denoise" in sampler_values and sampler_values["denoise"] is not None:
+                try: export_sampler["denoise"] = float(sampler_values["denoise"])
+                except Exception: pass
+            if "seed_val" in sampler_values and sampler_values["seed_val"] is not None:
+                try: export_sampler["seed_val"] = int(sampler_values["seed_val"])
+                except Exception: pass
+
+            val_str = json.dumps(export_sampler, sort_keys=True)
+            if val_str not in seen_hashes:
+                seen_hashes.add(val_str)
+                all_samplers.append(export_sampler)
+                
+        except Exception:
+            continue
+
+    return all_samplers
+
+
+def _collect_chained_samplers_from_sink(
+    nodes_by_id: dict[str, Any],
+    sink_id: str,
+    max_depth: int = 10,
+) -> list[dict[str, Any]]:
+    """
+    Collect chained sampler passes within a single sink (2-pass / hires-fix pattern).
+    Walks the ``latent_image`` link backward from the primary sampler to find
+    upstream sampler passes (e.g. SamplerCustom base-pass → refine-pass chain).
+    Returns list ordered base-pass first.
+    """
+    import json
+    from .prompt_tracer import _extract_prompt_trace
+    from .sampler_tracer import _select_sampler_context
+
+    sampler_id, sampler_conf, _ = _select_sampler_context(nodes_by_id, sink_id)
+    if not sampler_id:
+        return []
+
+    collected: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
+    seen_hashes: set[str] = set()
+    current_id: str | None = sampler_id
+    depth = 0
+
+    while current_id and depth < max_depth:
+        if current_id in seen_ids:
+            break
+        seen_ids.add(current_id)
+        depth += 1
+
+        sampler_node = nodes_by_id.get(current_id)
+        if not isinstance(sampler_node, dict) or not _is_advanced_sampler(sampler_node):
+            break
+
+        ins = _inputs(sampler_node)
+        trace = _extract_prompt_trace(nodes_by_id, sampler_node, current_id, ins, True)
+        confidence = sampler_conf if depth == 1 else "medium"
+        sampler_values = _extract_sampler_values(
+            nodes_by_id, sampler_node, current_id, ins, True, confidence, trace
+        )
+
+        export_sampler: dict[str, Any] = {}
+        for k in ("sampler_name", "scheduler"):
+            if sampler_values.get(k) is not None:
+                export_sampler[k] = str(sampler_values[k])
+        if sampler_values.get("steps") is not None:
+            try:
+                export_sampler["steps"] = int(sampler_values["steps"])
+            except Exception:
+                pass
+        if sampler_values.get("cfg") is not None:
+            try:
+                export_sampler["cfg"] = float(sampler_values["cfg"])
+            except Exception:
+                pass
+        if sampler_values.get("denoise") is not None:
+            try:
+                export_sampler["denoise"] = float(sampler_values["denoise"])
+            except Exception:
+                pass
+        if sampler_values.get("seed_val") is not None:
+            try:
+                export_sampler["seed_val"] = int(sampler_values["seed_val"])
+            except Exception:
+                pass
+
+        val_str = json.dumps(export_sampler, sort_keys=True)
+        if val_str not in seen_hashes:
+            seen_hashes.add(val_str)
+            collected.append(export_sampler)
+
+        # Walk latent_image upstream to discover the next sampler pass
+        latent_link = ins.get("latent_image")
+        if not _is_link(latent_link):
+            break
+        next_id = str(latent_link[0])
+        next_node = nodes_by_id.get(next_id)
+        if not isinstance(next_node, dict) or not _is_advanced_sampler(next_node):
+            break
+        current_id = next_id
+
+    # Reverse so base-pass comes first
+    return list(reversed(collected))
+
+
+def _find_checkpoint_for_sampler(
+    nodes_by_id: dict[str, Any], sampler_node: dict[str, Any]
+) -> dict[str, Any] | None:
+    """Follow the model link from a sampler node until a CheckpointLoader is reached."""
+    from .model_tracer import _is_checkpoint_loader_node, _clean_model_id
+
+    model_link = _inputs(sampler_node).get("model")
+    seen: set[str] = set()
+    while _is_link(model_link):
+        src_id = str(model_link[0])
+        if src_id in seen:
+            break
+        seen.add(src_id)
+        node = nodes_by_id.get(src_id)
+        if not isinstance(node, dict):
+            break
+        ct = _lower(_node_type(node))
+        nins = _inputs(node)
+        if _is_checkpoint_loader_node(ct, nins):
+            name = _clean_model_id(nins.get("ckpt_name") or nins.get("model_name"))
+            if name:
+                return {"name": name, "source": f"{_node_type(node)}:{src_id}"}
+            break
+        model_link = nins.get("model")
+    return None
+
+
+def _collect_all_checkpoints_from_chained_samplers(
+    nodes_by_id: dict[str, Any],
+    sink_id: str,
+    max_depth: int = 10,
+) -> list[dict[str, Any]]:
+    """
+    Collect all distinct checkpoints used by chained sampler passes (2-pass / hires-fix).
+    Walks the latent_image chain starting from the primary sampler of the sink.
+    Returns checkpoints ordered base-pass first.
+    """
+    from .sampler_tracer import _select_sampler_context
+
+    sampler_id, _, _ = _select_sampler_context(nodes_by_id, sink_id)
+    if not sampler_id:
+        return []
+
+    collected: list[dict[str, Any]] = []
+    seen_names: set[str] = set()
+    seen_ids: set[str] = set()
+    current_id: str | None = sampler_id
+    depth = 0
+
+    while current_id and depth < max_depth:
+        if current_id in seen_ids:
+            break
+        seen_ids.add(current_id)
+        depth += 1
+
+        node = nodes_by_id.get(current_id)
+        if not isinstance(node, dict):
+            break
+
+        ckpt = _find_checkpoint_for_sampler(nodes_by_id, node)
+        if ckpt and ckpt["name"] not in seen_names:
+            seen_names.add(ckpt["name"])
+            collected.append(ckpt)
+
+        # Walk latent_image upstream to find the next sampler pass
+        ins = _inputs(node)
+        latent_link = ins.get("latent_image")
+        if not _is_link(latent_link):
+            break
+        next_id = str(latent_link[0])
+        next_node = nodes_by_id.get(next_id)
+        if not isinstance(next_node, dict) or not _is_advanced_sampler(next_node):
+            break
+        current_id = next_id
+
+    # Reverse so base-pass comes first
+    return list(reversed(collected))
+
+
 def _collect_prompt_branch_from_input(
     nodes_by_id: dict[str, Any],
     input_value: Any,
@@ -741,11 +967,17 @@ def _sampler_name_from_inputs(sampler_node: dict[str, Any], ins: dict[str, Any])
 
 
 def _seed_value_from_inputs(nodes_by_id: dict[str, Any], ins: dict[str, Any]) -> Any:
-    seed_val = _scalar(ins.get("seed"))
-    if seed_val is not None:
-        return seed_val
-    if _is_link(ins.get("seed")):
-        return _resolve_scalar_from_link(nodes_by_id, ins.get("seed"))
+    # Check both `seed` (KSampler) and `noise_seed` (SamplerCustom)
+    for key in ("seed", "noise_seed"):
+        link_or_val = ins.get(key)
+        seed_val = _scalar(link_or_val)
+        if seed_val is not None:
+            # Skip noise_seed=0 on refinement passes (add_noise=false) – it's a placeholder
+            if key == "noise_seed" and seed_val == 0 and ins.get("add_noise") is False:
+                continue
+            return seed_val
+        if _is_link(link_or_val):
+            return _resolve_scalar_from_link(nodes_by_id, link_or_val)
     return None
 
 
@@ -870,12 +1102,27 @@ def _apply_advanced_noise_seed(
     values: dict[str, Any],
     field_sources: dict[str, str],
 ) -> None:
-    if not _is_link(ins.get("noise")) or values.get("seed_val") is not None:
+    if values.get("seed_val") is not None:
         return
-    traced_seed = _trace_noise_seed(nodes_by_id, ins.get("noise"))
-    if traced_seed:
-        values["seed_val"] = traced_seed[0]
-        field_sources["seed"] = traced_seed[1]
+    # `noise` = SamplerCustomAdvanced; `noise_seed` = SamplerCustom
+    for seed_key in ("noise", "noise_seed"):
+        link_or_val = ins.get(seed_key)
+        if _is_link(link_or_val):
+            traced_seed = _trace_noise_seed(nodes_by_id, link_or_val)
+            if traced_seed:
+                values["seed_val"] = traced_seed[0]
+                field_sources["seed"] = traced_seed[1]
+                return
+    # When add_noise=false (refinement / hires pass), walk the latent_image link
+    # upstream to find the base SamplerCustom that holds the real noise seed
+    if ins.get("add_noise") is False:
+        latent_link = ins.get("latent_image")
+        if _is_link(latent_link):
+            parent_id = str(latent_link[0]) if isinstance(latent_link, list) else None
+            if parent_id:
+                parent_node = nodes_by_id.get(parent_id)
+                if isinstance(parent_node, dict):
+                    _apply_advanced_noise_seed(nodes_by_id, _inputs(parent_node), values, field_sources)
 
 
 def _apply_advanced_cfg_from_conditioning(

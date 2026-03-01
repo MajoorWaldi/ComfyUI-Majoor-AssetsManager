@@ -119,6 +119,31 @@ def _apply_multi_sink_prompt_fields(out: dict[str, Any], nodes_by_id: dict[str, 
         out["all_negative_prompts"] = all_neg
 
 
+def _apply_multi_sink_sampler_fields(out: dict[str, Any], nodes_by_id: dict[str, Any], sinks: list[str]) -> None:
+    from . import parser_impl as _p
+
+    if len(sinks) > 1:
+        # Multiple independent sinks (different outputs) → one sampler entry per sink
+        all_samplers = _p._collect_all_samplers_from_sinks(nodes_by_id, sinks)
+    else:
+        # Single sink — check for chained sampler passes (2-pass / hires-fix pattern)
+        all_samplers = _p._collect_chained_samplers_from_sink(nodes_by_id, sinks[0]) if sinks else []
+
+    if len(all_samplers) > 1:
+        out["all_samplers"] = all_samplers
+
+
+def _apply_multi_checkpoint_fields(out: dict[str, Any], nodes_by_id: dict[str, Any], sinks: list[str]) -> None:
+    """For single-sink workflows with chained passes, expose all distinct checkpoints."""
+    if len(sinks) != 1:
+        return
+    from . import parser_impl as _p
+
+    all_checkpoints = _p._collect_all_checkpoints_from_chained_samplers(nodes_by_id, sinks[0])
+    if len(all_checkpoints) > 1:
+        out["all_checkpoints"] = all_checkpoints
+
+
 def _build_geninfo_payload(
     nodes_by_id: dict[str, Any],
     sinks: list[str],
@@ -152,6 +177,8 @@ def _build_geninfo_payload(
     _apply_optional_model_metrics(out, model_related)
     _apply_input_files_field(out, nodes_by_id)
     _apply_multi_sink_prompt_fields(out, nodes_by_id, sinks)
+    _apply_multi_sink_sampler_fields(out, nodes_by_id, sinks)
+    _apply_multi_checkpoint_fields(out, nodes_by_id, sinks)
     return out
 
 

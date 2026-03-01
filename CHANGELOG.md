@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- Fixed download form viewers issues
+- Fixed workflow filter bugs
+
+### Improved
+- Enhanced compare overlay functionality
+- Improved text search performance and accuracy
+
 ## [2.4.0] - 2026-02-28
 
 ### 🎉 Major Features

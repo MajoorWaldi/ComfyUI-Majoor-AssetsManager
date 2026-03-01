@@ -20,7 +20,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v1 # v6.0.2
+        uses: actions/checkout@v4 # v6.0.2
 
       - name: Create Archive
         # Nous reproduisons ici la logique d'exclusion de votre script make_release_zip.ps1
@@ -40,7 +40,7 @@ jobs:
           -x "*.zip"
 
       - name: Update Nightly Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: nightly
