@@ -527,7 +527,20 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
                     "all_asset_ids": [id_map[i] for i in mask],
                 })
 
-            clusters.sort(key=lambda c: -int(c["size"]))
+            def _cluster_sort_key(item: dict[str, object]) -> int:
+                size_value = item.get("size", 0)
+                if isinstance(size_value, int):
+                    return -size_value
+                if isinstance(size_value, float):
+                    return -int(size_value)
+                if isinstance(size_value, str):
+                    try:
+                        return -int(size_value)
+                    except ValueError:
+                        return 0
+                return 0
+
+            clusters.sort(key=_cluster_sort_key)
             return _json_response(Result.Ok(clusters))
 
         except Exception as exc:

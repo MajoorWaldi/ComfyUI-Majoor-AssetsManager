@@ -102,6 +102,9 @@ def register_audit_routes(routes: web.RouteTableDef) -> None:
         )
         params.append(limit)
 
+        if db is None:
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Database service unavailable"))
+
         try:
             rows = await db.aquery(query, tuple(params))
         except Exception as exc:

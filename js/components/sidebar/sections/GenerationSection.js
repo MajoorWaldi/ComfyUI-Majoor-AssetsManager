@@ -1,7 +1,7 @@
 import { createInfoBox, createParametersBox } from "../utils/dom.js";
 import { buildViewURL } from "../../../api/endpoints.js";
 import { t } from "../../../app/i18n.js";
-import { vectorGetAlignment, vectorSearch } from "../../../api/client.js";
+import { vectorGetAlignment, vectorGetAutoTags } from "../../../api/client.js";
 import {
     formatLoRAItem,
     formatModelLabel,
@@ -9,14 +9,77 @@ import {
     normalizePromptsForDisplay,
 } from "../parsers/geninfoParser.js";
 
-const PROMPT_SUGGESTIONS = [
-    { label: "High detail", snippet: "highly detailed, intricate details, sharp focus" },
-    { label: "Cinematic", snippet: "cinematic lighting, dramatic atmosphere, film grain" },
-    { label: "Photorealistic", snippet: "photorealistic, 8k uhd, DSLR, professional photography" },
-    { label: "Artistic", snippet: "trending on artstation, concept art, digital painting" },
-    { label: "Studio", snippet: "studio lighting, award winning, masterpiece" },
-    { label: "Negative boost", snippet: "ugly, blurry, bad anatomy, extra limbs, deformed", isNegative: true },
-];
+function _tokenizePromptLikeText(text) {
+    return String(text || "")
+        .split(",")
+        .map(s => s.trim())
+        .filter(Boolean);
+}
+
+function _cleanPromptToken(value) {
+    const token = String(value || "").trim().replace(/\s+/g, " ");
+    if (!token) return "";
+    if (token.length < 2) return "";
+    return token;
+}
+
+function _collectAssetPromptTokens(asset, basePrompt, aiTags) {
+    const merged = [];
+    const seen = new Set();
+
+    const pushToken = (raw) => {
+        const token = _cleanPromptToken(raw);
+        if (!token) return;
+        const key = token.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        merged.push(token);
+    };
+
+    _tokenizePromptLikeText(basePrompt).forEach(pushToken);
+    if (Array.isArray(asset?.tags)) asset.tags.forEach(pushToken);
+    if (Array.isArray(aiTags)) aiTags.forEach(pushToken);
+
+    return merged;
+}
+
+function _getEnhancerTokenBudget(alignmentScore) {
+    if (!Number.isFinite(alignmentScore)) return 12;
+    if (alignmentScore >= 0.8) return 4;
+    if (alignmentScore >= 0.65) return 7;
+    if (alignmentScore >= 0.5) return 10;
+    if (alignmentScore >= 0.35) return 14;
+    return 18;
+}
+
+function _buildAssetLinkedPrompt(asset, positivePrompt, aiTags, alignmentScore = null) {
+    const baseTokens = _tokenizePromptLikeText(positivePrompt)
+        .map(_cleanPromptToken)
+        .filter(Boolean);
+    const baseSet = new Set(baseTokens.map(t => t.toLowerCase()));
+
+    const mergedTokens = _collectAssetPromptTokens(asset, "", aiTags)
+        .map(_cleanPromptToken)
+        .filter(Boolean)
+        .filter(t => !baseSet.has(t.toLowerCase()));
+
+    const uniqueMerged = [];
+    const seen = new Set();
+    for (const token of mergedTokens) {
+        const key = token.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        uniqueMerged.push(token);
+    }
+
+    const enhancerTokens = uniqueMerged.slice(0, _getEnhancerTokenBudget(alignmentScore));
+    if (baseTokens.length && enhancerTokens.length) {
+        return `${baseTokens.join(", ")}, ${enhancerTokens.join(", ")}`;
+    }
+    if (baseTokens.length) return baseTokens.join(", ");
+    if (enhancerTokens.length) return enhancerTokens.join(", ");
+    return "";
+}
 
 function _getAlignmentColor(score) {
     if (score >= 0.7) return "#4CAF50";      // green
@@ -130,6 +193,14 @@ function _createAlignmentBox(asset, positivePrompt) {
     aiStatusHint.textContent = "AI features are disabled (enable vector search env var).";
     wrapper.appendChild(aiStatusHint);
 
+    let currentAlignmentScore = null;
+    let currentAiTags = [];
+
+    const renderEnhancedPrompt = () => {
+        const rebuilt = _buildAssetLinkedPrompt(asset, positivePrompt, currentAiTags, currentAlignmentScore);
+        suggestedPromptBox.textContent = rebuilt || "No prompt data available for this asset.";
+    };
+
     // Fetch alignment async
     vectorGetAlignment(asset.id).then(res => {
         const serviceUnavailable = !res?.ok && (
@@ -145,6 +216,8 @@ function _createAlignmentBox(asset, positivePrompt) {
             scoreFill.style.width = "0%";
             scoreFill.style.background = "#777";
             aiStatusHint.style.display = "block";
+            currentAlignmentScore = null;
+            renderEnhancedPrompt();
             return;
         }
         const score = res?.ok && res.data != null ? Number(res.data) : null;
@@ -153,6 +226,8 @@ function _createAlignmentBox(asset, positivePrompt) {
             qualityBadge.textContent = "N/A";
             qualityBadge.style.background = "rgba(127,127,127,0.3)";
             scoreFill.style.width = "0%";
+            currentAlignmentScore = null;
+            renderEnhancedPrompt();
             return;
         }
         const pct = Math.round(score * 100);
@@ -164,85 +239,112 @@ function _createAlignmentBox(asset, positivePrompt) {
         qualityBadge.textContent = _getAlignmentLabel(score);
         qualityBadge.style.background = `${color}33`;
         qualityBadge.style.color = color;
+        currentAlignmentScore = score;
+        renderEnhancedPrompt();
     }).catch(() => {
         scoreLabel.textContent = "—";
         qualityBadge.textContent = "Unavailable";
+        currentAlignmentScore = null;
+        renderEnhancedPrompt();
     });
 
-    // ── Prompt Suggestions ────────────────────────────────────────
-    const suggestionsHeader = document.createElement("div");
-    suggestionsHeader.style.cssText = `
+    // ── Suggested Prompt (asset-linked) ───────────────────────────
+    const suggestedHeader = document.createElement("div");
+    suggestedHeader.style.cssText = `
         font-size: 10px;
         font-weight: 600;
         color: rgba(0, 188, 212, 0.75);
         text-transform: uppercase;
         letter-spacing: 0.5px;
         margin-top: 4px;
-        cursor: pointer;
         display: flex;
         align-items: center;
-        gap: 4px;
+        justify-content: space-between;
+        gap: 8px;
     `;
-    suggestionsHeader.textContent = "Prompt Suggestions ▼";
-    suggestionsHeader.title = "Quick prompt snippets to enhance your prompts";
 
-    const suggestionsGrid = document.createElement("div");
-    suggestionsGrid.style.cssText = `
-        display: none;
-        flex-wrap: wrap;
-        gap: 6px;
+    const suggestedLabel = document.createElement("span");
+    suggestedLabel.textContent = "Prompt Enhancer";
+    suggestedLabel.title = "Prompt enrichi depuis le prompt de l'asset et ses tags pour améliorer l'alignement";
+
+    const copySuggestedBtn = document.createElement("button");
+    copySuggestedBtn.type = "button";
+    copySuggestedBtn.textContent = "Copy";
+    copySuggestedBtn.style.cssText = `
+        border: 1px solid rgba(0,188,212,0.45);
+        background: rgba(0,188,212,0.12);
+        color: #00BCD4;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 600;
+        padding: 2px 8px;
+        cursor: pointer;
+    `;
+
+    suggestedHeader.appendChild(suggestedLabel);
+    suggestedHeader.appendChild(copySuggestedBtn);
+
+    const suggestedPromptBox = document.createElement("div");
+    suggestedPromptBox.style.cssText = `
         margin-top: 4px;
+        padding: 8px;
+        border-radius: 6px;
+        border: 1px solid rgba(0, 188, 212, 0.30);
+        background: rgba(0, 188, 212, 0.08);
+        color: rgba(230, 250, 255, 0.95);
+        font-size: 11px;
+        line-height: 1.45;
+        white-space: pre-wrap;
+        word-break: break-word;
     `;
 
-    let sugExpanded = false;
-    suggestionsHeader.onclick = () => {
-        sugExpanded = !sugExpanded;
-        suggestionsGrid.style.display = sugExpanded ? "flex" : "none";
-        suggestionsHeader.textContent = sugExpanded ? "Prompt Suggestions ▲" : "Prompt Suggestions ▼";
-    };
+    renderEnhancedPrompt();
 
-    PROMPT_SUGGESTIONS.forEach(sug => {
-        const chip = document.createElement("button");
-        chip.type = "button";
-        chip.textContent = sug.label;
-        chip.title = `Click to copy: ${sug.snippet}`;
-        chip.style.cssText = `
-            padding: 4px 10px;
-            border-radius: 12px;
-            border: 1px solid ${sug.isNegative ? "rgba(244, 67, 54, 0.4)" : "rgba(0, 188, 212, 0.4)"};
-            background: ${sug.isNegative ? "rgba(244, 67, 54, 0.12)" : "rgba(0, 188, 212, 0.12)"};
-            color: ${sug.isNegative ? "#F44336" : "#00BCD4"};
-            font-size: 10px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.15s ease;
-        `;
-        chip.addEventListener("mouseenter", () => {
-            chip.style.background = sug.isNegative ? "rgba(244, 67, 54, 0.25)" : "rgba(0, 188, 212, 0.25)";
-        });
-        chip.addEventListener("mouseleave", () => {
-            chip.style.background = sug.isNegative ? "rgba(244, 67, 54, 0.12)" : "rgba(0, 188, 212, 0.12)";
-        });
-        chip.addEventListener("click", async (e) => {
-            e.stopPropagation();
-            try {
-                await navigator.clipboard.writeText(sug.snippet);
-                chip.style.background = "rgba(76, 175, 80, 0.35)";
-                chip.style.color = "#4CAF50";
-                const orig = chip.textContent;
-                chip.textContent = "Copied!";
-                setTimeout(() => {
-                    chip.textContent = orig;
-                    chip.style.background = sug.isNegative ? "rgba(244, 67, 54, 0.12)" : "rgba(0, 188, 212, 0.12)";
-                    chip.style.color = sug.isNegative ? "#F44336" : "#00BCD4";
-                }, 800);
-            } catch (err) { console.debug?.(err); }
-        });
-        suggestionsGrid.appendChild(chip);
+    copySuggestedBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const text = String(suggestedPromptBox.textContent || "").trim();
+        if (!text || /^no prompt data available/i.test(text)) return;
+        try {
+            await navigator.clipboard.writeText(text);
+            const prev = copySuggestedBtn.textContent;
+            copySuggestedBtn.textContent = "Copied!";
+            setTimeout(() => { copySuggestedBtn.textContent = prev; }, 900);
+        } catch (err) {
+            console.debug?.(err);
+        }
     });
 
-    wrapper.appendChild(suggestionsHeader);
-    wrapper.appendChild(suggestionsGrid);
+    suggestedPromptBox.style.cursor = "copy";
+    suggestedPromptBox.title = "Click to copy enhanced prompt";
+    suggestedPromptBox.addEventListener("click", async () => {
+        const text = String(suggestedPromptBox.textContent || "").trim();
+        if (!text || /^no prompt data available/i.test(text)) return;
+        try {
+            await navigator.clipboard.writeText(text);
+            const prev = copySuggestedBtn.textContent;
+            copySuggestedBtn.textContent = "Copied!";
+            setTimeout(() => { copySuggestedBtn.textContent = prev; }, 900);
+        } catch (err) {
+            console.debug?.(err);
+        }
+    });
+
+    wrapper.appendChild(suggestedHeader);
+    wrapper.appendChild(suggestedPromptBox);
+
+    if (asset?.id) {
+        vectorGetAutoTags(asset.id).then((res) => {
+            const serviceUnavailable = !res?.ok && (
+                String(res?.code || "").toUpperCase() === "SERVICE_UNAVAILABLE"
+                || /vector search is not enabled/i.test(String(res?.error || ""))
+            );
+            if (serviceUnavailable) return;
+            currentAiTags = Array.isArray(res?.data) ? res.data : [];
+            renderEnhancedPrompt();
+        }).catch(() => {
+            // keep base constructed prompt from metadata/tags only
+        });
+    }
 
     return wrapper;
 }
