@@ -992,7 +992,17 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                 raise RuntimeError(str(del_res.error or "delete failed"))
         except Exception as exc:
             if deleted_db:
-                await _restore_asset_delete_backups(svc["db"], backups)
+                try:
+                    await _restore_asset_delete_backups(svc["db"], backups)
+                except Exception as restore_exc:
+                    # DB record already deleted but file still present and restoration
+                    # also failed — data is inconsistent; operator must intervene (NM-8).
+                    logger.critical(
+                        "CRITICAL: asset_id=%s DB record deleted but physical file still "
+                        "exists and restoration failed — manual intervention required. "
+                        "File: %s  Restore error: %s",
+                        asset_id, resolved, restore_exc,
+                    )
             return _json_response(Result.Err(
                 "DELETE_FAILED",
                 "Failed to delete file",

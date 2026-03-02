@@ -14,6 +14,10 @@ import { EVENTS } from "../../app/events.js";
 import { floatingViewerManager } from "./floatingViewerManager.js";
 
 let _initialized = false;
+let _genOutputHandler = null; // Named reference so it can be removed in teardown
+
+// WeakMap stores the original canvas methods so we can restore them on teardown (NH-1).
+const _hookedCanvases = new WeakMap();
 
 // ── Node-type detection ───────────────────────────────────────────────────────
 
@@ -212,18 +216,20 @@ function _onLiteGraphNodeSelected(node) {
  * @param {object} canvas  LGraphCanvas instance
  */
 function _hookCanvas(canvas) {
-    if (!canvas || canvas.__mjrMfvHooked) return;
-    canvas.__mjrMfvHooked = true;
+    if (!canvas || _hookedCanvases.has(canvas)) return;
+
+    // Store originals in WeakMap so they can be restored by _unhookCanvas (NH-1).
+    const origSelected  = canvas.onNodeSelected;
+    const origSelChange = canvas.onSelectionChange;
+    _hookedCanvases.set(canvas, { onNodeSelected: origSelected, onSelectionChange: origSelChange });
 
     // ── onNodeSelected: single-click selection ──────────────────────────────
-    const origSelected = canvas.onNodeSelected;
     canvas.onNodeSelected = function (node) {
         try { origSelected?.call(this, node); } catch (e) { console.debug?.(e); }
         _onLiteGraphNodeSelected(node);
     };
 
     // ── onSelectionChange: multi-select or keyboard selection (LiteGraph v0.7+) ─
-    const origSelChange = canvas.onSelectionChange;
     canvas.onSelectionChange = function (selectedNodes) {
         try { origSelChange?.call(this, selectedNodes); } catch (e) { console.debug?.(e); }
         try {
@@ -236,6 +242,16 @@ function _hookCanvas(canvas) {
     };
 
     console.debug("[Majoor] MFV canvas hooks installed");
+}
+
+/** Restore original canvas methods and remove the WeakMap entry. */
+function _unhookCanvas(canvas) {
+    if (!canvas || !_hookedCanvases.has(canvas)) return;
+    const orig = _hookedCanvases.get(canvas);
+    canvas.onNodeSelected  = orig.onNodeSelected;
+    canvas.onSelectionChange = orig.onSelectionChange;
+    _hookedCanvases.delete(canvas);
+    console.debug("[Majoor] MFV canvas hooks removed");
 }
 
 /**
@@ -288,11 +304,11 @@ function _pickLatest(files) {
  * @param {object} [app]  The ComfyUI app object (used for graph node tracking).
  */
 export function initLiveStreamTracker(app) {
-    if (_initialized) return;
+    if (_genOutputHandler) return; // already initialized (idempotent)
     _initialized = true;
 
-    // 1. Listen for completed generations
-    window.addEventListener(EVENTS.NEW_GENERATION_OUTPUT, (e) => {
+    // 1. Store handler by reference so teardownLiveStreamTracker can remove it (NM-4).
+    _genOutputHandler = (e) => {
         try {
             if (!floatingViewerManager.getLiveActive()) return;
             const latest = _pickLatest(e.detail?.files);
@@ -301,10 +317,27 @@ export function initLiveStreamTracker(app) {
         } catch (err) {
             console.debug?.("[MFV] generation output error", err);
         }
-    });
+    };
+    window.addEventListener(EVENTS.NEW_GENERATION_OUTPUT, _genOutputHandler);
 
     // 2. Hook LiteGraph canvas for media node selection
     _hookCanvasWhenReady(app);
 
     console.debug("[Majoor] LiveStreamTracker initialized");
+}
+
+/**
+ * Remove all event listeners and unhook the canvas.
+ * Called from entry.js on hot-reload cleanup so listeners don't accumulate (NM-4).
+ * @param {object} [app]  The ComfyUI app object (to unhook the canvas).
+ */
+export function teardownLiveStreamTracker(app) {
+    if (_genOutputHandler) {
+        window.removeEventListener(EVENTS.NEW_GENERATION_OUTPUT, _genOutputHandler);
+        _genOutputHandler = null;
+    }
+    _initialized = false;
+    // Unhook the canvas if it is already available.
+    try { if (app?.canvas) _unhookCanvas(app.canvas); } catch (e) { console.debug?.(e); }
+    console.debug("[Majoor] LiveStreamTracker torn down");
 }

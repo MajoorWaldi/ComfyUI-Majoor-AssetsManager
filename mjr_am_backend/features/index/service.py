@@ -24,6 +24,7 @@ from .scan_batch_utils import compute_state_hash
 from .scanner import IndexScanner
 from .searcher import IndexSearcher
 from .updater import AssetUpdater
+from ...config import BATCH_ASSET_PUSH_LIMIT
 
 logger = get_logger(__name__)
 
@@ -227,7 +228,7 @@ class IndexService:
             added_ids = (res.data or {}).get("added_ids") or []
             if added_ids and _PS is not None:
                 try:
-                    batch_res = await self.get_assets_batch(list(added_ids[:50]))
+                    batch_res = await self.get_assets_batch(list(added_ids[:BATCH_ASSET_PUSH_LIMIT]))
                     if batch_res.ok and batch_res.data:
                         for asset in batch_res.data:
                             try:

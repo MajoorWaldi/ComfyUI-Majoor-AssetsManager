@@ -183,6 +183,9 @@ export function createHeaderView() {
         mfvBtn.title = active
             ? t("tooltip.closeMFV", "Close Floating Viewer")
             : t("tooltip.openMFV", "Open Floating Viewer");
+        // Swap icon: pi-eye-slash when MFV is open, pi-eye when closed
+        const icon = mfvBtn.querySelector("i");
+        if (icon) icon.className = active ? "pi pi-eye-slash" : "pi pi-eye";
     };
     window.addEventListener(EVENTS.MFV_VISIBILITY_CHANGED, _mfvVisibilityHandler);
     headerTools.appendChild(mfvBtn);

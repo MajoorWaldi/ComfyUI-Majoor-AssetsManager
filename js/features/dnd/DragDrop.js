@@ -240,8 +240,6 @@ export const bindAssetDragStart = (containerEl) => {
             const asset = card._mjrAsset;
             if (!asset || typeof asset !== "object") return;
             const kind = String(asset?.kind || "").toLowerCase();
-            const isManagedMedia = kind === "video" || kind === "audio";
-
             const type = String(asset?.type || "output").toLowerCase();
             const payload = {
                 filename: asset.filename,
@@ -254,10 +252,10 @@ export const bindAssetDragStart = (containerEl) => {
             try {
                 dt.setData(DND_MIME, JSON.stringify(payload));
                 dt.setData("text/plain", String(asset.filename || ""));
-                if (isManagedMedia) {
-                    const viewUrl = buildURL(payload);
-                    applyDragOutToOS({ dt, asset, containerEl, card, viewUrl });
-                }
+                // Apply OS drag-out (DownloadURL + batch ZIP) for all asset kinds.
+                // applyDragOutToOS handles single-file and multi-selection ZIP internally.
+                const viewUrl = buildURL(payload);
+                applyDragOutToOS({ dt, asset, containerEl, card, viewUrl });
             } catch (e) { console.debug?.(e); }
 
             const preview = card.querySelector("img") || card.querySelector("video");

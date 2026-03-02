@@ -17,7 +17,8 @@ import {
 } from "./app/comfyApiBridge.js";
 import { EVENTS } from "./app/events.js";
 import { initDragDrop } from "./features/dnd/DragDrop.js";
-import { initLiveStreamTracker } from "./features/viewer/LiveStreamTracker.js";
+import { initLiveStreamTracker, teardownLiveStreamTracker } from "./features/viewer/LiveStreamTracker.js";
+import { teardownFloatingViewerManager } from "./features/viewer/floatingViewerManager.js";
 import { loadAssets, upsertAsset, scrollGridToTop, removeAssetsFromGrid } from "./features/grid/GridView.js";
 import { renderAssetsManager, getActiveGridContainer } from "./features/panel/AssetsManagerPanel.js";
 import { extractOutputFiles } from "./utils/extractOutputFiles.js";
@@ -91,6 +92,9 @@ function installEntryRuntimeController() {
                 removeApiHandlers(prev?.api || null);
                 removeRuntimeWindowHandlers(prev);
             } catch (e) { console.debug?.(e); }
+            // Tear down MFV module-level listeners before re-registering (NM-3, NM-4).
+            try { teardownLiveStreamTracker(window.__MJR_RUNTIME_APP__); } catch (e) { console.debug?.(e); }
+            try { teardownFloatingViewerManager(); } catch (e) { console.debug?.(e); }
             window[ENTRY_RUNTIME_KEY] = { api: null, assetsDeletedHandler: null };
         }
     } catch (e) { console.debug?.(e); }
@@ -145,6 +149,8 @@ app.registerExtension({
         installEntryRuntimeController();
         const runtimeApp = (await waitForComfyApp({ timeoutMs: 6000 })) || app;
         setComfyApp(runtimeApp);
+        // Store app reference for teardown use in subsequent hot-reloads.
+        try { if (typeof window !== "undefined") window.__MJR_RUNTIME_APP__ = runtimeApp; } catch (e) { console.debug?.(e); }
 
         // Initialize core services
         testAPI();

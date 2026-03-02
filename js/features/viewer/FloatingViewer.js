@@ -174,6 +174,13 @@ export class FloatingViewer {
         this._panY      = 0;
         this._panzoomAC = null; // AbortController for event cleanup
         this._dragging  = false;
+
+        // AbortController for toolbar/header button click listeners (NM-1).
+        // Aborted in dispose() so listeners are cleaned up without needing named references.
+        this._btnAC     = new AbortController();
+        // Generation counter: incremented on every loadMediaA/loadMediaPair call so
+        // stale async metadata enrichment results can be discarded (NM-2).
+        this._refreshGen = 0;
     }
 
     // ── Build DOM ─────────────────────────────────────────────────────────────
@@ -213,7 +220,7 @@ export class FloatingViewer {
         closeBtn.appendChild(_closeBtnIcon);
         closeBtn.addEventListener("click", () => {
             window.dispatchEvent(new CustomEvent(EVENTS.MFV_CLOSE));
-        });
+        }, { signal: this._btnAC.signal });
 
         header.appendChild(title);
         header.appendChild(closeBtn);
@@ -228,7 +235,7 @@ export class FloatingViewer {
         this._modeBtn = document.createElement("button");
         this._modeBtn.type = "button";
         this._modeBtn.className = "mjr-icon-btn";
-        this._modeBtn.addEventListener("click", () => this._cycleMode());
+        this._modeBtn.addEventListener("click", () => this._cycleMode(), { signal: this._btnAC.signal });
         this._updateModeBtnUI();
         bar.appendChild(this._modeBtn);
 
@@ -246,7 +253,7 @@ export class FloatingViewer {
         this._liveBtn.innerHTML = '<i class="pi pi-circle" aria-hidden="true"></i>';
         this._liveBtn.addEventListener("click", () => {
             window.dispatchEvent(new CustomEvent(EVENTS.MFV_LIVE_TOGGLE));
-        });
+        }, { signal: this._btnAC.signal });
         bar.appendChild(this._liveBtn);
 
         // Gen Info button (shows dropdown with checkboxes)
@@ -264,7 +271,7 @@ export class FloatingViewer {
             } else {
                 this._openGenDropdown();
             }
-        });
+        }, { signal: this._btnAC.signal });
         bar.appendChild(this._genBtn);
         this._updateGenBtnUI();
 
@@ -277,7 +284,7 @@ export class FloatingViewer {
         _captureBtnIcon.className = "pi pi-download";
         _captureBtnIcon.setAttribute("aria-hidden", "true");
         this._captureBtn.appendChild(_captureBtnIcon);
-        this._captureBtn.addEventListener("click", () => this._captureView());
+        this._captureBtn.addEventListener("click", () => this._captureView(), { signal: this._btnAC.signal });
         bar.appendChild(this._captureBtn);
 
         // Close dropdown when clicking outside
@@ -524,16 +531,20 @@ export class FloatingViewer {
             this._mode = MFV_MODES.SIMPLE;
             this._updateModeBtnUI();
         }
-        // Hydrate geninfo metadata asynchronously using shared pipeline
+        // Hydrate geninfo metadata asynchronously using shared pipeline.
+        // Capture generation counter before the await so stale results from a previous
+        // loadMediaA call are discarded if the user switches assets quickly (NM-2).
         if (this._mediaA && typeof ensureViewerMetadataAsset === "function") {
+            const gen = ++this._refreshGen;
             (async () => {
                 try {
                     const enriched = await ensureViewerMetadataAsset(this._mediaA, { getAssetMetadata, getFileMetadataScoped });
+                    if (this._refreshGen !== gen) return; // stale — newer media loaded
                     if (enriched && typeof enriched === "object") {
                         this._mediaA = enriched;
                         this._refresh();
                     }
-                } catch (e) { /* ignore */ }
+                } catch (e) { console.debug?.("[MFV] metadata enrich error", e); }
             })();
         } else {
             this._refresh();
@@ -552,7 +563,9 @@ export class FloatingViewer {
             this._mode = MFV_MODES.AB;
             this._updateModeBtnUI();
         }
-        // Hydrate both sides concurrently
+        // Hydrate both sides concurrently. Capture generation counter so stale results
+        // from a previous loadMediaPair call are discarded if the user switches quickly (NM-2).
+        const gen = ++this._refreshGen;
         const hydrate = async (asset) => {
             if (!asset) return asset;
             try {
@@ -562,6 +575,7 @@ export class FloatingViewer {
         };
         (async () => {
             const [A, B] = await Promise.all([hydrate(this._mediaA), hydrate(this._mediaB)]);
+            if (this._refreshGen !== gen) return; // stale — newer media loaded
             this._mediaA = A || null;
             this._mediaB = B || null;
             this._refresh();
@@ -877,6 +891,9 @@ export class FloatingViewer {
 
     hide() {
         if (!this.element) return;
+        // Destroy pan/zoom so _dragging and pointer-capture state are reset cleanly
+        // even if hide() is called mid-drag (NM-5).
+        this._destroyPanZoom();
         this.element.classList.remove("is-visible");
         this.isVisible = false;
     }
@@ -1071,8 +1088,11 @@ export class FloatingViewer {
     async _captureView() {
         if (!this._contentEl) return;
 
-        // Visual feedback: briefly disable button
-        if (this._captureBtn) this._captureBtn.disabled = true;
+        // Visual feedback: disable button and announce capturing state to screen readers (NL-6).
+        if (this._captureBtn) {
+            this._captureBtn.disabled = true;
+            this._captureBtn.setAttribute("aria-label", t("tooltip.capturingView", "Capturing…"));
+        }
 
         const w = this._contentEl.clientWidth  || 480;
         const h = this._contentEl.clientHeight || 360;
@@ -1164,7 +1184,10 @@ export class FloatingViewer {
         } catch (e) {
             console.warn("[MFV] download failed:", e);
         } finally {
-            if (this._captureBtn) this._captureBtn.disabled = false;
+            if (this._captureBtn) {
+                this._captureBtn.disabled = false;
+                this._captureBtn.setAttribute("aria-label", t("tooltip.captureView", "Save view as image"));
+            }
         }
     }
 
@@ -1172,6 +1195,8 @@ export class FloatingViewer {
 
     dispose() {
         this._destroyPanZoom();
+        // Abort all button click listeners in one call (NM-1).
+        try { this._btnAC?.abort(); this._btnAC = null; } catch (e) { console.debug?.(e); }
         try { this.element?.remove(); } catch (e) { console.debug?.(e); }
         this.element     = null;
         this._contentEl  = null;

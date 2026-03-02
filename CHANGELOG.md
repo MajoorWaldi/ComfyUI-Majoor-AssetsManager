@@ -2,11 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased]
+## [Nightly Build]
+
+### Added
+- Added support for rgthree and easy use custom node parsing
 
 ### Fixed
 - Fixed download form viewers issues
 - Fixed workflow filter bugs
+- Fixed MFV memory leaks and hot-reload listener accumulation
+- Fixed SQL placeholder count unbounded in generation-time batch query (capped at 500)
 
 ### Improved
 - Enhanced compare overlay functionality

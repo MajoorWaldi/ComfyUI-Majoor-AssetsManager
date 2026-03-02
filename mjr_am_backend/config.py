@@ -268,6 +268,10 @@ METADATA_CACHE_TTL_SECONDS = _env_float(90.0 * 24.0 * 3600.0, "MJR_AM_METADATA_C
 METADATA_CACHE_CLEANUP_INTERVAL_SECONDS = _env_float(300.0, "MJR_AM_METADATA_CACHE_CLEANUP_INTERVAL_SECONDS", "MAJOOR_METADATA_CACHE_CLEANUP_INTERVAL_SECONDS", min_value=5.0, max_value=3600.0)
 METADATA_EXTRACT_CONCURRENCY = _env_int(1, "MJR_AM_METADATA_EXTRACT_CONCURRENCY", "MAJOOR_METADATA_EXTRACT_CONCURRENCY", min_value=1, max_value=16)
 
+# Max number of newly-added asset IDs pushed as mjr-asset-added events in one index_paths call.
+# Increase via MAJOOR_BATCH_ASSET_PUSH_LIMIT for large batch workflows (NL-4).
+BATCH_ASSET_PUSH_LIMIT = _env_int(50, "MAJOOR_BATCH_ASSET_PUSH_LIMIT", min_value=1, max_value=500)
+
 # Index dedupe (avoid double-indexing bursts from multiple event sources).
 # 2s window catches duplicate watcher + scan events for the same file update burst.
 INDEX_DEDUPE_TTL_SECONDS = _env_float(2.0, "MJR_AM_INDEX_DEDUPE_TTL_SECONDS", "MAJOOR_INDEX_DEDUPE_TTL_SECONDS", min_value=0.1, max_value=60.0)

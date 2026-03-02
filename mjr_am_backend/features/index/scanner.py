@@ -43,6 +43,11 @@ class IndexScanner:
         self.db = db
         self.metadata = metadata_service
         self._scan_lock = scan_lock
+        # NOTE (NL-5): when index_lock is None (the typical call from IndexService),
+        # _index_lock aliases _scan_lock — so scan_directory and index_paths serialize
+        # through the same lock.  This is intentional: it prevents concurrent DB writes
+        # during a full scan.  If a separate index_lock is ever passed, the two operations
+        # can run concurrently.
         self._index_lock = index_lock or scan_lock
         self._current_scan_id: str | None = None
         self._max_to_enrich_items = int(MAX_TO_ENRICH_ITEMS)

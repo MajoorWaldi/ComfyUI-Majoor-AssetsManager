@@ -591,6 +591,14 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
 
         entry = _get_batch_entry(token)
         if not entry:
+            # The POST is fire-and-forget from the client side — the GET can arrive before
+            # the POST has created the cache entry.  Poll for up to 15 s to handle the race.
+            loop = asyncio.get_running_loop()
+            deadline = loop.time() + 15.0
+            while entry is None and loop.time() < deadline:
+                await asyncio.sleep(0.25)
+                entry = _get_batch_entry(token)
+        if not entry:
             return _json_response(Result.Err("NOT_FOUND", "Not found"), status=404)
 
         ready_res = await _wait_batch_entry_ready(entry)

@@ -131,7 +131,13 @@ async def _maybe_schedule_consistency_check(db) -> None:
             return
         _LAST_CONSISTENCY_CHECK = now
     try:
-        asyncio.create_task(_run_consistency_check(db))
+        # Add a done-callback so unhandled exceptions inside the task are surfaced
+        # in the log rather than silently swallowed by the event loop (NL-3).
+        _task = asyncio.create_task(_run_consistency_check(db))
+        _task.add_done_callback(
+            lambda t: logger.error("Consistency check task failed: %s", t.exception())
+            if not t.cancelled() and t.exception() else None
+        )
     except Exception as exc:
         logger.debug("Failed to schedule consistency check: %s", exc)
 
@@ -599,6 +605,10 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             try:
                 db_adapter = svc['db']
                 fnames = list({k[0] for k in gen_time_lookup})
+                # Chunk to ≤500 to stay well within SQLite's SQLITE_MAX_VARIABLE_NUMBER
+                # and avoid O(n) SQL compile time for large batches (NL-1).
+                _MAX_IN_BATCH = 500
+                fnames = fnames[:_MAX_IN_BATCH]
                 placeholders = ",".join("?" * len(fnames))
                 # Single batch query — no temp table, no connection-affinity risk.
                 q_res = await db_adapter.aquery(
@@ -917,6 +927,13 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                     normalized = str(Path(prefix).resolve(strict=False))
                 except Exception:
                     return Result.Err("INVALID_INPUT", f"Invalid path for cache clearing: {prefix}")
+                # Depth guard (NM-6): reject paths that are filesystem root or only one
+                # level deep (e.g. "/" or "C:\") to prevent accidentally wiping the
+                # entire index if an adversarial prefix reaches this function.
+                resolved_parts = Path(normalized).parts
+                if len(resolved_parts) < 2:
+                    logger.warning("_clear_table: rejecting suspiciously shallow path %r", normalized)
+                    return Result.Err("INVALID_INPUT", f"Path too shallow for safe clearing: {prefix!r}")
                 like = normalized.rstrip(os.path.sep) + os.path.sep + "%"
                 res = await db.aexecute(
                     f"DELETE FROM {table} WHERE filepath = ? OR filepath LIKE ?",

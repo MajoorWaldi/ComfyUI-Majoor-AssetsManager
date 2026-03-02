@@ -130,7 +130,13 @@ def _require_operation_enabled(operation: str, *, prefs: Mapping[str, Any] | Non
     from ...shared import Result
 
     op = str(operation or "").strip().lower()
-    safe_mode = bool(prefs.get("safe_mode")) if (prefs and "safe_mode" in prefs) else _safe_mode_enabled()
+    # Normalize safe_mode from prefs: accept True/1/"1"/"true"/"yes"/"on" as enabled.
+    # Using bool() directly would treat "false" as truthy since it's a non-empty string (NL-2).
+    if prefs and "safe_mode" in prefs:
+        _sm_raw = prefs.get("safe_mode")
+        safe_mode = _sm_raw is True or str(_sm_raw).strip().lower() in ("1", "true", "yes", "on")
+    else:
+        safe_mode = _safe_mode_enabled()
 
     def _pref_truthy(key: str, env_var: str) -> bool:
         if prefs is not None and key in prefs:
@@ -298,7 +304,9 @@ def _extract_write_token_from_headers(headers: Mapping[str, str]) -> str:
         cookie_header = str(headers.get("Cookie") or "").strip()
     except Exception:
         cookie_header = ""
-    if cookie_header:
+    # Size guard before SimpleCookie parsing to prevent DoS via oversized headers (NM-7).
+    # A legitimate auth cookie is well under 4 KiB.
+    if cookie_header and len(cookie_header) <= 4096:
         try:
             parsed = SimpleCookie()
             parsed.load(cookie_header)

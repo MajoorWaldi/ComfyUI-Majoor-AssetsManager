@@ -192,11 +192,40 @@ export const floatingViewerManager = {
     },
 };
 
-// ── Global event wiring (registered at module load time) ─────────────────────
+// ── Global event wiring (NM-3: named references so teardown can remove them) ──
+// Using named handler functions prevents duplicate listeners from accumulating
+// on hot-reload. entry.js calls teardownFloatingViewerManager() in its cleanup
+// path before re-registering, mirroring the pattern used for API handlers.
 
-window.addEventListener(EVENTS.MFV_OPEN,        () => floatingViewerManager.open());
-window.addEventListener(EVENTS.MFV_CLOSE,       () => floatingViewerManager.close());
-window.addEventListener(EVENTS.MFV_TOGGLE,      () => floatingViewerManager.toggle());
-window.addEventListener(EVENTS.MFV_LIVE_TOGGLE, () => {
-    floatingViewerManager.setLiveActive(!_liveActive);
-});
+let _globalHandlersInstalled = false;
+
+const _onMfvOpen       = () => floatingViewerManager.open();
+const _onMfvClose      = () => floatingViewerManager.close();
+const _onMfvToggle     = () => floatingViewerManager.toggle();
+const _onMfvLiveToggle = () => floatingViewerManager.setLiveActive(!_liveActive);
+
+function _installGlobalHandlers() {
+    if (_globalHandlersInstalled) return;
+    window.addEventListener(EVENTS.MFV_OPEN,        _onMfvOpen);
+    window.addEventListener(EVENTS.MFV_CLOSE,       _onMfvClose);
+    window.addEventListener(EVENTS.MFV_TOGGLE,      _onMfvToggle);
+    window.addEventListener(EVENTS.MFV_LIVE_TOGGLE, _onMfvLiveToggle);
+    _globalHandlersInstalled = true;
+}
+
+/**
+ * Remove the global MFV event listeners registered by this module, then
+ * immediately re-register them for a clean slate.
+ * Call from entry.js installEntryRuntimeController() so listeners don't
+ * accumulate on hot-reload (NM-3).
+ */
+export function teardownFloatingViewerManager() {
+    window.removeEventListener(EVENTS.MFV_OPEN,        _onMfvOpen);
+    window.removeEventListener(EVENTS.MFV_CLOSE,       _onMfvClose);
+    window.removeEventListener(EVENTS.MFV_TOGGLE,      _onMfvToggle);
+    window.removeEventListener(EVENTS.MFV_LIVE_TOGGLE, _onMfvLiveToggle);
+    _globalHandlersInstalled = false;
+    _installGlobalHandlers(); // Re-register immediately so handlers are always active
+}
+
+_installGlobalHandlers();
