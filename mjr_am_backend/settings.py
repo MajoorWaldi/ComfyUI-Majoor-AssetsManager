@@ -11,7 +11,7 @@ import time
 from collections.abc import Mapping
 from typing import Any
 
-from .config import MEDIA_PROBE_BACKEND, OUTPUT_ROOT
+from .config import MEDIA_PROBE_BACKEND, OUTPUT_ROOT, is_vector_search_enabled
 from .shared import Result, get_logger
 from .utils import env_bool, parse_bool
 
@@ -21,6 +21,7 @@ _PROBE_BACKEND_KEY = "media_probe_backend"
 _OUTPUT_DIRECTORY_KEY = "output_directory_override"
 _METADATA_FALLBACK_IMAGE_KEY = "metadata_fallback_image"
 _METADATA_FALLBACK_MEDIA_KEY = "metadata_fallback_media"
+_VECTOR_SEARCH_ENABLED_KEY = "vector_search_enabled"
 _SETTINGS_VERSION_KEY = "__settings_version"
 _SECURITY_API_TOKEN_KEY = "security_api_token"
 _SECURITY_API_TOKEN_HASH_KEY = "security_api_token_hash"
@@ -70,6 +71,7 @@ class AppSettings:
         self._default_probe_mode = MEDIA_PROBE_BACKEND
         self._default_metadata_fallback_image = True
         self._default_metadata_fallback_media = True
+        self._default_vector_search_enabled = bool(is_vector_search_enabled())
         self._runtime_api_token: str = ""
         self._runtime_api_token_hash: str = ""
 
@@ -536,6 +538,64 @@ class AppSettings:
 
             return Result.Ok(self._current_metadata_fallback_prefs_from_cache())
 
+    async def get_vector_search_enabled(self) -> bool:
+        """Return persisted vector-search enable preference."""
+        async with self._lock:
+            current_version = await self._get_settings_version()
+            cached = self._cached_vector_search_pref(current_version)
+            if cached is not None:
+                return cached
+            raw = await self._read_setting(_VECTOR_SEARCH_ENABLED_KEY)
+            enabled = parse_bool(raw, self._default_vector_search_enabled) if raw is not None else self._default_vector_search_enabled
+            self._cache[_VECTOR_SEARCH_ENABLED_KEY] = "1" if enabled else "0"
+            self._cache_at[_VECTOR_SEARCH_ENABLED_KEY] = time.monotonic()
+            self._cache_version[_VECTOR_SEARCH_ENABLED_KEY] = int(current_version or 0)
+            return enabled
+
+    def _cached_vector_search_pref(self, current_version: int) -> bool | None:
+        cached = self._cache.get(_VECTOR_SEARCH_ENABLED_KEY)
+        if cached is None:
+            return None
+        try:
+            ts = float(self._cache_at.get(_VECTOR_SEARCH_ENABLED_KEY) or 0.0)
+        except Exception:
+            ts = 0.0
+        cached_ver = int(self._cache_version.get(_VECTOR_SEARCH_ENABLED_KEY) or 0)
+        if cached_ver != int(current_version or 0):
+            return None
+        if not ts or (time.monotonic() - ts) >= self._cache_ttl_s:
+            return None
+        return parse_bool(cached, self._default_vector_search_enabled)
+
+    async def set_vector_search_enabled(self, enabled: Any) -> Result[bool]:
+        """Persist vector-search enable preference and apply runtime env vars."""
+        normalized = parse_bool(enabled, self._default_vector_search_enabled)
+        async with self._lock:
+            res = await self._write_setting(_VECTOR_SEARCH_ENABLED_KEY, "1" if normalized else "0")
+            if not res.ok:
+                return Result.Err("DB_ERROR", res.error or "Failed to persist vector_search_enabled")
+            self._set_vector_search_env_vars(normalized)
+            bump = await self._bump_settings_version_locked()
+            if not bump.ok:
+                try:
+                    logger.warning("Failed to bump settings version: %s", bump.error)
+                except Exception:
+                    pass
+            current_version = int(bump.data or await self._get_settings_version() or 0)
+            self._cache[_VECTOR_SEARCH_ENABLED_KEY] = "1" if normalized else "0"
+            self._cache_at[_VECTOR_SEARCH_ENABLED_KEY] = time.monotonic()
+            self._cache_version[_VECTOR_SEARCH_ENABLED_KEY] = current_version
+            return Result.Ok(normalized)
+
+    def _set_vector_search_env_vars(self, enabled: bool) -> None:
+        value = "1" if enabled else "0"
+        try:
+            os.environ["MJR_AM_ENABLE_VECTOR_SEARCH"] = value
+            os.environ["MJR_ENABLE_VECTOR_SEARCH"] = value
+            os.environ["MAJOOR_ENABLE_VECTOR_SEARCH"] = value
+        except Exception:
+            return
+
     def _normalize_metadata_fallback_write_payload(
         self,
         *,
@@ -701,3 +761,17 @@ class AppSettings:
                     logger.info("Restored output directory override on startup: %s", normalized)
         except Exception as exc:
             logger.warning("Failed to restore output directory override on startup: %s", exc)
+
+    async def apply_vector_search_override_on_startup(self) -> None:
+        """Restore vector-search enabled preference into environment on startup."""
+        try:
+            async with self._lock:
+                raw = await self._read_setting(_VECTOR_SEARCH_ENABLED_KEY)
+                enabled = parse_bool(raw, self._default_vector_search_enabled) if raw is not None else self._default_vector_search_enabled
+                self._set_vector_search_env_vars(enabled)
+                self._cache[_VECTOR_SEARCH_ENABLED_KEY] = "1" if enabled else "0"
+                self._cache_at[_VECTOR_SEARCH_ENABLED_KEY] = time.monotonic()
+                self._cache_version[_VECTOR_SEARCH_ENABLED_KEY] = int(await self._get_settings_version() or 0)
+                logger.info("Restored vector search setting on startup: %s", "enabled" if enabled else "disabled")
+        except Exception as exc:
+            logger.warning("Failed to restore vector search setting on startup: %s", exc)

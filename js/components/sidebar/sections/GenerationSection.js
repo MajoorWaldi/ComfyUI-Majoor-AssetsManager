@@ -1,12 +1,251 @@
 import { createInfoBox, createParametersBox } from "../utils/dom.js";
 import { buildViewURL } from "../../../api/endpoints.js";
 import { t } from "../../../app/i18n.js";
+import { vectorGetAlignment, vectorSearch } from "../../../api/client.js";
 import {
     formatLoRAItem,
     formatModelLabel,
     normalizeGenerationMetadata,
     normalizePromptsForDisplay,
 } from "../parsers/geninfoParser.js";
+
+const PROMPT_SUGGESTIONS = [
+    { label: "High detail", snippet: "highly detailed, intricate details, sharp focus" },
+    { label: "Cinematic", snippet: "cinematic lighting, dramatic atmosphere, film grain" },
+    { label: "Photorealistic", snippet: "photorealistic, 8k uhd, DSLR, professional photography" },
+    { label: "Artistic", snippet: "trending on artstation, concept art, digital painting" },
+    { label: "Studio", snippet: "studio lighting, award winning, masterpiece" },
+    { label: "Negative boost", snippet: "ugly, blurry, bad anatomy, extra limbs, deformed", isNegative: true },
+];
+
+function _getAlignmentColor(score) {
+    if (score >= 0.7) return "#4CAF50";      // green
+    if (score >= 0.4) return "#FF9800";      // orange
+    return "#F44336";                         // red
+}
+
+function _getAlignmentLabel(score) {
+    if (score >= 0.8) return "Excellent";
+    if (score >= 0.7) return "Good";
+    if (score >= 0.5) return "Fair";
+    if (score >= 0.3) return "Low";
+    return "Very Low";
+}
+
+function _createAlignmentBox(asset, positivePrompt) {
+    const wrapper = document.createElement("div");
+    wrapper.style.cssText = `
+        background: linear-gradient(135deg, rgba(0, 188, 212, 0.14) 0%, rgba(33, 150, 243, 0.10) 100%);
+        border: 1px solid rgba(0, 188, 212, 0.40);
+        border-radius: 6px;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    `;
+
+    // Header
+    const header = document.createElement("div");
+    header.style.cssText = `
+        font-size: 11px;
+        font-weight: 600;
+        color: #00BCD4;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    `;
+    const titleSpan = document.createElement("span");
+    titleSpan.textContent = "Prompt Alignment";
+    titleSpan.title = "How closely the generated image matches the prompt (CLIP score)";
+    header.appendChild(titleSpan);
+    wrapper.appendChild(header);
+
+    // Score display (loaded async)
+    const scoreRow = document.createElement("div");
+    scoreRow.style.cssText = `
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    `;
+
+    const scoreBar = document.createElement("div");
+    scoreBar.style.cssText = `
+        flex: 1;
+        height: 8px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 4px;
+        overflow: hidden;
+    `;
+    const scoreFill = document.createElement("div");
+    scoreFill.style.cssText = `
+        height: 100%;
+        width: 0%;
+        background: #666;
+        border-radius: 4px;
+        transition: width 0.6s ease, background 0.4s ease;
+    `;
+    scoreBar.appendChild(scoreFill);
+
+    const scoreLabel = document.createElement("span");
+    scoreLabel.textContent = "...";
+    scoreLabel.style.cssText = `
+        font-size: 13px;
+        font-weight: 700;
+        color: #888;
+        min-width: 60px;
+        text-align: right;
+        font-family: 'Consolas', 'Monaco', monospace;
+    `;
+
+    const qualityBadge = document.createElement("span");
+    qualityBadge.style.cssText = `
+        font-size: 9px;
+        font-weight: 700;
+        padding: 2px 6px;
+        border-radius: 3px;
+        background: rgba(127,127,127,0.3);
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    `;
+    qualityBadge.textContent = "Loading";
+
+    scoreRow.appendChild(scoreBar);
+    scoreRow.appendChild(scoreLabel);
+    scoreRow.appendChild(qualityBadge);
+    wrapper.appendChild(scoreRow);
+
+    const aiStatusHint = document.createElement("div");
+    aiStatusHint.style.cssText = `
+        display: none;
+        font-size: 10px;
+        color: rgba(255,255,255,0.65);
+        border: 1px dashed rgba(255,255,255,0.25);
+        border-radius: 4px;
+        padding: 6px 8px;
+        background: rgba(255,255,255,0.04);
+    `;
+    aiStatusHint.textContent = "AI features are disabled (enable vector search env var).";
+    wrapper.appendChild(aiStatusHint);
+
+    // Fetch alignment async
+    vectorGetAlignment(asset.id).then(res => {
+        const serviceUnavailable = !res?.ok && (
+            String(res?.code || "").toUpperCase() === "SERVICE_UNAVAILABLE"
+            || /vector search is not enabled/i.test(String(res?.error || ""))
+        );
+        if (serviceUnavailable) {
+            scoreLabel.textContent = "AI OFF";
+            scoreLabel.style.color = "#9E9E9E";
+            qualityBadge.textContent = "Disabled";
+            qualityBadge.style.background = "rgba(158,158,158,0.25)";
+            qualityBadge.style.color = "#BDBDBD";
+            scoreFill.style.width = "0%";
+            scoreFill.style.background = "#777";
+            aiStatusHint.style.display = "block";
+            return;
+        }
+        const score = res?.ok && res.data != null ? Number(res.data) : null;
+        if (score == null || !Number.isFinite(score)) {
+            scoreLabel.textContent = "N/A";
+            qualityBadge.textContent = "N/A";
+            qualityBadge.style.background = "rgba(127,127,127,0.3)";
+            scoreFill.style.width = "0%";
+            return;
+        }
+        const pct = Math.round(score * 100);
+        const color = _getAlignmentColor(score);
+        scoreFill.style.width = `${pct}%`;
+        scoreFill.style.background = color;
+        scoreLabel.textContent = `${pct}%`;
+        scoreLabel.style.color = color;
+        qualityBadge.textContent = _getAlignmentLabel(score);
+        qualityBadge.style.background = `${color}33`;
+        qualityBadge.style.color = color;
+    }).catch(() => {
+        scoreLabel.textContent = "—";
+        qualityBadge.textContent = "Unavailable";
+    });
+
+    // ── Prompt Suggestions ────────────────────────────────────────
+    const suggestionsHeader = document.createElement("div");
+    suggestionsHeader.style.cssText = `
+        font-size: 10px;
+        font-weight: 600;
+        color: rgba(0, 188, 212, 0.75);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    `;
+    suggestionsHeader.textContent = "Prompt Suggestions ▼";
+    suggestionsHeader.title = "Quick prompt snippets to enhance your prompts";
+
+    const suggestionsGrid = document.createElement("div");
+    suggestionsGrid.style.cssText = `
+        display: none;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 4px;
+    `;
+
+    let sugExpanded = false;
+    suggestionsHeader.onclick = () => {
+        sugExpanded = !sugExpanded;
+        suggestionsGrid.style.display = sugExpanded ? "flex" : "none";
+        suggestionsHeader.textContent = sugExpanded ? "Prompt Suggestions ▲" : "Prompt Suggestions ▼";
+    };
+
+    PROMPT_SUGGESTIONS.forEach(sug => {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.textContent = sug.label;
+        chip.title = `Click to copy: ${sug.snippet}`;
+        chip.style.cssText = `
+            padding: 4px 10px;
+            border-radius: 12px;
+            border: 1px solid ${sug.isNegative ? "rgba(244, 67, 54, 0.4)" : "rgba(0, 188, 212, 0.4)"};
+            background: ${sug.isNegative ? "rgba(244, 67, 54, 0.12)" : "rgba(0, 188, 212, 0.12)"};
+            color: ${sug.isNegative ? "#F44336" : "#00BCD4"};
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        `;
+        chip.addEventListener("mouseenter", () => {
+            chip.style.background = sug.isNegative ? "rgba(244, 67, 54, 0.25)" : "rgba(0, 188, 212, 0.25)";
+        });
+        chip.addEventListener("mouseleave", () => {
+            chip.style.background = sug.isNegative ? "rgba(244, 67, 54, 0.12)" : "rgba(0, 188, 212, 0.12)";
+        });
+        chip.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            try {
+                await navigator.clipboard.writeText(sug.snippet);
+                chip.style.background = "rgba(76, 175, 80, 0.35)";
+                chip.style.color = "#4CAF50";
+                const orig = chip.textContent;
+                chip.textContent = "Copied!";
+                setTimeout(() => {
+                    chip.textContent = orig;
+                    chip.style.background = sug.isNegative ? "rgba(244, 67, 54, 0.12)" : "rgba(0, 188, 212, 0.12)";
+                    chip.style.color = sug.isNegative ? "#F44336" : "#00BCD4";
+                }, 800);
+            } catch (err) { console.debug?.(err); }
+        });
+        suggestionsGrid.appendChild(chip);
+    });
+
+    wrapper.appendChild(suggestionsHeader);
+    wrapper.appendChild(suggestionsGrid);
+
+    return wrapper;
+}
 
 function _inputPreviewCandidates(inp) {
     const filename = String(inp?.filename || "").trim();
@@ -194,6 +433,13 @@ export function createGenerationSection(asset) {
         negativeBox.style.boxShadow = "0 0 0 1px rgba(244, 67, 54, 0.15) inset";
         container.appendChild(negativeBox);
     }
+
+    // ── Prompt Alignment Score & Suggestions ──────────────────────────
+    if (asset?.id) {
+        const alignmentBox = _createAlignmentBox(asset, cleaned.positive || "");
+        container.appendChild(alignmentBox);
+    }
+
     if (typeof metadata.lyrics === "string" && metadata.lyrics.trim()) {
         container.appendChild(createInfoBox("Lyrics", metadata.lyrics, "#00BCD4"));
     }

@@ -26,4 +26,14 @@ pywin32>=300,<312; sys_platform == 'win32'
 # Note: tkinter is required for native folder browser functionality
 # tkinter is included in standard Python distribution but may be missing in minimal installs
 
+# --- CLIP / Semantic Search (optional, enable with MJR_ENABLE_VECTOR_SEARCH=1) ---
+# sentence-transformers wraps HuggingFace models including CLIP ViT-L/14
+sentence-transformers>=2.2.0,<4.0.0
+
+# Efficient approximate nearest-neighbour search (CPU-only build)
+faiss-cpu>=1.7.0,<2.0.0
+
+# scikit-learn is used for K-Means clustering in the auto-collections utility
+scikit-learn>=1.3.0,<2.0.0
+
 # Dev/test tools are intentionally kept out of runtime requirements.

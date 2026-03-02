@@ -4,7 +4,7 @@
  */
 
 import { APP_CONFIG, APP_DEFAULTS } from "../config.js";
-import { getSecuritySettings, setSecuritySettings, bootstrapSecurityToken } from "../../api/client.js";
+import { getSecuritySettings, setSecuritySettings, bootstrapSecurityToken, getVectorSearchSettings } from "../../api/client.js";
 import { safeDispatchCustomEvent } from "../../utils/events.js";
 import { SettingsStore } from "./SettingsStore.js";
 import { SETTINGS_KEY, SETTINGS_SCHEMA_VERSION } from "../settingsStore.js";
@@ -117,6 +117,9 @@ export const DEFAULT_SETTINGS = {
     search: {
         maxResults: APP_DEFAULTS.SEARCH_DEFAULT_LIMIT,
     },
+    ai: {
+        vectorSearchEnabled: true,
+    },
     workflowMinimap: {
         enabled: false,
         nodeColors: true,
@@ -183,6 +186,7 @@ export const loadMajoorSettings = () => {
             "ratingTagsSync",
             "cache",
             "search",
+            "ai",
             "workflowMinimap",
             "ui",
             "security",
@@ -379,5 +383,23 @@ export async function syncBackendSecuritySettings() {
         safeDispatchCustomEvent("mjr-settings-changed", { key: "security" }, { warnPrefix: "[Majoor]" });
     } catch (error) {
         console.warn("[Majoor] failed to sync backend security settings", error);
+    }
+}
+
+export async function syncBackendVectorSearchSettings() {
+    try {
+        const res = await getVectorSearchSettings();
+        if (!res?.ok) return;
+        const prefs = res.data?.prefs;
+        if (!prefs || typeof prefs !== "object") return;
+
+        const settings = loadMajoorSettings();
+        settings.ai = settings.ai || {};
+        settings.ai.vectorSearchEnabled = _safeBool(prefs.enabled, settings.ai.vectorSearchEnabled ?? true);
+        saveMajoorSettings(settings);
+        applySettingsToConfig(settings);
+        safeDispatchCustomEvent("mjr-settings-changed", { key: "ai.vectorSearchEnabled" }, { warnPrefix: "[Majoor]" });
+    } catch (error) {
+        console.warn("[Majoor] failed to sync backend vector search settings", error);
     }
 }

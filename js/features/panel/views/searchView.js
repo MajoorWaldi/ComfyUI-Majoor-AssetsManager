@@ -35,9 +35,143 @@ export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFol
     searchInputEl.title = t("search.title", "Search by filename, tags, or attributes (e.g. rating:5, ext:png)");
     searchInputEl.setAttribute("list", dataListId);
 
+    // ── Semantic Search Toggle ──────────────────────────────────────
+    let semanticMode = false;
+    const semanticBtn = document.createElement("button");
+    semanticBtn.type = "button";
+    semanticBtn.title = t("search.semanticToggle", "Toggle AI semantic search (CLIP-based)");
+    semanticBtn.style.cssText = `
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        border: 1px solid rgba(0, 188, 212, 0.25);
+        background: transparent;
+        color: rgba(0, 188, 212, 0.5);
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 700;
+        transition: all 0.15s ease;
+        flex-shrink: 0;
+        margin-left: 4px;
+    `;
+    semanticBtn.textContent = "AI";
+
+    const updateSemanticStyle = () => {
+        if (semanticMode) {
+            semanticBtn.style.background = "rgba(0, 188, 212, 0.2)";
+            semanticBtn.style.borderColor = "rgba(0, 188, 212, 0.6)";
+            semanticBtn.style.color = "#00BCD4";
+            semanticBtn.style.boxShadow = "0 0 6px rgba(0, 188, 212, 0.3)";
+            searchInputEl.placeholder = t("search.semanticPlaceholder", "Describe what you're looking for...");
+            searchInputEl.title = t("search.semanticTitle", "AI semantic search — describe your image in natural language");
+        } else {
+            semanticBtn.style.background = "transparent";
+            semanticBtn.style.borderColor = "rgba(0, 188, 212, 0.25)";
+            semanticBtn.style.color = "rgba(0, 188, 212, 0.5)";
+            semanticBtn.style.boxShadow = "none";
+            searchInputEl.placeholder = t("search.placeholder", "Search assets...");
+            searchInputEl.title = t("search.title", "Search by filename, tags, or attributes (e.g. rating:5, ext:png)");
+        }
+    };
+
+    semanticBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        semanticMode = !semanticMode;
+        updateSemanticStyle();
+        // Dispatch event so grid picks it up
+        try {
+            searchInputEl.dataset.mjrSemanticMode = semanticMode ? "1" : "0";
+            searchInputEl.dispatchEvent(new Event("input", { bubbles: true }));
+        } catch (err) { console.debug?.(err); }
+    });
+
+    semanticBtn.addEventListener("mouseenter", () => {
+        if (!semanticMode) {
+            semanticBtn.style.borderColor = "rgba(0, 188, 212, 0.5)";
+            semanticBtn.style.color = "#00BCD4";
+        }
+    });
+    semanticBtn.addEventListener("mouseleave", () => {
+        if (!semanticMode) {
+            semanticBtn.style.borderColor = "rgba(0, 188, 212, 0.25)";
+            semanticBtn.style.color = "rgba(0, 188, 212, 0.5)";
+        }
+    });
+
+    // ── Audit Mode Toggle ───────────────────────────────────────────
+    let auditMode = false;
+    const auditBtn = document.createElement("button");
+    auditBtn.type = "button";
+    auditBtn.title = t("search.auditToggle", "Library Audit — show assets missing tags, ratings or with low alignment score");
+    auditBtn.style.cssText = `
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 152, 0, 0.25);
+        background: transparent;
+        color: rgba(255, 152, 0, 0.5);
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.15s ease;
+        flex-shrink: 0;
+        margin-left: 4px;
+    `;
+    auditBtn.textContent = "⚠";
+
+    const updateAuditStyle = () => {
+        if (auditMode) {
+            auditBtn.style.background = "rgba(255, 152, 0, 0.18)";
+            auditBtn.style.borderColor = "rgba(255, 152, 0, 0.65)";
+            auditBtn.style.color = "#FF9800";
+            auditBtn.style.boxShadow = "0 0 6px rgba(255, 152, 0, 0.3)";
+        } else {
+            auditBtn.style.background = "transparent";
+            auditBtn.style.borderColor = "rgba(255, 152, 0, 0.25)";
+            auditBtn.style.color = "rgba(255, 152, 0, 0.5)";
+            auditBtn.style.boxShadow = "none";
+        }
+    };
+
+    auditBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        auditMode = !auditMode;
+        updateAuditStyle();
+        try {
+            searchInputEl.dataset.mjrAuditMode = auditMode ? "1" : "0";
+            searchInputEl.dispatchEvent(new Event("input", { bubbles: true }));
+        } catch (err) { console.debug?.(err); }
+    });
+
+    auditBtn.addEventListener("mouseenter", () => {
+        if (!auditMode) {
+            auditBtn.style.borderColor = "rgba(255, 152, 0, 0.5)";
+            auditBtn.style.color = "#FF9800";
+        }
+    });
+    auditBtn.addEventListener("mouseleave", () => {
+        if (!auditMode) {
+            auditBtn.style.borderColor = "rgba(255, 152, 0, 0.25)";
+            auditBtn.style.color = "rgba(255, 152, 0, 0.5)";
+        }
+    });
+
     // Autocomplete handler
     const handleAutocomplete = debounce(async (e) => {
         const val = (e.target.value || "").trim();
+        // Typing a new query deactivates audit mode
+        if (auditMode && val && val !== "*") {
+            auditMode = false;
+            searchInputEl.dataset.mjrAuditMode = "0";
+            updateAuditStyle();
+        }
+        // Skip autocomplete in semantic mode
+        if (semanticMode) return;
         // Trigger only if generic search (not attribute search like rating:5)
         if (val.length < 2 || val.includes(":")) return; 
 
@@ -61,6 +195,8 @@ export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFol
 
     searchInner.appendChild(searchIcon);
     searchInner.appendChild(searchInputEl);
+    searchInner.appendChild(semanticBtn);
+    searchInner.appendChild(auditBtn);
     searchInner.appendChild(dataList);
     searchSection.appendChild(searchInner);
 
@@ -96,4 +232,3 @@ export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFol
 
     return { searchSection, searchInputEl };
 }
-
