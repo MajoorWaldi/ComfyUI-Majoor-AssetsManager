@@ -103,3 +103,111 @@ async def test_vector_search_route_handles_searcher_exception(monkeypatch) -> No
 
     assert body.get("ok") is False
     assert body.get("code") == "SERVICE_UNAVAILABLE"
+
+
+@pytest.mark.asyncio
+async def test_vector_generate_enhanced_prompt_route_success(monkeypatch) -> None:
+    class _DB:
+        pass
+
+    class _VS:
+        pass
+
+    async def _require_services():
+        return {"db": _DB(), "vector_service": _VS(), "vector_searcher": object()}, None
+
+    async def _fake_generate(_db, _vs, asset_id: int):
+        return Result.Ok(f"caption-{asset_id}")
+
+    import mjr_am_backend.features.index.vector_indexer as vector_indexer
+
+    monkeypatch.setattr(vector_indexer, "generate_enhanced_prompt", _fake_generate)
+    monkeypatch.setattr(vector_search, "_require_services", _require_services)
+    monkeypatch.setattr(vector_search, "is_vector_search_enabled", lambda: True)
+
+    app = _build_vector_app()
+    req = make_mocked_request("POST", "/mjr/am/vector/enhanced-prompt/42", app=app)
+    match = await app.router.resolve(req)
+    req._match_info = match
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+
+    assert body.get("ok") is True
+    assert body.get("data") == "caption-42"
+
+
+@pytest.mark.asyncio
+async def test_vector_auto_tags_route_returns_tags(monkeypatch) -> None:
+    class _DB:
+        async def aquery(self, sql: str, params=()):
+            assert "SELECT auto_tags FROM asset_embeddings" in sql
+            assert params == (42,)
+            return Result.Ok([{"auto_tags": '["portrait", "anime"]'}])
+
+    async def _require_services():
+        return {"db": _DB(), "vector_searcher": object()}, None
+
+    monkeypatch.setattr(vector_search, "_require_services", _require_services)
+    monkeypatch.setattr(vector_search, "is_vector_search_enabled", lambda: True)
+
+    app = _build_vector_app()
+    req = make_mocked_request("GET", "/mjr/am/vector/auto-tags/42", app=app)
+    match = await app.router.resolve(req)
+    req._match_info = match
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+
+    assert body.get("ok") is True
+    assert body.get("data") == ["portrait", "anime"]
+
+
+@pytest.mark.asyncio
+async def test_vector_suggest_collections_route_returns_clusters(monkeypatch) -> None:
+    from mjr_am_backend.features.index.vector_service import vector_to_blob
+
+    vec_a = vector_to_blob([1.0, 0.0, 0.0])
+    vec_b = vector_to_blob([0.9, 0.1, 0.0])
+    vec_c = vector_to_blob([0.0, 1.0, 0.0])
+
+    class _DB:
+        async def aquery(self, sql: str, params=()):
+            if "FROM asset_embeddings ae" in sql:
+                return Result.Ok([
+                    {"asset_id": 1, "vector": vec_a, "auto_tags": '["portrait"]'},
+                    {"asset_id": 2, "vector": vec_b, "auto_tags": '["portrait"]'},
+                    {"asset_id": 3, "vector": vec_c, "auto_tags": '["landscape"]'},
+                ])
+            if "FROM assets WHERE id IN" in sql:
+                return Result.Ok([
+                    {"id": 1, "filepath": "/a.png", "filename": "a.png", "subfolder": "", "type": "output", "kind": "image"},
+                    {"id": 2, "filepath": "/b.png", "filename": "b.png", "subfolder": "", "type": "output", "kind": "image"},
+                    {"id": 3, "filepath": "/c.png", "filename": "c.png", "subfolder": "", "type": "output", "kind": "image"},
+                ])
+            return Result.Ok([])
+
+    class _Searcher:
+        _dim = 3
+
+    async def _require_services():
+        return {"db": _DB(), "vector_searcher": _Searcher()}, None
+
+    monkeypatch.setattr(vector_search, "_require_services", _require_services)
+    monkeypatch.setattr(vector_search, "is_vector_search_enabled", lambda: True)
+    monkeypatch.setattr(vector_search, "_require_vector_services", lambda services: (services.get("vector_searcher"), None))
+    monkeypatch.setattr(vector_search, "_check_rate_limit", lambda *_args, **_kwargs: (True, None))
+
+    app = _build_vector_app()
+    req = make_mocked_request("POST", "/mjr/am/vector/suggest-collections", app=app)
+
+    async def _json_body():
+        return {"k": 2}
+
+    req.json = _json_body  # type: ignore[assignment]
+    match = await app.router.resolve(req)
+    req._match_info = match
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+
+    assert body.get("ok") is True
+    assert isinstance(body.get("data"), list)
+    assert len(body.get("data") or []) >= 1

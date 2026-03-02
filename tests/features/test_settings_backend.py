@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from mjr_am_backend.settings import (
+    _AI_VERBOSE_LOGS_KEY,
     AppSettings,
     _METADATA_FALLBACK_IMAGE_KEY,
     _METADATA_FALLBACK_MEDIA_KEY,
@@ -297,6 +298,27 @@ async def test_huggingface_token_rejects_reused_security_api_token():
     ok = await s.set_huggingface_token("hf_abcdefghijklmnopqrstuvwxyz")
     assert ok.ok is True
     assert db.store.get("huggingface_token") == "hf_abcdefghijklmnopqrstuvwxyz"
+
+
+@pytest.mark.asyncio
+async def test_ai_verbose_logs_get_set_and_startup_restore(monkeypatch):
+    db = _DB()
+    s = AppSettings(db)
+
+    assert await s.get_ai_verbose_logs_enabled() is False
+
+    out = await s.set_ai_verbose_logs_enabled(True)
+    assert out.ok is True
+    assert db.store.get(_AI_VERBOSE_LOGS_KEY) == "1"
+    assert os.environ.get("MAJOOR_AI_VERBOSE_LOGS") == "1"
+
+    monkeypatch.delenv("MAJOOR_AI_VERBOSE_LOGS", raising=False)
+    monkeypatch.delenv("MJR_AM_AI_VERBOSE_LOGS", raising=False)
+    monkeypatch.delenv("MAJOOR_VERBOSE_AI_LOGS", raising=False)
+    monkeypatch.delenv("MJR_AM_VERBOSE_AI_LOGS", raising=False)
+
+    await s.apply_ai_verbose_logs_on_startup()
+    assert os.environ.get("MAJOOR_AI_VERBOSE_LOGS") == "1"
 
 
 def test_output_env_helpers(monkeypatch):

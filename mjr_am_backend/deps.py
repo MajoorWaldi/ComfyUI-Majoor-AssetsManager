@@ -91,7 +91,7 @@ def _build_services_dict(
         "settings": settings_service,
         "duplicates": DuplicatesService(db),
     }
-    # ── Vector / CLIP search (opt-in) ──────────────────────────────────
+    # ── Vector / multimodal search (opt-in) ───────────────────────────
     if is_vector_search_enabled():
         try:
             from .features.index.vector_service import VectorService
@@ -100,9 +100,9 @@ def _build_services_dict(
             vs = VectorService()
             services["vector_service"] = vs
             services["vector_searcher"] = VectorSearcher(db, vs)
-            log_success(logger, "CLIP vector search enabled")
+            log_success(logger, "SigLIP2/X-CLIP vector search enabled")
         except Exception as exc:
-            logger.warning("CLIP vector search disabled: %s", exc)
+            logger.warning("Vector search disabled: %s", exc)
     return services
 
 
@@ -178,6 +178,10 @@ async def build_services(db_path: str | None = None) -> Result[dict]:
         await settings_service.apply_huggingface_token_on_startup()
     except Exception as exc:
         logger.warning("HuggingFace token restore failed: %s", exc)
+    try:
+        await settings_service.apply_ai_verbose_logs_on_startup()
+    except Exception as exc:
+        logger.warning("AI verbose logs setting restore failed: %s", exc)
 
     _log_tool_availability(exiftool, ffprobe)
 

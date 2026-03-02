@@ -794,6 +794,14 @@ export async function setHuggingFaceSettings(token = "") {
     return post(ENDPOINTS.SETTINGS_HUGGINGFACE, { token: String(token ?? "").trim() });
 }
 
+export async function getAiLoggingSettings() {
+    return get(ENDPOINTS.SETTINGS_AI_LOGGING);
+}
+
+export async function setAiLoggingSettings(enabled = false) {
+    return post(ENDPOINTS.SETTINGS_AI_LOGGING, { enabled: !!enabled });
+}
+
 export async function getOutputDirectorySetting() {
     return get(ENDPOINTS.SETTINGS_OUTPUT_DIRECTORY);
 }
@@ -1071,7 +1079,7 @@ export async function getCollectionAssets(collectionId) {
 // ── Vector / Semantic Search ──────────────────────────────────────────
 
 /**
- * Semantic search by natural-language query via CLIP embeddings.
+ * Semantic search by natural-language query via SigLIP2 embeddings.
  * @param {string} query
  * @param {number} [topK=20]
  * @returns {Promise<ApiResult<{asset_id:number, score:number}[]>>}
@@ -1203,6 +1211,17 @@ export async function vectorGetAutoTags(assetId) {
     const id = String(assetId || "").trim();
     if (!id) return { ok: false, error: "Missing asset ID" };
     return get(`${ENDPOINTS.VECTOR_AUTO_TAGS}/${encodeURIComponent(id)}`);
+}
+
+/**
+ * Generate and persist an enhanced Florence-2 caption for an image asset.
+ * @param {number|string} assetId
+ * @returns {Promise<ApiResult<string>>}
+ */
+export async function vectorGenerateEnhancedPrompt(assetId) {
+    const id = String(assetId || "").trim();
+    if (!id) return { ok: false, error: "Missing asset ID" };
+    return post(`${ENDPOINTS.VECTOR_ENHANCED_PROMPT}/${encodeURIComponent(id)}`, {});
 }
 
 /**

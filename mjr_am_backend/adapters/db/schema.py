@@ -8,7 +8,7 @@ from ...shared import Result, get_logger, log_success
 
 logger = get_logger(__name__)
 
-CURRENT_SCHEMA_VERSION = 11
+CURRENT_SCHEMA_VERSION = 12
 # Schema version history (high-level):
 # 1: initial assets + metadata tables
 # 2-4: incremental columns and FTS/search support
@@ -19,6 +19,7 @@ CURRENT_SCHEMA_VERSION = 11
 # 9: CLIP vector embeddings (asset_embeddings) for semantic search
 # 10: auto_tags in asset_embeddings (AI-suggested tags, kept separate from user tags)
 # 11: asset_embeddings now has explicit id PK + asset_id UNIQUE (legacy tables auto-rebuilt)
+# 12: assets.enhanced_caption (Florence-2 long caption storage)
 
 # Schema definition
 SCHEMA_V1 = """
@@ -41,6 +42,7 @@ CREATE TABLE IF NOT EXISTS assets (
     width INTEGER,  -- Image/video width (NULL for non-visual assets)
     height INTEGER,  -- Image/video height (NULL for non-visual assets)
     duration REAL,  -- Video/audio duration in seconds (NULL for non-temporal assets)
+    enhanced_caption TEXT DEFAULT '',  -- AI-generated long caption (Florence-2)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     indexed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -105,6 +107,7 @@ COLUMN_DEFINITIONS = {
         ("width", "width INTEGER"),
         ("height", "height INTEGER"),
         ("duration", "duration REAL"),
+        ("enhanced_caption", "enhanced_caption TEXT DEFAULT ''"),
         ("created_at", "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
         ("updated_at", "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
         ("indexed_at", "indexed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),

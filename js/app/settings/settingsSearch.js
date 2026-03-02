@@ -27,7 +27,7 @@ export function registerSearchSettings(safeAddSetting, settings, notifyApplied) 
         name: t("setting.ai.vector.enabled.name", "Enable AI semantic search"),
         tooltip: t(
             "setting.ai.vector.enabled.desc",
-            "Enable/disable CLIP vector search features (description search, prompt alignment, AI tag suggestions, smart collections)."
+              "Enable/disable AI vector search features (SigLIP2/X-CLIP: description search, prompt alignment, AI tag suggestions, smart collections)."
         ),
         type: "boolean",
         defaultValue: !!(settings.ai?.vectorSearchEnabled ?? true),

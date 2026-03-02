@@ -162,6 +162,7 @@ class _Settings:
         self.prefs = {"image": True, "media": True}
         self.sec = {"allow_write": True}
         self.hf_token = ""
+        self.ai_verbose_logs = False
 
     async def get_output_directory(self):
         return self.output
@@ -211,6 +212,13 @@ class _Settings:
         token = self.hf_token
         hint = f"...{token[-4:]}" if token else ""
         return Result.Ok({"has_token": bool(token), "token_hint": hint})
+
+    async def get_ai_verbose_logs_enabled(self):
+        return bool(self.ai_verbose_logs)
+
+    async def set_ai_verbose_logs_enabled(self, enabled):
+        self.ai_verbose_logs = bool(enabled)
+        return Result.Ok(self.ai_verbose_logs)
 
 
 @pytest.mark.asyncio
@@ -412,6 +420,36 @@ async def test_huggingface_settings_routes(monkeypatch) -> None:
     body2 = json.loads(resp2.text)
     assert body2.get("ok") is True
     assert (body2.get("data") or {}).get("prefs", {}).get("has_token") is True
+
+
+@pytest.mark.asyncio
+async def test_ai_logging_settings_routes(monkeypatch) -> None:
+    settings = _Settings()
+
+    async def _svc():
+        return {"settings": settings}, None
+
+    async def _read_set(_request):
+        return Result.Ok({"enabled": True})
+
+    monkeypatch.setattr(health_mod, "_require_services", _svc)
+    monkeypatch.setattr(health_mod, "_csrf_error", lambda _req: None)
+    monkeypatch.setattr(health_mod, "_require_write_access", lambda _req: Result.Ok({}))
+
+    app = _build_health_app()
+
+    req1 = make_mocked_request("GET", "/mjr/am/settings/ai-logging", app=app)
+    resp1 = await (await app.router.resolve(req1)).handler(req1)
+    body1 = json.loads(resp1.text)
+    assert body1.get("ok") is True
+    assert (body1.get("data") or {}).get("prefs", {}).get("enabled") is False
+
+    monkeypatch.setattr(health_mod, "_read_json", _read_set)
+    req2 = make_mocked_request("POST", "/mjr/am/settings/ai-logging", app=app)
+    resp2 = await (await app.router.resolve(req2)).handler(req2)
+    body2 = json.loads(resp2.text)
+    assert body2.get("ok") is True
+    assert (body2.get("data") or {}).get("prefs", {}).get("enabled") is True
 
 
 @pytest.mark.asyncio

@@ -373,7 +373,7 @@ SCAN_BATCH_XL = _env_int(400, "MJR_AM_SCAN_BATCH_XL", "MAJOOR_SCAN_BATCH_XL", mi
 # Hard cap protects UI payload size when many entries are eligible for enrichment.
 MAX_TO_ENRICH_ITEMS = _env_int(10000, "MJR_AM_MAX_TO_ENRICH_ITEMS", "MAJOOR_MAX_TO_ENRICH_ITEMS", min_value=1, max_value=1_000_000)
 
-# ── Vector / CLIP semantic search ──────────────────────────────────────────
+# ── Vector / multimodal semantic search (SigLIP2 / X-CLIP) ───────────────
 # Enable the whole subsystem with MJR_AM_ENABLE_VECTOR_SEARCH=1
 # (legacy aliases are still accepted for backward compatibility).
 # Default is ON.
@@ -394,9 +394,44 @@ def is_vector_search_enabled() -> bool:
         "MAJOOR_ENABLE_VECTOR_SEARCH",
     )
 
-# SentenceTransformers model name.  Use any CLIP-compatible model.
+# Primary multimodal model name (default: SigLIP2).
 VECTOR_MODEL_NAME = str(
-    _env_raw("MJR_AM_VECTOR_MODEL", "MJR_VECTOR_MODEL", default="clip-ViT-L-14") or "clip-ViT-L-14"
+    _env_raw(
+        "MJR_AM_VECTOR_MODEL",
+        "MJR_VECTOR_MODEL",
+        default="google/siglip2-base-patch16-224",
+    )
+    or "google/siglip2-base-patch16-224"
+)
+
+# Dedicated video encoder (X-CLIP / VideoCLIP family). Empty = disabled.
+VECTOR_VIDEO_MODEL_NAME = str(
+    _env_raw(
+        "MJR_AM_VECTOR_VIDEO_MODEL",
+        "MJR_VECTOR_VIDEO_MODEL",
+        default="microsoft/xclip-base-patch32",
+    )
+    or "microsoft/xclip-base-patch32"
+)
+
+# Florence-2 model used for enhanced long captions.
+VECTOR_PROMPT_MODEL_NAME = str(
+    _env_raw(
+        "MJR_AM_PROMPT_MODEL",
+        "MJR_PROMPT_MODEL",
+        default="microsoft/Florence-2-large",
+    )
+    or "microsoft/Florence-2-large"
+)
+
+# Florence-2 caption task prompt (kept configurable for variants).
+VECTOR_PROMPT_TASK = str(
+    _env_raw(
+        "MJR_AM_PROMPT_TASK",
+        "MJR_PROMPT_TASK",
+        default="<MORE_DETAILED_CAPTION>",
+    )
+    or "<MORE_DETAILED_CAPTION>"
 )
 
 # Directory where the Faiss index file is persisted on disk.

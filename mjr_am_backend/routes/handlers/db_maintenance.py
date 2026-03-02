@@ -493,7 +493,7 @@ async def _backfill_missing_asset_vectors(
     """
     Generate embeddings for existing assets that currently have no vector.
 
-    Targets image assets only.
+    Targets image and video assets.
     """
     try:
         from mjr_am_backend.features.index.vector_indexer import index_asset_vector
@@ -533,7 +533,7 @@ async def _backfill_missing_asset_vectors(
             LEFT JOIN asset_embeddings ae ON ae.asset_id = a.id
             LEFT JOIN asset_metadata m ON m.asset_id = a.id
             WHERE a.id > ?
-              AND a.kind = 'image'
+              AND a.kind IN ('image', 'video')
               AND (ae.asset_id IS NULL OR ae.vector IS NULL OR length(ae.vector) = 0)
             ORDER BY a.id ASC
             LIMIT ?
@@ -558,7 +558,7 @@ async def _backfill_missing_asset_vectors(
             candidates += 1
 
             filepath = str(row.get("filepath") or "").strip()
-            kind: FileKind = "image"
+            kind: FileKind = "video" if str(row.get("kind") or "").strip().lower() == "video" else "image"
             raw = row.get("metadata_raw")
             metadata_raw: dict[str, Any] | None = None
             if isinstance(raw, dict):

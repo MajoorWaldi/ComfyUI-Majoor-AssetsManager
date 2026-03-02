@@ -72,7 +72,7 @@ export function createRatingTagsSection(asset, onUpdate) {
     section.appendChild(ratingContainer);
     section.appendChild(tagsContainer);
 
-    // ── AI Suggested Tags (auto-tags from CLIP) ────────────────────
+    // ── AI Suggested Tags (auto-tags from SigLIP2) ─────────────────
     const assetId = asset?.id;
     if (assetId) {
         const aiTagsContainer = document.createElement("div");
@@ -91,7 +91,7 @@ export function createRatingTagsSection(asset, onUpdate) {
             gap: 5px;
         `;
         aiTagsLabel.textContent = "✨ AI Suggested Tags";
-        aiTagsLabel.title = "Tags suggested by CLIP image analysis — click + to accept";
+        aiTagsLabel.title = "Tags suggested by SigLIP2 image analysis — click + to accept";
 
         const aiTagsChips = document.createElement("div");
         aiTagsChips.style.cssText = "display: flex; flex-wrap: wrap; gap: 5px;";

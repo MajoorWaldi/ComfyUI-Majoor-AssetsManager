@@ -14,6 +14,8 @@ import {
     vectorBackfill,
     getHuggingFaceSettings,
     setHuggingFaceSettings,
+    getAiLoggingSettings,
+    setAiLoggingSettings,
 } from "../../api/client.js";
 import { comfyToast } from "../toast.js";
 import { t, initI18n, setLang, getCurrentLang, getSupportedLanguages, setFollowComfyLanguage } from "../i18n.js";
@@ -452,6 +454,45 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
                 _applyHfTokenPlaceholder(placeholder);
             } catch (e) { console.debug?.(e); }
         })();
+
+        safeAddSetting({
+            id: `${SETTINGS_PREFIX}.AI.VerboseLogs`,
+            category: cat(t("cat.advanced"), "AI / Vector Search"),
+            name: "Verbose AI logs",
+            tooltip: "Enable detailed HuggingFace/SigLIP2/X-CLIP startup logs for debugging model loading.",
+            type: "boolean",
+            defaultValue: !!(settings.ai?.verboseAiLogs ?? DEFAULT_SETTINGS.ai?.verboseAiLogs ?? false),
+            onChange: async (value) => {
+                const next = !!value;
+                const previous = !!(settings.ai?.verboseAiLogs ?? DEFAULT_SETTINGS.ai?.verboseAiLogs ?? false);
+                settings.ai = settings.ai || {};
+                settings.ai.verboseAiLogs = next;
+                saveMajoorSettings(settings);
+                notifyApplied("ai.verboseAiLogs");
+                try {
+                    const res = await setAiLoggingSettings(next);
+                    if (!res?.ok) throw new Error(res?.error || "Failed to update AI logging settings");
+                } catch (error) {
+                    settings.ai.verboseAiLogs = previous;
+                    saveMajoorSettings(settings);
+                    notifyApplied("ai.verboseAiLogs");
+                    comfyToast(error?.message || "Failed to update AI logging settings", "error");
+                }
+            },
+        });
+
+        (async () => {
+            try {
+                const res = await getAiLoggingSettings();
+                const enabled = !!(res?.data?.prefs?.enabled);
+                settings.ai = settings.ai || {};
+                if (settings.ai.verboseAiLogs !== enabled) {
+                    settings.ai.verboseAiLogs = enabled;
+                    saveMajoorSettings(settings);
+                    notifyApplied("ai.verboseAiLogs");
+                }
+            } catch (e) { console.debug?.(e); }
+        })();
     }
 
     // Vector status field must be registered synchronously so it never disappears
@@ -460,7 +501,7 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
         id: `${SETTINGS_PREFIX}.AI.VectorStats`,
         category: cat(t("cat.advanced"), "AI / Vector Search"),
         name: "Vector Index Status",
-        tooltip: "Current status of the CLIP vector index used for semantic search",
+        tooltip: "Current status of the SigLIP2/X-CLIP vector index used for semantic search",
         type: "text",
         defaultValue: "Loading vector status...",
     });

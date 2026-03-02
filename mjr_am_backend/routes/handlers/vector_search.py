@@ -95,7 +95,7 @@ async def _hydrate_vector_results(
         rows = await db.aquery(
             f"""
             SELECT a.id, a.filepath, a.filename, a.subfolder, a.kind, a.type,
-                   a.file_size, a.width, a.height, a.mtime,
+                     a.file_size, a.width, a.height, a.mtime, a.enhanced_caption,
                    m.rating, m.tags, m.has_workflow, m.has_generation_data
             FROM assets a
             LEFT JOIN asset_metadata m ON a.id = m.asset_id
@@ -143,6 +143,7 @@ async def _hydrate_vector_results(
             "width": row.get("width"),
             "height": row.get("height"),
             "mtime": row.get("mtime"),
+            "enhanced_caption": row.get("enhanced_caption", "") or "",
             "rating": row.get("rating", 0),
             "tags": tags,
             "has_workflow": bool(row.get("has_workflow")),
@@ -319,6 +320,36 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
 
         return _json_response(result)
 
+    @routes.post("/mjr/am/vector/enhanced-prompt/{asset_id}")
+    async def generate_enhanced_prompt(request: web.Request) -> web.Response:
+        """Generate and persist Florence-2 enhanced caption for an image asset."""
+        services, err = await _require_services()
+        if err:
+            return _json_response(err)
+        services_dict = _services_dict(services)
+
+        if not is_vector_search_enabled():
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Vector AI features are disabled"))
+
+        try:
+            asset_id = int(request.match_info["asset_id"])
+        except (ValueError, KeyError):
+            return _json_response(Result.Err("INVALID_INPUT", "Invalid asset_id"))
+
+        db = services_dict.get("db")
+        vs = services_dict.get("vector_service")
+        if db is None or vs is None:
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Vector services are unavailable"))
+
+        try:
+            from mjr_am_backend.features.index.vector_indexer import generate_enhanced_prompt as _generate
+
+            result = await _generate(db, vs, asset_id)
+            return _json_response(result)
+        except Exception as exc:
+            logger.warning("Enhanced prompt generation failed: %s", exc)
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", safe_error_message(exc, "Enhanced prompt generation failed")))
+
     # ── Vector stats ───────────────────────────────────────────────────
 
     @routes.get("/mjr/am/vector/stats")
@@ -420,7 +451,7 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
             import numpy as np
             from mjr_am_backend.features.index.vector_service import blob_to_vector
 
-            DIM = 768
+            DIM = int(getattr(searcher, "_dim", 768) or 768)
             id_map: list[int] = []
             vectors: list[list[float]] = []
             auto_tags_map: dict[int, list[str]] = {}

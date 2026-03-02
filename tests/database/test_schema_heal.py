@@ -60,6 +60,7 @@ async def test_schema_self_heals_missing_columns(tmp_path):
             "width",
             "height",
             "duration",
+            "enhanced_caption",
             "indexed_at",
             "content_hash",
             "phash",
@@ -82,7 +83,7 @@ async def test_schema_self_heals_missing_columns(tmp_path):
             assert name in meta_col_names
 
         # Ensure common queries won't crash with "no such column".
-        assert (await db.aquery("SELECT source, root_id, content_hash, phash, hash_state FROM assets LIMIT 0")).ok
+        assert (await db.aquery("SELECT source, root_id, enhanced_caption, content_hash, phash, hash_state FROM assets LIMIT 0")).ok
         assert (await db.aquery(
             """
             SELECT tags, metadata_raw, has_workflow, has_generation_data, metadata_quality

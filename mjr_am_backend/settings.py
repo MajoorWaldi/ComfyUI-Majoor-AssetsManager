@@ -23,6 +23,7 @@ _METADATA_FALLBACK_IMAGE_KEY = "metadata_fallback_image"
 _METADATA_FALLBACK_MEDIA_KEY = "metadata_fallback_media"
 _VECTOR_SEARCH_ENABLED_KEY = "vector_search_enabled"
 _HUGGINGFACE_TOKEN_KEY = "huggingface_token"
+_AI_VERBOSE_LOGS_KEY = "ai_verbose_logs"
 _SETTINGS_VERSION_KEY = "__settings_version"
 _SECURITY_API_TOKEN_KEY = "security_api_token"
 _SECURITY_API_TOKEN_HASH_KEY = "security_api_token_hash"
@@ -73,6 +74,7 @@ class AppSettings:
         self._default_metadata_fallback_image = True
         self._default_metadata_fallback_media = True
         self._default_vector_search_enabled = bool(is_vector_search_enabled())
+        self._default_ai_verbose_logs = self._env_ai_verbose_logs_enabled()
         self._runtime_api_token: str = ""
         self._runtime_api_token_hash: str = ""
 
@@ -167,6 +169,20 @@ class AppSettings:
             ).strip()
         except Exception:
             return ""
+
+    @staticmethod
+    def _env_ai_verbose_logs_enabled() -> bool:
+        try:
+            raw = (
+                os.environ.get("MAJOOR_AI_VERBOSE_LOGS")
+                or os.environ.get("MJR_AM_AI_VERBOSE_LOGS")
+                or os.environ.get("MAJOOR_VERBOSE_AI_LOGS")
+                or os.environ.get("MJR_AM_VERBOSE_AI_LOGS")
+                or ""
+            )
+        except Exception:
+            raw = ""
+        return parse_bool(raw, False)
 
     @staticmethod
     def _set_huggingface_token_env(token: str) -> None:
@@ -693,12 +709,71 @@ class AppSettings:
                 "token_hint": self._token_hint(token),
             })
 
+    async def get_ai_verbose_logs_enabled(self) -> bool:
+        """Return persisted AI verbose-log preference."""
+        async with self._lock:
+            current_version = await self._get_settings_version()
+            cached = self._cached_ai_verbose_logs_pref(current_version)
+            if cached is not None:
+                return cached
+            raw = await self._read_setting(_AI_VERBOSE_LOGS_KEY)
+            enabled = parse_bool(raw, self._default_ai_verbose_logs) if raw is not None else self._default_ai_verbose_logs
+            self._cache[_AI_VERBOSE_LOGS_KEY] = "1" if enabled else "0"
+            self._cache_at[_AI_VERBOSE_LOGS_KEY] = time.monotonic()
+            self._cache_version[_AI_VERBOSE_LOGS_KEY] = int(current_version or 0)
+            return enabled
+
+    def _cached_ai_verbose_logs_pref(self, current_version: int) -> bool | None:
+        cached = self._cache.get(_AI_VERBOSE_LOGS_KEY)
+        if cached is None:
+            return None
+        try:
+            ts = float(self._cache_at.get(_AI_VERBOSE_LOGS_KEY) or 0.0)
+        except Exception:
+            ts = 0.0
+        cached_ver = int(self._cache_version.get(_AI_VERBOSE_LOGS_KEY) or 0)
+        if cached_ver != int(current_version or 0):
+            return None
+        if not ts or (time.monotonic() - ts) >= self._cache_ttl_s:
+            return None
+        return parse_bool(cached, self._default_ai_verbose_logs)
+
+    async def set_ai_verbose_logs_enabled(self, enabled: Any) -> Result[bool]:
+        """Persist AI verbose-log preference and apply runtime env vars."""
+        normalized = parse_bool(enabled, self._default_ai_verbose_logs)
+        async with self._lock:
+            res = await self._write_setting(_AI_VERBOSE_LOGS_KEY, "1" if normalized else "0")
+            if not res.ok:
+                return Result.Err("DB_ERROR", res.error or "Failed to persist ai_verbose_logs")
+            self._set_ai_verbose_logs_env_vars(normalized)
+            bump = await self._bump_settings_version_locked()
+            if not bump.ok:
+                try:
+                    logger.warning("Failed to bump settings version: %s", bump.error)
+                except Exception:
+                    pass
+            current_version = int(bump.data or await self._get_settings_version() or 0)
+            self._cache[_AI_VERBOSE_LOGS_KEY] = "1" if normalized else "0"
+            self._cache_at[_AI_VERBOSE_LOGS_KEY] = time.monotonic()
+            self._cache_version[_AI_VERBOSE_LOGS_KEY] = current_version
+            return Result.Ok(normalized)
+
     def _set_vector_search_env_vars(self, enabled: bool) -> None:
         value = "1" if enabled else "0"
         try:
             os.environ["MJR_AM_ENABLE_VECTOR_SEARCH"] = value
             os.environ["MJR_ENABLE_VECTOR_SEARCH"] = value
             os.environ["MAJOOR_ENABLE_VECTOR_SEARCH"] = value
+        except Exception:
+            return
+
+    def _set_ai_verbose_logs_env_vars(self, enabled: bool) -> None:
+        value = "1" if enabled else "0"
+        try:
+            os.environ["MAJOOR_AI_VERBOSE_LOGS"] = value
+            os.environ["MJR_AM_AI_VERBOSE_LOGS"] = value
+            os.environ["MAJOOR_VERBOSE_AI_LOGS"] = value
+            os.environ["MJR_AM_VERBOSE_AI_LOGS"] = value
         except Exception:
             return
 
@@ -893,3 +968,17 @@ class AppSettings:
                     logger.info("Restored HuggingFace token on startup: %s", self._token_hint(token))
         except Exception as exc:
             logger.warning("Failed to restore HuggingFace token on startup: %s", exc)
+
+    async def apply_ai_verbose_logs_on_startup(self) -> None:
+        """Restore AI verbose-logs preference into environment on startup."""
+        try:
+            async with self._lock:
+                raw = await self._read_setting(_AI_VERBOSE_LOGS_KEY)
+                enabled = parse_bool(raw, self._default_ai_verbose_logs) if raw is not None else self._default_ai_verbose_logs
+                self._set_ai_verbose_logs_env_vars(enabled)
+                self._cache[_AI_VERBOSE_LOGS_KEY] = "1" if enabled else "0"
+                self._cache_at[_AI_VERBOSE_LOGS_KEY] = time.monotonic()
+                self._cache_version[_AI_VERBOSE_LOGS_KEY] = int(await self._get_settings_version() or 0)
+                logger.info("Restored AI verbose logs setting on startup: %s", "enabled" if enabled else "disabled")
+        except Exception as exc:
+            logger.warning("Failed to restore AI verbose logs setting on startup: %s", exc)

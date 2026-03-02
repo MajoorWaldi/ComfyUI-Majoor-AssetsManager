@@ -2,7 +2,7 @@
 Vector indexer — bridges the scan pipeline with VectorService.
 
 After the standard metadata-extraction step, the scanner can call
-``index_asset_vector`` to compute and persist the CLIP embedding for a
+``index_asset_vector`` to compute and persist the SigLIP2 embedding for a
 newly-added or updated asset.
 
 This module also implements **auto-tagging**: the image embedding is
@@ -34,8 +34,8 @@ from .vector_service import VectorService, vector_to_blob
 logger = get_logger(__name__)
 
 # ── Canonical auto-tag vocabulary ──────────────────────────────────────────
-# Each entry maps a human-readable tag to a CLIP text prompt.
-# The prompt is intentionally verbose to improve CLIP classification accuracy.
+# Each entry maps a human-readable tag to a text prompt.
+# The prompt is intentionally verbose to improve multimodal classification accuracy.
 AUTOTAG_VOCABULARY: dict[str, str] = {
     "portrait": "a close-up portrait photograph of a person",
     "landscape": "a scenic landscape photograph with mountains or fields",
@@ -98,7 +98,7 @@ async def index_asset_vector(
     *,
     metadata_raw: dict[str, Any] | None = None,
 ) -> Result[bool]:
-    """Compute and persist the CLIP embedding for a single asset.
+    """Compute and persist the multimodal embedding for a single asset.
 
     Parameters
     ----------
@@ -146,6 +146,10 @@ async def index_asset_vector(
     store_result = await _store_embedding(db, asset_id, blob, aesthetic, vs._model_name)
     if not store_result.ok:
         return store_result
+
+    # 3b. Enhanced caption (Florence-2) for image assets (best-effort).
+    if kind == "image":
+        await _try_store_enhanced_caption(db, vs, asset_id, filepath)
 
     # 4. Auto-tagging
     await _apply_autotags(db, vs, asset_id, vector)
@@ -201,6 +205,41 @@ async def compute_prompt_alignment(
         return Result.Err("METADATA_FAILED", text_result.error or "Text embedding failed")
     score = VectorService.cosine_similarity(asset_embedding, text_result.data)
     return Result.Ok(round(score, 4))
+
+
+async def generate_enhanced_prompt(
+    db: Sqlite,
+    vs: VectorService,
+    asset_id: int,
+) -> Result[str]:
+    """Generate and persist an enhanced Florence-2 caption for one image asset."""
+    row = await db.aquery(
+        "SELECT filepath, kind FROM assets WHERE id = ? LIMIT 1",
+        (asset_id,),
+    )
+    if not row.ok:
+        return Result.Err("DB_ERROR", row.error or "Failed to query asset")
+    if not row.data:
+        return Result.Err("NOT_FOUND", f"Asset {asset_id} not found")
+
+    data = row.data[0]
+    kind = str(data.get("kind") or "").strip().lower()
+    if kind != "image":
+        return Result.Err("INVALID_INPUT", "Enhanced prompt generation is only available for image assets")
+
+    filepath = str(data.get("filepath") or "").strip()
+    if not filepath:
+        return Result.Err("INVALID_INPUT", "Asset filepath is empty")
+
+    generated = await vs.generate_enhanced_caption(filepath)
+    if not generated.ok or not generated.data:
+        return Result.Err(generated.code or "METADATA_FAILED", generated.error or "Enhanced caption generation failed")
+
+    caption = str(generated.data).strip()
+    write = await _store_enhanced_caption(db, asset_id, caption)
+    if not write.ok:
+        return Result.Err(write.code or "DB_ERROR", write.error or "Failed to store enhanced caption")
+    return Result.Ok(caption)
 
 
 # ── Private helpers ────────────────────────────────────────────────────────
@@ -269,6 +308,37 @@ async def _store_embedding(
         """,
         (asset_id, blob, aesthetic_score, model_name, asset_id),
     )
+
+
+async def _store_enhanced_caption(
+    db: Sqlite,
+    asset_id: int,
+    caption: str,
+) -> Result[bool]:
+    return await db.aexecute(
+        """
+        UPDATE assets
+        SET enhanced_caption = ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+        """,
+        (caption, asset_id),
+    )
+
+
+async def _try_store_enhanced_caption(
+    db: Sqlite,
+    vs: VectorService,
+    asset_id: int,
+    filepath: str,
+) -> None:
+    try:
+        generated = await vs.generate_enhanced_caption(filepath)
+        if not generated.ok or not generated.data:
+            return
+        await _store_enhanced_caption(db, asset_id, str(generated.data).strip())
+    except Exception as exc:
+        logger.debug("Enhanced caption generation skipped for asset %d: %s", asset_id, exc)
 
 
 async def _apply_autotags(

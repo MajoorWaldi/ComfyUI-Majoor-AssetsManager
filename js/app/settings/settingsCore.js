@@ -119,6 +119,7 @@ export const DEFAULT_SETTINGS = {
     },
     ai: {
         vectorSearchEnabled: true,
+        verboseAiLogs: false,
     },
     workflowMinimap: {
         enabled: false,

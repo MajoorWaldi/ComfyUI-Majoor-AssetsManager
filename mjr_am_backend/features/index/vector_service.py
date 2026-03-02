@@ -1,8 +1,8 @@
 """
-CLIP-based vector embedding service.
+Multimodal vector embedding service (SigLIP2 / X-CLIP / Florence-2).
 
-Loads a SentenceTransformers CLIP model (default: ``clip-ViT-L-14``) and
-provides helpers to embed images, text queries, and video key-frames.
+Loads a SentenceTransformers-compatible multimodal model (default: SigLIP2)
+and provides helpers to embed images, text queries, and video key-frames.
 
 The service is **lazily initialised**: the (heavy) model is downloaded and
 loaded into memory only on first use, making it safe to import even when
@@ -24,6 +24,7 @@ import asyncio
 import contextlib
 import datetime as dt
 import io
+import logging
 import os
 import struct
 import subprocess
@@ -38,6 +39,9 @@ from ...config import (
     VECTOR_BATCH_SIZE,
     VECTOR_EMBEDDING_DIM,
     VECTOR_MODEL_NAME,
+    VECTOR_PROMPT_MODEL_NAME,
+    VECTOR_PROMPT_TASK,
+    VECTOR_VIDEO_MODEL_NAME,
     VECTOR_VIDEO_KEYFRAME_INTERVAL,
 )
 from ...shared import Result, get_logger
@@ -47,6 +51,46 @@ if TYPE_CHECKING:
     from sentence_transformers import SentenceTransformer
 
 logger = get_logger(__name__)
+
+
+def _ai_verbose_logs_enabled() -> bool:
+    raw = str(
+        os.environ.get("MAJOOR_AI_VERBOSE_LOGS")
+        or os.environ.get("MJR_AM_AI_VERBOSE_LOGS")
+        or os.environ.get("MAJOOR_VERBOSE_AI_LOGS")
+        or os.environ.get("MJR_AM_VERBOSE_AI_LOGS")
+        or ""
+    ).strip().lower()
+    return raw in {"1", "true", "yes", "on", "enabled", "enable"}
+
+
+def _configure_hf_quiet_mode() -> None:
+    """Configure HuggingFace/http logging behavior for model bootstrap."""
+    verbose = _ai_verbose_logs_enabled()
+    if verbose:
+        for key in (
+            "HF_HUB_DISABLE_PROGRESS_BARS",
+            "HF_HUB_DISABLE_SYMLINKS_WARNING",
+            "TQDM_DISABLE",
+            "TRANSFORMERS_NO_ADVISORY_WARNINGS",
+        ):
+            os.environ.pop(key, None)
+        os.environ["TRANSFORMERS_VERBOSITY"] = "info"
+        logging.getLogger("httpx").setLevel(logging.INFO)
+        logging.getLogger("httpcore").setLevel(logging.INFO)
+        logging.getLogger("huggingface_hub").setLevel(logging.INFO)
+        logging.getLogger("transformers").setLevel(logging.INFO)
+        return
+
+    os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+    os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+    os.environ.setdefault("TQDM_DISABLE", "1")
+    os.environ.setdefault("TRANSFORMERS_NO_ADVISORY_WARNINGS", "1")
+    os.environ.setdefault("TRANSFORMERS_VERBOSITY", "error")
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+    logging.getLogger("huggingface_hub").setLevel(logging.WARNING)
+    logging.getLogger("transformers").setLevel(logging.ERROR)
 
 # ---------------------------------------------------------------------------
 # Helpers: serialisation
@@ -68,6 +112,9 @@ def blob_to_vector(blob: bytes, dim: int | None = None) -> list[float]:
 
 
 def _encode_quiet(model: Any, payload: Any, **kwargs: Any) -> Any:
+    if _ai_verbose_logs_enabled():
+        return model.encode(payload, **kwargs)
+
     import logging as _stdlib_logging
 
     _hf_tok_logger = _stdlib_logging.getLogger("transformers.tokenization_utils_base")
@@ -163,7 +210,7 @@ def extract_keyframes(video_path: str, interval: float | None = None) -> list[PI
 # ---------------------------------------------------------------------------
 
 class VectorService:
-    """Manages the CLIP model lifecycle and embedding generation.
+    """Manages multimodal model lifecycle and embedding generation.
 
     The model is loaded lazily on the first call to any public method that
     needs it.  This keeps import time and memory footprint low when the
@@ -172,9 +219,18 @@ class VectorService:
 
     def __init__(self, model_name: str | None = None, device: str | None = None) -> None:
         self._model_name = model_name or VECTOR_MODEL_NAME
+        self._video_model_name = VECTOR_VIDEO_MODEL_NAME
+        self._prompt_model_name = VECTOR_PROMPT_MODEL_NAME
+        self._prompt_task = VECTOR_PROMPT_TASK
         self._device = device  # None → auto-detect (CPU / CUDA)
         self._model: SentenceTransformer | None = None
         self._lock = asyncio.Lock()
+        self._video_model: Any | None = None
+        self._video_processor: Any | None = None
+        self._video_lock = asyncio.Lock()
+        self._prompt_model: Any | None = None
+        self._prompt_processor: Any | None = None
+        self._prompt_lock = asyncio.Lock()
         self._dim = VECTOR_EMBEDDING_DIM
         self._last_error: str = ""
         self._last_error_at: str | None = None
@@ -186,15 +242,14 @@ class VectorService:
 
     def _load_model(self) -> SentenceTransformer:
         """Synchronous model loading (called inside a thread)."""
-        os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
-        os.environ.setdefault("TQDM_DISABLE", "1")
-        os.environ.setdefault("TRANSFORMERS_NO_ADVISORY_WARNINGS", "1")
+        _configure_hf_quiet_mode()
         from sentence_transformers import SentenceTransformer  # noqa: F811
         from transformers.utils import logging as hf_logging
 
-        logger.info("Loading CLIP model '%s' …", self._model_name)
+        logger.info("Loading multimodal embedding model '%s' …", self._model_name)
         previous_hf_verbosity = hf_logging.get_verbosity()
-        hf_logging.set_verbosity_error()
+        if not _ai_verbose_logs_enabled():
+            hf_logging.set_verbosity_error()
         try:
             with warnings.catch_warnings():
                 warnings.filterwarnings(
@@ -213,7 +268,7 @@ class VectorService:
         finally:
             hf_logging.set_verbosity(previous_hf_verbosity)
 
-        # ── Force CLIP token limit ──────────────────────────────────
+        # ── Force CLIP/SigLIP style token limit ─────────────────────
         # SentenceTransformer may default to a higher max_seq_length.
         # CLIP's hard limit is 77 tokens; exceeding it triggers a noisy
         # HuggingFace warning *and* risks silent embedding corruption.
@@ -226,15 +281,48 @@ class VectorService:
         # ── Diagnostic: discover tokenizer location ─────────────────
         self._cached_tokenizer = self._discover_tokenizer(model)
 
-        dim_value = model.get_sentence_embedding_dimension()
-        effective_dim = int(dim_value) if dim_value is not None else int(VECTOR_EMBEDDING_DIM)
+        effective_dim = self._resolve_sentence_embedding_dim(model)
         logger.info(
-            "CLIP model loaded  (dim=%d, max_seq=%d, tokenizer=%s)",
+            "Multimodal embedding model loaded (dim=%d, max_seq=%d, tokenizer=%s)",
             effective_dim,
             model.max_seq_length,
             type(self._cached_tokenizer).__name__ if self._cached_tokenizer else "NOT_FOUND",
         )
         return model
+
+    def _resolve_sentence_embedding_dim(self, model: SentenceTransformer) -> int:
+        """Resolve embedding dimension with robust fallbacks for model/config quirks."""
+        try:
+            parsed_dim = model.get_sentence_embedding_dimension()
+            if parsed_dim is not None and int(parsed_dim) > 0:
+                return int(parsed_dim)
+        except Exception as exc:
+            logger.debug("Could not read sentence embedding dim directly: %s", exc)
+
+        try:
+            probe = _encode_quiet(
+                model,
+                ["dim probe"],
+                convert_to_numpy=True,
+                normalize_embeddings=True,
+                show_progress_bar=False,
+            )
+            shape = tuple(getattr(probe, "shape", ()) or ())
+            if len(shape) >= 2 and int(shape[-1]) > 0:
+                return int(shape[-1])
+            if len(shape) == 1 and int(shape[0]) > 0:
+                return int(shape[0])
+
+            if isinstance(probe, (list, tuple)) and probe:
+                first = probe[0]
+                if isinstance(first, (list, tuple)):
+                    return int(len(first))
+                if isinstance(first, (int, float)):
+                    return int(len(probe))
+        except Exception as exc:
+            logger.debug("Could not infer sentence embedding dim from probe: %s", exc)
+
+        return int(VECTOR_EMBEDDING_DIM)
 
     def _discover_tokenizer(self, model: SentenceTransformer) -> Any | None:
         """Walk the model structure to find a usable HF tokenizer and cache it.
@@ -315,7 +403,7 @@ class VectorService:
                 fm = first_module_getter() if callable(first_module_getter) else None
                 fm_attrs = [a for a in dir(fm) if not a.startswith("_")] if fm else []
                 logger.warning(
-                    "CLIP tokenizer NOT FOUND. Model modules: %s  First module attrs: %s",
+                    "Tokenizer NOT FOUND. Model modules: %s  First module attrs: %s",
                     module_names,
                     fm_attrs[:30],
                 )
@@ -332,8 +420,7 @@ class VectorService:
             if self._model is not None:
                 return self._model
             self._model = await asyncio.to_thread(self._load_model)
-            parsed_dim = self._model.get_sentence_embedding_dimension()
-            self._dim = int(parsed_dim) if parsed_dim is not None else int(VECTOR_EMBEDDING_DIM)
+            self._dim = self._resolve_sentence_embedding_dim(self._model)
             return self._model
 
     @property
@@ -352,6 +439,8 @@ class VectorService:
     def get_runtime_status(self) -> dict[str, Any]:
         return {
             "model_name": self._model_name,
+            "video_model_name": self._video_model_name,
+            "prompt_model_name": self._prompt_model_name,
             "loaded": bool(self._model is not None),
             "dim": int(self._dim),
             "last_error": self._last_error or None,
@@ -376,7 +465,7 @@ class VectorService:
 
         preview = " ".join(str(original).split())[:120]
         logger.debug(
-            "CLIP text truncated (%s): %d→%d chars, preview='%s…'",
+            "Model text truncated (%s): %d→%d chars, preview='%s…'",
             str(reason or "unknown"),
             len(original),
             len(truncated),
@@ -516,7 +605,7 @@ class VectorService:
     # ── Text embeddings ────────────────────────────────────────────────
 
     async def get_text_embedding(self, text: str) -> Result[list[float]]:
-        """Encode a free-form text query into the CLIP embedding space."""
+        """Encode a free-form text query into the multimodal embedding space."""
         if not text or not text.strip():
             return Result.Err("INVALID_INPUT", "Text query cannot be empty")
         try:
@@ -619,6 +708,11 @@ class VectorService:
         if not path.is_file():
             return Result.Err("NOT_FOUND", f"Video file not found: {path.name}")
 
+        xclip_result = await self._get_video_embedding_xclip(path)
+        if xclip_result.ok and xclip_result.data:
+            self._clear_error()
+            return xclip_result
+
         frames = await asyncio.to_thread(extract_keyframes, str(path))
         if not frames:
             return Result.Err("UNSUPPORTED", "No frames could be extracted from video")
@@ -644,6 +738,62 @@ class VectorService:
             logger.debug("Video embedding failed for %s: %s", path.name, exc)
             return Result.Err("METADATA_FAILED", f"Video embedding failed: {exc}")
 
+    async def generate_enhanced_caption(self, path: str | Path) -> Result[str]:
+        """Generate a long descriptive caption for an image using Florence-2."""
+        path = Path(path)
+        if not path.is_file():
+            return Result.Err("NOT_FOUND", f"Image file not found: {path.name}")
+        try:
+            from PIL import Image as PILImage  # noqa: F811
+        except ImportError:
+            return Result.Err("TOOL_MISSING", "Pillow is required for enhanced captions")
+
+        try:
+            processor, model, torch = await self._ensure_florence_components()
+        except Exception as exc:
+            self._record_error(f"Florence-2 unavailable: {exc}")
+            return Result.Err("SERVICE_UNAVAILABLE", f"Florence-2 unavailable: {exc}")
+
+        try:
+            image = await asyncio.to_thread(lambda: PILImage.open(str(path)).convert("RGB"))
+
+            def _infer_caption() -> str:
+                with torch.inference_mode():
+                    inputs = processor(
+                        text=self._prompt_task,
+                        images=image,
+                        return_tensors="pt",
+                    )
+                    generated = model.generate(
+                        input_ids=inputs.get("input_ids"),
+                        pixel_values=inputs.get("pixel_values"),
+                        max_new_tokens=160,
+                        num_beams=3,
+                    )
+                    text = processor.batch_decode(generated, skip_special_tokens=True)[0]
+                    text = str(text or "").strip()
+                    post = getattr(processor, "post_process_generation", None)
+                    if callable(post):
+                        try:
+                            parsed = post(text, task=self._prompt_task, image_size=image.size)
+                            if isinstance(parsed, dict):
+                                val = parsed.get(self._prompt_task)
+                                if isinstance(val, str) and val.strip():
+                                    text = val.strip()
+                        except Exception:
+                            pass
+                    return text
+
+            caption = await asyncio.to_thread(_infer_caption)
+            if not caption:
+                return Result.Err("METADATA_FAILED", "Enhanced caption generation returned empty output")
+            self._clear_error()
+            return Result.Ok(caption)
+        except Exception as exc:
+            self._record_error(f"Enhanced caption generation failed: {exc}")
+            logger.debug("Enhanced caption generation failed for %s: %s", path.name, exc)
+            return Result.Err("METADATA_FAILED", f"Enhanced caption generation failed: {exc}")
+
     # ── Similarity helpers ─────────────────────────────────────────────
 
     @staticmethod
@@ -655,6 +805,107 @@ class VectorService:
         if norm_a == 0 or norm_b == 0:
             return 0.0
         return dot / (norm_a * norm_b)
+
+    async def _ensure_florence_components(self) -> tuple[Any, Any, Any]:
+        if self._prompt_model is not None and self._prompt_processor is not None:
+            import torch
+
+            return self._prompt_processor, self._prompt_model, torch
+
+        async with self._prompt_lock:
+            if self._prompt_model is None or self._prompt_processor is None:
+                _configure_hf_quiet_mode()
+                import torch
+                from transformers import AutoModelForCausalLM, AutoProcessor
+                from transformers.utils import logging as hf_logging
+
+                logger.info("Loading Florence prompt model '%s' …", self._prompt_model_name)
+                previous_hf_verbosity = hf_logging.get_verbosity()
+                if not _ai_verbose_logs_enabled():
+                    hf_logging.set_verbosity_error()
+                try:
+                    self._prompt_processor = AutoProcessor.from_pretrained(
+                        self._prompt_model_name,
+                        trust_remote_code=True,
+                        use_fast=False,
+                    )
+                    self._prompt_model = AutoModelForCausalLM.from_pretrained(
+                        self._prompt_model_name,
+                        trust_remote_code=True,
+                    )
+                finally:
+                    hf_logging.set_verbosity(previous_hf_verbosity)
+                self._prompt_model.eval()
+            import torch
+
+            return self._prompt_processor, self._prompt_model, torch
+
+    async def _ensure_xclip_components(self) -> tuple[Any, Any]:
+        if self._video_model is not None and self._video_processor is not None:
+            return self._video_processor, self._video_model
+
+        async with self._video_lock:
+            if self._video_model is None or self._video_processor is None:
+                _configure_hf_quiet_mode()
+                from transformers import AutoModel, AutoProcessor
+                from transformers.utils import logging as hf_logging
+
+                logger.info("Loading video embedding model '%s' …", self._video_model_name)
+                previous_hf_verbosity = hf_logging.get_verbosity()
+                if not _ai_verbose_logs_enabled():
+                    hf_logging.set_verbosity_error()
+                try:
+                    self._video_processor = AutoProcessor.from_pretrained(
+                        self._video_model_name,
+                        use_fast=False,
+                    )
+                    self._video_model = AutoModel.from_pretrained(self._video_model_name)
+                finally:
+                    hf_logging.set_verbosity(previous_hf_verbosity)
+                try:
+                    self._video_model.eval()
+                except Exception:
+                    pass
+            return self._video_processor, self._video_model
+
+    async def _get_video_embedding_xclip(self, path: Path) -> Result[list[float]]:
+        model_name = str(self._video_model_name or "").strip()
+        if not model_name:
+            return Result.Err("SERVICE_UNAVAILABLE", "Video model disabled")
+
+        try:
+            processor, model = await self._ensure_xclip_components()
+            frames = await asyncio.to_thread(extract_keyframes, str(path))
+            if not frames:
+                return Result.Err("UNSUPPORTED", "No frames extracted for X-CLIP")
+
+            def _encode_frames() -> list[float]:
+                import numpy as np
+                import torch
+
+                rgb_frames = [f.convert("RGB") for f in frames]
+                with torch.inference_mode():
+                    inputs = processor(images=rgb_frames, return_tensors="pt", padding=True)
+                    if hasattr(model, "get_image_features"):
+                        feats = model.get_image_features(pixel_values=inputs["pixel_values"])
+                    else:
+                        out = model(**inputs)
+                        feats = getattr(out, "pooler_output", None)
+                        if feats is None:
+                            feats = getattr(out, "last_hidden_state", None)
+                            if feats is None:
+                                raise RuntimeError("X-CLIP output does not expose usable features")
+                            feats = feats.mean(dim=1)
+                    arr = feats.detach().cpu().numpy()
+                    mean_vec = np.mean(arr, axis=0)
+                    vec = _normalise_vector(mean_vec)
+                    return _coerce_vector_dim(vec, self._dim)
+
+            vec = await asyncio.to_thread(_encode_frames)
+            return Result.Ok(vec)
+        except Exception as exc:
+            logger.debug("X-CLIP video embedding failed for %s: %s", path.name, exc)
+            return Result.Err("METADATA_FAILED", f"X-CLIP video embedding failed: {exc}")
 
 
 # ---------------------------------------------------------------------------
@@ -671,3 +922,13 @@ def _normalise_vector(vec: Any) -> list[float]:
     if norm > 0:
         arr = arr / norm
     return arr.tolist()
+
+
+def _coerce_vector_dim(vec: list[float], dim: int) -> list[float]:
+    if len(vec) == dim:
+        return vec
+    if len(vec) > dim:
+        out = vec[:dim]
+    else:
+        out = vec + ([0.0] * (dim - len(vec)))
+    return _normalise_vector(out)

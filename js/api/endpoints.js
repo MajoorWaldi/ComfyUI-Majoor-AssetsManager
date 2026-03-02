@@ -42,6 +42,7 @@ export const ENDPOINTS = {
     SETTINGS_METADATA_FALLBACK: "/mjr/am/settings/metadata-fallback",
     SETTINGS_VECTOR_SEARCH: "/mjr/am/settings/vector-search",
     SETTINGS_HUGGINGFACE: "/mjr/am/settings/huggingface",
+    SETTINGS_AI_LOGGING: "/mjr/am/settings/ai-logging",
 
     // View (ComfyUI native)
     VIEW: "/view",
@@ -92,6 +93,7 @@ export const ENDPOINTS = {
     VECTOR_SIMILAR: "/mjr/am/vector/similar",
     VECTOR_ALIGNMENT: "/mjr/am/vector/alignment",
     VECTOR_AUTO_TAGS: "/mjr/am/vector/auto-tags",
+    VECTOR_ENHANCED_PROMPT: "/mjr/am/vector/enhanced-prompt",
     VECTOR_INDEX: "/mjr/am/vector/index",
     VECTOR_STATS: "/mjr/am/vector/stats",
     VECTOR_SUGGEST_COLLECTIONS: "/mjr/am/vector/suggest-collections",
