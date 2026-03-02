@@ -160,3 +160,75 @@ async def test_db_backup_restore_reset_fail_and_replace_fail(monkeypatch, tmp_pa
     resp2 = await match2.handler(req2)
     body2 = json.loads(resp2.text)
     assert body2.get("code") == "DB_ERROR"
+
+
+@pytest.mark.asyncio
+async def test_db_backfill_missing_vectors_success(monkeypatch):
+    app = _app()
+    monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(m, "is_vector_search_enabled", lambda: True)
+
+    class _Searcher:
+        def __init__(self):
+            self.invalidated = 0
+
+        def invalidate(self):
+            self.invalidated += 1
+
+    class _DB:
+        def __init__(self):
+            self.calls = 0
+
+        async def aquery(self, _sql, _params):
+            self.calls += 1
+            if self.calls == 1:
+                return Result.Ok([
+                    {"id": 1, "filepath": "C:/img1.png", "kind": "image", "metadata_raw": "{}"},
+                ])
+            return Result.Ok([])
+
+    db = _DB()
+    searcher = _Searcher()
+
+    async def _require_services_ok():
+        return {
+            "db": db,
+            "vector_service": object(),
+            "vector_searcher": searcher,
+            "watcher": None,
+            "index": None,
+        }, None
+
+    monkeypatch.setattr(m, "_require_services", _require_services_ok)
+
+    import mjr_am_backend.features.index.vector_indexer as vector_indexer_mod
+
+    async def _index_ok(*_args, **_kwargs):
+        return Result.Ok(True)
+
+    monkeypatch.setattr(vector_indexer_mod, "index_asset_vector", _index_ok)
+
+    req = make_mocked_request("POST", "/mjr/am/db/backfill-missing-vectors?batch_size=10", app=app)
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+    assert body.get("ok") is True
+    assert body.get("data", {}).get("ran") is True
+    assert body.get("data", {}).get("indexed") == 1
+    assert searcher.invalidated == 1
+
+
+@pytest.mark.asyncio
+async def test_db_backfill_missing_vectors_disabled(monkeypatch):
+    app = _app()
+    monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(m, "is_vector_search_enabled", lambda: False)
+
+    req = make_mocked_request("POST", "/mjr/am/db/backfill-missing-vectors", app=app)
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+    assert body.get("ok") is False
+    assert body.get("code") == "SERVICE_UNAVAILABLE"

@@ -29,6 +29,7 @@ async def run_scan_streaming_loop(
     fast: bool,
     stats: dict[str, Any],
     to_enrich: list[str],
+    added_ids: list[int] | None = None,
 ) -> None:
     loop = asyncio.get_running_loop()
     stop_event = threading.Event()
@@ -52,6 +53,7 @@ async def run_scan_streaming_loop(
             fast=fast,
             stats=stats,
             to_enrich=to_enrich,
+            added_ids=added_ids,
             stop_event=stop_event,
         )
     finally:
@@ -73,6 +75,7 @@ async def consume_scan_queue(
     fast: bool,
     stats: dict[str, Any],
     to_enrich: list[str],
+    added_ids: list[int] | None = None,
     stop_event: threading.Event,
 ) -> None:
     batch: list[Path] = []
@@ -101,6 +104,7 @@ async def consume_scan_queue(
                         fast=fast,
                         stats=stats,
                         to_enrich=to_enrich,
+                        added_ids=added_ids,
                     )
                     batch = []
             await asyncio.sleep(0)
@@ -115,6 +119,7 @@ async def consume_scan_queue(
                 fast=fast,
                 stats=stats,
                 to_enrich=to_enrich,
+                added_ids=added_ids,
             )
     except asyncio.CancelledError:
         stop_event.set()
@@ -132,6 +137,7 @@ async def process_scan_batch(
     fast: bool,
     stats: dict[str, Any],
     to_enrich: list[str],
+    added_ids: list[int] | None = None,
 ) -> None:
     await scan_stream_batch(
         scanner,
@@ -143,6 +149,7 @@ async def process_scan_batch(
         fast=fast,
         stats=stats,
         to_enrich=to_enrich,
+        added_ids=added_ids,
     )
 
 
@@ -157,6 +164,7 @@ async def scan_stream_batch(
     fast: bool,
     stats: dict[str, Any],
     to_enrich: list[str],
+    added_ids: list[int] | None = None,
 ) -> None:
     if not batch:
         return
@@ -177,4 +185,5 @@ async def scan_stream_batch(
         existing_map=existing_map,
         stats=stats,
         to_enrich=to_enrich,
+        added_ids=added_ids,
     )

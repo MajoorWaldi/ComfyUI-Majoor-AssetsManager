@@ -2,6 +2,7 @@
 Index scanner - handles directory scanning and file indexing operations.
 """
 import asyncio
+import json
 import sqlite3
 import threading
 from typing import Any
@@ -54,6 +55,8 @@ class IndexScanner:
         self._batch_fallback_count = 0
         self._batch_fallback_lock = threading.Lock()
         self._fs_walker = FileSystemWalker(scan_iops_limit=max(0.0, float(SCAN_IOPS_LIMIT)))
+        self._vector_service: Any | None = None
+        self._vector_searcher: Any | None = None
 
     _diagnose_batch_failure = diagnose_batch_failure
 
@@ -90,6 +93,7 @@ class IndexScanner:
         to_enrich: list[str] | None,
         added_ids: list[int] | None,
     ) -> None:
+        prev_added_count = len(added_ids) if isinstance(added_ids, list) else 0
         await persist_prepared_entries(
             self,
             prepared=prepared,
@@ -101,6 +105,74 @@ class IndexScanner:
             added_ids=added_ids,
             is_fatal_db_error=_is_fatal_db_error,
         )
+        await self._index_added_image_vectors(prev_added_count=prev_added_count, added_ids=added_ids)
+
+    def set_vector_services(self, vector_service: Any, vector_searcher: Any | None = None) -> None:
+        self._vector_service = vector_service
+        self._vector_searcher = vector_searcher
+
+    async def _index_added_image_vectors(self, *, prev_added_count: int, added_ids: list[int] | None) -> None:
+        if self._vector_service is None or not isinstance(added_ids, list) or len(added_ids) <= prev_added_count:
+            return
+
+        new_ids: list[int] = []
+        for aid in added_ids[prev_added_count:]:
+            try:
+                parsed_id = int(aid)
+            except Exception:
+                continue
+            if parsed_id > 0:
+                new_ids.append(parsed_id)
+        if not new_ids:
+            return
+
+        try:
+            rows = await self.db.aquery_in(
+                """
+                SELECT a.id, a.filepath, a.kind, m.metadata_raw
+                FROM assets a
+                LEFT JOIN asset_metadata m ON a.id = m.asset_id
+                WHERE a.kind = 'image' AND {IN_CLAUSE}
+                """,
+                "a.id",
+                new_ids,
+            )
+            if not rows.ok or not rows.data:
+                return
+
+            entries: list[dict[str, Any]] = []
+            for row in rows.data:
+                raw = row.get("metadata_raw")
+                metadata_raw: dict[str, Any] | None = None
+                if isinstance(raw, dict):
+                    metadata_raw = raw
+                elif isinstance(raw, str) and raw.strip():
+                    try:
+                        parsed = json.loads(raw)
+                        metadata_raw = parsed if isinstance(parsed, dict) else None
+                    except Exception:
+                        metadata_raw = None
+                entries.append(
+                    {
+                        "asset_id": int(row["id"]),
+                        "filepath": str(row["filepath"]),
+                        "kind": "image",
+                        "metadata_raw": metadata_raw,
+                    }
+                )
+
+            if not entries:
+                return
+
+            from .vector_indexer import index_assets_vector_batch
+
+            result = await index_assets_vector_batch(self.db, self._vector_service, entries)
+            if self._vector_searcher is not None:
+                self._vector_searcher.invalidate()
+            if result.ok:
+                logger.debug("Scanner vector indexing complete for %d new images: %s", len(entries), result.data)
+        except Exception as exc:
+            logger.debug("Scanner vector indexing failed for new images: %s", exc)
 
     _persist_prepared_entries_tx = persist_prepared_entries_tx
     _process_prepared_entry_tx = process_prepared_entry_tx

@@ -154,6 +154,8 @@ _cleanup_dead_code.py
 
 # Local analysis/tooling artifacts
 .mypy_cache/
+.mypy_*
+.mypy.*
 .ruff_cache/
 coverage_backend.json
 reports_radon_cc_backend.json
@@ -161,6 +163,10 @@ reports_radon_cc_js.json
 reports_radon_raw_backend.json
 reports_vulture.txt
 reports_vulture_backend.txt
+
+# Local temp files
+*.bak
+*.orig
 
 # Accidental files that must never reappear in git
 {console.error(e)

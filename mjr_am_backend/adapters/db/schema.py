@@ -8,7 +8,7 @@ from ...shared import Result, get_logger, log_success
 
 logger = get_logger(__name__)
 
-CURRENT_SCHEMA_VERSION = 10
+CURRENT_SCHEMA_VERSION = 11
 # Schema version history (high-level):
 # 1: initial assets + metadata tables
 # 2-4: incremental columns and FTS/search support
@@ -18,6 +18,7 @@ CURRENT_SCHEMA_VERSION = 10
 # 8: duplicate analysis hashes (content_hash/phash/hash_state)
 # 9: CLIP vector embeddings (asset_embeddings) for semantic search
 # 10: auto_tags in asset_embeddings (AI-suggested tags, kept separate from user tags)
+# 11: asset_embeddings now has explicit id PK + asset_id UNIQUE (legacy tables auto-rebuilt)
 
 # Schema definition
 SCHEMA_V1 = """
@@ -83,7 +84,8 @@ CREATE TABLE IF NOT EXISTS metadata_cache (
 );
 
 CREATE TABLE IF NOT EXISTS asset_embeddings (
-    asset_id INTEGER PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    asset_id INTEGER NOT NULL UNIQUE,
     vector BLOB,
     aesthetic_score REAL,
     auto_tags TEXT DEFAULT '[]',  -- AI-suggested tags (JSON array), separate from user tags
@@ -134,6 +136,8 @@ COLUMN_DEFINITIONS = {
         ("last_updated", "last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
     ],
     "asset_embeddings": [
+        ("id", "id INTEGER"),
+        ("asset_id", "asset_id INTEGER"),
         ("vector", "vector BLOB"),
         ("aesthetic_score", "aesthetic_score REAL"),
         ("auto_tags", "auto_tags TEXT DEFAULT '[]'"),
@@ -172,6 +176,7 @@ CREATE INDEX IF NOT EXISTS idx_assets_source_mtime_desc ON assets(source, mtime 
 CREATE INDEX IF NOT EXISTS idx_assets_content_hash ON assets(content_hash);
 CREATE INDEX IF NOT EXISTS idx_assets_phash ON assets(phash);
 CREATE INDEX IF NOT EXISTS idx_assets_hash_state ON assets(hash_state);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_asset_embeddings_asset_id ON asset_embeddings(asset_id);
 CREATE INDEX IF NOT EXISTS idx_asset_metadata_has_workflow_true ON asset_metadata(has_workflow) WHERE has_workflow = 1;
 CREATE INDEX IF NOT EXISTS idx_asset_metadata_has_generation_data_true ON asset_metadata(has_generation_data) WHERE has_generation_data = 1;
 CREATE INDEX IF NOT EXISTS idx_assets_list_cover ON assets(source, mtime DESC, id, filename, filepath, kind);
@@ -514,12 +519,104 @@ async def _ensure_schema_fingerprint(db) -> Result[bool]:
     )
 
 
+async def _asset_embeddings_needs_rebuild(db) -> bool:
+    """Return True when asset_embeddings still uses the legacy PK layout."""
+    try:
+        if not await db.ahas_table("asset_embeddings"):
+            return False
+    except Exception:
+        return False
+
+    info = await db.aquery("PRAGMA table_info(asset_embeddings)")
+    if not info.ok or not info.data:
+        return False
+
+    id_pk = False
+    asset_id_pk = False
+    has_id = False
+    has_asset_id = False
+    for row in info.data:
+        name = str(row.get("name") or "").strip().lower()
+        pk = int(row.get("pk") or 0)
+        if name == "id":
+            has_id = True
+            id_pk = pk == 1
+        elif name == "asset_id":
+            has_asset_id = True
+            asset_id_pk = pk == 1
+
+    if not has_asset_id:
+        return False
+    if not has_id:
+        return True
+    if asset_id_pk:
+        return True
+    return not id_pk
+
+
+async def _repair_asset_embeddings_layout(db) -> Result[bool]:
+    """Rebuild legacy asset_embeddings table to include id PK + asset_id UNIQUE."""
+    try:
+        needs_rebuild = await _asset_embeddings_needs_rebuild(db)
+    except Exception:
+        needs_rebuild = False
+    if not needs_rebuild:
+        return Result.Ok(True)
+
+    logger.warning("Repairing asset_embeddings layout (legacy PK -> id PK + asset_id UNIQUE)")
+    try:
+        async with db.atransaction(mode="immediate") as tx:
+            if not tx.ok:
+                return Result.Err("DB_ERROR", tx.error or "Failed to begin transaction")
+
+            repair_script = """
+            CREATE TABLE IF NOT EXISTS asset_embeddings__new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                asset_id INTEGER NOT NULL UNIQUE,
+                vector BLOB,
+                aesthetic_score REAL,
+                auto_tags TEXT DEFAULT '[]',
+                model_name TEXT DEFAULT '',
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
+            );
+
+            INSERT OR REPLACE INTO asset_embeddings__new (asset_id, vector, aesthetic_score, auto_tags, model_name, updated_at)
+            SELECT asset_id,
+                   vector,
+                   aesthetic_score,
+                   COALESCE(auto_tags, '[]'),
+                   COALESCE(model_name, ''),
+                   COALESCE(updated_at, CURRENT_TIMESTAMP)
+            FROM asset_embeddings
+            WHERE asset_id IS NOT NULL;
+
+            DROP TABLE asset_embeddings;
+            ALTER TABLE asset_embeddings__new RENAME TO asset_embeddings;
+            """
+            rebuilt = await db.aexecutescript(repair_script)
+            if not rebuilt.ok:
+                return Result.Err(rebuilt.code or "DB_ERROR", rebuilt.error or "Failed to rebuild asset_embeddings")
+
+        if not tx.ok:
+            return Result.Err("DB_ERROR", tx.error or "Commit failed")
+    except Exception as exc:
+        logger.warning("Failed to repair asset_embeddings layout: %s", exc)
+        return Result.Err("SCHEMA_REPAIR_FAILED", str(exc))
+
+    return Result.Ok(True)
+
+
 async def _ensure_schema(db) -> Result[bool]:
     result = await ensure_tables_exist(db)
     if not result.ok:
         return result
 
     result = await ensure_columns_exist(db)
+    if not result.ok:
+        return result
+
+    result = await _repair_asset_embeddings_layout(db)
     if not result.ok:
         return result
 

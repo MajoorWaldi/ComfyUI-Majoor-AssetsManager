@@ -44,20 +44,22 @@ export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFol
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 28px;
+        min-width: 72px;
         height: 28px;
+        padding: 0 8px;
         border-radius: 6px;
         border: 1px solid rgba(0, 188, 212, 0.25);
         background: transparent;
         color: rgba(0, 188, 212, 0.5);
         cursor: pointer;
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 700;
+        white-space: nowrap;
         transition: all 0.15s ease;
         flex-shrink: 0;
         margin-left: 4px;
     `;
-    semanticBtn.textContent = "AI";
+    semanticBtn.textContent = t("search.aiSearch", "AI Search");
 
     const updateSemanticStyle = () => {
         if (semanticMode) {

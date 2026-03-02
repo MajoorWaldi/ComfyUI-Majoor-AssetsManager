@@ -209,7 +209,7 @@ async def build_services(db_path: str | None = None) -> Result[dict]:
         settings_service,
     )
     # Attach vector services to IndexService for automatic background embedding.
-    if "vector_service" in services:
+    if "vector_service" in services and callable(getattr(index_service, "set_vector_services", None)):
         index_service.set_vector_services(
             services["vector_service"],
             services.get("vector_searcher"),
