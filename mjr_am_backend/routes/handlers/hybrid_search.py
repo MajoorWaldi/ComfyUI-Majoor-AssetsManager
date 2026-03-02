@@ -119,7 +119,7 @@ def _reciprocal_rank_fusion(
 
 
 async def _run_fts_search(
-    db: Any,
+    db: Any | None,
     clean_q: str,
     filters: dict[str, Any],
     scope: str,
@@ -127,6 +127,8 @@ async def _run_fts_search(
     top_k: int,
 ) -> list[dict[str, Any]]:
     """Run FTS search with filter constraints, return [{asset_id, score}]."""
+    if db is None:
+        return []
     try:
         where: list[str] = ["a.source = ?"]
         params: list[Any] = [scope]
@@ -220,6 +222,7 @@ def register_hybrid_search_routes(routes: web.RouteTableDef) -> None:
         services, err = await _require_services()
         if err:
             return _json_response(err)
+        services_dict = services if isinstance(services, dict) else {}
 
         raw_q = (request.query.get("q") or "").strip()
         scope = (request.query.get("scope") or "output").strip()
@@ -233,8 +236,8 @@ def register_hybrid_search_routes(routes: web.RouteTableDef) -> None:
 
         clean_q, inline_filters = _parse_query_filters(raw_q)
 
-        db = services.get("db")
-        searcher = services.get("vector_searcher")
+        db = services_dict.get("db")
+        searcher = services_dict.get("vector_searcher")
 
         # Run FTS and semantic in parallel
         fts_coro = _run_fts_search(db, clean_q, inline_filters, scope, custom_root_id, top_k * 2)
@@ -266,5 +269,5 @@ def register_hybrid_search_routes(routes: web.RouteTableDef) -> None:
 
         merged = merged[:top_k]
 
-        hydrated = await _hydrate_vector_results(services, Result.Ok(merged))
+        hydrated = await _hydrate_vector_results(services_dict, Result.Ok(merged))
         return _json_response(hydrated)

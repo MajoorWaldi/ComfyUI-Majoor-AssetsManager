@@ -21,12 +21,13 @@ Design notes
 from __future__ import annotations
 
 import asyncio
+import datetime as dt
 import io
 import struct
 import subprocess
 from collections.abc import Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from ...config import (
     FFPROBE_BIN,
@@ -158,6 +159,9 @@ class VectorService:
         self._model: SentenceTransformer | None = None
         self._lock = asyncio.Lock()
         self._dim = VECTOR_EMBEDDING_DIM
+        self._last_error: str = ""
+        self._last_error_at: str | None = None
+        self._error_count: int = 0
 
     # ── Model lifecycle ────────────────────────────────────────────────
 
@@ -178,12 +182,66 @@ class VectorService:
             if self._model is not None:
                 return self._model
             self._model = await asyncio.to_thread(self._load_model)
-            self._dim = self._model.get_sentence_embedding_dimension()
+            parsed_dim = self._model.get_sentence_embedding_dimension()
+            self._dim = int(parsed_dim) if parsed_dim is not None else int(VECTOR_EMBEDDING_DIM)
             return self._model
 
     @property
     def dim(self) -> int:
         return self._dim
+
+    def _record_error(self, message: str) -> None:
+        self._last_error = str(message or "").strip()
+        self._last_error_at = dt.datetime.now(dt.timezone.utc).isoformat()
+        self._error_count = int(self._error_count or 0) + 1
+
+    def _clear_error(self) -> None:
+        self._last_error = ""
+        self._last_error_at = None
+
+    def get_runtime_status(self) -> dict[str, Any]:
+        return {
+            "model_name": self._model_name,
+            "loaded": bool(self._model is not None),
+            "dim": int(self._dim),
+            "last_error": self._last_error or None,
+            "last_error_at": self._last_error_at,
+            "error_count": int(self._error_count or 0),
+            "degraded": bool(self._last_error),
+        }
+
+    def _truncate_text_for_model(self, model: SentenceTransformer, text: str) -> str:
+        cleaned = " ".join(str(text or "").split()).strip()
+        if not cleaned:
+            return ""
+
+        max_len: int | None = 77
+        try:
+            max_len = int(getattr(model, "max_seq_length", 77) or 77)
+        except Exception:
+            max_len = 77
+
+        try:
+            first_module_getter = getattr(model, "_first_module", None)
+            first_module = first_module_getter() if callable(first_module_getter) else None
+            tokenizer = getattr(first_module, "tokenizer", None)
+            if tokenizer is not None:
+                token_ids = tokenizer.encode(
+                    cleaned,
+                    add_special_tokens=True,
+                    truncation=True,
+                    max_length=max(4, int(max_len or 77)),
+                )
+                decoded = tokenizer.decode(token_ids, skip_special_tokens=True).strip()
+                if decoded:
+                    return decoded
+        except Exception:
+            pass
+
+        words = cleaned.split()
+        if len(words) > 60:
+            return " ".join(words[:60])
+        return cleaned
 
     # ── Image embeddings ───────────────────────────────────────────────
 
@@ -209,10 +267,14 @@ class VectorService:
 
         try:
             model = await self._ensure_model()
-            vec = await asyncio.to_thread(lambda: model.encode(img, convert_to_numpy=True))
+            vec = await asyncio.to_thread(
+                lambda: model.encode(cast(Any, img), convert_to_numpy=True, show_progress_bar=False)
+            )
+            self._clear_error()
             return Result.Ok(_normalise_vector(vec))
         except Exception as exc:
-            logger.warning("Image embedding failed for %s: %s", path.name, exc)
+            self._record_error(f"Image embedding failed for {path.name}: {exc}")
+            logger.debug("Image embedding failed for %s: %s", path.name, exc)
             return Result.Err("METADATA_FAILED", f"Embedding failed: {exc}")
 
     # ── Text embeddings ────────────────────────────────────────────────
@@ -223,10 +285,29 @@ class VectorService:
             return Result.Err("INVALID_INPUT", "Text query cannot be empty")
         try:
             model = await self._ensure_model()
-            vec = await asyncio.to_thread(lambda: model.encode(text.strip(), convert_to_numpy=True))
+            safe_text = self._truncate_text_for_model(model, text)
+            vec = await asyncio.to_thread(
+                lambda: model.encode(safe_text, convert_to_numpy=True, show_progress_bar=False)
+            )
+            self._clear_error()
             return Result.Ok(_normalise_vector(vec))
         except Exception as exc:
-            logger.warning("Text embedding failed: %s", exc)
+            message = str(exc)
+            if "max_position_embeddings" in message or "sequence length" in message.lower():
+                try:
+                    model = await self._ensure_model()
+                    shorter = " ".join(str(text or "").split()[:40]).strip()
+                    vec_retry = await asyncio.to_thread(
+                        lambda: model.encode(shorter, convert_to_numpy=True, show_progress_bar=False)
+                    )
+                    self._clear_error()
+                    return Result.Ok(_normalise_vector(vec_retry))
+                except Exception as retry_exc:
+                    self._record_error(f"Text embedding failed: {retry_exc}")
+                    logger.debug("Text embedding failed after truncation retry: %s", retry_exc)
+                    return Result.Err("METADATA_FAILED", f"Text embedding failed: {retry_exc}")
+            self._record_error(f"Text embedding failed: {exc}")
+            logger.debug("Text embedding failed: %s", exc)
             return Result.Err("METADATA_FAILED", f"Text embedding failed: {exc}")
 
     # ── Batch embeddings ──────────────────────────────────────────────
@@ -270,14 +351,23 @@ class VectorService:
             sub_idx = batch_indices[start : start + VECTOR_BATCH_SIZE]
             try:
                 vecs = await asyncio.to_thread(
-                    lambda s=sub: model.encode(s, convert_to_numpy=True, batch_size=len(s))
+                    lambda s=sub: model.encode(
+                        cast(Any, s),
+                        convert_to_numpy=True,
+                        batch_size=len(s),
+                        show_progress_bar=False,
+                    )
                 )
                 for i, vec in zip(sub_idx, vecs, strict=True):
                     results[i] = Result.Ok(_normalise_vector(vec))
             except Exception as exc:
-                logger.warning("Batch embedding failed (batch %d): %s", start, exc)
+                self._record_error(f"Batch embedding failed (batch {start}): {exc}")
+                logger.debug("Batch embedding failed (batch %d): %s", start, exc)
                 for i in sub_idx:
                     results[i] = Result.Err("METADATA_FAILED", f"Batch embedding failed: {exc}")
+
+        if any(bool(r.ok) for r in results):
+            self._clear_error()
 
         return results
 
@@ -298,12 +388,19 @@ class VectorService:
 
             model = await self._ensure_model()
             vecs = await asyncio.to_thread(
-                lambda: model.encode(frames, convert_to_numpy=True, batch_size=min(len(frames), VECTOR_BATCH_SIZE))
+                lambda: model.encode(
+                    cast(Any, frames),
+                    convert_to_numpy=True,
+                    batch_size=min(len(frames), VECTOR_BATCH_SIZE),
+                    show_progress_bar=False,
+                )
             )
             mean_vec = np.mean(vecs, axis=0)
+            self._clear_error()
             return Result.Ok(_normalise_vector(mean_vec))
         except Exception as exc:
-            logger.warning("Video embedding failed for %s: %s", path.name, exc)
+            self._record_error(f"Video embedding failed for {path.name}: {exc}")
+            logger.debug("Video embedding failed for %s: %s", path.name, exc)
             return Result.Err("METADATA_FAILED", f"Video embedding failed: {exc}")
 
     # ── Similarity helpers ─────────────────────────────────────────────

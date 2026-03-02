@@ -234,6 +234,22 @@ def _runtime_status_payload(db: object, index: object, watcher: object) -> dict:
     }
 
 
+def _vector_runtime_diagnostics(svc: dict | None) -> dict:
+    vector_service = (svc or {}).get("vector_service") if isinstance(svc, dict) else None
+    if not vector_service:
+        return {"enabled": False, "loaded": False, "degraded": False, "last_error": None}
+    try:
+        getter = getattr(vector_service, "get_runtime_status", None)
+        payload = getter() if callable(getter) else {}
+        if isinstance(payload, dict):
+            payload.setdefault("enabled", True)
+            payload.setdefault("degraded", False)
+            return payload
+    except Exception:
+        pass
+    return {"enabled": True, "loaded": True, "degraded": False, "last_error": None}
+
+
 def register_health_routes(routes: web.RouteTableDef) -> None:
     """Register health and diagnostics routes."""
     async def _runtime_output_root(svc: dict | None) -> str:
@@ -263,6 +279,16 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
                 ErrorCode.DEGRADED,
                 sanitize_error_message(exc, "Health status failed"),
             )
+
+        if result.ok and isinstance(result.data, dict):
+            vector_diag = _vector_runtime_diagnostics(svc if isinstance(svc, dict) else None)
+            result.data["vector"] = vector_diag
+            try:
+                overall = str(result.data.get("overall") or "healthy")
+                if bool(vector_diag.get("degraded")) and overall == "healthy":
+                    result.data["overall"] = "degraded"
+            except Exception:
+                pass
         return _json_response(result)
 
     @routes.get("/mjr/am/health/counters")
@@ -382,12 +408,21 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
             available = False
             error = sanitize_error_message(exc, "DB liveness check failed")
 
+        vector_diag = _vector_runtime_diagnostics(svc if isinstance(svc, dict) else None)
+        overall = "healthy"
+        if not available:
+            overall = "unhealthy"
+        elif bool(vector_diag.get("degraded")):
+            overall = "degraded"
+
         return _json_response(
             Result.Ok(
                 {
                     "available": available,
                     "error": error,
                     "diagnostics": diagnostics,
+                    "vector": vector_diag,
+                    "overall": overall,
                 }
             )
         )

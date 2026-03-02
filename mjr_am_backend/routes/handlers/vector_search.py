@@ -23,6 +23,10 @@ _VECTOR_RATE_LIMIT_MAX = 30
 _VECTOR_RATE_LIMIT_WINDOW = 60
 
 
+def _services_dict(services: dict[str, Any] | None) -> dict[str, Any]:
+    return services if isinstance(services, dict) else {}
+
+
 def _require_vector_services(services: dict[str, Any]):
     """Return (vector_searcher, error_response | None)."""
     if not is_vector_search_enabled():
@@ -172,8 +176,9 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         services, err = await _require_services()
         if err:
             return _json_response(err)
+        services_dict = _services_dict(services)
 
-        searcher, verr = _require_vector_services(services)
+        searcher, verr = _require_vector_services(services_dict)
         if verr:
             return verr
 
@@ -191,7 +196,7 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
 
         # Hydrate results with full asset data for grid rendering
         if result.ok and result.data:
-            result = await _hydrate_vector_results(services, result)
+            result = await _hydrate_vector_results(services_dict, result)
 
         return _json_response(result)
 
@@ -218,8 +223,9 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         services, err = await _require_services()
         if err:
             return _json_response(err)
+        services_dict = _services_dict(services)
 
-        searcher, verr = _require_vector_services(services)
+        searcher, verr = _require_vector_services(services_dict)
         if verr:
             return verr
 
@@ -238,7 +244,7 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
 
         # Hydrate results with full asset data for grid rendering
         if result.ok and result.data:
-            result = await _hydrate_vector_results(services, result)
+            result = await _hydrate_vector_results(services_dict, result)
 
         return _json_response(result)
 
@@ -250,8 +256,9 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         services, err = await _require_services()
         if err:
             return _json_response(err)
+        services_dict = _services_dict(services)
 
-        searcher, verr = _require_vector_services(services)
+        searcher, verr = _require_vector_services(services_dict)
         if verr:
             return verr
 
@@ -271,8 +278,9 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         services, err = await _require_services()
         if err:
             return _json_response(err)
+        services_dict = _services_dict(services)
 
-        vs = services.get("vector_service")
+        vs = services_dict.get("vector_service")
         if vs is None:
             return _json_response(
                 Result.Err("SERVICE_UNAVAILABLE", "Vector search is not enabled.")
@@ -283,7 +291,9 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         except (ValueError, KeyError):
             return _json_response(Result.Err("INVALID_INPUT", "Invalid asset_id"))
 
-        db = services["db"]
+        db = services_dict.get("db")
+        if db is None:
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Database service unavailable"))
         row = await db.aquery(
             "SELECT filepath, kind FROM assets WHERE id = ?", (asset_id,)
         )
@@ -298,7 +308,7 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         result = await index_asset_vector(db, vs, asset_id, filepath, kind)
 
         # Invalidate in-memory Faiss index
-        searcher = services.get("vector_searcher")
+        searcher = services_dict.get("vector_searcher")
         if searcher:
             searcher.invalidate()
 
@@ -312,8 +322,9 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         services, err = await _require_services()
         if err:
             return _json_response(err)
+        services_dict = _services_dict(services)
 
-        searcher, verr = _require_vector_services(services)
+        searcher, verr = _require_vector_services(services_dict)
         if verr:
             return verr
 
@@ -328,6 +339,7 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         services, err = await _require_services()
         if err:
             return _json_response(err)
+        services_dict = _services_dict(services)
 
         try:
             asset_id = int(request.match_info["asset_id"])
@@ -336,7 +348,9 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
 
         import json as _json
 
-        db = services.get("db")
+        db = services_dict.get("db")
+        if db is None:
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Database service unavailable"))
         row = await db.aquery(
             "SELECT auto_tags FROM asset_embeddings WHERE asset_id = ?", (asset_id,)
         )
@@ -370,8 +384,9 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         services, err = await _require_services()
         if err:
             return _json_response(err)
+        services_dict = _services_dict(services)
 
-        searcher, verr = _require_vector_services(services)
+        searcher, verr = _require_vector_services(services_dict)
         if verr:
             return verr
 
@@ -382,7 +397,9 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
             k = 8
         k = max(2, min(20, k))
 
-        db = services.get("db")
+        db = services_dict.get("db")
+        if db is None:
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Database service unavailable"))
 
         rows = await db.aquery(
             "SELECT ae.asset_id, ae.vector, ae.auto_tags "

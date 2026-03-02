@@ -17,7 +17,7 @@ from typing import Any
 
 from aiohttp import web
 from mjr_am_backend.config import INDEX_DB_PATH, get_runtime_output_root, is_vector_search_enabled
-from mjr_am_backend.shared import Result, get_logger
+from mjr_am_backend.shared import FileKind, Result, get_logger
 
 from ..core import (
     _csrf_error,
@@ -335,7 +335,7 @@ async def _backfill_missing_asset_vectors(
             candidates += 1
 
             filepath = str(row.get("filepath") or "").strip()
-            kind = str(row.get("kind") or "image").strip() or "image"
+            kind: FileKind = "image"
             raw = row.get("metadata_raw")
             metadata_raw: dict[str, Any] | None = None
             if isinstance(raw, dict):
