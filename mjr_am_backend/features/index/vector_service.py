@@ -27,6 +27,7 @@ import io
 import os
 import struct
 import subprocess
+import time
 from collections.abc import Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
@@ -169,6 +170,8 @@ class VectorService:
         self._last_error: str = ""
         self._last_error_at: str | None = None
         self._error_count: int = 0
+        self._truncation_log_window_start: float = 0.0
+        self._truncation_log_count: int = 0
 
     # ── Model lifecycle ────────────────────────────────────────────────
 
@@ -221,6 +224,31 @@ class VectorService:
             "degraded": bool(self._last_error),
         }
 
+    def _log_text_truncation(self, original: str, truncated: str, reason: str) -> None:
+        if not original or not truncated:
+            return
+        if original == truncated:
+            return
+
+        now = time.monotonic()
+        if (now - self._truncation_log_window_start) > 10.0:
+            self._truncation_log_window_start = now
+            self._truncation_log_count = 0
+        if self._truncation_log_count >= 8:
+            return
+        self._truncation_log_count += 1
+
+        preview = " ".join(str(original).split())[:180]
+        logger.warning(
+            "CLIP text truncated (%s): chars %d→%d, words %d→%d, preview='%s'",
+            str(reason or "unknown"),
+            len(original),
+            len(truncated),
+            len(original.split()),
+            len(truncated.split()),
+            preview,
+        )
+
     def _truncate_text_for_model(self, model: SentenceTransformer, text: str) -> str:
         cleaned = " ".join(str(text or "").split()).strip()
         if not cleaned:
@@ -233,10 +261,21 @@ class VectorService:
             max_len = 77
 
         tokenizer_max_len: int | None = None
+        tokenizer: Any | None = None
         try:
             first_module_getter = getattr(model, "_first_module", None)
             first_module = first_module_getter() if callable(first_module_getter) else None
             tokenizer = getattr(first_module, "tokenizer", None)
+            if tokenizer is None:
+                tokenizer = getattr(model, "tokenizer", None)
+            if tokenizer is None:
+                modules_getter = getattr(model, "_modules", None)
+                modules_obj = modules_getter() if callable(modules_getter) else None
+                if isinstance(modules_obj, dict):
+                    for module in modules_obj.values():
+                        tokenizer = getattr(module, "tokenizer", None)
+                        if tokenizer is not None:
+                            break
             if tokenizer is not None:
                 try:
                     raw_tok_max = int(getattr(tokenizer, "model_max_length", 0) or 0)
@@ -249,6 +288,18 @@ class VectorService:
                 if tokenizer_max_len is not None:
                     effective_max_len = max(4, min(effective_max_len, int(tokenizer_max_len)))
 
+                full_token_len: int | None = None
+                try:
+                    full_token_len = len(
+                        tokenizer.encode(
+                            cleaned,
+                            add_special_tokens=True,
+                            truncation=False,
+                        )
+                    )
+                except Exception:
+                    full_token_len = None
+
                 token_ids = tokenizer.encode(
                     cleaned,
                     add_special_tokens=True,
@@ -257,13 +308,29 @@ class VectorService:
                 )
                 decoded = tokenizer.decode(token_ids, skip_special_tokens=True).strip()
                 if decoded:
+                    if full_token_len is not None and full_token_len > effective_max_len:
+                        self._log_text_truncation(
+                            cleaned,
+                            decoded,
+                            f"token_limit {full_token_len}>{effective_max_len}",
+                        )
                     return decoded
         except Exception:
             pass
 
+        # Strong fallback when tokenizer is unavailable: clamp both words and characters.
+        # This prevents extremely long metadata prompts from reaching CLIP with >77 tokens.
+        char_budget = 220
+        original_for_fallback = cleaned
+        if len(cleaned) > char_budget:
+            cleaned = cleaned[:char_budget].rsplit(" ", 1)[0].strip() or cleaned[:char_budget].strip()
+            self._log_text_truncation(original_for_fallback, cleaned, f"char_budget>{char_budget}")
+
         words = cleaned.split()
-        if len(words) > 40:
-            return " ".join(words[:40])
+        if len(words) > 24:
+            shortened = " ".join(words[:24])
+            self._log_text_truncation(cleaned, shortened, "word_budget>24")
+            return shortened
         return cleaned
 
     def _text_retry_candidates(self, model: SentenceTransformer, text: str) -> list[str]:
