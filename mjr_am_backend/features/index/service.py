@@ -83,6 +83,56 @@ async def _update_path_keyed_index_tables(db, old_fp: str, new_fp: str, subfolde
     return Result.Ok(True)
 
 
+async def _bg_vector_index(
+    db: Sqlite,
+    vector_service: Any,
+    vector_searcher: Any | None,
+    asset_ids: list[int],
+) -> None:
+    """Background task: compute CLIP embeddings for newly-indexed assets (fire-and-forget)."""
+    if not asset_ids or vector_service is None:
+        return
+    try:
+        import json as _json
+        placeholders = ",".join("?" for _ in asset_ids)
+        rows = await db.aquery(
+            f"SELECT a.id, a.filepath, a.kind, m.metadata_raw "
+            f"FROM assets a "
+            f"LEFT JOIN asset_metadata m ON a.id = m.asset_id "
+            f"WHERE a.id IN ({placeholders})",
+            tuple(asset_ids),
+        )
+        if not rows.ok or not rows.data:
+            return
+        entries = []
+        for r in rows.data:
+            if r.get("kind") not in ("image", "video"):
+                continue
+            raw = r.get("metadata_raw")
+            meta = None
+            if raw:
+                try:
+                    meta = _json.loads(raw) if isinstance(raw, str) else raw
+                except Exception:
+                    meta = None
+            entries.append({
+                "asset_id": int(r["id"]),
+                "filepath": r["filepath"],
+                "kind": r["kind"],
+                "metadata_raw": meta,
+            })
+        if not entries:
+            return
+        from .vector_indexer import index_assets_vector_batch
+        result = await index_assets_vector_batch(db, vector_service, entries)
+        if vector_searcher is not None:
+            vector_searcher.invalidate()
+        if result.ok:
+            logger.debug("Vector batch indexed %d assets: %s", len(entries), result.data)
+    except Exception as exc:
+        logger.debug("Background vector indexing failed: %s", exc)
+
+
 class IndexService:
     """
     Handles file indexing and search operations.
@@ -102,6 +152,8 @@ class IndexService:
         self.metadata = metadata_service
         self._scan_lock = asyncio.Lock()
         self._has_tags_text_column = has_tags_text_column
+        self._vector_service: Any | None = None
+        self._vector_searcher: Any | None = None
         logger.debug("asset_metadata.tags_text column available: %s", self._has_tags_text_column)
 
         # Initialize specialized components
@@ -115,6 +167,11 @@ class IndexService:
             MetadataHelpers.prepare_metadata_fields,
             MetadataHelpers.metadata_error_payload,
         )
+
+    def set_vector_services(self, vector_service: Any, vector_searcher: Any | None = None) -> None:
+        """Attach CLIP vector services for automatic background embedding on index."""
+        self._vector_service = vector_service
+        self._vector_searcher = vector_searcher
 
     # ==================== Scanning Operations ====================
 
@@ -238,6 +295,16 @@ class IndexService:
                 except Exception as e:
                     logger.warning("Failed to emit mjr-asset-added events: %s", e)
             mark_directory_indexed(base_dir, source, root_id)
+            # Fire-and-forget background CLIP embedding for newly-indexed assets.
+            if added_ids and self._vector_service is not None:
+                asyncio.create_task(
+                    _bg_vector_index(
+                        self.db,
+                        self._vector_service,
+                        self._vector_searcher,
+                        list(added_ids),
+                    )
+                )
         return res
 
     async def remove_file(self, filepath: str) -> Result[bool]:

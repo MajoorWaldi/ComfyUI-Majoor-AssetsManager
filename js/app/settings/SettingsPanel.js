@@ -23,7 +23,13 @@ import { initI18n, setFollowComfyLanguage, startComfyLanguageSync } from "../i18
 import { debounce } from "../../utils/debounce.js";
 import { getWatcherStatus, toggleWatcher } from "../../api/client.js";
 
-import { loadMajoorSettings, saveMajoorSettings, applySettingsToConfig, syncBackendSecuritySettings } from "./settingsCore.js";
+import {
+    loadMajoorSettings,
+    saveMajoorSettings,
+    applySettingsToConfig,
+    syncBackendSecuritySettings,
+    syncBackendVectorSearchSettings,
+} from "./settingsCore.js";
 import { startRuntimeStatusDashboard } from "./settingsRuntime.js";
 import { registerGridSettings } from "./settingsGrid.js";
 import { registerViewerSettings } from "./settingsViewer.js";
@@ -70,6 +76,7 @@ export const registerMajoorSettings = (app, onApplied) => {
     applySettingsToConfig(settings);
     startComfyLanguageSync(app);
     void syncBackendSecuritySettings();
+    void syncBackendVectorSearchSettings();
 
     const pendingKeys = new Set();
     const pendingColorKeys = new Set();

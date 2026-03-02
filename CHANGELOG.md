@@ -5,6 +5,7 @@ All notable changes to this project are documented in this file.
 ## [Nightly Build]
 
 ### Added
+- Added CLIP-based semantic search engine with AI toggle, prompt alignment scoring in GenInfo panel, smart collection suggestions, and auto-tagging pipeline
 - Added support for rgthree and easy use custom node parsing
 
 ### Fixed

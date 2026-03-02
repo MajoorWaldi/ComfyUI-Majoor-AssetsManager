@@ -15,6 +15,7 @@ from mjr_am_backend.shared import Result, get_logger
 from .core import _json_response, _require_authenticated_user
 from .handlers import (
     register_asset_routes,
+    register_audit_routes,
     register_batch_zip_routes,
     register_calendar_routes,
     register_collections_routes,
@@ -23,10 +24,12 @@ from .handlers import (
     register_download_routes,
     register_duplicates_routes,
     register_health_routes,
+    register_hybrid_search_routes,
     register_metadata_routes,
     register_releases_routes,
     register_scan_routes,
     register_search_routes,
+    register_vector_search_routes,
     register_version_routes,
     register_viewer_routes,
 )
@@ -324,7 +327,28 @@ def register_all_routes() -> web.RouteTableDef:
         logger.info("  GET /mjr/am/download (Added)")
     except Exception as e:
         logger.error(f"Failed to register download routes: {e}")
-
+    # Vector / semantic search routes (CLIP)
+    try:
+        register_vector_search_routes(routes)
+        logger.info("  GET /mjr/am/vector/search (Added)")
+        logger.info("  GET /mjr/am/vector/similar/{asset_id} (Added)")
+        logger.info("  GET /mjr/am/vector/alignment/{asset_id} (Added)")
+        logger.info("  GET /mjr/am/vector/auto-tags/{asset_id} (Added)")
+        logger.info("  GET /mjr/am/vector/stats (Added)")
+        logger.info("  POST /mjr/am/vector/index/{asset_id} (Added)")
+        logger.info("  POST /mjr/am/vector/suggest-collections (Added)")
+    except Exception as e:
+        logger.error(f"Failed to register vector search routes: {e}")
+    try:
+        register_hybrid_search_routes(routes)
+        logger.info("  GET /mjr/am/search/hybrid (Added)")
+    except Exception as e:
+        logger.error(f"Failed to register hybrid search routes: {e}")
+    try:
+        register_audit_routes(routes)
+        logger.info("  GET /mjr/am/audit (Added)")
+    except Exception as e:
+        logger.error(f"Failed to register audit routes: {e}")
     logger.info("=" * 60)
     logger.info("Routes registered:")
     logger.info("  GET /mjr/am/health")

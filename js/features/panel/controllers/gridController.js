@@ -1,3 +1,5 @@
+import { vectorSearch, hybridSearch, getAuditAssets } from "../../../api/client.js";
+
 export function createGridController({ gridContainer, loadAssets, loadAssetsFromList, getCollectionAssets, disposeGrid, getQuery, state }) {
     let _isReloading = false;
     let _pendingReload = false;
@@ -18,6 +20,95 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
         } finally {
             if (timer) clearTimeout(timer);
         }
+    };
+
+    /**
+     * Check if semantic / AI mode is active on the search input.
+     */
+    const _isSemanticMode = () => {
+        try {
+            const input = gridContainer?.closest?.(".mjr-am-panel")?.querySelector?.("#mjr-search-input");
+            return input?.dataset?.mjrSemanticMode === "1";
+        } catch { return false; }
+    };
+
+    /**
+     * Check if audit mode is active on the search input.
+     */
+    const _isAuditMode = () => {
+        try {
+            const input = gridContainer?.closest?.(".mjr-am-panel")?.querySelector?.("#mjr-search-input");
+            return input?.dataset?.mjrAuditMode === "1";
+        } catch { return false; }
+    };
+
+    /**
+     * Load assets using hybrid search when in semantic mode, with fallback chain:
+     * hybridSearch → vectorSearch (pure semantic) → FTS.
+     */
+    const _loadWithSemanticFallback = async (query) => {
+        const q = String(query || "").trim();
+        const looksNaturalLanguage =
+            q.length >= 12 &&
+            q.includes(" ") &&
+            q !== "*" &&
+            !/[a-z]+\s*:/i.test(q);
+
+        if (_isSemanticMode() && q && q !== "*") {
+            // Try hybrid search first (FTS + semantic via RRF)
+            try {
+                const hybRes = await hybridSearch(q, {
+                    topK: 100,
+                    scope: state.scope || "output",
+                    customRootId: state.customRootId || "",
+                });
+                if (hybRes?.ok && Array.isArray(hybRes.data) && hybRes.data.length > 0) {
+                    return await loadAssetsFromList(gridContainer, hybRes.data, {
+                        title: `AI Search: "${q}" (${hybRes.data.length} results)`,
+                        reset: true,
+                    });
+                }
+            } catch (err) {
+                console.debug?.("[Majoor] Hybrid search failed, trying pure semantic", err);
+            }
+            // Fallback to pure vector search
+            try {
+                const vecRes = await vectorSearch(q, 100);
+                if (vecRes?.ok && Array.isArray(vecRes.data) && vecRes.data.length > 0) {
+                    return await loadAssetsFromList(gridContainer, vecRes.data, {
+                        title: `AI Search: "${q}" (${vecRes.data.length} results)`,
+                        reset: true,
+                    });
+                }
+                // Empty vector results → fall through to normal FTS search
+            } catch (err) {
+                console.debug?.("[Majoor] Semantic search failed, falling back to FTS", err);
+            }
+        }
+        const ftsResult = await loadAssets(gridContainer, query);
+
+        if (looksNaturalLanguage) {
+            const count = Number(ftsResult?.count || 0) || 0;
+            if (count === 0) {
+                try {
+                    const hybRes = await hybridSearch(q, {
+                        topK: 100,
+                        scope: state.scope || "output",
+                        customRootId: state.customRootId || "",
+                    });
+                    if (hybRes?.ok && Array.isArray(hybRes.data) && hybRes.data.length > 0) {
+                        return await loadAssetsFromList(gridContainer, hybRes.data, {
+                            title: `AI Fallback: "${q}" (${hybRes.data.length} results)`,
+                            reset: true,
+                        });
+                    }
+                } catch (err) {
+                    console.debug?.("[Majoor] Automatic AI fallback failed", err);
+                }
+            }
+        }
+
+        return ftsResult;
     };
 
     const runReloadOnce = async () => {
@@ -83,7 +174,34 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
             state.collectionName = "";
         }
 
-        const result = await loadAssets(gridContainer, getQuery());
+        // Audit mode: show incomplete/low-quality assets
+        if (_isAuditMode()) {
+            try {
+                const auditRes = await getAuditAssets({
+                    filter: "incomplete",
+                    sort: "alignment_asc",
+                    scope: state.scope || "output",
+                    customRootId: state.customRootId || "",
+                    limit: 200,
+                });
+                if (auditRes?.ok && Array.isArray(auditRes.data)) {
+                    const result = await loadAssetsFromList(gridContainer, auditRes.data, {
+                        title: `Library Audit — ${auditRes.data.length} assets need attention`,
+                        reset: true,
+                    });
+                    try {
+                        state.lastGridCount = Number(result?.count || 0) || 0;
+                        state.lastGridTotal = Number(result?.total || 0) || 0;
+                        gridContainer.dispatchEvent?.(new CustomEvent("mjr:grid-stats", { detail: result || {} }));
+                    } catch (e) { console.debug?.(e); }
+                    return;
+                }
+            } catch (err) {
+                console.debug?.("[Majoor] Audit load failed, falling back to normal search", err);
+            }
+        }
+
+        const result = await _loadWithSemanticFallback(getQuery());
         
         // Track search query timing if timer was started
         try {

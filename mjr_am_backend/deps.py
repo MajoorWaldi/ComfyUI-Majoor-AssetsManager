@@ -17,6 +17,7 @@ from .config import (
     FFPROBE_BIN,
     FFPROBE_TIMEOUT,
     INDEX_DB,
+    is_vector_search_enabled,
     WATCHER_ENABLED,
     initialize_directories,
 )
@@ -80,7 +81,7 @@ def _build_services_dict(
     index_service: IndexService,
     settings_service: AppSettings,
 ) -> dict:
-    return {
+    services: dict = {
         "db": db,
         "exiftool": exiftool,
         "ffprobe": ffprobe,
@@ -90,6 +91,19 @@ def _build_services_dict(
         "settings": settings_service,
         "duplicates": DuplicatesService(db),
     }
+    # ── Vector / CLIP search (opt-in) ──────────────────────────────────
+    if is_vector_search_enabled():
+        try:
+            from .features.index.vector_service import VectorService
+            from .features.index.vector_searcher import VectorSearcher
+
+            vs = VectorService()
+            services["vector_service"] = vs
+            services["vector_searcher"] = VectorSearcher(db, vs)
+            log_success(logger, "CLIP vector search enabled")
+        except Exception as exc:
+            logger.warning("CLIP vector search disabled: %s", exc)
+    return services
 
 
 async def _load_watcher_scope_or_default(db: Sqlite) -> dict:
@@ -156,6 +170,10 @@ async def build_services(db_path: str | None = None) -> Result[dict]:
         await settings_service.apply_output_directory_override_on_startup()
     except Exception as exc:
         logger.warning("Output directory override restore failed: %s", exc)
+    try:
+        await settings_service.apply_vector_search_override_on_startup()
+    except Exception as exc:
+        logger.warning("Vector search setting restore failed: %s", exc)
 
     _log_tool_availability(exiftool, ffprobe)
 
@@ -190,6 +208,12 @@ async def build_services(db_path: str | None = None) -> Result[dict]:
         index_service,
         settings_service,
     )
+    # Attach vector services to IndexService for automatic background embedding.
+    if "vector_service" in services:
+        index_service.set_vector_services(
+            services["vector_service"],
+            services.get("vector_searcher"),
+        )
     services["watcher_scope"] = await _load_watcher_scope_or_default(db)
     _attach_rating_tags_sync_worker(services, exiftool)
     await _attach_watcher_if_enabled(services, index_service)

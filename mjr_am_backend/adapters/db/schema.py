@@ -8,7 +8,7 @@ from ...shared import Result, get_logger, log_success
 
 logger = get_logger(__name__)
 
-CURRENT_SCHEMA_VERSION = 8
+CURRENT_SCHEMA_VERSION = 10
 # Schema version history (high-level):
 # 1: initial assets + metadata tables
 # 2-4: incremental columns and FTS/search support
@@ -16,6 +16,8 @@ CURRENT_SCHEMA_VERSION = 8
 # 6: asset sources (output/input/custom) + custom root id
 # 7: metadata FTS (tags/metadata_raw) to improve search UX
 # 8: duplicate analysis hashes (content_hash/phash/hash_state)
+# 9: CLIP vector embeddings (asset_embeddings) for semantic search
+# 10: auto_tags in asset_embeddings (AI-suggested tags, kept separate from user tags)
 
 # Schema definition
 SCHEMA_V1 = """
@@ -79,6 +81,16 @@ CREATE TABLE IF NOT EXISTS metadata_cache (
     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (filepath) REFERENCES assets(filepath) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS asset_embeddings (
+    asset_id INTEGER PRIMARY KEY,
+    vector BLOB,
+    aesthetic_score REAL,
+    auto_tags TEXT DEFAULT '[]',  -- AI-suggested tags (JSON array), separate from user tags
+    model_name TEXT DEFAULT '',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
+);
 """
 
 # Migration from v1 to v2: Add metadata_raw column
@@ -120,6 +132,13 @@ COLUMN_DEFINITIONS = {
         ("metadata_hash", "metadata_hash TEXT"),
         ("metadata_raw", "metadata_raw TEXT DEFAULT '{}'"),
         ("last_updated", "last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
+    ],
+    "asset_embeddings": [
+        ("vector", "vector BLOB"),
+        ("aesthetic_score", "aesthetic_score REAL"),
+        ("auto_tags", "auto_tags TEXT DEFAULT '[]'"),
+        ("model_name", "model_name TEXT DEFAULT ''"),
+        ("updated_at", "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
     ],
 }
 
@@ -193,7 +212,7 @@ END;
 """
 
 _SAFE_IDENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
-_SAFE_COLUMN_DEF_SUFFIX_RE = re.compile(r"^[A-Za-z0-9_(),{}'\s]+$")
+_SAFE_COLUMN_DEF_SUFFIX_RE = re.compile(r"^[A-Za-z0-9_(),{}\[\]'\s]+$")
 
 
 def _is_safe_identifier(value: str) -> bool:

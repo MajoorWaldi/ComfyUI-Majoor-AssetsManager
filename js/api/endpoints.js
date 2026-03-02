@@ -40,6 +40,7 @@ export const ENDPOINTS = {
     TOOLS_STATUS: "/mjr/am/tools/status",
     SETTINGS_OUTPUT_DIRECTORY: "/mjr/am/settings/output-directory",
     SETTINGS_METADATA_FALLBACK: "/mjr/am/settings/metadata-fallback",
+    SETTINGS_VECTOR_SEARCH: "/mjr/am/settings/vector-search",
 
     // View (ComfyUI native)
     VIEW: "/view",
@@ -83,7 +84,22 @@ export const ENDPOINTS = {
     // DB backup/restore
     DB_BACKUPS: "/mjr/am/db/backups",
     DB_BACKUP_SAVE: "/mjr/am/db/backup-save",
-    DB_BACKUP_RESTORE: "/mjr/am/db/backup-restore"
+    DB_BACKUP_RESTORE: "/mjr/am/db/backup-restore",
+
+    // Vector / Semantic search
+    VECTOR_SEARCH: "/mjr/am/vector/search",
+    VECTOR_SIMILAR: "/mjr/am/vector/similar",
+    VECTOR_ALIGNMENT: "/mjr/am/vector/alignment",
+    VECTOR_AUTO_TAGS: "/mjr/am/vector/auto-tags",
+    VECTOR_INDEX: "/mjr/am/vector/index",
+    VECTOR_STATS: "/mjr/am/vector/stats",
+    VECTOR_SUGGEST_COLLECTIONS: "/mjr/am/vector/suggest-collections",
+
+    // Hybrid search (FTS + semantic)
+    HYBRID_SEARCH: "/mjr/am/search/hybrid",
+
+    // Library audit
+    AUDIT: "/mjr/am/audit"
 };
 
 /**

@@ -778,6 +778,14 @@ export async function setMetadataFallbackSettings({ image, media } = {}) {
     return post(ENDPOINTS.SETTINGS_METADATA_FALLBACK, { image, media });
 }
 
+export async function getVectorSearchSettings() {
+    return get(ENDPOINTS.SETTINGS_VECTOR_SEARCH);
+}
+
+export async function setVectorSearchSettings(enabled = true) {
+    return post(ENDPOINTS.SETTINGS_VECTOR_SEARCH, { enabled: !!enabled });
+}
+
 export async function getOutputDirectorySetting() {
     return get(ENDPOINTS.SETTINGS_OUTPUT_DIRECTORY);
 }
@@ -1050,4 +1058,115 @@ export async function removeFilepathsFromCollection(collectionId, filepaths) {
 export async function getCollectionAssets(collectionId) {
     const id = String(collectionId || "").trim();
     return get(`/mjr/am/collections/${encodeURIComponent(id)}/assets`);
+}
+
+// ── Vector / Semantic Search ──────────────────────────────────────────
+
+/**
+ * Semantic search by natural-language query via CLIP embeddings.
+ * @param {string} query
+ * @param {number} [topK=20]
+ * @returns {Promise<ApiResult<{asset_id:number, score:number}[]>>}
+ */
+export async function vectorSearch(query, topK = 20) {
+    const q = String(query || "").trim();
+    if (!q) return { ok: false, error: "Empty query" };
+    return get(`${ENDPOINTS.VECTOR_SEARCH}?q=${encodeURIComponent(q)}&top_k=${Math.max(1, Math.min(200, topK))}`);
+}
+
+/**
+ * Find visually similar assets to a given asset.
+ * @param {number|string} assetId
+ * @param {number} [topK=20]
+ * @returns {Promise<ApiResult<{asset_id:number, score:number}[]>>}
+ */
+export async function vectorFindSimilar(assetId, topK = 20) {
+    const id = String(assetId || "").trim();
+    if (!id) return { ok: false, error: "Missing asset ID" };
+    return get(`${ENDPOINTS.VECTOR_SIMILAR}/${encodeURIComponent(id)}?top_k=${Math.max(1, Math.min(200, topK))}`);
+}
+
+/**
+ * Retrieve the prompt-alignment score for an asset.
+ * Returns { ok: true, data: number|null } (0.0-1.0, null if N/A).
+ * @param {number|string} assetId
+ * @returns {Promise<ApiResult<number|null>>}
+ */
+export async function vectorGetAlignment(assetId) {
+    const id = String(assetId || "").trim();
+    if (!id) return { ok: false, error: "Missing asset ID" };
+    return get(`${ENDPOINTS.VECTOR_ALIGNMENT}/${encodeURIComponent(id)}`);
+}
+
+/**
+ * Force re-index a single asset's vector embedding.
+ * @param {number|string} assetId
+ * @returns {Promise<ApiResult>}
+ */
+export async function vectorIndexAsset(assetId) {
+    const id = String(assetId || "").trim();
+    if (!id) return { ok: false, error: "Missing asset ID" };
+    return post(`${ENDPOINTS.VECTOR_INDEX}/${encodeURIComponent(id)}`, {});
+}
+
+/**
+ * Retrieve vector index stats.
+ * @returns {Promise<ApiResult<{total:number, avg_score:number|null, model:string}>>}
+ */
+export async function vectorStats() {
+    return get(ENDPOINTS.VECTOR_STATS);
+}
+
+/**
+ * Retrieve AI-suggested (auto-tag) tags for an asset — separate from user tags.
+ * @param {number|string} assetId
+ * @returns {Promise<ApiResult<string[]>>}
+ */
+export async function vectorGetAutoTags(assetId) {
+    const id = String(assetId || "").trim();
+    if (!id) return { ok: false, error: "Missing asset ID" };
+    return get(`${ENDPOINTS.VECTOR_AUTO_TAGS}/${encodeURIComponent(id)}`);
+}
+
+/**
+ * Hybrid FTS + semantic search (Google-like).
+ * Supports inline filters: rating:N  tag:X  kind:image  after:YYYY-MM-DD  ext:png
+ * @param {string} query  Raw search query (filters parsed server-side)
+ * @param {Object} [params]
+ * @param {number} [params.topK=50]
+ * @param {string} [params.scope="output"]
+ * @param {string} [params.customRootId]
+ * @returns {Promise<ApiResult<Array>>}
+ */
+export async function hybridSearch(query, { topK = 50, scope = "output", customRootId = "" } = {}) {
+    const q = String(query || "").trim();
+    if (!q) return { ok: false, error: "Empty query" };
+    let url = `${ENDPOINTS.HYBRID_SEARCH}?q=${encodeURIComponent(q)}&top_k=${Math.max(1, Math.min(200, topK))}&scope=${encodeURIComponent(scope)}`;
+    if (customRootId) url += `&custom_root_id=${encodeURIComponent(customRootId)}`;
+    return get(url);
+}
+
+/**
+ * Fetch assets flagged by the library audit (missing tags, low alignment, etc.).
+ * @param {Object} [params]
+ * @param {string} [params.filter="incomplete"]  "incomplete"|"low_alignment"|"no_tags"|"no_rating"|"no_workflow"
+ * @param {string} [params.sort="alignment_asc"]  "alignment_asc"|"alignment_desc"|"completeness_asc"|"newest"|"oldest"
+ * @param {string} [params.scope="output"]
+ * @param {string} [params.customRootId]
+ * @param {number} [params.limit=200]
+ * @returns {Promise<ApiResult<Array>>}
+ */
+export async function getAuditAssets({ filter = "incomplete", sort = "alignment_asc", scope = "output", customRootId = "", limit = 200 } = {}) {
+    let url = `${ENDPOINTS.AUDIT}?filter=${encodeURIComponent(filter)}&sort=${encodeURIComponent(sort)}&scope=${encodeURIComponent(scope)}&limit=${Math.max(1, Math.min(500, limit))}`;
+    if (customRootId) url += `&custom_root_id=${encodeURIComponent(customRootId)}`;
+    return get(url);
+}
+
+/**
+ * Cluster all indexed embeddings into suggested collections.
+ * @param {number} [k=8]  Number of clusters
+ * @returns {Promise<ApiResult<Array<{cluster_id:number, label:string, size:number, sample_assets:Array, dominant_tags:string[]}>>>}
+ */
+export async function vectorSuggestCollections(k = 8) {
+    return post(ENDPOINTS.VECTOR_SUGGEST_COLLECTIONS, { k: Math.max(2, Math.min(20, k)) });
 }

@@ -4,6 +4,8 @@
 
 import { APP_DEFAULTS } from "../config.js";
 import { t } from "../i18n.js";
+import { comfyToast } from "../toast.js";
+import { setVectorSearchSettings } from "../../api/client.js";
 import { saveMajoorSettings, applySettingsToConfig } from "./settingsCore.js";
 
 const SETTINGS_PREFIX = "Majoor";
@@ -18,6 +20,45 @@ const SETTINGS_CATEGORY = "Majoor Assets Manager";
  */
 export function registerSearchSettings(safeAddSetting, settings, notifyApplied) {
     const cat = (section, label) => [SETTINGS_CATEGORY, section, label];
+
+    safeAddSetting({
+        id: `${SETTINGS_PREFIX}.AI.VectorSearchEnabled`,
+        category: cat(t("cat.search", "Search"), "AI"),
+        name: t("setting.ai.vector.enabled.name", "Enable AI semantic search"),
+        tooltip: t(
+            "setting.ai.vector.enabled.desc",
+            "Enable/disable CLIP vector search features (description search, prompt alignment, AI tag suggestions, smart collections)."
+        ),
+        type: "boolean",
+        defaultValue: !!(settings.ai?.vectorSearchEnabled ?? true),
+        onChange: async (value) => {
+            settings.ai = settings.ai || {};
+            const previous = !!(settings.ai.vectorSearchEnabled ?? true);
+            const next = !!value;
+            settings.ai.vectorSearchEnabled = next;
+            saveMajoorSettings(settings);
+            applySettingsToConfig(settings);
+            notifyApplied("ai.vectorSearchEnabled");
+            try {
+                const res = await setVectorSearchSettings(next);
+                if (!res?.ok) {
+                    settings.ai.vectorSearchEnabled = previous;
+                    saveMajoorSettings(settings);
+                    applySettingsToConfig(settings);
+                    notifyApplied("ai.vectorSearchEnabled");
+                    comfyToast(res?.error || "Failed to update AI vector search setting", "error");
+                    return;
+                }
+                comfyToast(next ? "AI semantic search enabled" : "AI semantic search disabled", "info", 2200);
+            } catch (error) {
+                settings.ai.vectorSearchEnabled = previous;
+                saveMajoorSettings(settings);
+                applySettingsToConfig(settings);
+                notifyApplied("ai.vectorSearchEnabled");
+                comfyToast(error?.message || "Failed to update AI vector search setting", "error");
+            }
+        },
+    });
 
     // ------------------------
     // Search UI setting
@@ -65,6 +106,7 @@ export function registerSearchSettings(safeAddSetting, settings, notifyApplied) 
             "MJR_WATCHER_MAX_FILE_SIZE_BYTES — Max file size to index (default: 512MB)",
             "MJR_WATCHER_FLUSH_MAX_FILES — Max files per flush batch (default: 256)",
             "MJR_WATCHER_PENDING_MAX — Max pending watcher queue (default: 5000)",
+            "MJR_AM_ENABLE_VECTOR_SEARCH — Enable AI vector/semantic search: 1|0 (default: 1)",
             "MAJOOR_SEARCH_MAX_LIMIT — Max search results (default: 500)",
             "MAJOOR_BG_SCAN_ON_LIST — Scan on directory list: 0|1 (default: 0)",
         ].join("\n"),

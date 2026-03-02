@@ -372,3 +372,61 @@ SCAN_BATCH_XL = _env_int(400, "MJR_AM_SCAN_BATCH_XL", "MAJOOR_SCAN_BATCH_XL", mi
 # Scanner limits
 # Hard cap protects UI payload size when many entries are eligible for enrichment.
 MAX_TO_ENRICH_ITEMS = _env_int(10000, "MJR_AM_MAX_TO_ENRICH_ITEMS", "MAJOOR_MAX_TO_ENRICH_ITEMS", min_value=1, max_value=1_000_000)
+
+# ── Vector / CLIP semantic search ──────────────────────────────────────────
+# Enable the whole subsystem with MJR_AM_ENABLE_VECTOR_SEARCH=1
+# (legacy aliases are still accepted for backward compatibility).
+# Default is ON.
+VECTOR_SEARCH_ENABLED = _env_bool(
+    True,
+    "MJR_AM_ENABLE_VECTOR_SEARCH",
+    "MJR_ENABLE_VECTOR_SEARCH",
+    "MAJOOR_ENABLE_VECTOR_SEARCH",
+)
+
+
+def is_vector_search_enabled() -> bool:
+    """Return runtime vector-search enabled state from environment toggles."""
+    return _env_bool(
+        VECTOR_SEARCH_ENABLED,
+        "MJR_AM_ENABLE_VECTOR_SEARCH",
+        "MJR_ENABLE_VECTOR_SEARCH",
+        "MAJOOR_ENABLE_VECTOR_SEARCH",
+    )
+
+# SentenceTransformers model name.  Use any CLIP-compatible model.
+VECTOR_MODEL_NAME = str(
+    _env_raw("MJR_AM_VECTOR_MODEL", "MJR_VECTOR_MODEL", default="clip-ViT-L-14") or "clip-ViT-L-14"
+)
+
+# Directory where the Faiss index file is persisted on disk.
+VECTOR_INDEX_DIR_PATH = INDEX_DIR_PATH / "vectors"
+VECTOR_INDEX_DIR = str(VECTOR_INDEX_DIR_PATH)
+
+# Embedding dimensionality (CLIP ViT-L/14 → 768).
+VECTOR_EMBEDDING_DIM = _env_int(768, "MJR_AM_VECTOR_DIM", min_value=64, max_value=4096)
+
+# Auto-tagging: minimum cosine similarity to assign a tag.
+VECTOR_AUTOTAG_THRESHOLD = _env_float(
+    0.25,
+    "MJR_AM_VECTOR_AUTOTAG_THRESHOLD",
+    min_value=0.0,
+    max_value=1.0,
+)
+
+# Maximum number of similar results returned by "Find Similar".
+VECTOR_SIMILAR_TOPK = _env_int(20, "MJR_AM_VECTOR_SIMILAR_TOPK", min_value=1, max_value=200)
+
+# Number of threads used by Faiss for search (0 = automatic).
+VECTOR_FAISS_NPROBE = _env_int(0, "MJR_AM_VECTOR_FAISS_NPROBE", min_value=0, max_value=128)
+
+# Video key-frame extraction interval in seconds.
+VECTOR_VIDEO_KEYFRAME_INTERVAL = _env_float(
+    5.0,
+    "MJR_AM_VECTOR_KEYFRAME_INTERVAL",
+    min_value=0.5,
+    max_value=60.0,
+)
+
+# Batch size when computing embeddings during a full scan.
+VECTOR_BATCH_SIZE = _env_int(32, "MJR_AM_VECTOR_BATCH_SIZE", min_value=1, max_value=256)
