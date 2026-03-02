@@ -28,6 +28,7 @@ import os
 import struct
 import subprocess
 import time
+import warnings
 from collections.abc import Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
@@ -179,10 +180,30 @@ class VectorService:
         """Synchronous model loading (called inside a thread)."""
         os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
         os.environ.setdefault("TQDM_DISABLE", "1")
+        os.environ.setdefault("TRANSFORMERS_NO_ADVISORY_WARNINGS", "1")
         from sentence_transformers import SentenceTransformer  # noqa: F811
+        from transformers.utils import logging as hf_logging
 
         logger.info("Loading CLIP model '%s' …", self._model_name)
-        model = SentenceTransformer(self._model_name, device=self._device)
+        previous_hf_verbosity = hf_logging.get_verbosity()
+        hf_logging.set_verbosity_error()
+        try:
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    message=r"Using a slow image processor as `use_fast` is unset.*",
+                )
+                try:
+                    model = SentenceTransformer(
+                        self._model_name,
+                        device=self._device,
+                        model_kwargs={"use_fast": False},
+                        tokenizer_kwargs={"use_fast": False},
+                    )
+                except TypeError:
+                    model = SentenceTransformer(self._model_name, device=self._device)
+        finally:
+            hf_logging.set_verbosity(previous_hf_verbosity)
         dim_value = model.get_sentence_embedding_dimension()
         effective_dim = int(dim_value) if dim_value is not None else int(VECTOR_EMBEDDING_DIM)
         logger.info("CLIP model loaded  (dim=%d)", effective_dim)
@@ -290,13 +311,8 @@ class VectorService:
 
                 full_token_len: int | None = None
                 try:
-                    full_token_len = len(
-                        tokenizer.encode(
-                            cleaned,
-                            add_special_tokens=True,
-                            truncation=False,
-                        )
-                    )
+                    token_count = len(tokenizer.tokenize(cleaned))
+                    full_token_len = int(token_count) + 2
                 except Exception:
                     full_token_len = None
 
