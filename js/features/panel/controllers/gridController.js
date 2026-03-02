@@ -53,6 +53,21 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
             q.includes(" ") &&
             q !== "*" &&
             !/[a-z]+\s*:/i.test(q);
+        const shouldAutoAiSearch = looksNaturalLanguage && !_isSemanticMode();
+
+        if (shouldAutoAiSearch && q) {
+            try {
+                const vecRes = await vectorSearch(q, 100);
+                if (vecRes?.ok && Array.isArray(vecRes.data) && vecRes.data.length > 0) {
+                    return await loadAssetsFromList(gridContainer, vecRes.data, {
+                        title: `AI Search: "${q}" (${vecRes.data.length} results)`,
+                        reset: true,
+                    });
+                }
+            } catch (err) {
+                console.debug?.("[Majoor] Automatic AI search failed, falling back to FTS", err);
+            }
+        }
 
         if (_isSemanticMode() && q && q !== "*") {
             // Try hybrid search first (FTS + semantic via RRF)

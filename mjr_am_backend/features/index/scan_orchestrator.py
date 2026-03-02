@@ -43,6 +43,7 @@ async def scan_directory(
     background_metadata: bool = False,
 ) -> Result[dict[str, Any]]:
     to_enrich: list[str] = []
+    added_ids: list[int] = []
     async with scanner._scan_lock:
         dir_path = Path(directory)
         validation_error = validate_scan_directory(dir_path, directory)
@@ -76,6 +77,7 @@ async def scan_directory(
                 fast=fast,
                 stats=stats,
                 to_enrich=to_enrich,
+                added_ids=added_ids,
             )
         finally:
             stats["end_time"] = datetime.now().isoformat()
@@ -106,6 +108,8 @@ async def scan_directory(
 
     if to_enrich:
         stats["to_enrich"] = to_enrich
+    if added_ids:
+        stats["added_ids"] = added_ids
 
     logger.debug(
         "Scan complete: %s added, %s updated, %s skipped, %s errors",

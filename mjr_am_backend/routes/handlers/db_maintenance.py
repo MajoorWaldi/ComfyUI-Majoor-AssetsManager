@@ -7,14 +7,16 @@ from __future__ import annotations
 import asyncio
 import datetime
 import gc
+import json
 import os
 import shutil
 import sqlite3
 import threading
 from pathlib import Path
+from typing import Any
 
 from aiohttp import web
-from mjr_am_backend.config import INDEX_DB_PATH, get_runtime_output_root
+from mjr_am_backend.config import INDEX_DB_PATH, get_runtime_output_root, is_vector_search_enabled
 from mjr_am_backend.shared import Result, get_logger
 
 from ..core import (
@@ -275,6 +277,103 @@ async def _cleanup_assets_case_duplicates(db) -> Result[dict[str, int]]:
         return Result.Ok({"groups": int(groups), "deleted": len(delete_ids), "kept": kept_count})
     except Exception as exc:
         return Result.Err("DB_ERROR", safe_error_message(exc, "Failed to cleanup case duplicates"))
+
+
+async def _backfill_missing_asset_vectors(
+    db: Any,
+    vector_service: Any,
+    *,
+    batch_size: int = 64,
+) -> Result[dict[str, int]]:
+    """
+    Generate embeddings for existing assets that currently have no vector.
+
+    Targets image assets only.
+    """
+    try:
+        from mjr_am_backend.features.index.vector_indexer import index_asset_vector
+    except Exception as exc:
+        return Result.Err("SERVICE_UNAVAILABLE", safe_error_message(exc, "Vector indexer unavailable"))
+
+    size = max(1, min(200, int(batch_size or 64)))
+    last_id = 0
+    candidates = 0
+    indexed = 0
+    skipped = 0
+    errors = 0
+
+    while True:
+        rows_res = await db.aquery(
+            """
+            SELECT a.id, a.filepath, a.kind, m.metadata_raw
+            FROM assets a
+            LEFT JOIN asset_embeddings ae ON ae.asset_id = a.id
+            LEFT JOIN asset_metadata m ON m.asset_id = a.id
+            WHERE a.id > ?
+              AND a.kind = 'image'
+              AND (ae.asset_id IS NULL OR ae.vector IS NULL OR length(ae.vector) = 0)
+            ORDER BY a.id ASC
+            LIMIT ?
+            """,
+            (int(last_id), int(size)),
+        )
+        if not rows_res.ok:
+            return Result.Err("DB_ERROR", rows_res.error or "Failed to query missing vectors")
+
+        rows = rows_res.data or []
+        if not rows:
+            break
+
+        for row in rows:
+            try:
+                asset_id = int(row.get("id") or 0)
+            except Exception:
+                asset_id = 0
+            if asset_id <= 0:
+                continue
+            last_id = asset_id
+            candidates += 1
+
+            filepath = str(row.get("filepath") or "").strip()
+            kind = str(row.get("kind") or "image").strip() or "image"
+            raw = row.get("metadata_raw")
+            metadata_raw: dict[str, Any] | None = None
+            if isinstance(raw, dict):
+                metadata_raw = raw
+            elif isinstance(raw, str) and raw.strip():
+                try:
+                    parsed = json.loads(raw)
+                    metadata_raw = parsed if isinstance(parsed, dict) else None
+                except Exception:
+                    metadata_raw = None
+
+            result = await index_asset_vector(
+                db,
+                vector_service,
+                asset_id,
+                filepath,
+                kind,
+                metadata_raw=metadata_raw,
+            )
+            if result.ok and bool(result.data):
+                indexed += 1
+            elif result.ok:
+                skipped += 1
+            else:
+                errors += 1
+
+        if len(rows) < size:
+            break
+
+    return Result.Ok(
+        {
+            "candidates": int(candidates),
+            "indexed": int(indexed),
+            "skipped": int(skipped),
+            "errors": int(errors),
+            "batch_size": int(size),
+        }
+    )
 
 
 def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
@@ -577,6 +676,92 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
             return _json_response(Result.Ok(payload))
         except Exception as exc:
             return _json_response(Result.Err("DB_ERROR", safe_error_message(exc, "Cleanup case-duplicates failed")))
+        finally:
+            try:
+                await _restart_watcher_if_needed(svc if isinstance(svc, dict) else None, watcher_was_running)
+            except Exception:
+                pass
+            set_db_maintenance_active(False)
+
+    @routes.post("/mjr/am/db/backfill-missing-vectors")
+    async def db_backfill_missing_vectors(request: web.Request):
+        """
+        Backfill missing vector embeddings for already indexed assets.
+
+        Query params:
+          - batch_size: optional int in [1..200], default 64
+        """
+        csrf = _csrf_error(request)
+        if csrf:
+            return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
+
+        if not is_vector_search_enabled():
+            return _json_response(
+                Result.Err(
+                    "SERVICE_UNAVAILABLE",
+                    "Vector search is disabled. Enable it in Majoor settings (AI toggle) first.",
+                )
+            )
+
+        svc, error_result = await _require_services()
+        if error_result:
+            return _json_response(error_result)
+        db = svc.get("db") if isinstance(svc, dict) else None
+        if not db:
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Database service unavailable"))
+
+        vector_service = svc.get("vector_service") if isinstance(svc, dict) else None
+        if vector_service is None:
+            try:
+                from mjr_am_backend.features.index.vector_service import VectorService
+
+                vector_service = VectorService()
+                if isinstance(svc, dict):
+                    svc["vector_service"] = vector_service
+            except Exception as exc:
+                return _json_response(Result.Err("SERVICE_UNAVAILABLE", safe_error_message(exc, "Vector service unavailable")))
+
+        try:
+            requested_batch = int(request.query.get("batch_size", "64"))
+        except Exception:
+            requested_batch = 64
+
+        set_db_maintenance_active(True)
+        watcher_was_running = False
+        try:
+            watcher_was_running = await _stop_watcher_if_running(svc if isinstance(svc, dict) else None)
+            index_service = svc.get("index") if isinstance(svc, dict) else None
+            if index_service and hasattr(index_service, "stop_enrichment"):
+                try:
+                    await index_service.stop_enrichment(clear_queue=True)
+                except Exception:
+                    pass
+
+            backfill_res = await _backfill_missing_asset_vectors(
+                db,
+                vector_service,
+                batch_size=requested_batch,
+            )
+            if not backfill_res.ok:
+                return _json_response(backfill_res)
+
+            searcher = svc.get("vector_searcher") if isinstance(svc, dict) else None
+            if searcher and hasattr(searcher, "invalidate"):
+                try:
+                    searcher.invalidate()
+                except Exception:
+                    pass
+
+            payload = {
+                "ran": True,
+                **(backfill_res.data or {}),
+            }
+            return _json_response(Result.Ok(payload))
+        except Exception as exc:
+            return _json_response(Result.Err("DB_ERROR", safe_error_message(exc, "Vector backfill failed")))
         finally:
             try:
                 await _restart_watcher_if_needed(svc if isinstance(svc, dict) else None, watcher_was_running)
