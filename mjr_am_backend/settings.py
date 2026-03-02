@@ -640,10 +640,37 @@ class AppSettings:
                 "token_hint": self._token_hint(token),
             }
 
+    async def _is_security_api_token_locked(self, token: str) -> bool:
+        normalized = str(token or "").strip()
+        if not normalized:
+            return False
+
+        try:
+            runtime = str(self._runtime_api_token or "").strip()
+        except Exception:
+            runtime = ""
+        if runtime and normalized == runtime:
+            return True
+
+        env_token = self._env_api_token()
+        if env_token and normalized == env_token:
+            return True
+
+        stored_plain = await self._get_stored_api_token_plain_locked()
+        if stored_plain and normalized == stored_plain:
+            return True
+
+        return False
+
     async def set_huggingface_token(self, token_payload: Any) -> Result[dict[str, Any]]:
         token = str(token_payload or "").strip()
         async with self._lock:
             if token:
+                if await self._is_security_api_token_locked(token):
+                    return Result.Err(
+                        "INVALID_INPUT",
+                        "HuggingFace token must be independent from Majoor API token",
+                    )
                 write_res = await self._write_setting(_HUGGINGFACE_TOKEN_KEY, token)
                 if not write_res.ok:
                     return Result.Err("DB_ERROR", write_res.error or "Failed to persist huggingface_token")
