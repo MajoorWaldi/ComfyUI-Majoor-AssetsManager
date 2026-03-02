@@ -405,7 +405,8 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
             attrs: {
                 placeholder: "Paste HuggingFace token (hf_...)",
                 type: _hfTokenVisible ? "text" : "password",
-                autocomplete: "off",
+                autocomplete: "new-password",
+                name: "mjr_huggingface_token",
                 "data-mjr-hf-token": "1",
             },
             onChange: (value) => {

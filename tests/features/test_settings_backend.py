@@ -284,6 +284,21 @@ async def test_output_directory_db_errors(tmp_path: Path):
     assert out2.code == "DB_ERROR"
 
 
+@pytest.mark.asyncio
+async def test_huggingface_token_rejects_reused_security_api_token():
+    db = _DB()
+    s = AppSettings(db)
+    s._runtime_api_token = "mjr_api_secret_123"
+
+    blocked = await s.set_huggingface_token("mjr_api_secret_123")
+    assert blocked.code == "INVALID_INPUT"
+    assert "huggingface_token" not in db.store
+
+    ok = await s.set_huggingface_token("hf_abcdefghijklmnopqrstuvwxyz")
+    assert ok.ok is True
+    assert db.store.get("huggingface_token") == "hf_abcdefghijklmnopqrstuvwxyz"
+
+
 def test_output_env_helpers(monkeypatch):
     s = AppSettings(_DB())
     monkeypatch.setenv("MAJOOR_OUTPUT_DIRECTORY", "x")
