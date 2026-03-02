@@ -235,7 +235,7 @@ export const registerMajoorSettings = (app, onApplied) => {
 
     if (!tryRegister()) {
         try {
-            const maxAttempts = 30;
+            const maxAttempts = 120;
             const delayMs = 250;
             let attempts = 0;
             const tick = () => {
