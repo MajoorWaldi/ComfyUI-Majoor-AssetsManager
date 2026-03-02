@@ -68,8 +68,16 @@ def blob_to_vector(blob: bytes, dim: int | None = None) -> list[float]:
 
 
 def _encode_quiet(model: Any, payload: Any, **kwargs: Any) -> Any:
-    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-        return model.encode(payload, **kwargs)
+    import logging as _stdlib_logging
+
+    _hf_tok_logger = _stdlib_logging.getLogger("transformers.tokenization_utils_base")
+    _prev_level = _hf_tok_logger.level
+    _hf_tok_logger.setLevel(_stdlib_logging.ERROR)
+    try:
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            return model.encode(payload, **kwargs)
+    finally:
+        _hf_tok_logger.setLevel(_prev_level)
 
 
 # ---------------------------------------------------------------------------
@@ -204,9 +212,20 @@ class VectorService:
                     model = SentenceTransformer(self._model_name, device=self._device)
         finally:
             hf_logging.set_verbosity(previous_hf_verbosity)
+
+        # ── Force CLIP token limit ──────────────────────────────────
+        # SentenceTransformer may default to a higher max_seq_length.
+        # CLIP's hard limit is 77 tokens; exceeding it triggers a noisy
+        # HuggingFace warning *and* risks silent embedding corruption.
+        clip_max = 77
+        current_max = getattr(model, "max_seq_length", None)
+        if current_max is None or int(current_max) > clip_max:
+            model.max_seq_length = clip_max
+            logger.debug("Capped model.max_seq_length %s → %d", current_max, clip_max)
+
         dim_value = model.get_sentence_embedding_dimension()
         effective_dim = int(dim_value) if dim_value is not None else int(VECTOR_EMBEDDING_DIM)
-        logger.info("CLIP model loaded  (dim=%d)", effective_dim)
+        logger.info("CLIP model loaded  (dim=%d, max_seq=%d)", effective_dim, model.max_seq_length)
         return model
 
     async def _ensure_model(self) -> SentenceTransformer:
@@ -284,19 +303,34 @@ class VectorService:
         tokenizer_max_len: int | None = None
         tokenizer: Any | None = None
         try:
+            # 1) model._first_module().tokenizer (standard SentenceTransformer)
             first_module_getter = getattr(model, "_first_module", None)
             first_module = first_module_getter() if callable(first_module_getter) else None
             tokenizer = getattr(first_module, "tokenizer", None)
+
+            # 2) CLIP-specific: processor.tokenizer lives inside CLIPModel
+            if tokenizer is None and first_module is not None:
+                proc = getattr(first_module, "processor", None)
+                if proc is not None:
+                    tokenizer = getattr(proc, "tokenizer", None)
+
+            # 3) Direct attribute on SentenceTransformer (newer versions)
             if tokenizer is None:
                 tokenizer = getattr(model, "tokenizer", None)
+
+            # 4) Walk model._modules dict (nn.Module OrderedDict)
             if tokenizer is None:
-                modules_getter = getattr(model, "_modules", None)
-                modules_obj = modules_getter() if callable(modules_getter) else None
+                modules_obj = getattr(model, "_modules", None)
                 if isinstance(modules_obj, dict):
                     for module in modules_obj.values():
                         tokenizer = getattr(module, "tokenizer", None)
                         if tokenizer is not None:
                             break
+                        proc = getattr(module, "processor", None)
+                        if proc is not None:
+                            tokenizer = getattr(proc, "tokenizer", None)
+                            if tokenizer is not None:
+                                break
             if tokenizer is not None:
                 try:
                     raw_tok_max = int(getattr(tokenizer, "model_max_length", 0) or 0)
@@ -335,17 +369,18 @@ class VectorService:
             pass
 
         # Strong fallback when tokenizer is unavailable: clamp both words and characters.
-        # This prevents extremely long metadata prompts from reaching CLIP with >77 tokens.
-        char_budget = 220
+        # CLIP BPE averages ~3.5 tokens/word, so 18 words ≈ 63 tokens (safe under 77).
+        # 140 chars also stays safely within the budget for typical English text.
+        char_budget = 140
         original_for_fallback = cleaned
         if len(cleaned) > char_budget:
             cleaned = cleaned[:char_budget].rsplit(" ", 1)[0].strip() or cleaned[:char_budget].strip()
             self._log_text_truncation(original_for_fallback, cleaned, f"char_budget>{char_budget}")
 
         words = cleaned.split()
-        if len(words) > 24:
-            shortened = " ".join(words[:24])
-            self._log_text_truncation(cleaned, shortened, "word_budget>24")
+        if len(words) > 18:
+            shortened = " ".join(words[:18])
+            self._log_text_truncation(cleaned, shortened, "word_budget>18")
             return shortened
         return cleaned
 
