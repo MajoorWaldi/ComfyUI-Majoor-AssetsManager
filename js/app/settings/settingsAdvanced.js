@@ -343,6 +343,7 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
     // ── AI / Vector Search ────────────────────────────────────────────────
 
     {
+        const hfCategoryLabel = "HuggingFace Token";
         let _hfTokenCommittedValue = "";
         let _hfTokenSaveTimer = null;
         let _hfTokenSaveSeq = 0;
@@ -359,9 +360,22 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
             } catch (e) { console.debug?.(e); }
         };
 
+        const _applyHfTokenPlaceholder = (placeholderText) => {
+            try {
+                const value = String(placeholderText || "").trim();
+                if (!value) return;
+                const inputs = Array.from(document.querySelectorAll('input[data-mjr-hf-token="1"]'));
+                for (const el of inputs) {
+                    try {
+                        el.placeholder = value;
+                    } catch (e) { console.debug?.(e); }
+                }
+            } catch (e) { console.debug?.(e); }
+        };
+
         safeAddSetting({
             id: `${SETTINGS_PREFIX}.AI.HuggingFaceTokenVisible`,
-            category: cat(t("cat.advanced"), "AI / Vector Search"),
+            category: cat(t("cat.advanced"), hfCategoryLabel),
             name: "Show HuggingFace token",
             tooltip: "Show or hide the HuggingFace token while editing.",
             type: "boolean",
@@ -377,97 +391,93 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
             },
         });
 
+        safeAddSetting({
+            id: `${SETTINGS_PREFIX}.AI.HuggingFaceToken`,
+            category: cat(t("cat.advanced"), hfCategoryLabel),
+            name: "HuggingFace Token",
+            tooltip: [
+                "Optional token for HuggingFace Hub downloads (higher rate limits).",
+                "Saved server-side and used by CLIP model loading.",
+                "Leave empty to clear the stored token.",
+            ].join("\n"),
+            type: "text",
+            defaultValue: "",
+            attrs: {
+                placeholder: "Paste HuggingFace token (hf_...)",
+                type: _hfTokenVisible ? "text" : "password",
+                autocomplete: "off",
+                "data-mjr-hf-token": "1",
+            },
+            onChange: (value) => {
+                const next = String(value || "").trim();
+                try {
+                    if (_hfTokenSaveTimer) {
+                        clearTimeout(_hfTokenSaveTimer);
+                        _hfTokenSaveTimer = null;
+                    }
+                } catch (e) { console.debug?.(e); }
+
+                _hfTokenSaveTimer = setTimeout(async () => {
+                    _hfTokenSaveTimer = null;
+                    const seq = ++_hfTokenSaveSeq;
+                    try {
+                        const res = await setHuggingFaceSettings(next);
+                        if (seq !== _hfTokenSaveSeq) return;
+                        if (!res?.ok) {
+                            throw new Error(res?.error || "Failed to update HuggingFace token");
+                        }
+                        _hfTokenCommittedValue = next;
+                        notifyApplied("ai.huggingFaceToken");
+                        comfyToast(next ? "HuggingFace token saved" : "HuggingFace token cleared", "success");
+                    } catch (error) {
+                        if (seq !== _hfTokenSaveSeq) return;
+                        comfyToast(error?.message || "Failed to update HuggingFace token", "error");
+                    }
+                }, 900);
+            },
+        });
+
+        setTimeout(_applyHfTokenVisibility, 0);
+
         (async () => {
-            let hasToken = false;
-            let tokenHint = "";
             try {
                 const res = await getHuggingFaceSettings();
                 const prefs = res?.data?.prefs || {};
-                hasToken = !!prefs?.has_token;
-                tokenHint = String(prefs?.token_hint || "").trim();
+                const hasToken = !!prefs?.has_token;
+                const tokenHint = String(prefs?.token_hint || "").trim();
+                const placeholder = hasToken
+                    ? `Configured ${tokenHint || "(saved)"}`
+                    : "Paste HuggingFace token (hf_...)";
+                _applyHfTokenPlaceholder(placeholder);
             } catch (e) { console.debug?.(e); }
-
-            const placeholder = hasToken
-                ? `Configured ${tokenHint || "(saved)"}`
-                : "Paste HuggingFace token (hf_...)";
-
-            safeAddSetting({
-                id: `${SETTINGS_PREFIX}.AI.HuggingFaceToken`,
-                category: cat(t("cat.advanced"), "AI / Vector Search"),
-                name: "HuggingFace Token",
-                tooltip: [
-                    "Optional token for HuggingFace Hub downloads (higher rate limits).",
-                    "Saved server-side and used by CLIP model loading.",
-                    "Leave empty to clear the stored token.",
-                ].join("\n"),
-                type: "text",
-                defaultValue: "",
-                attrs: {
-                    placeholder,
-                    type: _hfTokenVisible ? "text" : "password",
-                    autocomplete: "off",
-                    "data-mjr-hf-token": "1",
-                },
-                onChange: (value) => {
-                    const next = String(value || "").trim();
-                    try {
-                        if (_hfTokenSaveTimer) {
-                            clearTimeout(_hfTokenSaveTimer);
-                            _hfTokenSaveTimer = null;
-                        }
-                    } catch (e) { console.debug?.(e); }
-
-                    _hfTokenSaveTimer = setTimeout(async () => {
-                        _hfTokenSaveTimer = null;
-                        const seq = ++_hfTokenSaveSeq;
-                        try {
-                            const res = await setHuggingFaceSettings(next);
-                            if (seq !== _hfTokenSaveSeq) return;
-                            if (!res?.ok) {
-                                throw new Error(res?.error || "Failed to update HuggingFace token");
-                            }
-                            _hfTokenCommittedValue = next;
-                            notifyApplied("ai.huggingFaceToken");
-                            comfyToast(next ? "HuggingFace token saved" : "HuggingFace token cleared", "success");
-                        } catch (error) {
-                            if (seq !== _hfTokenSaveSeq) return;
-                            comfyToast(error?.message || "Failed to update HuggingFace token", "error");
-                            try {
-                                void setHuggingFaceSettings(_hfTokenCommittedValue);
-                            } catch (e) { console.debug?.(e); }
-                        }
-                    }, 900);
-                },
-            });
-            setTimeout(_applyHfTokenVisibility, 0);
         })();
     }
 
-    // Fetch and display vector stats
+    // Vector status field must be registered synchronously so it never disappears
+    // when async calls fail or time out during startup.
+    safeAddSetting({
+        id: `${SETTINGS_PREFIX}.AI.VectorStats`,
+        category: cat(t("cat.advanced"), "AI / Vector Search"),
+        name: "Vector Index Status",
+        tooltip: "Current status of the CLIP vector index used for semantic search",
+        type: "text",
+        defaultValue: "Loading vector status...",
+    });
+
+    // Fetch status in the background (best effort).
     (async () => {
         try {
             const stats = await vectorStats();
-            const statusText = stats?.ok
-                ? `${stats.data?.total || 0} assets indexed | Model: ${stats.data?.model || "N/A"}`
-                : "Vector search unavailable";
-            
-            safeAddSetting({
-                id: `${SETTINGS_PREFIX}.AI.VectorStats`,
-                category: cat(t("cat.advanced"), "AI / Vector Search"),
-                name: "Vector Index Status",
-                tooltip: "Current status of the CLIP vector index used for semantic search",
-                type: "text",
-                defaultValue: statusText,
-            });
+            if (stats?.ok) {
+                console.info(
+                    "[Majoor] Vector status:",
+                    `${stats.data?.total || 0} assets indexed | Model: ${stats.data?.model || "N/A"}`
+                );
+            } else {
+                console.info("[Majoor] Vector status unavailable");
+            }
         } catch (err) {
-            safeAddSetting({
-                id: `${SETTINGS_PREFIX}.AI.VectorStats`,
-                category: cat(t("cat.advanced"), "AI / Vector Search"),
-                name: "Vector Index Status",
-                tooltip: "Current status of the CLIP vector index used for semantic search",
-                type: "text",
-                defaultValue: "Error loading stats",
-            });
+            console.debug?.("[Majoor] Vector status fetch failed", err);
         }
     })();
 
