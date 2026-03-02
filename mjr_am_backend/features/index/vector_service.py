@@ -28,6 +28,7 @@ import logging
 import os
 import struct
 import subprocess
+import threading
 import time
 import warnings
 from collections.abc import Sequence
@@ -51,6 +52,9 @@ if TYPE_CHECKING:
     from sentence_transformers import SentenceTransformer
 
 logger = get_logger(__name__)
+
+_MODEL_CACHE: dict[tuple[str, str], Any] = {}
+_MODEL_CACHE_LOCK = threading.Lock()
 
 
 def _ai_verbose_logs_enabled() -> bool:
@@ -80,6 +84,7 @@ def _configure_hf_quiet_mode() -> None:
         logging.getLogger("httpcore").setLevel(logging.INFO)
         logging.getLogger("huggingface_hub").setLevel(logging.INFO)
         logging.getLogger("transformers").setLevel(logging.INFO)
+        logging.getLogger("sentence_transformers").setLevel(logging.INFO)
         return
 
     os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
@@ -91,6 +96,7 @@ def _configure_hf_quiet_mode() -> None:
     logging.getLogger("httpcore").setLevel(logging.WARNING)
     logging.getLogger("huggingface_hub").setLevel(logging.WARNING)
     logging.getLogger("transformers").setLevel(logging.ERROR)
+    logging.getLogger("sentence_transformers").setLevel(logging.ERROR)
 
 # ---------------------------------------------------------------------------
 # Helpers: serialisation
@@ -242,31 +248,48 @@ class VectorService:
 
     def _load_model(self) -> SentenceTransformer:
         """Synchronous model loading (called inside a thread)."""
+        cache_key = (str(self._model_name or ""), str(self._device or "auto"))
+
+        with _MODEL_CACHE_LOCK:
+            cached_model = _MODEL_CACHE.get(cache_key)
+        if cached_model is not None:
+            self._cached_tokenizer = self._discover_tokenizer(cached_model)
+            logger.debug("Reusing cached multimodal model '%s'", self._model_name)
+            return cached_model
+
         _configure_hf_quiet_mode()
         from sentence_transformers import SentenceTransformer  # noqa: F811
         from transformers.utils import logging as hf_logging
 
-        logger.info("Loading multimodal embedding model '%s' …", self._model_name)
-        previous_hf_verbosity = hf_logging.get_verbosity()
-        if not _ai_verbose_logs_enabled():
-            hf_logging.set_verbosity_error()
-        try:
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore",
-                    message=r"Using a slow image processor as `use_fast` is unset.*",
-                )
-                try:
-                    model = SentenceTransformer(
-                        self._model_name,
-                        device=self._device,
-                        model_kwargs={"use_fast": False},
-                        tokenizer_kwargs={"use_fast": False},
+        with _MODEL_CACHE_LOCK:
+            cached_model = _MODEL_CACHE.get(cache_key)
+            if cached_model is not None:
+                self._cached_tokenizer = self._discover_tokenizer(cached_model)
+                logger.debug("Reusing cached multimodal model '%s'", self._model_name)
+                return cached_model
+
+            logger.info("Loading multimodal embedding model '%s' …", self._model_name)
+            previous_hf_verbosity = hf_logging.get_verbosity()
+            if not _ai_verbose_logs_enabled():
+                hf_logging.set_verbosity_error()
+            try:
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        message=r"Using a slow image processor as `use_fast` is unset.*",
                     )
-                except TypeError:
-                    model = SentenceTransformer(self._model_name, device=self._device)
-        finally:
-            hf_logging.set_verbosity(previous_hf_verbosity)
+                    try:
+                        model = SentenceTransformer(
+                            self._model_name,
+                            device=self._device,
+                            model_kwargs={"use_fast": False},
+                            tokenizer_kwargs={"use_fast": False},
+                        )
+                    except TypeError:
+                        model = SentenceTransformer(self._model_name, device=self._device)
+            finally:
+                hf_logging.set_verbosity(previous_hf_verbosity)
+            _MODEL_CACHE[cache_key] = model
 
         # ── Force CLIP/SigLIP style token limit ─────────────────────
         # SentenceTransformer may default to a higher max_seq_length.
