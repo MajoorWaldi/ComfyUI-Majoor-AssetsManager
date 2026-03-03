@@ -606,13 +606,21 @@ class VectorService:
     @staticmethod
     def _is_siglip_like_config(cfg: Any) -> bool:
         try:
+            # Only patch top-level SigLIP config objects.
+            # Sub-configs like SiglipTextConfig / SiglipVisionConfig must never
+            # be patched with a synthetic hidden_size property (can break
+            # transformers setters with "property ... has no setter").
+            has_text_cfg = getattr(cfg, "text_config", None) is not None
+            has_vision_cfg = getattr(cfg, "vision_config", None) is not None
+            if not (has_text_cfg and has_vision_cfg):
+                return False
+
             model_type = str(getattr(cfg, "model_type", "") or "").strip().lower()
-            if "siglip" in model_type:
+            if model_type in {"siglip", "siglip2"}:
                 return True
+
             cls_name = str(getattr(type(cfg), "__name__", "") or "").strip().lower()
-            if "siglip" in cls_name:
-                return True
-            return bool(getattr(cfg, "text_config", None) is not None and getattr(cfg, "vision_config", None) is not None)
+            return cls_name in {"siglipconfig", "siglip2config"}
         except Exception:
             return False
 

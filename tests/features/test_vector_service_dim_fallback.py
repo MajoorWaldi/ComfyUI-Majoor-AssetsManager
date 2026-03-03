@@ -29,6 +29,13 @@ class _SiglipCfgNoHidden:
         self.vision_config = _SiglipVisionCfg()
 
 
+class _SiglipTextOnlyCfg:
+    model_type = "siglip"
+
+    def __init__(self):
+        self.hidden_size = 1152
+
+
 class _FirstModuleWithCfg:
     def __init__(self, cfg):
         self.config = cfg
@@ -80,6 +87,12 @@ def test_patch_model_hidden_size_adds_class_fallback_property():
     assert patched is True
     assert hasattr(type(cfg), "hidden_size")
     assert int(cfg.hidden_size) == 1152
+
+
+def test_is_siglip_like_config_rejects_subconfigs_without_text_and_vision():
+    vs = m.VectorService()
+    text_only_cfg = _SiglipTextOnlyCfg()
+    assert vs._is_siglip_like_config(text_only_cfg) is False
 
 
 @pytest.mark.asyncio
