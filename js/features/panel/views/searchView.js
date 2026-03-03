@@ -1,6 +1,7 @@
 import { get } from "../../../api/client.js";
 import { debounce } from "../../../utils/debounce.js";
 import { t } from "../../../app/i18n.js";
+import { createIconButton } from "./iconButton.js";
 
 export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFoldersBtn, filterPopover, sortPopover, collectionsPopover, pinnedFoldersPopover }) {
     const searchSection = document.createElement("div");
@@ -44,22 +45,21 @@ export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFol
         display: flex;
         align-items: center;
         justify-content: center;
-        min-width: 72px;
+        width: 28px;
         height: 28px;
-        padding: 0 8px;
+        padding: 0;
         border-radius: 6px;
         border: 1px solid rgba(0, 188, 212, 0.25);
         background: transparent;
         color: rgba(0, 188, 212, 0.5);
         cursor: pointer;
-        font-size: 10px;
-        font-weight: 700;
-        white-space: nowrap;
+        font-size: 13px;
         transition: all 0.15s ease;
         flex-shrink: 0;
-        margin-left: 4px;
     `;
-    semanticBtn.textContent = t("search.aiSearch", "AI Search");
+    const semanticIcon = document.createElement("i");
+    semanticIcon.className = "pi pi-sparkles";
+    semanticBtn.appendChild(semanticIcon);
 
     const updateSemanticStyle = () => {
         if (semanticMode) {
@@ -131,7 +131,6 @@ export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFol
 
     searchInner.appendChild(searchIcon);
     searchInner.appendChild(searchInputEl);
-    searchInner.appendChild(semanticBtn);
     searchInner.appendChild(dataList);
     searchSection.appendChild(searchInner);
 
@@ -139,10 +138,20 @@ export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFol
     const searchTools = document.createElement("div");
     searchTools.className = "mjr-am-search-tools";
 
+    const semanticAnchor = document.createElement("div");
+    semanticAnchor.className = "mjr-popover-anchor";
+    semanticAnchor.appendChild(semanticBtn);
+
+    const similarBtn = createIconButton("pi-clone", t("search.findSimilar", "Find Similar"));
+
     const filterAnchor = document.createElement("div");
     filterAnchor.className = "mjr-popover-anchor";
     filterAnchor.appendChild(filterBtn);
     filterAnchor.appendChild(filterPopover);
+
+    const similarAnchor = document.createElement("div");
+    similarAnchor.className = "mjr-popover-anchor";
+    similarAnchor.appendChild(similarBtn);
 
     const sortAnchor = document.createElement("div");
     sortAnchor.className = "mjr-popover-anchor";
@@ -159,11 +168,13 @@ export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFol
     if (pinnedFoldersBtn) pinnedFoldersAnchor.appendChild(pinnedFoldersBtn);
     if (pinnedFoldersPopover) pinnedFoldersAnchor.appendChild(pinnedFoldersPopover);
 
+    searchTools.appendChild(semanticAnchor);
+    searchTools.appendChild(similarAnchor);
     searchTools.appendChild(filterAnchor);
     searchTools.appendChild(sortAnchor);
     searchTools.appendChild(collectionsAnchor);
     searchTools.appendChild(pinnedFoldersAnchor);
     searchSection.appendChild(searchTools);
 
-    return { searchSection, searchInputEl };
+    return { searchSection, searchInputEl, similarBtn };
 }

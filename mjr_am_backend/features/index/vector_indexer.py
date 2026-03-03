@@ -231,11 +231,22 @@ async def generate_enhanced_prompt(
     if not filepath:
         return Result.Err("INVALID_INPUT", "Asset filepath is empty")
 
-    generated = await vs.generate_enhanced_caption(filepath)
-    if not generated.ok or not generated.data:
-        return Result.Err(generated.code or "METADATA_FAILED", generated.error or "Enhanced caption generation failed")
+    try:
+        generated = await asyncio.wait_for(vs.generate_enhanced_caption(filepath), timeout=90)
+    except asyncio.TimeoutError:
+        generated = Result.Err("METADATA_FAILED", "Enhanced caption generation timed out")
 
-    caption = str(generated.data).strip()
+    if generated.ok and generated.data:
+        caption = str(generated.data).strip()
+    else:
+        fallback = await _fallback_enhanced_caption(db, asset_id)
+        if not fallback.ok or not fallback.data:
+            return Result.Err(generated.code or "METADATA_FAILED", generated.error or "Enhanced caption generation failed")
+        caption = str(fallback.data).strip()
+
+    if not caption:
+        return Result.Err("METADATA_FAILED", "Enhanced caption generation returned empty output")
+
     write = await _store_enhanced_caption(db, asset_id, caption)
     if not write.ok:
         return Result.Err(write.code or "DB_ERROR", write.error or "Failed to store enhanced caption")
@@ -260,6 +271,49 @@ async def _compute_prompt_alignment(
 
     result = await compute_prompt_alignment(vs, vector, prompt)
     return result.data if result.ok else None
+
+
+async def _fallback_enhanced_caption(db: Sqlite, asset_id: int) -> Result[str]:
+    row = await db.aquery(
+        """
+        SELECT a.filename, am.metadata_raw
+        FROM assets a
+        LEFT JOIN asset_metadata am ON am.asset_id = a.id
+        WHERE a.id = ?
+        LIMIT 1
+        """,
+        (asset_id,),
+    )
+    if not row.ok:
+        return Result.Err("DB_ERROR", row.error or "Failed to query fallback metadata")
+    if not row.data:
+        return Result.Err("NOT_FOUND", f"Asset {asset_id} not found")
+
+    data = row.data[0]
+    raw = data.get("metadata_raw")
+    meta_obj: dict[str, Any] | None = None
+    if isinstance(raw, str) and raw.strip():
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, dict):
+                meta_obj = parsed
+        except Exception:
+            meta_obj = None
+    elif isinstance(raw, dict):
+        meta_obj = raw
+
+    if meta_obj:
+        prompt = _extract_prompt_from_metadata(meta_obj)
+        if prompt:
+            return Result.Ok(prompt)
+
+    filename = str(data.get("filename") or "").strip()
+    if filename:
+        stem = filename.rsplit(".", 1)[0].replace("_", " ").replace("-", " ").strip()
+        if stem:
+            return Result.Ok(stem)
+
+    return Result.Err("METADATA_FAILED", "No fallback prompt available")
 
 
 def _extract_prompt_from_metadata(meta: dict[str, Any]) -> str | None:

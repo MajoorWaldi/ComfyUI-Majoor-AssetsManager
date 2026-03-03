@@ -89,8 +89,8 @@ def register_audit_routes(routes: web.RouteTableDef) -> None:
 
         where_sql = " AND ".join(where)
         query = (
-            f"SELECT a.id, a.filename, a.subfolder, a.filepath, a.kind, a.type, "
-            f"a.mtime, a.file_size, a.width, a.height, "
+            f"SELECT a.id, a.filename, a.subfolder, a.filepath, a.kind, a.source AS type, "
+            f"a.mtime, a.size AS file_size, a.width, a.height, "
             f"m.rating, m.tags, m.has_workflow, m.has_generation_data, "
             f"e.aesthetic_score, e.auto_tags "
             f"FROM assets a "

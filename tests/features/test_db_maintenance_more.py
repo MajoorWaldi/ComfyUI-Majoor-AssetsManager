@@ -163,7 +163,7 @@ async def test_db_backup_restore_reset_fail_and_replace_fail(monkeypatch, tmp_pa
 
 
 @pytest.mark.asyncio
-async def test_db_backfill_missing_vectors_success(monkeypatch):
+async def test_db_backfill_missing_vectors_success(monkeypatch, tmp_path):
     app = _app()
     monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
     monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
@@ -176,6 +176,9 @@ async def test_db_backfill_missing_vectors_success(monkeypatch):
         def invalidate(self):
             self.invalidated += 1
 
+    image_path = tmp_path / "img1.png"
+    image_path.write_bytes(b"\x89PNG\r\n\x1a\n")
+
     class _DB:
         def __init__(self):
             self.calls = 0
@@ -184,7 +187,7 @@ async def test_db_backfill_missing_vectors_success(monkeypatch):
             self.calls += 1
             if self.calls == 1:
                 return Result.Ok([
-                    {"id": 1, "filepath": "C:/img1.png", "kind": "image", "metadata_raw": "{}"},
+                        {"id": 1, "filepath": str(image_path), "kind": "image", "metadata_raw": "{}"},
                 ])
             return Result.Ok([])
 

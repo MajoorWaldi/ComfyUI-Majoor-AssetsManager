@@ -11,8 +11,8 @@ from __future__ import annotations
 from typing import Any
 
 from aiohttp import web
-from mjr_am_backend.config import VECTOR_SIMILAR_TOPK, is_vector_search_enabled
-from mjr_am_backend.shared import Result, get_logger
+from ...config import VECTOR_SIMILAR_TOPK, is_vector_search_enabled
+from ...shared import Result, get_logger
 
 from ..core import _json_response, _require_services
 from ..core import safe_error_message
@@ -94,8 +94,9 @@ async def _hydrate_vector_results(
     try:
         rows = await db.aquery(
             f"""
-            SELECT a.id, a.filepath, a.filename, a.subfolder, a.kind, a.type,
-                     a.file_size, a.width, a.height, a.mtime, a.enhanced_caption,
+            SELECT a.id, a.filepath, a.filename, a.subfolder, a.kind,
+                     a.source AS type,
+                                         a.size AS file_size, a.width, a.height, a.mtime, a.enhanced_caption,
                    m.rating, m.tags, m.has_workflow, m.has_generation_data
             FROM assets a
             LEFT JOIN asset_metadata m ON a.id = m.asset_id
@@ -309,7 +310,7 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         filepath = row.data[0]["filepath"]
         kind = row.data[0]["kind"]
 
-        from mjr_am_backend.features.index.vector_indexer import index_asset_vector
+        from ...features.index.vector_indexer import index_asset_vector
 
         result = await index_asset_vector(db, vs, asset_id, filepath, kind)
 
@@ -342,7 +343,7 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
             return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Vector services are unavailable"))
 
         try:
-            from mjr_am_backend.features.index.vector_indexer import generate_enhanced_prompt as _generate
+            from ...features.index.vector_indexer import generate_enhanced_prompt as _generate
 
             result = await _generate(db, vs, asset_id)
             return _json_response(result)
@@ -535,7 +536,7 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
             all_ids_flat = list(id_map)
             placeholders = ",".join("?" for _ in all_ids_flat)
             asset_rows = await db.aquery(
-                f"SELECT id, filepath, filename, subfolder, type, kind "
+                f"SELECT id, filepath, filename, subfolder, source AS type, kind "
                 f"FROM assets WHERE id IN ({placeholders})",
                 tuple(all_ids_flat),
             )

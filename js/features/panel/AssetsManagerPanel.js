@@ -29,6 +29,7 @@ import {
     get,
     post,
     getCollectionAssets,
+    vectorFindSimilar,
     toggleWatcher,
     setWatcherScope,
     getDuplicateAlerts,
@@ -160,7 +161,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
 
     headerActions.appendChild(customPopover);
 
-    const { searchSection, searchInputEl } = createSearchView({
+    const { searchSection, searchInputEl, similarBtn } = createSearchView({
         filterBtn,
         sortBtn,
         collectionsBtn,
@@ -680,6 +681,57 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         popovers.close(sortPopover);
         popovers.close(collectionsPopover);
         popovers.toggle(filterPopover, filterBtn);
+    }, { signal: panelLifecycleAC?.signal });
+
+    similarBtn?.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        try {
+            popovers.close(customPopover);
+            popovers.close(filterPopover);
+            popovers.close(sortPopover);
+            popovers.close(collectionsPopover);
+        } catch (err) { console.debug?.(err); }
+
+        const selectedIdRaw = String(
+            state.activeAssetId
+            || (Array.isArray(state.selectedAssetIds) ? state.selectedAssetIds[0] : "")
+            || ""
+        ).trim();
+        const selectedId = Number(selectedIdRaw);
+        if (!Number.isFinite(selectedId) || selectedId <= 0) {
+            comfyToast(t("search.selectAssetForSimilar", "Select an asset first to find similar images/videos."), "info", 2500);
+            return;
+        }
+
+        const prevTitle = similarBtn.title;
+        similarBtn.disabled = true;
+        similarBtn.title = t("search.findingSimilar", "Finding similar assets...");
+        try {
+            const res = await vectorFindSimilar(selectedId, 100);
+            if (!res?.ok) {
+                comfyToast(String(res?.error || t("search.findSimilarFailed", "Failed to find similar assets")), "error", 3000);
+                return;
+            }
+            const list = Array.isArray(res?.data) ? res.data : [];
+            await loadAssetsFromList(gridContainer, list, {
+                title: t("search.similarResults", "Similar to asset #{id} ({n} results)", {
+                    id: selectedId,
+                    n: list.length,
+                }),
+                reset: true,
+            });
+            try {
+                state.lastGridCount = Number(list.length || 0) || 0;
+                state.lastGridTotal = Number(list.length || 0) || 0;
+                gridContainer.dispatchEvent?.(new CustomEvent("mjr:grid-stats", { detail: { count: list.length, total: list.length } }));
+            } catch (err) { console.debug?.(err); }
+        } catch (err) {
+            console.debug?.(err);
+            comfyToast(t("search.findSimilarFailed", "Failed to find similar assets"), "error", 3000);
+        } finally {
+            similarBtn.disabled = false;
+            similarBtn.title = prevTitle;
+        }
     }, { signal: panelLifecycleAC?.signal });
 
     sortController = createSortController({

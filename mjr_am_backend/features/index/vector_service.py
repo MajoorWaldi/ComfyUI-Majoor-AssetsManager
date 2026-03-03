@@ -94,10 +94,10 @@ def _configure_hf_quiet_mode() -> None:
         return
 
     # Force-set (not setdefault) so repeated calls always win.
-    os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+    # NOTE: HF_HUB_DISABLE_PROGRESS_BARS and TQDM_DISABLE are intentionally
+    # NOT set — download progress bars are kept visible for user feedback.
     os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
     os.environ["HF_HUB_DISABLE_EXPERIMENTAL_WARNING"] = "1"
-    os.environ["TQDM_DISABLE"] = "1"
     os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
     os.environ["TRANSFORMERS_VERBOSITY"] = "error"
     for _logger_name in (
@@ -116,31 +116,23 @@ def _configure_hf_quiet_mode() -> None:
 
 
 @contextlib.contextmanager
-def _suppress_fd_output():
-    """Redirect stdout/stderr at the file-descriptor level.
+def _suppress_stdout_only():
+    """Redirect stdout to /dev/null while keeping stderr (tqdm progress bars).
 
-    Unlike ``contextlib.redirect_stdout/stderr``, this captures output
-    from sub-threads, C extensions, and logging handlers that cached a
-    reference to the original ``sys.stdout``/``sys.stderr``.
+    Download progress bars write to stderr, so they remain visible.
+    Only stdout noise (e.g. ``print()`` from transformers internals) is captured.
     """
     old_stdout_fd = os.dup(1)
-    old_stderr_fd = os.dup(2)
     devnull_fd = os.open(os.devnull, os.O_WRONLY)
     old_stdout_py = sys.stdout
-    old_stderr_py = sys.stderr
     try:
         os.dup2(devnull_fd, 1)
-        os.dup2(devnull_fd, 2)
         sys.stdout = io.StringIO()
-        sys.stderr = io.StringIO()
         yield
     finally:
         sys.stdout = old_stdout_py
-        sys.stderr = old_stderr_py
         os.dup2(old_stdout_fd, 1)
-        os.dup2(old_stderr_fd, 2)
         os.close(old_stdout_fd)
-        os.close(old_stderr_fd)
         os.close(devnull_fd)
 
 
@@ -282,17 +274,27 @@ class VectorService:
     vector-search feature is disabled.
     """
 
+    @staticmethod
+    def _normalise_model_name(value: Any, fallback: str) -> str:
+        raw = str(value or "").strip()
+        if not raw or raw.lower() in {"none", "null"}:
+            return str(fallback).strip()
+        return raw
+
     def __init__(self, model_name: str | None = None, device: str | None = None) -> None:
-        self._model_name = model_name or VECTOR_MODEL_NAME
-        self._video_model_name = VECTOR_VIDEO_MODEL_NAME
-        self._prompt_model_name = VECTOR_PROMPT_MODEL_NAME
-        self._prompt_task = VECTOR_PROMPT_TASK
+        self._model_name = self._normalise_model_name(model_name or VECTOR_MODEL_NAME, "google/siglip-so400m-patch14-384")
+        self._video_model_name = self._normalise_model_name(VECTOR_VIDEO_MODEL_NAME, "microsoft/xclip-base-patch32")
+        self._prompt_model_name = self._normalise_model_name(VECTOR_PROMPT_MODEL_NAME, "microsoft/Florence-2-base")
+        self._prompt_task = str(VECTOR_PROMPT_TASK or "<MORE_DETAILED_CAPTION>").strip() or "<MORE_DETAILED_CAPTION>"
         self._device = device  # None → auto-detect (CPU / CUDA)
         self._model: SentenceTransformer | None = None
         self._lock = asyncio.Lock()
         self._video_model: Any | None = None
         self._video_processor: Any | None = None
         self._video_lock = asyncio.Lock()
+        self._siglip_model: Any | None = None
+        self._siglip_processor: Any | None = None
+        self._siglip_lock = asyncio.Lock()
         self._prompt_model: Any | None = None
         self._prompt_processor: Any | None = None
         self._prompt_lock = asyncio.Lock()
@@ -363,57 +365,35 @@ class VectorService:
                         "ignore",
                         message=r"Using a slow image processor as `use_fast` is unset.*",
                     )
-                    if verbose:
-                        model = SentenceTransformer(**st_kwargs)
-                    else:
-                        # Redirect at fd-level to suppress native print()
-                        # from transformers internals AND sub-threads.
-                        with _suppress_fd_output():
-                            model = SentenceTransformer(**st_kwargs)
+                    warnings.filterwarnings(
+                        "ignore",
+                        message=r".*huggingface_hub.*cache-system uses symlinks.*",
+                    )
+                    self._patch_global_siglip_config_hidden_size()
+
+                    def _build_st_model() -> Any:
+                        if verbose:
+                            return SentenceTransformer(**st_kwargs)
+                        # Redirect stdout only — stderr (tqdm progress
+                        # bars) stays visible for download feedback.
+                        with _suppress_stdout_only():
+                            return SentenceTransformer(**st_kwargs)
+
+                    try:
+                        model = _build_st_model()
+                    except Exception as exc:
+                        if not self._is_hidden_size_error(exc):
+                            raise
+                        self._patch_global_siglip_config_hidden_size()
+                        logger.debug("Retrying SentenceTransformer load after hidden_size class patch")
+                        model = _build_st_model()
             finally:
                 hf_logging.set_verbosity(previous_hf_verbosity)
             _MODEL_CACHE[cache_key] = model
             logger.debug("Model cached under key %s", cache_key)
 
         # ── Patch SigLIP-family configs missing top-level hidden_size ──
-        # SentenceTransformer's pooling layer reads ``config.hidden_size``
-        # but SigLIP2's top-level ``SiglipConfig`` stores it only inside
-        # ``text_config`` / ``vision_config``.  Patching the config after
-        # construction prevents ``AttributeError`` during ``encode()``.
-        try:
-            _patch_targets = []
-            _first_mod_fn = getattr(model, "_first_module", None)
-            _first_mod = _first_mod_fn() if callable(_first_mod_fn) else None
-            if _first_mod is not None:
-                for _attr_name in ("model", "auto_model"):
-                    _inner = getattr(_first_mod, _attr_name, None)
-                    if _inner is not None:
-                        _cfg = getattr(_inner, "config", None)
-                        if _cfg is not None:
-                            _patch_targets.append(_cfg)
-            # Also check top-level model.config
-            _top_cfg = getattr(model, "config", None)
-            if _top_cfg is not None:
-                _patch_targets.append(_top_cfg)
-
-            for _cfg in _patch_targets:
-                if not hasattr(_cfg, "hidden_size"):
-                    # Try text_config.hidden_size → vision_config.hidden_size
-                    _hs = None
-                    for _sub in ("text_config", "vision_config"):
-                        _sub_cfg = getattr(_cfg, _sub, None)
-                        if _sub_cfg is not None:
-                            _hs = getattr(_sub_cfg, "hidden_size", None)
-                            if _hs is not None and int(_hs) > 0:
-                                break
-                    if _hs is not None and int(_hs) > 0:
-                        _cfg.hidden_size = int(_hs)
-                        logger.debug(
-                            "Patched missing config.hidden_size = %d (from sub-config)",
-                            _hs,
-                        )
-        except Exception as exc:
-            logger.debug("Config hidden_size patch skipped: %s", exc)
+        self._patch_model_hidden_size(model)
 
         # ── Force CLIP/SigLIP style token limit ─────────────────────
         # SentenceTransformer may default to a higher max_seq_length.
@@ -573,6 +553,190 @@ class VectorService:
             self._model = await asyncio.to_thread(self._load_model)
             self._dim = self._resolve_sentence_embedding_dim(self._model)
             return self._model
+
+    def _use_native_siglip(self) -> bool:
+        return "siglip" in str(self._model_name or "").strip().lower()
+
+    async def _ensure_siglip_components(self) -> tuple[Any, Any]:
+        if self._siglip_model is not None and self._siglip_processor is not None:
+            return self._siglip_processor, self._siglip_model
+
+        async with self._siglip_lock:
+            if self._siglip_model is None or self._siglip_processor is None:
+                from transformers import AutoModel, AutoProcessor
+                from transformers.utils import logging as hf_logging
+
+                _configure_hf_quiet_mode()
+                previous_hf_verbosity = hf_logging.get_verbosity()
+                verbose = _ai_verbose_logs_enabled()
+                if not verbose:
+                    hf_logging.set_verbosity_error()
+                try:
+                    self._patch_global_siglip_config_hidden_size()
+                    if verbose:
+                        self._siglip_processor = AutoProcessor.from_pretrained(self._model_name, use_fast=False)
+                        self._siglip_model = AutoModel.from_pretrained(self._model_name)
+                    else:
+                        with warnings.catch_warnings(), _suppress_stdout_only():
+                            warnings.filterwarnings(
+                                "ignore",
+                                message=r".*huggingface_hub.*cache-system uses symlinks.*",
+                            )
+                            self._siglip_processor = AutoProcessor.from_pretrained(self._model_name, use_fast=False)
+                            self._siglip_model = AutoModel.from_pretrained(self._model_name)
+                finally:
+                    hf_logging.set_verbosity(previous_hf_verbosity)
+
+                try:
+                    self._siglip_model.eval()
+                except Exception:
+                    pass
+
+                cfg = getattr(self._siglip_model, "config", None)
+                resolved_dim = self._derive_hidden_size_from_subconfigs(cfg) if cfg is not None else None
+                if resolved_dim is not None and int(resolved_dim) > 0:
+                    self._dim = int(resolved_dim)
+
+            return self._siglip_processor, self._siglip_model
+
+    @staticmethod
+    def _is_hidden_size_error(exc: Exception) -> bool:
+        return "hidden_size" in str(exc or "").lower()
+
+    @staticmethod
+    def _is_siglip_like_config(cfg: Any) -> bool:
+        try:
+            model_type = str(getattr(cfg, "model_type", "") or "").strip().lower()
+            if "siglip" in model_type:
+                return True
+            cls_name = str(getattr(type(cfg), "__name__", "") or "").strip().lower()
+            if "siglip" in cls_name:
+                return True
+            return bool(getattr(cfg, "text_config", None) is not None and getattr(cfg, "vision_config", None) is not None)
+        except Exception:
+            return False
+
+    @staticmethod
+    def _derive_hidden_size_from_subconfigs(cfg: Any) -> int | None:
+        for sub in ("text_config", "vision_config"):
+            sub_cfg = getattr(cfg, sub, None)
+            if sub_cfg is None:
+                continue
+            candidate = getattr(sub_cfg, "hidden_size", None)
+            if candidate is None:
+                continue
+            try:
+                candidate_i = int(candidate)
+                if candidate_i > 0:
+                    return candidate_i
+            except Exception:
+                continue
+        return None
+
+    @classmethod
+    def _patch_hidden_size_on_config_class(cls, cfg: Any) -> bool:
+        if cfg is None or not cls._is_siglip_like_config(cfg):
+            return False
+        cfg_cls = type(cfg)
+        if hasattr(cfg_cls, "hidden_size"):
+            return False
+
+        def _hidden_size_getter(instance: Any) -> int:
+            resolved = cls._derive_hidden_size_from_subconfigs(instance)
+            if resolved is not None:
+                return int(resolved)
+            raise AttributeError("hidden_size")
+
+        try:
+            setattr(cfg_cls, "hidden_size", property(_hidden_size_getter))
+            return True
+        except Exception:
+            return False
+
+    @classmethod
+    def _patch_global_siglip_config_hidden_size(cls) -> bool:
+        patched_any = False
+        targets: list[type[Any]] = []
+        for module_name, class_name in (
+            ("transformers.models.siglip.configuration_siglip", "SiglipConfig"),
+            ("transformers.models.siglip2.configuration_siglip2", "Siglip2Config"),
+        ):
+            try:
+                module = __import__(module_name, fromlist=[class_name])
+                cfg_cls = getattr(module, class_name, None)
+                if isinstance(cfg_cls, type):
+                    targets.append(cfg_cls)
+            except Exception:
+                continue
+
+        for cfg_cls in targets:
+            if hasattr(cfg_cls, "hidden_size"):
+                continue
+
+            def _hidden_size_getter(instance: Any, _cls: type[Any] = cfg_cls) -> int:
+                resolved = cls._derive_hidden_size_from_subconfigs(instance)
+                if resolved is not None:
+                    return int(resolved)
+                raise AttributeError(f"{_cls.__name__}.hidden_size")
+
+            try:
+                setattr(cfg_cls, "hidden_size", property(_hidden_size_getter))
+                patched_any = True
+            except Exception:
+                continue
+
+        if patched_any:
+            logger.debug("Applied global SigLIP hidden_size class patch")
+        return patched_any
+
+    def _patch_model_hidden_size(self, model: Any) -> bool:
+        """Best-effort patch for SigLIP-family configs missing top-level hidden_size."""
+        try:
+            patch_targets: list[Any] = []
+
+            def _collect_cfg(obj: Any) -> None:
+                if obj is None:
+                    return
+                cfg = getattr(obj, "config", None)
+                if cfg is not None:
+                    patch_targets.append(cfg)
+
+            _collect_cfg(model)
+
+            first_mod_fn = getattr(model, "_first_module", None)
+            first_mod = first_mod_fn() if callable(first_mod_fn) else None
+            if first_mod is not None:
+                _collect_cfg(first_mod)
+                for attr_name in ("model", "auto_model", "text_model", "vision_model"):
+                    inner = getattr(first_mod, attr_name, None)
+                    _collect_cfg(inner)
+                    for nested in ("model", "auto_model", "text_model", "vision_model"):
+                        _collect_cfg(getattr(inner, nested, None) if inner is not None else None)
+
+            patched_any = False
+            for cfg in patch_targets:
+                if cfg is None or not self._is_siglip_like_config(cfg):
+                    continue
+
+                class_patched = self._patch_hidden_size_on_config_class(cfg)
+                hidden_size = self._derive_hidden_size_from_subconfigs(cfg)
+
+                instance_patched = False
+                if not hasattr(cfg, "hidden_size") and hidden_size is not None:
+                    try:
+                        cfg.hidden_size = int(hidden_size)
+                        instance_patched = True
+                    except Exception:
+                        instance_patched = False
+
+                patched_any = patched_any or class_patched or instance_patched
+
+            if patched_any:
+                logger.debug("Applied hidden_size auto-heal patch on SigLIP config(s)")
+            return patched_any
+        except Exception as exc:
+            logger.debug("Config hidden_size patch skipped: %s", exc)
+            return False
 
     @property
     def dim(self) -> int:
@@ -736,19 +900,67 @@ class VectorService:
         except Exception as exc:
             return Result.Err("UNSUPPORTED", f"Cannot open image: {exc}")
 
+        if self._use_native_siglip():
+            try:
+                processor, model = await self._ensure_siglip_components()
+
+                def _encode_native_image() -> list[float]:
+                    import torch
+
+                    with torch.inference_mode():
+                        inputs = processor(images=[img], return_tensors="pt")
+                        feats = model.get_image_features(**inputs)
+                        arr = feats.detach().cpu().numpy()[0]
+                        vec = _normalise_vector(arr)
+                        return _coerce_vector_dim(vec, self._dim)
+
+                vec = await asyncio.to_thread(_encode_native_image)
+                self._clear_error()
+                return Result.Ok(vec)
+            except Exception as exc:
+                self._record_error(f"Image embedding failed for {path.name}: {exc}")
+                logger.debug("Native SigLIP image embedding failed for %s: %s", path.name, exc)
+                return Result.Err("METADATA_FAILED", f"Embedding failed: {exc}")
+
+        model: Any | None = None
         try:
             model = await self._ensure_model()
-            vec = await asyncio.to_thread(
-                lambda: _encode_quiet(
+
+            def _encode_single_image() -> Any:
+                return _encode_quiet(
                     model,
-                    cast(Any, img),
+                    cast(Any, [img]),
                     convert_to_numpy=True,
+                    batch_size=1,
                     show_progress_bar=False,
                 )
+
+            vec = await asyncio.to_thread(
+                _encode_single_image
             )
             self._clear_error()
-            return Result.Ok(_normalise_vector(vec))
+            return Result.Ok(_normalise_vector(vec[0]))
         except Exception as exc:
+            if model is not None and self._is_hidden_size_error(exc):
+                try:
+                    self._patch_model_hidden_size(model)
+
+                    def _retry_encode_single_image() -> Any:
+                        return _encode_quiet(
+                            model,
+                            cast(Any, [img]),
+                            convert_to_numpy=True,
+                            batch_size=1,
+                            show_progress_bar=False,
+                        )
+
+                    vec = await asyncio.to_thread(
+                        _retry_encode_single_image
+                    )
+                    self._clear_error()
+                    return Result.Ok(_normalise_vector(vec[0]))
+                except Exception as retry_exc:
+                    exc = retry_exc
             self._record_error(f"Image embedding failed for {path.name}: {exc}")
             logger.debug("Image embedding failed for %s: %s", path.name, exc)
             return Result.Err("METADATA_FAILED", f"Embedding failed: {exc}")
@@ -759,6 +971,32 @@ class VectorService:
         """Encode a free-form text query into the multimodal embedding space."""
         if not text or not text.strip():
             return Result.Err("INVALID_INPUT", "Text query cannot be empty")
+
+        if self._use_native_siglip():
+            cleaned = " ".join(str(text).split()).strip()
+            if not cleaned:
+                return Result.Err("INVALID_INPUT", "Text query cannot be empty")
+            try:
+                processor, model = await self._ensure_siglip_components()
+
+                def _encode_native_text() -> list[float]:
+                    import torch
+
+                    with torch.inference_mode():
+                        inputs = processor(text=[cleaned], return_tensors="pt", padding=True, truncation=True)
+                        feats = model.get_text_features(**inputs)
+                        arr = feats.detach().cpu().numpy()[0]
+                        vec = _normalise_vector(arr)
+                        return _coerce_vector_dim(vec, self._dim)
+
+                vec = await asyncio.to_thread(_encode_native_text)
+                self._clear_error()
+                return Result.Ok(vec)
+            except Exception as exc:
+                self._record_error(f"Text embedding failed: {exc}")
+                logger.debug("Native SigLIP text embedding failed: %s", exc)
+                return Result.Err("METADATA_FAILED", f"Text embedding failed: {exc}")
+
         try:
             model = await self._ensure_model()
         except Exception as exc:
@@ -781,6 +1019,20 @@ class VectorService:
                 msg = str(exc).lower()
                 if "max_position_embeddings" in msg or "sequence length" in msg:
                     continue
+                if self._is_hidden_size_error(exc):
+                    try:
+                        self._patch_model_hidden_size(model)
+
+                        def _retry_encode_text(q: str = candidate) -> Any:
+                            return _encode_quiet(
+                                model, q, convert_to_numpy=True, show_progress_bar=False,
+                            )
+
+                        vec = await asyncio.to_thread(_retry_encode_text)
+                        self._clear_error()
+                        return Result.Ok(_normalise_vector(vec))
+                    except Exception as retry_exc:
+                        last_exc = retry_exc
                 self._record_error(f"Text embedding failed: {exc}")
                 logger.debug("Text embedding failed: %s", exc)
                 return Result.Err("METADATA_FAILED", f"Text embedding failed: {exc}")
@@ -841,6 +1093,25 @@ class VectorService:
                 for i, vec in zip(sub_idx, vecs, strict=True):
                     results[i] = Result.Ok(_normalise_vector(vec))
             except Exception as exc:
+                if self._is_hidden_size_error(exc):
+                    try:
+                        self._patch_model_hidden_size(model)
+
+                        def _retry_encode_batch(s: list[Any] = sub) -> Any:
+                            return _encode_quiet(
+                                model,
+                                cast(Any, s),
+                                convert_to_numpy=True,
+                                batch_size=len(s),
+                                show_progress_bar=False,
+                            )
+
+                        vecs = await asyncio.to_thread(_retry_encode_batch)
+                        for i, vec in zip(sub_idx, vecs, strict=True):
+                            results[i] = Result.Ok(_normalise_vector(vec))
+                        continue
+                    except Exception as retry_exc:
+                        exc = retry_exc
                 self._record_error(f"Batch embedding failed (batch {start}): {exc}")
                 logger.debug("Batch embedding failed (batch %d): %s", start, exc)
                 for i in sub_idx:
@@ -910,17 +1181,75 @@ class VectorService:
 
             def _infer_caption() -> str:
                 with torch.inference_mode():
-                    inputs = processor(
-                        text=self._prompt_task,
-                        images=image,
-                        return_tensors="pt",
-                    )
-                    generated = model.generate(
-                        input_ids=inputs.get("input_ids"),
-                        pixel_values=inputs.get("pixel_values"),
-                        max_new_tokens=160,
-                        num_beams=3,
-                    )
+                    input_ids = None
+                    attention_mask = None
+                    pixel_values = None
+                    pixel_mask = None
+
+                    tokenizer = getattr(processor, "tokenizer", None)
+                    image_processor = getattr(processor, "image_processor", None)
+
+                    def _get_field(container: Any, field: str) -> Any:
+                        try:
+                            getter = getattr(container, "get", None)
+                            if callable(getter):
+                                return getter(field)
+                        except Exception:
+                            pass
+                        try:
+                            return container[field]
+                        except Exception:
+                            return None
+
+                    try:
+                        combo = processor(
+                            text=[self._prompt_task],
+                            images=[image],
+                            return_tensors="pt",
+                            padding=True,
+                        )
+                        input_ids = _get_field(combo, "input_ids")
+                        attention_mask = _get_field(combo, "attention_mask")
+                        pixel_values = _get_field(combo, "pixel_values")
+                        pixel_mask = _get_field(combo, "pixel_mask")
+                    except Exception:
+                        pass
+
+                    if input_ids is None and tokenizer is not None:
+                        try:
+                            tok_out = tokenizer([self._prompt_task], return_tensors="pt", padding=True)
+                            input_ids = _get_field(tok_out, "input_ids")
+                            attention_mask = _get_field(tok_out, "attention_mask")
+                        except Exception:
+                            input_ids = None
+                            attention_mask = None
+
+                    if pixel_values is None and image_processor is not None:
+                        try:
+                            img_out = image_processor(images=[image], return_tensors="pt")
+                            pixel_values = _get_field(img_out, "pixel_values")
+                            pixel_mask = _get_field(img_out, "pixel_mask")
+                        except Exception:
+                            pixel_values = None
+                            pixel_mask = None
+
+                    if input_ids is None or pixel_values is None:
+                        raise RuntimeError("Florence processor returned incomplete tensors")
+
+                    generate_kwargs: dict[str, Any] = {
+                        "input_ids": input_ids,
+                        "pixel_values": pixel_values,
+                        "max_new_tokens": 64,
+                        "num_beams": 1,
+                        "do_sample": False,
+                        "use_cache": False,
+                    }
+                    if attention_mask is not None:
+                        generate_kwargs["attention_mask"] = attention_mask
+                    if pixel_mask is not None:
+                        generate_kwargs["pixel_mask"] = pixel_mask
+
+                    generated = model.generate(**generate_kwargs)
                     text = processor.batch_decode(generated, skip_special_tokens=True)[0]
                     text = str(text or "").strip()
                     post = getattr(processor, "post_process_generation", None)
@@ -942,7 +1271,7 @@ class VectorService:
             return Result.Ok(caption)
         except Exception as exc:
             self._record_error(f"Enhanced caption generation failed: {exc}")
-            logger.debug("Enhanced caption generation failed for %s: %s", path.name, exc)
+            logger.exception("Enhanced caption generation failed for %s: %s", path.name, exc)
             return Result.Err("METADATA_FAILED", f"Enhanced caption generation failed: {exc}")
 
     # ── Similarity helpers ─────────────────────────────────────────────
@@ -969,38 +1298,116 @@ class VectorService:
                 from transformers import AutoModelForCausalLM, AutoProcessor
                 from transformers.utils import logging as hf_logging
                 _configure_hf_quiet_mode()  # apply AFTER imports
+                try:
+                    from transformers.models.florence2.modeling_florence2 import Florence2ForConditionalGeneration
 
-                logger.info("Loading Florence prompt model '%s' …", self._prompt_model_name)
+                    if not hasattr(Florence2ForConditionalGeneration, "_supports_sdpa"):
+                        setattr(Florence2ForConditionalGeneration, "_supports_sdpa", False)
+                except Exception:
+                    pass
+
+                prompt_model_name = self._normalise_model_name(
+                    self._prompt_model_name,
+                    "microsoft/Florence-2-base",
+                )
+                if prompt_model_name != self._prompt_model_name:
+                    logger.warning(
+                        "Invalid Florence-2 model name configured ('%s'); falling back to '%s'",
+                        self._prompt_model_name,
+                        prompt_model_name,
+                    )
+                    self._prompt_model_name = prompt_model_name
+
+                def _load_prompt_processor(*, use_fast: bool | None) -> Any:
+                    kwargs: dict[str, Any] = {
+                        "trust_remote_code": True,
+                    }
+                    if use_fast is not None:
+                        kwargs["use_fast"] = use_fast
+                    return AutoProcessor.from_pretrained(prompt_model_name, **kwargs)
+
+                def _load_prompt_model_with_compat() -> Any:
+                    try:
+                        return AutoModelForCausalLM.from_pretrained(
+                            prompt_model_name,
+                            trust_remote_code=True,
+                            attn_implementation="eager",
+                        )
+                    except AttributeError as exc:
+                        if "_supports_sdpa" not in str(exc or ""):
+                            raise
+                        try:
+                            from transformers.modeling_utils import PreTrainedModel
+
+                            if not hasattr(PreTrainedModel, "_supports_sdpa"):
+                                setattr(PreTrainedModel, "_supports_sdpa", False)
+                        except Exception:
+                            pass
+                        try:
+                            for _module in list(sys.modules.values()):
+                                if _module is None:
+                                    continue
+                                cls = getattr(_module, "Florence2ForConditionalGeneration", None)
+                                if cls is None:
+                                    continue
+                                if not hasattr(cls, "_supports_sdpa"):
+                                    setattr(cls, "_supports_sdpa", False)
+                        except Exception:
+                            pass
+                        return AutoModelForCausalLM.from_pretrained(
+                            prompt_model_name,
+                            trust_remote_code=True,
+                            attn_implementation="eager",
+                        )
+
+                logger.info("Loading Florence prompt model '%s' …", prompt_model_name)
                 previous_hf_verbosity = hf_logging.get_verbosity()
                 verbose = _ai_verbose_logs_enabled()
                 if not verbose:
                     hf_logging.set_verbosity_error()
                 try:
                     if verbose:
-                        self._prompt_processor = AutoProcessor.from_pretrained(
-                            self._prompt_model_name,
-                            trust_remote_code=True,
-                            use_fast=False,
-                        )
-                        self._prompt_model = AutoModelForCausalLM.from_pretrained(
-                            self._prompt_model_name,
-                            trust_remote_code=True,
-                        )
+                        try:
+                            self._prompt_processor = _load_prompt_processor(use_fast=False)
+                        except TypeError as exc:
+                            msg = str(exc or "")
+                            if "os.PathLike" in msg or "NoneType" in msg:
+                                logger.warning(
+                                    "Florence processor load retry without use_fast due to tokenizer path issue: %s",
+                                    exc,
+                                )
+                                self._prompt_processor = _load_prompt_processor(use_fast=None)
+                            else:
+                                raise
+                        self._prompt_model = _load_prompt_model_with_compat()
                     else:
-                        with _suppress_fd_output():
-                            self._prompt_processor = AutoProcessor.from_pretrained(
-                                self._prompt_model_name,
-                                trust_remote_code=True,
-                                use_fast=False,
+                        with warnings.catch_warnings(), _suppress_stdout_only():
+                            warnings.filterwarnings(
+                                "ignore",
+                                message=r".*huggingface_hub.*cache-system uses symlinks.*",
                             )
-                            self._prompt_model = AutoModelForCausalLM.from_pretrained(
-                                self._prompt_model_name,
-                                trust_remote_code=True,
-                            )
+                            try:
+                                self._prompt_processor = _load_prompt_processor(use_fast=False)
+                            except TypeError as exc:
+                                msg = str(exc or "")
+                                if "os.PathLike" in msg or "NoneType" in msg:
+                                    logger.warning(
+                                        "Florence processor load retry without use_fast due to tokenizer path issue: %s",
+                                        exc,
+                                    )
+                                    self._prompt_processor = _load_prompt_processor(use_fast=None)
+                                else:
+                                    raise
+                            self._prompt_model = _load_prompt_model_with_compat()
                 finally:
                     hf_logging.set_verbosity(previous_hf_verbosity)
+                if not hasattr(self._prompt_model, "_supports_sdpa"):
+                    try:
+                        setattr(self._prompt_model, "_supports_sdpa", False)
+                    except Exception:
+                        pass
                 self._prompt_model.eval()
-                log_success(logger, "Florence-2 model loaded and ready: '%s'" % self._prompt_model_name)
+                log_success(logger, "Florence-2 model loaded and ready: '%s'" % prompt_model_name)
             import torch
 
             return self._prompt_processor, self._prompt_model, torch
@@ -1028,7 +1435,11 @@ class VectorService:
                         )
                         self._video_model = AutoModel.from_pretrained(self._video_model_name)
                     else:
-                        with _suppress_fd_output():
+                        with warnings.catch_warnings(), _suppress_stdout_only():
+                            warnings.filterwarnings(
+                                "ignore",
+                                message=r".*huggingface_hub.*cache-system uses symlinks.*",
+                            )
                             self._video_processor = AutoProcessor.from_pretrained(
                                 self._video_model_name,
                                 use_fast=False,

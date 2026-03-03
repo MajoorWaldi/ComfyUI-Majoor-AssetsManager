@@ -19,7 +19,7 @@ import re
 from typing import Any
 
 from aiohttp import web
-from mjr_am_backend.shared import Result, get_logger
+from ...shared import Result, get_logger
 
 from ..core import _json_response, _require_services
 from ..core.security import _check_rate_limit

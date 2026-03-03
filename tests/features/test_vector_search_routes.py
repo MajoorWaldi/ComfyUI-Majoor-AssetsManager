@@ -106,6 +106,69 @@ async def test_vector_search_route_handles_searcher_exception(monkeypatch) -> No
 
 
 @pytest.mark.asyncio
+async def test_vector_similar_route_success(monkeypatch) -> None:
+    class _Searcher:
+        async def find_similar(self, asset_id: int, *, top_k: int = 20):
+            assert asset_id == 42
+            assert top_k == 12
+            return Result.Ok([{"asset_id": 77, "score": 0.91}])
+
+    async def _require_services():
+        return {"vector_searcher": _Searcher()}, None
+
+    monkeypatch.setattr(vector_search, "_require_services", _require_services)
+    monkeypatch.setattr(vector_search, "is_vector_search_enabled", lambda: True)
+    monkeypatch.setattr(vector_search, "_check_rate_limit", lambda *_args, **_kwargs: (True, None))
+
+    app = _build_vector_app()
+    req = make_mocked_request("GET", "/mjr/am/vector/similar/42?top_k=12", app=app)
+    match = await app.router.resolve(req)
+    req._match_info = match
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+
+    assert body.get("ok") is True
+    assert isinstance(body.get("data"), list)
+    assert (body.get("data") or [])[0]["asset_id"] == 77
+
+
+@pytest.mark.asyncio
+async def test_vector_enhance_prompt_alias_route_success(monkeypatch) -> None:
+    class _DB:
+        pass
+
+    class _VS:
+        pass
+
+    async def _require_services():
+        return {"db": _DB(), "vector_service": _VS(), "vector_searcher": object()}, None
+
+    async def _fake_generate(_db, _vs, asset_id: int):
+        return Result.Ok(f"caption-{asset_id}")
+
+    import mjr_am_backend.features.index.vector_indexer as vector_indexer
+
+    monkeypatch.setattr(vector_indexer, "generate_enhanced_prompt", _fake_generate)
+    monkeypatch.setattr(vector_search, "_require_services", _require_services)
+    monkeypatch.setattr(vector_search, "is_vector_search_enabled", lambda: True)
+
+    app = _build_vector_app()
+    req = make_mocked_request("POST", "/mjr-am/assets/enhance-prompt", app=app)
+
+    async def _json_body():
+        return {"asset_id": 42}
+
+    req.json = _json_body  # type: ignore[assignment]
+    match = await app.router.resolve(req)
+    req._match_info = match
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+
+    assert body.get("ok") is True
+    assert body.get("data") == "caption-42"
+
+
+@pytest.mark.asyncio
 async def test_vector_generate_enhanced_prompt_route_success(monkeypatch) -> None:
     class _DB:
         pass

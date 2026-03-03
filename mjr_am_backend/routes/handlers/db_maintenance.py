@@ -496,7 +496,7 @@ async def _backfill_missing_asset_vectors(
     Targets image and video assets.
     """
     try:
-        from mjr_am_backend.features.index.vector_indexer import index_asset_vector
+        from ...features.index.vector_indexer import index_asset_vector
     except Exception as exc:
         return Result.Err("SERVICE_UNAVAILABLE", safe_error_message(exc, "Vector indexer unavailable"))
 
@@ -505,6 +505,7 @@ async def _backfill_missing_asset_vectors(
     candidates = 0
     indexed = 0
     skipped = 0
+    skipped_missing_files = 0
     errors = 0
 
     def _emit_progress() -> None:
@@ -516,6 +517,7 @@ async def _backfill_missing_asset_vectors(
                     "candidates": int(candidates),
                     "indexed": int(indexed),
                     "skipped": int(skipped),
+                    "skipped_missing_files": int(skipped_missing_files),
                     "errors": int(errors),
                     "batch_size": int(size),
                 }
@@ -559,6 +561,12 @@ async def _backfill_missing_asset_vectors(
 
             filepath = str(row.get("filepath") or "").strip()
             kind: FileKind = "video" if str(row.get("kind") or "").strip().lower() == "video" else "image"
+            if not filepath or not Path(filepath).is_file():
+                skipped += 1
+                skipped_missing_files += 1
+                _emit_progress()
+                continue
+
             raw = row.get("metadata_raw")
             metadata_raw: dict[str, Any] | None = None
             if isinstance(raw, dict):
@@ -581,6 +589,8 @@ async def _backfill_missing_asset_vectors(
             if result.ok and bool(result.data):
                 indexed += 1
             elif result.ok:
+                # ``Ok(False)`` means the indexer intentionally skipped this row
+                # (e.g. unsupported content or dependency/runtime guard).
                 skipped += 1
             else:
                 errors += 1
@@ -599,6 +609,7 @@ async def _backfill_missing_asset_vectors(
             "candidates": int(candidates),
             "indexed": int(indexed),
             "skipped": int(skipped),
+            "skipped_missing_files": int(skipped_missing_files),
             "errors": int(errors),
             "batch_size": int(size),
         }
