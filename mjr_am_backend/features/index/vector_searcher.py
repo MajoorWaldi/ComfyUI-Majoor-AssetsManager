@@ -74,8 +74,16 @@ class VectorSearcher:
             self._id_map = []
             return
 
+        # Fix H-12: load at most MAX_VECTOR_INDEX_ROWS vectors so we cannot OOM
+        # on large databases.  We pick the most-recently updated rows so that the
+        # freshest assets are always searchable.  Rows beyond the limit are silently
+        # excluded from semantic search but remain accessible via other endpoints.
+        _MAX_ROWS = 100_000
         rows = await self.db.aquery(
-            "SELECT asset_id, vector FROM asset_embeddings WHERE vector IS NOT NULL"
+            "SELECT asset_id, vector FROM asset_embeddings "
+            "WHERE vector IS NOT NULL "
+            "ORDER BY rowid DESC "
+            f"LIMIT {_MAX_ROWS}"
         )
         if not rows.ok or not rows.data:
             self._index = faiss.IndexFlatIP(self._dim)

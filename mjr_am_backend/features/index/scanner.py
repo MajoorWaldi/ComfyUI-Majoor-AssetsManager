@@ -23,6 +23,7 @@ from .scan_diagnostics import batch_error_messages, diagnose_batch_failure, diag
 from .index_runtime_helpers import append_to_enrich, entry_state_drifted, maybe_store_entry_cache, record_index_entry_success, record_refresh_outcome
 
 logger = get_logger(__name__)
+_VECTOR_INDEX_PER_ASSET_TIMEOUT_S = 180.0
 
 
 def _is_fatal_db_error(exc: Exception) -> bool:
@@ -57,6 +58,8 @@ class IndexScanner:
         self._fs_walker = FileSystemWalker(scan_iops_limit=max(0.0, float(SCAN_IOPS_LIMIT)))
         self._vector_service: Any | None = None
         self._vector_searcher: Any | None = None
+        self._vector_index_lock = asyncio.Lock()
+        self._vector_index_tasks: set[asyncio.Task[Any]] = set()
 
     _diagnose_batch_failure = diagnose_batch_failure
 
@@ -105,13 +108,13 @@ class IndexScanner:
             added_ids=added_ids,
             is_fatal_db_error=_is_fatal_db_error,
         )
-        await self._index_added_image_vectors(prev_added_count=prev_added_count, added_ids=added_ids)
+        self._schedule_added_image_vector_index(prev_added_count=prev_added_count, added_ids=added_ids)
 
     def set_vector_services(self, vector_service: Any, vector_searcher: Any | None = None) -> None:
         self._vector_service = vector_service
         self._vector_searcher = vector_searcher
 
-    async def _index_added_image_vectors(self, *, prev_added_count: int, added_ids: list[int] | None) -> None:
+    def _schedule_added_image_vector_index(self, *, prev_added_count: int, added_ids: list[int] | None) -> None:
         if self._vector_service is None or not isinstance(added_ids, list) or len(added_ids) <= prev_added_count:
             return
 
@@ -127,50 +130,131 @@ class IndexScanner:
             return
 
         try:
-            rows = await self.db.aquery_in(
-                """
-                SELECT a.id, a.filepath, a.kind, m.metadata_raw
-                FROM assets a
-                LEFT JOIN asset_metadata m ON a.id = m.asset_id
-                WHERE a.kind = 'image' AND {IN_CLAUSE}
-                """,
-                "a.id",
-                new_ids,
-            )
-            if not rows.ok or not rows.data:
-                return
+            task = asyncio.create_task(self._index_added_image_vectors(asset_ids=new_ids))
+            self._vector_index_tasks.add(task)
+            task.add_done_callback(self._vector_index_tasks.discard)
+        except Exception as exc:
+            logger.debug("Scanner vector indexing scheduling failed: %s", exc)
 
-            entries: list[dict[str, Any]] = []
-            for row in rows.data:
-                raw = row.get("metadata_raw")
-                metadata_raw: dict[str, Any] | None = None
-                if isinstance(raw, dict):
-                    metadata_raw = raw
-                elif isinstance(raw, str) and raw.strip():
-                    try:
-                        parsed = json.loads(raw)
-                        metadata_raw = parsed if isinstance(parsed, dict) else None
-                    except Exception:
-                        metadata_raw = None
-                entries.append(
-                    {
-                        "asset_id": int(row["id"]),
-                        "filepath": str(row["filepath"]),
-                        "kind": "image",
-                        "metadata_raw": metadata_raw,
-                    }
+    async def _index_added_image_vectors(self, *, asset_ids: list[int]) -> None:
+        if self._vector_service is None or not isinstance(asset_ids, list) or not asset_ids:
+            return
+
+        try:
+            async with self._vector_index_lock:
+                rows = await self.db.aquery_in(
+                    """
+                    SELECT a.id, a.filepath, a.kind, m.metadata_raw
+                    FROM assets a
+                    LEFT JOIN asset_metadata m ON a.id = m.asset_id
+                    WHERE a.kind = 'image' AND {IN_CLAUSE}
+                    """,
+                    "a.id",
+                    asset_ids,
                 )
+                if not rows.ok or not rows.data:
+                    return
 
-            if not entries:
-                return
+                entries: list[dict[str, Any]] = []
+                for row in rows.data:
+                    raw = row.get("metadata_raw")
+                    metadata_raw: dict[str, Any] | None = None
+                    if isinstance(raw, dict):
+                        metadata_raw = raw
+                    elif isinstance(raw, str) and raw.strip():
+                        try:
+                            parsed = json.loads(raw)
+                            metadata_raw = parsed if isinstance(parsed, dict) else None
+                        except Exception:
+                            metadata_raw = None
+                    entries.append(
+                        {
+                            "asset_id": int(row["id"]),
+                            "filepath": str(row["filepath"]),
+                            "kind": "image",
+                            "metadata_raw": metadata_raw,
+                        }
+                    )
 
-            from .vector_indexer import index_assets_vector_batch
+                if not entries:
+                    return
 
-            result = await index_assets_vector_batch(self.db, self._vector_service, entries)
-            if self._vector_searcher is not None:
-                self._vector_searcher.invalidate()
-            if result.ok:
-                logger.debug("Scanner vector indexing complete for %d new images: %s", len(entries), result.data)
+                from .vector_indexer import index_asset_vector
+
+                indexed = 0
+                skipped = 0
+                errors = 0
+                timed_out = 0
+                timed_out_ids: list[int] = []
+
+                for entry in entries:
+                    aid = int(entry.get("asset_id") or 0)
+                    try:
+                        filepath = str(entry.get("filepath") or "")
+                        if not filepath:
+                            skipped += 1
+                            continue
+                        result = await asyncio.wait_for(
+                            index_asset_vector(
+                                self.db,
+                                self._vector_service,
+                                asset_id=aid,
+                                filepath=filepath,
+                                kind=str(entry.get("kind") or "image"),
+                                metadata_raw=entry.get("metadata_raw"),
+                            ),
+                            timeout=_VECTOR_INDEX_PER_ASSET_TIMEOUT_S,
+                        )
+                    except asyncio.TimeoutError:
+                        timed_out += 1
+                        if aid > 0:
+                            timed_out_ids.append(aid)
+                        continue
+                    except Exception as exc:
+                        errors += 1
+                        logger.debug("Scanner vector indexing failed for asset_id=%s: %s", aid, exc)
+                        continue
+
+                    if result.ok and bool(result.data):
+                        indexed += 1
+                    elif result.ok:
+                        skipped += 1
+                    else:
+                        errors += 1
+
+                if self._vector_searcher is not None and indexed > 0:
+                    self._vector_searcher.invalidate()
+
+                if timed_out > 0:
+                    sample = ", ".join(str(x) for x in timed_out_ids[:8]) or "n/a"
+                    logger.warning(
+                        "Scanner vector indexing timed out for %d/%d new images "
+                        "(indexed=%d skipped=%d errors=%d timeout_per_asset=%.0fs sample_asset_ids=%s)",
+                        timed_out,
+                        len(entries),
+                        indexed,
+                        skipped,
+                        errors,
+                        _VECTOR_INDEX_PER_ASSET_TIMEOUT_S,
+                        sample,
+                    )
+                elif errors > 0:
+                    logger.warning(
+                        "Scanner vector indexing completed with errors for %d new images "
+                        "(indexed=%d skipped=%d errors=%d)",
+                        len(entries),
+                        indexed,
+                        skipped,
+                        errors,
+                    )
+                else:
+                    logger.debug(
+                        "Scanner vector indexing complete for %d new images "
+                        "(indexed=%d skipped=%d)",
+                        len(entries),
+                        indexed,
+                        skipped,
+                    )
         except Exception as exc:
             logger.debug("Scanner vector indexing failed for new images: %s", exc)
 

@@ -138,10 +138,19 @@ def _require_operation_enabled(operation: str, *, prefs: Mapping[str, Any] | Non
     else:
         safe_mode = _safe_mode_enabled()
 
+    def _coerce_pref_bool(value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return bool(value)
+        if isinstance(value, str):
+            return value.strip().lower() in ("1", "true", "yes", "on")
+        return bool(value)
+
     def _pref_truthy(key: str, env_var: str) -> bool:
         if prefs is not None and key in prefs:
             try:
-                return bool(prefs[key])
+                return _coerce_pref_bool(prefs[key])
             except Exception:
                 pass
         return _env_truthy(env_var)
@@ -847,6 +856,11 @@ def _check_rate_limit(
                 return False, max(1, retry_after)
 
             recent.append(now)
+            # Fix C-7: cap the list to max_requests to prevent unbounded growth.
+            # Without this, a client making many calls inside the window keeps
+            # accumulating timestamps, potentially consuming megabytes of RAM.
+            if len(recent) > max_requests:
+                recent = recent[-max_requests:]
             client_state[endpoint] = recent
             return True, None
     except Exception as exc:

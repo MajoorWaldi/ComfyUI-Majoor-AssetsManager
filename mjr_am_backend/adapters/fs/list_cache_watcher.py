@@ -8,15 +8,16 @@ from __future__ import annotations
 
 import threading
 from pathlib import Path
+from typing import Any
 
 from mjr_am_backend.shared import get_logger
 
 logger = get_logger(__name__)
 
 _LOCK = threading.Lock()
-_OBSERVER = None
+_OBSERVER: Any = None
 _TOKENS: dict[str, int] = {}
-_WATCHED: dict[str, object] = {}
+_WATCHED: dict[str, Any] = {}
 
 
 def _normalize_watch_path(path: str) -> str | None:
@@ -103,6 +104,29 @@ def ensure_fs_list_cache_watching(path: str) -> None:
 
             _WATCHED[key] = watch
             _TOKENS.setdefault(key, 0)
+    except Exception:
+        return
+
+
+def release_fs_list_cache_watching(path: str) -> None:
+    """Stop watching a single path and evict it from the token/watch dicts.
+
+    Fix M-10: without explicit per-path removal the _TOKENS and _WATCHED
+    dicts grow monotonically as new custom-root paths are registered over
+    time, leaking memory on long-running ComfyUI sessions.
+    """
+    key = _normalize_watch_path(path)
+    if not key:
+        return
+    try:
+        with _LOCK:
+            watch = _WATCHED.pop(key, None)
+            _TOKENS.pop(key, None)
+        if watch is not None and _OBSERVER is not None:
+            try:
+                _OBSERVER.unschedule(watch)
+            except Exception:
+                pass
     except Exception:
         return
 

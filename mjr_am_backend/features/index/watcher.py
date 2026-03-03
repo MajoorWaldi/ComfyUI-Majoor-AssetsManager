@@ -446,6 +446,7 @@ class DebouncedWatchHandler(FileSystemEventHandler):
             for f in deferred:
                 if f not in self._pending and f not in self._overflow:
                     self._overflow[f] = now
+            self._schedule_flush()
         try:
             logger.warning(
                 "Watcher flush capped to %d files (requested %d); deferring %d for next flush.",
@@ -455,7 +456,6 @@ class DebouncedWatchHandler(FileSystemEventHandler):
             )
         except Exception:
             pass
-        self._schedule_flush()
         return files
 
     def _mark_recent_files(self, files: list[str]) -> None:
@@ -541,7 +541,7 @@ def _record_flush_volume(count: int) -> None:
         _STREAM_EVENTS.append((now, count))
         _STREAM_TOTAL_FILES += count
         _prune_stream_events(now, window)
-        if not _should_emit_stream_alert(now):
+        if not _should_emit_stream_alert(now, _LAST_STREAM_ALERT_TIME):
             return
         _LAST_STREAM_ALERT_TIME = now
         try:
@@ -565,11 +565,11 @@ def _prune_stream_events(now: float, window: float) -> None:
         _STREAM_TOTAL_FILES = 0
 
 
-def _should_emit_stream_alert(now: float) -> bool:
+def _should_emit_stream_alert(now: float, last_alert_time: float) -> bool:
     if _STREAM_TOTAL_FILES < WATCHER_STREAM_ALERT_THRESHOLD:
         return False
     cooldown = max(WATCHER_STREAM_ALERT_COOLDOWN_SECONDS, 0.0)
-    return cooldown <= 0 or (now - _LAST_STREAM_ALERT_TIME) >= cooldown
+    return cooldown <= 0 or (now - last_alert_time) >= cooldown
 
 
 class OutputWatcher:

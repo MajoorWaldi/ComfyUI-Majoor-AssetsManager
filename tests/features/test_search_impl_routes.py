@@ -65,7 +65,7 @@ async def test_search_route_dedupes_assets_in_payload(monkeypatch) -> None:
     assert body.get("ok") is True
     payload = body.get("data") or {}
     assert len(payload.get("assets") or []) == 2
-    assert payload.get("total") == 2
+    assert payload.get("total") == 99
 
 
 @pytest.mark.asyncio

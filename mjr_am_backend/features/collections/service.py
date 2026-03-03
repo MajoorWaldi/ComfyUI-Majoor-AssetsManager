@@ -10,6 +10,7 @@ import builtins
 import json
 import os
 import re
+import tempfile
 import threading
 import time
 from dataclasses import dataclass
@@ -356,24 +357,38 @@ class CollectionsService:
 
     @staticmethod
     def _write_collection_payload(path: Path, data: dict[str, Any]) -> Result[Any] | None:
+        """Atomically write collection JSON: write to a temp file then os.replace() into place.
+
+        Using a temp file in the same directory guarantees the rename is atomic on the same
+        filesystem (single-device rename), preventing partial-write corruption if the process
+        is killed mid-write.
+        """
         try:
-            path.write_text(
-                json.dumps(data, ensure_ascii=False, separators=(",", ":")),
-                encoding="utf-8",
-            )
+            payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+            dir_path = path.parent
+            fd, tmp_path = tempfile.mkstemp(dir=dir_path, suffix=".tmp")
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                    fh.write(payload)
+                os.replace(tmp_path, path)
+            except Exception:
+                # Clean up the temp file if the rename or write failed.
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+                raise
         except Exception as exc:
             return Result.Err(ErrorCode.DB_ERROR, f"Failed to update collection: {exc}")
         return None
 
-    def add_assets(self, collection_id: str, assets: builtins.list[dict[str, Any]]) -> Result[dict[str, Any]]:
-        """Add assets (by filepath) to a collection (deduplicated, bounded)."""
-        if not isinstance(assets, list) or not assets:
-            return Result.Err(ErrorCode.INVALID_INPUT, "No assets provided")
+    def _add_assets_sync(self, collection_id: str, cleaned: builtins.list[dict[str, Any]]) -> Result[dict[str, Any]]:
+        """Synchronous core of add_assets — must be called from a thread (not the event loop).
 
-        cleaned = self._clean_add_assets_input(assets)
-        if not cleaned:
-            return Result.Err(ErrorCode.INVALID_INPUT, "No valid assets provided")
-
+        Holds ``self._lock`` for the entire read-mutate-write sequence so that no two
+        concurrent callers can read the same state and then overwrite each other (lost-update
+        race, H-15/H-16).
+        """
         with self._lock:
             path, data, err = self._load_for_update(collection_id)
             if err:
@@ -402,13 +417,27 @@ class CollectionsService:
             }
         )
 
-    def remove_filepaths(self, collection_id: str, filepaths: builtins.list[str]) -> Result[dict[str, Any]]:
-        """Remove items from a collection by filepath."""
-        targets_res = self._remove_targets(filepaths)
-        if not targets_res.ok:
-            return Result.Err(targets_res.code or ErrorCode.INVALID_INPUT, targets_res.error or "No valid filepaths provided")
-        targets = targets_res.data or set()
+    def add_assets(self, collection_id: str, assets: builtins.list[dict[str, Any]]) -> Result[dict[str, Any]]:
+        """Add assets (by filepath) to a collection (deduplicated, bounded).
 
+        Synchronous; callers in an async context should wrap with ``asyncio.to_thread``.
+        ``self._lock`` inside ``_add_assets_sync`` ensures the read-mutate-write
+        sequence is atomic with respect to other concurrent callers (H-14/H-15/H-16).
+        """
+        if not isinstance(assets, list) or not assets:
+            return Result.Err(ErrorCode.INVALID_INPUT, "No assets provided")
+
+        cleaned = self._clean_add_assets_input(assets)
+        if not cleaned:
+            return Result.Err(ErrorCode.INVALID_INPUT, "No valid assets provided")
+
+        return self._add_assets_sync(collection_id, cleaned)
+
+    def _remove_filepaths_sync(self, collection_id: str, targets: set[str]) -> Result[dict[str, Any]]:
+        """Synchronous core of remove_filepaths — must be called from a thread (not the event loop).
+
+        Holds ``self._lock`` for the entire read-mutate-write sequence (H-15/H-16).
+        """
         with self._lock:
             path, data, err = self._load_for_update(collection_id)
             if err:
@@ -424,6 +453,20 @@ class CollectionsService:
                 return write_err
 
         return Result.Ok({"id": str(data.get("id") or collection_id), "removed": int(removed), "count": len(kept)})
+
+    def remove_filepaths(self, collection_id: str, filepaths: builtins.list[str]) -> Result[dict[str, Any]]:
+        """Remove items from a collection by filepath.
+
+        Synchronous; callers in an async context should wrap with ``asyncio.to_thread``.
+        ``self._lock`` inside ``_remove_filepaths_sync`` ensures the read-mutate-write
+        sequence is atomic with respect to other concurrent callers (H-14/H-15/H-16).
+        """
+        targets_res = self._remove_targets(filepaths)
+        if not targets_res.ok:
+            return Result.Err(targets_res.code or ErrorCode.INVALID_INPUT, targets_res.error or "No valid filepaths provided")
+        targets = targets_res.data or set()
+
+        return self._remove_filepaths_sync(collection_id, targets)
 
     @staticmethod
     def _remove_targets(filepaths: builtins.list[str]) -> Result[set[str]]:

@@ -707,7 +707,11 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         similarBtn.disabled = true;
         similarBtn.title = t("search.findingSimilar", "Finding similar assets...");
         try {
-            const res = await vectorFindSimilar(selectedId, 100);
+            const res = await vectorFindSimilar(selectedId, {
+                topK: 100,
+                scope: state.scope || "output",
+                customRootId: state.customRootId || "",
+            });
             if (!res?.ok) {
                 comfyToast(String(res?.error || t("search.findSimilarFailed", "Failed to find similar assets")), "error", 3000);
                 return;

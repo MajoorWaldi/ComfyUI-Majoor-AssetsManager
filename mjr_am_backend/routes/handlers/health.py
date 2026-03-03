@@ -250,12 +250,32 @@ def _safe_watcher_pending_count(watcher: object) -> int:
     return 0
 
 
+def _safe_watcher_is_running(watcher: object) -> bool:
+    try:
+        raw = getattr(watcher, "is_running", False)
+        value = raw() if callable(raw) else raw
+        return bool(value)
+    except Exception:
+        return False
+
+
+def _safe_watcher_directories(watcher: object) -> list[str]:
+    try:
+        raw = getattr(watcher, "watched_directories", [])
+        value = raw() if callable(raw) else raw
+        if isinstance(value, (list, tuple, set)):
+            return [str(path) for path in value if path]
+    except Exception:
+        pass
+    return []
+
+
 def _runtime_status_payload(db: object, index: object, watcher: object) -> dict:
     return {
         "db": _safe_runtime_status(db),
         "index": _safe_runtime_status(index),
         "watcher": {
-            "enabled": bool(watcher is not None and getattr(watcher, "is_running", False)),
+            "enabled": _safe_watcher_is_running(watcher),
             "pending_files": _safe_watcher_pending_count(watcher),
         },
         "maintenance_active": is_db_maintenance_active(),
@@ -375,8 +395,8 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
                     watcher = svc.get("watcher") if isinstance(svc, dict) else None
                     watcher_scope = svc.get("watcher_scope") if isinstance(svc, dict) else None
                     result.data["watcher"] = {
-                        "enabled": bool(watcher is not None and getattr(watcher, "is_running", False)),
-                        "directories": watcher.watched_directories if watcher else [],
+                        "enabled": _safe_watcher_is_running(watcher),
+                        "directories": _safe_watcher_directories(watcher),
                         "scope": (watcher_scope or {}).get("scope") if isinstance(watcher_scope, dict) else None,
                         "custom_root_id": (watcher_scope or {}).get("custom_root_id") if isinstance(watcher_scope, dict) else None,
                     }
@@ -586,6 +606,7 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
                     root_id=None,
                     recursive=True,
                     incremental=True,
+                    respect_bg_scan_on_list=False,
                 )
             except Exception:
                 pass

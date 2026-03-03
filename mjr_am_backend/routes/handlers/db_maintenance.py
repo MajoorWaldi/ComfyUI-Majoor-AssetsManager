@@ -310,7 +310,11 @@ def set_db_maintenance_active(active: bool) -> None:
 async def _stop_watcher_if_running(svc: dict | None) -> bool:
     watcher = svc.get("watcher") if isinstance(svc, dict) else None
     try:
-        if watcher and bool(getattr(watcher, "is_running", False)):
+        running = False
+        if watcher:
+            raw_running = getattr(watcher, "is_running", False)
+            running = bool(raw_running() if callable(raw_running) else raw_running)
+        if running and watcher is not None:
             await watcher.stop()
             return True
     except Exception as exc:
@@ -398,6 +402,48 @@ async def _remove_with_retry(path: Path, attempts: int = 6) -> None:
             await asyncio.sleep(0.2 * (attempt + 1))
     if path.exists():
         raise last_exc or RuntimeError(f"Failed to delete file: {path}")
+
+
+def _is_windows_sharing_violation(exc: Exception) -> bool:
+    if os.name != "nt":
+        return False
+    try:
+        winerror = int(getattr(exc, "winerror", 0) or 0)
+        if winerror in (32, 33):
+            return True
+    except Exception:
+        pass
+    msg = str(exc).lower()
+    return (
+        "winerror 32" in msg
+        or "winerror 33" in msg
+        or "used by another process" in msg
+        or "cannot access the file" in msg
+    )
+
+
+async def _release_windows_db_lockers(path: Path, db: Any | None) -> list[int]:
+    if os.name != "nt" or db is None:
+        return []
+    terminator = getattr(db, "_terminate_locking_processes_windows", None)
+    if not callable(terminator):
+        return []
+    try:
+        killed = await asyncio.to_thread(terminator, path)
+    except Exception as exc:
+        logger.debug("Failed to terminate locking process(es) for %s: %s", path, exc)
+        return []
+    if not isinstance(killed, list):
+        return []
+    pids: list[int] = []
+    for pid in killed:
+        try:
+            n = int(pid)
+            if n > 0:
+                pids.append(n)
+        except Exception:
+            continue
+    return pids
 
 
 async def _replace_db_from_backup(src: Path, dst: Path) -> None:
@@ -724,7 +770,9 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
             if db is not None:
                 try:
                     _emit_restore_status("delete_db", "info", operation="delete_db")
-                    await db.areset()
+                    reset_res = await db.areset()
+                    if not bool(getattr(reset_res, "ok", False)):
+                        raise RuntimeError(str(getattr(reset_res, "error", None) or "DB adapter areset() returned error"))
                     logger.info("DB adapter areset() succeeded")
                     _emit_restore_status("recreate_db", "info", operation="delete_db")
                     # If areset worked, skip the manual file deletion
@@ -734,7 +782,14 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                             base_path = str(Path(get_runtime_output_root()).resolve(strict=False))
                             _emit_restore_status("restarting_scan", "info", operation="delete_db")
                             _spawn_background_task(
-                                index_service.scan_directory(base_path, recursive=True, incremental=False, source="output"),
+                                index_service.scan_directory(
+                                    base_path,
+                                    recursive=True,
+                                    incremental=False,
+                                    source="output",
+                                    fast=True,
+                                    background_metadata=True,
+                                ),
                                 label="db_force_delete_scan_output",
                             )
                             started_scans.append(base_path)
@@ -744,7 +799,14 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                             import folder_paths  # type: ignore
                             input_path = str(Path(folder_paths.get_input_directory()).resolve())
                             _spawn_background_task(
-                                index_service.scan_directory(input_path, recursive=True, incremental=False, source="input"),
+                                index_service.scan_directory(
+                                    input_path,
+                                    recursive=True,
+                                    incremental=False,
+                                    source="input",
+                                    fast=True,
+                                    background_metadata=True,
+                                ),
                                 label="db_force_delete_scan_input",
                             )
                             started_scans.append(input_path)
@@ -779,16 +841,33 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                 if not p.exists():
                     continue
                 removed = False
+                forced_release_attempted = False
                 for attempt in range(6):
                     try:
                         p.unlink()
                         deleted_files.append(str(p))
                         removed = True
                         break
-                    except PermissionError:
+                    except Exception as exc:
+                        if (
+                            not forced_release_attempted
+                            and _is_windows_sharing_violation(exc)
+                        ):
+                            forced_release_attempted = True
+                            killed = await _release_windows_db_lockers(p, db)
+                            if killed:
+                                logger.warning(
+                                    "Force-delete terminated locking process(es) for %s: %s",
+                                    p,
+                                    ", ".join(str(pid) for pid in killed),
+                                )
+                                gc.collect()
+                                await asyncio.sleep(0.5)
+                                continue
                         gc.collect()
-                        await asyncio.sleep(0.3 * (attempt + 1))
-                    except Exception:
+                        if isinstance(exc, PermissionError) or _is_windows_sharing_violation(exc):
+                            await asyncio.sleep(0.3 * (attempt + 1))
+                            continue
                         break
                 if not removed and p.exists():
                     failed_files.append(str(p))
@@ -832,7 +911,14 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                     base_path = str(Path(get_runtime_output_root()).resolve(strict=False))
                     _emit_restore_status("restarting_scan", "info", operation="delete_db")
                     _spawn_background_task(
-                        index_service.scan_directory(base_path, recursive=True, incremental=False, source="output"),
+                        index_service.scan_directory(
+                            base_path,
+                            recursive=True,
+                            incremental=False,
+                            source="output",
+                            fast=True,
+                            background_metadata=True,
+                        ),
                         label="db_force_delete_scan_output",
                     )
                     started_scans.append(base_path)
@@ -842,7 +928,14 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                     import folder_paths  # type: ignore
                     input_path = str(Path(folder_paths.get_input_directory()).resolve())
                     _spawn_background_task(
-                        index_service.scan_directory(input_path, recursive=True, incremental=False, source="input"),
+                        index_service.scan_directory(
+                            input_path,
+                            recursive=True,
+                            incremental=False,
+                            source="input",
+                            fast=True,
+                            background_metadata=True,
+                        ),
                         label="db_force_delete_scan_input",
                     )
                     started_scans.append(input_path)
@@ -1197,7 +1290,14 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                 try:
                     out_path = str(Path(get_runtime_output_root()).resolve(strict=False))
                     _spawn_background_task(
-                        index_service.scan_directory(out_path, recursive=True, incremental=False, source="output"),
+                        index_service.scan_directory(
+                            out_path,
+                            recursive=True,
+                            incremental=False,
+                            source="output",
+                            fast=True,
+                            background_metadata=True,
+                        ),
                         label="db_restore_scan_output",
                     )
                     scans_triggered.append(out_path)
@@ -1207,7 +1307,14 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                     import folder_paths  # type: ignore
                     input_path = str(Path(folder_paths.get_input_directory()).resolve())
                     _spawn_background_task(
-                        index_service.scan_directory(input_path, recursive=True, incremental=False, source="input"),
+                        index_service.scan_directory(
+                            input_path,
+                            recursive=True,
+                            incremental=False,
+                            source="input",
+                            fast=True,
+                            background_metadata=True,
+                        ),
                         label="db_restore_scan_input",
                     )
                     scans_triggered.append(input_path)

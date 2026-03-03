@@ -336,6 +336,7 @@ def register_all_routes() -> web.RouteTableDef:
         logger.info("  GET /mjr/am/vector/auto-tags/{asset_id} (Added)")
         logger.info("  GET /mjr/am/vector/stats (Added)")
         logger.info("  POST /mjr/am/vector/index/{asset_id} (Added)")
+        logger.info("  POST /mjr/am/vector/caption/{asset_id} (Added)")
         logger.info("  POST /mjr/am/vector/suggest-collections (Added)")
     except Exception as e:
         logger.error(f"Failed to register vector search routes: {e}")

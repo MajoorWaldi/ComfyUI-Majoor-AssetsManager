@@ -234,18 +234,25 @@ class HealthService:
             return Result.Err("DB_ERROR", str(e))
 
     async def _counter_query_results(self, where_sql: str, params: tuple[str, ...]) -> dict:
-        return {
-            "total": await self.db.aexecute(
+        """Run all counter queries concurrently (fix H-17).
+
+        Previously the 5 queries were sequential awaits.  With asyncio.gather()
+        SQLite WAL-mode allows concurrent readers, significantly reducing
+        latency on large databases (10k+ assets).
+        """
+        import asyncio as _asyncio
+        total, kind, rated, workflow, generation = await _asyncio.gather(
+            self.db.aexecute(
                 f"SELECT COUNT(*) as count FROM assets a WHERE {where_sql}",
                 params,
                 fetch=True,
             ),
-            "kind": await self.db.aexecute(
+            self.db.aexecute(
                 f"SELECT a.kind, COUNT(*) as count FROM assets a WHERE {where_sql} GROUP BY a.kind",
                 params,
                 fetch=True,
             ),
-            "rated": await self.db.aexecute(
+            self.db.aexecute(
                 f"""
                 SELECT COUNT(*) as count
                 FROM asset_metadata m
@@ -255,7 +262,7 @@ class HealthService:
                 params,
                 fetch=True,
             ),
-            "workflow": await self.db.aexecute(
+            self.db.aexecute(
                 f"""
                 SELECT COUNT(*) as count
                 FROM asset_metadata m
@@ -265,7 +272,7 @@ class HealthService:
                 params,
                 fetch=True,
             ),
-            "generation": await self.db.aexecute(
+            self.db.aexecute(
                 f"""
                 SELECT COUNT(*) as count
                 FROM asset_metadata m
@@ -275,6 +282,13 @@ class HealthService:
                 params,
                 fetch=True,
             ),
+        )
+        return {
+            "total": total,
+            "kind": kind,
+            "rated": rated,
+            "workflow": workflow,
+            "generation": generation,
         }
 
     async def _metadata_value(self, key: str) -> str | None:

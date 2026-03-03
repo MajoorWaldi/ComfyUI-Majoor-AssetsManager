@@ -4,6 +4,7 @@ Collections endpoints.
 Collections are small JSON files that store a user-curated list of assets (by filepath + basic fields).
 """
 
+import asyncio
 from pathlib import Path
 from typing import Any
 
@@ -133,7 +134,7 @@ def register_collections_routes(routes: web.RouteTableDef) -> None:
         body_res = await _read_json(request)
         body = body_res.data if body_res.ok else {}
         assets = _safe_assets_payload((body or {}).get("assets"))
-        result = _collections.add_assets(cid, assets)
+        result = await asyncio.to_thread(_collections.add_assets, cid, assets)
         return _json_response(result)
 
     @routes.post(r"/mjr/am/collections/{collection_id}/remove")
@@ -148,7 +149,7 @@ def register_collections_routes(routes: web.RouteTableDef) -> None:
         body_res = await _read_json(request)
         body = body_res.data if body_res.ok else {}
         filepaths = [str(x) for x in _as_list((body or {}).get("filepaths")) if x]
-        result = _collections.remove_filepaths(cid, filepaths)
+        result = await asyncio.to_thread(_collections.remove_filepaths, cid, filepaths)
         return _json_response(result)
 
     @routes.get(r"/mjr/am/collections/{collection_id}/assets")

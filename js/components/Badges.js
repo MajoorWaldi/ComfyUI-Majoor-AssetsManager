@@ -117,6 +117,103 @@ export function setFileBadgeCollision(badgeEl, nameCollision, collisionMeta = nu
     } catch (e) { console.debug?.(e); }
 }
 
+function toBoolish(value) {
+    if (value === true) return true;
+    if (value === false) return false;
+    if (value === 1 || value === "1") return true;
+    if (value === 0 || value === "0") return false;
+    return null;
+}
+
+function getFirstPresent(asset, keys = []) {
+    if (!asset || typeof asset !== "object") return null;
+    for (const key of keys) {
+        if (asset[key] != null) return asset[key];
+    }
+    return null;
+}
+
+function hasNonEmptyText(value) {
+    return typeof value === "string" && value.trim().length > 0;
+}
+
+function hasStructuredData(value) {
+    if (Array.isArray(value)) return value.some((item) => String(item ?? "").trim().length > 0);
+    if (value && typeof value === "object") return Object.keys(value).length > 0;
+    if (typeof value !== "string") return false;
+
+    const text = value.trim();
+    if (!text || text === "[]" || text === "[ ]") return false;
+    if (/^(null|none)$/i.test(text)) return false;
+
+    if ((text.startsWith("[") && text.endsWith("]")) || (text.startsWith("{") && text.endsWith("}"))) {
+        try {
+            const parsed = JSON.parse(text);
+            if (Array.isArray(parsed)) {
+                return parsed.some((item) => String(item ?? "").trim().length > 0);
+            }
+            if (parsed && typeof parsed === "object") {
+                return Object.keys(parsed).length > 0;
+            }
+            return Boolean(parsed);
+        } catch (e) { console.debug?.(e); }
+    }
+    return true;
+}
+
+function detectAiInfo(asset) {
+    const autoTagsValue = getFirstPresent(asset, [
+        "auto_tags",
+        "autoTags",
+        "ai_auto_tags",
+        "aiAutoTags",
+        "suggested_tags",
+        "suggestedTags",
+    ]);
+    const enhancedPromptValue = getFirstPresent(asset, [
+        "enhanced_caption",
+        "enhancedCaption",
+        "enhanced_prompt",
+        "enhancedPrompt",
+        "ai_enhanced_prompt",
+        "aiEnhancedPrompt",
+    ]);
+
+    const hasAutoTagsFlag = toBoolish(getFirstPresent(asset, [
+        "has_ai_auto_tags",
+        "hasAiAutoTags",
+        "ai_has_auto_tags",
+        "aiHasAutoTags",
+    ]));
+    const hasEnhancedPromptFlag = toBoolish(getFirstPresent(asset, [
+        "has_ai_enhanced_caption",
+        "hasAiEnhancedCaption",
+        "ai_has_enhanced_caption",
+        "aiHasEnhancedCaption",
+    ]));
+    const hasVectorFlag = toBoolish(getFirstPresent(asset, [
+        "has_ai_vector",
+        "hasAiVector",
+        "has_vector_embedding",
+        "hasVectorEmbedding",
+        "vector_indexed",
+        "vectorIndexed",
+    ]));
+    const hasAiInfoFlag = toBoolish(getFirstPresent(asset, [
+        "has_ai_info",
+        "hasAiInfo",
+        "ai_indexed",
+        "aiIndexed",
+    ]));
+
+    const hasAutoTags = hasAutoTagsFlag === true || (hasAutoTagsFlag === null && hasStructuredData(autoTagsValue));
+    const hasEnhancedPrompt = hasEnhancedPromptFlag === true || (hasEnhancedPromptFlag === null && hasNonEmptyText(enhancedPromptValue));
+    const hasVectorIndexed = hasVectorFlag === true || hasAiInfoFlag === true;
+    const hasAiInfo = hasAiInfoFlag === true || hasAutoTags || hasEnhancedPrompt || hasVectorIndexed;
+
+    return { hasAiInfo, hasAutoTags, hasEnhancedPrompt, hasVectorIndexed };
+}
+
 /**
  * Create workflow status dot (inline with filename)
  * States:
@@ -128,14 +225,6 @@ export function setFileBadgeCollision(badgeEl, nameCollision, collisionMeta = nu
 export function createWorkflowDot(asset) {
     const dot = document.createElement("span");
     dot.className = "mjr-workflow-dot mjr-asset-status-dot";
-
-    const toBoolish = (v) => {
-        if (v === true) return true;
-        if (v === false) return false;
-        if (v === 1 || v === "1") return true;
-        if (v === 0 || v === "0") return false;
-        return null;
-    };
 
     const hasWorkflow = toBoolish(asset?.has_workflow ?? asset?.hasWorkflow);
     const hasGen = toBoolish(asset?.has_generation_data ?? asset?.hasGenerationData);
@@ -167,8 +256,32 @@ export function createWorkflowDot(asset) {
             : "Pending: database metadata enrichment in progress";
     }
     applyAssetStatusDotState(dot, status, title, { asset });
-    dot.textContent = "\u25CF";
-    dot.title = `${title}\nClick to rescan this file`;
+    const ai = detectAiInfo(asset);
+    if (ai.hasAiInfo) {
+        const aiBits = [];
+        if (ai.hasVectorIndexed) aiBits.push("vector indexed");
+        if (ai.hasAutoTags) aiBits.push("AI tag suggestions");
+        if (ai.hasEnhancedPrompt) aiBits.push("enhanced prompt");
+
+        dot.textContent = "";
+        const icon = document.createElement("i");
+        icon.className = "pi pi-sparkles";
+        icon.setAttribute("aria-hidden", "true");
+        icon.style.fontSize = "11px";
+        icon.style.lineHeight = "1";
+        dot.appendChild(icon);
+
+        try {
+            dot.dataset.mjrAi = "1";
+        } catch (e) { console.debug?.(e); }
+        dot.title = `${title}\nAI: ${aiBits.length ? aiBits.join(", ") : "indexed"}\nClick to rescan this file`;
+    } else {
+        try {
+            dot.dataset.mjrAi = "0";
+        } catch (e) { console.debug?.(e); }
+        dot.textContent = "\u25CF";
+        dot.title = `${title}\nClick to rescan this file`;
+    }
 
     return dot;
 }
@@ -185,6 +298,10 @@ export function applyAssetStatusDotState(dot, state, title = "", context = {}) {
         color: ${color};
         margin-left: 4px;
         font-size: 12px;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         cursor: pointer;
         transition: color 0.25s ease, opacity 0.25s ease;
     `;

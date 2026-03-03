@@ -26,6 +26,7 @@ import os
 import random
 import re
 import sqlite3
+import subprocess
 import threading
 import time
 import uuid
@@ -790,19 +791,27 @@ class Sqlite:
         return conn
 
     async def _acquire_connection_async(self) -> aiosqlite.Connection:
+        # C-5: protect lazy semaphore creation with the instance lock so that two
+        # concurrent callers cannot both observe None and both allocate a semaphore.
         if self._async_sem is None:
-            self._async_sem = asyncio.Semaphore(self._max_conn_limit)
+            with self._lock:
+                if self._async_sem is None:
+                    self._async_sem = asyncio.Semaphore(self._max_conn_limit)
 
-        # Check reset flag before acquiring
-        if self._resetting:
-            raise RuntimeError("Database is resetting - connection rejected")
+        # C-6: read _resetting under the instance lock so the check-and-use is
+        # atomic with the writes in areset() that also hold self._lock.
+        with self._lock:
+            if self._resetting:
+                raise RuntimeError("Database is resetting - connection rejected")
 
         sem = self._async_sem
         await sem.acquire()
         try:
             # Re-check after waiting: reset may start while this waiter is queued.
-            if self._resetting:
-                raise RuntimeError("Database is resetting - connection rejected")
+            # C-6: use the instance lock for this re-check as well.
+            with self._lock:
+                if self._resetting:
+                    raise RuntimeError("Database is resetting - connection rejected")
             try:
                 conn = self._pool.get_nowait()
             except Empty:
@@ -860,10 +869,13 @@ class Sqlite:
                     pass
             else:
                 await self._release_connection_async(conn)
+        # H-3: set _write_lock inside the same lock acquisition that marks
+        # _initialized=True, so any thread that sees _initialized=True is
+        # guaranteed to also see a non-None _write_lock.
         with self._lock:
             self._initialized = True
-        if self._write_lock is None:
-            self._write_lock = asyncio.Lock()
+            if self._write_lock is None:
+                self._write_lock = asyncio.Lock()
 
     def _prune_asset_locks_locked(self, now: float) -> None:
         pool_prune_asset_locks_locked(self, now)
@@ -882,16 +894,21 @@ class Sqlite:
     def _asset_lock_is_locked(entry: dict[str, Any]) -> bool:
         return pool_asset_lock_is_locked(entry)
 
-    def _get_or_create_asset_lock(self, asset_id: Any) -> asyncio.Lock:
+    def _get_or_create_asset_lock(self, asset_id: Any) -> threading.Lock:
         return pool_get_or_create_asset_lock(self, asset_id, _asset_lock_key)
 
     @asynccontextmanager
     async def lock_for_asset(self, asset_id: Any):
         """
         Async context manager that serializes work per asset.
+
+        The per-asset lock is a threading.Lock (see connection_pool.get_or_create_asset_lock).
+        threading.Lock.acquire() is synchronous and returns a bool — it must NOT be awaited
+        directly.  We offload the blocking acquire() to a thread via asyncio.to_thread so that
+        the event loop is not blocked while waiting for a contended lock.
         """
         lock = self._get_or_create_asset_lock(asset_id)
-        await lock.acquire()
+        await asyncio.to_thread(lock.acquire)
         try:
             yield
         finally:
@@ -961,6 +978,14 @@ class Sqlite:
             try:
                 lock = self._write_lock
                 is_write = self._is_write_sql(query)
+                # H-3: _write_lock must not be None after initialization completes.
+                # If it is None for a write query, initialization has not finished —
+                # raise a clear error instead of silently skipping the write lock.
+                if is_write and lock is None:
+                    return Result.Err(
+                        ErrorCode.DB_ERROR,
+                        "Write lock unavailable: database not yet initialized",
+                    )
                 if is_write and lock is not None:
                     # BEGIN acquires the write lock already; avoid deadlocking by reacquiring it
                     # for statements executed within the same transaction.
@@ -1398,16 +1423,27 @@ class Sqlite:
         lock = self._write_lock
         if lock is not None:
             await lock.acquire()
-        conn = await self._acquire_connection_async()
-        token = f"tx_{uuid.uuid4().hex}"
-
-        begin_stmt = self._begin_stmt_for_mode(mode)
-
+        # Wrap connection acquisition inside the same try-except that calls
+        # _abort_begin_tx so the write lock is always released on any failure —
+        # including RuntimeError("Database is resetting…") from _acquire_connection_async.
+        # Without this guard, the lock is acquired above but never released if
+        # _acquire_connection_async raises before we enter the inner try block,
+        # permanently deadlocking all subsequent write operations.
+        conn: Any = None
         try:
-            await self._begin_tx_with_retry(conn, begin_stmt)
-            self._register_tx_token(token, conn, lock)
-            return Result.Ok(token)
+            conn = await self._acquire_connection_async()
+            token = f"tx_{uuid.uuid4().hex}"
+            begin_stmt = self._begin_stmt_for_mode(mode)
+            try:
+                await self._begin_tx_with_retry(conn, begin_stmt)
+                self._register_tx_token(token, conn, lock)
+                return Result.Ok(token)
+            except Exception as exc:
+                await self._abort_begin_tx(conn, lock)
+                return Result.Err(ErrorCode.DB_ERROR, str(exc))
         except Exception as exc:
+            # _acquire_connection_async failed — release the write lock and
+            # the partially-acquired connection (if any).
             await self._abort_begin_tx(conn, lock)
             return Result.Err(ErrorCode.DB_ERROR, str(exc))
 
@@ -1640,6 +1676,7 @@ class Sqlite:
 
     async def _delete_reset_file_with_retries(self, path: Path, deleted_files: list[str]) -> tuple[bool, Exception | None]:
         last_error: Exception | None = None
+        forced_release_attempted = False
         for attempt in range(5):
             try:
                 path.unlink()
@@ -1647,9 +1684,192 @@ class Sqlite:
                 return True, None
             except Exception as exc:
                 last_error = exc
+                if not forced_release_attempted and self._is_windows_sharing_violation(exc):
+                    forced_release_attempted = True
+                    try:
+                        terminated = await asyncio.to_thread(self._terminate_locking_processes_windows, path)
+                        if terminated:
+                            logger.warning(
+                                "Terminated locking process(es) for %s: %s",
+                                path,
+                                ", ".join(str(pid) for pid in terminated),
+                            )
+                            await asyncio.sleep(0.6)
+                            gc.collect()
+                            continue
+                    except Exception as kill_exc:
+                        logger.debug("Failed to terminate locking process(es) for %s: %s", path, kill_exc)
                 await asyncio.sleep(0.5 + (attempt * 0.2))
                 gc.collect()
         return False, last_error
+
+    @staticmethod
+    def _is_windows_sharing_violation(exc: Exception) -> bool:
+        if os.name != "nt":
+            return False
+        try:
+            winerror = int(getattr(exc, "winerror", 0) or 0)
+            if winerror in (32, 33):
+                return True
+        except Exception:
+            pass
+        msg = str(exc).lower()
+        return (
+            "winerror 32" in msg
+            or "winerror 33" in msg
+            or "used by another process" in msg
+            or "cannot access the file" in msg
+        )
+
+    @staticmethod
+    def _lock_kill_enabled() -> bool:
+        raw = os.getenv("MJR_AM_DB_FORCE_KILL_LOCKERS", os.getenv("MAJOOR_DB_FORCE_KILL_LOCKERS", "1"))
+        return str(raw or "").strip().lower() in {"1", "true", "yes", "on"}
+
+    @classmethod
+    def _find_locking_pids_windows(cls, path: Path) -> list[int]:
+        if os.name != "nt":
+            return []
+        try:
+            from ctypes import wintypes
+
+            CCH_RM_SESSION_KEY = 32
+            ERROR_MORE_DATA = 234
+
+            class FILETIME(ctypes.Structure):
+                _fields_ = [
+                    ("dwLowDateTime", wintypes.DWORD),
+                    ("dwHighDateTime", wintypes.DWORD),
+                ]
+
+            class RM_UNIQUE_PROCESS(ctypes.Structure):
+                _fields_ = [
+                    ("dwProcessId", wintypes.DWORD),
+                    ("ProcessStartTime", FILETIME),
+                ]
+
+            class RM_PROCESS_INFO(ctypes.Structure):
+                _fields_ = [
+                    ("Process", RM_UNIQUE_PROCESS),
+                    ("strAppName", wintypes.WCHAR * 256),
+                    ("strServiceShortName", wintypes.WCHAR * 64),
+                    ("ApplicationType", wintypes.DWORD),
+                    ("AppStatus", wintypes.ULONG),
+                    ("TSSessionId", wintypes.DWORD),
+                    ("bRestartable", wintypes.BOOL),
+                ]
+
+            rm = ctypes.WinDLL("Rstrtmgr")
+            rm.RmStartSession.argtypes = [ctypes.POINTER(wintypes.DWORD), wintypes.DWORD, wintypes.LPWSTR]
+            rm.RmStartSession.restype = wintypes.DWORD
+            rm.RmRegisterResources.argtypes = [
+                wintypes.DWORD,
+                ctypes.c_uint,
+                ctypes.POINTER(wintypes.LPCWSTR),
+                ctypes.c_uint,
+                ctypes.c_void_p,
+                ctypes.c_uint,
+                ctypes.c_void_p,
+            ]
+            rm.RmRegisterResources.restype = wintypes.DWORD
+            rm.RmGetList.argtypes = [
+                wintypes.DWORD,
+                ctypes.POINTER(ctypes.c_uint),
+                ctypes.POINTER(ctypes.c_uint),
+                ctypes.POINTER(RM_PROCESS_INFO),
+                ctypes.POINTER(wintypes.DWORD),
+            ]
+            rm.RmGetList.restype = wintypes.DWORD
+            rm.RmEndSession.argtypes = [wintypes.DWORD]
+            rm.RmEndSession.restype = wintypes.DWORD
+
+            session = wintypes.DWORD(0)
+            session_key = ctypes.create_unicode_buffer(CCH_RM_SESSION_KEY + 1)
+            start_res = rm.RmStartSession(ctypes.byref(session), 0, session_key)
+            if int(start_res) != 0:
+                return []
+            try:
+                files = (wintypes.LPCWSTR * 1)(str(path))
+                reg_res = rm.RmRegisterResources(session, 1, files, 0, None, 0, None)
+                if int(reg_res) != 0:
+                    return []
+
+                needed = ctypes.c_uint(0)
+                count = ctypes.c_uint(0)
+                reasons = wintypes.DWORD(0)
+                get_res = rm.RmGetList(session, ctypes.byref(needed), ctypes.byref(count), None, ctypes.byref(reasons))
+                if int(get_res) not in (0, ERROR_MORE_DATA):
+                    return []
+                if int(needed.value) <= 0:
+                    return []
+
+                infos = (RM_PROCESS_INFO * int(needed.value))()
+                count = ctypes.c_uint(int(needed.value))
+                get_res = rm.RmGetList(
+                    session,
+                    ctypes.byref(needed),
+                    ctypes.byref(count),
+                    infos,
+                    ctypes.byref(reasons),
+                )
+                if int(get_res) != 0:
+                    return []
+
+                pids: list[int] = []
+                for i in range(int(count.value)):
+                    pid = int(getattr(infos[i].Process, "dwProcessId", 0) or 0)
+                    if pid > 0:
+                        pids.append(pid)
+                # Deduplicate while preserving order.
+                seen: set[int] = set()
+                out: list[int] = []
+                for pid in pids:
+                    if pid in seen:
+                        continue
+                    seen.add(pid)
+                    out.append(pid)
+                return out
+            finally:
+                try:
+                    rm.RmEndSession(session)
+                except Exception:
+                    pass
+        except Exception:
+            return []
+
+    @classmethod
+    def _terminate_locking_processes_windows(cls, path: Path) -> list[int]:
+        if os.name != "nt" or not cls._lock_kill_enabled():
+            return []
+        pids = cls._find_locking_pids_windows(path)
+        if not pids:
+            return []
+
+        current_pid = int(os.getpid())
+        terminated: list[int] = []
+        for pid in pids:
+            if pid <= 0 or pid == current_pid:
+                continue
+            try:
+                proc = subprocess.run(
+                    ["taskkill", "/PID", str(pid), "/T", "/F"],
+                    capture_output=True,
+                    text=True,
+                    timeout=8,
+                )
+                if int(proc.returncode) == 0:
+                    terminated.append(pid)
+                else:
+                    logger.debug(
+                        "taskkill failed for PID %s (path=%s): rc=%s stderr=%s",
+                        pid,
+                        path,
+                        proc.returncode,
+                        (proc.stderr or "").strip(),
+                    )
+            except Exception as exc:
+                logger.debug("taskkill exception for PID %s (path=%s): %s", pid, path, exc)
+        return terminated
 
     def _rename_or_schedule_delete(
         self,

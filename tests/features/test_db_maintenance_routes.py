@@ -211,6 +211,8 @@ async def test_db_backups_list_route(monkeypatch, tmp_path: Path):
 
 @pytest.mark.asyncio
 async def test_db_force_delete_adapter_reset_success(monkeypatch, tmp_path: Path):
+    scan_calls: list[dict] = []
+
     class _DB:
         async def areset(self):
             return Result.Ok({})
@@ -219,9 +221,13 @@ async def test_db_force_delete_adapter_reset_success(monkeypatch, tmp_path: Path
         async def stop_enrichment(self, clear_queue=True):
             _ = clear_queue
 
-        async def scan_directory(self, *args, **kwargs):
-            _ = (args, kwargs)
-            return Result.Ok({})
+        def scan_directory(self, *args, **kwargs):
+            scan_calls.append({"args": args, "kwargs": dict(kwargs)})
+
+            async def _coro():
+                return Result.Ok({})
+
+            return _coro()
 
     async def _require_services():
         return {"db": _DB(), "index": _Index(), "watcher": None}, None
@@ -246,6 +252,62 @@ async def test_db_force_delete_adapter_reset_success(monkeypatch, tmp_path: Path
     payload = json.loads(resp.text)
     assert payload.get("ok") is True
     assert payload.get("data", {}).get("method") == "adapter_reset"
+    assert len(scan_calls) >= 1
+    for call in scan_calls:
+        kwargs = call.get("kwargs") or {}
+        assert kwargs.get("fast") is True
+        assert kwargs.get("background_metadata") is True
+
+
+@pytest.mark.asyncio
+async def test_db_force_delete_adapter_reset_result_error_falls_back_to_manual_delete(monkeypatch, tmp_path: Path):
+    state = {"closed": 0}
+
+    class _DB:
+        async def areset(self):
+            return Result.Err("RESET_FAILED", "boom")
+
+        async def aclose(self):
+            state["closed"] += 1
+
+        async def _ensure_initialized_async(self):
+            return None
+
+    class _Index:
+        async def stop_enrichment(self, clear_queue=True):
+            _ = clear_queue
+
+        async def scan_directory(self, *args, **kwargs):
+            _ = (args, kwargs)
+            return Result.Ok({})
+
+    async def _require_services():
+        return {"db": _DB(), "index": _Index(), "watcher": None}, None
+
+    def _create_task(coro):
+        try:
+            coro.close()
+        except Exception:
+            pass
+        return None
+
+    app = _app()
+    import mjr_am_backend.config as cfg
+
+    monkeypatch.setattr(cfg, "INDEX_DB_PATH", tmp_path / "assets.sqlite")
+    monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(m, "_require_services", _require_services)
+    monkeypatch.setattr(m.asyncio, "create_task", _create_task)
+    monkeypatch.setattr(m, "get_runtime_output_root", lambda: str(tmp_path))
+
+    req = make_mocked_request("POST", "/mjr/am/db/force-delete", app=app)
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    payload = json.loads(resp.text)
+    assert payload.get("ok") is True
+    assert payload.get("data", {}).get("method") == "manual_delete"
+    assert state["closed"] == 1
 
 
 @pytest.mark.asyncio
@@ -308,6 +370,8 @@ async def test_db_backup_save_success(monkeypatch, tmp_path: Path):
 
 @pytest.mark.asyncio
 async def test_db_backup_restore_success(monkeypatch, tmp_path: Path):
+    scan_calls: list[dict] = []
+
     class _DB:
         async def areset(self):
             return Result.Ok({})
@@ -319,9 +383,13 @@ async def test_db_backup_restore_success(monkeypatch, tmp_path: Path):
         async def stop_enrichment(self, clear_queue=True):
             _ = clear_queue
 
-        async def scan_directory(self, *args, **kwargs):
-            _ = (args, kwargs)
-            return Result.Ok({})
+        def scan_directory(self, *args, **kwargs):
+            scan_calls.append({"args": args, "kwargs": dict(kwargs)})
+
+            async def _coro():
+                return Result.Ok({})
+
+            return _coro()
 
     async def _require_services():
         return {"db": _DB(), "index": _Index(), "watcher": None}, None
@@ -357,6 +425,11 @@ async def test_db_backup_restore_success(monkeypatch, tmp_path: Path):
     payload = json.loads(resp.text)
     assert payload.get("ok") is True
     assert payload.get("data", {}).get("restored") is True
+    assert len(scan_calls) >= 1
+    for call in scan_calls:
+        kwargs = call.get("kwargs") or {}
+        assert kwargs.get("fast") is True
+        assert kwargs.get("background_metadata") is True
 
 
 @pytest.mark.asyncio

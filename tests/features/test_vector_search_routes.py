@@ -106,11 +106,77 @@ async def test_vector_search_route_handles_searcher_exception(monkeypatch) -> No
 
 
 @pytest.mark.asyncio
+async def test_vector_search_route_rejects_invalid_scope(monkeypatch) -> None:
+    class _Searcher:
+        async def search_by_text(self, _query: str, *, top_k: int = 20):
+            return Result.Ok([{"asset_id": 1, "score": 0.99}])
+
+    async def _require_services():
+        return {"vector_searcher": _Searcher()}, None
+
+    monkeypatch.setattr(vector_search, "_require_services", _require_services)
+    monkeypatch.setattr(vector_search, "is_vector_search_enabled", lambda: True)
+    monkeypatch.setattr(vector_search, "_check_rate_limit", lambda *_args, **_kwargs: (True, None))
+
+    app = _build_vector_app()
+    req = make_mocked_request("GET", "/mjr/am/vector/search?q=cat&scope=bad", app=app)
+    match = await app.router.resolve(req)
+    req._match_info = match
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+
+    assert body.get("ok") is False
+    assert body.get("code") == "INVALID_INPUT"
+
+
+@pytest.mark.asyncio
+async def test_vector_search_route_filters_hits_by_scope(monkeypatch) -> None:
+    class _DB:
+        async def aquery(self, sql: str, params=()):
+            if "SELECT a.id AS asset_id FROM assets a WHERE" in sql:
+                # Only asset 2 belongs to requested scope.
+                return Result.Ok([{"asset_id": 2}])
+            return Result.Ok([])
+
+    class _Searcher:
+        async def search_by_text(self, _query: str, *, top_k: int = 20):
+            assert top_k >= 20  # route oversamples to keep enough scoped hits.
+            return Result.Ok(
+                [
+                    {"asset_id": 1, "score": 0.95},
+                    {"asset_id": 2, "score": 0.93},
+                    {"asset_id": 3, "score": 0.91},
+                ]
+            )
+
+    async def _require_services():
+        return {"vector_searcher": _Searcher(), "db": _DB()}, None
+
+    async def _hydrate_passthrough(_services, result):
+        return Result.Ok(result.data or [])
+
+    monkeypatch.setattr(vector_search, "_require_services", _require_services)
+    monkeypatch.setattr(vector_search, "_hydrate_vector_results", _hydrate_passthrough)
+    monkeypatch.setattr(vector_search, "is_vector_search_enabled", lambda: True)
+    monkeypatch.setattr(vector_search, "_check_rate_limit", lambda *_args, **_kwargs: (True, None))
+
+    app = _build_vector_app()
+    req = make_mocked_request("GET", "/mjr/am/vector/search?q=cat&scope=output&top_k=5", app=app)
+    match = await app.router.resolve(req)
+    req._match_info = match
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+
+    assert body.get("ok") is True
+    assert body.get("data") == [{"asset_id": 2, "score": 0.93}]
+
+
+@pytest.mark.asyncio
 async def test_vector_similar_route_success(monkeypatch) -> None:
     class _Searcher:
         async def find_similar(self, asset_id: int, *, top_k: int = 20):
             assert asset_id == 42
-            assert top_k == 12
+            assert top_k >= 12
             return Result.Ok([{"asset_id": 77, "score": 0.91}])
 
     async def _require_services():
@@ -130,6 +196,47 @@ async def test_vector_similar_route_success(monkeypatch) -> None:
     assert body.get("ok") is True
     assert isinstance(body.get("data"), list)
     assert (body.get("data") or [])[0]["asset_id"] == 77
+
+
+@pytest.mark.asyncio
+async def test_vector_similar_route_filters_hits_by_scope(monkeypatch) -> None:
+    class _DB:
+        async def aquery(self, sql: str, params=()):
+            if "SELECT a.id AS asset_id FROM assets a WHERE" in sql:
+                return Result.Ok([{"asset_id": 88}])
+            return Result.Ok([])
+
+    class _Searcher:
+        async def find_similar(self, asset_id: int, *, top_k: int = 20):
+            assert asset_id == 42
+            assert top_k > 10
+            return Result.Ok(
+                [
+                    {"asset_id": 77, "score": 0.91},
+                    {"asset_id": 88, "score": 0.90},
+                ]
+            )
+
+    async def _require_services():
+        return {"vector_searcher": _Searcher(), "db": _DB()}, None
+
+    async def _hydrate_passthrough(_services, result):
+        return Result.Ok(result.data or [])
+
+    monkeypatch.setattr(vector_search, "_require_services", _require_services)
+    monkeypatch.setattr(vector_search, "_hydrate_vector_results", _hydrate_passthrough)
+    monkeypatch.setattr(vector_search, "is_vector_search_enabled", lambda: True)
+    monkeypatch.setattr(vector_search, "_check_rate_limit", lambda *_args, **_kwargs: (True, None))
+
+    app = _build_vector_app()
+    req = make_mocked_request("GET", "/mjr/am/vector/similar/42?top_k=10&scope=custom&custom_root_id=r1", app=app)
+    match = await app.router.resolve(req)
+    req._match_info = match
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+
+    assert body.get("ok") is True
+    assert body.get("data") == [{"asset_id": 88, "score": 0.9}]
 
 
 @pytest.mark.asyncio
@@ -169,6 +276,42 @@ async def test_vector_enhance_prompt_alias_route_success(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_vector_caption_alias_route_success(monkeypatch) -> None:
+    class _DB:
+        pass
+
+    class _VS:
+        pass
+
+    async def _require_services():
+        return {"db": _DB(), "vector_service": _VS(), "vector_searcher": object()}, None
+
+    async def _fake_generate(_db, _vs, asset_id: int):
+        return Result.Ok(f"caption-{asset_id}")
+
+    import mjr_am_backend.features.index.vector_indexer as vector_indexer
+
+    monkeypatch.setattr(vector_indexer, "generate_enhanced_prompt", _fake_generate)
+    monkeypatch.setattr(vector_search, "_require_services", _require_services)
+    monkeypatch.setattr(vector_search, "is_vector_search_enabled", lambda: True)
+
+    app = _build_vector_app()
+    req = make_mocked_request("POST", "/mjr-am/assets/caption", app=app)
+
+    async def _json_body():
+        return {"asset_id": 42}
+
+    req.json = _json_body  # type: ignore[assignment]
+    match = await app.router.resolve(req)
+    req._match_info = match
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+
+    assert body.get("ok") is True
+    assert body.get("data") == "caption-42"
+
+
+@pytest.mark.asyncio
 async def test_vector_generate_enhanced_prompt_route_success(monkeypatch) -> None:
     class _DB:
         pass
@@ -190,6 +333,37 @@ async def test_vector_generate_enhanced_prompt_route_success(monkeypatch) -> Non
 
     app = _build_vector_app()
     req = make_mocked_request("POST", "/mjr/am/vector/enhanced-prompt/42", app=app)
+    match = await app.router.resolve(req)
+    req._match_info = match
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+
+    assert body.get("ok") is True
+    assert body.get("data") == "caption-42"
+
+
+@pytest.mark.asyncio
+async def test_vector_generate_caption_route_success(monkeypatch) -> None:
+    class _DB:
+        pass
+
+    class _VS:
+        pass
+
+    async def _require_services():
+        return {"db": _DB(), "vector_service": _VS(), "vector_searcher": object()}, None
+
+    async def _fake_generate(_db, _vs, asset_id: int):
+        return Result.Ok(f"caption-{asset_id}")
+
+    import mjr_am_backend.features.index.vector_indexer as vector_indexer
+
+    monkeypatch.setattr(vector_indexer, "generate_enhanced_prompt", _fake_generate)
+    monkeypatch.setattr(vector_search, "_require_services", _require_services)
+    monkeypatch.setattr(vector_search, "is_vector_search_enabled", lambda: True)
+
+    app = _build_vector_app()
+    req = make_mocked_request("POST", "/mjr/am/vector/caption/42", app=app)
     match = await app.router.resolve(req)
     req._match_info = match
     resp = await match.handler(req)

@@ -577,6 +577,91 @@ async def test_reset_index_clear_and_reindex_success(monkeypatch, tmp_path: Path
 
 
 @pytest.mark.asyncio
+async def test_reset_index_uses_custom_scan_timeout(monkeypatch, tmp_path: Path) -> None:
+    out_root = tmp_path / "out"
+    out_root.mkdir()
+    observed_timeout = {"value": None}
+
+    class _Tx:
+        ok = True
+        error = None
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+    class _DB:
+        def atransaction(self, mode="immediate"):
+            _ = mode
+            return _Tx()
+
+        async def aexecute(self, sql, params=None):
+            _ = (sql, params)
+            return Result.Ok(1)
+
+        async def avacuum(self):
+            return Result.Ok({})
+
+    class _Index:
+        async def stop_enrichment(self, clear_queue=True):
+            _ = clear_queue
+            return None
+
+        async def scan_directory(self, *args, **kwargs):
+            _ = (args, kwargs)
+            return Result.Ok({"scanned": 1, "added": 1, "updated": 0, "skipped": 0, "errors": 0})
+
+    async def _runtime_output_root(_svc):
+        return str(out_root)
+
+    async def _require_services():
+        return {"db": _DB(), "index": _Index()}, None
+
+    async def _read_json(_request):
+        return Result.Ok(
+            {
+                "scope": "output",
+                "reindex": True,
+                "clear_scan_journal": True,
+                "clear_metadata_cache": True,
+                "clear_asset_metadata": True,
+                "clear_assets": True,
+                "rebuild_fts": False,
+                "scan_timeout_s": 7,
+            }
+        )
+
+    async def _wait_for(coro, timeout, *args, **kwargs):
+        _ = (args, kwargs)
+        observed_timeout["value"] = timeout
+        return await coro
+
+    monkeypatch.setattr(scan_mod, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(scan_mod, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(scan_mod, "_require_services", _require_services)
+
+    async def _resolve_security_prefs(_svc):
+        return {}
+
+    monkeypatch.setattr(scan_mod, "_resolve_security_prefs", _resolve_security_prefs)
+    monkeypatch.setattr(scan_mod, "_require_operation_enabled", lambda *_args, **_kwargs: Result.Ok({}))
+    monkeypatch.setattr(scan_mod, "is_db_maintenance_active", lambda: False)
+    monkeypatch.setattr(scan_mod, "_read_json", _read_json)
+    monkeypatch.setattr(scan_mod, "_runtime_output_root", _runtime_output_root)
+    monkeypatch.setattr(scan_mod.asyncio, "wait_for", _wait_for)
+
+    app = _app()
+    req = make_mocked_request("POST", "/mjr/am/index/reset", app=app)
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    payload = json.loads(resp.text)
+    assert payload.get("ok") is True
+    assert observed_timeout["value"] == 7
+
+
+@pytest.mark.asyncio
 async def test_stage_to_input_invalid_files_list(monkeypatch) -> None:
     async def _require_services():
         return {"index": object()}, None
@@ -887,6 +972,31 @@ async def test_watcher_status_enabled(monkeypatch) -> None:
     resp = await match.handler(req)
     payload = json.loads(resp.text)
     assert payload.get("data", {}).get("enabled") is True
+
+
+@pytest.mark.asyncio
+async def test_watcher_status_callable_is_running(monkeypatch) -> None:
+    class _Watcher:
+        @staticmethod
+        def is_running():
+            return False
+
+        @staticmethod
+        def watched_directories():
+            return ["C:/x"]
+
+    async def _require_services():
+        return {"watcher": _Watcher()}, None
+
+    monkeypatch.setattr(scan_mod, "_require_services", _require_services)
+
+    app = _app()
+    req = make_mocked_request("GET", "/mjr/am/watcher/status", app=app)
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    payload = json.loads(resp.text)
+    assert payload.get("data", {}).get("enabled") is False
+    assert payload.get("data", {}).get("directories") == ["C:/x"]
 
 
 @pytest.mark.asyncio
@@ -1210,6 +1320,97 @@ async def test_scan_route_scope_output_success(monkeypatch, tmp_path: Path) -> N
     payload = json.loads(resp.text)
     assert payload.get("ok") is True
     assert scheduled["n"] == 1
+
+
+@pytest.mark.asyncio
+async def test_scan_route_async_mode_queues_background_scans(monkeypatch, tmp_path: Path) -> None:
+    out_root = tmp_path / "out"
+    in_root = tmp_path / "in"
+    out_root.mkdir()
+    in_root.mkdir()
+    queued: list[dict[str, object]] = []
+
+    class _Index:
+        async def scan_directory(self, *_args, **_kwargs):
+            return Result.Ok({"scanned": 1, "added": 1, "updated": 0, "skipped": 0, "errors": 0})
+
+    async def _require_services():
+        return {"index": _Index()}, None
+
+    async def _read_json(_request):
+        return Result.Ok({"scope": "all", "recursive": True, "incremental": False, "async": True})
+
+    async def _runtime_output_root(_svc):
+        return str(out_root)
+
+    async def _kickoff(directory: str, **kwargs):
+        queued.append({"directory": directory, **kwargs})
+
+    monkeypatch.setattr(scan_mod, "_require_services", _require_services)
+    monkeypatch.setattr(scan_mod, "is_db_maintenance_active", lambda: False)
+    monkeypatch.setattr(scan_mod, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(scan_mod, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(scan_mod, "_check_rate_limit", lambda *args, **kwargs: (True, None))
+    monkeypatch.setattr(scan_mod, "_read_json", _read_json)
+    monkeypatch.setattr(scan_mod, "_runtime_output_root", _runtime_output_root)
+    monkeypatch.setattr(scan_mod, "folder_paths", SimpleNamespace(get_input_directory=lambda: str(in_root)))
+    monkeypatch.setattr(scan_mod, "_kickoff_background_scan", _kickoff)
+
+    app = _app()
+    req = make_mocked_request("POST", "/mjr/am/scan", app=app)
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    payload = json.loads(resp.text)
+
+    assert payload.get("ok") is True
+    assert payload.get("data", {}).get("queued") is True
+    assert payload.get("data", {}).get("mode") == "background"
+    assert payload.get("data", {}).get("enqueued_targets") == ["output", "input"]
+    assert len(queued) == 2
+
+
+@pytest.mark.asyncio
+async def test_scan_route_async_mode_reports_not_queued_when_kickoff_skips(monkeypatch, tmp_path: Path) -> None:
+    out_root = tmp_path / "out"
+    out_root.mkdir()
+
+    class _Index:
+        async def scan_directory(self, *_args, **_kwargs):
+            return Result.Ok({"scanned": 1, "added": 1, "updated": 0, "skipped": 0, "errors": 0})
+
+    async def _require_services():
+        return {"index": _Index()}, None
+
+    async def _read_json(_request):
+        return Result.Ok({"scope": "output", "recursive": True, "incremental": True, "async": True})
+
+    async def _runtime_output_root(_svc):
+        return str(out_root)
+
+    async def _kickoff(_directory: str, **_kwargs):
+        return False
+
+    monkeypatch.setattr(scan_mod, "_require_services", _require_services)
+    monkeypatch.setattr(scan_mod, "is_db_maintenance_active", lambda: False)
+    monkeypatch.setattr(scan_mod, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(scan_mod, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(scan_mod, "_check_rate_limit", lambda *args, **kwargs: (True, None))
+    monkeypatch.setattr(scan_mod, "_read_json", _read_json)
+    monkeypatch.setattr(scan_mod, "_runtime_output_root", _runtime_output_root)
+    monkeypatch.setattr(scan_mod, "_resolve_scan_root", lambda p: Result.Ok(Path(p)))
+    monkeypatch.setattr(scan_mod, "_is_path_allowed", lambda _p: True)
+    monkeypatch.setattr(scan_mod, "_is_path_allowed_custom", lambda _p: False)
+    monkeypatch.setattr(scan_mod, "_kickoff_background_scan", _kickoff)
+
+    app = _app()
+    req = make_mocked_request("POST", "/mjr/am/scan", app=app)
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    payload = json.loads(resp.text)
+
+    assert payload.get("ok") is True
+    assert payload.get("data", {}).get("mode") == "background"
+    assert payload.get("data", {}).get("queued") is False
 
 
 @pytest.mark.asyncio

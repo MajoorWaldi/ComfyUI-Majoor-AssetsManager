@@ -2,6 +2,7 @@
 Directory scanning and file indexing endpoints.
 """
 import asyncio
+from contextlib import suppress
 import os
 import shutil
 import time
@@ -69,6 +70,7 @@ from .scan_watcher import (
     _watcher_scope_config,
     register_watcher_routes,
 )
+from .filesystem import _kickoff_background_scan
 from .scan_consistency import (
     _collect_missing_asset_rows,
     _delete_missing_asset_rows,
@@ -115,6 +117,13 @@ from .scan_helpers import (
 logger = get_logger(__name__)
 
 
+def _scan_enqueued_from_kickoff(result: Any) -> bool:
+    # Backward-compatible for monkeypatched tests that return None.
+    if result is None:
+        return True
+    return bool(result)
+
+
 def _invalidate_vector_searcher(svc: dict | None) -> None:
     """Best-effort: tell the in-memory VectorSearcher to drop cached results."""
     try:
@@ -123,6 +132,19 @@ def _invalidate_vector_searcher(svc: dict | None) -> None:
             searcher.invalidate()
     except Exception:
         pass
+
+
+async def _wait_for_with_cleanup(awaitable, *, timeout: float):
+    """Wait for an awaitable with timeout and always clean up the underlying task."""
+    task = asyncio.get_running_loop().create_task(awaitable)
+    try:
+        return await asyncio.wait_for(task, timeout=timeout)
+    except Exception:
+        if not task.done():
+            task.cancel()
+        with suppress(asyncio.CancelledError):
+            await task
+        raise
 
 
 # These module-level names are kept here so test monkeypatching on `scan_mod`
@@ -187,6 +209,24 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             return _json_response(body_res)
         body = body_res.data or {}
 
+        def _coerce_scan_timeout(value: Any, default: float = max(float(TO_THREAD_TIMEOUT_S), 120.0)) -> float:
+            if value is None:
+                return default
+            try:
+                parsed = float(value)
+            except (TypeError, ValueError):
+                return default
+            if parsed < 1.0:
+                return 1.0
+            if parsed > 900.0:
+                return 900.0
+            return parsed
+
+        scan_timeout_s = _coerce_scan_timeout(
+            body.get("scan_timeout_s", body.get("scanTimeoutS", body.get("timeout_s", body.get("timeoutS"))))
+        )
+        async_scan = parse_bool(body.get("async", body.get("background", False)), False)
+
         scope = (body.get("scope") or "").lower().strip()
         custom_root_id = body.get("custom_root_id") or body.get("root_id") or body.get("customRootId")
         output_root = await _runtime_output_root(svc)
@@ -223,17 +263,54 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 incremental = body.get("incremental", True)
                 fast = bool(body.get("fast") or body.get("mode") == "fast" or body.get("manifest_only") is True)
                 background_metadata = bool(body.get("background_metadata") or body.get("enrich_metadata") or body.get("enqueue_metadata"))
+                if async_scan:
+                    output_enqueued = _scan_enqueued_from_kickoff(await _kickoff_background_scan(
+                        str(Path(output_root).resolve()),
+                        source="output",
+                        recursive=bool(recursive),
+                        incremental=bool(incremental),
+                        fast=bool(fast),
+                        background_metadata=bool(background_metadata),
+                        min_interval_seconds=0.0,
+                        respect_bg_scan_on_list=False,
+                    ))
+                    input_enqueued = _scan_enqueued_from_kickoff(await _kickoff_background_scan(
+                        str(Path(folder_paths.get_input_directory()).resolve()),
+                        source="input",
+                        recursive=bool(recursive),
+                        incremental=bool(incremental),
+                        fast=bool(fast),
+                        background_metadata=bool(background_metadata),
+                        min_interval_seconds=0.0,
+                        respect_bg_scan_on_list=False,
+                    ))
+                    queued_targets = []
+                    if output_enqueued:
+                        queued_targets.append("output")
+                    if input_enqueued:
+                        queued_targets.append("input")
+                    return _json_response(
+                        Result.Ok(
+                            {
+                                "queued": bool(queued_targets),
+                                "mode": "background",
+                                "scope": "all",
+                                "targets": ["output", "input"],
+                                "enqueued_targets": queued_targets,
+                            }
+                        )
+                    )
                 try:
                     # Note: output and input scans share the same _scan_lock so they
                     # serialize naturally — no actual concurrency gain from gather here.
                     # Sequential awaits are clearer and equally performant (BUG-03).
                     try:
-                        out_res = await asyncio.wait_for(
+                        out_res = await _wait_for_with_cleanup(
                             svc['index'].scan_directory(
                                 str(Path(output_root).resolve()),
                                 recursive, incremental, "output", None, fast, background_metadata,
                             ),
-                            timeout=TO_THREAD_TIMEOUT_S,
+                            timeout=scan_timeout_s,
                         )
                     except asyncio.TimeoutError:
                         return _json_response(Result.Err("TIMEOUT", "Output scan timed out"))
@@ -242,12 +319,12 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                         return _json_response(Result.Err("SCAN_FAILED", safe_error_message(exc, "Output scan failed")))
 
                     try:
-                        in_res = await asyncio.wait_for(
+                        in_res = await _wait_for_with_cleanup(
                             svc['index'].scan_directory(
                                 str(Path(folder_paths.get_input_directory()).resolve()),
                                 recursive, incremental, "input", None, fast, background_metadata,
                             ),
-                            timeout=TO_THREAD_TIMEOUT_S,
+                            timeout=scan_timeout_s,
                         )
                     except asyncio.TimeoutError:
                         return _json_response(Result.Err("TIMEOUT", "Input scan timed out"))
@@ -332,9 +409,33 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         fast = bool(body.get("fast") or body.get("mode") == "fast" or body.get("manifest_only") is True)
         background_metadata = bool(body.get("background_metadata") or body.get("enrich_metadata") or body.get("enqueue_metadata"))
 
+        if async_scan:
+            queued = _scan_enqueued_from_kickoff(await _kickoff_background_scan(
+                str(normalized_dir),
+                source=scan_source,
+                root_id=scan_root_id,
+                recursive=bool(recursive),
+                incremental=bool(incremental),
+                fast=bool(fast),
+                background_metadata=bool(background_metadata),
+                min_interval_seconds=0.0,
+                respect_bg_scan_on_list=False,
+            ))
+            return _json_response(
+                Result.Ok(
+                    {
+                        "queued": bool(queued),
+                        "mode": "background",
+                        "scope": scan_source,
+                        "directory": str(normalized_dir),
+                        "root_id": scan_root_id,
+                    }
+                )
+            )
+
         try:
             try:
-                result = await asyncio.wait_for(
+                result = await _wait_for_with_cleanup(
                     svc['index'].scan_directory(
                         str(normalized_dir),
                         recursive,
@@ -344,7 +445,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                         fast,
                         background_metadata,
                     ),
-                    timeout=TO_THREAD_TIMEOUT_S,
+                    timeout=scan_timeout_s,
                 )
             except asyncio.TimeoutError:
                 return _json_response(Result.Err("TIMEOUT", "Scan timed out"))
@@ -568,7 +669,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             source = file_type if file_type in ("output", "input", "custom") else "output"
             try:
                 try:
-                    result = await asyncio.wait_for(
+                    result = await _wait_for_with_cleanup(
                         svc['index'].index_paths(
                             paths,
                             base_dir,
@@ -735,6 +836,24 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                     return parse_bool(body[key], default)
             return default
 
+        def _float_option(keys, default, *, min_value: float, max_value: float):
+            for key in keys:
+                if key not in body:
+                    continue
+                value = body.get(key)
+                if value is None:
+                    continue
+                try:
+                    parsed = float(value)
+                except (TypeError, ValueError):
+                    return default
+                if parsed < min_value:
+                    return min_value
+                if parsed > max_value:
+                    return max_value
+                return parsed
+            return default
+
         scope = str(body.get("scope") or "output").strip().lower() or "output"
         custom_root_id = ""
         for key in ("custom_root_id", "root_id", "customRootId", "customRoot"):
@@ -752,6 +871,12 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         incremental = _bool_option(("incremental",), False)
         fast = _bool_option(("fast",), True)
         background_metadata = _bool_option(("background_metadata", "backgroundMetadata"), True)
+        reset_scan_timeout_s = _float_option(
+            ("scan_timeout_s", "scanTimeoutS", "timeout_s", "timeoutS"),
+            max(float(TO_THREAD_TIMEOUT_S), 120.0),
+            min_value=1.0,
+            max_value=900.0,
+        )
 
         # Hard reset deletes and recreates the SQLite DB files (assets.sqlite, -wal, -shm).
         # This matches the "Reset Index Now" maintenance intent.
@@ -878,7 +1003,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                     _emit_maintenance_status("restarting_scan", "info", operation="reset_index")
                     for target in target_roots:
                         try:
-                            result = await asyncio.wait_for(
+                            result = await _wait_for_with_cleanup(
                                 svc['index'].scan_directory(
                                     target["path"],
                                     True,
@@ -888,7 +1013,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                                     fast,
                                     background_metadata,
                                 ),
-                                timeout=TO_THREAD_TIMEOUT_S,
+                                timeout=reset_scan_timeout_s,
                             )
                         except asyncio.TimeoutError:
                             _emit_maintenance_status("failed", "error", "Index reset scan timed out", operation="reset_index")
@@ -1133,7 +1258,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 _emit_maintenance_status("restarting_scan", "info", operation="reset_index")
                 for target in target_roots:
                     try:
-                        result = await asyncio.wait_for(
+                        result = await _wait_for_with_cleanup(
                             svc['index'].scan_directory(
                                 target["path"],
                                 True,
@@ -1143,7 +1268,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                                 fast,
                                 background_metadata,
                             ),
-                            timeout=TO_THREAD_TIMEOUT_S,
+                            timeout=reset_scan_timeout_s,
                         )
                     except asyncio.TimeoutError:
                         _emit_maintenance_status("failed", "error", "Index reset scan timed out", operation="reset_index")

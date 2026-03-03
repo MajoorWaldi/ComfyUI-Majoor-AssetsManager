@@ -122,6 +122,21 @@ async def _get_background_scan_lock(key: str) -> asyncio.Lock:
                     continue
                 _BACKGROUND_SCAN_LOCKS.pop(old_key, None)
                 overflow -= 1
+
+        # H-13: Hard-cap fallback — if the dict has grown beyond 2× the soft cap
+        # (meaning every candidate was in use and skipped during the soft sweep),
+        # forcibly evict the oldest entries regardless of lock state to prevent
+        # unbounded memory growth.  The current key is always preserved.
+        hard_cap = _BACKGROUND_SCAN_LOCKS_MAX * 2
+        while len(_BACKGROUND_SCAN_LOCKS_ORDER) > hard_cap:
+            evict_key, _ = _BACKGROUND_SCAN_LOCKS_ORDER.popitem(last=False)
+            if evict_key == key:
+                # Never evict the lock we just created/looked up.
+                _BACKGROUND_SCAN_LOCKS_ORDER[evict_key] = None
+                _BACKGROUND_SCAN_LOCKS_ORDER.move_to_end(evict_key)
+                break
+            _BACKGROUND_SCAN_LOCKS.pop(evict_key, None)
+
         return lock
 
 
@@ -161,6 +176,30 @@ def _normalize_extensions(raw_list: Any | None) -> list[str]:
     return normalized
 
 
+def _coerce_filter_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if text in ("1", "true", "yes", "on"):
+            return True
+        if text in ("0", "false", "no", "off", ""):
+            return False
+        return False
+    return False
+
+
+def _coerce_optional_int(value: Any) -> int | None:
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 async def _kickoff_background_scan(
     directory: str,
     *,
@@ -171,31 +210,34 @@ async def _kickoff_background_scan(
     fast: bool = True,
     background_metadata: bool = True,
     min_interval_seconds: float = float(BG_SCAN_MIN_INTERVAL_SECONDS),
-) -> None:
+    respect_bg_scan_on_list: bool = True,
+) -> bool:
     """
     Fire-and-forget indexing into the DB.
 
     Used to ensure input/custom folders get indexed without blocking list requests.
+
+    Returns True only when a task has actually been enqueued.
     """
-    if not BG_SCAN_ON_LIST:
-        return
+    if respect_bg_scan_on_list and not BG_SCAN_ON_LIST:
+        return False
     if is_db_maintenance_active():
-        return
+        return False
     normalized_dir = normalize_scan_directory(directory)
     if should_skip_background_scan(normalized_dir, source, root_id, MANUAL_BG_SCAN_GRACE_SECONDS):
-        return
+        return False
 
     try:
         key = f"{source}|{str(root_id or '')}|{normalized_dir}"
         now_mono = time.monotonic()
         if _should_skip_scan_enqueue(key, now_mono, min_interval_seconds):
-            return
+            return False
 
         scan_lock = await _get_background_scan_lock(key)
         async with scan_lock:
             # Double-check under lock
             if _should_skip_scan_enqueue(key, now_mono, min_interval_seconds):
-                return
+                return False
 
             job = {
                 "directory": str(normalized_dir),
@@ -211,12 +253,13 @@ async def _kickoff_background_scan(
 
             async with _SCAN_PENDING_LOCK:
                 if not _enqueue_background_scan_job(key, job):
-                    return
+                    return False
 
             # Only mark as enqueued once we've successfully updated _SCAN_PENDING.
             _set_background_entry(key, {"last_mono": now_mono, "in_progress": False, "last_wall": time.time()})
+            return True
     except Exception:
-        return
+        return False
 
 
 def _ensure_worker() -> None:
@@ -792,14 +835,12 @@ def _parse_filesystem_listing_filters(
 
     filter_kind = str(source.get("kind") or "").strip().lower()
     filter_min_rating = int(source.get("min_rating") or 0)
-    filter_workflow_only = bool(source.get("has_workflow"))
+    filter_workflow_only = _coerce_filter_bool(source.get("has_workflow"))
     filter_workflow_type = str(source.get("workflow_type") or "").strip().upper()
     filter_extensions = _normalize_extensions(source.get("extensions"))
 
-    mtime_start_raw = source.get("mtime_start")
-    mtime_end_raw = source.get("mtime_end")
-    filter_mtime_start = int(mtime_start_raw) if mtime_start_raw is not None else None
-    filter_mtime_end = int(mtime_end_raw) if mtime_end_raw is not None else None
+    filter_mtime_start = _coerce_optional_int(source.get("mtime_start"))
+    filter_mtime_end = _coerce_optional_int(source.get("mtime_end"))
 
     return {
         "q": q,
@@ -897,6 +938,11 @@ def _apply_db_enrichment_row(asset: Any, mapping: dict) -> None:
     asset["has_workflow"] = db_row.get("has_workflow")
     asset["has_generation_data"] = db_row.get("has_generation_data")
     asset["workflow_type"] = db_row.get("workflow_type")
+    asset["has_ai_info"] = db_row.get("has_ai_info")
+    asset["has_ai_vector"] = db_row.get("has_ai_vector")
+    asset["has_ai_auto_tags"] = db_row.get("has_ai_auto_tags")
+    asset["has_ai_enhanced_caption"] = db_row.get("has_ai_enhanced_caption")
+    asset["auto_tags"] = db_row.get("auto_tags") or []
     if db_row.get("root_id"):
         asset["root_id"] = db_row.get("root_id")
 

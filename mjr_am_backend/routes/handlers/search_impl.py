@@ -33,7 +33,7 @@ from .filesystem import _kickoff_background_scan, _list_filesystem_assets
 DEFAULT_LIST_LIMIT = 50
 DEFAULT_LIST_OFFSET = 0
 MAX_LIST_LIMIT = 5000
-MAX_LIST_OFFSET = 1_000_000
+MAX_LIST_OFFSET = 100_000  # Fix M-8: 1M offset causes DB to scan/skip millions of rows; cap at 100k
 MAX_RATING = 5
 VALID_KIND_FILTERS = {"image", "video", "audio", "model3d"}
 VALID_SORT_KEYS = {"mtime_desc", "mtime_asc", "name_asc", "name_desc", "rating_desc", "size_desc", "size_asc", "none"}

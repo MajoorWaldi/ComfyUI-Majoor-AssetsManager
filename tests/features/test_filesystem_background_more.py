@@ -32,13 +32,38 @@ async def test_kickoff_background_scan_skip_and_enqueue(monkeypatch):
     monkeypatch.setattr(fs, "_SCAN_PENDING_MAX", 10)
     monkeypatch.setattr(fs, "_BACKGROUND_SCAN_LAST", OrderedDict())
 
-    await fs._kickoff_background_scan("C:/x", source="output")
+    enqueued = await fs._kickoff_background_scan("C:/x", source="output")
+    assert enqueued is True
     assert fs._SCAN_PENDING
 
     monkeypatch.setattr(fs, "is_db_maintenance_active", lambda: True)
     before = len(fs._SCAN_PENDING)
-    await fs._kickoff_background_scan("C:/y", source="output")
+    enqueued_2 = await fs._kickoff_background_scan("C:/y", source="output")
+    assert enqueued_2 is False
     assert len(fs._SCAN_PENDING) == before
+
+
+@pytest.mark.asyncio
+async def test_kickoff_background_scan_can_bypass_list_gate(monkeypatch):
+    monkeypatch.setattr(fs, "BG_SCAN_ON_LIST", False)
+    monkeypatch.setattr(fs, "is_db_maintenance_active", lambda: False)
+    monkeypatch.setattr(fs, "normalize_scan_directory", lambda d: d)
+    monkeypatch.setattr(fs, "should_skip_background_scan", lambda *args, **kwargs: False)
+    monkeypatch.setattr(fs, "_should_skip_scan_enqueue", lambda *args, **kwargs: False)
+    monkeypatch.setattr(fs, "_ensure_worker", lambda: None)
+    monkeypatch.setattr(fs, "_SCAN_PENDING", OrderedDict())
+    monkeypatch.setattr(fs, "_SCAN_PENDING_MAX", 10)
+    monkeypatch.setattr(fs, "_BACKGROUND_SCAN_LAST", OrderedDict())
+
+    no_bypass = await fs._kickoff_background_scan("C:/x", source="output")
+    assert no_bypass is False
+
+    bypass = await fs._kickoff_background_scan(
+        "C:/x",
+        source="output",
+        respect_bg_scan_on_list=False,
+    )
+    assert bypass is True
 
 
 @pytest.mark.asyncio

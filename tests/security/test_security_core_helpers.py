@@ -92,6 +92,16 @@ def test_require_operation_enabled_paths(monkeypatch) -> None:
     assert r3.ok
 
 
+def test_require_operation_enabled_string_bool_prefs() -> None:
+    # "false" should not be interpreted as truthy for sensitive ops.
+    denied = sec._require_operation_enabled("delete", prefs={"allow_delete": "false"})
+    assert not denied.ok
+    assert denied.code == "FORBIDDEN"
+
+    allowed = sec._require_operation_enabled("delete", prefs={"allow_delete": "true"})
+    assert allowed.ok
+
+
 def test_auth_helpers_and_authenticated_user() -> None:
     class _UM:
         enabled = True

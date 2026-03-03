@@ -548,13 +548,29 @@ export function createStatusIndicator(options = {}) {
                 },
             });
             if (res?.ok) {
-                const processed = Number(res?.data?.processed || 0);
-                const indexed = Number(res?.data?.indexed || 0);
-                const skipped = Number(res?.data?.skipped || 0);
-                comfyToast(`Vector backfill done — processed ${processed}, indexed ${indexed}, skipped ${skipped}`, "success", 3000);
-                setActionLog(`Backfill OK — processed ${processed}, indexed ${indexed}, skipped ${skipped}`, "success");
-                statusDot.style.background = "var(--mjr-status-success, #4CAF50)";
-                applyStatusHighlight(section, "success");
+                const state = String(res?.data?.status || "").toLowerCase();
+                const pending = !!res?.data?.pending || ["queued", "running", "pending"].includes(state);
+                const progress = res?.data?.progress || {};
+                const processed = Number(res?.data?.processed ?? progress?.candidates ?? 0);
+                const indexed = Number(res?.data?.indexed ?? progress?.indexed ?? 0);
+                const skipped = Number(res?.data?.skipped ?? progress?.skipped ?? 0);
+                const errors = Number(res?.data?.errors ?? progress?.errors ?? 0);
+                if (pending) {
+                    const jobId = String(res?.data?.job_id || "").trim();
+                    const msg = `Vector backfill is still running in background${jobId ? ` (job ${jobId.slice(0, 8)})` : ""}.`;
+                    comfyToast(msg, "info", 4200);
+                    setActionLog(
+                        `Backfill running in background — candidates ${processed}, indexed ${indexed}, skipped ${skipped}, errors ${errors}`,
+                        "info",
+                    );
+                    statusDot.style.background = "var(--mjr-status-info, #64B5F6)";
+                    applyStatusHighlight(section, "info");
+                } else {
+                    comfyToast(`Vector backfill done — processed ${processed}, indexed ${indexed}, skipped ${skipped}`, "success", 3000);
+                    setActionLog(`Backfill OK — processed ${processed}, indexed ${indexed}, skipped ${skipped}`, "success");
+                    statusDot.style.background = "var(--mjr-status-success, #4CAF50)";
+                    applyStatusHighlight(section, "success");
+                }
             } else {
                 const err = String(res?.error || "Backfill failed");
                 const code = String(res?.code || "").trim();

@@ -2483,17 +2483,76 @@
 
 /* Media elements (img/video) sizing variants */
 .mjr-mfv-media {
+    display: block;
+    width: 100%;
+    height: 100%;
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
-    display: block;
+    object-position: center;
+}
+
+.mjr-mfv-media--fit-height {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    object-position: center;
 }
 
 .mjr-mfv-media--fill {
     width: 100%;
     height: 100%;
+    max-width: 100%;
+    max-height: 100%;
     object-fit: contain;
+    object-position: center;
     display: block;
+}
+
+/* Audio card inside MFV */
+.mjr-mfv-audio-card {
+    width: min(92%, 560px);
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+.mjr-mfv-audio-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.mjr-mfv-audio-icon {
+    color: var(--mjr-badge-audio, #FF9800);
+    opacity: 0.95;
+}
+
+.mjr-mfv-audio-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.mjr-mfv-audio-player {
+    width: 100%;
+}
+
+.mjr-mfv-side-panel .mjr-mfv-audio-card,
+.mjr-mfv-ab-layer .mjr-mfv-audio-card {
+    width: calc(100% - 20px);
 }
 
 /* Video element specific styles */

@@ -127,9 +127,23 @@ function _syncCurrentGridSelection() {
 
 function _onSelectionChanged(e) {
     if (!_instance?.isVisible) return;
-    const { selectedIds = [] } = e.detail || {};
-    if (!selectedIds.length) return;
-    void _loadFromIds(selectedIds);
+    const selectedIds = Array.isArray(e?.detail?.selectedIds)
+        ? e.detail.selectedIds.map(String).filter(Boolean)
+        : [];
+    if (selectedIds.length) {
+        void _loadFromIds(selectedIds);
+        return;
+    }
+    // Fallback: if payload is missing/empty, read latest selection directly from grid dataset.
+    try {
+        const grid = getActiveGridContainer();
+        if (!grid) return;
+        const ids = Array.from(getSelectedIdSet(grid)).map(String).filter(Boolean);
+        if (!ids.length) return;
+        void _loadFromIds(ids);
+    } catch (err) {
+        console.debug?.("[MFV] selection fallback failed", err);
+    }
 }
 
 function _bindSelectionListener() {

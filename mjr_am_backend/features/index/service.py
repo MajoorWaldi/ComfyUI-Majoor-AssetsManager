@@ -181,7 +181,16 @@ class IndexService:
             to_enrich = result_data.get("to_enrich", [])
             if to_enrich:
                 try:
-                    await self._enricher.start_enrichment(to_enrich)
+                    # H-7: cap enrichment startup at 5 minutes so a hung enricher
+                    # cannot block scan completion indefinitely.
+                    await asyncio.wait_for(
+                        self._enricher.start_enrichment(to_enrich),
+                        timeout=300,
+                    )
+                except asyncio.TimeoutError:
+                    logger.warning(
+                        "start_enrichment timed out after 300 s — enrichment skipped for this scan batch"
+                    )
                 except Exception as exc:
                     logger.debug("Background enrichment start skipped: %s", exc)
                 # Remove from stats as it's internal

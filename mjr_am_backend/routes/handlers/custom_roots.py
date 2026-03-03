@@ -115,6 +115,7 @@ async def _kickoff_custom_root_scan(root_path: str, root_id: str) -> None:
             root_id=root_id,
             recursive=True,
             incremental=True,
+            respect_bg_scan_on_list=False,
         )
     except Exception as exc:
         logger.debug("Background scan kickoff skipped: %s", exc)
@@ -652,9 +653,23 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
                 try:
                     src_parent = target.parent
                     src_scope, src_root_id = _infer_scan_scope(src_parent)
-                    await _kickoff_background_scan(str(src_parent), source=src_scope, root_id=src_root_id, recursive=False, incremental=True)
+                    await _kickoff_background_scan(
+                        str(src_parent),
+                        source=src_scope,
+                        root_id=src_root_id,
+                        recursive=False,
+                        incremental=True,
+                        respect_bg_scan_on_list=False,
+                    )
                     tgt_scope, tgt_root_id = _infer_scan_scope(target)
-                    await _kickoff_background_scan(str(target), source=tgt_scope, root_id=tgt_root_id, recursive=True, incremental=True)
+                    await _kickoff_background_scan(
+                        str(target),
+                        source=tgt_scope,
+                        root_id=tgt_root_id,
+                        recursive=True,
+                        incremental=True,
+                        respect_bg_scan_on_list=False,
+                    )
                 except Exception as exc:
                     logger.debug("Folder rename targeted scan kickoff skipped: %s", exc)
                 return _json_response(Result.Ok({"path": str(target.resolve(strict=False))}))
@@ -687,10 +702,24 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
                 try:
                     src_parent = src_res.parent
                     src_scope, src_root_id = _infer_scan_scope(src_parent)
-                    await _kickoff_background_scan(str(src_parent), source=src_scope, root_id=src_root_id, recursive=False, incremental=True)
+                    await _kickoff_background_scan(
+                        str(src_parent),
+                        source=src_scope,
+                        root_id=src_root_id,
+                        recursive=False,
+                        incremental=True,
+                        respect_bg_scan_on_list=False,
+                    )
                     moved_path = Path(str(moved)).resolve(strict=False)
                     tgt_scope, tgt_root_id = _infer_scan_scope(moved_path)
-                    await _kickoff_background_scan(str(moved_path), source=tgt_scope, root_id=tgt_root_id, recursive=True, incremental=True)
+                    await _kickoff_background_scan(
+                        str(moved_path),
+                        source=tgt_scope,
+                        root_id=tgt_root_id,
+                        recursive=True,
+                        incremental=True,
+                        respect_bg_scan_on_list=False,
+                    )
                 except Exception as exc:
                     logger.debug("Folder move targeted scan kickoff skipped: %s", exc)
                 return _json_response(Result.Ok({"path": str(Path(str(moved)).resolve(strict=False))}))

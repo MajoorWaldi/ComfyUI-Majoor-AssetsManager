@@ -40,7 +40,10 @@ def dedupe_result_payload(payload: dict | None) -> dict:
         try:
             db_total = int(data.get("total") or 0)
             deduped_count = len(deduped)
-            data["total"] = min(db_total, deduped_count) if deduped_count < db_total else db_total
+            # Keep total aligned with DB pagination semantics:
+            # - never under-report below returned page size after dedupe
+            # - do not clamp a valid DB total down to current page length
+            data["total"] = deduped_count if db_total < deduped_count else db_total
         except Exception:
             data["total"] = len(deduped)
     return data
@@ -76,9 +79,33 @@ async def query_browser_rows(db: Any, filepaths: list[str]) -> list[dict] | None
     try:
         rows_res = await db.aquery_in(
             """
-            SELECT a.id, a.filepath, COALESCE(m.rating, 0) AS rating, COALESCE(m.tags, '[]') AS tags
+            SELECT
+                a.id,
+                a.filepath,
+                COALESCE(m.rating, 0) AS rating,
+                COALESCE(m.tags, '[]') AS tags,
+                CASE
+                    WHEN LENGTH(TRIM(COALESCE(a.enhanced_caption, ''))) > 0 THEN 1
+                    ELSE 0
+                END AS has_ai_enhanced_caption,
+                CASE
+                    WHEN TRIM(COALESCE(e.auto_tags, '[]')) IN ('', '[]', '[ ]', 'null', 'NULL') THEN 0
+                    ELSE 1
+                END AS has_ai_auto_tags,
+                CASE
+                    WHEN e.vector IS NOT NULL AND LENGTH(e.vector) > 0 THEN 1
+                    ELSE 0
+                END AS has_ai_vector,
+                CASE
+                    WHEN LENGTH(TRIM(COALESCE(a.enhanced_caption, ''))) > 0
+                         OR TRIM(COALESCE(e.auto_tags, '[]')) NOT IN ('', '[]', '[ ]', 'null', 'NULL')
+                         OR (e.vector IS NOT NULL AND LENGTH(e.vector) > 0)
+                    THEN 1
+                    ELSE 0
+                END AS has_ai_info
             FROM assets a
             LEFT JOIN asset_metadata m ON m.asset_id = a.id
+            LEFT JOIN asset_embeddings e ON e.asset_id = a.id
             WHERE {IN_CLAUSE}
             """,
             "a.filepath",
@@ -131,6 +158,10 @@ def hydrate_asset_from_row(asset: dict, by_fp: dict[str, dict]) -> None:
         asset["id"] = int(rid)
     asset["rating"] = int(row.get("rating") or 0)
     asset["tags"] = coerce_browser_tags(row.get("tags"))
+    asset["has_ai_info"] = row.get("has_ai_info")
+    asset["has_ai_vector"] = row.get("has_ai_vector")
+    asset["has_ai_auto_tags"] = row.get("has_ai_auto_tags")
+    asset["has_ai_enhanced_caption"] = row.get("has_ai_enhanced_caption")
 
 
 def apply_hydration_rows(assets: list[dict], rows: list[dict]) -> None:

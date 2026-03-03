@@ -25,6 +25,7 @@ import contextlib
 import datetime as dt
 import io
 import logging
+import math
 import os
 import struct
 import subprocess
@@ -338,6 +339,9 @@ class VectorService:
         _accepts_model_kw = "model_kwargs" in _st_sig.parameters
         _accepts_tok_kw = "tokenizer_kwargs" in _st_sig.parameters
 
+        # Fix C-1: do NOT hold _MODEL_CACHE_LOCK during model loading.
+        # Holding threading.Lock for 10-30s blocks all other thread-pool threads.
+        # Pattern: check-under-lock, load-without-lock, write-under-lock.
         with _MODEL_CACHE_LOCK:
             cached_model = _MODEL_CACHE.get(cache_key)
             if cached_model is not None:
@@ -345,52 +349,60 @@ class VectorService:
                 logger.debug("Reusing cached multimodal model '%s'", self._model_name)
                 return cached_model
 
-            _log_model_loading_once(self._model_name)
-            previous_hf_verbosity = hf_logging.get_verbosity()
-            verbose = _ai_verbose_logs_enabled()
-            if not verbose:
-                hf_logging.set_verbosity_error()
-                _configure_hf_quiet_mode()  # re-apply in case another thread reset loggers
-            try:
-                st_kwargs: dict[str, Any] = {
-                    "model_name_or_path": self._model_name,
-                    "device": self._device,
-                }
-                # use_fast only applies to tokenizers/processors, NOT to models.
-                if _accepts_tok_kw:
-                    st_kwargs["tokenizer_kwargs"] = {"use_fast": False}
+        _log_model_loading_once(self._model_name)
+        previous_hf_verbosity = hf_logging.get_verbosity()
+        verbose = _ai_verbose_logs_enabled()
+        if not verbose:
+            hf_logging.set_verbosity_error()
+            _configure_hf_quiet_mode()  # re-apply in case another thread reset loggers
+        try:
+            st_kwargs: dict[str, Any] = {
+                "model_name_or_path": self._model_name,
+                "device": self._device,
+            }
+            # use_fast only applies to tokenizers/processors, NOT to models.
+            if _accepts_tok_kw:
+                st_kwargs["tokenizer_kwargs"] = {"use_fast": False}
 
-                with warnings.catch_warnings():
-                    warnings.filterwarnings(
-                        "ignore",
-                        message=r"Using a slow image processor as `use_fast` is unset.*",
-                    )
-                    warnings.filterwarnings(
-                        "ignore",
-                        message=r".*huggingface_hub.*cache-system uses symlinks.*",
-                    )
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    message=r"Using a slow image processor as  is unset.*",
+                )
+                warnings.filterwarnings(
+                    "ignore",
+                    message=r".*huggingface_hub.*cache-system uses symlinks.*",
+                )
+                self._patch_global_siglip_config_hidden_size()
+
+                def _build_st_model() -> Any:
+                    if verbose:
+                        return SentenceTransformer(**st_kwargs)
+                    # Redirect stdout only; stderr (tqdm) stays visible.
+                    with _suppress_stdout_only():
+                        return SentenceTransformer(**st_kwargs)
+
+                try:
+                    model = _build_st_model()
+                except Exception as exc:
+                    if not self._is_hidden_size_error(exc):
+                        raise
                     self._patch_global_siglip_config_hidden_size()
+                    logger.debug("Retrying SentenceTransformer load after hidden_size class patch")
+                    model = _build_st_model()
+        finally:
+            hf_logging.set_verbosity(previous_hf_verbosity)
 
-                    def _build_st_model() -> Any:
-                        if verbose:
-                            return SentenceTransformer(**st_kwargs)
-                        # Redirect stdout only — stderr (tqdm progress
-                        # bars) stays visible for download feedback.
-                        with _suppress_stdout_only():
-                            return SentenceTransformer(**st_kwargs)
-
-                    try:
-                        model = _build_st_model()
-                    except Exception as exc:
-                        if not self._is_hidden_size_error(exc):
-                            raise
-                        self._patch_global_siglip_config_hidden_size()
-                        logger.debug("Retrying SentenceTransformer load after hidden_size class patch")
-                        model = _build_st_model()
-            finally:
-                hf_logging.set_verbosity(previous_hf_verbosity)
-            _MODEL_CACHE[cache_key] = model
-            logger.debug("Model cached under key %s", cache_key)
+        # Write to cache under lock.  If another thread loaded the same model
+        # concurrently, reuse theirs to keep a single shared instance.
+        with _MODEL_CACHE_LOCK:
+            existing = _MODEL_CACHE.get(cache_key)
+            if existing is not None:
+                logger.debug("Concurrent load: reusing cached model '%s'", self._model_name)
+                model = existing
+            else:
+                _MODEL_CACHE[cache_key] = model
+                logger.debug("Model cached under key %s", cache_key)
 
         # ── Patch SigLIP-family configs missing top-level hidden_size ──
         self._patch_model_hidden_size(model)
@@ -681,14 +693,17 @@ class VectorService:
             if hasattr(cfg_cls, "hidden_size"):
                 continue
 
-            def _hidden_size_getter(instance: Any, _cls: type[Any] = cfg_cls) -> int:
-                resolved = cls._derive_hidden_size_from_subconfigs(instance)
-                if resolved is not None:
-                    return int(resolved)
-                raise AttributeError(f"{_cls.__name__}.hidden_size")
+            def _build_hidden_size_getter(config_cls: type[Any]):
+                def _hidden_size_getter(instance: Any) -> int:
+                    resolved = cls._derive_hidden_size_from_subconfigs(instance)
+                    if resolved is not None:
+                        return int(resolved)
+                    raise AttributeError(f"{config_cls.__name__}.hidden_size")
+
+                return _hidden_size_getter
 
             try:
-                setattr(cfg_cls, "hidden_size", property(_hidden_size_getter))
+                setattr(cfg_cls, "hidden_size", property(_build_hidden_size_getter(cfg_cls)))
                 patched_any = True
             except Exception:
                 continue
@@ -910,14 +925,14 @@ class VectorService:
 
         if self._use_native_siglip():
             try:
-                processor, model = await self._ensure_siglip_components()
+                processor, native_model = await self._ensure_siglip_components()
 
                 def _encode_native_image() -> list[float]:
                     import torch
 
                     with torch.inference_mode():
                         inputs = processor(images=[img], return_tensors="pt")
-                        feats = model.get_image_features(**inputs)
+                        feats = native_model.get_image_features(**inputs)
                         arr = feats.detach().cpu().numpy()[0]
                         vec = _normalise_vector(arr)
                         return _coerce_vector_dim(vec, self._dim)
@@ -1508,14 +1523,38 @@ class VectorService:
 
 
 def _normalise_vector(vec: Any) -> list[float]:
-    """Flatten a numpy array to ``list[float]`` and L2-normalise it."""
-    import numpy as np  # noqa: F811
+    """Flatten a vector-like payload to ``list[float]`` and L2-normalise it."""
+    try:
+        import numpy as np  # noqa: F811
 
-    arr = np.asarray(vec, dtype=np.float32).flatten()
-    norm = np.linalg.norm(arr)
+        arr = np.asarray(vec, dtype=np.float32).flatten()
+        norm = np.linalg.norm(arr)
+        if norm > 0:
+            arr = arr / norm
+        return [float(x) for x in arr.tolist()]
+    except Exception:
+        pass
+
+    def _flatten_floats(value: Any) -> list[float]:
+        if value is None:
+            return []
+        if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+            out: list[float] = []
+            for item in value:
+                out.extend(_flatten_floats(item))
+            return out
+        try:
+            return [float(value)]
+        except Exception:
+            return []
+
+    arr = _flatten_floats(vec)
+    if not arr:
+        return []
+    norm = math.sqrt(sum(v * v for v in arr))
     if norm > 0:
-        arr = arr / norm
-    return arr.tolist()
+        arr = [v / norm for v in arr]
+    return arr
 
 
 def _coerce_vector_dim(vec: list[float], dim: int) -> list[float]:

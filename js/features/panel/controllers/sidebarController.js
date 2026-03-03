@@ -530,13 +530,46 @@ export function bindSidebarOpen({
                 }
             }
 
+            const clickedId = String(card?.dataset?.mjrAssetId || "").trim();
             if (idx >= 0) {
-                const nextSelected = !card.classList.contains("is-selected");
-                setCardSelected(card, nextSelected);
                 gridContainer._mjrLastSelectedIndex = idx;
             }
-            updateSelectedIdsDataset(gridContainer);
-            syncSelectionState({ gridContainer, state, activeId: card?.dataset?.mjrAssetId });
+
+            // Build selection from dataset first (VirtualGrid-safe), then fallback to DOM.
+            const selectedSet = new Set();
+            try {
+                const raw = gridContainer.dataset?.mjrSelectedAssetIds;
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed)) {
+                        for (const id of parsed) {
+                            const sid = String(id || "").trim();
+                            if (sid) selectedSet.add(sid);
+                        }
+                    }
+                } else {
+                    const single = String(gridContainer.dataset?.mjrSelectedAssetId || "").trim();
+                    if (single) selectedSet.add(single);
+                }
+            } catch (e) { console.debug?.(e); }
+            if (!selectedSet.size) {
+                for (const c of cards) {
+                    const sid = String(c?.dataset?.mjrAssetId || "").trim();
+                    if (!sid) continue;
+                    if (c.classList?.contains?.("is-selected")) selectedSet.add(sid);
+                }
+            }
+
+            if (clickedId) {
+                if (selectedSet.has(clickedId)) selectedSet.delete(clickedId);
+                else selectedSet.add(clickedId);
+            }
+
+            const nextList = Array.from(selectedSet);
+            const nextActiveId = selectedSet.has(clickedId) ? clickedId : (nextList[0] || "");
+            // Use canonical selection setter so both grid + window selection events are fired.
+            applySelection(gridContainer, nextList, nextActiveId);
+            syncSelectionState({ gridContainer, state, activeId: nextActiveId });
             return;
         }
         // Click only selects the asset (sidebar opens via hotkey/context menu).
@@ -691,5 +724,4 @@ export function bindSidebarOpen({
     gridContainer._mjrSidebarOpenDispose = dispose;
     return { dispose, toggleDetails: openDetailsForSelection, refreshActiveAsset };
 }
-
 

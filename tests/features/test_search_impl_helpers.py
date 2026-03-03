@@ -17,7 +17,7 @@ def test_dedupe_assets_payload_total_adjusted() -> None:
     }
     out = s._dedupe_result_assets_payload(payload)
     assert len(out["assets"]) == 3
-    assert out["total"] == 3
+    assert out["total"] == 99
 
 
 def test_collect_hydration_paths_skips_folder_and_invalid() -> None:

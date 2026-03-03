@@ -34,6 +34,30 @@ from .scan_helpers import (
 logger = get_logger(__name__)
 
 
+def _watcher_is_running(watcher: Any) -> bool:
+    if not watcher:
+        return False
+    try:
+        raw = getattr(watcher, "is_running", False)
+        value = raw() if callable(raw) else raw
+        return bool(value)
+    except Exception:
+        return False
+
+
+def _watcher_directories(watcher: Any) -> list[str]:
+    if not watcher:
+        return []
+    try:
+        raw = getattr(watcher, "watched_directories", [])
+        value = raw() if callable(raw) else raw
+        if isinstance(value, (list, tuple, set)):
+            return [str(path) for path in value if path]
+    except Exception:
+        pass
+    return []
+
+
 # ---------------------------------------------------------------------------
 # Watcher callback builders
 # ---------------------------------------------------------------------------
@@ -177,8 +201,8 @@ def register_watcher_routes(routes: web.RouteTableDef, *, deps: dict | None = No
 
         watcher = svc.get("watcher")
         return _json_response(Result.Ok({
-            "enabled": watcher is not None and watcher.is_running,
-            "directories": watcher.watched_directories if watcher else [],
+            "enabled": _watcher_is_running(watcher),
+            "directories": _watcher_directories(watcher),
         }))
 
     @routes.post("/mjr/am/watcher/flush")
@@ -210,7 +234,7 @@ def register_watcher_routes(routes: web.RouteTableDef, *, deps: dict | None = No
                 flushed = bool(flush_fn())
         except Exception:
             flushed = False
-        return _json_response(Result.Ok({"enabled": bool(watcher.is_running), "flushed": flushed}))
+        return _json_response(Result.Ok({"enabled": _watcher_is_running(watcher), "flushed": flushed}))
 
     @routes.post("/mjr/am/watcher/toggle")
     async def watcher_toggle(request):
@@ -241,8 +265,8 @@ def register_watcher_routes(routes: web.RouteTableDef, *, deps: dict | None = No
         watcher = svc.get("watcher")
 
         if enabled:
-            if watcher and watcher.is_running:
-                return _json_response(Result.Ok({"enabled": True, "directories": watcher.watched_directories}))
+            if _watcher_is_running(watcher):
+                return _json_response(Result.Ok({"enabled": True, "directories": _watcher_directories(watcher)}))
 
             index_service = svc.get("index")
             if not index_service:
@@ -365,7 +389,7 @@ def register_watcher_routes(routes: web.RouteTableDef, *, deps: dict | None = No
 
         # If watcher is not enabled, just acknowledge.
         watcher = svc.get("watcher")
-        if not watcher or not watcher.is_running:
+        if not _watcher_is_running(watcher):
             return _json_response(Result.Ok({"enabled": False, "directories": [], "scope": scope}))
 
         from mjr_am_backend.features.index.watcher import OutputWatcher
@@ -379,7 +403,7 @@ def register_watcher_routes(routes: web.RouteTableDef, *, deps: dict | None = No
             if scope == "custom":
                 return _json_response(Result.Err("INVALID_INPUT", "Invalid or missing custom_root_id for watcher scope"))
             try:
-                if watcher and watcher.is_running:
+                if _watcher_is_running(watcher):
                     await watcher.stop()
                     svc["watcher"] = None
             except Exception:
@@ -390,8 +414,8 @@ def register_watcher_routes(routes: web.RouteTableDef, *, deps: dict | None = No
         # requested scope resolves to the exact same set of directories.
         try:
             current_dirs = []
-            if watcher and watcher.is_running:
-                current_dirs = [os.path.normcase(os.path.normpath(str(p))) for p in (watcher.watched_directories or []) if p]
+            if _watcher_is_running(watcher):
+                current_dirs = [os.path.normcase(os.path.normpath(str(p))) for p in (_watcher_directories(watcher) or []) if p]
 
             desired_dirs = []
             for entry in watch_paths:
@@ -403,8 +427,8 @@ def register_watcher_routes(routes: web.RouteTableDef, *, deps: dict | None = No
                 if path_value:
                     desired_dirs.append(os.path.normcase(os.path.normpath(str(path_value))))
 
-            if watcher and watcher.is_running and set(current_dirs) == set(desired_dirs):
-                return _json_response(Result.Ok({"enabled": True, "directories": watcher.watched_directories, "scope": scope}))
+            if _watcher_is_running(watcher) and set(current_dirs) == set(desired_dirs):
+                return _json_response(Result.Ok({"enabled": True, "directories": _watcher_directories(watcher), "scope": scope}))
         except Exception:
             pass
 

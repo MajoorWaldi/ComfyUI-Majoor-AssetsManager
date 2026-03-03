@@ -29,6 +29,7 @@ logger = get_logger(__name__)
 
 _HYBRID_RATE_LIMIT_MAX = 30
 _HYBRID_RATE_LIMIT_WINDOW = 60
+_HYBRID_VALID_SCOPES = {"output", "input", "custom", "all"}
 
 # ── Inline filter regex patterns ────────────────────────────────────────────
 
@@ -38,6 +39,119 @@ _RE_KIND = re.compile(r"\bkind:(image|video|audio)\b", re.IGNORECASE)
 _RE_AFTER = re.compile(r"\bafter:(\d{4}-\d{2}-\d{2})\b", re.IGNORECASE)
 _RE_BEFORE = re.compile(r"\bbefore:(\d{4}-\d{2}-\d{2})\b", re.IGNORECASE)
 _RE_EXT = re.compile(r"\bext:(\w+)\b", re.IGNORECASE)
+
+
+def _normalize_scope(scope: str) -> str:
+    value = str(scope or "output").strip().lower()
+    return value if value in _HYBRID_VALID_SCOPES else ""
+
+
+def _build_scope_clauses(scope: str, custom_root_id: str | None) -> tuple[list[str], list[Any]]:
+    where: list[str] = []
+    params: list[Any] = []
+    if scope in {"output", "input", "custom"}:
+        where.append("a.source = ?")
+        params.append(scope)
+    if scope == "custom" and custom_root_id:
+        where.append("a.root_id = ?")
+        params.append(str(custom_root_id))
+    return where, params
+
+
+def _build_inline_filter_clauses(filters: dict[str, Any]) -> tuple[list[str], list[Any]]:
+    where: list[str] = []
+    params: list[Any] = []
+
+    if filters.get("min_rating"):
+        where.append("COALESCE(m.rating, 0) >= ?")
+        params.append(int(filters["min_rating"]))
+
+    if filters.get("kind"):
+        where.append("a.kind = ?")
+        params.append(filters["kind"])
+
+    if filters.get("ext"):
+        where.append("lower(a.ext) = ?")
+        params.append(str(filters["ext"]).lower())
+
+    if filters.get("after"):
+        where.append("date(a.indexed_at) >= ?")
+        params.append(filters["after"])
+
+    if filters.get("before"):
+        where.append("date(a.indexed_at) <= ?")
+        params.append(filters["before"])
+
+    for tag in filters.get("tags", []):
+        where.append("m.tags LIKE ?")
+        params.append(f'%"{tag}"%')
+
+    return where, params
+
+
+async def _filter_semantic_hits(
+    db: Any | None,
+    hits: list[dict[str, Any]],
+    *,
+    filters: dict[str, Any],
+    scope: str,
+    custom_root_id: str | None,
+) -> list[dict[str, Any]]:
+    if db is None or not isinstance(hits, list) or not hits:
+        return hits if isinstance(hits, list) else []
+
+    asset_ids: list[int] = []
+    for hit in hits:
+        try:
+            aid = int(hit.get("asset_id") or 0)
+        except Exception:
+            aid = 0
+        if aid > 0:
+            asset_ids.append(aid)
+    if not asset_ids:
+        return []
+
+    placeholders = ",".join("?" for _ in asset_ids)
+    where = [f"a.id IN ({placeholders})"]
+    params: list[Any] = list(asset_ids)
+    scope_where, scope_params = _build_scope_clauses(scope, custom_root_id)
+    filter_where, filter_params = _build_inline_filter_clauses(filters)
+    where.extend(scope_where)
+    where.extend(filter_where)
+    params.extend(scope_params)
+    params.extend(filter_params)
+    where_sql = " AND ".join(where)
+
+    rows = await db.aquery(
+        f"""
+        SELECT a.id AS asset_id
+        FROM assets a
+        LEFT JOIN asset_metadata m ON a.id = m.asset_id
+        WHERE {where_sql}
+        """,
+        tuple(params),
+    )
+    if not rows.ok or not rows.data:
+        return []
+
+    allowed: set[int] = set()
+    for row in rows.data:
+        try:
+            allowed.add(int(row.get("asset_id") or 0))
+        except Exception:
+            continue
+    if not allowed:
+        return []
+
+    out: list[dict[str, Any]] = []
+    for hit in hits:
+        try:
+            aid = int(hit.get("asset_id") or 0)
+        except Exception:
+            continue
+        if aid in allowed:
+            out.append(hit)
+    return out
 
 
 def _parse_query_filters(raw: str) -> tuple[str, dict[str, Any]]:
@@ -130,38 +244,16 @@ async def _run_fts_search(
     if db is None:
         return []
     try:
-        where: list[str] = ["a.source = ?"]
-        params: list[Any] = [scope]
+        where: list[str] = []
+        params: list[Any] = []
+        scope_where, scope_params = _build_scope_clauses(scope, custom_root_id)
+        filter_where, filter_params = _build_inline_filter_clauses(filters)
+        where.extend(scope_where)
+        where.extend(filter_where)
+        params.extend(scope_params)
+        params.extend(filter_params)
 
-        if custom_root_id:
-            where.append("a.root_id = ?")
-            params.append(custom_root_id)
-
-        if filters.get("min_rating"):
-            where.append("COALESCE(m.rating, 0) >= ?")
-            params.append(int(filters["min_rating"]))
-
-        if filters.get("kind"):
-            where.append("a.kind = ?")
-            params.append(filters["kind"])
-
-        if filters.get("ext"):
-            where.append("lower(a.ext) = ?")
-            params.append(filters["ext"].lower())
-
-        if filters.get("after"):
-            where.append("date(a.indexed_at) >= ?")
-            params.append(filters["after"])
-
-        if filters.get("before"):
-            where.append("date(a.indexed_at) <= ?")
-            params.append(filters["before"])
-
-        for tag in filters.get("tags", []):
-            where.append("m.tags LIKE ?")
-            params.append(f'%"{tag}"%')
-
-        where_sql = " AND ".join(where)
+        where_sql = " AND ".join(where) if where else "1=1"
 
         if clean_q:
             # Escape FTS special chars; wrap in quotes for phrase matching fallback
@@ -225,7 +317,11 @@ def register_hybrid_search_routes(routes: web.RouteTableDef) -> None:
         services_dict = services if isinstance(services, dict) else {}
 
         raw_q = (request.query.get("q") or "").strip()
-        scope = (request.query.get("scope") or "output").strip()
+        scope = _normalize_scope(request.query.get("scope") or "output")
+        if not scope:
+            return _json_response(
+                Result.Err("INVALID_INPUT", "Invalid scope. Must be one of: output, input, custom, all")
+            )
         custom_root_id = (request.query.get("custom_root_id") or "").strip() or None
 
         try:
@@ -246,8 +342,16 @@ def register_hybrid_search_routes(routes: web.RouteTableDef) -> None:
             if searcher is None or not clean_q:
                 return []
             try:
-                res = await searcher.search_by_text(clean_q, top_k=top_k * 2)
-                return res.data if res.ok else []
+                res = await searcher.search_by_text(clean_q, top_k=max(top_k * 4, top_k * 2))
+                if not res.ok or not res.data:
+                    return []
+                return await _filter_semantic_hits(
+                    db,
+                    list(res.data),
+                    filters=inline_filters,
+                    scope=scope,
+                    custom_root_id=custom_root_id,
+                )
             except Exception:
                 return []
 

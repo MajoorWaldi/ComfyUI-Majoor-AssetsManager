@@ -21,6 +21,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
+from pathlib import Path
 from typing import Any
 
 from ...adapters.db.sqlite import Sqlite
@@ -32,6 +34,11 @@ from ...shared import FileKind, Result, get_logger
 from .vector_service import VectorService, vector_to_blob
 
 logger = get_logger(__name__)
+
+_TITLE_LINE_RE = re.compile(r"(?im)^\s*title\s*:\s*(.+)$")
+_CAPTION_LINE_RE = re.compile(r"(?im)^\s*caption\s*:\s*(.+)$")
+_NEG_PROMPT_MARKER_RE = re.compile(r"(?:^|\n)\s*negative prompt:\s*", re.IGNORECASE)
+_STEPS_MARKER_RE = re.compile(r"(?:^|\n)\s*steps\s*:\s*\d+", re.IGNORECASE)
 
 # ── Canonical auto-tag vocabulary ──────────────────────────────────────────
 # Each entry maps a human-readable tag to a text prompt.
@@ -246,6 +253,11 @@ async def generate_enhanced_prompt(
 
     if not caption:
         return Result.Err("METADATA_FAILED", "Enhanced caption generation returned empty output")
+    fallback_title = (
+        Path(filepath).stem.replace("_", " ").replace("-", " ").strip()
+        or "Untitled"
+    )
+    caption = _normalise_title_caption(caption, fallback_title=fallback_title)
 
     write = await _store_enhanced_caption(db, asset_id, caption)
     if not write.ok:
@@ -323,9 +335,13 @@ def _extract_prompt_from_metadata(meta: dict[str, Any]) -> str | None:
         "prompt",
         "parameters",
         "geninfo.prompt",
+        "geninfo.positive.value",
+        "geninfo.positive.text",
         "geninfo.positive_prompt",
         "positive_prompt",
         "sd_prompt",
+        "generation.prompt",
+        "workflow.prompt",
     ):
         parts = key_path.split(".")
         obj: Any = meta
@@ -336,7 +352,20 @@ def _extract_prompt_from_metadata(meta: dict[str, Any]) -> str | None:
                 obj = None
                 break
         if isinstance(obj, str) and obj.strip():
-            return obj.strip()
+            cleaned = _sanitize_prompt_text(obj)
+            if cleaned:
+                return cleaned
+    for blob_key in (
+        "PNG:Parameters",
+        "EXIF:UserComment",
+        "UserComment",
+        "ImageDescription",
+    ):
+        blob = meta.get(blob_key)
+        if isinstance(blob, str) and blob.strip():
+            cleaned = _sanitize_prompt_text(blob)
+            if cleaned:
+                return cleaned
     return None
 
 
@@ -390,7 +419,17 @@ async def _try_store_enhanced_caption(
         generated = await vs.generate_enhanced_caption(filepath)
         if not generated.ok or not generated.data:
             return
-        await _store_enhanced_caption(db, asset_id, str(generated.data).strip())
+        fallback_title = (
+            Path(filepath).stem.replace("_", " ").replace("-", " ").strip()
+            or "Untitled"
+        )
+        caption = _normalise_title_caption(
+            str(generated.data).strip(),
+            fallback_title=fallback_title,
+        )
+        if not caption:
+            return
+        await _store_enhanced_caption(db, asset_id, caption)
     except Exception as exc:
         logger.debug("Enhanced caption generation skipped for asset %d: %s", asset_id, exc)
 
@@ -426,3 +465,82 @@ async def _apply_autotags(
         (json.dumps(matched_tags), asset_id),
     )
     logger.debug("Auto-tag suggestions stored for asset %d: %s", asset_id, matched_tags)
+
+
+def _normalise_whitespace(value: str) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip())
+
+
+def _sanitize_prompt_text(value: str) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+
+    base = raw
+    split = _NEG_PROMPT_MARKER_RE.split(base, maxsplit=1)
+    if split:
+        base = split[0].strip()
+
+    step_match = _STEPS_MARKER_RE.search(base)
+    if step_match:
+        base = base[: step_match.start()].strip()
+
+    return _normalise_whitespace(base).strip(" ,")
+
+
+def _derive_title_from_caption(caption: str) -> str:
+    cleaned = _normalise_whitespace(caption)
+    if not cleaned:
+        return ""
+
+    first_chunk = re.split(r"[.!?;:\n]", cleaned, maxsplit=1)[0].strip()
+    source = first_chunk or cleaned
+    words = [w for w in source.split(" ") if w]
+    if len(words) > 8:
+        source = " ".join(words[:8]).strip()
+    source = source.strip(" ,.-")
+    if not source:
+        return ""
+    if len(source) == 1:
+        return source.upper()
+    return source[0].upper() + source[1:]
+
+
+def _normalise_title_caption(raw_caption: str, *, fallback_title: str = "Untitled") -> str:
+    raw = str(raw_caption or "").strip()
+    if not raw:
+        return ""
+
+    title = ""
+    caption = ""
+
+    title_match = _TITLE_LINE_RE.search(raw)
+    if title_match:
+        title = _normalise_whitespace(title_match.group(1))
+
+    caption_match = _CAPTION_LINE_RE.search(raw)
+    if caption_match:
+        caption = _normalise_whitespace(caption_match.group(1))
+
+    if not caption:
+        lines: list[str] = []
+        for line in raw.replace("\r\n", "\n").split("\n"):
+            item = str(line or "").strip()
+            if not item:
+                continue
+            low = item.lower()
+            if low.startswith("title:"):
+                continue
+            if low.startswith("caption:"):
+                item = item.split(":", 1)[1].strip()
+            lines.append(item)
+        caption = _normalise_whitespace(" ".join(lines)) or _normalise_whitespace(raw)
+
+    if not title:
+        title = _derive_title_from_caption(caption)
+    if not title:
+        title = _normalise_whitespace(fallback_title) or "Untitled"
+    if not caption:
+        caption = title
+
+    return f"Title: {title}\nCaption: {caption}"

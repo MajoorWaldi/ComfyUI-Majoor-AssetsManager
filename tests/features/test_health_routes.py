@@ -103,6 +103,70 @@ async def test_runtime_status_payload(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_runtime_status_watcher_callable_state(monkeypatch) -> None:
+    class _Watcher:
+        @staticmethod
+        def is_running():
+            return False
+
+        @staticmethod
+        def get_pending_count():
+            return 2
+
+    async def _require_services():
+        return {"watcher": _Watcher(), "db": object(), "index": object()}, None
+
+    monkeypatch.setattr(health_mod, "_require_services", _require_services)
+
+    app = _build_health_app()
+    req = make_mocked_request("GET", "/mjr/am/status", app=app)
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+    assert body.get("ok") is True
+    data = body.get("data") or {}
+    assert data.get("watcher", {}).get("enabled") is False
+    assert data.get("watcher", {}).get("pending_files") == 2
+
+
+@pytest.mark.asyncio
+async def test_health_counters_watcher_callable_state(monkeypatch) -> None:
+    class _Health:
+        async def get_counters(self, roots=None):
+            _ = roots
+            return Result.Ok({"total_assets": 3})
+
+    class _Watcher:
+        @staticmethod
+        def is_running():
+            return False
+
+        @staticmethod
+        def watched_directories():
+            return ["C:/x"]
+
+    async def _require_services():
+        return {
+            "health": _Health(),
+            "watcher": _Watcher(),
+            "watcher_scope": {"scope": "output", "custom_root_id": ""},
+            "index": object(),
+        }, None
+
+    monkeypatch.setattr(health_mod, "_require_services", _require_services)
+
+    app = _build_health_app()
+    req = make_mocked_request("GET", "/mjr/am/health/counters?scope=output", app=app)
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+    assert body.get("ok") is True
+    watcher_data = (body.get("data") or {}).get("watcher") or {}
+    assert watcher_data.get("enabled") is False
+    assert watcher_data.get("directories") == ["C:/x"]
+
+
+@pytest.mark.asyncio
 async def test_get_config_uses_defaults_without_settings(monkeypatch) -> None:
     async def _require_services():
         return {}, None

@@ -125,9 +125,12 @@ class DuplicatesService:
             return Result.Ok({"started": True, "running": True, "status": self._status})
 
     async def get_status(self) -> Result[dict[str, Any]]:
-        running = bool(self._task and not self._task.done())
-        self._set_status(running=running)
-        return Result.Ok(dict(self._status))
+        # Fix C-8: read _task under the lock so we don't race with
+        # start_background_analysis replacing the reference.
+        async with self._lock:
+            running = bool(self._task and not self._task.done())
+            self._set_status(running=running)
+            return Result.Ok(dict(self._status))
 
     async def _run_background(self, limit: int) -> None:
         try:

@@ -8,6 +8,7 @@ a descriptive message.
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 from aiohttp import web
@@ -22,10 +23,169 @@ logger = get_logger(__name__)
 
 _VECTOR_RATE_LIMIT_MAX = 30
 _VECTOR_RATE_LIMIT_WINDOW = 60
+_VECTOR_VALID_SCOPES = {"output", "input", "custom", "all"}
+
+
+def _cosine_similarity(a: list[float], b: list[float]) -> float:
+    if not a or not b:
+        return 0.0
+    n = min(len(a), len(b))
+    if n <= 0:
+        return 0.0
+    dot = 0.0
+    na = 0.0
+    nb = 0.0
+    for i in range(n):
+        av = float(a[i])
+        bv = float(b[i])
+        dot += av * bv
+        na += av * av
+        nb += bv * bv
+    den = math.sqrt(na) * math.sqrt(nb)
+    if den <= 1e-12:
+        return 0.0
+    return dot / den
+
+
+def _normalise_vector(vec: list[float]) -> list[float]:
+    if not vec:
+        return []
+    norm = math.sqrt(sum(float(v) * float(v) for v in vec))
+    if norm <= 1e-12:
+        return [float(v) for v in vec]
+    return [float(v) / norm for v in vec]
+
+
+def _mean_vector(vectors: list[list[float]], dim: int) -> list[float]:
+    if not vectors or dim <= 0:
+        return [0.0] * max(dim, 0)
+    out = [0.0] * dim
+    for vec in vectors:
+        for i in range(min(dim, len(vec))):
+            out[i] += float(vec[i])
+    scale = 1.0 / max(1, len(vectors))
+    return [v * scale for v in out]
+
+
+def _kmeans_python(vectors: list[list[float]], k: int, max_iter: int = 12) -> tuple[list[int], list[list[float]]]:
+    if not vectors:
+        return [], []
+    n = len(vectors)
+    k = max(1, min(int(k), n))
+    dim = len(vectors[0])
+    centroids = [_normalise_vector(list(vectors[i])) for i in range(k)]
+    labels = [0] * n
+    for _ in range(max(1, int(max_iter))):
+        changed = False
+        for idx, vec in enumerate(vectors):
+            best_cluster = 0
+            best_score = -1e18
+            for cid, centroid in enumerate(centroids):
+                score = _cosine_similarity(vec, centroid)
+                if score > best_score:
+                    best_score = score
+                    best_cluster = cid
+            if labels[idx] != best_cluster:
+                labels[idx] = best_cluster
+                changed = True
+
+        grouped: list[list[list[float]]] = [[] for _ in range(k)]
+        for idx, lbl in enumerate(labels):
+            grouped[int(lbl)].append(vectors[idx])
+
+        for cid in range(k):
+            if grouped[cid]:
+                centroids[cid] = _normalise_vector(_mean_vector(grouped[cid], dim))
+            else:
+                # Keep empty clusters stable by pinning them to a deterministic sample.
+                centroids[cid] = _normalise_vector(list(vectors[cid % n]))
+
+        if not changed:
+            break
+    return labels, centroids
 
 
 def _services_dict(services: dict[str, Any] | None) -> dict[str, Any]:
     return services if isinstance(services, dict) else {}
+
+
+def _normalize_scope_value(raw: Any) -> str:
+    scope = str(raw or "all").strip().lower()
+    return scope if scope in _VECTOR_VALID_SCOPES else ""
+
+
+def _read_vector_scope_params(request: web.Request) -> tuple[str, str, Result | None]:
+    scope = _normalize_scope_value(request.query.get("scope"))
+    if not scope:
+        return "", "", Result.Err(
+            "INVALID_INPUT",
+            "Invalid scope. Must be one of: output, input, custom, all",
+        )
+    custom_root_id = str(
+        request.query.get("custom_root_id")
+        or request.query.get("root_id")
+        or ""
+    ).strip()
+    return scope, custom_root_id, None
+
+
+async def _filter_hits_by_scope(
+    db: Any,
+    hits: list[dict[str, Any]],
+    *,
+    scope: str,
+    custom_root_id: str,
+) -> list[dict[str, Any]]:
+    if db is None or not isinstance(hits, list) or not hits:
+        return hits if isinstance(hits, list) else []
+    if scope == "all":
+        return hits
+
+    asset_ids: list[int] = []
+    for hit in hits:
+        try:
+            aid = int(hit.get("asset_id") or 0)
+        except Exception:
+            aid = 0
+        if aid > 0:
+            asset_ids.append(aid)
+    if not asset_ids:
+        return []
+
+    placeholders = ",".join("?" for _ in asset_ids)
+    where_parts = [f"a.id IN ({placeholders})", "LOWER(COALESCE(a.source, '')) = ?"]
+    params: list[Any] = list(asset_ids)
+    params.append(scope)
+    if scope == "custom" and custom_root_id:
+        where_parts.append("a.root_id = ?")
+        params.append(custom_root_id)
+
+    where_sql = " AND ".join(where_parts)
+    rows = await db.aquery(
+        f"SELECT a.id AS asset_id FROM assets a WHERE {where_sql}",
+        tuple(params),
+    )
+    if not rows.ok or not rows.data:
+        return []
+
+    allowed = set()
+    for row in rows.data:
+        try:
+            allowed.add(int(row.get("asset_id") or 0))
+        except Exception:
+            continue
+    if not allowed:
+        return []
+
+    filtered: list[dict[str, Any]] = []
+    for hit in hits:
+        try:
+            aid = int(hit.get("asset_id") or 0)
+        except Exception:
+            continue
+        if aid in allowed:
+            filtered.append(hit)
+    return filtered
 
 
 def _require_vector_services(services: dict[str, Any]):
@@ -188,6 +348,9 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         query = (request.query.get("q") or "").strip()
         if not query:
             return _json_response(Result.Err("INVALID_INPUT", "Query parameter 'q' is required"))
+        scope, custom_root_id, scope_error = _read_vector_scope_params(request)
+        if scope_error is not None:
+            return _json_response(scope_error)
 
         try:
             top_k = int(request.query.get("top_k", str(VECTOR_SIMILAR_TOPK)))
@@ -196,10 +359,18 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         top_k = max(1, min(200, top_k))
 
         try:
-            result = await searcher.search_by_text(query, top_k=top_k)
+            search_k = max(top_k, min(1200, top_k * 4))
+            result = await searcher.search_by_text(query, top_k=search_k)
 
             # Hydrate results with full asset data for grid rendering
             if result.ok and result.data:
+                db = services_dict.get("db")
+                result.data = (await _filter_hits_by_scope(
+                    db,
+                    list(result.data or []),
+                    scope=scope,
+                    custom_root_id=custom_root_id,
+                ))[:top_k]
                 result = await _hydrate_vector_results(services_dict, result)
 
             return _json_response(result)
@@ -246,11 +417,22 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         except (ValueError, TypeError):
             top_k = VECTOR_SIMILAR_TOPK
         top_k = max(1, min(200, top_k))
+        scope, custom_root_id, scope_error = _read_vector_scope_params(request)
+        if scope_error is not None:
+            return _json_response(scope_error)
 
-        result = await searcher.find_similar(asset_id, top_k=top_k)
+        search_k = max(top_k + 1, min(1201, top_k * 4 + 1))
+        result = await searcher.find_similar(asset_id, top_k=search_k)
 
         # Hydrate results with full asset data for grid rendering
         if result.ok and result.data:
+            db = services_dict.get("db")
+            result.data = (await _filter_hits_by_scope(
+                db,
+                list(result.data or []),
+                scope=scope,
+                custom_root_id=custom_root_id,
+            ))[:top_k]
             result = await _hydrate_vector_results(services_dict, result)
 
         return _json_response(result)
@@ -321,9 +503,14 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
 
         return _json_response(result)
 
+    @routes.post("/mjr/am/vector/caption/{asset_id}")
     @routes.post("/mjr/am/vector/enhanced-prompt/{asset_id}")
-    async def generate_enhanced_prompt(request: web.Request) -> web.Response:
-        """Generate and persist Florence-2 enhanced caption for an image asset."""
+    async def generate_asset_caption(request: web.Request) -> web.Response:
+        """Generate and persist Florence-2 caption for an image asset.
+
+        Primary route: ``/mjr/am/vector/caption/{asset_id}``
+        Legacy alias: ``/mjr/am/vector/enhanced-prompt/{asset_id}``
+        """
         services, err = await _require_services()
         if err:
             return _json_response(err)
@@ -348,13 +535,14 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
             result = await _generate(db, vs, asset_id)
             return _json_response(result)
         except Exception as exc:
-            logger.warning("Enhanced prompt generation failed: %s", exc)
-            return _json_response(Result.Err("SERVICE_UNAVAILABLE", safe_error_message(exc, "Enhanced prompt generation failed")))
+            logger.warning("Caption generation failed: %s", exc)
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", safe_error_message(exc, "Caption generation failed")))
 
     # Legacy alias requested by user (dash-separated path variant).
     @routes.post("/mjr-am/assets/enhance-prompt")
-    async def enhance_prompt_alias(request: web.Request) -> web.Response:
-        """Alias for /mjr/am/vector/enhanced-prompt/{asset_id} accepting JSON body."""
+    @routes.post("/mjr-am/assets/caption")
+    async def caption_alias(request: web.Request) -> web.Response:
+        """Alias for /mjr/am/vector/caption/{asset_id} accepting JSON body."""
         services, err = await _require_services()
         if err:
             return _json_response(err)
@@ -382,8 +570,8 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
             result = await _generate(db, vs, asset_id)
             return _json_response(result)
         except Exception as exc:
-            logger.warning("Enhanced prompt generation failed (alias): %s", exc)
-            return _json_response(Result.Err("SERVICE_UNAVAILABLE", safe_error_message(exc, "Enhanced prompt generation failed")))
+            logger.warning("Caption generation failed (alias): %s", exc)
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", safe_error_message(exc, "Caption generation failed")))
 
     # ── Vector stats ───────────────────────────────────────────────────
 
@@ -483,7 +671,6 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
 
         try:
             import json as _json
-            import numpy as np
             from ...features.index.vector_service import blob_to_vector
 
             DIM = int(getattr(searcher, "_dim", 768) or 768)
@@ -510,27 +697,43 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
                     Result.Err("INSUFFICIENT_DATA", "Not enough valid embeddings for clustering")
                 )
 
-            mat = np.array(vectors, dtype=np.float32)
-            labels: Any
-            centroids: Any
-
+            labels_py: list[int]
+            centroids_py: list[list[float]]
             try:
-                from sklearn.cluster import MiniBatchKMeans
-                km = MiniBatchKMeans(n_clusters=k, random_state=42, n_init=3, max_iter=100)
-                labels = km.fit_predict(mat)
-                centroids = km.cluster_centers_
-            except ImportError:
+                import numpy as np
+
+                mat = np.array(vectors, dtype=np.float32)
+                labels_any: Any | None = None
+                centroids_any: Any | None = None
                 try:
-                    import faiss
-                    kmeans_faiss = faiss.Kmeans(mat.shape[1], k, niter=20, verbose=False)
-                    kmeans_faiss.train(mat)
-                    _, labels_arr = kmeans_faiss.index.search(mat, 1)
-                    labels = labels_arr.flatten()
-                    centroids = kmeans_faiss.centroids
-                except Exception as exc:
-                    return _json_response(
-                        Result.Err("TOOL_MISSING", f"Clustering requires scikit-learn or faiss: {exc}")
-                    )
+                    from sklearn.cluster import MiniBatchKMeans
+
+                    km = MiniBatchKMeans(n_clusters=k, random_state=42, n_init=3, max_iter=100)
+                    labels_any = km.fit_predict(mat)
+                    centroids_any = km.cluster_centers_
+                except Exception:
+                    try:
+                        import faiss
+
+                        kmeans_faiss = faiss.Kmeans(mat.shape[1], k, niter=20, verbose=False)
+                        kmeans_faiss.train(mat)
+                        _, labels_arr = kmeans_faiss.index.search(mat, 1)
+                        labels_any = labels_arr.flatten()
+                        centroids_any = kmeans_faiss.centroids
+                    except Exception:
+                        labels_any = None
+                        centroids_any = None
+
+                if labels_any is None or centroids_any is None:
+                    labels_py, centroids_py = _kmeans_python(vectors, k)
+                else:
+                    labels_py = [int(x) for x in labels_any.tolist()]
+                    centroids_py = [
+                        [float(v) for v in row]
+                        for row in centroids_any.tolist()
+                    ]
+            except Exception:
+                labels_py, centroids_py = _kmeans_python(vectors, k)
 
             # Fetch filenames for sample thumbnails
             all_ids_flat = list(id_map)
@@ -547,22 +750,19 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
 
             clusters = []
             for cluster_id in range(k):
-                mask = np.where(labels == cluster_id)[0]
-                if len(mask) == 0:
+                mask = [idx for idx, label in enumerate(labels_py) if int(label) == int(cluster_id)]
+                if not mask:
                     continue
 
-                member_vecs = mat[mask]
-                centroid = centroids[cluster_id]
-                norm = np.linalg.norm(centroid)
-                if norm > 0:
-                    dists = member_vecs @ centroid / (
-                        np.linalg.norm(member_vecs, axis=1) * norm + 1e-8
-                    )
-                    top3_local = np.argsort(dists)[::-1][:3]
+                centroid = centroids_py[cluster_id] if cluster_id < len(centroids_py) else []
+                scored = [(float(_cosine_similarity(vectors[idx], centroid)), idx) for idx in mask]
+                scored.sort(key=lambda t: t[0], reverse=True)
+                if scored:
+                    top_local = [idx for _, idx in scored[:3]]
                 else:
-                    top3_local = np.arange(min(3, len(mask)))
+                    top_local = mask[:3]
 
-                sample_ids = [id_map[mask[i]] for i in top3_local]
+                sample_ids = [id_map[idx] for idx in top_local]
 
                 # Count tag frequencies for label
                 tag_counts: dict[str, int] = {}

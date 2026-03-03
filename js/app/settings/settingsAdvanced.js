@@ -548,8 +548,22 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
 
                 if (result?.ok) {
                     const data = result.data || {};
-                    const msg = `Vector backfill complete! Processed: ${data.processed || 0}, Indexed: ${data.indexed || 0}, Skipped: ${data.skipped || 0}`;
-                    comfyToast(msg, "success");
+                    const state = String(data?.status || "").toLowerCase();
+                    const pending = !!data?.pending || ["queued", "running", "pending"].includes(state);
+                    const progress = data?.progress || {};
+                    const processed = Number(data?.processed ?? progress?.candidates ?? 0);
+                    const indexed = Number(data?.indexed ?? progress?.indexed ?? 0);
+                    const skipped = Number(data?.skipped ?? progress?.skipped ?? 0);
+                    if (pending) {
+                        const jobId = String(data?.job_id || "").trim();
+                        comfyToast(
+                            `Vector backfill still running in background${jobId ? ` (job ${jobId.slice(0, 8)})` : ""}.`,
+                            "info",
+                        );
+                    } else {
+                        const msg = `Vector backfill complete! Processed: ${processed}, Indexed: ${indexed}, Skipped: ${skipped}`;
+                        comfyToast(msg, "success");
+                    }
                     try {
                         const stats = await vectorStats();
                         if (stats?.ok) {

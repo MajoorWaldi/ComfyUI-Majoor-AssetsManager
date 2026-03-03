@@ -136,31 +136,43 @@ def prune_asset_locks_locked(sqlite_obj: Any, now: float) -> None:
 
 
 def prune_asset_locks_by_ttl(sqlite_obj: Any, cutoff: float) -> None:
+    # H-1: snapshot the entire dict first so iteration and deletion are effectively
+    # atomic from the perspective of the dict contents — no other thread can insert
+    # between snapshot and pop because the caller holds _asset_locks_lock throughout.
     try:
-        for key, entry in list(sqlite_obj._asset_locks.items()):
+        snapshot = list(sqlite_obj._asset_locks.items())
+    except Exception:
+        return
+    for key, entry in snapshot:
+        try:
             last = asset_lock_last(entry)
             if not last or last >= cutoff:
                 continue
             if asset_lock_is_locked(entry):
                 continue
             sqlite_obj._asset_locks.pop(key, None)
-    except Exception:
-        return
+        except Exception:
+            continue
 
 
 def prune_asset_locks_by_cap(sqlite_obj: Any) -> None:
     max_locks = int(sqlite_obj._asset_locks_max)
     if max_locks <= 0 or len(sqlite_obj._asset_locks) <= max_locks:
         return
+    # H-1: build the full sorted snapshot before any deletions so iteration and
+    # deletion are atomic relative to the dict — caller holds _asset_locks_lock.
     try:
         items = sorted(sqlite_obj._asset_locks.items(), key=lambda kv: asset_lock_last(kv[1]))
-        to_drop = max(0, len(items) - max_locks)
-        for key, entry in items[:to_drop]:
+    except Exception:
+        return
+    to_drop = max(0, len(items) - max_locks)
+    for key, entry in items[:to_drop]:
+        try:
             if asset_lock_is_locked(entry):
                 continue
             sqlite_obj._asset_locks.pop(key, None)
-    except Exception:
-        return
+        except Exception:
+            continue
 
 
 def asset_lock_last(entry: dict[str, Any]) -> float:
@@ -189,8 +201,13 @@ def get_or_create_asset_lock(sqlite_obj: Any, asset_id: Any, key_builder) -> Any
                 return entry["lock"]
             except Exception:
                 pass
-        import asyncio
-        lock = asyncio.Lock()
+        # H-2: Use threading.Lock instead of asyncio.Lock.
+        # The protecting dict lock (_asset_locks_lock) is a threading.Lock and this
+        # function may be called from multiple threads.  asyncio.Lock objects are
+        # bound to a specific event-loop and must not be awaited from a different
+        # thread or loop, making them unsafe here.  threading.Lock is the correct
+        # primitive for synchronous, cross-thread per-asset mutual exclusion.
+        lock = threading.Lock()
         sqlite_obj._asset_locks[key] = {"lock": lock, "last": now}
         prune_asset_locks_locked(sqlite_obj, now)
         return lock

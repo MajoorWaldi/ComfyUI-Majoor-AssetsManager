@@ -45,6 +45,29 @@ MAX_FILEPATH_LOOKUP = SEARCH_MAX_FILEPATH_LOOKUP
 VALID_SORT_KEYS = {"mtime_desc", "mtime_asc", "name_asc", "name_desc", "rating_desc", "size_desc", "size_asc"}
 _SAFE_SQL_FRAGMENT_RE = re.compile(r"^[\s\w\.\(\)=<>\?!,'\\%:-]+$")
 _FTS_RESERVED = {"AND", "OR", "NOT", "NEAR"}
+_AI_SELECT_SQL = """
+                COALESCE(a.enhanced_caption, '') as enhanced_caption,
+                COALESCE(ae.auto_tags, '[]') as auto_tags,
+                CASE
+                    WHEN LENGTH(TRIM(COALESCE(a.enhanced_caption, ''))) > 0 THEN 1
+                    ELSE 0
+                END as has_ai_enhanced_caption,
+                CASE
+                    WHEN TRIM(COALESCE(ae.auto_tags, '[]')) IN ('', '[]', '[ ]', 'null', 'NULL') THEN 0
+                    ELSE 1
+                END as has_ai_auto_tags,
+                CASE
+                    WHEN ae.vector IS NOT NULL AND LENGTH(ae.vector) > 0 THEN 1
+                    ELSE 0
+                END as has_ai_vector,
+                CASE
+                    WHEN LENGTH(TRIM(COALESCE(a.enhanced_caption, ''))) > 0
+                         OR TRIM(COALESCE(ae.auto_tags, '[]')) NOT IN ('', '[]', '[ ]', 'null', 'NULL')
+                         OR (ae.vector IS NOT NULL AND LENGTH(ae.vector) > 0)
+                    THEN 1
+                    ELSE 0
+                END as has_ai_info,
+"""
 
 
 def _normalize_sort_key(sort: str | None) -> str:
@@ -401,6 +424,16 @@ def _hydrate_lookup_row(row: dict[str, Any]) -> tuple[str, dict[str, Any]] | Non
             item["tags"] = []
     else:
         item["tags"] = []
+    auto_tags_raw = item.get("auto_tags")
+    if auto_tags_raw:
+        try:
+            item["auto_tags"] = json.loads(auto_tags_raw) if isinstance(auto_tags_raw, str) else auto_tags_raw
+            if not isinstance(item["auto_tags"], list):
+                item["auto_tags"] = []
+        except Exception:
+            item["auto_tags"] = []
+    else:
+        item["auto_tags"] = []
     return str(fp), item
 
 
@@ -430,6 +463,16 @@ def _hydrate_search_rows(rows: list[dict[str, Any]], *, include_highlight: bool)
                 asset["tags"] = []
         else:
             asset["tags"] = []
+        auto_tags_raw = asset.get("auto_tags")
+        if auto_tags_raw:
+            try:
+                asset["auto_tags"] = json.loads(auto_tags_raw) if isinstance(auto_tags_raw, str) else auto_tags_raw
+                if not isinstance(asset["auto_tags"], list):
+                    asset["auto_tags"] = []
+            except (ValueError, json.JSONDecodeError, TypeError):
+                asset["auto_tags"] = []
+        else:
+            asset["auto_tags"] = []
         asset.setdefault("tags_text", "")
         if include_highlight:
             asset["highlight"] = asset.get("highlight") or None
@@ -580,13 +623,14 @@ class IndexSearcher:
                 a.width, a.height, a.duration, a.size, a.mtime,
                 COALESCE(m.rating, 0) as rating,
                 COALESCE(m.tags, '[]') as tags,
-{metadata_tags_text_clause}                    m.has_workflow as has_workflow,
+{metadata_tags_text_clause}{_AI_SELECT_SQL}                    m.has_workflow as has_workflow,
                 m.has_generation_data as has_generation_data,
                 json_extract(m.metadata_raw, '$.generation_time_ms') as generation_time_ms,
                 NULL as file_creation_time,
                 NULL as file_birth_time
             FROM assets a
             LEFT JOIN asset_metadata m ON a.id = m.asset_id
+            LEFT JOIN asset_embeddings ae ON a.id = ae.asset_id
             WHERE 1=1
             """
         ]
@@ -682,7 +726,7 @@ class IndexSearcher:
                 a.width, a.height, a.duration, a.size, a.mtime,
                 COALESCE(m.rating, 0) as rating,
                 COALESCE(m.tags, '[]') as tags,
-{metadata_tags_text_clause}                    m.has_workflow as has_workflow,
+{metadata_tags_text_clause}{_AI_SELECT_SQL}                    m.has_workflow as has_workflow,
                 m.has_generation_data as has_generation_data,
                 json_extract(m.metadata_raw, '$.generation_time_ms') as generation_time_ms,
                 NULL as file_creation_time,
@@ -691,6 +735,7 @@ class IndexSearcher:
             FROM best
             JOIN assets a ON best.asset_id = a.id
             LEFT JOIN asset_metadata m ON a.id = m.asset_id
+            LEFT JOIN asset_embeddings ae ON a.id = ae.asset_id
             WHERE 1=1
         """
 
@@ -746,13 +791,14 @@ class IndexSearcher:
                 a.width, a.height, a.duration, a.size, a.mtime,
                 COALESCE(m.rating, 0) as rating,
                 COALESCE(m.tags, '[]') as tags,
-{metadata_tags_text_clause}                    m.has_workflow as has_workflow,
+{metadata_tags_text_clause}{_AI_SELECT_SQL}                    m.has_workflow as has_workflow,
                 m.has_generation_data as has_generation_data,
                 json_extract(m.metadata_raw, '$.generation_time_ms') as generation_time_ms,
                 NULL as file_creation_time,
                 NULL as file_birth_time
             FROM assets a
             LEFT JOIN asset_metadata m ON a.id = m.asset_id
+            LEFT JOIN asset_embeddings ae ON a.id = ae.asset_id
             WHERE {roots_clause}
             """
         ]
@@ -826,7 +872,7 @@ class IndexSearcher:
                 a.width, a.height, a.duration, a.size, a.mtime,
                 COALESCE(m.rating, 0) as rating,
                 COALESCE(m.tags, '[]') as tags,
-{metadata_tags_text_clause}                    m.has_workflow as has_workflow,
+{metadata_tags_text_clause}{_AI_SELECT_SQL}                    m.has_workflow as has_workflow,
                 m.has_generation_data as has_generation_data,
                 json_extract(m.metadata_raw, '$.generation_time_ms') as generation_time_ms,
                 NULL as file_creation_time,
@@ -834,6 +880,7 @@ class IndexSearcher:
             FROM best
             JOIN assets a ON best.asset_id = a.id
             LEFT JOIN asset_metadata m ON a.id = m.asset_id
+            LEFT JOIN asset_embeddings ae ON a.id = ae.asset_id
             WHERE {roots_clause}
             """
         ]
@@ -1090,10 +1137,31 @@ class IndexSearcher:
                 m.workflow_hash,
                 m.has_workflow AS has_workflow,
                 m.has_generation_data AS has_generation_data,
+                COALESCE(ae.auto_tags, '[]') as auto_tags,
+                CASE
+                    WHEN LENGTH(TRIM(COALESCE(a.enhanced_caption, ''))) > 0 THEN 1
+                    ELSE 0
+                END as has_ai_enhanced_caption,
+                CASE
+                    WHEN TRIM(COALESCE(ae.auto_tags, '[]')) IN ('', '[]', '[ ]', 'null', 'NULL') THEN 0
+                    ELSE 1
+                END as has_ai_auto_tags,
+                CASE
+                    WHEN ae.vector IS NOT NULL AND LENGTH(ae.vector) > 0 THEN 1
+                    ELSE 0
+                END as has_ai_vector,
+                CASE
+                    WHEN LENGTH(TRIM(COALESCE(a.enhanced_caption, ''))) > 0
+                         OR TRIM(COALESCE(ae.auto_tags, '[]')) NOT IN ('', '[]', '[ ]', 'null', 'NULL')
+                         OR (ae.vector IS NOT NULL AND LENGTH(ae.vector) > 0)
+                    THEN 1
+                    ELSE 0
+                END as has_ai_info,
                 json_extract(m.metadata_raw, '$.generation_time_ms') as generation_time_ms,
                 COALESCE(m.metadata_raw, '{}') AS metadata_raw
             FROM assets a
             LEFT JOIN asset_metadata m ON m.asset_id = a.id
+            LEFT JOIN asset_embeddings ae ON ae.asset_id = a.id
             WHERE a.id = ?
             """,
             (asset_id,),
@@ -1128,10 +1196,31 @@ class IndexSearcher:
                 m.workflow_hash,
                 m.has_workflow AS has_workflow,
                 m.has_generation_data AS has_generation_data,
+                COALESCE(ae.auto_tags, '[]') as auto_tags,
+                CASE
+                    WHEN LENGTH(TRIM(COALESCE(a.enhanced_caption, ''))) > 0 THEN 1
+                    ELSE 0
+                END as has_ai_enhanced_caption,
+                CASE
+                    WHEN TRIM(COALESCE(ae.auto_tags, '[]')) IN ('', '[]', '[ ]', 'null', 'NULL') THEN 0
+                    ELSE 1
+                END as has_ai_auto_tags,
+                CASE
+                    WHEN ae.vector IS NOT NULL AND LENGTH(ae.vector) > 0 THEN 1
+                    ELSE 0
+                END as has_ai_vector,
+                CASE
+                    WHEN LENGTH(TRIM(COALESCE(a.enhanced_caption, ''))) > 0
+                         OR TRIM(COALESCE(ae.auto_tags, '[]')) NOT IN ('', '[]', '[ ]', 'null', 'NULL')
+                         OR (ae.vector IS NOT NULL AND LENGTH(ae.vector) > 0)
+                    THEN 1
+                    ELSE 0
+                END as has_ai_info,
                 COALESCE(m.metadata_quality, 'none') AS metadata_quality,
                 COALESCE(m.metadata_raw, '{{}}') AS metadata_raw
             FROM assets a
             LEFT JOIN asset_metadata m ON m.asset_id = a.id
+            LEFT JOIN asset_embeddings ae ON ae.asset_id = a.id
             WHERE {IN_CLAUSE}
             """,
             "a.id",
@@ -1156,6 +1245,16 @@ class IndexSearcher:
                 asset["tags"] = []
         else:
             asset["tags"] = []
+        auto_tags_raw = asset.get("auto_tags") or ""
+        if auto_tags_raw:
+            try:
+                asset["auto_tags"] = json.loads(auto_tags_raw)
+                if not isinstance(asset["auto_tags"], list):
+                    asset["auto_tags"] = []
+            except (ValueError, json.JSONDecodeError, TypeError):
+                asset["auto_tags"] = []
+        else:
+            asset["auto_tags"] = []
 
         # Parse metadata_raw JSON and expose common top-level fields for the UI.
         metadata_raw_text = asset.get("metadata_raw") or "{}"
@@ -1196,9 +1295,30 @@ class IndexSearcher:
                 COALESCE(m.tags, '[]') as tags,
                 m.has_workflow as has_workflow,
                 m.has_generation_data as has_generation_data,
+                COALESCE(ae.auto_tags, '[]') as auto_tags,
+                CASE
+                    WHEN LENGTH(TRIM(COALESCE(a.enhanced_caption, ''))) > 0 THEN 1
+                    ELSE 0
+                END as has_ai_enhanced_caption,
+                CASE
+                    WHEN TRIM(COALESCE(ae.auto_tags, '[]')) IN ('', '[]', '[ ]', 'null', 'NULL') THEN 0
+                    ELSE 1
+                END as has_ai_auto_tags,
+                CASE
+                    WHEN ae.vector IS NOT NULL AND LENGTH(ae.vector) > 0 THEN 1
+                    ELSE 0
+                END as has_ai_vector,
+                CASE
+                    WHEN LENGTH(TRIM(COALESCE(a.enhanced_caption, ''))) > 0
+                         OR TRIM(COALESCE(ae.auto_tags, '[]')) NOT IN ('', '[]', '[ ]', 'null', 'NULL')
+                         OR (ae.vector IS NOT NULL AND LENGTH(ae.vector) > 0)
+                    THEN 1
+                    ELSE 0
+                END as has_ai_info,
                 json_extract(m.metadata_raw, '$.workflow_type') as workflow_type
             FROM assets a
             LEFT JOIN asset_metadata m ON a.id = m.asset_id
+            LEFT JOIN asset_embeddings ae ON a.id = ae.asset_id
             WHERE {IN_CLAUSE}
             """,
             "a.filepath",

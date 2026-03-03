@@ -3,7 +3,7 @@ import pytest
 from mjr_am_backend.routes.search import result_hydrator as rh
 
 
-def test_dedupe_result_payload_updates_assets_and_total() -> None:
+def test_dedupe_result_payload_keeps_db_total_when_page_dedupes() -> None:
     payload = {
         "assets": [
             {"filepath": "/a/x.png"},
@@ -11,6 +11,19 @@ def test_dedupe_result_payload_updates_assets_and_total() -> None:
             {"filepath": "/a/y.png"},
         ],
         "total": 99,
+    }
+    out = rh.dedupe_result_payload(payload)
+    assert len(out["assets"]) == 2
+    assert out["total"] == 99
+
+
+def test_dedupe_result_payload_total_not_below_returned_assets() -> None:
+    payload = {
+        "assets": [
+            {"filepath": "/a/x.png"},
+            {"filepath": "/a/y.png"},
+        ],
+        "total": 1,
     }
     out = rh.dedupe_result_payload(payload)
     assert len(out["assets"]) == 2

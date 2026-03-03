@@ -117,6 +117,21 @@ def test_parse_filters_and_fast_path_flag() -> None:
     assert not fs._can_use_listing_fast_path(opts2)
 
 
+def test_parse_filters_coerces_bool_and_mtime_safely() -> None:
+    opts = fs._parse_filesystem_listing_filters(
+        "*",
+        {
+            "has_workflow": "false",
+            "mtime_start": "bad",
+            "mtime_end": "123",
+        },
+        "mtime_desc",
+    )
+    assert opts["filter_workflow_only"] is False
+    assert opts["filter_mtime_start"] is None
+    assert opts["filter_mtime_end"] == 123
+
+
 def test_prefilter_and_sort_entries() -> None:
     all_entries = [
         {"filename": "b.png", "kind": "image", "mtime": 10},

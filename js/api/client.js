@@ -49,6 +49,9 @@ const BOOTSTRAP_TOKEN_PATH = "/mjr/am/settings/security/bootstrap-token";
 const DEFAULT_FETCH_TIMEOUT_MS = 20_000;
 const MAX_FETCH_TIMEOUT_MS = 300_000;
 let _authTokenRefreshInFlight = null;
+const VECTOR_BACKFILL_DEFAULT_POLL_INTERVAL_MS = 1000;
+const VECTOR_BACKFILL_DEFAULT_POLL_TIMEOUT_MS = 30 * 60_000;
+const VECTOR_BACKFILL_MAX_POLL_TIMEOUT_MS = 12 * 60 * 60_000;
 
 function _methodIsWrite(method) {
     return WRITE_METHODS.has(String(method || "").toUpperCase());
@@ -1081,25 +1084,43 @@ export async function getCollectionAssets(collectionId) {
 /**
  * Semantic search by natural-language query via SigLIP2 embeddings.
  * @param {string} query
- * @param {number} [topK=20]
+ * @param {number|{topK?:number, scope?:string, customRootId?:string}} [topKOrOptions=20]
  * @returns {Promise<ApiResult<{asset_id:number, score:number}[]>>}
  */
-export async function vectorSearch(query, topK = 20) {
+export async function vectorSearch(query, topKOrOptions = 20) {
     const q = String(query || "").trim();
     if (!q) return { ok: false, error: "Empty query" };
-    return get(`${ENDPOINTS.VECTOR_SEARCH}?q=${encodeURIComponent(q)}&top_k=${Math.max(1, Math.min(200, topK))}`);
+    const opts = (topKOrOptions && typeof topKOrOptions === "object")
+        ? topKOrOptions
+        : { topK: Number(topKOrOptions) };
+    const topK = Math.max(1, Math.min(200, Number(opts?.topK ?? 20) || 20));
+    const scope = String(opts?.scope || "").trim();
+    const customRootId = String(opts?.customRootId || "").trim();
+    let url = `${ENDPOINTS.VECTOR_SEARCH}?q=${encodeURIComponent(q)}&top_k=${topK}`;
+    if (scope) url += `&scope=${encodeURIComponent(scope)}`;
+    if (customRootId) url += `&custom_root_id=${encodeURIComponent(customRootId)}`;
+    return get(url);
 }
 
 /**
  * Find visually similar assets to a given asset.
  * @param {number|string} assetId
- * @param {number} [topK=20]
+ * @param {number|{topK?:number, scope?:string, customRootId?:string}} [topKOrOptions=20]
  * @returns {Promise<ApiResult<{asset_id:number, score:number}[]>>}
  */
-export async function vectorFindSimilar(assetId, topK = 20) {
+export async function vectorFindSimilar(assetId, topKOrOptions = 20) {
     const id = String(assetId || "").trim();
     if (!id) return { ok: false, error: "Missing asset ID" };
-    return get(`${ENDPOINTS.VECTOR_SIMILAR}/${encodeURIComponent(id)}?top_k=${Math.max(1, Math.min(200, topK))}`);
+    const opts = (topKOrOptions && typeof topKOrOptions === "object")
+        ? topKOrOptions
+        : { topK: Number(topKOrOptions) };
+    const topK = Math.max(1, Math.min(200, Number(opts?.topK ?? 20) || 20));
+    const scope = String(opts?.scope || "").trim();
+    const customRootId = String(opts?.customRootId || "").trim();
+    let url = `${ENDPOINTS.VECTOR_SIMILAR}/${encodeURIComponent(id)}?top_k=${topK}`;
+    if (scope) url += `&scope=${encodeURIComponent(scope)}`;
+    if (customRootId) url += `&custom_root_id=${encodeURIComponent(customRootId)}`;
+    return get(url);
 }
 
 /**
@@ -1155,8 +1176,14 @@ export async function vectorBackfill(batchSize = 64, options = {}) {
         return startRes;
     }
 
-    const pollIntervalMs = 1000;
-    const pollTimeoutMs = 30 * 60_000;
+    const pollIntervalMsRaw = Number(options?.pollIntervalMs);
+    const pollTimeoutMsRaw = Number(options?.pollTimeoutMs);
+    const pollIntervalMs = Number.isFinite(pollIntervalMsRaw)
+        ? Math.max(500, Math.min(10_000, Math.floor(pollIntervalMsRaw)))
+        : VECTOR_BACKFILL_DEFAULT_POLL_INTERVAL_MS;
+    const pollTimeoutMs = Number.isFinite(pollTimeoutMsRaw)
+        ? Math.max(10_000, Math.min(VECTOR_BACKFILL_MAX_POLL_TIMEOUT_MS, Math.floor(pollTimeoutMsRaw)))
+        : VECTOR_BACKFILL_DEFAULT_POLL_TIMEOUT_MS;
     const startedAt = Date.now();
     let lastStatus = null;
 
@@ -1193,11 +1220,42 @@ export async function vectorBackfill(batchSize = 64, options = {}) {
         }
     }
 
+    const finalStatusRes = await get(`${ENDPOINTS.VECTOR_BACKFILL_STATUS}?job_id=${encodeURIComponent(jobId)}`, { timeoutMs: 30_000 });
+    const finalData = finalStatusRes?.data || lastStatus?.data || {};
+    const finalState = String(finalData?.status || "").toLowerCase();
+    if (finalStatusRes?.ok && ["queued", "running", "pending"].includes(finalState)) {
+        try { onProgress?.(finalData); } catch (e) { console.debug?.(e); }
+        return {
+            ok: true,
+            code: "PENDING",
+            status: 202,
+            data: {
+                ...finalData,
+                pending: true,
+                timed_out: true,
+                poll_timeout_ms: pollTimeoutMs,
+                job_id: String(finalData?.job_id || jobId),
+                status: finalState || "running",
+            },
+            meta: { pending: true },
+        };
+    }
+
+    if (finalStatusRes?.ok && finalState === "failed") {
+        return {
+            ok: false,
+            error: String(finalData?.error || "Vector backfill failed"),
+            code: String(finalData?.code || "DB_ERROR"),
+            data: finalData,
+            status: 500,
+        };
+    }
+
     return {
         ok: false,
         error: `Vector backfill polling timed out after ${pollTimeoutMs}ms`,
         code: "TIMEOUT",
-        data: lastStatus?.data || null,
+        data: finalData || null,
         status: 408,
     };
 }
@@ -1214,14 +1272,22 @@ export async function vectorGetAutoTags(assetId) {
 }
 
 /**
- * Generate and persist an enhanced Florence-2 caption for an image asset.
+ * Generate and persist a Florence-2 caption for an image asset.
  * @param {number|string} assetId
  * @returns {Promise<ApiResult<string>>}
  */
-export async function vectorGenerateEnhancedPrompt(assetId) {
+export async function vectorGenerateCaption(assetId) {
     const id = String(assetId || "").trim();
     if (!id) return { ok: false, error: "Missing asset ID" };
-    return post(`${ENDPOINTS.VECTOR_ENHANCED_PROMPT}/${encodeURIComponent(id)}`, {});
+    return post(`${ENDPOINTS.VECTOR_CAPTION}/${encodeURIComponent(id)}`, {});
+}
+
+/**
+ * Backward-compatible alias for previous naming.
+ * @deprecated Use vectorGenerateCaption
+ */
+export async function vectorGenerateEnhancedPrompt(assetId) {
+    return vectorGenerateCaption(assetId);
 }
 
 /**

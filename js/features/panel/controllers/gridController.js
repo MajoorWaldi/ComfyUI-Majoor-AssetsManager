@@ -60,7 +60,11 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
 
         if (shouldAutoAiSearch && q) {
             try {
-                const vecRes = await vectorSearch(q, 100);
+                const vecRes = await vectorSearch(q, {
+                    topK: 100,
+                    scope: state.scope || "output",
+                    customRootId: state.customRootId || "",
+                });
                 if (vecRes?.ok && Array.isArray(vecRes.data) && vecRes.data.length > 0) {
                     return await loadAssetsFromList(gridContainer, vecRes.data, {
                         title: `AI Search: "${q}" (${vecRes.data.length} results)`,
@@ -91,7 +95,11 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
             }
             // Fallback to pure vector search
             try {
-                const vecRes = await vectorSearch(q, 100);
+                const vecRes = await vectorSearch(q, {
+                    topK: 100,
+                    scope: state.scope || "output",
+                    customRootId: state.customRootId || "",
+                });
                 if (vecRes?.ok && Array.isArray(vecRes.data) && vecRes.data.length > 0) {
                     return await loadAssetsFromList(gridContainer, vecRes.data, {
                         title: `AI Search: "${q}" (${vecRes.data.length} results)`,
@@ -103,7 +111,8 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
                 console.debug?.("[Majoor] Semantic search failed, falling back to FTS", err);
             }
         }
-        const ftsResult = await loadAssets(gridContainer, query);
+        const ftsQuery = hasAiPrefix ? (q || "*") : query;
+        const ftsResult = await loadAssets(gridContainer, ftsQuery);
 
         if (looksNaturalLanguage) {
             const count = Number(ftsResult?.count || 0) || 0;

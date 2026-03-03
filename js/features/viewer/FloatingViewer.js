@@ -24,8 +24,9 @@ const MFV_ZOOM_MIN    = 0.25;
 const MFV_ZOOM_MAX    = 8;
 const MFV_ZOOM_FACTOR = 0.0008; // multiplied by deltaY per wheel tick
 
-// Extensions rendered as <video>
+// Media extensions for explicit kind detection.
 const VIDEO_EXTS = new Set([".mp4", ".webm", ".mov", ".avi", ".mkv"]);
+const AUDIO_EXTS = new Set([".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac", ".opus", ".wma"]);
 
 function _extOf(filename) {
     try {
@@ -43,6 +44,7 @@ function _mediaKind(fileData) {
     const ext = _extOf(fileData?.filename || "");
     if (ext === ".gif") return "gif";
     if (VIDEO_EXTS.has(ext)) return "video";
+    if (AUDIO_EXTS.has(ext)) return "audio";
     return "image";
 }
 
@@ -93,10 +95,37 @@ function _buildMediaEl(fileData, { fill = false } = {}) {
     const url = _resolveUrl(fileData);
     if (!url) return null;
     const kind = _mediaKind(fileData);
+    const mediaClass = `mjr-mfv-media mjr-mfv-media--fit-height${fill ? " mjr-mfv-media--fill" : ""}`;
+
+    if (kind === "audio") {
+        const wrap = document.createElement("div");
+        wrap.className = `mjr-mfv-audio-card${fill ? " mjr-mfv-audio-card--fill" : ""}`;
+
+        const head = document.createElement("div");
+        head.className = "mjr-mfv-audio-head";
+        const icon = document.createElement("i");
+        icon.className = "pi pi-volume-up mjr-mfv-audio-icon";
+        icon.setAttribute("aria-hidden", "true");
+        const title = document.createElement("div");
+        title.className = "mjr-mfv-audio-title";
+        title.textContent = String(fileData?.filename || "Audio");
+        head.appendChild(icon);
+        head.appendChild(title);
+
+        const audio = document.createElement("audio");
+        audio.className = "mjr-mfv-audio-player";
+        audio.src = url;
+        audio.controls = true;
+        audio.preload = "metadata";
+
+        wrap.appendChild(head);
+        wrap.appendChild(audio);
+        return wrap;
+    }
 
     if (kind === "video") {
         const v = document.createElement("video");
-        v.className = `mjr-mfv-media${fill ? " mjr-mfv-media--fill" : ""}`;
+        v.className = mediaClass;
         v.src = url;
         v.controls = true;
         v.loop = true;
@@ -108,7 +137,7 @@ function _buildMediaEl(fileData, { fill = false } = {}) {
 
     // gif and image — use <img>
     const img = document.createElement("img");
-    img.className = `mjr-mfv-media${fill ? " mjr-mfv-media--fill" : ""}`;
+    img.className = mediaClass;
     img.src = url;
     img.alt = String(fileData?.filename || "");
     img.draggable = false;
@@ -731,6 +760,7 @@ export class FloatingViewer {
 
         // Wheel → zoom centered at cursor
         contentEl.addEventListener("wheel", (e) => {
+            if (e.target?.closest?.("audio")) return;
             e.preventDefault();
             const delta  = e.deltaY || e.deltaX || 0;
             const factor = 1 - delta * MFV_ZOOM_FACTOR;
@@ -746,6 +776,7 @@ export class FloatingViewer {
             if (this._zoom <= 1.01) return;
             // Let native video controls and the AB divider handle their own events.
             if (e.target?.closest?.("video")) return;
+            if (e.target?.closest?.("audio")) return;
             if (e.target?.closest?.(".mjr-mfv-ab-divider")) return;
             e.preventDefault();
             panActive = true;
@@ -776,6 +807,7 @@ export class FloatingViewer {
         // Double-click → zoom to 4× at cursor, or reset to fit
         contentEl.addEventListener("dblclick", (e) => {
             if (e.target?.closest?.("video")) return;
+            if (e.target?.closest?.("audio")) return;
             const isNearFit = Math.abs(this._zoom - 1) < 0.05;
             this._setMfvZoom(
                 isNearFit ? Math.min(4, this._zoom * 4) : 1,
@@ -815,6 +847,7 @@ export class FloatingViewer {
             this._contentEl.appendChild(_makeEmptyState());
             return;
         }
+        const mediaKind = _mediaKind(this._mediaA);
         const mediaEl = _buildMediaEl(this._mediaA);
         if (!mediaEl) {
             this._contentEl.appendChild(_makeEmptyState("Could not load media"));
@@ -823,13 +856,15 @@ export class FloatingViewer {
         const wrap = document.createElement("div");
         wrap.className = "mjr-mfv-simple-container";
         wrap.appendChild(mediaEl);
-        // Gen info overlay for SIMPLE mode
-        const infoFrag = this._buildGenInfoDOM(this._mediaA);
-        if (infoFrag) {
-            const ol = document.createElement("div");
-            ol.className = "mjr-mfv-geninfo";
-            ol.appendChild(infoFrag);
-            wrap.appendChild(ol);
+        // Keep native audio controls unobstructed.
+        if (mediaKind !== "audio") {
+            const infoFrag = this._buildGenInfoDOM(this._mediaA);
+            if (infoFrag) {
+                const ol = document.createElement("div");
+                ol.className = "mjr-mfv-geninfo";
+                ol.appendChild(infoFrag);
+                wrap.appendChild(ol);
+            }
         }
         this._contentEl.appendChild(wrap);
     }
@@ -837,6 +872,8 @@ export class FloatingViewer {
     _renderAB() {
         const elA = this._mediaA ? _buildMediaEl(this._mediaA, { fill: true }) : null;
         const elB = this._mediaB ? _buildMediaEl(this._mediaB, { fill: true }) : null;
+        const kindA = this._mediaA ? _mediaKind(this._mediaA) : "";
+        const kindB = this._mediaB ? _mediaKind(this._mediaB) : "";
 
         if (!elA && !elB) {
             this._contentEl.appendChild(_makeEmptyState("Select 2 assets for A/B compare"));
@@ -845,6 +882,11 @@ export class FloatingViewer {
         if (!elB) {
             // Only one asset — render as simple
             this._renderSimple();
+            return;
+        }
+        // Audio does not map well to clipped A/B mode; use side-by-side players instead.
+        if (kindA === "audio" || kindB === "audio") {
+            this._renderSide();
             return;
         }
 
@@ -926,6 +968,8 @@ export class FloatingViewer {
     _renderSide() {
         const elA = this._mediaA ? _buildMediaEl(this._mediaA) : null;
         const elB = this._mediaB ? _buildMediaEl(this._mediaB) : null;
+        const kindA = this._mediaA ? _mediaKind(this._mediaA) : "";
+        const kindB = this._mediaB ? _mediaKind(this._mediaB) : "";
 
         if (!elA && !elB) {
             this._contentEl.appendChild(_makeEmptyState("Select 2 assets for Side-by-Side"));
@@ -942,7 +986,7 @@ export class FloatingViewer {
         sideA.appendChild(_makeLabel("A", "left"));
 
         // Gen info overlay for left
-        const fragSideA = this._buildGenInfoDOM(this._mediaA);
+        const fragSideA = kindA === "audio" ? null : this._buildGenInfoDOM(this._mediaA);
         if (fragSideA) {
             const oa = document.createElement("div");
             oa.className = "mjr-mfv-geninfo-a";
@@ -957,7 +1001,7 @@ export class FloatingViewer {
         sideB.appendChild(_makeLabel("B", "right"));
 
         // Gen info overlay for right
-        const fragSideB = this._buildGenInfoDOM(this._mediaB);
+        const fragSideB = kindB === "audio" ? null : this._buildGenInfoDOM(this._mediaB);
         if (fragSideB) {
             const ob = document.createElement("div");
             ob.className = "mjr-mfv-geninfo-b";

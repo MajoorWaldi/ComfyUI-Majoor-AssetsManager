@@ -63,11 +63,31 @@ async def write_scan_journal_entry(
     )
 
 
+_STAT_SINGLE_TIMEOUT_S = 10.0  # max wall-clock seconds per stat() call (fix H-11)
+
+
 async def stat_with_retry(scanner: Any, *, file_path: Path):
+    """Stat with retries and per-attempt timeout.
+
+    Fix H-11: asyncio.to_thread(file_path.stat) had no timeout, causing scans
+    to hang indefinitely on slow/network file systems with 10k+ files.
+    """
     for attempt in range(STAT_RETRY_COUNT):
         try:
-            stat = await asyncio.to_thread(file_path.stat)
+            stat = await asyncio.wait_for(
+                asyncio.to_thread(file_path.stat),
+                timeout=_STAT_SINGLE_TIMEOUT_S,
+            )
             return True, stat
+        except asyncio.TimeoutError:
+            texc: Exception = TimeoutError(
+                f"stat() timed out after {_STAT_SINGLE_TIMEOUT_S}s for {file_path}"
+            )
+            if attempt < (STAT_RETRY_COUNT - 1):
+                await asyncio.sleep(STAT_RETRY_BASE_DELAY_S * (attempt + 1))
+                continue
+            logger.warning("Timed out waiting for stat of %s", file_path)
+            return False, texc
         except OSError as exc:
             if attempt < (STAT_RETRY_COUNT - 1):
                 await asyncio.sleep(STAT_RETRY_BASE_DELAY_S * (attempt + 1))

@@ -101,11 +101,11 @@ def test_stream_event_helpers(monkeypatch):
 
     w._record_flush_volume(2)
     assert w._STREAM_TOTAL_FILES == 2
-    assert w._should_emit_stream_alert(100.0) is False
+    assert w._should_emit_stream_alert(100.0, w._LAST_STREAM_ALERT_TIME) is False
 
     w._record_flush_volume(2)
     assert w._STREAM_TOTAL_FILES == 4
-    assert w._should_emit_stream_alert(100.0) is True
+    assert w._should_emit_stream_alert(100.0, w._LAST_STREAM_ALERT_TIME) is True
 
     w._prune_stream_events(110.0, 5.0)
     assert w._STREAM_TOTAL_FILES == 0
