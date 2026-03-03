@@ -394,14 +394,14 @@ def is_vector_search_enabled() -> bool:
         "MAJOOR_ENABLE_VECTOR_SEARCH",
     )
 
-# Primary multimodal model name (default: SigLIP2).
+# Primary multimodal model name (default: SigLIP2 SO400M).
 VECTOR_MODEL_NAME = str(
     _env_raw(
         "MJR_AM_VECTOR_MODEL",
         "MJR_VECTOR_MODEL",
-        default="google/siglip2-base-patch16-224",
+        default="google/siglip-so400m-patch14-384",
     )
-    or "google/siglip2-base-patch16-224"
+    or "google/siglip-so400m-patch14-384"
 )
 
 # Dedicated video encoder (X-CLIP / VideoCLIP family). Empty = disabled.
@@ -419,9 +419,9 @@ VECTOR_PROMPT_MODEL_NAME = str(
     _env_raw(
         "MJR_AM_PROMPT_MODEL",
         "MJR_PROMPT_MODEL",
-        default="microsoft/Florence-2-large",
+        default="microsoft/Florence-2-base",
     )
-    or "microsoft/Florence-2-large"
+    or "microsoft/Florence-2-base"
 )
 
 # Florence-2 caption task prompt (kept configurable for variants).
@@ -438,8 +438,8 @@ VECTOR_PROMPT_TASK = str(
 VECTOR_INDEX_DIR_PATH = INDEX_DIR_PATH / "vectors"
 VECTOR_INDEX_DIR = str(VECTOR_INDEX_DIR_PATH)
 
-# Embedding dimensionality (CLIP ViT-L/14 → 768).
-VECTOR_EMBEDDING_DIM = _env_int(768, "MJR_AM_VECTOR_DIM", min_value=64, max_value=4096)
+# Embedding dimensionality (SigLIP SO400M → 1152, base → 768).
+VECTOR_EMBEDDING_DIM = _env_int(1152, "MJR_AM_VECTOR_DIM", min_value=64, max_value=4096)
 
 # Auto-tagging: minimum cosine similarity to assign a tag.
 VECTOR_AUTOTAG_THRESHOLD = _env_float(

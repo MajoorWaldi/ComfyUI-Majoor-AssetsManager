@@ -28,6 +28,7 @@ import logging
 import os
 import struct
 import subprocess
+import sys
 import threading
 import time
 import warnings
@@ -46,7 +47,7 @@ from ...config import (
     VECTOR_VIDEO_MODEL_NAME,
     VECTOR_VIDEO_KEYFRAME_INTERVAL,
 )
-from ...shared import Result, get_logger
+from ...shared import Result, get_logger, log_success
 
 if TYPE_CHECKING:
     from PIL import Image as PILImage
@@ -95,17 +96,52 @@ def _configure_hf_quiet_mode() -> None:
     # Force-set (not setdefault) so repeated calls always win.
     os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
     os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+    os.environ["HF_HUB_DISABLE_EXPERIMENTAL_WARNING"] = "1"
     os.environ["TQDM_DISABLE"] = "1"
     os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
     os.environ["TRANSFORMERS_VERBOSITY"] = "error"
     for _logger_name in (
-        "httpx", "httpcore", "huggingface_hub",
+        "httpx", "httpcore",
+        "huggingface_hub", "huggingface_hub.file_download",
+        "huggingface_hub.utils", "huggingface_hub._commit_api",
+        "huggingface_hub.hub_mixin",
         "transformers", "transformers.configuration_utils",
         "transformers.modeling_utils", "transformers.tokenization_utils",
         "transformers.tokenization_utils_base",
+        "transformers.image_processing_utils",
         "sentence_transformers", "sentence_transformers.SentenceTransformer",
+        "sentence_transformers.util",
     ):
         logging.getLogger(_logger_name).setLevel(logging.ERROR)
+
+
+@contextlib.contextmanager
+def _suppress_fd_output():
+    """Redirect stdout/stderr at the file-descriptor level.
+
+    Unlike ``contextlib.redirect_stdout/stderr``, this captures output
+    from sub-threads, C extensions, and logging handlers that cached a
+    reference to the original ``sys.stdout``/``sys.stderr``.
+    """
+    old_stdout_fd = os.dup(1)
+    old_stderr_fd = os.dup(2)
+    devnull_fd = os.open(os.devnull, os.O_WRONLY)
+    old_stdout_py = sys.stdout
+    old_stderr_py = sys.stderr
+    try:
+        os.dup2(devnull_fd, 1)
+        os.dup2(devnull_fd, 2)
+        sys.stdout = io.StringIO()
+        sys.stderr = io.StringIO()
+        yield
+    finally:
+        sys.stdout = old_stdout_py
+        sys.stderr = old_stderr_py
+        os.dup2(old_stdout_fd, 1)
+        os.dup2(old_stderr_fd, 2)
+        os.close(old_stdout_fd)
+        os.close(old_stderr_fd)
+        os.close(devnull_fd)
 
 
 def _log_model_loading_once(model_name: str) -> None:
@@ -330,15 +366,54 @@ class VectorService:
                     if verbose:
                         model = SentenceTransformer(**st_kwargs)
                     else:
-                        # Redirect stdout/stderr to suppress native
-                        # ``print()`` statements from transformers internals.
-                        with contextlib.redirect_stdout(io.StringIO()), \
-                             contextlib.redirect_stderr(io.StringIO()):
+                        # Redirect at fd-level to suppress native print()
+                        # from transformers internals AND sub-threads.
+                        with _suppress_fd_output():
                             model = SentenceTransformer(**st_kwargs)
             finally:
                 hf_logging.set_verbosity(previous_hf_verbosity)
             _MODEL_CACHE[cache_key] = model
             logger.debug("Model cached under key %s", cache_key)
+
+        # ── Patch SigLIP-family configs missing top-level hidden_size ──
+        # SentenceTransformer's pooling layer reads ``config.hidden_size``
+        # but SigLIP2's top-level ``SiglipConfig`` stores it only inside
+        # ``text_config`` / ``vision_config``.  Patching the config after
+        # construction prevents ``AttributeError`` during ``encode()``.
+        try:
+            _patch_targets = []
+            _first_mod_fn = getattr(model, "_first_module", None)
+            _first_mod = _first_mod_fn() if callable(_first_mod_fn) else None
+            if _first_mod is not None:
+                for _attr_name in ("model", "auto_model"):
+                    _inner = getattr(_first_mod, _attr_name, None)
+                    if _inner is not None:
+                        _cfg = getattr(_inner, "config", None)
+                        if _cfg is not None:
+                            _patch_targets.append(_cfg)
+            # Also check top-level model.config
+            _top_cfg = getattr(model, "config", None)
+            if _top_cfg is not None:
+                _patch_targets.append(_top_cfg)
+
+            for _cfg in _patch_targets:
+                if not hasattr(_cfg, "hidden_size"):
+                    # Try text_config.hidden_size → vision_config.hidden_size
+                    _hs = None
+                    for _sub in ("text_config", "vision_config"):
+                        _sub_cfg = getattr(_cfg, _sub, None)
+                        if _sub_cfg is not None:
+                            _hs = getattr(_sub_cfg, "hidden_size", None)
+                            if _hs is not None and int(_hs) > 0:
+                                break
+                    if _hs is not None and int(_hs) > 0:
+                        _cfg.hidden_size = int(_hs)
+                        logger.debug(
+                            "Patched missing config.hidden_size = %d (from sub-config)",
+                            _hs,
+                        )
+        except Exception as exc:
+            logger.debug("Config hidden_size patch skipped: %s", exc)
 
         # ── Force CLIP/SigLIP style token limit ─────────────────────
         # SentenceTransformer may default to a higher max_seq_length.
@@ -354,11 +429,15 @@ class VectorService:
         self._cached_tokenizer = self._discover_tokenizer(model)
 
         effective_dim = self._resolve_sentence_embedding_dim(model)
-        logger.info(
-            "Multimodal embedding model loaded (dim=%d, max_seq=%d, tokenizer=%s)",
-            effective_dim,
-            model.max_seq_length,
-            type(self._cached_tokenizer).__name__ if self._cached_tokenizer else "NOT_FOUND",
+        log_success(
+            logger,
+            "SigLIP2 model loaded and ready: '%s' (dim=%d, max_seq=%d, tokenizer=%s)"
+            % (
+                self._model_name,
+                effective_dim,
+                model.max_seq_length,
+                type(self._cached_tokenizer).__name__ if self._cached_tokenizer else "NOT_FOUND",
+            ),
         )
         return model
 
@@ -908,8 +987,7 @@ class VectorService:
                             trust_remote_code=True,
                         )
                     else:
-                        with contextlib.redirect_stdout(io.StringIO()), \
-                             contextlib.redirect_stderr(io.StringIO()):
+                        with _suppress_fd_output():
                             self._prompt_processor = AutoProcessor.from_pretrained(
                                 self._prompt_model_name,
                                 trust_remote_code=True,
@@ -922,6 +1000,7 @@ class VectorService:
                 finally:
                     hf_logging.set_verbosity(previous_hf_verbosity)
                 self._prompt_model.eval()
+                log_success(logger, "Florence-2 model loaded and ready: '%s'" % self._prompt_model_name)
             import torch
 
             return self._prompt_processor, self._prompt_model, torch
@@ -949,8 +1028,7 @@ class VectorService:
                         )
                         self._video_model = AutoModel.from_pretrained(self._video_model_name)
                     else:
-                        with contextlib.redirect_stdout(io.StringIO()), \
-                             contextlib.redirect_stderr(io.StringIO()):
+                        with _suppress_fd_output():
                             self._video_processor = AutoProcessor.from_pretrained(
                                 self._video_model_name,
                                 use_fast=False,
@@ -962,6 +1040,7 @@ class VectorService:
                     self._video_model.eval()
                 except Exception:
                     pass
+                log_success(logger, "X-CLIP video model loaded and ready: '%s'" % self._video_model_name)
             return self._video_processor, self._video_model
 
     async def _get_video_embedding_xclip(self, path: Path) -> Result[list[float]]:

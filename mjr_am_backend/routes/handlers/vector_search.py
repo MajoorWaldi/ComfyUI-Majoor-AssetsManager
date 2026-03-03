@@ -350,6 +350,40 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
             logger.warning("Enhanced prompt generation failed: %s", exc)
             return _json_response(Result.Err("SERVICE_UNAVAILABLE", safe_error_message(exc, "Enhanced prompt generation failed")))
 
+    # Legacy alias requested by user (dash-separated path variant).
+    @routes.post("/mjr-am/assets/enhance-prompt")
+    async def enhance_prompt_alias(request: web.Request) -> web.Response:
+        """Alias for /mjr/am/vector/enhanced-prompt/{asset_id} accepting JSON body."""
+        services, err = await _require_services()
+        if err:
+            return _json_response(err)
+        services_dict = _services_dict(services)
+
+        if not is_vector_search_enabled():
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Vector AI features are disabled"))
+
+        try:
+            body = await request.json()
+            asset_id = int(body.get("asset_id", 0))
+            if asset_id <= 0:
+                raise ValueError("asset_id must be a positive integer")
+        except Exception:
+            return _json_response(Result.Err("INVALID_INPUT", "Request body must contain a valid 'asset_id'"))
+
+        db = services_dict.get("db")
+        vs = services_dict.get("vector_service")
+        if db is None or vs is None:
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Vector services are unavailable"))
+
+        try:
+            from ...features.index.vector_indexer import generate_enhanced_prompt as _generate
+
+            result = await _generate(db, vs, asset_id)
+            return _json_response(result)
+        except Exception as exc:
+            logger.warning("Enhanced prompt generation failed (alias): %s", exc)
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", safe_error_message(exc, "Enhanced prompt generation failed")))
+
     # ── Vector stats ───────────────────────────────────────────────────
 
     @routes.get("/mjr/am/vector/stats")

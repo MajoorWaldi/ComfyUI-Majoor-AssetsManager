@@ -35,14 +35,27 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
     /**
      * Load assets using hybrid search when in semantic mode, with fallback chain:
      * hybridSearch → vectorSearch (pure semantic) → FTS.
+     *
+     * Auto-detection: queries starting with "ai:" or containing 3+ words
+     * automatically trigger AI semantic search without toggling the button.
      */
     const _loadWithSemanticFallback = async (query) => {
-        const q = String(query || "").trim();
+        let q = String(query || "").trim();
+
+        // ── "ai:" prefix forces semantic search ────────────────────
+        const hasAiPrefix = /^ai:\s*/i.test(q);
+        if (hasAiPrefix) {
+            q = q.replace(/^ai:\s*/i, "").trim();
+        }
+
+        const wordCount = q.split(/\s+/).filter(Boolean).length;
         const looksNaturalLanguage =
-            q.length >= 12 &&
+            (q.length >= 12 &&
             q.includes(" ") &&
             q !== "*" &&
-            !/[a-z]+\s*:/i.test(q);
+            !/[a-z]+\s*:/i.test(q)) ||
+            hasAiPrefix ||
+            wordCount >= 3;
         const shouldAutoAiSearch = looksNaturalLanguage && !_isSemanticMode();
 
         if (shouldAutoAiSearch && q) {
