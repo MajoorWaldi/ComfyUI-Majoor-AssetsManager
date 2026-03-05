@@ -1157,13 +1157,18 @@ export async function vectorStats() {
 /**
  * Backfill missing vector embeddings for already indexed assets.
  * @param {number} [batchSize=64]  Batch size (1-200)
- * @param {{onProgress?:(status:Object)=>void}} [options]
+ * @param {{onProgress?:(status:Object)=>void, scope?:string, customRootId?:string, custom_root_id?:string}} [options]
  * @returns {Promise<ApiResult<{processed:number, indexed:number, skipped:number}>>}
  */
 export async function vectorBackfill(batchSize = 64, options = {}) {
     const batch = Math.max(1, Math.min(200, batchSize));
     const onProgress = typeof options?.onProgress === "function" ? options.onProgress : null;
-    const startRes = await post(`${ENDPOINTS.VECTOR_BACKFILL}?batch_size=${batch}&async=1`, {}, { timeoutMs: 30_000 });
+    const scope = String(options?.scope || "").trim().toLowerCase();
+    const customRootId = String(options?.customRootId ?? options?.custom_root_id ?? "").trim();
+    let startUrl = `${ENDPOINTS.VECTOR_BACKFILL}?batch_size=${batch}&async=1`;
+    if (scope) startUrl += `&scope=${encodeURIComponent(scope)}`;
+    if (customRootId) startUrl += `&custom_root_id=${encodeURIComponent(customRootId)}`;
+    const startRes = await post(startUrl, {}, { timeoutMs: 30_000 });
     if (!startRes?.ok) return startRes;
 
     const startData = startRes?.data || {};

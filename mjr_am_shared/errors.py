@@ -49,8 +49,14 @@ def sanitize_error_message(exc: Any, fallback: str) -> str:
     if not raw:
         return fallback
 
-    expanded = os.path.expandvars(raw)
-    sanitized = _mask_paths(expanded.replace(os.getcwd(), "[cwd]"))
+    # Never call expandvars — it would expand env-var references like %USERNAME%
+    # or $HOME embedded in exception messages, leaking real values to clients.
+    try:
+        cwd = os.getcwd()
+    except Exception:
+        cwd = ""
+    cleaned = raw.replace(cwd, "[cwd]") if cwd else raw
+    sanitized = _mask_paths(cleaned)
     sanitized = " ".join(sanitized.splitlines()).strip()
 
     if _DEBUG_MODE:

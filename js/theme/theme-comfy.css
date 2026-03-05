@@ -185,6 +185,32 @@
     opacity: 0.9;
 }
 
+.mjr-assets-manager .mjr-icon-btn:disabled,
+.mjr-assets-manager .mjr-ai-control:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    filter: grayscale(0.45);
+    border-color: color-mix(in srgb, var(--mjr-border) 88%, transparent) !important;
+    background: color-mix(in srgb, var(--mjr-surface-2) 92%, transparent) !important;
+    color: var(--mjr-muted, rgba(255,255,255,0.6)) !important;
+    box-shadow: none !important;
+}
+
+.mjr-assets-manager .mjr-ai-disabled .mjr-ai-control:hover {
+    transform: none !important;
+}
+
+.mjr-assets-manager .mjr-ai-disabled-block {
+    opacity: 0.58;
+    filter: grayscale(0.45);
+}
+
+.mjr-assets-manager .mjr-ai-disabled-block .mjr-ai-control,
+.mjr-assets-manager .mjr-ai-disabled-block button {
+    pointer-events: none;
+}
+
 /* Popovers can be moved to `document.body` (portal) to avoid being clipped. */
 .mjr-popover {
     font-family: var(--comfy-font, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif);

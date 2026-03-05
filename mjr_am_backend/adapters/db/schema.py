@@ -8,7 +8,7 @@ from ...shared import Result, get_logger, log_success
 
 logger = get_logger(__name__)
 
-CURRENT_SCHEMA_VERSION = 12
+CURRENT_SCHEMA_VERSION = 13
 # Schema version history (high-level):
 # 1: initial assets + metadata tables
 # 2-4: incremental columns and FTS/search support
@@ -20,6 +20,7 @@ CURRENT_SCHEMA_VERSION = 12
 # 10: auto_tags in asset_embeddings (AI-suggested tags, kept separate from user tags)
 # 11: asset_embeddings now has explicit id PK + asset_id UNIQUE (legacy tables auto-rebuilt)
 # 12: assets.enhanced_caption (Florence-2 long caption storage)
+# 13: asset_embeddings moved to separate vectors.sqlite (attached as "vec")
 
 # Schema definition
 SCHEMA_V1 = """
@@ -84,17 +85,6 @@ CREATE TABLE IF NOT EXISTS metadata_cache (
     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (filepath) REFERENCES assets(filepath) ON DELETE CASCADE
 );
-
-CREATE TABLE IF NOT EXISTS asset_embeddings (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    asset_id INTEGER NOT NULL UNIQUE,
-    vector BLOB,
-    aesthetic_score REAL,
-    auto_tags TEXT DEFAULT '[]',  -- AI-suggested tags (JSON array), separate from user tags
-    model_name TEXT DEFAULT '',
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
-);
 """
 
 # Migration from v1 to v2: Add metadata_raw column
@@ -138,15 +128,6 @@ COLUMN_DEFINITIONS = {
         ("metadata_raw", "metadata_raw TEXT DEFAULT '{}'"),
         ("last_updated", "last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
     ],
-    "asset_embeddings": [
-        ("id", "id INTEGER"),
-        ("asset_id", "asset_id INTEGER"),
-        ("vector", "vector BLOB"),
-        ("aesthetic_score", "aesthetic_score REAL"),
-        ("auto_tags", "auto_tags TEXT DEFAULT '[]'"),
-        ("model_name", "model_name TEXT DEFAULT ''"),
-        ("updated_at", "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
-    ],
 }
 
 INDEXES_AND_TRIGGERS = """
@@ -179,7 +160,6 @@ CREATE INDEX IF NOT EXISTS idx_assets_source_mtime_desc ON assets(source, mtime 
 CREATE INDEX IF NOT EXISTS idx_assets_content_hash ON assets(content_hash);
 CREATE INDEX IF NOT EXISTS idx_assets_phash ON assets(phash);
 CREATE INDEX IF NOT EXISTS idx_assets_hash_state ON assets(hash_state);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_asset_embeddings_asset_id ON asset_embeddings(asset_id);
 CREATE INDEX IF NOT EXISTS idx_asset_metadata_has_workflow_true ON asset_metadata(has_workflow) WHERE has_workflow = 1;
 CREATE INDEX IF NOT EXISTS idx_asset_metadata_has_generation_data_true ON asset_metadata(has_generation_data) WHERE has_generation_data = 1;
 CREATE INDEX IF NOT EXISTS idx_assets_list_cover ON assets(source, mtime DESC, id, filename, filepath, kind);
@@ -325,6 +305,79 @@ async def ensure_tables_exist(db) -> Result[bool]:
     result = await db.aexecutescript(SCHEMA_V1)
     if not result.ok:
         logger.error("Failed to ensure base tables: %s", result.error)
+    return result
+
+
+# ── Vector (vec) schema ────────────────────────────────────────────────────
+
+VEC_SCHEMA = """
+CREATE TABLE IF NOT EXISTS vec.asset_embeddings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    asset_id INTEGER NOT NULL UNIQUE,
+    vector BLOB,
+    aesthetic_score REAL,
+    auto_tags TEXT DEFAULT '[]',
+    model_name TEXT DEFAULT '',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX IF NOT EXISTS vec.idx_asset_embeddings_asset_id ON asset_embeddings(asset_id);
+"""
+
+
+async def ensure_vec_schema(db) -> Result[bool]:
+    """Create the asset_embeddings table inside the attached 'vec' database."""
+    logger.info("Ensuring vec schema (vectors.sqlite)...")
+    result = await db.aexecutescript(VEC_SCHEMA)
+    if not result.ok:
+        logger.error("Failed to ensure vec schema: %s", result.error)
+    return result
+
+
+async def _migrate_embeddings_to_vec(db) -> Result[bool]:
+    """Move rows from main.asset_embeddings TABLE into vec.asset_embeddings.
+
+    After migration the old table is dropped.  This is a one-time upgrade
+    (schema v12 → v13) for users who had vectors in assets.sqlite.
+    """
+    # Check whether a TABLE (not view) named asset_embeddings exists in main
+    check = await db.aquery(
+        "SELECT type FROM sqlite_master WHERE name = 'asset_embeddings'"
+    )
+    if not check.ok or not check.data:
+        return Result.Ok(True)  # nothing to migrate
+
+    obj_type = str(check.data[0].get("type") or "").lower()
+    if obj_type != "table":
+        return Result.Ok(True)  # already a view or something else
+
+    logger.warning("Migrating asset_embeddings from assets.sqlite to vectors.sqlite ...")
+    migrate_script = """
+    INSERT OR REPLACE INTO vec.asset_embeddings
+        (asset_id, vector, aesthetic_score, auto_tags, model_name, updated_at)
+    SELECT asset_id, vector, aesthetic_score,
+           COALESCE(auto_tags, '[]'),
+           COALESCE(model_name, ''),
+           COALESCE(updated_at, CURRENT_TIMESTAMP)
+    FROM main.asset_embeddings
+    WHERE asset_id IS NOT NULL;
+
+    DROP TABLE IF EXISTS main.asset_embeddings;
+    """
+    result = await db.aexecutescript(migrate_script)
+    if not result.ok:
+        logger.error("Migration of asset_embeddings to vec failed: %s", result.error)
+        return result
+    log_success(logger, "asset_embeddings migrated to vectors.sqlite")
+    return Result.Ok(True)
+
+
+async def purge_orphan_vec_embeddings(db) -> Result[bool]:
+    """Delete vec.asset_embeddings rows whose asset_id no longer exists in assets."""
+    result = await db.aexecute(
+        "DELETE FROM vec.asset_embeddings WHERE asset_id NOT IN (SELECT id FROM assets)"
+    )
+    if not result.ok:
+        logger.warning("Failed to purge orphan vec embeddings: %s", result.error)
     return result
 
 
@@ -522,15 +575,18 @@ async def _ensure_schema_fingerprint(db) -> Result[bool]:
     )
 
 
-async def _asset_embeddings_needs_rebuild(db) -> bool:
-    """Return True when asset_embeddings still uses the legacy PK layout."""
+async def _vec_embeddings_needs_rebuild(db) -> bool:
+    """Return True when vec.asset_embeddings still uses the legacy PK layout."""
     try:
-        if not await db.ahas_table("asset_embeddings"):
+        check = await db.aquery(
+            "SELECT name FROM vec.sqlite_master WHERE type='table' AND name='asset_embeddings'"
+        )
+        if not check.ok or not check.data:
             return False
     except Exception:
         return False
 
-    info = await db.aquery("PRAGMA table_info(asset_embeddings)")
+    info = await db.aquery("PRAGMA vec.table_info(asset_embeddings)")
     if not info.ok or not info.data:
         return False
 
@@ -557,54 +613,53 @@ async def _asset_embeddings_needs_rebuild(db) -> bool:
     return not id_pk
 
 
-async def _repair_asset_embeddings_layout(db) -> Result[bool]:
-    """Rebuild legacy asset_embeddings table to include id PK + asset_id UNIQUE."""
+async def _repair_vec_embeddings_layout(db) -> Result[bool]:
+    """Rebuild legacy vec.asset_embeddings table to include id PK + asset_id UNIQUE."""
     try:
-        needs_rebuild = await _asset_embeddings_needs_rebuild(db)
+        needs_rebuild = await _vec_embeddings_needs_rebuild(db)
     except Exception:
         needs_rebuild = False
     if not needs_rebuild:
         return Result.Ok(True)
 
-    logger.warning("Repairing asset_embeddings layout (legacy PK -> id PK + asset_id UNIQUE)")
+    logger.warning("Repairing vec.asset_embeddings layout (legacy PK -> id PK + asset_id UNIQUE)")
     try:
         async with db.atransaction(mode="immediate") as tx:
             if not tx.ok:
                 return Result.Err("DB_ERROR", tx.error or "Failed to begin transaction")
 
             repair_script = """
-            CREATE TABLE IF NOT EXISTS asset_embeddings__new (
+            CREATE TABLE IF NOT EXISTS vec.asset_embeddings__new (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 asset_id INTEGER NOT NULL UNIQUE,
                 vector BLOB,
                 aesthetic_score REAL,
                 auto_tags TEXT DEFAULT '[]',
                 model_name TEXT DEFAULT '',
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
-            INSERT OR REPLACE INTO asset_embeddings__new (asset_id, vector, aesthetic_score, auto_tags, model_name, updated_at)
+            INSERT OR REPLACE INTO vec.asset_embeddings__new (asset_id, vector, aesthetic_score, auto_tags, model_name, updated_at)
             SELECT asset_id,
                    vector,
                    aesthetic_score,
                    COALESCE(auto_tags, '[]'),
                    COALESCE(model_name, ''),
                    COALESCE(updated_at, CURRENT_TIMESTAMP)
-            FROM asset_embeddings
+            FROM vec.asset_embeddings
             WHERE asset_id IS NOT NULL;
 
-            DROP TABLE asset_embeddings;
-            ALTER TABLE asset_embeddings__new RENAME TO asset_embeddings;
+            DROP TABLE vec.asset_embeddings;
+            ALTER TABLE vec.asset_embeddings__new RENAME TO asset_embeddings;
             """
             rebuilt = await db.aexecutescript(repair_script)
             if not rebuilt.ok:
-                return Result.Err(rebuilt.code or "DB_ERROR", rebuilt.error or "Failed to rebuild asset_embeddings")
+                return Result.Err(rebuilt.code or "DB_ERROR", rebuilt.error or "Failed to rebuild vec.asset_embeddings")
 
         if not tx.ok:
             return Result.Err("DB_ERROR", tx.error or "Commit failed")
     except Exception as exc:
-        logger.warning("Failed to repair asset_embeddings layout: %s", exc)
+        logger.warning("Failed to repair vec.asset_embeddings layout: %s", exc)
         return Result.Err("SCHEMA_REPAIR_FAILED", str(exc))
 
     return Result.Ok(True)
@@ -619,9 +674,22 @@ async def _ensure_schema(db) -> Result[bool]:
     if not result.ok:
         return result
 
-    result = await _repair_asset_embeddings_layout(db)
+    # Vector embeddings live in the attached vec database (vectors.sqlite).
+    result = await ensure_vec_schema(db)
     if not result.ok:
         return result
+
+    # Migrate embeddings from main to vec (one-time v12→v13 upgrade).
+    result = await _migrate_embeddings_to_vec(db)
+    if not result.ok:
+        return result
+
+    result = await _repair_vec_embeddings_layout(db)
+    if not result.ok:
+        return result
+
+    # Purge orphan embeddings (no cascade trigger across attached DBs).
+    await purge_orphan_vec_embeddings(db)
 
     result = await ensure_indexes_and_triggers(db)
     if not result.ok:

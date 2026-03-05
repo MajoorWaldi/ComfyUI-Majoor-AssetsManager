@@ -95,7 +95,7 @@ def register_audit_routes(routes: web.RouteTableDef) -> None:
             f"e.aesthetic_score, e.auto_tags "
             f"FROM assets a "
             f"LEFT JOIN asset_metadata m ON a.id = m.asset_id "
-            f"LEFT JOIN asset_embeddings e ON a.id = e.asset_id "
+            f"LEFT JOIN vec.asset_embeddings e ON a.id = e.asset_id "
             f"WHERE {where_sql} "
             f"ORDER BY {order_by} "
             f"LIMIT ?"

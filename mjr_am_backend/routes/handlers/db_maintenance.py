@@ -15,9 +15,11 @@ import threading
 import uuid
 from pathlib import Path
 from typing import Any
+import time
 
 from aiohttp import web
 from mjr_am_backend.config import INDEX_DB_PATH, get_runtime_output_root, is_vector_search_enabled
+from mjr_am_backend.custom_roots import resolve_custom_root
 from mjr_am_backend.shared import FileKind, Result, get_logger
 
 from ..core import (
@@ -40,6 +42,12 @@ _VECTOR_BACKFILL_LOCK = threading.Lock()
 _VECTOR_BACKFILL_JOBS: dict[str, dict[str, Any]] = {}
 _VECTOR_BACKFILL_ACTIVE_JOB_ID: str | None = None
 _VECTOR_BACKFILL_HISTORY_LIMIT = 20
+_VECTOR_BACKFILL_PRIORITY_LOCK = threading.Lock()
+_VECTOR_BACKFILL_PRIORITY_UNTIL_MONO: float = 0.0
+_VECTOR_BACKFILL_PRIORITY_REASON: str = ""
+_VECTOR_BACKFILL_PRIORITY_MAX_WINDOW_S = 120.0
+_VECTOR_BACKFILL_PRIORITY_SLEEP_SLICE_S = 0.25
+_VECTOR_BACKFILL_VALID_SCOPES = {"output", "input", "custom", "all"}
 
 
 def _parse_bool_flag(value: Any, default: bool = False) -> bool:
@@ -58,6 +66,41 @@ def _parse_bool_flag(value: Any, default: bool = False) -> bool:
         return bool(default)
     except Exception:
         return bool(default)
+
+
+def _normalize_backfill_scope(value: Any) -> str:
+    raw = str(value or "output").strip().lower()
+    if raw == "outputs":
+        return "output"
+    if raw == "inputs":
+        return "input"
+    return raw if raw in _VECTOR_BACKFILL_VALID_SCOPES else ""
+
+
+def _read_vector_backfill_scope_params(request: web.Request) -> tuple[str, str, Result | None]:
+    scope = _normalize_backfill_scope(request.query.get("scope"))
+    if not scope:
+        return "", "", Result.Err(
+            "INVALID_INPUT",
+            "Invalid scope. Must be one of: output, input, custom, all",
+        )
+
+    custom_root_id = str(
+        request.query.get("custom_root_id")
+        or request.query.get("root_id")
+        or ""
+    ).strip()
+
+    if scope == "custom":
+        if not custom_root_id:
+            return "", "", Result.Err("INVALID_INPUT", "Missing custom_root_id for custom scope")
+        root_result = resolve_custom_root(custom_root_id)
+        if not root_result.ok:
+            return "", "", Result.Err("INVALID_INPUT", root_result.error or "Invalid custom root")
+    else:
+        custom_root_id = ""
+
+    return scope, custom_root_id, None
 
 
 def _utc_now_iso() -> str:
@@ -79,6 +122,8 @@ def _vector_backfill_job_public(job: dict[str, Any]) -> dict[str, Any]:
         "status": str(job.get("status") or "unknown"),
         "async": True,
         "batch_size": int(job.get("batch_size") or 64),
+        "scope": str(job.get("scope") or "output"),
+        "custom_root_id": str(job.get("custom_root_id") or "") or None,
         "created_at": str(job.get("created_at") or ""),
         "updated_at": str(job.get("updated_at") or ""),
         "started_at": str(job.get("started_at") or ""),
@@ -111,12 +156,76 @@ def _vector_backfill_get_active_or_latest_job() -> dict[str, Any] | None:
         return ordered[0] if ordered else None
 
 
-def _vector_backfill_register_job(*, batch_size: int) -> dict[str, Any]:
+def is_vector_backfill_active() -> bool:
+    """Return True when an async vector backfill job is queued/running."""
+    with _VECTOR_BACKFILL_LOCK:
+        if not _VECTOR_BACKFILL_ACTIVE_JOB_ID:
+            return False
+        job = _VECTOR_BACKFILL_JOBS.get(_VECTOR_BACKFILL_ACTIVE_JOB_ID)
+        if not isinstance(job, dict):
+            return False
+        status = str(job.get("status") or "").strip().lower()
+        return status in {"queued", "running"}
+
+
+def _vector_backfill_priority_remaining_seconds() -> float:
+    global _VECTOR_BACKFILL_PRIORITY_UNTIL_MONO, _VECTOR_BACKFILL_PRIORITY_REASON
+    now = time.monotonic()
+    with _VECTOR_BACKFILL_PRIORITY_LOCK:
+        remaining = float(_VECTOR_BACKFILL_PRIORITY_UNTIL_MONO - now)
+        if remaining <= 0:
+            _VECTOR_BACKFILL_PRIORITY_UNTIL_MONO = 0.0
+            _VECTOR_BACKFILL_PRIORITY_REASON = ""
+            return 0.0
+        return remaining
+
+
+def request_vector_backfill_priority_window(seconds: float = 18.0, *, reason: str = "generation") -> float:
+    """
+    Request a temporary cooperative pause window for the running vector backfill job.
+
+    Returns the remaining requested window (seconds).
+    """
+    duration = max(0.5, min(_VECTOR_BACKFILL_PRIORITY_MAX_WINDOW_S, float(seconds or 0.0)))
+    now = time.monotonic()
+    requested_until = now + duration
+    with _VECTOR_BACKFILL_PRIORITY_LOCK:
+        global _VECTOR_BACKFILL_PRIORITY_UNTIL_MONO, _VECTOR_BACKFILL_PRIORITY_REASON
+        if requested_until > _VECTOR_BACKFILL_PRIORITY_UNTIL_MONO:
+            _VECTOR_BACKFILL_PRIORITY_UNTIL_MONO = requested_until
+            _VECTOR_BACKFILL_PRIORITY_REASON = str(reason or "generation")
+        return max(0.0, _VECTOR_BACKFILL_PRIORITY_UNTIL_MONO - now)
+
+
+def _clear_vector_backfill_priority_window() -> None:
+    with _VECTOR_BACKFILL_PRIORITY_LOCK:
+        global _VECTOR_BACKFILL_PRIORITY_UNTIL_MONO, _VECTOR_BACKFILL_PRIORITY_REASON
+        _VECTOR_BACKFILL_PRIORITY_UNTIL_MONO = 0.0
+        _VECTOR_BACKFILL_PRIORITY_REASON = ""
+
+
+async def _vector_backfill_wait_for_priority_window() -> None:
+    """
+    Cooperative yield point used by backfill loops.
+    Sleeps in short slices while a priority window is active.
+    """
+    while True:
+        remaining = _vector_backfill_priority_remaining_seconds()
+        if remaining <= 0:
+            return
+        await asyncio.sleep(min(_VECTOR_BACKFILL_PRIORITY_SLEEP_SLICE_S, remaining))
+
+
+def _vector_backfill_register_job(*, batch_size: int, scope: str = "output", custom_root_id: str = "") -> dict[str, Any]:
+    normalized_scope = _normalize_backfill_scope(scope) or "output"
+    normalized_custom_root = str(custom_root_id or "").strip() if normalized_scope == "custom" else ""
     job_id = uuid.uuid4().hex
     job = {
         "job_id": job_id,
         "status": "queued",
         "batch_size": int(max(1, min(200, batch_size))),
+        "scope": normalized_scope,
+        "custom_root_id": normalized_custom_root,
         "created_at": _utc_now_iso(),
         "updated_at": _utc_now_iso(),
         "started_at": "",
@@ -167,8 +276,18 @@ def _vector_backfill_update_job(job_id: str, **updates: Any) -> None:
         job.update(updates)
 
 
-async def _run_vector_backfill_job(*, job_id: str, svc: dict[str, Any], db: Any, vector_service: Any, batch_size: int) -> None:
+async def _run_vector_backfill_job(
+    *,
+    job_id: str,
+    svc: dict[str, Any],
+    db: Any,
+    vector_service: Any,
+    batch_size: int,
+    scope: str = "output",
+    custom_root_id: str = "",
+) -> None:
     _vector_backfill_update_job(job_id, status="running", started_at=_utc_now_iso(), code=None, error=None)
+    _clear_vector_backfill_priority_window()
     set_db_maintenance_active(True)
     watcher_was_running = False
     try:
@@ -187,6 +306,8 @@ async def _run_vector_backfill_job(*, job_id: str, svc: dict[str, Any], db: Any,
             db,
             vector_service,
             batch_size=batch_size,
+            scope=scope,
+            custom_root_id=custom_root_id,
             on_progress=_on_progress,
         )
         if not backfill_res.ok:
@@ -208,6 +329,8 @@ async def _run_vector_backfill_job(*, job_id: str, svc: dict[str, Any], db: Any,
 
         payload = {
             "ran": True,
+            "scope": _normalize_backfill_scope(scope) or "output",
+            "custom_root_id": str(custom_root_id or "") or None,
             **(backfill_res.data or {}),
         }
         _vector_backfill_update_job(
@@ -227,6 +350,7 @@ async def _run_vector_backfill_job(*, job_id: str, svc: dict[str, Any], db: Any,
             error=safe_error_message(exc, "Vector backfill failed"),
         )
     finally:
+        _clear_vector_backfill_priority_window()
         try:
             await _restart_watcher_if_needed(svc if isinstance(svc, dict) else None, watcher_was_running)
         except Exception:
@@ -534,6 +658,8 @@ async def _backfill_missing_asset_vectors(
     vector_service: Any,
     *,
     batch_size: int = 64,
+    scope: str = "output",
+    custom_root_id: str = "",
     on_progress: Any | None = None,
 ) -> Result[dict[str, int]]:
     """
@@ -547,6 +673,25 @@ async def _backfill_missing_asset_vectors(
         return Result.Err("SERVICE_UNAVAILABLE", safe_error_message(exc, "Vector indexer unavailable"))
 
     size = max(1, min(200, int(batch_size or 64)))
+    normalized_scope = _normalize_backfill_scope(scope)
+    if not normalized_scope:
+        return Result.Err("INVALID_INPUT", "Invalid scope. Must be one of: output, input, custom, all")
+    normalized_custom_root = str(custom_root_id or "").strip() if normalized_scope == "custom" else ""
+    if normalized_scope == "custom" and not normalized_custom_root:
+        return Result.Err("INVALID_INPUT", "Missing custom_root_id for custom scope")
+
+    scope_where: list[str] = []
+    scope_params: list[Any] = []
+    if normalized_scope in {"output", "input", "custom"}:
+        scope_where.append("LOWER(COALESCE(a.source, '')) = ?")
+        scope_params.append(normalized_scope)
+    if normalized_scope == "custom":
+        scope_where.append("a.root_id = ?")
+        scope_params.append(normalized_custom_root)
+    scope_sql = ""
+    if scope_where:
+        scope_sql = " AND " + " AND ".join(scope_where)
+
     last_id = 0
     candidates = 0
     indexed = 0
@@ -574,19 +719,23 @@ async def _backfill_missing_asset_vectors(
     _emit_progress()
 
     while True:
+        await _vector_backfill_wait_for_priority_window()
         rows_res = await db.aquery(
             """
             SELECT a.id, a.filepath, a.kind, m.metadata_raw
             FROM assets a
-            LEFT JOIN asset_embeddings ae ON ae.asset_id = a.id
+            LEFT JOIN vec.asset_embeddings ae ON ae.asset_id = a.id
             LEFT JOIN asset_metadata m ON m.asset_id = a.id
             WHERE a.id > ?
               AND a.kind IN ('image', 'video')
               AND (ae.asset_id IS NULL OR ae.vector IS NULL OR length(ae.vector) = 0)
+            """
+            + scope_sql
+            + """
             ORDER BY a.id ASC
             LIMIT ?
             """,
-            (int(last_id), int(size)),
+            (int(last_id), *scope_params, int(size)),
         )
         if not rows_res.ok:
             return Result.Err("DB_ERROR", rows_res.error or "Failed to query missing vectors")
@@ -596,6 +745,7 @@ async def _backfill_missing_asset_vectors(
             break
 
         for row in rows:
+            await _vector_backfill_wait_for_priority_window()
             try:
                 asset_id = int(row.get("id") or 0)
             except Exception:
@@ -658,6 +808,8 @@ async def _backfill_missing_asset_vectors(
             "skipped_missing_files": int(skipped_missing_files),
             "errors": int(errors),
             "batch_size": int(size),
+            "scope": normalized_scope,
+            "custom_root_id": normalized_custom_root or None,
         }
     )
 
@@ -1043,6 +1195,8 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
 
         Query params:
           - batch_size: optional int in [1..200], default 64
+          - scope: output | input | custom | all (default: output)
+          - custom_root_id: required when scope=custom
         """
         csrf = _csrf_error(request)
         if csrf:
@@ -1082,6 +1236,10 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
         except Exception:
             requested_batch = 64
 
+        scope, custom_root_id, scope_error = _read_vector_backfill_scope_params(request)
+        if scope_error:
+            return _json_response(scope_error)
+
         async_mode = _parse_bool_flag(request.query.get("async"), default=False)
 
         if async_mode:
@@ -1089,7 +1247,11 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
             if isinstance(active, dict) and str(active.get("status") or "") in {"queued", "running"}:
                 return _json_response(Result.Ok(_vector_backfill_job_public(active)))
 
-            job = _vector_backfill_register_job(batch_size=requested_batch)
+            job = _vector_backfill_register_job(
+                batch_size=requested_batch,
+                scope=scope,
+                custom_root_id=custom_root_id,
+            )
             _spawn_background_task(
                 _run_vector_backfill_job(
                     job_id=str(job.get("job_id") or ""),
@@ -1097,6 +1259,8 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                     db=db,
                     vector_service=vector_service,
                     batch_size=int(requested_batch),
+                    scope=scope,
+                    custom_root_id=custom_root_id,
                 ),
                 label=f"vector-backfill-{job.get('job_id')}",
             )
@@ -1117,6 +1281,8 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                 db,
                 vector_service,
                 batch_size=requested_batch,
+                scope=scope,
+                custom_root_id=custom_root_id,
             )
             if not backfill_res.ok:
                 return _json_response(backfill_res)
@@ -1130,6 +1296,8 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
 
             payload = {
                 "ran": True,
+                "scope": scope,
+                "custom_root_id": custom_root_id or None,
                 **(backfill_res.data or {}),
             }
             return _json_response(Result.Ok(payload))

@@ -39,6 +39,21 @@ export function registerScanningSettings(safeAddSetting, settings, notifyApplied
     });
 
     safeAddSetting({
+        id: `${SETTINGS_PREFIX}.Scan.FastMode`,
+        category: cat(t("cat.scanning"), "Scan mode"),
+        name: "Fast scan mode",
+        tooltip: "Use fast scan mode for manual backfill scans (skip heavier metadata work during scan).",
+        type: "boolean",
+        defaultValue: !!(settings.scan?.fastMode ?? true),
+        onChange: (value) => {
+            settings.scan = settings.scan || {};
+            settings.scan.fastMode = !!value;
+            saveMajoorSettings(settings);
+            notifyApplied("scan.fastMode");
+        },
+    });
+
+    safeAddSetting({
         id: `${SETTINGS_PREFIX}.RtHydrate.Concurrency`,
         category: cat(t("cat.scanning"), "Hydration"),
         name: "Hydrate Concurrency",

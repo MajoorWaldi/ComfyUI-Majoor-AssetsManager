@@ -8,6 +8,7 @@ import { APP_CONFIG } from "../../app/config.js";
 import { comfyToast } from "../../app/toast.js";
 import { t } from "../../app/i18n.js";
 import { getEnrichmentState, setEnrichmentState } from "../../app/runtimeState.js";
+import { loadMajoorSettings } from "../../app/settings.js";
 
 const TOOL_CAPABILITIES = [
     {
@@ -24,6 +25,13 @@ const TOOL_CAPABILITIES = [
 
 let _maintenanceActive = false;
 let _dbRestoreStatusHandler = null;
+
+function setMaintenanceActive(active) {
+    _maintenanceActive = !!active;
+    try {
+        globalThis._mjrMaintenanceActive = _maintenanceActive;
+    } catch (e) { console.debug?.(e); }
+}
 
 function formatBytes(bytes) {
     const n = Number(bytes);
@@ -178,6 +186,9 @@ function emitGlobalGridReload(reason = "status-action") {
 export function createStatusIndicator(options = {}) {
     const getScanContext =
         typeof options?.getScanContext === "function" ? options.getScanContext : null;
+    // Reset any stale local maintenance lock when panel is recreated.
+    // Runtime state is re-detected from backend diagnostics during polling.
+    setMaintenanceActive(false);
     const section = document.createElement("div");
     section.style.cssText = "margin-bottom: 20px; padding: 12px; background: var(--bg-color, #1a1a1a); border-radius: 6px; border: 1px solid var(--border-color, #333); cursor: pointer; transition: all 0.2s;";
     applyStatusHighlight(section, "info", { toast: false });
@@ -303,7 +314,7 @@ export function createStatusIndicator(options = {}) {
     `;
     saveDbBtn.onclick = async (event) => {
         event.stopPropagation();
-        _maintenanceActive = true;
+        setMaintenanceActive(true);
         const original = saveDbBtn.textContent;
         saveDbBtn.disabled = true;
         saveDbBtn.textContent = t("btn.saving", "Saving...");
@@ -320,7 +331,7 @@ export function createStatusIndicator(options = {}) {
         } catch (error) {
             comfyToast(error?.message || t("toast.dbSaveFailed", "Failed to save DB backup"), "error");
         } finally {
-            _maintenanceActive = false;
+            setMaintenanceActive(false);
             saveDbBtn.disabled = false;
             saveDbBtn.textContent = original;
             try {
@@ -354,7 +365,7 @@ export function createStatusIndicator(options = {}) {
         const confirmed = confirm(t("dialog.dbRestore.confirm", "Restore selected DB backup? Current DB will be replaced."));
         if (!confirmed) return;
         comfyToast(t("toast.dbRestoreStarted", "DB restore started"), "info", 1800);
-        _maintenanceActive = true;
+        setMaintenanceActive(true);
         const original = restoreDbBtn.textContent;
         restoreDbBtn.disabled = true;
         restoreDbBtn.textContent = t("btn.restoring", "Restoring...");
@@ -370,7 +381,7 @@ export function createStatusIndicator(options = {}) {
         } catch (error) {
             comfyToast(error?.message || t("toast.dbRestoreFailed", "Failed to restore DB backup"), "error");
         } finally {
-            _maintenanceActive = false;
+            setMaintenanceActive(false);
             restoreDbBtn.disabled = false;
             restoreDbBtn.textContent = original;
             emitGlobalGridReload("db-restore");
@@ -442,7 +453,7 @@ export function createStatusIndicator(options = {}) {
     };
     resetBtn.onclick = async (event) => {
         event.stopPropagation();
-        _maintenanceActive = true;
+        setMaintenanceActive(true);
 
         const originalText = resetBtn.textContent;
         resetBtn.disabled = true;
@@ -483,7 +494,7 @@ export function createStatusIndicator(options = {}) {
             statusDot.style.background = "var(--mjr-status-error, #f44336)";
             applyStatusHighlight(section, "error");
         } finally {
-            _maintenanceActive = false;
+            setMaintenanceActive(false);
             resetBtn.disabled = false;
             resetBtn.textContent = originalText;
             emitGlobalGridReload("index-reset");
@@ -518,19 +529,40 @@ export function createStatusIndicator(options = {}) {
     };
     backfillBtn.onclick = async (event) => {
         event.stopPropagation();
-        _maintenanceActive = true;
+        const ctx = getScanContext ? getScanContext() : {};
+        const desiredScope = String(ctx?.scope || "output").toLowerCase();
+        const desiredCustomRootId = String(
+            ctx?.customRootId || ctx?.custom_root_id || ctx?.root_id || ""
+        ).trim();
+        const isCustomBrowserMode = desiredScope === "custom" && !desiredCustomRootId;
+        if (isCustomBrowserMode) {
+            comfyToast(
+                t(
+                    "status.customBrowserScanDisabledHint",
+                    "Use Outputs, Inputs, or All to run indexing scans"
+                ),
+                "warning",
+                2600
+            );
+            setActionLog("Backfill skipped - Browser scope has no selected custom root.", "warning");
+            return;
+        }
+        const backfillScope = desiredScope || "output";
+        const backfillScopeLabel = formatWatcherScopeLabel(backfillScope);
+        setMaintenanceActive(true);
 
         const originalBackfillText = backfillBtn.textContent;
         const originalResetText = resetBtn.textContent;
         backfillBtn.disabled = true;
         resetBtn.disabled = true;
         backfillBtn.textContent = "Backfilling...";
-        setActionLog("Backfill started…", "info");
+        setActionLog(`Backfill started (${backfillScopeLabel})...`, "info");
 
         statusDot.style.background = "var(--mjr-status-info, #64B5F6)";
         applyStatusHighlight(section, "info");
         try {
-            const res = await vectorBackfill(64, {
+            const backfillOptions = {
+                scope: backfillScope,
                 onProgress: (payload) => {
                     const status = String(payload?.status || "").toLowerCase();
                     const progress = payload?.progress || payload?.result || {};
@@ -546,7 +578,11 @@ export function createStatusIndicator(options = {}) {
                         setActionLog(`Backfill running — candidates ${candidates}, indexed ${indexed}, skipped ${skipped}, errors ${errors}`, "info");
                     }
                 },
-            });
+            };
+            if (backfillScope === "custom" && desiredCustomRootId) {
+                backfillOptions.customRootId = desiredCustomRootId;
+            }
+            const res = await vectorBackfill(64, backfillOptions);
             if (res?.ok) {
                 const state = String(res?.data?.status || "").toLowerCase();
                 const pending = !!res?.data?.pending || ["queued", "running", "pending"].includes(state);
@@ -594,7 +630,7 @@ export function createStatusIndicator(options = {}) {
             statusDot.style.background = "var(--mjr-status-error, #f44336)";
             applyStatusHighlight(section, "error");
         } finally {
-            _maintenanceActive = false;
+            setMaintenanceActive(false);
             backfillBtn.disabled = false;
             resetBtn.disabled = false;
             backfillBtn.textContent = originalBackfillText;
@@ -638,7 +674,7 @@ export function createStatusIndicator(options = {}) {
 
         const confirmed = confirm(t("dialog.dbDelete.confirm"));
         if (!confirmed) return;
-        _maintenanceActive = true;
+        setMaintenanceActive(true);
 
         const originalText = deleteDbBtn.textContent;
         deleteDbBtn.disabled = true;
@@ -662,7 +698,7 @@ export function createStatusIndicator(options = {}) {
             statusDot.style.background = "var(--mjr-status-error, #f44336)";
             applyStatusHighlight(section, "error");
         } finally {
-            _maintenanceActive = false;
+            setMaintenanceActive(false);
             deleteDbBtn.disabled = false;
             deleteDbBtn.textContent = originalText;
             resetBtn.disabled = false;
@@ -705,21 +741,31 @@ export function createStatusIndicator(options = {}) {
 
     const onDbRestoreStatus = async (event) => {
         try {
-            if (!section?.isConnected || !statusDot?.isConnected || !statusText?.isConnected) return;
             const detail = event?.detail || {};
             const step = String(detail?.step || "");
             if (!step) return;
 
-            if (
+            const isMaintenanceStep =
                 step === "started" ||
                 step === "stopping_workers" ||
                 step === "resetting_db" ||
                 step === "delete_db" ||
                 step === "recreate_db" ||
                 step === "replacing_files" ||
-                step === "restarting_scan"
+                step === "restarting_scan";
+
+            // Keep global maintenance lock in sync even if the old panel was closed.
+            if (isMaintenanceStep) {
+                setMaintenanceActive(true);
+            } else if (step === "failed" || step === "done") {
+                setMaintenanceActive(false);
+            }
+
+            if (!section?.isConnected || !statusDot?.isConnected || !statusText?.isConnected) return;
+
+            if (
+                isMaintenanceStep
             ) {
-                _maintenanceActive = true;
                 statusDot.style.background = "var(--mjr-status-info, #64B5F6)";
                 applyStatusHighlight(section, "info", { toast: false });
                 setStatusWithHint(
@@ -731,7 +777,6 @@ export function createStatusIndicator(options = {}) {
             }
 
             if (step === "failed") {
-                _maintenanceActive = false;
                 statusDot.style.background = "var(--mjr-status-error, #f44336)";
                 applyStatusHighlight(section, "error", { toast: false });
                 setStatusLines(statusText, [
@@ -742,7 +787,6 @@ export function createStatusIndicator(options = {}) {
             }
 
             if (step === "done") {
-                _maintenanceActive = false;
                 statusDot.style.background = "var(--mjr-status-success, #4CAF50)";
                 applyStatusHighlight(section, "success", { toast: false });
                 const op = String(detail?.operation || "");
@@ -874,11 +918,14 @@ export async function triggerScan(statusDot, statusText, capabilitiesSection = n
     applyStatusHighlight(section, "info");
     setStatusWithHint(statusText, t("status.scanningScope", `Scanning ${scopeLabel}${detail}...`, { scope: scopeLabel, detail }), t("status.scanningHint", "This may take a while"));
 
+    const settings = loadMajoorSettings();
+    const fastModeEnabled = !!(settings?.scan?.fastMode ?? true);
+
     const payload = {
         scope: desiredScope,
         recursive: true,
         incremental: shouldIncremental,
-        fast: true,
+        fast: fastModeEnabled,
         background_metadata: true
     };
     if (desiredScope === "custom") {
@@ -1180,6 +1227,7 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
         const dbMalformed = Boolean(dbDiagnostics?.malformed);
         const dbLocked = Boolean(dbDiagnostics?.locked);
         const dbMaintenance = Boolean(dbDiagnostics?.maintenance_active);
+        setMaintenanceActive(dbMaintenance);
         const enrichmentQueueLength = Math.max(0, Number(counters?.enrichment_queue_length || 0) || 0);
         const runtimeEnrichment = getEnrichmentState();
         const enrichmentActive = runtimeEnrichment.active || enrichmentQueueLength > 0;
@@ -1389,7 +1437,9 @@ export function setupStatusPolling(
         const target = typeof getScanTarget === "function" ? getScanTarget() : null;
         const counters = await updateStatus(statusDot, statusText, capabilitiesSection, target, pollMeta, {
             signal: pollingAC?.signal || null,
-            lightweight
+            lightweight,
+            // Keep status updates alive while maintenance is active (or stale).
+            force: !!_maintenanceActive || pollMeta._pollTick <= 1,
         });
         if (counters && typeof onCountersUpdate === "function") {
             try {
@@ -1483,3 +1533,4 @@ export function setupStatusPolling(
         statusDotEl.title = t("status.clickToScan", "Click to scan");
     }
 }
+

@@ -3,6 +3,7 @@ import { comfyToast } from "../../../app/toast.js";
 import { listCollections, createCollection, deleteCollection, vectorStats, vectorSearch, vectorSuggestCollections, addAssetsToCollection, getAssetsBatch } from "../../../api/client.js";
 import { buildAssetViewURL } from "../../../api/endpoints.js";
 import { t } from "../../../app/i18n.js";
+import { loadMajoorSettings } from "../../../app/settings.js";
 
 const MAX_COLLECTION_NAME_LEN = 128;
 
@@ -179,7 +180,36 @@ const SMART_COLLECTION_IDEAS = [
     { label: "Abstract", query: "abstract art pattern geometric colors", icon: "🔮" },
 ];
 
-async function _appendSmartSuggestions(menu, state, popovers, collectionsPopover, reloadGrid, onChanged) {
+function _isAiEnabledFromSettings() {
+    try {
+        const settings = loadMajoorSettings();
+        return !!(settings?.ai?.vectorSearchEnabled ?? true);
+    } catch {
+        return true;
+    }
+}
+
+async function _appendSmartSuggestions(menu, state, popovers, collectionsPopover, reloadGrid, onChanged, isAiEnabled = null) {
+    const aiEnabled = typeof isAiEnabled === "function" ? !!isAiEnabled() : _isAiEnabledFromSettings();
+    if (!aiEnabled) {
+        menu.appendChild(createDivider());
+        const disabled = document.createElement("div");
+        disabled.classList.add("mjr-ai-disabled-block");
+        disabled.style.cssText = `
+            font-size: 10px;
+            color: rgba(255,255,255,0.7);
+            border: 1px dashed rgba(255,255,255,0.25);
+            border-radius: 8px;
+            padding: 8px 10px;
+            margin: 4px 0;
+            background: rgba(255,255,255,0.04);
+            line-height: 1.35;
+        `;
+        disabled.textContent = "AI Smart Collections are disabled in settings.";
+        menu.appendChild(disabled);
+        return;
+    }
+
     // Check if vector search is available
     let vectorAvailable = false;
     let vectorDisabled = false;
@@ -337,7 +367,10 @@ async function _appendSmartSuggestions(menu, state, popovers, collectionsPopover
     }
 }
 
-async function _appendDiscoverGroups(menu, state, popovers, collectionsPopover, reloadGrid, onChanged) {
+async function _appendDiscoverGroups(menu, state, popovers, collectionsPopover, reloadGrid, onChanged, isAiEnabled = null) {
+    const aiEnabled = typeof isAiEnabled === "function" ? !!isAiEnabled() : _isAiEnabledFromSettings();
+    if (!aiEnabled) return;
+
     // Only show when vector search has indexed assets
     let vectorAvailable = false;
     try {
@@ -545,7 +578,7 @@ async function _appendDiscoverGroups(menu, state, popovers, collectionsPopover, 
     menu.appendChild(clustersContainer);
 }
 
-export function createCollectionsController({ state, collectionsBtn, collectionsMenu, collectionsPopover, popovers, reloadGrid, onChanged = null }) {
+export function createCollectionsController({ state, collectionsBtn, collectionsMenu, collectionsPopover, popovers, isAiEnabled = null, reloadGrid, onChanged = null }) {
     const render = async () => {
         collectionsMenu.replaceChildren();
 
@@ -668,10 +701,10 @@ export function createCollectionsController({ state, collectionsBtn, collections
         }
 
         // ── Smart Collection Suggestions (vector-based) ──────────────
-        _appendSmartSuggestions(collectionsMenu, state, popovers, collectionsPopover, reloadGrid, onChanged);
+        _appendSmartSuggestions(collectionsMenu, state, popovers, collectionsPopover, reloadGrid, onChanged, isAiEnabled);
 
         // ── Discover Groups (cluster analysis) ───────────────────────
-        _appendDiscoverGroups(collectionsMenu, state, popovers, collectionsPopover, reloadGrid, onChanged);
+        _appendDiscoverGroups(collectionsMenu, state, popovers, collectionsPopover, reloadGrid, onChanged, isAiEnabled);
     };
 
     const bind = ({ onBeforeToggle } = {}) => {
@@ -690,4 +723,3 @@ export function createCollectionsController({ state, collectionsBtn, collections
 
     return { bind, render };
 }
-

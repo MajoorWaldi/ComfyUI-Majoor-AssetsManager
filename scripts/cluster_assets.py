@@ -117,7 +117,7 @@ async def cluster_assets(
     dim = dim or VECTOR_EMBEDDING_DIM
 
     rows_result = await db.aquery(
-        "SELECT asset_id, vector FROM asset_embeddings WHERE vector IS NOT NULL"
+        "SELECT asset_id, vector FROM vec.asset_embeddings WHERE vector IS NOT NULL"
     )
     if not rows_result.ok or not rows_result.data:
         return Result.Err("NOT_FOUND", "No embeddings found in the database")

@@ -52,10 +52,12 @@ async def test_index_asset_vector_video_stores_prompt_alignment(monkeypatch):
     assert db.calls
 
     store_sql, store_params = db.calls[0]
-    assert "INSERT INTO asset_embeddings" in store_sql
+    assert "INSERT INTO vec.asset_embeddings" in store_sql
     assert "WHERE EXISTS (SELECT 1 FROM assets WHERE id = ?)" in store_sql
     assert store_params[0] == 123
-    assert store_params[2] == 1.0
+    # With identical image/text vectors (cosine=1.0), calibrated score is 1.0
+    assert store_params[2] is not None
+    assert store_params[2] >= 0.99
 
 
 @pytest.mark.asyncio

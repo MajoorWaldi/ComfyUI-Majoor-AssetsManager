@@ -40,7 +40,9 @@ export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFol
     let semanticMode = false;
     const semanticBtn = document.createElement("button");
     semanticBtn.type = "button";
-    semanticBtn.title = t("search.semanticToggle", "Toggle AI semantic search (CLIP-based)");
+    semanticBtn.classList.add("mjr-ai-control");
+    const semanticToggleTitle = t("search.semanticToggle", "Toggle AI semantic search (CLIP-based)");
+    semanticBtn.title = semanticToggleTitle;
     semanticBtn.style.cssText = `
         display: flex;
         align-items: center;
@@ -79,25 +81,42 @@ export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFol
         }
     };
 
-    semanticBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        semanticMode = !semanticMode;
+    const setSemanticMode = (nextMode, { emitInput = false } = {}) => {
+        semanticMode = !!nextMode;
         updateSemanticStyle();
-        // Dispatch event so grid picks it up
         try {
             searchInputEl.dataset.mjrSemanticMode = semanticMode ? "1" : "0";
-            searchInputEl.dispatchEvent(new Event("input", { bubbles: true }));
+            if (emitInput) {
+                searchInputEl.dispatchEvent(new Event("input", { bubbles: true }));
+            }
         } catch (err) { console.debug?.(err); }
+    };
+
+    const setSemanticEnabled = (enabled) => {
+        const isEnabled = !!enabled;
+        if (!isEnabled) {
+            setSemanticMode(false, { emitInput: true });
+        }
+        semanticBtn.disabled = !isEnabled;
+        semanticBtn.setAttribute("aria-disabled", isEnabled ? "false" : "true");
+        semanticBtn.title = isEnabled
+            ? semanticToggleTitle
+            : t("search.semanticDisabled", "AI semantic search is disabled in settings");
+    };
+
+    semanticBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        setSemanticMode(!semanticMode, { emitInput: true });
     });
 
     semanticBtn.addEventListener("mouseenter", () => {
-        if (!semanticMode) {
+        if (!semanticMode && !semanticBtn.disabled) {
             semanticBtn.style.borderColor = "rgba(0, 188, 212, 0.5)";
             semanticBtn.style.color = "#00BCD4";
         }
     });
     semanticBtn.addEventListener("mouseleave", () => {
-        if (!semanticMode) {
+        if (!semanticMode && !semanticBtn.disabled) {
             semanticBtn.style.borderColor = "rgba(0, 188, 212, 0.25)";
             semanticBtn.style.color = "rgba(0, 188, 212, 0.5)";
         }
@@ -143,6 +162,7 @@ export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFol
     semanticAnchor.appendChild(semanticBtn);
 
     const similarBtn = createIconButton("pi-clone", t("search.findSimilar", "Find Similar"));
+    similarBtn.classList.add("mjr-ai-control");
 
     const filterAnchor = document.createElement("div");
     filterAnchor.className = "mjr-popover-anchor";
@@ -176,5 +196,7 @@ export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFol
     searchTools.appendChild(pinnedFoldersAnchor);
     searchSection.appendChild(searchTools);
 
-    return { searchSection, searchInputEl, similarBtn };
+    setSemanticMode(false);
+
+    return { searchSection, searchInputEl, similarBtn, semanticBtn, setSemanticEnabled };
 }

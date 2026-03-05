@@ -1171,15 +1171,49 @@ class VectorService:
             import numpy as np  # noqa: F811
 
             model = await self._ensure_model()
-            vecs = await asyncio.to_thread(
-                lambda: _encode_quiet(
-                    model,
-                    cast(Any, frames),
-                    convert_to_numpy=True,
-                    batch_size=min(len(frames), VECTOR_BATCH_SIZE),
-                    show_progress_bar=False,
+
+            def _coerce_first_vector(payload: Any) -> list[float]:
+                try:
+                    if isinstance(payload, Sequence) and not isinstance(payload, (str, bytes, bytearray)):
+                        if len(payload) > 0:
+                            first = payload[0]
+                            if isinstance(first, Sequence) and not isinstance(first, (str, bytes, bytearray)):
+                                return _normalise_vector(first)
+                    return _normalise_vector(payload)
+                except Exception:
+                    return _normalise_vector(payload)
+
+            try:
+                vecs = await asyncio.to_thread(
+                    lambda: _encode_quiet(
+                        model,
+                        cast(Any, frames),
+                        convert_to_numpy=True,
+                        batch_size=min(len(frames), VECTOR_BATCH_SIZE),
+                        show_progress_bar=False,
+                    )
                 )
-            )
+            except Exception as batch_exc:
+                # Some model/pipeline combos fail on batched PIL frames
+                # (e.g. "'Image' object is not subscriptable"). Retry one frame at a time.
+                logger.debug(
+                    "Video batch embedding failed for %s, retrying frame-by-frame: %s",
+                    path.name,
+                    batch_exc,
+                )
+                vecs = []
+                for frame in frames:
+                    encoded = await asyncio.to_thread(
+                        lambda fr=frame: _encode_quiet(
+                            model,
+                            cast(Any, [fr]),
+                            convert_to_numpy=True,
+                            batch_size=1,
+                            show_progress_bar=False,
+                        )
+                    )
+                    vecs.append(_coerce_first_vector(encoded))
+
             mean_vec = np.mean(vecs, axis=0)
             self._clear_error()
             return Result.Ok(_normalise_vector(mean_vec))
@@ -1398,15 +1432,15 @@ class VectorService:
                 try:
                     if verbose:
                         try:
-                            self._prompt_processor = _load_prompt_processor(use_fast=False)
+                            self._prompt_processor = _load_prompt_processor(use_fast=None)
                         except TypeError as exc:
                             msg = str(exc or "")
                             if "os.PathLike" in msg or "NoneType" in msg:
-                                logger.warning(
-                                    "Florence processor load retry without use_fast due to tokenizer path issue: %s",
+                                logger.debug(
+                                    "Florence processor auto-detect failed, retrying with use_fast=False: %s",
                                     exc,
                                 )
-                                self._prompt_processor = _load_prompt_processor(use_fast=None)
+                                self._prompt_processor = _load_prompt_processor(use_fast=False)
                             else:
                                 raise
                         self._prompt_model = _load_prompt_model_with_compat()
@@ -1417,15 +1451,15 @@ class VectorService:
                                 message=r".*huggingface_hub.*cache-system uses symlinks.*",
                             )
                             try:
-                                self._prompt_processor = _load_prompt_processor(use_fast=False)
+                                self._prompt_processor = _load_prompt_processor(use_fast=None)
                             except TypeError as exc:
                                 msg = str(exc or "")
                                 if "os.PathLike" in msg or "NoneType" in msg:
-                                    logger.warning(
-                                        "Florence processor load retry without use_fast due to tokenizer path issue: %s",
+                                    logger.debug(
+                                        "Florence processor auto-detect failed, retrying with use_fast=False: %s",
                                         exc,
                                     )
-                                    self._prompt_processor = _load_prompt_processor(use_fast=None)
+                                    self._prompt_processor = _load_prompt_processor(use_fast=False)
                                 else:
                                     raise
                             self._prompt_model = _load_prompt_model_with_compat()

@@ -161,7 +161,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
 
     headerActions.appendChild(customPopover);
 
-    const { searchSection, searchInputEl, similarBtn } = createSearchView({
+    const { searchSection, searchInputEl, similarBtn, setSemanticEnabled } = createSearchView({
         filterBtn,
         sortBtn,
         collectionsBtn,
@@ -193,7 +193,12 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
 
     container.tabIndex = -1;
 
-    const statusSection = createStatusIndicator();
+    const statusSection = createStatusIndicator({
+        getScanContext: () => ({
+            scope: state.scope,
+            customRootId: state.customRootId
+        })
+    });
     const statusDot = statusSection.querySelector("#mjr-status-dot");
     const statusText = statusSection.querySelector("#mjr-status-text");
     const capabilitiesSection = statusSection.querySelector("#mjr-status-capabilities");
@@ -280,6 +285,31 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
 
     const settings = loadMajoorSettings();
     const sidebar = createSidebar(settings.sidebar?.position || "right");
+    const similarEnabledTitle = t("search.findSimilar", "Find Similar");
+    const similarDisabledTitle = t("search.similarDisabled", "AI features are disabled in settings");
+
+    const isAiEnabled = () => {
+        try {
+            const s = loadMajoorSettings();
+            return !!(s?.ai?.vectorSearchEnabled ?? true);
+        } catch {
+            return true;
+        }
+    };
+
+    const applyAiUiState = (enabled) => {
+        const aiEnabled = !!enabled;
+        try {
+            container.classList.toggle("mjr-ai-disabled", !aiEnabled);
+        } catch (e) { console.debug?.(e); }
+        try {
+            similarBtn.disabled = !aiEnabled;
+            similarBtn.title = aiEnabled ? similarEnabledTitle : similarDisabledTitle;
+        } catch (e) { console.debug?.(e); }
+        try {
+            setSemanticEnabled?.(aiEnabled);
+        } catch (e) { console.debug?.(e); }
+    };
 
     let _sidebarPosition = "right";
     const applySidebarPosition = (nextPosition) => {
@@ -374,10 +404,15 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             || changedKey.startsWith("search.")
             || changedKey.startsWith("rtHydrate.")
             || changedKey.startsWith("workflowMinimap.");
-        const shouldRefreshSidebar = isInitialSync || changedKey === "" || changedKey.startsWith("sidebar.");
+        const shouldRefreshSidebar =
+            isInitialSync
+            || changedKey === ""
+            || changedKey.startsWith("sidebar.")
+            || changedKey.startsWith("ai.");
         const shouldApplyWatcher = changedKey === "" || changedKey.startsWith("watcher.");
         try {
             const s = loadMajoorSettings();
+            const aiEnabled = !!(s?.ai?.vectorSearchEnabled ?? true);
             const hover = String(s?.ui?.cardHoverColor || "").trim();
             const selected = String(s?.ui?.cardSelectionColor || "").trim();
             const ratingColor = String(s?.ui?.ratingColor || "").trim();
@@ -397,6 +432,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
 
             // 1. Sidebar position
             applySidebarPosition(s.sidebar?.position || "right");
+            applyAiUiState(aiEnabled);
 
             // 2. Grid visuals (badges, details, sizes)
             // Refresh only when a relevant setting changed to avoid reload storms.
@@ -685,6 +721,10 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
 
     similarBtn?.addEventListener("click", async (e) => {
         e.stopPropagation();
+        if (!isAiEnabled()) {
+            comfyToast(similarDisabledTitle, "info", 2200);
+            return;
+        }
         try {
             popovers.close(customPopover);
             popovers.close(filterPopover);
@@ -763,6 +803,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         collectionsMenu,
         collectionsPopover,
         popovers,
+        isAiEnabled,
         reloadGrid: gridController.reloadGrid,
         onChanged: () => {
             notifyContextChanged();

@@ -599,6 +599,10 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         if err:
             return _json_response(err)
         services_dict = _services_dict(services)
+        if not is_vector_search_enabled():
+            return _json_response(
+                Result.Err("SERVICE_UNAVAILABLE", "Vector search is not enabled.")
+            )
 
         try:
             asset_id = int(request.match_info["asset_id"])
@@ -611,7 +615,7 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         if db is None:
             return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Database service unavailable"))
         row = await db.aquery(
-            "SELECT auto_tags FROM asset_embeddings WHERE asset_id = ?", (asset_id,)
+            "SELECT auto_tags FROM vec.asset_embeddings WHERE asset_id = ?", (asset_id,)
         )
         if not row.ok or not row.data:
             return _json_response(Result.Ok([]))
@@ -662,7 +666,7 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
 
         rows = await db.aquery(
             "SELECT ae.asset_id, ae.vector, ae.auto_tags "
-            "FROM asset_embeddings ae WHERE ae.vector IS NOT NULL"
+            "FROM vec.asset_embeddings ae WHERE ae.vector IS NOT NULL"
         )
         if not rows.ok or not rows.data or len(rows.data) < k:
             return _json_response(

@@ -80,3 +80,10 @@ def test_diagnose_batch_failure_generic_error() -> None:
     fp, reason = sd.diagnose_batch_failure(_Scanner(), prepared, exc)
     assert fp == "d.png"
     assert "some other error" in reason
+
+
+def test_append_batch_context_includes_batch_size_and_duplicate() -> None:
+    prepared = [{"filepath": "x.png"}, {"filepath": "x.png"}]
+    out = sd.append_batch_context("boom", prepared)
+    assert "prepared=2" in out
+    assert "batch_duplicate=" in out

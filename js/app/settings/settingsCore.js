@@ -52,6 +52,9 @@ export const DEFAULT_SETTINGS = {
     autoScan: {
         onStartup: APP_DEFAULTS.AUTO_SCAN_ON_STARTUP,
     },
+    scan: {
+        fastMode: true,
+    },
     watcher: {
         enabled: true,
         debounceMs: APP_DEFAULTS.WATCHER_DEBOUNCE_MS,
@@ -174,6 +177,7 @@ export const loadMajoorSettings = () => {
             "infiniteScroll",
             "siblings",
             "autoScan",
+            "scan",
             "watcher",
             "status",
             "viewer",

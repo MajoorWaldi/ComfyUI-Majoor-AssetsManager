@@ -630,7 +630,7 @@ class IndexSearcher:
                 NULL as file_birth_time
             FROM assets a
             LEFT JOIN asset_metadata m ON a.id = m.asset_id
-            LEFT JOIN asset_embeddings ae ON a.id = ae.asset_id
+            LEFT JOIN vec.asset_embeddings ae ON a.id = ae.asset_id
             WHERE 1=1
             """
         ]
@@ -735,7 +735,7 @@ class IndexSearcher:
             FROM best
             JOIN assets a ON best.asset_id = a.id
             LEFT JOIN asset_metadata m ON a.id = m.asset_id
-            LEFT JOIN asset_embeddings ae ON a.id = ae.asset_id
+            LEFT JOIN vec.asset_embeddings ae ON a.id = ae.asset_id
             WHERE 1=1
         """
 
@@ -798,7 +798,7 @@ class IndexSearcher:
                 NULL as file_birth_time
             FROM assets a
             LEFT JOIN asset_metadata m ON a.id = m.asset_id
-            LEFT JOIN asset_embeddings ae ON a.id = ae.asset_id
+            LEFT JOIN vec.asset_embeddings ae ON a.id = ae.asset_id
             WHERE {roots_clause}
             """
         ]
@@ -880,7 +880,7 @@ class IndexSearcher:
             FROM best
             JOIN assets a ON best.asset_id = a.id
             LEFT JOIN asset_metadata m ON a.id = m.asset_id
-            LEFT JOIN asset_embeddings ae ON a.id = ae.asset_id
+            LEFT JOIN vec.asset_embeddings ae ON a.id = ae.asset_id
             WHERE {roots_clause}
             """
         ]
@@ -1161,7 +1161,7 @@ class IndexSearcher:
                 COALESCE(m.metadata_raw, '{}') AS metadata_raw
             FROM assets a
             LEFT JOIN asset_metadata m ON m.asset_id = a.id
-            LEFT JOIN asset_embeddings ae ON ae.asset_id = a.id
+            LEFT JOIN vec.asset_embeddings ae ON ae.asset_id = a.id
             WHERE a.id = ?
             """,
             (asset_id,),
@@ -1220,7 +1220,7 @@ class IndexSearcher:
                 COALESCE(m.metadata_raw, '{{}}') AS metadata_raw
             FROM assets a
             LEFT JOIN asset_metadata m ON m.asset_id = a.id
-            LEFT JOIN asset_embeddings ae ON ae.asset_id = a.id
+            LEFT JOIN vec.asset_embeddings ae ON ae.asset_id = a.id
             WHERE {IN_CLAUSE}
             """,
             "a.id",
@@ -1318,7 +1318,7 @@ class IndexSearcher:
                 json_extract(m.metadata_raw, '$.workflow_type') as workflow_type
             FROM assets a
             LEFT JOIN asset_metadata m ON a.id = m.asset_id
-            LEFT JOIN asset_embeddings ae ON a.id = ae.asset_id
+            LEFT JOIN vec.asset_embeddings ae ON a.id = ae.asset_id
             WHERE {IN_CLAUSE}
             """,
             "a.filepath",

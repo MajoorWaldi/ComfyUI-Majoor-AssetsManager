@@ -105,7 +105,7 @@ async def query_browser_rows(db: Any, filepaths: list[str]) -> list[dict] | None
                 END AS has_ai_info
             FROM assets a
             LEFT JOIN asset_metadata m ON m.asset_id = a.id
-            LEFT JOIN asset_embeddings e ON e.asset_id = a.id
+            LEFT JOIN vec.asset_embeddings e ON e.asset_id = a.id
             WHERE {IN_CLAUSE}
             """,
             "a.filepath",

@@ -17,6 +17,7 @@ from .config import (
     FFPROBE_BIN,
     FFPROBE_TIMEOUT,
     INDEX_DB,
+    VECTORS_DB,
     is_vector_search_enabled,
     WATCHER_ENABLED,
     initialize_directories,
@@ -40,7 +41,7 @@ def _resolve_db_path(db_path: str | None) -> str:
 def _init_db_or_error(db_path: str) -> Result[Sqlite]:
     logger.info(f"Initializing database: {db_path}")
     try:
-        return Result.Ok(Sqlite(db_path, max_connections=DB_MAX_CONNECTIONS, timeout=DB_TIMEOUT))
+        return Result.Ok(Sqlite(db_path, max_connections=DB_MAX_CONNECTIONS, timeout=DB_TIMEOUT, attach={"vec": VECTORS_DB}))
     except Exception as exc:
         logger.error("Failed to initialize database: %s", exc)
         return Result.Err("DB_ERROR", f"Failed to initialize database: {exc}")

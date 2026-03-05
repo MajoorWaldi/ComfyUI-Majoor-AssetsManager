@@ -23,7 +23,7 @@ from ...shared import Result, get_logger
 
 from ..core import _json_response, _require_services
 from ..core.security import _check_rate_limit
-from .vector_search import _hydrate_vector_results
+from .vector_search import _hydrate_vector_results, _require_vector_services
 
 logger = get_logger(__name__)
 
@@ -256,17 +256,37 @@ async def _run_fts_search(
         where_sql = " AND ".join(where) if where else "1=1"
 
         if clean_q:
-            # Escape FTS special chars; wrap in quotes for phrase matching fallback
+            # Blend classic FTS with AI textual hints so short visual queries
+            # (e.g. "green") can still match enhanced captions / auto-tags.
             safe_q = clean_q.replace('"', '""')
+            like_q = f"%{clean_q.lower()}%"
             query = (
-                f"SELECT a.id AS asset_id, bm25(assets_fts) AS _rank "
-                f"FROM assets_fts "
-                f"JOIN assets a ON assets_fts.rowid = a.id "
+                f"WITH candidates AS ( "
+                f"    SELECT a.id AS asset_id, bm25(assets_fts) AS _rank "
+                f"    FROM assets_fts "
+                f"    JOIN assets a ON assets_fts.rowid = a.id "
+                f"    WHERE assets_fts MATCH ? "
+                f"    UNION ALL "
+                f"    SELECT a.id AS asset_id, bm25(asset_metadata_fts) AS _rank "
+                f"    FROM asset_metadata_fts "
+                f"    JOIN assets a ON asset_metadata_fts.rowid = a.id "
+                f"    WHERE asset_metadata_fts MATCH ? "
+                f"    UNION ALL "
+                f"    SELECT a.id AS asset_id, 25.0 AS _rank "
+                f"    FROM assets a "
+                f"    LEFT JOIN vec.asset_embeddings ae ON ae.asset_id = a.id "
+                f"    WHERE LOWER(COALESCE(a.enhanced_caption, '')) LIKE ? "
+                f"       OR LOWER(COALESCE(ae.auto_tags, '')) LIKE ? "
+                f") "
+                f"SELECT c.asset_id, MIN(c._rank) AS _rank "
+                f"FROM candidates c "
+                f"JOIN assets a ON a.id = c.asset_id "
                 f"LEFT JOIN asset_metadata m ON a.id = m.asset_id "
-                f"WHERE assets_fts MATCH ? AND {where_sql} "
+                f"WHERE {where_sql} "
+                f"GROUP BY c.asset_id "
                 f"ORDER BY _rank LIMIT ?"
             )
-            rows = await db.aquery(query, (safe_q, *params, top_k))
+            rows = await db.aquery(query, (safe_q, safe_q, like_q, like_q, *params, top_k))
         else:
             query = (
                 f"SELECT a.id AS asset_id, 0.0 AS _rank "
@@ -334,6 +354,15 @@ def register_hybrid_search_routes(routes: web.RouteTableDef) -> None:
 
         db = services_dict.get("db")
         searcher = services_dict.get("vector_searcher")
+        if searcher is None:
+            # Lazy-init vector services like /vector/search does.
+            # If unavailable/disabled, keep hybrid route operational in FTS-only mode.
+            try:
+                searcher, _verr = _require_vector_services(services_dict)
+                if _verr is not None:
+                    searcher = None
+            except Exception:
+                searcher = None
 
         # Run FTS and semantic in parallel
         fts_coro = _run_fts_search(db, clean_q, inline_filters, scope, custom_root_id, top_k * 2)

@@ -25,12 +25,14 @@ from mjr_am_backend.adapters.db.schema import rebuild_fts
 from mjr_am_backend.config import (
     COLLECTIONS_DIR_PATH,
     INDEX_DIR_PATH,
+    SCAN_DEFAULT_BACKGROUND_METADATA,
+    SCAN_DEFAULT_FAST,
     TO_THREAD_TIMEOUT_S,
 )
 from mjr_am_backend.custom_roots import resolve_custom_root
 from mjr_am_backend.features.index.metadata_helpers import MetadataHelpers
 from mjr_am_backend.shared import Result, get_logger, sanitize_error_message
-from mjr_am_backend.utils import parse_bool
+from mjr_am_backend.utils import parse_bool, sanitize_for_json
 
 from ..core import (
     _check_rate_limit,
@@ -48,7 +50,13 @@ from ..core import (
     _safe_rel_path,
     safe_error_message,
 )
-from .db_maintenance import is_db_maintenance_active, set_db_maintenance_active, _restart_watcher_if_needed
+from .db_maintenance import (
+    is_db_maintenance_active,
+    is_vector_backfill_active,
+    request_vector_backfill_priority_window,
+    set_db_maintenance_active,
+    _restart_watcher_if_needed,
+)
 from .scan_staging import (
     StageDestination,
     _resolve_stage_destination,
@@ -122,6 +130,22 @@ def _scan_enqueued_from_kickoff(result: Any) -> bool:
     if result is None:
         return True
     return bool(result)
+
+
+def _scan_fast_enabled(body: dict[str, Any]) -> bool:
+    mode = str(body.get("mode") or "").strip().lower()
+    if mode == "fast" or parse_bool(body.get("manifest_only"), False):
+        return True
+    if "fast" in body:
+        return parse_bool(body.get("fast"), bool(SCAN_DEFAULT_FAST))
+    return bool(SCAN_DEFAULT_FAST)
+
+
+def _scan_background_metadata_enabled(body: dict[str, Any]) -> bool:
+    for key in ("background_metadata", "backgroundMetadata", "enrich_metadata", "enqueue_metadata"):
+        if key in body:
+            return parse_bool(body.get(key), False)
+    return bool(SCAN_DEFAULT_BACKGROUND_METADATA)
 
 
 def _invalidate_vector_searcher(svc: dict | None) -> None:
@@ -261,8 +285,8 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 # Run both output and input scans sequentially.
                 recursive = body.get("recursive", True)
                 incremental = body.get("incremental", True)
-                fast = bool(body.get("fast") or body.get("mode") == "fast" or body.get("manifest_only") is True)
-                background_metadata = bool(body.get("background_metadata") or body.get("enrich_metadata") or body.get("enqueue_metadata"))
+                fast = _scan_fast_enabled(body)
+                background_metadata = _scan_background_metadata_enabled(body)
                 if async_scan:
                     output_enqueued = _scan_enqueued_from_kickoff(await _kickoff_background_scan(
                         str(Path(output_root).resolve()),
@@ -406,8 +430,8 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
 
         recursive = body.get("recursive", True)
         incremental = body.get("incremental", True)
-        fast = bool(body.get("fast") or body.get("mode") == "fast" or body.get("manifest_only") is True)
-        background_metadata = bool(body.get("background_metadata") or body.get("enrich_metadata") or body.get("enqueue_metadata"))
+        fast = _scan_fast_enabled(body)
+        background_metadata = _scan_background_metadata_enabled(body)
 
         if async_scan:
             queued = _scan_enqueued_from_kickoff(await _kickoff_background_scan(
@@ -487,8 +511,6 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         svc, error_result = await _require_services()
         if error_result:
             return _json_response(error_result)
-        if is_db_maintenance_active():
-            return _json_response(Result.Err("DB_MAINTENANCE", "Database maintenance in progress. Please wait."))
 
         csrf = _csrf_error(request)
         if csrf:
@@ -507,6 +529,23 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         if not isinstance(files, list) or not files:
             result = Result.Err("INVALID_INPUT", "Missing or invalid 'files' list")
             return _json_response(result)
+
+        generation_origins = {"generation", "executed", "comfy", "comfyui"}
+        is_generation_origin = origin in generation_origins
+        if is_db_maintenance_active():
+            # Allow generation-origin index requests to preempt an active vector backfill:
+            # pause backfill briefly, process generated asset(s), then resume backfill.
+            if is_generation_origin and is_vector_backfill_active():
+                try:
+                    pause_seconds = max(8.0, min(90.0, 6.0 + (2.0 * float(len(files)))))
+                    request_vector_backfill_priority_window(
+                        pause_seconds,
+                        reason="generation_index",
+                    )
+                except Exception:
+                    pass
+            else:
+                return _json_response(Result.Err("DB_MAINTENANCE", "Database maintenance in progress. Please wait."))
 
         output_root = await _runtime_output_root(svc)
         incremental = body.get("incremental", True)
@@ -703,14 +742,19 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         # IN-clause query.  BUG-09: metadata_raw is fetched once in the batch query and reused
         # directly — no per-asset re-read (was N+1 before).
         import json
-        gen_time_lookup: dict[tuple[str, str, str], int] = {}
+        gen_time_lookup: dict[tuple[str, str, str, str], int] = {}
         for item in files:
             gen_time = item.get("generation_time_ms") or item.get("duration_ms")
             if gen_time and isinstance(gen_time, (int, float)) and gen_time > 0:
                 fname = item.get("filename")
                 if not fname:
                     continue
-                key = (str(fname), str(item.get("subfolder") or ""), (item.get("type") or "output").lower())
+                key = (
+                    str(fname),
+                    str(item.get("subfolder") or ""),
+                    str(item.get("type") or "output").lower(),
+                    str(item.get("root_id") or item.get("custom_root_id") or ""),
+                )
                 gen_time_lookup.setdefault(key, int(gen_time))
 
         if gen_time_lookup:
@@ -720,22 +764,27 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 # Chunk to ≤500 to stay well within SQLite's SQLITE_MAX_VARIABLE_NUMBER
                 # and avoid O(n) SQL compile time for large batches (NL-1).
                 _MAX_IN_BATCH = 500
-                fnames = fnames[:_MAX_IN_BATCH]
-                placeholders = ",".join("?" * len(fnames))
-                # Single batch query — no temp table, no connection-affinity risk.
-                q_res = await db_adapter.aquery(
-                    f"SELECT a.id, a.filename, a.subfolder, a.source, am.metadata_raw "
-                    f"FROM assets a LEFT JOIN asset_metadata am ON a.id = am.asset_id "
-                    f"WHERE a.filename IN ({placeholders})",
-                    tuple(fnames),
-                )
                 gen_time_by_id: dict[int, int] = {}
-                if q_res.ok and q_res.data:
+                for start in range(0, len(fnames), _MAX_IN_BATCH):
+                    chunk = fnames[start:start + _MAX_IN_BATCH]
+                    if not chunk:
+                        continue
+                    placeholders = ",".join("?" * len(chunk))
+                    # Single batch query per chunk - no temp table, no connection-affinity risk.
+                    q_res = await db_adapter.aquery(
+                        f"SELECT a.id, a.filename, a.subfolder, a.source, a.root_id, am.metadata_raw "
+                        f"FROM assets a LEFT JOIN asset_metadata am ON a.id = am.asset_id "
+                        f"WHERE a.filename IN ({placeholders})",
+                        tuple(chunk),
+                    )
+                    if not (q_res.ok and q_res.data):
+                        continue
                     for row in q_res.data:
                         key = (
                             str(row.get("filename") or ""),
                             str(row.get("subfolder") or ""),
-                            str(row.get("source") or "output"),
+                            str(row.get("source") or "output").lower(),
+                            str(row.get("root_id") or ""),
                         )
                         gt = gen_time_lookup.get(key)
                         if gt is None:
@@ -761,14 +810,39 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                             gen_time_by_id[int(asset_id)] = gt
                         except Exception:
                             logger.debug("Failed to upsert generation time for asset %s", asset_id)
-
                 if gen_time_by_id:
                     try:
                         from ..registry import PromptServer
-                        for _aid, _gt in gen_time_by_id.items():
+                        payloads_by_id: dict[int, dict[str, Any]] = {}
+                        index_service = svc.get("index") if isinstance(svc, dict) else None
+                        if index_service and hasattr(index_service, "get_assets_batch"):
+                            try:
+                                batch_res = await index_service.get_assets_batch(list(gen_time_by_id.keys()))
+                                if batch_res.ok and isinstance(batch_res.data, list):
+                                    for item in batch_res.data:
+                                        if not isinstance(item, dict):
+                                            continue
+                                        try:
+                                            item_id = int(item.get("id") or 0)
+                                        except Exception:
+                                            item_id = 0
+                                        if not item_id or item_id not in gen_time_by_id:
+                                            continue
+                                        payload = dict(item)
+                                        payload["generation_time_ms"] = gen_time_by_id[item_id]
+                                        payloads_by_id[item_id] = payload
+                            except Exception:
+                                payloads_by_id = {}
+
+                        # Emit only renderable/full payloads to avoid creating "ghost" cards
+                        # in the grid from id-only updates.
+                        for item_id in list(gen_time_by_id.keys()):
+                            payload = payloads_by_id.get(int(item_id))
+                            if not isinstance(payload, dict):
+                                continue
                             PromptServer.instance.send_sync(
                                 "mjr-asset-updated",
-                                {"id": _aid, "generation_time_ms": _gt},
+                                sanitize_for_json(payload),
                             )
                     except Exception:
                         pass

@@ -377,7 +377,7 @@ async def test_vector_generate_caption_route_success(monkeypatch) -> None:
 async def test_vector_auto_tags_route_returns_tags(monkeypatch) -> None:
     class _DB:
         async def aquery(self, sql: str, params=()):
-            assert "SELECT auto_tags FROM asset_embeddings" in sql
+            assert "SELECT auto_tags FROM vec.asset_embeddings" in sql
             assert params == (42,)
             return Result.Ok([{"auto_tags": '["portrait", "anime"]'}])
 
@@ -399,6 +399,29 @@ async def test_vector_auto_tags_route_returns_tags(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_vector_auto_tags_route_disabled_when_vector_off(monkeypatch) -> None:
+    class _DB:
+        async def aquery(self, _sql: str, _params=()):
+            return Result.Ok([])
+
+    async def _require_services():
+        return {"db": _DB(), "vector_searcher": object()}, None
+
+    monkeypatch.setattr(vector_search, "_require_services", _require_services)
+    monkeypatch.setattr(vector_search, "is_vector_search_enabled", lambda: False)
+
+    app = _build_vector_app()
+    req = make_mocked_request("GET", "/mjr/am/vector/auto-tags/42", app=app)
+    match = await app.router.resolve(req)
+    req._match_info = match
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+
+    assert body.get("ok") is False
+    assert body.get("code") == "SERVICE_UNAVAILABLE"
+
+
+@pytest.mark.asyncio
 async def test_vector_suggest_collections_route_returns_clusters(monkeypatch) -> None:
     from mjr_am_backend.features.index.vector_service import vector_to_blob
 
@@ -408,7 +431,7 @@ async def test_vector_suggest_collections_route_returns_clusters(monkeypatch) ->
 
     class _DB:
         async def aquery(self, sql: str, params=()):
-            if "FROM asset_embeddings ae" in sql:
+            if "FROM vec.asset_embeddings ae" in sql:
                 return Result.Ok([
                     {"asset_id": 1, "vector": vec_a, "auto_tags": '["portrait"]'},
                     {"asset_id": 2, "vector": vec_b, "auto_tags": '["portrait"]'},

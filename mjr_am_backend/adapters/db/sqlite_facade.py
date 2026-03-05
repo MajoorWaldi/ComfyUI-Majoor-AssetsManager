@@ -441,8 +441,9 @@ class Sqlite:
     Synchronous API, async execution on a dedicated loop thread.
     """
 
-    def __init__(self, db_path: str, max_connections: int | None = None, timeout: float = 30.0):
+    def __init__(self, db_path: str, max_connections: int | None = None, timeout: float = 30.0, *, attach: dict[str, str] | None = None):
         self.db_path = Path(db_path)
+        self._attach_dbs: dict[str, str] = dict(attach) if attach else {}
         user_config = self._load_user_db_config()
         max_conn = (
             int(max_connections)
@@ -788,6 +789,10 @@ class Sqlite:
         conn = await aiosqlite.connect(str(self.db_path), timeout=self._timeout, isolation_level=None)
         conn.row_factory = sqlite3.Row
         await self._apply_connection_pragmas(conn)
+        # Attach secondary databases (e.g. vectors.sqlite as "vec").
+        for schema_name, attach_path in self._attach_dbs.items():
+            Path(attach_path).parent.mkdir(parents=True, exist_ok=True)
+            await conn.execute(f"ATTACH DATABASE ? AS [{schema_name}]", (attach_path,))
         return conn
 
     async def _acquire_connection_async(self) -> aiosqlite.Connection:

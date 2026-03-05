@@ -28,11 +28,28 @@ def diagnose_unique_filepath_error(prepared: list[dict[str, Any]]) -> tuple[str 
     return None, "UNIQUE constraint on assets.filepath"
 
 
+def append_batch_context(reason: str, prepared: list[dict[str, Any]]) -> str:
+    total = len(prepared or [])
+    if total <= 0:
+        return str(reason or "")
+
+    ctx = [f"prepared={total}"]
+    duplicate = first_duplicate_filepath_in_batch(prepared)
+    if duplicate:
+        ctx.append(f"batch_duplicate={duplicate}")
+    else:
+        first_fp = first_prepared_filepath(prepared)
+        if first_fp:
+            ctx.append(f"first_filepath={first_fp}")
+    return f"{reason} [{' '.join(ctx)}]"
+
+
 def diagnose_batch_failure(scanner: Any, prepared: list[dict[str, Any]], batch_error: Exception) -> tuple[str | None, str]:
     message, message_lower = batch_error_messages(batch_error)
     if is_unique_filepath_error(message_lower):
         diagnosed = diagnose_unique_filepath_error(prepared)
         if diagnosed is not None:
-            return diagnosed
+            fp, reason = diagnosed
+            return fp, append_batch_context(reason, prepared)
     fp = first_prepared_filepath(prepared)
-    return fp, (message or type(batch_error).__name__)
+    return fp, append_batch_context((message or type(batch_error).__name__), prepared)

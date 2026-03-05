@@ -5,12 +5,14 @@ These functions keep scan orchestration logic separate while preserving the
 existing IndexScanner behavior through thin method wrappers.
 """
 import asyncio
+import logging
 import threading
+import time
 from pathlib import Path
 from queue import Queue
 from typing import Any
 
-from ...config import SCAN_BATCH_XL
+from ...config import SCAN_BATCH_XL, SCAN_LOG_PROGRESS_EVERY, SCAN_LOG_PROGRESS_MIN_SECONDS
 from .fs_walker import _FS_WALK_EXECUTOR
 from .index_batching import existing_map_for_batch, index_batch
 from .scan_storage_ops import get_journal_entries
@@ -80,6 +82,10 @@ async def consume_scan_queue(
 ) -> None:
     batch: list[Path] = []
     done = False
+    progress_every = max(0, int(SCAN_LOG_PROGRESS_EVERY))
+    progress_min_seconds = max(0.0, float(SCAN_LOG_PROGRESS_MIN_SECONDS))
+    last_progress_scanned = int(stats.get("scanned") or 0)
+    last_progress_ts = time.monotonic()
     try:
         while not done:
             target = stream_batch_target(stats["scanned"])
@@ -93,6 +99,28 @@ async def consume_scan_queue(
                     break
                 batch.append(file_path)
                 stats["scanned"] += 1
+                if progress_every > 0:
+                    scanned_count = int(stats.get("scanned") or 0)
+                    if scanned_count - last_progress_scanned >= progress_every:
+                        now = time.monotonic()
+                        if (now - last_progress_ts) >= progress_min_seconds:
+                            try:
+                                log_event = getattr(scanner, "_log_scan_event", None)
+                                if callable(log_event):
+                                    log_event(
+                                        logging.INFO,
+                                        "Directory scan progress",
+                                        scanned=scanned_count,
+                                        added=int(stats.get("added") or 0),
+                                        updated=int(stats.get("updated") or 0),
+                                        skipped=int(stats.get("skipped") or 0),
+                                        errors=int(stats.get("errors") or 0),
+                                        queue_batch_size=len(batch),
+                                    )
+                            except Exception:
+                                pass
+                            last_progress_scanned = scanned_count
+                            last_progress_ts = now
                 if len(batch) >= stream_batch_target(stats["scanned"]):
                     await process_scan_batch(
                         scanner,

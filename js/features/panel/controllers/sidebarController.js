@@ -1,5 +1,5 @@
 ﻿import { applyAssetStatusDotState, createWorkflowDot } from "../../../components/Badges.js";
-import { post, getAssetMetadata } from "../../../api/client.js";
+import { post, getAssetMetadata, vectorIndexAsset } from "../../../api/client.js";
 import { ENDPOINTS } from "../../../api/endpoints.js";
 import { pickRootId } from "../../../utils/ids.js";
 import { safeClosest } from "../../../utils/dom.js";
@@ -8,6 +8,7 @@ import { t } from "../../../app/i18n.js";
 
 const RESCAN_FLAG = "_mjrRescanning";
 const RESCAN_TTL_MS = 1500;
+const _isPositiveIntId = (value) => /^\d+$/.test(String(value ?? "").trim());
 
 async function rescanSingleAsset({ card, asset, sidebar, onAssetUpdated }) {
     if (!card || !asset) return;
@@ -30,7 +31,7 @@ async function rescanSingleAsset({ card, asset, sidebar, onAssetUpdated }) {
         }
     } catch (e) { console.debug?.(e); }
 
-    try { comfyToast("Rescanning file...", "info", 2000); } catch (e) { console.debug?.(e); }
+    try { comfyToast("Rescanning file + updating AI index...", "info", 2200); } catch (e) { console.debug?.(e); }
 
     const fileEntry = {
         filename: asset.filename,
@@ -41,6 +42,8 @@ async function rescanSingleAsset({ card, asset, sidebar, onAssetUpdated }) {
 
     let updated = null;
     let indexOk = false;
+    let vectorAttempted = false;
+    let vectorIndexOk = false;
     try {
         const indexRes = await post(ENDPOINTS.INDEX_FILES, { files: [fileEntry], incremental: false });
         indexOk = !!indexRes?.ok;
@@ -48,6 +51,16 @@ async function rescanSingleAsset({ card, asset, sidebar, onAssetUpdated }) {
             applyAssetStatusDotState(dot, "error", "Error: metadata refresh failed", { asset });
             dot.classList.remove("mjr-pulse-animation");
             dot.style.cursor = "";
+        }
+
+        // Keep AI search index synced with manual per-asset rescan from the card dot.
+        // Best-effort: do not fail metadata refresh if vector indexing fails or is unavailable.
+        if (_isPositiveIntId(asset?.id)) {
+            vectorAttempted = true;
+            try {
+                const vectorRes = await vectorIndexAsset(asset.id);
+                vectorIndexOk = !!vectorRes?.ok;
+            } catch (e) { console.debug?.(e); }
         }
 
         if (indexOk && asset.id != null) {
@@ -90,6 +103,14 @@ async function rescanSingleAsset({ card, asset, sidebar, onAssetUpdated }) {
             try { if (dot) dot.style.cursor = ""; } catch (e) { console.debug?.(e); }
         }
     }
+
+    try {
+        if (indexOk && vectorIndexOk) {
+            comfyToast("Metadata + AI vector index updated for this asset.", "success", 2200);
+        } else if (indexOk && vectorAttempted && !vectorIndexOk) {
+            comfyToast("Metadata updated. AI vector index could not be updated.", "warning", 2600);
+        }
+    } catch (e) { console.debug?.(e); }
 
     return updated;
 }
@@ -724,4 +745,3 @@ export function bindSidebarOpen({
     gridContainer._mjrSidebarOpenDispose = dispose;
     return { dispose, toggleDetails: openDetailsForSelection, refreshActiveAsset };
 }
-

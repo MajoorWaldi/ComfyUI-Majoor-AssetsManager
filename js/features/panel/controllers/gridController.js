@@ -1,10 +1,15 @@
-import { vectorSearch, hybridSearch } from "../../../api/client.js";
+import { vectorSearch, hybridSearch, vectorStats } from "../../../api/client.js";
+import { comfyToast } from "../../../app/toast.js";
+import { t } from "../../../app/i18n.js";
+import { loadMajoorSettings } from "../../../app/settings.js";
 
 export function createGridController({ gridContainer, loadAssets, loadAssetsFromList, getCollectionAssets, disposeGrid, getQuery, state }) {
     let _isReloading = false;
     let _pendingReload = false;
     let _lastReloadErrorAt = 0;
+    let _lastAiHintAt = 0;
     const RELOAD_WATCHDOG_MS = 30000;
+    const AI_HINT_COOLDOWN_MS = 15_000;
 
     const runWithWatchdog = async (promiseFactory, timeoutMs = RELOAD_WATCHDOG_MS) => {
         let timer = null;
@@ -32,6 +37,64 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
         } catch { return false; }
     };
 
+    const _isAiEnabled = () => {
+        try {
+            const settings = loadMajoorSettings();
+            return !!(settings?.ai?.vectorSearchEnabled ?? true);
+        } catch {
+            return true;
+        }
+    };
+
+    const _safeErrorText = (value, fallback = "") => {
+        try {
+            if (value && typeof value === "object") {
+                const txt = String(value.error || value.message || fallback || "").trim();
+                return txt;
+            }
+        } catch {
+            // no-op
+        }
+        try {
+            return String(value || fallback || "").trim();
+        } catch {
+            return String(fallback || "").trim();
+        }
+    };
+
+    const _notifyAiSearchDiagnostic = async (reason = "") => {
+        const now = Date.now();
+        if (now - Number(_lastAiHintAt || 0) < AI_HINT_COOLDOWN_MS) return;
+        _lastAiHintAt = now;
+
+        try {
+            const statsRes = await vectorStats();
+            if (statsRes?.ok && statsRes?.data) {
+                const total = Number(statsRes.data?.total || 0) || 0;
+                if (total <= 10) {
+                    comfyToast(
+                        t(
+                            "toast.aiSearchNeedsBackfill",
+                            "AI search index is almost empty ({count} vectors). Run Enrich, then Vector Backfill for existing assets.",
+                            { count: total }
+                        ),
+                        "warn",
+                        6500
+                    );
+                    return;
+                }
+            }
+        } catch {
+            // ignore and continue with generic hint
+        }
+
+        const msg = _safeErrorText(
+            reason,
+            t("toast.aiSearchUnavailable", "AI search is currently unavailable. Falling back to normal search.")
+        );
+        comfyToast(msg, "warn", 5200);
+    };
+
     /**
      * Load assets using hybrid search when in semantic mode, with fallback chain:
      * hybridSearch → vectorSearch (pure semantic) → FTS.
@@ -48,17 +111,33 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
             q = q.replace(/^ai:\s*/i, "").trim();
         }
 
+        const aiEnabled = _isAiEnabled();
+        const semanticMode = aiEnabled && _isSemanticMode();
+        if (!aiEnabled) {
+            const ftsQuery = hasAiPrefix ? (q || "*") : query;
+            return await loadAssets(gridContainer, ftsQuery);
+        }
+
         const wordCount = q.split(/\s+/).filter(Boolean).length;
+        const visualSingleWordKeywords = new Set([
+            "green", "red", "blue", "yellow", "orange", "purple", "pink", "black", "white", "gray", "grey",
+            "vert", "rouge", "bleu", "jaune", "violet", "rose", "noir", "blanc", "gris",
+        ]);
+        const looksVisualSingleWord = wordCount === 1 && visualSingleWordKeywords.has(String(q || "").toLowerCase());
         const looksNaturalLanguage =
             (q.length >= 12 &&
             q.includes(" ") &&
             q !== "*" &&
             !/[a-z]+\s*:/i.test(q)) ||
             hasAiPrefix ||
-            wordCount >= 3;
-        const shouldAutoAiSearch = looksNaturalLanguage && !_isSemanticMode();
+            wordCount >= 3 ||
+            looksVisualSingleWord;
+        const shouldAutoAiSearch = looksNaturalLanguage && !semanticMode;
+        let aiAttempted = false;
+        let aiError = "";
 
         if (shouldAutoAiSearch && q) {
+            aiAttempted = true;
             try {
                 const vecRes = await vectorSearch(q, {
                     topK: 100,
@@ -71,12 +150,17 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
                         reset: true,
                     });
                 }
+                if (vecRes?.ok === false) {
+                    aiError = _safeErrorText(vecRes?.error || vecRes?.message, aiError);
+                }
             } catch (err) {
+                aiError = _safeErrorText(err, aiError);
                 console.debug?.("[Majoor] Automatic AI search failed, falling back to FTS", err);
             }
         }
 
-        if (_isSemanticMode() && q && q !== "*") {
+        if (semanticMode && q && q !== "*") {
+            aiAttempted = true;
             // Try hybrid search first (FTS + semantic via RRF)
             try {
                 const hybRes = await hybridSearch(q, {
@@ -90,7 +174,11 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
                         reset: true,
                     });
                 }
+                if (hybRes?.ok === false) {
+                    aiError = _safeErrorText(hybRes?.error || hybRes?.message, aiError);
+                }
             } catch (err) {
+                aiError = _safeErrorText(err, aiError);
                 console.debug?.("[Majoor] Hybrid search failed, trying pure semantic", err);
             }
             // Fallback to pure vector search
@@ -106,8 +194,12 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
                         reset: true,
                     });
                 }
+                if (vecRes?.ok === false) {
+                    aiError = _safeErrorText(vecRes?.error || vecRes?.message, aiError);
+                }
                 // Empty vector results → fall through to normal FTS search
             } catch (err) {
+                aiError = _safeErrorText(err, aiError);
                 console.debug?.("[Majoor] Semantic search failed, falling back to FTS", err);
             }
         }
@@ -118,6 +210,7 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
             const count = Number(ftsResult?.count || 0) || 0;
             if (count === 0) {
                 try {
+                    aiAttempted = true;
                     const hybRes = await hybridSearch(q, {
                         topK: 100,
                         scope: state.scope || "output",
@@ -129,9 +222,20 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
                             reset: true,
                         });
                     }
+                    if (hybRes?.ok === false) {
+                        aiError = _safeErrorText(hybRes?.error || hybRes?.message, aiError);
+                    }
                 } catch (err) {
+                    aiError = _safeErrorText(err, aiError);
                     console.debug?.("[Majoor] Automatic AI fallback failed", err);
                 }
+            }
+        }
+
+        if (aiAttempted) {
+            const count = Number(ftsResult?.count || 0) || 0;
+            if (count === 0) {
+                void _notifyAiSearchDiagnostic(aiError);
             }
         }
 
@@ -263,3 +367,4 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
 
     return { reloadGrid };
 }
+

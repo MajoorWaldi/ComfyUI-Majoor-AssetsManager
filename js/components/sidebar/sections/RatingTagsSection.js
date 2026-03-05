@@ -1,7 +1,8 @@
 import { createRatingEditor } from "../../RatingEditor.js";
 import { createTagsEditor } from "../../TagsEditor.js";
 import { createSection } from "../utils/dom.js";
-import { vectorGetAutoTags, updateAssetTags } from "../../../api/client.js";
+import { vectorGetAutoTags, vectorIndexAsset, updateAssetTags } from "../../../api/client.js";
+import { loadMajoorSettings } from "../../../app/settings.js";
 
 function _normalizeTag(raw) {
     const value = String(raw || "").trim().toLowerCase();
@@ -53,6 +54,15 @@ function _isVectorDisabledResponse(res) {
         String(res?.code || "").toUpperCase() === "SERVICE_UNAVAILABLE"
         || /vector search is not enabled/i.test(String(res?.error || ""))
     );
+}
+
+function _isAiEnabled() {
+    try {
+        const settings = loadMajoorSettings();
+        return !!(settings?.ai?.vectorSearchEnabled ?? true);
+    } catch {
+        return true;
+    }
 }
 
 function _dedupeTags(tags) {
@@ -144,9 +154,14 @@ export function createRatingTagsSection(asset, onUpdate) {
     section.appendChild(ratingContainer);
     section.appendChild(tagsContainer);
 
+    const aiEnabled = _isAiEnabled();
     const assetId = _coercePositiveInt(asset?.id);
     if (assetId > 0) {
         const aiTagsContainer = document.createElement("div");
+        aiTagsContainer.classList.add("mjr-ai-tags-box");
+        if (!aiEnabled) {
+            aiTagsContainer.classList.add("mjr-ai-disabled-block");
+        }
         aiTagsContainer.style.marginTop = "12px";
 
         const aiHeader = document.createElement("div");
@@ -174,6 +189,7 @@ export function createRatingTagsSection(asset, onUpdate) {
 
         const refreshBtn = document.createElement("button");
         refreshBtn.type = "button";
+        refreshBtn.classList.add("mjr-ai-control");
         refreshBtn.textContent = "Refresh";
         refreshBtn.style.cssText = `
             border: 1px solid rgba(0,188,212,0.45);
@@ -213,6 +229,7 @@ export function createRatingTagsSection(asset, onUpdate) {
         const createSuggestionChip = (tag) => {
             const chip = document.createElement("button");
             chip.type = "button";
+            chip.classList.add("mjr-ai-control");
             chip.style.cssText = `
                 display: inline-flex;
                 align-items: center;
@@ -227,6 +244,9 @@ export function createRatingTagsSection(asset, onUpdate) {
                 transition: all 0.12s ease;
             `;
             chip.title = `Accept AI suggestion: ${tag}`;
+            if (!aiEnabled) {
+                chip.disabled = true;
+            }
 
             const labelSpan = document.createElement("span");
             labelSpan.textContent = tag;
@@ -286,12 +306,49 @@ export function createRatingTagsSection(asset, onUpdate) {
         };
 
         const setLoadingState = (loading) => {
-            refreshBtn.disabled = !!loading;
-            refreshBtn.style.opacity = loading ? "0.65" : "1";
-            refreshBtn.style.cursor = loading ? "default" : "pointer";
+            refreshBtn.disabled = !aiEnabled || !!loading;
+            refreshBtn.style.opacity = !aiEnabled || loading ? "0.65" : "1";
+            refreshBtn.style.cursor = !aiEnabled || loading ? "default" : "pointer";
+        };
+
+        let _autoTagBootstrapAttempted = false;
+
+        const _tryGenerateAndReloadSuggestions = async () => {
+            if (!aiEnabled || assetId <= 0) return null;
+            try {
+                statusHint.style.display = "block";
+                statusHint.textContent = "Generating AI tag suggestions...";
+                const indexRes = await vectorIndexAsset(assetId);
+                if (_isVectorDisabledResponse(indexRes)) {
+                    aiTagsChips.replaceChildren();
+                    statusHint.textContent = "AI tag suggestions are disabled (vector search is off).";
+                    statusHint.style.display = "block";
+                    return [];
+                }
+                if (!indexRes?.ok) return null;
+                const retryRes = await vectorGetAutoTags(assetId);
+                if (_isVectorDisabledResponse(retryRes)) {
+                    aiTagsChips.replaceChildren();
+                    statusHint.textContent = "AI tag suggestions are disabled (vector search is off).";
+                    statusHint.style.display = "block";
+                    return [];
+                }
+                if (!retryRes?.ok) return null;
+                return _coerceTags(retryRes?.data);
+            } catch (e) {
+                console.debug?.(e);
+                return null;
+            }
         };
 
         const loadSuggestions = async ({ forceNetwork = false } = {}) => {
+            if (!aiEnabled) {
+                setLoadingState(false);
+                aiTagsChips.replaceChildren();
+                statusHint.style.display = "block";
+                statusHint.textContent = "AI tag suggestions are disabled in settings.";
+                return;
+            }
             setLoadingState(true);
             statusHint.style.display = "block";
             statusHint.textContent = "Loading AI tag suggestions...";
@@ -318,7 +375,17 @@ export function createRatingTagsSection(asset, onUpdate) {
                     return;
                 }
 
-                const suggestions = _coerceTags(res?.data);
+                let suggestions = _coerceTags(res?.data);
+                const shouldTryBootstrap =
+                    !suggestions.length
+                    && (forceNetwork || !_autoTagBootstrapAttempted);
+                if (shouldTryBootstrap) {
+                    _autoTagBootstrapAttempted = true;
+                    const generated = await _tryGenerateAndReloadSuggestions();
+                    if (Array.isArray(generated)) {
+                        suggestions = _coerceTags(generated);
+                    }
+                }
                 asset.auto_tags = suggestions;
                 renderSuggestions(suggestions);
             } catch (e) {
@@ -345,7 +412,13 @@ export function createRatingTagsSection(asset, onUpdate) {
         aiTagsContainer.appendChild(statusHint);
         section.appendChild(aiTagsContainer);
 
-        void loadSuggestions();
+        if (aiEnabled) {
+            void loadSuggestions();
+        } else {
+            setLoadingState(false);
+            statusHint.style.display = "block";
+            statusHint.textContent = "AI tag suggestions are disabled in settings.";
+        }
     }
 
     try {

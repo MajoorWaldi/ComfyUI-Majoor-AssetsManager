@@ -41,6 +41,83 @@ async def test_index_files_rejects_invalid_files_list(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_index_files_generation_allowed_during_vector_backfill(monkeypatch, tmp_path: Path) -> None:
+    out_root = tmp_path / "out"
+    out_root.mkdir()
+    fp = out_root / "new.png"
+    fp.write_bytes(b"x")
+    called = {"priority": 0}
+
+    class _Index:
+        async def index_paths(self, paths, base_dir, incremental, source, root_id):
+            _ = (paths, base_dir, incremental, source, root_id)
+            return Result.Ok({"scanned": 1, "added": 1, "updated": 0, "skipped": 0, "errors": 0})
+
+    async def _require_services():
+        return {"index": _Index(), "db": object()}, None
+
+    async def _read_json(_request):
+        return Result.Ok(
+            {
+                "files": [{"path": str(fp), "type": "output", "filename": "new.png", "subfolder": ""}],
+                "origin": "generation",
+                "incremental": False,
+            }
+        )
+
+    monkeypatch.setattr(scan_mod, "_require_services", _require_services)
+    monkeypatch.setattr(scan_mod, "is_db_maintenance_active", lambda: True)
+    monkeypatch.setattr(scan_mod, "is_vector_backfill_active", lambda: True)
+    monkeypatch.setattr(
+        scan_mod,
+        "request_vector_backfill_priority_window",
+        lambda *args, **kwargs: called.__setitem__("priority", called["priority"] + 1) or 12.0,
+    )
+    monkeypatch.setattr(scan_mod, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(scan_mod, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(scan_mod, "_read_json", _read_json)
+    monkeypatch.setattr(scan_mod, "_is_path_allowed", lambda _p: True)
+    monkeypatch.setattr(scan_mod, "_is_path_allowed_custom", lambda _p: True)
+    monkeypatch.setattr(scan_mod, "folder_paths", SimpleNamespace(get_input_directory=lambda: str(out_root)))
+
+    async def _runtime_output_root(_svc):
+        return str(out_root)
+
+    monkeypatch.setattr(scan_mod, "_runtime_output_root", _runtime_output_root)
+
+    app = _app()
+    req = make_mocked_request("POST", "/mjr/am/index-files", app=app)
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    payload = json.loads(resp.text)
+    assert payload.get("ok") is True
+    assert called["priority"] == 1
+
+
+@pytest.mark.asyncio
+async def test_index_files_non_generation_blocked_during_maintenance(monkeypatch) -> None:
+    async def _require_services():
+        return {"index": object()}, None
+
+    async def _read_json(_request):
+        return Result.Ok({"files": [{"filename": "a.png", "type": "output"}], "origin": "manual"})
+
+    monkeypatch.setattr(scan_mod, "_require_services", _require_services)
+    monkeypatch.setattr(scan_mod, "is_db_maintenance_active", lambda: True)
+    monkeypatch.setattr(scan_mod, "is_vector_backfill_active", lambda: True)
+    monkeypatch.setattr(scan_mod, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(scan_mod, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(scan_mod, "_read_json", _read_json)
+
+    app = _app()
+    req = make_mocked_request("POST", "/mjr/am/index-files", app=app)
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    payload = json.loads(resp.text)
+    assert payload.get("code") == "DB_MAINTENANCE"
+
+
+@pytest.mark.asyncio
 async def test_watcher_status_returns_disabled_when_missing(monkeypatch) -> None:
     async def _require_services():
         return {"watcher": None}, None
@@ -1789,6 +1866,53 @@ async def test_upload_input_success_with_index_schedule_and_services_error(monke
     resp2 = await match2.handler(req2)
     payload2 = json.loads(resp2.text)
     assert payload2.get("ok") is True
+
+
+@pytest.mark.asyncio
+async def test_scan_route_uses_env_default_fast_when_body_omits_fast(monkeypatch, tmp_path: Path) -> None:
+    out_root = tmp_path / "out"
+    out_root.mkdir()
+    captured = {}
+
+    class _Index:
+        async def scan_directory(self, *args, **kwargs):
+            captured["args"] = args
+            captured["kwargs"] = kwargs
+            return Result.Ok({"scanned": 0, "added": 0, "updated": 0, "skipped": 0, "errors": 0})
+
+    async def _require_services():
+        return {"index": _Index(), "db": None}, None
+
+    async def _read_json(_request):
+        return Result.Ok({"scope": "output"})
+
+    async def _runtime_output_root(_svc):
+        return str(out_root)
+
+    monkeypatch.setattr(scan_mod, "_require_services", _require_services)
+    monkeypatch.setattr(scan_mod, "_read_json", _read_json)
+    monkeypatch.setattr(scan_mod, "is_db_maintenance_active", lambda: False)
+    monkeypatch.setattr(scan_mod, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(scan_mod, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(scan_mod, "_check_rate_limit", lambda *args, **kwargs: (True, None))
+    monkeypatch.setattr(scan_mod, "_runtime_output_root", _runtime_output_root)
+    monkeypatch.setattr(scan_mod, "_resolve_scan_root", lambda p: Result.Ok(Path(p)))
+    monkeypatch.setattr(scan_mod, "_is_within_root", lambda p, root: True)
+    monkeypatch.setattr(scan_mod, "_is_path_allowed", lambda _p: True)
+    monkeypatch.setattr(scan_mod, "_is_path_allowed_custom", lambda _p: False)
+    monkeypatch.setattr(scan_mod, "SCAN_DEFAULT_FAST", True)
+    monkeypatch.setattr(scan_mod, "SCAN_DEFAULT_BACKGROUND_METADATA", False)
+
+    app = _app()
+    req = make_mocked_request("POST", "/mjr/am/scan", app=app)
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    payload = json.loads(resp.text)
+
+    assert payload.get("ok") is True
+    args = list(captured.get("args") or [])
+    assert len(args) >= 6
+    assert args[5] is True
 
 
 @pytest.mark.asyncio

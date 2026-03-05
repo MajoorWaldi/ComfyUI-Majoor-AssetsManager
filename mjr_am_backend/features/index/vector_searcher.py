@@ -80,7 +80,7 @@ class VectorSearcher:
         # excluded from semantic search but remain accessible via other endpoints.
         _MAX_ROWS = 100_000
         rows = await self.db.aquery(
-            "SELECT asset_id, vector FROM asset_embeddings "
+            "SELECT asset_id, vector FROM vec.asset_embeddings "
             "WHERE vector IS NOT NULL "
             "ORDER BY rowid DESC "
             f"LIMIT {_MAX_ROWS}"
@@ -192,6 +192,64 @@ class VectorSearcher:
             "chevaux": "horses",
             "voiture": "car",
             "voitures": "cars",
+            # Common FR -> EN visual color mappings.
+            "vert": "green",
+            "bleu": "blue",
+            "rouge": "red",
+            "jaune": "yellow",
+            "orange": "orange",
+            "violet": "purple",
+            "rose": "pink",
+            "noir": "black",
+            "blanc": "white",
+            "gris": "gray",
+        }
+
+        color_query_expansions: dict[str, list[str]] = {
+            "green": [
+                "images with dominant green color tones",
+                "green colored objects, backgrounds, or scenes",
+            ],
+            "blue": [
+                "images with dominant blue color tones",
+                "blue colored objects, backgrounds, or scenes",
+            ],
+            "red": [
+                "images with dominant red color tones",
+                "red colored objects, backgrounds, or scenes",
+            ],
+            "yellow": [
+                "images with dominant yellow color tones",
+                "yellow colored objects, backgrounds, or scenes",
+            ],
+            "orange": [
+                "images with dominant orange color tones",
+                "orange colored objects, backgrounds, or scenes",
+            ],
+            "purple": [
+                "images with dominant purple color tones",
+                "purple colored objects, backgrounds, or scenes",
+            ],
+            "pink": [
+                "images with dominant pink color tones",
+                "pink colored objects, backgrounds, or scenes",
+            ],
+            "black": [
+                "dark images with dominant black tones",
+                "black colored objects, backgrounds, or scenes",
+            ],
+            "white": [
+                "bright images with dominant white tones",
+                "white colored objects, backgrounds, or scenes",
+            ],
+            "gray": [
+                "images with dominant gray tones",
+                "gray colored objects, backgrounds, or scenes",
+            ],
+            "grey": [
+                "images with dominant gray tones",
+                "gray colored objects, backgrounds, or scenes",
+            ],
         }
 
         translated = str(fr_to_en.get(key, "")).strip()
@@ -203,6 +261,13 @@ class VectorSearcher:
             combined = f"{base} {translated}".strip()
             if combined.lower() not in seen:
                 variants.append(combined)
+
+        expansion_key = translated.lower() if translated else key
+        for phrase in color_query_expansions.get(expansion_key, []):
+            candidate = str(phrase or "").strip()
+            if candidate and candidate.lower() not in seen:
+                variants.append(candidate)
+                seen.add(candidate.lower())
 
         return variants
 
@@ -224,7 +289,7 @@ class VectorSearcher:
         top_k = top_k or VECTOR_SIMILAR_TOPK
 
         row = await self.db.aquery(
-            "SELECT vector FROM asset_embeddings WHERE asset_id = ?",
+            "SELECT vector FROM vec.asset_embeddings WHERE asset_id = ?",
             (asset_id,),
         )
         if not row.ok or not row.data:
@@ -242,7 +307,7 @@ class VectorSearcher:
     async def get_alignment_score(self, asset_id: int) -> Result[float | None]:
         """Return the pre-computed prompt-alignment score for an asset."""
         row = await self.db.aquery(
-            "SELECT aesthetic_score FROM asset_embeddings WHERE asset_id = ?",
+            "SELECT aesthetic_score FROM vec.asset_embeddings WHERE asset_id = ?",
             (asset_id,),
         )
         if not row.ok or not row.data:
@@ -260,7 +325,7 @@ class VectorSearcher:
             return Result.Ok({})
         placeholders = ",".join("?" for _ in asset_ids)
         rows = await self.db.aquery(
-            f"SELECT asset_id, aesthetic_score FROM asset_embeddings WHERE asset_id IN ({placeholders})",
+            f"SELECT asset_id, aesthetic_score FROM vec.asset_embeddings WHERE asset_id IN ({placeholders})",
             tuple(asset_ids),
         )
         if not rows.ok:
@@ -277,7 +342,7 @@ class VectorSearcher:
     async def stats(self) -> Result[dict[str, Any]]:
         """Return basic statistics about the vector index."""
         row = await self.db.aquery(
-            "SELECT COUNT(*) as total, AVG(aesthetic_score) as avg_score FROM asset_embeddings"
+            "SELECT COUNT(*) as total, AVG(aesthetic_score) as avg_score FROM vec.asset_embeddings"
         )
         if not row.ok or not row.data:
             return Result.Ok({"total": 0, "avg_score": None})

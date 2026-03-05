@@ -27,6 +27,17 @@ def test_normalize_asset_row_and_collect_duplicates():
     assert groups >= 1 and 2 in delete_ids and kept >= 1
 
 
+def test_vector_backfill_priority_window_helpers():
+    m._clear_vector_backfill_priority_window()
+    try:
+        requested = m.request_vector_backfill_priority_window(2.0, reason="test")
+        assert requested > 0
+        assert m._vector_backfill_priority_remaining_seconds() > 0
+    finally:
+        m._clear_vector_backfill_priority_window()
+    assert m._vector_backfill_priority_remaining_seconds() == 0
+
+
 @pytest.mark.asyncio
 async def test_remove_with_retry_noop_and_emit_status():
     p = Path("tests") / "__non_existing__.tmp"
@@ -220,6 +231,106 @@ async def test_db_backfill_missing_vectors_success(monkeypatch, tmp_path):
     assert body.get("data", {}).get("ran") is True
     assert body.get("data", {}).get("indexed") == 1
     assert searcher.invalidated == 1
+
+
+@pytest.mark.asyncio
+async def test_db_backfill_missing_vectors_custom_scope_filters_sql(monkeypatch, tmp_path):
+    app = _app()
+    monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(m, "is_vector_search_enabled", lambda: True)
+    monkeypatch.setattr(m, "resolve_custom_root", lambda _rid: Result.Ok(str(tmp_path)))
+
+    class _Searcher:
+        def __init__(self):
+            self.invalidated = 0
+
+        def invalidate(self):
+            self.invalidated += 1
+
+    image_path = tmp_path / "img_custom.png"
+    image_path.write_bytes(b"\x89PNG\r\n\x1a\n")
+
+    class _DB:
+        def __init__(self):
+            self.calls = 0
+            self.first_sql = ""
+            self.first_params = ()
+
+        async def aquery(self, sql, params):
+            self.calls += 1
+            if self.calls == 1:
+                self.first_sql = str(sql)
+                self.first_params = tuple(params or ())
+                return Result.Ok([
+                    {"id": 11, "filepath": str(image_path), "kind": "image", "metadata_raw": "{}"},
+                ])
+            return Result.Ok([])
+
+    db = _DB()
+    searcher = _Searcher()
+
+    async def _require_services_ok():
+        return {
+            "db": db,
+            "vector_service": object(),
+            "vector_searcher": searcher,
+            "watcher": None,
+            "index": None,
+        }, None
+
+    monkeypatch.setattr(m, "_require_services", _require_services_ok)
+
+    import mjr_am_backend.features.index.vector_indexer as vector_indexer_mod
+
+    async def _index_ok(*_args, **_kwargs):
+        return Result.Ok(True)
+
+    monkeypatch.setattr(vector_indexer_mod, "index_asset_vector", _index_ok)
+
+    req = make_mocked_request(
+        "POST",
+        "/mjr/am/db/backfill-missing-vectors?batch_size=10&scope=custom&custom_root_id=root-1",
+        app=app,
+    )
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+    assert body.get("ok") is True
+    assert body.get("data", {}).get("scope") == "custom"
+    assert body.get("data", {}).get("custom_root_id") == "root-1"
+    assert body.get("data", {}).get("indexed") == 1
+    assert searcher.invalidated == 1
+    assert "LOWER(COALESCE(a.source, '')) = ?" in db.first_sql
+    assert "a.root_id = ?" in db.first_sql
+    assert db.first_params[1] == "custom"
+    assert db.first_params[2] == "root-1"
+
+
+@pytest.mark.asyncio
+async def test_db_backfill_missing_vectors_custom_scope_requires_root(monkeypatch):
+    app = _app()
+    monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(m, "is_vector_search_enabled", lambda: True)
+
+    async def _require_services_ok():
+        return {
+            "db": object(),
+            "vector_service": object(),
+            "vector_searcher": None,
+            "watcher": None,
+            "index": None,
+        }, None
+
+    monkeypatch.setattr(m, "_require_services", _require_services_ok)
+
+    req = make_mocked_request("POST", "/mjr/am/db/backfill-missing-vectors?scope=custom", app=app)
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+    assert body.get("ok") is False
+    assert body.get("code") == "INVALID_INPUT"
 
 
 @pytest.mark.asyncio

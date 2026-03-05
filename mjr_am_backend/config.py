@@ -214,6 +214,8 @@ INDEX_DIR_PATH = OUTPUT_ROOT_PATH / "_mjr_index"
 INDEX_DIR = str(INDEX_DIR_PATH)
 INDEX_DB_PATH = INDEX_DIR_PATH / "assets.sqlite"
 INDEX_DB = str(INDEX_DB_PATH)
+VECTORS_DB_PATH = INDEX_DIR_PATH / "vectors.sqlite"
+VECTORS_DB = str(VECTORS_DB_PATH)
 
 # Collections (user-curated sets of assets)
 COLLECTIONS_DIR_PATH = INDEX_DIR_PATH / "collections"
@@ -369,6 +371,28 @@ SEARCH_MAX_BATCH_IDS = _env_int(200, "MJR_AM_SEARCH_MAX_BATCH_IDS", "MJR_SEARCH_
 SEARCH_MAX_FILEPATH_LOOKUP = _env_int(5000, "MJR_AM_SEARCH_MAX_FILEPATH_LOOKUP", "MJR_SEARCH_MAX_FILEPATH_LOOKUP", min_value=1, max_value=100000)
 SCAN_BATCH_XL = _env_int(400, "MJR_AM_SCAN_BATCH_XL", "MAJOOR_SCAN_BATCH_XL", min_value=1, max_value=20000)
 
+# Scan behavior defaults and debug logging.
+SCAN_DEFAULT_FAST = _env_bool(False, "MJR_AM_SCAN_DEFAULT_FAST", "MAJOOR_SCAN_DEFAULT_FAST")
+SCAN_DEFAULT_BACKGROUND_METADATA = _env_bool(
+    False,
+    "MJR_AM_SCAN_DEFAULT_BACKGROUND_METADATA",
+    "MAJOOR_SCAN_DEFAULT_BACKGROUND_METADATA",
+)
+SCAN_LOG_PROGRESS_EVERY = _env_int(
+    0,
+    "MJR_AM_SCAN_LOG_PROGRESS_EVERY",
+    "MAJOOR_SCAN_LOG_PROGRESS_EVERY",
+    min_value=0,
+    max_value=500_000,
+)
+SCAN_LOG_PROGRESS_MIN_SECONDS = _env_float(
+    15.0,
+    "MJR_AM_SCAN_LOG_PROGRESS_MIN_SECONDS",
+    "MAJOOR_SCAN_LOG_PROGRESS_MIN_SECONDS",
+    min_value=0.0,
+    max_value=600.0,
+)
+
 # Scanner limits
 # Hard cap protects UI payload size when many entries are eligible for enrichment.
 MAX_TO_ENRICH_ITEMS = _env_int(10000, "MJR_AM_MAX_TO_ENRICH_ITEMS", "MAJOOR_MAX_TO_ENRICH_ITEMS", min_value=1, max_value=1_000_000)
@@ -383,6 +407,11 @@ VECTOR_SEARCH_ENABLED = _env_bool(
     "MJR_ENABLE_VECTOR_SEARCH",
     "MAJOOR_ENABLE_VECTOR_SEARCH",
 )
+VECTOR_INDEX_ON_SCAN = _env_bool(
+    True,
+    "MJR_AM_VECTOR_INDEX_ON_SCAN",
+    "MAJOOR_VECTOR_INDEX_ON_SCAN",
+)
 
 
 def is_vector_search_enabled() -> bool:
@@ -392,6 +421,15 @@ def is_vector_search_enabled() -> bool:
         "MJR_AM_ENABLE_VECTOR_SEARCH",
         "MJR_ENABLE_VECTOR_SEARCH",
         "MAJOOR_ENABLE_VECTOR_SEARCH",
+    )
+
+
+def is_vector_index_on_scan_enabled() -> bool:
+    """Return runtime toggle for automatic vector indexing during scans."""
+    return _env_bool(
+        VECTOR_INDEX_ON_SCAN,
+        "MJR_AM_VECTOR_INDEX_ON_SCAN",
+        "MAJOOR_VECTOR_INDEX_ON_SCAN",
     )
 
 # Primary multimodal model name (default: SigLIP2 SO400M).

@@ -40,6 +40,10 @@ const ENTRY_RUNTIME_KEY = "__MJR_ENTRY_RUNTIME__";
 function removeApiHandlers(api) {
     if (!api) return;
     try {
+        if (api._mjrAssetUpdateReloadTimer) {
+            clearTimeout(api._mjrAssetUpdateReloadTimer);
+            api._mjrAssetUpdateReloadTimer = null;
+        }
         if (api._mjrExecutedHandler) {
             api.removeEventListener("executed", api._mjrExecutedHandler);
         }
@@ -103,6 +107,10 @@ function installEntryRuntimeController() {
 // Deduplication for executed events (ComfyUI can fire multiple times for same file)
 const DEDUPE_TTL_MS = 2000;
 const recentFiles = new Map(); // key -> timestamp
+const INDEX_RETRYABLE_CODES = new Set(["DB_MAINTENANCE", "TIMEOUT", "NETWORK_ERROR", "SERVICE_UNAVAILABLE"]);
+const INDEX_RETRY_MAX_ATTEMPTS = 8;
+const INDEX_RETRY_BASE_DELAY_MS = 1200;
+const INDEX_RETRY_MAX_DELAY_MS = 15_000;
 
 // Track execution start times to compute generation duration
 const EXECUTION_START_TTL_MS = 10 * 60 * 1000;
@@ -140,6 +148,37 @@ function dedupeFiles(files) {
         }
     }
     return fresh;
+}
+
+function _indexRetryDelayMs(attempt) {
+    const a = Math.max(1, Number(attempt) || 1);
+    const exp = Math.min(6, a - 1);
+    return Math.min(INDEX_RETRY_MAX_DELAY_MS, INDEX_RETRY_BASE_DELAY_MS * (2 ** exp));
+}
+
+function _shouldRetryIndexResponse(res) {
+    const code = String(res?.code || "").trim().toUpperCase();
+    return INDEX_RETRYABLE_CODES.has(code);
+}
+
+function scheduleGenerationIndex(files, attempt = 1) {
+    const payloadFiles = Array.isArray(files) ? files : [];
+    if (!payloadFiles.length) return;
+    post(ENDPOINTS.INDEX_FILES, { files: payloadFiles, origin: "generation" })
+        .then((res) => {
+            if (res?.ok) return;
+            if (_shouldRetryIndexResponse(res) && attempt < INDEX_RETRY_MAX_ATTEMPTS) {
+                const delayMs = _indexRetryDelayMs(attempt);
+                setTimeout(() => scheduleGenerationIndex(payloadFiles, attempt + 1), delayMs);
+                return;
+            }
+            try {
+                const code = String(res?.code || "INDEX_FAILED");
+                const msg = String(res?.error || "Indexing generated files failed");
+                reportError(new Error(`${code}: ${msg}`), "entry.executed.index");
+            } catch (e) { console.debug?.(e); }
+        })
+        .catch((error) => reportError(error, "entry.executed.index"));
 }
 
 app.registerExtension({
@@ -206,8 +245,7 @@ app.registerExtension({
                             window.dispatchEvent(new CustomEvent(EVENTS.NEW_GENERATION_OUTPUT, { detail: { files } }));
                         } catch (e) { console.debug?.(e); }
 
-                        post(ENDPOINTS.INDEX_FILES, { files, origin: "generation" })
-                            .catch((error) => reportError(error, "entry.executed.index"));
+                        scheduleGenerationIndex(files);
                     } catch (error) {
                         reportError(error, "entry.executed");
                     }
@@ -245,15 +283,20 @@ app.registerExtension({
                     try {
                         const grid = getActiveGridContainer();
                         if (grid && event?.detail) {
-                            // Only reload when the active grid shows output or "all" scope.
+                            // Only handle direct updates when the active grid shows output or "all" scope.
                             const scope = grid.dataset?.mjrScope || "output";
                             if (scope !== "output" && scope !== "all") return;
-                            // Scroll to top first so the grid shows position 0 as soon as the
-                            // reload response arrives — new asset appears at the top.
-                            scrollGridToTop(grid);
-                            // Full reload so the new asset is correctly sorted by the server.
                             const query = grid.dataset?.mjrQuery || "*";
-                            loadAssets(grid, query).catch(() => {});
+                            const canDirectUpsert = String(query).trim() === "*";
+                            let handled = false;
+                            if (canDirectUpsert) {
+                                handled = !!upsertAsset(grid, event.detail);
+                                if (handled) scrollGridToTop(grid);
+                            }
+                            if (!handled) {
+                                // Fallback reload for filtered views or missing upsert context.
+                                loadAssets(grid, query).catch(() => {});
+                            }
                             // Signal that we handled this event so handleCountersUpdate skips
                             // its own fallback reload within the next 6 s.
                             try { window.__mjrLastAssetUpsert = Date.now(); } catch (e) { console.debug?.(e); }
@@ -268,7 +311,44 @@ app.registerExtension({
                     try {
                         const grid = getActiveGridContainer();
                         if (grid && event?.detail) {
-                            upsertAsset(grid, event.detail);
+                            const detail = event.detail;
+                            const assetId = String(detail?.id || "").trim();
+                            const kind = String(detail?.kind || "").trim();
+                            const filename = String(detail?.filename || "").trim();
+                            const filepath = String(detail?.filepath || "").trim();
+                            const hasRenderableFields = !!kind && (!!filename || !!filepath);
+                            let existsInGrid = false;
+                            if (assetId) {
+                                try {
+                                    const escapedId = CSS?.escape ? CSS.escape(assetId) : assetId;
+                                    existsInGrid = !!grid.querySelector(
+                                        `.mjr-asset-card[data-mjr-asset-id="${escapedId}"]`
+                                    );
+                                } catch (e) { console.debug?.(e); }
+                            }
+
+                            const canUpsert = hasRenderableFields || existsInGrid;
+                            const handled = canUpsert ? !!upsertAsset(grid, detail) : false;
+                            if (handled) {
+                                try { window.__mjrLastAssetUpsert = Date.now(); } catch (e) { console.debug?.(e); }
+                                return;
+                            }
+
+                            // Ignore non-renderable partial updates for unseen assets, but force
+                            // a debounced fallback reload so generated files still appear.
+                            const scope = grid.dataset?.mjrScope || "output";
+                            if (scope === "output" || scope === "all") {
+                                const query = grid.dataset?.mjrQuery || "*";
+                                try {
+                                    if (api._mjrAssetUpdateReloadTimer) {
+                                        clearTimeout(api._mjrAssetUpdateReloadTimer);
+                                    }
+                                } catch (e) { console.debug?.(e); }
+                                api._mjrAssetUpdateReloadTimer = setTimeout(() => {
+                                    api._mjrAssetUpdateReloadTimer = null;
+                                    loadAssets(grid, query).catch(() => {});
+                                }, 700);
+                            }
                         }
                     } catch (error) {
                         reportError(error, "entry.asset_updated");

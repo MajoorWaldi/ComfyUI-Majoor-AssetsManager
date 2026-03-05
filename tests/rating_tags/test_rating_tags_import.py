@@ -13,7 +13,7 @@ from mjr_am_backend.shared import Result
 
 async def _make_db(tmp_path: Path) -> Sqlite:
     db_path = tmp_path / "test.db"
-    db = Sqlite(str(db_path))
+    db = Sqlite(str(db_path), attach={"vec": str(tmp_path / "vectors.sqlite")})
     mig = await migrate_schema(db)
     assert mig.ok
     return db
@@ -74,5 +74,50 @@ async def test_does_not_override_existing_db_rating_tags(tmp_path: Path):
         assert row["rating"] == 5
         assert json.loads(row["tags"]) == ["keep"]
         assert row["tags_text"] == "keep"
+    finally:
+        await db.aclose()
+
+
+@pytest.mark.asyncio
+async def test_equal_quality_sparse_update_does_not_clobber_workflow_flags_or_raw(tmp_path: Path):
+    db = await _make_db(tmp_path)
+    try:
+        ins = await db.aexecute(
+            "INSERT INTO assets(filepath, filename, subfolder, source, root_id, kind, ext, size, mtime) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            ("C:\\x\\c.png", "c.png", "", "output", "output", "image", ".png", 123, 1700000000),
+        )
+        assert ins.ok
+        asset_rows = (await db.aquery("SELECT id FROM assets")).data
+        assert asset_rows
+        asset_id = asset_rows[0]["id"]
+
+        rich_partial = Result.Ok(
+            {
+                "quality": "partial",
+                "workflow": {"nodes": [{"id": 1, "type": "KSampler"}]},
+                "prompt": {"1": {"class_type": "KSampler", "inputs": {"steps": 20}}},
+            }
+        )
+        first = await MetadataHelpers.write_asset_metadata_row(db, asset_id, rich_partial)
+        assert first.ok
+
+        sparse_partial = Result.Ok({"quality": "partial", "rating": 3, "tags": ["foo"]})
+        second = await MetadataHelpers.write_asset_metadata_row(db, asset_id, sparse_partial)
+        assert second.ok
+
+        rows = (
+            await db.aquery(
+                "SELECT has_workflow, has_generation_data, metadata_quality, metadata_raw FROM asset_metadata WHERE asset_id = ?",
+                (asset_id,),
+            )
+        ).data
+        assert rows
+        row = rows[0]
+        assert row["has_workflow"] == 1
+        assert row["has_generation_data"] == 1
+        assert row["metadata_quality"] == "partial"
+        raw = json.loads(str(row["metadata_raw"] or "{}"))
+        assert "workflow" in raw
+        assert "prompt" in raw
     finally:
         await db.aclose()

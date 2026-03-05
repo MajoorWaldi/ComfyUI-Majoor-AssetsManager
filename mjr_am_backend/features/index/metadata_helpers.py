@@ -28,16 +28,38 @@ _METADATA_CACHE_CLEANUP_LOCK = asyncio.Lock()
 _METADATA_CACHE_LAST_CLEANUP = 0.0
 
 
-def _metadata_quality_should_upgrade_sql() -> str:
-    quality_rank_excluded = (
-        "CASE excluded.metadata_quality WHEN 'full' THEN 3 WHEN 'partial' THEN 2 "
+def _metadata_quality_rank_sql(value_sql: str) -> str:
+    return (
+        f"CASE {value_sql} WHEN 'full' THEN 3 WHEN 'partial' THEN 2 "
         "WHEN 'degraded' THEN 1 ELSE 0 END"
     )
-    quality_rank_current = (
-        "CASE COALESCE(asset_metadata.metadata_quality, 'none') WHEN 'full' THEN 3 "
-        "WHEN 'partial' THEN 2 WHEN 'degraded' THEN 1 ELSE 0 END"
+
+
+def _metadata_quality_should_upgrade_sql(*, allow_equal: bool = False) -> str:
+    quality_rank_excluded = _metadata_quality_rank_sql("excluded.metadata_quality")
+    quality_rank_current = _metadata_quality_rank_sql("COALESCE(asset_metadata.metadata_quality, 'none')")
+    op = ">=" if allow_equal else ">"
+    return f"({quality_rank_excluded} {op} {quality_rank_current})"
+
+
+def _metadata_quality_is_equal_sql() -> str:
+    quality_rank_excluded = _metadata_quality_rank_sql("excluded.metadata_quality")
+    quality_rank_current = _metadata_quality_rank_sql("COALESCE(asset_metadata.metadata_quality, 'none')")
+    return f"({quality_rank_excluded} = {quality_rank_current})"
+
+
+def _metadata_raw_is_empty_sql(value_sql: str) -> str:
+    return f"({value_sql} IS NULL OR TRIM({value_sql}) IN ('', '{{}}', 'null'))"
+
+
+def _metadata_raw_should_replace_on_equal_quality_sql() -> str:
+    current_raw_empty = _metadata_raw_is_empty_sql("asset_metadata.metadata_raw")
+    excluded_raw_empty = _metadata_raw_is_empty_sql("excluded.metadata_raw")
+    excluded_richer = (
+        "LENGTH(COALESCE(excluded.metadata_raw, '')) > "
+        "LENGTH(COALESCE(asset_metadata.metadata_raw, ''))"
     )
-    return f"({quality_rank_excluded} >= {quality_rank_current})"
+    return f"(NOT {excluded_raw_empty} AND ({current_raw_empty} OR {excluded_richer}))"
 
 
 def _apply_metadata_json_size_guard(
@@ -471,6 +493,8 @@ class MetadataHelpers:
         # yields an equal-or-better quality. This prevents counters/progress from
         # "going backwards" during background enrichment retries.
         should_upgrade = _metadata_quality_should_upgrade_sql()
+        same_quality = _metadata_quality_is_equal_sql()
+        replace_raw_on_equal = _metadata_raw_should_replace_on_equal_quality_sql()
 
         return await db.aexecute(
             f"""
@@ -493,10 +517,20 @@ class MetadataHelpers:
                 END,
                 has_workflow = CASE
                     WHEN {should_upgrade} THEN excluded.has_workflow
+                    WHEN {same_quality} THEN CASE
+                        WHEN COALESCE(asset_metadata.has_workflow, 0) = 1 THEN 1
+                        WHEN excluded.has_workflow IS NOT NULL THEN excluded.has_workflow
+                        ELSE asset_metadata.has_workflow
+                    END
                     ELSE asset_metadata.has_workflow
                 END,
                 has_generation_data = CASE
                     WHEN {should_upgrade} THEN excluded.has_generation_data
+                    WHEN {same_quality} THEN CASE
+                        WHEN COALESCE(asset_metadata.has_generation_data, 0) = 1 THEN 1
+                        WHEN excluded.has_generation_data IS NOT NULL THEN excluded.has_generation_data
+                        ELSE asset_metadata.has_generation_data
+                    END
                     ELSE asset_metadata.has_generation_data
                 END,
                 metadata_quality = CASE
@@ -505,6 +539,7 @@ class MetadataHelpers:
                 END,
                 metadata_raw = CASE
                     WHEN {should_upgrade} THEN excluded.metadata_raw
+                    WHEN {same_quality} AND {replace_raw_on_equal} THEN excluded.metadata_raw
                     ELSE asset_metadata.metadata_raw
                 END
             WHERE EXISTS (SELECT 1 FROM assets WHERE id = excluded.asset_id)

@@ -45,7 +45,7 @@ async def test_schema_self_heals_missing_columns(tmp_path):
     finally:
         conn.close()
 
-    db = Sqlite(str(db_path))
+    db = Sqlite(str(db_path), attach={"vec": str(tmp_path / "vectors.sqlite")})
     try:
         result = await migrate_schema(db)
         assert result.ok, result.error
@@ -123,7 +123,7 @@ async def test_sqlite_query_missing_column_triggers_self_heal(tmp_path):
     finally:
         conn.close()
 
-    db = Sqlite(str(db_path))
+    db = Sqlite(str(db_path), attach={"vec": str(tmp_path / "vectors.sqlite")})
     try:
         # Ensure required companion tables exist, but intentionally do not run migrate_schema().
         assert (await ensure_tables_exist(db)).ok

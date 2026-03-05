@@ -15,6 +15,7 @@ from typing import Any
 from aiohttp import web
 from mjr_am_backend.config import TO_THREAD_TIMEOUT_S, get_runtime_output_root
 from mjr_am_backend.custom_roots import list_custom_roots, resolve_custom_root
+from mjr_am_backend.features.index.scan_batch_utils import normalize_filepath_str
 from mjr_am_backend.shared import Result, get_logger
 from mjr_am_backend.shared import sanitize_error_message as _safe_error_message
 
@@ -77,6 +78,45 @@ _pg_safe_download_filename = _pg.safe_download_filename
 
 def register_asset_routes(routes: web.RouteTableDef) -> None:
     """Register asset CRUD routes (get, delete, rename)."""
+    def _filepath_db_keys(path_value: str | Path | None) -> tuple[str, ...]:
+        raw = str(path_value or "").strip()
+        if not raw:
+            return tuple()
+        keys: list[str] = []
+        for candidate in (raw, normalize_filepath_str(raw)):
+            value = str(candidate or "").strip()
+            if value and value not in keys:
+                keys.append(value)
+        return tuple(keys)
+
+    def _filepath_where_clause(keys: tuple[str, ...], *, column: str = "filepath") -> tuple[str, tuple[Any, ...]]:
+        if not keys:
+            return f"{column} = ''", tuple()
+        placeholders = ",".join("?" * len(keys))
+        where = f"{column} IN ({placeholders})"
+        params: list[Any] = list(keys)
+        # Extra fallback for legacy rows whose casing differs from the normalized key.
+        where = f"{where} OR {column} = ? COLLATE NOCASE"
+        params.append(keys[0])
+        return where, tuple(params)
+
+    async def _find_asset_row_by_filepath(
+        db: Any,
+        filepath: str,
+        *,
+        select_sql: str,
+    ) -> dict[str, Any] | None:
+        keys = _filepath_db_keys(filepath)
+        where_clause, where_params = _filepath_where_clause(keys, column="filepath")
+        res = await db.aquery(
+            f"SELECT {select_sql} FROM assets WHERE {where_clause} ORDER BY id DESC LIMIT 1",
+            where_params,
+        )
+        if not res.ok or not res.data:
+            return None
+        row = res.data[0] or {}
+        return row if isinstance(row, dict) else None
+
     def _resolve_body_filepath(body: dict | None) -> Path | None:
         try:
             raw = ""
@@ -185,16 +225,17 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             logger.debug("Index-on-demand skipped for %s: %s", filepath, exc)
 
         try:
-            q = await asyncio.wait_for(
-                services["db"].aquery(
-                    "SELECT id FROM assets WHERE filepath = ?",
-                    (str(resolved),),
+            row = await asyncio.wait_for(
+                _find_asset_row_by_filepath(
+                    services["db"],
+                    str(resolved),
+                    select_sql="id",
                 ),
                 timeout=TO_THREAD_TIMEOUT_S,
             )
-            if not q.ok or not q.data:
+            if not row:
                 return Result.Err("NOT_FOUND", "Asset not indexed")
-            asset_id = (q.data[0] or {}).get("id")
+            asset_id = row.get("id")
             if asset_id is None:
                 return Result.Err("NOT_FOUND", "Asset id not available")
             return Result.Ok(int(asset_id))
@@ -730,6 +771,8 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             "scan_journal": None,
             "metadata_cache": None,
         }
+        filepath_keys = _filepath_db_keys(filepath)
+        filepath_where, filepath_params = _filepath_where_clause(filepath_keys, column="filepath")
 
         async def _query_one(sql: str, params: tuple[Any, ...]) -> dict[str, Any] | None:
             try:
@@ -742,14 +785,16 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                 return None
 
         asset_row = await _query_one(
-            """
+            f"""
             SELECT id, filename, subfolder, filepath, source, root_id, kind, ext, size, mtime,
-                   width, height, duration, created_at, updated_at, indexed_at, content_hash, phash, hash_state
+                   width, height, duration, enhanced_caption,
+                   created_at, updated_at, indexed_at, content_hash, phash, hash_state
             FROM assets
-            WHERE filepath = ?
+            WHERE {filepath_where}
+            ORDER BY id DESC
             LIMIT 1
             """,
-            (filepath,),
+            filepath_params,
         )
         backups["asset"] = asset_row
 
@@ -766,7 +811,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             backups["asset_metadata"] = await _query_one(
                 """
                 SELECT asset_id, rating, tags, tags_text, workflow_hash, has_workflow,
-                       has_generation_data, metadata_quality, metadata_raw
+                       has_generation_data, metadata_quality, metadata_raw, metadata_text
                 FROM asset_metadata
                 WHERE asset_id = ?
                 LIMIT 1
@@ -775,22 +820,22 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             )
 
         backups["scan_journal"] = await _query_one(
-            """
+            f"""
             SELECT filepath, dir_path, state_hash, mtime, size, last_seen
             FROM scan_journal
-            WHERE filepath = ?
+            WHERE {filepath_where}
             LIMIT 1
             """,
-            (filepath,),
+            filepath_params,
         )
         backups["metadata_cache"] = await _query_one(
-            """
+            f"""
             SELECT filepath, state_hash, metadata_hash, metadata_raw, last_updated
             FROM metadata_cache
-            WHERE filepath = ?
+            WHERE {filepath_where}
             LIMIT 1
             """,
-            (filepath,),
+            filepath_params,
         )
         return backups
 
@@ -810,8 +855,8 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                     await db.aexecute(
                         """
                         INSERT OR REPLACE INTO assets
-                        (id, filename, subfolder, filepath, source, root_id, kind, ext, size, mtime, width, height, duration, created_at, updated_at, indexed_at, content_hash, phash, hash_state)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        (id, filename, subfolder, filepath, source, root_id, kind, ext, size, mtime, width, height, duration, enhanced_caption, created_at, updated_at, indexed_at, content_hash, phash, hash_state)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
                             asset.get("id"),
@@ -827,6 +872,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                             asset.get("width"),
                             asset.get("height"),
                             asset.get("duration"),
+                            asset.get("enhanced_caption"),
                             asset.get("created_at"),
                             asset.get("updated_at"),
                             asset.get("indexed_at"),
@@ -839,8 +885,8 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                     await db.aexecute(
                         """
                         INSERT OR REPLACE INTO asset_metadata
-                        (asset_id, rating, tags, tags_text, workflow_hash, has_workflow, has_generation_data, metadata_quality, metadata_raw)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        (asset_id, rating, tags, tags_text, workflow_hash, has_workflow, has_generation_data, metadata_quality, metadata_raw, metadata_text)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
                             asset_meta.get("asset_id"),
@@ -852,6 +898,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                             asset_meta.get("has_generation_data"),
                             asset_meta.get("metadata_quality"),
                             asset_meta.get("metadata_raw"),
+                            asset_meta.get("metadata_text"),
                         ),
                     )
                 if scan_journal:
@@ -955,60 +1002,81 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if not (resolved.exists() and resolved.is_file()):
             return _json_response(Result.Err("NOT_FOUND", "File does not exist"))
 
-        backups = await _collect_asset_delete_backups(svc["db"], filepath=str(resolved))
+        resolved_str = str(resolved)
+        resolved_filepath_keys = _filepath_db_keys(resolved_str)
+        resolved_filepath_where, resolved_filepath_params = _filepath_where_clause(
+            resolved_filepath_keys,
+            column="filepath",
+        )
 
-        deleted_db = False
-        try:
-            async with svc["db"].atransaction(mode="immediate"):
-                if asset_id is not None:
-                    del_res = await svc["db"].aexecute("DELETE FROM assets WHERE id = ?", (asset_id,))
-                    if not del_res.ok:
-                        return _json_response(Result.Err("DB_ERROR", str(del_res.error or "DB delete failed")))
-                    deleted_db = True
-                else:
-                    # Browser mode can operate on files not yet indexed.
-                    del_res = await svc["db"].aexecute("DELETE FROM assets WHERE filepath = ?", (str(resolved),))
-                    if not del_res.ok:
-                        return _json_response(Result.Err("DB_ERROR", str(del_res.error or "DB delete failed")))
-                    deleted_db = True
-                sj_res = await svc["db"].aexecute("DELETE FROM scan_journal WHERE filepath = ?", (str(resolved),))
-                if not sj_res.ok:
-                    return _json_response(Result.Err("DB_ERROR", str(sj_res.error or "DB delete failed")))
-                mc_res = await svc["db"].aexecute("DELETE FROM metadata_cache WHERE filepath = ?", (str(resolved),))
-                if not mc_res.ok:
-                    return _json_response(Result.Err("DB_ERROR", str(mc_res.error or "DB delete failed")))
-        except Exception as exc:
-            logger.error("Database deletion failed: %s", exc)
-            return _json_response(
-                Result.Err(
-                    "DB_ERROR",
-                    _safe_error_message(exc, "Failed to delete asset record"),
+        matched_asset_id = asset_id
+        if matched_asset_id is None:
+            try:
+                asset_row = await _find_asset_row_by_filepath(
+                    svc["db"],
+                    resolved_str,
+                    select_sql="id",
                 )
-            )
+            except asyncio.TimeoutError:
+                return _json_response(Result.Err("TIMEOUT", "Asset lookup timed out"))
+            except Exception as exc:
+                return _json_response(
+                    Result.Err(
+                        "DB_ERROR",
+                        _safe_error_message(exc, "Failed to resolve asset id"),
+                    )
+                )
+            try:
+                if isinstance(asset_row, dict) and asset_row.get("id") is not None:
+                    matched_asset_id = int(asset_row.get("id"))
+            except Exception:
+                matched_asset_id = None
 
+        # Phase 1: Delete the physical file FIRST.
+        # This avoids the NM-8 inconsistency window where the DB record is gone
+        # but the file still exists.  If the file delete fails we abort early
+        # without touching the DB, leaving everything consistent.
         try:
             del_res = _delete_file_safe(resolved)
             if not del_res.ok:
                 raise RuntimeError(str(del_res.error or "delete failed"))
         except Exception as exc:
-            if deleted_db:
-                try:
-                    await _restore_asset_delete_backups(svc["db"], backups)
-                except Exception as restore_exc:
-                    # DB record already deleted but file still present and restoration
-                    # also failed — data is inconsistent; operator must intervene (NM-8).
-                    logger.critical(
-                        "CRITICAL: asset_id=%s DB record deleted but physical file still "
-                        "exists and restoration failed — manual intervention required. "
-                        "File: %s  Restore error: %s",
-                        asset_id, resolved, restore_exc,
-                    )
             return _json_response(Result.Err(
                 "DELETE_FAILED",
                 "Failed to delete file",
-                errors=[{"asset_id": asset_id, "error": _safe_error_message(exc, "File deletion failed")}],
+                errors=[{"asset_id": matched_asset_id, "error": _safe_error_message(exc, "File deletion failed")}],
                 aborted=True
             ))
+
+        # Phase 2: Clean up DB records.  The file is already gone; if this
+        # fails we have harmless orphan rows that the next scan/cleanup will
+        # prune automatically.
+        try:
+            async with svc["db"].atransaction(mode="immediate"):
+                if matched_asset_id is not None:
+                    del_res = await svc["db"].aexecute("DELETE FROM assets WHERE id = ?", (matched_asset_id,))
+                    if not del_res.ok:
+                        logger.warning("DB cleanup after file delete failed: %s", del_res.error)
+                else:
+                    await svc["db"].aexecute(
+                        f"DELETE FROM assets WHERE {resolved_filepath_where}",
+                        resolved_filepath_params,
+                    )
+                await svc["db"].aexecute(
+                    f"DELETE FROM scan_journal WHERE {resolved_filepath_where}",
+                    resolved_filepath_params,
+                )
+                await svc["db"].aexecute(
+                    f"DELETE FROM metadata_cache WHERE {resolved_filepath_where}",
+                    resolved_filepath_params,
+                )
+        except Exception as exc:
+            # File is deleted; DB cleanup failed.  Log but still report success
+            # since the primary goal (remove the file) succeeded.
+            logger.error(
+                "File deleted but DB cleanup failed for asset_id=%s path=%s: %s",
+                matched_asset_id, resolved, exc,
+            )
 
         return _json_response(Result.Ok({"deleted": 1}))
 
@@ -1102,6 +1170,43 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if not current_resolved.exists() or not current_resolved.is_file():
             return _json_response(Result.Err("NOT_FOUND", "Current file does not exist"))
 
+        current_resolved_str = str(current_resolved)
+        current_filepath_keys = _filepath_db_keys(current_resolved_str)
+        current_filepath_where, current_filepath_params = _filepath_where_clause(
+            current_filepath_keys,
+            column="filepath",
+        )
+        matched_asset_id = asset_id
+        if matched_asset_id is None:
+            try:
+                row = await _find_asset_row_by_filepath(
+                    svc["db"],
+                    current_resolved_str,
+                    select_sql="id, filename, source, root_id",
+                )
+            except asyncio.TimeoutError:
+                return _json_response(Result.Err("TIMEOUT", "Asset lookup timed out"))
+            except Exception as exc:
+                return _json_response(
+                    Result.Err(
+                        "DB_ERROR",
+                        _safe_error_message(exc, "Failed to resolve asset id"),
+                    )
+                )
+            if isinstance(row, dict):
+                try:
+                    raw_id = row.get("id")
+                    if raw_id is not None:
+                        matched_asset_id = int(raw_id)
+                except Exception:
+                    matched_asset_id = None
+                if not current_filename:
+                    current_filename = str(row.get("filename") or current_filename)
+                if not current_source:
+                    current_source = str(row.get("source") or "").strip().lower()
+                if not current_root_id:
+                    current_root_id = str(row.get("root_id") or "").strip()
+
         # Determine the new file path
         new_path = current_resolved.parent / new_name
 
@@ -1132,7 +1237,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                 if new_path.exists() and not current_resolved.exists():
                     new_path.rename(current_resolved)
             except Exception as rollback_exc:
-                logger.error("Failed to rollback rename for asset %s: %s", asset_id, rollback_exc)
+                logger.error("Failed to rollback rename for asset %s: %s", matched_asset_id, rollback_exc)
 
         # Update database record
         try:
@@ -1155,32 +1260,38 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                 if not defer_fk.ok:
                     raise RuntimeError(defer_fk.error or "Failed to defer foreign key checks")
 
-                if asset_id is not None:
+                if matched_asset_id is not None:
                     update_res = await svc["db"].aexecute(
                         "UPDATE assets SET filename = ?, filepath = ?, mtime = ? WHERE id = ?",
-                        (new_name, str(new_path), mtime, asset_id)
+                        (new_name, str(new_path), mtime, matched_asset_id)
                     )
                     if not update_res.ok:
                         raise RuntimeError(update_res.error or "Failed to update assets filepath")
+                    try:
+                        updated_rows = int(update_res.data or 0)
+                    except Exception:
+                        updated_rows = 0
+                    if updated_rows <= 0:
+                        raise RuntimeError("Asset row not found for rename")
                 else:
                     up2 = await svc["db"].aexecute(
-                        "UPDATE assets SET filename = ?, filepath = ?, mtime = ? WHERE filepath = ?",
-                        (new_name, str(new_path), mtime, str(current_resolved)),
+                        f"UPDATE assets SET filename = ?, filepath = ?, mtime = ? WHERE {current_filepath_where}",
+                        (new_name, str(new_path), mtime, *current_filepath_params),
                     )
                     if not up2.ok:
                         raise RuntimeError(up2.error or "Failed to update assets filepath")
 
                 # Keep FK-linked tables in sync with renamed filepath.
                 sj_res = await svc["db"].aexecute(
-                    "UPDATE scan_journal SET filepath = ? WHERE filepath = ?",
-                    (str(new_path), str(current_resolved)),
+                    f"UPDATE scan_journal SET filepath = ? WHERE {current_filepath_where}",
+                    (str(new_path), *current_filepath_params),
                 )
                 if not sj_res.ok:
                     raise RuntimeError(sj_res.error or "Failed to update scan_journal filepath")
 
                 mc_res = await svc["db"].aexecute(
-                    "UPDATE metadata_cache SET filepath = ? WHERE filepath = ?",
-                    (str(new_path), str(current_resolved)),
+                    f"UPDATE metadata_cache SET filepath = ? WHERE {current_filepath_where}",
+                    (str(new_path), *current_filepath_params),
                 )
                 if not mc_res.ok:
                     raise RuntimeError(mc_res.error or "Failed to update metadata_cache filepath")
@@ -1217,7 +1328,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             logger.debug("Post-rename targeted reindex skipped: %s", exc)
 
         fresh_asset = None
-        if asset_id is not None:
+        if matched_asset_id is not None:
             try:
                 fr = await svc["db"].aquery(
                     """
@@ -1229,7 +1340,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                     WHERE a.id = ?
                     LIMIT 1
                     """,
-                    (asset_id,),
+                    (matched_asset_id,),
                 )
                 if fr.ok and fr.data:
                     fresh_asset = fr.data[0]
@@ -1509,7 +1620,7 @@ def _is_preview_download_request(request: web.Request) -> bool:
 
 def _download_rate_limit_response_or_none(request: web.Request, *, preview: bool) -> web.Response | None:
     key = "download_asset_preview" if preview else "download_asset"
-    max_requests = 2000 if preview else 30
+    max_requests = 200 if preview else 30
     allowed, retry_after = _check_rate_limit(request, key, max_requests=max_requests, window_seconds=60)
     if allowed:
         return None

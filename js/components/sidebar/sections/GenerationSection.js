@@ -2,6 +2,7 @@ import { createInfoBox, createParametersBox } from "../utils/dom.js";
 import { buildViewURL } from "../../../api/endpoints.js";
 import { t } from "../../../app/i18n.js";
 import { vectorGenerateCaption, vectorGetAlignment } from "../../../api/client.js";
+import { loadMajoorSettings } from "../../../app/settings.js";
 import {
     formatLoRAItem,
     formatModelLabel,
@@ -9,22 +10,65 @@ import {
     normalizePromptsForDisplay,
 } from "../parsers/geninfoParser.js";
 
+const _IMAGE_EXTENSIONS = new Set([
+    "png", "jpg", "jpeg", "webp", "gif", "bmp", "tiff", "tif", "avif", "heic", "heif", "apng", "hdr", "svg",
+]);
+
+function _assetExtension(asset) {
+    const raw = String(asset?.filename || asset?.name || asset?.filepath || asset?.path || "").trim().toLowerCase();
+    if (!raw || !raw.includes(".")) return "";
+    return raw.split(".").pop() || "";
+}
+
+function _isImageLikeAsset(asset) {
+    const kind = String(asset?.kind || "").trim().toLowerCase();
+    if (kind === "image") return true;
+    const mime = String(asset?.mime || asset?.mimetype || "").trim().toLowerCase();
+    if (mime.startsWith("image/")) return true;
+    const ext = _assetExtension(asset);
+    return _IMAGE_EXTENSIONS.has(ext);
+}
+
+function _isJpegAsset(asset) {
+    const ext = _assetExtension(asset);
+    return ext === "jpg" || ext === "jpeg";
+}
+
 function _getAlignmentColor(score) {
-    if (score >= 0.7) return "#4CAF50";      // green
-    if (score >= 0.4) return "#FF9800";      // orange
-    return "#F44336";                         // red
+    if (score >= 0.75) return "#4CAF50";      // green
+    if (score >= 0.50) return "#8BC34A";      // light green
+    if (score >= 0.30) return "#FF9800";      // orange
+    return "#F44336";                          // red
 }
 
 function _getAlignmentLabel(score) {
-    if (score >= 0.8) return "Excellent";
-    if (score >= 0.7) return "Good";
-    if (score >= 0.5) return "Fair";
-    if (score >= 0.3) return "Low";
+    if (score >= 0.85) return "Excellent";
+    if (score >= 0.70) return "Good";
+    if (score >= 0.50) return "Fair";
+    if (score >= 0.30) return "Low";
     return "Very Low";
 }
 
-function _createAlignmentBox(asset) {
+function _isAiEnabled() {
+    try {
+        const settings = loadMajoorSettings();
+        return !!(settings?.ai?.vectorSearchEnabled ?? true);
+    } catch {
+        return true;
+    }
+}
+
+function _createAlignmentBox(asset, options = {}) {
+    const showAlignment = options?.showAlignment !== false;
+    const aiEnabled = _isAiEnabled();
+    const captionLabelText = String(options?.captionLabel || "Image Description");
+    const emptyCaptionText = String(options?.emptyCaptionText || "No image description yet.");
+
     const wrapper = document.createElement("div");
+    wrapper.classList.add("mjr-ai-generation-box");
+    if (!aiEnabled) {
+        wrapper.classList.add("mjr-ai-disabled-block");
+    }
     wrapper.style.cssText = `
         background: linear-gradient(135deg, rgba(0, 188, 212, 0.14) 0%, rgba(33, 150, 243, 0.10) 100%);
         border: 1px solid rgba(0, 188, 212, 0.40);
@@ -35,129 +79,171 @@ function _createAlignmentBox(asset) {
         gap: 10px;
     `;
 
-    const header = document.createElement("div");
-    header.style.cssText = `
-        font-size: 11px;
-        font-weight: 600;
-        color: #00BCD4;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    `;
-    const titleSpan = document.createElement("span");
-    titleSpan.textContent = "Prompt Alignment";
-    titleSpan.title = "How closely the generated image matches the prompt (SigLIP2 score)";
-    header.appendChild(titleSpan);
-    wrapper.appendChild(header);
+    let scoreFill = null;
+    let scoreLabel = null;
+    let qualityBadge = null;
+    let aiStatusHint = null;
 
-    const scoreRow = document.createElement("div");
-    scoreRow.style.cssText = `
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    `;
+    if (showAlignment) {
+        const header = document.createElement("div");
+        header.style.cssText = `
+            font-size: 11px;
+            font-weight: 600;
+            color: #00BCD4;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        `;
+        const titleSpan = document.createElement("span");
+        titleSpan.textContent = "Prompt Alignment";
+        titleSpan.title = "How closely the generated image matches the prompt (SigLIP2 score)";
+        header.appendChild(titleSpan);
+        wrapper.appendChild(header);
 
-    const scoreBar = document.createElement("div");
-    scoreBar.style.cssText = `
-        flex: 1;
-        height: 8px;
-        background: rgba(255,255,255,0.1);
-        border-radius: 4px;
-        overflow: hidden;
-    `;
-    const scoreFill = document.createElement("div");
-    scoreFill.style.cssText = `
-        height: 100%;
-        width: 0%;
-        background: #666;
-        border-radius: 4px;
-        transition: width 0.6s ease, background 0.4s ease;
-    `;
-    scoreBar.appendChild(scoreFill);
+        const scoreRow = document.createElement("div");
+        scoreRow.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        `;
 
-    const scoreLabel = document.createElement("span");
-    scoreLabel.textContent = "...";
-    scoreLabel.style.cssText = `
-        font-size: 13px;
-        font-weight: 700;
-        color: #888;
-        min-width: 60px;
-        text-align: right;
-        font-family: 'Consolas', 'Monaco', monospace;
-    `;
+        const scoreBar = document.createElement("div");
+        scoreBar.style.cssText = `
+            flex: 1;
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        `;
+        scoreFill = document.createElement("div");
+        scoreFill.style.cssText = `
+            height: 100%;
+            width: 0%;
+            background: #666;
+            border-radius: 4px;
+            transition: width 0.6s ease, background 0.4s ease;
+        `;
+        scoreBar.appendChild(scoreFill);
 
-    const qualityBadge = document.createElement("span");
-    qualityBadge.style.cssText = `
-        font-size: 9px;
-        font-weight: 700;
-        padding: 2px 6px;
-        border-radius: 3px;
-        background: rgba(127,127,127,0.3);
-        color: #888;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    `;
-    qualityBadge.textContent = "Loading";
+        scoreLabel = document.createElement("span");
+        scoreLabel.textContent = "...";
+        scoreLabel.style.cssText = `
+            font-size: 13px;
+            font-weight: 700;
+            color: #888;
+            min-width: 60px;
+            text-align: right;
+            font-family: 'Consolas', 'Monaco', monospace;
+        `;
 
-    scoreRow.appendChild(scoreBar);
-    scoreRow.appendChild(scoreLabel);
-    scoreRow.appendChild(qualityBadge);
-    wrapper.appendChild(scoreRow);
+        qualityBadge = document.createElement("span");
+        qualityBadge.style.cssText = `
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 3px;
+            background: rgba(127,127,127,0.3);
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        `;
+        qualityBadge.textContent = "Loading";
 
-    const aiStatusHint = document.createElement("div");
-    aiStatusHint.style.cssText = `
-        display: none;
-        font-size: 10px;
-        color: rgba(255,255,255,0.65);
-        border: 1px dashed rgba(255,255,255,0.25);
-        border-radius: 4px;
-        padding: 6px 8px;
-        background: rgba(255,255,255,0.04);
-    `;
-    aiStatusHint.textContent = "AI features are disabled (enable vector search env var).";
-    wrapper.appendChild(aiStatusHint);
+        scoreRow.appendChild(scoreBar);
+        scoreRow.appendChild(scoreLabel);
+        scoreRow.appendChild(qualityBadge);
+        wrapper.appendChild(scoreRow);
+
+        aiStatusHint = document.createElement("div");
+        aiStatusHint.style.cssText = `
+            display: none;
+            font-size: 10px;
+            color: rgba(255,255,255,0.65);
+            border: 1px dashed rgba(255,255,255,0.25);
+            border-radius: 4px;
+            padding: 6px 8px;
+            background: rgba(255,255,255,0.04);
+        `;
+        aiStatusHint.textContent = "AI features are disabled (enable vector search env var).";
+        wrapper.appendChild(aiStatusHint);
+    }
 
     let currentEnhancedCaption = String(asset?.enhanced_caption || "").trim();
 
-    vectorGetAlignment(asset.id).then(res => {
-        const serviceUnavailable = !res?.ok && (
-            String(res?.code || "").toUpperCase() === "SERVICE_UNAVAILABLE"
-            || /vector search is not enabled/i.test(String(res?.error || ""))
-        );
-        if (serviceUnavailable) {
+    if (showAlignment && asset?.id && aiEnabled) {
+        vectorGetAlignment(asset.id).then(res => {
+            const serviceUnavailable = !res?.ok && (
+                String(res?.code || "").toUpperCase() === "SERVICE_UNAVAILABLE"
+                || /vector search is not enabled/i.test(String(res?.error || ""))
+            );
+            if (serviceUnavailable) {
+                if (scoreLabel) {
+                    scoreLabel.textContent = "AI OFF";
+                    scoreLabel.style.color = "#9E9E9E";
+                }
+                if (qualityBadge) {
+                    qualityBadge.textContent = "Disabled";
+                    qualityBadge.style.background = "rgba(158,158,158,0.25)";
+                    qualityBadge.style.color = "#BDBDBD";
+                }
+                if (scoreFill) {
+                    scoreFill.style.width = "0%";
+                    scoreFill.style.background = "#777";
+                }
+                if (aiStatusHint) aiStatusHint.style.display = "block";
+                return;
+            }
+            const score = res?.ok && res.data != null ? Number(res.data) : null;
+            if (score == null || !Number.isFinite(score)) {
+                if (scoreLabel) scoreLabel.textContent = "N/A";
+                if (qualityBadge) {
+                    qualityBadge.textContent = "N/A";
+                    qualityBadge.style.background = "rgba(127,127,127,0.3)";
+                }
+                if (scoreFill) scoreFill.style.width = "0%";
+                return;
+            }
+            const pct = Math.round(score * 100);
+            const color = _getAlignmentColor(score);
+            if (scoreFill) {
+                scoreFill.style.width = `${pct}%`;
+                scoreFill.style.background = color;
+            }
+            if (scoreLabel) {
+                scoreLabel.textContent = `${pct}%`;
+                scoreLabel.style.color = color;
+            }
+            if (qualityBadge) {
+                qualityBadge.textContent = _getAlignmentLabel(score);
+                qualityBadge.style.background = `${color}33`;
+                qualityBadge.style.color = color;
+            }
+        }).catch(() => {
+            if (scoreLabel) scoreLabel.textContent = "-";
+            if (qualityBadge) qualityBadge.textContent = "Unavailable";
+        });
+    }
+    if (showAlignment && !aiEnabled) {
+        if (scoreLabel) {
             scoreLabel.textContent = "AI OFF";
             scoreLabel.style.color = "#9E9E9E";
+        }
+        if (qualityBadge) {
             qualityBadge.textContent = "Disabled";
             qualityBadge.style.background = "rgba(158,158,158,0.25)";
             qualityBadge.style.color = "#BDBDBD";
+        }
+        if (scoreFill) {
             scoreFill.style.width = "0%";
             scoreFill.style.background = "#777";
+        }
+        if (aiStatusHint) {
             aiStatusHint.style.display = "block";
-            return;
+            aiStatusHint.textContent = "AI features are disabled in settings.";
         }
-        const score = res?.ok && res.data != null ? Number(res.data) : null;
-        if (score == null || !Number.isFinite(score)) {
-            scoreLabel.textContent = "N/A";
-            qualityBadge.textContent = "N/A";
-            qualityBadge.style.background = "rgba(127,127,127,0.3)";
-            scoreFill.style.width = "0%";
-            return;
-        }
-        const pct = Math.round(score * 100);
-        const color = _getAlignmentColor(score);
-        scoreFill.style.width = `${pct}%`;
-        scoreFill.style.background = color;
-        scoreLabel.textContent = `${pct}%`;
-        scoreLabel.style.color = color;
-        qualityBadge.textContent = _getAlignmentLabel(score);
-        qualityBadge.style.background = `${color}33`;
-        qualityBadge.style.color = color;
-    }).catch(() => {
-        scoreLabel.textContent = "-";
-        qualityBadge.textContent = "Unavailable";
-    });
+    }
 
     const enhancedCaptionHeader = document.createElement("div");
     enhancedCaptionHeader.style.cssText = `
@@ -174,7 +260,7 @@ function _createAlignmentBox(asset) {
     `;
 
     const enhancedCaptionLabel = document.createElement("span");
-    enhancedCaptionLabel.textContent = "Caption";
+    enhancedCaptionLabel.textContent = captionLabelText;
     enhancedCaptionLabel.title = "AI caption generated by Florence-2";
 
     const enhancedActions = document.createElement("div");
@@ -182,6 +268,7 @@ function _createAlignmentBox(asset) {
 
     const regenerateCaptionBtn = document.createElement("button");
     regenerateCaptionBtn.type = "button";
+    regenerateCaptionBtn.classList.add("mjr-ai-control");
     regenerateCaptionBtn.textContent = "Generate";
     regenerateCaptionBtn.style.cssText = `
         border: 1px solid rgba(0,188,212,0.45);
@@ -196,6 +283,7 @@ function _createAlignmentBox(asset) {
 
     const copyCaptionBtn = document.createElement("button");
     copyCaptionBtn.type = "button";
+    copyCaptionBtn.classList.add("mjr-ai-control");
     copyCaptionBtn.textContent = "Copy";
     copyCaptionBtn.style.cssText = regenerateCaptionBtn.style.cssText;
 
@@ -238,14 +326,15 @@ function _createAlignmentBox(asset) {
 
     const renderEnhancedCaption = (value) => {
         const txt = _normaliseCaptionDisplay(value);
-        enhancedCaptionBox.textContent = txt || "No enhanced caption yet.";
+        enhancedCaptionBox.textContent = txt || emptyCaptionText;
     };
 
     renderEnhancedCaption(currentEnhancedCaption);
 
     const copyCaption = async () => {
+        if (!aiEnabled) return;
         const text = String(enhancedCaptionBox.textContent || "").trim();
-        if (!text || /^no enhanced caption yet\.?$/i.test(text)) return;
+        if (!text || /^no (enhanced caption|image description) yet\.?$/i.test(text)) return;
         try {
             await navigator.clipboard.writeText(text);
             const prev = copyCaptionBtn.textContent;
@@ -261,17 +350,20 @@ function _createAlignmentBox(asset) {
         void copyCaption();
     });
 
-    enhancedCaptionBox.style.cursor = "copy";
-    enhancedCaptionBox.title = "Click to copy caption";
+    enhancedCaptionBox.style.cursor = aiEnabled ? "copy" : "default";
+    enhancedCaptionBox.title = aiEnabled ? "Click to copy caption" : "AI caption controls are disabled";
     enhancedCaptionBox.addEventListener("click", () => {
         void copyCaption();
     });
 
     const isImageAsset = String(asset?.kind || "").toLowerCase() === "image";
-    if (!isImageAsset || !asset?.id) {
+    if (!aiEnabled || !isImageAsset || !asset?.id) {
         regenerateCaptionBtn.disabled = true;
         regenerateCaptionBtn.style.opacity = "0.6";
         regenerateCaptionBtn.style.cursor = "default";
+        copyCaptionBtn.disabled = true;
+        copyCaptionBtn.style.opacity = "0.6";
+        copyCaptionBtn.style.cursor = "default";
     } else {
         regenerateCaptionBtn.addEventListener("click", async (e) => {
             e.stopPropagation();
@@ -391,6 +483,23 @@ export function createGenerationSection(asset) {
                     "#9E9E9E"
                 )
             );
+            return container;
+        }
+        // If nothing generation-related is displayable, keep an image description block visible
+        // for image assets (especially JPEGs that often have no workflow data).
+        const shouldShowImageDescription = _isImageLikeAsset(asset) || _isJpegAsset(asset);
+        if (shouldShowImageDescription) {
+            const container = document.createElement("div");
+            container.style.cssText = `
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            `;
+            container.appendChild(_createAlignmentBox(asset, {
+                showAlignment: false,
+                captionLabel: "Image Description",
+                emptyCaptionText: "No image description yet.",
+            }));
             return container;
         }
         return null;

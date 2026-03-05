@@ -20,7 +20,7 @@ from ...utils import sanitize_for_json
 from ..metadata import MetadataService
 from .enricher import MetadataEnricher
 from .metadata_helpers import MetadataHelpers
-from .scan_batch_utils import compute_state_hash
+from .scan_batch_utils import compute_state_hash, normalize_filepath_str
 from .scanner import IndexScanner
 from .searcher import IndexSearcher
 from .updater import AssetUpdater
@@ -30,7 +30,22 @@ logger = get_logger(__name__)
 
 
 def _normalize_rename_paths(old_filepath: str, new_filepath: str) -> tuple[str, str]:
-    return str(old_filepath or ""), str(new_filepath or "")
+    return str(old_filepath or ""), normalize_filepath_str(str(new_filepath or ""))
+
+
+def _filepath_match_clause(path_value: str, *, column: str = "filepath") -> tuple[str, tuple[Any, ...]]:
+    raw = str(path_value or "")
+    normalized = normalize_filepath_str(raw)
+    keys: list[str] = []
+    for value in (raw, normalized):
+        val = str(value or "")
+        if val and val not in keys:
+            keys.append(val)
+    if not keys:
+        return f"{column} = ''", tuple()
+    placeholders = ",".join("?" * len(keys))
+    where = f"({column} IN ({placeholders}) OR {column} = ? COLLATE NOCASE)"
+    return where, tuple([*keys, keys[0]])
 
 
 async def _get_rename_mtime(new_path: Path) -> int | None:
@@ -54,29 +69,44 @@ def _extract_rename_target_info(filepath: str) -> tuple[str, str, int | None]:
     return name, subfolder, mtime
 
 
-async def _update_assets_filepath_row(db, old_fp: str, new_fp: str, filename: str, subfolder: str, mtime: int | None) -> Result[Any]:
+async def _update_assets_filepath_row(
+    db,
+    old_where_sql: str,
+    old_where_params: tuple[Any, ...],
+    new_fp: str,
+    filename: str,
+    subfolder: str,
+    mtime: int | None,
+) -> Result[Any]:
     if mtime is None:
         return await db.aexecute(
-            "UPDATE assets SET filepath = ?, filename = ?, subfolder = ?, updated_at = CURRENT_TIMESTAMP WHERE filepath = ?",
-            (new_fp, filename, subfolder, old_fp),
+            f"UPDATE assets SET filepath = ?, filename = ?, subfolder = ?, updated_at = CURRENT_TIMESTAMP WHERE {old_where_sql}",
+            (new_fp, filename, subfolder, *old_where_params),
         )
     return await db.aexecute(
-        "UPDATE assets SET filepath = ?, filename = ?, subfolder = ?, mtime = ?, updated_at = CURRENT_TIMESTAMP WHERE filepath = ?",
-        (new_fp, filename, subfolder, mtime, old_fp),
+        f"UPDATE assets SET filepath = ?, filename = ?, subfolder = ?, mtime = ?, updated_at = CURRENT_TIMESTAMP WHERE {old_where_sql}",
+        (new_fp, filename, subfolder, mtime, *old_where_params),
     )
 
 
-async def _update_path_keyed_index_tables(db, old_fp: str, new_fp: str, subfolder: str, mtime: int | None) -> Result[bool]:
+async def _update_path_keyed_index_tables(
+    db,
+    old_where_sql: str,
+    old_where_params: tuple[Any, ...],
+    new_fp: str,
+    subfolder: str,
+    mtime: int | None,
+) -> Result[bool]:
     sj = await db.aexecute(
-        "UPDATE scan_journal SET filepath = ?, dir_path = ?, mtime = COALESCE(?, mtime), last_seen = CURRENT_TIMESTAMP WHERE filepath = ?",
-        (new_fp, subfolder, mtime, old_fp),
+        f"UPDATE scan_journal SET filepath = ?, dir_path = ?, mtime = COALESCE(?, mtime), last_seen = CURRENT_TIMESTAMP WHERE {old_where_sql}",
+        (new_fp, subfolder, mtime, *old_where_params),
     )
     if not sj.ok:
         return Result.Err("DB_ERROR", sj.error or "Failed to update scan_journal filepath")
 
     mc = await db.aexecute(
-        "UPDATE metadata_cache SET filepath = ?, last_updated = CURRENT_TIMESTAMP WHERE filepath = ?",
-        (new_fp, old_fp),
+        f"UPDATE metadata_cache SET filepath = ?, last_updated = CURRENT_TIMESTAMP WHERE {old_where_sql}",
+        (new_fp, *old_where_params),
     )
     if not mc.ok:
         return Result.Err("DB_ERROR", mc.error or "Failed to update metadata_cache filepath")
@@ -268,10 +298,20 @@ class IndexService:
             Result indicating success
         """
         # ON DELETE CASCADE handles asset_metadata, scan_journal, etc.
-        res = await self.db.aexecute("DELETE FROM assets WHERE filepath = ?", (str(filepath),))
+        where_sql, where_params = _filepath_match_clause(filepath, column="filepath")
+        res = await self.db.aexecute(
+            f"DELETE FROM assets WHERE {where_sql}",
+            where_params,
+        )
         if not res.ok:
             logger.warning("Failed to remove asset from index (%s): %s", filepath, res.error)
             return Result.Err("DB_ERROR", res.error or "Failed to delete asset")
+        try:
+            deleted_rows = int(res.data or 0)
+        except Exception:
+            deleted_rows = 0
+        if deleted_rows <= 0:
+            return Result.Err("NOT_FOUND", "Asset not found")
         logger.debug(f"Removed from index: {filepath}")
         return Result.Ok(True)
 
@@ -284,10 +324,11 @@ class IndexService:
         old_fp, new_fp = _normalize_rename_paths(old_filepath, new_filepath)
         if not old_fp or not new_fp:
             return Result.Err("INVALID_INPUT", "Missing old/new filepath")
-        if old_fp == new_fp:
+        if normalize_filepath_str(old_fp) == normalize_filepath_str(new_fp):
             return Result.Ok(True)
 
         try:
+            old_where_sql, old_where_params = _filepath_match_clause(old_fp, column="filepath")
             new_path = Path(new_fp)
             filename = new_path.name
             subfolder = str(new_path.parent)
@@ -302,11 +343,32 @@ class IndexService:
                 if not defer_fk.ok:
                     return Result.Err("DB_ERROR", defer_fk.error or "Failed to defer foreign key checks")
 
-                upd = await _update_assets_filepath_row(self.db, old_fp, new_fp, filename, subfolder, mtime)
+                upd = await _update_assets_filepath_row(
+                    self.db,
+                    old_where_sql,
+                    old_where_params,
+                    new_fp,
+                    filename,
+                    subfolder,
+                    mtime,
+                )
                 if not upd.ok:
                     return Result.Err("DB_ERROR", upd.error or "Failed to update asset filepath")
+                try:
+                    updated_rows = int(upd.data or 0)
+                except Exception:
+                    updated_rows = 0
+                if updated_rows <= 0:
+                    return Result.Err("NOT_FOUND", "Asset not found")
 
-                side_updates = await _update_path_keyed_index_tables(self.db, old_fp, new_fp, subfolder, mtime)
+                side_updates = await _update_path_keyed_index_tables(
+                    self.db,
+                    old_where_sql,
+                    old_where_params,
+                    new_fp,
+                    subfolder,
+                    mtime,
+                )
                 if not side_updates.ok:
                     return side_updates
         except Exception as exc:

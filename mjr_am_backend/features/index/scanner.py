@@ -8,7 +8,7 @@ import threading
 from typing import Any
 
 from ...adapters.db.sqlite import Sqlite
-from ...config import MAX_TO_ENRICH_ITEMS
+from ...config import MAX_TO_ENRICH_ITEMS, is_vector_index_on_scan_enabled
 from ...shared import get_logger
 from ..metadata import MetadataService
 from .fs_walker import SCAN_IOPS_LIMIT, FileSystemWalker
@@ -115,6 +115,8 @@ class IndexScanner:
         self._vector_searcher = vector_searcher
 
     def _schedule_added_image_vector_index(self, *, prev_added_count: int, added_ids: list[int] | None) -> None:
+        if not is_vector_index_on_scan_enabled():
+            return
         if self._vector_service is None or not isinstance(added_ids, list) or len(added_ids) <= prev_added_count:
             return
 
@@ -147,7 +149,7 @@ class IndexScanner:
                     SELECT a.id, a.filepath, a.kind, m.metadata_raw
                     FROM assets a
                     LEFT JOIN asset_metadata m ON a.id = m.asset_id
-                    WHERE a.kind = 'image' AND {IN_CLAUSE}
+                    WHERE a.kind IN ('image', 'video') AND {IN_CLAUSE}
                     """,
                     "a.id",
                     asset_ids,
@@ -167,11 +169,13 @@ class IndexScanner:
                             metadata_raw = parsed if isinstance(parsed, dict) else None
                         except Exception:
                             metadata_raw = None
+                    kind_raw = str(row.get("kind") or "").strip().lower()
+                    kind = "video" if kind_raw == "video" else "image"
                     entries.append(
                         {
                             "asset_id": int(row["id"]),
                             "filepath": str(row["filepath"]),
-                            "kind": "image",
+                            "kind": kind,
                             "metadata_raw": metadata_raw,
                         }
                     )
@@ -200,7 +204,7 @@ class IndexScanner:
                                 self._vector_service,
                                 asset_id=aid,
                                 filepath=filepath,
-                                kind="image",
+                                kind=str(entry.get("kind") or "image"),
                                 metadata_raw=entry.get("metadata_raw"),
                             ),
                             timeout=_VECTOR_INDEX_PER_ASSET_TIMEOUT_S,
@@ -228,7 +232,7 @@ class IndexScanner:
                 if timed_out > 0:
                     sample = ", ".join(str(x) for x in timed_out_ids[:8]) or "n/a"
                     logger.warning(
-                        "Scanner vector indexing timed out for %d/%d new images "
+                        "Scanner vector indexing timed out for %d/%d new media assets "
                         "(indexed=%d skipped=%d errors=%d timeout_per_asset=%.0fs sample_asset_ids=%s)",
                         timed_out,
                         len(entries),
@@ -240,7 +244,7 @@ class IndexScanner:
                     )
                 elif errors > 0:
                     logger.warning(
-                        "Scanner vector indexing completed with errors for %d new images "
+                        "Scanner vector indexing completed with errors for %d new media assets "
                         "(indexed=%d skipped=%d errors=%d)",
                         len(entries),
                         indexed,
@@ -249,7 +253,7 @@ class IndexScanner:
                     )
                 else:
                     logger.debug(
-                        "Scanner vector indexing complete for %d new images "
+                        "Scanner vector indexing complete for %d new media assets "
                         "(indexed=%d skipped=%d)",
                         len(entries),
                         indexed,
@@ -295,6 +299,8 @@ class IndexScanner:
         return {
             "batch_fallbacks_total": fallback_count,
             "scan_iops_limit": float(self._fs_walker._scan_iops_limit),
+            "vector_index_on_scan_enabled": bool(is_vector_index_on_scan_enabled()),
+            "vector_index_tasks_pending": int(len(self._vector_index_tasks)),
         }
 
     _get_journal_entry = get_journal_entry

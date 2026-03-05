@@ -8,7 +8,7 @@ from mjr_am_backend.adapters.db.sqlite_facade import Sqlite
 
 @pytest.mark.asyncio
 async def test_migrate_schema_while_queries_are_active(tmp_path) -> None:
-    db = Sqlite(str(tmp_path / "concurrent_migrate.sqlite"))
+    db = Sqlite(str(tmp_path / "concurrent_migrate.sqlite"), attach={"vec": str(tmp_path / "vectors.sqlite")})
     try:
         await db.aexecute("CREATE TABLE IF NOT EXISTS t_conc (id INTEGER PRIMARY KEY, v TEXT)")
         await db.aexecute("INSERT INTO t_conc(v) VALUES (?)", ("x",))

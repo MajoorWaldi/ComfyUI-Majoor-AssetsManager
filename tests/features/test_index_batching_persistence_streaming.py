@@ -138,6 +138,46 @@ async def test_consume_scan_queue_processes_until_sentinel(monkeypatch, tmp_path
     assert stats["scanned"] == 1
 
 
+@pytest.mark.asyncio
+async def test_consume_scan_queue_logs_progress_when_enabled(monkeypatch, tmp_path: Path) -> None:
+    logged = {"n": 0}
+
+    async def _proc(scanner, **kwargs):
+        _ = (scanner, kwargs)
+
+    monkeypatch.setattr(streaming_mod, "process_scan_batch", _proc)
+    monkeypatch.setattr(streaming_mod, "SCAN_LOG_PROGRESS_EVERY", 1)
+    monkeypatch.setattr(streaming_mod, "SCAN_LOG_PROGRESS_MIN_SECONDS", 0.0)
+
+    file_path = tmp_path / "progress.png"
+    file_path.write_text("x")
+    seq = [[file_path, None]]
+
+    def _drain(_q, _target):
+        return seq.pop(0) if seq else []
+
+    scanner = SimpleNamespace(
+        _fs_walker=SimpleNamespace(drain_queue=_drain),
+        _log_scan_event=lambda *_args, **_kwargs: logged.__setitem__("n", logged["n"] + 1),
+    )
+    stats = {"scanned": 0, "added": 0, "updated": 0, "skipped": 0, "errors": 0}
+
+    await streaming_mod.consume_scan_queue(
+        scanner,
+        q=SimpleNamespace(),
+        directory=str(tmp_path),
+        incremental=False,
+        source="output",
+        root_id=None,
+        fast=False,
+        stats=stats,
+        to_enrich=[],
+        stop_event=threading.Event(),
+    )
+
+    assert logged["n"] >= 1
+
+
 def test_cached_refresh_payload_variants() -> None:
     assert batching_mod.cached_refresh_payload(
         existing_id=0,
