@@ -1,4 +1,5 @@
 import { t } from "../../../app/i18n.js";
+import { setTooltipHint } from "../../../utils/tooltipShortcuts.js";
 
 export function createSidebarHeader(asset, onClose) {
     const header = document.createElement("div");
@@ -36,8 +37,7 @@ export function createSidebarHeader(asset, onClose) {
     closeBtn.className = "mjr-sidebar-close";
     closeBtn.type = "button";
     closeBtn.textContent = "×";
-    closeBtn.title = t("tooltip.closeSidebarEsc");
-    closeBtn.setAttribute("aria-label", t("tooltip.closeSidebar"));
+    setTooltipHint(closeBtn, t("tooltip.closeSidebar", "Close sidebar"), "Esc");
     closeBtn.style.cssText = `
         background: none;
         border: none;

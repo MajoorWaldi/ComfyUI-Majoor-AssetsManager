@@ -166,4 +166,47 @@ describe("FloatingViewer", () => {
     expect(popoutBtn.addEventListener).toHaveBeenCalledWith("click", expect.any(Function), expect.objectContaining({ signal: viewer._btnAC.signal }));
     expect(captureBtn.addEventListener).toHaveBeenCalledWith("click", expect.any(Function), expect.objectContaining({ signal: viewer._btnAC.signal }));
   });
+
+  it("includes shortcut hints in MFV tooltips", async () => {
+    const { FloatingViewer, MFV_MODES } = await import("../features/viewer/FloatingViewer.js");
+
+    const modeBtn = {
+      title: "",
+      replaceChildren: vi.fn(),
+      setAttribute: vi.fn(),
+      removeAttribute: vi.fn(),
+    };
+    const liveBtn = {
+      title: "",
+      classList: { toggle: vi.fn() },
+      replaceChildren: vi.fn(),
+      setAttribute: vi.fn(),
+    };
+    const previewBtn = {
+      title: "",
+      classList: { toggle: vi.fn() },
+      replaceChildren: vi.fn(),
+      setAttribute: vi.fn(),
+    };
+
+    const viewer = {
+      _mode: MFV_MODES.AB,
+      _modeBtn: modeBtn,
+      _liveBtn: liveBtn,
+      _previewBtn: previewBtn,
+      _previewActive: false,
+      _revokePreviewBlob: vi.fn(),
+    };
+
+    FloatingViewer.prototype._updateModeBtnUI.call(viewer);
+    FloatingViewer.prototype.setLiveActive.call(viewer, true);
+    FloatingViewer.prototype.setPreviewActive.call(viewer, false);
+
+    expect(modeBtn.title).toContain("(C)");
+    expect(modeBtn.setAttribute).toHaveBeenCalledWith("aria-label", expect.stringContaining("(C)"));
+    expect(liveBtn.title).toContain("(L)");
+    expect(liveBtn.setAttribute).toHaveBeenCalledWith("aria-label", expect.stringContaining("(L)"));
+    expect(previewBtn.title).toContain("(K)");
+    expect(previewBtn.setAttribute).toHaveBeenCalledWith("aria-label", expect.stringContaining("(K)"));
+  });
 });

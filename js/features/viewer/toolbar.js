@@ -1,6 +1,7 @@
 import { safeAddListener, safeCall } from "./lifecycle.js";
 import { createIconButton, createModeButton } from "../../components/buttons.js";
 import { t } from "../../app/i18n.js";
+import { appendTooltipHint } from "../../utils/tooltipShortcuts.js";
 
 export function createViewerToolbar({
     VIEWER_MODES,
@@ -493,7 +494,10 @@ export function createViewerToolbar({
         { value: 3, label: "Safe" },
         { value: 4, label: "Golden" },
     ]);
-    gridModeSelect.title = t("tooltip.gridOverlay", "Grid overlay (rule of thirds, center)");
+    gridModeSelect.title = appendTooltipHint(
+        t("tooltip.gridOverlay", "Grid overlay (rule of thirds, center)"),
+        "G"
+    );
     const maskToggle = createToggle("Mask", "Format mask (dim outside)", { iconClass: "pi-stop", accentRgb: ACCENT.overlay });
     const formatSelect = createSelect("Format", [
         { value: "image", label: "Image" },
@@ -512,7 +516,7 @@ export function createViewerToolbar({
         iconClass: "pi-window-maximize",
         accentRgb: ACCENT.overlay,
     });
-    const genInfoToggle = createToggle("Gen", "Generation info (prompt/model)", {
+    const genInfoToggle = createToggle("Gen", appendTooltipHint("Generation info (prompt/model)", "D"), {
         iconClass: "pi-book",
         accentRgb: ACCENT.geninfo,
     });
@@ -736,6 +740,7 @@ export function createViewerToolbar({
         addRow("-", "Zoom Out");
         addRow("Alt+1", "1:1 Zoom");
         addRow("G", "Grid");
+        addRow("D", "Gen Info");
         addRow("Z", "Zebra");
         addRow("I", "Probe");
         addRow("L", "Loupe");

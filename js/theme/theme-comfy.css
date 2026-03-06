@@ -268,9 +268,13 @@
     border: 1px solid var(--mjr-border, var(--border-color, rgba(255, 255, 255, 0.12)));
     box-shadow: 0 12px 28px rgba(0,0,0,0.35);
 	    z-index: var(--mjr-popover-z-index);
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
+    scrollbar-width: thin;
 }
 
 .mjr-filter-popover {
@@ -293,7 +297,7 @@
 
 .mjr-messages-popover {
     min-width: 320px;
-    width: min(380px, calc(100vw - 24px));
+    width: min(460px, calc(100vw - 24px));
     padding: 10px;
 }
 
@@ -304,6 +308,49 @@
     gap: 8px;
     flex-wrap: wrap;
     margin-bottom: 8px;
+}
+
+.mjr-messages-tabs {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    padding: 3px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--mjr-border) 88%, transparent);
+    background: color-mix(in srgb, var(--mjr-surface-2) 74%, transparent);
+}
+
+.mjr-messages-tab {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: color-mix(in srgb, var(--content-fg, #f1f1f1) 76%, transparent);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+    padding: 6px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background-color 0.14s ease, color 0.14s ease, transform 0.14s ease;
+}
+
+.mjr-messages-tab:hover,
+.mjr-messages-tab:focus-visible {
+    background: color-mix(in srgb, var(--mjr-accent) 14%, transparent);
+    color: var(--content-fg, #f1f1f1);
+    outline: none;
+}
+
+.mjr-messages-tab.is-active {
+    background: color-mix(in srgb, var(--mjr-accent) 22%, var(--mjr-surface-2));
+    color: var(--content-fg, #fff);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mjr-accent) 34%, transparent);
+}
+
+.mjr-messages-panels {
+    display: grid;
+    gap: 8px;
 }
 
 .mjr-messages-title {
@@ -458,6 +505,80 @@
 
 .mjr-message-item-action:hover {
     text-decoration: underline;
+}
+
+.mjr-shortcut-guide {
+    display: grid;
+    gap: 8px;
+}
+
+.mjr-shortcut-guide-intro {
+    font-size: 12px;
+    line-height: 1.45;
+    opacity: 0.84;
+}
+
+.mjr-shortcut-section {
+    display: grid;
+    gap: 6px;
+    padding: 8px;
+    border-radius: 10px;
+    border: 1px solid color-mix(in srgb, var(--mjr-border) 84%, transparent);
+    background: color-mix(in srgb, var(--mjr-surface-3, var(--mjr-surface-2)) 72%, transparent);
+}
+
+.mjr-shortcut-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--content-fg, #f1f1f1) 88%, transparent);
+}
+
+.mjr-shortcut-list {
+    display: grid;
+    gap: 6px;
+}
+
+.mjr-shortcut-row {
+    display: grid;
+    grid-template-columns: minmax(132px, 160px) minmax(0, 1fr);
+    gap: 8px;
+    align-items: start;
+}
+
+.mjr-shortcut-key {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 24px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--mjr-accent) 38%, var(--mjr-border));
+    background: color-mix(in srgb, var(--mjr-accent) 12%, var(--mjr-surface-2));
+    color: color-mix(in srgb, var(--content-fg, #fff) 90%, transparent);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.25;
+    text-align: center;
+    white-space: normal;
+}
+
+.mjr-shortcut-desc {
+    min-width: 0;
+    font-size: 12px;
+    line-height: 1.4;
+    opacity: 0.92;
+}
+
+@media (max-width: 560px) {
+    .mjr-shortcut-row {
+        grid-template-columns: 1fr;
+    }
+
+    .mjr-shortcut-key {
+        justify-content: flex-start;
+    }
 }
 
 .mjr-filter-group {

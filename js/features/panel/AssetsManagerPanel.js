@@ -1,6 +1,7 @@
 
 import { comfyConfirm, comfyPrompt } from "../../app/dialogs.js";
 import { comfyToast } from "../../app/toast.js";
+import { EVENTS } from "../../app/events.js";
 import { t } from "../../app/i18n.js";
 import { 
     startTimer, 
@@ -164,7 +165,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     const { sortPopover, sortMenu } = createSortPopoverView();
     const { collectionsPopover, collectionsMenu } = createCollectionsPopoverView();
     const { pinnedFoldersPopover, pinnedFoldersMenu } = createPinnedFoldersPopoverView();
-    const { messagePopover, messageList, markReadBtn } = createMessagePopoverView();
+    const { title: messagePopoverTitle, messagePopover, messageTabBtn, shortcutsTabBtn, messageList, shortcutsPanel, markReadBtn } = createMessagePopoverView();
 
     headerActions.appendChild(customPopover);
     headerActions.appendChild(messagePopover);
@@ -710,7 +711,11 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     bindMessagePopoverController({
         messageBtn,
         messagePopover,
+        title: messagePopoverTitle,
         messageList,
+        shortcutsPanel,
+        messageTabBtn,
+        shortcutsTabBtn,
         markReadBtn,
         popovers,
         signal: panelLifecycleAC?.signal,
@@ -1208,6 +1213,11 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         },
         onToggleDetails: () => {
             sidebarController?.toggleDetails?.();
+        },
+        onToggleFloatingViewer: () => {
+            try {
+                window.dispatchEvent(new Event(EVENTS.MFV_TOGGLE));
+            } catch (e) { console.debug?.(e); }
         },
         onFocusSearch: () => {
             try {

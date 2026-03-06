@@ -1,3 +1,16 @@
+export function isManagedPopoverTarget(target, openPopovers) {
+    if (!target || !openPopovers?.size) return false;
+    for (const item of openPopovers.values()) {
+        const popover = item?.popover || null;
+        if (!popover) continue;
+        if (target === popover) return true;
+        try {
+            if (typeof popover.contains === "function" && popover.contains(target)) return true;
+        } catch (e) { console.debug?.(e); }
+    }
+    return false;
+}
+
 export function createPopoverManager(container) {
     const openPopovers = new Map();
     let resizeObserver = null;
@@ -17,6 +30,28 @@ export function createPopoverManager(container) {
     const POPOVER_BOTTOM_SAFETY_PX = 80;
     const POPOVER_MIN_HEIGHT_PX = 140;
 
+    const canScrollAxis = (el, axis = "y") => {
+        if (!el) return false;
+        const style = globalThis.getComputedStyle?.(el);
+        const overflow = axis === "x"
+            ? String(style?.overflowX || style?.overflow || "")
+            : String(style?.overflowY || style?.overflow || "");
+        if (!/(auto|scroll|overlay)/i.test(overflow)) return false;
+        if (axis === "x") {
+            return Number(el.scrollWidth || 0) > Number(el.clientWidth || 0) + 1;
+        }
+        return Number(el.scrollHeight || 0) > Number(el.clientHeight || 0) + 1;
+    };
+
+    const resolveScrollTarget = (start, root) => {
+        let el = start instanceof HTMLElement ? start : root;
+        while (el && el !== root) {
+            if (canScrollAxis(el, "y") || canScrollAxis(el, "x")) return el;
+            el = el.parentElement;
+        }
+        return canScrollAxis(root, "y") || canScrollAxis(root, "x") ? root : null;
+    };
+
     const bindPopoverInteractionGuards = (popover) => {
         if (!popover || popover._mjrInteractionGuardsBound) return;
         const stopPropagation = (event) => {
@@ -24,8 +59,23 @@ export function createPopoverManager(container) {
                 event.stopPropagation();
             } catch (e) { console.debug?.(e); }
         };
+        const handleWheel = (event) => {
+            const scrollTarget = resolveScrollTarget(event?.target, popover);
+            const deltaX = Number(event?.deltaX || 0);
+            const deltaY = Number(event?.deltaY || 0);
+            if (scrollTarget) {
+                try {
+                    if (deltaY) scrollTarget.scrollTop = Number(scrollTarget.scrollTop || 0) + deltaY;
+                    if (deltaX) scrollTarget.scrollLeft = Number(scrollTarget.scrollLeft || 0) + deltaX;
+                } catch (e) { console.debug?.(e); }
+            }
+            try {
+                event.preventDefault();
+            } catch (e) { console.debug?.(e); }
+            stopPropagation(event);
+        };
         try {
-            popover.addEventListener("wheel", stopPropagation, { passive: true });
+            popover.addEventListener("wheel", handleWheel, { passive: false, capture: true });
             popover.addEventListener("mousedown", stopPropagation);
             popover.addEventListener("touchmove", stopPropagation, { passive: true });
             popover._mjrInteractionGuardsBound = true;
@@ -43,7 +93,9 @@ export function createPopoverManager(container) {
         }
         popover.classList.add("mjr-popover-portal");
         try {
-            document.body.appendChild(popover);
+            if (popover.parentNode !== document.body) {
+                document.body.appendChild(popover);
+            }
         } catch (e) { console.debug?.(e); }
     };
 
@@ -105,7 +157,8 @@ export function createPopoverManager(container) {
             top = Math.max(topLimit, Math.min(top, bottomLimit - POPOVER_BOTTOM_SAFETY_PX));
             const availableBelow = bottomLimit - top;
             popover.style.maxHeight = `${Math.max(POPOVER_MIN_HEIGHT_PX, availableBelow)}px`;
-            popover.style.overflow = "auto";
+            popover.style.overflowX = "hidden";
+            popover.style.overflowY = "auto";
             popover.style.overscrollBehavior = "contain";
 
             popover.style.left = `${Math.round(left)}px`;
@@ -122,6 +175,11 @@ export function createPopoverManager(container) {
         });
     };
 
+    const handleObservedScroll = (event) => {
+        if (isManagedPopoverTarget(event?.target, openPopovers)) return;
+        scheduleReposition();
+    };
+
     const ensureRepositionListeners = () => {
         if (!openPopovers.size) return;
         try {
@@ -133,7 +191,7 @@ export function createPopoverManager(container) {
         try {
             if (!windowScrollHandlerBound) {
                 // Scroll doesn't bubble; use capture to catch nested scroll containers.
-            window.addEventListener("scroll", scheduleReposition, { passive: true, capture: true, signal: repositionController.signal });
+            window.addEventListener("scroll", handleObservedScroll, { passive: true, capture: true, signal: repositionController.signal });
                 windowScrollHandlerBound = true;
             }
         } catch (e) { console.debug?.(e); }
@@ -146,7 +204,7 @@ export function createPopoverManager(container) {
         try {
             if (!containerScrollHandlerBound) {
                 // Bind to panel root as a fallback when window capture doesn't fire reliably.
-                container.addEventListener("scroll", scheduleReposition, { passive: true });
+                container.addEventListener("scroll", handleObservedScroll, { passive: true });
                 containerScrollHandlerBound = true;
             }
         } catch (e) { console.debug?.(e); }
@@ -159,15 +217,15 @@ export function createPopoverManager(container) {
         } catch (e) { console.debug?.(e); }
         windowResizeHandlerBound = false;
         try {
-            if (windowScrollHandlerBound) window.removeEventListener("scroll", scheduleReposition, { capture: true });
+            if (windowScrollHandlerBound) window.removeEventListener("scroll", handleObservedScroll, { capture: true });
         } catch (e) { console.debug?.(e); }
         // Safari/Chromium ignore the options object mismatch sometimes; best-effort extra removal.
         try {
-            if (windowScrollHandlerBound) window.removeEventListener("scroll", scheduleReposition, true);
+            if (windowScrollHandlerBound) window.removeEventListener("scroll", handleObservedScroll, true);
         } catch (e) { console.debug?.(e); }
         windowScrollHandlerBound = false;
         try {
-            if (containerScrollHandlerBound) container.removeEventListener("scroll", scheduleReposition);
+            if (containerScrollHandlerBound) container.removeEventListener("scroll", handleObservedScroll);
         } catch (e) { console.debug?.(e); }
         containerScrollHandlerBound = false;
         try {

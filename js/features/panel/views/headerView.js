@@ -8,9 +8,11 @@ import {
     getStoredVersionUpdateState,
 } from "../../../app/versionCheck.js";
 import { EVENTS } from "../../../app/events.js";
+import { setTooltipHint } from "../../../utils/tooltipShortcuts.js";
 
 let _extensionMetadataPromise = null;
 const VERSION_BADGE_LABEL_CLASS = "mjr-am-version-badge-label";
+const MFV_TOOLTIP_HINT = "V, Ctrl/Cmd+V";
 
 function getExtensionMetadata() {
     if (!_extensionMetadataPromise) {
@@ -220,15 +222,20 @@ export function createHeaderView() {
 
     // Floating Viewer toggle button — opens/closes the MFV overlay.
     const mfvBtn = createIconButton("pi-eye", t("tooltip.openMFV", "Open Floating Viewer"));
+    setTooltipHint(mfvBtn, t("tooltip.openMFV", "Open Floating Viewer"), MFV_TOOLTIP_HINT);
     mfvBtn.addEventListener("click", () => {
         window.dispatchEvent(new CustomEvent(EVENTS.MFV_TOGGLE));
     });
     const _mfvVisibilityHandler = (e) => {
         const active = Boolean(e?.detail?.visible);
         mfvBtn.classList.toggle("mjr-mfv-btn-active", active);
-        mfvBtn.title = active
-            ? t("tooltip.closeMFV", "Close Floating Viewer")
-            : t("tooltip.openMFV", "Open Floating Viewer");
+        setTooltipHint(
+            mfvBtn,
+            active
+                ? t("tooltip.closeMFV", "Close Floating Viewer")
+                : t("tooltip.openMFV", "Open Floating Viewer"),
+            MFV_TOOLTIP_HINT
+        );
         // Swap icon: pi-eye-slash when MFV is open, pi-eye when closed
         const icon = mfvBtn.querySelector("i");
         if (icon) icon.className = active ? "pi pi-eye-slash" : "pi pi-eye";

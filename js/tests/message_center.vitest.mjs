@@ -85,6 +85,31 @@ describe("messageCenter", () => {
     expect(secondLoad.listPanelMessages()).toEqual([]);
   });
 
+  it("does not inject shortcuts as a normal builtin message entry", async () => {
+    const firstLoad = await loadMessageCenter();
+
+    firstLoad.ensurePanelMessagesReady();
+    const ids = firstLoad.listPanelMessages().map((message) => message.id);
+
+    expect(ids).not.toContain("info-2026-03-06-shortcut-guide");
+  });
+
+  it("includes the floating viewer shortcuts announcement as a builtin message", async () => {
+    const firstLoad = await loadMessageCenter();
+
+    firstLoad.ensurePanelMessagesReady();
+    const entry = firstLoad
+      .listPanelMessages()
+      .find((message) => message.id === "whats-new-2026-03-06-floating-viewer-shortcuts");
+
+    expect(entry).toMatchObject({
+      id: "whats-new-2026-03-06-floating-viewer-shortcuts",
+      titleKey: "msg.whatsNew.title.floatingViewerShortcuts",
+      bodyKey: "msg.whatsNew.body.floatingViewerShortcuts",
+      level: "info",
+    });
+  });
+
   it("returns the stored merged message when updating an existing entry", async () => {
     const { addPanelMessage, listPanelMessages, upsertPanelMessage } = await loadMessageCenter();
 

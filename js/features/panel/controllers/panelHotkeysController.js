@@ -13,6 +13,7 @@ export function createPanelHotkeysController({
     onTriggerScan,
     getScanContext,
     onToggleDetails,
+    onToggleFloatingViewer,
     onFocusSearch,
     onClearSearch,
     allowListKeys,
@@ -40,6 +41,21 @@ export function createPanelHotkeysController({
               ]);
 
     const isPanelActive = () => panelFocused || panelHovered;
+    const isPanelHotkeyContext = (event) => {
+        if (isPanelActive()) return true;
+        try {
+            const target = event?.target;
+            if (boundEl && target && typeof boundEl.contains === "function") {
+                if (boundEl === target || boundEl.contains(target)) return true;
+            }
+        } catch (e) { console.debug?.(e); }
+        try {
+            return Boolean(boundEl?.isConnected) && document.activeElement === document.body;
+        } catch (e) {
+            console.debug?.(e);
+            return false;
+        }
+    };
 
     const handlers = {
         focusin: () => {
@@ -63,7 +79,7 @@ export function createPanelHotkeysController({
 
             // Check if panel is active before processing hotkeys
             // This ensures hotkeys only work when the panel is hovered or focused
-            if (!isPanelActive()) return;
+            if (!isPanelHotkeyContext(event)) return;
 
             const lower = event.key?.toLowerCase?.() || "";
             const isTypingTarget =
@@ -117,10 +133,23 @@ export function createPanelHotkeysController({
                 return;
             }
 
+            // V and Ctrl/Cmd+V toggle the floating viewer for the current panel selection.
+            // Keep Alt+V and Ctrl/Cmd+Shift+V untouched for other app/browser behaviors.
+            if (lower === "v" && !event.altKey && !(event.shiftKey && (event.ctrlKey || event.metaKey))) {
+                if (isTypingTarget) return;
+                event.preventDefault();
+                event.stopPropagation();
+                event.stopImmediatePropagation?.();
+                try {
+                    onToggleFloatingViewer?.();
+                } catch (e) { console.debug?.(e); }
+                return;
+            }
+
             // For navigation keys, prevent ComfyUI global handlers from stealing focus/scroll.
             // Only intercept if panel is actually active.
             // Never intercept while typing in inputs (e.g. tags editor in the sidebar).
-            if (allowed.has(event.key) && isPanelActive()) {
+            if (allowed.has(event.key) && isPanelHotkeyContext(event)) {
                 if (isTypingTarget) return;
                 event.preventDefault();
                 event.stopPropagation();

@@ -2,6 +2,9 @@ import { get } from "../../../api/client.js";
 import { debounce } from "../../../utils/debounce.js";
 import { t } from "../../../app/i18n.js";
 import { createIconButton } from "./iconButton.js";
+import { appendTooltipHint } from "../../../utils/tooltipShortcuts.js";
+
+const SEARCH_TOOLTIP_HINT = "Ctrl/Cmd+F, Ctrl/Cmd+K, Ctrl/Cmd+H";
 
 export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFoldersBtn, filterPopover, sortPopover, collectionsPopover, pinnedFoldersPopover }) {
     const searchSection = document.createElement("div");
@@ -33,7 +36,10 @@ export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFol
     searchInputEl.id = "mjr-search-input";
     searchInputEl.classList.add("mjr-input");
     searchInputEl.placeholder = t("search.placeholder", "Search assets...");
-    searchInputEl.title = t("search.title", "Search by filename, tags, or attributes (e.g. rating:5, ext:png)");
+    searchInputEl.title = appendTooltipHint(
+        t("search.title", "Search by filename, tags, or attributes (e.g. rating:5, ext:png)"),
+        SEARCH_TOOLTIP_HINT
+    );
     searchInputEl.setAttribute("list", dataListId);
 
     // ── Semantic Search Toggle ──────────────────────────────────────
@@ -70,14 +76,20 @@ export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFol
             semanticBtn.style.color = "#00BCD4";
             semanticBtn.style.boxShadow = "0 0 6px rgba(0, 188, 212, 0.3)";
             searchInputEl.placeholder = t("search.semanticPlaceholder", "Describe what you're looking for...");
-            searchInputEl.title = t("search.semanticTitle", "AI semantic search — describe your image in natural language");
+            searchInputEl.title = appendTooltipHint(
+                t("search.semanticTitle", "AI semantic search — describe your image in natural language"),
+                SEARCH_TOOLTIP_HINT
+            );
         } else {
             semanticBtn.style.background = "transparent";
             semanticBtn.style.borderColor = "rgba(0, 188, 212, 0.25)";
             semanticBtn.style.color = "rgba(0, 188, 212, 0.5)";
             semanticBtn.style.boxShadow = "none";
             searchInputEl.placeholder = t("search.placeholder", "Search assets...");
-            searchInputEl.title = t("search.title", "Search by filename, tags, or attributes (e.g. rating:5, ext:png)");
+            searchInputEl.title = appendTooltipHint(
+                t("search.title", "Search by filename, tags, or attributes (e.g. rating:5, ext:png)"),
+                SEARCH_TOOLTIP_HINT
+            );
         }
     };
 

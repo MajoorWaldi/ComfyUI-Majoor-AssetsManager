@@ -11,6 +11,7 @@ const state = vi.hoisted(() => {
   let lastViewer = null;
   let activeGrid = null;
   let pinnedSlot = null;
+  let viewerPopped = false;
 
   const getAssetsBatchMock = vi.fn();
   const getSelectedIdSetMock = vi.fn();
@@ -22,7 +23,14 @@ const state = vi.hoisted(() => {
       this._mediaA = null;
       this._mediaB = null;
       this._pinnedSlot = pinnedSlot;
+      this._isPopped = viewerPopped;
       this.isVisible = false;
+      this.show = vi.fn(() => {
+        this.isVisible = true;
+      });
+      this.hide = vi.fn(() => {
+        this.isVisible = false;
+      });
       this.loadMediaA = vi.fn((asset, opts) => {
         this._mediaA = asset;
         this._lastLoadMediaA = [asset, opts];
@@ -31,6 +39,9 @@ const state = vi.hoisted(() => {
         this._mediaA = assetA;
         this._mediaB = assetB;
         this._lastLoadMediaPair = [assetA, assetB];
+      });
+      this.setMode = vi.fn((mode) => {
+        this._mode = mode;
       });
       this.setLiveActive = vi.fn();
       this.setPreviewActive = vi.fn();
@@ -42,25 +53,21 @@ const state = vi.hoisted(() => {
       return { nodeName: "DIV" };
     }
 
-    show() {
-      this.isVisible = true;
-    }
-
-    hide() {
-      this.isVisible = false;
-    }
-
     get isPopped() {
-      return false;
+      return this._isPopped;
     }
 
     getPinnedSlot() {
       return this._pinnedSlot;
     }
 
-    popOut() {}
+    popOut = vi.fn(() => {
+      this._isPopped = true;
+    })
 
-    popIn() {}
+    popIn = vi.fn(() => {
+      this._isPopped = false;
+    })
 
   }
 
@@ -78,6 +85,7 @@ const state = vi.hoisted(() => {
       lastViewer = null;
       activeGrid = null;
       pinnedSlot = null;
+      viewerPopped = false;
       getAssetsBatchMock.mockReset();
       getSelectedIdSetMock.mockReset();
       reportErrorMock.mockReset();
@@ -90,6 +98,9 @@ const state = vi.hoisted(() => {
     },
     setPinnedSlot(slot) {
       pinnedSlot = slot || null;
+    },
+    setViewerPopped(popped) {
+      viewerPopped = Boolean(popped);
     },
     getLastViewer() {
       return lastViewer;
@@ -280,6 +291,23 @@ describe("floatingViewerManager", () => {
     );
   });
 
+  it("pops the viewer back in before closing when it is popped out", async () => {
+    state.setViewerPopped(true);
+
+    const { floatingViewerManager } = await import("../features/viewer/floatingViewerManager.js");
+    floatingViewerManager.open();
+
+    const viewer = state.getLastViewer();
+    expect(viewer.isVisible).toBe(true);
+    expect(viewer.isPopped).toBe(true);
+
+    floatingViewerManager.close();
+
+    expect(viewer.popIn).toHaveBeenCalledTimes(1);
+    expect(viewer.hide).toHaveBeenCalledTimes(1);
+    expect(viewer.isVisible).toBe(false);
+  });
+
   it("emits visibility and syncs control states when live stream auto-opens the viewer", async () => {
     const seen = [];
     window.addEventListener("mjr:mfv-visibility-changed", (event) => {
@@ -320,5 +348,172 @@ describe("floatingViewerManager", () => {
     expect(viewer.setPreviewActive).toHaveBeenLastCalledWith(true);
     expect(viewer.loadPreviewBlob).toHaveBeenCalledWith(blob);
     expect(seen).toEqual([true]);
+  });
+
+  it("toggles live stream with L while the floating viewer is visible", async () => {
+    const { floatingViewerManager } = await import("../features/viewer/floatingViewerManager.js");
+    floatingViewerManager.open();
+
+    const viewer = state.getLastViewer();
+    const event = {
+      type: "keydown",
+      key: "l",
+      ctrlKey: false,
+      metaKey: false,
+      altKey: false,
+      shiftKey: false,
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+      stopImmediatePropagation: vi.fn(),
+    };
+    window.dispatchEvent(event);
+
+    expect(viewer.setLiveActive).toHaveBeenLastCalledWith(true);
+    expect(floatingViewerManager.getLiveActive()).toBe(true);
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+  });
+
+  it("toggles the floating viewer off with V while it is visible", async () => {
+    const { floatingViewerManager } = await import("../features/viewer/floatingViewerManager.js");
+    floatingViewerManager.open();
+
+    const viewer = state.getLastViewer();
+    expect(viewer.isVisible).toBe(true);
+
+    const event = {
+      type: "keydown",
+      key: "v",
+      ctrlKey: false,
+      metaKey: false,
+      altKey: false,
+      shiftKey: false,
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+      stopImmediatePropagation: vi.fn(),
+    };
+    window.dispatchEvent(event);
+
+    expect(viewer.hide).toHaveBeenCalledTimes(1);
+    expect(viewer.isVisible).toBe(false);
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+  });
+
+  it("toggles the floating viewer off with Ctrl+V while it is visible", async () => {
+    const { floatingViewerManager } = await import("../features/viewer/floatingViewerManager.js");
+    floatingViewerManager.open();
+
+    const viewer = state.getLastViewer();
+    expect(viewer.isVisible).toBe(true);
+
+    const event = {
+      type: "keydown",
+      key: "v",
+      ctrlKey: true,
+      metaKey: false,
+      altKey: false,
+      shiftKey: false,
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+      stopImmediatePropagation: vi.fn(),
+    };
+    window.dispatchEvent(event);
+
+    expect(viewer.hide).toHaveBeenCalledTimes(1);
+    expect(viewer.isVisible).toBe(false);
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+  });
+
+  it("toggles sampler preview with K while the floating viewer is visible", async () => {
+    const { floatingViewerManager } = await import("../features/viewer/floatingViewerManager.js");
+    floatingViewerManager.open();
+
+    const viewer = state.getLastViewer();
+    const event = {
+      type: "keydown",
+      key: "k",
+      ctrlKey: false,
+      metaKey: false,
+      altKey: false,
+      shiftKey: false,
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+      stopImmediatePropagation: vi.fn(),
+    };
+    window.dispatchEvent(event);
+
+    expect(viewer.setPreviewActive).toHaveBeenLastCalledWith(true);
+    expect(floatingViewerManager.getPreviewActive()).toBe(true);
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+  });
+
+  it("cycles compare modes with C as A/B, side-by-side, then compare off without closing", async () => {
+    state.setActiveGrid(createGrid(["410", "411"]));
+    state.getSelectedIdSetMock.mockReturnValue(new Set(["410"]));
+    state.getAssetsBatchMock.mockResolvedValue({
+      ok: true,
+      data: [
+        { id: 410, filename: "left.png" },
+        { id: 411, filename: "right.png" },
+      ],
+    });
+
+    const { floatingViewerManager } = await import("../features/viewer/floatingViewerManager.js");
+    floatingViewerManager.open();
+    await flushAsyncWork();
+
+    const viewer = state.getLastViewer();
+    const toCompareEvent = {
+      type: "keydown",
+      key: "c",
+      ctrlKey: false,
+      metaKey: false,
+      altKey: false,
+      shiftKey: false,
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+      stopImmediatePropagation: vi.fn(),
+    };
+    window.dispatchEvent(toCompareEvent);
+    await flushAsyncWork();
+
+    expect(viewer.setMode).toHaveBeenLastCalledWith("ab");
+    expect(viewer.loadMediaPair).toHaveBeenCalledWith(
+      { id: 410, filename: "left.png" },
+      { id: 411, filename: "right.png" },
+    );
+
+    const toSimpleEvent = {
+      type: "keydown",
+      key: "c",
+      ctrlKey: false,
+      metaKey: false,
+      altKey: false,
+      shiftKey: false,
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+      stopImmediatePropagation: vi.fn(),
+    };
+    window.dispatchEvent(toSimpleEvent);
+
+    expect(viewer.setMode).toHaveBeenLastCalledWith("side");
+    expect(toSimpleEvent.preventDefault).toHaveBeenCalledTimes(1);
+
+    const toOffEvent = {
+      type: "keydown",
+      key: "c",
+      ctrlKey: false,
+      metaKey: false,
+      altKey: false,
+      shiftKey: false,
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+      stopImmediatePropagation: vi.fn(),
+    };
+    window.dispatchEvent(toOffEvent);
+
+    expect(viewer.setMode).toHaveBeenLastCalledWith("simple");
+    expect(viewer.hide).not.toHaveBeenCalled();
+    expect(viewer.isVisible).toBe(true);
+    expect(toOffEvent.preventDefault).toHaveBeenCalledTimes(1);
   });
 });

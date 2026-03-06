@@ -77,7 +77,7 @@ There are several ways to open the Majoor Floating Viewer:
 3. Shows the node's current content
 
 #### Method 4: Keyboard Shortcut
-- Press the configured hotkey (default: not assigned, can be set in settings)
+- Press **Ctrl+V** (or **Cmd+V** on macOS) while the Assets Manager panel is hovered or focused to toggle the Floating Viewer
 
 ### Live Stream Mode
 
@@ -86,7 +86,7 @@ There are several ways to open the Majoor Floating Viewer:
 #### Enabling Live Stream
 1. Open the Floating Viewer
 2. Click the **Live Stream** button (icon: broadcast tower)
-3. Or press **Shift+M** to toggle
+3. Or press **L** to toggle
 
 #### How It Works
 - Monitors ComfyUI execution events
@@ -191,9 +191,9 @@ The MFV supports three comparison modes:
 | Shortcut | Action |
 |----------|--------|
 | **Esc** | Close Floating Viewer |
-| **F** | Toggle Fullscreen |
-| **M** | Cycle Compare Mode |
-| **Shift+M** | Toggle Live Stream Mode |
+| **C** | Cycle compare modes: A/B, Side-by-side, Off (Simple mode) |
+| **K** | Toggle KSampler preview on or off |
+| **L** | Toggle Live Stream on or off |
 | **N** | Toggle Node Tracking |
 
 #### Compare Mode

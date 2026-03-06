@@ -1027,7 +1027,7 @@ class VectorService:
                     with torch.inference_mode():
                         inputs = processor(images=[img], return_tensors="pt")
                         feats = native_model.get_image_features(**inputs)
-                        arr = feats.detach().cpu().numpy()[0].astype(np.float32, copy=False)
+                        arr = _as_float32_array(feats.detach().cpu().numpy()[0])
                         vec = _normalise_vector(arr)
                         return _coerce_vector_dim(vec, self._dim)
 
@@ -1103,7 +1103,7 @@ class VectorService:
                     with torch.inference_mode():
                         inputs = processor(text=[cleaned], return_tensors="pt", padding=True, truncation=True)
                         feats = model.get_text_features(**inputs)
-                        arr = feats.detach().cpu().numpy()[0].astype(np.float32, copy=False)
+                        arr = _as_float32_array(feats.detach().cpu().numpy()[0])
                         vec = _normalise_vector(arr)
                         return _coerce_vector_dim(vec, self._dim)
 
@@ -1272,9 +1272,9 @@ class VectorService:
                         for frame in frames:
                             inputs = processor(images=[frame], return_tensors="pt")
                             feats = native_model.get_image_features(**inputs)
-                            arr = feats.detach().cpu().numpy()[0].astype(np.float32, copy=False)
+                            arr = _as_float32_array(feats.detach().cpu().numpy()[0])
                             vecs.append(_normalise_vector(arr))
-                    mean_vec = np.mean(vecs, axis=0, dtype=np.float32)
+                    mean_vec = _mean_float32(vecs, axis=0)
                     vec = _normalise_vector(mean_vec)
                     return _coerce_vector_dim(vec, self._dim)
 
@@ -1336,7 +1336,7 @@ class VectorService:
                     encoded = await asyncio.to_thread(_encode_single_frame, frame)
                     vecs.append(_coerce_first_vector(encoded))
 
-            mean_vec = np.mean(vecs, axis=0, dtype=np.float32)
+            mean_vec = _mean_float32(vecs, axis=0)
             self._clear_error()
             return Result.Ok(_normalise_vector(mean_vec))
         except Exception as exc:
@@ -1692,8 +1692,8 @@ class VectorService:
                                 raise RuntimeError("X-CLIP output does not expose usable features")
                             feats = feats.mean(dim=1)
 
-                    arr = feats.detach().cpu().numpy().astype(np.float32, copy=False)
-                    mean_vec = np.mean(arr, axis=0, dtype=np.float32)
+                    arr = _as_float32_array(feats.detach().cpu().numpy())
+                    mean_vec = _mean_float32(arr, axis=0)
                     vec = _normalise_vector(mean_vec)
                     return _coerce_vector_dim(vec, self._dim)
 
@@ -1707,6 +1707,26 @@ class VectorService:
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
+
+def _as_float32_array(value: Any) -> Any:
+    """Coerce tensor/list/array-like payloads to float32-compatible values."""
+    import numpy as np  # noqa: F811
+
+    arr = np.asarray(value, dtype=np.float32)
+    return arr.tolist() if hasattr(arr, "tolist") else arr
+
+
+def _mean_float32(values: Any, axis: int = 0) -> Any:
+    """Compute a mean that stays float32 and also works with lightweight NumPy mocks."""
+    import numpy as np  # noqa: F811
+
+    try:
+        mean_value = np.mean(values, axis=axis, dtype=np.float32)
+    except TypeError:
+        mean_value = np.mean(values, axis=axis)
+    arr = np.asarray(mean_value, dtype=np.float32)
+    return arr.tolist() if hasattr(arr, "tolist") else arr
 
 
 def _normalise_vector(vec: Any) -> list[float]:

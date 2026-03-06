@@ -28,6 +28,7 @@ These shortcuts work globally in the Assets Manager panel.
 | **Ctrl+F** / **Ctrl+K** | Focus Search Input | Global |
 | **Ctrl+H** | Clear Search Input | Global |
 | **D** | Toggle Sidebar (Details) | Grid / Panel |
+| **Ctrl+V** / **Cmd+V** | Toggle Floating Viewer | Grid / Panel |
 
 ---
 
@@ -129,10 +130,9 @@ These shortcuts apply when the **Majoor Floating Viewer** panel is open.
 | Shortcut | Action |
 |----------|--------|
 | **Esc** | Close Floating Viewer |
-| **F** | Toggle Fullscreen |
-| **M** | Cycle Compare Mode (Simple → A/B → Side-by-Side) |
-| **Shift+M** | Toggle Live Stream Mode |
-| **L** | Toggle Loop (for video) |
+| **C** | Cycle compare modes: A/B, Side-by-side, Off (Simple mode) |
+| **K** | Toggle KSampler preview on or off |
+| **L** | Toggle Live Stream on or off |
 
 ### Navigation
 | Shortcut | Action |

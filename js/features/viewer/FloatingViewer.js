@@ -12,6 +12,7 @@ import { buildViewURL, buildAssetViewURL } from "../../api/endpoints.js";
 import { ensureViewerMetadataAsset } from "./genInfo.js";
 import { getAssetMetadata, getFileMetadataScoped } from "../../api/client.js";
 import { normalizeGenerationMetadata } from "../../components/sidebar/parsers/geninfoParser.js";
+import { appendTooltipHint, setTooltipHint } from "../../utils/tooltipShortcuts.js";
 
 export const MFV_MODES = Object.freeze({
     SIMPLE: "simple",
@@ -29,6 +30,10 @@ let _mfvInstanceSeq = 0;
 // Media extensions for explicit kind detection.
 const VIDEO_EXTS = new Set([".mp4", ".webm", ".mov", ".avi", ".mkv"]);
 const AUDIO_EXTS = new Set([".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac", ".opus", ".wma"]);
+const MFV_MODE_HINT = "C";
+const MFV_LIVE_HINT = "L";
+const MFV_PREVIEW_HINT = "K";
+const CLOSE_HINT = "Esc";
 
 function _extOf(filename) {
     try {
@@ -277,9 +282,7 @@ export class FloatingViewer {
         this._closeBtn = closeBtn;
         closeBtn.type = "button";
         closeBtn.className = "mjr-icon-btn";
-        const closeLabel = t("tooltip.closeViewer", "Close viewer");
-        closeBtn.title = closeLabel;
-        closeBtn.setAttribute("aria-label", closeLabel);
+        setTooltipHint(closeBtn, t("tooltip.closeViewer", "Close viewer"), CLOSE_HINT);
         const _closeBtnIcon = document.createElement("i");
         _closeBtnIcon.className = "pi pi-times";
         _closeBtnIcon.setAttribute("aria-hidden", "true");
@@ -330,8 +333,11 @@ export class FloatingViewer {
         this._liveBtn.className = "mjr-icon-btn";
         this._liveBtn.innerHTML = '<i class="pi pi-circle" aria-hidden="true"></i>';
         this._liveBtn.setAttribute("aria-pressed", "false");
-        this._liveBtn.setAttribute("aria-label", t("tooltip.liveStreamOff", "Live Stream: OFF — click to follow"));
-        this._liveBtn.title = t("tooltip.liveStreamOff", "Live Stream: OFF — click to follow");
+        setTooltipHint(
+            this._liveBtn,
+            t("tooltip.liveStreamOff", "Live Stream: OFF — click to follow"),
+            MFV_LIVE_HINT
+        );
         bar.appendChild(this._liveBtn);
 
         // KSampler Preview Stream toggle
@@ -340,8 +346,11 @@ export class FloatingViewer {
         this._previewBtn.className = "mjr-icon-btn";
         this._previewBtn.innerHTML = '<i class="pi pi-eye" aria-hidden="true"></i>';
         this._previewBtn.setAttribute("aria-pressed", "false");
-        this._previewBtn.setAttribute("aria-label", t("tooltip.previewStreamOff", "KSampler Preview: OFF — click to stream denoising steps"));
-        this._previewBtn.title = t("tooltip.previewStreamOff", "KSampler Preview: OFF — click to stream denoising steps");
+        setTooltipHint(
+            this._previewBtn,
+            t("tooltip.previewStreamOff", "KSampler Preview: OFF — click to stream denoising steps"),
+            MFV_PREVIEW_HINT
+        );
         bar.appendChild(this._previewBtn);
 
         // Gen Info button (shows dropdown with checkboxes)
@@ -683,17 +692,18 @@ export class FloatingViewer {
     _updateModeBtnUI() {
         if (!this._modeBtn) return;
         const cfg = {
-            [MFV_MODES.SIMPLE]: { icon: "pi-image",  label: "Mode: Simple (click to switch)" },
-            [MFV_MODES.AB]:     { icon: "pi-clone",   label: "Mode: A/B Compare (click to switch)" },
-            [MFV_MODES.SIDE]:   { icon: "pi-table",   label: "Mode: Side-by-Side (click to switch)" },
+            [MFV_MODES.SIMPLE]: { icon: "pi-image", label: "Mode: Simple - click to switch" },
+            [MFV_MODES.AB]:     { icon: "pi-clone", label: "Mode: A/B Compare - click to switch" },
+            [MFV_MODES.SIDE]:   { icon: "pi-table", label: "Mode: Side-by-Side - click to switch" },
         };
         const { icon = "pi-image", label = "" } = cfg[this._mode] || {};
+        const tooltip = appendTooltipHint(label, MFV_MODE_HINT);
         const _modeBtnIcon = document.createElement("i");
         _modeBtnIcon.className = `pi ${icon}`;
         _modeBtnIcon.setAttribute("aria-hidden", "true");
         this._modeBtn.replaceChildren(_modeBtnIcon);
-        this._modeBtn.title = label;
-        this._modeBtn.setAttribute("aria-label", label);
+        this._modeBtn.title = tooltip;
+        this._modeBtn.setAttribute("aria-label", tooltip);
         this._modeBtn.removeAttribute("aria-pressed");
     }
 
@@ -706,20 +716,21 @@ export class FloatingViewer {
         const label = isActive
             ? t("tooltip.liveStreamOn", "Live Stream: ON — click to disable")
             : t("tooltip.liveStreamOff", "Live Stream: OFF — click to follow");
+        const tooltip = appendTooltipHint(label, MFV_LIVE_HINT);
         this._liveBtn.setAttribute("aria-pressed", String(isActive));
-        this._liveBtn.setAttribute("aria-label", label);
+        this._liveBtn.setAttribute("aria-label", tooltip);
         if (isActive) {
             const _liveIconActive = document.createElement("i");
             _liveIconActive.className = "pi pi-circle-fill";
             _liveIconActive.setAttribute("aria-hidden", "true");
             this._liveBtn.replaceChildren(_liveIconActive);
-            this._liveBtn.title = label;
+            this._liveBtn.title = tooltip;
         } else {
             const _liveIconInactive = document.createElement("i");
             _liveIconInactive.className = "pi pi-circle";
             _liveIconInactive.setAttribute("aria-hidden", "true");
             this._liveBtn.replaceChildren(_liveIconInactive);
-            this._liveBtn.title = label;
+            this._liveBtn.title = tooltip;
         }
     }
 
@@ -732,20 +743,21 @@ export class FloatingViewer {
         const label = this._previewActive
             ? t("tooltip.previewStreamOn", "KSampler Preview: ON — streaming denoising steps")
             : t("tooltip.previewStreamOff", "KSampler Preview: OFF — click to stream denoising steps");
+        const tooltip = appendTooltipHint(label, MFV_PREVIEW_HINT);
         this._previewBtn.setAttribute("aria-pressed", String(this._previewActive));
-        this._previewBtn.setAttribute("aria-label", label);
+        this._previewBtn.setAttribute("aria-label", tooltip);
         if (this._previewActive) {
             const icon = document.createElement("i");
             icon.className = "pi pi-eye";
             icon.setAttribute("aria-hidden", "true");
             this._previewBtn.replaceChildren(icon);
-            this._previewBtn.title = label;
+            this._previewBtn.title = tooltip;
         } else {
             const icon = document.createElement("i");
             icon.className = "pi pi-eye-slash";
             icon.setAttribute("aria-hidden", "true");
             this._previewBtn.replaceChildren(icon);
-            this._previewBtn.title = label;
+            this._previewBtn.title = tooltip;
             // Revoke last blob URL when turning off
             this._revokePreviewBlob();
         }
@@ -1254,6 +1266,14 @@ export class FloatingViewer {
         popup.addEventListener("keydown", (e) => {
             const tag = String(e?.target?.tagName || "").toLowerCase();
             if (e?.defaultPrevented || e?.target?.isContentEditable || tag === "input" || tag === "textarea" || tag === "select") {
+                return;
+            }
+            const lower = String(e?.key || "").toLowerCase();
+            if (lower === "v" && (e?.ctrlKey || e?.metaKey) && !e?.altKey && !e?.shiftKey) {
+                e.preventDefault();
+                e.stopPropagation?.();
+                e.stopImmediatePropagation?.();
+                window.dispatchEvent(new Event(EVENTS.MFV_TOGGLE));
                 return;
             }
             window.dispatchEvent(new KeyboardEvent("keydown", {

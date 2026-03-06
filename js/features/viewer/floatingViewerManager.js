@@ -14,6 +14,7 @@ import { EVENTS } from "../../app/events.js";
 import { getAssetsBatch } from "../../api/client.js";
 import { getActiveGridContainer } from "../panel/AssetsManagerPanel.js";
 import { getSelectedIdSet } from "../grid/GridSelectionManager.js";
+import { getHotkeysState, isHotkeysSuspended } from "../panel/controllers/hotkeysState.js";
 import { reportError } from "../../utils/logging.js";
 
 // ── Module state ──────────────────────────────────────────────────────────────
@@ -192,7 +193,12 @@ export const floatingViewerManager = {
     },
 
     close() {
-        if (_instance) _instance.hide();
+        if (_instance) {
+            try {
+                if (_instance.isPopped) _instance.popIn();
+            } catch (e) { console.debug?.(e); }
+            _instance.hide();
+        }
         _unbindSelectionListener();
         _emitVisibilityChanged(false);
     },
@@ -202,6 +208,44 @@ export const floatingViewerManager = {
             floatingViewerManager.close();
         } else {
             floatingViewerManager.open();
+        }
+    },
+
+    toggleLive() {
+        floatingViewerManager.setLiveActive(!_liveActive);
+    },
+
+    togglePreview() {
+        floatingViewerManager.setPreviewActive(!_previewActive);
+    },
+
+    toggleCompareAB() {
+        const inst = _getInstance();
+        const wasVisible = Boolean(inst.isVisible);
+
+        if (!wasVisible) {
+            inst.setMode(MFV_MODES.AB);
+            inst.show();
+            _syncViewerControls(inst);
+            _bindSelectionListener();
+            _syncCurrentGridSelection();
+            _emitVisibilityChanged(true);
+            return;
+        }
+
+        if (inst._mode === MFV_MODES.AB) {
+            inst.setMode(MFV_MODES.SIDE);
+            return;
+        }
+
+        if (inst._mode === MFV_MODES.SIDE) {
+            inst.setMode(MFV_MODES.SIMPLE);
+            return;
+        }
+
+        inst.setMode(MFV_MODES.AB);
+        if (inst._mode === MFV_MODES.AB) {
+            _syncCurrentGridSelection();
         }
     },
 
@@ -286,9 +330,54 @@ let _globalHandlersInstalled = false;
 const _onMfvOpen       = () => floatingViewerManager.open();
 const _onMfvClose      = () => floatingViewerManager.close();
 const _onMfvToggle     = () => floatingViewerManager.toggle();
-const _onMfvLiveToggle    = () => floatingViewerManager.setLiveActive(!_liveActive);
-const _onMfvPreviewToggle = () => floatingViewerManager.setPreviewActive(!_previewActive);
+const _onMfvLiveToggle    = () => floatingViewerManager.toggleLive();
+const _onMfvPreviewToggle = () => floatingViewerManager.togglePreview();
 const _onMfvPopout        = () => floatingViewerManager.popOut();
+const _onGlobalKeydown    = (event) => {
+    if (!_instance?.isVisible) return;
+    if (isHotkeysSuspended()) return;
+    if (getHotkeysState().scope === "viewer") return;
+
+    const lower = event?.key?.toLowerCase?.() || "";
+    const isTypingTarget =
+        event?.target?.isContentEditable ||
+        event?.target?.closest?.("input, textarea, select, [contenteditable='true']");
+    if (isTypingTarget) return;
+
+    const consume = () => {
+        event.preventDefault?.();
+        event.stopPropagation?.();
+        event.stopImmediatePropagation?.();
+    };
+
+    if (!event?.ctrlKey && !event?.metaKey && !event?.altKey && !event?.shiftKey) {
+        if (lower === "v") {
+            consume();
+            floatingViewerManager.toggle();
+            return;
+        }
+        if (lower === "k") {
+            consume();
+            floatingViewerManager.togglePreview();
+            return;
+        }
+        if (lower === "l") {
+            consume();
+            floatingViewerManager.toggleLive();
+            return;
+        }
+        if (lower === "c") {
+            consume();
+            floatingViewerManager.toggleCompareAB();
+        }
+        return;
+    }
+
+    if (lower === "v" && (event?.ctrlKey || event?.metaKey) && !event?.altKey && !event?.shiftKey) {
+        consume();
+        floatingViewerManager.toggle();
+    }
+};
 
 function _installGlobalHandlers() {
     if (_globalHandlersInstalled) return;
@@ -298,6 +387,7 @@ function _installGlobalHandlers() {
     window.addEventListener(EVENTS.MFV_LIVE_TOGGLE,    _onMfvLiveToggle);
     window.addEventListener(EVENTS.MFV_PREVIEW_TOGGLE, _onMfvPreviewToggle);
     window.addEventListener(EVENTS.MFV_POPOUT,         _onMfvPopout);
+    window.addEventListener("keydown", _onGlobalKeydown, { capture: true });
     _globalHandlersInstalled = true;
 }
 
@@ -316,6 +406,7 @@ export function teardownFloatingViewerManager() {
     window.removeEventListener(EVENTS.MFV_LIVE_TOGGLE,    _onMfvLiveToggle);
     window.removeEventListener(EVENTS.MFV_PREVIEW_TOGGLE, _onMfvPreviewToggle);
     window.removeEventListener(EVENTS.MFV_POPOUT,         _onMfvPopout);
+    window.removeEventListener("keydown", _onGlobalKeydown, { capture: true });
     _globalHandlersInstalled = false;
     _installGlobalHandlers(); // Re-register immediately so handlers are always active
 }

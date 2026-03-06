@@ -53,20 +53,65 @@ export function createMessagePopoverView() {
     actions.appendChild(markReadBtn);
     head.appendChild(actions);
 
+    const tabs = document.createElement("div");
+    tabs.className = "mjr-messages-tabs";
+    tabs.setAttribute("role", "tablist");
+
+    const messageTabBtn = document.createElement("button");
+    messageTabBtn.type = "button";
+    messageTabBtn.className = "mjr-messages-tab is-active";
+    messageTabBtn.setAttribute("role", "tab");
+    messageTabBtn.setAttribute("aria-selected", "true");
+    messageTabBtn.setAttribute("aria-controls", "mjr-messages-panel");
+    messageTabBtn.id = "mjr-messages-tab";
+    messageTabBtn.textContent = t("label.messages", "Messages");
+
+    const shortcutsTabBtn = document.createElement("button");
+    shortcutsTabBtn.type = "button";
+    shortcutsTabBtn.className = "mjr-messages-tab";
+    shortcutsTabBtn.setAttribute("role", "tab");
+    shortcutsTabBtn.setAttribute("aria-selected", "false");
+    shortcutsTabBtn.setAttribute("aria-controls", "mjr-shortcuts-panel");
+    shortcutsTabBtn.id = "mjr-shortcuts-tab";
+    shortcutsTabBtn.textContent = t("msg.shortcuts.title", "Shortcut Guide");
+
+    tabs.appendChild(messageTabBtn);
+    tabs.appendChild(shortcutsTabBtn);
+
+    const panels = document.createElement("div");
+    panels.className = "mjr-messages-panels";
+
     const messageList = document.createElement("div");
     messageList.className = "mjr-messages-list";
+    messageList.id = "mjr-messages-panel";
+    messageList.setAttribute("role", "tabpanel");
+    messageList.setAttribute("aria-labelledby", messageTabBtn.id);
 
     const emptyState = document.createElement("div");
     emptyState.className = "mjr-messages-empty";
     emptyState.textContent = t("msg.noMessages", "No messages for now.");
 
+    const shortcutsPanel = document.createElement("div");
+    shortcutsPanel.className = "mjr-messages-shortcuts-panel";
+    shortcutsPanel.id = "mjr-shortcuts-panel";
+    shortcutsPanel.setAttribute("role", "tabpanel");
+    shortcutsPanel.setAttribute("aria-labelledby", shortcutsTabBtn.id);
+    shortcutsPanel.hidden = true;
+
     messageList.appendChild(emptyState);
     messagePopover.appendChild(head);
-    messagePopover.appendChild(messageList);
+    messagePopover.appendChild(tabs);
+    panels.appendChild(messageList);
+    panels.appendChild(shortcutsPanel);
+    messagePopover.appendChild(panels);
 
     return {
         messagePopover,
+        title,
+        messageTabBtn,
+        shortcutsTabBtn,
         messageList,
+        shortcutsPanel,
         emptyState,
         markReadBtn,
     };

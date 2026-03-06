@@ -7,6 +7,7 @@ import {
     listPanelMessages,
     markPanelMessagesRead,
 } from "./messageCenter.js";
+import { createShortcutGuidePanel } from "./shortcutGuide.js";
 
 const ALLOWED_MESSAGE_LEVELS = new Set(["info", "success", "warning", "error"]);
 
@@ -63,16 +64,58 @@ function resolveMessageEmoji(entry) {
     return "\uD83D\uDCA1";
 }
 
+function setTabState({
+    activeTab = "messages",
+    title = null,
+    messagePopover = null,
+    messageTabBtn = null,
+    shortcutsTabBtn = null,
+    messageList = null,
+    shortcutsPanel = null,
+    markReadBtn = null,
+} = {}) {
+    const isMessages = activeTab === "messages";
+    const titleText = isMessages
+        ? t("label.messages", "Messages")
+        : t("msg.shortcuts.title", "Shortcut Guide");
+    try {
+        messageTabBtn?.classList.toggle("is-active", isMessages);
+        messageTabBtn?.setAttribute("aria-selected", isMessages ? "true" : "false");
+        shortcutsTabBtn?.classList.toggle("is-active", !isMessages);
+        shortcutsTabBtn?.setAttribute("aria-selected", isMessages ? "false" : "true");
+    } catch (e) { console.debug?.(e); }
+    try {
+        if (title) title.textContent = titleText;
+        messagePopover?.setAttribute?.("aria-label", titleText);
+        if (messageList) {
+            messageList.hidden = !isMessages;
+            messageList.style.display = isMessages ? "" : "none";
+            messageList.setAttribute("aria-hidden", isMessages ? "false" : "true");
+        }
+        if (shortcutsPanel) {
+            shortcutsPanel.hidden = isMessages;
+            shortcutsPanel.style.display = isMessages ? "none" : "";
+            shortcutsPanel.setAttribute("aria-hidden", isMessages ? "true" : "false");
+        }
+        if (markReadBtn) markReadBtn.hidden = !isMessages;
+    } catch (e) { console.debug?.(e); }
+}
+
 export function bindMessagePopoverController({
     messageBtn = null,
     messagePopover = null,
+    title = null,
     messageList = null,
+    shortcutsPanel = null,
+    messageTabBtn = null,
+    shortcutsTabBtn = null,
     markReadBtn = null,
     popovers = null,
     onBeforeToggle = null,
     signal = null,
 } = {}) {
     ensurePanelMessagesReady();
+    let activeTab = "messages";
 
     const syncExpandedState = () => {
         const isOpen = messagePopover?.style?.display === "block";
@@ -157,6 +200,12 @@ export function bindMessagePopoverController({
         }
     };
 
+    const renderShortcutsPanel = () => {
+        if (!shortcutsPanel) return;
+        if (shortcutsPanel.childNodes.length > 0) return;
+        shortcutsPanel.replaceChildren(createShortcutGuidePanel());
+    };
+
     const updateMessageButtonState = () => {
         if (!messageBtn) return;
         const unreadCount = Number(getPanelUnreadCount() || 0);
@@ -179,7 +228,7 @@ export function bindMessagePopoverController({
 
     const refreshMessagesUI = () => {
         updateMessageButtonState();
-        if (messagePopover?.style?.display === "block") {
+        if (messagePopover?.style?.display === "block" && activeTab === "messages") {
             renderMessagesPopover();
         }
     };
@@ -213,11 +262,65 @@ export function bindMessagePopoverController({
 
     updateMessageButtonState();
     syncExpandedState();
+    setTabState({
+        activeTab,
+        title,
+        messagePopover,
+        messageTabBtn,
+        shortcutsTabBtn,
+        messageList,
+        shortcutsPanel,
+        markReadBtn,
+    });
+
+    const showMessagesTab = () => {
+        activeTab = "messages";
+        setTabState({
+            activeTab,
+            title,
+            messagePopover,
+            messageTabBtn,
+            shortcutsTabBtn,
+            messageList,
+            shortcutsPanel,
+            markReadBtn,
+        });
+        renderMessagesPopover();
+        markPanelMessagesRead();
+        updateMessageButtonState();
+    };
+
+    const showShortcutsTab = () => {
+        activeTab = "shortcuts";
+        setTabState({
+            activeTab,
+            title,
+            messagePopover,
+            messageTabBtn,
+            shortcutsTabBtn,
+            messageList,
+            shortcutsPanel,
+            markReadBtn,
+        });
+        renderShortcutsPanel();
+    };
 
     messageBtn?.addEventListener("click", (e) => {
         if (!messagePopover || !popovers || !messageBtn) return;
         e.stopPropagation();
+        activeTab = "messages";
         renderMessagesPopover();
+        renderShortcutsPanel();
+        setTabState({
+            activeTab,
+            title,
+            messagePopover,
+            messageTabBtn,
+            shortcutsTabBtn,
+            messageList,
+            shortcutsPanel,
+            markReadBtn,
+        });
         try {
             if (typeof onBeforeToggle === "function") onBeforeToggle();
         } catch (err) { console.debug?.(err); }
@@ -227,6 +330,18 @@ export function bindMessagePopoverController({
         }
         syncExpandedState();
         updateMessageButtonState();
+    }, listenerOptions);
+
+    messageTabBtn?.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        showMessagesTab();
+    }, listenerOptions);
+
+    shortcutsTabBtn?.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        showShortcutsTab();
     }, listenerOptions);
 
     markReadBtn?.addEventListener("click", (e) => {
@@ -241,6 +356,8 @@ export function bindMessagePopoverController({
         refresh: refreshMessagesUI,
         render: renderMessagesPopover,
         updateButtonState: updateMessageButtonState,
+        showMessagesTab,
+        showShortcutsTab,
         close: () => {
             if (!messagePopover || !popovers) return;
             popovers.close(messagePopover);
