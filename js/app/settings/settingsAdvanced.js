@@ -543,7 +543,7 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
             if (String(value || "") !== "Run backfill now") return;
 
             try {
-                comfyToast("Starting vector backfill... This may take a while.", "info");
+                comfyToast(t("toast.vectorBackfillStarting", "Starting vector backfill... This may take a while."), "info");
                 const result = await vectorBackfill(64);
 
                 if (result?.ok) {
@@ -557,11 +557,19 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
                     if (pending) {
                         const jobId = String(data?.job_id || "").trim();
                         comfyToast(
-                            `Vector backfill still running in background${jobId ? ` (job ${jobId.slice(0, 8)})` : ""}.`,
+                            t(
+                                "toast.vectorBackfillRunning",
+                                "Vector backfill still running in background{job}.",
+                                { job: jobId ? ` (job ${jobId.slice(0, 8)})` : "" }
+                            ),
                             "info",
                         );
                     } else {
-                        const msg = `Vector backfill complete! Processed: ${processed}, Indexed: ${indexed}, Skipped: ${skipped}`;
+                        const msg = t(
+                            "toast.vectorBackfillComplete",
+                            "Vector backfill complete! Processed: {processed}, Indexed: {indexed}, Skipped: {skipped}",
+                            { processed, indexed, skipped }
+                        );
                         comfyToast(msg, "success");
                     }
                     try {
@@ -573,11 +581,11 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
                         console.warn("[Majoor] Failed to refresh vector stats:", statsErr);
                     }
                 } else {
-                    throw new Error(result?.error || "Backfill failed");
+                    throw new Error(result?.error || t("toast.vectorBackfillFailedGeneric", "Backfill failed"));
                 }
             } catch (error) {
-                const errMsg = error?.message || String(error || "Unknown error");
-                comfyToast(`Vector backfill failed: ${errMsg}`, "error");
+                const errMsg = error?.message || String(error || t("status.unknown", "unknown"));
+                comfyToast(t("toast.vectorBackfillFailedDetail", "Vector backfill failed: {error}", { error: errMsg }), "error");
                 console.error("[Majoor] Vector backfill error:", error);
             }
         },

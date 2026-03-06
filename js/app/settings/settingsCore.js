@@ -9,6 +9,7 @@ import { safeDispatchCustomEvent } from "../../utils/events.js";
 import { SettingsStore } from "./SettingsStore.js";
 import { SETTINGS_KEY, SETTINGS_SCHEMA_VERSION } from "../settingsStore.js";
 import { _safeBool, _safeNum, deepMerge, resolveGridMinSize } from "./settingsUtils.js";
+import { t } from "../i18n.js";
 
 // ─── Default settings ─────────────────────────────────────────────────────
 
@@ -236,7 +237,9 @@ export const saveMajoorSettings = (settings) => {
             if (now - last > 30_000) {
                 window._mjrSettingsSaveFailAt = now;
                 import("./dialogs.js")
-                    .then(({ comfyAlert }) => comfyAlert("Majoor: Failed to save settings (browser storage full or blocked)."))
+                    .then(({ comfyAlert }) => comfyAlert(
+                        t("dialog.settingsSaveFailed", "Majoor: Failed to save settings (browser storage full or blocked).")
+                    ))
                     .catch(() => {});
             }
         } catch (e) { console.debug?.(e); }

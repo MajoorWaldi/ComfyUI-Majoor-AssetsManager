@@ -106,6 +106,16 @@ async def test_should_skip_no_existing_id():
     assert await ipo.should_skip_by_journal_state(scanner, prepare_ctx=ctx, incremental=True, fast=False) is False
 
 
+@pytest.mark.asyncio
+async def test_should_skip_fast_false_when_vector_missing():
+    async def _asset_has_vector(*, asset_id):
+        return False
+
+    scanner = SimpleNamespace(_asset_has_vector=_asset_has_vector)
+    ctx = {"journal_state_hash": "h", "state_hash": "h", "existing_id": 1}
+    assert await ipo.should_skip_by_journal_state(scanner, prepare_ctx=ctx, incremental=True, fast=True) is False
+
+
 # ─── refresh_entry_from_cached_metadata ─────────────────────────────────────
 
 @pytest.mark.asyncio
@@ -174,6 +184,34 @@ async def test_maybe_skip_incremental_unchanged_rich_metadata(monkeypatch):
         scanner, prepare_ctx=ctx, incremental=True, fast=False, file_path=Path("x.png")
     )
     assert result is not None and result.data == {"action": "skipped"}
+
+
+@pytest.mark.asyncio
+async def test_maybe_skip_incremental_unchanged_rich_metadata_but_missing_vector(monkeypatch):
+    async def _should_skip(scanner, *, prepare_ctx, incremental, fast):
+        return False
+
+    async def _refresh_cached(scanner, *, prepare_ctx, file_path, fast):
+        return None
+
+    async def _has_rich(*, asset_id):
+        return True
+
+    async def _asset_has_vector(*, asset_id):
+        return False
+
+    monkeypatch.setattr(ipo, "should_skip_by_journal_state", _should_skip)
+    monkeypatch.setattr(ipo, "refresh_entry_from_cached_metadata", _refresh_cached)
+
+    scanner = SimpleNamespace(
+        _asset_has_rich_metadata=_has_rich,
+        _asset_has_vector=_asset_has_vector,
+    )
+    ctx = {"state_hash": "h", "journal_state_hash": "diff", "existing_id": 1, "mtime": 5, "size": 10, "existing_mtime": 5}
+    result = await ipo.maybe_skip_prepare_for_incremental(
+        scanner, prepare_ctx=ctx, incremental=True, fast=False, file_path=Path("x.png")
+    )
+    assert result is None
 
 
 @pytest.mark.asyncio

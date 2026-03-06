@@ -479,16 +479,43 @@ VECTOR_INDEX_DIR = str(VECTOR_INDEX_DIR_PATH)
 # Embedding dimensionality (SigLIP SO400M → 1152, base → 768).
 VECTOR_EMBEDDING_DIM = _env_int(1152, "MJR_AM_VECTOR_DIM", min_value=64, max_value=4096)
 
+# Pre-warm the text-query model path and Faiss index during startup prewarm.
+VECTOR_PREWARM_ON_STARTUP = _env_bool(
+    True,
+    "MJR_AM_VECTOR_PREWARM_ON_STARTUP",
+    "MAJOOR_VECTOR_PREWARM_ON_STARTUP",
+)
+
 # Auto-tagging: minimum cosine similarity to assign a tag.
 VECTOR_AUTOTAG_THRESHOLD = _env_float(
-    0.25,
+    0.06,
     "MJR_AM_VECTOR_AUTOTAG_THRESHOLD",
+    min_value=0.0,
+    max_value=1.0,
+)
+
+# Semantic text search: score floor and relative cutoff versus best hit.
+VECTOR_TEXT_SEARCH_MIN_SCORE = _env_float(
+    0.02,
+    "MJR_AM_VECTOR_TEXT_SEARCH_MIN_SCORE",
+    min_value=0.0,
+    max_value=1.0,
+)
+VECTOR_TEXT_SEARCH_RELATIVE_RATIO = _env_float(
+    0.70,
+    "MJR_AM_VECTOR_TEXT_SEARCH_RELATIVE_RATIO",
     min_value=0.0,
     max_value=1.0,
 )
 
 # Maximum number of similar results returned by "Find Similar".
 VECTOR_SIMILAR_TOPK = _env_int(20, "MJR_AM_VECTOR_SIMILAR_TOPK", min_value=1, max_value=200)
+VECTOR_SIMILAR_MIN_SCORE = _env_float(
+    0.60,
+    "MJR_AM_VECTOR_SIMILAR_MIN_SCORE",
+    min_value=0.0,
+    max_value=1.0,
+)
 
 # Number of threads used by Faiss for search (0 = automatic).
 VECTOR_FAISS_NPROBE = _env_int(0, "MJR_AM_VECTOR_FAISS_NPROBE", min_value=0, max_value=128)

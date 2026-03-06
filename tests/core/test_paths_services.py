@@ -102,3 +102,69 @@ async def test_services_build_failure_sets_error(monkeypatch) -> None:
     assert required is None
     assert err is not None
     assert err.code == "SERVICE_UNAVAILABLE"
+
+
+@pytest.mark.asyncio
+async def test_prewarm_services_warms_vector_components(monkeypatch) -> None:
+    calls = {"text": 0, "index": 0}
+
+    class _Db:
+        async def aclose(self):
+            return None
+
+    class _VectorService:
+        async def prewarm_text_queries(self):
+            calls["text"] += 1
+            return Result.Ok({"loaded": True})
+
+    class _VectorSearcher:
+        async def prewarm_index(self):
+            calls["index"] += 1
+            return Result.Ok({"loaded": True, "total": 0})
+
+    async def _build_ok():
+        return Result.Ok({
+            "db": _Db(),
+            "vector_service": _VectorService(),
+            "vector_searcher": _VectorSearcher(),
+        })
+
+    monkeypatch.setattr(svc, "build_services", _build_ok)
+    monkeypatch.setattr(svc, "VECTOR_PREWARM_ON_STARTUP", True)
+    svc._services = None
+    svc._services_error = None
+
+    await svc.prewarm_services()
+
+    assert calls == {"text": 1, "index": 1}
+
+
+@pytest.mark.asyncio
+async def test_prewarm_services_swallow_vector_warmup_failures(monkeypatch) -> None:
+    class _Db:
+        async def aclose(self):
+            return None
+
+    class _VectorService:
+        async def prewarm_text_queries(self):
+            raise RuntimeError("boom")
+
+    class _VectorSearcher:
+        async def prewarm_index(self):
+            return Result.Err("SERVICE_UNAVAILABLE", "no index")
+
+    async def _build_ok():
+        return Result.Ok({
+            "db": _Db(),
+            "vector_service": _VectorService(),
+            "vector_searcher": _VectorSearcher(),
+        })
+
+    monkeypatch.setattr(svc, "build_services", _build_ok)
+    monkeypatch.setattr(svc, "VECTOR_PREWARM_ON_STARTUP", True)
+    svc._services = None
+    svc._services_error = None
+
+    await svc.prewarm_services()
+
+    assert isinstance(svc._services, dict)

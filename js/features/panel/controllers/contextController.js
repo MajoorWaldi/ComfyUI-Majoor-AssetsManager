@@ -84,6 +84,12 @@ export function createContextController({
             } catch (e) { console.debug?.(e); }
         },
         clearScope: async () => {
+            try {
+                if (String(state?.viewScope || "").trim().toLowerCase() === "similar" && typeof extraActions?.clearSimilarScope === "function") {
+                    await extraActions.clearSimilarScope();
+                    return;
+                }
+            } catch (e) { console.debug?.(e); }
             let didSetScope = false;
             try {
                 state.customRootId = "";
@@ -244,6 +250,9 @@ export function createContextController({
                 state.currentFolderRelativePath = "";
                 delete gridContainer?.dataset?.mjrSubfolder;
                 resetBrowserHistory();
+                try {
+                    await extraActions?.clearTransientContext?.();
+                } catch (e) { console.debug?.(e); }
                 if (typeof scopeController?.setScope === "function") {
                     await scopeController.setScope("output");
                     didSetScope = true;

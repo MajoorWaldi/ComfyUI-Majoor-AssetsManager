@@ -31,7 +31,7 @@ async function rescanSingleAsset({ card, asset, sidebar, onAssetUpdated }) {
         }
     } catch (e) { console.debug?.(e); }
 
-    try { comfyToast("Rescanning file + updating AI index...", "info", 2200); } catch (e) { console.debug?.(e); }
+    try { comfyToast(t("toast.rescanUpdatingAiIndex", "Rescanning file + updating AI index..."), "info", 2200); } catch (e) { console.debug?.(e); }
 
     const fileEntry = {
         filename: asset.filename,
@@ -106,9 +106,9 @@ async function rescanSingleAsset({ card, asset, sidebar, onAssetUpdated }) {
 
     try {
         if (indexOk && vectorIndexOk) {
-            comfyToast("Metadata + AI vector index updated for this asset.", "success", 2200);
+            comfyToast(t("toast.metadataVectorUpdated", "Metadata + AI vector index updated for this asset."), "success", 2200);
         } else if (indexOk && vectorAttempted && !vectorIndexOk) {
-            comfyToast("Metadata updated. AI vector index could not be updated.", "warning", 2600);
+            comfyToast(t("toast.metadataUpdatedVectorFailed", "Metadata updated. AI vector index could not be updated."), "warning", 2600);
         }
     } catch (e) { console.debug?.(e); }
 

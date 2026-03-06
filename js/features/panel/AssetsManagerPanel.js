@@ -52,8 +52,10 @@ import { createFilterPopoverView } from "./views/filterPopoverView.js";
 import { createSortPopoverView } from "./views/sortPopoverView.js";
 import { createSearchView } from "./views/searchView.js";
 import { createPinnedFoldersPopoverView } from "./views/pinnedFoldersPopoverView.js";
+import { createMessagePopoverView } from "./views/messagePopoverView.js";
 import { createSummaryBarView } from "./views/summaryBarView.js";
 import { createAgendaCalendar } from "../filters/calendar/AgendaCalendar.js";
+import { bindMessagePopoverController } from "./messages/messagePopoverController.js";
 
 import { normalizeQuery } from "./controllers/query.js";
 import { createGridController } from "./controllers/gridController.js";
@@ -133,9 +135,13 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     try {
         container._mjrPanelState = state;
     } catch (e) { console.debug?.(e); }
+    state.viewScope = String(state.viewScope || "").trim().toLowerCase() === "similar" ? "similar" : "";
+    state.similarResults = Array.isArray(state.similarResults) ? state.similarResults : [];
+    state.similarTitle = String(state.similarTitle || "");
+    state.similarSourceAssetId = String(state.similarSourceAssetId || "");
 
     const headerView = createHeaderView();
-    const { header, headerActions, tabButtons, customMenuBtn, filterBtn, sortBtn, collectionsBtn, pinnedFoldersBtn } = headerView;
+    const { header, headerActions, tabButtons, customMenuBtn, filterBtn, sortBtn, collectionsBtn, pinnedFoldersBtn, messageBtn } = headerView;
 
     const { customPopover, customSelect, customAddBtn, customRemoveBtn } = createCustomPopoverView();
     const {
@@ -158,8 +164,10 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     const { sortPopover, sortMenu } = createSortPopoverView();
     const { collectionsPopover, collectionsMenu } = createCollectionsPopoverView();
     const { pinnedFoldersPopover, pinnedFoldersMenu } = createPinnedFoldersPopoverView();
+    const { messagePopover, messageList, markReadBtn } = createMessagePopoverView();
 
     headerActions.appendChild(customPopover);
+    headerActions.appendChild(messagePopover);
 
     const { searchSection, searchInputEl, similarBtn, setSemanticEnabled } = createSearchView({
         filterBtn,
@@ -213,6 +221,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     `;
 
     const gridWrapper = document.createElement("div");
+    gridWrapper.classList.add("mjr-am-grid-scroll");
     gridWrapper.style.cssText = `
         flex: 1;
         overflow: auto;
@@ -479,6 +488,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         getCollectionAssets,
         disposeGrid,
         getQuery,
+        searchInputEl,
         state
     });
 
@@ -683,6 +693,13 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         }
     });
 
+    const exitSimilarViewIfActive = async ({ reload = false } = {}) => {
+        try {
+            if (String(state.viewScope || "").trim().toLowerCase() !== "similar") return;
+            await scopeController?.clearSimilarScope?.({ reload });
+        } catch (e) { console.debug?.(e); }
+    };
+
     if (!header._mjrTabListenersBound) {
         Object.values(tabButtons).forEach((btn) => {
             btn.addEventListener("click", () => scopeController.setScope(btn.dataset.scope), { signal: panelLifecycleAC?.signal });
@@ -690,17 +707,35 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         header._mjrTabListenersBound = true;
     }
 
+    bindMessagePopoverController({
+        messageBtn,
+        messagePopover,
+        messageList,
+        markReadBtn,
+        popovers,
+        signal: panelLifecycleAC?.signal,
+        onBeforeToggle: () => {
+            popovers.close(customPopover);
+            popovers.close(filterPopover);
+            popovers.close(sortPopover);
+            popovers.close(collectionsPopover);
+            popovers.close(pinnedFoldersPopover);
+        },
+    });
+
     popovers.setDismissWhitelist([
         customPopover,
         filterPopover,
         sortPopover,
         collectionsPopover,
         pinnedFoldersPopover,
+        messagePopover,
         customMenuBtn,
         filterBtn,
         sortBtn,
         collectionsBtn,
-        pinnedFoldersBtn
+        pinnedFoldersBtn,
+        messageBtn
     ]);
 
     customMenuBtn.addEventListener("click", (e) => {
@@ -708,6 +743,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         popovers.close(filterPopover);
         popovers.close(sortPopover);
         popovers.close(collectionsPopover);
+        popovers.close(messagePopover);
         popovers.toggle(customPopover, customMenuBtn);
     }, { signal: panelLifecycleAC?.signal });
 
@@ -716,6 +752,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         popovers.close(customPopover);
         popovers.close(sortPopover);
         popovers.close(collectionsPopover);
+        popovers.close(messagePopover);
         popovers.toggle(filterPopover, filterBtn);
     }, { signal: panelLifecycleAC?.signal });
 
@@ -730,6 +767,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             popovers.close(filterPopover);
             popovers.close(sortPopover);
             popovers.close(collectionsPopover);
+            popovers.close(messagePopover);
         } catch (err) { console.debug?.(err); }
 
         const selectedIdRaw = String(
@@ -757,13 +795,13 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 return;
             }
             const list = Array.isArray(res?.data) ? res.data : [];
-            await loadAssetsFromList(gridContainer, list, {
-                title: t("search.similarResults", "Similar to asset #{id} ({n} results)", {
-                    id: selectedId,
-                    n: list.length,
-                }),
-                reset: true,
+            state.similarResults = list;
+            state.similarSourceAssetId = String(selectedId);
+            state.similarTitle = t("search.similarResults", "Similar to asset #{id} ({n} results)", {
+                id: selectedId,
+                n: list.length,
             });
+            await scopeController?.setScope?.("similar");
             try {
                 state.lastGridCount = Number(list.length || 0) || 0;
                 state.lastGridTotal = Number(list.length || 0) || 0;
@@ -794,6 +832,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             popovers.close(customPopover);
             popovers.close(filterPopover);
             popovers.close(collectionsPopover);
+            popovers.close(messagePopover);
         }
     });
 
@@ -814,6 +853,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             popovers.close(customPopover);
             popovers.close(filterPopover);
             popovers.close(sortPopover);
+            popovers.close(messagePopover);
         }
     });
 
@@ -961,6 +1001,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         popovers.close(filterPopover);
         popovers.close(sortPopover);
         popovers.close(collectionsPopover);
+        popovers.close(messagePopover);
         popovers.toggle(pinnedFoldersPopover, pinnedFoldersBtn);
     }, { signal: panelLifecycleAC?.signal });
 
@@ -1013,6 +1054,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         reloadGrid: gridController.reloadGrid,
         lifecycleSignal: panelLifecycleAC?.signal || null,
         onFiltersChanged: () => {
+            void exitSimilarViewIfActive({ reload: false });
             try {
                 agendaCalendar?.refresh?.();
             } catch (e) { console.debug?.(e); }
@@ -1048,6 +1090,19 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             reloadGrid: () => gridController.reloadGrid(),
             getExtraContext: () => ({ duplicatesAlert: _duplicatesAlert }),
             extraActions: {
+                clearSimilarScope: async () => {
+                    try {
+                        await scopeController?.clearSimilarScope?.();
+                    } catch (e) { console.debug?.(e); }
+                },
+                clearTransientContext: async () => {
+                    try {
+                        state.viewScope = "";
+                        state.similarResults = [];
+                        state.similarTitle = "";
+                        state.similarSourceAssetId = "";
+                    } catch (e) { console.debug?.(e); }
+                },
                 resetBrowserHistory: () => {
                     try {
                         browserNav?.resetHistory?.();
@@ -1423,6 +1478,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         const value = e?.target?.value ?? "";
         if (value === lastSearchValue) return;
         lastSearchValue = value;
+        void exitSimilarViewIfActive({ reload: false });
         notifyContextChanged();
 
         if (searchTimeout) clearTimeout(searchTimeout);
@@ -1443,6 +1499,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     }, { signal: panelLifecycleAC?.signal });
     searchInputEl.addEventListener("keypress", (e) => {
         if (e.key === "Enter") {
+            void exitSimilarViewIfActive({ reload: false });
             startTimer('searchQuery');
             gridController.reloadGrid();
             notifyContextChanged();

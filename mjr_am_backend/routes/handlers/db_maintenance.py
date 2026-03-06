@@ -661,7 +661,7 @@ async def _backfill_missing_asset_vectors(
     scope: str = "output",
     custom_root_id: str = "",
     on_progress: Any | None = None,
-) -> Result[dict[str, int]]:
+) -> Result[dict[str, int | str | None]]:
     """
     Generate embeddings for existing assets that currently have no vector.
 

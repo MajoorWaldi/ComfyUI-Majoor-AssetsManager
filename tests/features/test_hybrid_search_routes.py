@@ -83,6 +83,58 @@ async def test_hybrid_search_filters_semantic_hits_by_scope(monkeypatch) -> None
 
 
 @pytest.mark.asyncio
+async def test_hybrid_search_filters_weak_semantic_tail(monkeypatch) -> None:
+    class _DB:
+        async def aquery(self, sql: str, params=()):
+            if "FROM assets_fts" in sql:
+                return Result.Ok([])
+            if "SELECT a.id AS asset_id" in sql and "WHERE a.id IN" in sql:
+                return Result.Ok(
+                    [
+                        {"asset_id": 2},
+                        {"asset_id": 3},
+                        {"asset_id": 4},
+                    ]
+                )
+            return Result.Ok([])
+
+    class _Searcher:
+        async def search_by_text(self, _query: str, *, top_k: int = 20):
+            assert top_k >= 20
+            return Result.Ok(
+                [
+                    {"asset_id": 2, "score": 0.14},
+                    {"asset_id": 3, "score": 0.10},
+                    {"asset_id": 4, "score": 0.05},
+                ]
+            )
+
+    async def _require_services():
+        return {"db": _DB(), "vector_searcher": _Searcher()}, None
+
+    async def _hydrate_passthrough(_services, result):
+        return Result.Ok(result.data or [])
+
+    monkeypatch.setattr(hybrid_search, "_require_services", _require_services)
+    monkeypatch.setattr(hybrid_search, "_hydrate_vector_results", _hydrate_passthrough)
+    monkeypatch.setattr(hybrid_search, "_check_rate_limit", lambda *_args, **_kwargs: (True, None))
+    monkeypatch.setattr(hybrid_search, "VECTOR_TEXT_SEARCH_MIN_SCORE", 0.02)
+    monkeypatch.setattr(hybrid_search, "VECTOR_TEXT_SEARCH_RELATIVE_RATIO", 0.7)
+
+    app = _build_hybrid_app()
+    req = make_mocked_request("GET", "/mjr/am/search/hybrid?q=dinosaure&scope=output&top_k=5", app=app)
+    match = await app.router.resolve(req)
+    req._match_info = match
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+
+    assert body.get("ok") is True
+    data = body.get("data") or []
+    assert [item.get("asset_id") for item in data] == [2, 3]
+    assert all(item.get("_matchType") == "semantic" for item in data)
+
+
+@pytest.mark.asyncio
 async def test_hybrid_search_scope_all_does_not_force_source_all(monkeypatch) -> None:
     seen = {"checked": False}
 

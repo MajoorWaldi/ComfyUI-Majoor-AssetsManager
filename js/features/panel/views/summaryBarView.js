@@ -11,6 +11,7 @@ const _safeText = (v) => {
 
 const _titleScope = (scope) => {
     const s = String(scope || "").toLowerCase();
+    if (s === "similar") return t("scope.similar", "Similar");
     if (s === "input" || s === "inputs") return t("scope.input");
     if (s === "custom") return t("scope.customBrowser");
     if (s === "all") return t("tab.all");
@@ -108,7 +109,8 @@ export function createSummaryBarView() {
             Math.max(0, Number(state?.lastGridCount ?? 0) || 0) ||
             cardsCount;
 
-        const scope = _titleScope(state?.scope || gridContainer?.dataset?.mjrScope || "output");
+        const activeScope = String(state?.viewScope || state?.scope || gridContainer?.dataset?.mjrScope || "output").toLowerCase();
+        const scope = _titleScope(activeScope);
 
         const countPart = total && total >= shown ? `${shown}/${total}` : `${shown}`;
         const primaryLabel =
@@ -127,21 +129,26 @@ export function createSummaryBarView() {
         } catch (e) { console.debug?.(e); }
 
         try {
-            const alert = context?.duplicatesAlert || null;
-            const exact = Number(alert?.exactCount || 0) || 0;
-            const similar = Number(alert?.similarCount || 0) || 0;
-            const hasAlert = exact > 0 || similar > 0;
-            if (!hasAlert) {
+            if (activeScope === "similar") {
                 dupAlert.style.display = "none";
                 dupAlert.onclick = null;
             } else {
-                dupAlert.style.display = "";
-                dupAlert.textContent = `${t("summary.duplicates")}: ${exact} | ${t("summary.similar")}: ${similar}`;
-                dupAlert.onclick = () => {
-                    try {
-                        actions?.onDuplicateAlertClick?.(alert);
-                    } catch (e) { console.debug?.(e); }
-                };
+                const alert = context?.duplicatesAlert || null;
+                const exact = Number(alert?.exactCount || 0) || 0;
+                const similar = Number(alert?.similarCount || 0) || 0;
+                const hasAlert = exact > 0 || similar > 0;
+                if (!hasAlert) {
+                    dupAlert.style.display = "none";
+                    dupAlert.onclick = null;
+                } else {
+                    dupAlert.style.display = "";
+                    dupAlert.textContent = `${t("summary.duplicates")}: ${exact} | ${t("summary.similar")}: ${similar}`;
+                    dupAlert.onclick = () => {
+                        try {
+                            actions?.onDuplicateAlertClick?.(alert);
+                        } catch (e) { console.debug?.(e); }
+                    };
+                }
             }
         } catch (e) { console.debug?.(e); }
 

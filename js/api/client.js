@@ -882,6 +882,13 @@ export async function resetIndex(options = {}) {
           clear_metadata_cache: _bool(options.clearMetadataCache ?? options.clear_metadata_cache, true),
           clear_asset_metadata: _bool(options.clearAssetMetadata ?? options.clear_asset_metadata, true),
           clear_assets: _bool(options.clearAssets ?? options.clear_assets, true),
+          preserve_vectors: _bool(
+              options.preserveVectors ??
+              options.preserve_vectors ??
+              options.keepVectors ??
+              options.keep_vectors,
+              false
+          ),
           rebuild_fts: _bool(options.rebuildFts ?? options.rebuild_fts, true),
         incremental: _bool(options.incremental, false),
         fast: _bool(options.fast, true),
@@ -1099,7 +1106,8 @@ export async function vectorSearch(query, topKOrOptions = 20) {
     let url = `${ENDPOINTS.VECTOR_SEARCH}?q=${encodeURIComponent(q)}&top_k=${topK}`;
     if (scope) url += `&scope=${encodeURIComponent(scope)}`;
     if (customRootId) url += `&custom_root_id=${encodeURIComponent(customRootId)}`;
-    return get(url);
+    // Model cold-start (SigLIP download/load) can take 60-120s on first use
+    return get(url, { timeoutMs: 120_000 });
 }
 
 /**
@@ -1310,7 +1318,8 @@ export async function hybridSearch(query, { topK = 50, scope = "output", customR
     if (!q) return { ok: false, error: "Empty query" };
     let url = `${ENDPOINTS.HYBRID_SEARCH}?q=${encodeURIComponent(q)}&top_k=${Math.max(1, Math.min(200, topK))}&scope=${encodeURIComponent(scope)}`;
     if (customRootId) url += `&custom_root_id=${encodeURIComponent(customRootId)}`;
-    return get(url);
+    // Model cold-start (SigLIP download/load) can take 60-120s on first use
+    return get(url, { timeoutMs: 120_000 });
 }
 
 /**

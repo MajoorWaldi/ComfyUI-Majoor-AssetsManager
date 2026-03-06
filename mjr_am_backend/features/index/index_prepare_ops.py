@@ -15,6 +15,18 @@ from .metadata_helpers import MetadataHelpers
 from .scan_batch_utils import compute_state_hash, is_incremental_unchanged, normalize_filepath_str
 
 
+async def _asset_missing_vector(scanner: Any, *, asset_id: int) -> bool:
+    checker = getattr(scanner, "_asset_has_vector", None)
+    if not callable(checker):
+        return False
+    try:
+        return not bool(await checker(asset_id=asset_id))
+    except TypeError:
+        return not bool(await checker(asset_id))
+    except Exception:
+        return False
+
+
 async def prepare_metadata_for_entry(
     scanner: Any,
     *,
@@ -142,6 +154,9 @@ async def maybe_skip_prepare_for_incremental(
     cached_result = await refresh_entry_from_cached_metadata(scanner, prepare_ctx=prepare_ctx, file_path=file_path, fast=fast)
     if cached_result is not None:
         return cached_result
+    existing_id = int(prepare_ctx.get("existing_id") or 0)
+    if existing_id and await _asset_missing_vector(scanner, asset_id=existing_id):
+        return None
     if await scanner._asset_has_rich_metadata(asset_id=prepare_ctx["existing_id"]):
         return Result.Ok({"action": "skipped"})
     return None
@@ -160,9 +175,13 @@ async def should_skip_by_journal_state(
         return False
     if str(prepare_ctx["journal_state_hash"]) != prepare_ctx["state_hash"]:
         return False
-    if fast:
-        return True
     existing_id = int(prepare_ctx.get("existing_id") or 0)
+    if fast:
+        if existing_id and await _asset_missing_vector(scanner, asset_id=existing_id):
+            return False
+        return True
+    if existing_id and await _asset_missing_vector(scanner, asset_id=existing_id):
+        return False
     return bool(existing_id and await scanner._asset_has_rich_metadata(asset_id=existing_id))
 
 

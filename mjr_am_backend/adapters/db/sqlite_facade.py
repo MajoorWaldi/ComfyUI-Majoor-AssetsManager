@@ -444,6 +444,16 @@ class Sqlite:
     def __init__(self, db_path: str, max_connections: int | None = None, timeout: float = 30.0, *, attach: dict[str, str] | None = None):
         self.db_path = Path(db_path)
         self._attach_dbs: dict[str, str] = dict(attach) if attach else {}
+        if "vec" not in self._attach_dbs:
+            # Keep vector DB colocated with the primary DB by default so schema
+            # self-heal works even when callers don't pass attach={"vec": ...}.
+            default_vec = self.db_path.with_name("vectors.sqlite")
+            try:
+                if default_vec.resolve(strict=False) != self.db_path.resolve(strict=False):
+                    self._attach_dbs["vec"] = str(default_vec)
+            except Exception:
+                if default_vec != self.db_path:
+                    self._attach_dbs["vec"] = str(default_vec)
         user_config = self._load_user_db_config()
         max_conn = (
             int(max_connections)

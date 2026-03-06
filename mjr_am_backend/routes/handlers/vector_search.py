@@ -12,7 +12,13 @@ import math
 from typing import Any
 
 from aiohttp import web
-from ...config import VECTOR_SIMILAR_TOPK, is_vector_search_enabled
+from ...config import (
+    VECTOR_SIMILAR_MIN_SCORE,
+    VECTOR_SIMILAR_TOPK,
+    VECTOR_TEXT_SEARCH_MIN_SCORE,
+    VECTOR_TEXT_SEARCH_RELATIVE_RATIO,
+    is_vector_search_enabled,
+)
 from ...shared import Result, get_logger
 
 from ..core import _json_response, _require_services
@@ -184,6 +190,102 @@ async def _filter_hits_by_scope(
         except Exception:
             continue
         if aid in allowed:
+            filtered.append(hit)
+    return filtered
+
+
+async def _filter_similar_hits(
+    db: Any,
+    hits: list[dict[str, Any]],
+    *,
+    query_asset_id: int,
+    min_score: float,
+) -> list[dict[str, Any]]:
+    if not isinstance(hits, list) or not hits:
+        return []
+
+    score_floor = max(0.0, min(1.0, float(min_score or 0.0)))
+    filtered = []
+    for hit in hits:
+        try:
+            score = float(hit.get("score") or 0.0)
+        except Exception:
+            score = 0.0
+        if score < score_floor:
+            continue
+        filtered.append(hit)
+    if not filtered or db is None:
+        return filtered
+
+    source_row = await db.aquery(
+        "SELECT LOWER(COALESCE(kind, '')) AS kind FROM assets WHERE id = ?",
+        (int(query_asset_id),),
+    )
+    if not source_row.ok or not source_row.data:
+        return filtered
+    source_kind = str(source_row.data[0].get("kind") or "").strip().lower()
+    if not source_kind:
+        return filtered
+
+    asset_ids: list[int] = []
+    for hit in filtered:
+        try:
+            aid = int(hit.get("asset_id") or 0)
+        except Exception:
+            aid = 0
+        if aid > 0:
+            asset_ids.append(aid)
+    if not asset_ids:
+        return []
+
+    placeholders = ",".join("?" for _ in asset_ids)
+    rows = await db.aquery(
+        f"SELECT id AS asset_id FROM assets WHERE id IN ({placeholders}) AND LOWER(COALESCE(kind, '')) = ?",
+        tuple(asset_ids + [source_kind]),
+    )
+    if not rows.ok or not rows.data:
+        return []
+
+    allowed = set()
+    for row in rows.data:
+        try:
+            allowed.add(int(row.get("asset_id") or 0))
+        except Exception:
+            continue
+    if not allowed:
+        return []
+    return [hit for hit in filtered if int(hit.get("asset_id") or 0) in allowed]
+
+
+def _filter_text_search_hits(
+    hits: list[dict[str, Any]],
+    *,
+    min_score: float,
+    relative_ratio: float,
+) -> list[dict[str, Any]]:
+    if not isinstance(hits, list) or not hits:
+        return []
+
+    ratio = max(0.0, min(1.0, float(relative_ratio or 0.0)))
+    floor = max(0.0, min(1.0, float(min_score or 0.0)))
+
+    filtered: list[dict[str, Any]] = []
+    best_score = 0.0
+    for hit in hits:
+        try:
+            score = float(hit.get("score") or 0.0)
+        except Exception:
+            score = 0.0
+        if score > best_score:
+            best_score = score
+
+    threshold = max(floor, best_score * ratio)
+    for hit in hits:
+        try:
+            score = float(hit.get("score") or 0.0)
+        except Exception:
+            score = 0.0
+        if score >= threshold:
             filtered.append(hit)
     return filtered
 
@@ -365,6 +467,11 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
             # Hydrate results with full asset data for grid rendering
             if result.ok and result.data:
                 db = services_dict.get("db")
+                result.data = _filter_text_search_hits(
+                    list(result.data or []),
+                    min_score=VECTOR_TEXT_SEARCH_MIN_SCORE,
+                    relative_ratio=VECTOR_TEXT_SEARCH_RELATIVE_RATIO,
+                )
                 result.data = (await _filter_hits_by_scope(
                     db,
                     list(result.data or []),
@@ -427,6 +534,12 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         # Hydrate results with full asset data for grid rendering
         if result.ok and result.data:
             db = services_dict.get("db")
+            result.data = await _filter_similar_hits(
+                db,
+                list(result.data or []),
+                query_asset_id=asset_id,
+                min_score=VECTOR_SIMILAR_MIN_SCORE,
+            )
             result.data = (await _filter_hits_by_scope(
                 db,
                 list(result.data or []),

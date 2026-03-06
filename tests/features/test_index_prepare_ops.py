@@ -34,6 +34,27 @@ async def test_should_skip_by_journal_state_checks_rich_metadata_when_not_fast()
 
 
 @pytest.mark.asyncio
+async def test_should_skip_by_journal_state_keeps_missing_vector_assets_active() -> None:
+    async def _has_rich_metadata(*, asset_id):
+        return asset_id == 5
+
+    async def _asset_has_vector(*, asset_id):
+        return False
+
+    scanner = SimpleNamespace(
+        _asset_has_rich_metadata=_has_rich_metadata,
+        _asset_has_vector=_asset_has_vector,
+    )
+    prepare_ctx = {"journal_state_hash": "s", "state_hash": "s", "existing_id": 5}
+    assert await ipo.should_skip_by_journal_state(
+        scanner,
+        prepare_ctx=prepare_ctx,
+        incremental=True,
+        fast=False,
+    ) is False
+
+
+@pytest.mark.asyncio
 async def test_refresh_entry_from_cached_metadata_returns_refresh_entry(monkeypatch) -> None:
     async def _cached(_db, _fp, _state_hash):
         return Result.Ok({"metadata_raw": {"k": "v"}})

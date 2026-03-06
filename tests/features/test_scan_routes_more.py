@@ -1693,6 +1693,262 @@ async def test_reset_index_non_malformed_clear_error_returns_error(monkeypatch, 
 
 
 @pytest.mark.asyncio
+async def test_reset_index_preserve_vectors_skips_assets_clear_and_hard_reset(monkeypatch, tmp_path: Path) -> None:
+    out_root = tmp_path / "out"
+    out_root.mkdir()
+    executed_sql: list[str] = []
+    purge_calls = {"n": 0}
+
+    class _Tx:
+        ok = True
+        error = None
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+    class _DB:
+        def __init__(self):
+            self.areset_calls = 0
+
+        def atransaction(self, mode="immediate"):
+            _ = mode
+            return _Tx()
+
+        async def aexecute(self, sql, params=None):
+            _ = params
+            executed_sql.append(" ".join(str(sql).split()))
+            return Result.Ok(1)
+
+        async def avacuum(self):
+            return Result.Ok({})
+
+        async def areset(self):
+            self.areset_calls += 1
+            return Result.Ok({})
+
+    class _Index:
+        async def stop_enrichment(self, clear_queue=True):
+            _ = clear_queue
+
+        async def scan_directory(self, *_args, **_kwargs):
+            return Result.Ok({"scanned": 0, "added": 0, "updated": 0, "skipped": 0, "errors": 0})
+
+    db = _DB()
+
+    async def _runtime_output_root(_svc):
+        return str(out_root)
+
+    async def _require_services():
+        return {"db": db, "index": _Index()}, None
+
+    async def _read_json(_request):
+        return Result.Ok(
+            {
+                "scope": "output",
+                "reindex": False,
+                "hard_reset_db": True,
+                "clear_scan_journal": True,
+                "clear_metadata_cache": True,
+                "clear_asset_metadata": True,
+                "clear_assets": True,
+                "preserve_vectors": True,
+                "rebuild_fts": False,
+            }
+        )
+
+    async def _resolve_security_prefs(_svc):
+        return {}
+
+    monkeypatch.setattr(scan_mod, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(scan_mod, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(scan_mod, "_require_services", _require_services)
+    monkeypatch.setattr(scan_mod, "_resolve_security_prefs", _resolve_security_prefs)
+    monkeypatch.setattr(scan_mod, "_require_operation_enabled", lambda *_args, **_kwargs: Result.Ok({}))
+    monkeypatch.setattr(scan_mod, "is_db_maintenance_active", lambda: False)
+    monkeypatch.setattr(scan_mod, "_read_json", _read_json)
+    monkeypatch.setattr(scan_mod, "_runtime_output_root", _runtime_output_root)
+    async def _purge_orphans(_db):
+        purge_calls["n"] += 1
+        return Result.Ok(True)
+
+    monkeypatch.setattr(scan_mod, "purge_orphan_vec_embeddings", _purge_orphans)
+
+    app = _app()
+    req = make_mocked_request("POST", "/mjr/am/index/reset", app=app)
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    payload = json.loads(resp.text)
+
+    assert payload.get("ok") is True
+    assert payload.get("data", {}).get("preserve_vectors") is True
+    assert db.areset_calls == 0
+    assert purge_calls["n"] == 0
+    assert not any(sql.startswith("DELETE FROM assets") for sql in executed_sql)
+    assert any("DELETE FROM scan_journal" in sql for sql in executed_sql)
+    assert any("DELETE FROM metadata_cache" in sql for sql in executed_sql)
+
+
+@pytest.mark.asyncio
+async def test_reset_index_preserve_vectors_malformed_returns_error_without_hard_reset(monkeypatch, tmp_path: Path) -> None:
+    out_root = tmp_path / "out"
+    out_root.mkdir()
+
+    class _Tx:
+        ok = True
+        error = None
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+    class _DB:
+        def __init__(self):
+            self.areset_calls = 0
+
+        def atransaction(self, mode="immediate"):
+            _ = mode
+            return _Tx()
+
+        async def aexecute(self, sql, params=None):
+            _ = (sql, params)
+            return Result.Err("DB_ERROR", "database disk image is malformed")
+
+        async def areset(self):
+            self.areset_calls += 1
+            return Result.Ok({})
+
+    class _Index:
+        async def stop_enrichment(self, clear_queue=True):
+            _ = clear_queue
+
+    db = _DB()
+
+    async def _runtime_output_root(_svc):
+        return str(out_root)
+
+    async def _require_services():
+        return {"db": db, "index": _Index()}, None
+
+    async def _read_json(_request):
+        return Result.Ok(
+            {
+                "scope": "output",
+                "reindex": False,
+                "preserve_vectors": True,
+                "clear_scan_journal": True,
+            }
+        )
+
+    async def _resolve_security_prefs(_svc):
+        return {}
+
+    monkeypatch.setattr(scan_mod, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(scan_mod, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(scan_mod, "_require_services", _require_services)
+    monkeypatch.setattr(scan_mod, "_resolve_security_prefs", _resolve_security_prefs)
+    monkeypatch.setattr(scan_mod, "_require_operation_enabled", lambda *_args, **_kwargs: Result.Ok({}))
+    monkeypatch.setattr(scan_mod, "is_db_maintenance_active", lambda: False)
+    monkeypatch.setattr(scan_mod, "_read_json", _read_json)
+    monkeypatch.setattr(scan_mod, "_runtime_output_root", _runtime_output_root)
+
+    app = _app()
+    req = make_mocked_request("POST", "/mjr/am/index/reset", app=app)
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    payload = json.loads(resp.text)
+
+    assert payload.get("ok") is False
+    assert payload.get("code") == "DB_MALFORMED"
+    assert db.areset_calls == 0
+
+
+@pytest.mark.asyncio
+async def test_reset_index_without_preserve_vectors_purges_orphan_vectors(monkeypatch, tmp_path: Path) -> None:
+    out_root = tmp_path / "out"
+    out_root.mkdir()
+    purge_calls = {"n": 0}
+
+    class _Tx:
+        ok = True
+        error = None
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+    class _DB:
+        def atransaction(self, mode="immediate"):
+            _ = mode
+            return _Tx()
+
+        async def aexecute(self, sql, params=None):
+            _ = (sql, params)
+            return Result.Ok(1)
+
+        async def avacuum(self):
+            return Result.Ok({})
+
+    class _Index:
+        async def stop_enrichment(self, clear_queue=True):
+            _ = clear_queue
+
+    async def _runtime_output_root(_svc):
+        return str(out_root)
+
+    async def _require_services():
+        return {"db": _DB(), "index": _Index()}, None
+
+    async def _read_json(_request):
+        return Result.Ok(
+            {
+                "scope": "output",
+                "reindex": False,
+                "clear_scan_journal": True,
+                "clear_metadata_cache": True,
+                "clear_asset_metadata": True,
+                "clear_assets": True,
+                "preserve_vectors": False,
+                "rebuild_fts": False,
+            }
+        )
+
+    async def _resolve_security_prefs(_svc):
+        return {}
+
+    async def _purge_orphans(_db):
+        purge_calls["n"] += 1
+        return Result.Ok(True)
+
+    monkeypatch.setattr(scan_mod, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(scan_mod, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(scan_mod, "_require_services", _require_services)
+    monkeypatch.setattr(scan_mod, "_resolve_security_prefs", _resolve_security_prefs)
+    monkeypatch.setattr(scan_mod, "_require_operation_enabled", lambda *_args, **_kwargs: Result.Ok({}))
+    monkeypatch.setattr(scan_mod, "is_db_maintenance_active", lambda: False)
+    monkeypatch.setattr(scan_mod, "_read_json", _read_json)
+    monkeypatch.setattr(scan_mod, "_runtime_output_root", _runtime_output_root)
+    monkeypatch.setattr(scan_mod, "purge_orphan_vec_embeddings", _purge_orphans)
+
+    app = _app()
+    req = make_mocked_request("POST", "/mjr/am/index/reset", app=app)
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    payload = json.loads(resp.text)
+
+    assert payload.get("ok") is True
+    assert payload.get("data", {}).get("preserve_vectors") is False
+    assert payload.get("data", {}).get("vectors_purged") is True
+    assert purge_calls["n"] == 1
+
+
+@pytest.mark.asyncio
 async def test_upload_input_csrf_and_auth(monkeypatch) -> None:
     app = _app()
 

@@ -312,7 +312,6 @@ async def test_get_tags_success_and_error(monkeypatch):
     resp2 = await (await app.router.resolve(req2)).handler(req2)
     assert _json(resp2).get("code") == "DB_ERROR"
 
-
 @pytest.mark.asyncio
 async def test_delete_asset_validation_paths(monkeypatch, tmp_path: Path):
     app = _app()

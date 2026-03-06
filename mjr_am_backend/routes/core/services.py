@@ -5,6 +5,7 @@ import asyncio
 import threading
 from typing import Any
 
+from mjr_am_backend.config import VECTOR_PREWARM_ON_STARTUP
 from mjr_am_backend.deps import build_services
 from mjr_am_backend.shared import Result, get_logger
 
@@ -100,6 +101,41 @@ def get_services_error():
     return _services_error
 
 
+async def _run_vector_prewarm_step(label: str, runner: Any) -> None:
+    try:
+        result = await runner()
+    except Exception as exc:
+        logger.warning("%s failed during startup prewarm: %s", label, exc)
+        return
+
+    if not getattr(result, "ok", False):
+        logger.warning("%s failed during startup prewarm: %s", label, getattr(result, "error", None) or "unknown error")
+        return
+
+    logger.info("%s prewarmed", label)
+
+
+async def _prewarm_vector_components(services: dict[str, Any] | None) -> None:
+    if not VECTOR_PREWARM_ON_STARTUP or not isinstance(services, dict):
+        return
+
+    vector_service = services.get("vector_service")
+    vector_searcher = services.get("vector_searcher")
+    steps: list[asyncio.Future[Any] | asyncio.Task[Any] | Any] = []
+
+    prewarm_text = getattr(vector_service, "prewarm_text_queries", None)
+    if callable(prewarm_text):
+        steps.append(_run_vector_prewarm_step("Vector text-query model", prewarm_text))
+
+    prewarm_index = getattr(vector_searcher, "prewarm_index", None)
+    if callable(prewarm_index):
+        steps.append(_run_vector_prewarm_step("Vector search index", prewarm_index))
+
+    if steps:
+        await asyncio.gather(*steps)
+
+
 async def prewarm_services() -> None:
     """Pre-warm services in the background so the first user request is fast."""
-    await _build_services()
+    services = await _build_services()
+    await _prewarm_vector_components(services)

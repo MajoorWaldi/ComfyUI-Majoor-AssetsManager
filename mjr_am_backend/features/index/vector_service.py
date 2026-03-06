@@ -236,14 +236,69 @@ def _extract_frame_at(video_path: str, timestamp: float) -> PILImage.Image | Non
     return None
 
 
+def _extract_keyframes_cv2(video_path: str, interval: float) -> list[PILImage.Image]:
+    """Fallback: extract key-frames using OpenCV when ffprobe/ffmpeg are unavailable."""
+    try:
+        import cv2
+        from PIL import Image as PILImage  # noqa: F811
+    except ImportError:
+        return []
+
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        logger.debug("cv2.VideoCapture failed to open %s", video_path)
+        return []
+
+    try:
+        fps = cap.get(cv2.CAP_PROP_FPS) or 24.0
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
+        duration = total_frames / fps if fps > 0 and total_frames > 0 else 0.0
+
+        if duration <= 0:
+            # Try a single frame
+            ret, frame_bgr = cap.read()
+            if ret and frame_bgr is not None:
+                frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+                return [PILImage.fromarray(frame_rgb)]
+            return []
+
+        timestamps: list[float] = []
+        t = 0.0
+        while t < duration:
+            timestamps.append(t)
+            t += interval
+        if duration > interval and (duration / 2) not in timestamps:
+            timestamps.append(duration / 2)
+        timestamps.sort()
+
+        frames: list[PILImage.Image] = []
+        for ts in timestamps:
+            frame_no = int(ts * fps)
+            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_no)
+            ret, frame_bgr = cap.read()
+            if ret and frame_bgr is not None:
+                frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+                frames.append(PILImage.fromarray(frame_rgb))
+        return frames
+    finally:
+        cap.release()
+
+
 def extract_keyframes(video_path: str, interval: float | None = None) -> list[PILImage.Image]:
-    """Return a list of key-frame PIL Images sampled every *interval* seconds."""
+    """Return a list of key-frame PIL Images sampled every *interval* seconds.
+
+    Tries ffprobe/ffmpeg first, then falls back to OpenCV (cv2) if the
+    ffmpeg-based extraction yields no frames.
+    """
     interval = interval or VECTOR_VIDEO_KEYFRAME_INTERVAL
     duration = _extract_video_duration(video_path)
     if duration is None or duration <= 0:
         # Fallback: try a single frame at t=0
         frame = _extract_frame_at(video_path, 0.0)
-        return [frame] if frame else []
+        if frame:
+            return [frame]
+        # ffmpeg unavailable — try OpenCV
+        return _extract_keyframes_cv2(video_path, interval)
 
     timestamps = []
     t = 0.0
@@ -260,6 +315,9 @@ def extract_keyframes(video_path: str, interval: float | None = None) -> list[PI
         frame = _extract_frame_at(video_path, ts)
         if frame is not None:
             frames.append(frame)
+    # If ffmpeg extraction failed for every frame, fall back to OpenCV
+    if not frames:
+        frames = _extract_keyframes_cv2(video_path, interval)
     return frames
 
 
@@ -299,6 +357,8 @@ class VectorService:
         self._prompt_model: Any | None = None
         self._prompt_processor: Any | None = None
         self._prompt_lock = asyncio.Lock()
+        self._text_query_warmed = False
+        self._text_query_warm_lock = asyncio.Lock()
         self._dim = VECTOR_EMBEDDING_DIM
         self._last_error: str = ""
         self._last_error_at: str | None = None
@@ -779,12 +839,40 @@ class VectorService:
         self._last_error = ""
         self._last_error_at = None
 
+    async def prewarm_text_queries(self, probe_text: str = "warmup") -> Result[dict[str, Any]]:
+        """Preload the text-query path so the first AI search is not cold."""
+        if self._text_query_warmed:
+            return Result.Ok(self.get_runtime_status())
+
+        async with self._text_query_warm_lock:
+            if self._text_query_warmed:
+                return Result.Ok(self.get_runtime_status())
+
+            result = await self.get_text_embedding(probe_text)
+            if not result.ok or not result.data:
+                return Result.Err(
+                    result.code or "SERVICE_UNAVAILABLE",
+                    result.error or "Vector text-query warmup failed",
+                )
+
+            self._text_query_warmed = True
+            return Result.Ok(self.get_runtime_status())
+
     def get_runtime_status(self) -> dict[str, Any]:
+        siglip_loaded = bool(self._siglip_model is not None and self._siglip_processor is not None)
+        sentence_transformer_loaded = bool(self._model is not None)
+        prompt_model_loaded = bool(self._prompt_model is not None and self._prompt_processor is not None)
+        video_model_loaded = bool(self._video_model is not None and self._video_processor is not None)
         return {
             "model_name": self._model_name,
             "video_model_name": self._video_model_name,
             "prompt_model_name": self._prompt_model_name,
-            "loaded": bool(self._model is not None),
+            "loaded": bool(sentence_transformer_loaded or siglip_loaded),
+            "sentence_transformer_loaded": sentence_transformer_loaded,
+            "siglip_loaded": siglip_loaded,
+            "video_model_loaded": video_model_loaded,
+            "prompt_model_loaded": prompt_model_loaded,
+            "text_query_warmed": bool(self._text_query_warmed),
             "dim": int(self._dim),
             "last_error": self._last_error or None,
             "last_error_at": self._last_error_at,
@@ -1167,6 +1255,36 @@ class VectorService:
         if not frames:
             return Result.Err("UNSUPPORTED", "No frames could be extracted from video")
 
+        # Use the same native SigLIP2 path that works for image embeddings
+        # to encode each keyframe, then average.
+        if self._use_native_siglip():
+            try:
+                import numpy as np
+                import torch
+
+                processor, native_model = await self._ensure_siglip_components()
+
+                def _embed_frames_native() -> list[float]:
+                    vecs = []
+                    with torch.inference_mode():
+                        for frame in frames:
+                            inputs = processor(images=[frame], return_tensors="pt")
+                            feats = native_model.get_image_features(**inputs)
+                            arr = feats.detach().cpu().numpy()[0]
+                            vecs.append(_normalise_vector(arr))
+                    mean_vec = np.mean(vecs, axis=0)
+                    vec = _normalise_vector(mean_vec)
+                    return _coerce_vector_dim(vec, self._dim)
+
+                vec = await asyncio.to_thread(_embed_frames_native)
+                self._clear_error()
+                return Result.Ok(vec)
+            except Exception as exc:
+                self._record_error(f"Video embedding failed for {path.name}: {exc}")
+                logger.debug("Native SigLIP video embedding failed for %s: %s", path.name, exc)
+                return Result.Err("METADATA_FAILED", f"Video embedding failed: {exc}")
+
+        # Legacy SentenceTransformer fallback
         try:
             import numpy as np  # noqa: F811
 
@@ -1201,17 +1319,19 @@ class VectorService:
                     path.name,
                     batch_exc,
                 )
+
+                def _encode_single_frame(frame_obj: Any) -> Any:
+                    return _encode_quiet(
+                        model,
+                        cast(Any, [frame_obj]),
+                        convert_to_numpy=True,
+                        batch_size=1,
+                        show_progress_bar=False,
+                    )
+
                 vecs = []
                 for frame in frames:
-                    encoded = await asyncio.to_thread(
-                        lambda fr=frame: _encode_quiet(
-                            model,
-                            cast(Any, [fr]),
-                            convert_to_numpy=True,
-                            batch_size=1,
-                            show_progress_bar=False,
-                        )
-                    )
+                    encoded = await asyncio.to_thread(_encode_single_frame, frame)
                     vecs.append(_coerce_first_vector(encoded))
 
             mean_vec = np.mean(vecs, axis=0)
@@ -1538,73 +1658,38 @@ class VectorService:
                 if not rgb_frames:
                     raise RuntimeError("No RGB frames available for X-CLIP embedding")
 
-                def _get_field(container: Any, field: str) -> Any:
-                    try:
-                        getter = getattr(container, "get", None)
-                        if callable(getter):
-                            return getter(field)
-                    except Exception:
-                        pass
-                    try:
-                        return container[field]
-                    except Exception:
-                        pass
-                    try:
-                        return getattr(container, field)
-                    except Exception:
-                        return None
-
-                def _try_processor(**kwargs: Any) -> Any:
-                    try:
-                        return processor(**kwargs)
-                    except Exception:
-                        return None
+                # X-CLIP expects exactly 8 frames; pad by repeating if fewer.
+                target_nframes = 8
+                while len(rgb_frames) < target_nframes:
+                    rgb_frames.append(rgb_frames[len(rgb_frames) % len(rgb_frames)])
 
                 with torch.inference_mode():
-                    inputs: Any | None = None
-                    pixel_values: Any | None = None
-                    # Some processor/model combos return non-mapping values for
-                    # `images=[...]` (seen in the field). Probe fallback signatures
-                    # and extract `pixel_values` defensively.
-                    processor_calls: list[dict[str, Any]] = [
-                        {"images": rgb_frames, "return_tensors": "pt", "padding": True},
-                        {"videos": [rgb_frames], "return_tensors": "pt", "padding": True},
-                        {"videos": rgb_frames, "return_tensors": "pt", "padding": True},
-                        {"images": rgb_frames[0], "return_tensors": "pt"},
-                    ]
-                    for kwargs in processor_calls:
-                        out = _try_processor(**kwargs)
-                        if out is None:
-                            continue
-                        inputs = out
-                        pixel_values = _get_field(out, "pixel_values")
-                        if pixel_values is None and hasattr(out, "shape") and hasattr(out, "dtype"):
-                            pixel_values = out
-                        if pixel_values is not None:
-                            break
+                    # XCLIPProcessor uses images= (not videos=) to build
+                    # pixel_values with shape [batch, num_frames, C, H, W].
+                    inputs = processor(images=rgb_frames, return_tensors="pt")
+                    pixel_values = inputs.get("pixel_values")
+                    if pixel_values is None:
+                        raise RuntimeError("X-CLIP processor returned no pixel_values")
 
-                    if hasattr(model, "get_image_features"):
-                        if pixel_values is None:
-                            raise RuntimeError("X-CLIP processor returned no pixel_values")
-                        feats = model.get_image_features(pixel_values=pixel_values)
+                    if hasattr(model, "get_video_features"):
+                        # get_video_features may return a tuple in some
+                        # transformers versions; handle both cases.
+                        out = model.get_video_features(pixel_values=pixel_values)
+                        if isinstance(out, tuple):
+                            feats = out[0]
+                        else:
+                            feats = out
                     else:
-                        model_inputs: dict[str, Any] = {}
-                        if isinstance(inputs, Mapping):
-                            try:
-                                model_inputs = dict(inputs)
-                            except Exception:
-                                model_inputs = {}
-                        if not model_inputs and pixel_values is not None:
-                            model_inputs = {"pixel_values": pixel_values}
-                        if not model_inputs:
-                            raise RuntimeError("X-CLIP processor returned no usable model inputs")
-                        out = model(**model_inputs)
-                        feats = getattr(out, "pooler_output", None)
+                        out = model(pixel_values=pixel_values)
+                        feats = getattr(out, "video_embeds", None)
+                        if feats is None:
+                            feats = getattr(out, "pooler_output", None)
                         if feats is None:
                             feats = getattr(out, "last_hidden_state", None)
                             if feats is None:
                                 raise RuntimeError("X-CLIP output does not expose usable features")
                             feats = feats.mean(dim=1)
+
                     arr = feats.detach().cpu().numpy()
                     mean_vec = np.mean(arr, axis=0)
                     vec = _normalise_vector(mean_vec)

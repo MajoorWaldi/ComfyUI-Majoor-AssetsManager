@@ -52,13 +52,34 @@ _A1111_PARAMS_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Regex to split prompts into semantic segments (commas, periods, semicolons)
+_SEGMENT_SPLIT_RE = re.compile(r"[,;.]+")
+_MIN_SEGMENT_CHARS = 4  # ignore segments shorter than this
+
 # ── Score calibration constants ────────────────────────────────────────────
-# Raw SigLIP2 cosine similarity for well-aligned image-text pairs typically
-# falls in the 0.15–0.45 range.  We remap this to a 0–1 scale so that
-# the UI percentage is meaningful to users.
-_CALIB_LOW = 0.15   # raw score mapped to 0 (floor)
-_CALIB_HIGH = 0.45  # raw score mapped to 1 (ceiling)
+# SigLIP2 native features (get_image_features / get_text_features) produce
+# L2-normalised embeddings whose cosine similarity for well-aligned pairs
+# typically falls in the −0.06 to +0.05 range (sigmoid loss → lower raw
+# values than CLIP).  We remap this band to a 0–1 UI scale.
+_CALIB_LOW = 0.00    # raw score mapped to 0 (floor)
+_CALIB_HIGH = 0.06   # raw score mapped to 1 (ceiling)
 _NEG_PENALTY_WEIGHT = 0.25  # how much negative-prompt match penalises the score
+
+# ── Multi-signal fusion weights ────────────────────────────────────────────
+_W_IMAGE_TEXT = 0.60    # weight for image↔text multi-segment score
+_W_CAPTION_TEXT = 0.20  # weight for enhanced_caption↔prompt text similarity
+_W_SEMANTIC = 0.20      # weight for semantic dimension decomposition
+_SEGMENT_MAX_BOOST = 0.10  # bonus factor for best-matching segment
+
+# ── Semantic dimension categories ──────────────────────────────────────────
+# Each dimension has a prefix used to construct a probing prompt.
+_SEMANTIC_DIMENSIONS: dict[str, str] = {
+    "subject": "a photo depicting",
+    "style": "an artwork in the style of",
+    "medium": "created using the medium of",
+    "mood": "an image with the mood of",
+    "color": "an image with the color palette of",
+}
 
 # ── Canonical auto-tag vocabulary ──────────────────────────────────────────
 # Each entry maps a human-readable tag to a text prompt.
@@ -165,20 +186,24 @@ async def index_asset_vector(
 
     vector = emb_result.data
 
-    # 2. Prompt-image alignment score (optional)
-    aesthetic = await _compute_prompt_alignment(vs, vector, metadata_raw)
+    # 2. Enhanced caption (Florence-2) for image assets (best-effort).
+    #    Generated BEFORE alignment so it can contribute to the score.
+    caption: str | None = None
+    if kind == "image":
+        caption = await _generate_and_store_caption(db, vs, asset_id, filepath)
 
-    # 3. Persist embedding
+    # 3. Prompt-image alignment score (optional, uses caption if available)
+    aesthetic = await _compute_prompt_alignment(
+        vs, vector, metadata_raw, enhanced_caption=caption,
+    )
+
+    # 4. Persist embedding
     blob = vector_to_blob(vector)
     store_result = await _store_embedding(db, asset_id, blob, aesthetic, vs._model_name)
     if not store_result.ok:
         return store_result
 
-    # 3b. Enhanced caption (Florence-2) for image assets (best-effort).
-    if kind == "image":
-        await _try_store_enhanced_caption(db, vs, asset_id, filepath)
-
-    # 4. Auto-tagging
+    # 5. Auto-tagging
     await _apply_autotags(db, vs, asset_id, vector)
 
     return Result.Ok(True)
@@ -233,18 +258,37 @@ async def compute_prompt_alignment(
     prompt: str,
     *,
     negative_prompt: str | None = None,
+    enhanced_caption: str | None = None,
 ) -> Result[float]:
     """Compute calibrated alignment between an image embedding and a prompt.
 
     Returns a float in [0, 1].  Higher means the image closely matches the
-    textual prompt.  If *negative_prompt* is provided, its similarity to the
-    image is subtracted (weighted) to penalise unwanted content leaking in.
-    """
-    text_result = await vs.get_text_embedding(prompt)
-    if not text_result.ok or not text_result.data:
-        return Result.Err("METADATA_FAILED", text_result.error or "Text embedding failed")
-    raw_pos = VectorService.cosine_similarity(asset_embedding, text_result.data)
+    textual prompt.
 
+    Three signals are fused:
+    1. **Multi-segment image↔text** — the prompt is split into segments;
+       each segment is scored against the image embedding, then combined
+       as a length-weighted average with a best-segment bonus.
+    2. **Caption↔prompt text** — if an enhanced caption is available, its
+       text embedding is compared to the prompt embedding for a text↔text
+       coherence signal.
+    3. **Semantic decomposition** — key concepts (subject, style, medium,
+       mood, color) are extracted and each dimension is scored separately
+       against the image embedding.
+
+    If *negative_prompt* is provided, its similarity to the image is
+    subtracted (weighted) to penalise unwanted content leaking in.
+    """
+    # ── 1. Multi-segment image↔text score ──────────────────────────────
+    raw_image_text = await _multi_segment_score(vs, asset_embedding, prompt)
+    if raw_image_text is None:
+        # Fallback: single-embedding score
+        text_result = await vs.get_text_embedding(prompt)
+        if not text_result.ok or not text_result.data:
+            return Result.Err("METADATA_FAILED", text_result.error or "Text embedding failed")
+        raw_image_text = VectorService.cosine_similarity(asset_embedding, text_result.data)
+
+    # ── Negative prompt penalty ────────────────────────────────────────
     neg_penalty = 0.0
     if negative_prompt:
         neg_result = await vs.get_text_embedding(negative_prompt)
@@ -252,8 +296,179 @@ async def compute_prompt_alignment(
             raw_neg = VectorService.cosine_similarity(asset_embedding, neg_result.data)
             neg_penalty = max(0.0, raw_neg) * _NEG_PENALTY_WEIGHT
 
-    calibrated = _calibrate_score(raw_pos - neg_penalty)
+    adjusted_image_text = raw_image_text - neg_penalty
+
+    # ── 2. Caption↔prompt text similarity ──────────────────────────────
+    caption_score: float | None = None
+    if enhanced_caption and enhanced_caption.strip():
+        caption_score = await _caption_prompt_similarity(vs, enhanced_caption, prompt)
+
+    # ── 3. Semantic decomposition ──────────────────────────────────────
+    semantic_score = await _semantic_dimension_score(vs, asset_embedding, prompt)
+
+    # ── Weighted fusion ────────────────────────────────────────────────
+    total_weight = _W_IMAGE_TEXT
+    weighted_sum = adjusted_image_text * _W_IMAGE_TEXT
+
+    if caption_score is not None:
+        weighted_sum += caption_score * _W_CAPTION_TEXT
+        total_weight += _W_CAPTION_TEXT
+
+    if semantic_score is not None:
+        weighted_sum += semantic_score * _W_SEMANTIC
+        total_weight += _W_SEMANTIC
+
+    fused_raw = weighted_sum / total_weight if total_weight > 0 else adjusted_image_text
+    calibrated = _calibrate_score(fused_raw)
     return Result.Ok(round(calibrated, 4))
+
+
+async def _multi_segment_score(
+    vs: VectorService,
+    asset_embedding: list[float],
+    prompt: str,
+) -> float | None:
+    """Split prompt into segments and compute a weighted similarity score.
+
+    Each segment is embedded independently and scored against the image.
+    The final score is a length-weighted average with a bonus for the
+    best-matching segment, which captures the "main subject" better.
+    """
+    segments = [s.strip() for s in _SEGMENT_SPLIT_RE.split(prompt) if len(s.strip()) >= _MIN_SEGMENT_CHARS]
+    if len(segments) <= 1:
+        # Not worth splitting — return None to use the full prompt
+        return None
+
+    scores: list[tuple[float, int]] = []  # (similarity, char_length)
+    for seg in segments:
+        emb = await vs.get_text_embedding(seg)
+        if emb.ok and emb.data:
+            sim = VectorService.cosine_similarity(asset_embedding, emb.data)
+            scores.append((sim, len(seg)))
+
+    if not scores:
+        return None
+
+    # Length-weighted average
+    total_len = sum(length for _, length in scores)
+    if total_len == 0:
+        return None
+    weighted_avg = sum(sim * length for sim, length in scores) / total_len
+
+    # Boost from best segment
+    best_sim = max(sim for sim, _ in scores)
+    return weighted_avg + (best_sim - weighted_avg) * _SEGMENT_MAX_BOOST
+
+
+async def _caption_prompt_similarity(
+    vs: VectorService,
+    caption: str,
+    prompt: str,
+) -> float | None:
+    """Text↔text cosine similarity between enhanced caption and prompt."""
+    cap_emb = await vs.get_text_embedding(caption)
+    if not cap_emb.ok or not cap_emb.data:
+        return None
+    prompt_emb = await vs.get_text_embedding(prompt)
+    if not prompt_emb.ok or not prompt_emb.data:
+        return None
+    return VectorService.cosine_similarity(cap_emb.data, prompt_emb.data)
+
+
+async def _semantic_dimension_score(
+    vs: VectorService,
+    asset_embedding: list[float],
+    prompt: str,
+) -> float | None:
+    """Score the image against semantic concept dimensions extracted from the prompt.
+
+    For each semantic dimension (subject, style, medium, mood, color),
+    we construct a probing prompt "<prefix> <extracted_concept>" and
+    measure its similarity to the image embedding.  The final score is
+    the average of the individual dimension scores (only counting
+    dimensions where a concept was actually extracted).
+    """
+    concepts = _extract_semantic_concepts(prompt)
+    if not concepts:
+        return None
+
+    dim_scores: list[float] = []
+    for dim, concept in concepts.items():
+        prefix = _SEMANTIC_DIMENSIONS.get(dim, "")
+        probe = f"{prefix} {concept}" if prefix else concept
+        emb = await vs.get_text_embedding(probe)
+        if emb.ok and emb.data:
+            sim = VectorService.cosine_similarity(asset_embedding, emb.data)
+            dim_scores.append(sim)
+
+    return sum(dim_scores) / len(dim_scores) if dim_scores else None
+
+
+def _extract_semantic_concepts(prompt: str) -> dict[str, str]:
+    """Heuristic extraction of semantic dimensions from a prompt.
+
+    Attempts to identify subject, style, medium, mood, and color palette
+    concepts by matching known keywords.  Returns a dict of dimension→concept
+    for the dimensions that were detected.
+    """
+    lower = prompt.lower()
+    concepts: dict[str, str] = {}
+
+    # Subject: first segment (usually the main subject)
+    segments = [s.strip() for s in _SEGMENT_SPLIT_RE.split(prompt) if len(s.strip()) >= _MIN_SEGMENT_CHARS]
+    if segments:
+        concepts["subject"] = segments[0]
+
+    # Style keywords
+    style_kws = (
+        "anime", "manga", "photorealistic", "realistic", "cartoon", "oil painting",
+        "watercolor", "impressionist", "surrealist", "art nouveau", "art deco",
+        "pixel art", "comic", "3d render", "concept art", "digital art",
+        "cinematic", "studio ghibli", "ukiyo-e", "pop art", "minimalist",
+        "gothic", "baroque", "renaissance", "cubist", "futuristic",
+    )
+    for kw in style_kws:
+        if kw in lower:
+            concepts["style"] = kw
+            break
+
+    # Medium keywords (longer/compound keywords first to avoid substring
+    # matches like "painting" taking precedence over "watercolor painting").
+    medium_kws = (
+        "oil painting", "watercolor", "photograph", "photo", "illustration",
+        "painting", "drawing", "sketch", "render", "sculpture", "collage",
+        "engraving", "print", "pencil", "charcoal", "pastel", "acrylic",
+        "fresco", "mosaic", "tapestry",
+    )
+    for kw in medium_kws:
+        if kw in lower:
+            concepts["medium"] = kw
+            break
+
+    # Mood keywords
+    mood_kws = (
+        "dark", "bright", "moody", "cheerful", "mysterious", "serene",
+        "dramatic", "peaceful", "ethereal", "gloomy", "vibrant", "melancholic",
+        "nostalgic", "whimsical", "epic", "dreamy", "eerie", "cozy",
+        "romantic", "surreal", "ominous", "tranquil",
+    )
+    for kw in mood_kws:
+        if kw in lower:
+            concepts["mood"] = kw
+            break
+
+    # Color palette keywords
+    color_kws = (
+        "monochrome", "black and white", "pastel colors", "neon", "warm tones",
+        "cool tones", "golden hour", "blue hour", "sepia", "high contrast",
+        "muted colors", "saturated", "desaturated", "earth tones",
+    )
+    for kw in color_kws:
+        if kw in lower:
+            concepts["color"] = kw
+            break
+
+    return concepts
 
 
 async def generate_enhanced_prompt(
@@ -314,6 +529,8 @@ async def _compute_prompt_alignment(
     vs: VectorService,
     vector: list[float],
     metadata_raw: dict[str, Any] | None,
+    *,
+    enhanced_caption: str | None = None,
 ) -> float | None:
     """Extract the original prompt from metadata and compute alignment."""
     if not metadata_raw:
@@ -324,7 +541,11 @@ async def _compute_prompt_alignment(
         return None
 
     negative = _extract_negative_prompt(metadata_raw)
-    result = await compute_prompt_alignment(vs, vector, prompt, negative_prompt=negative)
+    result = await compute_prompt_alignment(
+        vs, vector, prompt,
+        negative_prompt=negative,
+        enhanced_caption=enhanced_caption,
+    )
     return result.data if result.ok else None
 
 
@@ -520,6 +741,34 @@ async def _try_store_enhanced_caption(
         await _store_enhanced_caption(db, asset_id, caption)
     except Exception as exc:
         logger.debug("Enhanced caption generation skipped for asset %d: %s", asset_id, exc)
+
+
+async def _generate_and_store_caption(
+    db: Sqlite,
+    vs: VectorService,
+    asset_id: int,
+    filepath: str,
+) -> str | None:
+    """Generate, store, and return the enhanced caption (or None on failure)."""
+    try:
+        generated = await vs.generate_enhanced_caption(filepath)
+        if not generated.ok or not generated.data:
+            return None
+        fallback_title = (
+            Path(filepath).stem.replace("_", " ").replace("-", " ").strip()
+            or "Untitled"
+        )
+        caption = _normalise_title_caption(
+            str(generated.data).strip(),
+            fallback_title=fallback_title,
+        )
+        if not caption:
+            return None
+        await _store_enhanced_caption(db, asset_id, caption)
+        return caption
+    except Exception as exc:
+        logger.debug("Enhanced caption generation skipped for asset %d: %s", asset_id, exc)
+        return None
 
 
 async def _apply_autotags(

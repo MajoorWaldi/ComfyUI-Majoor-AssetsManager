@@ -236,6 +236,15 @@ export function createHeaderView() {
     window.addEventListener(EVENTS.MFV_VISIBILITY_CHANGED, _mfvVisibilityHandler);
     headerTools.appendChild(mfvBtn);
 
+    const messageBtn = createIconButton("pi-info-circle", t("tooltip.openMessages", "Messages and updates"));
+    messageBtn.classList.add("mjr-message-btn");
+    const messageBadge = document.createElement("span");
+    messageBadge.className = "mjr-message-badge";
+    messageBadge.style.display = "none";
+    messageBadge.setAttribute("aria-hidden", "true");
+    messageBtn.appendChild(messageBadge);
+    headerTools.appendChild(messageBtn);
+
     headerRow.appendChild(headerLeft);
     headerRow.appendChild(headerActions);
     header.appendChild(headerRow);
@@ -287,6 +296,7 @@ export function createHeaderView() {
         collectionsBtn,
         pinnedFoldersBtn,
         mfvBtn,
+        messageBtn,
         dispose,
     };
 }

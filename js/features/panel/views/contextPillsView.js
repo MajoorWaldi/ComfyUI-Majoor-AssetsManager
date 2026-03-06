@@ -18,6 +18,7 @@ const _labelSort = (key) => {
 
 const _labelScope = (scope) => {
     const s = String(scope || "").toLowerCase();
+    if (s === "similar") return t("scope.similar", "Similar");
     if (s === "custom") return t("scope.customBrowser");
     if (s === "all") return t("tab.all");
     if (s === "input" || s === "inputs") return t("scope.input");
@@ -81,12 +82,14 @@ export function createContextPillsView() {
         );
         const isSortActive = _safeText(state?.sort || "mtime_desc").trim() !== "mtime_desc";
         const isCollectionActive = _safeText(state?.collectionId || "").trim().length > 0;
-        const scopeValue = String(state?.scope || "output").toLowerCase();
+        const scopeValue = String(state?.viewScope || state?.scope || "output").toLowerCase();
+        const isSimilarScope = scopeValue === "similar";
         const isBrowserScope = scopeValue === "custom";
         const isScopeActive = scopeValue !== "output";
+        const similarSourceId = _safeText(state?.similarSourceAssetId || "").trim();
 
         const anyContext =
-            isQueryActive || isFilterActive || isSortActive || isCollectionActive || isScopeActive;
+            isQueryActive || isFilterActive || isSortActive || isCollectionActive || isScopeActive || isSimilarScope;
         if (!anyContext && !root.childElementCount) {
             return;
         }
@@ -104,12 +107,23 @@ export function createContextPillsView() {
                 })
             );
         }
+        if (isSimilarScope) {
+            root.appendChild(
+                _createPill({
+                    label: t("search.findSimilar", "Find Similar"),
+                    value: similarSourceId
+                        ? t("search.similarReference", "Reference #{id}", { id: similarSourceId })
+                        : t("scope.similar", "Similar"),
+                    onClear: () => safeActions?.clearSimilarScope?.()
+                })
+            );
+        }
         if (isScopeActive) {
             root.appendChild(
                 _createPill({
                     label: t("label.scope"),
-                    value: _labelScope(state?.scope || "output"),
-                    onClear: () => safeActions?.clearScope?.()
+                    value: _labelScope(scopeValue || "output"),
+                    onClear: () => (isSimilarScope ? safeActions?.clearSimilarScope?.() : safeActions?.clearScope?.())
                 })
             );
         }

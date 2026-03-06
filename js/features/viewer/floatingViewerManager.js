@@ -40,6 +40,18 @@ function _cancelFetch() {
     _fetchAC = null;
 }
 
+function _emitVisibilityChanged(visible) {
+    window.dispatchEvent(new CustomEvent(EVENTS.MFV_VISIBILITY_CHANGED, {
+        detail: { visible: Boolean(visible) },
+    }));
+}
+
+function _syncViewerControls(inst) {
+    if (!inst) return;
+    inst.setLiveActive(_liveActive);
+    inst.setPreviewActive(_previewActive);
+}
+
 /**
  * When only 1 asset is selected and the MFV is in a compare mode,
  * look up the adjacent card in the rendered grid DOM to use as slot B.
@@ -78,22 +90,30 @@ async function _loadFromIds(selectedIds) {
     _fetchAC = ac;
 
     try {
+        const pinnedSlot = _instance.getPinnedSlot();
         let ids = selectedIds.slice(0, 2);
 
-        // Compare-mode fallback: if only 1 asset, auto-pick the adjacent grid item for slot B.
         const mode = _instance._mode;
-        if (ids.length === 1 && (mode === MFV_MODES.AB || mode === MFV_MODES.SIDE)) {
+        if (pinnedSlot && (mode === MFV_MODES.AB || mode === MFV_MODES.SIDE)) {
+            // With a pinned side, only one new asset is needed.
+            ids = [ids[0]];
+        } else if (ids.length === 1 && (mode === MFV_MODES.AB || mode === MFV_MODES.SIDE)) {
+            // Compare-mode fallback: if only 1 asset, auto-pick the adjacent grid item for slot B.
             const adjId = _findAdjacentGridId(ids[0]);
             if (adjId) ids = [ids[0], adjId];
         }
 
-        const result = await getAssetsBatch(ids);
+        const result = await getAssetsBatch(ids, ac ? { signal: ac.signal } : {});
         if (ac?.signal.aborted) return;
         if (!result?.ok || !Array.isArray(result.data) || !result.data.length) return;
         if (!_instance) return; // disposed while fetching
 
         const assets = result.data;
-        if (ids.length >= 2 && assets.length >= 2) {
+        if (pinnedSlot === "A" && _instance._mediaA) {
+            _instance.loadMediaPair(_instance._mediaA, assets[0]);
+        } else if (pinnedSlot === "B" && _instance._mediaB) {
+            _instance.loadMediaPair(assets[0], _instance._mediaB);
+        } else if (ids.length >= 2 && assets.length >= 2) {
             _instance.loadMediaPair(assets[0], assets[1]);
         } else {
             _instance.loadMediaA(assets[0], { autoMode: true });
@@ -164,17 +184,17 @@ export const floatingViewerManager = {
     open() {
         const inst = _getInstance();
         inst.show();
-        inst.setLiveActive(_liveActive); // Sync button visual state
+        _syncViewerControls(inst);
         _bindSelectionListener();
         // KEY FIX: immediately show whatever is selected in the grid.
         _syncCurrentGridSelection();
-        window.dispatchEvent(new CustomEvent(EVENTS.MFV_VISIBILITY_CHANGED, { detail: { visible: true } }));
+        _emitVisibilityChanged(true);
     },
 
     close() {
         if (_instance) _instance.hide();
         _unbindSelectionListener();
-        window.dispatchEvent(new CustomEvent(EVENTS.MFV_VISIBILITY_CHANGED, { detail: { visible: false } }));
+        _emitVisibilityChanged(false);
     },
 
     toggle() {
@@ -192,9 +212,12 @@ export const floatingViewerManager = {
      */
     upsertWithContent(fileData) {
         const inst = _getInstance();
+        const wasVisible = Boolean(inst.isVisible);
         inst.show();
+        _syncViewerControls(inst);
         _bindSelectionListener();
         inst.loadMediaA(fileData, { autoMode: true });
+        if (!wasVisible) _emitVisibilityChanged(true);
     },
 
     setLiveActive(active) {
@@ -243,10 +266,13 @@ export const floatingViewerManager = {
     feedPreviewBlob(blob) {
         if (!_previewActive) return;
         const inst = _getInstance();
+        const wasVisible = Boolean(inst.isVisible);
         if (!inst.isVisible) {
             inst.show();
         }
+        _syncViewerControls(inst);
         inst.loadPreviewBlob(blob);
+        if (!wasVisible) _emitVisibilityChanged(true);
     },
 };
 

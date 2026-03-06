@@ -21,7 +21,7 @@ except Exception:
 
     folder_paths = _FolderPathsStub()  # type: ignore
 
-from mjr_am_backend.adapters.db.schema import rebuild_fts
+from mjr_am_backend.adapters.db.schema import purge_orphan_vec_embeddings, rebuild_fts
 from mjr_am_backend.config import (
     COLLECTIONS_DIR_PATH,
     INDEX_DIR_PATH,
@@ -876,6 +876,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             reindex: bool (default: true)
             clear_scan_journal: bool (default: true)
             clear_metadata_cache: bool (default: true)
+            preserve_vectors: bool (default: false)
             rebuild_fts: bool (default: true)
             incremental: bool (default: false)
             fast: bool (default: true)
@@ -941,6 +942,17 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         clear_metadata_cache = _bool_option(("clear_metadata_cache", "clearMetadataCache"), True)
         clear_asset_metadata = _bool_option(("clear_asset_metadata", "clearAssetMetadata"), True)
         clear_assets_table = _bool_option(("clear_assets", "clearAssets"), True)
+        preserve_vectors = _bool_option(
+            (
+                "preserve_vectors",
+                "preserveVectors",
+                "keep_vectors",
+                "keepVectors",
+                "keep_embeddings",
+                "keepEmbeddings",
+            ),
+            False,
+        )
         rebuild_fts_flag = _bool_option(("rebuild_fts", "rebuildFts"), True)
         incremental = _bool_option(("incremental",), False)
         fast = _bool_option(("fast",), True)
@@ -965,6 +977,11 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             ),
             False,
         )
+        if preserve_vectors:
+            # Preserve embeddings by keeping the assets table (asset_id continuity)
+            # and never escalating to a hard DB-file reset.
+            clear_assets_table = False
+            hard_reset_db = False
 
         output_root = await _runtime_output_root(svc)
         target_roots: list[dict[str, str | None]] = []
@@ -1253,6 +1270,19 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             if not res.ok:
                 # Fallback: if scoped clear hits a malformed DB, escalate to hard adapter reset.
                 if _is_db_malformed_result(res):
+                    if preserve_vectors:
+                        _emit_maintenance_status(
+                            "failed",
+                            "error",
+                            "Database is malformed; preserving vectors is not possible. Retry with full reset.",
+                            operation="reset_index",
+                        )
+                        return _json_response(
+                            Result.Err(
+                                "DB_MALFORMED",
+                                "Database is malformed; preserving vectors is not possible. Retry with full reset.",
+                            )
+                        )
                     try:
                         if scan_lock is not None and hasattr(scan_lock, "__aenter__"):
                             async with scan_lock:
@@ -1285,6 +1315,17 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                     _emit_maintenance_status("failed", "error", res.error or "Index reset failed", operation="reset_index")
                     return _json_response(res)
 
+            vectors_purged: bool | None = None
+            if clear_assets_table:
+                try:
+                    purge_res = await purge_orphan_vec_embeddings(db)
+                    vectors_purged = bool(purge_res.ok)
+                    if not purge_res.ok:
+                        logger.warning("Failed to purge orphan vectors during index reset: %s", purge_res.error)
+                except Exception as exc:
+                    vectors_purged = False
+                    logger.warning("Exception while purging orphan vectors during index reset: %s", exc)
+
             # FULL RESET CLEANUP: VACUUM and Physical Files
             if scope == "all" and (clear_scan_journal or clear_metadata_cache):
                 # 1. Vacuum DB to reclaim space and rebuild file
@@ -1302,8 +1343,14 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                         # IMPORTANT: when adding a new persistent state file to the index directory,
                         # register its name (or prefix) below to prevent it from being wiped on
                         # a full reindex. Using an explicit constant avoids silent data loss.
-                        _KEEP_PREFIXES: frozenset[str] = frozenset({"assets.sqlite"})  # DB + WAL/SHM
+                        keep_prefixes = {"assets.sqlite"}  # DB + WAL/SHM
+                        if preserve_vectors:
+                            # Keep vectors DB (+ WAL/SHM) when user opted to preserve embeddings.
+                            keep_prefixes.add("vectors.sqlite")
+                        _KEEP_PREFIXES: frozenset[str] = frozenset(keep_prefixes)
                         _KEEP_NAMES: frozenset[str] = frozenset({"custom_roots.json"})
+                        if preserve_vectors:
+                            _KEEP_NAMES = frozenset(set(_KEEP_NAMES) | {"vectors"})
                         for item in INDEX_DIR_PATH.iterdir():
                             if any(item.name.startswith(p) for p in _KEEP_PREFIXES):
                                 continue
@@ -1408,6 +1455,8 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 Result.Ok(
                     {
                         "cleared": cleared,
+                        "preserve_vectors": bool(preserve_vectors),
+                        "vectors_purged": vectors_purged,
                         "scan_summary": scan_summary,
                         "rebuild_fts": rebuild_status,
                     }

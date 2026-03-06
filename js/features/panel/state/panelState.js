@@ -72,6 +72,10 @@ function savePanelState(state) {
         // Don't persist transient stats
         delete toSave.lastGridCount;
         delete toSave.lastGridTotal;
+        delete toSave.viewScope;
+        delete toSave.similarResults;
+        delete toSave.similarTitle;
+        delete toSave.similarSourceAssetId;
         const serialized = JSON.stringify(toSave);
         if (serialized === _lastSavedSerialized) return;
         _lastSavedSerialized = serialized;
@@ -115,7 +119,13 @@ export function createPanelState() {
         selectedAssetIds: saved.selectedAssetIds || [],
         
         // Sidebar open state for restoring across panel close/reopen.
-        sidebarOpen: saved.sidebarOpen || false
+        sidebarOpen: saved.sidebarOpen || false,
+
+        // Transient virtual scopes.
+        viewScope: "",
+        similarResults: [],
+        similarTitle: "",
+        similarSourceAssetId: "",
     };
     let proxy = null;
     

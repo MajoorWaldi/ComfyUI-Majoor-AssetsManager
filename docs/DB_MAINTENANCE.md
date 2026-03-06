@@ -42,9 +42,7 @@ The **Delete DB** button calls `POST /mjr/am/db/force-delete`. It is designed to
 
 ### Confirmation dialog
 
-Before proceeding, a native browser `confirm()` dialog warns:
-
-> This will permanently delete the index database and rebuild it from scratch. All ratings, tags, and cached metadata will be lost.
+Before proceeding, the UI first asks whether existing AI vectors should be kept, then shows a simple confirmation dialog in the ComfyUI Manager style for the selected action.
 
 ### What is lost
 

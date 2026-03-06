@@ -24,6 +24,7 @@ const MFV_ZOOM_MIN    = 0.25;
 const MFV_ZOOM_MAX    = 8;
 const MFV_ZOOM_FACTOR = 0.0008; // multiplied by deltaY per wheel tick
 const MFV_RESIZE_EDGE_HIT_PX = 8;
+let _mfvInstanceSeq = 0;
 
 // Media extensions for explicit kind detection.
 const VIDEO_EXTS = new Set([".mp4", ".webm", ".mov", ".avi", ".mkv"]);
@@ -184,10 +185,13 @@ function _canvasLabel(ctx, text, x, y) {
 
 export class FloatingViewer {
     constructor() {
+        this._instanceId = ++_mfvInstanceSeq;
         this.element     = null;
         this.isVisible   = false;
         this._contentEl  = null;
+        this._closeBtn   = null;
         this._modeBtn    = null;
+        this._pinSelect  = null;
         this._liveBtn    = null;
         this._genBtn     = null;
         this._genDropdown = null;
@@ -196,6 +200,7 @@ export class FloatingViewer {
         this._mode       = MFV_MODES.SIMPLE;
         this._mediaA     = null;
         this._mediaB     = null;
+        this._pinnedSlot = null;
         this._abDividerX = 0.5; // 0..1
 
         // Pan/zoom state
@@ -207,7 +212,7 @@ export class FloatingViewer {
 
         // AbortController for toolbar/header button click listeners (NM-1).
         // Aborted in dispose() so listeners are cleaned up without needing named references.
-        this._btnAC     = new AbortController();
+        this._btnAC     = null;
         // Generation counter: incremented on every loadMediaA/loadMediaPair call so
         // stale async metadata enrichment results can be discarded (NM-2).
         this._refreshGen = 0;
@@ -216,6 +221,9 @@ export class FloatingViewer {
         this._popoutWindow = null;
         this._popoutBtn    = null;
         this._isPopped     = false;
+        this._popoutCloseHandler = null;
+        this._popoutCloseTimer = null;
+        this._popoutRestoreGuard = false;
 
         // Preview stream state: button ref + last blob URL for cleanup.
         this._previewBtn      = null;
@@ -225,6 +233,10 @@ export class FloatingViewer {
         // Panel-level listeners and edge-resize state.
         this._panelAC      = new AbortController();
         this._resizeState  = null;
+        this._titleId      = `mjr-mfv-title-${this._instanceId}`;
+        this._genDropdownId = `mjr-mfv-gen-dropdown-${this._instanceId}`;
+        this._docClickHost = null;
+        this._handleDocClick = null;
     }
 
     // ── Build DOM ─────────────────────────────────────────────────────────────
@@ -232,17 +244,22 @@ export class FloatingViewer {
     render() {
         const el = document.createElement("div");
         el.className = "mjr-mfv";
+        el.setAttribute("role", "dialog");
+        el.setAttribute("aria-modal", "false");
+        el.setAttribute("aria-hidden", "true");
 
         this.element = el;
         el.appendChild(this._buildHeader());
+        el.setAttribute("aria-labelledby", this._titleId);
         el.appendChild(this._buildToolbar());
 
         this._contentEl = document.createElement("div");
         this._contentEl.className = "mjr-mfv-content";
         el.appendChild(this._contentEl);
 
-        this._initEdgeResize(el);
-        this._initDrag(el.querySelector(".mjr-mfv-header"));
+        this._rebindControlHandlers();
+        this._bindPanelInteractions();
+        this._bindDocumentUiHandlers();
         this._refresh();
         return el;
     }
@@ -253,19 +270,20 @@ export class FloatingViewer {
 
         const title = document.createElement("span");
         title.className = "mjr-mfv-header-title";
+        title.id = this._titleId;
         title.textContent = "Majoor Viewer Lite";
 
         const closeBtn = document.createElement("button");
+        this._closeBtn = closeBtn;
         closeBtn.type = "button";
         closeBtn.className = "mjr-icon-btn";
-        closeBtn.title = t("tooltip.closeViewer", "Close viewer");
+        const closeLabel = t("tooltip.closeViewer", "Close viewer");
+        closeBtn.title = closeLabel;
+        closeBtn.setAttribute("aria-label", closeLabel);
         const _closeBtnIcon = document.createElement("i");
         _closeBtnIcon.className = "pi pi-times";
         _closeBtnIcon.setAttribute("aria-hidden", "true");
         closeBtn.appendChild(_closeBtnIcon);
-        closeBtn.addEventListener("click", () => {
-            window.dispatchEvent(new CustomEvent(EVENTS.MFV_CLOSE));
-        }, { signal: this._btnAC.signal });
 
         header.appendChild(title);
         header.appendChild(closeBtn);
@@ -280,9 +298,25 @@ export class FloatingViewer {
         this._modeBtn = document.createElement("button");
         this._modeBtn.type = "button";
         this._modeBtn.className = "mjr-icon-btn";
-        this._modeBtn.addEventListener("click", () => this._cycleMode(), { signal: this._btnAC.signal });
         this._updateModeBtnUI();
         bar.appendChild(this._modeBtn);
+
+        this._pinSelect = document.createElement("select");
+        this._pinSelect.className = "mjr-mfv-pin-select";
+        this._pinSelect.setAttribute("aria-label", "Pin Reference");
+        this._pinSelect.value = this._pinnedSlot || "";
+        for (const { value, label } of [
+            { value: "", label: "No Pin" },
+            { value: "A", label: "Pin A" },
+            { value: "B", label: "Pin B" },
+        ]) {
+            const option = document.createElement("option");
+            option.value = value;
+            option.textContent = label;
+            this._pinSelect.appendChild(option);
+        }
+        this._updatePinSelectUI();
+        bar.appendChild(this._pinSelect);
 
         // Separator
         const sep = document.createElement("div");
@@ -294,40 +328,32 @@ export class FloatingViewer {
         this._liveBtn = document.createElement("button");
         this._liveBtn.type = "button";
         this._liveBtn.className = "mjr-icon-btn";
-        this._liveBtn.title = t("tooltip.liveStreamOff", "Live Stream: OFF — click to follow");
         this._liveBtn.innerHTML = '<i class="pi pi-circle" aria-hidden="true"></i>';
-        this._liveBtn.addEventListener("click", () => {
-            window.dispatchEvent(new CustomEvent(EVENTS.MFV_LIVE_TOGGLE));
-        }, { signal: this._btnAC.signal });
+        this._liveBtn.setAttribute("aria-pressed", "false");
+        this._liveBtn.setAttribute("aria-label", t("tooltip.liveStreamOff", "Live Stream: OFF — click to follow"));
+        this._liveBtn.title = t("tooltip.liveStreamOff", "Live Stream: OFF — click to follow");
         bar.appendChild(this._liveBtn);
 
         // KSampler Preview Stream toggle
         this._previewBtn = document.createElement("button");
         this._previewBtn.type = "button";
         this._previewBtn.className = "mjr-icon-btn";
-        this._previewBtn.title = t("tooltip.previewStreamOff", "KSampler Preview: OFF — click to stream denoising steps");
         this._previewBtn.innerHTML = '<i class="pi pi-eye" aria-hidden="true"></i>';
-        this._previewBtn.addEventListener("click", () => {
-            window.dispatchEvent(new CustomEvent(EVENTS.MFV_PREVIEW_TOGGLE));
-        }, { signal: this._btnAC.signal });
+        this._previewBtn.setAttribute("aria-pressed", "false");
+        this._previewBtn.setAttribute("aria-label", t("tooltip.previewStreamOff", "KSampler Preview: OFF — click to stream denoising steps"));
+        this._previewBtn.title = t("tooltip.previewStreamOff", "KSampler Preview: OFF — click to stream denoising steps");
         bar.appendChild(this._previewBtn);
 
         // Gen Info button (shows dropdown with checkboxes)
         this._genBtn = document.createElement("button");
         this._genBtn.type = "button";
         this._genBtn.className = "mjr-icon-btn";
+        this._genBtn.setAttribute("aria-haspopup", "dialog");
+        this._genBtn.setAttribute("aria-expanded", "false");
         const _genBtnIcon = document.createElement("i");
         _genBtnIcon.className = "pi pi-info-circle";
         _genBtnIcon.setAttribute("aria-hidden", "true");
         this._genBtn.appendChild(_genBtnIcon);
-        this._genBtn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            if (this._genDropdown?.classList?.contains("is-visible")) {
-                this._closeGenDropdown();
-            } else {
-                this._openGenDropdown();
-            }
-        }, { signal: this._btnAC.signal });
         bar.appendChild(this._genBtn);
         this._updateGenBtnUI();
 
@@ -335,38 +361,108 @@ export class FloatingViewer {
         this._popoutBtn = document.createElement("button");
         this._popoutBtn.type = "button";
         this._popoutBtn.className = "mjr-icon-btn";
-        this._popoutBtn.title = t("tooltip.popOutViewer", "Pop out to separate window (can move to 2nd monitor)");
+        const popoutLabel = t("tooltip.popOutViewer", "Pop out to separate window (can move to 2nd monitor)");
+        this._popoutBtn.title = popoutLabel;
+        this._popoutBtn.setAttribute("aria-label", popoutLabel);
+        this._popoutBtn.setAttribute("aria-pressed", "false");
         const _popoutIcon = document.createElement("i");
         _popoutIcon.className = "pi pi-external-link";
         _popoutIcon.setAttribute("aria-hidden", "true");
         this._popoutBtn.appendChild(_popoutIcon);
-        this._popoutBtn.addEventListener("click", () => {
-            window.dispatchEvent(new CustomEvent(EVENTS.MFV_POPOUT));
-        }, { signal: this._btnAC.signal });
         bar.appendChild(this._popoutBtn);
 
         // Download / capture button
         this._captureBtn = document.createElement("button");
         this._captureBtn.type = "button";
         this._captureBtn.className = "mjr-icon-btn";
-        this._captureBtn.title = t("tooltip.captureView", "Save view as image");
+        const captureLabel = t("tooltip.captureView", "Save view as image");
+        this._captureBtn.title = captureLabel;
+        this._captureBtn.setAttribute("aria-label", captureLabel);
         const _captureBtnIcon = document.createElement("i");
         _captureBtnIcon.className = "pi pi-download";
         _captureBtnIcon.setAttribute("aria-hidden", "true");
         this._captureBtn.appendChild(_captureBtnIcon);
-        this._captureBtn.addEventListener("click", () => this._captureView(), { signal: this._btnAC.signal });
         bar.appendChild(this._captureBtn);
 
-        // Close dropdown when clicking outside
         this._handleDocClick = (ev) => {
             if (!this._genDropdown) return;
-            if (ev.target === this._genBtn) return;
-            if (this._genDropdown.contains(ev.target)) return;
+            const target = ev?.target;
+            if (this._genBtn?.contains?.(target)) return;
+            if (this._genDropdown.contains(target)) return;
             this._closeGenDropdown();
         };
-        document.addEventListener("click", this._handleDocClick);
+        this._bindDocumentUiHandlers();
 
         return bar;
+    }
+
+    _rebindControlHandlers() {
+        try { this._btnAC?.abort(); } catch (e) { console.debug?.(e); }
+        this._btnAC = new AbortController();
+        const signal = this._btnAC.signal;
+
+        this._closeBtn?.addEventListener("click", () => {
+            window.dispatchEvent(new CustomEvent(EVENTS.MFV_CLOSE));
+        }, { signal });
+
+        this._modeBtn?.addEventListener("click", () => this._cycleMode(), { signal });
+
+        this._pinSelect?.addEventListener("change", (e) => {
+            this._pinnedSlot = e?.target?.value || null;
+            if (this._pinnedSlot && this._mode === MFV_MODES.SIMPLE) {
+                this.setMode(MFV_MODES.AB);
+            }
+            this._updatePinSelectUI();
+        }, { signal });
+
+        this._liveBtn?.addEventListener("click", () => {
+            window.dispatchEvent(new CustomEvent(EVENTS.MFV_LIVE_TOGGLE));
+        }, { signal });
+
+        this._previewBtn?.addEventListener("click", () => {
+            window.dispatchEvent(new CustomEvent(EVENTS.MFV_PREVIEW_TOGGLE));
+        }, { signal });
+
+        this._genBtn?.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (this._genDropdown?.classList?.contains("is-visible")) {
+                this._closeGenDropdown();
+            } else {
+                this._openGenDropdown();
+            }
+        }, { signal });
+
+        this._popoutBtn?.addEventListener("click", () => {
+            window.dispatchEvent(new CustomEvent(EVENTS.MFV_POPOUT));
+        }, { signal });
+
+        this._captureBtn?.addEventListener("click", () => this._captureView(), { signal });
+    }
+
+    _resetGenDropdownForCurrentDocument() {
+        this._closeGenDropdown();
+        try { this._genDropdown?.remove?.(); } catch (e) { console.debug?.(e); }
+        this._genDropdown = null;
+        this._updateGenBtnUI();
+    }
+
+    _bindDocumentUiHandlers() {
+        if (!this._handleDocClick) return;
+        const doc = this.element?.ownerDocument || document;
+        if (this._docClickHost === doc) return;
+        this._unbindDocumentUiHandlers();
+        doc.addEventListener("click", this._handleDocClick);
+        this._docClickHost = doc;
+    }
+
+    _unbindDocumentUiHandlers() {
+        if (!this._docClickHost || !this._handleDocClick) return;
+        try { this._docClickHost.removeEventListener("click", this._handleDocClick); } catch (e) { console.debug?.(e); }
+        this._docClickHost = null;
+    }
+
+    _isGenDropdownOpen() {
+        return !!this._genDropdown?.classList?.contains("is-visible");
     }
 
     _openGenDropdown() {
@@ -375,6 +471,7 @@ export class FloatingViewer {
             this._genDropdown = this._buildGenDropdown();
             this.element.appendChild(this._genDropdown);
         }
+        this._bindDocumentUiHandlers();
         const rect = this._genBtn.getBoundingClientRect();
         const parentRect = this.element.getBoundingClientRect();
         const left = rect.left - parentRect.left;
@@ -382,11 +479,13 @@ export class FloatingViewer {
         this._genDropdown.style.left = `${left}px`;
         this._genDropdown.style.top = `${top}px`;
         this._genDropdown.classList.add("is-visible");
+        this._updateGenBtnUI();
     }
 
     _closeGenDropdown() {
         if (!this._genDropdown) return;
         this._genDropdown.classList.remove("is-visible");
+        this._updateGenBtnUI();
     }
 
     /** Reflect how many fields are enabled on the gen info button. */
@@ -394,15 +493,28 @@ export class FloatingViewer {
         if (!this._genBtn) return;
         const count = this._genInfoSelections.size;
         const isOn = count > 0;
+        const isOpen = this._isGenDropdownOpen();
         this._genBtn.classList.toggle("is-on", isOn);
-        this._genBtn.title = isOn
-            ? `Gen Info (${count} field${count > 1 ? "s" : ""} shown) — click to configure`
-            : "Gen Info — click to show overlay";
+        this._genBtn.classList.toggle("is-open", isOpen);
+        const label = isOn
+            ? `Gen Info (${count} field${count > 1 ? "s" : ""} shown)${isOpen ? " — open" : " — click to configure"}`
+            : `Gen Info${isOpen ? " — open" : " — click to show overlay"}`;
+        this._genBtn.title = label;
+        this._genBtn.setAttribute("aria-label", label);
+        this._genBtn.setAttribute("aria-expanded", String(isOpen));
+        if (this._genDropdown) {
+            this._genBtn.setAttribute("aria-controls", this._genDropdownId);
+        } else {
+            this._genBtn.removeAttribute("aria-controls");
+        }
     }
 
     _buildGenDropdown() {
         const d = document.createElement("div");
         d.className = "mjr-mfv-gen-dropdown";
+        d.id = this._genDropdownId;
+        d.setAttribute("role", "group");
+        d.setAttribute("aria-label", "Generation info fields");
         const opts = [
             ["prompt", "Prompt"],
             ["seed", "Seed"],
@@ -552,6 +664,22 @@ export class FloatingViewer {
         this._refresh();
     }
 
+    getPinnedSlot() {
+        return this._pinnedSlot;
+    }
+
+    _updatePinSelectUI() {
+        if (!this._pinSelect) return;
+        const pinned = this._pinnedSlot === "A" || this._pinnedSlot === "B";
+        this._pinSelect.value = this._pinnedSlot || "";
+        this._pinSelect.classList.toggle("is-pinned", pinned);
+        const label = pinned
+            ? `Pin Reference: ${this._pinnedSlot}`
+            : "Pin Reference: Off";
+        this._pinSelect.title = label;
+        this._pinSelect.setAttribute("aria-label", label);
+    }
+
     _updateModeBtnUI() {
         if (!this._modeBtn) return;
         const cfg = {
@@ -565,25 +693,33 @@ export class FloatingViewer {
         _modeBtnIcon.setAttribute("aria-hidden", "true");
         this._modeBtn.replaceChildren(_modeBtnIcon);
         this._modeBtn.title = label;
+        this._modeBtn.setAttribute("aria-label", label);
+        this._modeBtn.removeAttribute("aria-pressed");
     }
 
     // ── Live Stream UI ────────────────────────────────────────────────────────
 
     setLiveActive(active) {
         if (!this._liveBtn) return;
-        this._liveBtn.classList.toggle("mjr-live-active", Boolean(active));
-        if (active) {
+        const isActive = Boolean(active);
+        this._liveBtn.classList.toggle("mjr-live-active", isActive);
+        const label = isActive
+            ? t("tooltip.liveStreamOn", "Live Stream: ON — click to disable")
+            : t("tooltip.liveStreamOff", "Live Stream: OFF — click to follow");
+        this._liveBtn.setAttribute("aria-pressed", String(isActive));
+        this._liveBtn.setAttribute("aria-label", label);
+        if (isActive) {
             const _liveIconActive = document.createElement("i");
             _liveIconActive.className = "pi pi-circle-fill";
             _liveIconActive.setAttribute("aria-hidden", "true");
             this._liveBtn.replaceChildren(_liveIconActive);
-            this._liveBtn.title = t("tooltip.liveStreamOn", "Live Stream: ON — click to disable");
+            this._liveBtn.title = label;
         } else {
             const _liveIconInactive = document.createElement("i");
             _liveIconInactive.className = "pi pi-circle";
             _liveIconInactive.setAttribute("aria-hidden", "true");
             this._liveBtn.replaceChildren(_liveIconInactive);
-            this._liveBtn.title = t("tooltip.liveStreamOff", "Live Stream: OFF — click to follow");
+            this._liveBtn.title = label;
         }
     }
 
@@ -592,19 +728,24 @@ export class FloatingViewer {
     setPreviewActive(active) {
         this._previewActive = Boolean(active);
         if (!this._previewBtn) return;
-        this._previewBtn.classList.toggle("mjr-live-active", this._previewActive);
+        this._previewBtn.classList.toggle("mjr-preview-active", this._previewActive);
+        const label = this._previewActive
+            ? t("tooltip.previewStreamOn", "KSampler Preview: ON — streaming denoising steps")
+            : t("tooltip.previewStreamOff", "KSampler Preview: OFF — click to stream denoising steps");
+        this._previewBtn.setAttribute("aria-pressed", String(this._previewActive));
+        this._previewBtn.setAttribute("aria-label", label);
         if (this._previewActive) {
             const icon = document.createElement("i");
             icon.className = "pi pi-eye";
             icon.setAttribute("aria-hidden", "true");
             this._previewBtn.replaceChildren(icon);
-            this._previewBtn.title = t("tooltip.previewStreamOn", "KSampler Preview: ON — streaming denoising steps");
+            this._previewBtn.title = label;
         } else {
             const icon = document.createElement("i");
             icon.className = "pi pi-eye-slash";
             icon.setAttribute("aria-hidden", "true");
             this._previewBtn.replaceChildren(icon);
-            this._previewBtn.title = t("tooltip.previewStreamOff", "KSampler Preview: OFF — click to stream denoising steps");
+            this._previewBtn.title = label;
             // Revoke last blob URL when turning off
             this._revokePreviewBlob();
         }
@@ -1024,7 +1165,9 @@ export class FloatingViewer {
 
     show() {
         if (!this.element) return;
+        this._bindDocumentUiHandlers();
         this.element.classList.add("is-visible");
+        this.element.setAttribute("aria-hidden", "false");
         this.isVisible = true;
     }
 
@@ -1034,7 +1177,9 @@ export class FloatingViewer {
         // even if hide() is called mid-drag (NM-5).
         this._destroyPanZoom();
         this._stopEdgeResize();
+        this._closeGenDropdown();
         this.element.classList.remove("is-visible");
+        this.element.setAttribute("aria-hidden", "true");
         this.isVisible = false;
     }
 
@@ -1042,8 +1187,8 @@ export class FloatingViewer {
 
     /**
      * Move the viewer into a separate browser window so it can be
-     * dragged onto a second monitor.  Uses adoptNode() to transfer
-     * the live DOM tree — all JS references and listeners stay valid.
+     * dragged onto a second monitor. Opens a dedicated same-origin page,
+     * then adopts the live DOM tree into that page so state/listeners persist.
      */
     popOut() {
         if (this._isPopped || !this.element) return;
@@ -1058,34 +1203,201 @@ export class FloatingViewer {
         const left = (window.screenX || window.screenLeft) + Math.round((window.outerWidth  - w) / 2);
         const top  = (window.screenY || window.screenTop)  + Math.round((window.outerHeight - h) / 2);
         const features = `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no`;
-        const popup = window.open("", "_mjr_viewer", features);
+        const popup = window.open(this._getPopoutUrl(), "_mjr_viewer", features);
         if (!popup) {
             console.warn("[MFV] Pop-out blocked — allow popups for this site.");
             return;
         }
         this._popoutWindow = popup;
         this._isPopped = true;
+        this._popoutRestoreGuard = false;
+        let mounted = false;
+        const handlePopupClosing = () => this._schedulePopInFromPopupClose();
+        this._popoutCloseHandler = handlePopupClosing;
 
-        // ----- Build the popup document -----
-        const doc = popup.document;
-        doc.title = "Majoor Viewer";
+        const mountViewer = () => {
+            if (mounted) return;
+            const doc = popup.document;
+            if (!doc) return;
+            if (!this._ensurePopoutShell(doc)) return;
+            doc.title = "Majoor Viewer";
+            this._installPopoutStyles(doc);
+            const root = doc.getElementById("mjr-mfv-popout-root") || doc.body;
+            if (!root) return;
+            try { root.replaceChildren(); } catch (e) { console.debug?.(e); }
+            root.appendChild(doc.adoptNode(el));
+            el.classList.add("is-visible");
+            this.isVisible = true;
+            mounted = true;
+            this._resetGenDropdownForCurrentDocument();
+            this._rebindControlHandlers();
+            this._bindDocumentUiHandlers();
+            this._updatePopoutBtnUI();
+        };
 
-        // Copy ALL stylesheets from the parent page so themes, PrimeIcons,
-        // and MFV-specific CSS are available in the popup.
-        for (const ss of document.querySelectorAll('link[rel="stylesheet"], style')) {
-            doc.head.appendChild(doc.importNode(ss, true));
+        try {
+            popup.addEventListener("load", mountViewer, { once: true });
+        } catch (e) {
+            console.debug?.("[MFV] pop-out page mount failed", e);
+        }
+        if (popup.document?.readyState === "interactive" || popup.document?.readyState === "complete") {
+            setTimeout(mountViewer, 0);
         }
 
-        // Override styles for the popped-out viewer (fill window, no fixed position)
-        const overrideStyle = doc.createElement("style");
-        overrideStyle.textContent = `
-            html, body {
-                margin: 0; padding: 0;
-                width: 100%; height: 100%;
-                overflow: hidden;
-                background: #1e1e1e;
-                color: #ddd;
+        // When the user closes the popup window, automatically pop the viewer back in.
+        popup.addEventListener("beforeunload", handlePopupClosing);
+        popup.addEventListener("pagehide", handlePopupClosing);
+        popup.addEventListener("unload", handlePopupClosing);
+        this._startPopoutCloseWatch();
+
+        // Relay keyboard shortcuts from popup back to main window
+        popup.addEventListener("keydown", (e) => {
+            const tag = String(e?.target?.tagName || "").toLowerCase();
+            if (e?.defaultPrevented || e?.target?.isContentEditable || tag === "input" || tag === "textarea" || tag === "select") {
+                return;
             }
+            window.dispatchEvent(new KeyboardEvent("keydown", {
+                key: e.key, code: e.code, keyCode: e.keyCode,
+                ctrlKey: e.ctrlKey, shiftKey: e.shiftKey, altKey: e.altKey, metaKey: e.metaKey,
+            }));
+        });
+    }
+
+    _clearPopoutCloseWatch() {
+        if (this._popoutCloseTimer == null) return;
+        try { window.clearInterval(this._popoutCloseTimer); } catch (e) { console.debug?.(e); }
+        this._popoutCloseTimer = null;
+    }
+
+    _startPopoutCloseWatch() {
+        this._clearPopoutCloseWatch();
+        this._popoutCloseTimer = window.setInterval(() => {
+            if (!this._isPopped) {
+                this._clearPopoutCloseWatch();
+                return;
+            }
+            const popup = this._popoutWindow;
+            if (!popup || popup.closed) {
+                this._clearPopoutCloseWatch();
+                this._schedulePopInFromPopupClose();
+            }
+        }, 250);
+    }
+
+    _schedulePopInFromPopupClose() {
+        if (!this._isPopped || this._popoutRestoreGuard) return;
+        this._popoutRestoreGuard = true;
+        window.setTimeout(() => {
+            try {
+                this.popIn({ closePopupWindow: false });
+            } finally {
+                this._popoutRestoreGuard = false;
+            }
+        }, 0);
+    }
+
+    _getPopoutUrl() {
+        try {
+            return new URL("/mjr/viewer/popout", window.location.href).toString();
+        } catch {
+            return "/mjr/viewer/popout";
+        }
+    }
+
+    _buildPopoutShellHtml() {
+        return `<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#1e1e1e">
+    <title>Majoor Viewer</title>
+    <style>
+        html, body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #111;
+            color: #ddd;
+            font-family: system-ui, sans-serif;
+        }
+        body {
+            display: flex;
+            min-height: 100vh;
+        }
+        #mjr-mfv-popout-root {
+            flex: 1;
+            min-width: 0;
+            min-height: 0;
+            display: flex;
+            align-items: stretch;
+            justify-content: stretch;
+            background:
+                radial-gradient(circle at top, rgba(95, 179, 255, 0.12), transparent 35%),
+                linear-gradient(180deg, #1a1a1a 0%, #101010 100%);
+        }
+        .mjr-mfv-popout-loading {
+            margin: auto;
+            padding: 12px 16px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(20,20,20,0.82);
+            font-size: 12px;
+            letter-spacing: 0.02em;
+            opacity: 0.84;
+        }
+    </style>
+</head>
+<body>
+    <div id="mjr-mfv-popout-root">
+        <div class="mjr-mfv-popout-loading">Preparing viewer...</div>
+    </div>
+</body>
+</html>`;
+    }
+
+    _ensurePopoutShell(doc) {
+        if (!doc) return false;
+        try {
+            if (doc.getElementById("mjr-mfv-popout-root")) return true;
+            doc.open();
+            doc.write(this._buildPopoutShellHtml());
+            doc.close();
+            return !!doc.getElementById("mjr-mfv-popout-root");
+        } catch (e) {
+            console.debug?.("[MFV] pop-out shell init failed", e);
+            return false;
+        }
+    }
+
+    _installPopoutStyles(doc) {
+        if (!doc?.head) return;
+        try {
+            for (const existing of doc.head.querySelectorAll("[data-mjr-popout-cloned-style='1']")) {
+                existing.remove();
+            }
+        } catch (e) { console.debug?.(e); }
+        for (const ss of document.querySelectorAll('link[rel="stylesheet"], style')) {
+            try {
+                let clone = null;
+                if (ss.tagName === "LINK") {
+                    clone = doc.createElement("link");
+                    for (const attr of Array.from(ss.attributes || [])) {
+                        if (attr?.name === "href") continue;
+                        clone.setAttribute(attr.name, attr.value);
+                    }
+                    clone.setAttribute("href", ss.href || ss.getAttribute("href") || "");
+                } else {
+                    clone = doc.importNode(ss, true);
+                }
+                clone.setAttribute("data-mjr-popout-cloned-style", "1");
+                doc.head.appendChild(clone);
+            } catch (e) { console.debug?.(e); }
+        }
+        const overrideStyle = doc.createElement("style");
+        overrideStyle.setAttribute("data-mjr-popout-cloned-style", "1");
+        overrideStyle.textContent = `
             .mjr-mfv {
                 position: static !important;
                 width: 100% !important;
@@ -1100,46 +1412,48 @@ export class FloatingViewer {
             }
         `;
         doc.head.appendChild(overrideStyle);
-
-        // Adopt the existing DOM node into the popup document
-        doc.body.appendChild(doc.adoptNode(el));
-
-        // Force visible (it may have been hidden if toggled before pop-out)
-        el.classList.add("is-visible");
-        this.isVisible = true;
-
-        // Update pop-out button to show "pop-in" icon
-        this._updatePopoutBtnUI();
-
-        // When the user closes the popup window, automatically pop the viewer back in.
-        popup.addEventListener("beforeunload", () => this.popIn());
-
-        // Relay keyboard shortcuts from popup back to main window
-        popup.addEventListener("keydown", (e) => {
-            window.dispatchEvent(new KeyboardEvent("keydown", {
-                key: e.key, code: e.code, keyCode: e.keyCode,
-                ctrlKey: e.ctrlKey, shiftKey: e.shiftKey, altKey: e.altKey, metaKey: e.metaKey,
-            }));
-        });
     }
 
     /**
      * Move the viewer back into the main ComfyUI page from the popup window.
      */
-    popIn() {
+    popIn({ closePopupWindow = true } = {}) {
         if (!this._isPopped || !this.element) return;
+        const popup = this._popoutWindow;
+        const closeHandler = this._popoutCloseHandler;
+        this._clearPopoutCloseWatch();
+        if (popup && closeHandler) {
+            try { popup.removeEventListener("beforeunload", closeHandler); } catch (e) { console.debug?.(e); }
+            try { popup.removeEventListener("pagehide", closeHandler); } catch (e) { console.debug?.(e); }
+            try { popup.removeEventListener("unload", closeHandler); } catch (e) { console.debug?.(e); }
+        }
+        this._popoutCloseHandler = null;
         this._isPopped = false;
 
         // Re-adopt the element into the main document and append to body
-        const adopted = document.adoptNode(this.element);
+        let adopted = this.element;
+        try {
+            adopted = adopted?.ownerDocument === document ? adopted : document.adoptNode(adopted);
+        } catch (e) {
+            console.debug?.("[MFV] pop-in adopt failed", e);
+        }
         document.body.appendChild(adopted);
+        this._resetGenDropdownForCurrentDocument();
+        this._rebindControlHandlers();
+        this._bindPanelInteractions();
+        this._bindDocumentUiHandlers();
+        adopted.classList.add("is-visible");
+        adopted.setAttribute("aria-hidden", "false");
+        this.isVisible = true;
 
         // Restore inline position styles (they were cleared by the popup override)
         // The viewer will revert to its normal fixed-position CSS.
         this._updatePopoutBtnUI();
 
         // Close the popup window if it's still open
-        try { this._popoutWindow?.close(); } catch (e) { console.debug?.(e); }
+        if (closePopupWindow) {
+            try { popup?.close(); } catch (e) { console.debug?.(e); }
+        }
         this._popoutWindow = null;
     }
 
@@ -1151,13 +1465,17 @@ export class FloatingViewer {
         }
         this._popoutBtn.classList.toggle("mjr-popin-active", this._isPopped);
         const icon = this._popoutBtn.querySelector("i") || document.createElement("i");
+        const label = this._isPopped
+            ? t("tooltip.popInViewer", "Return viewer to ComfyUI window")
+            : t("tooltip.popOutViewer", "Pop out to separate window (can move to 2nd monitor)");
         if (this._isPopped) {
             icon.className = "pi pi-sign-in";
-            this._popoutBtn.title = t("tooltip.popInViewer", "Return viewer to ComfyUI window");
         } else {
             icon.className = "pi pi-external-link";
-            this._popoutBtn.title = t("tooltip.popOutViewer", "Pop out to separate window (can move to 2nd monitor)");
         }
+        this._popoutBtn.title = label;
+        this._popoutBtn.setAttribute("aria-label", label);
+        this._popoutBtn.setAttribute("aria-pressed", String(this._isPopped));
         if (!this._popoutBtn.contains(icon)) {
             this._popoutBtn.replaceChildren(icon);
         }
@@ -1205,6 +1523,15 @@ export class FloatingViewer {
         this._resizeState = null;
         this.element.classList.remove("mjr-mfv--resizing");
         this.element.style.cursor = "";
+    }
+
+    _bindPanelInteractions() {
+        if (!this.element) return;
+        this._stopEdgeResize();
+        try { this._panelAC?.abort(); } catch (e) { console.debug?.(e); }
+        this._panelAC = new AbortController();
+        this._initEdgeResize(this.element);
+        this._initDrag(this.element.querySelector(".mjr-mfv-header"));
     }
 
     _initEdgeResize(el) {
@@ -1319,9 +1646,11 @@ export class FloatingViewer {
 
     _initDrag(handle) {
         if (!handle) return;
+        const signal = this._panelAC?.signal;
         handle.addEventListener("pointerdown", (e) => {
             if (e.button !== 0) return;
             if (e.target.closest("button")) return; // Don't drag when clicking buttons
+            if (e.target.closest("select")) return;
             if (this._isPopped || !this.element) return;
             // Let edge-resize take precedence when pointer is near panel borders.
             const edgeDir = this._getResizeDirectionFromPoint(
@@ -1352,7 +1681,7 @@ export class FloatingViewer {
             };
             handle.addEventListener("pointermove", onMove);
             handle.addEventListener("pointerup", onUp);
-        });
+        }, signal ? { signal } : undefined);
     }
 
     // ── Canvas capture ────────────────────────────────────────────────────────
@@ -1621,6 +1950,7 @@ export class FloatingViewer {
     dispose() {
         this._destroyPanZoom();
         this._stopEdgeResize();
+        this._clearPopoutCloseWatch();
         try { this._panelAC?.abort(); this._panelAC = null; } catch (e) { console.debug?.(e); }
         // Abort all button click listeners in one call (NM-1).
         try { this._btnAC?.abort(); this._btnAC = null; } catch (e) { console.debug?.(e); }
@@ -1630,11 +1960,13 @@ export class FloatingViewer {
         try { this.element?.remove(); } catch (e) { console.debug?.(e); }
         this.element     = null;
         this._contentEl  = null;
+        this._closeBtn   = null;
         this._modeBtn    = null;
+        this._pinSelect  = null;
         this._liveBtn    = null;
         this._popoutBtn  = null;
         this._captureBtn = null;
-        try { document.removeEventListener("click", this._handleDocClick); } catch (e) { console.debug?.(e); }
+        this._unbindDocumentUiHandlers();
         try { this._genDropdown?.remove(); } catch (e) { console.debug?.(e); }
         this._mediaA     = null;
         this._mediaB     = null;

@@ -3,12 +3,22 @@ import { comfyToast } from "../../../app/toast.js";
 import { t } from "../../../app/i18n.js";
 import { loadMajoorSettings } from "../../../app/settings.js";
 
-export function createGridController({ gridContainer, loadAssets, loadAssetsFromList, getCollectionAssets, disposeGrid, getQuery, state }) {
+export function createGridController({
+    gridContainer,
+    loadAssets,
+    loadAssetsFromList,
+    getCollectionAssets,
+    disposeGrid,
+    getQuery,
+    searchInputEl,
+    state,
+}) {
     let _isReloading = false;
     let _pendingReload = false;
     let _lastReloadErrorAt = 0;
     let _lastAiHintAt = 0;
     const RELOAD_WATCHDOG_MS = 30000;
+    const AI_RELOAD_WATCHDOG_MS = 150000;
     const AI_HINT_COOLDOWN_MS = 15_000;
 
     const runWithWatchdog = async (promiseFactory, timeoutMs = RELOAD_WATCHDOG_MS) => {
@@ -32,8 +42,7 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
      */
     const _isSemanticMode = () => {
         try {
-            const input = gridContainer?.closest?.(".mjr-am-panel")?.querySelector?.("#mjr-search-input");
-            return input?.dataset?.mjrSemanticMode === "1";
+            return searchInputEl?.dataset?.mjrSemanticMode === "1";
         } catch { return false; }
     };
 
@@ -305,6 +314,25 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
             state.collectionName = "";
         }
 
+        if (String(state.viewScope || "").toLowerCase() === "similar") {
+            const list = Array.isArray(state.similarResults) ? state.similarResults : [];
+            const sourceId = String(state.similarSourceAssetId || "").trim();
+            const title = String(
+                state.similarTitle
+                || t("search.similarResults", "Similar to asset #{id} ({n} results)", {
+                    id: sourceId || "?",
+                    n: list.length,
+                })
+            ).trim();
+            const result = await loadAssetsFromList(gridContainer, list, { title: title || "Similar", reset: true });
+            try {
+                state.lastGridCount = Number(result?.count || 0) || 0;
+                state.lastGridTotal = Number(result?.total || 0) || 0;
+                gridContainer.dispatchEvent?.(new CustomEvent("mjr:grid-stats", { detail: result || {} }));
+            } catch (e) { console.debug?.(e); }
+            return;
+        }
+
         const result = await _loadWithSemanticFallback(getQuery());
         
         // Track search query timing if timer was started
@@ -335,7 +363,8 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
             while (_pendingReload) {
                 _pendingReload = false;
                 try {
-                    await runWithWatchdog(() => runReloadOnce());
+                    const useAiTimeout = _isAiEnabled() && (_isSemanticMode() || String(getQuery?.() || "").length >= 12);
+                    await runWithWatchdog(() => runReloadOnce(), useAiTimeout ? AI_RELOAD_WATCHDOG_MS : RELOAD_WATCHDOG_MS);
                 } catch (err) {
                     // Keep UI responsive even if one reload got stuck, but don't fail silently.
                     try {
@@ -367,4 +396,3 @@ export function createGridController({ gridContainer, loadAssets, loadAssetsFrom
 
     return { reloadGrid };
 }
-

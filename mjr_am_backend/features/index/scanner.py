@@ -9,7 +9,7 @@ from typing import Any
 
 from ...adapters.db.sqlite import Sqlite
 from ...config import MAX_TO_ENRICH_ITEMS, is_vector_index_on_scan_enabled
-from ...shared import get_logger
+from ...shared import FileKind, get_logger
 from ..metadata import MetadataService
 from .fs_walker import SCAN_IOPS_LIMIT, FileSystemWalker
 from .index_batching import append_batch_metadata_entries, existing_map_for_batch, journal_map_for_batch, prefetch_batch_cache_and_rich_meta, prefetch_metadata_cache_rows, prefetch_rich_metadata_rows, prepare_batch_entries, prepare_single_batch_entry, resolve_existing_state_for_batch
@@ -108,37 +108,93 @@ class IndexScanner:
             added_ids=added_ids,
             is_fatal_db_error=_is_fatal_db_error,
         )
-        self._schedule_added_image_vector_index(prev_added_count=prev_added_count, added_ids=added_ids)
+        self._schedule_prepared_vector_index(
+            prepared=prepared,
+            prev_added_count=prev_added_count,
+            added_ids=added_ids,
+        )
 
     def set_vector_services(self, vector_service: Any, vector_searcher: Any | None = None) -> None:
         self._vector_service = vector_service
         self._vector_searcher = vector_searcher
 
+    async def _asset_has_vector(self, *, asset_id: int) -> bool:
+        try:
+            asset_id_int = int(asset_id)
+        except Exception:
+            return False
+        if asset_id_int <= 0:
+            return False
+        result = await self.db.aquery(
+            """
+            SELECT 1
+            FROM vec.asset_embeddings
+            WHERE asset_id = ?
+              AND vector IS NOT NULL
+              AND length(vector) > 0
+            LIMIT 1
+            """,
+            (asset_id_int,),
+        )
+        return bool(result.ok and result.data)
+
     def _schedule_added_image_vector_index(self, *, prev_added_count: int, added_ids: list[int] | None) -> None:
+        self._schedule_prepared_vector_index(
+            prepared=None,
+            prev_added_count=prev_added_count,
+            added_ids=added_ids,
+        )
+
+    def _schedule_prepared_vector_index(
+        self,
+        *,
+        prepared: list[dict[str, Any]] | None,
+        prev_added_count: int,
+        added_ids: list[int] | None,
+    ) -> None:
         if not is_vector_index_on_scan_enabled():
             return
-        if self._vector_service is None or not isinstance(added_ids, list) or len(added_ids) <= prev_added_count:
+        if self._vector_service is None:
             return
 
-        new_ids: list[int] = []
-        for aid in added_ids[prev_added_count:]:
+        candidate_ids: list[int] = []
+        seen_ids: set[int] = set()
+
+        def _append_asset_id(raw_id: Any) -> None:
             try:
-                parsed_id = int(aid)
+                parsed_id = int(raw_id)
             except Exception:
-                continue
-            if parsed_id > 0:
-                new_ids.append(parsed_id)
-        if not new_ids:
+                return
+            if parsed_id <= 0 or parsed_id in seen_ids:
+                return
+            seen_ids.add(parsed_id)
+            candidate_ids.append(parsed_id)
+
+        if isinstance(added_ids, list):
+            for aid in added_ids[prev_added_count:]:
+                _append_asset_id(aid)
+
+        if isinstance(prepared, list):
+            for entry in prepared:
+                action = str(entry.get("action") or "").strip().lower()
+                if action not in {"refresh", "updated"}:
+                    continue
+                _append_asset_id(entry.get("asset_id"))
+
+        if not candidate_ids:
             return
 
         try:
-            task = asyncio.create_task(self._index_added_image_vectors(asset_ids=new_ids))
+            task = asyncio.create_task(self._index_missing_asset_vectors(asset_ids=candidate_ids))
             self._vector_index_tasks.add(task)
             task.add_done_callback(self._vector_index_tasks.discard)
         except Exception as exc:
             logger.debug("Scanner vector indexing scheduling failed: %s", exc)
 
     async def _index_added_image_vectors(self, *, asset_ids: list[int]) -> None:
+        await self._index_missing_asset_vectors(asset_ids=asset_ids)
+
+    async def _index_missing_asset_vectors(self, *, asset_ids: list[int]) -> None:
         if self._vector_service is None or not isinstance(asset_ids, list) or not asset_ids:
             return
 
@@ -148,8 +204,11 @@ class IndexScanner:
                     """
                     SELECT a.id, a.filepath, a.kind, m.metadata_raw
                     FROM assets a
+                    LEFT JOIN vec.asset_embeddings ae ON ae.asset_id = a.id
                     LEFT JOIN asset_metadata m ON a.id = m.asset_id
-                    WHERE a.kind IN ('image', 'video') AND {IN_CLAUSE}
+                    WHERE a.kind IN ('image', 'video')
+                      AND (ae.asset_id IS NULL OR ae.vector IS NULL OR length(ae.vector) = 0)
+                      AND {IN_CLAUSE}
                     """,
                     "a.id",
                     asset_ids,
@@ -195,6 +254,8 @@ class IndexScanner:
                     aid = int(entry.get("asset_id") or 0)
                     try:
                         filepath = str(entry.get("filepath") or "")
+                        entry_kind_raw = str(entry.get("kind") or "").strip().lower()
+                        entry_kind: FileKind = "video" if entry_kind_raw == "video" else "image"
                         if not filepath:
                             skipped += 1
                             continue
@@ -204,7 +265,7 @@ class IndexScanner:
                                 self._vector_service,
                                 asset_id=aid,
                                 filepath=filepath,
-                                kind=str(entry.get("kind") or "image"),
+                                kind=entry_kind,
                                 metadata_raw=entry.get("metadata_raw"),
                             ),
                             timeout=_VECTOR_INDEX_PER_ASSET_TIMEOUT_S,

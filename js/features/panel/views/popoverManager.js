@@ -17,8 +17,24 @@ export function createPopoverManager(container) {
     const POPOVER_BOTTOM_SAFETY_PX = 80;
     const POPOVER_MIN_HEIGHT_PX = 140;
 
+    const bindPopoverInteractionGuards = (popover) => {
+        if (!popover || popover._mjrInteractionGuardsBound) return;
+        const stopPropagation = (event) => {
+            try {
+                event.stopPropagation();
+            } catch (e) { console.debug?.(e); }
+        };
+        try {
+            popover.addEventListener("wheel", stopPropagation, { passive: true });
+            popover.addEventListener("mousedown", stopPropagation);
+            popover.addEventListener("touchmove", stopPropagation, { passive: true });
+            popover._mjrInteractionGuardsBound = true;
+        } catch (e) { console.debug?.(e); }
+    };
+
     const attachPopoverToPortal = (popover) => {
         if (!popover || !(popover instanceof HTMLElement)) return;
+        bindPopoverInteractionGuards(popover);
         if (!popover._mjrPortal) {
             popover._mjrPortal = {
                 parent: popover.parentNode,
@@ -90,6 +106,7 @@ export function createPopoverManager(container) {
             const availableBelow = bottomLimit - top;
             popover.style.maxHeight = `${Math.max(POPOVER_MIN_HEIGHT_PX, availableBelow)}px`;
             popover.style.overflow = "auto";
+            popover.style.overscrollBehavior = "contain";
 
             popover.style.left = `${Math.round(left)}px`;
             popover.style.top = `${Math.round(top)}px`;

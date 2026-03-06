@@ -306,7 +306,7 @@ async function _appendSmartSuggestions(menu, state, popovers, collectionsPopover
                 // 1. Create the collection
                 const res = await createCollection(idea.label);
                 if (!res?.ok) {
-                    comfyToast(res?.error || "Failed to create smart collection", "error");
+                    comfyToast(res?.error || t("toast.failedCreateSmartCollection", "Failed to create smart collection"), "error");
                     return;
                 }
                 const colId = String(res.data?.id || "");
@@ -334,7 +334,7 @@ async function _appendSmartSuggestions(menu, state, popovers, collectionsPopover
                     }
                     const addRes = await addAssetsToCollection(colId, assets);
                     if (!addRes?.ok) {
-                        comfyToast(addRes?.error || "Failed to add assets to smart collection", "error");
+                        comfyToast(addRes?.error || t("toast.failedAddAssetsToSmartCollection", "Failed to add assets to smart collection"), "error");
                         return;
                     }
                     const addedCount = Number(addRes?.data?.added || assets.length || 0);
@@ -359,7 +359,7 @@ async function _appendSmartSuggestions(menu, state, popovers, collectionsPopover
                 await reloadGrid();
             } catch (err) {
                 console.error("[Majoor] Smart collection creation failed:", err);
-                comfyToast("Failed to create smart collection", "error");
+                comfyToast(t("toast.failedCreateSmartCollection", "Failed to create smart collection"), "error");
             }
         });
 
@@ -444,7 +444,7 @@ async function _appendDiscoverGroups(menu, state, popovers, collectionsPopover, 
         try {
             const res = await vectorSuggestCollections(8);
             if (!res?.ok || !Array.isArray(res.data) || !res.data.length) {
-                comfyToast("No groups found. Index more assets first.", "info", 3000);
+                comfyToast(t("toast.noGroupsFoundIndexFirst", "No groups found. Index more assets first."), "info", 3000);
                 discoverBtn.textContent = "🔍 Analyze Library";
                 discoverBtn.disabled = false;
                 return;
@@ -522,7 +522,7 @@ async function _appendDiscoverGroups(menu, state, popovers, collectionsPopover, 
                         createBtn.textContent = "…";
                         const colRes = await createCollection(label);
                         if (!colRes?.ok) {
-                            comfyToast(colRes?.error || "Failed to create collection", "error");
+                            comfyToast(colRes?.error || t("toast.failedCreateCollection", "Failed to create collection"), "error");
                             createBtn.disabled = false;
                             createBtn.textContent = "+ Create";
                             return;
@@ -531,22 +531,29 @@ async function _appendDiscoverGroups(menu, state, popovers, collectionsPopover, 
                         if (colId && allIds.length) {
                             const hydrated = await _resolveCollectionAssetsByIds(allIds);
                             if (!hydrated.ok) {
-                                comfyToast(hydrated.error || "Failed to load cluster assets", "error");
+                                comfyToast(hydrated.error || t("toast.failedLoadClusterAssets", "Failed to load cluster assets"), "error");
                                 createBtn.disabled = false;
                                 createBtn.textContent = "+ Create";
                                 return;
                             }
                             const addRes = await addAssetsToCollection(colId, hydrated.data || []);
                             if (!addRes?.ok) {
-                                comfyToast(addRes?.error || "Failed to add assets to collection", "error");
+                                comfyToast(addRes?.error || t("toast.failedAddAssetsToCollection", "Failed to add assets to collection"), "error");
                                 createBtn.disabled = false;
                                 createBtn.textContent = "+ Create";
                                 return;
                             }
                             const addedCount = Number(addRes?.data?.added || (hydrated.data || []).length || 0);
-                            comfyToast(`Collection "${label}" created with ${addedCount} assets!`, "success", 3000);
+                            comfyToast(
+                                t("toast.collectionCreatedWithAssets", "Collection \"{name}\" created with {count} assets!", {
+                                    name: label,
+                                    count: addedCount,
+                                }),
+                                "success",
+                                3000
+                            );
                         } else {
-                            comfyToast(`Collection "${label}" created.`, "success", 2200);
+                            comfyToast(t("toast.collectionCreatedNamed", "Collection \"{name}\" created.", { name: label }), "success", 2200);
                         }
                         state.collectionId = colId;
                         state.collectionName = label;
@@ -555,7 +562,7 @@ async function _appendDiscoverGroups(menu, state, popovers, collectionsPopover, 
                         await reloadGrid();
                     } catch (err) {
                         console.error("[Majoor] Cluster collection creation failed:", err);
-                        comfyToast("Failed to create collection", "error");
+                        comfyToast(t("toast.failedCreateCollection", "Failed to create collection"), "error");
                         createBtn.disabled = false;
                         createBtn.textContent = "+ Create";
                     }
@@ -568,7 +575,7 @@ async function _appendDiscoverGroups(menu, state, popovers, collectionsPopover, 
             }
         } catch (err) {
             console.error("[Majoor] Discover groups failed:", err);
-            comfyToast("Cluster analysis failed", "error");
+            comfyToast(t("toast.clusterAnalysisFailed", "Cluster analysis failed"), "error");
             discoverBtn.textContent = "🔍 Analyze Library";
             discoverBtn.disabled = false;
         }

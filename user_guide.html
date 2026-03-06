@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Majoor Assets Manager - User Guide</title>
+    <style>
+        :root {
+            /* ComfyUI CSS Variables (matching theme-comfy.css) */
+            --bg-primary: var(--content-bg, #1e1e1e);
+            --bg-secondary: var(--comfy-menu-bg, #2a2a2a);
+            --bg-tertiary: var(--comfy-menu-secondary-bg, #333333);
+            --text-primary: var(--content-fg, var(--input-text, #ddd));
+            --text-secondary: var(--descrip-text, rgba(255, 255, 255, 0.65));
+            --accent: var(--comfy-accent, #5fb3ff);
+            --accent-hover: color-mix(in srgb, var(--comfy-accent, #5fb3ff) 85%, white);
+            --border: var(--border-color, rgba(255, 255, 255, 0.12));
+            --success: var(--comfy-status-success, #4CAF50);
+            --warning: var(--comfy-status-warning, #FFA726);
+            --error: var(--comfy-status-error, #f44336);
+            --info: var(--comfy-status-info, #2196F3);
+            --star-color: #FFD45A;
+            --badge-image: #2196F3;
+            --badge-video: #9C27B0;
+            --badge-audio: #FF9800;
+            --font-family: var(--comfy-font, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif);
+            --radius-sm: 8px;
+            --radius-md: 10px;
+            --radius-lg: 12px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: var(--font-family);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.35;
+            font-size: 13px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 16px; }
+        header {
+            background: var(--bg-secondary);
+            padding: 24px 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+        header h1 { 
+            font-size: 18px; 
+            font-weight: 700; 
+            margin-bottom: 8px; 
+            color: var(--text-primary);
+            letter-spacing: 0.01em;
+        }
+        header p { color: var(--text-secondary); font-size: 12px; }
+        nav {
+            background: var(--bg-secondary);
+            padding: 10px 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid var(--border);
+        }
+        nav ul { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+        nav a {
+            color: var(--text-primary);
+            text-decoration: none;
+            padding: 6px 12px;
+            border-radius: 999px;
+            border: 1px solid transparent;
+            background: transparent;
+            font-size: 12px;
+            transition: transform 120ms ease, background-color 120ms ease, border-color 120ms ease;
+        }
+        nav a:hover {
+            transform: translateY(-1px);
+            background: color-mix(in srgb, var(--bg-tertiary) 55%, transparent);
+            border-color: color-mix(in srgb, var(--border) 70%, transparent);
+        }
+        section {
+            background: var(--bg-secondary);
+            margin: 16px 0;
+            padding: 16px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+        }
+        h2 { 
+            color: var(--text-primary); 
+            font-size: 14px; 
+            font-weight: 700; 
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            margin-bottom: 16px; 
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+        h3 { 
+            color: var(--accent); 
+            font-size: 13px; 
+            font-weight: 600; 
+            margin: 20px 0 12px; 
+        }
+        h4 { 
+            color: var(--text-primary); 
+            font-size: 12px; 
+            font-weight: 600; 
+            margin: 16px 0 8px; 
+        }
+        p { margin-bottom: 12px; color: var(--text-secondary); line-height: 1.45; }
+        ul, ol { margin: 12px 0 12px 24px; color: var(--text-secondary); }
+        li { margin-bottom: 6px; line-height: 1.4; }
+        code {
+            background: var(--bg-tertiary);
+            padding: 2px 6px;
+            border-radius: var(--radius-sm);
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 11px;
+            color: var(--warning);
+        }
+        pre {
+            background: var(--bg-tertiary);
+            padding: 12px;
+            border-radius: var(--radius-sm);
+            overflow-x: auto;
+            margin: 12px 0;
+            border: 1px solid var(--border);
+        }
+        pre code { 
+            background: none; 
+            padding: 0; 
+            font-size: 11px;
+            color: var(--text-primary);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            font-size: 12px;
+        }
+        th, td {
+            padding: 8px 12px;
+            text-align: left;
+            border: 1px solid var(--border);
+        }
+        th { 
+            background: color-mix(in srgb, var(--bg-tertiary) 80%, var(--accent) 20%); 
+            color: var(--text-primary); 
+            font-weight: 600;
+            font-size: 11px;
+            letter-spacing: 0.03em;
+        }
+        tr:nth-child(even) { background: color-mix(in srgb, var(--bg-tertiary) 70%, transparent); }
+        tr:hover { background: color-mix(in srgb, var(--accent) 10%, var(--bg-tertiary)); }
+        .tip {
+            background: color-mix(in srgb, var(--success) 10%, var(--bg-tertiary));
+            border-left: 3px solid var(--success);
+            padding: 10px 12px;
+            margin: 12px 0;
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+        }
+        .warning {
+            background: color-mix(in srgb, var(--warning) 10%, var(--bg-tertiary));
+            border-left: 3px solid var(--warning);
+            padding: 10px 12px;
+            margin: 12px 0;
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+        }
+        .feature-card {
+            background: var(--bg-tertiary);
+            padding: 12px;
+            border-radius: var(--radius-sm);
+            margin: 12px 0;
+            border: 1px solid var(--border);
+        }
+        .feature-card h4 { margin-top: 0; color: var(--accent); }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            margin-left: 8px;
+            background: color-mix(in srgb, var(--accent) 20%, var(--bg-tertiary));
+            color: color-mix(in srgb, var(--text-primary) 86%, transparent);
+        }
+        .badge-new { 
+            background: color-mix(in srgb, var(--accent) 25%, var(--bg-tertiary));
+            color: var(--text-primary);
+        }
+        .badge-ai { 
+            background: linear-gradient(135deg, rgba(102,126,234,0.3), rgba(118,75,162,0.3));
+            color: var(--text-primary);
+            border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+        }
+        a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+        a:hover { 
+            border-bottom-color: var(--accent);
+            background: color-mix(in srgb, var(--accent) 8%, transparent);
+        }
+        .toc {
+            background: var(--bg-tertiary);
+            padding: 12px;
+            border-radius: var(--radius-sm);
+            margin: 12px 0;
+            border: 1px solid var(--border);
+        }
+        .toc strong { font-size: 11px; color: var(--text-primary); }
+        .toc ul { margin: 8px 0 0 20px; }
+        .toc li { margin-bottom: 4px; }
+        .model-table td { font-family: 'Consolas', 'Monaco', monospace; font-size: 11px; }
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-secondary);
+            border-top: 1px solid var(--border);
+            margin-top: 24px;
+            font-size: 11px;
+        }
+        /* Status indicators */
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        .status-dot.green { background: var(--success); }
+        .status-dot.yellow { background: var(--warning); }
+        .status-dot.red { background: var(--error); }
+        /* Icon button style */
+        .icon-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: transform 120ms ease, background-color 120ms ease, border-color 120ms ease;
+        }
+        .icon-btn:hover {
+            border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+            background: color-mix(in srgb, var(--bg-tertiary) 80%, var(--accent) 8%);
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🎨 Majoor Assets Manager</h1>
+        <p>Comprehensive User Guide for ComfyUI</p>
+        <p><strong>Version 2.4.0</strong> | Last Updated: March 5, 2026</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="#quickstart">Quick Start</a></li>
+            <li><a href="#installation">Installation</a></li>
+            <li><a href="#basic-usage">Basic Usage</a></li>
+            <li><a href="#ai-features">🤖 AI Features</a></li>
+            <li><a href="#viewer">Viewer</a></li>
+            <li><a href="#organization">Organization</a></li>
+            <li><a href="#shortcuts">Shortcuts</a></li>
+            <li><a href="#troubleshooting">Troubleshooting</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <!-- Quick Start -->
+        <section id="quickstart">
+            <h2>🚀 Quick Start</h2>
+            <div class="toc">
+                <strong>Table of Contents:</strong>
+                <ul>
+                    <li><a href="#installation">Installation</a></li>
+                    <li><a href="#basic-usage">Basic Usage</a></li>
+                    <li><a href="#ai-features">AI Features (NEW!)</a></li>
+                    <li><a href="#viewer">Advanced Viewer</a></li>
+                    <li><a href="#organization">Ratings, Tags & Collections</a></li>
+                    <li><a href="#shortcuts">Keyboard Shortcuts</a></li>
+                </ul>
+            </div>
+            <div class="tip">
+                <strong>💡 New to Majoor Assets Manager?</strong> Start with the installation section, then jump to Basic Usage to get up and running quickly!
+            </div>
+        </section>
+
+        <!-- Installation -->
+        <section id="installation">
+            <h2>📦 Installation</h2>
+            
+            <h3>Method A: ComfyUI Manager (Recommended)</h3>
+            <ol>
+                <li>Open <strong>ComfyUI Manager</strong> in your browser</li>
+                <li>Search for <strong>"Majoor Assets Manager"</strong></li>
+                <li>Click <strong>Install</strong>, then restart ComfyUI completely</li>
+                <li>The extension appears in the sidebar as a folder icon 📁</li>
+            </ol>
+
+            <h3>Method B: Manual Installation</h3>
+            <pre><code># Navigate to ComfyUI custom_nodes directory
+cd ComfyUI/custom_nodes
+
+# Clone the repository
+git clone https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager ComfyUI-Majoor-AssetsManager
+
+# Install Python dependencies
+cd ComfyUI-Majoor-AssetsManager
+pip install -r requirements.txt
+
+# Restart ComfyUI</code></pre>
+
+            <h3>Optional Dependencies (Recommended)</h3>
+            <p>For full metadata extraction, install these tools:</p>
+            
+            <h4>Windows (PowerShell)</h4>
+            <pre><code># Using Scoop
+scoop install ffmpeg exiftool
+
+# OR using Chocolatey
+choco install -y ffmpeg exiftool
+
+# OR using WinGet
+winget install -e --id Gyan.FFmpeg
+winget install -e --id PhilHarvey.ExifTool</code></pre>
+
+            <h4>macOS</h4>
+            <pre><code>brew install ffmpeg exiftool</code></pre>
+
+            <h4>Linux</h4>
+            <pre><code># Ubuntu/Debian
+sudo apt update
+sudo apt install -y ffmpeg libimage-exiftool-perl
+
+# Fedora/RHEL
+sudo dnf install -y ffmpeg perl-Image-ExifTool</code></pre>
+        </section>
+
+        <!-- Basic Usage -->
+        <section id="basic-usage">
+            <h2>📖 Basic Usage</h2>
+            
+            <h3>First Steps</h3>
+            <ol>
+                <li><strong>Open Assets Manager:</strong> Click the folder icon 📁 in ComfyUI sidebar</li>
+                <li><strong>Choose Scope:</strong> Select Outputs, Inputs, Custom, or Collections</li>
+                <li><strong>Browse Assets:</strong> Scroll through the grid view with virtual scrolling</li>
+                <li><strong>Search:</strong> Type in the search bar for full-text search</li>
+                <li><strong>Filter:</strong> Use dropdowns for kind, rating, workflow, date filters</li>
+            </ol>
+
+            <h3>Asset Operations (Right-Click Menu)</h3>
+            <div class="feature-card">
+                <ul>
+                    <li><strong>Open in Viewer:</strong> Double-click or right-click → Open in Viewer</li>
+                    <li><strong>Rate:</strong> Assign 0-5 stars</li>
+                    <li><strong>Edit Tags:</strong> Add/remove custom tags</li>
+                    <li><strong>Add to Collection:</strong> Save to existing or new collection</li>
+                    <li><strong>Rename:</strong> Change filename</li>
+                    <li><strong>Delete:</strong> Remove asset (with confirmation)</li>
+                    <li><strong>Open in Folder:</strong> Show in file explorer</li>
+                    <li><strong>Copy Path:</strong> Copy full file path to clipboard</li>
+                    <li><strong>Stage to Input:</strong> Copy to ComfyUI input directory</li>
+                </ul>
+            </div>
+
+            <h3>Collections</h3>
+            <ol>
+                <li>Select assets (Ctrl/Cmd+click for multiple)</li>
+                <li>Right-click → <strong>Add to Collection</strong></li>
+                <li>Create new or add to existing collection</li>
+                <li>Access via <strong>Collections</strong> scope</li>
+            </ol>
+        </section>
+
+        <!-- AI Features -->
+        <section id="ai-features">
+            <h2>🤖 AI Features <span class="badge badge-ai">NEW!</span></h2>
+            
+            <div class="tip">
+                <strong>📚 Complete Guide:</strong> See <a href="docs/AI_FEATURES.md" target="_blank">docs/AI_FEATURES.md</a> for comprehensive AI documentation.
+            </div>
+
+            <h3>What AI Features Are Available</h3>
+            
+            <div class="feature-card">
+                <h4>🔮 AI Semantic Search</h4>
+                <p>Search using natural language instead of keywords. Example: "sunset over mountains with orange sky"</p>
+            </div>
+
+            <div class="feature-card">
+                <h4>🔍 Find Similar</h4>
+                <p>Select an asset and discover visually similar images based on content, not just tags.</p>
+            </div>
+
+            <div class="feature-card">
+                <h4>🏷️ AI Auto-Tags</h4>
+                <p>Automatic tag suggestions based on image content: portrait, landscape, cyberpunk, anime, etc.</p>
+            </div>
+
+            <div class="feature-card">
+                <h4>📝 Enhanced Captions (Florence-2)</h4>
+                <p>Generate detailed AI-powered image descriptions for better searchability.</p>
+            </div>
+
+            <div class="feature-card">
+                <h4>📊 Prompt Alignment Score</h4>
+                <p>Measure how well your generated image matches the original prompt (0-100%).</p>
+            </div>
+
+            <div class="feature-card">
+                <h4>📁 Smart Collections</h4>
+                <p>Auto-create themed collections based on visual similarity clustering.</p>
+            </div>
+
+            <div class="feature-card">
+                <h4>🔬 Discover Groups</h4>
+                <p>Cluster your entire library by visual themes to discover patterns.</p>
+            </div>
+
+            <h3>AI Models Used</h3>
+            <table class="model-table">
+                <tr>
+                    <th>Model</th>
+                    <th>Purpose</th>
+                    <th>Size</th>
+                </tr>
+                <tr>
+                    <td>SigLIP2 SO400M</td>
+                    <td>Image & text embeddings</td>
+                    <td>~1.2 GB</td>
+                </tr>
+                <tr>
+                    <td>X-CLIP Base</td>
+                    <td>Video embeddings</td>
+                    <td>~600 MB</td>
+                </tr>
+                <tr>
+                    <td>Florence-2 Base</td>
+                    <td>Image captioning</td>
+                    <td>~800 MB</td>
+                </tr>
+            </table>
+
+            <div class="warning">
+                <strong>⚠️ First-Time Setup:</strong> Models are downloaded automatically on first use. Initial download may take several minutes depending on your connection.
+            </div>
+
+            <h3>How to Enable AI Features</h3>
+            <ol>
+                <li>Open <strong>Settings</strong> in Assets Manager</li>
+                <li>Ensure <strong>Enable AI semantic search</strong> is toggled ON (default: ON)</li>
+                <li>Trigger initial index scan (Ctrl+S)</li>
+                <li>Click <strong>Backfill vectors</strong> in Index Status section</li>
+                <li>Wait for embeddings to be computed (5-30 min for 1000 assets)</li>
+            </ol>
+
+            <h3>Using AI Features</h3>
+            
+            <h4>Semantic Search</h4>
+            <ol>
+                <li>Click the <strong>sparkles icon</strong> (🔮) in the search bar</li>
+                <li>Type natural language: "cyberpunk city at night with neon lights"</li>
+                <li>Press Enter to see results ranked by relevance</li>
+            </ol>
+
+            <h4>Find Similar</h4>
+            <ol>
+                <li>Select an asset in the grid</li>
+                <li>Right-click → <strong>Find Similar</strong></li>
+                <li>Browse visually similar assets</li>
+            </ol>
+
+            <h4>Generate Caption</h4>
+            <ol>
+                <li>Open an asset in the Viewer</li>
+                <li>In sidebar, find <strong>Image Description</strong> section</li>
+                <li>Click <strong>Generate</strong></li>
+                <li>Wait for AI caption (5-30 seconds)</li>
+            </ol>
+
+            <h3>Per-Asset Operations (Quick Actions)</h3>
+            <p>You can trigger scan and backfill vectors for <strong>individual assets</strong> directly from the grid:</p>
+            
+            <h4>Via Card Status Dot</h4>
+            <ol>
+                <li><strong>Click the status dot</strong> on an asset card (corner indicator)</li>
+                <li>Select from the menu:
+                    <ul>
+                        <li><strong>"Index Asset"</strong> — Trigger metadata scan for this asset</li>
+                        <li><strong>"Generate Vector"</strong> — Compute AI embedding</li>
+                        <li><strong>"Re-index"</strong> — Force re-scan and re-compute vectors</li>
+                    </ul>
+                </li>
+            </ol>
+
+            <h4>Via Sparkles Icon (🔮) on Card</h4>
+            <ol>
+                <li><strong>Hover over an asset card</strong> to reveal action buttons</li>
+                <li><strong>Click the sparkles icon</strong> (🔮) if visible</li>
+                <li>Choose AI actions:
+                    <ul>
+                        <li><strong>Generate Caption</strong> — Run Florence-2 captioning</li>
+                        <li><strong>Compute Alignment</strong> — Calculate prompt alignment score</li>
+                        <li><strong>Suggest Tags</strong> — Generate AI auto-tags</li>
+                        <li><strong>Find Similar</strong> — Show visually similar assets</li>
+                    </ul>
+                </li>
+            </ol>
+
+            <h4>Visual Status Indicators</h4>
+            <table>
+                <tr>
+                    <th>Indicator</th>
+                    <th>Meaning</th>
+                </tr>
+                <tr>
+                    <td>🟢 Green dot</td>
+                    <td>Asset fully indexed with vectors</td>
+                </tr>
+                <tr>
+                    <td>🟡 Yellow dot</td>
+                    <td>Asset indexed, vectors pending</td>
+                </tr>
+                <tr>
+                    <td>🔴 Red dot</td>
+                    <td>Indexing failed or vectors unavailable</td>
+                </tr>
+                <tr>
+                    <td>🔮 Sparkles visible</td>
+                    <td>AI features available for this asset</td>
+                </tr>
+                <tr>
+                    <td>⏳ Spinning icon</td>
+                    <td>Processing in progress</td>
+                </tr>
+            </table>
+
+            <div class="tip">
+                <strong>💡 Tip:</strong> For best results, run a full backfill first, then use per-asset operations to update individual items as needed.
+            </div>
+
+            <h3>Performance Expectations</h3>
+            <table>
+                <tr>
+                    <th>Library Size</th>
+                    <th>Backfill Time (CPU)</th>
+                    <th>Backfill Time (GPU)</th>
+                </tr>
+                <tr>
+                    <td>100 assets</td>
+                    <td>2-5 min</td>
+                    <td>30-60 sec</td>
+                </tr>
+                <tr>
+                    <td>500 assets</td>
+                    <td>10-25 min</td>
+                    <td>2-5 min</td>
+                </tr>
+                <tr>
+                    <td>1000 assets</td>
+                    <td>20-50 min</td>
+                    <td>5-10 min</td>
+                </tr>
+                <tr>
+                    <td>5000 assets</td>
+                    <td>2-4 hours</td>
+                    <td>25-50 min</td>
+                </tr>
+            </table>
+
+            <div class="tip">
+                <strong>💡 GPU Acceleration:</strong> For large libraries, GPU acceleration (NVIDIA RTX 3060 or better) significantly speeds up embedding computation.
+            </div>
+
+            <h3>Configuration</h3>
+            <pre><code># Enable/disable AI features (default: ON)
+export MJR_AM_ENABLE_VECTOR_SEARCH=1
+
+# Adjust auto-tag sensitivity (0.0-1.0, default: 0.25)
+export MJR_AM_VECTOR_AUTOTAG_THRESHOLD=0.25
+
+# Verbose AI logging for debugging
+export MJR_AM_AI_VERBOSE_LOGS=1</code></pre>
+        </section>
+
+        <!-- Viewer -->
+        <section id="viewer">
+            <h2>🖼️ Advanced Viewer</h2>
+            
+            <h3>Opening the Viewer</h3>
+            <ul>
+                <li><strong>Double-click</strong> any asset in the grid</li>
+                <li>Or right-click → <strong>Open in Viewer</strong></li>
+                <li>Or press <strong>Enter</strong> on selected asset</li>
+            </ul>
+
+            <h3>Viewer Features</h3>
+            <div class="feature-card">
+                <h4>Image Enhancement</h4>
+                <ul>
+                    <li>Exposure (EV) adjustment</li>
+                    <li>Gamma correction</li>
+                    <li>Channel isolation (R/G/B)</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h4>Analysis Tools</h4>
+                <ul>
+                    <li>False color visualization</li>
+                    <li>Zebra patterns for exposure</li>
+                    <li>Histogram display</li>
+                    <li>Waveform monitor</li>
+                    <li>Vectorscope</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h4>Visual Overlays</h4>
+                <ul>
+                    <li>Grid overlays (rule of thirds)</li>
+                    <li>Pixel probe for color sampling</li>
+                    <li>Loupe magnification</li>
+                </ul>
+            </div>
+
+            <h3>Navigation</h3>
+            <ul>
+                <li><strong>Mouse Wheel:</strong> Zoom in/out</li>
+                <li><strong>Click + Drag:</strong> Pan zoomed image</li>
+                <li><strong>Left/Right Arrow:</strong> Previous/Next asset</li>
+                <li><strong>Esc:</strong> Close viewer</li>
+                <li><strong>F:</strong> Toggle fullscreen</li>
+            </ul>
+        </section>
+
+        <!-- Organization -->
+        <section id="organization">
+            <h2>📋 Organization: Ratings, Tags & Collections</h2>
+            
+            <h3>Ratings System</h3>
+            <ul>
+                <li><strong>0-5 Stars:</strong> Rate assets by quality or preference</li>
+                <li><strong>Windows Sync:</strong> Ratings sync with Windows Explorer (RatingPercent)</li>
+                <li><strong>Filter by Rating:</strong> Show only 4+ star assets, etc.</li>
+                <li><strong>Keyboard:</strong> Press 0-5 to rate selected asset</li>
+            </ul>
+
+            <h3>Tags System</h3>
+            <ul>
+                <li><strong>Custom Tags:</strong> Add any tags you want</li>
+                <li><strong>Hierarchical:</strong> Use colons for hierarchy (style:anime:fantasy)</li>
+                <li><strong>Autocomplete:</strong> Tags suggest as you type</li>
+                <li><strong>Bulk Operations:</strong> Apply tags to multiple assets</li>
+            </ul>
+
+            <h3>Collections</h3>
+            <ul>
+                <li><strong>Save Selections:</strong> Group assets across scopes</li>
+                <li><strong>Smart Collections:</strong> AI-suggested groupings</li>
+                <li><strong>Discover Groups:</strong> Auto-cluster by visual similarity</li>
+                <li><strong>Persistent:</strong> Collections saved to disk</li>
+            </ul>
+        </section>
+
+        <!-- Shortcuts -->
+        <section id="shortcuts">
+            <h2>⌨️ Keyboard Shortcuts</h2>
+            
+            <h3>Global / Panel</h3>
+            <table>
+                <tr><th>Shortcut</th><th>Action</th></tr>
+                <tr><td>Ctrl+S / Cmd+S</td><td>Trigger index scan</td></tr>
+                <tr><td>Ctrl+F / Ctrl+K</td><td>Focus search input</td></tr>
+                <tr><td>Ctrl+H</td><td>Clear search input</td></tr>
+                <tr><td>D</td><td>Toggle sidebar (details)</td></tr>
+            </table>
+
+            <h3>Grid View</h3>
+            <table>
+                <tr><th>Shortcut</th><th>Action</th></tr>
+                <tr><td>Arrow Keys</td><td>Navigate selection</td></tr>
+                <tr><td>Enter / Space</td><td>Open Viewer</td></tr>
+                <tr><td>Ctrl+A</td><td>Select all</td></tr>
+                <tr><td>Ctrl+D</td><td>Deselect all</td></tr>
+                <tr><td>0-5</td><td>Set rating (0-5 stars)</td></tr>
+                <tr><td>T</td><td>Edit tags</td></tr>
+                <tr><td>B</td><td>Add to collection</td></tr>
+                <tr><td>F2</td><td>Rename file</td></tr>
+                <tr><td>Delete</td><td>Delete file</td></tr>
+            </table>
+
+            <h3>Viewer</h3>
+            <table>
+                <tr><th>Shortcut</th><th>Action</th></tr>
+                <tr><td>Esc</td><td>Close viewer</td></tr>
+                <tr><td>F</td><td>Toggle fullscreen</td></tr>
+                <tr><td>D</td><td>Toggle info panel</td></tr>
+                <tr><td>Space</td><td>Play/pause video</td></tr>
+                <tr><td>Left/Right</td><td>Previous/next asset</td></tr>
+                <tr><td>I</td><td>Toggle pixel probe</td></tr>
+                <tr><td>C</td><td>Copy probed color</td></tr>
+                <tr><td>L</td><td>Toggle loupe</td></tr>
+                <tr><td>Z</td><td>Toggle zebra patterns</td></tr>
+                <tr><td>G</td><td>Cycle grid overlays</td></tr>
+            </table>
+        </section>
+
+        <!-- Troubleshooting -->
+        <section id="troubleshooting">
+            <h2>🔧 Troubleshooting</h2>
+            
+            <h3>Extension Not Appearing</h3>
+            <ul>
+                <li>Verify installation in <code>custom_nodes/ComfyUI-Majoor-AssetsManager</code></li>
+                <li>Check ComfyUI console for import errors</li>
+                <li>Ensure all dependencies: <code>pip install -r requirements.txt</code></li>
+                <li>Restart ComfyUI completely</li>
+            </ul>
+
+            <h3>Database Corruption</h3>
+            <ol>
+                <li>Open Assets Manager → Index Status section</li>
+                <li>Click <strong>Delete DB</strong> button</li>
+                <li>Confirm the warning dialog</li>
+                <li>Database rebuilds automatically</li>
+            </ol>
+
+            <h3>External Tools Not Found</h3>
+            <pre><code># Verify installation
+exiftool -ver
+ffprobe -version
+
+# If not found, install:
+# Windows: scoop install ffmpeg exiftool
+# macOS: brew install ffmpeg exiftool
+# Linux: sudo apt install ffmpeg libimage-exiftool-perl</code></pre>
+
+            <h3>AI Features Not Working</h3>
+            <ul>
+                <li>Check if AI is enabled in Settings</li>
+                <li>Verify models downloaded (check console logs)</li>
+                <li>Run <strong>Backfill vectors</strong> in Index Status</li>
+                <li>Ensure sufficient RAM (8GB minimum, 16GB recommended)</li>
+            </ul>
+
+            <h3>Slow Performance</h3>
+            <ul>
+                <li>Reduce page size in settings (default: 50-100)</li>
+                <li>Exclude very large directories from custom roots</li>
+                <li>Ensure SSD storage for database</li>
+                <li>For AI: enable GPU acceleration if available</li>
+            </ul>
+        </section>
+
+        <!-- Support -->
+        <section id="support">
+            <h2>📚 Additional Resources</h2>
+            
+            <h3>Documentation</h3>
+            <ul>
+                <li><a href="docs/DOCUMENTATION_INDEX.md" target="_blank">📑 Documentation Index</a></li>
+                <li><a href="docs/AI_FEATURES.md" target="_blank">🤖 AI Features Guide</a></li>
+                <li><a href="docs/API_REFERENCE.md" target="_blank">🔧 API Reference</a></li>
+                <li><a href="docs/INSTALLATION.md" target="_blank">📦 Installation Guide</a></li>
+                <li><a href="docs/SETTINGS_CONFIGURATION.md" target="_blank">⚙️ Settings & Configuration</a></li>
+                <li><a href="docs/DB_MAINTENANCE.md" target="_blank">🗄️ Database Maintenance</a></li>
+                <li><a href="docs/VIEWER_FEATURE_TUTORIAL.md" target="_blank">🖼️ Viewer Tutorial</a></li>
+                <li><a href="docs/HOTKEYS_SHORTCUTS.md" target="_blank">⌨️ Hotkeys & Shortcuts</a></li>
+            </ul>
+
+            <h3>Community</h3>
+            <ul>
+                <li><a href="https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager" target="_blank">GitHub Repository</a></li>
+                <li><a href="https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/issues" target="_blank">Report Issues</a></li>
+                <li><a href="https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/discussions" target="_blank">Discussions</a></li>
+                <li><a href="https://ko-fi.com/majoorwaldi" target="_blank">☕ Support the Developer</a></li>
+            </ul>
+        </section>
+    </div>
+
+    <footer>
+        <p><strong>Majoor Assets Manager for ComfyUI</strong></p>
+        <p>Version 2.4.0 | Copyright © 2026 Ewald ALOEBOETOE (MajoorWaldi)</p>
+        <p>Licensed under GNU General Public License v3.0</p>
+    </footer>
+</body>
+</html>

@@ -2,8 +2,8 @@
 
 Welcome to the comprehensive documentation for the **Majoor Assets Manager** for ComfyUI. This collection of guides covers all features, from basic usage to advanced configuration and development.
 
-**Current Version**: 2.3.3  
-**Last Updated**: February 28, 2026
+**Current Version**: 2.4.0
+**Last Updated**: March 5, 2026
 
 ---
 
@@ -15,7 +15,8 @@ Welcome to the comprehensive documentation for the **Majoor Assets Manager** for
 3. **[Hotkeys & Shortcuts](HOTKEYS_SHORTCUTS.md)** — Essential keyboard shortcuts
 4. **[Basic Search](SEARCH_FILTERING.md)** — Find your assets quickly
 
-### Returning Users (v2.3.3)
+### Returning Users (v2.4.0)
+- **[AI Features Guide](AI_FEATURES.md)** — NEW comprehensive AI capabilities
 - **[Majoor Floating Viewer](VIEWER_FEATURE_TUTORIAL.md#majoor-floating-viewer-mfv)** — NEW real-time preview panel
 - **[Changelog](../CHANGELOG.md)** — What's new in this version
 - **[Linux Support](INSTALLATION.md#linux-installation)** — Now fully supported on Linux
@@ -39,6 +40,7 @@ Welcome to the comprehensive documentation for the **Majoor Assets Manager** for
 | **[VIEWER_FEATURE_TUTORIAL.md](VIEWER_FEATURE_TUTORIAL.md)** | Advanced viewer, MFV, and analysis tools |
 | **[RATINGS_TAGS_COLLECTIONS.md](RATINGS_TAGS_COLLECTIONS.md)** | Organization with ratings, tags, and collections |
 | **[DRAG_DROP.md](DRAG_DROP.md)** | Drag & drop to canvas and OS |
+| **[AI_FEATURES.md](AI_FEATURES.md)** | 🆕 AI-powered semantic search, auto-tags, and more |
 
 ### Configuration & Settings
 | Document | Description |
@@ -102,6 +104,18 @@ Welcome to the comprehensive documentation for the **Majoor Assets Manager** for
 - Drag to OS (auto-ZIP for multi-select)
 - Node compatibility and staging
 - File transfer mechanisms
+
+### AI Features — NEW! 🎉
+**[AI_FEATURES.md](AI_FEATURES.md)** — Complete guide to AI-powered capabilities:
+- **Semantic Search**: Natural language search across your library
+- **Find Similar**: Discover visually similar assets
+- **AI Auto-Tags**: Automatic tag suggestions (portrait, landscape, cyberpunk, etc.)
+- **Enhanced Captions**: Florence-2 generated image descriptions
+- **Prompt Alignment Score**: Measure image-prompt matching quality
+- **Smart Collections**: Auto-group assets by visual similarity
+- **Discover Groups**: Cluster library by visual themes
+- Models: SigLIP2 (image/text), X-CLIP (video), Florence-2 (caption)
+- Configuration, tuning, and troubleshooting
 
 ---
 

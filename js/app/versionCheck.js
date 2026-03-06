@@ -160,7 +160,7 @@ function showAiFeaturesNoticeOnce(localVersion, branch) {
             comfyAlert(
                 t(
                     "msg.aiFeaturesNotice",
-                    "Avertissement / Warning:\n\nAssets Manager now includes AI features like auto captions, AI search, smart collections, etc.\nThese features are still WIP.\n\nIf you already had Assets Manager installed, delete the DB first.\nWhen enrich is finished, run Vector Backfill for your existing assets.\nAfter clicking Backfill, you can go sleep: it may take a very, very long time if you have many assets."
+                    "Warning:\n\nAssets Manager now includes AI features like auto captions, AI search, smart collections, etc.\nThese features are still WIP.\n\nIf you already had Assets Manager installed, delete the DB first.\nWhen enrich is finished, run Vector Backfill for your existing assets.\nAfter clicking Backfill, you can go sleep: it may take a very, very long time if you have many assets."
                 ),
                 "Majoor",
                 { native: true }
@@ -313,7 +313,7 @@ export async function checkMajoorVersion({ force = false } = {}) {
             setTimeout(() => {
                 comfyAlert(
                     t(
-                        "msg.dbResetNotice",
+                        "msg.dbResetNoticeDetail",
                         "Majoor Update Notice:\n\nTo avoid database errors with this new version, please delete your existing index. Click the 'Delete DB' button in the Index Status panel to reset it."
                     ),
                     "Majoor",

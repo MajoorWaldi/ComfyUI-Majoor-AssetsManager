@@ -33,6 +33,7 @@ Useful links:
 - 📝 Changelog: [`CHANGELOG.md`](CHANGELOG.md)
 - 📚 Documentation index: [`docs/DOCUMENTATION_INDEX.md`](docs/DOCUMENTATION_INDEX.md)
 - 🔧 API reference: [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md)
+- 🤖 **AI Features Guide**: [`docs/AI_FEATURES.md`](docs/AI_FEATURES.md) — NEW!
 
 ---
 
@@ -45,6 +46,9 @@ Useful links:
 - [Majoor Floating Viewer (MFV)](#majoor-floating-viewer-mfv)
 - [Hotkeys & Shortcuts](#hotkeys--shortcuts)
 - [Advanced Features](#advanced-features)
+- [AI Features (How to Use)](#ai-features-how-to-use)
+- [Debug: Reset Index / Delete DB](#debug-reset-index--delete-db)
+- [Backfill Warning (Important)](#backfill-warning-important)
 - [Configuration](#configuration)
 - [Troubleshooting](#troubleshooting)
 - [Development & Testing](#development--testing)
@@ -82,6 +86,17 @@ Useful links:
 ---
 
 ## What's New in v2.4.0
+
+### 🤖 AI Features — Comprehensive Guide — NEW!
+Complete AI-powered asset discovery and organization:
+- **Semantic Search**: Natural language queries ("sunset over mountains")
+- **Find Similar**: Visual similarity matching
+- **AI Auto-Tags**: Automatic tagging (portrait, landscape, cyberpunk, etc.)
+- **Enhanced Captions**: Florence-2 generated descriptions
+- **Prompt Alignment**: Score image-prompt matching quality
+- **Smart Collections**: Auto-group by visual themes
+- **Models**: SigLIP2 (image/text), X-CLIP (video), Florence-2 (caption)
+- See full guide: [`docs/AI_FEATURES.md`](docs/AI_FEATURES.md)
 
 ### 🎉 Majoor Floating Viewer (MFV) — NEW! 🎯
 A lightweight floating viewer panel for real-time generation comparison:
@@ -319,6 +334,139 @@ See [`docs/HOTKEYS_SHORTCUTS.md`](docs/HOTKEYS_SHORTCUTS.md) and [`docs/SHORTCUT
 - **Optimize**: Run `PRAGMA optimize` and `ANALYZE`
 
 See [`docs/DB_MAINTENANCE.md`](docs/DB_MAINTENANCE.md) for database recovery procedures.
+
+---
+
+## AI Features (How to Use)
+
+📚 **Complete Guide**: See [`docs/AI_FEATURES.md`](docs/AI_FEATURES.md) for comprehensive documentation.
+
+### What AI features are available
+
+- **🔮 AI Semantic Search**: Natural-language search across your library (e.g., "sunset over mountains")
+- **🔍 Find Similar**: Pick one asset and retrieve visually similar assets
+- **🏷️ AI Auto-Tags**: Automatic tag suggestions (portrait, landscape, cyberpunk, anime, etc.)
+- **📝 Enhanced Captions**: Florence-2 generated detailed image descriptions
+- **📊 Prompt Alignment Score**: Measure how well an image matches its generation prompt
+- **📁 Smart Collections**: Auto-create themed collections from AI suggestions
+- **🔬 Discover Groups**: Cluster your library by visual similarity
+
+### How to use AI features
+
+1. **Enable AI**: Open **Settings** → Keep **Enable AI semantic search** enabled (default: ON)
+2. **Build Vectors**: After indexing, click **Backfill vectors** in **Index Status**
+3. **Use Features**:
+   - **Search**: Click sparkles icon (🔮) → Type natural language queries
+   - **Find Similar**: Select asset → Right-click → Find Similar
+   - **Collections**: Open Collections → Smart Suggestions / Discover Groups
+   - **Caption**: Open asset → Sidebar → Image Description → Generate
+   - **Alignment**: Open asset → Sidebar → Prompt Alignment score
+
+### Per-Asset Quick Actions
+
+You can trigger scan and backfill vectors for **individual assets** directly from the grid:
+
+| Action | How To |
+|--------|--------|
+| **Index Asset** | Click status dot on card → "Index Asset" |
+| **Generate Vector** | Click status dot → "Generate Vector" |
+| **Generate Caption** | Hover card → Click sparkles (🔮) → Generate Caption |
+| **Compute Alignment** | Hover card → Click sparkles → Compute Alignment |
+| **Suggest Tags** | Hover card → Click sparkles → Suggest Tags |
+| **Find Similar** | Hover card → Click sparkles → Find Similar |
+
+#### Visual Status Indicators
+
+| Indicator | Meaning |
+|-----------|---------|
+| 🟢 Green dot | Asset fully indexed with vectors |
+| 🟡 Yellow dot | Asset indexed, vectors pending |
+| 🔴 Red dot | Indexing failed or vectors unavailable |
+| 🔮 Sparkles visible | AI features available |
+| ⏳ Spinning icon | Processing in progress |
+
+### AI Models
+
+| Model | Purpose | Size |
+|-------|---------|------|
+| **SigLIP2 SO400M** | Image & text embeddings | ~1.2 GB |
+| **X-CLIP Base** | Video embeddings | ~600 MB |
+| **Florence-2 Base** | Image captioning | ~800 MB |
+
+Models are downloaded automatically on first use and cached locally.
+
+### Quick Tips
+
+- ✅ Non-AI features work independently if AI is disabled
+- ✅ AI quality depends on metadata quality and vector coverage
+- ✅ First backfill can take time (5-30 min for 1000 assets)
+- ✅ GPU acceleration recommended for large libraries
+
+### Configuration
+
+```bash
+# Enable/disable AI features (default: ON)
+export MJR_AM_ENABLE_VECTOR_SEARCH=1
+
+# Adjust auto-tag sensitivity (0.0-1.0, default: 0.06)
+export MJR_AM_VECTOR_AUTOTAG_THRESHOLD=0.06
+
+# Verbose AI logging for debugging
+export MJR_AM_AI_VERBOSE_LOGS=1
+```
+
+### Performance
+
+| Library Size | Backfill Time (CPU) | Backfill Time (GPU) |
+|--------------|---------------------|---------------------|
+| 100 assets | 2-5 min | 30-60 sec |
+| 500 assets | 10-25 min | 2-5 min |
+| 1000 assets | 20-50 min | 5-10 min |
+| 5000 assets | 2-4 hours | 25-50 min |
+
+*GPU: NVIDIA RTX 3060 or equivalent*
+
+---
+
+## Debug: Reset Index / Delete DB
+
+Use this when indexing behavior is inconsistent, after major updates, or when the DB is corrupted.
+
+### Reset Index
+- Rebuilds index data and rescans files.
+- Best first step when DB is still readable.
+
+### Delete DB
+- Emergency recovery mode: force-delete DB files and rebuild from scratch.
+- Use this when DB is corrupted or reset fails.
+
+### Dialog behavior
+When you click **Reset Index** or **Delete DB**, the UI first asks whether existing AI vectors should be kept, then shows a simple confirmation dialog.
+- If you keep vectors, the reset/rebuild preserves the existing AI vector data.
+- If you do not keep vectors, the reset is full and vectors will be recalculated later if needed.
+
+---
+
+## Backfill Warning (Important)
+
+Backfilling vectors can take a long time on large libraries, especially over 1000 assets.
+
+### How backfill works
+- It scans indexed assets and computes missing AI embeddings (vectors).
+- It runs as a background process, in batches.
+- You can continue using **Assets Manager** and **ComfyUI** while it runs.
+
+### Why it can be slow
+- Number of assets and media type mix (images/videos)
+- CPU/GPU availability and model load time
+- Disk speed and overall system load
+- Available system RAM (more RAM helps keep processing smoother)
+
+### What you get after backfill
+- Better semantic search coverage
+- Better **Find Similar** results
+- Better clustering/smart collection quality
+- Better prompt-alignment and AI-assisted metadata workflows
 
 ---
 

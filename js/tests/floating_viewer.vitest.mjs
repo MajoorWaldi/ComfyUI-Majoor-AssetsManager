@@ -1,0 +1,169 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("../app/i18n.js", () => ({
+  t: (_key, fallback) => fallback,
+}));
+
+vi.mock("../app/events.js", () => ({
+  EVENTS: {},
+}));
+
+vi.mock("../api/endpoints.js", () => ({
+  buildViewURL: vi.fn(() => ""),
+  buildAssetViewURL: vi.fn(() => ""),
+}));
+
+vi.mock("../features/viewer/genInfo.js", () => ({
+  ensureViewerMetadataAsset: vi.fn(async (asset) => asset),
+}));
+
+vi.mock("../api/client.js", () => ({
+  getAssetMetadata: vi.fn(async () => ({})),
+  getFileMetadataScoped: vi.fn(async () => ({})),
+}));
+
+vi.mock("../components/sidebar/parsers/geninfoParser.js", () => ({
+  normalizeGenerationMetadata: vi.fn((meta) => meta),
+}));
+
+describe("FloatingViewer", () => {
+  beforeEach(() => {
+    globalThis.document = {
+      adoptNode: vi.fn((node) => node),
+      body: {
+        appendChild: vi.fn(),
+      },
+      createElement: vi.fn(() => ({
+        className: "",
+        setAttribute: vi.fn(),
+        appendChild: vi.fn(),
+        replaceChildren: vi.fn(),
+      })),
+    };
+  });
+
+  it("rebinds panel interactions when popping back into the main document", async () => {
+    const { FloatingViewer } = await import("../features/viewer/FloatingViewer.js");
+
+    const popup = {
+      removeEventListener: vi.fn(),
+      close: vi.fn(),
+    };
+    const element = {
+      ownerDocument: { name: "popup-doc" },
+      classList: {
+        add: vi.fn(),
+      },
+      setAttribute: vi.fn(),
+    };
+    const viewer = {
+      _isPopped: true,
+      element,
+      _popoutWindow: popup,
+      _popoutCloseHandler: vi.fn(),
+      _clearPopoutCloseWatch: vi.fn(),
+      _resetGenDropdownForCurrentDocument: vi.fn(),
+      _rebindControlHandlers: vi.fn(),
+      _bindPanelInteractions: vi.fn(),
+      _bindDocumentUiHandlers: vi.fn(),
+      _updatePopoutBtnUI: vi.fn(),
+      isVisible: false,
+    };
+
+    FloatingViewer.prototype.popIn.call(viewer, { closePopupWindow: false });
+
+    expect(document.adoptNode).toHaveBeenCalledWith(element);
+    expect(document.body.appendChild).toHaveBeenCalledWith(element);
+    expect(viewer._clearPopoutCloseWatch).toHaveBeenCalledTimes(1);
+    expect(popup.removeEventListener).toHaveBeenCalledTimes(3);
+    expect(viewer._resetGenDropdownForCurrentDocument).toHaveBeenCalledTimes(1);
+    expect(viewer._rebindControlHandlers).toHaveBeenCalledTimes(1);
+    expect(viewer._bindPanelInteractions).toHaveBeenCalledTimes(1);
+    expect(viewer._bindDocumentUiHandlers).toHaveBeenCalledTimes(1);
+    expect(viewer._updatePopoutBtnUI).toHaveBeenCalledTimes(1);
+    expect(element.classList.add).toHaveBeenCalledWith("is-visible");
+    expect(element.setAttribute).toHaveBeenCalledWith("aria-hidden", "false");
+    expect(viewer.isVisible).toBe(true);
+    expect(viewer._isPopped).toBe(false);
+    expect(viewer._popoutWindow).toBeNull();
+    expect(popup.close).not.toHaveBeenCalled();
+  });
+
+  it("refreshes drag and resize bindings when interactions are rebound", async () => {
+    const { FloatingViewer } = await import("../features/viewer/FloatingViewer.js");
+
+    const oldController = {
+      abort: vi.fn(),
+    };
+    const header = { nodeName: "HEADER" };
+    const element = {
+      querySelector: vi.fn(() => header),
+    };
+    const viewer = {
+      element,
+      _panelAC: oldController,
+      _stopEdgeResize: vi.fn(),
+      _initEdgeResize: vi.fn(),
+      _initDrag: vi.fn(),
+    };
+
+    FloatingViewer.prototype._bindPanelInteractions.call(viewer);
+
+    expect(viewer._stopEdgeResize).toHaveBeenCalledTimes(1);
+    expect(oldController.abort).toHaveBeenCalledTimes(1);
+    expect(viewer._panelAC).toBeInstanceOf(AbortController);
+    expect(viewer._panelAC).not.toBe(oldController);
+    expect(viewer._initEdgeResize).toHaveBeenCalledWith(element);
+    expect(element.querySelector).toHaveBeenCalledWith(".mjr-mfv-header");
+    expect(viewer._initDrag).toHaveBeenCalledWith(header);
+  });
+
+  it("rebinds toolbar and header controls with a fresh abort controller", async () => {
+    const { FloatingViewer } = await import("../features/viewer/FloatingViewer.js");
+
+    const oldController = {
+      abort: vi.fn(),
+    };
+    const closeBtn = { addEventListener: vi.fn() };
+    const modeBtn = { addEventListener: vi.fn() };
+    const pinSelect = { addEventListener: vi.fn() };
+    const liveBtn = { addEventListener: vi.fn() };
+    const previewBtn = { addEventListener: vi.fn() };
+    const genBtn = { addEventListener: vi.fn() };
+    const popoutBtn = { addEventListener: vi.fn() };
+    const captureBtn = { addEventListener: vi.fn() };
+    const viewer = {
+      _btnAC: oldController,
+      _closeBtn: closeBtn,
+      _modeBtn: modeBtn,
+      _pinSelect: pinSelect,
+      _liveBtn: liveBtn,
+      _previewBtn: previewBtn,
+      _genBtn: genBtn,
+      _popoutBtn: popoutBtn,
+      _captureBtn: captureBtn,
+      _genDropdown: null,
+      _pinnedSlot: null,
+      _mode: "simple",
+      _cycleMode: vi.fn(),
+      _updatePinSelectUI: vi.fn(),
+      _closeGenDropdown: vi.fn(),
+      _openGenDropdown: vi.fn(),
+      _captureView: vi.fn(),
+      setMode: vi.fn(),
+    };
+
+    FloatingViewer.prototype._rebindControlHandlers.call(viewer);
+
+    expect(oldController.abort).toHaveBeenCalledTimes(1);
+    expect(viewer._btnAC).toBeInstanceOf(AbortController);
+    expect(closeBtn.addEventListener).toHaveBeenCalledWith("click", expect.any(Function), expect.objectContaining({ signal: viewer._btnAC.signal }));
+    expect(modeBtn.addEventListener).toHaveBeenCalledWith("click", expect.any(Function), expect.objectContaining({ signal: viewer._btnAC.signal }));
+    expect(pinSelect.addEventListener).toHaveBeenCalledWith("change", expect.any(Function), expect.objectContaining({ signal: viewer._btnAC.signal }));
+    expect(liveBtn.addEventListener).toHaveBeenCalledWith("click", expect.any(Function), expect.objectContaining({ signal: viewer._btnAC.signal }));
+    expect(previewBtn.addEventListener).toHaveBeenCalledWith("click", expect.any(Function), expect.objectContaining({ signal: viewer._btnAC.signal }));
+    expect(genBtn.addEventListener).toHaveBeenCalledWith("click", expect.any(Function), expect.objectContaining({ signal: viewer._btnAC.signal }));
+    expect(popoutBtn.addEventListener).toHaveBeenCalledWith("click", expect.any(Function), expect.objectContaining({ signal: viewer._btnAC.signal }));
+    expect(captureBtn.addEventListener).toHaveBeenCalledWith("click", expect.any(Function), expect.objectContaining({ signal: viewer._btnAC.signal }));
+  });
+});

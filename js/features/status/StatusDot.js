@@ -5,6 +5,7 @@
 import { get, getToolsStatus, post, resetIndex, getWatcherStatus, forceDeleteDb, listDbBackups, saveDbBackup, restoreDbBackup, vectorBackfill } from "../../api/client.js";
 import { ENDPOINTS } from "../../api/endpoints.js";
 import { APP_CONFIG } from "../../app/config.js";
+import { comfyConfirm } from "../../app/dialogs.js";
 import { comfyToast } from "../../app/toast.js";
 import { t } from "../../app/i18n.js";
 import { getEnrichmentState, setEnrichmentState } from "../../app/runtimeState.js";
@@ -178,6 +179,16 @@ function emitGlobalGridReload(reason = "status-action") {
             new CustomEvent("mjr:reload-grid", { detail: { reason: String(reason || "status-action") } })
         );
     } catch (e) { console.debug?.(e); }
+}
+
+async function askKeepVectors(actionLabel = "") {
+    return await comfyConfirm(
+        t(
+            "dialog.vectorsReset.keepQuestion",
+            "Keep existing AI vectors?\n\nConfirm = keep vectors\nCancel = continue without vectors"
+        ),
+        actionLabel || t("dialog.vectorsReset.title", "AI vectors")
+    );
 }
 
 /**
@@ -362,7 +373,10 @@ export function createStatusIndicator(options = {}) {
             comfyToast(t("toast.dbRestoreSelect", "Select a DB backup first"), "warning", 2000);
             return;
         }
-        const confirmed = confirm(t("dialog.dbRestore.confirm", "Restore selected DB backup? Current DB will be replaced."));
+        const confirmed = await comfyConfirm(
+            t("dialog.dbRestore.confirm", "Restore selected DB backup? Current DB will be replaced."),
+            t("btn.dbRestore", "Restore DB")
+        );
         if (!confirmed) return;
         comfyToast(t("toast.dbRestoreStarted", "DB restore started"), "info", 1800);
         setMaintenanceActive(true);
@@ -453,6 +467,17 @@ export function createStatusIndicator(options = {}) {
     };
     resetBtn.onclick = async (event) => {
         event.stopPropagation();
+        const preserveVectors = await askKeepVectors(t("btn.resetIndex", "Reset index"));
+        const confirmed = await comfyConfirm(
+            preserveVectors
+                ? t(
+                    "dialog.resetIndex.confirmKeepVectors",
+                    "This will reset index data and rescan files while keeping existing AI vectors.\n\nContinue?"
+                )
+                : t("dialog.resetIndex.msg", "This will delete the database and rescan all files. Continue?"),
+            t("dialog.resetIndex.title", "Reset index?")
+        );
+        if (!confirmed) return;
         setMaintenanceActive(true);
 
         const originalText = resetBtn.textContent;
@@ -476,11 +501,12 @@ export function createStatusIndicator(options = {}) {
                 customRootId: isCustomBrowserMode ? null : customRootId,
                 reindex: true,
                 maintenance_force: true,
-                hard_reset_db: isAll,
+                hard_reset_db: isAll && !preserveVectors,
                 clear_scan_journal: true,
                 clear_metadata_cache: true,
                 clear_asset_metadata: true,
-                clear_assets: true,
+                clear_assets: !preserveVectors,
+                preserve_vectors: preserveVectors,
                 rebuild_fts: true,
             });
             if (res?.ok) {
@@ -593,7 +619,11 @@ export function createStatusIndicator(options = {}) {
                 const errors = Number(res?.data?.errors ?? progress?.errors ?? 0);
                 if (pending) {
                     const jobId = String(res?.data?.job_id || "").trim();
-                    const msg = `Vector backfill is still running in background${jobId ? ` (job ${jobId.slice(0, 8)})` : ""}.`;
+                    const msg = t(
+                        "toast.vectorBackfillRunning",
+                        "Vector backfill still running in background{job}.",
+                        { job: jobId ? ` (job ${jobId.slice(0, 8)})` : "" }
+                    );
                     comfyToast(msg, "info", 4200);
                     setActionLog(
                         `Backfill running in background — candidates ${processed}, indexed ${indexed}, skipped ${skipped}, errors ${errors}`,
@@ -602,13 +632,21 @@ export function createStatusIndicator(options = {}) {
                     statusDot.style.background = "var(--mjr-status-info, #64B5F6)";
                     applyStatusHighlight(section, "info");
                 } else {
-                    comfyToast(`Vector backfill done — processed ${processed}, indexed ${indexed}, skipped ${skipped}`, "success", 3000);
+                    comfyToast(
+                        t(
+                            "toast.vectorBackfillComplete",
+                            "Vector backfill complete! Processed: {processed}, Indexed: {indexed}, Skipped: {skipped}",
+                            { processed, indexed, skipped }
+                        ),
+                        "success",
+                        3000
+                    );
                     setActionLog(`Backfill OK — processed ${processed}, indexed ${indexed}, skipped ${skipped}`, "success");
                     statusDot.style.background = "var(--mjr-status-success, #4CAF50)";
                     applyStatusHighlight(section, "success");
                 }
             } else {
-                const err = String(res?.error || "Backfill failed");
+                const err = String(res?.error || t("toast.vectorBackfillFailedGeneric", "Backfill failed"));
                 const code = String(res?.code || "").trim();
                 const status = Number(res?.status || 0) || 0;
                 const detail = [
@@ -671,21 +709,45 @@ export function createStatusIndicator(options = {}) {
     };
     deleteDbBtn.onclick = async (event) => {
         event.stopPropagation();
-
-        const confirmed = confirm(t("dialog.dbDelete.confirm"));
+        const preserveVectors = await askKeepVectors(t("btn.deleteDb", "Delete DB"));
+        const confirmed = await comfyConfirm(
+            preserveVectors
+                ? t(
+                    "dialog.dbDelete.keepVectorsConfirm",
+                    "This will reset index data and keep existing AI vectors. Database files will not be force-deleted.\n\nContinue?"
+                )
+                : t(
+                    "dialog.dbDelete.confirm",
+                    "This will permanently delete the index database and rebuild it from scratch. All ratings, tags, and cached metadata will be lost.\n\nContinue?"
+                ),
+            t("btn.deleteDb", "Delete DB")
+        );
         if (!confirmed) return;
         setMaintenanceActive(true);
 
         const originalText = deleteDbBtn.textContent;
         deleteDbBtn.disabled = true;
-        deleteDbBtn.textContent = t("btn.deletingDb");
+        deleteDbBtn.textContent = preserveVectors ? t("btn.resetting", "Resetting...") : t("btn.deletingDb");
         resetBtn.disabled = true;
 
         statusDot.style.background = "var(--mjr-status-info, #64B5F6)";
         applyStatusHighlight(section, "info");
 
         try {
-            const res = await forceDeleteDb();
+            const res = preserveVectors
+                ? await resetIndex({
+                    scope: "all",
+                    reindex: true,
+                    maintenance_force: true,
+                    hard_reset_db: false,
+                    clear_scan_journal: true,
+                    clear_metadata_cache: true,
+                    clear_asset_metadata: true,
+                    clear_assets: false,
+                    preserve_vectors: true,
+                    rebuild_fts: true,
+                })
+                : await forceDeleteDb();
             if (res?.ok) {
                 globalThis._mjrCorruptToastShown = false;
                 statusDot.style.background = "var(--mjr-status-success, #4CAF50)";
@@ -702,7 +764,7 @@ export function createStatusIndicator(options = {}) {
             deleteDbBtn.disabled = false;
             deleteDbBtn.textContent = originalText;
             resetBtn.disabled = false;
-            emitGlobalGridReload("db-force-delete");
+            emitGlobalGridReload(preserveVectors ? "index-reset-preserve-vectors" : "db-force-delete");
             try {
                 const target = getScanContext ? getScanContext() : null;
                 await updateStatus(statusDot, statusText, capabilities, target, null, { force: true });

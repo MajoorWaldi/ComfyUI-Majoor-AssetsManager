@@ -19,11 +19,16 @@ import re
 from typing import Any
 
 from aiohttp import web
+from ...config import VECTOR_TEXT_SEARCH_MIN_SCORE, VECTOR_TEXT_SEARCH_RELATIVE_RATIO
 from ...shared import Result, get_logger
 
 from ..core import _json_response, _require_services
 from ..core.security import _check_rate_limit
-from .vector_search import _hydrate_vector_results, _require_vector_services
+from .vector_search import (
+    _filter_text_search_hits,
+    _hydrate_vector_results,
+    _require_vector_services,
+)
 
 logger = get_logger(__name__)
 
@@ -96,9 +101,19 @@ async def _filter_semantic_hits(
     filters: dict[str, Any],
     scope: str,
     custom_root_id: str | None,
+    min_score: float,
+    relative_ratio: float,
 ) -> list[dict[str, Any]]:
     if db is None or not isinstance(hits, list) or not hits:
         return hits if isinstance(hits, list) else []
+
+    hits = _filter_text_search_hits(
+        list(hits),
+        min_score=min_score,
+        relative_ratio=relative_ratio,
+    )
+    if not hits:
+        return []
 
     asset_ids: list[int] = []
     for hit in hits:
@@ -380,6 +395,8 @@ def register_hybrid_search_routes(routes: web.RouteTableDef) -> None:
                     filters=inline_filters,
                     scope=scope,
                     custom_root_id=custom_root_id,
+                    min_score=VECTOR_TEXT_SEARCH_MIN_SCORE,
+                    relative_ratio=VECTOR_TEXT_SEARCH_RELATIVE_RATIO,
                 )
             except Exception:
                 return []

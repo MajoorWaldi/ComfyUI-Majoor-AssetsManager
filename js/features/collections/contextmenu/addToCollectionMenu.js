@@ -1,6 +1,7 @@
 import { comfyPrompt } from "../../../app/dialogs.js";
 import { comfyToast } from "../../../app/toast.js";
 import { listCollections, createCollection, addAssetsToCollection } from "../../../api/client.js";
+import { t } from "../../../app/i18n.js";
 import {
     getOrCreateMenu as getOrCreateMenuCore,
     createMenuItem,
@@ -51,17 +52,17 @@ function formatAddResultMessage({ collectionName, selectedCount, addRes }) {
     const skippedExisting = Number(addRes?.data?.skipped_existing ?? 0) || 0;
     const skippedDuplicate = Number(addRes?.data?.skipped_duplicate ?? 0) || 0;
 
-    const name = String(collectionName || "").trim() || "collection";
-    let msg = `Added ${added} item(s) to "${name}".`;
+    const name = String(collectionName || "").trim() || t("label.collection", "collection");
+    let msg = t("msg.collectionAdd.added", "Added {added} item(s) to \"{name}\".", { added, name });
 
     if (skippedExisting > 0) {
-        msg += `\n\nSkipped ${skippedExisting} item(s): already present in the collection.`;
+        msg += `\n\n${t("msg.collectionAdd.skippedExisting", "Skipped {count} item(s): already present in the collection.", { count: skippedExisting })}`;
     }
     if (skippedDuplicate > 0) {
-        msg += `\n\nIgnored ${skippedDuplicate} duplicate(s) in selection.`;
+        msg += `\n\n${t("msg.collectionAdd.skippedDuplicate", "Ignored {count} duplicate(s) in selection.", { count: skippedDuplicate })}`;
     }
     if (added === 0 && skippedExisting > 0 && selectedCount > 0) {
-        msg = `No new items added to "${name}" (all exist).`;
+        msg = t("msg.collectionAdd.noneAddedExisting", "No new items added to \"{name}\" (all exist).", { name });
     }
     return msg;
 }
@@ -74,7 +75,7 @@ export async function showAddToCollectionMenu({ x, y, assets }) {
 
     const selected = Array.isArray(assets) ? assets.map(simplifyAsset).filter(Boolean) : [];
     if (!selected.length) {
-        comfyToast("No valid assets selected.", "warning");
+        comfyToast(t("toast.noValidAssetsSelected", "No valid assets selected."), "warning");
         return;
     }
 
@@ -83,17 +84,20 @@ export async function showAddToCollectionMenu({ x, y, assets }) {
 
     // If none exist, directly prompt creation.
     if (!collections.length) {
-        const name = await comfyPrompt("Create collection", "My collection");
+        const name = await comfyPrompt(
+            t("dialog.createCollection", "Create collection"),
+            t("dialog.collectionPlaceholder", "My collection")
+        );
         if (!name) return;
         const created = await createCollection(name);
         if (!created?.ok) {
-            comfyToast(created?.error || "Failed to create collection.", "error");
+            comfyToast(created?.error || t("toast.failedCreateCollectionDot", "Failed to create collection."), "error");
             return;
         }
         const cid = created.data?.id;
         const addRes = await addAssetsToCollection(cid, selected);
         if (!addRes?.ok) {
-            comfyToast(addRes?.error || "Failed to add assets to collection.", "error");
+            comfyToast(addRes?.error || t("toast.failedAddAssetsToCollection", "Failed to add assets to collection."), "error");
             return;
         }
         comfyToast(formatAddResultMessage({ collectionName: created.data?.name || name, selectedCount: selected.length, addRes }), "success", 4000);
@@ -103,19 +107,22 @@ export async function showAddToCollectionMenu({ x, y, assets }) {
     const menu = getOrCreateCollectionsMenu();
     clearMenu(menu);
 
-    const createIt = createItem("Create collection...", "pi pi-plus", async () => {
+    const createIt = createItem(`${t("dialog.createCollection", "Create collection")}...`, "pi pi-plus", async () => {
         hideMenu(menu);
-        const name = await comfyPrompt("Create collection", "My collection");
+        const name = await comfyPrompt(
+            t("dialog.createCollection", "Create collection"),
+            t("dialog.collectionPlaceholder", "My collection")
+        );
         if (!name) return;
         const created = await createCollection(name);
         if (!created?.ok) {
-            comfyToast(created?.error || "Failed to create collection.", "error");
+            comfyToast(created?.error || t("toast.failedCreateCollectionDot", "Failed to create collection."), "error");
             return;
         }
         const cid = created.data?.id;
         const addRes = await addAssetsToCollection(cid, selected);
         if (!addRes?.ok) {
-            comfyToast(addRes?.error || "Failed to add assets to collection.", "error");
+            comfyToast(addRes?.error || t("toast.failedAddAssetsToCollection", "Failed to add assets to collection."), "error");
             return;
         }
         comfyToast(formatAddResultMessage({ collectionName: created.data?.name || name, selectedCount: selected.length, addRes }), "success", 4000);
@@ -132,7 +139,7 @@ export async function showAddToCollectionMenu({ x, y, assets }) {
                 hideMenu(menu);
                 const addRes = await addAssetsToCollection(cid, selected);
                 if (!addRes?.ok) {
-                    comfyToast(addRes?.error || "Failed to add assets to collection.", "error");
+                    comfyToast(addRes?.error || t("toast.failedAddAssetsToCollection", "Failed to add assets to collection."), "error");
                     return;
                 }
                 comfyToast(formatAddResultMessage({ collectionName: name, selectedCount: selected.length, addRes }), "success", 4000);

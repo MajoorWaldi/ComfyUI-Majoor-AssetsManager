@@ -23,9 +23,65 @@ from ..core import (
 
 logger = get_logger(__name__)
 
+_POPOUT_HTML = """<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1e1e1e">
+  <title>Majoor Viewer</title>
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #111;
+      color: #ddd;
+      font-family: system-ui, sans-serif;
+    }
+    body {
+      display: flex;
+      min-height: 100vh;
+    }
+    #mjr-mfv-popout-root {
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      align-items: stretch;
+      justify-content: stretch;
+      background:
+        radial-gradient(circle at top, rgba(95, 179, 255, 0.12), transparent 35%),
+        linear-gradient(180deg, #1a1a1a 0%, #101010 100%);
+    }
+    .mjr-mfv-popout-loading {
+      margin: auto;
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(20,20,20,0.82);
+      font-size: 12px;
+      letter-spacing: 0.02em;
+      opacity: 0.84;
+    }
+  </style>
+</head>
+<body>
+  <div id="mjr-mfv-popout-root">
+    <div class="mjr-mfv-popout-loading">Preparing viewer…</div>
+  </div>
+</body>
+</html>
+"""
+
 
 def register_viewer_routes(routes: web.RouteTableDef) -> None:
     """Register viewer info and file-serving routes."""
+    @routes.get("/mjr/viewer/popout")
+    async def viewer_popout_page(_request: web.Request):
+        return web.Response(text=_POPOUT_HTML, content_type="text/html")
+
     @routes.get("/mjr/am/viewer/info")
     async def viewer_info(request: web.Request):
         """

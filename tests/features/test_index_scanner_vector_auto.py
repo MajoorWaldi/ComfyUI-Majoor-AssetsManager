@@ -83,3 +83,30 @@ async def test_schedule_added_vectors_respects_scan_toggle(monkeypatch) -> None:
     await asyncio.sleep(0)
 
     assert called["n"] == 0
+
+
+@pytest.mark.asyncio
+async def test_schedule_prepared_vectors_includes_refreshed_and_updated_assets(monkeypatch) -> None:
+    scanner = IndexScanner(_DbStub([]), metadata_service=object(), scan_lock=asyncio.Lock())
+    scanner.set_vector_services(vector_service=object(), vector_searcher=None)
+
+    captured = {"asset_ids": None}
+
+    async def _fake_index(*, asset_ids):
+        captured["asset_ids"] = list(asset_ids)
+
+    monkeypatch.setattr(scanner, "_index_missing_asset_vectors", _fake_index)
+
+    scanner._schedule_prepared_vector_index(
+        prepared=[
+            {"action": "refresh", "asset_id": 4},
+            {"action": "updated", "asset_id": 5},
+            {"action": "skipped", "asset_id": 6},
+            {"action": "updated", "asset_id": 4},
+        ],
+        prev_added_count=1,
+        added_ids=[3, 7, 5],
+    )
+    await asyncio.sleep(0)
+
+    assert captured["asset_ids"] == [7, 5, 4]

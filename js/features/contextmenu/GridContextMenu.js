@@ -403,9 +403,9 @@ export function bindGridContextMenu({
             const currentPath = String(gridContainer?.dataset?.mjrSubfolder || "").trim();
             if (!currentPath) return;
             menu.appendChild(
-                createItem("Create folder here...", "pi pi-plus", null, async () => {
+                createItem(t("ctx.createFolderHere", "Create folder here..."), "pi pi-plus", null, async () => {
                     try {
-                        const name = await comfyPrompt("New folder name", "");
+                        const name = await comfyPrompt(t("dialog.newFolderName", "New folder name"), "");
                         const next = String(name || "").trim();
                         if (!next) return;
                         const res = await browserFolderOp({ op: "create", path: currentPath, name: next });
@@ -480,7 +480,7 @@ export function bindGridContextMenu({
             const isBrowserScope = String(panelState?.scope || "").toLowerCase() === "custom";
             const folderPath = String(asset?.filepath || "").trim();
             menu.appendChild(
-                createItem("Open folder", "pi pi-folder-open", null, () => {
+                createItem(t("ctx.openFolder", "Open folder"), "pi pi-folder-open", null, () => {
                     try {
                         gridContainer.dispatchEvent(
                             new CustomEvent("mjr:open-folder-asset", {
@@ -581,7 +581,7 @@ export function bindGridContextMenu({
                 menu.appendChild(
                     createItem(t("ctx.deleteFolder"), "pi pi-trash", null, async () => {
                         try {
-                            const folderName = String(asset?.filename || "this folder");
+                            const folderName = String(asset?.filename || t("label.thisFolder", "this folder"));
                             const ok = await comfyConfirm(
                                 t("dialog.deleteFolderRecursive", { name: folderName })
                             );

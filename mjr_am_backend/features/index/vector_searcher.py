@@ -53,6 +53,25 @@ class VectorSearcher:
         """Mark the in-memory index as stale (will be rebuilt on next query)."""
         self._dirty = True
 
+    async def prewarm_index(self) -> Result[dict[str, Any]]:
+        """Build the in-memory Faiss index ahead of the first semantic query."""
+        try:
+            await self._ensure_index()
+        except Exception as exc:
+            return Result.Err("SERVICE_UNAVAILABLE", f"Vector index warmup failed: {exc}")
+
+        total = 0
+        try:
+            total = int(getattr(self._index, "ntotal", 0) or 0)
+        except Exception:
+            total = 0
+
+        return Result.Ok({
+            "loaded": bool(self._index is not None),
+            "total": total,
+            "dirty": bool(self._dirty),
+        })
+
     async def _ensure_index(self) -> None:
         """Build (or rebuild) the Faiss index from the database."""
         if not self._dirty and self._index is not None:

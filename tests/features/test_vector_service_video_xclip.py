@@ -99,21 +99,22 @@ class _FakeFeatures:
 
 
 class _FakeXclipModel:
-    def get_image_features(self, *, pixel_values=None):
+    def get_video_features(self, *, pixel_values=None):
         assert pixel_values is not None
         return _FakeFeatures()
+
+
+class _FakeProcessorMapping(dict):
+    """Fake processor output that acts as a mapping with .get()."""
+    pass
 
 
 class _ProcessorWithFallbackSignature:
     def __call__(self, *args, **kwargs):
         _ = args
-        # Simulate a non-mapping return for the primary images signature.
-        # Older code indexed directly with ["pixel_values"] and crashed.
         if "images" in kwargs:
-            return PILImage.new("RGB", (2, 2), color=(0, 0, 0))
-        if "videos" in kwargs:
-            return {"pixel_values": [[[[1.0]]]]}
-        return {"pixel_values": [[[[1.0]]]]}
+            return _FakeProcessorMapping({"pixel_values": [[[[1.0]]]]})
+        return _FakeProcessorMapping({"pixel_values": [[[[1.0]]]]})
 
 
 class _BatchFailsOnMultiFrameModel:
@@ -161,6 +162,9 @@ async def test_video_embedding_falls_back_to_single_frame_when_batch_fails(monke
 
     async def _fake_xclip_fail(_path):
         return m.Result.Err("METADATA_FAILED", "xclip unavailable")
+
+    # Force non-native path so the legacy SentenceTransformer fallback is tested
+    monkeypatch.setattr(vs, "_use_native_siglip", lambda: False)
 
     async def _fake_ensure_model():
         return _BatchFailsOnMultiFrameModel()
