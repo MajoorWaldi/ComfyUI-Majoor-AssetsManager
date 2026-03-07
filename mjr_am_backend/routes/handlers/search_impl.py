@@ -28,7 +28,12 @@ from mjr_am_backend.shared import Result, get_logger
 
 from ..core import _is_loopback_request, _json_response, _read_json, _require_services, safe_error_message
 from ..core.security import _check_rate_limit
-from .filesystem import _kickoff_background_scan, _list_filesystem_assets
+from .filesystem import (
+    _kickoff_background_scan,
+    _list_filesystem_assets,
+    _paginate_filesystem_listing_entries,
+    _parse_filesystem_listing_filters,
+)
 
 DEFAULT_LIST_LIMIT = 50
 DEFAULT_LIST_OFFSET = 0
@@ -80,6 +85,7 @@ _date_bounds_for_range = _qs.date_bounds_for_range
 _date_bounds_for_exact = _qs.date_bounds_for_exact
 _normalize_extension = _qs.normalize_extension
 _parse_inline_query_filters = _qs.parse_inline_filters
+_parse_request_filters = _qs.parse_request_filters
 _consume_inline_filter_token = _qs.consume_filter_token
 _consume_inline_extension = _qs.consume_extension
 _consume_inline_kind = _qs.consume_kind
@@ -128,6 +134,50 @@ def _extract_workflow_from_metadata_raw(metadata_raw: object, has_workflow: obje
     if not isinstance(metadata, dict):
         return None
     return metadata.get("workflow")
+
+
+def _browser_mode_needs_post_filters(filters: dict[str, Any] | None) -> bool:
+    if not filters:
+        return False
+    return any(
+        key in filters
+        for key in (
+            "extensions",
+            "tags",
+            "min_rating",
+            "has_workflow",
+            "workflow_type",
+            "mtime_start",
+            "mtime_end",
+        )
+    )
+
+
+def _postfilter_browser_assets(
+    assets: list[dict[str, Any]],
+    *,
+    query: str,
+    filters: dict[str, Any] | None,
+    sort_key: str,
+    limit: int,
+    offset: int,
+) -> tuple[list[dict[str, Any]], int]:
+    opts = _parse_filesystem_listing_filters(query, filters, sort_key)
+    return _paginate_filesystem_listing_entries(
+        assets,
+        filter_extensions=list(opts.get("filter_extensions") or []),
+        filter_tags=list(opts.get("filter_tags") or []),
+        filter_kind=str(opts.get("filter_kind") or ""),
+        filter_min_rating=int(opts.get("filter_min_rating") or 0),
+        filter_workflow_only=opts.get("filter_workflow_only"),
+        filter_workflow_type=str(opts.get("filter_workflow_type") or ""),
+        filter_mtime_start=opts.get("filter_mtime_start"),
+        filter_mtime_end=opts.get("filter_mtime_end"),
+        browse_all=bool(opts.get("browse_all")),
+        q_lower=str(opts.get("q_lower") or ""),
+        limit=limit,
+        offset=offset,
+    )
 
 
 def register_search_routes(routes: web.RouteTableDef) -> None:
@@ -217,103 +267,10 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
             return _json_response(Result.Err("INVALID_INPUT", f"Offset must be less than {MAX_OFFSET}"))
         sort_key = _normalize_sort_key(request.query.get("sort"))
 
-        filters = {}
-        if "kind" in request.query:
-            valid_kinds = {"image", "video", "audio", "model3d"}
-            kind = request.query["kind"].strip().lower()
-            if kind not in valid_kinds:
-                return _json_response(Result.Err("INVALID_INPUT", f"Invalid kind. Must be one of: {', '.join(sorted(valid_kinds))}"))
-            filters["kind"] = kind
-        if "min_rating" in request.query:
-            try:
-                filters["min_rating"] = max(0, min(MAX_RATING, int(request.query["min_rating"])))
-            except ValueError:
-                return _json_response(Result.Err("INVALID_INPUT", "Invalid min_rating"))
-        if "min_size_mb" in request.query:
-            try:
-                val = float(request.query["min_size_mb"])
-                if val > 0:
-                    filters["min_size_bytes"] = int(val * 1024 * 1024)
-            except ValueError:
-                return _json_response(Result.Err("INVALID_INPUT", "Invalid min_size_mb"))
-        if "max_size_mb" in request.query:
-            try:
-                val = float(request.query["max_size_mb"])
-                if val > 0:
-                    filters["max_size_bytes"] = int(val * 1024 * 1024)
-            except ValueError:
-                return _json_response(Result.Err("INVALID_INPUT", "Invalid max_size_mb"))
-        if "min_width" in request.query:
-            try:
-                val = int(request.query["min_width"])
-                if val > 0:
-                    filters["min_width"] = val
-            except ValueError:
-                return _json_response(Result.Err("INVALID_INPUT", "Invalid min_width"))
-        if "min_height" in request.query:
-            try:
-                val = int(request.query["min_height"])
-                if val > 0:
-                    filters["min_height"] = val
-            except ValueError:
-                return _json_response(Result.Err("INVALID_INPUT", "Invalid min_height"))
-        if "max_width" in request.query:
-            try:
-                val = int(request.query["max_width"])
-                if val > 0:
-                    filters["max_width"] = val
-            except ValueError:
-                return _json_response(Result.Err("INVALID_INPUT", "Invalid max_width"))
-        if "max_height" in request.query:
-            try:
-                val = int(request.query["max_height"])
-                if val > 0:
-                    filters["max_height"] = val
-            except ValueError:
-                return _json_response(Result.Err("INVALID_INPUT", "Invalid max_height"))
-        if "workflow_type" in request.query:
-            wf_type = str(request.query["workflow_type"] or "").strip().upper()
-            if wf_type:
-                filters["workflow_type"] = wf_type
-        if "has_workflow" in request.query:
-            filters["has_workflow"] = request.query["has_workflow"].lower() in ("true", "1", "yes")
-
-        date_exact = (request.query.get("date_exact") or "").strip()
-        date_range = (request.query.get("date_range") or "").strip().lower()
-        mtime_start = None
-        mtime_end = None
-        if date_exact:
-            mtime_start, mtime_end = _date_bounds_for_exact(date_exact)
-            if mtime_start is None or mtime_end is None:
-                return _json_response(Result.Err("INVALID_INPUT", "Invalid date_exact"))
-        elif date_range:
-            mtime_start, mtime_end = _date_bounds_for_range(date_range)
-            if mtime_start is None or mtime_end is None:
-                return _json_response(Result.Err("INVALID_INPUT", "Invalid date_range"))
-        if mtime_start is not None:
-            filters["mtime_start"] = mtime_start
-        if mtime_end is not None:
-            filters["mtime_end"] = mtime_end
-
-        if inline_filters:
-            merged = dict(inline_filters)
-            merged.update(filters)
-            filters = merged
-        try:
-            min_b = int(filters.get("min_size_bytes") or 0)
-            max_b = int(filters.get("max_size_bytes") or 0)
-            if min_b > 0 and max_b > 0 and max_b < min_b:
-                filters["max_size_bytes"] = min_b
-            min_w = int(filters.get("min_width") or 0)
-            max_w = int(filters.get("max_width") or 0)
-            if min_w > 0 and max_w > 0 and max_w < min_w:
-                filters["max_width"] = min_w
-            min_h = int(filters.get("min_height") or 0)
-            max_h = int(filters.get("max_height") or 0)
-            if min_h > 0 and max_h > 0 and max_h < min_h:
-                filters["max_height"] = min_h
-        except Exception:
-            pass
+        filters_res = _parse_request_filters(request.query, inline_filters)
+        if not filters_res.ok:
+            return _json_response(filters_res)
+        filters = filters_res.data or {}
 
         # Keep default aligned with pre-refactor behavior:
         # list endpoints should include total unless explicitly disabled.
@@ -331,6 +288,7 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                 root_path = str(root_dir.resolve(strict=False))
                 scoped_filters = dict(filters or {})
                 scoped_filters["source"] = "input"
+                scoped_filters["subfolder"] = str(subfolder or "")
 
                 # Call index searcher with filters, limit, and offset
                 db_result = await svc["index"].search_scoped(
@@ -387,12 +345,15 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                 if not _is_loopback_request(request):
                     return _json_response(Result.Err("FORBIDDEN", "Custom browser mode is loopback-only"))
                 svc, _ = await _require_services()
+                needs_post_filters = _browser_mode_needs_post_filters(filters or None)
+                browser_limit = 0 if needs_post_filters else limit
+                browser_offset = 0 if needs_post_filters else offset
                 browser_result = await asyncio.to_thread(
                     list_filesystem_browser_entries,
                     subfolder,
                     query,
-                    limit,
-                    offset,
+                    browser_limit,
+                    browser_offset,
                     kind_filter=str(filters.get("kind") or "") if filters else "",
                     min_size_bytes=int((filters or {}).get("min_size_bytes") or 0),
                     max_size_bytes=int((filters or {}).get("max_size_bytes") or 0),
@@ -404,9 +365,40 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                 try:
                     if browser_result.ok and isinstance(browser_result.data, dict):
                         assets = browser_result.data.get("assets") or []
-                        browser_result.data["assets"] = await _hydrate_browser_assets_from_db(svc, assets)
+                        hydrated_assets = await _hydrate_browser_assets_from_db(svc, assets)
+                        if needs_post_filters:
+                            paged_assets, total = _postfilter_browser_assets(
+                                hydrated_assets,
+                                query=query,
+                                filters=filters or None,
+                                sort_key=sort_key,
+                                limit=limit,
+                                offset=offset,
+                            )
+                            browser_result.data["assets"] = paged_assets
+                            browser_result.data["total"] = total
+                            browser_result.data["limit"] = limit
+                            browser_result.data["offset"] = offset
+                            browser_result.data["query"] = query
+                        else:
+                            browser_result.data["assets"] = hydrated_assets
+                        browser_result.data = _dedupe_result_assets_payload(browser_result.data)
                 except Exception as _e:
                     logger.debug("Failed to hydrate browser assets from DB: %s", _e)
+                    if needs_post_filters and browser_result.ok and isinstance(browser_result.data, dict):
+                        raw_assets = browser_result.data.get("assets") or []
+                        paged_assets, total = _postfilter_browser_assets(
+                            raw_assets,
+                            query=query,
+                            filters=filters or None,
+                            sort_key=sort_key,
+                            limit=limit,
+                            offset=offset,
+                        )
+                        browser_result.data["assets"] = paged_assets
+                        browser_result.data["total"] = total
+                        browser_result.data["limit"] = limit
+                        browser_result.data["offset"] = offset
                 return _json_response(browser_result)
             root_result = resolve_custom_root(str(root_id or ""))
             if not root_result.ok:
@@ -694,7 +686,17 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
             return _json_response(Result.Err("INVALID_INPUT", f"Unknown scope: {scope}"))
 
         # Use DB search for output scope
-        output_filters = {**(filters or {}), "source": "output", "exclude_root": input_root}
+        raw_subfolder = request.query.get("subfolder")
+        subfolder = str(raw_subfolder or "")
+        output_filters = {
+            **(filters or {}),
+            "source": "output",
+            "exclude_root": input_root,
+        }
+        # Keep output scope recursive by default.
+        # Only apply a subfolder filter when an explicit non-empty value is provided.
+        if subfolder:
+            output_filters["subfolder"] = subfolder
         out_res = await svc["index"].search_scoped(
             query,
             roots=[output_root],
@@ -720,7 +722,7 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                 )
                 fs_res = await _list_filesystem_assets(
                     Path(output_root),
-                    "",
+                    subfolder,
                     query,
                     limit,
                     offset,
@@ -791,88 +793,10 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
         if offset > MAX_OFFSET:
             return _json_response(Result.Err("INVALID_INPUT", f"Offset must be less than {MAX_OFFSET}"))
 
-        # Parse filters
-        filters = {}
-        if "kind" in request.query:
-            valid_kinds = {"image", "video", "audio", "model3d"}
-            kind = request.query["kind"].strip().lower()
-            if kind not in valid_kinds:
-                return _json_response(Result.Err("INVALID_INPUT", f"Invalid kind. Must be one of: {', '.join(sorted(valid_kinds))}"))
-            filters["kind"] = kind
-        if "min_rating" in request.query:
-            try:
-                filters["min_rating"] = max(0, min(5, int(request.query["min_rating"])))
-            except ValueError:
-                result = Result.Err("INVALID_INPUT", "Invalid min_rating")
-                return _json_response(result)
-        if "min_size_mb" in request.query:
-            try:
-                val = float(request.query["min_size_mb"])
-                if val > 0:
-                    filters["min_size_bytes"] = int(val * 1024 * 1024)
-            except ValueError:
-                return _json_response(Result.Err("INVALID_INPUT", "Invalid min_size_mb"))
-        if "max_size_mb" in request.query:
-            try:
-                val = float(request.query["max_size_mb"])
-                if val > 0:
-                    filters["max_size_bytes"] = int(val * 1024 * 1024)
-            except ValueError:
-                return _json_response(Result.Err("INVALID_INPUT", "Invalid max_size_mb"))
-        if "min_width" in request.query:
-            try:
-                val = int(request.query["min_width"])
-                if val > 0:
-                    filters["min_width"] = val
-            except ValueError:
-                return _json_response(Result.Err("INVALID_INPUT", "Invalid min_width"))
-        if "min_height" in request.query:
-            try:
-                val = int(request.query["min_height"])
-                if val > 0:
-                    filters["min_height"] = val
-            except ValueError:
-                return _json_response(Result.Err("INVALID_INPUT", "Invalid min_height"))
-        if "max_width" in request.query:
-            try:
-                val = int(request.query["max_width"])
-                if val > 0:
-                    filters["max_width"] = val
-            except ValueError:
-                return _json_response(Result.Err("INVALID_INPUT", "Invalid max_width"))
-        if "max_height" in request.query:
-            try:
-                val = int(request.query["max_height"])
-                if val > 0:
-                    filters["max_height"] = val
-            except ValueError:
-                return _json_response(Result.Err("INVALID_INPUT", "Invalid max_height"))
-        if "workflow_type" in request.query:
-            wf_type = str(request.query["workflow_type"] or "").strip().upper()
-            if wf_type:
-                filters["workflow_type"] = wf_type
-        if "has_workflow" in request.query:
-            filters["has_workflow"] = request.query["has_workflow"].lower() in ("true", "1", "yes")
-
-        if inline_filters:
-            merged = dict(inline_filters)
-            merged.update(filters)
-            filters = merged
-        try:
-            min_b = int(filters.get("min_size_bytes") or 0)
-            max_b = int(filters.get("max_size_bytes") or 0)
-            if min_b > 0 and max_b > 0 and max_b < min_b:
-                filters["max_size_bytes"] = min_b
-            min_w = int(filters.get("min_width") or 0)
-            max_w = int(filters.get("max_width") or 0)
-            if min_w > 0 and max_w > 0 and max_w < min_w:
-                filters["max_width"] = min_w
-            min_h = int(filters.get("min_height") or 0)
-            max_h = int(filters.get("max_height") or 0)
-            if min_h > 0 and max_h > 0 and max_h < min_h:
-                filters["max_height"] = min_h
-        except Exception:
-            pass
+        filters_res = _parse_request_filters(request.query, inline_filters)
+        if not filters_res.ok:
+            return _json_response(filters_res)
+        filters = filters_res.data or {}
 
         include_total = request.query.get("include_total", "1").strip().lower() not in ("0", "false", "no", "off")
         result = await svc["index"].search(

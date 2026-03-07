@@ -10,6 +10,7 @@ from typing import Any
 from ...adapters.db.sqlite import Sqlite
 from ...config import MAX_TO_ENRICH_ITEMS, is_vector_index_on_scan_enabled
 from ...shared import FileKind, get_logger
+from ...utils import sanitize_for_json
 from ..metadata import MetadataService
 from .fs_walker import SCAN_IOPS_LIMIT, FileSystemWalker
 from .index_batching import append_batch_metadata_entries, existing_map_for_batch, journal_map_for_batch, prefetch_batch_cache_and_rich_meta, prefetch_metadata_cache_rows, prefetch_rich_metadata_rows, prepare_batch_entries, prepare_single_batch_entry, resolve_existing_state_for_batch
@@ -249,6 +250,7 @@ class IndexScanner:
                 errors = 0
                 timed_out = 0
                 timed_out_ids: list[int] = []
+                updated_asset_ids: list[int] = []
 
                 for entry in entries:
                     aid = int(entry.get("asset_id") or 0)
@@ -282,6 +284,8 @@ class IndexScanner:
 
                     if result.ok and bool(result.data):
                         indexed += 1
+                        if aid > 0:
+                            updated_asset_ids.append(aid)
                     elif result.ok:
                         skipped += 1
                     else:
@@ -289,6 +293,8 @@ class IndexScanner:
 
                 if self._vector_searcher is not None and indexed > 0:
                     self._vector_searcher.invalidate()
+                if updated_asset_ids:
+                    await self._notify_vector_asset_updates(asset_ids=updated_asset_ids)
 
                 if timed_out > 0:
                     sample = ", ".join(str(x) for x in timed_out_ids[:8]) or "n/a"
@@ -322,6 +328,85 @@ class IndexScanner:
                     )
         except Exception as exc:
             logger.debug("Scanner vector indexing failed for new images: %s", exc)
+
+    async def _notify_vector_asset_updates(self, *, asset_ids: list[int]) -> None:
+        normalized_ids: list[int] = []
+        seen_ids: set[int] = set()
+        for raw_id in asset_ids:
+            try:
+                asset_id = int(raw_id)
+            except Exception:
+                continue
+            if asset_id <= 0 or asset_id in seen_ids:
+                continue
+            seen_ids.add(asset_id)
+            normalized_ids.append(asset_id)
+        if not normalized_ids:
+            return
+
+        rows = await self.db.aquery_in(
+            """
+            SELECT
+                a.id,
+                a.filename,
+                a.filepath,
+                a.kind,
+                a.subfolder,
+                a.source,
+                a.root_id,
+                a.mtime,
+                a.enhanced_caption,
+                COALESCE(ae.auto_tags, '[]') AS auto_tags,
+                CASE
+                    WHEN LENGTH(TRIM(COALESCE(a.enhanced_caption, ''))) > 0 THEN 1
+                    ELSE 0
+                END AS has_ai_enhanced_caption,
+                CASE
+                    WHEN TRIM(COALESCE(ae.auto_tags, '[]')) IN ('', '[]', '[ ]', 'null', 'NULL') THEN 0
+                    ELSE 1
+                END AS has_ai_auto_tags,
+                CASE
+                    WHEN ae.vector IS NOT NULL AND LENGTH(ae.vector) > 0 THEN 1
+                    ELSE 0
+                END AS has_ai_vector,
+                CASE
+                    WHEN LENGTH(TRIM(COALESCE(a.enhanced_caption, ''))) > 0
+                         OR TRIM(COALESCE(ae.auto_tags, '[]')) NOT IN ('', '[]', '[ ]', 'null', 'NULL')
+                         OR (ae.vector IS NOT NULL AND LENGTH(ae.vector) > 0)
+                    THEN 1
+                    ELSE 0
+                END AS has_ai_info
+            FROM assets a
+            LEFT JOIN vec.asset_embeddings ae ON ae.asset_id = a.id
+            WHERE {IN_CLAUSE}
+            """,
+            "a.id",
+            normalized_ids,
+        )
+        if not rows.ok or not rows.data:
+            return
+
+        try:
+            from ...routes.registry import PromptServer
+        except Exception:
+            return
+
+        for row in rows.data:
+            if not isinstance(row, dict):
+                continue
+            payload = dict(row)
+            auto_tags = payload.get("auto_tags")
+            if isinstance(auto_tags, str):
+                try:
+                    parsed = json.loads(auto_tags)
+                    if isinstance(parsed, list):
+                        payload["auto_tags"] = parsed
+                except Exception:
+                    pass
+            try:
+                PromptServer.instance.send_sync("mjr-asset-updated", sanitize_for_json(payload))
+            except Exception as exc:
+                logger.debug("Failed to emit vector asset update for asset_id=%s: %s", payload.get("id"), exc)
 
     _persist_prepared_entries_tx = persist_prepared_entries_tx
     _process_prepared_entry_tx = process_prepared_entry_tx

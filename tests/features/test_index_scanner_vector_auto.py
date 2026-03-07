@@ -55,11 +55,19 @@ async def test_index_added_vectors_includes_image_and_video(monkeypatch, tmp_pat
 
     monkeypatch.setattr(vector_indexer_mod, "index_asset_vector", _fake_index_asset_vector)
 
+    updated = {"asset_ids": None}
+
+    async def _fake_notify(*, asset_ids):
+        updated["asset_ids"] = list(asset_ids)
+
+    monkeypatch.setattr(scanner, "_notify_vector_asset_updates", _fake_notify)
+
     await scanner._index_added_image_vectors(asset_ids=[1, 2])
 
     assert len(calls) == 2
     assert {c["kind"] for c in calls} == {"image", "video"}
     assert searcher.invalidated == 1
+    assert updated["asset_ids"] == [1, 2]
 
 
 @pytest.mark.asyncio

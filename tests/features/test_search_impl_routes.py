@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import json
 
 import pytest
@@ -28,6 +29,28 @@ async def test_search_route_rejects_invalid_min_rating(monkeypatch) -> None:
 
     app = _build_search_app()
     req = make_mocked_request("GET", "/mjr/am/search?q=x&min_rating=abc", app=app)
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+    assert body.get("ok") is False
+    assert body.get("code") == "INVALID_INPUT"
+
+
+@pytest.mark.asyncio
+async def test_search_route_rejects_infinite_size_filter(monkeypatch) -> None:
+    class _Index:
+        async def search(self, *args, **kwargs):
+            return Result.Ok({"assets": [], "total": 0})
+
+    async def _require_services():
+        return {"index": _Index()}, None
+
+    monkeypatch.setattr(search_impl, "_require_services", _require_services)
+    monkeypatch.setattr(search_impl, "_check_rate_limit", lambda *args, **kwargs: (True, None))
+    monkeypatch.setattr(search_impl, "_touch_enrichment_pause", lambda *args, **kwargs: None)
+
+    app = _build_search_app()
+    req = make_mocked_request("GET", "/mjr/am/search?q=x&min_size_mb=inf", app=app)
     match = await app.router.resolve(req)
     resp = await match.handler(req)
     body = json.loads(resp.text)
@@ -83,6 +106,28 @@ async def test_list_route_rejects_unknown_scope(monkeypatch) -> None:
 
     app = _build_search_app()
     req = make_mocked_request("GET", "/mjr/am/list?scope=unknown", app=app)
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+    assert body.get("ok") is False
+    assert body.get("code") == "INVALID_INPUT"
+
+
+@pytest.mark.asyncio
+async def test_list_route_rejects_infinite_size_filter(monkeypatch) -> None:
+    class _Index:
+        async def search_scoped(self, *args, **kwargs):
+            return Result.Ok({"assets": [], "total": 0})
+
+    async def _require_services():
+        return {"index": _Index()}, None
+
+    monkeypatch.setattr(search_impl, "_require_services", _require_services)
+    monkeypatch.setattr(search_impl, "_check_rate_limit", lambda *args, **kwargs: (True, None))
+    monkeypatch.setattr(search_impl, "_touch_enrichment_pause", lambda *args, **kwargs: None)
+
+    app = _build_search_app()
+    req = make_mocked_request("GET", "/mjr/am/list?scope=output&min_size_mb=1e309", app=app)
     match = await app.router.resolve(req)
     resp = await match.handler(req)
     body = json.loads(resp.text)
@@ -318,6 +363,123 @@ async def test_list_custom_root_missing_and_browser_mode(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_list_custom_browser_mode_applies_db_backed_filters(monkeypatch) -> None:
+    seen = {"limit": None, "offset": None, "query": None}
+    target_day = int(datetime.datetime(2026, 1, 15, 12, 0, tzinfo=datetime.timezone.utc).timestamp())
+    prev_day = int(datetime.datetime(2026, 1, 14, 12, 0, tzinfo=datetime.timezone.utc).timestamp())
+
+    async def _svc():
+        return {"db": object()}, None
+
+    def _browser_entries(_path, query, limit, offset, **_kwargs):
+        seen["query"] = query
+        seen["limit"] = limit
+        seen["offset"] = offset
+        return Result.Ok(
+            {
+                "assets": [
+                    {"kind": "image", "ext": ".png", "filename": "cat.png", "filepath": "C:/cat.png", "mtime": target_day},
+                    {"kind": "image", "ext": ".jpg", "filename": "dog.jpg", "filepath": "C:/dog.jpg", "mtime": target_day},
+                    {"kind": "image", "ext": ".png", "filename": "old.png", "filepath": "C:/old.png", "mtime": prev_day},
+                ],
+                "total": 3,
+            }
+        )
+
+    async def _hydrate(_svc, assets):
+        for asset in assets:
+            if asset.get("filepath") == "C:/cat.png":
+                asset["rating"] = 5
+                asset["tags"] = ["cat"]
+                asset["has_workflow"] = 1
+                asset["workflow_type"] = "T2I"
+            elif asset.get("filepath") == "C:/dog.jpg":
+                asset["rating"] = 5
+                asset["tags"] = ["cat"]
+                asset["has_workflow"] = 1
+                asset["workflow_type"] = "T2I"
+            else:
+                asset["rating"] = 5
+                asset["tags"] = ["cat"]
+                asset["has_workflow"] = 1
+                asset["workflow_type"] = "T2I"
+        return assets
+
+    monkeypatch.setattr(search_impl, "_require_services", _svc)
+    monkeypatch.setattr(search_impl, "_check_rate_limit", lambda *args, **kwargs: (True, None))
+    monkeypatch.setattr(search_impl, "_touch_enrichment_pause", lambda *args, **kwargs: None)
+    monkeypatch.setattr(search_impl, "_is_loopback_request", lambda _request: True)
+    monkeypatch.setattr(search_impl, "_hydrate_browser_assets_from_db", _hydrate)
+    monkeypatch.setattr(
+        __import__("mjr_am_backend.features.browser", fromlist=["list_filesystem_browser_entries"]),
+        "list_filesystem_browser_entries",
+        _browser_entries,
+    )
+
+    app = _build_search_app()
+    req = make_mocked_request(
+        "GET",
+        "/mjr/am/list?scope=custom&browser_mode=1&q=tag:cat ext:png&min_rating=4&has_workflow=1&workflow_type=t2i&date_exact=2026-01-15&limit=5&offset=0",
+        app=app,
+    )
+    resp = await (await app.router.resolve(req)).handler(req)
+    body = json.loads(resp.text)
+
+    assert body.get("ok") is True
+    data = body.get("data") or {}
+    assets = data.get("assets") or []
+    assert seen["query"] == "*"
+    assert seen["limit"] == 0
+    assert seen["offset"] == 0
+    assert data.get("total") == 1
+    assert [asset.get("filepath") for asset in assets] == ["C:/cat.png"]
+
+
+@pytest.mark.asyncio
+async def test_list_custom_browser_mode_hydration_failure_keeps_filters(monkeypatch) -> None:
+    async def _svc():
+        return {"db": object()}, None
+
+    def _browser_entries(_path, _query, _limit, _offset, **_kwargs):
+        return Result.Ok(
+            {
+                "assets": [
+                    {"kind": "image", "ext": ".png", "filename": "cat.png", "filepath": "C:/cat.png"},
+                    {"kind": "image", "ext": ".jpg", "filename": "dog.jpg", "filepath": "C:/dog.jpg"},
+                ],
+                "total": 2,
+            }
+        )
+
+    async def _hydrate(_svc, _assets):
+        raise RuntimeError("simulated hydration failure")
+
+    monkeypatch.setattr(search_impl, "_require_services", _svc)
+    monkeypatch.setattr(search_impl, "_check_rate_limit", lambda *args, **kwargs: (True, None))
+    monkeypatch.setattr(search_impl, "_touch_enrichment_pause", lambda *args, **kwargs: None)
+    monkeypatch.setattr(search_impl, "_is_loopback_request", lambda _request: True)
+    monkeypatch.setattr(search_impl, "_hydrate_browser_assets_from_db", _hydrate)
+    monkeypatch.setattr(
+        __import__("mjr_am_backend.features.browser", fromlist=["list_filesystem_browser_entries"]),
+        "list_filesystem_browser_entries",
+        _browser_entries,
+    )
+
+    app = _build_search_app()
+    req = make_mocked_request(
+        "GET",
+        "/mjr/am/list?scope=custom&browser_mode=1&q=tag:cat&limit=10&offset=0",
+        app=app,
+    )
+    resp = await (await app.router.resolve(req)).handler(req)
+    body = json.loads(resp.text)
+    assert body.get("ok") is True
+    data = body.get("data") or {}
+    assert data.get("total") == 0
+    assert data.get("assets") == []
+
+
+@pytest.mark.asyncio
 async def test_list_all_indexed_path(monkeypatch, tmp_path) -> None:
     class _Index:
         async def has_assets_under_root(self, _root):
@@ -542,6 +704,78 @@ async def test_list_all_limit_zero_path(monkeypatch, tmp_path) -> None:
     resp = await (await app.router.resolve(req)).handler(req)
     data = json.loads(resp.text).get("data") or {}
     assert data.get("total") == 7
+
+
+@pytest.mark.asyncio
+async def test_list_output_db_scope_applies_subfolder_filter(monkeypatch, tmp_path) -> None:
+    captured = {"filters": None}
+
+    class _Index:
+        async def search_scoped(self, query, roots, limit, offset, filters=None, include_total=True, sort=None):
+            _ = (query, roots, limit, offset, include_total, sort)
+            captured["filters"] = dict(filters or {})
+            return Result.Ok(
+                {
+                    "assets": [{"filepath": str(tmp_path / "animals" / "cat.png"), "filename": "cat.png", "subfolder": "animals"}],
+                    "total": 1,
+                }
+            )
+
+    async def _svc():
+        return {"index": _Index()}, None
+
+    async def _out_root(_svc):
+        return str(tmp_path)
+
+    monkeypatch.setattr(search_impl, "_require_services", _svc)
+    monkeypatch.setattr(search_impl, "_check_rate_limit", lambda *args, **kwargs: (True, None))
+    monkeypatch.setattr(search_impl, "_touch_enrichment_pause", lambda *args, **kwargs: None)
+    monkeypatch.setattr(search_impl, "_runtime_output_root", _out_root)
+    monkeypatch.setattr(search_impl.folder_paths, "get_input_directory", lambda: str(tmp_path / "input"))
+
+    app = _build_search_app()
+    req = make_mocked_request("GET", "/mjr/am/list?scope=output&subfolder=animals", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    body = json.loads(resp.text)
+
+    assert body.get("ok") is True
+    assert (captured["filters"] or {}).get("subfolder") == "animals"
+
+
+@pytest.mark.asyncio
+async def test_list_output_db_scope_does_not_force_empty_subfolder_filter(monkeypatch, tmp_path) -> None:
+    captured = {"filters": None}
+
+    class _Index:
+        async def search_scoped(self, query, roots, limit, offset, filters=None, include_total=True, sort=None):
+            _ = (query, roots, limit, offset, include_total, sort)
+            captured["filters"] = dict(filters or {})
+            return Result.Ok(
+                {
+                    "assets": [{"filepath": str(tmp_path / "cat.png"), "filename": "cat.png", "subfolder": "animals"}],
+                    "total": 1,
+                }
+            )
+
+    async def _svc():
+        return {"index": _Index()}, None
+
+    async def _out_root(_svc):
+        return str(tmp_path)
+
+    monkeypatch.setattr(search_impl, "_require_services", _svc)
+    monkeypatch.setattr(search_impl, "_check_rate_limit", lambda *args, **kwargs: (True, None))
+    monkeypatch.setattr(search_impl, "_touch_enrichment_pause", lambda *args, **kwargs: None)
+    monkeypatch.setattr(search_impl, "_runtime_output_root", _out_root)
+    monkeypatch.setattr(search_impl.folder_paths, "get_input_directory", lambda: str(tmp_path / "input"))
+
+    app = _build_search_app()
+    req = make_mocked_request("GET", "/mjr/am/list?scope=output", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    body = json.loads(resp.text)
+
+    assert body.get("ok") is True
+    assert "subfolder" not in (captured["filters"] or {})
 
 
 @pytest.mark.asyncio

@@ -24,7 +24,7 @@ from .scan_batch_utils import compute_state_hash, normalize_filepath_str
 from .scanner import IndexScanner
 from .searcher import IndexSearcher
 from .updater import AssetUpdater
-from ...config import BATCH_ASSET_PUSH_LIMIT
+from ...config import BATCH_ASSET_PUSH_LIMIT, is_vector_search_enabled
 
 logger = get_logger(__name__)
 
@@ -113,6 +113,14 @@ async def _update_path_keyed_index_tables(
     return Result.Ok(True)
 
 
+def _build_runtime_vector_services(db: Sqlite) -> tuple[Any, Any | None]:
+    from .vector_searcher import VectorSearcher
+    from .vector_service import VectorService
+
+    vector_service = VectorService()
+    return vector_service, VectorSearcher(db, vector_service)
+
+
 class IndexService:
     """
     Handles file indexing and search operations.
@@ -154,6 +162,20 @@ class IndexService:
         self._vector_searcher = vector_searcher
         self._scanner.set_vector_services(vector_service, vector_searcher)
 
+    def _ensure_vector_services(self) -> None:
+        if self._vector_service is not None:
+            self._scanner.set_vector_services(self._vector_service, self._vector_searcher)
+            return
+        if not is_vector_search_enabled():
+            return
+        try:
+            vector_service, vector_searcher = _build_runtime_vector_services(self.db)
+        except Exception as exc:
+            logger.debug("Runtime vector service initialization skipped: %s", exc)
+            return
+        self.set_vector_services(vector_service, vector_searcher)
+        logger.info("Runtime vector services initialized for automatic indexing")
+
     # ==================== Scanning Operations ====================
 
     async def scan_directory(
@@ -181,6 +203,7 @@ class IndexService:
         Returns:
             Result with scan statistics
         """
+        self._ensure_vector_services()
         self._enricher.begin_scan_pause()
         try:
             result = await self._scanner.scan_directory(
@@ -249,6 +272,7 @@ class IndexService:
         Returns:
             Result with indexing statistics
         """
+        self._ensure_vector_services()
         res = await self._scanner.index_paths(
             paths=paths,
             base_dir=base_dir,

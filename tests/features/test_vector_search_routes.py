@@ -133,7 +133,7 @@ async def test_vector_search_route_rejects_invalid_scope(monkeypatch) -> None:
 async def test_vector_search_route_filters_hits_by_scope(monkeypatch) -> None:
     class _DB:
         async def aquery(self, sql: str, params=()):
-            if "SELECT a.id AS asset_id FROM assets a WHERE" in sql:
+            if "SELECT a.id AS asset_id FROM assets a" in sql:
                 # Only asset 2 belongs to requested scope.
                 return Result.Ok([{"asset_id": 2}])
             return Result.Ok([])
@@ -172,10 +172,61 @@ async def test_vector_search_route_filters_hits_by_scope(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_vector_search_route_applies_asset_filters(monkeypatch) -> None:
+    class _DB:
+        async def aquery(self, sql: str, params=()):
+            assert "COALESCE(a.subfolder, '') = ?" in sql
+            assert "COALESCE(m.rating, 0) >= ?" in sql
+            assert "COALESCE(a.size, 0) >= ?" in sql
+            assert "json_extract(m.metadata_raw, '$.workflow_type')" in sql
+            assert "a.mtime >= ?" in sql
+            assert "a.mtime < ?" in sql
+            assert 4 in params
+            assert "animals" in params
+            return Result.Ok([{"asset_id": 2}])
+
+    class _Searcher:
+        async def search_by_text(self, _query: str, *, top_k: int = 20):
+            assert top_k >= 20
+            return Result.Ok(
+                [
+                    {"asset_id": 1, "score": 0.95},
+                    {"asset_id": 2, "score": 0.93},
+                    {"asset_id": 3, "score": 0.91},
+                ]
+            )
+
+    async def _require_services():
+        return {"vector_searcher": _Searcher(), "db": _DB()}, None
+
+    async def _hydrate_passthrough(_services, result):
+        return Result.Ok(result.data or [])
+
+    monkeypatch.setattr(vector_search, "_require_services", _require_services)
+    monkeypatch.setattr(vector_search, "_hydrate_vector_results", _hydrate_passthrough)
+    monkeypatch.setattr(vector_search, "is_vector_search_enabled", lambda: True)
+    monkeypatch.setattr(vector_search, "_check_rate_limit", lambda *_args, **_kwargs: (True, None))
+
+    app = _build_vector_app()
+    req = make_mocked_request(
+        "GET",
+        "/mjr/am/vector/search?q=cat&scope=output&subfolder=animals&top_k=5&min_rating=4&min_size_mb=2&workflow_type=t2i&date_exact=2026-01-15",
+        app=app,
+    )
+    match = await app.router.resolve(req)
+    req._match_info = match
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+
+    assert body.get("ok") is True
+    assert body.get("data") == [{"asset_id": 2, "score": 0.93}]
+
+
+@pytest.mark.asyncio
 async def test_vector_search_route_filters_weak_score_tail(monkeypatch) -> None:
     class _DB:
         async def aquery(self, sql: str, params=()):
-            if "SELECT a.id AS asset_id FROM assets a WHERE" in sql:
+            if "SELECT a.id AS asset_id FROM assets a" in sql:
                 return Result.Ok(
                     [
                         {"asset_id": 1},
@@ -254,7 +305,7 @@ async def test_vector_similar_route_success(monkeypatch) -> None:
 async def test_vector_similar_route_filters_hits_by_scope(monkeypatch) -> None:
     class _DB:
         async def aquery(self, sql: str, params=()):
-            if "SELECT a.id AS asset_id FROM assets a WHERE" in sql:
+            if "SELECT a.id AS asset_id FROM assets a" in sql:
                 return Result.Ok([{"asset_id": 88}])
             return Result.Ok([])
 

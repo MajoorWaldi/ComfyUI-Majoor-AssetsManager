@@ -100,7 +100,6 @@ def test_parse_filters_and_fast_path_flag() -> None:
         {
             "kind": "image",
             "min_rating": 0,
-            "has_workflow": 0,
             "extensions": [".png"],
             "mtime_start": None,
             "mtime_end": None,
@@ -113,8 +112,12 @@ def test_parse_filters_and_fast_path_flag() -> None:
     assert fs._can_use_listing_fast_path(opts)
 
     opts2 = dict(opts)
-    opts2["filter_min_rating"] = 1
+    opts2["filter_workflow_only"] = False
     assert not fs._can_use_listing_fast_path(opts2)
+
+    opts3 = dict(opts)
+    opts3["filter_min_rating"] = 1
+    assert not fs._can_use_listing_fast_path(opts3)
 
 
 def test_parse_filters_coerces_bool_and_mtime_safely() -> None:
@@ -122,14 +125,17 @@ def test_parse_filters_coerces_bool_and_mtime_safely() -> None:
         "*",
         {
             "has_workflow": "false",
+            "tags": ["Cat", "cat", ""],
             "mtime_start": "bad",
             "mtime_end": "123",
         },
         "mtime_desc",
     )
     assert opts["filter_workflow_only"] is False
+    assert opts["filter_tags"] == ["cat"]
     assert opts["filter_mtime_start"] is None
     assert opts["filter_mtime_end"] == 123
+    assert not fs._can_use_listing_fast_path(opts)
 
 
 def test_prefilter_and_sort_entries() -> None:
@@ -159,7 +165,9 @@ def test_post_filters_helpers_and_pagination() -> None:
             "kind": "image",
             "ext": ".png",
             "rating": 5,
+            "tags": ["cat", "blue"],
             "has_workflow": 1,
+            "workflow_type": "T2I",
             "mtime": 200,
         },
         {
@@ -167,18 +175,23 @@ def test_post_filters_helpers_and_pagination() -> None:
             "kind": "image",
             "ext": ".jpg",
             "rating": 1,
+            "tags": ["dog"],
             "has_workflow": 0,
+            "workflow_type": "",
             "mtime": 100,
         },
     ]
 
     assert fs._passes_extension_filter(items[0], ["png"])
     assert not fs._passes_extension_filter(items[1], ["png"])
+    assert fs._passes_tag_filter(items[0], ["cat"])
+    assert not fs._passes_tag_filter(items[1], ["cat"])
     assert fs._passes_kind_filter(items[0], "image")
     assert fs._passes_rating_filter(items[0], 3)
     assert not fs._passes_rating_filter(items[1], 3)
     assert fs._passes_workflow_filter(items[0], True)
     assert not fs._passes_workflow_filter(items[1], True)
+    assert fs._passes_workflow_filter(items[1], False)
     assert fs._passes_mtime_window(items[0], 150, 300)
     assert not fs._passes_mtime_window(items[1], 150, 300)
     assert fs._passes_name_query(items[0], browse_all=False, q_lower="a.")
@@ -186,20 +199,21 @@ def test_post_filters_helpers_and_pagination() -> None:
     paged, total = fs._paginate_filesystem_listing_entries(
         items,
         filter_extensions=["png", "jpg"],
+        filter_tags=["cat"],
         filter_kind="image",
         filter_min_rating=1,
-        filter_workflow_only=False,
+        filter_workflow_only=None,
         filter_workflow_type="",
         filter_mtime_start=50,
         filter_mtime_end=250,
         browse_all=False,
         q_lower=".",
         limit=1,
-        offset=1,
+        offset=0,
     )
-    assert total == 2
+    assert total == 1
     assert len(paged) == 1
-    assert paged[0]["filename"] == "b.jpg"
+    assert paged[0]["filename"] == "a.png"
 
 
 def test_listing_payload_and_args() -> None:
@@ -216,6 +230,7 @@ def test_listing_payload_and_args() -> None:
             "filter_min_rating": 0,
             "filter_workflow_only": False,
             "filter_extensions": ["png"],
+            "filter_tags": ["cat"],
             "filter_mtime_start": None,
             "filter_mtime_end": None,
             "sort_key": "mtime_desc",
@@ -223,6 +238,7 @@ def test_listing_payload_and_args() -> None:
     )
     assert args["sort_key"] == "mtime_desc"
     assert args["filter_extensions"] == ["png"]
+    assert args["filter_tags"] == ["cat"]
 
 
 def test_lookup_and_enrichment_helpers() -> None:
@@ -348,16 +364,18 @@ async def test_dispatch_filesystem_listing_path_selects_fast_and_cached(monkeypa
         "browse_all": True,
         "filter_kind": "",
         "filter_min_rating": 0,
-        "filter_workflow_only": False,
+        "filter_workflow_only": None,
         "filter_workflow_type": "",
         "filter_extensions": [],
+        "filter_tags": [],
         "filter_mtime_start": None,
         "filter_mtime_end": None,
         "sort_key": "none",
         "opts": {
             "sort_key": "none",
             "filter_min_rating": 0,
-            "filter_workflow_only": False,
+            "filter_workflow_only": None,
+            "filter_tags": [],
             "filter_mtime_start": None,
             "filter_mtime_end": None,
         },

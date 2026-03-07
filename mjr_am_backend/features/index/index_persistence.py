@@ -77,6 +77,7 @@ async def persist_prepared_entries(
             root_id=root_id,
             stats=stats,
             to_enrich=to_enrich,
+            added_ids=added_ids,
         )
 
 
@@ -177,6 +178,7 @@ async def persist_prepared_entries_fallback(
     root_id: str | None,
     stats: dict[str, Any],
     to_enrich: list[str] | None,
+    added_ids: list[int] | None = None,
 ) -> None:
     stats["batch_fallbacks"] = int(stats.get("batch_fallbacks") or 0) + 1
     with scanner._batch_fallback_lock:
@@ -209,6 +211,7 @@ async def persist_prepared_entries_fallback(
                     root_id=root_id,
                     stats=stats,
                     to_enrich=to_enrich,
+                    added_ids=added_ids,
                 )
                 if not ok:
                     failed_entries.append(filepath_value)
@@ -242,6 +245,7 @@ async def process_prepared_entry_fallback(
     root_id: str | None,
     stats: dict[str, Any],
     to_enrich: list[str] | None,
+    added_ids: list[int] | None = None,
 ) -> bool:
     action = entry.get("action")
     if action == "refresh":
@@ -263,7 +267,7 @@ async def process_prepared_entry_fallback(
             root_id=root_id,
             stats=stats,
             to_enrich=to_enrich,
-            added_ids=None,
+            added_ids=added_ids,
             fallback_mode=True,
             respect_enrich_limit=False,
         )
@@ -276,7 +280,7 @@ async def process_prepared_entry_fallback(
             root_id=root_id,
             stats=stats,
             to_enrich=to_enrich,
-            added_ids=None,
+            added_ids=added_ids,
             fallback_mode=True,
             respect_enrich_limit=False,
         )

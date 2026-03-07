@@ -1,3 +1,4 @@
+import datetime
 import json
 
 import pytest
@@ -84,11 +85,23 @@ async def test_calendar_invalid_month_and_scope(monkeypatch) -> None:
     assert body2.get("code") == "DB_ERROR"
 
 
+def test_calendar_month_bounds_use_utc() -> None:
+    res = cal_mod._month_bounds("2026-01")
+
+    assert res.ok
+    start, end = res.data
+    assert start == int(datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc).timestamp())
+    assert end == int(datetime.datetime(2026, 2, 1, tzinfo=datetime.timezone.utc).timestamp())
+
+
 @pytest.mark.asyncio
 async def test_calendar_success_output_scope(monkeypatch) -> None:
+    captured = {"filters": None}
+
     class _Index:
         async def date_histogram_scoped(self, roots, month_start, month_end, filters=None):
-            _ = (roots, month_start, month_end, filters)
+            _ = (roots, month_start, month_end)
+            captured["filters"] = filters
             return Result.Ok({"2026-01-01": 2})
 
     async def _require_services():
@@ -97,11 +110,20 @@ async def test_calendar_success_output_scope(monkeypatch) -> None:
     monkeypatch.setattr(cal_mod, "_require_services", _require_services)
 
     app = _app_with(cal_mod.register_calendar_routes)
-    req = make_mocked_request("GET", "/mjr/am/date-histogram?month=2026-01&scope=output", app=app)
+    req = make_mocked_request(
+        "GET",
+        "/mjr/am/date-histogram?month=2026-01&scope=output&subfolder=animals&min_size_mb=2&max_size_mb=1&workflow_type=t2i&date_exact=2026-01-15",
+        app=app,
+    )
     match = await app.router.resolve(req)
     resp = await match.handler(req)
     body = json.loads(resp.text)
     assert body.get("ok") is True
+    filters = captured["filters"] or {}
+    assert filters.get("subfolder") == "animals"
+    assert filters.get("workflow_type") == "T2I"
+    assert filters.get("max_size_bytes") == filters.get("min_size_bytes")
+    assert filters.get("mtime_start") < filters.get("mtime_end")
 
 
 @pytest.mark.asyncio

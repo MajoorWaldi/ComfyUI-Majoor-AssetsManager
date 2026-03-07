@@ -8,6 +8,54 @@ import { comfyToast } from "../app/toast.js";
 import { t } from "../app/i18n.js";
 import { safeDispatchCustomEvent } from "../utils/events.js";
 
+const MAX_TAG_LEN = 100;
+const MAX_TAGS = 200;
+
+function normalizeInputTag(raw) {
+    try {
+        const s = String(raw ?? "").trim();
+        if (!s) return null;
+        if (s.length > MAX_TAG_LEN) return null;
+        for (let i = 0; i < s.length; i += 1) {
+            const code = s.charCodeAt(i);
+            if (code <= 31 || code === 127) return null;
+        }
+        if (/[;,]/.test(s)) return null;
+        return s;
+    } catch {
+        return null;
+    }
+}
+
+function normalizeStoredTag(raw) {
+    try {
+        const s = String(raw ?? "").replace(/[\x00-\x1f\x7f]/g, "").trim();
+        return s || null;
+    } catch {
+        return null;
+    }
+}
+
+function tagKey(raw) {
+    const normalized = normalizeStoredTag(raw);
+    return normalized ? normalized.toLowerCase() : "";
+}
+
+function dedupeTags(tags) {
+    const next = [];
+    const seen = new Set();
+    for (const raw of Array.isArray(tags) ? tags : []) {
+        const normalized = normalizeStoredTag(raw);
+        if (!normalized) continue;
+        const key = normalized.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        next.push(normalized);
+        if (next.length >= MAX_TAGS) break;
+    }
+    return next;
+}
+
 /**
  * Create interactive tags editor
  * @param {Object} asset - Asset object with id and current tags
@@ -29,7 +77,8 @@ export function createTagsEditor(asset, onUpdate) {
         max-width: 350px;
     `;
 
-    const currentTags = Array.isArray(asset.tags) ? [...asset.tags] : [];
+    const currentTags = dedupeTags(asset.tags);
+    asset.tags = [...currentTags];
 
     // Current tags display
     const tagsDisplay = document.createElement("div");
@@ -125,7 +174,7 @@ export function createTagsEditor(asset, onUpdate) {
         try {
             const result = await getAvailableTags();
             if (result.ok && Array.isArray(result.data)) {
-                availableTags = result.data;
+                availableTags = dedupeTags(result.data);
             }
         } catch (err) {
             console.warn("Failed to load available tags:", err);
@@ -136,6 +185,7 @@ export function createTagsEditor(asset, onUpdate) {
     // Filter and show suggestions
     const showSuggestions = (query) => {
         const normalizedQuery = query.toLowerCase().trim();
+        const currentKeys = new Set(currentTags.map((tag) => tagKey(tag)).filter(Boolean));
         if (!normalizedQuery) {
             dropdown.style.display = "none";
             try {
@@ -147,7 +197,8 @@ export function createTagsEditor(asset, onUpdate) {
         const suggestions = availableTags
             .filter(tag => {
                 const normalized = tag.toLowerCase();
-                return normalized.includes(normalizedQuery) && !currentTags.includes(tag);
+                const key = tagKey(tag);
+                return normalized.includes(normalizedQuery) && (!key || !currentKeys.has(key));
             })
             .slice(0, 10);
 
@@ -199,31 +250,13 @@ export function createTagsEditor(asset, onUpdate) {
         } catch (e) { console.debug?.(e); }
     };
 
-    const MAX_TAG_LEN = 64;
-    const MAX_TAGS = 200;
-    const normalizeTag = (raw) => {
-        try {
-            const s = String(raw ?? "").trim();
-            if (!s) return null;
-            if (s.length > MAX_TAG_LEN) return null;
-            // Disallow control chars/newlines (keep tags single-line and UI-safe).
-            for (let i = 0; i < s.length; i += 1) {
-                const code = s.charCodeAt(i);
-                if (code <= 31 || code === 127) return null;
-            }
-            // Avoid separators that are used for input parsing.
-            if (/[;,]/.test(s)) return null;
-            return s;
-        } catch {
-            return null;
-        }
-    };
-
     // Add tag function
     const addTag = (tag) => {
-        const normalized = normalizeTag(tag);
+        const normalized = normalizeInputTag(tag);
         if (!normalized) return;
-        if (currentTags.includes(normalized)) return;
+        const key = tagKey(normalized);
+        if (!key) return;
+        if (currentTags.some((existing) => tagKey(existing) === key)) return;
         if (currentTags.length >= MAX_TAGS) return;
         currentTags.push(normalized);
         renderTags();
@@ -234,7 +267,7 @@ export function createTagsEditor(asset, onUpdate) {
     let saveInFlight = false;
     let savePending = false;
     let saveAC = null;
-    let lastSaved = Array.isArray(asset.tags) ? [...asset.tags] : [];
+    let lastSaved = [...currentTags];
     const retryDelay = (attemptIndex) => Math.min(100 * (2 ** Math.max(0, attemptIndex - 1)), 2000);
     const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     const saveTags = async () => {
@@ -279,21 +312,26 @@ export function createTagsEditor(asset, onUpdate) {
                 return;
             }
 
-        // If we tagged an unindexed file, the backend may have created an asset row.
-        try {
-            const newId = result?.data?.asset_id ?? null;
-            if (asset.id == null && newId != null) asset.id = newId;
-        } catch (e) { console.debug?.(e); }
+            // If we tagged an unindexed file, the backend may have created an asset row.
+            try {
+                const newId = result?.data?.asset_id ?? null;
+                if (asset.id == null && newId != null) asset.id = newId;
+            } catch (e) { console.debug?.(e); }
 
-            lastSaved = [...snapshot];
-            asset.tags = [...snapshot];
-            if (onUpdate) onUpdate(snapshot);
-        safeDispatchCustomEvent(
-            ASSET_TAGS_CHANGED_EVENT,
-            { assetId: String(asset.id), tags: [...snapshot] },
-            { warnPrefix: "[TagsEditor]" }
-        );
-        comfyToast(t("toast.tagsUpdated"), "success", 1000);
+            const persisted = dedupeTags(Array.isArray(result?.data?.tags) ? result.data.tags : snapshot);
+            lastSaved = [...persisted];
+            asset.tags = [...persisted];
+            if (!savePending) {
+                currentTags.splice(0, currentTags.length, ...persisted);
+                renderTags();
+            }
+            if (onUpdate) onUpdate(persisted);
+            safeDispatchCustomEvent(
+                ASSET_TAGS_CHANGED_EVENT,
+                { assetId: String(asset.id), tags: [...persisted] },
+                { warnPrefix: "[TagsEditor]" }
+            );
+            comfyToast(t("toast.tagsUpdated"), "success", 1000);
             if (!savePending) break;
             savePending = false;
         }
@@ -400,8 +438,10 @@ export function createTagsEditor(asset, onUpdate) {
     // Allow external updates (e.g. hotkeys) to refresh the editor UI.
     try {
         container._mjrSetTags = (tags) => {
-            const next = Array.isArray(tags) ? tags.filter(Boolean).map(String) : [];
+            const next = dedupeTags(tags);
             currentTags.splice(0, currentTags.length, ...next);
+            lastSaved = [...next];
+            asset.tags = [...next];
             renderTags();
         };
     } catch (e) { console.debug?.(e); }

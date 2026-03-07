@@ -4,8 +4,8 @@ Hybrid search — combines FTS (BM25) and semantic (CLIP) results with Reciproca
 Understands inline search filters:
   rating:N       – minimum star rating
   tag:X          – must have this tag
-  kind:image     – filter by file type (image|video|audio)
-  after:YYYY-MM-DD / before:YYYY-MM-DD – date indexed range
+  kind:image     – filter by file type (image|video|audio|model3d)
+  after:YYYY-MM-DD / before:YYYY-MM-DD – asset date window
   ext:png        – file extension filter
 
 Remaining text after stripping filters becomes both the FTS query and the
@@ -20,10 +20,12 @@ from typing import Any
 
 from aiohttp import web
 from ...config import VECTOR_TEXT_SEARCH_MIN_SCORE, VECTOR_TEXT_SEARCH_RELATIVE_RATIO
+from ...features.index.searcher import _build_filter_clauses
 from ...shared import Result, get_logger
 
 from ..core import _json_response, _require_services
 from ..core.security import _check_rate_limit
+from ..search.query_sanitizer import date_bounds_for_exact, parse_request_filters
 from .vector_search import (
     _filter_text_search_hits,
     _hydrate_vector_results,
@@ -40,7 +42,7 @@ _HYBRID_VALID_SCOPES = {"output", "input", "custom", "all"}
 
 _RE_RATING = re.compile(r"\brating:([1-5])\b", re.IGNORECASE)
 _RE_TAG = re.compile(r'\btag:"([^"]+)"|\btag:(\S+)', re.IGNORECASE)
-_RE_KIND = re.compile(r"\bkind:(image|video|audio)\b", re.IGNORECASE)
+_RE_KIND = re.compile(r"\bkind:(image|video|audio|model3d)\b", re.IGNORECASE)
 _RE_AFTER = re.compile(r"\bafter:(\d{4}-\d{2}-\d{2})\b", re.IGNORECASE)
 _RE_BEFORE = re.compile(r"\bbefore:(\d{4}-\d{2}-\d{2})\b", re.IGNORECASE)
 _RE_EXT = re.compile(r"\bext:(\w+)\b", re.IGNORECASE)
@@ -60,37 +62,6 @@ def _build_scope_clauses(scope: str, custom_root_id: str | None) -> tuple[list[s
     if scope == "custom" and custom_root_id:
         where.append("a.root_id = ?")
         params.append(str(custom_root_id))
-    return where, params
-
-
-def _build_inline_filter_clauses(filters: dict[str, Any]) -> tuple[list[str], list[Any]]:
-    where: list[str] = []
-    params: list[Any] = []
-
-    if filters.get("min_rating"):
-        where.append("COALESCE(m.rating, 0) >= ?")
-        params.append(int(filters["min_rating"]))
-
-    if filters.get("kind"):
-        where.append("a.kind = ?")
-        params.append(filters["kind"])
-
-    if filters.get("ext"):
-        where.append("lower(a.ext) = ?")
-        params.append(str(filters["ext"]).lower())
-
-    if filters.get("after"):
-        where.append("date(a.indexed_at) >= ?")
-        params.append(filters["after"])
-
-    if filters.get("before"):
-        where.append("date(a.indexed_at) <= ?")
-        params.append(filters["before"])
-
-    for tag in filters.get("tags", []):
-        where.append("m.tags LIKE ?")
-        params.append(f'%"{tag}"%')
-
     return where, params
 
 
@@ -130,9 +101,8 @@ async def _filter_semantic_hits(
     where = [f"a.id IN ({placeholders})"]
     params: list[Any] = list(asset_ids)
     scope_where, scope_params = _build_scope_clauses(scope, custom_root_id)
-    filter_where, filter_params = _build_inline_filter_clauses(filters)
+    filter_where, filter_params = _build_filter_clauses(filters, alias="a")
     where.extend(scope_where)
-    where.extend(filter_where)
     params.extend(scope_params)
     params.extend(filter_params)
     where_sql = " AND ".join(where)
@@ -142,7 +112,7 @@ async def _filter_semantic_hits(
         SELECT a.id AS asset_id
         FROM assets a
         LEFT JOIN asset_metadata m ON a.id = m.asset_id
-        WHERE {where_sql}
+        WHERE {where_sql} {' '.join(filter_where)}
         """,
         tuple(params),
     )
@@ -192,18 +162,25 @@ def _parse_query_filters(raw: str) -> tuple[str, dict[str, Any]]:
 
     m = _RE_AFTER.search(q)
     if m:
-        filters["after"] = m.group(1)
+        start, _ = date_bounds_for_exact(m.group(1))
+        if start is not None:
+            filters["mtime_start"] = start
         q = _RE_AFTER.sub("", q)
 
     m = _RE_BEFORE.search(q)
     if m:
-        filters["before"] = m.group(1)
+        _, end = date_bounds_for_exact(m.group(1))
+        if end is not None:
+            filters["mtime_end"] = end
         q = _RE_BEFORE.sub("", q)
 
     m = _RE_EXT.search(q)
     if m:
-        filters["ext"] = m.group(1).lower()
-        q = _RE_EXT.sub("", q)
+        ext = m.group(1).lower()
+        filters.setdefault("extensions", [])
+        if ext not in filters["extensions"]:
+            filters["extensions"].append(ext)
+    q = _RE_EXT.sub("", q)
 
     return " ".join(q.split()), filters
 
@@ -262,9 +239,8 @@ async def _run_fts_search(
         where: list[str] = []
         params: list[Any] = []
         scope_where, scope_params = _build_scope_clauses(scope, custom_root_id)
-        filter_where, filter_params = _build_inline_filter_clauses(filters)
+        filter_where, filter_params = _build_filter_clauses(filters, alias="a")
         where.extend(scope_where)
-        where.extend(filter_where)
         params.extend(scope_params)
         params.extend(filter_params)
 
@@ -297,7 +273,7 @@ async def _run_fts_search(
                 f"FROM candidates c "
                 f"JOIN assets a ON a.id = c.asset_id "
                 f"LEFT JOIN asset_metadata m ON a.id = m.asset_id "
-                f"WHERE {where_sql} "
+                f"WHERE {where_sql} {' '.join(filter_where)} "
                 f"GROUP BY c.asset_id "
                 f"ORDER BY _rank LIMIT ?"
             )
@@ -307,7 +283,7 @@ async def _run_fts_search(
                 f"SELECT a.id AS asset_id, 0.0 AS _rank "
                 f"FROM assets a "
                 f"LEFT JOIN asset_metadata m ON a.id = m.asset_id "
-                f"WHERE {where_sql} "
+                f"WHERE {where_sql} {' '.join(filter_where)} "
                 f"ORDER BY a.mtime DESC LIMIT ?"
             )
             rows = await db.aquery(query, (*params, top_k))
@@ -366,6 +342,12 @@ def register_hybrid_search_routes(routes: web.RouteTableDef) -> None:
         top_k = max(1, min(200, top_k))
 
         clean_q, inline_filters = _parse_query_filters(raw_q)
+        filters_res = parse_request_filters(request.query, inline_filters)
+        if not filters_res.ok:
+            return _json_response(filters_res)
+        filters = filters_res.data or {}
+        if scope in {"output", "input", "custom"}:
+            filters["subfolder"] = str(request.query.get("subfolder") or "")
 
         db = services_dict.get("db")
         searcher = services_dict.get("vector_searcher")
@@ -380,7 +362,7 @@ def register_hybrid_search_routes(routes: web.RouteTableDef) -> None:
                 searcher = None
 
         # Run FTS and semantic in parallel
-        fts_coro = _run_fts_search(db, clean_q, inline_filters, scope, custom_root_id, top_k * 2)
+        fts_coro = _run_fts_search(db, clean_q, filters, scope, custom_root_id, top_k * 2)
 
         async def _sem_search() -> list[dict[str, Any]]:
             if searcher is None or not clean_q:
@@ -392,7 +374,7 @@ def register_hybrid_search_routes(routes: web.RouteTableDef) -> None:
                 return await _filter_semantic_hits(
                     db,
                     list(res.data),
-                    filters=inline_filters,
+                    filters=filters,
                     scope=scope,
                     custom_root_id=custom_root_id,
                     min_score=VECTOR_TEXT_SEARCH_MIN_SCORE,

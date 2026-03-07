@@ -90,3 +90,20 @@ def test_browser_entries_size_max_lt_min_is_normalized(tmp_path: Path) -> None:
         max_size_bytes=10,
     )
     assert res.ok
+
+
+def test_browser_entries_dimension_filters_exclude_unknown_dimensions(tmp_path: Path) -> None:
+    f = tmp_path / "x.png"
+    f.write_bytes(b"\x89PNG\r\n\x1a\n" + b"x" * 128)
+
+    res = list_filesystem_browser_entries(
+        str(tmp_path),
+        "*",
+        200,
+        0,
+        min_width=1,
+    )
+    assert res.ok
+    assets = (res.data.get("assets") or []) if isinstance(res.data, dict) else []
+    file_names = {str(item.get("filename")) for item in assets if str(item.get("kind")) != "folder"}
+    assert "x.png" not in file_names

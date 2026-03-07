@@ -84,7 +84,7 @@ export function createRatingTagsSection(asset, onUpdate) {
 
     asset = asset && typeof asset === "object" ? asset : {};
     asset.rating = _coerceRating(asset.rating);
-    asset.tags = _coerceTags(asset.tags);
+    asset.tags = _dedupeTags(_coerceTags(asset.tags));
 
     const ratingContainer = document.createElement("div");
     ratingContainer.style.marginBottom = "16px";
@@ -271,8 +271,9 @@ export function createRatingTagsSection(asset, onUpdate) {
                 try {
                     const result = await updateAssetTags(assetId, next);
                     if (!result?.ok) return;
-                    asset.tags = next;
-                    tagsEditor?._mjrSetTags?.(next);
+                    const persisted = _dedupeTags(_coerceTags(result?.data?.tags ?? next));
+                    asset.tags = persisted;
+                    tagsEditor?._mjrSetTags?.(persisted);
                     if (onUpdate) onUpdate(asset);
                     chip.remove();
                     if (!aiTagsChips.children.length) {

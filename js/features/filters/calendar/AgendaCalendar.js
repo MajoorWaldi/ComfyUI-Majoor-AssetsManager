@@ -90,14 +90,31 @@ async function fetchHistogram({ state, monthKey }) {
         if (scope === "collection") {
             return { ok: true, days: {} };
         }
+        const rawSubfolder = String(state?.currentFolderRelativePath || "").trim();
+        const subfolder = scope === "custom" && !state?.customRootId
+            ? null
+            : (rawSubfolder || null);
 
         const url = buildDateHistogramURL({
             scope,
             customRootId: state?.customRootId || null,
+            subfolder,
             month: monthKey,
             kind: state?.kindFilter || null,
-            hasWorkflow: !!state?.workflowOnly,
-            minRating: Number(state?.minRating || 0) || 0
+            // Keep tri-state parity with list queries: only send has_workflow when enabled.
+            hasWorkflow: state?.workflowOnly ? true : null,
+            minRating: Number(state?.minRating || 0) || 0,
+            minSizeMB: Number(state?.minSizeMB || 0) || 0,
+            maxSizeMB: Number(state?.maxSizeMB || 0) || 0,
+            minWidth: Number(state?.minWidth || 0) || 0,
+            minHeight: Number(state?.minHeight || 0) || 0,
+            maxWidth: Number(state?.maxWidth || 0) || 0,
+            maxHeight: Number(state?.maxHeight || 0) || 0,
+            workflowType: String(state?.workflowType || "").trim().toUpperCase() || null,
+            // Keep calendar highlights based on the currently browsed month and non-date filters only.
+            // Applying active date filters here can collapse highlights to a single day (or none).
+            dateRange: null,
+            dateExact: null,
         });
         const res = await get(url);
         if (!res || !res.ok) return { ok: false, error: res?.error || "Histogram error" };
@@ -209,6 +226,11 @@ export function createAgendaCalendar({ container, hiddenInput, state, onRequestR
             if (count > 0) {
                 cell.classList.add("mjr-agenda-day--has-assets");
                 cell.title = `${count} asset${count === 1 ? "" : "s"}`;
+                const badge = document.createElement("span");
+                badge.className = "mjr-agenda-day-badge";
+                badge.textContent = count > 99 ? "99+" : String(count);
+                badge.setAttribute("aria-label", `${count} asset${count === 1 ? "" : "s"}`);
+                cell.appendChild(badge);
             } else {
                 cell.title = t("tooltip.noAssetsDay", "No assets on this day");
             }
@@ -217,7 +239,9 @@ export function createAgendaCalendar({ container, hiddenInput, state, onRequestR
             }
 
             cell.addEventListener("click", () => {
-                safeSetHiddenInputValue(hiddenInput, key);
+                const current = String(hiddenInput.value || "").trim();
+                // Toggle behavior: clicking the selected day clears the date filter.
+                safeSetHiddenInputValue(hiddenInput, current === key ? "" : key);
                 // If the user picks a day, clear any range filter via the existing controller logic.
                 // Triggering change is enough.
             });
@@ -290,4 +314,3 @@ export function createAgendaCalendar({ container, hiddenInput, state, onRequestR
         }
     };
 }
-

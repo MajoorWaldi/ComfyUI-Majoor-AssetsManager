@@ -31,13 +31,26 @@ def test_collect_hydration_paths_skips_folder_and_invalid() -> None:
 
 
 def test_index_rows_and_hydrate_asset_from_row() -> None:
-    rows = [{"filepath": "C:/a.png", "id": 3, "rating": 5, "tags": '["x"]'}]
+    rows = [
+        {
+            "filepath": "C:/a.png",
+            "id": 3,
+            "rating": 5,
+            "tags": '["x"]',
+            "has_workflow": 1,
+            "has_generation_data": 1,
+            "workflow_type": "T2I",
+        }
+    ]
     by = s._index_rows_by_filepath(rows)
     asset = {"kind": "image", "filepath": "C:/a.png"}
     s._hydrate_browser_asset_from_row(asset, by)
     assert asset["id"] == 3
     assert asset["rating"] == 5
     assert asset["tags"] == ["x"]
+    assert asset["has_workflow"] == 1
+    assert asset["has_generation_data"] == 1
+    assert asset["workflow_type"] == "T2I"
 
 
 def test_coerce_browser_tags_variants() -> None:

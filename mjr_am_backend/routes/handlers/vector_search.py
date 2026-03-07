@@ -19,11 +19,13 @@ from ...config import (
     VECTOR_TEXT_SEARCH_RELATIVE_RATIO,
     is_vector_search_enabled,
 )
+from ...features.index.searcher import _build_filter_clauses
 from ...shared import Result, get_logger
 
 from ..core import _json_response, _require_services
 from ..core import safe_error_message
 from ..core.security import _check_rate_limit
+from ..search.query_sanitizer import parse_request_filters
 
 logger = get_logger(__name__)
 
@@ -141,10 +143,11 @@ async def _filter_hits_by_scope(
     *,
     scope: str,
     custom_root_id: str,
+    filters: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     if db is None or not isinstance(hits, list) or not hits:
         return hits if isinstance(hits, list) else []
-    if scope == "all":
+    if scope == "all" and not filters:
         return hits
 
     asset_ids: list[int] = []
@@ -159,16 +162,25 @@ async def _filter_hits_by_scope(
         return []
 
     placeholders = ",".join("?" for _ in asset_ids)
-    where_parts = [f"a.id IN ({placeholders})", "LOWER(COALESCE(a.source, '')) = ?"]
+    where_parts = [f"a.id IN ({placeholders})"]
     params: list[Any] = list(asset_ids)
-    params.append(scope)
+    if scope in {"output", "input", "custom"}:
+        where_parts.append("LOWER(COALESCE(a.source, '')) = ?")
+        params.append(scope)
     if scope == "custom" and custom_root_id:
         where_parts.append("a.root_id = ?")
         params.append(custom_root_id)
+    filter_clauses, filter_params = _build_filter_clauses(filters or {}, alias="a")
+    params.extend(filter_params)
 
     where_sql = " AND ".join(where_parts)
     rows = await db.aquery(
-        f"SELECT a.id AS asset_id FROM assets a WHERE {where_sql}",
+        (
+            "SELECT a.id AS asset_id "
+            "FROM assets a "
+            "LEFT JOIN asset_metadata m ON a.id = m.asset_id "
+            f"WHERE {where_sql} {' '.join(filter_clauses)}"
+        ),
         tuple(params),
     )
     if not rows.ok or not rows.data:
@@ -453,6 +465,12 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         scope, custom_root_id, scope_error = _read_vector_scope_params(request)
         if scope_error is not None:
             return _json_response(scope_error)
+        filters_res = parse_request_filters(request.query)
+        if not filters_res.ok:
+            return _json_response(filters_res)
+        filters = filters_res.data or {}
+        if scope in {"output", "input", "custom"}:
+            filters["subfolder"] = str(request.query.get("subfolder") or "")
 
         try:
             top_k = int(request.query.get("top_k", str(VECTOR_SIMILAR_TOPK)))
@@ -477,6 +495,7 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
                     list(result.data or []),
                     scope=scope,
                     custom_root_id=custom_root_id,
+                    filters=filters,
                 ))[:top_k]
                 result = await _hydrate_vector_results(services_dict, result)
 

@@ -1,6 +1,11 @@
 """Inline query/date/sort sanitization helpers extracted from handlers/search.py."""
+from collections.abc import Mapping
 import datetime
+import math
 import re
+from typing import Any
+
+from ...shared import Result
 
 MAX_RATING = 5
 MAX_TAG_LENGTH = 50
@@ -141,3 +146,96 @@ def normalize_sort_key(value: str | None) -> str:
 def sanitize_tag_value(tag: str) -> str:
     """Strip control characters and excessive whitespace from a tag value."""
     return re.sub(r"[\x00-\x1f\x7f]", "", str(tag or "")).strip()
+
+
+def _merge_size_and_dimension_clamps(filters: dict[str, Any]) -> None:
+    try:
+        min_b = int(filters.get("min_size_bytes") or 0)
+        max_b = int(filters.get("max_size_bytes") or 0)
+        if min_b > 0 and max_b > 0 and max_b < min_b:
+            filters["max_size_bytes"] = min_b
+
+        min_w = int(filters.get("min_width") or 0)
+        max_w = int(filters.get("max_width") or 0)
+        if min_w > 0 and max_w > 0 and max_w < min_w:
+            filters["max_width"] = min_w
+
+        min_h = int(filters.get("min_height") or 0)
+        max_h = int(filters.get("max_height") or 0)
+        if min_h > 0 and max_h > 0 and max_h < min_h:
+            filters["max_height"] = min_h
+    except Exception:
+        return
+
+
+def parse_request_filters(
+    query: Mapping[str, Any],
+    inline_filters: dict[str, Any] | None = None,
+) -> Result[dict[str, Any]]:
+    filters: dict[str, Any] = dict(inline_filters or {})
+
+    if "kind" in query:
+        kind = str(query["kind"] or "").strip().lower()
+        if kind not in VALID_KIND_FILTERS:
+            return Result.Err(
+                "INVALID_INPUT",
+                f"Invalid kind. Must be one of: {', '.join(sorted(VALID_KIND_FILTERS))}",
+            )
+        filters["kind"] = kind
+
+    if "min_rating" in query:
+        try:
+            filters["min_rating"] = max(0, min(MAX_RATING, int(query["min_rating"])))
+        except Exception:
+            return Result.Err("INVALID_INPUT", "Invalid min_rating")
+
+    numeric_specs = [
+        ("min_size_mb", "min_size_bytes", float, 1024 * 1024, "Invalid min_size_mb"),
+        ("max_size_mb", "max_size_bytes", float, 1024 * 1024, "Invalid max_size_mb"),
+        ("min_width", "min_width", int, 1, "Invalid min_width"),
+        ("min_height", "min_height", int, 1, "Invalid min_height"),
+        ("max_width", "max_width", int, 1, "Invalid max_width"),
+        ("max_height", "max_height", int, 1, "Invalid max_height"),
+    ]
+    for raw_key, filter_key, caster, scale, error_text in numeric_specs:
+        if raw_key not in query:
+            continue
+        try:
+            raw_value = caster(query[raw_key])
+        except Exception:
+            return Result.Err("INVALID_INPUT", error_text)
+        if isinstance(raw_value, float) and not math.isfinite(raw_value):
+            return Result.Err("INVALID_INPUT", error_text)
+        if raw_value > 0:
+            try:
+                filters[filter_key] = int(raw_value * scale) if scale != 1 else int(raw_value)
+            except Exception:
+                return Result.Err("INVALID_INPUT", error_text)
+
+    if "workflow_type" in query:
+        workflow_type = str(query["workflow_type"] or "").strip().upper()
+        if workflow_type:
+            filters["workflow_type"] = workflow_type
+
+    if "has_workflow" in query:
+        filters["has_workflow"] = str(query["has_workflow"] or "").strip().lower() in ("true", "1", "yes")
+
+    date_exact = str(query.get("date_exact") or "").strip()
+    date_range = str(query.get("date_range") or "").strip().lower()
+    mtime_start = None
+    mtime_end = None
+    if date_exact:
+        mtime_start, mtime_end = date_bounds_for_exact(date_exact)
+        if mtime_start is None or mtime_end is None:
+            return Result.Err("INVALID_INPUT", "Invalid date_exact")
+    elif date_range:
+        mtime_start, mtime_end = date_bounds_for_range(date_range)
+        if mtime_start is None or mtime_end is None:
+            return Result.Err("INVALID_INPUT", "Invalid date_range")
+    if mtime_start is not None:
+        filters["mtime_start"] = mtime_start
+    if mtime_end is not None:
+        filters["mtime_end"] = mtime_end
+
+    _merge_size_and_dimension_clamps(filters)
+    return Result.Ok(filters)

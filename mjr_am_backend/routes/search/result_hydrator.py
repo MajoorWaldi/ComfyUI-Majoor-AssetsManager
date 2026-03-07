@@ -84,6 +84,14 @@ async def query_browser_rows(db: Any, filepaths: list[str]) -> list[dict] | None
                 a.filepath,
                 COALESCE(m.rating, 0) AS rating,
                 COALESCE(m.tags, '[]') AS tags,
+                m.has_workflow AS has_workflow,
+                m.has_generation_data AS has_generation_data,
+                UPPER(COALESCE(
+                    json_extract(m.metadata_raw, '$.workflow_type'),
+                    json_extract(m.metadata_raw, '$.geninfo.engine.type'),
+                    json_extract(m.metadata_raw, '$.engine.type'),
+                    ''
+                )) AS workflow_type,
                 CASE
                     WHEN LENGTH(TRIM(COALESCE(a.enhanced_caption, ''))) > 0 THEN 1
                     ELSE 0
@@ -158,6 +166,9 @@ def hydrate_asset_from_row(asset: dict, by_fp: dict[str, dict]) -> None:
         asset["id"] = int(rid)
     asset["rating"] = int(row.get("rating") or 0)
     asset["tags"] = coerce_browser_tags(row.get("tags"))
+    asset["has_workflow"] = row.get("has_workflow")
+    asset["has_generation_data"] = row.get("has_generation_data")
+    asset["workflow_type"] = row.get("workflow_type")
     asset["has_ai_info"] = row.get("has_ai_info")
     asset["has_ai_vector"] = row.get("has_ai_vector")
     asset["has_ai_auto_tags"] = row.get("has_ai_auto_tags")

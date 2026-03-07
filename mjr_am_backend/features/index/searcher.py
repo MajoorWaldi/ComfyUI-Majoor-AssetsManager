@@ -43,7 +43,7 @@ MAX_TOKEN_LENGTH = SEARCH_MAX_TOKEN_LENGTH
 MAX_ASSET_BATCH_IDS = SEARCH_MAX_BATCH_IDS
 MAX_FILEPATH_LOOKUP = SEARCH_MAX_FILEPATH_LOOKUP
 VALID_SORT_KEYS = {"mtime_desc", "mtime_asc", "name_asc", "name_desc", "rating_desc", "size_desc", "size_asc"}
-_SAFE_SQL_FRAGMENT_RE = re.compile(r"^[\s\w\.\(\)=<>\?!,'\\%:-]+$")
+_SAFE_SQL_FRAGMENT_RE = re.compile(r"^[\s\w\.\(\)=<>\?!,'\\%:$-]+$")
 _FTS_RESERVED = {"AND", "OR", "NOT", "NEAR"}
 _AI_SELECT_SQL = """
                 COALESCE(a.enhanced_caption, '') as enhanced_caption,
@@ -120,6 +120,7 @@ def _build_filter_clauses(filters: dict[str, Any] | None, alias: str = "a") -> t
         return clauses, params
     _append_kind_and_source_filters(filters, alias, clauses, params)
     _append_extension_filter(filters, alias, clauses, params)
+    _append_subfolder_filter(filters, alias, clauses, params)
     _append_numeric_range_filters(filters, alias, clauses, params)
     _append_tag_filter(filters, clauses, params)
     _append_workflow_type_filter(filters, clauses, params)
@@ -158,6 +159,13 @@ def _append_extension_filter(filters: dict[str, Any], alias: str, clauses: list[
     params.extend(normalized_exts)
 
 
+def _append_subfolder_filter(filters: dict[str, Any], alias: str, clauses: list[str], params: list[Any]) -> None:
+    if "subfolder" not in filters:
+        return
+    clauses.append(f"AND COALESCE({alias}.subfolder, '') = ?")
+    params.append(str(filters.get("subfolder") or ""))
+
+
 def _append_numeric_range_filters(filters: dict[str, Any], alias: str, clauses: list[str], params: list[Any]) -> None:
     int_specs = [
         ("min_size_bytes", f"AND COALESCE({alias}.size, 0) >= ?"),
@@ -176,6 +184,23 @@ def _append_numeric_range_filters(filters: dict[str, Any], alias: str, clauses: 
             params.append(int(filters[key]))
 
 
+def _safe_metadata_json_extract(path: str) -> str:
+    """Guard json_extract against malformed metadata_raw payloads.
+
+    Some databases contain legacy rows where metadata_raw is not valid JSON.
+    Direct json_extract(...) on those rows raises a SQLite error and breaks the
+    whole query; CASE+json_valid keeps filtering resilient.
+    """
+    safe_path = str(path or "")
+    return (
+        "CASE "
+        "WHEN json_valid(COALESCE(m.metadata_raw, '')) "
+        f"THEN json_extract(m.metadata_raw, '{safe_path}') "
+        "ELSE NULL "
+        "END"
+    )
+
+
 def _append_workflow_type_filter(filters: dict[str, Any], clauses: list[str], params: list[Any]) -> None:
     if "workflow_type" not in filters:
         return
@@ -184,11 +209,14 @@ def _append_workflow_type_filter(filters: dict[str, Any], clauses: list[str], pa
     if not variants:
         return
     placeholders = ", ".join("?" for _ in variants)
+    workflow_type_expr = _safe_metadata_json_extract("$.workflow_type")
+    geninfo_type_expr = _safe_metadata_json_extract("$.geninfo.engine.type")
+    engine_type_expr = _safe_metadata_json_extract("$.engine.type")
     clauses.append(
         "AND UPPER(COALESCE("
-        "json_extract(m.metadata_raw, '$.workflow_type'), "
-        "json_extract(m.metadata_raw, '$.geninfo.engine.type'), "
-        "json_extract(m.metadata_raw, '$.engine.type'), "
+        f"{workflow_type_expr}, "
+        f"{geninfo_type_expr}, "
+        f"{engine_type_expr}, "
         "''"
         f")) IN ({placeholders})"
     )
@@ -215,22 +243,25 @@ def _append_has_workflow_filter(filters: dict[str, Any], clauses: list[str]) -> 
     if "has_workflow" not in filters:
         return
     want_workflow = bool(filters.get("has_workflow"))
+    workflow_expr = _safe_metadata_json_extract("$.workflow")
+    prompt_expr = _safe_metadata_json_extract("$.prompt")
+    parameters_expr = _safe_metadata_json_extract("$.parameters")
     if want_workflow:
         clauses.append(
             "AND ("
             "COALESCE(m.has_workflow, 0) = 1 "
-            "OR json_extract(m.metadata_raw, '$.workflow') IS NOT NULL "
-            "OR json_extract(m.metadata_raw, '$.prompt') IS NOT NULL "
-            "OR json_extract(m.metadata_raw, '$.parameters') IS NOT NULL"
+            f"OR {workflow_expr} IS NOT NULL "
+            f"OR {prompt_expr} IS NOT NULL "
+            f"OR {parameters_expr} IS NOT NULL"
             ")"
         )
         return
     clauses.append(
         "AND ("
         "COALESCE(m.has_workflow, 0) = 0 "
-        "AND json_extract(m.metadata_raw, '$.workflow') IS NULL "
-        "AND json_extract(m.metadata_raw, '$.prompt') IS NULL "
-        "AND json_extract(m.metadata_raw, '$.parameters') IS NULL"
+        f"AND {workflow_expr} IS NULL "
+        f"AND {prompt_expr} IS NULL "
+        f"AND {parameters_expr} IS NULL"
         ")"
     )
 
@@ -332,7 +363,7 @@ def _build_histogram_query(
     sql_parts = [
         """
         SELECT
-            strftime('%Y-%m-%d', a.mtime, 'unixepoch', 'localtime') AS day,
+            strftime('%Y-%m-%d', a.mtime, 'unixepoch') AS day,
             COUNT(*) AS count
         FROM assets a
         LEFT JOIN asset_metadata m ON a.id = m.asset_id
@@ -625,7 +656,7 @@ class IndexSearcher:
                 COALESCE(m.tags, '[]') as tags,
 {metadata_tags_text_clause}{_AI_SELECT_SQL}                    m.has_workflow as has_workflow,
                 m.has_generation_data as has_generation_data,
-                json_extract(m.metadata_raw, '$.generation_time_ms') as generation_time_ms,
+                CASE WHEN json_valid(COALESCE(m.metadata_raw, '')) THEN json_extract(m.metadata_raw, '$.generation_time_ms') ELSE NULL END as generation_time_ms,
                 NULL as file_creation_time,
                 NULL as file_birth_time
             FROM assets a
@@ -728,7 +759,7 @@ class IndexSearcher:
                 COALESCE(m.tags, '[]') as tags,
 {metadata_tags_text_clause}{_AI_SELECT_SQL}                    m.has_workflow as has_workflow,
                 m.has_generation_data as has_generation_data,
-                json_extract(m.metadata_raw, '$.generation_time_ms') as generation_time_ms,
+                CASE WHEN json_valid(COALESCE(m.metadata_raw, '')) THEN json_extract(m.metadata_raw, '$.generation_time_ms') ELSE NULL END as generation_time_ms,
                 NULL as file_creation_time,
                 NULL as file_birth_time,
                 best.rank as rank
@@ -793,7 +824,7 @@ class IndexSearcher:
                 COALESCE(m.tags, '[]') as tags,
 {metadata_tags_text_clause}{_AI_SELECT_SQL}                    m.has_workflow as has_workflow,
                 m.has_generation_data as has_generation_data,
-                json_extract(m.metadata_raw, '$.generation_time_ms') as generation_time_ms,
+                {_safe_metadata_json_extract('$.generation_time_ms')} as generation_time_ms,
                 NULL as file_creation_time,
                 NULL as file_birth_time
             FROM assets a
@@ -874,7 +905,7 @@ class IndexSearcher:
                 COALESCE(m.tags, '[]') as tags,
 {metadata_tags_text_clause}{_AI_SELECT_SQL}                    m.has_workflow as has_workflow,
                 m.has_generation_data as has_generation_data,
-                json_extract(m.metadata_raw, '$.generation_time_ms') as generation_time_ms,
+                {_safe_metadata_json_extract('$.generation_time_ms')} as generation_time_ms,
                 NULL as file_creation_time,
                 NULL as file_birth_time,                    best.rank as rank
             FROM best
@@ -1099,7 +1130,7 @@ class IndexSearcher:
         Return a day->count mapping for assets whose mtime falls inside [month_start, month_end).
 
         Notes:
-        - Uses localtime conversion to match the UI's date filters (which use local time).
+        - Uses UTC day buckets to stay aligned with list/search date filters.
         - Intended for calendar "days with assets" indicators (no query/FTS).
         """
         cleaned_roots = _resolve_search_roots(roots)
@@ -1157,7 +1188,7 @@ class IndexSearcher:
                     THEN 1
                     ELSE 0
                 END as has_ai_info,
-                json_extract(m.metadata_raw, '$.generation_time_ms') as generation_time_ms,
+                {_safe_metadata_json_extract('$.generation_time_ms')} as generation_time_ms,
                 COALESCE(m.metadata_raw, '{}') AS metadata_raw
             FROM assets a
             LEFT JOIN asset_metadata m ON m.asset_id = a.id
@@ -1315,7 +1346,7 @@ class IndexSearcher:
                     THEN 1
                     ELSE 0
                 END as has_ai_info,
-                json_extract(m.metadata_raw, '$.workflow_type') as workflow_type
+                CASE WHEN json_valid(COALESCE(m.metadata_raw, '')) THEN json_extract(m.metadata_raw, '$.workflow_type') ELSE NULL END as workflow_type
             FROM assets a
             LEFT JOIN asset_metadata m ON a.id = m.asset_id
             LEFT JOIN vec.asset_embeddings ae ON a.id = ae.asset_id

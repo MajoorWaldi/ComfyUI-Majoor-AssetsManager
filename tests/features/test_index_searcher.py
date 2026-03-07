@@ -1,4 +1,5 @@
 import json
+import sqlite3
 from types import SimpleNamespace
 
 import pytest
@@ -52,6 +53,7 @@ def test_helper_functions_cover_smoke():
     assert m._sanitize_histogram_filters({"mtime_start": 1, "x": 2}) == {"x": 2}
     sql, pr = m._build_histogram_query("1=1", [], 1, 2, {"kind": "image"})
     assert "SELECT" in sql and pr
+    assert "localtime" not in sql
     assert m._coerce_histogram_days([{"day": "2026-01-01", "count": 2}])["2026-01-01"] == 2
     assert m._normalize_asset_ids([1, "2", -1, 1]) == [1, 2]
 
@@ -208,3 +210,41 @@ def test_misc_helpers_mapping():
     assert "C:/x.png" in mapped
     hyd = m._hydrate_search_rows([{"tags": "[]"}], include_highlight=True)
     assert hyd[0]["tags"] == []
+
+
+def test_workflow_filters_use_json_valid_guards():
+    clauses, params = m._build_filter_clauses({"has_workflow": True, "workflow_type": "t2i"})
+    sql = " ".join(clauses)
+
+    assert "json_valid" in sql
+    assert "CASE WHEN json_valid" in sql
+    assert "$.workflow_type" in sql
+    assert "$.workflow" in sql
+    assert params == ["T2I"]
+
+
+def test_workflow_filters_tolerate_malformed_metadata_json():
+    conn = sqlite3.connect(":memory:")
+    conn.execute("CREATE TABLE assets (id INTEGER PRIMARY KEY, source TEXT, mtime INTEGER)")
+    conn.execute("CREATE TABLE asset_metadata (asset_id INTEGER, has_workflow INTEGER, metadata_raw TEXT)")
+    conn.execute("INSERT INTO assets(id, source, mtime) VALUES (1, 'output', 1)")
+    conn.execute("INSERT INTO assets(id, source, mtime) VALUES (2, 'output', 2)")
+    conn.execute("INSERT INTO asset_metadata(asset_id, has_workflow, metadata_raw) VALUES (1, 0, '{bad')")
+    conn.execute(
+        "INSERT INTO asset_metadata(asset_id, has_workflow, metadata_raw) VALUES (2, 1, '{\"workflow_type\":\"T2I\"}')"
+    )
+
+    clauses, params = m._build_filter_clauses({"has_workflow": True, "workflow_type": "T2I"})
+    sql = (
+        "SELECT a.id "
+        "FROM assets a "
+        "LEFT JOIN asset_metadata m ON a.id = m.asset_id "
+        "WHERE 1=1 "
+        f"{' '.join(clauses)} "
+        "ORDER BY a.id"
+    )
+
+    rows = conn.execute(sql, tuple(params)).fetchall()
+    conn.close()
+
+    assert rows == [(2,)]
