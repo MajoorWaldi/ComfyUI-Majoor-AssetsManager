@@ -472,6 +472,7 @@ async def test_persist_prepared_entries_fallback_counts(monkeypatch) -> None:
         root_id=None,
         stats=stats,
         to_enrich=[],
+        added_ids=[],
     )
     assert stats["batch_fallbacks"] == 1
 
@@ -488,8 +489,34 @@ async def test_process_prepared_entry_fallback_unknown() -> None:
         root_id=None,
         stats=stats,
         to_enrich=[],
+        added_ids=[],
     )
     assert ok is True
+
+
+@pytest.mark.asyncio
+async def test_process_prepared_entry_fallback_forwards_added_ids(monkeypatch) -> None:
+    captured = {"added_ids": None}
+
+    async def _added(*args, **kwargs):
+        captured["added_ids"] = kwargs.get("added_ids")
+        return True
+
+    monkeypatch.setattr(persist_mod, "process_added_entry", _added)
+
+    ok = await persist_mod.process_prepared_entry_fallback(
+        SimpleNamespace(),
+        entry={"action": "added"},
+        base_dir=".",
+        source="output",
+        root_id=None,
+        stats={"errors": 0, "skipped": 0},
+        to_enrich=[],
+        added_ids=[42],
+    )
+
+    assert ok is True
+    assert captured["added_ids"] == [42]
 
 
 @pytest.mark.asyncio

@@ -146,11 +146,16 @@ export function bindFilters({
             const pair = map[preset] || [0, 0];
             const w = Number(pair[0] || 0);
             const h = Number(pair[1] || 0);
-            // Presets set minimum resolution only
+            // Presets represent minimum resolution only, so stale max bounds
+            // must be cleared to avoid silently constraining the result set.
             state.minWidth = w;
             state.minHeight = h;
+            state.maxWidth = 0;
+            state.maxHeight = 0;
             if (minWidthInput) minWidthInput.value = w > 0 ? String(w) : "";
             if (minHeightInput) minHeightInput.value = h > 0 ? String(h) : "";
+            if (maxWidthInput) maxWidthInput.value = "";
+            if (maxHeightInput) maxHeightInput.value = "";
             try { onFiltersChanged?.(); } catch (e) { console.debug?.(e); }
             scheduleReload();
         }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
@@ -199,10 +204,11 @@ export function bindFilters({
         };
         try {
             const opts = lifecycleSignal ? { passive: true, signal: lifecycleSignal } : { passive: true };
-            window?.addEventListener?.("MJR:AgendaStatus", handleAgendaStatus, opts);
+            const win = typeof window !== "undefined" ? window : null;
+            win?.addEventListener?.("MJR:AgendaStatus", handleAgendaStatus, opts);
             disposers.push(() => {
                 try {
-                    window.removeEventListener("MJR:AgendaStatus", handleAgendaStatus, opts);
+                    win?.removeEventListener?.("MJR:AgendaStatus", handleAgendaStatus, opts);
                 } catch (e) { console.debug?.(e); }
             });
         } catch (e) { console.debug?.(e); }

@@ -99,14 +99,17 @@ class AssetUpdater:
 
     def _sanitize_tags(self, tags: list[str]) -> list[str]:
         sanitized: list[str] = []
+        seen: set[str] = set()
         for tag in tags:
             if not isinstance(tag, str):
                 continue
             cleaned = str(tag).strip()
             if not cleaned or len(cleaned) > MAX_TAG_LENGTH:
                 continue
-            if cleaned in sanitized:
+            key = cleaned.casefold()
+            if key in seen:
                 continue
+            seen.add(key)
             sanitized.append(cleaned)
         return sanitized
 
@@ -161,13 +164,18 @@ class AssetUpdater:
             return Result.Err("DB_ERROR", result.error or "Failed to read tags")
 
         all_tags = self._collect_unique_tags(result.data or [])
-        return Result.Ok(sorted(all_tags))
+        return Result.Ok(sorted(all_tags, key=str.casefold))
 
-    def _collect_unique_tags(self, rows: list[dict[str, Any]]) -> set[str]:
-        all_tags: set[str] = set()
+    def _collect_unique_tags(self, rows: list[dict[str, Any]]) -> list[str]:
+        all_tags: list[str] = []
+        seen: set[str] = set()
         for row in rows:
             for tag in self._row_tags(row):
-                all_tags.add(tag)
+                key = tag.casefold()
+                if key in seen:
+                    continue
+                seen.add(key)
+                all_tags.append(tag)
         return all_tags
 
     @staticmethod

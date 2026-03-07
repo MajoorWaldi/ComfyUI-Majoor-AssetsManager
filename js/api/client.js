@@ -3,7 +3,7 @@
  */
 
 import { SETTINGS_KEY } from "../app/settingsStore.js";
-import { ENDPOINTS } from "./endpoints.js";
+import { ENDPOINTS, appendAssetFilterQueryParams } from "./endpoints.js";
 import { normalizeAssetId, pickRootId } from "../utils/ids.js";
 
 /**
@@ -309,6 +309,25 @@ function invalidateRatingTagsSyncCache() {
 
 function invalidateTagsCache() {
     _tagsCache = { value: null, at: 0 };
+}
+
+function _normalizeTagCacheKey(raw) {
+    const value = String(raw ?? "").trim().toLowerCase();
+    return value || "";
+}
+
+function _dedupeTagList(tags) {
+    const next = [];
+    const seen = new Set();
+    for (const raw of Array.isArray(tags) ? tags : []) {
+        const value = String(raw ?? "").trim();
+        if (!value) continue;
+        const key = _normalizeTagCacheKey(value);
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        next.push(value);
+    }
+    return next;
 }
 
 function invalidateAuthTokenCache() {
@@ -630,10 +649,12 @@ export async function updateAssetTags(assetId, tags, options = {}) {
     });
     if (result?.ok) {
         try {
+            const persistedTags = _dedupeTagList(Array.isArray(result?.data?.tags) ? result.data.tags : tags);
             if (Array.isArray(_tagsCache.value)) {
-                const next = new Set(_tagsCache.value);
-                for (const t of Array.isArray(tags) ? tags : []) next.add(t);
-                _tagsCache = { value: Array.from(next), at: Date.now() };
+                _tagsCache = {
+                    value: _dedupeTagList([..._tagsCache.value, ...persistedTags]),
+                    at: Date.now(),
+                };
             } else {
                 invalidateTagsCache();
             }
@@ -655,7 +676,9 @@ export async function getAvailableTags() {
 
     const result = await get("/mjr/am/tags");
     if (result?.ok && Array.isArray(result.data)) {
-        _tagsCache = { value: result.data, at: now };
+        const deduped = _dedupeTagList(result.data);
+        _tagsCache = { value: deduped, at: now };
+        return { ...result, data: deduped };
     }
     return result;
 }
@@ -1091,7 +1114,7 @@ export async function getCollectionAssets(collectionId) {
 /**
  * Semantic search by natural-language query via SigLIP2 embeddings.
  * @param {string} query
- * @param {number|{topK?:number, scope?:string, customRootId?:string}} [topKOrOptions=20]
+ * @param {number|{topK?:number, scope?:string, customRootId?:string, subfolder?:string, kind?:string, hasWorkflow?:boolean, minRating?:number, minSizeMB?:number, maxSizeMB?:number, minWidth?:number, minHeight?:number, maxWidth?:number, maxHeight?:number, workflowType?:string, dateRange?:string, dateExact?:string}} [topKOrOptions=20]
  * @returns {Promise<ApiResult<{asset_id:number, score:number}[]>>}
  */
 export async function vectorSearch(query, topKOrOptions = 20) {
@@ -1106,6 +1129,21 @@ export async function vectorSearch(query, topKOrOptions = 20) {
     let url = `${ENDPOINTS.VECTOR_SEARCH}?q=${encodeURIComponent(q)}&top_k=${topK}`;
     if (scope) url += `&scope=${encodeURIComponent(scope)}`;
     if (customRootId) url += `&custom_root_id=${encodeURIComponent(customRootId)}`;
+    url = appendAssetFilterQueryParams(url, {
+        subfolder: opts?.subfolder ?? null,
+        kind: opts?.kind ?? null,
+        hasWorkflow: opts?.hasWorkflow ?? null,
+        minRating: opts?.minRating ?? null,
+        minSizeMB: opts?.minSizeMB ?? null,
+        maxSizeMB: opts?.maxSizeMB ?? null,
+        minWidth: opts?.minWidth ?? null,
+        minHeight: opts?.minHeight ?? null,
+        maxWidth: opts?.maxWidth ?? null,
+        maxHeight: opts?.maxHeight ?? null,
+        workflowType: opts?.workflowType ?? null,
+        dateRange: opts?.dateRange ?? null,
+        dateExact: opts?.dateExact ?? null,
+    });
     // Model cold-start (SigLIP download/load) can take 60-120s on first use
     return get(url, { timeoutMs: 120_000 });
 }
@@ -1305,7 +1343,7 @@ export async function vectorGenerateEnhancedPrompt(assetId) {
 
 /**
  * Hybrid FTS + semantic search (Google-like).
- * Supports inline filters: rating:N  tag:X  kind:image  after:YYYY-MM-DD  ext:png
+ * Supports inline filters and explicit filter params.
  * @param {string} query  Raw search query (filters parsed server-side)
  * @param {Object} [params]
  * @param {number} [params.topK=50]
@@ -1313,11 +1351,43 @@ export async function vectorGenerateEnhancedPrompt(assetId) {
  * @param {string} [params.customRootId]
  * @returns {Promise<ApiResult<Array>>}
  */
-export async function hybridSearch(query, { topK = 50, scope = "output", customRootId = "" } = {}) {
+export async function hybridSearch(query, {
+    topK = 50,
+    scope = "output",
+    customRootId = "",
+    subfolder = null,
+    kind = null,
+    hasWorkflow = null,
+    minRating = null,
+    minSizeMB = null,
+    maxSizeMB = null,
+    minWidth = null,
+    minHeight = null,
+    maxWidth = null,
+    maxHeight = null,
+    workflowType = null,
+    dateRange = null,
+    dateExact = null,
+} = {}) {
     const q = String(query || "").trim();
     if (!q) return { ok: false, error: "Empty query" };
     let url = `${ENDPOINTS.HYBRID_SEARCH}?q=${encodeURIComponent(q)}&top_k=${Math.max(1, Math.min(200, topK))}&scope=${encodeURIComponent(scope)}`;
     if (customRootId) url += `&custom_root_id=${encodeURIComponent(customRootId)}`;
+    url = appendAssetFilterQueryParams(url, {
+        subfolder,
+        kind,
+        hasWorkflow,
+        minRating,
+        minSizeMB,
+        maxSizeMB,
+        minWidth,
+        minHeight,
+        maxWidth,
+        maxHeight,
+        workflowType,
+        dateRange,
+        dateExact,
+    });
     // Model cold-start (SigLIP download/load) can take 60-120s on first use
     return get(url, { timeoutMs: 120_000 });
 }

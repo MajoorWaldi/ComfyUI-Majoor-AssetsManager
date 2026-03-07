@@ -1032,6 +1032,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             else if (minW >= 1280 && minH >= 720) resolutionPresetSelect.value = "hd";
             else resolutionPresetSelect.value = "";
             dateRangeSelect.value = state.dateRangeFilter || "";
+            dateExactInput.value = state.dateExactFilter || "";
         } catch (e) { console.debug?.(e); }
         agendaCalendar = createAgendaCalendar({
             container: agendaContainer,

@@ -1019,7 +1019,27 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    position: relative;
     transition: background-color 120ms ease, border-color 120ms ease, transform 80ms ease;
+}
+
+.mjr-agenda-day-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: #e53935;
+    color: #fff;
+    border: 1px solid color-mix(in srgb, #e53935 65%, #ffffff 35%);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 14px;
+    text-align: center;
+    pointer-events: none;
+    box-sizing: border-box;
 }
 
 .mjr-agenda-day:hover {

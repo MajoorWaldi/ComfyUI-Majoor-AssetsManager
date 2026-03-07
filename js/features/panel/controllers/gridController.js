@@ -71,6 +71,26 @@ export function createGridController({
         }
     };
 
+    const _buildSemanticFilterOptions = () => {
+        const rawSubfolder = String(state.currentFolderRelativePath || "").trim();
+        const isCustomBrowserMode = state.scope === "custom" && !state.customRootId;
+        return {
+            subfolder: !isCustomBrowserMode && rawSubfolder ? rawSubfolder : null,
+            kind: state.kindFilter || null,
+            hasWorkflow: state.workflowOnly ? true : null,
+            minRating: Number(state.minRating || 0) > 0 ? Number(state.minRating || 0) : null,
+            minSizeMB: Number(state.minSizeMB || 0) > 0 ? Number(state.minSizeMB || 0) : null,
+            maxSizeMB: Number(state.maxSizeMB || 0) > 0 ? Number(state.maxSizeMB || 0) : null,
+            minWidth: Number(state.minWidth || 0) > 0 ? Number(state.minWidth || 0) : null,
+            minHeight: Number(state.minHeight || 0) > 0 ? Number(state.minHeight || 0) : null,
+            maxWidth: Number(state.maxWidth || 0) > 0 ? Number(state.maxWidth || 0) : null,
+            maxHeight: Number(state.maxHeight || 0) > 0 ? Number(state.maxHeight || 0) : null,
+            workflowType: String(state.workflowType || "").trim().toUpperCase() || null,
+            dateRange: String(state.dateRangeFilter || "").trim().toLowerCase() || null,
+            dateExact: String(state.dateExactFilter || "").trim() || null,
+        };
+    };
+
     const _notifyAiSearchDiagnostic = async (reason = "") => {
         const now = Date.now();
         if (now - Number(_lastAiHintAt || 0) < AI_HINT_COOLDOWN_MS) return;
@@ -148,10 +168,12 @@ export function createGridController({
         if (shouldAutoAiSearch && q) {
             aiAttempted = true;
             try {
+                const filters = _buildSemanticFilterOptions();
                 const vecRes = await vectorSearch(q, {
                     topK: 100,
                     scope: state.scope || "output",
                     customRootId: state.customRootId || "",
+                    ...filters,
                 });
                 if (vecRes?.ok && Array.isArray(vecRes.data) && vecRes.data.length > 0) {
                     return await loadAssetsFromList(gridContainer, vecRes.data, {
@@ -170,12 +192,14 @@ export function createGridController({
 
         if (semanticMode && q && q !== "*") {
             aiAttempted = true;
+            const filters = _buildSemanticFilterOptions();
             // Try hybrid search first (FTS + semantic via RRF)
             try {
                 const hybRes = await hybridSearch(q, {
                     topK: 100,
                     scope: state.scope || "output",
                     customRootId: state.customRootId || "",
+                    ...filters,
                 });
                 if (hybRes?.ok && Array.isArray(hybRes.data) && hybRes.data.length > 0) {
                     return await loadAssetsFromList(gridContainer, hybRes.data, {
@@ -196,6 +220,7 @@ export function createGridController({
                     topK: 100,
                     scope: state.scope || "output",
                     customRootId: state.customRootId || "",
+                    ...filters,
                 });
                 if (vecRes?.ok && Array.isArray(vecRes.data) && vecRes.data.length > 0) {
                     return await loadAssetsFromList(gridContainer, vecRes.data, {
@@ -220,10 +245,12 @@ export function createGridController({
             if (count === 0) {
                 try {
                     aiAttempted = true;
+                    const filters = _buildSemanticFilterOptions();
                     const hybRes = await hybridSearch(q, {
                         topK: 100,
                         scope: state.scope || "output",
                         customRootId: state.customRootId || "",
+                        ...filters,
                     });
                     if (hybRes?.ok && Array.isArray(hybRes.data) && hybRes.data.length > 0) {
                         return await loadAssetsFromList(gridContainer, hybRes.data, {

@@ -9,12 +9,16 @@ from mjr_am_backend.shared import Result
 class _DummyScanner:
     def __init__(self, *_args, **_kwargs):
         self.scan_result = Result.Ok({"added": 1})
+        self.vector_services = None
 
     async def scan_directory(self, **_kwargs):
         return self.scan_result
 
     async def index_paths(self, **_kwargs):
         return Result.Ok({"updated": 1})
+
+    def set_vector_services(self, vector_service, vector_searcher=None):
+        self.vector_services = (vector_service, vector_searcher)
 
 
 class _DummySearcher:
@@ -86,7 +90,27 @@ def _build_service(monkeypatch):
     monkeypatch.setattr(isvc, "IndexSearcher", _DummySearcher)
     monkeypatch.setattr(isvc, "AssetUpdater", _DummyUpdater)
     monkeypatch.setattr(isvc, "MetadataEnricher", _DummyEnricher)
+    monkeypatch.setattr(isvc, "is_vector_search_enabled", lambda: False)
     return isvc.IndexService(db=object(), metadata_service=object(), has_tags_text_column=False)
+
+
+def test_index_service_lazy_inits_vector_services_when_enabled(monkeypatch) -> None:
+    svc = _build_service(monkeypatch)
+    built = {"n": 0}
+
+    monkeypatch.setattr(isvc, "is_vector_search_enabled", lambda: True)
+
+    def _fake_build(db):
+        _ = db
+        built["n"] += 1
+        return object(), object()
+
+    monkeypatch.setattr(isvc, "_build_runtime_vector_services", _fake_build)
+
+    svc._ensure_vector_services()
+
+    assert built["n"] == 1
+    assert svc._vector_service is not None
 
 
 def test_rename_helper_functions(tmp_path: Path) -> None:
@@ -143,6 +167,7 @@ async def test_index_service_delegates_to_components(monkeypatch) -> None:
 async def test_index_paths_and_runtime_helpers(monkeypatch) -> None:
     svc = _build_service(monkeypatch)
     monkeypatch.setattr(isvc, "mark_directory_indexed", lambda *args, **kwargs: None)
+    monkeypatch.setattr(svc, "_ensure_vector_services", lambda: None)
 
     res = await svc.index_paths([Path("x")], base_dir=".")
     assert res.ok

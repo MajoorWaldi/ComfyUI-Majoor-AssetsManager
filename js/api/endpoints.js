@@ -109,6 +109,66 @@ export const ENDPOINTS = {
     AUDIT: "/mjr/am/audit"
 };
 
+export function appendAssetFilterQueryParams(url, filters = {}) {
+    let nextUrl = String(url || "");
+    const {
+        subfolder = null,
+        kind = null,
+        hasWorkflow = null,
+        minRating = null,
+        minSizeMB = null,
+        maxSizeMB = null,
+        minWidth = null,
+        minHeight = null,
+        maxWidth = null,
+        maxHeight = null,
+        workflowType = null,
+        dateRange = null,
+        dateExact = null,
+    } = filters || {};
+
+    if (subfolder) {
+        nextUrl += `&subfolder=${encodeURIComponent(String(subfolder))}`;
+    }
+    if (kind) {
+        nextUrl += `&kind=${encodeURIComponent(kind)}`;
+    }
+    if (hasWorkflow !== null && hasWorkflow !== undefined) {
+        nextUrl += `&has_workflow=${encodeURIComponent(hasWorkflow ? "true" : "false")}`;
+    }
+    if (minRating !== null && minRating !== undefined && Number(minRating) > 0) {
+        nextUrl += `&min_rating=${encodeURIComponent(String(minRating))}`;
+    }
+    if (minSizeMB !== null && minSizeMB !== undefined && Number(minSizeMB) > 0) {
+        nextUrl += `&min_size_mb=${encodeURIComponent(String(minSizeMB))}`;
+    }
+    if (maxSizeMB !== null && maxSizeMB !== undefined && Number(maxSizeMB) > 0) {
+        nextUrl += `&max_size_mb=${encodeURIComponent(String(maxSizeMB))}`;
+    }
+    if (minWidth !== null && minWidth !== undefined && Number(minWidth) > 0) {
+        nextUrl += `&min_width=${encodeURIComponent(String(minWidth))}`;
+    }
+    if (minHeight !== null && minHeight !== undefined && Number(minHeight) > 0) {
+        nextUrl += `&min_height=${encodeURIComponent(String(minHeight))}`;
+    }
+    if (maxWidth !== null && maxWidth !== undefined && Number(maxWidth) > 0) {
+        nextUrl += `&max_width=${encodeURIComponent(String(maxWidth))}`;
+    }
+    if (maxHeight !== null && maxHeight !== undefined && Number(maxHeight) > 0) {
+        nextUrl += `&max_height=${encodeURIComponent(String(maxHeight))}`;
+    }
+    if (workflowType) {
+        nextUrl += `&workflow_type=${encodeURIComponent(String(workflowType))}`;
+    }
+    if (dateRange) {
+        nextUrl += `&date_range=${encodeURIComponent(String(dateRange))}`;
+    }
+    if (dateExact) {
+        nextUrl += `&date_exact=${encodeURIComponent(String(dateExact))}`;
+    }
+    return nextUrl;
+}
+
 /**
  * Build view URL for asset
  */
@@ -161,44 +221,22 @@ export function buildListURL(params = {}) {
         // Browser scope without selected root uses absolute filesystem paths.
         url += "&browser_mode=1";
     }
-    if (kind) {
-        url += `&kind=${encodeURIComponent(kind)}`;
-    }
-    if (hasWorkflow !== null && hasWorkflow !== undefined) {
-        url += `&has_workflow=${encodeURIComponent(hasWorkflow ? "true" : "false")}`;
-    }
-    if (minRating !== null && minRating !== undefined && Number(minRating) > 0) {
-        url += `&min_rating=${encodeURIComponent(String(minRating))}`;
-    }
-    if (minSizeMB !== null && minSizeMB !== undefined && Number(minSizeMB) > 0) {
-        url += `&min_size_mb=${encodeURIComponent(String(minSizeMB))}`;
-    }
-    if (maxSizeMB !== null && maxSizeMB !== undefined && Number(maxSizeMB) > 0) {
-        url += `&max_size_mb=${encodeURIComponent(String(maxSizeMB))}`;
-    }
-    if (minWidth !== null && minWidth !== undefined && Number(minWidth) > 0) {
-        url += `&min_width=${encodeURIComponent(String(minWidth))}`;
-    }
-    if (minHeight !== null && minHeight !== undefined && Number(minHeight) > 0) {
-        url += `&min_height=${encodeURIComponent(String(minHeight))}`;
-    }
-    if (maxWidth !== null && maxWidth !== undefined && Number(maxWidth) > 0) {
-        url += `&max_width=${encodeURIComponent(String(maxWidth))}`;
-    }
-    if (maxHeight !== null && maxHeight !== undefined && Number(maxHeight) > 0) {
-        url += `&max_height=${encodeURIComponent(String(maxHeight))}`;
-    }
+    url = appendAssetFilterQueryParams(url, {
+        kind,
+        hasWorkflow,
+        minRating,
+        minSizeMB,
+        maxSizeMB,
+        minWidth,
+        minHeight,
+        maxWidth,
+        maxHeight,
+        workflowType,
+        dateRange,
+        dateExact,
+    });
     if (resolutionCompare) {
         url += `&resolution_compare=${encodeURIComponent(String(resolutionCompare))}`;
-    }
-    if (workflowType) {
-        url += `&workflow_type=${encodeURIComponent(String(workflowType))}`;
-    }
-    if (dateRange) {
-        url += `&date_range=${encodeURIComponent(dateRange)}`;
-    }
-    if (dateExact) {
-        url += `&date_exact=${encodeURIComponent(dateExact)}`;
     }
     if (sort) {
         url += `&sort=${encodeURIComponent(String(sort))}`;
@@ -238,16 +276,21 @@ export function buildDateHistogramURL(params = {}) {
     if (customRootId) {
         url += `&custom_root_id=${encodeURIComponent(customRootId)}`;
     }
-    if (kind) {
-        url += `&kind=${encodeURIComponent(kind)}`;
-    }
-    if (hasWorkflow !== null && hasWorkflow !== undefined) {
-        url += `&has_workflow=${encodeURIComponent(hasWorkflow ? "true" : "false")}`;
-    }
-    if (minRating !== null && minRating !== undefined && Number(minRating) > 0) {
-        url += `&min_rating=${encodeURIComponent(String(minRating))}`;
-    }
-    return url;
+    return appendAssetFilterQueryParams(url, {
+        subfolder: params.subfolder ?? null,
+        kind,
+        hasWorkflow,
+        minRating,
+        minSizeMB: params.minSizeMB ?? null,
+        maxSizeMB: params.maxSizeMB ?? null,
+        minWidth: params.minWidth ?? null,
+        minHeight: params.minHeight ?? null,
+        maxWidth: params.maxWidth ?? null,
+        maxHeight: params.maxHeight ?? null,
+        workflowType: params.workflowType ?? null,
+        dateRange: params.dateRange ?? null,
+        dateExact: params.dateExact ?? null,
+    });
 }
 
 export function buildAssetViewURL(asset) {

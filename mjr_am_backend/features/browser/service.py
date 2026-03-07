@@ -358,7 +358,8 @@ def _browser_file_matches_dimensions(
     w_raw = file_row.get("width")
     h_raw = file_row.get("height")
     if w_raw is None or h_raw is None:
-        return True
+        # If any dimension filter is requested, unknown dimensions must not match.
+        return min_w <= 0 and min_h <= 0 and max_w <= 0 and max_h <= 0
     try:
         w = int(w_raw or 0)
         h = int(h_raw or 0)

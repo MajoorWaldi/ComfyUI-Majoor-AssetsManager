@@ -5,7 +5,6 @@ Used by the UI to mark days that have assets (per month).
 """
 import datetime
 from pathlib import Path
-from typing import Any
 
 from aiohttp import web
 
@@ -24,18 +23,19 @@ from mjr_am_backend.custom_roots import resolve_custom_root
 from mjr_am_backend.shared import Result, sanitize_error_message
 
 from ..core import _json_response, _require_services
+from ..search.query_sanitizer import parse_request_filters
 
 
 def _month_bounds(month_value: str) -> Result[tuple[int, int]]:
     """
-    Convert YYYY-MM to [start_ts, end_ts) in local time.
+    Convert YYYY-MM to [start_ts, end_ts) in UTC.
     """
     try:
         dt = datetime.datetime.strptime(month_value, "%Y-%m")
     except Exception:
         return Result.Err("INVALID_INPUT", "Invalid month (expected YYYY-MM)")
 
-    start = dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    start = dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0, tzinfo=datetime.timezone.utc)
     # First day of next month.
     next_month = (start.replace(day=28) + datetime.timedelta(days=4)).replace(day=1)
     return Result.Ok((int(start.timestamp()), int(next_month.timestamp())))
@@ -55,6 +55,10 @@ def register_calendar_routes(routes: web.RouteTableDef) -> None:
           kind: image|video|audio|model3d (optional)
           min_rating: 0..5 (optional)
           has_workflow: true/false (optional)
+          min_size_mb/max_size_mb (optional)
+          min_width/min_height/max_width/max_height (optional)
+          workflow_type (optional)
+          date_range/date_exact (optional)
         """
         month = (request.query.get("month") or "").strip()
         if not month:
@@ -70,22 +74,12 @@ def register_calendar_routes(routes: web.RouteTableDef) -> None:
 
         scope = (request.query.get("scope") or "output").strip().lower()
 
-        filters: dict[str, Any] = {}
-        if "kind" in request.query:
-            valid_kinds = {"image", "video", "audio", "model3d"}
-            kind = request.query["kind"].strip().lower()
-            if kind not in valid_kinds:
-                return _json_response(
-                    Result.Err("INVALID_INPUT", f"Invalid kind. Must be one of: {', '.join(sorted(valid_kinds))}")
-                )
-            filters["kind"] = kind
-        if "min_rating" in request.query:
-            try:
-                filters["min_rating"] = max(0, min(5, int(request.query["min_rating"])))
-            except Exception:
-                return _json_response(Result.Err("INVALID_INPUT", "Invalid min_rating"))
-        if "has_workflow" in request.query:
-            filters["has_workflow"] = request.query["has_workflow"].lower() in ("true", "1", "yes")
+        filters_res = parse_request_filters(request.query)
+        if not filters_res.ok:
+            return _json_response(filters_res)
+        filters = filters_res.data or {}
+        if scope in {"output", "input", "custom"}:
+            filters["subfolder"] = str(request.query.get("subfolder") or "")
 
         svc, error_result = await _require_services()
         if error_result:
