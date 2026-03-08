@@ -114,6 +114,11 @@ export function normalizeGenerationMetadata(raw) {
                 mapped.all_samplers = geninfo.all_samplers;
             }
 
+            // Multi-pass chained pipeline samplers
+            if (Array.isArray(geninfo.chained_passes) && geninfo.chained_passes.length > 1) {
+                mapped.chained_passes = geninfo.chained_passes;
+            }
+
             // Multi-pass workflow checkpoints
             if (Array.isArray(geninfo.all_checkpoints) && geninfo.all_checkpoints.length > 1) {
                 mapped.all_checkpoints = geninfo.all_checkpoints;

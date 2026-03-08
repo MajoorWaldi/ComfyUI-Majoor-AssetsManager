@@ -433,6 +433,293 @@ function _isSafeOpenUrl(url) {
     }
 }
 
+function _formatPipelineValue(value) {
+    if (value === undefined || value === null || value === "") return "-";
+    return String(value);
+}
+
+function _resolvePassName(passData, index) {
+    const explicitName = String(passData?.pass_name || "").trim();
+    if (explicitName) return explicitName;
+
+    const denoise = Number(passData?.denoise);
+    if (index === 0 || denoise === 1) return "Base";
+    if (Number.isFinite(denoise) && denoise < 1) return "Refine / Upscale";
+    return `Pass ${index + 1}`;
+}
+
+function _enableCopyOnClick(el, value) {
+    if (!el) return;
+    const text = String(value ?? "").trim();
+    if (!text || text === "-") return;
+    el.style.cursor = "copy";
+    el.title = `Click to copy: ${text}`;
+    el.addEventListener("click", async (evt) => {
+        evt.stopPropagation();
+        try {
+            await navigator.clipboard.writeText(text);
+            const prevBg = el.style.background;
+            el.style.background = "rgba(76, 175, 80, 0.35)";
+            setTimeout(() => {
+                el.style.background = prevBg || "transparent";
+            }, 450);
+        } catch (err) {
+            console.debug?.(err);
+        }
+    });
+}
+
+function _applyTabHighlightStyle(btn, isActive, colorHex) {
+    if (!btn) return;
+    btn.style.background = isActive ? `${colorHex}33` : "rgba(127,127,127,0.12)";
+    btn.style.borderColor = isActive ? colorHex : "var(--border-color, rgba(255,255,255,0.12))";
+    btn.style.color = isActive ? colorHex : "var(--fg-color, #ddd)";
+    btn.style.fontWeight = isActive ? "700" : "500";
+    btn.style.boxShadow = isActive ? `0 0 0 1px ${colorHex}55 inset` : "none";
+}
+
+function _createPromptTabsBox(title, positives, negatives, colorHex) {
+    const pos = Array.isArray(positives) ? positives.filter((p) => typeof p === "string" && p.trim()) : [];
+    if (!pos.length) return null;
+    const neg = Array.isArray(negatives) ? negatives : [];
+
+    const box = document.createElement("div");
+    box.style.cssText = `
+        background: linear-gradient(135deg, rgba(76, 175, 80, 0.16) 0%, rgba(33, 150, 243, 0.10) 100%);
+        border: 1px solid rgba(76, 175, 80, 0.45);
+        box-shadow: 0 0 0 1px rgba(76, 175, 80, 0.15) inset;
+        border-left: 3px solid ${colorHex};
+        border-radius: 6px;
+        padding: 12px;
+        margin-top: 4px;
+    `;
+
+    const header = document.createElement("div");
+    header.textContent = title;
+    header.style.cssText = `
+        font-size: 11px;
+        font-weight: 600;
+        color: ${colorHex};
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 10px;
+    `;
+    box.appendChild(header);
+
+    const tabs = document.createElement("div");
+    tabs.style.cssText = "display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;";
+    const panels = document.createElement("div");
+    panels.style.cssText = "display: flex; flex-direction: column;";
+
+    const tabButtons = [];
+    const tabPanels = [];
+    const activateTab = (activeIndex) => {
+        tabButtons.forEach((btn, idx) => {
+            const isActive = idx === activeIndex;
+            _applyTabHighlightStyle(btn, isActive, colorHex);
+        });
+        tabPanels.forEach((panel, idx) => {
+            panel.style.display = idx === activeIndex ? "flex" : "none";
+        });
+    };
+
+    pos.forEach((positiveText, index) => {
+        const tab = document.createElement("button");
+        tab.type = "button";
+        tab.textContent = `Prompt ${index + 1}`;
+        tab.style.cssText = `
+            appearance: none;
+            border: 1px solid var(--border-color, rgba(255,255,255,0.12));
+            border-radius: 999px;
+            background: rgba(127,127,127,0.12);
+            color: var(--fg-color, #ddd);
+            font-size: 11px;
+            padding: 4px 10px;
+            cursor: pointer;
+        `;
+        tab.addEventListener("click", () => activateTab(index));
+        tabs.appendChild(tab);
+        tabButtons.push(tab);
+
+        const panel = document.createElement("div");
+        panel.style.cssText = `
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            border: 1px solid rgba(76, 175, 80, 0.35);
+            border-radius: 6px;
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.12) 0%, rgba(33, 150, 243, 0.08) 100%);
+            box-shadow: 0 0 0 1px rgba(76, 175, 80, 0.12) inset;
+            padding: 10px;
+        `;
+
+        const pLabel = document.createElement("div");
+        pLabel.textContent = "POSITIVE";
+        pLabel.style.cssText = "font-size: 10px; font-weight: 700; color: #4CAF50; letter-spacing: 0.4px;";
+        const pText = document.createElement("div");
+        pText.textContent = positiveText;
+        pText.style.cssText = "font-size: 12px; color: var(--fg-color, #ddd); white-space: pre-wrap; line-height: 1.35;";
+        _enableCopyOnClick(pText, positiveText);
+        panel.appendChild(pLabel);
+        panel.appendChild(pText);
+
+        const negText = typeof neg[index] === "string" ? neg[index].trim() : "";
+        if (negText) {
+            const nLabel = document.createElement("div");
+            nLabel.textContent = "NEGATIVE";
+            nLabel.style.cssText = "font-size: 10px; font-weight: 700; color: #F44336; letter-spacing: 0.4px; margin-top: 4px;";
+            const nText = document.createElement("div");
+            nText.textContent = negText;
+            nText.style.cssText = "font-size: 12px; color: var(--fg-color, #ddd); white-space: pre-wrap; line-height: 1.35;";
+            _enableCopyOnClick(nText, negText);
+            panel.appendChild(nLabel);
+            panel.appendChild(nText);
+        }
+
+        panels.appendChild(panel);
+        tabPanels.push(panel);
+    });
+
+    box.appendChild(tabs);
+    box.appendChild(panels);
+    activateTab(0);
+    return box;
+}
+
+function _createTabsBox(title, passesArray, colorHex) {
+    const safePasses = Array.isArray(passesArray) ? passesArray.filter((p) => p && typeof p === "object") : [];
+    if (!safePasses.length) return null;
+
+    const box = document.createElement("div");
+    box.style.cssText = `
+        background: linear-gradient(135deg, rgba(255, 152, 0, 0.16) 0%, rgba(255, 193, 7, 0.10) 100%);
+        border: 1px solid rgba(255, 152, 0, 0.45);
+        box-shadow: 0 0 0 1px rgba(255, 152, 0, 0.15) inset;
+        border-left: 3px solid ${colorHex};
+        border-radius: 6px;
+        padding: 12px;
+        margin-top: 4px;
+    `;
+
+    const header = document.createElement("div");
+    header.textContent = title;
+    header.style.cssText = `
+        font-size: 11px;
+        font-weight: 600;
+        color: ${colorHex};
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 10px;
+    `;
+    box.appendChild(header);
+
+    const tabs = document.createElement("div");
+    tabs.style.cssText = `
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 10px;
+    `;
+
+    const panels = document.createElement("div");
+    panels.style.cssText = "display: flex; flex-direction: column;";
+
+    const tabButtons = [];
+    const tabPanels = [];
+
+    const activateTab = (activeIndex) => {
+        tabButtons.forEach((btn, idx) => {
+            const isActive = idx === activeIndex;
+            _applyTabHighlightStyle(btn, isActive, colorHex);
+            btn.setAttribute("aria-selected", String(isActive));
+            btn.tabIndex = isActive ? 0 : -1;
+        });
+        tabPanels.forEach((panel, idx) => {
+            panel.style.display = idx === activeIndex ? "grid" : "none";
+        });
+    };
+
+    safePasses.forEach((passData, index) => {
+        const passName = _resolvePassName(passData, index);
+
+        const tab = document.createElement("button");
+        tab.type = "button";
+        tab.textContent = passName;
+        tab.title = `Generation pass ${index + 1}`;
+        tab.style.cssText = `
+            appearance: none;
+            border: 1px solid var(--border-color, rgba(255,255,255,0.12));
+            border-radius: 999px;
+            background: rgba(127,127,127,0.12);
+            color: var(--fg-color, #ddd);
+            font-size: 11px;
+            padding: 4px 10px;
+            cursor: pointer;
+            transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+        `;
+        tab.setAttribute("role", "tab");
+        tab.setAttribute("aria-label", passName);
+        tab.addEventListener("click", () => activateTab(index));
+        tabs.appendChild(tab);
+        tabButtons.push(tab);
+
+        const panel = document.createElement("div");
+        panel.setAttribute("role", "tabpanel");
+        panel.style.cssText = `
+            display: none;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 8px;
+            padding: 8px;
+            border: 1px solid rgba(255, 152, 0, 0.35);
+            border-radius: 6px;
+            background: linear-gradient(135deg, rgba(255, 152, 0, 0.12) 0%, rgba(255, 193, 7, 0.08) 100%);
+            box-shadow: 0 0 0 1px rgba(255, 152, 0, 0.12) inset;
+        `;
+
+        const fields = [
+            { label: "Sampler", value: passData?.sampler_name || passData?.sampler },
+            { label: "Scheduler", value: passData?.scheduler },
+            { label: "Steps", value: passData?.steps },
+            { label: "CFG", value: passData?.cfg },
+            { label: "Denoise", value: passData?.denoise },
+            { label: "Seed", value: passData?.seed_val || passData?.seed },
+        ];
+
+        fields.forEach((field) => {
+            const item = document.createElement("div");
+            item.style.cssText = "display: flex; flex-direction: column; gap: 2px; min-width: 0;";
+
+            const itemLabel = document.createElement("span");
+            itemLabel.textContent = field.label;
+            itemLabel.style.cssText = `
+                font-size: 10px;
+                font-weight: 600;
+                color: rgba(255,255,255,0.6);
+                text-transform: uppercase;
+                letter-spacing: 0.4px;
+            `;
+
+            const itemValue = document.createElement("span");
+            const formatted = _formatPipelineValue(field.value);
+            itemValue.textContent = formatted;
+            itemValue.style.cssText = "font-size: 12px; color: var(--fg-color, #ddd); word-break: break-word; padding: 1px 3px; border-radius: 3px; transition: background 0.2s ease;";
+            _enableCopyOnClick(itemValue, formatted);
+
+            item.appendChild(itemLabel);
+            item.appendChild(itemValue);
+            panel.appendChild(item);
+        });
+
+        panels.appendChild(panel);
+        tabPanels.push(panel);
+    });
+
+    box.appendChild(tabs);
+    box.appendChild(panels);
+    activateTab(0);
+    return box;
+}
+
 export function createGenerationSection(asset) {
     let metadata = null;
 
@@ -460,6 +747,8 @@ export function createGenerationSection(asset) {
                 return true;
             if (obj.models || obj.model || obj.checkpoint || obj.loras) return true;
             if (obj.sampler || obj.sampler_name || obj.steps || obj.cfg || obj.cfg_scale || obj.scheduler) return true;
+            if (Array.isArray(obj.chained_passes) && obj.chained_passes.length > 0) return true;
+            if (Array.isArray(obj.all_samplers) && obj.all_samplers.length > 0) return true;
             if (obj.seed || obj.denoise || obj.denoising || obj.clip_skip) return true;
             if (obj.voice || obj.language || obj.temperature || obj.top_k || obj.top_p || obj.repetition_penalty || obj.max_new_tokens) return true;
             if (obj.device || obj.voice_preset || obj.instruct || obj.dtype || obj.attn_implementation) return true;
@@ -571,7 +860,10 @@ export function createGenerationSection(asset) {
             : null
     );
 
-    if (typeof cleaned.positive === "string" && cleaned.positive.trim()) {
+    const hasPromptTabs =
+        metadata.all_positive_prompts && Array.isArray(metadata.all_positive_prompts) && metadata.all_positive_prompts.length > 1;
+
+    if (!hasPromptTabs && typeof cleaned.positive === "string" && cleaned.positive.trim()) {
         const positiveBox = createInfoBox("Positive Prompt", cleaned.positive, "#4CAF50", {
                 showCopyButton: false,
                 copyOnContentClick: true,
@@ -583,7 +875,7 @@ export function createGenerationSection(asset) {
         container.appendChild(positiveBox);
     }
 
-    if (typeof cleaned.negative === "string" && cleaned.negative.trim()) {
+    if (!hasPromptTabs && typeof cleaned.negative === "string" && cleaned.negative.trim()) {
         const negativeBox = createInfoBox("Negative Prompt", cleaned.negative, "#F44336", {
                 showCopyButton: false,
                 copyOnContentClick: true,
@@ -606,62 +898,16 @@ export function createGenerationSection(asset) {
     }
 
     // Multi-output workflows: Show all distinct prompts
-    if (metadata.all_positive_prompts && Array.isArray(metadata.all_positive_prompts) && metadata.all_positive_prompts.length > 1) {
-        const multiBox = document.createElement("div");
-        multiBox.style.cssText = `
-            background: var(--comfy-menu-bg, rgba(0,0,0,0.3));
-            border: 1px solid var(--border-color, rgba(255,255,255,0.12));
-            border-left: 3px solid #FF9800;
-            border-radius: 6px;
-            padding: 12px;
-            margin-top: 4px;
-        `;
-
-        const header = document.createElement("div");
-        header.textContent = `All Prompts (${metadata.all_positive_prompts.length} variants)`;
-        header.title = t("tooltip.workflowMultiOutput", "Multiple outputs with different prompts");
-        header.style.cssText = `
-             font-size: 11px;
-             font-weight: 600;
-             color: #FF9800;
-             text-transform: uppercase;
-             letter-spacing: 0.5px;
-             margin-bottom: 8px;
-             cursor: pointer;
-        `;
-        
-        const list = document.createElement("div");
-        list.style.cssText = "display: none; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto;";
-        
-        metadata.all_positive_prompts.forEach((p, i) => {
-            const item = document.createElement("div");
-            item.style.cssText = `
-                font-size: 11px;
-                color: var(--fg-color, #ddd);
-                padding: 6px 8px;
-                background: rgba(127,127,127,0.12);
-                border-radius: 4px;
-                word-break: break-word;
-            `;
-            item.textContent = `${i + 1}. ${p}`;
-            item.title = `Variant ${i + 1}: ${p}`;
-            list.appendChild(item);
-        });
-        
-        // Toggle expand/collapse
-        let expanded = false;
-        header.onclick = () => {
-            expanded = !expanded;
-            list.style.display = expanded ? "flex" : "none";
-            header.textContent = expanded 
-                ? `All Prompts (${metadata.all_positive_prompts.length} variants) ▲` 
-                : `All Prompts (${metadata.all_positive_prompts.length} variants) ▼`;
-        };
-        header.textContent += " ▼";
-        
-        multiBox.appendChild(header);
-        multiBox.appendChild(list);
-        container.appendChild(multiBox);
+    if (hasPromptTabs) {
+        const promptTabs = _createPromptTabsBox(
+            `Prompt Pipeline (${metadata.all_positive_prompts.length} variants)`,
+            metadata.all_positive_prompts,
+            metadata.all_negative_prompts,
+            "#4CAF50"
+        );
+        if (promptTabs) {
+            container.appendChild(promptTabs);
+        }
     }
 
     const modelData = [];
@@ -732,69 +978,24 @@ export function createGenerationSection(asset) {
     if (metadata.cfg || metadata.cfg_scale) samplingData.push({ label: "CFG Scale", value: metadata.cfg || metadata.cfg_scale });
     if (metadata.scheduler) samplingData.push({ label: "Scheduler", value: metadata.scheduler });
 
-    if (metadata.all_samplers && Array.isArray(metadata.all_samplers) && metadata.all_samplers.length > 1) {
-        const multiBox = document.createElement("div");
-        multiBox.style.cssText = `
-            background: var(--comfy-menu-bg, rgba(0,0,0,0.3));
-            border: 1px solid var(--border-color, rgba(255,255,255,0.12));
-            border-left: 3px solid #9C27B0;
-            border-radius: 6px;
-            padding: 12px;
-            margin-top: 4px;
-        `;
+    const hasChainedPipeline =
+        metadata.chained_passes && Array.isArray(metadata.chained_passes) && metadata.chained_passes.length > 1;
+    const hasAllSamplersPipeline =
+        metadata.all_samplers && Array.isArray(metadata.all_samplers) && metadata.all_samplers.length > 1;
+    const hasPipelineTabs = !!(hasChainedPipeline || hasAllSamplersPipeline);
 
-        const header = document.createElement("div");
-        header.textContent = `All Samplers (${metadata.all_samplers.length} variants)`;
-        header.title = t("tooltip.workflowMultiOutputSamplers", "Multiple outputs with different samplers");
-        header.style.cssText = `
-            font-size: 11px;
-            font-weight: 600;
-            color: #9C27B0;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
-            cursor: pointer;
-        `;
-
-        const list = document.createElement("div");
-        list.style.cssText = "display: none; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto;";
-
-        metadata.all_samplers.forEach((p, i) => {
-            const item = document.createElement("div");
-            item.style.cssText = `
-                font-size: 11px;
-                color: var(--fg-color, #ddd);
-                padding: 6px 8px;
-                background: rgba(127,127,127,0.12);
-                border-radius: 4px;
-                word-break: break-word;
-            `;
-            let label = p.sampler_name || p.sampler || p.name || p.type || "Unknown Sampler";
-            let details = [];
-            if (p.scheduler) details.push(`Scheduler: ${p.scheduler}`);
-            if (p.steps) details.push(`Steps: ${p.steps}`);
-            if (p.cfg) details.push(`CFG: ${p.cfg}`);
-            
-            item.textContent = `${i + 1}. ${label} ${details.length ? '(' + details.join(', ') + ')' : ''}`;
-            item.title = `Variant ${i + 1}: ${label}`;
-            list.appendChild(item);
-        });
-
-        let expanded = false;
-        header.onclick = () => {
-            expanded = !expanded;
-            list.style.display = expanded ? "flex" : "none";
-            header.textContent = expanded
-                ? `All Samplers (${metadata.all_samplers.length} variants) ▲`
-                : `All Samplers (${metadata.all_samplers.length} variants) ▼`;
-        };
-        header.textContent += " ▼";
-
-        multiBox.appendChild(header);
-        multiBox.appendChild(list);
-        container.appendChild(multiBox);
+    if (hasChainedPipeline) {
+        const tabsBox = _createTabsBox("Generation Pipeline", metadata.chained_passes, "#FF9800");
+        if (tabsBox) {
+            container.appendChild(tabsBox);
+        }
+    } else if (hasAllSamplersPipeline) {
+        const samplerPipeline = _createTabsBox("Generation Pipeline", metadata.all_samplers, "#FF9800");
+        if (samplerPipeline) {
+            container.appendChild(samplerPipeline);
+        }
     }
-    if (samplingData.length > 0) {
+    if (!hasPipelineTabs && samplingData.length > 0) {
         container.appendChild(createParametersBox("Sampling", samplingData, "#FF9800", { emphasis: true }));
     }
 

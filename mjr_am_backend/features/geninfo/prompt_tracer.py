@@ -40,12 +40,41 @@ def _collect_texts_from_conditioning(
             if isinstance(v, str) and v.strip():
                 candidates.append(v.strip())
             elif _is_link(v):
+                # Check cached output text on the destination node first (e.g. ShowText|pysssss
+                # stores its output as text_0). This avoids following deeper links that may
+                # resolve to unrelated scalars (like seed values) on intermediate nodes.
+                cached = _extract_cached_text_from_linked_node(nodes_by_id, v)
+                if cached:
+                    candidates.append(cached)
+                    continue
                 resolved = _resolve_scalar_from_link(nodes_by_id, v)
                 if _looks_like_prompt_string(resolved):
                     candidates.append(str(resolved).strip())
         if candidates:
             out.append(("\n".join(candidates), f"{_node_type(node)}:{nid}"))
     return out
+
+
+def _extract_cached_text_from_linked_node(
+    nodes_by_id: dict[str, Any], link: Any
+) -> str | None:
+    """
+    Return cached output text from a display/preview node (e.g. ShowText|pysssss).
+    ComfyUI display nodes store their run-time output as ``text_0``, ``string_0``, etc.
+    Only returns text that passes the prompt-string heuristic.
+    """
+    dest_id = _walk_passthrough(nodes_by_id, link)
+    if not dest_id:
+        return None
+    dest_node = nodes_by_id.get(dest_id)
+    if not isinstance(dest_node, dict):
+        return None
+    dest_ins = _inputs(dest_node)
+    for cached_key in ("text_0", "string_0", "STRING"):
+        v = dest_ins.get(cached_key)
+        if isinstance(v, str) and _looks_like_prompt_string(v):
+            return v.strip()
+    return None
 
 
 

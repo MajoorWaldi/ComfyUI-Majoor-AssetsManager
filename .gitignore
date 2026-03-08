@@ -126,6 +126,7 @@ update_filesystem_handlers.py
 # Test outputs and dumps
 tests/__reports__/
 variation_exif_dump.json
+output_metadata.json
 run_tests_comfy_cli.bat
 scripts/sync_and_test_comfy_cli.bat
 .codex_filelist.txt
@@ -191,3 +192,4 @@ docs/CODE_AUDIT_2026-03-02.md
 docs/CODE_AUDIT_2026-03-03.md
 docs/FILESYSTEM_AUDIT_2026-03-03.md
 docs/HEALTH_STATE_AUDIT_2026-03-03.md
+output_metadata.json

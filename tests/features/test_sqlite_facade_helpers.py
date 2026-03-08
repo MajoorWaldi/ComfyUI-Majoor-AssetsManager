@@ -54,6 +54,21 @@ def test_asset_lock_key():
     assert s._asset_lock_key(7) == "asset:7"
 
 
+def test_find_unresolved_sql_template():
+    assert s._find_unresolved_sql_template("SELECT * FROM assets WHERE {IN_CLAUSE}") == "{IN_CLAUSE}"
+    assert s._find_unresolved_sql_template("SELECT COALESCE(m.metadata_raw, '{}') FROM asset_metadata m") is None
+    assert s._find_unresolved_sql_template("SELECT 1") is None
+
+
+@pytest.mark.asyncio
+async def test_execute_async_rejects_unresolved_template_before_db_init():
+    obj = object.__new__(s.Sqlite)
+    result = await obj._execute_async("SELECT * FROM assets WHERE {IN_CLAUSE}", tuple(), fetch=True)
+    assert result.ok is False
+    assert result.code == s.ErrorCode.INVALID_INPUT
+    assert "unresolved template token" in str(result.error or "").lower()
+
+
 def test_async_loop_thread_run_submit_stop():
     t = s._AsyncLoopThread(run_timeout_s=2.0)
     loop = t.start()

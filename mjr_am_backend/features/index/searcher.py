@@ -1159,7 +1159,7 @@ class IndexSearcher:
             Result with asset data or None if not found
         """
         result = await self.db.aquery(
-            """
+            f"""
             SELECT
                 a.*,
                 COALESCE(m.rating, 0) AS rating,
@@ -1189,7 +1189,7 @@ class IndexSearcher:
                     ELSE 0
                 END as has_ai_info,
                 {_safe_metadata_json_extract('$.generation_time_ms')} as generation_time_ms,
-                COALESCE(m.metadata_raw, '{}') AS metadata_raw
+                COALESCE(m.metadata_raw, '{{}}') AS metadata_raw
             FROM assets a
             LEFT JOIN asset_metadata m ON m.asset_id = a.id
             LEFT JOIN vec.asset_embeddings ae ON ae.asset_id = a.id

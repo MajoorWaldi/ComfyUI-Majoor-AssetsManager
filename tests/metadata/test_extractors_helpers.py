@@ -167,6 +167,26 @@ def test_extract_png_webp_video_basic(monkeypatch, tmp_path):
     assert video.ok and video.data["resolution"] == (1, 2)
 
 
+def test_extract_png_metadata_uses_png_text_chunks_when_exif_missing(monkeypatch, tmp_path):
+    f = tmp_path / "with_chunks.png"
+    f.write_text("x")
+
+    monkeypatch.setattr(e.os.path, "exists", lambda _p: True)
+    monkeypatch.setattr(
+        e,
+        "_read_png_text_chunks",
+        lambda _p: {
+            "PNG:Prompt": '{"1":{"class_type":"KSampler","inputs":{}}}',
+            "PNG:Workflow": '{"nodes":[{"id":1,"type":"KSampler","inputs":[],"outputs":[]}],"links":[]}',
+        },
+    )
+
+    out = e.extract_png_metadata(str(f), None)
+    assert out.ok
+    assert isinstance(out.data.get("workflow"), dict)
+    assert out.data.get("quality") in {"partial", "full"}
+
+
 def test_video_helpers_collect_candidates():
     m = {"quality": "none"}
     e._apply_video_ffprobe_fields(m, {"video_stream": {"width": 5, "height": 6, "r_frame_rate": "24/1"}, "format": {"duration": "9"}})

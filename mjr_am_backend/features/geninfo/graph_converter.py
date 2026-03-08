@@ -366,6 +366,25 @@ def _build_link_source_map(links: Any) -> dict[int, tuple[int, int]]:
     return link_to_source
 
 
+def _build_subgraph_name_map(graph: dict[str, Any]) -> dict[str, str]:
+    out: dict[str, str] = {}
+    definitions = graph.get("definitions")
+    if not isinstance(definitions, dict):
+        return out
+    subgraphs = definitions.get("subgraphs")
+    if not isinstance(subgraphs, list):
+        return out
+
+    for sg in subgraphs:
+        if not isinstance(sg, dict):
+            continue
+        sg_id = sg.get("id")
+        sg_name = sg.get("name")
+        if isinstance(sg_id, str) and sg_id and isinstance(sg_name, str) and sg_name.strip():
+            out[sg_id] = sg_name.strip()
+    return out
+
+
 def _init_litegraph_converted_node(node: dict[str, Any]) -> dict[str, Any]:
     return {
         "class_type": node.get("type"),
@@ -449,11 +468,22 @@ def _normalize_graph_input(prompt_graph: Any, workflow: Any) -> dict[str, dict[s
     nodes_by_id: dict[str, dict[str, Any]] = {}
     if "nodes" in target_graph and isinstance(target_graph["nodes"], list):
         link_to_source = _build_link_source_map(target_graph.get("links", []))
+        subgraph_name_map = _build_subgraph_name_map(target_graph)
         for node in target_graph["nodes"]:
             if not isinstance(node, dict):
                 continue
             node_id = str(node.get("id"))
-            nodes_by_id[node_id] = _convert_litegraph_node(node, link_to_source)
+            converted = _convert_litegraph_node(node, link_to_source)
+            raw_type = str(node.get("type") or "")
+            mapped_name = subgraph_name_map.get(raw_type)
+            if mapped_name:
+                converted["class_type"] = mapped_name
+                converted["type"] = mapped_name
+                props = converted.get("properties")
+                if isinstance(props, dict):
+                    props["subgraph_id"] = raw_type
+                    props["subgraph_name"] = mapped_name
+            nodes_by_id[node_id] = converted
     else:
         for key, value in target_graph.items():
             if isinstance(value, dict):

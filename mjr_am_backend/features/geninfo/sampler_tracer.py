@@ -290,6 +290,8 @@ def _trace_scheduler_sigmas(nodes_by_id: dict[str, dict[str, Any]], link: Any, m
                 return resolved
 
     steps = _scalar(ins.get("steps"))
+    if steps is None and _is_link(ins.get("steps")):
+        steps = _resolve_scalar_from_link_for_scheduler(nodes_by_id, ins.get("steps"))
     steps_confidence: str | None = "high" if steps is not None else None
     if steps is None:
         steps, steps_confidence = _steps_from_manual_sigmas(ins)
@@ -302,6 +304,29 @@ def _trace_scheduler_sigmas(nodes_by_id: dict[str, dict[str, Any]], link: Any, m
     model_link = ins.get("model") if _is_link(ins.get("model")) else None
     src = f"{_node_type(node)}:{src_id}"
     return (steps, scheduler, denoise, model_link, (src_id, src), steps_confidence)
+
+
+def _resolve_scalar_from_link_for_scheduler(nodes_by_id: dict[str, dict[str, Any]], link: Any) -> Any | None:
+    src_id = _walk_passthrough(nodes_by_id, link)
+    if not src_id:
+        return None
+    node = nodes_by_id.get(src_id)
+    if not isinstance(node, dict):
+        return None
+    ins = _inputs(node)
+
+    for key in ("value", "steps", "step", "int", "number", "seed", "noise_seed"):
+        candidate = _scalar(ins.get(key))
+        if candidate is not None:
+            return candidate
+
+    widgets = node.get("widgets_values")
+    if isinstance(widgets, list):
+        for value in widgets:
+            scalar_value = _scalar(value)
+            if scalar_value is not None:
+                return scalar_value
+    return None
 
 
 def _extract_ksampler_widget_params(node: dict[str, Any]) -> dict[str, Any]:
