@@ -90,7 +90,8 @@ function _mediaNodeKind(node) {
  * Handles plain filenames ("foo.png") and paths ("subdir/foo.png").
  */
 function _parseWidgetFilename(raw) {
-    const str = String(raw || "").trim().replace(/\\/g, "/");
+    if (raw == null || typeof raw !== "string") return null;
+    const str = raw.trim().replace(/\\/g, "/");
     if (!str) return null;
     const slash = str.lastIndexOf("/");
     return {

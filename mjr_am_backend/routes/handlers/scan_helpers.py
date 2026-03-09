@@ -282,11 +282,16 @@ def _cleanup_temp_upload_file(fd: int | None, tmp_path: str | None) -> None:
 # Index task scheduler
 # ---------------------------------------------------------------------------
 
+_INDEX_TASK_TIMEOUT_S = 300  # 5 minutes (MED-009)
+
+
 def _schedule_index_task(fn) -> None:
     async def _runner():
         try:
             async with _get_index_semaphore():
-                await fn()
+                await asyncio.wait_for(fn(), timeout=_INDEX_TASK_TIMEOUT_S)
+        except asyncio.TimeoutError:
+            logger.warning("Background index task timed out after %ds", _INDEX_TASK_TIMEOUT_S)
         except Exception:
             return
 

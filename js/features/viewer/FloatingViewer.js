@@ -40,7 +40,7 @@ function _extOf(filename) {
         const name = String(filename || "").trim();
         const idx = name.lastIndexOf(".");
         return idx >= 0 ? name.slice(idx).toLowerCase() : "";
-    } catch { return ""; }
+    } catch (_e) { /* extension extraction is best-effort */ return ""; }
 }
 
 /** Detect media kind from asset data (video / gif / image). */
@@ -227,6 +227,7 @@ export class FloatingViewer {
         this._popoutBtn    = null;
         this._isPopped     = false;
         this._popoutCloseHandler = null;
+        this._popoutKeydownHandler = null;
         this._popoutCloseTimer = null;
         this._popoutRestoreGuard = false;
 
@@ -234,6 +235,12 @@ export class FloatingViewer {
         this._previewBtn      = null;
         this._previewBlobUrl  = null;
         this._previewActive   = false;
+
+        // Master AbortController for document-level UI handlers (e.g. click-outside).
+        // Aborted in dispose() to guarantee all listeners are removed atomically.
+        this._docAC        = new AbortController();
+        // AbortController for pop-out window listeners (beforeunload, keydown, etc.).
+        this._popoutAC     = null;
 
         // Panel-level listeners and edge-resize state.
         this._panelAC      = new AbortController();
@@ -460,13 +467,19 @@ export class FloatingViewer {
         const doc = this.element?.ownerDocument || document;
         if (this._docClickHost === doc) return;
         this._unbindDocumentUiHandlers();
-        doc.addEventListener("click", this._handleDocClick);
+        // Re-create the AbortController so previous listeners on a different
+        // document (e.g. pop-out window) are cleaned up atomically.
+        try { this._docAC?.abort(); } catch (e) { console.debug?.(e); }
+        this._docAC = new AbortController();
+        doc.addEventListener("click", this._handleDocClick, { signal: this._docAC.signal });
         this._docClickHost = doc;
     }
 
     _unbindDocumentUiHandlers() {
-        if (!this._docClickHost || !this._handleDocClick) return;
-        try { this._docClickHost.removeEventListener("click", this._handleDocClick); } catch (e) { console.debug?.(e); }
+        // Abort the controller instead of manual removeEventListener — guarantees
+        // all document-level listeners attached via _docAC are removed.
+        try { this._docAC?.abort(); } catch (e) { console.debug?.(e); }
+        this._docAC = new AbortController();
         this._docClickHost = null;
     }
 
@@ -634,9 +647,8 @@ export class FloatingViewer {
             strong.textContent = `${label}: `;
             div.appendChild(strong);
             if (k === "prompt") {
-                // Truncate long prompts to 240 chars
-                const short = v.length > 240 ? v.slice(0, 240) + "\u2026" : v;
-                div.appendChild(document.createTextNode(short));
+                // Show full prompt, no truncation
+                div.appendChild(document.createTextNode(v));
             } else if (k === "genTime") {
                 // Color-code gen time (matches FileInfoSection.js colour scheme)
                 const secs = parseFloat(v);
@@ -1112,7 +1124,7 @@ export class FloatingViewer {
             };
             divider.addEventListener("pointermove", onMove);
             divider.addEventListener("pointerup", onUp);
-        });
+        }, this._panelAC?.signal ? { signal: this._panelAC.signal } : undefined);
 
         container.appendChild(layerA);
         container.appendChild(layerB);
@@ -1223,6 +1235,11 @@ export class FloatingViewer {
         this._popoutWindow = popup;
         this._isPopped = true;
         this._popoutRestoreGuard = false;
+        // Create an AbortController for all popup-window listeners so they can
+        // be removed atomically in popIn() without manual per-event cleanup.
+        try { this._popoutAC?.abort(); } catch (e) { console.debug?.(e); }
+        this._popoutAC = new AbortController();
+        const popoutSignal = this._popoutAC.signal;
         let mounted = false;
         const handlePopupClosing = () => this._schedulePopInFromPopupClose();
         this._popoutCloseHandler = handlePopupClosing;
@@ -1248,7 +1265,7 @@ export class FloatingViewer {
         };
 
         try {
-            popup.addEventListener("load", mountViewer, { once: true });
+            popup.addEventListener("load", mountViewer, { once: true, signal: popoutSignal });
         } catch (e) {
             console.debug?.("[MFV] pop-out page mount failed", e);
         }
@@ -1257,13 +1274,13 @@ export class FloatingViewer {
         }
 
         // When the user closes the popup window, automatically pop the viewer back in.
-        popup.addEventListener("beforeunload", handlePopupClosing);
-        popup.addEventListener("pagehide", handlePopupClosing);
-        popup.addEventListener("unload", handlePopupClosing);
+        popup.addEventListener("beforeunload", handlePopupClosing, { signal: popoutSignal });
+        popup.addEventListener("pagehide", handlePopupClosing, { signal: popoutSignal });
+        popup.addEventListener("unload", handlePopupClosing, { signal: popoutSignal });
         this._startPopoutCloseWatch();
 
         // Relay keyboard shortcuts from popup back to main window
-        popup.addEventListener("keydown", (e) => {
+        this._popoutKeydownHandler = (e) => {
             const tag = String(e?.target?.tagName || "").toLowerCase();
             if (e?.defaultPrevented || e?.target?.isContentEditable || tag === "input" || tag === "textarea" || tag === "select") {
                 return;
@@ -1280,7 +1297,8 @@ export class FloatingViewer {
                 key: e.key, code: e.code, keyCode: e.keyCode,
                 ctrlKey: e.ctrlKey, shiftKey: e.shiftKey, altKey: e.altKey, metaKey: e.metaKey,
             }));
-        });
+        };
+        popup.addEventListener("keydown", this._popoutKeydownHandler, { signal: popoutSignal });
     }
 
     _clearPopoutCloseWatch() {
@@ -1440,14 +1458,12 @@ export class FloatingViewer {
     popIn({ closePopupWindow = true } = {}) {
         if (!this._isPopped || !this.element) return;
         const popup = this._popoutWindow;
-        const closeHandler = this._popoutCloseHandler;
         this._clearPopoutCloseWatch();
-        if (popup && closeHandler) {
-            try { popup.removeEventListener("beforeunload", closeHandler); } catch (e) { console.debug?.(e); }
-            try { popup.removeEventListener("pagehide", closeHandler); } catch (e) { console.debug?.(e); }
-            try { popup.removeEventListener("unload", closeHandler); } catch (e) { console.debug?.(e); }
-        }
+        // Abort all popup-window listeners atomically instead of manual per-event removal.
+        try { this._popoutAC?.abort(); } catch (e) { console.debug?.(e); }
+        this._popoutAC = null;
         this._popoutCloseHandler = null;
+        this._popoutKeydownHandler = null;
         this._isPopped = false;
 
         // Re-adopt the element into the main document and append to body
@@ -1974,6 +1990,9 @@ export class FloatingViewer {
         try { this._panelAC?.abort(); this._panelAC = null; } catch (e) { console.debug?.(e); }
         // Abort all button click listeners in one call (NM-1).
         try { this._btnAC?.abort(); this._btnAC = null; } catch (e) { console.debug?.(e); }
+        // Abort document-level and pop-out window listeners atomically.
+        try { this._docAC?.abort(); this._docAC = null; } catch (e) { console.debug?.(e); }
+        try { this._popoutAC?.abort(); this._popoutAC = null; } catch (e) { console.debug?.(e); }
         // Pop-in before disposing so the element returns to the main document
         try { if (this._isPopped) this.popIn(); } catch (e) { console.debug?.(e); }
         this._revokePreviewBlob();

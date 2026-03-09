@@ -15,7 +15,7 @@ export function getSelectedIdSet(gridContainer) {
             }
             return selected;
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) { console.warn("[MJR] selection state parse error:", e); }
     try {
         const id = gridContainer.dataset?.mjrSelectedAssetId;
         if (id) selected.add(String(id));
