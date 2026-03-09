@@ -108,7 +108,7 @@ def _run_cleanup_loop() -> None:
     interval = _cleanup_interval_seconds()
     consecutive_errors = 0
     while True:
-        wait_seconds = min(interval * (2 ** min(consecutive_errors, 6)), 3600.0)
+        wait_seconds = min(interval * (2 ** min(consecutive_errors, 6)), 120.0)
         if _CLEANUP_STOP.wait(timeout=wait_seconds):
             break
         try:
@@ -122,6 +122,24 @@ def _run_cleanup_loop() -> None:
                 exc,
                 exc_info=True,
             )
+            try:
+                if _BATCH_DIR.is_dir():
+                    orphaned = [
+                        p.name for p in _BATCH_DIR.glob(".mjr_batch_*.zip")
+                        if p.name not in {
+                            (path.name if path is not None and isinstance(path, Path) else "")
+                            for e in _BATCH_CACHE.values()
+                            for path in [e.get("path")]
+                        }
+                    ]
+                    if orphaned:
+                        logger.warning(
+                            "Found %s orphaned batch zip file(s) during cleanup error: %s",
+                            len(orphaned),
+                            ", ".join(orphaned[:10]),
+                        )
+            except Exception:
+                pass
 
 
 def _ensure_cleanup_thread() -> None:
@@ -352,11 +370,16 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
         if not allowed:
             return _json_response(Result.Err("RATE_LIMITED", "Rate limit exceeded. Please wait before retrying.", retry_after=retry_after))
 
-        # Simple payload guard (dragstart should be tiny).
+        # Reject oversized payloads early (before reading the body).
         try:
-            if request.content_length and int(request.content_length) > _MAX_REQUEST_BYTES:
-                return _json_response(Result.Err("PAYLOAD_TOO_LARGE", "Payload too large"))
-        except Exception:
+            cl = request.content_length
+            if cl is not None and int(cl) > _MAX_REQUEST_BYTES:
+                return web.Response(
+                    status=413,
+                    text="Request entity too large",
+                    content_type="text/plain",
+                )
+        except (TypeError, ValueError):
             pass
 
         payload_res = await _read_json(request, max_bytes=_MAX_REQUEST_BYTES)

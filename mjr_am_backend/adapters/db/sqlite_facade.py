@@ -240,6 +240,7 @@ _IN_QUERY_FORBIDDEN = re.compile(
     r"(--|/\*|\*/|;|\bpragma\b|\battach\b|\bdetach\b|\bvacuum\b|\balter\b|\bdrop\b|\binsert\b|\bupdate\b|\bdelete\b)",
     re.IGNORECASE,
 )
+_UNRESOLVED_SQL_TEMPLATE = re.compile(r"\{[a-zA-Z_][a-zA-Z0-9_]*\}")
 
 
 def _validate_in_base_query(base_query: str) -> tuple[bool, str]:
@@ -358,6 +359,20 @@ def _asset_lock_key(asset_id: Any) -> str:
     if asset_id is None:
         return "asset:__null__"
     return f"asset:{str(asset_id)}"
+
+
+def _find_unresolved_sql_template(query: str) -> str | None:
+    """Return first unresolved `{TOKEN}` marker found in SQL, if any."""
+    try:
+        text = str(query or "")
+    except Exception:
+        return None
+    if not text:
+        return None
+    hit = _UNRESOLVED_SQL_TEMPLATE.search(text)
+    if not hit:
+        return None
+    return hit.group(0)
 
 
 class _AsyncLoopThread:
@@ -959,6 +974,22 @@ class Sqlite:
         *,
         tx_token: str | None = None,
     ) -> Result[Any]:
+        unresolved_template = _find_unresolved_sql_template(query)
+        if unresolved_template:
+            query_preview = " ".join(str(query or "").split())
+            if len(query_preview) > 220:
+                query_preview = query_preview[:217] + "..."
+            logger.error(
+                "Rejected SQL with unresolved template %s. Query preview: %s",
+                unresolved_template,
+                query_preview,
+            )
+            msg = (
+                f"Rejected SQL query containing unresolved template token {unresolved_template}. "
+                "For IN-list templates use aquery_in()/query_in() so {IN_CLAUSE} is expanded safely."
+            )
+            return Result.Err(ErrorCode.INVALID_INPUT, msg)
+
         await self._ensure_initialized_async()
 
         token = tx_token or self._tx_token()

@@ -746,6 +746,7 @@ def _collect_chained_samplers_from_sink(
         )
 
         export_sampler: dict[str, Any] = {}
+        export_sampler["_node_type"] = str(_node_type(sampler_node) or "")
         for k in ("sampler_name", "scheduler"):
             if sampler_values.get(k) is not None:
                 export_sampler[k] = str(sampler_values[k])
@@ -785,8 +786,322 @@ def _collect_chained_samplers_from_sink(
             break
         current_id = next_id
 
+    ordered = list(reversed(collected))
+    for index, sampler_pass in enumerate(ordered):
+        denoise_raw = sampler_pass.get("denoise")
+        denoise_value: float | None = None
+        try:
+            if denoise_raw is not None:
+                denoise_value = float(denoise_raw)
+        except Exception:
+            denoise_value = None
+
+        node_type_hint = _lower(str(sampler_pass.get("_node_type") or ""))
+        pass_name = ""
+        if "facedetailer" in node_type_hint or "detailer" in node_type_hint:
+            pass_name = "Detailer"
+        elif index == 0:
+            pass_name = "Base"
+        elif denoise_value is not None and denoise_value < 1.0:
+            pass_name = "Refine / Upscale"
+        elif denoise_value == 1.0:
+            pass_name = "Refine / Upscale"
+        elif len(ordered) > 1 and index > 0:
+            pass_name = "Refine / Upscale"
+
+        if pass_name:
+            sampler_pass["pass_name"] = pass_name
+        sampler_pass.pop("_node_type", None)
+
     # Reverse so base-pass comes first
-    return list(reversed(collected))
+    return ordered
+
+
+def _collect_sampler_pipeline_from_sink(
+    nodes_by_id: dict[str, Any],
+    sink_id: str,
+    max_nodes: int = 120,
+) -> list[dict[str, Any]]:
+    """
+    Fallback sampler pass extraction for workflows that chain via PIPE/context/image links
+    instead of ``latent_image`` between advanced sampler nodes.
+    Returns passes ordered from base pass to closest-to-sink pass.
+    """
+    sink = nodes_by_id.get(sink_id)
+    if not isinstance(sink, dict):
+        return []
+
+    sink_link = _pick_sink_inputs(sink)
+    if not sink_link:
+        return []
+    sink_start_id = _walk_passthrough(nodes_by_id, sink_link)
+    if not sink_start_id:
+        return []
+
+    dist = _collect_upstream_nodes(nodes_by_id, sink_start_id, max_nodes=max_nodes)
+    if not dist:
+        return []
+
+    detailer_present_in_branch = False
+    for nid in dist:
+        node = nodes_by_id.get(nid)
+        if isinstance(node, dict) and _node_has_detailer_signals(node):
+            detailer_present_in_branch = True
+            break
+
+    sampler_ids: list[tuple[int, int, str]] = []
+    for nid, depth in dist.items():
+        node = nodes_by_id.get(nid)
+        if not isinstance(node, dict):
+            continue
+        if not (_is_sampler(node) or _looks_like_pipeline_pass_node(node)):
+            continue
+        try:
+            stable = int(nid)
+        except Exception:
+            stable = 10**9
+        sampler_ids.append((depth, stable, nid))
+
+    # Furthest upstream first = base pass first in most graph topologies.
+    sampler_ids.sort(key=lambda item: (-item[0], item[1]))
+
+    import json
+    from .prompt_tracer import _extract_prompt_trace
+
+    passes: list[dict[str, Any]] = []
+    seen_hashes: set[str] = set()
+
+    for _, _, sampler_id in sampler_ids:
+        sampler_node = nodes_by_id.get(sampler_id)
+        if not isinstance(sampler_node, dict):
+            continue
+        ins = _inputs(sampler_node)
+        advanced = _is_advanced_sampler(sampler_node)
+        trace = _extract_prompt_trace(nodes_by_id, sampler_node, sampler_id, ins, advanced)
+        sampler_values = _extract_sampler_values(
+            nodes_by_id,
+            sampler_node,
+            sampler_id,
+            ins,
+            advanced,
+            "medium",
+            trace,
+        )
+        _apply_proxy_widget_sampler_values(sampler_values, sampler_node)
+
+        stage_hint = _lower(f"{_node_type(sampler_node) or ''} {sampler_node.get('title') or ''}")
+        export_sampler: dict[str, Any] = {
+            "_node_type": str(_node_type(sampler_node) or ""),
+            "_title": str(sampler_node.get("title") or ""),
+            "_is_detailer": _node_has_detailer_signals(sampler_node),
+            "_keep_when_sparse": ("sampler" in stage_hint) or _node_has_detailer_signals(sampler_node),
+            "_add_noise": ins.get("add_noise"),
+        }
+        for k in ("sampler_name", "scheduler"):
+            if sampler_values.get(k) is not None:
+                export_sampler[k] = str(sampler_values[k])
+        if sampler_values.get("steps") is not None:
+            try:
+                export_sampler["steps"] = int(sampler_values["steps"])
+            except Exception:
+                pass
+        if sampler_values.get("cfg") is not None:
+            try:
+                export_sampler["cfg"] = float(sampler_values["cfg"])
+            except Exception:
+                pass
+        if sampler_values.get("denoise") is not None:
+            try:
+                export_sampler["denoise"] = float(sampler_values["denoise"])
+            except Exception:
+                pass
+        if sampler_values.get("seed_val") is not None:
+            try:
+                export_sampler["seed_val"] = int(sampler_values["seed_val"])
+            except Exception:
+                pass
+
+        dedupe_sampler = {k: v for k, v in export_sampler.items() if not k.startswith("_")}
+        if not dedupe_sampler and export_sampler.get("_keep_when_sparse") is not True:
+            # Skip technical bridge/upscale nodes that are not real sampling passes.
+            continue
+        if dedupe_sampler:
+            val_str = json.dumps(dedupe_sampler, sort_keys=True)
+        else:
+            val_str = json.dumps(
+                {
+                    "_node_type": export_sampler.get("_node_type") or "",
+                    "_title": export_sampler.get("_title") or "",
+                },
+                sort_keys=True,
+            )
+        if val_str in seen_hashes:
+            continue
+        seen_hashes.add(val_str)
+        passes.append(export_sampler)
+
+    previous_seed: int | None = None
+    previous_steps: int | None = None
+    for index, sampler_pass in enumerate(passes):
+        denoise_raw = sampler_pass.get("denoise")
+        denoise_value: float | None = None
+        try:
+            if denoise_raw is not None:
+                denoise_value = float(denoise_raw)
+        except Exception:
+            denoise_value = None
+
+        hint = _lower(
+            f"{sampler_pass.get('_node_type') or ''} {sampler_pass.get('_title') or ''}"
+        )
+        pass_name = ""
+        if sampler_pass.get("_is_detailer") is True:
+            pass_name = "Detailer"
+        elif "facedetailer" in hint or "detailer" in hint:
+            pass_name = "Detailer"
+        elif index == 0:
+            pass_name = "Base"
+        elif denoise_value is not None and denoise_value < 1.0:
+            pass_name = "Refine / Upscale"
+        elif denoise_value == 1.0:
+            pass_name = "Refine / Upscale"
+        elif len(passes) > 1 and index > 0:
+            pass_name = "Refine / Upscale"
+        else:
+            pass_name = f"Pass {index + 1}"
+
+        if pass_name:
+            sampler_pass["pass_name"] = pass_name
+
+        if sampler_pass.get("seed_val") is None and sampler_pass.get("_add_noise") is False and previous_seed is not None:
+            sampler_pass["seed_val"] = previous_seed
+        if sampler_pass.get("steps") is None and index > 0 and previous_steps is not None:
+            sampler_pass["steps"] = previous_steps
+
+        try:
+            _seed_val = sampler_pass.get("seed_val")
+            if _seed_val is not None:
+                previous_seed = int(_seed_val)
+        except Exception:
+            pass
+        try:
+            _steps_val = sampler_pass.get("steps")
+            if _steps_val is not None:
+                previous_steps = int(_steps_val)
+        except Exception:
+            pass
+
+        sampler_pass.pop("_node_type", None)
+        sampler_pass.pop("_title", None)
+        sampler_pass.pop("_is_detailer", None)
+        sampler_pass.pop("_keep_when_sparse", None)
+        sampler_pass.pop("_add_noise", None)
+
+    if detailer_present_in_branch and passes and not any(p.get("pass_name") == "Detailer" for p in passes):
+        passes[-1]["pass_name"] = "Detailer"
+
+    return passes
+
+
+def _looks_like_pipeline_pass_node(node: dict[str, Any]) -> bool:
+    node_type = _lower(_node_type(node))
+    title = _lower(node.get("title"))
+    hint = f"{node_type} {title}"
+    if not any(k in hint for k in ("detailer", "highres", "upscale", "refine")):
+        return False
+
+    ins = _inputs(node)
+    has_model = _is_link(ins.get("model")) or _is_link(ins.get("model_1"))
+    has_conditioning = (
+        _is_link(ins.get("positive"))
+        or _is_link(ins.get("positive_1"))
+        or _is_link(ins.get("negative"))
+        or _is_link(ins.get("negative_1"))
+    )
+    has_image_or_pixel = _is_link(ins.get("image")) or _is_link(ins.get("images")) or _is_link(ins.get("pixels"))
+    return has_model or has_conditioning or has_image_or_pixel
+
+
+def _node_has_detailer_signals(node: dict[str, Any]) -> bool:
+    if not isinstance(node, dict):
+        return False
+    node_type = _lower(_node_type(node))
+    title = _lower(node.get("title"))
+    hint = f"{node_type} {title}"
+    if any(token in hint for token in ("detailer", "facedetailer", "inpaint")):
+        return True
+    ins = _inputs(node)
+    return any(key in ins for key in ("mask", "masks", "bbox", "segs", "sam_mask"))
+
+
+def _apply_proxy_widget_sampler_values(values: dict[str, Any], sampler_node: dict[str, Any]) -> None:
+    if not isinstance(values, dict) or not isinstance(sampler_node, dict):
+        return
+    proxy_values = _extract_proxy_widget_sampler_values(sampler_node)
+    if not proxy_values:
+        return
+
+    if values.get("sampler_name") is None and proxy_values.get("sampler_name") is not None:
+        values["sampler_name"] = _scalar(proxy_values.get("sampler_name"))
+    if values.get("scheduler") is None and proxy_values.get("scheduler") is not None:
+        values["scheduler"] = _scalar(proxy_values.get("scheduler"))
+    if values.get("steps") is None and proxy_values.get("steps") is not None:
+        values["steps"] = _scalar(proxy_values.get("steps"))
+    if values.get("cfg") is None and proxy_values.get("cfg") is not None:
+        values["cfg"] = _scalar(proxy_values.get("cfg"))
+    if values.get("denoise") is None and proxy_values.get("denoise") is not None:
+        values["denoise"] = _scalar(proxy_values.get("denoise"))
+    if values.get("seed_val") is None and proxy_values.get("seed_val") is not None:
+        values["seed_val"] = _scalar(proxy_values.get("seed_val"))
+
+
+def _extract_proxy_widget_sampler_values(node: dict[str, Any]) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    props = node.get("properties")
+    if not isinstance(props, dict):
+        return out
+
+    proxy_widgets = props.get("proxyWidgets")
+    widgets_values = node.get("widgets_values")
+    if not isinstance(proxy_widgets, list) or not isinstance(widgets_values, list):
+        return out
+
+    def _map_proxy_key(name: str) -> str | None:
+        key = _lower(name)
+        if key in ("sampler_name", "sampler"):
+            return "sampler_name"
+        if key == "scheduler":
+            return "scheduler"
+        if key == "steps":
+            return "steps"
+        if key in ("cfg", "cfg_scale"):
+            return "cfg"
+        if key == "denoise":
+            return "denoise"
+        if key in ("seed", "noise_seed"):
+            return "seed_val"
+        return None
+
+    for idx, proxy_item in enumerate(proxy_widgets):
+        if idx >= len(widgets_values):
+            break
+        if not isinstance(proxy_item, list) or not proxy_item:
+            continue
+
+        raw_name: str | None = None
+        for candidate in reversed(proxy_item):
+            if isinstance(candidate, str) and candidate.strip():
+                raw_name = candidate.strip()
+                break
+        if not raw_name:
+            continue
+
+        mapped = _map_proxy_key(raw_name)
+        if not mapped or mapped in out:
+            continue
+        out[mapped] = widgets_values[idx]
+
+    return out
 
 
 def _find_checkpoint_for_sampler(

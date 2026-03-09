@@ -79,7 +79,11 @@ def register_calendar_routes(routes: web.RouteTableDef) -> None:
             return _json_response(filters_res)
         filters = filters_res.data or {}
         if scope in {"output", "input", "custom"}:
-            filters["subfolder"] = str(request.query.get("subfolder") or "")
+            subfolder_param = str(request.query.get("subfolder") or "").strip()
+            # Only apply subfolder filter when an explicit non-empty value is provided,
+            # matching the behavior of the list query (search_impl.py).
+            if subfolder_param:
+                filters["subfolder"] = subfolder_param
 
         svc, error_result = await _require_services()
         if error_result:

@@ -8,6 +8,7 @@ from ...shared import Result
 from .graph_converter import _inputs, _node_type, _pick_sink_inputs, _walk_passthrough
 from .model_tracer import _collect_model_related_fields, _merge_models_payload
 from .prompt_tracer import _extract_prompt_trace
+from .sampler_tracer import _scalar
 
 
 def _field(value: Any, confidence: str, source: str) -> dict[str, Any] | None:
@@ -119,18 +120,74 @@ def _apply_multi_sink_prompt_fields(out: dict[str, Any], nodes_by_id: dict[str, 
         out["all_negative_prompts"] = all_neg
 
 
+def _effective_sampler_sinks(nodes_by_id: dict[str, Any], sinks: list[str]) -> list[str]:
+    if len(sinks) <= 1:
+        return sinks
+
+    deduped: list[str] = []
+    seen_starts: set[str] = set()
+    sink_starts: dict[str, str] = {}
+    for sink_id in sinks:
+        sink = nodes_by_id.get(sink_id)
+        if not isinstance(sink, dict):
+            continue
+        sink_link = _pick_sink_inputs(sink)
+        start = _walk_passthrough(nodes_by_id, sink_link) if sink_link else None
+        key = start or f"sink:{sink_id}"
+        if key in seen_starts:
+            continue
+        seen_starts.add(key)
+        deduped.append(sink_id)
+        if start:
+            sink_starts[sink_id] = start
+
+    if len(deduped) <= 1:
+        return deduped or sinks
+
+    from . import parser_impl as _p
+
+    # Remove sinks that represent upstream/intermediate previews of another sink branch.
+    keep = set(deduped)
+    for sink_id in deduped:
+        start = sink_starts.get(sink_id)
+        if not start:
+            continue
+        for other_sink in deduped:
+            if other_sink == sink_id:
+                continue
+            other_start = sink_starts.get(other_sink)
+            if not other_start:
+                continue
+            upstream = _p._collect_upstream_nodes(nodes_by_id, other_start, max_nodes=500, max_depth=80)
+            if start in upstream:
+                keep.discard(sink_id)
+                break
+
+    pruned = [sid for sid in deduped if sid in keep]
+    return pruned or deduped or sinks
+
+
 def _apply_multi_sink_sampler_fields(out: dict[str, Any], nodes_by_id: dict[str, Any], sinks: list[str]) -> None:
     from . import parser_impl as _p
 
-    if len(sinks) > 1:
+    effective_sinks = _effective_sampler_sinks(nodes_by_id, sinks)
+
+    if len(effective_sinks) > 1:
         # Multiple independent sinks (different outputs) → one sampler entry per sink
-        all_samplers = _p._collect_all_samplers_from_sinks(nodes_by_id, sinks)
+        all_samplers = _p._collect_all_samplers_from_sinks(nodes_by_id, effective_sinks)
+        if len(all_samplers) > 1:
+            out["all_samplers"] = all_samplers
     else:
         # Single sink — check for chained sampler passes (2-pass / hires-fix pattern)
-        all_samplers = _p._collect_chained_samplers_from_sink(nodes_by_id, sinks[0]) if sinks else []
-
-    if len(all_samplers) > 1:
-        out["all_samplers"] = all_samplers
+        primary_sink = effective_sinks[0] if effective_sinks else (sinks[0] if sinks else None)
+        chained_passes = _p._collect_chained_samplers_from_sink(nodes_by_id, primary_sink) if primary_sink else []
+        if len(chained_passes) <= 1 and primary_sink:
+            # Fallback for PIPE/context workflows that do not expose latent_image chains.
+            chained_passes = _p._collect_sampler_pipeline_from_sink(nodes_by_id, primary_sink)
+        if len(chained_passes) > 1:
+            out["chained_passes"] = chained_passes
+            # Keep legacy field for existing clients while new UI migrates to chained_passes.
+            out["all_samplers"] = chained_passes
 
 
 def _apply_multi_checkpoint_fields(out: dict[str, Any], nodes_by_id: dict[str, Any], sinks: list[str]) -> None:
@@ -202,10 +259,15 @@ def _geninfo_metadata_only_result(workflow_meta: dict[str, Any] | None) -> Resul
 def _build_no_sampler_result(nodes_by_id: dict[str, Any], workflow_meta: dict[str, Any] | None) -> Result:
     from . import parser_impl as _p
     from .tts_extractor import _extract_tts_geninfo_fallback
+    from .upscaler_extractor import _extract_upscaler_geninfo_fallback
 
     tts_fallback = _extract_tts_geninfo_fallback(nodes_by_id, workflow_meta)
     if tts_fallback:
         return Result.Ok(tts_fallback)
+
+    upscaler_fallback = _extract_upscaler_geninfo_fallback(nodes_by_id, workflow_meta)
+    if upscaler_fallback:
+        return Result.Ok(upscaler_fallback)
     out_fallback: dict[str, Any] = {}
     if workflow_meta:
         out_fallback["metadata"] = workflow_meta
@@ -241,8 +303,8 @@ def _trace_size(nodes_by_id: dict[str, dict[str, Any]], latent_link: Any, confid
 
 
 def _size_field_from_node(node: dict[str, Any], node_id: str, node_type: str, ins: dict[str, Any], confidence: str) -> dict[str, Any] | None:
-    width = ins.get("width")
-    height = ins.get("height")
+    width = _scalar(ins.get("width"))
+    height = _scalar(ins.get("height"))
     if "emptylatentimage" in node_type:
         return _field_size(width, height, confidence, f"{_node_type(node)}:{node_id}")
     if width is None or height is None:
@@ -265,6 +327,24 @@ def _extract_geninfo(nodes_by_id: dict[str, Any], sinks: list[str], workflow_met
     sampler_id, sampler_conf, sampler_mode = _p._select_sampler_context(nodes_by_id, sink_id)
 
     if not sampler_id:
+        pipeline_passes = _p._collect_sampler_pipeline_from_sink(nodes_by_id, sink_id)
+        if len(pipeline_passes) > 1:
+            out_fallback: dict[str, Any] = {
+                "engine": {
+                    "parser_version": "geninfo-v1",
+                    "sink": str(_node_type(nodes_by_id.get(sink_id, {}))),
+                    "sampler_mode": "fallback",
+                    "type": _p._determine_workflow_type(nodes_by_id, sink_id, ""),
+                },
+                "chained_passes": pipeline_passes,
+                # Compatibility for legacy clients.
+                "all_samplers": pipeline_passes,
+            }
+            if workflow_meta:
+                out_fallback["metadata"] = workflow_meta
+            _apply_multi_checkpoint_fields(out_fallback, nodes_by_id, sinks)
+            _apply_input_files_field(out_fallback, nodes_by_id)
+            return Result.Ok(out_fallback)
         return _build_no_sampler_result(nodes_by_id, workflow_meta)
 
     sink = nodes_by_id.get(sink_id) or {}

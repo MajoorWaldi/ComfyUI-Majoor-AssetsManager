@@ -1173,23 +1173,60 @@ def _apply_a1111_checkpoint_field(out: dict[str, Any], parsed: dict[str, Any]) -
         out["checkpoint"] = {"name": checkpoint, "confidence": "high", "source": "parameters"}
 
 
+def _read_png_text_chunks(file_path: str) -> dict[str, Any]:
+    """Best-effort PNG text chunk reader for prompt/workflow fallback."""
+    try:
+        from PIL import Image
+    except Exception:
+        return {}
+
+    try:
+        with Image.open(file_path) as img:
+            info = dict(getattr(img, "info", {}) or {})
+    except Exception:
+        return {}
+
+    out: dict[str, Any] = {}
+    for key in ("prompt", "workflow", "parameters"):
+        value = info.get(key)
+        if isinstance(value, str) and value.strip():
+            out[f"PNG:{key.capitalize()}"] = value
+    return out
+
+
 def extract_png_metadata(file_path: str, exif_data: dict | None = None) -> Result[dict[str, Any]]:
     if not os.path.exists(file_path):
         return Result.Err(ErrorCode.NOT_FOUND, f"File not found: {file_path}")
 
+    png_text_exif = _read_png_text_chunks(file_path)
+    merged_exif: dict[str, Any] = {}
+    if isinstance(exif_data, dict):
+        merged_exif.update(exif_data)
+    # Keep existing exiftool values authoritative, fill only missing keys from PNG chunks.
+    for key, value in png_text_exif.items():
+        merged_exif.setdefault(key, value)
+
     metadata = {
-        "raw": exif_data or {},
+        "raw": merged_exif,
         "workflow": None,
         "prompt": None,
         "parameters": None,
         "quality": "none"
     }
 
-    if not exif_data:
+    if not merged_exif:
         return Result.Ok(metadata, quality="none")
 
+
     try:
-        png_params = exif_data.get("PNG:Parameters")
+        potential_workflow = _inspect_json_field(merged_exif, ("PNG:Workflow", "Keys:Workflow", "comfyui:workflow"))
+        potential_prompt = _inspect_json_field(merged_exif, ("PNG:Prompt", "Keys:Prompt", "comfyui:prompt"))
+        workflow, prompt, _ = _merge_workflow_prompt_candidate(potential_workflow, None, None)
+        workflow, prompt, _ = _merge_workflow_prompt_candidate(potential_prompt, workflow, prompt)
+        if workflow is None or prompt is None:
+            workflow, prompt = _merge_scanned_workflow_prompt(workflow, prompt, merged_exif)
+
+        png_params = merged_exif.get("PNG:Parameters")
         if png_params:
             metadata["parameters"] = png_params
             _bump_quality(metadata, "partial")
@@ -1198,7 +1235,8 @@ def extract_png_metadata(file_path: str, exif_data: dict | None = None) -> Resul
                 metadata.update(parsed)
                 metadata["geninfo"] = _build_a1111_geninfo(parsed) or {}
 
-        _apply_common_exif_fields(metadata, exif_data)
+        _apply_common_exif_fields(metadata, merged_exif, workflow=workflow, prompt=prompt)
+
         return Result.Ok(metadata, quality=metadata["quality"])
     except Exception as e:
         logger.warning(f"PNG metadata extraction error: {e}")

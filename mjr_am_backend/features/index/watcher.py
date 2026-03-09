@@ -88,6 +88,20 @@ IGNORED_DIRS = {
 MIN_FILE_SIZE = max(0, int(WATCHER_MIN_FILE_SIZE_BYTES))
 # Maximum file size (bytes) to avoid indexing oversized files
 MAX_FILE_SIZE = max(0, int(WATCHER_MAX_FILE_SIZE_BYTES))
+# Timing assumption (HIGH-005):
+#
+# The _RECENT_GENERATED dict prevents the watcher from re-indexing files that
+# ComfyUI just generated (which are already indexed via the executed-event path).
+#
+# Sequence:
+#   T=0ms    entry.js receives WS "executed" event
+#   T~50ms   POST /index-files → scan.py calls mark_recent_generated(paths) BEFORE index_paths()
+#   T~3000ms watcher debounce fires → _flush() → _is_recent_generated() returns True → skip
+#
+# The 3000ms default debounce (WATCHER_DEFAULT_DEBOUNCE_MS) guarantees that the
+# mark always precedes the flush check.  If the debounce is ever reduced below
+# ~100ms this assumption may break and a lock-based coordination would be needed.
+# The TTL of 30s provides ample margin for slow index_paths() runs.
 _RECENT_GENERATED_TTL_S = 30.0
 _RECENT_GENERATED_LOCK = Lock()
 _RECENT_GENERATED: dict[str, float] = {}

@@ -38,12 +38,18 @@ def _find_tts_nodes(nodes_by_id: dict[str, Any]) -> tuple[str | None, dict[str, 
 
 
 def _is_tts_text_node_type(ct: str) -> bool:
-    return "unifiedttstextnode" in ct or "tts_text_node" in ct or ("tts" in ct and "text" in ct)
+    if "unifiedttstextnode" in ct or "tts_text_node" in ct or ("tts" in ct and "text" in ct):
+        return True
+    # FB_Qwen3TTSVoiceDesign / FB_Qwen3TTSVoiceClone — combined text+engine nodes
+    return "fb_qwen" in ct and "tts" in ct
 
 
 
 def _is_tts_engine_node_type(ct: str) -> bool:
-    return "ttsengine" in ct or ("qwen" in ct and "tts" in ct and "engine" in ct) or ("engine_node" in ct and "tts" in ct)
+    if "ttsengine" in ct or ("qwen" in ct and "tts" in ct and "engine" in ct) or ("engine_node" in ct and "tts" in ct):
+        return True
+    # FB_Qwen3TTSVoiceDesign / FB_Qwen3TTSVoiceClone — combined text+engine nodes
+    return "fb_qwen" in ct and "tts" in ct
 
 
 
@@ -64,7 +70,8 @@ def _apply_tts_text_node_fields(
 
 
 def _apply_tts_text_direct_fields(out: dict[str, Any], tins: dict[str, Any], source: str) -> None:
-    text_value = tins.get("text")
+    # "text" for VoiceDesign; "target_text" for VoiceClone nodes
+    text_value = tins.get("text") or tins.get("target_text")
     if isinstance(text_value, str) and text_value.strip():
         out["positive"] = {"value": text_value.strip(), "confidence": "high", "source": source}
     _set_value_field(out, "seed", _scalar(tins.get("seed")) or _scalar(tins.get("noise_seed")), source)
@@ -156,7 +163,11 @@ def _apply_tts_engine_node_fields(out: dict[str, Any], engine_node_id: str, engi
 
 
 def _apply_tts_engine_direct_fields(out: dict[str, Any], eins: dict[str, Any], source: str) -> None:
-    model_name = _clean_model_id(eins.get("model_size") or eins.get("model") or eins.get("checkpoint") or eins.get("model_name"))
+    # model_choice = "1.7B" / "0.6B" used by FB_Qwen3TTS* nodes
+    model_name = _clean_model_id(
+        eins.get("model_size") or eins.get("model") or eins.get("checkpoint")
+        or eins.get("model_name") or eins.get("model_choice")
+    )
     if model_name:
         out["checkpoint"] = {"name": model_name, "confidence": "high", "source": source}
         out["models"] = {"checkpoint": out["checkpoint"]}
@@ -274,8 +285,8 @@ def _apply_tts_text_node_fields_safe(
     try:
         if text_node_id and isinstance(text_node, dict):
             _apply_tts_text_node_fields(out, nodes_by_id, text_node_id, text_node)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("TTS text node extraction failed for node %s: %s", text_node_id, e)
 
 
 
@@ -287,8 +298,8 @@ def _apply_tts_engine_node_fields_safe(
     try:
         if engine_node_id and isinstance(engine_node, dict):
             _apply_tts_engine_node_fields(out, engine_node_id, engine_node)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("TTS engine node extraction failed for node %s: %s", engine_node_id, e)
 
 
 

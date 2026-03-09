@@ -25,6 +25,7 @@ let _liveActive = false;
 let _previewActive = false;
 let _selectionListenerBound = false;
 let _fetchAC = null; // AbortController for the latest in-flight batch fetch
+let _loadSeq = 0;   // Sequence counter to discard stale _loadFromIds responses
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
@@ -87,6 +88,7 @@ async function _loadFromIds(selectedIds) {
     if (!selectedIds.length || !_instance) return;
     _cancelFetch();
 
+    const seq = ++_loadSeq;
     const ac = typeof AbortController !== "undefined" ? new AbortController() : null;
     _fetchAC = ac;
 
@@ -106,6 +108,7 @@ async function _loadFromIds(selectedIds) {
 
         const result = await getAssetsBatch(ids, ac ? { signal: ac.signal } : {});
         if (ac?.signal.aborted) return;
+        if (_loadSeq !== seq) return; // stale — a newer _loadFromIds call was made
         if (!result?.ok || !Array.isArray(result.data) || !result.data.length) return;
         if (!_instance) return; // disposed while fetching
 

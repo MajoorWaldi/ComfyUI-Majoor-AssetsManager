@@ -747,27 +747,19 @@ def _get_client_identifier(request: web.Request) -> str:
     client_ip = _resolve_client_ip(peer_ip, headers)
     return hashlib.sha256(client_ip.encode("utf-8", errors="ignore")).hexdigest()[:_CLIENT_ID_HASH_HEX_CHARS]
 
-def _evict_oldest_clients_if_needed() -> None:
-    # Evict more aggressively when near capacity
-    target = int(_MAX_RATE_LIMIT_CLIENTS * 0.9)
-    while len(_rate_limit_state) > target:
-        try:
-            _rate_limit_state.popitem(last=False)
-        except KeyError:
-            break
-
 def _get_or_create_client_state(client_id: str) -> dict[str, list[float]]:
     if client_id in _rate_limit_state:
         _rate_limit_state.move_to_end(client_id)
         return _rate_limit_state[client_id]
-    # Under client-ID flood, keep per-client isolation by evicting oldest entries.
-    # This avoids collapsing all overflow traffic into a shared global bucket.
-    if len(_rate_limit_state) >= _MAX_RATE_LIMIT_CLIENTS:
+    # Synchronous eviction at insertion time: pop the oldest entry (FIFO) whenever
+    # the dict exceeds _MAX_RATE_LIMIT_CLIENTS.  This caps memory at all times,
+    # not just at background-cleanup intervals — preventing spoofed-IP floods from
+    # exhausting memory between 60-second cleanup cycles (HIGH-002).
+    while len(_rate_limit_state) >= _MAX_RATE_LIMIT_CLIENTS:
         try:
             _rate_limit_state.popitem(last=False)
         except KeyError:
-            pass
-    _evict_oldest_clients_if_needed()
+            break
     state: dict[str, list[float]] = {}
     _rate_limit_state[client_id] = state
     return state

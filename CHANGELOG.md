@@ -26,8 +26,11 @@ All notable changes to this project are documented in this file.
 
 ### 📚 Documentation
 - Added comprehensive AI features guide and new documentation
+<<<<<<< HEAD
 
 ## [Nightly Build]
+=======
+>>>>>>> 43f02acc74396d1727fa2e461dbbfcebf5c5560b
 
 ## [2.4.0] - 2026-02-28
 
