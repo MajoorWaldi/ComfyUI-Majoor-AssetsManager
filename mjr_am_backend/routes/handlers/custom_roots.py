@@ -459,23 +459,37 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
             if not _is_within_root(candidate, root_dir):
                 return _json_response(Result.Err("INVALID_INPUT", "Path outside root"))
 
-        def _validate_no_symlink_open(path: Path) -> bool:
+        def _validate_no_symlink_open(path: Path) -> str:
+            """Check that *path* is not a symlink.
+
+            Returns:
+                "ok"      - not a symlink.
+                "symlink" - symlink detected.
+                "error"   - unexpected error during check.
+            """
+            # On Windows O_NOFOLLOW is unavailable; fall back to explicit checks.
+            if os.name == "nt" or not hasattr(os, "O_NOFOLLOW"):
+                try:
+                    if os.path.islink(str(path)):
+                        return "symlink"
+                    resolved = Path(os.path.realpath(str(path)))
+                    if resolved != path and resolved != path.resolve():
+                        return "symlink"
+                    return "ok"
+                except Exception:
+                    return "error"
+            # Unix: use O_NOFOLLOW for an atomic open-time check.
             try:
-                flags = os.O_RDONLY
-                if os.name == "nt" and hasattr(os, "O_BINARY"):
-                    flags |= os.O_BINARY
-                # Best-effort: disallow following symlinks where supported.
-                if hasattr(os, "O_NOFOLLOW"):
-                    flags |= os.O_NOFOLLOW
+                flags = os.O_RDONLY | os.O_NOFOLLOW
                 fd = os.open(str(path), flags)
                 os.close(fd)
-                return True
+                return "ok"
             except OSError as exc:
                 if getattr(exc, "errno", None) in (errno.ELOOP, errno.EACCES, errno.EPERM):
-                    return False
-                return False
+                    return "symlink"
+                return "error"
             except Exception:
-                return False
+                return "error"
 
         try:
             resolved_path = candidate.resolve(strict=True)
@@ -484,8 +498,11 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
                 return _json_response(Result.Err("FORBIDDEN", "Path escapes root"))
             if not resolved_path.is_file():
                 return _json_response(Result.Err("NOT_FOUND", "File not found or not a regular file"))
-            if not _validate_no_symlink_open(resolved_path):
+            symlink_status = _validate_no_symlink_open(resolved_path)
+            if symlink_status == "symlink":
                 return _json_response(Result.Err("FORBIDDEN", "Symlinked file not allowed"))
+            if symlink_status == "error":
+                return _json_response(Result.Err("FORBIDDEN", "Unable to verify file safety"))
 
             # Viewer hardening: only serve image/video media files from custom roots.
             if not _is_allowed_view_media_file(resolved_path):

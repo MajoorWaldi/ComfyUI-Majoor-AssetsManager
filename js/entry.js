@@ -95,16 +95,17 @@ function installEntryRuntimeController() {
                 const prev = window[ENTRY_RUNTIME_KEY];
                 removeApiHandlers(prev?.api || null);
                 removeRuntimeWindowHandlers(prev);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) { console.warn("[MJR teardown]", e); }
             // Tear down MFV module-level listeners before re-registering (NM-3, NM-4).
-            try { teardownLiveStreamTracker(window.__MJR_RUNTIME_APP__); } catch (e) { console.debug?.(e); }
-            try { teardownFloatingViewerManager(); } catch (e) { console.debug?.(e); }
+            try { teardownLiveStreamTracker(window.__MJR_RUNTIME_APP__); } catch (e) { console.warn("[MJR teardown]", e); }
+            try { teardownFloatingViewerManager(); } catch (e) { console.warn("[MJR teardown]", e); }
             window[ENTRY_RUNTIME_KEY] = { api: null, assetsDeletedHandler: null };
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) { console.warn("[MJR teardown]", e); }
 }
 
 // Deduplication for executed events (ComfyUI can fire multiple times for same file)
+// Window (ms) to ignore duplicate file events from the same execution
 const DEDUPE_TTL_MS = 2000;
 const recentFiles = new Map(); // key -> timestamp
 const INDEX_RETRYABLE_CODES = new Set(["DB_MAINTENANCE", "TIMEOUT", "NETWORK_ERROR", "SERVICE_UNAVAILABLE"]);
@@ -141,6 +142,7 @@ function dedupeFiles(files) {
     // Filter out recently seen files
     const fresh = [];
     for (const f of files) {
+        // toLowerCase for case-insensitive path dedup (Windows paths may differ in casing)
         const key = `${f.type || ""}|${f.subfolder || ""}|${f.filename || ""}`.toLowerCase();
         if (!recentFiles.has(key)) {
             recentFiles.set(key, now);

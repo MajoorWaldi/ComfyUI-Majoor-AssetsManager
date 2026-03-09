@@ -151,26 +151,8 @@ function buildLocalNoticeKey(localVersion, branch) {
 }
 
 function showAiFeaturesNoticeOnce(localVersion, branch) {
-    try {
-        const buildKey = buildLocalNoticeKey(localVersion, branch);
-        const alreadyShownFor = String(SettingsStore.get(AI_FEATURES_NOTICE_LOCAL_BUILD_KEY) || "").trim();
-        if (alreadyShownFor === buildKey) return;
-
-        setTimeout(() => {
-            comfyAlert(
-                t(
-                    "msg.aiFeaturesNotice",
-                    "Warning:\n\nAssets Manager now includes AI features like auto captions, AI search, smart collections, etc.\nThese features are still WIP.\n\nIf you already had Assets Manager installed, delete the DB first.\nWhen enrich is finished, run Vector Backfill for your existing assets.\nAfter clicking Backfill, you can go sleep: it may take a very, very long time if you have many assets."
-                ),
-                "Majoor",
-                { native: true }
-            );
-        }, 700);
-
-        try {
-            SettingsStore.set(AI_FEATURES_NOTICE_LOCAL_BUILD_KEY, buildKey);
-        } catch (e) { console.debug?.(e); }
-    } catch (e) { console.debug?.(e); }
+    // Disabled: No longer show AI features work-in-progress popup
+    return;
 }
 
 export async function checkMajoorVersion({ force = false } = {}) {

@@ -8,9 +8,11 @@ This service coordinates multiple specialized components:
 - MetadataEnricher: Background metadata enrichment
 - MetadataHelpers: Shared metadata utilities
 """
+from __future__ import annotations
+
 import asyncio
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from mjr_am_shared.scan_throttle import mark_directory_indexed
 
@@ -25,6 +27,10 @@ from .scanner import IndexScanner
 from .searcher import IndexSearcher
 from .updater import AssetUpdater
 from ...config import BATCH_ASSET_PUSH_LIMIT, is_vector_search_enabled
+
+if TYPE_CHECKING:
+    from .vector_searcher import VectorSearcher
+    from .vector_service import VectorService
 
 logger = get_logger(__name__)
 
@@ -58,6 +64,12 @@ async def _get_rename_mtime(new_path: Path) -> int | None:
 
 
 def _extract_rename_target_info(filepath: str) -> tuple[str, str, int | None]:
+    """Extract filename, subfolder, and mtime from a filepath.
+
+    WARNING: This is a synchronous helper — it calls os.path.getmtime() which
+    performs blocking I/O.  Do NOT call from ``async def`` functions; use
+    ``_get_rename_mtime`` instead (HIGH-003).
+    """
     import os
     p = Path(filepath)
     name = p.name
@@ -113,12 +125,12 @@ async def _update_path_keyed_index_tables(
     return Result.Ok(True)
 
 
-def _build_runtime_vector_services(db: Sqlite) -> tuple[Any, Any | None]:
-    from .vector_searcher import VectorSearcher
-    from .vector_service import VectorService
+def _build_runtime_vector_services(db: Sqlite) -> tuple[VectorService, VectorSearcher]:
+    from .vector_searcher import VectorSearcher as _VS
+    from .vector_service import VectorService as _VSvc
 
-    vector_service = VectorService()
-    return vector_service, VectorSearcher(db, vector_service)
+    vector_service = _VSvc()
+    return vector_service, _VS(db, vector_service)
 
 
 class IndexService:
@@ -140,8 +152,8 @@ class IndexService:
         self.metadata = metadata_service
         self._scan_lock = asyncio.Lock()
         self._has_tags_text_column = has_tags_text_column
-        self._vector_service: Any | None = None
-        self._vector_searcher: Any | None = None
+        self._vector_service: VectorService | None = None
+        self._vector_searcher: VectorSearcher | None = None
         logger.debug("asset_metadata.tags_text column available: %s", self._has_tags_text_column)
 
         # Initialize specialized components
@@ -156,7 +168,7 @@ class IndexService:
             MetadataHelpers.metadata_error_payload,
         )
 
-    def set_vector_services(self, vector_service: Any, vector_searcher: Any | None = None) -> None:
+    def set_vector_services(self, vector_service: VectorService, vector_searcher: VectorSearcher | None = None) -> None:
         """Attach CLIP vector services for automatic background embedding on index."""
         self._vector_service = vector_service
         self._vector_searcher = vector_searcher

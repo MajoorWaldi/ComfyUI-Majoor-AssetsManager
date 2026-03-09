@@ -19,9 +19,19 @@ _LAST_CONSISTENCY_CHECK = 0.0
 _CONSISTENCY_LOCK = asyncio.Lock()
 
 
+_CONSISTENCY_CHECK_TIMEOUT_S = 300  # 5 minutes (MED-009)
+
+
 async def _run_consistency_check(db: Any) -> None:
     if not db:
         return
+    try:
+        await asyncio.wait_for(_run_consistency_check_inner(db), timeout=_CONSISTENCY_CHECK_TIMEOUT_S)
+    except asyncio.TimeoutError:
+        logger.warning("Consistency check timed out after %ds", _CONSISTENCY_CHECK_TIMEOUT_S)
+
+
+async def _run_consistency_check_inner(db: Any) -> None:
     res = await _query_consistency_sample(db)
     if not res.ok or not isinstance(res.data, list):
         return
