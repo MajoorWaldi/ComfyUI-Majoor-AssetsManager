@@ -11,6 +11,17 @@ let _loaded = false;
 let _messages = [];
 const BUILTIN_PANEL_MESSAGES = Object.freeze([
     {
+        id: "whats-new-2026-03-09-version-2-4-1",
+        title: "New Version 2.4.1",
+        titleKey: "msg.whatsNew.title.version241",
+        category: "Release",
+        categoryKey: "msg.category.release",
+        level: "success",
+        createdAt: Date.parse("2026-03-09T09:00:00Z"),
+        body: "Version 2.4.1 released: CLIP-based semantic search with AI toggle, rgthree/easy node support, shortcut guide tab, upscaler model extraction. Fixed MFV memory leaks, workflow filters, SQL placeholders. Enhanced geninfo extraction, tag handling, calendar. See CHANGELOG for details.",
+        bodyKey: "msg.whatsNew.body.version241",
+    },
+    {
         id: "whats-new-2026-03-06-floating-viewer-shortcuts",
         title: "What's New",
         titleKey: "msg.whatsNew.title.floatingViewerShortcuts",
