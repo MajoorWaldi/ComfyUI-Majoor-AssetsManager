@@ -65,7 +65,7 @@ def resolve_download_path(filepath: Any) -> Path | web.Response:
     if not resolved.is_file():
         return web.Response(status=404, text="File not found")
     symlink_status = _validate_no_symlink_open(resolved)
-    if symlink_status == "symlink":
+    if symlink_status == "symlink" or symlink_status is False:
         return web.Response(status=403, text="Symlinked file not allowed")
     if symlink_status == "error":
         return web.Response(status=403, text="Unable to verify file safety")

@@ -56,28 +56,29 @@ describe("FloatingViewer", () => {
       },
       setAttribute: vi.fn(),
     };
-    const viewer = {
-      _isPopped: true,
-      element,
-      _popoutWindow: popup,
-      _popoutCloseHandler: vi.fn(),
-      _clearPopoutCloseWatch: vi.fn(),
-      _resetGenDropdownForCurrentDocument: vi.fn(),
-      _rebindControlHandlers: vi.fn(),
-      _bindPanelInteractions: vi.fn(),
-      _bindDocumentUiHandlers: vi.fn(),
-      _updatePopoutBtnUI: vi.fn(),
-      isVisible: false,
-    };
+    // Create a real instance and patch necessary properties
+    const viewer = new FloatingViewer();
+    viewer._isPopped = true;
+    viewer.element = element;
+    viewer._popoutWindow = popup;
+    viewer._clearPopoutCloseWatch = vi.fn();
+    viewer._resetGenDropdownForCurrentDocument = vi.fn();
+    viewer._bindPanelInteractions = vi.fn();
+    viewer._bindDocumentUiHandlers = vi.fn();
+    viewer._updatePopoutBtnUI = vi.fn();
+    viewer.isVisible = false;
 
-    FloatingViewer.prototype.popIn.call(viewer, { closePopupWindow: false });
+    // Spy on the prototype method
+    const rebindSpy = vi.spyOn(FloatingViewer.prototype, "_rebindControlHandlers");
+
+    viewer.popIn({ closePopupWindow: false });
 
     expect(document.adoptNode).toHaveBeenCalledWith(element);
     expect(document.body.appendChild).toHaveBeenCalledWith(element);
     expect(viewer._clearPopoutCloseWatch).toHaveBeenCalledTimes(1);
     expect(popup.removeEventListener).toHaveBeenCalledTimes(3);
     expect(viewer._resetGenDropdownForCurrentDocument).toHaveBeenCalledTimes(1);
-    expect(viewer._rebindControlHandlers).toHaveBeenCalledTimes(1);
+    expect(rebindSpy).toHaveBeenCalledTimes(1);
     expect(viewer._bindPanelInteractions).toHaveBeenCalledTimes(1);
     expect(viewer._bindDocumentUiHandlers).toHaveBeenCalledTimes(1);
     expect(viewer._updatePopoutBtnUI).toHaveBeenCalledTimes(1);

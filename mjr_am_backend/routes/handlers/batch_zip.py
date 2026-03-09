@@ -127,8 +127,9 @@ def _run_cleanup_loop() -> None:
                     orphaned = [
                         p.name for p in _BATCH_DIR.glob(".mjr_batch_*.zip")
                         if p.name not in {
-                            (e.get("path").name if isinstance(e.get("path"), Path) else "")
+                            (path.name if path is not None and isinstance(path, Path) else "")
                             for e in _BATCH_CACHE.values()
+                            for path in [e.get("path")]
                         }
                     ]
                     if orphaned:

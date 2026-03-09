@@ -647,9 +647,8 @@ export class FloatingViewer {
             strong.textContent = `${label}: `;
             div.appendChild(strong);
             if (k === "prompt") {
-                // Truncate long prompts to 240 chars
-                const short = v.length > 240 ? v.slice(0, 240) + "\u2026" : v;
-                div.appendChild(document.createTextNode(short));
+                // Show full prompt, no truncation
+                div.appendChild(document.createTextNode(v));
             } else if (k === "genTime") {
                 // Color-code gen time (matches FileInfoSection.js colour scheme)
                 const secs = parseFloat(v);

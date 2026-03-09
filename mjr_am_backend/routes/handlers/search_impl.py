@@ -786,6 +786,7 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
             return _json_response(Result.Err("RATE_LIMITED", "Rate limit exceeded. Please wait before retrying.", retry_after=retry_after))
 
         # Parse pagination
+
         MAX_OFFSET = MAX_LIST_OFFSET
         try:
             limit = int(request.query.get("limit", "50"))
@@ -794,8 +795,12 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
             result = Result.Err("INVALID_INPUT", "Invalid limit or offset")
             return _json_response(result)
 
-        limit = max(0, min(MAX_LIST_LIMIT, limit))
-        offset = max(0, min(MAX_OFFSET, offset))
+        if limit < 0 or limit > MAX_LIST_LIMIT:
+            result = Result.Err("INVALID_INPUT", f"limit must be between 0 and {MAX_LIST_LIMIT}")
+            return _json_response(result)
+        if offset < 0 or offset > MAX_OFFSET:
+            result = Result.Err("INVALID_INPUT", f"offset must be between 0 and {MAX_OFFSET}")
+            return _json_response(result)
 
         filters_res = _parse_request_filters(request.query, inline_filters)
         if not filters_res.ok:
