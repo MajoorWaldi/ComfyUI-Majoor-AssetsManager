@@ -2,21 +2,32 @@
 
 All notable changes to this project are documented in this file.
 
-## [Nightly Build]
+## [2.4.1] - 2026-03-09
 
-### Added
+### ✨ Added
 - Added CLIP-based semantic search engine with AI toggle, prompt alignment scoring in GenInfo panel, smart collection suggestions, and auto-tagging pipeline
 - Added support for rgthree and easy use custom node parsing
+- Added shortcut guide tab to message popover in panel
+- Added linked model entry function for upscaler model extraction
 
-### Fixed
+### 🐛 Fixed
 - Fixed download form viewers issues
 - Fixed workflow filter bugs
 - Fixed MFV memory leaks and hot-reload listener accumulation
 - Fixed SQL placeholder count unbounded in generation-time batch query (capped at 500)
+- Fixed numpy array dtype consistency (float32) in vector operations
 
-### Improved
+### 🚀 Improved
 - Enhanced compare overlay functionality
 - Improved text search performance and accuracy
+- Enhanced geninfo extraction for upscalers and samplers
+- Enhanced tag handling and agenda calendar functionality
+- Refactored upscaler model extraction logic
+
+### 📚 Documentation
+- Added comprehensive AI features guide and new documentation
+
+## [Nightly Build]
 
 ## [2.4.0] - 2026-02-28
 
