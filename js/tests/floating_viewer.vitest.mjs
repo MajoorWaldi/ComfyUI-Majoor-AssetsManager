@@ -68,6 +68,10 @@ describe("FloatingViewer", () => {
     viewer._updatePopoutBtnUI = vi.fn();
     viewer.isVisible = false;
 
+    // Mock the popout AbortController so we can spy on abort()
+    const mockPopoutAC = { abort: vi.fn() };
+    viewer._popoutAC = mockPopoutAC;
+
     // Spy on the prototype method
     const rebindSpy = vi.spyOn(FloatingViewer.prototype, "_rebindControlHandlers");
 
@@ -76,7 +80,8 @@ describe("FloatingViewer", () => {
     expect(document.adoptNode).toHaveBeenCalledWith(element);
     expect(document.body.appendChild).toHaveBeenCalledWith(element);
     expect(viewer._clearPopoutCloseWatch).toHaveBeenCalledTimes(1);
-    expect(popup.removeEventListener).toHaveBeenCalledTimes(3);
+    // AbortController.abort() is called to remove popup listeners (not manual removeEventListener)
+    expect(mockPopoutAC.abort).toHaveBeenCalledTimes(1);
     expect(viewer._resetGenDropdownForCurrentDocument).toHaveBeenCalledTimes(1);
     expect(rebindSpy).toHaveBeenCalledTimes(1);
     expect(viewer._bindPanelInteractions).toHaveBeenCalledTimes(1);

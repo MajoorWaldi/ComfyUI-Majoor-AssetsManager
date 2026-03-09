@@ -266,8 +266,11 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
         except ValueError:
             return _json_response(Result.Err("INVALID_INPUT", "Invalid limit or offset"))
 
+        # Validate offset bounds - return error instead of silently clamping
+        if offset < 0 or offset > MAX_OFFSET:
+            return _json_response(Result.Err("INVALID_INPUT", f"offset must be between 0 and {MAX_OFFSET}"))
+        
         limit = max(0, min(MAX_LIST_LIMIT, limit))
-        offset = max(0, min(MAX_OFFSET, offset))
         sort_key = _normalize_sort_key(request.query.get("sort"))
 
         filters_res = _parse_request_filters(request.query, inline_filters)
