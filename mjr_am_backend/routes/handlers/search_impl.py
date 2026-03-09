@@ -28,6 +28,11 @@ from mjr_am_backend.shared import Result, get_logger
 
 from ..core import _is_loopback_request, _json_response, _read_json, _require_services, safe_error_message
 from ..core.security import _check_rate_limit
+# MED-004: Query sanitization pipeline.
+# - DB-backed endpoints (list, search) always go through _parse_request_filters()
+#   (via _qs.parse_request_filters) which validates kind, rating, date-range, etc.
+# - _parse_filesystem_listing_filters is only used in _postfilter_browser_assets()
+#   for the browser_mode fallback that operates on raw filesystem entries.
 from .filesystem import (
     _kickoff_background_scan,
     _list_filesystem_assets,
@@ -262,9 +267,7 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
             return _json_response(Result.Err("INVALID_INPUT", "Invalid limit or offset"))
 
         limit = max(0, min(MAX_LIST_LIMIT, limit))
-        offset = max(0, offset)
-        if offset > MAX_OFFSET:
-            return _json_response(Result.Err("INVALID_INPUT", f"Offset must be less than {MAX_OFFSET}"))
+        offset = max(0, min(MAX_OFFSET, offset))
         sort_key = _normalize_sort_key(request.query.get("sort"))
 
         filters_res = _parse_request_filters(request.query, inline_filters)
@@ -288,7 +291,10 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
                 root_path = str(root_dir.resolve(strict=False))
                 scoped_filters = dict(filters or {})
                 scoped_filters["source"] = "input"
-                scoped_filters["subfolder"] = str(subfolder or "")
+                # Only apply subfolder filter when an explicit non-empty value is provided,
+                # matching the behavior of the output scope (same as calendar.py).
+                if subfolder:
+                    scoped_filters["subfolder"] = str(subfolder)
 
                 # Call index searcher with filters, limit, and offset
                 db_result = await svc["index"].search_scoped(
@@ -789,9 +795,7 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
             return _json_response(result)
 
         limit = max(0, min(MAX_LIST_LIMIT, limit))
-        offset = max(0, offset)
-        if offset > MAX_OFFSET:
-            return _json_response(Result.Err("INVALID_INPUT", f"Offset must be less than {MAX_OFFSET}"))
+        offset = max(0, min(MAX_OFFSET, offset))
 
         filters_res = _parse_request_filters(request.query, inline_filters)
         if not filters_res.ok:

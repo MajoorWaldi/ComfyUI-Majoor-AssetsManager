@@ -21,7 +21,7 @@ export async function fetchPage(gridContainer, query, limit, offset, deps, { req
     const requestedQuery = query && query.trim() ? query : "*";
     const safeQuery = deps.sanitizeQuery(requestedQuery) || requestedQuery;
     try {
-        const includeTotal = !(String(scope || "").toLowerCase() === "output" && Number(offset || 0) > 0);
+        const includeTotal = !(String(scope || "").toLowerCase() === "output" && Number(offset ?? 0) > 0);
         const url = deps.buildListURL({
             q: safeQuery,
             limit,
@@ -56,7 +56,7 @@ export async function fetchPage(gridContainer, query, limit, offset, deps, { req
             const assets = (result.data?.assets) || [];
             const serverCount = Array.isArray(assets) ? assets.length : 0;
             const rawTotal = result.data?.total;
-            const total = rawTotal == null ? null : (Number(rawTotal || 0) || 0);
+            const total = rawTotal == null ? null : (Number(rawTotal ?? 0) || 0);
             return { ok: true, assets, total, count: serverCount, sortKey, safeQuery };
         }
         try {
@@ -86,11 +86,11 @@ export async function loadNextPage(gridContainer, state, deps) {
     deps.gridDebug("loadNextPage:start", {
         q: String(state?.query || ""),
         limit,
-        offset: Number(state?.offset || 0) || 0,
+        offset: Number(state?.offset ?? 0) || 0,
     });
     try {
         const page = await fetchPage(gridContainer, state.query, limit, state.offset, deps, {
-            requestId: Number(state.requestId) || 0,
+            requestId: Number(state.requestId ?? 0) || 0,
             signal: state.abortController?.signal || null,
         });
         const dateExact = String(gridContainer?.dataset?.mjrFilterDateExact || "").trim();
@@ -118,6 +118,7 @@ export async function loadNextPage(gridContainer, state, deps) {
 export function getSortValue(asset, sortKey) {
     switch (sortKey) {
         case "mtime_desc":
+            // Negate so that larger mtime (newer) sorts first in ascending numeric order.
             return -(Number(asset?.mtime) || 0);
         case "mtime_asc":
             return Number(asset?.mtime) || 0;
@@ -125,18 +126,22 @@ export function getSortValue(asset, sortKey) {
         case "name_desc":
             return String(asset?.filename || "").toLowerCase();
         default:
+            // Default to newest-first (descending mtime) via negation.
             return -(Number(asset?.mtime) || 0);
     }
 }
 
 export function compareAssets(a, b, sortKey) {
     if (sortKey === "name_desc") {
+        // Reverse the natural string order for descending name sort.
         const av = String(a?.filename || "").toLowerCase();
         const bv = String(b?.filename || "").toLowerCase();
         if (av > bv) return -1;
         if (av < bv) return 1;
         return 0;
     }
+    // For mtime sorts, getSortValue already negates desc values,
+    // so a plain ascending compare yields the correct order.
     const av = getSortValue(a, sortKey);
     const bv = getSortValue(b, sortKey);
     if (av < bv) return -1;

@@ -1748,27 +1748,45 @@ def _resolve_download_path(filepath: Any) -> Path | web.Response:
         return web.Response(status=403, text="Path is not within allowed roots")
     if not resolved.is_file():
         return web.Response(status=404, text="File not found")
-    if not _validate_no_symlink_open(resolved):
+    symlink_status = _validate_no_symlink_open(resolved)
+    if symlink_status == "symlink":
         return web.Response(status=403, text="Symlinked file not allowed")
+    if symlink_status == "error":
+        return web.Response(status=403, text="Unable to verify file safety")
     return resolved
 
 
-def _validate_no_symlink_open(path: Path) -> bool:
+def _validate_no_symlink_open(path: Path) -> str:
+    """Check that *path* is not a symlink.
+
+    Returns:
+        "ok"      – path is a regular file and not a symlink.
+        "symlink" – path is (or contains) a symlink.
+        "error"   – an unexpected error prevented the check.
+    """
+    # On Windows O_NOFOLLOW is unavailable; fall back to explicit checks.
+    if os.name == "nt" or not hasattr(os, "O_NOFOLLOW"):
+        try:
+            if os.path.islink(str(path)):
+                return "symlink"
+            resolved = Path(os.path.realpath(str(path)))
+            if resolved != path and resolved != path.resolve():
+                return "symlink"
+            return "ok"
+        except Exception:
+            return "error"
+    # Unix: use O_NOFOLLOW for an atomic open-time check.
     try:
-        flags = os.O_RDONLY
-        if os.name == "nt" and hasattr(os, "O_BINARY"):
-            flags |= os.O_BINARY
-        if hasattr(os, "O_NOFOLLOW"):
-            flags |= os.O_NOFOLLOW
+        flags = os.O_RDONLY | os.O_NOFOLLOW
         fd = os.open(str(path), flags)
         os.close(fd)
-        return True
+        return "ok"
     except OSError as exc:
         if getattr(exc, "errno", None) in (errno.ELOOP, errno.EACCES, errno.EPERM):
-            return False
-        return False
+            return "symlink"
+        return "error"
     except Exception:
-        return False
+        return "error"
 
 
 def _build_download_response(resolved: Path, *, preview: bool) -> web.StreamResponse:
