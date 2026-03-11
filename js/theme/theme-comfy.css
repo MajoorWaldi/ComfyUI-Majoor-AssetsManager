@@ -1711,19 +1711,19 @@
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.95);
-    z-index: 10000;
+    /* Sit above MFV (10000) so the full viewer always covers the floating panel */
+    z-index: 10001;
     display: none;
     flex-direction: column;
-    animation: mjr-fade-in 0.2s ease-out;
+}
+/* Fade-in: animation re-triggers each time JS switches display back to flex */
+.mjr-viewer-overlay[style*="flex"] {
+    animation: mjr-fade-in 0.18s ease-out;
 }
 
 @keyframes mjr-fade-in {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
+    from { opacity: 0; transform: scale(0.995); }
+    to   { opacity: 1; transform: scale(1); }
 }
 
 .mjr-viewer-header {
@@ -2603,7 +2603,8 @@
     border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     min-width: 200px;
-    z-index: 9999;
+    /* Above viewer overlay (10001) and MFV dialog (10000) */
+    z-index: 10002;
     display: none;
     padding: 4px 0;
     animation: mjr-context-menu-in 0.15s ease-out;
@@ -3037,11 +3038,22 @@
     height: 380px;
     min-width: 220px;
     min-height: 160px;
-    display: none;        /* shown via .mjr-mfv.is-visible or JS show() */
+    /* Always flex; visibility + opacity control show/hide so CSS transitions work.
+       pointer-events:none while hidden prevents accidental interaction. */
+    display: flex;
     flex-direction: column;
     resize: both;
     overflow: hidden;
     z-index: 10000;
+    /* Hidden state */
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-6px) scale(0.98);
+    transform-origin: top right;
+    transition: opacity 0.18s ease-out,
+                transform 0.18s ease-out,
+                visibility 0s linear 0.18s;
 }
 
 .mjr-mfv.mjr-mfv--resizing {
@@ -3049,8 +3061,15 @@
 }
 
 .mjr-mfv.is-visible {
-    display: flex;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+    transition: opacity 0.18s ease-out,
+                transform 0.18s ease-out,
+                visibility 0s linear 0s;
 }
+
 
 /* Media elements (img/video) sizing variants */
 .mjr-mfv-media {

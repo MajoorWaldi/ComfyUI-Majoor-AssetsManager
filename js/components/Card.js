@@ -92,6 +92,7 @@ const getVideoThumbManager = () => {
     const playing = new Set();
     const prepared = new Set();
     const observed = new Set();
+    const pausedForHide = new Set(); // videos paused on tab-hide, resumed when tab returns
     let cleanupTimer = null;
     let removeVisibilityListener = null;
     let removeSettingsListener = null;
@@ -113,15 +114,18 @@ const getVideoThumbManager = () => {
         } catch (e) { console.debug?.(e); }
         try {
             while (prepared.size > VIDEO_THUMB_MAX_PREPARED) {
-                const oldest = prepared.values().next().value;
-                prepared.delete(oldest);
+                // First entry in Set = least recently used (re-insertion keeps LRU order).
+                const lru = prepared.values().next().value;
+                prepared.delete(lru);
                 try {
-                    oldest?.pause?.();
+                    lru?.pause?.();
+                    // Clear stale flags so the evicted element doesn't auto-resume.
+                    if (lru) { lru._mjrVisible = false; lru._mjrHovered = false; }
                 } catch (e) { console.debug?.(e); }
                 try {
-                    if (oldest?.getAttribute?.("src")) {
-                        oldest.removeAttribute("src");
-                        oldest.load?.();
+                    if (lru?.getAttribute?.("src")) {
+                        lru.removeAttribute("src");
+                        lru.load?.();
                     }
                 } catch (e) { console.debug?.(e); }
             }
@@ -199,19 +203,21 @@ const getVideoThumbManager = () => {
             }
 
             try {
-                // Prefer a later frame to avoid black/fade-in thumbnails when frame 0 is empty.
-                video.currentTime = VIDEO_THUMB_FIRST_FRAME_SEEK_S;
+                // For clips longer than VIDEO_THUMB_FIRST_FRAME_SEEK_S, seek to that position
+                // to skip black/fade-in frames.  For shorter clips, seek to 10 % of the
+                // duration (min 0.05 s) so we still avoid frame-0 black frames.
+                const dur = Number.isFinite(video.duration) && video.duration > 0
+                    ? video.duration : null;
+                const preferred = (dur !== null && dur <= VIDEO_THUMB_FIRST_FRAME_SEEK_S)
+                    ? Math.max(0.05, dur * 0.1)
+                    : VIDEO_THUMB_FIRST_FRAME_SEEK_S;
+                video.currentTime = dur !== null
+                    ? Math.min(preferred, dur - 0.01)
+                    : preferred;
             } catch {
                 clearTimeout(fallbackTimer);
                 return resolve();
             }
-
-            try {
-                // Fallback for very short clips where 1.0s may be out of range.
-                if (!Number.isFinite(video.currentTime) || video.currentTime <= 0) {
-                    video.currentTime = 0.05;
-                }
-            } catch (e) { console.debug?.(e); }
         });
 
     const stopVideo = (video, { releaseSrc = true } = {}) => {
@@ -245,8 +251,11 @@ const getVideoThumbManager = () => {
         const src = video.dataset.src || "";
         if (!src) return false;
 
-        if (!prepared.has(video)) {
-            prepared.add(video);
+        const isNew = !prepared.has(video);
+        // Re-insert to refresh LRU position (most recently used = last in Set).
+        prepared.delete(video);
+        prepared.add(video);
+        if (isNew) {
             pruneSets();
             try {
                 if (!video.getAttribute("src")) {
@@ -267,24 +276,26 @@ const getVideoThumbManager = () => {
         const src = video.dataset.src || "";
         if (!src) return;
 
-        if (!playing.has(video)) {
-            playing.add(video);
-        } else {
-            playing.delete(video);
-            playing.add(video);
-        }
+        // Refresh insertion order so playing Set acts as LRU.
+        playing.delete(video);
+        playing.add(video);
 
         await ensurePrepared(video);
 
+        const overlay = (() => { try { return video._mjrPlayOverlay || null; } catch { return null; } })();
         try {
             const p = video.play();
             if (p && typeof p.then === "function") {
                 p.catch(async () => {
                     await ensurePrepared(video);
+                    // play() rejected (autoplay policy, missing codec…) — no pause event fires,
+                    // so restore the overlay manually.
+                    try { if (overlay) overlay.style.opacity = "1"; } catch (e) { console.debug?.(e); }
                 });
             }
         } catch {
             await ensurePrepared(video);
+            try { if (overlay) overlay.style.opacity = "1"; } catch (e) { console.debug?.(e); }
         }
     };
 
@@ -299,14 +310,27 @@ const getVideoThumbManager = () => {
     };
 
     const onVisibility = () => {
-        if (!document.hidden) return;
-        for (const v of Array.from(playing)) {
-            playing.delete(v);
-            stopVideo(v);
-            try {
-                const overlay = v._mjrPlayOverlay || null;
-                if (overlay) overlay.style.opacity = "1";
-            } catch (e) { console.debug?.(e); }
+        if (document.hidden) {
+            // Pause all playing videos; remember them so we can resume on return.
+            for (const v of Array.from(playing)) {
+                pausedForHide.add(v);
+                playing.delete(v);
+                try { v.pause(); } catch (e) { console.debug?.(e); }
+                try {
+                    const overlay = v._mjrPlayOverlay || null;
+                    if (overlay) overlay.style.opacity = "1";
+                } catch (e) { console.debug?.(e); }
+            }
+        } else {
+            // Tab became visible — resume videos that were paused due to hide.
+            const mode = getVideoAutoplayMode();
+            for (const v of Array.from(pausedForHide)) {
+                pausedForHide.delete(v);
+                if (!v.isConnected || !observed.has(v) || !v._mjrVisible) continue;
+                const shouldResume = mode === "always" || (mode === "hover" && !!v._mjrHovered);
+                if (shouldResume) playVideo(v);
+            }
+            pausedForHide.clear();
         }
     };
 
@@ -434,6 +458,30 @@ const getVideoThumbManager = () => {
                 video._mjrThumbBound = true;
             } catch (e) { console.debug?.(e); }
 
+            // Authoritative overlay sync: driven by native playback events.
+            // This resolves any race between async play() and subsequent stop/pause calls.
+            try {
+                video.addEventListener("playing", () => {
+                    try {
+                        const ol = video._mjrPlayOverlay;
+                        if (ol) ol.style.opacity = "0";
+                    } catch (e) { console.debug?.(e); }
+                });
+                video.addEventListener("pause", () => {
+                    try {
+                        const ol = video._mjrPlayOverlay;
+                        if (ol) ol.style.opacity = "1";
+                    } catch (e) { console.debug?.(e); }
+                });
+                video.addEventListener("ended", () => {
+                    // loop=true means this rarely fires, but guard it anyway.
+                    try {
+                        const ol = video._mjrPlayOverlay;
+                        if (ol) ol.style.opacity = "1";
+                    } catch (e) { console.debug?.(e); }
+                });
+            } catch (e) { console.debug?.(e); }
+
             try {
                 video.addEventListener("error", () => {
                     playing.delete(video);
@@ -447,12 +495,20 @@ const getVideoThumbManager = () => {
         },
         observe(video) {
             if (!observer || !video) return;
+            let hadTimer = false;
             try {
+                hadTimer = !!video._mjrReleaseTimer;
                 if (video._mjrReleaseTimer) {
                     clearTimeout(video._mjrReleaseTimer);
                     video._mjrReleaseTimer = null;
                 }
             } catch (e) { console.debug?.(e); }
+            // No pending release timer → virtual grid recycled this DOM node for a new asset.
+            // Clear stale state so the previous card's playback intent doesn't leak to the new asset.
+            if (!hadTimer) {
+                try { video._mjrResumeOnVisible = false; } catch (e) { console.debug?.(e); }
+                try { video._mjrHovered = false; } catch (e) { console.debug?.(e); }
+            }
             try {
                 api._bindVideo(video);
                 observed.add(video);
@@ -565,6 +621,7 @@ const getVideoThumbManager = () => {
             try {
                 removeSettingsListener?.();
             } catch (e) { console.debug?.(e); }
+            try { pausedForHide.clear(); } catch (e) { console.debug?.(e); }
             // Disconnect the IntersectionObserver so it stops firing after dispose.
             // observed.clear() alone does not stop the observer from holding
             // references to previously-observed elements.
@@ -852,6 +909,11 @@ function createThumbnail(asset, viewUrl) {
         
         video.onerror = () => {
              video.style.display = "none";
+             // Hide the play overlay so it doesn't float over the error placeholder.
+             try {
+                 const ol = video._mjrPlayOverlay;
+                 if (ol) ol.style.display = "none";
+             } catch (e) { console.debug?.(e); }
              const err = createMediaErrorPlaceholder("pi pi-video");
              thumb.appendChild(err);
         };

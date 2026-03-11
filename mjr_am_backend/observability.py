@@ -348,12 +348,17 @@ def _request_log_key(request: web.Request, status: int | None) -> str:
 
 
 def _emit_request_log_by_status(status: int | None, fields: dict[str, Any]) -> None:
+    method = fields.get("method") or "?"
+    path = fields.get("path") or "?"
+    dur = fields.get("duration_ms")
+    dur_part = f" ({dur:.0f}ms)" if isinstance(dur, (int, float)) else ""
+    msg = f"Request handled | {method} {path} → {status}{dur_part}"
     if status is not None and status >= 500:
-        logger.error("Request handled", extra=fields)
+        logger.error(msg, extra=fields)
     elif status is not None and status >= 400:
-        logger.warning("Request handled", extra=fields)
+        logger.warning(msg, extra=fields)
     else:
-        logger.info("Request handled", extra=fields)
+        logger.info(msg, extra=fields)
 
 
 def ensure_observability(app: web.Application) -> None:

@@ -1,7 +1,7 @@
 import { clamp01 } from "./state.js";
 import { computeProcessorScale } from "./processorUtils.js";
 
-export function drawMediaError(canvas, message) {
+export function drawMediaError(canvas, message, hint) {
     if (!canvas) return;
     try {
         if (!(canvas.width > 1 && canvas.height > 1)) {
@@ -31,7 +31,8 @@ export function drawMediaError(canvas, message) {
         const text = message ? String(message) : "Failed to load media";
         ctx.fillText(text, 14, 14);
         ctx.fillStyle = "rgba(255,255,255,0.7)";
-        ctx.fillText("Check file permissions / path, or try re-indexing.", 14, 34);
+        const hintText = hint != null ? String(hint) : "Check file permissions / path, or try re-indexing.";
+        ctx.fillText(hintText, 14, 34);
     } catch (e) { console.debug?.(e); }
     try {
         ctx.restore();

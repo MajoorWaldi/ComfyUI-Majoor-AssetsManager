@@ -263,7 +263,22 @@ export const floatingViewerManager = {
         inst.show();
         _syncViewerControls(inst);
         _bindSelectionListener();
-        inst.loadMediaA(fileData, { autoMode: true });
+
+        const mode = inst._mode;
+        const inCompare = mode === MFV_MODES.AB || mode === MFV_MODES.SIDE;
+        if (inCompare) {
+            // In compare mode: route the live stream to the non-pinned slot so the
+            // user's selection or pin stays intact.  Default: stream → B, selection → A.
+            const pin = inst.getPinnedSlot();
+            if (pin === "B") {
+                inst.loadMediaPair(fileData, inst._mediaB); // B pinned — stream to A
+            } else {
+                inst.loadMediaPair(inst._mediaA, fileData); // A pinned (or no pin) — stream to B
+            }
+        } else {
+            inst.loadMediaA(fileData, { autoMode: true });
+        }
+
         if (!wasVisible) _emitVisibilityChanged(true);
     },
 
@@ -277,9 +292,8 @@ export const floatingViewerManager = {
     },
 
     /**
-     * Toggle the viewer between popped-out (separate window) and inline.
-     * When popping out, the viewer is first opened (if not visible) so the
-     * user always sees content in the new window.
+     * Toggle the viewer between the expanded dialog overlay and the floating panel.
+     * If the viewer isn't open yet, it is opened first so there's something to see.
      */
     popOut() {
         const inst = _getInstance();
@@ -376,10 +390,6 @@ const _onGlobalKeydown    = (event) => {
         return;
     }
 
-    if (lower === "v" && (event?.ctrlKey || event?.metaKey) && !event?.altKey && !event?.shiftKey) {
-        consume();
-        floatingViewerManager.toggle();
-    }
 };
 
 function _installGlobalHandlers() {
@@ -416,7 +426,7 @@ export function teardownFloatingViewerManager() {
 
 _installGlobalHandlers();
 
-// Close the pop-out window when the main ComfyUI page unloads
+// Close the pop-out window when the main ComfyUI page unloads.
 window.addEventListener("beforeunload", () => {
     try { if (_instance?.isPopped) _instance.popIn(); } catch (e) { /* noop */ }
 });

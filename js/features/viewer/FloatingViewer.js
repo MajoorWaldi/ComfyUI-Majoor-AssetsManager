@@ -222,14 +222,14 @@ export class FloatingViewer {
         // stale async metadata enrichment results can be discarded (NM-2).
         this._refreshGen = 0;
 
-        // Pop-out state: the external window reference and pop-out button.
+        // Pop-out state: external window reference and button.
         this._popoutWindow = null;
         this._popoutBtn    = null;
         this._isPopped     = false;
-        this._popoutCloseHandler = null;
+        this._popoutCloseHandler   = null;
         this._popoutKeydownHandler = null;
-        this._popoutCloseTimer = null;
-        this._popoutRestoreGuard = false;
+        this._popoutCloseTimer     = null;
+        this._popoutRestoreGuard   = false;
 
         // Preview stream state: button ref + last blob URL for cleanup.
         this._previewBtn      = null;
@@ -377,7 +377,7 @@ export class FloatingViewer {
         this._popoutBtn = document.createElement("button");
         this._popoutBtn.type = "button";
         this._popoutBtn.className = "mjr-icon-btn";
-        const popoutLabel = t("tooltip.popOutViewer", "Pop out to separate window (can move to 2nd monitor)");
+        const popoutLabel = t("tooltip.popOutViewer", "Expand to full screen (Esc or button to return)");
         this._popoutBtn.title = popoutLabel;
         this._popoutBtn.setAttribute("aria-label", popoutLabel);
         this._popoutBtn.setAttribute("aria-pressed", "false");
@@ -788,12 +788,26 @@ export class FloatingViewer {
         this._previewBlobUrl = url;
         // Build a minimal fileData that _resolveUrl can handle
         const fileData = { url, filename: "preview.jpg", kind: "image", _isPreview: true };
-        this._mediaA = fileData;
-        this._resetMfvZoom();
-        // Force simple mode for preview — don't trigger metadata enrichment
-        if (this._mode !== MFV_MODES.SIMPLE) {
-            this._mode = MFV_MODES.SIMPLE;
-            this._updateModeBtnUI();
+
+        const inCompare = this._mode === MFV_MODES.AB || this._mode === MFV_MODES.SIDE;
+        if (inCompare) {
+            // In compare mode: route the preview steps to the non-pinned slot so the
+            // user's reference image stays intact.  Default: preview → B, selection → A.
+            if (this.getPinnedSlot() === "B") {
+                this._mediaA = fileData; // B pinned as reference — stream to A
+            } else {
+                this._mediaB = fileData; // A pinned (or no pin) — stream to B
+            }
+            // Do NOT reset zoom (preview frames arrive rapidly; resetting each time
+            // would make the reference slot unusable) and do NOT switch mode.
+        } else {
+            // Simple mode: preview takes slot A, keep it simple.
+            this._mediaA = fileData;
+            this._resetMfvZoom();
+            if (this._mode !== MFV_MODES.SIMPLE) {
+                this._mode = MFV_MODES.SIMPLE;
+                this._updateModeBtnUI();
+            }
         }
         ++this._refreshGen;
         this._refresh();
@@ -1207,7 +1221,7 @@ export class FloatingViewer {
         this.isVisible = false;
     }
 
-    // ── Pop-out / Pop-in (external window) ──────────────────────────────────
+    // ── Pop-out / Pop-in (separate OS window for second monitor) ────────────
 
     /**
      * Move the viewer into a separate browser window so it can be
@@ -1219,11 +1233,86 @@ export class FloatingViewer {
         const el = this.element;
         this._stopEdgeResize();
 
-        // Remember size for the popup
         const w = Math.max(el.offsetWidth  || 520, 400);
         const h = Math.max(el.offsetHeight || 420, 300);
 
-        // Open a blank popup centred on the current screen
+        // 1. Document Picture-in-Picture (Chrome 116+) ─────────────────────────
+        //    Creates a same-origin always-on-top window that shares the full JS
+        //    context of the main page.  Bypasses the about:blank isolation that
+        //    breaks window.open() in Chrome App mode and Electron-based hosts.
+        if ("documentPictureInPicture" in window) {
+            window.documentPictureInPicture.requestWindow({ width: w, height: h })
+                .then((pipWindow) => {
+                    this._popoutWindow = pipWindow;
+                    this._isPopped = true;
+                    this._popoutRestoreGuard = false;
+                    try { this._popoutAC?.abort(); } catch (e) { console.debug?.(e); }
+                    this._popoutAC = new AbortController();
+                    const popoutSignal = this._popoutAC.signal;
+
+                    const handlePopupClosing = () => this._schedulePopInFromPopupClose();
+                    this._popoutCloseHandler = handlePopupClosing;
+
+                    const doc = pipWindow.document;
+                    doc.title = "Majoor Viewer";
+                    this._installPopoutStyles(doc);
+
+                    // Build a minimal shell directly — no server round-trip needed.
+                    doc.body.style.cssText = "margin:0;display:flex;min-height:100vh;background:#111;overflow:hidden;";
+                    const root = doc.createElement("div");
+                    root.id = "mjr-mfv-popout-root";
+                    root.style.cssText = "flex:1;min-width:0;min-height:0;display:flex;";
+                    doc.body.appendChild(root);
+
+                    try {
+                        root.appendChild(doc.adoptNode(el));
+                    } catch (e) {
+                        console.warn("[MFV] PiP adoptNode failed, falling back to window.open", e);
+                        this._isPopped = false;
+                        this._popoutWindow = null;
+                        try { pipWindow.close(); } catch (_) { /* noop */ }
+                        this._fallbackPopout(el, w, h);
+                        return;
+                    }
+                    el.classList.add("is-visible");
+                    this.isVisible = true;
+
+                    this._resetGenDropdownForCurrentDocument();
+                    this._rebindControlHandlers();
+                    this._bindDocumentUiHandlers();
+                    this._updatePopoutBtnUI();
+
+                    pipWindow.addEventListener("pagehide", handlePopupClosing, { signal: popoutSignal });
+                    this._startPopoutCloseWatch();
+
+                    this._popoutKeydownHandler = (e) => {
+                        const tag = String(e?.target?.tagName || "").toLowerCase();
+                        if (e?.defaultPrevented || e?.target?.isContentEditable || tag === "input" || tag === "textarea" || tag === "select") return;
+                        const lower = String(e?.key || "").toLowerCase();
+                        window.dispatchEvent(new KeyboardEvent("keydown", {
+                            key: e.key, code: e.code, keyCode: e.keyCode,
+                            ctrlKey: e.ctrlKey, shiftKey: e.shiftKey, altKey: e.altKey, metaKey: e.metaKey,
+                        }));
+                    };
+                    pipWindow.addEventListener("keydown", this._popoutKeydownHandler, { signal: popoutSignal });
+                })
+                .catch((err) => {
+                    console.warn("[MFV] Document PiP failed, falling back to window.open", err);
+                    this._fallbackPopout(el, w, h);
+                });
+            return;
+        }
+
+        // 2. Fallback: classic window.open() to the backend-served shell page.
+        this._fallbackPopout(el, w, h);
+    }
+
+    /**
+     * Classic popup fallback used when Document PiP is unavailable.
+     * Opens /mjr/viewer/popout (served by the backend) and mounts the viewer
+     * once the shell page finishes loading.
+     */
+    _fallbackPopout(el, w, h) {
         const left = (window.screenX || window.screenLeft) + Math.round((window.outerWidth  - w) / 2);
         const top  = (window.screenY || window.screenTop)  + Math.round((window.outerHeight - h) / 2);
         const features = `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no`;
@@ -1235,8 +1324,6 @@ export class FloatingViewer {
         this._popoutWindow = popup;
         this._isPopped = true;
         this._popoutRestoreGuard = false;
-        // Create an AbortController for all popup-window listeners so they can
-        // be removed atomically in popIn() without manual per-event cleanup.
         try { this._popoutAC?.abort(); } catch (e) { console.debug?.(e); }
         this._popoutAC = new AbortController();
         const popoutSignal = this._popoutAC.signal;
@@ -1246,7 +1333,8 @@ export class FloatingViewer {
 
         const mountViewer = () => {
             if (mounted) return;
-            const doc = popup.document;
+            let doc;
+            try { doc = popup.document; } catch { return; } // cross-origin during navigation
             if (!doc) return;
             if (!this._ensurePopoutShell(doc)) return;
             doc.title = "Majoor Viewer";
@@ -1254,7 +1342,12 @@ export class FloatingViewer {
             const root = doc.getElementById("mjr-mfv-popout-root") || doc.body;
             if (!root) return;
             try { root.replaceChildren(); } catch (e) { console.debug?.(e); }
-            root.appendChild(doc.adoptNode(el));
+            try {
+                root.appendChild(doc.adoptNode(el));
+            } catch (e) {
+                console.warn("[MFV] adoptNode failed", e);
+                return;
+            }
             el.classList.add("is-visible");
             this.isVisible = true;
             mounted = true;
@@ -1264,27 +1357,48 @@ export class FloatingViewer {
             this._updatePopoutBtnUI();
         };
 
+        // Do NOT use { once: true } — Chrome fires load for the initial blank
+        // document state, which consumes the listener before the real page load.
         try {
-            popup.addEventListener("load", mountViewer, { once: true, signal: popoutSignal });
+            popup.addEventListener("load", mountViewer, { signal: popoutSignal });
         } catch (e) {
-            console.debug?.("[MFV] pop-out page mount failed", e);
-        }
-        if (popup.document?.readyState === "interactive" || popup.document?.readyState === "complete") {
-            setTimeout(mountViewer, 0);
+            console.debug?.("[MFV] pop-out page load listener failed", e);
         }
 
-        // When the user closes the popup window, automatically pop the viewer back in.
-        popup.addEventListener("beforeunload", handlePopupClosing, { signal: popoutSignal });
-        popup.addEventListener("pagehide", handlePopupClosing, { signal: popoutSignal });
-        popup.addEventListener("unload", handlePopupClosing, { signal: popoutSignal });
-        this._startPopoutCloseWatch();
+        // Fire immediately if the popup already shows the shell (rare but possible).
+        try {
+            const doc = popup.document;
+            if (doc?.readyState === "complete" && doc.getElementById("mjr-mfv-popout-root")) {
+                setTimeout(mountViewer, 0);
+            }
+        } catch { /* cross-origin during navigation — load event will handle it */ }
 
-        // Relay keyboard shortcuts from popup back to main window
-        this._popoutKeydownHandler = (e) => {
-            const tag = String(e?.target?.tagName || "").toLowerCase();
-            if (e?.defaultPrevented || e?.target?.isContentEditable || tag === "input" || tag === "textarea" || tag === "select") {
+        // Polling safety net: Chrome App mode may suppress popup load events.
+        // Skip ticks where popup.document throws (normal during navigation).
+        let _mountPollCount = 0;
+        const _mountPollId = window.setInterval(() => {
+            if (mounted || ++_mountPollCount > 50 || !this._isPopped || popup.closed) {
+                window.clearInterval(_mountPollId);
                 return;
             }
+            try {
+                const doc = popup.document;
+                if (doc?.readyState === "complete" && doc.getElementById("mjr-mfv-popout-root")) {
+                    window.clearInterval(_mountPollId);
+                    mountViewer();
+                }
+            } catch { /* skip this tick */ }
+        }, 100);
+        popoutSignal.addEventListener("abort", () => window.clearInterval(_mountPollId), { once: true });
+
+        popup.addEventListener("beforeunload", handlePopupClosing, { signal: popoutSignal });
+        popup.addEventListener("pagehide",     handlePopupClosing, { signal: popoutSignal });
+        popup.addEventListener("unload",       handlePopupClosing, { signal: popoutSignal });
+        this._startPopoutCloseWatch();
+
+        this._popoutKeydownHandler = (e) => {
+            const tag = String(e?.target?.tagName || "").toLowerCase();
+            if (e?.defaultPrevented || e?.target?.isContentEditable || tag === "input" || tag === "textarea" || tag === "select") return;
             const lower = String(e?.key || "").toLowerCase();
             if (lower === "v" && (e?.ctrlKey || e?.metaKey) && !e?.altKey && !e?.shiftKey) {
                 e.preventDefault();
@@ -1342,69 +1456,18 @@ export class FloatingViewer {
         }
     }
 
-    _buildPopoutShellHtml() {
-        return `<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#1e1e1e">
-    <title>Majoor Viewer</title>
-    <style>
-        html, body {
-            margin: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background: #111;
-            color: #ddd;
-            font-family: system-ui, sans-serif;
-        }
-        body {
-            display: flex;
-            min-height: 100vh;
-        }
-        #mjr-mfv-popout-root {
-            flex: 1;
-            min-width: 0;
-            min-height: 0;
-            display: flex;
-            align-items: stretch;
-            justify-content: stretch;
-            background:
-                radial-gradient(circle at top, rgba(95, 179, 255, 0.12), transparent 35%),
-                linear-gradient(180deg, #1a1a1a 0%, #101010 100%);
-        }
-        .mjr-mfv-popout-loading {
-            margin: auto;
-            padding: 12px 16px;
-            border-radius: 10px;
-            border: 1px solid rgba(255,255,255,0.12);
-            background: rgba(20,20,20,0.82);
-            font-size: 12px;
-            letter-spacing: 0.02em;
-            opacity: 0.84;
-        }
-    </style>
-</head>
-<body>
-    <div id="mjr-mfv-popout-root">
-        <div class="mjr-mfv-popout-loading">Preparing viewer...</div>
-    </div>
-</body>
-</html>`;
-    }
-
+    /**
+     * Verify the popup window's document contains the shell element served by
+     * the backend at /mjr/viewer/popout.  We no longer fall back to doc.write()
+     * because that is blocked in Chrome App mode and is unnecessary now that the
+     * backend serves a real HTML page.
+     */
     _ensurePopoutShell(doc) {
         if (!doc) return false;
         try {
-            if (doc.getElementById("mjr-mfv-popout-root")) return true;
-            doc.open();
-            doc.write(this._buildPopoutShellHtml());
-            doc.close();
             return !!doc.getElementById("mjr-mfv-popout-root");
         } catch (e) {
-            console.debug?.("[MFV] pop-out shell init failed", e);
+            console.debug?.("[MFV] pop-out shell check failed", e);
             return false;
         }
     }
@@ -1446,20 +1509,26 @@ export class FloatingViewer {
                 border: none !important;
                 border-radius: 0 !important;
                 box-shadow: none !important;
+                /* Override animated hidden state so it shows immediately in popup */
                 display: flex !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+                pointer-events: auto !important;
+                transform: none !important;
+                transition: none !important;
             }
         `;
         doc.head.appendChild(overrideStyle);
     }
 
     /**
-     * Move the viewer back into the main ComfyUI page from the popup window.
+     * Move the viewer back from the popup window into the main ComfyUI page.
      */
     popIn({ closePopupWindow = true } = {}) {
         if (!this._isPopped || !this.element) return;
         const popup = this._popoutWindow;
         this._clearPopoutCloseWatch();
-        // Abort all popup-window listeners atomically instead of manual per-event removal.
+        // Abort all popup-window listeners atomically instead of manual removeEventListener.
         try { this._popoutAC?.abort(); } catch (e) { console.debug?.(e); }
         this._popoutAC = null;
         this._popoutCloseHandler = null;
@@ -1482,8 +1551,6 @@ export class FloatingViewer {
         adopted.setAttribute("aria-hidden", "false");
         this.isVisible = true;
 
-        // Restore inline position styles (they were cleared by the popup override)
-        // The viewer will revert to its normal fixed-position CSS.
         this._updatePopoutBtnUI();
 
         // Close the popup window if it's still open
@@ -1492,7 +1559,6 @@ export class FloatingViewer {
         }
         this._popoutWindow = null;
     }
-
     /** Toggle pop-out button icon between external-link (pop out) and sign-in (pop in). */
     _updatePopoutBtnUI() {
         if (!this._popoutBtn) return;
@@ -1502,8 +1568,8 @@ export class FloatingViewer {
         this._popoutBtn.classList.toggle("mjr-popin-active", this._isPopped);
         const icon = this._popoutBtn.querySelector("i") || document.createElement("i");
         const label = this._isPopped
-            ? t("tooltip.popInViewer", "Return viewer to ComfyUI window")
-            : t("tooltip.popOutViewer", "Pop out to separate window (can move to 2nd monitor)");
+            ? t("tooltip.popInViewer", "Return to floating panel")
+            : t("tooltip.popOutViewer", "Expand to full screen (Esc or button to return)");
         if (this._isPopped) {
             icon.className = "pi pi-sign-in";
         } else {
@@ -1993,7 +2059,7 @@ export class FloatingViewer {
         // Abort document-level and pop-out window listeners atomically.
         try { this._docAC?.abort(); this._docAC = null; } catch (e) { console.debug?.(e); }
         try { this._popoutAC?.abort(); this._popoutAC = null; } catch (e) { console.debug?.(e); }
-        // Pop-in before disposing so the element returns to the main document
+        // Pop-in before disposing so the element returns to the main document.
         try { if (this._isPopped) this.popIn(); } catch (e) { console.debug?.(e); }
         this._revokePreviewBlob();
         try { this.element?.remove(); } catch (e) { console.debug?.(e); }

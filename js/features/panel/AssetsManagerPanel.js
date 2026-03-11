@@ -447,7 +447,18 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             // 2. Grid visuals (badges, details, sizes)
             // Refresh only when a relevant setting changed to avoid reload storms.
             if (shouldRefreshGrid) {
-                refreshGrid(gridContainer);
+                // Siblings toggle requires a full data reload: PNG siblings are filtered
+                // during appendAssets (state.assets), so refreshGrid alone can't add them
+                // back or remove them — a re-fetch is needed.
+                if (!isInitialSync && changedKey.startsWith("siblings.")) {
+                    try {
+                        gridContainer.dispatchEvent(new CustomEvent("mjr:reload-grid"));
+                    } catch (e) {
+                        refreshGrid(gridContainer);
+                    }
+                } else {
+                    refreshGrid(gridContainer);
+                }
             }
             if (shouldRefreshSidebar && state.sidebarOpen && state.activeAssetId) {
                 sidebarController?.refreshActiveAsset?.();

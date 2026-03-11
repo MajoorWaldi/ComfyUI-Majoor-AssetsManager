@@ -481,7 +481,25 @@ export function createVideoProcessor({
         const onError = () => {
             proc.ready = false;
             try {
-                drawMediaError(canvas, "Failed to load video (unsupported codec/format?)");
+                const errCode = videoEl?.error?.code;
+                const errMsg = videoEl?.error?.message || "";
+                // MediaError codes: 1=aborted, 2=network, 3=decode, 4=src_not_supported
+                let msg, hint;
+                if (errCode === 2) {
+                    msg = "Failed to load video (network / path error)";
+                    hint = "Check file permissions / path, or try re-indexing.";
+                } else if (errCode === 3) {
+                    msg = "Failed to load video (decode error — unsupported codec?)";
+                    hint = "Browser may not support this codec (e.g. H.265/HEVC). Try converting to H.264/MP4.";
+                } else if (errCode === 4) {
+                    msg = "Failed to load video (unsupported format or codec)";
+                    hint = "Browser cannot decode this file (e.g. H.265/HEVC). Try converting to H.264/MP4.";
+                } else {
+                    msg = "Failed to load video";
+                    hint = errMsg || "Check file permissions / path, or try re-indexing.";
+                }
+                console.warn("[MJR] Video load error", { code: errCode, message: errMsg, src: videoEl?.src });
+                drawMediaError(canvas, msg, hint);
             } catch (e) { console.debug?.(e); }
         };
 
