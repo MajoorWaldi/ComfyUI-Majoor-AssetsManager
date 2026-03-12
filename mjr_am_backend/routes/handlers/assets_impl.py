@@ -41,6 +41,7 @@ from ..core import (
     _build_services,
     _check_rate_limit,
     _csrf_error,
+    _is_loopback_request,
     _is_path_allowed,
     _is_path_allowed_custom,
     _is_within_root,
@@ -1721,6 +1722,9 @@ def _is_preview_download_request(request: web.Request) -> bool:
 
 
 def _download_rate_limit_response_or_none(request: web.Request, *, preview: bool) -> web.Response | None:
+    # Loopback clients are local users — skip rate limiting entirely.
+    if _is_loopback_request(request):
+        return None
     key = "download_asset_preview" if preview else "download_asset"
     max_requests = 200 if preview else 30
     allowed, retry_after = _check_rate_limit(request, key, max_requests=max_requests, window_seconds=60)
