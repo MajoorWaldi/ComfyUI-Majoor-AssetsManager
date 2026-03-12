@@ -66,6 +66,25 @@ export function createMessagePopoverView() {
     messageTabBtn.id = "mjr-messages-tab";
     messageTabBtn.textContent = t("label.messages", "Messages");
 
+    const historyTabBtn = document.createElement("button");
+    historyTabBtn.type = "button";
+    historyTabBtn.className = "mjr-messages-tab";
+    historyTabBtn.setAttribute("role", "tab");
+    historyTabBtn.setAttribute("aria-selected", "false");
+    historyTabBtn.setAttribute("aria-controls", "mjr-history-panel");
+    historyTabBtn.id = "mjr-history-tab";
+
+    const historyTabLabel = document.createElement("span");
+    historyTabLabel.textContent = t("label.toastHistory", "History");
+
+    const historyTabBadge = document.createElement("span");
+    historyTabBadge.className = "mjr-tab-unread-dot";
+    historyTabBadge.setAttribute("aria-hidden", "true");
+    historyTabBadge.style.display = "none";
+
+    historyTabBtn.appendChild(historyTabLabel);
+    historyTabBtn.appendChild(historyTabBadge);
+
     const shortcutsTabBtn = document.createElement("button");
     shortcutsTabBtn.type = "button";
     shortcutsTabBtn.className = "mjr-messages-tab";
@@ -76,6 +95,7 @@ export function createMessagePopoverView() {
     shortcutsTabBtn.textContent = t("msg.shortcuts.title", "Shortcut Guide");
 
     tabs.appendChild(messageTabBtn);
+    tabs.appendChild(historyTabBtn);
     tabs.appendChild(shortcutsTabBtn);
 
     const panels = document.createElement("div");
@@ -91,6 +111,13 @@ export function createMessagePopoverView() {
     emptyState.className = "mjr-messages-empty";
     emptyState.textContent = t("msg.noMessages", "No messages for now.");
 
+    const historyPanel = document.createElement("div");
+    historyPanel.className = "mjr-messages-history-panel";
+    historyPanel.id = "mjr-history-panel";
+    historyPanel.setAttribute("role", "tabpanel");
+    historyPanel.setAttribute("aria-labelledby", historyTabBtn.id);
+    historyPanel.hidden = true;
+
     const shortcutsPanel = document.createElement("div");
     shortcutsPanel.className = "mjr-messages-shortcuts-panel";
     shortcutsPanel.id = "mjr-shortcuts-panel";
@@ -102,6 +129,7 @@ export function createMessagePopoverView() {
     messagePopover.appendChild(head);
     messagePopover.appendChild(tabs);
     panels.appendChild(messageList);
+    panels.appendChild(historyPanel);
     panels.appendChild(shortcutsPanel);
     messagePopover.appendChild(panels);
 
@@ -109,6 +137,9 @@ export function createMessagePopoverView() {
         messagePopover,
         title,
         messageTabBtn,
+        historyTabBtn,
+        historyTabBadge,
+        historyPanel,
         shortcutsTabBtn,
         messageList,
         shortcutsPanel,

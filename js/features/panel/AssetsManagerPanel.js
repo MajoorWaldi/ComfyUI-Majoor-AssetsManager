@@ -165,7 +165,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     const { sortPopover, sortMenu } = createSortPopoverView();
     const { collectionsPopover, collectionsMenu } = createCollectionsPopoverView();
     const { pinnedFoldersPopover, pinnedFoldersMenu } = createPinnedFoldersPopoverView();
-    const { title: messagePopoverTitle, messagePopover, messageTabBtn, shortcutsTabBtn, messageList, shortcutsPanel, markReadBtn } = createMessagePopoverView();
+    const { title: messagePopoverTitle, messagePopover, messageTabBtn, historyTabBtn, historyTabBadge, historyPanel, shortcutsTabBtn, messageList, shortcutsPanel, markReadBtn } = createMessagePopoverView();
 
     headerActions.appendChild(customPopover);
     headerActions.appendChild(messagePopover);
@@ -724,6 +724,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         messagePopover,
         title: messagePopoverTitle,
         messageList,
+        historyTabBtn,
+        historyTabBadge,
+        historyPanel,
         shortcutsPanel,
         messageTabBtn,
         shortcutsTabBtn,

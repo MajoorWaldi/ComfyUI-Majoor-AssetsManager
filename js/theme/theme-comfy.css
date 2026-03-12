@@ -507,6 +507,110 @@
     text-decoration: underline;
 }
 
+/* Toast History tab — unread indicator dot */
+.mjr-tab-unread-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--mjr-accent, #5fb3ff);
+    margin-left: 5px;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+/* History panel */
+.mjr-messages-history-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.mjr-history-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0 6px;
+    flex-shrink: 0;
+}
+
+.mjr-history-head-label {
+    font-size: 11px;
+    font-weight: 600;
+    opacity: 0.62;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.mjr-history-clear-btn {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: transparent;
+    border: 1px solid var(--mjr-border, rgba(255,255,255,0.12));
+    color: inherit;
+    cursor: pointer;
+    opacity: 0.72;
+}
+
+.mjr-history-clear-btn:hover {
+    opacity: 1;
+    background: color-mix(in srgb, var(--mjr-accent) 12%, transparent);
+}
+
+.mjr-history-list {
+    display: grid;
+    gap: 4px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.mjr-history-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--mjr-border, rgba(255,255,255,0.08));
+    background: var(--mjr-surface-2, rgba(255,255,255,0.04));
+    font-size: 12px;
+}
+
+.mjr-history-item--error {
+    border-color: color-mix(in srgb, #f36b6b 50%, var(--mjr-border));
+}
+
+.mjr-history-item--warning {
+    border-color: color-mix(in srgb, #f0b85a 50%, var(--mjr-border));
+}
+
+.mjr-history-item--success {
+    border-color: color-mix(in srgb, #58c07d 50%, var(--mjr-border));
+}
+
+.mjr-history-item-icon {
+    flex-shrink: 0;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.mjr-history-item-content {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+}
+
+.mjr-history-item-msg {
+    opacity: 0.92;
+    word-break: break-word;
+}
+
+.mjr-history-item-time {
+    font-size: 10px;
+    opacity: 0.52;
+}
+
 .mjr-shortcut-guide {
     display: grid;
     gap: 8px;

@@ -137,7 +137,7 @@ function applyStatusHighlight(section, tone = "neutral", options = {}) {
             };
             const level = tone === "error" ? "error" : tone === "warning" ? "warning" : tone === "success" ? "success" : "info";
             try {
-                comfyToast(messages[tone] || messages.info, level, 1800);
+                comfyToast(messages[tone] || messages.info, level, 1800, { noHistory: true });
             } catch (e) { console.debug?.(e); }
         }
     }

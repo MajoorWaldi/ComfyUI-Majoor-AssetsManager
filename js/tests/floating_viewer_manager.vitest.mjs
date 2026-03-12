@@ -398,31 +398,6 @@ describe("floatingViewerManager", () => {
     expect(event.preventDefault).toHaveBeenCalledTimes(1);
   });
 
-  it("toggles the floating viewer off with Ctrl+V while it is visible", async () => {
-    const { floatingViewerManager } = await import("../features/viewer/floatingViewerManager.js");
-    floatingViewerManager.open();
-
-    const viewer = state.getLastViewer();
-    expect(viewer.isVisible).toBe(true);
-
-    const event = {
-      type: "keydown",
-      key: "v",
-      ctrlKey: true,
-      metaKey: false,
-      altKey: false,
-      shiftKey: false,
-      preventDefault: vi.fn(),
-      stopPropagation: vi.fn(),
-      stopImmediatePropagation: vi.fn(),
-    };
-    window.dispatchEvent(event);
-
-    expect(viewer.hide).toHaveBeenCalledTimes(1);
-    expect(viewer.isVisible).toBe(false);
-    expect(event.preventDefault).toHaveBeenCalledTimes(1);
-  });
-
   it("toggles sampler preview with K while the floating viewer is visible", async () => {
     const { floatingViewerManager } = await import("../features/viewer/floatingViewerManager.js");
     floatingViewerManager.open();

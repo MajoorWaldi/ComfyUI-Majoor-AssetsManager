@@ -294,6 +294,11 @@ export function buildDateHistogramURL(params = {}) {
 }
 
 export function buildAssetViewURL(asset) {
+    const mtime = asset?.mtime;
+    const withMtime = (url) => {
+        if (!url || !mtime) return url;
+        return `${url}${url.includes("?") ? "&" : "?"}v=${encodeURIComponent(mtime)}`;
+    };
     const rawPath = toPosixPath(String(
         asset?.filepath ||
         asset?.path ||
@@ -370,23 +375,23 @@ export function buildAssetViewURL(asset) {
     // Fallback: non-native output/input roots (or broken absolute subfolder values)
     // cannot be served by ComfyUI `/view`, so use backend filepath streaming URL.
     if (rawPath && type !== "custom" && (subfolderLooksAbsolute || !hasNativeBucket)) {
-        return buildDownloadURL(rawPath, { inline: true });
+        return withMtime(buildDownloadURL(rawPath, { inline: true }));
     }
 
     if (type === "custom") {
         const rid = String(pickRootId(asset) || "").trim();
-        if (rid) return buildCustomViewURL(filename, subfolder, rid);
+        if (rid) return withMtime(buildCustomViewURL(filename, subfolder, rid));
         if (rawPath) {
-            return `${ENDPOINTS.CUSTOM_VIEW}?filepath=${encodeURIComponent(rawPath)}&browser_mode=1`;
+            return withMtime(`${ENDPOINTS.CUSTOM_VIEW}?filepath=${encodeURIComponent(rawPath)}&browser_mode=1`);
         }
         // Fallback for malformed custom assets without root id.
         const fallbackType = fromPath.type || "output";
-        return buildViewURL(filename, subfolder, fallbackType);
+        return withMtime(buildViewURL(filename, subfolder, fallbackType));
     }
     // Prefer path-based type when explicit type conflicts with obvious filepath bucket.
     if (rawPath.includes("/output/")) type = "output";
     if (rawPath.includes("/input/")) type = "input";
-    return buildViewURL(filename, subfolder, type);
+    return withMtime(buildViewURL(filename, subfolder, type));
 }
 
 /**

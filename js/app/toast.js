@@ -8,6 +8,7 @@
  */
 import { getComfyApp } from "./comfyApiBridge.js";
 import { t } from "./i18n.js";
+import { addToastHistory } from "../features/panel/messages/toastHistory.js";
 
 const TOAST_CONTAINER_ID = "mjr-toast-container";
 const MAX_VISIBLE_TOASTS = 5;
@@ -344,13 +345,18 @@ function getToastContainer() {
  * @param {'info'|'success'|'warning'|'error'} type - The type of message
  * @param {number} [duration] - Duration in ms (default: type-based standard duration)
  */
-export function comfyToast(message, type = "info", duration) {
+export function comfyToast(message, type = "info", duration, opts) {
     // Translate message
     message = translateToastMessage(message);
-    
+
     // Use standard duration if not specified
     if (duration === undefined || duration === null) {
         duration = getStandardDuration(type);
+    }
+
+    // Record in toast history unless caller opts out.
+    if (!opts?.noHistory) {
+        try { addToastHistory(message, type, duration); } catch { /* ignore */ }
     }
     
     // Treat as persistent only when caller explicitly passes 0 or a non-finite value.
