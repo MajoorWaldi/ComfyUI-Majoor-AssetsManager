@@ -27,6 +27,7 @@ import { installViewerProbe } from "../features/viewer/probe.js";
 import { createViewerLoupe } from "../features/viewer/loupe.js";
 import { renderABCompareView } from "../features/viewer/abCompare.js";
 import { renderSideBySideView } from "../features/viewer/sideBySide.js";
+import { isModel3DAsset, isModel3DInteractionTarget } from "../features/viewer/model3dRenderer.js";
 import { createViewerMetadataHydrator } from "../features/viewer/metadata.js";
 import { createViewerPanZoom, createViewerMediaFactory } from "../features/viewer/ViewerCanvas.js";
 import { drawScopesLight } from "../features/viewer/scopes.js";
@@ -630,7 +631,7 @@ function createViewer() {
                 // If only two assets, always use AB_COMPARE for clarity
                 if (assets.length === 2) {
                     state.compareAsset = assets[1 - state.currentIndex];
-                    state.mode = VIEWER_MODES.AB_COMPARE;
+                    state.mode = compareIncludes3D() ? VIEWER_MODES.SIDE_BY_SIDE : VIEWER_MODES.AB_COMPARE;
                 } else {
                     // Otherwise, prefer Side-by-Side if possible
                     state.compareAsset = chosen;
@@ -643,6 +644,25 @@ function createViewer() {
 
     overlay.appendChild(header);
     overlay.appendChild(contentRow);
+
+    function getOtherComparedAsset() {
+        try {
+            if (state.compareAsset) return state.compareAsset;
+            const assets = Array.isArray(state.assets) ? state.assets : [];
+            if (assets.length === 2) {
+                return assets[1 - (state.currentIndex || 0)] || null;
+            }
+        } catch (e) { console.debug?.(e); }
+        return null;
+    }
+
+    function compareIncludes3D() {
+        try {
+            const current = state.assets?.[state.currentIndex] || null;
+            return isModel3DAsset(current) || isModel3DAsset(getOtherComparedAsset());
+        } catch (e) { console.debug?.(e); }
+        return false;
+    }
     overlay.appendChild(filmstrip.el);
     overlay.appendChild(footer);
     overlay.appendChild(genInfoOverlay);
@@ -1336,7 +1356,7 @@ function createViewer() {
     };
 
     function canAB() {
-        return state.assets.length === 2 || state.compareAsset != null;
+        return (state.assets.length === 2 || state.compareAsset != null) && !compareIncludes3D();
     }
 
     function canSide() {
@@ -1427,7 +1447,9 @@ function createViewer() {
             indexInfo.textContent = `${state.currentIndex + 1} / ${state.assets.length}`;
         }
 
-        if (state.mode === VIEWER_MODES.AB_COMPARE && !canAB()) state.mode = VIEWER_MODES.SINGLE;
+        if (state.mode === VIEWER_MODES.AB_COMPARE && !canAB()) {
+            state.mode = canSide() ? VIEWER_MODES.SIDE_BY_SIDE : VIEWER_MODES.SINGLE;
+        }
         if (state.mode === VIEWER_MODES.SIDE_BY_SIDE && !canSide()) state.mode = VIEWER_MODES.SINGLE;
         try {
             toolbar?.syncModeButtons?.({ canAB, canSide });
@@ -1735,6 +1757,9 @@ function createViewer() {
         // Only zoom when hovering the viewer content area.
         try {
             if (!content.contains(e.target)) return;
+        } catch (e) { console.debug?.(e); }
+        try {
+            if (isModel3DInteractionTarget(e?.target)) return;
         } catch (e) { console.debug?.(e); }
 
         try {

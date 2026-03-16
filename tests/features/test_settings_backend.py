@@ -193,13 +193,14 @@ async def test_probe_backend_get_set_paths(monkeypatch):
 
 def test_cached_probe_backend_helper_paths():
     s = AppSettings(_DB())
-    s._cache[_PROBE_BACKEND_KEY] = "auto"
-    s._cache_at[_PROBE_BACKEND_KEY] = 0.0
-    s._cache_version[_PROBE_BACKEND_KEY] = 1
-    assert s._cached_probe_backend(1) == ""
+    cache_key = _PROBE_BACKEND_KEY
+    s._cache[cache_key] = "auto"
+    s._cache_at[cache_key] = 0.0
+    s._cache_version[cache_key] = 1
+    assert s._cached_probe_backend(cache_key, 1) == ""
 
-    s._cache_at[_PROBE_BACKEND_KEY] = 10**9
-    assert s._cached_probe_backend(2) == ""
+    s._cache_at[cache_key] = 10**9
+    assert s._cached_probe_backend(cache_key, 2) == ""
 
 
 @pytest.mark.asyncio
@@ -226,6 +227,58 @@ async def test_metadata_fallback_db_error():
     db.fail_write = True
     out = await s.set_metadata_fallback_prefs(image=True)
     assert out.code == "DB_ERROR"
+
+
+@pytest.mark.asyncio
+async def test_user_scoped_settings_fallback_and_isolation(monkeypatch):
+    db = _DB()
+    s = AppSettings(db)
+    db.store["allow_write"] = "1"
+    db.store[_PROBE_BACKEND_KEY] = "ffprobe"
+    db.store[_METADATA_FALLBACK_IMAGE_KEY] = "0"
+    db.store[_METADATA_FALLBACK_MEDIA_KEY] = "1"
+    monkeypatch.delenv("MAJOOR_ALLOW_WRITE", raising=False)
+
+    token = sec._CURRENT_USER_ID.set("alice")
+    try:
+        assert await s.get_probe_backend() == "ffprobe"
+        assert await s.get_metadata_fallback_prefs() == {"image": False, "media": True}
+        assert (await s.get_security_prefs())["allow_write"] is True
+
+        probe_res = await s.set_probe_backend("both")
+        metadata_res = await s.set_metadata_fallback_prefs(image=True, media=False)
+        prefs_res = await s.set_security_prefs({"allow_write": False})
+
+        assert probe_res.ok is True
+        assert metadata_res.ok is True
+        assert prefs_res.ok is True
+    finally:
+        sec._CURRENT_USER_ID.reset(token)
+
+    alice_probe_key = s._storage_key(_PROBE_BACKEND_KEY, user_scoped=True, user_id="alice")
+    alice_image_key = s._storage_key(_METADATA_FALLBACK_IMAGE_KEY, user_scoped=True, user_id="alice")
+    alice_media_key = s._storage_key(_METADATA_FALLBACK_MEDIA_KEY, user_scoped=True, user_id="alice")
+    alice_allow_write_key = s._storage_key("allow_write", user_scoped=True, user_id="alice")
+    alice_version_key = s._settings_version_write_key(user_scoped=True, user_id="alice")
+
+    assert db.store[_PROBE_BACKEND_KEY] == "ffprobe"
+    assert db.store[_METADATA_FALLBACK_IMAGE_KEY] == "0"
+    assert db.store[_METADATA_FALLBACK_MEDIA_KEY] == "1"
+    assert db.store["allow_write"] == "1"
+    assert db.store[alice_probe_key] == "both"
+    assert db.store[alice_image_key] == "1"
+    assert db.store[alice_media_key] == "0"
+    assert db.store[alice_allow_write_key] == "0"
+    assert alice_version_key in db.store
+    assert os.environ.get("MAJOOR_ALLOW_WRITE") is None
+
+    token = sec._CURRENT_USER_ID.set("bob")
+    try:
+        assert await s.get_probe_backend() == "ffprobe"
+        assert await s.get_metadata_fallback_prefs() == {"image": False, "media": True}
+        assert (await s.get_security_prefs())["allow_write"] is True
+    finally:
+        sec._CURRENT_USER_ID.reset(token)
 
 
 def test_metadata_helpers_direct():
@@ -373,7 +426,7 @@ async def test_ensure_security_bootstrap_and_warn_bump(monkeypatch):
     monkeypatch.setattr(s, "_get_or_create_api_token_locked", _tok)
     await s.ensure_security_bootstrap()
 
-    async def _bad_bump():
+    async def _bad_bump(*_args, **_kwargs):
         return Result.Err("DB_ERROR", "x")
 
     monkeypatch.setattr(s, "_bump_settings_version_locked", _bad_bump)

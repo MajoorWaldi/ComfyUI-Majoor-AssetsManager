@@ -8,10 +8,8 @@ without "guessing" across unrelated nodes.
 from __future__ import annotations
 
 import os
-from collections import deque
-from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any
 
 from ...shared import Result, get_logger
 
@@ -42,12 +40,43 @@ SINK_CLASS_TYPES: set[str] = {
     "saveaudio",
     "save_audio",
     "vhs_saveaudio",
+    # ComfyUI-3D-Pack / Hunyuan3D output nodes
+    "save_3d_mesh",
+    "save_3dgs",
+    "[comfy3d] save 3d mesh",
+    "[comfy3d] save 3dgs",
+    "save3dmesh",
+    "save3dgs",
+    "export_3d_mesh",
+    "export_ply",
+    "export_glb",
+    "export_obj",
+    "saveglb",
+    "saveobj",
+    "saveply",
+    "voxeltomesh",
 }
 
 
 _VIDEO_SINK_TYPES: set[str] = {"savevideo", "vhs_savevideo", "vhs_videocombine"}
 _AUDIO_SINK_TYPES: set[str] = {"saveaudio", "save_audio", "vhs_saveaudio"}
 _IMAGE_SINK_TYPES: set[str] = {"saveimage", "saveimagewebsocket", "saveanimatedwebp", "savegif"}
+_3D_SINK_TYPES: set[str] = {
+    "save_3d_mesh",
+    "save_3dgs",
+    "[comfy3d] save 3d mesh",
+    "[comfy3d] save 3dgs",
+    "save3dmesh",
+    "save3dgs",
+    "export_3d_mesh",
+    "export_ply",
+    "export_glb",
+    "export_obj",
+    "saveglb",
+    "saveobj",
+    "saveply",
+    "voxeltomesh",
+}
 
 
 # Sink and graph-link helpers are delegated to `graph_converter` near the end
@@ -642,6 +671,128 @@ def _collect_all_prompts_from_sinks(
     return all_positive, all_negative
 
 
+# ---------------------------------------------------------------------------
+# Shared sampler field helpers (reused by all sampler-collection functions)
+# ---------------------------------------------------------------------------
+
+_SAMPLER_FIELD_SPECS: list[tuple[str, type]] = [
+    ("sampler_name", str),
+    ("scheduler", str),
+    ("steps", int),
+    ("cfg", float),
+    ("denoise", float),
+    ("seed_val", int),
+]
+
+
+def _cast_sampler_fields(sampler_values: dict[str, Any], target: dict[str, Any]) -> None:
+    """Copy and type-cast known sampler fields from *sampler_values* into *target*."""
+    for key, caster in _SAMPLER_FIELD_SPECS:
+        val = sampler_values.get(key)
+        if val is None:
+            continue
+        try:
+            target[key] = caster(val)  # type: ignore[operator]
+        except Exception:
+            pass
+
+
+def _classify_pipeline_pass_name(
+    index: int,
+    total: int,
+    *,
+    is_detailer: bool,
+    hint: str,
+    denoise: float | None,
+) -> str:
+    """Return a human-readable pass name for a sampler pass in a pipeline."""
+    if is_detailer or "facedetailer" in hint or "detailer" in hint:
+        return "Detailer"
+    if index == 0:
+        return "Base"
+    if denoise is not None or total > 1:
+        return "Refine / Upscale"
+    return f"Pass {index + 1}"
+
+
+def _finalize_pipeline_passes(passes: list[dict[str, Any]]) -> None:
+    """Assign pass names and propagate seed/steps inheritance across pipeline passes in-place."""
+    previous_seed: int | None = None
+    previous_steps: int | None = None
+    for index, sampler_pass in enumerate(passes):
+        denoise_raw = sampler_pass.get("denoise")
+        denoise_value: float | None = None
+        try:
+            if denoise_raw is not None:
+                denoise_value = float(denoise_raw)
+        except Exception:
+            pass
+        hint = _lower(
+            f"{sampler_pass.get('_node_type') or ''} {sampler_pass.get('_title') or ''}"
+        )
+        sampler_pass["pass_name"] = _classify_pipeline_pass_name(
+            index,
+            len(passes),
+            is_detailer=sampler_pass.get("_is_detailer") is True,
+            hint=hint,
+            denoise=denoise_value,
+        )
+        if (
+            sampler_pass.get("seed_val") is None
+            and sampler_pass.get("_add_noise") is False
+            and previous_seed is not None
+        ):
+            sampler_pass["seed_val"] = previous_seed
+        if sampler_pass.get("steps") is None and index > 0 and previous_steps is not None:
+            sampler_pass["steps"] = previous_steps
+        try:
+            _seed_val = sampler_pass.get("seed_val")
+            if _seed_val is not None:
+                previous_seed = int(_seed_val)
+        except Exception:
+            pass
+        try:
+            _steps_val = sampler_pass.get("steps")
+            if _steps_val is not None:
+                previous_steps = int(_steps_val)
+        except Exception:
+            pass
+        sampler_pass.pop("_node_type", None)
+        sampler_pass.pop("_title", None)
+        sampler_pass.pop("_is_detailer", None)
+        sampler_pass.pop("_keep_when_sparse", None)
+        sampler_pass.pop("_add_noise", None)
+
+
+def _build_pipeline_pass_entry(
+    nodes_by_id: dict[str, Any],
+    sampler_id: str,
+) -> dict[str, Any] | None:
+    """Build a raw export dict for a single pipeline sampler pass (including internal _ fields)."""
+    from .prompt_tracer import _extract_prompt_trace
+
+    sampler_node = nodes_by_id.get(sampler_id)
+    if not isinstance(sampler_node, dict):
+        return None
+    ins = _inputs(sampler_node)
+    advanced = _is_advanced_sampler(sampler_node)
+    trace = _extract_prompt_trace(nodes_by_id, sampler_node, sampler_id, ins, advanced)
+    sampler_values = _extract_sampler_values(
+        nodes_by_id, sampler_node, sampler_id, ins, advanced, "medium", trace
+    )
+    _apply_proxy_widget_sampler_values(sampler_values, sampler_node)
+    stage_hint = _lower(f"{_node_type(sampler_node) or ''} {sampler_node.get('title') or ''}")
+    entry: dict[str, Any] = {
+        "_node_type": str(_node_type(sampler_node) or ""),
+        "_title": str(sampler_node.get("title") or ""),
+        "_is_detailer": _node_has_detailer_signals(sampler_node),
+        "_keep_when_sparse": ("sampler" in stage_hint) or _node_has_detailer_signals(sampler_node),
+        "_add_noise": ins.get("add_noise"),
+    }
+    _cast_sampler_fields(sampler_values, entry)
+    return entry
+
+
 def _collect_all_samplers_from_sinks(
     nodes_by_id: dict[str, Any],
     sinks: list[str],
@@ -651,6 +802,7 @@ def _collect_all_samplers_from_sinks(
     Collect all distinct sampler configurations from multiple sinks.
     """
     import json
+
     from .prompt_tracer import _extract_prompt_trace
     from .sampler_tracer import _select_sampler_context
 
@@ -674,23 +826,9 @@ def _collect_all_samplers_from_sinks(
             confidence = sampler_conf if sampler_conf != "none" else "low"
             
             sampler_values = _extract_sampler_values(nodes_by_id, sampler_node, sampler_id, ins, advanced, confidence, trace)
-            
+
             export_sampler: dict[str, Any] = {}
-            for k in ["sampler_name", "scheduler"]:
-                if k in sampler_values and sampler_values[k] is not None:
-                    export_sampler[k] = str(sampler_values[k])
-            if "steps" in sampler_values and sampler_values["steps"] is not None:
-                try: export_sampler["steps"] = int(sampler_values["steps"])
-                except Exception: pass
-            if "cfg" in sampler_values and sampler_values["cfg"] is not None:
-                try: export_sampler["cfg"] = float(sampler_values["cfg"])
-                except Exception: pass
-            if "denoise" in sampler_values and sampler_values["denoise"] is not None:
-                try: export_sampler["denoise"] = float(sampler_values["denoise"])
-                except Exception: pass
-            if "seed_val" in sampler_values and sampler_values["seed_val"] is not None:
-                try: export_sampler["seed_val"] = int(sampler_values["seed_val"])
-                except Exception: pass
+            _cast_sampler_fields(sampler_values, export_sampler)
 
             val_str = json.dumps(export_sampler, sort_keys=True)
             if val_str not in seen_hashes:
@@ -715,6 +853,7 @@ def _collect_chained_samplers_from_sink(
     Returns list ordered base-pass first.
     """
     import json
+
     from .prompt_tracer import _extract_prompt_trace
     from .sampler_tracer import _select_sampler_context
 
@@ -745,31 +884,8 @@ def _collect_chained_samplers_from_sink(
             nodes_by_id, sampler_node, current_id, ins, True, confidence, trace
         )
 
-        export_sampler: dict[str, Any] = {}
-        export_sampler["_node_type"] = str(_node_type(sampler_node) or "")
-        for k in ("sampler_name", "scheduler"):
-            if sampler_values.get(k) is not None:
-                export_sampler[k] = str(sampler_values[k])
-        if sampler_values.get("steps") is not None:
-            try:
-                export_sampler["steps"] = int(sampler_values["steps"])
-            except Exception:
-                pass
-        if sampler_values.get("cfg") is not None:
-            try:
-                export_sampler["cfg"] = float(sampler_values["cfg"])
-            except Exception:
-                pass
-        if sampler_values.get("denoise") is not None:
-            try:
-                export_sampler["denoise"] = float(sampler_values["denoise"])
-            except Exception:
-                pass
-        if sampler_values.get("seed_val") is not None:
-            try:
-                export_sampler["seed_val"] = int(sampler_values["seed_val"])
-            except Exception:
-                pass
+        export_sampler: dict[str, Any] = {"_node_type": str(_node_type(sampler_node) or "")}
+        _cast_sampler_fields(sampler_values, export_sampler)
 
         val_str = json.dumps(export_sampler, sort_keys=True)
         if val_str not in seen_hashes:
@@ -794,27 +910,71 @@ def _collect_chained_samplers_from_sink(
             if denoise_raw is not None:
                 denoise_value = float(denoise_raw)
         except Exception:
-            denoise_value = None
-
-        node_type_hint = _lower(str(sampler_pass.get("_node_type") or ""))
-        pass_name = ""
-        if "facedetailer" in node_type_hint or "detailer" in node_type_hint:
-            pass_name = "Detailer"
-        elif index == 0:
-            pass_name = "Base"
-        elif denoise_value is not None and denoise_value < 1.0:
-            pass_name = "Refine / Upscale"
-        elif denoise_value == 1.0:
-            pass_name = "Refine / Upscale"
-        elif len(ordered) > 1 and index > 0:
-            pass_name = "Refine / Upscale"
-
+            pass
+        hint = _lower(str(sampler_pass.get("_node_type") or ""))
+        pass_name = _classify_pipeline_pass_name(
+            index, len(ordered), is_detailer=False, hint=hint, denoise=denoise_value
+        )
         if pass_name:
             sampler_pass["pass_name"] = pass_name
         sampler_pass.pop("_node_type", None)
 
     # Reverse so base-pass comes first
     return ordered
+
+
+def _collect_pipeline_sampler_ids(
+    nodes_by_id: dict[str, Any],
+    dist: dict[str, int],
+) -> list[tuple[int, int, str]]:
+    """Collect (depth, stable_key, node_id) tuples for sampler nodes in *dist*, sorted upstream-first."""
+    sampler_ids: list[tuple[int, int, str]] = []
+    for nid, depth in dist.items():
+        node = nodes_by_id.get(nid)
+        if not isinstance(node, dict):
+            continue
+        if not (_is_sampler(node) or _looks_like_pipeline_pass_node(node)):
+            continue
+        try:
+            stable = int(nid)
+        except Exception:
+            stable = 10**9
+        sampler_ids.append((depth, stable, nid))
+    sampler_ids.sort(key=lambda item: (-item[0], item[1]))
+    return sampler_ids
+
+
+def _deduplicate_pipeline_passes(
+    nodes_by_id: dict[str, Any],
+    sampler_ids: list[tuple[int, int, str]],
+) -> list[dict[str, Any]]:
+    """Build deduplicated ordered list of pipeline pass export dicts from sampler_ids."""
+    import json
+
+    passes: list[dict[str, Any]] = []
+    seen_hashes: set[str] = set()
+    for _, _, sampler_id in sampler_ids:
+        export_sampler = _build_pipeline_pass_entry(nodes_by_id, sampler_id)
+        if export_sampler is None:
+            continue
+        dedupe_sampler = {k: v for k, v in export_sampler.items() if not k.startswith("_")}
+        if not dedupe_sampler and export_sampler.get("_keep_when_sparse") is not True:
+            continue
+        if dedupe_sampler:
+            val_str = json.dumps(dedupe_sampler, sort_keys=True)
+        else:
+            val_str = json.dumps(
+                {
+                    "_node_type": export_sampler.get("_node_type") or "",
+                    "_title": export_sampler.get("_title") or "",
+                },
+                sort_keys=True,
+            )
+        if val_str in seen_hashes:
+            continue
+        seen_hashes.add(val_str)
+        passes.append(export_sampler)
+    return passes
 
 
 def _collect_sampler_pipeline_from_sink(
@@ -842,160 +1002,14 @@ def _collect_sampler_pipeline_from_sink(
     if not dist:
         return []
 
-    detailer_present_in_branch = False
-    for nid in dist:
-        node = nodes_by_id.get(nid)
-        if isinstance(node, dict) and _node_has_detailer_signals(node):
-            detailer_present_in_branch = True
-            break
+    detailer_present_in_branch = any(
+        isinstance(nodes_by_id.get(nid), dict) and _node_has_detailer_signals(nodes_by_id[nid])
+        for nid in dist
+    )
 
-    sampler_ids: list[tuple[int, int, str]] = []
-    for nid, depth in dist.items():
-        node = nodes_by_id.get(nid)
-        if not isinstance(node, dict):
-            continue
-        if not (_is_sampler(node) or _looks_like_pipeline_pass_node(node)):
-            continue
-        try:
-            stable = int(nid)
-        except Exception:
-            stable = 10**9
-        sampler_ids.append((depth, stable, nid))
-
-    # Furthest upstream first = base pass first in most graph topologies.
-    sampler_ids.sort(key=lambda item: (-item[0], item[1]))
-
-    import json
-    from .prompt_tracer import _extract_prompt_trace
-
-    passes: list[dict[str, Any]] = []
-    seen_hashes: set[str] = set()
-
-    for _, _, sampler_id in sampler_ids:
-        sampler_node = nodes_by_id.get(sampler_id)
-        if not isinstance(sampler_node, dict):
-            continue
-        ins = _inputs(sampler_node)
-        advanced = _is_advanced_sampler(sampler_node)
-        trace = _extract_prompt_trace(nodes_by_id, sampler_node, sampler_id, ins, advanced)
-        sampler_values = _extract_sampler_values(
-            nodes_by_id,
-            sampler_node,
-            sampler_id,
-            ins,
-            advanced,
-            "medium",
-            trace,
-        )
-        _apply_proxy_widget_sampler_values(sampler_values, sampler_node)
-
-        stage_hint = _lower(f"{_node_type(sampler_node) or ''} {sampler_node.get('title') or ''}")
-        export_sampler: dict[str, Any] = {
-            "_node_type": str(_node_type(sampler_node) or ""),
-            "_title": str(sampler_node.get("title") or ""),
-            "_is_detailer": _node_has_detailer_signals(sampler_node),
-            "_keep_when_sparse": ("sampler" in stage_hint) or _node_has_detailer_signals(sampler_node),
-            "_add_noise": ins.get("add_noise"),
-        }
-        for k in ("sampler_name", "scheduler"):
-            if sampler_values.get(k) is not None:
-                export_sampler[k] = str(sampler_values[k])
-        if sampler_values.get("steps") is not None:
-            try:
-                export_sampler["steps"] = int(sampler_values["steps"])
-            except Exception:
-                pass
-        if sampler_values.get("cfg") is not None:
-            try:
-                export_sampler["cfg"] = float(sampler_values["cfg"])
-            except Exception:
-                pass
-        if sampler_values.get("denoise") is not None:
-            try:
-                export_sampler["denoise"] = float(sampler_values["denoise"])
-            except Exception:
-                pass
-        if sampler_values.get("seed_val") is not None:
-            try:
-                export_sampler["seed_val"] = int(sampler_values["seed_val"])
-            except Exception:
-                pass
-
-        dedupe_sampler = {k: v for k, v in export_sampler.items() if not k.startswith("_")}
-        if not dedupe_sampler and export_sampler.get("_keep_when_sparse") is not True:
-            # Skip technical bridge/upscale nodes that are not real sampling passes.
-            continue
-        if dedupe_sampler:
-            val_str = json.dumps(dedupe_sampler, sort_keys=True)
-        else:
-            val_str = json.dumps(
-                {
-                    "_node_type": export_sampler.get("_node_type") or "",
-                    "_title": export_sampler.get("_title") or "",
-                },
-                sort_keys=True,
-            )
-        if val_str in seen_hashes:
-            continue
-        seen_hashes.add(val_str)
-        passes.append(export_sampler)
-
-    previous_seed: int | None = None
-    previous_steps: int | None = None
-    for index, sampler_pass in enumerate(passes):
-        denoise_raw = sampler_pass.get("denoise")
-        denoise_value: float | None = None
-        try:
-            if denoise_raw is not None:
-                denoise_value = float(denoise_raw)
-        except Exception:
-            denoise_value = None
-
-        hint = _lower(
-            f"{sampler_pass.get('_node_type') or ''} {sampler_pass.get('_title') or ''}"
-        )
-        pass_name = ""
-        if sampler_pass.get("_is_detailer") is True:
-            pass_name = "Detailer"
-        elif "facedetailer" in hint or "detailer" in hint:
-            pass_name = "Detailer"
-        elif index == 0:
-            pass_name = "Base"
-        elif denoise_value is not None and denoise_value < 1.0:
-            pass_name = "Refine / Upscale"
-        elif denoise_value == 1.0:
-            pass_name = "Refine / Upscale"
-        elif len(passes) > 1 and index > 0:
-            pass_name = "Refine / Upscale"
-        else:
-            pass_name = f"Pass {index + 1}"
-
-        if pass_name:
-            sampler_pass["pass_name"] = pass_name
-
-        if sampler_pass.get("seed_val") is None and sampler_pass.get("_add_noise") is False and previous_seed is not None:
-            sampler_pass["seed_val"] = previous_seed
-        if sampler_pass.get("steps") is None and index > 0 and previous_steps is not None:
-            sampler_pass["steps"] = previous_steps
-
-        try:
-            _seed_val = sampler_pass.get("seed_val")
-            if _seed_val is not None:
-                previous_seed = int(_seed_val)
-        except Exception:
-            pass
-        try:
-            _steps_val = sampler_pass.get("steps")
-            if _steps_val is not None:
-                previous_steps = int(_steps_val)
-        except Exception:
-            pass
-
-        sampler_pass.pop("_node_type", None)
-        sampler_pass.pop("_title", None)
-        sampler_pass.pop("_is_detailer", None)
-        sampler_pass.pop("_keep_when_sparse", None)
-        sampler_pass.pop("_add_noise", None)
+    sampler_ids = _collect_pipeline_sampler_ids(nodes_by_id, dist)
+    passes = _deduplicate_pipeline_passes(nodes_by_id, sampler_ids)
+    _finalize_pipeline_passes(passes)
 
     if detailer_present_in_branch and passes and not any(p.get("pass_name") == "Detailer" for p in passes):
         passes[-1]["pass_name"] = "Detailer"
@@ -1108,7 +1122,7 @@ def _find_checkpoint_for_sampler(
     nodes_by_id: dict[str, Any], sampler_node: dict[str, Any]
 ) -> dict[str, Any] | None:
     """Follow the model link from a sampler node until a CheckpointLoader is reached."""
-    from .model_tracer import _is_checkpoint_loader_node, _clean_model_id
+    from .model_tracer import _clean_model_id, _is_checkpoint_loader_node
 
     model_link = _inputs(sampler_node).get("model")
     seen: set[str] = set()

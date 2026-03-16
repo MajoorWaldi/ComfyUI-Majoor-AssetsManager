@@ -1,5 +1,6 @@
 import { APP_CONFIG } from "../../app/config.js";
 import { VIEWER_ZOOM } from "./constants.js";
+import { isModel3DInteractionTarget } from "./model3dRenderer.js";
 import { safeAddListener as defaultSafeAddListener, safeCall as defaultSafeCall } from "../../utils/safeCall.js";
 
 export function createViewerPanZoom({
@@ -30,6 +31,11 @@ export function createViewerPanZoom({
     const getMediaNaturalSize = (mediaEl) => {
         try {
             if (!mediaEl) return { w: 0, h: 0 };
+            const hintedW = Number(mediaEl?._mjrNaturalW) || 0;
+            const hintedH = Number(mediaEl?._mjrNaturalH) || 0;
+            if (hintedW > 0 && hintedH > 0) {
+                return { w: hintedW, h: hintedH };
+            }
             if (mediaEl.tagName === "IMG") {
                 return { w: Number(mediaEl.naturalWidth) || 0, h: Number(mediaEl.naturalHeight) || 0 };
             }
@@ -239,6 +245,7 @@ export function createViewerPanZoom({
             const els = overlay?.querySelectorAll?.(".mjr-viewer-media") || [];
             for (const el of els) {
                 try {
+                    if (el?._mjrDisableViewerTransform) continue;
                     // Keep the media element sized to its fitted base, so rect-based tooling (probe/mask) matches.
                     const boxEl = _getBoxElForMedia(el, root);
                     const boxRect = boxEl?.getBoundingClientRect?.() || null;
@@ -398,6 +405,8 @@ export function createViewerPanZoom({
 
     const onPanPointerDown = (e) => {
         if (!overlay || overlay.style.display === "none") return;
+        // 3D models use OrbitControls for pan/zoom — skip panzoom entirely
+        if (isModel3DInteractionTarget(e?.target)) return;
         const zoom = Number(state?.zoom) || 1;
         const allowAt1 = (() => {
             try {
@@ -450,6 +459,7 @@ export function createViewerPanZoom({
             if (e?.target?.closest?.(".mjr-video-controls")) return;
             if (e?.target?.closest?.(".mjr-context-menu")) return;
             if (e?.target?.closest?.(".mjr-ab-slider")) return;
+            if (isModel3DInteractionTarget(e?.target)) return;
         } catch (e) { console.debug?.(e); }
         try {
             if (!content?.contains?.(e.target)) return;
@@ -522,6 +532,9 @@ export function createViewerPanZoom({
         if (!overlay || overlay.style.display === "none") return;
         try {
             if (!content?.contains?.(e.target)) return;
+        } catch (e) { console.debug?.(e); }
+        try {
+            if (isModel3DInteractionTarget(e?.target)) return;
         } catch (e) { console.debug?.(e); }
         try {
             e.preventDefault();

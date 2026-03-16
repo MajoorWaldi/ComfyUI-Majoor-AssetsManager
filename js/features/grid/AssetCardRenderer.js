@@ -33,9 +33,12 @@ export function detectKind(asset, extUpper) {
     const images = new Set(["PNG", "JPG", "JPEG", "WEBP", "GIF", "BMP", "TIF", "TIFF"]);
     const videos = new Set(["MP4", "WEBM", "MOV", "AVI", "MKV"]);
     const audio = new Set(["MP3", "WAV", "OGG", "FLAC"]);
+    // 3D model formats added by ComfyUI v1.42 (load3d extension)
+    const model3d = new Set(["OBJ", "FBX", "GLB", "GLTF", "STL", "PLY", "SPLAT", "KSPLAT", "SPZ"]);
     if (images.has(extUpper)) return "image";
     if (videos.has(extUpper)) return "video";
     if (audio.has(extUpper)) return "audio";
+    if (model3d.has(extUpper)) return "model3d";
     return "unknown";
 }
 
@@ -88,6 +91,8 @@ export function appendAssets(gridContainer, assets, state, deps) {
     state.filenameCounts = filenameCounts;
     const nonImageStems = state.nonImageStems || new Set();
     state.nonImageStems = nonImageStems;
+    const model3dFilenames = state.model3dFilenames || new Set();
+    state.model3dFilenames = model3dFilenames;
     deps.clearGridMessage(gridContainer);
     const vg = deps.ensureVirtualGrid(gridContainer, state);
     if (!vg) return 0;
@@ -162,6 +167,9 @@ export function appendAssets(gridContainer, assets, state, deps) {
             if (kind === "video") {
                 const stem = getStemLower(filename);
                 if (stem) nonImageStems.add(stem);
+            } else if (kind === "model3d") {
+                // Track full filename (lowercased) so we can hide <model>.ext.png siblings
+                if (filename) model3dFilenames.add(filename.trim().toLowerCase());
             }
         }
     }
@@ -192,9 +200,28 @@ export function appendAssets(gridContainer, assets, state, deps) {
                         }
                     }
                 }
-            } else if (extUpper === "PNG" && nonImageStems.has(stemLower)) {
-                state.hiddenPngSiblings += 1;
-                continue;
+            } else if (kind === "model3d") {
+                // Remove already-displayed sibling PNGs (e.g. model.glb.png for model.glb)
+                const fnLower = filename.trim().toLowerCase();
+                if (fnLower) {
+                    model3dFilenames.add(fnLower);
+                    // The sibling PNG stem = model3d filename (e.g. stem of "model.glb.png" = "model.glb")
+                    const siblingList = stemMap.get(fnLower);
+                    if (siblingList) {
+                        for (let i = siblingList.length - 1; i >= 0; i--) {
+                            if (getExtUpper(siblingList[i].filename) === "PNG") {
+                                assetsToRemoveFromState.add(siblingList[i]);
+                                siblingList.splice(i, 1);
+                            }
+                        }
+                    }
+                }
+            } else if (extUpper === "PNG") {
+                // Hide PNG if it's a sibling of a video (stem match) or model3d (stem = model filename)
+                if (nonImageStems.has(stemLower) || model3dFilenames.has(stemLower)) {
+                    state.hiddenPngSiblings += 1;
+                    continue;
+                }
             }
         }
         const fnKey = getFilenameKey(filename);

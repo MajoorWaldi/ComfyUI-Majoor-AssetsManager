@@ -3,7 +3,7 @@
  * @ts-check
  */
 
-import { buildAssetViewURL } from "../api/endpoints.js";
+import { buildAssetViewURL, buildViewURL } from "../api/endpoints.js";
 import { createFileBadge, createRatingBadge, createTagsBadge, createWorkflowDot } from "./Badges.js";
 import { formatDuration, formatDate, formatTime } from "../utils/format.js";
 import { APP_CONFIG } from "../app/config.js";
@@ -990,6 +990,84 @@ function createThumbnail(asset, viewUrl) {
         `;
         try { overlay.querySelector("svg").style.cssText = "width: 60%; max-width: 120px; height: auto; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));"; } catch (e) { console.debug?.(e); }
         thumb.appendChild(overlay);
+    } else if (asset.kind === "model3d") {
+        // 3D model thumbnail: try sibling PNG (e.g. model.glb.png), fallback to cube icon
+        const _buildModel3dFallbackIcon = () => {
+            const icon = document.createElement("div");
+            icon.className = "mjr-model3d-thumb-icon";
+            icon.style.cssText = `
+                position: absolute;
+                inset: 0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+                color: var(--mjr-badge-model3d, #4CAF50);
+                pointer-events: none;
+            `;
+            try {
+                const svgNS = "http://www.w3.org/2000/svg";
+                const svg = document.createElementNS(svgNS, "svg");
+                svg.setAttribute("viewBox", "0 0 24 24");
+                svg.setAttribute("fill", "none");
+                svg.setAttribute("stroke", "currentColor");
+                svg.setAttribute("stroke-width", "1.5");
+                svg.setAttribute("stroke-linecap", "round");
+                svg.setAttribute("stroke-linejoin", "round");
+                svg.style.cssText = "width: 40%; max-width: 56px; height: auto; opacity: 0.85; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));";
+                const top = document.createElementNS(svgNS, "polygon");
+                top.setAttribute("points", "12 2 22 8 12 14 2 8");
+                svg.appendChild(top);
+                const left = document.createElementNS(svgNS, "polyline");
+                left.setAttribute("points", "2 8 2 16 12 22 12 14");
+                svg.appendChild(left);
+                const right = document.createElementNS(svgNS, "polyline");
+                right.setAttribute("points", "22 8 22 16 12 22");
+                svg.appendChild(right);
+                icon.appendChild(svg);
+            } catch (e) { console.debug?.(e); }
+            const ext = String(asset.filename || "").split(".").pop() || "";
+            if (ext) {
+                const label = document.createElement("span");
+                label.textContent = ext.toUpperCase();
+                label.style.cssText = "font-size: 10px; font-weight: 700; letter-spacing: 0.05em; opacity: 0.75; text-transform: uppercase;";
+                icon.appendChild(label);
+            }
+            return icon;
+        };
+        // Build thumbnail URL for sibling PNG: <filename>.png
+        const siblingPngUrl = (() => {
+            try {
+                const fn = String(asset.filename || "").trim();
+                if (!fn) return "";
+                const pngName = fn + ".png";
+                const sub = String(asset?.subfolder || "").trim();
+                const type = String(asset?.type || "output").trim();
+                // For custom roots use custom-view, otherwise standard /view
+                if (asset?.root_id) {
+                    return buildAssetViewURL({ ...asset, filename: pngName, kind: "image" });
+                }
+                return buildViewURL(pngName, sub || null, type);
+            } catch { return ""; }
+        })();
+        if (siblingPngUrl) {
+            const img = document.createElement("img");
+            img.src = siblingPngUrl;
+            img.alt = asset.filename || "3D Model";
+            img.classList.add("mjr-thumb-media");
+            try {
+                img.loading = "lazy";
+                img.decoding = "async";
+            } catch (e) { console.debug?.(e); }
+            img.onerror = () => {
+                img.style.display = "none";
+                thumb.appendChild(_buildModel3dFallbackIcon());
+            };
+            thumb.appendChild(img);
+        } else {
+            thumb.appendChild(_buildModel3dFallbackIcon());
+        }
     }
 
     return thumb;

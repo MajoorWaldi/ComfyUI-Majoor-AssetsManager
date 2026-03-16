@@ -7,7 +7,10 @@
  * - Images: native <img loading="lazy">.
  * - Videos: lazy-loaded <video> with autoplay+loop only when visible.
  * - Audio: lightweight static thumbnail (no audio decode in filmstrip).
+ * - Model3D: sibling PNG thumbnail with fallback to "3D" label.
  */
+
+import { buildViewURL } from "../../api/endpoints.js";
 
 const ITEM_W = 84; // px (inner, border not included)
 const ITEM_H = 56; // px
@@ -368,6 +371,52 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
             return item;
         }
 
+        if (kind === "model3d") {
+            // Try sibling PNG as thumbnail (e.g. model.glb.png)
+            const siblingPngUrl = (() => {
+                try {
+                    const fn = String(asset?.filename || "").trim();
+                    if (!fn) return "";
+                    const pngName = fn + ".png";
+                    const sub = String(asset?.subfolder || "").trim();
+                    const type = String(asset?.type || "output").trim();
+                    if (asset?.root_id) {
+                        return buildAssetViewURL({ ...asset, filename: pngName, kind: "image" });
+                    }
+                    return buildViewURL(pngName, sub || null, type);
+                } catch { return ""; }
+            })();
+            if (siblingPngUrl) {
+                const img = document.createElement("img");
+                img.className = "mjr-filmstrip-thumb";
+                img.loading = "lazy";
+                img.decoding = "async";
+                img.src = siblingPngUrl;
+                img.alt = String(asset?.filename || "3D Model");
+                img.draggable = false;
+                img.style.cssText = `
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    display: block;
+                    pointer-events: none;
+                `;
+                img.addEventListener(
+                    "error",
+                    () => {
+                        try { img.style.display = "none"; } catch (e) { console.debug?.(e); }
+                        _show3DIcon(item);
+                    },
+                    { once: true }
+                );
+                item.appendChild(img);
+            } else {
+                _show3DIcon(item);
+            }
+            _append3DBadge(item);
+            return item;
+        }
+
         if (url) {
             // Image (including GIF / WebP)
             const img = document.createElement("img");
@@ -457,6 +506,37 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
             letter-spacing: 0.02em;
         `;
         badge.textContent = "VID";
+        container.appendChild(badge);
+    }
+
+    function _show3DIcon(container) {
+        const icon = document.createElement("div");
+        icon.style.cssText = `
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; font-weight: 700;
+            color: rgba(76, 175, 80, 0.7);
+            pointer-events: none;
+            letter-spacing: 0.04em;
+        `;
+        icon.textContent = "3D";
+        try {
+            container.appendChild(icon);
+        } catch (e) { console.debug?.(e); }
+    }
+
+    function _append3DBadge(container) {
+        const badge = document.createElement("div");
+        badge.style.cssText = `
+            position: absolute; bottom: 2px; right: 2px;
+            font-size: 7px; line-height: 1;
+            background: rgba(0,0,0,0.55); color: rgba(76, 175, 80, 0.95);
+            padding: 2px 3px; border-radius: 2px;
+            pointer-events: none;
+            letter-spacing: 0.02em;
+            font-weight: 700;
+        `;
+        badge.textContent = "3D";
         container.appendChild(badge);
     }
 

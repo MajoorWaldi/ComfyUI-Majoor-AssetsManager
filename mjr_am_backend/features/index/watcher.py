@@ -49,7 +49,7 @@ EXCLUDED_EXTENSIONS: set[str] = {".psd", ".json", ".txt", ".csv", ".db", ".sqlit
 # Supported extensions (flattened)
 SUPPORTED_EXTENSIONS: set[str] = set()
 try:
-    for kind in ("image", "video", "audio"):
+    for kind in ("image", "video", "audio", "model3d"):
         for ext in (EXTENSIONS or {}).get(kind, []):
             ext_lower = str(ext).lower()
             if ext_lower not in EXCLUDED_EXTENSIONS:
@@ -71,6 +71,15 @@ except Exception:
         ".ogg",
         ".m4a",
         ".aac",
+        ".obj",
+        ".fbx",
+        ".glb",
+        ".gltf",
+        ".stl",
+        ".ply",
+        ".splat",
+        ".ksplat",
+        ".spz",
     }
 
 # Directories to always ignore (case-insensitive on Windows)

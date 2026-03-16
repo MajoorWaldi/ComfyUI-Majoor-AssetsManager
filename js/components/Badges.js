@@ -3,6 +3,7 @@
  */
 import { resolveAssetStatusDotColor } from "../features/status/AssetStatusDotTheme.js";
 import { getEnrichmentState } from "../app/runtimeState.js";
+import { detectKind } from "../features/grid/AssetCardRenderer.js";
 
 /**
  * Create file type badge (overlaid on thumbnail)
@@ -35,19 +36,7 @@ export function createFileBadge(filename, kind, nameCollision = false, collision
         badge.dataset.mjrExt = ext;
     } catch (e) { console.debug?.(e); }
 
-    let category = "unknown";
-    switch (ext) {
-        case "PNG": case "JPG": case "JPEG": case "WEBP": case "GIF": case "BMP": case "TIF": case "TIFF":
-            category = "image"; break;
-        case "MP4": case "WEBM": case "MOV": case "AVI": case "MKV":
-            category = "video"; break;
-        case "MP3": case "WAV": case "OGG": case "FLAC":
-            category = "audio"; break;
-        case "OBJ": case "FBX": case "GLB": case "GLTF":
-            category = "model3d"; break;
-        default:
-            category = kind || "unknown";
-    }
+    const category = detectKind({ kind }, ext);
 
     const cssVarMap = {
         image: "--mjr-badge-image",

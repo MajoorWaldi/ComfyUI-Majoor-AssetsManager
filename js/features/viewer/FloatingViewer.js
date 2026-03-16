@@ -12,6 +12,7 @@ import { buildViewURL, buildAssetViewURL } from "../../api/endpoints.js";
 import { ensureViewerMetadataAsset } from "./genInfo.js";
 import { getAssetMetadata, getFileMetadataScoped } from "../../api/client.js";
 import { normalizeGenerationMetadata } from "../../components/sidebar/parsers/geninfoParser.js";
+import { createModel3DMediaElement, isModel3DInteractionTarget, MODEL3D_EXTS } from "./model3dRenderer.js";
 import { appendTooltipHint, setTooltipHint } from "../../utils/tooltipShortcuts.js";
 
 export const MFV_MODES = Object.freeze({
@@ -43,15 +44,17 @@ function _extOf(filename) {
     } catch (_e) { /* extension extraction is best-effort */ return ""; }
 }
 
-/** Detect media kind from asset data (video / gif / image). */
+/** Detect media kind from asset data (video / audio / model3d / gif / image). */
 function _mediaKind(fileData) {
     const kind = String(fileData?.kind || "").toLowerCase();
     if (kind === "video") return "video";
     if (kind === "audio") return "audio";
+    if (kind === "model3d") return "model3d";
     const ext = _extOf(fileData?.filename || "");
     if (ext === ".gif") return "gif";
     if (VIDEO_EXTS.has(ext)) return "video";
     if (AUDIO_EXTS.has(ext)) return "audio";
+    if (MODEL3D_EXTS.has(ext)) return "model3d";
     return "image";
 }
 
@@ -140,6 +143,15 @@ function _buildMediaEl(fileData, { fill = false } = {}) {
         v.autoplay = true;
         v.playsInline = true;
         return v;
+    }
+
+    if (kind === "model3d") {
+        return createModel3DMediaElement(fileData, url, {
+            hostClassName: `mjr-model3d-host mjr-mfv-model3d-host${fill ? " mjr-mfv-model3d-host--fill" : ""}`,
+            canvasClassName: `mjr-mfv-media mjr-model3d-render-canvas${fill ? " mjr-mfv-media--fill" : ""}`,
+            hintText: "Rotate: left drag  Pan: right drag  Zoom: wheel or middle drag",
+            disableViewerTransform: true,
+        });
     }
 
     // gif and image — use <img>
@@ -905,6 +917,7 @@ export class FloatingViewer {
         this._panY = Math.max(-maxY, Math.min(maxY, this._panY));
         const t = `translate(${this._panX}px,${this._panY}px) scale(${z})`;
         for (const el of this._contentEl.querySelectorAll(".mjr-mfv-media")) {
+            if (el?._mjrDisableViewerTransform) continue;
             el.style.transform = t;
             el.style.transformOrigin = "center";
         }
@@ -946,6 +959,7 @@ export class FloatingViewer {
         // Wheel → zoom centered at cursor
         contentEl.addEventListener("wheel", (e) => {
             if (e.target?.closest?.("audio")) return;
+            if (isModel3DInteractionTarget(e.target)) return;
             e.preventDefault();
             const delta  = e.deltaY || e.deltaX || 0;
             const factor = 1 - delta * MFV_ZOOM_FACTOR;
@@ -963,6 +977,7 @@ export class FloatingViewer {
             if (e.target?.closest?.("video")) return;
             if (e.target?.closest?.("audio")) return;
             if (e.target?.closest?.(".mjr-mfv-ab-divider")) return;
+            if (isModel3DInteractionTarget(e.target)) return;
             e.preventDefault();
             panActive = true;
             this._dragging = true;
@@ -993,6 +1008,7 @@ export class FloatingViewer {
         contentEl.addEventListener("dblclick", (e) => {
             if (e.target?.closest?.("video")) return;
             if (e.target?.closest?.("audio")) return;
+            if (isModel3DInteractionTarget(e.target)) return;
             const isNearFit = Math.abs(this._zoom - 1) < 0.05;
             this._setMfvZoom(
                 isNearFit ? Math.min(4, this._zoom * 4) : 1,
@@ -1070,7 +1086,7 @@ export class FloatingViewer {
             return;
         }
         // Audio does not map well to clipped A/B mode; use side-by-side players instead.
-        if (kindA === "audio" || kindB === "audio") {
+        if (kindA === "audio" || kindB === "audio" || kindA === "model3d" || kindB === "model3d") {
             this._renderSide();
             return;
         }
@@ -1802,6 +1818,17 @@ export class FloatingViewer {
             drawable = (preferredVideo instanceof HTMLVideoElement)
                 ? preferredVideo
                 : (this._contentEl?.querySelector("video") || null);
+        }
+        if (!drawable && kind === "model3d") {
+            const assetId = fileData?.id != null ? String(fileData.id) : "";
+            if (assetId) {
+                drawable =
+                    this._contentEl?.querySelector?.(`.mjr-model3d-render-canvas[data-mjr-asset-id="${assetId}"]`) ||
+                    null;
+            }
+            if (!drawable) {
+                drawable = this._contentEl?.querySelector?.(".mjr-model3d-render-canvas") || null;
+            }
         }
         if (!drawable) {
             const url = _resolveUrl(fileData);

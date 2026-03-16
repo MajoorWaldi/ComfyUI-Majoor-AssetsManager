@@ -9,6 +9,7 @@ import ipaddress
 import os
 import threading
 import time
+from contextvars import ContextVar, Token
 from collections import OrderedDict
 from collections.abc import Mapping
 from functools import lru_cache
@@ -66,6 +67,7 @@ _rate_limit_lock = threading.Lock()
 _rate_limit_cleanup_thread: threading.Thread | None = None
 _rate_limit_cleanup_thread_lock = threading.Lock()
 _rate_limit_cleanup_stop = threading.Event()
+_CURRENT_USER_ID: ContextVar[str] = ContextVar("mjr_current_user_id", default="")
 try:
     _RATE_LIMIT_BACKGROUND_CLEANUP_SECONDS = int(
         os.environ.get(
@@ -563,6 +565,39 @@ def _get_comfy_user_manager(request: web.Request | None = None) -> Any:
     return _server_module_user_manager()
 
 
+def _current_user_id() -> str:
+    try:
+        return str(_CURRENT_USER_ID.get() or "").strip()
+    except Exception:
+        return ""
+
+
+def _get_request_user_id(request: web.Request | None) -> str:
+    if request is None:
+        return ""
+    try:
+        stored = str(request.get("mjr_user_id") or "").strip()
+        if stored:
+            return stored
+    except Exception:
+        pass
+    try:
+        return _resolve_request_user_id(request)
+    except Exception:
+        return ""
+
+
+def _push_request_user_context(request: web.Request | None) -> Token[str]:
+    return _CURRENT_USER_ID.set(_get_request_user_id(request))
+
+
+def _reset_request_user_context(token: Token[str]) -> None:
+    try:
+        _CURRENT_USER_ID.reset(token)
+    except Exception:
+        return
+
+
 def _request_app_user_manager(request: web.Request | None) -> Any:
     if request is None:
         return None
@@ -600,6 +635,11 @@ def _server_module_user_manager() -> Any:
             manager = getattr(server_mod, key, None)
             if manager is not None:
                 return manager
+        prompt_server = getattr(server_mod, "PromptServer", None)
+        instance = getattr(prompt_server, "instance", None)
+        manager = getattr(instance, "user_manager", None)
+        if manager is not None:
+            return manager
     except Exception:
         return None
     return None

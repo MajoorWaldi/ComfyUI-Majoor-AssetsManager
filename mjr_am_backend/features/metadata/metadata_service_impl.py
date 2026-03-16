@@ -22,6 +22,7 @@ from .extractors import (
     extract_video_metadata,
     extract_webp_metadata,
 )
+from .extractors_3d import extract_model3d_metadata
 from .fallback_readers import read_image_exif_like, read_media_probe_like
 from .dimension_resolver import get_file_info as dims_get_file_info
 from .dimension_resolver import normalize_dimensions
@@ -523,6 +524,8 @@ class MetadataService:
                     allow_exif=allow_exif,
                     allow_ffprobe=allow_ffprobe,
                 )
+            elif kind == "model3d":
+                return await self._extract_model3d_metadata(file_path, scan_id=scan_id)
             else:
                 return Result.Ok({
                     "file_info": self._get_file_info(file_path),
@@ -547,6 +550,9 @@ class MetadataService:
             return Result.Err(ErrorCode.NOT_FOUND, f"File not found: {file_path}", quality="none")
 
         kind = classify_file(file_path)
+        if kind == "model3d":
+            loop = asyncio.get_running_loop()
+            return await loop.run_in_executor(None, extract_model3d_metadata, file_path)
         if kind not in ("image", "video"):
             return Result.Ok({"workflow": None, "prompt": None, "quality": "none"}, quality="none")
 
@@ -781,6 +787,36 @@ class MetadataService:
             "ffprobe": fallback_ffprobe or None,
             **(metadata_result.data or {}),
         }
+        quality = metadata_result.meta.get("quality", "none")
+        return Result.Ok(combined, quality=quality)
+
+    async def _extract_model3d_metadata(
+        self,
+        file_path: str,
+        scan_id: str | None = None,
+    ) -> Result[dict[str, Any]]:
+        """Extract metadata from 3D model file (GLB extras / sidecar JSON)."""
+        loop = asyncio.get_running_loop()
+        metadata_result = await loop.run_in_executor(None, extract_model3d_metadata, file_path)
+        if not metadata_result.ok:
+            self._log_metadata_issue(
+                logging.WARNING,
+                "3D model extractor failed",
+                file_path,
+                scan_id=scan_id,
+                tool="extractor",
+                error=metadata_result.error,
+                duration_seconds=0.0,
+            )
+            return metadata_result
+
+        combined: dict[str, Any] = {
+            "file_info": self._get_file_info(file_path),
+            **(metadata_result.data or {}),
+        }
+
+        await self._enrich_with_geninfo_async(combined)
+
         quality = metadata_result.meta.get("quality", "none")
         return Result.Ok(combined, quality=quality)
 

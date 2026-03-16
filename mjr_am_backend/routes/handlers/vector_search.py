@@ -12,6 +12,7 @@ import math
 from typing import Any
 
 from aiohttp import web
+
 from ...config import (
     VECTOR_SIMILAR_MIN_SCORE,
     VECTOR_SIMILAR_TOPK,
@@ -21,9 +22,7 @@ from ...config import (
 )
 from ...features.index.searcher import _build_filter_clauses
 from ...shared import Result, get_logger
-
-from ..core import _json_response, _require_services
-from ..core import safe_error_message
+from ..core import _json_response, _require_services, safe_error_message
 from ..core.security import _check_rate_limit
 from ..search.query_sanitizer import parse_request_filters
 
@@ -32,6 +31,44 @@ logger = get_logger(__name__)
 _VECTOR_RATE_LIMIT_MAX = 30
 _VECTOR_RATE_LIMIT_WINDOW = 60
 _VECTOR_VALID_SCOPES = {"output", "input", "custom", "all"}
+
+
+def _hits_to_asset_ids(hits: list[dict[str, Any]]) -> list[int]:
+    """Extract positive asset_ids from a list of hit dicts."""
+    ids: list[int] = []
+    for hit in hits:
+        try:
+            aid = int(hit.get("asset_id") or 0)
+        except Exception:
+            aid = 0
+        if aid > 0:
+            ids.append(aid)
+    return ids
+
+
+def _rows_to_allowed_set(rows_data: list[dict[str, Any]]) -> set[int]:
+    """Build a set of allowed asset_ids from DB rows."""
+    allowed: set[int] = set()
+    for row in rows_data:
+        try:
+            allowed.add(int(row.get("asset_id") or 0))
+        except Exception:
+            continue
+    return allowed
+
+
+def _filter_by_score_floor(hits: list[dict[str, Any]], min_score: float) -> list[dict[str, Any]]:
+    """Return hits whose score meets the minimum threshold."""
+    score_floor = max(0.0, min(1.0, float(min_score or 0.0)))
+    result: list[dict[str, Any]] = []
+    for hit in hits:
+        try:
+            score = float(hit.get("score") or 0.0)
+        except Exception:
+            score = 0.0
+        if score >= score_floor:
+            result.append(hit)
+    return result
 
 
 def _cosine_similarity(a: list[float], b: list[float]) -> float:
@@ -150,14 +187,7 @@ async def _filter_hits_by_scope(
     if scope == "all" and not filters:
         return hits
 
-    asset_ids: list[int] = []
-    for hit in hits:
-        try:
-            aid = int(hit.get("asset_id") or 0)
-        except Exception:
-            aid = 0
-        if aid > 0:
-            asset_ids.append(aid)
+    asset_ids = _hits_to_asset_ids(hits)
     if not asset_ids:
         return []
 
@@ -186,24 +216,11 @@ async def _filter_hits_by_scope(
     if not rows.ok or not rows.data:
         return []
 
-    allowed = set()
-    for row in rows.data:
-        try:
-            allowed.add(int(row.get("asset_id") or 0))
-        except Exception:
-            continue
+    allowed = _rows_to_allowed_set(rows.data)
     if not allowed:
         return []
 
-    filtered: list[dict[str, Any]] = []
-    for hit in hits:
-        try:
-            aid = int(hit.get("asset_id") or 0)
-        except Exception:
-            continue
-        if aid in allowed:
-            filtered.append(hit)
-    return filtered
+    return [hit for hit in hits if int(hit.get("asset_id") or 0) in allowed]
 
 
 async def _filter_similar_hits(
@@ -216,16 +233,7 @@ async def _filter_similar_hits(
     if not isinstance(hits, list) or not hits:
         return []
 
-    score_floor = max(0.0, min(1.0, float(min_score or 0.0)))
-    filtered = []
-    for hit in hits:
-        try:
-            score = float(hit.get("score") or 0.0)
-        except Exception:
-            score = 0.0
-        if score < score_floor:
-            continue
-        filtered.append(hit)
+    filtered = _filter_by_score_floor(hits, min_score)
     if not filtered or db is None:
         return filtered
 
@@ -239,14 +247,7 @@ async def _filter_similar_hits(
     if not source_kind:
         return filtered
 
-    asset_ids: list[int] = []
-    for hit in filtered:
-        try:
-            aid = int(hit.get("asset_id") or 0)
-        except Exception:
-            aid = 0
-        if aid > 0:
-            asset_ids.append(aid)
+    asset_ids = _hits_to_asset_ids(filtered)
     if not asset_ids:
         return []
 
@@ -258,12 +259,7 @@ async def _filter_similar_hits(
     if not rows.ok or not rows.data:
         return []
 
-    allowed = set()
-    for row in rows.data:
-        try:
-            allowed.add(int(row.get("asset_id") or 0))
-        except Exception:
-            continue
+    allowed = _rows_to_allowed_set(rows.data)
     if not allowed:
         return []
     return [hit for hit in filtered if int(hit.get("asset_id") or 0) in allowed]
@@ -807,6 +803,7 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
 
         try:
             import json as _json
+
             from ...features.index.vector_service import blob_to_vector
 
             DIM = int(getattr(searcher, "_dim", 768) or 768)

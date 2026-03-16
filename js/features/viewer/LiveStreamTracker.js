@@ -17,9 +17,12 @@ import { floatingViewerManager } from "./floatingViewerManager.js";
 import { getComfyApi, waitForComfyApi } from "../../app/comfyApiBridge.js";
 
 let _initialized = false;
-let _genOutputHandler = null; // Named reference so it can be removed in teardown
-let _previewHandler = null;  // Named reference for the b_preview API listener
-let _apiRef = null;          // Cached reference to the ComfyUI API for cleanup
+let _genOutputHandler = null;           // Named reference so it can be removed in teardown
+let _previewHandler = null;             // Named reference for the b_preview API listener
+let _previewWithMetaHandler = null;     // Named reference for the b_preview_with_metadata listener
+let _previewWithMetaFired = false;      // True once b_preview_with_metadata actually fires; silences legacy fallback
+let _apiRef = null;                     // Cached reference to the ComfyUI API for cleanup
+let _currentJobId = null;               // Track current execution job ID for preview filtering
 
 // WeakMap stores the original canvas methods so we can restore them on teardown (NH-1).
 const _hookedCanvases = new WeakMap();
@@ -308,8 +311,28 @@ async function _hookPreviewApi(app) {
         }
         _apiRef = api;
 
+        // b_preview_with_metadata (ComfyUI v1.42+): preferred — carries nodeId + jobId
+        // so we can filter to the current execution and show the source node.
+        _previewWithMetaHandler = (e) => {
+            _previewWithMetaFired = true; // Mark that this newer event has actually fired
+            try {
+                const { blob, nodeId, jobId } = e.detail || {};
+                if (!blob || !(blob instanceof Blob)) return;
+                // Skip previews from stale executions when a jobId is available.
+                if (_currentJobId && jobId && jobId !== _currentJobId) return;
+                floatingViewerManager.feedPreviewBlob(blob, { sourceLabel: nodeId ? `Node ${nodeId}` : null });
+            } catch (err) {
+                console.debug?.("[MFV] b_preview_with_metadata error", err);
+            }
+        };
+        api.addEventListener("b_preview_with_metadata", _previewWithMetaHandler);
+
+        // b_preview (legacy fallback): plain Blob, no filtering possible.
+        // Stays silent once b_preview_with_metadata has actually fired (ComfyUI v1.42+) to
+        // avoid duplicate frames. On older ComfyUI this flag never flips so the fallback works.
         _previewHandler = (e) => {
             try {
+                if (_previewWithMetaFired) return;
                 const blob = e.detail;
                 if (!blob || !(blob instanceof Blob)) return;
                 floatingViewerManager.feedPreviewBlob(blob);
@@ -317,12 +340,17 @@ async function _hookPreviewApi(app) {
                 console.debug?.("[MFV] preview blob error", err);
             }
         };
-
         api.addEventListener("b_preview", _previewHandler);
-        console.debug("[Majoor] MFV preview stream hooked to ComfyUI API");
+
+        console.debug("[Majoor] MFV preview stream hooked to ComfyUI API (b_preview_with_metadata + b_preview fallback)");
     } catch (e) {
         console.debug?.("[Majoor] MFV preview hook failed — preview streaming disabled", e);
     }
+}
+
+/** Set the current execution job ID to filter preview frames from stale executions. */
+export function setCurrentJobId(jobId) {
+    _currentJobId = jobId || null;
 }
 
 // ── Generation output tracking ────────────────────────────────────────────────
@@ -388,11 +416,19 @@ export function teardownLiveStreamTracker(app) {
         window.removeEventListener(EVENTS.NEW_GENERATION_OUTPUT, _genOutputHandler);
         _genOutputHandler = null;
     }
-    // Remove the b_preview listener from the ComfyUI API
-    if (_previewHandler && _apiRef) {
-        try { _apiRef.removeEventListener("b_preview", _previewHandler); } catch (e) { console.debug?.(e); }
+    // Remove the b_preview / b_preview_with_metadata listeners from the ComfyUI API
+    if (_apiRef) {
+        if (_previewHandler) {
+            try { _apiRef.removeEventListener("b_preview", _previewHandler); } catch (e) { console.debug?.(e); }
+        }
+        if (_previewWithMetaHandler) {
+            try { _apiRef.removeEventListener("b_preview_with_metadata", _previewWithMetaHandler); } catch (e) { console.debug?.(e); }
+        }
     }
     _previewHandler = null;
+    _previewWithMetaHandler = null;
+    _previewWithMetaFired = false;
+    _currentJobId = null;
     _apiRef = null;
     _initialized = false;
     // Unhook the canvas if it is already available.

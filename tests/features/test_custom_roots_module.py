@@ -63,3 +63,24 @@ def test_overlap_and_invalid_paths(monkeypatch, tmp_path: Path):
 
     inv = cr.add_custom_root(str(tmp_path / "missing"))
     assert inv.code in {"DIR_NOT_FOUND", "INVALID_INPUT"}
+
+
+def test_custom_roots_user_scoped_store(monkeypatch, tmp_path: Path):
+    monkeypatch.setattr(cr, "_STORE_PATH", tmp_path / "custom_roots.json")
+    monkeypatch.setattr(cr, "_USER_STORES_DIR", tmp_path / "users")
+    monkeypatch.setattr(cr, "_resolve_builtin_roots", lambda: (None, None))
+
+    u1_root = tmp_path / "u1"
+    u2_root = tmp_path / "u2"
+    u1_root.mkdir()
+    u2_root.mkdir()
+
+    add1 = cr.add_custom_root(str(u1_root), user_id="user-one")
+    add2 = cr.add_custom_root(str(u2_root), user_id="user-two")
+
+    assert add1.ok and add2.ok
+    listed_u1 = cr.list_custom_roots(user_id="user-one").data or []
+    listed_u2 = cr.list_custom_roots(user_id="user-two").data or []
+    assert len(listed_u1) == 1 and listed_u1[0]["id"] == add1.data["id"]
+    assert len(listed_u2) == 1 and listed_u2[0]["id"] == add2.data["id"]
+    assert cr.list_custom_roots().data == []

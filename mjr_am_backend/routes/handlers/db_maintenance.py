@@ -12,10 +12,10 @@ import os
 import shutil
 import sqlite3
 import threading
+import time
 import uuid
 from pathlib import Path
 from typing import Any
-import time
 
 from aiohttp import web
 from mjr_am_backend.config import INDEX_DB_PATH, get_runtime_output_root, is_vector_search_enabled
@@ -28,8 +28,8 @@ from ..core import (
     _read_json,
     _require_operation_enabled,
     _require_services,
-    _resolve_security_prefs,
     _require_write_access,
+    _resolve_security_prefs,
     safe_error_message,
 )
 
@@ -276,6 +276,27 @@ def _vector_backfill_update_job(job_id: str, **updates: Any) -> None:
         job.update(updates)
 
 
+async def _stop_index_enrichment(index_service: Any) -> None:
+    """Stop metadata enrichment on the index service, if supported."""
+    if index_service and hasattr(index_service, "stop_enrichment"):
+        try:
+            await index_service.stop_enrichment(clear_queue=True)
+        except Exception:
+            pass
+
+
+def _invalidate_vector_searcher(svc: Any) -> None:
+    """Invalidate the vector searcher cache, if present in *svc*."""
+    if not isinstance(svc, dict):
+        return
+    searcher = svc.get("vector_searcher")
+    if searcher and hasattr(searcher, "invalidate"):
+        try:
+            searcher.invalidate()
+        except Exception:
+            pass
+
+
 async def _run_vector_backfill_job(
     *,
     job_id: str,
@@ -293,11 +314,7 @@ async def _run_vector_backfill_job(
     try:
         watcher_was_running = await _stop_watcher_if_running(svc if isinstance(svc, dict) else None)
         index_service = svc.get("index") if isinstance(svc, dict) else None
-        if index_service and hasattr(index_service, "stop_enrichment"):
-            try:
-                await index_service.stop_enrichment(clear_queue=True)
-            except Exception:
-                pass
+        await _stop_index_enrichment(index_service)
 
         def _on_progress(progress: dict[str, int]) -> None:
             _vector_backfill_update_job(job_id, progress=dict(progress or {}))
@@ -320,12 +337,7 @@ async def _run_vector_backfill_job(
             )
             return
 
-        searcher = svc.get("vector_searcher") if isinstance(svc, dict) else None
-        if searcher and hasattr(searcher, "invalidate"):
-            try:
-                searcher.invalidate()
-            except Exception:
-                pass
+        _invalidate_vector_searcher(svc)
 
         payload = {
             "ran": True,
@@ -457,7 +469,8 @@ async def _restart_watcher_if_needed(svc: dict | None, should_restart: bool) -> 
         scope_cfg = svc.get("watcher_scope") if isinstance(svc.get("watcher_scope"), dict) else {}
         scope = str((scope_cfg or {}).get("scope") or "output")
         custom_root_id = (scope_cfg or {}).get("custom_root_id")
-        paths = build_watch_paths(scope, custom_root_id)
+        active_user_id = str(svc.get("watcher_scope_active_user_id") or "").strip()
+        paths = build_watch_paths(scope, custom_root_id, user_id=active_user_id or None)
         if paths:
             import asyncio
             await watcher.start(paths, asyncio.get_running_loop())
@@ -653,6 +666,63 @@ async def _cleanup_assets_case_duplicates(db) -> Result[dict[str, int]]:
         return Result.Err("DB_ERROR", safe_error_message(exc, "Failed to cleanup case duplicates"))
 
 
+def _build_backfill_scope_clause(normalized_scope: str, normalized_custom_root: str) -> tuple[str, list[Any]]:
+    """Build the SQL WHERE fragment and params for backfill scope filtering."""
+    where: list[str] = []
+    params: list[Any] = []
+    if normalized_scope in {"output", "input", "custom"}:
+        where.append("LOWER(COALESCE(a.source, '')) = ?")
+        params.append(normalized_scope)
+    if normalized_scope == "custom":
+        where.append("a.root_id = ?")
+        params.append(normalized_custom_root)
+    scope_sql = (" AND " + " AND ".join(where)) if where else ""
+    return scope_sql, params
+
+
+async def _process_backfill_row(
+    db: Any,
+    vector_service: Any,
+    row: dict[str, Any],
+    index_asset_vector: Any,
+) -> tuple[str, int]:
+    """Process one backfill row; returns (outcome, asset_id).
+
+    outcome is one of: 'skip_invalid', 'skipped_missing', 'indexed', 'skipped', 'error'.
+    """
+    await _vector_backfill_wait_for_priority_window()
+    try:
+        asset_id = int(row.get("id") or 0)
+    except Exception:
+        asset_id = 0
+    if asset_id <= 0:
+        return "skip_invalid", 0
+
+    filepath = str(row.get("filepath") or "").strip()
+    kind: FileKind = "video" if str(row.get("kind") or "").strip().lower() == "video" else "image"
+    if not filepath or not Path(filepath).is_file():
+        return "skipped_missing", asset_id
+
+    raw = row.get("metadata_raw")
+    if isinstance(raw, dict):
+        metadata_raw: dict[str, Any] | None = raw
+    elif isinstance(raw, str) and raw.strip():
+        try:
+            parsed = json.loads(raw)
+            metadata_raw = parsed if isinstance(parsed, dict) else None
+        except Exception:
+            metadata_raw = None
+    else:
+        metadata_raw = None
+
+    result = await index_asset_vector(db, vector_service, asset_id, filepath, kind, metadata_raw=metadata_raw)
+    if result.ok and bool(result.data):
+        return "indexed", asset_id
+    if result.ok:
+        return "skipped", asset_id
+    return "error", asset_id
+
+
 async def _backfill_missing_asset_vectors(
     db: Any,
     vector_service: Any,
@@ -680,17 +750,7 @@ async def _backfill_missing_asset_vectors(
     if normalized_scope == "custom" and not normalized_custom_root:
         return Result.Err("INVALID_INPUT", "Missing custom_root_id for custom scope")
 
-    scope_where: list[str] = []
-    scope_params: list[Any] = []
-    if normalized_scope in {"output", "input", "custom"}:
-        scope_where.append("LOWER(COALESCE(a.source, '')) = ?")
-        scope_params.append(normalized_scope)
-    if normalized_scope == "custom":
-        scope_where.append("a.root_id = ?")
-        scope_params.append(normalized_custom_root)
-    scope_sql = ""
-    if scope_where:
-        scope_sql = " AND " + " AND ".join(scope_where)
+    scope_sql, scope_params = _build_backfill_scope_clause(normalized_scope, normalized_custom_root)
 
     last_id = 0
     candidates = 0
@@ -745,52 +805,22 @@ async def _backfill_missing_asset_vectors(
             break
 
         for row in rows:
-            await _vector_backfill_wait_for_priority_window()
-            try:
-                asset_id = int(row.get("id") or 0)
-            except Exception:
-                asset_id = 0
-            if asset_id <= 0:
+            outcome, row_asset_id = await _process_backfill_row(db, vector_service, row, index_asset_vector)
+            if outcome == "skip_invalid":
                 continue
-            last_id = asset_id
+            last_id = row_asset_id
             candidates += 1
-
-            filepath = str(row.get("filepath") or "").strip()
-            kind: FileKind = "video" if str(row.get("kind") or "").strip().lower() == "video" else "image"
-            if not filepath or not Path(filepath).is_file():
+            if outcome == "indexed":
+                indexed += 1
+            elif outcome == "skipped_missing":
                 skipped += 1
                 skipped_missing_files += 1
-                _emit_progress()
-                continue
-
-            raw = row.get("metadata_raw")
-            metadata_raw: dict[str, Any] | None = None
-            if isinstance(raw, dict):
-                metadata_raw = raw
-            elif isinstance(raw, str) and raw.strip():
-                try:
-                    parsed = json.loads(raw)
-                    metadata_raw = parsed if isinstance(parsed, dict) else None
-                except Exception:
-                    metadata_raw = None
-
-            result = await index_asset_vector(
-                db,
-                vector_service,
-                asset_id,
-                filepath,
-                kind,
-                metadata_raw=metadata_raw,
-            )
-            if result.ok and bool(result.data):
-                indexed += 1
-            elif result.ok:
-                # ``Ok(False)`` means the indexer intentionally skipped this row
+            elif outcome == "skipped":
+                # ``skipped`` means the indexer intentionally skipped this row
                 # (e.g. unsupported content or dependency/runtime guard).
                 skipped += 1
             else:
                 errors += 1
-
             _emit_progress()
 
         if len(rows) < size:

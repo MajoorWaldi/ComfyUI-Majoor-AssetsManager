@@ -48,6 +48,27 @@ def test_auth_error_response_or_none(monkeypatch):
     assert out2 is None and req.get("mjr_user_id") == "u1"
 
 
+@pytest.mark.asyncio
+async def test_auth_middleware_pushes_request_user_context(monkeypatch):
+    req = make_mocked_request("GET", "/mjr/am/custom-roots")
+    seen = {"user_id": ""}
+
+    from mjr_am_backend.routes.core import security as sec
+
+    monkeypatch.setattr(sec, "_get_request_user_id", lambda _req: "u-ctx")
+    monkeypatch.setattr(r, "_requires_auth", lambda *_args, **_kwargs: False)
+
+    async def _handler(_req):
+        from mjr_am_backend.routes.core import _current_user_id
+
+        seen["user_id"] = _current_user_id()
+        return web.Response(text="ok")
+
+    resp = await r.auth_required_middleware(req, _handler)
+    assert resp.text == "ok"
+    assert seen["user_id"] == "u-ctx"
+
+
 def test_install_middlewares_and_bg_cleanup(monkeypatch):
     app = web.Application()
     r._install_security_middlewares(app)

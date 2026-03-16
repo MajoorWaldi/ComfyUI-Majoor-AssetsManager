@@ -23,6 +23,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import datetime as dt
+import hashlib
 import io
 import logging
 import math
@@ -33,8 +34,7 @@ import sys
 import threading
 import time
 import warnings
-import hashlib
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -45,8 +45,8 @@ from ...config import (
     VECTOR_MODEL_NAME,
     VECTOR_PROMPT_MODEL_NAME,
     VECTOR_PROMPT_TASK,
-    VECTOR_VIDEO_MODEL_NAME,
     VECTOR_VIDEO_KEYFRAME_INTERVAL,
+    VECTOR_VIDEO_MODEL_NAME,
 )
 from ...shared import Result, get_logger, log_success
 
@@ -534,86 +534,93 @@ class VectorService:
         ``.decode()`` methods.  ``CLIPProcessor`` objects are automatically
         unwrapped to their inner ``.tokenizer``.
         """
-        tokenizer: Any | None = None
+        tokenizer = (
+            self._tokenizer_from_first_module(model)
+            or self._tokenizer_from_model_attr(model)
+            or self._tokenizer_from_modules_dict(model)
+            or self._tokenizer_from_deep_walk(model)
+        )
+        if tokenizer is None:
+            self._log_tokenizer_not_found(model)
+        return tokenizer
 
-        def _unwrap(obj: Any) -> Any | None:
-            """If *obj* is a processor wrapping a real tokenizer, return the inner tokenizer."""
-            if obj is None:
-                return None
-            # Already a real tokenizer?
-            if hasattr(obj, "tokenize") and hasattr(obj, "encode") and hasattr(obj, "decode"):
-                return obj
-            # Processor wrapping a tokenizer (e.g. CLIPProcessor)?
-            inner = getattr(obj, "tokenizer", None)
-            if inner is not None and hasattr(inner, "tokenize") and hasattr(inner, "encode"):
-                logger.debug("Unwrapped %s → %s", type(obj).__name__, type(inner).__name__)
-                return inner
+    @staticmethod
+    def _unwrap_tokenizer(obj: Any) -> Any | None:
+        """Return *obj* if it is a usable tokenizer, unwrap processor wrappers, else None."""
+        if obj is None:
             return None
+        if hasattr(obj, "tokenize") and hasattr(obj, "encode") and hasattr(obj, "decode"):
+            return obj
+        inner = getattr(obj, "tokenizer", None)
+        if inner is not None and hasattr(inner, "tokenize") and hasattr(inner, "encode"):
+            logger.debug("Unwrapped %s → %s", type(obj).__name__, type(inner).__name__)
+            return inner
+        return None
 
-        # 1) _first_module().tokenizer / .processor.tokenizer
+    def _tokenizer_from_first_module(self, model: SentenceTransformer) -> Any | None:
+        """Strategy 1: _first_module().tokenizer / .processor."""
         try:
             first_module_getter = getattr(model, "_first_module", None)
             first_module = first_module_getter() if callable(first_module_getter) else None
             if first_module is not None:
-                tokenizer = _unwrap(getattr(first_module, "tokenizer", None))
-                if tokenizer is None:
-                    proc = getattr(first_module, "processor", None)
-                    tokenizer = _unwrap(proc)
+                tok = self._unwrap_tokenizer(getattr(first_module, "tokenizer", None))
+                if tok is None:
+                    tok = self._unwrap_tokenizer(getattr(first_module, "processor", None))
+                return tok
         except Exception:
             pass
+        return None
 
-        # 2) model.tokenizer (newer SentenceTransformer versions)
-        if tokenizer is None:
-            tokenizer = _unwrap(getattr(model, "tokenizer", None))
+    def _tokenizer_from_model_attr(self, model: SentenceTransformer) -> Any | None:
+        """Strategy 2: model.tokenizer (newer SentenceTransformer versions)."""
+        return self._unwrap_tokenizer(getattr(model, "tokenizer", None))
 
-        # 3) Walk _modules OrderedDict
-        if tokenizer is None:
-            try:
-                modules_obj = getattr(model, "_modules", None)
-                if isinstance(modules_obj, dict):
-                    for _name, module in modules_obj.items():
-                        tokenizer = _unwrap(getattr(module, "tokenizer", None))
-                        if tokenizer is not None:
-                            logger.debug("Found tokenizer in _modules['%s']", _name)
-                            break
-                        proc = getattr(module, "processor", None)
-                        tokenizer = _unwrap(proc)
-                        if tokenizer is not None:
-                            logger.debug("Found tokenizer in _modules['%s'].processor", _name)
-                            break
-            except Exception:
-                pass
+    def _tokenizer_from_modules_dict(self, model: SentenceTransformer) -> Any | None:
+        """Strategy 3: Walk _modules OrderedDict."""
+        try:
+            modules_obj = getattr(model, "_modules", None)
+            if isinstance(modules_obj, dict):
+                for _name, module in modules_obj.items():
+                    tok = self._unwrap_tokenizer(getattr(module, "tokenizer", None))
+                    if tok is not None:
+                        logger.debug("Found tokenizer in _modules['%s']", _name)
+                        return tok
+                    tok = self._unwrap_tokenizer(getattr(module, "processor", None))
+                    if tok is not None:
+                        logger.debug("Found tokenizer in _modules['%s'].processor", _name)
+                        return tok
+        except Exception:
+            pass
+        return None
 
-        # 4) Deep walk: any public attribute that looks like a tokenizer
-        if tokenizer is None:
-            try:
-                for attr_name in dir(model):
-                    if attr_name.startswith("_"):
-                        continue
-                    candidate = _unwrap(getattr(model, attr_name, None))
-                    if candidate is not None:
-                        tokenizer = candidate
-                        logger.debug("Found tokenizer via deep walk: model.%s", attr_name)
-                        break
-            except Exception:
-                pass
+    def _tokenizer_from_deep_walk(self, model: SentenceTransformer) -> Any | None:
+        """Strategy 4: Walk all public attributes of the model."""
+        try:
+            for attr_name in dir(model):
+                if attr_name.startswith("_"):
+                    continue
+                candidate = self._unwrap_tokenizer(getattr(model, attr_name, None))
+                if candidate is not None:
+                    logger.debug("Found tokenizer via deep walk: model.%s", attr_name)
+                    return candidate
+        except Exception:
+            pass
+        return None
 
-        if tokenizer is None:
-            # Log model structure for future debugging
-            try:
-                module_names = list(getattr(model, "_modules", {}).keys())
-                first_module_getter = getattr(model, "_first_module", None)
-                fm = first_module_getter() if callable(first_module_getter) else None
-                fm_attrs = [a for a in dir(fm) if not a.startswith("_")] if fm else []
-                logger.warning(
-                    "Tokenizer NOT FOUND. Model modules: %s  First module attrs: %s",
-                    module_names,
-                    fm_attrs[:30],
-                )
-            except Exception:
-                logger.warning("CLIP tokenizer NOT FOUND and model introspection failed")
-
-        return tokenizer
+    def _log_tokenizer_not_found(self, model: SentenceTransformer) -> None:
+        """Log a warning with model structure details when no tokenizer is found."""
+        try:
+            module_names = list(getattr(model, "_modules", {}).keys())
+            first_module_getter = getattr(model, "_first_module", None)
+            fm = first_module_getter() if callable(first_module_getter) else None
+            fm_attrs = [a for a in dir(fm) if not a.startswith("_")] if fm else []
+            logger.warning(
+                "Tokenizer NOT FOUND. Model modules: %s  First module attrs: %s",
+                module_names,
+                fm_attrs[:30],
+            )
+        except Exception:
+            logger.warning("CLIP tokenizer NOT FOUND and model introspection failed")
 
     async def _ensure_model(self) -> SentenceTransformer:
         """Thread-safe lazy initialisation of the model."""
@@ -733,7 +740,7 @@ class VectorService:
             raise AttributeError("hidden_size")
 
         try:
-            setattr(cfg_cls, "hidden_size", property(_hidden_size_getter))
+            cfg_cls.hidden_size = property(_hidden_size_getter)
             return True
         except Exception:
             return False
@@ -768,7 +775,7 @@ class VectorService:
                 return _hidden_size_getter
 
             try:
-                setattr(cfg_cls, "hidden_size", property(_build_hidden_size_getter(cfg_cls)))
+                cfg_cls.hidden_size = property(_build_hidden_size_getter(cfg_cls))
                 patched_any = True
             except Exception:
                 continue
@@ -1021,7 +1028,6 @@ class VectorService:
                 processor, native_model = await self._ensure_siglip_components()
 
                 def _encode_native_image() -> list[float]:
-                    import numpy as np
                     import torch
 
                     with torch.inference_mode():
@@ -1097,7 +1103,6 @@ class VectorService:
                 processor, model = await self._ensure_siglip_components()
 
                 def _encode_native_text() -> list[float]:
-                    import numpy as np
                     import torch
 
                     with torch.inference_mode():
@@ -1261,7 +1266,6 @@ class VectorService:
         # to encode each keyframe, then average.
         if self._use_native_siglip():
             try:
-                import numpy as np
                 import torch
 
                 processor, native_model = await self._ensure_siglip_components()
@@ -1288,7 +1292,6 @@ class VectorService:
 
         # Legacy SentenceTransformer fallback
         try:
-            import numpy as np  # noqa: F811
 
             model = await self._ensure_model()
 
@@ -1485,10 +1488,12 @@ class VectorService:
                 from transformers.utils import logging as hf_logging
                 _configure_hf_quiet_mode()  # apply AFTER imports
                 try:
-                    from transformers.models.florence2.modeling_florence2 import Florence2ForConditionalGeneration
+                    from transformers.models.florence2.modeling_florence2 import (
+                        Florence2ForConditionalGeneration,
+                    )
 
                     if not hasattr(Florence2ForConditionalGeneration, "_supports_sdpa"):
-                        setattr(Florence2ForConditionalGeneration, "_supports_sdpa", False)
+                        Florence2ForConditionalGeneration._supports_sdpa = False
                 except Exception:
                     pass
 
@@ -1526,7 +1531,7 @@ class VectorService:
                             from transformers.modeling_utils import PreTrainedModel
 
                             if not hasattr(PreTrainedModel, "_supports_sdpa"):
-                                setattr(PreTrainedModel, "_supports_sdpa", False)
+                                PreTrainedModel._supports_sdpa = False
                         except Exception:
                             pass
                         try:
@@ -1537,7 +1542,7 @@ class VectorService:
                                 if cls is None:
                                     continue
                                 if not hasattr(cls, "_supports_sdpa"):
-                                    setattr(cls, "_supports_sdpa", False)
+                                    cls._supports_sdpa = False
                         except Exception:
                             pass
                         return AutoModelForCausalLM.from_pretrained(  # nosec B615
@@ -1589,7 +1594,7 @@ class VectorService:
                     hf_logging.set_verbosity(previous_hf_verbosity)
                 if not hasattr(self._prompt_model, "_supports_sdpa"):
                     try:
-                        setattr(self._prompt_model, "_supports_sdpa", False)
+                        self._prompt_model._supports_sdpa = False
                     except Exception:
                         pass
                 self._prompt_model.eval()
@@ -1653,7 +1658,6 @@ class VectorService:
                 return Result.Err("UNSUPPORTED", "No frames extracted for X-CLIP")
 
             def _encode_frames() -> list[float]:
-                import numpy as np
                 import torch
 
                 rgb_frames = [f.convert("RGB") for f in frames]

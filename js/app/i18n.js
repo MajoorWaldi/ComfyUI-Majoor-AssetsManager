@@ -200,6 +200,7 @@ const DICTIONARY = {
         "tab.custom": "Custom",
         "tab.similar": "Similar",
         "manager.title": "Assets Manager",
+        "manager.sidebarLabel": "Assets\nManager",
 
         // --- Panel: Buttons ---
         "btn.add": "Add",
@@ -778,6 +779,7 @@ const DICTIONARY = {
         "tab.custom": "Navigateur",
         "tab.similar": "Similaire",
         "manager.title": "Gestionnaire d'assets",
+        "manager.sidebarLabel": "Assets\nManager",
 
         "scope.all": "Entrees + Sorties",
         "scope.allFull": "Tout (Entrees + Sorties)",

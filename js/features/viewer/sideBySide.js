@@ -1,4 +1,5 @@
 import { normalizeGenerationMetadata } from "../../components/sidebar/parsers/geninfoParser.js";
+import { isModel3DAsset } from "./model3dRenderer.js";
 
 // ── Compact grid gen-info helpers ─────────────────────────────────────────────
 
@@ -115,6 +116,127 @@ function _buildGridCompactOverlay(asset, label) {
     return overlay;
 }
 
+// ── 3D compare controls sync ────────────────────────────────────────────────────
+
+/**
+ * Poll until both panels have their _mjr3D exposed (async init), then wire
+ * a bidirectional OrbitControls sync so rotate/pan/zoom on one side mirrors
+ * the other.
+ */
+function _setupModel3DSync(panelA, panelB) {
+    let attempts = 0;
+    const MAX = 60; // ~3 seconds at 50ms intervals
+    const tryConnect = () => {
+        attempts++;
+        const hostA = panelA?.querySelector?.(".mjr-model3d-host");
+        const hostB = panelB?.querySelector?.(".mjr-model3d-host");
+        const ctlA = hostA?._mjr3D?.controls;
+        const ctlB = hostB?._mjr3D?.controls;
+        if (!ctlA || !ctlB) {
+            if (attempts < MAX) setTimeout(tryConnect, 50);
+            return;
+        }
+        let syncing = false;
+        const syncAtoB = () => {
+            if (syncing) return;
+            syncing = true;
+            try {
+                const camA = hostA._mjr3D.camera;
+                const camB = hostB._mjr3D.camera;
+                if (camA && camB) {
+                    camB.position.copy(camA.position);
+                    camB.quaternion.copy(camA.quaternion);
+                    if (camA.zoom !== undefined) camB.zoom = camA.zoom;
+                    camB.updateProjectionMatrix();
+                }
+                ctlB.target.copy(ctlA.target);
+                ctlB.update();
+            } catch (e) { console.debug?.(e); }
+            syncing = false;
+        };
+        const syncBtoA = () => {
+            if (syncing) return;
+            syncing = true;
+            try {
+                const camA = hostA._mjr3D.camera;
+                const camB = hostB._mjr3D.camera;
+                if (camA && camB) {
+                    camA.position.copy(camB.position);
+                    camA.quaternion.copy(camB.quaternion);
+                    if (camB.zoom !== undefined) camA.zoom = camB.zoom;
+                    camA.updateProjectionMatrix();
+                }
+                ctlA.target.copy(ctlB.target);
+                ctlA.update();
+            } catch (e) { console.debug?.(e); }
+            syncing = false;
+        };
+        ctlA.addEventListener("change", syncAtoB);
+        ctlB.addEventListener("change", syncBtoA);
+        // Store cleanup on sideView for teardown
+        try {
+            const sideView = panelA.parentElement;
+            if (sideView) {
+                sideView._mjr3DSyncCleanup = () => {
+                    try { ctlA.removeEventListener("change", syncAtoB); } catch (_) {}
+                    try { ctlB.removeEventListener("change", syncBtoA); } catch (_) {}
+                };
+            }
+        } catch (e) { console.debug?.(e); }
+    };
+    setTimeout(tryConnect, 50);
+}
+
+/**
+ * Sync OrbitControls across all 3D model cells in a 2x2 grid layout.
+ */
+function _setupModel3DGridSync(sideView) {
+    let attempts = 0;
+    const MAX = 60;
+    const tryConnect = () => {
+        attempts++;
+        const hosts = Array.from(sideView?.querySelectorAll?.(".mjr-model3d-host") || []);
+        const ready = hosts.filter((h) => h._mjr3D?.controls);
+        if (ready.length < 2) {
+            if (attempts < MAX) setTimeout(tryConnect, 50);
+            return;
+        }
+        let syncing = false;
+        const cleanups = [];
+        for (let i = 0; i < ready.length; i++) {
+            const src = ready[i];
+            const handler = () => {
+                if (syncing) return;
+                syncing = true;
+                try {
+                    const cam = src._mjr3D.camera;
+                    const ctl = src._mjr3D.controls;
+                    for (let j = 0; j < ready.length; j++) {
+                        if (j === i) continue;
+                        const dst = ready[j];
+                        const dCam = dst._mjr3D.camera;
+                        const dCtl = dst._mjr3D.controls;
+                        if (!dCam || !dCtl) continue;
+                        dCam.position.copy(cam.position);
+                        dCam.quaternion.copy(cam.quaternion);
+                        if (cam.zoom !== undefined) dCam.zoom = cam.zoom;
+                        dCam.updateProjectionMatrix();
+                        dCtl.target.copy(ctl.target);
+                        dCtl.update();
+                    }
+                } catch (e) { console.debug?.(e); }
+                syncing = false;
+            };
+            src._mjr3D.controls.addEventListener("change", handler);
+            cleanups.push(() => {
+                try { src._mjr3D?.controls?.removeEventListener?.("change", handler); } catch (_) {}
+            });
+        }
+        sideView._mjr3DSyncCleanup = () => { for (const c of cleanups) c(); };
+    };
+    setTimeout(tryConnect, 50);
+}
+
 // ── Main render function ───────────────────────────────────────────────────────
 
 export function renderSideBySideView({
@@ -126,6 +248,9 @@ export function renderSideBySideView({
     createMediaElement,
     destroyMediaProcessorsIn,
 } = {}) {
+    // Clean up previous 3D sync if any
+    try { sideView?._mjr3DSyncCleanup?.(); } catch (e) { console.debug?.(e); }
+    try { if (sideView) sideView._mjr3DSyncCleanup = null; } catch (e) { console.debug?.(e); }
     try {
         destroyMediaProcessorsIn?.(sideView);
     } catch (e) { console.debug?.(e); }
@@ -184,6 +309,10 @@ export function renderSideBySideView({
             try {
                 sideView.appendChild(cell);
             } catch (e) { console.debug?.(e); }
+        }
+        // Sync 3D controls across all grid cells
+        if (items.some((a) => a && isModel3DAsset(a))) {
+            _setupModel3DGridSync(sideView);
         }
         return;
     }
@@ -248,4 +377,11 @@ export function renderSideBySideView({
     } catch (e) { console.debug?.(e); }
 
     // Video sync is handled centrally by the viewer bar (Viewer.js) so we avoid double-sync here.
+
+    // ── 3D OrbitControls sync ─────────────────────────────────────────────────
+    // When both panels contain 3D models, synchronize orbit/pan/zoom controls
+    // so rotating one side mirrors the same camera state on the other.
+    if (isModel3DAsset(currentAsset) && isModel3DAsset(other)) {
+        _setupModel3DSync(leftPanel, rightPanel);
+    }
 }

@@ -224,6 +224,8 @@ async def build_services(db_path: str | None = None) -> Result[dict]:
             services.get("vector_searcher"),
         )
     services["watcher_scope"] = await _load_watcher_scope_or_default(db)
+    services["watcher_scope_by_user"] = {}
+    services["watcher_scope_active_user_id"] = ""
     _attach_rating_tags_sync_worker(services, exiftool)
     await _attach_watcher_if_enabled(services, index_service)
 

@@ -24,5 +24,6 @@ export const EVENTS = Object.freeze({
     MFV_POPOUT: "mjr:mfv-popout",
     MFV_VISIBILITY_CHANGED: "mjr:mfv-visibility-changed", // detail: { visible: bool }
     NEW_GENERATION_OUTPUT: "mjr:new-generation-output",
+    ASSET_ADDED: "mjr:asset-added",        // dispatched by entry.js on mjr-asset-added WS event
 });
 

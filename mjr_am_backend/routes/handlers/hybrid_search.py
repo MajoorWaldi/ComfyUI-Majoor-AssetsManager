@@ -19,17 +19,19 @@ import re
 from typing import Any
 
 from aiohttp import web
+
 from ...config import VECTOR_TEXT_SEARCH_MIN_SCORE, VECTOR_TEXT_SEARCH_RELATIVE_RATIO
 from ...features.index.searcher import _build_filter_clauses
 from ...shared import Result, get_logger
-
 from ..core import _json_response, _require_services
 from ..core.security import _check_rate_limit
 from ..search.query_sanitizer import date_bounds_for_exact, parse_request_filters
 from .vector_search import (
     _filter_text_search_hits,
+    _hits_to_asset_ids,
     _hydrate_vector_results,
     _require_vector_services,
+    _rows_to_allowed_set,
 )
 
 logger = get_logger(__name__)
@@ -86,14 +88,7 @@ async def _filter_semantic_hits(
     if not hits:
         return []
 
-    asset_ids: list[int] = []
-    for hit in hits:
-        try:
-            aid = int(hit.get("asset_id") or 0)
-        except Exception:
-            aid = 0
-        if aid > 0:
-            asset_ids.append(aid)
+    asset_ids = _hits_to_asset_ids(hits)
     if not asset_ids:
         return []
 
@@ -119,24 +114,11 @@ async def _filter_semantic_hits(
     if not rows.ok or not rows.data:
         return []
 
-    allowed: set[int] = set()
-    for row in rows.data:
-        try:
-            allowed.add(int(row.get("asset_id") or 0))
-        except Exception:
-            continue
+    allowed = _rows_to_allowed_set(rows.data)
     if not allowed:
         return []
 
-    out: list[dict[str, Any]] = []
-    for hit in hits:
-        try:
-            aid = int(hit.get("asset_id") or 0)
-        except Exception:
-            continue
-        if aid in allowed:
-            out.append(hit)
-    return out
+    return [hit for hit in hits if int(hit.get("asset_id") or 0) in allowed]
 
 
 def _parse_query_filters(raw: str) -> tuple[str, dict[str, Any]]:

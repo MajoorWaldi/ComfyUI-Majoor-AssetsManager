@@ -8,31 +8,44 @@
 
 .mjr-assets-manager {
     /* Typography */
-    font-family: var(--comfy-font, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif);
+    font-family: var(--comfy-font, var(--font-inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif));
     font-size: 13px;
     line-height: 1.35;
-    color: var(--content-fg, var(--input-text, #ddd));
+    color: var(--fg-color, var(--content-fg, var(--input-text, #ddd)));
 
-    /* Surfaces */
-    --mjr-surface-0: var(--content-bg, #1e1e1e);
-    --mjr-surface-1: var(--comfy-menu-bg, #2a2a2a);
-    --mjr-surface-2: var(--comfy-menu-secondary-bg, #333);
-    --mjr-border: var(--border-color, rgba(255, 255, 255, 0.12));
-    --mjr-muted: var(--descrip-text, rgba(255, 255, 255, 0.65));
-    --mjr-accent: var(--comfy-accent, #5fb3ff);
+    /*
+     * Surfaces — priority: ComfyUI v1.42 design-system token → legacy token → hard fallback
+     * New tokens: --interface-panel-surface, --interface-menu-surface, --interface-panel-hover-surface,
+     *             --modal-card-background, --button-surface, --button-hover-surface,
+     *             --interface-panel-selected-surface, --primary-background, --muted-foreground,
+     *             --border-default, --success-background, --warning-background, --destructive-background
+     */
+    --mjr-surface-0: var(--interface-panel-surface, var(--content-bg, #1e1e1e));
+    --mjr-surface-1: var(--interface-menu-surface, var(--comfy-menu-bg, #2a2a2a));
+    --mjr-surface-2: var(--interface-panel-hover-surface, var(--comfy-menu-secondary-bg, #333));
+    --mjr-surface-3: var(--modal-card-background, var(--comfy-menu-bg, #222));
+    --mjr-border: var(--border-default, var(--border-color, rgba(255, 255, 255, 0.12)));
+    --mjr-muted: var(--muted-foreground, var(--descrip-text, rgba(255, 255, 255, 0.65)));
+    --mjr-accent: var(--primary-background, var(--comfy-accent, #5fb3ff));
+    --mjr-accent-hover: var(--primary-background-hover, var(--comfy-accent, #7ec8ff));
+    --mjr-btn-surface: var(--button-surface, var(--mjr-surface-2));
+    --mjr-btn-hover: var(--button-hover-surface, var(--mjr-surface-2));
+    --mjr-selected-surface: var(--interface-panel-selected-surface, rgba(95, 179, 255, 0.15));
 
-    /* Radii/spacing */
-    --mjr-r-sm: 8px;
-    --mjr-r-md: 10px;
-    --mjr-r-lg: 12px;
+    /* Radii — use ComfyUI design-system radius tokens when available */
+    --mjr-r-sm: var(--radius-sm, 8px);
+    --mjr-r-md: var(--radius-md, 10px);
+    --mjr-r-lg: var(--radius-lg, 12px);
+
+    /* Spacing */
     --mjr-pad-sm: 8px;
     --mjr-pad-md: 12px;
     --mjr-pad-lg: 16px;
 
-    /* Semantic Status Colors (Fallbacks to Material Design) */
-    --mjr-status-success: var(--comfy-status-success, #4CAF50);
-    --mjr-status-warning: var(--comfy-status-warning, #FFA726);
-    --mjr-status-error: var(--comfy-status-error, #f44336);
+    /* Semantic Status Colors — prefer ComfyUI v1.42 semantic tokens */
+    --mjr-status-success: var(--success-background, var(--comfy-status-success, #4CAF50));
+    --mjr-status-warning: var(--warning-background, var(--comfy-status-warning, #FFA726));
+    --mjr-status-error: var(--destructive-background, var(--comfy-status-error, #f44336));
     --mjr-status-info: var(--comfy-status-info, #2196F3);
     --mjr-status-neutral: var(--comfy-status-neutral, #9e9e9e);
     --mjr-star-active: var(--mjr-accent, #FFD45A);
@@ -42,8 +55,8 @@
     --mjr-badge-video: #9C27B0;
     --mjr-badge-audio: #FF9800;
     --mjr-badge-model3d: #4CAF50;
-    --mjr-card-hover-color: #3D3D3D;
-    --mjr-card-selection-color: #4A90E2;
+    --mjr-card-hover-color: var(--interface-panel-hover-surface, #3D3D3D);
+    --mjr-card-selection-color: var(--interface-panel-selected-surface, #4A90E2);
     --mjr-rating-color: #FF9500;
     --mjr-tag-color: #4A90E2;
 }
@@ -244,16 +257,16 @@
 
 /* Popovers can be moved to `document.body` (portal) to avoid being clipped. */
 .mjr-popover {
-    font-family: var(--comfy-font, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif);
+    font-family: var(--comfy-font, var(--font-inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif));
     font-size: 13px;
     line-height: 1.35;
-    color: var(--content-fg, var(--input-text, #ddd));
+    color: var(--fg-color, var(--content-fg, var(--input-text, #ddd)));
 
     /* Provide fallbacks when outside `.mjr-assets-manager` scope */
-	    --mjr-surface-1: var(--comfy-menu-bg, #2a2a2a);
-	    --mjr-border: var(--border-color, rgba(255, 255, 255, 0.12));
-	    --mjr-muted: var(--descrip-text, rgba(255, 255, 255, 0.65));
-	    --mjr-accent: var(--comfy-accent, #5fb3ff);
+	    --mjr-surface-1: var(--interface-menu-surface, var(--comfy-menu-bg, #2a2a2a));
+	    --mjr-border: var(--border-default, var(--border-color, rgba(255, 255, 255, 0.12)));
+	    --mjr-muted: var(--muted-foreground, var(--descrip-text, rgba(255, 255, 255, 0.65)));
+	    --mjr-accent: var(--primary-background, var(--comfy-accent, #5fb3ff));
 	    --mjr-popover-z-index: 2147483647;
 
     position: fixed;
@@ -3481,4 +3494,41 @@
 
 .mjr-mfv-content--grabbing {
     cursor: grabbing;
+}
+
+/* Sidebar tab button: allow 2-line label via \n in label string */
+.majoor-assets-tab-button .side-bar-button-label {
+    white-space: pre-line;
+}
+
+/* ============================================================
+ * Light mode overrides (ComfyUI v1.42+ improved light theme)
+ * Uses ComfyUI data-theme attribute when set, with
+ * prefers-color-scheme as a fallback for older versions.
+ * ============================================================ */
+
+/* ComfyUI sets data-theme="light" on <html> or <body> */
+:is([data-theme="light"], [data-color-scheme="light"]) .mjr-assets-manager,
+:is([data-theme="light"], [data-color-scheme="light"]) .mjr-popover {
+    --mjr-surface-0: var(--interface-panel-surface, #f0f0f0);
+    --mjr-surface-1: var(--interface-menu-surface, #fafafa);
+    --mjr-surface-2: var(--interface-panel-hover-surface, #e8e8e8);
+    --mjr-surface-3: var(--modal-card-background, #ffffff);
+    --mjr-border: var(--border-default, rgba(0, 0, 0, 0.14));
+    --mjr-muted: var(--muted-foreground, rgba(0, 0, 0, 0.55));
+    --mjr-card-hover-color: var(--interface-panel-hover-surface, #e0e0e0);
+}
+
+@media (prefers-color-scheme: light) {
+    /* Fallback: only apply if ComfyUI hasn't set an explicit data-theme */
+    .mjr-assets-manager:not([data-theme-applied]),
+    .mjr-popover:not([data-theme-applied]) {
+        --mjr-surface-0: var(--interface-panel-surface, #f0f0f0);
+        --mjr-surface-1: var(--interface-menu-surface, #fafafa);
+        --mjr-surface-2: var(--interface-panel-hover-surface, #e8e8e8);
+        --mjr-surface-3: var(--modal-card-background, #ffffff);
+        --mjr-border: var(--border-default, rgba(0, 0, 0, 0.14));
+        --mjr-muted: var(--muted-foreground, rgba(0, 0, 0, 0.55));
+        --mjr-card-hover-color: var(--interface-panel-hover-surface, #e0e0e0);
+    }
 }

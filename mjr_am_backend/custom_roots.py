@@ -8,8 +8,10 @@ without relying on ComfyUI internal userdata routes.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import re
 import sys
 import threading
 from datetime import datetime, timezone
@@ -24,7 +26,9 @@ logger = get_logger(__name__)
 
 _LOCK = threading.Lock()
 _STORE_PATH = Path(INDEX_DIR) / "custom_roots.json"
+_USER_STORES_DIR = Path(INDEX_DIR) / "users"
 _DEFAULT_MAX_STORE_BYTES = 1024 * 1024  # 1MB
+_USER_SEGMENT_RE = re.compile(r"[^A-Za-z0-9._-]+")
 try:
     _MAX_STORE_BYTES = int(os.environ.get("MJR_CUSTOM_ROOTS_MAX_BYTES", str(_DEFAULT_MAX_STORE_BYTES)))
 except Exception:
@@ -34,6 +38,38 @@ _MAX_STORE_BYTES = max(1024, int(_MAX_STORE_BYTES or _DEFAULT_MAX_STORE_BYTES))
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _effective_user_id(user_id: str | None = None) -> str:
+    uid = str(user_id or "").strip()
+    if uid:
+        return uid
+    try:
+        from mjr_am_backend.routes.core.security import _current_user_id
+
+        return str(_current_user_id() or "").strip()
+    except Exception:
+        return ""
+
+
+def _safe_user_store_segment(user_id: str | None) -> str:
+    raw = _effective_user_id(user_id)
+    if not raw:
+        return ""
+    cleaned = _USER_SEGMENT_RE.sub("_", raw).strip("._-")
+    if not cleaned:
+        cleaned = hashlib.sha256(raw.encode("utf-8", errors="ignore")).hexdigest()[:24]
+    if len(cleaned) > 80:
+        digest = hashlib.sha256(raw.encode("utf-8", errors="ignore")).hexdigest()[:16]
+        cleaned = f"{cleaned[:48]}_{digest}"
+    return cleaned
+
+
+def _store_path_for_user(user_id: str | None = None) -> Path:
+    segment = _safe_user_store_segment(user_id)
+    if not segment:
+        return _STORE_PATH
+    return _USER_STORES_DIR / segment / _STORE_PATH.name
 
 def _is_symlink_like(path: Path) -> bool:
     """
@@ -104,17 +140,18 @@ def _canonical_path_key(path_value: str) -> str:
         return str(path_value or "").strip().lower()
 
 
-def _read_store() -> dict[str, Any]:
-    if not _STORE_PATH.exists():
+def _read_store(*, user_id: str | None = None) -> dict[str, Any]:
+    store_path = _store_path_for_user(user_id)
+    if not store_path.exists():
         return {"version": 1, "roots": []}
     try:
         try:
-            if _STORE_PATH.stat().st_size > _MAX_STORE_BYTES:
-                logger.warning("Custom roots store too large, ignoring: %s", _STORE_PATH)
+            if store_path.stat().st_size > _MAX_STORE_BYTES:
+                logger.warning("Custom roots store too large, ignoring: %s", store_path)
                 return {"version": 1, "roots": []}
         except Exception:
             pass
-        raw = _STORE_PATH.read_text(encoding="utf-8")
+        raw = store_path.read_text(encoding="utf-8")
         data = json.loads(raw) if raw else {}
         if not isinstance(data, dict):
             return {"version": 1, "roots": []}
@@ -127,24 +164,25 @@ def _read_store() -> dict[str, Any]:
         return {"version": 1, "roots": []}
 
 
-def _write_store(data: dict) -> Result[bool]:
+def _write_store(data: dict, *, user_id: str | None = None) -> Result[bool]:
+    store_path = _store_path_for_user(user_id)
     try:
-        _STORE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        store_path.parent.mkdir(parents=True, exist_ok=True)
         # Atomic write to prevent corruption on crash/interruption.
         payload = json.dumps(data, ensure_ascii=False, indent=2)
-        tmp = _STORE_PATH.with_name(_STORE_PATH.name + f".tmp_{uuid4().hex}")
+        tmp = store_path.with_name(store_path.name + f".tmp_{uuid4().hex}")
         tmp.write_text(payload, encoding="utf-8")
-        tmp.replace(_STORE_PATH)
+        tmp.replace(store_path)
         return Result.Ok(True)
     except Exception as exc:
         logger.warning("Failed to persist custom roots store: %s", exc)
         return Result.Err("STORE_WRITE_FAILED", f"Failed to persist custom roots: {exc}")
 
 
-def list_custom_roots() -> Result[list[dict[str, Any]]]:
+def list_custom_roots(*, user_id: str | None = None) -> Result[list[dict[str, Any]]]:
     """List configured custom root directories (id/path/label/created_at)."""
     with _LOCK:
-        store = _read_store()
+        store = _read_store(user_id=user_id)
         roots = store.get("roots") or []
         cleaned: list[dict[str, Any]] = []
         for r in roots:
@@ -193,7 +231,7 @@ def _path_exists_and_is_dir(path: Path) -> tuple[bool, bool]:
         return False, False
 
 
-def add_custom_root(path: str, label: str | None = None) -> Result[dict[str, Any]]:
+def add_custom_root(path: str, label: str | None = None, *, user_id: str | None = None) -> Result[dict[str, Any]]:
     """Add a custom root directory, or return the existing one if present."""
     normalized = _normalize_dir_path(path)
     validation = _validate_new_root_path(normalized)
@@ -215,7 +253,7 @@ def add_custom_root(path: str, label: str | None = None) -> Result[dict[str, Any
         return overlap_err
 
     with _LOCK:
-        store = _read_store()
+        store = _read_store(user_id=user_id)
         roots = store.get("roots") or []
         existing_result = _find_existing_or_overlap_root(
             roots=roots,
@@ -231,7 +269,7 @@ def add_custom_root(path: str, label: str | None = None) -> Result[dict[str, Any
 
         roots.append(_root_row(root_id, resolved, safe_label, created_at))
         store["roots"] = roots
-        write_result = _write_store(store)
+        write_result = _write_store(store, user_id=user_id)
         if not write_result.ok:
             return write_result  # type: ignore[return-value]
 
@@ -336,33 +374,33 @@ def _existing_root_overlap(normalized: Path, existing_path: Any) -> Path | None:
     return None
 
 
-def remove_custom_root(root_id: str) -> Result[bool]:
+def remove_custom_root(root_id: str, *, user_id: str | None = None) -> Result[bool]:
     """Remove a custom root by id."""
     rid = str(root_id or "").strip()
     if not rid:
         return Result.Err("INVALID_INPUT", "Missing root_id")
 
     with _LOCK:
-        store = _read_store()
+        store = _read_store(user_id=user_id)
         roots = store.get("roots") or []
         kept = [r for r in roots if not (isinstance(r, dict) and str(r.get("id") or "") == rid)]
         if len(kept) == len(roots):
             return Result.Err("NOT_FOUND", f"Custom root not found: {rid}")
         store["roots"] = kept
-        write_result = _write_store(store)
+        write_result = _write_store(store, user_id=user_id)
         if not write_result.ok:
             return write_result
 
     return Result.Ok(True)
 
 
-def resolve_custom_root(root_id: str) -> Result[Path]:
+def resolve_custom_root(root_id: str, *, user_id: str | None = None) -> Result[Path]:
     """Resolve a custom root id to a validated directory path."""
     rid = str(root_id or "").strip()
     if not rid:
         return Result.Err("INVALID_INPUT", "Missing root_id")
 
-    roots_result = list_custom_roots()
+    roots_result = list_custom_roots(user_id=user_id)
     if not roots_result.ok:
         return Result.Err(roots_result.code, roots_result.error or "Failed to list custom roots")
     root_row = _find_custom_root_row_by_id(roots_result.data or [], rid)

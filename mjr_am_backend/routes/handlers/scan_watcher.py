@@ -13,6 +13,8 @@ from mjr_am_backend.features.index.watcher_scope import (
     WATCHER_SCOPE_KEY,
     build_watch_paths,
     normalize_scope,
+    persist_watcher_scope,
+    resolve_service_watcher_scope,
 )
 from mjr_am_backend.features.index.metadata_helpers import MetadataHelpers
 from mjr_am_backend.features.watcher_settings import get_watcher_settings, update_watcher_settings
@@ -32,6 +34,45 @@ from .scan_helpers import (
 )
 
 logger = get_logger(__name__)
+
+
+def _current_request_user_id() -> str:
+    try:
+        from ..core import _current_user_id
+
+        return str(_current_user_id() or "").strip()
+    except Exception:
+        return ""
+
+
+def _persist_service_watcher_scope_preference(svc: dict[str, Any], scope: str, custom_root_id: str) -> str:
+    payload = {"scope": normalize_scope(scope), "custom_root_id": str(custom_root_id or "").strip()}
+    user_id = _current_request_user_id()
+    if user_id:
+        scope_map = svc.setdefault("watcher_scope_by_user", {})
+        if isinstance(scope_map, dict):
+            scope_map[user_id] = payload
+    else:
+        svc["watcher_scope"] = payload
+    return user_id
+
+
+def _set_active_watcher_scope(svc: dict[str, Any], scope: str, custom_root_id: str, user_id: str | None = None) -> None:
+    svc["watcher_scope"] = {
+        "scope": normalize_scope(scope),
+        "custom_root_id": str(custom_root_id or "").strip(),
+    }
+    svc["watcher_scope_active_user_id"] = str(user_id or "").strip()
+
+
+def _build_watch_paths_for_context(build_watch_paths_fn, scope: str, custom_root_id: str | None, user_id: str | None = None):
+    effective_user_id = str(user_id or "").strip()
+    if effective_user_id:
+        try:
+            return build_watch_paths_fn(scope, custom_root_id, user_id=effective_user_id)
+        except TypeError:
+            pass
+    return build_watch_paths_fn(scope, custom_root_id)
 
 
 def _watcher_is_running(watcher: Any) -> bool:
@@ -63,7 +104,7 @@ def _watcher_directories(watcher: Any) -> list[str]:
 # ---------------------------------------------------------------------------
 
 def _watcher_scope_config(svc: dict[str, Any]) -> tuple[str, str | None]:
-    scope_cfg = svc.get("watcher_scope") if isinstance(svc, dict) else None
+    scope_cfg = resolve_service_watcher_scope(svc if isinstance(svc, dict) else None, user_id=_current_request_user_id() or None)
     desired_scope = normalize_scope((scope_cfg or {}).get("scope"))
     desired_root_id = (scope_cfg or {}).get("custom_root_id")
     return desired_scope, desired_root_id
@@ -159,13 +200,14 @@ async def _start_watcher_for_scope(svc: dict[str, Any], index_service: Any, *, _
     index_callback, remove_callback, move_callback = _build_watcher_callbacks(index_service)
     new_watcher = OutputWatcher(index_callback, remove_callback=remove_callback, move_callback=move_callback)
     desired_scope, desired_root_id = _watcher_scope_config(svc)
-    watch_paths = _build_watch_paths(desired_scope, desired_root_id)
+    request_user_id = _current_request_user_id()
+    watch_paths = _build_watch_paths_for_context(_build_watch_paths, desired_scope, desired_root_id, request_user_id)
     if not watch_paths:
         return Result.Err("NO_DIRECTORIES", "No directories to watch")
     loop = asyncio.get_running_loop()
     await new_watcher.start(watch_paths, loop)
     svc["watcher"] = new_watcher
-    svc["watcher_scope"] = {"scope": desired_scope, "custom_root_id": desired_root_id or ""}
+    _set_active_watcher_scope(svc, desired_scope, desired_root_id or "", request_user_id)
     return Result.Ok({"enabled": True, "directories": new_watcher.watched_directories})
 
 
@@ -377,13 +419,11 @@ def register_watcher_routes(routes: web.RouteTableDef, *, deps: dict | None = No
         if scope != "custom":
             custom_root_id = ""
 
-        # Persist desired scope in memory even if watcher is disabled.
-        svc["watcher_scope"] = {"scope": scope, "custom_root_id": custom_root_id}
+        request_user_id = _persist_service_watcher_scope_preference(svc, scope, custom_root_id)
         try:
             db = svc.get("db")
             if db:
-                await MetadataHelpers.set_metadata_value(db, WATCHER_SCOPE_KEY, str(scope))
-                await MetadataHelpers.set_metadata_value(db, WATCHER_CUSTOM_ROOT_ID_KEY, str(custom_root_id or ""))
+                await persist_watcher_scope(db, scope, custom_root_id, user_id=request_user_id or None)
         except Exception:
             pass
 
@@ -398,7 +438,7 @@ def register_watcher_routes(routes: web.RouteTableDef, *, deps: dict | None = No
         if not index_service:
             return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Index service not available"))
 
-        watch_paths = _build_watch_paths_(scope, custom_root_id)
+        watch_paths = _build_watch_paths_for_context(_build_watch_paths_, scope, custom_root_id, request_user_id)
         if not watch_paths:
             if scope == "custom":
                 return _json_response(Result.Err("INVALID_INPUT", "Invalid or missing custom_root_id for watcher scope"))
@@ -428,6 +468,7 @@ def register_watcher_routes(routes: web.RouteTableDef, *, deps: dict | None = No
                     desired_dirs.append(os.path.normcase(os.path.normpath(str(path_value))))
 
             if _watcher_is_running(watcher) and set(current_dirs) == set(desired_dirs):
+                _set_active_watcher_scope(svc, scope, custom_root_id, request_user_id)
                 return _json_response(Result.Ok({"enabled": True, "directories": _watcher_directories(watcher), "scope": scope}))
         except Exception:
             pass
@@ -444,4 +485,5 @@ def register_watcher_routes(routes: web.RouteTableDef, *, deps: dict | None = No
         loop = asyncio.get_running_loop()
         await new_watcher.start(watch_paths, loop)
         svc["watcher"] = new_watcher
+        _set_active_watcher_scope(svc, scope, custom_root_id, request_user_id)
         return _json_response(Result.Ok({"enabled": True, "directories": new_watcher.watched_directories, "scope": scope}))

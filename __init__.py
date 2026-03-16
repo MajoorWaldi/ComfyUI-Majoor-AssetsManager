@@ -93,14 +93,16 @@ def init_prompt_server() -> None:
         _REGISTRY_HOOKS_DONE = True
 
         from server import PromptServer  # type: ignore
-        app = getattr(PromptServer.instance, "app", None)
+        prompt_server = getattr(PromptServer, "instance", None)
+        app = getattr(prompt_server, "app", None)
+        user_manager = getattr(prompt_server, "user_manager", None)
         if app is None:
             _logger.debug("PromptServer app is not available yet; route table registered only")
             return
         if callable(register_routes):
             app_id = id(app)
             if app_id not in _REGISTERED_APPS:
-                register_routes(app)
+                register_routes(app, user_manager=user_manager)
                 _REGISTERED_APPS.add(app_id)
     except Exception:
         _logger.exception("failed to initialize prompt server routes")
@@ -112,9 +114,16 @@ def init(app) -> None:
         raise ValueError("init(app) requires a valid aiohttp app instance")
     try:
         from mjr_am_backend.routes.registry import register_routes
+        user_manager = None
+        try:
+            from server import PromptServer  # type: ignore
+
+            user_manager = getattr(getattr(PromptServer, "instance", None), "user_manager", None)
+        except Exception:
+            user_manager = None
         app_id = id(app)
         if app_id not in _REGISTERED_APPS:
-            register_routes(app)
+            register_routes(app, user_manager=user_manager)
             _REGISTERED_APPS.add(app_id)
     except Exception:
         _logger.exception("failed to initialize routes on provided app")

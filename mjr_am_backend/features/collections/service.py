@@ -7,6 +7,7 @@ Collections are stored as JSON files under `config.COLLECTIONS_DIR`.
 from __future__ import annotations
 
 import builtins
+import hashlib
 import json
 import os
 import re
@@ -32,6 +33,7 @@ MIN_COLLECTION_ITEMS = 100
 HARD_MAX_COLLECTION_ITEMS = 500_000
 
 _ID_RE = re.compile(rf"^[a-zA-Z0-9_-]{{{MIN_COLLECTION_ID_LEN},{MAX_COLLECTION_ID_LEN}}}$")
+_USER_SEGMENT_RE = re.compile(r"[^A-Za-z0-9._-]+")
 _DEFAULT_MAX_ITEMS = DEFAULT_MAX_COLLECTION_ITEMS
 try:
     _MAX_COLLECTION_ITEMS = int(os.environ.get("MJR_COLLECTION_MAX_ITEMS", str(_DEFAULT_MAX_ITEMS)))
@@ -88,18 +90,56 @@ def _safe_name(value: str) -> str | None:
     return s or None
 
 
-def _collection_path(collection_id: str) -> Path | None:
+def _current_user_id() -> str:
+    try:
+        from ...routes.core.security import _current_user_id as _get_current_user_id
+
+        return str(_get_current_user_id() or "").strip()
+    except Exception:
+        return ""
+
+
+def _safe_user_store_segment(user_id: str | None) -> str:
+    raw = str(user_id or "").strip()
+    if not raw:
+        return ""
+    cleaned = _USER_SEGMENT_RE.sub("_", raw).strip("._-")
+    if not cleaned:
+        cleaned = hashlib.sha256(raw.encode("utf-8", errors="ignore")).hexdigest()[:24]
+    if len(cleaned) > 80:
+        digest = hashlib.sha256(raw.encode("utf-8", errors="ignore")).hexdigest()[:16]
+        cleaned = f"{cleaned[:48]}_{digest}"
+    return cleaned
+
+
+def collections_base_dir_for_user(
+    user_id: str | None,
+    *,
+    base_dir: str | Path | None = None,
+) -> Path:
+    base = Path(base_dir) if base_dir is not None else Path(COLLECTIONS_DIR_PATH)
+    segment = _safe_user_store_segment(user_id)
+    if not segment:
+        return base
+    return base / "users" / segment
+
+
+def _collection_path_for_base(collection_id: str, base_dir: str | Path) -> Path | None:
     cid = _safe_id(collection_id)
     if not cid:
         return None
     try:
-        base = COLLECTIONS_DIR_PATH.resolve(strict=False)
+        base = Path(base_dir).resolve(strict=False)
         p = (base / f"{cid}.json").resolve(strict=False)
         if p.parent != base:
             return None
         return p
     except Exception:
         return None
+
+
+def _collection_path(collection_id: str) -> Path | None:
+    return _collection_path_for_base(collection_id, COLLECTIONS_DIR_PATH)
 
 
 @dataclass(frozen=True)
@@ -130,13 +170,30 @@ def _read_collection_summary_row(path: Path) -> CollectionSummary | None:
 class CollectionsService:
     """Filesystem-backed collections service (JSON files under `COLLECTIONS_DIR`)."""
 
-    def __init__(self, base_dir: str | Path | None = None):
-        self._base = Path(base_dir) if base_dir is not None else Path(COLLECTIONS_DIR_PATH)
+    def __init__(self, base_dir: str | Path | None = None, *, user_id: str | None = None):
+        self._base_root = Path(base_dir) if base_dir is not None else Path(COLLECTIONS_DIR_PATH)
+        self._forced_user_id = str(user_id or "").strip()
         self._lock = threading.Lock()
         try:
-            self._base.mkdir(parents=True, exist_ok=True)
+            self._base_root.mkdir(parents=True, exist_ok=True)
         except Exception:
             pass
+
+    def _effective_user_id(self) -> str:
+        if self._forced_user_id:
+            return self._forced_user_id
+        return _current_user_id()
+
+    def _effective_base_dir(self) -> Path:
+        base = collections_base_dir_for_user(self._effective_user_id(), base_dir=self._base_root)
+        try:
+            base.mkdir(parents=True, exist_ok=True)
+        except Exception:
+            pass
+        return base
+
+    def _collection_path(self, collection_id: str) -> Path | None:
+        return _collection_path_for_base(collection_id, self._effective_base_dir())
 
     def list(self) -> Result[builtins.list[dict[str, Any]]]:
         """List collections with basic metadata and item counts."""
@@ -163,7 +220,7 @@ class CollectionsService:
 
     def _resolve_collections_base_dir(self) -> Result[Path]:
         try:
-            return Result.Ok(self._base.resolve(strict=False))
+            return Result.Ok(self._effective_base_dir().resolve(strict=False))
         except Exception as exc:
             return Result.Err(ErrorCode.DB_ERROR, f"Collections dir unavailable: {exc}")
 
@@ -174,7 +231,7 @@ class CollectionsService:
             return Result.Err(ErrorCode.INVALID_INPUT, "Missing collection name")
 
         cid = uuid4().hex[:12]
-        path = _collection_path(cid)
+        path = self._collection_path(cid)
         if not path:
             return Result.Err(ErrorCode.DB_ERROR, "Failed to allocate collection id")
 
@@ -197,7 +254,7 @@ class CollectionsService:
 
     def get(self, collection_id: str) -> Result[dict[str, Any]]:
         """Get a collection by id (including items)."""
-        path = _collection_path(collection_id)
+        path = self._collection_path(collection_id)
         if not path:
             return Result.Err(ErrorCode.INVALID_INPUT, "Invalid collection id")
         loaded = self._load_collection_data(path)
@@ -231,7 +288,7 @@ class CollectionsService:
 
     def delete(self, collection_id: str) -> Result[bool]:
         """Delete a collection file by id."""
-        path = _collection_path(collection_id)
+        path = self._collection_path(collection_id)
         if not path:
             return Result.Err(ErrorCode.INVALID_INPUT, "Invalid collection id")
         with self._lock:
@@ -248,7 +305,7 @@ class CollectionsService:
         return Result.Ok(True)
 
     def _load_for_update(self, collection_id: str) -> tuple[Path | None, dict[str, Any] | None, Result[Any] | None]:
-        path = _collection_path(collection_id)
+        path = self._collection_path(collection_id)
         if not path:
             return None, None, Result.Err(ErrorCode.INVALID_INPUT, "Invalid collection id")
         try:

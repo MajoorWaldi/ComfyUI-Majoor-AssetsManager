@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import os
+import re
 import secrets
 import time
 from collections.abc import Mapping
@@ -42,6 +43,8 @@ _SETTINGS_CACHE_TTL_S = 10.0
 _VERSION_CACHE_TTL_S = 1.0
 _MS_PER_S = 1000.0
 _ORIGINAL_OUTPUT_DIRECTORY_ENV = "MAJOOR_ORIGINAL_OUTPUT_DIRECTORY"
+_USER_SCOPE_PREFIX = "__user__"
+_USER_SCOPE_SEGMENT_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
 
 # Frontend-consumed default settings payload (kept for cross-layer parity).
 DEFAULT_SETTINGS: dict[str, Any] = {
@@ -53,6 +56,14 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     }
 }
 
+_USER_SCOPED_SETTING_KEYS = frozenset(
+    {
+        *_SECURITY_PREFS_INFO.keys(),
+        _PROBE_BACKEND_KEY,
+        _METADATA_FALLBACK_IMAGE_KEY,
+        _METADATA_FALLBACK_MEDIA_KEY,
+    }
+)
 
 
 class AppSettings:
@@ -68,8 +79,8 @@ class AppSettings:
         self._cache_version: dict[str, int] = {}
         self._cache_ttl_s = _SETTINGS_CACHE_TTL_S
         self._version_cache_ttl_s = _VERSION_CACHE_TTL_S
-        self._version_cached: int = 0
-        self._version_cached_at: float = 0.0
+        self._version_cached: dict[str, int] = {}
+        self._version_cached_at: dict[str, float] = {}
         self._default_probe_mode = MEDIA_PROBE_BACKEND
         self._default_metadata_fallback_image = True
         self._default_metadata_fallback_media = True
@@ -77,6 +88,58 @@ class AppSettings:
         self._default_ai_verbose_logs = self._env_ai_verbose_logs_enabled()
         self._runtime_api_token: str = ""
         self._runtime_api_token_hash: str = ""
+
+    @staticmethod
+    def _current_request_user_id() -> str:
+        try:
+            from .routes.core import _current_user_id
+
+            return str(_current_user_id() or "").strip()
+        except Exception:
+            return ""
+
+    def _effective_user_id(self, user_id: str | None = None) -> str:
+        explicit = str(user_id or "").strip()
+        if explicit:
+            return explicit
+        return self._current_request_user_id()
+
+    @staticmethod
+    def _safe_user_scope_segment(user_id: str) -> str:
+        normalized = str(user_id or "").strip()
+        if not normalized:
+            return ""
+        if _USER_SCOPE_SEGMENT_RE.match(normalized):
+            return normalized
+        return hashlib.sha256(normalized.encode("utf-8", errors="ignore")).hexdigest()
+
+    def _storage_key(self, key: str, *, user_scoped: bool = False, user_id: str | None = None) -> str:
+        if not user_scoped:
+            return key
+        effective_user_id = self._effective_user_id(user_id)
+        if not effective_user_id or key not in _USER_SCOPED_SETTING_KEYS:
+            return key
+        return f"{_USER_SCOPE_PREFIX}:{self._safe_user_scope_segment(effective_user_id)}:{key}"
+
+    def _read_candidate_keys(self, key: str, *, user_scoped: bool = False, user_id: str | None = None) -> tuple[str, ...]:
+        storage_key = self._storage_key(key, user_scoped=user_scoped, user_id=user_id)
+        if storage_key == key:
+            return (key,)
+        return (storage_key, key)
+
+    def _settings_version_read_keys(self, *, user_scoped: bool = False, user_id: str | None = None) -> tuple[str, ...]:
+        if not user_scoped:
+            return (_SETTINGS_VERSION_KEY,)
+        effective_user_id = self._effective_user_id(user_id)
+        if not effective_user_id:
+            return (_SETTINGS_VERSION_KEY,)
+        return (
+            f"{_USER_SCOPE_PREFIX}:{self._safe_user_scope_segment(effective_user_id)}:{_SETTINGS_VERSION_KEY}",
+            _SETTINGS_VERSION_KEY,
+        )
+
+    def _settings_version_write_key(self, *, user_scoped: bool = False, user_id: str | None = None) -> str:
+        return self._settings_version_read_keys(user_scoped=user_scoped, user_id=user_id)[0]
 
     def _generate_api_token(self) -> str:
         # 256-bit token (URL-safe) for write authorization.
@@ -242,7 +305,7 @@ class AppSettings:
         except Exception:
             pass
 
-    async def _read_setting(self, key: str) -> str | None:
+    async def _read_setting_exact(self, key: str) -> str | None:
         result = await self._db.aquery("SELECT value FROM metadata WHERE key = ?", (key,))
         if not result.ok or not result.data:
             return None
@@ -251,14 +314,29 @@ class AppSettings:
             return raw.strip()
         return None
 
-    async def _write_setting(self, key: str, value: str) -> Result[str]:
+    async def _read_setting(self, key: str, *, user_scoped: bool = False, user_id: str | None = None) -> str | None:
+        for storage_key in self._read_candidate_keys(key, user_scoped=user_scoped, user_id=user_id):
+            raw = await self._read_setting_exact(storage_key)
+            if raw is not None:
+                return raw
+        return None
+
+    async def _write_setting_exact(self, key: str, value: str) -> Result[str]:
         return await self._db.aexecute(
             "INSERT OR REPLACE INTO metadata (key, value) VALUES (?, ?)",
             (key, value),
         )
 
-    async def _delete_setting(self, key: str) -> Result[str]:
+    async def _write_setting(self, key: str, value: str, *, user_scoped: bool = False, user_id: str | None = None) -> Result[str]:
+        storage_key = self._storage_key(key, user_scoped=user_scoped, user_id=user_id)
+        return await self._write_setting_exact(storage_key, value)
+
+    async def _delete_setting_exact(self, key: str) -> Result[str]:
         return await self._db.aexecute("DELETE FROM metadata WHERE key = ?", (key,))
+
+    async def _delete_setting(self, key: str, *, user_scoped: bool = False, user_id: str | None = None) -> Result[str]:
+        storage_key = self._storage_key(key, user_scoped=user_scoped, user_id=user_id)
+        return await self._delete_setting_exact(storage_key)
 
     async def ensure_security_bootstrap(self) -> None:
         """
@@ -268,9 +346,10 @@ class AppSettings:
             await self._get_or_create_api_token_locked()
 
     async def _get_security_prefs_locked(self, *, include_secret: bool = False) -> dict[str, Any]:
+        user_id = self._effective_user_id()
         output: dict[str, Any] = {}
         for key, info in _SECURITY_PREFS_INFO.items():
-            raw = await self._read_setting(key)
+            raw = await self._read_setting(key, user_scoped=True, user_id=user_id)
             if raw is not None:
                 output[key] = parse_bool(raw, bool(info.get("default", False)))
             else:
@@ -291,8 +370,10 @@ class AppSettings:
         token_hash_in_payload = self._extract_token_hash_from_prefs_payload(prefs)
         if not to_write and token_in_payload is None and token_hash_in_payload is None:
             return Result.Err("INVALID_INPUT", "No security settings provided")
+        user_id = self._effective_user_id()
+        user_scoped = bool(user_id and to_write)
         async with self._lock:
-            write_err = await self._persist_security_pref_flags(to_write)
+            write_err = await self._persist_security_pref_flags(to_write, user_id=user_id)
             if write_err is not None:
                 return write_err
             if token_hash_in_payload is not None:
@@ -303,7 +384,11 @@ class AppSettings:
                 token_err = await self._persist_security_api_token(token_in_payload)
                 if token_err is not None:
                     return token_err
-            await self._warn_if_bump_fails("Failed to bump settings version")
+            await self._warn_if_bump_fails(
+                "Failed to bump settings version",
+                user_scoped=user_scoped,
+                user_id=user_id,
+            )
             return Result.Ok(await self._get_security_prefs_locked(include_secret=False))
 
     def _extract_security_prefs_to_write(self, prefs: Mapping[str, Any]) -> dict[str, bool]:
@@ -333,12 +418,19 @@ class AppSettings:
             return None
         return value
 
-    async def _persist_security_pref_flags(self, to_write: Mapping[str, bool]) -> Result[dict[str, Any]] | None:
+    async def _persist_security_pref_flags(
+        self,
+        to_write: Mapping[str, bool],
+        *,
+        user_id: str | None = None,
+    ) -> Result[dict[str, Any]] | None:
+        effective_user_id = self._effective_user_id(user_id)
         for key, value in to_write.items():
-            res = await self._write_setting(key, "1" if value else "0")
+            res = await self._write_setting(key, "1" if value else "0", user_scoped=True, user_id=effective_user_id)
             if not res.ok:
                 return Result.Err("DB_ERROR", res.error or f"Failed to persist {key}")
-            self._set_security_pref_env_var(key, value)
+            if not effective_user_id:
+                self._set_security_pref_env_var(key, value)
         return None
 
     def _set_security_pref_env_var(self, key: str, value: bool) -> None:
@@ -371,8 +463,8 @@ class AppSettings:
         self._set_api_token_env("", value, include_plain=False)
         return None
 
-    async def _warn_if_bump_fails(self, message: str) -> None:
-        bump = await self._bump_settings_version_locked()
+    async def _warn_if_bump_fails(self, message: str, *, user_scoped: bool = False, user_id: str | None = None) -> None:
+        bump = await self._bump_settings_version_locked(user_scoped=user_scoped, user_id=user_id)
         if not bump.ok:
             try:
                 logger.warning("%s: %s", message, bump.error)
@@ -403,28 +495,39 @@ class AppSettings:
                 return Result.Err("AUTH_REQUIRED", "API token bootstrap unavailable")
             return Result.Ok({"api_token": token})
 
-    async def _read_settings_version(self) -> int:
+    async def _read_settings_version_exact(self, storage_key: str) -> int:
         try:
-            raw = await self._read_setting(_SETTINGS_VERSION_KEY)
+            raw = await self._read_setting_exact(storage_key)
             n = int(str(raw or "0").strip() or "0")
             return max(0, n)
         except Exception:
             return 0
 
-    async def _get_settings_version(self) -> int:
+    async def _read_settings_version(self, *, user_scoped: bool = False, user_id: str | None = None) -> int:
+        versions = [await self._read_settings_version_exact(key) for key in self._settings_version_read_keys(user_scoped=user_scoped, user_id=user_id)]
+        return max(versions, default=0)
+
+    async def _get_settings_version_for_key(self, storage_key: str) -> int:
         now = time.monotonic()
         try:
-            ts = float(self._version_cached_at or 0.0)
+            ts = float(self._version_cached_at.get(storage_key) or 0.0)
         except Exception:
             ts = 0.0
         if ts and (now - ts) < float(self._version_cache_ttl_s):
-            return int(self._version_cached or 0)
-        v = await self._read_settings_version()
-        self._version_cached = int(v or 0)
-        self._version_cached_at = now
-        return self._version_cached
+            return int(self._version_cached.get(storage_key) or 0)
+        v = await self._read_settings_version_exact(storage_key)
+        self._version_cached[storage_key] = int(v or 0)
+        self._version_cached_at[storage_key] = now
+        return int(v or 0)
 
-    async def _bump_settings_version_locked(self) -> Result[int]:
+    async def _get_settings_version(self, *, user_scoped: bool = False, user_id: str | None = None) -> int:
+        versions = [
+            await self._get_settings_version_for_key(key)
+            for key in self._settings_version_read_keys(user_scoped=user_scoped, user_id=user_id)
+        ]
+        return max(versions, default=0)
+
+    async def _bump_settings_version_locked(self, *, user_scoped: bool = False, user_id: str | None = None) -> Result[int]:
         """
         Bump a monotonically increasing settings version in the DB.
 
@@ -435,46 +538,49 @@ class AppSettings:
             v = int(time.time() * _MS_PER_S)
         except Exception:
             v = int(time.time())
-        res = await self._write_setting(_SETTINGS_VERSION_KEY, str(v))
+        version_key = self._settings_version_write_key(user_scoped=user_scoped, user_id=user_id)
+        res = await self._write_setting_exact(version_key, str(v))
         if not res.ok:
             return Result.Err("DB_ERROR", res.error or "Failed to bump settings version")
-        self._version_cached = v
-        self._version_cached_at = time.monotonic()
+        self._version_cached[version_key] = v
+        self._version_cached_at[version_key] = time.monotonic()
         return Result.Ok(v)
 
     async def get_probe_backend(self) -> str:
         """Return the configured media probe backend mode."""
+        user_id = self._effective_user_id()
+        cache_key = self._storage_key(_PROBE_BACKEND_KEY, user_scoped=True, user_id=user_id)
         async with self._lock:
-            current_version = await self._get_settings_version()
-            cached = self._cached_probe_backend(current_version)
+            current_version = await self._get_settings_version(user_scoped=True, user_id=user_id)
+            cached = self._cached_probe_backend(cache_key, current_version)
             if cached:
                 return cached
-            mode_raw = await self._read_setting(_PROBE_BACKEND_KEY)
+            mode_raw = await self._read_setting(_PROBE_BACKEND_KEY, user_scoped=True, user_id=user_id)
             mode = str(mode_raw or "").strip().lower()
             if mode not in _VALID_PROBE_MODES:
                 mode = self._default_probe_mode
-            self._store_probe_backend_cache(mode, current_version)
+            self._store_probe_backend_cache(cache_key, mode, current_version)
             return mode
 
-    def _cached_probe_backend(self, current_version: int) -> str:
-        cached = str(self._cache.get(_PROBE_BACKEND_KEY) or "")
+    def _cached_probe_backend(self, cache_key: str, current_version: int) -> str:
+        cached = str(self._cache.get(cache_key) or "")
         if not cached:
             return ""
         try:
-            ts = float(self._cache_at.get(_PROBE_BACKEND_KEY) or 0.0)
+            ts = float(self._cache_at.get(cache_key) or 0.0)
         except Exception:
             ts = 0.0
-        cached_ver = int(self._cache_version.get(_PROBE_BACKEND_KEY) or 0)
+        cached_ver = int(self._cache_version.get(cache_key) or 0)
         if cached_ver != int(current_version or 0):
             return ""
         if not ts or (time.monotonic() - ts) >= self._cache_ttl_s:
             return ""
         return cached
 
-    def _store_probe_backend_cache(self, mode: str, current_version: int) -> None:
-        self._cache[_PROBE_BACKEND_KEY] = mode
-        self._cache_at[_PROBE_BACKEND_KEY] = time.monotonic()
-        self._cache_version[_PROBE_BACKEND_KEY] = int(current_version or 0)
+    def _store_probe_backend_cache(self, cache_key: str, mode: str, current_version: int) -> None:
+        self._cache[cache_key] = mode
+        self._cache_at[cache_key] = time.monotonic()
+        self._cache_version[cache_key] = int(current_version or 0)
 
     async def set_probe_backend(self, mode: str) -> Result[str]:
         """Persist the media probe backend mode and bump the settings version."""
@@ -483,18 +589,22 @@ class AppSettings:
             normalized = self._default_probe_mode
         if normalized not in _VALID_PROBE_MODES:
             return Result.Err("INVALID_INPUT", f"Invalid probe mode: {mode}")
+        user_id = self._effective_user_id()
+        cache_key = self._storage_key(_PROBE_BACKEND_KEY, user_scoped=True, user_id=user_id)
         async with self._lock:
-            result = await self._write_setting(_PROBE_BACKEND_KEY, normalized)
+            result = await self._write_setting(_PROBE_BACKEND_KEY, normalized, user_scoped=True, user_id=user_id)
             if result.ok:
-                bump = await self._bump_settings_version_locked()
+                bump = await self._bump_settings_version_locked(user_scoped=True, user_id=user_id)
                 if not bump.ok:
                     try:
                         logger.warning("Failed to bump settings version: %s", bump.error)
                     except Exception:
                         pass
-                self._cache[_PROBE_BACKEND_KEY] = normalized
-                self._cache_at[_PROBE_BACKEND_KEY] = time.monotonic()
-                self._cache_version[_PROBE_BACKEND_KEY] = int(bump.data or await self._get_settings_version() or 0)
+                self._cache[cache_key] = normalized
+                self._cache_at[cache_key] = time.monotonic()
+                self._cache_version[cache_key] = int(
+                    bump.data or await self._get_settings_version(user_scoped=True, user_id=user_id) or 0
+                )
                 logger.info("Media probe backend set to %s", normalized)
                 return Result.Ok(normalized)
             return Result.Err("DB_ERROR", result.error or "Failed to persist probe backend")
@@ -506,11 +616,17 @@ class AppSettings:
         - image: Pillow-based fallback for image metadata
         - media: hachoir-based fallback for audio/video metadata
         """
+        user_id = self._effective_user_id()
         async with self._lock:
-            current_version = await self._get_settings_version()
-            return await self._read_metadata_fallback_prefs_locked(current_version)
+            current_version = await self._get_settings_version(user_scoped=True, user_id=user_id)
+            return await self._read_metadata_fallback_prefs_locked(current_version, user_id=user_id)
 
-    async def _read_metadata_fallback_prefs_locked(self, current_version: int) -> dict[str, bool]:
+    async def _read_metadata_fallback_prefs_locked(
+        self,
+        current_version: int,
+        *,
+        user_id: str | None = None,
+    ) -> dict[str, bool]:
         out: dict[str, bool] = {}
         defaults = {
             "image": self._default_metadata_fallback_image,
@@ -521,11 +637,18 @@ class AppSettings:
             "media": _METADATA_FALLBACK_MEDIA_KEY,
         }
         for logical_key, storage_key in key_map.items():
-            cached_pref = self._cached_metadata_fallback_pref(storage_key, defaults[logical_key], current_version)
+            cache_key = self._storage_key(storage_key, user_scoped=True, user_id=user_id)
+            cached_pref = self._cached_metadata_fallback_pref(cache_key, defaults[logical_key], current_version)
             if cached_pref is not None:
                 out[logical_key] = cached_pref
                 continue
-            parsed = await self._read_and_cache_metadata_fallback_pref(storage_key, defaults[logical_key], current_version)
+            parsed = await self._read_and_cache_metadata_fallback_pref(
+                storage_key,
+                cache_key,
+                defaults[logical_key],
+                current_version,
+                user_id=user_id,
+            )
             out[logical_key] = parsed
         return out
 
@@ -552,14 +675,17 @@ class AppSettings:
     async def _read_and_cache_metadata_fallback_pref(
         self,
         storage_key: str,
+        cache_key: str,
         default: bool,
         current_version: int,
+        *,
+        user_id: str | None = None,
     ) -> bool:
-        raw = await self._read_setting(storage_key)
+        raw = await self._read_setting(storage_key, user_scoped=True, user_id=user_id)
         parsed = parse_bool(raw, default) if raw is not None else default
-        self._cache[storage_key] = "1" if parsed else "0"
-        self._cache_at[storage_key] = time.monotonic()
-        self._cache_version[storage_key] = int(current_version or 0)
+        self._cache[cache_key] = "1" if parsed else "0"
+        self._cache_at[cache_key] = time.monotonic()
+        self._cache_version[cache_key] = int(current_version or 0)
         return parsed
 
     async def set_metadata_fallback_prefs(
@@ -575,25 +701,27 @@ class AppSettings:
         if not to_write:
             return Result.Err("INVALID_INPUT", "No metadata fallback settings provided")
 
+        user_id = self._effective_user_id()
         async with self._lock:
-            write_error = await self._write_metadata_fallback_payload(to_write)
+            write_error = await self._write_metadata_fallback_payload(to_write, user_id=user_id)
             if write_error:
                 return write_error
 
-            bump = await self._bump_settings_version_locked()
+            bump = await self._bump_settings_version_locked(user_scoped=True, user_id=user_id)
             if not bump.ok:
                 try:
                     logger.warning("Failed to bump settings version: %s", bump.error)
                 except Exception:
                     pass
 
-            current_version = int(bump.data or await self._get_settings_version() or 0)
+            current_version = int(bump.data or await self._get_settings_version(user_scoped=True, user_id=user_id) or 0)
             for key, value in to_write.items():
-                self._cache[key] = "1" if value else "0"
-                self._cache_at[key] = time.monotonic()
-                self._cache_version[key] = current_version
+                cache_key = self._storage_key(key, user_scoped=True, user_id=user_id)
+                self._cache[cache_key] = "1" if value else "0"
+                self._cache_at[cache_key] = time.monotonic()
+                self._cache_version[cache_key] = current_version
 
-            return Result.Ok(self._current_metadata_fallback_prefs_from_cache())
+            return Result.Ok(self._current_metadata_fallback_prefs_from_cache(user_id=user_id))
 
     async def get_vector_search_enabled(self) -> bool:
         """Return persisted vector-search enable preference."""
@@ -790,17 +918,24 @@ class AppSettings:
             to_write[_METADATA_FALLBACK_MEDIA_KEY] = parse_bool(media, self._default_metadata_fallback_media)
         return to_write
 
-    async def _write_metadata_fallback_payload(self, to_write: dict[str, bool]) -> Result[Any] | None:
+    async def _write_metadata_fallback_payload(
+        self,
+        to_write: dict[str, bool],
+        *,
+        user_id: str | None = None,
+    ) -> Result[Any] | None:
         for key, value in to_write.items():
-            res = await self._write_setting(key, "1" if value else "0")
+            res = await self._write_setting(key, "1" if value else "0", user_scoped=True, user_id=user_id)
             if not res.ok:
                 return Result.Err("DB_ERROR", res.error or f"Failed to persist {key}")
         return None
 
-    def _current_metadata_fallback_prefs_from_cache(self) -> dict[str, bool]:
+    def _current_metadata_fallback_prefs_from_cache(self, *, user_id: str | None = None) -> dict[str, bool]:
+        image_key = self._storage_key(_METADATA_FALLBACK_IMAGE_KEY, user_scoped=True, user_id=user_id)
+        media_key = self._storage_key(_METADATA_FALLBACK_MEDIA_KEY, user_scoped=True, user_id=user_id)
         return {
-            "image": parse_bool(self._cache.get(_METADATA_FALLBACK_IMAGE_KEY), self._default_metadata_fallback_image),
-            "media": parse_bool(self._cache.get(_METADATA_FALLBACK_MEDIA_KEY), self._default_metadata_fallback_media),
+            "image": parse_bool(self._cache.get(image_key), self._default_metadata_fallback_image),
+            "media": parse_bool(self._cache.get(media_key), self._default_metadata_fallback_media),
         }
 
     async def get_output_directory(self) -> str | None:

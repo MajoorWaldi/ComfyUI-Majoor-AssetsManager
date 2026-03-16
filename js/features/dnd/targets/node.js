@@ -1,7 +1,9 @@
 import {
     comboHasAnyAudioValue,
+    comboHasAnyModel3DValue,
     comboHasAnyVideoValue,
     looksLikeAudioPath,
+    looksLikeModel3DPath,
     looksLikeVideoPath
 } from "../utils/video.js";
 
@@ -206,8 +208,124 @@ const pickBestVideoPathWidget = (node, droppedExt) => {
     return best.w;
 };
 
+const pickBestModel3DPathWidget = (node, droppedExt) => {
+    const widgets = node?.widgets;
+    if (!Array.isArray(widgets) || !widgets.length) return null;
+
+    const ext = String(droppedExt || "").toLowerCase().replace(/^\./, "");
+    const exactNames = new Set([
+        "model_path",
+        "input_model",
+        "source_model",
+        "mesh_path",
+        "input_mesh",
+        "geometry_path",
+        "scene_path",
+        "point_cloud_path",
+        "splat_path",
+        "model",
+        "mesh",
+        "geometry",
+    ]);
+    const nodeType = String(node?.type || "").toLowerCase();
+    const isKnownModelNode =
+        nodeType.includes("load3d") ||
+        nodeType.includes("loadmodel") ||
+        nodeType.includes("loadmesh") ||
+        nodeType.includes("loadobj") ||
+        nodeType.includes("loadgltf") ||
+        nodeType.includes("loadglb") ||
+        nodeType.includes("loadstl") ||
+        nodeType.includes("loadply") ||
+        nodeType.includes("pointcloud") ||
+        nodeType.includes("meshloader") ||
+        nodeType.includes("modelloader");
+
+    const candidates = [];
+    for (const w of widgets) {
+        if (!w) continue;
+        const type = String(w?.type || "").toLowerCase();
+        const value = w?.value;
+
+        const rejectTypes = new Set(["number", "int", "float", "boolean", "toggle", "checkbox"]);
+        if (rejectTypes.has(type)) continue;
+        if (typeof value === "number" || typeof value === "boolean") continue;
+
+        const stringLikeByType = type === "text" || type === "string" || type === "combo";
+        const stringLikeByCallback = typeof w?.callback === "function" && typeof value === "string";
+        if (!stringLikeByType && !stringLikeByCallback) continue;
+
+        const rawName = String(w?.name || w?.label || "");
+        const name = rawName.toLowerCase().trim();
+
+        let score = 0;
+        if (exactNames.has(name)) score += 100;
+
+        if (name === "file" && isKnownModelNode && type === "combo" && comboHasAnyModel3DValue(w, ext)) {
+            score += 100;
+        }
+
+        const hasModelHint =
+            name.includes("model") ||
+            name.includes("mesh") ||
+            name.includes("geometry") ||
+            name.includes("scene") ||
+            name.includes("object") ||
+            name.includes("point") ||
+            name.includes("cloud") ||
+            name.includes("splat");
+        const hasPathHint =
+            name.includes("path") || name.includes("file") || name.includes("input") || name.includes("src") || name.includes("source");
+        if (hasModelHint && hasPathHint) score += 80;
+        if (name.includes("file") || name.includes("path")) score += 35;
+        if (name.includes("asset") || name.includes("resource")) score += 30;
+
+        const isOutputy =
+            name.includes("output") ||
+            name.includes("save") ||
+            name.includes("export") ||
+            name.includes("folder") ||
+            name.includes("dir");
+        if (isOutputy) score -= 90;
+
+        if (name === "model" || name === "mesh" || name === "geometry") {
+            const empty = typeof value === "string" && value.trim() === "";
+            if (empty) {
+                score += 25;
+            } else if (looksLikeModel3DPath(value, ext)) {
+                score += 25;
+            } else {
+                score -= 10;
+            }
+        }
+
+        if (isKnownModelNode) score += 15;
+        const emptyValue = typeof value === "string" && value.trim() === "";
+        if (emptyValue) score += 3;
+        if (type === "combo" && comboHasAnyModel3DValue(w, ext)) score += 12;
+
+        candidates.push({ w, score, emptyValue, combo: type === "combo" });
+    }
+
+    if (!candidates.length) return null;
+    candidates.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        if (b.emptyValue !== a.emptyValue) return b.emptyValue ? 1 : -1;
+        if (b.combo !== a.combo) return b.combo ? 1 : -1;
+        return 0;
+    });
+
+    const best = candidates[0];
+    if (!best || best.score < 20) return null;
+    try {
+        best.w.__mjrModel3DPickScore = best.score;
+    } catch (e) { console.debug?.(e); }
+    return best.w;
+};
+
 export const pickBestMediaPathWidget = (node, payload, droppedExt) => {
     const kind = String(payload?.kind || "").toLowerCase();
+    if (kind === "model3d") return pickBestModel3DPathWidget(node, droppedExt);
     if (kind !== "audio") return pickBestVideoPathWidget(node, droppedExt);
 
     const widgets = node?.widgets;

@@ -64,10 +64,13 @@ export function extractOutputFiles(output) {
         }
 
         // Common ComfyUI output keys
-        if (node.images || node.gifs || node.videos) {
+        if (node.images || node.gifs || node.videos || node.meshes || node.mesh || node.audio) {
             addItems(node.images);
             addItems(node.gifs);
             addItems(node.videos);
+            addItems(node.meshes);
+            addItems(node.mesh);
+            addItems(node.audio);
         }
 
         // Known wrappers
@@ -81,10 +84,13 @@ export function extractOutputFiles(output) {
             for (const value of Object.values(node)) {
                 if (files.length >= MAX_ITEMS) break;
                 if (!value || typeof value !== "object") continue;
-                if (value.images || value.gifs || value.videos) {
+                if (value.images || value.gifs || value.videos || value.meshes || value.mesh || value.audio) {
                     addItems(value.images);
                     addItems(value.gifs);
                     addItems(value.videos);
+                    addItems(value.meshes);
+                    addItems(value.mesh);
+                    addItems(value.audio);
                     continue;
                 }
                 walk(value, depth + 1);

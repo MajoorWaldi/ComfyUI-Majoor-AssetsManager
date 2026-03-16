@@ -6,7 +6,7 @@
 import { testAPI, triggerStartupScan } from "./app/bootstrap.js";
 import { checkMajoorVersion } from "./app/versionCheck.js";
 import { ensureStyleLoaded } from "./app/style.js";
-import { registerMajoorSettings, startRuntimeStatusDashboard } from "./app/settings.js";
+import { buildMajoorSettings, registerMajoorSettings } from "./app/settings.js";
 import {
     getComfyApi,
     registerSidebarTabCompat,
@@ -17,7 +17,7 @@ import {
 } from "./app/comfyApiBridge.js";
 import { EVENTS } from "./app/events.js";
 import { initDragDrop } from "./features/dnd/DragDrop.js";
-import { initLiveStreamTracker, teardownLiveStreamTracker } from "./features/viewer/LiveStreamTracker.js";
+import { initLiveStreamTracker, teardownLiveStreamTracker, setCurrentJobId } from "./features/viewer/LiveStreamTracker.js";
 import { teardownFloatingViewerManager } from "./features/viewer/floatingViewerManager.js";
 import { loadAssets, upsertAsset, scrollGridToTop, removeAssetsFromGrid } from "./features/grid/GridView.js";
 import { renderAssetsManager, getActiveGridContainer } from "./features/panel/AssetsManagerPanel.js";
@@ -185,6 +185,7 @@ function scheduleGenerationIndex(files, attempt = 1) {
 
 app.registerExtension({
     name: "Majoor.AssetsManager",
+    settings: buildMajoorSettings(app),
 
     async setup() {
         installEntryRuntimeController();
@@ -196,15 +197,14 @@ app.registerExtension({
         // Initialize core services
         testAPI();
         ensureStyleLoaded({ enabled: UI_FLAGS.useComfyThemeUI });
-        startRuntimeStatusDashboard();
 
         try {
             initDragDrop();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) { console.warn("[MJR setup] initDragDrop failed:", e); }
 
         try {
             initLiveStreamTracker(runtimeApp);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) { console.warn("[MJR setup] initLiveStreamTracker failed:", e); }
 
         registerMajoorSettings(runtimeApp, () => {
             const grid = getActiveGridContainer();
@@ -225,7 +225,9 @@ app.registerExtension({
                     runtime = typeof window !== "undefined" ? (window[ENTRY_RUNTIME_KEY] || null) : null;
                 } catch (e) { console.debug?.(e); }
                 removeApiHandlers(runtime?.api || null);
-                removeApiHandlers(api);
+                // Only clean up stale handlers on the new api if it is a different object
+                // than the previous runtime's api (avoids redundant double-removal).
+                if (api !== runtime?.api) removeApiHandlers(api);
                 removeRuntimeWindowHandlers(runtime);
 
                 // Listen for ComfyUI execution - extract output files and send to backend
@@ -260,6 +262,9 @@ app.registerExtension({
                         const promptId = event?.detail?.prompt_id || event?.detail?.promptId;
                         const ts = event?.detail?.timestamp;
                         rememberExecutionStart(promptId, ts);
+                        // Feed jobId to LiveStreamTracker so b_preview_with_metadata
+                        // events from stale executions are filtered out (ComfyUI v1.42+).
+                        setCurrentJobId(promptId || null);
                     } catch (error) {
                         reportError(error, "entry.execution_start");
                     }
@@ -271,6 +276,8 @@ app.registerExtension({
                             executionStarts.delete(String(promptId));
                         }
                         pruneExecutionStarts();
+                        // Clear jobId filter once execution completes.
+                        setCurrentJobId(null);
                     } catch (error) {
                         reportError(error, "entry.execution_end");
                     }
@@ -467,10 +474,25 @@ app.registerExtension({
                 id: "majoor-assets",
                 icon: "pi pi-folder",
                 title: t("manager.title"),
+                label: t("manager.sidebarLabel"),
                 tooltip: t("tooltip.sidebarTab"),
                 type: "custom",
                 render: (el) => {
                     void renderAssetsManager(el, { useComfyThemeUI: UI_FLAGS.useComfyThemeUI });
+                },
+                destroy: (el) => {
+                    try {
+                        el?._eventCleanup?.();
+                    } catch (e) { console.debug?.(e); }
+                    try {
+                        el?._mjrPanelState?._mjrDispose?.();
+                    } catch (e) { console.debug?.(e); }
+                    try {
+                        el?._mjrPopoverManager?.dispose?.();
+                    } catch (e) { console.debug?.(e); }
+                    try {
+                        el?.replaceChildren?.();
+                    } catch (e) { console.debug?.(e); }
                 },
             })) {
 
@@ -487,6 +509,28 @@ app.registerExtension({
                 resetMetrics: () => window.MajoorMetrics?.resetMetrics?.(),
             };
             console.log("[Majoor] Debug commands available: window.MajoorDebug.exportMetrics(), window.MajoorDebug.getMetrics(), window.MajoorDebug.resetMetrics()");
+        }
+    },
+
+    /**
+     * ComfyUI v1.42+ hook: fires when individual node outputs are updated during execution.
+     * @param {Map<string, object>} nodeOutputs - Map of nodeId → outputs object
+     */
+    onNodeOutputsUpdated(nodeOutputs) {
+        try {
+            const files = [];
+            for (const [, outputs] of (nodeOutputs instanceof Map ? nodeOutputs.entries() : Object.entries(nodeOutputs || {}))) {
+                for (const items of Object.values(outputs || {})) {
+                    if (!Array.isArray(items)) continue;
+                    for (const item of items) {
+                        if (item?.filename && item?.type) files.push(item);
+                    }
+                }
+            }
+            if (!files.length) return;
+            scheduleGenerationIndex(files);
+        } catch (e) {
+            console.debug?.("[Majoor] onNodeOutputsUpdated error", e);
         }
     },
 });

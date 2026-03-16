@@ -1,5 +1,5 @@
 /**
- * Drag & Drop support for staging assets to input (video-focused).
+ * Drag & Drop support for staging assets to input.
  */
 
 import { getComfyApp } from "../../app/comfyApiBridge.js";
@@ -258,7 +258,7 @@ export const bindAssetDragStart = (containerEl) => {
                 applyDragOutToOS({ dt, asset, containerEl, card, viewUrl });
             } catch (e) { console.debug?.(e); }
 
-            const preview = card.querySelector("img") || card.querySelector("video");
+            const preview = card.querySelector("img") || card.querySelector("video") || card.querySelector("canvas");
             if (preview && preview instanceof HTMLElement) {
                 try {
                     dt.setDragImage(preview, 10, 10);
@@ -441,4 +441,3 @@ export const initDragDrop = () => {
 
     return dispose;
 };
-

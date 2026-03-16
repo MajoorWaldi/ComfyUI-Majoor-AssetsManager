@@ -179,6 +179,16 @@ _ALLOWED_VIEW_EXTS = {
     ".aif",
     ".m4a",
     ".aac",
+    # 3D
+    ".obj",
+    ".fbx",
+    ".glb",
+    ".gltf",
+    ".stl",
+    ".ply",
+    ".splat",
+    ".ksplat",
+    ".spz",
 }
 
 
@@ -211,6 +221,16 @@ def _guess_content_type_for_file(path: Path) -> str:
                 ".mov": "video/quicktime",
                 ".mkv": "video/x-matroska",
                 ".avi": "video/x-msvideo",
+                # 3D
+                ".glb": "model/gltf-binary",
+                ".gltf": "model/gltf+json",
+                ".obj": "model/obj",
+                ".stl": "model/stl",
+                ".fbx": "application/octet-stream",
+                ".ply": "application/octet-stream",
+                ".splat": "application/octet-stream",
+                ".ksplat": "application/octet-stream",
+                ".spz": "application/octet-stream",
             }
             known.update(AUDIO_VIEW_MIME_TYPES)
             if ext in known:
@@ -239,6 +259,11 @@ def _is_allowed_view_media_file(path: Path) -> bool:
             return True
         # Fallback: allow if mimetype is clearly media.
         ct = _guess_content_type_for_file(path)
-        return ct.startswith("image/") or ct.startswith("video/") or ct.startswith("audio/")
+        return (
+            ct.startswith("image/")
+            or ct.startswith("video/")
+            or ct.startswith("audio/")
+            or ct.startswith("model/")
+        )
     except Exception:
         return False

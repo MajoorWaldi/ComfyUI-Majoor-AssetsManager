@@ -1,4 +1,5 @@
 import types
+import sys
 
 import pytest
 
@@ -121,6 +122,12 @@ def test_auth_helpers_and_authenticated_user() -> None:
     res2 = sec._require_authenticated_user(req2)
     assert not res2.ok
     assert res2.code == "AUTH_REQUIRED"
+
+
+def test_server_module_user_manager_prefers_prompt_server_instance(monkeypatch) -> None:
+    prompt_server = types.SimpleNamespace(instance=types.SimpleNamespace(user_manager="ctx-um"))
+    monkeypatch.setitem(sys.modules, "server", types.SimpleNamespace(PromptServer=prompt_server))
+    assert sec._server_module_user_manager() == "ctx-um"
 
 
 def test_parse_trusted_proxies_and_is_trusted_proxy_cache(monkeypatch) -> None:

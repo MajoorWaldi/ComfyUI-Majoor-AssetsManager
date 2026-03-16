@@ -13,15 +13,84 @@ from ...shared import FileKind, get_logger
 from ...utils import sanitize_for_json
 from ..metadata import MetadataService
 from .fs_walker import SCAN_IOPS_LIMIT, FileSystemWalker
-from .index_batching import append_batch_metadata_entries, existing_map_for_batch, journal_map_for_batch, prefetch_batch_cache_and_rich_meta, prefetch_metadata_cache_rows, prefetch_rich_metadata_rows, prepare_batch_entries, prepare_single_batch_entry, resolve_existing_state_for_batch
-from .index_persistence import apply_add_entry, apply_update_entry, persist_prepared_entries, persist_prepared_entries_fallback, persist_prepared_entries_tx, process_added_entry, process_prepared_entry_fallback, process_prepared_entry_tx, process_refresh_entry, process_updated_entry, write_entry_scan_journal
-from .index_file_ops import build_index_file_state, extract_metadata_for_index_file, get_journal_state_hash_for_index_file, index_file, insert_new_asset_for_index_file, insert_new_asset_tx, refresh_from_cached_metadata, refresh_from_cached_metadata_tx, resolve_existing_asset_for_index_file, resolve_index_file_path, run_incremental_metadata_refresh_locked, run_incremental_metadata_refresh_tx, try_cached_incremental_refresh, try_incremental_refresh_with_metadata, try_skip_by_journal
-from .scan_orchestrator import filter_indexable_paths, index_paths, log_index_paths_start, scan_directory, validate_scan_directory
-from .scan_storage_ops import asset_has_rich_metadata, get_journal_entries, get_journal_entry, stat_with_retry, write_metadata_row, write_scan_journal_entry
-from .index_prepare_ops import maybe_skip_prepare_for_incremental, prepare_index_entry, prepare_index_entry_context, prepare_metadata_for_entry, refresh_entry_from_cached_metadata, should_skip_by_journal_state
+from .index_batching import (
+    append_batch_metadata_entries,
+    existing_map_for_batch,
+    journal_map_for_batch,
+    prefetch_batch_cache_and_rich_meta,
+    prefetch_metadata_cache_rows,
+    prefetch_rich_metadata_rows,
+    prepare_batch_entries,
+    prepare_single_batch_entry,
+    resolve_existing_state_for_batch,
+)
 from .index_db_ops import add_asset, update_asset, write_asset_metadata_if_needed
-from .scan_diagnostics import batch_error_messages, diagnose_batch_failure, diagnose_unique_filepath_error, is_unique_filepath_error
-from .index_runtime_helpers import append_to_enrich, entry_state_drifted, maybe_store_entry_cache, record_index_entry_success, record_refresh_outcome
+from .index_file_ops import (
+    build_index_file_state,
+    extract_metadata_for_index_file,
+    get_journal_state_hash_for_index_file,
+    index_file,
+    insert_new_asset_for_index_file,
+    insert_new_asset_tx,
+    refresh_from_cached_metadata,
+    refresh_from_cached_metadata_tx,
+    resolve_existing_asset_for_index_file,
+    resolve_index_file_path,
+    run_incremental_metadata_refresh_locked,
+    run_incremental_metadata_refresh_tx,
+    try_cached_incremental_refresh,
+    try_incremental_refresh_with_metadata,
+    try_skip_by_journal,
+)
+from .index_persistence import (
+    apply_add_entry,
+    apply_update_entry,
+    persist_prepared_entries,
+    persist_prepared_entries_fallback,
+    persist_prepared_entries_tx,
+    process_added_entry,
+    process_prepared_entry_fallback,
+    process_prepared_entry_tx,
+    process_refresh_entry,
+    process_updated_entry,
+    write_entry_scan_journal,
+)
+from .index_prepare_ops import (
+    maybe_skip_prepare_for_incremental,
+    prepare_index_entry,
+    prepare_index_entry_context,
+    prepare_metadata_for_entry,
+    refresh_entry_from_cached_metadata,
+    should_skip_by_journal_state,
+)
+from .index_runtime_helpers import (
+    append_to_enrich,
+    entry_state_drifted,
+    maybe_store_entry_cache,
+    record_index_entry_success,
+    record_refresh_outcome,
+)
+from .scan_diagnostics import (
+    batch_error_messages,
+    diagnose_batch_failure,
+    diagnose_unique_filepath_error,
+    is_unique_filepath_error,
+)
+from .scan_orchestrator import (
+    filter_indexable_paths,
+    index_paths,
+    log_index_paths_start,
+    scan_directory,
+    validate_scan_directory,
+)
+from .scan_storage_ops import (
+    asset_has_rich_metadata,
+    get_journal_entries,
+    get_journal_entry,
+    stat_with_retry,
+    write_metadata_row,
+    write_scan_journal_entry,
+)
 
 logger = get_logger(__name__)
 _VECTOR_INDEX_PER_ASSET_TIMEOUT_S = 180.0
@@ -33,6 +102,86 @@ def _is_fatal_db_error(exc: Exception) -> bool:
     if "busy" in str(exc).lower() or "locked" in str(exc).lower():
         return False
     return True
+
+
+def _vector_rows_to_entries(rows_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Convert DB rows from the vector-missing query into indexing entry dicts."""
+    entries: list[dict[str, Any]] = []
+    for row in rows_data:
+        raw = row.get("metadata_raw")
+        if isinstance(raw, dict):
+            metadata_raw: dict[str, Any] | None = raw
+        elif isinstance(raw, str) and raw.strip():
+            try:
+                parsed = json.loads(raw)
+                metadata_raw = parsed if isinstance(parsed, dict) else None
+            except Exception:
+                metadata_raw = None
+        else:
+            metadata_raw = None
+        kind_raw = str(row.get("kind") or "").strip().lower()
+        entries.append({
+            "asset_id": int(row["id"]),
+            "filepath": str(row["filepath"]),
+            "kind": "video" if kind_raw == "video" else "image",
+            "metadata_raw": metadata_raw,
+        })
+    return entries
+
+
+async def _run_vector_index_loop(
+    db: Any,
+    vector_service: Any,
+    entries: list[dict[str, Any]],
+    index_asset_vector: Any,
+) -> tuple[int, int, int, int, list[int], list[int]]:
+    """Index each entry; returns (indexed, skipped, errors, timed_out, timed_out_ids, updated_ids)."""
+    indexed = 0
+    skipped = 0
+    errors = 0
+    timed_out = 0
+    timed_out_ids: list[int] = []
+    updated_asset_ids: list[int] = []
+
+    for entry in entries:
+        aid = int(entry.get("asset_id") or 0)
+        try:
+            filepath = str(entry.get("filepath") or "")
+            entry_kind: FileKind = "video" if str(entry.get("kind") or "").strip().lower() == "video" else "image"
+            if not filepath:
+                skipped += 1
+                continue
+            result = await asyncio.wait_for(
+                index_asset_vector(
+                    db,
+                    vector_service,
+                    asset_id=aid,
+                    filepath=filepath,
+                    kind=entry_kind,
+                    metadata_raw=entry.get("metadata_raw"),
+                ),
+                timeout=_VECTOR_INDEX_PER_ASSET_TIMEOUT_S,
+            )
+        except asyncio.TimeoutError:
+            timed_out += 1
+            if aid > 0:
+                timed_out_ids.append(aid)
+            continue
+        except Exception as exc:
+            errors += 1
+            logger.debug("Scanner vector indexing failed for asset_id=%s: %s", aid, exc)
+            continue
+
+        if result.ok and bool(result.data):
+            indexed += 1
+            if aid > 0:
+                updated_asset_ids.append(aid)
+        elif result.ok:
+            skipped += 1
+        else:
+            errors += 1
+
+    return indexed, skipped, errors, timed_out, timed_out_ids, updated_asset_ids
 
 
 class IndexScanner:
@@ -217,79 +366,17 @@ class IndexScanner:
                 if not rows.ok or not rows.data:
                     return
 
-                entries: list[dict[str, Any]] = []
-                for row in rows.data:
-                    raw = row.get("metadata_raw")
-                    metadata_raw: dict[str, Any] | None = None
-                    if isinstance(raw, dict):
-                        metadata_raw = raw
-                    elif isinstance(raw, str) and raw.strip():
-                        try:
-                            parsed = json.loads(raw)
-                            metadata_raw = parsed if isinstance(parsed, dict) else None
-                        except Exception:
-                            metadata_raw = None
-                    kind_raw = str(row.get("kind") or "").strip().lower()
-                    kind = "video" if kind_raw == "video" else "image"
-                    entries.append(
-                        {
-                            "asset_id": int(row["id"]),
-                            "filepath": str(row["filepath"]),
-                            "kind": kind,
-                            "metadata_raw": metadata_raw,
-                        }
-                    )
-
+                entries = _vector_rows_to_entries(rows.data)
                 if not entries:
                     return
 
                 from .vector_indexer import index_asset_vector
 
-                indexed = 0
-                skipped = 0
-                errors = 0
-                timed_out = 0
-                timed_out_ids: list[int] = []
-                updated_asset_ids: list[int] = []
-
-                for entry in entries:
-                    aid = int(entry.get("asset_id") or 0)
-                    try:
-                        filepath = str(entry.get("filepath") or "")
-                        entry_kind_raw = str(entry.get("kind") or "").strip().lower()
-                        entry_kind: FileKind = "video" if entry_kind_raw == "video" else "image"
-                        if not filepath:
-                            skipped += 1
-                            continue
-                        result = await asyncio.wait_for(
-                            index_asset_vector(
-                                self.db,
-                                self._vector_service,
-                                asset_id=aid,
-                                filepath=filepath,
-                                kind=entry_kind,
-                                metadata_raw=entry.get("metadata_raw"),
-                            ),
-                            timeout=_VECTOR_INDEX_PER_ASSET_TIMEOUT_S,
-                        )
-                    except asyncio.TimeoutError:
-                        timed_out += 1
-                        if aid > 0:
-                            timed_out_ids.append(aid)
-                        continue
-                    except Exception as exc:
-                        errors += 1
-                        logger.debug("Scanner vector indexing failed for asset_id=%s: %s", aid, exc)
-                        continue
-
-                    if result.ok and bool(result.data):
-                        indexed += 1
-                        if aid > 0:
-                            updated_asset_ids.append(aid)
-                    elif result.ok:
-                        skipped += 1
-                    else:
-                        errors += 1
+                indexed, skipped, errors, timed_out, timed_out_ids, updated_asset_ids = (
+                    await _run_vector_index_loop(
+                        self.db, self._vector_service, entries, index_asset_vector
+                    )
+                )
 
                 if self._vector_searcher is not None and indexed > 0:
                     self._vector_searcher.invalidate()

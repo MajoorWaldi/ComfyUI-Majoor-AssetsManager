@@ -671,6 +671,23 @@ export function createViewerToolbar({
     toolsRow.appendChild(exportBtn);
     toolsRow.appendChild(copyBtn);
 
+    const model3dHint = document.createElement("div");
+    model3dHint.className = "mjr-viewer-tools-group mjr-viewer-tools-group--3d";
+    model3dHint.textContent = "LMB rotate \u00b7 RMB pan \u00b7 Scroll zoom";
+    model3dHint.style.cssText = [
+        "display:none",
+        "align-items:center",
+        "padding:3px 10px",
+        "border-radius:999px",
+        "border:1px solid rgba(255,255,255,0.12)",
+        "background:rgba(255,255,255,0.06)",
+        "color:rgba(255,255,255,0.55)",
+        "font-size:11px",
+        "font-weight:400",
+        "letter-spacing:0.01em",
+    ].join(";");
+    toolsRow.appendChild(model3dHint);
+
     // Shortcut help (discoverability)
     const helpWrap = document.createElement("div");
     helpWrap.style.cssText = "position: relative; display:inline-flex; align-items:center;";
@@ -964,6 +981,43 @@ export function createViewerToolbar({
     );
 
     const syncToolsUIFromState = () => {
+        const current = state?.assets?.[state?.currentIndex] || null;
+        const isModel3D = String(current?.kind || "").toLowerCase() === "model3d";
+        try {
+            const hidden = isModel3D ? "none" : "";
+            chGroup.style.display = hidden;
+            expGroup.style.display = hidden;
+            gamGroup.style.display = hidden;
+            anaGroup.style.display = hidden;
+            resetGradeBtn.style.display = hidden;
+            model3dHint.style.display = isModel3D ? "inline-flex" : "none";
+            // For 3D: hide image-specific overlay tools but keep genInfo and focus toggles
+            // Also hide overlay group label and help button for a cleaner 3D toolbar
+            const ovLabel = ovGroup.querySelector?.(".mjr-viewer-tools-group-label");
+            if (isModel3D) {
+                ovGroup.style.display = "";
+                if (ovLabel) ovLabel.style.display = "none";
+                helpWrap.style.display = "none";
+                header.style.padding = "8px 16px";
+                header.style.gap = "4px";
+                toolsRow.style.padding = "4px 4px 2px";
+                for (const el of [gridToggle.b, gridModeSelect, maskToggle.b, formatSelect,
+                    maskOpacityCtl.wrap, probeToggle.b, loupeToggle.b, hudToggle.b]) {
+                    try { el.style.display = "none"; } catch (_) {}
+                }
+            } else {
+                ovGroup.style.display = "";
+                if (ovLabel) ovLabel.style.display = "";
+                helpWrap.style.display = "";
+                header.style.padding = "12px 20px";
+                header.style.gap = "8px";
+                toolsRow.style.padding = "6px 4px 2px";
+                for (const el of [gridToggle.b, gridModeSelect, maskToggle.b, formatSelect,
+                    maskOpacityCtl.wrap, probeToggle.b, loupeToggle.b, hudToggle.b]) {
+                    try { el.style.display = ""; } catch (_) {}
+                }
+            }
+        } catch (e) { console.debug?.(e); }
         try {
             channelsSelect.value = String(state.channel || "rgb");
         } catch (e) { console.debug?.(e); }
@@ -982,7 +1036,6 @@ export function createViewerToolbar({
             } catch (e) { console.debug?.(e); }
         } catch (e) { console.debug?.(e); }
         try {
-            const current = state?.assets?.[state?.currentIndex] || null;
             const isAudio = String(current?.kind || "") === "audio";
             audGroup.style.display = isAudio ? "" : "none";
             audioVizModeSelect.disabled = !isAudio;
@@ -1007,9 +1060,9 @@ export function createViewerToolbar({
             scopesSelect.value = m;
         } catch (e) { console.debug?.(e); }
         try {
-            // Export is meaningful mainly for video frames (videoProcessor canvas).
-            const current = state?.assets?.[state?.currentIndex] || null;
-            const show = String(current?.kind || "") === "video";
+            // Export is meaningful for video frames (videoProcessor canvas) and 3D snapshots (WebGL canvas).
+            const currentKind = String(current?.kind || "");
+            const show = currentKind === "video" || currentKind === "model3d";
             exportBtn.style.display = show ? "" : "none";
             copyBtn.style.display = show ? "" : "none";
 
@@ -1091,7 +1144,6 @@ export function createViewerToolbar({
             });
         } catch (e) { console.debug?.(e); }
         try {
-            const current = state?.assets?.[state?.currentIndex] || null;
             const isAudio = String(current?.kind || "") === "audio";
             const mode = String(state.audioVisualizerMode || "artistic");
             setSelectHighlighted(audioVizModeSelect, {

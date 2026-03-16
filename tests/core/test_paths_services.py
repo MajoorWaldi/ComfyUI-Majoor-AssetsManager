@@ -32,12 +32,16 @@ def test_path_helpers_and_media_type(tmp_path: Path, monkeypatch) -> None:
     root.mkdir()
     media = root / "x.webp"
     media.write_bytes(b"x")
+    model = root / "mesh.glb"
+    model.write_bytes(b"glb")
 
     assert p._path_relative_to(media.resolve(), root.resolve())
     assert not p._path_relative_to(tmp_path.resolve(), root.resolve())
 
     assert p._guess_content_type_for_file(media) == "image/webp"
+    assert p._guess_content_type_for_file(model) == "model/gltf-binary"
     assert p._is_allowed_view_media_file(media)
+    assert p._is_allowed_view_media_file(model)
     assert not p._is_allowed_view_media_file(root / "x.txt")
 
     monkeypatch.setattr(

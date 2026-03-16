@@ -5,4 +5,4 @@
 
 export { startRuntimeStatusDashboard } from "./settings/settingsRuntime.js";
 export { loadMajoorSettings, saveMajoorSettings } from "./settings/settingsCore.js";
-export { registerMajoorSettings } from "./settings/SettingsPanel.js";
+export { buildMajoorSettings, registerMajoorSettings } from "./settings/SettingsPanel.js";

@@ -12,7 +12,13 @@ from aiohttp import web
 from mjr_am_backend.observability import ensure_observability
 from mjr_am_backend.shared import Result, get_logger
 
-from .core import _json_response, _require_authenticated_user
+from .core import (
+    _get_request_user_id,
+    _json_response,
+    _push_request_user_context,
+    _require_authenticated_user,
+    _reset_request_user_context,
+)
 from .handlers import (
     register_asset_routes,
     register_audit_routes,
@@ -208,13 +214,20 @@ async def auth_required_middleware(
     """
     Require authenticated ComfyUI user for sensitive Majoor routes when auth is enabled.
     """
-    path, method = _request_path_and_method(request)
-    if _requires_auth(path, method):
-        failure = _auth_error_response_or_none(request)
-        if failure is not None:
-            return failure
+    token = _push_request_user_context(request)
+    try:
+        path, method = _request_path_and_method(request)
+        user_id = _get_request_user_id(request)
+        if user_id:
+            _store_request_user_id(request, user_id)
+        if _requires_auth(path, method):
+            failure = _auth_error_response_or_none(request)
+            if failure is not None:
+                return failure
 
-    return await handler(request)
+        return await handler(request)
+    finally:
+        _reset_request_user_context(token)
 
 
 def _request_path_and_method(request: web.Request) -> tuple[str, str]:

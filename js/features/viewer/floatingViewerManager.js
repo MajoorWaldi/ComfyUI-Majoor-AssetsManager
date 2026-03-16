@@ -199,8 +199,8 @@ export const floatingViewerManager = {
         if (_instance) {
             try {
                 if (_instance.isPopped) _instance.popIn();
+                _instance.hide();
             } catch (e) { console.debug?.(e); }
-            _instance.hide();
         }
         _unbindSelectionListener();
         _emitVisibilityChanged(false);
@@ -344,9 +344,9 @@ export const floatingViewerManager = {
 
 let _globalHandlersInstalled = false;
 
-const _onMfvOpen       = () => floatingViewerManager.open();
-const _onMfvClose      = () => floatingViewerManager.close();
-const _onMfvToggle     = () => floatingViewerManager.toggle();
+const _onMfvOpen          = () => floatingViewerManager.open();
+const _onMfvClose         = () => floatingViewerManager.close();
+const _onMfvToggle        = () => floatingViewerManager.toggle();
 const _onMfvLiveToggle    = () => floatingViewerManager.toggleLive();
 const _onMfvPreviewToggle = () => floatingViewerManager.togglePreview();
 const _onMfvPopout        = () => floatingViewerManager.popOut();

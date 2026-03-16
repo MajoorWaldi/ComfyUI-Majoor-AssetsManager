@@ -52,3 +52,22 @@ def test_collections_invalid_inputs(tmp_path: Path):
     assert svc.delete("bad").code == "INVALID_INPUT"
     assert svc.add_assets("bad", []).code == "INVALID_INPUT"
     assert svc.remove_filepaths("bad", []).code == "INVALID_INPUT"
+
+
+def test_collections_user_scoped_base_dirs(tmp_path: Path):
+    svc1 = c.CollectionsService(base_dir=tmp_path, user_id="user-one")
+    svc2 = c.CollectionsService(base_dir=tmp_path, user_id="user-two")
+
+    created1 = svc1.create("One")
+    created2 = svc2.create("Two")
+
+    assert created1.ok and created2.ok
+    assert len(svc1.list().data or []) == 1
+    assert len(svc2.list().data or []) == 1
+
+    user_one_dir = c.collections_base_dir_for_user("user-one", base_dir=tmp_path)
+    user_two_dir = c.collections_base_dir_for_user("user-two", base_dir=tmp_path)
+
+    assert user_one_dir != user_two_dir
+    assert list(user_one_dir.glob("*.json"))
+    assert list(user_two_dir.glob("*.json"))

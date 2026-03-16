@@ -1,6 +1,7 @@
 import { createImageProcessor, drawMediaError } from "./imageProcessor.js";
 import { createVideoProcessor } from "./videoProcessor.js";
 import { createAudioVisualizer } from "./audioVisualizer.js";
+import { createModel3DMediaElement, isModel3DAsset } from "./model3dRenderer.js";
 import { safeAddListener as defaultSafeAddListener, safeCall as defaultSafeCall } from "../../utils/safeCall.js";
 import { APP_CONFIG } from "../../app/config.js";
 
@@ -26,7 +27,7 @@ export function createViewerMediaFactory({
     maxProcPixels,
     maxProcPixelsVideo,
     disableWebGL,
-    videoGradeThrottleFps,
+    videoGradeThrottleFps: _videoGradeThrottleFps,
     safeAddListener,
     safeCall,
 } = {}) {
@@ -324,6 +325,29 @@ export function createViewerMediaFactory({
         `;
 
         const kind = String(asset?.kind || "").toLowerCase();
+        if (isModel3DAsset(asset) || kind === "model3d") {
+            return createModel3DMediaElement(asset, url, {
+                hostClassName: "mjr-model3d-host mjr-viewer-model3d-host",
+                canvasClassName: "mjr-viewer-media mjr-model3d-render-canvas",
+                scheduleOverlayRedraw,
+                onReady: () => {
+                    try {
+                        requestAnimationFrame(() => {
+                            try {
+                                if (!state?._userInteracted) {
+                                    updateMediaNaturalSize?.();
+                                    clampPanToBounds?.();
+                                    applyTransform?.();
+                                }
+                            } catch (e) { console.debug?.(e); }
+                        });
+                    } catch (e) { console.debug?.(e); }
+                    try {
+                        scheduleOverlayRedraw?.();
+                    } catch (e) { console.debug?.(e); }
+                },
+            });
+        }
         if (kind && kind !== "image" && kind !== "video" && kind !== "audio") {
             const canvas = document.createElement("canvas");
             canvas.className = "mjr-viewer-media";
@@ -489,6 +513,29 @@ export function createViewerMediaFactory({
     // Important: the returned element fills the container so both layers share identical sizing/centering.
         function createCompareMediaElement(asset, url) {
         const kind = String(asset?.kind || "").toLowerCase();
+        if (isModel3DAsset(asset) || kind === "model3d") {
+            return createModel3DMediaElement(asset, url, {
+                hostClassName: "mjr-model3d-host mjr-viewer-model3d-host",
+                canvasClassName: "mjr-viewer-media mjr-model3d-render-canvas",
+                scheduleOverlayRedraw,
+                onReady: () => {
+                    try {
+                        requestAnimationFrame(() => {
+                            try {
+                                if (!state?._userInteracted) {
+                                    updateMediaNaturalSize?.();
+                                    clampPanToBounds?.();
+                                    applyTransform?.();
+                                }
+                            } catch (e) { console.debug?.(e); }
+                        });
+                    } catch (e) { console.debug?.(e); }
+                    try {
+                        scheduleOverlayRedraw?.();
+                    } catch (e) { console.debug?.(e); }
+                },
+            });
+        }
         if (kind && kind !== "image" && kind !== "video" && kind !== "audio") {
             const canvas = document.createElement("canvas");
             canvas.className = "mjr-viewer-media";
@@ -634,6 +681,7 @@ export function createViewerMediaFactory({
             const els = overlay?.querySelectorAll?.(".mjr-viewer-media") || [];
             for (const el of els) {
                 try {
+                    if (el?._mjrDisableViewerTransform) continue;
                     el.style.transform = t;
                 } catch (e) { console.debug?.(e); }
             }

@@ -1,8 +1,8 @@
 """Inline query/date/sort sanitization helpers extracted from handlers/search.py."""
-from collections.abc import Mapping
 import datetime
 import math
 import re
+from collections.abc import Mapping
 from typing import Any
 
 from ...shared import Result
@@ -148,24 +148,65 @@ def sanitize_tag_value(tag: str) -> str:
     return re.sub(r"[\x00-\x1f\x7f]", "", str(tag or "")).strip()
 
 
+_CLAMP_PAIRS: list[tuple[str, str]] = [
+    ("min_size_bytes", "max_size_bytes"),
+    ("min_width", "max_width"),
+    ("min_height", "max_height"),
+]
+
+
 def _merge_size_and_dimension_clamps(filters: dict[str, Any]) -> None:
     try:
-        min_b = int(filters.get("min_size_bytes") or 0)
-        max_b = int(filters.get("max_size_bytes") or 0)
-        if min_b > 0 and max_b > 0 and max_b < min_b:
-            filters["max_size_bytes"] = min_b
-
-        min_w = int(filters.get("min_width") or 0)
-        max_w = int(filters.get("max_width") or 0)
-        if min_w > 0 and max_w > 0 and max_w < min_w:
-            filters["max_width"] = min_w
-
-        min_h = int(filters.get("min_height") or 0)
-        max_h = int(filters.get("max_height") or 0)
-        if min_h > 0 and max_h > 0 and max_h < min_h:
-            filters["max_height"] = min_h
+        for min_key, max_key in _CLAMP_PAIRS:
+            min_v = int(filters.get(min_key) or 0)
+            max_v = int(filters.get(max_key) or 0)
+            if min_v > 0 and max_v > 0 and max_v < min_v:
+                filters[max_key] = min_v
     except Exception:
         return
+
+
+def _apply_numeric_filter(
+    query: "Mapping[str, Any]",
+    raw_key: str,
+    filter_key: str,
+    caster: type,
+    scale: int | float,
+    error_text: str,
+    filters: dict[str, Any],
+) -> "Result[None] | None":
+    if raw_key not in query:
+        return None
+    try:
+        raw_value = caster(query[raw_key])  # type: ignore[operator]
+    except Exception:
+        return Result.Err("INVALID_INPUT", error_text)
+    if isinstance(raw_value, float) and not math.isfinite(raw_value):
+        return Result.Err("INVALID_INPUT", error_text)
+    if raw_value > 0:
+        try:
+            filters[filter_key] = int(raw_value * scale) if scale != 1 else int(raw_value)
+        except Exception:
+            return Result.Err("INVALID_INPUT", error_text)
+    return None
+
+
+def _apply_date_filters(query: "Mapping[str, Any]", filters: dict[str, Any]) -> "Result[None] | None":
+    date_exact = str(query.get("date_exact") or "").strip()
+    date_range = str(query.get("date_range") or "").strip().lower()
+    if date_exact:
+        mtime_start, mtime_end = date_bounds_for_exact(date_exact)
+        if mtime_start is None or mtime_end is None:
+            return Result.Err("INVALID_INPUT", "Invalid date_exact")
+        filters["mtime_start"] = mtime_start
+        filters["mtime_end"] = mtime_end
+    elif date_range:
+        mtime_start, mtime_end = date_bounds_for_range(date_range)
+        if mtime_start is None or mtime_end is None:
+            return Result.Err("INVALID_INPUT", "Invalid date_range")
+        filters["mtime_start"] = mtime_start
+        filters["mtime_end"] = mtime_end
+    return None
 
 
 def parse_request_filters(
@@ -198,19 +239,9 @@ def parse_request_filters(
         ("max_height", "max_height", int, 1, "Invalid max_height"),
     ]
     for raw_key, filter_key, caster, scale, error_text in numeric_specs:
-        if raw_key not in query:
-            continue
-        try:
-            raw_value = caster(query[raw_key])
-        except Exception:
-            return Result.Err("INVALID_INPUT", error_text)
-        if isinstance(raw_value, float) and not math.isfinite(raw_value):
-            return Result.Err("INVALID_INPUT", error_text)
-        if raw_value > 0:
-            try:
-                filters[filter_key] = int(raw_value * scale) if scale != 1 else int(raw_value)
-            except Exception:
-                return Result.Err("INVALID_INPUT", error_text)
+        err = _apply_numeric_filter(query, raw_key, filter_key, caster, scale, error_text, filters)
+        if err is not None:
+            return err
 
     if "workflow_type" in query:
         workflow_type = str(query["workflow_type"] or "").strip().upper()
@@ -220,22 +251,9 @@ def parse_request_filters(
     if "has_workflow" in query:
         filters["has_workflow"] = str(query["has_workflow"] or "").strip().lower() in ("true", "1", "yes")
 
-    date_exact = str(query.get("date_exact") or "").strip()
-    date_range = str(query.get("date_range") or "").strip().lower()
-    mtime_start = None
-    mtime_end = None
-    if date_exact:
-        mtime_start, mtime_end = date_bounds_for_exact(date_exact)
-        if mtime_start is None or mtime_end is None:
-            return Result.Err("INVALID_INPUT", "Invalid date_exact")
-    elif date_range:
-        mtime_start, mtime_end = date_bounds_for_range(date_range)
-        if mtime_start is None or mtime_end is None:
-            return Result.Err("INVALID_INPUT", "Invalid date_range")
-    if mtime_start is not None:
-        filters["mtime_start"] = mtime_start
-    if mtime_end is not None:
-        filters["mtime_end"] = mtime_end
+    date_err = _apply_date_filters(query, filters)
+    if date_err is not None:
+        return date_err
 
     _merge_size_and_dimension_clamps(filters)
     return Result.Ok(filters)

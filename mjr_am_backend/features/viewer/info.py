@@ -127,6 +127,26 @@ def _estimate_frame_count(duration_s: Any, fps: float | None) -> int | None:
         return None
 
 
+_3D_EXT_TO_LOADER: dict[str, str] = {
+    ".gltf": "gltf",
+    ".glb": "gltf",
+    ".obj": "obj",
+    ".fbx": "fbx",
+    ".stl": "stl",
+    ".ply": "ply",
+    ".splat": "splat",
+    ".ksplat": "splat",
+    ".spz": "splat",
+}
+
+_PREVIEWABLE_3D_LOADERS = {"gltf", "obj", "fbx", "stl", "ply"}
+
+
+def _resolve_3d_loader(ext: str) -> str:
+    """Map a 3D file extension to the Three.js loader type used by ComfyUI."""
+    return _3D_EXT_TO_LOADER.get(ext.lower(), "gltf")
+
+
 def _extract_audio_fields(info: dict[str, Any], metadata_raw: Any) -> None:
     astream = _pick_ffprobe_audio_stream(metadata_raw)
     info["audio_codec"] = str(astream.get("codec_name")) if astream.get("codec_name") else None
@@ -175,6 +195,11 @@ def build_viewer_media_info(asset: dict[str, Any], resolved_path: Path | None = 
         _extract_video_fields(info, metadata_raw)
     elif kind == "audio":
         _extract_audio_fields(info, metadata_raw)
+    elif kind == "model3d":
+        loader = _resolve_3d_loader(ext)
+        info["loader"] = loader
+        info["previewable"] = loader in _PREVIEWABLE_3D_LOADERS
+        info["interactive"] = loader in _PREVIEWABLE_3D_LOADERS
 
     # File stats - prefer DB values initially
     info["size_bytes"] = _asset_field(asset, "size", int)

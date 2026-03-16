@@ -52,6 +52,7 @@ export const ENDPOINTS = {
 
     // Viewer helpers (Majoor)
     VIEWER_INFO: "/mjr/am/viewer/info",
+    VIEWER_RESOURCE: "/mjr/am/viewer/resource",
 
     // File upload
     UPLOAD_INPUT: "/mjr/am/upload_input",
@@ -260,6 +261,50 @@ export function buildCustomViewURL(filename, subfolder = "", rootId = "") {
 
 export function buildBatchZipDownloadURL(token) {
     return `${ENDPOINTS.BATCH_ZIP_CREATE}/${encodeURIComponent(String(token || ""))}`;
+}
+
+export function buildViewerResourceURL(assetOrContext, relpath = "") {
+    const ctx = assetOrContext && typeof assetOrContext === "object" ? assetOrContext : {};
+    const rel = String(relpath || "").trim();
+    if (!rel) return "";
+
+    const rawId = ctx?.asset_id ?? ctx?.id ?? null;
+    const assetId = Number(rawId) || 0;
+    let url = `${ENDPOINTS.VIEWER_RESOURCE}?relpath=${encodeURIComponent(rel)}`;
+    if (assetId > 0) {
+        return `${url}&asset_id=${encodeURIComponent(String(assetId))}`;
+    }
+
+    const filepath = toPosixPath(String(
+        ctx?.filepath ||
+        ctx?.path ||
+        ctx?.fullpath ||
+        ctx?.full_path ||
+        ctx?.file_info?.filepath ||
+        ctx?.file_info?.path ||
+        ""
+    ).trim());
+    if (filepath) {
+        return `${url}&filepath=${encodeURIComponent(filepath)}`;
+    }
+
+    const filename = String(ctx?.filename || ctx?.name || ctx?.file_info?.filename || "").trim();
+    if (!filename) return "";
+    url += `&filename=${encodeURIComponent(filename)}`;
+
+    const subfolder = String(ctx?.subfolder || ctx?.file_info?.subfolder || "").trim();
+    if (subfolder) url += `&subfolder=${encodeURIComponent(subfolder)}`;
+
+    const type = String(ctx?.type || ctx?.file_info?.type || "").trim().toLowerCase();
+    if (type && type !== "custom") {
+        url += `&type=${encodeURIComponent(type)}`;
+    }
+
+    const rootId = String(pickRootId(ctx) || ctx?.root_id || ctx?.custom_root_id || "").trim();
+    if (rootId) {
+        url += `&root_id=${encodeURIComponent(rootId)}`;
+    }
+    return url;
 }
 
 export function buildDateHistogramURL(params = {}) {

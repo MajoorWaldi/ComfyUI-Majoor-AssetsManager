@@ -20,11 +20,31 @@ SINK_CLASS_TYPES: set[str] = {
     "saveaudio",
     "save_audio",
     "vhs_saveaudio",
+    # ComfyUI-3D-Pack / Hunyuan3D output nodes
+    "save_3d_mesh",
+    "save_3dgs",
+    "[comfy3d] save 3d mesh",
+    "[comfy3d] save 3dgs",
+    "save3dmesh",
+    "save3dgs",
+    "export_3d_mesh",
+    "export_ply",
+    "export_glb",
+    "export_obj",
+    "saveglb",
+    "saveobj",
+    "saveply",
+    "voxeltomesh",
 }
 
 _VIDEO_SINK_TYPES: set[str] = {"savevideo", "vhs_savevideo", "vhs_videocombine"}
 _AUDIO_SINK_TYPES: set[str] = {"saveaudio", "save_audio", "vhs_saveaudio"}
 _IMAGE_SINK_TYPES: set[str] = {"saveimage", "saveimagewebsocket", "saveanimatedwebp", "savegif"}
+_3D_SINK_TYPES: set[str] = {
+    "save_3d_mesh", "save_3dgs", "[comfy3d] save 3d mesh", "[comfy3d] save 3dgs",
+    "save3dmesh", "save3dgs", "export_3d_mesh", "export_ply", "export_glb",
+    "export_obj", "saveglb", "saveobj", "saveply", "voxeltomesh",
+}
 
 
 def _to_int(value: Any) -> int | None:
@@ -190,7 +210,7 @@ def _find_candidate_sinks(nodes_by_id: dict[str, dict[str, Any]]) -> list[str]:
         if ct in SINK_CLASS_TYPES:
             sinks.append(node_id)
             continue
-        if ("save" in ct or "preview" in ct) and ("image" in ct or "video" in ct or "audio" in ct):
+        if ("save" in ct or "preview" in ct or "export" in ct) and ("image" in ct or "video" in ct or "audio" in ct or "mesh" in ct or "3d" in ct or "glb" in ct or "obj" in ct or "ply" in ct):
             sinks.append(node_id)
     return sinks
 
@@ -220,8 +240,11 @@ def _collect_upstream_nodes(nodes_by_id: dict[str, dict[str, Any]], start_node_i
 
 
 def _workflow_sink_suffix(sink_type: str) -> str:
+    is_3d_out = sink_type in _3D_SINK_TYPES or any(k in sink_type for k in ("mesh", "glb", "obj", "ply", "3d", "voxel"))
     is_audio_out = ("audio" in sink_type) and ("image" not in sink_type) and ("video" not in sink_type)
     is_video_out = (not is_audio_out) and ("video" in sink_type or "animate" in sink_type or "gif" in sink_type)
+    if is_3d_out:
+        return "3D"
     return "A" if is_audio_out else ("V" if is_video_out else "I")
 
 

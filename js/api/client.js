@@ -22,14 +22,18 @@ import { normalizeAssetId, pickRootId } from "../utils/ids.js";
  * Compact viewer-oriented media info returned by `/mjr/am/viewer/info`.
  *
  * @typedef {{
- *  kind?: ('image'|'video'|'unknown'),
+ *  kind?: ('image'|'video'|'audio'|'model3d'|'unknown'),
  *  mime?: (string|null),
  *  width?: (number|null),
  *  height?: (number|null),
  *  fps?: (number|string|null),
  *  fps_raw?: (string|null),
  *  frame_count?: (number|null),
- *  duration_s?: (number|null)
+ *  duration_s?: (number|null),
+ *  loader?: (string|null),
+ *  previewable?: (boolean|null),
+ *  interactive?: (boolean|null),
+ *  resource_endpoint?: (string|null)
  * }} ViewerInfo
  */
 
