@@ -194,12 +194,8 @@ export function createViewerPanZoom({
 
             const overflowVH = Math.max(0, scaledW - vw);
             const overflowVV = Math.max(0, scaledH - vh);
-            const overflowImageW = Math.max(0, scaledW - baseW);
-            const overflowImageH = Math.max(0, scaledH - baseH);
-            const overscrollW = Math.max(0, baseW - vw);
-            const overscrollH = Math.max(0, baseH - vh);
-            const maxPanX = (Math.max(overflowVH, overflowImageW, overscrollW) / 2) * zoom;
-            const maxPanY = (Math.max(overflowVV, overflowImageH, overscrollH) / 2) * zoom;
+            const maxPanX = (overflowVH / 2) * zoom;
+            const maxPanY = (overflowVV / 2) * zoom;
 
             state.panX = Math.max(-maxPanX, Math.min(maxPanX, Number(state?.panX) || 0));
             state.panY = Math.max(-maxPanY, Math.min(maxPanY, Number(state?.panY) || 0));
