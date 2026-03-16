@@ -201,6 +201,7 @@ async def _resolve_by_asset_id(
     asset, error = await _resolve_asset_from_id(asset_id)
     if error:
         return None, None, None, error
+    assert asset is not None
 
     raw_path = asset.get("filepath")
     if not raw_path or not isinstance(raw_path, str):
@@ -214,6 +215,7 @@ async def _resolve_by_asset_id(
     resolved, err = _strict_resolve(candidate, "asset path")
     if err:
         return asset, None, None, err
+    assert resolved is not None
     return asset, resolved, _find_best_view_root(resolved) or resolved.parent, None
 
 
@@ -230,6 +232,7 @@ async def _resolve_by_filepath(
     resolved, err = _strict_resolve(candidate, "file path")
     if err:
         return None, None, None, err
+    assert resolved is not None
     return None, resolved, _find_best_view_root(resolved) or resolved.parent, None
 
 
@@ -276,6 +279,8 @@ async def _resolve_by_filename(
     base_root, err = _resolve_base_root(root_id, asset_type)
     if err:
         return None, None, None, err
+    if base_root is None:
+        return None, None, None, Result.Err("VIEW_FAILED", "Root not available")
 
     candidate = base_root / rel / filename
     if not _is_within_root(candidate, base_root):
@@ -284,6 +289,7 @@ async def _resolve_by_filename(
     resolved, err = _strict_resolve(candidate, "viewer path")
     if err:
         return None, None, None, err
+    assert resolved is not None
     if not _is_within_root(resolved, base_root):
         return None, None, None, Result.Err("FORBIDDEN", "Path access denied (outside allowed scope)")
     return None, resolved, base_root, None

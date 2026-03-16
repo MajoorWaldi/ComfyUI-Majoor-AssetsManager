@@ -174,7 +174,7 @@ def _apply_numeric_filter(
     scale: int | float,
     error_text: str,
     filters: dict[str, Any],
-) -> "Result[None] | None":
+) -> "Result[dict[str, Any]] | None":
     if raw_key not in query:
         return None
     try:
@@ -191,7 +191,7 @@ def _apply_numeric_filter(
     return None
 
 
-def _apply_date_filters(query: "Mapping[str, Any]", filters: dict[str, Any]) -> "Result[None] | None":
+def _apply_date_filters(query: "Mapping[str, Any]", filters: dict[str, Any]) -> "Result[dict[str, Any]] | None":
     date_exact = str(query.get("date_exact") or "").strip()
     date_range = str(query.get("date_range") or "").strip().lower()
     if date_exact:

@@ -210,7 +210,7 @@ class PluginManager:
                 )
 
                 # Fire error hooks
-                await self._fire_error_hooks(filepath, extractor.name, result.error)
+                await self._fire_error_hooks(filepath, extractor.name, result.error or "")
 
                 if fallback_extractor:
                     return await fallback_extractor(filepath)
@@ -300,8 +300,9 @@ class PluginManager:
         count = self._loader.reload()
 
         # Re-register in registry
-        for extractor in self._loader.all_extractors:
-            self._registry.register_plugin(extractor)
+        if self._registry:
+            for extractor in self._loader.all_extractors:
+                self._registry.register_plugin(extractor)
 
         logger.info(f"Reloaded {count} plugins")
         return count

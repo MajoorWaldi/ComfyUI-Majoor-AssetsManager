@@ -9,7 +9,7 @@ from __future__ import annotations
 import ast
 import re
 from pathlib import Path
-from typing import List, Tuple, Dict, Set
+from typing import Any, Dict, List, Set, Tuple
 import logging
 
 logger = logging.getLogger(__name__)
@@ -98,7 +98,7 @@ class PluginValidator:
             Tuple of (is_valid, warnings, info_dict)
         """
         warnings = []
-        info = {
+        info: Dict[str, Any] = {
             "path": str(plugin_path),
             "size_bytes": 0,
             "lines": 0,
@@ -162,7 +162,7 @@ class PluginValidator:
     ) -> Tuple[List[str], Dict[str, Any]]:
         """AST-based security checks."""
         warnings = []
-        info = {
+        info: Dict[str, Any] = {
             "classes": 0,
             "functions": 0,
             "imports": [],

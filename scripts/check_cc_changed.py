@@ -54,7 +54,14 @@ def main() -> int:
 
     violations: list[tuple[str, str, int]] = []
     for path, items in data.items():
-        for item in items or []:
+        if not isinstance(items, list):
+            # radon reports {"error": "..."} for files with syntax errors — skip them
+            if isinstance(items, dict) and "error" in items:
+                print(f"Skipping {path}: radon error — {items['error']}")
+            continue
+        for item in items:
+            if not isinstance(item, dict):
+                continue
             complexity = int(item.get("complexity") or 0)
             if complexity > MAX_CC:
                 violations.append((path, str(item.get("name") or "<unknown>"), complexity))

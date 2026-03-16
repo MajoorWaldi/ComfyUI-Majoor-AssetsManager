@@ -160,6 +160,8 @@ class PluginRegistry:
     def _load_config(self) -> None:
         """Load configuration from disk."""
         try:
+            if not self.config_path:
+                return
             data = json.loads(self.config_path.read_text(encoding='utf-8'))
             for name, state_data in data.get("plugins", {}).items():
                 # Handle missing fields gracefully
