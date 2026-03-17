@@ -1801,5 +1801,191 @@ def _safe_download_filename(name: str) -> str:
     return _pg_safe_download_filename(name)
 
 
+_COMFYUI_STRIP_TAGS_WEBP = [
+    "EXIF:Make", "IFD0:Make",           # workflow
+    "EXIF:Model", "IFD0:Model",         # prompt
+    "EXIF:ImageDescription", "IFD0:ImageDescription",
+    "EXIF:UserComment", "IFD0:UserComment",
+]
+_COMFYUI_STRIP_TAGS_VIDEO = [
+    "QuickTime:Workflow", "QuickTime:Prompt",
+    "Keys:Workflow", "Keys:Prompt",
+]
+_STRIP_SUPPORTED_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".mp4", ".mov"}
+
+# PNG tEXt/iTXt/zTXt chunk keywords used by ComfyUI to embed metadata.
+_PNG_COMFYUI_KEYWORDS = frozenset({b"workflow", b"prompt", b"parameters"})
+_PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+_PNG_TEXT_CHUNK_TYPES = frozenset({b"tEXt", b"iTXt", b"zTXt"})
+
+
+def _strip_png_comfyui_chunks(data: bytes) -> bytes:
+    """Remove tEXt/iTXt/zTXt chunks whose keyword matches ComfyUI metadata.
+
+    Works at the binary PNG level — no ExifTool dependency.
+    Returns the cleaned PNG bytes, or the original data unchanged on error.
+    """
+    if len(data) < 8 or data[:8] != _PNG_SIGNATURE:
+        return data
+
+    out = bytearray(data[:8])
+    pos = 8
+    try:
+        while pos + 8 <= len(data):
+            chunk_len = int.from_bytes(data[pos:pos + 4], "big")
+            chunk_type = data[pos + 4:pos + 8]
+            # 4 (length) + 4 (type) + chunk_len (data) + 4 (CRC)
+            total = 12 + chunk_len
+            if pos + total > len(data):
+                # Truncated chunk — keep the rest as-is.
+                out.extend(data[pos:])
+                break
+
+            if chunk_type in _PNG_TEXT_CHUNK_TYPES:
+                chunk_data = data[pos + 8:pos + 8 + chunk_len]
+                # The keyword is a null-terminated string at the start of the chunk data.
+                null_idx = chunk_data.find(b"\x00")
+                keyword = chunk_data[:null_idx] if null_idx >= 0 else chunk_data
+                if keyword.lower() in _PNG_COMFYUI_KEYWORDS:
+                    # Skip this chunk entirely.
+                    pos += total
+                    continue
+
+            out.extend(data[pos:pos + total])
+            pos += total
+    except Exception:
+        return data
+    return bytes(out)
+
+
+def _strip_tags_for_ext(ext: str) -> list[str]:
+    ext = ext.lower()
+    if ext == ".png":
+        return []  # PNG uses pure-Python chunk removal, not ExifTool
+    if ext in (".webp", ".jpg", ".jpeg"):
+        return _COMFYUI_STRIP_TAGS_WEBP
+    if ext in (".mp4", ".mov"):
+        return _COMFYUI_STRIP_TAGS_VIDEO
+    return []
+
+
+async def download_clean_asset(request: web.Request) -> web.StreamResponse:
+    """
+    Download an asset with ComfyUI metadata (workflow, prompt) stripped.
+
+    - PNG: pure-Python tEXt/iTXt/zTXt chunk removal (ExifTool can't delete custom PNG text chunks).
+    - WEBP/JPEG: ExifTool to clear standard EXIF tags used by ComfyUI.
+    - Video: ExifTool to clear QuickTime metadata tags.
+
+    Query param: filepath (absolute path, must be within allowed roots)
+    """
+    rate_limited = _download_rate_limit_response_or_none(request, preview=False)
+    if rate_limited is not None:
+        return rate_limited
+
+    filepath = request.query.get("filepath")
+    if not filepath:
+        return web.Response(status=400, text="Missing 'filepath' parameter")
+
+    resolved_path = _resolve_download_path(filepath)
+    if not isinstance(resolved_path, Path):
+        return resolved_path
+
+    ext = resolved_path.suffix.lower()
+    if ext not in _STRIP_SUPPORTED_EXTS:
+        return _build_download_response(resolved_path, preview=False)
+
+    import mimetypes
+
+    # --- PNG: pure Python chunk filtering (no ExifTool needed) ---
+    if ext == ".png":
+        try:
+            raw = await asyncio.to_thread(resolved_path.read_bytes)
+            data = await asyncio.to_thread(_strip_png_comfyui_chunks, raw)
+            mime_type, _ = mimetypes.guess_type(str(resolved_path))
+            safe_name = _safe_download_filename(resolved_path.name)
+            return web.Response(
+                body=data,
+                content_type=mime_type or "image/png",
+                headers={
+                    "Content-Disposition": f'attachment; filename="{safe_name}"',
+                    "X-Content-Type-Options": "nosniff",
+                    "X-MJR-Metadata-Stripped": "true",
+                    "Cache-Control": "private, no-cache",
+                },
+            )
+        except Exception as exc:
+            logger.error("PNG metadata strip failed: %s", exc)
+            return _build_download_response(resolved_path, preview=False)
+
+    # --- WEBP / JPEG / Video: ExifTool ---
+    svc, svc_err = await _require_services()
+    if svc_err or not svc:
+        return _build_download_response(resolved_path, preview=False)
+
+    exiftool = svc.get("exiftool")
+    if not exiftool or not getattr(exiftool, "_available", False):
+        logger.warning("ExifTool not available — serving original file without stripping")
+        return _build_download_response(resolved_path, preview=False)
+
+    import tempfile
+    tmp_dir = None
+    try:
+        tmp_dir = tempfile.mkdtemp(prefix="mjr_clean_")
+        tmp_path = Path(tmp_dir) / resolved_path.name
+        shutil.copy2(str(resolved_path), str(tmp_path))
+
+        tags_to_strip = _strip_tags_for_ext(ext)
+        stripped = False
+
+        # Try targeted tag removal first.
+        if tags_to_strip:
+            metadata_clear = {tag: None for tag in tags_to_strip}
+            strip_result = await asyncio.to_thread(
+                exiftool.write, str(tmp_path), metadata_clear, False
+            )
+            if strip_result.ok:
+                stripped = True
+            else:
+                logger.warning("Targeted metadata strip failed: %s — trying -all=", strip_result.error)
+
+        # Fallback: strip ALL metadata if targeted approach failed or no specific tags.
+        if not stripped:
+            fallback_result = await asyncio.to_thread(
+                exiftool.write, str(tmp_path), {"all": None}, False
+            )
+            if not fallback_result.ok:
+                logger.warning("Fallback metadata strip also failed: %s — serving original", fallback_result.error)
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+                return _build_download_response(resolved_path, preview=False)
+
+        data = await asyncio.to_thread(tmp_path.read_bytes)
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        tmp_dir = None
+
+        mime_type, _ = mimetypes.guess_type(str(resolved_path))
+        safe_name = _safe_download_filename(resolved_path.name)
+        return web.Response(
+            body=data,
+            content_type=mime_type or "application/octet-stream",
+            headers={
+                "Content-Disposition": f'attachment; filename="{safe_name}"',
+                "X-Content-Type-Options": "nosniff",
+                "X-MJR-Metadata-Stripped": "true",
+                "Cache-Control": "private, no-cache",
+            },
+        )
+
+    except Exception as exc:
+        logger.error("download-clean failed: %s", exc)
+        if tmp_dir:
+            try:
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+            except Exception:
+                pass
+        return _build_download_response(resolved_path, preview=False)
+
+
 def register_download_routes(routes: web.RouteTableDef):
     routes.get("/mjr/am/download")(download_asset)
+    routes.get("/mjr/am/download-clean")(download_clean_asset)

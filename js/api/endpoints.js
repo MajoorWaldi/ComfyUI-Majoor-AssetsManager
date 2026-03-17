@@ -59,6 +59,7 @@ export const ENDPOINTS = {
 
     // File download
     DOWNLOAD: "/mjr/am/download",
+    DOWNLOAD_CLEAN: "/mjr/am/download-clean",
 
     // Drag-out (OS) helpers
     BATCH_ZIP_CREATE: "/mjr/am/batch-zip",
@@ -448,4 +449,12 @@ export function buildDownloadURL(filepath, options = {}) {
     let url = `${ENDPOINTS.DOWNLOAD}?filepath=${encodeURIComponent(filepath)}`;
     if (inline) url += "&preview=1";
     return url;
+}
+
+/**
+ * Build download URL for asset with ComfyUI metadata stripped.
+ */
+export function buildCleanDownloadURL(filepath) {
+    if (!filepath) return "";
+    return `${ENDPOINTS.DOWNLOAD_CLEAN}?filepath=${encodeURIComponent(filepath)}`;
 }
