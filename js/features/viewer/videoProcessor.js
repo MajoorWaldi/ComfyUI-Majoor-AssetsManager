@@ -96,8 +96,14 @@ export function createVideoProcessor({
             const h = Math.max(1, Math.round(h0 * proc.scale));
             if (srcCanvas.width !== w) srcCanvas.width = w;
             if (srcCanvas.height !== h) srcCanvas.height = h;
-            if (canvas.width !== w) canvas.width = w;
-            if (canvas.height !== h) canvas.height = h;
+
+            // When WebGL is active it owns canvas dimensions (ensureSize in
+            // videoProcessorWebGL.js).  Setting canvas.width here would clear
+            // the WebGL backbuffer and fight the GL viewport.
+            if (!glProc) {
+                if (canvas.width !== w) canvas.width = w;
+                if (canvas.height !== h) canvas.height = h;
+            }
 
             canvas._mjrNaturalW = w0;
             canvas._mjrNaturalH = h0;

@@ -145,18 +145,15 @@ const getVideoThumbManager = () => {
                 done = true;
                 try {
                     video.removeEventListener("loadeddata", onLoaded);
-                    video.removeEventListener("loadedmetadata", onMetadata);
                     video.removeEventListener("error", onError);
                 } catch (e) { console.debug?.(e); }
                 resolve(ok);
             };
             const onLoaded = () => finish(true);
-            const onMetadata = () => finish(true);
             const onError = () => finish(false);
 
             try {
                 video.addEventListener("loadeddata", onLoaded, { once: true });
-                video.addEventListener("loadedmetadata", onMetadata, { once: true });
                 video.addEventListener("error", onError, { once: true });
             } catch {
                 return resolve(false);

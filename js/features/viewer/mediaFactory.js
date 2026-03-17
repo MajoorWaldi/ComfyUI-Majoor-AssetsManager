@@ -27,7 +27,7 @@ export function createViewerMediaFactory({
     maxProcPixels,
     maxProcPixelsVideo,
     disableWebGL,
-    videoGradeThrottleFps: _videoGradeThrottleFps,
+    videoGradeThrottleFps,
     safeAddListener,
     safeCall,
 } = {}) {

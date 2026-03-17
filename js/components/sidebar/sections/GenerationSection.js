@@ -1168,11 +1168,12 @@ export function createGenerationSection(asset) {
                 _setPreviewSrcWithFallback(vid, srcCandidates);
                 vid.muted = true;
                 vid.loop = true;
-                vid.autoplay = false; // Hover to play? Or just poster?
-                // Auto-play many videos might be heavy. Let's try mouseover.
-                vid.onmouseover = () => vid.play().catch(() => {});
-                vid.onmouseout = () => vid.pause();
-                
+                vid.autoplay = false;
+                vid.playsInline = true;
+                vid.preload = "metadata";
+                vid.addEventListener("mouseover", () => vid.play().catch(() => {}));
+                vid.addEventListener("mouseout", () => vid.pause());
+
                 vid.style.cssText = "width: 100%; height: 100%; object-fit: cover;";
                 thumb.appendChild(vid);
             } else {
