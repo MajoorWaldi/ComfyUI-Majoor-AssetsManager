@@ -2,6 +2,45 @@
 
 All notable changes to this project are documented in this file.
 
+## [2.4.2] - 2026-03-17
+
+### 🎉 Major Features
+
+#### 3D Model Viewing Support
+- **Basic 3D Model Thumbnail Rendering** — Implemented 3D model thumbnail rendering with fallback icon support
+- **Viewer Mode Selection** — Updated viewer logic to handle 3D model assets
+- **3D Model Interactions** — Added checks for 3D model interactions in the viewer
+- **Drag & Drop Extension** — Extended drag & drop support to include 3D model assets
+
+#### Toast History Tab
+- **History Tab Implementation** — Added new history tab to message popover alongside messages and shortcuts
+- **Recent Toast Notifications** — Display recent toast notifications in the history panel
+- **Clear History** — Included clear button to remove toast history
+- **Unread Indicator** — Added unread indicator to history tab when there are new entries
+- **Layout Updates** — Updated message popover layout and styling to accommodate new tab
+
+#### Enhanced Floating Viewer
+- **Document Picture-in-Picture** — Implemented PiP for always-on-top secondary monitor support
+- **Pop-out Functionality** — Enhanced with fallback to `window.open()` for compatibility
+- **Transitions & Interactions** — Refined pop-in/out transitions and user interface interactions
+- **Media Loading** — Optimized media loading and error handling for various scenarios
+- **Keyboard Shortcuts** — Improved keyboard shortcut integration and behavior
+- **CSS Animations** — Updated animations and z-index hierarchy for better visual presentation
+- **Backend Logging** — Enhanced logging for request handling
+
+### 🐛 Bug Fixes & Resilience
+
+#### Stability Improvements
+- **Card.js Timeout Leak** — Fixed potential timeout leak in Card.js
+- **AssetsManagerPanel Reload** — Enhanced reload logic for better stability
+- **FloatingViewer Drag** — Optimized drag interactions
+- **Plugin Loader** — Refined plugin loader and manager for hot-reload safety
+- **Registry Configuration** — Improved configuration handling
+- **File Existence Checks** — Removed redundant file existence checks in assets_impl
+- **Asset Renaming** — Implemented rate limiting for asset renaming
+
+---
+
 ## [2.4.1] - 2026-03-09
 
 ### ✨ Added
