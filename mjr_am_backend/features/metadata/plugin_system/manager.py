@@ -65,6 +65,7 @@ class PluginManager:
         self._loader: Optional[PluginLoader] = None
         self._registry: Optional[PluginRegistry] = None
         self._initialized = False
+        self._reload_lock = asyncio.Lock()
 
         # Event hooks
         self._on_extract_hooks: List[Callable] = []
@@ -131,6 +132,15 @@ class PluginManager:
             return ExtractionResult(
                 success=False,
                 error="Plugin system not initialized"
+            )
+
+        # Prevent extraction while a reload is swapping extractors.
+        if self._reload_lock.locked():
+            if fallback_extractor:
+                return await fallback_extractor(filepath)
+            return ExtractionResult(
+                success=False,
+                error="Plugin system is reloading"
             )
 
         # Get best extractor for file
@@ -289,6 +299,9 @@ class PluginManager:
         """
         Reload all plugins (hot-reload).
 
+        Uses a lock to prevent concurrent extract() calls from accessing
+        stale extractor references during the reload window.
+
         Returns:
             Number of plugins loaded
         """
@@ -296,16 +309,17 @@ class PluginManager:
             logger.warning("Cannot reload: loader not initialized")
             return 0
 
-        logger.info("Reloading plugins...")
-        count = self._loader.reload()
+        async with self._reload_lock:
+            logger.info("Reloading plugins...")
+            count = self._loader.reload()
 
-        # Re-register in registry
-        if self._registry:
-            for extractor in self._loader.all_extractors:
-                self._registry.register_plugin(extractor)
+            # Re-register in registry
+            if self._registry:
+                for extractor in self._loader.all_extractors:
+                    self._registry.register_plugin(extractor)
 
-        logger.info(f"Reloaded {count} plugins")
-        return count
+            logger.info(f"Reloaded {count} plugins")
+            return count
 
     def get_plugin_info(self, name: str) -> Optional[Dict[str, Any]]:
         """Get detailed information about a plugin."""

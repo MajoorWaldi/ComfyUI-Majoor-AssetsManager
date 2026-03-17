@@ -92,6 +92,7 @@ async def persist_prepared_entries_tx(
     to_enrich: list[str] | None,
     added_ids: list[int] | None,
 ) -> None:
+    tx_error: str | None = None
     async with scanner.db.atransaction(mode="immediate") as tx:
         if not tx.ok:
             raise RuntimeError(tx.error or "Failed to begin transaction")
@@ -106,8 +107,10 @@ async def persist_prepared_entries_tx(
                 to_enrich=to_enrich,
                 added_ids=added_ids,
             )
-    if not tx.ok:
-        raise RuntimeError(tx.error or "Commit failed")
+        # Capture status while still inside the context manager scope.
+        tx_error = tx.error if not tx.ok else None
+    if tx_error is not None:
+        raise RuntimeError(tx_error or "Commit failed")
 
 
 async def process_prepared_entry_tx(
@@ -199,6 +202,7 @@ async def persist_prepared_entries_fallback(
                 fallback_correct_error(stats)
                 continue
 
+            entry_tx_failed = False
             async with scanner.db.atransaction(mode="immediate") as tx:
                 if not tx.ok:
                     failed_entries.append(filepath_value)
@@ -216,7 +220,9 @@ async def persist_prepared_entries_fallback(
                 if not ok:
                     failed_entries.append(filepath_value)
                     continue
-            if not tx.ok:
+                # Check commit status inside the context manager scope.
+                entry_tx_failed = not tx.ok
+            if entry_tx_failed:
                 failed_entries.append(filepath_value)
         except Exception as individual_error:
             failed_entries.append(filepath_value)

@@ -179,10 +179,14 @@ class PluginRegistry:
         except Exception as e:
             logger.warning(f"Failed to load plugin config: {e}")
 
-    def _save_config(self) -> None:
-        """Save configuration to disk."""
+    def _save_config(self) -> bool:
+        """Save configuration to disk.
+
+        Returns:
+            True if config was persisted successfully.
+        """
         if not self.config_path:
-            return
+            return False
 
         try:
             data = {
@@ -191,15 +195,16 @@ class PluginRegistry:
                     for name, state in self._plugin_states.items()
                 },
                 "metadata": {
-                    "last_updated": str(Path(self.config_path).stat().st_mtime),
                     "version": "1.0",
                 }
             }
             self.config_path.parent.mkdir(parents=True, exist_ok=True)
             self.config_path.write_text(json.dumps(data, indent=2))
             logger.debug(f"Saved plugin config to {self.config_path}")
+            return True
         except Exception as e:
             logger.warning(f"Failed to save plugin config: {e}")
+            return False
 
     def get_stats(self) -> Dict[str, Any]:
         """Get registry statistics."""
@@ -289,18 +294,37 @@ class PluginRegistry:
 
             if merge:
                 for name, state_data in plugins_data.items():
+                    if not isinstance(state_data, dict):
+                        logger.warning(f"Skipping invalid plugin state for '{name}'")
+                        continue
                     if name in self._plugin_states:
-                        # Update existing
                         existing = self._plugin_states[name]
                         existing.enabled = state_data.get('enabled', True)
                     else:
-                        # Add new
-                        self._plugin_states[name] = PluginState(**state_data)
+                        try:
+                            state_data.setdefault('name', name)
+                            state_data.setdefault('version', '0.0.0')
+                            self._plugin_states[name] = PluginState(**{
+                                k: v for k, v in state_data.items()
+                                if k in PluginState.__dataclass_fields__
+                            })
+                        except Exception as e:
+                            logger.warning(f"Skipping malformed plugin state for '{name}': {e}")
             else:
-                # Replace all
                 self._plugin_states.clear()
                 for name, state_data in plugins_data.items():
-                    self._plugin_states[name] = PluginState(**state_data)
+                    if not isinstance(state_data, dict):
+                        logger.warning(f"Skipping invalid plugin state for '{name}'")
+                        continue
+                    try:
+                        state_data.setdefault('name', name)
+                        state_data.setdefault('version', '0.0.0')
+                        self._plugin_states[name] = PluginState(**{
+                            k: v for k, v in state_data.items()
+                            if k in PluginState.__dataclass_fields__
+                        })
+                    except Exception as e:
+                        logger.warning(f"Skipping malformed plugin state for '{name}': {e}")
 
             self._save_config()
             logger.info(f"Imported plugin config from {input_path}")
