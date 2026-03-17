@@ -638,7 +638,10 @@ class MetadataHelpers:
         if not result.ok or not result.data:
             return None
 
-        raw = result.data[0].get("metadata_raw")
+        row = result.data[0] if result.data else None
+        if not isinstance(row, dict):
+            return None
+        raw = row.get("metadata_raw")
         if not raw:
             return None
 
@@ -799,7 +802,8 @@ async def _cleanup_cache_by_ttl(db: Sqlite, ttl_seconds: float) -> None:
 async def _cleanup_cache_by_max_entries(db: Sqlite, max_entries: int) -> None:
     try:
         count_res = await db.aquery("SELECT COUNT(1) AS count FROM metadata_cache")
-        total = int(count_res.data[0].get("count") or 0) if count_res.ok and count_res.data else 0
+        row = count_res.data[0] if (count_res.ok and count_res.data) else None
+        total = int(row.get("count") or 0) if isinstance(row, dict) else 0
         if total <= max_entries:
             return
         to_remove = max(0, total - max_entries)

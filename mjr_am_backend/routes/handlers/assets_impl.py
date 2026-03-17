@@ -1102,8 +1102,8 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if not _is_resolved_path_allowed(resolved):
             return _json_response(Result.Err("FORBIDDEN", "Path is not within allowed roots"))
 
-        if not (resolved.exists() and resolved.is_file()):
-            return _json_response(Result.Err("NOT_FOUND", "File does not exist"))
+        # resolve(strict=True) above already verified the file exists.
+        # Skip a redundant exists() check to avoid TOCTOU race conditions.
 
         resolved_str = str(resolved)
         resolved_filepath_keys = _filepath_db_keys(resolved_str)
@@ -1204,6 +1204,10 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         auth = _require_write_access(request)
         if not auth.ok:
             return _json_response(auth)
+
+        allowed, retry_after = _check_rate_limit(request, "asset_rename", max_requests=20, window_seconds=60)
+        if not allowed:
+            return _json_response(Result.Err("RATE_LIMITED", "Rate limit exceeded. Please wait before retrying.", retry_after=retry_after))
 
         body_res = await _read_json(request)
         if not body_res.ok:

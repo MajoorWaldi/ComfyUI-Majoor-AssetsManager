@@ -19,7 +19,7 @@ import { EVENTS } from "./app/events.js";
 import { initDragDrop } from "./features/dnd/DragDrop.js";
 import { initLiveStreamTracker, teardownLiveStreamTracker, setCurrentJobId } from "./features/viewer/LiveStreamTracker.js";
 import { teardownFloatingViewerManager } from "./features/viewer/floatingViewerManager.js";
-import { loadAssets, upsertAsset, scrollGridToTop, removeAssetsFromGrid } from "./features/grid/GridView.js";
+import { loadAssets, upsertAsset, removeAssetsFromGrid } from "./features/grid/GridView.js";
 import { renderAssetsManager, getActiveGridContainer } from "./features/panel/AssetsManagerPanel.js";
 import { extractOutputFiles } from "./utils/extractOutputFiles.js";
 import { post } from "./api/client.js";
@@ -297,18 +297,16 @@ app.registerExtension({
                             if (scope !== "output" && scope !== "all") return;
                             const query = grid.dataset?.mjrQuery || "*";
                             const canDirectUpsert = String(query).trim() === "*";
-                            let handled = false;
                             if (canDirectUpsert) {
-                                handled = !!upsertAsset(grid, event.detail);
-                                if (handled) scrollGridToTop(grid);
+                                const handled = !!upsertAsset(grid, event.detail);
+                                if (handled) {
+                                    // Signal that we handled this event so handleCountersUpdate
+                                    // skips its own reload within the next window.
+                                    try { window.__mjrLastAssetUpsert = Date.now(); } catch (e) { console.debug?.(e); }
+                                }
                             }
-                            if (!handled) {
-                                // Fallback reload for filtered views or missing upsert context.
-                                loadAssets(grid, query).catch(() => {});
-                            }
-                            // Signal that we handled this event so handleCountersUpdate skips
-                            // its own fallback reload within the next 6 s.
-                            try { window.__mjrLastAssetUpsert = Date.now(); } catch (e) { console.debug?.(e); }
+                            // No fallback reload here — let handleCountersUpdate's
+                            // queuedReload() handle it (preserves scroll anchor).
                         }
                     } catch (error) {
                         reportError(error, "entry.asset_added");
@@ -343,21 +341,9 @@ app.registerExtension({
                                 return;
                             }
 
-                            // Ignore non-renderable partial updates for unseen assets, but force
-                            // a debounced fallback reload so generated files still appear.
-                            const scope = grid.dataset?.mjrScope || "output";
-                            if (scope === "output" || scope === "all") {
-                                const query = grid.dataset?.mjrQuery || "*";
-                                try {
-                                    if (api._mjrAssetUpdateReloadTimer) {
-                                        clearTimeout(api._mjrAssetUpdateReloadTimer);
-                                    }
-                                } catch (e) { console.debug?.(e); }
-                                api._mjrAssetUpdateReloadTimer = setTimeout(() => {
-                                    api._mjrAssetUpdateReloadTimer = null;
-                                    loadAssets(grid, query).catch(() => {});
-                                }, 700);
-                            }
+                            // Non-renderable partial updates for unseen assets — let
+                            // handleCountersUpdate's queuedReload() pick up changes
+                            // (preserves scroll anchor and avoids reload storms).
                         }
                     } catch (error) {
                         reportError(error, "entry.asset_updated");

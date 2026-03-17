@@ -1435,7 +1435,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             Number.isFinite(totalAssets) && Number.isFinite(lastKnownTotalAssets)
                 ? totalAssets - lastKnownTotalAssets
                 : 0;
-        const hasNewTotal = totalDelta >= 3;
+        // Only trigger reload for large bulk additions (e.g. full scan, external copy).
+        // Small increments from generation are handled by upsert (no reload needed).
+        const hasNewTotal = totalDelta >= 20;
 
         // Keep baseline current even if we skip auto-reload; avoids repeated trigger loops.
         if (Number.isFinite(totalAssets)) {
@@ -1449,26 +1451,35 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             lastKnownIndexEnd = counters.last_index_end;
             return;
         }
+
+        // If upsert handled assets recently, skip reload entirely — assets are already visible.
+        const recentUpsertMs = Date.now() - Number(window.__mjrLastAssetUpsert || 0);
+        const upsertHandledRecently = recentUpsertMs < 15000;
+
         // hasNewIndexEnd: files were indexed (e.g. after a generation run).
         // Primary handler: mjr-asset-added WS push → upsertAsset (instant, no flash).
         // Fallback: reload when the upsert didn't run recently (panel was hidden, wrong
         // scope, or WS event was missed). Skip the reload when upsert ran within the
-        // last 6 s to avoid a flash over assets that are already visible.
+        // last 15 s to avoid a flash over assets that are already visible.
         if (hasNewIndexEnd) lastKnownIndexEnd = counters.last_index_end;
         const needsFallbackReload =
             hasNewIndexEnd && !hasNewScan && !hasNewTotal &&
-            (Date.now() - Number(window.__mjrLastAssetUpsert || 0) > 6000);
+            !upsertHandledRecently;
+
+        // If upsert handled things recently, also skip hasNewTotal reloads — only
+        // full scans (hasNewScan) should force a reload in that window.
+        if (upsertHandledRecently && !hasNewScan) return;
         if (!hasNewScan && !hasNewTotal && !needsFallbackReload) return;
 
         // Global throttle against reload storms from frequent watcher/enrichment updates.
         try {
             const now = Date.now();
-            if (now - Number(_lastAutoReloadAt || 0) < 8000) return;
+            if (now - Number(_lastAutoReloadAt || 0) < 15000) return;
         } catch (e) { console.debug?.(e); }
 
         // Avoid disruptive auto-reload while user is actively interacting.
         try {
-            const recentInteraction = (Date.now() - Number(_lastUserInteractionAt || 0)) < 1500;
+            const recentInteraction = (Date.now() - Number(_lastUserInteractionAt || 0)) < 2000;
             if (recentInteraction) return;
         } catch (e) { console.debug?.(e); }
 

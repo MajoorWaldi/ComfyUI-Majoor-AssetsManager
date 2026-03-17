@@ -1134,9 +1134,14 @@ export class FloatingViewer {
             genInfoBEl.style.left = `calc(${pct}% + 8px)`;
         }
 
+        let _abDivAC = null;
         divider.addEventListener("pointerdown", (e) => {
             e.preventDefault();
             divider.setPointerCapture(e.pointerId);
+            // Abort any previous drag listeners to prevent accumulation.
+            try { _abDivAC?.abort(); } catch {}
+            _abDivAC = new AbortController();
+            const sig = _abDivAC.signal;
             const rect = container.getBoundingClientRect();
 
             const onMove = (me) => {
@@ -1149,11 +1154,10 @@ export class FloatingViewer {
                 if (genInfoBEl) genInfoBEl.style.left = `calc(${p}% + 8px)`;
             };
             const onUp = () => {
-                divider.removeEventListener("pointermove", onMove);
-                divider.removeEventListener("pointerup", onUp);
+                try { _abDivAC?.abort(); } catch {}
             };
-            divider.addEventListener("pointermove", onMove);
-            divider.addEventListener("pointerup", onUp);
+            divider.addEventListener("pointermove", onMove, { signal: sig });
+            divider.addEventListener("pointerup", onUp, { signal: sig });
         }, this._panelAC?.signal ? { signal: this._panelAC.signal } : undefined);
 
         container.appendChild(layerA);
@@ -1765,6 +1769,7 @@ export class FloatingViewer {
     _initDrag(handle) {
         if (!handle) return;
         const signal = this._panelAC?.signal;
+        let _dragAC = null;
         handle.addEventListener("pointerdown", (e) => {
             if (e.button !== 0) return;
             if (e.target.closest("button")) return; // Don't drag when clicking buttons
@@ -1779,6 +1784,10 @@ export class FloatingViewer {
             if (edgeDir) return;
             e.preventDefault();
             handle.setPointerCapture(e.pointerId);
+            // Abort any previous drag listeners to prevent accumulation.
+            try { _dragAC?.abort(); } catch {}
+            _dragAC = new AbortController();
+            const dragSig = _dragAC.signal;
 
             const el  = this.element;
             const rect = el.getBoundingClientRect();
@@ -1794,11 +1803,10 @@ export class FloatingViewer {
                 el.style.bottom = "auto";
             };
             const onUp = () => {
-                handle.removeEventListener("pointermove", onMove);
-                handle.removeEventListener("pointerup", onUp);
+                try { _dragAC?.abort(); } catch {}
             };
-            handle.addEventListener("pointermove", onMove);
-            handle.addEventListener("pointerup", onUp);
+            handle.addEventListener("pointermove", onMove, { signal: dragSig });
+            handle.addEventListener("pointerup", onUp, { signal: dragSig });
         }, signal ? { signal } : undefined);
     }
 

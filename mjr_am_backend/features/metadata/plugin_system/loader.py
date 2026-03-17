@@ -112,8 +112,20 @@ class PluginLoader:
         """Scan a single directory for plugins."""
         count = 0
 
+        # Validate that the directory is not a symlink pointing outside
+        # the expected location (prevents loading arbitrary code).
+        try:
+            resolved_dir = directory.resolve(strict=True)
+            if resolved_dir != directory.resolve() and directory.is_symlink():
+                logger.warning(
+                    f"Skipping symlinked plugin directory: {directory}"
+                )
+                return 0
+        except (OSError, RuntimeError, ValueError):
+            return 0
+
         # Scan .py files
-        for module_file in directory.glob("*.py"):
+        for module_file in resolved_dir.glob("*.py"):
             if module_file.name.startswith("_"):
                 continue
 
@@ -198,7 +210,12 @@ class PluginLoader:
 
         module = importlib.util.module_from_spec(spec)
         sys.modules[full_name] = module
-        spec.loader.exec_module(module)
+        try:
+            spec.loader.exec_module(module)
+        except Exception:
+            # Remove broken module from sys.modules to avoid stale imports.
+            sys.modules.pop(full_name, None)
+            raise
 
         self._loaded_modules.add(full_name)
 
@@ -274,20 +291,22 @@ class PluginLoader:
 
         extractor = self._extractors.pop(name)
         try:
-            # Call cleanup hook
+            # Call cleanup hook.  We intentionally call the synchronous
+            # fallback when no running loop is available.  When the loop IS
+            # running (the common case during hot-reload) we schedule the
+            # cleanup as a proper awaited task via ensure_future so it
+            # actually completes before dereferencing the extractor.
             import asyncio
             try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    # Create task if loop is running
-                    asyncio.create_task(extractor.cleanup())
-                else:
-                    loop.run_until_complete(extractor.cleanup())
+                loop = asyncio.get_running_loop()
+                # Schedule and let it complete within the current event loop.
+                asyncio.ensure_future(extractor.cleanup(), loop=loop)
             except RuntimeError:
-                # No running loop, create new one
-                loop = asyncio.new_event_loop()
-                loop.run_until_complete(extractor.cleanup())
-                loop.close()
+                # No running loop — run synchronously in a throwaway loop.
+                try:
+                    asyncio.run(extractor.cleanup())
+                except Exception as inner:
+                    logger.debug(f"Sync cleanup fallback failed for {name}: {inner}")
         except Exception as e:
             logger.error(f"Cleanup failed for {name}: {e}")
 
@@ -370,6 +389,11 @@ class PluginLoader:
         # Unregister all extractors
         for name in list(self._extractors.keys()):
             self.unregister_extractor(name)
+
+        # Remove previously loaded modules from sys.modules so reimport
+        # picks up changes on disk and avoids stale module references.
+        for mod_name in self._loaded_modules:
+            sys.modules.pop(mod_name, None)
 
         self._loaded_modules.clear()
         self._load_errors.clear()

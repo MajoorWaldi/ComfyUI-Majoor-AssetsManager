@@ -106,7 +106,9 @@ async def asset_has_rich_metadata(scanner: Any, *, asset_id: int) -> bool:
     if not row.ok or not row.data:
         return False
     try:
-        data = row.data[0] or {}
+        data = row.data[0] if row.data else None
+        if not isinstance(data, dict):
+            return False
         metadata_quality = str(data.get("metadata_quality") or "").strip().lower()
         metadata_raw = str(data.get("metadata_raw") or "").strip()
         return metadata_quality not in ("", "none") or metadata_raw not in ("", "{}", "null")

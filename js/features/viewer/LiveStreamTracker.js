@@ -304,6 +304,15 @@ function _hookCanvasWhenReady(app) {
  */
 async function _hookPreviewApi(app) {
     try {
+        // Remove any existing listeners before re-hooking to prevent
+        // accumulation on hot-reload or double-init.
+        if (_apiRef) {
+            if (_previewHandler) { try { _apiRef.removeEventListener("b_preview", _previewHandler); } catch {} }
+            if (_previewWithMetaHandler) { try { _apiRef.removeEventListener("b_preview_with_metadata", _previewWithMetaHandler); } catch {} }
+            _previewHandler = null;
+            _previewWithMetaHandler = null;
+        }
+
         const api = await waitForComfyApi({ app, timeoutMs: 8000 });
         if (!api) {
             console.debug("[Majoor] MFV: ComfyUI API not found — preview streaming disabled");

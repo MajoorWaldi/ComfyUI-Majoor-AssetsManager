@@ -140,9 +140,11 @@ const getVideoThumbManager = () => {
             } catch (e) { console.debug?.(e); }
 
             let done = false;
+            let timerId = 0;
             const finish = (ok) => {
                 if (done) return;
                 done = true;
+                if (timerId) { try { clearTimeout(timerId); } catch {} }
                 try {
                     video.removeEventListener("loadeddata", onLoaded);
                     video.removeEventListener("error", onError);
@@ -160,7 +162,7 @@ const getVideoThumbManager = () => {
             }
 
             try {
-                setTimeout(() => finish(false), timeoutMs);
+                timerId = setTimeout(() => finish(false), timeoutMs);
             } catch (e) { console.debug?.(e); }
         });
 

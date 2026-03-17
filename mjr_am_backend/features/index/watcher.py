@@ -300,8 +300,10 @@ class DebouncedWatchHandler(FileSystemEventHandler):
                 self._schedule_flush()
                 return
 
-            # Add to pending batch
+            # Add to pending batch and mark in _recent immediately to prevent
+            # duplicate events from bypassing dedup between pending-add and flush.
             self._pending[key] = now
+            self._recent[key] = now
 
             # Schedule flush
             self._schedule_flush()
@@ -546,8 +548,13 @@ def mark_recent_generated(paths: list[str]) -> None:
                 key = _normalize_recent_key(p)
                 if key:
                     _RECENT_GENERATED[key] = now
-            if len(_RECENT_GENERATED) > 5000:
-                # Drop oldest entries (best-effort)
+            # Prune expired entries first, then enforce hard cap.
+            if len(_RECENT_GENERATED) > 2000:
+                cutoff = now - _RECENT_GENERATED_TTL_S
+                expired = [k for k, ts in _RECENT_GENERATED.items() if ts < cutoff]
+                for k in expired:
+                    _RECENT_GENERATED.pop(k, None)
+            if len(_RECENT_GENERATED) > 3000:
                 for k, _ in sorted(_RECENT_GENERATED.items(), key=lambda kv: kv[1])[:1000]:
                     _RECENT_GENERATED.pop(k, None)
     except Exception:
