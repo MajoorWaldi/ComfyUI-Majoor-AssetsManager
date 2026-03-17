@@ -1032,9 +1032,11 @@ class VectorService:
 
                     with torch.inference_mode():
                         inputs = processor(images=[img], return_tensors="pt")
-                        feats = native_model.get_image_features(**inputs)
-                        arr = _as_float32_array(feats.detach().cpu().numpy()[0])
-                        vec = _normalise_vector(arr)
+                        vec = _extract_hf_feature_vector(
+                            native_model.get_image_features(**inputs),
+                            preferred_fields=("image_embeds", "pooler_output", "last_hidden_state"),
+                            error_label="SigLIP image output",
+                        )
                         return _coerce_vector_dim(vec, self._dim)
 
                 vec = await asyncio.to_thread(_encode_native_image)
@@ -1107,9 +1109,11 @@ class VectorService:
 
                     with torch.inference_mode():
                         inputs = processor(text=[cleaned], return_tensors="pt", padding=True, truncation=True)
-                        feats = model.get_text_features(**inputs)
-                        arr = _as_float32_array(feats.detach().cpu().numpy()[0])
-                        vec = _normalise_vector(arr)
+                        vec = _extract_hf_feature_vector(
+                            model.get_text_features(**inputs),
+                            preferred_fields=("text_embeds", "pooler_output", "last_hidden_state"),
+                            error_label="SigLIP text output",
+                        )
                         return _coerce_vector_dim(vec, self._dim)
 
                 vec = await asyncio.to_thread(_encode_native_text)
@@ -1275,9 +1279,13 @@ class VectorService:
                     with torch.inference_mode():
                         for frame in frames:
                             inputs = processor(images=[frame], return_tensors="pt")
-                            feats = native_model.get_image_features(**inputs)
-                            arr = _as_float32_array(feats.detach().cpu().numpy()[0])
-                            vecs.append(_normalise_vector(arr))
+                            vecs.append(
+                                _extract_hf_feature_vector(
+                                    native_model.get_image_features(**inputs),
+                                    preferred_fields=("image_embeds", "pooler_output", "last_hidden_state"),
+                                    error_label="SigLIP video frame output",
+                                )
+                            )
                     mean_vec = _mean_float32(vecs, axis=0)
                     vec = _normalise_vector(mean_vec)
                     return _coerce_vector_dim(vec, self._dim)
@@ -1678,27 +1686,14 @@ class VectorService:
                         raise RuntimeError("X-CLIP processor returned no pixel_values")
 
                     if hasattr(model, "get_video_features"):
-                        # get_video_features may return a tuple in some
-                        # transformers versions; handle both cases.
                         out = model.get_video_features(pixel_values=pixel_values)
-                        if isinstance(out, tuple):
-                            feats = out[0]
-                        else:
-                            feats = out
                     else:
                         out = model(pixel_values=pixel_values)
-                        feats = getattr(out, "video_embeds", None)
-                        if feats is None:
-                            feats = getattr(out, "pooler_output", None)
-                        if feats is None:
-                            feats = getattr(out, "last_hidden_state", None)
-                            if feats is None:
-                                raise RuntimeError("X-CLIP output does not expose usable features")
-                            feats = feats.mean(dim=1)
-
-                    arr = _as_float32_array(feats.detach().cpu().numpy())
-                    mean_vec = _mean_float32(arr, axis=0)
-                    vec = _normalise_vector(mean_vec)
+                    vec = _extract_hf_feature_vector(
+                        out,
+                        preferred_fields=("video_embeds", "pooler_output", "last_hidden_state"),
+                        error_label="X-CLIP output",
+                    )
                     return _coerce_vector_dim(vec, self._dim)
 
             vec = await asyncio.to_thread(_encode_frames)
@@ -1719,6 +1714,96 @@ def _as_float32_array(value: Any) -> Any:
 
     arr = np.asarray(value, dtype=np.float32)
     return arr.tolist() if hasattr(arr, "tolist") else arr
+
+
+def _model_output_field(value: Any, field_name: str) -> Any | None:
+    try:
+        candidate = getattr(value, field_name, None)
+    except Exception:
+        candidate = None
+    if candidate is not None:
+        return candidate
+
+    if isinstance(value, dict):
+        return value.get(field_name)
+
+    getter = getattr(value, "get", None)
+    if callable(getter):
+        try:
+            return getter(field_name, None)
+        except TypeError:
+            try:
+                return getter(field_name)
+            except Exception:
+                return None
+        except Exception:
+            return None
+    return None
+
+
+def _tensor_to_numpy_payload(value: Any) -> Any:
+    current = value
+    for method_name in ("detach", "cpu"):
+        method = getattr(current, method_name, None)
+        if callable(method):
+            current = method()
+    numpy_method = getattr(current, "numpy", None)
+    if callable(numpy_method):
+        current = numpy_method()
+    return current
+
+
+def _mean_pool_sequence_features(value: Any) -> Any:
+    mean_method = getattr(value, "mean", None)
+    if callable(mean_method):
+        for args, kwargs in (
+            ((), {"dim": 1}),
+            ((), {"axis": 1}),
+            ((1,), {}),
+        ):
+            try:
+                return mean_method(*args, **kwargs)
+            except Exception:
+                continue
+    return _mean_float32(_tensor_to_numpy_payload(value), axis=1)
+
+
+def _unwrap_single_batch_vector(value: Any) -> Any:
+    try:
+        if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)) and len(value) > 0:
+            first = value[0]
+            if isinstance(first, Sequence) and not isinstance(first, (str, bytes, bytearray)):
+                return first
+    except Exception:
+        pass
+    return value
+
+
+def _extract_hf_feature_vector(
+    output: Any,
+    *,
+    preferred_fields: Sequence[str],
+    error_label: str,
+) -> list[float]:
+    candidate = output
+    if isinstance(candidate, tuple):
+        candidate = next((item for item in candidate if item is not None), None)
+
+    for field_name in preferred_fields:
+        extracted = _model_output_field(candidate, field_name)
+        if extracted is None:
+            continue
+        candidate = _mean_pool_sequence_features(extracted) if field_name == "last_hidden_state" else extracted
+        break
+
+    if candidate is None:
+        raise RuntimeError(f"{error_label} did not expose usable features")
+
+    arr = _as_float32_array(_tensor_to_numpy_payload(candidate))
+    vec = _normalise_vector(_unwrap_single_batch_vector(arr))
+    if not vec:
+        raise RuntimeError(f"{error_label} produced an empty embedding")
+    return vec
 
 
 def _mean_float32(values: Any, axis: int = 0) -> Any:

@@ -14,6 +14,7 @@ import { getAssetMetadata, getFileMetadataScoped } from "../../api/client.js";
 import { normalizeGenerationMetadata } from "../../components/sidebar/parsers/geninfoParser.js";
 import { createModel3DMediaElement, isModel3DInteractionTarget, MODEL3D_EXTS } from "./model3dRenderer.js";
 import { appendTooltipHint, setTooltipHint } from "../../utils/tooltipShortcuts.js";
+import { NODE_STREAM_FEATURE_ENABLED } from "./nodeStream/nodeStreamFeatureFlag.js";
 
 export const MFV_MODES = Object.freeze({
     SIMPLE: "simple",
@@ -34,6 +35,7 @@ const AUDIO_EXTS = new Set([".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac", ".o
 const MFV_MODE_HINT = "C";
 const MFV_LIVE_HINT = "L";
 const MFV_PREVIEW_HINT = "K";
+const MFV_NODESTREAM_HINT = "N";
 const CLOSE_HINT = "Esc";
 
 function _extOf(filename) {
@@ -248,6 +250,10 @@ export class FloatingViewer {
         this._previewBlobUrl  = null;
         this._previewActive   = false;
 
+        // Node stream state: button ref.
+        this._nodeStreamBtn    = null;
+        this._nodeStreamActive = false;
+
         // Master AbortController for document-level UI handlers (e.g. click-outside).
         // Aborted in dispose() to guarantee all listeners are removed atomically.
         this._docAC        = new AbortController();
@@ -372,6 +378,25 @@ export class FloatingViewer {
         );
         bar.appendChild(this._previewBtn);
 
+        // Node Stream toggle (stream intermediate node outputs)
+        this._nodeStreamBtn = document.createElement("button");
+        this._nodeStreamBtn.type = "button";
+        this._nodeStreamBtn.className = "mjr-icon-btn";
+        this._nodeStreamBtn.innerHTML = '<i class="pi pi-sitemap" aria-hidden="true"></i>';
+        this._nodeStreamBtn.setAttribute("aria-pressed", "false");
+        setTooltipHint(
+            this._nodeStreamBtn,
+            t("tooltip.nodeStreamOff", "Node Stream: OFF — click to stream selected node output"),
+            MFV_NODESTREAM_HINT
+        );
+        bar.appendChild(this._nodeStreamBtn);
+        if (!NODE_STREAM_FEATURE_ENABLED) {
+            // Temporary shutdown: keep the code in place but remove the control
+            // from the toolbar until Node Stream is re-enabled.
+            this._nodeStreamBtn.remove?.();
+            this._nodeStreamBtn = null;
+        }
+
         // Gen Info button (shows dropdown with checkboxes)
         this._genBtn = document.createElement("button");
         this._genBtn.type = "button";
@@ -449,6 +474,10 @@ export class FloatingViewer {
 
         this._previewBtn?.addEventListener("click", () => {
             window.dispatchEvent(new CustomEvent(EVENTS.MFV_PREVIEW_TOGGLE));
+        }, { signal });
+
+        this._nodeStreamBtn?.addEventListener("click", () => {
+            window.dispatchEvent(new CustomEvent(EVENTS.MFV_NODESTREAM_TOGGLE));
         }, { signal });
 
         this._genBtn?.addEventListener("click", (e) => {
@@ -829,6 +858,39 @@ export class FloatingViewer {
         if (this._previewBlobUrl) {
             try { URL.revokeObjectURL(this._previewBlobUrl); } catch (e) { /* noop */ }
             this._previewBlobUrl = null;
+        }
+    }
+
+    // ── Node Stream UI ───────────────────────────────────────────────────────
+
+    setNodeStreamActive(active) {
+        if (!NODE_STREAM_FEATURE_ENABLED) {
+            void active;
+            this._nodeStreamActive = false;
+            return;
+        }
+
+        this._nodeStreamActive = Boolean(active);
+        if (!this._nodeStreamBtn) return;
+        this._nodeStreamBtn.classList.toggle("mjr-nodestream-active", this._nodeStreamActive);
+        const label = this._nodeStreamActive
+            ? t("tooltip.nodeStreamOn", "Node Stream: ON — streaming selected node output")
+            : t("tooltip.nodeStreamOff", "Node Stream: OFF — click to stream selected node output");
+        const tooltip = appendTooltipHint(label, MFV_NODESTREAM_HINT);
+        this._nodeStreamBtn.setAttribute("aria-pressed", String(this._nodeStreamActive));
+        this._nodeStreamBtn.setAttribute("aria-label", tooltip);
+        if (this._nodeStreamActive) {
+            const icon = document.createElement("i");
+            icon.className = "pi pi-sitemap";
+            icon.setAttribute("aria-hidden", "true");
+            this._nodeStreamBtn.replaceChildren(icon);
+            this._nodeStreamBtn.title = tooltip;
+        } else {
+            const icon = document.createElement("i");
+            icon.className = "pi pi-sitemap";
+            icon.setAttribute("aria-hidden", "true");
+            this._nodeStreamBtn.replaceChildren(icon);
+            this._nodeStreamBtn.title = tooltip;
         }
     }
 
@@ -2103,9 +2165,10 @@ export class FloatingViewer {
         this._closeBtn   = null;
         this._modeBtn    = null;
         this._pinSelect  = null;
-        this._liveBtn    = null;
-        this._popoutBtn  = null;
-        this._captureBtn = null;
+        this._liveBtn        = null;
+        this._nodeStreamBtn  = null;
+        this._popoutBtn      = null;
+        this._captureBtn     = null;
         this._unbindDocumentUiHandlers();
         try { this._genDropdown?.remove(); } catch (e) { console.debug?.(e); }
         this._mediaA     = null;

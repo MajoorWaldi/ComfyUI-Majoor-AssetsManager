@@ -14,7 +14,7 @@
 
 import { EVENTS } from "../../app/events.js";
 import { floatingViewerManager } from "./floatingViewerManager.js";
-import { getComfyApi, waitForComfyApi } from "../../app/comfyApiBridge.js";
+import { waitForComfyApi } from "../../app/comfyApiBridge.js";
 
 let _initialized = false;
 let _genOutputHandler = null;           // Named reference so it can be removed in teardown
@@ -23,9 +23,19 @@ let _previewWithMetaHandler = null;     // Named reference for the b_preview_wit
 let _previewWithMetaFired = false;      // True once b_preview_with_metadata actually fires; silences legacy fallback
 let _apiRef = null;                     // Cached reference to the ComfyUI API for cleanup
 let _currentJobId = null;               // Track current execution job ID for preview filtering
+let _previewHookGeneration = 0;         // Cancels stale async preview hook attempts
+let _canvasHookGeneration = 0;          // Cancels stale canvas retry loops
+let _canvasHookRetryTimer = null;       // Timeout handle for delayed canvas hook retries
 
 // WeakMap stores the original canvas methods so we can restore them on teardown (NH-1).
 const _hookedCanvases = new WeakMap();
+
+function _clearCanvasHookRetry() {
+    if (_canvasHookRetryTimer) {
+        clearTimeout(_canvasHookRetryTimer);
+        _canvasHookRetryTimer = null;
+    }
+}
 
 // ── Node-type detection ───────────────────────────────────────────────────────
 
@@ -269,17 +279,21 @@ function _unhookCanvas(canvas) {
  */
 function _hookCanvasWhenReady(app) {
     if (!app) return;
+    const hookGeneration = ++_canvasHookGeneration;
+    _clearCanvasHookRetry();
     const MAX_ATTEMPTS = 30;
     let attempts = 0;
 
     const tryHook = () => {
+        if (hookGeneration !== _canvasHookGeneration) return;
         const canvas = app.canvas;
         if (canvas) {
+            _canvasHookRetryTimer = null;
             _hookCanvas(canvas);
             return;
         }
         if (++attempts < MAX_ATTEMPTS) {
-            setTimeout(tryHook, 300);
+            _canvasHookRetryTimer = setTimeout(tryHook, 300);
         } else {
             console.debug("[Majoor] MFV: canvas not ready after retries — graph node tracking disabled");
         }
@@ -303,17 +317,14 @@ function _hookCanvasWhenReady(app) {
  * @param {object} [app]  The ComfyUI app object (carries `app.api`).
  */
 async function _hookPreviewApi(app) {
+    const hookGeneration = ++_previewHookGeneration;
     try {
         // Remove any existing listeners before re-hooking to prevent
         // accumulation on hot-reload or double-init.
-        if (_apiRef) {
-            if (_previewHandler) { try { _apiRef.removeEventListener("b_preview", _previewHandler); } catch {} }
-            if (_previewWithMetaHandler) { try { _apiRef.removeEventListener("b_preview_with_metadata", _previewWithMetaHandler); } catch {} }
-            _previewHandler = null;
-            _previewWithMetaHandler = null;
-        }
+        _detachPreviewApiListeners();
 
         const api = await waitForComfyApi({ app, timeoutMs: 8000 });
+        if (hookGeneration !== _previewHookGeneration) return;
         if (!api) {
             console.debug("[Majoor] MFV: ComfyUI API not found — preview streaming disabled");
             return;
@@ -355,6 +366,21 @@ async function _hookPreviewApi(app) {
     } catch (e) {
         console.debug?.("[Majoor] MFV preview hook failed — preview streaming disabled", e);
     }
+}
+
+function _detachPreviewApiListeners() {
+    if (_apiRef) {
+        if (_previewHandler) {
+            try { _apiRef.removeEventListener("b_preview", _previewHandler); } catch (e) { console.debug?.(e); }
+        }
+        if (_previewWithMetaHandler) {
+            try { _apiRef.removeEventListener("b_preview_with_metadata", _previewWithMetaHandler); } catch (e) { console.debug?.(e); }
+        }
+    }
+    _previewHandler = null;
+    _previewWithMetaHandler = null;
+    _previewWithMetaFired = false;
+    _apiRef = null;
 }
 
 /** Set the current execution job ID to filter preview frames from stale executions. */
@@ -425,20 +451,11 @@ export function teardownLiveStreamTracker(app) {
         window.removeEventListener(EVENTS.NEW_GENERATION_OUTPUT, _genOutputHandler);
         _genOutputHandler = null;
     }
-    // Remove the b_preview / b_preview_with_metadata listeners from the ComfyUI API
-    if (_apiRef) {
-        if (_previewHandler) {
-            try { _apiRef.removeEventListener("b_preview", _previewHandler); } catch (e) { console.debug?.(e); }
-        }
-        if (_previewWithMetaHandler) {
-            try { _apiRef.removeEventListener("b_preview_with_metadata", _previewWithMetaHandler); } catch (e) { console.debug?.(e); }
-        }
-    }
-    _previewHandler = null;
-    _previewWithMetaHandler = null;
-    _previewWithMetaFired = false;
+    _previewHookGeneration += 1;
+    _detachPreviewApiListeners();
+    _canvasHookGeneration += 1;
+    _clearCanvasHookRetry();
     _currentJobId = null;
-    _apiRef = null;
     _initialized = false;
     // Unhook the canvas if it is already available.
     try { if (app?.canvas) _unhookCanvas(app.canvas); } catch (e) { console.debug?.(e); }

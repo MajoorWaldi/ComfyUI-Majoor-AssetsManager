@@ -2966,6 +2966,17 @@
     opacity: 1;
 }
 
+.mjr-mfv .mjr-icon-btn.mjr-nodestream-active {
+    border-color: color-mix(in srgb, var(--mjr-status-warning, #ff9800) 60%, var(--mjr-border));
+    color: var(--mjr-status-warning, #ff9800);
+    background: color-mix(in srgb, var(--mjr-surface-2) 80%, var(--mjr-status-warning, #ff9800) 12%);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--mjr-status-warning, #ff9800) 25%, transparent);
+}
+
+.mjr-mfv .mjr-icon-btn.mjr-nodestream-active .pi {
+    opacity: 1;
+}
+
 /* Pop-in mode (viewer popped out): raise button contrast/brightness */
 .mjr-mfv.mjr-mfv--popped {
     background: #262626;
@@ -3044,6 +3055,16 @@
         inset 0 0 0 1px rgba(255,255,255,0.12),
         0 0 0 1px color-mix(in srgb, var(--mjr-accent) 24%, transparent),
         0 0 18px rgba(95, 179, 255, 0.18);
+}
+
+.mjr-mfv.mjr-mfv--popped .mjr-icon-btn.mjr-nodestream-active {
+    border-color: color-mix(in srgb, var(--mjr-status-warning, #ff9800) 58%, #ffffff 42%);
+    background: linear-gradient(180deg, rgba(255, 152, 0, 0.62), rgba(255, 152, 0, 0.34));
+    color: #ffffff !important;
+    box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,0.12),
+        0 0 0 1px color-mix(in srgb, var(--mjr-status-warning, #ff9800) 24%, transparent),
+        0 0 18px rgba(255, 152, 0, 0.18);
 }
 
 .mjr-mfv.mjr-mfv--popped .mjr-pin-select,

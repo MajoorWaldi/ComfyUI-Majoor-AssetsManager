@@ -46,6 +46,9 @@ const state = vi.hoisted(() => {
       this.setLiveActive = vi.fn();
       this.setPreviewActive = vi.fn();
       this.loadPreviewBlob = vi.fn();
+      this.dispose = vi.fn(() => {
+        this.isVisible = false;
+      });
       lastViewer = this;
     }
 
@@ -396,6 +399,24 @@ describe("floatingViewerManager", () => {
     expect(viewer.hide).toHaveBeenCalledTimes(1);
     expect(viewer.isVisible).toBe(false);
     expect(event.preventDefault).toHaveBeenCalledTimes(1);
+  });
+
+  it("reinstalls global listeners after teardown so toggle can open a new viewer again", async () => {
+    const { floatingViewerManager, teardownFloatingViewerManager } = await import("../features/viewer/floatingViewerManager.js");
+    floatingViewerManager.open();
+
+    const firstViewer = state.getLastViewer();
+    expect(firstViewer).toBeTruthy();
+
+    teardownFloatingViewerManager();
+    expect(firstViewer.dispose).toHaveBeenCalledTimes(1);
+
+    window.dispatchEvent(new CustomEvent("mjr:mfv-toggle"));
+
+    const secondViewer = state.getLastViewer();
+    expect(secondViewer).toBeTruthy();
+    expect(secondViewer).not.toBe(firstViewer);
+    expect(secondViewer.isVisible).toBe(true);
   });
 
   it("toggles sampler preview with K while the floating viewer is visible", async () => {

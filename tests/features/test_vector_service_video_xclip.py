@@ -104,6 +104,17 @@ class _FakeXclipModel:
         return _FakeFeatures()
 
 
+class _FakePooledOutput:
+    def __init__(self) -> None:
+        self.pooler_output = _FakeFeatures()
+
+
+class _FakeNativeSiglipModel:
+    def get_image_features(self, **kwargs):
+        assert kwargs
+        return _FakePooledOutput()
+
+
 class _FakeProcessorMapping(dict):
     """Fake processor output that acts as a mapping with .get()."""
     pass
@@ -186,3 +197,35 @@ async def test_video_embedding_falls_back_to_single_frame_when_batch_fails(monke
     assert result.ok is True
     assert isinstance(result.data, list)
     assert len(result.data) == 3
+
+
+@pytest.mark.asyncio
+async def test_native_siglip_image_embedding_handles_pooled_model_output(monkeypatch, tmp_path):
+    vs = m.VectorService(model_name="google/siglip-test")
+
+    png_path = tmp_path / "tiny.png"
+    png_path.write_bytes(
+        bytes.fromhex(
+            "89504E470D0A1A0A"
+            "0000000D4948445200000001000000010802000000907753DE"
+            "0000000C4944415408D763F8FFFF3F0005FE02FEA7D1A7E10000000049454E44AE426082"
+        )
+    )
+
+    async def _fake_ensure_siglip():
+        return _ProcessorWithFallbackSignature(), _FakeNativeSiglipModel()
+
+    monkeypatch.setattr(vs, "_ensure_siglip_components", _fake_ensure_siglip)
+    monkeypatch.setitem(
+        sys.modules,
+        "torch",
+        types.SimpleNamespace(inference_mode=lambda: _FakeInferenceMode()),
+    )
+    monkeypatch.setitem(sys.modules, "numpy", _fake_numpy_module())
+
+    result = await vs.get_image_embedding(png_path)
+
+    assert result.ok is True
+    assert isinstance(result.data, list)
+    assert len(result.data) == int(m.VECTOR_EMBEDDING_DIM)
+    assert float(result.data[0]) == 1.0

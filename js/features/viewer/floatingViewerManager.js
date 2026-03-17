@@ -16,6 +16,8 @@ import { getActiveGridContainer } from "../panel/AssetsManagerPanel.js";
 import { getSelectedIdSet } from "../grid/GridSelectionManager.js";
 import { getHotkeysState, isHotkeysSuspended } from "../panel/controllers/hotkeysState.js";
 import { reportError } from "../../utils/logging.js";
+import { setNodeStreamActive as setControllerNodeStreamActive } from "./nodeStream/NodeStreamController.js";
+import { NODE_STREAM_FEATURE_ENABLED } from "./nodeStream/nodeStreamFeatureFlag.js";
 
 // ── Module state ──────────────────────────────────────────────────────────────
 
@@ -23,6 +25,7 @@ import { reportError } from "../../utils/logging.js";
 let _instance = null;
 let _liveActive = false;
 let _previewActive = false;
+let _nodeStreamActive = false;
 let _selectionListenerBound = false;
 let _fetchAC = null; // AbortController for the latest in-flight batch fetch
 let _loadSeq = 0;   // Sequence counter to discard stale _loadFromIds responses
@@ -42,6 +45,12 @@ function _cancelFetch() {
     _fetchAC = null;
 }
 
+function _disposeInstance() {
+    if (!_instance) return;
+    try { _instance.dispose?.(); } catch (e) { console.debug?.(e); }
+    _instance = null;
+}
+
 function _emitVisibilityChanged(visible) {
     window.dispatchEvent(new CustomEvent(EVENTS.MFV_VISIBILITY_CHANGED, {
         detail: { visible: Boolean(visible) },
@@ -52,6 +61,7 @@ function _syncViewerControls(inst) {
     if (!inst) return;
     inst.setLiveActive(_liveActive);
     inst.setPreviewActive(_previewActive);
+    inst.setNodeStreamActive?.(NODE_STREAM_FEATURE_ENABLED ? _nodeStreamActive : false);
 }
 
 /**
@@ -335,6 +345,66 @@ export const floatingViewerManager = {
         inst.loadPreviewBlob(blob);
         if (!wasVisible) _emitVisibilityChanged(true);
     },
+
+    // ── Node Stream (intermediate node outputs) ───────────────────────────
+
+    toggleNodeStream() {
+        if (!NODE_STREAM_FEATURE_ENABLED) return;
+        floatingViewerManager.setNodeStreamActive(!_nodeStreamActive);
+    },
+
+    setNodeStreamActive(active) {
+        if (!NODE_STREAM_FEATURE_ENABLED) {
+            void active;
+            _nodeStreamActive = false;
+            setControllerNodeStreamActive(false);
+            _instance?.setNodeStreamActive?.(false);
+            return;
+        }
+
+        _nodeStreamActive = Boolean(active);
+        setControllerNodeStreamActive(_nodeStreamActive);
+        _instance?.setNodeStreamActive?.(_nodeStreamActive);
+    },
+
+    getNodeStreamActive() {
+        return NODE_STREAM_FEATURE_ENABLED ? _nodeStreamActive : false;
+    },
+
+    /**
+     * Feed an intermediate node output into the viewer.
+     * Called by the NodeStreamController when a watched node produces output.
+     * @param {object} fileData  { filename, subfolder, type, kind?, _nodeId?, _classType? }
+     */
+    feedNodeStream(fileData) {
+        if (!NODE_STREAM_FEATURE_ENABLED) {
+            void fileData;
+            return;
+        }
+        if (!_nodeStreamActive) return;
+        const inst = _getInstance();
+        const wasVisible = Boolean(inst.isVisible);
+        if (!inst.isVisible) {
+            inst.show();
+            _bindSelectionListener();
+        }
+        _syncViewerControls(inst);
+
+        const mode = inst._mode;
+        const inCompare = mode === MFV_MODES.AB || mode === MFV_MODES.SIDE;
+        if (inCompare) {
+            const pin = inst.getPinnedSlot();
+            if (pin === "B") {
+                inst.loadMediaPair(fileData, inst._mediaB);
+            } else {
+                inst.loadMediaPair(inst._mediaA, fileData);
+            }
+        } else {
+            inst.loadMediaA(fileData, { autoMode: true });
+        }
+
+        if (!wasVisible) _emitVisibilityChanged(true);
+    },
 };
 
 // ── Global event wiring (NM-3: named references so teardown can remove them) ──
@@ -348,8 +418,12 @@ const _onMfvOpen          = () => floatingViewerManager.open();
 const _onMfvClose         = () => floatingViewerManager.close();
 const _onMfvToggle        = () => floatingViewerManager.toggle();
 const _onMfvLiveToggle    = () => floatingViewerManager.toggleLive();
-const _onMfvPreviewToggle = () => floatingViewerManager.togglePreview();
-const _onMfvPopout        = () => floatingViewerManager.popOut();
+const _onMfvPreviewToggle    = () => floatingViewerManager.togglePreview();
+const _onMfvNodeStreamToggle = () => floatingViewerManager.toggleNodeStream();
+const _onMfvPopout           = () => floatingViewerManager.popOut();
+const _onBeforeUnload        = () => {
+    try { if (_instance?.isPopped) _instance.popIn(); } catch (e) { /* noop */ }
+};
 const _onGlobalKeydown    = (event) => {
     if (!_instance?.isVisible) return;
     if (isHotkeysSuspended()) return;
@@ -383,6 +457,11 @@ const _onGlobalKeydown    = (event) => {
             floatingViewerManager.toggleLive();
             return;
         }
+        if (NODE_STREAM_FEATURE_ENABLED && lower === "n") {
+            consume();
+            floatingViewerManager.toggleNodeStream();
+            return;
+        }
         if (lower === "c") {
             consume();
             floatingViewerManager.toggleCompareAB();
@@ -398,35 +477,53 @@ function _installGlobalHandlers() {
     window.addEventListener(EVENTS.MFV_CLOSE,          _onMfvClose);
     window.addEventListener(EVENTS.MFV_TOGGLE,         _onMfvToggle);
     window.addEventListener(EVENTS.MFV_LIVE_TOGGLE,    _onMfvLiveToggle);
-    window.addEventListener(EVENTS.MFV_PREVIEW_TOGGLE, _onMfvPreviewToggle);
-    window.addEventListener(EVENTS.MFV_POPOUT,         _onMfvPopout);
-    window.addEventListener("keydown", _onGlobalKeydown, { capture: true });
+    window.addEventListener(EVENTS.MFV_PREVIEW_TOGGLE,    _onMfvPreviewToggle);
+    if (NODE_STREAM_FEATURE_ENABLED) {
+        window.addEventListener(EVENTS.MFV_NODESTREAM_TOGGLE, _onMfvNodeStreamToggle);
+    }
+    window.addEventListener(EVENTS.MFV_POPOUT,            _onMfvPopout);
+    window.addEventListener("keydown", _onGlobalKeydown, true);
+    window.addEventListener("beforeunload", _onBeforeUnload);
     _globalHandlersInstalled = true;
 }
 
-/**
- * Remove the global MFV event listeners registered by this module, then
- * immediately re-register them for a clean slate.
- * Call from entry.js installEntryRuntimeController() so listeners don't
- * accumulate on hot-reload (NM-3).
- */
-export function teardownFloatingViewerManager() {
-    // If the viewer is popped out to a separate window, bring it back first
-    try { if (_instance?.isPopped) _instance.popIn(); } catch (e) { console.debug?.(e); }
-    window.removeEventListener(EVENTS.MFV_OPEN,        _onMfvOpen);
-    window.removeEventListener(EVENTS.MFV_CLOSE,       _onMfvClose);
-    window.removeEventListener(EVENTS.MFV_TOGGLE,      _onMfvToggle);
+function _removeGlobalHandlers() {
+    window.removeEventListener(EVENTS.MFV_OPEN,           _onMfvOpen);
+    window.removeEventListener(EVENTS.MFV_CLOSE,          _onMfvClose);
+    window.removeEventListener(EVENTS.MFV_TOGGLE,         _onMfvToggle);
     window.removeEventListener(EVENTS.MFV_LIVE_TOGGLE,    _onMfvLiveToggle);
     window.removeEventListener(EVENTS.MFV_PREVIEW_TOGGLE, _onMfvPreviewToggle);
+    if (NODE_STREAM_FEATURE_ENABLED) {
+        window.removeEventListener(EVENTS.MFV_NODESTREAM_TOGGLE, _onMfvNodeStreamToggle);
+    }
     window.removeEventListener(EVENTS.MFV_POPOUT,         _onMfvPopout);
-    window.removeEventListener("keydown", _onGlobalKeydown, { capture: true });
+    window.removeEventListener("keydown", _onGlobalKeydown, true);
+    window.removeEventListener("beforeunload", _onBeforeUnload);
     _globalHandlersInstalled = false;
-    _installGlobalHandlers(); // Re-register immediately so handlers are always active
+}
+
+/**
+ * Fully tear down the singleton and its global listeners.
+ * Called from entry.js during hot-reload cleanup so the next module instance
+ * starts from a clean slate.
+ */
+export function teardownFloatingViewerManager() {
+    const wasVisible = Boolean(_instance?.isVisible);
+    // If the viewer is popped out to a separate window, bring it back first
+    try { if (_instance?.isPopped) _instance.popIn(); } catch (e) { console.debug?.(e); }
+    _removeGlobalHandlers();
+    _unbindSelectionListener();
+    _cancelFetch();
+    _loadSeq += 1;
+    _liveActive = false;
+    _previewActive = false;
+    _nodeStreamActive = false;
+    try { setControllerNodeStreamActive(false); } catch (e) { console.debug?.(e); }
+    _disposeInstance();
+    if (wasVisible) _emitVisibilityChanged(false);
+    // entry.js calls teardown during setup before the current module continues
+    // initializing, so re-arm the current module's global listeners immediately.
+    _installGlobalHandlers();
 }
 
 _installGlobalHandlers();
-
-// Close the pop-out window when the main ComfyUI page unloads.
-window.addEventListener("beforeunload", () => {
-    try { if (_instance?.isPopped) _instance.popIn(); } catch (e) { /* noop */ }
-});

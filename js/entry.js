@@ -18,7 +18,11 @@ import {
 import { EVENTS } from "./app/events.js";
 import { initDragDrop } from "./features/dnd/DragDrop.js";
 import { initLiveStreamTracker, teardownLiveStreamTracker, setCurrentJobId } from "./features/viewer/LiveStreamTracker.js";
-import { teardownFloatingViewerManager } from "./features/viewer/floatingViewerManager.js";
+import { teardownFloatingViewerManager, floatingViewerManager } from "./features/viewer/floatingViewerManager.js";
+import { initNodeStream, teardownNodeStream, registerAdapter, listAdapters } from "./features/viewer/nodeStream/NodeStreamController.js";
+import { createAdapter } from "./features/viewer/nodeStream/adapters/BaseAdapter.js";
+import { getKnownNodeSets } from "./features/viewer/nodeStream/adapters/KnownNodesAdapter.js";
+import { NODE_STREAM_FEATURE_ENABLED, NODE_STREAM_REACTIVATION_DOC } from "./features/viewer/nodeStream/nodeStreamFeatureFlag.js";
 import { loadAssets, upsertAsset, removeAssetsFromGrid } from "./features/grid/GridView.js";
 import { renderAssetsManager, getActiveGridContainer } from "./features/panel/AssetsManagerPanel.js";
 import { extractOutputFiles } from "./utils/extractOutputFiles.js";
@@ -98,6 +102,7 @@ function installEntryRuntimeController() {
             } catch (e) { console.warn("[MJR teardown]", e); }
             // Tear down MFV module-level listeners before re-registering (NM-3, NM-4).
             try { teardownLiveStreamTracker(window.__MJR_RUNTIME_APP__); } catch (e) { console.warn("[MJR teardown]", e); }
+            try { teardownNodeStream(window.__MJR_RUNTIME_APP__); } catch (e) { console.warn("[MJR teardown]", e); }
             try { teardownFloatingViewerManager(); } catch (e) { console.warn("[MJR teardown]", e); }
             window[ENTRY_RUNTIME_KEY] = { api: null, assetsDeletedHandler: null };
         }
@@ -205,6 +210,17 @@ app.registerExtension({
         try {
             initLiveStreamTracker(runtimeApp);
         } catch (e) { console.warn("[MJR setup] initLiveStreamTracker failed:", e); }
+
+        if (NODE_STREAM_FEATURE_ENABLED) {
+            try {
+                initNodeStream({
+                    app: runtimeApp,
+                    onOutput: (fileData) => floatingViewerManager.feedNodeStream(fileData),
+                });
+            } catch (e) { console.warn("[MJR setup] initNodeStream failed:", e); }
+        } else {
+            console.debug(`[Majoor] Node Stream disabled by feature flag. See ${NODE_STREAM_REACTIVATION_DOC}`);
+        }
 
         registerMajoorSettings(runtimeApp, () => {
             const grid = getActiveGridContainer();
@@ -495,6 +511,18 @@ app.registerExtension({
                 resetMetrics: () => window.MajoorMetrics?.resetMetrics?.(),
             };
             console.log("[Majoor] Debug commands available: window.MajoorDebug.exportMetrics(), window.MajoorDebug.getMetrics(), window.MajoorDebug.resetMetrics()");
+            if (NODE_STREAM_FEATURE_ENABLED) {
+                // Expose NodeStream API for third-party adapter registration
+                window.MajoorNodeStream = {
+                    registerAdapter,
+                    createAdapter,
+                    listAdapters,
+                    getKnownNodeSets,
+                };
+                console.log("[Majoor] NodeStream API: window.MajoorNodeStream.registerAdapter(adapter), .createAdapter(config), .listAdapters()");
+            } else {
+                try { delete window.MajoorNodeStream; } catch (e) { window.MajoorNodeStream = undefined; }
+            }
         }
     },
 
@@ -518,5 +546,6 @@ app.registerExtension({
         } catch (e) {
             console.debug?.("[Majoor] onNodeOutputsUpdated error", e);
         }
+
     },
 });
