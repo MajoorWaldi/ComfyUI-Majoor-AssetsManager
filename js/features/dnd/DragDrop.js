@@ -13,7 +13,7 @@ import { dndLog } from "./utils/log.js";
 import { buildPayloadViewURL, getDraggedAsset } from "./utils/payload.js";
 import { isManagedPayload } from "./utils/video.js";
 import { isCanvasDropTarget, markCanvasDirty } from "./targets/canvas.js";
-import { applyDragOutToOS } from "./out/DragOut.js";
+import { applyDragOutToOS, handleDragEnd } from "./out/DragOut.js";
 import {
     applyHighlight,
     clearHighlight,
@@ -258,6 +258,13 @@ export const bindAssetDragStart = (containerEl) => {
                 applyDragOutToOS({ dt, asset, containerEl, card, viewUrl });
             } catch (e) { console.debug?.(e); }
 
+            // Listen for dragend to detect external drops and offer metadata stripping.
+            try {
+                card.addEventListener("dragend", (endEvent) => {
+                    handleDragEnd(endEvent, { asset, containerEl, card });
+                }, { once: true });
+            } catch (e) { console.debug?.(e); }
+
             const preview = card.querySelector("img") || card.querySelector("video") || card.querySelector("canvas");
             if (preview && preview instanceof HTMLElement) {
                 try {
@@ -316,6 +323,10 @@ export const initDragDrop = () => {
     };
 
     const onDrop = async (event) => {
+        // Mark that an internal drop occurred so dragend can distinguish
+        // internal drops from external (OS/Explorer) drops.
+        try { window.__mjrInternalDropOccurred = true; } catch {}
+
         const app = _resolveApp();
         const types = Array.from(event?.dataTransfer?.types || []);
         if (!types.includes(DND_MIME)) return;

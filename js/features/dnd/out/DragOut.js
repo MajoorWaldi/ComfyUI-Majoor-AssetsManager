@@ -9,9 +9,11 @@
  */
 
 import { post } from "../../../api/client.js";
-import { ENDPOINTS, buildBatchZipDownloadURL } from "../../../api/endpoints.js";
+import { ENDPOINTS, buildBatchZipDownloadURL, buildCleanDownloadURL } from "../../../api/endpoints.js";
 import { getDownloadMimeForFilename } from "../utils/video.js";
 import { pickRootId } from "../../../utils/ids.js";
+import { comfyConfirm } from "../../../app/dialogs.js";
+import { t } from "../../../app/i18n.js";
 
 const _abs = (url) => {
     try {
@@ -25,7 +27,7 @@ const _makeToken = () => {
     try {
         const cryptoObj = globalThis?.crypto || window?.crypto;
         if (cryptoObj?.getRandomValues) {
-            const bytes = new Uint8Array(18); // 144 bits
+            const bytes = new Uint8Array(24); // 192 bits → ~36 char token (above backend min of 32)
             cryptoObj.getRandomValues(bytes);
             let bin = "";
             for (let i = 0; i < bytes.length; i++) {
@@ -34,9 +36,9 @@ const _makeToken = () => {
             const b64 = btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
             return `mjr_${b64}`;
         }
-        return `mjr_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+        return `mjr_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
     } catch {
-        return `mjr_${Date.now()}`;
+        return `mjr_${Date.now()}_${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
     }
 };
 
@@ -105,6 +107,51 @@ const _getSelectedAssets = (containerEl, draggedCard) => {
     return out;
 };
 
+/** Extensions that can contain ComfyUI workflow/prompt metadata. */
+const _STRIPPABLE_EXTS = new Set([".png", ".jpg", ".jpeg", ".webp", ".mp4", ".mov"]);
+
+/** Check if an asset likely has embedded ComfyUI metadata worth stripping. */
+const _hasComfyMetadata = (asset) => {
+    if (!asset || typeof asset !== "object") return false;
+    if (asset.has_workflow || asset.has_generation_data) return true;
+    const ext = String(asset.ext || asset.filename || "").toLowerCase();
+    const dotExt = ext.includes(".") ? ext.slice(ext.lastIndexOf(".")) : `.${ext}`;
+    return _STRIPPABLE_EXTS.has(dotExt);
+};
+
+/**
+ * Trigger a clean (metadata-stripped) download for one or more assets.
+ * Uses a hidden <a> click to start the browser download.
+ */
+const _resolveFilepath = (asset) => {
+    if (!asset || typeof asset !== "object") return "";
+    // Direct filepath from backend.
+    const fp = asset.filepath || asset.path || asset?.file_info?.filepath || "";
+    if (fp) return String(fp);
+    return "";
+};
+
+const _downloadClean = (assets) => {
+    for (const asset of assets) {
+        const filepath = _resolveFilepath(asset);
+        if (!filepath) {
+            console.debug?.("[DragOut] No filepath for asset:", asset?.filename);
+            continue;
+        }
+        const url = buildCleanDownloadURL(filepath);
+        if (!url) continue;
+        try {
+            const a = document.createElement("a");
+            a.href = _abs(url);
+            a.download = asset.filename || asset.name || "download";
+            a.style.display = "none";
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => { try { a.remove(); } catch {} }, 1000);
+        } catch (e) { console.debug?.(e); }
+    }
+};
+
 export const applyDragOutToOS = ({ dt, asset, containerEl, card, viewUrl }) => {
     if (!dt || !asset) return;
 
@@ -140,5 +187,60 @@ export const applyDragOutToOS = ({ dt, asset, containerEl, card, viewUrl }) => {
         dt.setData("text/uri-list", url);
         dt.setData("DownloadURL", `${mime}:${filename}:${url}`);
         dt.effectAllowed = "copy";
+    } catch (e) { console.debug?.(e); }
+};
+
+/**
+ * Handle dragend: if the drop happened outside the browser (OS/Explorer),
+ * offer to re-download with ComfyUI metadata stripped.
+ *
+ * @param {DragEvent} event
+ * @param {object} asset - The dragged asset object
+ * @param {HTMLElement} containerEl - The grid container
+ * @param {HTMLElement} card - The dragged card element
+ */
+export const handleDragEnd = (event, { asset, containerEl, card }) => {
+    if (!event || !asset) return;
+    try {
+        // dropEffect "none" means the drop was cancelled (ESC or invalid target).
+        // "copy"/"move"/"link" mean the drop was accepted somewhere.
+        // We only care about drops accepted outside the browser window.
+        const effect = event?.dataTransfer?.dropEffect;
+        if (!effect || effect === "none") return;
+
+        // If an internal drop handler fired (ComfyUI canvas), skip the popup.
+        // The flag is set in onDrop (DragDrop.js) for internal drops.
+        try {
+            if (window.__mjrInternalDropOccurred) {
+                window.__mjrInternalDropOccurred = false;
+                return;
+            }
+        } catch {}
+
+
+        // Determine assets involved (single or multi-selection).
+        const selected = _getSelectedAssets(containerEl, card);
+        const assets = selected.length > 1 ? selected : [asset];
+
+        // Only prompt if at least one asset has ComfyUI metadata.
+        const hasMetadata = assets.some(_hasComfyMetadata);
+        if (!hasMetadata) return;
+
+        // Async popup — don't block dragend.
+        const count = assets.length;
+        const name = asset.filename || asset.name || "file";
+        const body = t("dialog.stripMetadataBody",
+            "Would you like to download a clean copy with ComfyUI workflow and generation metadata removed?");
+        const msg = count > 1
+            ? `${t("dialog.stripMetadataBatchHeader", `You dragged ${count} files outside ComfyUI.`)}\n\n${body}`
+            : `${t("dialog.stripMetadataHeader", `You dragged "${name}" outside ComfyUI.`)}\n\n${body}`;
+
+        comfyConfirm(
+            msg,
+            t("dialog.stripMetadataTitle", "Strip ComfyUI Metadata?")
+        ).then((confirmed) => {
+            if (!confirmed) return;
+            _downloadClean(assets);
+        }).catch(() => {});
     } catch (e) { console.debug?.(e); }
 };
