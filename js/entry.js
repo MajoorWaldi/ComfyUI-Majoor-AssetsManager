@@ -17,11 +17,7 @@ import {
 } from "./app/comfyApiBridge.js";
 import { EVENTS } from "./app/events.js";
 import { initDragDrop } from "./features/dnd/DragDrop.js";
-import { initLiveStreamTracker, teardownLiveStreamTracker, setCurrentJobId } from "./features/viewer/LiveStreamTracker.js";
 import { teardownFloatingViewerManager, floatingViewerManager } from "./features/viewer/floatingViewerManager.js";
-import { initNodeStream, teardownNodeStream, registerAdapter, listAdapters } from "./features/viewer/nodeStream/NodeStreamController.js";
-import { createAdapter } from "./features/viewer/nodeStream/adapters/BaseAdapter.js";
-import { getKnownNodeSets } from "./features/viewer/nodeStream/adapters/KnownNodesAdapter.js";
 import { NODE_STREAM_FEATURE_ENABLED, NODE_STREAM_REACTIVATION_DOC } from "./features/viewer/nodeStream/nodeStreamFeatureFlag.js";
 import { loadAssets, upsertAsset, removeAssetsFromGrid } from "./features/grid/GridView.js";
 import { renderAssetsManager, getActiveGridContainer } from "./features/panel/AssetsManagerPanel.js";
@@ -33,6 +29,12 @@ import { t } from "./app/i18n.js";
 import { getEnrichmentState, setEnrichmentState } from "./app/runtimeState.js";
 import { reportError } from "./utils/logging.js";
 import { app } from "../../scripts/app.js";
+
+// Lazy-loaded modules — resolved on first use to speed up startup.
+/** @type {import("./features/viewer/LiveStreamTracker.js") | null} */
+let _liveStreamMod = null;
+/** @type {import("./features/viewer/nodeStream/NodeStreamController.js") | null} */
+let _nodeStreamMod = null;
 
 const UI_FLAGS = {
     useComfyThemeUI: true,
@@ -101,8 +103,8 @@ function installEntryRuntimeController() {
                 removeRuntimeWindowHandlers(prev);
             } catch (e) { console.warn("[MJR teardown]", e); }
             // Tear down MFV module-level listeners before re-registering (NM-3, NM-4).
-            try { teardownLiveStreamTracker(window.__MJR_RUNTIME_APP__); } catch (e) { console.warn("[MJR teardown]", e); }
-            try { teardownNodeStream(window.__MJR_RUNTIME_APP__); } catch (e) { console.warn("[MJR teardown]", e); }
+            try { _liveStreamMod?.teardownLiveStreamTracker(window.__MJR_RUNTIME_APP__); } catch (e) { console.warn("[MJR teardown]", e); }
+            try { _nodeStreamMod?.teardownNodeStream(window.__MJR_RUNTIME_APP__); } catch (e) { console.warn("[MJR teardown]", e); }
             try { teardownFloatingViewerManager(); } catch (e) { console.warn("[MJR teardown]", e); }
             window[ENTRY_RUNTIME_KEY] = { api: null, assetsDeletedHandler: null };
         }
@@ -207,17 +209,23 @@ app.registerExtension({
             initDragDrop();
         } catch (e) { console.warn("[MJR setup] initDragDrop failed:", e); }
 
-        try {
-            initLiveStreamTracker(runtimeApp);
-        } catch (e) { console.warn("[MJR setup] initLiveStreamTracker failed:", e); }
+        // Lazy-load LiveStreamTracker in the background (not needed for initial render).
+        void import("./features/viewer/LiveStreamTracker.js").then((mod) => {
+            _liveStreamMod = mod;
+            try { mod.initLiveStreamTracker(runtimeApp); } catch (e) { console.warn("[MJR setup] initLiveStreamTracker failed:", e); }
+        }).catch((e) => console.warn("[MJR setup] LiveStreamTracker load failed:", e));
 
         if (NODE_STREAM_FEATURE_ENABLED) {
-            try {
-                initNodeStream({
-                    app: runtimeApp,
-                    onOutput: (fileData) => floatingViewerManager.feedNodeStream(fileData),
-                });
-            } catch (e) { console.warn("[MJR setup] initNodeStream failed:", e); }
+            // Lazy-load NodeStream in the background (feature-flagged, not needed at startup).
+            void import("./features/viewer/nodeStream/NodeStreamController.js").then((mod) => {
+                _nodeStreamMod = mod;
+                try {
+                    mod.initNodeStream({
+                        app: runtimeApp,
+                        onOutput: (fileData) => floatingViewerManager.feedNodeStream(fileData),
+                    });
+                } catch (e) { console.warn("[MJR setup] initNodeStream failed:", e); }
+            }).catch((e) => console.warn("[MJR setup] NodeStream load failed:", e));
         } else {
             console.debug(`[Majoor] Node Stream disabled by feature flag. See ${NODE_STREAM_REACTIVATION_DOC}`);
         }
@@ -280,7 +288,7 @@ app.registerExtension({
                         rememberExecutionStart(promptId, ts);
                         // Feed jobId to LiveStreamTracker so b_preview_with_metadata
                         // events from stale executions are filtered out (ComfyUI v1.42+).
-                        setCurrentJobId(promptId || null);
+                        _liveStreamMod?.setCurrentJobId(promptId || null);
                     } catch (error) {
                         reportError(error, "entry.execution_start");
                     }
@@ -293,7 +301,7 @@ app.registerExtension({
                         }
                         pruneExecutionStarts();
                         // Clear jobId filter once execution completes.
-                        setCurrentJobId(null);
+                        _liveStreamMod?.setCurrentJobId(null);
                     } catch (error) {
                         reportError(error, "entry.execution_end");
                     }
@@ -512,12 +520,24 @@ app.registerExtension({
             };
             console.log("[Majoor] Debug commands available: window.MajoorDebug.exportMetrics(), window.MajoorDebug.getMetrics(), window.MajoorDebug.resetMetrics()");
             if (NODE_STREAM_FEATURE_ENABLED) {
-                // Expose NodeStream API for third-party adapter registration
+                // Expose NodeStream API for third-party adapter registration (lazy-resolved).
+                const _nsApi = (fn) => async (...args) => {
+                    if (!_nodeStreamMod) {
+                        _nodeStreamMod = await import("./features/viewer/nodeStream/NodeStreamController.js");
+                    }
+                    return _nodeStreamMod[fn](...args);
+                };
                 window.MajoorNodeStream = {
-                    registerAdapter,
-                    createAdapter,
-                    listAdapters,
-                    getKnownNodeSets,
+                    registerAdapter: _nsApi("registerAdapter"),
+                    listAdapters: _nsApi("listAdapters"),
+                    async createAdapter(config) {
+                        const { createAdapter } = await import("./features/viewer/nodeStream/adapters/BaseAdapter.js");
+                        return createAdapter(config);
+                    },
+                    async getKnownNodeSets() {
+                        const { getKnownNodeSets } = await import("./features/viewer/nodeStream/adapters/KnownNodesAdapter.js");
+                        return getKnownNodeSets();
+                    },
                 };
                 console.log("[Majoor] NodeStream API: window.MajoorNodeStream.registerAdapter(adapter), .createAdapter(config), .listAdapters()");
             } else {

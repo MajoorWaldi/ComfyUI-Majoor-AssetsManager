@@ -347,17 +347,19 @@ function _drawModelMessage(canvas, title, hint = "", accent = "#4CAF50") {
     }
 }
 
+const _VENDOR_BASE = "/mjr/am/vendor/three";
+
 function _loadThreeDeps() {
     if (_threeDepsPromise) return _threeDepsPromise;
     _threeDepsPromise = Promise.all([
-        import("../../vendor/three/three.module.js"),
-        import("../../vendor/three/addons/controls/OrbitControls.js"),
-        import("../../vendor/three/addons/loaders/GLTFLoader.js"),
-        import("../../vendor/three/addons/loaders/FBXLoader.js"),
-        import("../../vendor/three/addons/loaders/OBJLoader.js"),
-        import("../../vendor/three/addons/loaders/MTLLoader.js"),
-        import("../../vendor/three/addons/loaders/STLLoader.js"),
-        import("../../vendor/three/addons/loaders/PLYLoader.js"),
+        import(/* @vite-ignore */ `${_VENDOR_BASE}/three.module.js`),
+        import(/* @vite-ignore */ `${_VENDOR_BASE}/addons/controls/OrbitControls.js`),
+        import(/* @vite-ignore */ `${_VENDOR_BASE}/addons/loaders/GLTFLoader.js`),
+        import(/* @vite-ignore */ `${_VENDOR_BASE}/addons/loaders/FBXLoader.js`),
+        import(/* @vite-ignore */ `${_VENDOR_BASE}/addons/loaders/OBJLoader.js`),
+        import(/* @vite-ignore */ `${_VENDOR_BASE}/addons/loaders/MTLLoader.js`),
+        import(/* @vite-ignore */ `${_VENDOR_BASE}/addons/loaders/STLLoader.js`),
+        import(/* @vite-ignore */ `${_VENDOR_BASE}/addons/loaders/PLYLoader.js`),
     ]).then(([THREE, controls, gltf, fbx, obj, mtl, stl, ply]) => ({
         THREE,
         OrbitControls: controls.OrbitControls,

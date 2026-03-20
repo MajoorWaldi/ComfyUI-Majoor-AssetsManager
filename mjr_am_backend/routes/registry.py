@@ -36,6 +36,7 @@ from .handlers import (
     register_scan_routes,
     register_search_routes,
     register_vector_search_routes,
+    register_vendor_routes,
     register_version_routes,
     register_viewer_routes,
 )
@@ -318,6 +319,7 @@ def register_all_routes() -> web.RouteTableDef:
     register_batch_zip_routes(routes)
     register_calendar_routes(routes)
     register_viewer_routes(routes)
+    register_vendor_routes(routes)
     register_db_maintenance_routes(routes)
     # Register releases route (exposes tags/branches + zip template)
     try:

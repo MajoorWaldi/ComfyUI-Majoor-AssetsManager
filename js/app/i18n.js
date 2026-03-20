@@ -10,7 +10,6 @@
  * - Missing key tracking with console warnings
  * - RTL language support for Arabic/Persian
  */
-import { GENERATED_TRANSLATIONS } from "./i18n.generated.js";
 import { getSettingValue } from "./comfyApiBridge.js";
 import { SettingsStore } from "./settings/SettingsStore.js";
 
@@ -241,6 +240,7 @@ const DICTIONARY = {
         "label.scope": "Scope",
         "label.query": "Query",
         "label.only": "Only",
+        "label.toastHistory": "History",
         "label.workflowType": "WF Type",
         "label.resolution": "Resolution",
         "label.fileSizeMB": "File size (MB)",
@@ -276,6 +276,7 @@ const DICTIONARY = {
         "search.findSimilarFailed": "Failed to find similar assets",
         "search.similarResults": "Similar to asset #{id} ({n} results)",
         "search.similarReference": "Reference #{id}",
+        "search.similarDisabled": "AI features are disabled in settings",
         "action.copyToClipboard": "Copy to clipboard",
         "action.clickToCopy": "Click to copy",
         "tooltip.copyFieldValue": "Copy value",
@@ -304,6 +305,7 @@ const DICTIONARY = {
         "tooltip.closeMFV": "Close Floating Viewer",
         "tooltip.openMessages": "Messages and updates",
         "tooltip.openMessagesUnread": "Messages ({count} unread)",
+        "tooltip.markMessagesRead": "Mark all messages as read",
         "tooltip.deleteDb": "Force-delete database and rebuild from scratch",
         "tooltip.workflowMultiOutput": "Multiple outputs with different prompts",
         "tooltip.generationInputs": "Input files used in generation",
@@ -801,8 +803,11 @@ const DICTIONARY = {
         "search.findSimilarFailed": "Echec de la recherche similaire",
         "search.similarResults": "Similaires a l'asset #{id} ({n} resultats)",
         "search.similarReference": "Reference #{id}",
+        "search.similarDisabled": "Les fonctionnalites IA sont desactivees dans les parametres",
         "tooltip.openMessages": "Messages et nouveautes",
         "tooltip.openMessagesUnread": "Messages ({count} non lus)",
+        "tooltip.markMessagesRead": "Marquer tous les messages comme lus",
+        "label.toastHistory": "Historique",
         "tooltip.tab.similar": "Parcourir les trouvailles similaires courantes",
 
         "setting.ai.vector.enabled.name": "Activer la recherche semantique IA",
@@ -983,18 +988,50 @@ const LANGUAGE_NAMES = Object.freeze({
     if (!DICTIONARY[code]) DICTIONARY[code] = {};
 });
 
-// Merge generated translations (from i18n.generated.js) into DICTIONARY
-Object.entries(GENERATED_TRANSLATIONS || {}).forEach(([code, entries]) => {
-    DICTIONARY[code] = { ...(DICTIONARY[code] || {}), ...(entries || {}) };
-});
+// Generated translations are loaded lazily to speed up startup.
+// en-US is always available inline; other locales are loaded on demand.
+let _generatedTranslationsLoaded = false;
+let _generatedTranslationsPromise = null;
 
-// Ensure complete key coverage for all registered locales:
-// Any missing key falls back to the English string inside each locale pack.
-const EN_US_DICT = DICTIONARY["en-US"] || {};
-Object.keys(DICTIONARY).forEach((code) => {
-    if (code === "en-US") return;
-    DICTIONARY[code] = { ...EN_US_DICT, ...(DICTIONARY[code] || {}) };
-});
+function _mergeGeneratedTranslations(GENERATED_TRANSLATIONS) {
+    if (_generatedTranslationsLoaded) return;
+    _generatedTranslationsLoaded = true;
+    Object.entries(GENERATED_TRANSLATIONS || {}).forEach(([code, entries]) => {
+        DICTIONARY[code] = { ...(DICTIONARY[code] || {}), ...(entries || {}) };
+    });
+    _backfillFromEnUS();
+}
+
+function _backfillFromEnUS() {
+    const EN_US_DICT = DICTIONARY["en-US"] || {};
+    Object.keys(DICTIONARY).forEach((code) => {
+        if (code === "en-US") return;
+        DICTIONARY[code] = { ...EN_US_DICT, ...(DICTIONARY[code] || {}) };
+    });
+}
+
+/**
+ * Load generated translations on demand (for non-English locales).
+ * Returns a promise that resolves once translations are merged.
+ * @returns {Promise<void>}
+ */
+function _ensureGeneratedTranslations() {
+    if (_generatedTranslationsLoaded) return Promise.resolve();
+    if (!_generatedTranslationsPromise) {
+        _generatedTranslationsPromise = import("./i18n.generated.js")
+            .then(({ GENERATED_TRANSLATIONS }) => {
+                _mergeGeneratedTranslations(GENERATED_TRANSLATIONS);
+            })
+            .catch((e) => {
+                console.warn("[Majoor i18n] Failed to load generated translations:", e);
+                _backfillFromEnUS();
+            });
+    }
+    return _generatedTranslationsPromise;
+}
+
+// For en-US, backfill empty locale stubs immediately (no generated data needed).
+_backfillFromEnUS();
 
 // -----------------------------------------------------------------------------
 // API
@@ -1193,6 +1230,16 @@ export const setLang = (lang) => {
 
     // Apply RTL direction for RTL languages
     _applyRTL();
+
+    // If switching to a non-English locale, ensure generated translations are loaded.
+    if (lang !== DEFAULT_LANG && !_generatedTranslationsLoaded) {
+        void _ensureGeneratedTranslations().then(() => {
+            // Re-notify listeners once translations are available so UI updates.
+            Array.from(_langChangeListeners).forEach(cb => {
+                try { cb(lang); } catch (e) { console.debug?.(e); }
+            });
+        });
+    }
 
     // Notify listeners
     Array.from(_langChangeListeners).forEach(cb => {

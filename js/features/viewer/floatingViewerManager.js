@@ -9,15 +9,46 @@
  *  - Expose `upsertWithContent(fileData)` for LiveStreamTracker.
  */
 
-import { FloatingViewer, MFV_MODES } from "./FloatingViewer.js";
 import { EVENTS } from "../../app/events.js";
 import { getAssetsBatch } from "../../api/client.js";
 import { getActiveGridContainer } from "../panel/AssetsManagerPanel.js";
 import { getSelectedIdSet } from "../grid/GridSelectionManager.js";
 import { getHotkeysState, isHotkeysSuspended } from "../panel/controllers/hotkeysState.js";
 import { reportError } from "../../utils/logging.js";
-import { setNodeStreamActive as setControllerNodeStreamActive } from "./nodeStream/NodeStreamController.js";
 import { NODE_STREAM_FEATURE_ENABLED } from "./nodeStream/nodeStreamFeatureFlag.js";
+
+// Lazy-loaded modules — loaded on first use to avoid blocking startup.
+/** @type {typeof import("./FloatingViewer.js").FloatingViewer | null} */
+let _FloatingViewerClass = null;
+let _floatingViewerLoadPromise = null;
+
+async function _loadFloatingViewer() {
+    if (_FloatingViewerClass) return _FloatingViewerClass;
+    if (!_floatingViewerLoadPromise) {
+        _floatingViewerLoadPromise = import("./FloatingViewer.js").then((m) => {
+            _FloatingViewerClass = m.FloatingViewer;
+            return _FloatingViewerClass;
+        });
+    }
+    return _floatingViewerLoadPromise;
+}
+
+/** @type {((active: boolean) => void) | null} */
+let _setControllerNodeStreamActive = null;
+let _nodeStreamModPromise = null;
+
+async function _loadNodeStreamController() {
+    if (_setControllerNodeStreamActive) return;
+    if (!_nodeStreamModPromise) {
+        _nodeStreamModPromise = import("./nodeStream/NodeStreamController.js").then((m) => {
+            _setControllerNodeStreamActive = m.setNodeStreamActive;
+        });
+    }
+    return _nodeStreamModPromise;
+}
+
+// Inline MFV mode constants (avoids eager import of FloatingViewer.js).
+const MFV_MODES = Object.freeze({ SIMPLE: "simple", AB: "ab", SIDE: "side" });
 
 // ── Module state ──────────────────────────────────────────────────────────────
 
@@ -32,10 +63,13 @@ let _loadSeq = 0;   // Sequence counter to discard stale _loadFromIds responses
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
-function _getInstance() {
+async function _getInstance() {
     if (!_instance) {
-        _instance = new FloatingViewer();
-        document.body.appendChild(_instance.render());
+        const FV = await _loadFloatingViewer();
+        if (!_instance) { // re-check after await
+            _instance = new FV();
+            document.body.appendChild(_instance.render());
+        }
     }
     return _instance;
 }
@@ -195,8 +229,8 @@ function _unbindSelectionListener() {
 // ── Public API ────────────────────────────────────────────────────────────────
 
 export const floatingViewerManager = {
-    open() {
-        const inst = _getInstance();
+    async open() {
+        const inst = await _getInstance();
         inst.show();
         _syncViewerControls(inst);
         _bindSelectionListener();
@@ -216,11 +250,11 @@ export const floatingViewerManager = {
         _emitVisibilityChanged(false);
     },
 
-    toggle() {
+    async toggle() {
         if (_instance?.isVisible) {
             floatingViewerManager.close();
         } else {
-            floatingViewerManager.open();
+            await floatingViewerManager.open();
         }
     },
 
@@ -232,8 +266,8 @@ export const floatingViewerManager = {
         floatingViewerManager.setPreviewActive(!_previewActive);
     },
 
-    toggleCompareAB() {
-        const inst = _getInstance();
+    async toggleCompareAB() {
+        const inst = await _getInstance();
         const wasVisible = Boolean(inst.isVisible);
 
         if (!wasVisible) {
@@ -267,8 +301,8 @@ export const floatingViewerManager = {
      * Used by LiveStreamTracker for the live generation feed.
      * @param {object} fileData  Raw output { filename, subfolder, type } or full asset object.
      */
-    upsertWithContent(fileData) {
-        const inst = _getInstance();
+    async upsertWithContent(fileData) {
+        const inst = await _getInstance();
         const wasVisible = Boolean(inst.isVisible);
         inst.show();
         _syncViewerControls(inst);
@@ -305,14 +339,14 @@ export const floatingViewerManager = {
      * Toggle the viewer between the expanded dialog overlay and the floating panel.
      * If the viewer isn't open yet, it is opened first so there's something to see.
      */
-    popOut() {
-        const inst = _getInstance();
+    async popOut() {
+        const inst = await _getInstance();
         if (inst.isPopped) {
             inst.popIn();
         } else {
             // Ensure the viewer is visible and loaded before popping out
             if (!inst.isVisible) {
-                floatingViewerManager.open();
+                await floatingViewerManager.open();
             }
             inst.popOut();
         }
@@ -334,9 +368,9 @@ export const floatingViewerManager = {
      * If preview mode is off or the viewer is not visible, the blob is ignored.
      * @param {Blob} blob  JPEG/PNG Blob from the ComfyUI `b_preview` event.
      */
-    feedPreviewBlob(blob) {
+    async feedPreviewBlob(blob) {
         if (!_previewActive) return;
-        const inst = _getInstance();
+        const inst = await _getInstance();
         const wasVisible = Boolean(inst.isVisible);
         if (!inst.isVisible) {
             inst.show();
@@ -357,13 +391,16 @@ export const floatingViewerManager = {
         if (!NODE_STREAM_FEATURE_ENABLED) {
             void active;
             _nodeStreamActive = false;
-            setControllerNodeStreamActive(false);
+            if (_setControllerNodeStreamActive) _setControllerNodeStreamActive(false);
             _instance?.setNodeStreamActive?.(false);
             return;
         }
 
         _nodeStreamActive = Boolean(active);
-        setControllerNodeStreamActive(_nodeStreamActive);
+        // Lazy-load NodeStreamController then apply state.
+        void _loadNodeStreamController().then(() => {
+            if (_setControllerNodeStreamActive) _setControllerNodeStreamActive(_nodeStreamActive);
+        });
         _instance?.setNodeStreamActive?.(_nodeStreamActive);
     },
 
@@ -376,13 +413,13 @@ export const floatingViewerManager = {
      * Called by the NodeStreamController when a watched node produces output.
      * @param {object} fileData  { filename, subfolder, type, kind?, _nodeId?, _classType? }
      */
-    feedNodeStream(fileData) {
+    async feedNodeStream(fileData) {
         if (!NODE_STREAM_FEATURE_ENABLED) {
             void fileData;
             return;
         }
         if (!_nodeStreamActive) return;
-        const inst = _getInstance();
+        const inst = await _getInstance();
         const wasVisible = Boolean(inst.isVisible);
         if (!inst.isVisible) {
             inst.show();
@@ -518,7 +555,7 @@ export function teardownFloatingViewerManager() {
     _liveActive = false;
     _previewActive = false;
     _nodeStreamActive = false;
-    try { setControllerNodeStreamActive(false); } catch (e) { console.debug?.(e); }
+    try { if (_setControllerNodeStreamActive) _setControllerNodeStreamActive(false); } catch (e) { console.debug?.(e); }
     _disposeInstance();
     if (wasVisible) _emitVisibilityChanged(false);
     // entry.js calls teardown during setup before the current module continues
