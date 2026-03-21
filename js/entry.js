@@ -196,6 +196,9 @@ app.registerExtension({
 
     async setup() {
         installEntryRuntimeController();
+        // Seed the bridge with the module-imported app so waitForComfyApp
+        // resolves immediately (newer ComfyUI may not expose app on window/globalThis).
+        setComfyApp(app);
         const runtimeApp = (await waitForComfyApp({ timeoutMs: 12000 })) || app;
         setComfyApp(runtimeApp);
         // Store app reference for teardown use in subsequent hot-reloads.
