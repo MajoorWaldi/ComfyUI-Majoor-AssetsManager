@@ -231,8 +231,14 @@ async def _write_multipart_file_atomic(dest_dir: Path, filename: str, field) -> 
 
 
 def _validate_upload_filename(filename: str) -> str | None:
+    from ..assets.filename_validator import validate_filename
+
     safe_name = Path(str(filename)).name
     if not safe_name or "\x00" in safe_name or safe_name.startswith(".") or ".." in safe_name:
+        return None
+    # Also check for Windows reserved names, control chars, etc.
+    valid, _err = validate_filename(safe_name)
+    if not valid:
         return None
     return safe_name
 

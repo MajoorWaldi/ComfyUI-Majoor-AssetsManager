@@ -187,6 +187,11 @@ def _is_missing_table_error(exc: Exception) -> bool:
     return "no such table" in msg
 
 def _populate_known_columns_from_schema(db_path: Path) -> None:
+    """Populate known column names from the DB schema.
+
+    NOTE: Uses synchronous sqlite3.connect intentionally — this runs once at
+    startup before the async event loop is active, so blocking is acceptable.
+    """
     global _KNOWN_COLUMNS_LOWER
     try:
         if not db_path.exists():
@@ -237,7 +242,7 @@ def _extract_schema_column_name(row: Any) -> str:
     return str(row[1]).strip()
 
 _IN_QUERY_FORBIDDEN = re.compile(
-    r"(--|/\*|\*/|;|\bpragma\b|\battach\b|\bdetach\b|\bvacuum\b|\balter\b|\bdrop\b|\binsert\b|\bupdate\b|\bdelete\b)",
+    r"(--|/\*|\*/|;|\bpragma\b|\battach\b|\bdetach\b|\bvacuum\b|\balter\b|\bdrop\b|\binsert\b|\bupdate\b|\bdelete\b|\bcreate\b|\bgrant\b|\breindex\b)",
     re.IGNORECASE,
 )
 _UNRESOLVED_SQL_TEMPLATE = re.compile(r"\{[a-zA-Z_][a-zA-Z0-9_]*\}")
@@ -274,32 +279,34 @@ def _validate_in_base_query(base_query: str) -> tuple[bool, str]:
     return True, ""
 
 
-def _build_in_query(base_query: str, safe_column: str, value_count: int) -> tuple[bool, str, tuple]:
+def _build_in_query(base_query: str, safe_column: str, value_count: int) -> tuple[bool, str, int]:
     """
     Build a parameterized IN-clause query from a validated template.
 
     Returns:
-        (ok, query_or_error, placeholders_tuple)
+        (ok, query_or_error, placeholder_count)
+        - placeholder_count: number of ``?`` placeholders in the IN clause.
+          The caller must supply this many parameter values.
     """
     try:
         n = int(value_count)
     except Exception:
         n = 0
     if n <= 0:
-        return True, "", tuple()
+        return True, "", 0
 
     try:
         parts = str(base_query).split("{IN_CLAUSE}")
     except Exception:
-        return False, "Invalid base_query template", tuple()
+        return False, "Invalid base_query template", 0
 
     if len(parts) != 2:
-        return False, "base_query must contain exactly one {IN_CLAUSE}", tuple()
+        return False, "base_query must contain exactly one {IN_CLAUSE}", 0
 
     placeholders = ",".join(["?"] * n)
     in_clause = f"{safe_column} IN ({placeholders})"
     query = parts[0] + in_clause + parts[1]
-    return True, query, tuple(["?"] * n)
+    return True, query, n
 
 
 def _try_repair_column_name(column: str) -> str | None:

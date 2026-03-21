@@ -34,7 +34,7 @@ def test_validate_and_build_in_query():
     assert ok2 is False
 
     b_ok, q, ph = s._build_in_query("SELECT * FROM assets WHERE {IN_CLAUSE}", "id", 3)
-    assert b_ok and "id IN (?,?,?)" in q and len(ph) == 3
+    assert b_ok and "id IN (?,?,?)" in q and ph == 3
 
 
 def test_column_repair_helpers(monkeypatch):

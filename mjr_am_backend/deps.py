@@ -44,7 +44,7 @@ def _init_db_or_error(db_path: str) -> Result[Sqlite]:
         return Result.Ok(Sqlite(db_path, max_connections=DB_MAX_CONNECTIONS, timeout=DB_TIMEOUT, attach={"vec": VECTORS_DB}))
     except Exception as exc:
         logger.error("Failed to initialize database: %s", exc)
-        return Result.Err("DB_ERROR", f"Failed to initialize database: {exc}")
+        return Result.Err("DB_ERROR", "Failed to initialize database")
 
 
 async def _migrate_db_or_error(db: Sqlite) -> Result[bool]:
@@ -247,8 +247,8 @@ async def _create_watcher(index_service: IndexService) -> OutputWatcher:
             if _RECENT_GENERATED:
                 await asyncio.sleep(0.2)
             filepaths = [f for f in filepaths if f and not is_recent_generated(f)]
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Recent-generated filter failed, indexing all files: %s", exc)
         if not filepaths:
             return
         paths = [Path(f) for f in filepaths if f]

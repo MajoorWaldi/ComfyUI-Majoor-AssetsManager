@@ -34,7 +34,7 @@ const buildURL = (payload) =>
 // Workflow cache: filename -> { workflow, at }
 const _workflowCache = new Map();
 const WORKFLOW_CACHE_TTL_MS = 60_000; // 1 minute
-const WORKFLOW_CACHE_MAX = 100;
+const WORKFLOW_CACHE_MAX = 20; // Keep small to limit memory (workflows can be up to 5MB each)
 const MAX_WORKFLOW_BYTES = 5 * 1024 * 1024;
 const MAX_WORKFLOW_NODE_COUNT = 5000;
 const MAX_WORKFLOW_LINK_COUNT = 20000;

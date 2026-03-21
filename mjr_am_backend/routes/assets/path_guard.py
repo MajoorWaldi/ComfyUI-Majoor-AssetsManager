@@ -107,7 +107,10 @@ def _validate_no_symlink_open(path: Path) -> str:
 
 
 def safe_download_filename(name: str) -> str:
-    return str(name or "").replace('"', "").replace(";", "").replace("\r", "").replace("\n", "")[:255]
+    # Strip control characters, null bytes, and Content-Disposition injection chars
+    raw = str(name or "")
+    cleaned = "".join(ch for ch in raw if ch.isprintable() and ch not in ('"', ';', '\x00'))
+    return cleaned[:255]
 
 
 def build_download_response(resolved: Path, *, preview: bool) -> web.StreamResponse:

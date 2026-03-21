@@ -133,6 +133,8 @@ def _scan_enqueued_from_kickoff(result: Any) -> bool:
 
 
 def _scan_fast_enabled(body: dict[str, Any]) -> bool:
+    if not isinstance(body, dict):
+        return bool(SCAN_DEFAULT_FAST)
     mode = str(body.get("mode") or "").strip().lower()
     if mode == "fast" or parse_bool(body.get("manifest_only"), False):
         return True
@@ -142,6 +144,8 @@ def _scan_fast_enabled(body: dict[str, Any]) -> bool:
 
 
 def _scan_background_metadata_enabled(body: dict[str, Any]) -> bool:
+    if not isinstance(body, dict):
+        return bool(SCAN_DEFAULT_BACKGROUND_METADATA)
     for key in ("background_metadata", "backgroundMetadata", "enrich_metadata", "enqueue_metadata"):
         if key in body:
             return parse_bool(body.get(key), False)

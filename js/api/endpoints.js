@@ -113,6 +113,9 @@ export const ENDPOINTS = {
 
 export function appendAssetFilterQueryParams(url, filters = {}) {
     let nextUrl = String(url || "");
+    // Use correct separator based on whether URL already has query params
+    const _sep = () => { const s = nextUrl.includes("?") ? "&" : "?"; return s; };
+    const _append = (param) => { nextUrl += _sep() + param; };
     const {
         subfolder = null,
         kind = null,
@@ -130,43 +133,43 @@ export function appendAssetFilterQueryParams(url, filters = {}) {
     } = filters || {};
 
     if (subfolder) {
-        nextUrl += `&subfolder=${encodeURIComponent(String(subfolder))}`;
+        _append(`subfolder=${encodeURIComponent(String(subfolder))}`);
     }
     if (kind) {
-        nextUrl += `&kind=${encodeURIComponent(kind)}`;
+        _append(`kind=${encodeURIComponent(kind)}`);
     }
     if (hasWorkflow !== null && hasWorkflow !== undefined) {
-        nextUrl += `&has_workflow=${encodeURIComponent(hasWorkflow ? "true" : "false")}`;
+        _append(`has_workflow=${encodeURIComponent(hasWorkflow ? "true" : "false")}`);
     }
     if (minRating !== null && minRating !== undefined && Number(minRating) > 0) {
-        nextUrl += `&min_rating=${encodeURIComponent(String(minRating))}`;
+        _append(`min_rating=${encodeURIComponent(String(minRating))}`);
     }
     if (minSizeMB !== null && minSizeMB !== undefined && Number(minSizeMB) > 0) {
-        nextUrl += `&min_size_mb=${encodeURIComponent(String(minSizeMB))}`;
+        _append(`min_size_mb=${encodeURIComponent(String(minSizeMB))}`);
     }
     if (maxSizeMB !== null && maxSizeMB !== undefined && Number(maxSizeMB) > 0) {
-        nextUrl += `&max_size_mb=${encodeURIComponent(String(maxSizeMB))}`;
+        _append(`max_size_mb=${encodeURIComponent(String(maxSizeMB))}`);
     }
     if (minWidth !== null && minWidth !== undefined && Number(minWidth) > 0) {
-        nextUrl += `&min_width=${encodeURIComponent(String(minWidth))}`;
+        _append(`min_width=${encodeURIComponent(String(minWidth))}`);
     }
     if (minHeight !== null && minHeight !== undefined && Number(minHeight) > 0) {
-        nextUrl += `&min_height=${encodeURIComponent(String(minHeight))}`;
+        _append(`min_height=${encodeURIComponent(String(minHeight))}`);
     }
     if (maxWidth !== null && maxWidth !== undefined && Number(maxWidth) > 0) {
-        nextUrl += `&max_width=${encodeURIComponent(String(maxWidth))}`;
+        _append(`max_width=${encodeURIComponent(String(maxWidth))}`);
     }
     if (maxHeight !== null && maxHeight !== undefined && Number(maxHeight) > 0) {
-        nextUrl += `&max_height=${encodeURIComponent(String(maxHeight))}`;
+        _append(`max_height=${encodeURIComponent(String(maxHeight))}`);
     }
     if (workflowType) {
-        nextUrl += `&workflow_type=${encodeURIComponent(String(workflowType))}`;
+        _append(`workflow_type=${encodeURIComponent(String(workflowType))}`);
     }
     if (dateRange) {
-        nextUrl += `&date_range=${encodeURIComponent(String(dateRange))}`;
+        _append(`date_range=${encodeURIComponent(String(dateRange))}`);
     }
     if (dateExact) {
-        nextUrl += `&date_exact=${encodeURIComponent(String(dateExact))}`;
+        _append(`date_exact=${encodeURIComponent(String(dateExact))}`);
     }
     return nextUrl;
 }

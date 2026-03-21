@@ -42,10 +42,17 @@ export function getRuntimeState() {
     }
 }
 
+const _BLOCKED_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
 export function setRuntimeStatePatch(patch = {}) {
     const state = getRuntimeState();
     try {
-        Object.assign(state, patch || {});
+        const safePatch = patch || {};
+        for (const key of Object.keys(safePatch)) {
+            if (!_BLOCKED_KEYS.has(key)) {
+                state[key] = safePatch[key];
+            }
+        }
     } catch (e) { console.debug?.(e); }
     return state;
 }

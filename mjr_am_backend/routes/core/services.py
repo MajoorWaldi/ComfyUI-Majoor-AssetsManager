@@ -23,6 +23,8 @@ def _get_services_lock() -> asyncio.Lock:
         return _services_lock
     with _services_lock_guard:
         if _services_lock is None:
+            # Created lazily so it binds to the running event loop.
+            # All callers must be in the same loop (single-loop assumption).
             _services_lock = asyncio.Lock()
         return _services_lock
 

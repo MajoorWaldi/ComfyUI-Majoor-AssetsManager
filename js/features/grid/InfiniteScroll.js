@@ -165,7 +165,16 @@ export function findInsertPosition(array, asset, sortKey) {
 }
 
 export function findAssetElement(gridContainer, assetId) {
-    return gridContainer.querySelector(`[data-mjr-asset-id="${CSS.escape ? CSS.escape(String(assetId)) : String(assetId)}"]`);
+    const escaped = _safeEscape(String(assetId));
+    return gridContainer.querySelector(`[data-mjr-asset-id="${escaped}"]`);
+}
+
+function _safeEscape(value) {
+    try {
+        return CSS?.escape ? CSS.escape(value) : value.replace(/["\\]/g, "\\$&");
+    } catch {
+        return value.replace(/["\\]/g, "\\$&");
+    }
 }
 
 export function getUpsertBatchState(gridContainer, upsertState) {
@@ -177,6 +186,13 @@ export function getUpsertBatchState(gridContainer, upsertState) {
     return s;
 }
 
+/**
+ * Flush all pending upsert operations into the grid.
+ *
+ * Concurrency guard: `batchState.flushing` prevents re-entrant flushes.
+ * Items arriving during a flush are accumulated in `batchState.pending` and
+ * a follow-up flush is scheduled in the `finally` block (BUG-01).
+ */
 export function flushUpsertBatch(gridContainer, deps) {
     const batchState = deps.upsertState.get(gridContainer);
     if (!batchState || batchState.pending.size === 0 || batchState.flushing) return;

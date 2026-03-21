@@ -103,16 +103,33 @@ function _buildGridCompactOverlay(asset, label) {
     ].join(";");
 
     const shortPrompt = prompt.length > 160 ? prompt.slice(0, 160) + "…" : prompt;
-    let html = `<div style="display:flex;align-items:baseline;gap:5px;flex-wrap:wrap;margin-bottom:${detail ? "3" : "0"}px;">`;
-    html += `<span style="background:rgba(255,255,255,0.2);border-radius:3px;padding:0 4px;font-weight:700;font-size:9px;letter-spacing:0.06em;flex-shrink:0;">${_escHtml(label)}</span>`;
+
+    // Build DOM nodes directly to eliminate XSS risk from metadata content.
+    const row = document.createElement("div");
+    row.style.cssText = `display:flex;align-items:baseline;gap:5px;flex-wrap:wrap;margin-bottom:${detail ? "3" : "0"}px;`;
+
+    const labelSpan = document.createElement("span");
+    labelSpan.style.cssText = "background:rgba(255,255,255,0.2);border-radius:3px;padding:0 4px;font-weight:700;font-size:9px;letter-spacing:0.06em;flex-shrink:0;";
+    labelSpan.textContent = label;
+    row.appendChild(labelSpan);
+
     if (prompt) {
-        html += `<span><span style="color:#7ec8ff;font-weight:600;">Prompt:</span> ${_escHtml(shortPrompt)}</span>`;
+        const promptWrapper = document.createElement("span");
+        const promptLabel = document.createElement("span");
+        promptLabel.style.cssText = "color:#7ec8ff;font-weight:600;";
+        promptLabel.textContent = "Prompt:";
+        promptWrapper.appendChild(promptLabel);
+        promptWrapper.appendChild(document.createTextNode(" " + shortPrompt));
+        row.appendChild(promptWrapper);
     }
-    html += `</div>`;
+    overlay.appendChild(row);
+
     if (detail) {
-        html += `<div style="color:rgba(255,255,255,0.65);font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${_escHtml(detail)}</div>`;
+        const detailDiv = document.createElement("div");
+        detailDiv.style.cssText = "color:rgba(255,255,255,0.65);font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
+        detailDiv.textContent = detail;
+        overlay.appendChild(detailDiv);
     }
-    overlay.innerHTML = html;
     return overlay;
 }
 

@@ -412,11 +412,11 @@ export function createGridController({
     // watcher event arriving simultaneously) into a single _doReload execution.
     // The inner coalescing loop still handles calls that arrive mid-reload.
     const reloadGrid = () => {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             if (_debounceTimer) clearTimeout(_debounceTimer);
             _debounceTimer = setTimeout(() => {
                 _debounceTimer = null;
-                _doReload().then(resolve).catch(resolve);
+                _doReload().then(resolve).catch(reject);
             }, 150);
         });
     };

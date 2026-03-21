@@ -39,7 +39,12 @@ def _normalize_rename_paths(old_filepath: str, new_filepath: str) -> tuple[str, 
     return str(old_filepath or ""), normalize_filepath_str(str(new_filepath or ""))
 
 
+_FILEPATH_MATCH_ALLOWED_COLUMNS = frozenset({"filepath"})
+
+
 def _filepath_match_clause(path_value: str, *, column: str = "filepath") -> tuple[str, tuple[Any, ...]]:
+    if column not in _FILEPATH_MATCH_ALLOWED_COLUMNS:
+        raise ValueError(f"Column {column!r} is not in the allowed set: {_FILEPATH_MATCH_ALLOWED_COLUMNS}")
     raw = str(path_value or "")
     normalized = normalize_filepath_str(raw)
     keys: list[str] = []

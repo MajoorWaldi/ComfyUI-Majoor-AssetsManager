@@ -19,10 +19,10 @@ def test_validate_in_base_query_more_cases():
 
 def test_build_in_query_invalid_count_and_column():
     b1, q1, p1 = s._build_in_query("DELETE FROM t WHERE {IN_CLAUSE}", "id", 0)
-    assert b1 and q1 == "" and p1 == ()
+    assert b1 and q1 == "" and p1 == 0
 
     b2, q2, p2 = s._build_in_query("SELECT * FROM t WHERE {IN_CLAUSE}", "id", 0)
-    assert b2 and q2 == "" and p2 == ()
+    assert b2 and q2 == "" and p2 == 0
 
 
 def test_async_loop_thread_run_closes_coro_on_deadlock():

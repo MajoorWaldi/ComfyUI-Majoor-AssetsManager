@@ -34,6 +34,7 @@ export function startTimer(name) {
     if (!METRICS_ENABLED) return;
     const startTime = performance.now();
     _timers.set(name, startTime);
+    try { performance.mark(`${name}-start`); } catch (e) { /* ignore */ }
     if (DEBUG_TIMING) console.log(`[Majoor Metrics] Started: ${name}`);
 }
 

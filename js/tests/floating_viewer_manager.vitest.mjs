@@ -45,6 +45,7 @@ const state = vi.hoisted(() => {
       });
       this.setLiveActive = vi.fn();
       this.setPreviewActive = vi.fn();
+      this.setNodeStreamActive = vi.fn();
       this.loadPreviewBlob = vi.fn();
       this.dispose = vi.fn(() => {
         this.isVisible = false;
@@ -160,9 +161,17 @@ function createGrid(ids = []) {
   };
 }
 
+/**
+ * Drain the microtask queue so fire-and-forget async work (e.g. _loadFromIds
+ * triggered by _syncCurrentGridSelection inside open()) has time to complete.
+ *
+ * The dynamic import mock resolves in ~2 microticks, _getInstance needs ~2 more,
+ * and _loadFromIds adds another ~2.  8 ticks provides comfortable headroom.
+ */
 async function flushAsyncWork() {
-  await Promise.resolve();
-  await Promise.resolve();
+  for (let i = 0; i < 8; i++) {
+    await Promise.resolve();
+  }
 }
 
 beforeEach(() => {
@@ -192,7 +201,7 @@ describe("floatingViewerManager", () => {
     });
 
     const { floatingViewerManager } = await import("../features/viewer/floatingViewerManager.js");
-    floatingViewerManager.open();
+    await floatingViewerManager.open();
     await flushAsyncWork();
 
     const viewer = state.getLastViewer();
@@ -217,7 +226,7 @@ describe("floatingViewerManager", () => {
     });
 
     const { floatingViewerManager } = await import("../features/viewer/floatingViewerManager.js");
-    floatingViewerManager.open();
+    await floatingViewerManager.open();
     await flushAsyncWork();
 
     const viewer = state.getLastViewer();
@@ -243,7 +252,7 @@ describe("floatingViewerManager", () => {
     });
 
     const { floatingViewerManager } = await import("../features/viewer/floatingViewerManager.js");
-    floatingViewerManager.open();
+    await floatingViewerManager.open();
 
     const viewer = state.getLastViewer();
     viewer._mediaA = { id: 9001, filename: "reference-a.png" };
@@ -274,7 +283,7 @@ describe("floatingViewerManager", () => {
     });
 
     const { floatingViewerManager } = await import("../features/viewer/floatingViewerManager.js");
-    floatingViewerManager.open();
+    await floatingViewerManager.open();
 
     const viewer = state.getLastViewer();
     viewer._mediaB = { id: 9002, filename: "reference-b.png" };
@@ -298,7 +307,7 @@ describe("floatingViewerManager", () => {
     state.setViewerPopped(true);
 
     const { floatingViewerManager } = await import("../features/viewer/floatingViewerManager.js");
-    floatingViewerManager.open();
+    await floatingViewerManager.open();
 
     const viewer = state.getLastViewer();
     expect(viewer.isVisible).toBe(true);
@@ -319,7 +328,7 @@ describe("floatingViewerManager", () => {
 
     const { floatingViewerManager } = await import("../features/viewer/floatingViewerManager.js");
     floatingViewerManager.setLiveActive(true);
-    floatingViewerManager.upsertWithContent({ filename: "live-output.png", type: "output" });
+    await floatingViewerManager.upsertWithContent({ filename: "live-output.png", type: "output" });
 
     const viewer = state.getLastViewer();
     expect(viewer).toBeTruthy();
@@ -342,7 +351,7 @@ describe("floatingViewerManager", () => {
 
     const { floatingViewerManager } = await import("../features/viewer/floatingViewerManager.js");
     floatingViewerManager.setPreviewActive(true);
-    floatingViewerManager.feedPreviewBlob(blob);
+    await floatingViewerManager.feedPreviewBlob(blob);
 
     const viewer = state.getLastViewer();
     expect(viewer).toBeTruthy();
@@ -355,7 +364,7 @@ describe("floatingViewerManager", () => {
 
   it("toggles live stream with L while the floating viewer is visible", async () => {
     const { floatingViewerManager } = await import("../features/viewer/floatingViewerManager.js");
-    floatingViewerManager.open();
+    await floatingViewerManager.open();
 
     const viewer = state.getLastViewer();
     const event = {
@@ -378,7 +387,7 @@ describe("floatingViewerManager", () => {
 
   it("toggles the floating viewer off with V while it is visible", async () => {
     const { floatingViewerManager } = await import("../features/viewer/floatingViewerManager.js");
-    floatingViewerManager.open();
+    await floatingViewerManager.open();
 
     const viewer = state.getLastViewer();
     expect(viewer.isVisible).toBe(true);
@@ -403,7 +412,7 @@ describe("floatingViewerManager", () => {
 
   it("reinstalls global listeners after teardown so toggle can open a new viewer again", async () => {
     const { floatingViewerManager, teardownFloatingViewerManager } = await import("../features/viewer/floatingViewerManager.js");
-    floatingViewerManager.open();
+    await floatingViewerManager.open();
 
     const firstViewer = state.getLastViewer();
     expect(firstViewer).toBeTruthy();
@@ -412,6 +421,7 @@ describe("floatingViewerManager", () => {
     expect(firstViewer.dispose).toHaveBeenCalledTimes(1);
 
     window.dispatchEvent(new CustomEvent("mjr:mfv-toggle"));
+    await flushAsyncWork();
 
     const secondViewer = state.getLastViewer();
     expect(secondViewer).toBeTruthy();
@@ -421,7 +431,7 @@ describe("floatingViewerManager", () => {
 
   it("toggles sampler preview with K while the floating viewer is visible", async () => {
     const { floatingViewerManager } = await import("../features/viewer/floatingViewerManager.js");
-    floatingViewerManager.open();
+    await floatingViewerManager.open();
 
     const viewer = state.getLastViewer();
     const event = {
@@ -454,7 +464,7 @@ describe("floatingViewerManager", () => {
     });
 
     const { floatingViewerManager } = await import("../features/viewer/floatingViewerManager.js");
-    floatingViewerManager.open();
+    await floatingViewerManager.open();
     await flushAsyncWork();
 
     const viewer = state.getLastViewer();
@@ -490,6 +500,7 @@ describe("floatingViewerManager", () => {
       stopImmediatePropagation: vi.fn(),
     };
     window.dispatchEvent(toSimpleEvent);
+    await flushAsyncWork();
 
     expect(viewer.setMode).toHaveBeenLastCalledWith("side");
     expect(toSimpleEvent.preventDefault).toHaveBeenCalledTimes(1);
@@ -506,6 +517,7 @@ describe("floatingViewerManager", () => {
       stopImmediatePropagation: vi.fn(),
     };
     window.dispatchEvent(toOffEvent);
+    await flushAsyncWork();
 
     expect(viewer.setMode).toHaveBeenLastCalledWith("simple");
     expect(viewer.hide).not.toHaveBeenCalled();

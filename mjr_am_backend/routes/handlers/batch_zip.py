@@ -45,10 +45,18 @@ _CLEANUP_THREAD_LOCK = threading.Lock()
 _CLEANUP_STOP = threading.Event()
 
 
+_TOKEN_LOCKS_MAX = 200  # Hard cap to prevent unbounded memory growth
+
+
 def _get_token_lock(token: str) -> threading.Lock:
     with _TOKEN_LOCKS_LOCK:
         lock = _TOKEN_LOCKS.get(token)
         if lock is None:
+            # Prune stale locks not associated with active cache entries
+            if len(_TOKEN_LOCKS) >= _TOKEN_LOCKS_MAX:
+                stale = [k for k in _TOKEN_LOCKS if k not in _BATCH_CACHE]
+                for k in stale:
+                    _TOKEN_LOCKS.pop(k, None)
             lock = threading.Lock()
             _TOKEN_LOCKS[token] = lock
         return lock

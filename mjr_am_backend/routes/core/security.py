@@ -61,8 +61,11 @@ except Exception:
     _MAX_RATE_LIMIT_ENDPOINTS_PER_CLIENT = _DEFAULT_MAX_RATE_LIMIT_ENDPOINTS_PER_CLIENT
 
 _rate_limit_state: OrderedDict[str, dict[str, list[float]]] = OrderedDict()
-# threading.Lock is intentional here: rate-limit updates are synchronous and never await.
-# Do not add `await` inside a `with _rate_limit_lock:` critical section.
+# INVARIANT: threading.Lock is used intentionally because all rate-limit updates
+# are purely synchronous (dict/list mutations only). This avoids the cost and
+# complexity of asyncio.Lock for a hot path that never awaits.
+# **DO NOT** add any `await` inside a `with _rate_limit_lock:` critical section —
+# doing so would block the entire event loop for all other coroutines.
 _rate_limit_lock = threading.Lock()
 _rate_limit_cleanup_thread: threading.Thread | None = None
 _rate_limit_cleanup_thread_lock = threading.Lock()

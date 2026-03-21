@@ -102,6 +102,10 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         container.classList.remove("mjr-assets-manager");
     }
 
+    // Invalidate cached grid reference before cleanup to prevent stale access
+    // during async teardown of the old panel instance.
+    _activeGridContainer = null;
+
     // Cleanup previous instance before re-render to prevent listener leaks
     try {
         container._eventCleanup?.();
@@ -447,17 +451,19 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             // 2. Grid visuals (badges, details, sizes)
             // Refresh only when a relevant setting changed to avoid reload storms.
             if (shouldRefreshGrid) {
+                // Use getActiveGridContainer() to avoid stale closure reference
+                const currentGrid = getActiveGridContainer() || gridContainer;
                 // Siblings toggle requires a full data reload: PNG siblings are filtered
                 // during appendAssets (state.assets), so refreshGrid alone can't add them
                 // back or remove them — a re-fetch is needed.
                 if (!isInitialSync && changedKey.startsWith("siblings.")) {
                     try {
-                        gridContainer.dispatchEvent(new CustomEvent("mjr:reload-grid"));
+                        currentGrid.dispatchEvent(new CustomEvent("mjr:reload-grid"));
                     } catch (e) {
-                        refreshGrid(gridContainer);
+                        refreshGrid(currentGrid);
                     }
                 } else {
-                    refreshGrid(gridContainer);
+                    refreshGrid(currentGrid);
                 }
             }
             if (shouldRefreshSidebar && state.sidebarOpen && state.activeAssetId) {

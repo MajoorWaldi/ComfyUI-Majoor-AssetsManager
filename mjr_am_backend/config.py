@@ -178,9 +178,7 @@ def _detect_comfy_root(current_file: Path) -> Path | None:
     for parent in current_file.parents:
         if (parent / "main.py").is_file() and (parent / "folder_paths.py").is_file():
             return parent
-    # Typical depth: custom_nodes/<node>/mjr_am_backend/config.py -> project root at parents[3].
-    if len(current_file.parents) > 3:
-        return current_file.parents[3]
+    # No marker files found — cannot reliably detect ComfyUI root.
     return None
 
 OUTPUT_ROOT_PATH = _resolve_output_root()
@@ -292,7 +290,7 @@ WATCHER_DEDUPE_TTL_MS = WATCHER_DEFAULT_DEDUPE_TTL_MS
 # - MAJOOR_WATCHER_MIN_FILE_SIZE
 # - MAJOOR_WATCHER_MAX_FILE_SIZE
 WATCHER_MAX_FILE_SIZE_BYTES = _env_int(
-    _env_int(512 * 1024 * 1024, "MJR_AM_WATCHER_MAX_FILE_SIZE_BYTES", "MJR_WATCHER_MAX_FILE_SIZE_BYTES", "MAJOOR_WATCHER_MAX_FILE_SIZE"),
+    512 * 1024 * 1024,
     "MJR_AM_WATCHER_MAX_FILE_SIZE_BYTES",
     "MJR_WATCHER_MAX_FILE_SIZE_BYTES",
     "MAJOOR_WATCHER_MAX_FILE_SIZE",
@@ -300,7 +298,7 @@ WATCHER_MAX_FILE_SIZE_BYTES = _env_int(
     max_value=32 * 1024 * 1024 * 1024,
 )
 WATCHER_MIN_FILE_SIZE_BYTES = _env_int(
-    _env_int(100, "MJR_AM_WATCHER_MIN_FILE_SIZE_BYTES", "MJR_WATCHER_MIN_FILE_SIZE_BYTES", "MAJOOR_WATCHER_MIN_FILE_SIZE"),
+    100,
     "MJR_AM_WATCHER_MIN_FILE_SIZE_BYTES",
     "MJR_WATCHER_MIN_FILE_SIZE_BYTES",
     "MAJOOR_WATCHER_MIN_FILE_SIZE",

@@ -91,11 +91,16 @@ def _is_path_allowed(candidate: Path | None, *, must_exist: bool = False) -> boo
 
 def _resolve_candidate_path(candidate: Path, *, must_exist: bool) -> Path | None:
     try:
+        # Always try strict resolve first to avoid TOCTOU race between
+        # exists() and resolve() — a symlink swap could occur in between.
+        return candidate.resolve(strict=True)
+    except (FileNotFoundError,):
         if must_exist:
-            return candidate.resolve(strict=True)
-        if candidate.exists():
-            return candidate.resolve(strict=True)
-        return candidate.resolve(strict=False)
+            return None
+        try:
+            return candidate.resolve(strict=False)
+        except (OSError, RuntimeError, ValueError):
+            return None
     except (OSError, RuntimeError, ValueError):
         return None
 

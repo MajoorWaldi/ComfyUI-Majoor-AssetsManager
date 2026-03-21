@@ -176,7 +176,7 @@ def _write_store(data: dict, *, user_id: str | None = None) -> Result[bool]:
         return Result.Ok(True)
     except Exception as exc:
         logger.warning("Failed to persist custom roots store: %s", exc)
-        return Result.Err("STORE_WRITE_FAILED", f"Failed to persist custom roots: {exc}")
+        return Result.Err("STORE_WRITE_FAILED", "Failed to persist custom roots")
 
 
 def list_custom_roots(*, user_id: str | None = None) -> Result[list[dict[str, Any]]]:

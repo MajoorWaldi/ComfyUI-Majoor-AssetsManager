@@ -115,6 +115,7 @@ function installEntryRuntimeController() {
 // Window (ms) to ignore duplicate file events from the same execution
 const DEDUPE_TTL_MS = 2000;
 const recentFiles = new Map(); // key -> timestamp
+const RECENT_FILES_MAX = 2000; // Hard cap to prevent unbounded growth
 const INDEX_RETRYABLE_CODES = new Set(["DB_MAINTENANCE", "TIMEOUT", "NETWORK_ERROR", "SERVICE_UNAVAILABLE"]);
 const INDEX_RETRY_MAX_ATTEMPTS = 8;
 const INDEX_RETRY_BASE_DELAY_MS = 1200;
@@ -122,6 +123,7 @@ const INDEX_RETRY_MAX_DELAY_MS = 15_000;
 
 // Track execution start times to compute generation duration
 const EXECUTION_START_TTL_MS = 10 * 60 * 1000;
+const EXECUTION_STARTS_MAX = 500; // Hard cap to prevent unbounded growth
 const executionStarts = new Map(); // prompt_id -> timestamp(ms)
 
 function rememberExecutionStart(promptId, timestampMs) {
@@ -138,6 +140,16 @@ function pruneExecutionStarts() {
             executionStarts.delete(key);
         }
     }
+    // Hard cap: evict oldest entries if still over limit
+    if (executionStarts.size > EXECUTION_STARTS_MAX) {
+        const excess = executionStarts.size - EXECUTION_STARTS_MAX;
+        let removed = 0;
+        for (const key of executionStarts.keys()) {
+            if (removed >= excess) break;
+            executionStarts.delete(key);
+            removed++;
+        }
+    }
 }
 
 function dedupeFiles(files) {
@@ -145,6 +157,16 @@ function dedupeFiles(files) {
     // Prune old entries
     for (const [key, ts] of recentFiles) {
         if (now - ts > DEDUPE_TTL_MS) recentFiles.delete(key);
+    }
+    // Hard cap: evict oldest entries if still over limit
+    if (recentFiles.size > RECENT_FILES_MAX) {
+        const excess = recentFiles.size - RECENT_FILES_MAX;
+        let removed = 0;
+        for (const key of recentFiles.keys()) {
+            if (removed >= excess) break;
+            recentFiles.delete(key);
+            removed++;
+        }
     }
     // Filter out recently seen files
     const fresh = [];

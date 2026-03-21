@@ -70,7 +70,10 @@ def _resolve_stage_destination(dest_dir: Path, filename: str, src_path: Path) ->
         stem = dest_path.stem
         suffix = dest_path.suffix
         counter = 1
+        _MAX_COLLISION_RETRIES = 10_000
         while dest_path.exists():
+            if counter > _MAX_COLLISION_RETRIES:
+                raise RuntimeError(f"Too many filename collisions for {stem}{suffix} (>{_MAX_COLLISION_RETRIES})")
             dest_path = dest_dir / f"{stem}_{counter}{suffix}"
             counter += 1
 

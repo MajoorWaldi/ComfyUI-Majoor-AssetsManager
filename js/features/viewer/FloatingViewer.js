@@ -86,16 +86,6 @@ function _makeEmptyState(msg = "No media — select assets in the grid") {
     return div;
 }
 
-function escapeHtml(s) {
-    if (s == null) return "";
-    return String(s)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/\"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-}
-
 function _makeLabel(text, side /* "left" | "right" */) {
     const el = document.createElement("div");
     el.className = `mjr-mfv-label label-${side}`;

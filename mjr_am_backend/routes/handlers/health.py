@@ -42,7 +42,7 @@ from ..core import (
     _require_services,
     _require_write_access,
 )
-from ..core.security import _refresh_trusted_proxy_cache, _request_transport_is_secure, _safe_mode_enabled
+from ..core.security import _is_loopback_ip, _refresh_trusted_proxy_cache, _request_transport_is_secure, _safe_mode_enabled
 from .db_maintenance import is_db_maintenance_active
 from .filesystem import _invalidate_fs_list_cache, _kickoff_background_scan
 
@@ -923,7 +923,14 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         if csrf:
             return _json_response(Result.Err("CSRF", csrf))
 
-        is_loopback = _is_loopback_request(request)
+        # SECURITY: Use raw socket peer IP for bootstrap — never trust XFF headers
+        # for token delivery. This prevents proxy misconfiguration from leaking
+        # the session token to remote clients.
+        try:
+            _raw_peer = str(getattr(request, "remote", None) or "").strip()
+        except Exception:
+            _raw_peer = ""
+        is_loopback = _is_loopback_ip(_raw_peer) if _raw_peer else False
 
         # Remote requests must explicitly opt-in via MAJOOR_ALLOW_BOOTSTRAP=1.
         # Loopback is always allowed: only local processes can reach it, and the
