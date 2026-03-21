@@ -64,6 +64,11 @@ def sanitize_for_json(obj: Any) -> Any:
     """
     if isinstance(obj, float):
         return None if (math.isnan(obj) or math.isinf(obj)) else obj
+    if isinstance(obj, bytes):
+        try:
+            return obj.decode("utf-8")
+        except (UnicodeDecodeError, ValueError):
+            return obj.hex()
     if isinstance(obj, dict):
         return {k: sanitize_for_json(v) for k, v in obj.items()}
     if isinstance(obj, list):

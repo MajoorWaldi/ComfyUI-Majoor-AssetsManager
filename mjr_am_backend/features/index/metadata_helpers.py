@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from ...adapters.db.sqlite import Sqlite
+from ...utils import sanitize_for_json
 from ...config import (
     MAX_METADATA_JSON_BYTES,
     METADATA_CACHE_CLEANUP_INTERVAL_SECONDS,
@@ -413,7 +414,7 @@ class MetadataHelpers:
             has_workflow, has_generation_data = _metadata_presence_flags(meta)
 
             metadata_quality = meta.get("quality", "none")
-            metadata_raw_json = json.dumps(meta)
+            metadata_raw_json = json.dumps(sanitize_for_json(meta))
 
         return has_workflow, has_generation_data, metadata_quality, metadata_raw_json
 
