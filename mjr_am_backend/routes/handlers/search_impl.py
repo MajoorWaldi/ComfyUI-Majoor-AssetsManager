@@ -24,6 +24,7 @@ except Exception:
 from mjr_am_backend.config import OUTPUT_ROOT, TO_THREAD_TIMEOUT_S
 from mjr_am_backend.custom_roots import resolve_custom_root
 from mjr_am_backend.features.index.metadata_helpers import MetadataHelpers
+from mjr_am_backend.features.search import parse_search_request
 from mjr_am_backend.shared import Result, get_logger
 
 from ..core import _is_loopback_request, _json_response, _read_json, _require_services, safe_error_message
@@ -246,9 +247,6 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
           custom_root_id: required when scope=custom
         """
         scope = (request.query.get("scope") or "output").strip().lower()
-        raw_query = (request.query.get("q") or "").strip()
-        parsed_query, inline_filters = _parse_inline_query_filters(raw_query)
-        query = parsed_query or "*"
 
         allowed, retry_after = _check_rate_limit(
             request,
@@ -259,28 +257,26 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
         if not allowed:
             return _json_response(Result.Err("RATE_LIMITED", "Rate limit exceeded. Please wait before retrying.", retry_after=retry_after))
 
-        MAX_OFFSET = MAX_LIST_OFFSET
-        try:
-            limit = int(request.query.get("limit", str(DEFAULT_LIST_LIMIT)))
-            offset = int(request.query.get("offset", str(DEFAULT_LIST_OFFSET)))
-        except ValueError:
-            return _json_response(Result.Err("INVALID_INPUT", "Invalid limit or offset"))
-
-        # Validate offset bounds - return error instead of silently clamping
-        if offset < 0 or offset > MAX_OFFSET:
-            return _json_response(Result.Err("INVALID_INPUT", f"offset must be between 0 and {MAX_OFFSET}"))
-        
-        limit = max(0, min(MAX_LIST_LIMIT, limit))
-        sort_key = _normalize_sort_key(request.query.get("sort"))
-
-        filters_res = _parse_request_filters(request.query, inline_filters)
-        if not filters_res.ok:
-            return _json_response(filters_res)
-        filters = filters_res.data or {}
-
-        # Keep default aligned with pre-refactor behavior:
-        # list endpoints should include total unless explicitly disabled.
-        include_total = request.query.get("include_total", "1").strip().lower() not in ("0", "false", "no", "off")
+        request_ctx_res = parse_search_request(
+            request.query,
+            default_limit=DEFAULT_LIST_LIMIT,
+            default_offset=DEFAULT_LIST_OFFSET,
+            max_limit=MAX_LIST_LIMIT,
+            max_offset=MAX_LIST_OFFSET,
+            parse_inline_query_filters=_parse_inline_query_filters,
+            parse_request_filters=_parse_request_filters,
+            normalize_sort_key=_normalize_sort_key,
+            clamp_limit=True,
+        )
+        if not request_ctx_res.ok:
+            return _json_response(request_ctx_res)
+        request_ctx = request_ctx_res.data
+        query = request_ctx.query if request_ctx else "*"
+        limit = request_ctx.limit if request_ctx else DEFAULT_LIST_LIMIT
+        offset = request_ctx.offset if request_ctx else DEFAULT_LIST_OFFSET
+        sort_key = request_ctx.sort_key if request_ctx else _normalize_sort_key(None)
+        filters = request_ctx.filters if request_ctx else {}
+        include_total = request_ctx.include_total if request_ctx else True
 
         if scope == "input":
             subfolder = request.query.get("subfolder", "")
@@ -780,37 +776,29 @@ def register_search_routes(routes: web.RouteTableDef) -> None:
             return _json_response(error_result)
         _touch_enrichment_pause(svc, seconds=1.5)
 
-        raw_query = request.query.get("q", "").strip()
-        parsed_query, inline_filters = _parse_inline_query_filters(raw_query)
-        query = parsed_query or "*"
-
         allowed, retry_after = _check_rate_limit(request, "search_assets", max_requests=50, window_seconds=60)
         if not allowed:
             return _json_response(Result.Err("RATE_LIMITED", "Rate limit exceeded. Please wait before retrying.", retry_after=retry_after))
 
-        # Parse pagination
-
-        MAX_OFFSET = MAX_LIST_OFFSET
-        try:
-            limit = int(request.query.get("limit", "50"))
-            offset = int(request.query.get("offset", "0"))
-        except ValueError:
-            result = Result.Err("INVALID_INPUT", "Invalid limit or offset")
-            return _json_response(result)
-
-        if limit < 0 or limit > MAX_LIST_LIMIT:
-            result = Result.Err("INVALID_INPUT", f"limit must be between 0 and {MAX_LIST_LIMIT}")
-            return _json_response(result)
-        if offset < 0 or offset > MAX_OFFSET:
-            result = Result.Err("INVALID_INPUT", f"offset must be between 0 and {MAX_OFFSET}")
-            return _json_response(result)
-
-        filters_res = _parse_request_filters(request.query, inline_filters)
-        if not filters_res.ok:
-            return _json_response(filters_res)
-        filters = filters_res.data or {}
-
-        include_total = request.query.get("include_total", "1").strip().lower() not in ("0", "false", "no", "off")
+        request_ctx_res = parse_search_request(
+            request.query,
+            default_limit=50,
+            default_offset=0,
+            max_limit=MAX_LIST_LIMIT,
+            max_offset=MAX_LIST_OFFSET,
+            parse_inline_query_filters=_parse_inline_query_filters,
+            parse_request_filters=_parse_request_filters,
+            normalize_sort_key=_normalize_sort_key,
+            clamp_limit=False,
+        )
+        if not request_ctx_res.ok:
+            return _json_response(request_ctx_res)
+        request_ctx = request_ctx_res.data
+        query = request_ctx.query if request_ctx else "*"
+        limit = request_ctx.limit if request_ctx else 50
+        offset = request_ctx.offset if request_ctx else 0
+        filters = request_ctx.filters if request_ctx else {}
+        include_total = request_ctx.include_total if request_ctx else True
         result = await svc["index"].search(
             query,
             limit,

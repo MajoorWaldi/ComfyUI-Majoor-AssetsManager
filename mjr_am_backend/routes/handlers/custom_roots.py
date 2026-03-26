@@ -20,6 +20,7 @@ from mjr_am_backend.custom_roots import (
 from mjr_am_backend.shared import Result, get_logger, sanitize_error_message
 
 from ..core import (
+    audit_log_write,
     _csrf_error,
     _guess_content_type_for_file,
     _is_allowed_view_media_file,
@@ -255,6 +256,31 @@ def _folder_entry_stats(entry) -> dict | None:
 def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
     """Register custom root directory routes."""
 
+    async def _audit_custom_root_write(
+        request: web.Request,
+        operation: str,
+        target: str,
+        result: Result,
+        **details: object,
+    ) -> None:
+        try:
+            services, error = await _require_services()
+        except Exception:
+            services, error = None, None
+        if error or not isinstance(services, dict):
+            services = {}
+        try:
+            await audit_log_write(
+                services,
+                request=request,
+                operation=operation,
+                target=target,
+                result=result,
+                details=details or None,
+            )
+        except Exception as exc:
+            logger.debug("Custom root audit logging skipped for %s: %s", operation, exc)
+
     def _is_filesystem_root(path: Path) -> bool:
         try:
             p = path.resolve(strict=True)
@@ -384,6 +410,8 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
             root_id = str(result.data.get("id") or "")
             await _attach_custom_root_watcher(root_path, root_id)
             await _kickoff_custom_root_scan(root_path, root_id)
+        target = f"custom_root:{(result.data or {}).get('id') or path or 'unknown'}" if isinstance(result.data, dict) else f"custom_root:{path or 'unknown'}"
+        await _audit_custom_root_write(request, "custom_root_add", target, result, path=path, label=label)
         return _json_response(result)
 
     @routes.post("/mjr/am/custom-roots/remove")
@@ -406,6 +434,14 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
         result = remove_custom_root(str(rid or ""))
         if result.ok and root_path:
             await _remove_custom_root_runtime_artifacts(str(root_path), rid)
+        await _audit_custom_root_write(
+            request,
+            "custom_root_remove",
+            f"custom_root:{rid or 'unknown'}",
+            result,
+            root_id=str(rid or ""),
+            path=root_path or "",
+        )
         return _json_response(result)
 
     @routes.get("/mjr/am/custom-view")
@@ -648,11 +684,20 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
             try:
                 target.mkdir(parents=False, exist_ok=False)
                 await _invalidate_fs_list_cache()
-                return _json_response(Result.Ok({"path": str(target.resolve(strict=False))}))
+                result = Result.Ok({"path": str(target.resolve(strict=False))})
             except FileExistsError:
-                return _json_response(Result.Err("ALREADY_EXISTS", "Folder already exists"))
+                result = Result.Err("ALREADY_EXISTS", "Folder already exists")
             except Exception as exc:
-                return _json_response(Result.Err("CREATE_FAILED", sanitize_error_message(exc, "Failed to create folder")))
+                result = Result.Err("CREATE_FAILED", sanitize_error_message(exc, "Failed to create folder"))
+            await _audit_custom_root_write(
+                request,
+                "folder_create",
+                str(target.resolve(strict=False)),
+                result,
+                parent=str(parent),
+                name=name,
+            )
+            return _json_response(result)
 
         if _is_filesystem_root(source):
             return _json_response(Result.Err("FORBIDDEN", "Operation not allowed on filesystem root"))
@@ -664,7 +709,16 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
             target = source.parent / name
             try:
                 if target.exists():
-                    return _json_response(Result.Err("ALREADY_EXISTS", "Target folder already exists"))
+                    result = Result.Err("ALREADY_EXISTS", "Target folder already exists")
+                    await _audit_custom_root_write(
+                        request,
+                        "folder_rename",
+                        str(target.resolve(strict=False)),
+                        result,
+                        source=str(source),
+                        name=name,
+                    )
+                    return _json_response(result)
                 source.rename(target)
                 await _invalidate_fs_list_cache()
                 try:
@@ -689,9 +743,18 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
                     )
                 except Exception as exc:
                     logger.debug("Folder rename targeted scan kickoff skipped: %s", exc)
-                return _json_response(Result.Ok({"path": str(target.resolve(strict=False))}))
+                result = Result.Ok({"path": str(target.resolve(strict=False))})
             except Exception as exc:
-                return _json_response(Result.Err("RENAME_FAILED", sanitize_error_message(exc, "Failed to rename folder")))
+                result = Result.Err("RENAME_FAILED", sanitize_error_message(exc, "Failed to rename folder"))
+            await _audit_custom_root_write(
+                request,
+                "folder_rename",
+                str(target.resolve(strict=False)),
+                result,
+                source=str(source),
+                name=name,
+            )
+            return _json_response(result)
 
         if op == "move":
             destination_raw = str(body.get("destination") or body.get("dest") or "").strip()
@@ -713,7 +776,16 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
                     return _json_response(Result.Err("INVALID_INPUT", "Cannot move folder into itself"))
                 target = dst_res / source.name
                 if target.exists():
-                    return _json_response(Result.Err("ALREADY_EXISTS", "Target folder already exists"))
+                    result = Result.Err("ALREADY_EXISTS", "Target folder already exists")
+                    await _audit_custom_root_write(
+                        request,
+                        "folder_move",
+                        str(target.resolve(strict=False)),
+                        result,
+                        source=str(src_res),
+                        destination=str(dst_res),
+                    )
+                    return _json_response(result)
                 moved = await asyncio.to_thread(shutil.move, str(src_res), str(dst_res))
                 await _invalidate_fs_list_cache()
                 try:
@@ -739,9 +811,18 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
                     )
                 except Exception as exc:
                     logger.debug("Folder move targeted scan kickoff skipped: %s", exc)
-                return _json_response(Result.Ok({"path": str(Path(str(moved)).resolve(strict=False))}))
+                result = Result.Ok({"path": str(Path(str(moved)).resolve(strict=False))})
             except Exception as exc:
-                return _json_response(Result.Err("MOVE_FAILED", sanitize_error_message(exc, "Failed to move folder")))
+                result = Result.Err("MOVE_FAILED", sanitize_error_message(exc, "Failed to move folder"))
+            await _audit_custom_root_write(
+                request,
+                "folder_move",
+                str((dest_dir / source.name).resolve(strict=False)),
+                result,
+                source=str(source),
+                destination=str(dest_dir),
+            )
+            return _json_response(result)
 
         if op == "delete":
             recursive = bool(body.get("recursive", False))
@@ -751,8 +832,16 @@ def register_custom_roots_routes(routes: web.RouteTableDef) -> None:
                 else:
                     source.rmdir()
                 await _invalidate_fs_list_cache()
-                return _json_response(Result.Ok({"deleted": True}))
+                result = Result.Ok({"deleted": True})
             except Exception as exc:
-                return _json_response(Result.Err("DELETE_FAILED", sanitize_error_message(exc, "Failed to delete folder")))
+                result = Result.Err("DELETE_FAILED", sanitize_error_message(exc, "Failed to delete folder"))
+            await _audit_custom_root_write(
+                request,
+                "folder_delete",
+                str(source),
+                result,
+                recursive=recursive,
+            )
+            return _json_response(result)
 
         return _json_response(Result.Err("INVALID_INPUT", "Unsupported folder operation"))

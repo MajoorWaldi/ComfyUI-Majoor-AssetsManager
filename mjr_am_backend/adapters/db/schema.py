@@ -8,7 +8,7 @@ from ...shared import Result, get_logger, log_success
 
 logger = get_logger(__name__)
 
-CURRENT_SCHEMA_VERSION = 13
+CURRENT_SCHEMA_VERSION = 14
 # Schema version history (high-level):
 # 1: initial assets + metadata tables
 # 2-4: incremental columns and FTS/search support
@@ -21,6 +21,7 @@ CURRENT_SCHEMA_VERSION = 13
 # 11: asset_embeddings now has explicit id PK + asset_id UNIQUE (legacy tables auto-rebuilt)
 # 12: assets.enhanced_caption (Florence-2 long caption storage)
 # 13: asset_embeddings moved to separate vectors.sqlite (attached as "vec")
+# 14: audit_log table for write-operation audit trail
 
 # Schema definition
 SCHEMA_V1 = """
@@ -84,6 +85,17 @@ CREATE TABLE IF NOT EXISTS metadata_cache (
     metadata_raw TEXT DEFAULT '{}',
     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (filepath) REFERENCES assets(filepath) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts REAL NOT NULL,
+    ip TEXT DEFAULT '',
+    user_ctx TEXT DEFAULT '',
+    operation TEXT NOT NULL,
+    target TEXT DEFAULT '',
+    result TEXT DEFAULT '',
+    details TEXT DEFAULT '{}'
 );
 """
 
@@ -166,6 +178,8 @@ CREATE INDEX IF NOT EXISTS idx_assets_list_cover ON assets(source, mtime DESC, i
 
 CREATE INDEX IF NOT EXISTS idx_scan_journal_dir ON scan_journal(dir_path);
 CREATE INDEX IF NOT EXISTS idx_metadata_cache_state ON metadata_cache(state_hash);
+CREATE INDEX IF NOT EXISTS idx_audit_log_ts ON audit_log(ts DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_log_operation_ts ON audit_log(operation, ts DESC);
 
 CREATE TRIGGER IF NOT EXISTS assets_fts_insert AFTER INSERT ON assets BEGIN
     INSERT INTO assets_fts(rowid, filename, subfolder)

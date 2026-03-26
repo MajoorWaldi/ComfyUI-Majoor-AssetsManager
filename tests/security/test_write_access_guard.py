@@ -1,7 +1,7 @@
 import pytest
 from mjr_am_backend.routes.core.security import _check_write_access
 
-TEST_TOKEN = "unit-test-token"
+TEST_TOKEN = "unit-test-token-01"
 
 
 def _clear_auth_env(monkeypatch):

@@ -145,6 +145,8 @@ async def test_cleanup_assets_case_duplicates_paths():
 
 @pytest.mark.asyncio
 async def test_db_optimize_route_success_and_service_unavailable(monkeypatch):
+    audit_calls = []
+
     class _DB:
         async def aquery(self, *_args, **_kwargs):
             return Result.Ok({})
@@ -155,9 +157,14 @@ async def test_db_optimize_route_success_and_service_unavailable(monkeypatch):
     async def _require_services_none():
         return {}, None
 
+    async def _audit_log_write(_services, **kwargs):
+        audit_calls.append(kwargs)
+        return True
+
     app = _app()
     monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
     monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(m, "audit_log_write", _audit_log_write)
 
     monkeypatch.setattr(m, "_require_services", _require_services_ok)
     req1 = make_mocked_request("POST", "/mjr/am/db/optimize", app=app)
@@ -165,6 +172,7 @@ async def test_db_optimize_route_success_and_service_unavailable(monkeypatch):
     resp1 = await match1.handler(req1)
     payload1 = json.loads(resp1.text)
     assert payload1.get("ok") is True
+    assert audit_calls and audit_calls[0]["operation"] == "db_optimize"
 
     monkeypatch.setattr(m, "_require_services", _require_services_none)
     req2 = make_mocked_request("POST", "/mjr/am/db/optimize", app=app)

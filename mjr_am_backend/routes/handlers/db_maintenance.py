@@ -23,6 +23,7 @@ from mjr_am_backend.custom_roots import resolve_custom_root
 from mjr_am_backend.shared import FileKind, Result, get_logger
 
 from ..core import (
+    audit_log_write,
     _csrf_error,
     _json_response,
     _read_json,
@@ -846,6 +847,26 @@ async def _backfill_missing_asset_vectors(
 
 def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
     """Register database maintenance routes."""
+    async def _audit_db_maintenance_write(
+        services: dict[str, Any] | None,
+        request: web.Request,
+        operation: str,
+        target: str,
+        result: Result,
+        **details: Any,
+    ) -> None:
+        try:
+            await audit_log_write(
+                services if isinstance(services, dict) else {},
+                request=request,
+                operation=operation,
+                target=target,
+                result=result,
+                details=details or None,
+            )
+        except Exception as exc:
+            logger.debug("DB maintenance audit logging skipped for %s: %s", operation, exc)
+
     @routes.post("/mjr/am/db/optimize")
     async def db_optimize(request: web.Request):
         """
@@ -882,9 +903,13 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
             except Exception as exc:
                 logger.debug("DB analyze step failed: %s", exc)
         except Exception as exc:
-            return _json_response(Result.Err("DB_ERROR", safe_error_message(exc, "Database optimize failed")))
+            result = Result.Err("DB_ERROR", safe_error_message(exc, "Database optimize failed"))
+            await _audit_db_maintenance_write(svc, request, "db_optimize", "db:optimize", result)
+            return _json_response(result)
 
-        return _json_response(Result.Ok({"ran": steps}))
+        result = Result.Ok({"ran": steps})
+        await _audit_db_maintenance_write(svc, request, "db_optimize", "db:optimize", result, steps=steps)
+        return _json_response(result)
 
     @routes.post("/mjr/am/db/force-delete")
     async def db_force_delete(request: web.Request):
@@ -995,11 +1020,21 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                         except Exception:
                             pass
                     _emit_restore_status("done", "success", operation="delete_db")
-                    return _json_response(Result.Ok({
+                    result = Result.Ok({
                         "method": "adapter_reset",
                         "deleted": True,
                         "scans_triggered": started_scans,
-                    }))
+                    })
+                    await _audit_db_maintenance_write(
+                        svc if isinstance(svc, dict) else {},
+                        request,
+                        "db_force_delete",
+                        "db:force_delete",
+                        result,
+                        method="adapter_reset",
+                        scans=len(started_scans),
+                    )
+                    return _json_response(result)
                 except Exception as exc:
                     logger.warning("DB adapter areset() failed (%s), falling back to manual file delete", exc)
                     # Close whatever we can before manual delete
@@ -1063,11 +1098,20 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                     f"Could not delete: {failed_basenames}",
                     operation="delete_db",
                 )
-                return _json_response(Result.Err(
+                result = Result.Err(
                     "DELETE_FAILED",
                     f"Could not delete: {failed_basenames}. "
                     "Stop ComfyUI, manually delete the files, then restart.",
-                ))
+                )
+                await _audit_db_maintenance_write(
+                    svc if isinstance(svc, dict) else {},
+                    request,
+                    "db_force_delete",
+                    "db:force_delete",
+                    result,
+                    failed_files=failed_files,
+                )
+                return _json_response(result)
 
             logger.info("Force-delete: removed %s", deleted_files)
 
@@ -1125,14 +1169,33 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                     pass
 
             _emit_restore_status("done", "success", operation="delete_db")
-            return _json_response(Result.Ok({
+            result = Result.Ok({
                 "method": "manual_delete",
                 "deleted_files": deleted_files,
                 "scans_triggered": started_scans,
-            }))
+            })
+            await _audit_db_maintenance_write(
+                svc if isinstance(svc, dict) else {},
+                request,
+                "db_force_delete",
+                "db:force_delete",
+                result,
+                method="manual_delete",
+                deleted_files=len(deleted_files),
+                scans=len(started_scans),
+            )
+            return _json_response(result)
         except Exception as exc:
             _emit_restore_status("failed", "error", safe_error_message(exc, "Delete DB failed"), operation="delete_db")
-            return _json_response(Result.Err("DB_ERROR", safe_error_message(exc, "Delete DB failed")))
+            result = Result.Err("DB_ERROR", safe_error_message(exc, "Delete DB failed"))
+            await _audit_db_maintenance_write(
+                svc if isinstance(svc, dict) else {},
+                request,
+                "db_force_delete",
+                "db:force_delete",
+                result,
+            )
+            return _json_response(result)
         finally:
             try:
                 await _restart_watcher_if_needed(svc if isinstance(svc, dict) else None, watcher_was_running)
@@ -1208,9 +1271,26 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                 pass
 
             payload = {"ran": True, **(cleanup_res.data or {})}
-            return _json_response(Result.Ok(payload))
+            result = Result.Ok(payload)
+            await _audit_db_maintenance_write(
+                svc if isinstance(svc, dict) else {},
+                request,
+                "db_cleanup_case_duplicates",
+                "db:cleanup_case_duplicates",
+                result,
+                deleted=int((cleanup_res.data or {}).get("deleted") or 0),
+            )
+            return _json_response(result)
         except Exception as exc:
-            return _json_response(Result.Err("DB_ERROR", safe_error_message(exc, "Cleanup case-duplicates failed")))
+            result = Result.Err("DB_ERROR", safe_error_message(exc, "Cleanup case-duplicates failed"))
+            await _audit_db_maintenance_write(
+                svc if isinstance(svc, dict) else {},
+                request,
+                "db_cleanup_case_duplicates",
+                "db:cleanup_case_duplicates",
+                result,
+            )
+            return _json_response(result)
         finally:
             try:
                 await _restart_watcher_if_needed(svc if isinstance(svc, dict) else None, watcher_was_running)
@@ -1294,7 +1374,19 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                 ),
                 label=f"vector-backfill-{job.get('job_id')}",
             )
-            return _json_response(Result.Ok(_vector_backfill_job_public(job)))
+            result = Result.Ok(_vector_backfill_job_public(job))
+            await _audit_db_maintenance_write(
+                svc if isinstance(svc, dict) else {},
+                request,
+                "db_backfill_missing_vectors",
+                "db:backfill_vectors",
+                result,
+                async_mode=True,
+                scope=scope,
+                custom_root_id=custom_root_id,
+                batch_size=int(requested_batch),
+            )
+            return _json_response(result)
 
         set_db_maintenance_active(True)
         watcher_was_running = False
@@ -1330,9 +1422,33 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                 "custom_root_id": custom_root_id or None,
                 **(backfill_res.data or {}),
             }
-            return _json_response(Result.Ok(payload))
+            result = Result.Ok(payload)
+            await _audit_db_maintenance_write(
+                svc if isinstance(svc, dict) else {},
+                request,
+                "db_backfill_missing_vectors",
+                "db:backfill_vectors",
+                result,
+                async_mode=False,
+                scope=scope,
+                custom_root_id=custom_root_id,
+                batch_size=int(requested_batch),
+            )
+            return _json_response(result)
         except Exception as exc:
-            return _json_response(Result.Err("DB_ERROR", safe_error_message(exc, "Vector backfill failed")))
+            result = Result.Err("DB_ERROR", safe_error_message(exc, "Vector backfill failed"))
+            await _audit_db_maintenance_write(
+                svc if isinstance(svc, dict) else {},
+                request,
+                "db_backfill_missing_vectors",
+                "db:backfill_vectors",
+                result,
+                async_mode=False,
+                scope=scope,
+                custom_root_id=custom_root_id,
+                batch_size=int(requested_batch),
+            )
+            return _json_response(result)
         finally:
             try:
                 await _restart_watcher_if_needed(svc if isinstance(svc, dict) else None, watcher_was_running)
@@ -1390,18 +1506,34 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                 pass
             await asyncio.to_thread(_sqlite_backup_file, INDEX_DB_PATH, target)
         except Exception as exc:
-            return _json_response(Result.Err("DB_ERROR", safe_error_message(exc, "Failed to save DB backup")))
-
-        return _json_response(
-            Result.Ok(
-                {
-                    "saved": True,
-                    "archive_dir": _DB_ARCHIVE_DIR.name,
-                    "name": target.name,
-                    "size_bytes": int(target.stat().st_size) if target.exists() else 0,
-                }
+            result = Result.Err("DB_ERROR", safe_error_message(exc, "Failed to save DB backup"))
+            await _audit_db_maintenance_write(
+                svc if isinstance(svc, dict) else {},
+                request,
+                "db_backup_save",
+                "db:backup_save",
+                result,
+                name=target.name,
             )
+            return _json_response(result)
+
+        result = Result.Ok(
+            {
+                "saved": True,
+                "archive_dir": _DB_ARCHIVE_DIR.name,
+                "name": target.name,
+                "size_bytes": int(target.stat().st_size) if target.exists() else 0,
+            }
         )
+        await _audit_db_maintenance_write(
+            svc if isinstance(svc, dict) else {},
+            request,
+            "db_backup_save",
+            "db:backup_save",
+            result,
+            name=target.name,
+        )
+        return _json_response(result)
 
     @routes.post("/mjr/am/db/backup-restore")
     async def db_backup_restore(request: web.Request):
@@ -1468,7 +1600,16 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
             reset_res = await db.areset()
             if not reset_res.ok:
                 _emit_restore_status("failed", "error", reset_res.error or "Failed to reset DB", operation="restore_db")
-                return _json_response(Result.Err(reset_res.code or "DB_ERROR", reset_res.error or "Failed to reset DB"))
+                result = Result.Err(reset_res.code or "DB_ERROR", reset_res.error or "Failed to reset DB")
+                await _audit_db_maintenance_write(
+                    svc if isinstance(svc, dict) else {},
+                    request,
+                    "db_backup_restore",
+                    "db:backup_restore",
+                    result,
+                    name=src.name,
+                )
+                return _json_response(result)
             _emit_restore_status("replacing_files", "info", operation="restore_db")
             await _replace_db_from_backup(src, INDEX_DB_PATH)
             try:
@@ -1520,7 +1661,16 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                     pass
         except Exception as exc:
             _emit_restore_status("failed", "error", safe_error_message(exc, "Failed to restore DB backup"), operation="restore_db")
-            return _json_response(Result.Err("DB_ERROR", safe_error_message(exc, "Failed to restore DB backup")))
+            result = Result.Err("DB_ERROR", safe_error_message(exc, "Failed to restore DB backup"))
+            await _audit_db_maintenance_write(
+                svc if isinstance(svc, dict) else {},
+                request,
+                "db_backup_restore",
+                "db:backup_restore",
+                result,
+                name=src.name,
+            )
+            return _json_response(result)
         finally:
             try:
                 await _restart_watcher_if_needed(svc if isinstance(svc, dict) else None, watcher_was_running)
@@ -1528,19 +1678,27 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                 pass
             set_db_maintenance_active(False)
         _emit_restore_status("done", "success", "Database restore completed", operation="restore_db")
-        return _json_response(
-            Result.Ok(
-                {
-                    "restored": True,
-                    "name": src.name,
-                    "scans_triggered": scans_triggered if "scans_triggered" in locals() else [],
-                    "steps": [
-                        "stopping_workers",
-                        "resetting_db",
-                        "replacing_files",
-                        "restarting_scan",
-                        "done",
-                    ],
-                }
-            )
+        result = Result.Ok(
+            {
+                "restored": True,
+                "name": src.name,
+                "scans_triggered": scans_triggered if "scans_triggered" in locals() else [],
+                "steps": [
+                    "stopping_workers",
+                    "resetting_db",
+                    "replacing_files",
+                    "restarting_scan",
+                    "done",
+                ],
+            }
         )
+        await _audit_db_maintenance_write(
+            svc if isinstance(svc, dict) else {},
+            request,
+            "db_backup_restore",
+            "db:backup_restore",
+            result,
+            name=src.name,
+            scans=len(scans_triggered if "scans_triggered" in locals() else []),
+        )
+        return _json_response(result)

@@ -26,6 +26,16 @@ import {
     bindGridScanListeners,
     disposeGridScanListeners,
 } from "../grid/GridView.js";
+
+function _safeCssEscapeAttr(value) {
+    const str = String(value ?? "");
+    try {
+        if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
+            return CSS.escape(str);
+        }
+    } catch (e) { console.debug?.(e); }
+    return str.replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1");
+}
 import {
     get,
     post,
@@ -1583,7 +1593,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                     const activeId = String(state.activeAssetId || selected[0] || "");
 
                     selected.forEach(id => {
-                        const card = gridContainer.querySelector(`.mjr-asset-card[data-mjr-asset-id="${CSS?.escape ? CSS.escape(id) : id}"]`);
+                        const card = gridContainer.querySelector(`.mjr-asset-card[data-mjr-asset-id="${_safeCssEscapeAttr(id)}"]`);
                         if (card) {
                             card.classList.add("is-selected");
                             card.setAttribute?.("aria-selected", "true");
@@ -1591,7 +1601,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                     });
 
                     if (activeId) {
-                        const activeCard = gridContainer.querySelector(`.mjr-asset-card[data-mjr-asset-id="${CSS?.escape ? CSS.escape(activeId) : activeId}"]`);
+                        const activeCard = gridContainer.querySelector(`.mjr-asset-card[data-mjr-asset-id="${_safeCssEscapeAttr(activeId)}"]`);
                         if (activeCard) {
                             activeCard.classList.add("is-active");
                             activeCard.setAttribute?.("aria-selected", "true");

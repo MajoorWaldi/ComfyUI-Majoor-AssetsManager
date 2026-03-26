@@ -30,6 +30,8 @@ logger = get_logger(__name__)
 
 _VECTOR_RATE_LIMIT_MAX = 30
 _VECTOR_RATE_LIMIT_WINDOW = 60
+_VECTOR_HEAVY_RATE_LIMIT_MAX = 10
+_VECTOR_HEAVY_RATE_LIMIT_WINDOW = 60
 _VECTOR_VALID_SCOPES = {"output", "input", "custom", "all"}
 
 
@@ -152,6 +154,24 @@ def _kmeans_python(vectors: list[list[float]], k: int, max_iter: int = 12) -> tu
 
 def _services_dict(services: dict[str, Any] | None) -> dict[str, Any]:
     return services if isinstance(services, dict) else {}
+
+
+def _vector_rate_limit_response(
+    request: web.Request,
+    endpoint: str,
+    *,
+    max_requests: int = _VECTOR_HEAVY_RATE_LIMIT_MAX,
+    window_seconds: int = _VECTOR_HEAVY_RATE_LIMIT_WINDOW,
+) -> web.Response | None:
+    allowed, retry = _check_rate_limit(
+        request,
+        endpoint,
+        max_requests=max_requests,
+        window_seconds=window_seconds,
+    )
+    if allowed:
+        return None
+    return _json_response(Result.Err("RATE_LIMITED", "Rate limit exceeded", retry_after=retry))
 
 
 def _normalize_scope_value(raw: Any) -> str:
@@ -452,8 +472,10 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         services_dict = _services_dict(services)
 
         searcher, verr = _require_vector_services(services_dict)
-        if verr:
-            return verr
+        if verr or searcher is None:
+            return verr or _json_response(
+                Result.Err("SERVICE_UNAVAILABLE", "Vector search is unavailable.")
+            )
 
         query = (request.query.get("q") or "").strip()
         if not query:
@@ -526,8 +548,10 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         services_dict = _services_dict(services)
 
         searcher, verr = _require_vector_services(services_dict)
-        if verr:
-            return verr
+        if verr or searcher is None:
+            return verr or _json_response(
+                Result.Err("SERVICE_UNAVAILABLE", "Vector search is unavailable.")
+            )
 
         try:
             asset_id = int(request.match_info["asset_id"])
@@ -543,55 +567,73 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         if scope_error is not None:
             return _json_response(scope_error)
 
-        search_k = max(top_k + 1, min(1201, top_k * 4 + 1))
-        result = await searcher.find_similar(asset_id, top_k=search_k)
+        try:
+            search_k = max(top_k + 1, min(1201, top_k * 4 + 1))
+            result = await searcher.find_similar(asset_id, top_k=search_k)
 
-        # Hydrate results with full asset data for grid rendering
-        if result.ok and result.data:
-            db = services_dict.get("db")
-            result.data = await _filter_similar_hits(
-                db,
-                list(result.data or []),
-                query_asset_id=asset_id,
-                min_score=VECTOR_SIMILAR_MIN_SCORE,
-            )
-            result.data = (await _filter_hits_by_scope(
-                db,
-                list(result.data or []),
-                scope=scope,
-                custom_root_id=custom_root_id,
-            ))[:top_k]
-            result = await _hydrate_vector_results(services_dict, result)
+            # Hydrate results with full asset data for grid rendering
+            if result.ok and result.data:
+                db = services_dict.get("db")
+                result.data = await _filter_similar_hits(
+                    db,
+                    list(result.data or []),
+                    query_asset_id=asset_id,
+                    min_score=VECTOR_SIMILAR_MIN_SCORE,
+                )
+                result.data = (await _filter_hits_by_scope(
+                    db,
+                    list(result.data or []),
+                    scope=scope,
+                    custom_root_id=custom_root_id,
+                ))[:top_k]
+                result = await _hydrate_vector_results(services_dict, result)
 
-        return _json_response(result)
+            return _json_response(result)
+        except Exception as exc:
+            logger.warning("Find similar failed: %s", exc)
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", safe_error_message(exc, "Find similar failed")))
 
     # ── Prompt-alignment score ─────────────────────────────────────────
 
     @routes.get("/mjr/am/vector/alignment/{asset_id}")
     async def vector_alignment(request: web.Request) -> web.Response:
         """Retrieve the prompt-alignment score for an asset."""
+        rate_limited = _vector_rate_limit_response(request, "vector_alignment")
+        if rate_limited is not None:
+            return rate_limited
+
         services, err = await _require_services()
         if err:
             return _json_response(err)
         services_dict = _services_dict(services)
 
         searcher, verr = _require_vector_services(services_dict)
-        if verr:
-            return verr
+        if verr or searcher is None:
+            return verr or _json_response(
+                Result.Err("SERVICE_UNAVAILABLE", "Vector search is unavailable.")
+            )
 
         try:
             asset_id = int(request.match_info["asset_id"])
         except (ValueError, KeyError):
             return _json_response(Result.Err("INVALID_INPUT", "Invalid asset_id"))
 
-        result = await searcher.get_alignment_score(asset_id)
-        return _json_response(result)
+        try:
+            result = await searcher.get_alignment_score(asset_id)
+            return _json_response(result)
+        except Exception as exc:
+            logger.warning("Alignment score failed: %s", exc)
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", safe_error_message(exc, "Alignment score retrieval failed")))
 
     # ── Re-index a single asset ────────────────────────────────────────
 
     @routes.post("/mjr/am/vector/index/{asset_id}")
     async def vector_index_single(request: web.Request) -> web.Response:
         """Force re-indexing of a single asset's vector embedding."""
+        rate_limited = _vector_rate_limit_response(request, "vector_index")
+        if rate_limited is not None:
+            return rate_limited
+
         services, err = await _require_services()
         if err:
             return _json_response(err)
@@ -639,6 +681,10 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         Primary route: ``/mjr/am/vector/caption/{asset_id}``
         Legacy alias: ``/mjr/am/vector/enhanced-prompt/{asset_id}``
         """
+        rate_limited = _vector_rate_limit_response(request, "vector_caption")
+        if rate_limited is not None:
+            return rate_limited
+
         services, err = await _require_services()
         if err:
             return _json_response(err)
@@ -671,6 +717,10 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
     @routes.post("/mjr-am/assets/caption")
     async def caption_alias(request: web.Request) -> web.Response:
         """Alias for /mjr/am/vector/caption/{asset_id} accepting JSON body."""
+        rate_limited = _vector_rate_limit_response(request, "vector_caption")
+        if rate_limited is not None:
+            return rate_limited
+
         services, err = await _require_services()
         if err:
             return _json_response(err)
@@ -712,17 +762,27 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         services_dict = _services_dict(services)
 
         searcher, verr = _require_vector_services(services_dict)
-        if verr:
-            return verr
+        if verr or searcher is None:
+            return verr or _json_response(
+                Result.Err("SERVICE_UNAVAILABLE", "Vector search is unavailable.")
+            )
 
-        result = await searcher.stats()
-        return _json_response(result)
+        try:
+            result = await searcher.stats()
+            return _json_response(result)
+        except Exception as exc:
+            logger.warning("Vector stats failed: %s", exc)
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", safe_error_message(exc, "Vector stats retrieval failed")))
 
     # ── AI auto-tags for an asset ──────────────────────────────────────
 
     @routes.get("/mjr/am/vector/auto-tags/{asset_id}")
     async def vector_auto_tags(request: web.Request) -> web.Response:
         """Return AI-suggested tags for an asset (stored separately from user tags)."""
+        rate_limited = _vector_rate_limit_response(request, "vector_auto_tags")
+        if rate_limited is not None:
+            return rate_limited
+
         services, err = await _require_services()
         if err:
             return _json_response(err)
@@ -778,8 +838,10 @@ def register_vector_search_routes(routes: web.RouteTableDef) -> None:
         services_dict = _services_dict(services)
 
         searcher, verr = _require_vector_services(services_dict)
-        if verr:
-            return verr
+        if verr or searcher is None:
+            return verr or _json_response(
+                Result.Err("SERVICE_UNAVAILABLE", "Vector search is unavailable.")
+            )
 
         try:
             body = await request.json()

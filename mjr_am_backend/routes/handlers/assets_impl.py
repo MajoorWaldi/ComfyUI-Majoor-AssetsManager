@@ -16,6 +16,14 @@ from typing import Any
 from aiohttp import web
 from mjr_am_backend.config import TO_THREAD_TIMEOUT_S, get_runtime_output_root
 from mjr_am_backend.custom_roots import list_custom_roots, resolve_custom_root
+from mjr_am_backend.features.assets import (
+    prepare_asset_ids_context,
+    prepare_asset_path_context,
+    prepare_asset_rename_context,
+    prepare_asset_route_context,
+    resolve_delete_target,
+    resolve_rename_target,
+)
 from mjr_am_backend.features.index.scan_batch_utils import normalize_filepath_str
 from mjr_am_backend.shared import Result, get_logger
 from mjr_am_backend.shared import sanitize_error_message as _safe_error_message
@@ -38,6 +46,7 @@ except Exception:  # pragma: no cover
     folder_paths = _FolderPathsStub()  # type: ignore
 
 from ..core import (
+    audit_log_write,
     _build_services,
     _check_rate_limit,
     _csrf_error,
@@ -138,6 +147,67 @@ body {{ font-family: var(--font); background: var(--bg); color: var(--fg);
 
 def register_asset_routes(routes: web.RouteTableDef) -> None:
     """Register asset CRUD routes (get, delete, rename)."""
+    async def _audit_asset_write(
+        request: web.Request,
+        services: dict[str, Any],
+        operation: str,
+        target: Any,
+        result: Result,
+        **details: Any,
+    ) -> None:
+        try:
+            await audit_log_write(
+                services,
+                request=request,
+                operation=operation,
+                target=target,
+                result=result,
+                details=details or None,
+            )
+        except Exception as exc:
+            logger.debug("Audit logging skipped for %s: %s", operation, exc)
+
+    async def _load_asset_filepath_by_id(services: dict[str, Any], asset_id: int) -> Result[str]:
+        db = services.get("db") if isinstance(services, dict) else None
+        if not db:
+            return Result.Err("SERVICE_UNAVAILABLE", "Database service unavailable")
+        try:
+            res = await db.aquery("SELECT filepath FROM assets WHERE id = ?", (asset_id,))
+            if not res.ok or not res.data:
+                return Result.Err("NOT_FOUND", "Asset not found")
+            raw_path = (res.data[0] or {}).get("filepath")
+        except Exception as exc:
+            return Result.Err("DB_ERROR", _safe_error_message(exc, "Failed to load asset"))
+        if not raw_path or not isinstance(raw_path, str):
+            return Result.Err("NOT_FOUND", "Asset path not available")
+        return Result.Ok(raw_path)
+
+    async def _load_asset_row_by_id(services: dict[str, Any], asset_id: int) -> Result[dict[str, Any]]:
+        db = services.get("db") if isinstance(services, dict) else None
+        if not db:
+            return Result.Err("SERVICE_UNAVAILABLE", "Database service unavailable")
+        try:
+            res = await db.aquery(
+                "SELECT filepath, filename, source, root_id FROM assets WHERE id = ?",
+                (asset_id,),
+            )
+            if not res.ok or not res.data:
+                return Result.Err("NOT_FOUND", "Asset not found")
+            row = res.data[0] or {}
+        except Exception as exc:
+            return Result.Err("DB_ERROR", _safe_error_message(exc, "Failed to load asset"))
+        return Result.Ok(row if isinstance(row, dict) else {})
+
+    async def _find_asset_id_row_by_filepath(db: Any, filepath: str) -> dict[str, Any] | None:
+        return await _find_asset_row_by_filepath(db, filepath, select_sql="id")
+
+    async def _find_rename_row_by_filepath(db: Any, filepath: str) -> dict[str, Any] | None:
+        return await _find_asset_row_by_filepath(
+            db,
+            filepath,
+            select_sql="id, filename, source, root_id",
+        )
+
     def _filepath_db_keys(path_value: str | Path | None) -> tuple[str, ...]:
         raw = str(path_value or "").strip()
         if not raw:
@@ -495,21 +565,24 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         return Result.Err(res.code if res.code else default_code, res.error if res.error else default_error)
 
     async def _prepare_asset_rating_request(request: web.Request) -> Result[tuple[dict[str, Any], dict[str, Any]]]:
-        csrf = _csrf_error(request)
-        if csrf:
-            return Result.Err("CSRF", csrf)
-        svc_res = await _require_asset_rating_services()
-        if not svc_res.ok:
-            return _normalize_result_error(svc_res, "SERVICE_UNAVAILABLE", "Service unavailable")
-        svc = svc_res.data or {}
-        perm_res = await _check_asset_rating_permissions(request, svc)
-        if not perm_res.ok:
-            return _normalize_result_error(perm_res, "FORBIDDEN", "Operation not allowed")
-        body_res = await _read_asset_rating_body(request)
-        if not body_res.ok:
-            return _normalize_result_error(body_res, "INVALID_INPUT", "Invalid request body")
-        body = body_res.data or {}
-        return Result.Ok((svc, body))
+        context_res = await prepare_asset_route_context(
+            request,
+            operation="asset_rating",
+            rate_limit_endpoint="asset_rating",
+            max_requests=30,
+            window_seconds=60,
+            require_services=_require_services,
+            resolve_security_prefs=_resolve_security_prefs,
+            require_operation_enabled=_require_operation_enabled,
+            require_write_access=_require_write_access,
+            check_rate_limit=_check_rate_limit,
+            read_json=_read_json,
+            csrf_error=_csrf_error,
+        )
+        if not context_res.ok:
+            return _normalize_result_error(context_res, "INVALID_INPUT", "Invalid request body")
+        context = context_res.data
+        return Result.Ok(((context.services if context else {}), (context.body if context else {})))
 
     @routes.post("/mjr/am/retry-services")
     async def retry_services(request):
@@ -561,6 +634,14 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             )
         if result.ok:
             await _enqueue_rating_tags_sync(request, svc, asset_id)
+        await _audit_asset_write(
+            request,
+            svc,
+            "asset_rating",
+            f"asset:{asset_id}",
+            result,
+            rating=rating,
+        )
         return _json_response(result)
 
     @routes.post("/mjr/am/asset/tags")
@@ -572,31 +653,25 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
           - {"asset_id": int, "tags": list[str]}
           - OR {"filepath": str, "type": "output|input|custom", "root_id"?: str, "tags": list[str]}
         """
-        csrf = _csrf_error(request)
-        if csrf:
-            return _json_response(Result.Err("CSRF", csrf))
-
-        svc, error_result = await _require_services()
-        if error_result:
-            return _json_response(error_result)
-
-        prefs = await _resolve_security_prefs(svc)
-        op = _require_operation_enabled("asset_tags", prefs=prefs)
-        if not op.ok:
-            return _json_response(op)
-
-        auth = _require_write_access(request)
-        if not auth.ok:
-            return _json_response(auth)
-
-        allowed, retry_after = _check_rate_limit(request, "asset_tags", max_requests=30, window_seconds=60)
-        if not allowed:
-            return _json_response(Result.Err("RATE_LIMITED", "Rate limit exceeded. Please wait before retrying.", retry_after=retry_after))
-
-        body_res = await _read_json(request)
-        if not body_res.ok:
-            return _json_response(body_res)
-        body = body_res.data or {}
+        context_res = await prepare_asset_route_context(
+            request,
+            operation="asset_tags",
+            rate_limit_endpoint="asset_tags",
+            max_requests=30,
+            window_seconds=60,
+            require_services=_require_services,
+            resolve_security_prefs=_resolve_security_prefs,
+            require_operation_enabled=_require_operation_enabled,
+            require_write_access=_require_write_access,
+            check_rate_limit=_check_rate_limit,
+            read_json=_read_json,
+            csrf_error=_csrf_error,
+        )
+        if not context_res.ok:
+            return _json_response(context_res)
+        context = context_res.data
+        svc = context.services if context else {}
+        body = context.body if context else {}
 
         asset_id = body.get("asset_id")
         tags = body.get("tags")
@@ -644,6 +719,14 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             )
         if result.ok:
             await _enqueue_rating_tags_sync(request, svc, asset_id)
+        await _audit_asset_write(
+            request,
+            svc,
+            "asset_tags",
+            f"asset:{int(asset_id)}",
+            result,
+            tag_count=len(sanitized_tags),
+        )
         return _json_response(result)
 
     @routes.post("/mjr/am/open-in-folder")
@@ -653,58 +736,28 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
 
         Body: {"asset_id": int} or {"filepath": str}
         """
-        csrf = _csrf_error(request)
-        if csrf:
-            return _json_response(Result.Err("CSRF", csrf))
-        auth = _require_write_access(request)
-        if not auth.ok:
-            return _json_response(auth)
-
-        svc, error_result = await _require_services()
-        if error_result:
-            return _json_response(error_result)
-        prefs = await _resolve_security_prefs(svc)
-        op = _require_operation_enabled("open_in_folder", prefs=prefs)
-        if not op.ok:
-            return _json_response(op)
-
-        allowed, retry_after = _check_rate_limit(request, "open_in_folder", max_requests=1, window_seconds=2)
-        if not allowed:
-            return _json_response(Result.Err("RATE_LIMITED", "Rate limit exceeded. Please wait before retrying.", retry_after=retry_after))
-
-        body_res = await _read_json(request)
-        if not body_res.ok:
-            return _json_response(body_res)
-        body = body_res.data or {}
-
-        asset_id = body.get("asset_id")
-        candidate = None
-
-        if asset_id is not None and str(asset_id).strip() != "":
-            try:
-                asset_id = int(asset_id)
-            except (ValueError, TypeError):
-                return _json_response(Result.Err("INVALID_INPUT", "Invalid asset_id"))
-
-            db = svc.get("db") if isinstance(svc, dict) else None
-            if not db:
-                return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Database service unavailable"))
-            try:
-                res = await db.aquery("SELECT filepath FROM assets WHERE id = ?", (asset_id,))
-                if not res.ok or not res.data:
-                    return _json_response(Result.Err("NOT_FOUND", "Asset not found"))
-                raw_path = (res.data[0] or {}).get("filepath")
-            except Exception as exc:
-                return _json_response(
-                    Result.Err("DB_ERROR", _safe_error_message(exc, "Failed to load asset"))
-                )
-            if not raw_path or not isinstance(raw_path, str):
-                return _json_response(Result.Err("NOT_FOUND", "Asset path not available"))
-            candidate = _normalize_path(raw_path)
-        else:
-            candidate = _resolve_body_filepath(body)
-
-        if not candidate:
+        path_context_res = await prepare_asset_path_context(
+            request,
+            operation="open_in_folder",
+            rate_limit_endpoint="open_in_folder",
+            max_requests=1,
+            window_seconds=2,
+            require_services=_require_services,
+            resolve_security_prefs=_resolve_security_prefs,
+            require_operation_enabled=_require_operation_enabled,
+            require_write_access=_require_write_access,
+            check_rate_limit=_check_rate_limit,
+            read_json=_read_json,
+            csrf_error=_csrf_error,
+            normalize_path=lambda raw: _normalize_path(str(raw)),
+            resolve_body_filepath=_resolve_body_filepath,
+            load_asset_filepath=_load_asset_filepath_by_id,
+        )
+        if not path_context_res.ok:
+            return _json_response(path_context_res)
+        path_context = path_context_res.data
+        candidate = path_context.candidate_path if path_context else None
+        if candidate is None:
             return _json_response(Result.Err("INVALID_INPUT", "Missing filepath or asset_id"))
 
         try:
@@ -1045,95 +1098,48 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
 
         Body: {"asset_id": int} or {"filepath": str}
         """
-        csrf = _csrf_error(request)
-        if csrf:
-            return _json_response(Result.Err("CSRF", csrf))
-
-        svc, error_result = await _require_services()
-        if error_result:
-            return _json_response(error_result)
-        prefs = await _resolve_security_prefs(svc)
-        op = _require_operation_enabled("asset_delete", prefs=prefs)
-        if not op.ok:
-            return _json_response(op)
-        auth = _require_write_access(request)
-        if not auth.ok:
-            return _json_response(auth)
-
-        allowed, retry_after = _check_rate_limit(request, "asset_delete", max_requests=20, window_seconds=60)
-        if not allowed:
-            return _json_response(Result.Err("RATE_LIMITED", "Rate limit exceeded. Please wait before retrying.", retry_after=retry_after))
-
-        body_res = await _read_json(request)
-        if not body_res.ok:
-            return _json_response(body_res)
-        body = body_res.data or {}
-
-        asset_id = body.get("asset_id")
-        raw_path = None
-        if asset_id is not None and str(asset_id).strip() != "":
-            try:
-                asset_id = int(asset_id)
-            except (ValueError, TypeError):
-                return _json_response(Result.Err("INVALID_INPUT", "Invalid asset_id"))
-            try:
-                res = await svc["db"].aquery("SELECT filepath FROM assets WHERE id = ?", (asset_id,))
-                if not res.ok or not res.data:
-                    return _json_response(Result.Err("NOT_FOUND", "Asset not found"))
-                raw_path = (res.data[0] or {}).get("filepath")
-            except Exception as exc:
-                return _json_response(
-                    Result.Err("DB_ERROR", _safe_error_message(exc, "Failed to load asset"))
-                )
-            if not raw_path or not isinstance(raw_path, str):
-                return _json_response(Result.Err("NOT_FOUND", "Asset path not available"))
-            candidate = _normalize_path(raw_path)
-        else:
-            candidate = _resolve_body_filepath(body)
-
-        if not candidate:
+        path_context_res = await prepare_asset_path_context(
+            request,
+            operation="asset_delete",
+            rate_limit_endpoint="asset_delete",
+            max_requests=20,
+            window_seconds=60,
+            require_services=_require_services,
+            resolve_security_prefs=_resolve_security_prefs,
+            require_operation_enabled=_require_operation_enabled,
+            require_write_access=_require_write_access,
+            check_rate_limit=_check_rate_limit,
+            read_json=_read_json,
+            csrf_error=_csrf_error,
+            normalize_path=lambda raw: _normalize_path(str(raw)),
+            resolve_body_filepath=_resolve_body_filepath,
+            load_asset_filepath=_load_asset_filepath_by_id,
+        )
+        if not path_context_res.ok:
+            return _json_response(path_context_res)
+        path_context = path_context_res.data
+        svc = path_context.services if path_context else {}
+        asset_id = path_context.asset_id if path_context else None
+        candidate = path_context.candidate_path if path_context else None
+        if candidate is None:
             return _json_response(Result.Err("INVALID_INPUT", "Missing filepath or asset_id"))
 
-        try:
-            # Require strict resolution to avoid following symlinks outside allowed roots.
-            resolved = candidate.resolve(strict=True)
-        except Exception:
-            return _json_response(Result.Err("NOT_FOUND", "File does not exist"))
-        if not _is_resolved_path_allowed(resolved):
-            return _json_response(Result.Err("FORBIDDEN", "Path is not within allowed roots"))
-
-        # resolve(strict=True) above already verified the file exists.
-        # Skip a redundant exists() check to avoid TOCTOU race conditions.
-
-        resolved_str = str(resolved)
-        resolved_filepath_keys = _filepath_db_keys(resolved_str)
-        resolved_filepath_where, resolved_filepath_params = _filepath_where_clause(
-            resolved_filepath_keys,
-            column="filepath",
+        target_res = await resolve_delete_target(
+            context=path_context,
+            find_asset_row_by_filepath=_find_asset_id_row_by_filepath,
+            filepath_db_keys=_filepath_db_keys,
+            filepath_where_clause=lambda keys, column="filepath": _filepath_where_clause(keys, column=column),
+            is_resolved_path_allowed=_is_resolved_path_allowed,
         )
-
-        matched_asset_id = asset_id
-        if matched_asset_id is None:
-            try:
-                asset_row = await _find_asset_row_by_filepath(
-                    svc["db"],
-                    resolved_str,
-                    select_sql="id",
-                )
-            except asyncio.TimeoutError:
-                return _json_response(Result.Err("TIMEOUT", "Asset lookup timed out"))
-            except Exception as exc:
-                return _json_response(
-                    Result.Err(
-                        "DB_ERROR",
-                        _safe_error_message(exc, "Failed to resolve asset id"),
-                    )
-                )
-            try:
-                if isinstance(asset_row, dict) and asset_row.get("id") is not None:
-                    matched_asset_id = int(asset_row.get("id"))
-            except Exception:
-                matched_asset_id = None
+        if not target_res.ok:
+            return _json_response(target_res)
+        target = target_res.data
+        if target is None:
+            return _json_response(Result.Err("INVALID_INPUT", "Missing filepath or asset_id"))
+        matched_asset_id = target.matched_asset_id
+        resolved = target.resolved_path
+        resolved_filepath_where = target.filepath_where
+        resolved_filepath_params = target.filepath_params
 
         # Phase 1: Delete the physical file FIRST.
         # This avoids the NM-8 inconsistency window where the DB record is gone
@@ -1144,12 +1150,20 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             if not del_res.ok:
                 raise RuntimeError(str(del_res.error or "delete failed"))
         except Exception as exc:
-            return _json_response(Result.Err(
+            result = Result.Err(
                 "DELETE_FAILED",
                 "Failed to delete file",
                 errors=[{"asset_id": matched_asset_id, "error": _safe_error_message(exc, "File deletion failed")}],
                 aborted=True
-            ))
+            )
+            await _audit_asset_write(
+                request,
+                svc,
+                "asset_delete",
+                f"asset:{matched_asset_id}" if matched_asset_id is not None else str(resolved),
+                result,
+            )
+            return _json_response(result)
 
         # Phase 2: Clean up DB records.  The file is already gone; if this
         # fails we have harmless orphan rows that the next scan/cleanup will
@@ -1181,7 +1195,15 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                 matched_asset_id, resolved, exc,
             )
 
-        return _json_response(Result.Ok({"deleted": 1}))
+        result = Result.Ok({"deleted": 1})
+        await _audit_asset_write(
+            request,
+            svc,
+            "asset_delete",
+            f"asset:{matched_asset_id}" if matched_asset_id is not None else str(resolved),
+            result,
+        )
+        return _json_response(result)
 
     @routes.post("/mjr/am/asset/rename")
     async def rename_asset(request):
@@ -1190,129 +1212,49 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
 
         Body: {"asset_id": int, "new_name": str} or {"filepath": str, "new_name": str}
         """
-        csrf = _csrf_error(request)
-        if csrf:
-            return _json_response(Result.Err("CSRF", csrf))
-
-        svc, error_result = await _require_services()
-        if error_result:
-            return _json_response(error_result)
-        prefs = await _resolve_security_prefs(svc)
-        op = _require_operation_enabled("asset_rename", prefs=prefs)
-        if not op.ok:
-            return _json_response(op)
-        auth = _require_write_access(request)
-        if not auth.ok:
-            return _json_response(auth)
-
-        allowed, retry_after = _check_rate_limit(request, "asset_rename", max_requests=20, window_seconds=60)
-        if not allowed:
-            return _json_response(Result.Err("RATE_LIMITED", "Rate limit exceeded. Please wait before retrying.", retry_after=retry_after))
-
-        body_res = await _read_json(request)
-        if not body_res.ok:
-            return _json_response(body_res)
-        body = body_res.data or {}
-
-        asset_id = body.get("asset_id")
-        new_name = body.get("new_name")
-
-        if not new_name:
-            return _json_response(Result.Err("INVALID_INPUT", "Missing new_name"))
-        if asset_id is not None and str(asset_id).strip() != "":
-            try:
-                asset_id = int(asset_id)
-            except (ValueError, TypeError):
-                return _json_response(Result.Err("INVALID_INPUT", "Invalid asset_id"))
-        else:
-            asset_id = None
-
-        # Sanitize and validate new_name
-        new_name = str(new_name).strip()
-        valid, msg = _validate_filename(new_name)
-        if not valid:
-            return _json_response(Result.Err("INVALID_INPUT", msg))
-
-        if len(new_name) > MAX_RENAME_LENGTH:
-            return _json_response(Result.Err("INVALID_INPUT", f"New name is too long (max {MAX_RENAME_LENGTH} chars)"))
-
-        current_filepath = ""
-        current_filename = ""
-        current_source = ""
-        current_root_id = ""
-        if asset_id is not None:
-            try:
-                res = await svc["db"].aquery("SELECT filepath, filename, source, root_id FROM assets WHERE id = ?", (asset_id,))
-                if not res.ok or not res.data:
-                    return _json_response(Result.Err("NOT_FOUND", "Asset not found"))
-                row = res.data[0] or {}
-                current_filepath = str(row.get("filepath") or "")
-                current_filename = str(row.get("filename") or "")
-                current_source = str(row.get("source") or "").strip().lower()
-                current_root_id = str(row.get("root_id") or "").strip()
-            except Exception as exc:
-                return _json_response(
-                    Result.Err("DB_ERROR", _safe_error_message(exc, "Failed to load asset"))
-                )
-        else:
-            fp = _resolve_body_filepath(body)
-            current_filepath = str(fp) if fp else ""
-            current_filename = Path(current_filepath).name if current_filepath else ""
-
-        if not current_filepath:
-            return _json_response(Result.Err("INVALID_INPUT", "Missing filepath or asset_id"))
-
-        current_path = _normalize_path(current_filepath)
-        if not current_path:
-            return _json_response(Result.Err("INVALID_INPUT", "Invalid current asset path"))
-
-        try:
-            # Require strict resolution to avoid following symlinks outside allowed roots.
-            current_resolved = current_path.resolve(strict=True)
-        except Exception:
-            return _json_response(Result.Err("NOT_FOUND", "Current file does not exist"))
-        if not _is_resolved_path_allowed(current_resolved):
-            return _json_response(Result.Err("FORBIDDEN", "Path is not within allowed roots"))
-
-        if not current_resolved.exists() or not current_resolved.is_file():
-            return _json_response(Result.Err("NOT_FOUND", "Current file does not exist"))
-
-        current_resolved_str = str(current_resolved)
-        current_filepath_keys = _filepath_db_keys(current_resolved_str)
-        current_filepath_where, current_filepath_params = _filepath_where_clause(
-            current_filepath_keys,
-            column="filepath",
+        rename_ctx_res = await prepare_asset_rename_context(
+            request,
+            max_name_length=MAX_RENAME_LENGTH,
+            validate_filename=_validate_filename,
+            require_services=_require_services,
+            resolve_security_prefs=_resolve_security_prefs,
+            require_operation_enabled=_require_operation_enabled,
+            require_write_access=_require_write_access,
+            check_rate_limit=_check_rate_limit,
+            read_json=_read_json,
+            csrf_error=_csrf_error,
         )
-        matched_asset_id = asset_id
-        if matched_asset_id is None:
-            try:
-                row = await _find_asset_row_by_filepath(
-                    svc["db"],
-                    current_resolved_str,
-                    select_sql="id, filename, source, root_id",
-                )
-            except asyncio.TimeoutError:
-                return _json_response(Result.Err("TIMEOUT", "Asset lookup timed out"))
-            except Exception as exc:
-                return _json_response(
-                    Result.Err(
-                        "DB_ERROR",
-                        _safe_error_message(exc, "Failed to resolve asset id"),
-                    )
-                )
-            if isinstance(row, dict):
-                try:
-                    raw_id = row.get("id")
-                    if raw_id is not None:
-                        matched_asset_id = int(raw_id)
-                except Exception:
-                    matched_asset_id = None
-                if not current_filename:
-                    current_filename = str(row.get("filename") or current_filename)
-                if not current_source:
-                    current_source = str(row.get("source") or "").strip().lower()
-                if not current_root_id:
-                    current_root_id = str(row.get("root_id") or "").strip()
+        if not rename_ctx_res.ok:
+            return _json_response(rename_ctx_res)
+        rename_ctx = rename_ctx_res.data
+        svc = rename_ctx.services if rename_ctx else {}
+        body = rename_ctx.body if rename_ctx else {}
+        asset_id = rename_ctx.asset_id if rename_ctx else None
+        new_name = rename_ctx.new_name if rename_ctx else ""
+
+        target_res = await resolve_rename_target(
+            context=rename_ctx,
+            normalize_path=lambda raw: _normalize_path(str(raw)),
+            resolve_body_filepath=_resolve_body_filepath,
+            load_asset_row_by_id=_load_asset_row_by_id,
+            find_asset_row_by_filepath=_find_rename_row_by_filepath,
+            filepath_db_keys=_filepath_db_keys,
+            filepath_where_clause=lambda keys, column="filepath": _filepath_where_clause(keys, column=column),
+            is_resolved_path_allowed=_is_resolved_path_allowed,
+        )
+        if not target_res.ok:
+            return _json_response(target_res)
+        target = target_res.data
+        if target is None:
+            return _json_response(Result.Err("INVALID_INPUT", "Missing filepath or asset_id"))
+        matched_asset_id = target.matched_asset_id
+        current_resolved = target.current_resolved
+        current_filename = target.current_filename
+        current_source = target.current_source
+        current_root_id = target.current_root_id
+        current_filepath_where = target.filepath_where
+        current_filepath_params = target.filepath_params
+        new_name = target.new_name
 
         # Determine the new file path
         new_path = current_resolved.parent / new_name
@@ -1326,18 +1268,34 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                 same_file = False
             same_path_ignoring_case = str(new_path).lower() == str(current_resolved).lower()
             if not (same_file and same_path_ignoring_case):
-                return _json_response(Result.Err("CONFLICT", f"File '{new_name}' already exists"))
+                result = Result.Err("CONFLICT", f"File '{new_name}' already exists")
+                await _audit_asset_write(
+                    request,
+                    svc,
+                    "asset_rename",
+                    f"asset:{matched_asset_id}" if matched_asset_id is not None else str(current_resolved),
+                    result,
+                    new_name=new_name,
+                )
+                return _json_response(result)
 
         # Perform the rename
         try:
             current_resolved.rename(new_path)
         except Exception as exc:
-            return _json_response(
-                Result.Err(
-                    "RENAME_FAILED",
-                    _safe_error_message(exc, "Failed to rename file"),
-                )
+            result = Result.Err(
+                "RENAME_FAILED",
+                _safe_error_message(exc, "Failed to rename file"),
             )
+            await _audit_asset_write(
+                request,
+                svc,
+                "asset_rename",
+                f"asset:{matched_asset_id}" if matched_asset_id is not None else str(current_resolved),
+                result,
+                new_name=new_name,
+            )
+            return _json_response(result)
 
         async def _rollback_physical_rename() -> None:
             try:
@@ -1352,15 +1310,31 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                 mtime = int(new_path.stat().st_mtime)
             except FileNotFoundError:
                 await _rollback_physical_rename()
-                return _json_response(Result.Err("NOT_FOUND", "Renamed file does not exist"))
+                result = Result.Err("NOT_FOUND", "Renamed file does not exist")
+                await _audit_asset_write(
+                    request,
+                    svc,
+                    "asset_rename",
+                    f"asset:{matched_asset_id}" if matched_asset_id is not None else str(current_resolved),
+                    result,
+                    new_name=new_name,
+                )
+                return _json_response(result)
             except Exception as exc:
                 await _rollback_physical_rename()
-                return _json_response(
-                    Result.Err(
-                        "FS_ERROR",
-                        _safe_error_message(exc, "Failed to stat renamed file"),
-                    )
+                result = Result.Err(
+                    "FS_ERROR",
+                    _safe_error_message(exc, "Failed to stat renamed file"),
                 )
+                await _audit_asset_write(
+                    request,
+                    svc,
+                    "asset_rename",
+                    f"asset:{matched_asset_id}" if matched_asset_id is not None else str(current_resolved),
+                    result,
+                    new_name=new_name,
+                )
+                return _json_response(result)
 
             async with svc["db"].atransaction(mode="immediate"):
                 defer_fk = await svc["db"].aexecute("PRAGMA defer_foreign_keys = ON")
@@ -1404,12 +1378,19 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                     raise RuntimeError(mc_res.error or "Failed to update metadata_cache filepath")
         except Exception as exc:
             await _rollback_physical_rename()
-            return _json_response(
-                Result.Err(
-                    "DB_ERROR",
-                    _safe_error_message(exc, "Failed to update asset record"),
-                )
+            result = Result.Err(
+                "DB_ERROR",
+                _safe_error_message(exc, "Failed to update asset record"),
             )
+            await _audit_asset_write(
+                request,
+                svc,
+                "asset_rename",
+                f"asset:{matched_asset_id}" if matched_asset_id is not None else str(current_resolved),
+                result,
+                new_name=new_name,
+            )
+            return _json_response(result)
 
         # Targeted index refresh for the renamed file only (no full rescan).
         try:
@@ -1454,14 +1435,24 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             except Exception:
                 fresh_asset = None
 
-        return _json_response(Result.Ok({
+        result = Result.Ok({
             "renamed": 1,
             "old_name": current_filename,
             "new_name": new_name,
             "old_path": str(current_resolved),
             "new_path": str(new_path),
             "asset": fresh_asset,
-        }))
+        })
+        await _audit_asset_write(
+            request,
+            svc,
+            "asset_rename",
+            f"asset:{matched_asset_id}" if matched_asset_id is not None else str(current_resolved),
+            result,
+            old_name=current_filename,
+            new_name=new_name,
+        )
+        return _json_response(result)
 
     @routes.post("/mjr/am/assets/delete")
     async def delete_assets(request):
@@ -1470,44 +1461,25 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
 
         Body: {"ids": [int, int, ...]}
         """
-        csrf = _csrf_error(request)
-        if csrf:
-            return _json_response(Result.Err("CSRF", csrf))
-
-        svc, error_result = await _require_services()
-        if error_result:
-            return _json_response(error_result)
-        prefs = await _resolve_security_prefs(svc)
-        op = _require_operation_enabled("assets_delete", prefs=prefs)
-        if not op.ok:
-            return _json_response(op)
-        auth = _require_write_access(request)
-        if not auth.ok:
-            return _json_response(auth)
-
-        allowed, retry_after = _check_rate_limit(request, "assets_delete", max_requests=10, window_seconds=60)
-        if not allowed:
-            return _json_response(Result.Err("RATE_LIMITED", "Rate limit exceeded. Please wait before retrying.", retry_after=retry_after))
-
-        body_res = await _read_json(request)
-        if not body_res.ok:
-            return _json_response(body_res)
-        body = body_res.data or {}
-
-        asset_ids = body.get("ids")
-        if not asset_ids or not isinstance(asset_ids, list):
-            return _json_response(Result.Err("INVALID_INPUT", "Missing or invalid 'ids' array"))
-
-        # Validate all IDs are integers
-        validated_ids = []
-        for aid in asset_ids:
-            try:
-                validated_ids.append(int(aid))
-            except (ValueError, TypeError):
-                return _json_response(Result.Err("INVALID_INPUT", f"Invalid asset_id: {aid}"))
-
-        if not validated_ids:
-            return _json_response(Result.Err("INVALID_INPUT", "No valid asset IDs provided"))
+        ids_ctx_res = await prepare_asset_ids_context(
+            request,
+            operation="assets_delete",
+            rate_limit_endpoint="assets_delete",
+            max_requests=10,
+            window_seconds=60,
+            require_services=_require_services,
+            resolve_security_prefs=_resolve_security_prefs,
+            require_operation_enabled=_require_operation_enabled,
+            require_write_access=_require_write_access,
+            check_rate_limit=_check_rate_limit,
+            read_json=_read_json,
+            csrf_error=_csrf_error,
+        )
+        if not ids_ctx_res.ok:
+            return _json_response(ids_ctx_res)
+        ids_ctx = ids_ctx_res.data
+        svc = ids_ctx.services if ids_ctx else {}
+        validated_ids = ids_ctx.asset_ids if ids_ctx else []
 
         # PHASE 1: Validate all assets exist
         try:
@@ -1665,7 +1637,7 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             failed_ids += [int(item.get("asset_id")) for item in db_errors if isinstance(item, dict) and item.get("asset_id") is not None]
 
             if file_deletion_errors or db_errors:
-                return _json_response(Result.Ok(
+                result = Result.Ok(
                     {
                         "deleted": len(deleted_ids),
                         "deleted_ids": deleted_ids,
@@ -1676,17 +1648,46 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                     attempted=len(validated_assets),
                     deleted=len(deleted_ids),
                     failed=len(set(failed_ids)),
-                ))
+                )
+                await _audit_asset_write(
+                    request,
+                    svc,
+                    "assets_delete",
+                    f"assets:{','.join(str(v) for v in validated_ids[:25])}",
+                    result,
+                    attempted=len(validated_assets),
+                    deleted=len(deleted_ids),
+                    failed=len(set(failed_ids)),
+                )
+                return _json_response(result)
 
-            return _json_response(Result.Ok({"deleted": len(deleted_ids), "deleted_ids": deleted_ids}))
+            result = Result.Ok({"deleted": len(deleted_ids), "deleted_ids": deleted_ids})
+            await _audit_asset_write(
+                request,
+                svc,
+                "assets_delete",
+                f"assets:{','.join(str(v) for v in validated_ids[:25])}",
+                result,
+                attempted=len(validated_assets),
+                deleted=len(deleted_ids),
+                failed=0,
+            )
+            return _json_response(result)
         except Exception as exc:
             logger.error("Database deletion failed: %s", exc)
-            return _json_response(
-                Result.Err(
-                    "DB_ERROR",
-                    _safe_error_message(exc, "Failed to delete asset records"),
-                )
+            result = Result.Err(
+                "DB_ERROR",
+                _safe_error_message(exc, "Failed to delete asset records"),
             )
+            await _audit_asset_write(
+                request,
+                svc,
+                "assets_delete",
+                f"assets:{','.join(str(v) for v in validated_ids[:25])}",
+                result,
+                attempted=len(validated_assets),
+            )
+            return _json_response(result)
 
     @routes.post("/mjr/am/assets/rename")
     async def rename_asset_endpoint(request):

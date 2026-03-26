@@ -14,6 +14,8 @@ _LOCK = threading.Lock()
 _MANUAL_SCAN_TIMES: dict[str, float] = {}
 _RECENT_SCAN_TIMES: dict[str, float] = {}
 _MAX_ENTRY_AGE = max(600, int(MANUAL_BG_SCAN_GRACE_SECONDS * 5))
+_CLEANUP_INTERVAL_S = 60.0
+_LAST_CLEANUP = 0.0
 
 
 def normalize_scan_directory(directory: str) -> str:
@@ -51,7 +53,7 @@ def mark_directory_indexed(
     key = _scan_key(directory, source, root_id)
     with _LOCK:
         _MANUAL_SCAN_TIMES[key] = now
-        _cleanup_locked(now)
+        _maybe_cleanup_locked(now)
 
 
 def mark_directory_scanned(
@@ -67,7 +69,7 @@ def mark_directory_scanned(
     key = _scan_key(directory, source, root_id)
     with _LOCK:
         _RECENT_SCAN_TIMES[key] = now
-        _cleanup_locked(now)
+        _maybe_cleanup_locked(now)
 
 
 def should_skip_background_scan(
@@ -110,6 +112,15 @@ def _cleanup_locked(now: float) -> None:
         _RECENT_SCAN_TIMES.pop(k, None)
 
 
+def _maybe_cleanup_locked(now: float) -> None:
+    """Run cleanup opportunistically, but at most once per interval."""
+    global _LAST_CLEANUP
+    if (now - _LAST_CLEANUP) < _CLEANUP_INTERVAL_S:
+        return
+    _LAST_CLEANUP = now
+    _cleanup_locked(now)
+
+
 def _reset_scan_throttle_state_for_tests() -> None:
     """
     Test helper: clear all in-memory scan throttle state.
@@ -117,3 +128,5 @@ def _reset_scan_throttle_state_for_tests() -> None:
     with _LOCK:
         _MANUAL_SCAN_TIMES.clear()
         _RECENT_SCAN_TIMES.clear()
+        global _LAST_CLEANUP
+        _LAST_CLEANUP = 0.0

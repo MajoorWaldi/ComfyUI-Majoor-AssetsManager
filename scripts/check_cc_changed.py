@@ -1,6 +1,4 @@
-"""
-Fail CI when newly added Python files contain functions with cyclomatic complexity > 10.
-"""
+"""Fail CI when changed Python files exceed the configured complexity cap."""
 
 from __future__ import annotations
 
@@ -11,7 +9,17 @@ import sys
 from pathlib import Path
 
 
-MAX_CC = 10
+DEFAULT_MAX_CC = 10
+
+
+def _max_cc() -> int:
+    try:
+        raw = os.environ.get("MJR_COMPLEXITY_MAX_CC", "").strip()
+        if raw:
+            return max(1, int(raw))
+    except Exception:
+        pass
+    return DEFAULT_MAX_CC
 
 
 def _run(cmd: list[str]) -> str:
@@ -22,12 +30,12 @@ def _new_python_files() -> list[Path]:
     base_ref = os.environ.get("GITHUB_BASE_REF", "").strip()
     if base_ref:
         try:
-            diff = _run(["git", "diff", "--diff-filter=A", "--name-only", f"origin/{base_ref}...HEAD"])
+            diff = _run(["git", "diff", "--diff-filter=AM", "--name-only", f"origin/{base_ref}...HEAD"])
         except Exception:
             diff = ""
     else:
         try:
-            diff = _run(["git", "diff", "--diff-filter=A", "--name-only", "HEAD~1...HEAD"])
+            diff = _run(["git", "diff", "--diff-filter=AM", "--name-only", "HEAD~1...HEAD"])
         except Exception:
             diff = ""
     files = []
@@ -39,9 +47,10 @@ def _new_python_files() -> list[Path]:
 
 
 def main() -> int:
+    max_cc = _max_cc()
     files = _new_python_files()
     if not files:
-        print("No newly added Python files; complexity gate skipped.")
+        print("No changed Python files; complexity gate skipped.")
         return 0
 
     cmd = ["python", "-m", "radon", "cc", "--json", *[str(p) for p in files]]
@@ -63,16 +72,16 @@ def main() -> int:
             if not isinstance(item, dict):
                 continue
             complexity = int(item.get("complexity") or 0)
-            if complexity > MAX_CC:
+            if complexity > max_cc:
                 violations.append((path, str(item.get("name") or "<unknown>"), complexity))
 
     if violations:
-        print(f"Complexity gate failed: CC must be <= {MAX_CC} on newly added files.")
+        print(f"Complexity gate failed: CC must be <= {max_cc} on changed files.")
         for path, name, complexity in violations:
             print(f"- {path}: {name} (CC={complexity})")
         return 1
 
-    print(f"Complexity gate passed for {len(files)} newly added Python file(s).")
+    print(f"Complexity gate passed for {len(files)} changed Python file(s).")
     return 0
 
 

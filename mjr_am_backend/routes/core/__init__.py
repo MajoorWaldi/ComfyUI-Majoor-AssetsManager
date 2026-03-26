@@ -13,6 +13,7 @@ from .paths import (
 )
 from .request_json import _read_json
 from .response import _json_response, safe_error_message
+from .audit_log import audit_log_write
 from .security import (
     _check_rate_limit,
     _current_user_id,
@@ -31,6 +32,7 @@ from .services import _build_services, _require_services, get_services_error
 
 __all__ = [
     "_json_response",
+    "audit_log_write",
     "safe_error_message",
     "_normalize_path",
     "_is_path_allowed",

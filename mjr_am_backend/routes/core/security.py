@@ -21,6 +21,7 @@ from aiohttp import web
 from mjr_am_backend.shared import Result, get_logger
 
 logger = get_logger(__name__)
+_WARNED_TOKEN_SOURCES: set[str] = set()
 
 # Per-client rate limiting state: {client_id: {endpoint: [timestamps]}}
 # Use LRU eviction to prevent unbounded memory growth from spoofed client IPs.
@@ -91,6 +92,37 @@ def _env_truthy(name: str, default: bool = False) -> bool:
     if raw is None:
         return bool(default)
     return str(raw).strip().lower() in ("1", "true", "yes", "on")
+
+
+def _warn_invalid_token_once(source: str, message: str, *args: Any) -> None:
+    if source in _WARNED_TOKEN_SOURCES:
+        return
+    _WARNED_TOKEN_SOURCES.add(source)
+    logger.warning(message, *args)
+
+
+def _validate_token_format(token: str, source: str) -> str | None:
+    normalized = str(token or "").strip()
+    if not normalized:
+        return None
+    length = len(normalized)
+    if length < 16:
+        _warn_invalid_token_once(
+            source,
+            "Token from %s too short (%d chars), minimum 16",
+            source,
+            length,
+        )
+        return None
+    if length > 512:
+        _warn_invalid_token_once(
+            source,
+            "Token from %s too long (%d chars), maximum 512",
+            source,
+            length,
+        )
+        return None
+    return normalized
 
 
 @lru_cache(maxsize=1)
@@ -251,7 +283,7 @@ def _get_write_token() -> str:
         raw = (os.environ.get("MAJOOR_API_TOKEN") or os.environ.get("MJR_API_TOKEN") or "").strip()
     except Exception:
         raw = ""
-    return raw
+    return _validate_token_format(raw, "MAJOOR_API_TOKEN") or ""
 
 def _hash_token(value: str) -> str:
     try:
@@ -1005,5 +1037,9 @@ def _reset_security_state_for_tests() -> None:
         pass
     try:
         _safe_mode_enabled.cache_clear()
+    except Exception:
+        pass
+    try:
+        _WARNED_TOKEN_SOURCES.clear()
     except Exception:
         pass

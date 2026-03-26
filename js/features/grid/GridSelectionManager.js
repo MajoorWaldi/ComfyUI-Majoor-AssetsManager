@@ -75,8 +75,8 @@ export function setSelectionIds(gridContainer, selectedIds, { activeId = "" } = 
 
 export function safeEscapeId(value) {
     try {
-        return CSS?.escape ? CSS.escape(String(value)) : String(value).replace(/["\\]/g, "\\$&");
+        return CSS?.escape ? CSS.escape(String(value)) : String(value).replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1");
     } catch {
-        return String(value).replace(/["\\]/g, "\\$&");
+        return String(value).replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1");
     }
 }

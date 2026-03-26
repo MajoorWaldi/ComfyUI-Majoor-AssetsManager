@@ -24,6 +24,19 @@ def _json(resp):
     return json.loads(resp.text)
 
 
+def _clear_write_auth_env(monkeypatch) -> None:
+    for key in (
+        "MAJOOR_API_TOKEN",
+        "MJR_API_TOKEN",
+        "MAJOOR_API_TOKEN_HASH",
+        "MJR_API_TOKEN_HASH",
+        "MAJOOR_REQUIRE_AUTH",
+        "MAJOOR_ALLOW_REMOTE_WRITE",
+        "MAJOOR_ALLOW_INSECURE_TOKEN_TRANSPORT",
+    ):
+        monkeypatch.delenv(key, raising=False)
+
+
 @pytest.mark.asyncio
 async def test_custom_view_filepath_mode_rejects_outside_roots(monkeypatch, tmp_path: Path) -> None:
     app = _app(custom_roots_mod.register_custom_roots_routes)
@@ -105,6 +118,132 @@ async def test_browser_routes_require_csrf(monkeypatch) -> None:
     req2 = make_mocked_request("POST", "/mjr/am/browser/folder-op", app=app)
     resp2 = await (await app.router.resolve(req2)).handler(req2)
     assert _json(resp2).get("code") == "CSRF"
+
+
+@pytest.mark.asyncio
+async def test_custom_roots_post_blocks_remote_write_without_token(monkeypatch, tmp_path: Path) -> None:
+    _clear_write_auth_env(monkeypatch)
+    app = _app(custom_roots_mod.register_custom_roots_routes)
+    monkeypatch.setattr(custom_roots_mod, "add_custom_root", lambda path, label=None: Result.Ok({"id": "rid", "path": path, "label": label}))
+    monkeypatch.setattr(sec, "_extract_peer_ip", lambda _request: "203.0.113.10")
+
+    async def _read_json(_request):
+        return Result.Ok({"path": str(tmp_path), "label": "Root"})
+
+    monkeypatch.setattr(custom_roots_mod, "_read_json", _read_json)
+    req = make_mocked_request(
+        "POST",
+        "/mjr/am/custom-roots",
+        headers={"X-Requested-With": "XMLHttpRequest", "Host": "127.0.0.1:8188"},
+        app=app,
+    )
+    resp = await (await app.router.resolve(req)).handler(req)
+    assert _json(resp).get("code") == "FORBIDDEN"
+
+
+@pytest.mark.asyncio
+async def test_custom_roots_post_blocks_remote_bad_token(monkeypatch, tmp_path: Path) -> None:
+    _clear_write_auth_env(monkeypatch)
+    monkeypatch.setenv("MAJOOR_API_TOKEN", "good-token-secret")
+    app = _app(custom_roots_mod.register_custom_roots_routes)
+    monkeypatch.setattr(custom_roots_mod, "add_custom_root", lambda path, label=None: Result.Ok({"id": "rid", "path": path, "label": label}))
+    monkeypatch.setattr(sec, "_extract_peer_ip", lambda _request: "203.0.113.10")
+
+    async def _read_json(_request):
+        return Result.Ok({"path": str(tmp_path), "label": "Root"})
+
+    monkeypatch.setattr(custom_roots_mod, "_read_json", _read_json)
+    req = make_mocked_request(
+        "POST",
+        "/mjr/am/custom-roots",
+        headers={
+            "X-Requested-With": "XMLHttpRequest",
+            "Host": "127.0.0.1:8188",
+            "X-MJR-Token": "bad-token-secret",
+        },
+        app=app,
+    )
+    resp = await (await app.router.resolve(req)).handler(req)
+    assert _json(resp).get("code") == "AUTH_REQUIRED"
+
+
+@pytest.mark.asyncio
+async def test_custom_roots_post_blocks_insecure_remote_valid_token(monkeypatch, tmp_path: Path) -> None:
+    _clear_write_auth_env(monkeypatch)
+    monkeypatch.setenv("MAJOOR_API_TOKEN", "good-token-secret")
+    app = _app(custom_roots_mod.register_custom_roots_routes)
+    monkeypatch.setattr(custom_roots_mod, "add_custom_root", lambda path, label=None: Result.Ok({"id": "rid", "path": path, "label": label}))
+    monkeypatch.setattr(sec, "_extract_peer_ip", lambda _request: "203.0.113.10")
+
+    async def _read_json(_request):
+        return Result.Ok({"path": str(tmp_path), "label": "Root"})
+
+    monkeypatch.setattr(custom_roots_mod, "_read_json", _read_json)
+    req = make_mocked_request(
+        "POST",
+        "/mjr/am/custom-roots",
+        headers={
+            "X-Requested-With": "XMLHttpRequest",
+            "Host": "127.0.0.1:8188",
+            "X-MJR-Token": "good-token-secret",
+        },
+        app=app,
+    )
+    resp = await (await app.router.resolve(req)).handler(req)
+    assert _json(resp).get("code") == "FORBIDDEN"
+
+
+@pytest.mark.asyncio
+async def test_custom_roots_post_accepts_remote_token_via_trusted_https_proxy(monkeypatch, tmp_path: Path) -> None:
+    _clear_write_auth_env(monkeypatch)
+    monkeypatch.setenv("MAJOOR_API_TOKEN", "good-token-secret")
+    app = _app(custom_roots_mod.register_custom_roots_routes)
+    monkeypatch.setattr(custom_roots_mod, "add_custom_root", lambda path, label=None: Result.Ok({"id": "rid", "path": path, "label": label}))
+    monkeypatch.setattr(sec, "_extract_peer_ip", lambda _request: "127.0.0.1")
+
+    async def _read_json(_request):
+        return Result.Ok({"path": str(tmp_path), "label": "Root"})
+
+    monkeypatch.setattr(custom_roots_mod, "_read_json", _read_json)
+    req = make_mocked_request(
+        "POST",
+        "/mjr/am/custom-roots",
+        headers={
+            "X-Requested-With": "XMLHttpRequest",
+            "Host": "127.0.0.1:8188",
+            "X-MJR-Token": "good-token-secret",
+            "X-Forwarded-For": "203.0.113.10",
+            "X-Forwarded-Proto": "https",
+        },
+        app=app,
+    )
+    resp = await (await app.router.resolve(req)).handler(req)
+    payload = _json(resp)
+    assert payload.get("ok") is True
+    assert (payload.get("data") or {}).get("id") == "rid"
+
+
+@pytest.mark.asyncio
+async def test_custom_roots_post_requires_token_on_loopback_when_forced(monkeypatch, tmp_path: Path) -> None:
+    _clear_write_auth_env(monkeypatch)
+    monkeypatch.setenv("MAJOOR_API_TOKEN", "good-token-secret")
+    monkeypatch.setenv("MAJOOR_REQUIRE_AUTH", "1")
+    app = _app(custom_roots_mod.register_custom_roots_routes)
+    monkeypatch.setattr(custom_roots_mod, "add_custom_root", lambda path, label=None: Result.Ok({"id": "rid", "path": path, "label": label}))
+    monkeypatch.setattr(sec, "_extract_peer_ip", lambda _request: "127.0.0.1")
+
+    async def _read_json(_request):
+        return Result.Ok({"path": str(tmp_path), "label": "Root"})
+
+    monkeypatch.setattr(custom_roots_mod, "_read_json", _read_json)
+    req = make_mocked_request(
+        "POST",
+        "/mjr/am/custom-roots",
+        headers={"X-Requested-With": "XMLHttpRequest", "Host": "127.0.0.1:8188"},
+        app=app,
+    )
+    resp = await (await app.router.resolve(req)).handler(req)
+    assert _json(resp).get("code") == "AUTH_REQUIRED"
 
 
 def test_rate_limit_overflow_keeps_per_client_state(monkeypatch) -> None:

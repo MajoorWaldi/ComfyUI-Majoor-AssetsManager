@@ -25,6 +25,7 @@ from mjr_am_backend.custom_roots import resolve_custom_root
 from mjr_am_backend.shared import Result, get_logger, sanitize_error_message
 
 from ..core import (
+    audit_log_write,
     _csrf_error,
     _is_path_allowed,
     _is_within_root,
@@ -116,10 +117,24 @@ def register_staging_routes(routes: web.RouteTableDef, *, deps: dict | None = No
         _folder_paths_ = _d.get("folder_paths", folder_paths) if _d is not None else folder_paths
         _is_path_allowed_ = _d.get("_is_path_allowed", _is_path_allowed) if _d is not None else _is_path_allowed
         _schedule_index_task_ = _d.get("_schedule_index_task", _schedule_index_task) if _d is not None else _schedule_index_task
+        _audit_log_write_ = _d.get("audit_log_write", audit_log_write) if _d is not None else audit_log_write
 
         svc, error_result = await _require_services_()
         if error_result:
             return _json_response(error_result)
+
+        async def _audit_stage(result: Result, **details: Any) -> None:
+            try:
+                await _audit_log_write_(
+                    svc if isinstance(svc, dict) else {},
+                    request=request,
+                    operation="stage_to_input",
+                    target=f"staged:{len(files) if isinstance(files, list) else 0}",
+                    result=result,
+                    details=details or None,
+                )
+            except Exception as exc:
+                logger.debug("Stage audit logging skipped: %s", exc)
 
         csrf = _csrf_error_(request)
         if csrf:
@@ -147,6 +162,7 @@ def register_staging_routes(routes: web.RouteTableDef, *, deps: dict | None = No
         files = body.get("files")
         if not isinstance(files, list) or not files:
             result = Result.Err("INVALID_INPUT", "Missing or invalid 'files' list")
+            await _audit_stage(result, requested_files=0, purpose=purpose, index=bool(index_staged))
             return _json_response(result)
 
         input_root = Path(_folder_paths_.get_input_directory()).resolve()
@@ -310,9 +326,11 @@ def register_staging_routes(routes: web.RouteTableDef, *, deps: dict | None = No
                 results = await asyncio.wait_for(asyncio.to_thread(_link_or_copy_many, pending_ops), timeout=TO_THREAD_TIMEOUT_S)
             except asyncio.TimeoutError as exc:
                 result = Result.Err("TIMEOUT", safe_error_message(exc, "Staging timed out"), errors=errors)
+                await _audit_stage(result, requested_files=len(files), staged_files=len(staged), error_count=len(errors), purpose=purpose, index=bool(index_staged))
                 return _json_response(result)
             except Exception as exc:
                 result = Result.Err("STAGE_FAILED", safe_error_message(exc, "Failed to stage files"), errors=errors)
+                await _audit_stage(result, requested_files=len(files), staged_files=len(staged), error_count=len(errors), purpose=purpose, index=bool(index_staged))
                 return _json_response(result)
 
             for op, r in zip(pending_ops, results, strict=True):
@@ -340,6 +358,7 @@ def register_staging_routes(routes: web.RouteTableDef, *, deps: dict | None = No
 
         if not staged:
             result = Result.Err("STAGE_FAILED", "No files staged", errors=errors)
+            await _audit_stage(result, requested_files=len(files), staged_files=0, error_count=len(errors), purpose=purpose, index=bool(index_staged))
             return _json_response(result)
 
         # Ensure staged files are indexed in DB as input assets (best-effort).
@@ -358,4 +377,13 @@ def register_staging_routes(routes: web.RouteTableDef, *, deps: dict | None = No
         except Exception as exc:
             logger.debug("Indexing staged files skipped: %s", exc)
 
-        return _json_response(Result.Ok({"staged": staged, "errors": errors}))
+        result = Result.Ok({"staged": staged, "errors": errors})
+        await _audit_stage(
+            result,
+            requested_files=len(files),
+            staged_files=len(staged),
+            error_count=len(errors),
+            purpose=purpose,
+            index=bool(index_staged),
+        )
+        return _json_response(result)

@@ -106,11 +106,43 @@ def test_result_unwrap_or_ok():
     assert result_mod.Result.Ok(7).unwrap_or(99) == 7
 
 
+def test_result_constructor_rejects_ok_with_error():
+    with pytest.raises(ValueError, match="cannot have an error"):
+        result_mod.Result(ok=True, data=1, error="bad")
+
+
+def test_result_constructor_rejects_err_with_data():
+    with pytest.raises(ValueError, match="should not carry data"):
+        result_mod.Result(ok=False, data=1, error="bad", code="E")
+
+
+def test_result_constructor_rejects_err_without_error_message():
+    with pytest.raises(ValueError, match="requires an error message"):
+        result_mod.Result(ok=False, code="E")
+
+
 def test_get_logger_does_not_duplicate_correlation_filter() -> None:
     logger = log_mod.get_logger("test_shared_utils_logger")
     logger = log_mod.get_logger("test_shared_utils_logger")
     filters = [f for f in list(logger.filters or []) if isinstance(f, log_mod.CorrelationFilter)]
     assert len(filters) == 1
+
+
+def test_get_logger_short_circuits_filter_scan_for_configured_name(monkeypatch) -> None:
+    original = log_mod._has_correlation_filter
+    calls = {"count": 0}
+
+    def _counting(logger):
+        calls["count"] += 1
+        return original(logger)
+
+    monkeypatch.setattr(log_mod, "_has_correlation_filter", _counting)
+    log_mod._configured_loggers.clear()
+
+    log_mod.get_logger("test_shared_utils_logger_once")
+    log_mod.get_logger("test_shared_utils_logger_once")
+
+    assert calls["count"] == 1
 
 
 def test_sanitize_error_message_does_not_mask_mime_type() -> None:

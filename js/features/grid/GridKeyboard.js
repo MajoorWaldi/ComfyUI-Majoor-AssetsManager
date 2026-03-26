@@ -286,7 +286,9 @@ export function installGridKeyboard({
         } catch (e) { console.debug?.(e); }
         // Fallback: DOM-based scroll (only works if the card is already rendered)
         try {
-            const esc = typeof CSS !== "undefined" && CSS?.escape ? CSS.escape(id) : id.replace(/["\\]/g, "\\$&");
+            const esc = typeof CSS !== "undefined" && CSS?.escape
+                ? CSS.escape(id)
+                : id.replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1");
             const card = gridContainer.querySelector(`.mjr-asset-card[data-mjr-asset-id="${esc}"]`);
             card?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
         } catch (e) { console.debug?.(e); }

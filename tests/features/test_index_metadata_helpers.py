@@ -45,6 +45,44 @@ def test_json_guard_and_tag_helpers(monkeypatch):
     assert r == 5 and tags_json == '["x", "y"]' and tags_txt == "x y"
 
 
+def test_json_guard_preserves_priority_fields_when_truncated(monkeypatch):
+    monkeypatch.setattr(mh, "MAX_METADATA_JSON_BYTES", 220)
+    raw = json.dumps(
+        {
+            "workflow": {"nodes": [{"id": i, "type": "KSampler"} for i in range(50)]},
+            "prompt": {"1": {"inputs": {"text": "cinematic portrait lighting"}}},
+            "parameters": "cinematic portrait lighting\nNegative prompt: blurry\nSampler: Euler a\nModel: dreamshaperXL",
+            "geninfo": {
+                "engine": {"type": "TXT2IMG"},
+                "sampler": {"name": "Euler a"},
+                "models": {"checkpoint": {"name": "dreamshaperXL"}},
+            },
+            "workflow_type": "txt2img",
+        }
+    )
+
+    truncated = mh._apply_metadata_json_size_guard(1, Result.Ok({"a": 1}), raw, filepath="x.png")
+    payload = json.loads(truncated)
+
+    assert payload["_truncated"] is True
+    assert payload["workflow_type"] == "TXT2IMG"
+    assert payload["model"] == "dreamshaperXL"
+    assert payload["sampler"] == "Euler a"
+    assert "cinematic portrait lighting" in payload["prompt"]
+
+
+def test_json_guard_uses_minimal_fallback_when_budget_is_tiny(monkeypatch):
+    monkeypatch.setattr(mh, "MAX_METADATA_JSON_BYTES", 40)
+    raw = json.dumps({"parameters": "x" * 400, "model": "model-a", "sampler": "Euler"})
+
+    truncated = mh._apply_metadata_json_size_guard(1, Result.Ok({"a": 1}), raw, filepath="x.png")
+    payload = json.loads(truncated)
+
+    assert payload["_truncated"] is True
+    assert payload["original_bytes"] > 40
+    assert "model" not in payload
+
+
 def test_geninfo_extras_and_presence_flags():
     meta = {
         "parameters": "x",

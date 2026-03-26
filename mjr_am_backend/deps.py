@@ -28,6 +28,7 @@ from .features.index import IndexService
 from .features.index.watcher import OutputWatcher
 from .features.index.watcher_scope import build_watch_paths, load_watcher_scope
 from .features.metadata import MetadataService
+from .features.runtime import apply_startup_settings
 from .features.tags import RatingTagsSyncWorker
 from .settings import AppSettings
 from .shared import Result, get_logger, log_success
@@ -163,26 +164,10 @@ async def build_services(db_path: str | None = None) -> Result[dict]:
         return migrate_result  # type: ignore[return-value]
 
     exiftool, ffprobe, settings_service = _init_tools_and_settings(db)
-    try:
-        await settings_service.ensure_security_bootstrap()
-    except Exception as exc:
-        logger.warning("Security bootstrap failed: %s", exc)
-    try:
-        await settings_service.apply_output_directory_override_on_startup()
-    except Exception as exc:
-        logger.warning("Output directory override restore failed: %s", exc)
-    try:
-        await settings_service.apply_vector_search_override_on_startup()
-    except Exception as exc:
-        logger.warning("Vector search setting restore failed: %s", exc)
-    try:
-        await settings_service.apply_huggingface_token_on_startup()
-    except Exception as exc:
-        logger.warning("HuggingFace token restore failed: %s", exc)
-    try:
-        await settings_service.apply_ai_verbose_logs_on_startup()
-    except Exception as exc:
-        logger.warning("AI verbose logs setting restore failed: %s", exc)
+    await apply_startup_settings(
+        settings_service,
+        warn=lambda message, exc: logger.warning(message, exc),
+    )
 
     _log_tool_availability(exiftool, ffprobe)
 

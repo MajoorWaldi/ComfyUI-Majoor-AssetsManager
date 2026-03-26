@@ -64,6 +64,26 @@ async def test_vector_alignment_route_invalid_asset_id(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_vector_alignment_route_respects_rate_limit(monkeypatch) -> None:
+    async def _require_services():
+        raise AssertionError("services should not be required when rate-limited")
+
+    monkeypatch.setattr(vector_search, "_require_services", _require_services)
+    monkeypatch.setattr(vector_search, "_check_rate_limit", lambda *_args, **_kwargs: (False, 9))
+
+    app = _build_vector_app()
+    req = make_mocked_request("GET", "/mjr/am/vector/alignment/1", app=app)
+    match = await app.router.resolve(req)
+    req._match_info = match
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+
+    assert body.get("ok") is False
+    assert body.get("code") == "RATE_LIMITED"
+    assert resp.headers.get("Retry-After") == "9"
+
+
+@pytest.mark.asyncio
 async def test_vector_alignment_route_disabled_returns_503_payload(monkeypatch) -> None:
     async def _require_services():
         return {}, None
@@ -519,6 +539,26 @@ async def test_vector_generate_caption_route_success(monkeypatch) -> None:
 
     assert body.get("ok") is True
     assert body.get("data") == "caption-42"
+
+
+@pytest.mark.asyncio
+async def test_vector_caption_route_respects_rate_limit(monkeypatch) -> None:
+    async def _require_services():
+        raise AssertionError("services should not be required when rate-limited")
+
+    monkeypatch.setattr(vector_search, "_require_services", _require_services)
+    monkeypatch.setattr(vector_search, "_check_rate_limit", lambda *_args, **_kwargs: (False, 7))
+
+    app = _build_vector_app()
+    req = make_mocked_request("POST", "/mjr/am/vector/caption/42", app=app)
+    match = await app.router.resolve(req)
+    req._match_info = match
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+
+    assert body.get("ok") is False
+    assert body.get("code") == "RATE_LIMITED"
+    assert resp.headers.get("Retry-After") == "7"
 
 
 @pytest.mark.asyncio

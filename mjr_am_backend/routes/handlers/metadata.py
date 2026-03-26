@@ -31,6 +31,10 @@ except Exception:
     folder_paths = _FolderPathsStub()  # type: ignore
 
 
+_METADATA_RATE_LIMIT_MAX_REQUESTS = 10
+_METADATA_RATE_LIMIT_WINDOW_SECONDS = 60
+
+
 def register_metadata_routes(routes: web.RouteTableDef) -> None:
     """Register metadata extraction routes."""
     @routes.get("/mjr/am/metadata")
@@ -48,7 +52,12 @@ def register_metadata_routes(routes: web.RouteTableDef) -> None:
         if error_result:
             return _json_response(error_result)
 
-        allowed, retry_after = _check_rate_limit(request, "metadata", max_requests=20, window_seconds=60)
+        allowed, retry_after = _check_rate_limit(
+            request,
+            "metadata",
+            max_requests=_METADATA_RATE_LIMIT_MAX_REQUESTS,
+            window_seconds=_METADATA_RATE_LIMIT_WINDOW_SECONDS,
+        )
         if not allowed:
             return _json_response(Result.Err("RATE_LIMITED", "Too many metadata requests. Please wait before retrying.", retry_after=retry_after))
 

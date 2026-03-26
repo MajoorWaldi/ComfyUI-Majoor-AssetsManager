@@ -3279,7 +3279,8 @@
 }
 
 .mjr-mfv-side-panel .mjr-mfv-audio-card,
-.mjr-mfv-ab-layer .mjr-mfv-audio-card {
+.mjr-mfv-ab-layer .mjr-mfv-audio-card,
+.mjr-mfv-grid-cell .mjr-mfv-audio-card {
     width: calc(100% - 20px);
 }
 
@@ -3425,6 +3426,77 @@
     position: relative;
     background: #0d0d0d;
 }
+
+/* Grid compare (2×2) container */
+.mjr-mfv-grid-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    width: 100%;
+    height: 100%;
+    gap: 2px;
+    background: #111;
+    overflow: hidden;
+}
+
+/* Grid cells */
+.mjr-mfv-grid-cell {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: #0d0d0d;
+    min-width: 0;
+    min-height: 0;
+}
+
+/* Gen info overlays for grid cells C and D */
+.mjr-mfv-geninfo-c,
+.mjr-mfv-geninfo-d {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    background: rgba(0, 0, 0, 0.65);
+    color: #fff;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    max-height: 40%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    word-break: break-word;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.mjr-mfv-geninfo-c strong,
+.mjr-mfv-geninfo-d strong {
+    font-weight: 600;
+    margin-right: 4px;
+    color: rgba(255, 255, 255, 0.95);
+}
+
+/* Per-field label colors for C/D gen info overlays */
+.mjr-mfv-geninfo-c [data-field="prompt"] strong,
+.mjr-mfv-geninfo-d [data-field="prompt"] strong { color: #7ec8ff; }
+.mjr-mfv-geninfo-c [data-field="seed"] strong,
+.mjr-mfv-geninfo-d [data-field="seed"] strong   { color: #ffd47a; }
+.mjr-mfv-geninfo-c [data-field="model"] strong,
+.mjr-mfv-geninfo-d [data-field="model"] strong  { color: #7dda8a; }
+.mjr-mfv-geninfo-c [data-field="lora"] strong,
+.mjr-mfv-geninfo-d [data-field="lora"] strong   { color: #d48cff; }
+.mjr-mfv-geninfo-c [data-field="sampler"] strong,
+.mjr-mfv-geninfo-d [data-field="sampler"] strong { color: #ff9f7a; }
+.mjr-mfv-geninfo-c [data-field="scheduler"] strong,
+.mjr-mfv-geninfo-d [data-field="scheduler"] strong { color: #ff7a9f; }
+.mjr-mfv-geninfo-c [data-field="cfg"] strong,
+.mjr-mfv-geninfo-d [data-field="cfg"] strong     { color: #7a9fff; }
+.mjr-mfv-geninfo-c [data-field="step"] strong,
+.mjr-mfv-geninfo-d [data-field="step"] strong    { color: #7affd4; }
 
 /* Gen info active state — button glows when at least one field is selected */
 .mjr-mfv .mjr-icon-btn.is-on {

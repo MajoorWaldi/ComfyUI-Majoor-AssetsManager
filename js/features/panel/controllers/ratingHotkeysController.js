@@ -6,6 +6,16 @@ import { getHotkeysState, isHotkeysSuspended, setRatingHotkeysActive } from "./h
 
 const EVENT_NAME = ASSET_RATING_CHANGED_EVENT;
 
+function _safeCssEscapeAttr(value) {
+    const str = String(value ?? "");
+    try {
+        if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
+            return CSS.escape(str);
+        }
+    } catch (e) { console.debug?.(e); }
+    return str.replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1");
+}
+
 function getSelectedCards(gridContainer, fallbackEventTarget = null) {
     if (!gridContainer) return [];
     try {
@@ -135,7 +145,7 @@ export function createRatingHotkeysController({ gridContainer, createRatingBadge
             if (!assetId || !Number.isFinite(rating)) return;
             try {
                 const card = gridContainer.querySelector(
-                    `.mjr-asset-card[data-mjr-asset-id="${CSS?.escape ? CSS.escape(String(assetId)) : String(assetId)}"]`
+                    `.mjr-asset-card[data-mjr-asset-id="${_safeCssEscapeAttr(assetId)}"]`
                 );
                 if (card) updateCardRatingBadge(card, createRatingBadge, rating);
             } catch (e) { console.debug?.(e); }

@@ -558,9 +558,12 @@ export function mountVideoControls(video, opts = {}) {
             outFrame: null,
             frameCount: null,
             loop: advanced,
+            pingpong: false,
             once: false,
             playbackRate: Math.max(0.25, Math.min(2, Number(opts?.initialPlaybackRate) || 1)),
-            _seeking: false
+            _seeking: false,
+            _ppReverse: false,
+            _ppRafId: null
         };
 
         let _stepFlashCancel = null;
@@ -616,9 +619,17 @@ export function mountVideoControls(video, opts = {}) {
 
         const applyLoopOnceUI = () => {
             try {
-                setToggleBtn(loopBtn, Boolean(state.loop));
+                setToggleBtn(loopBtn, Boolean(state.loop || state.pingpong));
                 try {
-                    if (loopIcon?.icon) loopIcon.icon.className = "pi pi-refresh";
+                    if (loopIcon?.icon) {
+                        if (state.pingpong) {
+                            loopIcon.icon.className = "pi pi-sort-alt";
+                            loopBtn.title = t("video.pingpongPlayback", "Ping-pong playback (forward then reverse)");
+                        } else {
+                            loopIcon.icon.className = "pi pi-refresh";
+                            loopBtn.title = t("video.loopPlaybackInRange", "Loop playback in range");
+                        }
+                    }
                 } catch (e) { console.debug?.(e); }
             } catch (e) { console.debug?.(e); }
         };
@@ -682,9 +693,10 @@ export function mountVideoControls(video, opts = {}) {
 
         const setPlayLabel = () => {
             try {
-                playBtn.textContent = video?.paused
-                    ? t("video.play", "Play")
-                    : t("video.pause", "Pause");
+                const isPlaying = !video?.paused || state._ppReverse;
+                playBtn.textContent = isPlaying
+                    ? t("video.pause", "Pause")
+                    : t("video.play", "Play");
             } catch (e) { console.debug?.(e); }
         };
 
@@ -899,6 +911,67 @@ export function mountVideoControls(video, opts = {}) {
             } catch (e) { console.debug?.(e); }
         };
 
+        const _cancelPingpongReverse = () => {
+            try {
+                if (state._ppRafId != null) {
+                    cancelAnimationFrame(state._ppRafId);
+                    state._ppRafId = null;
+                }
+            } catch (e) { console.debug?.(e); }
+        };
+        unsubs.push(_cancelPingpongReverse);
+
+        const _startPingpongReverse = () => {
+            try {
+                _cancelPingpongReverse();
+                state._ppReverse = true;
+                video.pause?.();
+                setPlayLabel();
+                const fps = Math.max(1, Math.floor(Number(state.fps) || 30));
+                const rate = Math.max(0.25, Number(state.playbackRate) || 1);
+                const intervalMs = 1000 / (fps * rate);
+                let lastTime = performance.now();
+
+                const stepBack = (now) => {
+                    try {
+                        if (!state._ppReverse || !state.pingpong) {
+                            state._ppReverse = false;
+                            setPlayLabel();
+                            return;
+                        }
+                        const dt = now - lastTime;
+                        if (dt >= intervalMs) {
+                            lastTime = now - (dt % intervalMs);
+                            const { inF } = getEffectiveInOut();
+                            const cf = currentFrame();
+                            if (cf <= inF) {
+                                // Reached start — switch to forward
+                                state._ppReverse = false;
+                                goToFrame(inF);
+                                const p = video.play?.();
+                                if (p && typeof p.catch === "function") p.catch(() => {});
+                                setPlayLabel();
+                                updateTimeUI();
+                                return;
+                            }
+                            const stepSize = Math.max(1, Math.floor(Number(state.step) || 1));
+                            goToFrame(cf - stepSize);
+                            updateTimeUI();
+                        }
+                        state._ppRafId = requestAnimationFrame(stepBack);
+                    } catch (e) {
+                        console.debug?.(e);
+                        state._ppReverse = false;
+                        setPlayLabel();
+                    }
+                };
+                state._ppRafId = requestAnimationFrame(stepBack);
+            } catch (e) {
+                console.debug?.(e);
+                state._ppReverse = false;
+            }
+        };
+
         const resetPlayerAll = () => {
             try {
                 const maxF = durationFrames();
@@ -906,6 +979,9 @@ export function mountVideoControls(video, opts = {}) {
                 state.outFrame = maxF > 0 ? maxF : null;
                 state.step = 1;
                 state.loop = Boolean(advanced);
+                state.pingpong = false;
+                state._ppReverse = false;
+                _cancelPingpongReverse();
                 state.once = false;
                 setPlaybackRate(1);
                 try {
@@ -973,6 +1049,13 @@ export function mountVideoControls(video, opts = {}) {
 
         const togglePlay = () => {
             try {
+                if (state._ppReverse) {
+                    // Stop pingpong reverse and pause
+                    state._ppReverse = false;
+                    _cancelPingpongReverse();
+                    setPlayLabel();
+                    return;
+                }
                 if (video.paused) {
                     ensureInRangeBeforePlay();
                     const p = video.play?.();
@@ -1125,8 +1208,23 @@ export function mountVideoControls(video, opts = {}) {
             unsubs.push(
                 safeAddListener(loopBtn, "click", (e) => {
                     stop(e);
-                    state.loop = !state.loop;
-                    if (state.loop) state.once = false;
+                    // Cycle: off → loop → pingpong → off
+                    if (!state.loop && !state.pingpong) {
+                        state.loop = true;
+                        state.pingpong = false;
+                    } else if (state.loop && !state.pingpong) {
+                        state.loop = false;
+                        state.pingpong = true;
+                    } else {
+                        state.loop = false;
+                        state.pingpong = false;
+                    }
+                    if (state.loop || state.pingpong) state.once = false;
+                    // Cancel any active pingpong reverse animation
+                    if (!state.pingpong) {
+                        state._ppReverse = false;
+                        _cancelPingpongReverse();
+                    }
                     applyLoopOnceUI();
                 })
             );
@@ -1222,13 +1320,19 @@ export function mountVideoControls(video, opts = {}) {
                 if (maxF <= 0) return;
                 // Only enforce when the user has a non-full range selected.
                 const fullRange = inF <= 0 && outF >= maxF;
-                if (fullRange && !state.loop && !state.once) return;
+                if (fullRange && !state.loop && !state.pingpong && !state.once) return;
+
+                // During pingpong reverse phase, don't enforce normal range logic
+                if (state._ppReverse) return;
 
                 const cf = currentFrame();
                 const eps = Math.max(1, Math.floor(Number(state.step) || 1));
 
                 if (cf >= outF - eps) {
-                    if (state.loop) {
+                    if (state.pingpong) {
+                        _startPingpongReverse();
+                        return;
+                    } else if (state.loop) {
                         goToFrame(inF);
                         try {
                             const p = video.play?.();
@@ -1271,6 +1375,10 @@ export function mountVideoControls(video, opts = {}) {
                     try {
                         const { inF, outF, maxF } = getEffectiveInOut();
                         const fullRange = inF <= 0 && outF >= maxF;
+                        if (state.pingpong && !state._ppReverse) {
+                            _startPingpongReverse();
+                            return;
+                        }
                         if (!state.loop && !fullRange) return;
                         goToFrame(inF);
                         try {

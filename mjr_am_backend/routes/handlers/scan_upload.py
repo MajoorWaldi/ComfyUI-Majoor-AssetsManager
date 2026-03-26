@@ -18,6 +18,7 @@ except Exception:
 from mjr_am_backend.shared import Result, get_logger
 
 from ..core import (
+    audit_log_write,
     _csrf_error,
     _json_response,
     _require_services,
@@ -77,6 +78,26 @@ def register_upload_routes(routes: web.RouteTableDef, *, deps: dict | None = Non
         _write_multipart_file_atomic_ = _d.get("_write_multipart_file_atomic", _write_multipart_file_atomic) if _d is not None else _write_multipart_file_atomic
         _schedule_index_task_ = _d.get("_schedule_index_task", _schedule_index_task) if _d is not None else _schedule_index_task
         _folder_paths_ = _d.get("folder_paths", folder_paths) if _d is not None else folder_paths
+        _audit_log_write_ = _d.get("audit_log_write", audit_log_write) if _d is not None else audit_log_write
+
+        async def _audit_upload(result: Result, **details: object) -> None:
+            try:
+                services, error = await _require_services_()
+            except Exception:
+                services, error = None, None
+            if error or not isinstance(services, dict):
+                services = {}
+            try:
+                await _audit_log_write_(
+                    services,
+                    request=request,
+                    operation="upload_input",
+                    target="input:upload",
+                    result=result,
+                    details=details or None,
+                )
+            except Exception as exc:
+                logger.debug("Upload audit logging skipped: %s", exc)
 
         # CSRF protection
         csrf = _csrf_error_(request)
@@ -90,16 +111,19 @@ def register_upload_routes(routes: web.RouteTableDef, *, deps: dict | None = Non
         except Exception:
             content_length = 0
         if content_length > int(_MAX_UPLOAD_SIZE):
-            return _json_response(
-                Result.Err("FILE_TOO_LARGE", f"Upload exceeds {_MAX_UPLOAD_SIZE} bytes")
-            )
+            result = Result.Err("FILE_TOO_LARGE", f"Upload exceeds {_MAX_UPLOAD_SIZE} bytes")
+            await _audit_upload(result, content_length=content_length)
+            return _json_response(result)
 
         try:
             field, filename, upload_err = await _read_upload_file_field(request)
             if upload_err:
+                await _audit_upload(upload_err)
                 return _json_response(upload_err)
             if field is None or filename is None:
-                return _json_response(Result.Err("UPLOAD_FAILED", "Upload failed"))
+                result = Result.Err("UPLOAD_FAILED", "Upload failed")
+                await _audit_upload(result)
+                return _json_response(result)
 
             skip_index = _upload_skip_index(request)
 
@@ -107,6 +131,7 @@ def register_upload_routes(routes: web.RouteTableDef, *, deps: dict | None = Non
 
             write_res = await _write_multipart_file_atomic_(input_dir, filename, field)
             if not write_res.ok:
+                await _audit_upload(write_res, filename=filename, skip_index=bool(skip_index))
                 return _json_response(write_res)
             dest_path = write_res.data
 
@@ -126,12 +151,16 @@ def register_upload_routes(routes: web.RouteTableDef, *, deps: dict | None = Non
                 except Exception as exc:
                     logger.debug("Indexing uploaded file skipped: %s", exc)
 
-            return _json_response(Result.Ok({
+            result = Result.Ok({
                 "name": dest_path.name,
                 "subfolder": "",
                 "path": str(dest_path)
-            }))
+            })
+            await _audit_upload(result, filename=dest_path.name, skip_index=bool(skip_index))
+            return _json_response(result)
 
         except Exception as e:
             logger.error(f"Upload failed: {e}")
-            return _json_response(Result.Err("UPLOAD_FAILED", "Upload failed"))
+            result = Result.Err("UPLOAD_FAILED", "Upload failed")
+            await _audit_upload(result)
+            return _json_response(result)

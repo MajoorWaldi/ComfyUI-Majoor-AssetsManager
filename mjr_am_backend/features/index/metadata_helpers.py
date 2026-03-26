@@ -1,15 +1,16 @@
 """
 Metadata helpers - shared utilities for metadata operations.
 """
+
 import asyncio
 import hashlib
 import json
+import re
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from ...adapters.db.sqlite import Sqlite
-from ...utils import sanitize_for_json
 from ...config import (
     MAX_METADATA_JSON_BYTES,
     METADATA_CACHE_CLEANUP_INTERVAL_SECONDS,
@@ -17,6 +18,7 @@ from ...config import (
     METADATA_CACHE_TTL_SECONDS,
 )
 from ...shared import Result, get_logger
+from ...utils import sanitize_for_json
 from ..metadata.parsing_utils import (
     looks_like_comfyui_prompt_graph,
     looks_like_comfyui_workflow,
@@ -27,6 +29,21 @@ MAX_TAG_LENGTH = 100
 logger = get_logger(__name__)
 _METADATA_CACHE_CLEANUP_LOCK = asyncio.Lock()
 _METADATA_CACHE_LAST_CLEANUP = 0.0
+_SAMPLER_PARAM_RE = re.compile(r"(?:^|\n)\s*Sampler\s*:\s*([^\n,]+)", re.IGNORECASE)
+_MODEL_PARAM_RE = re.compile(r"(?:^|\n)\s*Model\s*:\s*([^\n,]+)", re.IGNORECASE)
+_TRUNCATION_OPTIONAL_KEYS = (
+    "workflow",
+    "geninfo",
+    "engine",
+    "negative_prompt",
+    "parameters",
+    "positive_prompt",
+    "prompt",
+    "model",
+    "sampler",
+    "checkpoint",
+    "workflow_type",
+)
 
 
 def _metadata_quality_rank_sql(value_sql: str) -> str:
@@ -89,7 +106,7 @@ def _apply_metadata_json_size_guard(
 def _safe_max_metadata_bytes() -> int:
     try:
         return int(MAX_METADATA_JSON_BYTES or 0)
-    except Exception:
+    except (TypeError, ValueError):
         return 0
 
 
@@ -98,19 +115,331 @@ def _truncate_metadata_json_if_needed(metadata_raw_json: str, max_bytes: int) ->
         return False, 0, metadata_raw_json
     try:
         nbytes = len(metadata_raw_json.encode("utf-8", errors="ignore"))
-    except Exception:
+    except (AttributeError, TypeError, UnicodeError):
         nbytes = 0
     if nbytes <= max_bytes:
         return False, 0, metadata_raw_json
+    try:
+        data = json.loads(metadata_raw_json)
+        if isinstance(data, dict):
+            candidate_dict = _priority_metadata_candidate(data, original_bytes=int(nbytes), max_bytes=max_bytes)
+            candidate = _dump_compact_json(candidate_dict)
+            if _json_payload_size_bytes(candidate) <= max_bytes:
+                return True, int(nbytes), candidate
+
+            reduced = dict(candidate_dict)
+            for key in _TRUNCATION_OPTIONAL_KEYS:
+                if key not in reduced:
+                    continue
+                reduced.pop(key, None)
+                candidate = _dump_compact_json(reduced)
+                if _json_payload_size_bytes(candidate) <= max_bytes:
+                    return True, int(nbytes), candidate
+    except (TypeError, ValueError, json.JSONDecodeError):
+        pass
     try:
         truncated = json.dumps(
             {"_truncated": True, "original_bytes": int(nbytes)},
             ensure_ascii=False,
             separators=(",", ":"),
         )
-    except Exception:
+    except (TypeError, ValueError):
         truncated = "{}"
     return True, int(nbytes), truncated
+
+
+def _priority_metadata_candidate(data: dict[str, Any], *, original_bytes: int, max_bytes: int) -> dict[str, Any]:
+    text_budget = _priority_text_budget(max_bytes)
+    candidate: dict[str, Any] = {
+        "_truncated": True,
+        "original_bytes": int(original_bytes),
+    }
+
+    if "quality" in data:
+        candidate["quality"] = data.get("quality")
+    if "workflow" in data:
+        candidate["workflow"] = {"_truncated": True}
+
+    for key in ("workflow_type", "seed", "steps", "cfg", "cfg_scale", "scheduler", "width", "height"):
+        value = data.get(key)
+        if value not in (None, "", [], {}):
+            candidate[key] = value
+
+    prompt_text = _best_effort_prompt_text(data, text_budget=text_budget)
+    if prompt_text:
+        candidate["prompt"] = prompt_text
+
+    negative_prompt = _best_effort_negative_prompt_text(data, text_budget=text_budget)
+    if negative_prompt:
+        candidate["negative_prompt"] = negative_prompt
+
+    positive_prompt = _compact_text_value(data.get("positive_prompt"), max_chars=text_budget)
+    if positive_prompt:
+        candidate["positive_prompt"] = positive_prompt
+
+    parameters = _compact_text_value(data.get("parameters"), max_chars=text_budget)
+    if parameters:
+        candidate["parameters"] = parameters
+
+    workflow_type = _best_effort_workflow_type(data)
+    if workflow_type:
+        candidate["workflow_type"] = workflow_type
+
+    model_name = _best_effort_model_name(data, text_budget=text_budget)
+    if model_name:
+        candidate["model"] = model_name
+
+    sampler_name = _best_effort_sampler_name(data, text_budget=text_budget)
+    if sampler_name:
+        candidate["sampler"] = sampler_name
+
+    checkpoint = _compact_named_value(data.get("checkpoint"), max_chars=text_budget)
+    if checkpoint:
+        candidate["checkpoint"] = checkpoint
+
+    engine = _compact_engine_value(data.get("engine"), max_chars=text_budget)
+    if engine:
+        candidate["engine"] = engine
+
+    geninfo = _compact_geninfo_value(data.get("geninfo"), max_chars=text_budget)
+    if geninfo:
+        candidate["geninfo"] = geninfo
+
+    return candidate
+
+
+def _priority_text_budget(max_bytes: int) -> int:
+    return max(64, min(2048, int(max_bytes // 3) if max_bytes > 0 else 256))
+
+
+def _json_payload_size_bytes(payload: str) -> int:
+    try:
+        return len(payload.encode("utf-8", errors="ignore"))
+    except (AttributeError, TypeError, UnicodeError):
+        return 0
+
+
+def _dump_compact_json(value: dict[str, Any]) -> str:
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+
+
+def _resolve_key_path(value: Any, key_path: str) -> Any:
+    current = value
+    for part in key_path.split("."):
+        if not isinstance(current, dict):
+            return None
+        current = current.get(part)
+    return current
+
+
+def _compact_text_value(value: Any, *, max_chars: int) -> str | None:
+    if isinstance(value, str):
+        cleaned = " ".join(value.split()).strip()
+        if not cleaned:
+            return None
+        return cleaned[:max_chars]
+    if isinstance(value, list):
+        joined = " ".join(str(item).strip() for item in value if isinstance(item, str) and str(item).strip())
+        return _compact_text_value(joined, max_chars=max_chars)
+    return None
+
+
+def _compact_named_value(value: Any, *, max_chars: int) -> str | None:
+    if isinstance(value, dict):
+        for key in ("name", "value", "type", "model", "checkpoint"):
+            compact = _compact_text_value(value.get(key), max_chars=max_chars)
+            if compact:
+                return compact
+        return None
+    return _compact_text_value(value, max_chars=max_chars)
+
+
+def _best_effort_prompt_text(meta: dict[str, Any], *, text_budget: int) -> str | None:
+    for key_path in (
+        "prompt",
+        "parameters",
+        "geninfo.prompt",
+        "geninfo.positive.value",
+        "geninfo.positive.text",
+        "geninfo.positive_prompt",
+        "positive_prompt",
+        "sd_prompt",
+        "generation.prompt",
+        "workflow.prompt",
+        "comfy.positive",
+        "comfyui.positive",
+        "dream.prompt",
+        "invokeai.positive_conditioning",
+    ):
+        compact = _compact_text_value(_resolve_key_path(meta, key_path), max_chars=text_budget)
+        if compact:
+            return compact
+    return None
+
+
+def _best_effort_negative_prompt_text(meta: dict[str, Any], *, text_budget: int) -> str | None:
+    for key_path in (
+        "negative_prompt",
+        "geninfo.negative.value",
+        "geninfo.negative.text",
+        "geninfo.negative_prompt",
+        "comfy.negative",
+        "comfyui.negative",
+        "invokeai.negative_conditioning",
+    ):
+        compact = _compact_text_value(_resolve_key_path(meta, key_path), max_chars=text_budget)
+        if compact:
+            return compact
+
+    params = meta.get("parameters")
+    if isinstance(params, str):
+        neg_marker = params.lower().find("negative prompt:")
+        if neg_marker >= 0:
+            neg_text = params[neg_marker + len("negative prompt:"):]
+            steps_match = re.search(r"(?:^|\n)\s*steps\s*:\s*\d+", neg_text, re.IGNORECASE)
+            if steps_match:
+                neg_text = neg_text[:steps_match.start()]
+            compact = _compact_text_value(neg_text, max_chars=text_budget)
+            if compact:
+                return compact
+    return None
+
+
+def _best_effort_workflow_type(meta: dict[str, Any]) -> str | None:
+    for key_path in ("workflow_type", "geninfo.engine.type", "engine.type"):
+        value = _resolve_key_path(meta, key_path)
+        if isinstance(value, str) and value.strip():
+            return value.strip().upper()
+    return None
+
+
+def _best_effort_model_name(meta: dict[str, Any], *, text_budget: int) -> str | None:
+    for key_path in (
+        "model",
+        "model_name",
+        "checkpoint",
+        "checkpoint.name",
+        "geninfo.model",
+        "geninfo.checkpoint.name",
+    ):
+        compact = _compact_named_value(_resolve_key_path(meta, key_path), max_chars=text_budget)
+        if compact:
+            return compact
+
+    geninfo = meta.get("geninfo")
+    if isinstance(geninfo, dict):
+        models = geninfo.get("models")
+        if isinstance(models, dict):
+            for item in models.values():
+                compact = _compact_named_value(item, max_chars=text_budget)
+                if compact:
+                    return compact
+        if isinstance(models, list):
+            for item in models:
+                compact = _compact_named_value(item, max_chars=text_budget)
+                if compact:
+                    return compact
+
+    parameters = meta.get("parameters")
+    if isinstance(parameters, str):
+        match = _MODEL_PARAM_RE.search(parameters)
+        if match:
+            compact = _compact_text_value(match.group(1), max_chars=text_budget)
+            if compact:
+                return compact
+    return None
+
+
+def _best_effort_sampler_name(meta: dict[str, Any], *, text_budget: int) -> str | None:
+    for key_path in (
+        "sampler",
+        "sampler_name",
+        "geninfo.sampler.name",
+        "geninfo.sampler.value",
+        "geninfo.engine.sampler",
+    ):
+        compact = _compact_named_value(_resolve_key_path(meta, key_path), max_chars=text_budget)
+        if compact:
+            return compact
+
+    parameters = meta.get("parameters")
+    if isinstance(parameters, str):
+        match = _SAMPLER_PARAM_RE.search(parameters)
+        if match:
+            compact = _compact_text_value(match.group(1), max_chars=text_budget)
+            if compact:
+                return compact
+    return None
+
+
+def _compact_engine_value(value: Any, *, max_chars: int) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    compact: dict[str, Any] = {}
+    for key in ("type", "name"):
+        text = _compact_text_value(value.get(key), max_chars=max_chars)
+        if text:
+            compact[key] = text
+    return compact or None
+
+
+def _compact_geninfo_value(value: Any, *, max_chars: int) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    compact: dict[str, Any] = {}
+
+    engine = _compact_engine_value(value.get("engine"), max_chars=max_chars)
+    if engine:
+        compact["engine"] = engine
+
+    for key in ("positive", "negative", "sampler", "checkpoint"):
+        item = value.get(key)
+        if isinstance(item, dict):
+            node: dict[str, Any] = {}
+            for field in ("value", "text", "name", "type"):
+                text = _compact_text_value(item.get(field), max_chars=max_chars)
+                if text:
+                    node[field] = text
+            if node:
+                compact[key] = node
+
+    for key in ("positive_prompt", "negative_prompt", "prompt", "model"):
+        text = _compact_text_value(value.get(key), max_chars=max_chars)
+        if text:
+            compact[key] = text
+
+    models = value.get("models")
+    if isinstance(models, dict):
+        model_names = [
+            name
+            for name in (
+                _compact_named_value(item, max_chars=max_chars)
+                for item in list(models.values())[:3]
+            )
+            if name
+        ]
+        if model_names:
+            compact["models"] = model_names
+
+    loras = value.get("loras")
+    if isinstance(loras, list):
+        lora_names = [
+            name
+            for name in (
+                _compact_named_value(item, max_chars=max_chars)
+                for item in loras[:3]
+            )
+            if name
+        ]
+        if lora_names:
+            compact["loras"] = lora_names
+
+    for key in ("seed", "steps", "cfg", "cfg_scale", "scheduler"):
+        scalar = value.get(key)
+        if scalar not in (None, "", [], {}):
+            compact[key] = scalar
+
+    return compact or None
 
 
 def _mark_metadata_truncated(metadata_result: Result[dict[str, Any]], *, original_bytes: int, max_bytes: int) -> None:
@@ -118,8 +447,8 @@ def _mark_metadata_truncated(metadata_result: Result[dict[str, Any]], *, origina
         metadata_result.meta["truncated"] = True
         metadata_result.meta["original_bytes"] = int(original_bytes)
         metadata_result.meta["max_bytes"] = int(max_bytes)
-    except Exception:
-        return
+    except (AttributeError, TypeError) as exc:
+        logger.debug("Cannot mark metadata truncated: %s", exc)
 
 
 def _resolve_metadata_filepath(
@@ -183,14 +512,14 @@ def _extract_rating_and_tags(metadata_result: Result[dict[str, Any]]) -> tuple[i
         rating_val = meta.get("rating")
         if rating_val is not None:
             extracted_rating = max(0, min(5, int(rating_val)))
-    except Exception:
+    except (TypeError, ValueError):
         extracted_rating = 0
 
     try:
         cleaned = _sanitize_metadata_tags(meta.get("tags"))
         extracted_tags_json = json.dumps(cleaned, ensure_ascii=False)
         extracted_tags_text = " ".join(cleaned)
-    except Exception:
+    except (TypeError, ValueError):
         extracted_tags_json = "[]"
         extracted_tags_text = ""
     return extracted_rating, extracted_tags_json, extracted_tags_text
@@ -740,14 +1069,14 @@ class MetadataHelpers:
     def _max_metadata_json_bytes() -> int:
         try:
             return int(MAX_METADATA_JSON_BYTES or 0)
-        except Exception:
+        except (TypeError, ValueError):
             return 0
 
     @staticmethod
     def _metadata_payload_size_bytes(metadata_raw: str) -> int:
         try:
             return len(metadata_raw.encode("utf-8", errors="ignore"))
-        except Exception:
+        except (AttributeError, TypeError, UnicodeError):
             return 0
 
     @staticmethod
@@ -778,15 +1107,15 @@ class MetadataHelpers:
 def _cache_cleanup_config() -> tuple[int, float, float]:
     try:
         max_entries = int(METADATA_CACHE_MAX or 0)
-    except Exception:
+    except (TypeError, ValueError):
         max_entries = 0
     try:
         ttl_seconds = float(METADATA_CACHE_TTL_SECONDS or 0)
-    except Exception:
+    except (TypeError, ValueError):
         ttl_seconds = 0.0
     try:
         interval = float(METADATA_CACHE_CLEANUP_INTERVAL_SECONDS or 0)
-    except Exception:
+    except (TypeError, ValueError):
         interval = 0.0
     return max_entries, ttl_seconds, interval
 

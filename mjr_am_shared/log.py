@@ -21,6 +21,7 @@ EMOJI_MAP: Final[dict[str, str]] = {
 PREFIX: Final[str] = "📂 Majoor"
 
 request_id_var: ContextVar[str] = ContextVar("request_id", default="")
+_configured_loggers: set[str] = set()
 
 
 class CorrelationFilter(logging.Filter):
@@ -62,10 +63,12 @@ def _has_correlation_filter(logger: logging.Logger) -> bool:
 
 
 def _ensure_correlation_filter(logger: logging.Logger) -> None:
-    if _has_correlation_filter(logger):
-        return
     try:
-        logger.addFilter(CorrelationFilter())
+        if logger.name in _configured_loggers:
+            return
+        if not _has_correlation_filter(logger):
+            logger.addFilter(CorrelationFilter())
+        _configured_loggers.add(logger.name)
     except Exception:
         pass
 

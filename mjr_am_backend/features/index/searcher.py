@@ -18,6 +18,7 @@ from ...config import (
     SEARCH_MAX_TOKENS,
 )
 from ...shared import Result, get_logger
+from . import search_hydration as _hydr
 
 logger = get_logger(__name__)
 
@@ -443,29 +444,7 @@ def _normalize_lookup_filepaths(filepaths: list[str]) -> list[str]:
 
 
 def _hydrate_lookup_row(row: dict[str, Any]) -> tuple[str, dict[str, Any]] | None:
-    fp = row.get("filepath")
-    if not fp:
-        return None
-    item = dict(row)
-    tags_raw = item.get("tags")
-    if tags_raw:
-        try:
-            item["tags"] = json.loads(tags_raw) if isinstance(tags_raw, str) else tags_raw
-        except Exception:
-            item["tags"] = []
-    else:
-        item["tags"] = []
-    auto_tags_raw = item.get("auto_tags")
-    if auto_tags_raw:
-        try:
-            item["auto_tags"] = json.loads(auto_tags_raw) if isinstance(auto_tags_raw, str) else auto_tags_raw
-            if not isinstance(item["auto_tags"], list):
-                item["auto_tags"] = []
-        except Exception:
-            item["auto_tags"] = []
-    else:
-        item["auto_tags"] = []
-    return str(fp), item
+    return _hydr.hydrate_lookup_row(row)
 
 
 def _map_lookup_rows(rows: Any) -> dict[str, dict[str, Any]]:
@@ -482,33 +461,7 @@ def _map_lookup_rows(rows: Any) -> dict[str, dict[str, Any]]:
 
 
 def _hydrate_search_rows(rows: list[dict[str, Any]], *, include_highlight: bool) -> list[dict[str, Any]]:
-    assets: list[dict[str, Any]] = []
-    for row in rows:
-        asset = dict(row)
-        if asset.get("tags"):
-            try:
-                asset["tags"] = json.loads(asset["tags"])
-                if not isinstance(asset["tags"], list):
-                    asset["tags"] = []
-            except (ValueError, json.JSONDecodeError, TypeError):
-                asset["tags"] = []
-        else:
-            asset["tags"] = []
-        auto_tags_raw = asset.get("auto_tags")
-        if auto_tags_raw:
-            try:
-                asset["auto_tags"] = json.loads(auto_tags_raw) if isinstance(auto_tags_raw, str) else auto_tags_raw
-                if not isinstance(asset["auto_tags"], list):
-                    asset["auto_tags"] = []
-            except (ValueError, json.JSONDecodeError, TypeError):
-                asset["auto_tags"] = []
-        else:
-            asset["auto_tags"] = []
-        asset.setdefault("tags_text", "")
-        if include_highlight:
-            asset["highlight"] = asset.get("highlight") or None
-        assets.append(asset)
-    return assets
+    return _hydr.hydrate_search_rows(rows, include_highlight=include_highlight)
 
 
 class IndexSearcher:
@@ -1265,44 +1218,7 @@ class IndexSearcher:
         return Result.Ok(_assets_in_requested_order(cleaned, by_id))
 
     def _hydrate_asset_payload(self, asset: dict[str, Any]) -> dict[str, Any]:
-        # Parse tags JSON (stored as string in DB)
-        tags_raw = asset.get("tags") or ""
-        if tags_raw:
-            try:
-                asset["tags"] = json.loads(tags_raw)
-                if not isinstance(asset["tags"], list):
-                    asset["tags"] = []
-            except (ValueError, json.JSONDecodeError, TypeError):
-                asset["tags"] = []
-        else:
-            asset["tags"] = []
-        auto_tags_raw = asset.get("auto_tags") or ""
-        if auto_tags_raw:
-            try:
-                asset["auto_tags"] = json.loads(auto_tags_raw)
-                if not isinstance(asset["auto_tags"], list):
-                    asset["auto_tags"] = []
-            except (ValueError, json.JSONDecodeError, TypeError):
-                asset["auto_tags"] = []
-        else:
-            asset["auto_tags"] = []
-
-        # Parse metadata_raw JSON and expose common top-level fields for the UI.
-        metadata_raw_text = asset.get("metadata_raw") or "{}"
-        try:
-            metadata_obj = json.loads(metadata_raw_text) if isinstance(metadata_raw_text, str) else metadata_raw_text
-        except (ValueError, json.JSONDecodeError, TypeError):
-            metadata_obj = {}
-
-        asset["metadata_raw"] = metadata_obj
-        if isinstance(metadata_obj, dict):
-            # Common nested fields produced by our extractors
-            asset.setdefault("prompt", metadata_obj.get("prompt"))
-            asset.setdefault("workflow", metadata_obj.get("workflow"))
-            asset.setdefault("exif", metadata_obj.get("exif") or metadata_obj.get("raw"))
-            asset.setdefault("geninfo", metadata_obj.get("geninfo"))
-
-        return asset
+        return _hydr.hydrate_asset_payload(asset)
 
     async def lookup_assets_by_filepaths(self, filepaths: list[str]) -> Result[dict[str, dict[str, Any]]]:
         """

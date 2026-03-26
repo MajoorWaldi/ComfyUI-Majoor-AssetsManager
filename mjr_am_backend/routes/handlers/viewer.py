@@ -41,59 +41,6 @@ except Exception:
 
     folder_paths = _FolderPathsStub()  # type: ignore
 
-_POPOUT_HTML = """<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#1e1e1e">
-  <title>Majoor Viewer</title>
-  <style>
-    html, body {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #111;
-      color: #ddd;
-      font-family: system-ui, sans-serif;
-    }
-    body {
-      display: flex;
-      min-height: 100vh;
-    }
-    #mjr-mfv-popout-root {
-      flex: 1;
-      min-width: 0;
-      min-height: 0;
-      display: flex;
-      align-items: stretch;
-      justify-content: stretch;
-      background:
-        radial-gradient(circle at top, rgba(95, 179, 255, 0.12), transparent 35%),
-        linear-gradient(180deg, #1a1a1a 0%, #101010 100%);
-    }
-    .mjr-mfv-popout-loading {
-      margin: auto;
-      padding: 12px 16px;
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(20,20,20,0.82);
-      font-size: 12px;
-      letter-spacing: 0.02em;
-      opacity: 0.84;
-    }
-  </style>
-</head>
-<body>
-  <div id="mjr-mfv-popout-root">
-    <div class="mjr-mfv-popout-loading">Preparing viewer…</div>
-  </div>
-</body>
-</html>
-"""
-
-
 def _iter_view_allowed_roots() -> list[Path]:
     roots: list[Path] = []
     try:
@@ -201,7 +148,8 @@ async def _resolve_by_asset_id(
     asset, error = await _resolve_asset_from_id(asset_id)
     if error:
         return None, None, None, error
-    assert asset is not None
+    if asset is None:
+        return None, None, None, Result.Err("NOT_FOUND", "Asset not found")
 
     raw_path = asset.get("filepath")
     if not raw_path or not isinstance(raw_path, str):
@@ -215,7 +163,8 @@ async def _resolve_by_asset_id(
     resolved, err = _strict_resolve(candidate, "asset path")
     if err:
         return asset, None, None, err
-    assert resolved is not None
+    if resolved is None:
+        return asset, None, None, Result.Err("VIEW_FAILED", "Failed to resolve asset path")
     return asset, resolved, _find_best_view_root(resolved) or resolved.parent, None
 
 
@@ -232,7 +181,8 @@ async def _resolve_by_filepath(
     resolved, err = _strict_resolve(candidate, "file path")
     if err:
         return None, None, None, err
-    assert resolved is not None
+    if resolved is None:
+        return None, None, None, Result.Err("VIEW_FAILED", "Failed to resolve file path")
     return None, resolved, _find_best_view_root(resolved) or resolved.parent, None
 
 
@@ -289,7 +239,8 @@ async def _resolve_by_filename(
     resolved, err = _strict_resolve(candidate, "viewer path")
     if err:
         return None, None, None, err
-    assert resolved is not None
+    if resolved is None:
+        return None, None, None, Result.Err("VIEW_FAILED", "Failed to resolve viewer path")
     if not _is_within_root(resolved, base_root):
         return None, None, None, Result.Err("FORBIDDEN", "Path access denied (outside allowed scope)")
     return None, resolved, base_root, None
@@ -312,9 +263,6 @@ async def _resolve_viewer_file_context(
 
 def register_viewer_routes(routes: web.RouteTableDef) -> None:
     """Register viewer info and file-serving routes."""
-    @routes.get("/mjr/viewer/popout")
-    async def viewer_popout_page(_request: web.Request):
-        return web.Response(text=_POPOUT_HTML, content_type="text/html")
 
     @routes.get("/mjr/am/viewer/info")
     async def viewer_info(request: web.Request):
