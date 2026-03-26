@@ -39,10 +39,31 @@ def _resolve_db_path(db_path: str | None) -> str:
     return db_path if db_path is not None else INDEX_DB
 
 
+def _resolve_vectors_db_path(db_path: str) -> str:
+    try:
+        resolved_db = Path(db_path).expanduser().resolve()
+        resolved_index = Path(INDEX_DB).expanduser().resolve()
+    except Exception:
+        resolved_db = Path(db_path)
+        resolved_index = Path(INDEX_DB)
+
+    if resolved_db == resolved_index:
+        return VECTORS_DB
+    return str(resolved_db.with_name("vectors.sqlite"))
+
+
 def _init_db_or_error(db_path: str) -> Result[Sqlite]:
     logger.info(f"Initializing database: {db_path}")
     try:
-        return Result.Ok(Sqlite(db_path, max_connections=DB_MAX_CONNECTIONS, timeout=DB_TIMEOUT, attach={"vec": VECTORS_DB}))
+        vectors_db = _resolve_vectors_db_path(db_path)
+        return Result.Ok(
+            Sqlite(
+                db_path,
+                max_connections=DB_MAX_CONNECTIONS,
+                timeout=DB_TIMEOUT,
+                attach={"vec": vectors_db},
+            )
+        )
     except Exception as exc:
         logger.error("Failed to initialize database: %s", exc)
         return Result.Err("DB_ERROR", "Failed to initialize database")

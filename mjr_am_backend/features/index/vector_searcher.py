@@ -32,8 +32,8 @@ from typing import Any
 from ...adapters.db.sqlite import Sqlite
 from ...config import (
     VECTOR_EMBEDDING_DIM,
-    is_vector_search_enabled,
     VECTOR_SIMILAR_TOPK,
+    is_vector_search_enabled,
 )
 from ...shared import Result, get_logger
 from .vector_service import VectorService, blob_to_vector

@@ -903,7 +903,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
             except Exception as exc:
                 logger.debug("DB analyze step failed: %s", exc)
         except Exception as exc:
-            result = Result.Err("DB_ERROR", safe_error_message(exc, "Database optimize failed"))
+            result: Result[Any] = Result.Err("DB_ERROR", safe_error_message(exc, "Database optimize failed"))
             await _audit_db_maintenance_write(svc, request, "db_optimize", "db:optimize", result)
             return _json_response(result)
 
@@ -1506,7 +1506,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                 pass
             await asyncio.to_thread(_sqlite_backup_file, INDEX_DB_PATH, target)
         except Exception as exc:
-            result = Result.Err("DB_ERROR", safe_error_message(exc, "Failed to save DB backup"))
+            result: Result[Any] = Result.Err("DB_ERROR", safe_error_message(exc, "Failed to save DB backup"))
             await _audit_db_maintenance_write(
                 svc if isinstance(svc, dict) else {},
                 request,
@@ -1517,7 +1517,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
             )
             return _json_response(result)
 
-        result = Result.Ok(
+        save_result = Result.Ok(
             {
                 "saved": True,
                 "archive_dir": _DB_ARCHIVE_DIR.name,
@@ -1530,10 +1530,10 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
             request,
             "db_backup_save",
             "db:backup_save",
-            result,
+            save_result,
             name=target.name,
         )
-        return _json_response(result)
+        return _json_response(save_result)
 
     @routes.post("/mjr/am/db/backup-restore")
     async def db_backup_restore(request: web.Request):
@@ -1600,7 +1600,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
             reset_res = await db.areset()
             if not reset_res.ok:
                 _emit_restore_status("failed", "error", reset_res.error or "Failed to reset DB", operation="restore_db")
-                result = Result.Err(reset_res.code or "DB_ERROR", reset_res.error or "Failed to reset DB")
+                result: Result[Any] = Result.Err(reset_res.code or "DB_ERROR", reset_res.error or "Failed to reset DB")
                 await _audit_db_maintenance_write(
                     svc if isinstance(svc, dict) else {},
                     request,

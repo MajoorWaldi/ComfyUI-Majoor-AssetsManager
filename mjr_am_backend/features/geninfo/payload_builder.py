@@ -280,6 +280,8 @@ def _build_no_sampler_result(nodes_by_id: dict[str, Any], workflow_meta: dict[st
 
 
 def _trace_size(nodes_by_id: dict[str, dict[str, Any]], latent_link: Any, confidence: str) -> dict[str, Any] | None:
+    from . import parser_impl as _p
+
     current_link = latent_link
     hops = 0
     while current_link is not None and hops < _p.DEFAULT_MAX_TRACE_HOPS:

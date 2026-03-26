@@ -41,48 +41,122 @@ from ...config import DB_MAX_CONNECTIONS, DB_QUERY_TIMEOUT, DB_TIMEOUT
 from ...shared import ErrorCode, Result, get_logger
 from .connection_pool import (
     asset_lock_is_locked as pool_asset_lock_is_locked,
+)
+from .connection_pool import (
     asset_lock_last as pool_asset_lock_last,
+)
+from .connection_pool import (
     diagnostics as pool_diagnostics,
+)
+from .connection_pool import (
     get_or_create_asset_lock as pool_get_or_create_asset_lock,
+)
+from .connection_pool import (
     init_db as pool_init_db,
+)
+from .connection_pool import (
     load_user_db_config as pool_load_user_db_config,
+)
+from .connection_pool import (
     maybe_set_config_number as pool_maybe_set_config_number,
+)
+from .connection_pool import (
     normalize_user_db_config as pool_normalize_user_db_config,
+)
+from .connection_pool import (
     prune_asset_locks_by_cap as pool_prune_asset_locks_by_cap,
+)
+from .connection_pool import (
     prune_asset_locks_by_ttl as pool_prune_asset_locks_by_ttl,
+)
+from .connection_pool import (
     prune_asset_locks_locked as pool_prune_asset_locks_locked,
+)
+from .connection_pool import (
     read_user_db_config_file as pool_read_user_db_config_file,
+)
+from .connection_pool import (
     resolve_user_db_config_path as pool_resolve_user_db_config_path,
+)
+from .connection_pool import (
     runtime_status as pool_runtime_status,
+)
+from .connection_pool import (
     start_asset_lock_pruner as pool_start_asset_lock_pruner,
+)
+from .connection_pool import (
     stop_asset_lock_pruner as pool_stop_asset_lock_pruner,
 )
 from .db_recovery import (
-    populate_known_columns_from_schema as recovery_populate_known_columns_from_schema,
     is_auto_reset_enabled as recovery_is_auto_reset_enabled,
+)
+from .db_recovery import (
     is_auto_reset_throttled as recovery_is_auto_reset_throttled,
+)
+from .db_recovery import (
     is_locked_error as recovery_is_locked_error,
+)
+from .db_recovery import (
     is_malformed_error as recovery_is_malformed_error,
+)
+from .db_recovery import (
     mark_auto_reset_attempt as recovery_mark_auto_reset_attempt,
+)
+from .db_recovery import (
     mark_locked_event as recovery_mark_locked_event,
+)
+from .db_recovery import (
     mark_malformed_event as recovery_mark_malformed_event,
+)
+from .db_recovery import (
+    populate_known_columns_from_schema as recovery_populate_known_columns_from_schema,
+)
+from .db_recovery import (
     record_auto_reset_result as recovery_record_auto_reset_result,
+)
+from .db_recovery import (
     set_recovery_state as recovery_set_recovery_state,
 )
 from .transaction_manager import (
     begin_stmt_for_mode as tx_begin_stmt_for_mode,
+)
+from .transaction_manager import (
     build_in_query as tx_build_in_query,
+)
+from .transaction_manager import (
     cursor_write_result as tx_cursor_write_result,
+)
+from .transaction_manager import (
     get_tx_state as tx_get_tx_state,
+)
+from .transaction_manager import (
     is_missing_column_error as tx_is_missing_column_error,
+)
+from .transaction_manager import (
     is_missing_table_error as tx_is_missing_table_error,
+)
+from .transaction_manager import (
     is_write_sql as tx_is_write_sql,
-    rename_or_delete as tx_rename_or_delete,
+)
+from .transaction_manager import (
     register_tx_token as tx_register_tx_token,
+)
+from .transaction_manager import (
+    rename_or_delete as tx_rename_or_delete,
+)
+from .transaction_manager import (
     rows_to_dicts as tx_rows_to_dicts,
+)
+from .transaction_manager import (
     schedule_delete_on_reboot as tx_schedule_delete_on_reboot,
+)
+from .transaction_manager import (
     tx_token as tx_ctx_token,
+)
+from .transaction_manager import (
     validate_and_repair_column_name as tx_validate_and_repair_column_name,
+)
+from .transaction_manager import (
     validate_in_base_query as tx_validate_in_base_query,
 )
 
@@ -389,6 +463,7 @@ class _AsyncLoopThread:
         self._thread_ident: int | None = None
         self._ready = threading.Event()
         self._run_timeout_s = max(1.0, float(run_timeout_s))
+        self._stop_lock = threading.Lock()
 
     def start(self) -> asyncio.AbstractEventLoop:
         if self._loop and self._thread and self._thread.is_alive():
@@ -446,14 +521,23 @@ class _AsyncLoopThread:
         return asyncio.run_coroutine_threadsafe(coro, loop)
 
     def stop(self):
-        loop = self._loop
-        if not loop:
-            return
-        try:
-            loop.call_soon_threadsafe(loop.stop)
-        except Exception:
-            pass
-        self._thread_ident = None
+        with self._stop_lock:
+            loop = self._loop
+            thread = self._thread
+            if not loop:
+                return
+            try:
+                loop.call_soon_threadsafe(loop.stop)
+            except Exception:
+                pass
+            if thread and thread.is_alive() and thread.ident != threading.get_ident():
+                try:
+                    thread.join(timeout=5.0)
+                except Exception:
+                    pass
+            self._thread_ident = None
+            self._thread = None
+            self._loop = None
 
 
 class Sqlite:
@@ -1590,12 +1674,16 @@ class Sqlite:
 
     async def aclose(self):
         """Close connections and stop the DB loop thread (async)."""
+        if getattr(self, "_closing", False):
+            return
+        self._closing = True
         fut = self._loop_thread.submit(self._close_all_async())
         try:
             await asyncio.wrap_future(fut)
         finally:
             self._stop_asset_lock_pruner()
             self._loop_thread.stop()
+            self._closing = False
 
     async def _drain_for_reset_async(self):
         """Prepare for reset: lock new connections, wait for active ones, close all."""
@@ -1952,6 +2040,13 @@ class Sqlite:
     @asynccontextmanager
     async def atransaction(self, mode: str = "immediate"):
         """Async context manager for a DB transaction."""
+        current_token = self._tx_token()
+        if current_token:
+            # Reuse the ambient transaction when callers nest write helpers on the
+            # same task. The outer transaction still owns commit/rollback.
+            yield Result.Ok(True)
+            return
+
         tx_state = Result.Ok(True)
         begin_res = await self._begin_tx_for_async(mode)
         if not begin_res.ok or not begin_res.data:
