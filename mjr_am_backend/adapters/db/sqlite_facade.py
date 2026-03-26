@@ -808,11 +808,13 @@ class Sqlite:
         await conn.execute("PRAGMA journal_mode=WAL")
         await conn.execute("PRAGMA synchronous=NORMAL")
         # Int constants only: never interpolate user-controlled values into PRAGMA SQL.
-        assert isinstance(SQLITE_CACHE_SIZE_KIB, int), "SQLITE_CACHE_SIZE_KIB must be int"
+        if not isinstance(SQLITE_CACHE_SIZE_KIB, int):
+            raise TypeError(f"SQLITE_CACHE_SIZE_KIB must be int, got {type(SQLITE_CACHE_SIZE_KIB).__name__}")
         await conn.execute(f"PRAGMA cache_size={SQLITE_CACHE_SIZE_KIB}")
         await conn.execute("PRAGMA temp_store=MEMORY")
         # Int constants only: never interpolate user-controlled values into PRAGMA SQL.
-        assert isinstance(SQLITE_BUSY_TIMEOUT_MS, int), "SQLITE_BUSY_TIMEOUT_MS must be int"
+        if not isinstance(SQLITE_BUSY_TIMEOUT_MS, int):
+            raise TypeError(f"SQLITE_BUSY_TIMEOUT_MS must be int, got {type(SQLITE_BUSY_TIMEOUT_MS).__name__}")
         await conn.execute(f"PRAGMA busy_timeout={SQLITE_BUSY_TIMEOUT_MS}")
         await conn.execute("PRAGMA foreign_keys=ON")
 

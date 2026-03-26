@@ -450,7 +450,8 @@ class CollectionsService:
             path, data, err = self._load_for_update(collection_id)
             if err:
                 return err
-            assert path is not None and data is not None
+            if path is None or data is None:
+                return Result.Err(ErrorCode.INVALID_INPUT, "Collection load failed: missing path or data")
 
             existing, seen, existing_seen = self._existing_items_with_indexes(data.get("items"))
             counts = self._append_collection_items(existing, cleaned, seen, existing_seen)
@@ -499,7 +500,8 @@ class CollectionsService:
             path, data, err = self._load_for_update(collection_id)
             if err:
                 return err
-            assert path is not None and data is not None
+            if path is None or data is None:
+                return Result.Err(ErrorCode.INVALID_INPUT, "Collection load failed: missing path or data")
 
             existing = self._collection_items_as_dicts(data.get("items"))
             kept, removed = self._partition_removed_items(existing, targets)

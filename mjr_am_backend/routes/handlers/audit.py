@@ -22,6 +22,11 @@ _MAX_AUDIT_LIMIT = 500
 _DEFAULT_AUDIT_OFFSET = 0
 _MAX_AUDIT_OFFSET = 100_000
 
+_VALID_AUDIT_SORT_MODES = frozenset({
+    "alignment_asc", "alignment_desc", "completeness_asc", "newest", "oldest",
+})
+_DEFAULT_AUDIT_SORT = "alignment_asc"
+
 
 def register_audit_routes(routes: web.RouteTableDef) -> None:
     """Register library audit routes."""
@@ -49,7 +54,9 @@ def register_audit_routes(routes: web.RouteTableDef) -> None:
         db = services.get("db")
         scope = (request.query.get("scope") or "output").strip()
         filter_mode = (request.query.get("filter") or "incomplete").strip()
-        sort_mode = (request.query.get("sort") or "alignment_asc").strip()
+        sort_mode = (request.query.get("sort") or _DEFAULT_AUDIT_SORT).strip()
+        if sort_mode not in _VALID_AUDIT_SORT_MODES:
+            sort_mode = _DEFAULT_AUDIT_SORT
         custom_root_id = (request.query.get("custom_root_id") or "").strip() or None
 
         try:
@@ -93,12 +100,13 @@ def register_audit_routes(routes: web.RouteTableDef) -> None:
         )
 
         order_map = {
+            "alignment_asc": "e.aesthetic_score ASC NULLS FIRST, a.mtime DESC",
             "alignment_desc": "e.aesthetic_score DESC NULLS LAST, a.mtime DESC",
             "completeness_asc": f"{_COMPLETENESS_EXPR} ASC, a.mtime DESC",
             "newest": "a.mtime DESC",
             "oldest": "a.mtime ASC",
         }
-        order_by = order_map.get(sort_mode, "e.aesthetic_score ASC NULLS FIRST, a.mtime DESC")
+        order_by = order_map[sort_mode]
 
         where_sql = " AND ".join(where)
         count_query = (

@@ -66,6 +66,11 @@ Repository = "https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager"
 Documentation = "https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/blob/main/user_guide.html"
 "Bug Tracker" = "https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/issues"
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["mjr_am_shared*", "mjr_am_backend*"]
+exclude = ["js*", "vendor*", "plugins*", "ressources*"]
+
 [tool.comfy]
 PublisherId = "majoor-waldi"
 DisplayName = "ComfyUI-Majoor-AssetsManager"

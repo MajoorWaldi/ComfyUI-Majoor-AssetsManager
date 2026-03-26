@@ -11,8 +11,13 @@ This module provides:
    ``aesthetic_score`` stored during indexing.
 
 The Faiss index is loaded from the SQLite ``asset_embeddings`` table into
-an in-memory ``IndexFlatIP`` (inner-product, which equals cosine
-similarity when vectors are L2-normalised).
+an in-memory index.  For small datasets (< ``_IVF_THRESHOLD`` vectors)
+a flat inner-product index (``IndexFlatIP``) is used — exact results,
+zero training overhead.  For larger datasets an **IVF** (Inverted File)
+index is built (``IndexIVFFlat`` with ``nlist ≈ √n``), reducing query
+time from O(n) to O(√n) at the cost of a brief one-time training step.
+Both index types operate on L2-normalised vectors so inner-product
+equals cosine similarity.
 
 The index is **rebuilt lazily** on first use and can be manually
 invalidated via ``invalidate()``.
@@ -21,6 +26,7 @@ invalidated via ``invalidate()``.
 from __future__ import annotations
 
 import asyncio
+import math
 from typing import Any
 
 from ...adapters.db.sqlite import Sqlite
@@ -34,6 +40,14 @@ from .vector_service import VectorService, blob_to_vector
 
 logger = get_logger(__name__)
 
+# Datasets below this size use a flat index (exact, no training).
+# Above this threshold an IVF index is built for O(√n) queries.
+_IVF_THRESHOLD = 4_096
+
+# How many Voronoi cells to probe at query time (higher = more accurate,
+# slower). 16 is a good default for nlist ≈ √n up to ~100 K vectors.
+_IVF_NPROBE = 16
+
 
 class VectorSearcher:
     """Faiss-backed nearest-neighbour searcher over asset embeddings."""
@@ -42,7 +56,7 @@ class VectorSearcher:
         self.db = db
         self.vs = vector_service
         self._dim = VECTOR_EMBEDDING_DIM
-        self._index: Any | None = None  # faiss.IndexFlatIP
+        self._index: Any | None = None  # faiss.IndexFlatIP or faiss.IndexIVFFlat
         self._id_map: list[int] = []   # position → asset_id
         self._lock = asyncio.Lock()
         self._dirty = True
@@ -83,7 +97,7 @@ class VectorSearcher:
             self._dirty = False
 
     async def _build_index(self) -> None:
-        """Load all embeddings from ``asset_embeddings`` into a Faiss index."""
+        """Load embeddings from ``asset_embeddings`` and build the best-fit Faiss index."""
         try:
             import faiss
             import numpy as np
@@ -93,10 +107,8 @@ class VectorSearcher:
             self._id_map = []
             return
 
-        # Fix H-12: load at most MAX_VECTOR_INDEX_ROWS vectors so we cannot OOM
-        # on large databases.  We pick the most-recently updated rows so that the
-        # freshest assets are always searchable.  Rows beyond the limit are silently
-        # excluded from semantic search but remain accessible via other endpoints.
+        # H-12: cap loaded vectors to avoid OOM. Most-recent rows first so
+        # freshest assets are always searchable.
         _MAX_ROWS = 100_000
         rows = await self.db.aquery(
             "SELECT asset_id, vector FROM vec.asset_embeddings "
@@ -127,15 +139,40 @@ class VectorSearcher:
             return
 
         mat = np.array(vectors, dtype=np.float32)
-        # Normalise rows (should already be normalised, but be safe)
         faiss.normalize_L2(mat)
 
-        index = faiss.IndexFlatIP(self._dim)
-        index.add(mat)
+        n_vectors = mat.shape[0]
+        index = self._create_index(faiss, mat, n_vectors)
 
         self._index = index
         self._id_map = id_map
-        logger.info("Vector index built (%d vectors)", len(id_map))
+        logger.info("Vector index built (%d vectors, type=%s)", n_vectors, type(index).__name__)
+
+    @staticmethod
+    def _create_index(faiss: Any, mat: Any, n_vectors: int) -> Any:
+        """Choose the right Faiss index type based on dataset size.
+
+        - < _IVF_THRESHOLD  → IndexFlatIP  (exact, O(n) but n is small)
+        - >= _IVF_THRESHOLD → IndexIVFFlat (approximate, O(√n) per query)
+        """
+        dim = mat.shape[1]
+
+        if n_vectors < _IVF_THRESHOLD:
+            index = faiss.IndexFlatIP(dim)
+            index.add(mat)
+            return index
+
+        # IVF: nlist ≈ √n, clamped to [16, 1024] for sanity.
+        nlist = max(16, min(1024, int(math.sqrt(n_vectors))))
+        quantizer = faiss.IndexFlatIP(dim)
+        index = faiss.IndexIVFFlat(quantizer, dim, nlist, faiss.METRIC_INNER_PRODUCT)
+        index.nprobe = _IVF_NPROBE
+        # Training requires a representative sample. Full matrix is fine up to
+        # 100 K rows; for much larger datasets we'd sub-sample, but _MAX_ROWS
+        # already caps us at 100 K.
+        index.train(mat)
+        index.add(mat)
+        return index
 
     # ── Semantic text search ───────────────────────────────────────────
 
