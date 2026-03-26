@@ -10,6 +10,14 @@ def test_resolve_db_path_default_and_custom(monkeypatch):
     assert deps_mod._resolve_db_path("C:/x.sqlite") == "C:/x.sqlite"
 
 
+def test_resolve_vectors_db_path_default_and_custom(monkeypatch):
+    monkeypatch.setattr(deps_mod, "INDEX_DB", "C:/default.sqlite")
+    monkeypatch.setattr(deps_mod, "VECTORS_DB", "C:/shared/vectors.sqlite")
+
+    assert deps_mod._resolve_vectors_db_path("C:/default.sqlite") == "C:/shared/vectors.sqlite"
+    assert deps_mod._resolve_vectors_db_path("C:/tmp/custom.sqlite").endswith("tmp\\vectors.sqlite")
+
+
 def test_init_db_or_error_failure(monkeypatch):
     class _BadSqlite:
         def __init__(self, *_args, **_kwargs):
@@ -19,6 +27,27 @@ def test_init_db_or_error_failure(monkeypatch):
     out = deps_mod._init_db_or_error("C:/db.sqlite")
     assert out.ok is False
     assert out.code == "DB_ERROR"
+
+
+def test_init_db_or_error_uses_sibling_vectors_db_for_custom_path(monkeypatch):
+    captured: dict[str, object] = {}
+
+    class _Sqlite:
+        def __init__(self, db_path, **kwargs):
+            captured["db_path"] = db_path
+            captured["kwargs"] = kwargs
+
+    monkeypatch.setattr(deps_mod, "Sqlite", _Sqlite)
+    monkeypatch.setattr(deps_mod, "INDEX_DB", "C:/default.sqlite")
+    monkeypatch.setattr(deps_mod, "VECTORS_DB", "C:/shared/vectors.sqlite")
+
+    out = deps_mod._init_db_or_error("C:/tmp/custom.sqlite")
+    assert out.ok is True
+    kwargs = captured["kwargs"]
+    assert isinstance(kwargs, dict)
+    attach = kwargs.get("attach")
+    assert isinstance(attach, dict)
+    assert str(attach.get("vec") or "").endswith("tmp\\vectors.sqlite")
 
 
 def test_build_services_dict_contains_core_keys(monkeypatch):
