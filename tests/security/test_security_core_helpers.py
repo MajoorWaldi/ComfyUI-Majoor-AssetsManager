@@ -5,7 +5,7 @@ import pytest
 
 from mjr_am_backend.routes.core import security as sec
 
-TEST_TOKEN = "unit-test-token"
+TEST_TOKEN = "unit-test-token-01"
 
 
 class _DummyTransport:
@@ -36,6 +36,8 @@ def test_env_truthy_and_token_extractors(monkeypatch) -> None:
     assert sec._extract_bearer_token({"Authorization": "Bearer abc"}) == "abc"
     assert sec._extract_write_token_from_headers({"X-MJR-Token": "x"}) == "x"
     assert sec._extract_write_token_from_headers({"Cookie": "mjr_write_token=cookie-token"}) == "cookie-token"
+    oversized_cookie = "mjr_write_token=" + ("x" * 5000)
+    assert sec._extract_write_token_from_headers({"Cookie": oversized_cookie}) == ""
 
 
 def test_hash_and_write_token_hash(monkeypatch) -> None:
@@ -49,6 +51,13 @@ def test_hash_and_write_token_hash(monkeypatch) -> None:
 
     monkeypatch.setenv("MAJOOR_API_TOKEN_HASH", "deadbeef")
     assert sec._get_write_token_hash() == "deadbeef"
+
+
+def test_validate_token_format_rejects_short_and_accepts_valid(monkeypatch) -> None:
+    sec._reset_security_state_for_tests()
+
+    assert sec._validate_token_format("short-token", "test-short") is None
+    assert sec._validate_token_format("valid-token-1234", "test-valid") == "valid-token-1234"
 
 
 def test_has_configured_write_token(monkeypatch) -> None:
@@ -183,6 +192,41 @@ def test_check_write_access_uses_constant_time_compare(monkeypatch) -> None:
     out = sec._check_write_access(peer_ip="127.0.0.1", headers={"X-MJR-Token": token})
     assert out.ok
     assert calls["count"] >= 1
+
+
+def test_check_write_access_blocks_insecure_remote_token_transport(monkeypatch) -> None:
+    monkeypatch.setenv("MAJOOR_API_TOKEN", TEST_TOKEN)
+    monkeypatch.delenv("MAJOOR_API_TOKEN_HASH", raising=False)
+    monkeypatch.delenv("MJR_API_TOKEN_HASH", raising=False)
+    monkeypatch.delenv("MAJOOR_ALLOW_INSECURE_TOKEN_TRANSPORT", raising=False)
+
+    out = sec._check_write_access(
+        peer_ip="203.0.113.10",
+        headers={"X-MJR-Token": TEST_TOKEN},
+        request_scheme="http",
+    )
+    assert not out.ok
+    assert out.code == "FORBIDDEN"
+    assert (out.meta or {}).get("auth") == "token_insecure_transport"
+
+
+def test_check_write_access_accepts_https_via_trusted_proxy(monkeypatch) -> None:
+    monkeypatch.setenv("MAJOOR_API_TOKEN", TEST_TOKEN)
+    monkeypatch.delenv("MAJOOR_API_TOKEN_HASH", raising=False)
+    monkeypatch.delenv("MJR_API_TOKEN_HASH", raising=False)
+    monkeypatch.setattr(sec, "_is_trusted_proxy", lambda ip: ip == "127.0.0.1")
+
+    out = sec._check_write_access(
+        peer_ip="127.0.0.1",
+        headers={
+            "X-MJR-Token": TEST_TOKEN,
+            "X-Forwarded-For": "203.0.113.10",
+            "X-Forwarded-Proto": "https",
+        },
+        request_scheme="http",
+    )
+    assert out.ok
+    assert (out.meta or {}).get("auth") == "token"
 
 
 def test_csrf_and_origin_checks(monkeypatch) -> None:

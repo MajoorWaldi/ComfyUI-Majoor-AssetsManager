@@ -1,9 +1,11 @@
 import asyncio
+import sqlite3
 from pathlib import Path
 
 import pytest
 
 from mjr_am_backend.features.index.scanner import IndexScanner
+from mjr_am_backend.features.index import scanner as scanner_mod
 from mjr_am_backend.shared import Result
 
 
@@ -118,3 +120,42 @@ async def test_schedule_prepared_vectors_includes_refreshed_and_updated_assets(m
     await asyncio.sleep(0)
 
     assert captured["asset_ids"] == [7, 5, 4]
+
+
+def test_is_fatal_db_error_uses_exception_type_not_message() -> None:
+    assert scanner_mod._is_fatal_db_error(sqlite3.DatabaseError("disk image malformed")) is True
+    assert scanner_mod._is_fatal_db_error(sqlite3.OperationalError("database is locked")) is False
+    assert scanner_mod._is_fatal_db_error(RuntimeError("database is locked")) is False
+
+
+def test_vector_index_concurrency_reads_env(monkeypatch) -> None:
+    monkeypatch.setenv("MJR_VECTOR_CONCURRENCY", "5")
+    assert scanner_mod._vector_index_concurrency() == 5
+
+    monkeypatch.setenv("MJR_VECTOR_CONCURRENCY", "bad")
+    assert scanner_mod._vector_index_concurrency() == scanner_mod._VECTOR_INDEX_DEFAULT_CONCURRENCY
+
+
+@pytest.mark.asyncio
+async def test_run_vector_index_loop_reraises_fatal_db_error(monkeypatch) -> None:
+    entries = [{"asset_id": 7, "filepath": "C:/x.png", "kind": "image", "metadata_raw": None}]
+
+    async def _boom(*_args, **_kwargs):
+        raise sqlite3.DatabaseError("disk image malformed")
+
+    monkeypatch.setenv("MJR_VECTOR_CONCURRENCY", "1")
+
+    with pytest.raises(sqlite3.DatabaseError):
+        await scanner_mod._run_vector_index_loop(object(), object(), entries, _boom)
+
+
+@pytest.mark.asyncio
+async def test_run_vector_index_loop_treats_locked_operational_error_as_nonfatal(monkeypatch) -> None:
+    entries = [{"asset_id": 8, "filepath": "C:/y.png", "kind": "image", "metadata_raw": None}]
+
+    async def _locked(*_args, **_kwargs):
+        raise sqlite3.OperationalError("database is locked")
+
+    monkeypatch.setenv("MJR_VECTOR_CONCURRENCY", "1")
+    out = await scanner_mod._run_vector_index_loop(object(), object(), entries, _locked)
+    assert out[2] == 1

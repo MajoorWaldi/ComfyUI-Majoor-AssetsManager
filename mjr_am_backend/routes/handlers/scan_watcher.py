@@ -21,6 +21,7 @@ from mjr_am_backend.features.watcher_settings import get_watcher_settings, updat
 from mjr_am_backend.shared import Result, get_logger
 
 from ..core import (
+    audit_log_write,
     _csrf_error,
     _json_response,
     _read_json,
@@ -233,6 +234,27 @@ def register_watcher_routes(routes: web.RouteTableDef, *, deps: dict | None = No
     # at any point (even after _app() is called) are picked up at handler call time.
     _d = deps  # May be None; fallback to local names when None.
 
+    async def _audit_watcher_write(
+        services: dict[str, Any] | None,
+        request: web.Request,
+        operation: str,
+        target: str,
+        result: Result,
+        **details: Any,
+    ) -> None:
+        _audit_log_write_ = _d.get("audit_log_write", audit_log_write) if _d is not None else audit_log_write
+        try:
+            await _audit_log_write_(
+                services if isinstance(services, dict) else {},
+                request=request,
+                operation=operation,
+                target=target,
+                result=result,
+                details=details or None,
+            )
+        except Exception as exc:
+            logger.debug("Watcher audit logging skipped for %s: %s", operation, exc)
+
     @routes.get("/mjr/am/watcher/status")
     async def watcher_status(request):
         """Get watcher status."""
@@ -267,7 +289,9 @@ def register_watcher_routes(routes: web.RouteTableDef, *, deps: dict | None = No
 
         watcher = svc.get("watcher")
         if not watcher:
-            return _json_response(Result.Ok({"enabled": False, "flushed": False}))
+            result = Result.Ok({"enabled": False, "flushed": False})
+            await _audit_watcher_write(svc, request, "watcher_flush", "watcher:flush", result, enabled=False, flushed=False)
+            return _json_response(result)
 
         flushed = False
         try:
@@ -276,7 +300,17 @@ def register_watcher_routes(routes: web.RouteTableDef, *, deps: dict | None = No
                 flushed = bool(flush_fn())
         except Exception:
             flushed = False
-        return _json_response(Result.Ok({"enabled": _watcher_is_running(watcher), "flushed": flushed}))
+        result = Result.Ok({"enabled": _watcher_is_running(watcher), "flushed": flushed})
+        await _audit_watcher_write(
+            svc,
+            request,
+            "watcher_flush",
+            "watcher:flush",
+            result,
+            enabled=bool(result.data.get("enabled")) if isinstance(result.data, dict) else False,
+            flushed=flushed,
+        )
+        return _json_response(result)
 
     @routes.post("/mjr/am/watcher/toggle")
     async def watcher_toggle(request):
@@ -308,13 +342,21 @@ def register_watcher_routes(routes: web.RouteTableDef, *, deps: dict | None = No
 
         if enabled:
             if _watcher_is_running(watcher):
-                return _json_response(Result.Ok({"enabled": True, "directories": _watcher_directories(watcher)}))
+                result = Result.Ok({"enabled": True, "directories": _watcher_directories(watcher)})
+                await _audit_watcher_write(svc, request, "watcher_toggle", "watcher:toggle", result, enabled=True)
+                return _json_response(result)
 
             index_service = svc.get("index")
             if not index_service:
-                return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Index service not available"))
-            return _json_response(await _start_watcher_for_scope(svc, index_service, _build_watch_paths=_build_watch_paths_))
-        return _json_response(await _stop_watcher_if_running(svc, watcher))
+                result = Result.Err("SERVICE_UNAVAILABLE", "Index service not available")
+                await _audit_watcher_write(svc, request, "watcher_toggle", "watcher:toggle", result, enabled=True)
+                return _json_response(result)
+            result = await _start_watcher_for_scope(svc, index_service, _build_watch_paths=_build_watch_paths_)
+            await _audit_watcher_write(svc, request, "watcher_toggle", "watcher:toggle", result, enabled=True)
+            return _json_response(result)
+        result = await _stop_watcher_if_running(svc, watcher)
+        await _audit_watcher_write(svc, request, "watcher_toggle", "watcher:toggle", result, enabled=False)
+        return _json_response(result)
 
     @routes.get("/mjr/am/watcher/settings")
     async def watcher_settings_get(request):
@@ -376,18 +418,36 @@ def register_watcher_routes(routes: web.RouteTableDef, *, deps: dict | None = No
                 dedupe_ttl_ms=dedupe_ttl_ms,
             )
         except Exception as exc:
-            return _json_response(Result.Err("DEGRADED", safe_error_message(exc, "Failed to update watcher settings")))
+            result = Result.Err("DEGRADED", safe_error_message(exc, "Failed to update watcher settings"))
+            await _audit_watcher_write(
+                svc,
+                request,
+                "watcher_settings_update",
+                "watcher:settings",
+                result,
+                debounce_ms=debounce_ms,
+                dedupe_ttl_ms=dedupe_ttl_ms,
+            )
+            return _json_response(result)
 
         _refresh_watcher_runtime_settings(svc)
 
-        return _json_response(
-            Result.Ok(
-                {
-                    "debounce_ms": settings.debounce_ms,
-                    "dedupe_ttl_ms": settings.dedupe_ttl_ms,
-                }
-            )
+        result = Result.Ok(
+            {
+                "debounce_ms": settings.debounce_ms,
+                "dedupe_ttl_ms": settings.dedupe_ttl_ms,
+            }
         )
+        await _audit_watcher_write(
+            svc,
+            request,
+            "watcher_settings_update",
+            "watcher:settings",
+            result,
+            debounce_ms=settings.debounce_ms,
+            dedupe_ttl_ms=settings.dedupe_ttl_ms,
+        )
+        return _json_response(result)
 
     @routes.post("/mjr/am/watcher/scope")
     async def watcher_scope(request):
@@ -430,7 +490,17 @@ def register_watcher_routes(routes: web.RouteTableDef, *, deps: dict | None = No
         # If watcher is not enabled, just acknowledge.
         watcher = svc.get("watcher")
         if not _watcher_is_running(watcher):
-            return _json_response(Result.Ok({"enabled": False, "directories": [], "scope": scope}))
+            result = Result.Ok({"enabled": False, "directories": [], "scope": scope})
+            await _audit_watcher_write(
+                svc,
+                request,
+                "watcher_scope",
+                f"watcher:scope:{scope}",
+                result,
+                scope=scope,
+                custom_root_id=custom_root_id,
+            )
+            return _json_response(result)
 
         from mjr_am_backend.features.index.watcher import OutputWatcher
 
@@ -441,14 +511,34 @@ def register_watcher_routes(routes: web.RouteTableDef, *, deps: dict | None = No
         watch_paths = _build_watch_paths_for_context(_build_watch_paths_, scope, custom_root_id, request_user_id)
         if not watch_paths:
             if scope == "custom":
-                return _json_response(Result.Err("INVALID_INPUT", "Invalid or missing custom_root_id for watcher scope"))
+                result = Result.Err("INVALID_INPUT", "Invalid or missing custom_root_id for watcher scope")
+                await _audit_watcher_write(
+                    svc,
+                    request,
+                    "watcher_scope",
+                    f"watcher:scope:{scope}",
+                    result,
+                    scope=scope,
+                    custom_root_id=custom_root_id,
+                )
+                return _json_response(result)
             try:
                 if _watcher_is_running(watcher):
                     await watcher.stop()
                     svc["watcher"] = None
             except Exception:
                 pass
-            return _json_response(Result.Ok({"enabled": False, "directories": [], "scope": scope}))
+            result = Result.Ok({"enabled": False, "directories": [], "scope": scope})
+            await _audit_watcher_write(
+                svc,
+                request,
+                "watcher_scope",
+                f"watcher:scope:{scope}",
+                result,
+                scope=scope,
+                custom_root_id=custom_root_id,
+            )
+            return _json_response(result)
 
         # Idempotent scope update: avoid watcher stop/start churn when the
         # requested scope resolves to the exact same set of directories.
@@ -469,7 +559,17 @@ def register_watcher_routes(routes: web.RouteTableDef, *, deps: dict | None = No
 
             if _watcher_is_running(watcher) and set(current_dirs) == set(desired_dirs):
                 _set_active_watcher_scope(svc, scope, custom_root_id, request_user_id)
-                return _json_response(Result.Ok({"enabled": True, "directories": _watcher_directories(watcher), "scope": scope}))
+                result = Result.Ok({"enabled": True, "directories": _watcher_directories(watcher), "scope": scope})
+                await _audit_watcher_write(
+                    svc,
+                    request,
+                    "watcher_scope",
+                    f"watcher:scope:{scope}",
+                    result,
+                    scope=scope,
+                    custom_root_id=custom_root_id,
+                )
+                return _json_response(result)
         except Exception:
             pass
 
@@ -486,4 +586,14 @@ def register_watcher_routes(routes: web.RouteTableDef, *, deps: dict | None = No
         await new_watcher.start(watch_paths, loop)
         svc["watcher"] = new_watcher
         _set_active_watcher_scope(svc, scope, custom_root_id, request_user_id)
-        return _json_response(Result.Ok({"enabled": True, "directories": new_watcher.watched_directories, "scope": scope}))
+        result = Result.Ok({"enabled": True, "directories": new_watcher.watched_directories, "scope": scope})
+        await _audit_watcher_write(
+            svc,
+            request,
+            "watcher_scope",
+            f"watcher:scope:{scope}",
+            result,
+            scope=scope,
+            custom_root_id=custom_root_id,
+        )
+        return _json_response(result)

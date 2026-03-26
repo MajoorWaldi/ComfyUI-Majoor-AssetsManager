@@ -282,7 +282,7 @@ def _build_no_sampler_result(nodes_by_id: dict[str, Any], workflow_meta: dict[st
 def _trace_size(nodes_by_id: dict[str, dict[str, Any]], latent_link: Any, confidence: str) -> dict[str, Any] | None:
     current_link = latent_link
     hops = 0
-    while current_link is not None and hops < 80:
+    while current_link is not None and hops < _p.DEFAULT_MAX_TRACE_HOPS:
         hops += 1
         node_id = _walk_passthrough(nodes_by_id, current_link)
         if not node_id:

@@ -28,6 +28,7 @@ import { comfyToast } from "./app/toast.js";
 import { t } from "./app/i18n.js";
 import { getEnrichmentState, setEnrichmentState } from "./app/runtimeState.js";
 import { reportError } from "./utils/logging.js";
+import { createTTLCache } from "./utils/ttlCache.js";
 import { app } from "../../scripts/app.js";
 
 // Lazy-loaded modules — resolved on first use to speed up startup.
@@ -92,6 +93,58 @@ function removeRuntimeWindowHandlers(runtime) {
     }
 }
 
+function cleanupEntryRuntime(runtime) {
+    if (!runtime || typeof runtime !== "object") return;
+    try {
+        const cleanups = Array.isArray(runtime._listenerCleanupFns) ? runtime._listenerCleanupFns : [];
+        for (const cleanup of cleanups) {
+            try {
+                cleanup?.();
+            } catch (e) { console.debug?.(e); }
+        }
+        runtime._listenerCleanupFns = [];
+    } catch (e) { console.warn("[MJR teardown]", e); }
+    try {
+        const controllers = Array.isArray(runtime._cleanupControllers) ? runtime._cleanupControllers : [];
+        for (const controller of controllers) {
+            try {
+                controller?.abort?.();
+            } catch (e) { console.debug?.(e); }
+        }
+        runtime._cleanupControllers = [];
+    } catch (e) { console.warn("[MJR teardown]", e); }
+    try {
+        removeApiHandlers(runtime.api || null);
+        removeRuntimeWindowHandlers(runtime);
+    } catch (e) { console.warn("[MJR teardown]", e); }
+}
+
+function _registerCleanableListener(runtime, target, event, handler, options = undefined) {
+    if (!runtime || !target?.addEventListener || typeof handler !== "function") return null;
+    const listenerOptions = options && typeof options === "object" ? { ...options } : options;
+    if (typeof AbortController !== "undefined") {
+        try {
+            const controller = new AbortController();
+            const nextOptions =
+                listenerOptions && typeof listenerOptions === "object"
+                    ? { ...listenerOptions, signal: controller.signal }
+                    : { signal: controller.signal };
+            target.addEventListener(event, handler, nextOptions);
+            runtime._cleanupControllers = Array.isArray(runtime._cleanupControllers) ? runtime._cleanupControllers : [];
+            runtime._cleanupControllers.push(controller);
+            return controller;
+        } catch (e) { console.debug?.(e); }
+    }
+    target.addEventListener(event, handler, listenerOptions);
+    runtime._listenerCleanupFns = Array.isArray(runtime._listenerCleanupFns) ? runtime._listenerCleanupFns : [];
+    runtime._listenerCleanupFns.push(() => {
+        try {
+            target.removeEventListener(event, handler, listenerOptions);
+        } catch (e) { console.debug?.(e); }
+    });
+    return null;
+}
+
 function installEntryRuntimeController() {
     try {
         if (typeof window !== "undefined") {
@@ -99,23 +152,37 @@ function installEntryRuntimeController() {
             // Handlers are removed explicitly via removeApiHandlers / removeRuntimeWindowHandlers.
             try {
                 const prev = window[ENTRY_RUNTIME_KEY];
-                removeApiHandlers(prev?.api || null);
-                removeRuntimeWindowHandlers(prev);
+                cleanupEntryRuntime(prev);
             } catch (e) { console.warn("[MJR teardown]", e); }
             // Tear down MFV module-level listeners before re-registering (NM-3, NM-4).
             try { _liveStreamMod?.teardownLiveStreamTracker(window.__MJR_RUNTIME_APP__); } catch (e) { console.warn("[MJR teardown]", e); }
             try { _nodeStreamMod?.teardownNodeStream(window.__MJR_RUNTIME_APP__); } catch (e) { console.warn("[MJR teardown]", e); }
             try { teardownFloatingViewerManager(); } catch (e) { console.warn("[MJR teardown]", e); }
-            window[ENTRY_RUNTIME_KEY] = { api: null, assetsDeletedHandler: null };
+            window[ENTRY_RUNTIME_KEY] = {
+                api: null,
+                assetsDeletedHandler: null,
+                _cleanupControllers: [],
+                _listenerCleanupFns: [],
+            };
         }
     } catch (e) { console.warn("[MJR teardown]", e); }
+}
+
+function _safeCssEscape(value) {
+    const str = String(value ?? "");
+    try {
+        if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
+            return CSS.escape(str);
+        }
+    } catch (e) { console.debug?.(e); }
+    return str.replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1");
 }
 
 // Deduplication for executed events (ComfyUI can fire multiple times for same file)
 // Window (ms) to ignore duplicate file events from the same execution
 const DEDUPE_TTL_MS = 2000;
-const recentFiles = new Map(); // key -> timestamp
 const RECENT_FILES_MAX = 2000; // Hard cap to prevent unbounded growth
+const recentFiles = createTTLCache({ ttlMs: DEDUPE_TTL_MS, maxSize: RECENT_FILES_MAX });
 const INDEX_RETRYABLE_CODES = new Set(["DB_MAINTENANCE", "TIMEOUT", "NETWORK_ERROR", "SERVICE_UNAVAILABLE"]);
 const INDEX_RETRY_MAX_ATTEMPTS = 8;
 const INDEX_RETRY_BASE_DELAY_MS = 1200;
@@ -124,57 +191,28 @@ const INDEX_RETRY_MAX_DELAY_MS = 15_000;
 // Track execution start times to compute generation duration
 const EXECUTION_START_TTL_MS = 10 * 60 * 1000;
 const EXECUTION_STARTS_MAX = 500; // Hard cap to prevent unbounded growth
-const executionStarts = new Map(); // prompt_id -> timestamp(ms)
+const executionStarts = createTTLCache({ ttlMs: EXECUTION_START_TTL_MS, maxSize: EXECUTION_STARTS_MAX });
 
 function rememberExecutionStart(promptId, timestampMs) {
     if (!promptId) return;
     const ts = Number(timestampMs) || Date.now();
-    executionStarts.set(String(promptId), ts);
+    executionStarts.set(String(promptId), ts, { at: ts });
     pruneExecutionStarts();
 }
 
 function pruneExecutionStarts() {
-    const now = Date.now();
-    for (const [key, ts] of executionStarts) {
-        if (!ts || now - ts > EXECUTION_START_TTL_MS) {
-            executionStarts.delete(key);
-        }
-    }
-    // Hard cap: evict oldest entries if still over limit
-    if (executionStarts.size > EXECUTION_STARTS_MAX) {
-        const excess = executionStarts.size - EXECUTION_STARTS_MAX;
-        let removed = 0;
-        for (const key of executionStarts.keys()) {
-            if (removed >= excess) break;
-            executionStarts.delete(key);
-            removed++;
-        }
-    }
+    executionStarts.prune();
 }
 
 function dedupeFiles(files) {
-    const now = Date.now();
-    // Prune old entries
-    for (const [key, ts] of recentFiles) {
-        if (now - ts > DEDUPE_TTL_MS) recentFiles.delete(key);
-    }
-    // Hard cap: evict oldest entries if still over limit
-    if (recentFiles.size > RECENT_FILES_MAX) {
-        const excess = recentFiles.size - RECENT_FILES_MAX;
-        let removed = 0;
-        for (const key of recentFiles.keys()) {
-            if (removed >= excess) break;
-            recentFiles.delete(key);
-            removed++;
-        }
-    }
+    recentFiles.prune();
     // Filter out recently seen files
     const fresh = [];
     for (const f of files) {
         // toLowerCase for case-insensitive path dedup (Windows paths may differ in casing)
         const key = `${f.type || ""}|${f.subfolder || ""}|${f.filename || ""}`.toLowerCase();
         if (!recentFiles.has(key)) {
-            recentFiles.set(key, now);
+            recentFiles.set(key, true);
             fresh.push(f);
         }
     }
@@ -265,7 +303,7 @@ app.registerExtension({
         // Initialize API listeners in the background so sidebar tab registration
         // is not blocked by API readiness polling.
         void (async () => {
-            // Get ComfyUI API
+            // Get ComfyUI API – errors are caught below to avoid unhandled rejections.
             const api = (await waitForComfyApi({ app: runtimeApp, timeoutMs: 4000 })) || getComfyApi(runtimeApp);
             setComfyApi(api || null);
             if (api) {
@@ -303,7 +341,7 @@ app.registerExtension({
                         reportError(error, "entry.executed");
                     }
                 };
-                api.addEventListener("executed", api._mjrExecutedHandler);
+                _registerCleanableListener(runtime, api, "executed", api._mjrExecutedHandler);
 
                 // Track execution start/end to compute duration
                 api._mjrExecutionStartHandler = (event) => {
@@ -331,10 +369,10 @@ app.registerExtension({
                         reportError(error, "entry.execution_end");
                     }
                 };
-                api.addEventListener("execution_start", api._mjrExecutionStartHandler);
-                api.addEventListener("execution_success", api._mjrExecutionEndHandler);
-                api.addEventListener("execution_error", api._mjrExecutionEndHandler);
-                api.addEventListener("execution_interrupted", api._mjrExecutionEndHandler);
+                _registerCleanableListener(runtime, api, "execution_start", api._mjrExecutionStartHandler);
+                _registerCleanableListener(runtime, api, "execution_success", api._mjrExecutionEndHandler);
+                _registerCleanableListener(runtime, api, "execution_error", api._mjrExecutionEndHandler);
+                _registerCleanableListener(runtime, api, "execution_interrupted", api._mjrExecutionEndHandler);
 
                 // Listen for backend push - upsert asset directly to grid
                 api._mjrAssetAddedHandler = (event) => {
@@ -361,7 +399,7 @@ app.registerExtension({
                         reportError(error, "entry.asset_added");
                     }
                 };
-                api.addEventListener("mjr-asset-added", api._mjrAssetAddedHandler);
+                _registerCleanableListener(runtime, api, "mjr-asset-added", api._mjrAssetAddedHandler);
 
                 api._mjrAssetUpdatedHandler = (event) => {
                     try {
@@ -376,7 +414,7 @@ app.registerExtension({
                             let existsInGrid = false;
                             if (assetId) {
                                 try {
-                                    const escapedId = CSS?.escape ? CSS.escape(assetId) : assetId;
+                                    const escapedId = _safeCssEscape(assetId);
                                     existsInGrid = !!grid.querySelector(
                                         `.mjr-asset-card[data-mjr-asset-id="${escapedId}"]`
                                     );
@@ -398,7 +436,7 @@ app.registerExtension({
                         reportError(error, "entry.asset_updated");
                     }
                 };
-                api.addEventListener("mjr-asset-updated", api._mjrAssetUpdatedHandler);
+                _registerCleanableListener(runtime, api, "mjr-asset-updated", api._mjrAssetUpdatedHandler);
 
                 // Listen for scan-complete events to avoid "Unknown message type" warnings
                 api._mjrScanCompleteHandler = (event) => {
@@ -407,7 +445,7 @@ app.registerExtension({
                         window.dispatchEvent(new CustomEvent(EVENTS.SCAN_COMPLETE, { detail }));
                     } catch (e) { console.debug?.(e); }
                 };
-                api.addEventListener(EVENTS.SCAN_COMPLETE, api._mjrScanCompleteHandler);
+                _registerCleanableListener(runtime, api, EVENTS.SCAN_COMPLETE, api._mjrScanCompleteHandler);
 
                 api._mjrEnrichmentStatusHandler = (event) => {
                     try {
@@ -430,7 +468,7 @@ app.registerExtension({
                         }
                     } catch (e) { console.debug?.(e); }
                 };
-                api.addEventListener(EVENTS.ENRICHMENT_STATUS, api._mjrEnrichmentStatusHandler);
+                _registerCleanableListener(runtime, api, EVENTS.ENRICHMENT_STATUS, api._mjrEnrichmentStatusHandler);
 
                 api._mjrDbRestoreStatusHandler = (event) => {
                     try {
@@ -476,7 +514,7 @@ app.registerExtension({
                         comfyToast(msg, tone, step === "done" || step === "failed" ? 2800 : 1800);
                     } catch (e) { console.debug?.(e); }
                 };
-                api.addEventListener(EVENTS.DB_RESTORE_STATUS, api._mjrDbRestoreStatusHandler);
+                _registerCleanableListener(runtime, api, EVENTS.DB_RESTORE_STATUS, api._mjrDbRestoreStatusHandler);
 
                 const assetsDeletedHandler = (event) => {
                     try {
@@ -488,7 +526,7 @@ app.registerExtension({
                         if (grid) removeAssetsFromGrid(grid, ids);
                     } catch (e) { console.debug?.(e); }
                 };
-                window.addEventListener(EVENTS.ASSETS_DELETED, assetsDeletedHandler);
+                _registerCleanableListener(runtime, window, EVENTS.ASSETS_DELETED, assetsDeletedHandler);
                 try {
                     if (runtime && typeof runtime === "object") {
                         runtime.api = api;
@@ -502,7 +540,7 @@ app.registerExtension({
             } else {
                 console.warn("📂 Majoor [⚠️] API not available, real-time updates disabled");
             }
-        })();
+        })().catch((e) => reportError(e, "entry.api_setup"));
 
         // Register sidebar tab
         if (registerSidebarTabCompat(runtimeApp, {

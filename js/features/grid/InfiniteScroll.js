@@ -171,9 +171,9 @@ export function findAssetElement(gridContainer, assetId) {
 
 function _safeEscape(value) {
     try {
-        return CSS?.escape ? CSS.escape(value) : value.replace(/["\\]/g, "\\$&");
+        return CSS?.escape ? CSS.escape(value) : value.replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1");
     } catch {
-        return value.replace(/["\\]/g, "\\$&");
+        return value.replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1");
     }
 }
 

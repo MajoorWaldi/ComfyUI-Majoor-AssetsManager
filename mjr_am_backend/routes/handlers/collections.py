@@ -12,7 +12,7 @@ from aiohttp import web
 from mjr_am_backend.features.collections import CollectionsService
 from mjr_am_backend.shared import Result, classify_file, get_logger, sanitize_error_message
 
-from ..core import _csrf_error, _json_response, _read_json, _require_services, _require_write_access
+from ..core import audit_log_write, _csrf_error, _json_response, _read_json, _require_services, _require_write_access
 
 logger = get_logger(__name__)
 
@@ -79,6 +79,31 @@ def _safe_file_stat_fields(path: Path) -> tuple[int, int]:
 
 def register_collections_routes(routes: web.RouteTableDef) -> None:
     """Register collection management routes."""
+    async def _audit_collection_write(
+        request: web.Request,
+        operation: str,
+        target: str,
+        result: Result,
+        **details: Any,
+    ) -> None:
+        try:
+            services, error = await _require_services()
+        except Exception:
+            services, error = None, None
+        if error or not isinstance(services, dict):
+            services = {}
+        try:
+            await audit_log_write(
+                services,
+                request=request,
+                operation=operation,
+                target=target,
+                result=result,
+                details=details or None,
+            )
+        except Exception as exc:
+            logger.debug("Collection audit logging skipped for %s: %s", operation, exc)
+
     @routes.get("/mjr/am/collections")
     async def list_collections(request):
         try:
@@ -102,6 +127,7 @@ def register_collections_routes(routes: web.RouteTableDef) -> None:
         body = body_res.data if body_res.ok else {}
         name = str((body or {}).get("name") or "").strip()
         result = _collections.create(name)
+        await _audit_collection_write(request, "collection_create", f"collection:{name or 'unknown'}", result, name=name)
         return _json_response(result)
 
     @routes.get(r"/mjr/am/collections/{collection_id}")
@@ -120,6 +146,7 @@ def register_collections_routes(routes: web.RouteTableDef) -> None:
             return _json_response(auth)
         cid = str(request.match_info.get("collection_id") or "").strip()
         result = _collections.delete(cid)
+        await _audit_collection_write(request, "collection_delete", f"collection:{cid or 'unknown'}", result, collection_id=cid)
         return _json_response(result)
 
     @routes.post(r"/mjr/am/collections/{collection_id}/add")
@@ -135,6 +162,14 @@ def register_collections_routes(routes: web.RouteTableDef) -> None:
         body = body_res.data if body_res.ok else {}
         assets = _safe_assets_payload((body or {}).get("assets"))
         result = await asyncio.to_thread(_collections.add_assets, cid, assets)
+        await _audit_collection_write(
+            request,
+            "collection_add_assets",
+            f"collection:{cid or 'unknown'}",
+            result,
+            collection_id=cid,
+            asset_count=len(assets),
+        )
         return _json_response(result)
 
     @routes.post(r"/mjr/am/collections/{collection_id}/remove")
@@ -150,6 +185,14 @@ def register_collections_routes(routes: web.RouteTableDef) -> None:
         body = body_res.data if body_res.ok else {}
         filepaths = [str(x) for x in _as_list((body or {}).get("filepaths")) if x]
         result = await asyncio.to_thread(_collections.remove_filepaths, cid, filepaths)
+        await _audit_collection_write(
+            request,
+            "collection_remove_assets",
+            f"collection:{cid or 'unknown'}",
+            result,
+            collection_id=cid,
+            asset_count=len(filepaths),
+        )
         return _json_response(result)
 
     @routes.get(r"/mjr/am/collections/{collection_id}/assets")

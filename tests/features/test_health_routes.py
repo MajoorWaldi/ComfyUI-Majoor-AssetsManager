@@ -195,6 +195,37 @@ async def test_update_output_directory_csrf_block(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_update_output_directory_writes_audit_log(monkeypatch, tmp_path) -> None:
+    settings = _Settings()
+    audit_calls = []
+
+    async def _svc():
+        return {"settings": settings}, None
+
+    async def _read_json(_request):
+        return Result.Ok({"output_directory": str(tmp_path)})
+
+    async def _audit_log_write(_services, **kwargs):
+        audit_calls.append(kwargs)
+        return True
+
+    monkeypatch.setattr(health_mod, "_require_services", _svc)
+    monkeypatch.setattr(health_mod, "_csrf_error", lambda _req: None)
+    monkeypatch.setattr(health_mod, "_require_write_access", lambda _req: Result.Ok({}))
+    monkeypatch.setattr(health_mod, "_read_json", _read_json)
+    monkeypatch.setattr(health_mod, "audit_log_write", _audit_log_write)
+    monkeypatch.setattr(health_mod, "_invalidate_fs_list_cache", lambda: asyncio.sleep(0))
+    monkeypatch.setattr(health_mod, "_kickoff_background_scan", lambda *_args, **_kwargs: asyncio.sleep(0))
+
+    app = _build_health_app()
+    req = make_mocked_request("POST", "/mjr/am/settings/output-directory", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    body = json.loads(resp.text)
+    assert body.get("ok") is True
+    assert audit_calls and audit_calls[0]["operation"] == "settings_output_directory"
+
+
+@pytest.mark.asyncio
 async def test_update_output_directory_real_csrf_and_auth_guards(monkeypatch) -> None:
     monkeypatch.setenv("MAJOOR_REQUIRE_AUTH", "1")
     monkeypatch.delenv("MAJOOR_API_TOKEN", raising=False)

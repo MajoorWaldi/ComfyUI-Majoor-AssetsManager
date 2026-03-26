@@ -70,6 +70,22 @@ npm run test:js
 npm run test:js:watch
 ```
 
+### Canonical Quality Gate
+```bash
+# Full repo gate
+python scripts/run_quality_gate.py
+
+# Fast Python-only gate (useful before pushing)
+python scripts/run_quality_gate.py --python-only --skip-tests
+
+# Tox wrapper for the fast Python-only gate
+tox -e quality
+```
+
+The canonical gate runs encoding/BOM checks, `ruff`, `mypy`, `bandit`, `pip-audit`, xenon/radon complexity checks, backend tests, frontend tests, and `npm audit`. CI uses the same script for the Python quality job so local and CI behavior stay aligned.
+
+During the migration to stricter quality thresholds, `ruff` is enforced on changed Python files while repository-wide hygiene, security, and complexity checks continue to run across the repo. This keeps the gate hard for new work without turning legacy cleanup into a single big-bang change.
+
 ## Batch runners (Windows)
 
 From the repo root:

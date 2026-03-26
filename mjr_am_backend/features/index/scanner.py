@@ -3,8 +3,10 @@ Index scanner - handles directory scanning and file indexing operations.
 """
 import asyncio
 import json
+import os
 import sqlite3
 import threading
+import weakref
 from typing import Any
 
 from ...adapters.db.sqlite import Sqlite
@@ -94,14 +96,34 @@ from .scan_storage_ops import (
 
 logger = get_logger(__name__)
 _VECTOR_INDEX_PER_ASSET_TIMEOUT_S = 180.0
+_VECTOR_INDEX_DEFAULT_CONCURRENCY = 2
+_VECTOR_INDEX_SEMAPHORES: "weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, tuple[int, asyncio.Semaphore]]" = weakref.WeakKeyDictionary()
 
 
 def _is_fatal_db_error(exc: Exception) -> bool:
     if not isinstance(exc, sqlite3.DatabaseError):
         return False
-    if "busy" in str(exc).lower() or "locked" in str(exc).lower():
+    if isinstance(exc, sqlite3.OperationalError):
         return False
     return True
+
+
+def _vector_index_concurrency() -> int:
+    try:
+        return max(1, int(os.environ.get("MJR_VECTOR_CONCURRENCY", str(_VECTOR_INDEX_DEFAULT_CONCURRENCY))))
+    except (TypeError, ValueError):
+        return _VECTOR_INDEX_DEFAULT_CONCURRENCY
+
+
+def _vector_index_semaphore() -> asyncio.Semaphore:
+    loop = asyncio.get_running_loop()
+    limit = _vector_index_concurrency()
+    entry = _VECTOR_INDEX_SEMAPHORES.get(loop)
+    if entry is not None and entry[0] == limit:
+        return entry[1]
+    semaphore = asyncio.Semaphore(limit)
+    _VECTOR_INDEX_SEMAPHORES[loop] = (limit, semaphore)
+    return semaphore
 
 
 def _vector_rows_to_entries(rows_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -115,7 +137,7 @@ def _vector_rows_to_entries(rows_data: list[dict[str, Any]]) -> list[dict[str, A
             try:
                 parsed = json.loads(raw)
                 metadata_raw = parsed if isinstance(parsed, dict) else None
-            except Exception:
+            except (TypeError, ValueError, json.JSONDecodeError):
                 metadata_raw = None
         else:
             metadata_raw = None
@@ -127,6 +149,66 @@ def _vector_rows_to_entries(rows_data: list[dict[str, Any]]) -> list[dict[str, A
             "metadata_raw": metadata_raw,
         })
     return entries
+
+
+def _vector_entry_context(entry: dict[str, Any]) -> tuple[int, str, FileKind]:
+    aid = int(entry.get("asset_id") or 0)
+    filepath = str(entry.get("filepath") or "")
+    entry_kind: FileKind = "video" if str(entry.get("kind") or "").strip().lower() == "video" else "image"
+    return aid, filepath, entry_kind
+
+
+async def _run_vector_index_entry(
+    db: Any,
+    vector_service: Any,
+    entry: dict[str, Any],
+    *,
+    index_asset_vector: Any,
+    semaphore: asyncio.Semaphore,
+    loop: asyncio.AbstractEventLoop,
+) -> tuple[str, int, Any]:
+    aid, filepath, entry_kind = _vector_entry_context(entry)
+    if not filepath:
+        return "skip", aid, None
+
+    try:
+        wait_started = loop.time()
+        async with semaphore:
+            wait_seconds = loop.time() - wait_started
+            if wait_seconds > 0:
+                logger.debug(
+                    "Scanner vector indexing semaphore waited %.3fs for asset_id=%s",
+                    wait_seconds,
+                    aid,
+                )
+            result = await asyncio.wait_for(
+                index_asset_vector(
+                    db,
+                    vector_service,
+                    asset_id=aid,
+                    filepath=filepath,
+                    kind=entry_kind,
+                    metadata_raw=entry.get("metadata_raw"),
+                ),
+                timeout=_VECTOR_INDEX_PER_ASSET_TIMEOUT_S,
+            )
+            return "result", aid, result
+    except asyncio.TimeoutError:
+        return "timeout", aid, None
+    except Exception as exc:
+        return "error", aid, exc
+
+
+def _raise_if_fatal_vector_index_error(aid: int, exc: Exception) -> None:
+    if isinstance(exc, sqlite3.DatabaseError):
+        logger.error("Critical scanner vector indexing failure for asset_id=%s: %s", aid, exc)
+        if _is_fatal_db_error(exc):
+            raise exc
+        return
+    if isinstance(exc, OSError):
+        logger.error("Critical scanner vector indexing failure for asset_id=%s: %s", aid, exc)
+        raise exc
+    logger.warning("Unexpected scanner vector indexing failure for asset_id=%s: %s", aid, exc)
 
 
 async def _run_vector_index_loop(
@@ -142,35 +224,31 @@ async def _run_vector_index_loop(
     timed_out = 0
     timed_out_ids: list[int] = []
     updated_asset_ids: list[int] = []
+    loop = asyncio.get_running_loop()
+    semaphore = _vector_index_semaphore()
 
     for entry in entries:
-        aid = int(entry.get("asset_id") or 0)
-        try:
-            filepath = str(entry.get("filepath") or "")
-            entry_kind: FileKind = "video" if str(entry.get("kind") or "").strip().lower() == "video" else "image"
-            if not filepath:
-                skipped += 1
-                continue
-            result = await asyncio.wait_for(
-                index_asset_vector(
-                    db,
-                    vector_service,
-                    asset_id=aid,
-                    filepath=filepath,
-                    kind=entry_kind,
-                    metadata_raw=entry.get("metadata_raw"),
-                ),
-                timeout=_VECTOR_INDEX_PER_ASSET_TIMEOUT_S,
-            )
-        except asyncio.TimeoutError:
+        status, aid, payload = await _run_vector_index_entry(
+            db,
+            vector_service,
+            entry,
+            index_asset_vector=index_asset_vector,
+            semaphore=semaphore,
+            loop=loop,
+        )
+        if status == "skip":
+            skipped += 1
+            continue
+        if status == "timeout":
             timed_out += 1
             if aid > 0:
                 timed_out_ids.append(aid)
             continue
-        except Exception as exc:
+        if status == "error":
             errors += 1
-            logger.debug("Scanner vector indexing failed for asset_id=%s: %s", aid, exc)
+            _raise_if_fatal_vector_index_error(aid, payload)
             continue
+        result = payload
 
         if result.ok and bool(result.data):
             indexed += 1
@@ -271,7 +349,7 @@ class IndexScanner:
     async def _asset_has_vector(self, *, asset_id: int) -> bool:
         try:
             asset_id_int = int(asset_id)
-        except Exception:
+        except (TypeError, ValueError):
             return False
         if asset_id_int <= 0:
             return False
@@ -313,7 +391,7 @@ class IndexScanner:
         def _append_asset_id(raw_id: Any) -> None:
             try:
                 parsed_id = int(raw_id)
-            except Exception:
+            except (TypeError, ValueError):
                 return
             if parsed_id <= 0 or parsed_id in seen_ids:
                 return
@@ -422,7 +500,7 @@ class IndexScanner:
         for raw_id in asset_ids:
             try:
                 asset_id = int(raw_id)
-            except Exception:
+            except (TypeError, ValueError):
                 continue
             if asset_id <= 0 or asset_id in seen_ids:
                 continue
@@ -488,7 +566,7 @@ class IndexScanner:
                     parsed = json.loads(auto_tags)
                     if isinstance(parsed, list):
                         payload["auto_tags"] = parsed
-                except Exception:
+                except (TypeError, ValueError, json.JSONDecodeError):
                     pass
             try:
                 PromptServer.instance.send_sync("mjr-asset-updated", sanitize_for_json(payload))

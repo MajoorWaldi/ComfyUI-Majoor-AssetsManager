@@ -41,6 +41,7 @@ async def test_custom_roots_get_and_post_csrf(monkeypatch):
 async def test_custom_roots_post_success_with_watcher(monkeypatch, tmp_path: Path):
     app = _app()
     calls = {"added": 0, "scan": 0}
+    audit_calls = []
 
     class _Watcher:
         def add_path(self, path, source=None, root_id=None):
@@ -57,12 +58,17 @@ async def test_custom_roots_post_success_with_watcher(monkeypatch, tmp_path: Pat
         calls["scan"] += 1
         return None
 
+    async def _audit_log_write(_services, **kwargs):
+        audit_calls.append(kwargs)
+        return True
+
     monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
     monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
     monkeypatch.setattr(m, "_read_json", _read_json)
     monkeypatch.setattr(m, "add_custom_root", lambda path, label=None: Result.Ok({"id": "rid", "path": path, "label": label}))
     monkeypatch.setattr(m, "_require_services", _require_services)
     monkeypatch.setattr(m, "_kickoff_background_scan", _scan)
+    monkeypatch.setattr(m, "audit_log_write", _audit_log_write)
 
     req = make_mocked_request("POST", "/mjr/am/custom-roots", app=app)
     match = await app.router.resolve(req)
@@ -71,6 +77,8 @@ async def test_custom_roots_post_success_with_watcher(monkeypatch, tmp_path: Pat
     assert payload.get("ok") is True
     assert calls["added"] == 1
     assert calls["scan"] == 1
+    assert audit_calls and audit_calls[0]["operation"] == "custom_root_add"
+    assert audit_calls[0]["target"] == "custom_root:rid"
 
 
 @pytest.mark.asyncio
@@ -194,6 +202,7 @@ async def test_browse_folder_csrf_and_rate_limit(monkeypatch):
 async def test_custom_roots_remove_success(monkeypatch, tmp_path: Path):
     app = _app()
     calls = {"removed": 0}
+    audit_calls = []
 
     class _Watcher:
         def remove_path(self, _path):
@@ -207,12 +216,17 @@ async def test_custom_roots_remove_success(monkeypatch, tmp_path: Path):
     async def _read_json(_request):
         return Result.Ok({"id": "rid"})
 
+    async def _audit_log_write(_services, **kwargs):
+        audit_calls.append(kwargs)
+        return True
+
     monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
     monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
     monkeypatch.setattr(m, "_read_json", _read_json)
     monkeypatch.setattr(m, "resolve_custom_root", lambda _rid: Result.Ok(tmp_path / "root"))
     monkeypatch.setattr(m, "remove_custom_root", lambda _rid: Result.Ok({"removed": True}))
     monkeypatch.setattr(m, "_require_services", _services)
+    monkeypatch.setattr(m, "audit_log_write", _audit_log_write)
 
     req = make_mocked_request("POST", "/mjr/am/custom-roots/remove", app=app)
     resp = await (await app.router.resolve(req)).handler(req)
@@ -220,6 +234,39 @@ async def test_custom_roots_remove_success(monkeypatch, tmp_path: Path):
     assert payload.get("ok") is True
     assert calls["removed"] == 1
     assert db.execs
+    assert audit_calls and audit_calls[0]["operation"] == "custom_root_remove"
+    assert audit_calls[0]["target"] == "custom_root:rid"
+
+
+@pytest.mark.asyncio
+async def test_browser_folder_op_writes_audit_log(monkeypatch, tmp_path: Path):
+    app = _app()
+    source = tmp_path / "src"
+    source.mkdir()
+    audit_calls = []
+
+    async def _audit_log_write(_services, **kwargs):
+        audit_calls.append(kwargs)
+        return True
+
+    monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(m, "_check_rate_limit", lambda *_args, **_kwargs: (True, None))
+    monkeypatch.setattr(m, "_normalize_path", lambda v: Path(v) if v else None)
+    monkeypatch.setattr(m, "_require_services", lambda: ({}, None))
+    monkeypatch.setattr(m, "_is_path_allowed", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(m, "_is_path_allowed_custom", lambda *_args, **_kwargs: False)
+    monkeypatch.setattr(m, "audit_log_write", _audit_log_write)
+
+    async def _read_json(_request):
+        return Result.Ok({"op": "create", "path": str(source), "name": "newdir"})
+
+    monkeypatch.setattr(m, "_read_json", _read_json)
+    req = make_mocked_request("POST", "/mjr/am/browser/folder-op", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    assert _json(resp).get("ok") is True
+    assert audit_calls and audit_calls[0]["operation"] == "folder_create"
+    assert audit_calls[0]["result"].ok is True
 
 
 @pytest.mark.asyncio

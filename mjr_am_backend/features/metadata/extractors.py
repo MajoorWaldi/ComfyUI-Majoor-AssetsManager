@@ -13,6 +13,9 @@ from .parsing_utils import (
     parse_json_value,
     try_parse_json_text,
 )
+from . import extractors_png as _png
+from . import extractors_video as _video
+from . import extractors_webp as _webp
 
 logger = get_logger(__name__)
 
@@ -119,13 +122,22 @@ def _container_json_candidate(container: dict[str, Any], key: str) -> Any:
 def _prompt_graph_from_container_value(value: Any) -> dict[str, Any] | None:
     if isinstance(value, dict) and looks_like_comfyui_prompt_graph(value):
         return value
+    text = _prompt_graph_candidate_text(value)
+    if text is None:
+        return None
+    return _parse_prompt_graph_text(text)
+
+
+def _prompt_graph_candidate_text(value: Any) -> str | None:
     if not isinstance(value, str):
         return None
     text = value.strip()
-    if not text or len(text) > MAX_METADATA_JSON_CHARS:
+    if not text or len(text) > MAX_METADATA_JSON_CHARS or not text.startswith("{"):
         return None
-    if not text.startswith("{"):
-        return None
+    return text
+
+
+def _parse_prompt_graph_text(text: str) -> dict[str, Any] | None:
     parsed = try_parse_json_text(text)
     if isinstance(parsed, dict) and len(parsed) > MAX_METADATA_JSON_TOPLEVEL_KEYS:
         return None
@@ -1174,73 +1186,27 @@ def _apply_a1111_checkpoint_field(out: dict[str, Any], parsed: dict[str, Any]) -
 
 
 def _read_png_text_chunks(file_path: str) -> dict[str, Any]:
-    """Best-effort PNG text chunk reader for prompt/workflow fallback."""
-    try:
-        from PIL import Image
-    except Exception:
-        return {}
-
-    try:
-        with Image.open(file_path) as img:
-            info = dict(getattr(img, "info", {}) or {})
-    except Exception:
-        return {}
-
-    out: dict[str, Any] = {}
-    for key in ("prompt", "workflow", "parameters"):
-        value = info.get(key)
-        if isinstance(value, str) and value.strip():
-            out[f"PNG:{key.capitalize()}"] = value
-    return out
+    return _png.read_png_text_chunks(file_path)
 
 
 def extract_png_metadata(file_path: str, exif_data: dict | None = None) -> Result[dict[str, Any]]:
-    if not os.path.exists(file_path):
-        return Result.Err(ErrorCode.NOT_FOUND, f"File not found: {file_path}")
-
-    png_text_exif = _read_png_text_chunks(file_path)
-    merged_exif: dict[str, Any] = {}
-    if isinstance(exif_data, dict):
-        merged_exif.update(exif_data)
-    # Keep existing exiftool values authoritative, fill only missing keys from PNG chunks.
-    for key, value in png_text_exif.items():
-        merged_exif.setdefault(key, value)
-
-    metadata = {
-        "raw": merged_exif,
-        "workflow": None,
-        "prompt": None,
-        "parameters": None,
-        "quality": "none"
-    }
-
-    if not merged_exif:
-        return Result.Ok(metadata, quality="none")
-
-
-    try:
-        potential_workflow = _inspect_json_field(merged_exif, ("PNG:Workflow", "Keys:Workflow", "comfyui:workflow"))
-        potential_prompt = _inspect_json_field(merged_exif, ("PNG:Prompt", "Keys:Prompt", "comfyui:prompt"))
-        workflow, prompt, _ = _merge_workflow_prompt_candidate(potential_workflow, None, None)
-        workflow, prompt, _ = _merge_workflow_prompt_candidate(potential_prompt, workflow, prompt)
-        if workflow is None or prompt is None:
-            workflow, prompt = _merge_scanned_workflow_prompt(workflow, prompt, merged_exif)
-
-        png_params = merged_exif.get("PNG:Parameters")
-        if png_params:
-            metadata["parameters"] = png_params
-            _bump_quality(metadata, "partial")
-            parsed = parse_auto1111_params(png_params)
-            if parsed:
-                metadata.update(parsed)
-                metadata["geninfo"] = _build_a1111_geninfo(parsed) or {}
-
-        _apply_common_exif_fields(metadata, merged_exif, workflow=workflow, prompt=prompt)
-
-        return Result.Ok(metadata, quality=metadata["quality"])
-    except Exception as e:
-        logger.warning(f"PNG metadata extraction error: {e}")
-        return Result.Err(ErrorCode.PARSE_ERROR, str(e), quality="degraded")
+    return _png.extract_png_metadata_impl(
+        file_path,
+        exif_data,
+        exists=os.path.exists,
+        read_png_text_chunks=_read_png_text_chunks,
+        inspect_json_field=_inspect_json_field,
+        merge_workflow_prompt_candidate=_merge_workflow_prompt_candidate,
+        merge_scanned_workflow_prompt=_merge_scanned_workflow_prompt,
+        parse_auto1111_params=parse_auto1111_params,
+        bump_quality=_bump_quality,
+        build_a1111_geninfo=_build_a1111_geninfo,
+        apply_common_exif_fields=_apply_common_exif_fields,
+        result_ok=Result.Ok,
+        result_err=Result.Err,
+        error_code=ErrorCode,
+        logger=logger,
+    )
 
 
 def _merge_scanned_workflow_prompt(
@@ -1264,15 +1230,15 @@ def _scan_webp_text_fields(
     workflow: dict[str, Any] | None,
     prompt: dict[str, Any] | None,
 ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
-    for key in _WEBP_TEXT_KEYS:
-        candidate = exif_data.get(key)
-        if not isinstance(candidate, str) or not candidate:
-            continue
-        workflow, prompt, matched = _try_merge_webp_json_candidate(candidate, workflow, prompt)
-        if matched:
-            continue
-        _apply_webp_auto1111_candidate(metadata, candidate, prompt)
-    return workflow, prompt
+    return _webp.scan_webp_text_fields(
+        metadata,
+        exif_data,
+        workflow,
+        prompt,
+        webp_text_keys=_WEBP_TEXT_KEYS,
+        try_merge_webp_json_candidate=_try_merge_webp_json_candidate,
+        apply_webp_auto1111_candidate=_apply_webp_auto1111_candidate,
+    )
 
 
 def _try_merge_webp_json_candidate(
@@ -1280,10 +1246,13 @@ def _try_merge_webp_json_candidate(
     workflow: dict[str, Any] | None,
     prompt: dict[str, Any] | None,
 ) -> tuple[dict[str, Any] | None, dict[str, Any] | None, bool]:
-    parsed_json = try_parse_json_text(candidate_text)
-    if parsed_json is None:
-        return workflow, prompt, False
-    return _merge_workflow_prompt_candidate(parsed_json, workflow, prompt)
+    return _webp.try_merge_webp_json_candidate(
+        candidate_text,
+        workflow,
+        prompt,
+        try_parse_json_text=try_parse_json_text,
+        merge_workflow_prompt_candidate=_merge_workflow_prompt_candidate,
+    )
 
 
 def _apply_webp_auto1111_candidate(
@@ -1291,54 +1260,34 @@ def _apply_webp_auto1111_candidate(
     candidate_text: str,
     prompt: dict[str, Any] | None,
 ) -> None:
-    parsed_a1111 = parse_auto1111_params(candidate_text)
-    if not parsed_a1111:
-        return
-    metadata["parameters"] = candidate_text
-    metadata.update(parsed_a1111)
-    if metadata.get("quality") != "full":
-        _bump_quality(metadata, "partial")
-    if prompt is None and not metadata.get("prompt") and parsed_a1111.get("prompt"):
-        metadata["prompt"] = parsed_a1111["prompt"]
+    _webp.apply_webp_auto1111_candidate(
+        metadata,
+        candidate_text,
+        prompt,
+        parse_auto1111_params=parse_auto1111_params,
+        bump_quality=_bump_quality,
+    )
 
 
 def _apply_video_ffprobe_fields(metadata: dict[str, Any], ffprobe_data: dict[str, Any] | None) -> None:
-    if not isinstance(ffprobe_data, dict):
-        return
-    video_stream = ffprobe_data.get("video_stream", {})
-    format_info = ffprobe_data.get("format", {})
-    metadata["resolution"] = (
-        video_stream.get("width"),
-        video_stream.get("height"),
-    )
-    metadata["fps"] = video_stream.get("r_frame_rate")
-    metadata["duration"] = format_info.get("duration")
+    _video.apply_video_ffprobe_fields(metadata, ffprobe_data)
 
 
 def _scan_video_workflow_prompt_from_sources(
     exif_data: dict[str, Any],
     ffprobe_data: dict[str, Any] | None,
 ) -> tuple[dict[str, Any] | None, dict[str, Any] | None, dict[str, Any], list[dict[str, Any]]]:
-    workflow: dict[str, Any] | None = None
-    prompt: dict[str, Any] | None = None
-    potential_workflow = _inspect_json_field(exif_data, _VIDEO_WORKFLOW_KEYS)
-    potential_prompt = _inspect_json_field(exif_data, _VIDEO_PROMPT_KEYS)
-    workflow, prompt, _ = _merge_workflow_prompt_candidate(potential_workflow, workflow, prompt)
-    workflow, prompt, _ = _merge_workflow_prompt_candidate(potential_prompt, workflow, prompt)
-    if workflow is None or prompt is None:
-        workflow, prompt = _merge_scanned_workflow_prompt(workflow, prompt, exif_data)
-
-    format_tags = _extract_ffprobe_format_tags(ffprobe_data)
-    if workflow is None or prompt is None:
-        workflow, prompt = _merge_scanned_workflow_prompt(workflow, prompt, format_tags)
-
-    stream_tag_dicts = _extract_ffprobe_stream_tag_dicts(ffprobe_data)
-    if workflow is None or prompt is None:
-        for tags in stream_tag_dicts:
-            workflow, prompt = _merge_scanned_workflow_prompt(workflow, prompt, tags)
-            if workflow is not None and prompt is not None:
-                break
-    return workflow, prompt, format_tags, stream_tag_dicts
+    return _video.scan_video_workflow_prompt_from_sources(
+        exif_data,
+        ffprobe_data,
+        inspect_json_field=_inspect_json_field,
+        video_workflow_keys=_VIDEO_WORKFLOW_KEYS,
+        video_prompt_keys=_VIDEO_PROMPT_KEYS,
+        merge_workflow_prompt_candidate=_merge_workflow_prompt_candidate,
+        merge_scanned_workflow_prompt=_merge_scanned_workflow_prompt,
+        extract_ffprobe_format_tags=_extract_ffprobe_format_tags,
+        extract_ffprobe_stream_tag_dicts=_extract_ffprobe_stream_tag_dicts,
+    )
 
 
 def _collect_video_text_candidates(
@@ -1346,102 +1295,47 @@ def _collect_video_text_candidates(
     format_tags: dict[str, Any],
     stream_tag_dicts: list[dict[str, Any]],
 ) -> list[tuple[str, str]]:
-    text_candidates = _collect_text_candidates(exif_data)
-    if format_tags:
-        text_candidates.extend(_collect_text_candidates(format_tags))
-    for tags in stream_tag_dicts:
-        text_candidates.extend(_collect_text_candidates(tags))
-    return text_candidates
+    return _video.collect_video_text_candidates(
+        exif_data,
+        format_tags,
+        stream_tag_dicts,
+        collect_text_candidates=_collect_text_candidates,
+    )
 
 def extract_webp_metadata(file_path: str, exif_data: dict | None = None) -> Result[dict[str, Any]]:
-    """
-    Extract ComfyUI metadata from WEBP file.
-    Handles JSON in EXIF:Make/Model and text fields (ImageDescription) with prefixes.
-    """
-    if not os.path.exists(file_path):
-        return Result.Err(ErrorCode.NOT_FOUND, f"File not found: {file_path}")
-
-    metadata = {
-        "raw": exif_data or {},
-        "workflow": None,
-        "prompt": None,
-        "quality": "none"
-    }
-
-    if not exif_data:
-        return Result.Ok(metadata, quality="none")
-
-    try:
-        workflow = None
-        prompt = None
-
-        potential_workflow = _inspect_json_field(exif_data, _WEBP_WORKFLOW_KEYS)
-        potential_prompt = _inspect_json_field(exif_data, _WEBP_PROMPT_KEYS)
-
-        workflow, prompt, _ = _merge_workflow_prompt_candidate(potential_workflow, workflow, prompt)
-        workflow, prompt, _ = _merge_workflow_prompt_candidate(potential_prompt, workflow, prompt)
-
-        if workflow is None or prompt is None:
-            workflow, prompt = _merge_scanned_workflow_prompt(workflow, prompt, exif_data)
-
-        workflow, prompt = _scan_webp_text_fields(metadata, exif_data, workflow, prompt)
-
-        _apply_common_exif_fields(metadata, exif_data, workflow=workflow, prompt=prompt)
-
-        return Result.Ok(metadata, quality=metadata["quality"])
-
-    except Exception as e:
-        logger.warning(f"WEBP metadata extraction error: {e}")
-        return Result.Err(ErrorCode.PARSE_ERROR, str(e), quality="degraded")
+    return _webp.extract_webp_metadata_impl(
+        file_path,
+        exif_data,
+        exists=os.path.exists,
+        inspect_json_field=_inspect_json_field,
+        webp_workflow_keys=_WEBP_WORKFLOW_KEYS,
+        webp_prompt_keys=_WEBP_PROMPT_KEYS,
+        merge_workflow_prompt_candidate=_merge_workflow_prompt_candidate,
+        merge_scanned_workflow_prompt=_merge_scanned_workflow_prompt,
+        scan_webp_text_fields=_scan_webp_text_fields,
+        apply_common_exif_fields=_apply_common_exif_fields,
+        result_ok=Result.Ok,
+        result_err=Result.Err,
+        error_code=ErrorCode,
+        logger=logger,
+    )
 
 def extract_video_metadata(file_path: str, exif_data: dict | None = None, ffprobe_data: dict | None = None) -> Result[dict[str, Any]]:
-    """
-    Extract ComfyUI metadata from video file (MP4, MOV, WEBM, MKV).
-
-    Video files store metadata in QuickTime:Workflow and QuickTime:Prompt fields.
-
-    Args:
-        file_path: Path to video file
-        exif_data: Optional pre-fetched EXIF data from ExifTool
-        ffprobe_data: Optional pre-fetched ffprobe data
-
-    Returns:
-        Result with extracted metadata (all raw data + interpreted fields)
-    """
-    if not os.path.exists(file_path):
-        return Result.Err(ErrorCode.NOT_FOUND, f"File not found: {file_path}")
-
-    exif_data = exif_data or {}
-    # Start with all raw data
-    metadata: dict[str, Any] = {
-        "raw": exif_data or {},
-        "raw_ffprobe": ffprobe_data or {},
-        "workflow": None,
-        "prompt": None,
-        "parameters": None,
-        "duration": None,
-        "resolution": None,
-        "fps": None,
-        "quality": "none"
-    }
-
-    try:
-        _apply_video_ffprobe_fields(metadata, ffprobe_data)
-        workflow, prompt, format_tags, stream_tag_dicts = _scan_video_workflow_prompt_from_sources(exif_data, ffprobe_data)
-        text_candidates = _collect_video_text_candidates(exif_data, format_tags, stream_tag_dicts)
-        _apply_auto1111_text_candidates(
-            metadata,
-            text_candidates,
-            prompt_graph=prompt,
-            preserve_existing_prompt_text=False,
-        )
-
-        _apply_common_exif_fields(metadata, exif_data, workflow=workflow, prompt=prompt)
-        return Result.Ok(metadata, quality=metadata["quality"])
-
-    except Exception as e:
-        logger.warning(f"Video metadata extraction error: {e}")
-        return Result.Err(ErrorCode.PARSE_ERROR, str(e), quality="degraded")
+    return _video.extract_video_metadata_impl(
+        file_path,
+        exif_data,
+        ffprobe_data,
+        exists=os.path.exists,
+        apply_video_ffprobe_fields=_apply_video_ffprobe_fields,
+        scan_video_workflow_prompt_from_sources=_scan_video_workflow_prompt_from_sources,
+        collect_video_text_candidates=_collect_video_text_candidates,
+        apply_auto1111_text_candidates=_apply_auto1111_text_candidates,
+        apply_common_exif_fields=_apply_common_exif_fields,
+        result_ok=Result.Ok,
+        result_err=Result.Err,
+        error_code=ErrorCode,
+        logger=logger,
+    )
 
 def _extract_json_fields(exif_data: dict[str, Any]) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     """

@@ -5,6 +5,7 @@
 import { SETTINGS_KEY } from "../app/settingsStore.js";
 import { ENDPOINTS, appendAssetFilterQueryParams } from "./endpoints.js";
 import { normalizeAssetId, pickRootId } from "../utils/ids.js";
+import { createTTLCache } from "../utils/ttlCache.js";
 
 /**
  * @template T
@@ -37,11 +38,7 @@ import { normalizeAssetId, pickRootId } from "../utils/ids.js";
  * }} ViewerInfo
  */
 
-let _obsCache = { value: null, at: 0 };
-let _rtSyncCache = { value: null, at: 0 };
-let _tagsCache = { value: null, at: 0 };
 const AUTH_TOKEN_CACHE_TTL_MS = 2000;
-let _authTokenCache = { value: "", at: 0 };
 const TAGS_CACHE_TTL_MS = 30_000;
 const DEFAULT_TAGS_CACHE_TTL_MS = TAGS_CACHE_TTL_MS;
 const CLIENT_GLOBAL_KEY = "__MJR_API_CLIENT__";
@@ -56,6 +53,13 @@ let _authTokenRefreshInFlight = null;
 const VECTOR_BACKFILL_DEFAULT_POLL_INTERVAL_MS = 1000;
 const VECTOR_BACKFILL_DEFAULT_POLL_TIMEOUT_MS = 30 * 60_000;
 const VECTOR_BACKFILL_MAX_POLL_TIMEOUT_MS = 12 * 60 * 60_000;
+const SETTINGS_CACHE_KEY = "settings";
+const TAGS_CACHE_KEY = "available-tags";
+const AUTH_TOKEN_CACHE_KEY = "token";
+let _obsCache = createTTLCache({ ttlMs: SETTINGS_FAST_CACHE_TTL_MS, maxSize: 1 });
+let _rtSyncCache = createTTLCache({ ttlMs: SETTINGS_FAST_CACHE_TTL_MS, maxSize: 1 });
+let _tagsCache = createTTLCache({ ttlMs: () => _getTagsCacheTTL(), maxSize: 1 });
+let _authTokenCache = createTTLCache({ ttlMs: AUTH_TOKEN_CACHE_TTL_MS, maxSize: 1 });
 
 function _methodIsWrite(method) {
     return WRITE_METHODS.has(String(method || "").toUpperCase());
@@ -87,12 +91,16 @@ function _isBootstrapTokenUrl(url) {
     return _normalizeUrlPath(url) === BOOTSTRAP_TOKEN_PATH;
 }
 
+const TRUE_VALUES = new Set(["1", "true", "yes", "on"]);
+const FALSE_VALUES = new Set(["0", "false", "no", "off"]);
+
 function _coerceBool(value, fallback = false) {
     if (typeof value === "boolean") return value;
+    if (typeof value === "number") return value !== 0;
     if (typeof value === "string") {
         const s = value.trim().toLowerCase();
-        if (["1", "true", "yes", "on", "enabled", "enable"].includes(s)) return true;
-        if (["0", "false", "no", "off", "disabled", "disable"].includes(s)) return false;
+        if (TRUE_VALUES.has(s)) return true;
+        if (FALSE_VALUES.has(s)) return false;
     }
     return Boolean(fallback);
 }
@@ -111,16 +119,16 @@ function _getTagsCacheTTL() {
 }
 
 function _readAuthToken() {
-    const now = Date.now();
-    const elapsed = now - (_authTokenCache.at || 0);
-    if (elapsed >= 0 && elapsed < AUTH_TOKEN_CACHE_TTL_MS) {
-        return _authTokenCache.value;
+    const cached = _authTokenCache.get(AUTH_TOKEN_CACHE_KEY);
+    if (cached !== undefined) {
+        return cached;
     }
+    const now = Date.now();
 
     try {
         const sessionToken = String(sessionStorage?.getItem?.(RUNTIME_TOKEN_KEY) || "").trim();
         if (sessionToken) {
-            _authTokenCache = { value: sessionToken, at: now };
+            _authTokenCache.set(AUTH_TOKEN_CACHE_KEY, sessionToken, { at: now });
             return sessionToken;
         }
     } catch (e) { console.debug?.(e); }
@@ -144,10 +152,10 @@ function _readAuthToken() {
                 }
             } catch (e) { console.debug?.(e); }
         }
-        _authTokenCache = { value: token, at: now };
+        _authTokenCache.set(AUTH_TOKEN_CACHE_KEY, token, { at: now });
         return token;
     } catch {
-        _authTokenCache = { value: "", at: now };
+        _authTokenCache.set(AUTH_TOKEN_CACHE_KEY, "", { at: now });
         return "";
     }
 }
@@ -157,7 +165,7 @@ function _persistAuthToken(token) {
     if (!normalized) return false;
     try {
         sessionStorage?.setItem?.(RUNTIME_TOKEN_KEY, normalized);
-        _authTokenCache = { value: normalized, at: Date.now() };
+        _authTokenCache.set(AUTH_TOKEN_CACHE_KEY, normalized);
         try {
             const raw = localStorage?.getItem?.(SETTINGS_KEY);
             const parsed = raw ? JSON.parse(raw) : {};
@@ -189,7 +197,7 @@ async function _refreshAuthTokenFromServer() {
         });
         const contentType = response.headers.get("content-type") || "";
         if (!contentType.includes("application/json")) return false;
-        const payload = await response.json().catch(() => null);
+        const payload = await response.json().catch((e) => { console.debug?.("[MJR auth] JSON parse error:", e); return null; });
         if (!payload || typeof payload !== "object" || !payload.ok) return false;
         const token = String(payload?.data?.token || "").trim();
         if (token) return _persistAuthToken(token);
@@ -304,15 +312,15 @@ function _buildTimedSignal(options = {}) {
 }
 
 function invalidateObsCache() {
-    _obsCache = { value: null, at: 0 };
+    _obsCache.clear();
 }
 
 function invalidateRatingTagsSyncCache() {
-    _rtSyncCache = { value: null, at: 0 };
+    _rtSyncCache.clear();
 }
 
 function invalidateTagsCache() {
-    _tagsCache = { value: null, at: 0 };
+    _tagsCache.clear();
 }
 
 function _normalizeTagCacheKey(raw) {
@@ -335,7 +343,7 @@ function _dedupeTagList(tags) {
 }
 
 function invalidateAuthTokenCache() {
-    _authTokenCache = { value: "", at: 0 };
+    _authTokenCache.clear();
 }
 
 // Best-effort cache invalidation when settings change (ComfyUI settings, dev tools, etc.).
@@ -365,46 +373,47 @@ try {
 } catch (e) { console.debug?.(e); }
 
 const _readObsEnabled = () => {
-    const now = Date.now();
-    if (_obsCache.value !== null && now - (_obsCache.at || 0) < SETTINGS_FAST_CACHE_TTL_MS) {
-        return _obsCache.value;
+    const cached = _obsCache.get(SETTINGS_CACHE_KEY);
+    if (cached !== undefined) {
+        return cached;
     }
+    const now = Date.now();
     try {
         const raw = localStorage?.getItem?.(SETTINGS_KEY);
         if (!raw) {
-            _obsCache = { value: false, at: now };
-            return _obsCache.value;
+            _obsCache.set(SETTINGS_CACHE_KEY, false, { at: now });
+            return false;
         }
         const parsed = JSON.parse(raw);
-        _obsCache = { value: !!parsed?.observability?.enabled, at: now };
-        return _obsCache.value;
+        const value = !!parsed?.observability?.enabled;
+        _obsCache.set(SETTINGS_CACHE_KEY, value, { at: now });
+        return value;
     } catch {
-        _obsCache = { value: false, at: now };
-        return _obsCache.value;
+        _obsCache.set(SETTINGS_CACHE_KEY, false, { at: now });
+        return false;
     }
 };
 
 const _readRatingTagsSyncEnabled = () => {
-    const now = Date.now();
-    if (_rtSyncCache.value !== null && now - (_rtSyncCache.at || 0) < SETTINGS_FAST_CACHE_TTL_MS) {
-        return _rtSyncCache.value;
+    const cached = _rtSyncCache.get(SETTINGS_CACHE_KEY);
+    if (cached !== undefined) {
+        return cached;
     }
+    const now = Date.now();
     try {
         const raw = localStorage?.getItem?.(SETTINGS_KEY);
         if (!raw) {
-            _rtSyncCache = { value: true, at: now };
-            return _rtSyncCache.value;
+            _rtSyncCache.set(SETTINGS_CACHE_KEY, true, { at: now });
+            return true;
         }
         const parsed = JSON.parse(raw);
         const configured = parsed?.ratingTagsSync?.enabled;
-        _rtSyncCache = {
-            value: configured === undefined || configured === null ? true : _coerceBool(configured, true),
-            at: now
-        };
-        return _rtSyncCache.value;
+        const value = configured === undefined || configured === null ? true : _coerceBool(configured, true);
+        _rtSyncCache.set(SETTINGS_CACHE_KEY, value, { at: now });
+        return value;
     } catch {
-        _rtSyncCache = { value: true, at: now };
-        return _rtSyncCache.value;
+        _rtSyncCache.set(SETTINGS_CACHE_KEY, true, { at: now });
+        return true;
     }
 };
 
@@ -494,7 +503,7 @@ async function fetchAPI(url, options = {}, retryCount = 0) {
             };
         }
 
-        const result = await response.json().catch(() => null);
+        const result = await response.json().catch((e) => { console.debug?.("[MJR API] JSON parse error:", e); return null; });
         if (typeof result !== "object" || result === null) {
             return {
                 ok: false,
@@ -654,11 +663,9 @@ export async function updateAssetTags(assetId, tags, options = {}) {
     if (result?.ok) {
         try {
             const persistedTags = _dedupeTagList(Array.isArray(result?.data?.tags) ? result.data.tags : tags);
-            if (Array.isArray(_tagsCache.value)) {
-                _tagsCache = {
-                    value: _dedupeTagList([..._tagsCache.value, ...persistedTags]),
-                    at: Date.now(),
-                };
+            const cachedTags = _tagsCache.get(TAGS_CACHE_KEY);
+            if (Array.isArray(cachedTags)) {
+                _tagsCache.set(TAGS_CACHE_KEY, _dedupeTagList([...cachedTags, ...persistedTags]));
             } else {
                 invalidateTagsCache();
             }
@@ -673,15 +680,15 @@ export async function updateAssetTags(assetId, tags, options = {}) {
  * Get all available tags from the database
  */
 export async function getAvailableTags() {
-    const now = Date.now();
-    if (Array.isArray(_tagsCache.value) && now - (_tagsCache.at || 0) < _getTagsCacheTTL()) {
-        return { ok: true, data: _tagsCache.value, error: null, code: "OK", meta: { cached: true } };
+    const cachedTags = _tagsCache.get(TAGS_CACHE_KEY);
+    if (Array.isArray(cachedTags)) {
+        return { ok: true, data: cachedTags, error: null, code: "OK", meta: { cached: true } };
     }
 
     const result = await get("/mjr/am/tags");
     if (result?.ok && Array.isArray(result.data)) {
         const deduped = _dedupeTagList(result.data);
-        _tagsCache = { value: deduped, at: now };
+        _tagsCache.set(TAGS_CACHE_KEY, deduped);
         return { ...result, data: deduped };
     }
     return result;

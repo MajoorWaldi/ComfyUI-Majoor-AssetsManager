@@ -15,14 +15,26 @@ repos:
   - repo: local
     hooks:
       - id: check-no-bom
-        name: Check Python files encoding (no UTF-8 BOM)
-        entry: uv run python scripts/check_no_bom.py mjr_am_backend mjr_am_shared tests __init__.py scripts
+        name: Check text files encoding (UTF-8, no BOM)
+        entry: python scripts/check_no_bom.py mjr_am_backend mjr_am_shared tests scripts docs .github README.md CHANGELOG.md __init__.py pyproject.toml mypy.ini pytest.ini tox.ini .pre-commit-config.yaml
         language: system
         pass_filenames: false
 
+      - id: ruff
+        name: Ruff
+        entry: python -m ruff check
+        language: system
+
       - id: mypy
         name: Mypy (manual / pre-push)
-        entry: uv run python -m mypy --config-file mypy.ini
+        entry: python -m mypy --config-file mypy.ini
+        language: system
+        pass_filenames: false
+        stages: [pre-push, manual]
+
+      - id: quality-gate
+        name: Quality gate (manual / pre-push)
+        entry: python scripts/run_quality_gate.py --python-only --skip-tests
         language: system
         pass_filenames: false
         stages: [pre-push, manual]

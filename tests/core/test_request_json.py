@@ -46,6 +46,9 @@ def test_decode_and_parse_json_dict() -> None:
     ok = rq._decode_and_parse_json_dict(b'{"a":1}')
     assert ok.ok and ok.data == {"a": 1}
 
+    empty = rq._decode_and_parse_json_dict(b"")
+    assert empty.ok and empty.data == {}
+
     bad_utf = rq._decode_and_parse_json_dict(b"\xff")
     assert not bad_utf.ok
 
@@ -54,6 +57,9 @@ def test_decode_and_parse_json_dict() -> None:
 
     not_obj = rq._decode_and_parse_json_dict(b"[]")
     assert not not_obj.ok
+
+    scalar = rq._decode_and_parse_json_dict(b'"hello"')
+    assert not scalar.ok
 
 
 @pytest.mark.asyncio

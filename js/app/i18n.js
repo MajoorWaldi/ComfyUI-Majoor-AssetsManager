@@ -528,6 +528,7 @@ const DICTIONARY = {
         "video.setInFromCurrent": "Set In from current frame",
         "video.setOutFromCurrent": "Set Out from current frame",
         "video.loopPlaybackInRange": "Loop playback in range",
+        "video.pingpongPlayback": "Ping-pong playback (forward then reverse)",
         "video.loop": "Loop",
         "video.inFrame": "In frame",
         "video.outFrame": "Out frame",

@@ -193,6 +193,7 @@ async def test_watcher_toggle_start_missing_index(monkeypatch) -> None:
 @pytest.mark.asyncio
 async def test_watcher_toggle_stop_existing(monkeypatch) -> None:
     state = {"stopped": False}
+    audit_calls = []
 
     class _Watcher:
         is_running = True
@@ -208,10 +209,15 @@ async def test_watcher_toggle_stop_existing(monkeypatch) -> None:
     async def _read_json(_request):
         return Result.Ok({"enabled": False})
 
+    async def _audit_log_write(_services, **kwargs):
+        audit_calls.append(kwargs)
+        return True
+
     monkeypatch.setattr(scan_mod, "_require_services", _require_services)
     monkeypatch.setattr(scan_mod, "_csrf_error", lambda _request: None)
     monkeypatch.setattr(scan_mod, "_require_write_access", lambda _request: Result.Ok({}))
     monkeypatch.setattr(scan_mod, "_read_json", _read_json)
+    monkeypatch.setattr(scan_mod, "audit_log_write", _audit_log_write)
 
     app = _app()
     req = make_mocked_request("POST", "/mjr/am/watcher/toggle", app=app)
@@ -220,6 +226,7 @@ async def test_watcher_toggle_stop_existing(monkeypatch) -> None:
     payload = json.loads(resp.text)
     assert payload.get("ok") is True
     assert state["stopped"] is True
+    assert audit_calls and audit_calls[0]["operation"] == "watcher_toggle"
 
 
 @pytest.mark.asyncio
@@ -844,6 +851,7 @@ async def test_stage_to_input_copy_success_and_index_scheduled(monkeypatch, tmp_
     src = out_root / "a.png"
     src.write_bytes(b"abc")
     called = {"scheduled": 0}
+    audit_calls = []
 
     class _Index:
         async def index_paths(self, *_args, **_kwargs):
@@ -862,6 +870,10 @@ async def test_stage_to_input_copy_success_and_index_scheduled(monkeypatch, tmp_
         called["scheduled"] += 1
         _ = fn
 
+    async def _audit_log_write(_services, **kwargs):
+        audit_calls.append(kwargs)
+        return True
+
     monkeypatch.setattr(scan_mod, "_runtime_output_root", _runtime_output_root)
     monkeypatch.setattr(scan_mod, "_require_services", _require_services)
     monkeypatch.setattr(scan_mod, "_csrf_error", lambda _request: None)
@@ -869,6 +881,7 @@ async def test_stage_to_input_copy_success_and_index_scheduled(monkeypatch, tmp_
     monkeypatch.setattr(scan_mod, "_read_json", _read_json)
     monkeypatch.setattr(scan_mod, "_is_path_allowed", lambda _p: True)
     monkeypatch.setattr(scan_mod, "_schedule_index_task", _schedule)
+    monkeypatch.setattr(scan_mod, "audit_log_write", _audit_log_write)
     monkeypatch.setattr(scan_mod, "folder_paths", SimpleNamespace(get_input_directory=lambda: str(in_root)))
 
     app = _app()
@@ -878,6 +891,8 @@ async def test_stage_to_input_copy_success_and_index_scheduled(monkeypatch, tmp_
     payload = json.loads(resp.text)
     assert payload.get("ok") is True
     assert called["scheduled"] == 1
+    assert audit_calls and audit_calls[0]["operation"] == "stage_to_input"
+    assert audit_calls[0]["details"]["staged_files"] == 1
 
 
 @pytest.mark.asyncio
@@ -963,6 +978,7 @@ async def test_stage_to_input_all_failures_returns_stage_failed(monkeypatch, tmp
     in_root.mkdir()
     src = out_root / "a.png"
     src.write_bytes(b"x")
+    audit_calls = []
 
     async def _runtime_output_root(_svc):
         return str(out_root)
@@ -977,6 +993,10 @@ async def test_stage_to_input_all_failures_returns_stage_failed(monkeypatch, tmp
         _ = fn
         return [{"ok": False, "error": "copy failed"} for _ in ops]
 
+    async def _audit_log_write(_services, **kwargs):
+        audit_calls.append(kwargs)
+        return True
+
     monkeypatch.setattr(scan_mod, "_runtime_output_root", _runtime_output_root)
     monkeypatch.setattr(scan_mod, "_require_services", _require_services)
     monkeypatch.setattr(scan_mod, "_csrf_error", lambda _request: None)
@@ -985,6 +1005,7 @@ async def test_stage_to_input_all_failures_returns_stage_failed(monkeypatch, tmp
     monkeypatch.setattr(scan_mod, "_is_path_allowed", lambda _p: True)
     monkeypatch.setattr(scan_mod, "folder_paths", SimpleNamespace(get_input_directory=lambda: str(in_root)))
     monkeypatch.setattr(scan_mod.asyncio, "to_thread", _fake_to_thread)
+    monkeypatch.setattr(scan_mod, "audit_log_write", _audit_log_write)
 
     app = _app()
     req = make_mocked_request("POST", "/mjr/am/stage-to-input", app=app)
@@ -992,6 +1013,8 @@ async def test_stage_to_input_all_failures_returns_stage_failed(monkeypatch, tmp
     resp = await match.handler(req)
     payload = json.loads(resp.text)
     assert payload.get("code") == "STAGE_FAILED"
+    assert audit_calls and audit_calls[0]["operation"] == "stage_to_input"
+    assert audit_calls[0]["result"].code == "STAGE_FAILED"
 
 
 @pytest.mark.asyncio
@@ -2071,6 +2094,7 @@ async def test_watcher_settings_update_branches(monkeypatch) -> None:
 async def test_upload_input_success_with_index_schedule_and_services_error(monkeypatch, tmp_path: Path) -> None:
     in_root = tmp_path / "in"
     in_root.mkdir()
+    audit_calls = []
 
     class _Reader:
         async def next(self):
@@ -2097,6 +2121,10 @@ async def test_upload_input_success_with_index_schedule_and_services_error(monke
     async def _require_services_ok():
         return {"index": _Index()}, None
 
+    async def _audit_log_write(_services, **kwargs):
+        audit_calls.append(kwargs)
+        return True
+
     app = _app()
     req = make_mocked_request("POST", "/mjr/am/upload_input", app=app)
     req.multipart = _multipart
@@ -2105,12 +2133,14 @@ async def test_upload_input_success_with_index_schedule_and_services_error(monke
     monkeypatch.setattr(scan_mod, "_write_multipart_file_atomic", _write_ok)
     monkeypatch.setattr(scan_mod, "_require_services", _require_services_ok)
     monkeypatch.setattr(scan_mod, "_schedule_index_task", _schedule)
+    monkeypatch.setattr(scan_mod, "audit_log_write", _audit_log_write)
     monkeypatch.setattr(scan_mod, "folder_paths", SimpleNamespace(get_input_directory=lambda: str(in_root)))
     match = await app.router.resolve(req)
     resp = await match.handler(req)
     payload = json.loads(resp.text)
     assert payload.get("ok") is True
     assert called["n"] == 1
+    assert audit_calls and audit_calls[0]["operation"] == "upload_input"
 
     async def _require_services_boom():
         raise RuntimeError("x")
@@ -2122,6 +2152,7 @@ async def test_upload_input_success_with_index_schedule_and_services_error(monke
     resp2 = await match2.handler(req2)
     payload2 = json.loads(resp2.text)
     assert payload2.get("ok") is True
+    assert len(audit_calls) >= 2
 
 
 @pytest.mark.asyncio

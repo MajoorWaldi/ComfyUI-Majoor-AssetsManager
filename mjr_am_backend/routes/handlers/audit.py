@@ -17,6 +17,11 @@ from ..core import _json_response, _require_services
 
 logger = get_logger(__name__)
 
+_DEFAULT_AUDIT_LIMIT = 200
+_MAX_AUDIT_LIMIT = 500
+_DEFAULT_AUDIT_OFFSET = 0
+_MAX_AUDIT_OFFSET = 100_000
+
 
 def register_audit_routes(routes: web.RouteTableDef) -> None:
     """Register library audit routes."""
@@ -34,10 +39,12 @@ def register_audit_routes(routes: web.RouteTableDef) -> None:
           limit      : max results (default 200, max 500)
           custom_root_id : for scope=custom
         """
-        services, err = await _require_services()
+        svc, err = await _require_services()
         if err:
             return _json_response(err)
-        assert services is not None  # guaranteed when err is None
+        if not isinstance(svc, dict):
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Services unavailable"))
+        services = svc
 
         db = services.get("db")
         scope = (request.query.get("scope") or "output").strip()
@@ -46,10 +53,16 @@ def register_audit_routes(routes: web.RouteTableDef) -> None:
         custom_root_id = (request.query.get("custom_root_id") or "").strip() or None
 
         try:
-            limit = int(request.query.get("limit", "200"))
+            limit = int(request.query.get("limit", str(_DEFAULT_AUDIT_LIMIT)))
         except (ValueError, TypeError):
-            limit = 200
-        limit = max(1, min(500, limit))
+            limit = _DEFAULT_AUDIT_LIMIT
+        limit = max(1, min(_MAX_AUDIT_LIMIT, limit))
+
+        try:
+            offset = int(request.query.get("offset", str(_DEFAULT_AUDIT_OFFSET)))
+        except (ValueError, TypeError):
+            offset = _DEFAULT_AUDIT_OFFSET
+        offset = max(0, min(_MAX_AUDIT_OFFSET, offset))
 
         where: list[str] = ["a.source = ?"]
         params: list[Any] = [scope]
@@ -88,6 +101,13 @@ def register_audit_routes(routes: web.RouteTableDef) -> None:
         order_by = order_map.get(sort_mode, "e.aesthetic_score ASC NULLS FIRST, a.mtime DESC")
 
         where_sql = " AND ".join(where)
+        count_query = (
+            f"SELECT COUNT(*) AS total "
+            f"FROM assets a "
+            f"LEFT JOIN asset_metadata m ON a.id = m.asset_id "
+            f"LEFT JOIN vec.asset_embeddings e ON a.id = e.asset_id "
+            f"WHERE {where_sql}"
+        )
         query = (
             f"SELECT a.id, a.filename, a.subfolder, a.filepath, a.kind, a.source AS type, "
             f"a.mtime, a.size AS file_size, a.width, a.height, "
@@ -98,20 +118,30 @@ def register_audit_routes(routes: web.RouteTableDef) -> None:
             f"LEFT JOIN vec.asset_embeddings e ON a.id = e.asset_id "
             f"WHERE {where_sql} "
             f"ORDER BY {order_by} "
-            f"LIMIT ?"
+            f"LIMIT ? OFFSET ?"
         )
-        params.append(limit)
+        page_params = [*params, limit, offset]
 
         if db is None:
             return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Database service unavailable"))
 
         try:
-            rows = await db.aquery(query, tuple(params))
+            total_rows = await db.aquery(count_query, tuple(params))
+            rows = await db.aquery(query, tuple(page_params))
         except Exception as exc:
             return _json_response(Result.Err("DB_ERROR", f"Query failed: {exc}"))
 
+        if not total_rows.ok:
+            return _json_response(Result.Err("DB_ERROR", total_rows.error or "Count query failed"))
         if not rows.ok:
             return _json_response(Result.Err("DB_ERROR", rows.error or "Query failed"))
+
+        total = 0
+        if total_rows.data:
+            try:
+                total = int(total_rows.data[0].get("total") or 0)
+            except (TypeError, ValueError, AttributeError, IndexError):
+                total = 0
 
         assets = []
         for row in rows.data or []:
@@ -155,4 +185,8 @@ def register_audit_routes(routes: web.RouteTableDef) -> None:
                 "has_rating": has_rating,
             })
 
-        return _json_response(Result.Ok(assets))
+        response = _json_response(Result.Ok(assets))
+        response.headers["X-Total-Count"] = str(total)
+        response.headers["X-Limit"] = str(limit)
+        response.headers["X-Offset"] = str(offset)
+        return response

@@ -48,7 +48,7 @@ async function _loadNodeStreamController() {
 }
 
 // Inline MFV mode constants (avoids eager import of FloatingViewer.js).
-const MFV_MODES = Object.freeze({ SIMPLE: "simple", AB: "ab", SIDE: "side" });
+const MFV_MODES = Object.freeze({ SIMPLE: "simple", AB: "ab", SIDE: "side", GRID: "grid" });
 
 // ── Module state ──────────────────────────────────────────────────────────────
 
@@ -123,7 +123,8 @@ function _findAdjacentGridId(selectedId) {
 }
 
 /**
- * Fetch up to 2 assets by ID and load them into the viewer.
+ * Fetch up to 4 assets by ID and load them into the viewer.
+ * In grid mode, up to 4 are loaded; in compare modes up to 2.
  * If only 1 ID is provided and the viewer is in a compare mode,
  * the adjacent grid asset is automatically used as slot B.
  * @param {string[]} selectedIds
@@ -138,13 +139,17 @@ async function _loadFromIds(selectedIds) {
 
     try {
         const pinnedSlot = _instance.getPinnedSlot();
-        let ids = selectedIds.slice(0, 2);
-
         const mode = _instance._mode;
-        if (pinnedSlot && (mode === MFV_MODES.AB || mode === MFV_MODES.SIDE)) {
-            // With a pinned side, only one new asset is needed.
-            ids = [ids[0]];
-        } else if (ids.length === 1 && (mode === MFV_MODES.AB || mode === MFV_MODES.SIDE)) {
+        const isGrid = mode === MFV_MODES.GRID;
+        const isCompare = mode === MFV_MODES.AB || mode === MFV_MODES.SIDE;
+        const maxSlots = isGrid ? 4 : 2;
+        let ids = selectedIds.slice(0, maxSlots);
+
+        if (pinnedSlot && (isCompare || isGrid)) {
+            // With a pinned slot, only load new assets into non-pinned slots.
+            // Remove duplicates of pinned content; limit to maxSlots - 1 new.
+            ids = ids.slice(0, maxSlots - 1);
+        } else if (ids.length === 1 && isCompare) {
             // Compare-mode fallback: if only 1 asset, auto-pick the adjacent grid item for slot B.
             const adjId = _findAdjacentGridId(ids[0]);
             if (adjId) ids = [ids[0], adjId];
@@ -157,6 +162,34 @@ async function _loadFromIds(selectedIds) {
         if (!_instance) return; // disposed while fetching
 
         const assets = result.data;
+
+        // Grid mode: load up to 4 assets
+        if (isGrid) {
+            if (pinnedSlot) {
+                // Keep the pinned slot, fill others from new assets
+                const slotMedia = {
+                    A: _instance._mediaA,
+                    B: _instance._mediaB,
+                    C: _instance._mediaC,
+                    D: _instance._mediaD,
+                };
+                const freeSlots = ["A", "B", "C", "D"].filter((s) => s !== pinnedSlot);
+                let ai = 0;
+                for (const slot of freeSlots) {
+                    if (ai < assets.length) slotMedia[slot] = assets[ai++];
+                }
+                _instance.loadMediaQuad(slotMedia.A, slotMedia.B, slotMedia.C, slotMedia.D);
+            } else if (assets.length >= 3) {
+                _instance.loadMediaQuad(assets[0], assets[1], assets[2], assets[3] || null);
+            } else if (assets.length >= 2) {
+                _instance.loadMediaPair(assets[0], assets[1]);
+            } else {
+                _instance.loadMediaA(assets[0], { autoMode: true });
+            }
+            return;
+        }
+
+        // AB / Side / Simple modes (C/D pins only valid in GRID, handled above)
         if (pinnedSlot === "A" && _instance._mediaA) {
             _instance.loadMediaPair(_instance._mediaA, assets[0]);
         } else if (pinnedSlot === "B" && _instance._mediaB) {
@@ -280,18 +313,18 @@ export const floatingViewerManager = {
             return;
         }
 
-        if (inst._mode === MFV_MODES.AB) {
-            inst.setMode(MFV_MODES.SIDE);
-            return;
-        }
-
-        if (inst._mode === MFV_MODES.SIDE) {
-            inst.setMode(MFV_MODES.SIMPLE);
-            return;
-        }
-
-        inst.setMode(MFV_MODES.AB);
-        if (inst._mode === MFV_MODES.AB) {
+        // Cycle: AB → Side → Grid → Simple → AB
+        const cycle = {
+            [MFV_MODES.AB]:     MFV_MODES.SIDE,
+            [MFV_MODES.SIDE]:   MFV_MODES.SIMPLE,
+            [MFV_MODES.GRID]:   MFV_MODES.SIMPLE,
+            [MFV_MODES.SIMPLE]: MFV_MODES.AB,
+        };
+        const next = cycle[inst._mode] || MFV_MODES.AB;
+        inst.setMode(next);
+        // Re-sync grid selection when entering a multi-asset mode so the viewer
+        // is populated with the current selection (not stale from a previous mode).
+        if (next !== MFV_MODES.SIMPLE) {
             _syncCurrentGridSelection();
         }
     },
@@ -309,12 +342,16 @@ export const floatingViewerManager = {
         _bindSelectionListener();
 
         const mode = inst._mode;
-        const inCompare = mode === MFV_MODES.AB || mode === MFV_MODES.SIDE;
+        const inCompare = mode === MFV_MODES.AB || mode === MFV_MODES.SIDE || mode === MFV_MODES.GRID;
         if (inCompare) {
-            // In compare mode: route the live stream to the non-pinned slot so the
-            // user's selection or pin stays intact.  Default: stream → B, selection → A.
+            // In compare/grid mode: route the live stream to the first non-pinned slot.
             const pin = inst.getPinnedSlot();
-            if (pin === "B") {
+            if (mode === MFV_MODES.GRID) {
+                const slotMedia = { A: inst._mediaA, B: inst._mediaB, C: inst._mediaC, D: inst._mediaD };
+                const freeSlot = ["A", "B", "C", "D"].find((s) => s !== pin) || "A";
+                slotMedia[freeSlot] = fileData;
+                inst.loadMediaQuad(slotMedia.A, slotMedia.B, slotMedia.C, slotMedia.D);
+            } else if (pin === "B") {
                 inst.loadMediaPair(fileData, inst._mediaB); // B pinned — stream to A
             } else {
                 inst.loadMediaPair(inst._mediaA, fileData); // A pinned (or no pin) — stream to B
@@ -428,10 +465,15 @@ export const floatingViewerManager = {
         _syncViewerControls(inst);
 
         const mode = inst._mode;
-        const inCompare = mode === MFV_MODES.AB || mode === MFV_MODES.SIDE;
+        const inCompare = mode === MFV_MODES.AB || mode === MFV_MODES.SIDE || mode === MFV_MODES.GRID;
         if (inCompare) {
             const pin = inst.getPinnedSlot();
-            if (pin === "B") {
+            if (mode === MFV_MODES.GRID) {
+                const slotMedia = { A: inst._mediaA, B: inst._mediaB, C: inst._mediaC, D: inst._mediaD };
+                const freeSlot = ["A", "B", "C", "D"].find((s) => s !== pin) || "A";
+                slotMedia[freeSlot] = fileData;
+                inst.loadMediaQuad(slotMedia.A, slotMedia.B, slotMedia.C, slotMedia.D);
+            } else if (pin === "B") {
                 inst.loadMediaPair(fileData, inst._mediaB);
             } else {
                 inst.loadMediaPair(inst._mediaA, fileData);

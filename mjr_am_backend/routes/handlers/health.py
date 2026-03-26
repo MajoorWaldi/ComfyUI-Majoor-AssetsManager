@@ -33,6 +33,7 @@ from mjr_am_backend.tool_detect import get_tool_status
 from mjr_am_backend.utils import parse_bool
 
 from ..core import (
+    audit_log_write,
     _csrf_error,
     _has_configured_write_token,
     _is_loopback_request,
@@ -300,6 +301,26 @@ def _vector_runtime_diagnostics(svc: dict | None) -> dict:
 
 def register_health_routes(routes: web.RouteTableDef) -> None:
     """Register health and diagnostics routes."""
+    async def _audit_settings_write(
+        services: dict | None,
+        request: web.Request,
+        operation: str,
+        target: str,
+        result: Result,
+        **details: object,
+    ) -> None:
+        try:
+            await audit_log_write(
+                services if isinstance(services, dict) else {},
+                request=request,
+                operation=operation,
+                target=target,
+                result=result,
+                details=details or None,
+            )
+        except Exception as exc:
+            logger.debug("Settings audit logging skipped for %s: %s", operation, exc)
+
     async def _runtime_output_root(svc: dict | None) -> str:
         try:
             settings_service = (svc or {}).get("settings") if isinstance(svc, dict) else None
@@ -610,7 +631,17 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
                 )
             except Exception:
                 pass
-        return _json_response(Result.Ok({"output_directory": result.data}))
+        response_result = Result.Ok({"output_directory": result.data})
+        await _audit_settings_write(
+            svc,
+            request,
+            "settings_output_directory",
+            "settings:output_directory",
+            response_result,
+            previous=old_output_dir,
+            current=str(result.data or ""),
+        )
+        return _json_response(response_result)
 
     @routes.post("/mjr/am/settings/probe-backend")
     async def update_probe_backend(request):
@@ -643,7 +674,17 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
 
         result = await settings_service.set_probe_backend(mode)
         if result.ok:
-            return _json_response(Result.Ok({"media_probe_backend": result.data}))
+            response_result = Result.Ok({"media_probe_backend": result.data})
+            await _audit_settings_write(
+                svc,
+                request,
+                "settings_probe_backend",
+                "settings:probe_backend",
+                response_result,
+                mode=mode,
+            )
+            return _json_response(response_result)
+        await _audit_settings_write(svc, request, "settings_probe_backend", "settings:probe_backend", result, mode=mode)
         return _json_response(result)
 
     @routes.get("/mjr/am/settings/metadata-fallback")
@@ -685,8 +726,27 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
 
         result = await settings_service.set_metadata_fallback_prefs(image=image, media=media)
         if not result.ok:
+            await _audit_settings_write(
+                svc,
+                request,
+                "settings_metadata_fallback",
+                "settings:metadata_fallback",
+                result,
+                image=image,
+                media=media,
+            )
             return _json_response(result)
-        return _json_response(Result.Ok({"prefs": result.data or {}}))
+        response_result = Result.Ok({"prefs": result.data or {}})
+        await _audit_settings_write(
+            svc,
+            request,
+            "settings_metadata_fallback",
+            "settings:metadata_fallback",
+            response_result,
+            image=image,
+            media=media,
+        )
+        return _json_response(response_result)
 
     @routes.get("/mjr/am/settings/vector-search")
     async def get_vector_search_settings(request):
@@ -729,8 +789,25 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
 
         result = await settings_service.set_vector_search_enabled(enabled)
         if not result.ok:
+            await _audit_settings_write(
+                svc,
+                request,
+                "settings_vector_search",
+                "settings:vector_search",
+                result,
+                enabled=enabled,
+            )
             return _json_response(result)
-        return _json_response(Result.Ok({"prefs": {"enabled": bool(result.data)}}))
+        response_result = Result.Ok({"prefs": {"enabled": bool(result.data)}})
+        await _audit_settings_write(
+            svc,
+            request,
+            "settings_vector_search",
+            "settings:vector_search",
+            response_result,
+            enabled=enabled,
+        )
+        return _json_response(response_result)
 
     @routes.get("/mjr/am/settings/huggingface")
     async def get_huggingface_settings(request):
@@ -773,8 +850,25 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
 
         result = await settings_service.set_huggingface_token(token)
         if not result.ok:
+            await _audit_settings_write(
+                svc,
+                request,
+                "settings_huggingface",
+                "settings:huggingface",
+                result,
+                token_present=bool(str(token or "").strip()),
+            )
             return _json_response(result)
-        return _json_response(Result.Ok({"prefs": result.data or {}}))
+        response_result = Result.Ok({"prefs": result.data or {}})
+        await _audit_settings_write(
+            svc,
+            request,
+            "settings_huggingface",
+            "settings:huggingface",
+            response_result,
+            token_present=bool(str(token or "").strip()),
+        )
+        return _json_response(response_result)
 
     @routes.get("/mjr/am/settings/ai-logging")
     async def get_ai_logging_settings(request):
@@ -817,8 +911,25 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
 
         result = await settings_service.set_ai_verbose_logs_enabled(enabled)
         if not result.ok:
+            await _audit_settings_write(
+                svc,
+                request,
+                "settings_ai_logging",
+                "settings:ai_logging",
+                result,
+                enabled=enabled,
+            )
             return _json_response(result)
-        return _json_response(Result.Ok({"prefs": {"enabled": bool(result.data)}}))
+        response_result = Result.Ok({"prefs": {"enabled": bool(result.data)}})
+        await _audit_settings_write(
+            svc,
+            request,
+            "settings_ai_logging",
+            "settings:ai_logging",
+            response_result,
+            enabled=enabled,
+        )
+        return _json_response(response_result)
 
     @routes.get("/mjr/am/settings/security")
     async def get_security_settings(request):
@@ -871,7 +982,24 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
             except Exception:
                 pass
             current_prefs = result.data or (await settings_service.get_security_prefs())
-            return _json_response(Result.Ok({"prefs": current_prefs}))
+            response_result = Result.Ok({"prefs": current_prefs})
+            await _audit_settings_write(
+                svc,
+                request,
+                "settings_security",
+                "settings:security",
+                response_result,
+                keys=sorted(str(k) for k in prefs.keys()),
+            )
+            return _json_response(response_result)
+        await _audit_settings_write(
+            svc,
+            request,
+            "settings_security",
+            "settings:security",
+            result,
+            keys=sorted(str(k) for k in prefs.keys()),
+        )
         return _json_response(result)
 
     @routes.post("/mjr/am/settings/security/rotate-token")
@@ -901,6 +1029,14 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
 
         result = await settings_service.rotate_api_token()
         if not result.ok:
+            await _audit_settings_write(
+                svc,
+                request,
+                "settings_rotate_token",
+                "settings:security_token",
+                result,
+                action="rotate",
+            )
             return _json_response(result)
         token = str((result.data or {}).get("api_token") or "").strip()
         if _is_loopback_request(request):
@@ -915,6 +1051,15 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
             payload["token"] = token
         response = _json_response(Result.Ok(payload))
         _set_write_token_cookie(response, request, token)
+        await _audit_settings_write(
+            svc,
+            request,
+            "settings_rotate_token",
+            "settings:security_token",
+            Result.Ok({"token_hint": _token_hint(token)}),
+            action="rotate",
+            token_hint=_token_hint(token),
+        )
         return response
 
     @routes.post("/mjr/am/settings/security/bootstrap-token")
@@ -984,6 +1129,15 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
 
         result = await settings_service.bootstrap_api_token()
         if not result.ok:
+            await _audit_settings_write(
+                svc,
+                request,
+                "settings_bootstrap_token",
+                "settings:security_token",
+                result,
+                action="bootstrap",
+                loopback=bool(is_loopback),
+            )
             return _json_response(result)
         token = str((result.data or {}).get("api_token") or "").strip()
         if is_loopback:
@@ -1001,6 +1155,16 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
             payload["token"] = token
         response = _json_response(Result.Ok(payload))
         _set_write_token_cookie(response, request, token)
+        await _audit_settings_write(
+            svc,
+            request,
+            "settings_bootstrap_token",
+            "settings:security_token",
+            Result.Ok({"token_hint": _token_hint(token)}),
+            action="bootstrap",
+            loopback=bool(is_loopback),
+            token_hint=_token_hint(token),
+        )
         return response
 
     @routes.get("/mjr/am/tools/status")

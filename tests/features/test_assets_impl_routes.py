@@ -220,6 +220,45 @@ async def test_asset_rating_paths(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_asset_rating_writes_audit_log(monkeypatch):
+    app = _app()
+    calls = []
+
+    class _Index:
+        async def update_asset_rating(self, asset_id, rating):
+            return Result.Ok({"id": asset_id, "rating": rating})
+
+    async def _prefs(_svc):
+        return {}
+
+    async def _require_services():
+        return {"index": _Index(), "db": object()}, None
+
+    async def _read_json(_request):
+        return Result.Ok({"asset_id": 8, "rating": 4})
+
+    async def _audit_log_write(_services, **kwargs):
+        calls.append(kwargs)
+        return True
+
+    monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(m, "_require_services", _require_services)
+    monkeypatch.setattr(m, "_resolve_security_prefs", _prefs)
+    monkeypatch.setattr(m, "_require_operation_enabled", lambda *_args, **_kwargs: Result.Ok({}))
+    monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(m, "_check_rate_limit", lambda *_args, **_kwargs: (True, None))
+    monkeypatch.setattr(m, "_read_json", _read_json)
+    monkeypatch.setattr(m, "audit_log_write", _audit_log_write)
+
+    req = make_mocked_request("POST", "/mjr/am/asset/rating", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    assert _json(resp).get("ok") is True
+    assert len(calls) == 1
+    assert calls[0]["operation"] == "asset_rating"
+    assert calls[0]["target"] == "asset:8"
+
+
+@pytest.mark.asyncio
 async def test_asset_tags_rate_limit_and_read_error(monkeypatch):
     app = _app()
 
@@ -405,6 +444,48 @@ async def test_rename_asset_validation_and_conflict(monkeypatch, tmp_path: Path)
 
 
 @pytest.mark.asyncio
+async def test_rename_asset_conflict_writes_audit_log(monkeypatch, tmp_path: Path):
+    app = _app()
+    calls = []
+    f = tmp_path / "a.png"
+    f.write_bytes(b"x")
+    conflict = tmp_path / "b.png"
+    conflict.write_bytes(b"y")
+
+    db = _DummyDB()
+    db.query_rows = [{"filepath": str(f), "filename": "a.png", "source": "output", "root_id": ""}]
+
+    async def _svc_ok():
+        return {"db": db, "index": object()}, None
+
+    async def _prefs(_svc):
+        return {}
+
+    async def _read_conflict(_request):
+        return Result.Ok({"asset_id": 1, "new_name": conflict.name})
+
+    async def _audit_log_write(_services, **kwargs):
+        calls.append(kwargs)
+        return True
+
+    monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(m, "_require_services", _svc_ok)
+    monkeypatch.setattr(m, "_resolve_security_prefs", _prefs)
+    monkeypatch.setattr(m, "_require_operation_enabled", lambda *_args, **_kwargs: Result.Ok({}))
+    monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(m, "_is_resolved_path_allowed", lambda _p: True)
+    monkeypatch.setattr(m, "_read_json", _read_conflict)
+    monkeypatch.setattr(m, "audit_log_write", _audit_log_write)
+
+    req = make_mocked_request("POST", "/mjr/am/asset/rename", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    assert _json(resp).get("code") == "CONFLICT"
+    assert len(calls) == 1
+    assert calls[0]["operation"] == "asset_rename"
+    assert calls[0]["details"]["new_name"] == "b.png"
+
+
+@pytest.mark.asyncio
 async def test_assets_delete_bulk_paths(monkeypatch, tmp_path: Path):
     app = _app()
 
@@ -454,6 +535,56 @@ async def test_assets_delete_bulk_paths(monkeypatch, tmp_path: Path):
     req2 = make_mocked_request("POST", "/mjr/am/assets/delete", app=app)
     resp2 = await (await app.router.resolve(req2)).handler(req2)
     assert _json(resp2).get("ok") is True
+
+
+@pytest.mark.asyncio
+async def test_assets_delete_writes_audit_log(monkeypatch, tmp_path: Path):
+    app = _app()
+    calls = []
+    files = []
+    for i in [1, 2]:
+        p = tmp_path / f"{i}.png"
+        p.write_bytes(b"x")
+        files.append(p)
+
+    db = _DummyDB()
+
+    async def _svc_ok():
+        return {"db": db}, None
+
+    async def _prefs(_svc):
+        return {}
+
+    async def _read_json_ok(_request):
+        return Result.Ok({"ids": [1, 2]})
+
+    async def _aquery_in(_sql, _col, values):
+        return Result.Ok([{"id": 1, "filepath": str(files[0])}, {"id": 2, "filepath": str(files[1])}])
+
+    async def _audit_log_write(_services, **kwargs):
+        calls.append(kwargs)
+        return True
+
+    db.aquery_in = _aquery_in
+    monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(m, "_require_services", _svc_ok)
+    monkeypatch.setattr(m, "_resolve_security_prefs", _prefs)
+    monkeypatch.setattr(m, "_require_operation_enabled", lambda *_args, **_kwargs: Result.Ok({}))
+    monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(m, "_check_rate_limit", lambda *_args, **_kwargs: (True, None))
+    monkeypatch.setattr(m, "_normalize_path", lambda v: Path(v) if v else None)
+    monkeypatch.setattr(m, "_is_path_allowed", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(m, "_is_path_allowed_custom", lambda *_args, **_kwargs: False)
+    monkeypatch.setattr(m, "_is_resolved_path_allowed", lambda _p: True)
+    monkeypatch.setattr(m, "_read_json", _read_json_ok)
+    monkeypatch.setattr(m, "_delete_file_safe", lambda _p: Result.Ok(True))
+    monkeypatch.setattr(m, "audit_log_write", _audit_log_write)
+
+    req = make_mocked_request("POST", "/mjr/am/assets/delete", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    assert _json(resp).get("ok") is True
+    assert len(calls) == 1
+    assert calls[0]["operation"] == "assets_delete"
 
 
 def test_download_helpers_unit(monkeypatch, tmp_path: Path):

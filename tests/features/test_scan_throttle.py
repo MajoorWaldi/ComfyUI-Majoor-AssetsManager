@@ -94,9 +94,32 @@ def test_cleanup_locked_removes_old():
     assert "old_key" not in th._RECENT_SCAN_TIMES
 
 
+def test_maybe_cleanup_locked_respects_interval():
+    now = time.time()
+    calls = {"count": 0}
+    original = th._cleanup_locked
+
+    def _counting_cleanup(ts):
+        calls["count"] += 1
+        return original(ts)
+
+    th._cleanup_locked = _counting_cleanup
+    try:
+        with th._LOCK:
+            th._LAST_CLEANUP = 0.0
+            th._maybe_cleanup_locked(now)
+            th._maybe_cleanup_locked(now + 1.0)
+            th._maybe_cleanup_locked(now + th._CLEANUP_INTERVAL_S + 1.0)
+    finally:
+        th._cleanup_locked = original
+
+    assert calls["count"] == 2
+
+
 def test_reset_helper_clears_state():
     th.mark_directory_indexed("/x")
     th.mark_directory_scanned("/x")
     th._reset_scan_throttle_state_for_tests()
     assert not th._MANUAL_SCAN_TIMES
     assert not th._RECENT_SCAN_TIMES
+    assert th._LAST_CLEANUP == 0.0

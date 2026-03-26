@@ -96,6 +96,80 @@ async def test_collections_add_filters_invalid_assets(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_collections_create_writes_audit_log(monkeypatch) -> None:
+    calls = []
+
+    class _Svc:
+        def create(self, name):
+            return Result.Ok({"id": "c1", "name": name})
+
+    async def _read_json(_request):
+        return Result.Ok({"name": "Favorites"})
+
+    async def _require_services():
+        return {"db": object()}, None
+
+    async def _audit_log_write(_services, **kwargs):
+        calls.append(kwargs)
+        return True
+
+    app = _app_with(collections_mod.register_collections_routes)
+    monkeypatch.setattr(collections_mod, "_collections", _Svc())
+    monkeypatch.setattr(collections_mod, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(collections_mod, "_require_write_access", _ok_write)
+    monkeypatch.setattr(collections_mod, "_read_json", _read_json)
+    monkeypatch.setattr(collections_mod, "_require_services", _require_services)
+    monkeypatch.setattr(collections_mod, "audit_log_write", _audit_log_write)
+
+    req = make_mocked_request("POST", "/mjr/am/collections", app=app)
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    payload = json.loads(resp.text)
+
+    assert payload.get("ok") is True
+    assert len(calls) == 1
+    assert calls[0]["operation"] == "collection_create"
+
+
+@pytest.mark.asyncio
+async def test_collections_add_writes_audit_log(monkeypatch) -> None:
+    calls = []
+
+    class _Svc:
+        def add_assets(self, cid, assets):
+            return Result.Ok({"cid": cid, "count": len(assets)})
+
+    async def _read_json(_request):
+        return Result.Ok({"assets": [{"filepath": "C:/ok/a.png"}]})
+
+    async def _require_services():
+        return {"db": object()}, None
+
+    async def _audit_log_write(_services, **kwargs):
+        calls.append(kwargs)
+        return True
+
+    app = _app_with(collections_mod.register_collections_routes)
+    monkeypatch.setattr(collections_mod, "_collections", _Svc())
+    monkeypatch.setattr(collections_mod, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(collections_mod, "_require_write_access", _ok_write)
+    monkeypatch.setattr(collections_mod, "_read_json", _read_json)
+    monkeypatch.setattr(collections_mod, "_require_services", _require_services)
+    monkeypatch.setattr(collections_mod, "audit_log_write", _audit_log_write)
+
+    req = make_mocked_request("POST", "/mjr/am/collections/c1/add", app=app)
+    req._match_info = {"collection_id": "c1"}
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    payload = json.loads(resp.text)
+
+    assert payload.get("ok") is True
+    assert len(calls) == 1
+    assert calls[0]["operation"] == "collection_add_assets"
+    assert calls[0]["details"]["asset_count"] == 1
+
+
+@pytest.mark.asyncio
 async def test_collections_get_assets_enriches_index_fields(monkeypatch, tmp_path: Path) -> None:
     fp = str(tmp_path / "x.png")
 

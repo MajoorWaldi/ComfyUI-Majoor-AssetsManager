@@ -22,6 +22,7 @@ unwanted content that leaked through.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -110,16 +111,33 @@ AUTOTAG_VOCABULARY: dict[str, str] = {
 # Pre-computed text embeddings for the vocabulary (populated lazily).
 _autotag_cache: dict[str, list[float]] = {}
 _autotag_cache_lock = asyncio.Lock()
+_autotag_cache_version: str = ""
+
+
+def _autotag_cache_version_key(vs: VectorService) -> str:
+    payload = {
+        "model_name": str(getattr(vs, "_model_name", "") or "").strip(),
+        "vocabulary": sorted(AUTOTAG_VOCABULARY.items()),
+    }
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8", errors="ignore")
+    return hashlib.sha256(encoded).hexdigest()[:16]
+
+
+def invalidate_autotag_cache() -> None:
+    global _autotag_cache, _autotag_cache_version
+    _autotag_cache = {}
+    _autotag_cache_version = ""
 
 
 async def _get_autotag_embeddings(vs: VectorService) -> dict[str, list[float]]:
     """Return cached text embeddings for each auto-tag prompt."""
-    global _autotag_cache
-    if _autotag_cache:
+    global _autotag_cache, _autotag_cache_version
+    version = _autotag_cache_version_key(vs)
+    if _autotag_cache and _autotag_cache_version == version:
         return _autotag_cache
 
     async with _autotag_cache_lock:
-        if _autotag_cache:
+        if _autotag_cache and _autotag_cache_version == version:
             return _autotag_cache
 
         cache: dict[str, list[float]] = {}
@@ -130,6 +148,7 @@ async def _get_autotag_embeddings(vs: VectorService) -> dict[str, list[float]]:
             else:
                 logger.debug("Auto-tag embedding failed for '%s': %s", tag, result.error)
         _autotag_cache = cache
+        _autotag_cache_version = version
         logger.info("Auto-tag vocabulary embedded (%d / %d tags)", len(cache), len(AUTOTAG_VOCABULARY))
         return cache
 

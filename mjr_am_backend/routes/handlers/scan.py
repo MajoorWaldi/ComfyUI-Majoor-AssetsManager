@@ -30,11 +30,22 @@ from mjr_am_backend.config import (
     TO_THREAD_TIMEOUT_S,
 )
 from mjr_am_backend.custom_roots import resolve_custom_root
+from mjr_am_backend.features.index.scan_route_service import (
+    build_reset_scan_summary,
+    parse_scan_request_payload,
+    parse_reset_index_payload,
+    prepare_scan_route_context,
+    resolve_reset_index_target_roots,
+    run_reset_clear_phase,
+    run_reset_reindex,
+    run_all_scope_scan,
+)
 from mjr_am_backend.features.index.metadata_helpers import MetadataHelpers
 from mjr_am_backend.shared import Result, get_logger, sanitize_error_message
 from mjr_am_backend.utils import parse_bool, sanitize_for_json
 
 from ..core import (
+    audit_log_write,
     _check_rate_limit,
     _csrf_error,
     _is_path_allowed,
@@ -167,12 +178,14 @@ async def _wait_for_with_cleanup(awaitable, *, timeout: float):
     task = asyncio.get_running_loop().create_task(awaitable)
     try:
         return await asyncio.wait_for(task, timeout=timeout)
-    except Exception:
+    except Exception as exc:
         if not task.done():
             task.cancel()
-        with suppress(asyncio.CancelledError):
+        try:
             await task
-        raise
+        except asyncio.CancelledError:
+            pass
+        raise exc
 
 
 # These module-level names are kept here so test monkeypatching on `scan_mod`
@@ -186,8 +199,8 @@ async def _maybe_schedule_consistency_check(db) -> None:
     global _LAST_CONSISTENCY_CHECK
     if not db:
         return
-    now = time.time()
     async with _CONSISTENCY_LOCK:
+        now = time.time()
         if (now - _LAST_CONSISTENCY_CHECK) < _DB_CONSISTENCY_COOLDOWN_SECONDS:
             return
         _LAST_CONSISTENCY_CHECK = now
@@ -215,52 +228,35 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             recursive: Scan subdirectories (default: true)
             incremental: Only update changed files (default: true)
         """
-        svc, error_result = await _require_services()
-        if error_result:
-            return _json_response(error_result)
-        if is_db_maintenance_active():
-            return _json_response(Result.Err("DB_MAINTENANCE", "Database maintenance in progress. Please wait."))
-
-        csrf = _csrf_error(request)
-        if csrf:
-            return _json_response(Result.Err("CSRF", csrf))
-        auth = _require_write_access(request)
-        if not auth.ok:
-            return _json_response(auth)
-
-        allowed, retry_after = _check_rate_limit(request, "scan", max_requests=3, window_seconds=60)
-        if not allowed:
-            return _json_response(Result.Err("RATE_LIMITED", "Too many scan requests. Please wait before retrying.", retry_after=retry_after))
-
-        body_res = await _read_json(request)
-        if not body_res.ok:
-            return _json_response(body_res)
-        body = body_res.data or {}
-
-        def _coerce_scan_timeout(value: Any, default: float = max(float(TO_THREAD_TIMEOUT_S), 120.0)) -> float:
-            if value is None:
-                return default
-            try:
-                parsed = float(value)
-            except (TypeError, ValueError):
-                return default
-            if parsed < 1.0:
-                return 1.0
-            if parsed > 900.0:
-                return 900.0
-            return parsed
-
-        scan_timeout_s = _coerce_scan_timeout(
-            body.get("scan_timeout_s", body.get("scanTimeoutS", body.get("timeout_s", body.get("timeoutS"))))
+        context_res = await prepare_scan_route_context(
+            request,
+            require_services=_require_services,
+            is_db_maintenance_active=is_db_maintenance_active,
+            csrf_error=_csrf_error,
+            require_write_access=_require_write_access,
+            check_rate_limit=_check_rate_limit,
+            read_json=_read_json,
         )
-        async_scan = parse_bool(body.get("async", body.get("background", False)), False)
-
-        scope = (body.get("scope") or "").lower().strip()
-        custom_root_id = body.get("custom_root_id") or body.get("root_id") or body.get("customRootId")
+        if not context_res.ok:
+            return _json_response(context_res)
+        context = context_res.data
+        svc = context.services if context else {}
         output_root = await _runtime_output_root(svc)
+        body = context.body if context else {}
+        payload = parse_scan_request_payload(
+            body,
+            output_root=output_root,
+            default_timeout=max(float(TO_THREAD_TIMEOUT_S), 120.0),
+            scan_fast_enabled=_scan_fast_enabled,
+            scan_background_metadata_enabled=_scan_background_metadata_enabled,
+        )
+        scan_timeout_s = payload.scan_timeout_s
+        async_scan = payload.async_scan
+        scope = payload.scope
+        custom_root_id = payload.custom_root_id
 
         # Use ComfyUI output directory if not specified (backwards-compatible)
-        directory = body.get("directory", output_root)
+        directory = payload.directory
         if not directory:
             result = Result.Err("INVALID_INPUT", "No directory specified and no output directory configured")
             return _json_response(result)
@@ -286,98 +282,24 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 scan_source = "custom"
                 scan_root_id = str(custom_root_id) if custom_root_id else None
             elif scope == "all":
-                # Run both output and input scans sequentially.
-                recursive = body.get("recursive", True)
-                incremental = body.get("incremental", True)
-                fast = _scan_fast_enabled(body)
-                background_metadata = _scan_background_metadata_enabled(body)
-                if async_scan:
-                    output_enqueued = _scan_enqueued_from_kickoff(await _kickoff_background_scan(
-                        str(Path(output_root).resolve()),
-                        source="output",
-                        recursive=bool(recursive),
-                        incremental=bool(incremental),
-                        fast=bool(fast),
-                        background_metadata=bool(background_metadata),
-                        min_interval_seconds=0.0,
-                        respect_bg_scan_on_list=False,
-                    ))
-                    input_enqueued = _scan_enqueued_from_kickoff(await _kickoff_background_scan(
-                        str(Path(folder_paths.get_input_directory()).resolve()),
-                        source="input",
-                        recursive=bool(recursive),
-                        incremental=bool(incremental),
-                        fast=bool(fast),
-                        background_metadata=bool(background_metadata),
-                        min_interval_seconds=0.0,
-                        respect_bg_scan_on_list=False,
-                    ))
-                    queued_targets = []
-                    if output_enqueued:
-                        queued_targets.append("output")
-                    if input_enqueued:
-                        queued_targets.append("input")
-                    return _json_response(
-                        Result.Ok(
-                            {
-                                "queued": bool(queued_targets),
-                                "mode": "background",
-                                "scope": "all",
-                                "targets": ["output", "input"],
-                                "enqueued_targets": queued_targets,
-                            }
-                        )
-                    )
-                try:
-                    # Note: output and input scans share the same _scan_lock so they
-                    # serialize naturally — no actual concurrency gain from gather here.
-                    # Sequential awaits are clearer and equally performant (BUG-03).
-                    try:
-                        out_res = await _wait_for_with_cleanup(
-                            svc['index'].scan_directory(
-                                str(Path(output_root).resolve()),
-                                recursive, incremental, "output", None, fast, background_metadata,
-                            ),
-                            timeout=scan_timeout_s,
-                        )
-                    except asyncio.TimeoutError:
-                        return _json_response(Result.Err("TIMEOUT", "Output scan timed out"))
-                    except Exception as exc:
-                        logger.error("Output scan failed: %s", exc)
-                        return _json_response(Result.Err("SCAN_FAILED", safe_error_message(exc, "Output scan failed")))
-
-                    try:
-                        in_res = await _wait_for_with_cleanup(
-                            svc['index'].scan_directory(
-                                str(Path(folder_paths.get_input_directory()).resolve()),
-                                recursive, incremental, "input", None, fast, background_metadata,
-                            ),
-                            timeout=scan_timeout_s,
-                        )
-                    except asyncio.TimeoutError:
-                        return _json_response(Result.Err("TIMEOUT", "Input scan timed out"))
-                    except Exception as exc:
-                        logger.error("Input scan failed: %s", exc)
-                        return _json_response(Result.Err("SCAN_FAILED", safe_error_message(exc, "Input scan failed")))
-
-                except asyncio.TimeoutError:
-                    return _json_response(Result.Err("TIMEOUT", "Scan timed out"))
-                if not out_res.ok:
-                    return _json_response(out_res)
-                if not in_res.ok:
-                    return _json_response(in_res)
-                out_stats = out_res.data or {}
-                in_stats = in_res.data or {}
-                merged = {
-                    "scanned": out_stats.get("scanned", 0) + in_stats.get("scanned", 0),
-                    "added": out_stats.get("added", 0) + in_stats.get("added", 0),
-                    "updated": out_stats.get("updated", 0) + in_stats.get("updated", 0),
-                    "skipped": out_stats.get("skipped", 0) + in_stats.get("skipped", 0),
-                    "errors": out_stats.get("errors", 0) + in_stats.get("errors", 0),
-                    "start_time": out_stats.get("start_time") or in_stats.get("start_time"),
-                    "end_time": in_stats.get("end_time") or out_stats.get("end_time"),
-                    "scope": "all",
-                }
+                all_scope_result = await run_all_scope_scan(
+                    services=svc,
+                    output_root=output_root,
+                    input_root=folder_paths.get_input_directory(),
+                    recursive=payload.recursive,
+                    incremental=payload.incremental,
+                    fast=payload.fast,
+                    background_metadata=payload.background_metadata,
+                    async_scan=async_scan,
+                    scan_timeout_s=scan_timeout_s,
+                    kickoff_background_scan=_kickoff_background_scan,
+                    scan_enqueued_from_kickoff=_scan_enqueued_from_kickoff,
+                    wait_for_with_cleanup=_wait_for_with_cleanup,
+                    format_scan_error=safe_error_message,
+                )
+                if not all_scope_result.ok:
+                    return _json_response(all_scope_result)
+                merged = all_scope_result.data or {}
                 try:
                     if isinstance(merged, dict):
                         request["mjr_stats"] = {
@@ -432,10 +354,10 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         if not allowed or not (_is_path_allowed(normalized_dir) or _is_path_allowed_custom(normalized_dir)):
             return _json_response(Result.Err("INVALID_INPUT", "Directory not allowed"))
 
-        recursive = body.get("recursive", True)
-        incremental = body.get("incremental", True)
-        fast = _scan_fast_enabled(body)
-        background_metadata = _scan_background_metadata_enabled(body)
+        recursive = payload.recursive
+        incremental = payload.incremental
+        fast = payload.fast
+        background_metadata = payload.background_metadata
 
         if async_scan:
             queued = _scan_enqueued_from_kickoff(await _kickoff_background_scan(
@@ -731,7 +653,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             if not result.ok:
                 return _json_response(result)
 
-            stats = result.data or {}
+            stats = result.data if isinstance(result.data, dict) else {}
             if not total_stats["start_time"]:
                 total_stats["start_time"] = str(stats.get("start_time") or "")
             total_stats["end_time"] = str(stats.get("end_time") or total_stats["end_time"] or "")
@@ -908,120 +830,38 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             return _json_response(body_res)
         body = body_res.data or {}
         _emit_maintenance_status("started", "info", operation="reset_index")
-
-        def _bool_option(keys, default):
-            for key in keys:
-                if key in body:
-                    return parse_bool(body[key], default)
-            return default
-
-        def _float_option(keys, default, *, min_value: float, max_value: float):
-            for key in keys:
-                if key not in body:
-                    continue
-                value = body.get(key)
-                if value is None:
-                    continue
-                try:
-                    parsed = float(value)
-                except (TypeError, ValueError):
-                    return default
-                if parsed < min_value:
-                    return min_value
-                if parsed > max_value:
-                    return max_value
-                return parsed
-            return default
-
-        scope = str(body.get("scope") or "output").strip().lower() or "output"
-        custom_root_id = ""
-        for key in ("custom_root_id", "root_id", "customRootId", "customRoot"):
-            candidate = body.get(key)
-            if candidate:
-                custom_root_id = str(candidate).strip()
-                break
-
-        reindex = _bool_option(("reindex",), True)
-        clear_scan_journal = _bool_option(("clear_scan_journal", "clearScanJournal"), True)
-        clear_metadata_cache = _bool_option(("clear_metadata_cache", "clearMetadataCache"), True)
-        clear_asset_metadata = _bool_option(("clear_asset_metadata", "clearAssetMetadata"), True)
-        clear_assets_table = _bool_option(("clear_assets", "clearAssets"), True)
-        preserve_vectors = _bool_option(
-            (
-                "preserve_vectors",
-                "preserveVectors",
-                "keep_vectors",
-                "keepVectors",
-                "keep_embeddings",
-                "keepEmbeddings",
-            ),
-            False,
+        reset_payload = parse_reset_index_payload(
+            body,
+            default_timeout=max(float(TO_THREAD_TIMEOUT_S), 120.0),
         )
-        rebuild_fts_flag = _bool_option(("rebuild_fts", "rebuildFts"), True)
-        incremental = _bool_option(("incremental",), False)
-        fast = _bool_option(("fast",), True)
-        background_metadata = _bool_option(("background_metadata", "backgroundMetadata"), True)
-        reset_scan_timeout_s = _float_option(
-            ("scan_timeout_s", "scanTimeoutS", "timeout_s", "timeoutS"),
-            max(float(TO_THREAD_TIMEOUT_S), 120.0),
-            min_value=1.0,
-            max_value=900.0,
-        )
-
-        # Hard reset deletes and recreates the SQLite DB files (assets.sqlite, -wal, -shm).
-        # This matches the "Reset Index Now" maintenance intent.
-        hard_reset_db = _bool_option(
-            (
-                "hard_reset_db",
-                "hardResetDb",
-                "delete_db_files",
-                "deleteDbFiles",
-                "delete_db",
-                "deleteDb",
-            ),
-            False,
-        )
-        if preserve_vectors:
-            # Preserve embeddings by keeping the assets table (asset_id continuity)
-            # and never escalating to a hard DB-file reset.
-            clear_assets_table = False
-            hard_reset_db = False
+        scope = reset_payload.scope
+        custom_root_id = reset_payload.custom_root_id
+        reindex = reset_payload.reindex
+        clear_scan_journal = reset_payload.clear_scan_journal
+        clear_metadata_cache = reset_payload.clear_metadata_cache
+        clear_asset_metadata = reset_payload.clear_asset_metadata
+        clear_assets_table = reset_payload.clear_assets_table
+        preserve_vectors = reset_payload.preserve_vectors
+        rebuild_fts_flag = reset_payload.rebuild_fts_flag
+        incremental = reset_payload.incremental
+        fast = reset_payload.fast
+        background_metadata = reset_payload.background_metadata
+        reset_scan_timeout_s = reset_payload.reset_scan_timeout_s
+        hard_reset_db = reset_payload.hard_reset_db
 
         output_root = await _runtime_output_root(svc)
-        target_roots: list[dict[str, str | None]] = []
-        try:
-            if scope in ("output", "outputs"):
-                target_roots.append({"source": "output", "path": str(Path(output_root).resolve(strict=False)), "root_id": None})
-            elif scope in ("input", "inputs"):
-                target_roots.append(
-                    {
-                        "source": "input",
-                        "path": str(Path(folder_paths.get_input_directory()).resolve(strict=False)),
-                        "root_id": None,
-                    }
-                )
-            elif scope == "all":
-                target_roots.append({"source": "output", "path": str(Path(output_root).resolve(strict=False)), "root_id": None})
-                target_roots.append(
-                    {
-                        "source": "input",
-                        "path": str(Path(folder_paths.get_input_directory()).resolve(strict=False)),
-                        "root_id": None,
-                    }
-                )
-            elif scope == "custom":
-                if not custom_root_id:
-                    return _json_response(Result.Err("INVALID_INPUT", "Missing custom_root_id for custom scope"))
-                root_result = resolve_custom_root(custom_root_id)
-                if not root_result.ok:
-                    return _json_response(root_result)
-                resolved = str(root_result.data)
-                target_roots.append({"source": "custom", "path": resolved, "root_id": custom_root_id})
-            else:
-                return _json_response(Result.Err("INVALID_INPUT", f"Unknown scope: {scope}"))
-        except Exception as exc:
-            logger.debug("Failed to resolve reset index roots: %s", exc)
-            return _json_response(Result.Err("INVALID_INPUT", "Unable to resolve reset scope"))
+        target_roots_res = resolve_reset_index_target_roots(
+            scope=scope,
+            custom_root_id=custom_root_id,
+            output_root=output_root,
+            input_root=folder_paths.get_input_directory(),
+            resolve_custom_root=resolve_custom_root,
+        )
+        if not target_roots_res.ok:
+            if target_roots_res.error == "Unable to resolve reset scope":
+                logger.debug("Failed to resolve reset index roots")
+            return _json_response(target_roots_res)
+        target_roots = target_roots_res.data or []
 
         db = svc.get("db")
         if not db:
@@ -1050,7 +890,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         except Exception:
             scan_lock = None
 
-        cache_prefixes: list[str] | None = None if scope == "all" else [entry["path"] for entry in target_roots]
+        cache_prefixes: list[str] | None = None if scope == "all" else [entry.path for entry in target_roots]
 
         # If the caller is effectively requesting a full wipe (the usual UI path),
         # treat it as a hard reset by default when scope=all.
@@ -1096,55 +936,29 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                         _emit_maintenance_status("failed", "error", "Index service unavailable", operation="reset_index")
                         return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Index service unavailable"))
                     _emit_maintenance_status("restarting_scan", "info", operation="reset_index")
-                    for target in target_roots:
-                        try:
-                            result = await _wait_for_with_cleanup(
-                                svc['index'].scan_directory(
-                                    target["path"],
-                                    True,
-                                    incremental,
-                                    target["source"],
-                                    target.get("root_id"),
-                                    fast,
-                                    background_metadata,
-                                ),
-                                timeout=reset_scan_timeout_s,
-                            )
-                        except asyncio.TimeoutError:
-                            _emit_maintenance_status("failed", "error", "Index reset scan timed out", operation="reset_index")
-                            return _json_response(Result.Err("TIMEOUT", "Index reset scan timed out"))
-                        except Exception as exc:
-                            logger.error("Index reset scan failed", exc_info=True)
-                            _emit_maintenance_status("failed", "error", sanitize_error_message(exc, "Index reset scan failed"), operation="reset_index")
-                            return _json_response(
-                                Result.Err(
-                                    "RESET_FAILED",
-                                    sanitize_error_message(exc, "Index reset scan failed"),
-                                )
-                            )
+                    reindex_res = await run_reset_reindex(
+                        index_service=svc["index"],
+                        targets=target_roots,
+                        incremental=incremental,
+                        fast=fast,
+                        background_metadata=background_metadata,
+                        reset_scan_timeout_s=reset_scan_timeout_s,
+                        wait_for_with_cleanup=_wait_for_with_cleanup,
+                        format_scan_error=sanitize_error_message,
+                    )
+                    if not reindex_res.ok:
+                        _emit_maintenance_status("failed", "error", reindex_res.error or "Index reset scan failed", operation="reset_index")
+                        return _json_response(reindex_res)
+                    reindex_data = reindex_res.data or {}
+                    scan_details = list(reindex_data.get("details") or [])
+                    totals = dict(reindex_data.get("totals") or totals)
 
-                        if not result.ok:
-                            _emit_maintenance_status("failed", "error", result.error or "Index reset scan failed", operation="reset_index")
-                            return _json_response(result)
-
-                        stats = result.data or {}
-                        counts = {key: int(stats.get(key) or 0) for key in totals}
-                        for key in totals:
-                            totals[key] += counts[key]
-                        scan_details.append(
-                            {
-                                "source": target["source"],
-                                "root_id": target.get("root_id"),
-                                **counts,
-                            }
-                        )
-
-                scan_summary = {
-                    "scope": scope,
-                    "reindex": bool(reindex),
-                    "details": scan_details,
-                    **totals,
-                }
+                scan_summary = build_reset_scan_summary(
+                    scope=scope,
+                    reindex=reindex,
+                    details=scan_details,
+                    totals=totals,
+                )
 
                 # Invalidate vector searcher cache after hard reset (stale embeddings).
                 _invalidate_vector_searcher(svc)
@@ -1153,283 +967,63 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 _emit_maintenance_status("done", "success", operation="reset_index")
                 return _json_response(Result.Ok({"cleared": cleared, "scan_summary": scan_summary, "rebuild_fts": None}))
 
-            async def _clear_table(table: str, prefixes: list[str] | None) -> Result[int]:
-                # Allowlist guards against accidental SQL injection if callers ever pass
-                # non-literal table names.
-                _allowed_tables = frozenset({"assets", "scan_journal", "metadata_cache", "asset_metadata"})
-                if table not in _allowed_tables:
-                    return Result.Err("INVALID_INPUT", f"Attempt to clear unknown table: {table!r}")
-                total_deleted = 0
-                if prefixes is None:
-                    res = await db.aexecute(f"DELETE FROM {table}")
-                    if not res.ok:
-                        return res
-                    return Result.Ok(int(res.data or 0))
-                for prefix in prefixes:
-                    try:
-                        normalized = str(Path(prefix).resolve(strict=False))
-                    except Exception:
-                        return Result.Err("INVALID_INPUT", f"Invalid path for cache clearing: {prefix}")
-                    # Depth guard (NM-6): reject paths that are filesystem root or only one
-                    # level deep (e.g. "/" or "C:\") to prevent accidentally wiping the
-                    # entire index if an adversarial prefix reaches this function.
-                    resolved_parts = Path(normalized).parts
-                    if len(resolved_parts) < 2:
-                        logger.warning("_clear_table: rejecting suspiciously shallow path %r", normalized)
-                        return Result.Err("INVALID_INPUT", f"Path too shallow for safe clearing: {prefix!r}")
-                    like = normalized.rstrip(os.path.sep) + os.path.sep + "%"
-                    res = await db.aexecute(
-                        f"DELETE FROM {table} WHERE filepath = ? OR filepath LIKE ?",
-                        (normalized, like),
-                    )
-                    if not res.ok:
-                        return res
-                    total_deleted += int(res.data or 0)
-                return Result.Ok(total_deleted)
-
-            async def _clear_assets(prefixes: list[str] | None) -> Result[int]:
-                # Deleting from assets cascades to asset_metadata/scan_journal/metadata_cache.
-                return await _clear_table("assets", prefixes)
-
-            async def _clear_asset_metadata(prefixes: list[str] | None) -> Result[int]:
-                total_deleted = 0
-                if prefixes is None:
-                    res = await db.aexecute("DELETE FROM asset_metadata")
-                    if not res.ok:
-                        return res
-                    return Result.Ok(int(res.data or 0))
-
-                for prefix in prefixes:
-                    try:
-                        normalized = str(Path(prefix).resolve(strict=False))
-                    except Exception:
-                        return Result.Err("INVALID_INPUT", f"Invalid path for metadata clearing: {prefix}")
-                    like = normalized.rstrip(os.path.sep) + os.path.sep + "%"
-                    res = await db.aexecute(
-                        """
-                        DELETE FROM asset_metadata
-                        WHERE asset_id IN (
-                            SELECT id FROM assets
-                            WHERE filepath = ? OR filepath LIKE ?
-                        )
-                        """,
-                        (normalized, like),
-                    )
-                    if not res.ok:
-                        return res
-                    total_deleted += int(res.data or 0)
-                return Result.Ok(total_deleted)
-
-            cleared = {"scan_journal": 0, "metadata_cache": 0, "asset_metadata": 0, "assets": 0}
-
-            async def _do_clears() -> Result[dict]:
-                # Make clears atomic and resistant to concurrent writers.
-                async with db.atransaction(mode="immediate") as tx:
-                    if not tx.ok:
-                        return Result.Err("DB_ERROR", tx.error or "Failed to begin transaction")
-                    if clear_scan_journal:
-                        res = await _clear_table("scan_journal", cache_prefixes)
-                        if not res.ok:
-                            return Result.Err(res.code, res.error or "Failed to clear scan_journal")
-                        cleared["scan_journal"] = int(res.data or 0)
-                    if clear_metadata_cache:
-                        res = await _clear_table("metadata_cache", cache_prefixes)
-                        if not res.ok:
-                            return Result.Err(res.code, res.error or "Failed to clear metadata_cache")
-                        cleared["metadata_cache"] = int(res.data or 0)
-
-                    # IMPORTANT: scope-aware clears.
-                    # Previous implementation cleared the entire tables, even for output/custom scope.
-                    if clear_asset_metadata:
-                        res = await _clear_asset_metadata(cache_prefixes)
-                        if not res.ok:
-                            return Result.Err(res.code, res.error or "Failed to clear asset_metadata")
-                        cleared["asset_metadata"] = int(res.data or 0)
-                    if clear_assets_table:
-                        res = await _clear_assets(cache_prefixes)
-                        if not res.ok:
-                            return Result.Err(res.code, res.error or "Failed to clear assets")
-                        cleared["assets"] = int(res.data or 0)
-                if not tx.ok:
-                    return Result.Err("DB_ERROR", tx.error or "Commit failed")
-                return Result.Ok(cleared)
-
-            try:
-                _emit_maintenance_status("resetting_db", "info", operation="reset_index")
-                if scan_lock is not None and hasattr(scan_lock, "__aenter__"):
-                    async with scan_lock:
-                        res = await _do_clears()
-                else:
-                    res = await _do_clears()
-            except Exception as exc:
-                logger.error("Index reset clear phase failed", exc_info=True)
-                _emit_maintenance_status("failed", "error", sanitize_error_message(exc, "Index reset failed during clear phase"), operation="reset_index")
-                return _json_response(
-                    Result.Err(
-                        "RESET_FAILED",
-                        sanitize_error_message(exc, "Index reset failed during clear phase"),
-                    )
-                )
-
-            if not res.ok:
-                # Fallback: if scoped clear hits a malformed DB, escalate to hard adapter reset.
-                if _is_db_malformed_result(res):
-                    if preserve_vectors:
-                        _emit_maintenance_status(
-                            "failed",
-                            "error",
-                            "Database is malformed; preserving vectors is not possible. Retry with full reset.",
-                            operation="reset_index",
-                        )
-                        return _json_response(
-                            Result.Err(
-                                "DB_MALFORMED",
-                                "Database is malformed; preserving vectors is not possible. Retry with full reset.",
-                            )
-                        )
-                    try:
-                        if scan_lock is not None and hasattr(scan_lock, "__aenter__"):
-                            async with scan_lock:
-                                reset_res = await db.areset()
-                        else:
-                            reset_res = await db.areset()
-                    except Exception as exc:
-                        logger.error("Fallback hard reset after malformed DB failed", exc_info=True)
-                        _emit_maintenance_status("failed", "error", sanitize_error_message(exc, "Malformed DB and fallback hard reset failed"), operation="reset_index")
-                        return _json_response(
-                            Result.Err(
-                                "RESET_FAILED",
-                                sanitize_error_message(exc, "Malformed DB and fallback hard reset failed"),
-                            )
-                        )
-                    if not reset_res.ok:
-                        _emit_maintenance_status("failed", "error", reset_res.error or "Hard reset failed", operation="reset_index")
-                        return _json_response(reset_res)
-                    cleared = {
-                        "scan_journal": None,
-                        "metadata_cache": None,
-                        "asset_metadata": None,
-                        "assets": None,
-                        "hard_reset_db": True,
-                        "fallback_reason": "malformed_db",
-                        "file_ops": (reset_res.meta or {}),
-                    }
-                    # Continue with optional reindex path below.
-                else:
-                    _emit_maintenance_status("failed", "error", res.error or "Index reset failed", operation="reset_index")
-                    return _json_response(res)
-
-            vectors_purged: bool | None = None
-            if clear_assets_table:
-                try:
-                    purge_res = await purge_orphan_vec_embeddings(db)
-                    vectors_purged = bool(purge_res.ok)
-                    if not purge_res.ok:
-                        logger.warning("Failed to purge orphan vectors during index reset: %s", purge_res.error)
-                except Exception as exc:
-                    vectors_purged = False
-                    logger.warning("Exception while purging orphan vectors during index reset: %s", exc)
-
-            # FULL RESET CLEANUP: VACUUM and Physical Files
-            if scope == "all" and (clear_scan_journal or clear_metadata_cache):
-                # 1. Vacuum DB to reclaim space and rebuild file
-                try:
-                    await db.avacuum()
-                    logger.info("Database VACUUM completed during index reset")
-                except Exception as exc:
-                    logger.warning(f"Failed to VACUUM database: {exc}")
-
-                # 2. Cleanup physical stray files in index directory
-                # Verify we are cleaning the right folder and safeguard critical files
-                if reindex and INDEX_DIR_PATH.exists():
-                    def _cleanup_index_dir():
-                        # Keep-list: every name/prefix listed here is preserved unchanged.
-                        # IMPORTANT: when adding a new persistent state file to the index directory,
-                        # register its name (or prefix) below to prevent it from being wiped on
-                        # a full reindex. Using an explicit constant avoids silent data loss.
-                        keep_prefixes = {"assets.sqlite"}  # DB + WAL/SHM
-                        if preserve_vectors:
-                            # Keep vectors DB (+ WAL/SHM) when user opted to preserve embeddings.
-                            keep_prefixes.add("vectors.sqlite")
-                        _KEEP_PREFIXES: frozenset[str] = frozenset(keep_prefixes)
-                        _KEEP_NAMES: frozenset[str] = frozenset({"custom_roots.json"})
-                        if preserve_vectors:
-                            _KEEP_NAMES = frozenset(set(_KEEP_NAMES) | {"vectors"})
-                        for item in INDEX_DIR_PATH.iterdir():
-                            if any(item.name.startswith(p) for p in _KEEP_PREFIXES):
-                                continue
-                            if item == COLLECTIONS_DIR_PATH:
-                                continue
-                            if item.name in _KEEP_NAMES:
-                                continue
-
-                            try:
-                                if item.is_dir():
-                                    shutil.rmtree(item)
-                                else:
-                                    item.unlink()
-                                logger.info(f"Deleted stray index item: {item.name}")
-                            except Exception as e:
-                                logger.warning(f"Failed to delete {item.name}: {e}")
-
-                    try:
-                        await asyncio.to_thread(_cleanup_index_dir)
-                    except Exception as exc:
-                        logger.warning(f"Index directory cleanup failed: {exc}")
+            clear_res = await run_reset_clear_phase(
+                db=db,
+                scan_lock=scan_lock,
+                cache_prefixes=cache_prefixes,
+                clear_scan_journal=clear_scan_journal,
+                clear_metadata_cache=clear_metadata_cache,
+                clear_asset_metadata=clear_asset_metadata,
+                clear_assets_table=clear_assets_table,
+                preserve_vectors=preserve_vectors,
+                scope=scope,
+                reindex=reindex,
+                purge_orphan_vectors=purge_orphan_vec_embeddings,
+                index_dir_path=INDEX_DIR_PATH,
+                collections_dir_path=COLLECTIONS_DIR_PATH,
+                is_db_malformed_result=_is_db_malformed_result,
+                emit_status=lambda phase, level, message: _emit_maintenance_status(
+                    phase,
+                    level,
+                    message,
+                    operation="reset_index",
+                ),
+                sanitize_message=sanitize_error_message,
+            )
+            if not clear_res.ok:
+                _emit_maintenance_status("failed", "error", clear_res.error or "Index reset failed", operation="reset_index")
+                return _json_response(clear_res)
+            clear_data = clear_res.data
+            cleared = clear_data.cleared if clear_data else {}
+            vectors_purged = clear_data.vectors_purged if clear_data else None
 
             scan_details: list[dict[str, Any]] = []
             totals = {key: 0 for key in ("scanned", "added", "updated", "skipped", "errors")}
             if reindex:
                 _emit_maintenance_status("restarting_scan", "info", operation="reset_index")
-                for target in target_roots:
-                    try:
-                        result = await _wait_for_with_cleanup(
-                            svc['index'].scan_directory(
-                                target["path"],
-                                True,
-                                incremental,
-                                target["source"],
-                                target.get("root_id"),
-                                fast,
-                                background_metadata,
-                            ),
-                            timeout=reset_scan_timeout_s,
-                        )
-                    except asyncio.TimeoutError:
-                        _emit_maintenance_status("failed", "error", "Index reset scan timed out", operation="reset_index")
-                        return _json_response(Result.Err("TIMEOUT", "Index reset scan timed out"))
-                    except Exception as exc:
-                        logger.error("Index reset scan failed", exc_info=True)
-                        _emit_maintenance_status("failed", "error", sanitize_error_message(exc, "Index reset scan failed"), operation="reset_index")
-                        return _json_response(
-                            Result.Err(
-                                "RESET_FAILED",
-                                sanitize_error_message(exc, "Index reset scan failed"),
-                            )
-                        )
+                reindex_res = await run_reset_reindex(
+                    index_service=svc["index"],
+                    targets=target_roots,
+                    incremental=incremental,
+                    fast=fast,
+                    background_metadata=background_metadata,
+                    reset_scan_timeout_s=reset_scan_timeout_s,
+                    wait_for_with_cleanup=_wait_for_with_cleanup,
+                    format_scan_error=sanitize_error_message,
+                )
+                if not reindex_res.ok:
+                    _emit_maintenance_status("failed", "error", reindex_res.error or "Index reset scan failed", operation="reset_index")
+                    return _json_response(reindex_res)
+                reindex_data = reindex_res.data or {}
+                scan_details = list(reindex_data.get("details") or [])
+                totals = dict(reindex_data.get("totals") or totals)
 
-                    if not result.ok:
-                        _emit_maintenance_status("failed", "error", result.error or "Index reset scan failed", operation="reset_index")
-                        return _json_response(result)
-
-                    stats = result.data or {}
-                    counts = {key: int(stats.get(key) or 0) for key in totals}
-                    for key in totals:
-                        totals[key] += counts[key]
-                    scan_details.append(
-                        {
-                            "source": target["source"],
-                            "root_id": target.get("root_id"),
-                            **counts,
-                        }
-                    )
-
-            scan_summary = {
-                "scope": scope,
-                "reindex": bool(reindex),
-                "details": scan_details,
-                **totals,
-            }
+            scan_summary = build_reset_scan_summary(
+                scope=scope,
+                reindex=reindex,
+                details=scan_details,
+                totals=totals,
+            )
 
             rebuild_status = None
             if rebuild_fts_flag:

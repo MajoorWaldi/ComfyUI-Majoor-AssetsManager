@@ -150,7 +150,7 @@ const escapeAttributeValue = (value) => {
             return CSS.escape(String(value));
         }
     } catch (e) { console.debug?.(e); }
-    return String(value).replace(/["\\]/g, "\\$&");
+    return String(value).replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1");
 };
 
 function queryCardById(gridContainer, assetId) {
@@ -159,7 +159,7 @@ function queryCardById(gridContainer, assetId) {
         return gridContainer.querySelector(`.mjr-asset-card[data-mjr-asset-id="${escapeAttributeValue(assetId)}"]`);
     } catch (e) { console.debug?.(e); }
     try {
-        return gridContainer.querySelector(`.mjr-asset-card[data-mjr-asset-id="${String(assetId).replace(/["\\]/g, "\\$&")}"]`);
+        return gridContainer.querySelector(`.mjr-asset-card[data-mjr-asset-id="${escapeAttributeValue(assetId)}"]`);
     } catch (e) { console.debug?.(e); }
     return null;
 }
@@ -607,10 +607,10 @@ export function bindSidebarOpen({
         let card = null;
         if (activeId) {
             try {
-                card = gridContainer.querySelector(`.mjr-asset-card[data-mjr-asset-id="${CSS?.escape ? CSS.escape(activeId) : activeId}"]`);
+                card = gridContainer.querySelector(`.mjr-asset-card[data-mjr-asset-id="${escapeAttributeValue(activeId)}"]`);
             } catch {
                 try {
-                    card = gridContainer.querySelector(`.mjr-asset-card[data-mjr-asset-id="${activeId.replace(/["\\]/g, "\\$&")}"]`);
+                    card = gridContainer.querySelector(`.mjr-asset-card[data-mjr-asset-id="${escapeAttributeValue(activeId)}"]`);
                 } catch (e) { console.debug?.(e); }
             }
         }

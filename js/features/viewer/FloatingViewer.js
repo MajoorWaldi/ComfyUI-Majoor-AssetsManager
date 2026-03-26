@@ -20,6 +20,7 @@ export const MFV_MODES = Object.freeze({
     SIMPLE: "simple",
     AB:     "ab",
     SIDE:   "side",
+    GRID:   "grid",
 });
 
 // Zoom bounds and wheel sensitivity for the MFV pan/zoom.
@@ -209,6 +210,8 @@ export class FloatingViewer {
         this._mode       = MFV_MODES.SIMPLE;
         this._mediaA     = null;
         this._mediaB     = null;
+        this._mediaC     = null;
+        this._mediaD     = null;
         this._pinnedSlot = null;
         this._abDividerX = 0.5; // 0..1
 
@@ -327,6 +330,8 @@ export class FloatingViewer {
             { value: "", label: "No Pin" },
             { value: "A", label: "Pin A" },
             { value: "B", label: "Pin B" },
+            { value: "C", label: "Pin C" },
+            { value: "D", label: "Pin D" },
         ]) {
             const option = document.createElement("option");
             option.value = value;
@@ -452,7 +457,10 @@ export class FloatingViewer {
 
         this._pinSelect?.addEventListener("change", (e) => {
             this._pinnedSlot = e?.target?.value || null;
-            if (this._pinnedSlot && this._mode === MFV_MODES.SIMPLE) {
+            if (this._pinnedSlot === "C" || this._pinnedSlot === "D") {
+                // C/D pins require grid mode — switch regardless of current mode
+                if (this._mode !== MFV_MODES.GRID) this.setMode(MFV_MODES.GRID);
+            } else if (this._pinnedSlot && this._mode === MFV_MODES.SIMPLE) {
                 this.setMode(MFV_MODES.AB);
             }
             this._updatePinSelectUI();
@@ -703,7 +711,7 @@ export class FloatingViewer {
     // ── Mode ──────────────────────────────────────────────────────────────────
 
     _cycleMode() {
-        const order = [MFV_MODES.SIMPLE, MFV_MODES.AB, MFV_MODES.SIDE];
+        const order = [MFV_MODES.SIMPLE, MFV_MODES.AB, MFV_MODES.SIDE, MFV_MODES.GRID];
         this._mode = order[(order.indexOf(this._mode) + 1) % order.length];
         this._updateModeBtnUI();
         this._refresh();
@@ -722,7 +730,8 @@ export class FloatingViewer {
 
     _updatePinSelectUI() {
         if (!this._pinSelect) return;
-        const pinned = this._pinnedSlot === "A" || this._pinnedSlot === "B";
+        const validPins = ["A", "B", "C", "D"];
+        const pinned = validPins.includes(this._pinnedSlot);
         this._pinSelect.value = this._pinnedSlot || "";
         this._pinSelect.classList.toggle("is-pinned", pinned);
         const label = pinned
@@ -738,6 +747,7 @@ export class FloatingViewer {
             [MFV_MODES.SIMPLE]: { icon: "pi-image", label: "Mode: Simple - click to switch" },
             [MFV_MODES.AB]:     { icon: "pi-clone", label: "Mode: A/B Compare - click to switch" },
             [MFV_MODES.SIDE]:   { icon: "pi-table", label: "Mode: Side-by-Side - click to switch" },
+            [MFV_MODES.GRID]:   { icon: "pi-th-large", label: "Mode: Grid Compare (up to 4) - click to switch" },
         };
         const { icon = "pi-image", label = "" } = cfg[this._mode] || {};
         const tooltip = appendTooltipHint(label, MFV_MODE_HINT);
@@ -820,14 +830,18 @@ export class FloatingViewer {
         // Build a minimal fileData that _resolveUrl can handle
         const fileData = { url, filename: "preview.jpg", kind: "image", _isPreview: true };
 
-        const inCompare = this._mode === MFV_MODES.AB || this._mode === MFV_MODES.SIDE;
+        const inCompare = this._mode === MFV_MODES.AB || this._mode === MFV_MODES.SIDE || this._mode === MFV_MODES.GRID;
         if (inCompare) {
-            // In compare mode: route the preview steps to the non-pinned slot so the
-            // user's reference image stays intact.  Default: preview → B, selection → A.
-            if (this.getPinnedSlot() === "B") {
-                this._mediaA = fileData; // B pinned as reference — stream to A
+            // Route preview to the first non-pinned slot. In GRID mode, cycle through
+            // all free slots so existing content in other cells is preserved.
+            const pin = this.getPinnedSlot();
+            if (this._mode === MFV_MODES.GRID) {
+                const target = ["A", "B", "C", "D"].find((s) => s !== pin) || "A";
+                this[`_media${target}`] = fileData;
+            } else if (pin === "B") {
+                this._mediaA = fileData;
             } else {
-                this._mediaB = fileData; // A pinned (or no pin) — stream to B
+                this._mediaB = fileData; // A pinned or no pin — stream to B
             }
             // Do NOT reset zoom (preview frames arrive rapidly; resetting each time
             // would make the reference slot unusable) and do NOT switch mode.
@@ -945,6 +959,42 @@ export class FloatingViewer {
             if (this._refreshGen !== gen) return; // stale — newer media loaded
             this._mediaA = A || null;
             this._mediaB = B || null;
+            this._refresh();
+        })();
+    }
+
+    /**
+     * Load up to 4 assets for grid compare mode.
+     * Auto-switches to GRID mode if not already.
+     */
+    loadMediaQuad(a, b, c, d) {
+        this._mediaA = a || null;
+        this._mediaB = b || null;
+        this._mediaC = c || null;
+        this._mediaD = d || null;
+        this._resetMfvZoom();
+        if (this._mode !== MFV_MODES.GRID) {
+            this._mode = MFV_MODES.GRID;
+            this._updateModeBtnUI();
+        }
+        const gen = ++this._refreshGen;
+        const hydrate = async (asset) => {
+            if (!asset) return asset;
+            try {
+                const enriched = await ensureViewerMetadataAsset(asset, { getAssetMetadata, getFileMetadataScoped });
+                return enriched || asset;
+            } catch (e) { return asset; }
+        };
+        (async () => {
+            const [A, B, C, D] = await Promise.all([
+                hydrate(this._mediaA), hydrate(this._mediaB),
+                hydrate(this._mediaC), hydrate(this._mediaD),
+            ]);
+            if (this._refreshGen !== gen) return;
+            this._mediaA = A || null;
+            this._mediaB = B || null;
+            this._mediaC = C || null;
+            this._mediaD = D || null;
             this._refresh();
         })();
     }
@@ -1089,6 +1139,7 @@ export class FloatingViewer {
             case MFV_MODES.SIMPLE: this._renderSimple(); break;
             case MFV_MODES.AB:     this._renderAB();     break;
             case MFV_MODES.SIDE:   this._renderSide();   break;
+            case MFV_MODES.GRID:   this._renderGrid();   break;
         }
 
         this._applyTransform();
@@ -1271,6 +1322,50 @@ export class FloatingViewer {
         this._contentEl.appendChild(container);
     }
 
+    _renderGrid() {
+        const slots = [
+            { media: this._mediaA, label: "A" },
+            { media: this._mediaB, label: "B" },
+            { media: this._mediaC, label: "C" },
+            { media: this._mediaD, label: "D" },
+        ];
+        const filled = slots.filter((s) => s.media);
+        if (!filled.length) {
+            this._contentEl.appendChild(_makeEmptyState("Select up to 4 assets for Grid Compare"));
+            return;
+        }
+
+        const container = document.createElement("div");
+        container.className = "mjr-mfv-grid-container";
+
+        for (const { media, label } of slots) {
+            const cell = document.createElement("div");
+            cell.className = "mjr-mfv-grid-cell";
+            if (media) {
+                const kind = _mediaKind(media);
+                const el = _buildMediaEl(media);
+                if (el) cell.appendChild(el);
+                else cell.appendChild(_makeEmptyState("—"));
+                cell.appendChild(_makeLabel(label, label === "A" || label === "C" ? "left" : "right"));
+                if (kind !== "audio") {
+                    const frag = this._buildGenInfoDOM(media);
+                    if (frag) {
+                        const overlay = document.createElement("div");
+                        overlay.className = `mjr-mfv-geninfo-${label.toLowerCase()}`;
+                        overlay.appendChild(frag);
+                        cell.appendChild(overlay);
+                    }
+                }
+            } else {
+                cell.appendChild(_makeEmptyState("—"));
+                cell.appendChild(_makeLabel(label, label === "A" || label === "C" ? "left" : "right"));
+            }
+            container.appendChild(cell);
+        }
+
+        this._contentEl.appendChild(container);
+    }
+
     // ── Visibility ────────────────────────────────────────────────────────────
 
     show() {
@@ -1381,14 +1476,15 @@ export class FloatingViewer {
 
     /**
      * Classic popup fallback used when Document PiP is unavailable.
-     * Opens /mjr/viewer/popout (served by the backend) and mounts the viewer
-     * once the shell page finishes loading.
+     * Opens about:blank and builds the shell directly in the popup document
+     * to avoid Electron / Chrome App mode issues where navigating to a
+     * backend URL results in a blank page.
      */
     _fallbackPopout(el, w, h) {
         const left = (window.screenX || window.screenLeft) + Math.round((window.outerWidth  - w) / 2);
         const top  = (window.screenY || window.screenTop)  + Math.round((window.outerHeight - h) / 2);
         const features = `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no`;
-        const popup = window.open(this._getPopoutUrl(), "_mjr_viewer", features);
+        const popup = window.open("about:blank", "_mjr_viewer", features);
         if (!popup) {
             console.warn("[MFV] Pop-out blocked — allow popups for this site.");
             return;
@@ -1399,21 +1495,23 @@ export class FloatingViewer {
         try { this._popoutAC?.abort(); } catch (e) { console.debug?.(e); }
         this._popoutAC = new AbortController();
         const popoutSignal = this._popoutAC.signal;
-        let mounted = false;
         const handlePopupClosing = () => this._schedulePopInFromPopupClose();
         this._popoutCloseHandler = handlePopupClosing;
 
         const mountViewer = () => {
-            if (mounted) return;
             let doc;
-            try { doc = popup.document; } catch { return; } // cross-origin during navigation
+            try { doc = popup.document; } catch { return; }
             if (!doc) return;
-            if (!this._ensurePopoutShell(doc)) return;
+
+            // Build the shell directly — no server round-trip needed.
             doc.title = "Majoor Viewer";
             this._installPopoutStyles(doc);
-            const root = doc.getElementById("mjr-mfv-popout-root") || doc.body;
-            if (!root) return;
-            try { root.replaceChildren(); } catch (e) { console.debug?.(e); }
+            doc.body.style.cssText = "margin:0;display:flex;min-height:100vh;background:#111;overflow:hidden;";
+            const root = doc.createElement("div");
+            root.id = "mjr-mfv-popout-root";
+            root.style.cssText = "flex:1;min-width:0;min-height:0;display:flex;";
+            doc.body.appendChild(root);
+
             try {
                 root.appendChild(doc.adoptNode(el));
             } catch (e) {
@@ -1422,46 +1520,23 @@ export class FloatingViewer {
             }
             el.classList.add("is-visible");
             this.isVisible = true;
-            mounted = true;
             this._resetGenDropdownForCurrentDocument();
             this._rebindControlHandlers();
             this._bindDocumentUiHandlers();
             this._updatePopoutBtnUI();
         };
 
-        // Do NOT use { once: true } — Chrome fires load for the initial blank
-        // document state, which consumes the listener before the real page load.
+        // about:blank is synchronously available — mount immediately.
         try {
-            popup.addEventListener("load", mountViewer, { signal: popoutSignal });
+            mountViewer();
         } catch (e) {
-            console.debug?.("[MFV] pop-out page load listener failed", e);
-        }
-
-        // Fire immediately if the popup already shows the shell (rare but possible).
-        try {
-            const doc = popup.document;
-            if (doc?.readyState === "complete" && doc.getElementById("mjr-mfv-popout-root")) {
-                setTimeout(mountViewer, 0);
-            }
-        } catch { /* cross-origin during navigation — load event will handle it */ }
-
-        // Polling safety net: Chrome App mode may suppress popup load events.
-        // Skip ticks where popup.document throws (normal during navigation).
-        let _mountPollCount = 0;
-        const _mountPollId = window.setInterval(() => {
-            if (mounted || ++_mountPollCount > 50 || !this._isPopped || popup.closed) {
-                window.clearInterval(_mountPollId);
-                return;
-            }
+            console.debug?.("[MFV] immediate mount failed, retrying on load", e);
             try {
-                const doc = popup.document;
-                if (doc?.readyState === "complete" && doc.getElementById("mjr-mfv-popout-root")) {
-                    window.clearInterval(_mountPollId);
-                    mountViewer();
-                }
-            } catch { /* skip this tick */ }
-        }, 100);
-        popoutSignal.addEventListener("abort", () => window.clearInterval(_mountPollId), { once: true });
+                popup.addEventListener("load", mountViewer, { signal: popoutSignal });
+            } catch (e2) {
+                console.debug?.("[MFV] pop-out page load listener failed", e2);
+            }
+        }
 
         popup.addEventListener("beforeunload", handlePopupClosing, { signal: popoutSignal });
         popup.addEventListener("pagehide",     handlePopupClosing, { signal: popoutSignal });
@@ -1518,30 +1593,6 @@ export class FloatingViewer {
                 this._popoutRestoreGuard = false;
             }
         }, 0);
-    }
-
-    _getPopoutUrl() {
-        try {
-            return new URL("/mjr/viewer/popout", window.location.href).toString();
-        } catch {
-            return "/mjr/viewer/popout";
-        }
-    }
-
-    /**
-     * Verify the popup window's document contains the shell element served by
-     * the backend at /mjr/viewer/popout.  We no longer fall back to doc.write()
-     * because that is blocked in Chrome App mode and is unnecessary now that the
-     * backend serves a real HTML page.
-     */
-    _ensurePopoutShell(doc) {
-        if (!doc) return false;
-        try {
-            return !!doc.getElementById("mjr-mfv-popout-root");
-        } catch (e) {
-            console.debug?.("[MFV] pop-out shell check failed", e);
-            return false;
-        }
     }
 
     _installPopoutStyles(doc) {
@@ -2107,6 +2158,33 @@ export class FloatingViewer {
                 }
                 _canvasLabel(ctx, "A", 8, 8);
                 _canvasLabel(ctx, "B", half + 8, 8);
+
+            } else if (this._mode === MFV_MODES.GRID) {
+                const halfW = Math.floor(w / 2);
+                const halfH = Math.floor(h / 2);
+                const gap = 1; // half of CSS gap:2px — each cell insets by 1px from center
+                const cells = [
+                    { media: this._mediaA, label: "A", x: 0,          y: 0,           w: halfW - gap, h: halfH - gap },
+                    { media: this._mediaB, label: "B", x: halfW + gap, y: 0,           w: halfW - gap, h: halfH - gap },
+                    { media: this._mediaC, label: "C", x: 0,          y: halfH + gap,  w: halfW - gap, h: halfH - gap },
+                    { media: this._mediaD, label: "D", x: halfW + gap, y: halfH + gap,  w: halfW - gap, h: halfH - gap },
+                ];
+                const gridCells = this._contentEl.querySelectorAll(".mjr-mfv-grid-cell");
+                for (let i = 0; i < cells.length; i++) {
+                    const c = cells[i];
+                    const vid = gridCells[i]?.querySelector("video") || null;
+                    if (c.media) {
+                        await this._drawMediaFit(ctx, c.media, c.x, c.y, c.w, c.h, vid);
+                        this._drawGenInfoOverlay(ctx, c.media, c.x, c.y, c.w, c.h);
+                    }
+                    _canvasLabel(ctx, c.label, c.x + 8, c.y + 8);
+                }
+                // Grid lines
+                ctx.save();
+                ctx.fillStyle = "#111";
+                ctx.fillRect(halfW - gap, 0, gap * 2, h);
+                ctx.fillRect(0, halfH - gap, w, gap * 2);
+                ctx.restore();
             }
         } catch (e) {
             console.debug("[MFV] capture error:", e);
@@ -2114,7 +2192,7 @@ export class FloatingViewer {
 
         // Trigger download — toDataURL is synchronous so the click stays within
         // the user-gesture chain and is never blocked by the browser.
-        const prefix = { [MFV_MODES.AB]: "mfv-ab", [MFV_MODES.SIDE]: "mfv-side" }[this._mode] ?? "mfv";
+        const prefix = { [MFV_MODES.AB]: "mfv-ab", [MFV_MODES.SIDE]: "mfv-side", [MFV_MODES.GRID]: "mfv-grid" }[this._mode] ?? "mfv";
         const filename = `${prefix}-${Date.now()}.png`;
         try {
             const dataUrl = canvas.toDataURL("image/png");
@@ -2163,6 +2241,8 @@ export class FloatingViewer {
         try { this._genDropdown?.remove(); } catch (e) { console.debug?.(e); }
         this._mediaA     = null;
         this._mediaB     = null;
+        this._mediaC     = null;
+        this._mediaD     = null;
         this.isVisible   = false;
     }
 }

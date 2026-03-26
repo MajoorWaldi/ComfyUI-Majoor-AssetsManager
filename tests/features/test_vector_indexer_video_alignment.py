@@ -86,3 +86,47 @@ async def test_index_asset_vector_video_without_prompt_stores_null_alignment(mon
     _, store_params = db.calls[0]
     assert store_params[0] == 456
     assert store_params[2] is None
+
+
+class _AutotagVS:
+    def __init__(self, model_name="model-a"):
+        self._model_name = model_name
+        self.text_calls = []
+
+    async def get_text_embedding(self, prompt):
+        self.text_calls.append(prompt)
+        return Result.Ok([1.0, 0.0])
+
+
+@pytest.mark.asyncio
+async def test_autotag_embeddings_rebuild_when_vocabulary_changes(monkeypatch):
+    vs = _AutotagVS()
+    monkeypatch.setattr(m, "AUTOTAG_VOCABULARY", {"portrait": "prompt-a"})
+    m.invalidate_autotag_cache()
+
+    first = await m._get_autotag_embeddings(vs)
+    assert set(first) == {"portrait"}
+    assert len(vs.text_calls) == 1
+
+    monkeypatch.setattr(m, "AUTOTAG_VOCABULARY", {"portrait": "prompt-a", "anime": "prompt-b"})
+    second = await m._get_autotag_embeddings(vs)
+
+    assert set(second) == {"portrait", "anime"}
+    assert len(vs.text_calls) == 3
+    m.invalidate_autotag_cache()
+
+
+@pytest.mark.asyncio
+async def test_autotag_embeddings_rebuild_when_model_changes(monkeypatch):
+    monkeypatch.setattr(m, "AUTOTAG_VOCABULARY", {"portrait": "prompt-a"})
+    m.invalidate_autotag_cache()
+
+    vs_a = _AutotagVS("model-a")
+    vs_b = _AutotagVS("model-b")
+
+    await m._get_autotag_embeddings(vs_a)
+    await m._get_autotag_embeddings(vs_b)
+
+    assert len(vs_a.text_calls) == 1
+    assert len(vs_b.text_calls) == 1
+    m.invalidate_autotag_cache()

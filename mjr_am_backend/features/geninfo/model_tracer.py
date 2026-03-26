@@ -9,15 +9,50 @@ from typing import Any
 from ...shared import Result, get_logger
 from .graph_converter import _inputs, _is_link, _lower, _node_type, _resolve_link, _walk_passthrough, _collect_upstream_nodes
 from .sampler_tracer import _scalar
-from .parser_impl import (
-    _clean_model_id,
-    _collect_text_encoder_nodes_from_conditioning,
-    _field,
-    _first_model_string_from_inputs,
-    _trace_size,
-)
 
 logger = get_logger(__name__)
+
+
+def _clean_model_id(value: Any) -> str | None:
+    from . import parser_impl as _p
+
+    return _p._clean_model_id(value)
+
+
+def _collect_text_encoder_nodes_from_conditioning(
+    nodes_by_id: dict[str, dict[str, Any]],
+    start_link: Any,
+    max_nodes: int = 200,
+    max_depth: int = 100,
+    branch: str | None = None,
+) -> list[str]:
+    from . import parser_impl as _p
+
+    return _p._collect_text_encoder_nodes_from_conditioning(
+        nodes_by_id,
+        start_link,
+        max_nodes=max_nodes,
+        max_depth=max_depth,
+        branch=branch,
+    )
+
+
+def _field(value: Any, confidence: str, source: str) -> dict[str, Any] | None:
+    from . import parser_impl as _p
+
+    return _p._field(value, confidence, source)
+
+
+def _first_model_string_from_inputs(ins: dict[str, Any]) -> str | None:
+    from . import parser_impl as _p
+
+    return _p._first_model_string_from_inputs(ins)
+
+
+def _trace_size(nodes_by_id: dict[str, dict[str, Any]], latent_link: Any, confidence: str) -> dict[str, Any] | None:
+    from . import parser_impl as _p
+
+    return _p._trace_size(nodes_by_id, latent_link, confidence)
 
 def _is_lora_loader_node(ct: str, ins: dict[str, Any]) -> bool:
     return ("lora" in ct) or (ins.get("lora_name") is not None and _is_link(ins.get("model")))

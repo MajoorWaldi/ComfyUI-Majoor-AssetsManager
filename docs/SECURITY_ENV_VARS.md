@@ -44,8 +44,10 @@ ComfyUI is often used locally, but it can be exposed via `--listen`, reverse pro
 To reduce risk, Majoor blocks destructive/write operations from non-local clients by default.
 
 - **Default behavior (no token configured)**: allow write operations only from loopback clients (`127.0.0.1` / `::1` / `localhost`).
-- **Token behavior**: if `MAJOOR_API_TOKEN` (or `MJR_API_TOKEN`) is set, all write operations require it.
+- **Token behavior**: if `MAJOOR_API_TOKEN` (or `MJR_API_TOKEN`) is set, remote write operations require it.
+  - Loopback keeps the compatibility behavior by default.
   - Send the token via `X-MJR-Token: <token>` or `Authorization: Bearer <token>`.
+- **Strict local auth**: set `MAJOOR_REQUIRE_AUTH=1` if you want loopback writes to require the token too.
 
 #### Overrides (use with care)
 - `MAJOOR_REQUIRE_AUTH=1` forces token auth even for loopback (requires `MAJOOR_API_TOKEN`).

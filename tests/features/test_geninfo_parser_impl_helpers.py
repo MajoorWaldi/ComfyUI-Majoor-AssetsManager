@@ -43,6 +43,18 @@ def test_walk_passthrough_and_reroute():
     assert p._walk_passthrough(nodes, ["1", 0]) == "3"
 
 
+def test_trace_size_respects_configured_max_hops(monkeypatch):
+    nodes = {
+        "1": {"class_type": "KSampler", "inputs": {"latent_image": ["2", 0]}},
+        "2": {"class_type": "EmptyLatentImage", "inputs": {"width": 512, "height": 768}},
+    }
+    monkeypatch.setattr(p, "DEFAULT_MAX_TRACE_HOPS", 1)
+    assert p._trace_size(nodes, ["1", 0], "high") is None
+    monkeypatch.setattr(p, "DEFAULT_MAX_TRACE_HOPS", 2)
+    size = p._trace_size(nodes, ["1", 0], "high")
+    assert size and size["width"] == 512 and size["height"] == 768
+
+
 def test_field_helpers():
     assert p._field(None, "h", "s") is None
     assert p._field(1, "h", "s")["value"] == 1

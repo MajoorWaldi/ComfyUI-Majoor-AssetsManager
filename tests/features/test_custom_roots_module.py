@@ -16,6 +16,24 @@ def test_normalize_and_canonical_helpers(monkeypatch, tmp_path: Path):
     assert cr._path_is_relative_to(d, tmp_path)
 
 
+def test_normalize_dir_path_respects_symlink_policy(monkeypatch, tmp_path: Path):
+    target = tmp_path / "target"
+    target.mkdir()
+    symlink = tmp_path / "link"
+    try:
+        symlink.symlink_to(target, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("Symlinks are not supported in this environment")
+
+    monkeypatch.delenv("MJR_ALLOW_SYMLINKS", raising=False)
+    assert cr._normalize_dir_path(str(symlink)) is None
+
+    monkeypatch.setenv("MJR_ALLOW_SYMLINKS", "1")
+    normalized = cr._normalize_dir_path(str(symlink))
+    assert normalized is not None
+    assert normalized == target.resolve(strict=True)
+
+
 def test_read_write_store_and_normalize_row(monkeypatch, tmp_path: Path):
     store = tmp_path / "custom_roots.json"
     monkeypatch.setattr(cr, "_STORE_PATH", store)

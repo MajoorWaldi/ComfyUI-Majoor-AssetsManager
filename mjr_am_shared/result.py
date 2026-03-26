@@ -29,6 +29,14 @@ class Result(Generic[T]):
     code: str = "OK"  # OK, DEGRADED, TOOL_MISSING, DB_ERROR, UNSUPPORTED, etc.
     meta: dict[str, Any] = field(default_factory=dict)
 
+    def __post_init__(self) -> None:
+        if self.ok and self.error is not None:
+            raise ValueError("Result.Ok cannot have an error message")
+        if not self.ok and self.data is not None:
+            raise ValueError("Result.Err should not carry data")
+        if not self.ok and self.error is None:
+            raise ValueError("Result.Err requires an error message")
+
     @staticmethod
     def Ok(data: T, **meta: Any) -> "Result[T]":
         """Create a successful result with data and optional metadata."""
