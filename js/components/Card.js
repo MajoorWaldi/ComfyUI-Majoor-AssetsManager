@@ -810,6 +810,9 @@ export function createAssetCard(asset) {
     // Only show if we have a valid duration in milliseconds (not a date string)
     // Sanity check: generation time should be < 24 hours (86400000 ms) to avoid confusing with timestamps
     if (genTimeMs > 0 && genTimeMs < 86400000) {
+        try {
+            card.dataset.mjrHasGenTime = "1";
+        } catch (e) { console.debug?.(e); }
         const genTimeSpan = document.createElement("span");
         genTimeSpan.classList.add("mjr-meta-gentime");
         

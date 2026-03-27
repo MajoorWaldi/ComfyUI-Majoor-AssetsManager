@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const getComfyApp = vi.fn(() => null);
+const getExtensionToastApi = vi.fn(() => null);
+
 vi.mock("../app/comfyApiBridge.js", () => ({
-  getComfyApp: vi.fn(() => null),
+  getComfyApp,
+  getExtensionToastApi,
 }));
 
 vi.mock("../app/i18n.js", () => ({
@@ -169,5 +173,27 @@ describe("toast", () => {
     const messages = container.childNodes.map((node) => readNodeText(node));
     expect(messages).not.toContain("Broken");
     expect(messages).toContain("Recovered");
+  });
+
+  it("uses native extension toast when available and still records history", async () => {
+    const nativeAdd = vi.fn();
+    getComfyApp.mockReturnValue({ extensionManager: { toast: { add: nativeAdd } } });
+    getExtensionToastApi.mockReturnValue({ add: nativeAdd });
+    const { toastModule, historyModule } = await loadToastModules();
+
+    toastModule.comfyToast("Native hello", "success", 1234);
+
+    expect(nativeAdd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        severity: "success",
+        detail: "Native hello",
+        life: 1234,
+      }),
+    );
+    expect(historyModule.listToastHistory()[0]).toMatchObject({
+      message: "Native hello",
+      type: "success",
+    });
+    expect(document.getElementById("mjr-toast-container")).toBeNull();
   });
 });

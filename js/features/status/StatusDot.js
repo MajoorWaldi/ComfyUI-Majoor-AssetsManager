@@ -10,6 +10,7 @@ import { comfyToast } from "../../app/toast.js";
 import { t } from "../../app/i18n.js";
 import { getEnrichmentState, setEnrichmentState } from "../../app/runtimeState.js";
 import { loadMajoorSettings } from "../../app/settings.js";
+import { EVENTS } from "../../app/events.js";
 
 const TOOL_CAPABILITIES = [
     {
@@ -26,6 +27,7 @@ const TOOL_CAPABILITIES = [
 
 let _maintenanceActive = false;
 let _dbRestoreStatusHandler = null;
+let _runtimeStatusHandler = null;
 
 function setMaintenanceActive(active) {
     _maintenanceActive = !!active;
@@ -880,6 +882,45 @@ export function createStatusIndicator(options = {}) {
         _dbRestoreStatusHandler = onDbRestoreStatus;
         section._mjrDbRestoreStatusHandler = onDbRestoreStatus;
         window.addEventListener("mjr-db-restore-status", onDbRestoreStatus);
+    } catch (e) { console.debug?.(e); }
+
+    const onRuntimeStatus = (event) => {
+        try {
+            const detail = event?.detail || {};
+            const queueRemaining = Number(detail?.queue_remaining);
+            const progressValue = Number(detail?.progress_value);
+            const progressMax = Number(detail?.progress_max);
+            const cachedNodes = Array.isArray(detail?.cached_nodes) ? detail.cached_nodes.length : 0;
+            const activePromptId = String(detail?.active_prompt_id || "").trim();
+            const progressLine = Number.isFinite(progressValue) && Number.isFinite(progressMax) && progressMax > 0
+                ? t("status.runtimeProgress", "Runtime progress: {value}/{max}", { value: progressValue, max: progressMax })
+                : "";
+            const queueLine = Number.isFinite(queueRemaining)
+                ? t("status.queueRemaining", "Queue remaining: {count}", { count: Math.max(0, queueRemaining) })
+                : "";
+            const cachedLine = cachedNodes > 0
+                ? t("status.executionCached", "Cached nodes reused: {count}", { count: cachedNodes })
+                : "";
+            const promptLine = activePromptId
+                ? t("status.activePrompt", "Active prompt: {id}", { id: activePromptId })
+                : "";
+            const liveLines = [progressLine, queueLine, cachedLine, promptLine].filter(Boolean);
+            if (!liveLines.length) return;
+            const footer = statusText?.querySelector?.("span");
+            if (footer) {
+                footer.textContent = liveLines.join("  |  ");
+            } else {
+                setStatusWithHint(statusText, t("status.ready", "Ready"), liveLines.join("  |  "));
+            }
+        } catch (e) { console.debug?.(e); }
+    };
+    try {
+        const old = _runtimeStatusHandler;
+        if (typeof old === "function") {
+            window.removeEventListener(EVENTS.RUNTIME_STATUS, old);
+        }
+        _runtimeStatusHandler = onRuntimeStatus;
+        window.addEventListener(EVENTS.RUNTIME_STATUS, onRuntimeStatus);
     } catch (e) { console.debug?.(e); }
 
     return section;

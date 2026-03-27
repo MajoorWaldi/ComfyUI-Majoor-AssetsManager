@@ -3594,6 +3594,100 @@
     white-space: pre-line;
 }
 
+/* Bottom-panel generated feed: compact cards with only the generation-time pill */
+.mjr-bottom-feed .mjr-grid {
+    gap: 6px !important;
+    margin-top: 0 !important;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 132px), 1fr)) !important;
+    min-height: 100%;
+    align-content: start;
+}
+
+.mjr-bottom-feed .mjr-card,
+.mjr-bottom-feed .mjr-asset-card {
+    border-radius: 12px !important;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--mjr-surface-1) 92%, #000 8%) !important;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22) !important;
+    transform: none !important;
+}
+
+.mjr-bottom-feed .mjr-card:hover,
+.mjr-bottom-feed .mjr-asset-card:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28) !important;
+}
+
+.mjr-bottom-feed .mjr-thumb {
+    aspect-ratio: 0.95 / 1 !important;
+    background: color-mix(in srgb, var(--mjr-surface-0) 72%, #000 28%) !important;
+}
+
+.mjr-bottom-feed .mjr-thumb-play {
+    background: radial-gradient(circle at center, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.04) 38%, transparent 70%);
+}
+
+.mjr-bottom-feed .mjr-badge-ext,
+.mjr-bottom-feed .mjr-badge-rating,
+.mjr-bottom-feed .mjr-badge-tags {
+    transform: scale(0.92);
+    transform-origin: top left;
+}
+
+.mjr-bottom-feed .mjr-card-info {
+    display: none !important;
+}
+
+.mjr-bottom-feed .mjr-asset-card[data-mjr-has-gen-time="1"] .mjr-card-info {
+    display: block !important;
+    position: absolute !important;
+    left: 6px;
+    right: 6px;
+    bottom: 6px;
+    padding: 0 !important;
+    min-width: 0;
+    pointer-events: none;
+    background: transparent !important;
+}
+
+.mjr-bottom-feed .mjr-card-filename,
+.mjr-bottom-feed .mjr-card-dot-wrapper,
+.mjr-bottom-feed .mjr-meta-res,
+.mjr-bottom-feed .mjr-meta-duration,
+.mjr-bottom-feed .mjr-meta-date,
+.mjr-bottom-feed .mjr-meta-time-val {
+    display: none !important;
+}
+
+.mjr-bottom-feed .mjr-card-meta-row {
+    padding-right: 0 !important;
+    overflow: visible !important;
+    white-space: normal !important;
+    line-height: 1 !important;
+    opacity: 1 !important;
+}
+
+.mjr-bottom-feed .mjr-card-meta-row > span + span::before {
+    display: none !important;
+    content: none !important;
+}
+
+.mjr-bottom-feed .mjr-meta-gentime {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 3px;
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: rgba(10, 14, 20, 0.74);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+    font-size: 10px;
+    font-weight: 700 !important;
+    letter-spacing: 0.01em;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
 /* ============================================================
  * Light mode overrides (ComfyUI v1.42+ improved light theme)
  * Uses ComfyUI data-theme attribute when set, with

@@ -127,6 +127,41 @@ def _resolve_output_root_from_folder_paths() -> Path | None:
     return None
 
 
+def get_registered_model_paths() -> dict[str, list[str]]:
+    """Best-effort discovery of ComfyUI folder_paths categories for navigation/index hints."""
+    try:
+        import folder_paths  # type: ignore
+
+        categories = [
+            "checkpoints",
+            "loras",
+            "vae",
+            "text_encoders",
+            "clip_vision",
+            "diffusion_models",
+            "upscale_models",
+            "embeddings",
+            "controlnet",
+            "diffusers",
+            "hypernetworks",
+            "classifiers",
+        ]
+        result: dict[str, list[str]] = {}
+        getter = getattr(folder_paths, "get_folder_paths", None)
+        if not callable(getter):
+            return result
+        for category in categories:
+            try:
+                values = getter(category)
+                if values:
+                    result[category] = [str(Path(v).resolve(strict=False)) for v in values]
+            except Exception:
+                continue
+        return result
+    except Exception:
+        return {}
+
+
 def _folder_paths_output_dir_from_loaded_module() -> Path | None:
     try:
         fp_mod = sys.modules.get("folder_paths")

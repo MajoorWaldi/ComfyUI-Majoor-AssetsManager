@@ -1,4 +1,5 @@
 from pathlib import Path
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -168,9 +169,22 @@ async def test_index_paths_and_runtime_helpers(monkeypatch) -> None:
     svc = _build_service(monkeypatch)
     monkeypatch.setattr(isvc, "mark_directory_indexed", lambda *args, **kwargs: None)
     monkeypatch.setattr(svc, "_ensure_vector_services", lambda: None)
+    emitted = []
+
+    class _PS:
+        class instance:
+            @staticmethod
+            def send_sync(event, payload):
+                emitted.append((event, payload))
+
+    monkeypatch.setitem(__import__("sys").modules, "mjr_am_backend.routes.registry", type("M", (), {"PromptServer": _PS}))
+    svc.get_assets_batch = AsyncMock(return_value=Result.Ok([{"id": 1, "filename": "x.png"}]))
+    svc._scanner.index_paths = AsyncMock(return_value=Result.Ok({"updated": 1, "added_ids": [1]}))
 
     res = await svc.index_paths([Path("x")], base_dir=".")
     assert res.ok
+    assert any(event == "mjr.scan.progress" for event, _payload in emitted)
+    assert any(event == "mjr.asset.indexed" for event, _payload in emitted)
 
     svc.pause_enrichment_for_interaction(seconds=2.0)
     assert svc.get_runtime_status()["enrichment_queue_length"] == 3

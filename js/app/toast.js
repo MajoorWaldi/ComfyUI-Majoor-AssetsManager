@@ -6,7 +6,7 @@
  * 
  * Priority integration with ComfyUI extensionManager.toast API (ComfyUI v1.3+).
  */
-import { getComfyApp } from "./comfyApiBridge.js";
+import { getComfyApp, getExtensionToastApi } from "./comfyApiBridge.js";
 import { t } from "./i18n.js";
 import { addToastHistory } from "../features/panel/messages/toastHistory.js";
 
@@ -399,7 +399,7 @@ export function comfyToast(message, type = "info", duration, opts) {
 
     // 1. Try ComfyUI extensionManager toast (ComfyUI v1.3+ standard)
     try {
-        const toastApi = app?.extensionManager?.toast;
+        const toastApi = getExtensionToastApi(app);
         if (toastApi && typeof toastApi.add === "function") {
             let severity = type;
             if (severity === "warning") severity = "warn"; // PrimeVue uses "warn" not "warning"

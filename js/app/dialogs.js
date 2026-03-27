@@ -5,7 +5,7 @@
  * alert/confirm/prompt popups. Falls back to window.* when unavailable.
  */
 
-import { getComfyApp } from "./comfyApiBridge.js";
+import { getComfyApp, getExtensionDialogApi } from "./comfyApiBridge.js";
 import { t } from "./i18n.js";
 
 const getComfyUi = () => {
@@ -20,7 +20,7 @@ const getComfyUi = () => {
 const getExtensionManagerDialog = () => {
     try {
         const app = getComfyApp();
-        const dlg = app?.extensionManager?.dialog || app?.ui?.extensionManager?.dialog || null;
+        const dlg = getExtensionDialogApi(app);
         if (dlg && typeof dlg.confirm === "function" && typeof dlg.prompt === "function") {
             return dlg;
         }
@@ -266,10 +266,13 @@ export const comfyConfirm = async (message, title = "Majoor") => {
     const extensionDialog = getExtensionManagerDialog();
     if (extensionDialog) {
         try {
-            const result = await extensionDialog.confirm({
+            const payload = {
                 title: String(title || t("dialog.confirm", "Confirm")),
                 message: String(message || ""),
-            });
+            };
+            const result = typeof extensionDialog.confirm === "function"
+                ? await extensionDialog.confirm(payload)
+                : null;
             return !!result;
         } catch (e) { console.debug?.(e); }
     }
@@ -638,11 +641,14 @@ export const comfyPrompt = async (message, defaultValue = "", title = "Majoor") 
     const extensionDialog = getExtensionManagerDialog();
     if (extensionDialog) {
         try {
-            const result = await extensionDialog.prompt({
+            const payload = {
                 title: String(title || t("dialog.prompt", "Prompt")),
                 message: String(message || ""),
                 defaultValue: String(defaultValue ?? ""),
-            });
+            };
+            const result = typeof extensionDialog.prompt === "function"
+                ? await extensionDialog.prompt(payload)
+                : null;
             if (result === null || result === undefined) return null;
             return String(result);
         } catch (e) { console.debug?.(e); }
