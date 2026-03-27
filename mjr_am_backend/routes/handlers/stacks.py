@@ -27,12 +27,30 @@ logger = get_logger(__name__)
 
 def _stacks_service(services):
     """Lazily obtain or create a StacksService from the service container."""
+    if isinstance(services, dict):
+        svc = services.get("_stacks_service")
+        if svc is not None:
+            return svc
+        db = services.get("db")
+        if db is None:
+            raise RuntimeError("StacksService requires a 'db' service")
+        from mjr_am_backend.features.stacks import StacksService
+        svc = StacksService(db)
+        services["_stacks_service"] = svc
+        return svc
+
     svc = getattr(services, "_stacks_service", None)
     if svc is not None:
         return svc
     from mjr_am_backend.features.stacks import StacksService
-    svc = StacksService(services.db)
-    services._stacks_service = svc
+    db = getattr(services, "db", None)
+    if db is None:
+        raise RuntimeError("StacksService requires a 'db' service")
+    svc = StacksService(db)
+    try:
+        services._stacks_service = svc
+    except Exception:
+        pass
     return svc
 
 
