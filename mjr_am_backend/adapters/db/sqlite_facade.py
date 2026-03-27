@@ -1734,6 +1734,10 @@ class Sqlite:
     def _schedule_delete_on_reboot(path: Path) -> bool:
         return tx_schedule_delete_on_reboot(path)
 
+    def _has_async_runtime_state(self) -> bool:
+        """Return True when the instance has the async DB runtime needed for schema queries."""
+        return all(hasattr(self, attr) for attr in ("_loop_thread", "_pool", "_tx_conns"))
+
     async def areset(self) -> Result[bool]:
         """
         Aggressive reset:
@@ -1774,9 +1778,12 @@ class Sqlite:
             if not schema_res.ok:
                 return schema_res
 
-            columns_res = await ensure_columns_exist(self)
-            if not columns_res.ok:
-                return columns_res
+            if self._has_async_runtime_state():
+                columns_res = await ensure_columns_exist(self)
+                if not columns_res.ok:
+                    return columns_res
+            else:
+                logger.debug("Skipping ensure_columns_exist during reset for partially constructed Sqlite instance")
 
             indexes_res = await ensure_indexes_and_triggers(self)
             if not indexes_res.ok:

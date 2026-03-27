@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any
 from mjr_am_shared.scan_throttle import mark_directory_indexed
 
 from ...adapters.db.sqlite import Sqlite
+from ...config import BATCH_ASSET_PUSH_LIMIT, is_vector_search_enabled
 from ...shared import Result, get_logger
 from ...utils import sanitize_for_json
 from ..metadata import MetadataService
@@ -26,7 +27,6 @@ from .scan_batch_utils import compute_state_hash, normalize_filepath_str
 from .scanner import IndexScanner
 from .searcher import IndexSearcher
 from .updater import AssetUpdater
-from ...config import BATCH_ASSET_PUSH_LIMIT, is_vector_search_enabled
 
 if TYPE_CHECKING:
     from .vector_searcher import VectorSearcher

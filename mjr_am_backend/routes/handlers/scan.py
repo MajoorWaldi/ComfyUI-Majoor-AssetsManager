@@ -2,9 +2,6 @@
 Directory scanning and file indexing endpoints.
 """
 import asyncio
-from contextlib import suppress
-import os
-import shutil
 import time
 from pathlib import Path
 from typing import Any
@@ -30,29 +27,27 @@ from mjr_am_backend.config import (
     TO_THREAD_TIMEOUT_S,
 )
 from mjr_am_backend.custom_roots import resolve_custom_root
+from mjr_am_backend.features.index.metadata_helpers import MetadataHelpers
 from mjr_am_backend.features.index.scan_route_service import (
     build_reset_scan_summary,
-    parse_scan_request_payload,
     parse_reset_index_payload,
+    parse_scan_request_payload,
     prepare_scan_route_context,
     resolve_reset_index_target_roots,
+    run_all_scope_scan,
     run_reset_clear_phase,
     run_reset_reindex,
-    run_all_scope_scan,
 )
-from mjr_am_backend.features.index.metadata_helpers import MetadataHelpers
 from mjr_am_backend.shared import Result, get_logger, sanitize_error_message
 from mjr_am_backend.utils import parse_bool, sanitize_for_json
 
 from ..core import (
-    audit_log_write,
     _check_rate_limit,
     _csrf_error,
     _is_path_allowed,
     _is_path_allowed_custom,
     _is_within_root,
     _json_response,
-    _normalize_path,
     _read_json,
     _require_operation_enabled,
     _require_services,
@@ -62,78 +57,47 @@ from ..core import (
     safe_error_message,
 )
 from .db_maintenance import (
+    _restart_watcher_if_needed,
     is_db_maintenance_active,
     is_vector_backfill_active,
     request_vector_backfill_priority_window,
     set_db_maintenance_active,
-    _restart_watcher_if_needed,
-)
-from .scan_staging import (
-    StageDestination,
-    _resolve_stage_destination,
-    register_staging_routes,
-)
-from mjr_am_backend.features.watcher_settings import get_watcher_settings, update_watcher_settings
-from mjr_am_backend.features.index.watcher_scope import build_watch_paths
-
-from .scan_upload import (
-    _index_uploaded_input_best_effort,
-    register_upload_routes,
-)
-from .scan_watcher import (
-    _build_watcher_callbacks,
-    _delay_for_recent_generated_marker,
-    _filter_recent_generated_files,
-    _start_watcher_for_scope,
-    _stop_watcher_if_running,
-    _watcher_scope_config,
-    register_watcher_routes,
 )
 from .filesystem import _kickoff_background_scan
-from .scan_consistency import (
-    _collect_missing_asset_rows,
-    _delete_missing_asset_rows,
-    _missing_asset_row,
-    _query_consistency_sample,
-    _run_consistency_check,
-)
+from .scan_consistency import _run_consistency_check
 from .scan_helpers import (
     _DB_CONSISTENCY_COOLDOWN_SECONDS,
-    _DB_CONSISTENCY_SAMPLE,
-    _FILE_COMPARE_CHUNK_BYTES,
-    _INDEX_SEMAPHORE,
-    _MAX_CONCURRENT_INDEX,
-    _MAX_FILENAME_LEN,
-    _MAX_RENAME_ATTEMPTS,
-    _MAX_UPLOAD_SIZE,
-    _UPLOAD_READ_CHUNK_BYTES,
-    _add_env_upload_extensions,
-    _allowed_upload_exts,
-    _cleanup_temp_upload_file,
-    _default_allowed_upload_exts,
     _emit_maintenance_status,
-    _file_sizes_equal,
-    _files_equal_content,
-    _files_exist_and_are_regular,
     _is_db_malformed_result,
-    _normalize_upload_extension,
-    _paths_are_same_file,
-    _read_upload_file_field,
-    _refresh_watcher_runtime_settings,
-    _resolve_input_directory,
     _resolve_scan_root,
     _runtime_output_root,
-    _schedule_index_task,
-    _stream_content_equal,
-    _unique_upload_destination,
-    _upload_skip_index,
-    _validate_upload_filename,
-    _watcher_settings_from_body,
-    _write_multipart_file_atomic,
-    _write_upload_chunks,
+)
+from .scan_staging import register_staging_routes
+from .scan_upload import register_upload_routes
+from .scan_watcher import (
+    _stop_watcher_if_running,
+    register_watcher_routes,
 )
 
 logger = get_logger(__name__)
+
+
+def _get_prompt_server():
+    try:
+        from .. import registry as registry_mod
+
+        return getattr(registry_mod, "PromptServer", None)
+    except Exception:
+        return None
+
+
+def _send_prompt_event(event: str, payload: Any) -> None:
+    try:
+        prompt_server = _get_prompt_server()
+        if prompt_server is not None:
+            prompt_server.instance.send_sync(event, payload)
+    except Exception:
+        pass
 
 
 def _scan_enqueued_from_kickoff(result: Any) -> bool:
@@ -615,7 +579,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             return _json_response(result)
 
         try:
-            PromptServer.instance.send_sync("mjr.scan.progress", sanitize_for_json({
+            _send_prompt_event("mjr.scan.progress", sanitize_for_json({
                 "status": "started",
                 "scope": "index-files",
                 "origin": origin,
@@ -624,7 +588,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             }))
             for item in files:
                 if isinstance(item, dict):
-                    PromptServer.instance.send_sync("mjr.asset.indexing", sanitize_for_json({
+                    _send_prompt_event("mjr.asset.indexing", sanitize_for_json({
                         "filename": item.get("filename") or item.get("name"),
                         "subfolder": item.get("subfolder") or "",
                         "type": item.get("type") or "output",
@@ -770,11 +734,8 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                             gen_time_by_id[int(asset_id)] = gt
                         except Exception:
                             logger.debug("Failed to upsert generation time for asset %s", asset_id)
-                assigned_stack_by_id: dict[int, int] = {}
                 if prompt_lookup:
                     try:
-                        from ...features.stacks.service import StacksService
-                        stack_service = StacksService(db_adapter)
                         for start in range(0, len(fnames_for_prompt), _MAX_IN_BATCH):
                             chunk = fnames_for_prompt[start:start + _MAX_IN_BATCH]
                             if not chunk:
@@ -803,18 +764,14 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                                     "UPDATE assets SET job_id = ? WHERE id = ?",
                                     (row_prompt_id, asset_id),
                                 )
-                                stack_res = await stack_service.assign_asset_by_job_id(asset_id, row_prompt_id)
-                                if stack_res.ok and stack_res.data is not None:
-                                    assigned_stack_by_id[asset_id] = int(stack_res.data)
                     except Exception as ex:
-                        logger.debug("Failed to assign prompt/job/stack correlation: %s", ex)
+                        logger.debug("Failed to assign prompt/job correlation: %s", ex)
 
-                if gen_time_by_id or assigned_stack_by_id:
+                if gen_time_by_id:
                     try:
-                        from ..registry import PromptServer
                         payloads_by_id: dict[int, dict[str, Any]] = {}
                         index_service = svc.get("index") if isinstance(svc, dict) else None
-                        target_ids = list(dict.fromkeys(list(gen_time_by_id.keys()) + list(assigned_stack_by_id.keys())))
+                        target_ids = list(dict.fromkeys(list(gen_time_by_id.keys())))
                         if index_service and hasattr(index_service, "get_assets_batch"):
                             try:
                                 batch_res = await index_service.get_assets_batch(target_ids)
@@ -831,8 +788,6 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                                         payload = dict(item)
                                         if item_id in gen_time_by_id:
                                             payload["generation_time_ms"] = gen_time_by_id[item_id]
-                                        if item_id in assigned_stack_by_id:
-                                            payload["stack_id"] = assigned_stack_by_id[item_id]
                                         row_prompt = str(item.get("job_id") or prompt_id or "")
                                         if row_prompt:
                                             payload["job_id"] = row_prompt
@@ -846,12 +801,12 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                             payload = payloads_by_id.get(int(item_id))
                             if not isinstance(payload, dict):
                                 continue
-                            PromptServer.instance.send_sync(
+                            _send_prompt_event(
                                 "mjr-asset-updated",
                                 sanitize_for_json(payload),
                             )
                             try:
-                                PromptServer.instance.send_sync(
+                                _send_prompt_event(
                                     "mjr.asset.indexed",
                                     sanitize_for_json(payload),
                                 )
@@ -877,14 +832,14 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             logger.debug("Failed to attach scan stats: %s", exc)
 
         try:
-            PromptServer.instance.send_sync("mjr.scan.progress", sanitize_for_json({
+            _send_prompt_event("mjr.scan.progress", sanitize_for_json({
                 "status": "completed",
                 "scope": "index-files",
                 "origin": origin,
                 "prompt_id": prompt_id or None,
                 "stats": total_stats,
             }))
-            PromptServer.instance.send_sync("mjr.runtime.status", sanitize_for_json({
+            _send_prompt_event("mjr.runtime.status", sanitize_for_json({
                 "active_prompt_id": prompt_id or None,
                 "origin": origin,
                 "stats": total_stats,

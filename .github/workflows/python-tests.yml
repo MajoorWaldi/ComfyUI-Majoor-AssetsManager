@@ -48,7 +48,10 @@ jobs:
           pip install .[dev]
 
       - name: Run canonical quality gate
-        run: python scripts/run_quality_gate.py --python-only --skip-tests
+        shell: bash
+        run: |
+          set -o pipefail
+          python scripts/run_quality_gate.py --python-only --skip-tests 2>&1 | tee quality-gate.log
 
       - name: Install JS dependencies for audit
         run: npm ci --ignore-scripts

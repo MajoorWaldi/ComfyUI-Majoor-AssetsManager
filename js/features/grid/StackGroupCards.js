@@ -1,7 +1,7 @@
 import { createAssetCard } from "../../components/Card.js";
 import { getViewerInstance } from "../../components/Viewer.js";
 import { get } from "../../api/client.js";
-import { buildStackByJobURL, buildStackMembersURL } from "../../api/endpoints.js";
+import { buildStackMembersURL } from "../../api/endpoints.js";
 import { createPopoverManager } from "../panel/views/popoverManager.js";
 
 function _isGroupEnabled(gridContainer) {
@@ -11,8 +11,6 @@ function _isGroupEnabled(gridContainer) {
 function _getGroupKey(asset) {
     const stackId = String(asset?.stack_id || "").trim();
     if (stackId) return `stack:${stackId}`;
-    const jobId = String(asset?.job_id || "").trim();
-    if (jobId) return `job:${jobId}`;
     return "";
 }
 
@@ -39,15 +37,6 @@ async function _fetchGroupMembers(asset) {
         const res = await get(buildStackMembersURL(stackId), { timeoutMs: 30_000 });
         if (res?.ok && Array.isArray(res?.data)) return res.data;
         throw new Error(String(res?.error || "Failed to load stack members"));
-    }
-
-    const jobId = String(asset?.job_id || "").trim();
-    if (!jobId) return [asset].filter(Boolean);
-
-    const stackRes = await get(buildStackByJobURL(jobId), { timeoutMs: 30_000 });
-    if (stackRes?.ok && stackRes?.data?.id != null) {
-        const membersRes = await get(buildStackMembersURL(stackRes.data.id), { timeoutMs: 30_000 });
-        if (membersRes?.ok && Array.isArray(membersRes?.data)) return membersRes.data;
     }
     return [asset].filter(Boolean);
 }

@@ -470,12 +470,9 @@ def _group_assets_by_stack(assets: list[dict[str, Any]]) -> list[dict[str, Any]]
         if not isinstance(asset, dict):
             continue
         stack_id = asset.get("stack_id")
-        job_id = str(asset.get("job_id") or "").strip()
         stack_id_int = _safe_positive_int(stack_id)
         if stack_id_int is not None:
             key = f"stack:{stack_id_int}"
-        elif job_id:
-            key = f"job:{job_id}"
         else:
             key = f"asset:{_safe_positive_int(asset.get('id')) or 0}"
         if key in seen:

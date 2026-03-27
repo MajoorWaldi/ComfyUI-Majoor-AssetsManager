@@ -2,7 +2,6 @@ from pathlib import Path
 from unittest.mock import AsyncMock
 
 import pytest
-
 from mjr_am_backend.features.index import service as isvc
 from mjr_am_backend.shared import Result
 

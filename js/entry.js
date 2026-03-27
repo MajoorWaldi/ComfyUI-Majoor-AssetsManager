@@ -299,6 +299,8 @@ const INDEX_RETRY_MAX_DELAY_MS = 15_000;
 const EXECUTION_START_TTL_MS = 10 * 60 * 1000;
 const EXECUTION_STARTS_MAX = 500; // Hard cap to prevent unbounded growth
 const executionStarts = createTTLCache({ ttlMs: EXECUTION_START_TTL_MS, maxSize: EXECUTION_STARTS_MAX });
+let _stackFinalizeTimer = null;
+let _stackFinalizeInFlight = null;
 
 function rememberExecutionStart(promptId, timestampMs) {
     if (!promptId) return;
@@ -362,6 +364,26 @@ function scheduleGenerationIndex(files, attempt = 1, meta = {}) {
             } catch (e) { console.debug?.(e); }
         })
         .catch((error) => reportError(error, "entry.executed.index"));
+}
+
+function scheduleFinalizeExecutionStacks(delayMs = 900) {
+    try {
+        if (_stackFinalizeTimer) clearTimeout(_stackFinalizeTimer);
+    } catch (e) { console.debug?.(e); }
+    _stackFinalizeTimer = setTimeout(() => {
+        _stackFinalizeTimer = null;
+        if (_stackFinalizeInFlight) return;
+        _stackFinalizeInFlight = post(ENDPOINTS.STACKS_AUTO_STACK, { mode: "job_id" })
+            .then((res) => {
+                if (!res?.ok) {
+                    reportError(new Error(String(res?.error || "Auto stack failed")), "entry.execution_end.auto_stack");
+                }
+            })
+            .catch((error) => reportError(error, "entry.execution_end.auto_stack"))
+            .finally(() => {
+                _stackFinalizeInFlight = null;
+            });
+    }, Math.max(0, Number(delayMs) || 0));
 }
 
 app.registerExtension({
@@ -519,6 +541,9 @@ app.registerExtension({
                             progress_value: null,
                             progress_max: null,
                         });
+                        if (String(event?.type || "") === "execution_success") {
+                            scheduleFinalizeExecutionStacks();
+                        }
                     } catch (error) {
                         reportError(error, "entry.execution_end");
                     }
