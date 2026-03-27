@@ -3,6 +3,8 @@
  * for video/audio assets, including follower video sync and scopes refresh.
  */
 
+import { parseFpsValue, readAssetFps, readAssetFrameCount } from "../../utils/mediaFps.js";
+
 export function createPlayerBarManager({
     state,
     APP_CONFIG,
@@ -31,6 +33,7 @@ export function createPlayerBarManager({
         state._videoControlsDestroy = null;
         state._videoControlsMounted = null;
         state._activeVideoEl = null;
+        state.nativeFps = null;
         try {
             state._videoSyncAbort?.abort?.();
         } catch (e) { console.debug?.(e); }
@@ -112,21 +115,6 @@ export function createPlayerBarManager({
             let initialFps = undefined;
             let initialFrameCount = undefined;
             try {
-                const parseFps = (v) => {
-                    const n = Number(v);
-                    if (Number.isFinite(n) && n > 0) return n;
-                    const s = String(v || "").trim();
-                    if (!s) return null;
-                    if (s.includes("/")) {
-                        const [a, b] = s.split("/");
-                        const na = Number(a);
-                        const nb = Number(b);
-                        if (Number.isFinite(na) && Number.isFinite(nb) && nb !== 0) return na / nb;
-                    }
-                    const f = Number.parseFloat(s);
-                    if (Number.isFinite(f) && f > 0) return f;
-                    return null;
-                };
                 const parseFrameCount = (v) => {
                     const n = Number(v);
                     if (!Number.isFinite(n) || n <= 0) return null;
@@ -135,14 +123,8 @@ export function createPlayerBarManager({
 
                 const pickFromMeta = (assetMeta) => {
                     try {
-                        const raw = assetMeta?.metadata_raw;
-                        const rawObj = raw && typeof raw === "object" ? raw : null;
-                        const ff = rawObj?.raw_ffprobe || {};
-                        const vs = ff?.video_stream || {};
-                        // Priority: raw.fps → raw.frame_rate (gen_info) → asset.fps → ffprobe streams
-                        const fpsRaw = rawObj?.fps ?? rawObj?.frame_rate ?? assetMeta?.fps ?? vs?.avg_frame_rate ?? vs?.r_frame_rate;
-                        const fps = parseFps(fpsRaw);
-                        const frameCount = parseFrameCount(vs?.nb_frames ?? vs?.nb_read_frames ?? rawObj?.frame_count ?? rawObj?.frames);
+                        const fps = readAssetFps(assetMeta);
+                        const frameCount = readAssetFrameCount(assetMeta, fps);
                         return { fps, frameCount };
                     } catch {
                         return { fps: null, frameCount: null };
@@ -262,20 +244,7 @@ export function createPlayerBarManager({
             // Must never throw or block the UI.
             try {
                 const parseFps = (v) => {
-                    const n = Number(v);
-                    if (Number.isFinite(n) && n > 0) return n;
-                    const s = String(v || "").trim();
-                    if (!s) return null;
-                    // Fraction forms like "30000/1001"
-                    if (s.includes("/")) {
-                        const [a, b] = s.split("/");
-                        const na = Number(a);
-                        const nb = Number(b);
-                        if (Number.isFinite(na) && Number.isFinite(nb) && nb !== 0) return na / nb;
-                    }
-                    const f = Number.parseFloat(s);
-                    if (Number.isFinite(f) && f > 0) return f;
-                    return null;
+                    return parseFpsValue(v);
                 };
                 const parseFrameCount = (v) => {
                     const n = Number(v);

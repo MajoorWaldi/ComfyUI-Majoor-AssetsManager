@@ -32,6 +32,13 @@ async def _invoke(app, path_param: str):
     return await match.handler(req)
 
 
+async def _invoke_legacy(app, path_param: str, prefix: str):
+    url = f"{prefix}/{path_param}"
+    req = make_mocked_request("GET", url, app=app, match_info={"path": path_param})
+    match = await app.router.resolve(req)
+    return await match.handler(req)
+
+
 # -- Missing / empty path ----------------------------------------------------
 
 
@@ -166,3 +173,30 @@ async def test_vendor_sets_cache_headers(monkeypatch, tmp_path: Path):
     resp = await _invoke(app, "module.wasm")
     assert resp.status == 200
     assert "max-age" in (resp.headers.get("Cache-Control") or "")
+
+
+@pytest.mark.asyncio
+async def test_vendor_serves_legacy_extension_path(monkeypatch, tmp_path: Path):
+    vendor_dir = tmp_path / "vendor"
+    vendor_dir.mkdir()
+    js_file = vendor_dir / "three.module.js"
+    js_file.write_text("export const ok = true;")
+
+    monkeypatch.setattr(m, "_VENDOR_ROOT", vendor_dir)
+    app = _build_app()
+    resp = await _invoke_legacy(app, "three.module.js", "/extensions/majoor-assetsmanager/vendor")
+    assert resp.status == 200
+    assert resp.headers.get("Content-Type") == "text/javascript"
+
+
+@pytest.mark.asyncio
+async def test_vendor_serves_repo_named_extension_path(monkeypatch, tmp_path: Path):
+    vendor_dir = tmp_path / "vendor"
+    vendor_dir.mkdir()
+    js_file = vendor_dir / "three.module.js"
+    js_file.write_text("export const ok = true;")
+
+    monkeypatch.setattr(m, "_VENDOR_ROOT", vendor_dir)
+    app = _build_app()
+    resp = await _invoke_legacy(app, "three.module.js", "/extensions/ComfyUI-Majoor-AssetsManager/vendor")
+    assert resp.status == 200

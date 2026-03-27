@@ -464,6 +464,27 @@ def _hydrate_search_rows(rows: list[dict[str, Any]], *, include_highlight: bool)
     return _hydr.hydrate_search_rows(rows, include_highlight=include_highlight)
 
 
+def _group_assets_by_stack(assets: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    grouped: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for asset in assets or []:
+        if not isinstance(asset, dict):
+            continue
+        stack_id = asset.get("stack_id")
+        job_id = str(asset.get("job_id") or "").strip()
+        if stack_id not in (None, "", 0):
+            key = f"stack:{int(stack_id)}"
+        elif job_id:
+            key = f"job:{job_id}"
+        else:
+            key = f"asset:{int(asset.get('id') or 0)}"
+        if key in seen:
+            continue
+        seen.add(key)
+        grouped.append(asset)
+    return grouped
+
+
 class IndexSearcher:
     """
     Handles asset search and retrieval operations.
@@ -603,7 +624,7 @@ class IndexSearcher:
             f"""
             SELECT
                 a.id, a.filename, a.subfolder, a.filepath, a.kind,
-                a.source, a.root_id,
+                a.source, a.root_id, a.job_id, a.stack_id,
                 a.width, a.height, a.duration, a.size, a.mtime,
                 COALESCE(m.rating, 0) as rating,
                 COALESCE(m.tags, '[]') as tags,
@@ -706,7 +727,7 @@ class IndexSearcher:
             SELECT
                 {total_field}
                 a.id, a.filename, a.subfolder, a.filepath, a.kind,
-                a.source, a.root_id,
+                a.source, a.root_id, a.job_id, a.stack_id,
                 a.width, a.height, a.duration, a.size, a.mtime,
                 COALESCE(m.rating, 0) as rating,
                 COALESCE(m.tags, '[]') as tags,
@@ -772,6 +793,7 @@ class IndexSearcher:
             f"""
             SELECT
                 a.id, a.filename, a.subfolder, a.filepath, a.kind,
+                a.source, a.root_id, a.job_id, a.stack_id,
                 a.width, a.height, a.duration, a.size, a.mtime,
                 COALESCE(m.rating, 0) as rating,
                 COALESCE(m.tags, '[]') as tags,
@@ -853,6 +875,7 @@ class IndexSearcher:
             )
             SELECT
                 a.id, a.filename, a.subfolder, a.filepath, a.kind,
+                a.source, a.root_id, a.job_id, a.stack_id,
                 a.width, a.height, a.duration, a.size, a.mtime,
                 COALESCE(m.rating, 0) as rating,
                 COALESCE(m.tags, '[]') as tags,
@@ -961,6 +984,10 @@ class IndexSearcher:
 
         rows, total = self._search_rows_total(rows_total_res.data)
         assets = _hydrate_search_rows(rows, include_highlight=True)
+        if filters and filters.get("group_stacks"):
+            assets = _group_assets_by_stack(assets)
+            if include_total:
+                total = len(assets)
         logger.debug("Found %s results (total=%s)", len(assets), total if include_total else "skipped")
         return Result.Ok(
             self._build_search_payload(
@@ -1034,6 +1061,10 @@ class IndexSearcher:
 
         rows, total = self._search_rows_total(rows_total_res.data)
         assets = _hydrate_search_rows(rows, include_highlight=False)
+        if filters and filters.get("group_stacks"):
+            assets = _group_assets_by_stack(assets)
+            if include_total:
+                total = len(assets)
         return Result.Ok(
             self._build_search_payload(
                 assets=assets,

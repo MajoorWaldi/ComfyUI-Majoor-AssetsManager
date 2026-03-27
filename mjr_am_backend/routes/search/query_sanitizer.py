@@ -251,6 +251,9 @@ def parse_request_filters(
     if "has_workflow" in query:
         filters["has_workflow"] = str(query["has_workflow"] or "").strip().lower() in ("true", "1", "yes")
 
+    if "group_stacks" in query:
+        filters["group_stacks"] = str(query["group_stacks"] or "").strip().lower() in ("true", "1", "yes")
+
     date_err = _apply_date_filters(query, filters)
     if date_err is not None:
         return date_err
