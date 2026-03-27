@@ -59,6 +59,13 @@ def hydrate_asset_payload(asset: dict[str, Any]) -> dict[str, Any]:
     metadata_obj = _json_object_field(asset.get("metadata_raw") or "{}")
     asset["metadata_raw"] = metadata_obj
     if isinstance(metadata_obj, dict):
+        if asset.get("generation_time_ms") in (None, "", 0):
+            raw_generation_time = metadata_obj.get("generation_time_ms")
+            try:
+                if raw_generation_time is not None and raw_generation_time != "":
+                    asset["generation_time_ms"] = int(raw_generation_time)
+            except (TypeError, ValueError):
+                pass
         asset.setdefault("prompt", metadata_obj.get("prompt"))
         asset.setdefault("workflow", metadata_obj.get("workflow"))
         asset.setdefault("exif", metadata_obj.get("exif") or metadata_obj.get("raw"))
