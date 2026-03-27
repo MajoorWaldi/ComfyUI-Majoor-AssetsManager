@@ -302,6 +302,7 @@ export function createGridController({
         gridContainer.dataset.mjrFilterDateRange = state.dateRangeFilter || "";
         gridContainer.dataset.mjrFilterDateExact = state.dateExactFilter || "";
         gridContainer.dataset.mjrSort = state.sort || "mtime_desc";
+        gridContainer.dataset.mjrGroupStacks = (state.scope === "output" || state.scope === "all") ? "1" : "0";
 
         // Keep selection durable across re-renders by persisting it in the dataset
         // (GridView re-applies selection as cards are created).

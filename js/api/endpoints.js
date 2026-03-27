@@ -219,7 +219,8 @@ export function buildListURL(params = {}) {
         dateRange = null,
         dateExact = null,
         sort = null,
-        includeTotal = true
+        includeTotal = true,
+        groupStacks = false,
     } = params;
 
     let url = `${ENDPOINTS.LIST}?q=${encodeURIComponent(q)}&limit=${limit}&offset=${offset}&scope=${encodeURIComponent(scope)}`;
@@ -254,6 +255,9 @@ export function buildListURL(params = {}) {
     }
     if (includeTotal === false) {
         url += `&include_total=0`;
+    }
+    if (groupStacks) {
+        url += "&group_stacks=1";
     }
     return url;
 }

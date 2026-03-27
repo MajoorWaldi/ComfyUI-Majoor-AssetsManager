@@ -1,8 +1,16 @@
-import { createGridContainer, disposeGrid, loadAssets, upsertAsset } from "../grid/GridView.js";
+import { createGridContainer, disposeGrid, loadAssetsFromList } from "../grid/GridView.js";
 import { EVENTS } from "../../app/events.js";
 import { t } from "../../app/i18n.js";
 import { floatingViewerManager } from "../viewer/floatingViewerManager.js";
 import { setSelectionIds, getSelectedIdSet } from "../grid/GridSelectionManager.js";
+import { createAssetCard } from "../../components/Card.js";
+import { getViewerInstance } from "../../components/Viewer.js";
+import { get } from "../../api/client.js";
+import { buildListURL } from "../../api/endpoints.js";
+import { createPopoverManager } from "../panel/views/popoverManager.js";
+
+const FEED_FETCH_LIMIT = 240;
+const FEED_PAGE_SIZE = 120;
 
 function _getRenderedCards(grid) {
     try {
@@ -95,6 +103,172 @@ const FEED_STATE = {
     pendingAssets: new Map(),
 };
 
+function _getAssetGroupKey(asset) {
+    const stackId = String(asset?.stack_id || "").trim();
+    if (stackId) return `stack:${stackId}`;
+    const jobId = String(asset?.job_id || "").trim();
+    if (jobId) return `job:${jobId}`;
+    return _assetKey(asset);
+}
+
+function _groupFeedAssets(assets) {
+    const groups = new Map();
+    for (const raw of Array.isArray(assets) ? assets : []) {
+        const asset = _normalizeAsset(raw);
+        if (!asset) continue;
+        const groupKey = _getAssetGroupKey(asset);
+        let entry = groups.get(groupKey);
+        if (!entry) {
+            entry = { key: groupKey, members: [] };
+            groups.set(groupKey, entry);
+        }
+        entry.members.push(asset);
+    }
+
+    const items = [];
+    for (const entry of groups.values()) {
+        entry.members.sort((a, b) => {
+            const am = Number(a?.mtime || a?.created_at || 0) || 0;
+            const bm = Number(b?.mtime || b?.created_at || 0) || 0;
+            return bm - am;
+        });
+        const cover = entry.members[0];
+        items.push({
+            ...cover,
+            _mjrFeedGroupKey: entry.key,
+            _mjrFeedGroupCount: entry.members.length,
+            _mjrFeedGroupAssets: entry.members.slice(),
+        });
+    }
+
+    items.sort((a, b) => {
+        const am = Number(a?.mtime || a?.created_at || 0) || 0;
+        const bm = Number(b?.mtime || b?.created_at || 0) || 0;
+        return bm - am;
+    });
+    return items;
+}
+
+function _getHostAssets(host) {
+    return Array.from(host?.assetsByKey?.values?.() || []);
+}
+
+function _storeHostAsset(host, asset) {
+    const normalized = _normalizeAsset(asset);
+    if (!host || !normalized) return null;
+    if (!host.assetsByKey) host.assetsByKey = new Map();
+    host.assetsByKey.set(_assetKey(normalized), normalized);
+    return normalized;
+}
+
+function _openGroupViewer(groupedAsset, startIndex = 0) {
+    const assets = Array.isArray(groupedAsset?._mjrFeedGroupAssets)
+        ? groupedAsset._mjrFeedGroupAssets.filter(Boolean)
+        : [groupedAsset].filter(Boolean);
+    if (!assets.length) return;
+    const viewer = getViewerInstance();
+    viewer.open(assets, Math.max(0, Math.min(startIndex, assets.length - 1)));
+}
+
+function _buildGroupPopover(host, groupedAsset) {
+    const popover = document.createElement("div");
+    popover.className = "mjr-popover mjr-feed-group-popover";
+    popover.style.cssText = "display:none; width:min(440px, 92vw); padding:10px;";
+
+    const title = document.createElement("div");
+    title.className = "mjr-feed-group-popover-title";
+    title.textContent = t("bottomFeed.groupTitle", "Generation group");
+    title.style.cssText = "font-size:12px; font-weight:700; opacity:0.92; margin-bottom:8px;";
+    popover.appendChild(title);
+
+    const grid = document.createElement("div");
+    grid.className = "mjr-feed-group-popover-grid";
+    grid.style.cssText = "display:grid; grid-template-columns:repeat(auto-fill, minmax(110px, 1fr)); gap:8px;";
+
+    const assets = Array.isArray(groupedAsset?._mjrFeedGroupAssets) ? groupedAsset._mjrFeedGroupAssets : [];
+    for (let index = 0; index < assets.length; index += 1) {
+        const member = assets[index];
+        const card = createAssetCard(member);
+        card.classList.add("mjr-feed-group-member-card");
+        if (index === 0) card.classList.add("mjr-feed-group-member-card--cover");
+        card.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            host.popoverManager?.close?.(popover);
+            _openGroupViewer(groupedAsset, index);
+        });
+        grid.appendChild(card);
+    }
+
+    popover.appendChild(grid);
+    host.root.appendChild(popover);
+    return popover;
+}
+
+function _enhanceGroupedCards(host, groupedAssets) {
+    const groupedById = new Map(
+        (Array.isArray(groupedAssets) ? groupedAssets : [])
+            .map((asset) => [String(asset?.id || "").trim(), asset])
+            .filter(([id]) => !!id)
+    );
+
+    for (const card of _getRenderedCards(host?.grid)) {
+        const assetId = String(card?.dataset?.mjrAssetId || "").trim();
+        const groupedAsset = groupedById.get(assetId);
+        if (!groupedAsset) continue;
+        const count = Number(groupedAsset?._mjrFeedGroupCount || 0) || 0;
+        if (count <= 1) continue;
+
+        card.dataset.mjrFeedGrouped = "true";
+        card.dataset.mjrFeedGroupCount = String(count);
+        card.dataset.mjrStacked = "true";
+        card.dataset.mjrStackCount = String(count);
+
+        if (card.querySelector(".mjr-feed-group-button")) continue;
+
+        const badge = document.createElement("button");
+        badge.type = "button";
+        badge.className = "mjr-feed-group-button";
+        badge.title = t("bottomFeed.groupOpen", "Show other assets from this generation");
+        badge.setAttribute("aria-label", `${count} assets`);
+        badge.innerHTML = `<span class="mjr-feed-group-button-icon pi pi-clone"></span><span class="mjr-feed-group-button-count">${count}</span>`;
+        badge.style.cssText = "position:absolute; top:6px; right:6px; z-index:3;";
+
+        const popover = _buildGroupPopover(host, groupedAsset);
+        badge.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            host.popoverManager?.toggle?.(popover, badge);
+        });
+
+        card.appendChild(badge);
+    }
+}
+
+async function _renderHostAssets(host) {
+    if (!host?.grid) return;
+    try {
+        host.popoverManager?.closeAll?.();
+    } catch (e) { console.debug?.(e); }
+    try {
+        const stale = host.root?.querySelectorAll?.(".mjr-feed-group-popover") || [];
+        for (const el of stale) el.remove?.();
+    } catch (e) { console.debug?.(e); }
+    const groupedAssets = _groupFeedAssets(_getHostAssets(host));
+    const res = await loadAssetsFromList(host.grid, groupedAssets, {
+        title: t("bottomFeed.title", "Generated Feed"),
+        reset: true,
+    });
+    _enhanceGroupedCards(host, groupedAssets);
+    const count = Number(res?.count || 0);
+    if (count <= 0) {
+        host.empty.textContent = t("bottomFeed.empty", "No generated assets yet.");
+        host.empty.style.display = "";
+    } else {
+        host.empty.style.display = "none";
+    }
+}
+
 function _assetKey(asset) {
     const id = String(asset?.id || "").trim();
     if (id) return `id:${id}`;
@@ -136,10 +310,9 @@ function _getPendingAssets() {
 async function _applyPendingAssets(host) {
     if (!host?.grid) return;
     for (const asset of _getPendingAssets()) {
-        try {
-            upsertAsset(host.grid, asset);
-        } catch (e) { console.debug?.(e); }
+        _storeHostAsset(host, asset);
     }
+    await _renderHostAssets(host);
 }
 
 async function _loadHistory(host) {
@@ -147,7 +320,36 @@ async function _loadHistory(host) {
     host.empty.style.display = "none";
     host.empty.textContent = t("bottomFeed.loading", "Loading recent assets...");
     try {
-        const res = await loadAssets(host.grid, "*", { reset: true });
+        host.assetsByKey = new Map();
+        const assets = [];
+        let offset = 0;
+        while (offset < FEED_FETCH_LIMIT) {
+            const url = buildListURL({
+                q: "*",
+                limit: Math.min(FEED_PAGE_SIZE, FEED_FETCH_LIMIT - offset),
+                offset,
+                scope: "output",
+                sort: "mtime_desc",
+                includeTotal: offset === 0,
+            });
+            const page = await get(url, { timeoutMs: 30_000 });
+            if (!page?.ok) {
+                throw new Error(String(page?.error || "Failed to load feed assets"));
+            }
+            const rows = Array.isArray(page?.data?.assets) ? page.data.assets : [];
+            if (!rows.length) break;
+            for (const row of rows) {
+                const normalized = _storeHostAsset(host, row);
+                if (normalized) assets.push(normalized);
+            }
+            if (rows.length < FEED_PAGE_SIZE) break;
+            offset += rows.length;
+        }
+        const res = await loadAssetsFromList(host.grid, _groupFeedAssets(assets), {
+            title: t("bottomFeed.title", "Generated Feed"),
+            reset: true,
+        });
+        _enhanceGroupedCards(host, _groupFeedAssets(_getHostAssets(host)));
         await _applyPendingAssets(host);
         const count = Number(res?.count || 0);
         if (count <= 0) {
@@ -252,10 +454,11 @@ function _makeHost(container) {
     root.style.cssText = "padding:6px; height:100%; min-height:0; box-sizing:border-box; display:flex; flex-direction:column;";
     container.replaceChildren(root);
 
-    const host = { container, root, grid: null, empty: null, loaded: false };
+    const host = { container, root, grid: null, empty: null, loaded: false, assetsByKey: new Map(), popoverManager: null };
     _buildEmpty(host);
     _buildGrid(host);
     _bindFeedSelection(host);
+    host.popoverManager = createPopoverManager(root);
     return host;
 }
 
@@ -265,9 +468,10 @@ export function pushGeneratedAsset(asset) {
     for (const host of Array.from(FEED_STATE.hosts)) {
         try {
             if (!host?.grid) continue;
+            _storeHostAsset(host, normalized);
             if (!host.loaded) continue;
             host.empty.style.display = "none";
-            upsertAsset(host.grid, normalized);
+            void _renderHostAssets(host);
         } catch (e) { console.debug?.(e); }
     }
 }
@@ -298,6 +502,9 @@ export function disposeGeneratedFeedTab(host) {
     FEED_STATE.hosts.delete(resolvedHost);
     try {
         resolvedHost._disposeSelection?.();
+    } catch (e) { console.debug?.(e); }
+    try {
+        resolvedHost.popoverManager?.dispose?.();
     } catch (e) { console.debug?.(e); }
     try {
         disposeGrid(resolvedHost.grid);

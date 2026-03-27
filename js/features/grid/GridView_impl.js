@@ -54,6 +54,11 @@ import {
     setCollisionTooltip as cardSetCollisionTooltip,
 } from "./AssetCardRenderer.js";
 import {
+    disposeStackGroupCards,
+    ensureStackGroupCard,
+    getStackAwareAssetKey,
+} from "./StackGroupCards.js";
+import {
     compareAssets as infCompareAssets,
     fetchPage as infFetchPage,
     findAssetElement as infFindAssetElement,
@@ -789,6 +794,7 @@ function ensureVirtualGrid(gridContainer, state) {
 
             // Hydrate ratings
             enqueueRatingTagsHydration(gridContainer, card, asset);
+            ensureStackGroupCard(gridContainer, card, asset);
             try {
                 state.virtualGrid?.scheduleRemeasure?.();
             } catch (e) { console.debug?.(e); }
@@ -852,6 +858,7 @@ function ensureVirtualGrid(gridContainer, state) {
                 card._mjrAsset = asset;
                 _updateCardRatingTagsBadges(card, asset.rating, asset.tags);
                 enqueueRatingTagsHydration(gridContainer, card, asset);
+                ensureStackGroupCard(gridContainer, card, asset);
                 try {
                     state.virtualGrid?.scheduleRemeasure?.();
                 } catch (e) { console.debug?.(e); }
@@ -908,11 +915,14 @@ function ensureVirtualGrid(gridContainer, state) {
 
 function assetKey(asset) {
     if (!asset || typeof asset !== "object") return "";
-    if (asset.id != null) return `id:${asset.id}`;
-    const fp = asset.filepath || "";
-    const t = asset.type || "";
-    const rid = pickRootId(asset);
-    return `${t}|${rid}|${fp}|${asset.subfolder || ""}|${asset.filename || ""}`;
+    const fallback = asset.id != null
+        ? `id:${asset.id}`
+        : `${asset.type || ""}|${pickRootId(asset)}|${asset.filepath || ""}|${asset.subfolder || ""}|${asset.filename || ""}`;
+    try {
+        const grid = globalThis?.__MJR_LAST_ASSETKEY_GRID__ || null;
+        return getStackAwareAssetKey(grid, asset, fallback);
+    } catch (e) { console.debug?.(e); }
+    return fallback;
 }
 
 function getSelectedIdSet(gridContainer) {
@@ -1042,6 +1052,9 @@ function startInfiniteScroll(gridContainer, state) {
 export async function loadAssets(gridContainer, query = "*", options = {}) {
     const { reset = true } = options || {};
     const state = getOrCreateState(gridContainer);
+    try {
+        globalThis.__MJR_LAST_ASSETKEY_GRID__ = gridContainer;
+    } catch (e) { console.debug?.(e); }
 
     const requestedQuery = query && query.trim() ? query : "*";
     state.query = sanitizeQuery(requestedQuery) || requestedQuery;
@@ -1449,6 +1462,9 @@ export function disposeGrid(gridContainer) {
     } catch (e) { console.debug?.(e); }
     try {
         cleanupVideoThumbsIn?.(gridContainer);
+    } catch (e) { console.debug?.(e); }
+    try {
+        disposeStackGroupCards(gridContainer);
     } catch (e) { console.debug?.(e); }
     try {
         state.seenKeys?.clear?.();

@@ -18,6 +18,7 @@ export async function fetchPage(gridContainer, query, limit, offset, deps, { req
     const dateRange = String(gridContainer?.dataset?.mjrFilterDateRange || "").trim().toLowerCase();
     const dateExact = String(gridContainer?.dataset?.mjrFilterDateExact || "").trim();
     const sortKey = gridContainer?.dataset?.mjrSort || "mtime_desc";
+    const groupStacks = String(gridContainer?.dataset?.mjrGroupStacks || "") === "1";
     const requestedQuery = query && query.trim() ? query : "*";
     const safeQuery = deps.sanitizeQuery(requestedQuery) || requestedQuery;
     try {
@@ -44,6 +45,7 @@ export async function fetchPage(gridContainer, query, limit, offset, deps, { req
             dateExact: dateExact || null,
             sort: sortKey,
             includeTotal,
+            groupStacks,
         });
         const result = await deps.get(url, signal ? { signal } : undefined);
         try {
