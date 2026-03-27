@@ -1,6 +1,7 @@
 import { noop, safeCall, safeAddListener } from "../utils/safeCall.js";
 import { clamp, clamp01 } from "../features/viewer/state.js";
 import { t } from "../app/i18n.js";
+import { normalizeVideoFps } from "../utils/mediaFps.js";
 
 const MAX_MINOR_TICKS = 400;
 const SEEK_RANGE_MAX = 1000;
@@ -384,8 +385,8 @@ export function mountVideoControls(video, opts = {}) {
         });
         const fpsInput = createNumberInput("mjr-video-num--fps", {
             min: 1,
-            step: 1,
-            value: Math.max(1, Math.floor(initialFps || 30)),
+            step: 0.001,
+            value: normalizeVideoFps(initialFps || 30),
             title: t("video.fpsStepping", "FPS (used for frame stepping)"),
             ariaLabel: t("video.fps", "FPS"),
             widthPx: 56
@@ -552,7 +553,7 @@ export function mountVideoControls(video, opts = {}) {
         }, { capture: true, passive: false }));
 
         const state = {
-            fps: Math.max(1, Math.floor(initialFps || 30)),
+            fps: normalizeVideoFps(initialFps || 30),
             step: 1,
             inFrame: null,
             outFrame: null,
@@ -639,7 +640,7 @@ export function mountVideoControls(video, opts = {}) {
                 const override = Number(state.frameCount);
                 if (Number.isFinite(override) && override > 0) return Math.max(1, Math.floor(override));
                 const d = Number(video?.duration);
-                const fps = Math.max(1, Math.floor(Number(state.fps) || 30));
+                const fps = normalizeVideoFps(state.fps, 30);
                 if (!Number.isFinite(d) || d <= 0) return 0;
                 return Math.max(0, Math.floor(d * fps));
             } catch {
@@ -650,7 +651,7 @@ export function mountVideoControls(video, opts = {}) {
         const currentFrame = () => {
             try {
                 const t = Number(video?.currentTime);
-                const fps = Math.max(1, Math.floor(Number(state.fps) || 30));
+                const fps = normalizeVideoFps(state.fps, 30);
                 if (!Number.isFinite(t) || t < 0) return 0;
                 return Math.max(0, Math.round(t * fps));
             } catch {
@@ -659,7 +660,7 @@ export function mountVideoControls(video, opts = {}) {
         };
 
         const frameToTime = (frame) => {
-            const fps = Math.max(1, Math.floor(Number(state.fps) || 30));
+            const fps = normalizeVideoFps(state.fps, 30);
             const f = Math.max(0, Number(frame) || 0);
             return f / fps;
         };
@@ -927,7 +928,7 @@ export function mountVideoControls(video, opts = {}) {
                 state._ppReverse = true;
                 video.pause?.();
                 setPlayLabel();
-                const fps = Math.max(1, Math.floor(Number(state.fps) || 30));
+                const fps = normalizeVideoFps(state.fps, 30);
                 const rate = Math.max(0.25, Number(state.playbackRate) || 1);
                 const intervalMs = 1000 / (fps * rate);
                 let lastTime = performance.now();
@@ -1197,7 +1198,7 @@ export function mountVideoControls(video, opts = {}) {
                 safeAddListener(fpsInput, "change", (e) => {
                     stop(e);
                     try {
-                        state.fps = Math.max(1, Math.floor(Number(fpsInput.value) || 30));
+                        state.fps = normalizeVideoFps(fpsInput.value, 30);
                         fpsInput.value = String(state.fps);
                         normalizeRange();
                     } catch (e) { console.debug?.(e); }
@@ -1419,7 +1420,7 @@ export function mountVideoControls(video, opts = {}) {
 
         // Initial sync
         try {
-            state.fps = Math.max(1, Math.floor(Number(fpsInput.value) || 30));
+            state.fps = normalizeVideoFps(fpsInput.value, 30);
             state.step = Math.max(1, Math.floor(Number(stepInput.value) || 1));
             normalizeRange();
             applyLoopOnceUI();
@@ -1434,11 +1435,11 @@ export function mountVideoControls(video, opts = {}) {
             try {
                 const fps = Number(info?.fps);
                 if (Number.isFinite(fps) && fps > 0) {
-                    const newFps = Math.max(1, Math.floor(fps));
+                    const newFps = normalizeVideoFps(fps, state.fps || 30);
                     // If FPS changes and the out-point was set to the video's full extent
                     // (auto-initialized by loadedmetadata), reset it so normalizeRange()
                     // recalculates the correct frame count for the new FPS.
-                    if (newFps !== state.fps) {
+                    if (Math.abs(newFps - Number(state.fps || 0)) >= 0.001) {
                         try {
                             const d = Number(video?.duration);
                             if (Number.isFinite(d) && d > 0) {

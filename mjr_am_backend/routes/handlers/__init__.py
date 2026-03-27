@@ -17,6 +17,7 @@ from .scan import register_scan_routes
 from .search import register_search_routes
 from .vector_search import register_vector_search_routes
 from .version import register_version_routes
+from .stacks import register_stacks_routes
 from .vendor import register_vendor_routes
 from .viewer import register_viewer_routes
 
@@ -39,5 +40,6 @@ __all__ = [
     "register_vector_search_routes",
     "register_hybrid_search_routes",
     "register_audit_routes",
+    "register_stacks_routes",
     "register_vendor_routes",
 ]

@@ -124,6 +124,22 @@ See [`CHANGELOG.md`](CHANGELOG.md) for complete details.
 
 ---
 
+## Prerelease Features (Upcoming)
+
+The following features are currently in prerelease and will be included in the next version:
+
+### 🔧 Core Improvements
+- **Improved Assets Metadata Parsing**: Enhanced metadata extraction and parsing pipeline
+- **Grid Compare up to 4 Assets**: Extended Floating Viewer Grid Compare mode supporting up to 4 simultaneous assets
+- **Ping Pong Loop in Main Viewer**: Added ping-pong playback (forward then reverse) for videos in the main Viewer player
+- **Job ID and Stack ID in Database**: Enhanced assets management with execution grouping via `job_id` and `stack_id` fields
+- **Code Refactor for Maintainability**: Major codebase refactoring for improved long-term maintainability
+- **Various Bug Fixes**: Multiple stability and correctness improvements
+
+See [`CHANGELOG.md`](CHANGELOG.md) for the latest prerelease notes.
+
+---
+
 ## Installation
 
 ### Method A: ComfyUI Manager (Recommended)
@@ -789,5 +805,5 @@ Optional attribution request: See [`NOTICE`](NOTICE) file for details.
 
 ---
 
-*Last updated: February 28, 2026*  
-*Version: 2.4.0*
+*Last updated: March 27, 2026*
+*Version: 2.4.3 (Prerelease)*

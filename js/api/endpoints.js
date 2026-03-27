@@ -80,6 +80,12 @@ export const ENDPOINTS = {
     // Collections
     COLLECTIONS: "/mjr/am/collections",
 
+    // Stacks
+    STACKS: "/mjr/am/stacks",
+    STACKS_MERGE: "/mjr/am/stacks/merge",
+    STACKS_DISSOLVE: "/mjr/am/stacks/dissolve",
+    STACKS_AUTO_STACK: "/mjr/am/stacks/auto-stack",
+
     // Duplicate detection
     DUPLICATES_ALERTS: "/mjr/am/duplicates/alerts",
     DUPLICATES_ANALYZE: "/mjr/am/duplicates/analyze",
@@ -265,6 +271,28 @@ export function buildCustomViewURL(filename, subfolder = "", rootId = "") {
 
 export function buildBatchZipDownloadURL(token) {
     return `${ENDPOINTS.BATCH_ZIP_CREATE}/${encodeURIComponent(String(token || ""))}`;
+}
+
+export function buildStacksURL({ limit = 50, offset = 0, includeTotal = true } = {}) {
+    let url = `${ENDPOINTS.STACKS}?limit=${encodeURIComponent(String(limit))}&offset=${encodeURIComponent(String(offset))}`;
+    if (includeTotal === false) url += "&include_total=0";
+    return url;
+}
+
+export function buildStackURL(stackId) {
+    return `${ENDPOINTS.STACKS}/${encodeURIComponent(String(stackId || ""))}`;
+}
+
+export function buildStackMembersURL(stackId) {
+    return `${buildStackURL(stackId)}/members`;
+}
+
+export function buildStackByJobURL(jobId) {
+    return `${ENDPOINTS.STACKS}/by-job/${encodeURIComponent(String(jobId || ""))}`;
+}
+
+export function buildStackCoverURL(stackId) {
+    return `${buildStackURL(stackId)}/cover`;
 }
 
 export function buildViewerResourceURL(assetOrContext, relpath = "") {

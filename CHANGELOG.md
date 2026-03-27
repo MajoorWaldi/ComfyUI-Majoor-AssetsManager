@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [Prerelease]
+
+### ✨ Improved
+- Improve assets metadata parsing
+- Add Grid Compare capability in floating viewer up to 4 Assets
+- Add ping pong loop in main Viewer player
+- Add job id and stack id in DB for better assets management
+- Code refactor for maintainability
+- Various bug fixes
+
+---
+
 ## [2.4.2] - 2026-03-17
 
 ### 🎉 Major Features

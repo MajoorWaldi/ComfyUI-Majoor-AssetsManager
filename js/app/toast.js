@@ -13,8 +13,8 @@ import { addToastHistory } from "../features/panel/messages/toastHistory.js";
 const TOAST_CONTAINER_ID = "mjr-toast-container";
 const MAX_VISIBLE_TOASTS = 5;
 
-// Tracks dismiss functions for active fallback DOM error toasts.
-const _fallbackErrorToastDismissers = new Set();
+// Tracks active fallback DOM error toasts so success toasts can clear them.
+const _fallbackErrorToasts = new Set();
 
 // Periodic cleanup timer for orphaned dismissers
 let _cleanerTimer = null;
@@ -27,17 +27,17 @@ function _startCleanerTimer() {
     if (_cleanerTimer) return;
     _cleanerTimer = setInterval(() => {
         const toRemove = [];
-        for (const fn of _fallbackErrorToastDismissers) {
-            // Dismisser functions are closures that reference the element.
-            // If the element was removed, the function won't have a valid parent.
-            toRemove.push(fn);
+        for (const entry of _fallbackErrorToasts) {
+            const element = entry?.element || null;
+            if (!element?.isConnected || !element.parentNode) {
+                toRemove.push(entry);
+            }
         }
-        // Clear all - they'll be re-added if toasts are still visible
-        for (const fn of toRemove) {
-            _fallbackErrorToastDismissers.delete(fn);
+        for (const entry of toRemove) {
+            _fallbackErrorToasts.delete(entry);
         }
         // Stop the interval when no active toasts remain (prevents a timer leak).
-        if (_fallbackErrorToastDismissers.size === 0) {
+        if (_fallbackErrorToasts.size === 0) {
             clearInterval(_cleanerTimer);
             _cleanerTimer = null;
         }
@@ -45,10 +45,34 @@ function _startCleanerTimer() {
 }
 
 function _dismissAllFallbackErrorToasts() {
-    const toRemove = Array.from(_fallbackErrorToastDismissers);
-    _fallbackErrorToastDismissers.clear();
-    for (const fn of toRemove) {
-        try { fn(); } catch (e) { console.debug?.(e); }
+    const toRemove = Array.from(_fallbackErrorToasts);
+    _fallbackErrorToasts.clear();
+    for (const entry of toRemove) {
+        try { entry?.dismiss?.(); } catch (e) { console.debug?.(e); }
+    }
+}
+
+function normalizeToastType(type) {
+    const raw = String(type || "info").trim().toLowerCase();
+    if (raw === "warn") return "warning";
+    if (raw === "danger") return "error";
+    if (raw === "success" || raw === "warning" || raw === "error") return raw;
+    return "info";
+}
+
+function serializeToastMessage(message) {
+    if (typeof message === "string") return message;
+    if (message && typeof message === "object") {
+        const summary = String(message.summary || "").trim();
+        const detail = String(message.detail || message.message || "").trim();
+        if (summary && detail) return `${summary}: ${detail}`;
+        if (detail) return detail;
+        if (summary) return summary;
+    }
+    try {
+        return String(message?.message || message || "").trim() || "Unknown message";
+    } catch {
+        return "Unknown message";
     }
 }
 
@@ -346,6 +370,8 @@ function getToastContainer() {
  * @param {number} [duration] - Duration in ms (default: type-based standard duration)
  */
 export function comfyToast(message, type = "info", duration, opts) {
+    type = normalizeToastType(type);
+
     // Translate message
     message = translateToastMessage(message);
 
@@ -356,7 +382,7 @@ export function comfyToast(message, type = "info", duration, opts) {
 
     // Record in toast history unless caller opts out.
     if (!opts?.noHistory) {
-        try { addToastHistory(message, type, duration); } catch { /* ignore */ }
+        try { addToastHistory(serializeToastMessage(message), type, duration); } catch { /* ignore */ }
     }
     
     // Treat as persistent only when caller explicitly passes 0 or a non-finite value.
@@ -416,11 +442,7 @@ export function comfyToast(message, type = "info", duration, opts) {
 
     // Fallback if message is an object/error
     if (typeof message !== "string") {
-        try {
-            message = message.message || String(message);
-        } catch {
-            message = "Unknown message";
-        }
+        message = serializeToastMessage(message);
     }
 
     const el = document.createElement("div");
@@ -439,6 +461,7 @@ export function comfyToast(message, type = "info", duration, opts) {
     el.appendChild(textSpan);
 
     // Auto Remove
+    let trackedErrorEntry = null;
     const timer = persistent ? null : setTimeout(() => {
         removeToast(el);
     }, duration);
@@ -448,7 +471,7 @@ export function comfyToast(message, type = "info", duration, opts) {
         if (!element.parentNode) return;
         element.classList.remove("is-visible");
         element.onclick = null;
-        _fallbackErrorToastDismissers.delete(dismissThis);
+        if (trackedErrorEntry) _fallbackErrorToasts.delete(trackedErrorEntry);
         if (timer) clearTimeout(timer);
         setTimeout(() => {
             if (element.parentNode) element.parentNode.removeChild(element);
@@ -462,7 +485,8 @@ export function comfyToast(message, type = "info", duration, opts) {
 
     // Track error toasts for success-triggered auto-dismissal.
     if (type === "error") {
-        _fallbackErrorToastDismissers.add(dismissThis);
+        trackedErrorEntry = { element: el, dismiss: dismissThis };
+        _fallbackErrorToasts.add(trackedErrorEntry);
     }
 
     container.appendChild(el);
@@ -515,4 +539,10 @@ export const toast = {
      * @param {number} [duration] - Optional custom duration
      */
     info: (message, duration) => comfyToast(message, "info", duration ?? TOAST_DURATION.INFO),
+};
+
+export const __toastTestUtils = {
+    normalizeToastType,
+    serializeToastMessage,
+    _dismissAllFallbackErrorToasts,
 };

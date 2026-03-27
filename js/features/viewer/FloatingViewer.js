@@ -13,6 +13,7 @@ import { ensureViewerMetadataAsset } from "./genInfo.js";
 import { getAssetMetadata, getFileMetadataScoped } from "../../api/client.js";
 import { normalizeGenerationMetadata } from "../../components/sidebar/parsers/geninfoParser.js";
 import { createModel3DMediaElement, isModel3DInteractionTarget, MODEL3D_EXTS } from "./model3dRenderer.js";
+import { installFollowerVideoSync } from "./videoSync.js";
 import { appendTooltipHint, setTooltipHint } from "../../utils/tooltipShortcuts.js";
 import { NODE_STREAM_FEATURE_ENABLED } from "./nodeStream/nodeStreamFeatureFlag.js";
 
@@ -94,6 +95,14 @@ function _makeLabel(text, side /* "left" | "right" */) {
     return el;
 }
 
+function _attemptAutoplay(mediaEl) {
+    if (!mediaEl || typeof mediaEl.play !== "function") return;
+    try {
+        const p = mediaEl.play();
+        if (p && typeof p.catch === "function") p.catch(() => {});
+    } catch (e) { console.debug?.(e); }
+}
+
 function _buildMediaEl(fileData, { fill = false } = {}) {
     const url = _resolveUrl(fileData);
     if (!url) return null;
@@ -119,7 +128,10 @@ function _buildMediaEl(fileData, { fill = false } = {}) {
         audio.className = "mjr-mfv-audio-player";
         audio.src = url;
         audio.controls = true;
+        audio.autoplay = true;
         audio.preload = "metadata";
+        try { audio.addEventListener("loadedmetadata", () => _attemptAutoplay(audio), { once: true }); } catch (e) { console.debug?.(e); }
+        _attemptAutoplay(audio);
 
         wrap.appendChild(head);
         wrap.appendChild(audio);
@@ -221,6 +233,7 @@ export class FloatingViewer {
         this._panY      = 0;
         this._panzoomAC = null; // AbortController for event cleanup
         this._dragging  = false;
+        this._compareSyncAC = null;
 
         // AbortController for toolbar/header button click listeners (NM-1).
         // Aborted in dispose() so listeners are cleaned up without needing named references.
@@ -1126,12 +1139,32 @@ export class FloatingViewer {
         this._dragging  = false;
     }
 
+    _destroyCompareSync() {
+        try { this._compareSyncAC?.abort?.(); } catch (e) { console.debug?.(e); }
+        this._compareSyncAC = null;
+    }
+
+    _initCompareSync() {
+        this._destroyCompareSync();
+        if (!this._contentEl) return;
+        if (this._mode === MFV_MODES.SIMPLE) return;
+        try {
+            const playables = Array.from(this._contentEl.querySelectorAll("video, audio"));
+            if (playables.length < 2) return;
+            const leader = playables[0] || null;
+            const followers = playables.slice(1);
+            if (!leader || !followers.length) return;
+            this._compareSyncAC = installFollowerVideoSync(leader, followers, { threshold: 0.08 });
+        } catch (e) { console.debug?.(e); }
+    }
+
     // ── Render ────────────────────────────────────────────────────────────────
 
     _refresh() {
         if (!this._contentEl) return;
         // Tear down previous panzoom bindings before clearing DOM.
         this._destroyPanZoom();
+        this._destroyCompareSync();
         this._contentEl.replaceChildren();
         this._contentEl.style.overflow = "hidden";
 
@@ -1144,6 +1177,7 @@ export class FloatingViewer {
 
         this._applyTransform();
         this._initPanZoom(this._contentEl);
+        this._initCompareSync();
     }
 
     _renderSimple() {
@@ -1381,6 +1415,7 @@ export class FloatingViewer {
         // Destroy pan/zoom so _dragging and pointer-capture state are reset cleanly
         // even if hide() is called mid-drag (NM-5).
         this._destroyPanZoom();
+        this._destroyCompareSync();
         this._stopEdgeResize();
         this._closeGenDropdown();
         this.element.classList.remove("is-visible");
@@ -2216,6 +2251,7 @@ export class FloatingViewer {
 
     dispose() {
         this._destroyPanZoom();
+        this._destroyCompareSync();
         this._stopEdgeResize();
         this._clearPopoutCloseWatch();
         try { this._panelAC?.abort(); this._panelAC = null; } catch (e) { console.debug?.(e); }

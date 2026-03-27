@@ -30,8 +30,7 @@ _ALLOWED_EXTENSIONS: frozenset[str] = frozenset({
 def register_vendor_routes(routes: web.RouteTableDef) -> None:
     """Register the vendor static-file route."""
 
-    @routes.get("/mjr/am/vendor/{path:.*}")
-    async def vendor_static(request: web.Request) -> web.StreamResponse:
+    async def _serve_vendor_static(request: web.Request) -> web.StreamResponse:
         raw_path = request.match_info.get("path", "")
         if not raw_path:
             return _json_response(Result.Err("INVALID_INPUT", "Missing path"))
@@ -68,3 +67,15 @@ def register_vendor_routes(routes: web.RouteTableDef) -> None:
         except Exception:
             pass
         return resp
+
+    @routes.get("/mjr/am/vendor/{path:.*}")
+    async def vendor_static(request: web.Request) -> web.StreamResponse:
+        return await _serve_vendor_static(request)
+
+    @routes.get("/extensions/majoor-assetsmanager/vendor/{path:.*}")
+    async def vendor_static_legacy(request: web.Request) -> web.StreamResponse:
+        return await _serve_vendor_static(request)
+
+    @routes.get("/extensions/ComfyUI-Majoor-AssetsManager/vendor/{path:.*}")
+    async def vendor_static_repo_name(request: web.Request) -> web.StreamResponse:
+        return await _serve_vendor_static(request)

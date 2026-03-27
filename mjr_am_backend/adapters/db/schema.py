@@ -8,7 +8,7 @@ from ...shared import Result, get_logger, log_success
 
 logger = get_logger(__name__)
 
-CURRENT_SCHEMA_VERSION = 14
+CURRENT_SCHEMA_VERSION = 15
 # Schema version history (high-level):
 # 1: initial assets + metadata tables
 # 2-4: incremental columns and FTS/search support
@@ -22,6 +22,7 @@ CURRENT_SCHEMA_VERSION = 14
 # 12: assets.enhanced_caption (Florence-2 long caption storage)
 # 13: asset_embeddings moved to separate vectors.sqlite (attached as "vec")
 # 14: audit_log table for write-operation audit trail
+# 15: asset_stacks table + job_id/stack_id on assets (execution grouping)
 
 # Schema definition
 SCHEMA_V1 = """
@@ -97,6 +98,17 @@ CREATE TABLE IF NOT EXISTS audit_log (
     result TEXT DEFAULT '',
     details TEXT DEFAULT '{}'
 );
+
+CREATE TABLE IF NOT EXISTS asset_stacks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    job_id TEXT NOT NULL,
+    cover_asset_id INTEGER,
+    name TEXT DEFAULT '',
+    asset_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (cover_asset_id) REFERENCES assets(id) ON DELETE SET NULL
+);
 """
 
 # Migration from v1 to v2: Add metadata_raw column
@@ -116,6 +128,8 @@ COLUMN_DEFINITIONS = {
         ("content_hash", "content_hash TEXT"),
         ("phash", "phash TEXT"),
         ("hash_state", "hash_state TEXT"),
+        ("job_id", "job_id TEXT"),
+        ("stack_id", "stack_id INTEGER"),
     ],
     "asset_metadata": [
         ("rating", "rating INTEGER DEFAULT 0"),
@@ -180,6 +194,11 @@ CREATE INDEX IF NOT EXISTS idx_scan_journal_dir ON scan_journal(dir_path);
 CREATE INDEX IF NOT EXISTS idx_metadata_cache_state ON metadata_cache(state_hash);
 CREATE INDEX IF NOT EXISTS idx_audit_log_ts ON audit_log(ts DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_log_operation_ts ON audit_log(operation, ts DESC);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_stacks_job_id ON asset_stacks(job_id);
+CREATE INDEX IF NOT EXISTS idx_stacks_created_at ON asset_stacks(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_assets_job_id ON assets(job_id);
+CREATE INDEX IF NOT EXISTS idx_assets_stack_id ON assets(stack_id);
 
 CREATE TRIGGER IF NOT EXISTS assets_fts_insert AFTER INSERT ON assets BEGIN
     INSERT INTO assets_fts(rowid, filename, subfolder)

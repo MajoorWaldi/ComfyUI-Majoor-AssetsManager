@@ -26,6 +26,12 @@ vi.mock("../components/sidebar/parsers/geninfoParser.js", () => ({
   normalizeGenerationMetadata: vi.fn((meta) => meta),
 }));
 
+const installFollowerVideoSyncMock = vi.fn(() => ({ abort: vi.fn() }));
+
+vi.mock("../features/viewer/videoSync.js", () => ({
+  installFollowerVideoSync: installFollowerVideoSyncMock,
+}));
+
 describe("FloatingViewer", () => {
   beforeEach(() => {
     globalThis.document = {
@@ -214,5 +220,86 @@ describe("FloatingViewer", () => {
     expect(liveBtn.setAttribute).toHaveBeenCalledWith("aria-label", expect.stringContaining("(L)"));
     expect(previewBtn.title).toContain("(K)");
     expect(previewBtn.setAttribute).toHaveBeenCalledWith("aria-label", expect.stringContaining("(K)"));
+  });
+
+  it("installs follower sync for compare-mode playable media", async () => {
+    const { FloatingViewer, MFV_MODES } = await import("../features/viewer/FloatingViewer.js");
+
+    const leader = { nodeName: "VIDEO" };
+    const follower = { nodeName: "VIDEO" };
+    const viewer = {
+      _mode: MFV_MODES.AB,
+      _contentEl: {
+        querySelectorAll: vi.fn(() => [leader, follower]),
+      },
+      _compareSyncAC: null,
+      _destroyCompareSync: FloatingViewer.prototype._destroyCompareSync,
+    };
+
+    FloatingViewer.prototype._initCompareSync.call(viewer);
+
+    expect(installFollowerVideoSyncMock).toHaveBeenCalledWith(leader, [follower], { threshold: 0.08 });
+    expect(viewer._compareSyncAC).toBeTruthy();
+  });
+
+  it("tears down previous compare sync before reinitializing", async () => {
+    const { FloatingViewer, MFV_MODES } = await import("../features/viewer/FloatingViewer.js");
+
+    const abort = vi.fn();
+    const viewer = {
+      _mode: MFV_MODES.SIDE,
+      _contentEl: {
+        querySelectorAll: vi.fn(() => []),
+      },
+      _compareSyncAC: { abort },
+      _destroyCompareSync: FloatingViewer.prototype._destroyCompareSync,
+    };
+
+    FloatingViewer.prototype._initCompareSync.call(viewer);
+
+    expect(abort).toHaveBeenCalledTimes(1);
+    expect(viewer._compareSyncAC).toBeNull();
+  });
+
+  it("enables autoplay for audio in MFV", async () => {
+    const { FloatingViewer } = await import("../features/viewer/FloatingViewer.js");
+
+    const play = vi.fn(() => Promise.resolve());
+    const addEventListener = vi.fn();
+    const appendChild = vi.fn();
+    const audioEl = {
+      className: "",
+      src: "",
+      controls: false,
+      autoplay: false,
+      preload: "",
+      play,
+      addEventListener,
+    };
+    const genericEl = () => ({
+      className: "",
+      textContent: "",
+      setAttribute: vi.fn(),
+      appendChild,
+      replaceChildren: vi.fn(),
+    });
+
+    globalThis.document.createElement = vi.fn((tag) => {
+      if (tag === "audio") return audioEl;
+      return genericEl();
+    });
+
+    const viewer = new FloatingViewer();
+    const wrap = viewer.constructor ? null : null;
+    const result = FloatingViewer.prototype._renderSimple.call({
+      _mediaA: { kind: "audio", url: "http://example.test/audio.mp3", filename: "audio.mp3" },
+      _contentEl: { appendChild: vi.fn() },
+      _buildGenInfoDOM: vi.fn(),
+    });
+
+    expect(result).toBeUndefined();
+    expect(audioEl.autoplay).toBe(true);
+    expect(play).toHaveBeenCalled();
+    expect(addEventListener).toHaveBeenCalledWith("loadedmetadata", expect.any(Function), { once: true });
   });
 });
