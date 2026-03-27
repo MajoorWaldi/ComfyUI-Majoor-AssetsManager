@@ -511,12 +511,12 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
         try {
             const stats = await vectorStats();
             if (stats?.ok) {
-                console.info(
+                console.debug?.(
                     "[Majoor] Vector status:",
                     `${stats.data?.total || 0} assets indexed | Model: ${stats.data?.model || "N/A"}`
                 );
             } else {
-                console.info("[Majoor] Vector status unavailable");
+                console.debug?.("[Majoor] Vector status unavailable");
             }
         } catch (err) {
             console.debug?.("[Majoor] Vector status fetch failed", err);
@@ -575,10 +575,10 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
                     try {
                         const stats = await vectorStats();
                         if (stats?.ok) {
-                            console.log("[Majoor] Vector stats after backfill:", stats.data);
+                            console.debug?.("[Majoor] Vector stats after backfill:", stats.data);
                         }
                     } catch (statsErr) {
-                        console.warn("[Majoor] Failed to refresh vector stats:", statsErr);
+                        console.debug?.("[Majoor] Failed to refresh vector stats:", statsErr);
                     }
                 } else {
                     throw new Error(result?.error || t("toast.vectorBackfillFailedGeneric", "Backfill failed"));

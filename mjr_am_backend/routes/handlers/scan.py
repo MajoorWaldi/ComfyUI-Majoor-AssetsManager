@@ -452,6 +452,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
 
         files = body.get("files")
         origin = str(body.get("origin") or body.get("source") or "").strip().lower()
+        prompt_id = str(body.get("prompt_id") or "").strip()
         if not isinstance(files, list) or not files:
             result = Result.Err("INVALID_INPUT", "Missing or invalid 'files' list")
             return _json_response(result)
@@ -613,6 +614,25 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             result = Result.Err("INVALID_INPUT", "No valid files to index")
             return _json_response(result)
 
+        try:
+            PromptServer.instance.send_sync("mjr.scan.progress", sanitize_for_json({
+                "status": "started",
+                "scope": "index-files",
+                "origin": origin,
+                "prompt_id": prompt_id or None,
+                "files": len(files),
+            }))
+            for item in files:
+                if isinstance(item, dict):
+                    PromptServer.instance.send_sync("mjr.asset.indexing", sanitize_for_json({
+                        "filename": item.get("filename") or item.get("name"),
+                        "subfolder": item.get("subfolder") or "",
+                        "type": item.get("type") or "output",
+                        "prompt_id": prompt_id or item.get("prompt_id") or None,
+                    }))
+        except Exception:
+            pass
+
         if recent_generated_paths:
             try:
                 from mjr_am_backend.features.index.watcher import mark_recent_generated
@@ -669,6 +689,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         # directly — no per-asset re-read (was N+1 before).
         import json
         gen_time_lookup: dict[tuple[str, str, str, str], int] = {}
+        prompt_lookup: dict[tuple[str, str, str, str], str] = {}
         for item in files:
             gen_time = item.get("generation_time_ms") or item.get("duration_ms")
             if gen_time and isinstance(gen_time, (int, float)) and gen_time > 0:
@@ -682,17 +703,30 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                     str(item.get("root_id") or item.get("custom_root_id") or ""),
                 )
                 gen_time_lookup.setdefault(key, int(gen_time))
+            item_prompt_id = str(item.get("prompt_id") or prompt_id or "").strip()
+            if item_prompt_id:
+                fname = item.get("filename")
+                if fname:
+                    key = (
+                        str(fname),
+                        str(item.get("subfolder") or ""),
+                        str(item.get("type") or "output").lower(),
+                        str(item.get("root_id") or item.get("custom_root_id") or ""),
+                    )
+                    prompt_lookup.setdefault(key, item_prompt_id)
 
-        if gen_time_lookup:
+        if gen_time_lookup or prompt_lookup:
             try:
                 db_adapter = svc['db']
                 fnames = list({k[0] for k in gen_time_lookup})
+                fnames_for_prompt = list({k[0] for k in prompt_lookup})
+                all_fnames = list(dict.fromkeys(fnames + fnames_for_prompt))
                 # Chunk to ≤500 to stay well within SQLite's SQLITE_MAX_VARIABLE_NUMBER
                 # and avoid O(n) SQL compile time for large batches (NL-1).
                 _MAX_IN_BATCH = 500
                 gen_time_by_id: dict[int, int] = {}
-                for start in range(0, len(fnames), _MAX_IN_BATCH):
-                    chunk = fnames[start:start + _MAX_IN_BATCH]
+                for start in range(0, len(all_fnames), _MAX_IN_BATCH):
+                    chunk = all_fnames[start:start + _MAX_IN_BATCH]
                     if not chunk:
                         continue
                     placeholders = ",".join("?" * len(chunk))
@@ -736,14 +770,54 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                             gen_time_by_id[int(asset_id)] = gt
                         except Exception:
                             logger.debug("Failed to upsert generation time for asset %s", asset_id)
-                if gen_time_by_id:
+                assigned_stack_by_id: dict[int, int] = {}
+                if prompt_lookup:
+                    try:
+                        from ...features.stacks.service import StacksService
+                        stack_service = StacksService(db_adapter)
+                        for start in range(0, len(fnames_for_prompt), _MAX_IN_BATCH):
+                            chunk = fnames_for_prompt[start:start + _MAX_IN_BATCH]
+                            if not chunk:
+                                continue
+                            placeholders = ",".join("?" * len(chunk))
+                            q_res = await db_adapter.aquery(
+                                f"SELECT id, filename, subfolder, source, root_id FROM assets WHERE filename IN ({placeholders})",
+                                tuple(chunk),
+                            )
+                            if not (q_res.ok and q_res.data):
+                                continue
+                            for row in q_res.data:
+                                key = (
+                                    str(row.get("filename") or ""),
+                                    str(row.get("subfolder") or ""),
+                                    str(row.get("source") or "output").lower(),
+                                    str(row.get("root_id") or ""),
+                                )
+                                row_prompt_id = prompt_lookup.get(key)
+                                if not row_prompt_id:
+                                    continue
+                                asset_id = int(row.get("id") or 0)
+                                if not asset_id:
+                                    continue
+                                await db_adapter.aexecute(
+                                    "UPDATE assets SET job_id = ? WHERE id = ?",
+                                    (row_prompt_id, asset_id),
+                                )
+                                stack_res = await stack_service.assign_asset_by_job_id(asset_id, row_prompt_id)
+                                if stack_res.ok and stack_res.data is not None:
+                                    assigned_stack_by_id[asset_id] = int(stack_res.data)
+                    except Exception as ex:
+                        logger.debug("Failed to assign prompt/job/stack correlation: %s", ex)
+
+                if gen_time_by_id or assigned_stack_by_id:
                     try:
                         from ..registry import PromptServer
                         payloads_by_id: dict[int, dict[str, Any]] = {}
                         index_service = svc.get("index") if isinstance(svc, dict) else None
+                        target_ids = list(dict.fromkeys(list(gen_time_by_id.keys()) + list(assigned_stack_by_id.keys())))
                         if index_service and hasattr(index_service, "get_assets_batch"):
                             try:
-                                batch_res = await index_service.get_assets_batch(list(gen_time_by_id.keys()))
+                                batch_res = await index_service.get_assets_batch(target_ids)
                                 if batch_res.ok and isinstance(batch_res.data, list):
                                     for item in batch_res.data:
                                         if not isinstance(item, dict):
@@ -755,7 +829,13 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                                         if not item_id or item_id not in gen_time_by_id:
                                             continue
                                         payload = dict(item)
-                                        payload["generation_time_ms"] = gen_time_by_id[item_id]
+                                        if item_id in gen_time_by_id:
+                                            payload["generation_time_ms"] = gen_time_by_id[item_id]
+                                        if item_id in assigned_stack_by_id:
+                                            payload["stack_id"] = assigned_stack_by_id[item_id]
+                                        row_prompt = str(item.get("job_id") or prompt_id or "")
+                                        if row_prompt:
+                                            payload["job_id"] = row_prompt
                                         payloads_by_id[item_id] = payload
                             except Exception:
                                 payloads_by_id = {}
@@ -770,6 +850,13 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                                 "mjr-asset-updated",
                                 sanitize_for_json(payload),
                             )
+                            try:
+                                PromptServer.instance.send_sync(
+                                    "mjr.asset.indexed",
+                                    sanitize_for_json(payload),
+                                )
+                            except Exception:
+                                pass
                     except Exception:
                         pass
 
@@ -788,6 +875,22 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             }
         except Exception as exc:
             logger.debug("Failed to attach scan stats: %s", exc)
+
+        try:
+            PromptServer.instance.send_sync("mjr.scan.progress", sanitize_for_json({
+                "status": "completed",
+                "scope": "index-files",
+                "origin": origin,
+                "prompt_id": prompt_id or None,
+                "stats": total_stats,
+            }))
+            PromptServer.instance.send_sync("mjr.runtime.status", sanitize_for_json({
+                "active_prompt_id": prompt_id or None,
+                "origin": origin,
+                "stats": total_stats,
+            }))
+        except Exception:
+            pass
 
         return _json_response(Result.Ok(total_stats))
 

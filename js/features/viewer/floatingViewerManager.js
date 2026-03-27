@@ -79,6 +79,14 @@ function _cancelFetch() {
     _fetchAC = null;
 }
 
+function _getSelectionSourceGrid() {
+    try {
+        const lastGrid = window.__MJR_LAST_SELECTION_GRID__;
+        if (lastGrid?.isConnected) return lastGrid;
+    } catch (e) { console.debug?.(e); }
+    return getActiveGridContainer();
+}
+
 function _disposeInstance() {
     if (!_instance) return;
     try { _instance.dispose?.(); } catch (e) { console.debug?.(e); }
@@ -107,7 +115,7 @@ function _syncViewerControls(inst) {
  */
 function _findAdjacentGridId(selectedId) {
     try {
-        const grid = getActiveGridContainer();
+        const grid = _getSelectionSourceGrid();
         if (!grid) return null;
         const cards = Array.from(grid.querySelectorAll("[data-mjr-asset-id]"));
         const idx = cards.findIndex((c) => c.dataset.mjrAssetId === String(selectedId));
@@ -214,7 +222,7 @@ async function _loadFromIds(selectedIds) {
  */
 function _syncCurrentGridSelection() {
     try {
-        const grid = getActiveGridContainer();
+        const grid = _getSelectionSourceGrid();
         if (!grid) return;
         const selected = getSelectedIdSet(grid);
         if (!selected.size) return;
@@ -237,7 +245,7 @@ function _onSelectionChanged(e) {
     }
     // Fallback: if payload is missing/empty, read latest selection directly from grid dataset.
     try {
-        const grid = getActiveGridContainer();
+        const grid = _getSelectionSourceGrid();
         if (!grid) return;
         const ids = Array.from(getSelectedIdSet(grid)).map(String).filter(Boolean);
         if (!ids.length) return;

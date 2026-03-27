@@ -8,8 +8,11 @@ import { checkMajoorVersion } from "./app/versionCheck.js";
 import { ensureStyleLoaded } from "./app/style.js";
 import { buildMajoorSettings, registerMajoorSettings } from "./app/settings.js";
 import {
+    activateSidebarTabCompat,
     getComfyApi,
+    registerBottomPanelTabCompat,
     registerSidebarTabCompat,
+    registerCommandCompat,
     setComfyApi,
     setComfyApp,
     waitForComfyApi,
@@ -21,6 +24,7 @@ import { teardownFloatingViewerManager, floatingViewerManager } from "./features
 import { NODE_STREAM_FEATURE_ENABLED, NODE_STREAM_REACTIVATION_DOC } from "./features/viewer/nodeStream/nodeStreamFeatureFlag.js";
 import { loadAssets, upsertAsset, removeAssetsFromGrid } from "./features/grid/GridView.js";
 import { renderAssetsManager, getActiveGridContainer } from "./features/panel/AssetsManagerPanel.js";
+import { getGeneratedFeedBottomPanelTab, pushGeneratedAsset } from "./features/bottomPanel/GeneratedFeedTab.js";
 import { extractOutputFiles } from "./utils/extractOutputFiles.js";
 import { post } from "./api/client.js";
 import { ENDPOINTS } from "./api/endpoints.js";
@@ -43,6 +47,104 @@ const UI_FLAGS = {
 
 // Runtime cleanup key (used for hot-reload cleanup in ComfyUI)
 const ENTRY_RUNTIME_KEY = "__MJR_ENTRY_RUNTIME__";
+const SIDEBAR_TAB_ID = "majoor-assets";
+const EXECUTION_RUNTIME_KEY = "__MJR_EXECUTION_RUNTIME__";
+
+function ensureExecutionRuntime() {
+    try {
+        if (typeof window === "undefined") return {
+            active_prompt_id: null,
+            queue_remaining: null,
+            progress_node: null,
+            progress_value: null,
+            progress_max: null,
+            cached_nodes: [],
+        };
+        if (!window[EXECUTION_RUNTIME_KEY] || typeof window[EXECUTION_RUNTIME_KEY] !== "object") {
+            window[EXECUTION_RUNTIME_KEY] = {
+                active_prompt_id: null,
+                queue_remaining: null,
+                progress_node: null,
+                progress_value: null,
+                progress_max: null,
+                cached_nodes: [],
+            };
+        }
+        return window[EXECUTION_RUNTIME_KEY];
+    } catch (e) {
+        console.debug?.(e);
+        return {};
+    }
+}
+
+function emitRuntimeStatus(partial = {}) {
+    try {
+        const runtime = ensureExecutionRuntime();
+        Object.assign(runtime, partial || {});
+        window.dispatchEvent(new CustomEvent(EVENTS.RUNTIME_STATUS, { detail: { ...runtime } }));
+    } catch (e) { console.debug?.(e); }
+}
+
+function openAssetsManagerPanel(runtimeApp) {
+    const opened = activateSidebarTabCompat(runtimeApp, SIDEBAR_TAB_ID);
+    if (!opened) {
+        try {
+            window.dispatchEvent(new Event(EVENTS.OPEN_ASSETS_MANAGER));
+        } catch (e) { console.debug?.(e); }
+    }
+    return opened;
+}
+
+function triggerRefreshGrid() {
+    try {
+        window.dispatchEvent(new CustomEvent(EVENTS.RELOAD_GRID, { detail: { reason: "command" } }));
+    } catch (e) { console.debug?.(e); }
+}
+
+function registerNativeCommands(runtimeApp) {
+    const commands = [
+        {
+            id: "mjr.openAssetsManager",
+            label: t("manager.title", "Assets Manager"),
+            icon: "pi pi-folder-open",
+            function: () => openAssetsManagerPanel(runtimeApp),
+        },
+        {
+            id: "mjr.scanAssets",
+            label: t("command.scanAssets", "Scan assets"),
+            icon: "pi pi-refresh",
+            function: () => triggerStartupScan(),
+        },
+        {
+            id: "mjr.toggleFloatingViewer",
+            label: t("command.toggleFloatingViewer", "Toggle floating viewer"),
+            icon: "pi pi-images",
+            function: () => window.dispatchEvent(new Event(EVENTS.MFV_TOGGLE)),
+        },
+        {
+            id: "mjr.refreshAssetsGrid",
+            label: t("command.refreshAssetsGrid", "Refresh assets grid"),
+            icon: "pi pi-sync",
+            function: () => triggerRefreshGrid(),
+        },
+    ];
+    for (const command of commands) {
+        registerCommandCompat(runtimeApp, command);
+    }
+}
+
+function isMajoorTrackableNode(node) {
+    const comfyClass = String(node?.comfyClass || node?.type || node?.constructor?.type || "").trim();
+    if (!comfyClass) return false;
+    return /save|load|preview/i.test(comfyClass);
+}
+
+function nodeMenuEntry(label, callback) {
+    return {
+        content: label,
+        callback,
+    };
+}
 
 function removeApiHandlers(api) {
     if (!api) return;
@@ -76,6 +178,11 @@ function removeApiHandlers(api) {
         }
         if (api._mjrDbRestoreStatusHandler) {
             api.removeEventListener(EVENTS.DB_RESTORE_STATUS, api._mjrDbRestoreStatusHandler);
+        }
+        if (api._mjrRuntimeStatusHandler) {
+            api.removeEventListener("progress", api._mjrRuntimeStatusHandler);
+            api.removeEventListener("status", api._mjrRuntimeStatusHandler);
+            api.removeEventListener("execution_cached", api._mjrExecutionCachedHandler);
         }
     } catch (error) {
         reportError(error, "entry.removeApiHandlers");
@@ -230,15 +337,22 @@ function _shouldRetryIndexResponse(res) {
     return INDEX_RETRYABLE_CODES.has(code);
 }
 
-function scheduleGenerationIndex(files, attempt = 1) {
+function scheduleGenerationIndex(files, attempt = 1, meta = {}) {
     const payloadFiles = Array.isArray(files) ? files : [];
     if (!payloadFiles.length) return;
-    post(ENDPOINTS.INDEX_FILES, { files: payloadFiles, origin: "generation" })
+    const payload = {
+        files: payloadFiles,
+        origin: "generation",
+    };
+    if (meta?.prompt_id || meta?.promptId) {
+        payload.prompt_id = String(meta.prompt_id || meta.promptId);
+    }
+    post(ENDPOINTS.INDEX_FILES, payload)
         .then((res) => {
             if (res?.ok) return;
             if (_shouldRetryIndexResponse(res) && attempt < INDEX_RETRY_MAX_ATTEMPTS) {
                 const delayMs = _indexRetryDelayMs(attempt);
-                setTimeout(() => scheduleGenerationIndex(payloadFiles, attempt + 1), delayMs);
+                setTimeout(() => scheduleGenerationIndex(payloadFiles, attempt + 1, meta), delayMs);
                 return;
             }
             try {
@@ -253,7 +367,32 @@ function scheduleGenerationIndex(files, attempt = 1) {
 app.registerExtension({
     name: "Majoor.AssetsManager",
     settings: buildMajoorSettings(app),
-
+    commands: [
+        {
+            id: "mjr.openAssetsManager",
+            label: "Open Assets Manager",
+            icon: "pi pi-folder-open",
+            function: () => openAssetsManagerPanel(app),
+        },
+        {
+            id: "mjr.scanAssets",
+            label: "Scan Assets",
+            icon: "pi pi-refresh",
+            function: () => triggerStartupScan(),
+        },
+        {
+            id: "mjr.toggleFloatingViewer",
+            label: "Toggle Floating Viewer",
+            icon: "pi pi-images",
+            function: () => window.dispatchEvent(new Event(EVENTS.MFV_TOGGLE)),
+        },
+        {
+            id: "mjr.refreshAssetsGrid",
+            label: "Refresh Assets Grid",
+            icon: "pi pi-sync",
+            function: () => triggerRefreshGrid(),
+        },
+    ],
     async setup() {
         installEntryRuntimeController();
         // Seed the bridge with the module-imported app so waitForComfyApp
@@ -297,6 +436,7 @@ app.registerExtension({
             const grid = getActiveGridContainer();
             if (grid) loadAssets(grid);
         });
+        registerNativeCommands(runtimeApp);
 
         setTimeout(() => { void checkMajoorVersion(); }, 5000);
 
@@ -336,7 +476,7 @@ app.registerExtension({
                             window.dispatchEvent(new CustomEvent(EVENTS.NEW_GENERATION_OUTPUT, { detail: { files } }));
                         } catch (e) { console.debug?.(e); }
 
-                        scheduleGenerationIndex(files);
+                        scheduleGenerationIndex(files, 1, { prompt_id: promptId });
                     } catch (error) {
                         reportError(error, "entry.executed");
                     }
@@ -352,6 +492,13 @@ app.registerExtension({
                         // Feed jobId to LiveStreamTracker so b_preview_with_metadata
                         // events from stale executions are filtered out (ComfyUI v1.42+).
                         _liveStreamMod?.setCurrentJobId(promptId || null);
+                        emitRuntimeStatus({
+                            active_prompt_id: promptId || null,
+                            cached_nodes: [],
+                            progress_node: null,
+                            progress_value: null,
+                            progress_max: null,
+                        });
                     } catch (error) {
                         reportError(error, "entry.execution_start");
                     }
@@ -365,20 +512,59 @@ app.registerExtension({
                         pruneExecutionStarts();
                         // Clear jobId filter once execution completes.
                         _liveStreamMod?.setCurrentJobId(null);
+                        emitRuntimeStatus({
+                            active_prompt_id: null,
+                            cached_nodes: [],
+                            progress_node: null,
+                            progress_value: null,
+                            progress_max: null,
+                        });
                     } catch (error) {
                         reportError(error, "entry.execution_end");
+                    }
+                };
+                api._mjrRuntimeStatusHandler = (event) => {
+                    try {
+                        const detail = event?.detail || {};
+                        emitRuntimeStatus({
+                            progress_node: detail?.node ?? null,
+                            progress_value: Number.isFinite(Number(detail?.value)) ? Number(detail.value) : null,
+                            progress_max: Number.isFinite(Number(detail?.max)) ? Number(detail.max) : null,
+                            queue_remaining: Number.isFinite(Number(detail?.exec_info?.queue_remaining))
+                                ? Number(detail.exec_info.queue_remaining)
+                                : Number.isFinite(Number(detail?.queue_remaining))
+                                ? Number(detail.queue_remaining)
+                                : ensureExecutionRuntime().queue_remaining,
+                        });
+                    } catch (error) {
+                        reportError(error, "entry.runtime_status");
+                    }
+                };
+                api._mjrExecutionCachedHandler = (event) => {
+                    try {
+                        const detail = event?.detail || {};
+                        emitRuntimeStatus({
+                            active_prompt_id: detail?.prompt_id || detail?.promptId || ensureExecutionRuntime().active_prompt_id || null,
+                            cached_nodes: Array.isArray(detail?.nodes) ? detail.nodes.slice() : [],
+                        });
+                    } catch (error) {
+                        reportError(error, "entry.execution_cached");
                     }
                 };
                 _registerCleanableListener(runtime, api, "execution_start", api._mjrExecutionStartHandler);
                 _registerCleanableListener(runtime, api, "execution_success", api._mjrExecutionEndHandler);
                 _registerCleanableListener(runtime, api, "execution_error", api._mjrExecutionEndHandler);
                 _registerCleanableListener(runtime, api, "execution_interrupted", api._mjrExecutionEndHandler);
+                _registerCleanableListener(runtime, api, "progress", api._mjrRuntimeStatusHandler);
+                _registerCleanableListener(runtime, api, "status", api._mjrRuntimeStatusHandler);
+                _registerCleanableListener(runtime, api, "execution_cached", api._mjrExecutionCachedHandler);
 
                 // Listen for backend push - upsert asset directly to grid
                 api._mjrAssetAddedHandler = (event) => {
                     try {
                         const grid = getActiveGridContainer();
                         if (grid && event?.detail) {
+                            pushGeneratedAsset(event.detail);
                             // Only handle direct updates when the active grid shows output or "all" scope.
                             const scope = grid.dataset?.mjrScope || "output";
                             if (scope !== "output" && scope !== "all") return;
@@ -405,6 +591,7 @@ app.registerExtension({
                     try {
                         const grid = getActiveGridContainer();
                         if (grid && event?.detail) {
+                            pushGeneratedAsset(event.detail);
                             const detail = event.detail;
                             const assetId = String(detail?.id || "").trim();
                             const kind = String(detail?.kind || "").trim();
@@ -544,7 +731,7 @@ app.registerExtension({
 
         // Register sidebar tab
         if (registerSidebarTabCompat(runtimeApp, {
-                id: "majoor-assets",
+                id: SIDEBAR_TAB_ID,
                 icon: "pi pi-folder",
                 title: t("manager.title"),
                 label: t("manager.sidebarLabel"),
@@ -574,6 +761,12 @@ app.registerExtension({
             console.warn("📂 Majoor Assets Manager: extensionManager.registerSidebarTab is unavailable");
         }
 
+        try {
+            registerBottomPanelTabCompat(runtimeApp, getGeneratedFeedBottomPanelTab());
+        } catch (e) {
+            console.debug?.("[Majoor] Bottom panel tab registration unavailable", e);
+        }
+
         // Export metrics for debugging (accessible via console)
         if (typeof window !== "undefined") {
             window.MajoorDebug = {
@@ -581,7 +774,7 @@ app.registerExtension({
                 getMetrics: () => window.MajoorMetrics?.getMetricsReport?.(),
                 resetMetrics: () => window.MajoorMetrics?.resetMetrics?.(),
             };
-            console.log("[Majoor] Debug commands available: window.MajoorDebug.exportMetrics(), window.MajoorDebug.getMetrics(), window.MajoorDebug.resetMetrics()");
+            console.debug?.("[Majoor] Debug commands available: window.MajoorDebug.exportMetrics(), window.MajoorDebug.getMetrics(), window.MajoorDebug.resetMetrics()");
             if (NODE_STREAM_FEATURE_ENABLED) {
                 // Expose NodeStream API for third-party adapter registration (lazy-resolved).
                 const _nsApi = (fn) => async (...args) => {
@@ -602,7 +795,7 @@ app.registerExtension({
                         return getKnownNodeSets();
                     },
                 };
-                console.log("[Majoor] NodeStream API: window.MajoorNodeStream.registerAdapter(adapter), .createAdapter(config), .listAdapters()");
+                console.debug?.("[Majoor] NodeStream API: window.MajoorNodeStream.registerAdapter(adapter), .createAdapter(config), .listAdapters()");
             } else {
                 try { delete window.MajoorNodeStream; } catch (e) { window.MajoorNodeStream = undefined; }
             }
@@ -631,4 +824,25 @@ app.registerExtension({
         }
 
     },
+
+    getNodeMenuItems(node) {
+        if (!isMajoorTrackableNode(node)) return [];
+        return [
+            nodeMenuEntry("View in Assets Manager", () => openAssetsManagerPanel(app)),
+            nodeMenuEntry("Open in Floating Viewer", () => {
+                try {
+                    window.dispatchEvent(new Event(EVENTS.MFV_OPEN));
+                } catch (e) { console.debug?.(e); }
+            }),
+            nodeMenuEntry("Index Output", () => {
+                try {
+                    triggerRefreshGrid();
+                    comfyToast(t("toast.rescanningFile", "Rescanning file…"), "info", 1800);
+                } catch (e) { console.debug?.(e); }
+            }),
+        ];
+    },
+    bottomPanelTabs: [
+        getGeneratedFeedBottomPanelTab(),
+    ],
 });

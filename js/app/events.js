@@ -27,5 +27,13 @@ export const EVENTS = Object.freeze({
     NEW_GENERATION_OUTPUT: "mjr:new-generation-output",
     NODE_STREAM_OUTPUT: "mjr:node-stream-output",          // detail: { fileData, nodeId, classType }
     ASSET_ADDED: "mjr:asset-added",        // dispatched by entry.js on mjr-asset-added WS event
+    ASSET_INDEXING: "mjr.asset.indexing",
+    ASSET_INDEXED: "mjr.asset.indexed",
+    ASSET_INDEX_FAILED: "mjr.asset.index_failed",
+    SCAN_PROGRESS: "mjr.scan.progress",
+    RUNTIME_STATUS: "mjr.runtime.status",
+    WATCHER_STATUS: "mjr.watcher.status",
+    OPEN_ASSETS_MANAGER: "mjr:open-assets-manager",
+    OPEN_VIEWER: "mjr:open-viewer",
 });
 

@@ -11,6 +11,8 @@ All notable changes to this project are documented in this file.
 - Add job id and stack id in DB for better assets management
 - Code refactor for maintainability
 - Various bug fixes
+- Add generated feed feature
+- Add lite version of grid in bottom tab
 
 ---
 

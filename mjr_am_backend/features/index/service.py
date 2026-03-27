@@ -307,6 +307,12 @@ class IndexService:
                 if _PS is not None:
                     # Notify frontend (useful for drag-drop staging updates)
                     _PS.instance.send_sync("mjr-scan-complete", res.data)
+                    _PS.instance.send_sync("mjr.scan.progress", sanitize_for_json({
+                        "status": "completed",
+                        "scope": str(source or "output"),
+                        "root_id": root_id,
+                        "stats": dict(res.data or {}),
+                    }))
             except Exception as e:
                 logger.debug("Failed to emit scan-complete event: %s", e)
             # Push newly-added assets immediately so the frontend can upsert them
@@ -321,6 +327,7 @@ class IndexService:
                         for asset in batch_res.data:
                             try:
                                 _PS.instance.send_sync("mjr-asset-added", sanitize_for_json(dict(asset)))
+                                _PS.instance.send_sync("mjr.asset.indexed", sanitize_for_json(dict(asset)))
                             except Exception as exc:
                                 logger.debug("Failed to push mjr-asset-added for one asset: %s", exc)
                 except Exception as e:
