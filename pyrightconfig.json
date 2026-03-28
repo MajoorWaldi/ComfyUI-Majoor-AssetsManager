@@ -1,0 +1,30 @@
+{
+  "include": [
+    "mjr_am_backend",
+    "mjr_am_shared"
+  ],
+  "exclude": [
+    "**/__pycache__",
+    ".git",
+    ".mypy_cache",
+    ".mypy_cache_tmp",
+    ".ruff_cache",
+    "build",
+    "majoor_assetsmanager.egg-info",
+    "node_modules"
+  ],
+  "extraPaths": [
+    "."
+  ],
+  "pythonVersion": "3.10",
+  "typeCheckingMode": "basic",
+  "reportMissingImports": "none",
+  "reportArgumentType": "none",
+  "reportAttributeAccessIssue": "none",
+  "reportCallIssue": "none",
+  "reportGeneralTypeIssues": "none",
+  "reportOptionalMemberAccess": "none",
+  "reportOptionalSubscript": "none",
+  "reportUnusedCoroutine": "none",
+  "reportUnsupportedDunderAll": "none"
+}

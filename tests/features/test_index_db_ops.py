@@ -8,10 +8,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-
 from mjr_am_backend.features.index import index_db_ops as dbo
 from mjr_am_backend.shared import Result
-
 
 # ─── helpers ────────────────────────────────────────────────────────────────
 

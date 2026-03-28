@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
-from collections import deque
-from collections.abc import Callable
 from typing import Any
 
-from ...shared import Result, get_logger
-from .graph_converter import _inputs, _is_link, _lower, _node_type, _resolve_link, _walk_passthrough, _collect_upstream_nodes
-from .sampler_tracer import _scalar
+from ...shared import get_logger
+from .graph_converter import (
+    _collect_upstream_nodes,
+    _inputs,
+    _is_link,
+    _lower,
+    _node_type,
+    _walk_passthrough,
+)
 from .parser_impl import (
     DEFAULT_MAX_LINK_NODES,
     _collect_text_encoder_nodes_from_conditioning,
@@ -17,6 +21,7 @@ from .parser_impl import (
     _iter_guidance_conditioning_sources,
     _looks_like_prompt_string,
 )
+from .sampler_tracer import _scalar
 
 logger = get_logger(__name__)
 

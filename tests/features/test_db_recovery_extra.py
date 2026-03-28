@@ -3,8 +3,6 @@ import sqlite3
 import threading
 from pathlib import Path
 
-import pytest
-
 from mjr_am_backend.adapters.db import db_recovery as dr
 
 

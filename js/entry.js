@@ -24,7 +24,7 @@ import { teardownFloatingViewerManager, floatingViewerManager } from "./features
 import { NODE_STREAM_FEATURE_ENABLED, NODE_STREAM_REACTIVATION_DOC } from "./features/viewer/nodeStream/nodeStreamFeatureFlag.js";
 import { loadAssets, upsertAsset, removeAssetsFromGrid } from "./features/grid/GridView.js";
 import { renderAssetsManager, getActiveGridContainer } from "./features/panel/AssetsManagerPanel.js";
-import { getGeneratedFeedBottomPanelTab, pushGeneratedAsset } from "./features/bottomPanel/GeneratedFeedTab.js";
+import { getGeneratedFeedBottomPanelTab, pushGeneratedAsset, refreshGeneratedFeedHosts } from "./features/bottomPanel/GeneratedFeedTab.js";
 import { extractOutputFiles } from "./utils/extractOutputFiles.js";
 import { post } from "./api/client.js";
 import { ENDPOINTS } from "./api/endpoints.js";
@@ -173,6 +173,9 @@ function removeApiHandlers(api) {
             api.removeEventListener("execution_error", api._mjrExecutionEndHandler);
             api.removeEventListener("execution_interrupted", api._mjrExecutionEndHandler);
         }
+        if (api._mjrStacksUpdatedHandler) {
+            api.removeEventListener("mjr.stacks.updated", api._mjrStacksUpdatedHandler);
+        }
         if (api._mjrEnrichmentStatusHandler) {
             api.removeEventListener(EVENTS.ENRICHMENT_STATUS, api._mjrEnrichmentStatusHandler);
         }
@@ -301,6 +304,41 @@ const EXECUTION_STARTS_MAX = 500; // Hard cap to prevent unbounded growth
 const executionStarts = createTTLCache({ ttlMs: EXECUTION_START_TTL_MS, maxSize: EXECUTION_STARTS_MAX });
 let _stackFinalizeTimer = null;
 let _stackFinalizeInFlight = null;
+let _lastStacksUpdateSignature = "";
+let _lastStacksUpdateAt = 0;
+
+function notifyStacksUpdated(detail = {}) {
+    try {
+        const stacks = Array.isArray(detail?.stacks) ? detail.stacks : [];
+        const signature = JSON.stringify({
+            targeted_job_id: String(detail?.targeted_job_id || ""),
+            stacks: stacks.map((item) => ({
+                job_id: String(item?.job_id || ""),
+                stack_id: String(item?.stack_id || ""),
+                asset_count: Number(item?.asset_count || 0) || 0,
+            })),
+        });
+        const now = Date.now();
+        if (signature && signature === _lastStacksUpdateSignature && (now - _lastStacksUpdateAt) < 1500) {
+            return;
+        }
+        _lastStacksUpdateSignature = signature;
+        _lastStacksUpdateAt = now;
+    } catch (e) { console.debug?.(e); }
+    try {
+        window.dispatchEvent(new CustomEvent("mjr:stacks-updated", { detail: { ...(detail || {}) } }));
+    } catch (e) { console.debug?.(e); }
+    try {
+        refreshGeneratedFeedHosts();
+    } catch (e) { console.debug?.(e); }
+    try {
+        const grid = getActiveGridContainer();
+        const scope = String(grid?.dataset?.mjrScope || "").trim().toLowerCase();
+        if (grid && (scope === "output" || scope === "all")) {
+            window.dispatchEvent(new CustomEvent(EVENTS.RELOAD_GRID, { detail: { reason: "stacks-updated", ...(detail || {}) } }));
+        }
+    } catch (e) { console.debug?.(e); }
+}
 
 function rememberExecutionStart(promptId, timestampMs) {
     if (!promptId) return;
@@ -366,18 +404,22 @@ function scheduleGenerationIndex(files, attempt = 1, meta = {}) {
         .catch((error) => reportError(error, "entry.executed.index"));
 }
 
-function scheduleFinalizeExecutionStacks(delayMs = 900) {
+function scheduleFinalizeExecutionStacks(jobId, delayMs = 900) {
+    const targetJobId = String(jobId || "").trim();
+    if (!targetJobId) return;
     try {
         if (_stackFinalizeTimer) clearTimeout(_stackFinalizeTimer);
     } catch (e) { console.debug?.(e); }
     _stackFinalizeTimer = setTimeout(() => {
         _stackFinalizeTimer = null;
         if (_stackFinalizeInFlight) return;
-        _stackFinalizeInFlight = post(ENDPOINTS.STACKS_AUTO_STACK, { mode: "job_id" })
+        _stackFinalizeInFlight = post(ENDPOINTS.STACKS_AUTO_STACK, { mode: "job_id", job_id: targetJobId })
             .then((res) => {
                 if (!res?.ok) {
                     reportError(new Error(String(res?.error || "Auto stack failed")), "entry.execution_end.auto_stack");
+                    return;
                 }
+                notifyStacksUpdated(res?.data || { targeted_job_id: targetJobId });
             })
             .catch((error) => reportError(error, "entry.execution_end.auto_stack"))
             .finally(() => {
@@ -486,12 +528,25 @@ app.registerExtension({
                         if (!outputFiles.length) return;
 
                         const promptId = event?.detail?.prompt_id || event?.detail?.promptId;
+                        const sourceNodeId = String(event?.detail?.node || event?.detail?.display_node || "").trim();
                         const startTs = promptId ? executionStarts.get(String(promptId)) : null;
                         const genTimeMs = startTs ? Math.max(0, Date.now() - startTs) : 0;
 
-                        const files = genTimeMs > 0
-                            ? outputFiles.map((f) => ({ ...f, generation_time_ms: genTimeMs }))
-                            : outputFiles;
+                        // Resolve node class_type from the active workflow graph
+                        let sourceNodeType = "";
+                        try {
+                            if (sourceNodeId && typeof app !== "undefined" && app?.graph) {
+                                const graphNode = app.graph.getNodeById(Number(sourceNodeId));
+                                if (graphNode) sourceNodeType = String(graphNode.type || graphNode.comfyClass || "").trim();
+                            }
+                        } catch (e) { console.debug?.(e); }
+
+                        const files = outputFiles.map((f) => ({
+                            ...f,
+                            ...(genTimeMs > 0 ? { generation_time_ms: genTimeMs } : {}),
+                            ...(sourceNodeId ? { source_node_id: sourceNodeId } : {}),
+                            ...(sourceNodeType ? { source_node_type: sourceNodeType } : {}),
+                        }));
 
                         // Notify the MFV (and any other subscriber) that new files were generated.
                         try {
@@ -542,10 +597,17 @@ app.registerExtension({
                             progress_max: null,
                         });
                         if (String(event?.type || "") === "execution_success") {
-                            scheduleFinalizeExecutionStacks();
+                            scheduleFinalizeExecutionStacks(promptId);
                         }
                     } catch (error) {
                         reportError(error, "entry.execution_end");
+                    }
+                };
+                api._mjrStacksUpdatedHandler = (event) => {
+                    try {
+                        notifyStacksUpdated(event?.detail || {});
+                    } catch (error) {
+                        reportError(error, "entry.stacks_updated");
                     }
                 };
                 api._mjrRuntimeStatusHandler = (event) => {
@@ -580,6 +642,7 @@ app.registerExtension({
                 _registerCleanableListener(runtime, api, "execution_success", api._mjrExecutionEndHandler);
                 _registerCleanableListener(runtime, api, "execution_error", api._mjrExecutionEndHandler);
                 _registerCleanableListener(runtime, api, "execution_interrupted", api._mjrExecutionEndHandler);
+                _registerCleanableListener(runtime, api, "mjr.stacks.updated", api._mjrStacksUpdatedHandler);
                 _registerCleanableListener(runtime, api, "progress", api._mjrRuntimeStatusHandler);
                 _registerCleanableListener(runtime, api, "status", api._mjrRuntimeStatusHandler);
                 _registerCleanableListener(runtime, api, "execution_cached", api._mjrExecutionCachedHandler);

@@ -8,12 +8,12 @@ from __future__ import annotations
 
 import importlib
 import importlib.util
+import logging
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Type, Any
-import logging
+from typing import Any
 
-from .base import MetadataExtractorPlugin, ExtractorMetadata
+from .base import MetadataExtractorPlugin
 from .validator import PluginValidator
 
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ class PluginLoader:
 
     def __init__(
         self,
-        plugin_dirs: Optional[List[Path]] = None,
+        plugin_dirs: list[Path] | None = None,
         auto_discover: bool = True,
         validation_mode: str = "strict"  # "strict", "permissive", "disabled"
     ):
@@ -51,15 +51,15 @@ class PluginLoader:
         """
         self.plugin_dirs = plugin_dirs or self._default_plugin_dirs()
         self.validation_mode = validation_mode
-        self._extractors: Dict[str, MetadataExtractorPlugin] = {}
-        self._loaded_modules: Set[str] = set()
-        self._load_errors: List[tuple[str, str]] = []
-        self._plugin_info: Dict[str, Dict[str, Any]] = {}
+        self._extractors: dict[str, MetadataExtractorPlugin] = {}
+        self._loaded_modules: set[str] = set()
+        self._load_errors: list[tuple[str, str]] = []
+        self._plugin_info: dict[str, dict[str, Any]] = {}
 
         if auto_discover:
             self.discover_plugins()
 
-    def _default_plugin_dirs(self) -> List[Path]:
+    def _default_plugin_dirs(self) -> list[Path]:
         """Get default plugin directories."""
         try:
             from ...config import OUTPUT_ROOT_PATH
@@ -174,7 +174,7 @@ class PluginLoader:
     def _load_module(
         self,
         module_file: Path,
-        package_name: Optional[str] = None
+        package_name: str | None = None
     ) -> None:
         """Load a single Python module and extract plugins."""
         # Validate plugin before loading
@@ -244,7 +244,7 @@ class PluginLoader:
         if found_count == 0:
             logger.debug(f"No extractor classes found in {module_file}")
 
-    def _is_valid_extractor_class(self, cls: Type) -> bool:
+    def _is_valid_extractor_class(self, cls: type) -> bool:
         """Check if class is a valid extractor plugin."""
         try:
             return (
@@ -316,7 +316,7 @@ class PluginLoader:
         logger.debug(f"Unregistered extractor: {name}")
         return True
 
-    def get_extractor(self, filepath: str) -> Optional[MetadataExtractorPlugin]:
+    def get_extractor(self, filepath: str) -> MetadataExtractorPlugin | None:
         """
         Get the best extractor for a file (by priority).
 
@@ -340,12 +340,12 @@ class PluginLoader:
     def get_extractor_by_name(
         self,
         name: str
-    ) -> Optional[MetadataExtractorPlugin]:
+    ) -> MetadataExtractorPlugin | None:
         """Get extractor by name."""
         return self._extractors.get(name)
 
     @property
-    def all_extractors(self) -> List[MetadataExtractorPlugin]:
+    def all_extractors(self) -> list[MetadataExtractorPlugin]:
         """Get all registered extractors (sorted by priority)."""
         return sorted(
             self._extractors.values(),
@@ -354,21 +354,21 @@ class PluginLoader:
         )
 
     @property
-    def extractor_names(self) -> List[str]:
+    def extractor_names(self) -> list[str]:
         """Get names of all registered extractors."""
         return list(self._extractors.keys())
 
     @property
-    def load_errors(self) -> List[tuple[str, str]]:
+    def load_errors(self) -> list[tuple[str, str]]:
         """Get list of (path, error) tuples for failed loads."""
         return self._load_errors.copy()
 
     @property
-    def plugin_info(self) -> Dict[str, Dict[str, Any]]:
+    def plugin_info(self) -> dict[str, dict[str, Any]]:
         """Get information about loaded plugins."""
         return self._plugin_info.copy()
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get loader statistics."""
         return {
             "total_extractors": len(self._extractors),

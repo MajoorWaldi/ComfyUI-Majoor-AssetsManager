@@ -1,8 +1,6 @@
 import asyncio
-from types import SimpleNamespace
 
 import pytest
-
 from mjr_am_backend.features.metadata import metadata_service_impl as m
 from mjr_am_backend.shared import ErrorCode, Result
 

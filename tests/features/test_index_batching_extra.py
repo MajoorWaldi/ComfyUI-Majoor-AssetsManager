@@ -4,16 +4,13 @@ Targets uncovered lines: 42-47, 50-67, 104-134, 161-271, 287-436, 448, 459
 """
 from __future__ import annotations
 
-import asyncio
 import time
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-
 from mjr_am_backend.features.index import index_batching as ib
 from mjr_am_backend.shared import Result
-
 
 # ─── helpers ────────────────────────────────────────────────────────────────
 

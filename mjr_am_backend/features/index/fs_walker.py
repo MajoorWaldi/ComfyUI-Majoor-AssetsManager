@@ -11,7 +11,6 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from queue import Empty, Queue
 
-from ...config import IS_WINDOWS
 from ...shared import EXTENSIONS, FileKind, classify_file, get_logger
 
 logger = get_logger(__name__)

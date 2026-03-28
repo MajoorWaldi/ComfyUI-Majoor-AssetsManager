@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any
 
 from aiohttp import web
-
 from mjr_am_backend.shared import Result
 from mjr_am_backend.shared import sanitize_error_message as safe_error_message
 

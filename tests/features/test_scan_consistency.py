@@ -7,10 +7,8 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
-
 from mjr_am_backend.routes.handlers import scan_consistency as m
 from mjr_am_backend.shared import Result
-
 
 # -- _missing_asset_row --------------------------------------------------------
 

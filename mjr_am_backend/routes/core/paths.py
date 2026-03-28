@@ -23,12 +23,16 @@ except Exception:
 from mjr_am_backend.config import get_runtime_output_root
 from mjr_am_backend.custom_roots import list_custom_roots
 from mjr_am_backend.features.audio import AUDIO_VIEW_MIME_TYPES
-from mjr_am_backend.shared import get_logger
 from mjr_am_backend.path_utils import (
     is_within_root as shared_is_within_root,
+)
+from mjr_am_backend.path_utils import (
     normalize_path as shared_normalize_path,
+)
+from mjr_am_backend.path_utils import (
     safe_rel_path as shared_safe_rel_path,
 )
+from mjr_am_backend.shared import get_logger
 
 logger = get_logger(__name__)
 
@@ -94,7 +98,7 @@ def _resolve_candidate_path(candidate: Path, *, must_exist: bool) -> Path | None
         # Always try strict resolve first to avoid TOCTOU race between
         # exists() and resolve() — a symlink swap could occur in between.
         return candidate.resolve(strict=True)
-    except (FileNotFoundError,):
+    except FileNotFoundError:
         if must_exist:
             return None
         try:

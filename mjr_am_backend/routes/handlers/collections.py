@@ -12,7 +12,14 @@ from aiohttp import web
 from mjr_am_backend.features.collections import CollectionsService
 from mjr_am_backend.shared import Result, classify_file, get_logger, sanitize_error_message
 
-from ..core import audit_log_write, _csrf_error, _json_response, _read_json, _require_services, _require_write_access
+from ..core import (
+    _csrf_error,
+    _json_response,
+    _read_json,
+    _require_services,
+    _require_write_access,
+    audit_log_write,
+)
 
 logger = get_logger(__name__)
 

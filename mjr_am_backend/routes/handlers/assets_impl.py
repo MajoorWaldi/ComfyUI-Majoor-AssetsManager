@@ -30,8 +30,14 @@ from mjr_am_backend.shared import sanitize_error_message as _safe_error_message
 
 from ..assets.path_guard import (
     build_download_response as _pg_build_download_response,
+)
+from ..assets.path_guard import (
     delete_file_best_effort as _delete_file_safe,
+)
+from ..assets.path_guard import (
     is_resolved_path_allowed as _is_resolved_path_allowed,
+)
+from ..assets.path_guard import (
     safe_download_filename as _pg_safe_download_filename,
 )
 
@@ -46,7 +52,6 @@ except Exception:  # pragma: no cover
     folder_paths = _FolderPathsStub()  # type: ignore
 
 from ..core import (
-    audit_log_write,
     _build_services,
     _check_rate_limit,
     _csrf_error,
@@ -61,6 +66,7 @@ from ..core import (
     _require_services,
     _require_write_access,
     _resolve_security_prefs,
+    audit_log_write,
     get_services_error,
 )
 
@@ -72,8 +78,7 @@ MAX_RENAME_LENGTH = 255
 USER_GUIDE_FILE_NAME = "user_guide.html"
 
 # P2-E-05/06 delegation to extracted modules.
-from ..assets import filename_validator as _fv
-from ..assets import path_guard as _pg
+from ..assets import filename_validator as _fv  # noqa: E402
 
 _normalize_filename = _fv.normalize_filename
 _filename_separator_error = _fv.filename_separator_error
@@ -81,11 +86,6 @@ _filename_char_error = _fv.filename_char_error
 _filename_boundary_error = _fv.filename_boundary_error
 _filename_reserved_error = _fv.filename_reserved_error
 _validate_filename = _fv.validate_filename
-
-_is_resolved_path_allowed = _pg.is_resolved_path_allowed
-_delete_file_safe = _pg.delete_file_best_effort
-_pg_build_download_response = _pg.build_download_response
-_pg_safe_download_filename = _pg.safe_download_filename
 
 
 def _resolve_local_user_guide_path() -> Path:
@@ -1119,7 +1119,6 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             return _json_response(path_context_res)
         path_context = path_context_res.data
         svc = path_context.services if path_context else {}
-        asset_id = path_context.asset_id if path_context else None
         candidate = path_context.candidate_path if path_context else None
         if candidate is None:
             return _json_response(Result.Err("INVALID_INPUT", "Missing filepath or asset_id"))
@@ -1228,8 +1227,6 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             return _json_response(rename_ctx_res)
         rename_ctx = rename_ctx_res.data
         svc = rename_ctx.services if rename_ctx else {}
-        body = rename_ctx.body if rename_ctx else {}
-        asset_id = rename_ctx.asset_id if rename_ctx else None
         new_name = rename_ctx.new_name if rename_ctx else ""
 
         target_res = await resolve_rename_target(

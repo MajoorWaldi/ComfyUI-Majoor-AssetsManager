@@ -2,7 +2,9 @@ import asyncio
 from pathlib import Path
 
 import pytest
-from mjr_am_backend.routes.handlers import scan as scan_mod
+from mjr_am_backend.routes.handlers import scan_consistency as scan_consistency_mod
+from mjr_am_backend.routes.handlers import scan_helpers as scan_helpers_mod
+from mjr_am_backend.routes.handlers import scan_staging as scan_staging_mod
 
 
 def test_is_db_malformed_result_detects_known_messages() -> None:
@@ -10,21 +12,21 @@ def test_is_db_malformed_result_detects_known_messages() -> None:
         ok = False
         error = "database disk image is malformed"
 
-    assert scan_mod._is_db_malformed_result(_Res())
-    assert not scan_mod._is_db_malformed_result(None)
+    assert scan_helpers_mod._is_db_malformed_result(_Res())
+    assert not scan_helpers_mod._is_db_malformed_result(None)
 
 
 def test_normalize_upload_extension() -> None:
-    assert scan_mod._normalize_upload_extension("PNG") == ".png"
-    assert scan_mod._normalize_upload_extension(".webp") == ".webp"
-    assert scan_mod._normalize_upload_extension("") == ""
+    assert scan_helpers_mod._normalize_upload_extension("PNG") == ".png"
+    assert scan_helpers_mod._normalize_upload_extension(".webp") == ".webp"
+    assert scan_helpers_mod._normalize_upload_extension("") == ""
 
 
 def test_validate_upload_filename_rejects_unsafe_names() -> None:
-    assert scan_mod._validate_upload_filename("ok.png") == "ok.png"
+    assert scan_helpers_mod._validate_upload_filename("ok.png") == "ok.png"
     # Parent segments are collapsed to basename by Path(...).name in current implementation.
-    assert scan_mod._validate_upload_filename("../x.png") == "x.png"
-    assert scan_mod._validate_upload_filename(".hidden") is None
+    assert scan_helpers_mod._validate_upload_filename("../x.png") == "x.png"
+    assert scan_helpers_mod._validate_upload_filename(".hidden") is None
 
 
 def test_files_equal_content_and_resolve_stage_destination(tmp_path: Path) -> None:
@@ -35,30 +37,30 @@ def test_files_equal_content_and_resolve_stage_destination(tmp_path: Path) -> No
     same.write_bytes(b"abc")
     diff.write_bytes(b"xyz")
 
-    assert scan_mod._files_equal_content(src, same)
-    assert not scan_mod._files_equal_content(src, diff)
+    assert scan_helpers_mod._files_equal_content(src, same)
+    assert not scan_helpers_mod._files_equal_content(src, diff)
 
-    reused = scan_mod._resolve_stage_destination(tmp_path, "same.png", src)
+    reused = scan_staging_mod._resolve_stage_destination(tmp_path, "same.png", src)
     assert reused.reused_existing is True
     assert reused.path.name == "same.png"
 
-    renamed = scan_mod._resolve_stage_destination(tmp_path, "diff.png", src)
+    renamed = scan_staging_mod._resolve_stage_destination(tmp_path, "diff.png", src)
     assert renamed.reused_existing is False
     assert renamed.path.name.startswith("diff_")
 
 
 def test_resolve_scan_root_validates_directory(tmp_path: Path) -> None:
-    ok = scan_mod._resolve_scan_root(str(tmp_path))
+    ok = scan_helpers_mod._resolve_scan_root(str(tmp_path))
     assert ok.ok
 
-    missing = scan_mod._resolve_scan_root(str(tmp_path / "missing"))
+    missing = scan_helpers_mod._resolve_scan_root(str(tmp_path / "missing"))
     assert not missing.ok
     assert missing.code == "DIR_NOT_FOUND"
 
 
 def test_allowed_upload_exts_adds_env(monkeypatch) -> None:
     monkeypatch.setenv("MJR_UPLOAD_EXTRA_EXT", "abc,.def")
-    allowed = scan_mod._allowed_upload_exts()
+    allowed = scan_helpers_mod._allowed_upload_exts()
     assert ".abc" in allowed
     assert ".def" in allowed
 
@@ -66,12 +68,12 @@ def test_allowed_upload_exts_adds_env(monkeypatch) -> None:
 def test_unique_upload_destination_and_cleanup(tmp_path: Path) -> None:
     existing = tmp_path / "x.png"
     existing.write_bytes(b"1")
-    out = scan_mod._unique_upload_destination(tmp_path, "x.png", ".png")
+    out = scan_helpers_mod._unique_upload_destination(tmp_path, "x.png", ".png")
     assert out.name.startswith("x_")
 
     tmp = tmp_path / ".upload_tmp.png"
     tmp.write_bytes(b"z")
-    scan_mod._cleanup_temp_upload_file(None, str(tmp))
+    scan_helpers_mod._cleanup_temp_upload_file(None, str(tmp))
     assert not tmp.exists()
 
 
@@ -90,8 +92,10 @@ async def test_write_multipart_file_atomic_success(tmp_path: Path, monkeypatch) 
             self._i += 1
             return c
 
-    monkeypatch.setattr(scan_mod, "_MAX_UPLOAD_SIZE", 1024 * 1024)
-    res = await scan_mod._write_multipart_file_atomic(tmp_path, "ok.png", _Field([b"ab", b"cd"]))
+    monkeypatch.setattr(scan_helpers_mod, "_MAX_UPLOAD_SIZE", 1024 * 1024)
+    res = await scan_helpers_mod._write_multipart_file_atomic(
+        tmp_path, "ok.png", _Field([b"ab", b"cd"])
+    )
     assert res.ok
     assert isinstance(res.data, Path)
     assert res.data.exists()
@@ -105,7 +109,7 @@ async def test_write_multipart_file_atomic_rejects_disallowed_ext(tmp_path: Path
             _ = size
             return b""
 
-    res = await scan_mod._write_multipart_file_atomic(tmp_path, "bad.exe", _Field())
+    res = await scan_helpers_mod._write_multipart_file_atomic(tmp_path, "bad.exe", _Field())
     assert not res.ok
     assert res.code == "INVALID_INPUT"
 
@@ -121,7 +125,7 @@ def test_missing_asset_row_and_collect(tmp_path: Path) -> None:
         {"id": None, "filepath": str(missing_file)},
         "bad",
     ]
-    out = scan_mod._collect_missing_asset_rows(rows)
+    out = scan_consistency_mod._collect_missing_asset_rows(rows)
     assert out == [(1, str(missing_file))]
 
 
@@ -144,7 +148,7 @@ async def test_delete_missing_asset_rows_executes_deletes() -> None:
         async def aexecute(self, sql, params):
             calls.append((sql, params))
 
-    await scan_mod._delete_missing_asset_rows(_Db(), [(5, "/x.png")])
+    await scan_consistency_mod._delete_missing_asset_rows(_Db(), [(5, "/x.png")])
     assert len(calls) == 3
 
 
@@ -157,13 +161,13 @@ async def test_maybe_schedule_consistency_check_obeys_cooldown(monkeypatch) -> N
         coro.close()
         return None
 
-    monkeypatch.setattr(scan_mod.asyncio, "create_task", _fake_create_task)
-    monkeypatch.setattr(scan_mod.time, "time", lambda: 1000.0)
-    monkeypatch.setattr(scan_mod, "_DB_CONSISTENCY_COOLDOWN_SECONDS", 60.0)
-    scan_mod._LAST_CONSISTENCY_CHECK = 0.0
+    monkeypatch.setattr(scan_consistency_mod.asyncio, "create_task", _fake_create_task)
+    monkeypatch.setattr(scan_consistency_mod.time, "time", lambda: 1000.0)
+    monkeypatch.setattr(scan_consistency_mod, "_DB_CONSISTENCY_COOLDOWN_SECONDS", 60.0)
+    scan_consistency_mod._LAST_CONSISTENCY_CHECK = 0.0
 
-    await scan_mod._maybe_schedule_consistency_check(object())
-    await scan_mod._maybe_schedule_consistency_check(object())
+    await scan_consistency_mod._maybe_schedule_consistency_check(object())
+    await scan_consistency_mod._maybe_schedule_consistency_check(object())
     assert scheduled["n"] == 1
 
 
@@ -176,6 +180,6 @@ async def test_schedule_index_task_runs_function() -> None:
         called["n"] += 1
         done.set()
 
-    scan_mod._schedule_index_task(_fn)
+    scan_helpers_mod._schedule_index_task(_fn)
     await asyncio.wait_for(done.wait(), timeout=1.0)
     assert called["n"] == 1

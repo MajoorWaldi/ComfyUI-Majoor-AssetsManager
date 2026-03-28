@@ -22,6 +22,7 @@ import { startRuntimeStatusDashboard } from "./settingsRuntime.js";
 import { registerGridSettings } from "./settingsGrid.js";
 import { registerViewerSettings } from "./settingsViewer.js";
 import { registerScanningSettings } from "./settingsScanning.js";
+import { registerFeedSettings } from "./settingsFeed.js";
 import { registerSecuritySettings } from "./settingsSecurity.js";
 import { registerAdvancedSettings } from "./settingsAdvanced.js";
 import { registerSearchSettings } from "./settingsSearch.js";
@@ -206,6 +207,7 @@ export const buildMajoorSettings = (app, onApplied) => {
 
     _settingsDefinitions = [];
     registerGridSettings(safeAddSetting, context.settings, context.notifyApplied);
+    registerFeedSettings(safeAddSetting, context.settings, context.notifyApplied);
     registerViewerSettings(safeAddSetting, context.settings, context.notifyApplied);
     registerScanningSettings(safeAddSetting, context.settings, context.notifyApplied);
     registerSecuritySettings(safeAddSetting, context.settings, context.notifyApplied);

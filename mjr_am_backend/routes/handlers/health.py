@@ -33,7 +33,6 @@ from mjr_am_backend.tool_detect import get_tool_status
 from mjr_am_backend.utils import parse_bool
 
 from ..core import (
-    audit_log_write,
     _csrf_error,
     _has_configured_write_token,
     _is_loopback_request,
@@ -42,8 +41,14 @@ from ..core import (
     _require_authenticated_user,
     _require_services,
     _require_write_access,
+    audit_log_write,
 )
-from ..core.security import _is_loopback_ip, _refresh_trusted_proxy_cache, _request_transport_is_secure, _safe_mode_enabled
+from ..core.security import (
+    _is_loopback_ip,
+    _refresh_trusted_proxy_cache,
+    _request_transport_is_secure,
+    _safe_mode_enabled,
+)
 from .db_maintenance import is_db_maintenance_active
 from .filesystem import _invalidate_fs_list_cache, _kickoff_background_scan
 

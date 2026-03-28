@@ -6,6 +6,9 @@ import os
 from typing import Any
 
 from ...shared import ErrorCode, Result, get_logger
+from . import extractors_png as _png
+from . import extractors_video as _video
+from . import extractors_webp as _webp
 from .parsing_utils import (
     looks_like_comfyui_prompt_graph,
     looks_like_comfyui_workflow,
@@ -13,9 +16,6 @@ from .parsing_utils import (
     parse_json_value,
     try_parse_json_text,
 )
-from . import extractors_png as _png
-from . import extractors_video as _video
-from . import extractors_webp as _webp
 
 logger = get_logger(__name__)
 

@@ -141,7 +141,6 @@ def main() -> int:
 
     text_paths = _existing_paths(PYTHON_TEXT_PATHS + DOC_TEXT_PATHS)
     complexity_paths = _existing_paths(PYTHON_COMPLEXITY_PATHS)
-    ruff_targets = _existing_paths(RUFF_TARGETS)
     bandit_targets = _existing_paths(BANDIT_TARGETS)
     changed_python = _changed_python_files()
 

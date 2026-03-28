@@ -1,8 +1,8 @@
 """
 Index persistence helpers extracted from scanner.py.
 """
-from pathlib import Path
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from ...shared import Result, get_logger
 from .entry_builder import (

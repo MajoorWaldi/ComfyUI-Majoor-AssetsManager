@@ -7,10 +7,10 @@ Validates plugins for security issues before loading.
 from __future__ import annotations
 
 import ast
+import logging
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Set, Tuple
-import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +87,7 @@ class PluginValidator:
     def validate(
         cls,
         plugin_path: Path
-    ) -> Tuple[bool, List[str], Dict[str, Any]]:
+    ) -> tuple[bool, list[str], dict[str, Any]]:
         """
         Validate a plugin file.
 
@@ -98,7 +98,7 @@ class PluginValidator:
             Tuple of (is_valid, warnings, info_dict)
         """
         warnings = []
-        info: Dict[str, Any] = {
+        info: dict[str, Any] = {
             "path": str(plugin_path),
             "size_bytes": 0,
             "lines": 0,
@@ -145,7 +145,7 @@ class PluginValidator:
         return is_valid, warnings, info
 
     @classmethod
-    def _check_patterns(cls, content: str) -> List[str]:
+    def _check_patterns(cls, content: str) -> list[str]:
         """Check for dangerous patterns in code."""
         warnings = []
 
@@ -159,16 +159,16 @@ class PluginValidator:
     def _check_ast(
         cls,
         tree: ast.AST
-    ) -> Tuple[List[str], Dict[str, Any]]:
+    ) -> tuple[list[str], dict[str, Any]]:
         """AST-based security checks."""
         warnings = []
-        info: Dict[str, Any] = {
+        info: dict[str, Any] = {
             "classes": 0,
             "functions": 0,
             "imports": [],
         }
 
-        dangerous_found: Set[str] = set()
+        dangerous_found: set[str] = set()
 
         for node in ast.walk(tree):
             # Count classes
@@ -222,7 +222,7 @@ class PluginValidator:
     def validate_strict(
         cls,
         plugin_path: Path
-    ) -> Tuple[bool, List[str]]:
+    ) -> tuple[bool, list[str]]:
         """
         Strict validation - fails on any warning.
 
@@ -236,7 +236,7 @@ class PluginValidator:
     def validate_permissive(
         cls,
         plugin_path: Path
-    ) -> Tuple[bool, List[str]]:
+    ) -> tuple[bool, list[str]]:
         """
         Permissive validation - only fails on critical issues.
 

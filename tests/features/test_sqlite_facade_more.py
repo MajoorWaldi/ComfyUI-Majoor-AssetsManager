@@ -1,5 +1,4 @@
 import pytest
-
 from mjr_am_backend.adapters.db import sqlite_facade as s
 
 

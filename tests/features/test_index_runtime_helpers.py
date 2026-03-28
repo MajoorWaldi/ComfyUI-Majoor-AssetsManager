@@ -71,6 +71,7 @@ def test_maybe_store_entry_cache_noop_when_cache_disabled() -> None:
 def test_maybe_store_entry_cache_calls_store_when_enabled(monkeypatch) -> None:
     """Lines 18-24 — cache_store=True triggers MetadataHelpers.store_metadata_cache."""
     import asyncio
+
     from mjr_am_backend.features.index import metadata_helpers as mh
 
     calls = []
@@ -93,6 +94,7 @@ def test_maybe_store_entry_cache_calls_store_when_enabled(monkeypatch) -> None:
 def test_maybe_store_entry_cache_exception_suppressed(monkeypatch) -> None:
     """Lines 25-26 — exception in store_metadata_cache is caught silently."""
     import asyncio
+
     from mjr_am_backend.features.index import metadata_helpers as mh
 
     async def _bad_store(db, filepath, state_hash, metadata_result):

@@ -25,6 +25,17 @@ from ..core import (
 logger = get_logger(__name__)
 
 
+def _send_stack_update_event(payload) -> None:
+    try:
+        from .. import registry as registry_mod
+
+        prompt_server = getattr(registry_mod, "PromptServer", None)
+        if prompt_server is not None:
+            prompt_server.instance.send_sync("mjr.stacks.updated", payload)
+    except Exception:
+        pass
+
+
 def _stacks_service(services):
     """Lazily obtain or create a StacksService from the service container."""
     if isinstance(services, dict):
@@ -117,9 +128,9 @@ def register_stacks_routes(routes: web.RouteTableDef) -> None:
 
     @routes.post("/mjr/am/stacks/{stack_id}/cover")
     async def set_stack_cover(request: web.Request) -> web.Response:
-        write_err = _require_write_access(request)
-        if write_err:
-            return _json_response(write_err, status=403)
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
         services, error_result = await _require_services()
         if error_result is not None or not services:
             return _json_response(error_result or Result.Err("SERVICE_UNAVAILABLE", "Backend not ready"), status=503)
@@ -140,9 +151,9 @@ def register_stacks_routes(routes: web.RouteTableDef) -> None:
 
     @routes.post("/mjr/am/stacks/dissolve")
     async def dissolve_stack(request: web.Request) -> web.Response:
-        write_err = _require_write_access(request)
-        if write_err:
-            return _json_response(write_err, status=403)
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
         services, error_result = await _require_services()
         if error_result is not None or not services:
             return _json_response(error_result or Result.Err("SERVICE_UNAVAILABLE", "Backend not ready"), status=503)
@@ -158,9 +169,9 @@ def register_stacks_routes(routes: web.RouteTableDef) -> None:
 
     @routes.post("/mjr/am/stacks/merge")
     async def merge_stacks(request: web.Request) -> web.Response:
-        write_err = _require_write_access(request)
-        if write_err:
-            return _json_response(write_err, status=403)
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
         services, error_result = await _require_services()
         if error_result is not None or not services:
             return _json_response(error_result or Result.Err("SERVICE_UNAVAILABLE", "Backend not ready"), status=503)
@@ -183,9 +194,9 @@ def register_stacks_routes(routes: web.RouteTableDef) -> None:
 
     @routes.post("/mjr/am/stacks/auto-stack")
     async def auto_stack(request: web.Request) -> web.Response:
-        write_err = _require_write_access(request)
-        if write_err:
-            return _json_response(write_err, status=403)
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
         services, error_result = await _require_services()
         if error_result is not None or not services:
             return _json_response(error_result or Result.Err("SERVICE_UNAVAILABLE", "Backend not ready"), status=503)
@@ -193,11 +204,20 @@ def register_stacks_routes(routes: web.RouteTableDef) -> None:
 
         body = await _read_json(request)
         mode = (body.get("mode") or "job_id") if isinstance(body, dict) else "job_id"
+        target_job_id = str(body.get("job_id") or "").strip() if isinstance(body, dict) else ""
 
         if mode == "workflow_hash":
             window = int(body.get("mtime_window_s", 30)) if isinstance(body, dict) else 30
             result = await svc.auto_stack_by_workflow_hash(mtime_window_s=window)
         else:
-            result = await svc.auto_stack_by_job_id()
+            result = await svc.auto_stack_by_job_id(target_job_id or None)
+
+        if result.ok and isinstance(result.data, dict):
+            try:
+                stacks = result.data.get("stacks") or []
+                if stacks:
+                    _send_stack_update_event(result.data)
+            except Exception:
+                pass
 
         return _json_response(result)

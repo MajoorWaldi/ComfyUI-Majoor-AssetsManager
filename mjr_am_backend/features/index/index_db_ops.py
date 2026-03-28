@@ -1,8 +1,8 @@
 """
 Database write operations for indexing.
 """
-from contextlib import asynccontextmanager
 import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 

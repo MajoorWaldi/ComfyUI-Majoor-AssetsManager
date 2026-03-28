@@ -3,7 +3,6 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-
 from mjr_am_backend.features.index import watcher as w
 
 

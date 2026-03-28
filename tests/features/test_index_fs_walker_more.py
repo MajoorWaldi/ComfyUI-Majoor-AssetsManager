@@ -3,7 +3,6 @@ from pathlib import Path
 from queue import Queue
 
 import pytest
-
 from mjr_am_backend.features.index import fs_walker as m
 
 
@@ -128,8 +127,6 @@ def test_iter_files_recursive_handles_permission_error(tmp_path: Path) -> None:
     """Lines 117-118 — OSError/PermissionError from scandir → continue."""
     walker = m.FileSystemWalker(scan_iops_limit=0.0)
 
-    real_scandir = __import__("os").scandir
-
     scan_count = [0]
 
     class _FakeScanDirCtx:
@@ -141,9 +138,6 @@ def test_iter_files_recursive_handles_permission_error(tmp_path: Path) -> None:
 
         def __exit__(self, *args):
             pass
-
-    import os
-    original = os.scandir
 
     def _fake_scandir(path):
         return _FakeScanDirCtx()

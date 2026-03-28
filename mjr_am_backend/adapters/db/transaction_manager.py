@@ -10,7 +10,6 @@ from typing import Any
 
 import aiosqlite
 
-
 # Allow bare/qualified identifiers only; this is a strict guard for the
 # `{IN_CLAUSE}` template path and intentionally not a full SQL parser.
 _COLUMN_NAME_PATTERN = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?$")

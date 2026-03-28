@@ -4,7 +4,6 @@ from pathlib import Path
 import pytest
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
-
 from mjr_am_backend.routes.core import security as sec
 from mjr_am_backend.routes.handlers import collections as collections_mod
 from mjr_am_backend.routes.handlers import custom_roots as custom_roots_mod

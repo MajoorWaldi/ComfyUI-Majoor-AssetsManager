@@ -3,7 +3,6 @@ import json
 import pytest
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
-
 from mjr_am_backend.routes.handlers import vector_search
 from mjr_am_backend.shared import Result
 

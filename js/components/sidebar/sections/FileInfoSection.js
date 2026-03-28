@@ -98,10 +98,28 @@ export function createFileInfoSection(asset) {
     // File size
     if (asset.size && asset.size > 0) {
         const sizeStr = formatFileSize(asset.size);
-        fileData.push({ 
-            label: "File Size", 
+        fileData.push({
+            label: "File Size",
             value: sizeStr,
             tooltip: "File size on disk"
+        });
+    }
+
+    // Asset ID
+    if (asset.id != null) {
+        fileData.push({
+            label: "Asset ID",
+            value: String(asset.id),
+            tooltip: "Internal database asset identifier",
+        });
+    }
+
+    // Job ID
+    if (asset.job_id) {
+        fileData.push({
+            label: "Job ID",
+            value: String(asset.job_id),
+            tooltip: "Workflow execution job identifier (prompt_id)",
         });
     }
 

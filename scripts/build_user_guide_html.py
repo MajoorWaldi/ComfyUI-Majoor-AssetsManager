@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import argparse
 import html
-import os
-import sys
 import posixpath
 import re
+import sys
 import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path

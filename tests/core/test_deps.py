@@ -1,5 +1,4 @@
 import pytest
-
 from mjr_am_backend import deps as deps_mod
 from mjr_am_backend.shared import Result
 

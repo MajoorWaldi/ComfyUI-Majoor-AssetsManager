@@ -1,6 +1,5 @@
 import pytest
-
-from mjr_am_backend.features.index.updater import AssetUpdater, MAX_TAG_LENGTH
+from mjr_am_backend.features.index.updater import MAX_TAG_LENGTH, AssetUpdater
 from mjr_am_backend.shared import Result
 
 

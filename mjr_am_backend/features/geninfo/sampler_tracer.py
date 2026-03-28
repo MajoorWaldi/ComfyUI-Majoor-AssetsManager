@@ -12,7 +12,6 @@ from .graph_converter import (
     _lower,
     _node_type,
     _pick_sink_inputs,
-    _resolve_link,
     _walk_passthrough,
 )
 

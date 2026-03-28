@@ -3,7 +3,6 @@ import sqlite3
 from pathlib import Path
 
 import pytest
-
 from mjr_am_backend.adapters.db import sqlite_facade as s
 
 
@@ -169,7 +168,6 @@ def test_sqlite_tx_helper_delegates(monkeypatch):
 
 
 def test_sqlite_validate_in_query_and_column_repair_delegates(monkeypatch):
-    obj = object.__new__(s.Sqlite)
     monkeypatch.setattr(s, "tx_validate_in_base_query", lambda q: (True, ""))
     monkeypatch.setattr(s, "tx_build_in_query", lambda q, c, n: (True, "Q", ("?",) * n))
     monkeypatch.setattr(s, "tx_validate_and_repair_column_name", lambda col: (True, "id"))

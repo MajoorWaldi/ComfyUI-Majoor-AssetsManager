@@ -1,6 +1,5 @@
 """Tests for scan_diagnostics.py — covers all 4 functions."""
 from mjr_am_backend.features.index import scan_diagnostics as sd
-from mjr_am_backend.features.index import scan_batch_utils as sbu
 
 
 def test_batch_error_messages_returns_str_pair() -> None:

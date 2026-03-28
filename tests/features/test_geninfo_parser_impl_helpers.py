@@ -1,4 +1,3 @@
-import pytest
 
 from mjr_am_backend.features.geninfo import parser_impl as p
 

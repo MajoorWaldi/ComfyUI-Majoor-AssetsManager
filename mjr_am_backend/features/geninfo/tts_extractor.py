@@ -2,15 +2,20 @@
 
 from __future__ import annotations
 
-from collections import deque
-from collections.abc import Callable
 from typing import Any
 
-from ...shared import Result, get_logger
-from .graph_converter import _inputs, _is_link, _lower, _node_type, _resolve_link, _walk_passthrough, _collect_upstream_nodes
-from .sampler_tracer import _scalar
-from .graph_converter import _set_named_field, _set_value_field
+from ...shared import get_logger
+from .graph_converter import (
+    _inputs,
+    _is_link,
+    _lower,
+    _node_type,
+    _set_named_field,
+    _set_value_field,
+    _walk_passthrough,
+)
 from .parser_impl import _clean_model_id, _extract_input_files
+from .sampler_tracer import _scalar
 
 logger = get_logger(__name__)
 

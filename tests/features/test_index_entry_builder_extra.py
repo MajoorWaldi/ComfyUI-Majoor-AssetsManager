@@ -1,8 +1,6 @@
 """Extra tests for entry_builder.py — covering uncovered branches."""
 from pathlib import Path
 
-import pytest
-
 from mjr_am_backend.features.index import entry_builder as eb
 from mjr_am_backend.shared import Result
 

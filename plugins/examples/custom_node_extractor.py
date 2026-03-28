@@ -17,16 +17,16 @@ Documentation:
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any, Dict, List, Optional
 import json
 import logging
+from pathlib import Path
+from typing import Any
 
 # Import from plugin system
 from mjr_am_backend.features.metadata.plugin_system.base import (
-    MetadataExtractorPlugin,
     ExtractionResult,
     ExtractorMetadata,
+    MetadataExtractorPlugin,
 )
 
 logger = logging.getLogger(__name__)
@@ -299,7 +299,7 @@ class CustomNodeExtractor(MetadataExtractorPlugin):
 
     # ─── Helper Methods (Examples) ─────────────────────────────────────
 
-    async def _extract_from_image(self, filepath: str) -> Dict[str, Any]:
+    async def _extract_from_image(self, filepath: str) -> dict[str, Any]:
         """
         Extract metadata from image file.
 
@@ -339,7 +339,7 @@ class CustomNodeExtractor(MetadataExtractorPlugin):
 
         return result
 
-    async def _extract_from_json(self, filepath: str) -> Dict[str, Any]:
+    async def _extract_from_json(self, filepath: str) -> dict[str, Any]:
         """
         Extract metadata from workflow JSON.
 
@@ -348,7 +348,7 @@ class CustomNodeExtractor(MetadataExtractorPlugin):
         result = {"custom_data": {}}
 
         try:
-            with open(filepath, 'r', encoding='utf-8') as f:
+            with open(filepath, encoding='utf-8') as f:
                 workflow = json.load(f)
 
             # Find nodes of your custom type
@@ -367,7 +367,7 @@ class CustomNodeExtractor(MetadataExtractorPlugin):
 
         return result
 
-    async def _extract_from_video(self, filepath: str) -> Dict[str, Any]:
+    async def _extract_from_video(self, filepath: str) -> dict[str, Any]:
         """
         Extract metadata from video file.
 
@@ -401,7 +401,7 @@ class CustomNodeExtractor(MetadataExtractorPlugin):
 
         return result
 
-    def _calculate_confidence(self, data: Dict[str, Any]) -> float:
+    def _calculate_confidence(self, data: dict[str, Any]) -> float:
         """
         Calculate confidence score based on extracted data.
 

@@ -8,6 +8,7 @@ import { getViewerInstance } from "../../components/Viewer.js";
 import { get } from "../../api/client.js";
 import { buildListURL } from "../../api/endpoints.js";
 import { createPopoverManager } from "../panel/views/popoverManager.js";
+import { APP_CONFIG } from "../../app/config.js";
 
 const FEED_FETCH_LIMIT = 240;
 const FEED_PAGE_SIZE = 120;
@@ -373,6 +374,10 @@ async function _refreshAllHosts() {
     }
 }
 
+export function refreshGeneratedFeedHosts() {
+    void _refreshAllHosts();
+}
+
 function _buildEmpty(host) {
     const empty = document.createElement("div");
     empty.textContent = t("bottomFeed.loading", "Loading recent assets...");
@@ -397,6 +402,23 @@ function _prepareBottomPanelContainer(container) {
         container.style.display = "flex";
         container.style.flexDirection = "column";
     } catch (e) { console.debug?.(e); }
+}
+
+function _applyFeedSettingsClasses(grid) {
+    if (!grid) return;
+    const toggle = (cls, enabled) => {
+        if (enabled) grid.classList.add(cls);
+        else grid.classList.remove(cls);
+    };
+    toggle("mjr-feed-show-info", APP_CONFIG.FEED_SHOW_INFO);
+    toggle("mjr-feed-show-filename", APP_CONFIG.FEED_SHOW_FILENAME);
+    toggle("mjr-feed-show-dimensions", APP_CONFIG.FEED_SHOW_DIMENSIONS);
+    toggle("mjr-feed-show-date", APP_CONFIG.FEED_SHOW_DATE);
+    toggle("mjr-feed-show-gentime", APP_CONFIG.FEED_SHOW_GENTIME);
+    toggle("mjr-feed-show-dot", APP_CONFIG.FEED_SHOW_WORKFLOW_DOT);
+    toggle("mjr-feed-show-badges-ext", APP_CONFIG.FEED_SHOW_BADGES_EXTENSION);
+    toggle("mjr-feed-show-badges-rating", APP_CONFIG.FEED_SHOW_BADGES_RATING);
+    toggle("mjr-feed-show-badges-tags", APP_CONFIG.FEED_SHOW_BADGES_TAGS);
 }
 
 function _buildGrid(host) {
@@ -457,6 +479,17 @@ function _makeHost(container) {
     _buildGrid(host);
     _bindFeedSelection(host);
     host.popoverManager = createPopoverManager(root);
+
+    // Apply feed display settings and listen for changes
+    _applyFeedSettingsClasses(host.grid);
+    const onSettingsChanged = () => {
+        try { _applyFeedSettingsClasses(host.grid); } catch (e) { console.debug?.(e); }
+    };
+    window.addEventListener("mjr-settings-changed", onSettingsChanged);
+    host._disposeFeedSettings = () => {
+        try { window.removeEventListener("mjr-settings-changed", onSettingsChanged); } catch (e) { console.debug?.(e); }
+    };
+
     return host;
 }
 
@@ -500,6 +533,9 @@ export function disposeGeneratedFeedTab(host) {
     FEED_STATE.hosts.delete(resolvedHost);
     try {
         resolvedHost._disposeSelection?.();
+    } catch (e) { console.debug?.(e); }
+    try {
+        resolvedHost._disposeFeedSettings?.();
     } catch (e) { console.debug?.(e); }
     try {
         resolvedHost.popoverManager?.dispose?.();

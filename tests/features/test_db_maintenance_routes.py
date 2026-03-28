@@ -7,7 +7,6 @@ import pytest
 from aiohttp import web
 from aiohttp.streams import StreamReader
 from aiohttp.test_utils import make_mocked_request
-
 from mjr_am_backend.routes.handlers import db_maintenance as m
 from mjr_am_backend.shared import Result
 

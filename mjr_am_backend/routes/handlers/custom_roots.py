@@ -2,11 +2,11 @@
 Custom roots management endpoints.
 """
 import asyncio
-from collections.abc import Sequence
 import errno
 import os
 import shutil
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 
 from aiohttp import web
@@ -20,13 +20,12 @@ from mjr_am_backend.custom_roots import (
 from mjr_am_backend.shared import Result, get_logger, sanitize_error_message
 
 from ..core import (
-    audit_log_write,
     _csrf_error,
     _guess_content_type_for_file,
     _is_allowed_view_media_file,
+    _is_loopback_request,
     _is_path_allowed,
     _is_path_allowed_custom,
-    _is_loopback_request,
     _is_within_root,
     _json_response,
     _normalize_path,
@@ -34,9 +33,10 @@ from ..core import (
     _require_authenticated_user,
     _require_operation_enabled,
     _require_services,
-    _resolve_security_prefs,
     _require_write_access,
+    _resolve_security_prefs,
     _safe_rel_path,
+    audit_log_write,
 )
 from ..core.security import _check_rate_limit
 from .filesystem import _invalidate_fs_list_cache, _kickoff_background_scan

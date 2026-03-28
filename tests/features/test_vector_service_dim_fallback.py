@@ -1,6 +1,6 @@
+import pytest
 from mjr_am_backend.config import VECTOR_EMBEDDING_DIM
 from mjr_am_backend.features.index import vector_service as m
-import pytest
 
 
 class _BrokenDimModel:

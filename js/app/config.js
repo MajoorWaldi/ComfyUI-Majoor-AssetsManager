@@ -31,6 +31,17 @@ export const APP_DEFAULTS = Object.freeze({
     GRID_SHOW_DETAILS_GENTIME: true,
     GRID_SHOW_WORKFLOW_DOT: true,
     GRID_VIDEO_AUTOPLAY_MODE: "hover", // "off" | "hover" | "always"
+
+    // Bottom feed card display
+    FEED_SHOW_INFO: true,
+    FEED_SHOW_FILENAME: false,
+    FEED_SHOW_DIMENSIONS: true,
+    FEED_SHOW_DATE: true,
+    FEED_SHOW_GENTIME: true,
+    FEED_SHOW_WORKFLOW_DOT: false,
+    FEED_SHOW_BADGES_EXTENSION: true,
+    FEED_SHOW_BADGES_RATING: true,
+    FEED_SHOW_BADGES_TAGS: true,
     UI_CARD_HOVER_COLOR: "#3D3D3D",
     UI_CARD_SELECTION_COLOR: "#4A90E2",
     UI_RATING_COLOR: "#FF9500",

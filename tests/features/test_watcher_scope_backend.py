@@ -1,5 +1,4 @@
 import pytest
-
 from mjr_am_backend.features.index import watcher_scope as watcher_scope_mod
 from mjr_am_backend.routes.core import security as sec
 from mjr_am_backend.shared import Result

@@ -88,6 +88,16 @@ line-length = 100
 target-version = "py310"
 src = ["mjr_am_backend", "mjr_am_shared", "tests"]
 respect-gitignore = false
+exclude = [
+  ".git",
+  ".mypy_cache",
+  ".mypy_cache_tmp",
+  ".ruff_cache",
+  "build",
+  "majoor_assetsmanager.egg-info",
+  "node_modules",
+  "plugins",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]

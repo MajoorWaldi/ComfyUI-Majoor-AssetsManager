@@ -5,7 +5,6 @@ from pathlib import Path
 import pytest
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
-
 from mjr_am_backend.routes.handlers import custom_roots as m
 from mjr_am_backend.shared import Result
 

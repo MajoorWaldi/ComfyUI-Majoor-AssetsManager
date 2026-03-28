@@ -483,8 +483,7 @@ class VectorService:
         effective_dim = self._resolve_sentence_embedding_dim(model)
         log_success(
             logger,
-            "SigLIP2 model loaded and ready: '%s' (dim=%d, max_seq=%d, tokenizer=%s)"
-            % (
+            "SigLIP2 model loaded and ready: '{}' (dim={}, max_seq={}, tokenizer={})".format(
                 self._model_name,
                 effective_dim,
                 model.max_seq_length,
@@ -1606,7 +1605,7 @@ class VectorService:
                     except Exception:
                         pass
                 self._prompt_model.eval()
-                log_success(logger, "Florence-2 model loaded and ready: '%s'" % prompt_model_name)
+                log_success(logger, f"Florence-2 model loaded and ready: '{prompt_model_name}'")
             import torch
 
             return self._prompt_processor, self._prompt_model, torch
@@ -1651,7 +1650,10 @@ class VectorService:
                     self._video_model.eval()
                 except Exception:
                     pass
-                log_success(logger, "X-CLIP video model loaded and ready: '%s'" % self._video_model_name)
+                log_success(
+                    logger,
+                    f"X-CLIP video model loaded and ready: '{self._video_model_name}'",
+                )
             return self._video_processor, self._video_model
 
     async def _get_video_embedding_xclip(self, path: Path) -> Result[list[float]]:

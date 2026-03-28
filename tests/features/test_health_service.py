@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pytest
-
 from mjr_am_backend.features.health.service import HealthService
 from mjr_am_backend.shared import Result
 
@@ -59,7 +58,7 @@ async def test_health_get_counters_and_helpers(tmp_path: Path):
     svc = HealthService(db, _Tool(True), _Tool(False))
     dbp = tmp_path / "x.db"
     dbp.write_bytes(b"x")
-    setattr(db, "db_path", dbp)
+    db.db_path = dbp
     out = await svc.get_counters(roots=[str(tmp_path)])
     assert out.ok and out.data["total_assets"] == 3 and out.data["images"] == 2
     assert out.data["tool_availability"]["ffprobe"] is False

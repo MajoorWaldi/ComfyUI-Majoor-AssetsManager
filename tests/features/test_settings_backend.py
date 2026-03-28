@@ -3,19 +3,18 @@ import sys
 from pathlib import Path
 
 import pytest
-
+from mjr_am_backend.routes.core import security as sec
 from mjr_am_backend.settings import (
     _AI_VERBOSE_LOGS_KEY,
-    AppSettings,
     _METADATA_FALLBACK_IMAGE_KEY,
     _METADATA_FALLBACK_MEDIA_KEY,
     _OUTPUT_DIRECTORY_KEY,
     _PROBE_BACKEND_KEY,
     _SECURITY_API_TOKEN_HASH_KEY,
     _SETTINGS_VERSION_KEY,
+    AppSettings,
 )
 from mjr_am_backend.shared import Result
-from mjr_am_backend.routes.core import security as sec
 
 
 class _DB:

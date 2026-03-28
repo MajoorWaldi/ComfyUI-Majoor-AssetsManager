@@ -1,10 +1,8 @@
-import asyncio
 import json
 import subprocess
 from pathlib import Path
 
 import pytest
-
 from mjr_am_backend.adapters.tools import exiftool as m
 from mjr_am_backend.shared import ErrorCode, Result
 

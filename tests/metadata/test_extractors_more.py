@@ -4,10 +4,7 @@ Targets: 89, 93, 119, 122-125, 128-150, 302-408, 462-541, 552-605.
 """
 from __future__ import annotations
 
-import pytest
-
 from mjr_am_backend.features.metadata import extractors as e
-
 
 # ─── _inspect_json_field ────────────────────────────────────────────────────
 

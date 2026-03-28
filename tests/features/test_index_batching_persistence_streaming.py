@@ -1,10 +1,8 @@
-import asyncio
 import threading
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-
 from mjr_am_backend.features.index import index_batching as batching_mod
 from mjr_am_backend.features.index import index_persistence as persist_mod
 from mjr_am_backend.features.index import scan_streaming as streaming_mod

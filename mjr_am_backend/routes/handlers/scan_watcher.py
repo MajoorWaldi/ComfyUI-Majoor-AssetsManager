@@ -7,26 +7,22 @@ from pathlib import Path
 from typing import Any
 
 from aiohttp import web
-
 from mjr_am_backend.features.index.watcher_scope import (
-    WATCHER_CUSTOM_ROOT_ID_KEY,
-    WATCHER_SCOPE_KEY,
     build_watch_paths,
     normalize_scope,
     persist_watcher_scope,
     resolve_service_watcher_scope,
 )
-from mjr_am_backend.features.index.metadata_helpers import MetadataHelpers
 from mjr_am_backend.features.watcher_settings import get_watcher_settings, update_watcher_settings
 from mjr_am_backend.shared import Result, get_logger
 
 from ..core import (
-    audit_log_write,
     _csrf_error,
     _json_response,
     _read_json,
     _require_services,
     _require_write_access,
+    audit_log_write,
     safe_error_message,
 )
 from .scan_helpers import (

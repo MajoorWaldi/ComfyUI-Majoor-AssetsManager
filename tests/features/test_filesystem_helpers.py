@@ -1,5 +1,7 @@
 from collections import OrderedDict
+from pathlib import Path
 
+import pytest
 from mjr_am_backend.routes.handlers import filesystem as fs
 
 
@@ -274,11 +276,6 @@ def test_cache_entry_helpers(monkeypatch) -> None:
     monkeypatch.setattr(fs.time, "monotonic", lambda: 200.0)
     assert fs._cache_entry_is_fresh({"cached_at_mono": 195.0})
     assert not fs._cache_entry_is_fresh({"cached_at_mono": 100.0})
-from pathlib import Path
-
-import pytest
-
-from mjr_am_backend.routes.handlers import filesystem as fs
 
 
 def test_resolve_filesystem_listing_target_ok_and_invalid(tmp_path: Path) -> None:

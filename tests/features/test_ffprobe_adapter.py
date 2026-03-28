@@ -1,5 +1,4 @@
 import pytest
-
 from mjr_am_backend.adapters.tools.ffprobe import FFProbe
 from mjr_am_backend.shared import ErrorCode
 

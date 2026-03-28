@@ -1,9 +1,6 @@
-import asyncio
 import json
-from types import SimpleNamespace
 
 import pytest
-
 from mjr_am_backend.features.index import metadata_helpers as mh
 from mjr_am_backend.shared import Result
 

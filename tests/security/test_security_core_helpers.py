@@ -1,8 +1,7 @@
-import types
 import sys
+import types
 
 import pytest
-
 from mjr_am_backend.routes.core import security as sec
 
 TEST_TOKEN = "unit-test-token-01"

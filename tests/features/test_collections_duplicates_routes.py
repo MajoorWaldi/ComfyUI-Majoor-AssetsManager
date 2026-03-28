@@ -5,7 +5,6 @@ from types import SimpleNamespace
 import pytest
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
-
 from mjr_am_backend.routes.handlers import collections as collections_mod
 from mjr_am_backend.routes.handlers import duplicates as duplicates_mod
 from mjr_am_backend.shared import Result

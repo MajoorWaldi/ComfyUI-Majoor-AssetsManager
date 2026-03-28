@@ -751,14 +751,14 @@ def _first_prompt_field(ins: dict[str, Any], keys: tuple[str, ...], source_prefi
 
 
 # P2-D-08: delegate sampler widget / pipeline helpers to dedicated modules.
-from . import sampler_widget_extractor as _swe
+from . import sampler_widget_extractor as _swe  # noqa: E402
 
 _looks_like_pipeline_pass_node = _swe._looks_like_pipeline_pass_node
 _node_has_detailer_signals = _swe._node_has_detailer_signals
 _apply_proxy_widget_sampler_values = _swe._apply_proxy_widget_sampler_values
 _extract_proxy_widget_sampler_values = _swe._extract_proxy_widget_sampler_values
 
-from . import pipeline_extractor as _pe
+from . import pipeline_extractor as _pe  # noqa: E402
 
 _cast_sampler_fields = _pe._cast_sampler_fields
 _classify_pipeline_pass_name = _pe._classify_pipeline_pass_name
@@ -772,7 +772,7 @@ _collect_sampler_pipeline_from_sink = _pe._collect_sampler_pipeline_from_sink
 _find_checkpoint_for_sampler = _pe._find_checkpoint_for_sampler
 _collect_all_checkpoints_from_chained_samplers = _pe._collect_all_checkpoints_from_chained_samplers
 
-from . import sampler_value_extractor as _sve
+from . import sampler_value_extractor as _sve  # noqa: E402
 
 _init_sampler_values = _sve._init_sampler_values
 _sampler_name_from_inputs = _sve._sampler_name_from_inputs
@@ -792,7 +792,7 @@ _extract_sampler_values = _sve._extract_sampler_values
 
 
 # P2-D-01: delegate graph conversion and sink helpers to dedicated module.
-from . import graph_converter as _gc
+from . import graph_converter as _gc  # noqa: E402
 
 _sink_group = _gc._sink_group
 _sink_is_video = _gc._sink_is_video
@@ -829,7 +829,7 @@ _set_named_field = _gc._set_named_field
 _set_value_field = _gc._set_value_field
 
 # P2-D-02: delegate sampler tracing helpers to dedicated module.
-from . import sampler_tracer as _st
+from . import sampler_tracer as _st  # noqa: E402
 
 _is_sampler = _st._is_sampler
 _is_named_sampler_type = _st._is_named_sampler_type
@@ -860,7 +860,7 @@ _select_sampler_context = _st._select_sampler_context
 
 
 # P2-D-03: delegate model tracing helpers to dedicated module.
-from . import model_tracer as _mt
+from . import model_tracer as _mt  # noqa: E402
 
 _is_lora_loader_node = _mt._is_lora_loader_node
 _append_lora_entries = _mt._append_lora_entries
@@ -902,7 +902,7 @@ _upscaler_model_name = _mt._upscaler_model_name
 _merge_models_payload = _mt._merge_models_payload
 
 # P2-D-04: delegate prompt tracing helpers to dedicated module.
-from . import prompt_tracer as _pt
+from . import prompt_tracer as _pt  # noqa: E402
 
 _collect_texts_from_conditioning = _pt._collect_texts_from_conditioning
 _extract_prompt_from_conditioning = _pt._extract_prompt_from_conditioning
@@ -923,7 +923,7 @@ _first_non_none_scalar = _pt._first_non_none_scalar
 _resolve_scalar_from_link = _pt._resolve_scalar_from_link
 
 # P2-D-05: delegate TTS extraction helpers to dedicated module.
-from . import tts_extractor as _te
+from . import tts_extractor as _te  # noqa: E402
 
 _find_tts_nodes = _te._find_tts_nodes
 _is_tts_text_node_type = _te._is_tts_text_node_type
@@ -947,7 +947,7 @@ _apply_tts_engine_node_fields_safe = _te._apply_tts_engine_node_fields_safe
 _apply_tts_input_files = _te._apply_tts_input_files
 
 # P2-D-06: delegate role/classification helpers to dedicated module.
-from . import role_classifier as _rc
+from . import role_classifier as _rc  # noqa: E402
 
 _extract_workflow_metadata = _rc._extract_workflow_metadata
 _subject_role_hints = _rc._subject_role_hints
@@ -978,7 +978,7 @@ _update_inputs_from_latent_node = _rc._update_inputs_from_latent_node
 
 # P2-D-07: delegate payload assembly helpers to dedicated module (safe subset).
 # Imported last to avoid circular: payload_builder → model_tracer → parser_impl.
-from . import payload_builder as _pb
+from . import payload_builder as _pb  # noqa: E402
 
 _geninfo_metadata_only_result = _pb._geninfo_metadata_only_result
 _build_no_sampler_result = _pb._build_no_sampler_result

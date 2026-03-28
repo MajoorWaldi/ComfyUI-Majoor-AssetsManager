@@ -1,5 +1,4 @@
 import pytest
-
 from mjr_am_backend.routes.core import request_json as rq
 
 

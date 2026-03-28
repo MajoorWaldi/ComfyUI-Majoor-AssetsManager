@@ -1,6 +1,4 @@
-from types import SimpleNamespace
 
-import pytest
 
 from mjr_am_backend.features.metadata import extractors as e
 

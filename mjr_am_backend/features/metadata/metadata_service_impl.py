@@ -13,37 +13,62 @@ from ...adapters.tools import ExifTool, FFProbe
 from ...config import METADATA_EXTRACT_CONCURRENCY
 from ...probe_router import pick_probe_backend
 from ...settings import AppSettings
-from ...shared import ErrorCode, Result, classify_file, get_logger, log_structured
+from ...shared import ErrorCode, Result, classify_file, get_logger
 from ..audio import extract_audio_metadata
 from ..geninfo.parser import parse_geninfo_from_prompt
+from .dimension_resolver import get_file_info as dims_get_file_info
+from .dimension_resolver import normalize_dimensions
+from .extractor_registry import (
+    batch_tool_data as registry_batch_tool_data,
+)
+from .extractor_registry import (
+    build_batch_probe_targets as registry_build_batch_probe_targets,
+)
+from .extractor_registry import (
+    build_geninfo_from_parameters as registry_build_geninfo_from_parameters,
+)
+from .extractor_registry import (
+    build_image_metadata_payload as registry_build_image_metadata_payload,
+)
+from .extractor_registry import (
+    expand_resolution_scalars as registry_expand_resolution_scalars,
+)
+from .extractor_registry import (
+    expand_video_resolution_fields as registry_expand_video_resolution_fields,
+)
+from .extractor_registry import (
+    extract_image_by_extension as registry_extract_image_by_extension,
+)
+from .extractor_registry import (
+    extract_workflow_only_payload as registry_extract_workflow_only_payload,
+)
+from .extractor_registry import (
+    group_existing_paths as registry_group_existing_paths,
+)
+from .extractor_registry import (
+    looks_like_media_pipeline as registry_looks_like_media_pipeline,
+)
+from .extractor_registry import (
+    should_parse_geninfo as registry_should_parse_geninfo,
+)
 from .extractors import (
     extract_png_metadata,
-    extract_rating_tags_from_exif,
     extract_video_metadata,
     extract_webp_metadata,
 )
 from .extractors_3d import extract_model3d_metadata
 from .fallback_readers import read_image_exif_like, read_media_probe_like
-from .dimension_resolver import get_file_info as dims_get_file_info
-from .dimension_resolver import normalize_dimensions
-from .extractor_registry import (
-    batch_tool_data as registry_batch_tool_data,
-    build_geninfo_from_parameters as registry_build_geninfo_from_parameters,
-    build_image_metadata_payload as registry_build_image_metadata_payload,
-    build_batch_probe_targets as registry_build_batch_probe_targets,
-    expand_resolution_scalars as registry_expand_resolution_scalars,
-    expand_video_resolution_fields as registry_expand_video_resolution_fields,
-    extract_image_by_extension as registry_extract_image_by_extension,
-    extract_workflow_only_payload as registry_extract_workflow_only_payload,
-    group_existing_paths as registry_group_existing_paths,
-    looks_like_media_pipeline as registry_looks_like_media_pipeline,
-    should_parse_geninfo as registry_should_parse_geninfo,
-)
 from .parsing_utils import parse_auto1111_params
 from .retry_coordinator import (
     extract_rating_tags_only as retry_extract_rating_tags_only,
+)
+from .retry_coordinator import (
     fill_other_batch_results as retry_fill_other_batch_results,
+)
+from .retry_coordinator import (
     is_transient_metadata_read_error as retry_is_transient_metadata_read_error,
+)
+from .retry_coordinator import (
     log_metadata_issue as retry_log_metadata_issue,
 )
 

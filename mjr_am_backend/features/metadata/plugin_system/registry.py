@@ -7,12 +7,12 @@ Runtime registry for plugin state and configuration.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field, asdict
-from pathlib import Path
-from typing import Any, Dict, List, Optional
 import logging
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Any
 
-from .base import MetadataExtractorPlugin, ExtractorMetadata
+from .base import MetadataExtractorPlugin
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ class PluginState:
     enabled: bool = True
     load_order: int = 0
     error_count: int = 0
-    last_error: Optional[str] = None
+    last_error: str | None = None
     extraction_count: int = 0
     avg_confidence: float = 0.0
     total_extraction_time_ms: float = 0.0
@@ -45,7 +45,7 @@ class PluginRegistry:
     Persists plugin configuration and tracks runtime statistics.
     """
 
-    def __init__(self, config_path: Optional[Path] = None):
+    def __init__(self, config_path: Path | None = None):
         """
         Initialize registry.
 
@@ -53,7 +53,7 @@ class PluginRegistry:
             config_path: Path to persist configuration (optional)
         """
         self.config_path = config_path
-        self._plugin_states: Dict[str, PluginState] = {}
+        self._plugin_states: dict[str, PluginState] = {}
         self._load_order_counter = 0
 
         if config_path and config_path.exists():
@@ -141,19 +141,19 @@ class PluginRegistry:
         )
         state.total_extraction_time_ms += extraction_time_ms
 
-    def get_state(self, name: str) -> Optional[PluginState]:
+    def get_state(self, name: str) -> PluginState | None:
         """Get state for a plugin."""
         return self._plugin_states.get(name)
 
-    def get_all_states(self) -> List[PluginState]:
+    def get_all_states(self) -> list[PluginState]:
         """Get all plugin states."""
         return list(self._plugin_states.values())
 
-    def get_enabled_plugins(self) -> List[PluginState]:
+    def get_enabled_plugins(self) -> list[PluginState]:
         """Get states for enabled plugins only."""
         return [s for s in self._plugin_states.values() if s.enabled]
 
-    def get_disabled_plugins(self) -> List[PluginState]:
+    def get_disabled_plugins(self) -> list[PluginState]:
         """Get states for disabled plugins only."""
         return [s for s in self._plugin_states.values() if not s.enabled]
 
@@ -206,7 +206,7 @@ class PluginRegistry:
             logger.warning(f"Failed to save plugin config: {e}")
             return False
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get registry statistics."""
         states = self.get_all_states()
         enabled_states = self.get_enabled_plugins()
@@ -227,7 +227,7 @@ class PluginRegistry:
             ),
         }
 
-    def reset_stats(self, name: Optional[str] = None) -> None:
+    def reset_stats(self, name: str | None = None) -> None:
         """
         Reset statistics for a plugin or all plugins.
 

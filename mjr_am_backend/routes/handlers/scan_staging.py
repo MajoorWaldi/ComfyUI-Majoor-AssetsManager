@@ -25,7 +25,6 @@ from mjr_am_backend.custom_roots import resolve_custom_root
 from mjr_am_backend.shared import Result, get_logger, sanitize_error_message
 
 from ..core import (
-    audit_log_write,
     _csrf_error,
     _is_path_allowed,
     _is_within_root,
@@ -34,6 +33,7 @@ from ..core import (
     _read_json,
     _require_services,
     _require_write_access,
+    audit_log_write,
     safe_error_message,
 )
 from .scan_helpers import (

@@ -1,9 +1,6 @@
-import json
 import sqlite3
-from types import SimpleNamespace
 
 import pytest
-
 from mjr_am_backend.features.index import searcher as m
 from mjr_am_backend.shared import Result
 

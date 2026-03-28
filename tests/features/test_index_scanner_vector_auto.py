@@ -3,9 +3,8 @@ import sqlite3
 from pathlib import Path
 
 import pytest
-
-from mjr_am_backend.features.index.scanner import IndexScanner
 from mjr_am_backend.features.index import scanner as scanner_mod
+from mjr_am_backend.features.index.scanner import IndexScanner
 from mjr_am_backend.shared import Result
 
 

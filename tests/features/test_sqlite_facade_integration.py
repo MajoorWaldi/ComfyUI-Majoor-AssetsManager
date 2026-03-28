@@ -1,8 +1,6 @@
-import asyncio
 from pathlib import Path
 
 import pytest
-
 from mjr_am_backend.adapters.db.sqlite_facade import Sqlite
 
 

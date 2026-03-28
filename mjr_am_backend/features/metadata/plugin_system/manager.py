@@ -7,14 +7,15 @@ High-level plugin management with lifecycle control.
 from __future__ import annotations
 
 import asyncio
-import time
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Callable
 import logging
+import time
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any
 
-from .base import MetadataExtractorPlugin, ExtractionResult
+from .base import ExtractionResult
 from .loader import PluginLoader
-from .registry import PluginRegistry, PluginState
+from .registry import PluginRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +47,8 @@ class PluginManager:
 
     def __init__(
         self,
-        plugin_dirs: Optional[List[Path]] = None,
-        config_path: Optional[Path] = None,
+        plugin_dirs: list[Path] | None = None,
+        config_path: Path | None = None,
         validation_mode: str = "strict"
     ):
         """
@@ -62,14 +63,14 @@ class PluginManager:
         self.config_path = config_path
         self.validation_mode = validation_mode
 
-        self._loader: Optional[PluginLoader] = None
-        self._registry: Optional[PluginRegistry] = None
+        self._loader: PluginLoader | None = None
+        self._registry: PluginRegistry | None = None
         self._initialized = False
         self._reload_lock = asyncio.Lock()
 
         # Event hooks
-        self._on_extract_hooks: List[Callable] = []
-        self._on_error_hooks: List[Callable] = []
+        self._on_extract_hooks: list[Callable] = []
+        self._on_error_hooks: list[Callable] = []
 
     async def initialize(self) -> int:
         """
@@ -113,7 +114,7 @@ class PluginManager:
     async def extract(
         self,
         filepath: str,
-        fallback_extractor: Optional[Callable] = None
+        fallback_extractor: Callable | None = None
     ) -> ExtractionResult:
         """
         Extract metadata using plugin system.
@@ -257,7 +258,7 @@ class PluginManager:
 
     # ─── Plugin Management ─────────────────────────────────────────────
 
-    def list_plugins(self) -> List[Dict[str, Any]]:
+    def list_plugins(self) -> list[dict[str, Any]]:
         """List all registered plugins with state."""
         if not self._loader or not self._registry:
             return []
@@ -321,7 +322,7 @@ class PluginManager:
             logger.info(f"Reloaded {count} plugins")
             return count
 
-    def get_plugin_info(self, name: str) -> Optional[Dict[str, Any]]:
+    def get_plugin_info(self, name: str) -> dict[str, Any] | None:
         """Get detailed information about a plugin."""
         if not self._loader:
             return None
@@ -339,7 +340,7 @@ class PluginManager:
             "errors": state.error_count if state else 0,
         }
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get plugin system statistics."""
         return {
             "initialized": self._initialized,

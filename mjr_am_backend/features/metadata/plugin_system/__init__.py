@@ -5,14 +5,14 @@ Provides extensible metadata extraction through third-party plugins.
 """
 
 from .base import (
-    MetadataExtractorPlugin,
     ExtractionResult,
     ExtractorMetadata,
+    MetadataExtractorPlugin,
 )
 from .loader import PluginLoader, PluginLoadError
+from .manager import PluginManager
 from .registry import PluginRegistry, PluginState
 from .validator import PluginValidator
-from .manager import PluginManager
 
 __all__ = [
     "MetadataExtractorPlugin",

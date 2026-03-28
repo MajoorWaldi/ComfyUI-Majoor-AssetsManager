@@ -8,10 +8,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-
 from mjr_am_backend.features.index import index_prepare_ops as ipo
 from mjr_am_backend.shared import Result
-
 
 # ─── prepare_metadata_for_entry ─────────────────────────────────────────────
 

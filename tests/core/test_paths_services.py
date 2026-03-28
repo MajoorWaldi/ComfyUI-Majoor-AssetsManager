@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pytest
-
 from mjr_am_backend.routes.core import paths as p
 from mjr_am_backend.routes.core import services as svc
 from mjr_am_backend.shared import Result

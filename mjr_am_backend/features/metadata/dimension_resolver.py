@@ -1,5 +1,6 @@
 """Visual dimension normalization helpers extracted from service.py."""
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 
 def coerce_dimension(value: Any) -> int | None:

@@ -246,7 +246,7 @@ async def request_context_middleware(request: web.Request, handler):
             status = 503
             error_type = "DB_RESETTING"
             error = str(exc)
-            raise web.HTTPServiceUnavailable(reason="Database is temporarily unavailable")
+            raise web.HTTPServiceUnavailable(reason="Database is temporarily unavailable") from exc
         status = 500
         error_type, error = _exception_error_fields(exc, fallback="Unhandled error")
         raise

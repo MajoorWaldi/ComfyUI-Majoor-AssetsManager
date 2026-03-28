@@ -15,7 +15,6 @@ import json
 import struct
 from pathlib import Path
 
-
 from mjr_am_backend.features.metadata.extractors_3d import (
     _read_glb_json_chunk,
     _read_sidecar_json,

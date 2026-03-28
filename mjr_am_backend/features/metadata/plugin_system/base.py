@@ -6,11 +6,11 @@ Defines the abstract base class for metadata extractor plugins.
 
 from __future__ import annotations
 
+import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +30,8 @@ class ExtractorMetadata:
 class ExtractionResult:
     """Result from metadata extraction."""
     success: bool
-    data: Dict[str, Any] = field(default_factory=dict)
-    error: Optional[str] = None
+    data: dict[str, Any] = field(default_factory=dict)
+    error: str | None = None
     extractor_name: str = ""
     confidence: float = 1.0  # 0.0-1.0, for fuzzy matching
 
@@ -69,7 +69,7 @@ class MetadataExtractorPlugin(ABC):
 
     @property
     @abstractmethod
-    def supported_extensions(self) -> List[str]:
+    def supported_extensions(self) -> list[str]:
         """
         File extensions this extractor handles.
 
@@ -162,13 +162,13 @@ class MetadataExtractorPlugin(ABC):
 
         Override to release resources, close connections, etc.
         """
-        pass
+        return None
 
     # ─── Helper Methods ────────────────────────────────────────────
 
     def _create_success_result(
         self,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         confidence: float = 1.0
     ) -> ExtractionResult:
         """Helper to create success result."""

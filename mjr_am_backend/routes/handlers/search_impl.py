@@ -2,10 +2,7 @@
 Search and list endpoints.
 """
 import asyncio
-import datetime
 import json
-import os
-import re
 from pathlib import Path
 from typing import Any
 
@@ -21,14 +18,21 @@ except Exception:
 
     folder_paths = _FolderPathsStub()  # type: ignore
 
-from mjr_am_backend.config import OUTPUT_ROOT, TO_THREAD_TIMEOUT_S
+from mjr_am_backend.config import TO_THREAD_TIMEOUT_S
 from mjr_am_backend.custom_roots import resolve_custom_root
 from mjr_am_backend.features.index.metadata_helpers import MetadataHelpers
 from mjr_am_backend.features.search import parse_search_request
 from mjr_am_backend.shared import Result, get_logger
 
-from ..core import _is_loopback_request, _json_response, _read_json, _require_services, safe_error_message
+from ..core import (
+    _is_loopback_request,
+    _json_response,
+    _read_json,
+    _require_services,
+    safe_error_message,
+)
 from ..core.security import _check_rate_limit
+
 # MED-004: Query sanitization pipeline.
 # - DB-backed endpoints (list, search) always go through _parse_request_filters()
 #   (via _qs.parse_request_filters) which validates kind, rating, date-range, etc.
@@ -64,9 +68,9 @@ logger = get_logger(__name__)
 
 
 # P2-E-01..03 delegation to extracted modules.
-from ..search import query_sanitizer as _qs
-from ..search import result_filter as _rf
-from ..search import result_hydrator as _rh
+from ..search import query_sanitizer as _qs  # noqa: E402
+from ..search import result_filter as _rf  # noqa: E402
+from ..search import result_hydrator as _rh  # noqa: E402
 
 _asset_dedupe_key = _rh.dedupe_key
 _dedupe_assets_by_filepath = _rh.dedupe_by_filepath
@@ -80,7 +84,6 @@ _coerce_browser_tags = _rh.coerce_browser_tags
 _hydrate_browser_asset_from_row = _rh.hydrate_asset_from_row
 _apply_browser_hydration_rows = _rh.apply_hydration_rows
 _search_db_from_services = _rf.search_db_from_services
-_hydrate_browser_assets_from_db = lambda svc, assets: _rh.hydrate_assets(svc, assets, _search_db_from_services)
 _touch_enrichment_pause = _rf.touch_enrichment_pause
 _is_under_root = _rf.is_under_root
 _exclude_assets_under_root = _rf.exclude_under_root
@@ -97,6 +100,10 @@ _consume_inline_extension = _qs.consume_extension
 _consume_inline_kind = _qs.consume_kind
 _consume_inline_rating = _qs.consume_rating
 _normalize_sort_key = _qs.normalize_sort_key
+
+
+async def _hydrate_browser_assets_from_db(svc: Any, assets: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return await _rh.hydrate_assets(svc, assets, _search_db_from_services)
 
 
 def _parse_asset_ids(raw_ids: object, max_ids: int) -> Result[list[int]]:

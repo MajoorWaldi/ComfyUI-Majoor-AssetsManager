@@ -1,7 +1,6 @@
 import datetime
 
 import pytest
-
 from mjr_am_backend.routes.handlers import search_impl as s
 
 

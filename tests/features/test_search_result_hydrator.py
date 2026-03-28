@@ -1,5 +1,4 @@
 import pytest
-
 from mjr_am_backend.routes.search import result_hydrator as rh
 
 

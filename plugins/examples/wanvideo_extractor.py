@@ -13,16 +13,16 @@ Usage:
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any, Dict
 import json
 import logging
+from pathlib import Path
+from typing import Any
 
 # Import from plugin system
 from mjr_am_backend.features.metadata.plugin_system.base import (
-    MetadataExtractorPlugin,
     ExtractionResult,
     ExtractorMetadata,
+    MetadataExtractorPlugin,
 )
 
 logger = logging.getLogger(__name__)
@@ -212,7 +212,7 @@ class WanVideoExtractor(MetadataExtractorPlugin):
 
                 img.close()
 
-            except Exception as e:
+            except Exception:
                 if img:
                     img.close()
                 raise
@@ -232,7 +232,7 @@ class WanVideoExtractor(MetadataExtractorPlugin):
             logger.exception(f"WanVideo extraction failed for {filepath}")
             return self._create_error_result(str(e))
 
-    def _parse_parameters(self, param_string: str) -> Dict[str, Any]:
+    def _parse_parameters(self, param_string: str) -> dict[str, Any]:
         """
         Parse ComfyUI parameter string.
 
@@ -284,7 +284,7 @@ class WanVideoExtractor(MetadataExtractorPlugin):
 
         return result
 
-    def _calculate_confidence(self, data: Dict[str, Any]) -> float:
+    def _calculate_confidence(self, data: dict[str, Any]) -> float:
         """
         Calculate confidence score based on extracted data.
 
@@ -338,4 +338,4 @@ class WanVideoExtractor(MetadataExtractorPlugin):
 
     async def cleanup(self) -> None:
         """Cleanup called on plugin unload."""
-        logger.debug(f"WanVideoExtractor cleanup complete")
+        logger.debug("WanVideoExtractor cleanup complete")

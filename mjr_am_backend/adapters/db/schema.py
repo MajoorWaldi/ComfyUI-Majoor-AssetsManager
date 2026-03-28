@@ -130,6 +130,8 @@ COLUMN_DEFINITIONS = {
         ("hash_state", "hash_state TEXT"),
         ("job_id", "job_id TEXT"),
         ("stack_id", "stack_id INTEGER"),
+        ("source_node_id", "source_node_id TEXT"),
+        ("source_node_type", "source_node_type TEXT"),
     ],
     "asset_metadata": [
         ("rating", "rating INTEGER DEFAULT 0"),

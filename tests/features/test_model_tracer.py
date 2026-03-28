@@ -4,10 +4,7 @@ Targets: 34-47, 59-66, 77, 82, 87, 92, 103-114, 118-154, 158-183.
 """
 from __future__ import annotations
 
-import pytest
-
 from mjr_am_backend.features.geninfo import model_tracer as mt
-
 
 # ─── _is_nested_lora_key ────────────────────────────────────────────────────
 

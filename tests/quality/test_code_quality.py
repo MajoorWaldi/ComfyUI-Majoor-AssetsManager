@@ -57,7 +57,7 @@ def test_no_function_exceeds_max_cc():
     """Every function/method must have CC <= MAX_CC_PER_FUNCTION."""
     data = _parse_cc_json()
     violations: list[str] = []
-    for filepath, items in data.items():
+    for _filepath, items in data.items():
         if not isinstance(items, list):
             continue
         for item in items:
@@ -67,7 +67,7 @@ def test_no_function_exceeds_max_cc():
             if cc > MAX_CC_PER_FUNCTION:
                 name = item.get("name", "<unknown>")
                 lineno = item.get("lineno", "?")
-                violations.append(f"  {filepath}:{lineno} {name} (CC={cc})")
+                violations.append(f"  {_filepath}:{lineno} {name} (CC={cc})")
     assert not violations, (
         f"Functions exceeding CC>{MAX_CC_PER_FUNCTION}:\n" + "\n".join(violations)
     )
@@ -78,7 +78,7 @@ def test_average_complexity_within_threshold():
     data = _parse_cc_json()
     total_cc = 0
     count = 0
-    for filepath, items in data.items():
+    for _filepath, items in data.items():
         if not isinstance(items, list):
             continue
         for item in items:

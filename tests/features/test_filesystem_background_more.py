@@ -3,7 +3,6 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-
 from mjr_am_backend.routes.handlers import filesystem as fs
 from mjr_am_backend.shared import Result
 

@@ -15,8 +15,8 @@ from typing import Any
 from ...config import SCAN_BATCH_XL, SCAN_LOG_PROGRESS_EVERY, SCAN_LOG_PROGRESS_MIN_SECONDS
 from .fs_walker import _FS_WALK_EXECUTOR
 from .index_batching import existing_map_for_batch, index_batch
-from .scan_storage_ops import get_journal_entries
 from .scan_batch_utils import normalize_filepath_str, stream_batch_target
+from .scan_storage_ops import get_journal_entries
 
 
 async def run_scan_streaming_loop(
@@ -151,7 +151,7 @@ async def consume_scan_queue(
             )
     except asyncio.CancelledError:
         stop_event.set()
-        raise asyncio.CancelledError()
+        raise
 
 
 async def process_scan_batch(

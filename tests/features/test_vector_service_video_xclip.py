@@ -3,9 +3,8 @@ import sys
 import types
 
 import pytest
-from PIL import Image as PILImage
-
 from mjr_am_backend.features.index import vector_service as m
+from PIL import Image as PILImage
 
 
 class _FakeInferenceMode:

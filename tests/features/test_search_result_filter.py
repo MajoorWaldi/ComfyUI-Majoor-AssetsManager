@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pytest
-
 from mjr_am_backend.routes.search import result_filter as rf
 
 

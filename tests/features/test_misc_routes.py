@@ -4,7 +4,6 @@ import json
 import pytest
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
-
 from mjr_am_backend.routes.handlers import calendar as cal_mod
 from mjr_am_backend.routes.handlers import metadata as meta_mod
 from mjr_am_backend.routes.handlers import releases as rel_mod

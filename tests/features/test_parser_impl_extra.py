@@ -6,12 +6,7 @@ Targets uncovered lines: 61, 64, 71, 77, 79-80, 103, 105, 119-121, 125-127,
 """
 from __future__ import annotations
 
-from pathlib import Path
-
-import pytest
-
 from mjr_am_backend.features.geninfo import parser_impl as p
-
 
 # ─── _clean_model_id edge cases ────────────────────────────────────────────
 
@@ -88,6 +83,46 @@ def test_is_sampler_ksampler():
 def test_is_sampler_core_signature():
     node = {"class_type": "CustomStep", "inputs": {"steps": 20, "cfg": 7.0, "seed": 42}}
     assert p._is_sampler(node) is True
+
+
+def test_parse_geninfo_prefers_sink_with_real_sampler_branch():
+    prompt_graph = {
+        "10": {"class_type": "VHS_VideoCombine", "inputs": {"images": ["11", 0]}},
+        "11": {"class_type": "CreateVideo", "inputs": {"images": ["12", 0]}},
+        "12": {"class_type": "LoadImage", "inputs": {"image": "preview.png"}},
+        "20": {"class_type": "SaveVideo", "inputs": {"video": ["21", 0]}},
+        "21": {"class_type": "CreateVideo", "inputs": {"images": ["22", 0], "fps": ["30", 0]}},
+        "22": {"class_type": "VAEDecode", "inputs": {"samples": ["23", 0], "vae": ["27", 0]}},
+        "23": {
+            "class_type": "SamplerCustomAdvanced",
+            "inputs": {
+                "noise": ["24", 0],
+                "guider": ["25", 0],
+                "sampler": ["26", 0],
+                "sigmas": ["28", 0],
+                "latent_image": ["29", 0],
+            },
+        },
+        "24": {"class_type": "RandomNoise", "inputs": {"noise_seed": 42}},
+        "25": {"class_type": "BasicGuider", "inputs": {"conditioning": ["31", 0], "model": ["32", 0]}},
+        "26": {"class_type": "KSamplerSelect", "inputs": {"sampler_name": "euler"}},
+        "27": {"class_type": "VAELoader", "inputs": {"vae_name": "ae.safetensors"}},
+        "28": {"class_type": "BasicScheduler", "inputs": {"steps": 25, "scheduler": "simple", "model": ["32", 0]}},
+        "29": {"class_type": "EmptyLatentImage", "inputs": {"width": 1024, "height": 576}},
+        "30": {"class_type": "Float", "inputs": {"value": 24.0}},
+        "31": {"class_type": "CLIPTextEncode", "inputs": {"text": "Blooming flower", "clip": ["33", 0]}},
+        "32": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "ltx-2.3-22b-dev.safetensors"}},
+        "33": {"class_type": "CLIPLoader", "inputs": {"clip_name": "clip.safetensors"}},
+    }
+
+    result = p.parse_geninfo_from_prompt(prompt_graph)
+
+    assert result.ok, result.error
+    assert result.data is not None
+    assert result.data["positive"]["value"] == "Blooming flower"
+    assert result.data["seed"]["value"] == 42
+    assert result.data["steps"]["value"] == 25
+    assert result.data["sampler"]["name"] == "euler"
 
 
 # ─── _is_named_sampler_type ────────────────────────────────────────────────

@@ -1,7 +1,6 @@
 import asyncio
 
 import pytest
-
 from mjr_am_backend.adapters.db.schema import migrate_schema
 from mjr_am_backend.adapters.db.sqlite_facade import Sqlite
 

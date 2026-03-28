@@ -7,11 +7,8 @@ Covers:
 """
 
 import pytest
-
 from mjr_am_backend.features.index import vector_indexer as m
-from mjr_am_backend.features.index.vector_service import VectorService
 from mjr_am_backend.shared import Result
-
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 

@@ -89,6 +89,17 @@ export const DEFAULT_SETTINGS = {
         enabled: false,
         verboseErrors: false,
     },
+    feed: {
+        showInfo: APP_DEFAULTS.FEED_SHOW_INFO,
+        showFilename: APP_DEFAULTS.FEED_SHOW_FILENAME,
+        showDimensions: APP_DEFAULTS.FEED_SHOW_DIMENSIONS,
+        showDate: APP_DEFAULTS.FEED_SHOW_DATE,
+        showGenTime: APP_DEFAULTS.FEED_SHOW_GENTIME,
+        showWorkflowDot: APP_DEFAULTS.FEED_SHOW_WORKFLOW_DOT,
+        showExtBadge: APP_DEFAULTS.FEED_SHOW_BADGES_EXTENSION,
+        showRatingBadge: APP_DEFAULTS.FEED_SHOW_BADGES_RATING,
+        showTagsBadge: APP_DEFAULTS.FEED_SHOW_BADGES_TAGS,
+    },
     sidebar: {
         position: "right",
         showPreviewThumb: true,
@@ -184,6 +195,7 @@ export const loadMajoorSettings = () => {
             "viewer",
             "rtHydrate",
             "observability",
+            "feed",
             "sidebar",
             "probeBackend",
             "i18n",
@@ -277,6 +289,18 @@ export const applySettingsToConfig = (settings) => {
     APP_CONFIG.GRID_SHOW_DETAILS_DIMENSIONS = !!(settings.grid?.showDimensions ?? APP_DEFAULTS.GRID_SHOW_DETAILS_DIMENSIONS);
     APP_CONFIG.GRID_SHOW_DETAILS_GENTIME = !!(settings.grid?.showGenTime ?? APP_DEFAULTS.GRID_SHOW_DETAILS_GENTIME);
     APP_CONFIG.GRID_SHOW_WORKFLOW_DOT = !!(settings.grid?.showWorkflowDot ?? APP_DEFAULTS.GRID_SHOW_WORKFLOW_DOT);
+
+    // Bottom feed card display
+    APP_CONFIG.FEED_SHOW_INFO = !!(settings.feed?.showInfo ?? APP_DEFAULTS.FEED_SHOW_INFO);
+    APP_CONFIG.FEED_SHOW_FILENAME = !!(settings.feed?.showFilename ?? APP_DEFAULTS.FEED_SHOW_FILENAME);
+    APP_CONFIG.FEED_SHOW_DIMENSIONS = !!(settings.feed?.showDimensions ?? APP_DEFAULTS.FEED_SHOW_DIMENSIONS);
+    APP_CONFIG.FEED_SHOW_DATE = !!(settings.feed?.showDate ?? APP_DEFAULTS.FEED_SHOW_DATE);
+    APP_CONFIG.FEED_SHOW_GENTIME = !!(settings.feed?.showGenTime ?? APP_DEFAULTS.FEED_SHOW_GENTIME);
+    APP_CONFIG.FEED_SHOW_WORKFLOW_DOT = !!(settings.feed?.showWorkflowDot ?? APP_DEFAULTS.FEED_SHOW_WORKFLOW_DOT);
+    APP_CONFIG.FEED_SHOW_BADGES_EXTENSION = !!(settings.feed?.showExtBadge ?? APP_DEFAULTS.FEED_SHOW_BADGES_EXTENSION);
+    APP_CONFIG.FEED_SHOW_BADGES_RATING = !!(settings.feed?.showRatingBadge ?? APP_DEFAULTS.FEED_SHOW_BADGES_RATING);
+    APP_CONFIG.FEED_SHOW_BADGES_TAGS = !!(settings.feed?.showTagsBadge ?? APP_DEFAULTS.FEED_SHOW_BADGES_TAGS);
+
     // Video autoplay mode: migrate old boolean → new tri-state
     {
         let mode = settings.grid?.videoAutoplayMode ?? APP_DEFAULTS.GRID_VIDEO_AUTOPLAY_MODE;

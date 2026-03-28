@@ -1,8 +1,7 @@
-import types
 import threading
+import types
 
 import pytest
-
 from mjr_am_backend.adapters.db import sqlite_facade as sf
 from mjr_am_backend.shared import Result
 

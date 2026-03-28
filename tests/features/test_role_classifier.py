@@ -5,10 +5,7 @@ Targets: 30, 37, 71, 80, 89, 91, 93, 95, 101-106, 119-123, 129, 131, 133,
 """
 from __future__ import annotations
 
-import pytest
-
 from mjr_am_backend.features.geninfo import role_classifier as rc
-
 
 # ─── _extract_workflow_metadata ─────────────────────────────────────────────
 

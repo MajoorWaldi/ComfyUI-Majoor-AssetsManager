@@ -18,9 +18,9 @@ from .config import (
     FFPROBE_TIMEOUT,
     INDEX_DB,
     VECTORS_DB,
-    is_vector_search_enabled,
     WATCHER_ENABLED,
     initialize_directories,
+    is_vector_search_enabled,
 )
 from .features.duplicates import DuplicatesService
 from .features.health import HealthService
@@ -117,8 +117,8 @@ def _build_services_dict(
     # ── Vector / multimodal search (opt-in) ───────────────────────────
     if is_vector_search_enabled():
         try:
-            from .features.index.vector_service import VectorService
             from .features.index.vector_searcher import VectorSearcher
+            from .features.index.vector_service import VectorService
 
             vs = VectorService()
             services["vector_service"] = vs

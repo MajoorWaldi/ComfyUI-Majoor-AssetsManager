@@ -1,5 +1,4 @@
 """Extra tests for sampler_tracer.py — covering uncovered branches."""
-import pytest
 
 from mjr_am_backend.features.geninfo import sampler_tracer as st
 

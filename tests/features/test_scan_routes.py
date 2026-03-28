@@ -1,10 +1,8 @@
 import json
-from types import SimpleNamespace
 
 import pytest
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
-
 from mjr_am_backend.routes.handlers import scan as scan_mod
 from mjr_am_backend.shared import Result
 

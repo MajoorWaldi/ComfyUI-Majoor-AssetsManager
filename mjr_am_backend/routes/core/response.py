@@ -3,6 +3,7 @@ Response utilities for route handlers.
 """
 
 import math
+
 from aiohttp import web
 from mjr_am_backend.shared import Result
 

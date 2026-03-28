@@ -7,7 +7,6 @@ import json
 import pytest
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
-
 from mjr_am_backend.routes.handlers import audit as m
 from mjr_am_backend.shared import Result
 

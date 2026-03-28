@@ -7,12 +7,10 @@ import logging
 from enum import Enum
 
 import pytest
-
 from mjr_am_shared import errors as errors_mod
 from mjr_am_shared import log as log_mod
 from mjr_am_shared import result as result_mod
 from mjr_am_shared import time as time_mod
-
 
 # ─── time.py ───────────────────────────────────────────────────────────────
 

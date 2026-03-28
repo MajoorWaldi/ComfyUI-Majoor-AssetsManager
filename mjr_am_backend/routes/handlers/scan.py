@@ -38,6 +38,13 @@ from mjr_am_backend.features.index.scan_route_service import (
     run_reset_clear_phase,
     run_reset_reindex,
 )
+from mjr_am_backend.features.index.watcher_scope import (
+    build_watch_paths,  # noqa: F401 — exposed for deps=globals()
+)
+from mjr_am_backend.features.watcher_settings import (  # noqa: F401 — exposed for deps=globals()
+    get_watcher_settings,
+    update_watcher_settings,
+)
 from mjr_am_backend.shared import Result, get_logger, sanitize_error_message
 from mjr_am_backend.utils import parse_bool, sanitize_for_json
 
@@ -54,6 +61,7 @@ from ..core import (
     _require_write_access,
     _resolve_security_prefs,
     _safe_rel_path,
+    audit_log_write,  # noqa: F401 — exposed for deps=globals()
     safe_error_message,
 )
 from .db_maintenance import (
@@ -71,6 +79,8 @@ from .scan_helpers import (
     _is_db_malformed_result,
     _resolve_scan_root,
     _runtime_output_root,
+    _schedule_index_task,  # noqa: F401 — exposed for deps=globals()
+    _write_multipart_file_atomic,  # noqa: F401 — exposed for deps=globals()
 )
 from .scan_staging import register_staging_routes
 from .scan_upload import register_upload_routes
@@ -654,19 +664,25 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         import json
         gen_time_lookup: dict[tuple[str, str, str, str], int] = {}
         prompt_lookup: dict[tuple[str, str, str, str], str] = {}
+        node_provenance_lookup: dict[tuple[str, str, str, str], tuple[str, str]] = {}
         for item in files:
+            fname = item.get("filename")
+            if not fname:
+                continue
+            key = (
+                str(fname),
+                str(item.get("subfolder") or ""),
+                str(item.get("type") or "output").lower(),
+                str(item.get("root_id") or item.get("custom_root_id") or ""),
+            )
             gen_time = item.get("generation_time_ms") or item.get("duration_ms")
             if gen_time and isinstance(gen_time, (int, float)) and gen_time > 0:
-                fname = item.get("filename")
-                if not fname:
-                    continue
-                key = (
-                    str(fname),
-                    str(item.get("subfolder") or ""),
-                    str(item.get("type") or "output").lower(),
-                    str(item.get("root_id") or item.get("custom_root_id") or ""),
-                )
                 gen_time_lookup.setdefault(key, int(gen_time))
+            # Capture source node provenance (which workflow node produced this file)
+            src_node_id = str(item.get("source_node_id") or "").strip()
+            src_node_type = str(item.get("source_node_type") or "").strip()
+            if src_node_id:
+                node_provenance_lookup.setdefault(key, (src_node_id, src_node_type))
             item_prompt_id = str(item.get("prompt_id") or prompt_id or "").strip()
             if item_prompt_id:
                 fname = item.get("filename")
@@ -766,6 +782,42 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                                 )
                     except Exception as ex:
                         logger.debug("Failed to assign prompt/job correlation: %s", ex)
+
+                # Store source node provenance (which workflow node produced each file)
+                if node_provenance_lookup:
+                    try:
+                        prov_fnames = list({k[0] for k in node_provenance_lookup})
+                        for start in range(0, len(prov_fnames), _MAX_IN_BATCH):
+                            chunk = prov_fnames[start:start + _MAX_IN_BATCH]
+                            if not chunk:
+                                continue
+                            placeholders = ",".join("?" * len(chunk))
+                            q_res = await db_adapter.aquery(
+                                f"SELECT id, filename, subfolder, source, root_id FROM assets WHERE filename IN ({placeholders})",
+                                tuple(chunk),
+                            )
+                            if not (q_res.ok and q_res.data):
+                                continue
+                            for row in q_res.data:
+                                key = (
+                                    str(row.get("filename") or ""),
+                                    str(row.get("subfolder") or ""),
+                                    str(row.get("source") or "output").lower(),
+                                    str(row.get("root_id") or ""),
+                                )
+                                prov = node_provenance_lookup.get(key)
+                                if not prov:
+                                    continue
+                                asset_id = int(row.get("id") or 0)
+                                if not asset_id:
+                                    continue
+                                node_id, node_type = prov
+                                await db_adapter.aexecute(
+                                    "UPDATE assets SET source_node_id = ?, source_node_type = ? WHERE id = ?",
+                                    (node_id, node_type, asset_id),
+                                )
+                    except Exception as ex:
+                        logger.debug("Failed to assign node provenance: %s", ex)
 
                 if gen_time_by_id:
                     try:

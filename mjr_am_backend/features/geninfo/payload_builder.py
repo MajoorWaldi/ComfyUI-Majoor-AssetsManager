@@ -328,6 +328,23 @@ def _extract_geninfo(nodes_by_id: dict[str, Any], sinks: list[str], workflow_met
     sink_id = sinks[0]
     sampler_id, sampler_conf, sampler_mode = _p._select_sampler_context(nodes_by_id, sink_id)
 
+    # Multi-output video workflows can contain intermediate save/combine branches
+    # (for previews, tracks, masks, etc.) before the final generated video sink.
+    # Prefer the first sink that resolves to an actual sampler branch so geninfo
+    # comes from the real generation path rather than a metadata-only helper clip.
+    if not sampler_id and len(sinks) > 1:
+        for candidate_sink_id in sinks[1:]:
+            candidate_sampler_id, candidate_sampler_conf, candidate_sampler_mode = _p._select_sampler_context(
+                nodes_by_id,
+                candidate_sink_id,
+            )
+            if candidate_sampler_id:
+                sink_id = candidate_sink_id
+                sampler_id = candidate_sampler_id
+                sampler_conf = candidate_sampler_conf
+                sampler_mode = candidate_sampler_mode
+                break
+
     if not sampler_id:
         pipeline_passes = _p._collect_sampler_pipeline_from_sink(nodes_by_id, sink_id)
         if len(pipeline_passes) > 1:

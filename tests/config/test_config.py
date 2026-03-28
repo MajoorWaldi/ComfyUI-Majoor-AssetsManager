@@ -4,10 +4,8 @@ Tests for mjr_am_backend.config
 Covers the env-var helper functions (_env_int, _env_float, _env_bool)
 and basic validation of module-level constants.
 """
-import os
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -89,8 +87,9 @@ class TestEnvFloat:
 
 class TestConfigConstants:
     def test_output_root_is_path_like(self):
-        from mjr_am_backend.config import OUTPUT_ROOT  # type: ignore[attr-defined]
         from pathlib import Path
+
+        from mjr_am_backend.config import OUTPUT_ROOT  # type: ignore[attr-defined]
         assert isinstance(OUTPUT_ROOT, (str, Path))
 
     def test_search_max_limit_positive(self):

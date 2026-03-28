@@ -182,6 +182,7 @@ class StacksService:
             "SELECT a.id, a.filename, a.filepath, a.kind, a.ext, "
             "  a.size, a.mtime, a.width, a.height, a.duration, "
             "  a.source, a.root_id, "
+            "  a.source_node_id, a.source_node_type, "
             "  COALESCE(m.rating, 0) as rating, "
             "  COALESCE(m.tags, '[]') as tags, "
             "  m.has_workflow, m.has_generation_data "
@@ -201,6 +202,7 @@ class StacksService:
             "SELECT a.id, a.filename, a.filepath, a.kind, a.ext, "
             "  a.size, a.mtime, a.width, a.height, a.duration, "
             "  a.source, a.root_id, "
+            "  a.source_node_id, a.source_node_type, "
             "  COALESCE(m.rating, 0) as rating, "
             "  COALESCE(m.tags, '[]') as tags, "
             "  m.has_workflow, m.has_generation_data "
@@ -280,45 +282,51 @@ class StacksService:
 
     # ── Auto-stacking ────────────────────────────────────────────────────
 
-    async def auto_stack_by_job_id(self) -> Result[int]:
+    async def auto_stack_by_job_id(self, job_id: str | None = None) -> Result[dict[str, Any]]:
         """Scan for assets with a job_id but no stack_id, and group them.
 
-        Returns the number of newly created stacks.
+        When *job_id* is provided, only that exact execution job is finalized.
         """
-        # Find distinct job_ids with unassigned assets
-        res = await self.db.aquery(
-            "SELECT DISTINCT job_id FROM assets "
-            "WHERE job_id IS NOT NULL AND job_id != '' AND stack_id IS NULL"
-        )
-        if not res.ok or not res.data:
-            return Result.Ok(0)
+        job_ids: list[str] = []
+        exact_job_id = str(job_id or "").strip()
+
+        if exact_job_id:
+            res = await self.db.aquery(
+                "SELECT DISTINCT job_id FROM assets "
+                "WHERE job_id = ? AND stack_id IS NULL",
+                (exact_job_id,),
+            )
+        else:
+            res = await self.db.aquery(
+                "SELECT DISTINCT job_id FROM assets "
+                "WHERE job_id IS NOT NULL AND job_id != '' AND stack_id IS NULL"
+            )
+        if not res.ok:
+            return Result.Err("DB_ERROR", res.error or "Failed to query pending stacks")
+
+        for row in res.data or []:
+            current_job_id = str(row.get("job_id") or "").strip()
+            if current_job_id:
+                job_ids.append(current_job_id)
 
         created = 0
-        for row in res.data:
-            job_id = str(row["job_id"]).strip()
-            if not job_id:
-                continue
+        finalized: list[dict[str, Any]] = []
 
-            stack_res = await self.create_or_get_stack(job_id)
-            if not stack_res.ok:
-                logger.warning("Failed to create stack for job_id=%s: %s", job_id, stack_res.error)
+        for current_job_id in job_ids:
+            finalized_entry = await self._finalize_job_stack(current_job_id)
+            if not finalized_entry:
                 continue
-            stack_id = _coerce_stack_id(stack_res.data)
-            if stack_id is None:
-                logger.warning("Invalid stack id for job_id=%s", job_id)
-                continue
-
-            await self.db.aexecute(
-                "UPDATE assets SET stack_id = ? "
-                "WHERE job_id = ? AND stack_id IS NULL",
-                (stack_id, job_id),
-            )
-            await self._refresh_stack_count(stack_id)
-            await self.auto_select_cover(stack_id)
             created += 1
+            finalized.append(finalized_entry)
 
-        logger.info("Auto-stacking created %d stacks", created)
-        return Result.Ok(created)
+        logger.info("Auto-stacking finalized %d stack(s)", created)
+        return Result.Ok(
+            {
+                "created": created,
+                "targeted_job_id": exact_job_id or None,
+                "stacks": finalized,
+            }
+        )
 
     async def auto_stack_by_workflow_hash(self, mtime_window_s: int = 30) -> Result[int]:
         """Heuristic stacking for assets without job_id.
@@ -399,6 +407,54 @@ class StacksService:
             "WHERE id = ?",
             (stack_id, now, stack_id),
         )
+
+    async def _finalize_job_stack(self, job_id: str) -> dict[str, Any] | None:
+        current_job_id = str(job_id or "").strip()
+        if not current_job_id:
+            return None
+
+        async with self.db.atransaction(mode="immediate") as tx:
+            if not tx.ok:
+                logger.warning("Failed to begin stack finalization transaction for job_id=%s: %s", current_job_id, tx.error)
+                return None
+
+            stack_res = await self.create_or_get_stack(current_job_id)
+            if not stack_res.ok:
+                logger.warning("Failed to create stack for job_id=%s: %s", current_job_id, stack_res.error)
+                return None
+            stack_id = _coerce_stack_id(stack_res.data)
+            if stack_id is None:
+                logger.warning("Invalid stack id for job_id=%s", current_job_id)
+                return None
+
+            assign_res = await self.db.aexecute(
+                "UPDATE assets SET stack_id = ? "
+                "WHERE job_id = ? AND stack_id IS NULL",
+                (stack_id, current_job_id),
+            )
+            if not assign_res.ok:
+                logger.warning("Failed to assign assets to stack for job_id=%s: %s", current_job_id, assign_res.error)
+                return None
+
+            count_res = await self.db.aquery(
+                "SELECT COUNT(*) AS total FROM assets WHERE stack_id = ?",
+                (stack_id,),
+            )
+            member_count = 0
+            if count_res.ok and count_res.data:
+                try:
+                    member_count = int(count_res.data[0].get("total") or 0)
+                except Exception:
+                    member_count = 0
+
+            await self._refresh_stack_count(stack_id)
+            await self.auto_select_cover(stack_id)
+
+        return {
+            "job_id": current_job_id,
+            "stack_id": stack_id,
+            "asset_count": member_count,
+        }
 
 
 def _row_to_stack_info(row: dict[str, Any]) -> StackInfo:

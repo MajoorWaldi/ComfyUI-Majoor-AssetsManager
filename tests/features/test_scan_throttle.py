@@ -4,7 +4,6 @@ from __future__ import annotations
 import time
 
 import pytest
-
 from mjr_am_shared import scan_throttle as th
 
 
