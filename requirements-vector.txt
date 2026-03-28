@@ -6,7 +6,7 @@
 
 # --- CLIP / Semantic Search (optional, enable with MJR_ENABLE_VECTOR_SEARCH=1) ---
 # sentence-transformers wraps HuggingFace models including CLIP ViT-L/14
-sentence-transformers>=2.2.0,<4.0.0
+sentence-transformers>=2.2.0,<6.0.0
 
 # Explicit HF stack for SigLIP2 / X-CLIP / Florence-2 runtime compatibility
 transformers>=4.44.0,<6.0.0
