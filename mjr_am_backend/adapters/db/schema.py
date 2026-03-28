@@ -262,7 +262,7 @@ def _safe_column_definition_parts(column_name: str, definition: str) -> tuple[st
     suffix = raw[len(prefix):].strip()
     if not suffix:
         return None
-    if ";" in suffix or "--" in suffix or "/*" in suffix or "*/" in suffix:
+    if any(tok in suffix for tok in (";", "--", "/*", "*/")):
         return None
     if not _SAFE_COLUMN_DEF_SUFFIX_RE.match(suffix):
         return None
