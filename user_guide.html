@@ -314,6 +314,9 @@ git clone https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager ComfyUI-Ma
 cd ComfyUI-Majoor-AssetsManager
 pip install -r requirements.txt
 
+# Optional: install AI/vector features
+# pip install -r requirements.txt -r requirements-vector.txt
+
 # Restart ComfyUI</code></pre>
 
             <h3>Optional Dependencies (Recommended)</h3>
@@ -721,7 +724,8 @@ export MJR_AM_AI_VERBOSE_LOGS=1</code></pre>
             <ul>
                 <li>Verify installation in <code>custom_nodes/ComfyUI-Majoor-AssetsManager</code></li>
                 <li>Check ComfyUI console for import errors</li>
-                <li>Ensure all dependencies: <code>pip install -r requirements.txt</code></li>
+                <li>Ensure core dependencies: <code>pip install -r requirements.txt</code></li>
+                <li>If you use AI/vector features, also install: <code>pip install -r requirements.txt -r requirements-vector.txt</code></li>
                 <li>Restart ComfyUI completely</li>
             </ul>
 

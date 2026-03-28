@@ -2,7 +2,7 @@
  * API Endpoints - Centralized URL constants
  */
 
-import { pickRootId } from "../utils/ids.js";
+import { normalizeAssetId, pickRootId } from "../utils/ids.js";
 import { hasWindowsDrivePrefix, splitFilenameAndSubfolder, toPosixPath } from "../utils/path.js";
 
 const DEFAULT_QUERY_LIMIT = 100;
@@ -309,11 +309,10 @@ export function buildViewerResourceURL(assetOrContext, relpath = "") {
     const rel = String(relpath || "").trim();
     if (!rel) return "";
 
-    const rawId = ctx?.asset_id ?? ctx?.id ?? null;
-    const assetId = Number(rawId) || 0;
+    const assetId = normalizeAssetId(ctx?.asset_id ?? ctx?.id ?? null);
     let url = `${ENDPOINTS.VIEWER_RESOURCE}?relpath=${encodeURIComponent(rel)}`;
-    if (assetId > 0) {
-        return `${url}&asset_id=${encodeURIComponent(String(assetId))}`;
+    if (assetId) {
+        return `${url}&asset_id=${encodeURIComponent(assetId)}`;
     }
 
     const filepath = toPosixPath(

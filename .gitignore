@@ -196,3 +196,5 @@ output_metadata.json
 CLAUDE.md
 docs/QUALITY_IMPROVEMENT_PLAN.md
 docs/COMFYUI_CORE_ANALYSIS.md
+.github/workflows/pr-review.yml
+scripts/pr_reviewer.py

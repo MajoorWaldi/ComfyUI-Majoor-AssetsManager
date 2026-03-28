@@ -54,11 +54,22 @@ cd ComfyUI-Majoor-AssetsManager
 pip install -r requirements.txt
 ```
 
+If you want the optional AI/vector features as well, install the extra vector stack too:
+
+```bash
+pip install -r requirements.txt -r requirements-vector.txt
+```
+
 > **Faster installs with `uv`**: If you have [uv](https://github.com/astral-sh/uv) installed, you can use it as a drop-in replacement for significantly faster dependency resolution:
 > ```bash
 > uv pip install -r requirements.txt
 > ```
 > Install `uv` with `pip install uv` or see the [uv documentation](https://docs.astral.sh/uv/) for other methods.
+
+> For AI/vector features with `uv`:
+> ```bash
+> uv pip install -r requirements.txt -r requirements-vector.txt
+> ```
 
 ### Step 3: Restart ComfyUI
 Stop your ComfyUI server completely and restart it to load the new extension.
@@ -213,6 +224,12 @@ cd ComfyUI-Majoor-AssetsManager
 pip install -r requirements.txt
 ```
 
+If the error is related to AI/vector search features, install the optional vector stack too:
+
+```bash
+pip install -r requirements.txt -r requirements-vector.txt
+```
+
 ### External Tools Not Found
 If metadata extraction isn't working:
 1. Verify tools are installed: `exiftool -ver` and `ffprobe -version`
@@ -260,6 +277,12 @@ Updates will be available through the ComfyUI Manager interface when released.
 cd ComfyUI/custom_nodes/ComfyUI-Majoor-AssetsManager
 git pull origin main
 pip install -r requirements.txt --upgrade
+```
+
+If you use AI/vector features, also upgrade the optional vector requirements:
+
+```bash
+pip install -r requirements.txt -r requirements-vector.txt --upgrade
 ```
 
 Remember to restart ComfyUI after updating.

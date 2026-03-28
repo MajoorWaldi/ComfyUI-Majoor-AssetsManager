@@ -6,8 +6,21 @@ function normalizeId(value) {
     }
 }
 
+export function normalizePositiveIntId(value) {
+    const raw = normalizeId(value);
+    if (!raw) return "";
+    if (!/^\d+$/.test(raw)) return "";
+    try {
+        const parsed = Number(raw);
+        if (!Number.isSafeInteger(parsed) || parsed <= 0) return "";
+        return String(parsed);
+    } catch {
+        return "";
+    }
+}
+
 export function normalizeAssetId(assetId) {
-    return normalizeId(assetId);
+    return normalizePositiveIntId(assetId);
 }
 
 export function pickRootId(obj) {

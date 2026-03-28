@@ -38,6 +38,7 @@ import {
     pushGeneratedAsset,
     refreshGeneratedFeedHosts,
 } from "./features/bottomPanel/GeneratedFeedTab.js";
+import { createJobFinalizeQueue } from "./features/stacks/finalizeQueue.js";
 import { extractOutputFiles } from "./utils/extractOutputFiles.js";
 import { post } from "./api/client.js";
 import { ENDPOINTS } from "./api/endpoints.js";
@@ -374,10 +375,29 @@ const executionStarts = createTTLCache({
     ttlMs: EXECUTION_START_TTL_MS,
     maxSize: EXECUTION_STARTS_MAX,
 });
-let _stackFinalizeTimer = null;
-let _stackFinalizeInFlight = null;
 let _lastStacksUpdateSignature = "";
 let _lastStacksUpdateAt = 0;
+const _stackFinalizeQueue = createJobFinalizeQueue({
+    defaultDelayMs: 900,
+    async postJob(targetJobId) {
+        try {
+            const res = await post(ENDPOINTS.STACKS_AUTO_STACK, {
+                mode: "job_id",
+                job_id: targetJobId,
+            });
+            if (!res?.ok) {
+                reportError(
+                    new Error(String(res?.error || "Auto stack failed")),
+                    "entry.execution_end.auto_stack",
+                );
+                return;
+            }
+            notifyStacksUpdated(res?.data || { targeted_job_id: targetJobId });
+        } catch (error) {
+            reportError(error, "entry.execution_end.auto_stack");
+        }
+    },
+});
 
 function notifyStacksUpdated(detail = {}) {
     try {
@@ -501,38 +521,7 @@ function scheduleGenerationIndex(files, attempt = 1, meta = {}) {
 }
 
 function scheduleFinalizeExecutionStacks(jobId, delayMs = 900) {
-    const targetJobId = String(jobId || "").trim();
-    if (!targetJobId) return;
-    try {
-        if (_stackFinalizeTimer) clearTimeout(_stackFinalizeTimer);
-    } catch (e) {
-        console.debug?.(e);
-    }
-    _stackFinalizeTimer = setTimeout(
-        () => {
-            _stackFinalizeTimer = null;
-            if (_stackFinalizeInFlight) return;
-            _stackFinalizeInFlight = post(ENDPOINTS.STACKS_AUTO_STACK, {
-                mode: "job_id",
-                job_id: targetJobId,
-            })
-                .then((res) => {
-                    if (!res?.ok) {
-                        reportError(
-                            new Error(String(res?.error || "Auto stack failed")),
-                            "entry.execution_end.auto_stack",
-                        );
-                        return;
-                    }
-                    notifyStacksUpdated(res?.data || { targeted_job_id: targetJobId });
-                })
-                .catch((error) => reportError(error, "entry.execution_end.auto_stack"))
-                .finally(() => {
-                    _stackFinalizeInFlight = null;
-                });
-        },
-        Math.max(0, Number(delayMs) || 0),
-    );
+    _stackFinalizeQueue.schedule(jobId, delayMs);
 }
 
 app.registerExtension({

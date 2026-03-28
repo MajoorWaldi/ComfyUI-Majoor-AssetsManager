@@ -82,7 +82,9 @@ python scripts/run_quality_gate.py --python-only --skip-tests
 tox -e quality
 ```
 
-The canonical gate runs encoding/BOM checks, `ruff`, `mypy`, `bandit`, `pip-audit`, xenon/radon complexity checks, backend tests, frontend tests, and `npm audit`. CI uses the same script for the Python quality job so local and CI behavior stay aligned.
+The canonical gate runs encoding/BOM checks, `ruff`, `mypy`, `bandit`, `pip-audit`, xenon/radon complexity checks, backend tests, frontend tests, and `npm audit`. The `pip-audit` step audits `requirements.txt` directly so the local package itself does not need to be published on PyPI for the gate to pass. CI uses the same script for the Python quality job so local and CI behavior stay aligned.
+
+The Python coverage gate currently enforces a minimum combined backend/shared coverage threshold of `60%`, which gives the CI pipeline a regression floor without making legacy cleanup block unrelated work.
 
 During the migration to stricter quality thresholds, `ruff` is enforced on changed Python files while repository-wide hygiene, security, and complexity checks continue to run across the repo. This keeps the gate hard for new work without turning legacy cleanup into a single big-bang change.
 

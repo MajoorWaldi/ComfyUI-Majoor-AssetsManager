@@ -696,17 +696,16 @@ export async function updateAssetRating(assetId, rating, options = {}) {
     const enabled = _readRatingTagsSyncEnabled();
     const asset = assetId && typeof assetId === "object" ? assetId : null;
     const resolvedId = asset ? asset.id : assetId;
+    const normalizedId = normalizeAssetId(resolvedId);
     const payload = {
         rating: Math.max(0, Math.min(5, Number(rating) || 0)),
     };
-    if (resolvedId != null) {
-        payload.asset_id = normalizeAssetId(resolvedId);
+    if (normalizedId) {
+        payload.asset_id = normalizedId;
     } else if (asset) {
         payload.filepath = asset.filepath || asset.path || asset?.file_info?.filepath || "";
         payload.type = asset.type || "output";
         payload.root_id = pickRootId(asset);
-    } else {
-        payload.asset_id = normalizeAssetId(resolvedId);
     }
     return fetchAPI("/mjr/am/asset/rating", {
         ...options,
@@ -726,17 +725,16 @@ export async function updateAssetTags(assetId, tags, options = {}) {
     const enabled = _readRatingTagsSyncEnabled();
     const asset = assetId && typeof assetId === "object" ? assetId : null;
     const resolvedId = asset ? asset.id : assetId;
+    const normalizedId = normalizeAssetId(resolvedId);
     const payload = {
         tags: Array.isArray(tags) ? tags : [],
     };
-    if (resolvedId != null) {
-        payload.asset_id = normalizeAssetId(resolvedId);
+    if (normalizedId) {
+        payload.asset_id = normalizedId;
     } else if (asset) {
         payload.filepath = asset.filepath || asset.path || asset?.file_info?.filepath || "";
         payload.type = asset.type || "output";
         payload.root_id = pickRootId(asset);
-    } else {
-        payload.asset_id = normalizeAssetId(resolvedId);
     }
     const result = await fetchAPI("/mjr/am/asset/tags", {
         ...options,
