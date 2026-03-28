@@ -123,18 +123,35 @@ def _suppress_stdout_only():
     Download progress bars write to stderr, so they remain visible.
     Only stdout noise (e.g. ``print()`` from transformers internals) is captured.
     """
-    old_stdout_fd = os.dup(1)
-    devnull_fd = os.open(os.devnull, os.O_WRONLY)
+    old_stdout_fd = -1
+    devnull_fd = -1
     old_stdout_py = sys.stdout
     try:
+        old_stdout_fd = os.dup(1)
+        devnull_fd = os.open(os.devnull, os.O_WRONLY)
         os.dup2(devnull_fd, 1)
         sys.stdout = io.StringIO()
+    except Exception:
+        pass
+    try:
         yield
     finally:
         sys.stdout = old_stdout_py
-        os.dup2(old_stdout_fd, 1)
-        os.close(old_stdout_fd)
-        os.close(devnull_fd)
+        try:
+            if old_stdout_fd >= 0:
+                os.dup2(old_stdout_fd, 1)
+        except Exception:
+            pass
+        try:
+            if old_stdout_fd >= 0:
+                os.close(old_stdout_fd)
+        except Exception:
+            pass
+        try:
+            if devnull_fd >= 0:
+                os.close(devnull_fd)
+        except Exception:
+            pass
 
 
 def _log_model_loading_once(model_name: str) -> None:

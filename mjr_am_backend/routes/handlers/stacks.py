@@ -74,8 +74,14 @@ def register_stacks_routes(routes: web.RouteTableDef) -> None:
             return _json_response(error_result or Result.Err("SERVICE_UNAVAILABLE", "Backend not ready"), status=503)
         svc = _stacks_service(services)
 
-        limit = int(request.query.get("limit", "50"))
-        offset = int(request.query.get("offset", "0"))
+        try:
+            limit = int(request.query.get("limit", "50"))
+        except (ValueError, TypeError):
+            limit = 50
+        try:
+            offset = int(request.query.get("offset", "0"))
+        except (ValueError, TypeError):
+            offset = 0
         include_total = request.query.get("include_total", "1") != "0"
 
         result = await svc.list_stacks(limit=limit, offset=offset, include_total=include_total)

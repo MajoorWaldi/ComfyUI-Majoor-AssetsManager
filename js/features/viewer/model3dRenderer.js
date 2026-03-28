@@ -1506,6 +1506,34 @@ export function createModel3DMediaElement(asset, url, options = {}) {
             console.debug?.(e);
         }
         skeletonHelper = null;
+        // Traverse and dispose all geometries, materials, and textures in the main scene
+        try {
+            scene?.traverse?.((obj) => {
+                try {
+                    obj.geometry?.dispose?.();
+                } catch (_) {}
+                try {
+                    const materials = Array.isArray(obj.material) ? obj.material : obj.material ? [obj.material] : [];
+                    for (const mat of materials) {
+                        try {
+                            if (mat) {
+                                for (const key of Object.keys(mat)) {
+                                    try {
+                                        const val = mat[key];
+                                        if (val && typeof val === "object" && typeof val.dispose === "function" && val.isTexture) {
+                                            val.dispose();
+                                        }
+                                    } catch (_) {}
+                                }
+                                mat.dispose?.();
+                            }
+                        } catch (_) {}
+                    }
+                } catch (_) {}
+            });
+        } catch (e) {
+            console.debug?.(e);
+        }
         // Dispose axis gizmo scene
         try {
             if (host._mjrAxisScene) {

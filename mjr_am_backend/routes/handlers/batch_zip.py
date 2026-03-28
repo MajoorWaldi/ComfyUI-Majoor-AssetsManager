@@ -14,6 +14,7 @@ import threading
 import time
 import uuid
 import zipfile
+from collections import OrderedDict
 from pathlib import Path
 from typing import Any
 
@@ -42,7 +43,7 @@ _BATCH_DIR = Path(
 )
 _BATCH_LOCK = threading.Lock()
 _BATCH_CACHE: dict[str, dict[str, Any]] = {}
-_TOKEN_LOCKS: dict[str, threading.Lock] = {}
+_TOKEN_LOCKS: OrderedDict[str, threading.Lock] = OrderedDict()
 _TOKEN_LOCKS_LOCK = threading.Lock()
 _CLEANUP_THREAD: threading.Thread | None = None
 _CLEANUP_THREAD_LOCK = threading.Lock()
@@ -61,6 +62,12 @@ def _get_token_lock(token: str) -> threading.Lock:
                 stale = [k for k in _TOKEN_LOCKS if k not in _BATCH_CACHE]
                 for k in stale:
                     _TOKEN_LOCKS.pop(k, None)
+                # If still at capacity after pruning, evict oldest entry
+                if len(_TOKEN_LOCKS) >= _TOKEN_LOCKS_MAX:
+                    try:
+                        _TOKEN_LOCKS.popitem(last=False)
+                    except KeyError:
+                        pass
             lock = threading.Lock()
             _TOKEN_LOCKS[token] = lock
         return lock
@@ -81,6 +88,11 @@ _TOKEN_MAX_LEN = 200
 _TOKEN_MIN_LEN = 32
 _ZIP_NAME_MAX_LEN = 255
 _MAX_REQUEST_BYTES = 5 * 1024 * 1024
+_MAX_ZIP_BYTES = 5 * 1024 * 1024 * 1024  # 5 GB
+
+class _ZipSizeLimitExceeded(Exception):
+    pass
+
 
 _RATE_LIMIT_MAX_REQUESTS = 30
 _RATE_LIMIT_WINDOW_SECONDS = 60
@@ -444,6 +456,7 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
                     pass
 
                 count = 0
+                cumulative_bytes = 0
                 used_names = set()
                 with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
                     for raw in items:
@@ -492,8 +505,15 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
 
                         arc = candidate
                         try:
+                            file_size = target.stat().st_size
+                        except Exception:
+                            continue
+                        if cumulative_bytes + file_size > _MAX_ZIP_BYTES:
+                            raise _ZipSizeLimitExceeded()
+                        try:
                             ok = _zip_add_file_open_handle(zf, target, arc, base_dir=base_dir)
                             if ok:
+                                cumulative_bytes += file_size
                                 count += 1
                         except Exception:
                             continue
@@ -578,6 +598,7 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
         ok = False
         error = None
         count = 0
+        zip_size_exceeded = False
         try:
             try:
                 count = await asyncio.wait_for(asyncio.to_thread(_build_zip), timeout=_BUILD_TIMEOUT_S)
@@ -587,6 +608,9 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
             ok = count > 0
             if not ok:
                 error = "No valid files to archive"
+        except _ZipSizeLimitExceeded:
+            zip_size_exceeded = True
+            error = "Batch zip exceeds maximum allowed size"
         except Exception as exc:
             error = sanitize_error_message(exc, "Batch zip creation failed")
 
@@ -614,6 +638,8 @@ def register_batch_zip_routes(routes: web.RouteTableDef) -> None:
 
         if ok:
             return _json_response(Result.Ok({"token": token, "count": count, "filename": filename}))
+        if zip_size_exceeded:
+            return _json_response(Result.Err("ZIP_TOO_LARGE", error or "Batch zip exceeds maximum allowed size"), status=413)
         return _json_response(Result.Err("NO_VALID_FILES", error or "No valid files to archive", token=token, count=count, filename=filename))
 
     @routes.get("/mjr/am/batch-zip/{token}")

@@ -226,11 +226,20 @@ class PluginLoader:
             if self._is_valid_extractor_class(attr):
                 try:
                     extractor = attr()
+                    if not hasattr(extractor, "name") or not hasattr(extractor, "priority") \
+                            or not hasattr(extractor, "supported_extensions"):
+                        logger.warning(
+                            "Skipping misconfigured plugin %s in %s: "
+                            "missing required attributes (name, priority, or supported_extensions)",
+                            attr_name, module_file,
+                        )
+                        continue
                     self.register_extractor(extractor)
+                    meta = getattr(extractor, "metadata", None)
                     self._plugin_info[extractor.name] = {
                         "module": str(module_file),
-                        "version": extractor.metadata.version,
-                        "author": extractor.metadata.author,
+                        "version": getattr(meta, "version", None) if meta else None,
+                        "author": getattr(meta, "author", None) if meta else None,
                         "priority": extractor.priority,
                         "extensions": extractor.supported_extensions,
                     }

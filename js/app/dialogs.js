@@ -67,6 +67,10 @@ const BLOCKED_PROP_KEYS = new Set([
     "innerHTML",
     "outerHTML",
     "srcdoc",
+    "__defineGetter__",
+    "__defineSetter__",
+    "__lookupGetter__",
+    "__lookupSetter__",
 ]);
 const ALLOWED_DIRECT_PROPS = new Set([
     "id",

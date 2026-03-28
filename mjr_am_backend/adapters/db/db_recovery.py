@@ -147,7 +147,7 @@ def populate_table_columns(
             if not col:
                 continue
             known_columns.add(col)
-            if alias:
+            if alias and _is_safe_identifier(alias):
                 known_columns.add(f"{alias}.{col}")
     except Exception as exc:
         logger.debug("Failed to inspect table columns for %s: %s", table, exc)

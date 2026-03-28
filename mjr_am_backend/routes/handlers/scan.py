@@ -28,6 +28,7 @@ from mjr_am_backend.config import (
 )
 from mjr_am_backend.custom_roots import resolve_custom_root
 from mjr_am_backend.features.index.metadata_helpers import MetadataHelpers
+from mjr_am_backend.features.index.scan_batch_utils import normalize_filepath_str
 from mjr_am_backend.features.index.scan_route_service import (
     build_reset_scan_summary,
     parse_reset_index_payload,
@@ -38,7 +39,6 @@ from mjr_am_backend.features.index.scan_route_service import (
     run_reset_clear_phase,
     run_reset_reindex,
 )
-from mjr_am_backend.features.index.scan_batch_utils import normalize_filepath_str
 from mjr_am_backend.features.index.watcher_scope import (
     build_watch_paths,  # noqa: F401 — exposed for deps=globals()
 )

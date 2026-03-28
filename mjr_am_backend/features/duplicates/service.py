@@ -143,7 +143,7 @@ class DuplicatesService:
             for row in rows:
                 item = self._build_row_context(row)
                 self._inc_status("processed")
-                if not self._is_row_processable(item):
+                if item is None or not self._is_row_processable(item):
                     self._inc_status("errors")
                     continue
                 if self._row_is_up_to_date(item):
@@ -165,8 +165,14 @@ class DuplicatesService:
             (int(limit),),
         )
 
-    def _build_row_context(self, row: dict[str, Any]) -> dict[str, Any]:
+    def _build_row_context(self, row: dict[str, Any]) -> dict[str, Any] | None:
         row_data = row or {}
+        if not row_data.get("id") or not row_data.get("filepath") or not row_data.get("filename"):
+            logger.debug(
+                "Skipping row with missing required keys (id/filepath/filename): %s",
+                {k: row_data.get(k) for k in ("id", "filepath", "filename")},
+            )
+            return None
         aid = _safe_int(row_data.get("id"))
         fp = str(row_data.get("filepath") or "")
         kind = str(row_data.get("kind") or "").lower()

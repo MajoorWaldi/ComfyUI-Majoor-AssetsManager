@@ -695,6 +695,10 @@ async def _repair_vec_embeddings_layout(db) -> Result[bool]:
             return Result.Err("DB_ERROR", tx.error or "Commit failed")
     except Exception as exc:
         logger.warning("Failed to repair vec.asset_embeddings layout: %s", exc)
+        try:
+            await db.aexecutescript("DROP TABLE IF EXISTS vec.asset_embeddings__new;")
+        except Exception as cleanup_exc:
+            logger.debug("Cleanup of vec.asset_embeddings__new failed: %s", cleanup_exc)
         return Result.Err("SCHEMA_REPAIR_FAILED", str(exc))
 
     return Result.Ok(True)

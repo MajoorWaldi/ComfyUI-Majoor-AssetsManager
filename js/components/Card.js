@@ -107,6 +107,12 @@ const getVideoThumbManager = () => {
     } catch (e) {
         console.debug?.(e);
     }
+    // Clean up any previous manager's listeners before creating a new one.
+    try {
+        window[VIDEO_THUMBS_KEY]?.dispose?.();
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     const playing = new Set();
     const prepared = new Set();
@@ -225,6 +231,7 @@ const getVideoThumbManager = () => {
             const finish = () => {
                 if (done) return;
                 done = true;
+                if (fallbackTimer) { clearTimeout(fallbackTimer); fallbackTimer = null; }
                 try {
                     video.removeEventListener("seeked", onSeeked);
                 } catch (e) {
@@ -246,7 +253,7 @@ const getVideoThumbManager = () => {
             const onSeekError = () => finish();
 
             // 1.5s fallback so a stalled seek never blocks the thumbnail pipeline.
-            const fallbackTimer = setTimeout(finish, 1500);
+            let fallbackTimer = setTimeout(finish, 1500);
             const finishWithTimer = () => {
                 clearTimeout(fallbackTimer);
                 finish();
