@@ -6,6 +6,7 @@ const saveMajoorSettings = vi.fn();
 const safeDispatchCustomEvent = vi.fn();
 const setFollowComfyLanguage = vi.fn();
 const startComfyLanguageSync = vi.fn();
+const t = vi.fn((k, def) => def || k);
 const startRuntimeStatusDashboard = vi.fn();
 const syncBackendSecuritySettings = vi.fn();
 const syncBackendVectorSearchSettings = vi.fn();
@@ -19,6 +20,7 @@ vi.mock("../app/i18n.js", () => ({
   initI18n,
   setFollowComfyLanguage,
   startComfyLanguageSync,
+  t,
 }));
 
 vi.mock("../utils/debounce.js", () => ({

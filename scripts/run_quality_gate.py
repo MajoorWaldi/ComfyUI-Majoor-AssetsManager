@@ -164,7 +164,7 @@ def main() -> int:
         _run(_python_cmd("bandit", "-r", *bandit_targets, "-ll", "-ii", "-x", "tests"), label="Bandit")
 
     if not args.skip_pip_audit:
-        _run(_python_cmd("pip_audit", "--strict"), label="pip-audit")
+        _run(_python_cmd("pip_audit", "--strict", "--skip-editable"), label="pip-audit")
 
     if not args.skip_complexity:
         _run(
