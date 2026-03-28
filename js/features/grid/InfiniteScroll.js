@@ -224,6 +224,24 @@ export function getUpsertBatchState(gridContainer, upsertState) {
     return s;
 }
 
+function dedupeAssetsByKey(state, deps) {
+    const seenIds = new Set();
+    const seenKeys = new Set();
+    const deduped = [];
+    for (const asset of Array.isArray(state?.assets) ? state.assets : []) {
+        const assetId = asset?.id != null ? String(asset.id) : "";
+        const key = deps.assetKey(asset);
+        if (assetId && seenIds.has(assetId)) continue;
+        if (key && seenKeys.has(key)) continue;
+        if (assetId) seenIds.add(assetId);
+        if (key) seenKeys.add(key);
+        deduped.push(asset);
+    }
+    state.assets = deduped;
+    state.assetIdSet = seenIds;
+    state.seenKeys = seenKeys;
+}
+
 /**
  * Flush all pending upsert operations into the grid.
  *
@@ -288,8 +306,15 @@ export function flushUpsertBatch(gridContainer, deps) {
             const existingIndex = state.assets.findIndex((a) => String(a.id) === assetId);
             if (existingIndex > -1) {
                 const existingAsset = state.assets[existingIndex];
+                const previousKey = deps.assetKey(existingAsset);
                 Object.assign(existingAsset, asset);
-                state.assets[existingIndex] = { ...existingAsset };
+                const mergedAsset = { ...existingAsset };
+                const nextKey = deps.assetKey(mergedAsset);
+                state.assets[existingIndex] = mergedAsset;
+                if (previousKey && previousKey !== nextKey) {
+                    state.seenKeys?.delete?.(previousKey);
+                    if (nextKey) state.seenKeys?.add?.(nextKey);
+                }
                 modified = true;
             } else {
                 const alreadySeen =
@@ -306,6 +331,7 @@ export function flushUpsertBatch(gridContainer, deps) {
             }
         }
         if (modified && vg) {
+            dedupeAssetsByKey(state, deps);
             try {
                 gridContainer.dataset.mjrHiddenPngSiblings = String(
                     Number(state.hiddenPngSiblings || 0) || 0,

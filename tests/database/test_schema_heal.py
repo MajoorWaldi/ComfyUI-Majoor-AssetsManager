@@ -74,6 +74,7 @@ async def test_schema_self_heals_missing_columns(tmp_path):
         for name in [
             "tags",
             "tags_text",
+            "metadata_text",
             "workflow_hash",
             "has_workflow",
             "has_generation_data",
@@ -86,7 +87,7 @@ async def test_schema_self_heals_missing_columns(tmp_path):
         assert (await db.aquery("SELECT source, root_id, enhanced_caption, content_hash, phash, hash_state FROM assets LIMIT 0")).ok
         assert (await db.aquery(
             """
-            SELECT tags, metadata_raw, has_workflow, has_generation_data, metadata_quality
+            SELECT tags, tags_text, metadata_text, metadata_raw, has_workflow, has_generation_data, metadata_quality
             FROM asset_metadata
             LIMIT 0
             """

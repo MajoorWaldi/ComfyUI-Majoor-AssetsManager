@@ -137,6 +137,7 @@ COLUMN_DEFINITIONS = {
         ("rating", "rating INTEGER DEFAULT 0"),
         ("tags", "tags TEXT DEFAULT ''"),
         ("tags_text", "tags_text TEXT DEFAULT ''"),
+        ("metadata_text", "metadata_text TEXT DEFAULT ''"),
         ("workflow_hash", "workflow_hash TEXT"),
         ("has_workflow", "has_workflow BOOLEAN DEFAULT 0"),
         ("has_generation_data", "has_generation_data BOOLEAN DEFAULT 0"),

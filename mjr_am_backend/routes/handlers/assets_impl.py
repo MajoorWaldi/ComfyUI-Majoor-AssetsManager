@@ -946,7 +946,8 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         asset_row = await _query_one(
             f"""
             SELECT id, filename, subfolder, filepath, source, root_id, kind, ext, size, mtime,
-                   width, height, duration, enhanced_caption,
+                   width, height, duration, enhanced_caption, job_id, stack_id,
+                   source_node_id, source_node_type,
                    created_at, updated_at, indexed_at, content_hash, phash, hash_state
             FROM assets
             WHERE {filepath_where}
@@ -1013,9 +1014,33 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                 if asset:
                     await db.aexecute(
                         """
-                        INSERT OR REPLACE INTO assets
-                        (id, filename, subfolder, filepath, source, root_id, kind, ext, size, mtime, width, height, duration, enhanced_caption, created_at, updated_at, indexed_at, content_hash, phash, hash_state)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        INSERT INTO assets
+                        (id, filename, subfolder, filepath, source, root_id, kind, ext, size, mtime, width, height, duration, enhanced_caption, job_id, stack_id, source_node_id, source_node_type, created_at, updated_at, indexed_at, content_hash, phash, hash_state)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ON CONFLICT(id) DO UPDATE SET
+                            filename = excluded.filename,
+                            subfolder = excluded.subfolder,
+                            filepath = excluded.filepath,
+                            source = excluded.source,
+                            root_id = excluded.root_id,
+                            kind = excluded.kind,
+                            ext = excluded.ext,
+                            size = excluded.size,
+                            mtime = excluded.mtime,
+                            width = excluded.width,
+                            height = excluded.height,
+                            duration = excluded.duration,
+                            enhanced_caption = excluded.enhanced_caption,
+                            job_id = excluded.job_id,
+                            stack_id = excluded.stack_id,
+                            source_node_id = excluded.source_node_id,
+                            source_node_type = excluded.source_node_type,
+                            created_at = excluded.created_at,
+                            updated_at = excluded.updated_at,
+                            indexed_at = excluded.indexed_at,
+                            content_hash = excluded.content_hash,
+                            phash = excluded.phash,
+                            hash_state = excluded.hash_state
                         """,
                         (
                             asset.get("id"),
@@ -1032,6 +1057,10 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                             asset.get("height"),
                             asset.get("duration"),
                             asset.get("enhanced_caption"),
+                            asset.get("job_id"),
+                            asset.get("stack_id"),
+                            asset.get("source_node_id"),
+                            asset.get("source_node_type"),
                             asset.get("created_at"),
                             asset.get("updated_at"),
                             asset.get("indexed_at"),
@@ -1043,9 +1072,19 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                 if asset_meta:
                     await db.aexecute(
                         """
-                        INSERT OR REPLACE INTO asset_metadata
+                        INSERT INTO asset_metadata
                         (asset_id, rating, tags, tags_text, workflow_hash, has_workflow, has_generation_data, metadata_quality, metadata_raw, metadata_text)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ON CONFLICT(asset_id) DO UPDATE SET
+                            rating = excluded.rating,
+                            tags = excluded.tags,
+                            tags_text = excluded.tags_text,
+                            workflow_hash = excluded.workflow_hash,
+                            has_workflow = excluded.has_workflow,
+                            has_generation_data = excluded.has_generation_data,
+                            metadata_quality = excluded.metadata_quality,
+                            metadata_raw = excluded.metadata_raw,
+                            metadata_text = excluded.metadata_text
                         """,
                         (
                             asset_meta.get("asset_id"),
@@ -1063,9 +1102,15 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                 if scan_journal:
                     await db.aexecute(
                         """
-                        INSERT OR REPLACE INTO scan_journal
+                        INSERT INTO scan_journal
                         (filepath, dir_path, state_hash, mtime, size, last_seen)
                         VALUES (?, ?, ?, ?, ?, ?)
+                        ON CONFLICT(filepath) DO UPDATE SET
+                            dir_path = excluded.dir_path,
+                            state_hash = excluded.state_hash,
+                            mtime = excluded.mtime,
+                            size = excluded.size,
+                            last_seen = excluded.last_seen
                         """,
                         (
                             scan_journal.get("filepath"),
@@ -1079,9 +1124,14 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
                 if metadata_cache:
                     await db.aexecute(
                         """
-                        INSERT OR REPLACE INTO metadata_cache
+                        INSERT INTO metadata_cache
                         (filepath, state_hash, metadata_hash, metadata_raw, last_updated)
                         VALUES (?, ?, ?, ?, ?)
+                        ON CONFLICT(filepath) DO UPDATE SET
+                            state_hash = excluded.state_hash,
+                            metadata_hash = excluded.metadata_hash,
+                            metadata_raw = excluded.metadata_raw,
+                            last_updated = excluded.last_updated
                         """,
                         (
                             metadata_cache.get("filepath"),

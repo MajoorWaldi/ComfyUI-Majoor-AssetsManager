@@ -40,6 +40,7 @@ import {
 } from "./features/bottomPanel/GeneratedFeedTab.js";
 import { createJobFinalizeQueue } from "./features/stacks/finalizeQueue.js";
 import { createExecutionAssetBuffer } from "./features/stacks/executionAssetBuffer.js";
+import { createLiveAssetGate } from "./features/stacks/liveAssetGate.js";
 import { extractOutputFiles } from "./utils/extractOutputFiles.js";
 import { post } from "./api/client.js";
 import { ENDPOINTS } from "./api/endpoints.js";
@@ -387,9 +388,9 @@ const executionStarts = createTTLCache({
     maxSize: EXECUTION_STARTS_MAX,
 });
 const executionAssetBuffer = createExecutionAssetBuffer();
+const liveAssetGate = createLiveAssetGate();
 let _lastStacksUpdateSignature = "";
 let _lastStacksUpdateAt = 0;
-const _pendingStackJobIds = new Set();
 
 function isJobTrackingDebugEnabled() {
     try {
@@ -421,6 +422,7 @@ const _stackFinalizeQueue = createJobFinalizeQueue({
                 job_id: targetJobId,
             });
             if (!res?.ok) {
+                liveAssetGate.clearPendingJob(targetJobId);
                 reportError(
                     new Error(String(res?.error || "Auto stack failed")),
                     "entry.execution_end.auto_stack",
@@ -451,11 +453,11 @@ function notifyStacksUpdated(detail = {}) {
     });
     try {
         const targeted = String(detail?.targeted_job_id || "").trim();
-        if (targeted) _pendingStackJobIds.delete(targeted);
+        if (targeted) liveAssetGate.clearPendingJob(targeted);
         const stacks = Array.isArray(detail?.stacks) ? detail.stacks : [];
         for (const item of stacks) {
             const jobId = String(item?.job_id || "").trim();
-            if (jobId) _pendingStackJobIds.delete(jobId);
+            if (jobId) liveAssetGate.clearPendingJob(jobId);
         }
     } catch (e) {
         console.debug?.(e);
@@ -622,7 +624,7 @@ function flushBufferedGenerationIndex(jobId) {
         file_count: files.length,
         files: files.map((item) => String(item?.filename || item?.filepath || "")),
     });
-    _pendingStackJobIds.add(promptId);
+    liveAssetGate.markPendingJob(promptId, { files, expectedCount: files.length });
     if (!files.length) {
         scheduleFinalizeExecutionStacks(promptId);
         return;
@@ -634,7 +636,7 @@ function flushBufferedGenerationIndex(jobId) {
     })
         .then((res) => {
             if (!res?.ok) {
-                _pendingStackJobIds.delete(promptId);
+                liveAssetGate.clearPendingJob(promptId);
                 reportError(
                     new Error(String(res?.error || "Indexing generated files failed")),
                     "entry.executed.index",
@@ -648,21 +650,17 @@ function flushBufferedGenerationIndex(jobId) {
             scheduleFinalizeExecutionStacks(promptId, 200);
         })
         .catch((error) => {
-            _pendingStackJobIds.delete(promptId);
+            liveAssetGate.clearPendingJob(promptId);
             reportError(error, "entry.executed.index");
         });
 }
 
-function shouldDeferLiveAssetEvent(detail) {
+function prepareLiveAssetEvent(detail) {
     try {
-        const jobId = String(detail?.job_id || "").trim();
-        if (!jobId) return false;
-        if (!_pendingStackJobIds.has(jobId)) return false;
-        const stackId = String(detail?.stack_id || "").trim();
-        return !stackId;
+        return liveAssetGate.prepare(detail);
     } catch (e) {
         console.debug?.(e);
-        return false;
+        return { detail, jobId: "", defer: false };
     }
 }
 
@@ -898,7 +896,7 @@ app.registerExtension({
                                 reason: String(event?.type || ""),
                             });
                             executionAssetBuffer.clear(promptId);
-                            _pendingStackJobIds.delete(promptId);
+                            liveAssetGate.clearPendingJob(promptId);
                         }
                         if (String(event?.type || "") === "execution_success") {
                             flushBufferedGenerationIndex(promptId);
@@ -1002,15 +1000,17 @@ app.registerExtension({
                     try {
                         const grid = getActiveGridContainer();
                         if (grid && event?.detail) {
-                            if (shouldDeferLiveAssetEvent(event.detail)) return;
-                            pushGeneratedAsset(event.detail);
+                            const liveEvent = prepareLiveAssetEvent(event.detail);
+                            if (liveEvent?.defer) return;
+                            const detail = liveEvent?.detail || event.detail;
+                            pushGeneratedAsset(detail);
                             // Only handle direct updates when the active grid shows output or "all" scope.
                             const scope = grid.dataset?.mjrScope || "output";
                             if (scope !== "output" && scope !== "all") return;
                             const query = grid.dataset?.mjrQuery || "*";
                             const canDirectUpsert = String(query).trim() === "*";
                             if (canDirectUpsert) {
-                                const handled = !!upsertAsset(grid, event.detail);
+                                const handled = !!upsertAsset(grid, detail);
                                 if (handled) {
                                     // Signal that we handled this event so handleCountersUpdate
                                     // skips its own reload within the next window.
@@ -1039,9 +1039,10 @@ app.registerExtension({
                     try {
                         const grid = getActiveGridContainer();
                         if (grid && event?.detail) {
-                            if (shouldDeferLiveAssetEvent(event.detail)) return;
-                            pushGeneratedAsset(event.detail);
-                            const detail = event.detail;
+                            const liveEvent = prepareLiveAssetEvent(event.detail);
+                            if (liveEvent?.defer) return;
+                            const detail = liveEvent?.detail || event.detail;
+                            pushGeneratedAsset(detail);
                             const assetId = String(detail?.id || "").trim();
                             const kind = String(detail?.kind || "").trim();
                             const filename = String(detail?.filename || "").trim();
