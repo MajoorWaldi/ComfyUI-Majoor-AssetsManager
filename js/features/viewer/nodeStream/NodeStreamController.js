@@ -58,24 +58,9 @@ let _lastPreviewKey = null;
 /** @type {string | null} */
 let _lastPreviewNodeId = null;
 
-const IMAGE_EXTS = new Set([
-    ".png",
-    ".jpg",
-    ".jpeg",
-    ".webp",
-    ".avif",
-    ".gif",
-    ".bmp",
-    ".tiff",
-]);
+const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".webp", ".avif", ".gif", ".bmp", ".tiff"]);
 
-const VIDEO_EXTS = new Set([
-    ".mp4",
-    ".webm",
-    ".mov",
-    ".avi",
-    ".mkv",
-]);
+const VIDEO_EXTS = new Set([".mp4", ".webm", ".mov", ".avi", ".mkv"]);
 
 const MAX_DOWNSTREAM_DEPTH = 12;
 const MAX_DOWNSTREAM_NODES = 96;
@@ -137,9 +122,7 @@ function _withNodeMetadata(node, fileData, source) {
 }
 
 function _getSelectedCanvasNodes() {
-    const selected = _appRef?.canvas?.selected_nodes
-        ?? _appRef?.canvas?.selectedNodes
-        ?? null;
+    const selected = _appRef?.canvas?.selected_nodes ?? _appRef?.canvas?.selectedNodes ?? null;
     if (!selected) return [];
     if (Array.isArray(selected)) {
         return selected.filter(Boolean);
@@ -208,7 +191,9 @@ function _getGraphLinkRecord(linkId) {
     const stringId = String(linkId);
 
     if (graphLinks instanceof Map) {
-        return graphLinks.get(linkId) || graphLinks.get(numericId) || graphLinks.get(stringId) || null;
+        return (
+            graphLinks.get(linkId) || graphLinks.get(numericId) || graphLinks.get(stringId) || null
+        );
     }
 
     if (Array.isArray(graphLinks)) {
@@ -325,7 +310,7 @@ function _extractFromWidgetMedia(node) {
         if (!el) continue;
 
         const videoEl =
-            (typeof HTMLVideoElement !== "undefined" && el instanceof HTMLVideoElement)
+            typeof HTMLVideoElement !== "undefined" && el instanceof HTMLVideoElement
                 ? el
                 : el.querySelector?.("video");
         if (videoEl?.src) {
@@ -336,7 +321,7 @@ function _extractFromWidgetMedia(node) {
         }
 
         const imageEl =
-            (typeof HTMLImageElement !== "undefined" && el instanceof HTMLImageElement)
+            typeof HTMLImageElement !== "undefined" && el instanceof HTMLImageElement
                 ? el
                 : el.querySelector?.("img");
         if (!imageEl?.src) continue;
@@ -365,17 +350,21 @@ function _extractFromLoadWidget(node) {
     const looksLikeLoadNode = /(load|upload|loader|fromurl|folder|input)/.test(classType);
     if (!looksLikeMediaFile && !looksLikeLoadNode) return null;
 
-    return _withNodeMetadata(node, {
-        ...parsed,
-        type: "input",
-        kind: _guessMediaKind(node, parsed.filename),
-    }, "widget-value");
+    return _withNodeMetadata(
+        node,
+        {
+            ...parsed,
+            type: "input",
+            kind: _guessMediaKind(node, parsed.filename),
+        },
+        "widget-value",
+    );
 }
 
 function _extractFromCanvasNode(node) {
-    return _extractFromNodeImgs(node)
-        || _extractFromWidgetMedia(node)
-        || _extractFromLoadWidget(node);
+    return (
+        _extractFromNodeImgs(node) || _extractFromWidgetMedia(node) || _extractFromLoadWidget(node)
+    );
 }
 
 function _resolvePreviewForNode(node) {
@@ -402,9 +391,8 @@ function _resolvePreviewForNode(node) {
                 _classType: rootClassType || previewClassType,
                 _previewNodeId: previewNodeId,
                 _previewClassType: previewClassType,
-                _source: previewNodeId === rootNodeId
-                    ? (preview._source || "canvas")
-                    : "graph-downstream",
+                _source:
+                    previewNodeId === rootNodeId ? preview._source || "canvas" : "graph-downstream",
             };
         }
 

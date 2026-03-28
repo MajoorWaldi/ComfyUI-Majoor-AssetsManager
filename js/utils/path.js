@@ -20,4 +20,3 @@ export function splitFilenameAndSubfolder(value) {
 export function hasWindowsDrivePrefix(value) {
     return /^[a-zA-Z]:\//.test(String(value || ""));
 }
-

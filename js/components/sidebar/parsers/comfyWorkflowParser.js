@@ -19,7 +19,8 @@ export function parseComfyUIWorkflow(workflow) {
 
     const metadata = {};
 
-    const promptGraph = workflow.prompt && typeof workflow.prompt === "object" ? workflow.prompt : null;
+    const promptGraph =
+        workflow.prompt && typeof workflow.prompt === "object" ? workflow.prompt : null;
     const graph = promptGraph || (looksLikeComfyPromptGraph(workflow) ? workflow : null);
 
     if (graph) {
@@ -51,7 +52,10 @@ export function parseComfyUIWorkflow(workflow) {
                 title.includes("clip text encode");
             if (isClipText && typeof inputs.text === "string") {
                 const isNegative = title.includes("negative");
-                const isPositive = title.includes("positive") || title.includes("(prompt)") || title.includes("prompt");
+                const isPositive =
+                    title.includes("positive") ||
+                    title.includes("(prompt)") ||
+                    title.includes("prompt");
                 if (isNegative) setIfString("negative_prompt", inputs.text);
                 else if (isPositive) setIfString("prompt", inputs.text);
                 else setIfString("prompt", inputs.text);
@@ -78,15 +82,20 @@ export function parseComfyUIWorkflow(workflow) {
                 }
             }
 
-            if (inputs.seed !== undefined && metadata.seed === undefined) metadata.seed = inputs.seed;
-            if (inputs.steps !== undefined && metadata.steps === undefined) metadata.steps = inputs.steps;
+            if (inputs.seed !== undefined && metadata.seed === undefined)
+                metadata.seed = inputs.seed;
+            if (inputs.steps !== undefined && metadata.steps === undefined)
+                metadata.steps = inputs.steps;
             if (inputs.cfg !== undefined && metadata.cfg === undefined) metadata.cfg = inputs.cfg;
             if (inputs.sampler_name && !metadata.sampler) metadata.sampler = inputs.sampler_name;
             if (inputs.scheduler && !metadata.scheduler) metadata.scheduler = inputs.scheduler;
-            if (inputs.denoise !== undefined && metadata.denoise === undefined) metadata.denoise = inputs.denoise;
+            if (inputs.denoise !== undefined && metadata.denoise === undefined)
+                metadata.denoise = inputs.denoise;
 
-            if (inputs.width !== undefined && metadata.width === undefined) metadata.width = inputs.width;
-            if (inputs.height !== undefined && metadata.height === undefined) metadata.height = inputs.height;
+            if (inputs.width !== undefined && metadata.width === undefined)
+                metadata.width = inputs.width;
+            if (inputs.height !== undefined && metadata.height === undefined)
+                metadata.height = inputs.height;
 
             // Model chain extraction (keep names only; UI will normalize/strip extensions).
             // Different node packs use different keys, so we try a small set of common ones.
@@ -112,12 +121,20 @@ export function parseComfyUIWorkflow(workflow) {
             setModel("vae", inputs.vae_name || inputs.vae);
             setModel("clip", inputs.clip_name || inputs.clip);
             setModel("unet", inputs.unet_name || inputs.unet);
-            setModel("diffusion", inputs.diffusion_name || inputs.diffusion_model || inputs.diffusion);
+            setModel(
+                "diffusion",
+                inputs.diffusion_name || inputs.diffusion_model || inputs.diffusion,
+            );
 
             const looksLikeLora = classType.includes("lora") || classType.includes("loraloader");
             if (looksLikeLora) {
                 const name = inputs.lora_name || inputs.lora || inputs.name || null;
-                const w = inputs.strength_model ?? inputs.strength ?? inputs.weight ?? inputs.lora_strength ?? null;
+                const w =
+                    inputs.strength_model ??
+                    inputs.strength ??
+                    inputs.weight ??
+                    inputs.lora_strength ??
+                    null;
                 if (name) loras.push({ name, weight: w });
             }
         }

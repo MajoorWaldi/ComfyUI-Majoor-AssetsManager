@@ -2,7 +2,9 @@
 
 export function getFilenameKey(filename) {
     try {
-        return String(filename || "").trim().toLowerCase();
+        return String(filename || "")
+            .trim()
+            .toLowerCase();
     } catch {
         return "";
     }
@@ -10,7 +12,11 @@ export function getFilenameKey(filename) {
 
 export function getExtUpper(filename) {
     try {
-        return (String(filename || "").split(".").pop() || "").toUpperCase();
+        return (
+            String(filename || "")
+                .split(".")
+                .pop() || ""
+        ).toUpperCase();
     } catch {
         return "";
     }
@@ -21,7 +27,9 @@ export function getStemLower(filename) {
         const s = String(filename || "");
         const idx = s.lastIndexOf(".");
         const stem = idx > 0 ? s.slice(0, idx) : s;
-        return String(stem || "").trim().toLowerCase();
+        return String(stem || "")
+            .trim()
+            .toLowerCase();
     } catch {
         return "";
     }
@@ -61,10 +69,14 @@ export function setCollisionTooltip(card, filename, count) {
             row.title = `${String(filename || "")}\nName collision: ${n} items in this view`;
             return;
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         card.title = `Name collision: ${n} items in this view`;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 export function buildCollisionPaths(bucket) {
@@ -72,9 +84,11 @@ export function buildCollisionPaths(bucket) {
     const seen = new Set();
     for (const asset of bucket || []) {
         const raw =
-            asset?.filepath
-            || asset?.path
-            || (asset?.subfolder ? `${asset.subfolder}/${asset.filename || ""}` : `${asset?.filename || ""}`);
+            asset?.filepath ||
+            asset?.path ||
+            (asset?.subfolder
+                ? `${asset.subfolder}/${asset.filename || ""}`
+                : `${asset?.filename || ""}`);
         const p = String(raw || "").trim();
         if (!p) continue;
         const key = p.toLowerCase();
@@ -157,7 +171,9 @@ export function appendAssets(gridContainer, assets, state, deps) {
                     }
                 }
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
     if (hidePngSiblings) {
         for (const asset of assets || []) {
@@ -180,11 +196,15 @@ export function appendAssets(gridContainer, assets, state, deps) {
                 const fp = String(asset?.filepath || "").trim();
                 const sub = String(asset?.subfolder || "").trim();
                 const name = String(asset?.filename || "").trim();
-                const type = String(asset?.type || "").trim().toLowerCase();
+                const type = String(asset?.type || "")
+                    .trim()
+                    .toLowerCase();
                 const base = `${type}|${kindLower}|${fp}|${sub}|${name}`;
                 asset.id = `asset:${base || "unknown"}`;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         const filename = String(asset?.filename || "");
         const extUpper = getExtUpper(filename);
         const stemLower = getStemLower(filename);
@@ -256,7 +276,9 @@ export function appendAssets(gridContainer, assets, state, deps) {
         for (const removed of assetsToRemoveFromState) {
             try {
                 if (removed?.id != null) assetIdSet.delete(String(removed.id));
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
         try {
             for (const removed of assetsToRemoveFromState) {
@@ -268,7 +290,9 @@ export function appendAssets(gridContainer, assets, state, deps) {
                 if (idx > -1) bucket.splice(idx, 1);
                 if (!bucket.length) filenameToAssets.delete(key);
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         needsUpdate = true;
     }
     if (validNewAssets.length > 0) {
@@ -284,8 +308,12 @@ export function appendAssets(gridContainer, assets, state, deps) {
     }
     try {
         gridContainer.dataset.mjrHidePngSiblingsEnabled = hidePngSiblings ? "1" : "0";
-        gridContainer.dataset.mjrHiddenPngSiblings = String(Number(state.hiddenPngSiblings || 0) || 0);
-    } catch (e) { console.debug?.(e); }
+        gridContainer.dataset.mjrHiddenPngSiblings = String(
+            Number(state.hiddenPngSiblings || 0) || 0,
+        );
+    } catch (e) {
+        console.debug?.(e);
+    }
     return addedCount;
 }
 

@@ -6,7 +6,16 @@ import { appendTooltipHint } from "../../../utils/tooltipShortcuts.js";
 
 const SEARCH_TOOLTIP_HINT = "Ctrl/Cmd+F, Ctrl/Cmd+K, Ctrl/Cmd+H";
 
-export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFoldersBtn, filterPopover, sortPopover, collectionsPopover, pinnedFoldersPopover }) {
+export function createSearchView({
+    filterBtn,
+    sortBtn,
+    collectionsBtn,
+    pinnedFoldersBtn,
+    filterPopover,
+    sortPopover,
+    collectionsPopover,
+    pinnedFoldersPopover,
+}) {
     const searchSection = document.createElement("div");
     searchSection.classList.add("mjr-am-search");
 
@@ -25,12 +34,14 @@ export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFol
             if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
                 return `mjr-search-autocomplete-${crypto.randomUUID()}`;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         return `mjr-search-autocomplete-${Math.random().toString(36).slice(2, 11)}`;
     })();
     const dataList = document.createElement("datalist");
     dataList.id = dataListId;
-    
+
     const searchInputEl = document.createElement("input");
     searchInputEl.type = "text";
     searchInputEl.id = "mjr-search-input";
@@ -38,7 +49,7 @@ export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFol
     searchInputEl.placeholder = t("search.placeholder", "Search assets...");
     searchInputEl.title = appendTooltipHint(
         t("search.title", "Search by filename, tags, or attributes (e.g. rating:5, ext:png)"),
-        SEARCH_TOOLTIP_HINT
+        SEARCH_TOOLTIP_HINT,
     );
     searchInputEl.setAttribute("list", dataListId);
 
@@ -47,7 +58,10 @@ export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFol
     const semanticBtn = document.createElement("button");
     semanticBtn.type = "button";
     semanticBtn.classList.add("mjr-ai-control");
-    const semanticToggleTitle = t("search.semanticToggle", "Toggle AI semantic search (CLIP-based)");
+    const semanticToggleTitle = t(
+        "search.semanticToggle",
+        "Toggle AI semantic search (CLIP-based)",
+    );
     semanticBtn.title = semanticToggleTitle;
     semanticBtn.style.cssText = `
         display: flex;
@@ -75,10 +89,16 @@ export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFol
             semanticBtn.style.borderColor = "rgba(0, 188, 212, 0.6)";
             semanticBtn.style.color = "#00BCD4";
             semanticBtn.style.boxShadow = "0 0 6px rgba(0, 188, 212, 0.3)";
-            searchInputEl.placeholder = t("search.semanticPlaceholder", "Describe what you're looking for...");
+            searchInputEl.placeholder = t(
+                "search.semanticPlaceholder",
+                "Describe what you're looking for...",
+            );
             searchInputEl.title = appendTooltipHint(
-                t("search.semanticTitle", "AI semantic search — describe your image in natural language"),
-                SEARCH_TOOLTIP_HINT
+                t(
+                    "search.semanticTitle",
+                    "AI semantic search — describe your image in natural language",
+                ),
+                SEARCH_TOOLTIP_HINT,
             );
         } else {
             semanticBtn.style.background = "transparent";
@@ -87,8 +107,11 @@ export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFol
             semanticBtn.style.boxShadow = "none";
             searchInputEl.placeholder = t("search.placeholder", "Search assets...");
             searchInputEl.title = appendTooltipHint(
-                t("search.title", "Search by filename, tags, or attributes (e.g. rating:5, ext:png)"),
-                SEARCH_TOOLTIP_HINT
+                t(
+                    "search.title",
+                    "Search by filename, tags, or attributes (e.g. rating:5, ext:png)",
+                ),
+                SEARCH_TOOLTIP_HINT,
             );
         }
     };
@@ -101,7 +124,9 @@ export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFol
             if (emitInput) {
                 searchInputEl.dispatchEvent(new Event("input", { bubbles: true }));
             }
-        } catch (err) { console.debug?.(err); }
+        } catch (err) {
+            console.debug?.(err);
+        }
     };
 
     const setSemanticEnabled = (enabled) => {
@@ -140,14 +165,14 @@ export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFol
         // Skip autocomplete in semantic mode
         if (semanticMode) return;
         // Trigger only if generic search (not attribute search like rating:5)
-        if (val.length < 2 || val.includes(":")) return; 
+        if (val.length < 2 || val.includes(":")) return;
 
         try {
             const res = await get("/mjr/am/autocomplete", { q: val, limit: 10 });
             if (res && res.ok && Array.isArray(res.data)) {
                 // Keep current options if focused? Datalist handles this.
                 dataList.innerHTML = "";
-                res.data.forEach(term => {
+                res.data.forEach((term) => {
                     const opt = document.createElement("option");
                     opt.value = term;
                     dataList.appendChild(opt);
@@ -164,7 +189,6 @@ export function createSearchView({ filterBtn, sortBtn, collectionsBtn, pinnedFol
     searchInner.appendChild(searchInputEl);
     searchInner.appendChild(dataList);
     searchSection.appendChild(searchInner);
-
 
     const searchTools = document.createElement("div");
     searchTools.className = "mjr-am-search-tools";

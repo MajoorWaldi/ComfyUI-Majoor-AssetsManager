@@ -32,7 +32,10 @@ export function validateFilename(filename) {
             return { valid: false, reason: "Filename cannot be empty" };
         }
         if (name.length > MAX_FILENAME_LENGTH) {
-            return { valid: false, reason: `Filename is too long (max ${MAX_FILENAME_LENGTH} characters)` };
+            return {
+                valid: false,
+                reason: `Filename is too long (max ${MAX_FILENAME_LENGTH} characters)`,
+            };
         }
         if (name.includes("/") || name.includes("\\")) {
             return { valid: false, reason: "Filename cannot contain path separators" };

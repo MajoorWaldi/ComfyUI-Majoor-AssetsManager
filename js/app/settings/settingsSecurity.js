@@ -5,7 +5,11 @@
 import { setSecuritySettings } from "../../api/client.js";
 import { t } from "../i18n.js";
 import { _safeBool } from "./settingsUtils.js";
-import { saveMajoorSettings, applySettingsToConfig, syncBackendSecuritySettings } from "./settingsCore.js";
+import {
+    saveMajoorSettings,
+    applySettingsToConfig,
+    syncBackendSecuritySettings,
+} from "./settingsCore.js";
 
 const SETTINGS_PREFIX = "Majoor";
 const SETTINGS_CATEGORY = "Majoor Assets Manager";
@@ -28,7 +32,8 @@ export function registerSecuritySettings(safeAddSetting, settings, notifyApplied
         id: `${SETTINGS_PREFIX}.Safety.ConfirmDeletion`,
         category: cat(t("cat.security"), "Confirm before deleting"),
         name: "Confirm before deleting",
-        tooltip: "Show a confirmation dialog before deleting files. Disabling this allows instant deletion.",
+        tooltip:
+            "Show a confirmation dialog before deleting files. Disabling this allows instant deletion.",
         type: "boolean",
         defaultValue: settings.safety?.confirmDeletion !== false,
         onChange: (value) => {
@@ -68,11 +73,16 @@ export function registerSecuritySettings(safeAddSetting, settings, notifyApplied
                             if (res?.ok && res.data?.prefs) {
                                 syncBackendSecuritySettings();
                             } else if (res && res.ok === false) {
-                                console.warn("[Majoor] backend security settings update failed", res.error || res);
+                                console.warn(
+                                    "[Majoor] backend security settings update failed",
+                                    res.error || res,
+                                );
                             }
                         })
                         .catch(() => {});
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             },
         });
     };
@@ -94,7 +104,7 @@ export function registerSecuritySettings(safeAddSetting, settings, notifyApplied
         name: t("setting.sec.token.name", "Majoor: API Token"),
         tooltip: t(
             "setting.sec.token.desc",
-            "Store the API token used for write operations. Majoor sends it via X-MJR-Token and Authorization headers."
+            "Store the API token used for write operations. Majoor sends it via X-MJR-Token and Authorization headers.",
         ),
         type: "text",
         defaultValue: settings.security?.apiToken || "",
@@ -119,7 +129,9 @@ export function registerSecuritySettings(safeAddSetting, settings, notifyApplied
                         }
                     })
                     .catch(() => {});
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         },
     });
 
@@ -127,6 +139,6 @@ export function registerSecuritySettings(safeAddSetting, settings, notifyApplied
         "allowRemoteWrite",
         "setting.sec.remote.name",
         "setting.sec.remote.desc",
-        "cat.remote"
+        "cat.remote",
     );
 }

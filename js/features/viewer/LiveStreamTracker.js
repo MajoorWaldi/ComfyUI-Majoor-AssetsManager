@@ -17,15 +17,15 @@ import { floatingViewerManager } from "./floatingViewerManager.js";
 import { waitForComfyApi } from "../../app/comfyApiBridge.js";
 
 let _initialized = false;
-let _genOutputHandler = null;           // Named reference so it can be removed in teardown
-let _previewHandler = null;             // Named reference for the b_preview API listener
-let _previewWithMetaHandler = null;     // Named reference for the b_preview_with_metadata listener
-let _previewWithMetaFired = false;      // True once b_preview_with_metadata actually fires; silences legacy fallback
-let _apiRef = null;                     // Cached reference to the ComfyUI API for cleanup
-let _currentJobId = null;               // Track current execution job ID for preview filtering
-let _previewHookGeneration = 0;         // Cancels stale async preview hook attempts
-let _canvasHookGeneration = 0;          // Cancels stale canvas retry loops
-let _canvasHookRetryTimer = null;       // Timeout handle for delayed canvas hook retries
+let _genOutputHandler = null; // Named reference so it can be removed in teardown
+let _previewHandler = null; // Named reference for the b_preview API listener
+let _previewWithMetaHandler = null; // Named reference for the b_preview_with_metadata listener
+let _previewWithMetaFired = false; // True once b_preview_with_metadata actually fires; silences legacy fallback
+let _apiRef = null; // Cached reference to the ComfyUI API for cleanup
+let _currentJobId = null; // Track current execution job ID for preview filtering
+let _previewHookGeneration = 0; // Cancels stale async preview hook attempts
+let _canvasHookGeneration = 0; // Cancels stale canvas retry loops
+let _canvasHookRetryTimer = null; // Timeout handle for delayed canvas hook retries
 
 // WeakMap stores the original canvas methods so we can restore them on teardown (NH-1).
 const _hookedCanvases = new WeakMap();
@@ -42,17 +42,13 @@ function _clearCanvasHookRetry() {
 /**
  * Load nodes — filename read from widgets[0].value (type: "input").
  */
-const LOAD_IMAGE_TYPES = new Set([
-    "loadimage",
-    "loadimagemask",
-    "loadimageoutput",
-]);
+const LOAD_IMAGE_TYPES = new Set(["loadimage", "loadimagemask", "loadimageoutput"]);
 
 const LOAD_VIDEO_TYPES = new Set([
     "vhs_loadvideo",
     "vhs_loadvideoffmpeg",
     "vhs_loadvideobatch",
-    "vhs_loadimages",           // VHS batch image loader
+    "vhs_loadimages", // VHS batch image loader
     "loadvideoupload",
     "loadvideo",
     "videoloader",
@@ -67,11 +63,11 @@ const SAVE_IMAGE_TYPES = new Set([
     "previewimage",
     "saveanimatedwebp",
     "saveanimatedpng",
-    "imagepreview",             // some community nodes
+    "imagepreview", // some community nodes
 ]);
 
 const SAVE_VIDEO_TYPES = new Set([
-    "vhs_videocombine",         // VHS combine + preview
+    "vhs_videocombine", // VHS combine + preview
     "vhs_savevideo",
     "previewvideo",
     "savevideo",
@@ -83,16 +79,19 @@ const SAVE_VIDEO_TYPES = new Set([
  * @returns {"load-image" | "load-video" | "save-image" | "save-video" | null}
  */
 function _mediaNodeKind(node) {
-    const t = String(node?.type || "").toLowerCase().replace(/\s+/g, "");
+    const t = String(node?.type || "")
+        .toLowerCase()
+        .replace(/\s+/g, "");
     if (LOAD_IMAGE_TYPES.has(t)) return "load-image";
     if (LOAD_VIDEO_TYPES.has(t)) return "load-video";
     if (SAVE_IMAGE_TYPES.has(t)) return "save-image";
     if (SAVE_VIDEO_TYPES.has(t)) return "save-video";
     // Substring fallbacks for unknown derivatives
-    if (t.includes("loadimage") || t.includes("image_loader"))  return "load-image";
-    if (t.includes("loadvideo") || t.includes("videoload"))     return "load-video";
-    if (t.includes("saveimage") || t.includes("previewimage"))  return "save-image";
-    if (t.includes("savevideo") || t.includes("videocombine") || t.includes("previewvideo")) return "save-video";
+    if (t.includes("loadimage") || t.includes("image_loader")) return "load-image";
+    if (t.includes("loadvideo") || t.includes("videoload")) return "load-video";
+    if (t.includes("saveimage") || t.includes("previewimage")) return "save-image";
+    if (t.includes("savevideo") || t.includes("videocombine") || t.includes("previewvideo"))
+        return "save-video";
     return null;
 }
 
@@ -109,7 +108,7 @@ function _parseWidgetFilename(raw) {
     const slash = str.lastIndexOf("/");
     return {
         filename: slash >= 0 ? str.slice(slash + 1) : str,
-        subfolder: slash >= 0 ? str.slice(0, slash)  : "",
+        subfolder: slash >= 0 ? str.slice(0, slash) : "",
     };
 }
 
@@ -146,7 +145,7 @@ function _parseViewUrl(src) {
         return {
             filename,
             subfolder: url.searchParams.get("subfolder") || "",
-            type:      url.searchParams.get("type")      || "output",
+            type: url.searchParams.get("type") || "output",
         };
     } catch {
         return null;
@@ -214,8 +213,7 @@ function _onLiteGraphNodeSelected(node) {
             fileData = _fileDataFromImgs(node, "image");
         } else if (kind === "save-video") {
             // Try node.imgs first (some VHS versions expose it), then video widget
-            fileData = _fileDataFromImgs(node, "video")
-                    ?? _fileDataFromVideoWidget(node);
+            fileData = _fileDataFromImgs(node, "video") ?? _fileDataFromVideoWidget(node);
         } else if (kind === "load-image") {
             fileData = _fileDataFromLoadWidget(node, "image");
         } else /* load-video */ {
@@ -238,26 +236,36 @@ function _hookCanvas(canvas) {
     if (!canvas || _hookedCanvases.has(canvas)) return;
 
     // Store originals in WeakMap so they can be restored by _unhookCanvas (NH-1).
-    const origSelected  = canvas.onNodeSelected;
+    const origSelected = canvas.onNodeSelected;
     const origSelChange = canvas.onSelectionChange;
     _hookedCanvases.set(canvas, { onNodeSelected: origSelected, onSelectionChange: origSelChange });
 
     // ── onNodeSelected: single-click selection ──────────────────────────────
     canvas.onNodeSelected = function (node) {
-        try { origSelected?.call(this, node); } catch (e) { console.debug?.(e); }
+        try {
+            origSelected?.call(this, node);
+        } catch (e) {
+            console.debug?.(e);
+        }
         _onLiteGraphNodeSelected(node);
     };
 
     // ── onSelectionChange: multi-select or keyboard selection (LiteGraph v0.7+) ─
     canvas.onSelectionChange = function (selectedNodes) {
-        try { origSelChange?.call(this, selectedNodes); } catch (e) { console.debug?.(e); }
+        try {
+            origSelChange?.call(this, selectedNodes);
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             // selectedNodes is { [id]: node } — act only when exactly one node is selected.
             const nodes = Object.values(selectedNodes || {});
             if (nodes.length === 1) {
                 _onLiteGraphNodeSelected(nodes[0]);
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     console.debug("[Majoor] MFV canvas hooks installed");
@@ -267,7 +275,7 @@ function _hookCanvas(canvas) {
 function _unhookCanvas(canvas) {
     if (!canvas || !_hookedCanvases.has(canvas)) return;
     const orig = _hookedCanvases.get(canvas);
-    canvas.onNodeSelected  = orig.onNodeSelected;
+    canvas.onNodeSelected = orig.onNodeSelected;
     canvas.onSelectionChange = orig.onSelectionChange;
     _hookedCanvases.delete(canvas);
     console.debug("[Majoor] MFV canvas hooks removed");
@@ -295,7 +303,9 @@ function _hookCanvasWhenReady(app) {
         if (++attempts < MAX_ATTEMPTS) {
             _canvasHookRetryTimer = setTimeout(tryHook, 300);
         } else {
-            console.debug("[Majoor] MFV: canvas not ready after retries — graph node tracking disabled");
+            console.debug(
+                "[Majoor] MFV: canvas not ready after retries — graph node tracking disabled",
+            );
         }
     };
     tryHook();
@@ -340,7 +350,9 @@ async function _hookPreviewApi(app) {
                 if (!blob || !(blob instanceof Blob)) return;
                 // Skip previews from stale executions when a jobId is available.
                 if (_currentJobId && jobId && jobId !== _currentJobId) return;
-                floatingViewerManager.feedPreviewBlob(blob, { sourceLabel: nodeId ? `Node ${nodeId}` : null });
+                floatingViewerManager.feedPreviewBlob(blob, {
+                    sourceLabel: nodeId ? `Node ${nodeId}` : null,
+                });
             } catch (err) {
                 console.debug?.("[MFV] b_preview_with_metadata error", err);
             }
@@ -362,7 +374,9 @@ async function _hookPreviewApi(app) {
         };
         api.addEventListener("b_preview", _previewHandler);
 
-        console.debug("[Majoor] MFV preview stream hooked to ComfyUI API (b_preview_with_metadata + b_preview fallback)");
+        console.debug(
+            "[Majoor] MFV preview stream hooked to ComfyUI API (b_preview_with_metadata + b_preview fallback)",
+        );
     } catch (e) {
         console.debug?.("[Majoor] MFV preview hook failed — preview streaming disabled", e);
     }
@@ -371,10 +385,18 @@ async function _hookPreviewApi(app) {
 function _detachPreviewApiListeners() {
     if (_apiRef) {
         if (_previewHandler) {
-            try { _apiRef.removeEventListener("b_preview", _previewHandler); } catch (e) { console.debug?.(e); }
+            try {
+                _apiRef.removeEventListener("b_preview", _previewHandler);
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
         if (_previewWithMetaHandler) {
-            try { _apiRef.removeEventListener("b_preview_with_metadata", _previewWithMetaHandler); } catch (e) { console.debug?.(e); }
+            try {
+                _apiRef.removeEventListener("b_preview_with_metadata", _previewWithMetaHandler);
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
     }
     _previewHandler = null;
@@ -400,9 +422,13 @@ function _pickLatest(files) {
     if (!Array.isArray(files) || !files.length) return null;
     const images = files.filter((f) => {
         const name = String(f?.filename || "").toLowerCase();
-        return name.endsWith(".png") || name.endsWith(".jpg") ||
-               name.endsWith(".jpeg") || name.endsWith(".webp") ||
-               name.endsWith(".avif");
+        return (
+            name.endsWith(".png") ||
+            name.endsWith(".jpg") ||
+            name.endsWith(".jpeg") ||
+            name.endsWith(".webp") ||
+            name.endsWith(".avif")
+        );
     });
     return images[images.length - 1] ?? files[files.length - 1];
 }
@@ -458,6 +484,10 @@ export function teardownLiveStreamTracker(app) {
     _currentJobId = null;
     _initialized = false;
     // Unhook the canvas if it is already available.
-    try { if (app?.canvas) _unhookCanvas(app.canvas); } catch (e) { console.debug?.(e); }
+    try {
+        if (app?.canvas) _unhookCanvas(app.canvas);
+    } catch (e) {
+        console.debug?.(e);
+    }
     console.debug("[Majoor] LiveStreamTracker torn down");
 }

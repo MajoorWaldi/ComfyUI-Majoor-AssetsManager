@@ -1,5 +1,7 @@
 function _norm(value) {
-    return String(value || "").trim().toLowerCase();
+    return String(value || "")
+        .trim()
+        .toLowerCase();
 }
 
 function isCustomBrowserScope({ dot = null, asset = null, scope = "" } = {}) {
@@ -12,7 +14,9 @@ function isCustomBrowserScope({ dot = null, asset = null, scope = "" } = {}) {
     try {
         const fromGrid = _norm(dot?.closest?.(".mjr-grid")?.dataset?.mjrScope);
         if (fromGrid) return fromGrid === "custom";
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     return false;
 }
@@ -36,4 +40,3 @@ export function resolveAssetStatusDotColor(state, context = {}) {
     if (s === "error") return "var(--mjr-status-error, #f44336)";
     return "var(--mjr-status-neutral, #666)";
 }
-

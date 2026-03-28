@@ -56,10 +56,10 @@ const VECTOR_BACKFILL_MAX_POLL_TIMEOUT_MS = 12 * 60 * 60_000;
 const SETTINGS_CACHE_KEY = "settings";
 const TAGS_CACHE_KEY = "available-tags";
 const AUTH_TOKEN_CACHE_KEY = "token";
-let _obsCache = createTTLCache({ ttlMs: SETTINGS_FAST_CACHE_TTL_MS, maxSize: 1 });
-let _rtSyncCache = createTTLCache({ ttlMs: SETTINGS_FAST_CACHE_TTL_MS, maxSize: 1 });
-let _tagsCache = createTTLCache({ ttlMs: () => _getTagsCacheTTL(), maxSize: 1 });
-let _authTokenCache = createTTLCache({ ttlMs: AUTH_TOKEN_CACHE_TTL_MS, maxSize: 1 });
+const _obsCache = createTTLCache({ ttlMs: SETTINGS_FAST_CACHE_TTL_MS, maxSize: 1 });
+const _rtSyncCache = createTTLCache({ ttlMs: SETTINGS_FAST_CACHE_TTL_MS, maxSize: 1 });
+const _tagsCache = createTTLCache({ ttlMs: () => _getTagsCacheTTL(), maxSize: 1 });
+const _authTokenCache = createTTLCache({ ttlMs: AUTH_TOKEN_CACHE_TTL_MS, maxSize: 1 });
 
 function _methodIsWrite(method) {
     return WRITE_METHODS.has(String(method || "").toUpperCase());
@@ -71,7 +71,7 @@ function _normalizeUrlPath(url) {
         if (!raw) return "";
         if (raw.startsWith("http://") || raw.startsWith("https://")) {
             const base =
-                (typeof globalThis !== "undefined" && globalThis?.location?.origin)
+                typeof globalThis !== "undefined" && globalThis?.location?.origin
                     ? String(globalThis.location.origin)
                     : "http://localhost";
             return new URL(raw, base).pathname || "";
@@ -109,7 +109,11 @@ function _getTagsCacheTTL() {
     try {
         const raw = localStorage?.getItem?.(SETTINGS_KEY) || "{}";
         const parsed = JSON.parse(raw);
-        const ttl = parsed?.cache?.tagsTTLms ?? parsed?.cache?.tagsTTL ?? parsed?.cache?.tags_ttl_ms ?? null;
+        const ttl =
+            parsed?.cache?.tagsTTLms ??
+            parsed?.cache?.tagsTTL ??
+            parsed?.cache?.tags_ttl_ms ??
+            null;
         const n = Number(ttl);
         if (!Number.isFinite(n)) return DEFAULT_TAGS_CACHE_TTL_MS;
         return Math.max(1_000, Math.min(10 * 60_000, Math.floor(n)));
@@ -131,7 +135,9 @@ function _readAuthToken() {
             _authTokenCache.set(AUTH_TOKEN_CACHE_KEY, sessionToken, { at: now });
             return sessionToken;
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     try {
         const raw = localStorage?.getItem?.(SETTINGS_KEY);
@@ -141,16 +147,25 @@ function _readAuthToken() {
         if (token) {
             try {
                 sessionStorage?.setItem?.(RUNTIME_TOKEN_KEY, token);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 const mutable = parsed && typeof parsed === "object" ? parsed : {};
-                const target = mutable?.data && typeof mutable.data === "object" ? mutable.data : mutable;
+                const target =
+                    mutable?.data && typeof mutable.data === "object" ? mutable.data : mutable;
                 if (target?.security && typeof target.security === "object") {
                     target.security.apiToken = "";
                     localStorage?.setItem?.(SETTINGS_KEY, JSON.stringify(mutable));
-                    window?.dispatchEvent?.(new CustomEvent("mjr-settings-changed", { detail: { key: "security.apiToken" } }));
+                    window?.dispatchEvent?.(
+                        new CustomEvent("mjr-settings-changed", {
+                            detail: { key: "security.apiToken" },
+                        }),
+                    );
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
         _authTokenCache.set(AUTH_TOKEN_CACHE_KEY, token, { at: now });
         return token;
@@ -171,14 +186,24 @@ function _persistAuthToken(token) {
             const parsed = raw ? JSON.parse(raw) : {};
             const next = parsed && typeof parsed === "object" ? parsed : {};
             const target = next?.data && typeof next.data === "object" ? next.data : next;
-            if (target?.security && typeof target.security === "object" && String(target.security.apiToken || "").trim()) {
+            if (
+                target?.security &&
+                typeof target.security === "object" &&
+                String(target.security.apiToken || "").trim()
+            ) {
                 target.security.apiToken = "";
                 localStorage?.setItem?.(SETTINGS_KEY, JSON.stringify(next));
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
-            window?.dispatchEvent?.(new CustomEvent("mjr-settings-changed", { detail: { key: "security.apiToken" } }));
-        } catch (e) { console.debug?.(e); }
+            window?.dispatchEvent?.(
+                new CustomEvent("mjr-settings-changed", { detail: { key: "security.apiToken" } }),
+            );
+        } catch (e) {
+            console.debug?.(e);
+        }
         return true;
     } catch {
         return false;
@@ -191,13 +216,16 @@ async function _refreshAuthTokenFromServer() {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "X-Requested-With": "XMLHttpRequest"
+                "X-Requested-With": "XMLHttpRequest",
             },
-            body: "{}"
+            body: "{}",
         });
         const contentType = response.headers.get("content-type") || "";
         if (!contentType.includes("application/json")) return false;
-        const payload = await response.json().catch((e) => { console.debug?.("[MJR auth] JSON parse error:", e); return null; });
+        const payload = await response.json().catch((e) => {
+            console.debug?.("[MJR auth] JSON parse error:", e);
+            return null;
+        });
         if (!payload || typeof payload !== "object" || !payload.ok) return false;
         const token = String(payload?.data?.token || "").trim();
         if (token) return _persistAuthToken(token);
@@ -221,7 +249,9 @@ async function ensureWriteAuthToken({ force = false } = {}) {
     }
     try {
         await _authTokenRefreshInFlight;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return _readAuthToken();
 }
 
@@ -279,15 +309,21 @@ function _buildTimedSignal(options = {}) {
     const onAbort = () => {
         try {
             ctrl.abort();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
     try {
         timer = setTimeout(() => {
             try {
                 ctrl.abort();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }, timeoutMs);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         if (upstreamSignal) {
             if (upstreamSignal.aborted) {
@@ -296,17 +332,23 @@ function _buildTimedSignal(options = {}) {
                 upstreamSignal.addEventListener("abort", onAbort, { once: true });
             }
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return {
         signal: ctrl.signal,
         timeoutMs,
         cleanup: () => {
             try {
                 if (timer) clearTimeout(timer);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 if (upstreamSignal) upstreamSignal.removeEventListener("abort", onAbort);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         },
     };
 }
@@ -324,7 +366,9 @@ function invalidateTagsCache() {
 }
 
 function _normalizeTagCacheKey(raw) {
-    const value = String(raw ?? "").trim().toLowerCase();
+    const value = String(raw ?? "")
+        .trim()
+        .toLowerCase();
     return value || "";
 }
 
@@ -360,7 +404,9 @@ try {
                     invalidateTagsCache();
                     invalidateAuthTokenCache();
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         });
 
         w.addEventListener?.("mjr-settings-changed", () => {
@@ -370,7 +416,9 @@ try {
             invalidateAuthTokenCache();
         });
     }
-} catch (e) { console.debug?.(e); }
+} catch (e) {
+    console.debug?.(e);
+}
 
 const _readObsEnabled = () => {
     const cached = _obsCache.get(SETTINGS_CACHE_KEY);
@@ -408,7 +456,8 @@ const _readRatingTagsSyncEnabled = () => {
         }
         const parsed = JSON.parse(raw);
         const configured = parsed?.ratingTagsSync?.enabled;
-        const value = configured === undefined || configured === null ? true : _coerceBool(configured, true);
+        const value =
+            configured === undefined || configured === null ? true : _coerceBool(configured, true);
         _rtSyncCache.set(SETTINGS_CACHE_KEY, value, { at: now });
         return value;
     } catch {
@@ -424,10 +473,14 @@ const _readRatingTagsSyncEnabled = () => {
 /** @returns {Promise<ApiResult<any>>} */
 async function fetchAPI(url, options = {}, retryCount = 0) {
     // Start API call timing
-    const apiStartTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const apiStartTime = typeof performance !== "undefined" ? performance.now() : Date.now();
     const timed = _buildTimedSignal(options);
+    let result = null;
     try {
-        const headers = typeof Headers !== "undefined" ? new Headers(options.headers || {}) : { ...options.headers };
+        const headers =
+            typeof Headers !== "undefined"
+                ? new Headers(options.headers || {})
+                : { ...options.headers };
         const method = (options.method || "GET").toUpperCase();
         const authRetryDone = !!options?._authRetryDone;
 
@@ -435,11 +488,14 @@ async function fetchAPI(url, options = {}, retryCount = 0) {
         if (_methodIsWrite(method)) {
             try {
                 if (headers instanceof Headers) {
-                    if (!headers.has("X-Requested-With")) headers.set("X-Requested-With", "XMLHttpRequest");
+                    if (!headers.has("X-Requested-With"))
+                        headers.set("X-Requested-With", "XMLHttpRequest");
                 } else if (!headers["X-Requested-With"]) {
                     headers["X-Requested-With"] = "XMLHttpRequest";
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
 
         // Per-client switch: control backend observability logs.
@@ -451,32 +507,47 @@ async function fetchAPI(url, options = {}, retryCount = 0) {
             } else if (!("X-MJR-OBS" in headers)) {
                 headers["X-MJR-OBS"] = obsEnabled ? "on" : "off";
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         let authToken = _readAuthToken();
-        if (!authToken && _methodIsWrite(method) && _isMajoorApiUrl(url) && !_isBootstrapTokenUrl(url)) {
+        if (
+            !authToken &&
+            _methodIsWrite(method) &&
+            _isMajoorApiUrl(url) &&
+            !_isBootstrapTokenUrl(url)
+        ) {
             try {
                 await ensureWriteAuthToken();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             authToken = _readAuthToken();
         }
         if (authToken) {
             try {
                 if (headers instanceof Headers) {
                     if (!headers.has("X-MJR-Token")) headers.set("X-MJR-Token", authToken);
-                    if (!headers.has("Authorization")) headers.set("Authorization", `Bearer ${authToken}`);
+                    if (!headers.has("Authorization"))
+                        headers.set("Authorization", `Bearer ${authToken}`);
                 } else {
                     if (!("X-MJR-Token" in headers)) headers["X-MJR-Token"] = authToken;
-                    if (!("Authorization" in headers)) headers["Authorization"] = `Bearer ${authToken}`;
+                    if (!("Authorization" in headers))
+                        headers["Authorization"] = `Bearer ${authToken}`;
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
 
         const fetchOptions = { ...options, headers, signal: timed.signal };
         try {
             delete fetchOptions._authRetryDone;
             delete fetchOptions.timeoutMs;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         const response = await fetch(url, fetchOptions);
         const contentType = response.headers.get("content-type") || "";
         if (!contentType.includes("application/json")) {
@@ -499,18 +570,21 @@ async function fetchAPI(url, options = {}, retryCount = 0) {
                 code: "INVALID_RESPONSE",
                 status: response.status,
                 content_type: contentType,
-                data: null
+                data: null,
             };
         }
 
-        const result = await response.json().catch((e) => { console.debug?.("[MJR API] JSON parse error:", e); return null; });
+        result = await response.json().catch((e) => {
+            console.debug?.("[MJR API] JSON parse error:", e);
+            return null;
+        });
         if (typeof result !== "object" || result === null) {
             return {
                 ok: false,
                 error: "Invalid response structure",
                 code: "INVALID_RESPONSE",
                 status: response.status,
-                data: null
+                data: null,
             };
         }
 
@@ -518,14 +592,17 @@ async function fetchAPI(url, options = {}, retryCount = 0) {
         if (!("status" in result)) {
             try {
                 result.status = response.status;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
         const shouldTryAuthRefresh =
             !authRetryDone &&
             _methodIsWrite(method) &&
             !_isBootstrapTokenUrl(url) &&
             !result?.ok &&
-            (String(result?.code || "").toUpperCase() === "AUTH_REQUIRED" || Number(result?.status || 0) === 401);
+            (String(result?.code || "").toUpperCase() === "AUTH_REQUIRED" ||
+                Number(result?.status || 0) === 401);
 
         if (shouldTryAuthRefresh) {
             const refreshed = await ensureWriteAuthToken({ force: true });
@@ -550,36 +627,46 @@ async function fetchAPI(url, options = {}, retryCount = 0) {
                     timeout_ms: timed.timeoutMs,
                 };
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         // Retry network failures a few times (best-effort).
         if (retryCount < MAX_RETRIES && _isRetryableError(error)) {
             try {
                 await _delay(RETRY_BASE_DELAY_MS * (retryCount + 1));
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 return await fetchAPI(url, options, retryCount + 1);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
         return {
             ok: false,
             error: error?.message || String(error || "Network error"),
             code: "NETWORK_ERROR",
             data: null,
-            retries: retryCount
+            retries: retryCount,
         };
     } finally {
         // Track API call timing
         try {
-            const apiEndTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+            const apiEndTime = typeof performance !== "undefined" ? performance.now() : Date.now();
             const duration = apiEndTime - apiStartTime;
-            if (typeof window !== 'undefined' && window.MajoorMetrics) {
+            if (typeof window !== "undefined" && window.MajoorMetrics) {
                 window.MajoorMetrics.trackApiCall(duration, !result?.ok);
             }
-        } catch (e) { console.debug?.(e); }
-        
+        } catch (e) {
+            console.debug?.(e);
+        }
+
         try {
             timed.cleanup?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 }
 
@@ -598,7 +685,7 @@ export async function post(url, body, options = {}) {
         ...options,
         method: "POST",
         headers: { "Content-Type": "application/json", ...options.headers },
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
     });
 }
 
@@ -610,7 +697,7 @@ export async function updateAssetRating(assetId, rating, options = {}) {
     const asset = assetId && typeof assetId === "object" ? assetId : null;
     const resolvedId = asset ? asset.id : assetId;
     const payload = {
-        rating: Math.max(0, Math.min(5, Number(rating) || 0))
+        rating: Math.max(0, Math.min(5, Number(rating) || 0)),
     };
     if (resolvedId != null) {
         payload.asset_id = normalizeAssetId(resolvedId);
@@ -626,9 +713,9 @@ export async function updateAssetRating(assetId, rating, options = {}) {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            ...(enabled ? { "X-MJR-RTSYNC": "on" } : {})
+            ...(enabled ? { "X-MJR-RTSYNC": "on" } : {}),
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
     });
 }
 
@@ -640,7 +727,7 @@ export async function updateAssetTags(assetId, tags, options = {}) {
     const asset = assetId && typeof assetId === "object" ? assetId : null;
     const resolvedId = asset ? asset.id : assetId;
     const payload = {
-        tags: Array.isArray(tags) ? tags : []
+        tags: Array.isArray(tags) ? tags : [],
     };
     if (resolvedId != null) {
         payload.asset_id = normalizeAssetId(resolvedId);
@@ -656,13 +743,15 @@ export async function updateAssetTags(assetId, tags, options = {}) {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            ...(enabled ? { "X-MJR-RTSYNC": "on" } : {})
+            ...(enabled ? { "X-MJR-RTSYNC": "on" } : {}),
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
     });
     if (result?.ok) {
         try {
-            const persistedTags = _dedupeTagList(Array.isArray(result?.data?.tags) ? result.data.tags : tags);
+            const persistedTags = _dedupeTagList(
+                Array.isArray(result?.data?.tags) ? result.data.tags : tags,
+            );
             const cachedTags = _tagsCache.get(TAGS_CACHE_KEY);
             if (Array.isArray(cachedTags)) {
                 _tagsCache.set(TAGS_CACHE_KEY, _dedupeTagList([...cachedTags, ...persistedTags]));
@@ -741,10 +830,20 @@ export async function hydrateAssetRatingTags(assetId) {
  * Works on /view URLs where ComfyUI provides type/filename/subfolder.
  */
 export async function getFileMetadataScoped(
-    { type = "output", filename = "", subfolder = "", root_id = "", rootId = "", filepath = "" } = {},
-    options = {}
+    {
+        type = "output",
+        filename = "",
+        subfolder = "",
+        root_id = "",
+        rootId = "",
+        filepath = "",
+    } = {},
+    options = {},
 ) {
-    const t = String(type || "output").trim().toLowerCase() || "output";
+    const t =
+        String(type || "output")
+            .trim()
+            .toLowerCase() || "output";
     const fn = String(filename || "").trim();
     const sub = String(subfolder || "").trim();
     const rid = String(root_id || rootId || "").trim();
@@ -757,25 +856,42 @@ export async function getFileMetadataScoped(
     return get(url, options);
 }
 
-export async function getFolderInfo({ filepath = "", root_id = "", subfolder = "" } = {}, options = {}) {
+export async function getFolderInfo(
+    { filepath = "", root_id = "", subfolder = "" } = {},
+    options = {},
+) {
     try {
         if (globalThis.__mjrFolderInfoSupported === false) {
-            return { ok: false, data: null, error: "Folder info endpoint unavailable", code: "UNAVAILABLE" };
+            return {
+                ok: false,
+                data: null,
+                error: "Folder info endpoint unavailable",
+                code: "UNAVAILABLE",
+            };
         }
         if (globalThis.__mjrFolderInfoSupported == null) {
             const rr = await get("/mjr/am/routes");
             if (rr?.ok && Array.isArray(rr.data)) {
-                const hasRoute = rr.data.some((r) => String(r?.path || "").trim() === "/mjr/am/folder-info");
+                const hasRoute = rr.data.some(
+                    (r) => String(r?.path || "").trim() === "/mjr/am/folder-info",
+                );
                 globalThis.__mjrFolderInfoSupported = !!hasRoute;
                 if (!hasRoute) {
-                    return { ok: false, data: null, error: "Folder info endpoint unavailable", code: "UNAVAILABLE" };
+                    return {
+                        ok: false,
+                        data: null,
+                        error: "Folder info endpoint unavailable",
+                        code: "UNAVAILABLE",
+                    };
                 }
             } else {
                 // Soft-fail: keep null so future calls can retry route discovery.
                 globalThis.__mjrFolderInfoSupported = null;
             }
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     const fp = String(filepath || "").trim();
     const rid = String(root_id || "").trim();
@@ -785,8 +901,7 @@ export async function getFolderInfo({ filepath = "", root_id = "", subfolder = "
     if (fp) {
         params.push(`filepath=${encodeURIComponent(fp)}`);
         params.push("browser_mode=1");
-    }
-    else {
+    } else {
         if (rid) params.push(`root_id=${encodeURIComponent(rid)}`);
         if (sub) params.push(`subfolder=${encodeURIComponent(sub)}`);
     }
@@ -796,7 +911,9 @@ export async function getFolderInfo({ filepath = "", root_id = "", subfolder = "
         if (!res?.ok && Number(res?.status || 0) === 404) {
             globalThis.__mjrFolderInfoSupported = false;
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return res;
 }
 
@@ -863,34 +980,49 @@ export async function bootstrapSecurityToken() {
         try {
             const token = String(res?.data?.token || "").trim();
             if (token) _persistAuthToken(token);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
     return res;
 }
 
 export async function openInFolder(assetOrId) {
     if (assetOrId && typeof assetOrId === "object") {
-        const fp = String(assetOrId.filepath || assetOrId.path || assetOrId?.file_info?.filepath || "").trim();
-        if (assetOrId.id != null) return post("/mjr/am/open-in-folder", { asset_id: normalizeAssetId(assetOrId.id) });
+        const fp = String(
+            assetOrId.filepath || assetOrId.path || assetOrId?.file_info?.filepath || "",
+        ).trim();
+        if (assetOrId.id != null)
+            return post("/mjr/am/open-in-folder", { asset_id: normalizeAssetId(assetOrId.id) });
         return post("/mjr/am/open-in-folder", { filepath: fp });
     }
     return post("/mjr/am/open-in-folder", { asset_id: normalizeAssetId(assetOrId) });
 }
 
-export async function browserFolderOp({ op = "", path = "", name = "", destination = "", recursive = true } = {}, options = {}) {
+export async function browserFolderOp(
+    { op = "", path = "", name = "", destination = "", recursive = true } = {},
+    options = {},
+) {
     const body = {
-        op: String(op || "").trim().toLowerCase(),
+        op: String(op || "")
+            .trim()
+            .toLowerCase(),
         path: String(path || "").trim(),
     };
     if (name != null && String(name).trim()) body.name = String(name).trim();
-    if (destination != null && String(destination).trim()) body.destination = String(destination).trim();
+    if (destination != null && String(destination).trim())
+        body.destination = String(destination).trim();
     if (body.op === "delete") body.recursive = !!recursive;
     return post(ENDPOINTS.BROWSER_FOLDER_OP, body, options);
 }
 
 export async function resetIndex(options = {}) {
-    const _bool = (value, fallback) => (value === undefined || value === null ? fallback : Boolean(value));
-    const scope = String(options.scope || "output").trim().toLowerCase() || "output";
+    const _bool = (value, fallback) =>
+        value === undefined || value === null ? fallback : Boolean(value);
+    const scope =
+        String(options.scope || "output")
+            .trim()
+            .toLowerCase() || "output";
     const customRootId =
         options.customRootId ??
         options.custom_root_id ??
@@ -901,29 +1033,35 @@ export async function resetIndex(options = {}) {
     const body = {
         scope,
         reindex: _bool(options.reindex, true),
-          // When scope=all, the backend defaults to a hard DB reset unless explicitly disabled.
-          hard_reset_db: _bool(
-              options.hardResetDb ??
-              options.hard_reset_db ??
-              options.deleteDbFiles ??
-              options.delete_db_files ??
-              options.deleteDb ??
-              options.delete_db ??
-              undefined,
-              scope === "all"
-          ),
-          clear_scan_journal: _bool(options.clearScanJournal ?? options.clear_scan_journal, true),
-          clear_metadata_cache: _bool(options.clearMetadataCache ?? options.clear_metadata_cache, true),
-          clear_asset_metadata: _bool(options.clearAssetMetadata ?? options.clear_asset_metadata, true),
-          clear_assets: _bool(options.clearAssets ?? options.clear_assets, true),
-          preserve_vectors: _bool(
-              options.preserveVectors ??
-              options.preserve_vectors ??
-              options.keepVectors ??
-              options.keep_vectors,
-              false
-          ),
-          rebuild_fts: _bool(options.rebuildFts ?? options.rebuild_fts, true),
+        // When scope=all, the backend defaults to a hard DB reset unless explicitly disabled.
+        hard_reset_db: _bool(
+            options.hardResetDb ??
+                options.hard_reset_db ??
+                options.deleteDbFiles ??
+                options.delete_db_files ??
+                options.deleteDb ??
+                options.delete_db ??
+                undefined,
+            scope === "all",
+        ),
+        clear_scan_journal: _bool(options.clearScanJournal ?? options.clear_scan_journal, true),
+        clear_metadata_cache: _bool(
+            options.clearMetadataCache ?? options.clear_metadata_cache,
+            true,
+        ),
+        clear_asset_metadata: _bool(
+            options.clearAssetMetadata ?? options.clear_asset_metadata,
+            true,
+        ),
+        clear_assets: _bool(options.clearAssets ?? options.clear_assets, true),
+        preserve_vectors: _bool(
+            options.preserveVectors ??
+                options.preserve_vectors ??
+                options.keepVectors ??
+                options.keep_vectors,
+            false,
+        ),
+        rebuild_fts: _bool(options.rebuildFts ?? options.rebuild_fts, true),
         incremental: _bool(options.incremental, false),
         fast: _bool(options.fast, true),
         background_metadata: _bool(options.backgroundMetadata ?? options.background_metadata, true),
@@ -936,7 +1074,10 @@ export async function resetIndex(options = {}) {
 }
 
 export async function setWatcherScope({ scope = "output", customRootId = "" } = {}) {
-    const s = String(scope || "output").trim().toLowerCase() || "output";
+    const s =
+        String(scope || "output")
+            .trim()
+            .toLowerCase() || "output";
     const rid = String(customRootId || "").trim();
     const body = { scope: s };
     if (rid) body.custom_root_id = rid;
@@ -992,12 +1133,14 @@ export async function restoreDbBackup({ name = "", useLatest = false } = {}) {
 }
 
 export async function startDuplicatesAnalysis(limit = 250) {
-    return post("/mjr/am/duplicates/analyze", { limit: Math.max(10, Math.min(5000, Number(limit) || 250)) });
+    return post("/mjr/am/duplicates/analyze", {
+        limit: Math.max(10, Math.min(5000, Number(limit) || 250)),
+    });
 }
 
 export async function getDuplicateAlerts(
     { scope = "output", customRootId = "", maxGroups = 6, maxPairs = 10 } = {},
-    options = {}
+    options = {},
 ) {
     let url = `/mjr/am/duplicates/alerts?scope=${encodeURIComponent(String(scope || "output"))}`;
     if (customRootId) {
@@ -1011,16 +1154,19 @@ export async function getDuplicateAlerts(
 export async function mergeDuplicateTags(keepAssetId, mergeAssetIds = []) {
     return post("/mjr/am/duplicates/merge-tags", {
         keep_asset_id: Number(keepAssetId) || 0,
-        merge_asset_ids: Array.isArray(mergeAssetIds) ? mergeAssetIds.map((x) => Number(x) || 0).filter((x) => x > 0) : []
+        merge_asset_ids: Array.isArray(mergeAssetIds)
+            ? mergeAssetIds.map((x) => Number(x) || 0).filter((x) => x > 0)
+            : [],
     });
 }
 
 export async function deleteAsset(assetOrId) {
-    let id = "";
-    let payload = null;
+    let id, payload;
     if (assetOrId && typeof assetOrId === "object") {
         id = normalizeAssetId(assetOrId.id);
-        const fp = String(assetOrId.filepath || assetOrId.path || assetOrId?.file_info?.filepath || "").trim();
+        const fp = String(
+            assetOrId.filepath || assetOrId.path || assetOrId?.file_info?.filepath || "",
+        ).trim();
         payload = id ? { asset_id: id } : { filepath: fp };
     } else {
         id = normalizeAssetId(assetOrId);
@@ -1032,7 +1178,9 @@ export async function deleteAsset(assetOrId) {
 }
 
 export async function deleteAssets(assetIds) {
-    const ids = Array.isArray(assetIds) ? assetIds.map((x) => normalizeAssetId(x)).filter(Boolean) : [];
+    const ids = Array.isArray(assetIds)
+        ? assetIds.map((x) => normalizeAssetId(x)).filter(Boolean)
+        : [];
     const res = await post("/mjr/am/assets/delete", { ids });
     if (res?.ok) _emitAssetsDeleted(ids);
     return res;
@@ -1044,15 +1192,21 @@ function _emitAssetsDeleted(ids) {
             .map((x) => String(x || "").trim())
             .filter(Boolean);
         if (!normalized.length) return;
-        window.dispatchEvent(new CustomEvent("mjr:assets-deleted", { detail: { ids: normalized } }));
-    } catch (e) { console.debug?.(e); }
+        window.dispatchEvent(
+            new CustomEvent("mjr:assets-deleted", { detail: { ids: normalized } }),
+        );
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 export async function renameAsset(assetOrId, newName) {
-    let id = "";
+    let id;
     if (assetOrId && typeof assetOrId === "object") {
         id = normalizeAssetId(assetOrId.id);
-        const fp = String(assetOrId.filepath || assetOrId.path || assetOrId?.file_info?.filepath || "").trim();
+        const fp = String(
+            assetOrId.filepath || assetOrId.path || assetOrId?.file_info?.filepath || "",
+        ).trim();
         const res = id
             ? await post("/mjr/am/asset/rename", { asset_id: id, new_name: newName })
             : await post("/mjr/am/asset/rename", { filepath: fp, new_name: newName });
@@ -1062,7 +1216,9 @@ export async function renameAsset(assetOrId, newName) {
                 if (fresh?.ok && fresh?.data) {
                     res.data = { ...(res.data || {}), asset: fresh.data };
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
         return res;
     }
@@ -1074,7 +1230,9 @@ export async function renameAsset(assetOrId, newName) {
             if (fresh?.ok && fresh?.data) {
                 res.data = { ...(res.data || {}), asset: fresh.data };
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
     return res;
 }
@@ -1131,9 +1289,10 @@ export async function getCollectionAssets(collectionId) {
 export async function vectorSearch(query, topKOrOptions = 20) {
     const q = String(query || "").trim();
     if (!q) return { ok: false, error: "Empty query" };
-    const opts = (topKOrOptions && typeof topKOrOptions === "object")
-        ? topKOrOptions
-        : { topK: Number(topKOrOptions) };
+    const opts =
+        topKOrOptions && typeof topKOrOptions === "object"
+            ? topKOrOptions
+            : { topK: Number(topKOrOptions) };
     const topK = Math.max(1, Math.min(200, Number(opts?.topK ?? 20) || 20));
     const scope = String(opts?.scope || "").trim();
     const customRootId = String(opts?.customRootId || "").trim();
@@ -1168,9 +1327,10 @@ export async function vectorSearch(query, topKOrOptions = 20) {
 export async function vectorFindSimilar(assetId, topKOrOptions = 20) {
     const id = String(assetId || "").trim();
     if (!id) return { ok: false, error: "Missing asset ID" };
-    const opts = (topKOrOptions && typeof topKOrOptions === "object")
-        ? topKOrOptions
-        : { topK: Number(topKOrOptions) };
+    const opts =
+        topKOrOptions && typeof topKOrOptions === "object"
+            ? topKOrOptions
+            : { topK: Number(topKOrOptions) };
     const topK = Math.max(1, Math.min(200, Number(opts?.topK ?? 20) || 20));
     const scope = String(opts?.scope || "").trim();
     const customRootId = String(opts?.customRootId || "").trim();
@@ -1220,7 +1380,9 @@ export async function vectorStats() {
 export async function vectorBackfill(batchSize = 64, options = {}) {
     const batch = Math.max(1, Math.min(200, batchSize));
     const onProgress = typeof options?.onProgress === "function" ? options.onProgress : null;
-    const scope = String(options?.scope || "").trim().toLowerCase();
+    const scope = String(options?.scope || "")
+        .trim()
+        .toLowerCase();
     const customRootId = String(options?.customRootId ?? options?.custom_root_id ?? "").trim();
     let startUrl = `${ENDPOINTS.VECTOR_BACKFILL}?batch_size=${batch}&async=1`;
     if (scope) startUrl += `&scope=${encodeURIComponent(scope)}`;
@@ -1231,7 +1393,11 @@ export async function vectorBackfill(batchSize = 64, options = {}) {
     const startData = startRes?.data || {};
     const status = String(startData?.status || "").toLowerCase();
     const jobId = String(startData?.job_id || "").trim();
-    try { onProgress?.(startData); } catch (e) { console.debug?.(e); }
+    try {
+        onProgress?.(startData);
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // Backward compatibility with older backend behavior (sync payload).
     if (!jobId || !["queued", "running", "pending"].includes(status)) {
@@ -1244,14 +1410,20 @@ export async function vectorBackfill(batchSize = 64, options = {}) {
         ? Math.max(500, Math.min(10_000, Math.floor(pollIntervalMsRaw)))
         : VECTOR_BACKFILL_DEFAULT_POLL_INTERVAL_MS;
     const pollTimeoutMs = Number.isFinite(pollTimeoutMsRaw)
-        ? Math.max(10_000, Math.min(VECTOR_BACKFILL_MAX_POLL_TIMEOUT_MS, Math.floor(pollTimeoutMsRaw)))
+        ? Math.max(
+              10_000,
+              Math.min(VECTOR_BACKFILL_MAX_POLL_TIMEOUT_MS, Math.floor(pollTimeoutMsRaw)),
+          )
         : VECTOR_BACKFILL_DEFAULT_POLL_TIMEOUT_MS;
     const startedAt = Date.now();
     let lastStatus = null;
 
     while (Date.now() - startedAt < pollTimeoutMs) {
         await _delay(pollIntervalMs);
-        const pollRes = await get(`${ENDPOINTS.VECTOR_BACKFILL_STATUS}?job_id=${encodeURIComponent(jobId)}`, { timeoutMs: 30_000 });
+        const pollRes = await get(
+            `${ENDPOINTS.VECTOR_BACKFILL_STATUS}?job_id=${encodeURIComponent(jobId)}`,
+            { timeoutMs: 30_000 },
+        );
         if (!pollRes?.ok) {
             lastStatus = pollRes;
             continue;
@@ -1260,7 +1432,11 @@ export async function vectorBackfill(batchSize = 64, options = {}) {
         const data = pollRes?.data || {};
         const st = String(data?.status || "").toLowerCase();
         lastStatus = pollRes;
-        try { onProgress?.(data); } catch (e) { console.debug?.(e); }
+        try {
+            onProgress?.(data);
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         if (st === "succeeded") {
             return {
@@ -1282,11 +1458,18 @@ export async function vectorBackfill(batchSize = 64, options = {}) {
         }
     }
 
-    const finalStatusRes = await get(`${ENDPOINTS.VECTOR_BACKFILL_STATUS}?job_id=${encodeURIComponent(jobId)}`, { timeoutMs: 30_000 });
+    const finalStatusRes = await get(
+        `${ENDPOINTS.VECTOR_BACKFILL_STATUS}?job_id=${encodeURIComponent(jobId)}`,
+        { timeoutMs: 30_000 },
+    );
     const finalData = finalStatusRes?.data || lastStatus?.data || {};
     const finalState = String(finalData?.status || "").toLowerCase();
     if (finalStatusRes?.ok && ["queued", "running", "pending"].includes(finalState)) {
-        try { onProgress?.(finalData); } catch (e) { console.debug?.(e); }
+        try {
+            onProgress?.(finalData);
+        } catch (e) {
+            console.debug?.(e);
+        }
         return {
             ok: true,
             code: "PENDING",
@@ -1362,24 +1545,27 @@ export async function vectorGenerateEnhancedPrompt(assetId) {
  * @param {string} [params.customRootId]
  * @returns {Promise<ApiResult<Array>>}
  */
-export async function hybridSearch(query, {
-    topK = 50,
-    scope = "output",
-    customRootId = "",
-    subfolder = null,
-    kind = null,
-    hasWorkflow = null,
-    minRating = null,
-    minSizeMB = null,
-    maxSizeMB = null,
-    minWidth = null,
-    minHeight = null,
-    maxWidth = null,
-    maxHeight = null,
-    workflowType = null,
-    dateRange = null,
-    dateExact = null,
-} = {}) {
+export async function hybridSearch(
+    query,
+    {
+        topK = 50,
+        scope = "output",
+        customRootId = "",
+        subfolder = null,
+        kind = null,
+        hasWorkflow = null,
+        minRating = null,
+        minSizeMB = null,
+        maxSizeMB = null,
+        minWidth = null,
+        minHeight = null,
+        maxWidth = null,
+        maxHeight = null,
+        workflowType = null,
+        dateRange = null,
+        dateExact = null,
+    } = {},
+) {
     const q = String(query || "").trim();
     if (!q) return { ok: false, error: "Empty query" };
     let url = `${ENDPOINTS.HYBRID_SEARCH}?q=${encodeURIComponent(q)}&top_k=${Math.max(1, Math.min(200, topK))}&scope=${encodeURIComponent(scope)}`;
@@ -1413,7 +1599,13 @@ export async function hybridSearch(query, {
  * @param {number} [params.limit=200]
  * @returns {Promise<ApiResult<Array>>}
  */
-export async function getAuditAssets({ filter = "incomplete", sort = "alignment_asc", scope = "output", customRootId = "", limit = 200 } = {}) {
+export async function getAuditAssets({
+    filter = "incomplete",
+    sort = "alignment_asc",
+    scope = "output",
+    customRootId = "",
+    limit = 200,
+} = {}) {
     let url = `${ENDPOINTS.AUDIT}?filter=${encodeURIComponent(filter)}&sort=${encodeURIComponent(sort)}&scope=${encodeURIComponent(scope)}&limit=${Math.max(1, Math.min(500, limit))}`;
     if (customRootId) url += `&custom_root_id=${encodeURIComponent(customRootId)}`;
     return get(url);

@@ -53,7 +53,9 @@ export function setRuntimeStatePatch(patch = {}) {
                 state[key] = safePatch[key];
             }
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return state;
 }
 

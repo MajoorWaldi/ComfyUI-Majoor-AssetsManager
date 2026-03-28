@@ -17,41 +17,55 @@ function _extractGridGenInfo(asset) {
     try {
         const candidate = asset.geninfo
             ? { geninfo: asset.geninfo }
-            : (asset.metadata || asset.metadata_raw || asset);
+            : asset.metadata || asset.metadata_raw || asset;
         const norm = normalizeGenerationMetadata(candidate) || null;
         if (norm && typeof norm === "object") {
             const out = {
-                prompt:    norm.prompt || (candidate?.prompt ? String(candidate.prompt) : "") || "",
-                seed:      norm.seed != null ? String(norm.seed) : "",
-                sampler:   norm.sampler ? String(norm.sampler) : "",
+                prompt: norm.prompt || (candidate?.prompt ? String(candidate.prompt) : "") || "",
+                seed: norm.seed != null ? String(norm.seed) : "",
+                sampler: norm.sampler ? String(norm.sampler) : "",
                 scheduler: norm.scheduler ? String(norm.scheduler) : "",
-                cfg:       norm.cfg != null ? String(norm.cfg) : "",
-                step:      norm.steps != null ? String(norm.steps) : "",
-                genTime:   "",
+                cfg: norm.cfg != null ? String(norm.cfg) : "",
+                step: norm.steps != null ? String(norm.steps) : "",
+                genTime: "",
             };
-            const ms = asset.generation_time_ms
-                ?? candidate?.generation_time_ms
-                ?? candidate?.geninfo?.generation_time_ms
-                ?? 0;
+            const ms =
+                asset.generation_time_ms ??
+                candidate?.generation_time_ms ??
+                candidate?.geninfo?.generation_time_ms ??
+                0;
             if (ms && Number.isFinite(Number(ms)) && ms > 0 && ms < 86400000) {
                 out.genTime = (Number(ms) / 1000).toFixed(1) + "s";
             }
             return out;
         }
-    } catch { /* fall through */ }
+    } catch {
+        /* fall through */
+    }
     // Fallback: read common flat fields
     const meta = asset.meta || asset.metadata || asset.parsed_meta || asset;
     const ms = asset.generation_time_ms ?? meta?.generation_time_ms ?? 0;
     return {
-        prompt:    meta?.prompt || meta?.text || "",
-        seed:      meta?.seed != null ? String(meta.seed) : (meta?.noise_seed != null ? String(meta.noise_seed) : ""),
-        sampler:   meta?.sampler || meta?.sampler_name || "",
+        prompt: meta?.prompt || meta?.text || "",
+        seed:
+            meta?.seed != null
+                ? String(meta.seed)
+                : meta?.noise_seed != null
+                  ? String(meta.noise_seed)
+                  : "",
+        sampler: meta?.sampler || meta?.sampler_name || "",
         scheduler: meta?.scheduler || "",
-        cfg:       meta?.cfg != null ? String(meta.cfg) : (meta?.cfg_scale != null ? String(meta.cfg_scale) : ""),
-        step:      meta?.steps != null ? String(meta.steps) : "",
-        genTime:   (ms && Number.isFinite(Number(ms)) && ms > 0 && ms < 86400000)
-            ? (Number(ms) / 1000).toFixed(1) + "s"
-            : "",
+        cfg:
+            meta?.cfg != null
+                ? String(meta.cfg)
+                : meta?.cfg_scale != null
+                  ? String(meta.cfg_scale)
+                  : "",
+        step: meta?.steps != null ? String(meta.steps) : "",
+        genTime:
+            ms && Number.isFinite(Number(ms)) && ms > 0 && ms < 86400000
+                ? (Number(ms) / 1000).toFixed(1) + "s"
+                : "",
     };
 }
 
@@ -68,13 +82,15 @@ function _buildGridCompactOverlay(asset, label) {
 
     // Build compact second line: seed · cfg · sampler · scheduler · steps · gentime
     const detail = [
-        seed      ? `Seed: ${seed}` : "",
-        cfg       ? `CFG: ${cfg}` : "",
-        sampler   ? `Sampler: ${sampler}` : "",
+        seed ? `Seed: ${seed}` : "",
+        cfg ? `CFG: ${cfg}` : "",
+        sampler ? `Sampler: ${sampler}` : "",
         scheduler ? `Sched: ${scheduler}` : "",
-        step      ? `Steps: ${step}` : "",
-        genTime   ? `Gen: ${genTime}` : "",
-    ].filter(Boolean).join(" · ");
+        step ? `Steps: ${step}` : "",
+        genTime ? `Gen: ${genTime}` : "",
+    ]
+        .filter(Boolean)
+        .join(" · ");
 
     if (!prompt && !detail) return null;
 
@@ -109,7 +125,8 @@ function _buildGridCompactOverlay(asset, label) {
     row.style.cssText = `display:flex;align-items:baseline;gap:5px;flex-wrap:wrap;margin-bottom:${detail ? "3" : "0"}px;`;
 
     const labelSpan = document.createElement("span");
-    labelSpan.style.cssText = "background:rgba(255,255,255,0.2);border-radius:3px;padding:0 4px;font-weight:700;font-size:9px;letter-spacing:0.06em;flex-shrink:0;";
+    labelSpan.style.cssText =
+        "background:rgba(255,255,255,0.2);border-radius:3px;padding:0 4px;font-weight:700;font-size:9px;letter-spacing:0.06em;flex-shrink:0;";
     labelSpan.textContent = label;
     row.appendChild(labelSpan);
 
@@ -126,7 +143,8 @@ function _buildGridCompactOverlay(asset, label) {
 
     if (detail) {
         const detailDiv = document.createElement("div");
-        detailDiv.style.cssText = "color:rgba(255,255,255,0.65);font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
+        detailDiv.style.cssText =
+            "color:rgba(255,255,255,0.65);font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
         detailDiv.textContent = detail;
         overlay.appendChild(detailDiv);
     }
@@ -168,7 +186,9 @@ function _setupModel3DSync(panelA, panelB) {
                 }
                 ctlB.target.copy(ctlA.target);
                 ctlB.update();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             syncing = false;
         };
         const syncBtoA = () => {
@@ -185,7 +205,9 @@ function _setupModel3DSync(panelA, panelB) {
                 }
                 ctlA.target.copy(ctlB.target);
                 ctlA.update();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             syncing = false;
         };
         ctlA.addEventListener("change", syncAtoB);
@@ -195,11 +217,17 @@ function _setupModel3DSync(panelA, panelB) {
             const sideView = panelA.parentElement;
             if (sideView) {
                 sideView._mjr3DSyncCleanup = () => {
-                    try { ctlA.removeEventListener("change", syncAtoB); } catch (_) {}
-                    try { ctlB.removeEventListener("change", syncBtoA); } catch (_) {}
+                    try {
+                        ctlA.removeEventListener("change", syncAtoB);
+                    } catch (_) {}
+                    try {
+                        ctlB.removeEventListener("change", syncBtoA);
+                    } catch (_) {}
                 };
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
     setTimeout(tryConnect, 50);
 }
@@ -241,15 +269,21 @@ function _setupModel3DGridSync(sideView) {
                         dCtl.target.copy(ctl.target);
                         dCtl.update();
                     }
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 syncing = false;
             };
             src._mjr3D.controls.addEventListener("change", handler);
             cleanups.push(() => {
-                try { src._mjr3D?.controls?.removeEventListener?.("change", handler); } catch (_) {}
+                try {
+                    src._mjr3D?.controls?.removeEventListener?.("change", handler);
+                } catch (_) {}
             });
         }
-        sideView._mjr3DSyncCleanup = () => { for (const c of cleanups) c(); };
+        sideView._mjr3DSyncCleanup = () => {
+            for (const c of cleanups) c();
+        };
     };
     setTimeout(tryConnect, 50);
 }
@@ -266,14 +300,26 @@ export function renderSideBySideView({
     destroyMediaProcessorsIn,
 } = {}) {
     // Clean up previous 3D sync if any
-    try { sideView?._mjr3DSyncCleanup?.(); } catch (e) { console.debug?.(e); }
-    try { if (sideView) sideView._mjr3DSyncCleanup = null; } catch (e) { console.debug?.(e); }
+    try {
+        sideView?._mjr3DSyncCleanup?.();
+    } catch (e) {
+        console.debug?.(e);
+    }
+    try {
+        if (sideView) sideView._mjr3DSyncCleanup = null;
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         destroyMediaProcessorsIn?.(sideView);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         if (sideView) sideView.innerHTML = "";
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     if (!sideView || !state || !currentAsset) return;
 
@@ -289,7 +335,9 @@ export function renderSideBySideView({
             sideView.style.gridTemplateRows = "1fr 1fr";
             sideView.style.gap = "2px";
             sideView.style.padding = "2px";
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         const LABELS = ["A", "B", "C", "D"];
         for (let i = 0; i < 4; i++) {
@@ -307,25 +355,34 @@ export function renderSideBySideView({
                 let u = "";
                 try {
                     u = buildAssetViewURL?.(a) || "";
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 try {
                     const media = createMediaElement?.(a, u);
                     if (media) cell.appendChild(media);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 try {
                     const overlay = _buildGridCompactOverlay(a, LABELS[i]);
                     if (overlay) cell.appendChild(overlay);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             } else {
                 // Empty slot — show label badge so slot position is clear
                 const badge = document.createElement("div");
-                badge.style.cssText = "position:absolute;top:6px;left:6px;background:rgba(255,255,255,0.12);border-radius:3px;padding:1px 6px;font-size:9px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:0.06em;";
+                badge.style.cssText =
+                    "position:absolute;top:6px;left:6px;background:rgba(255,255,255,0.12);border-radius:3px;padding:1px 6px;font-size:9px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:0.06em;";
                 badge.textContent = LABELS[i];
                 cell.appendChild(badge);
             }
             try {
                 sideView.appendChild(cell);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
         // Sync 3D controls across all grid cells
         if (items.some((a) => a && isModel3DAsset(a))) {
@@ -336,7 +393,9 @@ export function renderSideBySideView({
 
     const other =
         state.compareAsset ||
-        (Array.isArray(state.assets) && state.assets.length === 2 ? state.assets[1 - (state.currentIndex || 0)] : null) ||
+        (Array.isArray(state.assets) && state.assets.length === 2
+            ? state.assets[1 - (state.currentIndex || 0)]
+            : null) ||
         currentAsset;
     const compareUrl = (() => {
         try {
@@ -375,23 +434,37 @@ export function renderSideBySideView({
         sideView.style.flexDirection = "row";
         sideView.style.gap = "2px";
         sideView.style.padding = "0";
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         sideView.appendChild(leftPanel);
         sideView.appendChild(rightPanel);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // Tag roles for the global viewer bar (so it controls the "A" side by default).
     try {
-        const leftVideo = leftMedia?.querySelector?.(".mjr-viewer-video-src") || leftMedia?.querySelector?.("video");
-        const rightVideo = rightMedia?.querySelector?.(".mjr-viewer-video-src") || rightMedia?.querySelector?.("video");
-        const leftAudio = leftMedia?.querySelector?.(".mjr-viewer-audio-src") || leftMedia?.querySelector?.("audio");
-        const rightAudio = rightMedia?.querySelector?.(".mjr-viewer-audio-src") || rightMedia?.querySelector?.("audio");
+        const leftVideo =
+            leftMedia?.querySelector?.(".mjr-viewer-video-src") ||
+            leftMedia?.querySelector?.("video");
+        const rightVideo =
+            rightMedia?.querySelector?.(".mjr-viewer-video-src") ||
+            rightMedia?.querySelector?.("video");
+        const leftAudio =
+            leftMedia?.querySelector?.(".mjr-viewer-audio-src") ||
+            leftMedia?.querySelector?.("audio");
+        const rightAudio =
+            rightMedia?.querySelector?.(".mjr-viewer-audio-src") ||
+            rightMedia?.querySelector?.("audio");
         if (leftVideo?.dataset) leftVideo.dataset.mjrCompareRole = "A";
         if (rightVideo?.dataset) rightVideo.dataset.mjrCompareRole = "B";
         if (leftAudio?.dataset) leftAudio.dataset.mjrCompareRole = "A";
         if (rightAudio?.dataset) rightAudio.dataset.mjrCompareRole = "B";
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // Video sync is handled centrally by the viewer bar (Viewer.js) so we avoid double-sync here.
 

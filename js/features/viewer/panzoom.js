@@ -1,7 +1,10 @@
 import { APP_CONFIG } from "../../app/config.js";
 import { VIEWER_ZOOM } from "./constants.js";
 import { isModel3DInteractionTarget } from "./model3dRenderer.js";
-import { safeAddListener as defaultSafeAddListener, safeCall as defaultSafeCall } from "../../utils/safeCall.js";
+import {
+    safeAddListener as defaultSafeAddListener,
+    safeCall as defaultSafeCall,
+} from "../../utils/safeCall.js";
 
 export function createViewerPanZoom({
     overlay,
@@ -37,7 +40,10 @@ export function createViewerPanZoom({
                 return { w: hintedW, h: hintedH };
             }
             if (mediaEl.tagName === "IMG") {
-                return { w: Number(mediaEl.naturalWidth) || 0, h: Number(mediaEl.naturalHeight) || 0 };
+                return {
+                    w: Number(mediaEl.naturalWidth) || 0,
+                    h: Number(mediaEl.naturalHeight) || 0,
+                };
             }
             if (mediaEl.tagName === "VIDEO") {
                 return { w: Number(mediaEl.videoWidth) || 0, h: Number(mediaEl.videoHeight) || 0 };
@@ -47,7 +53,9 @@ export function createViewerPanZoom({
                 const h = Number(mediaEl._mjrNaturalH) || Number(mediaEl.height) || 0;
                 return { w, h };
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         return { w: 0, h: 0 };
     };
 
@@ -72,7 +80,9 @@ export function createViewerPanZoom({
                 state._mediaW = w;
                 state._mediaH = h;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const attachMediaLoadHandlers = (mediaEl, { clampPanToBounds, applyTransform } = {}) => {
@@ -82,25 +92,36 @@ export function createViewerPanZoom({
             updateMediaNaturalSize();
             try {
                 clampPanToBounds?.();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 applyTransform?.();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         };
         try {
             if (mediaEl.tagName === "IMG") {
                 mediaEl.addEventListener("load", () => requestAnimationFrame(sync), { once: true });
             } else if (mediaEl.tagName === "VIDEO") {
-                mediaEl.addEventListener("loadedmetadata", () => requestAnimationFrame(sync), { once: true });
+                mediaEl.addEventListener("loadedmetadata", () => requestAnimationFrame(sync), {
+                    once: true,
+                });
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const clampPanToBounds = () => {
         try {
             if (!overlay || overlay.style.display === "none") return;
 
-            const zoom = Math.max(VIEWER_ZOOM.MIN, Math.min(VIEWER_ZOOM.MAX, Number(state?.zoom) || 1));
+            const zoom = Math.max(
+                VIEWER_ZOOM.MIN,
+                Math.min(VIEWER_ZOOM.MAX, Number(state?.zoom) || 1),
+            );
 
             const current = state?.assets?.[state?.currentIndex];
             let aw = Number(current?.width) || 0;
@@ -123,10 +144,18 @@ export function createViewerPanZoom({
                         const h = Number(cached.h) || 0;
                         if (w > 0 && h > 0) return { w, h };
                     }
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
 
-                const fallbackW = Math.max(Number(content?.clientWidth) || 0, Number(overlay?.clientWidth) || 0);
-                const fallbackH = Math.max(Number(content?.clientHeight) || 0, Number(overlay?.clientHeight) || 0);
+                const fallbackW = Math.max(
+                    Number(content?.clientWidth) || 0,
+                    Number(overlay?.clientWidth) || 0,
+                );
+                const fallbackH = Math.max(
+                    Number(content?.clientHeight) || 0,
+                    Number(overlay?.clientHeight) || 0,
+                );
                 const clampToFallback = (w, h) => ({
                     w: Math.max(Number(w) || 0, fallbackW),
                     h: Math.max(Number(h) || 0, fallbackH),
@@ -138,7 +167,9 @@ export function createViewerPanZoom({
                 } else if (state?.mode === VIEWER_MODES?.AB_COMPARE) {
                     res = clampToFallback(abView?.clientWidth, abView?.clientHeight);
                 } else {
-                    const children = Array.from(sideView?.children || []).filter((el) => el && el.nodeType === 1);
+                    const children = Array.from(sideView?.children || []).filter(
+                        (el) => el && el.nodeType === 1,
+                    );
                     if (children.length) {
                         let minW = Infinity;
                         let minH = Infinity;
@@ -157,7 +188,9 @@ export function createViewerPanZoom({
 
                 try {
                     state._viewportCache = { mode: state?.mode, w: res.w, h: res.h, at: now };
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 return res;
             };
 
@@ -199,7 +232,9 @@ export function createViewerPanZoom({
 
             state.panX = Math.max(-maxPanX, Math.min(maxPanX, Number(state?.panX) || 0));
             state.panY = Math.max(-maxPanY, Math.min(maxPanY, Number(state?.panY) || 0));
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const mediaTransform = () => {
@@ -223,14 +258,18 @@ export function createViewerPanZoom({
             const { w: aw, h: ah } = getMediaNaturalSize(mediaEl) || { w: 0, h: 0 };
             const viewport = getViewportRect();
             const overflow =
-                viewport && aw > 0 && ah > 0 ? _computeOverflowAtZoom(aw, ah, viewport.width, viewport.height, zoom) : false;
+                viewport && aw > 0 && ah > 0
+                    ? _computeOverflowAtZoom(aw, ah, viewport.width, viewport.height, zoom)
+                    : false;
             const zoomed = zoom > 1.01 || overflow;
             if (!zoomed) {
                 content.style.cursor = "";
                 return;
             }
             content.style.cursor = "grab";
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const applyTransform = () => {
@@ -260,27 +299,45 @@ export function createViewerPanZoom({
                         }
                     }
                     el.style.transform = t;
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
             try {
                 // Immediate redraw to avoid 1-frame lag (sync grid with new transform)
                 scheduleOverlayRedraw?.(true);
-            } catch (e) { console.debug?.(e); }
-        } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const setZoom = (next, { clientX = null, clientY = null } = {}) => {
         try {
-            const prevZoom = Math.max(VIEWER_ZOOM.MIN, Math.min(VIEWER_ZOOM.MAX, Number(state?.zoom) || 1));
-            const nextZoom = Math.max(VIEWER_ZOOM.MIN, Math.min(VIEWER_ZOOM.MAX, Number(next) || prevZoom));
+            const prevZoom = Math.max(
+                VIEWER_ZOOM.MIN,
+                Math.min(VIEWER_ZOOM.MAX, Number(state?.zoom) || 1),
+            );
+            const nextZoom = Math.max(
+                VIEWER_ZOOM.MIN,
+                Math.min(VIEWER_ZOOM.MAX, Number(next) || prevZoom),
+            );
             try {
                 state._userInteracted = true;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
 
             let newPanX = Number(state?.panX) || 0;
             let newPanY = Number(state?.panY) || 0;
 
-            const hasPointer = clientX != null && clientY != null && Number.isFinite(Number(clientX)) && Number.isFinite(Number(clientY));
+            const hasPointer =
+                clientX != null &&
+                clientY != null &&
+                Number.isFinite(Number(clientX)) &&
+                Number.isFinite(Number(clientY));
             if (hasPointer) {
                 try {
                     const rect = content?.getBoundingClientRect?.();
@@ -290,14 +347,18 @@ export function createViewerPanZoom({
                         const uX = (Number(clientX) || 0) - cx;
                         const uY = (Number(clientY) || 0) - cy;
                         const r = nextZoom / prevZoom;
-                        newPanX = Math.round(((Number(state?.panX) || 0) * r + (1 - r) * uX) * 10) / 10;
-                        newPanY = Math.round(((Number(state?.panY) || 0) * r + (1 - r) * uY) * 10) / 10;
+                        newPanX =
+                            Math.round(((Number(state?.panX) || 0) * r + (1 - r) * uX) * 10) / 10;
+                        newPanY =
+                            Math.round(((Number(state?.panY) || 0) * r + (1 - r) * uY) * 10) / 10;
                     }
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             } else if (nextZoom !== prevZoom) {
                 const r = nextZoom / prevZoom;
-                newPanX = Math.round(((Number(state?.panX) || 0) * r) * 10) / 10;
-                newPanY = Math.round(((Number(state?.panY) || 0) * r) * 10) / 10;
+                newPanX = Math.round((Number(state?.panX) || 0) * r * 10) / 10;
+                newPanY = Math.round((Number(state?.panY) || 0) * r * 10) / 10;
             }
 
             state.zoom = nextZoom;
@@ -313,7 +374,9 @@ export function createViewerPanZoom({
             state.targetZoom = state.zoom;
             applyTransform();
             updatePanCursor();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     // Viewer default: fit by height (Nuke-like). Prevents "tiny" images by always scaling up to viewer height.
@@ -397,7 +460,14 @@ export function createViewerPanZoom({
     };
 
     // Pan (middle-mouse-like click+drag) when zoomed in.
-    const pan = { active: false, pointerId: null, startX: 0, startY: 0, startPanX: 0, startPanY: 0 };
+    const pan = {
+        active: false,
+        pointerId: null,
+        startX: 0,
+        startY: 0,
+        startPanX: 0,
+        startPanY: 0,
+    };
 
     const onPanPointerDown = (e) => {
         if (!overlay || overlay.style.display === "none") return;
@@ -418,7 +488,10 @@ export function createViewerPanZoom({
                 const { w: aw, h: ah } = getMediaNaturalSize(mediaEl) || { w: 0, h: 0 };
                 const viewport = getViewportRect();
                 if (!viewport || !(aw > 0 && ah > 0)) return zoom > 1.01;
-                return zoom > 1.01 || _computeOverflowAtZoom(aw, ah, viewport.width, viewport.height, zoom);
+                return (
+                    zoom > 1.01 ||
+                    _computeOverflowAtZoom(aw, ah, viewport.width, viewport.height, zoom)
+                );
             } catch {
                 return zoom > 1.01;
             }
@@ -428,18 +501,26 @@ export function createViewerPanZoom({
                 state._panHintAt = Date.now();
                 state._panHintX = e?.clientX ?? null;
                 state._panHintY = e?.clientY ?? null;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 if (state._panHintTimer) clearTimeout(state._panHintTimer);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 state._panHintTimer = setTimeout(() => {
                     try {
                         state._panHintAt = 0;
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                     safeCall(scheduleOverlayRedraw);
                 }, 950);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             safeCall(scheduleOverlayRedraw);
             return;
         }
@@ -448,15 +529,26 @@ export function createViewerPanZoom({
         if (!isLeft && !isMiddle) return;
         try {
             const t = e.target;
-            if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
-        } catch (e) { console.debug?.(e); }
+            if (
+                t &&
+                (t.tagName === "INPUT" ||
+                    t.tagName === "TEXTAREA" ||
+                    t.tagName === "SELECT" ||
+                    t.isContentEditable)
+            )
+                return;
+        } catch (e) {
+            console.debug?.(e);
+        }
         // Do not start panning when interacting with viewer controls (player bar, buttons, seek handles, menus, slider).
         try {
             if (e?.target?.closest?.(".mjr-video-controls")) return;
             if (e?.target?.closest?.(".mjr-context-menu")) return;
             if (e?.target?.closest?.(".mjr-ab-slider")) return;
             if (isModel3DInteractionTarget(e?.target)) return;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             if (!content?.contains?.(e.target)) return;
         } catch {
@@ -466,12 +558,16 @@ export function createViewerPanZoom({
         pan.active = true;
         try {
             state._userInteracted = true;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         pan.pointerId = e.pointerId;
         try {
             state._lastPointerX = e.clientX;
             state._lastPointerY = e.clientY;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         pan.startX = e.clientX;
         pan.startY = e.clientY;
         pan.startPanX = Number(state?.panX) || 0;
@@ -480,13 +576,19 @@ export function createViewerPanZoom({
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             content?.setPointerCapture?.(e.pointerId);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             if (content) content.style.cursor = "grabbing";
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const onPanPointerMove = (e) => {
@@ -494,12 +596,16 @@ export function createViewerPanZoom({
         // If the user started interacting with video controls, never treat it as a pan gesture.
         try {
             if (e?.target?.closest?.(".mjr-video-controls")) return;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         const dx = (Number(e.clientX) || 0) - pan.startX;
         const dy = (Number(e.clientY) || 0) - pan.startY;
         const zoom = Math.max(VIEWER_ZOOM.MIN, Math.min(VIEWER_ZOOM.MAX, Number(state?.zoom) || 1));
@@ -509,7 +615,9 @@ export function createViewerPanZoom({
         try {
             state._lastPointerX = e.clientX;
             state._lastPointerY = e.clientY;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         applyTransform();
         updatePanCursor();
     };
@@ -520,7 +628,9 @@ export function createViewerPanZoom({
         pan.pointerId = null;
         try {
             content?.releasePointerCapture?.(e.pointerId);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         updatePanCursor();
     };
 
@@ -528,18 +638,27 @@ export function createViewerPanZoom({
         if (!overlay || overlay.style.display === "none") return;
         try {
             if (!content?.contains?.(e.target)) return;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             if (isModel3DInteractionTarget(e?.target)) return;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         const isNearFit = Math.abs((Number(state?.targetZoom) || 1) - 1) < 0.01;
         if (isNearFit) {
-            setZoom(Math.min(8, (Number(state?.targetZoom) || 1) * 4), { clientX: e.clientX, clientY: e.clientY });
+            setZoom(Math.min(8, (Number(state?.targetZoom) || 1) * 4), {
+                clientX: e.clientX,
+                clientY: e.clientY,
+            });
         } else {
             setZoom(1, { clientX: e.clientX, clientY: e.clientY });
         }
@@ -547,20 +666,49 @@ export function createViewerPanZoom({
 
     try {
         if (content && !content._mjrPanBound) {
-            unsubs.push(safeAddListener(content, "pointerdown", onPanPointerDown, { passive: false, capture: true }));
-            unsubs.push(safeAddListener(content, "pointermove", onPanPointerMove, { passive: false, capture: true }));
-            unsubs.push(safeAddListener(content, "pointerup", onPanPointerUp, { passive: true, capture: true }));
-            unsubs.push(safeAddListener(content, "pointercancel", onPanPointerUp, { passive: true, capture: true }));
+            unsubs.push(
+                safeAddListener(content, "pointerdown", onPanPointerDown, {
+                    passive: false,
+                    capture: true,
+                }),
+            );
+            unsubs.push(
+                safeAddListener(content, "pointermove", onPanPointerMove, {
+                    passive: false,
+                    capture: true,
+                }),
+            );
+            unsubs.push(
+                safeAddListener(content, "pointerup", onPanPointerUp, {
+                    passive: true,
+                    capture: true,
+                }),
+            );
+            unsubs.push(
+                safeAddListener(content, "pointercancel", onPanPointerUp, {
+                    passive: true,
+                    capture: true,
+                }),
+            );
             content._mjrPanBound = true;
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     try {
         if (content && !content._mjrDblClickResetBound) {
-            unsubs.push(safeAddListener(content, "dblclick", onDblClickReset, { passive: false, capture: true }));
+            unsubs.push(
+                safeAddListener(content, "dblclick", onDblClickReset, {
+                    passive: false,
+                    capture: true,
+                }),
+            );
             content._mjrDblClickResetBound = true;
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     return {
         getPrimaryMedia,

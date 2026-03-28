@@ -18,12 +18,7 @@ export function createFolderDetailsSection(asset, folderInfo = null) {
     const section = createSection("Folder Details");
     const data = folderInfo || {};
 
-    const path = String(
-        data.path ||
-            asset?.filepath ||
-            asset?.subfolder ||
-            ""
-    );
+    const path = String(data.path || asset?.filepath || asset?.subfolder || "");
     const name = String(data.name || asset?.filename || "").trim();
     const files = Number(data.files ?? 0);
     const folders = Number(data.folders ?? 0);
@@ -62,4 +57,3 @@ export function createFolderDetailsSection(asset, folderInfo = null) {
     section.appendChild(createParametersBox("Folder", rows, "#26A69A", { emphasis: true }));
     return section;
 }
-

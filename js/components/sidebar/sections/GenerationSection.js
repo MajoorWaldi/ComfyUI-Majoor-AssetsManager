@@ -11,19 +11,38 @@ import {
 } from "../parsers/geninfoParser.js";
 
 const _IMAGE_EXTENSIONS = new Set([
-    "png", "jpg", "jpeg", "webp", "gif", "bmp", "tiff", "tif", "avif", "heic", "heif", "apng", "hdr", "svg",
+    "png",
+    "jpg",
+    "jpeg",
+    "webp",
+    "gif",
+    "bmp",
+    "tiff",
+    "tif",
+    "avif",
+    "heic",
+    "heif",
+    "apng",
+    "hdr",
+    "svg",
 ]);
 
 function _assetExtension(asset) {
-    const raw = String(asset?.filename || asset?.name || asset?.filepath || asset?.path || "").trim().toLowerCase();
+    const raw = String(asset?.filename || asset?.name || asset?.filepath || asset?.path || "")
+        .trim()
+        .toLowerCase();
     if (!raw || !raw.includes(".")) return "";
     return raw.split(".").pop() || "";
 }
 
 function _isImageLikeAsset(asset) {
-    const kind = String(asset?.kind || "").trim().toLowerCase();
+    const kind = String(asset?.kind || "")
+        .trim()
+        .toLowerCase();
     if (kind === "image") return true;
-    const mime = String(asset?.mime || asset?.mimetype || "").trim().toLowerCase();
+    const mime = String(asset?.mime || asset?.mimetype || "")
+        .trim()
+        .toLowerCase();
     if (mime.startsWith("image/")) return true;
     const ext = _assetExtension(asset);
     return _IMAGE_EXTENSIONS.has(ext);
@@ -35,17 +54,17 @@ function _isJpegAsset(asset) {
 }
 
 function _getAlignmentColor(score) {
-    if (score >= 0.75) return "#4CAF50";      // green
-    if (score >= 0.50) return "#8BC34A";      // light green
-    if (score >= 0.30) return "#FF9800";      // orange
-    return "#F44336";                          // red
+    if (score >= 0.75) return "#4CAF50"; // green
+    if (score >= 0.5) return "#8BC34A"; // light green
+    if (score >= 0.3) return "#FF9800"; // orange
+    return "#F44336"; // red
 }
 
 function _getAlignmentLabel(score) {
     if (score >= 0.85) return "Excellent";
-    if (score >= 0.70) return "Good";
-    if (score >= 0.50) return "Fair";
-    if (score >= 0.30) return "Low";
+    if (score >= 0.7) return "Good";
+    if (score >= 0.5) return "Fair";
+    if (score >= 0.3) return "Low";
     return "Very Low";
 }
 
@@ -173,57 +192,59 @@ function _createAlignmentBox(asset, options = {}) {
     let currentEnhancedCaption = String(asset?.enhanced_caption || "").trim();
 
     if (showAlignment && asset?.id && aiEnabled) {
-        vectorGetAlignment(asset.id).then(res => {
-            const serviceUnavailable = !res?.ok && (
-                String(res?.code || "").toUpperCase() === "SERVICE_UNAVAILABLE"
-                || /vector search is not enabled/i.test(String(res?.error || ""))
-            );
-            if (serviceUnavailable) {
-                if (scoreLabel) {
-                    scoreLabel.textContent = "AI OFF";
-                    scoreLabel.style.color = "#9E9E9E";
+        vectorGetAlignment(asset.id)
+            .then((res) => {
+                const serviceUnavailable =
+                    !res?.ok &&
+                    (String(res?.code || "").toUpperCase() === "SERVICE_UNAVAILABLE" ||
+                        /vector search is not enabled/i.test(String(res?.error || "")));
+                if (serviceUnavailable) {
+                    if (scoreLabel) {
+                        scoreLabel.textContent = "AI OFF";
+                        scoreLabel.style.color = "#9E9E9E";
+                    }
+                    if (qualityBadge) {
+                        qualityBadge.textContent = "Disabled";
+                        qualityBadge.style.background = "rgba(158,158,158,0.25)";
+                        qualityBadge.style.color = "#BDBDBD";
+                    }
+                    if (scoreFill) {
+                        scoreFill.style.width = "0%";
+                        scoreFill.style.background = "#777";
+                    }
+                    if (aiStatusHint) aiStatusHint.style.display = "block";
+                    return;
                 }
-                if (qualityBadge) {
-                    qualityBadge.textContent = "Disabled";
-                    qualityBadge.style.background = "rgba(158,158,158,0.25)";
-                    qualityBadge.style.color = "#BDBDBD";
+                const score = res?.ok && res.data != null ? Number(res.data) : null;
+                if (score == null || !Number.isFinite(score)) {
+                    if (scoreLabel) scoreLabel.textContent = "N/A";
+                    if (qualityBadge) {
+                        qualityBadge.textContent = "N/A";
+                        qualityBadge.style.background = "rgba(127,127,127,0.3)";
+                    }
+                    if (scoreFill) scoreFill.style.width = "0%";
+                    return;
                 }
+                const pct = Math.round(score * 100);
+                const color = _getAlignmentColor(score);
                 if (scoreFill) {
-                    scoreFill.style.width = "0%";
-                    scoreFill.style.background = "#777";
+                    scoreFill.style.width = `${pct}%`;
+                    scoreFill.style.background = color;
                 }
-                if (aiStatusHint) aiStatusHint.style.display = "block";
-                return;
-            }
-            const score = res?.ok && res.data != null ? Number(res.data) : null;
-            if (score == null || !Number.isFinite(score)) {
-                if (scoreLabel) scoreLabel.textContent = "N/A";
+                if (scoreLabel) {
+                    scoreLabel.textContent = `${pct}%`;
+                    scoreLabel.style.color = color;
+                }
                 if (qualityBadge) {
-                    qualityBadge.textContent = "N/A";
-                    qualityBadge.style.background = "rgba(127,127,127,0.3)";
+                    qualityBadge.textContent = _getAlignmentLabel(score);
+                    qualityBadge.style.background = `${color}33`;
+                    qualityBadge.style.color = color;
                 }
-                if (scoreFill) scoreFill.style.width = "0%";
-                return;
-            }
-            const pct = Math.round(score * 100);
-            const color = _getAlignmentColor(score);
-            if (scoreFill) {
-                scoreFill.style.width = `${pct}%`;
-                scoreFill.style.background = color;
-            }
-            if (scoreLabel) {
-                scoreLabel.textContent = `${pct}%`;
-                scoreLabel.style.color = color;
-            }
-            if (qualityBadge) {
-                qualityBadge.textContent = _getAlignmentLabel(score);
-                qualityBadge.style.background = `${color}33`;
-                qualityBadge.style.color = color;
-            }
-        }).catch(() => {
-            if (scoreLabel) scoreLabel.textContent = "-";
-            if (qualityBadge) qualityBadge.textContent = "Unavailable";
-        });
+            })
+            .catch(() => {
+                if (scoreLabel) scoreLabel.textContent = "-";
+                if (qualityBadge) qualityBadge.textContent = "Unavailable";
+            });
     }
     if (showAlignment && !aiEnabled) {
         if (scoreLabel) {
@@ -339,7 +360,9 @@ function _createAlignmentBox(asset, options = {}) {
             await navigator.clipboard.writeText(text);
             const prev = copyCaptionBtn.textContent;
             copyCaptionBtn.textContent = "Copied!";
-            setTimeout(() => { copyCaptionBtn.textContent = prev; }, 900);
+            setTimeout(() => {
+                copyCaptionBtn.textContent = prev;
+            }, 900);
         } catch (err) {
             console.debug?.(err);
         }
@@ -351,7 +374,9 @@ function _createAlignmentBox(asset, options = {}) {
     });
 
     enhancedCaptionBox.style.cursor = aiEnabled ? "copy" : "default";
-    enhancedCaptionBox.title = aiEnabled ? "Click to copy caption" : "AI caption controls are disabled";
+    enhancedCaptionBox.title = aiEnabled
+        ? "Click to copy caption"
+        : "AI caption controls are disabled";
     enhancedCaptionBox.addEventListener("click", () => {
         void copyCaption();
     });
@@ -395,7 +420,9 @@ function _inputPreviewCandidates(inp) {
     const filename = String(inp?.filename || "").trim();
     if (!filename) return [];
     const subfolder = String(inp?.subfolder || "").trim();
-    const preferredType = String(inp?.folder_type || "input").trim().toLowerCase();
+    const preferredType = String(inp?.folder_type || "input")
+        .trim()
+        .toLowerCase();
     const candidates = [];
     const pushType = (t) => {
         if (!t) return;
@@ -479,7 +506,9 @@ function _applyTabHighlightStyle(btn, isActive, colorHex) {
 }
 
 function _createPromptTabsBox(title, positives, negatives, colorHex) {
-    const pos = Array.isArray(positives) ? positives.filter((p) => typeof p === "string" && p.trim()) : [];
+    const pos = Array.isArray(positives)
+        ? positives.filter((p) => typeof p === "string" && p.trim())
+        : [];
     if (!pos.length) return null;
     const neg = Array.isArray(negatives) ? negatives : [];
 
@@ -555,10 +584,12 @@ function _createPromptTabsBox(title, positives, negatives, colorHex) {
 
         const pLabel = document.createElement("div");
         pLabel.textContent = "POSITIVE";
-        pLabel.style.cssText = "font-size: 10px; font-weight: 700; color: #4CAF50; letter-spacing: 0.4px;";
+        pLabel.style.cssText =
+            "font-size: 10px; font-weight: 700; color: #4CAF50; letter-spacing: 0.4px;";
         const pText = document.createElement("div");
         pText.textContent = positiveText;
-        pText.style.cssText = "font-size: 12px; color: var(--fg-color, #ddd); white-space: pre-wrap; line-height: 1.35;";
+        pText.style.cssText =
+            "font-size: 12px; color: var(--fg-color, #ddd); white-space: pre-wrap; line-height: 1.35;";
         _enableCopyOnClick(pText, positiveText);
         panel.appendChild(pLabel);
         panel.appendChild(pText);
@@ -567,10 +598,12 @@ function _createPromptTabsBox(title, positives, negatives, colorHex) {
         if (negText) {
             const nLabel = document.createElement("div");
             nLabel.textContent = "NEGATIVE";
-            nLabel.style.cssText = "font-size: 10px; font-weight: 700; color: #F44336; letter-spacing: 0.4px; margin-top: 4px;";
+            nLabel.style.cssText =
+                "font-size: 10px; font-weight: 700; color: #F44336; letter-spacing: 0.4px; margin-top: 4px;";
             const nText = document.createElement("div");
             nText.textContent = negText;
-            nText.style.cssText = "font-size: 12px; color: var(--fg-color, #ddd); white-space: pre-wrap; line-height: 1.35;";
+            nText.style.cssText =
+                "font-size: 12px; color: var(--fg-color, #ddd); white-space: pre-wrap; line-height: 1.35;";
             _enableCopyOnClick(nText, negText);
             panel.appendChild(nLabel);
             panel.appendChild(nText);
@@ -587,7 +620,9 @@ function _createPromptTabsBox(title, positives, negatives, colorHex) {
 }
 
 function _createTabsBox(title, passesArray, colorHex) {
-    const safePasses = Array.isArray(passesArray) ? passesArray.filter((p) => p && typeof p === "object") : [];
+    const safePasses = Array.isArray(passesArray)
+        ? passesArray.filter((p) => p && typeof p === "object")
+        : [];
     if (!safePasses.length) return null;
 
     const box = document.createElement("div");
@@ -702,7 +737,8 @@ function _createTabsBox(title, passesArray, colorHex) {
             const itemValue = document.createElement("span");
             const formatted = _formatPipelineValue(field.value);
             itemValue.textContent = formatted;
-            itemValue.style.cssText = "font-size: 12px; color: var(--fg-color, #ddd); word-break: break-word; padding: 1px 3px; border-radius: 3px; transition: background 0.2s ease;";
+            itemValue.style.cssText =
+                "font-size: 12px; color: var(--fg-color, #ddd); word-break: break-word; padding: 1px 3px; border-radius: 3px; transition: background 0.2s ease;";
             _enableCopyOnClick(itemValue, formatted);
 
             item.appendChild(itemLabel);
@@ -726,9 +762,15 @@ export function createGenerationSection(asset) {
     // Prefer backend-parsed geninfo when available (most reliable for pos/neg + model chain).
     if (asset?.geninfo && typeof asset.geninfo === "object") {
         metadata = { geninfo: asset.geninfo };
-    } else if (asset?.metadata && (typeof asset.metadata === "object" || typeof asset.metadata === "string")) {
+    } else if (
+        asset?.metadata &&
+        (typeof asset.metadata === "object" || typeof asset.metadata === "string")
+    ) {
         metadata = asset.metadata;
-    } else if (asset?.prompt && (typeof asset.prompt === "object" || typeof asset.prompt === "string")) {
+    } else if (
+        asset?.prompt &&
+        (typeof asset.prompt === "object" || typeof asset.prompt === "string")
+    ) {
         metadata = asset.prompt;
     } else if (asset?.metadata_raw) {
         metadata = asset.metadata_raw;
@@ -743,17 +785,57 @@ export function createGenerationSection(asset) {
             // Workflow Type check
             if (obj.engine && typeof obj.engine === "object" && obj.engine.type) return true;
             if (typeof obj.prompt === "string" && obj.prompt.trim()) return true;
-            if (typeof (obj.negative_prompt || obj.negativePrompt) === "string" && (obj.negative_prompt || obj.negativePrompt).trim())
+            if (
+                typeof (obj.negative_prompt || obj.negativePrompt) === "string" &&
+                (obj.negative_prompt || obj.negativePrompt).trim()
+            )
                 return true;
             if (obj.models || obj.model || obj.checkpoint || obj.loras) return true;
-            if (obj.sampler || obj.sampler_name || obj.steps || obj.cfg || obj.cfg_scale || obj.scheduler) return true;
+            if (
+                obj.sampler ||
+                obj.sampler_name ||
+                obj.steps ||
+                obj.cfg ||
+                obj.cfg_scale ||
+                obj.scheduler
+            )
+                return true;
             if (Array.isArray(obj.chained_passes) && obj.chained_passes.length > 0) return true;
             if (Array.isArray(obj.all_samplers) && obj.all_samplers.length > 0) return true;
             if (obj.seed || obj.denoise || obj.denoising || obj.clip_skip) return true;
-            if (obj.voice || obj.language || obj.temperature || obj.top_k || obj.top_p || obj.repetition_penalty || obj.max_new_tokens) return true;
-            if (obj.device || obj.voice_preset || obj.instruct || obj.dtype || obj.attn_implementation) return true;
-            if (obj.enable_chunking !== undefined || obj.max_chars_per_chunk || obj.chunk_combination_method || obj.silence_between_chunks_ms) return true;
-            if (obj.enable_audio_cache !== undefined || obj.batch_size !== undefined || obj.use_torch_compile !== undefined || obj.use_cuda_graphs !== undefined || obj.compile_mode) return true;
+            if (
+                obj.voice ||
+                obj.language ||
+                obj.temperature ||
+                obj.top_k ||
+                obj.top_p ||
+                obj.repetition_penalty ||
+                obj.max_new_tokens
+            )
+                return true;
+            if (
+                obj.device ||
+                obj.voice_preset ||
+                obj.instruct ||
+                obj.dtype ||
+                obj.attn_implementation
+            )
+                return true;
+            if (
+                obj.enable_chunking !== undefined ||
+                obj.max_chars_per_chunk ||
+                obj.chunk_combination_method ||
+                obj.silence_between_chunks_ms
+            )
+                return true;
+            if (
+                obj.enable_audio_cache !== undefined ||
+                obj.batch_size !== undefined ||
+                obj.use_torch_compile !== undefined ||
+                obj.use_cuda_graphs !== undefined ||
+                obj.compile_mode
+            )
+                return true;
             if (typeof obj.lyrics === "string" && obj.lyrics.trim()) return true;
             return false;
         } catch {
@@ -761,7 +843,11 @@ export function createGenerationSection(asset) {
         }
     };
 
-    if (!normalized || (typeof normalized === "object" && Object.keys(normalized).length === 0) || !hasDisplayableFields(normalized)) {
+    if (
+        !normalized ||
+        (typeof normalized === "object" && Object.keys(normalized).length === 0) ||
+        !hasDisplayableFields(normalized)
+    ) {
         const status = asset?.metadata_raw?.geninfo_status || asset?.geninfo_status;
         if (status && typeof status === "object" && status.kind === "media_pipeline") {
             const container = document.createElement("div");
@@ -769,8 +855,8 @@ export function createGenerationSection(asset) {
                 createInfoBox(
                     "Generation Data",
                     "This file looks like a media-only pipeline (e.g. LoadVideo/VideoCombine) and does not contain generation parameters.",
-                    "#9E9E9E"
-                )
+                    "#9E9E9E",
+                ),
             );
             return container;
         }
@@ -784,11 +870,13 @@ export function createGenerationSection(asset) {
                 flex-direction: column;
                 gap: 12px;
             `;
-            container.appendChild(_createAlignmentBox(asset, {
-                showAlignment: false,
-                captionLabel: "Image Description",
-                emptyCaptionText: "No image description yet.",
-            }));
+            container.appendChild(
+                _createAlignmentBox(asset, {
+                    showAlignment: false,
+                    captionLabel: "Image Description",
+                    emptyCaptionText: "No image description yet.",
+                }),
+            );
             return container;
         }
         return null;
@@ -801,7 +889,7 @@ export function createGenerationSection(asset) {
         flex-direction: column;
         gap: 12px;
     `;
-    
+
     // Workflow Type Header (top of panel, visually emphasized)
     if (metadata.engine && metadata.engine.type) {
         const typeBox = document.createElement("div");
@@ -818,7 +906,7 @@ export function createGenerationSection(asset) {
             font-size: 11px;
             color: var(--fg-color, #ccc);
         `;
-        
+
         const badge = document.createElement("span");
         badge.textContent = metadata.engine.type;
         badge.title = `Workflow engine: ${metadata.engine.type}`;
@@ -830,7 +918,7 @@ export function createGenerationSection(asset) {
             font-weight: bold;
             font-size: 10px;
         `;
-        
+
         const label = document.createElement("span");
         label.textContent = "Workflow Type";
         label.style.opacity = "0.85";
@@ -841,15 +929,16 @@ export function createGenerationSection(asset) {
     }
 
     // Check for truncated flag (backend sets this if metadata > limit)
-    const isTruncated = asset?.geninfo?._truncated || asset?.metadata?._truncated || asset?.prompt?._truncated;
+    const isTruncated =
+        asset?.geninfo?._truncated || asset?.metadata?._truncated || asset?.prompt?._truncated;
 
     if (isTruncated) {
-         container.appendChild(
+        container.appendChild(
             createInfoBox(
                 "Metadata Truncated",
                 "Generation data is incomplete because it exceeded the size limit.",
-                "#FF9800"
-            )
+                "#FF9800",
+            ),
         );
     }
 
@@ -857,18 +946,21 @@ export function createGenerationSection(asset) {
         typeof metadata.prompt === "string" ? metadata.prompt : null,
         typeof (metadata.negative_prompt || metadata.negativePrompt) === "string"
             ? metadata.negative_prompt || metadata.negativePrompt
-            : null
+            : null,
     );
 
     const hasPromptTabs =
-        metadata.all_positive_prompts && Array.isArray(metadata.all_positive_prompts) && metadata.all_positive_prompts.length > 1;
+        metadata.all_positive_prompts &&
+        Array.isArray(metadata.all_positive_prompts) &&
+        metadata.all_positive_prompts.length > 1;
 
     if (!hasPromptTabs && typeof cleaned.positive === "string" && cleaned.positive.trim()) {
         const positiveBox = createInfoBox("Positive Prompt", cleaned.positive, "#4CAF50", {
-                showCopyButton: false,
-                copyOnContentClick: true,
-            });
-        positiveBox.style.background = "linear-gradient(135deg, rgba(76, 175, 80, 0.16) 0%, rgba(33, 150, 243, 0.10) 100%)";
+            showCopyButton: false,
+            copyOnContentClick: true,
+        });
+        positiveBox.style.background =
+            "linear-gradient(135deg, rgba(76, 175, 80, 0.16) 0%, rgba(33, 150, 243, 0.10) 100%)";
         positiveBox.style.borderLeft = "3px solid #4CAF50";
         positiveBox.style.border = "1px solid rgba(76, 175, 80, 0.45)";
         positiveBox.style.boxShadow = "0 0 0 1px rgba(76, 175, 80, 0.15) inset";
@@ -877,10 +969,11 @@ export function createGenerationSection(asset) {
 
     if (!hasPromptTabs && typeof cleaned.negative === "string" && cleaned.negative.trim()) {
         const negativeBox = createInfoBox("Negative Prompt", cleaned.negative, "#F44336", {
-                showCopyButton: false,
-                copyOnContentClick: true,
-            });
-        negativeBox.style.background = "linear-gradient(135deg, rgba(244, 67, 54, 0.16) 0%, rgba(255, 152, 0, 0.10) 100%)";
+            showCopyButton: false,
+            copyOnContentClick: true,
+        });
+        negativeBox.style.background =
+            "linear-gradient(135deg, rgba(244, 67, 54, 0.16) 0%, rgba(255, 152, 0, 0.10) 100%)";
         negativeBox.style.borderLeft = "3px solid #F44336";
         negativeBox.style.border = "1px solid rgba(244, 67, 54, 0.45)";
         negativeBox.style.boxShadow = "0 0 0 1px rgba(244, 67, 54, 0.15) inset";
@@ -903,7 +996,7 @@ export function createGenerationSection(asset) {
             `Prompt Pipeline (${metadata.all_positive_prompts.length} variants)`,
             metadata.all_positive_prompts,
             metadata.all_negative_prompts,
-            "#4CAF50"
+            "#4CAF50",
         );
         if (promptTabs) {
             container.appendChild(promptTabs);
@@ -920,9 +1013,10 @@ export function createGenerationSection(asset) {
     };
 
     if (models) {
-        const allCkpts = Array.isArray(metadata.all_checkpoints) && metadata.all_checkpoints.length > 1
-            ? metadata.all_checkpoints
-            : null;
+        const allCkpts =
+            Array.isArray(metadata.all_checkpoints) && metadata.all_checkpoints.length > 1
+                ? metadata.all_checkpoints
+                : null;
         if (allCkpts) {
             allCkpts.forEach((c, i) => {
                 const name = pickModelName(c);
@@ -943,7 +1037,10 @@ export function createGenerationSection(asset) {
         if (clip) modelData.push({ label: "CLIP", value: clip });
         if (vae) modelData.push({ label: "VAE", value: vae });
     } else if (metadata.model || metadata.checkpoint) {
-        modelData.push({ label: "Model", value: formatModelLabel(metadata.model || metadata.checkpoint) });
+        modelData.push({
+            label: "Model",
+            value: formatModelLabel(metadata.model || metadata.checkpoint),
+        });
     }
 
     if (metadata.loras && Array.isArray(metadata.loras) && metadata.loras.length > 0) {
@@ -967,7 +1064,9 @@ export function createGenerationSection(asset) {
         modelData.push({ label: "Diffusion", value: formatModelLabel(metadata.diffusion) });
     }
     if (modelData.length > 0) {
-        container.appendChild(createParametersBox("Model & LoRA", modelData, "#9C27B0", { emphasis: true }));
+        container.appendChild(
+            createParametersBox("Model & LoRA", modelData, "#9C27B0", { emphasis: true }),
+        );
     }
 
     const samplingData = [];
@@ -975,13 +1074,18 @@ export function createGenerationSection(asset) {
         samplingData.push({ label: "Sampler", value: metadata.sampler || metadata.sampler_name });
     }
     if (metadata.steps) samplingData.push({ label: "Steps", value: metadata.steps });
-    if (metadata.cfg || metadata.cfg_scale) samplingData.push({ label: "CFG Scale", value: metadata.cfg || metadata.cfg_scale });
+    if (metadata.cfg || metadata.cfg_scale)
+        samplingData.push({ label: "CFG Scale", value: metadata.cfg || metadata.cfg_scale });
     if (metadata.scheduler) samplingData.push({ label: "Scheduler", value: metadata.scheduler });
 
     const hasChainedPipeline =
-        metadata.chained_passes && Array.isArray(metadata.chained_passes) && metadata.chained_passes.length > 1;
+        metadata.chained_passes &&
+        Array.isArray(metadata.chained_passes) &&
+        metadata.chained_passes.length > 1;
     const hasAllSamplersPipeline =
-        metadata.all_samplers && Array.isArray(metadata.all_samplers) && metadata.all_samplers.length > 1;
+        metadata.all_samplers &&
+        Array.isArray(metadata.all_samplers) &&
+        metadata.all_samplers.length > 1;
     const hasPipelineTabs = !!(hasChainedPipeline || hasAllSamplersPipeline);
 
     if (hasChainedPipeline) {
@@ -990,22 +1094,31 @@ export function createGenerationSection(asset) {
             container.appendChild(tabsBox);
         }
     } else if (hasAllSamplersPipeline) {
-        const samplerPipeline = _createTabsBox("Generation Pipeline", metadata.all_samplers, "#FF9800");
+        const samplerPipeline = _createTabsBox(
+            "Generation Pipeline",
+            metadata.all_samplers,
+            "#FF9800",
+        );
         if (samplerPipeline) {
             container.appendChild(samplerPipeline);
         }
     }
     if (!hasPipelineTabs && samplingData.length > 0) {
-        container.appendChild(createParametersBox("Sampling", samplingData, "#FF9800", { emphasis: true }));
+        container.appendChild(
+            createParametersBox("Sampling", samplingData, "#FF9800", { emphasis: true }),
+        );
     }
 
     const isTTS = String(metadata?.engine?.type || "").toLowerCase() === "tts";
     const ttsData = [];
     if (metadata.voice) ttsData.push({ label: "Narrator Voice", value: metadata.voice });
     if (metadata.language) ttsData.push({ label: "Language", value: metadata.language });
-    if (metadata.top_k !== undefined && metadata.top_k !== null) ttsData.push({ label: "Top-k", value: metadata.top_k });
-    if (metadata.top_p !== undefined && metadata.top_p !== null) ttsData.push({ label: "Top-p", value: metadata.top_p });
-    if (metadata.temperature !== undefined && metadata.temperature !== null) ttsData.push({ label: "Temperature", value: metadata.temperature });
+    if (metadata.top_k !== undefined && metadata.top_k !== null)
+        ttsData.push({ label: "Top-k", value: metadata.top_k });
+    if (metadata.top_p !== undefined && metadata.top_p !== null)
+        ttsData.push({ label: "Top-p", value: metadata.top_p });
+    if (metadata.temperature !== undefined && metadata.temperature !== null)
+        ttsData.push({ label: "Temperature", value: metadata.temperature });
     if (metadata.repetition_penalty !== undefined && metadata.repetition_penalty !== null)
         ttsData.push({ label: "Repetition Penalty", value: metadata.repetition_penalty });
     if (metadata.max_new_tokens !== undefined && metadata.max_new_tokens !== null)
@@ -1016,16 +1129,28 @@ export function createGenerationSection(asset) {
 
     const ttsEngineData = [];
     if (metadata.device) ttsEngineData.push({ label: "Device", value: metadata.device });
-    if (metadata.voice_preset) ttsEngineData.push({ label: "Voice Preset", value: metadata.voice_preset });
+    if (metadata.voice_preset)
+        ttsEngineData.push({ label: "Voice Preset", value: metadata.voice_preset });
     if (metadata.dtype) ttsEngineData.push({ label: "Dtype", value: metadata.dtype });
-    if (metadata.attn_implementation) ttsEngineData.push({ label: "Attention", value: metadata.attn_implementation });
-    if (metadata.compile_mode) ttsEngineData.push({ label: "Compile Mode", value: metadata.compile_mode });
+    if (metadata.attn_implementation)
+        ttsEngineData.push({ label: "Attention", value: metadata.attn_implementation });
+    if (metadata.compile_mode)
+        ttsEngineData.push({ label: "Compile Mode", value: metadata.compile_mode });
     if (metadata.use_torch_compile !== undefined && metadata.use_torch_compile !== null)
-        ttsEngineData.push({ label: "Torch Compile", value: metadata.use_torch_compile ? "on" : "off" });
+        ttsEngineData.push({
+            label: "Torch Compile",
+            value: metadata.use_torch_compile ? "on" : "off",
+        });
     if (metadata.use_cuda_graphs !== undefined && metadata.use_cuda_graphs !== null)
-        ttsEngineData.push({ label: "CUDA Graphs", value: metadata.use_cuda_graphs ? "on" : "off" });
+        ttsEngineData.push({
+            label: "CUDA Graphs",
+            value: metadata.use_cuda_graphs ? "on" : "off",
+        });
     if (metadata.x_vector_only_mode !== undefined && metadata.x_vector_only_mode !== null)
-        ttsEngineData.push({ label: "X-Vector Only", value: metadata.x_vector_only_mode ? "on" : "off" });
+        ttsEngineData.push({
+            label: "X-Vector Only",
+            value: metadata.x_vector_only_mode ? "on" : "off",
+        });
     if (ttsEngineData.length > 0) {
         container.appendChild(createParametersBox("TTS Engine", ttsEngineData, "#00897B"));
     }
@@ -1035,7 +1160,7 @@ export function createGenerationSection(asset) {
             createInfoBox("TTS Instruction", metadata.instruct, "#26A69A", {
                 showCopyButton: false,
                 copyOnContentClick: true,
-            })
+            }),
         );
     }
 
@@ -1046,10 +1171,19 @@ export function createGenerationSection(asset) {
         ttsChunkingData.push({ label: "Max Chars/Chunk", value: metadata.max_chars_per_chunk });
     if (metadata.chunk_combination_method)
         ttsChunkingData.push({ label: "Chunk Method", value: metadata.chunk_combination_method });
-    if (metadata.silence_between_chunks_ms !== undefined && metadata.silence_between_chunks_ms !== null)
-        ttsChunkingData.push({ label: "Silence Between Chunks (ms)", value: metadata.silence_between_chunks_ms });
+    if (
+        metadata.silence_between_chunks_ms !== undefined &&
+        metadata.silence_between_chunks_ms !== null
+    )
+        ttsChunkingData.push({
+            label: "Silence Between Chunks (ms)",
+            value: metadata.silence_between_chunks_ms,
+        });
     if (metadata.enable_audio_cache !== undefined && metadata.enable_audio_cache !== null)
-        ttsChunkingData.push({ label: "Audio Cache", value: metadata.enable_audio_cache ? "on" : "off" });
+        ttsChunkingData.push({
+            label: "Audio Cache",
+            value: metadata.enable_audio_cache ? "on" : "off",
+        });
     if (metadata.batch_size !== undefined && metadata.batch_size !== null)
         ttsChunkingData.push({ label: "Batch Size", value: metadata.batch_size });
     if (ttsChunkingData.length > 0) {
@@ -1057,7 +1191,13 @@ export function createGenerationSection(asset) {
     }
 
     if (metadata.lyrics_strength !== undefined && metadata.lyrics_strength !== null) {
-        container.appendChild(createParametersBox("Audio", [{ label: "Lyrics Strength", value: metadata.lyrics_strength }], "#00BCD4"));
+        container.appendChild(
+            createParametersBox(
+                "Audio",
+                [{ label: "Lyrics Strength", value: metadata.lyrics_strength }],
+                "#00BCD4",
+            ),
+        );
     }
 
     // SEED - Highlighted prominently for easy comparison in A/B and side-by-side modes
@@ -1073,7 +1213,7 @@ export function createGenerationSection(asset) {
             justify-content: space-between;
             gap: 12px;
         `;
-        
+
         const seedLabel = document.createElement("div");
         seedLabel.textContent = "SEED";
         seedLabel.style.cssText = `
@@ -1083,7 +1223,7 @@ export function createGenerationSection(asset) {
             text-transform: uppercase;
             letter-spacing: 1px;
         `;
-        
+
         const seedValue = document.createElement("div");
         seedValue.textContent = String(metadata.seed);
         seedValue.title = `Click to copy seed: ${metadata.seed}`;
@@ -1098,7 +1238,7 @@ export function createGenerationSection(asset) {
             border-radius: 4px;
             transition: background 0.2s;
         `;
-        
+
         seedValue.addEventListener("mouseenter", () => {
             seedValue.style.background = "rgba(233, 30, 99, 0.3)";
         });
@@ -1109,17 +1249,22 @@ export function createGenerationSection(asset) {
             try {
                 await navigator.clipboard.writeText(String(metadata.seed));
                 seedValue.style.background = "rgba(76, 175, 80, 0.4)";
-                setTimeout(() => { seedValue.style.background = "transparent"; }, 500);
-            } catch (e) { console.debug?.(e); }
+                setTimeout(() => {
+                    seedValue.style.background = "transparent";
+                }, 500);
+            } catch (e) {
+                console.debug?.(e);
+            }
         });
-        
+
         seedBox.appendChild(seedLabel);
         seedBox.appendChild(seedValue);
         container.appendChild(seedBox);
     }
 
     const imageData = [];
-    if (metadata.denoise || metadata.denoising) imageData.push({ label: "Denoise", value: metadata.denoise || metadata.denoising });
+    if (metadata.denoise || metadata.denoising)
+        imageData.push({ label: "Denoise", value: metadata.denoise || metadata.denoising });
     if (metadata.clip_skip) imageData.push({ label: "Clip Skip", value: metadata.clip_skip });
     if (imageData.length > 0) {
         container.appendChild(createParametersBox("Image", imageData, "#2196F3"));
@@ -1153,12 +1298,13 @@ export function createGenerationSection(asset) {
 
         const grid = document.createElement("div");
         grid.style.cssText = "display: flex; gap: 8px; flex-wrap: wrap;";
-        
-        metadata.inputs.forEach(inp => {
+
+        metadata.inputs.forEach((inp) => {
             const thumb = document.createElement("div");
-            thumb.style.cssText = "width: 64px; height: 64px; background: #222; border-radius: 4px; overflow: hidden; position: relative; cursor: pointer; display: flex; align-items: center; justify-content: center;";
+            thumb.style.cssText =
+                "width: 64px; height: 64px; background: #222; border-radius: 4px; overflow: hidden; position: relative; cursor: pointer; display: flex; align-items: center; justify-content: center;";
             thumb.title = `${inp.filename} (click to copy, double-click to open in new tab)`;
-            
+
             const srcCandidates = _inputPreviewCandidates(inp);
 
             const isVideo = inp.type === "video" || inp.filename.match(/\.(mp4|mov|webm)$/i);
@@ -1209,10 +1355,11 @@ export function createGenerationSection(asset) {
                 const icon = document.createElement("div");
                 icon.innerHTML = "▶";
                 icon.title = t("tooltip.videoFile", "Video file");
-                icon.style.cssText = "position: absolute; color: white; opacity: 0.7; font-size: 16px; pointer-events: none;";
+                icon.style.cssText =
+                    "position: absolute; color: white; opacity: 0.7; font-size: 16px; pointer-events: none;";
                 thumb.appendChild(icon);
             }
-            
+
             thumb.onclick = async (e) => {
                 e.stopPropagation();
                 try {
@@ -1225,18 +1372,23 @@ export function createGenerationSection(asset) {
                         thumb.style.outline = "";
                         thumb.style.outlineOffset = "";
                     }, 350);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             };
             thumb.ondblclick = (e) => {
                 e.stopPropagation();
-                const src = Array.isArray(srcCandidates) && srcCandidates.length ? String(srcCandidates[0] || "") : "";
+                const src =
+                    Array.isArray(srcCandidates) && srcCandidates.length
+                        ? String(srcCandidates[0] || "")
+                        : "";
                 if (!_isSafeOpenUrl(src)) return;
                 window.open(src, "_blank", "noopener,noreferrer");
             };
-            
+
             grid.appendChild(thumb);
         });
-        
+
         inputBox.appendChild(grid);
         container.appendChild(inputBox);
     }

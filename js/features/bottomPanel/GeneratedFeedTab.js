@@ -19,7 +19,9 @@ function _getRenderedCards(grid) {
             const cards = grid._mjrGetRenderedCards();
             if (Array.isArray(cards)) return cards;
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         return Array.from(grid?.querySelectorAll?.(".mjr-asset-card") || []);
     } catch (e) {
@@ -30,7 +32,12 @@ function _getRenderedCards(grid) {
 
 function _applyFeedSelection(grid, ids, activeId = "") {
     const nextIds = Array.isArray(ids) ? ids.map(String).filter(Boolean) : [];
-    return setSelectionIds(grid, nextIds, { activeId: activeId || nextIds[0] || "" }, _getRenderedCards);
+    return setSelectionIds(
+        grid,
+        nextIds,
+        { activeId: activeId || nextIds[0] || "" },
+        _getRenderedCards,
+    );
 }
 
 function _bindFeedSelection(host) {
@@ -47,7 +54,9 @@ function _bindFeedSelection(host) {
 
         try {
             window.__MJR_LAST_SELECTION_GRID__ = grid;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         const cards = _getRenderedCards(grid);
         const clickedIndex = cards.indexOf(card);
@@ -74,7 +83,11 @@ function _bindFeedSelection(host) {
             if (existing.has(clickedId)) existing.delete(clickedId);
             else existing.add(clickedId);
             const nextIds = Array.from(existing);
-            _applyFeedSelection(grid, nextIds, existing.has(clickedId) ? clickedId : (nextIds[0] || ""));
+            _applyFeedSelection(
+                grid,
+                nextIds,
+                existing.has(clickedId) ? clickedId : nextIds[0] || "",
+            );
             if (clickedIndex >= 0) grid._mjrLastSelectedIndex = clickedIndex;
             event.preventDefault();
             event.stopPropagation();
@@ -85,7 +98,9 @@ function _bindFeedSelection(host) {
         if (clickedIndex >= 0) grid._mjrLastSelectedIndex = clickedIndex;
         try {
             card.focus?.({ preventScroll: true });
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         event.preventDefault();
         event.stopPropagation();
     };
@@ -94,7 +109,9 @@ function _bindFeedSelection(host) {
     host._disposeSelection = () => {
         try {
             grid.removeEventListener("click", onClick, true);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 }
 
@@ -182,9 +199,12 @@ function _buildGroupPopover(host, groupedAsset) {
 
     const grid = document.createElement("div");
     grid.className = "mjr-feed-group-popover-grid";
-    grid.style.cssText = "display:grid; grid-template-columns:repeat(auto-fill, minmax(110px, 1fr)); gap:8px;";
+    grid.style.cssText =
+        "display:grid; grid-template-columns:repeat(auto-fill, minmax(110px, 1fr)); gap:8px;";
 
-    const assets = Array.isArray(groupedAsset?._mjrFeedGroupAssets) ? groupedAsset._mjrFeedGroupAssets : [];
+    const assets = Array.isArray(groupedAsset?._mjrFeedGroupAssets)
+        ? groupedAsset._mjrFeedGroupAssets
+        : [];
     for (let index = 0; index < assets.length; index += 1) {
         const member = assets[index];
         const card = createAssetCard(member);
@@ -208,7 +228,7 @@ function _enhanceGroupedCards(host, groupedAssets) {
     const groupedById = new Map(
         (Array.isArray(groupedAssets) ? groupedAssets : [])
             .map((asset) => [String(asset?.id || "").trim(), asset])
-            .filter(([id]) => !!id)
+            .filter(([id]) => !!id),
     );
 
     for (const card of _getRenderedCards(host?.grid)) {
@@ -248,11 +268,15 @@ async function _renderHostAssets(host) {
     if (!host?.grid) return;
     try {
         host.popoverManager?.closeAll?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         const stale = host.root?.querySelectorAll?.(".mjr-feed-group-popover") || [];
         for (const el of stale) el.remove?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     const groupedAssets = _groupFeedAssets(_getHostAssets(host));
     const res = await loadAssetsFromList(host.grid, groupedAssets, {
         title: t("bottomFeed.title", "Generated Feed"),
@@ -370,7 +394,9 @@ async function _refreshAllHosts() {
     for (const host of Array.from(FEED_STATE.hosts)) {
         try {
             await _loadHistory(host);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 }
 
@@ -393,7 +419,9 @@ function _prepareBottomPanelContainer(container) {
         if (!el || !(el instanceof HTMLElement)) continue;
         try {
             el.style.minHeight = "0";
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
     try {
         container.style.height = "100%";
@@ -401,7 +429,9 @@ function _prepareBottomPanelContainer(container) {
         container.style.overflow = "hidden";
         container.style.display = "flex";
         container.style.flexDirection = "column";
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 function _applyFeedSettingsClasses(grid) {
@@ -423,7 +453,8 @@ function _applyFeedSettingsClasses(grid) {
 
 function _buildGrid(host) {
     const wrapper = document.createElement("div");
-    wrapper.style.cssText = "position:relative; flex:1 1 auto; min-height:0; overflow:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch;";
+    wrapper.style.cssText =
+        "position:relative; flex:1 1 auto; min-height:0; overflow:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch;";
     const grid = createGridContainer();
     grid.style.minHeight = "100%";
     grid.style.height = "auto";
@@ -434,13 +465,17 @@ function _buildGrid(host) {
     const markActive = () => {
         try {
             window.__MJR_LAST_SELECTION_GRID__ = grid;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
     const openMfv = () => {
         markActive();
         try {
             window.dispatchEvent(new Event(EVENTS.MFV_OPEN));
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
     grid.addEventListener("pointerdown", markActive, true);
     grid.addEventListener("focusin", markActive, true);
@@ -459,8 +494,12 @@ function _buildGrid(host) {
             event.stopPropagation?.();
             markActive();
             try {
-                void floatingViewerManager.open().then(() => floatingViewerManager.toggleCompareAB());
-            } catch (e) { console.debug?.(e); }
+                void floatingViewerManager
+                    .open()
+                    .then(() => floatingViewerManager.toggleCompareAB());
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
     });
     wrapper.appendChild(grid);
@@ -471,10 +510,19 @@ function _buildGrid(host) {
 function _makeHost(container) {
     const root = document.createElement("div");
     root.className = "mjr-assets-manager mjr-bottom-feed";
-    root.style.cssText = "padding:6px; height:100%; min-height:0; box-sizing:border-box; display:flex; flex-direction:column;";
+    root.style.cssText =
+        "padding:6px; height:100%; min-height:0; box-sizing:border-box; display:flex; flex-direction:column;";
     container.replaceChildren(root);
 
-    const host = { container, root, grid: null, empty: null, loaded: false, assetsByKey: new Map(), popoverManager: null };
+    const host = {
+        container,
+        root,
+        grid: null,
+        empty: null,
+        loaded: false,
+        assetsByKey: new Map(),
+        popoverManager: null,
+    };
     _buildEmpty(host);
     _buildGrid(host);
     _bindFeedSelection(host);
@@ -483,11 +531,19 @@ function _makeHost(container) {
     // Apply feed display settings and listen for changes
     _applyFeedSettingsClasses(host.grid);
     const onSettingsChanged = () => {
-        try { _applyFeedSettingsClasses(host.grid); } catch (e) { console.debug?.(e); }
+        try {
+            _applyFeedSettingsClasses(host.grid);
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
     window.addEventListener("mjr-settings-changed", onSettingsChanged);
     host._disposeFeedSettings = () => {
-        try { window.removeEventListener("mjr-settings-changed", onSettingsChanged); } catch (e) { console.debug?.(e); }
+        try {
+            window.removeEventListener("mjr-settings-changed", onSettingsChanged);
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     return host;
@@ -503,7 +559,9 @@ export function pushGeneratedAsset(asset) {
             if (!host.loaded) continue;
             host.empty.style.display = "none";
             void _renderHostAssets(host);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 }
 
@@ -512,7 +570,9 @@ export function renderGeneratedFeedTab(container) {
     const host = _makeHost(container);
     try {
         container._mjrGeneratedFeedHost = host;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     FEED_STATE.hosts.add(host);
     void _loadHistory(host);
     return host;
@@ -526,26 +586,40 @@ export function disposeGeneratedFeedTab(host) {
         try {
             delete container._mjrGeneratedFeedHost;
         } catch (e) {
-            try { container._mjrGeneratedFeedHost = null; } catch (err) { console.debug?.(err); }
+            try {
+                container._mjrGeneratedFeedHost = null;
+            } catch (err) {
+                console.debug?.(err);
+            }
             console.debug?.(e);
         }
     }
     FEED_STATE.hosts.delete(resolvedHost);
     try {
         resolvedHost._disposeSelection?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         resolvedHost._disposeFeedSettings?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         resolvedHost.popoverManager?.dispose?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         disposeGrid(resolvedHost.grid);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         resolvedHost.container?.replaceChildren?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 export function getGeneratedFeedBottomPanelTab() {

@@ -8,7 +8,9 @@ export function drawMediaError(canvas, message, hint) {
             canvas.width = 960;
             canvas.height = 540;
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     const ctx = (() => {
         try {
             return canvas.getContext?.("2d");
@@ -19,11 +21,15 @@ export function drawMediaError(canvas, message, hint) {
     if (!ctx) return;
     try {
         ctx.save();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         ctx.fillStyle = "rgba(0,0,0,0.85)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         ctx.fillStyle = "rgba(255, 120, 120, 0.95)";
         ctx.font = "14px system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
@@ -31,12 +37,17 @@ export function drawMediaError(canvas, message, hint) {
         const text = message ? String(message) : "Failed to load media";
         ctx.fillText(text, 14, 14);
         ctx.fillStyle = "rgba(255,255,255,0.7)";
-        const hintText = hint != null ? String(hint) : "Check file permissions / path, or try re-indexing.";
+        const hintText =
+            hint != null ? String(hint) : "Check file permissions / path, or try re-indexing.";
         ctx.fillText(hintText, 14, 34);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         ctx.restore();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 export function createImageProcessor({
@@ -51,10 +62,14 @@ export function createImageProcessor({
     const image = new Image();
     try {
         image.decoding = "async";
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         image.crossOrigin = "anonymous";
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     const ctx = (() => {
         try {
@@ -100,7 +115,9 @@ export function createImageProcessor({
                 if (p) setParams(p);
                 return;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         if (proc._connectRAF != null) return;
         proc._connectTries = (Number(proc._connectTries) || 0) + 1;
         if (proc._connectTries > 20) {
@@ -154,7 +171,12 @@ export function createImageProcessor({
             const raw = [r / 255, g / 255, b / 255, a / 255];
             const ev = Number(proc.lastParams?.exposureEV) || 0;
             const exposureScale = Math.pow(2, ev);
-            const lin = [raw[0] * exposureScale, raw[1] * exposureScale, raw[2] * exposureScale, raw[3]];
+            const lin = [
+                raw[0] * exposureScale,
+                raw[1] * exposureScale,
+                raw[2] * exposureScale,
+                raw[3],
+            ];
             return { r, g, b, a, raw, lin, scale: proc.scale };
         } catch {
             return null;
@@ -167,7 +189,9 @@ export function createImageProcessor({
         if (!canvas?.isConnected) {
             try {
                 proc._pendingParams = params || proc.lastParams || getGradeParams?.() || null;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             scheduleWhenConnected();
             return;
         }
@@ -187,7 +211,9 @@ export function createImageProcessor({
                 ctx.drawImage(srcCanvas, 0, 0);
                 return;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         let dst = proc._buffer;
         if (!dst || dst.width !== w || dst.height !== h) {
@@ -250,7 +276,7 @@ export function createImageProcessor({
                     // Input is 8-bit sRGB; avoid tonemapping (it alters baseline contrast/colors).
                     const over = clamp01(lum) >= zebraThreshold;
                     if (over) {
-                        const stripe = (((Math.floor(i / 4) % w) + Math.floor((i / 4) / w)) & 7) < 3;
+                        const stripe = (((Math.floor(i / 4) % w) + Math.floor(i / 4 / w)) & 7) < 3;
                         rr = stripe ? 1 : 0;
                         gg = stripe ? 1 : 0;
                         bb = stripe ? 1 : 0;
@@ -296,18 +322,24 @@ export function createImageProcessor({
             if (i < total) {
                 try {
                     proc._rafId = requestAnimationFrame(step);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 return;
             }
 
             try {
                 ctx.putImageData(dst, 0, 0);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         };
 
         try {
             proc._rafId = requestAnimationFrame(step);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const setParams = (nextParams) => {
@@ -316,7 +348,9 @@ export function createImageProcessor({
         if (!canvas?.isConnected) {
             try {
                 proc._pendingParams = proc.lastParams;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             scheduleWhenConnected();
             return;
         }
@@ -324,7 +358,9 @@ export function createImageProcessor({
         const jobId = proc.jobId;
         try {
             runProcessing(jobId, proc.lastParams);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const onLoaded = () => {
@@ -349,7 +385,9 @@ export function createImageProcessor({
             try {
                 srcCtx?.clearRect(0, 0, w, h);
                 srcCtx?.drawImage(image, 0, 0, w, h);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
 
             proc.ready = true;
             proc.srcData = null;
@@ -357,8 +395,14 @@ export function createImageProcessor({
             setParams(proc.lastParams || getGradeParams?.());
         } finally {
             try {
-                onReady?.({ naturalW: proc.naturalW, naturalH: proc.naturalH, pixelScale: proc.scale });
-            } catch (e) { console.debug?.(e); }
+                onReady?.({
+                    naturalW: proc.naturalW,
+                    naturalH: proc.naturalH,
+                    pixelScale: proc.scale,
+                });
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
     };
 
@@ -366,17 +410,23 @@ export function createImageProcessor({
         proc.ready = false;
         try {
             drawMediaError(canvas, "Failed to load image");
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     try {
         image.onload = onLoaded;
         image.onerror = onError;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     try {
         image.src = url;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     return {
         setParams,
@@ -386,31 +436,45 @@ export function createImageProcessor({
             proc._destroyed = true;
             try {
                 proc.jobId++;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 if (proc._rafId != null) cancelAnimationFrame(proc._rafId);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 if (proc._connectRAF != null) cancelAnimationFrame(proc._connectRAF);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             proc._connectRAF = null;
             proc._connectTries = 0;
             proc._pendingParams = null;
             try {
                 image.onload = null;
                 image.onerror = null;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 image.src = "";
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 srcCanvas.width = 0;
                 srcCanvas.height = 0;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 canvas.width = 0;
                 canvas.height = 0;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             proc.srcData = null;
             proc._buffer = null;
         },

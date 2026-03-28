@@ -1,0 +1,4 @@
+node_modules/
+js/app/i18n.generated.js
+js/vue/
+package-lock.json

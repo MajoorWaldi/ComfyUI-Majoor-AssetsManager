@@ -43,7 +43,9 @@ export function createGridController({
     const _isSemanticMode = () => {
         try {
             return searchInputEl?.dataset?.mjrSemanticMode === "1";
-        } catch { return false; }
+        } catch {
+            return false;
+        }
     };
 
     const _isAiEnabled = () => {
@@ -85,8 +87,14 @@ export function createGridController({
             minHeight: Number(state.minHeight || 0) > 0 ? Number(state.minHeight || 0) : null,
             maxWidth: Number(state.maxWidth || 0) > 0 ? Number(state.maxWidth || 0) : null,
             maxHeight: Number(state.maxHeight || 0) > 0 ? Number(state.maxHeight || 0) : null,
-            workflowType: String(state.workflowType || "").trim().toUpperCase() || null,
-            dateRange: String(state.dateRangeFilter || "").trim().toLowerCase() || null,
+            workflowType:
+                String(state.workflowType || "")
+                    .trim()
+                    .toUpperCase() || null,
+            dateRange:
+                String(state.dateRangeFilter || "")
+                    .trim()
+                    .toLowerCase() || null,
             dateExact: String(state.dateExactFilter || "").trim() || null,
         };
     };
@@ -105,10 +113,10 @@ export function createGridController({
                         t(
                             "toast.aiSearchNeedsBackfill",
                             "AI search index is almost empty ({count} vectors). Run Enrich, then Vector Backfill for existing assets.",
-                            { count: total }
+                            { count: total },
                         ),
                         "warn",
-                        6500
+                        6500,
                     );
                     return;
                 }
@@ -119,7 +127,10 @@ export function createGridController({
 
         const msg = _safeErrorText(
             reason,
-            t("toast.aiSearchUnavailable", "AI search is currently unavailable. Falling back to normal search.")
+            t(
+                "toast.aiSearchUnavailable",
+                "AI search is currently unavailable. Falling back to normal search.",
+            ),
         );
         comfyToast(msg, "warn", 5200);
     };
@@ -143,21 +154,37 @@ export function createGridController({
         const aiEnabled = _isAiEnabled();
         const semanticMode = aiEnabled && _isSemanticMode();
         if (!aiEnabled) {
-            const ftsQuery = hasAiPrefix ? (q || "*") : query;
+            const ftsQuery = hasAiPrefix ? q || "*" : query;
             return await loadAssets(gridContainer, ftsQuery);
         }
 
         const wordCount = q.split(/\s+/).filter(Boolean).length;
         const visualSingleWordKeywords = new Set([
-            "green", "red", "blue", "yellow", "orange", "purple", "pink", "black", "white", "gray", "grey",
-            "vert", "rouge", "bleu", "jaune", "violet", "rose", "noir", "blanc", "gris",
+            "green",
+            "red",
+            "blue",
+            "yellow",
+            "orange",
+            "purple",
+            "pink",
+            "black",
+            "white",
+            "gray",
+            "grey",
+            "vert",
+            "rouge",
+            "bleu",
+            "jaune",
+            "violet",
+            "rose",
+            "noir",
+            "blanc",
+            "gris",
         ]);
-        const looksVisualSingleWord = wordCount === 1 && visualSingleWordKeywords.has(String(q || "").toLowerCase());
+        const looksVisualSingleWord =
+            wordCount === 1 && visualSingleWordKeywords.has(String(q || "").toLowerCase());
         const looksNaturalLanguage =
-            (q.length >= 12 &&
-            q.includes(" ") &&
-            q !== "*" &&
-            !/[a-z]+\s*:/i.test(q)) ||
+            (q.length >= 12 && q.includes(" ") && q !== "*" && !/[a-z]+\s*:/i.test(q)) ||
             hasAiPrefix ||
             wordCount >= 3 ||
             looksVisualSingleWord;
@@ -237,7 +264,7 @@ export function createGridController({
                 console.debug?.("[Majoor] Semantic search failed, falling back to FTS", err);
             }
         }
-        const ftsQuery = hasAiPrefix ? (q || "*") : query;
+        const ftsQuery = hasAiPrefix ? q || "*" : query;
         const ftsResult = await loadAssets(gridContainer, ftsQuery);
 
         if (looksNaturalLanguage) {
@@ -283,7 +310,9 @@ export function createGridController({
         // can decide whether to do incremental upserts or avoid disrupting an active search.
         try {
             gridContainer.dataset.mjrQuery = String(getQuery?.() ?? "*") || "*";
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         gridContainer.dataset.mjrScope = state.scope;
         gridContainer.dataset.mjrCustomRootId = state.customRootId || "";
         const subfolder = state.currentFolderRelativePath || "";
@@ -302,25 +331,34 @@ export function createGridController({
         gridContainer.dataset.mjrFilterDateRange = state.dateRangeFilter || "";
         gridContainer.dataset.mjrFilterDateExact = state.dateExactFilter || "";
         gridContainer.dataset.mjrSort = state.sort || "mtime_desc";
-        gridContainer.dataset.mjrGroupStacks = (state.scope === "output" || state.scope === "all") ? "1" : "0";
+        gridContainer.dataset.mjrGroupStacks =
+            state.scope === "output" || state.scope === "all" ? "1" : "0";
 
         // Keep selection durable across re-renders by persisting it in the dataset
         // (GridView re-applies selection as cards are created).
         try {
-            const selected = Array.isArray(state.selectedAssetIds) ? state.selectedAssetIds.filter(Boolean).map(String) : [];
+            const selected = Array.isArray(state.selectedAssetIds)
+                ? state.selectedAssetIds.filter(Boolean).map(String)
+                : [];
             if (selected.length) {
                 gridContainer.dataset.mjrSelectedAssetIds = JSON.stringify(selected);
-                gridContainer.dataset.mjrSelectedAssetId = String(state.activeAssetId || selected[0] || "");
+                gridContainer.dataset.mjrSelectedAssetId = String(
+                    state.activeAssetId || selected[0] || "",
+                );
             } else {
                 delete gridContainer.dataset.mjrSelectedAssetIds;
                 delete gridContainer.dataset.mjrSelectedAssetId;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         if (state.scope === "custom" && !state.customRootId && !state.currentFolderRelativePath) {
             try {
                 disposeGrid(gridContainer);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             // Browser mode: no selected custom root required. Start at filesystem roots.
             state.currentFolderRelativePath = "";
         }
@@ -328,13 +366,22 @@ export function createGridController({
         if (state.collectionId) {
             const res = await getCollectionAssets?.(state.collectionId);
             if (res?.ok && res.data && Array.isArray(res.data.assets)) {
-                const title = state.collectionName ? `Collection: ${state.collectionName}` : "Collection";
-                const result = await loadAssetsFromList(gridContainer, res.data.assets, { title, reset: true });
+                const title = state.collectionName
+                    ? `Collection: ${state.collectionName}`
+                    : "Collection";
+                const result = await loadAssetsFromList(gridContainer, res.data.assets, {
+                    title,
+                    reset: true,
+                });
                 try {
                     state.lastGridCount = Number(result?.count || 0) || 0;
                     state.lastGridTotal = Number(result?.total || 0) || 0;
-                    gridContainer.dispatchEvent?.(new CustomEvent("mjr:grid-stats", { detail: result || {} }));
-                } catch (e) { console.debug?.(e); }
+                    gridContainer.dispatchEvent?.(
+                        new CustomEvent("mjr:grid-stats", { detail: result || {} }),
+                    );
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 return;
             }
             // If collection fetch fails, fall back to normal loading and clear the broken state.
@@ -346,39 +393,52 @@ export function createGridController({
             const list = Array.isArray(state.similarResults) ? state.similarResults : [];
             const sourceId = String(state.similarSourceAssetId || "").trim();
             const title = String(
-                state.similarTitle
-                || t("search.similarResults", "Similar to asset #{id} ({n} results)", {
-                    id: sourceId || "?",
-                    n: list.length,
-                })
+                state.similarTitle ||
+                    t("search.similarResults", "Similar to asset #{id} ({n} results)", {
+                        id: sourceId || "?",
+                        n: list.length,
+                    }),
             ).trim();
-            const result = await loadAssetsFromList(gridContainer, list, { title: title || "Similar", reset: true });
+            const result = await loadAssetsFromList(gridContainer, list, {
+                title: title || "Similar",
+                reset: true,
+            });
             try {
                 state.lastGridCount = Number(result?.count || 0) || 0;
                 state.lastGridTotal = Number(result?.total || 0) || 0;
-                gridContainer.dispatchEvent?.(new CustomEvent("mjr:grid-stats", { detail: result || {} }));
-            } catch (e) { console.debug?.(e); }
+                gridContainer.dispatchEvent?.(
+                    new CustomEvent("mjr:grid-stats", { detail: result || {} }),
+                );
+            } catch (e) {
+                console.debug?.(e);
+            }
             return;
         }
 
         const result = await _loadWithSemanticFallback(getQuery());
-        
+
         // Track search query timing if timer was started
         try {
-            const hasSearchTimer = !!window.MajoorMetrics?.hasTimer?.('searchQuery');
+            const hasSearchTimer = !!window.MajoorMetrics?.hasTimer?.("searchQuery");
             const searchDuration = hasSearchTimer
-                ? window.MajoorMetrics?.endTimer?.('searchQuery', 'searchQuery')
+                ? window.MajoorMetrics?.endTimer?.("searchQuery", "searchQuery")
                 : 0;
-            if (typeof searchDuration === 'number' && searchDuration > 0) {
+            if (typeof searchDuration === "number" && searchDuration > 0) {
                 window.MajoorMetrics?.trackSearchQuery?.(searchDuration);
             }
-        } catch (e) { console.debug?.(e); }
-        
+        } catch (e) {
+            console.debug?.(e);
+        }
+
         try {
             state.lastGridCount = Number(result?.count || 0) || 0;
             state.lastGridTotal = Number(result?.total || 0) || 0;
-            gridContainer.dispatchEvent?.(new CustomEvent("mjr:grid-stats", { detail: result || {} }));
-        } catch (e) { console.debug?.(e); }
+            gridContainer.dispatchEvent?.(
+                new CustomEvent("mjr:grid-stats", { detail: result || {} }),
+            );
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     let _debounceTimer = null;
@@ -391,8 +451,13 @@ export function createGridController({
             while (_pendingReload) {
                 _pendingReload = false;
                 try {
-                    const useAiTimeout = _isAiEnabled() && (_isSemanticMode() || String(getQuery?.() || "").length >= 12);
-                    await runWithWatchdog(() => runReloadOnce(), useAiTimeout ? AI_RELOAD_WATCHDOG_MS : RELOAD_WATCHDOG_MS);
+                    const useAiTimeout =
+                        _isAiEnabled() &&
+                        (_isSemanticMode() || String(getQuery?.() || "").length >= 12);
+                    await runWithWatchdog(
+                        () => runReloadOnce(),
+                        useAiTimeout ? AI_RELOAD_WATCHDOG_MS : RELOAD_WATCHDOG_MS,
+                    );
                 } catch (err) {
                     // Keep UI responsive even if one reload got stuck, but don't fail silently.
                     try {
@@ -401,7 +466,9 @@ export function createGridController({
                             _lastReloadErrorAt = now;
                             console.warn("[Majoor] Grid reload failed", err);
                         }
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 }
             }
         } finally {

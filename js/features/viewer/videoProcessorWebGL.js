@@ -1,4 +1,3 @@
-
 const VS_SOURCE = `
 attribute vec2 a_position;
 varying vec2 v_uv;
@@ -86,7 +85,9 @@ function createProgram(gl, vs, fs) {
         console.warn("WebGL Program Error:", gl.getProgramInfoLog(program));
         try {
             gl.deleteProgram(program);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         return null; // Return null to fallback
     }
     return program;
@@ -95,7 +96,10 @@ function createProgram(gl, vs, fs) {
 export function isWebGLAvailable() {
     try {
         const c = document.createElement("canvas");
-        return !!(window.WebGLRenderingContext && (c.getContext("webgl") || c.getContext("experimental-webgl")));
+        return !!(
+            window.WebGLRenderingContext &&
+            (c.getContext("webgl") || c.getContext("experimental-webgl"))
+        );
     } catch {
         return false;
     }
@@ -103,13 +107,13 @@ export function isWebGLAvailable() {
 
 export function createWebGLVideoProcessor(opts) {
     const { canvas, videoEl, getGradeParams } = opts;
-    
+
     let gl = null;
     let resources = null;
     let maxTextureSize = 4096;
     let _contextLost = false;
     const proc = {
-        type: 'webgl',
+        type: "webgl",
         ready: false,
         naturalW: 0,
         naturalH: 0,
@@ -122,11 +126,18 @@ export function createWebGLVideoProcessor(opts) {
         try {
             // Must preserve drawing buffer so that frame export (toBlob/toDataURL) works
             ctx = canvas.getContext("webgl", { alpha: false, preserveDrawingBuffer: true });
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         if (!ctx) {
             try {
-                ctx = canvas.getContext("experimental-webgl", { alpha: false, preserveDrawingBuffer: true });
-            } catch (e) { console.debug?.(e); }
+                ctx = canvas.getContext("experimental-webgl", {
+                    alpha: false,
+                    preserveDrawingBuffer: true,
+                });
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
         if (ctx) {
             maxTextureSize = ctx.getParameter(ctx.MAX_TEXTURE_SIZE) || 4096;
@@ -147,22 +158,34 @@ export function createWebGLVideoProcessor(opts) {
         const { positionBuffer, texture, program } = resources;
         try {
             gl.bindTexture(gl.TEXTURE_2D, null);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             gl.bindBuffer(gl.ARRAY_BUFFER, null);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             gl.useProgram(null);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             gl.deleteTexture(texture);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             gl.deleteBuffer(positionBuffer);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             gl.deleteProgram(program);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         resources = null;
     };
 
@@ -202,15 +225,8 @@ export function createWebGLVideoProcessor(opts) {
         gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
         gl.bufferData(
             gl.ARRAY_BUFFER,
-            new Float32Array([
-                -1, -1,
-                 1, -1,
-                -1,  1,
-                -1,  1,
-                 1, -1,
-                 1,  1,
-            ]),
-            gl.STATIC_DRAW
+            new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
+            gl.STATIC_DRAW,
         );
         checkGLError("setupResources:bufferData");
 
@@ -237,7 +253,7 @@ export function createWebGLVideoProcessor(opts) {
         if (!_contextLost && gl && videoEl?.videoWidth) {
             let w = videoEl.videoWidth;
             let h = videoEl.videoHeight;
-            const maxSize = maxTextureSize || (gl.getParameter(gl.MAX_TEXTURE_SIZE) || 4096);
+            const maxSize = maxTextureSize || gl.getParameter(gl.MAX_TEXTURE_SIZE) || 4096;
             if (w > maxSize || h > maxSize) {
                 const scale = Math.min(maxSize / w, maxSize / h);
                 w = Math.floor(w * scale);
@@ -272,12 +288,12 @@ export function createWebGLVideoProcessor(opts) {
             const params = overrideParams || (getGradeParams ? getGradeParams() : {});
             const exposureEV = Number(params.exposureEV) || 0;
             const gamma = Math.max(0.1, Math.min(3, Number(params.gamma) || 1));
-            const analysis = params.analysisMode === 'zebra' ? 1 : 0;
+            const analysis = params.analysisMode === "zebra" ? 1 : 0;
 
             let ch = 0;
-            if (params.channel === 'r') ch = 1;
-            if (params.channel === 'g') ch = 2;
-            if (params.channel === 'b') ch = 3;
+            if (params.channel === "r") ch = 1;
+            if (params.channel === "g") ch = 2;
+            if (params.channel === "b") ch = 3;
 
             gl.uniform1f(loc.u_exposure, Math.pow(2, exposureEV));
             gl.uniform1f(loc.u_gamma, 1.0 / gamma);
@@ -318,10 +334,14 @@ export function createWebGLVideoProcessor(opts) {
             proc.ready = false;
             cleanupResources();
             if (gl) {
-                try { gl.getExtension("WEBGL_lose_context")?.loseContext?.(); } catch (e) { console.debug?.(e); }
+                try {
+                    gl.getExtension("WEBGL_lose_context")?.loseContext?.();
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
             canvas.removeEventListener("webglcontextlost", handleContextLost);
             canvas.removeEventListener("webglcontextrestored", handleContextRestored);
-        }
+        },
     };
 }

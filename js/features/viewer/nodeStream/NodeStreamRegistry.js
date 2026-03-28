@@ -42,7 +42,9 @@ export function registerAdapter(adapter) {
     if (idx >= 0) _adapters.splice(idx, 1);
     _adapters.push(adapter);
     _dirty = true;
-    console.debug(`[NodeStream] Adapter registered: ${adapter.name} (priority ${adapter.priority ?? 0})`);
+    console.debug(
+        `[NodeStream] Adapter registered: ${adapter.name} (priority ${adapter.priority ?? 0})`,
+    );
 }
 
 /**

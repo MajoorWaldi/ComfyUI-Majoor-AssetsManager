@@ -24,14 +24,18 @@ const getExtensionManagerDialog = () => {
         if (dlg && typeof dlg.confirm === "function" && typeof dlg.prompt === "function") {
             return dlg;
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         const app = typeof window !== "undefined" ? window?.app : null;
         const dlg = app?.extensionManager?.dialog || null;
         if (dlg && typeof dlg.confirm === "function" && typeof dlg.prompt === "function") {
             return dlg;
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return null;
 };
 
@@ -41,7 +45,9 @@ const getNativeDialog = () => {
         if (ui?.dialog && typeof ui.dialog.show === "function") {
             return ui.dialog;
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return null;
 };
 
@@ -54,7 +60,14 @@ const toNativeDialogMessage = (message, title = "Majoor") => {
     return `${ttl}<br><br>${msg}`;
 };
 
-const BLOCKED_PROP_KEYS = new Set(["__proto__", "constructor", "prototype", "innerHTML", "outerHTML", "srcdoc"]);
+const BLOCKED_PROP_KEYS = new Set([
+    "__proto__",
+    "constructor",
+    "prototype",
+    "innerHTML",
+    "outerHTML",
+    "srcdoc",
+]);
 const ALLOWED_DIRECT_PROPS = new Set([
     "id",
     "name",
@@ -93,11 +106,15 @@ const fallbackEl = (tag, props = {}, children = []) => {
             try {
                 el[propKey] = value;
                 return;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
         try {
             el.setAttribute(propKey, String(value));
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     });
     const childList = Array.isArray(children) ? children : [children];
     childList.filter(Boolean).forEach((c) => {
@@ -143,7 +160,9 @@ const styleDialog = (dialog) => {
         dialog.element.style.boxSizing = "border-box";
         dialog.element.style.overflow = "hidden";
         dialog.element.style.boxShadow = "0 18px 48px rgba(0,0,0,0.48)";
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 };
 
 const hideDialogNativeClose = (dialog) => {
@@ -152,15 +171,23 @@ const hideDialogNativeClose = (dialog) => {
         if (!root) return;
         const maybeClose = root.querySelectorAll("button,[role='button']");
         for (const el of maybeClose) {
-            const text = String(el?.textContent || "").trim().toLowerCase();
-            const aria = String(el?.getAttribute?.("aria-label") || "").trim().toLowerCase();
+            const text = String(el?.textContent || "")
+                .trim()
+                .toLowerCase();
+            const aria = String(el?.getAttribute?.("aria-label") || "")
+                .trim()
+                .toLowerCase();
             if (text === "close" || aria === "close") {
                 try {
                     el.style.display = "none";
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 };
 
 export const comfyAlert = async (message, title = "Majoor", options = {}) => {
@@ -172,9 +199,13 @@ export const comfyAlert = async (message, title = "Majoor", options = {}) => {
                 nativeDialog.show(toNativeDialogMessage(message, title));
                 try {
                     nativeDialog.element.style.zIndex = "1100";
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 return;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
     }
 
@@ -182,7 +213,9 @@ export const comfyAlert = async (message, title = "Majoor", options = {}) => {
     if (!Dialog) {
         try {
             window.alert(message);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         return;
     }
 
@@ -193,62 +226,76 @@ export const comfyAlert = async (message, title = "Majoor", options = {}) => {
         const close = () => {
             try {
                 dialog.close();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             resolve();
         };
 
-        const content = $el("div", {
-            style: {
-                display: "flex",
-                flexDirection: "column",
-                gap: "18px",
-                padding: "18px 20px 18px 20px",
-            },
-        }, [
-            $el("div", {
+        const content = $el(
+            "div",
+            {
                 style: {
                     display: "flex",
-                    alignItems: "center",
-                    justifyContent: "flex-start",
+                    flexDirection: "column",
+                    gap: "18px",
+                    padding: "18px 20px 18px 20px",
                 },
-            }, [
+            },
+            [
+                $el(
+                    "div",
+                    {
+                        style: {
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "flex-start",
+                        },
+                    },
+                    [
+                        $el("div", {
+                            textContent: title,
+                            style: {
+                                fontWeight: "700",
+                                fontSize: "30px",
+                                color: "rgba(255,255,255,0.96)",
+                                lineHeight: "1.2",
+                            },
+                        }),
+                    ],
+                ),
                 $el("div", {
-                    textContent: title,
+                    textContent: String(message || ""),
                     style: {
-                        fontWeight: "700",
-                        fontSize: "30px",
-                        color: "rgba(255,255,255,0.96)",
-                        lineHeight: "1.2",
+                        fontSize: "22px",
+                        color: "rgba(255,255,255,0.86)",
+                        whiteSpace: "pre-wrap",
+                        lineHeight: "1.45",
                     },
                 }),
-            ]),
-            $el("div", {
-                textContent: String(message || ""),
-                style: {
-                    fontSize: "22px",
-                    color: "rgba(255,255,255,0.86)",
-                    whiteSpace: "pre-wrap",
-                    lineHeight: "1.45",
-                },
-            }),
-            $el("div", {
-                style: { display: "flex", justifyContent: "flex-end", gap: "10px" },
-            }, [
-                $el("button", {
-                    textContent: t("dialog.confirm", "Confirm"),
-                    onclick: close,
-                    style: {
-                        padding: "10px 16px",
-                        borderRadius: "10px",
-                        border: "1px solid rgba(17,132,255,0.75)",
-                        background: "#1184ff",
-                        color: "rgba(255,255,255,0.98)",
-                        fontWeight: "600",
-                        cursor: "pointer",
+                $el(
+                    "div",
+                    {
+                        style: { display: "flex", justifyContent: "flex-end", gap: "10px" },
                     },
-                }),
-            ]),
-        ]);
+                    [
+                        $el("button", {
+                            textContent: t("dialog.confirm", "Confirm"),
+                            onclick: close,
+                            style: {
+                                padding: "10px 16px",
+                                borderRadius: "10px",
+                                border: "1px solid rgba(17,132,255,0.75)",
+                                background: "#1184ff",
+                                color: "rgba(255,255,255,0.98)",
+                                fontWeight: "600",
+                                cursor: "pointer",
+                            },
+                        }),
+                    ],
+                ),
+            ],
+        );
 
         try {
             dialog.show(content);
@@ -256,7 +303,9 @@ export const comfyAlert = async (message, title = "Majoor", options = {}) => {
         } catch {
             try {
                 window.alert(message);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             resolve();
         }
     });
@@ -270,11 +319,14 @@ export const comfyConfirm = async (message, title = "Majoor") => {
                 title: String(title || t("dialog.confirm", "Confirm")),
                 message: String(message || ""),
             };
-            const result = typeof extensionDialog.confirm === "function"
-                ? await extensionDialog.confirm(payload)
-                : null;
+            const result =
+                typeof extensionDialog.confirm === "function"
+                    ? await extensionDialog.confirm(payload)
+                    : null;
             return !!result;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 
     const Dialog = getComfyDialogCtor();
@@ -293,75 +345,89 @@ export const comfyConfirm = async (message, title = "Majoor") => {
         const finish = (value) => {
             try {
                 dialog.close();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             resolve(!!value);
         };
 
-        const content = $el("div", {
-            style: {
-                display: "flex",
-                flexDirection: "column",
-                gap: "18px",
-                padding: "18px 20px 18px 20px",
-            },
-        }, [
-            $el("div", {
+        const content = $el(
+            "div",
+            {
                 style: {
                     display: "flex",
-                    alignItems: "center",
-                    justifyContent: "flex-start",
+                    flexDirection: "column",
+                    gap: "18px",
+                    padding: "18px 20px 18px 20px",
                 },
-            }, [
+            },
+            [
+                $el(
+                    "div",
+                    {
+                        style: {
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "flex-start",
+                        },
+                    },
+                    [
+                        $el("div", {
+                            textContent: title,
+                            style: {
+                                fontWeight: "700",
+                                fontSize: "30px",
+                                color: "rgba(255,255,255,0.96)",
+                                lineHeight: "1.2",
+                            },
+                        }),
+                    ],
+                ),
                 $el("div", {
-                    textContent: title,
+                    textContent: String(message || ""),
                     style: {
-                        fontWeight: "700",
-                        fontSize: "30px",
-                        color: "rgba(255,255,255,0.96)",
-                        lineHeight: "1.2",
+                        fontSize: "22px",
+                        color: "rgba(255,255,255,0.86)",
+                        whiteSpace: "pre-wrap",
+                        lineHeight: "1.45",
                     },
                 }),
-            ]),
-            $el("div", {
-                textContent: String(message || ""),
-                style: {
-                    fontSize: "22px",
-                    color: "rgba(255,255,255,0.86)",
-                    whiteSpace: "pre-wrap",
-                    lineHeight: "1.45",
-                },
-            }),
-            $el("div", {
-                style: { display: "flex", justifyContent: "flex-end", gap: "10px" },
-            }, [
-                $el("button", {
-                    textContent: t("dialog.cancel", "Cancel"),
-                    onclick: () => finish(false),
-                    style: {
-                        padding: "10px 16px",
-                        borderRadius: "10px",
-                        border: "1px solid rgba(255,255,255,0.18)",
-                        background: "rgba(255,255,255,0.06)",
-                        color: "rgba(255,255,255,0.85)",
-                        fontWeight: "600",
-                        cursor: "pointer",
+                $el(
+                    "div",
+                    {
+                        style: { display: "flex", justifyContent: "flex-end", gap: "10px" },
                     },
-                }),
-                $el("button", {
-                    textContent: t("dialog.confirm", "Confirm"),
-                    onclick: () => finish(true),
-                    style: {
-                        padding: "10px 16px",
-                        borderRadius: "10px",
-                        border: "1px solid rgba(17,132,255,0.75)",
-                        background: "#1184ff",
-                        color: "rgba(255,255,255,0.98)",
-                        fontWeight: "600",
-                        cursor: "pointer",
-                    },
-                }),
-            ]),
-        ]);
+                    [
+                        $el("button", {
+                            textContent: t("dialog.cancel", "Cancel"),
+                            onclick: () => finish(false),
+                            style: {
+                                padding: "10px 16px",
+                                borderRadius: "10px",
+                                border: "1px solid rgba(255,255,255,0.18)",
+                                background: "rgba(255,255,255,0.06)",
+                                color: "rgba(255,255,255,0.85)",
+                                fontWeight: "600",
+                                cursor: "pointer",
+                            },
+                        }),
+                        $el("button", {
+                            textContent: t("dialog.confirm", "Confirm"),
+                            onclick: () => finish(true),
+                            style: {
+                                padding: "10px 16px",
+                                borderRadius: "10px",
+                                border: "1px solid rgba(17,132,255,0.75)",
+                                background: "#1184ff",
+                                color: "rgba(255,255,255,0.98)",
+                                fontWeight: "600",
+                                cursor: "pointer",
+                            },
+                        }),
+                    ],
+                ),
+            ],
+        );
 
         try {
             dialog.show(content);
@@ -386,9 +452,11 @@ export const comfyYesNoCancel = async (message, title = "Majoor", labels = {}) =
         try {
             const answer = window.prompt(
                 `${String(title || "Majoor")}\n\n${String(message || "")}\n\n${yesLabel}=y, ${noLabel}=n, ${cancelLabel}=c`,
-                "c"
+                "c",
             );
-            const normalized = String(answer || "").trim().toLowerCase();
+            const normalized = String(answer || "")
+                .trim()
+                .toLowerCase();
             if (!normalized) return "cancel";
             if (["y", "yes", "1"].includes(normalized)) return "yes";
             if (["n", "no", "2"].includes(normalized)) return "no";
@@ -405,94 +473,113 @@ export const comfyYesNoCancel = async (message, title = "Majoor", labels = {}) =
         const finish = (value) => {
             try {
                 dialog.close();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             resolve(value || "cancel");
         };
 
-        const content = $el("div", {
-            style: {
-                display: "flex",
-                flexDirection: "column",
-                gap: "18px",
-                padding: "18px 20px 18px 20px",
-            },
-            onkeydown: (e) => {
-                if (e.key === "Escape") {
-                    e.preventDefault();
-                    finish("cancel");
-                }
-            },
-        }, [
-            $el("div", {
+        const content = $el(
+            "div",
+            {
                 style: {
                     display: "flex",
-                    alignItems: "center",
-                    justifyContent: "flex-start",
+                    flexDirection: "column",
+                    gap: "18px",
+                    padding: "18px 20px 18px 20px",
                 },
-            }, [
+                onkeydown: (e) => {
+                    if (e.key === "Escape") {
+                        e.preventDefault();
+                        finish("cancel");
+                    }
+                },
+            },
+            [
+                $el(
+                    "div",
+                    {
+                        style: {
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "flex-start",
+                        },
+                    },
+                    [
+                        $el("div", {
+                            textContent: title,
+                            style: {
+                                fontWeight: "700",
+                                fontSize: "30px",
+                                color: "rgba(255,255,255,0.96)",
+                                lineHeight: "1.2",
+                            },
+                        }),
+                    ],
+                ),
                 $el("div", {
-                    textContent: title,
+                    textContent: String(message || ""),
                     style: {
-                        fontWeight: "700",
-                        fontSize: "30px",
-                        color: "rgba(255,255,255,0.96)",
-                        lineHeight: "1.2",
+                        fontSize: "22px",
+                        color: "rgba(255,255,255,0.86)",
+                        whiteSpace: "pre-wrap",
+                        lineHeight: "1.45",
                     },
                 }),
-            ]),
-            $el("div", {
-                textContent: String(message || ""),
-                style: {
-                    fontSize: "22px",
-                    color: "rgba(255,255,255,0.86)",
-                    whiteSpace: "pre-wrap",
-                    lineHeight: "1.45",
-                },
-            }),
-            $el("div", {
-                style: { display: "flex", justifyContent: "flex-end", gap: "10px", flexWrap: "wrap" },
-            }, [
-                $el("button", {
-                    textContent: yesLabel,
-                    onclick: () => finish("yes"),
-                    style: {
-                        padding: "10px 16px",
-                        borderRadius: "10px",
-                        border: "1px solid rgba(17,132,255,0.75)",
-                        background: "#1184ff",
-                        color: "rgba(255,255,255,0.98)",
-                        fontWeight: "600",
-                        cursor: "pointer",
+                $el(
+                    "div",
+                    {
+                        style: {
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            gap: "10px",
+                            flexWrap: "wrap",
+                        },
                     },
-                }),
-                $el("button", {
-                    textContent: noLabel,
-                    onclick: () => finish("no"),
-                    style: {
-                        padding: "10px 16px",
-                        borderRadius: "10px",
-                        border: "1px solid rgba(244,67,54,0.70)",
-                        background: "rgba(244,67,54,0.18)",
-                        color: "rgba(255,220,220,0.98)",
-                        fontWeight: "600",
-                        cursor: "pointer",
-                    },
-                }),
-                $el("button", {
-                    textContent: cancelLabel,
-                    onclick: () => finish("cancel"),
-                    style: {
-                        padding: "10px 16px",
-                        borderRadius: "10px",
-                        border: "1px solid rgba(255,255,255,0.18)",
-                        background: "rgba(255,255,255,0.06)",
-                        color: "rgba(255,255,255,0.85)",
-                        fontWeight: "600",
-                        cursor: "pointer",
-                    },
-                }),
-            ]),
-        ]);
+                    [
+                        $el("button", {
+                            textContent: yesLabel,
+                            onclick: () => finish("yes"),
+                            style: {
+                                padding: "10px 16px",
+                                borderRadius: "10px",
+                                border: "1px solid rgba(17,132,255,0.75)",
+                                background: "#1184ff",
+                                color: "rgba(255,255,255,0.98)",
+                                fontWeight: "600",
+                                cursor: "pointer",
+                            },
+                        }),
+                        $el("button", {
+                            textContent: noLabel,
+                            onclick: () => finish("no"),
+                            style: {
+                                padding: "10px 16px",
+                                borderRadius: "10px",
+                                border: "1px solid rgba(244,67,54,0.70)",
+                                background: "rgba(244,67,54,0.18)",
+                                color: "rgba(255,220,220,0.98)",
+                                fontWeight: "600",
+                                cursor: "pointer",
+                            },
+                        }),
+                        $el("button", {
+                            textContent: cancelLabel,
+                            onclick: () => finish("cancel"),
+                            style: {
+                                padding: "10px 16px",
+                                borderRadius: "10px",
+                                border: "1px solid rgba(255,255,255,0.18)",
+                                background: "rgba(255,255,255,0.06)",
+                                color: "rgba(255,255,255,0.85)",
+                                fontWeight: "600",
+                                cursor: "pointer",
+                            },
+                        }),
+                    ],
+                ),
+            ],
+        );
 
         try {
             dialog.show(content);
@@ -506,12 +593,12 @@ export const comfyYesNoCancel = async (message, title = "Majoor", labels = {}) =
 export const comfyChoice = async (message, title = "Majoor", choices = []) => {
     const safeChoices = Array.isArray(choices)
         ? choices
-            .filter((c) => c && typeof c === "object")
-            .map((c, idx) => ({
-                id: String(c.id || `choice_${idx}`),
-                label: String(c.label || c.id || `Choice ${idx + 1}`),
-                variant: String(c.variant || "").toLowerCase(),
-            }))
+              .filter((c) => c && typeof c === "object")
+              .map((c, idx) => ({
+                  id: String(c.id || `choice_${idx}`),
+                  label: String(c.label || c.id || `Choice ${idx + 1}`),
+                  variant: String(c.variant || "").toLowerCase(),
+              }))
         : [];
 
     if (!safeChoices.length) return null;
@@ -519,12 +606,10 @@ export const comfyChoice = async (message, title = "Majoor", choices = []) => {
     const Dialog = getComfyDialogCtor();
     if (!Dialog) {
         try {
-            const numbered = safeChoices
-                .map((c, idx) => `${idx + 1}. ${c.label}`)
-                .join("\n");
+            const numbered = safeChoices.map((c, idx) => `${idx + 1}. ${c.label}`).join("\n");
             const answer = window.prompt(
                 `${String(title || "Majoor")}\n\n${String(message || "")}\n\n${numbered}\n\n${t("dialog.choiceTypeNumber", "Type a number:")}`,
-                String(safeChoices.length)
+                String(safeChoices.length),
             );
             if (answer == null) return null;
             const index = Number.parseInt(String(answer).trim(), 10) - 1;
@@ -544,7 +629,9 @@ export const comfyChoice = async (message, title = "Majoor", choices = []) => {
         const finish = (value) => {
             try {
                 dialog.close();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             resolve(value ?? null);
         };
 
@@ -560,73 +647,85 @@ export const comfyChoice = async (message, title = "Majoor", choices = []) => {
                     border: isDanger
                         ? "1px solid rgba(244,67,54,0.70)"
                         : isPrimary
-                            ? "1px solid rgba(17,132,255,0.75)"
-                            : "1px solid rgba(255,255,255,0.18)",
+                          ? "1px solid rgba(17,132,255,0.75)"
+                          : "1px solid rgba(255,255,255,0.18)",
                     background: isDanger
                         ? "rgba(244,67,54,0.18)"
                         : isPrimary
-                            ? "#1184ff"
-                            : "rgba(255,255,255,0.06)",
+                          ? "#1184ff"
+                          : "rgba(255,255,255,0.06)",
                     color: isDanger
                         ? "rgba(255,220,220,0.98)"
                         : isPrimary
-                            ? "rgba(255,255,255,0.98)"
-                            : "rgba(255,255,255,0.85)",
+                          ? "rgba(255,255,255,0.98)"
+                          : "rgba(255,255,255,0.85)",
                     fontWeight: "600",
                     cursor: "pointer",
                 },
             });
         };
 
-        const content = $el("div", {
-            style: {
-                display: "flex",
-                flexDirection: "column",
-                gap: "18px",
-                padding: "18px 20px 18px 20px",
-            },
-            onkeydown: (e) => {
-                if (e.key === "Escape") {
-                    e.preventDefault();
-                    finish(null);
-                }
-            },
-        }, [
-            $el("div", {
+        const content = $el(
+            "div",
+            {
                 style: {
                     display: "flex",
-                    alignItems: "center",
-                    justifyContent: "flex-start",
+                    flexDirection: "column",
+                    gap: "18px",
+                    padding: "18px 20px 18px 20px",
                 },
-            }, [
+                onkeydown: (e) => {
+                    if (e.key === "Escape") {
+                        e.preventDefault();
+                        finish(null);
+                    }
+                },
+            },
+            [
+                $el(
+                    "div",
+                    {
+                        style: {
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "flex-start",
+                        },
+                    },
+                    [
+                        $el("div", {
+                            textContent: title,
+                            style: {
+                                fontWeight: "700",
+                                fontSize: "30px",
+                                color: "rgba(255,255,255,0.96)",
+                                lineHeight: "1.2",
+                            },
+                        }),
+                    ],
+                ),
                 $el("div", {
-                    textContent: title,
+                    textContent: String(message || ""),
                     style: {
-                        fontWeight: "700",
-                        fontSize: "30px",
-                        color: "rgba(255,255,255,0.96)",
-                        lineHeight: "1.2",
+                        fontSize: "22px",
+                        color: "rgba(255,255,255,0.86)",
+                        whiteSpace: "pre-wrap",
+                        lineHeight: "1.45",
                     },
                 }),
-            ]),
-            $el("div", {
-                textContent: String(message || ""),
-                style: {
-                    fontSize: "22px",
-                    color: "rgba(255,255,255,0.86)",
-                    whiteSpace: "pre-wrap",
-                    lineHeight: "1.45",
-                },
-            }),
-            $el("div", {
-                style: {
-                    display: "flex",
-                    justifyContent: "flex-end",
-                    gap: "10px",
-                    flexWrap: "wrap",
-                },
-            }, safeChoices.map(buttonForChoice)),
-        ]);
+                $el(
+                    "div",
+                    {
+                        style: {
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            gap: "10px",
+                            flexWrap: "wrap",
+                        },
+                    },
+                    safeChoices.map(buttonForChoice),
+                ),
+            ],
+        );
 
         try {
             dialog.show(content);
@@ -646,12 +745,15 @@ export const comfyPrompt = async (message, defaultValue = "", title = "Majoor") 
                 message: String(message || ""),
                 defaultValue: String(defaultValue ?? ""),
             };
-            const result = typeof extensionDialog.prompt === "function"
-                ? await extensionDialog.prompt(payload)
-                : null;
+            const result =
+                typeof extensionDialog.prompt === "function"
+                    ? await extensionDialog.prompt(payload)
+                    : null;
             if (result === null || result === undefined) return null;
             return String(result);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 
     const Dialog = getComfyDialogCtor();
@@ -670,7 +772,9 @@ export const comfyPrompt = async (message, defaultValue = "", title = "Majoor") 
         const finish = (value) => {
             try {
                 dialog.close();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             resolve(value ?? null);
         };
 
@@ -694,61 +798,69 @@ export const comfyPrompt = async (message, defaultValue = "", title = "Majoor") 
             },
         });
 
-        const content = $el("div", {
-            style: {
-                display: "flex",
-                flexDirection: "column",
-                gap: "12px",
-                padding: "16px",
+        const content = $el(
+            "div",
+            {
+                style: {
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "12px",
+                    padding: "16px",
+                },
             },
-        }, [
-            $el("div", {
-                textContent: title,
-                style: {
-                    fontWeight: "600",
-                    fontSize: "14px",
-                    color: "rgba(255,255,255,0.95)",
-                },
-            }),
-            $el("div", {
-                textContent: String(message || ""),
-                style: {
-                    fontSize: "13px",
-                    color: "rgba(255,255,255,0.80)",
-                    whiteSpace: "pre-wrap",
-                    lineHeight: "1.4",
-                },
-            }),
-            input,
-            $el("div", {
-                style: { display: "flex", justifyContent: "flex-end", gap: "10px" },
-            }, [
-                $el("button", {
-                    textContent: t("dialog.cancel", "Cancel"),
-                    onclick: () => finish(null),
+            [
+                $el("div", {
+                    textContent: title,
                     style: {
-                        padding: "8px 12px",
-                        borderRadius: "8px",
-                        border: "1px solid rgba(255,255,255,0.12)",
-                        background: "rgba(0,0,0,0.25)",
-                        color: "rgba(255,255,255,0.85)",
-                        cursor: "pointer",
-                    },
-                }),
-                $el("button", {
-                    textContent: t("dialog.ok", "OK"),
-                    onclick: () => finish(input.value),
-                    style: {
-                        padding: "8px 12px",
-                        borderRadius: "8px",
-                        border: "1px solid rgba(95,179,255,0.45)",
-                        background: "rgba(95,179,255,0.18)",
+                        fontWeight: "600",
+                        fontSize: "14px",
                         color: "rgba(255,255,255,0.95)",
-                        cursor: "pointer",
                     },
                 }),
-            ]),
-        ]);
+                $el("div", {
+                    textContent: String(message || ""),
+                    style: {
+                        fontSize: "13px",
+                        color: "rgba(255,255,255,0.80)",
+                        whiteSpace: "pre-wrap",
+                        lineHeight: "1.4",
+                    },
+                }),
+                input,
+                $el(
+                    "div",
+                    {
+                        style: { display: "flex", justifyContent: "flex-end", gap: "10px" },
+                    },
+                    [
+                        $el("button", {
+                            textContent: t("dialog.cancel", "Cancel"),
+                            onclick: () => finish(null),
+                            style: {
+                                padding: "8px 12px",
+                                borderRadius: "8px",
+                                border: "1px solid rgba(255,255,255,0.12)",
+                                background: "rgba(0,0,0,0.25)",
+                                color: "rgba(255,255,255,0.85)",
+                                cursor: "pointer",
+                            },
+                        }),
+                        $el("button", {
+                            textContent: t("dialog.ok", "OK"),
+                            onclick: () => finish(input.value),
+                            style: {
+                                padding: "8px 12px",
+                                borderRadius: "8px",
+                                border: "1px solid rgba(95,179,255,0.45)",
+                                background: "rgba(95,179,255,0.18)",
+                                color: "rgba(255,255,255,0.95)",
+                                cursor: "pointer",
+                            },
+                        }),
+                    ],
+                ),
+            ],
+        );
 
         try {
             dialog.show(content);
@@ -757,7 +869,9 @@ export const comfyPrompt = async (message, defaultValue = "", title = "Majoor") 
                 try {
                     input.focus();
                     input.select();
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }, 0);
         } catch {
             try {

@@ -8,12 +8,16 @@ export function createViewerLoupe({
     let loupeCtx = null;
     try {
         loupeCtx = loupeCanvas?.getContext?.("2d", { willReadFrequently: true });
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     const hide = () => {
         try {
             loupeWrap.style.display = "none";
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const redraw = (mediaEl, px, py, clientX, clientY) => {
@@ -30,7 +34,9 @@ export function createViewerLoupe({
             try {
                 if (loupeCanvas.width !== size) loupeCanvas.width = size;
                 if (loupeCanvas.height !== size) loupeCanvas.height = size;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
 
             const region = Math.max(3, Math.floor(size / mag));
             const scale = mediaEl?.tagName === "CANVAS" ? Number(mediaEl._mjrPixelScale) || 1 : 1;
@@ -63,13 +69,21 @@ export function createViewerLoupe({
                 loupeWrap.style.display = "";
                 loupeWrap.style.width = `${size}px`;
                 loupeWrap.style.height = `${size}px`;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
-                positionOverlayBox?.(loupeWrap, clientX, clientY, { offsetX: 18, offsetY: -size - 18 });
-            } catch (e) { console.debug?.(e); }
-        } catch (e) { console.debug?.(e); }
+                positionOverlayBox?.(loupeWrap, clientX, clientY, {
+                    offsetX: 18,
+                    offsetY: -size - 18,
+                });
+            } catch (e) {
+                console.debug?.(e);
+            }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     return { redraw, hide };
 }
-

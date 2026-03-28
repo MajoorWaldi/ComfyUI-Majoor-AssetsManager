@@ -10,4 +10,3 @@ export function createIconButton(iconClass, title) {
     btn.appendChild(i);
     return btn;
 }
-

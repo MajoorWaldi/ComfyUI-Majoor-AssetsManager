@@ -11,7 +11,10 @@ export function createBrowserNavigationController({
 } = {}) {
     const folderBackStack = [];
 
-    const normPath = (value) => String(value || "").trim().replaceAll("\\", "/");
+    const normPath = (value) =>
+        String(value || "")
+            .trim()
+            .replaceAll("\\", "/");
     const isWindowsDrive = (part) => /^[a-zA-Z]:$/.test(String(part || "").trim());
     const currentFolderPath = () => normPath(state.currentFolderRelativePath || "");
 
@@ -39,7 +42,9 @@ export function createBrowserNavigationController({
         state.currentFolderRelativePath = v;
         try {
             if (gridContainer?.dataset) gridContainer.dataset.mjrSubfolder = v;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const resolveFolderTargetPath = (asset) => {
@@ -76,10 +81,14 @@ export function createBrowserNavigationController({
     const notifyContext = () => {
         try {
             onContextChanged?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             renderBreadcrumb();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const resetGridScrollToTop = () => {
@@ -87,13 +96,17 @@ export function createBrowserNavigationController({
             if (gridContainer && typeof gridContainer.scrollTop === "number") {
                 gridContainer.scrollTop = 0;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             const parent = gridContainer?.parentElement || null;
             if (parent && typeof parent.scrollTop === "number") {
                 parent.scrollTop = 0;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const navigateFolder = async (target, { pushHistory = true } = {}) => {
@@ -117,7 +130,9 @@ export function createBrowserNavigationController({
 
     const renderBreadcrumb = () => {
         const isCustom = String(state.scope || "") === "custom";
-        const rel = String(state.currentFolderRelativePath || "").trim().replaceAll("\\", "/");
+        const rel = String(state.currentFolderRelativePath || "")
+            .trim()
+            .replaceAll("\\", "/");
         const folderBrowsingActive = isCustom || !!rel;
         const selectedRootId = String(state.customRootId || "").trim();
         const selectedRootLabel = (() => {
@@ -147,7 +162,8 @@ export function createBrowserNavigationController({
         const canBackToBrowserRoot = hasSelectedRoot && !rel;
         const canBackByPath = !!rel;
         backBtn.disabled = folderBackStack.length === 0 && !canBackToBrowserRoot && !canBackByPath;
-        backBtn.style.cssText = "background:rgba(122,162,255,0.12);border:1px solid rgba(122,162,255,0.35);border-radius:6px;padding:2px 8px;font:inherit;color:var(--mjr-accent, #7aa2ff);cursor:pointer;";
+        backBtn.style.cssText =
+            "background:rgba(122,162,255,0.12);border:1px solid rgba(122,162,255,0.35);border-radius:6px;padding:2px 8px;font:inherit;color:var(--mjr-accent, #7aa2ff);cursor:pointer;";
         backBtn.addEventListener(
             "click",
             async () => {
@@ -168,7 +184,7 @@ export function createBrowserNavigationController({
                 }
                 if (canBackToBrowserRoot) await resetToBrowserRoot();
             },
-            { signal: lifecycleSignal || undefined }
+            { signal: lifecycleSignal || undefined },
         );
         folderBreadcrumb.appendChild(backBtn);
 
@@ -177,7 +193,8 @@ export function createBrowserNavigationController({
         upBtn.textContent = t("btn.up", "Up");
         upBtn.className = "mjr-btn-link";
         upBtn.disabled = !rel || parentFolderPath(currentFolderPath()) === currentFolderPath();
-        upBtn.style.cssText = "background:rgba(122,162,255,0.10);border:1px solid rgba(122,162,255,0.30);border-radius:6px;padding:2px 8px;font:inherit;color:var(--mjr-accent, #7aa2ff);cursor:pointer;";
+        upBtn.style.cssText =
+            "background:rgba(122,162,255,0.10);border:1px solid rgba(122,162,255,0.30);border-radius:6px;padding:2px 8px;font:inherit;color:var(--mjr-accent, #7aa2ff);cursor:pointer;";
         upBtn.addEventListener(
             "click",
             async () => {
@@ -188,7 +205,7 @@ export function createBrowserNavigationController({
                 }
                 await navigateFolder(parent);
             },
-            { signal: lifecycleSignal || undefined }
+            { signal: lifecycleSignal || undefined },
         );
         folderBreadcrumb.appendChild(upBtn);
 
@@ -213,7 +230,7 @@ export function createBrowserNavigationController({
                         }
                         await navigateFolder(target);
                     },
-                    { signal: lifecycleSignal || undefined }
+                    { signal: lifecycleSignal || undefined },
                 );
             } else {
                 el.disabled = true;
@@ -255,12 +272,16 @@ export function createBrowserNavigationController({
                 notifyContext();
                 try {
                     await reloadGrid?.();
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
         };
 
         const onCustomSubfolderChanged = async (e) => {
-            const next = String(e?.detail?.subfolder || "").trim().replaceAll("\\", "/");
+            const next = String(e?.detail?.subfolder || "")
+                .trim()
+                .replaceAll("\\", "/");
             const prev = currentFolderPath();
             if (next !== prev) {
                 pushUniqueHistory(folderBackStack, prev);
@@ -269,28 +290,45 @@ export function createBrowserNavigationController({
                 notifyContext();
                 try {
                     await reloadGrid?.();
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
         };
-        gridContainer?.addEventListener?.("mjr:custom-subfolder-changed", onCustomSubfolderChanged, {
-            signal: lifecycleSignal || undefined,
-        });
+        gridContainer?.addEventListener?.(
+            "mjr:custom-subfolder-changed",
+            onCustomSubfolderChanged,
+            {
+                signal: lifecycleSignal || undefined,
+            },
+        );
         gridContainer?.addEventListener?.("mjr:open-folder-asset", onOpenFolderAsset, {
             signal: lifecycleSignal || undefined,
         });
         try {
             gridContainer._mjrHasCustomSubfolderHandler = true;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         return () => {
             try {
-                gridContainer?.removeEventListener?.("mjr:custom-subfolder-changed", onCustomSubfolderChanged);
-            } catch (e) { console.debug?.(e); }
+                gridContainer?.removeEventListener?.(
+                    "mjr:custom-subfolder-changed",
+                    onCustomSubfolderChanged,
+                );
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 gridContainer?.removeEventListener?.("mjr:open-folder-asset", onOpenFolderAsset);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 gridContainer._mjrHasCustomSubfolderHandler = false;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         };
     };
 

@@ -34,7 +34,9 @@ export function installViewerKeyboard({
     const clearRatingDebounce = () => {
         try {
             if (ratingDebounceTimer) clearTimeout(ratingDebounceTimer);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         ratingDebounceTimer = null;
         ratingPending = null;
     };
@@ -53,13 +55,13 @@ export function installViewerKeyboard({
                     comfyToast(result?.error || t("toast.ratingUpdateFailed"), "error");
                     return;
                 }
-                
+
                 comfyToast(t("toast.ratingSetN", { n: pending.rating }), "success", 1500);
-                
+
                 safeDispatchCustomEvent?.(
                     ASSET_RATING_CHANGED_EVENT,
                     { assetId: String(pending.assetId), rating: pending.rating },
-                    { warnPrefix: "[Viewer]" }
+                    { warnPrefix: "[Viewer]" },
                 );
             } catch {
                 comfyToast(t("toast.ratingUpdateError"), "error");
@@ -74,7 +76,9 @@ export function installViewerKeyboard({
             } else {
                 document?.exitFullscreen?.();
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const handleKeyboard = (e) => {
@@ -83,7 +87,9 @@ export function installViewerKeyboard({
                 e.preventDefault();
                 e.stopPropagation();
                 e.stopImmediatePropagation?.();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         };
 
         // Check if hotkeys are suspended (e.g. when dialogs/popovers are open)
@@ -91,7 +97,9 @@ export function installViewerKeyboard({
 
         try {
             if (overlay?.style?.display === "none") return;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         // If an input-like element is focused inside the viewer, avoid hijacking typing.
         try {
@@ -109,7 +117,9 @@ export function installViewerKeyboard({
                 }
                 return;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         const isSingle = state?.mode === VIEWER_MODES?.SINGLE;
         const current = state?.assets?.[state?.currentIndex];
@@ -117,7 +127,15 @@ export function installViewerKeyboard({
         const setRatingFromKey = async (key) => {
             if (!isSingle) return false;
             if (!current?.id) return false;
-            if (key !== "0" && key !== "1" && key !== "2" && key !== "3" && key !== "4" && key !== "5") return false;
+            if (
+                key !== "0" &&
+                key !== "1" &&
+                key !== "2" &&
+                key !== "3" &&
+                key !== "4" &&
+                key !== "5"
+            )
+                return false;
             const rating = key === "0" ? 0 : Number(key);
             if (!Number.isFinite(rating)) return false;
 
@@ -150,7 +168,9 @@ export function installViewerKeyboard({
                     controls.stepFrames(direction);
                     return true;
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
 
             const video = singleView?.querySelector?.("video");
             if (!video) return false;
@@ -158,7 +178,9 @@ export function installViewerKeyboard({
             try {
                 // Pause so arrows behave deterministically.
                 video.pause?.();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
 
             const fpsGuess = 30;
             const step = 1 / fpsGuess;
@@ -168,12 +190,19 @@ export function installViewerKeyboard({
                 const duration = Number(video.duration);
                 const next = Math.max(
                     0,
-                    Math.min(Number.isFinite(duration) ? duration : Infinity, (video.currentTime || 0) + delta)
+                    Math.min(
+                        Number.isFinite(duration) ? duration : Infinity,
+                        (video.currentTime || 0) + delta,
+                    ),
                 );
                 video.currentTime = next;
                 try {
-                    video.dispatchEvent?.(new CustomEvent("mjr:frameStep", { detail: { direction, time: next } }));
-                } catch (e) { console.debug?.(e); }
+                    video.dispatchEvent?.(
+                        new CustomEvent("mjr:frameStep", { detail: { direction, time: next } }),
+                    );
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 return true;
             } catch {
                 return true;
@@ -188,7 +217,13 @@ export function installViewerKeyboard({
                     const rate = controls.setPlaybackRate?.(deltaOrAbsolute);
                     if (Number.isFinite(Number(rate))) {
                         state.playbackRate = Number(rate);
-                        comfyToast(t("toast.playbackRate", "Playback {rate}x", { rate: Number(rate).toFixed(2) }), "info", 1200);
+                        comfyToast(
+                            t("toast.playbackRate", "Playback {rate}x", {
+                                rate: Number(rate).toFixed(2),
+                            }),
+                            "info",
+                            1200,
+                        );
                         return true;
                     }
                     return false;
@@ -196,7 +231,13 @@ export function installViewerKeyboard({
                 const rate = controls.adjustPlaybackRate?.(deltaOrAbsolute);
                 if (Number.isFinite(Number(rate))) {
                     state.playbackRate = Number(rate);
-                    comfyToast(t("toast.playbackRate", "Playback {rate}x", { rate: Number(rate).toFixed(2) }), "info", 1200);
+                    comfyToast(
+                        t("toast.playbackRate", "Playback {rate}x", {
+                            rate: Number(rate).toFixed(2),
+                        }),
+                        "info",
+                        1200,
+                    );
                     return true;
                 }
                 return false;
@@ -211,7 +252,12 @@ export function installViewerKeyboard({
             !e.altKey &&
             !e.ctrlKey &&
             !e.metaKey &&
-            (e.key === "0" || e.key === "1" || e.key === "2" || e.key === "3" || e.key === "4" || e.key === "5")
+            (e.key === "0" ||
+                e.key === "1" ||
+                e.key === "2" ||
+                e.key === "3" ||
+                e.key === "4" ||
+                e.key === "5")
         ) {
             consume();
             void setRatingFromKey(e.key);
@@ -229,8 +275,13 @@ export function installViewerKeyboard({
                 consume();
                 try {
                     const near = Math.abs((Number(state?.zoom) || 1) - z) < 0.01;
-                    setZoom?.(near ? 1 : z, { clientX: state?._lastPointerX, clientY: state?._lastPointerY });
-                } catch (e) { console.debug?.(e); }
+                    setZoom?.(near ? 1 : z, {
+                        clientX: state?._lastPointerX,
+                        clientY: state?._lastPointerY,
+                    });
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 break;
             }
             case "g":
@@ -238,7 +289,9 @@ export function installViewerKeyboard({
                 consume();
                 try {
                     state.gridMode = ((Number(state.gridMode) || 0) + 1) % 5;
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 safeCall(scheduleOverlayRedraw);
                 safeCall(syncToolsUIFromState);
                 break;
@@ -252,11 +305,13 @@ export function installViewerKeyboard({
             case "d":
             case "D": {
                 consume();
-                 try {
-                     state.genInfoOpen = !state.genInfoOpen;
-                 } catch (e) { console.debug?.(e); }
-                 safeCall(syncToolsUIFromState);
-                 safeCall(renderGenInfoPanel);
+                try {
+                    state.genInfoOpen = !state.genInfoOpen;
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                safeCall(syncToolsUIFromState);
+                safeCall(renderGenInfoPanel);
                 break;
             }
             case "z":
@@ -264,7 +319,9 @@ export function installViewerKeyboard({
                 consume();
                 try {
                     state.analysisMode = state.analysisMode === "zebra" ? "none" : "zebra";
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 safeCall(syncToolsUIFromState);
                 safeCall(scheduleApplyGrade);
                 break;
@@ -274,10 +331,14 @@ export function installViewerKeyboard({
                 consume();
                 try {
                     state.probeEnabled = !state.probeEnabled;
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 try {
                     if (!state.probeEnabled) probeTooltip.style.display = "none";
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 safeCall(syncToolsUIFromState);
                 break;
             }
@@ -286,10 +347,14 @@ export function installViewerKeyboard({
                 consume();
                 try {
                     state.loupeEnabled = !state.loupeEnabled;
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 try {
                     if (!state.loupeEnabled) loupeWrap.style.display = "none";
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 safeCall(syncToolsUIFromState);
                 break;
             }
@@ -298,7 +363,9 @@ export function installViewerKeyboard({
                 consume();
                 try {
                     state.distractionFree = !state.distractionFree;
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 safeCall(syncToolsUIFromState);
                 safeCall(renderGenInfoPanel);
                 break;
@@ -319,7 +386,9 @@ export function installViewerKeyboard({
                         consume();
                         void clip.writeText(hex).catch(() => {});
                     }
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 break;
             }
             case " ":
@@ -334,7 +403,9 @@ export function installViewerKeyboard({
                                 controls.togglePlay();
                                 break;
                             }
-                        } catch (e) { console.debug?.(e); }
+                        } catch (e) {
+                            console.debug?.(e);
+                        }
                         try {
                             if (videoEl.paused) {
                                 const p = videoEl.play?.();
@@ -342,7 +413,9 @@ export function installViewerKeyboard({
                             } else {
                                 videoEl.pause?.();
                             }
-                        } catch (e) { console.debug?.(e); }
+                        } catch (e) {
+                            console.debug?.(e);
+                        }
                         break;
                     }
                 }
@@ -352,7 +425,9 @@ export function installViewerKeyboard({
                 consume();
                 try {
                     if (!overlay?.contains?.(document.activeElement)) overlay?.focus?.();
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 break;
             }
             case "Escape":
@@ -405,15 +480,25 @@ export function installViewerKeyboard({
             case "=":
                 consume();
                 try {
-                    setZoom?.((Number(state?.zoom) || 1) + 0.25, { clientX: state?._lastPointerX, clientY: state?._lastPointerY });
-                } catch (e) { console.debug?.(e); }
+                    setZoom?.((Number(state?.zoom) || 1) + 0.25, {
+                        clientX: state?._lastPointerX,
+                        clientY: state?._lastPointerY,
+                    });
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 break;
             case "-":
             case "_":
                 consume();
                 try {
-                    setZoom?.((Number(state?.zoom) || 1) - 0.25, { clientX: state?._lastPointerX, clientY: state?._lastPointerY });
-                } catch (e) { console.debug?.(e); }
+                    setZoom?.((Number(state?.zoom) || 1) - 0.25, {
+                        clientX: state?._lastPointerX,
+                        clientY: state?._lastPointerY,
+                    });
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 break;
         }
     };
@@ -423,12 +508,16 @@ export function installViewerKeyboard({
         try {
             if (keyUnsub) return;
             keyUnsub = safeAddListener(window, "keydown", handleKeyboard, true);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
     const unbind = () => {
         try {
             safeCall(keyUnsub);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         keyUnsub = null;
     };
 
@@ -444,4 +533,3 @@ export function installViewerKeyboard({
         },
     };
 }
-

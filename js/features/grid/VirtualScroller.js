@@ -19,14 +19,18 @@ export function detectScrollRoot(gridContainer) {
     try {
         const browse = gridContainer?.closest?.(".mjr-am-browse") || null;
         if (browse && isPotentialScrollContainer(browse)) return browse;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         let cur = gridContainer?.parentElement;
         while (cur && cur !== document.body && cur !== document.documentElement) {
             if (isPotentialScrollContainer(cur)) return cur;
             cur = cur.parentElement;
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return gridContainer?.parentElement || null;
 }
 
@@ -34,7 +38,9 @@ export function getScrollContainer(gridContainer, state) {
     try {
         const cur = state?.scrollRoot;
         if (cur && cur instanceof HTMLElement) return cur;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     const detected = detectScrollRoot(gridContainer);
     if (detected && state) state.scrollRoot = detected;
     return detected;
@@ -52,9 +58,16 @@ export function ensureVirtualGrid(gridContainer, state, deps) {
     const scrollRoot = getScrollContainer(gridContainer, state);
     try {
         deps.gridDebug("virtualGrid:scrollRoot", {
-            scrollRoot: scrollRoot === document.body ? "document.body" : scrollRoot === document.documentElement ? "document.documentElement" : scrollRoot?.className || scrollRoot?.tagName || null,
+            scrollRoot:
+                scrollRoot === document.body
+                    ? "document.body"
+                    : scrollRoot === document.documentElement
+                      ? "document.documentElement"
+                      : scrollRoot?.className || scrollRoot?.tagName || null,
         });
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     state.virtualGrid = new deps.VirtualGrid(gridContainer, scrollRoot, deps.optionsFactory());
     if (!state._cardKeydownHandler) {
         const handler = (event) => {
@@ -65,7 +78,9 @@ export function ensureVirtualGrid(gridContainer, state, deps) {
                 if (!card) return;
                 event.preventDefault();
                 card.click();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         };
         state._cardKeydownHandler = handler;
         gridContainer.addEventListener("keydown", handler, true);
@@ -75,18 +90,29 @@ export function ensureVirtualGrid(gridContainer, state, deps) {
 
 export function ensureSentinel(gridContainer, state, sentinelClass) {
     let sentinel = state.sentinel;
-    if (sentinel && sentinel.isConnected && sentinel.parentNode === gridContainer && !sentinel.nextSibling) return sentinel;
+    if (
+        sentinel &&
+        sentinel.isConnected &&
+        sentinel.parentNode === gridContainer &&
+        !sentinel.nextSibling
+    )
+        return sentinel;
     if (sentinel) {
         sentinel.remove();
     } else {
         sentinel = document.createElement("div");
         sentinel.className = sentinelClass;
-        sentinel.style.cssText = "height: 1px; width: 100%; position: absolute; bottom: 0; left: 0; pointer-events: none; z-index: -10;";
+        sentinel.style.cssText =
+            "height: 1px; width: 100%; position: absolute; bottom: 0; left: 0; pointer-events: none; z-index: -10;";
         state.sentinel = sentinel;
     }
     gridContainer.appendChild(sentinel);
     if (state.observer) {
-        try { state.observer.observe(sentinel); } catch (e) { console.debug?.(e); }
+        try {
+            state.observer.observe(sentinel);
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
     return sentinel;
 }
@@ -94,17 +120,23 @@ export function ensureSentinel(gridContainer, state, sentinelClass) {
 export function stopObserver(state) {
     try {
         if (state.observer) state.observer.disconnect();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     state.observer = null;
     try {
         if (state.sentinel && state.sentinel.isConnected) state.sentinel.remove();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     state.sentinel = null;
     try {
         if (state.scrollTarget && state.scrollHandler) {
             state.scrollTarget.removeEventListener("scroll", state.scrollHandler);
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     state.scrollRoot = null;
     state.scrollTarget = null;
     state.scrollHandler = null;
@@ -118,7 +150,9 @@ export function captureScrollMetrics(state) {
     if (!root) return null;
     try {
         if (!root.isConnected) return null;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     const clientHeight = Number(root.clientHeight) || 0;
     if (clientHeight <= 0) return null;
     const scrollHeight = Number(root.scrollHeight) || 0;
@@ -135,7 +169,7 @@ export function startInfiniteScroll(gridContainer, state, deps) {
     if (!deps.config.INFINITE_SCROLL_ENABLED) return;
     stopObserver(state);
     const sentinel = ensureSentinel(gridContainer, state, deps.sentinelClass);
-    let rootEl = null;
+    let rootEl;
     try {
         rootEl = state?.virtualGrid?.scrollElement || null;
     } catch {
@@ -172,40 +206,53 @@ export function startInfiniteScroll(gridContainer, state, deps) {
                 if (m && m.bottomGap <= bottomGapPx) {
                     Promise.resolve(deps.loadNextPage(gridContainer, state)).catch(() => null);
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         };
         try {
             scrollTarget.addEventListener("scroll", state.scrollHandler, { passive: true });
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
     const observerRoot = rootEl;
-    state.observer = new IntersectionObserver((entries) => {
-        for (const entry of entries || []) {
-            if (!entry.isIntersecting) continue;
-            if (state.loading || state.done) return;
-            const metrics = captureScrollMetrics(state);
-            if (!metrics) return;
-            const fillsViewport = metrics ? metrics.scrollHeight > metrics.clientHeight + 40 : false;
-            if (!state.userScrolled && fillsViewport && !state.allowUntilFilled) return;
-            try {
-                state.observer?.unobserve?.(sentinel);
-            } catch (e) { console.debug?.(e); }
-            state.userScrolled = false;
-            if (fillsViewport) state.allowUntilFilled = false;
-            Promise.resolve(deps.loadNextPage(gridContainer, state))
-                .catch(() => null)
-                .finally(() => {
-                    if (state.done) return;
-                    if (!sentinel.isConnected) return;
-                    try {
-                        state.observer?.observe?.(sentinel);
-                    } catch (e) { console.debug?.(e); }
-                });
-        }
-    }, {
-        root: observerRoot,
-        rootMargin: deps.config.INFINITE_SCROLL_ROOT_MARGIN || "800px",
-        threshold: deps.config.INFINITE_SCROLL_THRESHOLD ?? 0.01,
-    });
+    state.observer = new IntersectionObserver(
+        (entries) => {
+            for (const entry of entries || []) {
+                if (!entry.isIntersecting) continue;
+                if (state.loading || state.done) return;
+                const metrics = captureScrollMetrics(state);
+                if (!metrics) return;
+                const fillsViewport = metrics
+                    ? metrics.scrollHeight > metrics.clientHeight + 40
+                    : false;
+                if (!state.userScrolled && fillsViewport && !state.allowUntilFilled) return;
+                try {
+                    state.observer?.unobserve?.(sentinel);
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                state.userScrolled = false;
+                if (fillsViewport) state.allowUntilFilled = false;
+                Promise.resolve(deps.loadNextPage(gridContainer, state))
+                    .catch(() => null)
+                    .finally(() => {
+                        if (state.done) return;
+                        if (!sentinel.isConnected) return;
+                        try {
+                            state.observer?.observe?.(sentinel);
+                        } catch (e) {
+                            console.debug?.(e);
+                        }
+                    });
+            }
+        },
+        {
+            root: observerRoot,
+            rootMargin: deps.config.INFINITE_SCROLL_ROOT_MARGIN || "800px",
+            threshold: deps.config.INFINITE_SCROLL_THRESHOLD ?? 0.01,
+        },
+    );
     state.observer.observe(sentinel);
 }

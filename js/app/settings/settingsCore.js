@@ -4,7 +4,11 @@
  */
 
 import { APP_CONFIG, APP_DEFAULTS } from "../config.js";
-import { getSecuritySettings, setSecuritySettings, bootstrapSecurityToken, getVectorSearchSettings } from "../../api/client.js";
+import {
+    getSecuritySettings,
+    bootstrapSecurityToken,
+    getVectorSearchSettings,
+} from "../../api/client.js";
 import { safeDispatchCustomEvent } from "../../utils/events.js";
 import { SettingsStore } from "./SettingsStore.js";
 import { SETTINGS_KEY, SETTINGS_SCHEMA_VERSION } from "../settingsStore.js";
@@ -171,15 +175,17 @@ export const loadMajoorSettings = () => {
         if (!raw) return { ...DEFAULT_SETTINGS };
         const parsed = JSON.parse(raw);
         const isWrapped =
-            parsed
-            && typeof parsed === "object"
-            && Number.isInteger(parsed.version)
-            && parsed.data
-            && typeof parsed.data === "object";
+            parsed &&
+            typeof parsed === "object" &&
+            Number.isInteger(parsed.version) &&
+            parsed.data &&
+            typeof parsed.data === "object";
         const isLegacyObject = parsed && typeof parsed === "object" && !Array.isArray(parsed);
         if (!isWrapped && !isLegacyObject) return { ...DEFAULT_SETTINGS };
         if (isWrapped && Number(parsed.version) > Number(SETTINGS_SCHEMA_VERSION)) {
-            console.warn("[Majoor] settings schema version is newer than this build, using defaults");
+            console.warn(
+                "[Majoor] settings schema version is newer than this build, using defaults",
+            );
             return { ...DEFAULT_SETTINGS };
         }
         const payload = isWrapped ? parsed.data : parsed;
@@ -221,7 +227,9 @@ export const loadMajoorSettings = () => {
         if (!isWrapped) {
             try {
                 saveMajoorSettings(merged);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
         return merged;
     } catch (error) {
@@ -249,15 +257,28 @@ export const saveMajoorSettings = (settings) => {
             if (now - last > 30_000) {
                 window._mjrSettingsSaveFailAt = now;
                 import("./dialogs.js")
-                    .then(({ comfyAlert }) => comfyAlert(
-                        t("dialog.settingsSaveFailed", "Majoor: Failed to save settings (browser storage full or blocked).")
-                    ))
+                    .then(({ comfyAlert }) =>
+                        comfyAlert(
+                            t(
+                                "dialog.settingsSaveFailed",
+                                "Majoor: Failed to save settings (browser storage full or blocked).",
+                            ),
+                        ),
+                    )
                     .catch(() => {});
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
-            safeDispatchCustomEvent("mjr-settings-save-failed", { error: String(error?.message || error || "") }, { warnPrefix: "[Majoor]" });
-        } catch (e) { console.debug?.(e); }
+            safeDispatchCustomEvent(
+                "mjr-settings-save-failed",
+                { error: String(error?.message || error || "") },
+                { warnPrefix: "[Majoor]" },
+            );
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 };
 
@@ -267,39 +288,73 @@ export const applySettingsToConfig = (settings) => {
     const maxPage = Number(APP_DEFAULTS.MAX_PAGE_SIZE) || 2000;
     const pageSize = Math.max(
         50,
-        Math.min(maxPage, Number(settings.grid?.pageSize) || APP_DEFAULTS.DEFAULT_PAGE_SIZE)
+        Math.min(maxPage, Number(settings.grid?.pageSize) || APP_DEFAULTS.DEFAULT_PAGE_SIZE),
     );
     APP_CONFIG.DEFAULT_PAGE_SIZE = pageSize;
     APP_CONFIG.AUTO_SCAN_ON_STARTUP = !!settings.autoScan?.onStartup;
-    APP_CONFIG.STATUS_POLL_INTERVAL = Math.max(1000, Number(settings.status?.pollInterval) || APP_DEFAULTS.STATUS_POLL_INTERVAL);
+    APP_CONFIG.STATUS_POLL_INTERVAL = Math.max(
+        1000,
+        Number(settings.status?.pollInterval) || APP_DEFAULTS.STATUS_POLL_INTERVAL,
+    );
 
     APP_CONFIG.DEBUG_SAFE_CALL = !!settings.debug?.safeCall;
     APP_CONFIG.DEBUG_SAFE_LISTENERS = !!settings.debug?.safeListeners;
     APP_CONFIG.DEBUG_VIEWER = !!settings.debug?.viewer;
 
     APP_CONFIG.GRID_MIN_SIZE = resolveGridMinSize(settings.grid);
-    APP_CONFIG.GRID_GAP = Math.max(0, Math.min(40, Math.round(_safeNum(settings.grid?.gap, APP_DEFAULTS.GRID_GAP))));
+    APP_CONFIG.GRID_GAP = Math.max(
+        0,
+        Math.min(40, Math.round(_safeNum(settings.grid?.gap, APP_DEFAULTS.GRID_GAP))),
+    );
 
-    APP_CONFIG.GRID_SHOW_BADGES_EXTENSION = !!(settings.grid?.showExtBadge ?? APP_DEFAULTS.GRID_SHOW_BADGES_EXTENSION);
-    APP_CONFIG.GRID_SHOW_BADGES_RATING = !!(settings.grid?.showRatingBadge ?? APP_DEFAULTS.GRID_SHOW_BADGES_RATING);
-    APP_CONFIG.GRID_SHOW_BADGES_TAGS = !!(settings.grid?.showTagsBadge ?? APP_DEFAULTS.GRID_SHOW_BADGES_TAGS);
+    APP_CONFIG.GRID_SHOW_BADGES_EXTENSION = !!(
+        settings.grid?.showExtBadge ?? APP_DEFAULTS.GRID_SHOW_BADGES_EXTENSION
+    );
+    APP_CONFIG.GRID_SHOW_BADGES_RATING = !!(
+        settings.grid?.showRatingBadge ?? APP_DEFAULTS.GRID_SHOW_BADGES_RATING
+    );
+    APP_CONFIG.GRID_SHOW_BADGES_TAGS = !!(
+        settings.grid?.showTagsBadge ?? APP_DEFAULTS.GRID_SHOW_BADGES_TAGS
+    );
     APP_CONFIG.GRID_SHOW_DETAILS = !!(settings.grid?.showDetails ?? APP_DEFAULTS.GRID_SHOW_DETAILS);
-    APP_CONFIG.GRID_SHOW_DETAILS_FILENAME = !!(settings.grid?.showFilename ?? APP_DEFAULTS.GRID_SHOW_DETAILS_FILENAME);
-    APP_CONFIG.GRID_SHOW_DETAILS_DATE = !!(settings.grid?.showDate ?? APP_DEFAULTS.GRID_SHOW_DETAILS_DATE);
-    APP_CONFIG.GRID_SHOW_DETAILS_DIMENSIONS = !!(settings.grid?.showDimensions ?? APP_DEFAULTS.GRID_SHOW_DETAILS_DIMENSIONS);
-    APP_CONFIG.GRID_SHOW_DETAILS_GENTIME = !!(settings.grid?.showGenTime ?? APP_DEFAULTS.GRID_SHOW_DETAILS_GENTIME);
-    APP_CONFIG.GRID_SHOW_WORKFLOW_DOT = !!(settings.grid?.showWorkflowDot ?? APP_DEFAULTS.GRID_SHOW_WORKFLOW_DOT);
+    APP_CONFIG.GRID_SHOW_DETAILS_FILENAME = !!(
+        settings.grid?.showFilename ?? APP_DEFAULTS.GRID_SHOW_DETAILS_FILENAME
+    );
+    APP_CONFIG.GRID_SHOW_DETAILS_DATE = !!(
+        settings.grid?.showDate ?? APP_DEFAULTS.GRID_SHOW_DETAILS_DATE
+    );
+    APP_CONFIG.GRID_SHOW_DETAILS_DIMENSIONS = !!(
+        settings.grid?.showDimensions ?? APP_DEFAULTS.GRID_SHOW_DETAILS_DIMENSIONS
+    );
+    APP_CONFIG.GRID_SHOW_DETAILS_GENTIME = !!(
+        settings.grid?.showGenTime ?? APP_DEFAULTS.GRID_SHOW_DETAILS_GENTIME
+    );
+    APP_CONFIG.GRID_SHOW_WORKFLOW_DOT = !!(
+        settings.grid?.showWorkflowDot ?? APP_DEFAULTS.GRID_SHOW_WORKFLOW_DOT
+    );
 
     // Bottom feed card display
     APP_CONFIG.FEED_SHOW_INFO = !!(settings.feed?.showInfo ?? APP_DEFAULTS.FEED_SHOW_INFO);
-    APP_CONFIG.FEED_SHOW_FILENAME = !!(settings.feed?.showFilename ?? APP_DEFAULTS.FEED_SHOW_FILENAME);
-    APP_CONFIG.FEED_SHOW_DIMENSIONS = !!(settings.feed?.showDimensions ?? APP_DEFAULTS.FEED_SHOW_DIMENSIONS);
+    APP_CONFIG.FEED_SHOW_FILENAME = !!(
+        settings.feed?.showFilename ?? APP_DEFAULTS.FEED_SHOW_FILENAME
+    );
+    APP_CONFIG.FEED_SHOW_DIMENSIONS = !!(
+        settings.feed?.showDimensions ?? APP_DEFAULTS.FEED_SHOW_DIMENSIONS
+    );
     APP_CONFIG.FEED_SHOW_DATE = !!(settings.feed?.showDate ?? APP_DEFAULTS.FEED_SHOW_DATE);
     APP_CONFIG.FEED_SHOW_GENTIME = !!(settings.feed?.showGenTime ?? APP_DEFAULTS.FEED_SHOW_GENTIME);
-    APP_CONFIG.FEED_SHOW_WORKFLOW_DOT = !!(settings.feed?.showWorkflowDot ?? APP_DEFAULTS.FEED_SHOW_WORKFLOW_DOT);
-    APP_CONFIG.FEED_SHOW_BADGES_EXTENSION = !!(settings.feed?.showExtBadge ?? APP_DEFAULTS.FEED_SHOW_BADGES_EXTENSION);
-    APP_CONFIG.FEED_SHOW_BADGES_RATING = !!(settings.feed?.showRatingBadge ?? APP_DEFAULTS.FEED_SHOW_BADGES_RATING);
-    APP_CONFIG.FEED_SHOW_BADGES_TAGS = !!(settings.feed?.showTagsBadge ?? APP_DEFAULTS.FEED_SHOW_BADGES_TAGS);
+    APP_CONFIG.FEED_SHOW_WORKFLOW_DOT = !!(
+        settings.feed?.showWorkflowDot ?? APP_DEFAULTS.FEED_SHOW_WORKFLOW_DOT
+    );
+    APP_CONFIG.FEED_SHOW_BADGES_EXTENSION = !!(
+        settings.feed?.showExtBadge ?? APP_DEFAULTS.FEED_SHOW_BADGES_EXTENSION
+    );
+    APP_CONFIG.FEED_SHOW_BADGES_RATING = !!(
+        settings.feed?.showRatingBadge ?? APP_DEFAULTS.FEED_SHOW_BADGES_RATING
+    );
+    APP_CONFIG.FEED_SHOW_BADGES_TAGS = !!(
+        settings.feed?.showTagsBadge ?? APP_DEFAULTS.FEED_SHOW_BADGES_TAGS
+    );
 
     // Video autoplay mode: migrate old boolean → new tri-state
     {
@@ -319,14 +374,38 @@ export const applySettingsToConfig = (settings) => {
         if (/^[0-9a-fA-F]{6}$/.test(c)) c = `#${c}`;
         return /^#[0-9a-fA-F]{3,8}$/.test(c) ? c : fallback;
     };
-    APP_CONFIG.BADGE_STAR_COLOR = _safeColor(settings.grid?.starColor, APP_DEFAULTS.BADGE_STAR_COLOR);
-    APP_CONFIG.BADGE_IMAGE_COLOR = _safeColor(settings.grid?.badgeImageColor, APP_DEFAULTS.BADGE_IMAGE_COLOR);
-    APP_CONFIG.BADGE_VIDEO_COLOR = _safeColor(settings.grid?.badgeVideoColor, APP_DEFAULTS.BADGE_VIDEO_COLOR);
-    APP_CONFIG.BADGE_AUDIO_COLOR = _safeColor(settings.grid?.badgeAudioColor, APP_DEFAULTS.BADGE_AUDIO_COLOR);
-    APP_CONFIG.BADGE_MODEL3D_COLOR = _safeColor(settings.grid?.badgeModel3dColor, APP_DEFAULTS.BADGE_MODEL3D_COLOR);
-    APP_CONFIG.BADGE_DUPLICATE_ALERT_COLOR = _safeColor(settings.grid?.badgeDuplicateAlertColor, APP_DEFAULTS.BADGE_DUPLICATE_ALERT_COLOR);
-    APP_CONFIG.UI_CARD_HOVER_COLOR = _safeColor(settings.ui?.cardHoverColor, APP_DEFAULTS.UI_CARD_HOVER_COLOR);
-    APP_CONFIG.UI_CARD_SELECTION_COLOR = _safeColor(settings.ui?.cardSelectionColor, APP_DEFAULTS.UI_CARD_SELECTION_COLOR);
+    APP_CONFIG.BADGE_STAR_COLOR = _safeColor(
+        settings.grid?.starColor,
+        APP_DEFAULTS.BADGE_STAR_COLOR,
+    );
+    APP_CONFIG.BADGE_IMAGE_COLOR = _safeColor(
+        settings.grid?.badgeImageColor,
+        APP_DEFAULTS.BADGE_IMAGE_COLOR,
+    );
+    APP_CONFIG.BADGE_VIDEO_COLOR = _safeColor(
+        settings.grid?.badgeVideoColor,
+        APP_DEFAULTS.BADGE_VIDEO_COLOR,
+    );
+    APP_CONFIG.BADGE_AUDIO_COLOR = _safeColor(
+        settings.grid?.badgeAudioColor,
+        APP_DEFAULTS.BADGE_AUDIO_COLOR,
+    );
+    APP_CONFIG.BADGE_MODEL3D_COLOR = _safeColor(
+        settings.grid?.badgeModel3dColor,
+        APP_DEFAULTS.BADGE_MODEL3D_COLOR,
+    );
+    APP_CONFIG.BADGE_DUPLICATE_ALERT_COLOR = _safeColor(
+        settings.grid?.badgeDuplicateAlertColor,
+        APP_DEFAULTS.BADGE_DUPLICATE_ALERT_COLOR,
+    );
+    APP_CONFIG.UI_CARD_HOVER_COLOR = _safeColor(
+        settings.ui?.cardHoverColor,
+        APP_DEFAULTS.UI_CARD_HOVER_COLOR,
+    );
+    APP_CONFIG.UI_CARD_SELECTION_COLOR = _safeColor(
+        settings.ui?.cardSelectionColor,
+        APP_DEFAULTS.UI_CARD_SELECTION_COLOR,
+    );
     APP_CONFIG.UI_RATING_COLOR = _safeColor(settings.ui?.ratingColor, APP_DEFAULTS.UI_RATING_COLOR);
     APP_CONFIG.UI_TAG_COLOR = _safeColor(settings.ui?.tagColor, APP_DEFAULTS.UI_TAG_COLOR);
 
@@ -338,46 +417,156 @@ export const applySettingsToConfig = (settings) => {
             root.style.setProperty("--mjr-badge-video", APP_CONFIG.BADGE_VIDEO_COLOR);
             root.style.setProperty("--mjr-badge-audio", APP_CONFIG.BADGE_AUDIO_COLOR);
             root.style.setProperty("--mjr-badge-model3d", APP_CONFIG.BADGE_MODEL3D_COLOR);
-            root.style.setProperty("--mjr-badge-duplicate-alert", APP_CONFIG.BADGE_DUPLICATE_ALERT_COLOR);
+            root.style.setProperty(
+                "--mjr-badge-duplicate-alert",
+                APP_CONFIG.BADGE_DUPLICATE_ALERT_COLOR,
+            );
             root.style.setProperty("--mjr-card-hover-color", APP_CONFIG.UI_CARD_HOVER_COLOR);
-            root.style.setProperty("--mjr-card-selection-color", APP_CONFIG.UI_CARD_SELECTION_COLOR);
+            root.style.setProperty(
+                "--mjr-card-selection-color",
+                APP_CONFIG.UI_CARD_SELECTION_COLOR,
+            );
             root.style.setProperty("--mjr-rating-color", APP_CONFIG.UI_RATING_COLOR);
             root.style.setProperty("--mjr-tag-color", APP_CONFIG.UI_TAG_COLOR);
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     APP_CONFIG.INFINITE_SCROLL_ENABLED = !!settings.infiniteScroll?.enabled;
-    APP_CONFIG.INFINITE_SCROLL_ROOT_MARGIN = String(settings.infiniteScroll?.rootMargin || APP_DEFAULTS.INFINITE_SCROLL_ROOT_MARGIN);
-    APP_CONFIG.INFINITE_SCROLL_THRESHOLD = Math.max(0, Math.min(1, _safeNum(settings.infiniteScroll?.threshold, APP_DEFAULTS.INFINITE_SCROLL_THRESHOLD)));
-    APP_CONFIG.BOTTOM_GAP_PX = Math.max(0, Math.min(5000, Math.round(_safeNum(settings.infiniteScroll?.bottomGapPx, APP_DEFAULTS.BOTTOM_GAP_PX))));
+    APP_CONFIG.INFINITE_SCROLL_ROOT_MARGIN = String(
+        settings.infiniteScroll?.rootMargin || APP_DEFAULTS.INFINITE_SCROLL_ROOT_MARGIN,
+    );
+    APP_CONFIG.INFINITE_SCROLL_THRESHOLD = Math.max(
+        0,
+        Math.min(
+            1,
+            _safeNum(settings.infiniteScroll?.threshold, APP_DEFAULTS.INFINITE_SCROLL_THRESHOLD),
+        ),
+    );
+    APP_CONFIG.BOTTOM_GAP_PX = Math.max(
+        0,
+        Math.min(
+            5000,
+            Math.round(_safeNum(settings.infiniteScroll?.bottomGapPx, APP_DEFAULTS.BOTTOM_GAP_PX)),
+        ),
+    );
 
     APP_CONFIG.VIEWER_ALLOW_PAN_AT_ZOOM_1 = !!settings.viewer?.allowPanAtZoom1;
     APP_CONFIG.VIEWER_DISABLE_WEBGL_VIDEO = !!settings.viewer?.disableWebGL;
-    APP_CONFIG.VIEWER_VIDEO_GRADE_THROTTLE_FPS = Math.max(1, Math.min(60, Math.round(_safeNum(settings.viewer?.videoGradeThrottleFps, APP_DEFAULTS.VIEWER_VIDEO_GRADE_THROTTLE_FPS))));
-    APP_CONFIG.VIEWER_SCOPES_FPS = Math.max(1, Math.min(60, Math.round(_safeNum(settings.viewer?.scopesFps, APP_DEFAULTS.VIEWER_SCOPES_FPS))));
-    APP_CONFIG.VIEWER_META_TTL_MS = Math.max(1000, Math.min(10 * 60_000, Math.round(_safeNum(settings.viewer?.metaTtlMs, APP_DEFAULTS.VIEWER_META_TTL_MS))));
-    APP_CONFIG.VIEWER_META_MAX_ENTRIES = Math.max(50, Math.min(5000, Math.round(_safeNum(settings.viewer?.metaMaxEntries, APP_DEFAULTS.VIEWER_META_MAX_ENTRIES))));
+    APP_CONFIG.VIEWER_VIDEO_GRADE_THROTTLE_FPS = Math.max(
+        1,
+        Math.min(
+            60,
+            Math.round(
+                _safeNum(
+                    settings.viewer?.videoGradeThrottleFps,
+                    APP_DEFAULTS.VIEWER_VIDEO_GRADE_THROTTLE_FPS,
+                ),
+            ),
+        ),
+    );
+    APP_CONFIG.VIEWER_SCOPES_FPS = Math.max(
+        1,
+        Math.min(
+            60,
+            Math.round(_safeNum(settings.viewer?.scopesFps, APP_DEFAULTS.VIEWER_SCOPES_FPS)),
+        ),
+    );
+    APP_CONFIG.VIEWER_META_TTL_MS = Math.max(
+        1000,
+        Math.min(
+            10 * 60_000,
+            Math.round(_safeNum(settings.viewer?.metaTtlMs, APP_DEFAULTS.VIEWER_META_TTL_MS)),
+        ),
+    );
+    APP_CONFIG.VIEWER_META_MAX_ENTRIES = Math.max(
+        50,
+        Math.min(
+            5000,
+            Math.round(
+                _safeNum(settings.viewer?.metaMaxEntries, APP_DEFAULTS.VIEWER_META_MAX_ENTRIES),
+            ),
+        ),
+    );
 
     APP_CONFIG.WORKFLOW_MINIMAP_ENABLED = !!(settings.workflowMinimap?.enabled ?? false);
 
-    APP_CONFIG.RT_HYDRATE_CONCURRENCY = Math.max(1, Math.min(16, Math.round(_safeNum(settings.rtHydrate?.concurrency, APP_DEFAULTS.RT_HYDRATE_CONCURRENCY))));
-    APP_CONFIG.RT_HYDRATE_QUEUE_MAX = Math.max(10, Math.min(5000, Math.round(_safeNum(settings.rtHydrate?.queueMax, APP_DEFAULTS.RT_HYDRATE_QUEUE_MAX))));
-    APP_CONFIG.RT_HYDRATE_SEEN_MAX = Math.max(1000, Math.min(200_000, Math.round(_safeNum(settings.rtHydrate?.seenMax, APP_DEFAULTS.RT_HYDRATE_SEEN_MAX))));
-    APP_CONFIG.RT_HYDRATE_PRUNE_BUDGET = Math.max(10, Math.min(10_000, Math.round(_safeNum(settings.rtHydrate?.pruneBudget, APP_DEFAULTS.RT_HYDRATE_PRUNE_BUDGET))));
-    APP_CONFIG.RT_HYDRATE_SEEN_TTL_MS = Math.max(5_000, Math.min(6 * 60 * 60_000, Math.round(_safeNum(settings.rtHydrate?.seenTtlMs, APP_DEFAULTS.RT_HYDRATE_SEEN_TTL_MS))));
+    APP_CONFIG.RT_HYDRATE_CONCURRENCY = Math.max(
+        1,
+        Math.min(
+            16,
+            Math.round(
+                _safeNum(settings.rtHydrate?.concurrency, APP_DEFAULTS.RT_HYDRATE_CONCURRENCY),
+            ),
+        ),
+    );
+    APP_CONFIG.RT_HYDRATE_QUEUE_MAX = Math.max(
+        10,
+        Math.min(
+            5000,
+            Math.round(_safeNum(settings.rtHydrate?.queueMax, APP_DEFAULTS.RT_HYDRATE_QUEUE_MAX)),
+        ),
+    );
+    APP_CONFIG.RT_HYDRATE_SEEN_MAX = Math.max(
+        1000,
+        Math.min(
+            200_000,
+            Math.round(_safeNum(settings.rtHydrate?.seenMax, APP_DEFAULTS.RT_HYDRATE_SEEN_MAX)),
+        ),
+    );
+    APP_CONFIG.RT_HYDRATE_PRUNE_BUDGET = Math.max(
+        10,
+        Math.min(
+            10_000,
+            Math.round(
+                _safeNum(settings.rtHydrate?.pruneBudget, APP_DEFAULTS.RT_HYDRATE_PRUNE_BUDGET),
+            ),
+        ),
+    );
+    APP_CONFIG.RT_HYDRATE_SEEN_TTL_MS = Math.max(
+        5_000,
+        Math.min(
+            6 * 60 * 60_000,
+            Math.round(
+                _safeNum(settings.rtHydrate?.seenTtlMs, APP_DEFAULTS.RT_HYDRATE_SEEN_TTL_MS),
+            ),
+        ),
+    );
 
     APP_CONFIG.DELETE_CONFIRMATION = !!settings.safety?.confirmDeletion;
     APP_CONFIG.DEBUG_VERBOSE_ERRORS = !!settings.observability?.verboseErrors;
-    APP_CONFIG.WATCHER_MAX_PENDING = Math.max(10, Math.min(5000, Math.round(_safeNum(settings.watcher?.maxPending, 500))));
-    APP_CONFIG.WATCHER_MIN_SIZE = Math.max(0, Math.min(1000000, Math.round(_safeNum(settings.watcher?.minSize, 100))));
-    APP_CONFIG.WATCHER_MAX_SIZE = Math.max(100000, Math.min(17179869184, Math.round(_safeNum(settings.watcher?.maxSize, 4294967296))));
-    APP_CONFIG.DB_TIMEOUT_MS = Math.max(1000, Math.min(30000, Math.round(_safeNum(settings.db?.timeoutMs, 5000))));
-    APP_CONFIG.DB_MAX_CONNECTIONS = Math.max(1, Math.min(100, Math.round(_safeNum(settings.db?.maxConnections, 10))));
-    APP_CONFIG.DB_QUERY_TIMEOUT_MS = Math.max(500, Math.min(10000, Math.round(_safeNum(settings.db?.queryTimeoutMs, 1000))));
+    APP_CONFIG.WATCHER_MAX_PENDING = Math.max(
+        10,
+        Math.min(5000, Math.round(_safeNum(settings.watcher?.maxPending, 500))),
+    );
+    APP_CONFIG.WATCHER_MIN_SIZE = Math.max(
+        0,
+        Math.min(1000000, Math.round(_safeNum(settings.watcher?.minSize, 100))),
+    );
+    APP_CONFIG.WATCHER_MAX_SIZE = Math.max(
+        100000,
+        Math.min(17179869184, Math.round(_safeNum(settings.watcher?.maxSize, 4294967296))),
+    );
+    APP_CONFIG.DB_TIMEOUT_MS = Math.max(
+        1000,
+        Math.min(30000, Math.round(_safeNum(settings.db?.timeoutMs, 5000))),
+    );
+    APP_CONFIG.DB_MAX_CONNECTIONS = Math.max(
+        1,
+        Math.min(100, Math.round(_safeNum(settings.db?.maxConnections, 10))),
+    );
+    APP_CONFIG.DB_QUERY_TIMEOUT_MS = Math.max(
+        500,
+        Math.min(10000, Math.round(_safeNum(settings.db?.queryTimeoutMs, 1000))),
+    );
     // Search request limit (client-side); backend still enforces MAJOOR_SEARCH_MAX_LIMIT
     APP_CONFIG.SEARCH_REQUEST_LIMIT = Math.max(
         10,
-        Math.min(APP_DEFAULTS.MAX_PAGE_SIZE || 2000, Math.round(_safeNum(settings.search?.maxResults, APP_DEFAULTS.SEARCH_DEFAULT_LIMIT)))
+        Math.min(
+            APP_DEFAULTS.MAX_PAGE_SIZE || 2000,
+            Math.round(_safeNum(settings.search?.maxResults, APP_DEFAULTS.SEARCH_DEFAULT_LIMIT)),
+        ),
     );
 };
 
@@ -394,11 +583,26 @@ export async function syncBackendSecuritySettings() {
         settings.security = settings.security || {};
         settings.security.safeMode = _safeBool(prefs.safe_mode, settings.security.safeMode);
         settings.security.allowWrite = _safeBool(prefs.allow_write, settings.security.allowWrite);
-        settings.security.allowRemoteWrite = _safeBool(prefs.allow_remote_write, settings.security.allowRemoteWrite);
-        settings.security.allowDelete = _safeBool(prefs.allow_delete, settings.security.allowDelete);
-        settings.security.allowRename = _safeBool(prefs.allow_rename, settings.security.allowRename);
-        settings.security.allowOpenInFolder = _safeBool(prefs.allow_open_in_folder, settings.security.allowOpenInFolder);
-        settings.security.allowResetIndex = _safeBool(prefs.allow_reset_index, settings.security.allowResetIndex);
+        settings.security.allowRemoteWrite = _safeBool(
+            prefs.allow_remote_write,
+            settings.security.allowRemoteWrite,
+        );
+        settings.security.allowDelete = _safeBool(
+            prefs.allow_delete,
+            settings.security.allowDelete,
+        );
+        settings.security.allowRename = _safeBool(
+            prefs.allow_rename,
+            settings.security.allowRename,
+        );
+        settings.security.allowOpenInFolder = _safeBool(
+            prefs.allow_open_in_folder,
+            settings.security.allowOpenInFolder,
+        );
+        settings.security.allowResetIndex = _safeBool(
+            prefs.allow_reset_index,
+            settings.security.allowResetIndex,
+        );
         // Security settings endpoint intentionally does not expose the token.
         // Bootstrap it once so write actions work without manual user input.
         if (!String(settings.security.apiToken || "").trim()) {
@@ -408,11 +612,17 @@ export async function syncBackendSecuritySettings() {
                 if (boot?.ok && bootToken) {
                     settings.security.apiToken = bootToken;
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
         saveMajoorSettings(settings);
         applySettingsToConfig(settings);
-        safeDispatchCustomEvent("mjr-settings-changed", { key: "security" }, { warnPrefix: "[Majoor]" });
+        safeDispatchCustomEvent(
+            "mjr-settings-changed",
+            { key: "security" },
+            { warnPrefix: "[Majoor]" },
+        );
     } catch (error) {
         console.warn("[Majoor] failed to sync backend security settings", error);
     }
@@ -427,10 +637,17 @@ export async function syncBackendVectorSearchSettings() {
 
         const settings = loadMajoorSettings();
         settings.ai = settings.ai || {};
-        settings.ai.vectorSearchEnabled = _safeBool(prefs.enabled, settings.ai.vectorSearchEnabled ?? true);
+        settings.ai.vectorSearchEnabled = _safeBool(
+            prefs.enabled,
+            settings.ai.vectorSearchEnabled ?? true,
+        );
         saveMajoorSettings(settings);
         applySettingsToConfig(settings);
-        safeDispatchCustomEvent("mjr-settings-changed", { key: "ai.vectorSearchEnabled" }, { warnPrefix: "[Majoor]" });
+        safeDispatchCustomEvent(
+            "mjr-settings-changed",
+            { key: "ai.vectorSearchEnabled" },
+            { warnPrefix: "[Majoor]" },
+        );
     } catch (error) {
         console.warn("[Majoor] failed to sync backend vector search settings", error);
     }

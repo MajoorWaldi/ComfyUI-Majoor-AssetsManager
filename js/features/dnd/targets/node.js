@@ -4,7 +4,7 @@ import {
     comboHasAnyVideoValue,
     looksLikeAudioPath,
     looksLikeModel3DPath,
-    looksLikeVideoPath
+    looksLikeVideoPath,
 } from "../utils/video.js";
 
 const highlightState = new WeakMap();
@@ -28,7 +28,12 @@ export const getNodeUnderClientXY = (app, clientX, clientY) => {
     if (!canvasEl || !graph || !ds) return null;
 
     const rect = canvasEl.getBoundingClientRect();
-    if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
+    if (
+        clientX < rect.left ||
+        clientX > rect.right ||
+        clientY < rect.top ||
+        clientY > rect.bottom
+    ) {
         return null;
     }
 
@@ -52,12 +57,7 @@ export const getNodeUnderClientXY = (app, clientX, clientY) => {
         if (n.flags && n.flags.collapsed) {
             height = 30;
         }
-        if (
-            x >= n.pos[0] &&
-            y >= n.pos[1] &&
-            x <= n.pos[0] + width &&
-            y <= n.pos[1] + height
-        ) {
+        if (x >= n.pos[0] && y >= n.pos[1] && x <= n.pos[0] + width && y <= n.pos[1] + height) {
             return n;
         }
     }
@@ -83,7 +83,9 @@ export const clearHighlight = (app, markCanvasDirty) => {
             state.node.color = state.prev.color;
             state.node.bgcolor = state.prev.bgcolor;
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     state.node = null;
     state.prev = null;
     markCanvasDirty(app);
@@ -125,7 +127,9 @@ const pickBestVideoPathWidget = (node, droppedExt) => {
     const widgets = node?.widgets;
     if (!Array.isArray(widgets) || !widgets.length) return null;
 
-    const ext = String(droppedExt || "").toLowerCase().replace(/^\./, "");
+    const ext = String(droppedExt || "")
+        .toLowerCase()
+        .replace(/^\./, "");
     const exactNames = new Set(["video_path", "input_video", "source_video", "video"]);
     const nodeType = String(node?.type || "").toLowerCase();
     const isKnownVideoNode =
@@ -154,16 +158,26 @@ const pickBestVideoPathWidget = (node, droppedExt) => {
         let score = 0;
         if (exactNames.has(name)) score += 100;
 
-        if (name === "file" && isKnownVideoNode && type === "combo" && comboHasAnyVideoValue(w, ext)) {
+        if (
+            name === "file" &&
+            isKnownVideoNode &&
+            type === "combo" &&
+            comboHasAnyVideoValue(w, ext)
+        ) {
             score += 100;
         }
 
         const hasVideo = name.includes("video");
         const hasAnyVideoHint =
-            name.includes("path") || name.includes("file") || name.includes("input") || name.includes("src") || name.includes("source");
+            name.includes("path") ||
+            name.includes("file") ||
+            name.includes("input") ||
+            name.includes("src") ||
+            name.includes("source");
         if (hasVideo && hasAnyVideoHint) score += 80;
         if (name.includes("file") || name.includes("path")) score += 35;
-        if (name.includes("media") || name.includes("clip") || name.includes("footage")) score += 45;
+        if (name.includes("media") || name.includes("clip") || name.includes("footage"))
+            score += 45;
 
         const isOutputy =
             name.includes("output") ||
@@ -204,7 +218,9 @@ const pickBestVideoPathWidget = (node, droppedExt) => {
     if (!best || best.score < 20) return null;
     try {
         best.w.__mjrVideoPickScore = best.score;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return best.w;
 };
 
@@ -212,7 +228,9 @@ const pickBestModel3DPathWidget = (node, droppedExt) => {
     const widgets = node?.widgets;
     if (!Array.isArray(widgets) || !widgets.length) return null;
 
-    const ext = String(droppedExt || "").toLowerCase().replace(/^\./, "");
+    const ext = String(droppedExt || "")
+        .toLowerCase()
+        .replace(/^\./, "");
     const exactNames = new Set([
         "model_path",
         "input_model",
@@ -261,7 +279,12 @@ const pickBestModel3DPathWidget = (node, droppedExt) => {
         let score = 0;
         if (exactNames.has(name)) score += 100;
 
-        if (name === "file" && isKnownModelNode && type === "combo" && comboHasAnyModel3DValue(w, ext)) {
+        if (
+            name === "file" &&
+            isKnownModelNode &&
+            type === "combo" &&
+            comboHasAnyModel3DValue(w, ext)
+        ) {
             score += 100;
         }
 
@@ -275,7 +298,11 @@ const pickBestModel3DPathWidget = (node, droppedExt) => {
             name.includes("cloud") ||
             name.includes("splat");
         const hasPathHint =
-            name.includes("path") || name.includes("file") || name.includes("input") || name.includes("src") || name.includes("source");
+            name.includes("path") ||
+            name.includes("file") ||
+            name.includes("input") ||
+            name.includes("src") ||
+            name.includes("source");
         if (hasModelHint && hasPathHint) score += 80;
         if (name.includes("file") || name.includes("path")) score += 35;
         if (name.includes("asset") || name.includes("resource")) score += 30;
@@ -319,7 +346,9 @@ const pickBestModel3DPathWidget = (node, droppedExt) => {
     if (!best || best.score < 20) return null;
     try {
         best.w.__mjrModel3DPickScore = best.score;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return best.w;
 };
 
@@ -331,7 +360,9 @@ export const pickBestMediaPathWidget = (node, payload, droppedExt) => {
     const widgets = node?.widgets;
     if (!Array.isArray(widgets) || !widgets.length) return null;
 
-    const ext = String(droppedExt || "").toLowerCase().replace(/^\./, "");
+    const ext = String(droppedExt || "")
+        .toLowerCase()
+        .replace(/^\./, "");
     const exactNames = new Set(["audio_path", "input_audio", "source_audio", "audio"]);
     const nodeType = String(node?.type || "").toLowerCase();
     const isKnownAudioNode =
@@ -362,13 +393,22 @@ export const pickBestMediaPathWidget = (node, payload, droppedExt) => {
         let score = 0;
         if (exactNames.has(name)) score += 100;
 
-        if (name === "file" && isKnownAudioNode && type === "combo" && comboHasAnyAudioValue(w, ext)) {
+        if (
+            name === "file" &&
+            isKnownAudioNode &&
+            type === "combo" &&
+            comboHasAnyAudioValue(w, ext)
+        ) {
             score += 100;
         }
 
         const hasAudio = name.includes("audio") || name.includes("sound") || name.includes("music");
         const hasAnyHint =
-            name.includes("path") || name.includes("file") || name.includes("input") || name.includes("src") || name.includes("source");
+            name.includes("path") ||
+            name.includes("file") ||
+            name.includes("input") ||
+            name.includes("src") ||
+            name.includes("source");
         if (hasAudio && hasAnyHint) score += 80;
         if (name.includes("file") || name.includes("path")) score += 35;
         if (name.includes("media") || name.includes("track")) score += 45;
@@ -412,6 +452,8 @@ export const pickBestMediaPathWidget = (node, payload, droppedExt) => {
     if (!best || best.score < 20) return null;
     try {
         best.w.__mjrAudioPickScore = best.score;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return best.w;
 };

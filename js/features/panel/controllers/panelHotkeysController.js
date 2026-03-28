@@ -48,7 +48,9 @@ export function createPanelHotkeysController({
             if (boundEl && target && typeof boundEl.contains === "function") {
                 if (boundEl === target || boundEl.contains(target)) return true;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             return Boolean(boundEl?.isConnected) && document.activeElement === document.body;
         } catch (e) {
@@ -95,7 +97,9 @@ export function createPanelHotkeysController({
                 try {
                     const ctx = typeof getScanContext === "function" ? getScanContext() : null;
                     onTriggerScan?.(ctx);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 return;
             }
 
@@ -106,7 +110,9 @@ export function createPanelHotkeysController({
                 event.stopImmediatePropagation?.();
                 try {
                     onFocusSearch?.();
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 return;
             }
 
@@ -117,7 +123,9 @@ export function createPanelHotkeysController({
                 event.stopImmediatePropagation?.();
                 try {
                     onClearSearch?.();
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 return;
             }
 
@@ -129,20 +137,28 @@ export function createPanelHotkeysController({
                 event.stopImmediatePropagation?.();
                 try {
                     onToggleDetails?.();
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 return;
             }
 
             // V and Ctrl/Cmd+V toggle the floating viewer for the current panel selection.
             // Keep Alt+V and Ctrl/Cmd+Shift+V untouched for other app/browser behaviors.
-            if (lower === "v" && !event.altKey && !(event.shiftKey && (event.ctrlKey || event.metaKey))) {
+            if (
+                lower === "v" &&
+                !event.altKey &&
+                !(event.shiftKey && (event.ctrlKey || event.metaKey))
+            ) {
                 if (isTypingTarget) return;
                 event.preventDefault();
                 event.stopPropagation();
                 event.stopImmediatePropagation?.();
                 try {
                     onToggleFloatingViewer?.();
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 return;
             }
 
@@ -168,12 +184,16 @@ export function createPanelHotkeysController({
             boundEl.addEventListener("focusout", handlers.focusout);
             boundEl.addEventListener("mouseenter", handlers.mouseenter);
             boundEl.addEventListener("mouseleave", handlers.mouseleave);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         // Use global listener with capture phase for keydown to ensure it works regardless of focus
         try {
             window.addEventListener("keydown", handlers.keydown, { capture: true });
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         setHotkeysScope("panel");
     };
 
@@ -184,12 +204,16 @@ export function createPanelHotkeysController({
             boundEl.removeEventListener("focusout", handlers.focusout);
             boundEl.removeEventListener("mouseenter", handlers.mouseenter);
             boundEl.removeEventListener("mouseleave", handlers.mouseleave);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         // Remove global listener for keydown
         try {
             window.removeEventListener("keydown", handlers.keydown, { capture: true });
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         if (getHotkeysState().scope === "panel") {
             setHotkeysScope(null);
         }

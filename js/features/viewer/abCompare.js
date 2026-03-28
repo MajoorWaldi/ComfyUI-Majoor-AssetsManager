@@ -18,25 +18,39 @@ export function renderABCompareView({
 
     try {
         destroyMediaProcessorsIn?.(abView);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         if (abView) abView.innerHTML = "";
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         abView?._mjrSyncAbort?.abort?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         abView?._mjrDiffAbort?.abort?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         abView?._mjrSliderAbort?.abort?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         abView._mjrDiffRequest = null;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         abView._mjrSliderAbort = null;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     if (!abView || !state || !currentAsset) return;
 
@@ -54,7 +68,9 @@ export function renderABCompareView({
 
     const other =
         state.compareAsset ||
-        (Array.isArray(state.assets) && state.assets.length === 2 ? state.assets[1 - (state.currentIndex || 0)] : null) ||
+        (Array.isArray(state.assets) && state.assets.length === 2
+            ? state.assets[1 - (state.currentIndex || 0)]
+            : null) ||
         currentAsset;
     const compareUrl = (() => {
         try {
@@ -80,15 +96,25 @@ export function renderABCompareView({
     const baseMedia = createCompareMediaElement?.(other, compareUrl);
     if (baseMedia) baseLayer.appendChild(baseMedia);
     try {
-        const baseVideo = baseMedia?.querySelector?.(".mjr-viewer-video-src") || baseMedia?.querySelector?.("video");
+        const baseVideo =
+            baseMedia?.querySelector?.(".mjr-viewer-video-src") ||
+            baseMedia?.querySelector?.("video");
         if (baseVideo?.dataset) baseVideo.dataset.mjrCompareRole = "B";
-        const baseAudio = baseMedia?.querySelector?.(".mjr-viewer-audio-src") || baseMedia?.querySelector?.("audio");
+        const baseAudio =
+            baseMedia?.querySelector?.(".mjr-viewer-audio-src") ||
+            baseMedia?.querySelector?.("audio");
         if (baseAudio?.dataset) baseAudio.dataset.mjrCompareRole = "B";
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
-        const baseCanvas = baseMedia?.querySelector?.("canvas.mjr-viewer-media") || (baseMedia instanceof HTMLCanvasElement ? baseMedia : null);
+        const baseCanvas =
+            baseMedia?.querySelector?.("canvas.mjr-viewer-media") ||
+            (baseMedia instanceof HTMLCanvasElement ? baseMedia : null);
         if (baseCanvas?.dataset) baseCanvas.dataset.mjrCompareRole = "B";
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // Top layer (A) with slider
     const topLayer = document.createElement("div");
@@ -135,7 +161,9 @@ export function renderABCompareView({
                 const px = Math.round((w * clamped) / PERCENT_MAX);
                 topLayer.style.clip = `rect(0px, ${px}px, ${h}px, 0px)`;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const initialWipePercent = (() => {
@@ -143,25 +171,39 @@ export function renderABCompareView({
         try {
             const v = Number(state._abWipePercent);
             if (Number.isFinite(v) && v >= PERCENT_MIN && v <= PERCENT_MAX) return v;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         return DEFAULT_WIPE_PERCENT;
     })();
     setClipPercent(initialWipePercent);
     try {
         if (isWipe) state._abWipePercent = initialWipePercent;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     const topMedia = createCompareMediaElement?.(currentAsset, viewUrl);
     if (topMedia) topLayer.appendChild(topMedia);
     try {
-        const topVideo = topMedia?.querySelector?.(".mjr-viewer-video-src") || topMedia?.querySelector?.("video");
+        const topVideo =
+            topMedia?.querySelector?.(".mjr-viewer-video-src") ||
+            topMedia?.querySelector?.("video");
         if (topVideo?.dataset) topVideo.dataset.mjrCompareRole = "A";
-        const topAudio = topMedia?.querySelector?.(".mjr-viewer-audio-src") || topMedia?.querySelector?.("audio");
+        const topAudio =
+            topMedia?.querySelector?.(".mjr-viewer-audio-src") ||
+            topMedia?.querySelector?.("audio");
         if (topAudio?.dataset) topAudio.dataset.mjrCompareRole = "A";
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
-        const topCanvas = topMedia?.querySelector?.("canvas.mjr-viewer-media") || (topMedia instanceof HTMLCanvasElement ? topMedia : null);
+        const topCanvas =
+            topMedia?.querySelector?.("canvas.mjr-viewer-media") ||
+            (topMedia instanceof HTMLCanvasElement ? topMedia : null);
         if (topCanvas?.dataset) topCanvas.dataset.mjrCompareRole = "A";
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // Slider container (Invisible hit area around the visible line)
     const slider = document.createElement("div");
@@ -200,7 +242,9 @@ export function renderABCompareView({
                 baseLayer.style.opacity = "0";
                 topLayer.style.pointerEvents = "none";
                 baseLayer.style.pointerEvents = "none";
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
 
             const diffLayer = document.createElement("div");
             diffLayer.style.cssText = `
@@ -219,7 +263,9 @@ export function renderABCompareView({
             diffCanvas.className = "mjr-viewer-media";
             try {
                 diffCanvas.dataset.mjrCompareRole = "D";
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             diffCanvas.style.cssText = `
                 max-width: 100%;
                 max-height: 100%;
@@ -231,7 +277,11 @@ export function renderABCompareView({
                 try {
                     if (!media) return null;
                     if (media instanceof HTMLCanvasElement) return media;
-                    return media.querySelector?.("canvas.mjr-viewer-media") || media.querySelector?.("canvas") || null;
+                    return (
+                        media.querySelector?.("canvas.mjr-viewer-media") ||
+                        media.querySelector?.("canvas") ||
+                        null
+                    );
                 } catch {
                     return null;
                 }
@@ -270,13 +320,19 @@ export function renderABCompareView({
                 if (!(w > 1 && h > 1)) return false;
                 try {
                     ctx.save();
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 try {
                     ctx.clearRect(0, 0, w, h);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
 
                 const px = w * h;
-                const isVideo = !!(topMedia?.querySelector?.("video") || baseMedia?.querySelector?.("video"));
+                const isVideo = !!(
+                    topMedia?.querySelector?.("video") || baseMedia?.querySelector?.("video")
+                );
 
                 const doComposite = (op) => {
                     try {
@@ -346,11 +402,11 @@ export function renderABCompareView({
                         // Compute |A-B| and track max for normalization
                         let maxVal = 0;
                         for (let i = 0; i < da.length; i += 4) {
-                            db[i]     = Math.abs((da[i]     || 0) - (db[i]     || 0));
+                            db[i] = Math.abs((da[i] || 0) - (db[i] || 0));
                             db[i + 1] = Math.abs((da[i + 1] || 0) - (db[i + 1] || 0));
                             db[i + 2] = Math.abs((da[i + 2] || 0) - (db[i + 2] || 0));
                             db[i + 3] = 255;
-                            if (db[i]     > maxVal) maxVal = db[i];
+                            if (db[i] > maxVal) maxVal = db[i];
                             if (db[i + 1] > maxVal) maxVal = db[i + 1];
                             if (db[i + 2] > maxVal) maxVal = db[i + 2];
                         }
@@ -358,7 +414,7 @@ export function renderABCompareView({
                         if (maxVal > 0 && maxVal < 255) {
                             const scale = 255 / maxVal;
                             for (let i = 0; i < db.length; i += 4) {
-                                db[i]     = Math.min(255, Math.round(db[i]     * scale));
+                                db[i] = Math.min(255, Math.round(db[i] * scale));
                                 db[i + 1] = Math.min(255, Math.round(db[i + 1] * scale));
                                 db[i + 2] = Math.min(255, Math.round(db[i + 2] * scale));
                             }
@@ -394,17 +450,23 @@ export function renderABCompareView({
                             }
                             ctx.putImageData(img, 0, 0);
                         }
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 }
                 try {
                     ctx.restore();
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 return true;
             };
 
             try {
                 abView.appendChild(diffLayer);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
 
             // Keep updating for video (or while canvases are still initializing).
             try {
@@ -425,13 +487,19 @@ export function renderABCompareView({
                             if (ac.signal.aborted) return;
                             try {
                                 if (aCanvas && bCanvas && canDrawNow()) drawDiffOnce();
-                            } catch (e) { console.debug?.(e); }
+                            } catch (e) {
+                                console.debug?.(e);
+                            }
                         });
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 };
                 abView._mjrDiffRequest = request;
 
-                const isVideo = !!(topMedia?.querySelector?.("video") || baseMedia?.querySelector?.("video"));
+                const isVideo = !!(
+                    topMedia?.querySelector?.("video") || baseMedia?.querySelector?.("video")
+                );
                 if (isVideo) {
                     let raf = null;
 
@@ -451,7 +519,9 @@ export function renderABCompareView({
                         if (ac.signal.aborted) return;
                         try {
                             if (aCanvas && bCanvas && canDrawNow()) drawDiffOnce();
-                        } catch (e) { console.debug?.(e); }
+                        } catch (e) {
+                            console.debug?.(e);
+                        }
                         if (!anyPlaying()) {
                             raf = null;
                             return;
@@ -476,20 +546,48 @@ export function renderABCompareView({
                     // While playing: continuous updates. While paused: update on seek/timeupdate (scrub) only.
                     try {
                         if (aVideo) {
-                            aVideo.addEventListener("play", ensureRaf, { signal: ac.signal, passive: true });
-                            aVideo.addEventListener("seeking", request, { signal: ac.signal, passive: true });
-                            aVideo.addEventListener("seeked", request, { signal: ac.signal, passive: true });
-                            aVideo.addEventListener("timeupdate", request, { signal: ac.signal, passive: true });
+                            aVideo.addEventListener("play", ensureRaf, {
+                                signal: ac.signal,
+                                passive: true,
+                            });
+                            aVideo.addEventListener("seeking", request, {
+                                signal: ac.signal,
+                                passive: true,
+                            });
+                            aVideo.addEventListener("seeked", request, {
+                                signal: ac.signal,
+                                passive: true,
+                            });
+                            aVideo.addEventListener("timeupdate", request, {
+                                signal: ac.signal,
+                                passive: true,
+                            });
                         }
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                     try {
                         if (bVideo) {
-                            bVideo.addEventListener("play", ensureRaf, { signal: ac.signal, passive: true });
-                            bVideo.addEventListener("seeking", request, { signal: ac.signal, passive: true });
-                            bVideo.addEventListener("seeked", request, { signal: ac.signal, passive: true });
-                            bVideo.addEventListener("timeupdate", request, { signal: ac.signal, passive: true });
+                            bVideo.addEventListener("play", ensureRaf, {
+                                signal: ac.signal,
+                                passive: true,
+                            });
+                            bVideo.addEventListener("seeking", request, {
+                                signal: ac.signal,
+                                passive: true,
+                            });
+                            bVideo.addEventListener("seeked", request, {
+                                signal: ac.signal,
+                                passive: true,
+                            });
+                            bVideo.addEventListener("timeupdate", request, {
+                                signal: ac.signal,
+                                passive: true,
+                            });
                         }
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
 
                     ensureRaf();
                     ac.signal.addEventListener(
@@ -497,23 +595,31 @@ export function renderABCompareView({
                         () => {
                             try {
                                 if (raf != null) cancelAnimationFrame(raf);
-                            } catch (e) { console.debug?.(e); }
+                            } catch (e) {
+                                console.debug?.(e);
+                            }
                         },
-                        { once: true }
+                        { once: true },
                     );
                 } else {
                     // Images: draw once now; future redraws are triggered by `_mjrDiffRequest()`.
                     request();
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         } else {
             slider.style.display = "";
             try {
                 const blendTarget = topMedia?.querySelector?.(".mjr-viewer-media") || topMedia;
                 if (blendTarget) blendTarget.style.mixBlendMode = "";
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // Drag functionality
     let isDragging = false;
@@ -523,11 +629,17 @@ export function renderABCompareView({
         try {
             const clamped = Math.max(0, Math.min(100, percent));
             setClipPercent(clamped);
-            try { state._abWipePercent = clamped; } catch (e) { console.debug?.(e); }
-            
+            try {
+                state._abWipePercent = clamped;
+            } catch (e) {
+                console.debug?.(e);
+            }
+
             if (wipeAxis === "y") slider.style.top = `${clamped}%`;
             else slider.style.left = `${clamped}%`;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const onPointerMove = (e) => {
@@ -537,7 +649,7 @@ export function renderABCompareView({
             e.stopPropagation();
 
             if (!dragRect) dragRect = abView.getBoundingClientRect();
-            
+
             let percent = 50;
             if (wipeAxis === "y") {
                 const y = Number(e.clientY) || 0;
@@ -546,21 +658,25 @@ export function renderABCompareView({
                 const x = Number(e.clientX) || 0;
                 percent = ((x - dragRect.left) / dragRect.width) * 100;
             }
-            
+
             // Use RAF for smooth visual update if needed, but direct update is usually fine for simple sliders
             // to minimize lag feel.
             updateSliderPos(percent);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const stopDrag = (e) => {
         if (!isDragging) return;
         isDragging = false;
         dragRect = null;
-        try { 
-            slider.releasePointerCapture(e.pointerId); 
+        try {
+            slider.releasePointerCapture(e.pointerId);
             slider.style.cursor = wipeAxis === "y" ? "ns-resize" : "ew-resize";
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     try {
@@ -574,25 +690,39 @@ export function renderABCompareView({
                 isDragging = true;
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 // Cache rect immediately
-                try { dragRect = abView.getBoundingClientRect(); } catch (e) { console.debug?.(e); }
+                try {
+                    dragRect = abView.getBoundingClientRect();
+                } catch (e) {
+                    console.debug?.(e);
+                }
 
                 try {
                     slider.setPointerCapture(e.pointerId);
                     slider.style.cursor = "grabbing";
-                } catch (e) { console.debug?.(e); }
-                
+                } catch (e) {
+                    console.debug?.(e);
+                }
+
                 // Immediate update on click-to-grab
                 onPointerMove(e);
             },
-            { signal: sliderAC.signal, passive: false }
+            { signal: sliderAC.signal, passive: false },
         );
-        
-        window.addEventListener("pointermove", onPointerMove, { signal: sliderAC.signal, passive: false }); // passive:false for preventDefault
+
+        window.addEventListener("pointermove", onPointerMove, {
+            signal: sliderAC.signal,
+            passive: false,
+        }); // passive:false for preventDefault
         window.addEventListener("pointerup", stopDrag, { signal: sliderAC.signal, passive: true });
-        window.addEventListener("pointercancel", stopDrag, { signal: sliderAC.signal, passive: true });
-    } catch (e) { console.debug?.(e); }
+        window.addEventListener("pointercancel", stopDrag, {
+            signal: sliderAC.signal,
+            passive: true,
+        });
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // Slide Bar Geometry & Orientation
     try {
@@ -627,13 +757,17 @@ export function renderABCompareView({
             line.style.left = "50%";
             line.style.transform = "translate(-50%, 0)";
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     try {
         abView.appendChild(baseLayer);
         abView.appendChild(topLayer);
         abView.appendChild(slider);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // Video sync handled above via shared utility (do not duplicate listeners here).
 }

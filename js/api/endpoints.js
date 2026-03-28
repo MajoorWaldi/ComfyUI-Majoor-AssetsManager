@@ -114,14 +114,19 @@ export const ENDPOINTS = {
     HYBRID_SEARCH: "/mjr/am/search/hybrid",
 
     // Library audit
-    AUDIT: "/mjr/am/audit"
+    AUDIT: "/mjr/am/audit",
 };
 
 export function appendAssetFilterQueryParams(url, filters = {}) {
     let nextUrl = String(url || "");
     // Use correct separator based on whether URL already has query params
-    const _sep = () => { const s = nextUrl.includes("?") ? "&" : "?"; return s; };
-    const _append = (param) => { nextUrl += _sep() + param; };
+    const _sep = () => {
+        const s = nextUrl.includes("?") ? "&" : "?";
+        return s;
+    };
+    const _append = (param) => {
+        nextUrl += _sep() + param;
+    };
     const {
         subfolder = null,
         kind = null,
@@ -311,15 +316,17 @@ export function buildViewerResourceURL(assetOrContext, relpath = "") {
         return `${url}&asset_id=${encodeURIComponent(String(assetId))}`;
     }
 
-    const filepath = toPosixPath(String(
-        ctx?.filepath ||
-        ctx?.path ||
-        ctx?.fullpath ||
-        ctx?.full_path ||
-        ctx?.file_info?.filepath ||
-        ctx?.file_info?.path ||
-        ""
-    ).trim());
+    const filepath = toPosixPath(
+        String(
+            ctx?.filepath ||
+                ctx?.path ||
+                ctx?.fullpath ||
+                ctx?.full_path ||
+                ctx?.file_info?.filepath ||
+                ctx?.file_info?.path ||
+                "",
+        ).trim(),
+    );
     if (filepath) {
         return `${url}&filepath=${encodeURIComponent(filepath)}`;
     }
@@ -331,7 +338,9 @@ export function buildViewerResourceURL(assetOrContext, relpath = "") {
     const subfolder = String(ctx?.subfolder || ctx?.file_info?.subfolder || "").trim();
     if (subfolder) url += `&subfolder=${encodeURIComponent(subfolder)}`;
 
-    const type = String(ctx?.type || ctx?.file_info?.type || "").trim().toLowerCase();
+    const type = String(ctx?.type || ctx?.file_info?.type || "")
+        .trim()
+        .toLowerCase();
     if (type && type !== "custom") {
         url += `&type=${encodeURIComponent(type)}`;
     }
@@ -350,7 +359,7 @@ export function buildDateHistogramURL(params = {}) {
         month = "",
         kind = null,
         hasWorkflow = null,
-        minRating = null
+        minRating = null,
     } = params;
 
     let url = `${ENDPOINTS.DATE_HISTOGRAM}?scope=${encodeURIComponent(scope)}&month=${encodeURIComponent(String(month || ""))}`;
@@ -380,26 +389,21 @@ export function buildAssetViewURL(asset) {
         if (!url || !mtime) return url;
         return `${url}${url.includes("?") ? "&" : "?"}v=${encodeURIComponent(mtime)}`;
     };
-    const rawPath = toPosixPath(String(
-        asset?.filepath ||
-        asset?.path ||
-        asset?.fullpath ||
-        asset?.full_path ||
-        asset?.file_info?.filepath ||
-        asset?.file_info?.path ||
-        ""
-    ).trim());
+    const rawPath = toPosixPath(
+        String(
+            asset?.filepath ||
+                asset?.path ||
+                asset?.fullpath ||
+                asset?.full_path ||
+                asset?.file_info?.filepath ||
+                asset?.file_info?.path ||
+                "",
+        ).trim(),
+    );
     let filename = String(
-        asset?.filename ||
-        asset?.name ||
-        asset?.file_info?.filename ||
-        ""
+        asset?.filename || asset?.name || asset?.file_info?.filename || "",
     ).trim();
-    let subfolder = String(
-        asset?.subfolder ||
-        asset?.file_info?.subfolder ||
-        ""
-    ).trim();
+    let subfolder = String(asset?.subfolder || asset?.file_info?.subfolder || "").trim();
     const pickFromPath = (p) => {
         const out = { type: "", subfolder: "", filename: "" };
         const normalized = toPosixPath(p);
@@ -442,7 +446,9 @@ export function buildAssetViewURL(asset) {
     if (!subfolder && fromPath.subfolder) subfolder = fromPath.subfolder;
     if (!filename) return "";
 
-    let type = String(asset?.type || asset?.file_info?.type || "").toLowerCase().trim();
+    let type = String(asset?.type || asset?.file_info?.type || "")
+        .toLowerCase()
+        .trim();
     if (type !== "input" && type !== "output" && type !== "custom") type = "";
     if (!type && fromPath.type) type = fromPath.type;
     if (!type && rawPath) {
@@ -463,7 +469,9 @@ export function buildAssetViewURL(asset) {
         const rid = String(pickRootId(asset) || "").trim();
         if (rid) return withMtime(buildCustomViewURL(filename, subfolder, rid));
         if (rawPath) {
-            return withMtime(`${ENDPOINTS.CUSTOM_VIEW}?filepath=${encodeURIComponent(rawPath)}&browser_mode=1`);
+            return withMtime(
+                `${ENDPOINTS.CUSTOM_VIEW}?filepath=${encodeURIComponent(rawPath)}&browser_mode=1`,
+            );
         }
         // Fallback for malformed custom assets without root id.
         const fallbackType = fromPath.type || "output";

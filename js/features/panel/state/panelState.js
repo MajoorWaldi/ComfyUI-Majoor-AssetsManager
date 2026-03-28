@@ -28,7 +28,8 @@ function sanitizePanelState(raw) {
     if (!raw || typeof raw !== "object") return {};
     const out = {};
     const rawScope = _toString(raw.scope || "output").toLowerCase();
-    const normalizedScope = rawScope === "outputs" ? "output" : rawScope === "inputs" ? "input" : rawScope;
+    const normalizedScope =
+        rawScope === "outputs" ? "output" : rawScope === "inputs" ? "input" : rawScope;
     out.scope = ALLOWED_SCOPES.has(normalizedScope) ? normalizedScope : "output";
     out.customRootId = _toString(raw.customRootId || "");
     out.currentFolderRelativePath = _toString(raw.currentFolderRelativePath || raw.subfolder || "");
@@ -52,7 +53,10 @@ function sanitizePanelState(raw) {
     out.scrollTop = Math.max(0, Math.floor(_toNumber(raw.scrollTop, 0)));
     out.activeAssetId = _toString(raw.activeAssetId || "");
     out.selectedAssetIds = Array.isArray(raw.selectedAssetIds)
-        ? raw.selectedAssetIds.map((x) => _toString(x || "").trim()).filter(Boolean).slice(0, 5000)
+        ? raw.selectedAssetIds
+              .map((x) => _toString(x || "").trim())
+              .filter(Boolean)
+              .slice(0, 5000)
         : [];
     out.sidebarOpen = _toBool(raw.sidebarOpen, false);
     return out;
@@ -62,7 +66,9 @@ function loadPanelState() {
     try {
         const raw = SettingsStore.get(STORAGE_KEY);
         if (raw) return sanitizePanelState(JSON.parse(raw));
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return null;
 }
 
@@ -80,7 +86,9 @@ function savePanelState(state) {
         if (serialized === _lastSavedSerialized) return;
         _lastSavedSerialized = serialized;
         SettingsStore.set(STORAGE_KEY, serialized);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 export function createPanelState() {
@@ -109,7 +117,7 @@ export function createPanelState() {
         // Search query and scroll position persistence
         searchQuery: saved.searchQuery || "",
         scrollTop: saved.scrollTop || 0,
-        
+
         // Last grid load stats (best-effort; used by UI summary bar).
         lastGridCount: 0,
         lastGridTotal: 0,
@@ -117,7 +125,7 @@ export function createPanelState() {
         // Stored as strings because DOM dataset values are strings.
         activeAssetId: saved.activeAssetId || "",
         selectedAssetIds: saved.selectedAssetIds || [],
-        
+
         // Sidebar open state for restoring across panel close/reopen.
         sidebarOpen: saved.sidebarOpen || false,
 
@@ -128,7 +136,7 @@ export function createPanelState() {
         similarSourceAssetId: "",
     };
     let proxy = null;
-    
+
     let debounceTimer = null;
     const debouncedSave = (targetState) => {
         if (debounceTimer) clearTimeout(debounceTimer);
@@ -148,20 +156,28 @@ export function createPanelState() {
             for (const [k, v] of Object.entries(updated || {})) {
                 target[k] = v;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
     try {
         window.addEventListener("storage", storageHandler);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     const dispose = () => {
         try {
             if (debounceTimer) clearTimeout(debounceTimer);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         debounceTimer = null;
         try {
             window.removeEventListener("storage", storageHandler);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     proxy = new Proxy(state, {
@@ -169,11 +185,11 @@ export function createPanelState() {
             target[prop] = value;
             debouncedSave(target);
             return true;
-        }
+        },
     });
-    
+
     // Attach dispose to the proxy for cleanup
     proxy._mjrDispose = dispose;
-    
+
     return proxy;
 }

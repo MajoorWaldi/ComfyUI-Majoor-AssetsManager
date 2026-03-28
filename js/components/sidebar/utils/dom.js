@@ -113,7 +113,11 @@ export function createInfoBox(title, content, accentColor, options = {}) {
     const doCopy = async () => {
         const ok = await copyTextToClipboard(content);
         if (ok) {
-            comfyToast(t("toast.copiedToClipboardNamed", "{name} copied to clipboard!", { name: title }), "success", 2000);
+            comfyToast(
+                t("toast.copiedToClipboardNamed", "{name} copied to clipboard!", { name: title }),
+                "success",
+                2000,
+            );
         } else {
             console.warn(t("log.clipboardCopyFailed", "Clipboard copy failed"));
             comfyToast(t("toast.copyClipboardFailed", "Failed to copy to clipboard"), "error");
@@ -133,8 +137,12 @@ export function createInfoBox(title, content, accentColor, options = {}) {
             height: 16px;
         `;
         copyBtn.replaceChildren(_buildCopyIcon());
-        copyBtn.onmouseenter = () => { copyBtn.style.opacity = "1"; };
-        copyBtn.onmouseleave = () => { copyBtn.style.opacity = "0.7"; };
+        copyBtn.onmouseenter = () => {
+            copyBtn.style.opacity = "1";
+        };
+        copyBtn.onmouseleave = () => {
+            copyBtn.style.opacity = "0.7";
+        };
         copyBtn.onclick = async (e) => {
             e.stopPropagation();
             const originalIcon = _buildCopyIcon();
@@ -172,7 +180,9 @@ export function createInfoBox(title, content, accentColor, options = {}) {
                     text.style.background = "";
                     text.style.borderRadius = "";
                 }, 320);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         });
     }
 
@@ -237,12 +247,14 @@ export function createParametersBox(title, fields, accentColor, options = {}) {
             cursor: pointer;
         `;
         _applySafeValueStyle(value, field?.valueStyle);
-        
+
         value.addEventListener("click", async () => {
             const ok = await copyTextToClipboard(String(field.value));
             if (ok) {
                 value.style.background = "rgba(76, 175, 80, 0.3)";
-                setTimeout(() => { value.style.background = ""; }, 300);
+                setTimeout(() => {
+                    value.style.background = "";
+                }, 300);
             }
         });
 
@@ -267,12 +279,16 @@ function _applySafeValueStyle(el, rawStyle) {
         if (!_ALLOWED_VALUE_STYLE_PROPS.has(prop)) continue;
         try {
             el.style.setProperty(prop, val);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 }
 
 function hexToRgba(hex, alpha) {
-    const normalized = String(hex || "").trim().replace(/^#/, "");
+    const normalized = String(hex || "")
+        .trim()
+        .replace(/^#/, "");
     if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return `rgba(255,255,255,${alpha})`;
     const r = parseInt(normalized.slice(0, 2), 16);
     const g = parseInt(normalized.slice(2, 4), 16);

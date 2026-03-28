@@ -12,12 +12,16 @@ function resolveMode(modeOverride) {
         if (direct === "simple" || direct === "artistic") return direct;
         // Legacy fallback if old state/config contains removed modes.
         if (direct === "webgl" || direct === "webgl3d") return "simple";
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         const raw = String(APP_CONFIG?.VIEWER_AUDIO_VISUALIZER_MODE || "simple").toLowerCase();
         if (raw === "artistic") return "artistic";
         if (raw === "webgl3d" || raw === "webgl") return "simple";
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return "simple";
 }
 
@@ -27,7 +31,10 @@ function createMinimal2DDrawer(canvas) {
 
     const sample = (freqData, tt) => {
         try {
-            const idx = Math.max(0, Math.min(freqData.length - 1, Math.floor(tt * (freqData.length - 1))));
+            const idx = Math.max(
+                0,
+                Math.min(freqData.length - 1, Math.floor(tt * (freqData.length - 1))),
+            );
             return (Number(freqData[idx]) || 0) / 255;
         } catch {
             return 0;
@@ -38,7 +45,7 @@ function createMinimal2DDrawer(canvas) {
         // Weighted blend around ~0.18..0.46 normalized bins.
         const a = sample(freqData, 0.18 + tt * 0.18);
         const b = sample(freqData, 0.28 + tt * 0.16);
-        const c = sample(freqData, 0.40 + tt * 0.06);
+        const c = sample(freqData, 0.4 + tt * 0.06);
         const d = sample(freqData, 0.46 + tt * 0.03);
         return a * 0.28 + b * 0.36 + c * 0.24 + d * 0.12;
     };
@@ -46,7 +53,7 @@ function createMinimal2DDrawer(canvas) {
         const a = sample(freqData, 0.01 + tt * 0.06);
         const b = sample(freqData, 0.04 + tt * 0.07);
         const c = sample(freqData, 0.09 + tt * 0.04);
-        return a * 0.45 + b * 0.35 + c * 0.20;
+        return a * 0.45 + b * 0.35 + c * 0.2;
     };
     const trebleBand = (freqData, tt) => {
         const a = sample(freqData, 0.64 + tt * 0.18);
@@ -108,13 +115,18 @@ function createMinimal2DDrawer(canvas) {
                     const bass = bassBand(freqData, tt);
                     const treble = trebleBand(freqData, tt);
                     const centerBoost = 1 - Math.abs(t * 2 - 1);
-                    const shaped = Math.pow((bass * 0.62 + treble * 0.38) * 0.84 + centerBoost * 0.16, 1.1);
+                    const shaped = Math.pow(
+                        (bass * 0.62 + treble * 0.38) * 0.84 + centerBoost * 0.16,
+                        1.1,
+                    );
                     const lenDown = shaped * h * 0.32;
 
                     ctx.fillStyle = "rgba(255,255,255,0.96)";
                     ctx.fillRect(x - barW * 0.5, midY + 1, barW, lenDown);
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         },
         destroy() {},
     };
@@ -123,7 +135,11 @@ function createMinimal2DDrawer(canvas) {
 function _createMinimalWebGLDrawer(canvas, { pseudo3d = false } = {}) {
     let gl = null;
     try {
-        gl = canvas.getContext("webgl", { antialias: true, alpha: false, preserveDrawingBuffer: true });
+        gl = canvas.getContext("webgl", {
+            antialias: true,
+            alpha: false,
+            preserveDrawingBuffer: true,
+        });
     } catch {
         gl = null;
     }
@@ -183,7 +199,10 @@ void main() {
 
     const sample = (freqData, tt) => {
         try {
-            const idx = Math.max(0, Math.min(freqData.length - 1, Math.floor(tt * (freqData.length - 1))));
+            const idx = Math.max(
+                0,
+                Math.min(freqData.length - 1, Math.floor(tt * (freqData.length - 1))),
+            );
             return (Number(freqData[idx]) || 0) / 255;
         } catch {
             return 0;
@@ -192,7 +211,7 @@ void main() {
     const vocalBand = (freqData, tt) => {
         const a = sample(freqData, 0.18 + tt * 0.18);
         const b = sample(freqData, 0.28 + tt * 0.16);
-        const c = sample(freqData, 0.40 + tt * 0.06);
+        const c = sample(freqData, 0.4 + tt * 0.06);
         const d = sample(freqData, 0.46 + tt * 0.03);
         return a * 0.28 + b * 0.36 + c * 0.24 + d * 0.12;
     };
@@ -200,7 +219,7 @@ void main() {
         const a = sample(freqData, 0.01 + tt * 0.06);
         const b = sample(freqData, 0.04 + tt * 0.07);
         const c = sample(freqData, 0.09 + tt * 0.04);
-        return a * 0.45 + b * 0.35 + c * 0.20;
+        return a * 0.45 + b * 0.35 + c * 0.2;
     };
     const trebleBand = (freqData, tt) => {
         const a = sample(freqData, 0.64 + tt * 0.18);
@@ -243,18 +262,36 @@ void main() {
                     const mix = bass * 0.62 + treble * 0.38;
                     const zLike = pseudo3d ? Math.sin(nx * Math.PI * 3 + t * 1.0) * 0.14 : 0;
                     const persp = pseudo3d ? 1 / (1 + Math.max(-0.7, zLike) * 0.8) : 1;
-                    const y = clamp((-mix * 0.62) * persp, -0.95, 0.0);
+                    const y = clamp(-mix * 0.62 * persp, -0.95, 0.0);
                     down[i * 2] = x;
                     down[i * 2 + 1] = y;
                 }
                 drawStrip(down, [1, 1, 1, 0.9]);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         },
         destroy() {
-            try { gl.deleteBuffer(buffer); } catch (e) { console.debug?.(e); }
-            try { gl.deleteProgram(program); } catch (e) { console.debug?.(e); }
-            try { gl.deleteShader(vsh); } catch (e) { console.debug?.(e); }
-            try { gl.deleteShader(fsh); } catch (e) { console.debug?.(e); }
+            try {
+                gl.deleteBuffer(buffer);
+            } catch (e) {
+                console.debug?.(e);
+            }
+            try {
+                gl.deleteProgram(program);
+            } catch (e) {
+                console.debug?.(e);
+            }
+            try {
+                gl.deleteShader(vsh);
+            } catch (e) {
+                console.debug?.(e);
+            }
+            try {
+                gl.deleteShader(fsh);
+            } catch (e) {
+                console.debug?.(e);
+            }
         },
     };
 }
@@ -282,7 +319,9 @@ export function createAudioVisualizer({ canvas, audioEl, mode: modeOverride } = 
             const h = Math.max(24, Math.floor((canvas.clientHeight || 140) * dpr));
             if (canvas.width !== w) canvas.width = w;
             if (canvas.height !== h) canvas.height = h;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const init = () => {
@@ -323,7 +362,9 @@ export function createAudioVisualizer({ canvas, audioEl, mode: modeOverride } = 
             analyser.getByteFrequencyData(freqData);
             analyser.getByteTimeDomainData(timeData);
             drawer.draw(freqData, timeData, ts);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const start = async () => {
@@ -333,31 +374,45 @@ export function createAudioVisualizer({ canvas, audioEl, mode: modeOverride } = 
             if (audioCtx.state === "suspended") {
                 try {
                     await audioCtx.resume();
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
             if (raf == null) raf = requestAnimationFrame(tick);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const stop = () => {
         try {
             if (raf != null) cancelAnimationFrame(raf);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         raf = null;
     };
 
-    const onPlay = () => { void start(); };
+    const onPlay = () => {
+        void start();
+    };
     const onPause = () => stop();
     const onEnded = () => stop();
     const onResize = () => resize();
 
-    try { resize(); } catch (e) { console.debug?.(e); }
+    try {
+        resize();
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         audioEl.addEventListener("play", onPlay, { passive: true });
         audioEl.addEventListener("pause", onPause, { passive: true });
         audioEl.addEventListener("ended", onEnded, { passive: true });
         window.addEventListener("resize", onResize, { passive: true });
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     return {
         destroy() {
@@ -369,11 +424,29 @@ export function createAudioVisualizer({ canvas, audioEl, mode: modeOverride } = 
                 audioEl.removeEventListener("pause", onPause);
                 audioEl.removeEventListener("ended", onEnded);
                 window.removeEventListener("resize", onResize);
-            } catch (e) { console.debug?.(e); }
-            try { drawer?.destroy?.(); } catch (e) { console.debug?.(e); }
-            try { source?.disconnect?.(); } catch (e) { console.debug?.(e); }
-            try { analyser?.disconnect?.(); } catch (e) { console.debug?.(e); }
-            try { audioCtx?.close?.(); } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
+            try {
+                drawer?.destroy?.();
+            } catch (e) {
+                console.debug?.(e);
+            }
+            try {
+                source?.disconnect?.();
+            } catch (e) {
+                console.debug?.(e);
+            }
+            try {
+                analyser?.disconnect?.();
+            } catch (e) {
+                console.debug?.(e);
+            }
+            try {
+                audioCtx?.close?.();
+            } catch (e) {
+                console.debug?.(e);
+            }
             source = null;
             analyser = null;
             audioCtx = null;

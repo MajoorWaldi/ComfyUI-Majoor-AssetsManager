@@ -7,14 +7,18 @@ export function createScopeController({
     reloadGrid,
     onChanged = null,
     onScopeChanged = null,
-    onBeforeReload = null
+    onBeforeReload = null,
 }) {
     let scopeSwitchSeq = 0;
     const hasSimilarResults = () => {
         try {
-            return !!(String(state?.viewScope || "").trim().toLowerCase() === "similar"
-                || (Array.isArray(state?.similarResults) && state.similarResults.length > 0)
-                || String(state?.similarTitle || "").trim());
+            return !!(
+                String(state?.viewScope || "")
+                    .trim()
+                    .toLowerCase() === "similar" ||
+                (Array.isArray(state?.similarResults) && state.similarResults.length > 0) ||
+                String(state?.similarTitle || "").trim()
+            );
         } catch {
             return false;
         }
@@ -40,7 +44,9 @@ export function createScopeController({
             if (similarBtn) {
                 similarBtn.style.display = hasSimilarResults() ? "" : "none";
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         customMenuBtn.style.display = "none";
         customPopover.style.display = "none";
@@ -53,14 +59,24 @@ export function createScopeController({
         setActiveTabStyles();
         try {
             onChanged?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         if (!hadSimilar || !reload) return;
         await reloadGrid();
     };
 
     const setScope = async (scope) => {
         const requestedSeq = ++scopeSwitchSeq;
-        const allowed = new Set(["output", "outputs", "input", "inputs", "all", "custom", "similar"]);
+        const allowed = new Set([
+            "output",
+            "outputs",
+            "input",
+            "inputs",
+            "all",
+            "custom",
+            "similar",
+        ]);
         const normalized = String(scope || "").toLowerCase();
         if (!allowed.has(normalized)) return;
 
@@ -70,10 +86,14 @@ export function createScopeController({
             setActiveTabStyles();
             try {
                 onChanged?.();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 await onBeforeReload?.(state);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             if (requestedSeq !== scopeSwitchSeq) return;
             await reloadGrid();
             return;
@@ -84,7 +104,8 @@ export function createScopeController({
         state.collectionName = "";
         resetSimilarScope();
 
-        state.scope = normalized === "outputs" ? "output" : normalized === "inputs" ? "input" : normalized;
+        state.scope =
+            normalized === "outputs" ? "output" : normalized === "inputs" ? "input" : normalized;
         // Scope switch should reset folder context to avoid stale filtering behavior.
         state.currentFolderRelativePath = "";
         if (state.scope !== "custom") {
@@ -94,18 +115,23 @@ export function createScopeController({
         setActiveTabStyles();
         try {
             onChanged?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             await onScopeChanged?.(state);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         if (requestedSeq !== scopeSwitchSeq) return;
         try {
             await onBeforeReload?.(state);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         if (requestedSeq !== scopeSwitchSeq) return;
         await reloadGrid();
     };
 
     return { setScope, setActiveTabStyles, clearSimilarScope };
 }
-

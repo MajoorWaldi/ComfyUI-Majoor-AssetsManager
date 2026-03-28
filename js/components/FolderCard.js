@@ -15,7 +15,9 @@ export function createFolderCard(asset) {
     if (asset?.id != null) {
         try {
             card.dataset.mjrAssetId = String(asset.id);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 
     const filename = String(asset?.filename || "");
@@ -23,7 +25,9 @@ export function createFolderCard(asset) {
         card.dataset.mjrFilenameKey = filename.trim().toLowerCase();
         card.dataset.mjrExt = "FOLDER";
         card.dataset.mjrStem = filename.trim().toLowerCase();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     const thumb = document.createElement("div");
     thumb.className = "mjr-thumb";
@@ -46,7 +50,9 @@ export function createFolderCard(asset) {
         svg.appendChild(p1);
         svg.appendChild(p2);
         thumb.appendChild(svg);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     card._mjrAsset = asset;
     card.appendChild(thumb);
@@ -59,12 +65,14 @@ export function createFolderCard(asset) {
     filenameDiv.classList.add("mjr-card-filename");
     filenameDiv.title = filename;
     filenameDiv.textContent = filename;
-    filenameDiv.style.cssText = "overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 4px; padding-right: 12px;";
+    filenameDiv.style.cssText =
+        "overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 4px; padding-right: 12px;";
     info.appendChild(filenameDiv);
 
     const metaRow = document.createElement("div");
     metaRow.classList.add("mjr-card-meta-row");
-    metaRow.style.cssText = "font-size: 0.85em; opacity: 0.7; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 16px;";
+    metaRow.style.cssText =
+        "font-size: 0.85em; opacity: 0.7; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 16px;";
     info.appendChild(metaRow);
     card.appendChild(info);
     return card;

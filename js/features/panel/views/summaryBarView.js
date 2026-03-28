@@ -36,7 +36,8 @@ export function createSummaryBarView() {
     const dupAlert = document.createElement("button");
     dupAlert.type = "button";
     dupAlert.className = "mjr-am-dup-alert";
-    dupAlert.style.cssText = "padding:2px 8px;border:1px solid var(--border-color,#555);background:var(--comfy-menu-bg,#222);color:var(--input-text,#eee);border-radius:999px;cursor:pointer;";
+    dupAlert.style.cssText =
+        "padding:2px 8px;border:1px solid var(--border-color,#555);background:var(--comfy-menu-bg,#222);color:var(--input-text,#eee);border-radius:999px;cursor:pointer;";
     dupAlert.style.display = "none";
     dupAlert.title = t("tooltip.duplicateSuggestions");
     right.appendChild(dupAlert);
@@ -53,7 +54,9 @@ export function createSummaryBarView() {
                 const cards = getter();
                 return Array.isArray(cards) ? cards : [];
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         return [];
     };
 
@@ -64,11 +67,15 @@ export function createSummaryBarView() {
                 const parsed = JSON.parse(rawList);
                 if (Array.isArray(parsed)) return parsed.length;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             const activeId = String(gridContainer?.dataset?.mjrSelectedAssetId || "").trim();
             if (activeId) return 1;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         return 0;
     };
 
@@ -94,9 +101,13 @@ export function createSummaryBarView() {
 
         const selectedCount = (() => {
             try {
-                const fromState = Array.isArray(state?.selectedAssetIds) ? state.selectedAssetIds.length : 0;
+                const fromState = Array.isArray(state?.selectedAssetIds)
+                    ? state.selectedAssetIds.length
+                    : 0;
                 if (fromState > 0) return fromState;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             return _selectedCountFromDataset(gridContainer);
         })();
 
@@ -105,16 +116,18 @@ export function createSummaryBarView() {
 
         const datasetShown = Number(gridContainer?.dataset?.mjrShown || 0) || 0;
         const shown =
-            datasetShown ||
-            Math.max(0, Number(state?.lastGridCount ?? 0) || 0) ||
-            cardsCount;
+            datasetShown || Math.max(0, Number(state?.lastGridCount ?? 0) || 0) || cardsCount;
 
-        const activeScope = String(state?.viewScope || state?.scope || gridContainer?.dataset?.mjrScope || "output").toLowerCase();
+        const activeScope = String(
+            state?.viewScope || state?.scope || gridContainer?.dataset?.mjrScope || "output",
+        ).toLowerCase();
         const scope = _titleScope(activeScope);
 
         const countPart = total && total >= shown ? `${shown}/${total}` : `${shown}`;
         const primaryLabel =
-            shown > 0 && folderStats.total > 0 && folderStats.folders === folderStats.total ? t("summary.folders") : t("summary.assets");
+            shown > 0 && folderStats.total > 0 && folderStats.folders === folderStats.total
+                ? t("summary.folders")
+                : t("summary.assets");
         const parts = [`${primaryLabel}: ${countPart}`];
         if (selectedCount > 0) parts.push(`${t("summary.selected")}: ${selectedCount}`);
         parts.push(scope);
@@ -122,11 +135,15 @@ export function createSummaryBarView() {
             const hidden = Number(gridContainer?.dataset?.mjrHiddenPngSiblings || 0) || 0;
             const enabled = String(gridContainer?.dataset?.mjrHidePngSiblingsEnabled || "") === "1";
             if (enabled && hidden > 0) parts.push(`${t("summary.hidden")}: ${hidden}`);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         try {
             text.textContent = parts.filter(Boolean).join(" | ");
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         try {
             if (activeScope === "similar") {
@@ -146,16 +163,22 @@ export function createSummaryBarView() {
                     dupAlert.onclick = () => {
                         try {
                             actions?.onDuplicateAlertClick?.(alert);
-                        } catch (e) { console.debug?.(e); }
+                        } catch (e) {
+                            console.debug?.(e);
+                        }
                     };
                 }
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         const rawQuery = _safeText(context?.rawQuery || "").trim();
         try {
             pillsView.update({ state, gridContainer, rawQuery, actions });
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     return { bar, update };

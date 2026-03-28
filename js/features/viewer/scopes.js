@@ -37,7 +37,8 @@ function getScopesTmpCtx(w, h) {
         if (!_scopesTmpCanvas) _scopesTmpCanvas = document.createElement("canvas");
         if (_scopesTmpCanvas.width !== dw) _scopesTmpCanvas.width = dw;
         if (_scopesTmpCanvas.height !== dh) _scopesTmpCanvas.height = dh;
-        if (!_scopesTmpCtx) _scopesTmpCtx = _scopesTmpCanvas.getContext("2d", { willReadFrequently: true });
+        if (!_scopesTmpCtx)
+            _scopesTmpCtx = _scopesTmpCanvas.getContext("2d", { willReadFrequently: true });
         return _scopesTmpCtx || null;
     } catch {
         return null;
@@ -77,7 +78,9 @@ function drawPanel(ctx, { x, y, w, h, title }) {
             ctx.fillText(String(title), x + PANEL_TITLE_PAD_X, y + PANEL_TITLE_PAD_Y);
         }
         ctx.restore();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 function computeHistogramFromImageData(img, { sampleStep = DEFAULT_HIST_SAMPLE_STEP } = {}) {
@@ -164,12 +167,18 @@ function drawHistogram(ctx, rect, hist, { channel = "rgb" } = {}) {
             drawChannel(hist.hl, "rgba(255,255,255,0.45)");
         }
         ctx.restore();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 function computeWaveformFromImageData(
     img,
-    { columns = DEFAULT_WF_COLUMNS, rows = DEFAULT_WF_ROWS, sampleStep = DEFAULT_WF_SAMPLE_STEP } = {}
+    {
+        columns = DEFAULT_WF_COLUMNS,
+        rows = DEFAULT_WF_ROWS,
+        sampleStep = DEFAULT_WF_SAMPLE_STEP,
+    } = {},
 ) {
     const gridW = Math.max(WAVE_MIN_GRID_W, Math.floor(columns));
     const gridH = Math.max(WAVE_MIN_GRID_H, Math.floor(rows));
@@ -233,13 +242,18 @@ function drawWaveform(ctx, rect, wf) {
                 if (v <= 0) continue;
                 const px = gx + (xx / (gridW - 1 || 1)) * gw;
                 const py = gy + (yy / (gridH - 1 || 1)) * gh;
-                const a = Math.min(WAVE_CELL_ALPHA_MAX, WAVE_CELL_ALPHA_BASE + v * WAVE_CELL_ALPHA_SCALE);
+                const a = Math.min(
+                    WAVE_CELL_ALPHA_MAX,
+                    WAVE_CELL_ALPHA_BASE + v * WAVE_CELL_ALPHA_SCALE,
+                );
                 ctx.fillStyle = `rgba(255,255,255,${a})`;
                 ctx.fillRect(px, py, Math.max(1, gw / gridW), Math.max(1, gh / gridH));
             }
         }
         ctx.restore();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 /**
@@ -310,5 +324,7 @@ export function drawScopesLight(ctx, viewport, sourceCanvas, opts = {}) {
             const wf = computeWaveformFromImageData(img, { columns: 180, rows: 96, sampleStep });
             drawWaveform(ctx, rect, wf);
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }

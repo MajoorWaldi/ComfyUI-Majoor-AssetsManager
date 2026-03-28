@@ -1,6 +1,6 @@
 function parseDate(input) {
     if (!input) return null;
-    
+
     // Try to parse as number (seconds) first, even if string
     const num = Number(input);
     if (!isNaN(num)) {
@@ -15,16 +15,16 @@ function parseDate(input) {
 export function formatDate(input) {
     const date = parseDate(input);
     if (!date) return "";
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
     return `${day}/${month}`;
 }
 
 export function formatTime(input) {
     const date = parseDate(input);
     if (!date) return "";
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const hours = date.getHours().toString().padStart(2, "0");
+    const minutes = date.getMinutes().toString().padStart(2, "0");
     return `${hours}:${minutes}`;
 }
 

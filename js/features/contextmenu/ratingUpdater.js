@@ -10,10 +10,14 @@ function _clearPending(assetId) {
     if (!entry) return;
     try {
         clearTimeout(entry.timer);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         entry.controller?.abort?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     _pending.delete(assetId);
 }
 
@@ -28,7 +32,17 @@ export function cancelAllRatingUpdates() {
     }
 }
 
-export function scheduleRatingUpdate(assetId, rating, { onSuccess, onFailure, successMessage = null, errorMessage = null, warnPrefix = "[RatingUpdater]" } = {}) {
+export function scheduleRatingUpdate(
+    assetId,
+    rating,
+    {
+        onSuccess,
+        onFailure,
+        successMessage = null,
+        errorMessage = null,
+        warnPrefix = "[RatingUpdater]",
+    } = {},
+) {
     if (!assetId) return;
     cancelRatingUpdate(assetId);
     const controller = new AbortController();

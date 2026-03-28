@@ -4,7 +4,12 @@
 
 import { APP_CONFIG, APP_DEFAULTS } from "../config.js";
 import { t } from "../i18n.js";
-import { _safeOneOf, GRID_SIZE_PRESETS, GRID_SIZE_PRESET_OPTIONS, detectGridSizePreset } from "./settingsUtils.js";
+import {
+    _safeOneOf,
+    GRID_SIZE_PRESETS,
+    GRID_SIZE_PRESET_OPTIONS,
+    detectGridSizePreset,
+} from "./settingsUtils.js";
 import { saveMajoorSettings, applySettingsToConfig } from "./settingsCore.js";
 
 const SETTINGS_PREFIX = "Majoor";
@@ -44,13 +49,16 @@ export function registerGridSettings(safeAddSetting, settings, notifyApplied) {
         id: `${SETTINGS_PREFIX}.Cards.ThumbSize`,
         category: cardCat(t("setting.grid.cardSize.group", "Card size")),
         name: t("setting.grid.cardSize.name", "Majoor: Card Size"),
-        tooltip: t("setting.grid.cardSize.desc", "Choose the card size preset used by the grid layout."),
+        tooltip: t(
+            "setting.grid.cardSize.desc",
+            "Choose the card size preset used by the grid layout.",
+        ),
         type: "combo",
         defaultValue: (() => {
             const preset = _safeOneOf(
                 String(settings.grid?.minSizePreset || "").toLowerCase(),
                 GRID_SIZE_PRESET_OPTIONS,
-                detectGridSizePreset(settings.grid?.minSize)
+                detectGridSizePreset(settings.grid?.minSize),
             );
             const labels = {
                 small: t("setting.grid.cardSize.small", "Small"),
@@ -65,14 +73,18 @@ export function registerGridSettings(safeAddSetting, settings, notifyApplied) {
             t("setting.grid.cardSize.large", "Large"),
         ],
         onChange: (value) => {
-            const label = String(value || "").trim().toLowerCase();
+            const label = String(value || "")
+                .trim()
+                .toLowerCase();
             const smallLabel = t("setting.grid.cardSize.small", "Small").toLowerCase();
             const mediumLabel = t("setting.grid.cardSize.medium", "Medium").toLowerCase();
             const largeLabel = t("setting.grid.cardSize.large", "Large").toLowerCase();
             let preset = "medium";
             if (label === smallLabel || label === "small" || label === "petit") preset = "small";
-            else if (label === largeLabel || label === "large" || label === "grand") preset = "large";
-            else if (label === mediumLabel || label === "medium" || label === "moyen") preset = "medium";
+            else if (label === largeLabel || label === "large" || label === "grand")
+                preset = "large";
+            else if (label === mediumLabel || label === "medium" || label === "moyen")
+                preset = "medium";
             settings.grid.minSizePreset = preset;
             settings.grid.minSize = GRID_SIZE_PRESETS[preset];
             saveMajoorSettings(settings);
@@ -160,7 +172,8 @@ export function registerGridSettings(safeAddSetting, settings, notifyApplied) {
         id: `${SETTINGS_PREFIX}.Grid.ShowWorkflowDot`,
         category: cardCat("Show workflow dot"),
         name: "Show workflow indicator",
-        tooltip: "Display the green dot indicating workflow metadata availability (bottom right of card)",
+        tooltip:
+            "Display the green dot indicating workflow metadata availability (bottom right of card)",
         type: "boolean",
         defaultValue: !!settings.grid?.showWorkflowDot,
         onChange: (value) => {
@@ -224,7 +237,10 @@ export function registerGridSettings(safeAddSetting, settings, notifyApplied) {
         id: `${SETTINGS_PREFIX}.Badges.StarColor`,
         category: colorCat(t("setting.starColor", "Star color")),
         name: t("setting.starColor", "Majoor: Star color"),
-        tooltip: t("setting.starColor.tooltip", "Color of rating stars on thumbnails (hex, e.g. #FFD45A)"),
+        tooltip: t(
+            "setting.starColor.tooltip",
+            "Color of rating stars on thumbnails (hex, e.g. #FFD45A)",
+        ),
         type: "color",
         defaultValue: normalizeHexColor(settings.grid?.starColor, APP_DEFAULTS.BADGE_STAR_COLOR),
         onChange: (value) => {
@@ -239,11 +255,20 @@ export function registerGridSettings(safeAddSetting, settings, notifyApplied) {
         id: `${SETTINGS_PREFIX}.Badges.ImageColor`,
         category: colorCat(t("setting.badgeImageColor", "Image badge color")),
         name: t("setting.badgeImageColor", "Majoor: Image badge color"),
-        tooltip: t("setting.badgeImageColor.tooltip", "Color for image badges: PNG, JPG, WEBP, GIF, BMP, TIF (hex)"),
+        tooltip: t(
+            "setting.badgeImageColor.tooltip",
+            "Color for image badges: PNG, JPG, WEBP, GIF, BMP, TIF (hex)",
+        ),
         type: "color",
-        defaultValue: normalizeHexColor(settings.grid?.badgeImageColor, APP_DEFAULTS.BADGE_IMAGE_COLOR),
+        defaultValue: normalizeHexColor(
+            settings.grid?.badgeImageColor,
+            APP_DEFAULTS.BADGE_IMAGE_COLOR,
+        ),
         onChange: (value) => {
-            settings.grid.badgeImageColor = normalizeHexColor(value, APP_DEFAULTS.BADGE_IMAGE_COLOR);
+            settings.grid.badgeImageColor = normalizeHexColor(
+                value,
+                APP_DEFAULTS.BADGE_IMAGE_COLOR,
+            );
             saveMajoorSettings(settings);
             applySettingsToConfig(settings);
             notifyApplied("grid.badgeImageColor");
@@ -254,11 +279,20 @@ export function registerGridSettings(safeAddSetting, settings, notifyApplied) {
         id: `${SETTINGS_PREFIX}.Badges.VideoColor`,
         category: colorCat(t("setting.badgeVideoColor", "Video badge color")),
         name: t("setting.badgeVideoColor", "Majoor: Video badge color"),
-        tooltip: t("setting.badgeVideoColor.tooltip", "Color for video badges: MP4, WEBM, MOV, AVI, MKV (hex)"),
+        tooltip: t(
+            "setting.badgeVideoColor.tooltip",
+            "Color for video badges: MP4, WEBM, MOV, AVI, MKV (hex)",
+        ),
         type: "color",
-        defaultValue: normalizeHexColor(settings.grid?.badgeVideoColor, APP_DEFAULTS.BADGE_VIDEO_COLOR),
+        defaultValue: normalizeHexColor(
+            settings.grid?.badgeVideoColor,
+            APP_DEFAULTS.BADGE_VIDEO_COLOR,
+        ),
         onChange: (value) => {
-            settings.grid.badgeVideoColor = normalizeHexColor(value, APP_DEFAULTS.BADGE_VIDEO_COLOR);
+            settings.grid.badgeVideoColor = normalizeHexColor(
+                value,
+                APP_DEFAULTS.BADGE_VIDEO_COLOR,
+            );
             saveMajoorSettings(settings);
             applySettingsToConfig(settings);
             notifyApplied("grid.badgeVideoColor");
@@ -269,11 +303,20 @@ export function registerGridSettings(safeAddSetting, settings, notifyApplied) {
         id: `${SETTINGS_PREFIX}.Badges.AudioColor`,
         category: colorCat(t("setting.badgeAudioColor", "Audio badge color")),
         name: t("setting.badgeAudioColor", "Majoor: Audio badge color"),
-        tooltip: t("setting.badgeAudioColor.tooltip", "Color for audio badges: MP3, WAV, OGG, FLAC (hex)"),
+        tooltip: t(
+            "setting.badgeAudioColor.tooltip",
+            "Color for audio badges: MP3, WAV, OGG, FLAC (hex)",
+        ),
         type: "color",
-        defaultValue: normalizeHexColor(settings.grid?.badgeAudioColor, APP_DEFAULTS.BADGE_AUDIO_COLOR),
+        defaultValue: normalizeHexColor(
+            settings.grid?.badgeAudioColor,
+            APP_DEFAULTS.BADGE_AUDIO_COLOR,
+        ),
         onChange: (value) => {
-            settings.grid.badgeAudioColor = normalizeHexColor(value, APP_DEFAULTS.BADGE_AUDIO_COLOR);
+            settings.grid.badgeAudioColor = normalizeHexColor(
+                value,
+                APP_DEFAULTS.BADGE_AUDIO_COLOR,
+            );
             saveMajoorSettings(settings);
             applySettingsToConfig(settings);
             notifyApplied("grid.badgeAudioColor");
@@ -284,11 +327,20 @@ export function registerGridSettings(safeAddSetting, settings, notifyApplied) {
         id: `${SETTINGS_PREFIX}.Badges.Model3dColor`,
         category: colorCat(t("setting.badgeModel3dColor", "3D model badge color")),
         name: t("setting.badgeModel3dColor", "Majoor: 3D model badge color"),
-        tooltip: t("setting.badgeModel3dColor.tooltip", "Color for 3D model badges: OBJ, FBX, GLB, GLTF (hex)"),
+        tooltip: t(
+            "setting.badgeModel3dColor.tooltip",
+            "Color for 3D model badges: OBJ, FBX, GLB, GLTF (hex)",
+        ),
         type: "color",
-        defaultValue: normalizeHexColor(settings.grid?.badgeModel3dColor, APP_DEFAULTS.BADGE_MODEL3D_COLOR),
+        defaultValue: normalizeHexColor(
+            settings.grid?.badgeModel3dColor,
+            APP_DEFAULTS.BADGE_MODEL3D_COLOR,
+        ),
         onChange: (value) => {
-            settings.grid.badgeModel3dColor = normalizeHexColor(value, APP_DEFAULTS.BADGE_MODEL3D_COLOR);
+            settings.grid.badgeModel3dColor = normalizeHexColor(
+                value,
+                APP_DEFAULTS.BADGE_MODEL3D_COLOR,
+            );
             saveMajoorSettings(settings);
             applySettingsToConfig(settings);
             notifyApplied("grid.badgeModel3dColor");
@@ -299,11 +351,20 @@ export function registerGridSettings(safeAddSetting, settings, notifyApplied) {
         id: `${SETTINGS_PREFIX}.Badges.DuplicateAlertColor`,
         category: colorCat(t("setting.badgeDuplicateAlertColor", "Duplicate alert badge color")),
         name: t("setting.badgeDuplicateAlertColor", "Majoor: Duplicate alert badge color"),
-        tooltip: t("setting.badgeDuplicateAlertColor.tooltip", "Color for duplicate extension badges (PNG+, JPG+, etc)."),
+        tooltip: t(
+            "setting.badgeDuplicateAlertColor.tooltip",
+            "Color for duplicate extension badges (PNG+, JPG+, etc).",
+        ),
         type: "color",
-        defaultValue: normalizeHexColor(settings.grid?.badgeDuplicateAlertColor, APP_DEFAULTS.BADGE_DUPLICATE_ALERT_COLOR),
+        defaultValue: normalizeHexColor(
+            settings.grid?.badgeDuplicateAlertColor,
+            APP_DEFAULTS.BADGE_DUPLICATE_ALERT_COLOR,
+        ),
         onChange: (value) => {
-            settings.grid.badgeDuplicateAlertColor = normalizeHexColor(value, APP_DEFAULTS.BADGE_DUPLICATE_ALERT_COLOR);
+            settings.grid.badgeDuplicateAlertColor = normalizeHexColor(
+                value,
+                APP_DEFAULTS.BADGE_DUPLICATE_ALERT_COLOR,
+            );
             saveMajoorSettings(settings);
             applySettingsToConfig(settings);
             notifyApplied("grid.badgeDuplicateAlertColor");
@@ -324,7 +385,10 @@ export function registerGridSettings(safeAddSetting, settings, notifyApplied) {
         attrs: { min: 50, max: Number(APP_CONFIG.MAX_PAGE_SIZE) || 2000, step: 50 },
         onChange: (value) => {
             const maxPage = Number(APP_CONFIG.MAX_PAGE_SIZE) || 2000;
-            settings.grid.pageSize = Math.max(50, Math.min(maxPage, Number(value) || APP_DEFAULTS.DEFAULT_PAGE_SIZE));
+            settings.grid.pageSize = Math.max(
+                50,
+                Math.min(maxPage, Number(value) || APP_DEFAULTS.DEFAULT_PAGE_SIZE),
+            );
             saveMajoorSettings(settings);
             applySettingsToConfig(settings);
             notifyApplied("grid.pageSize");
@@ -392,7 +456,10 @@ export function registerGridSettings(safeAddSetting, settings, notifyApplied) {
         },
         onChange: (value) => {
             settings.sidebar = settings.sidebar || {};
-            settings.sidebar.widthPx = Math.max(240, Math.min(640, Math.round(Number(value) || 360)));
+            settings.sidebar.widthPx = Math.max(
+                240,
+                Math.min(640, Math.round(Number(value) || 360)),
+            );
             saveMajoorSettings(settings);
             notifyApplied("sidebar.widthPx");
         },
@@ -415,11 +482,14 @@ export function registerGridSettings(safeAddSetting, settings, notifyApplied) {
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Grid.VideoAutoplayMode`,
-        category: cat(t("cat.grid"), t("setting.grid.videoAutoplayMode.name", "Video autoplay").replace("Majoor: ", "")),
+        category: cat(
+            t("cat.grid"),
+            t("setting.grid.videoAutoplayMode.name", "Video autoplay").replace("Majoor: ", ""),
+        ),
         name: t("setting.grid.videoAutoplayMode.name", "Majoor: Video autoplay"),
         tooltip: t(
             "setting.grid.videoAutoplayMode.desc",
-            "Controls video thumbnail playback in the grid. Off: static frame. Hover: play on mouse hover. Always: loop while visible."
+            "Controls video thumbnail playback in the grid. Off: static frame. Hover: play on mouse hover. Always: loop while visible.",
         ),
         type: "combo",
         defaultValue: (() => {
@@ -466,7 +536,10 @@ export function registerGridSettings(safeAddSetting, settings, notifyApplied) {
         name: "Majoor: Card hover color",
         tooltip: "Background tint used when hovering a card (hex, e.g. #3D3D3D).",
         type: "color",
-        defaultValue: normalizeHexColor(settings.ui?.cardHoverColor, APP_DEFAULTS.UI_CARD_HOVER_COLOR),
+        defaultValue: normalizeHexColor(
+            settings.ui?.cardHoverColor,
+            APP_DEFAULTS.UI_CARD_HOVER_COLOR,
+        ),
         onChange: (value) => {
             settings.ui = settings.ui || {};
             settings.ui.cardHoverColor = normalizeHexColor(value, APP_DEFAULTS.UI_CARD_HOVER_COLOR);
@@ -482,10 +555,16 @@ export function registerGridSettings(safeAddSetting, settings, notifyApplied) {
         name: "Majoor: Card selection color",
         tooltip: "Outline/accent color used for selected cards (hex, e.g. #4A90E2).",
         type: "color",
-        defaultValue: normalizeHexColor(settings.ui?.cardSelectionColor, APP_DEFAULTS.UI_CARD_SELECTION_COLOR),
+        defaultValue: normalizeHexColor(
+            settings.ui?.cardSelectionColor,
+            APP_DEFAULTS.UI_CARD_SELECTION_COLOR,
+        ),
         onChange: (value) => {
             settings.ui = settings.ui || {};
-            settings.ui.cardSelectionColor = normalizeHexColor(value, APP_DEFAULTS.UI_CARD_SELECTION_COLOR);
+            settings.ui.cardSelectionColor = normalizeHexColor(
+                value,
+                APP_DEFAULTS.UI_CARD_SELECTION_COLOR,
+            );
             saveMajoorSettings(settings);
             applySettingsToConfig(settings);
             notifyApplied("ui.cardSelectionColor");

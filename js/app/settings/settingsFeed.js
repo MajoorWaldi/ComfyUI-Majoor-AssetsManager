@@ -28,7 +28,8 @@ export function registerFeedSettings(safeAddSetting, settings, notifyApplied) {
         id: `${SETTINGS_PREFIX}.Feed.ShowInfo`,
         category: feedCat("Show info section"),
         name: "Show card info section",
-        tooltip: "Show or hide the entire info section (filename, metadata, dots) below thumbnails in the Generated Feed.",
+        tooltip:
+            "Show or hide the entire info section (filename, metadata, dots) below thumbnails in the Generated Feed.",
         type: "boolean",
         defaultValue: !!(settings.feed?.showInfo ?? APP_DEFAULTS.FEED_SHOW_INFO),
         onChange: (value) => {

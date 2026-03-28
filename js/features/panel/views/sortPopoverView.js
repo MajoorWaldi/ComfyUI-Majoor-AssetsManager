@@ -11,4 +11,3 @@ export function createSortPopoverView() {
 
     return { sortPopover, sortMenu };
 }
-

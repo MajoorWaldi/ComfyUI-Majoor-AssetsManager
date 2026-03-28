@@ -85,7 +85,7 @@ export function createShortcutGuidePanel() {
     intro.className = "mjr-shortcut-guide-intro";
     intro.textContent = t(
         "msg.shortcuts.intro",
-        "Current keyboard shortcuts grouped by section for quick reference."
+        "Current keyboard shortcuts grouped by section for quick reference.",
     );
     root.appendChild(intro);
 

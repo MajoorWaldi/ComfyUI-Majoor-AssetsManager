@@ -70,4 +70,3 @@ export function createSidebarHeader(asset, onClose) {
 
     return header;
 }
-

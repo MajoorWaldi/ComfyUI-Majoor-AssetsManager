@@ -42,7 +42,8 @@ export function registerScanningSettings(safeAddSetting, settings, notifyApplied
         id: `${SETTINGS_PREFIX}.Scan.FastMode`,
         category: cat(t("cat.scanning"), "Scan mode"),
         name: "Fast scan mode",
-        tooltip: "Use fast scan mode for manual backfill scans (skip heavier metadata work during scan).",
+        tooltip:
+            "Use fast scan mode for manual backfill scans (skip heavier metadata work during scan).",
         type: "boolean",
         defaultValue: !!(settings.scan?.fastMode ?? true),
         onChange: (value) => {
@@ -59,13 +60,15 @@ export function registerScanningSettings(safeAddSetting, settings, notifyApplied
         name: "Hydrate Concurrency",
         tooltip: "Maximum concurrent hydration requests for rating/tags.",
         type: "number",
-        defaultValue: Number(settings.rtHydrate?.concurrency || APP_DEFAULTS.RT_HYDRATE_CONCURRENCY || 5),
+        defaultValue: Number(
+            settings.rtHydrate?.concurrency || APP_DEFAULTS.RT_HYDRATE_CONCURRENCY || 5,
+        ),
         attrs: { min: 1, max: 20, step: 1 },
         onChange: (value) => {
             settings.rtHydrate = settings.rtHydrate || {};
             settings.rtHydrate.concurrency = Math.max(
                 1,
-                Math.min(20, Math.round(_safeNum(value, APP_DEFAULTS.RT_HYDRATE_CONCURRENCY || 5)))
+                Math.min(20, Math.round(_safeNum(value, APP_DEFAULTS.RT_HYDRATE_CONCURRENCY || 5))),
             );
             saveMajoorSettings(settings);
             applySettingsToConfig(settings);
@@ -109,7 +112,9 @@ export function registerScanningSettings(safeAddSetting, settings, notifyApplied
                 return;
             }
             applyWatcherSettingsFromBackend(res.data || {});
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     safeAddSetting({
@@ -130,7 +135,10 @@ export function registerScanningSettings(safeAddSetting, settings, notifyApplied
                     settings.watcher.enabled = !value;
                     saveMajoorSettings(settings);
                     notifyApplied("watcher.enabled");
-                    comfyToast(res?.error || t("toast.failedToggleWatcher", "Failed to toggle watcher"), "error");
+                    comfyToast(
+                        res?.error || t("toast.failedToggleWatcher", "Failed to toggle watcher"),
+                        "error",
+                    );
                 }
             } catch {
                 settings.watcher.enabled = !value;
@@ -142,7 +150,10 @@ export function registerScanningSettings(safeAddSetting, settings, notifyApplied
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Watcher.DebounceDelay`,
-        category: cat(t("cat.scanning"), t("setting.watcher.debounce.label", "Watcher debounce delay")),
+        category: cat(
+            t("cat.scanning"),
+            t("setting.watcher.debounce.label", "Watcher debounce delay"),
+        ),
         name: t("setting.watcher.debounce.name"),
         tooltip: t("setting.watcher.debounce.desc") + " (env: MJR_WATCHER_DEBOUNCE_MS)",
         type: "number",
@@ -176,7 +187,10 @@ export function registerScanningSettings(safeAddSetting, settings, notifyApplied
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Watcher.DedupeWindow`,
-        category: cat(t("cat.scanning"), t("setting.watcher.dedupe.label", "Watcher dedupe window")),
+        category: cat(
+            t("cat.scanning"),
+            t("setting.watcher.dedupe.label", "Watcher dedupe window"),
+        ),
         name: t("setting.watcher.dedupe.name"),
         tooltip: t("setting.watcher.dedupe.desc") + " (env: MJR_WATCHER_DEDUPE_TTL_MS)",
         type: "number",
@@ -218,7 +232,10 @@ export function registerScanningSettings(safeAddSetting, settings, notifyApplied
         attrs: { min: 10, max: 5000, step: 10 },
         onChange: (value) => {
             settings.watcher = settings.watcher || {};
-            settings.watcher.maxPending = Math.max(10, Math.min(5000, Math.round(_safeNum(value, 500))));
+            settings.watcher.maxPending = Math.max(
+                10,
+                Math.min(5000, Math.round(_safeNum(value, 500))),
+            );
             saveMajoorSettings(settings);
             applySettingsToConfig(settings);
             notifyApplied("watcher.maxPending");
@@ -235,7 +252,10 @@ export function registerScanningSettings(safeAddSetting, settings, notifyApplied
         attrs: { min: 0, max: 1000000, step: 100 },
         onChange: (value) => {
             settings.watcher = settings.watcher || {};
-            settings.watcher.minSize = Math.max(0, Math.min(1000000, Math.round(_safeNum(value, 100))));
+            settings.watcher.minSize = Math.max(
+                0,
+                Math.min(1000000, Math.round(_safeNum(value, 100))),
+            );
             saveMajoorSettings(settings);
             applySettingsToConfig(settings);
             notifyApplied("watcher.minSize");
@@ -252,7 +272,10 @@ export function registerScanningSettings(safeAddSetting, settings, notifyApplied
         attrs: { min: 100000, max: 17179869184, step: 100000 },
         onChange: (value) => {
             settings.watcher = settings.watcher || {};
-            settings.watcher.maxSize = Math.max(100000, Math.min(17179869184, Math.round(_safeNum(value, 4294967296))));
+            settings.watcher.maxSize = Math.max(
+                100000,
+                Math.min(17179869184, Math.round(_safeNum(value, 4294967296))),
+            );
             saveMajoorSettings(settings);
             applySettingsToConfig(settings);
             notifyApplied("watcher.maxSize");
@@ -261,7 +284,9 @@ export function registerScanningSettings(safeAddSetting, settings, notifyApplied
 
     try {
         syncWatcherRuntimeSettings().catch(() => {});
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.RatingTagsSync.Enabled`,

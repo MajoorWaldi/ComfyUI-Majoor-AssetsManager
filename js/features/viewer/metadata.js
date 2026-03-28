@@ -29,28 +29,38 @@ export function createViewerMetadataHydrator({
                     cache.delete(key);
                 }
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         if (cache.size <= MAX_ENTRIES) return;
         // Still too large: remove oldest by timestamp.
         try {
-            const sorted = Array.from(cache.entries()).sort((a, b) => (a?.[1]?.at || 0) - (b?.[1]?.at || 0));
+            const sorted = Array.from(cache.entries()).sort(
+                (a, b) => (a?.[1]?.at || 0) - (b?.[1]?.at || 0),
+            );
             const excess = cache.size - MAX_ENTRIES;
             for (let i = 0; i < excess; i++) {
                 const key = sorted[i]?.[0];
                 if (key != null) cache.delete(key);
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const applyToAsset = (asset, meta) => {
         if (!asset || !meta || typeof meta !== "object") return;
         try {
             if (meta.rating !== undefined) asset.rating = meta.rating;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             if (meta.tags !== undefined) asset.tags = meta.tags;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const hydrateAssetsMetadataBatch = async (assets, { signal } = {}) => {
@@ -87,7 +97,9 @@ export function createViewerMetadataHydrator({
                 const cached = cache.get(String(id));
                 if (cached && cached.data) applyToAsset(asset, cached.data);
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const hydrateAssetMetadata = async (asset, { signal } = {}) => {
@@ -107,7 +119,9 @@ export function createViewerMetadataHydrator({
                 cleanupCache();
                 applyToAsset(asset, res.data);
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const hydrateVisibleMetadata = async () => {
@@ -120,7 +134,9 @@ export function createViewerMetadataHydrator({
 
         try {
             abortController?.abort?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         abortController = new AbortController();
         const signal = abortController.signal;
 
@@ -135,7 +151,9 @@ export function createViewerMetadataHydrator({
             const batch = visible.slice();
             if (compare) batch.push(compare);
             await hydrateAssetsMetadataBatch(batch, { signal });
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     return {
@@ -153,12 +171,16 @@ export function createViewerMetadataHydrator({
             try {
                 cache.set(String(assetId), { at: Date.now(), data });
                 cleanupCache();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         },
         deleteCached: (assetId) => {
             try {
                 cache.delete(String(assetId));
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         },
         abort: () => {
             safeCall(() => abortController?.abort?.());
@@ -173,4 +195,3 @@ export function createViewerMetadataHydrator({
         _noop: noop,
     };
 }
-

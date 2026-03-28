@@ -13,11 +13,18 @@ export function createFrameExporter({ state, VIEWER_MODES, singleView, abView, s
             if (state?.mode === VIEWER_MODES.AB_COMPARE) {
                 const m = String(state?.abCompareMode || "wipe");
                 if (m === "wipe" || m === "wipeV") {
-                    const a = abView?.querySelector?.('canvas.mjr-viewer-media[data-mjr-compare-role="A"]');
-                    const b = abView?.querySelector?.('canvas.mjr-viewer-media[data-mjr-compare-role="B"]');
-                    if (a instanceof HTMLCanvasElement && b instanceof HTMLCanvasElement) return { a, b, mode: m };
+                    const a = abView?.querySelector?.(
+                        'canvas.mjr-viewer-media[data-mjr-compare-role="A"]',
+                    );
+                    const b = abView?.querySelector?.(
+                        'canvas.mjr-viewer-media[data-mjr-compare-role="B"]',
+                    );
+                    if (a instanceof HTMLCanvasElement && b instanceof HTMLCanvasElement)
+                        return { a, b, mode: m };
                 }
-                const d = abView?.querySelector?.('canvas.mjr-viewer-media[data-mjr-compare-role="D"]');
+                const d = abView?.querySelector?.(
+                    'canvas.mjr-viewer-media[data-mjr-compare-role="D"]',
+                );
                 if (d instanceof HTMLCanvasElement) return d;
                 const any = abView?.querySelector?.("canvas.mjr-viewer-media");
                 return any instanceof HTMLCanvasElement ? any : null;
@@ -39,7 +46,9 @@ export function createFrameExporter({ state, VIEWER_MODES, singleView, abView, s
                     canvas.toBlob((b) => resolve(b), mime, quality);
                     return;
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 const dataUrl = canvas?.toDataURL?.(mime, quality);
                 if (!dataUrl || typeof dataUrl !== "string") return resolve(null);
@@ -79,7 +88,9 @@ export function createFrameExporter({ state, VIEWER_MODES, singleView, abView, s
                 if (!ctx) return false;
                 try {
                     ctx.drawImage(b, 0, 0, w, h);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 const p = Math.max(0, Math.min(100, Number(state?._abWipePercent) || 50)) / 100;
                 try {
                     ctx.save();
@@ -92,7 +103,9 @@ export function createFrameExporter({ state, VIEWER_MODES, singleView, abView, s
                     ctx.clip();
                     ctx.drawImage(a, 0, 0, w, h);
                     ctx.restore();
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 canvas = out;
             }
 
@@ -125,7 +138,9 @@ export function createFrameExporter({ state, VIEWER_MODES, singleView, abView, s
                 a.click();
                 try {
                     setTimeout(() => URL.revokeObjectURL(url), 2000);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 return true;
             } catch {
                 return false;

@@ -12,11 +12,11 @@ function _buildCollisionTitle({ ext = "", filename = "", count = 0, paths = [] }
     const safeExt = String(ext || "").trim();
     const safeName = String(filename || "").trim();
     const n = Math.max(0, Number(count) || 0);
-    const list = Array.isArray(paths) ? paths.map((p) => String(p || "").trim()).filter(Boolean) : [];
+    const list = Array.isArray(paths)
+        ? paths.map((p) => String(p || "").trim()).filter(Boolean)
+        : [];
     if (n < 2) return `${safeExt} file`;
-    const lines = [
-        `${safeExt}+ name collision in current view (${n})`,
-    ];
+    const lines = [`${safeExt}+ name collision in current view (${n})`];
     if (safeName) lines.push(`Name: ${safeName}`);
     if (list.length) {
         lines.push("Paths:");
@@ -31,10 +31,16 @@ export function createFileBadge(filename, kind, nameCollision = false, collision
     const badge = document.createElement("div");
     badge.className = "mjr-file-badge";
 
-    const ext = String(filename || "").split(".").pop()?.toUpperCase?.() || "";
+    const ext =
+        String(filename || "")
+            .split(".")
+            .pop()
+            ?.toUpperCase?.() || "";
     try {
         badge.dataset.mjrExt = ext;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     const category = detectKind({ kind }, ext);
 
@@ -45,9 +51,7 @@ export function createFileBadge(filename, kind, nameCollision = false, collision
         model3d: "--mjr-badge-model3d",
     };
     const cssVar = cssVarMap[category];
-    const bgColor = cssVar
-        ? `var(${cssVar}, #607D8B)`
-        : "#607D8B";
+    const bgColor = cssVar ? `var(${cssVar}, #607D8B)` : "#607D8B";
 
     const alertBg = "var(--mjr-badge-duplicate-alert, #ff1744)";
     const normalBg = bgColor;
@@ -55,11 +59,11 @@ export function createFileBadge(filename, kind, nameCollision = false, collision
     badge.textContent = ext + (nameCollision ? "+" : "");
     badge.title = nameCollision
         ? _buildCollisionTitle({
-            ext,
-            filename,
-            count: collisionMeta?.count,
-            paths: collisionMeta?.paths,
-        })
+              ext,
+              filename,
+              count: collisionMeta?.count,
+              paths: collisionMeta?.paths,
+          })
         : `${ext} file`;
     badge.style.cssText = `
         position: absolute;
@@ -81,7 +85,9 @@ export function createFileBadge(filename, kind, nameCollision = false, collision
     `;
     try {
         badge.dataset.mjrBadgeBg = normalBg;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     return badge;
 }
@@ -95,15 +101,17 @@ export function setFileBadgeCollision(badgeEl, nameCollision, collisionMeta = nu
         badgeEl.textContent = String(ext || "") + (nameCollision ? "+" : "");
         badgeEl.title = nameCollision
             ? _buildCollisionTitle({
-                ext,
-                filename: collisionMeta?.filename || "",
-                count: collisionMeta?.count,
-                paths: collisionMeta?.paths,
-            })
+                  ext,
+                  filename: collisionMeta?.filename || "",
+                  count: collisionMeta?.count,
+                  paths: collisionMeta?.paths,
+              })
             : `${ext} file`;
         badgeEl.style.background = nameCollision ? alertBg : normalBg;
         badgeEl.style.cursor = nameCollision ? "pointer" : "default";
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 function toBoolish(value) {
@@ -135,7 +143,10 @@ function hasStructuredData(value) {
     if (!text || text === "[]" || text === "[ ]") return false;
     if (/^(null|none)$/i.test(text)) return false;
 
-    if ((text.startsWith("[") && text.endsWith("]")) || (text.startsWith("{") && text.endsWith("}"))) {
+    if (
+        (text.startsWith("[") && text.endsWith("]")) ||
+        (text.startsWith("{") && text.endsWith("}"))
+    ) {
         try {
             const parsed = JSON.parse(text);
             if (Array.isArray(parsed)) {
@@ -145,7 +156,9 @@ function hasStructuredData(value) {
                 return Object.keys(parsed).length > 0;
             }
             return Boolean(parsed);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
     return true;
 }
@@ -168,37 +181,44 @@ function detectAiInfo(asset) {
         "aiEnhancedPrompt",
     ]);
 
-    const hasAutoTagsFlag = toBoolish(getFirstPresent(asset, [
-        "has_ai_auto_tags",
-        "hasAiAutoTags",
-        "ai_has_auto_tags",
-        "aiHasAutoTags",
-    ]));
-    const hasEnhancedPromptFlag = toBoolish(getFirstPresent(asset, [
-        "has_ai_enhanced_caption",
-        "hasAiEnhancedCaption",
-        "ai_has_enhanced_caption",
-        "aiHasEnhancedCaption",
-    ]));
-    const hasVectorFlag = toBoolish(getFirstPresent(asset, [
-        "has_ai_vector",
-        "hasAiVector",
-        "has_vector_embedding",
-        "hasVectorEmbedding",
-        "vector_indexed",
-        "vectorIndexed",
-    ]));
-    const hasAiInfoFlag = toBoolish(getFirstPresent(asset, [
-        "has_ai_info",
-        "hasAiInfo",
-        "ai_indexed",
-        "aiIndexed",
-    ]));
+    const hasAutoTagsFlag = toBoolish(
+        getFirstPresent(asset, [
+            "has_ai_auto_tags",
+            "hasAiAutoTags",
+            "ai_has_auto_tags",
+            "aiHasAutoTags",
+        ]),
+    );
+    const hasEnhancedPromptFlag = toBoolish(
+        getFirstPresent(asset, [
+            "has_ai_enhanced_caption",
+            "hasAiEnhancedCaption",
+            "ai_has_enhanced_caption",
+            "aiHasEnhancedCaption",
+        ]),
+    );
+    const hasVectorFlag = toBoolish(
+        getFirstPresent(asset, [
+            "has_ai_vector",
+            "hasAiVector",
+            "has_vector_embedding",
+            "hasVectorEmbedding",
+            "vector_indexed",
+            "vectorIndexed",
+        ]),
+    );
+    const hasAiInfoFlag = toBoolish(
+        getFirstPresent(asset, ["has_ai_info", "hasAiInfo", "ai_indexed", "aiIndexed"]),
+    );
 
-    const hasAutoTags = hasAutoTagsFlag === true || (hasAutoTagsFlag === null && hasStructuredData(autoTagsValue));
-    const hasEnhancedPrompt = hasEnhancedPromptFlag === true || (hasEnhancedPromptFlag === null && hasNonEmptyText(enhancedPromptValue));
+    const hasAutoTags =
+        hasAutoTagsFlag === true || (hasAutoTagsFlag === null && hasStructuredData(autoTagsValue));
+    const hasEnhancedPrompt =
+        hasEnhancedPromptFlag === true ||
+        (hasEnhancedPromptFlag === null && hasNonEmptyText(enhancedPromptValue));
     const hasVectorIndexed = hasVectorFlag === true || hasAiInfoFlag === true;
-    const hasAiInfo = hasAiInfoFlag === true || hasAutoTags || hasEnhancedPrompt || hasVectorIndexed;
+    const hasAiInfo =
+        hasAiInfoFlag === true || hasAutoTags || hasEnhancedPrompt || hasVectorIndexed;
 
     return { hasAiInfo, hasAutoTags, hasEnhancedPrompt, hasVectorIndexed };
 }
@@ -230,19 +250,29 @@ export function createWorkflowDot(asset) {
     if (hasWorkflow === true && hasGen === true) {
         title = "Complete: workflow + generation data detected";
     } else if (anyTrue) {
-        title = hasWorkflow === true ? "Partial: workflow only (generation data missing)" : "Partial: generation data only (workflow missing)";
+        title =
+            hasWorkflow === true
+                ? "Partial: workflow only (generation data missing)"
+                : "Partial: generation data only (workflow missing)";
     } else if (anyFalse && !anyTrue && !anyUnknown) {
         title = "None: no workflow or generation data found";
     } else if (anyUnknown) {
         title = "Pending: metadata not parsed yet";
     }
 
-    let status = anyUnknown ? "pending" : (hasWorkflow === true && hasGen === true ? "success" : anyTrue ? "warning" : "error");
+    let status = anyUnknown
+        ? "pending"
+        : hasWorkflow === true && hasGen === true
+          ? "success"
+          : anyTrue
+            ? "warning"
+            : "error";
     if (enrichmentActive && status !== "success") {
         status = "pending";
-        title = enrichmentQueue > 0
-            ? `Pending: database metadata enrichment in progress (${enrichmentQueue} queued)`
-            : "Pending: database metadata enrichment in progress";
+        title =
+            enrichmentQueue > 0
+                ? `Pending: database metadata enrichment in progress (${enrichmentQueue} queued)`
+                : "Pending: database metadata enrichment in progress";
     }
     applyAssetStatusDotState(dot, status, title, { asset });
     const ai = detectAiInfo(asset);
@@ -262,12 +292,16 @@ export function createWorkflowDot(asset) {
 
         try {
             dot.dataset.mjrAi = "1";
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         dot.title = `${title}\nAI: ${aiBits.length ? aiBits.join(", ") : "indexed"}\nClick to rescan this file`;
     } else {
         try {
             dot.dataset.mjrAi = "0";
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         dot.textContent = "\u25CF";
         dot.title = `${title}\nClick to rescan this file`;
     }
@@ -282,7 +316,9 @@ export function applyAssetStatusDotState(dot, state, title = "", context = {}) {
 
     try {
         dot.dataset.mjrStatus = s || "neutral";
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     dot.style.cssText = `
         color: ${color};
         margin-left: 4px;
@@ -297,7 +333,9 @@ export function applyAssetStatusDotState(dot, state, title = "", context = {}) {
     if (title) {
         try {
             dot.title = String(title);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 }
 

@@ -25,20 +25,20 @@ function _safeOwnValue(host, key) {
 function _looksLikeComfyApi(value) {
     if (!_isObject(value)) return false;
     return (
-        typeof value.fetchApi === "function"
-        || typeof value.apiURL === "function"
-        || _isObject(value.settings)
+        typeof value.fetchApi === "function" ||
+        typeof value.apiURL === "function" ||
+        _isObject(value.settings)
     );
 }
 
 function _looksLikeComfyApp(value) {
     if (!_isObject(value)) return false;
     return (
-        _isObject(value.ui)
-        || _isObject(value.canvas)
-        || _isObject(value.graph)
-        || typeof value.loadGraphData === "function"
-        || _looksLikeComfyApi(value.api)
+        _isObject(value.ui) ||
+        _isObject(value.canvas) ||
+        _isObject(value.graph) ||
+        typeof value.loadGraphData === "function" ||
+        _looksLikeComfyApi(value.api)
     );
 }
 
@@ -64,11 +64,15 @@ export function getComfyApi(app) {
     try {
         const api = typeof window !== "undefined" ? _safeOwnValue(window, "api") : null;
         if (_looksLikeComfyApi(api)) return api;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         const api = typeof globalThis !== "undefined" ? _safeOwnValue(globalThis, "api") : null;
         if (_looksLikeComfyApi(api)) return api;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return null;
 }
 
@@ -77,11 +81,15 @@ export function getComfyApp() {
     try {
         const app = typeof globalThis !== "undefined" ? _safeOwnValue(globalThis, "app") : null;
         if (_looksLikeComfyApp(app)) return app;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         const app = typeof window !== "undefined" ? _safeOwnValue(window, "app") : null;
         if (_looksLikeComfyApp(app)) return app;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return null;
 }
 
@@ -147,14 +155,21 @@ export function activateSidebarTabCompat(app, tabId) {
                 manager[name](safeTabId);
                 return true;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
     try {
-        if (manager?.sidebarTabStore && typeof manager.sidebarTabStore.setActiveTab === "function") {
+        if (
+            manager?.sidebarTabStore &&
+            typeof manager.sidebarTabStore.setActiveTab === "function"
+        ) {
             manager.sidebarTabStore.setActiveTab(safeTabId);
             return true;
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return false;
 }
 
@@ -169,14 +184,17 @@ export function registerCommandCompat(app, commandDef) {
                 manager[name](safeDef);
                 return true;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
     return false;
 }
 
 export function registerKeybindingCompat(app, keybindingDef) {
     const manager = getExtensionManager(app);
-    const safeDef = keybindingDef && typeof keybindingDef === "object" ? { ...keybindingDef } : null;
+    const safeDef =
+        keybindingDef && typeof keybindingDef === "object" ? { ...keybindingDef } : null;
     if (!manager || !safeDef) return false;
     const candidates = ["registerKeybinding", "addKeybinding"];
     for (const name of candidates) {
@@ -185,7 +203,9 @@ export function registerKeybindingCompat(app, keybindingDef) {
                 manager[name](safeDef);
                 return true;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
     return false;
 }
@@ -198,7 +218,9 @@ export function registerSidebarTabCompat(app, tabDef) {
             manager.registerSidebarTab(tabDef);
             return true;
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return false;
 }
 
@@ -210,7 +232,9 @@ export function registerBottomPanelTabCompat(app, tabDef) {
             manager.registerBottomPanelTab(tabDef);
             return true;
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return false;
 }
 
@@ -221,7 +245,9 @@ function _sleep(ms) {
 function _warnTimeout(label, timeoutMs) {
     try {
         console.warn(`[Majoor] ${label} timed out after ${Math.max(0, Number(timeoutMs) || 0)}ms`);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 export async function waitForComfyApp({
@@ -246,15 +272,13 @@ export async function waitForComfyApp({
     return null;
 }
 
-export async function waitForComfyApi(
-    {
-        app = null,
-        timeoutMs = 4000,
-        intervalMs = READY_POLL_INTERVAL_MS,
-        warnOnTimeout = true,
-        rejectOnTimeout = false,
-    } = {}
-) {
+export async function waitForComfyApi({
+    app = null,
+    timeoutMs = 4000,
+    intervalMs = READY_POLL_INTERVAL_MS,
+    warnOnTimeout = true,
+    rejectOnTimeout = false,
+} = {}) {
     const start = Date.now();
     const timeout = Math.max(0, Number(timeoutMs) || 0);
     while (Date.now() - start < timeout) {

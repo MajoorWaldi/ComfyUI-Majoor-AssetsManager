@@ -28,11 +28,15 @@ export function createImagePreloader({ buildAssetViewURL, IMAGE_PRELOAD_EXTENSIO
             const cleanup = () => {
                 try {
                     state._preloadRefs?.delete?.(img);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             };
             img.addEventListener("load", cleanup, { once: true, passive: true });
             img.addEventListener("error", cleanup, { once: true, passive: true });
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 
     function preloadImageForAsset(asset, url) {
@@ -46,7 +50,9 @@ export function createImagePreloader({ buildAssetViewURL, IMAGE_PRELOAD_EXTENSIO
             if (state._preloadedAssetKeys.size > 250) {
                 try {
                     state._preloadedAssetKeys.clear();
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
         }
         try {
@@ -54,11 +60,15 @@ export function createImagePreloader({ buildAssetViewURL, IMAGE_PRELOAD_EXTENSIO
             img.decoding = "async";
             try {
                 img.loading = "lazy";
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             img.alt = "";
             img.src = url;
             trackPreloadRef(img);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 
     function preloadAdjacentAssets(assets, centerIndex) {

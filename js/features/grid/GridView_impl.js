@@ -4,9 +4,17 @@
 
 import { get, hydrateAssetRatingTags } from "../../api/client.js";
 import { buildListURL } from "../../api/endpoints.js";
-import { createAssetCard, cleanupVideoThumbsIn, cleanupCardMediaHandlers } from "../../components/Card.js";
+import {
+    createAssetCard,
+    cleanupVideoThumbsIn,
+    cleanupCardMediaHandlers,
+} from "../../components/Card.js";
 import { createFolderCard } from "../../components/FolderCard.js";
-import { createRatingBadge, createTagsBadge, setFileBadgeCollision } from "../../components/Badges.js";
+import {
+    createRatingBadge,
+    createTagsBadge,
+    setFileBadgeCollision,
+} from "../../components/Badges.js";
 import { APP_CONFIG } from "../../app/config.js";
 import { getViewerInstance } from "../../components/Viewer.js";
 // Context menus are bound by the panel (GridContextMenu) to avoid duplicate handlers.
@@ -94,15 +102,15 @@ const GRID_STATE = new WeakMap();
 const RT_HYDRATE_CONCURRENCY = APP_CONFIG.RT_HYDRATE_CONCURRENCY ?? 2;
 const RT_HYDRATE_QUEUE_MAX = APP_CONFIG.RT_HYDRATE_QUEUE_MAX ?? 100;
 const RT_HYDRATE_SEEN_MAX = APP_CONFIG.RT_HYDRATE_SEEN_MAX ?? 20000;
-const RT_HYDRATE_SEEN_TTL_MS = APP_CONFIG.RT_HYDRATE_SEEN_TTL_MS ?? (10 * 60 * 1000);
+const RT_HYDRATE_SEEN_TTL_MS = APP_CONFIG.RT_HYDRATE_SEEN_TTL_MS ?? 10 * 60 * 1000;
 // RT_HYDRATE_STATE remains as the per-grid state map
 const RT_HYDRATE_STATE = new WeakMap(); // gridContainer -> { queue, inflight, seen, active, lastPruneAt }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Upsert Batching - Accumulate upserts and flush once for performance
 // ─────────────────────────────────────────────────────────────────────────────
-const UPSERT_BATCH_DEBOUNCE_MS = 200;    // Debounce window for batch flush
-const UPSERT_BATCH_MAX_SIZE = 50;        // Max items before forced flush
+const UPSERT_BATCH_DEBOUNCE_MS = 200; // Debounce window for batch flush
+const UPSERT_BATCH_MAX_SIZE = 50; // Max items before forced flush
 const UPSERT_BATCH_STATE = new WeakMap(); // gridContainer -> { pending: Map<id, asset>, timer: number|null }
 
 // Temporary debug logging for grid + infinite scroll.
@@ -120,7 +128,9 @@ const gridDebug = (...args) => {
     try {
         if (!_gridDebugEnabled()) return;
         console.log("[Majoor][Grid]", ...args);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 };
 
 function _getRenderedCards(gridContainer) {
@@ -130,7 +140,9 @@ function _getRenderedCards(gridContainer) {
             const cards = gridContainer._mjrGetRenderedCards();
             if (Array.isArray(cards)) return cards;
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         return Array.from(gridContainer.querySelectorAll(".mjr-asset-card"));
     } catch {
@@ -155,13 +167,20 @@ function _rtPruneBudgetRef(st) {
         set value(v) {
             try {
                 st.pruneBudget = Number(v) || 0;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         },
     };
 }
 
-function pruneRatingTagsHydrateSeen(st) {
-    return rtPruneRatingTagsHydrateSeen(st, RT_HYDRATE_SEEN_MAX, RT_HYDRATE_SEEN_TTL_MS, _rtPruneBudgetRef(st));
+function _pruneRatingTagsHydrateSeen(st) {
+    return rtPruneRatingTagsHydrateSeen(
+        st,
+        RT_HYDRATE_SEEN_MAX,
+        RT_HYDRATE_SEEN_TTL_MS,
+        _rtPruneBudgetRef(st),
+    );
 }
 
 function _updateCardRatingTagsBadges(card, rating, tags) {
@@ -330,7 +349,10 @@ function _updateGridSettingsClasses(container) {
     container.style.setProperty("--mjr-badge-video", APP_CONFIG.BADGE_VIDEO_COLOR);
     container.style.setProperty("--mjr-badge-audio", APP_CONFIG.BADGE_AUDIO_COLOR);
     container.style.setProperty("--mjr-badge-model3d", APP_CONFIG.BADGE_MODEL3D_COLOR);
-    container.style.setProperty("--mjr-badge-duplicate-alert", APP_CONFIG.BADGE_DUPLICATE_ALERT_COLOR);
+    container.style.setProperty(
+        "--mjr-badge-duplicate-alert",
+        APP_CONFIG.BADGE_DUPLICATE_ALERT_COLOR,
+    );
     container.style.setProperty("--mjr-card-hover-color", APP_CONFIG.UI_CARD_HOVER_COLOR);
     container.style.setProperty("--mjr-card-selection-color", APP_CONFIG.UI_CARD_SELECTION_COLOR);
     container.style.setProperty("--mjr-rating-color", APP_CONFIG.UI_RATING_COLOR);
@@ -358,10 +380,14 @@ export function createGridContainer() {
                 return [];
             }
         };
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
-        container._mjrSetSelection = (ids, activeId = "") => setSelectionIds(container, ids, { activeId });
-        container._mjrRemoveAssets = (assetIds, options = {}) => removeAssetsFromGrid(container, assetIds, options);
+        container._mjrSetSelection = (ids, activeId = "") =>
+            setSelectionIds(container, ids, { activeId });
+        container._mjrRemoveAssets = (assetIds, options = {}) =>
+            removeAssetsFromGrid(container, assetIds, options);
         container._mjrSyncSelection = (ids) => syncSelectionClasses(container, ids);
         container._mjrGetRenderedCards = () => {
             try {
@@ -376,10 +402,12 @@ export function createGridContainer() {
             if (!id) return;
             const state = GRID_STATE.get(container);
             if (!state?.virtualGrid || !Array.isArray(state.assets)) return;
-            const idx = state.assets.findIndex(a => String(a?.id || "") === id);
+            const idx = state.assets.findIndex((a) => String(a?.id || "") === id);
             if (idx >= 0) state.virtualGrid.scrollToIndex(idx);
         };
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // Initial class application
     _updateGridSettingsClasses(container);
@@ -407,14 +435,20 @@ export function createGridContainer() {
         container._mjrSettingsChangedCleanup = () => {
             try {
                 window.removeEventListener("mjr-settings-changed", onSettingsChanged);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         };
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // Bind delegated dragstart once (avoid per-card listeners; improves load perf on large grids).
     try {
         bindAssetDragStart(container);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // Install grid keyboard shortcuts
     try {
@@ -426,32 +460,34 @@ export function createGridContainer() {
                     const state = GRID_STATE.get(container);
                     if (state?.assets) {
                         const ids = getSelectedIdSet(container);
-                        return state.assets.filter(a => ids.has(String(a.id)));
+                        return state.assets.filter((a) => ids.has(String(a.id)));
                     }
                     return _getRenderedCards(container)
                         .filter((c) => c?.classList?.contains?.("is-selected"))
-                        .map(c => c?._mjrAsset)
+                        .map((c) => c?._mjrAsset)
                         .filter(Boolean);
-                } catch { return []; }
+                } catch {
+                    return [];
+                }
             },
             getActiveAsset: () => {
                 // @ts-ignore
-                return document.activeElement?.closest?.('.mjr-asset-card')?._mjrAsset || null;
+                return document.activeElement?.closest?.(".mjr-asset-card")?._mjrAsset || null;
             },
             onAssetChanged: (asset) => {
-                 if (!asset?.id) return;
-                 const id = String(asset.id);
-                 const cards = _getRenderedCards(container);
-                 for (const card of cards) {
-                     // @ts-ignore
-                     if (String(card?._mjrAsset?.id) === id) {
-                         // @ts-ignore
-                         _updateCardRatingTagsBadges(card, asset.rating, asset.tags);
-                     }
-                 }
+                if (!asset?.id) return;
+                const id = String(asset.id);
+                const cards = _getRenderedCards(container);
+                for (const card of cards) {
+                    // @ts-ignore
+                    if (String(card?._mjrAsset?.id) === id) {
+                        // @ts-ignore
+                        _updateCardRatingTagsBadges(card, asset.rating, asset.tags);
+                    }
+                }
             },
             onOpenDetails: () => {
-                 safeDispatchCustomEvent('mjr:open-sidebar', { tab: 'details' });
+                safeDispatchCustomEvent("mjr:open-sidebar", { tab: "details" });
             },
             getViewer: getViewerInstance,
         });
@@ -463,10 +499,10 @@ export function createGridContainer() {
     }
 
     // Bind double-click to open viewer
-    container.addEventListener('dblclick', (e) => {
+    container.addEventListener("dblclick", (e) => {
         /** @type {HTMLElement} */
         // @ts-ignore
-        const card = e.target.closest('.mjr-asset-card');
+        const card = e.target.closest(".mjr-asset-card");
         if (!card) return;
 
         /** @type {Object} */
@@ -485,18 +521,22 @@ export function createGridContainer() {
                     new CustomEvent("mjr:open-folder-asset", {
                         bubbles: true,
                         detail: { asset },
-                    })
+                    }),
                 );
                 // Fallback: if no panel-level handler is attached, reload from grid directly.
                 if (!container?._mjrHasCustomSubfolderHandler) {
                     loadAssets(container, state?.query || "*", { reset: true }).catch(() => {});
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             return;
         }
 
         // Open viewer with non-folder assets only
-        const mediaAssets = (allAssets || []).filter((a) => String(a?.kind || "").toLowerCase() !== "folder");
+        const mediaAssets = (allAssets || []).filter(
+            (a) => String(a?.kind || "").toLowerCase() !== "folder",
+        );
         const mediaIndex = mediaAssets.findIndex((a) => a?.id === asset?.id);
         if (!mediaAssets.length || mediaIndex < 0) return;
         const viewer = getViewerInstance();
@@ -537,7 +577,9 @@ function showLoadingOverlay(gridContainer, message = "Loading assets...") {
         if (!pos || pos === "static") {
             gridContainer.style.position = "relative";
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     if (!gridContainer.contains(overlay)) {
         gridContainer.appendChild(overlay);
     }
@@ -557,7 +599,9 @@ function hideLoadingOverlay(gridContainer) {
         if (gridContainer.style.minHeight === "160px") {
             gridContainer.style.minHeight = "";
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 const GRID_MESSAGE_CLASS = "mjr-grid-message";
@@ -569,9 +613,13 @@ function clearGridMessage(gridContainer) {
         for (const el of existing) {
             try {
                 el.remove();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 function setGridMessage(gridContainer, text, { error = false, clear = false } = {}) {
@@ -601,12 +649,16 @@ function setGridMessage(gridContainer, text, { error = false, clear = false } = 
             try {
                 // Clear existing DOM content to avoid overlap with previous grid elements
                 gridContainer.replaceChildren();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             gridContainer.appendChild(msg);
         } else {
             gridContainer.appendChild(msg);
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 function sanitizeQuery(query) {
@@ -619,7 +671,7 @@ function sanitizeQuery(query) {
     }
 
     // Avoid expensive Unicode property regexes on large inputs; fallback for older engines.
-    let cleaned = query;
+    let cleaned;
     if (query.length > 256) {
         cleaned = query.replace(/[^a-z0-9\s-]/gi, " ");
     } else {
@@ -655,7 +707,6 @@ function getOrCreateState(gridContainer) {
             stemMap: new Map(), // stem -> [Asset]
             renderedFilenameMap: new Map(), // filenameKey -> [DOMElement] (only currently rendered)
 
-
             sentinel: null,
             observer: null,
             scrollRoot: null,
@@ -676,12 +727,16 @@ function getOrCreateState(gridContainer) {
 }
 
 function _formatLoadErrorMessage(prefix, err) {
-    let message = String(prefix || "Failed to load");
+    const message = String(prefix || "Failed to load");
     try {
         const raw = String(err?.message || err || "").trim();
         const low = raw.toLowerCase();
         if (!raw) return message;
-        if (low.includes("database is locked") || low.includes("database table is locked") || low.includes("database schema is locked")) {
+        if (
+            low.includes("database is locked") ||
+            low.includes("database table is locked") ||
+            low.includes("database schema is locked")
+        ) {
             return `${message}: the database is temporarily locked. Please retry in a few seconds.`;
         }
         return `${message}: ${raw}`;
@@ -709,7 +764,9 @@ function _attachGridMetrics(state, gridContainer) {
         state.metricsEl = el;
         _updateGridMetrics(state, gridContainer);
         state.metricsTimer = setInterval(() => _updateGridMetrics(state, gridContainer), 2000);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 function _updateGridMetrics(state, gridContainer) {
@@ -723,9 +780,13 @@ function _updateGridMetrics(state, gridContainer) {
         try {
             const used = performance?.memory?.usedJSHeapSize;
             if (Number.isFinite(used)) memoryMB = (used / 1024 / 1024).toFixed(1);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         state.metricsEl.textContent = `Assets: ${assetCount} / Seen: ${seenCount} / HydrateSeen: ${hydrateSeen} / Memory: ${memoryMB} MB`;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 function _isPotentialScrollContainer(el) {
@@ -751,177 +812,208 @@ function ensureVirtualGrid(gridContainer, state) {
         VirtualGrid,
         gridDebug,
         optionsFactory: () => ({
-        minItemWidth: APP_CONFIG.GRID_MIN_SIZE || 120,
-        gap: APP_CONFIG.GRID_GAP || 10,
-        bufferRows: 3,
-        createItem: (asset, _index) => {
-            const card = String(asset?.kind || "").toLowerCase() === "folder"
-                ? createFolderCard(asset)
-                : createAssetCard(asset);
-            const selectedIds = getSelectedIdSet(gridContainer);
-            // Handle selection
-            if (asset && asset.id != null && selectedIds.has(String(asset.id))) {
-                card.classList.add("is-selected");
-                card.setAttribute("aria-selected", "true");
-            }
-            // Handle collision badge if already known
-            if (asset?._mjrNameCollision) {
-                 const badge = card.querySelector?.(".mjr-file-badge");
-                 setFileBadgeCollision(badge, true, {
-                     filename: asset?.filename || "",
-                     count: asset?._mjrNameCollisionCount || 2,
-                     paths: asset?._mjrNameCollisionPaths || [],
-                 });
-                 _setCollisionTooltip(card, asset?.filename, asset?._mjrNameCollisionCount || 2);
-            }
-            return card;
-        },
-        onItemRendered: (asset, card) => {
-            // Ensure selection classes are clean before applying any selection logic.
-            try {
-                card.classList.remove("is-selected");
-                card.classList.remove("is-active");
-                card.setAttribute("aria-selected", "false");
-            } catch (e) { console.debug?.(e); }
-            // Re-apply selection if this asset is selected.
-            try {
+            minItemWidth: APP_CONFIG.GRID_MIN_SIZE || 120,
+            gap: APP_CONFIG.GRID_GAP || 10,
+            bufferRows: 3,
+            createItem: (asset, _index) => {
+                const card =
+                    String(asset?.kind || "").toLowerCase() === "folder"
+                        ? createFolderCard(asset)
+                        : createAssetCard(asset);
                 const selectedIds = getSelectedIdSet(gridContainer);
-                if (asset?.id != null && selectedIds.has(String(asset.id))) {
+                // Handle selection
+                if (asset && asset.id != null && selectedIds.has(String(asset.id))) {
                     card.classList.add("is-selected");
                     card.setAttribute("aria-selected", "true");
                 }
-            } catch (e) { console.debug?.(e); }
-
-            // Hydrate ratings
-            enqueueRatingTagsHydration(gridContainer, card, asset);
-            ensureStackGroupCard(gridContainer, card, asset);
-            try {
-                state.virtualGrid?.scheduleRemeasure?.();
-            } catch (e) { console.debug?.(e); }
-
-            // Track rendered card for live updates (collisions)
-            const fnKey = _getFilenameKey(asset?.filename);
-            if (fnKey) {
-                let list = state.renderedFilenameMap.get(fnKey);
-                if (!list) {
-                    list = [];
-                    state.renderedFilenameMap.set(fnKey, list);
+                // Handle collision badge if already known
+                if (asset?._mjrNameCollision) {
+                    const badge = card.querySelector?.(".mjr-file-badge");
+                    setFileBadgeCollision(badge, true, {
+                        filename: asset?.filename || "",
+                        count: asset?._mjrNameCollisionCount || 2,
+                        paths: asset?._mjrNameCollisionPaths || [],
+                    });
+                    _setCollisionTooltip(card, asset?.filename, asset?._mjrNameCollisionCount || 2);
                 }
-                list.push(card);
-            }
-        },
-        onItemUpdated: (asset, card) => {
-            if (card) {
-                const oldCard = card;
-                const prevAsset = oldCard._mjrAsset || null;
-                const prevFnKey = _getFilenameKey(prevAsset?.filename);
-
-                // Rebuild full card so filename/thumb/meta/datasets stay in sync.
-                const replacement = String(asset?.kind || "").toLowerCase() === "folder"
-                    ? createFolderCard(asset)
-                    : createAssetCard(asset);
-
-                try {
-                    if (oldCard.classList.contains("is-selected")) {
-                        replacement.classList.add("is-selected");
-                        replacement.setAttribute("aria-selected", "true");
-                    }
-                } catch (e) { console.debug?.(e); }
-
-                try {
-                    oldCard.parentElement?.replaceChild?.(replacement, oldCard);
-                } catch (e) { console.debug?.(e); }
-                card = replacement;
-
-                const nextFnKey = _getFilenameKey(asset?.filename);
-                try {
-                    if (prevFnKey) {
-                        const oldList = state.renderedFilenameMap.get(prevFnKey);
-                        if (oldList) {
-                            const idx = oldList.indexOf(oldCard);
-                            if (idx > -1) oldList.splice(idx, 1);
-                            if (!oldList.length) state.renderedFilenameMap.delete(prevFnKey);
-                        }
-                    }
-                } catch (e) { console.debug?.(e); }
-                try {
-                    if (nextFnKey) {
-                        let nextList = state.renderedFilenameMap.get(nextFnKey);
-                        if (!nextList) {
-                            nextList = [];
-                            state.renderedFilenameMap.set(nextFnKey, nextList);
-                        }
-                        if (!nextList.includes(card)) nextList.push(card);
-                    }
-                } catch (e) { console.debug?.(e); }
-
-                card._mjrAsset = asset;
-                _updateCardRatingTagsBadges(card, asset.rating, asset.tags);
-                enqueueRatingTagsHydration(gridContainer, card, asset);
-                ensureStackGroupCard(gridContainer, card, asset);
-                try {
-                    state.virtualGrid?.scheduleRemeasure?.();
-                } catch (e) { console.debug?.(e); }
-                // Reset selection classes on reuse to avoid ghost selection
+                return card;
+            },
+            onItemRendered: (asset, card) => {
+                // Ensure selection classes are clean before applying any selection logic.
                 try {
                     card.classList.remove("is-selected");
                     card.classList.remove("is-active");
                     card.setAttribute("aria-selected", "false");
-                } catch (e) { console.debug?.(e); }
-
-                const selectedIds = getSelectedIdSet(gridContainer);
-                if (selectedIds && asset.id != null) {
-                    if (selectedIds.has(String(asset.id))) {
-                         card.classList.add("is-selected");
-                         card.setAttribute("aria-selected", "true");
-                    } else {
-                         card.classList.remove("is-selected");
-                         card.setAttribute("aria-selected", "false");
-                    }
+                } catch (e) {
+                    console.debug?.(e);
                 }
-            }
-        },
-        onItemRecycled: (card) => {
-            // Cleanup map
-            try {
-                const asset = card._mjrAsset;
+                // Re-apply selection if this asset is selected.
+                try {
+                    const selectedIds = getSelectedIdSet(gridContainer);
+                    if (asset?.id != null && selectedIds.has(String(asset.id))) {
+                        card.classList.add("is-selected");
+                        card.setAttribute("aria-selected", "true");
+                    }
+                } catch (e) {
+                    console.debug?.(e);
+                }
+
+                // Hydrate ratings
+                enqueueRatingTagsHydration(gridContainer, card, asset);
+                ensureStackGroupCard(gridContainer, card, asset);
+                try {
+                    state.virtualGrid?.scheduleRemeasure?.();
+                } catch (e) {
+                    console.debug?.(e);
+                }
+
+                // Track rendered card for live updates (collisions)
                 const fnKey = _getFilenameKey(asset?.filename);
                 if (fnKey) {
-                    const list = state.renderedFilenameMap.get(fnKey);
-                    if (list) {
-                        const idx = list.indexOf(card);
-                        if (idx > -1) list.splice(idx, 1);
+                    let list = state.renderedFilenameMap.get(fnKey);
+                    if (!list) {
+                        list = [];
+                        state.renderedFilenameMap.set(fnKey, list);
+                    }
+                    list.push(card);
+                }
+            },
+            onItemUpdated: (asset, card) => {
+                if (card) {
+                    const oldCard = card;
+                    const prevAsset = oldCard._mjrAsset || null;
+                    const prevFnKey = _getFilenameKey(prevAsset?.filename);
+
+                    // Rebuild full card so filename/thumb/meta/datasets stay in sync.
+                    const replacement =
+                        String(asset?.kind || "").toLowerCase() === "folder"
+                            ? createFolderCard(asset)
+                            : createAssetCard(asset);
+
+                    try {
+                        if (oldCard.classList.contains("is-selected")) {
+                            replacement.classList.add("is-selected");
+                            replacement.setAttribute("aria-selected", "true");
+                        }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+
+                    try {
+                        oldCard.parentElement?.replaceChild?.(replacement, oldCard);
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+                    card = replacement;
+
+                    const nextFnKey = _getFilenameKey(asset?.filename);
+                    try {
+                        if (prevFnKey) {
+                            const oldList = state.renderedFilenameMap.get(prevFnKey);
+                            if (oldList) {
+                                const idx = oldList.indexOf(oldCard);
+                                if (idx > -1) oldList.splice(idx, 1);
+                                if (!oldList.length) state.renderedFilenameMap.delete(prevFnKey);
+                            }
+                        }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+                    try {
+                        if (nextFnKey) {
+                            let nextList = state.renderedFilenameMap.get(nextFnKey);
+                            if (!nextList) {
+                                nextList = [];
+                                state.renderedFilenameMap.set(nextFnKey, nextList);
+                            }
+                            if (!nextList.includes(card)) nextList.push(card);
+                        }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+
+                    card._mjrAsset = asset;
+                    _updateCardRatingTagsBadges(card, asset.rating, asset.tags);
+                    enqueueRatingTagsHydration(gridContainer, card, asset);
+                    ensureStackGroupCard(gridContainer, card, asset);
+                    try {
+                        state.virtualGrid?.scheduleRemeasure?.();
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+                    // Reset selection classes on reuse to avoid ghost selection
+                    try {
+                        card.classList.remove("is-selected");
+                        card.classList.remove("is-active");
+                        card.setAttribute("aria-selected", "false");
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+
+                    const selectedIds = getSelectedIdSet(gridContainer);
+                    if (selectedIds && asset.id != null) {
+                        if (selectedIds.has(String(asset.id))) {
+                            card.classList.add("is-selected");
+                            card.setAttribute("aria-selected", "true");
+                        } else {
+                            card.classList.remove("is-selected");
+                            card.setAttribute("aria-selected", "false");
+                        }
                     }
                 }
-            } catch (e) { console.debug?.(e); }
+            },
+            onItemRecycled: (card) => {
+                // Cleanup map
+                try {
+                    const asset = card._mjrAsset;
+                    const fnKey = _getFilenameKey(asset?.filename);
+                    if (fnKey) {
+                        const list = state.renderedFilenameMap.get(fnKey);
+                        if (list) {
+                            const idx = list.indexOf(card);
+                            if (idx > -1) list.splice(idx, 1);
+                        }
+                    }
+                } catch (e) {
+                    console.debug?.(e);
+                }
 
-              // Cleanup video thumbs
-              try {
-                   // Use the exported cleanup if available or implement inline
-                   cleanupVideoThumbsIn(card);
-              } catch (e) { console.debug?.(e); }
-              try {
-                   cleanupCardMediaHandlers(card);
-              } catch (e) { console.debug?.(e); }
-              try {
-                   card.classList.remove("is-selected");
-                   card.classList.remove("is-active");
-                   card.setAttribute("aria-selected", "false");
-              } catch (e) { console.debug?.(e); }
-        }
+                // Cleanup video thumbs
+                try {
+                    // Use the exported cleanup if available or implement inline
+                    cleanupVideoThumbsIn(card);
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                try {
+                    cleanupCardMediaHandlers(card);
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                try {
+                    card.classList.remove("is-selected");
+                    card.classList.remove("is-active");
+                    card.setAttribute("aria-selected", "false");
+                } catch (e) {
+                    console.debug?.(e);
+                }
+            },
         }),
     });
 }
 
 function assetKey(asset) {
     if (!asset || typeof asset !== "object") return "";
-    const fallback = asset.id != null
-        ? `id:${asset.id}`
-        : `${asset.type || ""}|${pickRootId(asset)}|${asset.filepath || ""}|${asset.subfolder || ""}|${asset.filename || ""}`;
+    const fallback =
+        asset.id != null
+            ? `id:${asset.id}`
+            : `${asset.type || ""}|${pickRootId(asset)}|${asset.filepath || ""}|${asset.subfolder || ""}|${asset.filename || ""}`;
     try {
         const grid = globalThis?.__MJR_LAST_ASSETKEY_GRID__ || null;
         return getStackAwareAssetKey(grid, asset, fallback);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return fallback;
 }
 
@@ -979,7 +1071,7 @@ function appendAssets(gridContainer, assets, state) {
     });
 }
 
-function ensureSentinel(gridContainer, state) {
+function _ensureSentinel(gridContainer, state) {
     return vsEnsureSentinel(gridContainer, state, SENTINEL_CLASS);
 }
 function stopObserver(state) {
@@ -1005,24 +1097,39 @@ function maybeKeepPinnedToBottom(_state, _before) {
  * @param {AbortSignal} [options.signal]
  * @returns {Promise<{ok: boolean, assets?: any[], total?: number, count?: number, error?: string, aborted?: boolean, stale?: boolean, sortKey?: string, safeQuery?: string}>}
  */
-async function fetchPage(gridContainer, query, limit, offset, { requestId = 0, signal = null } = {}) {
-    return infFetchPage(gridContainer, query, limit, offset, {
-        sanitizeQuery,
-        buildListURL,
-        get,
-        getGridState: (el) => GRID_STATE.get(el),
-    }, { requestId, signal });
+async function _fetchPage(
+    gridContainer,
+    query,
+    limit,
+    offset,
+    { requestId = 0, signal = null } = {},
+) {
+    return infFetchPage(
+        gridContainer,
+        query,
+        limit,
+        offset,
+        {
+            sanitizeQuery,
+            buildListURL,
+            get,
+            getGridState: (el) => GRID_STATE.get(el),
+        },
+        { requestId, signal },
+    );
 }
 
-const emitAgendaStatus = (dateExact, hasResults) => {
+const _emitAgendaStatus = (dateExact, hasResults) => {
     if (!dateExact) return;
     try {
         window?.dispatchEvent?.(
             new CustomEvent("MJR:AgendaStatus", {
                 detail: { date: dateExact, hasResults: Boolean(hasResults) },
-            })
+            }),
         );
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 };
 
 async function loadNextPage(gridContainer, state) {
@@ -1054,7 +1161,9 @@ export async function loadAssets(gridContainer, query = "*", options = {}) {
     const state = getOrCreateState(gridContainer);
     try {
         globalThis.__MJR_LAST_ASSETKEY_GRID__ = gridContainer;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     const requestedQuery = query && query.trim() ? query : "*";
     state.query = sanitizeQuery(requestedQuery) || requestedQuery;
@@ -1062,9 +1171,12 @@ export async function loadAssets(gridContainer, query = "*", options = {}) {
     if (reset) {
         try {
             state.abortController?.abort?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
-            state.abortController = typeof AbortController !== "undefined" ? new AbortController() : null;
+            state.abortController =
+                typeof AbortController !== "undefined" ? new AbortController() : null;
         } catch {
             state.abortController = null;
         }
@@ -1090,7 +1202,9 @@ export async function loadAssets(gridContainer, query = "*", options = {}) {
         state.hiddenPngSiblings = 0;
         try {
             gridContainer.dataset.mjrHiddenPngSiblings = "0";
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         // Discard any pending upsert batch to prevent stale partial assets
         // from racing with the fresh API response.
@@ -1104,7 +1218,9 @@ export async function loadAssets(gridContainer, query = "*", options = {}) {
                 batchState.pending.clear();
                 batchState.flushing = false;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         // Clear virtual grid items (but keep instance)
         const vg = ensureVirtualGrid(gridContainer, state);
@@ -1113,7 +1229,10 @@ export async function loadAssets(gridContainer, query = "*", options = {}) {
         // But showLoadingOverlay expects to be appended.
         // VirtualGrid sets container to relative. Overlay is absolute inset 0. It works.
 
-        showLoadingOverlay(gridContainer, state.query === "*" ? "Loading assets..." : `Searching for "${state.query}"...`);
+        showLoadingOverlay(
+            gridContainer,
+            state.query === "*" ? "Loading assets..." : `Searching for "${state.query}"...`,
+        );
     }
 
     try {
@@ -1139,18 +1258,22 @@ export async function loadAssets(gridContainer, query = "*", options = {}) {
             hideLoadingOverlay(gridContainer);
             // Check if items present in state, not just DOM (logic shift)
             const hasItems = state.assets && state.assets.length > 0;
-                  if (!hasItems && state.offset === 0) {
-                  // Dispose VirtualGrid before setGridMessage clears the DOM via replaceChildren().
-                  // Without this, state.virtualGrid keeps a stale (detached) instance and the next
-                  // search renders assets into a detached container → blank grid.
-                  if (state.virtualGrid) {
-                      try { state.virtualGrid.dispose(); } catch (e) { console.debug?.(e); }
-                      state.virtualGrid = null;
-                  }
-                  setGridMessage(gridContainer, "No assets found", { clear: true });
-              } else {
-                  startInfiniteScroll(gridContainer, state);
-              }
+            if (!hasItems && state.offset === 0) {
+                // Dispose VirtualGrid before setGridMessage clears the DOM via replaceChildren().
+                // Without this, state.virtualGrid keeps a stale (detached) instance and the next
+                // search renders assets into a detached container → blank grid.
+                if (state.virtualGrid) {
+                    try {
+                        state.virtualGrid.dispose();
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+                    state.virtualGrid = null;
+                }
+                setGridMessage(gridContainer, "No assets found", { clear: true });
+            } else {
+                startInfiniteScroll(gridContainer, state);
+            }
         }
         return { ok: true, count: state.offset, total: state.total || 0 };
     } catch (err) {
@@ -1159,9 +1282,12 @@ export async function loadAssets(gridContainer, query = "*", options = {}) {
                 // Force-unblock state so future reloads are not stuck behind a stale in-flight request.
                 try {
                     state.abortController?.abort?.();
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 try {
-                    state.abortController = typeof AbortController !== "undefined" ? new AbortController() : null;
+                    state.abortController =
+                        typeof AbortController !== "undefined" ? new AbortController() : null;
                 } catch {
                     state.abortController = null;
                 }
@@ -1172,16 +1298,22 @@ export async function loadAssets(gridContainer, query = "*", options = {}) {
                 }
                 state.loading = false;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             if (String(err?.name || "") === "AbortError") {
                 return { ok: false, aborted: true, error: "Aborted" };
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         stopObserver(state);
         if (reset) hideLoadingOverlay(gridContainer);
         clearGridMessage(gridContainer);
-        setGridMessage(gridContainer, _formatLoadErrorMessage("Failed to load assets", err), { error: true });
+        setGridMessage(gridContainer, _formatLoadErrorMessage("Failed to load assets", err), {
+            error: true,
+        });
         return { ok: false, error: err?.message || String(err) };
     } finally {
         if (reset) hideLoadingOverlay(gridContainer);
@@ -1198,9 +1330,12 @@ export function prepareGridForScopeSwitch(gridContainer) {
     const state = getOrCreateState(gridContainer);
     try {
         state.abortController?.abort?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
-        state.abortController = typeof AbortController !== "undefined" ? new AbortController() : null;
+        state.abortController =
+            typeof AbortController !== "undefined" ? new AbortController() : null;
     } catch {
         state.abortController = null;
     }
@@ -1226,7 +1361,9 @@ export function prepareGridForScopeSwitch(gridContainer) {
     try {
         clearGridMessage(gridContainer);
         hideLoadingOverlay(gridContainer);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // Physical clear to prevent visual overlap during rapid scope switches.
     try {
@@ -1238,7 +1375,9 @@ export function prepareGridForScopeSwitch(gridContainer) {
     } catch {
         try {
             gridContainer.replaceChildren();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 }
 
@@ -1255,9 +1394,12 @@ export async function loadAssetsFromList(gridContainer, assets, options = {}) {
     if (reset) {
         try {
             state.abortController?.abort?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
-            state.abortController = typeof AbortController !== "undefined" ? new AbortController() : null;
+            state.abortController =
+                typeof AbortController !== "undefined" ? new AbortController() : null;
         } catch {
             state.abortController = null;
         }
@@ -1282,12 +1424,17 @@ export async function loadAssetsFromList(gridContainer, assets, options = {}) {
         state.hiddenPngSiblings = 0;
         try {
             gridContainer.dataset.mjrHiddenPngSiblings = "0";
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         const vg = ensureVirtualGrid(gridContainer, state);
         if (vg) vg.setItems([]);
 
-        showLoadingOverlay(gridContainer, list.length ? `Loading ${title}...` : `${title} is empty`);
+        showLoadingOverlay(
+            gridContainer,
+            list.length ? `Loading ${title}...` : `${title} is empty`,
+        );
     }
 
     try {
@@ -1300,13 +1447,17 @@ export async function loadAssetsFromList(gridContainer, assets, options = {}) {
         if (reset) {
             hideLoadingOverlay(gridContainer);
             const hasItems = state.assets && state.assets.length > 0;
-              if (!hasItems) {
-                  if (state.virtualGrid) {
-                      try { state.virtualGrid.dispose(); } catch (e) { console.debug?.(e); }
-                      state.virtualGrid = null;
-                  }
-                  setGridMessage(gridContainer, "No assets found", { clear: true });
-              }
+            if (!hasItems) {
+                if (state.virtualGrid) {
+                    try {
+                        state.virtualGrid.dispose();
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+                    state.virtualGrid = null;
+                }
+                setGridMessage(gridContainer, "No assets found", { clear: true });
+            }
         }
 
         return { ok: true, count: sorted.length, total: sorted.length };
@@ -1314,7 +1465,9 @@ export async function loadAssetsFromList(gridContainer, assets, options = {}) {
         stopObserver(state);
         if (reset) hideLoadingOverlay(gridContainer);
         clearGridMessage(gridContainer);
-        setGridMessage(gridContainer, _formatLoadErrorMessage("Failed to load collection", err), { error: true });
+        setGridMessage(gridContainer, _formatLoadErrorMessage("Failed to load collection", err), {
+            error: true,
+        });
         return { ok: false, error: err?.message || String(err) };
     } finally {
         if (reset) hideLoadingOverlay(gridContainer);
@@ -1348,7 +1501,7 @@ export function removeAssetsFromGrid(gridContainer, assetIds, { updateSelection 
         return { ok: false, removed: 0, selectedIds: Array.from(getSelectedIdSet(gridContainer)) };
     }
 
-    let selectedIds = getSelectedIdSet(gridContainer);
+    const selectedIds = getSelectedIdSet(gridContainer);
     if (updateSelection) {
         for (const id of ids) selectedIds.delete(String(id));
         _setSelectedIdsDataset(gridContainer, selectedIds);
@@ -1364,7 +1517,9 @@ export function removeAssetsFromGrid(gridContainer, assetIds, { updateSelection 
                 card.setAttribute("aria-selected", "false");
             }
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     const state = GRID_STATE.get(gridContainer);
     let removedCount = 0;
@@ -1376,7 +1531,9 @@ export function removeAssetsFromGrid(gridContainer, assetIds, { updateSelection 
                 removedCount += 1;
                 try {
                     state.assetIdSet?.delete?.(id);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             } else {
                 next.push(asset);
             }
@@ -1384,44 +1541,61 @@ export function removeAssetsFromGrid(gridContainer, assetIds, { updateSelection 
         if (removedCount) {
             state.assets = next;
             try {
-                if (Number.isFinite(state.total)) state.total = Math.max(0, Number(state.total) - removedCount);
-            } catch (e) { console.debug?.(e); }
+                if (Number.isFinite(state.total))
+                    state.total = Math.max(0, Number(state.total) - removedCount);
+            } catch (e) {
+                console.debug?.(e);
+            }
             if (state.virtualGrid) {
                 state.virtualGrid.setItems(state.assets);
             } else {
                 for (const id of ids) {
                     try {
-                        const card = gridContainer.querySelector(`[data-mjr-asset-id="${_safeEscapeId(id)}"]`);
+                        const card = gridContainer.querySelector(
+                            `[data-mjr-asset-id="${_safeEscapeId(id)}"]`,
+                        );
                         card?.remove?.();
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 }
             }
         }
     } else {
         for (const id of ids) {
             try {
-                const card = gridContainer.querySelector(`[data-mjr-asset-id="${_safeEscapeId(id)}"]`);
+                const card = gridContainer.querySelector(
+                    `[data-mjr-asset-id="${_safeEscapeId(id)}"]`,
+                );
                 if (card) {
                     card.remove?.();
                     removedCount += 1;
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
     }
 
     const selectedList = Array.from(selectedIds);
     try {
-        gridContainer?.dispatchEvent?.(new CustomEvent("mjr:selection-changed", { detail: { selectedIds: selectedList } }));
-    } catch (e) { console.debug?.(e); }
+        gridContainer?.dispatchEvent?.(
+            new CustomEvent("mjr:selection-changed", { detail: { selectedIds: selectedList } }),
+        );
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         const count = Number(state?.assets?.length ?? null);
         const total = Number(state?.total ?? null);
         if (Number.isFinite(count) || Number.isFinite(total)) {
             gridContainer?.dispatchEvent?.(
-                new CustomEvent("mjr:grid-stats", { detail: { count, total } })
+                new CustomEvent("mjr:grid-stats", { detail: { count, total } }),
             );
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     return { ok: true, removed: removedCount, selectedIds: selectedList };
 }
@@ -1435,54 +1609,74 @@ export function disposeGrid(gridContainer) {
     if (state.virtualGrid) {
         try {
             state.virtualGrid.dispose();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         state.virtualGrid = null;
     }
 
     if (state._cardKeydownHandler) {
         try {
             gridContainer.removeEventListener("keydown", state._cardKeydownHandler, true);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         state._cardKeydownHandler = null;
     }
 
     // Cleanup summary bar listeners
     try {
         gridContainer._mjrSummaryBarDispose?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // Cleanup grid keyboard
     try {
         gridContainer._mjrGridKeyboard?.dispose?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // Cleanup settings-changed listener
     try {
         gridContainer._mjrSettingsChangedCleanup?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         cleanupVideoThumbsIn?.(gridContainer);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         disposeStackGroupCards(gridContainer);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         state.seenKeys?.clear?.();
         state.stemMap?.clear?.();
         state.renderedFilenameMap?.clear?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     // Best-effort callback cleanup
     try {
         const st = _getRtHydrateState(gridContainer);
         if (st) {
-             st.queue.length = 0;
-             st.active?.clear?.();
-             st.seen?.clear?.();
+            st.queue.length = 0;
+            st.active?.clear?.();
+            st.seen?.clear?.();
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         RT_HYDRATE_STATE.delete(gridContainer);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         if (state.metricsTimer) {
             clearInterval(state.metricsTimer);
@@ -1492,14 +1686,16 @@ export function disposeGrid(gridContainer) {
             state.metricsEl.parentNode.removeChild(state.metricsEl);
         }
         state.metricsEl = null;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     GRID_STATE.delete(gridContainer);
 }
 
 /**
  * Get sort value for an asset based on sort key
  */
-function getSortValue(asset, sortKey) {
+function _getSortValue(asset, sortKey) {
     return infGetSortValue(asset, sortKey);
 }
 
@@ -1510,14 +1706,14 @@ function compareAssets(a, b, sortKey) {
 /**
  * Determine if an asset should be inserted before another based on sort order
  */
-function shouldInsertBefore(assetValue, cardValue, sortKey) {
+function _shouldInsertBefore(assetValue, cardValue, sortKey) {
     return infShouldInsertBefore(assetValue, cardValue, sortKey);
 }
 
 /**
  * Find the correct insertion position in an array based on sort order
  */
-function findInsertPosition(array, asset, sortKey) {
+function _findInsertPosition(array, asset, sortKey) {
     return infFindInsertPosition(array, asset, sortKey);
 }
 
@@ -1576,7 +1772,7 @@ export function upsertAsset(gridContainer, asset) {
 export function captureAnchor(gridContainer) {
     const state = getOrCreateState(gridContainer);
     const scrollContainer = _getScrollContainer(gridContainer, state);
-    const selectedElement = gridContainer.querySelector('.mjr-asset-card.is-selected');
+    const selectedElement = gridContainer.querySelector(".mjr-asset-card.is-selected");
     const firstVisibleElement = getFirstVisibleAssetElement(gridContainer);
 
     const el = selectedElement || firstVisibleElement;
@@ -1588,7 +1784,7 @@ export function captureAnchor(gridContainer) {
     return {
         id: el.dataset.mjrAssetId,
         top: rect.top - containerRect.top,
-        scrollTop: scrollContainer?.scrollTop || 0
+        scrollTop: scrollContainer?.scrollTop || 0,
     };
 }
 
@@ -1627,7 +1823,7 @@ export async function restoreAnchor(gridContainer, anchor) {
     if (!scrollContainer) return;
 
     // Wait for layout to complete
-    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
     const el = findAssetElement(gridContainer, anchor.id);
     if (!el) {
@@ -1638,7 +1834,7 @@ export async function restoreAnchor(gridContainer, anchor) {
 
     const rect = el.getBoundingClientRect();
     const containerRect = gridContainer.getBoundingClientRect();
-    const delta = (rect.top - containerRect.top) - anchor.top;
+    const delta = rect.top - containerRect.top - anchor.top;
 
     scrollContainer.scrollTop = (scrollContainer.scrollTop || 0) + delta;
 }
@@ -1653,7 +1849,9 @@ export function scrollGridToTop(gridContainer) {
         if (!state) return;
         const scrollContainer = _getScrollContainer(gridContainer, state);
         if (scrollContainer) scrollContainer.scrollTop = 0;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 /**
@@ -1665,17 +1863,22 @@ export function refreshGrid(gridContainer) {
         if (state && state.virtualGrid && state.assets) {
             // Update VirtualGrid layout config from global settings
             if (state.virtualGrid.updateConfig) {
-                 state.virtualGrid.updateConfig({
-                     minItemWidth: APP_CONFIG.GRID_MIN_SIZE,
-                     gap: APP_CONFIG.GRID_GAP
-                 }, { relayout: false });
+                state.virtualGrid.updateConfig(
+                    {
+                        minItemWidth: APP_CONFIG.GRID_MIN_SIZE,
+                        gap: APP_CONFIG.GRID_GAP,
+                    },
+                    { relayout: false },
+                );
             }
 
             // Re-setting items triggers a re-render of the visible range.
             // Pass force=true to ensure Card.js re-reads APP_CONFIG for badges/details updates.
             state.virtualGrid.setItems(state.assets, true);
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 // Scan-complete auto-refresh removed: the panel's handleCountersUpdate (path B)

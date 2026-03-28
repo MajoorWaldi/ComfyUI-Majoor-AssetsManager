@@ -81,7 +81,9 @@ function safeSetHiddenInputValue(hiddenInput, nextValue) {
         if (prev !== hiddenInput.value) {
             hiddenInput.dispatchEvent?.(new Event("change", { bubbles: true }));
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 async function fetchHistogram({ state, monthKey }) {
@@ -91,9 +93,7 @@ async function fetchHistogram({ state, monthKey }) {
             return { ok: true, days: {} };
         }
         const rawSubfolder = String(state?.currentFolderRelativePath || "").trim();
-        const subfolder = scope === "custom" && !state?.customRootId
-            ? null
-            : (rawSubfolder || null);
+        const subfolder = scope === "custom" && !state?.customRootId ? null : rawSubfolder || null;
 
         const url = buildDateHistogramURL({
             scope,
@@ -110,7 +110,10 @@ async function fetchHistogram({ state, monthKey }) {
             minHeight: Number(state?.minHeight || 0) || 0,
             maxWidth: Number(state?.maxWidth || 0) || 0,
             maxHeight: Number(state?.maxHeight || 0) || 0,
-            workflowType: String(state?.workflowType || "").trim().toUpperCase() || null,
+            workflowType:
+                String(state?.workflowType || "")
+                    .trim()
+                    .toUpperCase() || null,
             // Keep calendar highlights based on the currently browsed month and non-date filters only.
             // Applying active date filters here can collapse highlights to a single day (or none).
             dateRange: null,
@@ -125,7 +128,12 @@ async function fetchHistogram({ state, monthKey }) {
     }
 }
 
-export function createAgendaCalendar({ container, hiddenInput, state, onRequestReloadGrid = null } = {}) {
+export function createAgendaCalendar({
+    container,
+    hiddenInput,
+    state,
+    onRequestReloadGrid = null,
+} = {}) {
     if (!container || !(container instanceof HTMLElement) || !hiddenInput) {
         return { dispose() {} };
     }
@@ -187,7 +195,10 @@ export function createAgendaCalendar({ container, hiddenInput, state, onRequestR
         if (disposed) return;
         const y = activeMonth.getFullYear();
         const m = activeMonth.getMonth();
-        monthLabel.textContent = activeMonth.toLocaleString(undefined, { month: "long", year: "numeric" });
+        monthLabel.textContent = activeMonth.toLocaleString(undefined, {
+            month: "long",
+            year: "numeric",
+        });
 
         grid.innerHTML = "";
 
@@ -282,7 +293,9 @@ export function createAgendaCalendar({ container, hiddenInput, state, onRequestR
         safeSetHiddenInputValue(hiddenInput, "");
         try {
             onRequestReloadGrid?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     });
 
     refreshBtn.addEventListener("click", async () => {
@@ -293,7 +306,10 @@ export function createAgendaCalendar({ container, hiddenInput, state, onRequestR
         const dt = safeParseISODate(hiddenInput.value);
         if (dt) {
             const monthStart = startOfMonth(dt);
-            if (monthStart.getFullYear() !== activeMonth.getFullYear() || monthStart.getMonth() !== activeMonth.getMonth()) {
+            if (
+                monthStart.getFullYear() !== activeMonth.getFullYear() ||
+                monthStart.getMonth() !== activeMonth.getMonth()
+            ) {
                 activeMonth = monthStart;
             }
         }
@@ -310,7 +326,9 @@ export function createAgendaCalendar({ container, hiddenInput, state, onRequestR
             disposed = true;
             try {
                 root.remove();
-            } catch (e) { console.debug?.(e); }
-        }
+            } catch (e) {
+                console.debug?.(e);
+            }
+        },
     };
 }

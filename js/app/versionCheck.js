@@ -7,12 +7,14 @@ import { SettingsStore } from "./settings/SettingsStore.js";
 
 export const VERSION_UPDATE_EVENT = "mjr:version-update-available";
 const VERSION_UPDATE_STATE_KEY = "__MJR_VERSION_UPDATE_STATE__";
-const LATEST_RELEASE_URL = "https://api.github.com/repos/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/latest";
-const NIGHTLY_RELEASE_URL = "https://api.github.com/repos/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/tags/nightly";
+const LATEST_RELEASE_URL =
+    "https://api.github.com/repos/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/latest";
+const NIGHTLY_RELEASE_URL =
+    "https://api.github.com/repos/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/tags/nightly";
 const LAST_CHECK_KEY = "majoor_last_update_check";
 const VERSION_TOAST_NOTICE_VERSION_KEY = "majoor_version_toast_notice_version";
 const DB_RESET_NOTICE_VERSION_KEY = "majoor_db_reset_notice_version";
-const AI_FEATURES_NOTICE_LOCAL_BUILD_KEY = "majoor_ai_features_notice_local_build";
+const _AI_FEATURES_NOTICE_LOCAL_BUILD_KEY = "majoor_ai_features_notice_local_build";
 const NIGHTLY_RELEASE_MARKER_KEY = "majoor_nightly_release_marker";
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
@@ -27,8 +29,12 @@ function normalizeVersion(value) {
  * Check whether a version/branch should be treated as nightly/dev build.
  */
 function isNightly(version, branch) {
-    const v = String(version || "").trim().toLowerCase();
-    const b = String(branch || "").trim().toLowerCase();
+    const v = String(version || "")
+        .trim()
+        .toLowerCase();
+    const b = String(branch || "")
+        .trim()
+        .toLowerCase();
     const nightlyKeywords = ["nightly", "dev", "alpha", "experimental"];
     const hasNightlyKeyword = nightlyKeywords.some((kw) => v.includes(kw) || b.includes(kw));
 
@@ -68,25 +74,33 @@ function createFetchTimeoutSignal(timeoutMs) {
         if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
             return { signal: AbortSignal.timeout(ms), cleanup: () => {} };
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         if (typeof AbortController !== "undefined") {
             const controller = new AbortController();
             const timer = setTimeout(() => {
                 try {
                     controller.abort();
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }, ms);
             return {
                 signal: controller.signal,
                 cleanup: () => {
                     try {
                         clearTimeout(timer);
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 },
             };
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return { signal: undefined, cleanup: () => {} };
 }
 
@@ -117,12 +131,12 @@ async function fetchLatestReleaseVersion() {
 async function fetchNightlyReleaseMarker() {
     const payload = await fetchReleasePayload(NIGHTLY_RELEASE_URL);
     const marker = String(
-        payload.published_at
-        || payload.created_at
-        || payload.updated_at
-        || payload.target_commitish
-        || payload.tag_name
-        || ""
+        payload.published_at ||
+            payload.created_at ||
+            payload.updated_at ||
+            payload.target_commitish ||
+            payload.tag_name ||
+            "",
     ).trim();
     return marker;
 }
@@ -133,10 +147,14 @@ function emitVersionUpdateState(state) {
     if (w) {
         try {
             w[VERSION_UPDATE_STATE_KEY] = _versionUpdateState;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             w.dispatchEvent(new CustomEvent(VERSION_UPDATE_EVENT, { detail: _versionUpdateState }));
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 }
 
@@ -144,13 +162,17 @@ export function getStoredVersionUpdateState() {
     return _versionUpdateState;
 }
 
-function buildLocalNoticeKey(localVersion, branch) {
-    const v = String(localVersion || "unknown").trim().toLowerCase();
-    const b = String(branch || "unknown").trim().toLowerCase();
+function _buildLocalNoticeKey(localVersion, branch) {
+    const v = String(localVersion || "unknown")
+        .trim()
+        .toLowerCase();
+    const b = String(branch || "unknown")
+        .trim()
+        .toLowerCase();
     return `${v}::${b}`;
 }
 
-function showAiFeaturesNoticeOnce(localVersion, branch) {
+function showAiFeaturesNoticeOnce(_localVersion, _branch) {
     // Disabled: No longer show AI features work-in-progress popup
     return;
 }
@@ -160,8 +182,8 @@ export async function checkMajoorVersion({ force = false } = {}) {
         return null;
     }
 
-    let localVersion = "";
-    let branch = "";
+    let localVersion;
+    let branch;
     try {
         const result = await get(ENDPOINTS.VERSION);
         if (!result?.ok) {
@@ -169,7 +191,9 @@ export async function checkMajoorVersion({ force = false } = {}) {
             return null;
         }
         localVersion = normalizeVersion(result.data?.version);
-        branch = String(result.data?.branch || "").trim().toLowerCase();
+        branch = String(result.data?.branch || "")
+            .trim()
+            .toLowerCase();
     } catch {
         emitVersionUpdateState({ available: false });
         return null;
@@ -194,11 +218,15 @@ export async function checkMajoorVersion({ force = false } = {}) {
             return null;
         }
 
-        let nightlyMarker = "";
+        let nightlyMarker;
         try {
             nightlyMarker = await fetchNightlyReleaseMarker();
-            const previousMarker = String(SettingsStore.get(NIGHTLY_RELEASE_MARKER_KEY) || "").trim();
-            const updateAvailable = Boolean(previousMarker && nightlyMarker && previousMarker !== nightlyMarker);
+            const previousMarker = String(
+                SettingsStore.get(NIGHTLY_RELEASE_MARKER_KEY) || "",
+            ).trim();
+            const updateAvailable = Boolean(
+                previousMarker && nightlyMarker && previousMarker !== nightlyMarker,
+            );
 
             emitVersionUpdateState({
                 available: updateAvailable,
@@ -213,18 +241,20 @@ export async function checkMajoorVersion({ force = false } = {}) {
                         summary: t("msg.nightlyUpdateTitle", "Majoor Assets Manager"),
                         detail: t(
                             "msg.nightlyUpdateDetail",
-                            "A newer nightly build is available: https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/tag/nightly"
+                            "A newer nightly build is available: https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/tag/nightly",
                         ),
                     },
                     "info",
-                    0
+                    0,
                 );
             }
 
             if (nightlyMarker) {
                 try {
                     SettingsStore.set(NIGHTLY_RELEASE_MARKER_KEY, nightlyMarker);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
         } catch (error) {
             console.warn("Unable to check Majoor nightly updates:", error);
@@ -243,7 +273,7 @@ export async function checkMajoorVersion({ force = false } = {}) {
         return null;
     }
 
-    let remoteVersion = "";
+    let remoteVersion;
     try {
         remoteVersion = await fetchLatestReleaseVersion();
     } catch (error) {
@@ -270,24 +300,34 @@ export async function checkMajoorVersion({ force = false } = {}) {
     });
 
     try {
-        const toastShownFor = String(SettingsStore.get(VERSION_TOAST_NOTICE_VERSION_KEY) || "").trim();
+        const toastShownFor = String(
+            SettingsStore.get(VERSION_TOAST_NOTICE_VERSION_KEY) || "",
+        ).trim();
         if (toastShownFor !== remoteVersion) {
             comfyToast(
                 {
                     summary: t("msg.newVersionTitle", "Majoor Assets Manager"),
-                    detail: t("msg.newVersionDetail", "A new version is available: {latest} (Current: {current})", {
-                        latest: remoteVersion,
-                        current: localVersion,
-                    }),
+                    detail: t(
+                        "msg.newVersionDetail",
+                        "A new version is available: {latest} (Current: {current})",
+                        {
+                            latest: remoteVersion,
+                            current: localVersion,
+                        },
+                    ),
                 },
                 "info",
-                0
+                0,
             );
             try {
                 SettingsStore.set(VERSION_TOAST_NOTICE_VERSION_KEY, remoteVersion);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     try {
         const alreadyShownFor = String(SettingsStore.get(DB_RESET_NOTICE_VERSION_KEY) || "").trim();
@@ -296,19 +336,21 @@ export async function checkMajoorVersion({ force = false } = {}) {
                 comfyAlert(
                     t(
                         "msg.dbResetNoticeDetail",
-                        "Majoor Update Notice:\n\nTo avoid database errors with this new version, please delete your existing index. Click the 'Delete DB' button in the Index Status panel to reset it."
+                        "Majoor Update Notice:\n\nTo avoid database errors with this new version, please delete your existing index. Click the 'Delete DB' button in the Index Status panel to reset it.",
                     ),
                     "Majoor",
-                    { native: true }
+                    { native: true },
                 );
             }, 1000);
             try {
                 SettingsStore.set(DB_RESET_NOTICE_VERSION_KEY, remoteVersion);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
-    } catch (e) { console.debug?.(e); }
-
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     return { current: localVersion, latest: remoteVersion };
 }
-

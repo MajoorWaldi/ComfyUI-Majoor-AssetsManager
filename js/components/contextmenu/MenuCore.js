@@ -24,7 +24,9 @@ export function safeEscapeSelector(value) {
     const str = String(value ?? "");
     try {
         if (typeof CSS?.escape === "function") return CSS.escape(str);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     // Fallback: escape special CSS selector characters (conservative).
     return str.replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1");
 }
@@ -33,26 +35,38 @@ export function cleanupMenu(menu) {
     if (!menu) return;
     try {
         menu._mjrAbortController?.abort?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         menu._mjrAbortController = null;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         menu._mjrOnHideCallbacks = [];
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         menu._mjrSessionCleanup = null;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         menu.remove?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 export function setMenuSessionCleanup(menu, fn) {
     if (!menu) return;
     try {
         menu._mjrSessionCleanup = typeof fn === "function" ? fn : null;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 export function getOrCreateMenu({
@@ -73,7 +87,9 @@ export function getOrCreateMenu({
         try {
             if (!Array.isArray(existing._mjrOnHideCallbacks)) existing._mjrOnHideCallbacks = [];
             if (typeof onHide === "function") existing._mjrOnHideCallbacks.push(onHide);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         return existing;
     }
 
@@ -82,14 +98,18 @@ export function getOrCreateMenu({
     try {
         menu.setAttribute("role", "menu");
         menu.setAttribute("aria-label", "Context menu");
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     // Prefer CSS for visuals; keep only dynamic values inline (width + z-index).
     try {
         menu.style.position = "fixed";
         menu.style.display = "none";
         menu.style.minWidth = `${Math.max(180, Number(minWidth) || 220)}px`;
         menu.style.zIndex = String(Number(zIndex) || _DEFAULT_Z);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     const ac = new AbortController();
     menu._mjrAbortController = ac;
@@ -98,7 +118,7 @@ export function getOrCreateMenu({
         try {
             if (!menu || !["ArrowDown", "ArrowUp", "ArrowRight"].includes(e.key)) return;
             const items = Array.from(
-                menu.querySelectorAll('[role="menuitem"]:not([aria-disabled="true"])')
+                menu.querySelectorAll('[role="menuitem"]:not([aria-disabled="true"])'),
             );
             if (!items.length) return;
 
@@ -109,19 +129,22 @@ export function getOrCreateMenu({
                 if (active?.dataset?.mjrHasSubmenu === "true") {
                     try {
                         active.dispatchEvent(
-                            new MouseEvent("mouseenter", { bubbles: true, cancelable: true })
+                            new MouseEvent("mouseenter", { bubbles: true, cancelable: true }),
                         );
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 }
                 return;
             }
 
             e.preventDefault();
             const direction = e.key === "ArrowDown" ? 1 : -1;
-            const next =
-                ((current >= 0 ? current : 0) + direction + items.length) % items.length;
+            const next = ((current >= 0 ? current : 0) + direction + items.length) % items.length;
             items[next]?.focus();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     menu._mjrNavHandler = navHandler;
@@ -130,7 +153,9 @@ export function getOrCreateMenu({
     try {
         menu._mjrOnHideCallbacks = [];
         if (typeof onHide === "function") menu._mjrOnHideCallbacks.push(onHide);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     const runOnHide = () => {
         try {
@@ -143,9 +168,13 @@ export function getOrCreateMenu({
                 }
                 try {
                     menu._mjrSessionCleanup = null;
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         try {
             const list = Array.isArray(menu._mjrOnHideCallbacks) ? menu._mjrOnHideCallbacks : [];
@@ -156,13 +185,17 @@ export function getOrCreateMenu({
                     console.error("[MenuCore] onHide failed:", err);
                 }
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const hide = () => {
         try {
             menu.style.display = "none";
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         runOnHide();
     };
 
@@ -173,7 +206,7 @@ export function getOrCreateMenu({
         (e) => {
             if (!menu.contains(e.target)) hide();
         },
-        { signal: ac.signal, capture: true }
+        { signal: ac.signal, capture: true },
     );
     // Some parts of the viewer use pointerdown handlers that preventDefault() and can suppress "click".
     // Use pointerdown as the primary outside-dismiss signal to avoid stuck menus.
@@ -182,14 +215,14 @@ export function getOrCreateMenu({
         (e) => {
             if (!menu.contains(e.target)) hide();
         },
-        { signal: ac.signal, capture: true, passive: true }
+        { signal: ac.signal, capture: true, passive: true },
     );
     document.addEventListener(
         "keydown",
         (e) => {
             if (e.key === "Escape") hide();
         },
-        { signal: ac.signal, capture: true }
+        { signal: ac.signal, capture: true },
     );
     document.addEventListener("scroll", hide, { capture: true, passive: true, signal: ac.signal });
     document.addEventListener("wheel", hide, { capture: true, passive: true, signal: ac.signal });
@@ -208,7 +241,9 @@ export function hideMenu(menu) {
         }
         // Cleanup orphans immediately after hiding to avoid leaking detached menus.
         cleanupMenu(menu);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 export function hideAllMenus() {
@@ -218,28 +253,40 @@ export function hideAllMenus() {
             try {
                 if (typeof menu?._mjrHide === "function") menu._mjrHide();
                 else menu.style.display = "none";
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 export function clearMenu(menu) {
     if (!menu) return;
     try {
         menu.replaceChildren();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         menu.innerHTML = "";
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         menu.style.display = "none";
         menu.style.pointerEvents = "";
         menu.style.opacity = "";
         menu.style.visibility = "";
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         menu.classList.remove("active", "open", "is-open", "mjr-open", "mjr-active");
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 export function showMenuAt(menu, x, y) {
@@ -267,7 +314,9 @@ export function createMenuItem(label, iconClass, rightHint, onClick, { disabled 
         item.setAttribute("role", "menuitem");
         item.setAttribute("tabindex", disabled ? "-1" : "0");
         item.setAttribute("aria-disabled", disabled ? "true" : "false");
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     item.style.cssText = `
         padding: 8px 14px;
         display: flex;
@@ -317,7 +366,9 @@ export function createMenuItem(label, iconClass, rightHint, onClick, { disabled 
             item.dataset.executing = "1";
             item.style.pointerEvents = "none";
             item.style.opacity = "0.7";
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             await onClick?.();
         } catch (err) {
@@ -327,27 +378,31 @@ export function createMenuItem(label, iconClass, rightHint, onClick, { disabled 
                 item.dataset.executing = "0";
                 item.style.pointerEvents = "";
                 item.style.opacity = disabled ? "0.45" : "1";
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
 
             // Close the menu if this item has a close callback configured
             try {
                 // Find parent menu and trigger hide if available
-                const menu = item.closest('.mjr-context-menu');
-                if (menu && typeof menu._mjrHide === 'function') {
+                const menu = item.closest(".mjr-context-menu");
+                if (menu && typeof menu._mjrHide === "function") {
                     // Check if this action wants to keep the menu open (e.g. submenus return specific flag?)
                     // For now, assume most actions want to close.
                     // Submenu triggers usually don't have onClick, or use mouseover.
                     // If onClick was provided, it's likely an action.
-                    
+
                     // We can also let the caller invoke hideMenu(menu).
                     // However, to enforce what the user asked: "must desapear once a validate my choice"
                     // we can modify createMenuItem to accept an option "autoClose: true" or simple force it here.
-                    
+
                     menu._mjrHide();
                 } else if (menu) {
-                     menu.style.display = 'none';
+                    menu.style.display = "none";
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
     });
 

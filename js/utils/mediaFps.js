@@ -56,7 +56,9 @@ export function readAssetFrameCount(asset, fps) {
         if (Number.isFinite(dur) && dur > 0 && Number.isFinite(fps) && fps > 0) {
             return Math.max(1, Math.round(dur * fps));
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return null;
 }
 

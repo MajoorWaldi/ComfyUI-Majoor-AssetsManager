@@ -18,7 +18,9 @@ function ensureRuntimeStatusDashboard() {
         if (!host) {
             try {
                 existing?.remove?.();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             return null;
         }
 
@@ -29,7 +31,9 @@ function ensureRuntimeStatusDashboard() {
             if (!hostPos || hostPos === "static") {
                 host.style.position = "relative";
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         let el = document.getElementById(RUNTIME_DASHBOARD_ID);
         if (!el) {
@@ -73,11 +77,15 @@ async function refreshRuntimeStatusDashboard() {
         const active = Number(db.active_connections || 0);
         const enrichQ = Number(idx.enrichment_queue_length || 0);
         const pending = Number(w.pending_files || 0);
-        el.textContent = t("runtime.metricsLine", "DB active: {active} | Enrich Q: {enrichQ} | Watcher pending: {pending}", { active, enrichQ, pending });
+        el.textContent = t(
+            "runtime.metricsLine",
+            "DB active: {active} | Enrich Q: {enrichQ} | Watcher pending: {pending}",
+            { active, enrichQ, pending },
+        );
         el.title = t(
             "runtime.metricsTitle",
             "Runtime Metrics\nDB active connections: {active}\nEnrichment queue: {enrichQ}\nWatcher pending files: {pending}",
-            { active, enrichQ, pending }
+            { active, enrichQ, pending },
         );
         return true;
     } catch {
@@ -106,9 +114,13 @@ export function startRuntimeStatusDashboard() {
                             window.__MJR_RUNTIME_STATUS_MISS_COUNT__ = 0;
                             return;
                         }
-                        window.__MJR_RUNTIME_STATUS_MISS_COUNT__ = Number(window.__MJR_RUNTIME_STATUS_MISS_COUNT__ || 0) + 1;
+                        window.__MJR_RUNTIME_STATUS_MISS_COUNT__ =
+                            Number(window.__MJR_RUNTIME_STATUS_MISS_COUNT__ || 0) + 1;
                         // Stop background polling if panel is absent for ~30s.
-                        if (window.__MJR_RUNTIME_STATUS_MISS_COUNT__ >= 10 && window.__MJR_RUNTIME_STATUS_INTERVAL__) {
+                        if (
+                            window.__MJR_RUNTIME_STATUS_MISS_COUNT__ >= 10 &&
+                            window.__MJR_RUNTIME_STATUS_INTERVAL__
+                        ) {
                             clearInterval(window.__MJR_RUNTIME_STATUS_INTERVAL__);
                             window.__MJR_RUNTIME_STATUS_INTERVAL__ = null;
                         }
@@ -119,5 +131,7 @@ export function startRuntimeStatusDashboard() {
                     });
             }, 10000);
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }

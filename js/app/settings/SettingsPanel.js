@@ -57,7 +57,9 @@ function normalizeSettingPayload(payload) {
         if (typeof normalized.name === "string") {
             normalized.name = normalized.name.replace(SETTINGS_NAME_PREFIX_RE, "").trim();
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         const category = normalized.category;
         if (!Array.isArray(category) || String(category[0] || "") !== SETTINGS_CATEGORY) {
@@ -102,7 +104,11 @@ function ensureMajoorSettingsContext(app, onApplied, { initRuntime = false } = {
             const keys = Array.from(pendingKeys);
             pendingKeys.clear();
             for (const pendingKey of keys) {
-                safeDispatchCustomEvent("mjr-settings-changed", { key: pendingKey }, { warnPrefix: "[Majoor]" });
+                safeDispatchCustomEvent(
+                    "mjr-settings-changed",
+                    { key: pendingKey },
+                    { warnPrefix: "[Majoor]" },
+                );
             }
         };
         const flushColorNotify = () => {
@@ -110,7 +116,11 @@ function ensureMajoorSettingsContext(app, onApplied, { initRuntime = false } = {
             const keys = Array.from(pendingColorKeys);
             pendingColorKeys.clear();
             for (const pendingKey of keys) {
-                safeDispatchCustomEvent("mjr-settings-changed", { key: pendingKey }, { warnPrefix: "[Majoor]" });
+                safeDispatchCustomEvent(
+                    "mjr-settings-changed",
+                    { key: pendingKey },
+                    { warnPrefix: "[Majoor]" },
+                );
             }
         };
 
@@ -143,14 +153,18 @@ function ensureMajoorSettingsContext(app, onApplied, { initRuntime = false } = {
             try {
                 window.addEventListener("storage", storageListener);
                 _settingsStorageListenerBound = true;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
 
         const notifyApplied = (key) => {
             for (const listener of onAppliedListeners) {
                 try {
                     listener(settings, key);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
             if (COLOR_SETTING_KEYS.has(String(key || ""))) {
                 scheduleColorNotify(key);
@@ -181,7 +195,9 @@ function ensureMajoorSettingsContext(app, onApplied, { initRuntime = false } = {
             setTimeout(() => {
                 toggleWatcher(desired).catch(() => {});
             }, 0);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         _settingsRuntimeInitialized = true;
     }
     return _settingsContext;
@@ -226,9 +242,15 @@ try {
                 if (typeof enabled === "boolean" && enabled !== !!settings.watcher.enabled) {
                     settings.watcher.enabled = enabled;
                     saveMajoorSettings(settings);
-                    safeDispatchCustomEvent("mjr-settings-changed", { key: "watcher.enabled" }, { warnPrefix: "[Majoor]" });
+                    safeDispatchCustomEvent(
+                        "mjr-settings-changed",
+                        { key: "watcher.enabled" },
+                        { warnPrefix: "[Majoor]" },
+                    );
                 }
             })
             .catch(() => {});
     }
-} catch (e) { console.debug?.(e); }
+} catch (e) {
+    console.debug?.(e);
+}

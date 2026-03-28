@@ -16,15 +16,28 @@ import {
     setComfyApi,
     setComfyApp,
     waitForComfyApi,
-    waitForComfyApp
+    waitForComfyApp,
 } from "./app/comfyApiBridge.js";
 import { EVENTS } from "./app/events.js";
 import { initDragDrop } from "./features/dnd/DragDrop.js";
-import { teardownFloatingViewerManager, floatingViewerManager } from "./features/viewer/floatingViewerManager.js";
-import { NODE_STREAM_FEATURE_ENABLED, NODE_STREAM_REACTIVATION_DOC } from "./features/viewer/nodeStream/nodeStreamFeatureFlag.js";
+import {
+    teardownFloatingViewerManager,
+    floatingViewerManager,
+} from "./features/viewer/floatingViewerManager.js";
+import {
+    NODE_STREAM_FEATURE_ENABLED,
+    NODE_STREAM_REACTIVATION_DOC,
+} from "./features/viewer/nodeStream/nodeStreamFeatureFlag.js";
 import { loadAssets, upsertAsset, removeAssetsFromGrid } from "./features/grid/GridView.js";
-import { renderAssetsManager, getActiveGridContainer } from "./features/panel/AssetsManagerPanel.js";
-import { getGeneratedFeedBottomPanelTab, pushGeneratedAsset, refreshGeneratedFeedHosts } from "./features/bottomPanel/GeneratedFeedTab.js";
+import {
+    renderAssetsManager,
+    getActiveGridContainer,
+} from "./features/panel/AssetsManagerPanel.js";
+import {
+    getGeneratedFeedBottomPanelTab,
+    pushGeneratedAsset,
+    refreshGeneratedFeedHosts,
+} from "./features/bottomPanel/GeneratedFeedTab.js";
 import { extractOutputFiles } from "./utils/extractOutputFiles.js";
 import { post } from "./api/client.js";
 import { ENDPOINTS } from "./api/endpoints.js";
@@ -52,14 +65,15 @@ const EXECUTION_RUNTIME_KEY = "__MJR_EXECUTION_RUNTIME__";
 
 function ensureExecutionRuntime() {
     try {
-        if (typeof window === "undefined") return {
-            active_prompt_id: null,
-            queue_remaining: null,
-            progress_node: null,
-            progress_value: null,
-            progress_max: null,
-            cached_nodes: [],
-        };
+        if (typeof window === "undefined")
+            return {
+                active_prompt_id: null,
+                queue_remaining: null,
+                progress_node: null,
+                progress_value: null,
+                progress_max: null,
+                cached_nodes: [],
+            };
         if (!window[EXECUTION_RUNTIME_KEY] || typeof window[EXECUTION_RUNTIME_KEY] !== "object") {
             window[EXECUTION_RUNTIME_KEY] = {
                 active_prompt_id: null,
@@ -82,7 +96,9 @@ function emitRuntimeStatus(partial = {}) {
         const runtime = ensureExecutionRuntime();
         Object.assign(runtime, partial || {});
         window.dispatchEvent(new CustomEvent(EVENTS.RUNTIME_STATUS, { detail: { ...runtime } }));
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 function openAssetsManagerPanel(runtimeApp) {
@@ -90,15 +106,21 @@ function openAssetsManagerPanel(runtimeApp) {
     if (!opened) {
         try {
             window.dispatchEvent(new Event(EVENTS.OPEN_ASSETS_MANAGER));
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
     return opened;
 }
 
 function triggerRefreshGrid() {
     try {
-        window.dispatchEvent(new CustomEvent(EVENTS.RELOAD_GRID, { detail: { reason: "command" } }));
-    } catch (e) { console.debug?.(e); }
+        window.dispatchEvent(
+            new CustomEvent(EVENTS.RELOAD_GRID, { detail: { reason: "command" } }),
+        );
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 function registerNativeCommands(runtimeApp) {
@@ -134,7 +156,9 @@ function registerNativeCommands(runtimeApp) {
 }
 
 function isMajoorTrackableNode(node) {
-    const comfyClass = String(node?.comfyClass || node?.type || node?.constructor?.type || "").trim();
+    const comfyClass = String(
+        node?.comfyClass || node?.type || node?.constructor?.type || "",
+    ).trim();
     if (!comfyClass) return false;
     return /save|load|preview/i.test(comfyClass);
 }
@@ -206,27 +230,41 @@ function removeRuntimeWindowHandlers(runtime) {
 function cleanupEntryRuntime(runtime) {
     if (!runtime || typeof runtime !== "object") return;
     try {
-        const cleanups = Array.isArray(runtime._listenerCleanupFns) ? runtime._listenerCleanupFns : [];
+        const cleanups = Array.isArray(runtime._listenerCleanupFns)
+            ? runtime._listenerCleanupFns
+            : [];
         for (const cleanup of cleanups) {
             try {
                 cleanup?.();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
         runtime._listenerCleanupFns = [];
-    } catch (e) { console.warn("[MJR teardown]", e); }
+    } catch (e) {
+        console.warn("[MJR teardown]", e);
+    }
     try {
-        const controllers = Array.isArray(runtime._cleanupControllers) ? runtime._cleanupControllers : [];
+        const controllers = Array.isArray(runtime._cleanupControllers)
+            ? runtime._cleanupControllers
+            : [];
         for (const controller of controllers) {
             try {
                 controller?.abort?.();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
         runtime._cleanupControllers = [];
-    } catch (e) { console.warn("[MJR teardown]", e); }
+    } catch (e) {
+        console.warn("[MJR teardown]", e);
+    }
     try {
         removeApiHandlers(runtime.api || null);
         removeRuntimeWindowHandlers(runtime);
-    } catch (e) { console.warn("[MJR teardown]", e); }
+    } catch (e) {
+        console.warn("[MJR teardown]", e);
+    }
 }
 
 function _registerCleanableListener(runtime, target, event, handler, options = undefined) {
@@ -240,17 +278,25 @@ function _registerCleanableListener(runtime, target, event, handler, options = u
                     ? { ...listenerOptions, signal: controller.signal }
                     : { signal: controller.signal };
             target.addEventListener(event, handler, nextOptions);
-            runtime._cleanupControllers = Array.isArray(runtime._cleanupControllers) ? runtime._cleanupControllers : [];
+            runtime._cleanupControllers = Array.isArray(runtime._cleanupControllers)
+                ? runtime._cleanupControllers
+                : [];
             runtime._cleanupControllers.push(controller);
             return controller;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
     target.addEventListener(event, handler, listenerOptions);
-    runtime._listenerCleanupFns = Array.isArray(runtime._listenerCleanupFns) ? runtime._listenerCleanupFns : [];
+    runtime._listenerCleanupFns = Array.isArray(runtime._listenerCleanupFns)
+        ? runtime._listenerCleanupFns
+        : [];
     runtime._listenerCleanupFns.push(() => {
         try {
             target.removeEventListener(event, handler, listenerOptions);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     });
     return null;
 }
@@ -263,11 +309,25 @@ function installEntryRuntimeController() {
             try {
                 const prev = window[ENTRY_RUNTIME_KEY];
                 cleanupEntryRuntime(prev);
-            } catch (e) { console.warn("[MJR teardown]", e); }
+            } catch (e) {
+                console.warn("[MJR teardown]", e);
+            }
             // Tear down MFV module-level listeners before re-registering (NM-3, NM-4).
-            try { _liveStreamMod?.teardownLiveStreamTracker(window.__MJR_RUNTIME_APP__); } catch (e) { console.warn("[MJR teardown]", e); }
-            try { _nodeStreamMod?.teardownNodeStream(window.__MJR_RUNTIME_APP__); } catch (e) { console.warn("[MJR teardown]", e); }
-            try { teardownFloatingViewerManager(); } catch (e) { console.warn("[MJR teardown]", e); }
+            try {
+                _liveStreamMod?.teardownLiveStreamTracker(window.__MJR_RUNTIME_APP__);
+            } catch (e) {
+                console.warn("[MJR teardown]", e);
+            }
+            try {
+                _nodeStreamMod?.teardownNodeStream(window.__MJR_RUNTIME_APP__);
+            } catch (e) {
+                console.warn("[MJR teardown]", e);
+            }
+            try {
+                teardownFloatingViewerManager();
+            } catch (e) {
+                console.warn("[MJR teardown]", e);
+            }
             window[ENTRY_RUNTIME_KEY] = {
                 api: null,
                 assetsDeletedHandler: null,
@@ -275,7 +335,9 @@ function installEntryRuntimeController() {
                 _listenerCleanupFns: [],
             };
         }
-    } catch (e) { console.warn("[MJR teardown]", e); }
+    } catch (e) {
+        console.warn("[MJR teardown]", e);
+    }
 }
 
 function _safeCssEscape(value) {
@@ -284,7 +346,9 @@ function _safeCssEscape(value) {
         if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
             return CSS.escape(str);
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return str.replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1");
 }
 
@@ -293,7 +357,12 @@ function _safeCssEscape(value) {
 const DEDUPE_TTL_MS = 2000;
 const RECENT_FILES_MAX = 2000; // Hard cap to prevent unbounded growth
 const recentFiles = createTTLCache({ ttlMs: DEDUPE_TTL_MS, maxSize: RECENT_FILES_MAX });
-const INDEX_RETRYABLE_CODES = new Set(["DB_MAINTENANCE", "TIMEOUT", "NETWORK_ERROR", "SERVICE_UNAVAILABLE"]);
+const INDEX_RETRYABLE_CODES = new Set([
+    "DB_MAINTENANCE",
+    "TIMEOUT",
+    "NETWORK_ERROR",
+    "SERVICE_UNAVAILABLE",
+]);
 const INDEX_RETRY_MAX_ATTEMPTS = 8;
 const INDEX_RETRY_BASE_DELAY_MS = 1200;
 const INDEX_RETRY_MAX_DELAY_MS = 15_000;
@@ -301,7 +370,10 @@ const INDEX_RETRY_MAX_DELAY_MS = 15_000;
 // Track execution start times to compute generation duration
 const EXECUTION_START_TTL_MS = 10 * 60 * 1000;
 const EXECUTION_STARTS_MAX = 500; // Hard cap to prevent unbounded growth
-const executionStarts = createTTLCache({ ttlMs: EXECUTION_START_TTL_MS, maxSize: EXECUTION_STARTS_MAX });
+const executionStarts = createTTLCache({
+    ttlMs: EXECUTION_START_TTL_MS,
+    maxSize: EXECUTION_STARTS_MAX,
+});
 let _stackFinalizeTimer = null;
 let _stackFinalizeInFlight = null;
 let _lastStacksUpdateSignature = "";
@@ -319,25 +391,45 @@ function notifyStacksUpdated(detail = {}) {
             })),
         });
         const now = Date.now();
-        if (signature && signature === _lastStacksUpdateSignature && (now - _lastStacksUpdateAt) < 1500) {
+        if (
+            signature &&
+            signature === _lastStacksUpdateSignature &&
+            now - _lastStacksUpdateAt < 1500
+        ) {
             return;
         }
         _lastStacksUpdateSignature = signature;
         _lastStacksUpdateAt = now;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
-        window.dispatchEvent(new CustomEvent("mjr:stacks-updated", { detail: { ...(detail || {}) } }));
-    } catch (e) { console.debug?.(e); }
+        window.dispatchEvent(
+            new CustomEvent("mjr:stacks-updated", { detail: { ...(detail || {}) } }),
+        );
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         refreshGeneratedFeedHosts();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         const grid = getActiveGridContainer();
-        const scope = String(grid?.dataset?.mjrScope || "").trim().toLowerCase();
+        const scope = String(grid?.dataset?.mjrScope || "")
+            .trim()
+            .toLowerCase();
         if (grid && (scope === "output" || scope === "all")) {
-            window.dispatchEvent(new CustomEvent(EVENTS.RELOAD_GRID, { detail: { reason: "stacks-updated", ...(detail || {}) } }));
+            window.dispatchEvent(
+                new CustomEvent(EVENTS.RELOAD_GRID, {
+                    detail: { reason: "stacks-updated", ...(detail || {}) },
+                }),
+            );
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 function rememberExecutionStart(promptId, timestampMs) {
@@ -369,11 +461,13 @@ function dedupeFiles(files) {
 function _indexRetryDelayMs(attempt) {
     const a = Math.max(1, Number(attempt) || 1);
     const exp = Math.min(6, a - 1);
-    return Math.min(INDEX_RETRY_MAX_DELAY_MS, INDEX_RETRY_BASE_DELAY_MS * (2 ** exp));
+    return Math.min(INDEX_RETRY_MAX_DELAY_MS, INDEX_RETRY_BASE_DELAY_MS * 2 ** exp);
 }
 
 function _shouldRetryIndexResponse(res) {
-    const code = String(res?.code || "").trim().toUpperCase();
+    const code = String(res?.code || "")
+        .trim()
+        .toUpperCase();
     return INDEX_RETRYABLE_CODES.has(code);
 }
 
@@ -399,7 +493,9 @@ function scheduleGenerationIndex(files, attempt = 1, meta = {}) {
                 const code = String(res?.code || "INDEX_FAILED");
                 const msg = String(res?.error || "Indexing generated files failed");
                 reportError(new Error(`${code}: ${msg}`), "entry.executed.index");
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         })
         .catch((error) => reportError(error, "entry.executed.index"));
 }
@@ -409,23 +505,34 @@ function scheduleFinalizeExecutionStacks(jobId, delayMs = 900) {
     if (!targetJobId) return;
     try {
         if (_stackFinalizeTimer) clearTimeout(_stackFinalizeTimer);
-    } catch (e) { console.debug?.(e); }
-    _stackFinalizeTimer = setTimeout(() => {
-        _stackFinalizeTimer = null;
-        if (_stackFinalizeInFlight) return;
-        _stackFinalizeInFlight = post(ENDPOINTS.STACKS_AUTO_STACK, { mode: "job_id", job_id: targetJobId })
-            .then((res) => {
-                if (!res?.ok) {
-                    reportError(new Error(String(res?.error || "Auto stack failed")), "entry.execution_end.auto_stack");
-                    return;
-                }
-                notifyStacksUpdated(res?.data || { targeted_job_id: targetJobId });
+    } catch (e) {
+        console.debug?.(e);
+    }
+    _stackFinalizeTimer = setTimeout(
+        () => {
+            _stackFinalizeTimer = null;
+            if (_stackFinalizeInFlight) return;
+            _stackFinalizeInFlight = post(ENDPOINTS.STACKS_AUTO_STACK, {
+                mode: "job_id",
+                job_id: targetJobId,
             })
-            .catch((error) => reportError(error, "entry.execution_end.auto_stack"))
-            .finally(() => {
-                _stackFinalizeInFlight = null;
-            });
-    }, Math.max(0, Number(delayMs) || 0));
+                .then((res) => {
+                    if (!res?.ok) {
+                        reportError(
+                            new Error(String(res?.error || "Auto stack failed")),
+                            "entry.execution_end.auto_stack",
+                        );
+                        return;
+                    }
+                    notifyStacksUpdated(res?.data || { targeted_job_id: targetJobId });
+                })
+                .catch((error) => reportError(error, "entry.execution_end.auto_stack"))
+                .finally(() => {
+                    _stackFinalizeInFlight = null;
+                });
+        },
+        Math.max(0, Number(delayMs) || 0),
+    );
 }
 
 app.registerExtension({
@@ -465,7 +572,11 @@ app.registerExtension({
         const runtimeApp = (await waitForComfyApp({ timeoutMs: 12000 })) || app;
         setComfyApp(runtimeApp);
         // Store app reference for teardown use in subsequent hot-reloads.
-        try { if (typeof window !== "undefined") window.__MJR_RUNTIME_APP__ = runtimeApp; } catch (e) { console.debug?.(e); }
+        try {
+            if (typeof window !== "undefined") window.__MJR_RUNTIME_APP__ = runtimeApp;
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         // Initialize core services
         testAPI();
@@ -473,27 +584,41 @@ app.registerExtension({
 
         try {
             initDragDrop();
-        } catch (e) { console.warn("[MJR setup] initDragDrop failed:", e); }
+        } catch (e) {
+            console.warn("[MJR setup] initDragDrop failed:", e);
+        }
 
         // Lazy-load LiveStreamTracker in the background (not needed for initial render).
-        void import("./features/viewer/LiveStreamTracker.js").then((mod) => {
-            _liveStreamMod = mod;
-            try { mod.initLiveStreamTracker(runtimeApp); } catch (e) { console.warn("[MJR setup] initLiveStreamTracker failed:", e); }
-        }).catch((e) => console.warn("[MJR setup] LiveStreamTracker load failed:", e));
+        void import("./features/viewer/LiveStreamTracker.js")
+            .then((mod) => {
+                _liveStreamMod = mod;
+                try {
+                    mod.initLiveStreamTracker(runtimeApp);
+                } catch (e) {
+                    console.warn("[MJR setup] initLiveStreamTracker failed:", e);
+                }
+            })
+            .catch((e) => console.warn("[MJR setup] LiveStreamTracker load failed:", e));
 
         if (NODE_STREAM_FEATURE_ENABLED) {
             // Lazy-load NodeStream in the background (feature-flagged, not needed at startup).
-            void import("./features/viewer/nodeStream/NodeStreamController.js").then((mod) => {
-                _nodeStreamMod = mod;
-                try {
-                    mod.initNodeStream({
-                        app: runtimeApp,
-                        onOutput: (fileData) => floatingViewerManager.feedNodeStream(fileData),
-                    });
-                } catch (e) { console.warn("[MJR setup] initNodeStream failed:", e); }
-            }).catch((e) => console.warn("[MJR setup] NodeStream load failed:", e));
+            void import("./features/viewer/nodeStream/NodeStreamController.js")
+                .then((mod) => {
+                    _nodeStreamMod = mod;
+                    try {
+                        mod.initNodeStream({
+                            app: runtimeApp,
+                            onOutput: (fileData) => floatingViewerManager.feedNodeStream(fileData),
+                        });
+                    } catch (e) {
+                        console.warn("[MJR setup] initNodeStream failed:", e);
+                    }
+                })
+                .catch((e) => console.warn("[MJR setup] NodeStream load failed:", e));
         } else {
-            console.debug(`[Majoor] Node Stream disabled by feature flag. See ${NODE_STREAM_REACTIVATION_DOC}`);
+            console.debug(
+                `[Majoor] Node Stream disabled by feature flag. See ${NODE_STREAM_REACTIVATION_DOC}`,
+            );
         }
 
         registerMajoorSettings(runtimeApp, () => {
@@ -502,19 +627,26 @@ app.registerExtension({
         });
         registerNativeCommands(runtimeApp);
 
-        setTimeout(() => { void checkMajoorVersion(); }, 5000);
+        setTimeout(() => {
+            void checkMajoorVersion();
+        }, 5000);
 
         // Initialize API listeners in the background so sidebar tab registration
         // is not blocked by API readiness polling.
         void (async () => {
             // Get ComfyUI API – errors are caught below to avoid unhandled rejections.
-            const api = (await waitForComfyApi({ app: runtimeApp, timeoutMs: 4000 })) || getComfyApi(runtimeApp);
+            const api =
+                (await waitForComfyApi({ app: runtimeApp, timeoutMs: 4000 })) ||
+                getComfyApi(runtimeApp);
             setComfyApi(api || null);
             if (api) {
                 let runtime = null;
                 try {
-                    runtime = typeof window !== "undefined" ? (window[ENTRY_RUNTIME_KEY] || null) : null;
-                } catch (e) { console.debug?.(e); }
+                    runtime =
+                        typeof window !== "undefined" ? window[ENTRY_RUNTIME_KEY] || null : null;
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 removeApiHandlers(runtime?.api || null);
                 // Only clean up stale handlers on the new api if it is a different object
                 // than the previous runtime's api (avoids redundant double-removal).
@@ -528,7 +660,9 @@ app.registerExtension({
                         if (!outputFiles.length) return;
 
                         const promptId = event?.detail?.prompt_id || event?.detail?.promptId;
-                        const sourceNodeId = String(event?.detail?.node || event?.detail?.display_node || "").trim();
+                        const sourceNodeId = String(
+                            event?.detail?.node || event?.detail?.display_node || "",
+                        ).trim();
                         const startTs = promptId ? executionStarts.get(String(promptId)) : null;
                         const genTimeMs = startTs ? Math.max(0, Date.now() - startTs) : 0;
 
@@ -537,9 +671,14 @@ app.registerExtension({
                         try {
                             if (sourceNodeId && typeof app !== "undefined" && app?.graph) {
                                 const graphNode = app.graph.getNodeById(Number(sourceNodeId));
-                                if (graphNode) sourceNodeType = String(graphNode.type || graphNode.comfyClass || "").trim();
+                                if (graphNode)
+                                    sourceNodeType = String(
+                                        graphNode.type || graphNode.comfyClass || "",
+                                    ).trim();
                             }
-                        } catch (e) { console.debug?.(e); }
+                        } catch (e) {
+                            console.debug?.(e);
+                        }
 
                         const files = outputFiles.map((f) => ({
                             ...f,
@@ -550,8 +689,14 @@ app.registerExtension({
 
                         // Notify the MFV (and any other subscriber) that new files were generated.
                         try {
-                            window.dispatchEvent(new CustomEvent(EVENTS.NEW_GENERATION_OUTPUT, { detail: { files } }));
-                        } catch (e) { console.debug?.(e); }
+                            window.dispatchEvent(
+                                new CustomEvent(EVENTS.NEW_GENERATION_OUTPUT, {
+                                    detail: { files },
+                                }),
+                            );
+                        } catch (e) {
+                            console.debug?.(e);
+                        }
 
                         scheduleGenerationIndex(files, 1, { prompt_id: promptId });
                     } catch (error) {
@@ -615,13 +760,19 @@ app.registerExtension({
                         const detail = event?.detail || {};
                         emitRuntimeStatus({
                             progress_node: detail?.node ?? null,
-                            progress_value: Number.isFinite(Number(detail?.value)) ? Number(detail.value) : null,
-                            progress_max: Number.isFinite(Number(detail?.max)) ? Number(detail.max) : null,
-                            queue_remaining: Number.isFinite(Number(detail?.exec_info?.queue_remaining))
+                            progress_value: Number.isFinite(Number(detail?.value))
+                                ? Number(detail.value)
+                                : null,
+                            progress_max: Number.isFinite(Number(detail?.max))
+                                ? Number(detail.max)
+                                : null,
+                            queue_remaining: Number.isFinite(
+                                Number(detail?.exec_info?.queue_remaining),
+                            )
                                 ? Number(detail.exec_info.queue_remaining)
                                 : Number.isFinite(Number(detail?.queue_remaining))
-                                ? Number(detail.queue_remaining)
-                                : ensureExecutionRuntime().queue_remaining,
+                                  ? Number(detail.queue_remaining)
+                                  : ensureExecutionRuntime().queue_remaining,
                         });
                     } catch (error) {
                         reportError(error, "entry.runtime_status");
@@ -631,21 +782,55 @@ app.registerExtension({
                     try {
                         const detail = event?.detail || {};
                         emitRuntimeStatus({
-                            active_prompt_id: detail?.prompt_id || detail?.promptId || ensureExecutionRuntime().active_prompt_id || null,
+                            active_prompt_id:
+                                detail?.prompt_id ||
+                                detail?.promptId ||
+                                ensureExecutionRuntime().active_prompt_id ||
+                                null,
                             cached_nodes: Array.isArray(detail?.nodes) ? detail.nodes.slice() : [],
                         });
                     } catch (error) {
                         reportError(error, "entry.execution_cached");
                     }
                 };
-                _registerCleanableListener(runtime, api, "execution_start", api._mjrExecutionStartHandler);
-                _registerCleanableListener(runtime, api, "execution_success", api._mjrExecutionEndHandler);
-                _registerCleanableListener(runtime, api, "execution_error", api._mjrExecutionEndHandler);
-                _registerCleanableListener(runtime, api, "execution_interrupted", api._mjrExecutionEndHandler);
-                _registerCleanableListener(runtime, api, "mjr.stacks.updated", api._mjrStacksUpdatedHandler);
+                _registerCleanableListener(
+                    runtime,
+                    api,
+                    "execution_start",
+                    api._mjrExecutionStartHandler,
+                );
+                _registerCleanableListener(
+                    runtime,
+                    api,
+                    "execution_success",
+                    api._mjrExecutionEndHandler,
+                );
+                _registerCleanableListener(
+                    runtime,
+                    api,
+                    "execution_error",
+                    api._mjrExecutionEndHandler,
+                );
+                _registerCleanableListener(
+                    runtime,
+                    api,
+                    "execution_interrupted",
+                    api._mjrExecutionEndHandler,
+                );
+                _registerCleanableListener(
+                    runtime,
+                    api,
+                    "mjr.stacks.updated",
+                    api._mjrStacksUpdatedHandler,
+                );
                 _registerCleanableListener(runtime, api, "progress", api._mjrRuntimeStatusHandler);
                 _registerCleanableListener(runtime, api, "status", api._mjrRuntimeStatusHandler);
-                _registerCleanableListener(runtime, api, "execution_cached", api._mjrExecutionCachedHandler);
+                _registerCleanableListener(
+                    runtime,
+                    api,
+                    "execution_cached",
+                    api._mjrExecutionCachedHandler,
+                );
 
                 // Listen for backend push - upsert asset directly to grid
                 api._mjrAssetAddedHandler = (event) => {
@@ -663,7 +848,11 @@ app.registerExtension({
                                 if (handled) {
                                     // Signal that we handled this event so handleCountersUpdate
                                     // skips its own reload within the next window.
-                                    try { window.__mjrLastAssetUpsert = Date.now(); } catch (e) { console.debug?.(e); }
+                                    try {
+                                        window.__mjrLastAssetUpsert = Date.now();
+                                    } catch (e) {
+                                        console.debug?.(e);
+                                    }
                                 }
                             }
                             // No fallback reload here — let handleCountersUpdate's
@@ -673,7 +862,12 @@ app.registerExtension({
                         reportError(error, "entry.asset_added");
                     }
                 };
-                _registerCleanableListener(runtime, api, "mjr-asset-added", api._mjrAssetAddedHandler);
+                _registerCleanableListener(
+                    runtime,
+                    api,
+                    "mjr-asset-added",
+                    api._mjrAssetAddedHandler,
+                );
 
                 api._mjrAssetUpdatedHandler = (event) => {
                     try {
@@ -691,15 +885,21 @@ app.registerExtension({
                                 try {
                                     const escapedId = _safeCssEscape(assetId);
                                     existsInGrid = !!grid.querySelector(
-                                        `.mjr-asset-card[data-mjr-asset-id="${escapedId}"]`
+                                        `.mjr-asset-card[data-mjr-asset-id="${escapedId}"]`,
                                     );
-                                } catch (e) { console.debug?.(e); }
+                                } catch (e) {
+                                    console.debug?.(e);
+                                }
                             }
 
                             const canUpsert = hasRenderableFields || existsInGrid;
                             const handled = canUpsert ? !!upsertAsset(grid, detail) : false;
                             if (handled) {
-                                try { window.__mjrLastAssetUpsert = Date.now(); } catch (e) { console.debug?.(e); }
+                                try {
+                                    window.__mjrLastAssetUpsert = Date.now();
+                                } catch (e) {
+                                    console.debug?.(e);
+                                }
                                 return;
                             }
 
@@ -711,16 +911,28 @@ app.registerExtension({
                         reportError(error, "entry.asset_updated");
                     }
                 };
-                _registerCleanableListener(runtime, api, "mjr-asset-updated", api._mjrAssetUpdatedHandler);
+                _registerCleanableListener(
+                    runtime,
+                    api,
+                    "mjr-asset-updated",
+                    api._mjrAssetUpdatedHandler,
+                );
 
                 // Listen for scan-complete events to avoid "Unknown message type" warnings
                 api._mjrScanCompleteHandler = (event) => {
                     try {
                         const detail = event?.detail || {};
                         window.dispatchEvent(new CustomEvent(EVENTS.SCAN_COMPLETE, { detail }));
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 };
-                _registerCleanableListener(runtime, api, EVENTS.SCAN_COMPLETE, api._mjrScanCompleteHandler);
+                _registerCleanableListener(
+                    runtime,
+                    api,
+                    EVENTS.SCAN_COMPLETE,
+                    api._mjrScanCompleteHandler,
+                );
 
                 api._mjrEnrichmentStatusHandler = (event) => {
                     try {
@@ -730,8 +942,8 @@ app.registerExtension({
                         const queueLen = Number.isFinite(queued)
                             ? Math.max(0, Math.floor(queued))
                             : Number.isFinite(queueLeft)
-                            ? Math.max(0, Math.floor(queueLeft))
-                            : 0;
+                              ? Math.max(0, Math.floor(queueLeft))
+                              : 0;
                         const active = !!detail?.active || queueLen > 0;
                         const prev = getEnrichmentState().active;
                         setEnrichmentState(active, queueLen);
@@ -739,11 +951,22 @@ app.registerExtension({
                         // Do not force a full grid reset on enrichment state flips.
                         // Panel-level listeners handle refresh with scroll/selection anchor preservation.
                         if (prev && !active) {
-                            comfyToast(t("toast.enrichmentComplete", "Metadata enrichment complete"), "success", 2600);
+                            comfyToast(
+                                t("toast.enrichmentComplete", "Metadata enrichment complete"),
+                                "success",
+                                2600,
+                            );
                         }
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 };
-                _registerCleanableListener(runtime, api, EVENTS.ENRICHMENT_STATUS, api._mjrEnrichmentStatusHandler);
+                _registerCleanableListener(
+                    runtime,
+                    api,
+                    EVENTS.ENRICHMENT_STATUS,
+                    api._mjrEnrichmentStatusHandler,
+                );
 
                 api._mjrDbRestoreStatusHandler = (event) => {
                     try {
@@ -759,37 +982,76 @@ app.registerExtension({
                         }
                         const map = {
                             started: isDelete
-                                ? t("toast.dbDeleteTriggered", "Deleting database and rebuilding...")
+                                ? t(
+                                      "toast.dbDeleteTriggered",
+                                      "Deleting database and rebuilding...",
+                                  )
                                 : isReset
-                                ? t("toast.resetTriggered", "Reset triggered: Reindexing all files...")
-                                : t("toast.dbRestoreStarted", "DB restore started"),
-                            stopping_workers: t("toast.dbRestoreStopping", "Stopping running workers"),
-                            resetting_db: t("toast.dbRestoreResetting", "Unlocking and resetting database"),
-                            delete_db: t("toast.dbDeleteTriggered", "Deleting database and rebuilding..."),
+                                  ? t(
+                                        "toast.resetTriggered",
+                                        "Reset triggered: Reindexing all files...",
+                                    )
+                                  : t("toast.dbRestoreStarted", "DB restore started"),
+                            stopping_workers: t(
+                                "toast.dbRestoreStopping",
+                                "Stopping running workers",
+                            ),
+                            resetting_db: t(
+                                "toast.dbRestoreResetting",
+                                "Unlocking and resetting database",
+                            ),
+                            delete_db: t(
+                                "toast.dbDeleteTriggered",
+                                "Deleting database and rebuilding...",
+                            ),
                             recreate_db: t("toast.dbRestoreReplacing", "Recreating database"),
-                            replacing_files: t("toast.dbRestoreReplacing", "Replacing database files"),
+                            replacing_files: t(
+                                "toast.dbRestoreReplacing",
+                                "Replacing database files",
+                            ),
                             restarting_scan: t("toast.dbRestoreRescan", "Restarting scan"),
                             done: isDelete
-                                ? t("toast.dbDeleteSuccess", "Database deleted and rebuilt. Files are being reindexed.")
+                                ? t(
+                                      "toast.dbDeleteSuccess",
+                                      "Database deleted and rebuilt. Files are being reindexed.",
+                                  )
                                 : isReset
-                                ? t("toast.resetStarted", "Index reset started. Files will be reindexed in the background.")
-                                : t("toast.dbRestoreSuccess", "Database backup restored"),
+                                  ? t(
+                                        "toast.resetStarted",
+                                        "Index reset started. Files will be reindexed in the background.",
+                                    )
+                                  : t("toast.dbRestoreSuccess", "Database backup restored"),
                             failed: String(
-                                detail?.message
-                                    || (isDelete
+                                detail?.message ||
+                                    (isDelete
                                         ? t("toast.dbDeleteFailed", "Failed to delete database")
                                         : isReset
-                                        ? t("toast.resetFailed", "Failed to reset index")
-                                        : t("toast.dbRestoreFailed", "Failed to restore DB backup"))
+                                          ? t("toast.resetFailed", "Failed to reset index")
+                                          : t(
+                                                "toast.dbRestoreFailed",
+                                                "Failed to restore DB backup",
+                                            )),
                             ),
                         };
                         const msg = map[step] || String(detail?.message || "");
                         if (!msg) return;
-                        const tone = level === "error" || step === "failed" ? "error" : step === "done" ? "success" : "info";
+                        const tone =
+                            level === "error" || step === "failed"
+                                ? "error"
+                                : step === "done"
+                                  ? "success"
+                                  : "info";
                         comfyToast(msg, tone, step === "done" || step === "failed" ? 2800 : 1800);
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 };
-                _registerCleanableListener(runtime, api, EVENTS.DB_RESTORE_STATUS, api._mjrDbRestoreStatusHandler);
+                _registerCleanableListener(
+                    runtime,
+                    api,
+                    EVENTS.DB_RESTORE_STATUS,
+                    api._mjrDbRestoreStatusHandler,
+                );
 
                 const assetsDeletedHandler = (event) => {
                     try {
@@ -799,9 +1061,16 @@ app.registerExtension({
                         if (!ids.length) return;
                         const grid = getActiveGridContainer();
                         if (grid) removeAssetsFromGrid(grid, ids);
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 };
-                _registerCleanableListener(runtime, window, EVENTS.ASSETS_DELETED, assetsDeletedHandler);
+                _registerCleanableListener(
+                    runtime,
+                    window,
+                    EVENTS.ASSETS_DELETED,
+                    assetsDeletedHandler,
+                );
                 try {
                     if (runtime && typeof runtime === "object") {
                         runtime.api = api;
@@ -818,7 +1087,8 @@ app.registerExtension({
         })().catch((e) => reportError(e, "entry.api_setup"));
 
         // Register sidebar tab
-        if (registerSidebarTabCompat(runtimeApp, {
+        if (
+            registerSidebarTabCompat(runtimeApp, {
                 id: SIDEBAR_TAB_ID,
                 icon: "pi pi-folder",
                 title: t("manager.title"),
@@ -831,22 +1101,32 @@ app.registerExtension({
                 destroy: (el) => {
                     try {
                         el?._eventCleanup?.();
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                     try {
                         el?._mjrPanelState?._mjrDispose?.();
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                     try {
                         el?._mjrPopoverManager?.dispose?.();
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                     try {
                         el?.replaceChildren?.();
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 },
-            })) {
-
+            })
+        ) {
             console.debug("[Majoor] Sidebar tab registered");
         } else {
-            console.warn("📂 Majoor Assets Manager: extensionManager.registerSidebarTab is unavailable");
+            console.warn(
+                "📂 Majoor Assets Manager: extensionManager.registerSidebarTab is unavailable",
+            );
         }
 
         try {
@@ -862,30 +1142,43 @@ app.registerExtension({
                 getMetrics: () => window.MajoorMetrics?.getMetricsReport?.(),
                 resetMetrics: () => window.MajoorMetrics?.resetMetrics?.(),
             };
-            console.debug?.("[Majoor] Debug commands available: window.MajoorDebug.exportMetrics(), window.MajoorDebug.getMetrics(), window.MajoorDebug.resetMetrics()");
+            console.debug?.(
+                "[Majoor] Debug commands available: window.MajoorDebug.exportMetrics(), window.MajoorDebug.getMetrics(), window.MajoorDebug.resetMetrics()",
+            );
             if (NODE_STREAM_FEATURE_ENABLED) {
                 // Expose NodeStream API for third-party adapter registration (lazy-resolved).
-                const _nsApi = (fn) => async (...args) => {
-                    if (!_nodeStreamMod) {
-                        _nodeStreamMod = await import("./features/viewer/nodeStream/NodeStreamController.js");
-                    }
-                    return _nodeStreamMod[fn](...args);
-                };
+                const _nsApi =
+                    (fn) =>
+                    async (...args) => {
+                        if (!_nodeStreamMod) {
+                            _nodeStreamMod =
+                                await import("./features/viewer/nodeStream/NodeStreamController.js");
+                        }
+                        return _nodeStreamMod[fn](...args);
+                    };
                 window.MajoorNodeStream = {
                     registerAdapter: _nsApi("registerAdapter"),
                     listAdapters: _nsApi("listAdapters"),
                     async createAdapter(config) {
-                        const { createAdapter } = await import("./features/viewer/nodeStream/adapters/BaseAdapter.js");
+                        const { createAdapter } =
+                            await import("./features/viewer/nodeStream/adapters/BaseAdapter.js");
                         return createAdapter(config);
                     },
                     async getKnownNodeSets() {
-                        const { getKnownNodeSets } = await import("./features/viewer/nodeStream/adapters/KnownNodesAdapter.js");
+                        const { getKnownNodeSets } =
+                            await import("./features/viewer/nodeStream/adapters/KnownNodesAdapter.js");
                         return getKnownNodeSets();
                     },
                 };
-                console.debug?.("[Majoor] NodeStream API: window.MajoorNodeStream.registerAdapter(adapter), .createAdapter(config), .listAdapters()");
+                console.debug?.(
+                    "[Majoor] NodeStream API: window.MajoorNodeStream.registerAdapter(adapter), .createAdapter(config), .listAdapters()",
+                );
             } else {
-                try { delete window.MajoorNodeStream; } catch (e) { window.MajoorNodeStream = undefined; }
+                try {
+                    delete window.MajoorNodeStream;
+                } catch {
+                    window.MajoorNodeStream = undefined;
+                }
             }
         }
     },
@@ -897,7 +1190,9 @@ app.registerExtension({
     onNodeOutputsUpdated(nodeOutputs) {
         try {
             const files = [];
-            for (const [, outputs] of (nodeOutputs instanceof Map ? nodeOutputs.entries() : Object.entries(nodeOutputs || {}))) {
+            for (const [, outputs] of nodeOutputs instanceof Map
+                ? nodeOutputs.entries()
+                : Object.entries(nodeOutputs || {})) {
                 for (const items of Object.values(outputs || {})) {
                     if (!Array.isArray(items)) continue;
                     for (const item of items) {
@@ -910,7 +1205,6 @@ app.registerExtension({
         } catch (e) {
             console.debug?.("[Majoor] onNodeOutputsUpdated error", e);
         }
-
     },
 
     getNodeMenuItems(node) {
@@ -920,17 +1214,19 @@ app.registerExtension({
             nodeMenuEntry("Open in Floating Viewer", () => {
                 try {
                     window.dispatchEvent(new Event(EVENTS.MFV_OPEN));
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }),
             nodeMenuEntry("Index Output", () => {
                 try {
                     triggerRefreshGrid();
                     comfyToast(t("toast.rescanningFile", "Rescanning file…"), "info", 1800);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }),
         ];
     },
-    bottomPanelTabs: [
-        getGeneratedFeedBottomPanelTab(),
-    ],
+    bottomPanelTabs: [getGeneratedFeedBottomPanelTab()],
 });

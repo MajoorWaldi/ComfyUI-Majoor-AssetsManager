@@ -8,7 +8,8 @@ export function extractOutputFiles(output) {
 
     const pushItem = (item) => {
         if (!item) return;
-        const rawPath = item.path || item.filepath || item.fullpath || item.fullPath || item.full_path;
+        const rawPath =
+            item.path || item.filepath || item.fullpath || item.fullPath || item.full_path;
         let filename = item.filename;
         if (!filename && rawPath) {
             const parts = String(rawPath).split(/[/\\\\]/);
@@ -84,7 +85,14 @@ export function extractOutputFiles(output) {
             for (const value of Object.values(node)) {
                 if (files.length >= MAX_ITEMS) break;
                 if (!value || typeof value !== "object") continue;
-                if (value.images || value.gifs || value.videos || value.meshes || value.mesh || value.audio) {
+                if (
+                    value.images ||
+                    value.gifs ||
+                    value.videos ||
+                    value.meshes ||
+                    value.mesh ||
+                    value.audio
+                ) {
                     addItems(value.images);
                     addItems(value.gifs);
                     addItems(value.videos);
@@ -101,4 +109,3 @@ export function extractOutputFiles(output) {
     walk(output, 0);
     return files;
 }
-

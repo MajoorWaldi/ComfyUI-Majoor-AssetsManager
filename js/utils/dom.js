@@ -21,7 +21,9 @@ export function safeClosest(target, selector) {
         if (parent && typeof parent.closest === "function") {
             return parent.closest(selector);
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return null;
 }
 
@@ -52,6 +54,7 @@ export function createMediaErrorPlaceholder(iconClass = "pi pi-image") {
     icon.style.fontSize = "24px";
     icon.style.opacity = "0.5";
     err.appendChild(icon);
-    err.style.cssText = "display:flex; align-items:center; justify-content:center; width:100%; height:100%; background:rgba(255,50,50,0.1);";
+    err.style.cssText =
+        "display:flex; align-items:center; justify-content:center; width:100%; height:100%; background:rgba(255,50,50,0.1);";
     return err;
 }

@@ -49,7 +49,7 @@ export class VirtualGrid {
         this.columnCount = 1;
         this.itemWidth = this.options.minItemWidth;
         this.rowHeight = this.itemWidth;
-        this.metaHeight = 0;  // Height of non-image part
+        this.metaHeight = 0; // Height of non-image part
         this.measured = false;
 
         /** @type {number[]} Samples for dynamic height calculation */
@@ -137,7 +137,9 @@ export class VirtualGrid {
         try {
             if (!this._debugEnabled()) return;
             console.warn("[Majoor][VirtualGrid]", ...args);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 
     /**
@@ -160,7 +162,11 @@ export class VirtualGrid {
                 // Try to clean up
                 const card = this._getCard(el);
                 if (card) {
-                    try { this.options.onItemRecycled(card); } catch (e) { console.debug?.(e); }
+                    try {
+                        this.options.onItemRecycled(card);
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 }
                 el.remove();
             }
@@ -234,7 +240,9 @@ export class VirtualGrid {
                 const card = this._getCard(el);
                 if (card) out.push(card);
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         return out;
     }
 
@@ -278,7 +286,7 @@ export class VirtualGrid {
             containerHeight: this.container?.style?.height,
             items: this.items?.length,
             rendered: this.renderedItems?.size,
-            scrollTarget: this.scrollTarget
+            scrollTarget: this.scrollTarget,
         });
     }
 
@@ -290,7 +298,7 @@ export class VirtualGrid {
         if (this._disposed) return;
         // Use container's clientWidth as the source of truth.
         // This automatically accounts for parent padding and parent scrollbars.
-        let containerWidth = this.container.clientWidth;
+        const containerWidth = this.container.clientWidth;
 
         // Fallback or sanity check
         if (!containerWidth) return;
@@ -306,7 +314,9 @@ export class VirtualGrid {
             const cs = window.getComputedStyle(this.container);
             padL = Number.parseFloat(cs?.paddingLeft || "0") || 0;
             padR = Number.parseFloat(cs?.paddingRight || "0") || 0;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         const safety = 2;
         let baseWidth = containerWidth;
         try {
@@ -315,13 +325,18 @@ export class VirtualGrid {
                 const sw = Number(se.clientWidth || 0);
                 if (sw > 0) baseWidth = Math.min(baseWidth, sw);
             }
-        } catch (e) { console.debug?.(e); }
-        let availWidth = Math.max(1, Math.floor(baseWidth - padL - padR - safety));
+        } catch (e) {
+            console.debug?.(e);
+        }
+        const availWidth = Math.max(1, Math.floor(baseWidth - padL - padR - safety));
 
         this.columnCount = Math.max(1, Math.floor((availWidth + gap) / (minW + gap)));
 
         // Flex behavior: card width follows available row space.
-        this.itemWidth = Math.max(1, Math.floor((availWidth - (this.columnCount - 1) * gap) / this.columnCount));
+        this.itemWidth = Math.max(
+            1,
+            Math.floor((availWidth - (this.columnCount - 1) * gap) / this.columnCount),
+        );
 
         const detailsEnabled = !!this.container?.classList?.contains?.("mjr-show-details");
 
@@ -331,7 +346,8 @@ export class VirtualGrid {
             const minMeta = detailsEnabled ? VirtualGrid.DETAILS_META_MIN_HEIGHT : 0;
             this.rowHeight = this.itemWidth + Math.max(this.metaHeight, minMeta);
         } else {
-            this.rowHeight = this.itemWidth + (detailsEnabled ? VirtualGrid.DETAILS_META_MIN_HEIGHT : 0);
+            this.rowHeight =
+                this.itemWidth + (detailsEnabled ? VirtualGrid.DETAILS_META_MIN_HEIGHT : 0);
         }
 
         this.updateLayout();
@@ -352,7 +368,8 @@ export class VirtualGrid {
         const totalRows = Math.ceil(this.items.length / this.columnCount);
         const totalHeight = totalRows * this.rowHeight + (totalRows - 1) * gap;
 
-        const containerWidth = this.container.clientWidth || this.container.offsetWidth || this.lastWidth || 0;
+        const containerWidth =
+            this.container.clientWidth || this.container.offsetWidth || this.lastWidth || 0;
         const itemsChanged = this._lastLayoutItemsVersion !== this._itemsVersion;
         if (!force && !itemsChanged && containerWidth > 0) {
             const widthDelta = Math.abs(containerWidth - this._lastLayoutWidth);
@@ -373,9 +390,9 @@ export class VirtualGrid {
 
     _resolveScrollTarget(scrollElement) {
         if (
-            scrollElement === window
-            || scrollElement === document.body
-            || scrollElement === document.documentElement
+            scrollElement === window ||
+            scrollElement === document.body ||
+            scrollElement === document.documentElement
         ) {
             return window;
         }
@@ -395,11 +412,15 @@ export class VirtualGrid {
         if (card) {
             try {
                 this.options.onItemRecycled(card);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
         try {
             el.remove();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         if (this._pool.length >= this._maxPoolSize) {
             return;
         }
@@ -430,22 +451,24 @@ export class VirtualGrid {
 
                 // Sample at least 3 items to avoid outliers
                 if (this.measureSamples.length >= 3) {
-                     // Calculate median meta height
-                     const sorted = [...this.measureSamples].sort((a,b) => a-b);
-                     const mid = Math.floor(sorted.length / 2);
-                     this.metaHeight = Math.max(0, sorted[mid]);
+                    // Calculate median meta height
+                    const sorted = [...this.measureSamples].sort((a, b) => a - b);
+                    const mid = Math.floor(sorted.length / 2);
+                    this.metaHeight = Math.max(0, sorted[mid]);
 
                     this.rowHeight = this.itemWidth + this.metaHeight;
                     this.measured = true;
                     this.updateLayout(true);
                 } else if (this.measureSamples.length === 1) {
-                     // Initial update to ensure grid has some height
-                     let tempMeta = Math.max(0, meta);
-                     this.rowHeight = this.itemWidth + tempMeta;
-                     this.updateLayout(true);
+                    // Initial update to ensure grid has some height
+                    const tempMeta = Math.max(0, meta);
+                    this.rowHeight = this.itemWidth + tempMeta;
+                    this.updateLayout(true);
                 }
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 
     /**
@@ -456,12 +479,22 @@ export class VirtualGrid {
         if (this.measured) return;
         try {
             requestAnimationFrame(() => {
-                try { this.updateMetrics(); } catch (e) { console.debug?.(e); }
+                try {
+                    this.updateMetrics();
+                } catch (e) {
+                    console.debug?.(e);
+                }
             });
             setTimeout(() => {
-                try { this.updateMetrics(); } catch (e) { console.debug?.(e); }
+                try {
+                    this.updateMetrics();
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }, 60);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 
     /**
@@ -472,8 +505,8 @@ export class VirtualGrid {
         if (!this.items.length || this.columnCount < 1) return;
 
         // Cache layout rects to avoid repeated DOM reads
-        let scrollTop = 0;
-        let viewportHeight = 0;
+        let scrollTop;
+        let viewportHeight;
         const safeRect = (el) => {
             try {
                 return el?.getBoundingClientRect?.() || null;
@@ -490,7 +523,8 @@ export class VirtualGrid {
             if (containerRect) {
                 scrollTop = Math.max(0, -containerRect.top);
             } else {
-                scrollTop = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+                scrollTop =
+                    window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
             }
         } else {
             viewportHeight = scrollEl?.clientHeight || 0;
@@ -520,167 +554,166 @@ export class VirtualGrid {
         const startIndex = firstRow * this.columnCount;
         const endIndex = Math.min(this.items.length, (lastRow + 1) * this.columnCount);
 
-            const fragment = document.createDocumentFragment();
-            let firstNewCard = null;
-            let createdCount = 0;
-            // Track used keys (indices) to cleanup later
-            const desiredIndices = new Set();
+        const fragment = document.createDocumentFragment();
+        let firstNewCard = null;
+        let createdCount = 0;
+        // Track used keys (indices) to cleanup later
+        const desiredIndices = new Set();
 
-            // Render loop
-            for (let i = startIndex; i < endIndex; i++) {
-                desiredIndices.add(i);
+        // Render loop
+        for (let i = startIndex; i < endIndex; i++) {
+            desiredIndices.add(i);
 
-                let el = this.renderedItems.get(i);
-                const item = this.items[i];
+            let el = this.renderedItems.get(i);
+            const item = this.items[i];
 
-                // Check if element matches data (handle list mutations)
-                // Fix: Use ID check to avoid re-creating DOM when object ref changes but item is same
-                const isSameItem = el && (
-                    el._virtualItem === item ||
-                    (item.id != null && el._virtualItem?.id === item.id)
-                );
+            // Check if element matches data (handle list mutations)
+            // Fix: Use ID check to avoid re-creating DOM when object ref changes but item is same
+            const isSameItem =
+                el &&
+                (el._virtualItem === item || (item.id != null && el._virtualItem?.id === item.id));
 
-                if (el && !isSameItem) {
-                    this.renderedItems.delete(i);
-                    this._recycleToPool(el);
-                    el = undefined;
-                } else if (el && isSameItem && el._virtualItem !== item) {
-                    // Update reference but keep DOM
-                    el._virtualItem = item;
-                    this.options.onItemUpdated(item, this._getCard(el));
-                }
+            if (el && !isSameItem) {
+                this.renderedItems.delete(i);
+                this._recycleToPool(el);
+                el = undefined;
+            } else if (el && isSameItem && el._virtualItem !== item) {
+                // Update reference but keep DOM
+                el._virtualItem = item;
+                this.options.onItemUpdated(item, this._getCard(el));
+            }
 
+            if (!el) {
+                let fromPool;
+                el = this._takeFromPool();
                 if (!el) {
-                    let fromPool = false;
-                    el = this._takeFromPool();
-                    if (!el) {
-                        // Create wrapper for positioning
-                        el = document.createElement("div");
-                        el.className = "mjr-virtual-cell";
-                        el.style.position = "absolute";
-                        fromPool = false;
-                    } else {
-                        fromPool = true;
-                    }
-
-                    // CRITICAL: Set width BEFORE appending/measuring so content flows correctly
-                    el.style.width = `${this.itemWidth}px`;
-
-                    let card = this._getCard(el);
-                    if (!card || !fromPool) {
-                        try {
-                            card = this.options.createItem(item, i);
-                        } catch (e) {
-                            this._warn("createItem failed", e);
-                            card = document.createElement("div");
-                        }
-                        el.textContent = "";
-                        el.appendChild(card);
-                    } else {
-                        try {
-                            this.options.onItemUpdated(item, card);
-                        } catch (e) {
-                            this._warn("onItemUpdated failed", e);
-                        }
-                    }
-
-                    el._virtualItem = item;
-
-                    fragment.appendChild(el);
-                    createdCount += 1;
-                    this.renderedItems.set(i, el);
-
-                    // IMPORTANT: The card element inside is what we measure and update
-                    // But VirtualGrid manages the 'el' wrapper position.
-
-                    if (!this.measured && !firstNewCard) {
-                        firstNewCard = card;
-                    }
-
-                    this.options.onItemRendered(item, card);
+                    // Create wrapper for positioning
+                    el = document.createElement("div");
+                    el.className = "mjr-virtual-cell";
+                    el.style.position = "absolute";
+                    fromPool = false;
+                } else {
+                    fromPool = true;
                 }
 
-                // Update position for everyone in range (in case resize happened)
-                if (el) {
-                    const row = Math.floor(i / this.columnCount);
-                    const col = i % this.columnCount;
-                    const x = col * (this.itemWidth + gap);
-                    const y = row * (this.rowHeight + gap);
+                // CRITICAL: Set width BEFORE appending/measuring so content flows correctly
+                el.style.width = `${this.itemWidth}px`;
 
-                    // CRITICAL FIX: Use left/top instead of transform to avoid being overwritten by
-                    // selection state CSS which applies transform: scale().
-                    el.style.transform = ""; // clear any legacy transform
-                    el.style.left = `${x}px`;
-                    el.style.top = `${y}px`;
-
-                    el.style.width = `${this.itemWidth}px`;
-                    el.style.height = `${this.rowHeight}px`;
-
-                    // Force child card to fill wrapper?
-                    // The wrapper is absolute. The card inside should probably be width 100%.
-                    const card = el.firstElementChild;
-                    if (card) {
-                        card.style.width = "100%";
-                        card.style.height = "100%";
+                let card = this._getCard(el);
+                if (!card || !fromPool) {
+                    try {
+                        card = this.options.createItem(item, i);
+                    } catch (e) {
+                        this._warn("createItem failed", e);
+                        card = document.createElement("div");
+                    }
+                    el.textContent = "";
+                    el.appendChild(card);
+                } else {
+                    try {
+                        this.options.onItemUpdated(item, card);
+                    } catch (e) {
+                        this._warn("onItemUpdated failed", e);
                     }
                 }
+
+                el._virtualItem = item;
+
+                fragment.appendChild(el);
+                createdCount += 1;
+                this.renderedItems.set(i, el);
+
+                // IMPORTANT: The card element inside is what we measure and update
+                // But VirtualGrid manages the 'el' wrapper position.
+
+                if (!this.measured && !firstNewCard) {
+                    firstNewCard = card;
+                }
+
+                this.options.onItemRendered(item, card);
             }
 
-            if (createdCount > 0) {
-                this.container.appendChild(fragment);
-                if (!this.measured && firstNewCard) {
-                    this.measureItem(firstNewCard);
-                }
-            }
+            // Update position for everyone in range (in case resize happened)
+            if (el) {
+                const row = Math.floor(i / this.columnCount);
+                const col = i % this.columnCount;
+                const x = col * (this.itemWidth + gap);
+                const y = row * (this.rowHeight + gap);
 
-            // Cleanup
-            for (const [i, el] of this.renderedItems) {
-                if (!desiredIndices.has(i)) {
-                    this._recycleToPool(el);
-                    this.renderedItems.delete(i);
+                // CRITICAL FIX: Use left/top instead of transform to avoid being overwritten by
+                // selection state CSS which applies transform: scale().
+                el.style.transform = ""; // clear any legacy transform
+                el.style.left = `${x}px`;
+                el.style.top = `${y}px`;
+
+                el.style.width = `${this.itemWidth}px`;
+                el.style.height = `${this.rowHeight}px`;
+
+                // Force child card to fill wrapper?
+                // The wrapper is absolute. The card inside should probably be width 100%.
+                const card = el.firstElementChild;
+                if (card) {
+                    card.style.width = "100%";
+                    card.style.height = "100%";
                 }
             }
         }
 
-        /**
-         * Scroll the scroll container so that a given item index is visible.
-         * Works even when the item is not yet rendered in the DOM (virtualized).
-         * @param {number} index Index of the item in the items array
-         */
-        scrollToIndex(index) {
-            if (index < 0 || index >= this.items.length) return;
-
-            const gap = this.options.gap;
-            const row = Math.floor(index / this.columnCount);
-            const itemTop = row * (this.rowHeight + gap);
-            const itemBottom = itemTop + this.rowHeight;
-
-            if (this.scrollTarget === window) {
-                const containerRect = this.container.getBoundingClientRect();
-                const viewportH = window.innerHeight || document.documentElement.clientHeight;
-                const absTop = containerRect.top + (window.scrollY || 0) + itemTop;
-                const absBottom = absTop + this.rowHeight;
-                const scrollY = window.scrollY || window.pageYOffset || 0;
-
-                if (absBottom > scrollY + viewportH) {
-                    window.scrollTo({ top: absBottom - viewportH, behavior: "auto" });
-                } else if (absTop < scrollY) {
-                    window.scrollTo({ top: absTop, behavior: "auto" });
-                }
-            } else {
-                const el = this._getScrollElement();
-                if (!el) return;
-                const viewportH = el.clientHeight;
-
-                if (itemBottom > el.scrollTop + viewportH) {
-                    el.scrollTop = itemBottom - viewportH;
-                } else if (itemTop < el.scrollTop) {
-                    el.scrollTop = itemTop;
-                }
+        if (createdCount > 0) {
+            this.container.appendChild(fragment);
+            if (!this.measured && firstNewCard) {
+                this.measureItem(firstNewCard);
             }
         }
 
-        _getCard(el) {
-            return el.firstElementChild || el;
+        // Cleanup
+        for (const [i, el] of this.renderedItems) {
+            if (!desiredIndices.has(i)) {
+                this._recycleToPool(el);
+                this.renderedItems.delete(i);
+            }
         }
     }
+
+    /**
+     * Scroll the scroll container so that a given item index is visible.
+     * Works even when the item is not yet rendered in the DOM (virtualized).
+     * @param {number} index Index of the item in the items array
+     */
+    scrollToIndex(index) {
+        if (index < 0 || index >= this.items.length) return;
+
+        const gap = this.options.gap;
+        const row = Math.floor(index / this.columnCount);
+        const itemTop = row * (this.rowHeight + gap);
+        const itemBottom = itemTop + this.rowHeight;
+
+        if (this.scrollTarget === window) {
+            const containerRect = this.container.getBoundingClientRect();
+            const viewportH = window.innerHeight || document.documentElement.clientHeight;
+            const absTop = containerRect.top + (window.scrollY || 0) + itemTop;
+            const absBottom = absTop + this.rowHeight;
+            const scrollY = window.scrollY || window.pageYOffset || 0;
+
+            if (absBottom > scrollY + viewportH) {
+                window.scrollTo({ top: absBottom - viewportH, behavior: "auto" });
+            } else if (absTop < scrollY) {
+                window.scrollTo({ top: absTop, behavior: "auto" });
+            }
+        } else {
+            const el = this._getScrollElement();
+            if (!el) return;
+            const viewportH = el.clientHeight;
+
+            if (itemBottom > el.scrollTop + viewportH) {
+                el.scrollTop = itemBottom - viewportH;
+            } else if (itemTop < el.scrollTop) {
+                el.scrollTop = itemTop;
+            }
+        }
+    }
+
+    _getCard(el) {
+        return el.firstElementChild || el;
+    }
+}

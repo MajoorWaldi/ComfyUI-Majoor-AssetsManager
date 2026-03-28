@@ -12,21 +12,25 @@ import { buildViewURL, buildAssetViewURL } from "../../api/endpoints.js";
 import { ensureViewerMetadataAsset } from "./genInfo.js";
 import { getAssetMetadata, getFileMetadataScoped } from "../../api/client.js";
 import { normalizeGenerationMetadata } from "../../components/sidebar/parsers/geninfoParser.js";
-import { createModel3DMediaElement, isModel3DInteractionTarget, MODEL3D_EXTS } from "./model3dRenderer.js";
+import {
+    createModel3DMediaElement,
+    isModel3DInteractionTarget,
+    MODEL3D_EXTS,
+} from "./model3dRenderer.js";
 import { installFollowerVideoSync } from "./videoSync.js";
 import { appendTooltipHint, setTooltipHint } from "../../utils/tooltipShortcuts.js";
 import { NODE_STREAM_FEATURE_ENABLED } from "./nodeStream/nodeStreamFeatureFlag.js";
 
 export const MFV_MODES = Object.freeze({
     SIMPLE: "simple",
-    AB:     "ab",
-    SIDE:   "side",
-    GRID:   "grid",
+    AB: "ab",
+    SIDE: "side",
+    GRID: "grid",
 });
 
 // Zoom bounds and wheel sensitivity for the MFV pan/zoom.
-const MFV_ZOOM_MIN    = 0.25;
-const MFV_ZOOM_MAX    = 8;
+const MFV_ZOOM_MIN = 0.25;
+const MFV_ZOOM_MAX = 8;
 const MFV_ZOOM_FACTOR = 0.0008; // multiplied by deltaY per wheel tick
 const MFV_RESIZE_EDGE_HIT_PX = 8;
 let _mfvInstanceSeq = 0;
@@ -45,7 +49,9 @@ function _extOf(filename) {
         const name = String(filename || "").trim();
         const idx = name.lastIndexOf(".");
         return idx >= 0 ? name.slice(idx).toLowerCase() : "";
-    } catch (_e) { /* extension extraction is best-effort */ return ""; }
+    } catch (_e) {
+        /* extension extraction is best-effort */ return "";
+    }
 }
 
 /** Detect media kind from asset data (video / audio / model3d / gif / image). */
@@ -68,11 +74,7 @@ function _resolveUrl(fileData) {
     if (fileData.url) return String(fileData.url);
     // Raw ComfyUI output file: { filename, subfolder, type } — no id
     if (fileData.filename && fileData.id == null) {
-        return buildViewURL(
-            fileData.filename,
-            fileData.subfolder || "",
-            fileData.type || "output"
-        );
+        return buildViewURL(fileData.filename, fileData.subfolder || "", fileData.type || "output");
     }
     // Full asset object from backend (has id + filepath)
     if (fileData.filename) return buildAssetViewURL(fileData) || "";
@@ -100,7 +102,9 @@ function _attemptAutoplay(mediaEl) {
     try {
         const p = mediaEl.play();
         if (p && typeof p.catch === "function") p.catch(() => {});
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 function _buildMediaEl(fileData, { fill = false } = {}) {
@@ -130,7 +134,11 @@ function _buildMediaEl(fileData, { fill = false } = {}) {
         audio.controls = true;
         audio.autoplay = true;
         audio.preload = "metadata";
-        try { audio.addEventListener("loadedmetadata", () => _attemptAutoplay(audio), { once: true }); } catch (e) { console.debug?.(e); }
+        try {
+            audio.addEventListener("loadedmetadata", () => _attemptAutoplay(audio), { once: true });
+        } catch (e) {
+            console.debug?.(e);
+        }
         _attemptAutoplay(audio);
 
         wrap.appendChild(head);
@@ -208,68 +216,68 @@ function _canvasLabel(ctx, text, x, y) {
 export class FloatingViewer {
     constructor() {
         this._instanceId = ++_mfvInstanceSeq;
-        this.element     = null;
-        this.isVisible   = false;
-        this._contentEl  = null;
-        this._closeBtn   = null;
-        this._modeBtn    = null;
-        this._pinSelect  = null;
-        this._liveBtn    = null;
-        this._genBtn     = null;
+        this.element = null;
+        this.isVisible = false;
+        this._contentEl = null;
+        this._closeBtn = null;
+        this._modeBtn = null;
+        this._pinSelect = null;
+        this._liveBtn = null;
+        this._genBtn = null;
         this._genDropdown = null;
         this._captureBtn = null;
         this._genInfoSelections = new Set(["genTime"]);
-        this._mode       = MFV_MODES.SIMPLE;
-        this._mediaA     = null;
-        this._mediaB     = null;
-        this._mediaC     = null;
-        this._mediaD     = null;
+        this._mode = MFV_MODES.SIMPLE;
+        this._mediaA = null;
+        this._mediaB = null;
+        this._mediaC = null;
+        this._mediaD = null;
         this._pinnedSlot = null;
         this._abDividerX = 0.5; // 0..1
 
         // Pan/zoom state
-        this._zoom      = 1;
-        this._panX      = 0;
-        this._panY      = 0;
+        this._zoom = 1;
+        this._panX = 0;
+        this._panY = 0;
         this._panzoomAC = null; // AbortController for event cleanup
-        this._dragging  = false;
+        this._dragging = false;
         this._compareSyncAC = null;
 
         // AbortController for toolbar/header button click listeners (NM-1).
         // Aborted in dispose() so listeners are cleaned up without needing named references.
-        this._btnAC     = null;
+        this._btnAC = null;
         // Generation counter: incremented on every loadMediaA/loadMediaPair call so
         // stale async metadata enrichment results can be discarded (NM-2).
         this._refreshGen = 0;
 
         // Pop-out state: external window reference and button.
         this._popoutWindow = null;
-        this._popoutBtn    = null;
-        this._isPopped     = false;
-        this._popoutCloseHandler   = null;
+        this._popoutBtn = null;
+        this._isPopped = false;
+        this._popoutCloseHandler = null;
         this._popoutKeydownHandler = null;
-        this._popoutCloseTimer     = null;
-        this._popoutRestoreGuard   = false;
+        this._popoutCloseTimer = null;
+        this._popoutRestoreGuard = false;
 
         // Preview stream state: button ref + last blob URL for cleanup.
-        this._previewBtn      = null;
-        this._previewBlobUrl  = null;
-        this._previewActive   = false;
+        this._previewBtn = null;
+        this._previewBlobUrl = null;
+        this._previewActive = false;
 
         // Node stream state: button ref.
-        this._nodeStreamBtn    = null;
+        this._nodeStreamBtn = null;
         this._nodeStreamActive = false;
 
         // Master AbortController for document-level UI handlers (e.g. click-outside).
         // Aborted in dispose() to guarantee all listeners are removed atomically.
-        this._docAC        = new AbortController();
+        this._docAC = new AbortController();
         // AbortController for pop-out window listeners (beforeunload, keydown, etc.).
-        this._popoutAC     = null;
+        this._popoutAC = null;
 
         // Panel-level listeners and edge-resize state.
-        this._panelAC      = new AbortController();
-        this._resizeState  = null;
-        this._titleId      = `mjr-mfv-title-${this._instanceId}`;
+        this._panelAC = new AbortController();
+        this._resizeState = null;
+        this._titleId = `mjr-mfv-title-${this._instanceId}`;
         this._genDropdownId = `mjr-mfv-gen-dropdown-${this._instanceId}`;
         this._docClickHost = null;
         this._handleDocClick = null;
@@ -369,7 +377,7 @@ export class FloatingViewer {
         setTooltipHint(
             this._liveBtn,
             t("tooltip.liveStreamOff", "Live Stream: OFF — click to follow"),
-            MFV_LIVE_HINT
+            MFV_LIVE_HINT,
         );
         bar.appendChild(this._liveBtn);
 
@@ -381,8 +389,11 @@ export class FloatingViewer {
         this._previewBtn.setAttribute("aria-pressed", "false");
         setTooltipHint(
             this._previewBtn,
-            t("tooltip.previewStreamOff", "KSampler Preview: OFF — click to stream denoising steps"),
-            MFV_PREVIEW_HINT
+            t(
+                "tooltip.previewStreamOff",
+                "KSampler Preview: OFF — click to stream denoising steps",
+            ),
+            MFV_PREVIEW_HINT,
         );
         bar.appendChild(this._previewBtn);
 
@@ -395,7 +406,7 @@ export class FloatingViewer {
         setTooltipHint(
             this._nodeStreamBtn,
             t("tooltip.nodeStreamOff", "Node Stream: OFF — click to stream selected node output"),
-            MFV_NODESTREAM_HINT
+            MFV_NODESTREAM_HINT,
         );
         bar.appendChild(this._nodeStreamBtn);
         if (!NODE_STREAM_FEATURE_ENABLED) {
@@ -422,7 +433,10 @@ export class FloatingViewer {
         this._popoutBtn = document.createElement("button");
         this._popoutBtn.type = "button";
         this._popoutBtn.className = "mjr-icon-btn";
-        const popoutLabel = t("tooltip.popOutViewer", "Expand to full screen (Esc or button to return)");
+        const popoutLabel = t(
+            "tooltip.popOutViewer",
+            "Expand to full screen (Esc or button to return)",
+        );
         this._popoutBtn.title = popoutLabel;
         this._popoutBtn.setAttribute("aria-label", popoutLabel);
         this._popoutBtn.setAttribute("aria-pressed", "false");
@@ -458,58 +472,94 @@ export class FloatingViewer {
     }
 
     _rebindControlHandlers() {
-        try { this._btnAC?.abort(); } catch (e) { console.debug?.(e); }
+        try {
+            this._btnAC?.abort();
+        } catch (e) {
+            console.debug?.(e);
+        }
         this._btnAC = new AbortController();
         const signal = this._btnAC.signal;
 
-        this._closeBtn?.addEventListener("click", () => {
-            window.dispatchEvent(new CustomEvent(EVENTS.MFV_CLOSE));
-        }, { signal });
+        this._closeBtn?.addEventListener(
+            "click",
+            () => {
+                window.dispatchEvent(new CustomEvent(EVENTS.MFV_CLOSE));
+            },
+            { signal },
+        );
 
         this._modeBtn?.addEventListener("click", () => this._cycleMode(), { signal });
 
-        this._pinSelect?.addEventListener("change", (e) => {
-            this._pinnedSlot = e?.target?.value || null;
-            if (this._pinnedSlot === "C" || this._pinnedSlot === "D") {
-                // C/D pins require grid mode — switch regardless of current mode
-                if (this._mode !== MFV_MODES.GRID) this.setMode(MFV_MODES.GRID);
-            } else if (this._pinnedSlot && this._mode === MFV_MODES.SIMPLE) {
-                this.setMode(MFV_MODES.AB);
-            }
-            this._updatePinSelectUI();
-        }, { signal });
+        this._pinSelect?.addEventListener(
+            "change",
+            (e) => {
+                this._pinnedSlot = e?.target?.value || null;
+                if (this._pinnedSlot === "C" || this._pinnedSlot === "D") {
+                    // C/D pins require grid mode — switch regardless of current mode
+                    if (this._mode !== MFV_MODES.GRID) this.setMode(MFV_MODES.GRID);
+                } else if (this._pinnedSlot && this._mode === MFV_MODES.SIMPLE) {
+                    this.setMode(MFV_MODES.AB);
+                }
+                this._updatePinSelectUI();
+            },
+            { signal },
+        );
 
-        this._liveBtn?.addEventListener("click", () => {
-            window.dispatchEvent(new CustomEvent(EVENTS.MFV_LIVE_TOGGLE));
-        }, { signal });
+        this._liveBtn?.addEventListener(
+            "click",
+            () => {
+                window.dispatchEvent(new CustomEvent(EVENTS.MFV_LIVE_TOGGLE));
+            },
+            { signal },
+        );
 
-        this._previewBtn?.addEventListener("click", () => {
-            window.dispatchEvent(new CustomEvent(EVENTS.MFV_PREVIEW_TOGGLE));
-        }, { signal });
+        this._previewBtn?.addEventListener(
+            "click",
+            () => {
+                window.dispatchEvent(new CustomEvent(EVENTS.MFV_PREVIEW_TOGGLE));
+            },
+            { signal },
+        );
 
-        this._nodeStreamBtn?.addEventListener("click", () => {
-            window.dispatchEvent(new CustomEvent(EVENTS.MFV_NODESTREAM_TOGGLE));
-        }, { signal });
+        this._nodeStreamBtn?.addEventListener(
+            "click",
+            () => {
+                window.dispatchEvent(new CustomEvent(EVENTS.MFV_NODESTREAM_TOGGLE));
+            },
+            { signal },
+        );
 
-        this._genBtn?.addEventListener("click", (e) => {
-            e.stopPropagation();
-            if (this._genDropdown?.classList?.contains("is-visible")) {
-                this._closeGenDropdown();
-            } else {
-                this._openGenDropdown();
-            }
-        }, { signal });
+        this._genBtn?.addEventListener(
+            "click",
+            (e) => {
+                e.stopPropagation();
+                if (this._genDropdown?.classList?.contains("is-visible")) {
+                    this._closeGenDropdown();
+                } else {
+                    this._openGenDropdown();
+                }
+            },
+            { signal },
+        );
 
-        this._popoutBtn?.addEventListener("click", () => {
-            window.dispatchEvent(new CustomEvent(EVENTS.MFV_POPOUT));
-        }, { signal });
+        this._popoutBtn?.addEventListener(
+            "click",
+            () => {
+                window.dispatchEvent(new CustomEvent(EVENTS.MFV_POPOUT));
+            },
+            { signal },
+        );
 
         this._captureBtn?.addEventListener("click", () => this._captureView(), { signal });
     }
 
     _resetGenDropdownForCurrentDocument() {
         this._closeGenDropdown();
-        try { this._genDropdown?.remove?.(); } catch (e) { console.debug?.(e); }
+        try {
+            this._genDropdown?.remove?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
         this._genDropdown = null;
         this._updateGenBtnUI();
     }
@@ -521,7 +571,11 @@ export class FloatingViewer {
         this._unbindDocumentUiHandlers();
         // Re-create the AbortController so previous listeners on a different
         // document (e.g. pop-out window) are cleaned up atomically.
-        try { this._docAC?.abort(); } catch (e) { console.debug?.(e); }
+        try {
+            this._docAC?.abort();
+        } catch (e) {
+            console.debug?.(e);
+        }
         this._docAC = new AbortController();
         doc.addEventListener("click", this._handleDocClick, { signal: this._docAC.signal });
         this._docClickHost = doc;
@@ -530,7 +584,11 @@ export class FloatingViewer {
     _unbindDocumentUiHandlers() {
         // Abort the controller instead of manual removeEventListener — guarantees
         // all document-level listeners attached via _docAC are removed.
-        try { this._docAC?.abort(); } catch (e) { console.debug?.(e); }
+        try {
+            this._docAC?.abort();
+        } catch (e) {
+            console.debug?.(e);
+        }
         this._docAC = new AbortController();
         this._docClickHost = null;
     }
@@ -629,15 +687,36 @@ export class FloatingViewer {
         try {
             const candidate = fileData.geninfo
                 ? { geninfo: fileData.geninfo }
-                : (fileData.metadata || fileData.metadata_raw || fileData);
+                : fileData.metadata || fileData.metadata_raw || fileData;
             const norm = normalizeGenerationMetadata(candidate) || null;
-            const out = { prompt: "", seed: "", model: "", lora: "", sampler: "", scheduler: "", cfg: "", step: "", genTime: "" };
+            const out = {
+                prompt: "",
+                seed: "",
+                model: "",
+                lora: "",
+                sampler: "",
+                scheduler: "",
+                cfg: "",
+                step: "",
+                genTime: "",
+            };
             if (norm && typeof norm === "object") {
                 // Extract positive prompt (primary field)
                 if (norm.prompt) out.prompt = String(norm.prompt);
                 if (norm.seed != null) out.seed = String(norm.seed);
-                if (norm.model) out.model = Array.isArray(norm.model) ? norm.model.join(", ") : String(norm.model);
-                if (Array.isArray(norm.loras)) out.lora = norm.loras.map((l) => (typeof l === "string" ? l : (l?.name || l?.lora_name || l?.model_name || ""))).filter(Boolean).join(", ");
+                if (norm.model)
+                    out.model = Array.isArray(norm.model)
+                        ? norm.model.join(", ")
+                        : String(norm.model);
+                if (Array.isArray(norm.loras))
+                    out.lora = norm.loras
+                        .map((l) =>
+                            typeof l === "string"
+                                ? l
+                                : l?.name || l?.lora_name || l?.model_name || "",
+                        )
+                        .filter(Boolean)
+                        .join(", ");
                 if (norm.sampler) out.sampler = String(norm.sampler);
                 if (norm.scheduler) out.scheduler = String(norm.scheduler);
                 if (norm.cfg != null) out.cfg = String(norm.cfg);
@@ -645,30 +724,77 @@ export class FloatingViewer {
                 // Fallback to candidate prompt if norm.prompt is empty
                 if (!out.prompt && candidate?.prompt) out.prompt = String(candidate.prompt || "");
 
-                const genTimeMs = fileData.generation_time_ms ?? fileData.metadata_raw?.generation_time_ms ?? candidate?.generation_time_ms ?? candidate?.geninfo?.generation_time_ms ?? 0;
-                if (genTimeMs && Number.isFinite(Number(genTimeMs)) && genTimeMs > 0 && genTimeMs < 86400000) {
+                const genTimeMs =
+                    fileData.generation_time_ms ??
+                    fileData.metadata_raw?.generation_time_ms ??
+                    candidate?.generation_time_ms ??
+                    candidate?.geninfo?.generation_time_ms ??
+                    0;
+                if (
+                    genTimeMs &&
+                    Number.isFinite(Number(genTimeMs)) &&
+                    genTimeMs > 0 &&
+                    genTimeMs < 86400000
+                ) {
                     out.genTime = (Number(genTimeMs) / 1000).toFixed(1) + "s";
                 }
 
                 return out;
             }
-        } catch (e) { console.debug?.("[MFV] _getGenFields error:", e); }
+        } catch (e) {
+            console.debug?.("[MFV] _getGenFields error:", e);
+        }
         // Fallback: inspect common metadata fields
-        const meta = fileData.meta || fileData.metadata || fileData.parsed || fileData.parsed_meta || fileData;
-        const out = { prompt: "", seed: "", model: "", lora: "", sampler: "", scheduler: "", cfg: "", step: "", genTime: "" };
+        const meta =
+            fileData.meta ||
+            fileData.metadata ||
+            fileData.parsed ||
+            fileData.parsed_meta ||
+            fileData;
+        const out = {
+            prompt: "",
+            seed: "",
+            model: "",
+            lora: "",
+            sampler: "",
+            scheduler: "",
+            cfg: "",
+            step: "",
+            genTime: "",
+        };
         out.prompt = meta?.prompt || meta?.text || "";
-        out.seed = (meta?.seed != null) ? String(meta.seed) : (meta?.noise_seed != null ? String(meta.noise_seed) : "");
-        if (meta?.model) out.model = Array.isArray(meta.model) ? meta.model.join(", ") : String(meta.model);
+        out.seed =
+            meta?.seed != null
+                ? String(meta.seed)
+                : meta?.noise_seed != null
+                  ? String(meta.noise_seed)
+                  : "";
+        if (meta?.model)
+            out.model = Array.isArray(meta.model) ? meta.model.join(", ") : String(meta.model);
         else out.model = meta?.model_name || "";
         out.lora = meta?.lora || meta?.loras || "";
         if (Array.isArray(out.lora)) out.lora = out.lora.join(", ");
         out.sampler = meta?.sampler || meta?.sampler_name || "";
         out.scheduler = meta?.scheduler || "";
-        out.cfg = (meta?.cfg != null) ? String(meta.cfg) : (meta?.cfg_scale != null ? String(meta.cfg_scale) : "");
-        out.step = (meta?.steps != null) ? String(meta.steps) : "";
+        out.cfg =
+            meta?.cfg != null
+                ? String(meta.cfg)
+                : meta?.cfg_scale != null
+                  ? String(meta.cfg_scale)
+                  : "";
+        out.step = meta?.steps != null ? String(meta.steps) : "";
 
-        const genTimeMsFallback = fileData.generation_time_ms ?? fileData.metadata_raw?.generation_time_ms ?? meta?.generation_time_ms ?? 0;
-        if (genTimeMsFallback && Number.isFinite(Number(genTimeMsFallback)) && genTimeMsFallback > 0 && genTimeMsFallback < 86400000) {
+        const genTimeMsFallback =
+            fileData.generation_time_ms ??
+            fileData.metadata_raw?.generation_time_ms ??
+            meta?.generation_time_ms ??
+            0;
+        if (
+            genTimeMsFallback &&
+            Number.isFinite(Number(genTimeMsFallback)) &&
+            genTimeMsFallback > 0 &&
+            genTimeMsFallback < 86400000
+        ) {
             out.genTime = (Number(genTimeMsFallback) / 1000).toFixed(1) + "s";
         }
         return out;
@@ -684,10 +810,20 @@ export class FloatingViewer {
         const fields = this._getGenFields(fileData);
         if (!fields) return null;
         const frag = document.createDocumentFragment();
-        const order = ["prompt", "seed", "model", "lora", "sampler", "scheduler", "cfg", "step", "genTime"];
+        const order = [
+            "prompt",
+            "seed",
+            "model",
+            "lora",
+            "sampler",
+            "scheduler",
+            "cfg",
+            "step",
+            "genTime",
+        ];
         for (const k of order) {
             if (!this._genInfoSelections.has(k)) continue;
-            const v = (fields[k] != null) ? String(fields[k]) : "";
+            const v = fields[k] != null ? String(fields[k]) : "";
             if (!v) continue;
             let label = k.charAt(0).toUpperCase() + k.slice(1);
             if (k === "lora") label = "LoRA";
@@ -705,8 +841,10 @@ export class FloatingViewer {
                 // Color-code gen time (matches FileInfoSection.js colour scheme)
                 const secs = parseFloat(v);
                 let gtColor = "#4CAF50"; // green  < 10s
-                if (secs >= 60)      gtColor = "#FF9800"; // orange
-                else if (secs >= 30) gtColor = "#FFC107"; // yellow
+                if (secs >= 60)
+                    gtColor = "#FF9800"; // orange
+                else if (secs >= 30)
+                    gtColor = "#FFC107"; // yellow
                 else if (secs >= 10) gtColor = "#8BC34A"; // light green
                 const span = document.createElement("span");
                 span.style.color = gtColor;
@@ -747,9 +885,7 @@ export class FloatingViewer {
         const pinned = validPins.includes(this._pinnedSlot);
         this._pinSelect.value = this._pinnedSlot || "";
         this._pinSelect.classList.toggle("is-pinned", pinned);
-        const label = pinned
-            ? `Pin Reference: ${this._pinnedSlot}`
-            : "Pin Reference: Off";
+        const label = pinned ? `Pin Reference: ${this._pinnedSlot}` : "Pin Reference: Off";
         this._pinSelect.title = label;
         this._pinSelect.setAttribute("aria-label", label);
     }
@@ -758,9 +894,12 @@ export class FloatingViewer {
         if (!this._modeBtn) return;
         const cfg = {
             [MFV_MODES.SIMPLE]: { icon: "pi-image", label: "Mode: Simple - click to switch" },
-            [MFV_MODES.AB]:     { icon: "pi-clone", label: "Mode: A/B Compare - click to switch" },
-            [MFV_MODES.SIDE]:   { icon: "pi-table", label: "Mode: Side-by-Side - click to switch" },
-            [MFV_MODES.GRID]:   { icon: "pi-th-large", label: "Mode: Grid Compare (up to 4) - click to switch" },
+            [MFV_MODES.AB]: { icon: "pi-clone", label: "Mode: A/B Compare - click to switch" },
+            [MFV_MODES.SIDE]: { icon: "pi-table", label: "Mode: Side-by-Side - click to switch" },
+            [MFV_MODES.GRID]: {
+                icon: "pi-th-large",
+                label: "Mode: Grid Compare (up to 4) - click to switch",
+            },
         };
         const { icon = "pi-image", label = "" } = cfg[this._mode] || {};
         const tooltip = appendTooltipHint(label, MFV_MODE_HINT);
@@ -808,7 +947,10 @@ export class FloatingViewer {
         this._previewBtn.classList.toggle("mjr-preview-active", this._previewActive);
         const label = this._previewActive
             ? t("tooltip.previewStreamOn", "KSampler Preview: ON — streaming denoising steps")
-            : t("tooltip.previewStreamOff", "KSampler Preview: OFF — click to stream denoising steps");
+            : t(
+                  "tooltip.previewStreamOff",
+                  "KSampler Preview: OFF — click to stream denoising steps",
+              );
         const tooltip = appendTooltipHint(label, MFV_PREVIEW_HINT);
         this._previewBtn.setAttribute("aria-pressed", String(this._previewActive));
         this._previewBtn.setAttribute("aria-label", tooltip);
@@ -843,7 +985,10 @@ export class FloatingViewer {
         // Build a minimal fileData that _resolveUrl can handle
         const fileData = { url, filename: "preview.jpg", kind: "image", _isPreview: true };
 
-        const inCompare = this._mode === MFV_MODES.AB || this._mode === MFV_MODES.SIDE || this._mode === MFV_MODES.GRID;
+        const inCompare =
+            this._mode === MFV_MODES.AB ||
+            this._mode === MFV_MODES.SIDE ||
+            this._mode === MFV_MODES.GRID;
         if (inCompare) {
             // Route preview to the first non-pinned slot. In GRID mode, cycle through
             // all free slots so existing content in other cells is preserved.
@@ -873,7 +1018,11 @@ export class FloatingViewer {
 
     _revokePreviewBlob() {
         if (this._previewBlobUrl) {
-            try { URL.revokeObjectURL(this._previewBlobUrl); } catch (e) { /* noop */ }
+            try {
+                URL.revokeObjectURL(this._previewBlobUrl);
+            } catch {
+                /* noop */
+            }
             this._previewBlobUrl = null;
         }
     }
@@ -932,13 +1081,18 @@ export class FloatingViewer {
             const gen = ++this._refreshGen;
             (async () => {
                 try {
-                    const enriched = await ensureViewerMetadataAsset(this._mediaA, { getAssetMetadata, getFileMetadataScoped });
+                    const enriched = await ensureViewerMetadataAsset(this._mediaA, {
+                        getAssetMetadata,
+                        getFileMetadataScoped,
+                    });
                     if (this._refreshGen !== gen) return; // stale — newer media loaded
                     if (enriched && typeof enriched === "object") {
                         this._mediaA = enriched;
                         this._refresh();
                     }
-                } catch (e) { console.debug?.("[MFV] metadata enrich error", e); }
+                } catch (e) {
+                    console.debug?.("[MFV] metadata enrich error", e);
+                }
             })();
         } else {
             this._refresh();
@@ -963,9 +1117,14 @@ export class FloatingViewer {
         const hydrate = async (asset) => {
             if (!asset) return asset;
             try {
-                const enriched = await ensureViewerMetadataAsset(asset, { getAssetMetadata, getFileMetadataScoped });
+                const enriched = await ensureViewerMetadataAsset(asset, {
+                    getAssetMetadata,
+                    getFileMetadataScoped,
+                });
                 return enriched || asset;
-            } catch (e) { return asset; }
+            } catch {
+                return asset;
+            }
         };
         (async () => {
             const [A, B] = await Promise.all([hydrate(this._mediaA), hydrate(this._mediaB)]);
@@ -994,14 +1153,21 @@ export class FloatingViewer {
         const hydrate = async (asset) => {
             if (!asset) return asset;
             try {
-                const enriched = await ensureViewerMetadataAsset(asset, { getAssetMetadata, getFileMetadataScoped });
+                const enriched = await ensureViewerMetadataAsset(asset, {
+                    getAssetMetadata,
+                    getFileMetadataScoped,
+                });
                 return enriched || asset;
-            } catch (e) { return asset; }
+            } catch {
+                return asset;
+            }
         };
         (async () => {
             const [A, B, C, D] = await Promise.all([
-                hydrate(this._mediaA), hydrate(this._mediaB),
-                hydrate(this._mediaC), hydrate(this._mediaD),
+                hydrate(this._mediaA),
+                hydrate(this._mediaB),
+                hydrate(this._mediaC),
+                hydrate(this._mediaD),
             ]);
             if (this._refreshGen !== gen) return;
             this._mediaA = A || null;
@@ -1023,11 +1189,11 @@ export class FloatingViewer {
     /** Apply current zoom+pan state to all media elements (img/video only — divider/overlays unaffected). */
     _applyTransform() {
         if (!this._contentEl) return;
-        const z  = Math.max(MFV_ZOOM_MIN, Math.min(MFV_ZOOM_MAX, this._zoom));
-        const vw = this._contentEl.clientWidth  || 0;
+        const z = Math.max(MFV_ZOOM_MIN, Math.min(MFV_ZOOM_MAX, this._zoom));
+        const vw = this._contentEl.clientWidth || 0;
         const vh = this._contentEl.clientHeight || 0;
-        const maxX = Math.max(0, (z - 1) * vw / 2);
-        const maxY = Math.max(0, (z - 1) * vh / 2);
+        const maxX = Math.max(0, ((z - 1) * vw) / 2);
+        const maxY = Math.max(0, ((z - 1) * vh) / 2);
         this._panX = Math.max(-maxX, Math.min(maxX, this._panX));
         this._panY = Math.max(-maxY, Math.min(maxY, this._panY));
         const t = `translate(${this._panX}px,${this._panY}px) scale(${z})`;
@@ -1039,7 +1205,9 @@ export class FloatingViewer {
         // Cursor feedback — use CSS classes
         this._contentEl.classList.remove("mjr-mfv-content--grab", "mjr-mfv-content--grabbing");
         if (z > 1.01) {
-            this._contentEl.classList.add(this._dragging ? "mjr-mfv-content--grabbing" : "mjr-mfv-content--grab");
+            this._contentEl.classList.add(
+                this._dragging ? "mjr-mfv-content--grabbing" : "mjr-mfv-content--grab",
+            );
         }
     }
 
@@ -1049,18 +1217,22 @@ export class FloatingViewer {
      */
     _setMfvZoom(next, clientX, clientY) {
         const prev = Math.max(MFV_ZOOM_MIN, Math.min(MFV_ZOOM_MAX, this._zoom));
-        const z    = Math.max(MFV_ZOOM_MIN, Math.min(MFV_ZOOM_MAX, Number(next) || 1));
+        const z = Math.max(MFV_ZOOM_MIN, Math.min(MFV_ZOOM_MAX, Number(next) || 1));
         if (clientX != null && clientY != null && this._contentEl) {
-            const r    = z / prev;
+            const r = z / prev;
             const rect = this._contentEl.getBoundingClientRect();
-            const ux   = clientX - (rect.left + rect.width  / 2);
-            const uy   = clientY - (rect.top  + rect.height / 2);
+            const ux = clientX - (rect.left + rect.width / 2);
+            const uy = clientY - (rect.top + rect.height / 2);
             this._panX = this._panX * r + (1 - r) * ux;
             this._panY = this._panY * r + (1 - r) * uy;
         }
         this._zoom = z;
         // Snap back to exact fit to avoid drift.
-        if (Math.abs(z - 1) < 0.001) { this._zoom = 1; this._panX = 0; this._panY = 0; }
+        if (Math.abs(z - 1) < 0.001) {
+            this._zoom = 1;
+            this._panX = 0;
+            this._panY = 0;
+        }
         this._applyTransform();
     }
 
@@ -1072,75 +1244,109 @@ export class FloatingViewer {
         const sig = { signal: this._panzoomAC.signal };
 
         // Wheel → zoom centered at cursor
-        contentEl.addEventListener("wheel", (e) => {
-            if (e.target?.closest?.("audio")) return;
-            if (isModel3DInteractionTarget(e.target)) return;
-            e.preventDefault();
-            const delta  = e.deltaY || e.deltaX || 0;
-            const factor = 1 - delta * MFV_ZOOM_FACTOR;
-            this._setMfvZoom(this._zoom * factor, e.clientX, e.clientY);
-        }, { ...sig, passive: false });
+        contentEl.addEventListener(
+            "wheel",
+            (e) => {
+                if (e.target?.closest?.("audio")) return;
+                if (isModel3DInteractionTarget(e.target)) return;
+                e.preventDefault();
+                const delta = e.deltaY || e.deltaX || 0;
+                const factor = 1 - delta * MFV_ZOOM_FACTOR;
+                this._setMfvZoom(this._zoom * factor, e.clientX, e.clientY);
+            },
+            { ...sig, passive: false },
+        );
 
         // Pointer drag → pan (left or middle button, when zoomed in)
         let panActive = false;
-        let startX = 0, startY = 0, startPanX = 0, startPanY = 0;
+        let startX = 0,
+            startY = 0,
+            startPanX = 0,
+            startPanY = 0;
 
-        contentEl.addEventListener("pointerdown", (e) => {
-            if (e.button !== 0 && e.button !== 1) return;
-            if (this._zoom <= 1.01) return;
-            // Let native video controls and the AB divider handle their own events.
-            if (e.target?.closest?.("video")) return;
-            if (e.target?.closest?.("audio")) return;
-            if (e.target?.closest?.(".mjr-mfv-ab-divider")) return;
-            if (isModel3DInteractionTarget(e.target)) return;
-            e.preventDefault();
-            panActive = true;
-            this._dragging = true;
-            startX = e.clientX; startY = e.clientY;
-            startPanX = this._panX; startPanY = this._panY;
-            try { contentEl.setPointerCapture(e.pointerId); } catch (e) { console.debug?.(e); }
-            this._applyTransform();
-        }, sig);
+        contentEl.addEventListener(
+            "pointerdown",
+            (e) => {
+                if (e.button !== 0 && e.button !== 1) return;
+                if (this._zoom <= 1.01) return;
+                // Let native video controls and the AB divider handle their own events.
+                if (e.target?.closest?.("video")) return;
+                if (e.target?.closest?.("audio")) return;
+                if (e.target?.closest?.(".mjr-mfv-ab-divider")) return;
+                if (isModel3DInteractionTarget(e.target)) return;
+                e.preventDefault();
+                panActive = true;
+                this._dragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                startPanX = this._panX;
+                startPanY = this._panY;
+                try {
+                    contentEl.setPointerCapture(e.pointerId);
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                this._applyTransform();
+            },
+            sig,
+        );
 
-        contentEl.addEventListener("pointermove", (e) => {
-            if (!panActive) return;
-            this._panX = startPanX + (e.clientX - startX);
-            this._panY = startPanY + (e.clientY - startY);
-            this._applyTransform();
-        }, sig);
+        contentEl.addEventListener(
+            "pointermove",
+            (e) => {
+                if (!panActive) return;
+                this._panX = startPanX + (e.clientX - startX);
+                this._panY = startPanY + (e.clientY - startY);
+                this._applyTransform();
+            },
+            sig,
+        );
 
         const endPan = (e) => {
             if (!panActive) return;
             panActive = false;
             this._dragging = false;
-            try { contentEl.releasePointerCapture(e.pointerId); } catch (e) { console.debug?.(e); }
+            try {
+                contentEl.releasePointerCapture(e.pointerId);
+            } catch (e) {
+                console.debug?.(e);
+            }
             this._applyTransform();
         };
-        contentEl.addEventListener("pointerup",     endPan, sig);
+        contentEl.addEventListener("pointerup", endPan, sig);
         contentEl.addEventListener("pointercancel", endPan, sig);
 
         // Double-click → zoom to 4× at cursor, or reset to fit
-        contentEl.addEventListener("dblclick", (e) => {
-            if (e.target?.closest?.("video")) return;
-            if (e.target?.closest?.("audio")) return;
-            if (isModel3DInteractionTarget(e.target)) return;
-            const isNearFit = Math.abs(this._zoom - 1) < 0.05;
-            this._setMfvZoom(
-                isNearFit ? Math.min(4, this._zoom * 4) : 1,
-                e.clientX, e.clientY,
-            );
-        }, sig);
+        contentEl.addEventListener(
+            "dblclick",
+            (e) => {
+                if (e.target?.closest?.("video")) return;
+                if (e.target?.closest?.("audio")) return;
+                if (isModel3DInteractionTarget(e.target)) return;
+                const isNearFit = Math.abs(this._zoom - 1) < 0.05;
+                this._setMfvZoom(isNearFit ? Math.min(4, this._zoom * 4) : 1, e.clientX, e.clientY);
+            },
+            sig,
+        );
     }
 
     /** Remove all pan/zoom event listeners. */
     _destroyPanZoom() {
-        try { this._panzoomAC?.abort(); } catch (e) { console.debug?.(e); }
+        try {
+            this._panzoomAC?.abort();
+        } catch (e) {
+            console.debug?.(e);
+        }
         this._panzoomAC = null;
-        this._dragging  = false;
+        this._dragging = false;
     }
 
     _destroyCompareSync() {
-        try { this._compareSyncAC?.abort?.(); } catch (e) { console.debug?.(e); }
+        try {
+            this._compareSyncAC?.abort?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
         this._compareSyncAC = null;
     }
 
@@ -1155,7 +1361,9 @@ export class FloatingViewer {
             const followers = playables.slice(1);
             if (!leader || !followers.length) return;
             this._compareSyncAC = installFollowerVideoSync(leader, followers, { threshold: 0.08 });
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 
     // ── Render ────────────────────────────────────────────────────────────────
@@ -1169,10 +1377,18 @@ export class FloatingViewer {
         this._contentEl.style.overflow = "hidden";
 
         switch (this._mode) {
-            case MFV_MODES.SIMPLE: this._renderSimple(); break;
-            case MFV_MODES.AB:     this._renderAB();     break;
-            case MFV_MODES.SIDE:   this._renderSide();   break;
-            case MFV_MODES.GRID:   this._renderGrid();   break;
+            case MFV_MODES.SIMPLE:
+                this._renderSimple();
+                break;
+            case MFV_MODES.AB:
+                this._renderAB();
+                break;
+            case MFV_MODES.SIDE:
+                this._renderSide();
+                break;
+            case MFV_MODES.GRID:
+                this._renderGrid();
+                break;
         }
 
         this._applyTransform();
@@ -1272,30 +1488,38 @@ export class FloatingViewer {
         }
 
         let _abDivAC = null;
-        divider.addEventListener("pointerdown", (e) => {
-            e.preventDefault();
-            divider.setPointerCapture(e.pointerId);
-            // Abort any previous drag listeners to prevent accumulation.
-            try { _abDivAC?.abort(); } catch {}
-            _abDivAC = new AbortController();
-            const sig = _abDivAC.signal;
-            const rect = container.getBoundingClientRect();
+        divider.addEventListener(
+            "pointerdown",
+            (e) => {
+                e.preventDefault();
+                divider.setPointerCapture(e.pointerId);
+                // Abort any previous drag listeners to prevent accumulation.
+                try {
+                    _abDivAC?.abort();
+                } catch {}
+                _abDivAC = new AbortController();
+                const sig = _abDivAC.signal;
+                const rect = container.getBoundingClientRect();
 
-            const onMove = (me) => {
-                const x = Math.max(0.02, Math.min(0.98, (me.clientX - rect.left) / rect.width));
-                this._abDividerX = x;
-                const p = Math.round(x * 100);
-                layerB.style.clipPath = `inset(0 0 0 ${p}%)`;
-                divider.style.left = `${p}%`;
-                if (genInfoAEl) genInfoAEl.style.right = `calc(${100 - p}% + 8px)`;
-                if (genInfoBEl) genInfoBEl.style.left = `calc(${p}% + 8px)`;
-            };
-            const onUp = () => {
-                try { _abDivAC?.abort(); } catch {}
-            };
-            divider.addEventListener("pointermove", onMove, { signal: sig });
-            divider.addEventListener("pointerup", onUp, { signal: sig });
-        }, this._panelAC?.signal ? { signal: this._panelAC.signal } : undefined);
+                const onMove = (me) => {
+                    const x = Math.max(0.02, Math.min(0.98, (me.clientX - rect.left) / rect.width));
+                    this._abDividerX = x;
+                    const p = Math.round(x * 100);
+                    layerB.style.clipPath = `inset(0 0 0 ${p}%)`;
+                    divider.style.left = `${p}%`;
+                    if (genInfoAEl) genInfoAEl.style.right = `calc(${100 - p}% + 8px)`;
+                    if (genInfoBEl) genInfoBEl.style.left = `calc(${p}% + 8px)`;
+                };
+                const onUp = () => {
+                    try {
+                        _abDivAC?.abort();
+                    } catch {}
+                };
+                divider.addEventListener("pointermove", onMove, { signal: sig });
+                divider.addEventListener("pointerup", onUp, { signal: sig });
+            },
+            this._panelAC?.signal ? { signal: this._panelAC.signal } : undefined,
+        );
 
         container.appendChild(layerA);
         container.appendChild(layerB);
@@ -1380,7 +1604,9 @@ export class FloatingViewer {
                 const el = _buildMediaEl(media);
                 if (el) cell.appendChild(el);
                 else cell.appendChild(_makeEmptyState("—"));
-                cell.appendChild(_makeLabel(label, label === "A" || label === "C" ? "left" : "right"));
+                cell.appendChild(
+                    _makeLabel(label, label === "A" || label === "C" ? "left" : "right"),
+                );
                 if (kind !== "audio") {
                     const frag = this._buildGenInfoDOM(media);
                     if (frag) {
@@ -1392,7 +1618,9 @@ export class FloatingViewer {
                 }
             } else {
                 cell.appendChild(_makeEmptyState("—"));
-                cell.appendChild(_makeLabel(label, label === "A" || label === "C" ? "left" : "right"));
+                cell.appendChild(
+                    _makeLabel(label, label === "A" || label === "C" ? "left" : "right"),
+                );
             }
             container.appendChild(cell);
         }
@@ -1435,7 +1663,7 @@ export class FloatingViewer {
         const el = this.element;
         this._stopEdgeResize();
 
-        const w = Math.max(el.offsetWidth  || 520, 400);
+        const w = Math.max(el.offsetWidth || 520, 400);
         const h = Math.max(el.offsetHeight || 420, 300);
 
         // 1. Document Picture-in-Picture (Chrome 116+) ─────────────────────────
@@ -1443,12 +1671,17 @@ export class FloatingViewer {
         //    context of the main page.  Bypasses the about:blank isolation that
         //    breaks window.open() in Chrome App mode and Electron-based hosts.
         if ("documentPictureInPicture" in window) {
-            window.documentPictureInPicture.requestWindow({ width: w, height: h })
+            window.documentPictureInPicture
+                .requestWindow({ width: w, height: h })
                 .then((pipWindow) => {
                     this._popoutWindow = pipWindow;
                     this._isPopped = true;
                     this._popoutRestoreGuard = false;
-                    try { this._popoutAC?.abort(); } catch (e) { console.debug?.(e); }
+                    try {
+                        this._popoutAC?.abort();
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                     this._popoutAC = new AbortController();
                     const popoutSignal = this._popoutAC.signal;
 
@@ -1460,7 +1693,8 @@ export class FloatingViewer {
                     this._installPopoutStyles(doc);
 
                     // Build a minimal shell directly — no server round-trip needed.
-                    doc.body.style.cssText = "margin:0;display:flex;min-height:100vh;background:#111;overflow:hidden;";
+                    doc.body.style.cssText =
+                        "margin:0;display:flex;min-height:100vh;background:#111;overflow:hidden;";
                     const root = doc.createElement("div");
                     root.id = "mjr-mfv-popout-root";
                     root.style.cssText = "flex:1;min-width:0;min-height:0;display:flex;";
@@ -1472,7 +1706,11 @@ export class FloatingViewer {
                         console.warn("[MFV] PiP adoptNode failed, falling back to window.open", e);
                         this._isPopped = false;
                         this._popoutWindow = null;
-                        try { pipWindow.close(); } catch (_) { /* noop */ }
+                        try {
+                            pipWindow.close();
+                        } catch (_) {
+                            /* noop */
+                        }
                         this._fallbackPopout(el, w, h);
                         return;
                     }
@@ -1484,19 +1722,37 @@ export class FloatingViewer {
                     this._bindDocumentUiHandlers();
                     this._updatePopoutBtnUI();
 
-                    pipWindow.addEventListener("pagehide", handlePopupClosing, { signal: popoutSignal });
+                    pipWindow.addEventListener("pagehide", handlePopupClosing, {
+                        signal: popoutSignal,
+                    });
                     this._startPopoutCloseWatch();
 
                     this._popoutKeydownHandler = (e) => {
                         const tag = String(e?.target?.tagName || "").toLowerCase();
-                        if (e?.defaultPrevented || e?.target?.isContentEditable || tag === "input" || tag === "textarea" || tag === "select") return;
-                        const lower = String(e?.key || "").toLowerCase();
-                        window.dispatchEvent(new KeyboardEvent("keydown", {
-                            key: e.key, code: e.code, keyCode: e.keyCode,
-                            ctrlKey: e.ctrlKey, shiftKey: e.shiftKey, altKey: e.altKey, metaKey: e.metaKey,
-                        }));
+                        if (
+                            e?.defaultPrevented ||
+                            e?.target?.isContentEditable ||
+                            tag === "input" ||
+                            tag === "textarea" ||
+                            tag === "select"
+                        )
+                            return;
+                        const _lower = String(e?.key || "").toLowerCase();
+                        window.dispatchEvent(
+                            new KeyboardEvent("keydown", {
+                                key: e.key,
+                                code: e.code,
+                                keyCode: e.keyCode,
+                                ctrlKey: e.ctrlKey,
+                                shiftKey: e.shiftKey,
+                                altKey: e.altKey,
+                                metaKey: e.metaKey,
+                            }),
+                        );
                     };
-                    pipWindow.addEventListener("keydown", this._popoutKeydownHandler, { signal: popoutSignal });
+                    pipWindow.addEventListener("keydown", this._popoutKeydownHandler, {
+                        signal: popoutSignal,
+                    });
                 })
                 .catch((err) => {
                     console.warn("[MFV] Document PiP failed, falling back to window.open", err);
@@ -1516,8 +1772,9 @@ export class FloatingViewer {
      * backend URL results in a blank page.
      */
     _fallbackPopout(el, w, h) {
-        const left = (window.screenX || window.screenLeft) + Math.round((window.outerWidth  - w) / 2);
-        const top  = (window.screenY || window.screenTop)  + Math.round((window.outerHeight - h) / 2);
+        const left =
+            (window.screenX || window.screenLeft) + Math.round((window.outerWidth - w) / 2);
+        const top = (window.screenY || window.screenTop) + Math.round((window.outerHeight - h) / 2);
         const features = `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no`;
         const popup = window.open("about:blank", "_mjr_viewer", features);
         if (!popup) {
@@ -1527,7 +1784,11 @@ export class FloatingViewer {
         this._popoutWindow = popup;
         this._isPopped = true;
         this._popoutRestoreGuard = false;
-        try { this._popoutAC?.abort(); } catch (e) { console.debug?.(e); }
+        try {
+            this._popoutAC?.abort();
+        } catch (e) {
+            console.debug?.(e);
+        }
         this._popoutAC = new AbortController();
         const popoutSignal = this._popoutAC.signal;
         const handlePopupClosing = () => this._schedulePopInFromPopupClose();
@@ -1535,13 +1796,18 @@ export class FloatingViewer {
 
         const mountViewer = () => {
             let doc;
-            try { doc = popup.document; } catch { return; }
+            try {
+                doc = popup.document;
+            } catch {
+                return;
+            }
             if (!doc) return;
 
             // Build the shell directly — no server round-trip needed.
             doc.title = "Majoor Viewer";
             this._installPopoutStyles(doc);
-            doc.body.style.cssText = "margin:0;display:flex;min-height:100vh;background:#111;overflow:hidden;";
+            doc.body.style.cssText =
+                "margin:0;display:flex;min-height:100vh;background:#111;overflow:hidden;";
             const root = doc.createElement("div");
             root.id = "mjr-mfv-popout-root";
             root.style.cssText = "flex:1;min-width:0;min-height:0;display:flex;";
@@ -1574,13 +1840,20 @@ export class FloatingViewer {
         }
 
         popup.addEventListener("beforeunload", handlePopupClosing, { signal: popoutSignal });
-        popup.addEventListener("pagehide",     handlePopupClosing, { signal: popoutSignal });
-        popup.addEventListener("unload",       handlePopupClosing, { signal: popoutSignal });
+        popup.addEventListener("pagehide", handlePopupClosing, { signal: popoutSignal });
+        popup.addEventListener("unload", handlePopupClosing, { signal: popoutSignal });
         this._startPopoutCloseWatch();
 
         this._popoutKeydownHandler = (e) => {
             const tag = String(e?.target?.tagName || "").toLowerCase();
-            if (e?.defaultPrevented || e?.target?.isContentEditable || tag === "input" || tag === "textarea" || tag === "select") return;
+            if (
+                e?.defaultPrevented ||
+                e?.target?.isContentEditable ||
+                tag === "input" ||
+                tag === "textarea" ||
+                tag === "select"
+            )
+                return;
             const lower = String(e?.key || "").toLowerCase();
             if (lower === "v" && (e?.ctrlKey || e?.metaKey) && !e?.altKey && !e?.shiftKey) {
                 e.preventDefault();
@@ -1589,17 +1862,28 @@ export class FloatingViewer {
                 window.dispatchEvent(new Event(EVENTS.MFV_TOGGLE));
                 return;
             }
-            window.dispatchEvent(new KeyboardEvent("keydown", {
-                key: e.key, code: e.code, keyCode: e.keyCode,
-                ctrlKey: e.ctrlKey, shiftKey: e.shiftKey, altKey: e.altKey, metaKey: e.metaKey,
-            }));
+            window.dispatchEvent(
+                new KeyboardEvent("keydown", {
+                    key: e.key,
+                    code: e.code,
+                    keyCode: e.keyCode,
+                    ctrlKey: e.ctrlKey,
+                    shiftKey: e.shiftKey,
+                    altKey: e.altKey,
+                    metaKey: e.metaKey,
+                }),
+            );
         };
         popup.addEventListener("keydown", this._popoutKeydownHandler, { signal: popoutSignal });
     }
 
     _clearPopoutCloseWatch() {
         if (this._popoutCloseTimer == null) return;
-        try { window.clearInterval(this._popoutCloseTimer); } catch (e) { console.debug?.(e); }
+        try {
+            window.clearInterval(this._popoutCloseTimer);
+        } catch (e) {
+            console.debug?.(e);
+        }
         this._popoutCloseTimer = null;
     }
 
@@ -1633,10 +1917,14 @@ export class FloatingViewer {
     _installPopoutStyles(doc) {
         if (!doc?.head) return;
         try {
-            for (const existing of doc.head.querySelectorAll("[data-mjr-popout-cloned-style='1']")) {
+            for (const existing of doc.head.querySelectorAll(
+                "[data-mjr-popout-cloned-style='1']",
+            )) {
                 existing.remove();
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         for (const ss of document.querySelectorAll('link[rel="stylesheet"], style')) {
             try {
                 let clone = null;
@@ -1652,7 +1940,9 @@ export class FloatingViewer {
                 }
                 clone.setAttribute("data-mjr-popout-cloned-style", "1");
                 doc.head.appendChild(clone);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
         const overrideStyle = doc.createElement("style");
         overrideStyle.setAttribute("data-mjr-popout-cloned-style", "1");
@@ -1687,7 +1977,11 @@ export class FloatingViewer {
         const popup = this._popoutWindow;
         this._clearPopoutCloseWatch();
         // Abort all popup-window listeners atomically instead of manual removeEventListener.
-        try { this._popoutAC?.abort(); } catch (e) { console.debug?.(e); }
+        try {
+            this._popoutAC?.abort();
+        } catch (e) {
+            console.debug?.(e);
+        }
         this._popoutAC = null;
         this._popoutCloseHandler = null;
         this._popoutKeydownHandler = null;
@@ -1713,7 +2007,11 @@ export class FloatingViewer {
 
         // Close the popup window if it's still open
         if (closePopupWindow) {
-            try { popup?.close(); } catch (e) { console.debug?.(e); }
+            try {
+                popup?.close();
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
         this._popoutWindow = null;
     }
@@ -1742,7 +2040,9 @@ export class FloatingViewer {
     }
 
     /** Whether the viewer is currently in a pop-out window. */
-    get isPopped() { return this._isPopped; }
+    get isPopped() {
+        return this._isPopped;
+    }
 
     _resizeCursorForDirection(dir) {
         const map = {
@@ -1778,7 +2078,11 @@ export class FloatingViewer {
     _stopEdgeResize() {
         if (!this.element) return;
         if (this._resizeState?.pointerId != null) {
-            try { this.element.releasePointerCapture(this._resizeState.pointerId); } catch (e) { console.debug?.(e); }
+            try {
+                this.element.releasePointerCapture(this._resizeState.pointerId);
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
         this._resizeState = null;
         this.element.classList.remove("mjr-mfv--resizing");
@@ -1788,7 +2092,11 @@ export class FloatingViewer {
     _bindPanelInteractions() {
         if (!this.element) return;
         this._stopEdgeResize();
-        try { this._panelAC?.abort(); } catch (e) { console.debug?.(e); }
+        try {
+            this._panelAC?.abort();
+        } catch (e) {
+            console.debug?.(e);
+        }
         this._panelAC = new AbortController();
         this._initEdgeResize(this.element);
         this._initDrag(this.element.querySelector(".mjr-mfv-header"));
@@ -1832,7 +2140,11 @@ export class FloatingViewer {
             this.element.style.bottom = "auto";
             this.element.classList.add("mjr-mfv--resizing");
             this.element.style.cursor = this._resizeCursorForDirection(dir);
-            try { this.element.setPointerCapture(e.pointerId); } catch (err) { console.debug?.(err); }
+            try {
+                this.element.setPointerCapture(e.pointerId);
+            } catch (err) {
+                console.debug?.(err);
+            }
         };
 
         const onPointerMove = (e) => {
@@ -1864,11 +2176,11 @@ export class FloatingViewer {
             }
 
             if (width < state.minWidth) {
-                if (state.dir.includes("w")) left -= (state.minWidth - width);
+                if (state.dir.includes("w")) left -= state.minWidth - width;
                 width = state.minWidth;
             }
             if (height < state.minHeight) {
-                if (state.dir.includes("n")) top -= (state.minHeight - height);
+                if (state.dir.includes("n")) top -= state.minHeight - height;
                 height = state.minHeight;
             }
 
@@ -1897,9 +2209,13 @@ export class FloatingViewer {
         el.addEventListener("pointermove", onPointerMove, { signal });
         el.addEventListener("pointerup", onPointerEnd, { signal });
         el.addEventListener("pointercancel", onPointerEnd, { signal });
-        el.addEventListener("pointerleave", () => {
-            if (!this._resizeState && this.element) this.element.style.cursor = "";
-        }, { signal });
+        el.addEventListener(
+            "pointerleave",
+            () => {
+                if (!this._resizeState && this.element) this.element.style.cursor = "";
+            },
+            { signal },
+        );
     }
 
     // ── Drag ──────────────────────────────────────────────────────────────────
@@ -1908,44 +2224,58 @@ export class FloatingViewer {
         if (!handle) return;
         const signal = this._panelAC?.signal;
         let _dragAC = null;
-        handle.addEventListener("pointerdown", (e) => {
-            if (e.button !== 0) return;
-            if (e.target.closest("button")) return; // Don't drag when clicking buttons
-            if (e.target.closest("select")) return;
-            if (this._isPopped || !this.element) return;
-            // Let edge-resize take precedence when pointer is near panel borders.
-            const edgeDir = this._getResizeDirectionFromPoint(
-                e.clientX,
-                e.clientY,
-                this.element.getBoundingClientRect()
-            );
-            if (edgeDir) return;
-            e.preventDefault();
-            handle.setPointerCapture(e.pointerId);
-            // Abort any previous drag listeners to prevent accumulation.
-            try { _dragAC?.abort(); } catch {}
-            _dragAC = new AbortController();
-            const dragSig = _dragAC.signal;
+        handle.addEventListener(
+            "pointerdown",
+            (e) => {
+                if (e.button !== 0) return;
+                if (e.target.closest("button")) return; // Don't drag when clicking buttons
+                if (e.target.closest("select")) return;
+                if (this._isPopped || !this.element) return;
+                // Let edge-resize take precedence when pointer is near panel borders.
+                const edgeDir = this._getResizeDirectionFromPoint(
+                    e.clientX,
+                    e.clientY,
+                    this.element.getBoundingClientRect(),
+                );
+                if (edgeDir) return;
+                e.preventDefault();
+                handle.setPointerCapture(e.pointerId);
+                // Abort any previous drag listeners to prevent accumulation.
+                try {
+                    _dragAC?.abort();
+                } catch {}
+                _dragAC = new AbortController();
+                const dragSig = _dragAC.signal;
 
-            const el  = this.element;
-            const rect = el.getBoundingClientRect();
-            const offX = e.clientX - rect.left;
-            const offY = e.clientY - rect.top;
+                const el = this.element;
+                const rect = el.getBoundingClientRect();
+                const offX = e.clientX - rect.left;
+                const offY = e.clientY - rect.top;
 
-            const onMove = (me) => {
-                const x = Math.min(window.innerWidth  - el.offsetWidth,  Math.max(0, me.clientX - offX));
-                const y = Math.min(window.innerHeight - el.offsetHeight, Math.max(0, me.clientY - offY));
-                el.style.left   = `${x}px`;
-                el.style.top    = `${y}px`;
-                el.style.right  = "auto";
-                el.style.bottom = "auto";
-            };
-            const onUp = () => {
-                try { _dragAC?.abort(); } catch {}
-            };
-            handle.addEventListener("pointermove", onMove, { signal: dragSig });
-            handle.addEventListener("pointerup", onUp, { signal: dragSig });
-        }, signal ? { signal } : undefined);
+                const onMove = (me) => {
+                    const x = Math.min(
+                        window.innerWidth - el.offsetWidth,
+                        Math.max(0, me.clientX - offX),
+                    );
+                    const y = Math.min(
+                        window.innerHeight - el.offsetHeight,
+                        Math.max(0, me.clientY - offY),
+                    );
+                    el.style.left = `${x}px`;
+                    el.style.top = `${y}px`;
+                    el.style.right = "auto";
+                    el.style.bottom = "auto";
+                };
+                const onUp = () => {
+                    try {
+                        _dragAC?.abort();
+                    } catch {}
+                };
+                handle.addEventListener("pointermove", onMove, { signal: dragSig });
+                handle.addEventListener("pointerup", onUp, { signal: dragSig });
+            },
+            signal ? { signal } : undefined,
+        );
     }
 
     // ── Canvas capture ────────────────────────────────────────────────────────
@@ -1961,16 +2291,18 @@ export class FloatingViewer {
         let drawable = null;
 
         if (kind === "video") {
-            drawable = (preferredVideo instanceof HTMLVideoElement)
-                ? preferredVideo
-                : (this._contentEl?.querySelector("video") || null);
+            drawable =
+                preferredVideo instanceof HTMLVideoElement
+                    ? preferredVideo
+                    : this._contentEl?.querySelector("video") || null;
         }
         if (!drawable && kind === "model3d") {
             const assetId = fileData?.id != null ? String(fileData.id) : "";
             if (assetId) {
                 drawable =
-                    this._contentEl?.querySelector?.(`.mjr-model3d-render-canvas[data-mjr-asset-id="${assetId}"]`) ||
-                    null;
+                    this._contentEl?.querySelector?.(
+                        `.mjr-model3d-render-canvas[data-mjr-asset-id="${assetId}"]`,
+                    ) || null;
             }
             if (!drawable) {
                 drawable = this._contentEl?.querySelector?.(".mjr-model3d-render-canvas") || null;
@@ -1982,54 +2314,71 @@ export class FloatingViewer {
             drawable = await new Promise((resolve) => {
                 const img = new Image();
                 img.crossOrigin = "anonymous";
-                img.onload  = () => resolve(img);
+                img.onload = () => resolve(img);
                 img.onerror = () => resolve(null);
                 img.src = url;
             });
         }
         if (!drawable) return;
 
-        const sw = drawable.videoWidth  || drawable.naturalWidth  || w;
+        const sw = drawable.videoWidth || drawable.naturalWidth || w;
         const sh = drawable.videoHeight || drawable.naturalHeight || h;
         if (!sw || !sh) return;
         const scale = Math.min(w / sw, h / sh);
-        ctx.drawImage(drawable,
+        ctx.drawImage(
+            drawable,
             ox + (w - sw * scale) / 2,
             oy + (h - sh * scale) / 2,
-            sw * scale, sh * scale);
+            sw * scale,
+            sh * scale,
+        );
     }
 
     /** Render the gen-info overlay onto the canvas region (ox, oy, w, h). */
     _drawGenInfoOverlay(ctx, fileData, ox, oy, w, h) {
         if (!fileData || !this._genInfoSelections.size) return;
         const fields = this._getGenFields(fileData);
-        const LABEL_COLORS = { 
-            prompt: "#7ec8ff", 
-            seed: "#ffd47a", 
-            model: "#7dda8a", 
+        const LABEL_COLORS = {
+            prompt: "#7ec8ff",
+            seed: "#ffd47a",
+            model: "#7dda8a",
             lora: "#d48cff",
             sampler: "#ff9f7a",
             scheduler: "#ff7a9f",
             cfg: "#7a9fff",
             step: "#7affd4",
-            genTime: "#e0ff7a"
+            genTime: "#e0ff7a",
         };
-        const order = ["prompt", "seed", "model", "lora", "sampler", "scheduler", "cfg", "step", "genTime"];
+        const order = [
+            "prompt",
+            "seed",
+            "model",
+            "lora",
+            "sampler",
+            "scheduler",
+            "cfg",
+            "step",
+            "genTime",
+        ];
 
         const entries = [];
         for (const k of order) {
             if (!this._genInfoSelections.has(k)) continue;
-            const v = (fields[k] != null) ? String(fields[k]) : "";
+            const v = fields[k] != null ? String(fields[k]) : "";
             if (!v) continue;
-            
+
             let labelText = k.charAt(0).toUpperCase() + k.slice(1);
             if (k === "lora") labelText = "LoRA";
             else if (k === "cfg") labelText = "CFG";
             else if (k === "genTime") labelText = "Gen Time";
-            
+
             // Generous cap — word wrap handles display, not hard truncation
             const raw = k === "prompt" && v.length > 500 ? v.slice(0, 500) + "…" : v;
-            entries.push({ label: `${labelText}: `, value: raw, color: LABEL_COLORS[k] || "#ffffff" });
+            entries.push({
+                label: `${labelText}: `,
+                value: raw,
+                color: LABEL_COLORS[k] || "#ffffff",
+            });
         }
         if (!entries.length) return;
 
@@ -2123,11 +2472,11 @@ export class FloatingViewer {
             this._captureBtn.setAttribute("aria-label", t("tooltip.capturingView", "Capturing…"));
         }
 
-        const w = this._contentEl.clientWidth  || 480;
+        const w = this._contentEl.clientWidth || 480;
         const h = this._contentEl.clientHeight || 360;
 
         const canvas = document.createElement("canvas");
-        canvas.width  = w;
+        canvas.width = w;
         canvas.height = h;
         const ctx = canvas.getContext("2d");
 
@@ -2140,10 +2489,11 @@ export class FloatingViewer {
                     await this._drawMediaFit(ctx, this._mediaA, 0, 0, w, h);
                     this._drawGenInfoOverlay(ctx, this._mediaA, 0, 0, w, h);
                 }
-
             } else if (this._mode === MFV_MODES.AB) {
                 const divX = Math.round(this._abDividerX * w);
-                const vidA = this._contentEl.querySelector(".mjr-mfv-ab-layer:not(.mjr-mfv-ab-layer--b) video");
+                const vidA = this._contentEl.querySelector(
+                    ".mjr-mfv-ab-layer:not(.mjr-mfv-ab-layer--b) video",
+                );
                 const vidB = this._contentEl.querySelector(".mjr-mfv-ab-layer--b video");
 
                 // Draw A full-width (background layer)
@@ -2174,7 +2524,6 @@ export class FloatingViewer {
                 _canvasLabel(ctx, "B", divX + 8, 8);
                 if (this._mediaA) this._drawGenInfoOverlay(ctx, this._mediaA, 0, 0, divX, h);
                 if (this._mediaB) this._drawGenInfoOverlay(ctx, this._mediaB, divX, 0, w - divX, h);
-
             } else if (this._mode === MFV_MODES.SIDE) {
                 const half = Math.floor(w / 2);
                 const vidA = this._contentEl.querySelector(".mjr-mfv-side-panel:first-child video");
@@ -2193,16 +2542,36 @@ export class FloatingViewer {
                 }
                 _canvasLabel(ctx, "A", 8, 8);
                 _canvasLabel(ctx, "B", half + 8, 8);
-
             } else if (this._mode === MFV_MODES.GRID) {
                 const halfW = Math.floor(w / 2);
                 const halfH = Math.floor(h / 2);
                 const gap = 1; // half of CSS gap:2px — each cell insets by 1px from center
                 const cells = [
-                    { media: this._mediaA, label: "A", x: 0,          y: 0,           w: halfW - gap, h: halfH - gap },
-                    { media: this._mediaB, label: "B", x: halfW + gap, y: 0,           w: halfW - gap, h: halfH - gap },
-                    { media: this._mediaC, label: "C", x: 0,          y: halfH + gap,  w: halfW - gap, h: halfH - gap },
-                    { media: this._mediaD, label: "D", x: halfW + gap, y: halfH + gap,  w: halfW - gap, h: halfH - gap },
+                    { media: this._mediaA, label: "A", x: 0, y: 0, w: halfW - gap, h: halfH - gap },
+                    {
+                        media: this._mediaB,
+                        label: "B",
+                        x: halfW + gap,
+                        y: 0,
+                        w: halfW - gap,
+                        h: halfH - gap,
+                    },
+                    {
+                        media: this._mediaC,
+                        label: "C",
+                        x: 0,
+                        y: halfH + gap,
+                        w: halfW - gap,
+                        h: halfH - gap,
+                    },
+                    {
+                        media: this._mediaD,
+                        label: "D",
+                        x: halfW + gap,
+                        y: halfH + gap,
+                        w: halfW - gap,
+                        h: halfH - gap,
+                    },
                 ];
                 const gridCells = this._contentEl.querySelectorAll(".mjr-mfv-grid-cell");
                 for (let i = 0; i < cells.length; i++) {
@@ -2227,7 +2596,12 @@ export class FloatingViewer {
 
         // Trigger download — toDataURL is synchronous so the click stays within
         // the user-gesture chain and is never blocked by the browser.
-        const prefix = { [MFV_MODES.AB]: "mfv-ab", [MFV_MODES.SIDE]: "mfv-side", [MFV_MODES.GRID]: "mfv-grid" }[this._mode] ?? "mfv";
+        const prefix =
+            {
+                [MFV_MODES.AB]: "mfv-ab",
+                [MFV_MODES.SIDE]: "mfv-side",
+                [MFV_MODES.GRID]: "mfv-grid",
+            }[this._mode] ?? "mfv";
         const filename = `${prefix}-${Date.now()}.png`;
         try {
             const dataUrl = canvas.toDataURL("image/png");
@@ -2242,7 +2616,10 @@ export class FloatingViewer {
         } finally {
             if (this._captureBtn) {
                 this._captureBtn.disabled = false;
-                this._captureBtn.setAttribute("aria-label", t("tooltip.captureView", "Save view as image"));
+                this._captureBtn.setAttribute(
+                    "aria-label",
+                    t("tooltip.captureView", "Save view as image"),
+                );
             }
         }
     }
@@ -2254,31 +2631,63 @@ export class FloatingViewer {
         this._destroyCompareSync();
         this._stopEdgeResize();
         this._clearPopoutCloseWatch();
-        try { this._panelAC?.abort(); this._panelAC = null; } catch (e) { console.debug?.(e); }
+        try {
+            this._panelAC?.abort();
+            this._panelAC = null;
+        } catch (e) {
+            console.debug?.(e);
+        }
         // Abort all button click listeners in one call (NM-1).
-        try { this._btnAC?.abort(); this._btnAC = null; } catch (e) { console.debug?.(e); }
+        try {
+            this._btnAC?.abort();
+            this._btnAC = null;
+        } catch (e) {
+            console.debug?.(e);
+        }
         // Abort document-level and pop-out window listeners atomically.
-        try { this._docAC?.abort(); this._docAC = null; } catch (e) { console.debug?.(e); }
-        try { this._popoutAC?.abort(); this._popoutAC = null; } catch (e) { console.debug?.(e); }
+        try {
+            this._docAC?.abort();
+            this._docAC = null;
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            this._popoutAC?.abort();
+            this._popoutAC = null;
+        } catch (e) {
+            console.debug?.(e);
+        }
         // Pop-in before disposing so the element returns to the main document.
-        try { if (this._isPopped) this.popIn(); } catch (e) { console.debug?.(e); }
+        try {
+            if (this._isPopped) this.popIn();
+        } catch (e) {
+            console.debug?.(e);
+        }
         this._revokePreviewBlob();
-        try { this.element?.remove(); } catch (e) { console.debug?.(e); }
-        this.element     = null;
-        this._contentEl  = null;
-        this._closeBtn   = null;
-        this._modeBtn    = null;
-        this._pinSelect  = null;
-        this._liveBtn        = null;
-        this._nodeStreamBtn  = null;
-        this._popoutBtn      = null;
-        this._captureBtn     = null;
+        try {
+            this.element?.remove();
+        } catch (e) {
+            console.debug?.(e);
+        }
+        this.element = null;
+        this._contentEl = null;
+        this._closeBtn = null;
+        this._modeBtn = null;
+        this._pinSelect = null;
+        this._liveBtn = null;
+        this._nodeStreamBtn = null;
+        this._popoutBtn = null;
+        this._captureBtn = null;
         this._unbindDocumentUiHandlers();
-        try { this._genDropdown?.remove(); } catch (e) { console.debug?.(e); }
-        this._mediaA     = null;
-        this._mediaB     = null;
-        this._mediaC     = null;
-        this._mediaD     = null;
-        this.isVisible   = false;
+        try {
+            this._genDropdown?.remove();
+        } catch (e) {
+            console.debug?.(e);
+        }
+        this._mediaA = null;
+        this._mediaB = null;
+        this._mediaC = null;
+        this._mediaD = null;
+        this.isVisible = false;
     }
 }

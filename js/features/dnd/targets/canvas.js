@@ -15,9 +15,12 @@ export const isCanvasDropTarget = (app, event) => {
 export const markCanvasDirty = (app) => {
     try {
         app?.graph?.setDirtyCanvas?.(true, true);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         app?.canvas?.setDirty?.(true, true);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 };
-

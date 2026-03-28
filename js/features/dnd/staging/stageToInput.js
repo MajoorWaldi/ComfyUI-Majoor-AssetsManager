@@ -9,9 +9,9 @@ const _postStageToInput = async ({ post, endpoint, payload, index = true, purpos
                 subfolder: payload.subfolder || "",
                 dest_subfolder: "",
                 type: payload.type || "output",
-                root_id: pickRootId(payload) || undefined
-            }
-        ]
+                root_id: pickRootId(payload) || undefined,
+            },
+        ],
     };
 
     // Add purpose if specified (for fast path detection)
@@ -22,7 +22,13 @@ const _postStageToInput = async ({ post, endpoint, payload, index = true, purpos
     return post(endpoint, request);
 };
 
-export const stageToInputDetailed = async ({ post, endpoint, payload, index = true, purpose = null }) => {
+export const stageToInputDetailed = async ({
+    post,
+    endpoint,
+    payload,
+    index = true,
+    purpose = null,
+}) => {
     const result = await _postStageToInput({ post, endpoint, payload, index, purpose });
 
     if (!result?.ok) {
@@ -37,7 +43,7 @@ export const stageToInputDetailed = async ({ post, endpoint, payload, index = tr
         relativePath: relativePath || null,
         absPath: staged?.path || null,
         name: staged?.name || null,
-        subfolder: staged?.subfolder || ""
+        subfolder: staged?.subfolder || "",
     };
 };
 

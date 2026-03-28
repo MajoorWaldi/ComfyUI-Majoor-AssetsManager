@@ -42,7 +42,6 @@ export function createCustomPopoverView() {
         customPopover,
         customSelect,
         customAddBtn,
-        customRemoveBtn
+        customRemoveBtn,
     };
 }
-

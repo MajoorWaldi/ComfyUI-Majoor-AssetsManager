@@ -15,17 +15,21 @@ export function getSelectedIdSet(gridContainer) {
             }
             return selected;
         }
-    } catch (e) { console.warn("[MJR] selection state parse error:", e); }
+    } catch (e) {
+        console.warn("[MJR] selection state parse error:", e);
+    }
     try {
         const id = gridContainer.dataset?.mjrSelectedAssetId;
         if (id) selected.add(String(id));
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return selected;
 }
 
 export function setSelectedIdsDataset(gridContainer, selectedSet, activeId = "") {
     const list = Array.from(selectedSet || []);
-    const active = activeId ? String(activeId) : (list[0] ? String(list[0]) : "");
+    const active = activeId ? String(activeId) : list[0] ? String(list[0]) : "";
     try {
         if (list.length) {
             gridContainer.dataset.mjrSelectedAssetIds = JSON.stringify(list);
@@ -35,13 +39,18 @@ export function setSelectedIdsDataset(gridContainer, selectedSet, activeId = "")
             delete gridContainer.dataset.mjrSelectedAssetIds;
             delete gridContainer.dataset.mjrSelectedAssetId;
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return list;
 }
 
 export function syncSelectionClasses(gridContainer, selectedIds, getRenderedCards) {
     if (!gridContainer) return;
-    const set = selectedIds instanceof Set ? selectedIds : new Set(Array.from(selectedIds || []).map(String));
+    const set =
+        selectedIds instanceof Set
+            ? selectedIds
+            : new Set(Array.from(selectedIds || []).map(String));
     try {
         const cards = typeof getRenderedCards === "function" ? getRenderedCards(gridContainer) : [];
         for (const card of cards) {
@@ -54,28 +63,47 @@ export function syncSelectionClasses(gridContainer, selectedIds, getRenderedCard
                 card.setAttribute("aria-selected", "false");
             }
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
-export function setSelectionIds(gridContainer, selectedIds, { activeId = "" } = {}, getRenderedCards) {
+export function setSelectionIds(
+    gridContainer,
+    selectedIds,
+    { activeId = "" } = {},
+    getRenderedCards,
+) {
     if (!gridContainer) return [];
-    const set = new Set(Array.from(selectedIds || []).map(String).filter(Boolean));
+    const set = new Set(
+        Array.from(selectedIds || [])
+            .map(String)
+            .filter(Boolean),
+    );
     const list = setSelectedIdsDataset(gridContainer, set, activeId);
     syncSelectionClasses(gridContainer, set, getRenderedCards);
     const selectionDetail = { selectedIds: list, activeId: activeId || list[0] || "" };
     try {
-        gridContainer.dispatchEvent?.(new CustomEvent("mjr:selection-changed", { detail: selectionDetail }));
-    } catch (e) { console.debug?.(e); }
+        gridContainer.dispatchEvent?.(
+            new CustomEvent("mjr:selection-changed", { detail: selectionDetail }),
+        );
+    } catch (e) {
+        console.debug?.(e);
+    }
     // Also dispatch on window so floating overlays (MFV) can subscribe globally.
     try {
         window.dispatchEvent(new CustomEvent("mjr:selection-changed", { detail: selectionDetail }));
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return list;
 }
 
 export function safeEscapeId(value) {
     try {
-        return CSS?.escape ? CSS.escape(String(value)) : String(value).replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1");
+        return CSS?.escape
+            ? CSS.escape(String(value))
+            : String(value).replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1");
     } catch {
         return String(value).replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1");
     }

@@ -13,7 +13,9 @@ function _debugEnabled(flag) {
 function _warn(label, err) {
     try {
         console.warn(`[Majoor] ${label}`, err);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 export function safeCall(fn, label = "safeCall") {
@@ -32,11 +34,13 @@ export function safeAddListener(target, event, handler, options, label = "safeAd
             try {
                 target?.removeEventListener?.(event, handler, options);
             } catch (err) {
-                if (_debugEnabled("DEBUG_SAFE_LISTENERS")) _warn(`${label}:remove:${String(event || "")}`, err);
+                if (_debugEnabled("DEBUG_SAFE_LISTENERS"))
+                    _warn(`${label}:remove:${String(event || "")}`, err);
             }
         };
     } catch (err) {
-        if (_debugEnabled("DEBUG_SAFE_LISTENERS")) _warn(`${label}:add:${String(event || "")}`, err);
+        if (_debugEnabled("DEBUG_SAFE_LISTENERS"))
+            _warn(`${label}:add:${String(event || "")}`, err);
         return noop;
     }
 }

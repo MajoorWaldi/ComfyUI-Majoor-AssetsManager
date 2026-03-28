@@ -24,7 +24,9 @@ function _emit(key, nextValue, previousValue) {
     for (const cb of Array.from(set)) {
         try {
             cb(nextValue, previousValue, key);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 }
 
@@ -38,7 +40,9 @@ function _bindStorageListener() {
         };
         window.addEventListener("storage", _storageListener);
         _storageListenerBound = true;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 export const SettingsStore = {
@@ -88,7 +92,9 @@ export const SettingsStore = {
                 const cur = _subscribers.get(k);
                 cur?.delete(cb);
                 if (cur && !cur.size) _subscribers.delete(k);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         };
     },
 
@@ -103,7 +109,9 @@ export const SettingsStore = {
                 if (!key) continue;
                 out[key] = storage.getItem(key);
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         return out;
     },
 
@@ -112,10 +120,11 @@ export const SettingsStore = {
             if (_storageListenerBound && _storageListener && typeof window !== "undefined") {
                 window.removeEventListener("storage", _storageListener);
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         _storageListenerBound = false;
         _storageListener = null;
         _subscribers.clear();
     },
 };
-

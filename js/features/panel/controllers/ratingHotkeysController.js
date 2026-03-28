@@ -12,7 +12,9 @@ function _safeCssEscapeAttr(value) {
         if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
             return CSS.escape(str);
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return str.replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1");
 }
 
@@ -21,12 +23,16 @@ function getSelectedCards(gridContainer, fallbackEventTarget = null) {
     try {
         const selected = Array.from(gridContainer.querySelectorAll(".mjr-asset-card.is-selected"));
         if (selected.length) return selected;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     try {
         const card = fallbackEventTarget?.closest?.(".mjr-asset-card");
         if (card && gridContainer.contains(card)) return [card];
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     return [];
 }
@@ -49,7 +55,9 @@ function updateCardRatingBadge(card, createRatingBadge, rating) {
         } else if (!oldRatingBadge && newBadge) {
             thumb.appendChild(newBadge);
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 async function runWithConcurrencyLimit(items, worker, limit = 5) {
@@ -62,7 +70,9 @@ async function runWithConcurrencyLimit(items, worker, limit = 5) {
             index += 1;
             try {
                 await worker(items[cur], cur);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
     };
     for (let i = 0; i < Math.min(max, items.length); i += 1) {
@@ -114,8 +124,8 @@ export function createRatingHotkeysController({ gridContainer, createRatingBadge
             if (k !== "0" && k !== "1" && k !== "2" && k !== "3" && k !== "4" && k !== "5") return;
 
             // Check if viewer is open - let it handle rating keys
-            const viewerOverlay = document.querySelector('.mjr-viewer-overlay');
-            if (viewerOverlay && viewerOverlay.style.display !== 'none') return;
+            const viewerOverlay = document.querySelector(".mjr-viewer-overlay");
+            if (viewerOverlay && viewerOverlay.style.display !== "none") return;
 
             // Check if the event target is within our grid container or if the grid container itself has focus/hover
             // This ensures rating hotkeys only work when interacting with the assets manager
@@ -145,19 +155,25 @@ export function createRatingHotkeysController({ gridContainer, createRatingBadge
             if (!assetId || !Number.isFinite(rating)) return;
             try {
                 const card = gridContainer.querySelector(
-                    `.mjr-asset-card[data-mjr-asset-id="${_safeCssEscapeAttr(assetId)}"]`
+                    `.mjr-asset-card[data-mjr-asset-id="${_safeCssEscapeAttr(assetId)}"]`,
                 );
                 if (card) updateCardRatingBadge(card, createRatingBadge, rating);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         };
 
         try {
             // Use window-level listener with capture phase to ensure it works regardless of focus
             window.addEventListener("keydown", onKeyDown, { capture: true });
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             window.addEventListener(EVENT_NAME, onRatingEvent);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const dispose = () => {
@@ -167,14 +183,17 @@ export function createRatingHotkeysController({ gridContainer, createRatingBadge
         try {
             // Remove window-level listener
             window.removeEventListener("keydown", onKeyDown, { capture: true });
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             window.removeEventListener(EVENT_NAME, onRatingEvent);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         onKeyDown = null;
         onRatingEvent = null;
     };
 
     return { bind, dispose };
 }
-

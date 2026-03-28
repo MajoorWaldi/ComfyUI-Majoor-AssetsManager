@@ -36,12 +36,15 @@ function formatMessageDate(ts) {
 
 function resolveMessageText(entry, keyField, fallbackField, fallbackText) {
     const key = String(entry?.[keyField] || "").trim();
-    const fallback = String(entry?.[fallbackField] || fallbackText || "").trim() || String(fallbackText || "");
+    const fallback =
+        String(entry?.[fallbackField] || fallbackText || "").trim() || String(fallbackText || "");
     return key ? t(key, fallback) : fallback;
 }
 
 function normalizeMessageLevel(value) {
-    const raw = String(value || "").trim().toLowerCase();
+    const raw = String(value || "")
+        .trim()
+        .toLowerCase();
     if (raw === "warn") return "warning";
     if (raw === "danger") return "error";
     return ALLOWED_MESSAGE_LEVELS.has(raw) ? raw : "info";
@@ -73,10 +76,14 @@ function resolveMessageEmoji(entry) {
 
 function getHistoryTypeIcon(type) {
     switch (String(type || "").toLowerCase()) {
-        case "success": return "✅";
-        case "warning": return "⚠️";
-        case "error":   return "❌";
-        default:        return "💡";
+        case "success":
+            return "✅";
+        case "warning":
+            return "⚠️";
+        case "error":
+            return "❌";
+        default:
+            return "💡";
     }
 }
 
@@ -99,8 +106,8 @@ function setTabState({
     const titleText = isMessages
         ? t("label.messages", "Messages")
         : isHistory
-        ? t("label.toastHistory", "History")
-        : t("msg.shortcuts.title", "Shortcut Guide");
+          ? t("label.toastHistory", "History")
+          : t("msg.shortcuts.title", "Shortcut Guide");
     try {
         messageTabBtn?.classList.toggle("is-active", isMessages);
         messageTabBtn?.setAttribute("aria-selected", isMessages ? "true" : "false");
@@ -108,7 +115,9 @@ function setTabState({
         historyTabBtn?.setAttribute("aria-selected", isHistory ? "true" : "false");
         shortcutsTabBtn?.classList.toggle("is-active", isShortcuts);
         shortcutsTabBtn?.setAttribute("aria-selected", isShortcuts ? "true" : "false");
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         if (title) title.textContent = titleText;
         messagePopover?.setAttribute?.("aria-label", titleText);
@@ -128,7 +137,9 @@ function setTabState({
             shortcutsPanel.setAttribute("aria-hidden", isShortcuts ? "false" : "true");
         }
         if (markReadBtn) markReadBtn.hidden = !isMessages;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 export function bindMessagePopoverController({
@@ -154,10 +165,14 @@ export function bindMessagePopoverController({
         const isOpen = messagePopover?.style?.display === "block";
         try {
             messageBtn?.setAttribute("aria-expanded", isOpen ? "true" : "false");
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             messagePopover?.setAttribute("aria-hidden", isOpen ? "false" : "true");
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const renderMessagesPopover = () => {
@@ -195,11 +210,21 @@ export function bindMessagePopoverController({
 
             const titleEl = document.createElement("div");
             titleEl.className = "mjr-message-item-title";
-            titleEl.textContent = resolveMessageText(entry, "titleKey", "title", t("label.info", "Info"));
+            titleEl.textContent = resolveMessageText(
+                entry,
+                "titleKey",
+                "title",
+                t("label.info", "Info"),
+            );
 
             const category = document.createElement("span");
             category.className = "mjr-message-item-category";
-            category.textContent = resolveMessageText(entry, "categoryKey", "category", t("label.info", "Info"));
+            category.textContent = resolveMessageText(
+                entry,
+                "categoryKey",
+                "category",
+                t("label.info", "Info"),
+            );
 
             titleWrap.appendChild(emoji);
             titleWrap.appendChild(titleEl);
@@ -219,7 +244,12 @@ export function bindMessagePopoverController({
             if (body.textContent) item.appendChild(body);
 
             const actionUrl = resolveSafeActionUrl(entry?.actionUrl);
-            const actionLabel = resolveMessageText(entry, "actionLabelKey", "actionLabel", t("label.readMe", "Read Me"));
+            const actionLabel = resolveMessageText(
+                entry,
+                "actionLabelKey",
+                "actionLabel",
+                t("label.readMe", "Read Me"),
+            );
             if (actionUrl && actionLabel) {
                 const action = document.createElement("a");
                 action.className = "mjr-message-item-action";
@@ -252,11 +282,15 @@ export function bindMessagePopoverController({
             clearBtn.className = "mjr-btn mjr-history-clear-btn";
             clearBtn.textContent = t("btn.clearHistory", "Clear");
             clearBtn.title = t("tooltip.clearToastHistory", "Clear toast history");
-            clearBtn.addEventListener("click", (e) => {
-                e.stopPropagation();
-                clearToastHistory();
-                renderHistoryPanel();
-            }, signal ? { signal } : undefined);
+            clearBtn.addEventListener(
+                "click",
+                (e) => {
+                    e.stopPropagation();
+                    clearToastHistory();
+                    renderHistoryPanel();
+                },
+                signal ? { signal } : undefined,
+            );
 
             historyHead.appendChild(historyHeadLabel);
             historyHead.appendChild(clearBtn);
@@ -321,9 +355,12 @@ export function bindMessagePopoverController({
         if (!messageBtn) return;
         const unreadCount = Number(getPanelUnreadCount() || 0);
         const badge = messageBtn.querySelector(".mjr-message-badge");
-        const titleText = unreadCount > 0
-            ? t("tooltip.openMessagesUnread", "Messages ({count} unread)", { count: unreadCount })
-            : t("tooltip.openMessages", "Messages and updates");
+        const titleText =
+            unreadCount > 0
+                ? t("tooltip.openMessagesUnread", "Messages ({count} unread)", {
+                      count: unreadCount,
+                  })
+                : t("tooltip.openMessages", "Messages and updates");
         messageBtn.classList.toggle("mjr-message-has-unread", unreadCount > 0);
         messageBtn.title = titleText;
         messageBtn.setAttribute("aria-label", titleText);
@@ -350,22 +387,32 @@ export function bindMessagePopoverController({
 
     try {
         window.addEventListener(PANEL_MESSAGES_EVENT, refreshMessagesUI, listenerOptions);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
-        window.addEventListener(TOAST_HISTORY_EVENT, () => {
-            updateHistoryTabBadge();
-            if (messagePopover?.style?.display === "block" && activeTab === "history") {
-                renderHistoryPanel();
-            }
-        }, listenerOptions);
-    } catch (e) { console.debug?.(e); }
+        window.addEventListener(
+            TOAST_HISTORY_EVENT,
+            () => {
+                updateHistoryTabBadge();
+                if (messagePopover?.style?.display === "block" && activeTab === "history") {
+                    renderHistoryPanel();
+                }
+            },
+            listenerOptions,
+        );
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         if (messageBtn && messagePopover) {
             if (!messagePopover.id) messagePopover.id = "mjr-messages-popover";
             messageBtn.setAttribute("aria-haspopup", "dialog");
             messageBtn.setAttribute("aria-controls", messagePopover.id);
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     let expandedObserver = null;
     try {
@@ -376,10 +423,14 @@ export function bindMessagePopoverController({
                 attributeFilter: ["style"],
             });
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         signal?.addEventListener?.("abort", () => expandedObserver?.disconnect?.(), { once: true });
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     updateMessageButtonState();
     updateHistoryTabBadge();
@@ -452,60 +503,82 @@ export function bindMessagePopoverController({
         renderShortcutsPanel();
     };
 
-    messageBtn?.addEventListener("click", (e) => {
-        if (!messagePopover || !popovers || !messageBtn) return;
-        e.stopPropagation();
-        activeTab = "messages";
-        renderMessagesPopover();
-        renderShortcutsPanel();
-        setTabState({
-            activeTab,
-            title,
-            messagePopover,
-            messageTabBtn,
-            historyTabBtn,
-            shortcutsTabBtn,
-            messageList,
-            historyPanel,
-            shortcutsPanel,
-            markReadBtn,
-        });
-        try {
-            if (typeof onBeforeToggle === "function") onBeforeToggle();
-        } catch (err) { console.debug?.(err); }
-        popovers.toggle(messagePopover, messageBtn);
-        if (messagePopover?.style?.display === "block") {
+    messageBtn?.addEventListener(
+        "click",
+        (e) => {
+            if (!messagePopover || !popovers || !messageBtn) return;
+            e.stopPropagation();
+            activeTab = "messages";
+            renderMessagesPopover();
+            renderShortcutsPanel();
+            setTabState({
+                activeTab,
+                title,
+                messagePopover,
+                messageTabBtn,
+                historyTabBtn,
+                shortcutsTabBtn,
+                messageList,
+                historyPanel,
+                shortcutsPanel,
+                markReadBtn,
+            });
+            try {
+                if (typeof onBeforeToggle === "function") onBeforeToggle();
+            } catch (err) {
+                console.debug?.(err);
+            }
+            popovers.toggle(messagePopover, messageBtn);
+            if (messagePopover?.style?.display === "block") {
+                markPanelMessagesRead();
+            }
+            syncExpandedState();
+            updateMessageButtonState();
+        },
+        listenerOptions,
+    );
+
+    messageTabBtn?.addEventListener(
+        "click",
+        (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            showMessagesTab();
+        },
+        listenerOptions,
+    );
+
+    historyTabBtn?.addEventListener(
+        "click",
+        (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            showHistoryTab();
+        },
+        listenerOptions,
+    );
+
+    shortcutsTabBtn?.addEventListener(
+        "click",
+        (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            showShortcutsTab();
+        },
+        listenerOptions,
+    );
+
+    markReadBtn?.addEventListener(
+        "click",
+        (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             markPanelMessagesRead();
-        }
-        syncExpandedState();
-        updateMessageButtonState();
-    }, listenerOptions);
-
-    messageTabBtn?.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        showMessagesTab();
-    }, listenerOptions);
-
-    historyTabBtn?.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        showHistoryTab();
-    }, listenerOptions);
-
-    shortcutsTabBtn?.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        showShortcutsTab();
-    }, listenerOptions);
-
-    markReadBtn?.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        markPanelMessagesRead();
-        renderMessagesPopover();
-        updateMessageButtonState();
-    }, listenerOptions);
+            renderMessagesPopover();
+            updateMessageButtonState();
+        },
+        listenerOptions,
+    );
 
     return {
         refresh: refreshMessagesUI,

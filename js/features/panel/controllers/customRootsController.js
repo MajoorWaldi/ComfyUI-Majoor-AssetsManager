@@ -11,11 +11,13 @@ export function createCustomRootsController({
     post,
     ENDPOINTS,
     reloadGrid,
-    onRootChanged = null
+    onRootChanged = null,
 }) {
     const refreshCustomRoots = async (preferId = null) => {
         // Show loading state
-        const originalPlaceholder = customSelect.querySelector('option[value=""]')?.textContent || t("label.selectFolder", "Select folder…");
+        const originalPlaceholder =
+            customSelect.querySelector('option[value=""]')?.textContent ||
+            t("label.selectFolder", "Select folder…");
         customSelect.innerHTML = "";
 
         const loadingOption = document.createElement("option");
@@ -84,7 +86,9 @@ export function createCustomRootsController({
             disposers.push(() => {
                 try {
                     target.removeEventListener(event, handler);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             });
         };
 
@@ -102,7 +106,9 @@ export function createCustomRootsController({
                 customRemoveBtn.disabled = !state.customRootId;
                 try {
                     await onRootChanged?.(state);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 await reloadGrid();
             }
         };
@@ -119,20 +125,31 @@ export function createCustomRootsController({
                 if (browseRes?.ok) {
                     pickedPath = String(browseRes?.data?.path || "").trim();
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             if (!pickedPath) {
-                const manual = await comfyPrompt(t("dialog.enterFolderPath", "Enter folder path"), "");
+                const manual = await comfyPrompt(
+                    t("dialog.enterFolderPath", "Enter folder path"),
+                    "",
+                );
                 pickedPath = String(manual || "").trim();
             }
             if (!pickedPath) return;
 
-            const label = await comfyPrompt(t("dialog.folderLabelOptional", "Folder label (optional)"), "");
+            const label = await comfyPrompt(
+                t("dialog.folderLabelOptional", "Folder label (optional)"),
+                "",
+            );
             const createRes = await post(ENDPOINTS.CUSTOM_ROOTS, {
                 path: pickedPath,
                 label: String(label || "").trim() || undefined,
             });
             if (!createRes?.ok) {
-                comfyToast(createRes?.error || t("toast.failedAddFolder", "Failed to add browser folder"), "error");
+                comfyToast(
+                    createRes?.error || t("toast.failedAddFolder", "Failed to add browser folder"),
+                    "error",
+                );
                 return;
             }
 
@@ -140,7 +157,9 @@ export function createCustomRootsController({
             await refreshCustomRoots(preferredId);
             try {
                 await onRootChanged?.(state);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             await reloadGrid();
             comfyToast(t("toast.folderAdded", "Folder added"), "success");
         };
@@ -150,9 +169,16 @@ export function createCustomRootsController({
             if (!state.customRootId) return;
 
             const selectedOption = customSelect.options[customSelect.selectedIndex];
-            const folderName = selectedOption ? selectedOption.text : t("label.thisFolder", "this folder");
+            const folderName = selectedOption
+                ? selectedOption.text
+                : t("label.thisFolder", "this folder");
 
-            const ok = await comfyConfirm(t("dialog.removeFolder", `Remove the browser folder "${folderName}"?`, { name: folderName }), t("dialog.customFoldersTitle", "Majoor: Browser Folders"));
+            const ok = await comfyConfirm(
+                t("dialog.removeFolder", `Remove the browser folder "${folderName}"?`, {
+                    name: folderName,
+                }),
+                t("dialog.customFoldersTitle", "Majoor: Browser Folders"),
+            );
             if (!ok) return;
 
             // Show loading state
@@ -162,7 +188,11 @@ export function createCustomRootsController({
             try {
                 const json = await post(ENDPOINTS.CUSTOM_ROOTS_REMOVE, { id: state.customRootId });
                 if (!json?.ok) {
-                    comfyToast(json?.error || t("toast.failedRemoveFolder", "Failed to remove browser folder"), "error");
+                    comfyToast(
+                        json?.error ||
+                            t("toast.failedRemoveFolder", "Failed to remove browser folder"),
+                        "error",
+                    );
                     return;
                 }
                 comfyToast(t("toast.folderRemoved", "Folder removed"), "success");
@@ -173,7 +203,13 @@ export function createCustomRootsController({
                 await reloadGrid();
             } catch (err) {
                 console.warn("Majoor: remove custom root failed", err);
-                comfyToast(t("toast.errorRemovingFolder", "An error occurred while removing the browser folder"), "error");
+                comfyToast(
+                    t(
+                        "toast.errorRemovingFolder",
+                        "An error occurred while removing the browser folder",
+                    ),
+                    "error",
+                );
             } finally {
                 // Re-enable button regardless of outcome
                 customRemoveBtn.disabled = !state.customRootId; // Keep disabled if no selection
@@ -186,11 +222,12 @@ export function createCustomRootsController({
             for (const dispose of disposers.splice(0)) {
                 try {
                     dispose();
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
         };
     };
 
     return { refreshCustomRoots, bind };
 }
-

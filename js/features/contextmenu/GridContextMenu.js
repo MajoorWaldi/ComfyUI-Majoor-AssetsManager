@@ -6,7 +6,16 @@ import { buildDownloadURL } from "../../api/endpoints.js";
 import { comfyConfirm, comfyPrompt } from "../../app/dialogs.js";
 import { comfyToast } from "../../app/toast.js";
 import { t } from "../../app/i18n.js";
-import { openInFolder, deleteAsset, renameAsset, updateAssetRating, removeFilepathsFromCollection, post, browserFolderOp, getAssetMetadata } from "../../api/client.js";
+import {
+    openInFolder,
+    deleteAsset,
+    renameAsset,
+    updateAssetRating,
+    removeFilepathsFromCollection,
+    post,
+    browserFolderOp,
+    getAssetMetadata,
+} from "../../api/client.js";
 import { ENDPOINTS } from "../../api/endpoints.js";
 import { ASSET_RATING_CHANGED_EVENT, ASSET_TAGS_CHANGED_EVENT } from "../../app/events.js";
 import { createTagsEditor } from "../../components/TagsEditor.js";
@@ -42,16 +51,18 @@ const getSelectedAssetIds = (gridContainer) => {
         const raw = gridContainer.dataset?.mjrSelectedAssetIds;
         if (raw) {
             const list = JSON.parse(raw);
-            if (Array.isArray(list)) list.forEach(id => selected.add(String(id)));
+            if (Array.isArray(list)) list.forEach((id) => selected.add(String(id)));
         } else {
-             // Fallback for legacy or if dataset missing
-             const cards = gridContainer.querySelectorAll('.mjr-asset-card.is-selected');
-             for (const card of cards) {
-                 const id = card.dataset?.mjrAssetId;
-                 if (id) selected.add(String(id));
-             }
+            // Fallback for legacy or if dataset missing
+            const cards = gridContainer.querySelectorAll(".mjr-asset-card.is-selected");
+            for (const card of cards) {
+                const id = card.dataset?.mjrAssetId;
+                if (id) selected.add(String(id));
+            }
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return selected;
 };
 
@@ -63,7 +74,10 @@ const getSelectedAssets = (gridContainer) => {
         if (raw) {
             const ids = JSON.parse(raw);
             if (Array.isArray(ids) && ids.length) {
-                const all = typeof gridContainer?._mjrGetAssets === "function" ? gridContainer._mjrGetAssets() : [];
+                const all =
+                    typeof gridContainer?._mjrGetAssets === "function"
+                        ? gridContainer._mjrGetAssets()
+                        : [];
                 const idSet = new Set(ids.map(String));
                 for (const a of all || []) {
                     const id = String(a?.id || "");
@@ -72,14 +86,18 @@ const getSelectedAssets = (gridContainer) => {
                 if (assets.length) return assets;
             }
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         const cards = gridContainer.querySelectorAll(".mjr-asset-card.is-selected");
         for (const card of cards) {
             const a = card?._mjrAsset;
             if (a) assets.push(a);
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return assets;
 };
 
@@ -99,20 +117,24 @@ const clearSelection = (gridContainer) => {
             gridContainer._mjrSetSelection([], "");
             return;
         }
-        const cards = gridContainer.querySelectorAll('.mjr-asset-card.is-selected');
+        const cards = gridContainer.querySelectorAll(".mjr-asset-card.is-selected");
         for (const card of cards) {
-            card.classList.remove('is-selected');
-            card.setAttribute('aria-selected', 'false');
+            card.classList.remove("is-selected");
+            card.setAttribute("aria-selected", "false");
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         delete gridContainer.dataset.mjrSelectedAssetIds;
         delete gridContainer.dataset.mjrSelectedAssetId;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     safeDispatchCustomEvent(
         "mjr:selection-changed",
         { selectedIds: [] },
-        { target: gridContainer, warnPrefix: "[GridContextMenu]" }
+        { target: gridContainer, warnPrefix: "[GridContextMenu]" },
     );
 };
 
@@ -120,12 +142,16 @@ const selectCardForDetails = (gridContainer, card, asset, state) => {
     if (!gridContainer) return;
     try {
         clearSelection(gridContainer);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     if (card) {
         try {
-            card.classList.add('is-selected');
-            card.setAttribute('aria-selected', 'true');
-        } catch (e) { console.debug?.(e); }
+            card.classList.add("is-selected");
+            card.setAttribute("aria-selected", "true");
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
     const id = asset?.id != null ? String(asset.id) : "";
     if (id) {
@@ -136,22 +162,32 @@ const selectCardForDetails = (gridContainer, card, asset, state) => {
                 gridContainer.dataset.mjrSelectedAssetIds = JSON.stringify([id]);
                 gridContainer.dataset.mjrSelectedAssetId = id;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     } else {
         try {
             delete gridContainer.dataset.mjrSelectedAssetIds;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             delete gridContainer.dataset.mjrSelectedAssetId;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
-    if (state && typeof state === 'object') {
+    if (state && typeof state === "object") {
         try {
             state.selectedAssetIds = id ? [id] : [];
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             state.activeAssetId = id;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 };
 
@@ -164,14 +200,18 @@ const getAllAssetsInGrid = (gridContainer) => {
             const list = getter();
             if (Array.isArray(list) && list.length) return list;
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         const cards = gridContainer.querySelectorAll(".mjr-asset-card");
         for (const card of cards) {
             const a = card?._mjrAsset;
             if (a) assets.push(a);
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return assets;
 };
 
@@ -205,7 +245,9 @@ const triggerBrowserGridReload = (gridContainer) => {
     try {
         const reason = gridContainer ? "grid-contextmenu" : "grid-contextmenu-global";
         window?.dispatchEvent?.(new CustomEvent("mjr:reload-grid", { detail: { reason } }));
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 };
 
 async function resetIndexForSingleAsset(asset, gridContainer) {
@@ -214,8 +256,13 @@ async function resetIndexForSingleAsset(asset, gridContainer) {
     const fileEntry = {
         filename: String(asset.filename || "").trim(),
         subfolder: String(asset.subfolder || "").trim(),
-        type: String(asset.type || asset.source || "output").trim().toLowerCase() || "output",
-        root_id: String(asset.root_id || asset.rootId || asset?.file_info?.root_id || "").trim() || undefined,
+        type:
+            String(asset.type || asset.source || "output")
+                .trim()
+                .toLowerCase() || "output",
+        root_id:
+            String(asset.root_id || asset.rootId || asset?.file_info?.root_id || "").trim() ||
+            undefined,
     };
     if (!fileEntry.filename) return { ok: false, error: "Missing filename" };
 
@@ -227,7 +274,9 @@ async function resetIndexForSingleAsset(asset, gridContainer) {
             const fresh = await getAssetMetadata(asset.id);
             if (fresh?.ok && fresh?.data && typeof fresh.data === "object") {
                 Object.assign(asset, fresh.data);
-                const card = document.querySelector(`[data-mjr-asset-id="${safeEscapeSelector(asset.id)}"]`);
+                const card = document.querySelector(
+                    `[data-mjr-asset-id="${safeEscapeSelector(asset.id)}"]`,
+                );
                 if (card && card._mjrAsset) {
                     card._mjrAsset = { ...card._mjrAsset, ...fresh.data };
                     const oldDot = card.querySelector(".mjr-workflow-dot");
@@ -237,10 +286,16 @@ async function resetIndexForSingleAsset(asset, gridContainer) {
                     }
                 }
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 
-    try { triggerBrowserGridReload(gridContainer); } catch (e) { console.debug?.(e); }
+    try {
+        triggerBrowserGridReload(gridContainer);
+    } catch (e) {
+        console.debug?.(e);
+    }
     return { ok: true, data: { refreshed: true } };
 }
 
@@ -267,9 +322,13 @@ function showTagsPopover(x, y, asset, onChanged) {
         const existing = document.querySelector(POPOVER_SELECTOR);
         try {
             existing?._mjrAbortController?.abort?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         existing?.remove?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     const pop = document.createElement("div");
     pop.className = "mjr-grid-popover";
@@ -288,11 +347,13 @@ function showTagsPopover(x, y, asset, onChanged) {
         safeDispatchCustomEvent(
             ASSET_TAGS_CHANGED_EVENT,
             { assetId: String(asset.id), tags },
-            { warnPrefix: "[GridContextMenu]" }
+            { warnPrefix: "[GridContextMenu]" },
         );
         try {
             onChanged?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     });
     pop.appendChild(editor);
     document.body.appendChild(pop);
@@ -300,10 +361,14 @@ function showTagsPopover(x, y, asset, onChanged) {
     const hide = () => {
         try {
             pop._mjrAbortController?.abort?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             pop.remove?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     // Dismiss when clicking outside (so clicking inside input doesn't close it).
@@ -313,17 +378,23 @@ function showTagsPopover(x, y, asset, onChanged) {
             (e) => {
                 if (!pop.contains(e.target)) hide();
             },
-            { capture: true, signal: ac.signal }
+            { capture: true, signal: ac.signal },
         );
         document.addEventListener(
             "keydown",
             (e) => {
                 if (e.key === "Escape") hide();
             },
-            { capture: true, signal: ac.signal }
+            { capture: true, signal: ac.signal },
         );
-        document.addEventListener("scroll", hide, { capture: true, passive: true, signal: ac.signal });
-    } catch (e) { console.debug?.(e); }
+        document.addEventListener("scroll", hide, {
+            capture: true,
+            passive: true,
+            signal: ac.signal,
+        });
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // Clamp into viewport
     const rect = pop.getBoundingClientRect();
@@ -341,10 +412,14 @@ function setRating(asset, rating, onChanged) {
     const assetId = asset?.id;
     try {
         asset.rating = rating;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         onChanged?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     if (assetId) {
         scheduleRatingUpdate(String(assetId), rating, {
@@ -355,17 +430,21 @@ function setRating(asset, rating, onChanged) {
                 safeDispatchCustomEvent(
                     ASSET_RATING_CHANGED_EVENT,
                     { assetId: String(assetId), rating },
-                    { warnPrefix: "[GridContextMenu]" }
+                    { warnPrefix: "[GridContextMenu]" },
                 );
             },
             onFailure: (error) => {
-                reportError(error, "[GridContextMenu] Rating update", { showToast: APP_CONFIG.DEBUG_VERBOSE_ERRORS });
+                reportError(error, "[GridContextMenu] Rating update", {
+                    showToast: APP_CONFIG.DEBUG_VERBOSE_ERRORS,
+                });
             },
         });
         return;
     }
     updateAssetRating(asset, rating).catch((error) => {
-        reportError(error, "[GridContextMenu] Rating update", { showToast: APP_CONFIG.DEBUG_VERBOSE_ERRORS });
+        reportError(error, "[GridContextMenu] Rating update", {
+            showToast: APP_CONFIG.DEBUG_VERBOSE_ERRORS,
+        });
     });
 }
 
@@ -376,7 +455,10 @@ export function bindGridContextMenu({
     getViewer = null,
 } = {}) {
     if (!gridContainer) return;
-    if (gridContainer._mjrGridContextMenuBound && typeof gridContainer._mjrGridContextMenuUnbind === "function") {
+    if (
+        gridContainer._mjrGridContextMenuBound &&
+        typeof gridContainer._mjrGridContextMenuUnbind === "function"
+    ) {
         return gridContainer._mjrGridContextMenuUnbind;
     }
 
@@ -403,27 +485,49 @@ export function bindGridContextMenu({
             const currentPath = String(gridContainer?.dataset?.mjrSubfolder || "").trim();
             if (!currentPath) return;
             menu.appendChild(
-                createItem(t("ctx.createFolderHere", "Create folder here..."), "pi pi-plus", null, async () => {
-                    try {
-                        const name = await comfyPrompt(t("dialog.newFolderName", "New folder name"), "");
-                        const next = String(name || "").trim();
-                        if (!next) return;
-                        const res = await browserFolderOp({ op: "create", path: currentPath, name: next });
-                        if (!res?.ok) {
-                            comfyToast(res?.error || "Failed to create folder", "error");
-                            return;
+                createItem(
+                    t("ctx.createFolderHere", "Create folder here..."),
+                    "pi pi-plus",
+                    null,
+                    async () => {
+                        try {
+                            const name = await comfyPrompt(
+                                t("dialog.newFolderName", "New folder name"),
+                                "",
+                            );
+                            const next = String(name || "").trim();
+                            if (!next) return;
+                            const res = await browserFolderOp({
+                                op: "create",
+                                path: currentPath,
+                                name: next,
+                            });
+                            if (!res?.ok) {
+                                comfyToast(res?.error || "Failed to create folder", "error");
+                                return;
+                            }
+                            triggerBrowserGridReload(gridContainer);
+                            comfyToast(
+                                t("toast.folderCreated", "Folder created: {name}", { name: next }),
+                                "success",
+                            );
+                        } catch (error) {
+                            comfyToast(
+                                t(
+                                    "toast.createFolderFailedDetail",
+                                    "Create folder failed: {error}",
+                                    { error: error?.message || String(error || "") },
+                                ),
+                                "error",
+                            );
                         }
-                        triggerBrowserGridReload(gridContainer);
-                        comfyToast(t("toast.folderCreated", "Folder created: {name}", { name: next }), "success");
-                    } catch (error) {
-                        comfyToast(t("toast.createFolderFailedDetail", "Create folder failed: {error}", { error: error?.message || String(error || "") }), "error");
-                    }
-                })
+                    },
+                ),
             );
             showAt(menu, e.clientX, e.clientY);
             return;
         }
-        
+
         e.preventDefault();
         e.stopPropagation();
 
@@ -435,7 +539,7 @@ export function bindGridContextMenu({
 
         // Get current selection state
         let selectedIds = getSelectedAssetIds(gridContainer);
-        
+
         // Implicit selection: if Right-Click on unselected item, select it exclusively.
         const cardSelected = !!card?.classList?.contains?.("is-selected");
         if (asset && !cardSelected) {
@@ -451,25 +555,35 @@ export function bindGridContextMenu({
                     delete gridContainer.dataset.mjrSelectedAssetIds;
                     delete gridContainer.dataset.mjrSelectedAssetId;
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
-                safeDispatchCustomEvent("mjr:selection-changed", {
-                    selectedIds: newSelection,
-                    selectedAssets: [asset],
-                    activeId: nextId
-                }, { target: gridContainer, warnPrefix: "[GridContextMenu]" });
-            } catch (e) { console.debug?.(e); }
+                safeDispatchCustomEvent(
+                    "mjr:selection-changed",
+                    {
+                        selectedIds: newSelection,
+                        selectedAssets: [asset],
+                        activeId: nextId,
+                    },
+                    { target: gridContainer, warnPrefix: "[GridContextMenu]" },
+                );
+            } catch (e) {
+                console.debug?.(e);
+            }
             selectedIds = new Set(newSelection);
             try {
-                gridContainer.querySelectorAll('.mjr-asset-card.is-selected').forEach(el => {
-                    el.classList.remove('is-selected');
-                    el.setAttribute?.('aria-selected', 'false');
+                gridContainer.querySelectorAll(".mjr-asset-card.is-selected").forEach((el) => {
+                    el.classList.remove("is-selected");
+                    el.setAttribute?.("aria-selected", "false");
                 });
                 if (card) {
-                    card.classList.add('is-selected');
-                    card.setAttribute('aria-selected', 'true');
+                    card.classList.add("is-selected");
+                    card.setAttribute("aria-selected", "true");
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
         const selectedAssetsNow = getSelectedAssets(gridContainer);
         const effectiveSelectionCount = selectedAssetsNow.length || selectedIds.size;
@@ -486,10 +600,12 @@ export function bindGridContextMenu({
                             new CustomEvent("mjr:open-folder-asset", {
                                 bubbles: true,
                                 detail: { asset },
-                            })
+                            }),
                         );
-                    } catch (e) { console.debug?.(e); }
-                })
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+                }),
             );
 
             menu.appendChild(
@@ -500,7 +616,7 @@ export function bindGridContextMenu({
                     }
                     const label = await comfyPrompt(
                         t("dialog.browserRootLabelOptional"),
-                        String(asset?.filename || "")
+                        String(asset?.filename || ""),
                     );
                     const res = await post(ENDPOINTS.CUSTOM_ROOTS, {
                         path: folderPath,
@@ -515,10 +631,12 @@ export function bindGridContextMenu({
                         window.dispatchEvent(
                             new CustomEvent("mjr:custom-roots-changed", {
                                 detail: { preferredId: String(res?.data?.id || "") },
-                            })
+                            }),
                         );
-                    } catch (e) { console.debug?.(e); }
-                })
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+                }),
             );
 
             if (isBrowserScope && folderPath) {
@@ -529,7 +647,11 @@ export function bindGridContextMenu({
                             const name = await comfyPrompt(t("dialog.newFolderName"), "");
                             const next = String(name || "").trim();
                             if (!next) return;
-                            const res = await browserFolderOp({ op: "create", path: folderPath, name: next });
+                            const res = await browserFolderOp({
+                                op: "create",
+                                path: folderPath,
+                                name: next,
+                            });
                             if (!res?.ok) {
                                 comfyToast(res?.error || t("toast.createFolderFailed"), "error");
                                 return;
@@ -537,9 +659,14 @@ export function bindGridContextMenu({
                             triggerBrowserGridReload(gridContainer);
                             comfyToast(t("toast.folderCreated", { name: next }), "success");
                         } catch (error) {
-                            comfyToast(t("toast.createFolderFailedDetail", { error: error?.message || String(error || "") }), "error");
+                            comfyToast(
+                                t("toast.createFolderFailedDetail", {
+                                    error: error?.message || String(error || ""),
+                                }),
+                                "error",
+                            );
                         }
-                    })
+                    }),
                 );
                 menu.appendChild(
                     createItem(t("ctx.renameFolder"), "pi pi-pencil", null, async () => {
@@ -548,7 +675,11 @@ export function bindGridContextMenu({
                             const name = await comfyPrompt(t("dialog.renameFolder"), current);
                             const next = String(name || "").trim();
                             if (!next || next === current) return;
-                            const res = await browserFolderOp({ op: "rename", path: folderPath, name: next });
+                            const res = await browserFolderOp({
+                                op: "rename",
+                                path: folderPath,
+                                name: next,
+                            });
                             if (!res?.ok) {
                                 comfyToast(res?.error || t("toast.renameFolderFailed"), "error");
                                 return;
@@ -556,17 +687,29 @@ export function bindGridContextMenu({
                             triggerBrowserGridReload(gridContainer);
                             comfyToast(t("toast.folderRenamed"), "success");
                         } catch (error) {
-                            comfyToast(t("toast.renameFolderFailedDetail", { error: error?.message || String(error || "") }), "error");
+                            comfyToast(
+                                t("toast.renameFolderFailedDetail", {
+                                    error: error?.message || String(error || ""),
+                                }),
+                                "error",
+                            );
                         }
-                    })
+                    }),
                 );
                 menu.appendChild(
                     createItem(t("ctx.moveFolder"), "pi pi-arrow-right", null, async () => {
                         try {
-                            const destination = await comfyPrompt(t("dialog.destinationDirectoryPath"), "");
+                            const destination = await comfyPrompt(
+                                t("dialog.destinationDirectoryPath"),
+                                "",
+                            );
                             const dest = String(destination || "").trim();
                             if (!dest) return;
-                            const res = await browserFolderOp({ op: "move", path: folderPath, destination: dest });
+                            const res = await browserFolderOp({
+                                op: "move",
+                                path: folderPath,
+                                destination: dest,
+                            });
                             if (!res?.ok) {
                                 comfyToast(res?.error || t("toast.moveFolderFailed"), "error");
                                 return;
@@ -574,19 +717,30 @@ export function bindGridContextMenu({
                             triggerBrowserGridReload(gridContainer);
                             comfyToast(t("toast.folderMoved"), "success");
                         } catch (error) {
-                            comfyToast(t("toast.moveFolderFailedDetail", { error: error?.message || String(error || "") }), "error");
+                            comfyToast(
+                                t("toast.moveFolderFailedDetail", {
+                                    error: error?.message || String(error || ""),
+                                }),
+                                "error",
+                            );
                         }
-                    })
+                    }),
                 );
                 menu.appendChild(
                     createItem(t("ctx.deleteFolder"), "pi pi-trash", null, async () => {
                         try {
-                            const folderName = String(asset?.filename || t("label.thisFolder", "this folder"));
+                            const folderName = String(
+                                asset?.filename || t("label.thisFolder", "this folder"),
+                            );
                             const ok = await comfyConfirm(
-                                t("dialog.deleteFolderRecursive", { name: folderName })
+                                t("dialog.deleteFolderRecursive", { name: folderName }),
                             );
                             if (!ok) return;
-                            const res = await browserFolderOp({ op: "delete", path: folderPath, recursive: true });
+                            const res = await browserFolderOp({
+                                op: "delete",
+                                path: folderPath,
+                                recursive: true,
+                            });
                             if (!res?.ok) {
                                 comfyToast(res?.error || t("toast.deleteFolderFailed"), "error");
                                 return;
@@ -594,9 +748,14 @@ export function bindGridContextMenu({
                             triggerBrowserGridReload(gridContainer);
                             comfyToast(t("toast.folderDeleted"), "success");
                         } catch (error) {
-                            comfyToast(t("toast.deleteFolderFailedDetail", { error: error?.message || String(error || "") }), "error");
+                            comfyToast(
+                                t("toast.deleteFolderFailedDetail", {
+                                    error: error?.message || String(error || ""),
+                                }),
+                                "error",
+                            );
                         }
-                    })
+                    }),
                 );
             }
 
@@ -612,14 +771,18 @@ export function bindGridContextMenu({
                 try {
                     const viewer = resolveViewer();
                     const selectedAssets = hasSelection ? getSelectedAssets(gridContainer) : [];
-                    const mediaSelectedAssets = selectedAssets.filter((a) => String(a?.kind || "").toLowerCase() !== "folder");
+                    const mediaSelectedAssets = selectedAssets.filter(
+                        (a) => String(a?.kind || "").toLowerCase() !== "folder",
+                    );
                     const selectedCount = mediaSelectedAssets.length;
                     if (selectedCount >= 2 && selectedCount <= 4) {
                         viewer.open(mediaSelectedAssets, 0);
                         return;
                     }
 
-                    const allAssets = getAllAssetsInGrid(gridContainer).filter((a) => String(a?.kind || "").toLowerCase() !== "folder");
+                    const allAssets = getAllAssetsInGrid(gridContainer).filter(
+                        (a) => String(a?.kind || "").toLowerCase() !== "folder",
+                    );
                     const idx = findIndexById(allAssets, asset?.id);
                     if (!allAssets.length || idx < 0) return;
                     viewer.open(allAssets, Math.max(0, idx));
@@ -627,117 +790,174 @@ export function bindGridContextMenu({
                     // Fallback to the caller hook (legacy/optional).
                     try {
                         onRequestOpenViewer(asset);
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 }
-            })
+            }),
         );
 
         menu.appendChild(
-            createItem(t("ctx.showMetadataPanel", "Show metadata panel"), "pi pi-info-circle", getShortcutDisplay("METADATA_PANEL"), () => {
-                try {
-                    hideMenu(menu);
-                } catch (e) { console.debug?.(e); }
-                try {
-                    selectCardForDetails(gridContainer, card, asset, panelState);
-                } catch (e) { console.debug?.(e); }
-                try {
-                    const toggleDetails = gridContainer?._mjrOpenDetails;
-                    if (typeof toggleDetails === "function") {
-                        toggleDetails();
+            createItem(
+                t("ctx.showMetadataPanel", "Show metadata panel"),
+                "pi pi-info-circle",
+                getShortcutDisplay("METADATA_PANEL"),
+                () => {
+                    try {
+                        hideMenu(menu);
+                    } catch (e) {
+                        console.debug?.(e);
                     }
-                } catch (e) { console.debug?.(e); }
-            })
+                    try {
+                        selectCardForDetails(gridContainer, card, asset, panelState);
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+                    try {
+                        const toggleDetails = gridContainer?._mjrOpenDetails;
+                        if (typeof toggleDetails === "function") {
+                            toggleDetails();
+                        }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+                },
+            ),
         );
 
         // Compare options (selection-only)
         const selectedAssets = hasSelection ? selectedAssetsNow : [];
-        const mediaSelectedAssets = selectedAssets.filter((a) => String(a?.kind || "").toLowerCase() !== "folder");
+        const mediaSelectedAssets = selectedAssets.filter(
+            (a) => String(a?.kind || "").toLowerCase() !== "folder",
+        );
         const selectedCount = mediaSelectedAssets.length;
         if (selectedCount === 2) {
             menu.appendChild(
-                createItem("Compare A/B (2 selected)", "pi pi-clone", getShortcutDisplay("COMPARE_AB"), () => {
-                    try {
-                        const viewer = resolveViewer();
-                        viewer.open(mediaSelectedAssets, 0);
-                        viewer.setMode?.("ab");
-                    } catch (e) { console.debug?.(e); }
-                })
+                createItem(
+                    "Compare A/B (2 selected)",
+                    "pi pi-clone",
+                    getShortcutDisplay("COMPARE_AB"),
+                    () => {
+                        try {
+                            const viewer = resolveViewer();
+                            viewer.open(mediaSelectedAssets, 0);
+                            viewer.setMode?.("ab");
+                        } catch (e) {
+                            console.debug?.(e);
+                        }
+                    },
+                ),
             );
         }
         if (selectedCount >= 2 && selectedCount <= 4) {
             menu.appendChild(
-                createItem(`Side-by-side (2x2) (${selectedCount} selected)`, "pi pi-table", getShortcutDisplay("SIDE_BY_SIDE"), () => {
-                    try {
-                        const viewer = resolveViewer();
-                        viewer.open(mediaSelectedAssets, 0);
-                        viewer.setMode?.("sidebyside");
-                    } catch (e) { console.debug?.(e); }
-                })
+                createItem(
+                    `Side-by-side (2x2) (${selectedCount} selected)`,
+                    "pi pi-table",
+                    getShortcutDisplay("SIDE_BY_SIDE"),
+                    () => {
+                        try {
+                            const viewer = resolveViewer();
+                            viewer.open(mediaSelectedAssets, 0);
+                            viewer.setMode?.("sidebyside");
+                        } catch (e) {
+                            console.debug?.(e);
+                        }
+                    },
+                ),
             );
         }
 
         // Open in Folder
         menu.appendChild(
-            createItem(t("ctx.openInFolder", "Open in folder"), "pi pi-folder-open", getShortcutDisplay("OPEN_IN_FOLDER"), async () => {
-                const res = await openInFolder(asset);
-                if (!res?.ok) {
-                    comfyToast(res?.error || t("toast.openFolderFailed"), "error");
-                } else {
-                    comfyToast(t("toast.openedInFolder"), "info", 2000);
-                }
-            }, { disabled: !(asset?.id || getAssetFilepath(asset)) })
+            createItem(
+                t("ctx.openInFolder", "Open in folder"),
+                "pi pi-folder-open",
+                getShortcutDisplay("OPEN_IN_FOLDER"),
+                async () => {
+                    const res = await openInFolder(asset);
+                    if (!res?.ok) {
+                        comfyToast(res?.error || t("toast.openFolderFailed"), "error");
+                    } else {
+                        comfyToast(t("toast.openedInFolder"), "info", 2000);
+                    }
+                },
+                { disabled: !(asset?.id || getAssetFilepath(asset)) },
+            ),
         );
 
         // Copy file path
         menu.appendChild(
-            createItem(t("ctx.copyPath", "Copy path"), "pi pi-copy", getShortcutDisplay("COPY_PATH"), async () => {
-                const p = asset?.filepath ? String(asset.filepath) : "";
-                if (!p) {
-                    comfyToast(t("toast.noFilePath"), "error");
-                    return;
-                }
-                try {
-                    await navigator.clipboard.writeText(p);
-                    comfyToast(t("toast.pathCopied"), "success", 2000);
-                } catch (err) {
-                    console.warn(t("log.clipboardCopyFailed", "Clipboard copy failed"), err);
-                    comfyToast(t("toast.pathCopyFailed"), "error");
-                }
-            })
+            createItem(
+                t("ctx.copyPath", "Copy path"),
+                "pi pi-copy",
+                getShortcutDisplay("COPY_PATH"),
+                async () => {
+                    const p = asset?.filepath ? String(asset.filepath) : "";
+                    if (!p) {
+                        comfyToast(t("toast.noFilePath"), "error");
+                        return;
+                    }
+                    try {
+                        await navigator.clipboard.writeText(p);
+                        comfyToast(t("toast.pathCopied"), "success", 2000);
+                    } catch (err) {
+                        console.warn(t("log.clipboardCopyFailed", "Clipboard copy failed"), err);
+                        comfyToast(t("toast.pathCopyFailed"), "error");
+                    }
+                },
+            ),
         );
 
         // Download
         menu.appendChild(
-            createItem(t("ctx.download", "Download"), "pi pi-download", getShortcutDisplay("DOWNLOAD"), () => {
-                if (!asset || !asset.filepath) {
-                    console.error("No filepath for asset", asset);
-                    return;
-                }
+            createItem(
+                t("ctx.download", "Download"),
+                "pi pi-download",
+                getShortcutDisplay("DOWNLOAD"),
+                () => {
+                    if (!asset || !asset.filepath) {
+                        console.error("No filepath for asset", asset);
+                        return;
+                    }
 
-                const url = buildDownloadURL(asset.filepath);
-                const filename = asset.filename || "download";
+                    const url = buildDownloadURL(asset.filepath);
+                    const filename = asset.filename || "download";
 
-                // Trigger download invisibly
-                const link = document.createElement("a");
-                link.href = url;
-                link.download = filename;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                comfyToast(t("toast.downloadingFile", "Downloading {filename}...", { filename }), "info", 3000);
-            }, { disabled: !asset?.filepath })
+                    // Trigger download invisibly
+                    const link = document.createElement("a");
+                    link.href = url;
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    comfyToast(
+                        t("toast.downloadingFile", "Downloading {filename}...", { filename }),
+                        "info",
+                        3000,
+                    );
+                },
+                { disabled: !asset?.filepath },
+            ),
         );
 
         // Add to collection (single or multi)
         menu.appendChild(
-                createItem("Add to collection...", "pi pi-bookmark", getShortcutDisplay("ADD_TO_COLLECTION"), async () => {
+            createItem(
+                "Add to collection...",
+                "pi pi-bookmark",
+                getShortcutDisplay("ADD_TO_COLLECTION"),
+                async () => {
                     try {
                         hideMenu(menu);
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                     const selectedAssets = getSelectedAssets(gridContainer);
                     const list = selectedAssets.length ? selectedAssets : [asset];
                     await showAddToCollectionMenu({ x: e.clientX, y: e.clientY, assets: list });
-                })
+                },
+            ),
         );
 
         // Remove from current collection (only when in collection view)
@@ -746,17 +966,22 @@ export function bindGridContextMenu({
             const selectedAssets = getSelectedAssets(gridContainer);
             const list = selectedAssets.length ? selectedAssets : [asset];
             const filepaths = list.map(getAssetFilepath).filter(Boolean);
-            const label = filepaths.length > 1 ? `Remove from collection (${filepaths.length})` : "Remove from collection";
+            const label =
+                filepaths.length > 1
+                    ? `Remove from collection (${filepaths.length})`
+                    : "Remove from collection";
             menu.appendChild(
                 createItem(label, "pi pi-bookmark", null, async () => {
                     try {
                         hideMenu(menu);
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                     if (!filepaths.length) {
                         comfyToast(t("toast.noFilePath"), "error");
                         return;
                     }
-                    
+
                     // Confirmation removed as per user request
                     const res = await removeFilepathsFromCollection(collectionId, filepaths);
                     if (!res?.ok) {
@@ -767,31 +992,50 @@ export function bindGridContextMenu({
                     // Refresh the collection view (best effort).
                     try {
                         triggerBrowserGridReload(gridContainer);
-                    } catch (e) { console.debug?.(e); }
-                })
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+                }),
             );
         }
 
         menu.appendChild(separator());
 
         // Edit Tags
-        menu.appendChild(createItem(t("ctx.editTags", "Edit tags"), "pi pi-tags", getShortcutDisplay("EDIT_TAGS"), () => {
-            try {
-                hideMenu(menu);
-            } catch (e) { console.debug?.(e); }
-            showTagsPopover(e.clientX + 6, e.clientY + 6, asset, () => {
-                // Update card UI after tags change
-                const card = document.querySelector(`[data-mjr-asset-id="${safeEscapeSelector(asset.id)}"]`);
-                if (card && card._mjrAsset) {
-                    card._mjrAsset.tags = [...asset.tags];
-                }
-            });
-        }));
+        menu.appendChild(
+            createItem(
+                t("ctx.editTags", "Edit tags"),
+                "pi pi-tags",
+                getShortcutDisplay("EDIT_TAGS"),
+                () => {
+                    try {
+                        hideMenu(menu);
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+                    showTagsPopover(e.clientX + 6, e.clientY + 6, asset, () => {
+                        // Update card UI after tags change
+                        const card = document.querySelector(
+                            `[data-mjr-asset-id="${safeEscapeSelector(asset.id)}"]`,
+                        );
+                        if (card && card._mjrAsset) {
+                            card._mjrAsset.tags = [...asset.tags];
+                        }
+                    });
+                },
+            ),
+        );
 
         // Rating submenu (hover)
         menu.appendChild(separator());
         const canRate = !!(asset?.id || getAssetFilepath(asset));
-        const ratingRoot = createItem(t("ctx.setRating", "Set rating"), "pi pi-star", "1-5 ›", () => {}, { disabled: !canRate });
+        const ratingRoot = createItem(
+            t("ctx.setRating", "Set rating"),
+            "pi pi-star",
+            "1-5 ›",
+            () => {},
+            { disabled: !canRate },
+        );
         ratingRoot.style.cursor = !canRate ? "default" : "pointer";
         menu.appendChild(ratingRoot);
 
@@ -802,10 +1046,14 @@ export function bindGridContextMenu({
         // Prevent listener buildup across repeated opens (submenu is reused).
         try {
             ratingSubmenu._mjrAbortController?.abort?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             ratingRoot._mjrAbortController?.abort?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         const ratingAC = new AbortController();
         ratingSubmenu._mjrAbortController = ratingAC;
         ratingRoot._mjrAbortController = ratingAC;
@@ -814,7 +1062,9 @@ export function bindGridContextMenu({
             try {
                 hideMenu(ratingSubmenu);
                 clearMenu(ratingSubmenu);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         };
 
         const scheduleClose = () => {
@@ -832,233 +1082,352 @@ export function bindGridContextMenu({
             setMenuSessionCleanup(menu, () => {
                 try {
                     if (hideTimer) clearTimeout(hideTimer);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 hideTimer = null;
                 try {
                     ratingSubmenu?._mjrAbortController?.abort?.();
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 try {
                     closeRatingSubmenu();
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             });
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         const renderRatingSubmenu = () => {
             clearMenu(ratingSubmenu);
             const stars = (n) => "★".repeat(n) + "☆".repeat(Math.max(0, 5 - n));
             for (const n of [5, 4, 3, 2, 1]) {
                 ratingSubmenu.appendChild(
-                    createItem(stars(n), "pi pi-star", null, async () => {
-                        setRating(asset, n, () => {
-                            const card = document.querySelector(
-                                `[data-mjr-asset-id="${safeEscapeSelector(asset.id)}"]`
-                            );
-                            if (card && card._mjrAsset) card._mjrAsset.rating = n;
-                        });
-                        closeRatingSubmenu();
-                        try {
-                            hideMenu(menu);
-                        } catch (e) { console.debug?.(e); }
-                    }, { disabled: !canRate })
+                    createItem(
+                        stars(n),
+                        "pi pi-star",
+                        null,
+                        async () => {
+                            setRating(asset, n, () => {
+                                const card = document.querySelector(
+                                    `[data-mjr-asset-id="${safeEscapeSelector(asset.id)}"]`,
+                                );
+                                if (card && card._mjrAsset) card._mjrAsset.rating = n;
+                            });
+                            closeRatingSubmenu();
+                            try {
+                                hideMenu(menu);
+                            } catch (e) {
+                                console.debug?.(e);
+                            }
+                        },
+                        { disabled: !canRate },
+                    ),
                 );
             }
             ratingSubmenu.appendChild(separator());
             ratingSubmenu.appendChild(
-                createItem(t("ctx.resetRating", "Reset rating"), "pi pi-star", "0", async () => {
-                    setRating(asset, 0, () => {
-                        const card = document.querySelector(
-                            `[data-mjr-asset-id="${safeEscapeSelector(asset.id)}"]`
-                        );
-                        if (card && card._mjrAsset) card._mjrAsset.rating = 0;
-                    });
-                    closeRatingSubmenu();
-                    try {
-                        hideMenu(menu);
-                    } catch (e) { console.debug?.(e); }
-                }, { disabled: !canRate })
+                createItem(
+                    t("ctx.resetRating", "Reset rating"),
+                    "pi pi-star",
+                    "0",
+                    async () => {
+                        setRating(asset, 0, () => {
+                            const card = document.querySelector(
+                                `[data-mjr-asset-id="${safeEscapeSelector(asset.id)}"]`,
+                            );
+                            if (card && card._mjrAsset) card._mjrAsset.rating = 0;
+                        });
+                        closeRatingSubmenu();
+                        try {
+                            hideMenu(menu);
+                        } catch (e) {
+                            console.debug?.(e);
+                        }
+                    },
+                    { disabled: !canRate },
+                ),
             );
         };
 
         ratingRoot.addEventListener(
             "mouseenter",
             () => {
-            if (!canRate) return;
-            cancelClose();
-            renderRatingSubmenu();
-            showSubmenuNextTo(ratingRoot, ratingSubmenu);
+                if (!canRate) return;
+                cancelClose();
+                renderRatingSubmenu();
+                showSubmenuNextTo(ratingRoot, ratingSubmenu);
             },
-            { signal: ratingAC.signal }
+            { signal: ratingAC.signal },
         );
         ratingRoot.addEventListener(
             "mouseleave",
             () => {
-            scheduleClose();
+                scheduleClose();
             },
-            { signal: ratingAC.signal }
+            { signal: ratingAC.signal },
         );
-        ratingSubmenu.addEventListener("mouseenter", () => cancelClose(), { signal: ratingAC.signal });
-        ratingSubmenu.addEventListener("mouseleave", () => scheduleClose(), { signal: ratingAC.signal });
+        ratingSubmenu.addEventListener("mouseenter", () => cancelClose(), {
+            signal: ratingAC.signal,
+        });
+        ratingSubmenu.addEventListener("mouseleave", () => scheduleClose(), {
+            signal: ratingAC.signal,
+        });
 
         menu.appendChild(separator());
 
         // Targeted index reset/rebuild for this file only.
         menu.appendChild(
-            createItem(t("ctx.resetIndexFile", "Reset index (this file)"), "pi pi-refresh", null, async () => {
-                if (!(asset?.filename || asset?.id)) return;
-                try {
-                    comfyToast(t("toast.rescanningFile", "Rescanning file..."), "info", 1600);
-                } catch (e) { console.debug?.(e); }
-                try {
-                    const res = await resetIndexForSingleAsset(asset, gridContainer);
-                    if (res?.ok) {
-                        comfyToast(t("toast.metadataRefreshed", "Metadata refreshed{suffix}", { suffix: "" }), "success", 1800);
-                    } else {
-                        comfyToast(res?.error || t("toast.resetFailed", "Failed to reset index"), "error");
+            createItem(
+                t("ctx.resetIndexFile", "Reset index (this file)"),
+                "pi pi-refresh",
+                null,
+                async () => {
+                    if (!(asset?.filename || asset?.id)) return;
+                    try {
+                        comfyToast(t("toast.rescanningFile", "Rescanning file..."), "info", 1600);
+                    } catch (e) {
+                        console.debug?.(e);
                     }
-                } catch (error) {
-                    comfyToast(
-                        t("toast.resetFailed", "Failed to reset index") + `: ${error?.message || String(error || "")}`,
-                        "error"
-                    );
-                }
-            }, { disabled: !(asset?.filename || asset?.id) })
+                    try {
+                        const res = await resetIndexForSingleAsset(asset, gridContainer);
+                        if (res?.ok) {
+                            comfyToast(
+                                t("toast.metadataRefreshed", "Metadata refreshed{suffix}", {
+                                    suffix: "",
+                                }),
+                                "success",
+                                1800,
+                            );
+                        } else {
+                            comfyToast(
+                                res?.error || t("toast.resetFailed", "Failed to reset index"),
+                                "error",
+                            );
+                        }
+                    } catch (error) {
+                        comfyToast(
+                            t("toast.resetFailed", "Failed to reset index") +
+                                `: ${error?.message || String(error || "")}`,
+                            "error",
+                        );
+                    }
+                },
+                { disabled: !(asset?.filename || asset?.id) },
+            ),
         );
 
         // Rename (single only)
         menu.appendChild(
-            createItem("Rename…", "pi pi-pencil", getShortcutDisplay("RENAME"), async () => {
-                if (!(asset?.id || getAssetFilepath(asset))) return;
-                
-                const currentName = asset.filename || "";
-                const rawInput = await comfyPrompt(t("dialog.rename.title", "Rename file"), currentName);
-                const newName = normalizeRenameFilename(rawInput, currentName);
-                if (!newName || newName === currentName) return;
-                const validation = validateFilename(newName);
-                if (!validation.valid) {
-                    comfyToast(validation.reason, "error");
-                    return;
-                }
-                
-                try {
-                    const result = await renameAsset(asset, newName);
-                    if (result?.ok) {
-                        const fresh = result?.data?.asset;
-                        if (fresh && typeof fresh === "object") {
-                            Object.assign(asset, fresh);
-                        } else {
-                            asset.filename = newName;
-                            asset.filepath = asset.filepath.replace(/[^\\/]+$/, newName);
-                            if (asset.path) asset.path = String(asset.path).replace(/[^\\/]+$/, newName);
-                            if (asset.file_info && typeof asset.file_info === "object") {
-                                asset.file_info.filename = newName;
-                                if (asset.file_info.filepath) asset.file_info.filepath = String(asset.file_info.filepath).replace(/[^\\/]+$/, newName);
-                                if (asset.file_info.path) asset.file_info.path = String(asset.file_info.path).replace(/[^\\/]+$/, newName);
-                            }
-                        }
-                        
-                        // Update card UI
-                        const card = document.querySelector(`[data-mjr-asset-id="${safeEscapeSelector(asset.id)}"]`);
-                        if (card) {
-                            // Update card display
-                            const filenameEl = card.querySelector('.mjr-filename');
-                            if (filenameEl) {
-                                filenameEl.textContent = newName;
-                            }
-                        }
-                        
-                        comfyToast(t("toast.fileRenamedSuccess"), "success");
-                        triggerBrowserGridReload(gridContainer);
-                    } else {
-                        comfyToast(result?.error || t("toast.fileRenameFailed"), "error");
+            createItem(
+                "Rename…",
+                "pi pi-pencil",
+                getShortcutDisplay("RENAME"),
+                async () => {
+                    if (!(asset?.id || getAssetFilepath(asset))) return;
+
+                    const currentName = asset.filename || "";
+                    const rawInput = await comfyPrompt(
+                        t("dialog.rename.title", "Rename file"),
+                        currentName,
+                    );
+                    const newName = normalizeRenameFilename(rawInput, currentName);
+                    if (!newName || newName === currentName) return;
+                    const validation = validateFilename(newName);
+                    if (!validation.valid) {
+                        comfyToast(validation.reason, "error");
+                        return;
                     }
-                } catch (error) {
-                    comfyToast(t("toast.errorRenaming", "Error renaming file: {error}", { error: error?.message || String(error || "") }), "error");
-                }
-            }, { disabled: !(asset?.id || getAssetFilepath(asset)) })
+
+                    try {
+                        const result = await renameAsset(asset, newName);
+                        if (result?.ok) {
+                            const fresh = result?.data?.asset;
+                            if (fresh && typeof fresh === "object") {
+                                Object.assign(asset, fresh);
+                            } else {
+                                asset.filename = newName;
+                                asset.filepath = asset.filepath.replace(/[^\\/]+$/, newName);
+                                if (asset.path)
+                                    asset.path = String(asset.path).replace(/[^\\/]+$/, newName);
+                                if (asset.file_info && typeof asset.file_info === "object") {
+                                    asset.file_info.filename = newName;
+                                    if (asset.file_info.filepath)
+                                        asset.file_info.filepath = String(
+                                            asset.file_info.filepath,
+                                        ).replace(/[^\\/]+$/, newName);
+                                    if (asset.file_info.path)
+                                        asset.file_info.path = String(asset.file_info.path).replace(
+                                            /[^\\/]+$/,
+                                            newName,
+                                        );
+                                }
+                            }
+
+                            // Update card UI
+                            const card = document.querySelector(
+                                `[data-mjr-asset-id="${safeEscapeSelector(asset.id)}"]`,
+                            );
+                            if (card) {
+                                // Update card display
+                                const filenameEl = card.querySelector(".mjr-filename");
+                                if (filenameEl) {
+                                    filenameEl.textContent = newName;
+                                }
+                            }
+
+                            comfyToast(t("toast.fileRenamedSuccess"), "success");
+                            triggerBrowserGridReload(gridContainer);
+                        } else {
+                            comfyToast(result?.error || t("toast.fileRenameFailed"), "error");
+                        }
+                    } catch (error) {
+                        comfyToast(
+                            t("toast.errorRenaming", "Error renaming file: {error}", {
+                                error: error?.message || String(error || ""),
+                            }),
+                            "error",
+                        );
+                    }
+                },
+                { disabled: !(asset?.id || getAssetFilepath(asset)) },
+            ),
         );
 
         // Delete (single or multi)
         if (isMultiSelected) {
             menu.appendChild(
-                createItem(`Delete ${effectiveSelectionCount} files...`, "pi pi-trash", getShortcutDisplay("DELETE"), async () => {
-                    const ok = await confirmDeletion(Number(effectiveSelectionCount) || 0);
-                    if (!ok) return;
-                    try {
-                        // Delete each asset individually
-                        let successCount = 0;
-                        let errorCount = 0;
-                        const deletedIds = [];
-                        let deletedByFilepath = 0;
-                        const selectionList = selectedAssetsNow.length ? selectedAssetsNow : [asset];
+                createItem(
+                    `Delete ${effectiveSelectionCount} files...`,
+                    "pi pi-trash",
+                    getShortcutDisplay("DELETE"),
+                    async () => {
+                        const ok = await confirmDeletion(Number(effectiveSelectionCount) || 0);
+                        if (!ok) return;
+                        try {
+                            // Delete each asset individually
+                            let successCount = 0;
+                            let errorCount = 0;
+                            const deletedIds = [];
+                            let deletedByFilepath = 0;
+                            const selectionList = selectedAssetsNow.length
+                                ? selectedAssetsNow
+                                : [asset];
 
-                        for (const selectedAsset of selectionList) {
-                            const result = await deleteAsset(selectedAsset);
-                            if (result?.ok) {
-                                successCount++;
-                                if (selectedAsset?.id != null) {
-                                    deletedIds.push(String(selectedAsset.id));
+                            for (const selectedAsset of selectionList) {
+                                const result = await deleteAsset(selectedAsset);
+                                if (result?.ok) {
+                                    successCount++;
+                                    if (selectedAsset?.id != null) {
+                                        deletedIds.push(String(selectedAsset.id));
+                                    } else {
+                                        deletedByFilepath++;
+                                    }
                                 } else {
-                                    deletedByFilepath++;
+                                    errorCount++;
                                 }
-                            } else {
-                                errorCount++;
                             }
-                        }
 
-                        if (deletedIds.length) {
-                            const removal = removeAssetsFromGrid(gridContainer, deletedIds);
-                            try {
-                                if (panelState && Array.isArray(removal?.selectedIds)) {
-                                    panelState.selectedAssetIds = removal.selectedIds;
-                                    panelState.activeAssetId = removal.selectedAssetIds[0] || "";
-                                }
-                            } catch (e) { console.debug?.(e); }
-                        }
-                        if (deletedByFilepath > 0) {
-                            try {
-                                triggerBrowserGridReload(gridContainer);
-                            } catch (e) { console.debug?.(e); }
-                        }
-
-                        if (errorCount === 0) {
-                            comfyToast(t("toast.filesDeletedSuccessN", "{n} files deleted successfully!", { n: successCount }), "success");
-                        } else {
-                            comfyToast(t("toast.filesDeletedPartial", "{success} files deleted, {failed} failed.", { success: successCount, failed: errorCount }), "warning");
-                        }
-                    } catch (error) {
-                        comfyToast(t("toast.errorDeleting", "Error deleting file: {error}", { error: error?.message || String(error || "") }), "error");
-                    }
-                })
-            );
-        } else {
-            menu.appendChild(
-                createItem(t("ctx.delete", "Delete"), "pi pi-trash", getShortcutDisplay("DELETE"), async () => {
-                    const ok = await confirmDeletion(1, asset?.filename);
-                    if (!ok) return;
-                    try {
-                        const result = await deleteAsset(asset);
-                        if (result?.ok) {
-                            if (asset?.id) {
-                                const removal = removeAssetsFromGrid(gridContainer, [String(asset.id)]);
+                            if (deletedIds.length) {
+                                const removal = removeAssetsFromGrid(gridContainer, deletedIds);
                                 try {
                                     if (panelState && Array.isArray(removal?.selectedIds)) {
                                         panelState.selectedAssetIds = removal.selectedIds;
-                                        panelState.activeAssetId = removal.selectedAssetIds[0] || "";
+                                        panelState.activeAssetId =
+                                            removal.selectedAssetIds[0] || "";
                                     }
-                                } catch (e) { console.debug?.(e); }
-                            } else {
+                                } catch (e) {
+                                    console.debug?.(e);
+                                }
+                            }
+                            if (deletedByFilepath > 0) {
                                 try {
                                     triggerBrowserGridReload(gridContainer);
-                                } catch (e) { console.debug?.(e); }
+                                } catch (e) {
+                                    console.debug?.(e);
+                                }
                             }
-                            comfyToast(t("toast.fileDeletedSuccess"), "success");
-                        } else {
-                            comfyToast(result?.error || t("toast.fileDeleteFailed"), "error");
+
+                            if (errorCount === 0) {
+                                comfyToast(
+                                    t(
+                                        "toast.filesDeletedSuccessN",
+                                        "{n} files deleted successfully!",
+                                        { n: successCount },
+                                    ),
+                                    "success",
+                                );
+                            } else {
+                                comfyToast(
+                                    t(
+                                        "toast.filesDeletedPartial",
+                                        "{success} files deleted, {failed} failed.",
+                                        { success: successCount, failed: errorCount },
+                                    ),
+                                    "warning",
+                                );
+                            }
+                        } catch (error) {
+                            comfyToast(
+                                t("toast.errorDeleting", "Error deleting file: {error}", {
+                                    error: error?.message || String(error || ""),
+                                }),
+                                "error",
+                            );
                         }
-                    } catch (error) {
-                        comfyToast(t("toast.errorDeleting", "Error deleting file: {error}", { error: error?.message || String(error || "") }), "error");
-                    }
-                }, { disabled: !(asset?.id || getAssetFilepath(asset)) })
+                    },
+                ),
+            );
+        } else {
+            menu.appendChild(
+                createItem(
+                    t("ctx.delete", "Delete"),
+                    "pi pi-trash",
+                    getShortcutDisplay("DELETE"),
+                    async () => {
+                        const ok = await confirmDeletion(1, asset?.filename);
+                        if (!ok) return;
+                        try {
+                            const result = await deleteAsset(asset);
+                            if (result?.ok) {
+                                if (asset?.id) {
+                                    const removal = removeAssetsFromGrid(gridContainer, [
+                                        String(asset.id),
+                                    ]);
+                                    try {
+                                        if (panelState && Array.isArray(removal?.selectedIds)) {
+                                            panelState.selectedAssetIds = removal.selectedIds;
+                                            panelState.activeAssetId =
+                                                removal.selectedAssetIds[0] || "";
+                                        }
+                                    } catch (e) {
+                                        console.debug?.(e);
+                                    }
+                                } else {
+                                    try {
+                                        triggerBrowserGridReload(gridContainer);
+                                    } catch (e) {
+                                        console.debug?.(e);
+                                    }
+                                }
+                                comfyToast(t("toast.fileDeletedSuccess"), "success");
+                            } else {
+                                comfyToast(result?.error || t("toast.fileDeleteFailed"), "error");
+                            }
+                        } catch (error) {
+                            comfyToast(
+                                t("toast.errorDeleting", "Error deleting file: {error}", {
+                                    error: error?.message || String(error || ""),
+                                }),
+                                "error",
+                            );
+                        }
+                    },
+                    { disabled: !(asset?.id || getAssetFilepath(asset)) },
+                ),
             );
         }
 
@@ -1077,22 +1446,30 @@ export function bindGridContextMenu({
     const unbind = () => {
         try {
             gridContainer.removeEventListener("contextmenu", handler);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             gridContainer._mjrGridContextMenuBound = false;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             cancelAllRatingUpdates();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             gridContainer._mjrGridContextMenuUnbind = null;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             cleanupMenu(menu);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
     gridContainer._mjrGridContextMenuUnbind = unbind;
     return unbind;
 }
-
-

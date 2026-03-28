@@ -49,6 +49,7 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run lint, typecheck, security, complexity, and test gates.")
     parser.add_argument("--skip-tests", action="store_true", help="Skip backend pytest execution.")
     parser.add_argument("--skip-js-tests", action="store_true", help="Skip frontend vitest execution.")
+    parser.add_argument("--skip-js-lint", action="store_true", help="Skip ESLint and Prettier checks.")
     parser.add_argument("--skip-js-audit", action="store_true", help="Skip npm audit.")
     parser.add_argument("--skip-pip-audit", action="store_true", help="Skip pip-audit.")
     parser.add_argument("--skip-bandit", action="store_true", help="Skip bandit.")
@@ -137,6 +138,7 @@ def main() -> int:
     args = _parse_args()
     if args.python_only:
         args.skip_js_tests = True
+        args.skip_js_lint = True
         args.skip_js_audit = True
 
     text_paths = _existing_paths(PYTHON_TEXT_PATHS + DOC_TEXT_PATHS)
@@ -180,6 +182,12 @@ def main() -> int:
     if not args.skip_tests:
         pytest_args = args.pytest_args if args.pytest_args else DEFAULT_PYTEST_ARGS
         _run(_python_cmd("pytest", *pytest_args), label="Pytest")
+
+    if not args.skip_js_lint:
+        if not _npm_available():
+            raise SystemExit("npm is required for JS lint but was not found in PATH.")
+        _run(["npm", "run", "lint:js"], label="ESLint")
+        _run(["npm", "run", "format:check"], label="Prettier")
 
     if not args.skip_js_tests:
         if not _npm_available():

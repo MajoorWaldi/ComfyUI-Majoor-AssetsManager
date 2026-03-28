@@ -78,7 +78,10 @@ export function createSidebar(position = "right") {
 
     const placeholder = document.createElement("div");
     placeholder.className = "mjr-sidebar-placeholder";
-    placeholder.textContent = t("sidebar.placeholderSelectAsset", "Select an asset to view details");
+    placeholder.textContent = t(
+        "sidebar.placeholderSelectAsset",
+        "Select an asset to view details",
+    );
 
     sidebar.appendChild(placeholder);
     sidebar._placeholder = placeholder;
@@ -92,13 +95,19 @@ export function createSidebar(position = "right") {
     const disposeSidebar = () => {
         try {
             ac?.abort?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             for (const u of unsubs) u?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             unsubs.length = 0;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
     sidebar.dispose = disposeSidebar;
     sidebar._dispose = disposeSidebar;
@@ -119,7 +128,9 @@ export function createSidebar(position = "right") {
             if (sidebar._currentAsset) sidebar._currentAsset.rating = rating;
             if (sidebar._currentFullAsset) sidebar._currentFullAsset.rating = rating;
             sidebar._ratingTagsSection?._mjrSetRating?.(rating);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const onTagsChanged = (ev) => {
@@ -132,12 +143,22 @@ export function createSidebar(position = "right") {
             if (sidebar._currentAsset) sidebar._currentAsset.tags = tags;
             if (sidebar._currentFullAsset) sidebar._currentFullAsset.tags = tags;
             sidebar._ratingTagsSection?._mjrSetTags?.(tags);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     try {
-        window.addEventListener(ASSET_RATING_CHANGED_EVENT, onRatingChanged, ac ? { signal: ac.signal } : undefined);
-        window.addEventListener(ASSET_TAGS_CHANGED_EVENT, onTagsChanged, ac ? { signal: ac.signal } : undefined);
+        window.addEventListener(
+            ASSET_RATING_CHANGED_EVENT,
+            onRatingChanged,
+            ac ? { signal: ac.signal } : undefined,
+        );
+        window.addEventListener(
+            ASSET_TAGS_CHANGED_EVENT,
+            onTagsChanged,
+            ac ? { signal: ac.signal } : undefined,
+        );
     } catch {
         try {
             window.addEventListener(ASSET_RATING_CHANGED_EVENT, onRatingChanged);
@@ -145,12 +166,18 @@ export function createSidebar(position = "right") {
             unsubs.push(() => {
                 try {
                     window.removeEventListener(ASSET_RATING_CHANGED_EVENT, onRatingChanged);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 try {
                     window.removeEventListener(ASSET_TAGS_CHANGED_EVENT, onTagsChanged);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             });
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 
     return sidebar;
@@ -163,9 +190,13 @@ const cleanupMinimapSections = (root) => {
         sections.forEach((section) => {
             try {
                 section._mjrMinimapCleanup?.();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         });
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 };
 
 /**
@@ -192,7 +223,11 @@ export async function showAssetInSidebar(sidebar, asset, onUpdate) {
                 // Require generation-specific keys (not just any metadata payload).
                 if (obj.geninfo || obj.prompt || obj.workflow) return true;
                 if (obj.metadata_raw && typeof obj.metadata_raw === "object") {
-                    return Boolean(obj.metadata_raw.geninfo || obj.metadata_raw.prompt || obj.metadata_raw.workflow);
+                    return Boolean(
+                        obj.metadata_raw.geninfo ||
+                        obj.metadata_raw.prompt ||
+                        obj.metadata_raw.workflow,
+                    );
                 }
                 return false;
             } catch {
@@ -212,7 +247,9 @@ export async function showAssetInSidebar(sidebar, asset, onUpdate) {
             clearTimeout(sidebar._closeTimer);
             sidebar._closeTimer = null;
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     const requestSeq = (sidebar._requestSeq = (sidebar._requestSeq || 0) + 1);
     sidebar._currentFetchAbortController?.abort?.();
@@ -253,7 +290,9 @@ export async function showAssetInSidebar(sidebar, asset, onUpdate) {
         const settings = loadMajoorSettings();
         const showPreviewThumb = !!(settings?.sidebar?.showPreviewThumb ?? true);
         if (isFolderAsset) {
-            content.appendChild(createFolderDetailsSection(asset, data?.folder_info || data?.folderInfo || null));
+            content.appendChild(
+                createFolderDetailsSection(asset, data?.folder_info || data?.folderInfo || null),
+            );
         } else {
             content.appendChild(createPreviewSection(data, { showPreviewThumb }));
             const ratingTagsSection = createRatingTagsSection(data, onUpdate);
@@ -277,7 +316,9 @@ export async function showAssetInSidebar(sidebar, asset, onUpdate) {
         renderContent(fullAsset);
         try {
             if (typeof onUpdate === "function") onUpdate(fullAsset);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const buildFetchOptions = () => {
@@ -302,7 +343,7 @@ export async function showAssetInSidebar(sidebar, asset, onUpdate) {
                     tryUpdateWith({ folder_info: res.data });
                 }
             } catch (err) {
-                if (!(signal?.aborted)) console.warn("Failed to load folder details:", err);
+                if (!signal?.aborted) console.warn("Failed to load folder details:", err);
             } finally {
                 if (!signal?.aborted) {
                     sidebar._currentFetchAbortController = null;
@@ -311,7 +352,7 @@ export async function showAssetInSidebar(sidebar, asset, onUpdate) {
             return;
         }
         try {
-            if (asset.id && (!hasGenerationLikeData(fullAsset) && !fullAsset.exif)) {
+            if (asset.id && !hasGenerationLikeData(fullAsset) && !fullAsset.exif) {
                 const result = await getAssetMetadata(asset.id, opts);
                 if (signal?.aborted) return;
                 if (result?.ok && result.data) {
@@ -319,18 +360,23 @@ export async function showAssetInSidebar(sidebar, asset, onUpdate) {
                 }
             }
         } catch (err) {
-            if (!(signal?.aborted)) console.warn("Failed to load full asset metadata:", err);
+            if (!signal?.aborted) console.warn("Failed to load full asset metadata:", err);
         }
         if (signal?.aborted) return;
 
         if (!hasGenerationLikeData(fullAsset)) {
             const filename = String(fullAsset?.filename || "").trim();
-            const type = String(fullAsset?.type || "output").trim().toLowerCase();
+            const type = String(fullAsset?.type || "output")
+                .trim()
+                .toLowerCase();
             const subfolder = String(fullAsset?.subfolder || "").trim();
             const root_id = String(fullAsset?.root_id || fullAsset?.rootId || "").trim();
             if (filename) {
                 try {
-                    const result = await getFileMetadataScoped({ type, filename, subfolder, root_id }, opts);
+                    const result = await getFileMetadataScoped(
+                        { type, filename, subfolder, root_id },
+                        opts,
+                    );
                     if (signal?.aborted) return;
                     if (result?.ok && result.data) {
                         const md = result.data;
@@ -345,7 +391,7 @@ export async function showAssetInSidebar(sidebar, asset, onUpdate) {
                         tryUpdateWith(updates);
                     }
                 } catch (err) {
-                    if (!(signal?.aborted)) console.warn("Failed to load scoped metadata:", err);
+                    if (!signal?.aborted) console.warn("Failed to load scoped metadata:", err);
                 }
             }
         }
@@ -374,8 +420,9 @@ export function closeSidebar(sidebar) {
     // Dispatch event so controllers can update their state
     try {
         sidebar.dispatchEvent?.(new CustomEvent("mjr:sidebar-closed", { bubbles: true }));
-    } catch (e) { console.debug?.(e); }
-
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 // Raw metadata is now available as a toggle inside WorkflowMinimapSection.

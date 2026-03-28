@@ -80,9 +80,9 @@ const BUILTIN_PANEL_MESSAGES = Object.freeze([
         actionUrl: LOCAL_USER_GUIDE_URL,
     },
 ]);
-const BUILTIN_MESSAGE_IDS = new Set(BUILTIN_PANEL_MESSAGES
-    .map((msg) => String(msg?.id || "").trim())
-    .filter(Boolean));
+const BUILTIN_MESSAGE_IDS = new Set(
+    BUILTIN_PANEL_MESSAGES.map((msg) => String(msg?.id || "").trim()).filter(Boolean),
+);
 
 function _toNumber(value, fallback = 0) {
     const n = Number(value);
@@ -98,7 +98,9 @@ function _makeId() {
 }
 
 function _normalizeMessageLevel(value) {
-    const raw = String(value || "").trim().toLowerCase();
+    const raw = String(value || "")
+        .trim()
+        .toLowerCase();
     if (raw === "warn") return "warning";
     if (raw === "danger") return "error";
     return ALLOWED_MESSAGE_LEVELS.has(raw) ? raw : "info";
@@ -177,9 +179,7 @@ function _readDismissedBuiltinIds() {
     const raw = _readStorageJson(STORAGE_DISMISSED_BUILTIN_IDS_KEY, []);
     const ids = Array.isArray(raw) ? raw : [];
     return new Set(
-        ids
-            .map((id) => String(id || "").trim())
-            .filter((id) => _isBuiltinMessageId(id))
+        ids.map((id) => String(id || "").trim()).filter((id) => _isBuiltinMessageId(id)),
     );
 }
 
@@ -254,13 +254,17 @@ function _seedBuiltinMessages() {
 
 function _emitChanged() {
     try {
-        window.dispatchEvent(new CustomEvent(PANEL_MESSAGES_EVENT, {
-            detail: {
-                total: _messages.length,
-                unread: getPanelUnreadCount(),
-            },
-        }));
-    } catch (e) { console.debug?.(e); }
+        window.dispatchEvent(
+            new CustomEvent(PANEL_MESSAGES_EVENT, {
+                detail: {
+                    total: _messages.length,
+                    unread: getPanelUnreadCount(),
+                },
+            }),
+        );
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 function _ensureLoaded() {
@@ -306,14 +310,17 @@ export function upsertPanelMessage(message) {
     const normalized = _normalizeMessage(message);
     _restoreBuiltinMessage(normalized.id);
     const idx = _messages.findIndex((m) => m.id === normalized.id);
-    let stored = null;
+    let stored;
     if (idx >= 0) {
         const prev = _messages[idx];
         stored = {
             ...prev,
             ...normalized,
             // Keep original publish timestamp unless explicitly provided.
-            createdAt: _toNumber(message?.createdAt, _toNumber(prev?.createdAt, normalized.createdAt)),
+            createdAt: _toNumber(
+                message?.createdAt,
+                _toNumber(prev?.createdAt, normalized.createdAt),
+            ),
         };
         _messages[idx] = stored;
     } else {

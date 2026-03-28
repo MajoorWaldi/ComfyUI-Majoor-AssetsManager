@@ -59,14 +59,15 @@ let _previewActive = false;
 let _nodeStreamActive = false;
 let _selectionListenerBound = false;
 let _fetchAC = null; // AbortController for the latest in-flight batch fetch
-let _loadSeq = 0;   // Sequence counter to discard stale _loadFromIds responses
+let _loadSeq = 0; // Sequence counter to discard stale _loadFromIds responses
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
 async function _getInstance() {
     if (!_instance) {
         const FV = await _loadFloatingViewer();
-        if (!_instance) { // re-check after await
+        if (!_instance) {
+            // re-check after await
             _instance = new FV();
             document.body.appendChild(_instance.render());
         }
@@ -75,7 +76,11 @@ async function _getInstance() {
 }
 
 function _cancelFetch() {
-    try { _fetchAC?.abort(); } catch (e) { console.debug?.(e); }
+    try {
+        _fetchAC?.abort();
+    } catch (e) {
+        console.debug?.(e);
+    }
     _fetchAC = null;
 }
 
@@ -83,20 +88,28 @@ function _getSelectionSourceGrid() {
     try {
         const lastGrid = window.__MJR_LAST_SELECTION_GRID__;
         if (lastGrid?.isConnected) return lastGrid;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return getActiveGridContainer();
 }
 
 function _disposeInstance() {
     if (!_instance) return;
-    try { _instance.dispose?.(); } catch (e) { console.debug?.(e); }
+    try {
+        _instance.dispose?.();
+    } catch (e) {
+        console.debug?.(e);
+    }
     _instance = null;
 }
 
 function _emitVisibilityChanged(visible) {
-    window.dispatchEvent(new CustomEvent(EVENTS.MFV_VISIBILITY_CHANGED, {
-        detail: { visible: Boolean(visible) },
-    }));
+    window.dispatchEvent(
+        new CustomEvent(EVENTS.MFV_VISIBILITY_CHANGED, {
+            detail: { visible: Boolean(visible) },
+        }),
+    );
 }
 
 function _syncViewerControls(inst) {
@@ -285,7 +298,9 @@ export const floatingViewerManager = {
             try {
                 if (_instance.isPopped) _instance.popIn();
                 _instance.hide();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
         _unbindSelectionListener();
         _emitVisibilityChanged(false);
@@ -323,9 +338,9 @@ export const floatingViewerManager = {
 
         // Cycle: AB → Side → Grid → Simple → AB
         const cycle = {
-            [MFV_MODES.AB]:     MFV_MODES.SIDE,
-            [MFV_MODES.SIDE]:   MFV_MODES.SIMPLE,
-            [MFV_MODES.GRID]:   MFV_MODES.SIMPLE,
+            [MFV_MODES.AB]: MFV_MODES.SIDE,
+            [MFV_MODES.SIDE]: MFV_MODES.SIMPLE,
+            [MFV_MODES.GRID]: MFV_MODES.SIMPLE,
             [MFV_MODES.SIMPLE]: MFV_MODES.AB,
         };
         const next = cycle[inst._mode] || MFV_MODES.AB;
@@ -350,12 +365,18 @@ export const floatingViewerManager = {
         _bindSelectionListener();
 
         const mode = inst._mode;
-        const inCompare = mode === MFV_MODES.AB || mode === MFV_MODES.SIDE || mode === MFV_MODES.GRID;
+        const inCompare =
+            mode === MFV_MODES.AB || mode === MFV_MODES.SIDE || mode === MFV_MODES.GRID;
         if (inCompare) {
             // In compare/grid mode: route the live stream to the first non-pinned slot.
             const pin = inst.getPinnedSlot();
             if (mode === MFV_MODES.GRID) {
-                const slotMedia = { A: inst._mediaA, B: inst._mediaB, C: inst._mediaC, D: inst._mediaD };
+                const slotMedia = {
+                    A: inst._mediaA,
+                    B: inst._mediaB,
+                    C: inst._mediaC,
+                    D: inst._mediaD,
+                };
                 const freeSlot = ["A", "B", "C", "D"].find((s) => s !== pin) || "A";
                 slotMedia[freeSlot] = fileData;
                 inst.loadMediaQuad(slotMedia.A, slotMedia.B, slotMedia.C, slotMedia.D);
@@ -473,11 +494,17 @@ export const floatingViewerManager = {
         _syncViewerControls(inst);
 
         const mode = inst._mode;
-        const inCompare = mode === MFV_MODES.AB || mode === MFV_MODES.SIDE || mode === MFV_MODES.GRID;
+        const inCompare =
+            mode === MFV_MODES.AB || mode === MFV_MODES.SIDE || mode === MFV_MODES.GRID;
         if (inCompare) {
             const pin = inst.getPinnedSlot();
             if (mode === MFV_MODES.GRID) {
-                const slotMedia = { A: inst._mediaA, B: inst._mediaB, C: inst._mediaC, D: inst._mediaD };
+                const slotMedia = {
+                    A: inst._mediaA,
+                    B: inst._mediaB,
+                    C: inst._mediaC,
+                    D: inst._mediaD,
+                };
                 const freeSlot = ["A", "B", "C", "D"].find((s) => s !== pin) || "A";
                 slotMedia[freeSlot] = fileData;
                 inst.loadMediaQuad(slotMedia.A, slotMedia.B, slotMedia.C, slotMedia.D);
@@ -501,17 +528,21 @@ export const floatingViewerManager = {
 
 let _globalHandlersInstalled = false;
 
-const _onMfvOpen          = () => floatingViewerManager.open();
-const _onMfvClose         = () => floatingViewerManager.close();
-const _onMfvToggle        = () => floatingViewerManager.toggle();
-const _onMfvLiveToggle    = () => floatingViewerManager.toggleLive();
-const _onMfvPreviewToggle    = () => floatingViewerManager.togglePreview();
+const _onMfvOpen = () => floatingViewerManager.open();
+const _onMfvClose = () => floatingViewerManager.close();
+const _onMfvToggle = () => floatingViewerManager.toggle();
+const _onMfvLiveToggle = () => floatingViewerManager.toggleLive();
+const _onMfvPreviewToggle = () => floatingViewerManager.togglePreview();
 const _onMfvNodeStreamToggle = () => floatingViewerManager.toggleNodeStream();
-const _onMfvPopout           = () => floatingViewerManager.popOut();
-const _onBeforeUnload        = () => {
-    try { if (_instance?.isPopped) _instance.popIn(); } catch (e) { /* noop */ }
+const _onMfvPopout = () => floatingViewerManager.popOut();
+const _onBeforeUnload = () => {
+    try {
+        if (_instance?.isPopped) _instance.popIn();
+    } catch {
+        /* noop */
+    }
 };
-const _onGlobalKeydown    = (event) => {
+const _onGlobalKeydown = (event) => {
     if (!_instance?.isVisible) return;
     if (isHotkeysSuspended()) return;
     if (getHotkeysState().scope === "viewer") return;
@@ -555,35 +586,34 @@ const _onGlobalKeydown    = (event) => {
         }
         return;
     }
-
 };
 
 function _installGlobalHandlers() {
     if (_globalHandlersInstalled) return;
-    window.addEventListener(EVENTS.MFV_OPEN,           _onMfvOpen);
-    window.addEventListener(EVENTS.MFV_CLOSE,          _onMfvClose);
-    window.addEventListener(EVENTS.MFV_TOGGLE,         _onMfvToggle);
-    window.addEventListener(EVENTS.MFV_LIVE_TOGGLE,    _onMfvLiveToggle);
-    window.addEventListener(EVENTS.MFV_PREVIEW_TOGGLE,    _onMfvPreviewToggle);
+    window.addEventListener(EVENTS.MFV_OPEN, _onMfvOpen);
+    window.addEventListener(EVENTS.MFV_CLOSE, _onMfvClose);
+    window.addEventListener(EVENTS.MFV_TOGGLE, _onMfvToggle);
+    window.addEventListener(EVENTS.MFV_LIVE_TOGGLE, _onMfvLiveToggle);
+    window.addEventListener(EVENTS.MFV_PREVIEW_TOGGLE, _onMfvPreviewToggle);
     if (NODE_STREAM_FEATURE_ENABLED) {
         window.addEventListener(EVENTS.MFV_NODESTREAM_TOGGLE, _onMfvNodeStreamToggle);
     }
-    window.addEventListener(EVENTS.MFV_POPOUT,            _onMfvPopout);
+    window.addEventListener(EVENTS.MFV_POPOUT, _onMfvPopout);
     window.addEventListener("keydown", _onGlobalKeydown, true);
     window.addEventListener("beforeunload", _onBeforeUnload);
     _globalHandlersInstalled = true;
 }
 
 function _removeGlobalHandlers() {
-    window.removeEventListener(EVENTS.MFV_OPEN,           _onMfvOpen);
-    window.removeEventListener(EVENTS.MFV_CLOSE,          _onMfvClose);
-    window.removeEventListener(EVENTS.MFV_TOGGLE,         _onMfvToggle);
-    window.removeEventListener(EVENTS.MFV_LIVE_TOGGLE,    _onMfvLiveToggle);
+    window.removeEventListener(EVENTS.MFV_OPEN, _onMfvOpen);
+    window.removeEventListener(EVENTS.MFV_CLOSE, _onMfvClose);
+    window.removeEventListener(EVENTS.MFV_TOGGLE, _onMfvToggle);
+    window.removeEventListener(EVENTS.MFV_LIVE_TOGGLE, _onMfvLiveToggle);
     window.removeEventListener(EVENTS.MFV_PREVIEW_TOGGLE, _onMfvPreviewToggle);
     if (NODE_STREAM_FEATURE_ENABLED) {
         window.removeEventListener(EVENTS.MFV_NODESTREAM_TOGGLE, _onMfvNodeStreamToggle);
     }
-    window.removeEventListener(EVENTS.MFV_POPOUT,         _onMfvPopout);
+    window.removeEventListener(EVENTS.MFV_POPOUT, _onMfvPopout);
     window.removeEventListener("keydown", _onGlobalKeydown, true);
     window.removeEventListener("beforeunload", _onBeforeUnload);
     _globalHandlersInstalled = false;
@@ -597,7 +627,11 @@ function _removeGlobalHandlers() {
 export function teardownFloatingViewerManager() {
     const wasVisible = Boolean(_instance?.isVisible);
     // If the viewer is popped out to a separate window, bring it back first
-    try { if (_instance?.isPopped) _instance.popIn(); } catch (e) { console.debug?.(e); }
+    try {
+        if (_instance?.isPopped) _instance.popIn();
+    } catch (e) {
+        console.debug?.(e);
+    }
     _removeGlobalHandlers();
     _unbindSelectionListener();
     _cancelFetch();
@@ -605,7 +639,11 @@ export function teardownFloatingViewerManager() {
     _liveActive = false;
     _previewActive = false;
     _nodeStreamActive = false;
-    try { if (_setControllerNodeStreamActive) _setControllerNodeStreamActive(false); } catch (e) { console.debug?.(e); }
+    try {
+        if (_setControllerNodeStreamActive) _setControllerNodeStreamActive(false);
+    } catch (e) {
+        console.debug?.(e);
+    }
     _disposeInstance();
     if (wasVisible) _emitVisibilityChanged(false);
     // entry.js calls teardown during setup before the current module continues

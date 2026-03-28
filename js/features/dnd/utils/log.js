@@ -10,4 +10,3 @@ export const dndLog = (...args) => {
     if (!dndDebugEnabled()) return;
     console.debug("[Majoor.DnD]", ...args);
 };
-

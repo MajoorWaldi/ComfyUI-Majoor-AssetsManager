@@ -21,7 +21,11 @@ export function createVideoProcessor({
     if (!disableWebGL && isWebGLAvailable()) {
         try {
             glProc = createWebGLVideoProcessor({
-                canvas, videoEl, getGradeParams, isDefaultGrade, maxProcPixelsVideo
+                canvas,
+                videoEl,
+                getGradeParams,
+                isDefaultGrade,
+                maxProcPixelsVideo,
             });
         } catch (e) {
             console.warn("WebGL Init failed, falling back to 2D", e);
@@ -29,13 +33,15 @@ export function createVideoProcessor({
         }
     }
 
-    const ctx = glProc ? null : (() => {
-        try {
-            return canvas.getContext("2d", { willReadFrequently: true, alpha: false });
-        } catch {
-            return null;
-        }
-    })();
+    const ctx = glProc
+        ? null
+        : (() => {
+              try {
+                  return canvas.getContext("2d", { willReadFrequently: true, alpha: false });
+              } catch {
+                  return null;
+              }
+          })();
 
     const srcCanvas = document.createElement("canvas");
     const srcCtx = (() => {
@@ -142,10 +148,12 @@ export function createVideoProcessor({
         // Optimization: if no grading controls are active, bypass the expensive readback
         // and draw the video element directly to the destination canvas.
         if (isDefaultGrade?.(params)) {
-             try {
+            try {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             return;
         }
 
@@ -160,29 +168,31 @@ export function createVideoProcessor({
                 // Fallback if readback fails (e.g. tainted canvas)
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             return;
         }
 
         const w = srcCanvas.width;
         const h = srcCanvas.height;
-        
+
         // Reuse buffer if possible to reduce GC churn
         let dst = proc._buffer;
         if (!dst || dst.width !== w || dst.height !== h) {
-             try {
+            try {
                 dst = ctx.createImageData(w, h);
                 proc._buffer = dst;
-             } catch {
+            } catch {
                 try {
                     dst = new ImageData(w, h);
                     proc._buffer = dst;
                 } catch {
                     return;
                 }
-             }
+            }
         }
-        
+
         // Safety check if buffer creation failed
         if (!dst) return;
 
@@ -221,67 +231,69 @@ export function createVideoProcessor({
             }
         } else {
             for (let i = 0; i < d.length; i += 4) {
-            const r0 = (s[i] ?? 0) / 255;
-            const g0 = (s[i + 1] ?? 0) / 255;
-            const b0 = (s[i + 2] ?? 0) / 255;
-            const a0 = (s[i + 3] ?? 255) / 255;
+                const r0 = (s[i] ?? 0) / 255;
+                const g0 = (s[i + 1] ?? 0) / 255;
+                const b0 = (s[i + 2] ?? 0) / 255;
+                const a0 = (s[i + 3] ?? 255) / 255;
 
-            let rr = r0 * exposureScale;
-            let gg = g0 * exposureScale;
-            let bb = b0 * exposureScale;
+                let rr = r0 * exposureScale;
+                let gg = g0 * exposureScale;
+                let bb = b0 * exposureScale;
 
-            const lum = 0.2126 * rr + 0.7152 * gg + 0.0722 * bb;
+                const lum = 0.2126 * rr + 0.7152 * gg + 0.0722 * bb;
 
-            if (analysisMode === "zebra") {
-                // Input is 8-bit video; avoid tonemapping (it alters baseline contrast/colors).
-                const over = clamp01(lum) >= zebraThreshold;
-                if (over) {
-                    const stripe = (((Math.floor(i / 4) % w) + Math.floor((i / 4) / w)) & 7) < 3;
-                    rr = stripe ? 1 : 0;
-                    gg = stripe ? 1 : 0;
-                    bb = stripe ? 1 : 0;
+                if (analysisMode === "zebra") {
+                    // Input is 8-bit video; avoid tonemapping (it alters baseline contrast/colors).
+                    const over = clamp01(lum) >= zebraThreshold;
+                    if (over) {
+                        const stripe = (((Math.floor(i / 4) % w) + Math.floor(i / 4 / w)) & 7) < 3;
+                        rr = stripe ? 1 : 0;
+                        gg = stripe ? 1 : 0;
+                        bb = stripe ? 1 : 0;
+                    } else {
+                        rr = Math.pow(clamp01(rr), invGamma);
+                        gg = Math.pow(clamp01(gg), invGamma);
+                        bb = Math.pow(clamp01(bb), invGamma);
+                    }
                 } else {
                     rr = Math.pow(clamp01(rr), invGamma);
                     gg = Math.pow(clamp01(gg), invGamma);
                     bb = Math.pow(clamp01(bb), invGamma);
                 }
-            } else {
-                rr = Math.pow(clamp01(rr), invGamma);
-                gg = Math.pow(clamp01(gg), invGamma);
-                bb = Math.pow(clamp01(bb), invGamma);
-            }
 
-            if (channel === "r") {
-                gg = rr;
-                bb = rr;
-            } else if (channel === "g") {
-                rr = gg;
-                bb = gg;
-            } else if (channel === "b") {
-                rr = bb;
-                gg = bb;
-            } else if (channel === "a") {
-                rr = a0;
-                gg = a0;
-                bb = a0;
-            } else if (channel === "l") {
-                const l = clamp01(lum);
-                const lg = Math.pow(l, invGamma);
-                rr = lg;
-                gg = lg;
-                bb = lg;
-            }
+                if (channel === "r") {
+                    gg = rr;
+                    bb = rr;
+                } else if (channel === "g") {
+                    rr = gg;
+                    bb = gg;
+                } else if (channel === "b") {
+                    rr = bb;
+                    gg = bb;
+                } else if (channel === "a") {
+                    rr = a0;
+                    gg = a0;
+                    bb = a0;
+                } else if (channel === "l") {
+                    const l = clamp01(lum);
+                    const lg = Math.pow(l, invGamma);
+                    rr = lg;
+                    gg = lg;
+                    bb = lg;
+                }
 
-            d[i] = Math.round(clamp01(rr) * 255);
-            d[i + 1] = Math.round(clamp01(gg) * 255);
-            d[i + 2] = Math.round(clamp01(bb) * 255);
-            d[i + 3] = 255;
-        }
+                d[i] = Math.round(clamp01(rr) * 255);
+                d[i + 1] = Math.round(clamp01(gg) * 255);
+                d[i + 2] = Math.round(clamp01(bb) * 255);
+                d[i + 3] = 255;
+            }
         }
 
         try {
             ctx.putImageData(dst, 0, 0);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const renderOnce = () => {
@@ -296,13 +308,18 @@ export function createVideoProcessor({
             if (heavy) {
                 const t = Number(videoEl?.currentTime) || 0;
                 const sig = `${Number(params.exposureEV) || 0}|${Number(params.gamma) || 1}|${String(params.channel || "rgb")}|${String(params.analysisMode || "none")}|${Number(params.zebraThreshold ?? 0.95)}`;
-                if (Math.abs(t - (Number(proc._lastFrameTime) || 0)) < 1e-6 && sig === String(proc._lastHeavySig || "")) {
+                if (
+                    Math.abs(t - (Number(proc._lastFrameTime) || 0)) < 1e-6 &&
+                    sig === String(proc._lastHeavySig || "")
+                ) {
                     return;
                 }
                 proc._lastFrameTime = t;
                 proc._lastHeavySig = sig;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         renderProcessedFrame();
     };
 
@@ -315,7 +332,9 @@ export function createVideoProcessor({
                 scheduleRender();
                 return;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         if (proc._connectRAF != null) return;
         proc._connectTries = (Number(proc._connectTries) || 0) + 1;
         if (proc._connectTries > 20) {
@@ -360,15 +379,24 @@ export function createVideoProcessor({
             if (now < nextOkAt) {
                 try {
                     if (proc._throttleTimer) clearTimeout(proc._throttleTimer);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 try {
-                    proc._throttleTimer = setTimeout(() => {
-                        try {
-                            proc._throttleTimer = null;
-                        } catch (e) { console.debug?.(e); }
-                        scheduleRender();
-                    }, Math.min(250, Math.max(0, nextOkAt - now)));
-                } catch (e) { console.debug?.(e); }
+                    proc._throttleTimer = setTimeout(
+                        () => {
+                            try {
+                                proc._throttleTimer = null;
+                            } catch (e) {
+                                console.debug?.(e);
+                            }
+                            scheduleRender();
+                        },
+                        Math.min(250, Math.max(0, nextOkAt - now)),
+                    );
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 return;
             }
         }
@@ -381,7 +409,9 @@ export function createVideoProcessor({
                 renderOnce();
                 try {
                     if (heavy) proc._lastHeavyRenderAt = Date.now();
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             });
         } catch {
             proc._rendering = false;
@@ -399,13 +429,17 @@ export function createVideoProcessor({
                 videoEl.cancelVideoFrameCallback(proc._rvfc);
                 proc._rvfc = null;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             if (proc._rafIdLoop != null) {
                 cancelAnimationFrame(proc._rafIdLoop);
                 proc._rafIdLoop = null;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             if (typeof videoEl?.requestVideoFrameCallback === "function") {
                 const cb = () => {
@@ -415,15 +449,21 @@ export function createVideoProcessor({
                     if (!videoEl.paused) {
                         try {
                             proc._rvfc = videoEl.requestVideoFrameCallback(cb);
-                        } catch (e) { console.debug?.(e); }
+                        } catch (e) {
+                            console.debug?.(e);
+                        }
                     }
                 };
                 try {
                     proc._rvfc = videoEl.requestVideoFrameCallback(cb);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 return;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         const loop = () => {
             if (proc._destroyed) return;
             if (!canvas?.isConnected) return;
@@ -431,12 +471,16 @@ export function createVideoProcessor({
             if (!videoEl.paused) {
                 try {
                     proc._rafIdLoop = requestAnimationFrame(loop);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
         };
         try {
             proc._rafIdLoop = requestAnimationFrame(loop);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const setParams = (params) => {
@@ -451,8 +495,14 @@ export function createVideoProcessor({
             drawSource();
 
             const scale = proc.scale || 1;
-            const sx = Math.max(0, Math.min(srcCanvas.width - 1, Math.floor((Number(x) || 0) * scale)));
-            const sy = Math.max(0, Math.min(srcCanvas.height - 1, Math.floor((Number(y) || 0) * scale)));
+            const sx = Math.max(
+                0,
+                Math.min(srcCanvas.width - 1, Math.floor((Number(x) || 0) * scale)),
+            );
+            const sy = Math.max(
+                0,
+                Math.min(srcCanvas.height - 1, Math.floor((Number(y) || 0) * scale)),
+            );
             if (!sampleCtx) return null;
             sampleCtx.clearRect(0, 0, 1, 1);
             sampleCtx.drawImage(srcCanvas, sx, sy, 1, 1, 0, 0, 1, 1);
@@ -466,7 +516,12 @@ export function createVideoProcessor({
             const raw = [r / 255, g / 255, b / 255, a / 255];
             const ev = Number(proc.lastParams?.exposureEV) || 0;
             const exposureScale = Math.pow(2, ev);
-            const lin = [raw[0] * exposureScale, raw[1] * exposureScale, raw[2] * exposureScale, raw[3]];
+            const lin = [
+                raw[0] * exposureScale,
+                raw[1] * exposureScale,
+                raw[2] * exposureScale,
+                raw[3],
+            ];
 
             return { r, g, b, a, raw, lin, scale: proc.scale };
         } catch {
@@ -479,7 +534,9 @@ export function createVideoProcessor({
         scheduleRender();
         try {
             onReady?.({ naturalW: proc.naturalW, naturalH: proc.naturalH, pixelScale: proc.scale });
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     try {
@@ -496,65 +553,100 @@ export function createVideoProcessor({
                     hint = "Check file permissions / path, or try re-indexing.";
                 } else if (errCode === 3) {
                     msg = "Failed to load video (decode error — unsupported codec?)";
-                    hint = "Browser may not support this codec (e.g. H.265/HEVC). Try converting to H.264/MP4.";
+                    hint =
+                        "Browser may not support this codec (e.g. H.265/HEVC). Try converting to H.264/MP4.";
                 } else if (errCode === 4) {
                     msg = "Failed to load video (unsupported format or codec)";
-                    hint = "Browser cannot decode this file (e.g. H.265/HEVC). Try converting to H.264/MP4.";
+                    hint =
+                        "Browser cannot decode this file (e.g. H.265/HEVC). Try converting to H.264/MP4.";
                 } else {
                     msg = "Failed to load video";
                     hint = errMsg || "Check file permissions / path, or try re-indexing.";
                 }
-                console.warn("[MJR] Video load error", { code: errCode, message: errMsg, src: videoEl?.src });
+                console.warn("[MJR] Video load error", {
+                    code: errCode,
+                    message: errMsg,
+                    src: videoEl?.src,
+                });
                 drawMediaError(canvas, msg, hint);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         };
 
-        unsubs.push(safeAddListener?.(videoEl, "loadedmetadata", onMeta, { once: true }) || (() => {}));
-        unsubs.push(safeAddListener?.(videoEl, "seeked", scheduleRender, { passive: true }) || (() => {}));
-        unsubs.push(safeAddListener?.(videoEl, "pause", scheduleRender, { passive: true }) || (() => {}));
+        unsubs.push(
+            safeAddListener?.(videoEl, "loadedmetadata", onMeta, { once: true }) || (() => {}),
+        );
+        unsubs.push(
+            safeAddListener?.(videoEl, "seeked", scheduleRender, { passive: true }) || (() => {}),
+        );
+        unsubs.push(
+            safeAddListener?.(videoEl, "pause", scheduleRender, { passive: true }) || (() => {}),
+        );
         unsubs.push(safeAddListener?.(videoEl, "play", onPlay, { passive: true }) || (() => {}));
-        unsubs.push(safeAddListener?.(videoEl, "timeupdate", scheduleRender, { passive: true }) || (() => {}));
+        unsubs.push(
+            safeAddListener?.(videoEl, "timeupdate", scheduleRender, { passive: true }) ||
+                (() => {}),
+        );
         unsubs.push(safeAddListener?.(videoEl, "error", onError, { passive: true }) || (() => {}));
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     return {
         setParams,
         sampleAtOriginal,
-        getInfo: () => ({ ...proc, renderer: glProc ? 'webgl' : '2d' }),
+        getInfo: () => ({ ...proc, renderer: glProc ? "webgl" : "2d" }),
         destroy: () => {
             if (glProc) glProc.destroy();
             proc._destroyed = true;
             try {
                 if (proc._throttleTimer) clearTimeout(proc._throttleTimer);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             proc._throttleTimer = null;
             try {
                 if (proc._connectRAF != null) cancelAnimationFrame(proc._connectRAF);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             proc._connectRAF = null;
             proc._connectTries = 0;
             try {
                 if (proc._rvfc != null && typeof videoEl?.cancelVideoFrameCallback === "function") {
                     videoEl.cancelVideoFrameCallback(proc._rvfc);
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 if (proc._rafIdLoop != null) cancelAnimationFrame(proc._rafIdLoop);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 if (proc._rafIdSchedule != null) cancelAnimationFrame(proc._rafIdSchedule);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 for (const u of unsubs) safeCall?.(u);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 srcCanvas.width = 0;
                 srcCanvas.height = 0;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 canvas.width = 0;
                 canvas.height = 0;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             proc._buffer = null;
         },
     };

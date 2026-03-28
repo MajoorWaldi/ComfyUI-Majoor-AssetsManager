@@ -5,13 +5,21 @@ export function isPlayableViewerKind(kind) {
     return k === "video" || k === "audio";
 }
 
-export function collectPlayableMediaElements({ mode, VIEWER_MODES, singleView, abView, sideView } = {}) {
+export function collectPlayableMediaElements({
+    mode,
+    VIEWER_MODES,
+    singleView,
+    abView,
+    sideView,
+} = {}) {
     try {
         let root = singleView;
         if (mode === VIEWER_MODES?.AB_COMPARE) root = abView;
         else if (mode === VIEWER_MODES?.SIDE_BY_SIDE) root = sideView;
         if (!root) return [];
-        return Array.from(root.querySelectorAll?.(".mjr-viewer-video-src, .mjr-viewer-audio-src") || []);
+        return Array.from(
+            root.querySelectorAll?.(".mjr-viewer-video-src, .mjr-viewer-audio-src") || [],
+        );
     } catch {
         return [];
     }
@@ -35,4 +43,3 @@ export function mountUnifiedMediaControls(mediaEl, opts = {}) {
         return null;
     }
 }
-

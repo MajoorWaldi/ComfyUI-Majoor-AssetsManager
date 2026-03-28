@@ -3,7 +3,6 @@
  * OutputDirectory, Database, Observability).
  */
 
-import { APP_DEFAULTS } from "../config.js";
 import {
     setProbeBackendMode,
     getMetadataFallbackSettings,
@@ -18,7 +17,14 @@ import {
     setAiLoggingSettings,
 } from "../../api/client.js";
 import { comfyToast } from "../toast.js";
-import { t, initI18n, setLang, getCurrentLang, getSupportedLanguages, setFollowComfyLanguage } from "../i18n.js";
+import {
+    t,
+    initI18n,
+    setLang,
+    getCurrentLang,
+    getSupportedLanguages,
+    setFollowComfyLanguage,
+} from "../i18n.js";
 import { _safeNum, _safeOneOf } from "./settingsUtils.js";
 import { DEFAULT_SETTINGS, saveMajoorSettings, applySettingsToConfig } from "./settingsCore.js";
 
@@ -39,13 +45,14 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
     // ── Language ──────────────────────────────────────────────────────────
 
     const languages = getSupportedLanguages();
-    const langOptions = languages.map(l => l.code);
+    const langOptions = languages.map((l) => l.code);
     const languageModeOptions = ["auto", ...langOptions];
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Language`,
         category: cat(t("cat.advanced"), t("setting.language.name", "Language")),
         name: t("setting.language.name", "Majoor: Language"),
-        tooltip: "Use auto to detect and follow ComfyUI language. Or choose a fixed language for Majoor only.",
+        tooltip:
+            "Use auto to detect and follow ComfyUI language. Or choose a fixed language for Majoor only.",
         type: "combo",
         defaultValue: settings.i18n?.followComfyLanguage ? "auto" : getCurrentLang(),
         options: languageModeOptions,
@@ -79,7 +86,11 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
         defaultValue: settings.probeBackend?.mode || DEFAULT_SETTINGS.probeBackend.mode,
         options: ["auto", "exiftool", "ffprobe", "both"],
         onChange: (value) => {
-            const mode = _safeOneOf(value, ["auto", "exiftool", "ffprobe", "both"], DEFAULT_SETTINGS.probeBackend.mode);
+            const mode = _safeOneOf(
+                value,
+                ["auto", "exiftool", "ffprobe", "both"],
+                DEFAULT_SETTINGS.probeBackend.mode,
+            );
             settings.probeBackend = settings.probeBackend || {};
             settings.probeBackend.mode = mode;
             saveMajoorSettings(settings);
@@ -100,7 +111,9 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
         defaultValue: settings.metadataFallback?.image ?? DEFAULT_SETTINGS.metadataFallback.image,
         onChange: async (value) => {
             const next = !!value;
-            const previous = !!(settings.metadataFallback?.image ?? DEFAULT_SETTINGS.metadataFallback.image);
+            const previous = !!(
+                settings.metadataFallback?.image ?? DEFAULT_SETTINGS.metadataFallback.image
+            );
             settings.metadataFallback = settings.metadataFallback || {};
             settings.metadataFallback.image = next;
             saveMajoorSettings(settings);
@@ -108,14 +121,29 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
             try {
                 const res = await setMetadataFallbackSettings({
                     image: next,
-                    media: settings.metadataFallback?.media ?? DEFAULT_SETTINGS.metadataFallback.media,
+                    media:
+                        settings.metadataFallback?.media ?? DEFAULT_SETTINGS.metadataFallback.media,
                 });
-                if (!res?.ok) throw new Error(res?.error || t("toast.failedUpdateMetadataFallback", "Failed to update metadata fallback settings"));
+                if (!res?.ok)
+                    throw new Error(
+                        res?.error ||
+                            t(
+                                "toast.failedUpdateMetadataFallback",
+                                "Failed to update metadata fallback settings",
+                            ),
+                    );
             } catch (error) {
                 settings.metadataFallback.image = previous;
                 saveMajoorSettings(settings);
                 notifyApplied("metadataFallback.image");
-                comfyToast(error?.message || t("toast.failedUpdateMetadataFallback", "Failed to update metadata fallback settings"), "error");
+                comfyToast(
+                    error?.message ||
+                        t(
+                            "toast.failedUpdateMetadataFallback",
+                            "Failed to update metadata fallback settings",
+                        ),
+                    "error",
+                );
             }
         },
     });
@@ -129,22 +157,39 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
         defaultValue: settings.metadataFallback?.media ?? DEFAULT_SETTINGS.metadataFallback.media,
         onChange: async (value) => {
             const next = !!value;
-            const previous = !!(settings.metadataFallback?.media ?? DEFAULT_SETTINGS.metadataFallback.media);
+            const previous = !!(
+                settings.metadataFallback?.media ?? DEFAULT_SETTINGS.metadataFallback.media
+            );
             settings.metadataFallback = settings.metadataFallback || {};
             settings.metadataFallback.media = next;
             saveMajoorSettings(settings);
             notifyApplied("metadataFallback.media");
             try {
                 const res = await setMetadataFallbackSettings({
-                    image: settings.metadataFallback?.image ?? DEFAULT_SETTINGS.metadataFallback.image,
+                    image:
+                        settings.metadataFallback?.image ?? DEFAULT_SETTINGS.metadataFallback.image,
                     media: next,
                 });
-                if (!res?.ok) throw new Error(res?.error || t("toast.failedUpdateMetadataFallback", "Failed to update metadata fallback settings"));
+                if (!res?.ok)
+                    throw new Error(
+                        res?.error ||
+                            t(
+                                "toast.failedUpdateMetadataFallback",
+                                "Failed to update metadata fallback settings",
+                            ),
+                    );
             } catch (error) {
                 settings.metadataFallback.media = previous;
                 saveMajoorSettings(settings);
                 notifyApplied("metadataFallback.media");
-                comfyToast(error?.message || t("toast.failedUpdateMetadataFallback", "Failed to update metadata fallback settings"), "error");
+                comfyToast(
+                    error?.message ||
+                        t(
+                            "toast.failedUpdateMetadataFallback",
+                            "Failed to update metadata fallback settings",
+                        ),
+                    "error",
+                );
             }
         },
     });
@@ -172,7 +217,9 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
                 }
             })
             .catch(() => {});
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // ── OutputDirectory ───────────────────────────────────────────────────
 
@@ -185,7 +232,8 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
         id: `${SETTINGS_PREFIX}.Paths.OutputDirectory`,
         category: cat(t("cat.advanced"), "Paths"),
         name: "Majoor: Output Directory Override",
-        tooltip: "Override ComfyUI output directory used by Majoor (equivalent to --output-directory). Leave empty to keep current backend default.",
+        tooltip:
+            "Override ComfyUI output directory used by Majoor (equivalent to --output-directory). Leave empty to keep current backend default.",
         type: "text",
         defaultValue: String(settings.paths?.outputDirectory || ""),
         attrs: {
@@ -204,22 +252,33 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
                     clearTimeout(_outputDirSaveTimer);
                     _outputDirSaveTimer = null;
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             _outputDirSaveTimer = setTimeout(async () => {
                 _outputDirSaveTimer = null;
                 const seq = ++_outputDirSaveSeq;
                 try {
                     _outputDirSaveAbort?.abort?.();
-                } catch (e) { console.debug?.(e); }
-                _outputDirSaveAbort = typeof AbortController !== "undefined" ? new AbortController() : null;
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                _outputDirSaveAbort =
+                    typeof AbortController !== "undefined" ? new AbortController() : null;
                 try {
                     const res = await setOutputDirectorySetting(
                         next,
-                        _outputDirSaveAbort ? { signal: _outputDirSaveAbort.signal } : {}
+                        _outputDirSaveAbort ? { signal: _outputDirSaveAbort.signal } : {},
                     );
                     if (seq !== _outputDirSaveSeq) return;
                     if (!res?.ok) {
-                        throw new Error(res?.error || t("toast.failedSetOutputDirectory", "Failed to set output directory"));
+                        throw new Error(
+                            res?.error ||
+                                t(
+                                    "toast.failedSetOutputDirectory",
+                                    "Failed to set output directory",
+                                ),
+                        );
                     }
                     const serverValue = String(res?.data?.output_directory || next).trim();
                     settings.paths.outputDirectory = serverValue;
@@ -228,12 +287,18 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
                     notifyApplied("paths.outputDirectory");
                 } catch (error) {
                     if (seq !== _outputDirSaveSeq) return;
-                    const aborted = String(error?.name || "") === "AbortError" || String(error?.code || "") === "ABORTED";
+                    const aborted =
+                        String(error?.name || "") === "AbortError" ||
+                        String(error?.code || "") === "ABORTED";
                     if (aborted) return;
                     settings.paths.outputDirectory = _outputDirCommittedValue;
                     saveMajoorSettings(settings);
                     notifyApplied("paths.outputDirectory");
-                    comfyToast(error?.message || t("toast.failedSetOutputDirectory", "Failed to set output directory"), "error");
+                    comfyToast(
+                        error?.message ||
+                            t("toast.failedSetOutputDirectory", "Failed to set output directory"),
+                        "error",
+                    );
                 }
             }, 700);
         },
@@ -253,7 +318,9 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
                 }
             })
             .catch(() => {});
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // ── Database ──────────────────────────────────────────────────────────
 
@@ -267,7 +334,10 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
         attrs: { min: 1000, max: 30000, step: 1000 },
         onChange: (value) => {
             settings.db = settings.db || {};
-            settings.db.timeoutMs = Math.max(1000, Math.min(30000, Math.round(_safeNum(value, 5000))));
+            settings.db.timeoutMs = Math.max(
+                1000,
+                Math.min(30000, Math.round(_safeNum(value, 5000))),
+            );
             saveMajoorSettings(settings);
             applySettingsToConfig(settings);
             notifyApplied("db.timeoutMs");
@@ -284,7 +354,10 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
         attrs: { min: 1, max: 100, step: 1 },
         onChange: (value) => {
             settings.db = settings.db || {};
-            settings.db.maxConnections = Math.max(1, Math.min(100, Math.round(_safeNum(value, 10))));
+            settings.db.maxConnections = Math.max(
+                1,
+                Math.min(100, Math.round(_safeNum(value, 10))),
+            );
             saveMajoorSettings(settings);
             applySettingsToConfig(settings);
             notifyApplied("db.maxConnections");
@@ -301,7 +374,10 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
         attrs: { min: 500, max: 10000, step: 500 },
         onChange: (value) => {
             settings.db = settings.db || {};
-            settings.db.queryTimeoutMs = Math.max(500, Math.min(10000, Math.round(_safeNum(value, 1000))));
+            settings.db.queryTimeoutMs = Math.max(
+                500,
+                Math.min(10000, Math.round(_safeNum(value, 1000))),
+            );
             saveMajoorSettings(settings);
             applySettingsToConfig(settings);
             notifyApplied("db.queryTimeoutMs");
@@ -353,26 +429,38 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
 
         const _applyHfTokenVisibility = () => {
             try {
-                const inputs = Array.from(document.querySelectorAll('input[data-mjr-hf-token="1"]'));
+                const inputs = Array.from(
+                    document.querySelectorAll('input[data-mjr-hf-token="1"]'),
+                );
                 for (const el of inputs) {
                     try {
                         el.type = _hfTokenVisible ? "text" : "password";
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         };
 
         const _applyHfTokenPlaceholder = (placeholderText) => {
             try {
                 const value = String(placeholderText || "").trim();
                 if (!value) return;
-                const inputs = Array.from(document.querySelectorAll('input[data-mjr-hf-token="1"]'));
+                const inputs = Array.from(
+                    document.querySelectorAll('input[data-mjr-hf-token="1"]'),
+                );
                 for (const el of inputs) {
                     try {
                         el.placeholder = value;
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         };
 
         safeAddSetting({
@@ -418,7 +506,9 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
                         clearTimeout(_hfTokenSaveTimer);
                         _hfTokenSaveTimer = null;
                     }
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
 
                 _hfTokenSaveTimer = setTimeout(async () => {
                     _hfTokenSaveTimer = null;
@@ -431,7 +521,10 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
                         }
                         _hfTokenCommittedValue = next;
                         notifyApplied("ai.huggingFaceToken");
-                        comfyToast(next ? "HuggingFace token saved" : "HuggingFace token cleared", "success");
+                        comfyToast(
+                            next ? "HuggingFace token saved" : "HuggingFace token cleared",
+                            "success",
+                        );
                     } catch (error) {
                         if (seq !== _hfTokenSaveSeq) return;
                         comfyToast(error?.message || "Failed to update HuggingFace token", "error");
@@ -452,26 +545,38 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
                     ? `Configured ${tokenHint || "(saved)"}`
                     : "Paste HuggingFace token (hf_...)";
                 _applyHfTokenPlaceholder(placeholder);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         })();
 
         safeAddSetting({
             id: `${SETTINGS_PREFIX}.AI.VerboseLogs`,
             category: cat(t("cat.advanced"), hfCategoryLabel),
             name: "Majoor: Verbose AI logs",
-            tooltip: "Enable detailed HuggingFace/SigLIP2/X-CLIP logs and progress bars during model download/loading.",
+            tooltip:
+                "Enable detailed HuggingFace/SigLIP2/X-CLIP logs and progress bars during model download/loading.",
             type: "boolean",
-            defaultValue: !!(settings.ai?.verboseAiLogs ?? DEFAULT_SETTINGS.ai?.verboseAiLogs ?? false),
+            defaultValue: !!(
+                settings.ai?.verboseAiLogs ??
+                DEFAULT_SETTINGS.ai?.verboseAiLogs ??
+                false
+            ),
             onChange: async (value) => {
                 const next = !!value;
-                const previous = !!(settings.ai?.verboseAiLogs ?? DEFAULT_SETTINGS.ai?.verboseAiLogs ?? false);
+                const previous = !!(
+                    settings.ai?.verboseAiLogs ??
+                    DEFAULT_SETTINGS.ai?.verboseAiLogs ??
+                    false
+                );
                 settings.ai = settings.ai || {};
                 settings.ai.verboseAiLogs = next;
                 saveMajoorSettings(settings);
                 notifyApplied("ai.verboseAiLogs");
                 try {
                     const res = await setAiLoggingSettings(next);
-                    if (!res?.ok) throw new Error(res?.error || "Failed to update AI logging settings");
+                    if (!res?.ok)
+                        throw new Error(res?.error || "Failed to update AI logging settings");
                 } catch (error) {
                     settings.ai.verboseAiLogs = previous;
                     saveMajoorSettings(settings);
@@ -484,14 +589,16 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
         (async () => {
             try {
                 const res = await getAiLoggingSettings();
-                const enabled = !!(res?.data?.prefs?.enabled);
+                const enabled = !!res?.data?.prefs?.enabled;
                 settings.ai = settings.ai || {};
                 if (settings.ai.verboseAiLogs !== enabled) {
                     settings.ai.verboseAiLogs = enabled;
                     saveMajoorSettings(settings);
                     notifyApplied("ai.verboseAiLogs");
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         })();
     }
 
@@ -513,7 +620,7 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
             if (stats?.ok) {
                 console.debug?.(
                     "[Majoor] Vector status:",
-                    `${stats.data?.total || 0} assets indexed | Model: ${stats.data?.model || "N/A"}`
+                    `${stats.data?.total || 0} assets indexed | Model: ${stats.data?.model || "N/A"}`,
                 );
             } else {
                 console.debug?.("[Majoor] Vector status unavailable");
@@ -543,13 +650,20 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
             if (String(value || "") !== "Run backfill now") return;
 
             try {
-                comfyToast(t("toast.vectorBackfillStarting", "Starting vector backfill... This may take a while."), "info");
+                comfyToast(
+                    t(
+                        "toast.vectorBackfillStarting",
+                        "Starting vector backfill... This may take a while.",
+                    ),
+                    "info",
+                );
                 const result = await vectorBackfill(64);
 
                 if (result?.ok) {
                     const data = result.data || {};
                     const state = String(data?.status || "").toLowerCase();
-                    const pending = !!data?.pending || ["queued", "running", "pending"].includes(state);
+                    const pending =
+                        !!data?.pending || ["queued", "running", "pending"].includes(state);
                     const progress = data?.progress || {};
                     const processed = Number(data?.processed ?? progress?.candidates ?? 0);
                     const indexed = Number(data?.indexed ?? progress?.indexed ?? 0);
@@ -560,7 +674,7 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
                             t(
                                 "toast.vectorBackfillRunning",
                                 "Vector backfill still running in background{job}.",
-                                { job: jobId ? ` (job ${jobId.slice(0, 8)})` : "" }
+                                { job: jobId ? ` (job ${jobId.slice(0, 8)})` : "" },
                             ),
                             "info",
                         );
@@ -568,7 +682,7 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
                         const msg = t(
                             "toast.vectorBackfillComplete",
                             "Vector backfill complete! Processed: {processed}, Indexed: {indexed}, Skipped: {skipped}",
-                            { processed, indexed, skipped }
+                            { processed, indexed, skipped },
                         );
                         comfyToast(msg, "success");
                     }
@@ -581,11 +695,18 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
                         console.debug?.("[Majoor] Failed to refresh vector stats:", statsErr);
                     }
                 } else {
-                    throw new Error(result?.error || t("toast.vectorBackfillFailedGeneric", "Backfill failed"));
+                    throw new Error(
+                        result?.error || t("toast.vectorBackfillFailedGeneric", "Backfill failed"),
+                    );
                 }
             } catch (error) {
                 const errMsg = error?.message || String(error || t("status.unknown", "unknown"));
-                comfyToast(t("toast.vectorBackfillFailedDetail", "Vector backfill failed: {error}", { error: errMsg }), "error");
+                comfyToast(
+                    t("toast.vectorBackfillFailedDetail", "Vector backfill failed: {error}", {
+                        error: errMsg,
+                    }),
+                    "error",
+                );
                 console.error("[Majoor] Vector backfill error:", error);
             }
         },

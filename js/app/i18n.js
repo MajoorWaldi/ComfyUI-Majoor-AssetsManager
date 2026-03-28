@@ -1,7 +1,7 @@
 ﻿/**
  * Internationalization support for Majoor Assets Manager.
  * Detects ComfyUI language and provides translations for the entire UI.
- * 
+ *
  * Features:
  * - Multi-language support with 22 registered locales
  * - Auto-generation via i18n.generated.js for translated content
@@ -30,56 +30,134 @@ const RTL_LANGUAGES = new Set(["ar-SA", "fa-IR", "he-IL"]);
 // Locale mapping lookup table for O(1) access
 const LOCALE_MAP = {
     // French
-    "fr": "fr-FR", "fr-fr": "fr-FR", "fr_FR": "fr-FR", "frfr": "fr-FR",
+    fr: "fr-FR",
+    "fr-fr": "fr-FR",
+    fr_FR: "fr-FR",
+    frfr: "fr-FR",
     // English
-    "en": "en-US", "en-us": "en-US", "en_US": "en-US", "enus": "en-US",
-    "en-gb": "en-US", "en_gb": "en-US", "engb": "en-US",
+    en: "en-US",
+    "en-us": "en-US",
+    en_US: "en-US",
+    enus: "en-US",
+    "en-gb": "en-US",
+    en_gb: "en-US",
+    engb: "en-US",
     // Chinese
-    "zh": "zh-CN", "zh-cn": "zh-CN", "zh_CN": "zh-CN", "zhcn": "zh-CN",
-    "zh-tw": "zh-CN", "zh_tw": "zh-CN", "zhtw": "zh-CN",
+    zh: "zh-CN",
+    "zh-cn": "zh-CN",
+    zh_CN: "zh-CN",
+    zhcn: "zh-CN",
+    "zh-tw": "zh-CN",
+    zh_tw: "zh-CN",
+    zhtw: "zh-CN",
     // Japanese
-    "ja": "ja-JP", "ja-jp": "ja-JP", "ja_jp": "ja-JP", "jajp": "ja-JP",
+    ja: "ja-JP",
+    "ja-jp": "ja-JP",
+    ja_jp: "ja-JP",
+    jajp: "ja-JP",
     // Korean
-    "ko": "ko-KR", "ko-kr": "ko-KR", "ko_kr": "ko-KR", "kokr": "ko-KR",
+    ko: "ko-KR",
+    "ko-kr": "ko-KR",
+    ko_kr: "ko-KR",
+    kokr: "ko-KR",
     // Hindi
-    "hi": "hi-IN", "hi-in": "hi-IN", "hi_in": "hi-IN", "hiin": "hi-IN",
+    hi: "hi-IN",
+    "hi-in": "hi-IN",
+    hi_in: "hi-IN",
+    hiin: "hi-IN",
     // Portuguese
-    "pt": "pt-PT", "pt-pt": "pt-PT", "pt_pt": "pt-PT", "ptpt": "pt-PT",
-    "pt-br": "pt-PT", "pt_br": "pt-PT", "ptbr": "pt-PT",
+    pt: "pt-PT",
+    "pt-pt": "pt-PT",
+    pt_pt: "pt-PT",
+    ptpt: "pt-PT",
+    "pt-br": "pt-PT",
+    pt_br: "pt-PT",
+    ptbr: "pt-PT",
     // Spanish
-    "es": "es-ES", "es-es": "es-ES", "es_es": "es-ES", "eses": "es-ES",
+    es: "es-ES",
+    "es-es": "es-ES",
+    es_es: "es-ES",
+    eses: "es-ES",
     // Russian
-    "ru": "ru-RU", "ru-ru": "ru-RU", "ru_ru": "ru-RU", "ruru": "ru-RU",
+    ru: "ru-RU",
+    "ru-ru": "ru-RU",
+    ru_ru: "ru-RU",
+    ruru: "ru-RU",
     // German
-    "de": "de-DE", "de-de": "de-DE", "de_de": "de-DE", "dede": "de-DE",
+    de: "de-DE",
+    "de-de": "de-DE",
+    de_de: "de-DE",
+    dede: "de-DE",
     // Italian
-    "it": "it-IT", "it-it": "it-IT", "it_it": "it-IT", "itit": "it-IT",
+    it: "it-IT",
+    "it-it": "it-IT",
+    it_it: "it-IT",
+    itit: "it-IT",
     // Dutch
-    "nl": "nl-NL", "nl-nl": "nl-NL", "nl_nl": "nl-NL", "nlnl": "nl-NL",
+    nl: "nl-NL",
+    "nl-nl": "nl-NL",
+    nl_nl: "nl-NL",
+    nlnl: "nl-NL",
     // Polish
-    "pl": "pl-PL", "pl-pl": "pl-PL", "pl_pl": "pl-PL", "plpl": "pl-PL",
+    pl: "pl-PL",
+    "pl-pl": "pl-PL",
+    pl_pl: "pl-PL",
+    plpl: "pl-PL",
     // Turkish
-    "tr": "tr-TR", "tr-tr": "tr-TR", "tr_tr": "tr-TR", "trtr": "tr-TR",
+    tr: "tr-TR",
+    "tr-tr": "tr-TR",
+    tr_tr: "tr-TR",
+    trtr: "tr-TR",
     // Vietnamese
-    "vi": "vi-VN", "vi-vn": "vi-VN", "vi_vn": "vi-VN", "vivn": "vi-VN",
+    vi: "vi-VN",
+    "vi-vn": "vi-VN",
+    vi_vn: "vi-VN",
+    vivn: "vi-VN",
     // Czech
-    "cs": "cs-CZ", "cs-cz": "cs-CZ", "cs_cz": "cs-CZ", "cscz": "cs-CZ",
+    cs: "cs-CZ",
+    "cs-cz": "cs-CZ",
+    cs_cz: "cs-CZ",
+    cscz: "cs-CZ",
     // Persian
-    "fa": "fa-IR", "fa-ir": "fa-IR", "fa_ir": "fa-IR", "fair": "fa-IR",
+    fa: "fa-IR",
+    "fa-ir": "fa-IR",
+    fa_ir: "fa-IR",
+    fair: "fa-IR",
     // Indonesian
-    "id": "id-ID", "id-id": "id-ID", "id_id": "id-ID", "idid": "id-ID",
+    id: "id-ID",
+    "id-id": "id-ID",
+    id_id: "id-ID",
+    idid: "id-ID",
     // Ukrainian
-    "uk": "uk-UA", "uk-ua": "uk-UA", "uk_ua": "uk-UA", "ukua": "uk-UA",
+    uk: "uk-UA",
+    "uk-ua": "uk-UA",
+    uk_ua: "uk-UA",
+    ukua: "uk-UA",
     // Hungarian
-    "hu": "hu-HU", "hu-hu": "hu-HU", "hu_hu": "hu-HU", "huhu": "hu-HU",
+    hu: "hu-HU",
+    "hu-hu": "hu-HU",
+    hu_hu: "hu-HU",
+    huhu: "hu-HU",
     // Arabic
-    "ar": "ar-SA", "ar-sa": "ar-SA", "ar_sa": "ar-SA", "arsa": "ar-SA",
+    ar: "ar-SA",
+    "ar-sa": "ar-SA",
+    ar_sa: "ar-SA",
+    arsa: "ar-SA",
     // Swedish
-    "sv": "sv-SE", "sv-se": "sv-SE", "sv_se": "sv-SE", "svse": "sv-SE",
+    sv: "sv-SE",
+    "sv-se": "sv-SE",
+    sv_se: "sv-SE",
+    svse: "sv-SE",
     // Romanian
-    "ro": "ro-RO", "ro-ro": "ro-RO", "ro_ro": "ro-RO", "roro": "ro-RO",
+    ro: "ro-RO",
+    "ro-ro": "ro-RO",
+    ro_ro: "ro-RO",
+    roro: "ro-RO",
     // Greek
-    "el": "el-GR", "el-gr": "el-GR", "el_gr": "el-GR", "elgr": "el-GR",
+    el: "el-GR",
+    "el-gr": "el-GR",
+    el_gr: "el-GR",
+    elgr: "el-GR",
 };
 
 // -----------------------------------------------------------------------------
@@ -100,7 +178,8 @@ const DICTIONARY = {
 
         // --- Settings: Grid ---
         "setting.grid.minsize.name": "Majoor: Thumbnail Size (px)",
-        "setting.grid.minsize.desc": "Minimum size of thumbnails in the grid. May require reopening the panel.",
+        "setting.grid.minsize.desc":
+            "Minimum size of thumbnails in the grid. May require reopening the panel.",
         "setting.grid.cardSize.group": "Card size",
         "setting.grid.cardSize.name": "Majoor: Card Size",
         "setting.grid.cardSize.desc": "Choose a card size preset: small, medium, or large.",
@@ -110,15 +189,18 @@ const DICTIONARY = {
         "setting.grid.gap.name": "Majoor: Gap (px)",
         "setting.grid.gap.desc": "Space between thumbnails.",
         "setting.sidebar.pos.name": "Majoor: Sidebar Position",
-        "setting.sidebar.pos.desc": "Show details sidebar on the left or the right. Reload required.",
+        "setting.sidebar.pos.desc":
+            "Show details sidebar on the left or the right. Reload required.",
         "setting.siblings.hide.name": "Majoor: Hide PNG Siblings",
-        "setting.siblings.hide.desc": "If a video has a corresponding .png preview, hide the .png from the grid.",
+        "setting.siblings.hide.desc":
+            "If a video has a corresponding .png preview, hide the .png from the grid.",
         "setting.nav.infinite.name": "Majoor: Infinite Scroll",
         "setting.nav.infinite.desc": "Automatically load more files when scrolling.",
         "setting.grid.pagesize.name": "Majoor: Grid Page Size",
         "setting.grid.pagesize.desc": "Number of assets loaded per page/request in the grid.",
         "setting.grid.videoAutoplayMode.name": "Majoor: Video Autoplay",
-        "setting.grid.videoAutoplayMode.desc": "Controls video thumbnail playback in the grid. Off: static frame. Hover: play on mouse hover. Always: loop while visible.",
+        "setting.grid.videoAutoplayMode.desc":
+            "Controls video thumbnail playback in the grid. Off: static frame. Hover: play on mouse hover. Always: loop while visible.",
         "setting.grid.videoAutoplayMode.off": "Off",
         "setting.grid.videoAutoplayMode.hover": "Hover",
         "setting.grid.videoAutoplayMode.always": "Always",
@@ -133,14 +215,16 @@ const DICTIONARY = {
         "setting.scan.startup.name": "Majoor: Auto-scan on Startup",
         "setting.scan.startup.desc": "Start a background scan as soon as ComfyUI loads.",
         "setting.watcher.name": "Majoor: File Watcher",
-        "setting.watcher.desc": "Watch output and custom folders for manually added files and auto-index them in real time.",
+        "setting.watcher.desc":
+            "Watch output and custom folders for manually added files and auto-index them in real time.",
         "setting.watcher.enabled.label": "Watcher enabled",
         "setting.watcher.debounce.name": "Majoor: Watcher debounce delay",
         "setting.watcher.debounce.desc": "Delay (ms) for batching watcher events before indexing.",
         "setting.watcher.debounce.label": "Watcher debounce (ms)",
         "setting.watcher.debounce.error": "Failed to update watcher debounce delay.",
         "setting.watcher.dedupe.name": "Majoor: Watcher dedupe window",
-        "setting.watcher.dedupe.desc": "Duration (ms) a file is treated as already processed after an event.",
+        "setting.watcher.dedupe.desc":
+            "Duration (ms) a file is treated as already processed after an event.",
         "setting.watcher.dedupe.label": "Watcher dedupe window (ms)",
         "setting.watcher.dedupe.error": "Failed to update watcher dedupe window.",
         "setting.sync.rating.name": "Majoor: Sync Rating/Tags to Files",
@@ -151,7 +235,8 @@ const DICTIONARY = {
         "setting.starColor": "Star color",
         "setting.starColor.tooltip": "Color of rating stars on thumbnails (hex, e.g. #FFD45A)",
         "setting.badgeImageColor": "Image badge color",
-        "setting.badgeImageColor.tooltip": "Color for image badges: PNG, JPG, WEBP, GIF, BMP, TIF (hex)",
+        "setting.badgeImageColor.tooltip":
+            "Color for image badges: PNG, JPG, WEBP, GIF, BMP, TIF (hex)",
         "setting.badgeVideoColor": "Video badge color",
         "setting.badgeVideoColor.tooltip": "Color for video badges: MP4, WEBM, MOV, AVI, MKV (hex)",
         "setting.badgeAudioColor": "Audio badge color",
@@ -159,7 +244,8 @@ const DICTIONARY = {
         "setting.badgeModel3dColor": "3D model badge color",
         "setting.badgeModel3dColor.tooltip": "Color for 3D model badges: OBJ, FBX, GLB, GLTF (hex)",
         "setting.badgeDuplicateAlertColor": "Duplicate alert badge color",
-        "setting.badgeDuplicateAlertColor.tooltip": "Alert color used when duplicate extension badges are shown (e.g. PNG+).",
+        "setting.badgeDuplicateAlertColor.tooltip":
+            "Alert color used when duplicate extension badges are shown (e.g. PNG+).",
 
         // --- Settings: Advanced ---
         "setting.obs.enabled.name": "Majoor: Enable Detailed Logs",
@@ -167,17 +253,21 @@ const DICTIONARY = {
         "setting.probe.mode.name": "Majoor: Metadata Backend",
         "setting.probe.mode.desc": "Choose the tool used directly to extract metadata.",
         "setting.language.name": "Majoor: Language",
-        "setting.language.desc": "Choose the language for the Assets Manager interface. Reload required to fully apply.",
+        "setting.language.desc":
+            "Choose the language for the Assets Manager interface. Reload required to fully apply.",
         "setting.search.maxResults.name": "Majoor: Search max results",
         "setting.search.maxResults.desc": "Maximum number of results returned by search endpoints.",
         "setting.ai.vector.enabled.name": "Enable AI semantic search",
-        "setting.ai.vector.enabled.desc": "Enable CLIP-based semantic search. Disable to use keyword-only search.",
+        "setting.ai.vector.enabled.desc":
+            "Enable CLIP-based semantic search. Disable to use keyword-only search.",
 
         // --- Settings: Security ---
         "setting.sec.safe.name": "Majoor: Safe Mode",
-        "setting.sec.safe.desc": "When enabled, rating/tags writes are blocked unless explicitly authorized.",
+        "setting.sec.safe.desc":
+            "When enabled, rating/tags writes are blocked unless explicitly authorized.",
         "setting.sec.remote.name": "Majoor: Allow Remote Full Access",
-        "setting.sec.remote.desc": "Allow non-local clients to perform write operations. Disabling blocks writes unless a token is configured.",
+        "setting.sec.remote.desc":
+            "Allow non-local clients to perform write operations. Disabling blocks writes unless a token is configured.",
         "setting.sec.write.name": "Majoor: Allow Write",
         "setting.sec.write.desc": "Allow writing ratings and tags.",
         "setting.sec.del.name": "Majoor: Allow Delete",
@@ -189,7 +279,8 @@ const DICTIONARY = {
         "setting.sec.reset.name": "Majoor: Allow Index Reset",
         "setting.sec.reset.desc": "Allow resetting the index cache and triggering a full rescan.",
         "setting.sec.token.name": "Majoor: API Token",
-        "setting.sec.token.desc": "Store the write authorization token. Majoor inserts it in the Authorization and X-MJR-Token headers.",
+        "setting.sec.token.desc":
+            "Store the write authorization token. Majoor inserts it in the Authorization and X-MJR-Token headers.",
         "setting.sec.token.placeholder": "Leave blank to disable.",
 
         // --- Panel: Tabs ---
@@ -413,10 +504,12 @@ const DICTIONARY = {
         "status.watcher.disabled": "Watcher: disabled",
         "status.watcher.disabledScoped": "Watcher: disabled ({scope})",
         "status.apiNotFound": "Majoor API endpoints not found (404)",
-        "status.apiNotFoundHint": "Backend routes are not loaded. Restart ComfyUI and check the terminal for Majoor import errors.",
+        "status.apiNotFoundHint":
+            "Backend routes are not loaded. Restart ComfyUI and check the terminal for Majoor import errors.",
         "status.errorChecking": "Error checking status",
         "status.dbCorrupted": "Database is corrupted",
-        "status.dbCorruptedHint": "Use the \"Delete DB\" button below to force-delete and rebuild the index.",
+        "status.dbCorruptedHint":
+            'Use the "Delete DB" button below to force-delete and rebuild the index.',
         "status.retryFailed": "Retry failed",
         "status.customBrowserScanDisabled": "Scan is disabled in Browser scope",
         "status.customBrowserScanDisabledHint": "Use Outputs, Inputs, or All to run indexing scans",
@@ -446,8 +539,10 @@ const DICTIONARY = {
         "status.toast.browser": "Index status: browser scope",
         "status.browserMetricsHidden": "Browser mode: global DB/index metrics hidden",
         "runtime.unavailable": "Runtime: unavailable",
-        "runtime.metricsTitle": "Runtime Metrics\nDB active connections: {active}\nEnrichment queue: {enrichQ}\nWatcher pending files: {pending}",
-        "runtime.metricsLine": "DB active: {active} | Enrich Q: {enrichQ} | Watcher pending: {pending}",
+        "runtime.metricsTitle":
+            "Runtime Metrics\nDB active connections: {active}\nEnrichment queue: {enrichQ}\nWatcher pending files: {pending}",
+        "runtime.metricsLine":
+            "DB active: {active} | Enrich Q: {enrichQ} | Watcher pending: {pending}",
 
         // --- Scopes ---
         "scope.all": "Inputs + Outputs",
@@ -478,7 +573,8 @@ const DICTIONARY = {
         "msg.noTagsYet": "No tags yet...",
         "msg.category.information": "Information",
         "msg.shortcuts.title": "Shortcut Guide",
-        "msg.shortcuts.body": "All active shortcuts are grouped here by section so they stay visible inside Message Center.",
+        "msg.shortcuts.body":
+            "All active shortcuts are grouped here by section so they stay visible inside Message Center.",
         "msg.shortcuts.intro": "Current keyboard shortcuts grouped by section for quick reference.",
         "msg.shortcuts.openGuide": "Open full guide",
         "msg.shortcuts.section.panel": "Global / Panel",
@@ -488,25 +584,35 @@ const DICTIONARY = {
         "msg.shortcuts.section.video": "Video Playback",
         "msg.category.release": "Release",
         "msg.whatsNew.title.version242": "New Version 2.4.2",
-        "msg.whatsNew.body.version242": "Version 2.4.2 released: 3D model viewing support with thumbnail rendering, toast history tab in message popover, enhanced floating viewer with Picture-in-Picture pop-out. Fixed timeout leaks, optimized drag interactions, improved plugin hot-reload safety. See CHANGELOG for details.",
+        "msg.whatsNew.body.version242":
+            "Version 2.4.2 released: 3D model viewing support with thumbnail rendering, toast history tab in message popover, enhanced floating viewer with Picture-in-Picture pop-out. Fixed timeout leaks, optimized drag interactions, improved plugin hot-reload safety. See CHANGELOG for details.",
         "msg.whatsNew.title.version241": "New Version 2.4.1",
-        "msg.whatsNew.body.version241": "Version 2.4.1 released: CLIP-based semantic search with AI toggle, rgthree/easy node support, shortcut guide tab, upscaler model extraction. Fixed MFV memory leaks, workflow filters, SQL placeholders. Enhanced geninfo extraction, tag handling, calendar. See CHANGELOG for details.",
+        "msg.whatsNew.body.version241":
+            "Version 2.4.1 released: CLIP-based semantic search with AI toggle, rgthree/easy node support, shortcut guide tab, upscaler model extraction. Fixed MFV memory leaks, workflow filters, SQL placeholders. Enhanced geninfo extraction, tag handling, calendar. See CHANGELOG for details.",
         "msg.whatsNew.title.floatingViewerShortcuts": "What's New",
-        "msg.whatsNew.body.floatingViewerShortcuts": "Floating Viewer keyboard shortcuts added: Open/close MFV with V or Ctrl/Cmd+V, compare with C, Live Stream with L, and KSampler Preview with K. See the Shortcut Guide tab for the full list.",
+        "msg.whatsNew.body.floatingViewerShortcuts":
+            "Floating Viewer keyboard shortcuts added: Open/close MFV with V or Ctrl/Cmd+V, compare with C, Live Stream with L, and KSampler Preview with K. See the Shortcut Guide tab for the full list.",
         "msg.whatsNew.title.pinReference": "What's New",
-        "msg.whatsNew.body.pinReference": "Floating Viewer: new Pin Reference feature. You can now pin A or B, then compare quickly with selected assets in the grid while keeping the fixed reference.",
+        "msg.whatsNew.body.pinReference":
+            "Floating Viewer: new Pin Reference feature. You can now pin A or B, then compare quickly with selected assets in the grid while keeping the fixed reference.",
         "msg.whatsNew.title.vectorResetKeepVectors": "Important",
-        "msg.whatsNew.body.vectorResetKeepVectors": "Reset index and Delete DB now first ask whether to keep AI vectors. If you already have older indexed assets, keeping the vectors is recommended: a full reset without them can trigger a long Vector Backfill for old assets and temporarily increase RAM usage.",
+        "msg.whatsNew.body.vectorResetKeepVectors":
+            "Reset index and Delete DB now first ask whether to keep AI vectors. If you already have older indexed assets, keeping the vectors is recommended: a full reset without them can trigger a long Vector Backfill for old assets and temporarily increase RAM usage.",
         "msg.whatsNew.title.localUserGuide": "Need help?",
-        "msg.whatsNew.body.localUserGuide": "Open the local User Guide directly from your Assets Manager custom_nodes folder.",
-        "msg.collectionAdd.added": "Added {added} item(s) to \"{name}\".",
-        "msg.collectionAdd.skippedExisting": "Skipped {count} item(s): already present in the collection.",
+        "msg.whatsNew.body.localUserGuide":
+            "Open the local User Guide directly from your Assets Manager custom_nodes folder.",
+        "msg.collectionAdd.added": 'Added {added} item(s) to "{name}".',
+        "msg.collectionAdd.skippedExisting":
+            "Skipped {count} item(s): already present in the collection.",
         "msg.collectionAdd.skippedDuplicate": "Ignored {count} duplicate(s) in selection.",
-        "msg.collectionAdd.noneAddedExisting": "No new items added to \"{name}\" (all exist).",
-        "msg.aiFeaturesNotice": "Warning:\n\nAssets Manager now includes AI features like auto captions, AI search, smart collections, etc.\nThese features are still WIP.\n\nIf you already had Assets Manager installed, delete the DB first.\nWhen enrich is finished, run Vector Backfill for your existing assets.\nAfter clicking Backfill, you can go sleep: it may take a very, very long time if you have many assets.",
-        "msg.dbResetNoticeDetail": "Majoor Update Notice:\n\nTo avoid database errors with this new version, please delete your existing index. Click the 'Delete DB' button in the Index Status panel to reset it.",
+        "msg.collectionAdd.noneAddedExisting": 'No new items added to "{name}" (all exist).',
+        "msg.aiFeaturesNotice":
+            "Warning:\n\nAssets Manager now includes AI features like auto captions, AI search, smart collections, etc.\nThese features are still WIP.\n\nIf you already had Assets Manager installed, delete the DB first.\nWhen enrich is finished, run Vector Backfill for your existing assets.\nAfter clicking Backfill, you can go sleep: it may take a very, very long time if you have many assets.",
+        "msg.dbResetNoticeDetail":
+            "Majoor Update Notice:\n\nTo avoid database errors with this new version, please delete your existing index. Click the 'Delete DB' button in the Index Status panel to reset it.",
         "msg.nightlyUpdateTitle": "Majoor Assets Manager",
-        "msg.nightlyUpdateDetail": "A newer nightly build is available: https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/tag/nightly",
+        "msg.nightlyUpdateDetail":
+            "A newer nightly build is available: https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/tag/nightly",
         "msg.newVersionTitle": "Majoor Assets Manager",
         "msg.newVersionDetail": "A new version is available: {latest} (Current: {current})",
         "msg.dbResetNotice": "Database reset required",
@@ -615,40 +721,49 @@ const DICTIONARY = {
         "dialog.newCollection.placeholder": "Collection name",
         "dialog.resetIndex.title": "Reset index?",
         "dialog.resetIndex.msg": "This will delete the database and rescan all files. Continue?",
-        "dialog.securityWarning": "This looks like a system or very broad directory.\n\nAdding it can expose sensitive files via the viewer/custom roots feature.\n\nContinue?",
+        "dialog.securityWarning":
+            "This looks like a system or very broad directory.\n\nAdding it can expose sensitive files via the viewer/custom roots feature.\n\nContinue?",
         "dialog.securityWarningTitle": "Majoor: Security Warning",
         "dialog.enterFolderPath": "Enter a folder path to add as a Custom root:",
         "dialog.customFoldersTitle": "Majoor: Custom Folders",
-        "dialog.removeFolder": "Remove the custom folder \"{name}\"?",
-        "dialog.deleteCollection": "Delete collection \"{name}\"?",
+        "dialog.removeFolder": 'Remove the custom folder "{name}"?',
+        "dialog.deleteCollection": 'Delete collection "{name}"?',
         "dialog.createCollection": "Create collection",
         "dialog.collectionPlaceholder": "My collection",
         "dialog.browserRootLabelOptional": "Label for new browser root (optional)",
         "dialog.newFolderName": "New folder name",
         "dialog.renameFolder": "Rename folder",
         "dialog.destinationDirectoryPath": "Destination directory path",
-        "dialog.deleteFolderRecursive": "Delete folder \"{name}\" and all contents?",
+        "dialog.deleteFolderRecursive": 'Delete folder "{name}" and all contents?',
         "dialog.folderLabelOptional": "Folder label (optional)",
-        "dialog.unpinFolder": "Unpin folder \"{name}\"?",
+        "dialog.unpinFolder": 'Unpin folder "{name}"?',
         "dialog.dbRestore.confirm": "Restore selected DB backup? This will replace current DB.",
         "dialog.mergeDuplicateTags": "Merge duplicate tags?",
         "dialog.deleteExactDuplicates": "Delete exact duplicates?",
         "dialog.startDuplicateAnalysis": "Start duplicate analysis?",
-        "dialog.dbDelete.confirm": "This will permanently delete the index database and rebuild it from scratch. All ratings, tags, and cached metadata will be lost.\n\nContinue?",
-        "dialog.settingsSaveFailed": "Majoor: Failed to save settings (browser storage full or blocked).",
+        "dialog.dbDelete.confirm":
+            "This will permanently delete the index database and rebuild it from scratch. All ratings, tags, and cached metadata will be lost.\n\nContinue?",
+        "dialog.settingsSaveFailed":
+            "Majoor: Failed to save settings (browser storage full or blocked).",
         "dialog.confirmDeleteTitle": "Majoor: Confirm delete",
         "dialog.deleteSelectedFiles": "Delete {count} selected files?",
-        "dialog.deleteSingleFile": "Delete \"{label}\"?",
+        "dialog.deleteSingleFile": 'Delete "{label}"?',
         "dialog.vectorsReset.title": "AI vectors",
-        "dialog.vectorsReset.choice": "Also reset AI vectors?\n\nConfirm = yes, reset everything (vectors will be recalculated)\nCancel = no, keep existing vectors",
-        "dialog.vectorsReset.keepQuestion": "Keep existing AI vectors?\n\nConfirm = keep vectors\nCancel = continue without vectors",
-        "dialog.vectorsReset.wipeConfirm": "Reset AI vectors too?\n\nConfirm = yes, reset everything\nCancel = abort",
-        "dialog.vectorsReset.singleQuestion": "Choose reset mode for {action}:\n\nYes = keep existing AI vectors\nNo = full reset (vectors will be recalculated)\nCancel = abort",
+        "dialog.vectorsReset.choice":
+            "Also reset AI vectors?\n\nConfirm = yes, reset everything (vectors will be recalculated)\nCancel = no, keep existing vectors",
+        "dialog.vectorsReset.keepQuestion":
+            "Keep existing AI vectors?\n\nConfirm = keep vectors\nCancel = continue without vectors",
+        "dialog.vectorsReset.wipeConfirm":
+            "Reset AI vectors too?\n\nConfirm = yes, reset everything\nCancel = abort",
+        "dialog.vectorsReset.singleQuestion":
+            "Choose reset mode for {action}:\n\nYes = keep existing AI vectors\nNo = full reset (vectors will be recalculated)\nCancel = abort",
         "dialog.vectorsReset.optionKeep": "Yes - keep vectors",
         "dialog.vectorsReset.optionFull": "No - full reset",
         "dialog.vectorsReset.optionCancel": "Cancel",
-        "dialog.resetIndex.confirmKeepVectors": "This will reset index data and rescan files while keeping existing AI vectors.\n\nContinue?",
-        "dialog.dbDelete.keepVectorsConfirm": "This will reset index data and keep existing AI vectors. Database files will not be force-deleted.\n\nContinue?",
+        "dialog.resetIndex.confirmKeepVectors":
+            "This will reset index data and rescan files while keeping existing AI vectors.\n\nContinue?",
+        "dialog.dbDelete.keepVectorsConfirm":
+            "This will reset index data and keep existing AI vectors. Database files will not be force-deleted.\n\nContinue?",
 
         // --- Toasts ---
         "toast.scanStarted": "Scan started",
@@ -657,7 +772,8 @@ const DICTIONARY = {
         "toast.resetTriggered": "Reset triggered: Reindexing all files...",
         "toast.resetStarted": "Index reset started. Files will be reindexed in the background.",
         "toast.resetFailed": "Failed to reset index",
-        "toast.resetFailedCorrupt": "Reset failed – database is corrupted. Use the \"Delete DB\" button to force-delete and rebuild.",
+        "toast.resetFailedCorrupt":
+            'Reset failed – database is corrupted. Use the "Delete DB" button to force-delete and rebuild.',
         "toast.dbDeleteTriggered": "Deleting database and rebuilding...",
         "toast.dbDeleteSuccess": "Database deleted and rebuilt. Files are being reindexed.",
         "toast.dbDeleteFailed": "Failed to delete database",
@@ -690,8 +806,8 @@ const DICTIONARY = {
         "toast.failedAddAssetsToSmartCollection": "Failed to add assets to smart collection",
         "toast.noGroupsFoundIndexFirst": "No groups found. Index more assets first.",
         "toast.failedLoadClusterAssets": "Failed to load cluster assets",
-        "toast.collectionCreatedWithAssets": "Collection \"{name}\" created with {count} assets!",
-        "toast.collectionCreatedNamed": "Collection \"{name}\" created.",
+        "toast.collectionCreatedWithAssets": 'Collection "{name}" created with {count} assets!',
+        "toast.collectionCreatedNamed": 'Collection "{name}" created.',
         "toast.clusterAnalysisFailed": "Cluster analysis failed",
         "toast.removeFromCollectionFailed": "Failed to remove from collection.",
         "toast.removeFromCollectionError": "Error removing from collection: {error}",
@@ -739,12 +855,14 @@ const DICTIONARY = {
         "toast.noFilePath": "No file path available for this asset.",
         "toast.vectorBackfillStarting": "Starting vector backfill... This may take a while.",
         "toast.vectorBackfillRunning": "Vector backfill still running in background{job}.",
-        "toast.vectorBackfillComplete": "Vector backfill complete! Processed: {processed}, Indexed: {indexed}, Skipped: {skipped}",
+        "toast.vectorBackfillComplete":
+            "Vector backfill complete! Processed: {processed}, Indexed: {indexed}, Skipped: {skipped}",
         "toast.vectorBackfillFailedGeneric": "Backfill failed",
         "toast.vectorBackfillFailedDetail": "Vector backfill failed: {error}",
         "toast.rescanUpdatingAiIndex": "Rescanning file + updating AI index...",
         "toast.metadataVectorUpdated": "Metadata + AI vector index updated for this asset.",
-        "toast.metadataUpdatedVectorFailed": "Metadata updated. AI vector index could not be updated.",
+        "toast.metadataUpdatedVectorFailed":
+            "Metadata updated. AI vector index could not be updated.",
         "toast.downloadingFile": "Downloading {filename}...",
         "toast.playbackRate": "Playback {rate}x",
         "toast.metadataRefreshed": "Metadata refreshed{suffix}",
@@ -767,7 +885,8 @@ const DICTIONARY = {
         "toast.failedToggleWatcher": "Failed to toggle watcher",
         "toast.failedUpdateMetadataFallback": "Failed to update metadata fallback settings",
         "toast.failedSetOutputDirectory": "Failed to set output directory",
-        "toast.nativeBrowserUnavailable": "Native folder browser unavailable. Please enter path manually.",
+        "toast.nativeBrowserUnavailable":
+            "Native folder browser unavailable. Please enter path manually.",
 
         // --- Summary ---
         "summary.assets": "assets",
@@ -820,7 +939,8 @@ const DICTIONARY = {
         "search.aiSearch": "Recherche IA",
         "search.findSimilar": "Trouver similaires",
         "search.findingSimilar": "Recherche d'assets similaires...",
-        "search.selectAssetForSimilar": "Selectionnez d'abord un asset pour trouver des images/videos similaires.",
+        "search.selectAssetForSimilar":
+            "Selectionnez d'abord un asset pour trouver des images/videos similaires.",
         "search.findSimilarFailed": "Echec de la recherche similaire",
         "search.similarResults": "Similaires a l'asset #{id} ({n} resultats)",
         "search.similarReference": "Reference #{id}",
@@ -832,11 +952,14 @@ const DICTIONARY = {
         "tooltip.tab.similar": "Parcourir les trouvailles similaires courantes",
 
         "setting.ai.vector.enabled.name": "Activer la recherche semantique IA",
-        "setting.ai.vector.enabled.desc": "Active la recherche semantique basee sur CLIP. Desactivez pour une recherche par mots-cles uniquement.",
+        "setting.ai.vector.enabled.desc":
+            "Active la recherche semantique basee sur CLIP. Desactivez pour une recherche par mots-cles uniquement.",
 
         "runtime.unavailable": "Runtime indisponible",
-        "runtime.metricsTitle": "Metriques runtime\nConnexions DB actives : {active}\nFile enrichissement : {enrichQ}\nFichiers watcher en attente : {pending}",
-        "runtime.metricsLine": "DB active : {active} | File enrich. : {enrichQ} | Watcher en attente : {pending}",
+        "runtime.metricsTitle":
+            "Metriques runtime\nConnexions DB actives : {active}\nFile enrichissement : {enrichQ}\nFichiers watcher en attente : {pending}",
+        "runtime.metricsLine":
+            "DB active : {active} | File enrich. : {enrichQ} | Watcher en attente : {pending}",
 
         "btn.dbSave": "Sauvegarder BDD",
         "btn.dbRestore": "Restaurer BDD",
@@ -858,8 +981,9 @@ const DICTIONARY = {
         "dialog.newFolderName": "Nom du nouveau dossier",
         "dialog.renameFolder": "Renommer dossier",
         "dialog.destinationDirectoryPath": "Chemin dossier destination",
-        "dialog.deleteFolderRecursive": "Supprimer le dossier \"{name}\" et tout son contenu ?",
-        "dialog.settingsSaveFailed": "Majoor : echec sauvegarde des parametres (stockage navigateur plein ou bloque).",
+        "dialog.deleteFolderRecursive": 'Supprimer le dossier "{name}" et tout son contenu ?',
+        "dialog.settingsSaveFailed":
+            "Majoor : echec sauvegarde des parametres (stockage navigateur plein ou bloque).",
         "dialog.yes": "Oui",
         "dialog.no": "Non",
         "dialog.ok": "OK",
@@ -867,17 +991,23 @@ const DICTIONARY = {
         "dialog.choiceTypeNumber": "Entrez un numero :",
         "dialog.confirmDeleteTitle": "Majoor : confirmer suppression",
         "dialog.deleteSelectedFiles": "Supprimer {count} fichiers selectionnes ?",
-        "dialog.deleteSingleFile": "Supprimer \"{label}\" ?",
+        "dialog.deleteSingleFile": 'Supprimer "{label}" ?',
         "dialog.vectorsReset.title": "Vecteurs IA",
-        "dialog.vectorsReset.choice": "Reinitialiser aussi les vecteurs IA ?\n\nConfirmer = oui, tout reinitialiser (les vecteurs seront recalcules)\nAnnuler = non, conserver les vecteurs existants",
-        "dialog.vectorsReset.keepQuestion": "Conserver les vecteurs IA existants ?\n\nConfirmer = conserver les vecteurs\nAnnuler = continuer sans vecteurs",
-        "dialog.vectorsReset.wipeConfirm": "Reinitialiser aussi les vecteurs IA ?\n\nConfirmer = oui, tout reinitialiser\nAnnuler = abandonner",
-        "dialog.vectorsReset.singleQuestion": "Choisissez le mode de reinitialisation pour {action} :\n\nOui = conserver les vecteurs IA existants\nNon = reinitialisation complete (les vecteurs seront recalcules)\nAnnuler = abandonner",
+        "dialog.vectorsReset.choice":
+            "Reinitialiser aussi les vecteurs IA ?\n\nConfirmer = oui, tout reinitialiser (les vecteurs seront recalcules)\nAnnuler = non, conserver les vecteurs existants",
+        "dialog.vectorsReset.keepQuestion":
+            "Conserver les vecteurs IA existants ?\n\nConfirmer = conserver les vecteurs\nAnnuler = continuer sans vecteurs",
+        "dialog.vectorsReset.wipeConfirm":
+            "Reinitialiser aussi les vecteurs IA ?\n\nConfirmer = oui, tout reinitialiser\nAnnuler = abandonner",
+        "dialog.vectorsReset.singleQuestion":
+            "Choisissez le mode de reinitialisation pour {action} :\n\nOui = conserver les vecteurs IA existants\nNon = reinitialisation complete (les vecteurs seront recalcules)\nAnnuler = abandonner",
         "dialog.vectorsReset.optionKeep": "Oui - conserver vecteurs",
         "dialog.vectorsReset.optionFull": "Non - reinit complete",
         "dialog.vectorsReset.optionCancel": "Annuler",
-        "dialog.resetIndex.confirmKeepVectors": "Cette action reinitialise l'index et relance le scan en conservant les vecteurs IA existants.\n\nContinuer ?",
-        "dialog.dbDelete.keepVectorsConfirm": "Cette action reinitialise l'index et conserve les vecteurs IA existants. Les fichiers DB ne seront pas supprimes de force.\n\nContinuer ?",
+        "dialog.resetIndex.confirmKeepVectors":
+            "Cette action reinitialise l'index et relance le scan en conservant les vecteurs IA existants.\n\nContinuer ?",
+        "dialog.dbDelete.keepVectorsConfirm":
+            "Cette action reinitialise l'index et conserve les vecteurs IA existants. Les fichiers DB ne seront pas supprimes de force.\n\nContinuer ?",
 
         "toast.createFolderFailed": "Echec creation dossier",
         "toast.renameFolderFailed": "Echec renommage dossier",
@@ -890,20 +1020,25 @@ const DICTIONARY = {
         "toast.pinFolderFailed": "Echec epinglage dossier",
         "toast.folderPinnedAsBrowserRoot": "Dossier epingle comme racine browser",
         "toast.failedCreateSmartCollection": "Echec creation collection intelligente",
-        "toast.failedAddAssetsToSmartCollection": "Echec ajout des assets a la collection intelligente",
+        "toast.failedAddAssetsToSmartCollection":
+            "Echec ajout des assets a la collection intelligente",
         "toast.noGroupsFoundIndexFirst": "Aucun groupe trouve. Indexez plus d'assets d'abord.",
         "toast.failedLoadClusterAssets": "Echec chargement assets du cluster",
-        "toast.collectionCreatedWithAssets": "Collection \"{name}\" creee avec {count} assets !",
-        "toast.collectionCreatedNamed": "Collection \"{name}\" creee.",
+        "toast.collectionCreatedWithAssets": 'Collection "{name}" creee avec {count} assets !',
+        "toast.collectionCreatedNamed": 'Collection "{name}" creee.',
         "toast.clusterAnalysisFailed": "Echec analyse des clusters",
-        "toast.vectorBackfillStarting": "Demarrage du vector backfill... Cela peut prendre du temps.",
+        "toast.vectorBackfillStarting":
+            "Demarrage du vector backfill... Cela peut prendre du temps.",
         "toast.vectorBackfillRunning": "Le vector backfill continue en arriere-plan{job}.",
-        "toast.vectorBackfillComplete": "Vector backfill termine ! Traites : {processed}, Indexes : {indexed}, Ignores : {skipped}",
+        "toast.vectorBackfillComplete":
+            "Vector backfill termine ! Traites : {processed}, Indexes : {indexed}, Ignores : {skipped}",
         "toast.vectorBackfillFailedGeneric": "Echec du backfill",
         "toast.vectorBackfillFailedDetail": "Echec du vector backfill : {error}",
         "toast.rescanUpdatingAiIndex": "Rescan du fichier + mise a jour index IA...",
-        "toast.metadataVectorUpdated": "Metadonnees + index vectoriel IA mis a jour pour cet asset.",
-        "toast.metadataUpdatedVectorFailed": "Metadonnees mises a jour. L'index vectoriel IA n'a pas pu etre mis a jour.",
+        "toast.metadataVectorUpdated":
+            "Metadonnees + index vectoriel IA mis a jour pour cet asset.",
+        "toast.metadataUpdatedVectorFailed":
+            "Metadonnees mises a jour. L'index vectoriel IA n'a pas pu etre mis a jour.",
 
         "label.computer": "Ordinateur",
         "label.collection": "collection",
@@ -921,8 +1056,10 @@ const DICTIONARY = {
         "msg.noTagsYet": "Aucun tag pour le moment...",
         "msg.category.information": "Information",
         "msg.shortcuts.title": "Guide des raccourcis",
-        "msg.shortcuts.body": "Tous les raccourcis actifs sont regroupes ici par section pour rester visibles dans le Message Center.",
-        "msg.shortcuts.intro": "Raccourcis clavier actuels groupes par section pour consultation rapide.",
+        "msg.shortcuts.body":
+            "Tous les raccourcis actifs sont regroupes ici par section pour rester visibles dans le Message Center.",
+        "msg.shortcuts.intro":
+            "Raccourcis clavier actuels groupes par section pour consultation rapide.",
         "msg.shortcuts.openGuide": "Ouvrir le guide complet",
         "msg.shortcuts.section.panel": "Global / Panneau",
         "msg.shortcuts.section.grid": "Vue grille",
@@ -931,25 +1068,36 @@ const DICTIONARY = {
         "msg.shortcuts.section.video": "Lecture video",
         "msg.category.release": "Version",
         "msg.whatsNew.title.version242": "Nouvelle Version 2.4.2",
-        "msg.whatsNew.body.version242": "Version 2.4.2 publiee : support affichage modeles 3D avec rendu vignettes, onglet historique toast dans message popover, floating viewer ameliore avec Picture-in-Picture pop-out. Correction fuites timeout, optimisation interactions drag, securite plugin hot-reload amelioree. Voir CHANGELOG pour details.",
+        "msg.whatsNew.body.version242":
+            "Version 2.4.2 publiee : support affichage modeles 3D avec rendu vignettes, onglet historique toast dans message popover, floating viewer ameliore avec Picture-in-Picture pop-out. Correction fuites timeout, optimisation interactions drag, securite plugin hot-reload amelioree. Voir CHANGELOG pour details.",
         "msg.whatsNew.title.version241": "Nouvelle Version 2.4.1",
-        "msg.whatsNew.body.version241": "Version 2.4.1 publiee : recherche semantique CLIP avec AI toggle, support rgthree/easy node, onglet shortcut guide, extraction de modele upscaler. Correction de fuites memoire MFV, filtres workflow, SQL placeholders. Amelioration extraction geninfo, gestion tags, calendrier. Voir CHANGELOG pour details.",
+        "msg.whatsNew.body.version241":
+            "Version 2.4.1 publiee : recherche semantique CLIP avec AI toggle, support rgthree/easy node, onglet shortcut guide, extraction de modele upscaler. Correction de fuites memoire MFV, filtres workflow, SQL placeholders. Amelioration extraction geninfo, gestion tags, calendrier. Voir CHANGELOG pour details.",
         "msg.whatsNew.title.floatingViewerShortcuts": "Quoi de neuf",
-        "msg.whatsNew.body.floatingViewerShortcuts": "Nouveaux raccourcis clavier pour le Floating Viewer : ouvrir/fermer le MFV avec V ou Ctrl/Cmd+V, comparaison avec C, Live Stream avec L, et KSampler Preview avec K. Voir l'onglet Shortcut Guide pour la liste complete.",
+        "msg.whatsNew.body.floatingViewerShortcuts":
+            "Nouveaux raccourcis clavier pour le Floating Viewer : ouvrir/fermer le MFV avec V ou Ctrl/Cmd+V, comparaison avec C, Live Stream avec L, et KSampler Preview avec K. Voir l'onglet Shortcut Guide pour la liste complete.",
         "msg.whatsNew.title.pinReference": "Quoi de neuf",
-        "msg.whatsNew.body.pinReference": "Floating Viewer : nouvelle fonction Pin Reference. Vous pouvez maintenant epingler A ou B, puis comparer rapidement avec les assets selectionnes dans la grille tout en gardant la reference fixe.",
+        "msg.whatsNew.body.pinReference":
+            "Floating Viewer : nouvelle fonction Pin Reference. Vous pouvez maintenant epingler A ou B, puis comparer rapidement avec les assets selectionnes dans la grille tout en gardant la reference fixe.",
         "msg.whatsNew.title.vectorResetKeepVectors": "Quoi de neuf",
-        "msg.whatsNew.body.vectorResetKeepVectors": "Reset index et Delete DB demandent d'abord s'il faut conserver les vecteurs IA. Si vous avez deja des anciens assets indexes, garder les vecteurs est recommande : un reset complet sans eux peut declencher un long Vector Backfill sur les anciens assets et augmenter temporairement la consommation RAM.",
+        "msg.whatsNew.body.vectorResetKeepVectors":
+            "Reset index et Delete DB demandent d'abord s'il faut conserver les vecteurs IA. Si vous avez deja des anciens assets indexes, garder les vecteurs est recommande : un reset complet sans eux peut declencher un long Vector Backfill sur les anciens assets et augmenter temporairement la consommation RAM.",
         "msg.whatsNew.title.localUserGuide": "Quoi de neuf",
-        "msg.whatsNew.body.localUserGuide": "Ouvrez le Guide utilisateur local directement depuis le dossier custom_nodes d'Assets Manager.",
-        "msg.collectionAdd.added": "{added} element(s) ajoute(s) a \"{name}\".",
-        "msg.collectionAdd.skippedExisting": "{count} element(s) ignores : deja presents dans la collection.",
+        "msg.whatsNew.body.localUserGuide":
+            "Ouvrez le Guide utilisateur local directement depuis le dossier custom_nodes d'Assets Manager.",
+        "msg.collectionAdd.added": '{added} element(s) ajoute(s) a "{name}".',
+        "msg.collectionAdd.skippedExisting":
+            "{count} element(s) ignores : deja presents dans la collection.",
         "msg.collectionAdd.skippedDuplicate": "{count} doublon(s) ignores dans la selection.",
-        "msg.collectionAdd.noneAddedExisting": "Aucun nouvel element ajoute a \"{name}\" (tous deja presents).",
-        "msg.aiFeaturesNotice": "Avertissement :\n\nAssets Manager inclut maintenant des fonctions IA (auto captions, recherche IA, smart collections, etc.).\nCes fonctions sont encore en cours de developpement.\n\nSi Assets Manager etait deja installe, supprimez d'abord la DB.\nQuand l'enrichissement est termine, lancez Vector Backfill pour vos assets existants.\nApres avoir clique sur Backfill, cela peut prendre tres longtemps si vous avez beaucoup d'assets.",
-        "msg.dbResetNoticeDetail": "Note de mise a jour Majoor :\n\nPour eviter les erreurs de base de donnees avec cette version, supprimez votre index existant. Cliquez sur le bouton \"Delete DB\" dans le panneau Index Status pour le reinitialiser.",
+        "msg.collectionAdd.noneAddedExisting":
+            'Aucun nouvel element ajoute a "{name}" (tous deja presents).',
+        "msg.aiFeaturesNotice":
+            "Avertissement :\n\nAssets Manager inclut maintenant des fonctions IA (auto captions, recherche IA, smart collections, etc.).\nCes fonctions sont encore en cours de developpement.\n\nSi Assets Manager etait deja installe, supprimez d'abord la DB.\nQuand l'enrichissement est termine, lancez Vector Backfill pour vos assets existants.\nApres avoir clique sur Backfill, cela peut prendre tres longtemps si vous avez beaucoup d'assets.",
+        "msg.dbResetNoticeDetail":
+            'Note de mise a jour Majoor :\n\nPour eviter les erreurs de base de donnees avec cette version, supprimez votre index existant. Cliquez sur le bouton "Delete DB" dans le panneau Index Status pour le reinitialiser.',
         "msg.nightlyUpdateTitle": "Majoor Assets Manager",
-        "msg.nightlyUpdateDetail": "Une build nightly plus recente est disponible : https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/tag/nightly",
+        "msg.nightlyUpdateDetail":
+            "Une build nightly plus recente est disponible : https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/tag/nightly",
         "tooltip.starGithub": "Ouvrir GitHub et mettre une etoile",
     },
 };
@@ -1084,7 +1232,9 @@ function _readStoredLang() {
             const value = String(SettingsStore.get(key) || "").trim();
             if (value) return value;
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return "";
 }
 
@@ -1093,22 +1243,30 @@ function _persistLang(lang) {
         // Keep legacy and new key in sync for smooth upgrades.
         SettingsStore.set(LANG_STORAGE_KEYS[0], lang);
         SettingsStore.set(LANG_STORAGE_KEYS[1], lang);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 function _readFollowComfyLang() {
     try {
-        const raw = String(SettingsStore.get(FOLLOW_COMFY_LANG_STORAGE_KEY) || "").trim().toLowerCase();
+        const raw = String(SettingsStore.get(FOLLOW_COMFY_LANG_STORAGE_KEY) || "")
+            .trim()
+            .toLowerCase();
         if (!raw) return true;
         return !["0", "false", "no", "off"].includes(raw);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return true;
 }
 
 function _persistFollowComfyLang(enabled) {
     try {
         SettingsStore.set(FOLLOW_COMFY_LANG_STORAGE_KEY, enabled ? "1" : "0");
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 function _readComfyLocaleCandidates(app) {
@@ -1148,14 +1306,18 @@ function _readPlatformLocaleCandidates() {
         if (typeof document !== "undefined") {
             pushCandidate(document?.documentElement?.lang);
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         if (typeof navigator !== "undefined") {
             pushCandidate(navigator?.language);
             const langs = Array.isArray(navigator?.languages) ? navigator.languages : [];
             for (const lang of langs) pushCandidate(lang);
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return out;
 }
 
@@ -1168,7 +1330,9 @@ function _applyRTL() {
             const isRTL = RTL_LANGUAGES.has(currentLang);
             document.documentElement.dir = isRTL ? "rtl" : "ltr";
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 /**
@@ -1256,15 +1420,23 @@ export const setLang = (lang) => {
     if (lang !== DEFAULT_LANG && !_generatedTranslationsLoaded) {
         void _ensureGeneratedTranslations().then(() => {
             // Re-notify listeners once translations are available so UI updates.
-            Array.from(_langChangeListeners).forEach(cb => {
-                try { cb(lang); } catch (e) { console.debug?.(e); }
+            Array.from(_langChangeListeners).forEach((cb) => {
+                try {
+                    cb(lang);
+                } catch (e) {
+                    console.debug?.(e);
+                }
             });
         });
     }
 
     // Notify listeners
-    Array.from(_langChangeListeners).forEach(cb => {
-        try { cb(lang); } catch (e) { console.debug?.(e); }
+    Array.from(_langChangeListeners).forEach((cb) => {
+        try {
+            cb(lang);
+        } catch (e) {
+            console.debug?.(e);
+        }
     });
 };
 
@@ -1274,7 +1446,9 @@ export const subscribeLangChange = (callback) => {
     return () => {
         try {
             _langChangeListeners.delete(callback);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 };
 
@@ -1297,7 +1471,9 @@ export const startComfyLanguageSync = (app) => {
             clearInterval(window.__MJR_COMFY_LANG_SYNC_TIMER__);
             window.__MJR_COMFY_LANG_SYNC_TIMER__ = null;
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     _comfyLangSyncTimer = setInterval(() => {
         try {
@@ -1310,14 +1486,18 @@ export const startComfyLanguageSync = (app) => {
                     return;
                 }
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }, 2000);
 
     try {
         if (typeof window !== "undefined") {
             window.__MJR_COMFY_LANG_SYNC_TIMER__ = _comfyLangSyncTimer;
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 };
 
 /**
@@ -1330,10 +1510,11 @@ export const getCurrentLang = () => currentLang;
  * Get list of supported languages.
  * @returns {Array<{code: string, name: string}>} Array of supported languages
  */
-export const getSupportedLanguages = () => Object.keys(DICTIONARY).map(code => ({
-    code,
-    name: LANGUAGE_NAMES[code] || code
-}));
+export const getSupportedLanguages = () =>
+    Object.keys(DICTIONARY).map((code) => ({
+        code,
+        name: LANGUAGE_NAMES[code] || code,
+    }));
 
 /**
  * Check if current language is RTL (right-to-left).
@@ -1356,7 +1537,7 @@ export const t = (key, defaultOrParams, params) => {
 
     if (!text) {
         const missingId = `${currentLang}:${String(key || "")}`;
-        
+
         // Bounded missing key tracking to prevent memory leaks
         if (!_missingTranslationKeys.has(missingId)) {
             if (_missingTranslationKeys.size >= MAX_MISSING_KEYS) {
@@ -1369,18 +1550,26 @@ export const t = (key, defaultOrParams, params) => {
                 }
             }
             _missingTranslationKeys.add(missingId);
-            
+
             try {
-                console.warn(`[Majoor i18n] Missing translation key "${key}" for locale "${currentLang}"`);
-            } catch (e) { console.debug?.(e); }
-            
+                console.warn(
+                    `[Majoor i18n] Missing translation key "${key}" for locale "${currentLang}"`,
+                );
+            } catch (e) {
+                console.debug?.(e);
+            }
+
             try {
                 if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
-                    window.dispatchEvent(new CustomEvent("mjr-i18n-missing-key", {
-                        detail: { key: String(key || ""), locale: currentLang }
-                    }));
+                    window.dispatchEvent(
+                        new CustomEvent("mjr-i18n-missing-key", {
+                            detail: { key: String(key || ""), locale: currentLang },
+                        }),
+                    );
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
         // Return default or key
         if (typeof defaultOrParams === "string") return defaultOrParams;

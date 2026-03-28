@@ -9,7 +9,11 @@
  */
 
 import { post } from "../../../api/client.js";
-import { ENDPOINTS, buildBatchZipDownloadURL, buildCleanDownloadURL } from "../../../api/endpoints.js";
+import {
+    ENDPOINTS,
+    buildBatchZipDownloadURL,
+    buildCleanDownloadURL,
+} from "../../../api/endpoints.js";
 import { getDownloadMimeForFilename } from "../utils/video.js";
 import { pickRootId } from "../../../utils/ids.js";
 import { comfyConfirm } from "../../../app/dialogs.js";
@@ -51,7 +55,7 @@ const _assetToZipItem = (asset) => {
         filename,
         subfolder: a.subfolder || "",
         type: String(a.type || "output").toLowerCase(),
-        root_id: pickRootId(a) || undefined
+        root_id: pickRootId(a) || undefined,
     };
 };
 
@@ -66,26 +70,34 @@ const _getSelectedAssets = (containerEl, draggedCard) => {
             const parsed = JSON.parse(raw);
             if (Array.isArray(parsed)) selectedIds = parsed.map(String).filter(Boolean);
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // If dataset is available, use full asset list (VirtualGrid-safe).
     if (selectedIds.length) {
         try {
-            const draggedId = draggedCard?.dataset?.mjrAssetId ? String(draggedCard.dataset.mjrAssetId) : "";
+            const draggedId = draggedCard?.dataset?.mjrAssetId
+                ? String(draggedCard.dataset.mjrAssetId)
+                : "";
             if (!draggedId || !selectedIds.includes(draggedId)) return out;
-            const allAssets = typeof containerEl?._mjrGetAssets === "function" ? containerEl._mjrGetAssets() : [];
+            const allAssets =
+                typeof containerEl?._mjrGetAssets === "function" ? containerEl._mjrGetAssets() : [];
             for (const a of allAssets || []) {
                 const id = String(a?.id || "");
                 if (id && selectedIds.includes(id)) out.push(a);
             }
             if (out.length) return out;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 
     // Fallback: DOM selection state (visible cards only).
-    let selectedCards = [];
+    let selectedCards;
     try {
-        selectedCards = Array.from(containerEl.querySelectorAll(".mjr-asset-card.is-selected")) || [];
+        selectedCards =
+            Array.from(containerEl.querySelectorAll(".mjr-asset-card.is-selected")) || [];
     } catch {
         selectedCards = [];
     }
@@ -147,8 +159,14 @@ const _downloadClean = (assets) => {
             a.style.display = "none";
             document.body.appendChild(a);
             a.click();
-            setTimeout(() => { try { a.remove(); } catch {} }, 1000);
-        } catch (e) { console.debug?.(e); }
+            setTimeout(() => {
+                try {
+                    a.remove();
+                } catch {}
+            }, 1000);
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 };
 
@@ -164,7 +182,9 @@ export const applyDragOutToOS = ({ dt, asset, containerEl, card, viewUrl }) => {
             // Fire-and-forget zip build. Never block dragstart.
             try {
                 post(ENDPOINTS.BATCH_ZIP_CREATE, { token, items }).catch(() => {});
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
 
             const url = _abs(buildBatchZipDownloadURL(token));
             const zipName = `Majoor_Batch_${items.length}.zip`;
@@ -172,7 +192,9 @@ export const applyDragOutToOS = ({ dt, asset, containerEl, card, viewUrl }) => {
                 dt.setData("text/uri-list", url);
                 dt.setData("DownloadURL", `application/zip:${zipName}:${url}`);
                 dt.effectAllowed = "copy";
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             return;
         }
     }
@@ -187,7 +209,9 @@ export const applyDragOutToOS = ({ dt, asset, containerEl, card, viewUrl }) => {
         dt.setData("text/uri-list", url);
         dt.setData("DownloadURL", `${mime}:${filename}:${url}`);
         dt.effectAllowed = "copy";
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 };
 
 /**
@@ -217,7 +241,6 @@ export const handleDragEnd = (event, { asset, containerEl, card }) => {
             }
         } catch {}
 
-
         // Determine assets involved (single or multi-selection).
         const selected = _getSelectedAssets(containerEl, card);
         const assets = selected.length > 1 ? selected : [asset];
@@ -229,18 +252,22 @@ export const handleDragEnd = (event, { asset, containerEl, card }) => {
         // Async popup — don't block dragend.
         const count = assets.length;
         const name = asset.filename || asset.name || "file";
-        const body = t("dialog.stripMetadataBody",
-            "Would you like to download a clean copy with ComfyUI workflow and generation metadata removed?");
-        const msg = count > 1
-            ? `${t("dialog.stripMetadataBatchHeader", `You dragged ${count} files outside ComfyUI.`)}\n\n${body}`
-            : `${t("dialog.stripMetadataHeader", `You dragged "${name}" outside ComfyUI.`)}\n\n${body}`;
+        const body = t(
+            "dialog.stripMetadataBody",
+            "Would you like to download a clean copy with ComfyUI workflow and generation metadata removed?",
+        );
+        const msg =
+            count > 1
+                ? `${t("dialog.stripMetadataBatchHeader", `You dragged ${count} files outside ComfyUI.`)}\n\n${body}`
+                : `${t("dialog.stripMetadataHeader", `You dragged "${name}" outside ComfyUI.`)}\n\n${body}`;
 
-        comfyConfirm(
-            msg,
-            t("dialog.stripMetadataTitle", "Strip ComfyUI Metadata?")
-        ).then((confirmed) => {
-            if (!confirmed) return;
-            _downloadClean(assets);
-        }).catch(() => {});
-    } catch (e) { console.debug?.(e); }
+        comfyConfirm(msg, t("dialog.stripMetadataTitle", "Strip ComfyUI Metadata?"))
+            .then((confirmed) => {
+                if (!confirmed) return;
+                _downloadClean(assets);
+            })
+            .catch(() => {});
+    } catch (e) {
+        console.debug?.(e);
+    }
 };

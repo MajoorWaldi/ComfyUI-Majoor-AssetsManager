@@ -23,7 +23,7 @@ export function bindFilters({
     dateExactInput,
     reloadGrid,
     onFiltersChanged = null,
-    lifecycleSignal = null
+    lifecycleSignal = null,
 }) {
     // Shared debounce: batch rapid filter changes into a single grid reload.
     // The gridController already coalesces concurrent reloads, but this prevents
@@ -40,7 +40,10 @@ export function bindFilters({
 
     const disposers = [];
     disposers.push(() => {
-        if (_filterReloadTimer) { clearTimeout(_filterReloadTimer); _filterReloadTimer = null; }
+        if (_filterReloadTimer) {
+            clearTimeout(_filterReloadTimer);
+            _filterReloadTimer = null;
+        }
     });
 
     const addManagedListener = (target, event, handler, options) => {
@@ -60,32 +63,72 @@ export function bindFilters({
             } catch {
                 try {
                     target.removeEventListener(event, handler);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
         });
     };
 
-    addManagedListener(kindSelect, "change", () => {
-        state.kindFilter = kindSelect.value || "";
-        try { onFiltersChanged?.(); } catch (e) { console.debug?.(e); }
-        scheduleReload();
-    }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
-    addManagedListener(wfCheckbox, "change", () => {
-        state.workflowOnly = Boolean(wfCheckbox.checked);
-        try { onFiltersChanged?.(); } catch (e) { console.debug?.(e); }
-        scheduleReload();
-    }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
-    addManagedListener(ratingSelect, "change", () => {
-        state.minRating = Number(ratingSelect.value || 0) || 0;
-        try { onFiltersChanged?.(); } catch (e) { console.debug?.(e); }
-        scheduleReload();
-    }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
-    if (workflowTypeSelect) {
-        addManagedListener(workflowTypeSelect, "change", () => {
-            state.workflowType = String(workflowTypeSelect.value || "").trim().toUpperCase();
-            try { onFiltersChanged?.(); } catch (e) { console.debug?.(e); }
+    addManagedListener(
+        kindSelect,
+        "change",
+        () => {
+            state.kindFilter = kindSelect.value || "";
+            try {
+                onFiltersChanged?.();
+            } catch (e) {
+                console.debug?.(e);
+            }
             scheduleReload();
-        }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
+        },
+        lifecycleSignal ? { signal: lifecycleSignal } : undefined,
+    );
+    addManagedListener(
+        wfCheckbox,
+        "change",
+        () => {
+            state.workflowOnly = Boolean(wfCheckbox.checked);
+            try {
+                onFiltersChanged?.();
+            } catch (e) {
+                console.debug?.(e);
+            }
+            scheduleReload();
+        },
+        lifecycleSignal ? { signal: lifecycleSignal } : undefined,
+    );
+    addManagedListener(
+        ratingSelect,
+        "change",
+        () => {
+            state.minRating = Number(ratingSelect.value || 0) || 0;
+            try {
+                onFiltersChanged?.();
+            } catch (e) {
+                console.debug?.(e);
+            }
+            scheduleReload();
+        },
+        lifecycleSignal ? { signal: lifecycleSignal } : undefined,
+    );
+    if (workflowTypeSelect) {
+        addManagedListener(
+            workflowTypeSelect,
+            "change",
+            () => {
+                state.workflowType = String(workflowTypeSelect.value || "")
+                    .trim()
+                    .toUpperCase();
+                try {
+                    onFiltersChanged?.();
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                scheduleReload();
+            },
+            lifecycleSignal ? { signal: lifecycleSignal } : undefined,
+        );
     }
 
     const applySizeFilter = () => {
@@ -97,11 +140,25 @@ export function bindFilters({
             state.maxSizeMB = state.minSizeMB;
             if (maxSizeInput) maxSizeInput.value = String(state.maxSizeMB);
         }
-        try { onFiltersChanged?.(); } catch (e) { console.debug?.(e); }
+        try {
+            onFiltersChanged?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
         scheduleReload();
     };
-    addManagedListener(minSizeInput, "change", applySizeFilter, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
-    addManagedListener(maxSizeInput, "change", applySizeFilter, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
+    addManagedListener(
+        minSizeInput,
+        "change",
+        applySizeFilter,
+        lifecycleSignal ? { signal: lifecycleSignal } : undefined,
+    );
+    addManagedListener(
+        maxSizeInput,
+        "change",
+        applySizeFilter,
+        lifecycleSignal ? { signal: lifecycleSignal } : undefined,
+    );
 
     const applyResolutionFilter = () => {
         const rawMinW = parseLooseNumber(minWidthInput?.value || 0);
@@ -127,71 +184,134 @@ export function bindFilters({
         state.maxHeight = maxH;
         try {
             if (resolutionPresetSelect) {
-                const map = { "1280x720": "hd", "1920x1080": "fhd", "2560x1440": "qhd", "3840x2160": "uhd" };
+                const map = {
+                    "1280x720": "hd",
+                    "1920x1080": "fhd",
+                    "2560x1440": "qhd",
+                    "3840x2160": "uhd",
+                };
                 resolutionPresetSelect.value = map[`${minW}x${minH}`] || "";
             }
-        } catch (e) { console.debug?.(e); }
-        try { onFiltersChanged?.(); } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            onFiltersChanged?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
         scheduleReload();
     };
-    addManagedListener(minWidthInput, "change", applyResolutionFilter, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
-    addManagedListener(minHeightInput, "change", applyResolutionFilter, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
-    addManagedListener(maxWidthInput, "change", applyResolutionFilter, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
-    addManagedListener(maxHeightInput, "change", applyResolutionFilter, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
+    addManagedListener(
+        minWidthInput,
+        "change",
+        applyResolutionFilter,
+        lifecycleSignal ? { signal: lifecycleSignal } : undefined,
+    );
+    addManagedListener(
+        minHeightInput,
+        "change",
+        applyResolutionFilter,
+        lifecycleSignal ? { signal: lifecycleSignal } : undefined,
+    );
+    addManagedListener(
+        maxWidthInput,
+        "change",
+        applyResolutionFilter,
+        lifecycleSignal ? { signal: lifecycleSignal } : undefined,
+    );
+    addManagedListener(
+        maxHeightInput,
+        "change",
+        applyResolutionFilter,
+        lifecycleSignal ? { signal: lifecycleSignal } : undefined,
+    );
 
     if (resolutionPresetSelect) {
-        addManagedListener(resolutionPresetSelect, "change", () => {
-            const preset = String(resolutionPresetSelect.value || "");
-            const map = { hd: [1280, 720], fhd: [1920, 1080], qhd: [2560, 1440], uhd: [3840, 2160] };
-            const pair = map[preset] || [0, 0];
-            const w = Number(pair[0] || 0);
-            const h = Number(pair[1] || 0);
-            // Presets represent minimum resolution only, so stale max bounds
-            // must be cleared to avoid silently constraining the result set.
-            state.minWidth = w;
-            state.minHeight = h;
-            state.maxWidth = 0;
-            state.maxHeight = 0;
-            if (minWidthInput) minWidthInput.value = w > 0 ? String(w) : "";
-            if (minHeightInput) minHeightInput.value = h > 0 ? String(h) : "";
-            if (maxWidthInput) maxWidthInput.value = "";
-            if (maxHeightInput) maxHeightInput.value = "";
-            try { onFiltersChanged?.(); } catch (e) { console.debug?.(e); }
-            scheduleReload();
-        }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
+        addManagedListener(
+            resolutionPresetSelect,
+            "change",
+            () => {
+                const preset = String(resolutionPresetSelect.value || "");
+                const map = {
+                    hd: [1280, 720],
+                    fhd: [1920, 1080],
+                    qhd: [2560, 1440],
+                    uhd: [3840, 2160],
+                };
+                const pair = map[preset] || [0, 0];
+                const w = Number(pair[0] || 0);
+                const h = Number(pair[1] || 0);
+                // Presets represent minimum resolution only, so stale max bounds
+                // must be cleared to avoid silently constraining the result set.
+                state.minWidth = w;
+                state.minHeight = h;
+                state.maxWidth = 0;
+                state.maxHeight = 0;
+                if (minWidthInput) minWidthInput.value = w > 0 ? String(w) : "";
+                if (minHeightInput) minHeightInput.value = h > 0 ? String(h) : "";
+                if (maxWidthInput) maxWidthInput.value = "";
+                if (maxHeightInput) maxHeightInput.value = "";
+                try {
+                    onFiltersChanged?.();
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                scheduleReload();
+            },
+            lifecycleSignal ? { signal: lifecycleSignal } : undefined,
+        );
     }
     if (dateRangeSelect) {
-        addManagedListener(dateRangeSelect, "change", () => {
-            state.dateRangeFilter = dateRangeSelect.value || "";
-            if (state.dateRangeFilter && state.dateExactFilter) {
-                state.dateExactFilter = "";
-                if (dateExactInput) {
-                    dateExactInput.value = "";
+        addManagedListener(
+            dateRangeSelect,
+            "change",
+            () => {
+                state.dateRangeFilter = dateRangeSelect.value || "";
+                if (state.dateRangeFilter && state.dateExactFilter) {
+                    state.dateExactFilter = "";
+                    if (dateExactInput) {
+                        dateExactInput.value = "";
+                    }
                 }
-            }
-            try { onFiltersChanged?.(); } catch (e) { console.debug?.(e); }
-            scheduleReload();
-        }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
+                try {
+                    onFiltersChanged?.();
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                scheduleReload();
+            },
+            lifecycleSignal ? { signal: lifecycleSignal } : undefined,
+        );
     }
     if (dateExactInput) {
         const applyAgendaStyle = (status) => {
             dateExactInput.classList.toggle("mjr-agenda-filled", status === "filled");
             dateExactInput.classList.toggle("mjr-agenda-empty", status === "empty");
         };
-        addManagedListener(dateExactInput, "change", () => {
-            state.dateExactFilter = dateExactInput.value ? String(dateExactInput.value) : "";
-            if (state.dateExactFilter && state.dateRangeFilter) {
-                state.dateRangeFilter = "";
-                if (dateRangeSelect) {
-                    dateRangeSelect.value = "";
+        addManagedListener(
+            dateExactInput,
+            "change",
+            () => {
+                state.dateExactFilter = dateExactInput.value ? String(dateExactInput.value) : "";
+                if (state.dateExactFilter && state.dateRangeFilter) {
+                    state.dateRangeFilter = "";
+                    if (dateRangeSelect) {
+                        dateRangeSelect.value = "";
+                    }
                 }
-            }
-            if (!state.dateExactFilter) {
-                applyAgendaStyle("");
-            }
-            try { onFiltersChanged?.(); } catch (e) { console.debug?.(e); }
-            scheduleReload();
-        }, lifecycleSignal ? { signal: lifecycleSignal } : undefined);
+                if (!state.dateExactFilter) {
+                    applyAgendaStyle("");
+                }
+                try {
+                    onFiltersChanged?.();
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                scheduleReload();
+            },
+            lifecycleSignal ? { signal: lifecycleSignal } : undefined,
+        );
         const handleAgendaStatus = (event) => {
             if (!event?.detail) return;
             const { date, hasResults } = event.detail;
@@ -203,23 +323,30 @@ export function bindFilters({
             applyAgendaStyle(hasResults ? "filled" : "empty");
         };
         try {
-            const opts = lifecycleSignal ? { passive: true, signal: lifecycleSignal } : { passive: true };
+            const opts = lifecycleSignal
+                ? { passive: true, signal: lifecycleSignal }
+                : { passive: true };
             const win = typeof window !== "undefined" ? window : null;
             win?.addEventListener?.("MJR:AgendaStatus", handleAgendaStatus, opts);
             disposers.push(() => {
                 try {
                     win?.removeEventListener?.("MJR:AgendaStatus", handleAgendaStatus, opts);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             });
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 
     return () => {
         for (const dispose of disposers.splice(0)) {
             try {
                 dispose();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
     };
 }
-

@@ -1,19 +1,14 @@
-
 import { comfyConfirm, comfyPrompt } from "../../app/dialogs.js";
 import { comfyToast } from "../../app/toast.js";
 import { EVENTS } from "../../app/events.js";
 import { t } from "../../app/i18n.js";
-import { 
-    startTimer, 
-    endTimer, 
-    trackGridRender, 
-    trackSearchQuery, 
-    trackApiCall, 
-    trackError,
-    mark,
-    measure 
-} from "../../app/metrics.js";
-import { createStatusIndicator, setupStatusPolling, triggerScan, updateStatus } from "../status/StatusDot.js";
+import { startTimer, endTimer, trackGridRender, mark } from "../../app/metrics.js";
+import {
+    createStatusIndicator,
+    setupStatusPolling,
+    triggerScan,
+    updateStatus,
+} from "../status/StatusDot.js";
 import {
     createGridContainer,
     loadAssets,
@@ -33,7 +28,9 @@ function _safeCssEscapeAttr(value) {
         if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
             return CSS.escape(str);
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return str.replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1");
 }
 import {
@@ -46,7 +43,7 @@ import {
     getDuplicateAlerts,
     startDuplicatesAnalysis,
     mergeDuplicateTags,
-    deleteAssets
+    deleteAssets,
 } from "../../api/client.js";
 import { ENDPOINTS } from "../../api/endpoints.js";
 import { createSidebar, showAssetInSidebar, closeSidebar } from "../../components/SidebarView.js";
@@ -92,19 +89,22 @@ export function getActiveGridContainer() {
     }
     // Fallback: try to find it in the DOM by ID or class
     try {
-        const grid = document.getElementById("mjr-assets-grid") || document.querySelector(".mjr-grid");
+        const grid =
+            document.getElementById("mjr-assets-grid") || document.querySelector(".mjr-grid");
         if (grid && grid.isConnected) {
             return grid;
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return null;
 }
 
 export async function renderAssetsManager(container, { useComfyThemeUI = true } = {}) {
     // Start performance timing
-    startTimer('panelRender');
-    mark('panelRender');
-    
+    startTimer("panelRender");
+    mark("panelRender");
+
     const panelLifecycleAC = typeof AbortController !== "undefined" ? new AbortController() : null;
     if (useComfyThemeUI) {
         container.classList.add("mjr-assets-manager");
@@ -119,25 +119,39 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     // Cleanup previous instance before re-render to prevent listener leaks
     try {
         container._eventCleanup?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         container._mjrPanelState?._mjrDispose?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         container._mjrPopoverManager?.dispose?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         container._mjrHotkeys?.dispose?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         container._mjrRatingHotkeys?.dispose?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         container._mjrSidebarController?.dispose?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         container._mjrGridContextMenuUnbind?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     container.replaceChildren();
     container.classList.add("mjr-am-container");
@@ -145,20 +159,40 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     const popovers = createPopoverManager(container);
     try {
         container._mjrPopoverManager = popovers;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     const state = createPanelState();
     try {
         container._mjrPanelState = state;
-    } catch (e) { console.debug?.(e); }
-    state.viewScope = String(state.viewScope || "").trim().toLowerCase() === "similar" ? "similar" : "";
+    } catch (e) {
+        console.debug?.(e);
+    }
+    state.viewScope =
+        String(state.viewScope || "")
+            .trim()
+            .toLowerCase() === "similar"
+            ? "similar"
+            : "";
     state.similarResults = Array.isArray(state.similarResults) ? state.similarResults : [];
     state.similarTitle = String(state.similarTitle || "");
     state.similarSourceAssetId = String(state.similarSourceAssetId || "");
 
     const headerView = createHeaderView();
-    const { header, headerActions, tabButtons, customMenuBtn, filterBtn, sortBtn, collectionsBtn, pinnedFoldersBtn, messageBtn } = headerView;
+    const {
+        header,
+        headerActions,
+        tabButtons,
+        customMenuBtn,
+        filterBtn,
+        sortBtn,
+        collectionsBtn,
+        pinnedFoldersBtn,
+        messageBtn,
+    } = headerView;
 
-    const { customPopover, customSelect, customAddBtn, customRemoveBtn } = createCustomPopoverView();
+    const { customPopover, customSelect, customAddBtn, customRemoveBtn } =
+        createCustomPopoverView();
     const {
         filterPopover,
         kindSelect,
@@ -174,12 +208,23 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         maxHeightInput,
         dateRangeSelect,
         dateExactInput,
-        agendaContainer
+        agendaContainer,
     } = createFilterPopoverView();
     const { sortPopover, sortMenu } = createSortPopoverView();
     const { collectionsPopover, collectionsMenu } = createCollectionsPopoverView();
     const { pinnedFoldersPopover, pinnedFoldersMenu } = createPinnedFoldersPopoverView();
-    const { title: messagePopoverTitle, messagePopover, messageTabBtn, historyTabBtn, historyTabBadge, historyPanel, shortcutsTabBtn, messageList, shortcutsPanel, markReadBtn } = createMessagePopoverView();
+    const {
+        title: messagePopoverTitle,
+        messagePopover,
+        messageTabBtn,
+        historyTabBtn,
+        historyTabBadge,
+        historyPanel,
+        shortcutsTabBtn,
+        messageList,
+        shortcutsPanel,
+        markReadBtn,
+    } = createMessagePopoverView();
 
     headerActions.appendChild(customPopover);
     headerActions.appendChild(messagePopover);
@@ -192,16 +237,20 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         filterPopover,
         sortPopover,
         collectionsPopover,
-        pinnedFoldersPopover
+        pinnedFoldersPopover,
     });
 
     // Restore persistent search query
     if (state.searchQuery) {
         searchInputEl.value = state.searchQuery;
     }
-    searchInputEl.addEventListener("input", (e) => {
-        state.searchQuery = e.target.value;
-    }, { signal: panelLifecycleAC?.signal });
+    searchInputEl.addEventListener(
+        "input",
+        (e) => {
+            state.searchQuery = e.target.value;
+        },
+        { signal: panelLifecycleAC?.signal },
+    );
 
     const { bar: summaryBar, update: updateSummaryBar } = createSummaryBarView();
     const folderBreadcrumb = document.createElement("div");
@@ -219,8 +268,8 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     const statusSection = createStatusIndicator({
         getScanContext: () => ({
             scope: state.scope,
-            customRootId: state.customRootId
-        })
+            customRootId: state.customRootId,
+        }),
     });
     const statusDot = statusSection.querySelector("#mjr-status-dot");
     const statusText = statusSection.querySelector("#mjr-status-text");
@@ -255,20 +304,30 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             _lastUserInteractionAt = 0;
         }
     };
-    gridWrapper.addEventListener("scroll", () => {
-        markUserInteraction();
-        if (_scrollTimer) clearTimeout(_scrollTimer);
-        _scrollTimer = setTimeout(() => {
-            try {
-                state.scrollTop = gridWrapper.scrollTop;
-            } catch (e) { console.debug?.(e); }
-        }, 100);
-    }, { passive: true, signal: panelLifecycleAC?.signal });
+    gridWrapper.addEventListener(
+        "scroll",
+        () => {
+            markUserInteraction();
+            if (_scrollTimer) clearTimeout(_scrollTimer);
+            _scrollTimer = setTimeout(() => {
+                try {
+                    state.scrollTop = gridWrapper.scrollTop;
+                } catch (e) {
+                    console.debug?.(e);
+                }
+            }, 100);
+        },
+        { passive: true, signal: panelLifecycleAC?.signal },
+    );
 
     gridContainer = createGridContainer();
     gridWrapper.appendChild(gridContainer);
     _activeGridContainer = gridContainer;
-    try { gridContainer.dataset.mjrScope = state.scope; } catch (e) { console.debug?.(e); }
+    try {
+        gridContainer.dataset.mjrScope = state.scope;
+    } catch (e) {
+        console.debug?.(e);
+    }
     const summaryBarDisposers = [];
     const registerSummaryDispose = (fn) => {
         if (typeof fn === "function") summaryBarDisposers.push(fn);
@@ -277,32 +336,46 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         for (const fn of summaryBarDisposers.splice(0)) {
             try {
                 fn();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
     };
     try {
         const handler = () => {
             try {
                 updateSummaryBar?.({ state, gridContainer });
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         };
-        gridContainer.addEventListener("mjr:grid-stats", handler, { signal: panelLifecycleAC?.signal });
+        gridContainer.addEventListener("mjr:grid-stats", handler, {
+            signal: panelLifecycleAC?.signal,
+        });
         registerSummaryDispose(() => {
             try {
                 gridContainer.removeEventListener("mjr:grid-stats", handler);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         });
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         bindGridScanListeners();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // Bind grid context menu
     container._mjrGridContextMenuUnbind = bindGridContextMenu({
         gridContainer,
         getState: () => state,
         onRequestOpenViewer: (asset) => {
-            gridContainer?.dispatchEvent?.(new CustomEvent("mjr:open-viewer", { detail: { asset } }));
+            gridContainer?.dispatchEvent?.(
+                new CustomEvent("mjr:open-viewer", { detail: { asset } }),
+            );
         },
         getViewer: getViewerInstance,
     });
@@ -310,7 +383,10 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     const settings = loadMajoorSettings();
     const sidebar = createSidebar(settings.sidebar?.position || "right");
     const similarEnabledTitle = t("search.findSimilar", "Find Similar");
-    const similarDisabledTitle = t("search.similarDisabled", "AI features are disabled in settings");
+    const similarDisabledTitle = t(
+        "search.similarDisabled",
+        "AI features are disabled in settings",
+    );
 
     const isAiEnabled = () => {
         try {
@@ -325,14 +401,20 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         const aiEnabled = !!enabled;
         try {
             container.classList.toggle("mjr-ai-disabled", !aiEnabled);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             similarBtn.disabled = !aiEnabled;
             similarBtn.title = aiEnabled ? similarEnabledTitle : similarDisabledTitle;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             setSemanticEnabled?.(aiEnabled);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     let _sidebarPosition = "right";
@@ -347,15 +429,21 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         try {
             scrollTop = Number(gridWrapper?.scrollTop || 0) || 0;
             scrollLeft = Number(gridWrapper?.scrollLeft || 0) || 0;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         try {
             sidebar.dataset.position = pos;
             const isOpen = sidebar.classList?.contains?.("is-open");
             const borderColor = "var(--mjr-border, rgba(255,255,255,0.12))";
-            sidebar.style.borderLeft = pos === "left" ? "none" : (isOpen ? `1px solid ${borderColor}` : "none");
-            sidebar.style.borderRight = pos === "left" ? (isOpen ? `1px solid ${borderColor}` : "none") : "none";
-        } catch (e) { console.debug?.(e); }
+            sidebar.style.borderLeft =
+                pos === "left" ? "none" : isOpen ? `1px solid ${borderColor}` : "none";
+            sidebar.style.borderRight =
+                pos === "left" ? (isOpen ? `1px solid ${borderColor}` : "none") : "none";
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         try {
             if (pos === "left") {
@@ -366,20 +454,26 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 browseSection.appendChild(gridWrapper);
                 browseSection.appendChild(sidebar);
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         try {
             requestAnimationFrame(() => {
                 try {
                     gridWrapper.scrollTop = scrollTop;
                     gridWrapper.scrollLeft = scrollLeft;
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             });
         } catch {
             try {
                 gridWrapper.scrollTop = scrollTop;
                 gridWrapper.scrollLeft = scrollLeft;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
     };
 
@@ -391,48 +485,56 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         if (scope === "custom") {
             try {
                 await toggleWatcher(false);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             return;
         }
         const shouldEnable = wantsEnabled;
 
         try {
             await toggleWatcher(shouldEnable);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         if (!shouldEnable) return;
 
         try {
             await setWatcherScope({
                 scope,
-                customRootId: ""
+                customRootId: "",
             });
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     // Initial position (no reload needed).
     try {
         _sidebarPosition = ""; // force apply
         applySidebarPosition(settings.sidebar?.position || "right");
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // Live updates when ComfyUI settings change.
     const onSettingsChanged = (_e) => {
         const changedKey = String(_e?.detail?.key || "").trim();
         const isInitialSync = changedKey === "__init__";
         const shouldRefreshGrid =
-            isInitialSync
-            || changedKey === ""
-            || changedKey.startsWith("grid.")
-            || changedKey.startsWith("infiniteScroll.")
-            || changedKey.startsWith("siblings.")
-            || changedKey.startsWith("search.")
-            || changedKey.startsWith("rtHydrate.")
-            || changedKey.startsWith("workflowMinimap.");
+            isInitialSync ||
+            changedKey === "" ||
+            changedKey.startsWith("grid.") ||
+            changedKey.startsWith("infiniteScroll.") ||
+            changedKey.startsWith("siblings.") ||
+            changedKey.startsWith("search.") ||
+            changedKey.startsWith("rtHydrate.") ||
+            changedKey.startsWith("workflowMinimap.");
         const shouldRefreshSidebar =
-            isInitialSync
-            || changedKey === ""
-            || changedKey.startsWith("sidebar.")
-            || changedKey.startsWith("ai.");
+            isInitialSync ||
+            changedKey === "" ||
+            changedKey.startsWith("sidebar.") ||
+            changedKey.startsWith("ai.");
         const shouldApplyWatcher = changedKey === "" || changedKey.startsWith("watcher.");
         try {
             const s = loadMajoorSettings();
@@ -469,7 +571,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 if (!isInitialSync && changedKey.startsWith("siblings.")) {
                     try {
                         currentGrid.dispatchEvent(new CustomEvent("mjr:reload-grid"));
-                    } catch (e) {
+                    } catch {
                         refreshGrid(currentGrid);
                     }
                 } else {
@@ -479,18 +581,28 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             if (shouldRefreshSidebar && state.sidebarOpen && state.activeAssetId) {
                 sidebarController?.refreshActiveAsset?.();
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             if (!shouldApplyWatcher) return;
             applyWatcherForScope(state.scope);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
     try {
         onSettingsChanged({ detail: { key: "__init__" } });
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
-        window.addEventListener?.("mjr-settings-changed", onSettingsChanged, { signal: panelLifecycleAC?.signal });
-    } catch (e) { console.debug?.(e); }
+        window.addEventListener?.("mjr-settings-changed", onSettingsChanged, {
+            signal: panelLifecycleAC?.signal,
+        });
+    } catch (e) {
+        console.debug?.(e);
+    }
     // Enrichment-complete reload removed: handleCountersUpdate (path B) already
     // detects new assets and triggers queuedReload with proper throttle + anchor
     // preservation. A second unconditional reload here caused systematic double
@@ -504,7 +616,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     container.appendChild(header);
     try {
         container._mjrVersionUpdateCleanup?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     container._mjrVersionUpdateCleanup = headerView.dispose || header._mjrVersionUpdateCleanup;
     container.appendChild(content);
 
@@ -517,11 +631,10 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         disposeGrid,
         getQuery,
         searchInputEl,
-        state
+        state,
     });
 
     let scopeController = null;
-    let sortController = null;
     let contextController = null;
     let _duplicatesAlert = null;
     let _dupPollTimer = null;
@@ -532,10 +645,14 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     const notifyContextChanged = () => {
         try {
             contextController?.update?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             browserNav?.renderBreadcrumb?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
     browserNav = createBrowserNavigationController({
         state,
@@ -546,13 +663,17 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         onContextChanged: () => {
             try {
                 contextController?.update?.();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         },
         lifecycleSignal: panelLifecycleAC?.signal || null,
     });
     try {
         _unbindBrowserFolderNav = browserNav.bindGridFolderNavigation();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     const refreshDuplicateAlerts = async () => {
         const scope = String(state.scope || "output").toLowerCase();
@@ -564,52 +685,69 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         }
 
         try {
-            const result = await getDuplicateAlerts({
-                scope,
-                customRootId,
-                maxGroups: 4,
-                maxPairs: 4
-            }, { signal: panelLifecycleAC?.signal });
+            const result = await getDuplicateAlerts(
+                {
+                    scope,
+                    customRootId,
+                    maxGroups: 4,
+                    maxPairs: 4,
+                },
+                { signal: panelLifecycleAC?.signal },
+            );
             if (!result?.ok) return;
             const data = result.data || {};
             _duplicatesAlert = {
                 exactCount: Array.isArray(data.exact_groups) ? data.exact_groups.length : 0,
                 similarCount: Array.isArray(data.similar_pairs) ? data.similar_pairs.length : 0,
                 firstGroup: Array.isArray(data.exact_groups) ? data.exact_groups[0] : null,
-                firstPair: Array.isArray(data.similar_pairs) ? data.similar_pairs[0] : null
+                firstPair: Array.isArray(data.similar_pairs) ? data.similar_pairs[0] : null,
             };
             notifyContextChanged();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     // Allow context menus to request a refresh (e.g. after "Remove from collection").
     let _reloadGridHandler = null;
-    let _globalReloadGridHandler = null;
+    let _globalReloadGridHandler;
     let _lastReloadRequestAt = 0;
     const requestQueuedReload = () => {
         try {
             const now = Date.now();
             if (now - Number(_lastReloadRequestAt || 0) < 500) return;
             _lastReloadRequestAt = now;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         queuedReload().catch((err) => {
             try {
                 console.warn("[Majoor] queuedReload failed", err);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         });
     };
     try {
         _reloadGridHandler = () => {
             requestQueuedReload();
         };
-        gridContainer.addEventListener("mjr:reload-grid", _reloadGridHandler, { signal: panelLifecycleAC?.signal });
+        gridContainer.addEventListener("mjr:reload-grid", _reloadGridHandler, {
+            signal: panelLifecycleAC?.signal,
+        });
         const onDuplicateBadgeFocus = (e) => {
             try {
                 const detail = e?.detail || {};
-                const filenameKey = String(detail?.filenameKey || "").trim().toLowerCase();
+                const filenameKey = String(detail?.filenameKey || "")
+                    .trim()
+                    .toLowerCase();
                 if (!filenameKey || !gridContainer) return;
-                const cards = Array.from(gridContainer.querySelectorAll(".mjr-asset-card"))
-                    .filter((card) => String(card?.dataset?.mjrFilenameKey || "").trim().toLowerCase() === filenameKey);
+                const cards = Array.from(gridContainer.querySelectorAll(".mjr-asset-card")).filter(
+                    (card) =>
+                        String(card?.dataset?.mjrFilenameKey || "")
+                            .trim()
+                            .toLowerCase() === filenameKey,
+                );
                 if (!cards.length) return;
                 const ids = cards
                     .map((card) => String(card?.dataset?.mjrAssetId || "").trim())
@@ -623,33 +761,65 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 notifyContextChanged();
                 const n = Number(detail?.count || ids.length || cards.length || 0);
                 try {
-                    comfyToast(t("toast.nameCollisionInView", "Name collision in view: {n} item(s) selected", { n }), "info", 1800);
-                } catch (e) { console.debug?.(e); }
-            } catch (e) { console.debug?.(e); }
+                    comfyToast(
+                        t(
+                            "toast.nameCollisionInView",
+                            "Name collision in view: {n} item(s) selected",
+                            { n },
+                        ),
+                        "info",
+                        1800,
+                    );
+                } catch (e) {
+                    console.debug?.(e);
+                }
+            } catch (e) {
+                console.debug?.(e);
+            }
         };
-        gridContainer.addEventListener("mjr:badge-duplicates-focus", onDuplicateBadgeFocus, { signal: panelLifecycleAC?.signal });
+        gridContainer.addEventListener("mjr:badge-duplicates-focus", onDuplicateBadgeFocus, {
+            signal: panelLifecycleAC?.signal,
+        });
         registerSummaryDispose(() => {
             try {
-                if (_reloadGridHandler) gridContainer.removeEventListener("mjr:reload-grid", _reloadGridHandler);
-            } catch (e) { console.debug?.(e); }
+                if (_reloadGridHandler)
+                    gridContainer.removeEventListener("mjr:reload-grid", _reloadGridHandler);
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
-                gridContainer.removeEventListener("mjr:badge-duplicates-focus", onDuplicateBadgeFocus);
-            } catch (e) { console.debug?.(e); }
+                gridContainer.removeEventListener(
+                    "mjr:badge-duplicates-focus",
+                    onDuplicateBadgeFocus,
+                );
+            } catch (e) {
+                console.debug?.(e);
+            }
             _reloadGridHandler = null;
         });
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         _globalReloadGridHandler = () => {
             try {
                 if (panelLifecycleAC?.signal?.aborted) return;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 if (globalThis?._mjrMaintenanceActive) return;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             requestQueuedReload();
         };
-        window.addEventListener("mjr:reload-grid", _globalReloadGridHandler, { signal: panelLifecycleAC?.signal });
-    } catch (e) { console.debug?.(e); }
+        window.addEventListener("mjr:reload-grid", _globalReloadGridHandler, {
+            signal: panelLifecycleAC?.signal,
+        });
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     const customRootsController = createCustomRootsController({
         state,
@@ -665,22 +835,37 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         onRootChanged: async () => {
             try {
                 browserNav?.resetHistory?.();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 await applyWatcherForScope(state.scope);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 await refreshDuplicateAlerts();
-            } catch (e) { console.debug?.(e); }
-        }
+            } catch (e) {
+                console.debug?.(e);
+            }
+        },
     });
-    const disposeCustomRootsBindings = customRootsController.bind({ customAddBtn, customRemoveBtn });
+    const disposeCustomRootsBindings = customRootsController.bind({
+        customAddBtn,
+        customRemoveBtn,
+    });
     try {
-        window.addEventListener("mjr:custom-roots-changed", async (e) => {
-            const preferredId = String(e?.detail?.preferredId || "").trim() || null;
-            await customRootsController.refreshCustomRoots(preferredId);
-        }, { signal: panelLifecycleAC?.signal });
-    } catch (e) { console.debug?.(e); }
+        window.addEventListener(
+            "mjr:custom-roots-changed",
+            async (e) => {
+                const preferredId = String(e?.detail?.preferredId || "").trim() || null;
+                await customRootsController.refreshCustomRoots(preferredId);
+            },
+            { signal: panelLifecycleAC?.signal },
+        );
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     scopeController = createScopeController({
         state,
@@ -691,22 +876,32 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         refreshCustomRoots: customRootsController.refreshCustomRoots,
         reloadGrid: gridController.reloadGrid,
         onChanged: () => {
-            try { if (gridContainer) gridContainer.dataset.mjrScope = state.scope; } catch (e) { console.debug?.(e); }
+            try {
+                if (gridContainer) gridContainer.dataset.mjrScope = state.scope;
+            } catch (e) {
+                console.debug?.(e);
+            }
             notifyContextChanged();
         },
         onScopeChanged: async () => {
             try {
                 await applyWatcherForScope(state.scope);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 await refreshDuplicateAlerts();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         },
         onBeforeReload: async () => {
             // Prevent stale cards overlap during fast scope switches.
             try {
                 prepareGridForScopeSwitch(gridContainer);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             // Force an immediate counters refresh for this scope instead of waiting polling tick.
             try {
                 await updateStatus(
@@ -715,22 +910,33 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                     capabilitiesSection,
                     { scope: state.scope, customRootId: state.customRootId },
                     null,
-                    { signal: panelLifecycleAC?.signal || null }
+                    { signal: panelLifecycleAC?.signal || null },
                 );
-            } catch (e) { console.debug?.(e); }
-        }
+            } catch (e) {
+                console.debug?.(e);
+            }
+        },
     });
 
     const exitSimilarViewIfActive = async ({ reload = false } = {}) => {
         try {
-            if (String(state.viewScope || "").trim().toLowerCase() !== "similar") return;
+            if (
+                String(state.viewScope || "")
+                    .trim()
+                    .toLowerCase() !== "similar"
+            )
+                return;
             await scopeController?.clearSimilarScope?.({ reload });
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     if (!header._mjrTabListenersBound) {
         Object.values(tabButtons).forEach((btn) => {
-            btn.addEventListener("click", () => scopeController.setScope(btn.dataset.scope), { signal: panelLifecycleAC?.signal });
+            btn.addEventListener("click", () => scopeController.setScope(btn.dataset.scope), {
+                signal: panelLifecycleAC?.signal,
+            });
         });
         header._mjrTabListenersBound = true;
     }
@@ -770,88 +976,130 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         sortBtn,
         collectionsBtn,
         pinnedFoldersBtn,
-        messageBtn
+        messageBtn,
     ]);
 
-    customMenuBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        popovers.close(filterPopover);
-        popovers.close(sortPopover);
-        popovers.close(collectionsPopover);
-        popovers.close(messagePopover);
-        popovers.toggle(customPopover, customMenuBtn);
-    }, { signal: panelLifecycleAC?.signal });
-
-    filterBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        popovers.close(customPopover);
-        popovers.close(sortPopover);
-        popovers.close(collectionsPopover);
-        popovers.close(messagePopover);
-        popovers.toggle(filterPopover, filterBtn);
-    }, { signal: panelLifecycleAC?.signal });
-
-    similarBtn?.addEventListener("click", async (e) => {
-        e.stopPropagation();
-        if (!isAiEnabled()) {
-            comfyToast(similarDisabledTitle, "info", 2200);
-            return;
-        }
-        try {
-            popovers.close(customPopover);
+    customMenuBtn.addEventListener(
+        "click",
+        (e) => {
+            e.stopPropagation();
             popovers.close(filterPopover);
             popovers.close(sortPopover);
             popovers.close(collectionsPopover);
             popovers.close(messagePopover);
-        } catch (err) { console.debug?.(err); }
+            popovers.toggle(customPopover, customMenuBtn);
+        },
+        { signal: panelLifecycleAC?.signal },
+    );
 
-        const selectedIdRaw = String(
-            state.activeAssetId
-            || (Array.isArray(state.selectedAssetIds) ? state.selectedAssetIds[0] : "")
-            || ""
-        ).trim();
-        const selectedId = Number(selectedIdRaw);
-        if (!Number.isFinite(selectedId) || selectedId <= 0) {
-            comfyToast(t("search.selectAssetForSimilar", "Select an asset first to find similar images/videos."), "info", 2500);
-            return;
-        }
+    filterBtn.addEventListener(
+        "click",
+        (e) => {
+            e.stopPropagation();
+            popovers.close(customPopover);
+            popovers.close(sortPopover);
+            popovers.close(collectionsPopover);
+            popovers.close(messagePopover);
+            popovers.toggle(filterPopover, filterBtn);
+        },
+        { signal: panelLifecycleAC?.signal },
+    );
 
-        const prevTitle = similarBtn.title;
-        similarBtn.disabled = true;
-        similarBtn.title = t("search.findingSimilar", "Finding similar assets...");
-        try {
-            const res = await vectorFindSimilar(selectedId, {
-                topK: 100,
-                scope: state.scope || "output",
-                customRootId: state.customRootId || "",
-            });
-            if (!res?.ok) {
-                comfyToast(String(res?.error || t("search.findSimilarFailed", "Failed to find similar assets")), "error", 3000);
+    similarBtn?.addEventListener(
+        "click",
+        async (e) => {
+            e.stopPropagation();
+            if (!isAiEnabled()) {
+                comfyToast(similarDisabledTitle, "info", 2200);
                 return;
             }
-            const list = Array.isArray(res?.data) ? res.data : [];
-            state.similarResults = list;
-            state.similarSourceAssetId = String(selectedId);
-            state.similarTitle = t("search.similarResults", "Similar to asset #{id} ({n} results)", {
-                id: selectedId,
-                n: list.length,
-            });
-            await scopeController?.setScope?.("similar");
             try {
-                state.lastGridCount = Number(list.length || 0) || 0;
-                state.lastGridTotal = Number(list.length || 0) || 0;
-                gridContainer.dispatchEvent?.(new CustomEvent("mjr:grid-stats", { detail: { count: list.length, total: list.length } }));
-            } catch (err) { console.debug?.(err); }
-        } catch (err) {
-            console.debug?.(err);
-            comfyToast(t("search.findSimilarFailed", "Failed to find similar assets"), "error", 3000);
-        } finally {
-            similarBtn.disabled = false;
-            similarBtn.title = prevTitle;
-        }
-    }, { signal: panelLifecycleAC?.signal });
+                popovers.close(customPopover);
+                popovers.close(filterPopover);
+                popovers.close(sortPopover);
+                popovers.close(collectionsPopover);
+                popovers.close(messagePopover);
+            } catch (err) {
+                console.debug?.(err);
+            }
 
-    sortController = createSortController({
+            const selectedIdRaw = String(
+                state.activeAssetId ||
+                    (Array.isArray(state.selectedAssetIds) ? state.selectedAssetIds[0] : "") ||
+                    "",
+            ).trim();
+            const selectedId = Number(selectedIdRaw);
+            if (!Number.isFinite(selectedId) || selectedId <= 0) {
+                comfyToast(
+                    t(
+                        "search.selectAssetForSimilar",
+                        "Select an asset first to find similar images/videos.",
+                    ),
+                    "info",
+                    2500,
+                );
+                return;
+            }
+
+            const prevTitle = similarBtn.title;
+            similarBtn.disabled = true;
+            similarBtn.title = t("search.findingSimilar", "Finding similar assets...");
+            try {
+                const res = await vectorFindSimilar(selectedId, {
+                    topK: 100,
+                    scope: state.scope || "output",
+                    customRootId: state.customRootId || "",
+                });
+                if (!res?.ok) {
+                    comfyToast(
+                        String(
+                            res?.error ||
+                                t("search.findSimilarFailed", "Failed to find similar assets"),
+                        ),
+                        "error",
+                        3000,
+                    );
+                    return;
+                }
+                const list = Array.isArray(res?.data) ? res.data : [];
+                state.similarResults = list;
+                state.similarSourceAssetId = String(selectedId);
+                state.similarTitle = t(
+                    "search.similarResults",
+                    "Similar to asset #{id} ({n} results)",
+                    {
+                        id: selectedId,
+                        n: list.length,
+                    },
+                );
+                await scopeController?.setScope?.("similar");
+                try {
+                    state.lastGridCount = Number(list.length || 0) || 0;
+                    state.lastGridTotal = Number(list.length || 0) || 0;
+                    gridContainer.dispatchEvent?.(
+                        new CustomEvent("mjr:grid-stats", {
+                            detail: { count: list.length, total: list.length },
+                        }),
+                    );
+                } catch (err) {
+                    console.debug?.(err);
+                }
+            } catch (err) {
+                console.debug?.(err);
+                comfyToast(
+                    t("search.findSimilarFailed", "Failed to find similar assets"),
+                    "error",
+                    3000,
+                );
+            } finally {
+                similarBtn.disabled = false;
+                similarBtn.title = prevTitle;
+            }
+        },
+        { signal: panelLifecycleAC?.signal },
+    );
+
+    const sortController = createSortController({
         state,
         sortBtn,
         sortMenu,
@@ -860,7 +1108,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         reloadGrid: gridController.reloadGrid,
         onChanged: () => {
             notifyContextChanged();
-        }
+        },
     });
     sortController.bind({
         onBeforeToggle: () => {
@@ -868,7 +1116,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             popovers.close(filterPopover);
             popovers.close(collectionsPopover);
             popovers.close(messagePopover);
-        }
+        },
     });
 
     const collectionsController = createCollectionsController({
@@ -881,7 +1129,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         reloadGrid: gridController.reloadGrid,
         onChanged: () => {
             notifyContextChanged();
-        }
+        },
     });
     collectionsController.bind({
         onBeforeToggle: () => {
@@ -889,7 +1137,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             popovers.close(filterPopover);
             popovers.close(sortPopover);
             popovers.close(messagePopover);
-        }
+        },
     });
 
     const createPinnedMenuItem = (label, { right = null, danger = false } = {}) => {
@@ -922,27 +1170,44 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         }
         btn.appendChild(left);
         btn.appendChild(rightWrap);
-        btn.addEventListener("mouseenter", () => {
-            btn.style.borderColor = "rgba(145,205,255,0.4)";
-            btn.style.background = "linear-gradient(135deg, rgba(80,140,255,0.18), rgba(32,100,200,0.14))";
-        }, { signal: panelLifecycleAC?.signal });
-        btn.addEventListener("mouseleave", () => {
-            btn.style.borderColor = "rgba(120,190,255,0.18)";
-            btn.style.background = "linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))";
-        }, { signal: panelLifecycleAC?.signal });
+        btn.addEventListener(
+            "mouseenter",
+            () => {
+                btn.style.borderColor = "rgba(145,205,255,0.4)";
+                btn.style.background =
+                    "linear-gradient(135deg, rgba(80,140,255,0.18), rgba(32,100,200,0.14))";
+            },
+            { signal: panelLifecycleAC?.signal },
+        );
+        btn.addEventListener(
+            "mouseleave",
+            () => {
+                btn.style.borderColor = "rgba(120,190,255,0.18)";
+                btn.style.background =
+                    "linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))";
+            },
+            { signal: panelLifecycleAC?.signal },
+        );
         return btn;
     };
 
     const renderPinnedFoldersMenu = async () => {
         try {
             pinnedFoldersMenu.replaceChildren();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         let roots = [];
         try {
-            const res = await get(ENDPOINTS.CUSTOM_ROOTS, panelLifecycleAC?.signal ? { signal: panelLifecycleAC.signal } : undefined);
+            const res = await get(
+                ENDPOINTS.CUSTOM_ROOTS,
+                panelLifecycleAC?.signal ? { signal: panelLifecycleAC.signal } : undefined,
+            );
             roots = res?.ok && Array.isArray(res.data) ? res.data : [];
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         if (!roots.length) {
             const empty = document.createElement("div");
@@ -964,30 +1229,48 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
 
             const openBtn = createPinnedMenuItem(label, { right: path || null });
             openBtn.style.flex = "1";
-            openBtn.addEventListener("click", async () => {
-                state.scope = "custom";
-                try { if (gridContainer) gridContainer.dataset.mjrScope = "custom"; } catch (e) { console.debug?.(e); }
-                state.customRootId = id;
-                state.customRootLabel = label;
-                state.currentFolderRelativePath = "";
-                try {
-                    if (customSelect) customSelect.value = id;
-                } catch (e) { console.debug?.(e); }
-                try {
-                    scopeController?.setActiveTabStyles?.();
-                } catch (e) { console.debug?.(e); }
-                try {
-                    await applyWatcherForScope(state.scope);
-                } catch (e) { console.debug?.(e); }
-                try {
-                    await refreshDuplicateAlerts();
-                } catch (e) { console.debug?.(e); }
-                try {
-                    notifyContextChanged();
-                } catch (e) { console.debug?.(e); }
-                popovers.close(pinnedFoldersPopover);
-                await gridController.reloadGrid();
-            }, { signal: panelLifecycleAC?.signal });
+            openBtn.addEventListener(
+                "click",
+                async () => {
+                    state.scope = "custom";
+                    try {
+                        if (gridContainer) gridContainer.dataset.mjrScope = "custom";
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+                    state.customRootId = id;
+                    state.customRootLabel = label;
+                    state.currentFolderRelativePath = "";
+                    try {
+                        if (customSelect) customSelect.value = id;
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+                    try {
+                        scopeController?.setActiveTabStyles?.();
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+                    try {
+                        await applyWatcherForScope(state.scope);
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+                    try {
+                        await refreshDuplicateAlerts();
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+                    try {
+                        notifyContextChanged();
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+                    popovers.close(pinnedFoldersPopover);
+                    await gridController.reloadGrid();
+                },
+                { signal: panelLifecycleAC?.signal },
+            );
 
             const unpinBtn = document.createElement("button");
             unpinBtn.type = "button";
@@ -999,27 +1282,38 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             trash.className = "pi pi-times";
             trash.style.cssText = "opacity:0.88; color: rgba(255,130,130,0.96);";
             unpinBtn.appendChild(trash);
-            unpinBtn.addEventListener("click", async (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const ok = await comfyConfirm(t("dialog.unpinFolder", "Unpin folder \"{name}\"?", { name: label }));
-                if (!ok) return;
-                const res = await post(ENDPOINTS.CUSTOM_ROOTS_REMOVE, { id });
-                if (!res?.ok) {
-                    comfyToast(res?.error || t("toast.unpinFolderFailed", "Failed to unpin folder"), "error");
-                    return;
-                }
-                if (String(state.customRootId || "") === id) {
-                    state.customRootId = "";
-                    state.customRootLabel = "";
-                    state.currentFolderRelativePath = "";
-                }
-                try {
-                    await customRootsController.refreshCustomRoots();
-                } catch (e) { console.debug?.(e); }
-                await renderPinnedFoldersMenu();
-                await gridController.reloadGrid();
-            }, { signal: panelLifecycleAC?.signal });
+            unpinBtn.addEventListener(
+                "click",
+                async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const ok = await comfyConfirm(
+                        t("dialog.unpinFolder", 'Unpin folder "{name}"?', { name: label }),
+                    );
+                    if (!ok) return;
+                    const res = await post(ENDPOINTS.CUSTOM_ROOTS_REMOVE, { id });
+                    if (!res?.ok) {
+                        comfyToast(
+                            res?.error || t("toast.unpinFolderFailed", "Failed to unpin folder"),
+                            "error",
+                        );
+                        return;
+                    }
+                    if (String(state.customRootId || "") === id) {
+                        state.customRootId = "";
+                        state.customRootLabel = "";
+                        state.currentFolderRelativePath = "";
+                    }
+                    try {
+                        await customRootsController.refreshCustomRoots();
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+                    await renderPinnedFoldersMenu();
+                    await gridController.reloadGrid();
+                },
+                { signal: panelLifecycleAC?.signal },
+            );
 
             row.appendChild(openBtn);
             row.appendChild(unpinBtn);
@@ -1027,18 +1321,24 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         }
     };
 
-    pinnedFoldersBtn?.addEventListener("click", async (e) => {
-        e.stopPropagation();
-        try {
-            await renderPinnedFoldersMenu();
-        } catch (e) { console.debug?.(e); }
-        popovers.close(customPopover);
-        popovers.close(filterPopover);
-        popovers.close(sortPopover);
-        popovers.close(collectionsPopover);
-        popovers.close(messagePopover);
-        popovers.toggle(pinnedFoldersPopover, pinnedFoldersBtn);
-    }, { signal: panelLifecycleAC?.signal });
+    pinnedFoldersBtn?.addEventListener(
+        "click",
+        async (e) => {
+            e.stopPropagation();
+            try {
+                await renderPinnedFoldersMenu();
+            } catch (e) {
+                console.debug?.(e);
+            }
+            popovers.close(customPopover);
+            popovers.close(filterPopover);
+            popovers.close(sortPopover);
+            popovers.close(collectionsPopover);
+            popovers.close(messagePopover);
+            popovers.toggle(pinnedFoldersPopover, pinnedFoldersBtn);
+        },
+        { signal: panelLifecycleAC?.signal },
+    );
 
     // Calendar UI (separate module) for day indicators.
     let agendaCalendar = null;
@@ -1046,7 +1346,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         try {
             kindSelect.value = state.kindFilter || "";
             wfCheckbox.checked = !!state.workflowOnly;
-            workflowTypeSelect.value = String(state.workflowType || "").trim().toUpperCase();
+            workflowTypeSelect.value = String(state.workflowType || "")
+                .trim()
+                .toUpperCase();
             ratingSelect.value = String(Number(state.minRating || 0) || 0);
             minSizeInput.value = Number(state.minSizeMB || 0) > 0 ? String(state.minSizeMB) : "";
             maxSizeInput.value = Number(state.maxSizeMB || 0) > 0 ? String(state.maxSizeMB) : "";
@@ -1063,14 +1365,18 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             else resolutionPresetSelect.value = "";
             dateRangeSelect.value = state.dateRangeFilter || "";
             dateExactInput.value = state.dateExactFilter || "";
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         agendaCalendar = createAgendaCalendar({
             container: agendaContainer,
             hiddenInput: dateExactInput,
             state,
-            onRequestReloadGrid: () => gridController.reloadGrid()
+            onRequestReloadGrid: () => gridController.reloadGrid(),
         });
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     const disposeFilters = bindFilters({
         state,
@@ -1093,9 +1399,11 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             void exitSimilarViewIfActive({ reload: false });
             try {
                 agendaCalendar?.refresh?.();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             notifyContextChanged();
-        }
+        },
     });
 
     // Context controller: pills + button highlighting.
@@ -1129,7 +1437,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 clearSimilarScope: async () => {
                     try {
                         await scopeController?.clearSimilarScope?.();
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 },
                 clearTransientContext: async () => {
                     try {
@@ -1137,50 +1447,116 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                         state.similarResults = [];
                         state.similarTitle = "";
                         state.similarSourceAssetId = "";
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 },
                 resetBrowserHistory: () => {
                     try {
                         browserNav?.resetHistory?.();
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 },
                 onDuplicateAlertClick: async (alert) => {
                     const current = alert || _duplicatesAlert || {};
                     const grp = current.firstGroup;
                     if (grp && Array.isArray(grp.assets) && grp.assets.length >= 2) {
                         const keep = grp.assets[0] || {};
-                        const dupIds = grp.assets.slice(1).map((x) => Number(x?.id || 0)).filter((x) => x > 0);
+                        const dupIds = grp.assets
+                            .slice(1)
+                            .map((x) => Number(x?.id || 0))
+                            .filter((x) => x > 0);
                         if (dupIds.length) {
-                            const mergeOk = await comfyConfirm(t("dialog.mergeDuplicateTags", "Exact duplicates detected ({count}). Merge tags into \"{target}\"?", { count: grp.assets.length, target: keep?.filename || keep?.id }));
+                            const mergeOk = await comfyConfirm(
+                                t(
+                                    "dialog.mergeDuplicateTags",
+                                    'Exact duplicates detected ({count}). Merge tags into "{target}"?',
+                                    {
+                                        count: grp.assets.length,
+                                        target: keep?.filename || keep?.id,
+                                    },
+                                ),
+                            );
                             if (mergeOk) {
-                                const mergeRes = await mergeDuplicateTags(Number(keep?.id || 0), dupIds);
-                                if (mergeRes?.ok) comfyToast(t("toast.tagsMerged", "Tags merged"), "success", 2200);
-                                else comfyToast(t("toast.tagMergeFailed", "Tag merge failed: {error}", { error: mergeRes?.error || "error" }), "warning", 3500);
+                                const mergeRes = await mergeDuplicateTags(
+                                    Number(keep?.id || 0),
+                                    dupIds,
+                                );
+                                if (mergeRes?.ok)
+                                    comfyToast(
+                                        t("toast.tagsMerged", "Tags merged"),
+                                        "success",
+                                        2200,
+                                    );
+                                else
+                                    comfyToast(
+                                        t("toast.tagMergeFailed", "Tag merge failed: {error}", {
+                                            error: mergeRes?.error || "error",
+                                        }),
+                                        "warning",
+                                        3500,
+                                    );
                             }
-                            const delOk = await comfyConfirm(t("dialog.deleteExactDuplicates", "Delete {count} exact duplicate(s)?", { count: dupIds.length }));
+                            const delOk = await comfyConfirm(
+                                t(
+                                    "dialog.deleteExactDuplicates",
+                                    "Delete {count} exact duplicate(s)?",
+                                    { count: dupIds.length },
+                                ),
+                            );
                             if (delOk) {
                                 const delRes = await deleteAssets(dupIds);
                                 if (delRes?.ok) {
-                                    comfyToast(t("toast.duplicatesDeleted", "Duplicates deleted"), "success", 2200);
+                                    comfyToast(
+                                        t("toast.duplicatesDeleted", "Duplicates deleted"),
+                                        "success",
+                                        2200,
+                                    );
                                     await gridController.reloadGrid();
                                 } else {
-                                    comfyToast(t("toast.deleteFailed", "Delete failed: {error}", { error: delRes?.error || "error" }), "warning", 3500);
+                                    comfyToast(
+                                        t("toast.deleteFailed", "Delete failed: {error}", {
+                                            error: delRes?.error || "error",
+                                        }),
+                                        "warning",
+                                        3500,
+                                    );
                                 }
                             }
                             await refreshDuplicateAlerts();
                             return;
                         }
                     }
-                    const startOk = await comfyConfirm(t("dialog.startDuplicateAnalysis", "Start duplicate analysis in background?"));
+                    const startOk = await comfyConfirm(
+                        t(
+                            "dialog.startDuplicateAnalysis",
+                            "Start duplicate analysis in background?",
+                        ),
+                    );
                     if (!startOk) return;
                     const runRes = await startDuplicatesAnalysis(500);
-                    if (runRes?.ok) comfyToast(t("toast.dupAnalysisStarted", "Duplicate analysis started"), "info", 2200);
-                    else comfyToast(t("toast.analysisNotStarted", "Analysis not started: {error}", { error: runRes?.error || "error" }), "warning", 3500);
+                    if (runRes?.ok)
+                        comfyToast(
+                            t("toast.dupAnalysisStarted", "Duplicate analysis started"),
+                            "info",
+                            2200,
+                        );
+                    else
+                        comfyToast(
+                            t("toast.analysisNotStarted", "Analysis not started: {error}", {
+                                error: runRes?.error || "error",
+                            }),
+                            "warning",
+                            3500,
+                        );
                     await refreshDuplicateAlerts();
-                }
-            }
+                },
+            },
         });
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // Summary bar updates: selection changes, load changes, scope/collection changes.
     try {
@@ -1190,15 +1566,25 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             markUserInteraction();
             try {
                 const detail = e?.detail || {};
-                const ids = Array.isArray(detail.selectedIds) ? detail.selectedIds.map(String).filter(Boolean) : [];
+                const ids = Array.isArray(detail.selectedIds)
+                    ? detail.selectedIds.map(String).filter(Boolean)
+                    : [];
                 state.selectedAssetIds = ids;
                 state.activeAssetId = String(detail.activeId || ids[0] || "");
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             notifyContextChanged();
         };
-        gridContainer.addEventListener("mjr:grid-stats", onStats, { signal: panelLifecycleAC?.signal });
-        gridContainer.addEventListener("mjr:selection-changed", onSelectionChanged, { signal: panelLifecycleAC?.signal });
-        document.addEventListener?.("mjr-settings-changed", onStats, { signal: panelLifecycleAC?.signal });
+        gridContainer.addEventListener("mjr:grid-stats", onStats, {
+            signal: panelLifecycleAC?.signal,
+        });
+        gridContainer.addEventListener("mjr:selection-changed", onSelectionChanged, {
+            signal: panelLifecycleAC?.signal,
+        });
+        document.addEventListener?.("mjr-settings-changed", onStats, {
+            signal: panelLifecycleAC?.signal,
+        });
 
         // Observe DOM changes for card count / selection class changes.
         let raf = null;
@@ -1210,23 +1596,38 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             });
         };
         const mo = new MutationObserver(() => schedule());
-        mo.observe(gridContainer, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+        mo.observe(gridContainer, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ["class"],
+        });
         gridContainer._mjrSummaryBarObserver = mo;
         registerSummaryDispose(() => {
             try {
                 gridContainer.removeEventListener("mjr:grid-stats", onStats);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 gridContainer.removeEventListener("mjr:selection-changed", onSelectionChanged);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 document.removeEventListener?.("mjr-settings-changed", onStats);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 mo.disconnect();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         });
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     sidebarController = bindSidebarOpen({
         gridContainer,
@@ -1235,7 +1636,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         createTagsBadge,
         showAssetInSidebar,
         closeSidebar,
-        state
+        state,
     });
 
     const hotkeys = createPanelHotkeysController({
@@ -1248,7 +1649,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         onToggleFloatingViewer: () => {
             try {
                 window.dispatchEvent(new Event(EVENTS.MFV_TOGGLE));
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         },
         onFocusSearch: () => {
             try {
@@ -1256,24 +1659,28 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 // Move cursor to end for immediate typing.
                 const len = searchInputEl?.value?.length || 0;
                 searchInputEl?.setSelectionRange?.(len, len);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         },
         onClearSearch: () => {
             try {
                 if (!searchInputEl) return;
                 searchInputEl.value = "";
                 searchInputEl.dispatchEvent?.(new Event("input", { bubbles: true }));
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         },
         getScanContext: () => ({
             scope: state.scope,
-            customRootId: state.customRootId
-        })
+            customRootId: state.customRootId,
+        }),
     });
 
     const ratingHotkeys = createRatingHotkeysController({
         gridContainer,
-        createRatingBadge
+        createRatingBadge,
     });
 
     let searchTimeout = null;
@@ -1282,7 +1689,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     if (container._eventCleanup) {
         try {
             container._eventCleanup();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 
     hotkeys.bind(content);
@@ -1294,95 +1703,145 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         container._mjrHotkeys = hotkeys;
         container._mjrRatingHotkeys = ratingHotkeys;
         container._mjrSidebarController = sidebarController;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     container._eventCleanup = () => {
         try {
             panelLifecycleAC?.abort?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             statusSection?._mjrStatusPollDispose?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             container._mjrVersionUpdateCleanup?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         container._mjrVersionUpdateCleanup = null;
         try {
             container._mjrPanelState?._mjrDispose?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             container._mjrPanelState = null;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             if (_scrollTimer) clearTimeout(_scrollTimer);
             _scrollTimer = null;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             hotkeys.dispose();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             ratingHotkeys.dispose();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         if (getHotkeysState().scope === "grid") {
             setHotkeysScope(null);
         }
         try {
             agendaCalendar?.dispose?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             disposeFilters?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             if (searchTimeout) clearTimeout(searchTimeout);
             searchTimeout = null;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             sidebar?.dispose?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             sidebarController?.dispose?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             if (_dupPollTimer) clearInterval(_dupPollTimer);
             _dupPollTimer = null;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             if (_autoLoadTimer) clearTimeout(_autoLoadTimer);
             _autoLoadTimer = null;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             gridContainer?._mjrSummaryBarDispose?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             gridContainer?._mjrSummaryBarObserver?.disconnect?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             gridContainer?._mjrGridContextMenuUnbind?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             disposeCustomRootsBindings?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             _unbindBrowserFolderNav?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             disposeGridScanListeners();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             if (gridContainer) disposeGrid(gridContainer);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         if (_activeGridContainer === gridContainer) {
             _activeGridContainer = null;
         }
         gridContainer = null;
         try {
             popovers.dispose();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             if (container._mjrPopoverManager === popovers) {
                 container._mjrPopoverManager = null;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     let lastKnownScan = null;
@@ -1406,7 +1865,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 await gridController.reloadGrid();
                 try {
                     await restoreAnchor(gridContainer, anchor);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
         } finally {
             isReloading = false;
@@ -1425,7 +1886,8 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         const hasNewScan = counters.last_scan_end && counters.last_scan_end !== lastKnownScan;
         // last_index_end is updated by index_paths (individual file indexing, e.g. after a workflow run).
         // last_scan_end is only updated by full directory scans. Both must be checked to catch generation events.
-        const hasNewIndexEnd = counters.last_index_end && counters.last_index_end !== lastKnownIndexEnd;
+        const hasNewIndexEnd =
+            counters.last_index_end && counters.last_index_end !== lastKnownIndexEnd;
         const totalAssets = Number(counters.total_assets ?? null);
 
         // Fallback for "new files appeared" without a full scan end update (e.g. incremental indexing).
@@ -1479,8 +1941,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         // last 15 s to avoid a flash over assets that are already visible.
         if (hasNewIndexEnd) lastKnownIndexEnd = counters.last_index_end;
         const needsFallbackReload =
-            hasNewIndexEnd && !hasNewScan && !hasNewTotal &&
-            !upsertHandledRecently;
+            hasNewIndexEnd && !hasNewScan && !hasNewTotal && !upsertHandledRecently;
 
         // If upsert handled things recently, also skip hasNewTotal reloads — only
         // full scans (hasNewScan) should force a reload in that window.
@@ -1491,19 +1952,25 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         try {
             const now = Date.now();
             if (now - Number(_lastAutoReloadAt || 0) < 15000) return;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         // Avoid disruptive auto-reload while user is actively interacting.
         try {
-            const recentInteraction = (Date.now() - Number(_lastUserInteractionAt || 0)) < 2000;
+            const recentInteraction = Date.now() - Number(_lastUserInteractionAt || 0) < 2000;
             if (recentInteraction) return;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         lastKnownScan = counters.last_scan_end;
         lastKnownIndexEnd = counters.last_index_end;
         try {
             await queuedReload();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             _lastAutoReloadAt = Date.now();
         } catch {
@@ -1517,7 +1984,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         statusSection,
         capabilitiesSection,
         handleCountersUpdate,
-        () => ({ scope: state.scope, customRootId: state.customRootId })
+        () => ({ scope: state.scope, customRootId: state.customRootId }),
     );
 
     scopeController.setActiveTabStyles();
@@ -1526,56 +1993,72 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     // Initial loading of custom roots (restores selection from state if applicable)
     customRootsController.refreshCustomRoots().catch(() => {});
 
-    searchInputEl.addEventListener("input", (e) => {
-        const value = e?.target?.value ?? "";
-        if (value === lastSearchValue) return;
-        lastSearchValue = value;
-        void exitSimilarViewIfActive({ reload: false });
-        notifyContextChanged();
-
-        if (searchTimeout) clearTimeout(searchTimeout);
-
-        // Immediate search for empty / browse-all queries.
-        if (value.length === 0 || value === "*") {
-            startTimer('searchQuery');
-            gridController.reloadGrid();
-            return;
-        }
-
-        // Debounce for normal searches.
-        searchTimeout = setTimeout(() => {
-            searchTimeout = null;
-            startTimer('searchQuery');
-            gridController.reloadGrid();
-        }, 200);
-    }, { signal: panelLifecycleAC?.signal });
-    searchInputEl.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") {
+    searchInputEl.addEventListener(
+        "input",
+        (e) => {
+            const value = e?.target?.value ?? "";
+            if (value === lastSearchValue) return;
+            lastSearchValue = value;
             void exitSimilarViewIfActive({ reload: false });
-            startTimer('searchQuery');
-            gridController.reloadGrid();
             notifyContextChanged();
-        }
-    }, { signal: panelLifecycleAC?.signal });
+
+            if (searchTimeout) clearTimeout(searchTimeout);
+
+            // Immediate search for empty / browse-all queries.
+            if (value.length === 0 || value === "*") {
+                startTimer("searchQuery");
+                gridController.reloadGrid();
+                return;
+            }
+
+            // Debounce for normal searches.
+            searchTimeout = setTimeout(() => {
+                searchTimeout = null;
+                startTimer("searchQuery");
+                gridController.reloadGrid();
+            }, 200);
+        },
+        { signal: panelLifecycleAC?.signal },
+    );
+    searchInputEl.addEventListener(
+        "keypress",
+        (e) => {
+            if (e.key === "Enter") {
+                void exitSimilarViewIfActive({ reload: false });
+                startTimer("searchQuery");
+                gridController.reloadGrid();
+                notifyContextChanged();
+            }
+        },
+        { signal: panelLifecycleAC?.signal },
+    );
 
     const initialLoadPromise = gridController.reloadGrid();
     try {
         await refreshDuplicateAlerts();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         _dupPollTimer = setInterval(() => {
             try {
                 if (panelLifecycleAC?.signal?.aborted) return;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             refreshDuplicateAlerts().catch(() => {});
         }, 15000);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // Restore scroll, selection visuals, and sidebar AFTER grid loads.
     const restoreUIState = async () => {
         try {
             await initialLoadPromise;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         // Wait one frame for DOM to settle before restoring.
         requestAnimationFrame(() => {
@@ -1583,7 +2066,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             if (state.scrollTop > 0) {
                 try {
                     gridWrapper.scrollTop = state.scrollTop;
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
 
             // 2. Restore selection visuals on cards
@@ -1592,8 +2077,10 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                     const selected = (state.selectedAssetIds || []).map(String);
                     const activeId = String(state.activeAssetId || selected[0] || "");
 
-                    selected.forEach(id => {
-                        const card = gridContainer.querySelector(`.mjr-asset-card[data-mjr-asset-id="${_safeCssEscapeAttr(id)}"]`);
+                    selected.forEach((id) => {
+                        const card = gridContainer.querySelector(
+                            `.mjr-asset-card[data-mjr-asset-id="${_safeCssEscapeAttr(id)}"]`,
+                        );
                         if (card) {
                             card.classList.add("is-selected");
                             card.setAttribute?.("aria-selected", "true");
@@ -1601,24 +2088,33 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                     });
 
                     if (activeId) {
-                        const activeCard = gridContainer.querySelector(`.mjr-asset-card[data-mjr-asset-id="${_safeCssEscapeAttr(activeId)}"]`);
+                        const activeCard = gridContainer.querySelector(
+                            `.mjr-asset-card[data-mjr-asset-id="${_safeCssEscapeAttr(activeId)}"]`,
+                        );
                         if (activeCard) {
                             activeCard.classList.add("is-active");
                             activeCard.setAttribute?.("aria-selected", "true");
                             // Scroll selection into view if not visible after scroll restore
                             if (state.scrollTop === 0) {
-                                activeCard.scrollIntoView?.({ block: "nearest", behavior: "instant" });
+                                activeCard.scrollIntoView?.({
+                                    block: "nearest",
+                                    behavior: "instant",
+                                });
                             }
                         }
                     }
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
 
             // 3. Restore sidebar if it was open
             if (state.sidebarOpen && state.activeAssetId) {
                 try {
                     sidebarController?.toggleDetails?.();
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
         });
     };
@@ -1627,7 +2123,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     const checkAndAutoLoad = async () => {
         try {
             await initialLoadPromise;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         const hasCards = gridContainer.querySelector(".mjr-card") != null;
         if (hasCards) return;
@@ -1635,16 +2133,20 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         if (getQuery() !== "*") return;
 
         try {
-            const statusData = await get(`${ENDPOINTS.HEALTH_COUNTERS}?scope=output`, { signal: panelLifecycleAC?.signal });
+            const statusData = await get(`${ENDPOINTS.HEALTH_COUNTERS}?scope=output`, {
+                signal: panelLifecycleAC?.signal,
+            });
             if (statusData?.ok && (statusData.data?.total_assets || 0) > 0) {
                 await loadAssets(gridContainer);
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
     _autoLoadTimer = setTimeout(checkAndAutoLoad, 2000);
 
     // End performance timing and record metrics
-    const renderDuration = endTimer('panelRender', 'gridRender');
+    const renderDuration = endTimer("panelRender", "gridRender");
     trackGridRender(renderDuration);
 
     return { gridContainer };

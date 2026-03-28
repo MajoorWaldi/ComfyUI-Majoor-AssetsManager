@@ -10,4 +10,3 @@ export function computeProcessorScale(maxPixels, w, h) {
         return 1;
     }
 }
-

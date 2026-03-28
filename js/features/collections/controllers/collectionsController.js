@@ -1,6 +1,15 @@
 import { comfyPrompt, comfyConfirm } from "../../../app/dialogs.js";
 import { comfyToast } from "../../../app/toast.js";
-import { listCollections, createCollection, deleteCollection, vectorStats, vectorSearch, vectorSuggestCollections, addAssetsToCollection, getAssetsBatch } from "../../../api/client.js";
+import {
+    listCollections,
+    createCollection,
+    deleteCollection,
+    vectorStats,
+    vectorSearch,
+    vectorSuggestCollections,
+    addAssetsToCollection,
+    getAssetsBatch,
+} from "../../../api/client.js";
 import { buildAssetViewURL } from "../../../api/endpoints.js";
 import { t } from "../../../app/i18n.js";
 import { loadMajoorSettings } from "../../../app/settings.js";
@@ -37,9 +46,11 @@ function createMenuItem(label, { right = null, checked = false, danger = false }
         padding:9px 10px;
         border-radius:9px;
         border:1px solid ${checked ? "rgba(120,190,255,0.68)" : "rgba(120,190,255,0.18)"};
-        background:${checked
-            ? "linear-gradient(135deg, rgba(70,130,255,0.28), rgba(20,95,185,0.22))"
-            : "linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))"};
+        background:${
+            checked
+                ? "linear-gradient(135deg, rgba(70,130,255,0.28), rgba(20,95,185,0.22))"
+                : "linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))"
+        };
         box-shadow:${checked ? "0 0 0 1px rgba(160,210,255,0.22) inset, 0 8px 18px rgba(35,95,185,0.26)" : "none"};
         transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
     `;
@@ -71,12 +82,14 @@ function createMenuItem(label, { right = null, checked = false, danger = false }
     btn.addEventListener("mouseenter", () => {
         if (checked) return;
         btn.style.borderColor = "rgba(145,205,255,0.4)";
-        btn.style.background = "linear-gradient(135deg, rgba(80,140,255,0.18), rgba(32,100,200,0.14))";
+        btn.style.background =
+            "linear-gradient(135deg, rgba(80,140,255,0.18), rgba(32,100,200,0.14))";
     });
     btn.addEventListener("mouseleave", () => {
         if (checked) return;
         btn.style.borderColor = "rgba(120,190,255,0.18)";
-        btn.style.background = "linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))";
+        btn.style.background =
+            "linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))";
     });
     return btn;
 }
@@ -95,8 +108,13 @@ function _normalizeCollectionAsset(raw) {
         filepath,
         filename: String(raw.filename || "").trim(),
         subfolder: String(raw.subfolder || "").trim(),
-        type: String(raw.type || "output").trim().toLowerCase() || "output",
-        kind: String(raw.kind || "").trim().toLowerCase(),
+        type:
+            String(raw.type || "output")
+                .trim()
+                .toLowerCase() || "output",
+        kind: String(raw.kind || "")
+            .trim()
+            .toLowerCase(),
         root_id: String(raw.root_id || raw.rootId || raw.custom_root_id || "").trim() || undefined,
     };
 }
@@ -105,7 +123,7 @@ function _extractCollectionAssetsFromRows(rows) {
     const assets = [];
     const missingIds = [];
     const seenPaths = new Set();
-    for (const row of (Array.isArray(rows) ? rows : [])) {
+    for (const row of Array.isArray(rows) ? rows : []) {
         const item = _normalizeCollectionAsset(row);
         if (item?.filepath) {
             const key = item.filepath.toLowerCase();
@@ -121,9 +139,13 @@ function _extractCollectionAssetsFromRows(rows) {
 }
 
 async function _resolveCollectionAssetsByIds(assetIds) {
-    const ids = Array.from(new Set((Array.isArray(assetIds) ? assetIds : [])
-        .map((id) => Number(id))
-        .filter((id) => Number.isFinite(id) && id > 0)));
+    const ids = Array.from(
+        new Set(
+            (Array.isArray(assetIds) ? assetIds : [])
+                .map((id) => Number(id))
+                .filter((id) => Number.isFinite(id) && id > 0),
+        ),
+    );
     if (!ids.length) return { ok: true, data: [] };
     const batchRes = await getAssetsBatch(ids);
     if (!batchRes?.ok) {
@@ -131,7 +153,9 @@ async function _resolveCollectionAssetsByIds(assetIds) {
     }
     const rows = Array.isArray(batchRes?.data)
         ? batchRes.data
-        : (Array.isArray(batchRes?.data?.assets) ? batchRes.data.assets : []);
+        : Array.isArray(batchRes?.data?.assets)
+          ? batchRes.data.assets
+          : [];
     const { assets } = _extractCollectionAssetsFromRows(rows);
     return { ok: true, data: assets };
 }
@@ -147,7 +171,9 @@ function _autoClusterLabel(cluster) {
     if (tags.length) return tags.slice(0, 2).join(" / ");
 
     const samples = Array.isArray(cluster?.sample_assets) ? cluster.sample_assets : [];
-    const folder = String(samples.find((s) => String(s?.subfolder || "").trim())?.subfolder || "").trim();
+    const folder = String(
+        samples.find((s) => String(s?.subfolder || "").trim())?.subfolder || "",
+    ).trim();
     const lastFolder = folder ? folder.split(/[\\/]/).filter(Boolean).pop() : "";
 
     const kindCount = { image: 0, video: 0, audio: 0, other: 0 };
@@ -157,11 +183,12 @@ function _autoClusterLabel(cluster) {
         else kindCount.other += 1;
     }
     const dominantKind = Object.entries(kindCount).sort((a, b) => b[1] - a[1])[0]?.[0] || "other";
-    const kindLabel = dominantKind === "image"
-        ? "Images"
-        : dominantKind === "video"
-            ? "Videos"
-            : dominantKind === "audio"
+    const kindLabel =
+        dominantKind === "image"
+            ? "Images"
+            : dominantKind === "video"
+              ? "Videos"
+              : dominantKind === "audio"
                 ? "Audio"
                 : "Media";
 
@@ -174,7 +201,11 @@ function _autoClusterLabel(cluster) {
 const SMART_COLLECTION_IDEAS = [
     { label: "Portraits", query: "portrait photo face person closeup", icon: "👤" },
     { label: "Landscapes", query: "landscape nature scenery mountains outdoor", icon: "🏞️" },
-    { label: "Anime / Illustration", query: "anime illustration manga cartoon drawing", icon: "🎨" },
+    {
+        label: "Anime / Illustration",
+        query: "anime illustration manga cartoon drawing",
+        icon: "🎨",
+    },
     { label: "Cyberpunk / Sci-Fi", query: "cyberpunk sci-fi futuristic neon city", icon: "🌃" },
     { label: "Fantasy", query: "fantasy magic medieval dragon castle", icon: "🐉" },
     { label: "Abstract", query: "abstract art pattern geometric colors", icon: "🔮" },
@@ -189,8 +220,17 @@ function _isAiEnabledFromSettings() {
     }
 }
 
-async function _appendSmartSuggestions(menu, state, popovers, collectionsPopover, reloadGrid, onChanged, isAiEnabled = null) {
-    const aiEnabled = typeof isAiEnabled === "function" ? !!isAiEnabled() : _isAiEnabledFromSettings();
+async function _appendSmartSuggestions(
+    menu,
+    state,
+    popovers,
+    collectionsPopover,
+    reloadGrid,
+    onChanged,
+    isAiEnabled = null,
+) {
+    const aiEnabled =
+        typeof isAiEnabled === "function" ? !!isAiEnabled() : _isAiEnabledFromSettings();
     if (!aiEnabled) {
         menu.appendChild(createDivider());
         const disabled = document.createElement("div");
@@ -215,12 +255,14 @@ async function _appendSmartSuggestions(menu, state, popovers, collectionsPopover
     let vectorDisabled = false;
     try {
         const stats = await vectorStats();
-        vectorDisabled = !stats?.ok && (
-            String(stats?.code || "").toUpperCase() === "SERVICE_UNAVAILABLE"
-            || /vector search is not enabled/i.test(String(stats?.error || ""))
-        );
+        vectorDisabled =
+            !stats?.ok &&
+            (String(stats?.code || "").toUpperCase() === "SERVICE_UNAVAILABLE" ||
+                /vector search is not enabled/i.test(String(stats?.error || "")));
         vectorAvailable = stats?.ok && stats?.data?.total > 0;
-    } catch { /* ignore */ }
+    } catch {
+        /* ignore */
+    }
 
     if (!vectorAvailable) {
         if (!vectorDisabled) return;
@@ -260,7 +302,8 @@ async function _appendSmartSuggestions(menu, state, popovers, collectionsPopover
     menu.appendChild(header);
 
     const hint = document.createElement("div");
-    hint.style.cssText = "font-size: 10px; color: rgba(255,255,255,0.45); padding: 0 10px 6px; line-height: 1.4;";
+    hint.style.cssText =
+        "font-size: 10px; color: rgba(255,255,255,0.45); padding: 0 10px 6px; line-height: 1.4;";
     hint.textContent = "Create collections from AI-detected themes";
     menu.appendChild(hint);
 
@@ -283,7 +326,8 @@ async function _appendSmartSuggestions(menu, state, popovers, collectionsPopover
         `;
 
         const left = document.createElement("span");
-        left.style.cssText = "display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--fg-color, #e6edf7); font-size: 12px;";
+        left.style.cssText =
+            "display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--fg-color, #e6edf7); font-size: 12px;";
         left.textContent = `${idea.icon} ${idea.label}`;
         btn.appendChild(left);
 
@@ -294,11 +338,13 @@ async function _appendSmartSuggestions(menu, state, popovers, collectionsPopover
 
         btn.addEventListener("mouseenter", () => {
             btn.style.borderColor = "rgba(0, 188, 212, 0.45)";
-            btn.style.background = "linear-gradient(135deg, rgba(0, 188, 212, 0.14), rgba(0, 150, 180, 0.10))";
+            btn.style.background =
+                "linear-gradient(135deg, rgba(0, 188, 212, 0.14), rgba(0, 150, 180, 0.10))";
         });
         btn.addEventListener("mouseleave", () => {
             btn.style.borderColor = "rgba(0, 188, 212, 0.18)";
-            btn.style.background = "linear-gradient(135deg, rgba(0, 188, 212, 0.06), rgba(0, 150, 180, 0.04))";
+            btn.style.background =
+                "linear-gradient(135deg, rgba(0, 188, 212, 0.06), rgba(0, 150, 180, 0.04))";
         });
 
         btn.addEventListener("click", async () => {
@@ -306,7 +352,14 @@ async function _appendSmartSuggestions(menu, state, popovers, collectionsPopover
                 // 1. Create the collection
                 const res = await createCollection(idea.label);
                 if (!res?.ok) {
-                    comfyToast(res?.error || t("toast.failedCreateSmartCollection", "Failed to create smart collection"), "error");
+                    comfyToast(
+                        res?.error ||
+                            t(
+                                "toast.failedCreateSmartCollection",
+                                "Failed to create smart collection",
+                            ),
+                        "error",
+                    );
                     return;
                 }
                 const colId = String(res.data?.id || "");
@@ -326,40 +379,66 @@ async function _appendSmartSuggestions(menu, state, popovers, collectionsPopover
                     }
                     if (!assets.length) {
                         comfyToast(
-                            t("toast.smartCollectionEmpty", `Collection "${idea.label}" created but no matching assets found. Index more assets first.`, { name: idea.label }),
+                            t(
+                                "toast.smartCollectionEmpty",
+                                `Collection "${idea.label}" created but no matching assets found. Index more assets first.`,
+                                { name: idea.label },
+                            ),
                             "info",
-                            3000
+                            3000,
                         );
                         return;
                     }
                     const addRes = await addAssetsToCollection(colId, assets);
                     if (!addRes?.ok) {
-                        comfyToast(addRes?.error || t("toast.failedAddAssetsToSmartCollection", "Failed to add assets to smart collection"), "error");
+                        comfyToast(
+                            addRes?.error ||
+                                t(
+                                    "toast.failedAddAssetsToSmartCollection",
+                                    "Failed to add assets to smart collection",
+                                ),
+                            "error",
+                        );
                         return;
                     }
                     const addedCount = Number(addRes?.data?.added || assets.length || 0);
                     comfyToast(
-                        t("toast.smartCollectionCreated", `Smart collection "${idea.label}" created with ${addedCount} assets!`, { name: idea.label, count: addedCount }),
+                        t(
+                            "toast.smartCollectionCreated",
+                            `Smart collection "${idea.label}" created with ${addedCount} assets!`,
+                            { name: idea.label, count: addedCount },
+                        ),
                         "success",
-                        3000
+                        3000,
                     );
                 } else {
                     comfyToast(
-                        t("toast.smartCollectionEmpty", `Collection "${idea.label}" created but no matching assets found. Index more assets first.`, { name: idea.label }),
+                        t(
+                            "toast.smartCollectionEmpty",
+                            `Collection "${idea.label}" created but no matching assets found. Index more assets first.`,
+                            { name: idea.label },
+                        ),
                         "info",
-                        3000
+                        3000,
                     );
                 }
 
                 // 4. Switch to the new collection
                 state.collectionId = colId;
                 state.collectionName = idea.label;
-                try { onChanged?.(); } catch (e) { console.debug?.(e); }
+                try {
+                    onChanged?.();
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 popovers.close(collectionsPopover);
                 await reloadGrid();
             } catch (err) {
                 console.error("[Majoor] Smart collection creation failed:", err);
-                comfyToast(t("toast.failedCreateSmartCollection", "Failed to create smart collection"), "error");
+                comfyToast(
+                    t("toast.failedCreateSmartCollection", "Failed to create smart collection"),
+                    "error",
+                );
             }
         });
 
@@ -367,8 +446,17 @@ async function _appendSmartSuggestions(menu, state, popovers, collectionsPopover
     }
 }
 
-async function _appendDiscoverGroups(menu, state, popovers, collectionsPopover, reloadGrid, onChanged, isAiEnabled = null) {
-    const aiEnabled = typeof isAiEnabled === "function" ? !!isAiEnabled() : _isAiEnabledFromSettings();
+async function _appendDiscoverGroups(
+    menu,
+    state,
+    popovers,
+    collectionsPopover,
+    reloadGrid,
+    onChanged,
+    isAiEnabled = null,
+) {
+    const aiEnabled =
+        typeof isAiEnabled === "function" ? !!isAiEnabled() : _isAiEnabledFromSettings();
     if (!aiEnabled) return;
 
     // Only show when vector search has indexed assets
@@ -376,7 +464,9 @@ async function _appendDiscoverGroups(menu, state, popovers, collectionsPopover, 
     try {
         const stats = await vectorStats();
         vectorAvailable = stats?.ok && stats?.data?.total > 0;
-    } catch { /* ignore */ }
+    } catch {
+        /* ignore */
+    }
     if (!vectorAvailable) return;
 
     menu.appendChild(createDivider());
@@ -398,7 +488,8 @@ async function _appendDiscoverGroups(menu, state, popovers, collectionsPopover, 
     menu.appendChild(header);
 
     const hint = document.createElement("div");
-    hint.style.cssText = "font-size: 10px; color: rgba(255,255,255,0.45); padding: 0 10px 6px; line-height: 1.4;";
+    hint.style.cssText =
+        "font-size: 10px; color: rgba(255,255,255,0.45); padding: 0 10px 6px; line-height: 1.4;";
     hint.textContent = "AI clusters assets by visual similarity";
     menu.appendChild(hint);
 
@@ -430,11 +521,13 @@ async function _appendDiscoverGroups(menu, state, popovers, collectionsPopover, 
 
     discoverBtn.addEventListener("mouseenter", () => {
         discoverBtn.style.borderColor = "rgba(180, 120, 255, 0.55)";
-        discoverBtn.style.background = "linear-gradient(135deg, rgba(180, 120, 255, 0.15), rgba(130, 70, 220, 0.12))";
+        discoverBtn.style.background =
+            "linear-gradient(135deg, rgba(180, 120, 255, 0.15), rgba(130, 70, 220, 0.12))";
     });
     discoverBtn.addEventListener("mouseleave", () => {
         discoverBtn.style.borderColor = "rgba(180, 120, 255, 0.25)";
-        discoverBtn.style.background = "linear-gradient(135deg, rgba(180, 120, 255, 0.07), rgba(130, 70, 220, 0.05))";
+        discoverBtn.style.background =
+            "linear-gradient(135deg, rgba(180, 120, 255, 0.07), rgba(130, 70, 220, 0.05))";
     });
 
     discoverBtn.addEventListener("click", async () => {
@@ -444,7 +537,11 @@ async function _appendDiscoverGroups(menu, state, popovers, collectionsPopover, 
         try {
             const res = await vectorSuggestCollections(8);
             if (!res?.ok || !Array.isArray(res.data) || !res.data.length) {
-                comfyToast(t("toast.noGroupsFoundIndexFirst", "No groups found. Index more assets first."), "info", 3000);
+                comfyToast(
+                    t("toast.noGroupsFoundIndexFirst", "No groups found. Index more assets first."),
+                    "info",
+                    3000,
+                );
                 discoverBtn.textContent = "🔍 Analyze Library";
                 discoverBtn.disabled = false;
                 return;
@@ -473,13 +570,18 @@ async function _appendDiscoverGroups(menu, state, popovers, collectionsPopover, 
                 // Thumbnail previews
                 const thumbRow = document.createElement("div");
                 thumbRow.style.cssText = "display: flex; gap: 3px; flex-shrink: 0;";
-                const sampleAssets = Array.isArray(cluster.sample_assets) ? cluster.sample_assets.slice(0, 3) : [];
+                const sampleAssets = Array.isArray(cluster.sample_assets)
+                    ? cluster.sample_assets.slice(0, 3)
+                    : [];
                 for (const sa of sampleAssets) {
                     const img = document.createElement("img");
-                    img.style.cssText = "width: 28px; height: 28px; object-fit: cover; border-radius: 4px; opacity: 0.85;";
+                    img.style.cssText =
+                        "width: 28px; height: 28px; object-fit: cover; border-radius: 4px; opacity: 0.85;";
                     try {
                         img.src = buildAssetViewURL(sa);
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                     img.loading = "lazy";
                     thumbRow.appendChild(img);
                 }
@@ -488,7 +590,8 @@ async function _appendDiscoverGroups(menu, state, popovers, collectionsPopover, 
                 info.style.cssText = "flex: 1; min-width: 0;";
 
                 const nameSpan = document.createElement("div");
-                nameSpan.style.cssText = "font-size: 12px; font-weight: 600; color: rgba(210, 170, 255, 0.95); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;";
+                nameSpan.style.cssText =
+                    "font-size: 12px; font-weight: 600; color: rgba(210, 170, 255, 0.95); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;";
                 nameSpan.textContent = label;
                 nameSpan.title = label;
 
@@ -522,7 +625,14 @@ async function _appendDiscoverGroups(menu, state, popovers, collectionsPopover, 
                         createBtn.textContent = "…";
                         const colRes = await createCollection(label);
                         if (!colRes?.ok) {
-                            comfyToast(colRes?.error || t("toast.failedCreateCollection", "Failed to create collection"), "error");
+                            comfyToast(
+                                colRes?.error ||
+                                    t(
+                                        "toast.failedCreateCollection",
+                                        "Failed to create collection",
+                                    ),
+                                "error",
+                            );
                             createBtn.disabled = false;
                             createBtn.textContent = "+ Create";
                             return;
@@ -531,38 +641,71 @@ async function _appendDiscoverGroups(menu, state, popovers, collectionsPopover, 
                         if (colId && allIds.length) {
                             const hydrated = await _resolveCollectionAssetsByIds(allIds);
                             if (!hydrated.ok) {
-                                comfyToast(hydrated.error || t("toast.failedLoadClusterAssets", "Failed to load cluster assets"), "error");
+                                comfyToast(
+                                    hydrated.error ||
+                                        t(
+                                            "toast.failedLoadClusterAssets",
+                                            "Failed to load cluster assets",
+                                        ),
+                                    "error",
+                                );
                                 createBtn.disabled = false;
                                 createBtn.textContent = "+ Create";
                                 return;
                             }
                             const addRes = await addAssetsToCollection(colId, hydrated.data || []);
                             if (!addRes?.ok) {
-                                comfyToast(addRes?.error || t("toast.failedAddAssetsToCollection", "Failed to add assets to collection"), "error");
+                                comfyToast(
+                                    addRes?.error ||
+                                        t(
+                                            "toast.failedAddAssetsToCollection",
+                                            "Failed to add assets to collection",
+                                        ),
+                                    "error",
+                                );
                                 createBtn.disabled = false;
                                 createBtn.textContent = "+ Create";
                                 return;
                             }
-                            const addedCount = Number(addRes?.data?.added || (hydrated.data || []).length || 0);
+                            const addedCount = Number(
+                                addRes?.data?.added || (hydrated.data || []).length || 0,
+                            );
                             comfyToast(
-                                t("toast.collectionCreatedWithAssets", "Collection \"{name}\" created with {count} assets!", {
-                                    name: label,
-                                    count: addedCount,
-                                }),
+                                t(
+                                    "toast.collectionCreatedWithAssets",
+                                    'Collection "{name}" created with {count} assets!',
+                                    {
+                                        name: label,
+                                        count: addedCount,
+                                    },
+                                ),
                                 "success",
-                                3000
+                                3000,
                             );
                         } else {
-                            comfyToast(t("toast.collectionCreatedNamed", "Collection \"{name}\" created.", { name: label }), "success", 2200);
+                            comfyToast(
+                                t("toast.collectionCreatedNamed", 'Collection "{name}" created.', {
+                                    name: label,
+                                }),
+                                "success",
+                                2200,
+                            );
                         }
                         state.collectionId = colId;
                         state.collectionName = label;
-                        try { onChanged?.(); } catch (e) { console.debug?.(e); }
+                        try {
+                            onChanged?.();
+                        } catch (e) {
+                            console.debug?.(e);
+                        }
                         popovers.close(collectionsPopover);
                         await reloadGrid();
                     } catch (err) {
                         console.error("[Majoor] Cluster collection creation failed:", err);
-                        comfyToast(t("toast.failedCreateCollection", "Failed to create collection"), "error");
+                        comfyToast(
+                            t("toast.failedCreateCollection", "Failed to create collection"),
+                            "error",
+                        );
                         createBtn.disabled = false;
                         createBtn.textContent = "+ Create";
                     }
@@ -585,13 +728,25 @@ async function _appendDiscoverGroups(menu, state, popovers, collectionsPopover, 
     menu.appendChild(clustersContainer);
 }
 
-export function createCollectionsController({ state, collectionsBtn, collectionsMenu, collectionsPopover, popovers, isAiEnabled = null, reloadGrid, onChanged = null }) {
+export function createCollectionsController({
+    state,
+    collectionsBtn,
+    collectionsMenu,
+    collectionsPopover,
+    popovers,
+    isAiEnabled = null,
+    reloadGrid,
+    onChanged = null,
+}) {
     const render = async () => {
         collectionsMenu.replaceChildren();
 
         const createBtn = createMenuItem(t("ctx.createCollection"));
         createBtn.addEventListener("click", async () => {
-            const name = await comfyPrompt(t("dialog.createCollection"), t("dialog.collectionPlaceholder"));
+            const name = await comfyPrompt(
+                t("dialog.createCollection"),
+                t("dialog.collectionPlaceholder"),
+            );
             if (!name) return;
             const normalizedName = normalizeCollectionName(name);
             if (!normalizedName) {
@@ -607,25 +762,31 @@ export function createCollectionsController({ state, collectionsBtn, collections
             state.collectionName = String(res.data?.name || normalizedName);
             try {
                 onChanged?.();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             popovers.close(collectionsPopover);
             await reloadGrid();
         });
         collectionsMenu.appendChild(createBtn);
 
-            if (state.collectionId) {
-                const exitBtn = createMenuItem(t("ctx.exitCollection"), { right: state.collectionName || null });
-                exitBtn.addEventListener("click", async () => {
-                    state.collectionId = "";
-                    state.collectionName = "";
-                    try {
-                        onChanged?.();
-                    } catch (e) { console.debug?.(e); }
-                    popovers.close(collectionsPopover);
-                    await reloadGrid();
-                });
-                collectionsMenu.appendChild(exitBtn);
-            }
+        if (state.collectionId) {
+            const exitBtn = createMenuItem(t("ctx.exitCollection"), {
+                right: state.collectionName || null,
+            });
+            exitBtn.addEventListener("click", async () => {
+                state.collectionId = "";
+                state.collectionName = "";
+                try {
+                    onChanged?.();
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                popovers.close(collectionsPopover);
+                await reloadGrid();
+            });
+            collectionsMenu.appendChild(exitBtn);
+        }
 
         collectionsMenu.appendChild(createDivider());
 
@@ -649,14 +810,19 @@ export function createCollectionsController({ state, collectionsBtn, collections
             const row = document.createElement("div");
             row.style.cssText = "display:flex; align-items:stretch; width:100%;";
 
-            const openBtn = createMenuItem(name, { right: count ? `${count}` : null, checked: state.collectionId === id });
+            const openBtn = createMenuItem(name, {
+                right: count ? `${count}` : null,
+                checked: state.collectionId === id,
+            });
             openBtn.style.flex = "1";
             openBtn.addEventListener("click", async () => {
                 state.collectionId = id;
                 state.collectionName = name;
                 try {
                     onChanged?.();
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 popovers.close(collectionsPopover);
                 await reloadGrid();
             });
@@ -674,17 +840,21 @@ export function createCollectionsController({ state, collectionsBtn, collections
             delBtn.appendChild(trash);
             delBtn.addEventListener("mouseenter", () => {
                 delBtn.style.borderColor = "rgba(255,120,120,0.62)";
-                delBtn.style.background = "linear-gradient(135deg, rgba(255,70,70,0.24), rgba(170,30,30,0.2))";
+                delBtn.style.background =
+                    "linear-gradient(135deg, rgba(255,70,70,0.24), rgba(170,30,30,0.2))";
             });
             delBtn.addEventListener("mouseleave", () => {
                 delBtn.style.borderColor = "rgba(255,95,95,0.35)";
-                delBtn.style.background = "linear-gradient(135deg, rgba(255,70,70,0.16), rgba(160,20,20,0.12))";
+                delBtn.style.background =
+                    "linear-gradient(135deg, rgba(255,70,70,0.16), rgba(160,20,20,0.12))";
             });
 
             delBtn.addEventListener("click", async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                const ok = await comfyConfirm(t("dialog.deleteCollection", `Delete collection "${name}"?`, { name }));
+                const ok = await comfyConfirm(
+                    t("dialog.deleteCollection", `Delete collection "${name}"?`, { name }),
+                );
                 if (!ok) return;
                 const res = await deleteCollection(id);
                 if (!res?.ok) {
@@ -696,7 +866,9 @@ export function createCollectionsController({ state, collectionsBtn, collections
                     state.collectionName = "";
                     try {
                         onChanged?.();
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 }
                 await render();
                 await reloadGrid();
@@ -708,10 +880,26 @@ export function createCollectionsController({ state, collectionsBtn, collections
         }
 
         // ── Smart Collection Suggestions (vector-based) ──────────────
-        _appendSmartSuggestions(collectionsMenu, state, popovers, collectionsPopover, reloadGrid, onChanged, isAiEnabled);
+        _appendSmartSuggestions(
+            collectionsMenu,
+            state,
+            popovers,
+            collectionsPopover,
+            reloadGrid,
+            onChanged,
+            isAiEnabled,
+        );
 
         // ── Discover Groups (cluster analysis) ───────────────────────
-        _appendDiscoverGroups(collectionsMenu, state, popovers, collectionsPopover, reloadGrid, onChanged, isAiEnabled);
+        _appendDiscoverGroups(
+            collectionsMenu,
+            state,
+            popovers,
+            collectionsPopover,
+            reloadGrid,
+            onChanged,
+            isAiEnabled,
+        );
     };
 
     const bind = ({ onBeforeToggle } = {}) => {
@@ -720,10 +908,14 @@ export function createCollectionsController({ state, collectionsBtn, collections
             e.stopPropagation();
             try {
                 onBeforeToggle?.();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 await render();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             popovers.toggle(collectionsPopover, collectionsBtn);
         });
     };

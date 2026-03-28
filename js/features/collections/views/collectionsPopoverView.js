@@ -11,4 +11,3 @@ export function createCollectionsPopoverView() {
 
     return { collectionsPopover, collectionsMenu };
 }
-

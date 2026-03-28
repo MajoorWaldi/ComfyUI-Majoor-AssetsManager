@@ -60,25 +60,19 @@ const KJNODES_OUTPUT = new Set([
 /**
  * ComfyUI_essentials — inherits SaveImage pattern
  */
-const ESSENTIALS_OUTPUT = new Set([
-    "ImagePreviewFromLatent",
-]);
+const ESSENTIALS_OUTPUT = new Set(["ImagePreviewFromLatent"]);
 
 /**
  * ComfyUI_LayerStyle — only output node: ImageTaggerSave
  * Uses standard `{"ui": {"images": [...]}}` format
  */
-const LAYERSTYLE_OUTPUT = new Set([
-    "LayerUtility: ImageTaggerSave",
-]);
+const LAYERSTYLE_OUTPUT = new Set(["LayerUtility: ImageTaggerSave"]);
 
 /**
  * ComfyUI-VideoHelperSuite — uses `{"ui": {"gifs": [...]}}`
  * (Handled by VideoAdapter at priority 10, documented here for reference)
  */
-const VHS_OUTPUT = new Set([
-    "VHS_VideoCombine",
-]);
+const VHS_OUTPUT = new Set(["VHS_VideoCombine"]);
 
 // ── Processing nodes (canvas Path 2) — documented for isKnownProcessingNode ──
 

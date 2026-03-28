@@ -5,15 +5,15 @@ import { vectorGetAutoTags, vectorIndexAsset, updateAssetTags } from "../../../a
 import { loadMajoorSettings } from "../../../app/settings.js";
 
 function _normalizeTag(raw) {
-    const value = String(raw || "").trim().toLowerCase();
+    const value = String(raw || "")
+        .trim()
+        .toLowerCase();
     return value || "";
 }
 
 function _coerceTags(raw) {
     if (Array.isArray(raw)) {
-        return raw
-            .map((tag) => String(tag || "").trim())
-            .filter(Boolean);
+        return raw.map((tag) => String(tag || "").trim()).filter(Boolean);
     }
     if (typeof raw === "string") {
         const text = raw.trim();
@@ -21,9 +21,7 @@ function _coerceTags(raw) {
         try {
             const parsed = JSON.parse(text);
             if (Array.isArray(parsed)) {
-                return parsed
-                    .map((tag) => String(tag || "").trim())
-                    .filter(Boolean);
+                return parsed.map((tag) => String(tag || "").trim()).filter(Boolean);
             }
         } catch (e) {
             console.debug?.(e);
@@ -50,9 +48,10 @@ function _coercePositiveInt(raw) {
 }
 
 function _isVectorDisabledResponse(res) {
-    return !res?.ok && (
-        String(res?.code || "").toUpperCase() === "SERVICE_UNAVAILABLE"
-        || /vector search is not enabled/i.test(String(res?.error || ""))
+    return (
+        !res?.ok &&
+        (String(res?.code || "").toUpperCase() === "SERVICE_UNAVAILABLE" ||
+            /vector search is not enabled/i.test(String(res?.error || "")))
     );
 }
 
@@ -322,7 +321,8 @@ export function createRatingTagsSection(asset, onUpdate) {
                 const indexRes = await vectorIndexAsset(assetId);
                 if (_isVectorDisabledResponse(indexRes)) {
                     aiTagsChips.replaceChildren();
-                    statusHint.textContent = "AI tag suggestions are disabled (vector search is off).";
+                    statusHint.textContent =
+                        "AI tag suggestions are disabled (vector search is off).";
                     statusHint.style.display = "block";
                     return [];
                 }
@@ -330,7 +330,8 @@ export function createRatingTagsSection(asset, onUpdate) {
                 const retryRes = await vectorGetAutoTags(assetId);
                 if (_isVectorDisabledResponse(retryRes)) {
                     aiTagsChips.replaceChildren();
-                    statusHint.textContent = "AI tag suggestions are disabled (vector search is off).";
+                    statusHint.textContent =
+                        "AI tag suggestions are disabled (vector search is off).";
                     statusHint.style.display = "block";
                     return [];
                 }
@@ -363,7 +364,8 @@ export function createRatingTagsSection(asset, onUpdate) {
                 const res = await vectorGetAutoTags(assetId);
                 if (_isVectorDisabledResponse(res)) {
                     aiTagsChips.replaceChildren();
-                    statusHint.textContent = "AI tag suggestions are disabled (vector search is off).";
+                    statusHint.textContent =
+                        "AI tag suggestions are disabled (vector search is off).";
                     statusHint.style.display = "block";
                     return;
                 }
@@ -378,8 +380,7 @@ export function createRatingTagsSection(asset, onUpdate) {
 
                 let suggestions = _coerceTags(res?.data);
                 const shouldTryBootstrap =
-                    !suggestions.length
-                    && (forceNetwork || !_autoTagBootstrapAttempted);
+                    !suggestions.length && (forceNetwork || !_autoTagBootstrapAttempted);
                 if (shouldTryBootstrap) {
                     _autoTagBootstrapAttempted = true;
                     const generated = await _tryGenerateAndReloadSuggestions();

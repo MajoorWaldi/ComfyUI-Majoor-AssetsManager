@@ -23,10 +23,10 @@ export const EVENTS = Object.freeze({
     MFV_PREVIEW_TOGGLE: "mjr:mfv-preview-toggle",
     MFV_POPOUT: "mjr:mfv-popout",
     MFV_VISIBILITY_CHANGED: "mjr:mfv-visibility-changed", // detail: { visible: bool }
-    MFV_NODESTREAM_TOGGLE: "mjr:mfv-nodestream-toggle",   // reserved while Node Stream is temporarily disabled
+    MFV_NODESTREAM_TOGGLE: "mjr:mfv-nodestream-toggle", // reserved while Node Stream is temporarily disabled
     NEW_GENERATION_OUTPUT: "mjr:new-generation-output",
-    NODE_STREAM_OUTPUT: "mjr:node-stream-output",          // detail: { fileData, nodeId, classType }
-    ASSET_ADDED: "mjr:asset-added",        // dispatched by entry.js on mjr-asset-added WS event
+    NODE_STREAM_OUTPUT: "mjr:node-stream-output", // detail: { fileData, nodeId, classType }
+    ASSET_ADDED: "mjr:asset-added", // dispatched by entry.js on mjr-asset-added WS event
     ASSET_INDEXING: "mjr.asset.indexing",
     ASSET_INDEXED: "mjr.asset.indexed",
     ASSET_INDEX_FAILED: "mjr.asset.index_failed",
@@ -36,4 +36,3 @@ export const EVENTS = Object.freeze({
     OPEN_ASSETS_MANAGER: "mjr:open-assets-manager",
     OPEN_VIEWER: "mjr:open-viewer",
 });
-

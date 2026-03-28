@@ -101,7 +101,13 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
         const y = Number(pos[1]);
         const w = Math.max(1, Number(size[0]));
         const h = Math.max(1, Number(size[1]));
-        if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(w) || !Number.isFinite(h)) continue;
+        if (
+            !Number.isFinite(x) ||
+            !Number.isFinite(y) ||
+            !Number.isFinite(w) ||
+            !Number.isFinite(h)
+        )
+            continue;
 
         const mode = Number(n?.mode);
         const bypassed = mode === 2 || mode === 4;
@@ -110,11 +116,7 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
         const errByNodeId =
             errExtra && typeof errExtra === "object" && nodeId ? errExtra[nodeId] : null;
         const errored = Boolean(
-            errByNodeId ||
-                n?.error ||
-                n?.errors ||
-                n?.flags?.error ||
-                n?.properties?.error
+            errByNodeId || n?.error || n?.errors || n?.flags?.error || n?.properties?.error,
         );
 
         rects.push({
@@ -133,25 +135,36 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
     }
     if (settings.showGroups) {
         for (const g of groups || []) {
-        // Some exports use `bounding: [x,y,w,h]` instead of pos/size.
-        const bounding = Array.isArray(g?.bounding) && g.bounding.length >= 4 ? g.bounding : null;
-        const pos = bounding ? [Number(bounding[0]), Number(bounding[1])] : normalizeVec2(g?.pos);
-        const size = bounding ? [Number(bounding[2]), Number(bounding[3])] : normalizeSize2(g?.size);
-        if (!pos || !size) continue;
-        const x = Number(pos[0]);
-        const y = Number(pos[1]);
-        const w = Math.max(1, Number(size[0]));
-        const h = Math.max(1, Number(size[1]));
-        if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(w) || !Number.isFinite(h)) continue;
-        rects.push({
-            kind: "group",
-            x,
-            y,
-            w,
-            h,
-            fill: g?.color || g?.bgcolor || g?.borderColor || null,
-            stroke: g?.borderColor || g?.color || g?.bgcolor || null,
-        });
+            // Some exports use `bounding: [x,y,w,h]` instead of pos/size.
+            const bounding =
+                Array.isArray(g?.bounding) && g.bounding.length >= 4 ? g.bounding : null;
+            const pos = bounding
+                ? [Number(bounding[0]), Number(bounding[1])]
+                : normalizeVec2(g?.pos);
+            const size = bounding
+                ? [Number(bounding[2]), Number(bounding[3])]
+                : normalizeSize2(g?.size);
+            if (!pos || !size) continue;
+            const x = Number(pos[0]);
+            const y = Number(pos[1]);
+            const w = Math.max(1, Number(size[0]));
+            const h = Math.max(1, Number(size[1]));
+            if (
+                !Number.isFinite(x) ||
+                !Number.isFinite(y) ||
+                !Number.isFinite(w) ||
+                !Number.isFinite(h)
+            )
+                continue;
+            rects.push({
+                kind: "group",
+                x,
+                y,
+                w,
+                h,
+                fill: g?.color || g?.bgcolor || g?.borderColor || null,
+                stroke: g?.borderColor || g?.color || g?.bgcolor || null,
+            });
         }
     }
 
@@ -248,7 +261,10 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
         // Fill
         ctx.save();
         ctx.globalAlpha = 1;
-        if (typeof fill === "string" && (fill.startsWith("#") || fill.startsWith("rgb") || fill.startsWith("hsl"))) {
+        if (
+            typeof fill === "string" &&
+            (fill.startsWith("#") || fill.startsWith("rgb") || fill.startsWith("hsl"))
+        ) {
             ctx.fillStyle = fill;
             ctx.globalAlpha = fillAlpha;
         } else {
@@ -260,7 +276,10 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
 
         ctx.globalAlpha = 1;
         ctx.strokeStyle = "rgba(255,255,255,0.22)";
-        if (typeof stroke === "string" && (stroke.startsWith("#") || stroke.startsWith("rgb") || stroke.startsWith("hsl"))) {
+        if (
+            typeof stroke === "string" &&
+            (stroke.startsWith("#") || stroke.startsWith("rgb") || stroke.startsWith("hsl"))
+        ) {
             ctx.save();
             ctx.globalAlpha = strokeAlpha;
             ctx.strokeStyle = stroke;
@@ -269,11 +288,15 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
         if (isNode && bypassed && settings.renderBypassState) {
             try {
                 ctx.setLineDash([3, 2]);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         } else {
             try {
                 ctx.setLineDash([]);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
 
         ctx.lineWidth = 1;
@@ -282,7 +305,9 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
         if (isNode && errored && settings.renderErrorState) {
             try {
                 ctx.setLineDash([]);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             ctx.strokeStyle = "rgba(244,67,54,0.95)";
             ctx.lineWidth = 1.5;
             ctx.strokeRect(x - 0.5, y - 0.5, w + 1, h + 1);
@@ -317,8 +342,8 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
                 viewWpx > 0 &&
                 viewHpx > 0
             ) {
-                const vx0 = (-offX) / scaleDs;
-                const vy0 = (-offY) / scaleDs;
+                const vx0 = -offX / scaleDs;
+                const vy0 = -offY / scaleDs;
                 const vx1 = (viewWpx - offX) / scaleDs;
                 const vy1 = (viewHpx - offY) / scaleDs;
 
@@ -336,7 +361,9 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
                 ctx.strokeRect(rx, ry, rw, rh);
                 ctx.restore();
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 
     ctx.globalAlpha = 1;
@@ -388,13 +415,25 @@ export function synthesizeWorkflowFromPromptGraph(promptGraph, options = null) {
         if (ctLower.includes("ksampler") || ctLower.includes("sampler")) {
             bgcolor = "#6a4b1f";
             color = "#b07a2c";
-        } else if (ctLower.includes("cliptext") || ctLower.includes("textencode") || ctLower.includes("conditioning")) {
+        } else if (
+            ctLower.includes("cliptext") ||
+            ctLower.includes("textencode") ||
+            ctLower.includes("conditioning")
+        ) {
             bgcolor = "#1f5f3a";
             color = "#2cb06c";
-        } else if (ctLower.includes("checkpoint") || ctLower.includes("loader") || ctLower.includes("model")) {
+        } else if (
+            ctLower.includes("checkpoint") ||
+            ctLower.includes("loader") ||
+            ctLower.includes("model")
+        ) {
             bgcolor = "#243a6a";
             color = "#3f6fd6";
-        } else if (ctLower.includes("save") || ctLower.includes("preview") || ctLower.includes("video")) {
+        } else if (
+            ctLower.includes("save") ||
+            ctLower.includes("preview") ||
+            ctLower.includes("video")
+        ) {
             bgcolor = "#4a2a5f";
             color = "#8c4cd1";
         }
@@ -453,7 +492,14 @@ export function synthesizeWorkflowFromPromptGraph(promptGraph, options = null) {
     const links = edges
         .filter(([a, b]) => a !== b)
         .slice(0, 4000)
-        .map(([a, b]) => [linkId++, Number.isFinite(Number(a)) ? Number(a) : a, 0, Number.isFinite(Number(b)) ? Number(b) : b, 0, "LINK"]);
+        .map(([a, b]) => [
+            linkId++,
+            Number.isFinite(Number(a)) ? Number(a) : a,
+            0,
+            Number.isFinite(Number(b)) ? Number(b) : b,
+            0,
+            "LINK",
+        ]);
 
     return { id: "synthetic", nodes, links, extra: { synthetic: true } };
 }

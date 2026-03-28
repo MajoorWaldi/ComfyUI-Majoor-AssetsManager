@@ -5,7 +5,14 @@ export function getRtHydrateState(gridContainer, mapRef) {
         if (!gridContainer) return null;
         let s = mapRef.get(gridContainer);
         if (!s) {
-            s = { queue: [], inflight: 0, seen: new Set(), active: new Set(), lastPruneAt: 0, pruneBudget: 0 };
+            s = {
+                queue: [],
+                inflight: 0,
+                seen: new Set(),
+                active: new Set(),
+                lastPruneAt: 0,
+                pruneBudget: 0,
+            };
             mapRef.set(gridContainer, s);
         }
         return s;
@@ -19,7 +26,9 @@ export function pruneRatingTagsHydrateSeen(st, max, ttlMs, budgetRef) {
     const now = Date.now();
     const needsSizePrune = st.seen.size > max;
     const needsTimePrune =
-        st.lastPruneAt > 0 && (now - st.lastPruneAt) > ttlMs && st.seen.size > Math.max(1000, Math.floor(max / 4));
+        st.lastPruneAt > 0 &&
+        now - st.lastPruneAt > ttlMs &&
+        st.seen.size > Math.max(1000, Math.floor(max / 4));
     if (!needsSizePrune && !needsTimePrune) return;
     if (budgetRef.value > 0) {
         budgetRef.value -= 1;
@@ -33,7 +42,9 @@ export function updateCardRatingTagsBadges(card, rating, tags, deps) {
     if (!card) return;
     try {
         if (!card.isConnected) return;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     const thumb = card.querySelector?.(".mjr-thumb");
     if (!thumb) return;
 
@@ -42,7 +53,9 @@ export function updateCardRatingTagsBadges(card, rating, tags, deps) {
     if (ratingValue <= 0) {
         try {
             oldRatingBadge?.remove?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     } else if (!oldRatingBadge) {
         const nextRatingBadge = deps.createRatingBadge(ratingValue);
         if (nextRatingBadge) thumb.appendChild(nextRatingBadge);
@@ -60,7 +73,9 @@ export function updateCardRatingTagsBadges(card, rating, tags, deps) {
                 }
                 oldRatingBadge.replaceChildren(...stars);
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 
     const oldTagsBadge = thumb.querySelector?.(".mjr-tags-badge");
@@ -96,16 +111,28 @@ export function pumpRatingTagsHydration(gridContainer, deps) {
                     job.asset.rating = rating;
                     job.asset.tags = tags;
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             updateCardRatingTagsBadges(job.card, rating, tags, deps);
-            deps.safeDispatchCustomEvent(deps.events.rating, { assetId: String(job.id), rating }, { warnPrefix: "[GridView]" });
-            deps.safeDispatchCustomEvent(deps.events.tags, { assetId: String(job.id), tags }, { warnPrefix: "[GridView]" });
+            deps.safeDispatchCustomEvent(
+                deps.events.rating,
+                { assetId: String(job.id), rating },
+                { warnPrefix: "[GridView]" },
+            );
+            deps.safeDispatchCustomEvent(
+                deps.events.tags,
+                { assetId: String(job.id), tags },
+                { warnPrefix: "[GridView]" },
+            );
         })()
             .catch(() => null)
             .finally(() => {
                 try {
                     st.active.delete(String(job.id));
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 st.inflight -= 1;
                 pumpRatingTagsHydration(gridContainer, deps);
             });
@@ -135,17 +162,25 @@ export function enqueueRatingTagsHydration(gridContainer, card, asset, deps) {
             const dropped = st.queue.shift();
             try {
                 if (dropped?.id) st.active.delete(String(dropped.id));
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 if (dropped?.id) st.seen.delete(String(dropped.id));
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     st.seen.add(id);
     pruneRatingTagsHydrateSeen(st, deps.seenMax, deps.seenTtlMs, deps.pruneBudgetRef);
     try {
         st.active.add(id);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     st.queue.push({ id, card, asset });
     pumpRatingTagsHydration(gridContainer, deps);
 }

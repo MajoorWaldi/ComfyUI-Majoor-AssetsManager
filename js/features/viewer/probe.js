@@ -22,7 +22,9 @@ export function installViewerProbe({
     let sampleCtx = null;
     try {
         sampleCtx = sampleCanvas.getContext("2d", { willReadFrequently: true });
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     let probeRAF = null;
     let lastX = null;
@@ -31,13 +33,19 @@ export function installViewerProbe({
     const hideProbe = () => {
         try {
             probeTooltip.style.display = "none";
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             loupeWrap.style.display = "none";
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             state._probe = null;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const formatProbeText = (p) => {
@@ -66,7 +74,9 @@ export function installViewerProbe({
                           .join("")}`
                     : "";
             const scaleNote =
-                Number.isFinite(scale) && scale > 0 && scale < 0.999 ? ` (proc ${(scale * 100).toFixed(0)}%)` : "";
+                Number.isFinite(scale) && scale > 0 && scale < 0.999
+                    ? ` (proc ${(scale * 100).toFixed(0)}%)`
+                    : "";
             const lines = [];
             lines.push(`X: ${x ?? "?"}  Y: ${y ?? "?"}${scaleNote}`);
             lines.push(`RGBA8: ${r ?? "?"} ${g ?? "?"} ${b ?? "?"} ${a ?? "?"}`);
@@ -87,7 +97,9 @@ export function installViewerProbe({
         if (!sampleCtx) return null;
         try {
             sampleCtx.clearRect(0, 0, 1, 1);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             let sx = Number(px) || 0;
             let sy = Number(py) || 0;
@@ -137,7 +149,9 @@ export function installViewerProbe({
                         const s = proc.sampleAtOriginal(px, py);
                         if (s) p = { x: px, y: py, ...s };
                     }
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 if (!p) {
                     const rgba = samplePixel(mediaEl, px, py);
                     if (rgba) p = { x: px, y: py, ...rgba };
@@ -146,18 +160,29 @@ export function installViewerProbe({
             if (!p) p = { x: px, y: py };
             try {
                 state._probe = p;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
 
             if (state?.probeEnabled) {
                 try {
                     probeTooltip.textContent = formatProbeText(p);
                     probeTooltip.style.display = "";
-                } catch (e) { console.debug?.(e); }
-                safeCall(() => positionOverlayBox?.(probeTooltip, clientX, clientY, { offsetX: 18, offsetY: 18 }));
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                safeCall(() =>
+                    positionOverlayBox?.(probeTooltip, clientX, clientY, {
+                        offsetX: 18,
+                        offsetY: 18,
+                    }),
+                );
             } else {
                 try {
                     probeTooltip.style.display = "none";
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
 
             if (state?.loupeEnabled) {
@@ -165,9 +190,13 @@ export function installViewerProbe({
             } else {
                 try {
                     loupeWrap.style.display = "none";
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const scheduleProbe = (clientX, clientY) => {
@@ -179,7 +208,9 @@ export function installViewerProbe({
                 probeRAF = null;
                 updateProbeAt(lastX, lastY);
             });
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     try {
@@ -187,26 +218,41 @@ export function installViewerProbe({
             const onProbeMove = (e) => {
                 try {
                     scheduleProbe(e.clientX, e.clientY);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             };
             const onProbeLeave = () => {
                 hideProbe();
             };
-            unsubs.push(safeAddListener(content, "mousemove", onProbeMove, { passive: true, capture: true }));
-            unsubs.push(safeAddListener(content, "mouseleave", onProbeLeave, { passive: true, capture: true }));
+            unsubs.push(
+                safeAddListener(content, "mousemove", onProbeMove, {
+                    passive: true,
+                    capture: true,
+                }),
+            );
+            unsubs.push(
+                safeAddListener(content, "mouseleave", onProbeLeave, {
+                    passive: true,
+                    capture: true,
+                }),
+            );
             content._mjrProbeBound = true;
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     return {
         hide: hideProbe,
         dispose: () => {
             try {
                 if (probeRAF != null) cancelAnimationFrame(probeRAF);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             probeRAF = null;
             hideProbe();
         },
     };
 }
-

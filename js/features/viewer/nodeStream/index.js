@@ -61,4 +61,8 @@ export {
 
 export { findAdapter, registerAdapter as registerAdapterDirect } from "./NodeStreamRegistry.js";
 export { createAdapter } from "./adapters/BaseAdapter.js";
-export { isKnownProcessingNode, isKnownOutputNode, getKnownNodeSets } from "./adapters/KnownNodesAdapter.js";
+export {
+    isKnownProcessingNode,
+    isKnownOutputNode,
+    getKnownNodeSets,
+} from "./adapters/KnownNodesAdapter.js";

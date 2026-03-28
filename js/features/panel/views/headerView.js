@@ -3,10 +3,7 @@ import { createTabsView } from "./tabsView.js";
 import { get } from "../../../api/client.js";
 import { ENDPOINTS } from "../../../api/endpoints.js";
 import { t } from "../../../app/i18n.js";
-import {
-    VERSION_UPDATE_EVENT,
-    getStoredVersionUpdateState,
-} from "../../../app/versionCheck.js";
+import { VERSION_UPDATE_EVENT, getStoredVersionUpdateState } from "../../../app/versionCheck.js";
 import { EVENTS } from "../../../app/events.js";
 import { setTooltipHint } from "../../../utils/tooltipShortcuts.js";
 
@@ -50,13 +47,19 @@ function setVersionBadgeText(badge, text, { channel = "" } = {}) {
             if (channel) {
                 badge.dataset.mjrVersionChannel = channel;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 }
 
 function isNightlyVersion(version, branch = "") {
-    const v = String(version || "").trim().toLowerCase();
-    const b = String(branch || "").trim().toLowerCase();
+    const v = String(version || "")
+        .trim()
+        .toLowerCase();
+    const b = String(branch || "")
+        .trim()
+        .toLowerCase();
     const nightlyKeywords = ["nightly", "dev", "alpha", "experimental"];
     const hasNightlyKeyword = nightlyKeywords.some((kw) => v.includes(kw) || b.includes(kw));
     const hasCommitHash = v.includes("+") || (v.length > 10 && /^[a-f0-9]+$/i.test(v));
@@ -64,18 +67,24 @@ function isNightlyVersion(version, branch = "") {
 }
 
 function applyExtensionMetadata(badge, isNightly) {
-    getExtensionMetadata().then((info) => {
-        const alreadyNightly = String(badge?.dataset?.mjrVersionChannel || "").trim().toLowerCase() === "nightly"
-            || readVersionBadgeText(badge).toLowerCase() === "nightly";
-        if (!isNightly && !alreadyNightly) {
-            const version = (typeof info?.version === "string" ? info.version.trim() : "") || "";
-            if (version) {
-                setVersionBadgeText(badge, `v${version}`, { channel: "stable" });
+    getExtensionMetadata()
+        .then((info) => {
+            const alreadyNightly =
+                String(badge?.dataset?.mjrVersionChannel || "")
+                    .trim()
+                    .toLowerCase() === "nightly" ||
+                readVersionBadgeText(badge).toLowerCase() === "nightly";
+            if (!isNightly && !alreadyNightly) {
+                const version =
+                    (typeof info?.version === "string" ? info.version.trim() : "") || "";
+                if (version) {
+                    setVersionBadgeText(badge, `v${version}`, { channel: "stable" });
+                }
             }
-        }
-    }).catch(() => {
-        _extensionMetadataPromise = null;
-    });
+        })
+        .catch(() => {
+            _extensionMetadataPromise = null;
+        });
 }
 
 async function hydrateBackendVersionBadge(badge, isNightly) {
@@ -85,13 +94,17 @@ async function hydrateBackendVersionBadge(badge, isNightly) {
             return;
         }
         const version = String(result.data?.version || "").trim();
-        const branch = String(result.data?.branch || "").trim().toLowerCase();
+        const branch = String(result.data?.branch || "")
+            .trim()
+            .toLowerCase();
         if (isNightlyVersion(version, branch) || isNightly) {
             setVersionBadgeText(badge, "nightly", { channel: "nightly" });
             return;
         }
         if (version) {
-            setVersionBadgeText(badge, version.startsWith("v") ? version : `v${version}`, { channel: "stable" });
+            setVersionBadgeText(badge, version.startsWith("v") ? version : `v${version}`, {
+                channel: "stable",
+            });
         }
     } catch {
         // ignore
@@ -126,12 +139,16 @@ function resolveRuntimeBranch() {
         if (typeof window !== "undefined" && window?.MajoorAssetsManagerBranch) {
             return String(window.MajoorAssetsManagerBranch);
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         if (typeof process !== "undefined" && process?.env?.MAJOR_ASSETS_MANAGER_BRANCH) {
             return String(process.env.MAJOR_ASSETS_MANAGER_BRANCH);
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return "";
 }
 
@@ -234,7 +251,7 @@ export function createHeaderView() {
             active
                 ? t("tooltip.closeMFV", "Close Floating Viewer")
                 : t("tooltip.openMFV", "Open Floating Viewer"),
-            MFV_TOOLTIP_HINT
+            MFV_TOOLTIP_HINT,
         );
         // Swap icon: pi-eye-slash when MFV is open, pi-eye when closed
         const icon = mfvBtn.querySelector("i");
@@ -243,7 +260,10 @@ export function createHeaderView() {
     window.addEventListener(EVENTS.MFV_VISIBILITY_CHANGED, _mfvVisibilityHandler);
     headerTools.appendChild(mfvBtn);
 
-    const messageBtn = createIconButton("pi-info-circle", t("tooltip.openMessages", "Messages and updates"));
+    const messageBtn = createIconButton(
+        "pi-info-circle",
+        t("tooltip.openMessages", "Messages and updates"),
+    );
     messageBtn.classList.add("mjr-message-btn");
     const messageBadge = document.createElement("span");
     messageBadge.className = "mjr-message-badge";
@@ -257,9 +277,15 @@ export function createHeaderView() {
     header.appendChild(headerRow);
 
     const applyDotState = (state) => {
-        const stateChannel = String(state?.channel || "").trim().toLowerCase();
-        const stateCurrent = String(state?.current || "").trim().toLowerCase();
-        const stateLatest = String(state?.latest || "").trim().toLowerCase();
+        const stateChannel = String(state?.channel || "")
+            .trim()
+            .toLowerCase();
+        const stateCurrent = String(state?.current || "")
+            .trim()
+            .toLowerCase();
+        const stateLatest = String(state?.latest || "")
+            .trim()
+            .toLowerCase();
         if (stateChannel === "nightly" || stateCurrent === "nightly" || stateLatest === "nightly") {
             setVersionBadgeText(versionBadge, "nightly", { channel: "nightly" });
         }
@@ -267,22 +293,32 @@ export function createHeaderView() {
     };
     try {
         applyDotState(getStoredVersionUpdateState());
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     let versionUpdateListener = null;
     const dispose = () => {
         try {
             if (versionUpdateListener && typeof window !== "undefined") {
                 window.removeEventListener(VERSION_UPDATE_EVENT, versionUpdateListener);
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         versionUpdateListener = null;
-        try { window.removeEventListener(EVENTS.MFV_VISIBILITY_CHANGED, _mfvVisibilityHandler); } catch (e) { console.debug?.(e); }
+        try {
+            window.removeEventListener(EVENTS.MFV_VISIBILITY_CHANGED, _mfvVisibilityHandler);
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
     if (typeof window !== "undefined") {
         versionUpdateListener = (event) => {
             try {
                 applyDotState(event?.detail);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         };
         window.addEventListener(VERSION_UPDATE_EVENT, versionUpdateListener);
     }
@@ -307,4 +343,3 @@ export function createHeaderView() {
         dispose,
     };
 }
-

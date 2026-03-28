@@ -15,7 +15,12 @@ export function appendTooltipHint(label, hint) {
     return `${base} (${suffix})`;
 }
 
-export function setTooltipHint(element, label, hint, { setAriaLabel = true, ariaLabel = null } = {}) {
+export function setTooltipHint(
+    element,
+    label,
+    hint,
+    { setAriaLabel = true, ariaLabel = null } = {},
+) {
     if (!element) return "";
 
     const title = appendTooltipHint(label, hint);

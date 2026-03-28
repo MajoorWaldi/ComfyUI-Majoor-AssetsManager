@@ -35,4 +35,3 @@ export function parseA1111Parameters(text) {
 
     return Object.keys(metadata).length > 0 ? metadata : null;
 }
-

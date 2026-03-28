@@ -43,26 +43,29 @@ export const isManagedPayload = (payload) =>
     isVideoPayload(payload) || isAudioPayload(payload) || isModel3DPayload(payload);
 
 export const getDownloadMimeForFilename = (filename) => {
-    const ext = String(filename || "").split(".").pop()?.toLowerCase();
+    const ext = String(filename || "")
+        .split(".")
+        .pop()
+        ?.toLowerCase();
     return ext === "mp4"
         ? "video/mp4"
         : ext === "mov"
-        ? "video/quicktime"
-        : ext === "webm"
-        ? "video/webm"
-        : ext === "mkv"
-        ? "video/x-matroska"
-        : ext === "glb"
-        ? "model/gltf-binary"
-        : ext === "gltf"
-        ? "model/gltf+json"
-        : ext === "obj"
-        ? "model/obj"
-        : ext === "stl"
-        ? "model/stl"
-        : ext === "ply"
-        ? "application/ply"
-        : "application/octet-stream";
+          ? "video/quicktime"
+          : ext === "webm"
+            ? "video/webm"
+            : ext === "mkv"
+              ? "video/x-matroska"
+              : ext === "glb"
+                ? "model/gltf-binary"
+                : ext === "gltf"
+                  ? "model/gltf+json"
+                  : ext === "obj"
+                    ? "model/obj"
+                    : ext === "stl"
+                      ? "model/stl"
+                      : ext === "ply"
+                        ? "application/ply"
+                        : "application/octet-stream";
 };
 
 export const looksLikeVideoPath = (value, droppedExt) => {
@@ -85,7 +88,7 @@ export const comboHasAnyVideoValue = (widget, droppedExt) => {
         null;
     if (!Array.isArray(vals)) return false;
     return vals.some((v) => {
-        const s = typeof v === "string" ? v : v?.content ?? v?.value ?? v?.text;
+        const s = typeof v === "string" ? v : (v?.content ?? v?.value ?? v?.text);
         return looksLikeVideoPath(s, droppedExt);
     });
 };
@@ -110,7 +113,7 @@ export const comboHasAnyAudioValue = (widget, droppedExt) => {
         null;
     if (!Array.isArray(vals)) return false;
     return vals.some((v) => {
-        const s = typeof v === "string" ? v : v?.content ?? v?.value ?? v?.text;
+        const s = typeof v === "string" ? v : (v?.content ?? v?.value ?? v?.text);
         return looksLikeAudioPath(s, droppedExt);
     });
 };
@@ -135,8 +138,7 @@ export const comboHasAnyModel3DValue = (widget, droppedExt) => {
         null;
     if (!Array.isArray(vals)) return false;
     return vals.some((v) => {
-        const s = typeof v === "string" ? v : v?.content ?? v?.value ?? v?.text;
+        const s = typeof v === "string" ? v : (v?.content ?? v?.value ?? v?.text);
         return looksLikeModel3DPath(s, droppedExt);
     });
 };
-

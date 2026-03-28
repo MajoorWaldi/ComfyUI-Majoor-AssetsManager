@@ -60,9 +60,16 @@ export const GRID_SIZE_PRESETS = Object.freeze({
 export const GRID_SIZE_PRESET_OPTIONS = Object.freeze(["small", "medium", "large"]);
 
 export const resolveGridMinSize = (grid = {}) => {
-    const preset = _safeOneOf(String(grid?.minSizePreset || "").toLowerCase(), GRID_SIZE_PRESET_OPTIONS, "");
+    const preset = _safeOneOf(
+        String(grid?.minSizePreset || "").toLowerCase(),
+        GRID_SIZE_PRESET_OPTIONS,
+        "",
+    );
     if (preset) return GRID_SIZE_PRESETS[preset];
-    return Math.max(60, Math.min(600, Math.round(_safeNum(grid?.minSize, APP_DEFAULTS.GRID_MIN_SIZE))));
+    return Math.max(
+        60,
+        Math.min(600, Math.round(_safeNum(grid?.minSize, APP_DEFAULTS.GRID_MIN_SIZE))),
+    );
 };
 
 export const detectGridSizePreset = (minSize) => {

@@ -6,9 +6,18 @@
     "quality": "python scripts/run_quality_gate.py",
     "quality:py": "python scripts/run_quality_gate.py --python-only",
     "test:js": "vitest run",
-    "test:js:watch": "vitest"
+    "test:js:watch": "vitest",
+    "test:js:coverage": "vitest run --coverage",
+    "lint:js": "eslint js/",
+    "lint:js:fix": "eslint js/ --fix",
+    "format": "prettier --write \"js/**/*.{js,mjs}\"",
+    "format:check": "prettier --check \"js/**/*.{js,mjs}\""
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@vitest/coverage-v8": "^2.1.9",
+    "eslint": "^10.1.0",
+    "prettier": "^3.8.1",
     "vitest": "^2.1.9"
   },
   "dependencies": {

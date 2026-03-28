@@ -2,7 +2,18 @@
  * Status Dot Feature - Health indicator
  */
 
-import { get, getToolsStatus, post, resetIndex, getWatcherStatus, forceDeleteDb, listDbBackups, saveDbBackup, restoreDbBackup, vectorBackfill } from "../../api/client.js";
+import {
+    get,
+    getToolsStatus,
+    post,
+    resetIndex,
+    getWatcherStatus,
+    forceDeleteDb,
+    listDbBackups,
+    saveDbBackup,
+    restoreDbBackup,
+    vectorBackfill,
+} from "../../api/client.js";
 import { ENDPOINTS } from "../../api/endpoints.js";
 import { APP_CONFIG } from "../../app/config.js";
 import { comfyConfirm } from "../../app/dialogs.js";
@@ -16,13 +27,13 @@ const TOOL_CAPABILITIES = [
     {
         key: "exiftool",
         labelKey: "tool.exiftool",
-        hintKey: "tool.exiftool.hint"
+        hintKey: "tool.exiftool.hint",
     },
     {
         key: "ffprobe",
         labelKey: "tool.ffprobe",
-        hintKey: "tool.ffprobe.hint"
-    }
+        hintKey: "tool.ffprobe.hint",
+    },
 ];
 
 let _maintenanceActive = false;
@@ -33,7 +44,9 @@ function setMaintenanceActive(active) {
     _maintenanceActive = !!active;
     try {
         globalThis._mjrMaintenanceActive = _maintenanceActive;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 function formatBytes(bytes) {
@@ -54,7 +67,9 @@ function setStatusLines(statusText, lines, footerText = null) {
     if (!statusText) return;
     statusText.replaceChildren();
 
-    const normalizedLines = Array.isArray(lines) ? lines.filter((l) => l != null && String(l).trim() !== "") : [];
+    const normalizedLines = Array.isArray(lines)
+        ? lines.filter((l) => l != null && String(l).trim() !== "")
+        : [];
     normalizedLines.forEach((line, index) => {
         if (index > 0) statusText.appendChild(document.createElement("br"));
         statusText.appendChild(document.createTextNode(String(line)));
@@ -137,10 +152,19 @@ function applyStatusHighlight(section, tone = "neutral", options = {}) {
                 error: t("status.toast.error", "Index status: error"),
                 browser: t("status.toast.browser", "Index status: browser scope"),
             };
-            const level = tone === "error" ? "error" : tone === "warning" ? "warning" : tone === "success" ? "success" : "info";
+            const level =
+                tone === "error"
+                    ? "error"
+                    : tone === "warning"
+                      ? "warning"
+                      : tone === "success"
+                        ? "success"
+                        : "info";
             try {
                 comfyToast(messages[tone] || messages.info, level, 1800, { noHistory: true });
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
     }
 }
@@ -156,7 +180,9 @@ function formatWatcherScopeLabel(scope) {
 function formatWatcherLine(watcher, desiredScope = "") {
     if (!watcher || typeof watcher !== "object") {
         if (desiredScope) {
-            return t("status.watcher.disabledScoped", "Watcher: disabled ({scope})", { scope: formatWatcherScopeLabel(desiredScope) });
+            return t("status.watcher.disabledScoped", "Watcher: disabled ({scope})", {
+                scope: formatWatcherScopeLabel(desiredScope),
+            });
         }
         return t("status.watcher.disabled", "Watcher: disabled");
     }
@@ -164,13 +190,20 @@ function formatWatcherLine(watcher, desiredScope = "") {
     const scope = watcher.scope ? String(watcher.scope) : "";
     if (!enabled) {
         if (scope || desiredScope) {
-            const effective = desiredScope && scope && scope !== desiredScope ? desiredScope : (scope || desiredScope);
-            return t("status.watcher.disabledScoped", "Watcher: disabled ({scope})", { scope: formatWatcherScopeLabel(effective) });
+            const effective =
+                desiredScope && scope && scope !== desiredScope
+                    ? desiredScope
+                    : scope || desiredScope;
+            return t("status.watcher.disabledScoped", "Watcher: disabled ({scope})", {
+                scope: formatWatcherScopeLabel(effective),
+            });
         }
         return t("status.watcher.disabled", "Watcher: disabled");
     }
     if (scope) {
-        return t("status.watcher.enabledScoped", `Watcher: enabled (${scope})`, { scope: formatWatcherScopeLabel(scope) });
+        return t("status.watcher.enabledScoped", `Watcher: enabled (${scope})`, {
+            scope: formatWatcherScopeLabel(scope),
+        });
     }
     return t("status.watcher.enabled", "Watcher: enabled");
 }
@@ -178,18 +211,22 @@ function formatWatcherLine(watcher, desiredScope = "") {
 function emitGlobalGridReload(reason = "status-action") {
     try {
         window?.dispatchEvent?.(
-            new CustomEvent("mjr:reload-grid", { detail: { reason: String(reason || "status-action") } })
+            new CustomEvent("mjr:reload-grid", {
+                detail: { reason: String(reason || "status-action") },
+            }),
         );
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 async function askKeepVectors(actionLabel = "") {
     return await comfyConfirm(
         t(
             "dialog.vectorsReset.keepQuestion",
-            "Keep existing AI vectors?\n\nConfirm = keep vectors\nCancel = continue without vectors"
+            "Keep existing AI vectors?\n\nConfirm = keep vectors\nCancel = continue without vectors",
         ),
-        actionLabel || t("dialog.vectorsReset.title", "AI vectors")
+        actionLabel || t("dialog.vectorsReset.title", "AI vectors"),
     );
 }
 
@@ -203,7 +240,8 @@ export function createStatusIndicator(options = {}) {
     // Runtime state is re-detected from backend diagnostics during polling.
     setMaintenanceActive(false);
     const section = document.createElement("div");
-    section.style.cssText = "margin-bottom: 20px; padding: 12px; background: var(--bg-color, #1a1a1a); border-radius: 6px; border: 1px solid var(--border-color, #333); cursor: pointer; transition: all 0.2s;";
+    section.style.cssText =
+        "margin-bottom: 20px; padding: 12px; background: var(--bg-color, #1a1a1a); border-radius: 6px; border: 1px solid var(--border-color, #333); cursor: pointer; transition: all 0.2s;";
     applyStatusHighlight(section, "info", { toast: false });
 
     // Header container
@@ -213,7 +251,8 @@ export function createStatusIndicator(options = {}) {
     // Status dot
     const statusDot = document.createElement("span");
     statusDot.id = "mjr-status-dot";
-    statusDot.style.cssText = "width: 12px; height: 12px; border-radius: 50%; background: var(--mjr-status-info, #64B5F6); display: inline-block; cursor: pointer;";
+    statusDot.style.cssText =
+        "width: 12px; height: 12px; border-radius: 50%; background: var(--mjr-status-info, #64B5F6); display: inline-block; cursor: pointer;";
 
     // Title container
     const titleSpan = document.createElement("span");
@@ -245,7 +284,8 @@ export function createStatusIndicator(options = {}) {
     // Capabilities section
     const capabilities = document.createElement("div");
     capabilities.id = "mjr-status-capabilities";
-    capabilities.style.cssText = "font-size: 11px; opacity: 0.75; margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap;";
+    capabilities.style.cssText =
+        "font-size: 11px; opacity: 0.75; margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap;";
     capabilities.textContent = t("status.discoveringTools");
 
     body.appendChild(statusText);
@@ -258,7 +298,8 @@ export function createStatusIndicator(options = {}) {
     body.appendChild(toolsStatus);
 
     const backupRow = document.createElement("div");
-    backupRow.style.cssText = "margin-top: 10px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;";
+    backupRow.style.cssText =
+        "margin-top: 10px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;";
 
     const backupSelect = document.createElement("select");
     backupSelect.style.cssText = `
@@ -339,18 +380,28 @@ export function createStatusIndicator(options = {}) {
                 comfyToast(t("toast.dbSaveSuccess", "Database backup saved"), "success", 2200);
                 await refreshBackups();
             } else {
-                comfyToast(res?.error || t("toast.dbSaveFailed", "Failed to save DB backup"), "error");
+                comfyToast(
+                    res?.error || t("toast.dbSaveFailed", "Failed to save DB backup"),
+                    "error",
+                );
             }
         } catch (error) {
-            comfyToast(error?.message || t("toast.dbSaveFailed", "Failed to save DB backup"), "error");
+            comfyToast(
+                error?.message || t("toast.dbSaveFailed", "Failed to save DB backup"),
+                "error",
+            );
         } finally {
             setMaintenanceActive(false);
             saveDbBtn.disabled = false;
             saveDbBtn.textContent = original;
             try {
                 const target = getScanContext ? getScanContext() : null;
-                await updateStatus(statusDot, statusText, capabilities, target, null, { force: true });
-            } catch (e) { console.debug?.(e); }
+                await updateStatus(statusDot, statusText, capabilities, target, null, {
+                    force: true,
+                });
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
     };
     backupRow.appendChild(saveDbBtn);
@@ -376,8 +427,11 @@ export function createStatusIndicator(options = {}) {
             return;
         }
         const confirmed = await comfyConfirm(
-            t("dialog.dbRestore.confirm", "Restore selected DB backup? Current DB will be replaced."),
-            t("btn.dbRestore", "Restore DB")
+            t(
+                "dialog.dbRestore.confirm",
+                "Restore selected DB backup? Current DB will be replaced.",
+            ),
+            t("btn.dbRestore", "Restore DB"),
         );
         if (!confirmed) return;
         comfyToast(t("toast.dbRestoreStarted", "DB restore started"), "info", 1800);
@@ -392,10 +446,16 @@ export function createStatusIndicator(options = {}) {
             if (res?.ok) {
                 await refreshBackups();
             } else {
-                comfyToast(res?.error || t("toast.dbRestoreFailed", "Failed to restore DB backup"), "error");
+                comfyToast(
+                    res?.error || t("toast.dbRestoreFailed", "Failed to restore DB backup"),
+                    "error",
+                );
             }
         } catch (error) {
-            comfyToast(error?.message || t("toast.dbRestoreFailed", "Failed to restore DB backup"), "error");
+            comfyToast(
+                error?.message || t("toast.dbRestoreFailed", "Failed to restore DB backup"),
+                "error",
+            );
         } finally {
             setMaintenanceActive(false);
             restoreDbBtn.disabled = false;
@@ -403,8 +463,12 @@ export function createStatusIndicator(options = {}) {
             emitGlobalGridReload("db-restore");
             try {
                 const target = getScanContext ? getScanContext() : null;
-                await updateStatus(statusDot, statusText, capabilities, target, null, { force: true });
-            } catch (e) { console.debug?.(e); }
+                await updateStatus(statusDot, statusText, capabilities, target, null, {
+                    force: true,
+                });
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
     };
     backupRow.appendChild(restoreDbBtn);
@@ -412,10 +476,12 @@ export function createStatusIndicator(options = {}) {
     body.appendChild(backupRow);
 
     const actionsRow = document.createElement("div");
-    actionsRow.style.cssText = "margin-top: 10px; display: flex; justify-content: flex-end; gap: 8px;";
+    actionsRow.style.cssText =
+        "margin-top: 10px; display: flex; justify-content: flex-end; gap: 8px;";
 
     const actionLog = document.createElement("div");
-    actionLog.style.cssText = "margin-top: 8px; font-size: 11px; opacity: 0.9; line-height: 1.35; white-space: pre-wrap;";
+    actionLog.style.cssText =
+        "margin-top: 8px; font-size: 11px; opacity: 0.9; line-height: 1.35; white-space: pre-wrap;";
     actionLog.textContent = "";
 
     const setActionLog = (message, tone = "neutral") => {
@@ -448,7 +514,10 @@ export function createStatusIndicator(options = {}) {
     const resetBtn = document.createElement("button");
     resetBtn.type = "button";
     resetBtn.textContent = t("btn.resetIndex");
-    resetBtn.title = t("status.resetIndexHint", "Reset index cache (requires allowResetIndex in settings).");
+    resetBtn.title = t(
+        "status.resetIndexHint",
+        "Reset index cache (requires allowResetIndex in settings).",
+    );
     resetBtn.style.cssText = `
         padding: 5px 12px;
         font-size: 11px;
@@ -473,11 +542,14 @@ export function createStatusIndicator(options = {}) {
         const confirmed = await comfyConfirm(
             preserveVectors
                 ? t(
-                    "dialog.resetIndex.confirmKeepVectors",
-                    "This will reset index data and rescan files while keeping existing AI vectors.\n\nContinue?"
-                )
-                : t("dialog.resetIndex.msg", "This will delete the database and rescan all files. Continue?"),
-            t("dialog.resetIndex.title", "Reset index?")
+                      "dialog.resetIndex.confirmKeepVectors",
+                      "This will reset index data and rescan files while keeping existing AI vectors.\n\nContinue?",
+                  )
+                : t(
+                      "dialog.resetIndex.msg",
+                      "This will delete the database and rescan all files. Continue?",
+                  ),
+            t("dialog.resetIndex.title", "Reset index?"),
         );
         if (!confirmed) return;
         setMaintenanceActive(true);
@@ -485,7 +557,7 @@ export function createStatusIndicator(options = {}) {
         const originalText = resetBtn.textContent;
         resetBtn.disabled = true;
         resetBtn.textContent = t("btn.resetting");
-        
+
         // Status indicator feedback
         statusDot.style.background = "var(--mjr-status-info, #64B5F6)";
         applyStatusHighlight(section, "info");
@@ -528,8 +600,12 @@ export function createStatusIndicator(options = {}) {
             emitGlobalGridReload("index-reset");
             try {
                 const target = getScanContext ? getScanContext() : null;
-                await updateStatus(statusDot, statusText, capabilities, target, null, { force: true });
-            } catch (e) { console.debug?.(e); }
+                await updateStatus(statusDot, statusText, capabilities, target, null, {
+                    force: true,
+                });
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
     };
 
@@ -560,19 +636,22 @@ export function createStatusIndicator(options = {}) {
         const ctx = getScanContext ? getScanContext() : {};
         const desiredScope = String(ctx?.scope || "output").toLowerCase();
         const desiredCustomRootId = String(
-            ctx?.customRootId || ctx?.custom_root_id || ctx?.root_id || ""
+            ctx?.customRootId || ctx?.custom_root_id || ctx?.root_id || "",
         ).trim();
         const isCustomBrowserMode = desiredScope === "custom" && !desiredCustomRootId;
         if (isCustomBrowserMode) {
             comfyToast(
                 t(
                     "status.customBrowserScanDisabledHint",
-                    "Use Outputs, Inputs, or All to run indexing scans"
+                    "Use Outputs, Inputs, or All to run indexing scans",
                 ),
                 "warning",
-                2600
+                2600,
             );
-            setActionLog("Backfill skipped - Browser scope has no selected custom root.", "warning");
+            setActionLog(
+                "Backfill skipped - Browser scope has no selected custom root.",
+                "warning",
+            );
             return;
         }
         const backfillScope = desiredScope || "output";
@@ -602,8 +681,17 @@ export function createStatusIndicator(options = {}) {
                         setActionLog("Backfill queued…", "info");
                         return;
                     }
-                    if (status === "running" || candidates > 0 || indexed > 0 || skipped > 0 || errors > 0) {
-                        setActionLog(`Backfill running — candidates ${candidates}, indexed ${indexed}, skipped ${skipped}, errors ${errors}`, "info");
+                    if (
+                        status === "running" ||
+                        candidates > 0 ||
+                        indexed > 0 ||
+                        skipped > 0 ||
+                        errors > 0
+                    ) {
+                        setActionLog(
+                            `Backfill running — candidates ${candidates}, indexed ${indexed}, skipped ${skipped}, errors ${errors}`,
+                            "info",
+                        );
                     }
                 },
             };
@@ -613,7 +701,8 @@ export function createStatusIndicator(options = {}) {
             const res = await vectorBackfill(64, backfillOptions);
             if (res?.ok) {
                 const state = String(res?.data?.status || "").toLowerCase();
-                const pending = !!res?.data?.pending || ["queued", "running", "pending"].includes(state);
+                const pending =
+                    !!res?.data?.pending || ["queued", "running", "pending"].includes(state);
                 const progress = res?.data?.progress || {};
                 const processed = Number(res?.data?.processed ?? progress?.candidates ?? 0);
                 const indexed = Number(res?.data?.indexed ?? progress?.indexed ?? 0);
@@ -624,7 +713,7 @@ export function createStatusIndicator(options = {}) {
                     const msg = t(
                         "toast.vectorBackfillRunning",
                         "Vector backfill still running in background{job}.",
-                        { job: jobId ? ` (job ${jobId.slice(0, 8)})` : "" }
+                        { job: jobId ? ` (job ${jobId.slice(0, 8)})` : "" },
                     );
                     comfyToast(msg, "info", 4200);
                     setActionLog(
@@ -638,24 +727,27 @@ export function createStatusIndicator(options = {}) {
                         t(
                             "toast.vectorBackfillComplete",
                             "Vector backfill complete! Processed: {processed}, Indexed: {indexed}, Skipped: {skipped}",
-                            { processed, indexed, skipped }
+                            { processed, indexed, skipped },
                         ),
                         "success",
-                        3000
+                        3000,
                     );
-                    setActionLog(`Backfill OK — processed ${processed}, indexed ${indexed}, skipped ${skipped}`, "success");
+                    setActionLog(
+                        `Backfill OK — processed ${processed}, indexed ${indexed}, skipped ${skipped}`,
+                        "success",
+                    );
                     statusDot.style.background = "var(--mjr-status-success, #4CAF50)";
                     applyStatusHighlight(section, "success");
                 }
             } else {
-                const err = String(res?.error || t("toast.vectorBackfillFailedGeneric", "Backfill failed"));
+                const err = String(
+                    res?.error || t("toast.vectorBackfillFailedGeneric", "Backfill failed"),
+                );
                 const code = String(res?.code || "").trim();
                 const status = Number(res?.status || 0) || 0;
-                const detail = [
-                    code ? `code=${code}` : "",
-                    status ? `status=${status}` : "",
-                    err,
-                ].filter(Boolean).join(" | ");
+                const detail = [code ? `code=${code}` : "", status ? `status=${status}` : "", err]
+                    .filter(Boolean)
+                    .join(" | ");
                 comfyToast(detail, "error", 4500);
                 setActionLog(`Backfill ERROR — ${detail}\nSee console for full payload.`, "error");
                 console.error("[Majoor] Vector backfill failed response", res);
@@ -678,8 +770,12 @@ export function createStatusIndicator(options = {}) {
             emitGlobalGridReload("vector-backfill");
             try {
                 const target = getScanContext ? getScanContext() : null;
-                await updateStatus(statusDot, statusText, capabilities, target, null, { force: true });
-            } catch (e) { console.debug?.(e); }
+                await updateStatus(statusDot, statusText, capabilities, target, null, {
+                    force: true,
+                });
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
     };
 
@@ -715,21 +811,23 @@ export function createStatusIndicator(options = {}) {
         const confirmed = await comfyConfirm(
             preserveVectors
                 ? t(
-                    "dialog.dbDelete.keepVectorsConfirm",
-                    "This will reset index data and keep existing AI vectors. Database files will not be force-deleted.\n\nContinue?"
-                )
+                      "dialog.dbDelete.keepVectorsConfirm",
+                      "This will reset index data and keep existing AI vectors. Database files will not be force-deleted.\n\nContinue?",
+                  )
                 : t(
-                    "dialog.dbDelete.confirm",
-                    "This will permanently delete the index database and rebuild it from scratch. All ratings, tags, and cached metadata will be lost.\n\nContinue?"
-                ),
-            t("btn.deleteDb", "Delete DB")
+                      "dialog.dbDelete.confirm",
+                      "This will permanently delete the index database and rebuild it from scratch. All ratings, tags, and cached metadata will be lost.\n\nContinue?",
+                  ),
+            t("btn.deleteDb", "Delete DB"),
         );
         if (!confirmed) return;
         setMaintenanceActive(true);
 
         const originalText = deleteDbBtn.textContent;
         deleteDbBtn.disabled = true;
-        deleteDbBtn.textContent = preserveVectors ? t("btn.resetting", "Resetting...") : t("btn.deletingDb");
+        deleteDbBtn.textContent = preserveVectors
+            ? t("btn.resetting", "Resetting...")
+            : t("btn.deletingDb");
         resetBtn.disabled = true;
 
         statusDot.style.background = "var(--mjr-status-info, #64B5F6)";
@@ -738,17 +836,17 @@ export function createStatusIndicator(options = {}) {
         try {
             const res = preserveVectors
                 ? await resetIndex({
-                    scope: "all",
-                    reindex: true,
-                    maintenance_force: true,
-                    hard_reset_db: false,
-                    clear_scan_journal: true,
-                    clear_metadata_cache: true,
-                    clear_asset_metadata: true,
-                    clear_assets: false,
-                    preserve_vectors: true,
-                    rebuild_fts: true,
-                })
+                      scope: "all",
+                      reindex: true,
+                      maintenance_force: true,
+                      hard_reset_db: false,
+                      clear_scan_journal: true,
+                      clear_metadata_cache: true,
+                      clear_asset_metadata: true,
+                      clear_assets: false,
+                      preserve_vectors: true,
+                      rebuild_fts: true,
+                  })
                 : await forceDeleteDb();
             if (res?.ok) {
                 globalThis._mjrCorruptToastShown = false;
@@ -766,11 +864,17 @@ export function createStatusIndicator(options = {}) {
             deleteDbBtn.disabled = false;
             deleteDbBtn.textContent = originalText;
             resetBtn.disabled = false;
-            emitGlobalGridReload(preserveVectors ? "index-reset-preserve-vectors" : "db-force-delete");
+            emitGlobalGridReload(
+                preserveVectors ? "index-reset-preserve-vectors" : "db-force-delete",
+            );
             try {
                 const target = getScanContext ? getScanContext() : null;
-                await updateStatus(statusDot, statusText, capabilities, target, null, { force: true });
-            } catch (e) { console.debug?.(e); }
+                await updateStatus(statusDot, statusText, capabilities, target, null, {
+                    force: true,
+                });
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
     };
 
@@ -779,8 +883,6 @@ export function createStatusIndicator(options = {}) {
 
     section.appendChild(header);
     section.appendChild(body);
-
-
 
     const title = section.querySelector("#mjr-status-title");
     if (title) {
@@ -800,7 +902,9 @@ export function createStatusIndicator(options = {}) {
     };
     section.onmouseleave = () => {
         section.style.transform = "";
-        applyStatusHighlight(section, section.dataset?.mjrStatusTone || "neutral", { toast: false });
+        applyStatusHighlight(section, section.dataset?.mjrStatusTone || "neutral", {
+            toast: false,
+        });
     };
 
     const onDbRestoreStatus = async (event) => {
@@ -825,17 +929,16 @@ export function createStatusIndicator(options = {}) {
                 setMaintenanceActive(false);
             }
 
-            if (!section?.isConnected || !statusDot?.isConnected || !statusText?.isConnected) return;
+            if (!section?.isConnected || !statusDot?.isConnected || !statusText?.isConnected)
+                return;
 
-            if (
-                isMaintenanceStep
-            ) {
+            if (isMaintenanceStep) {
                 statusDot.style.background = "var(--mjr-status-info, #64B5F6)";
                 applyStatusHighlight(section, "info", { toast: false });
                 setStatusWithHint(
                     statusText,
                     t("status.pending", "Pending..."),
-                    t("status.dbRestoreInProgress", "Database restore in progress")
+                    t("status.dbRestoreInProgress", "Database restore in progress"),
                 );
                 return;
             }
@@ -845,7 +948,10 @@ export function createStatusIndicator(options = {}) {
                 applyStatusHighlight(section, "error", { toast: false });
                 setStatusLines(statusText, [
                     t("status.error", "Error"),
-                    String(detail?.message || t("toast.dbRestoreFailed", "Failed to restore DB backup")),
+                    String(
+                        detail?.message ||
+                            t("toast.dbRestoreFailed", "Failed to restore DB backup"),
+                    ),
                 ]);
                 return;
             }
@@ -856,23 +962,31 @@ export function createStatusIndicator(options = {}) {
                 const op = String(detail?.operation || "");
                 const doneHint =
                     op === "delete_db"
-                        ? t("toast.dbDeleteSuccess", "Database deleted and rebuilt. Files are being reindexed.")
+                        ? t(
+                              "toast.dbDeleteSuccess",
+                              "Database deleted and rebuilt. Files are being reindexed.",
+                          )
                         : op === "reset_index"
-                        ? t("toast.resetStarted", "Index reset started. Files will be reindexed in the background.")
-                        : t("toast.dbRestoreSuccess", "Database backup restored");
-                setStatusWithHint(
-                    statusText,
-                    t("status.ready", "Ready"),
-                    doneHint
-                );
+                          ? t(
+                                "toast.resetStarted",
+                                "Index reset started. Files will be reindexed in the background.",
+                            )
+                          : t("toast.dbRestoreSuccess", "Database backup restored");
+                setStatusWithHint(statusText, t("status.ready", "Ready"), doneHint);
                 try {
                     const target = getScanContext ? getScanContext() : null;
                     setTimeout(() => {
-                        void updateStatus(statusDot, statusText, capabilities, target, null, { force: true });
+                        void updateStatus(statusDot, statusText, capabilities, target, null, {
+                            force: true,
+                        });
                     }, 600);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
     try {
         const old = _dbRestoreStatusHandler;
@@ -882,7 +996,9 @@ export function createStatusIndicator(options = {}) {
         _dbRestoreStatusHandler = onDbRestoreStatus;
         section._mjrDbRestoreStatusHandler = onDbRestoreStatus;
         window.addEventListener("mjr-db-restore-status", onDbRestoreStatus);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     const onRuntimeStatus = (event) => {
         try {
@@ -890,17 +1006,28 @@ export function createStatusIndicator(options = {}) {
             const queueRemaining = Number(detail?.queue_remaining);
             const progressValue = Number(detail?.progress_value);
             const progressMax = Number(detail?.progress_max);
-            const cachedNodes = Array.isArray(detail?.cached_nodes) ? detail.cached_nodes.length : 0;
+            const cachedNodes = Array.isArray(detail?.cached_nodes)
+                ? detail.cached_nodes.length
+                : 0;
             const activePromptId = String(detail?.active_prompt_id || "").trim();
-            const progressLine = Number.isFinite(progressValue) && Number.isFinite(progressMax) && progressMax > 0
-                ? t("status.runtimeProgress", "Runtime progress: {value}/{max}", { value: progressValue, max: progressMax })
-                : "";
+            const progressLine =
+                Number.isFinite(progressValue) && Number.isFinite(progressMax) && progressMax > 0
+                    ? t("status.runtimeProgress", "Runtime progress: {value}/{max}", {
+                          value: progressValue,
+                          max: progressMax,
+                      })
+                    : "";
             const queueLine = Number.isFinite(queueRemaining)
-                ? t("status.queueRemaining", "Queue remaining: {count}", { count: Math.max(0, queueRemaining) })
+                ? t("status.queueRemaining", "Queue remaining: {count}", {
+                      count: Math.max(0, queueRemaining),
+                  })
                 : "";
-            const cachedLine = cachedNodes > 0
-                ? t("status.executionCached", "Cached nodes reused: {count}", { count: cachedNodes })
-                : "";
+            const cachedLine =
+                cachedNodes > 0
+                    ? t("status.executionCached", "Cached nodes reused: {count}", {
+                          count: cachedNodes,
+                      })
+                    : "";
             const promptLine = activePromptId
                 ? t("status.activePrompt", "Active prompt: {id}", { id: activePromptId })
                 : "";
@@ -912,7 +1039,9 @@ export function createStatusIndicator(options = {}) {
             } else {
                 setStatusWithHint(statusText, t("status.ready", "Ready"), liveLines.join("  |  "));
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
     try {
         const old = _runtimeStatusHandler;
@@ -921,7 +1050,9 @@ export function createStatusIndicator(options = {}) {
         }
         _runtimeStatusHandler = onRuntimeStatus;
         window.addEventListener(EVENTS.RUNTIME_STATUS, onRuntimeStatus);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     return section;
 }
@@ -929,14 +1060,25 @@ export function createStatusIndicator(options = {}) {
 /**
  * Trigger a scan
  */
-export async function triggerScan(statusDot, statusText, capabilitiesSection = null, scanTarget = null) {
+export async function triggerScan(
+    statusDot,
+    statusText,
+    capabilitiesSection = null,
+    scanTarget = null,
+) {
     if (_maintenanceActive) {
-        comfyToast(t("status.maintenanceBusy", "Database maintenance in progress. Please wait."), "warning", 2200);
+        comfyToast(
+            t("status.maintenanceBusy", "Database maintenance in progress. Please wait."),
+            "warning",
+            2200,
+        );
         return;
     }
-    const section = statusText?.closest?.("#mjr-status-body")?.parentElement || statusText?.closest?.("div");
+    const section =
+        statusText?.closest?.("#mjr-status-body")?.parentElement || statusText?.closest?.("div");
     const desiredScope = String(scanTarget?.scope || "output").toLowerCase();
-    const desiredCustomRootId = scanTarget?.customRootId || scanTarget?.custom_root_id || scanTarget?.root_id || null;
+    const desiredCustomRootId =
+        scanTarget?.customRootId || scanTarget?.custom_root_id || scanTarget?.root_id || null;
     const isCustomBrowserMode = desiredScope === "custom" && !desiredCustomRootId;
     if (isCustomBrowserMode) {
         statusDot.style.background = "var(--mjr-status-info, #64B5F6)";
@@ -944,7 +1086,10 @@ export async function triggerScan(statusDot, statusText, capabilitiesSection = n
         setStatusWithHint(
             statusText,
             t("status.customBrowserScanDisabled", "Custom browser mode: scan is disabled"),
-            t("status.customBrowserScanDisabledHint", "Use Outputs, Inputs, or All to run indexing scans")
+            t(
+                "status.customBrowserScanDisabledHint",
+                "Use Outputs, Inputs, or All to run indexing scans",
+            ),
         );
         return;
     }
@@ -959,20 +1104,28 @@ export async function triggerScan(statusDot, statusText, capabilitiesSection = n
                 setStatusWithHint(
                     statusText,
                     t("status.scanInProgress", "Scan already running..."),
-                    t("status.scanInProgressHint", "Please wait for the current scan to finish")
+                    t("status.scanInProgressHint", "Please wait for the current scan to finish"),
                 );
                 return;
             }
         }
-        globalThis._mjrScanInFlight = { at: now, scope: desiredScope, root_id: desiredCustomRootId || null };
-    } catch (e) { console.debug?.(e); }
+        globalThis._mjrScanInFlight = {
+            at: now,
+            scope: desiredScope,
+            root_id: desiredCustomRootId || null,
+        };
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     const clearScanInFlight = () => {
         try {
             if (globalThis?._mjrScanInFlight) {
                 globalThis._mjrScanInFlight = null;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     // Incremental is always favored.
@@ -984,7 +1137,9 @@ export async function triggerScan(statusDot, statusText, capabilitiesSection = n
     try {
         const rootsResult = await get(ENDPOINTS.ROOTS);
         if (rootsResult.ok) roots = rootsResult.data;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // Fallback to config for output directory if roots endpoint is unavailable
     if (!roots) {
@@ -1003,23 +1158,32 @@ export async function triggerScan(statusDot, statusText, capabilitiesSection = n
         desiredScope === "all"
             ? t("scope.all", "Inputs + Outputs")
             : desiredScope === "input"
-            ? t("scope.input", "Inputs")
-            : desiredScope === "custom"
-            ? t("scope.custom", "Custom")
-            : t("scope.output", "Outputs");
+              ? t("scope.input", "Inputs")
+              : desiredScope === "custom"
+                ? t("scope.custom", "Custom")
+                : t("scope.output", "Outputs");
 
     let detail = "";
-    if (desiredScope === "input") detail = roots?.input_directory ? ` (${roots.input_directory})` : "";
+    if (desiredScope === "input")
+        detail = roots?.input_directory ? ` (${roots.input_directory})` : "";
     else if (desiredScope === "custom") {
         const list = Array.isArray(roots?.custom_roots) ? roots.custom_roots : [];
         const picked = desiredCustomRootId ? list.find((r) => r?.id === desiredCustomRootId) : null;
         detail = picked?.path ? ` (${picked.path})` : "";
-    } else if (desiredScope === "output") detail = roots?.output_directory ? ` (${roots.output_directory})` : "";
+    } else if (desiredScope === "output")
+        detail = roots?.output_directory ? ` (${roots.output_directory})` : "";
 
     // Show scanning status
     statusDot.style.background = "var(--mjr-status-info, #64B5F6)";
     applyStatusHighlight(section, "info");
-    setStatusWithHint(statusText, t("status.scanningScope", `Scanning ${scopeLabel}${detail}...`, { scope: scopeLabel, detail }), t("status.scanningHint", "This may take a while"));
+    setStatusWithHint(
+        statusText,
+        t("status.scanningScope", `Scanning ${scopeLabel}${detail}...`, {
+            scope: scopeLabel,
+            detail,
+        }),
+        t("status.scanningHint", "This may take a while"),
+    );
 
     const settings = loadMajoorSettings();
     const fastModeEnabled = !!(settings?.scan?.fastMode ?? true);
@@ -1029,7 +1193,7 @@ export async function triggerScan(statusDot, statusText, capabilitiesSection = n
         recursive: true,
         incremental: shouldIncremental,
         fast: fastModeEnabled,
-        background_metadata: true
+        background_metadata: true,
     };
     if (desiredScope === "custom") {
         if (!desiredCustomRootId) {
@@ -1042,7 +1206,7 @@ export async function triggerScan(statusDot, statusText, capabilitiesSection = n
         payload.custom_root_id = desiredCustomRootId;
     }
 
-    let scanResult = null;
+    let scanResult;
     try {
         // Trigger scan
         scanResult = await post(ENDPOINTS.SCAN, payload);
@@ -1057,7 +1221,15 @@ export async function triggerScan(statusDot, statusText, capabilitiesSection = n
         setStatusWithHint(
             statusText,
             t("toast.scanComplete"),
-            t("status.scanStats", `Added: ${stats.added || 0}  -  Updated: ${stats.updated || 0}  -  Skipped: ${stats.skipped || 0}`, { added: stats.added || 0, updated: stats.updated || 0, skipped: stats.skipped || 0 })
+            t(
+                "status.scanStats",
+                `Added: ${stats.added || 0}  -  Updated: ${stats.updated || 0}  -  Skipped: ${stats.skipped || 0}`,
+                {
+                    added: stats.added || 0,
+                    updated: stats.updated || 0,
+                    skipped: stats.skipped || 0,
+                },
+            ),
         );
         emitGlobalGridReload("scan-complete");
 
@@ -1068,7 +1240,9 @@ export async function triggerScan(statusDot, statusText, capabilitiesSection = n
     } else {
         statusDot.style.background = "var(--mjr-status-error, #f44336)"; // Red
         applyStatusHighlight(section, "error");
-        setStatusLines(statusText, [t("toast.scanFailed") + `: ${scanResult?.error || "Unknown error"}`]);
+        setStatusLines(statusText, [
+            t("toast.scanFailed") + `: ${scanResult?.error || "Unknown error"}`,
+        ]);
 
         // Restore status after 3 seconds
         setTimeout(() => {
@@ -1089,7 +1263,9 @@ function createCapabilityBadge(label, available, hint) {
         border: 1px solid rgba(255, 255, 255, 0.1);
     `;
     badge.textContent = `${available ? "✅" : "❌"} ${label}`;
-    badge.title = available ? t("status.toolAvailable", `${label} available`, { tool: label }) : hint || t("status.toolUnavailable", `${label} unavailable`, { tool: label });
+    badge.title = available
+        ? t("status.toolAvailable", `${label} available`, { tool: label })
+        : hint || t("status.toolUnavailable", `${label} unavailable`, { tool: label });
     badge.style.opacity = available ? "1" : "0.75";
     return badge;
 }
@@ -1134,12 +1310,15 @@ function renderToolsStatusLine(section, toolStatus = null, fallbackAvailability 
 
     const segments = TOOL_CAPABILITIES.map(({ key, labelKey }) => {
         const label = t(labelKey, key);
-        const availability =
-            toolStatus && key in toolStatus ? toolStatus[key] : undefined;
+        const availability = toolStatus && key in toolStatus ? toolStatus[key] : undefined;
         const fallback = key in fallbackAvailability ? fallbackAvailability[key] : undefined;
         const available = availability !== undefined ? availability : fallback;
         const statusText =
-            available === null || available === undefined ? t("status.unknown", "unknown") : available ? t("status.available", "available") : t("status.missing", "missing");
+            available === null || available === undefined
+                ? t("status.unknown", "unknown")
+                : available
+                  ? t("status.available", "available")
+                  : t("status.missing", "missing");
         const version = toolStatus?.versions?.[key];
         return version ? `${label}: ${statusText} - ${version}` : `${label}: ${statusText}`;
     });
@@ -1167,7 +1346,9 @@ function createCapabilityNode({ label, hint }, available, path) {
     pathLine.style.fontSize = "10px";
     pathLine.style.opacity = "0.7";
     pathLine.style.wordBreak = "break-all";
-    pathLine.textContent = t("status.path", "Path") + `: ${path ? path : t("status.pathAuto", "auto / not configured")}`;
+    pathLine.textContent =
+        t("status.path", "Path") +
+        `: ${path ? path : t("status.pathAuto", "auto / not configured")}`;
     container.appendChild(pathLine);
 
     return container;
@@ -1208,10 +1389,10 @@ function buildIndexHealthLine(counters, desiredScope) {
         desiredScope === "all"
             ? t("scope.all", "Inputs + Outputs")
             : desiredScope === "input"
-            ? t("scope.input", "Inputs")
-            : desiredScope === "custom"
-            ? t("scope.custom", "Custom")
-            : t("scope.output", "Outputs");
+              ? t("scope.input", "Inputs")
+              : desiredScope === "custom"
+                ? t("scope.custom", "Custom")
+                : t("scope.output", "Outputs");
 
     if (!Number.isFinite(totalAssets) || totalAssets <= 0) {
         return `${t("status.indexHealthEmpty", "Index health: empty")} (${scopeLabel})`;
@@ -1222,19 +1403,33 @@ function buildIndexHealthLine(counters, desiredScope) {
     return `${t("status.indexHealthOk", "Index health: ok")} (${scopeLabel})`;
 }
 
-export async function updateStatus(statusDot, statusText, capabilitiesSection = null, scanTarget = null, meta = null, options = {}) {
-    const section = statusText?.closest?.("#mjr-status-body")?.parentElement || statusText?.closest?.("div");
+export async function updateStatus(
+    statusDot,
+    statusText,
+    capabilitiesSection = null,
+    scanTarget = null,
+    meta = null,
+    options = {},
+) {
+    const section =
+        statusText?.closest?.("#mjr-status-body")?.parentElement || statusText?.closest?.("div");
     const signal = options?.signal || null;
     const force = !!options?.force;
     try {
         if (signal?.aborted) return null;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         if (!statusDot?.isConnected || !statusText?.isConnected) return null;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         if (!force && _maintenanceActive) return null;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     // Optional: caller-provided object to read the last HTTP error details from.
     // (Used by the polling loop to avoid relying on string matching.)
     if (meta && typeof meta === "object") {
@@ -1243,23 +1438,21 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
     }
 
     const desiredScope = String(scanTarget?.scope || "output").toLowerCase();
-    const desiredCustomRootId = scanTarget?.customRootId || scanTarget?.custom_root_id || scanTarget?.root_id || null;
+    const desiredCustomRootId =
+        scanTarget?.customRootId || scanTarget?.custom_root_id || scanTarget?.root_id || null;
     const isCustomBrowserMode = desiredScope === "custom" && !desiredCustomRootId;
-    const url =
-        isCustomBrowserMode
-            ? `${ENDPOINTS.HEALTH_COUNTERS}?scope=all`
-            : desiredScope === "custom"
-            ? `${ENDPOINTS.HEALTH_COUNTERS}?scope=custom&custom_root_id=${encodeURIComponent(String(desiredCustomRootId || ""))}`
-            : `${ENDPOINTS.HEALTH_COUNTERS}?scope=${encodeURIComponent(desiredScope || "output")}`;
+    const url = isCustomBrowserMode
+        ? `${ENDPOINTS.HEALTH_COUNTERS}?scope=all`
+        : desiredScope === "custom"
+          ? `${ENDPOINTS.HEALTH_COUNTERS}?scope=custom&custom_root_id=${encodeURIComponent(String(desiredCustomRootId || ""))}`
+          : `${ENDPOINTS.HEALTH_COUNTERS}?scope=${encodeURIComponent(desiredScope || "output")}`;
     const lightweight = !!options?.lightweight;
     const shouldFetchAux =
-        force ||
-        !lightweight ||
-        !(meta && typeof meta === "object" && meta._auxCached);
+        force || !lightweight || !(meta && typeof meta === "object" && meta._auxCached);
 
-    let result = null;
-    let healthResult = null;
-    let dbDiagResult = null;
+    let result;
+    let healthResult;
+    let dbDiagResult;
     let toolStatusData = null;
 
     if (shouldFetchAux) {
@@ -1274,7 +1467,9 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
         try {
             const toolsResult = await getToolsStatus(signal ? { signal } : undefined);
             if (toolsResult?.ok) toolStatusData = toolsResult.data;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         if (meta && typeof meta === "object") {
             meta._auxCached = true;
             meta._healthCache = healthResult;
@@ -1289,10 +1484,14 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
     }
     try {
         if (signal?.aborted) return null;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         if (!statusDot?.isConnected || !statusText?.isConnected) return null;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     if (meta && typeof meta === "object") {
         meta.lastCode = result?.code || null;
@@ -1311,7 +1510,8 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
         const dbSizeLine = t("status.dbSize", "Database size: {size}", {
             size: formatBytes(counters.db_size_bytes || 0),
         });
-        const vectorDiag = healthResult?.ok && healthResult?.data ? (healthResult.data.vector || {}) : {};
+        const vectorDiag =
+            healthResult?.ok && healthResult?.data ? healthResult.data.vector || {} : {};
         const vectorEnabled = vectorDiag?.enabled !== false;
         const vectorLoaded = !!vectorDiag?.loaded;
         const vectorDegraded = !!vectorDiag?.degraded;
@@ -1319,19 +1519,28 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
         const vectorLine = !vectorEnabled
             ? "AI vector: disabled"
             : vectorDegraded
-                ? `AI vector: degraded${vectorLastError ? ` (${vectorLastError})` : ""}`
-                : vectorLoaded
-                    ? "AI vector: loaded"
-                    : "AI vector: initializing";
-        const dbHealthLine = buildDbHealthLine(healthResult?.data || null, dbDiagResult?.data || null);
-        const indexHealthLine = buildIndexHealthLine(counters, isCustomBrowserMode ? "all" : desiredScope);
+              ? `AI vector: degraded${vectorLastError ? ` (${vectorLastError})` : ""}`
+              : vectorLoaded
+                ? "AI vector: loaded"
+                : "AI vector: initializing";
+        const dbHealthLine = buildDbHealthLine(
+            healthResult?.data || null,
+            dbDiagResult?.data || null,
+        );
+        const indexHealthLine = buildIndexHealthLine(
+            counters,
+            isCustomBrowserMode ? "all" : desiredScope,
+        );
         const dbAvailable = Boolean(healthResult?.ok && healthResult?.data?.database?.available);
-        const dbDiagnostics = dbDiagResult?.ok ? (dbDiagResult?.data?.diagnostics || {}) : {};
+        const dbDiagnostics = dbDiagResult?.ok ? dbDiagResult?.data?.diagnostics || {} : {};
         const dbMalformed = Boolean(dbDiagnostics?.malformed);
         const dbLocked = Boolean(dbDiagnostics?.locked);
         const dbMaintenance = Boolean(dbDiagnostics?.maintenance_active);
         setMaintenanceActive(dbMaintenance);
-        const enrichmentQueueLength = Math.max(0, Number(counters?.enrichment_queue_length || 0) || 0);
+        const enrichmentQueueLength = Math.max(
+            0,
+            Number(counters?.enrichment_queue_length || 0) || 0,
+        );
         const runtimeEnrichment = getEnrichmentState();
         const enrichmentActive = runtimeEnrichment.active || enrichmentQueueLength > 0;
         setEnrichmentState(enrichmentActive, enrichmentQueueLength);
@@ -1357,17 +1566,23 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
                 if (wres?.ok && wres.data) {
                     watcherInfo = {
                         enabled: !!wres.data.enabled,
-                        scope: (counters?.watcher?.scope || desiredScope),
+                        scope: counters?.watcher?.scope || desiredScope,
                         custom_root_id: desiredCustomRootId || null,
                     };
                 }
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         const watcherLine = isCustomBrowserMode
-            ? t("status.watcher.disabledScoped", "Watcher: disabled ({scope})", { scope: t("scope.customBrowser", "Browser") })
+            ? t("status.watcher.disabledScoped", "Watcher: disabled ({scope})", {
+                  scope: t("scope.customBrowser", "Browser"),
+              })
             : formatWatcherLine(watcherInfo, desiredScope);
         const enrichmentLine = enrichmentActive
-            ? t("status.enrichmentQueue", "Metadata enrichment queue: {count}", { count: enrichmentQueueLength })
+            ? t("status.enrichmentQueue", "Metadata enrichment queue: {count}", {
+                  count: enrichmentQueueLength,
+              })
             : t("status.enrichmentIdle", "Metadata enrichment: idle");
 
         renderCapabilities(capabilitiesSection, toolAvailability, toolPaths);
@@ -1377,10 +1592,10 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
             desiredScope === "all"
                 ? t("scope.allFull", "All (Inputs + Outputs)")
                 : desiredScope === "input"
-                ? t("scope.input", "Inputs")
-                : desiredScope === "custom"
-                ? t("scope.customBrowser", "Browser")
-                : t("scope.output", "Outputs");
+                  ? t("scope.input", "Inputs")
+                  : desiredScope === "custom"
+                    ? t("scope.customBrowser", "Browser")
+                    : t("scope.output", "Outputs");
 
         if (healthTone === "error") {
             statusDot.style.background = "var(--mjr-status-error, #f44336)";
@@ -1388,7 +1603,9 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
             setStatusWithHint(
                 statusText,
                 t("status.dbCorrupted", "Database appears corrupted or unavailable."),
-                [dbHealthLine, indexHealthLine, dbSizeLine, watcherLine].filter(Boolean).join("  |  ")
+                [dbHealthLine, indexHealthLine, dbSizeLine, watcherLine]
+                    .filter(Boolean)
+                    .join("  |  "),
             );
             return counters;
         }
@@ -1399,7 +1616,15 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
             setStatusWithHint(
                 statusText,
                 t("status.ready", "Ready"),
-                [t("status.browserMetricsHidden", "Browser mode: global DB/index metrics hidden"), watcherLine].filter(Boolean).join("  |  ")
+                [
+                    t(
+                        "status.browserMetricsHidden",
+                        "Browser mode: global DB/index metrics hidden",
+                    ),
+                    watcherLine,
+                ]
+                    .filter(Boolean)
+                    .join("  |  "),
             );
             return counters;
         }
@@ -1409,32 +1634,55 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
                 displayTone === "browser"
                     ? "var(--mjr-status-browser, #26A69A)"
                     : healthTone === "info"
-                    ? "var(--mjr-status-info, #64B5F6)"
-                    : healthTone === "warning"
-                    ? "var(--mjr-status-warning, #FFA726)"
-                    : "var(--mjr-status-success, #4CAF50)";
+                      ? "var(--mjr-status-info, #64B5F6)"
+                      : healthTone === "warning"
+                        ? "var(--mjr-status-warning, #FFA726)"
+                        : "var(--mjr-status-success, #4CAF50)";
             applyStatusHighlight(section, displayTone);
             setStatusWithHint(
                 statusText,
-                t("status.noAssets", `No assets indexed yet (${scopeLabel})`, { scope: scopeLabel }),
-                [t("status.clickToScan", "Click the dot to start a scan"), vectorLine, dbHealthLine, indexHealthLine, dbSizeLine, watcherLine].filter(Boolean).join("  |  ")
+                t("status.noAssets", `No assets indexed yet (${scopeLabel})`, {
+                    scope: scopeLabel,
+                }),
+                [
+                    t("status.clickToScan", "Click the dot to start a scan"),
+                    vectorLine,
+                    dbHealthLine,
+                    indexHealthLine,
+                    dbSizeLine,
+                    watcherLine,
+                ]
+                    .filter(Boolean)
+                    .join("  |  "),
             );
         } else {
             statusDot.style.background =
                 displayTone === "browser"
                     ? "var(--mjr-status-browser, #26A69A)"
                     : healthTone === "info"
-                    ? "var(--mjr-status-info, #64B5F6)"
-                    : healthTone === "warning"
-                    ? "var(--mjr-status-warning, #FFA726)"
-                    : "var(--mjr-status-success, #4CAF50)";
+                      ? "var(--mjr-status-info, #64B5F6)"
+                      : healthTone === "warning"
+                        ? "var(--mjr-status-warning, #FFA726)"
+                        : "var(--mjr-status-success, #4CAF50)";
             applyStatusHighlight(section, displayTone);
             setStatusLines(
                 statusText,
                 [
-                    t("status.assetsIndexed", `${totalAssets.toLocaleString()} assets indexed (${scopeLabel})`, { count: totalAssets.toLocaleString(), scope: scopeLabel }),
-                    t("status.imagesVideos", `Images: ${counters.images || 0}  -  Videos: ${counters.videos || 0}`, { images: counters.images || 0, videos: counters.videos || 0 }),
-                    t("status.withWorkflows", `With workflows: ${withWorkflows}  -  Generation data: ${withGenerationData}`, { workflows: withWorkflows, gendata: withGenerationData }),
+                    t(
+                        "status.assetsIndexed",
+                        `${totalAssets.toLocaleString()} assets indexed (${scopeLabel})`,
+                        { count: totalAssets.toLocaleString(), scope: scopeLabel },
+                    ),
+                    t(
+                        "status.imagesVideos",
+                        `Images: ${counters.images || 0}  -  Videos: ${counters.videos || 0}`,
+                        { images: counters.images || 0, videos: counters.videos || 0 },
+                    ),
+                    t(
+                        "status.withWorkflows",
+                        `With workflows: ${withWorkflows}  -  Generation data: ${withGenerationData}`,
+                        { workflows: withWorkflows, gendata: withGenerationData },
+                    ),
                     enrichmentLine,
                     vectorLine,
                     dbHealthLine,
@@ -1442,7 +1690,7 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
                     dbSizeLine,
                     watcherLine,
                 ],
-                t("status.lastScan", `Last scan: ${lastScanText}`, { date: lastScanText })
+                t("status.lastScan", `Last scan: ${lastScanText}`, { date: lastScanText }),
             );
         }
         return counters;
@@ -1456,27 +1704,36 @@ export async function updateStatus(statusDot, statusText, capabilitiesSection = 
             setStatusWithHint(
                 statusText,
                 t("status.apiNotFound", "Majoor API endpoints not found (404)"),
-                t("status.apiNotFoundHint", "Backend routes are not loaded. Restart ComfyUI and check the terminal for Majoor import errors.")
+                t(
+                    "status.apiNotFoundHint",
+                    "Backend routes are not loaded. Restart ComfyUI and check the terminal for Majoor import errors.",
+                ),
             );
         } else {
             const errMsg = String(result?.error || "").toLowerCase();
-            const isCorrupt = errMsg.includes("malform") || errMsg.includes("corrupt") || errMsg.includes("disk image");
+            const isCorrupt =
+                errMsg.includes("malform") ||
+                errMsg.includes("corrupt") ||
+                errMsg.includes("disk image");
             if (isCorrupt) {
-                setStatusWithHint(
-                    statusText,
-                    t("status.dbCorrupted"),
-                    t("status.dbCorruptedHint")
-                );
+                setStatusWithHint(statusText, t("status.dbCorrupted"), t("status.dbCorruptedHint"));
                 if (!globalThis._mjrCorruptToastShown) {
                     globalThis._mjrCorruptToastShown = true;
                     comfyToast(t("toast.resetFailedCorrupt"), "error", 8000);
                 }
             } else {
-                setStatusLines(statusText, [result.error || t("status.errorChecking", "Error checking status")]);
+                setStatusLines(statusText, [
+                    result.error || t("status.errorChecking", "Error checking status"),
+                ]);
             }
         }
         if (result.code === "SERVICE_UNAVAILABLE") {
-            const retryBtn = createRetryButton(statusDot, statusText, capabilitiesSection, scanTarget);
+            const retryBtn = createRetryButton(
+                statusDot,
+                statusText,
+                capabilitiesSection,
+                scanTarget,
+            );
             statusText.appendChild(document.createElement("br"));
             statusText.appendChild(retryBtn);
         }
@@ -1507,7 +1764,9 @@ function createRetryButton(statusDot, statusText, capabilitiesSection = null, sc
         if (retryResult.ok) {
             updateStatus(statusDot, statusText, capabilitiesSection, scanTarget);
         } else {
-            setStatusLines(statusText, [retryResult.error || t("status.retryFailed", "Retry failed")]);
+            setStatusLines(statusText, [
+                retryResult.error || t("status.retryFailed", "Retry failed"),
+            ]);
             statusText.appendChild(document.createElement("br"));
             statusText.appendChild(button);
         }
@@ -1525,7 +1784,7 @@ export function setupStatusPolling(
     section,
     capabilitiesSection = null,
     onCountersUpdate = null,
-    getScanTarget = null
+    getScanTarget = null,
 ) {
     const GLOBAL_POLL_KEY = "__MJR_STATUS_POLL_DISPOSE__";
     const pollMeta = { lastCode: null, lastStatus: null, _pollTick: 0, _auxCached: false };
@@ -1534,20 +1793,31 @@ export function setupStatusPolling(
     const handleUpdate = async () => {
         try {
             if (pollingAC?.signal?.aborted) return null;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         pollMeta._pollTick = Number(pollMeta._pollTick || 0) + 1;
-        const lightweight = pollMeta._pollTick > 1 && (pollMeta._pollTick % 4 !== 0);
+        const lightweight = pollMeta._pollTick > 1 && pollMeta._pollTick % 4 !== 0;
         const target = typeof getScanTarget === "function" ? getScanTarget() : null;
-        const counters = await updateStatus(statusDot, statusText, capabilitiesSection, target, pollMeta, {
-            signal: pollingAC?.signal || null,
-            lightweight,
-            // Keep status updates alive while maintenance is active (or stale).
-            force: !!_maintenanceActive || pollMeta._pollTick <= 1,
-        });
+        const counters = await updateStatus(
+            statusDot,
+            statusText,
+            capabilitiesSection,
+            target,
+            pollMeta,
+            {
+                signal: pollingAC?.signal || null,
+                lightweight,
+                // Keep status updates alive while maintenance is active (or stale).
+                force: !!_maintenanceActive || pollMeta._pollTick <= 1,
+            },
+        );
         if (counters && typeof onCountersUpdate === "function") {
             try {
                 await onCountersUpdate(counters);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
         return counters;
     };
@@ -1557,13 +1827,17 @@ export function setupStatusPolling(
 
     try {
         section._mjrStatusPollDispose?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // Ensure only one polling loop exists globally (panel rerenders can otherwise duplicate timers).
     try {
         const oldGlobalDispose = window?.[GLOBAL_POLL_KEY];
         if (typeof oldGlobalDispose === "function") oldGlobalDispose();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // Poll using a dynamic interval so settings changes apply without reload.
     let pollTimerId = null;
@@ -1572,9 +1846,14 @@ export function setupStatusPolling(
     const getIdleMultiplier = () => {
         try {
             const hidden = typeof document !== "undefined" && !!document.hidden;
-            const unfocused = typeof document !== "undefined" && typeof document.hasFocus === "function" && !document.hasFocus();
+            const unfocused =
+                typeof document !== "undefined" &&
+                typeof document.hasFocus === "function" &&
+                !document.hasFocus();
             if (hidden || unfocused) return 4;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         return 1;
     };
 
@@ -1583,19 +1862,22 @@ export function setupStatusPolling(
         const rawWaitMs = lastWasMissingEndpoint
             ? Math.max(30_000, baseMs)
             : consecutiveFailures > 0
-            ? Math.min(60_000, Math.round(baseMs * Math.min(8, 1 + consecutiveFailures)))
-            : baseMs;
+              ? Math.min(60_000, Math.round(baseMs * Math.min(8, 1 + consecutiveFailures)))
+              : baseMs;
         const waitMs = Math.min(120_000, Math.round(rawWaitMs * getIdleMultiplier()));
 
         pollTimerId = setTimeout(async () => {
             try {
                 if (pollingAC?.signal?.aborted) return;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             const counters = await handleUpdate();
 
             // If the backend routes aren't loaded, ComfyUI returns an HTML 404 page (non-JSON).
             // Back off to avoid spamming the console/network.
-            lastWasMissingEndpoint = pollMeta.lastCode === "INVALID_RESPONSE" && pollMeta.lastStatus === 404;
+            lastWasMissingEndpoint =
+                pollMeta.lastCode === "INVALID_RESPONSE" && pollMeta.lastStatus === 404;
             if (counters) {
                 consecutiveFailures = 0;
             } else if (lastWasMissingEndpoint) {
@@ -1608,7 +1890,9 @@ export function setupStatusPolling(
             if (lastWasMissingEndpoint && consecutiveFailures >= 3) {
                 try {
                     section._mjrStatusPollDispose?.();
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 return;
             }
             scheduleNext();
@@ -1617,13 +1901,17 @@ export function setupStatusPolling(
     section._mjrStatusPollDispose = () => {
         try {
             pollingAC?.abort?.();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         if (pollTimerId) clearTimeout(pollTimerId);
         pollTimerId = null;
     };
     try {
         window[GLOBAL_POLL_KEY] = section._mjrStatusPollDispose;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     scheduleNext();
 
     const statusDotEl = section.querySelector("#mjr-status-dot");
@@ -1636,4 +1924,3 @@ export function setupStatusPolling(
         statusDotEl.title = t("status.clickToScan", "Click to scan");
     }
 }
-

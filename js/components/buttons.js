@@ -12,8 +12,10 @@ export function createIconButton(label, title) {
     btn.title = title || "";
     try {
         btn.setAttribute("aria-label", title || label || "Button");
-    } catch (e) { console.debug?.(e); }
-    
+    } catch (e) {
+        console.debug?.(e);
+    }
+
     // Unified style from toolbar.js
     btn.style.cssText = `
         padding: 6px 12px;
@@ -28,7 +30,7 @@ export function createIconButton(label, title) {
         align-items: center;
         justify-content: center;
     `;
-    
+
     // Hover effect (simulated via JS since we use inline styles)
     btn.onmouseenter = () => {
         if (!btn.disabled) btn.style.background = "rgba(255, 255, 255, 0.1)";
@@ -50,8 +52,10 @@ export function createModeButton(label, mode) {
     try {
         btn.setAttribute("aria-label", label);
         btn.setAttribute("aria-pressed", "false");
-    } catch (e) { console.debug?.(e); }
-    
+    } catch (e) {
+        console.debug?.(e);
+    }
+
     // Unified style from toolbar.js
     btn.style.cssText = `
         padding: 4px 12px;

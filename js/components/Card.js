@@ -4,7 +4,12 @@
  */
 
 import { buildAssetViewURL, buildViewURL } from "../api/endpoints.js";
-import { createFileBadge, createRatingBadge, createTagsBadge, createWorkflowDot } from "./Badges.js";
+import {
+    createFileBadge,
+    createRatingBadge,
+    createTagsBadge,
+    createWorkflowDot,
+} from "./Badges.js";
 import { formatDuration, formatDate, formatTime } from "../utils/format.js";
 import { APP_CONFIG } from "../app/config.js";
 import { createMediaErrorPlaceholder } from "../utils/dom.js";
@@ -47,7 +52,9 @@ const getVideoAutoplayMode = () => {
     try {
         const mode = APP_CONFIG.GRID_VIDEO_AUTOPLAY_MODE;
         if (mode === "hover" || mode === "always") return mode;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return "off";
 };
 
@@ -60,9 +67,13 @@ export function cleanupVideoThumbsIn(rootEl) {
         for (const v of vids) {
             try {
                 mgr?.unobserve?.(v);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 export function cleanupCardMediaHandlers(rootEl) {
@@ -73,21 +84,29 @@ export function cleanupCardMediaHandlers(rootEl) {
             try {
                 img.onerror = null;
                 img.onload = null;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
         const vids = rootEl?.querySelectorAll?.("video.mjr-thumb-media") || [];
         for (const video of vids) {
             try {
                 video.onerror = null;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 const getVideoThumbManager = () => {
     try {
         if (window?.[VIDEO_THUMBS_KEY]) return window[VIDEO_THUMBS_KEY];
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     const playing = new Set();
     const prepared = new Set();
@@ -102,16 +121,24 @@ const getVideoThumbManager = () => {
             for (const v of Array.from(playing)) {
                 try {
                     if (!v || !v.isConnected) playing.delete(v);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             for (const v of Array.from(prepared)) {
                 try {
                     if (!v || !v.isConnected) prepared.delete(v);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             while (prepared.size > VIDEO_THUMB_MAX_PREPARED) {
                 // First entry in Set = least recently used (re-insertion keeps LRU order).
@@ -120,16 +147,25 @@ const getVideoThumbManager = () => {
                 try {
                     lru?.pause?.();
                     // Clear stale flags so the evicted element doesn't auto-resume.
-                    if (lru) { lru._mjrVisible = false; lru._mjrHovered = false; }
-                } catch (e) { console.debug?.(e); }
+                    if (lru) {
+                        lru._mjrVisible = false;
+                        lru._mjrHovered = false;
+                    }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 try {
                     if (lru?.getAttribute?.("src")) {
                         lru.removeAttribute("src");
                         lru.load?.();
                     }
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const waitForLoadedData = (video, timeoutMs = VIDEO_THUMB_LOAD_TIMEOUT_MS) =>
@@ -137,18 +173,26 @@ const getVideoThumbManager = () => {
             if (!video) return resolve(false);
             try {
                 if (video.readyState >= 2) return resolve(true);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
 
             let done = false;
             let timerId = 0;
             const finish = (ok) => {
                 if (done) return;
                 done = true;
-                if (timerId) { try { clearTimeout(timerId); } catch {} }
+                if (timerId) {
+                    try {
+                        clearTimeout(timerId);
+                    } catch {}
+                }
                 try {
                     video.removeEventListener("loadeddata", onLoaded);
                     video.removeEventListener("error", onError);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 resolve(ok);
             };
             const onLoaded = () => finish(true);
@@ -163,7 +207,9 @@ const getVideoThumbManager = () => {
 
             try {
                 timerId = setTimeout(() => finish(false), timeoutMs);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         });
 
     const ensureFirstFrame = (video) =>
@@ -179,9 +225,21 @@ const getVideoThumbManager = () => {
             const finish = () => {
                 if (done) return;
                 done = true;
-                try { video.removeEventListener("seeked", onSeeked); } catch (e) { console.debug?.(e); }
-                try { video.removeEventListener("error", onSeekError); } catch (e) { console.debug?.(e); }
-                try { video.pause(); } catch (e) { console.debug?.(e); }
+                try {
+                    video.removeEventListener("seeked", onSeeked);
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                try {
+                    video.removeEventListener("error", onSeekError);
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                try {
+                    video.pause();
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 resolve();
             };
             const onSeeked = () => finish();
@@ -189,7 +247,10 @@ const getVideoThumbManager = () => {
 
             // 1.5s fallback so a stalled seek never blocks the thumbnail pipeline.
             const fallbackTimer = setTimeout(finish, 1500);
-            const finishWithTimer = () => { clearTimeout(fallbackTimer); finish(); };
+            const finishWithTimer = () => {
+                clearTimeout(fallbackTimer);
+                finish();
+            };
             const onSeekedWithTimer = () => finishWithTimer();
             const onSeekErrorWithTimer = () => finishWithTimer();
 
@@ -205,14 +266,13 @@ const getVideoThumbManager = () => {
                 // For clips longer than VIDEO_THUMB_FIRST_FRAME_SEEK_S, seek to that position
                 // to skip black/fade-in frames.  For shorter clips, seek to 10 % of the
                 // duration (min 0.05 s) so we still avoid frame-0 black frames.
-                const dur = Number.isFinite(video.duration) && video.duration > 0
-                    ? video.duration : null;
-                const preferred = (dur !== null && dur <= VIDEO_THUMB_FIRST_FRAME_SEEK_S)
-                    ? Math.max(0.05, dur * 0.1)
-                    : VIDEO_THUMB_FIRST_FRAME_SEEK_S;
-                video.currentTime = dur !== null
-                    ? Math.min(preferred, dur - 0.01)
-                    : preferred;
+                const dur =
+                    Number.isFinite(video.duration) && video.duration > 0 ? video.duration : null;
+                const preferred =
+                    dur !== null && dur <= VIDEO_THUMB_FIRST_FRAME_SEEK_S
+                        ? Math.max(0.05, dur * 0.1)
+                        : VIDEO_THUMB_FIRST_FRAME_SEEK_S;
+                video.currentTime = dur !== null ? Math.min(preferred, dur - 0.01) : preferred;
             } catch {
                 clearTimeout(fallbackTimer);
                 return resolve();
@@ -223,26 +283,36 @@ const getVideoThumbManager = () => {
         if (!video) return;
         try {
             video.pause();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             video.currentTime = 0;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         if (releaseSrc) {
             try {
                 if (video.getAttribute("src")) {
                     video.removeAttribute("src");
                     video.load();
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
         prepared.delete(video);
         try {
             playing.delete(video);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             const overlay = video._mjrPlayOverlay || null;
             if (overlay) overlay.style.opacity = "1";
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const ensurePrepared = async (video) => {
@@ -262,7 +332,9 @@ const getVideoThumbManager = () => {
                     video.load();
                 }
                 video.preload = "metadata";
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
 
         const ok = await waitForLoadedData(video);
@@ -281,7 +353,13 @@ const getVideoThumbManager = () => {
 
         await ensurePrepared(video);
 
-        const overlay = (() => { try { return video._mjrPlayOverlay || null; } catch { return null; } })();
+        const overlay = (() => {
+            try {
+                return video._mjrPlayOverlay || null;
+            } catch {
+                return null;
+            }
+        })();
         try {
             const p = video.play();
             if (p && typeof p.then === "function") {
@@ -289,12 +367,20 @@ const getVideoThumbManager = () => {
                     await ensurePrepared(video);
                     // play() rejected (autoplay policy, missing codec…) — no pause event fires,
                     // so restore the overlay manually.
-                    try { if (overlay) overlay.style.opacity = "1"; } catch (e) { console.debug?.(e); }
+                    try {
+                        if (overlay) overlay.style.opacity = "1";
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 });
             }
         } catch {
             await ensurePrepared(video);
-            try { if (overlay) overlay.style.opacity = "1"; } catch (e) { console.debug?.(e); }
+            try {
+                if (overlay) overlay.style.opacity = "1";
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
     };
 
@@ -303,7 +389,9 @@ const getVideoThumbManager = () => {
         playing.delete(video);
         try {
             video.pause();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         // Keep a decoded frame visible (prevents "grey tiles" after hover ends).
         await ensurePrepared(video);
     };
@@ -314,11 +402,17 @@ const getVideoThumbManager = () => {
             for (const v of Array.from(playing)) {
                 pausedForHide.add(v);
                 playing.delete(v);
-                try { v.pause(); } catch (e) { console.debug?.(e); }
+                try {
+                    v.pause();
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 try {
                     const overlay = v._mjrPlayOverlay || null;
                     if (overlay) overlay.style.opacity = "1";
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
         } else {
             // Tab became visible — resume videos that were paused due to hide.
@@ -341,15 +435,22 @@ const getVideoThumbManager = () => {
             if (!(v instanceof HTMLVideoElement)) continue;
             const overlay = v._mjrPlayOverlay || null;
             if (!enabled) {
-                try { v._mjrHovered = false; } catch (e) { console.debug?.(e); }
-                try { v._mjrResumeOnVisible = false; } catch (e) { console.debug?.(e); }
+                try {
+                    v._mjrHovered = false;
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                try {
+                    v._mjrResumeOnVisible = false;
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 if (v._mjrVisible) pauseVideo(v);
                 else stopVideo(v);
                 if (overlay) overlay.style.opacity = "1";
                 continue;
             }
-            const shouldPlay = v._mjrVisible && !document.hidden
-                && (always || v._mjrHovered);
+            const shouldPlay = v._mjrVisible && !document.hidden && (always || v._mjrHovered);
             if (shouldPlay) {
                 playVideo(v);
                 if (overlay) overlay.style.opacity = "0";
@@ -365,7 +466,9 @@ const getVideoThumbManager = () => {
         removeVisibilityListener = () => {
             try {
                 document.removeEventListener("visibilitychange", onVisibility);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             removeVisibilityListener = null;
         };
         // Periodic cleanup for videos detached from DOM (memory leak prevention)
@@ -382,9 +485,17 @@ const getVideoThumbManager = () => {
                         if (isPlaying) stopVideo(v);
                         else {
                             // Just unbind
-                            try { observer?.unobserve?.(v); } catch (e) { console.debug?.(e); }
+                            try {
+                                observer?.unobserve?.(v);
+                            } catch (e) {
+                                console.debug?.(e);
+                            }
                         }
-                        try { observed.delete(v); } catch (e) { console.debug?.(e); }
+                        try {
+                            observed.delete(v);
+                        } catch (e) {
+                            console.debug?.(e);
+                        }
                     }
                 }
             };
@@ -396,7 +507,9 @@ const getVideoThumbManager = () => {
         removeSettingsListener = () => {
             try {
                 window.removeEventListener?.("mjr-settings-changed", onSettingsChanged);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             removeSettingsListener = null;
         };
     } catch (e) {
@@ -416,25 +529,41 @@ const getVideoThumbManager = () => {
                           const always = mode === "always";
 
                           if (!video.isConnected || document.hidden) {
-                              try { video._mjrVisible = false; } catch (e) { console.debug?.(e); }
+                              try {
+                                  video._mjrVisible = false;
+                              } catch (e) {
+                                  console.debug?.(e);
+                              }
                               playing.delete(video);
                               stopVideo(video);
                               try {
                                   observer?.unobserve?.(video);
-                              } catch (e) { console.debug?.(e); }
+                              } catch (e) {
+                                  console.debug?.(e);
+                              }
                               if (overlay) overlay.style.opacity = "1";
                               continue;
                           }
 
                           const isVisible = entry.isIntersecting && entry.intersectionRatio >= 0.2;
-                          try { video._mjrVisible = isVisible; } catch (e) { console.debug?.(e); }
+                          try {
+                              video._mjrVisible = isVisible;
+                          } catch (e) {
+                              console.debug?.(e);
+                          }
 
                           // "always": play when visible; "hover": play when visible + hovered
-                          const shouldPlay = autoplayEnabled && isVisible
-                              && (always || !!video._mjrHovered || !!video._mjrResumeOnVisible);
+                          const shouldPlay =
+                              autoplayEnabled &&
+                              isVisible &&
+                              (always || !!video._mjrHovered || !!video._mjrResumeOnVisible);
 
                           if (shouldPlay) {
-                              try { video._mjrResumeOnVisible = false; } catch (e) { console.debug?.(e); }
+                              try {
+                                  video._mjrResumeOnVisible = false;
+                              } catch (e) {
+                                  console.debug?.(e);
+                              }
                               playVideo(video);
                               if (overlay) overlay.style.opacity = "0";
                           } else {
@@ -445,7 +574,7 @@ const getVideoThumbManager = () => {
                           }
                       }
                   },
-                  { threshold: [0, 0.2, 0.6] }
+                  { threshold: [0, 0.2, 0.6] },
               )
             : null;
 
@@ -455,7 +584,9 @@ const getVideoThumbManager = () => {
             try {
                 if (video._mjrThumbBound) return;
                 video._mjrThumbBound = true;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
 
             // Authoritative overlay sync: driven by native playback events.
             // This resolves any race between async play() and subsequent stop/pause calls.
@@ -464,22 +595,30 @@ const getVideoThumbManager = () => {
                     try {
                         const ol = video._mjrPlayOverlay;
                         if (ol) ol.style.opacity = "0";
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 });
                 video.addEventListener("pause", () => {
                     try {
                         const ol = video._mjrPlayOverlay;
                         if (ol) ol.style.opacity = "1";
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 });
                 video.addEventListener("ended", () => {
                     // loop=true means this rarely fires, but guard it anyway.
                     try {
                         const ol = video._mjrPlayOverlay;
                         if (ol) ol.style.opacity = "1";
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 });
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
 
             try {
                 video.addEventListener("error", () => {
@@ -488,9 +627,13 @@ const getVideoThumbManager = () => {
                     try {
                         const overlay = video._mjrPlayOverlay || null;
                         if (overlay) overlay.style.opacity = "1";
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 });
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         },
         observe(video) {
             if (!observer || !video) return;
@@ -501,24 +644,38 @@ const getVideoThumbManager = () => {
                     clearTimeout(video._mjrReleaseTimer);
                     video._mjrReleaseTimer = null;
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             // No pending release timer → virtual grid recycled this DOM node for a new asset.
             // Clear stale state so the previous card's playback intent doesn't leak to the new asset.
             if (!hadTimer) {
-                try { video._mjrResumeOnVisible = false; } catch (e) { console.debug?.(e); }
-                try { video._mjrHovered = false; } catch (e) { console.debug?.(e); }
+                try {
+                    video._mjrResumeOnVisible = false;
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                try {
+                    video._mjrHovered = false;
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
             try {
                 api._bindVideo(video);
                 observed.add(video);
                 observer.observe(video);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         },
         unobserve(video) {
             if (!observer || !video) return;
             try {
                 observer.unobserve(video);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             observed.delete(video);
             const wasPlaying = playing.has(video) || !!video._mjrHovered;
             playing.delete(video);
@@ -526,10 +683,24 @@ const getVideoThumbManager = () => {
             stopVideo(video, { releaseSrc: false });
             try {
                 prepared.delete(video);
-            } catch (e) { console.debug?.(e); }
-            try { video._mjrVisible = false; } catch (e) { console.debug?.(e); }
-            try { video._mjrHovered = false; } catch (e) { console.debug?.(e); }
-            try { video._mjrResumeOnVisible = !!wasPlaying; } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
+            try {
+                video._mjrVisible = false;
+            } catch (e) {
+                console.debug?.(e);
+            }
+            try {
+                video._mjrHovered = false;
+            } catch (e) {
+                console.debug?.(e);
+            }
+            try {
+                video._mjrResumeOnVisible = !!wasPlaying;
+            } catch (e) {
+                console.debug?.(e);
+            }
             // Release decoded resources later if the node stays detached.
             try {
                 if (video._mjrReleaseTimer) {
@@ -537,34 +708,48 @@ const getVideoThumbManager = () => {
                     video._mjrReleaseTimer = null;
                 }
                 video._mjrReleaseTimer = setTimeout(() => {
-                    try { video._mjrReleaseTimer = null; } catch (e) { console.debug?.(e); }
+                    try {
+                        video._mjrReleaseTimer = null;
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                     try {
                         if (video.isConnected || observed.has(video)) return;
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                     stopVideo(video, { releaseSrc: true });
                 }, 15_000);
-            } catch (e) { console.debug?.(e); }
-            
+            } catch (e) {
+                console.debug?.(e);
+            }
+
             // Cleanup hover listeners on parent thumb
             try {
                 const thumb = video.parentElement;
                 if (thumb && thumb._mjrHoverCleanup) {
-                     thumb._mjrHoverCleanup();
+                    thumb._mjrHoverCleanup();
                 }
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         },
         bindHover(thumb, video) {
             if (!thumb || !video) return;
             try {
                 if (thumb._mjrHoverBound) return;
                 thumb._mjrHoverBound = true;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
 
             const showOverlay = (opacity) => {
                 try {
                     const overlay = video._mjrPlayOverlay || null;
                     if (overlay) overlay.style.opacity = opacity;
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             };
 
             const onEnter = () => {
@@ -574,7 +759,11 @@ const getVideoThumbManager = () => {
                     return;
                 }
                 // In "always" mode the IO handles play; just track hover state.
-                try { video._mjrHovered = true; } catch (e) { console.debug?.(e); }
+                try {
+                    video._mjrHovered = true;
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 if (mode === "always") return;
                 // "hover" mode: play on enter
                 const canPlay = !!video?._mjrVisible && !document.hidden;
@@ -586,7 +775,11 @@ const getVideoThumbManager = () => {
                 }
             };
             const onLeave = () => {
-                try { video._mjrHovered = false; } catch (e) { console.debug?.(e); }
+                try {
+                    video._mjrHovered = false;
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 // In "always" mode the IO keeps it playing; don't pause.
                 if (isVideoAutoplayAlways()) return;
                 showOverlay("1");
@@ -598,7 +791,7 @@ const getVideoThumbManager = () => {
                 thumb.addEventListener("mouseleave", onLeave);
                 thumb.addEventListener("focusin", onEnter);
                 thumb.addEventListener("focusout", onLeave);
-                
+
                 thumb._mjrHoverCleanup = () => {
                     thumb.removeEventListener("mouseenter", onEnter);
                     thumb.removeEventListener("mouseleave", onLeave);
@@ -607,38 +800,56 @@ const getVideoThumbManager = () => {
                     thumb._mjrHoverBound = false;
                     thumb._mjrHoverCleanup = null;
                 };
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         },
         dispose() {
             try {
                 if (cleanupTimer) clearInterval(cleanupTimer);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             cleanupTimer = null;
             try {
                 removeVisibilityListener?.();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 removeSettingsListener?.();
-            } catch (e) { console.debug?.(e); }
-            try { pausedForHide.clear(); } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
+            try {
+                pausedForHide.clear();
+            } catch (e) {
+                console.debug?.(e);
+            }
             // Disconnect the IntersectionObserver so it stops firing after dispose.
             // observed.clear() alone does not stop the observer from holding
             // references to previously-observed elements.
             try {
                 if (observer) observer.disconnect();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 playing.clear();
                 prepared.clear();
                 observed.clear();
-            } catch (e) { console.debug?.(e); }
-        }
+            } catch (e) {
+                console.debug?.(e);
+            }
+        },
     };
 
     try {
         window.addEventListener?.("pagehide", () => api.dispose());
         window[VIDEO_THUMBS_KEY] = api;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return api;
 };
 
@@ -657,11 +868,13 @@ export function createAssetCard(asset) {
     card.setAttribute("role", "button");
     card.setAttribute("aria-label", `Asset ${asset?.filename || ""}`);
     card.setAttribute("aria-selected", "false");
-    
+
     if (asset?.id != null) {
         try {
             card.dataset.mjrAssetId = String(asset.id);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 
     // Helpful datasets for cross-card behaviors (selection, siblings hide, name collisions).
@@ -669,13 +882,19 @@ export function createAssetCard(asset) {
     try {
         const filename = String(asset?.filename || "");
         const ext = (filename.split(".").pop() || "").toUpperCase();
-        const stem = filename.includes(".") ? filename.slice(0, filename.lastIndexOf(".")) : filename;
+        const stem = filename.includes(".")
+            ? filename.slice(0, filename.lastIndexOf("."))
+            : filename;
         card.dataset.mjrFilenameKey = filename.trim().toLowerCase();
         card.dataset.mjrExt = ext;
-        card.dataset.mjrStem = String(stem || "").trim().toLowerCase();
-        
+        card.dataset.mjrStem = String(stem || "")
+            .trim()
+            .toLowerCase();
+
         displayName = stem;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     const viewUrl = buildAssetViewURL(asset);
 
@@ -683,15 +902,10 @@ export function createAssetCard(asset) {
     const thumb = createThumbnail(asset, viewUrl);
 
     // --- Badges (Always created, visibility controlled via parent CSS) ---
-    const fileBadge = createFileBadge(
-        asset.filename,
-        asset.kind,
-        !!asset?._mjrNameCollision,
-        {
-            count: asset?._mjrNameCollisionCount || 0,
-            paths: asset?._mjrNameCollisionPaths || [],
-        }
-    );
+    const fileBadge = createFileBadge(asset.filename, asset.kind, !!asset?._mjrNameCollision, {
+        count: asset?._mjrNameCollisionCount || 0,
+        paths: asset?._mjrNameCollisionPaths || [],
+    });
     fileBadge.classList.add("mjr-badge-ext"); // Class helper
     try {
         fileBadge.addEventListener("click", (event) => {
@@ -699,7 +913,9 @@ export function createAssetCard(asset) {
             event.preventDefault();
             event.stopPropagation();
             const name = String(asset?.filename || "").trim();
-            const filenameKey = String(card?.dataset?.mjrFilenameKey || "").trim().toLowerCase();
+            const filenameKey = String(card?.dataset?.mjrFilenameKey || "")
+                .trim()
+                .toLowerCase();
             card.dispatchEvent?.(
                 new CustomEvent("mjr:badge-duplicates-focus", {
                     bubbles: true,
@@ -707,12 +923,16 @@ export function createAssetCard(asset) {
                         filename: name,
                         filenameKey,
                         count: Number(asset?._mjrNameCollisionCount || 0),
-                        paths: Array.isArray(asset?._mjrNameCollisionPaths) ? asset._mjrNameCollisionPaths : [],
+                        paths: Array.isArray(asset?._mjrNameCollisionPaths)
+                            ? asset._mjrNameCollisionPaths
+                            : [],
                     },
-                })
+                }),
             );
         });
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     thumb.appendChild(fileBadge);
 
     const ratingBadge = createRatingBadge(asset.rating || 0);
@@ -729,13 +949,13 @@ export function createAssetCard(asset) {
 
     // Store asset reference for sidebar
     card._mjrAsset = asset;
-    
+
     card.appendChild(thumb);
 
     // --- Info Section (Standard Block) ---
-    // We always create the info section structure. 
+    // We always create the info section structure.
     // Visibility of children is toggled via CSS classes on the grid container (.mjr-show-filename etc).
-    
+
     const info = document.createElement("div");
     info.classList.add("mjr-card-info");
     info.classList.add("mjr-card-meta"); // Keep old class for any legacy CSS
@@ -747,8 +967,9 @@ export function createAssetCard(asset) {
     filenameDiv.classList.add("mjr-card-filename"); // Helper for settings toggling
     filenameDiv.title = asset.filename;
     filenameDiv.textContent = displayName;
-    filenameDiv.style.cssText = "overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 4px; padding-right: 12px;";
-    
+    filenameDiv.style.cssText =
+        "overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 4px; padding-right: 12px;";
+
     info.appendChild(filenameDiv);
 
     // 2. Metadata Row
@@ -756,8 +977,9 @@ export function createAssetCard(asset) {
     metaRow.classList.add("mjr-card-meta-row");
     // Standard block with inline items
     // Padding right to prevent text overlap with the absolute dot
-    metaRow.style.cssText = "font-size: 0.85em; opacity: 0.7; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 16px;";
-    
+    metaRow.style.cssText =
+        "font-size: 0.85em; opacity: 0.7; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 16px;";
+
     // Resolution
     if (asset.width && asset.height) {
         const resSpan = document.createElement("span");
@@ -775,9 +997,10 @@ export function createAssetCard(asset) {
         durSpan.title = `Duration: ${formatDuration(asset.duration)}`;
         metaRow.appendChild(durSpan);
     }
-    
+
     // Date/Time
-    const timestamp = asset.generation_time || asset.file_creation_time || asset.mtime || asset.created_at;
+    const timestamp =
+        asset.generation_time || asset.file_creation_time || asset.mtime || asset.created_at;
     if (timestamp) {
         // Date
         const dateStr = formatDate(timestamp);
@@ -788,16 +1011,16 @@ export function createAssetCard(asset) {
             dateSpan.title = `Date: ${dateStr}`;
             metaRow.appendChild(dateSpan);
         }
-        
+
         // Time
         const timeStr = formatTime(timestamp);
         if (timeStr) {
-             const timeSpan = document.createElement("span");
-             timeSpan.classList.add("mjr-meta-date"); // Reuse date toggle for now logic-wise
-             timeSpan.classList.add("mjr-meta-time-val"); 
-             timeSpan.textContent = timeStr;
-             timeSpan.title = `Time: ${timeStr}`;
-             metaRow.appendChild(timeSpan);
+            const timeSpan = document.createElement("span");
+            timeSpan.classList.add("mjr-meta-date"); // Reuse date toggle for now logic-wise
+            timeSpan.classList.add("mjr-meta-time-val");
+            timeSpan.textContent = timeStr;
+            timeSpan.title = `Time: ${timeStr}`;
+            metaRow.appendChild(timeSpan);
         }
     }
 
@@ -805,31 +1028,36 @@ export function createAssetCard(asset) {
     // Uses 'generation_time_ms' from entry.js (workflow execution duration in milliseconds)
     // NOTE: Do NOT use 'generation_time' (EXIF date string) for this - that's a different field!
     const rawGenTime = asset.generation_time_ms ?? asset.metadata?.generation_time_ms ?? 0;
-    const genTimeMs = Number.isFinite(Number(rawGenTime)) && Number(rawGenTime) > 0 ? Number(rawGenTime) : 0;
-    
+    const genTimeMs =
+        Number.isFinite(Number(rawGenTime)) && Number(rawGenTime) > 0 ? Number(rawGenTime) : 0;
+
     // Only show if we have a valid duration in milliseconds (not a date string)
     // Sanity check: generation time should be < 24 hours (86400000 ms) to avoid confusing with timestamps
     if (genTimeMs > 0 && genTimeMs < 86400000) {
         try {
             card.dataset.mjrHasGenTime = "1";
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         const genTimeSpan = document.createElement("span");
         genTimeSpan.classList.add("mjr-meta-gentime");
-        
+
         // Color based on generation time (green = fast, yellow = medium, orange = slow)
         const secs = genTimeMs / 1000;
         let color = "#4CAF50"; // Green for < 10s
-        if (secs >= 60) color = "#FF9800"; // Orange for >= 60s
-        else if (secs >= 30) color = "#FFC107"; // Yellow for >= 30s
+        if (secs >= 60)
+            color = "#FF9800"; // Orange for >= 60s
+        else if (secs >= 30)
+            color = "#FFC107"; // Yellow for >= 30s
         else if (secs >= 10) color = "#8BC34A"; // Light green for >= 10s
-        
+
         genTimeSpan.style.color = color;
         genTimeSpan.style.fontWeight = "500";
-        
+
         const secsDisplay = secs.toFixed(1);
         genTimeSpan.textContent = `${secsDisplay}s`;
         genTimeSpan.title = `Generation time: ${secsDisplay} seconds`;
-        
+
         metaRow.appendChild(genTimeSpan);
     }
 
@@ -841,9 +1069,9 @@ export function createAssetCard(asset) {
         // Absolute bottom-right corner of the info box
         // Matches padding (6px bottom, 8px right)
         dotWrapper.style.cssText = "position: absolute; right: 8px; bottom: 6px; z-index: 2;";
-        
+
         dotWrapper.appendChild(workflowDot);
-        
+
         // Append to info container (parent), NOT inside the scrolling metaRow
         info.appendChild(dotWrapper);
     }
@@ -861,8 +1089,8 @@ export function createAssetCard(asset) {
  * Create thumbnail for asset
  */
 /**
- * @param {Asset} asset 
- * @param {string} viewUrl 
+ * @param {Asset} asset
+ * @param {string} viewUrl
  * @returns {HTMLDivElement}
  */
 function createThumbnail(asset, viewUrl) {
@@ -877,13 +1105,15 @@ function createThumbnail(asset, viewUrl) {
         try {
             img.loading = "lazy";
             img.decoding = "async";
-        } catch (e) { console.debug?.(e); }
-        
+        } catch (e) {
+            console.debug?.(e);
+        }
+
         // Critical: Handle broken images
         img.onerror = () => {
-             img.style.display = "none";
-             const err = createMediaErrorPlaceholder("pi pi-image");
-             thumb.appendChild(err);
+            img.style.display = "none";
+            const err = createMediaErrorPlaceholder("pi pi-image");
+            thumb.appendChild(err);
         };
 
         thumb.appendChild(img);
@@ -907,17 +1137,21 @@ function createThumbnail(asset, viewUrl) {
         video.style.pointerEvents = "none";
         try {
             video.disablePictureInPicture = true;
-        } catch (e) { console.debug?.(e); }
-        
+        } catch (e) {
+            console.debug?.(e);
+        }
+
         video.onerror = () => {
-             video.style.display = "none";
-             // Hide the play overlay so it doesn't float over the error placeholder.
-             try {
-                 const ol = video._mjrPlayOverlay;
-                 if (ol) ol.style.display = "none";
-             } catch (e) { console.debug?.(e); }
-             const err = createMediaErrorPlaceholder("pi pi-video");
-             thumb.appendChild(err);
+            video.style.display = "none";
+            // Hide the play overlay so it doesn't float over the error placeholder.
+            try {
+                const ol = video._mjrPlayOverlay;
+                if (ol) ol.style.display = "none";
+            } catch (e) {
+                console.debug?.(e);
+            }
+            const err = createMediaErrorPlaceholder("pi pi-video");
+            thumb.appendChild(err);
         };
 
         // Play icon overlay
@@ -932,7 +1166,9 @@ function createThumbnail(asset, viewUrl) {
         playIcon.appendChild(playIconEl);
         try {
             video._mjrPlayOverlay = playIcon;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         thumb.appendChild(video);
         thumb.appendChild(playIcon);
         // Observe after insertion for reliable IntersectionObserver behavior.
@@ -951,8 +1187,12 @@ function createThumbnail(asset, viewUrl) {
             try {
                 img.loading = "lazy";
                 img.decoding = "async";
-            } catch (e) { console.debug?.(e); }
-            img.onerror = () => { img.style.display = "none"; };
+            } catch (e) {
+                console.debug?.(e);
+            }
+            img.onerror = () => {
+                img.style.display = "none";
+            };
             thumb.appendChild(img);
         }
 
@@ -967,8 +1207,16 @@ function createThumbnail(asset, viewUrl) {
             svg.setAttribute("fill", "currentColor");
             svg.setAttribute("opacity", "0.35");
             const bars = [
-                [2, 10, 3, 12], [8, 4, 3, 24], [14, 8, 3, 16], [20, 2, 3, 28], [26, 6, 3, 20],
-                [32, 1, 3, 30], [38, 5, 3, 22], [44, 3, 3, 26], [50, 9, 3, 14], [56, 6, 3, 20],
+                [2, 10, 3, 12],
+                [8, 4, 3, 24],
+                [14, 8, 3, 16],
+                [20, 2, 3, 28],
+                [26, 6, 3, 20],
+                [32, 1, 3, 30],
+                [38, 5, 3, 22],
+                [44, 3, 3, 26],
+                [50, 9, 3, 14],
+                [56, 6, 3, 20],
             ];
             for (const [x, y, w, h] of bars) {
                 const rect = document.createElementNS(svgNS, "rect");
@@ -980,7 +1228,9 @@ function createThumbnail(asset, viewUrl) {
                 svg.appendChild(rect);
             }
             overlay.appendChild(svg);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         overlay.style.cssText = `
             position: absolute;
             inset: 0;
@@ -990,7 +1240,12 @@ function createThumbnail(asset, viewUrl) {
             pointer-events: none;
             color: white;
         `;
-        try { overlay.querySelector("svg").style.cssText = "width: 60%; max-width: 120px; height: auto; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));"; } catch (e) { console.debug?.(e); }
+        try {
+            overlay.querySelector("svg").style.cssText =
+                "width: 60%; max-width: 120px; height: auto; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));";
+        } catch (e) {
+            console.debug?.(e);
+        }
         thumb.appendChild(overlay);
     } else if (asset.kind === "model3d") {
         // 3D model thumbnail: try sibling PNG (e.g. model.glb.png), fallback to cube icon
@@ -1017,7 +1272,8 @@ function createThumbnail(asset, viewUrl) {
                 svg.setAttribute("stroke-width", "1.5");
                 svg.setAttribute("stroke-linecap", "round");
                 svg.setAttribute("stroke-linejoin", "round");
-                svg.style.cssText = "width: 40%; max-width: 56px; height: auto; opacity: 0.85; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));";
+                svg.style.cssText =
+                    "width: 40%; max-width: 56px; height: auto; opacity: 0.85; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));";
                 const top = document.createElementNS(svgNS, "polygon");
                 top.setAttribute("points", "12 2 22 8 12 14 2 8");
                 svg.appendChild(top);
@@ -1028,12 +1284,18 @@ function createThumbnail(asset, viewUrl) {
                 right.setAttribute("points", "22 8 22 16 12 22");
                 svg.appendChild(right);
                 icon.appendChild(svg);
-            } catch (e) { console.debug?.(e); }
-            const ext = String(asset.filename || "").split(".").pop() || "";
+            } catch (e) {
+                console.debug?.(e);
+            }
+            const ext =
+                String(asset.filename || "")
+                    .split(".")
+                    .pop() || "";
             if (ext) {
                 const label = document.createElement("span");
                 label.textContent = ext.toUpperCase();
-                label.style.cssText = "font-size: 10px; font-weight: 700; letter-spacing: 0.05em; opacity: 0.75; text-transform: uppercase;";
+                label.style.cssText =
+                    "font-size: 10px; font-weight: 700; letter-spacing: 0.05em; opacity: 0.75; text-transform: uppercase;";
                 icon.appendChild(label);
             }
             return icon;
@@ -1051,7 +1313,9 @@ function createThumbnail(asset, viewUrl) {
                     return buildAssetViewURL({ ...asset, filename: pngName, kind: "image" });
                 }
                 return buildViewURL(pngName, sub || null, type);
-            } catch { return ""; }
+            } catch {
+                return "";
+            }
         })();
         if (siblingPngUrl) {
             const img = document.createElement("img");
@@ -1061,7 +1325,9 @@ function createThumbnail(asset, viewUrl) {
             try {
                 img.loading = "lazy";
                 img.decoding = "async";
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             img.onerror = () => {
                 img.style.display = "none";
                 thumb.appendChild(_buildModel3dFallbackIcon());

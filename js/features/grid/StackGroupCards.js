@@ -19,10 +19,14 @@ function _getPopoverManager(gridContainer) {
         const panel = gridContainer?.closest?.(".mjr-am-container");
         const mgr = panel?._mjrPopoverManager;
         if (mgr) return mgr;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         if (!gridContainer._mjrLocalPopoverManager) {
-            gridContainer._mjrLocalPopoverManager = createPopoverManager(gridContainer.parentElement || gridContainer);
+            gridContainer._mjrLocalPopoverManager = createPopoverManager(
+                gridContainer.parentElement || gridContainer,
+            );
         }
         return gridContainer._mjrLocalPopoverManager;
     } catch (e) {
@@ -49,7 +53,7 @@ function _sortMembers(items) {
     });
 }
 
-function _renderPopoverBody(popover, members, asset) {
+function _renderPopoverBody(popover, members, _asset) {
     popover.replaceChildren();
 
     const title = document.createElement("div");
@@ -60,7 +64,8 @@ function _renderPopoverBody(popover, members, asset) {
 
     const grid = document.createElement("div");
     grid.className = "mjr-stack-group-popover-grid";
-    grid.style.cssText = "display:grid; grid-template-columns:repeat(auto-fill, minmax(110px, 1fr)); gap:8px;";
+    grid.style.cssText =
+        "display:grid; grid-template-columns:repeat(auto-fill, minmax(110px, 1fr)); gap:8px;";
 
     const ordered = _sortMembers(members);
     ordered.forEach((member, index) => {
@@ -115,7 +120,9 @@ export function ensureStackGroupCard(gridContainer, card, asset) {
     try {
         const panel = gridContainer?.closest?.(".mjr-am-container");
         (panel || gridContainer).appendChild(popover);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     button.addEventListener("click", async (event) => {
         event.preventDefault();
@@ -125,7 +132,8 @@ export function ensureStackGroupCard(gridContainer, card, asset) {
         if (!manager) return;
 
         try {
-            if (!gridContainer._mjrStackMembersCache) gridContainer._mjrStackMembersCache = new Map();
+            if (!gridContainer._mjrStackMembersCache)
+                gridContainer._mjrStackMembersCache = new Map();
             let members = gridContainer._mjrStackMembersCache.get(groupKey);
             if (!Array.isArray(members)) {
                 popover.textContent = "Loading...";
@@ -153,9 +161,13 @@ export function ensureStackGroupCard(gridContainer, card, asset) {
 export function disposeStackGroupCards(gridContainer) {
     try {
         gridContainer?._mjrLocalPopoverManager?.dispose?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         gridContainer._mjrLocalPopoverManager = null;
         gridContainer._mjrStackMembersCache?.clear?.();
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 }

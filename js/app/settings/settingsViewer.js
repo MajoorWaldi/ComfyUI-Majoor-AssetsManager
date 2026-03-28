@@ -42,7 +42,8 @@ export function registerViewerSettings(safeAddSetting, settings, notifyApplied) 
         id: `${SETTINGS_PREFIX}.Viewer.DisableWebGL`,
         category: cat(t("cat.viewer"), "Disable WebGL Video"),
         name: "Disable WebGL Video",
-        tooltip: "Use CPU rendering (Canvas 2D) for video playback. Fixes 'black screen' issues on incompatible hardware/browsers.",
+        tooltip:
+            "Use CPU rendering (Canvas 2D) for video playback. Fixes 'black screen' issues on incompatible hardware/browsers.",
         type: "boolean",
         defaultValue: !!settings.viewer?.disableWebGL,
         onChange: (value) => {
@@ -71,5 +72,10 @@ export function registerViewerSettings(safeAddSetting, settings, notifyApplied) 
         });
     };
 
-    registerMinimapToggle("Enabled", "enabled", "setting.minimap.enabled.name", "setting.minimap.enabled.desc");
+    registerMinimapToggle(
+        "Enabled",
+        "enabled",
+        "setting.minimap.enabled.name",
+        "setting.minimap.enabled.desc",
+    );
 }

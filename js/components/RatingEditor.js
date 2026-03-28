@@ -32,19 +32,25 @@ export function createRatingEditor(asset, onUpdate) {
         container.setAttribute("aria-valuemax", "5");
         container.setAttribute("aria-valuenow", String(currentRating));
         container.setAttribute("tabindex", "0");
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     const setDisabled = (disabled) => {
         try {
             for (const btn of container.querySelectorAll?.("button.mjr-rating-star") || []) {
                 try {
                     btn.disabled = Boolean(disabled);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
-    const retryDelay = (attemptIndex) => Math.min(100 * (2 ** Math.max(0, attemptIndex - 1)), 2000);
+    const retryDelay = (attemptIndex) => Math.min(100 * 2 ** Math.max(0, attemptIndex - 1), 2000);
     const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
     const flushSaves = async () => {
@@ -64,7 +70,11 @@ export function createRatingEditor(asset, onUpdate) {
 
                 let result = null;
                 try {
-                    result = await updateAssetRating(asset, toSave, ac ? { signal: ac.signal } : {});
+                    result = await updateAssetRating(
+                        asset,
+                        toSave,
+                        ac ? { signal: ac.signal } : {},
+                    );
                 } catch (err) {
                     console.error("Failed to update rating:", err);
                 }
@@ -84,7 +94,9 @@ export function createRatingEditor(asset, onUpdate) {
                 try {
                     const newId = result?.data?.asset_id ?? null;
                     if (asset.id == null && newId != null) asset.id = newId;
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
 
                 savedRating = toSave;
                 currentRating = toSave;
@@ -92,11 +104,13 @@ export function createRatingEditor(asset, onUpdate) {
 
                 try {
                     onUpdate?.(toSave);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 safeDispatchCustomEvent(
                     ASSET_RATING_CHANGED_EVENT,
                     { assetId: String(asset.id), rating: toSave },
-                    { warnPrefix: "[RatingEditor]" }
+                    { warnPrefix: "[RatingEditor]" },
                 );
 
                 if (desiredRating === toSave) {
@@ -111,11 +125,15 @@ export function createRatingEditor(asset, onUpdate) {
                 updateStarColors(container, savedRating);
                 comfyToast(t("toast.ratingUpdateFailed"), "error");
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         try {
             saveAC = null;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         saving = false;
         setDisabled(false);
     };
@@ -129,7 +147,9 @@ export function createRatingEditor(asset, onUpdate) {
         star.dataset.rating = String(i);
         try {
             star.setAttribute("aria-label", `Set rating ${i}`);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         star.style.color = i <= currentRating ? "#FFD45A" : "#555";
 
         // Hover effects
@@ -158,7 +178,9 @@ export function createRatingEditor(asset, onUpdate) {
             // Cancel in-flight request (best-effort) and save latest.
             try {
                 saveAC?.abort?.();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             flushSaves();
         });
 
@@ -168,7 +190,7 @@ export function createRatingEditor(asset, onUpdate) {
     // Keyboard navigation for accessibility
     container.addEventListener("keydown", (e) => {
         if (saving) return;
-        let newRating = currentRating;
+        let newRating;
 
         if (e.key === "ArrowRight" || e.key === "ArrowUp") {
             e.preventDefault();
@@ -196,10 +218,14 @@ export function createRatingEditor(asset, onUpdate) {
             updateStarColors(container, newRating);
             try {
                 container.setAttribute("aria-valuenow", String(newRating));
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 saveAC?.abort?.();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             flushSaves();
         }
     });
@@ -213,9 +239,13 @@ export function createRatingEditor(asset, onUpdate) {
             updateStarColors(container, next);
             try {
                 container.setAttribute("aria-valuenow", String(next));
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         };
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     return container;
 }
@@ -231,7 +261,8 @@ function updateStarColors(container, rating) {
         star.style.transform = starValue <= rating ? "scale(1.1)" : "scale(1)";
         try {
             star.setAttribute("aria-pressed", starValue <= rating ? "true" : "false");
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     });
 }
-

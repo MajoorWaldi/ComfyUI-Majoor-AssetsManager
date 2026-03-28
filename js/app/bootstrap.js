@@ -26,12 +26,14 @@ export async function triggerStartupScan() {
             recursive: true,
             incremental: true,
             fast: true,
-            background_metadata: true
+            background_metadata: true,
         });
 
         if (result.ok) {
             const stats = result.data;
-            console.debug(`[Majoor] Startup scan complete — added: ${stats.added}, updated: ${stats.updated}, skipped: ${stats.skipped}`);
+            console.debug(
+                `[Majoor] Startup scan complete — added: ${stats.added}, updated: ${stats.updated}, skipped: ${stats.skipped}`,
+            );
         } else {
             console.warn("📂 Majoor [⚠️]: Startup scan failed:", result.error);
         }

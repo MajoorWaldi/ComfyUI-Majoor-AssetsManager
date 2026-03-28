@@ -19,7 +19,7 @@ import {
     clearHighlight,
     ensureComboHasValue,
     getNodeUnderClientXY,
-    pickBestMediaPathWidget
+    pickBestMediaPathWidget,
 } from "./targets/node.js";
 import { stageToInput, stageToInputDetailed } from "./staging/stageToInput.js";
 
@@ -28,8 +28,7 @@ const _resolveApp = () => {
     return app && typeof app === "object" ? app : null;
 };
 
-const buildURL = (payload) =>
-    buildPayloadViewURL(payload, { buildCustomViewURL, buildViewURL });
+const buildURL = (payload) => buildPayloadViewURL(payload, { buildCustomViewURL, buildViewURL });
 
 // Workflow cache: filename -> { workflow, at }
 const _workflowCache = new Map();
@@ -40,7 +39,9 @@ const MAX_WORKFLOW_NODE_COUNT = 5000;
 const MAX_WORKFLOW_LINK_COUNT = 20000;
 const MAX_WORKFLOW_NODE_TYPE_LENGTH = 256;
 const MAX_WORKFLOW_WIDGET_STRING_LENGTH = 8192;
+// eslint-disable-next-line no-control-regex
 const _NODE_TYPE_CTRL_RE = /[\u0000-\u001f\u007f]/;
+// eslint-disable-next-line no-control-regex
 const _NUL_RE = /\u0000/;
 
 const _hasNodeTypeControlChars = (value) => _NODE_TYPE_CTRL_RE.test(String(value || ""));
@@ -109,8 +110,9 @@ const cleanupWorkflowCache = () => {
 
     // If still too large, remove oldest
     if (_workflowCache.size > WORKFLOW_CACHE_MAX) {
-        const entries = Array.from(_workflowCache.entries())
-            .sort((a, b) => (a[1]?.at || 0) - (b[1]?.at || 0));
+        const entries = Array.from(_workflowCache.entries()).sort(
+            (a, b) => (a[1]?.at || 0) - (b[1]?.at || 0),
+        );
         const toRemove = entries.slice(0, _workflowCache.size - WORKFLOW_CACHE_MAX);
         toRemove.forEach(([key]) => _workflowCache.delete(key));
     }
@@ -124,7 +126,9 @@ const tryLoadWorkflowToCanvas = async (payload, fallbackAbsPath = null) => {
     // Check cache first
     const cacheKey = pl?.filename
         ? `${pl.type || "output"}:${pl.filename}:${pl.subfolder || ""}:${rootId}`
-        : fallbackAbsPath ? `path:${fallbackAbsPath}` : null;
+        : fallbackAbsPath
+          ? `path:${fallbackAbsPath}`
+          : null;
 
     if (cacheKey) {
         const cached = _workflowCache.get(cacheKey);
@@ -141,14 +145,18 @@ const tryLoadWorkflowToCanvas = async (payload, fallbackAbsPath = null) => {
                         app.canvas.graph.configure(cached.workflow);
                         try {
                             app.canvas.setDirty?.(true, true);
-                        } catch (e) { console.debug?.(e); }
+                        } catch (e) {
+                            console.debug?.(e);
+                        }
                         return true;
                     }
                     if (typeof app?.graph?.configure === "function") {
                         app.graph.configure(cached.workflow);
                         return true;
                     }
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
             // Cached but no workflow (already tried and failed)
             return false;
@@ -163,7 +171,8 @@ const tryLoadWorkflowToCanvas = async (payload, fallbackAbsPath = null) => {
 
         if (pl?.filename) {
             // First: try the fast endpoint (no self-heal, direct SQL)
-            const quickUrl = `${ENDPOINTS.WORKFLOW_QUICK}?type=${encodeURIComponent(pl.type || "output")}` +
+            const quickUrl =
+                `${ENDPOINTS.WORKFLOW_QUICK}?type=${encodeURIComponent(pl.type || "output")}` +
                 `&filename=${encodeURIComponent(pl.filename)}` +
                 `&subfolder=${encodeURIComponent(pl.subfolder || "")}` +
                 (rootId ? `&root_id=${encodeURIComponent(rootId)}` : "");
@@ -175,7 +184,8 @@ const tryLoadWorkflowToCanvas = async (payload, fallbackAbsPath = null) => {
 
             // Fallback to slower metadata endpoint if quick lookup didn't find it
             if (!workflow) {
-                url = `${ENDPOINTS.METADATA}?workflow_only=1&type=${encodeURIComponent(pl.type || "output")}` +
+                url =
+                    `${ENDPOINTS.METADATA}?workflow_only=1&type=${encodeURIComponent(pl.type || "output")}` +
                     `&filename=${encodeURIComponent(pl.filename)}` +
                     `&subfolder=${encodeURIComponent(pl.subfolder || "")}` +
                     `&root_id=${encodeURIComponent(rootId)}`;
@@ -213,14 +223,18 @@ const tryLoadWorkflowToCanvas = async (payload, fallbackAbsPath = null) => {
             app.canvas.graph.configure(workflow);
             try {
                 app.canvas.setDirty?.(true, true);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             return true;
         }
         if (typeof app?.graph?.configure === "function") {
             app.graph.configure(workflow);
             return true;
         }
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     return false;
 };
 
@@ -246,7 +260,7 @@ export const bindAssetDragStart = (containerEl) => {
                 subfolder: asset.subfolder || "",
                 type,
                 root_id: pickRootId(asset) || undefined,
-                kind
+                kind,
             };
 
             try {
@@ -256,23 +270,36 @@ export const bindAssetDragStart = (containerEl) => {
                 // applyDragOutToOS handles single-file and multi-selection ZIP internally.
                 const viewUrl = buildURL(payload);
                 applyDragOutToOS({ dt, asset, containerEl, card, viewUrl });
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
 
             // Listen for dragend to detect external drops and offer metadata stripping.
             try {
-                card.addEventListener("dragend", (endEvent) => {
-                    handleDragEnd(endEvent, { asset, containerEl, card });
-                }, { once: true });
-            } catch (e) { console.debug?.(e); }
+                card.addEventListener(
+                    "dragend",
+                    (endEvent) => {
+                        handleDragEnd(endEvent, { asset, containerEl, card });
+                    },
+                    { once: true },
+                );
+            } catch (e) {
+                console.debug?.(e);
+            }
 
-            const preview = card.querySelector("img") || card.querySelector("video") || card.querySelector("canvas");
+            const preview =
+                card.querySelector("img") ||
+                card.querySelector("video") ||
+                card.querySelector("canvas");
             if (preview && preview instanceof HTMLElement) {
                 try {
                     dt.setDragImage(preview, 10, 10);
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
         },
-        true
+        true,
     );
 };
 
@@ -292,7 +319,9 @@ export const initDragDrop = () => {
         }
         try {
             existing.dispose?.({ force: true });
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     }
 
     const onDragOver = (event) => {
@@ -303,7 +332,10 @@ export const initDragDrop = () => {
         if (!isManagedPayload(payload)) return;
 
         const node = getNodeUnderClientXY(app, event.clientX, event.clientY);
-        const droppedExt = String(payload?.filename || "").split(".").pop() || "";
+        const droppedExt =
+            String(payload?.filename || "")
+                .split(".")
+                .pop() || "";
         const widget = node ? pickBestMediaPathWidget(node, payload, droppedExt) : null;
 
         if (node && widget) {
@@ -325,7 +357,9 @@ export const initDragDrop = () => {
     const onDrop = async (event) => {
         // Mark that an internal drop occurred so dragend can distinguish
         // internal drops from external (OS/Explorer) drops.
-        try { window.__mjrInternalDropOccurred = true; } catch {}
+        try {
+            window.__mjrInternalDropOccurred = true;
+        } catch {}
 
         const app = _resolveApp();
         const types = Array.from(event?.dataTransfer?.types || []);
@@ -335,7 +369,10 @@ export const initDragDrop = () => {
         if (!isCanvasDropTarget(app, event)) return;
 
         const node = getNodeUnderClientXY(app, event.clientX, event.clientY);
-        const droppedExt = String(payload?.filename || "").split(".").pop() || "";
+        const droppedExt =
+            String(payload?.filename || "")
+                .split(".")
+                .pop() || "";
         const widget = node ? pickBestMediaPathWidget(node, payload, droppedExt) : null;
 
         if (!node || !widget) {
@@ -349,7 +386,7 @@ export const initDragDrop = () => {
                 post,
                 endpoint: ENDPOINTS.STAGE_TO_INPUT,
                 payload,
-                index: false
+                index: false,
             });
             const workflowPromise = tryLoadWorkflowToCanvas(payload);
 
@@ -365,18 +402,11 @@ export const initDragDrop = () => {
             const relativePath = staged?.relativePath;
             if (!relativePath) {
                 dndLog("drop canvas stage failed");
-                comfyToast(
-                    `Failed to load file: "${payload?.filename}". Staging failed.`,
-                    "error"
-                );
+                comfyToast(`Failed to load file: "${payload?.filename}". Staging failed.`, "error");
                 return;
             }
             dndLog("drop canvas staged", { value: relativePath });
-            comfyToast(
-                `Staged to input: ${relativePath}`,
-                "success",
-                4000
-            );
+            comfyToast(`Staged to input: ${relativePath}`, "success", 4000);
             return;
         }
 
@@ -389,7 +419,7 @@ export const initDragDrop = () => {
             post,
             endpoint: ENDPOINTS.STAGE_TO_INPUT,
             payload,
-            index: false
+            index: false,
         });
         if (!relativePath) return;
 
@@ -397,7 +427,9 @@ export const initDragDrop = () => {
         widget.value = relativePath;
         try {
             widget.callback?.(widget.value);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         markCanvasDirty(app);
         dndLog("drop inject", { node: node?.title, widget: widget?.name, value: relativePath });
@@ -429,26 +461,34 @@ export const initDragDrop = () => {
             window.removeEventListener("dragover", onDragOver, true);
             window.removeEventListener("drop", onDrop, true);
             window.removeEventListener("dragleave", onDragLeave, true);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         try {
             clearHighlight(_resolveApp(), markCanvasDirty);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         try {
             if (window?.[DND_GLOBAL_KEY]?.dispose === dispose) {
                 delete window[DND_GLOBAL_KEY];
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     try {
         window[DND_GLOBAL_KEY] = {
             initialized: true,
             version: DND_INSTANCE_VERSION,
-            dispose
+            dispose,
         };
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     return dispose;
 };

@@ -18,7 +18,11 @@ export function createTabsView() {
     const tabInputs = makeTab(t("tab.input"), "input", t("tooltip.tab.input"));
     const tabOutputs = makeTab(t("tab.output"), "output", t("tooltip.tab.output"));
     const tabCustom = makeTab(t("tab.custom"), "custom", t("tooltip.tab.custom"));
-    const tabSimilar = makeTab(t("tab.similar", "Similar"), "similar", t("tooltip.tab.similar", "Browse current similar findings"));
+    const tabSimilar = makeTab(
+        t("tab.similar", "Similar"),
+        "similar",
+        t("tooltip.tab.similar", "Browse current similar findings"),
+    );
     tabSimilar.style.display = "none";
     tabs.appendChild(tabAll);
     tabs.appendChild(tabInputs);
@@ -28,7 +32,6 @@ export function createTabsView() {
 
     return {
         tabs,
-        tabButtons: { tabAll, tabInputs, tabOutputs, tabCustom, tabSimilar }
+        tabButtons: { tabAll, tabInputs, tabOutputs, tabCustom, tabSimilar },
     };
 }
-

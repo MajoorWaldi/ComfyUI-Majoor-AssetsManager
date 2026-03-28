@@ -26,7 +26,9 @@ const loadSettings = () => {
         const main = loadMajoorSettings?.();
         const w = main?.workflowMinimap;
         if (w && typeof w === "object") return w;
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // Legacy migration (one-time best effort).
     try {
@@ -39,7 +41,9 @@ const loadSettings = () => {
             next.workflowMinimap = { ...next.workflowMinimap, ...parsed };
             saveMajoorSettings(next);
             localStorage?.removeItem?.(MINIMAP_LEGACY_SETTINGS_KEY);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         return parsed;
     } catch {
         return null;
@@ -51,7 +55,9 @@ const saveSettings = (workflowMinimap) => {
         const next = loadMajoorSettings();
         next.workflowMinimap = { ...next.workflowMinimap, ...workflowMinimap };
         saveMajoorSettings(next);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 };
 
 const coerceWorkflow = (asset) => {
@@ -97,11 +103,7 @@ const looksLikePromptGraph = (obj) => {
 const coercePromptGraph = (asset) => {
     const metadataRaw = coerceMetadataRawObject(asset);
     const raw =
-        asset?.prompt ||
-        asset?.Prompt ||
-        metadataRaw?.prompt ||
-        metadataRaw?.Prompt ||
-        null;
+        asset?.prompt || asset?.Prompt || metadataRaw?.prompt || metadataRaw?.Prompt || null;
     if (!raw) return null;
     if (typeof raw === "object") return looksLikePromptGraph(raw) ? raw : null;
     if (typeof raw === "string") {
@@ -128,7 +130,9 @@ export function createWorkflowMinimapSection(asset) {
     if (!workflow) return null;
 
     const section = createSection("ComfyUI Workflow");
-    section.appendChild(createFieldRow("Status", asset.has_generation_data ? "Complete" : "Partial"));
+    section.appendChild(
+        createFieldRow("Status", asset.has_generation_data ? "Complete" : "Partial"),
+    );
 
     const defaultSettings = {
         nodeColors: true,
@@ -254,8 +258,12 @@ export function createWorkflowMinimapSection(asset) {
         row.onclick = () => {
             settings[key] = !settings[key];
             check.style.opacity = settings[key] ? "1" : "0";
-            box.style.background = settings[key] ? "rgba(76,175,80,0.95)" : "rgba(255,255,255,0.08)";
-            box.style.borderColor = settings[key] ? "rgba(76,175,80,0.35)" : "rgba(255,255,255,0.12)";
+            box.style.background = settings[key]
+                ? "rgba(76,175,80,0.95)"
+                : "rgba(255,255,255,0.08)";
+            box.style.borderColor = settings[key]
+                ? "rgba(76,175,80,0.35)"
+                : "rgba(255,255,255,0.12)";
             saveSettings(settings);
             render();
         };
@@ -264,22 +272,38 @@ export function createWorkflowMinimapSection(asset) {
     };
 
     panel.appendChild(
-        createToggle({ key: "nodeColors", label: "Node Colors", iconClass: "pi pi-palette" })
+        createToggle({ key: "nodeColors", label: "Node Colors", iconClass: "pi pi-palette" }),
     );
     panel.appendChild(
-        createToggle({ key: "showLinks", label: "Show Links", iconClass: "pi pi-share-alt" })
+        createToggle({ key: "showLinks", label: "Show Links", iconClass: "pi pi-share-alt" }),
     );
     panel.appendChild(
-        createToggle({ key: "showGroups", label: "Show Frames/Groups", iconClass: "pi pi-th-large" })
+        createToggle({
+            key: "showGroups",
+            label: "Show Frames/Groups",
+            iconClass: "pi pi-th-large",
+        }),
     );
     panel.appendChild(
-        createToggle({ key: "renderBypassState", label: "Render Bypass State", iconClass: "pi pi-ban" })
+        createToggle({
+            key: "renderBypassState",
+            label: "Render Bypass State",
+            iconClass: "pi pi-ban",
+        }),
     );
     panel.appendChild(
-        createToggle({ key: "renderErrorState", label: "Render Error State", iconClass: "pi pi-exclamation-triangle" })
+        createToggle({
+            key: "renderErrorState",
+            label: "Render Error State",
+            iconClass: "pi pi-exclamation-triangle",
+        }),
     );
     panel.appendChild(
-        createToggle({ key: "showViewport", label: "Show Viewport", iconClass: "pi pi-window-maximize" })
+        createToggle({
+            key: "showViewport",
+            label: "Show Viewport",
+            iconClass: "pi pi-window-maximize",
+        }),
     );
 
     const canvas = document.createElement("canvas");
@@ -311,9 +335,13 @@ export function createWorkflowMinimapSection(asset) {
         section._mjrMinimapCleanup = () => {
             try {
                 ro.disconnect();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         };
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     layout.appendChild(panel);
     layout.appendChild(canvas);

@@ -1,6 +1,6 @@
 /**
  * Performance Metrics Utility - Majoor Assets Manager
- * 
+ *
  * Provides performance monitoring, timing, and metrics collection.
  * Compatible with browser Performance API and console timing.
  */
@@ -34,7 +34,11 @@ export function startTimer(name) {
     if (!METRICS_ENABLED) return;
     const startTime = performance.now();
     _timers.set(name, startTime);
-    try { performance.mark(`${name}-start`); } catch (e) { /* ignore */ }
+    try {
+        performance.mark(`${name}-start`);
+    } catch {
+        /* ignore */
+    }
     if (DEBUG_TIMING) console.log(`[Majoor Metrics] Started: ${name}`);
 }
 
@@ -51,31 +55,33 @@ export function endTimer(name, category) {
         console.warn(`[Majoor Metrics] Timer not found: ${name}`);
         return 0;
     }
-    
+
     const duration = performance.now() - startTime;
     _timers.delete(name);
-    
+
     // Update metrics
     if (category) {
         const countKey = `${category}Count`;
         const totalKey = `${category}TotalMs`;
-        if (typeof _metrics[countKey] === 'number') {
+        if (typeof _metrics[countKey] === "number") {
             _metrics[countKey]++;
             _metrics[totalKey] += duration;
         }
     }
-    
+
     // Log slow operations
     if (DEBUG_TIMING || duration > 100) {
         console.log(`[Majoor Metrics] ${name}: ${duration.toFixed(2)}ms`);
     }
-    
+
     // Performance mark for browser dev tools
     try {
         performance.mark(`${name}-end`);
         performance.measure(name, `${name}-start`, `${name}-end`);
-    } catch (e) { /* ignore if marks don't exist */ }
-    
+    } catch {
+        /* ignore if marks don't exist */
+    }
+
     return duration;
 }
 
@@ -98,7 +104,9 @@ export function mark(name) {
     if (!METRICS_ENABLED) return;
     try {
         performance.mark(`${name}-start`);
-    } catch (e) { /* ignore */ }
+    } catch {
+        /* ignore */
+    }
     if (DEBUG_TIMING) console.log(`[Majoor Metrics] Mark: ${name}`);
 }
 
@@ -118,7 +126,7 @@ export function measure(name) {
             console.log(`[Majoor Metrics] Measure ${name}: ${duration.toFixed(2)}ms`);
         }
         return duration;
-    } catch (e) {
+    } catch {
         return null;
     }
 }
@@ -195,23 +203,29 @@ export function getMetricsReport() {
     return {
         ..._metrics,
         averages: {
-            gridRenderMs: _metrics.gridRenderCount > 0 
-                ? _metrics.gridRenderTotalMs / _metrics.gridRenderCount 
-                : 0,
-            searchQueryMs: _metrics.searchQueryCount > 0 
-                ? _metrics.searchQueryTotalMs / _metrics.searchQueryCount 
-                : 0,
-            apiCallMs: _metrics.apiCallCount > 0 
-                ? _metrics.apiCallTotalMs / _metrics.apiCallCount 
-                : 0,
+            gridRenderMs:
+                _metrics.gridRenderCount > 0
+                    ? _metrics.gridRenderTotalMs / _metrics.gridRenderCount
+                    : 0,
+            searchQueryMs:
+                _metrics.searchQueryCount > 0
+                    ? _metrics.searchQueryTotalMs / _metrics.searchQueryCount
+                    : 0,
+            apiCallMs:
+                _metrics.apiCallCount > 0 ? _metrics.apiCallTotalMs / _metrics.apiCallCount : 0,
         },
         rates: {
-            apiErrorRate: _metrics.apiCallCount > 0 
-                ? (_metrics.apiErrorCount / _metrics.apiCallCount * 100).toFixed(2) + '%' 
-                : '0%',
-            thumbnailFailureRate: _metrics.thumbnailLoadCount > 0 
-                ? (_metrics.thumbnailLoadFailures / _metrics.thumbnailLoadCount * 100).toFixed(2) + '%' 
-                : '0%',
+            apiErrorRate:
+                _metrics.apiCallCount > 0
+                    ? ((_metrics.apiErrorCount / _metrics.apiCallCount) * 100).toFixed(2) + "%"
+                    : "0%",
+            thumbnailFailureRate:
+                _metrics.thumbnailLoadCount > 0
+                    ? (
+                          (_metrics.thumbnailLoadFailures / _metrics.thumbnailLoadCount) *
+                          100
+                      ).toFixed(2) + "%"
+                    : "0%",
         },
     };
 }
@@ -234,15 +248,15 @@ export function getAverageDuration(category) {
  * @returns {void}
  */
 export function resetMetrics() {
-    Object.keys(_metrics).forEach(key => {
-        if (typeof _metrics[key] === 'number') {
+    Object.keys(_metrics).forEach((key) => {
+        if (typeof _metrics[key] === "number") {
             _metrics[key] = 0;
-        } else if (typeof _metrics[key] === 'object') {
+        } else if (typeof _metrics[key] === "object") {
             _metrics[key] = {};
         }
     });
     _timers.clear();
-    console.log('[Majoor Metrics] Metrics reset');
+    console.log("[Majoor Metrics] Metrics reset");
 }
 
 /**
@@ -251,28 +265,28 @@ export function resetMetrics() {
  */
 export function exportMetrics() {
     const report = getMetricsReport();
-    console.group('[Majoor Assets Manager] Performance Metrics');
+    console.group("[Majoor Assets Manager] Performance Metrics");
     console.table({
-        'Grid Renders': report.gridRenderCount,
-        'Avg Grid Render': `${report.averages.gridRenderMs.toFixed(2)}ms`,
-        'Search Queries': report.searchQueryCount,
-        'Avg Search': `${report.averages.searchQueryMs.toFixed(2)}ms`,
-        'API Calls': report.apiCallCount,
-        'Avg API Call': `${report.averages.apiCallMs.toFixed(2)}ms`,
-        'API Errors': report.apiErrorCount,
-        'API Error Rate': report.rates.apiErrorRate,
-        'Thumbnail Loads': report.thumbnailLoadCount,
-        'Thumbnail Failures': report.thumbnailLoadFailures,
-        'Failure Rate': report.rates.thumbnailFailureRate,
+        "Grid Renders": report.gridRenderCount,
+        "Avg Grid Render": `${report.averages.gridRenderMs.toFixed(2)}ms`,
+        "Search Queries": report.searchQueryCount,
+        "Avg Search": `${report.averages.searchQueryMs.toFixed(2)}ms`,
+        "API Calls": report.apiCallCount,
+        "Avg API Call": `${report.averages.apiCallMs.toFixed(2)}ms`,
+        "API Errors": report.apiErrorCount,
+        "API Error Rate": report.rates.apiErrorRate,
+        "Thumbnail Loads": report.thumbnailLoadCount,
+        "Thumbnail Failures": report.thumbnailLoadFailures,
+        "Failure Rate": report.rates.thumbnailFailureRate,
     });
     if (Object.keys(_metrics.errorCounts).length > 0) {
-        console.log('Error Counts:', _metrics.errorCounts);
+        console.log("Error Counts:", _metrics.errorCounts);
     }
     console.groupEnd();
 }
 
 // Auto-export to window for debugging
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
     window.MajoorMetrics = {
         startTimer,
         endTimer,

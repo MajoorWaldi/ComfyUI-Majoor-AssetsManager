@@ -30,7 +30,9 @@ function _save() {
 function _emit() {
     try {
         window.dispatchEvent(new CustomEvent(TOAST_HISTORY_EVENT));
-    } catch { /* ignore */ }
+    } catch {
+        /* ignore */
+    }
 }
 
 function _readLastRead() {
@@ -44,7 +46,9 @@ function _readLastRead() {
 function _writeLastRead(ts) {
     try {
         localStorage.setItem(STORAGE_LAST_READ_KEY, String(Number(ts) || 0));
-    } catch { /* ignore */ }
+    } catch {
+        /* ignore */
+    }
 }
 
 /**
@@ -57,7 +61,9 @@ export function addToastHistory(message, type, duration) {
     _load();
     const msg = String(message || "").trim();
     if (!msg) return;
-    const t = String(type || "info").trim().toLowerCase();
+    const t = String(type || "info")
+        .trim()
+        .toLowerCase();
     // Skip ephemeral info-only toasts (short-lived operational feedback).
     // Errors, warnings and successes are always stored.
     const dur = Number.isFinite(Number(duration)) ? Number(duration) : 99999;

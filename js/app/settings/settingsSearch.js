@@ -27,7 +27,7 @@ export function registerSearchSettings(safeAddSetting, settings, notifyApplied) 
         name: t("setting.ai.vector.enabled.name", "Enable AI semantic search"),
         tooltip: t(
             "setting.ai.vector.enabled.desc",
-              "Enable/disable AI vector search features (SigLIP2/X-CLIP: description search, prompt alignment, AI tag suggestions, smart collections)."
+            "Enable/disable AI vector search features (SigLIP2/X-CLIP: description search, prompt alignment, AI tag suggestions, smart collections).",
         ),
         type: "boolean",
         defaultValue: !!(settings.ai?.vectorSearchEnabled ?? true),
@@ -49,7 +49,11 @@ export function registerSearchSettings(safeAddSetting, settings, notifyApplied) 
                     comfyToast(res?.error || "Failed to update AI vector search setting", "error");
                     return;
                 }
-                comfyToast(next ? "AI semantic search enabled" : "AI semantic search disabled", "info", 2200);
+                comfyToast(
+                    next ? "AI semantic search enabled" : "AI semantic search disabled",
+                    "info",
+                    2200,
+                );
             } catch (error) {
                 settings.ai.vectorSearchEnabled = previous;
                 saveMajoorSettings(settings);
@@ -69,14 +73,20 @@ export function registerSearchSettings(safeAddSetting, settings, notifyApplied) 
         name: t("setting.search.maxResults.name", "Max search results (client)"),
         tooltip: t(
             "setting.search.maxResults.desc",
-            "Maximum number of results requested per search. The backend still enforces MAJOOR_SEARCH_MAX_LIMIT; increase that env var if you need a higher hard cap."
+            "Maximum number of results requested per search. The backend still enforces MAJOOR_SEARCH_MAX_LIMIT; increase that env var if you need a higher hard cap.",
         ),
         type: "number",
         defaultValue: Number(settings.search?.maxResults || APP_DEFAULTS.SEARCH_DEFAULT_LIMIT),
         attrs: { min: 10, max: APP_DEFAULTS.MAX_PAGE_SIZE || 2000, step: 1 },
         onChange: (value) => {
             settings.search = settings.search || {};
-            settings.search.maxResults = Math.max(10, Math.min(APP_DEFAULTS.MAX_PAGE_SIZE || 2000, Number(value) || APP_DEFAULTS.SEARCH_DEFAULT_LIMIT));
+            settings.search.maxResults = Math.max(
+                10,
+                Math.min(
+                    APP_DEFAULTS.MAX_PAGE_SIZE || 2000,
+                    Number(value) || APP_DEFAULTS.SEARCH_DEFAULT_LIMIT,
+                ),
+            );
             saveMajoorSettings(settings);
             applySettingsToConfig(settings);
             notifyApplied("search.maxResults");

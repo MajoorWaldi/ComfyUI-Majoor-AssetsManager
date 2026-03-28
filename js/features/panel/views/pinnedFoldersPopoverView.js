@@ -11,4 +11,3 @@ export function createPinnedFoldersPopoverView() {
 
     return { pinnedFoldersPopover, pinnedFoldersMenu };
 }
-

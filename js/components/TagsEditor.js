@@ -29,7 +29,10 @@ function normalizeInputTag(raw) {
 
 function normalizeStoredTag(raw) {
     try {
-        const s = String(raw ?? "").replace(/[\x00-\x1f\x7f]/g, "").trim();
+        const s = String(raw ?? "")
+            // eslint-disable-next-line no-control-regex
+            .replace(/[\x00-\x1f\x7f]/g, "")
+            .trim();
         return s || null;
     } catch {
         return null;
@@ -92,7 +95,9 @@ export function createTagsEditor(asset, onUpdate) {
     try {
         tagsDisplay.setAttribute("role", "list");
         tagsDisplay.setAttribute("aria-label", "Tags");
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     const renderTags = () => {
         tagsDisplay.innerHTML = "";
@@ -104,7 +109,7 @@ export function createTagsEditor(asset, onUpdate) {
             return;
         }
 
-        currentTags.forEach(tag => {
+        currentTags.forEach((tag) => {
             const tagChip = createTagChip(tag, () => {
                 const index = currentTags.indexOf(tag);
                 if (index > -1) {
@@ -132,7 +137,9 @@ export function createTagsEditor(asset, onUpdate) {
         input.setAttribute("aria-autocomplete", "list");
         input.setAttribute("aria-expanded", "false");
         input.setAttribute("aria-haspopup", "listbox");
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     input.style.cssText = `
         width: 100%;
         padding: 6px 8px;
@@ -150,7 +157,9 @@ export function createTagsEditor(asset, onUpdate) {
     try {
         dropdown.setAttribute("role", "listbox");
         dropdown.setAttribute("aria-label", "Tag suggestions");
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     dropdown.style.cssText = `
         position: absolute;
         top: 100%;
@@ -190,12 +199,14 @@ export function createTagsEditor(asset, onUpdate) {
             dropdown.style.display = "none";
             try {
                 input.setAttribute("aria-expanded", "false");
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             return;
         }
 
         const suggestions = availableTags
-            .filter(tag => {
+            .filter((tag) => {
                 const normalized = tag.toLowerCase();
                 const key = tagKey(tag);
                 return normalized.includes(normalizedQuery) && (!key || !currentKeys.has(key));
@@ -206,7 +217,9 @@ export function createTagsEditor(asset, onUpdate) {
             dropdown.style.display = "none";
             try {
                 input.setAttribute("aria-expanded", "false");
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             return;
         }
 
@@ -218,7 +231,9 @@ export function createTagsEditor(asset, onUpdate) {
             try {
                 item.setAttribute("role", "option");
                 item.setAttribute("aria-selected", index === selectedIndex ? "true" : "false");
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             item.style.cssText = `
                 padding: 6px 8px;
                 cursor: pointer;
@@ -238,7 +253,9 @@ export function createTagsEditor(asset, onUpdate) {
                 dropdown.style.display = "none";
                 try {
                     input.setAttribute("aria-expanded", "false");
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             });
 
             dropdown.appendChild(item);
@@ -247,7 +264,9 @@ export function createTagsEditor(asset, onUpdate) {
         dropdown.style.display = "block";
         try {
             input.setAttribute("aria-expanded", "true");
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     // Add tag function
@@ -268,14 +287,16 @@ export function createTagsEditor(asset, onUpdate) {
     let savePending = false;
     let saveAC = null;
     let lastSaved = [...currentTags];
-    const retryDelay = (attemptIndex) => Math.min(100 * (2 ** Math.max(0, attemptIndex - 1)), 2000);
+    const retryDelay = (attemptIndex) => Math.min(100 * 2 ** Math.max(0, attemptIndex - 1), 2000);
     const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     const saveTags = async () => {
         if (saveInFlight) {
             savePending = true;
             try {
                 saveAC?.abort?.();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             return;
         }
         saveInFlight = true;
@@ -316,9 +337,13 @@ export function createTagsEditor(asset, onUpdate) {
             try {
                 const newId = result?.data?.asset_id ?? null;
                 if (asset.id == null && newId != null) asset.id = newId;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
 
-            const persisted = dedupeTags(Array.isArray(result?.data?.tags) ? result.data.tags : snapshot);
+            const persisted = dedupeTags(
+                Array.isArray(result?.data?.tags) ? result.data.tags : snapshot,
+            );
             lastSaved = [...persisted];
             asset.tags = [...persisted];
             if (!savePending) {
@@ -329,7 +354,7 @@ export function createTagsEditor(asset, onUpdate) {
             safeDispatchCustomEvent(
                 ASSET_TAGS_CHANGED_EVENT,
                 { assetId: String(asset.id), tags: [...persisted] },
-                { warnPrefix: "[TagsEditor]" }
+                { warnPrefix: "[TagsEditor]" },
             );
             comfyToast(t("toast.tagsUpdated"), "success", 1000);
             if (!savePending) break;
@@ -350,14 +375,20 @@ export function createTagsEditor(asset, onUpdate) {
         container._mjrDestroy = () => {
             try {
                 if (blurTimer) clearTimeout(blurTimer);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             blurTimer = null;
             try {
                 saveAC?.abort?.();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             saveAC = null;
         };
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     // Input event handlers
     input.addEventListener("input", (e) => {
@@ -390,14 +421,18 @@ export function createTagsEditor(asset, onUpdate) {
                 dropdown.style.display = "none";
                 try {
                     input.setAttribute("aria-expanded", "false");
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
         } else if (e.key === "Escape") {
             dropdown.style.display = "none";
             selectedIndex = -1;
             try {
                 input.setAttribute("aria-expanded", "false");
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         } else if (e.key === "," || e.key === ";") {
             e.preventDefault();
             addTag(input.value);
@@ -405,7 +440,9 @@ export function createTagsEditor(asset, onUpdate) {
             dropdown.style.display = "none";
             try {
                 input.setAttribute("aria-expanded", "false");
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }
     });
 
@@ -413,22 +450,30 @@ export function createTagsEditor(asset, onUpdate) {
     input.addEventListener("focus", () => {
         try {
             if (blurTimer) clearTimeout(blurTimer);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         blurTimer = null;
     });
     input.addEventListener("blur", () => {
         // Delay to allow click on dropdown
         try {
             if (blurTimer) clearTimeout(blurTimer);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         blurTimer = setTimeout(() => {
             try {
                 if (!container.isConnected) return;
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 dropdown.style.display = "none";
                 input.setAttribute("aria-expanded", "false");
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         }, 200);
     });
 
@@ -444,7 +489,9 @@ export function createTagsEditor(asset, onUpdate) {
             asset.tags = [...next];
             renderTags();
         };
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     container.appendChild(tagsDisplay);
     container.appendChild(inputWrapper);
@@ -474,13 +521,17 @@ function createTagChip(tag, onRemove) {
     text.textContent = tag;
     try {
         chip.setAttribute("role", "listitem");
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";
     try {
         removeBtn.setAttribute("aria-label", `Remove tag ${String(tag || "")}`);
-    } catch (e) { console.debug?.(e); }
+    } catch (e) {
+        console.debug?.(e);
+    }
     removeBtn.textContent = "×";
     removeBtn.style.cssText = `
         background: none;
@@ -515,4 +566,3 @@ function createTagChip(tag, onRemove) {
 
     return chip;
 }
-

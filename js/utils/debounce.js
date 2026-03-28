@@ -6,7 +6,9 @@ export function debounce(fn, delay = DEFAULT_DEBOUNCE_MS) {
         clearTimeout(timer);
         timer = setTimeout(() => fn(...args), delay);
     };
-    debounced.cancel = () => { clearTimeout(timer); };
+    debounced.cancel = () => {
+        clearTimeout(timer);
+    };
     debounced.flush = (...args) => {
         clearTimeout(timer);
         fn(...args);

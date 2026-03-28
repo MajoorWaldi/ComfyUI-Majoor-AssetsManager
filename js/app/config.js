@@ -98,4 +98,3 @@ export const APP_DEFAULTS = Object.freeze({
 export const APP_CONFIG = {
     ...APP_DEFAULTS,
 };
-

@@ -31,7 +31,8 @@ function _createPill({ label, value, onClear } = {}) {
 
     const txt = document.createElement("span");
     txt.className = "mjr-context-pill-text";
-    txt.textContent = value != null && String(value).length ? `${label}: ${String(value)}` : String(label || "");
+    txt.textContent =
+        value != null && String(value).length ? `${label}: ${String(value)}` : String(label || "");
     pill.appendChild(txt);
 
     if (typeof onClear === "function") {
@@ -39,16 +40,23 @@ function _createPill({ label, value, onClear } = {}) {
         x.type = "button";
         x.className = "mjr-context-pill-x";
         x.title = t("tooltip.clearFilter", { label: label || t("label.filters") });
-        x.setAttribute("aria-label", t("tooltip.clearFilter", { label: label || t("label.filters") }));
+        x.setAttribute(
+            "aria-label",
+            t("tooltip.clearFilter", { label: label || t("label.filters") }),
+        );
         x.textContent = "x";
         x.addEventListener("click", (e) => {
             try {
                 e.preventDefault();
                 e.stopPropagation();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 onClear();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         });
         pill.appendChild(x);
     }
@@ -67,18 +75,18 @@ export function createContextPillsView() {
         const isQueryActive = query.length > 0 && query !== "*";
 
         const isFilterActive = !!(
-            _safeText(state?.kindFilter || "").trim()
-            || !!state?.workflowOnly
-            || (Number(state?.minRating || 0) || 0) > 0
-            || (Number(state?.minSizeMB || 0) || 0) > 0
-            || (Number(state?.maxSizeMB || 0) || 0) > 0
-            || (Number(state?.minWidth || 0) || 0) > 0
-            || (Number(state?.minHeight || 0) || 0) > 0
-            || (Number(state?.maxWidth || 0) || 0) > 0
-            || (Number(state?.maxHeight || 0) || 0) > 0
-            || _safeText(state?.workflowType || "").trim()
-            || _safeText(state?.dateRangeFilter || "").trim()
-            || _safeText(state?.dateExactFilter || "").trim()
+            _safeText(state?.kindFilter || "").trim() ||
+            !!state?.workflowOnly ||
+            (Number(state?.minRating || 0) || 0) > 0 ||
+            (Number(state?.minSizeMB || 0) || 0) > 0 ||
+            (Number(state?.maxSizeMB || 0) || 0) > 0 ||
+            (Number(state?.minWidth || 0) || 0) > 0 ||
+            (Number(state?.minHeight || 0) || 0) > 0 ||
+            (Number(state?.maxWidth || 0) || 0) > 0 ||
+            (Number(state?.maxHeight || 0) || 0) > 0 ||
+            _safeText(state?.workflowType || "").trim() ||
+            _safeText(state?.dateRangeFilter || "").trim() ||
+            _safeText(state?.dateExactFilter || "").trim()
         );
         const isSortActive = _safeText(state?.sort || "mtime_desc").trim() !== "mtime_desc";
         const isCollectionActive = _safeText(state?.collectionId || "").trim().length > 0;
@@ -89,22 +97,29 @@ export function createContextPillsView() {
         const similarSourceId = _safeText(state?.similarSourceAssetId || "").trim();
 
         const anyContext =
-            isQueryActive || isFilterActive || isSortActive || isCollectionActive || isScopeActive || isSimilarScope;
+            isQueryActive ||
+            isFilterActive ||
+            isSortActive ||
+            isCollectionActive ||
+            isScopeActive ||
+            isSimilarScope;
         if (!anyContext && !root.childElementCount) {
             return;
         }
 
         try {
             root.replaceChildren();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         if (!isBrowserScope && isCollectionActive) {
             root.appendChild(
                 _createPill({
                     label: t("label.collections"),
                     value: _safeText(state?.collectionName || state?.collectionId || "").trim(),
-                    onClear: () => safeActions?.clearCollection?.()
-                })
+                    onClear: () => safeActions?.clearCollection?.(),
+                }),
             );
         }
         if (isSimilarScope) {
@@ -114,8 +129,8 @@ export function createContextPillsView() {
                     value: similarSourceId
                         ? t("search.similarReference", "Reference #{id}", { id: similarSourceId })
                         : t("scope.similar", "Similar"),
-                    onClear: () => safeActions?.clearSimilarScope?.()
-                })
+                    onClear: () => safeActions?.clearSimilarScope?.(),
+                }),
             );
         }
         if (isScopeActive) {
@@ -123,8 +138,11 @@ export function createContextPillsView() {
                 _createPill({
                     label: t("label.scope"),
                     value: _labelScope(scopeValue || "output"),
-                    onClear: () => (isSimilarScope ? safeActions?.clearSimilarScope?.() : safeActions?.clearScope?.())
-                })
+                    onClear: () =>
+                        isSimilarScope
+                            ? safeActions?.clearSimilarScope?.()
+                            : safeActions?.clearScope?.(),
+                }),
             );
         }
         if (isQueryActive) {
@@ -132,8 +150,8 @@ export function createContextPillsView() {
                 _createPill({
                     label: t("label.query"),
                     value: query,
-                    onClear: () => safeActions?.clearQuery?.()
-                })
+                    onClear: () => safeActions?.clearQuery?.(),
+                }),
             );
         }
         if (_safeText(state?.kindFilter || "").trim()) {
@@ -141,8 +159,8 @@ export function createContextPillsView() {
                 _createPill({
                     label: t("label.type"),
                     value: _safeText(state?.kindFilter || "").trim(),
-                    onClear: () => safeActions?.clearKind?.()
-                })
+                    onClear: () => safeActions?.clearKind?.(),
+                }),
             );
         }
         if (Number(state?.minRating || 0) > 0) {
@@ -150,8 +168,8 @@ export function createContextPillsView() {
                 _createPill({
                     label: t("label.rating"),
                     value: `>= ${Number(state?.minRating || 0)}`,
-                    onClear: () => safeActions?.clearMinRating?.()
-                })
+                    onClear: () => safeActions?.clearMinRating?.(),
+                }),
             );
         }
         if (state?.workflowOnly) {
@@ -159,8 +177,8 @@ export function createContextPillsView() {
                 _createPill({
                     label: t("label.workflow"),
                     value: t("label.only"),
-                    onClear: () => safeActions?.clearWorkflowOnly?.()
-                })
+                    onClear: () => safeActions?.clearWorkflowOnly?.(),
+                }),
             );
         }
         if (_safeText(state?.workflowType || "").trim()) {
@@ -168,27 +186,28 @@ export function createContextPillsView() {
                 _createPill({
                     label: t("label.workflowType"),
                     value: _safeText(state?.workflowType || "").trim(),
-                    onClear: () => safeActions?.clearWorkflowType?.()
-                })
+                    onClear: () => safeActions?.clearWorkflowType?.(),
+                }),
             );
         }
         if ((Number(state?.minSizeMB || 0) || 0) > 0 || (Number(state?.maxSizeMB || 0) || 0) > 0) {
             const min = Number(state?.minSizeMB || 0) || 0;
             const max = Number(state?.maxSizeMB || 0) || 0;
-            const label = min > 0 && max > 0 ? `${min}-${max} MB` : min > 0 ? `>= ${min} MB` : `<= ${max} MB`;
+            const label =
+                min > 0 && max > 0 ? `${min}-${max} MB` : min > 0 ? `>= ${min} MB` : `<= ${max} MB`;
             root.appendChild(
                 _createPill({
                     label: t("sidebar.size"),
                     value: label,
-                    onClear: () => safeActions?.clearSize?.()
-                })
+                    onClear: () => safeActions?.clearSize?.(),
+                }),
             );
         }
         if (
-            (Number(state?.minWidth || 0) || 0) > 0
-            || (Number(state?.minHeight || 0) || 0) > 0
-            || (Number(state?.maxWidth || 0) || 0) > 0
-            || (Number(state?.maxHeight || 0) || 0) > 0
+            (Number(state?.minWidth || 0) || 0) > 0 ||
+            (Number(state?.minHeight || 0) || 0) > 0 ||
+            (Number(state?.maxWidth || 0) || 0) > 0 ||
+            (Number(state?.maxHeight || 0) || 0) > 0
         ) {
             const isLte = String(state?.resolutionCompare || "gte") === "lte";
             const w = Number(isLte ? state?.maxWidth : state?.minWidth || 0) || 0;
@@ -197,8 +216,8 @@ export function createContextPillsView() {
                 _createPill({
                     label: t("label.resolution"),
                     value: `${isLte ? "<=" : ">="} ${w || 0}x${h || 0} px`,
-                    onClear: () => safeActions?.clearResolution?.()
-                })
+                    onClear: () => safeActions?.clearResolution?.(),
+                }),
             );
         }
         if (_safeText(state?.dateRangeFilter || "").trim()) {
@@ -206,8 +225,8 @@ export function createContextPillsView() {
                 _createPill({
                     label: t("sidebar.date"),
                     value: _safeText(state?.dateRangeFilter || "").trim(),
-                    onClear: () => safeActions?.clearDateRange?.()
-                })
+                    onClear: () => safeActions?.clearDateRange?.(),
+                }),
             );
         }
         if (_safeText(state?.dateExactFilter || "").trim()) {
@@ -215,8 +234,8 @@ export function createContextPillsView() {
                 _createPill({
                     label: t("label.day"),
                     value: _safeText(state?.dateExactFilter || "").trim(),
-                    onClear: () => safeActions?.clearDateExact?.()
-                })
+                    onClear: () => safeActions?.clearDateExact?.(),
+                }),
             );
         }
         if (isSortActive) {
@@ -224,12 +243,11 @@ export function createContextPillsView() {
                 _createPill({
                     label: t("label.sort"),
                     value: _labelSort(state?.sort),
-                    onClear: () => safeActions?.clearSort?.()
-                })
+                    onClear: () => safeActions?.clearSort?.(),
+                }),
             );
         }
     };
 
     return { wrap: root, update };
 }
-

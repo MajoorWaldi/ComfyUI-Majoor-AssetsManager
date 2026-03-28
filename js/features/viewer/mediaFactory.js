@@ -2,7 +2,10 @@ import { createImageProcessor, drawMediaError } from "./imageProcessor.js";
 import { createVideoProcessor } from "./videoProcessor.js";
 import { createAudioVisualizer } from "./audioVisualizer.js";
 import { createModel3DMediaElement, isModel3DAsset } from "./model3dRenderer.js";
-import { safeAddListener as defaultSafeAddListener, safeCall as defaultSafeCall } from "../../utils/safeCall.js";
+import {
+    safeAddListener as defaultSafeAddListener,
+    safeCall as defaultSafeCall,
+} from "../../utils/safeCall.js";
 import { APP_CONFIG } from "../../app/config.js";
 
 const AUDIO_BG_URL = (() => {
@@ -36,14 +39,20 @@ export function createViewerMediaFactory({
 
     const _extOf = (asset) => {
         try {
-            const ext = String(asset?.ext || "").trim().toLowerCase();
+            const ext = String(asset?.ext || "")
+                .trim()
+                .toLowerCase();
             if (ext) return ext.startsWith(".") ? ext : `.${ext}`;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             const name = String(asset?.filename || asset?.filepath || "").trim();
             const idx = name.lastIndexOf(".");
             if (idx >= 0) return name.slice(idx).toLowerCase();
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         return "";
     };
 
@@ -59,17 +68,25 @@ export function createViewerMediaFactory({
         img.className = "mjr-viewer-media";
         try {
             if (asset?.id != null && img?.dataset) img.dataset.mjrAssetId = String(asset.id);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         img.alt = String(asset?.filename || "") || "image";
         try {
             img.decoding = "async";
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             img.loading = "eager";
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             img.draggable = false;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         img.src = url;
         img.style.cssText = `
             max-width: 100%;
@@ -88,12 +105,18 @@ export function createViewerMediaFactory({
                             clampPanToBounds?.();
                             applyTransform?.();
                         }
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 });
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             try {
                 scheduleOverlayRedraw?.();
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         };
 
         const onError = () => {
@@ -101,8 +124,11 @@ export function createViewerMediaFactory({
                 const canvas = document.createElement("canvas");
                 canvas.className = "mjr-viewer-media";
                 try {
-                    if (asset?.id != null && canvas?.dataset) canvas.dataset.mjrAssetId = String(asset.id);
-                } catch (e) { console.debug?.(e); }
+                    if (asset?.id != null && canvas?.dataset)
+                        canvas.dataset.mjrAssetId = String(asset.id);
+                } catch (e) {
+                    console.debug?.(e);
+                }
                 _seedNaturalSizeFromAsset(canvas, asset);
                 canvas.style.cssText = `
                     max-width: 100%;
@@ -113,15 +139,21 @@ export function createViewerMediaFactory({
                 `;
                 drawMediaError(canvas, "Failed to load image");
                 img.replaceWith(canvas);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
         };
 
         try {
             img.addEventListener("load", onLoad, { once: true });
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             img.addEventListener("error", onError, { once: true });
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         return img;
     };
@@ -137,7 +169,9 @@ export function createViewerMediaFactory({
                 canvas._mjrNaturalW = w;
                 canvas._mjrNaturalH = h;
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const _parseFps = (v) => {
@@ -154,7 +188,9 @@ export function createViewerMediaFactory({
             }
             const f = Number.parseFloat(s);
             if (Number.isFinite(f) && f > 0) return f;
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         return null;
     };
 
@@ -165,7 +201,13 @@ export function createViewerMediaFactory({
             const ff = rawObj?.raw_ffprobe || {};
             const vs = ff?.video_stream || {};
             // Priority: raw.fps → raw.frame_rate (gen_info) → asset.fps → ffprobe streams
-            return _parseFps(rawObj?.fps ?? rawObj?.frame_rate ?? asset?.fps ?? vs?.avg_frame_rate ?? vs?.r_frame_rate);
+            return _parseFps(
+                rawObj?.fps ??
+                    rawObj?.frame_rate ??
+                    asset?.fps ??
+                    vs?.avg_frame_rate ??
+                    vs?.r_frame_rate,
+            );
         } catch {
             return null;
         }
@@ -186,16 +228,20 @@ export function createViewerMediaFactory({
                         source: String(source || "metadata"),
                         assetId: asset?.id != null ? String(asset.id) : "",
                     },
-                })
+                }),
             );
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const _attachFpsDetection = (video, asset) => {
         try {
             const fromMeta = _fpsFromAssetMeta(asset);
             if (fromMeta) _emitDetectedFps(video, asset, fromMeta, "asset-metadata");
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         try {
             video.addEventListener(
@@ -204,11 +250,15 @@ export function createViewerMediaFactory({
                     try {
                         const fromMeta = _fpsFromAssetMeta(asset);
                         if (fromMeta) _emitDetectedFps(video, asset, fromMeta, "loadedmetadata");
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 },
-                { once: true }
+                { once: true },
             );
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         // Runtime estimate via media timestamps (best effort, modern browsers only).
         try {
@@ -240,10 +290,14 @@ export function createViewerMediaFactory({
                     if (samples < maxSamples) {
                         video.requestVideoFrameCallback(onFrame);
                     }
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             };
             video.requestVideoFrameCallback(onFrame);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     const _createAudioElement = (asset, url, { compare = false } = {}) => {
@@ -339,12 +393,18 @@ export function createViewerMediaFactory({
                                     clampPanToBounds?.();
                                     applyTransform?.();
                                 }
-                            } catch (e) { console.debug?.(e); }
+                            } catch (e) {
+                                console.debug?.(e);
+                            }
                         });
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                     try {
                         scheduleOverlayRedraw?.();
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 },
             });
         }
@@ -352,8 +412,11 @@ export function createViewerMediaFactory({
             const canvas = document.createElement("canvas");
             canvas.className = "mjr-viewer-media";
             try {
-                if (asset?.id != null && canvas?.dataset) canvas.dataset.mjrAssetId = String(asset.id);
-            } catch (e) { console.debug?.(e); }
+                if (asset?.id != null && canvas?.dataset)
+                    canvas.dataset.mjrAssetId = String(asset.id);
+            } catch (e) {
+                console.debug?.(e);
+            }
             _seedNaturalSizeFromAsset(canvas, asset);
             canvas.style.cssText = `
                 max-width: 100%;
@@ -364,7 +427,9 @@ export function createViewerMediaFactory({
             `;
             try {
                 drawMediaError(canvas, `Unsupported file type: ${kind}`);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             return canvas;
         }
 
@@ -374,8 +439,11 @@ export function createViewerMediaFactory({
             const canvas = document.createElement("canvas");
             canvas.className = "mjr-viewer-media";
             try {
-                if (asset?.id != null && canvas?.dataset) canvas.dataset.mjrAssetId = String(asset.id);
-            } catch (e) { console.debug?.(e); }
+                if (asset?.id != null && canvas?.dataset)
+                    canvas.dataset.mjrAssetId = String(asset.id);
+            } catch (e) {
+                console.debug?.(e);
+            }
             _seedNaturalSizeFromAsset(canvas, asset);
             canvas.style.cssText = `
                 max-width: 100%;
@@ -396,7 +464,8 @@ export function createViewerMediaFactory({
             video.muted = true;
             video.autoplay = true;
             video.preload = "metadata";
-            video.style.cssText = "position:absolute; width:1px; height:1px; opacity:0; pointer-events:none;";
+            video.style.cssText =
+                "position:absolute; width:1px; height:1px; opacity:0; pointer-events:none;";
             _attachFpsDetection(video, asset);
 
             try {
@@ -421,16 +490,24 @@ export function createViewerMediaFactory({
                                         clampPanToBounds?.();
                                         applyTransform?.();
                                     }
-                                } catch (e) { console.debug?.(e); }
+                                } catch (e) {
+                                    console.debug?.(e);
+                                }
                             });
-                        } catch (e) { console.debug?.(e); }
+                        } catch (e) {
+                            console.debug?.(e);
+                        }
                         try {
                             scheduleOverlayRedraw?.();
-                        } catch (e) { console.debug?.(e); }
+                        } catch (e) {
+                            console.debug?.(e);
+                        }
                     },
                 });
                 canvas._mjrProc?.setParams?.(getGradeParams?.());
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
 
             try {
                 video.addEventListener(
@@ -441,19 +518,28 @@ export function createViewerMediaFactory({
                             if (p && typeof p.catch === "function") {
                                 p.catch(() => {
                                     try {
-                                        drawMediaError(canvas, "Autoplay blocked (press Space / Play)");
-                                    } catch (e) { console.debug?.(e); }
+                                        drawMediaError(
+                                            canvas,
+                                            "Autoplay blocked (press Space / Play)",
+                                        );
+                                    } catch (e) {
+                                        console.debug?.(e);
+                                    }
                                 });
                             }
                         } catch {
                             try {
                                 drawMediaError(canvas, "Autoplay blocked (press Space / Play)");
-                            } catch (e) { console.debug?.(e); }
+                            } catch (e) {
+                                console.debug?.(e);
+                            }
                         }
                     },
-                    { once: true }
+                    { once: true },
                 );
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
 
             container.appendChild(canvas);
             container.appendChild(video);
@@ -468,7 +554,9 @@ export function createViewerMediaFactory({
         canvas.className = "mjr-viewer-media";
         try {
             if (asset?.id != null && canvas?.dataset) canvas.dataset.mjrAssetId = String(asset.id);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         _seedNaturalSizeFromAsset(canvas, asset);
         canvas.style.cssText = `
             max-width: 100%;
@@ -496,22 +584,30 @@ export function createViewerMediaFactory({
                                     clampPanToBounds?.();
                                     applyTransform?.();
                                 }
-                            } catch (e) { console.debug?.(e); }
+                            } catch (e) {
+                                console.debug?.(e);
+                            }
                         });
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                     try {
                         scheduleOverlayRedraw?.();
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 },
             });
             canvas._mjrProc?.setParams?.(getGradeParams?.());
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         return canvas;
     }
 
     // Create media element for compare modes (A/B and side-by-side).
     // Important: the returned element fills the container so both layers share identical sizing/centering.
-        function createCompareMediaElement(asset, url) {
+    function createCompareMediaElement(asset, url) {
         const kind = String(asset?.kind || "").toLowerCase();
         if (isModel3DAsset(asset) || kind === "model3d") {
             return createModel3DMediaElement(asset, url, {
@@ -527,12 +623,18 @@ export function createViewerMediaFactory({
                                     clampPanToBounds?.();
                                     applyTransform?.();
                                 }
-                            } catch (e) { console.debug?.(e); }
+                            } catch (e) {
+                                console.debug?.(e);
+                            }
                         });
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                     try {
                         scheduleOverlayRedraw?.();
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 },
             });
         }
@@ -540,8 +642,11 @@ export function createViewerMediaFactory({
             const canvas = document.createElement("canvas");
             canvas.className = "mjr-viewer-media";
             try {
-                if (asset?.id != null && canvas?.dataset) canvas.dataset.mjrAssetId = String(asset.id);
-            } catch (e) { console.debug?.(e); }
+                if (asset?.id != null && canvas?.dataset)
+                    canvas.dataset.mjrAssetId = String(asset.id);
+            } catch (e) {
+                console.debug?.(e);
+            }
             _seedNaturalSizeFromAsset(canvas, asset);
             canvas.style.cssText = `
                 max-width: 100%;
@@ -552,21 +657,27 @@ export function createViewerMediaFactory({
             `;
             try {
                 drawMediaError(canvas, `Unsupported file type: ${kind}`);
-            } catch (e) { console.debug?.(e); }
+            } catch (e) {
+                console.debug?.(e);
+            }
             return canvas;
         }
 
         if (kind === "audio") return _createAudioElement(asset, url, { compare: true });
 
-            if (kind === "video") {
-                const wrap = document.createElement("div");
-                wrap.style.cssText = "width:100%; height:100%; position:relative; display:flex; align-items:center; justify-content:center;";
+        if (kind === "video") {
+            const wrap = document.createElement("div");
+            wrap.style.cssText =
+                "width:100%; height:100%; position:relative; display:flex; align-items:center; justify-content:center;";
 
             const canvas = document.createElement("canvas");
             canvas.className = "mjr-viewer-media";
             try {
-                if (asset?.id != null && canvas?.dataset) canvas.dataset.mjrAssetId = String(asset.id);
-            } catch (e) { console.debug?.(e); }
+                if (asset?.id != null && canvas?.dataset)
+                    canvas.dataset.mjrAssetId = String(asset.id);
+            } catch (e) {
+                console.debug?.(e);
+            }
             _seedNaturalSizeFromAsset(canvas, asset);
             canvas.style.cssText = `
                 max-width: 100%;
@@ -586,40 +697,49 @@ export function createViewerMediaFactory({
             video.playsInline = true;
             video.autoplay = true;
             video.preload = "metadata";
-            video.style.cssText = "position:absolute; width:1px; height:1px; opacity:0; pointer-events:none;";
+            video.style.cssText =
+                "position:absolute; width:1px; height:1px; opacity:0; pointer-events:none;";
             _attachFpsDetection(video, asset);
 
-                try {
-                    canvas._mjrProc = createVideoProcessor({
-                        canvas,
-                        videoEl: video,
-                        getGradeParams,
-                        isDefaultGrade,
-                        tonemap,
-                        maxProcPixelsVideo: maxProcPixelsVideo,
-                        throttleFps: videoGradeThrottleFps,
-                        safeAddListener: _safeAddListener,
-                        safeCall: _safeCall,
-                        onReady: () => {
-                            try {
-                                // Refit after the processor updates natural size (important in compare modes).
-                                requestAnimationFrame(() => {
-                                    try {
-                                        if (!state?._userInteracted) {
-                                            updateMediaNaturalSize?.();
-                                            clampPanToBounds?.();
-                                            applyTransform?.();
-                                        }
-                                    } catch (e) { console.debug?.(e); }
-                                });
-                            } catch (e) { console.debug?.(e); }
-                            try {
-                                scheduleOverlayRedraw?.();
-                            } catch (e) { console.debug?.(e); }
-                        },
-                    });
-                    canvas._mjrProc?.setParams?.(getGradeParams?.());
-                } catch (e) { console.debug?.(e); }
+            try {
+                canvas._mjrProc = createVideoProcessor({
+                    canvas,
+                    videoEl: video,
+                    getGradeParams,
+                    isDefaultGrade,
+                    tonemap,
+                    maxProcPixelsVideo: maxProcPixelsVideo,
+                    throttleFps: videoGradeThrottleFps,
+                    safeAddListener: _safeAddListener,
+                    safeCall: _safeCall,
+                    onReady: () => {
+                        try {
+                            // Refit after the processor updates natural size (important in compare modes).
+                            requestAnimationFrame(() => {
+                                try {
+                                    if (!state?._userInteracted) {
+                                        updateMediaNaturalSize?.();
+                                        clampPanToBounds?.();
+                                        applyTransform?.();
+                                    }
+                                } catch (e) {
+                                    console.debug?.(e);
+                                }
+                            });
+                        } catch (e) {
+                            console.debug?.(e);
+                        }
+                        try {
+                            scheduleOverlayRedraw?.();
+                        } catch (e) {
+                            console.debug?.(e);
+                        }
+                    },
+                });
+                canvas._mjrProc?.setParams?.(getGradeParams?.());
+            } catch (e) {
+                console.debug?.(e);
+            }
 
             wrap.appendChild(canvas);
             wrap.appendChild(video);
@@ -634,7 +754,9 @@ export function createViewerMediaFactory({
         canvas.className = "mjr-viewer-media";
         try {
             if (asset?.id != null && canvas?.dataset) canvas.dataset.mjrAssetId = String(asset.id);
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         _seedNaturalSizeFromAsset(canvas, asset);
         canvas.style.cssText = `
             max-width: 100%;
@@ -661,16 +783,24 @@ export function createViewerMediaFactory({
                                     clampPanToBounds?.();
                                     applyTransform?.();
                                 }
-                            } catch (e) { console.debug?.(e); }
+                            } catch (e) {
+                                console.debug?.(e);
+                            }
                         });
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                     try {
                         scheduleOverlayRedraw?.();
-                    } catch (e) { console.debug?.(e); }
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
                 },
             });
             canvas._mjrProc?.setParams?.(getGradeParams?.());
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
         return canvas;
     }
 
@@ -683,9 +813,13 @@ export function createViewerMediaFactory({
                 try {
                     if (el?._mjrDisableViewerTransform) continue;
                     el.style.transform = t;
-                } catch (e) { console.debug?.(e); }
+                } catch (e) {
+                    console.debug?.(e);
+                }
             }
-        } catch (e) { console.debug?.(e); }
+        } catch (e) {
+            console.debug?.(e);
+        }
     };
 
     return {
