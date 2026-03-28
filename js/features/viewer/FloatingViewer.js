@@ -2657,6 +2657,19 @@ export class FloatingViewer {
         } catch (e) {
             console.debug?.(e);
         }
+        // Abort panzoom and compare-sync AbortControllers (belt-and-suspenders).
+        try {
+            this._panzoomAC?.abort();
+            this._panzoomAC = null;
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            this._compareSyncAC?.abort?.();
+            this._compareSyncAC = null;
+        } catch (e) {
+            console.debug?.(e);
+        }
         // Pop-in before disposing so the element returns to the main document.
         try {
             if (this._isPopped) this.popIn();

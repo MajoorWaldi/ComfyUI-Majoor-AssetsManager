@@ -308,6 +308,11 @@ function _buildTimedSignal(options = {}) {
     let timer = null;
     const onAbort = () => {
         try {
+            if (timer) { clearTimeout(timer); timer = null; }
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
             ctrl.abort();
         } catch (e) {
             console.debug?.(e);

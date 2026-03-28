@@ -142,15 +142,24 @@ class FFProbe:
             )
 
     def _run_ffprobe_cmd(self, cmd: list[str]) -> subprocess.CompletedProcess[str]:
-        return subprocess.run(
+        process = subprocess.Popen(
             cmd,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
-            check=False,
-            timeout=self.timeout,
             shell=False,
             close_fds=os.name != "nt",
         )
+        try:
+            stdout, stderr = process.communicate(timeout=self.timeout)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            try:
+                process.wait(timeout=5)
+            except Exception:
+                pass
+            raise
+        return subprocess.CompletedProcess(cmd, process.returncode, stdout, stderr)
 
     def _ffprobe_timeout_error(self, path: str) -> Result[dict]:
         logger.error(f"ffprobe timeout for {path}")

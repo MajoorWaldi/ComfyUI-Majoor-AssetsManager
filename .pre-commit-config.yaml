@@ -30,7 +30,7 @@ repos:
         entry: python -m mypy --config-file mypy.ini
         language: system
         pass_filenames: false
-        stages: [pre-push, manual]
+        stages: [commit, pre-push, manual]
 
       - id: quality-gate
         name: Quality gate (manual / pre-push)

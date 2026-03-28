@@ -57,13 +57,24 @@ export function createRatingEditor(asset, onUpdate) {
         if (saving) return;
         saving = true;
         setDisabled(true);
+        const flushStartTime = Date.now();
         try {
             let attempts = 0;
             while (attempts < 10) {
+                // Timeout guard: bail after 30 seconds to prevent infinite loops.
+                if (Date.now() - flushStartTime > 30_000) {
+                    asset.rating = savedRating;
+                    currentRating = savedRating;
+                    desiredRating = savedRating;
+                    updateStarColors(container, savedRating);
+                    comfyToast(t("toast.ratingUpdateFailed"), "error");
+                    break;
+                }
                 if (attempts > 0) {
                     await wait(retryDelay(attempts));
                 }
                 attempts += 1;
+                // Snapshot desiredRating at iteration start to avoid reading a live-mutated value.
                 const toSave = Math.max(0, Math.min(5, Number(desiredRating) || 0));
                 const ac = typeof AbortController !== "undefined" ? new AbortController() : null;
                 saveAC = ac;

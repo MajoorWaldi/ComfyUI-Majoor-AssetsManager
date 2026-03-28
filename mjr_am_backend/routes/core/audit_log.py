@@ -105,6 +105,10 @@ async def audit_log_write(
     client_ip = _resolve_client_ip(peer_ip, headers) if peer_ip else "unknown"
     user_ctx = _current_user_id() or _get_request_user_id(request)
     now = time.time()
+    try:
+        now = float(now)
+    except (TypeError, ValueError):
+        now = time.time()
 
     try:
         insert_res = await db.aexecute(

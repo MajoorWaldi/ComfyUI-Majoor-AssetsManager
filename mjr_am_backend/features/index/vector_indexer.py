@@ -133,8 +133,6 @@ async def _get_autotag_embeddings(vs: VectorService) -> dict[str, list[float]]:
     """Return cached text embeddings for each auto-tag prompt."""
     global _autotag_cache, _autotag_cache_version
     version = _autotag_cache_version_key(vs)
-    if _autotag_cache and _autotag_cache_version == version:
-        return _autotag_cache
 
     async with _autotag_cache_lock:
         if _autotag_cache and _autotag_cache_version == version:

@@ -184,14 +184,14 @@ def _reciprocal_rank_fusion(
         aid = item.get("asset_id")
         if aid is None:
             continue
-        scores[aid] = scores.get(aid, 0.0) + 1.0 / (k + rank + 1)
+        scores[aid] = scores.get(aid, 0.0) + 1.0 / max(1, k + rank + 1)
         match_types.setdefault(aid, []).append("fts")
 
     for rank, item in enumerate(sem_results):
         aid = item.get("asset_id")
         if aid is None:
             continue
-        scores[aid] = scores.get(aid, 0.0) + 1.0 / (k + rank + 1)
+        scores[aid] = scores.get(aid, 0.0) + 1.0 / max(1, k + rank + 1)
         if "semantic" not in match_types.get(aid, []):
             match_types.setdefault(aid, []).append("semantic")
 

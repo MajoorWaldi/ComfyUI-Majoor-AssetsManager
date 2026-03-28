@@ -771,12 +771,15 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         def _execute_command(command: list[str]) -> None:
             if not shutil.which(command[0]):
                 raise FileNotFoundError(command[0])
-            subprocess.Popen(
-                command,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                shell=False,
-            )
+            try:
+                subprocess.Popen(
+                    command,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    shell=False,
+                )
+            except OSError as exc:
+                raise RuntimeError(f"Failed to launch {command[0]}: {exc}") from exc
 
         commands: list[list[str]] = []
         fallback_command: list[str] | None = None

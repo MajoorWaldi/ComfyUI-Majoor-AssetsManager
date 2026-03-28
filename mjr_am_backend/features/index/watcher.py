@@ -568,6 +568,10 @@ def _record_flush_volume(count: int) -> None:
     now = time.time()
     window = WATCHER_STREAM_ALERT_WINDOW_SECONDS
     with _STREAM_LOCK:
+        if _MAX_PENDING_FILES > 0 and len(_STREAM_EVENTS) >= _MAX_PENDING_FILES:
+            _prune_stream_events(now, window)
+            if len(_STREAM_EVENTS) >= _MAX_PENDING_FILES:
+                return
         _STREAM_EVENTS.append((now, count))
         _STREAM_TOTAL_FILES += count
         _prune_stream_events(now, window)
