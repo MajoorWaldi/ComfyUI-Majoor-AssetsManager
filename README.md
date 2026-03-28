@@ -162,6 +162,9 @@ git clone https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager ComfyUI-Ma
 cd ComfyUI-Majoor-AssetsManager
 pip install -r requirements.txt
 
+# Optional: install AI/vector features
+# pip install -r requirements.txt -r requirements-vector.txt
+
 # Restart ComfyUI
 ```
 
@@ -582,7 +585,8 @@ See [`docs/SETTINGS_CONFIGURATION.md`](docs/SETTINGS_CONFIGURATION.md) and [`doc
 ### Extension Not Appearing
 - Verify installation in `custom_nodes/ComfyUI-Majoor-AssetsManager`
 - Check ComfyUI console for import errors
-- Ensure all dependencies are installed: `pip install -r requirements.txt`
+- Ensure core dependencies are installed: `pip install -r requirements.txt`
+- If you use AI/vector features, also install: `pip install -r requirements.txt -r requirements-vector.txt`
 - Restart ComfyUI completely
 
 ### Database Corruption

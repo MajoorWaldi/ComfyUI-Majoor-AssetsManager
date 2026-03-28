@@ -124,6 +124,8 @@ const FEED_STATE = {
 function _getAssetGroupKey(asset) {
     const stackId = String(asset?.stack_id || "").trim();
     if (stackId) return `stack:${stackId}`;
+    const jobId = String(asset?.job_id || "").trim();
+    if (jobId) return `job:${jobId}`;
     return _assetKey(asset);
 }
 

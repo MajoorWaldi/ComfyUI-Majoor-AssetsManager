@@ -1009,7 +1009,7 @@ source venv/bin/activate  # Linux/macOS
 venv\Scripts\activate     # Windows
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -r requirements.txt -r requirements-vector.txt
 ```
 
 ---

@@ -23,4 +23,13 @@ describe("buildViewerResourceURL", () => {
         expect(url).toContain("root_id=root-7");
         expect(url).not.toContain("asset_id=");
     });
+
+    it("ignores malformed asset ids and falls back to filepath context", () => {
+        const url = buildViewerResourceURL(
+            { id: "not-an-id", filepath: "C:/assets/models/robot.gltf" },
+            "../textures/albedo.png",
+        );
+        expect(url).toContain("filepath=C%3A%2Fassets%2Fmodels%2Frobot.gltf");
+        expect(url).not.toContain("asset_id=");
+    });
 });

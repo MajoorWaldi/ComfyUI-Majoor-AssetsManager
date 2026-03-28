@@ -153,7 +153,7 @@ jobs:
           pip install .[dev]
 
       - name: Run pytest
-        run: python -m pytest -q --timeout=300 --cov=mjr_am_backend --cov=mjr_am_shared --cov-report=xml --cov-report=term-missing:skip-covered
+        run: python -m pytest -q --timeout=300 --cov=mjr_am_backend --cov=mjr_am_shared --cov-fail-under=60 --cov-report=xml --cov-report=term-missing:skip-covered
 
       - name: Upload coverage report
         if: matrix.python-version == '3.12'

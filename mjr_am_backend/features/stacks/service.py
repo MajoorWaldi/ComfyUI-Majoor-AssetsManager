@@ -73,6 +73,12 @@ class StacksService:
             (job_id, name, now, now),
         )
         if not insert.ok:
+            # Another worker may have created the row after our existence check.
+            existing = await self.db.aquery(
+                "SELECT id FROM asset_stacks WHERE job_id = ?", (job_id,)
+            )
+            if existing.ok and existing.data:
+                return Result.Ok(int(existing.data[0]["id"]))
             return Result.Err("DB_ERROR", insert.error or "Failed to create stack")
 
         # Fetch the new id

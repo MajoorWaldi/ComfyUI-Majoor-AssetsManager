@@ -40,9 +40,11 @@ DEFAULT_PYTEST_ARGS = [
     "-q",
     "--cov=mjr_am_backend",
     "--cov=mjr_am_shared",
+    "--cov-fail-under=60",
     "--cov-report=xml",
     "--cov-report=term-missing:skip-covered",
 ]
+PIP_AUDIT_REQUIREMENTS = ["requirements.txt"]
 
 
 def _parse_args() -> argparse.Namespace:
@@ -123,6 +125,16 @@ def _existing_paths(values: list[str]) -> list[str]:
     return existing
 
 
+def _pip_audit_cmd() -> list[str]:
+    requirement_files = _existing_paths(PIP_AUDIT_REQUIREMENTS)
+    cmd = _python_cmd("pip_audit", "--strict", "--skip-editable")
+    if requirement_files:
+        for requirement_file in requirement_files:
+            cmd.extend(["-r", requirement_file])
+        return cmd
+    return cmd
+
+
 def _npm_available() -> bool:
     return shutil.which("npm") is not None
 
@@ -166,7 +178,10 @@ def main() -> int:
         _run(_python_cmd("bandit", "-r", *bandit_targets, "-ll", "-ii", "-x", "tests"), label="Bandit")
 
     if not args.skip_pip_audit:
-        _run(_python_cmd("pip_audit", "--strict", "--skip-editable"), label="pip-audit")
+        _run(
+            _pip_audit_cmd(),
+            label="pip-audit",
+        )
 
     if not args.skip_complexity:
         _run(

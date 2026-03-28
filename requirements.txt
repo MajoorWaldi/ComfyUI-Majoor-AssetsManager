@@ -21,39 +21,9 @@ watchdog>=3.0.0,<7.0.0
 
 # Windows-specific: Windows Property System metadata support
 # Only required on Windows; gracefully skipped on other platforms
-pywin32>=300,<312; sys_platform == 'win32'
+pywin32>=300,<311; sys_platform == 'win32'
 
 # Note: tkinter is required for native folder browser functionality
 # tkinter is included in standard Python distribution but may be missing in minimal installs
-
-# --- CLIP / Semantic Search (optional, enable with MJR_ENABLE_VECTOR_SEARCH=1) ---
-# sentence-transformers wraps HuggingFace models including CLIP ViT-L/14
-sentence-transformers>=2.2.0,<4.0.0
-
-# Explicit HF stack for SigLIP2 / X-CLIP / Florence-2 runtime compatibility
-transformers>=4.44.0,<5.0.0
-huggingface-hub>=0.24.0,<1.0.0
-safetensors>=0.4.0,<1.0.0
-
-# Protobuf is required by SigLIP2/SiglipConfig for model config deserialization
-protobuf>=3.20.0,<6.0.0
-
-# timm is required by Florence-2 model implementation
-timm>=0.9.0,<2.0.0
-
-# einops is required by Florence-2 vision encoder
-einops>=0.7.0,<1.0.0
-
-# sentencepiece is required by the SigLIP2 tokenizer (SiglipTokenizer)
-sentencepiece>=0.1.99,<1.0.0
-
-# OpenCV headless for video frame extraction fallback when ffprobe/ffmpeg are unavailable
-opencv-python-headless>=4.8.0,<5.0.0
-
-# Efficient approximate nearest-neighbour search (CPU-only build)
-faiss-cpu>=1.7.0,<2.0.0
-
-# scikit-learn is used for K-Means clustering in the auto-collections utility
-scikit-learn>=1.3.0,<2.0.0
 
 # Dev/test tools are intentionally kept out of runtime requirements.
