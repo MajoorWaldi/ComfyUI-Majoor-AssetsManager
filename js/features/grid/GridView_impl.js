@@ -702,7 +702,7 @@ function getOrCreateState(gridContainer) {
             assets: [],
             assetIdSet: new Set(),
             filenameCounts: new Map(),
-            nonImageStems: new Set(),
+            nonImageSiblingKeys: new Set(),
             // Virtual Grid mappings
             stemMap: new Map(), // stem -> [Asset]
             renderedFilenameMap: new Map(), // filenameKey -> [DOMElement] (only currently rendered)
@@ -1198,7 +1198,7 @@ export async function loadAssets(gridContainer, query = "*", options = {}) {
         state.filenameCounts = new Map();
         state.stemMap = new Map();
         state.renderedFilenameMap = new Map();
-        state.nonImageStems = new Set();
+        state.nonImageSiblingKeys = new Set();
         state.hiddenPngSiblings = 0;
         try {
             gridContainer.dataset.mjrHiddenPngSiblings = "0";
@@ -1356,7 +1356,8 @@ export function prepareGridForScopeSwitch(gridContainer) {
     state.filenameCounts = new Map();
     state.stemMap = new Map();
     state.renderedFilenameMap = new Map();
-    state.nonImageStems = new Set();
+    state.nonImageSiblingKeys = new Set();
+    state.hiddenPngSiblings = 0;
 
     try {
         clearGridMessage(gridContainer);
@@ -1420,7 +1421,7 @@ export async function loadAssetsFromList(gridContainer, assets, options = {}) {
         state.filenameCounts = new Map();
         state.stemMap = new Map();
         state.renderedFilenameMap = new Map();
-        state.nonImageStems = new Set();
+        state.nonImageSiblingKeys = new Set();
         state.hiddenPngSiblings = 0;
         try {
             gridContainer.dataset.mjrHiddenPngSiblings = "0";
@@ -1745,6 +1746,7 @@ function _flushUpsertBatch(gridContainer) {
         getOrCreateState,
         ensureVirtualGrid,
         assetKey,
+        loadMajoorSettings,
     });
 }
 
@@ -1763,6 +1765,7 @@ export function upsertAsset(gridContainer, asset) {
         maxBatchSize: UPSERT_BATCH_MAX_SIZE,
         debounceMs: UPSERT_BATCH_DEBOUNCE_MS,
         assetKey,
+        loadMajoorSettings,
     });
 }
 

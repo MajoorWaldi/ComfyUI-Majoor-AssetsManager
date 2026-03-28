@@ -960,6 +960,10 @@ const DICTIONARY = {
             "Metriques runtime\nConnexions DB actives : {active}\nFile enrichissement : {enrichQ}\nFichiers watcher en attente : {pending}",
         "runtime.metricsLine":
             "DB active : {active} | File enrich. : {enrichQ} | Watcher en attente : {pending}",
+        "status.runtimeProgress": "Progression runtime : {value}/{max}",
+        "status.queueRemaining": "File restante : {count}",
+        "status.executionCached": "Noeuds en cache reutilises : {count}",
+        "status.activePrompt": "Prompt actif : {id}",
 
         "btn.dbSave": "Sauvegarder BDD",
         "btn.dbRestore": "Restaurer BDD",

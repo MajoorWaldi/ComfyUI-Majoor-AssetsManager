@@ -35,4 +35,5 @@ export const EVENTS = Object.freeze({
     WATCHER_STATUS: "mjr.watcher.status",
     OPEN_ASSETS_MANAGER: "mjr:open-assets-manager",
     OPEN_VIEWER: "mjr:open-viewer",
+    OPEN_STACK_GROUP: "mjr:open-stack-group",
 });

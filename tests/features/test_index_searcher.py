@@ -245,3 +245,51 @@ def test_workflow_filters_tolerate_malformed_metadata_json():
     conn.close()
 
     assert rows == [(2,)]
+
+
+@pytest.mark.asyncio
+async def test_paginate_grouped_assets_prefers_image_cover_over_video_in_same_stack():
+    async def _fetch_rows(_limit, _offset):
+        return Result.Ok(
+            {
+                "rows": [
+                    {
+                        "id": 42,
+                        "filename": "AnimateDiff_00001.mp4",
+                        "kind": "video",
+                        "stack_id": 1,
+                        "job_id": "job-1",
+                        "size": 20574,
+                        "mtime": 200,
+                        "has_generation_data": 1,
+                        "tags": "[]",
+                    },
+                    {
+                        "id": 43,
+                        "filename": "animatediff_00001.png",
+                        "kind": "image",
+                        "stack_id": 1,
+                        "job_id": "job-1",
+                        "size": 185981,
+                        "mtime": 199,
+                        "has_generation_data": 1,
+                        "tags": "[]",
+                    },
+                ]
+            }
+        )
+
+    result = await m._paginate_grouped_assets(
+        _fetch_rows,
+        lambda rows: m._hydrate_search_rows(rows, include_highlight=True),
+        limit=10,
+        offset=0,
+        include_total=True,
+    )
+
+    assert result.ok
+    assets = result.data["assets"]
+    assert len(assets) == 1
+    assert assets[0]["filename"] == "animatediff_00001.png"
+    assert assets[0]["kind"] == "image"
+    assert assets[0]["stack_count"] == 2

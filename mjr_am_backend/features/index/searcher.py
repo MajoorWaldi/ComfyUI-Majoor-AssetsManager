@@ -489,6 +489,23 @@ def _stack_group_key(asset: dict[str, Any]) -> str:
     return f"asset:{_safe_positive_int(asset.get('id')) or 0}"
 
 
+def _group_priority(asset: dict[str, Any]) -> tuple[int, int, int, int]:
+    kind = str(asset.get("kind") or "").strip().lower()
+    is_image = 1 if kind == "image" else 0
+    has_generation = 1 if int(asset.get("has_generation_data") or 0) else 0
+    size = int(asset.get("size") or 0)
+    mtime = int(asset.get("mtime") or 0)
+    return (is_image, has_generation, size, mtime)
+
+
+def _select_group_representative(current: dict[str, Any], candidate: dict[str, Any]) -> dict[str, Any]:
+    current_priority = _group_priority(current)
+    candidate_priority = _group_priority(candidate)
+    if candidate_priority > current_priority:
+        return candidate
+    return current
+
+
 async def _paginate_grouped_assets(
     fetch_rows,
     hydrate_rows,
@@ -501,7 +518,7 @@ async def _paginate_grouped_assets(
     raw_offset = 0
     raw_chunk = max(100, min(1000, max(limit, 1) * 4))
     grouped_assets: list[dict[str, Any]] = []
-    seen_keys: set[str] = set()
+    grouped_by_key: dict[str, dict[str, Any]] = {}
     stack_counts: dict[str, int] = {}
     exhausted = False
 
@@ -525,10 +542,21 @@ async def _paginate_grouped_assets(
                 continue
             key = _stack_group_key(asset)
             stack_counts[key] = stack_counts.get(key, 0) + 1
-            if key in seen_keys:
+            existing = grouped_by_key.get(key)
+            if existing is None:
+                grouped_by_key[key] = asset
+                grouped_assets.append(asset)
                 continue
-            seen_keys.add(key)
-            grouped_assets.append(asset)
+            selected = _select_group_representative(existing, asset)
+            if selected is existing:
+                continue
+            grouped_by_key[key] = selected
+            try:
+                idx = grouped_assets.index(existing)
+            except ValueError:
+                grouped_assets.append(selected)
+            else:
+                grouped_assets[idx] = selected
 
         row_count = len(rows)
         raw_offset += row_count

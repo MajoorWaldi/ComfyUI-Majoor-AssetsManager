@@ -38,6 +38,7 @@ from mjr_am_backend.features.index.scan_route_service import (
     run_reset_clear_phase,
     run_reset_reindex,
 )
+from mjr_am_backend.features.index.scan_batch_utils import normalize_filepath_str
 from mjr_am_backend.features.index.watcher_scope import (
     build_watch_paths,  # noqa: F401 — exposed for deps=globals()
 )
@@ -662,18 +663,66 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         # IN-clause query.  BUG-09: metadata_raw is fetched once in the batch query and reused
         # directly — no per-asset re-read (was N+1 before).
         import json
+        def _lookup_key(
+            filename: Any,
+            subfolder: Any = "",
+            source: Any = "output",
+            root_id: Any = "",
+        ) -> tuple[str, str, str, str]:
+            return (
+                str(filename or "").strip().lower(),
+                str(subfolder or "").strip().lower(),
+                str(source or "output").strip().lower(),
+                str(root_id or "").strip().lower(),
+            )
+
+        def _filename_ext_upper(filename: Any) -> str:
+            name = str(filename or "").strip()
+            return (name.rsplit(".", 1)[-1] if "." in name else "").upper()
+
+        def _filename_stem_lower(filename: Any) -> str:
+            name = str(filename or "").strip()
+            stem = name.rsplit(".", 1)[0] if "." in name else name
+            return stem.strip().lower()
+
+        def _png_sibling_lookup_keys(
+            filename: Any,
+            subfolder: Any = "",
+            source: Any = "output",
+            root_id: Any = "",
+        ) -> list[tuple[str, str, str, str]]:
+            ext_upper = _filename_ext_upper(filename)
+            if ext_upper != "PNG":
+                return []
+            stem_lower = _filename_stem_lower(filename)
+            if not stem_lower:
+                return []
+            return [
+                (f"{stem_lower}.mp4", str(subfolder or "").strip().lower(), str(source or "output").strip().lower(), str(root_id or "").strip().lower()),
+                (f"{stem_lower}.webm", str(subfolder or "").strip().lower(), str(source or "output").strip().lower(), str(root_id or "").strip().lower()),
+                (f"{stem_lower}.mov", str(subfolder or "").strip().lower(), str(source or "output").strip().lower(), str(root_id or "").strip().lower()),
+                (f"{stem_lower}.avi", str(subfolder or "").strip().lower(), str(source or "output").strip().lower(), str(root_id or "").strip().lower()),
+                (f"{stem_lower}.mkv", str(subfolder or "").strip().lower(), str(source or "output").strip().lower(), str(root_id or "").strip().lower()),
+                (f"{stem_lower}.mp3", str(subfolder or "").strip().lower(), str(source or "output").strip().lower(), str(root_id or "").strip().lower()),
+                (f"{stem_lower}.wav", str(subfolder or "").strip().lower(), str(source or "output").strip().lower(), str(root_id or "").strip().lower()),
+                (f"{stem_lower}.ogg", str(subfolder or "").strip().lower(), str(source or "output").strip().lower(), str(root_id or "").strip().lower()),
+                (f"{stem_lower}.flac", str(subfolder or "").strip().lower(), str(source or "output").strip().lower(), str(root_id or "").strip().lower()),
+                (stem_lower, str(subfolder or "").strip().lower(), str(source or "output").strip().lower(), str(root_id or "").strip().lower()),
+            ]
+
         gen_time_lookup: dict[tuple[str, str, str, str], int] = {}
         prompt_lookup: dict[tuple[str, str, str, str], str] = {}
+        prompt_lookup_by_path: dict[str, str] = {}
         node_provenance_lookup: dict[tuple[str, str, str, str], tuple[str, str]] = {}
         for item in files:
             fname = item.get("filename")
             if not fname:
                 continue
-            key = (
-                str(fname),
-                str(item.get("subfolder") or ""),
-                str(item.get("type") or "output").lower(),
-                str(item.get("root_id") or item.get("custom_root_id") or ""),
+            key = _lookup_key(
+                fname,
+                item.get("subfolder") or "",
+                item.get("type") or "output",
+                item.get("root_id") or item.get("custom_root_id") or "",
             )
             gen_time = item.get("generation_time_ms") or item.get("duration_ms")
             if gen_time and isinstance(gen_time, (int, float)) and gen_time > 0:
@@ -685,17 +734,21 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 node_provenance_lookup.setdefault(key, (src_node_id, src_node_type))
             item_prompt_id = str(item.get("prompt_id") or prompt_id or "").strip()
             if item_prompt_id:
+                raw_path = item.get("path") or item.get("filepath") or item.get("fullpath") or item.get("full_path")
+                normalized_prompt_path = normalize_filepath_str(raw_path) if raw_path else ""
+                if normalized_prompt_path:
+                    prompt_lookup_by_path.setdefault(normalized_prompt_path, item_prompt_id)
                 fname = item.get("filename")
                 if fname:
-                    key = (
-                        str(fname),
-                        str(item.get("subfolder") or ""),
-                        str(item.get("type") or "output").lower(),
-                        str(item.get("root_id") or item.get("custom_root_id") or ""),
+                    key = _lookup_key(
+                        fname,
+                        item.get("subfolder") or "",
+                        item.get("type") or "output",
+                        item.get("root_id") or item.get("custom_root_id") or "",
                     )
                     prompt_lookup.setdefault(key, item_prompt_id)
 
-        if gen_time_lookup or prompt_lookup:
+        if gen_time_lookup or prompt_lookup or prompt_lookup_by_path:
             try:
                 db_adapter = svc['db']
                 fnames = list({k[0] for k in gen_time_lookup})
@@ -714,17 +767,17 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                     q_res = await db_adapter.aquery(
                         f"SELECT a.id, a.filename, a.subfolder, a.source, a.root_id, am.metadata_raw "
                         f"FROM assets a LEFT JOIN asset_metadata am ON a.id = am.asset_id "
-                        f"WHERE a.filename IN ({placeholders})",
+                        f"WHERE lower(a.filename) IN ({placeholders})",
                         tuple(chunk),
                     )
                     if not (q_res.ok and q_res.data):
                         continue
                     for row in q_res.data:
-                        key = (
-                            str(row.get("filename") or ""),
-                            str(row.get("subfolder") or ""),
-                            str(row.get("source") or "output").lower(),
-                            str(row.get("root_id") or ""),
+                        key = _lookup_key(
+                            row.get("filename") or "",
+                            row.get("subfolder") or "",
+                            row.get("source") or "output",
+                            row.get("root_id") or "",
                         )
                         gt = gen_time_lookup.get(key)
                         if gt is None:
@@ -750,25 +803,43 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                             gen_time_by_id[int(asset_id)] = gt
                         except Exception:
                             logger.debug("Failed to upsert generation time for asset %s", asset_id)
-                if prompt_lookup:
+                if prompt_lookup or prompt_lookup_by_path:
                     try:
+                        if prompt_lookup_by_path:
+                            for path_value, row_prompt_id in prompt_lookup_by_path.items():
+                                if not row_prompt_id:
+                                    continue
+                                q_res = await db_adapter.aquery(
+                                    "SELECT id FROM assets WHERE filepath = ? OR filepath = ? COLLATE NOCASE",
+                                    (path_value, path_value),
+                                )
+                                if not (q_res.ok and q_res.data):
+                                    continue
+                                for row in q_res.data:
+                                    asset_id = int(row.get("id") or 0)
+                                    if not asset_id:
+                                        continue
+                                    await db_adapter.aexecute(
+                                        "UPDATE assets SET job_id = ? WHERE id = ?",
+                                        (row_prompt_id, asset_id),
+                                    )
                         for start in range(0, len(fnames_for_prompt), _MAX_IN_BATCH):
                             chunk = fnames_for_prompt[start:start + _MAX_IN_BATCH]
                             if not chunk:
                                 continue
                             placeholders = ",".join("?" * len(chunk))
                             q_res = await db_adapter.aquery(
-                                f"SELECT id, filename, subfolder, source, root_id FROM assets WHERE filename IN ({placeholders})",
+                                f"SELECT id, filename, subfolder, source, root_id FROM assets WHERE lower(filename) IN ({placeholders})",
                                 tuple(chunk),
                             )
                             if not (q_res.ok and q_res.data):
                                 continue
                             for row in q_res.data:
-                                key = (
-                                    str(row.get("filename") or ""),
-                                    str(row.get("subfolder") or ""),
-                                    str(row.get("source") or "output").lower(),
-                                    str(row.get("root_id") or ""),
+                                key = _lookup_key(
+                                    row.get("filename") or "",
+                                    row.get("subfolder") or "",
+                                    row.get("source") or "output",
+                                    row.get("root_id") or "",
                                 )
                                 row_prompt_id = prompt_lookup.get(key)
                                 if not row_prompt_id:
@@ -780,6 +851,81 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                                     "UPDATE assets SET job_id = ? WHERE id = ?",
                                     (row_prompt_id, asset_id),
                                 )
+
+                        sibling_rows: list[dict[str, Any]] = []
+                        if all_fnames:
+                            for start in range(0, len(all_fnames), _MAX_IN_BATCH):
+                                chunk = all_fnames[start:start + _MAX_IN_BATCH]
+                                if not chunk:
+                                    continue
+                                placeholders = ",".join("?" * len(chunk))
+                                q_res = await db_adapter.aquery(
+                                    f"SELECT id, filename, subfolder, source, root_id, job_id, stack_id "
+                                    f"FROM assets WHERE lower(filename) IN ({placeholders})",
+                                    tuple(chunk),
+                                )
+                                if q_res.ok and q_res.data:
+                                    sibling_rows.extend(q_res.data)
+                        sibling_job_lookup: dict[tuple[str, str, str, str], tuple[str, Any]] = {}
+                        for row in sibling_rows:
+                            row_job_id = str(row.get("job_id") or "").strip()
+                            if not row_job_id:
+                                continue
+                            sibling_job_lookup.setdefault(
+                                _lookup_key(
+                                    row.get("filename") or "",
+                                    row.get("subfolder") or "",
+                                    row.get("source") or "output",
+                                    row.get("root_id") or "",
+                                ),
+                                (row_job_id, row.get("stack_id")),
+                            )
+                        affected_stack_ids: set[int] = set()
+                        for row in sibling_rows:
+                            filename_value = row.get("filename") or ""
+                            if _filename_ext_upper(filename_value) != "PNG":
+                                continue
+                            if str(row.get("job_id") or "").strip():
+                                continue
+                            candidates = _png_sibling_lookup_keys(
+                                filename_value,
+                                row.get("subfolder") or "",
+                                row.get("source") or "output",
+                                row.get("root_id") or "",
+                            )
+                            sibling_job = None
+                            for candidate_key in candidates:
+                                sibling_job = sibling_job_lookup.get(candidate_key)
+                                if sibling_job:
+                                    break
+                            if not sibling_job:
+                                continue
+                            asset_id = int(row.get("id") or 0)
+                            if not asset_id:
+                                continue
+                            row_job_id, row_stack_id = sibling_job
+                            await db_adapter.aexecute(
+                                "UPDATE assets SET job_id = ?, stack_id = COALESCE(?, stack_id) WHERE id = ?",
+                                (row_job_id, row_stack_id, asset_id),
+                            )
+                            try:
+                                stack_id_int = int(row_stack_id or 0)
+                            except Exception:
+                                stack_id_int = 0
+                            if stack_id_int > 0:
+                                affected_stack_ids.add(stack_id_int)
+                        for stack_id in affected_stack_ids:
+                            await db_adapter.aexecute(
+                                "UPDATE asset_stacks SET "
+                                "asset_count = (SELECT COUNT(*) FROM assets WHERE stack_id = ?), "
+                                "cover_asset_id = COALESCE("
+                                "  (SELECT id FROM assets WHERE stack_id = ? AND kind = 'image' ORDER BY size DESC, mtime DESC LIMIT 1), "
+                                "  (SELECT id FROM assets WHERE stack_id = ? ORDER BY mtime DESC LIMIT 1)"
+                                "), "
+                                "updated_at = CURRENT_TIMESTAMP "
+                                "WHERE id = ?",
+                                (stack_id, stack_id, stack_id, stack_id),
+                            )
                     except Exception as ex:
                         logger.debug("Failed to assign prompt/job correlation: %s", ex)
 
@@ -793,17 +939,17 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                                 continue
                             placeholders = ",".join("?" * len(chunk))
                             q_res = await db_adapter.aquery(
-                                f"SELECT id, filename, subfolder, source, root_id FROM assets WHERE filename IN ({placeholders})",
+                                f"SELECT id, filename, subfolder, source, root_id FROM assets WHERE lower(filename) IN ({placeholders})",
                                 tuple(chunk),
                             )
                             if not (q_res.ok and q_res.data):
                                 continue
                             for row in q_res.data:
-                                key = (
-                                    str(row.get("filename") or ""),
-                                    str(row.get("subfolder") or ""),
-                                    str(row.get("source") or "output").lower(),
-                                    str(row.get("root_id") or ""),
+                                key = _lookup_key(
+                                    row.get("filename") or "",
+                                    row.get("subfolder") or "",
+                                    row.get("source") or "output",
+                                    row.get("root_id") or "",
                                 )
                                 prov = node_provenance_lookup.get(key)
                                 if not prov:

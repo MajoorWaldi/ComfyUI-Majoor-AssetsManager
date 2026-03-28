@@ -382,17 +382,43 @@ export function createRatingBadge(rating) {
 /**
  * Create tags badge - Bottom left position
  */
+function _normalizeBadgeTags(tags) {
+    if (Array.isArray(tags)) {
+        return tags
+            .map((tag) => String(tag ?? "").trim())
+            .filter(Boolean);
+    }
+    if (typeof tags === "string") {
+        const raw = tags.trim();
+        if (!raw) return [];
+        try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                return parsed
+                    .map((tag) => String(tag ?? "").trim())
+                    .filter(Boolean);
+            }
+        } catch {}
+        return raw
+            .split(",")
+            .map((tag) => tag.trim())
+            .filter(Boolean);
+    }
+    return [];
+}
+
 export function createTagsBadge(tags) {
     const badge = document.createElement("div");
     badge.className = "mjr-tags-badge";
+    const normalizedTags = _normalizeBadgeTags(tags);
 
-    if (!tags || tags.length === 0) {
+    if (normalizedTags.length === 0) {
         badge.style.display = "none";
         return badge;
     }
 
-    badge.textContent = tags.join(", ");
-    badge.title = `Tags: ${tags.join(", ")}`;
+    badge.textContent = normalizedTags.join(", ");
+    badge.title = `Tags: ${normalizedTags.join(", ")}`;
     badge.style.cssText = `
         position: absolute;
         bottom: 6px;

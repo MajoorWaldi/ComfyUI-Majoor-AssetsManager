@@ -1,4 +1,5 @@
 /** Infinite scroll / upsert helpers extracted from GridView_impl.js (P3-B-05). */
+import { shouldHideSiblingAsset } from "./AssetCardRenderer.js";
 
 export async function fetchPage(
     gridContainer,
@@ -246,6 +247,43 @@ export function flushUpsertBatch(gridContainer, deps) {
     try {
         let modified = false;
         for (const [assetId, asset] of snapshot.entries()) {
+            state.assetKeyFn = deps.assetKey;
+            const siblingCheck = shouldHideSiblingAsset(asset, state, deps.loadMajoorSettings);
+            if (Array.isArray(siblingCheck?.removed) && siblingCheck.removed.length) {
+                const removedSet = new Set(siblingCheck.removed);
+                state.assets = state.assets.filter((item) => {
+                    const keep = !removedSet.has(item);
+                    if (!keep) {
+                        try {
+                            if (item?.id != null) state.assetIdSet?.delete?.(String(item.id));
+                        } catch (e) {
+                            console.debug?.(e);
+                        }
+                        try {
+                            const removedKey = deps.assetKey(item);
+                            if (removedKey) state.seenKeys?.delete?.(removedKey);
+                        } catch (e) {
+                            console.debug?.(e);
+                        }
+                    }
+                    return keep;
+                });
+                try {
+                    state.hiddenPngSiblings =
+                        (Number(state.hiddenPngSiblings || 0) || 0) + siblingCheck.removed.length;
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                modified = true;
+            }
+            if (siblingCheck?.hidden) {
+                try {
+                    state.hiddenPngSiblings = (Number(state.hiddenPngSiblings || 0) || 0) + 1;
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                continue;
+            }
             const key = deps.assetKey(asset);
             const existingIndex = state.assets.findIndex((a) => String(a.id) === assetId);
             if (existingIndex > -1) {
@@ -267,7 +305,16 @@ export function flushUpsertBatch(gridContainer, deps) {
                 }
             }
         }
-        if (modified && vg) vg.setItems(state.assets);
+        if (modified && vg) {
+            try {
+                gridContainer.dataset.mjrHiddenPngSiblings = String(
+                    Number(state.hiddenPngSiblings || 0) || 0,
+                );
+            } catch (e) {
+                console.debug?.(e);
+            }
+            vg.setItems(state.assets);
+        }
     } finally {
         batchState.flushing = false;
         // Items may have arrived during the flush — reschedule if needed (BUG-01).

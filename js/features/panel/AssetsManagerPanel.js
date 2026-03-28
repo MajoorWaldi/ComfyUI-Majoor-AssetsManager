@@ -1099,6 +1099,36 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         { signal: panelLifecycleAC?.signal },
     );
 
+    gridContainer?.addEventListener(
+        EVENTS.OPEN_STACK_GROUP,
+        async (event) => {
+            try {
+                const detail = event?.detail || {};
+                const list = Array.isArray(detail?.members) ? detail.members : [];
+                state.similarResults = list;
+                state.similarSourceAssetId = String(detail?.asset?.id || "");
+                state.similarTitle =
+                    String(detail?.title || "").trim() ||
+                    `Generation group (${list.length} assets)`;
+                await scopeController?.setScope?.("similar");
+                try {
+                    state.lastGridCount = Number(list.length || 0) || 0;
+                    state.lastGridTotal = Number(list.length || 0) || 0;
+                    gridContainer.dispatchEvent?.(
+                        new CustomEvent("mjr:grid-stats", {
+                            detail: { count: list.length, total: list.length },
+                        }),
+                    );
+                } catch (err) {
+                    console.debug?.(err);
+                }
+            } catch (err) {
+                console.debug?.(err);
+            }
+        },
+        { signal: panelLifecycleAC?.signal },
+    );
+
     const sortController = createSortController({
         state,
         sortBtn,

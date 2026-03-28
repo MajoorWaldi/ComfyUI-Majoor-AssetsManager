@@ -39,6 +39,7 @@ import {
     refreshGeneratedFeedHosts,
 } from "./features/bottomPanel/GeneratedFeedTab.js";
 import { createJobFinalizeQueue } from "./features/stacks/finalizeQueue.js";
+import { createExecutionAssetBuffer } from "./features/stacks/executionAssetBuffer.js";
 import { extractOutputFiles } from "./utils/extractOutputFiles.js";
 import { post } from "./api/client.js";
 import { ENDPOINTS } from "./api/endpoints.js";
@@ -190,6 +191,15 @@ function removeApiHandlers(api) {
         if (api._mjrScanCompleteHandler) {
             api.removeEventListener(EVENTS.SCAN_COMPLETE, api._mjrScanCompleteHandler);
         }
+        if (api._mjrScanProgressHandler) {
+            api.removeEventListener(EVENTS.SCAN_PROGRESS, api._mjrScanProgressHandler);
+        }
+        if (api._mjrAssetIndexingHandler) {
+            api.removeEventListener(EVENTS.ASSET_INDEXING, api._mjrAssetIndexingHandler);
+        }
+        if (api._mjrAssetIndexedHandler) {
+            api.removeEventListener(EVENTS.ASSET_INDEXED, api._mjrAssetIndexedHandler);
+        }
         if (api._mjrExecutionStartHandler) {
             api.removeEventListener("execution_start", api._mjrExecutionStartHandler);
         }
@@ -210,6 +220,7 @@ function removeApiHandlers(api) {
         if (api._mjrRuntimeStatusHandler) {
             api.removeEventListener("progress", api._mjrRuntimeStatusHandler);
             api.removeEventListener("status", api._mjrRuntimeStatusHandler);
+            api.removeEventListener(EVENTS.RUNTIME_STATUS, api._mjrRuntimeStatusHandler);
             api.removeEventListener("execution_cached", api._mjrExecutionCachedHandler);
         }
     } catch (error) {
@@ -375,11 +386,35 @@ const executionStarts = createTTLCache({
     ttlMs: EXECUTION_START_TTL_MS,
     maxSize: EXECUTION_STARTS_MAX,
 });
+const executionAssetBuffer = createExecutionAssetBuffer();
 let _lastStacksUpdateSignature = "";
 let _lastStacksUpdateAt = 0;
+const _pendingStackJobIds = new Set();
+
+function isJobTrackingDebugEnabled() {
+    try {
+        if (typeof window === "undefined") return false;
+        if (window.__MJR_DEBUG_JOB_TRACKING__ === true) return true;
+        return String(window.localStorage?.getItem("mjr.debug.jobTracking") || "").trim() === "1";
+    } catch (e) {
+        console.debug?.(e);
+        return false;
+    }
+}
+
+function debugJobTracking(stage, detail = {}) {
+    if (!isJobTrackingDebugEnabled()) return;
+    try {
+        console.debug("[Majoor][job-tracking]", stage, detail);
+    } catch (e) {
+        console.debug?.(e);
+    }
+}
+
 const _stackFinalizeQueue = createJobFinalizeQueue({
     defaultDelayMs: 900,
     async postJob(targetJobId) {
+        debugJobTracking("auto-stack:start", { job_id: targetJobId });
         try {
             const res = await post(ENDPOINTS.STACKS_AUTO_STACK, {
                 mode: "job_id",
@@ -392,6 +427,10 @@ const _stackFinalizeQueue = createJobFinalizeQueue({
                 );
                 return;
             }
+            debugJobTracking("auto-stack:done", {
+                job_id: targetJobId,
+                stacks: Array.isArray(res?.data?.stacks) ? res.data.stacks.length : 0,
+            });
             notifyStacksUpdated(res?.data || { targeted_job_id: targetJobId });
         } catch (error) {
             reportError(error, "entry.execution_end.auto_stack");
@@ -400,6 +439,27 @@ const _stackFinalizeQueue = createJobFinalizeQueue({
 });
 
 function notifyStacksUpdated(detail = {}) {
+    debugJobTracking("stacks-updated", {
+        targeted_job_id: String(detail?.targeted_job_id || ""),
+        stacks: Array.isArray(detail?.stacks)
+            ? detail.stacks.map((item) => ({
+                  job_id: String(item?.job_id || ""),
+                  stack_id: String(item?.stack_id || ""),
+                  asset_count: Number(item?.asset_count || 0) || 0,
+              }))
+            : [],
+    });
+    try {
+        const targeted = String(detail?.targeted_job_id || "").trim();
+        if (targeted) _pendingStackJobIds.delete(targeted);
+        const stacks = Array.isArray(detail?.stacks) ? detail.stacks : [];
+        for (const item of stacks) {
+            const jobId = String(item?.job_id || "").trim();
+            if (jobId) _pendingStackJobIds.delete(jobId);
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
     try {
         const stacks = Array.isArray(detail?.stacks) ? detail.stacks : [];
         const signature = JSON.stringify({
@@ -501,6 +561,11 @@ function scheduleGenerationIndex(files, attempt = 1, meta = {}) {
     if (meta?.prompt_id || meta?.promptId) {
         payload.prompt_id = String(meta.prompt_id || meta.promptId);
     }
+    debugJobTracking("index:direct", {
+        prompt_id: String(payload.prompt_id || ""),
+        attempt,
+        files: payloadFiles.map((item) => String(item?.filename || item?.filepath || "")),
+    });
     post(ENDPOINTS.INDEX_FILES, payload)
         .then((res) => {
             if (res?.ok) return;
@@ -520,7 +585,89 @@ function scheduleGenerationIndex(files, attempt = 1, meta = {}) {
         .catch((error) => reportError(error, "entry.executed.index"));
 }
 
+function resolveGenerationPromptId(meta = {}) {
+    const explicitPromptId = String(meta?.prompt_id || meta?.promptId || "").trim();
+    if (explicitPromptId) return explicitPromptId;
+    try {
+        return String(ensureExecutionRuntime()?.active_prompt_id || "").trim();
+    } catch (e) {
+        console.debug?.(e);
+        return "";
+    }
+}
+
+function bufferGenerationIndex(files, meta = {}) {
+    const promptId = resolveGenerationPromptId(meta);
+    debugJobTracking("buffer:add", {
+        prompt_id: promptId,
+        explicit_prompt_id: String(meta?.prompt_id || meta?.promptId || ""),
+        file_count: Array.isArray(files) ? files.length : 0,
+        files: Array.isArray(files)
+            ? files.map((item) => String(item?.filename || item?.filepath || ""))
+            : [],
+    });
+    if (!promptId) {
+        scheduleGenerationIndex(files, 1, meta);
+        return;
+    }
+    executionAssetBuffer.add(promptId, files);
+}
+
+function flushBufferedGenerationIndex(jobId) {
+    const promptId = String(jobId || "").trim();
+    if (!promptId) return;
+    const files = executionAssetBuffer.take(promptId);
+    debugJobTracking("buffer:flush", {
+        prompt_id: promptId,
+        file_count: files.length,
+        files: files.map((item) => String(item?.filename || item?.filepath || "")),
+    });
+    _pendingStackJobIds.add(promptId);
+    if (!files.length) {
+        scheduleFinalizeExecutionStacks(promptId);
+        return;
+    }
+    post(ENDPOINTS.INDEX_FILES, {
+        files,
+        origin: "generation",
+        prompt_id: promptId,
+    })
+        .then((res) => {
+            if (!res?.ok) {
+                _pendingStackJobIds.delete(promptId);
+                reportError(
+                    new Error(String(res?.error || "Indexing generated files failed")),
+                    "entry.executed.index",
+                );
+                return;
+            }
+            debugJobTracking("index:flush:done", {
+                prompt_id: promptId,
+                file_count: files.length,
+            });
+            scheduleFinalizeExecutionStacks(promptId, 200);
+        })
+        .catch((error) => {
+            _pendingStackJobIds.delete(promptId);
+            reportError(error, "entry.executed.index");
+        });
+}
+
+function shouldDeferLiveAssetEvent(detail) {
+    try {
+        const jobId = String(detail?.job_id || "").trim();
+        if (!jobId) return false;
+        if (!_pendingStackJobIds.has(jobId)) return false;
+        const stackId = String(detail?.stack_id || "").trim();
+        return !stackId;
+    } catch (e) {
+        console.debug?.(e);
+        return false;
+    }
+}
+
 function scheduleFinalizeExecutionStacks(jobId, delayMs = 900) {
+    debugJobTracking("finalize:schedule", { job_id: String(jobId || ""), delay_ms: delayMs });
     _stackFinalizeQueue.schedule(jobId, delayMs);
 }
 
@@ -675,6 +822,13 @@ app.registerExtension({
                             ...(sourceNodeId ? { source_node_id: sourceNodeId } : {}),
                             ...(sourceNodeType ? { source_node_type: sourceNodeType } : {}),
                         }));
+                        debugJobTracking("executed:event", {
+                            prompt_id: String(promptId || ""),
+                            source_node_id: sourceNodeId,
+                            source_node_type: sourceNodeType,
+                            file_count: files.length,
+                            files: files.map((item) => String(item?.filename || item?.filepath || "")),
+                        });
 
                         // Notify the MFV (and any other subscriber) that new files were generated.
                         try {
@@ -687,7 +841,7 @@ app.registerExtension({
                             console.debug?.(e);
                         }
 
-                        scheduleGenerationIndex(files, 1, { prompt_id: promptId });
+                        bufferGenerationIndex(files, { prompt_id: promptId });
                     } catch (error) {
                         reportError(error, "entry.executed");
                     }
@@ -699,6 +853,10 @@ app.registerExtension({
                     try {
                         const promptId = event?.detail?.prompt_id || event?.detail?.promptId;
                         const ts = event?.detail?.timestamp;
+                        debugJobTracking("execution:start", {
+                            prompt_id: String(promptId || ""),
+                            timestamp: Number(ts) || null,
+                        });
                         rememberExecutionStart(promptId, ts);
                         // Feed jobId to LiveStreamTracker so b_preview_with_metadata
                         // events from stale executions are filtered out (ComfyUI v1.42+).
@@ -717,6 +875,10 @@ app.registerExtension({
                 api._mjrExecutionEndHandler = (event) => {
                     try {
                         const promptId = event?.detail?.prompt_id || event?.detail?.promptId;
+                        debugJobTracking("execution:end", {
+                            type: String(event?.type || ""),
+                            prompt_id: String(promptId || ""),
+                        });
                         if (promptId) {
                             executionStarts.delete(String(promptId));
                         }
@@ -730,8 +892,16 @@ app.registerExtension({
                             progress_value: null,
                             progress_max: null,
                         });
+                        if (promptId && String(event?.type || "") !== "execution_success") {
+                            debugJobTracking("buffer:clear", {
+                                prompt_id: String(promptId || ""),
+                                reason: String(event?.type || ""),
+                            });
+                            executionAssetBuffer.clear(promptId);
+                            _pendingStackJobIds.delete(promptId);
+                        }
                         if (String(event?.type || "") === "execution_success") {
-                            scheduleFinalizeExecutionStacks(promptId);
+                            flushBufferedGenerationIndex(promptId);
                         }
                     } catch (error) {
                         reportError(error, "entry.execution_end");
@@ -817,6 +987,12 @@ app.registerExtension({
                 _registerCleanableListener(
                     runtime,
                     api,
+                    EVENTS.RUNTIME_STATUS,
+                    api._mjrRuntimeStatusHandler,
+                );
+                _registerCleanableListener(
+                    runtime,
+                    api,
                     "execution_cached",
                     api._mjrExecutionCachedHandler,
                 );
@@ -826,6 +1002,7 @@ app.registerExtension({
                     try {
                         const grid = getActiveGridContainer();
                         if (grid && event?.detail) {
+                            if (shouldDeferLiveAssetEvent(event.detail)) return;
                             pushGeneratedAsset(event.detail);
                             // Only handle direct updates when the active grid shows output or "all" scope.
                             const scope = grid.dataset?.mjrScope || "output";
@@ -862,6 +1039,7 @@ app.registerExtension({
                     try {
                         const grid = getActiveGridContainer();
                         if (grid && event?.detail) {
+                            if (shouldDeferLiveAssetEvent(event.detail)) return;
                             pushGeneratedAsset(event.detail);
                             const detail = event.detail;
                             const assetId = String(detail?.id || "").trim();
@@ -921,6 +1099,51 @@ app.registerExtension({
                     api,
                     EVENTS.SCAN_COMPLETE,
                     api._mjrScanCompleteHandler,
+                );
+
+                api._mjrScanProgressHandler = (event) => {
+                    try {
+                        const detail = event?.detail || {};
+                        window.dispatchEvent(new CustomEvent(EVENTS.SCAN_PROGRESS, { detail }));
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+                };
+                _registerCleanableListener(
+                    runtime,
+                    api,
+                    EVENTS.SCAN_PROGRESS,
+                    api._mjrScanProgressHandler,
+                );
+
+                api._mjrAssetIndexingHandler = (event) => {
+                    try {
+                        const detail = event?.detail || {};
+                        window.dispatchEvent(new CustomEvent(EVENTS.ASSET_INDEXING, { detail }));
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+                };
+                _registerCleanableListener(
+                    runtime,
+                    api,
+                    EVENTS.ASSET_INDEXING,
+                    api._mjrAssetIndexingHandler,
+                );
+
+                api._mjrAssetIndexedHandler = (event) => {
+                    try {
+                        const detail = event?.detail || {};
+                        window.dispatchEvent(new CustomEvent(EVENTS.ASSET_INDEXED, { detail }));
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+                };
+                _registerCleanableListener(
+                    runtime,
+                    api,
+                    EVENTS.ASSET_INDEXED,
+                    api._mjrAssetIndexedHandler,
                 );
 
                 api._mjrEnrichmentStatusHandler = (event) => {
@@ -1190,7 +1413,14 @@ app.registerExtension({
                 }
             }
             if (!files.length) return;
-            scheduleGenerationIndex(files);
+            debugJobTracking("node-outputs:updated", {
+                prompt_id: resolveGenerationPromptId(),
+                file_count: files.length,
+                files: files.map((item) => String(item?.filename || item?.filepath || "")),
+            });
+            bufferGenerationIndex(files, {
+                prompt_id: resolveGenerationPromptId(),
+            });
         } catch (e) {
             console.debug?.("[Majoor] onNodeOutputsUpdated error", e);
         }
