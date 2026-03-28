@@ -4,7 +4,7 @@ Simple, debug-friendly DI without framework magic.
 """
 
 import asyncio
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 from .adapters.db.schema import migrate_schema, table_has_column
 from .adapters.db.sqlite import Sqlite
@@ -40,6 +40,16 @@ def _resolve_db_path(db_path: str | None) -> str:
 
 
 def _resolve_vectors_db_path(db_path: str) -> str:
+    # On POSIX runners, pathlib.Path treats "C:/..." as a relative path.
+    # Detect Windows drive paths explicitly so we can preserve correct sibling
+    # path semantics in cross-platform tests and CI.
+    if len(db_path) >= 3 and db_path[1] == ":" and db_path[2] in ("\\", "/"):
+        win_db = PureWindowsPath(db_path)
+        win_index = PureWindowsPath(INDEX_DB)
+        if win_db == win_index:
+            return VECTORS_DB
+        return str(win_db.with_name("vectors.sqlite"))
+
     try:
         resolved_db = Path(db_path).expanduser().resolve()
         resolved_index = Path(INDEX_DB).expanduser().resolve()
