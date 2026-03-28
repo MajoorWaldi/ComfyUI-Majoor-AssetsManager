@@ -14,7 +14,7 @@ pillow>=10.0.0,<13.0.0
 hachoir>=3.3.0,<4.0.0
 
 # Safe file deletion (recycle bin support)
-send2trash>=1.8.0,<2.0.0
+send2trash>=1.8.0,<3.0.0
 
 # File system monitoring for auto-reindexing (optional, enable with MJR_ENABLE_WATCHER=1)
 watchdog>=3.0.0,<7.0.0
