@@ -31,6 +31,22 @@ def _build_vector_runtime(db: Any) -> tuple[Any, Any]:
     return vector_service, vector_searcher
 
 
+def _current_runtime(services: dict[str, Any]) -> tuple[Any | None, Any | None]:
+    return services.get("vector_service"), services.get("vector_searcher")
+
+
+def _has_runtime(runtime: tuple[Any | None, Any | None]) -> bool:
+    vector_service, vector_searcher = runtime
+    return vector_service is not None and vector_searcher is not None
+
+
+def _store_runtime(services: dict[str, Any], runtime: tuple[Any, Any]) -> tuple[Any, Any]:
+    vector_service, vector_searcher = runtime
+    services["vector_service"] = vector_service
+    services["vector_searcher"] = vector_searcher
+    return vector_service, vector_searcher
+
+
 async def ensure_vector_runtime(
     services: dict[str, Any] | None,
     *,
@@ -40,24 +56,22 @@ async def ensure_vector_runtime(
     if not is_vector_search_enabled() or not isinstance(services, dict):
         return None, None
 
-    vector_service = services.get("vector_service")
-    vector_searcher = services.get("vector_searcher")
-    if vector_service is not None and vector_searcher is not None:
-        return vector_service, vector_searcher
+    runtime = _current_runtime(services)
+    if _has_runtime(runtime):
+        return runtime
 
-    db = services.get("db")
-    if db is None:
+    if services.get("db") is None:
         return None, None
 
     lock = _get_vector_runtime_lock(services)
     async with lock:
-        vector_service = services.get("vector_service")
-        vector_searcher = services.get("vector_searcher")
-        if vector_service is not None and vector_searcher is not None:
-            return vector_service, vector_searcher
-        vector_service, vector_searcher = _build_vector_runtime(db)
-        services["vector_service"] = vector_service
-        services["vector_searcher"] = vector_searcher
+        runtime = _current_runtime(services)
+        if _has_runtime(runtime):
+            return runtime
+        vector_service, vector_searcher = _store_runtime(
+            services,
+            _build_vector_runtime(services["db"]),
+        )
         if logger is not None:
             try:
                 logger.info("Vector services initialized lazily (%s)", str(reason or "runtime"))

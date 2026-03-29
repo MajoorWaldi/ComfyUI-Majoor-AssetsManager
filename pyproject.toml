@@ -108,4 +108,7 @@ exclude = [
 select = ["E", "F", "I", "UP", "B", "S"]
 ignore = ["E501", "S101", "S105", "S110", "S112", "S311", "S603", "S607", "S608"]
 
+[tool.ruff.lint.per-file-ignores]
+"scripts/junit_to_html.py" = ["S314"]
+"tests/**/*.py" = ["S108", "S605"]
 

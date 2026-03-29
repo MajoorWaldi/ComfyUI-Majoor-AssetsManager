@@ -9,7 +9,7 @@
 import { safeDispatchCustomEvent } from "../../utils/events.js";
 import { initI18n, setFollowComfyLanguage, startComfyLanguageSync } from "../i18n.js";
 import { debounce } from "../../utils/debounce.js";
-import { getWatcherStatus } from "../../api/client.js";
+import { getWatcherStatus, toggleWatcher } from "../../api/client.js";
 
 import {
     loadMajoorSettings,
@@ -191,6 +191,9 @@ function ensureMajoorSettingsContext(app, onApplied, { initRuntime = false } = {
         void syncBackendSecuritySettings();
         void syncBackendVectorSearchSettings();
         void syncBackendExecutionGroupingSettings();
+        if (settings?.watcher && typeof settings.watcher.enabled === "boolean") {
+            void toggleWatcher(!!settings.watcher.enabled).catch(() => {});
+        }
         startRuntimeStatusDashboard();
         _settingsRuntimeInitialized = true;
     }

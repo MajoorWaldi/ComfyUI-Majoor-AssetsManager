@@ -98,6 +98,10 @@ async def test_schedule_added_vectors_respects_scan_toggle(monkeypatch) -> None:
 async def test_schedule_prepared_vectors_includes_refreshed_and_updated_assets(monkeypatch) -> None:
     scanner = IndexScanner(_DbStub([]), metadata_service=object(), scan_lock=asyncio.Lock())
     scanner.set_vector_services(vector_service=object(), vector_searcher=None)
+    monkeypatch.setattr(
+        "mjr_am_backend.features.index.scanner.is_vector_index_on_scan_enabled",
+        lambda: True,
+    )
 
     captured = {"asset_ids": None}
 
