@@ -112,6 +112,8 @@ export async function registerRealtimeListeners({
                     if (handled) {
                         try {
                             window.__mjrLastAssetUpsert = Date.now();
+                            window.__mjrLastAssetUpsertCount =
+                                (Number(window.__mjrLastAssetUpsertCount || 0) || 0) + 1;
                         } catch (e) {
                             console.debug?.(e);
                         }
@@ -154,6 +156,8 @@ export async function registerRealtimeListeners({
                 if (handled) {
                     try {
                         window.__mjrLastAssetUpsert = Date.now();
+                        window.__mjrLastAssetUpsertCount =
+                            (Number(window.__mjrLastAssetUpsertCount || 0) || 0) + 1;
                     } catch (e) {
                         console.debug?.(e);
                     }

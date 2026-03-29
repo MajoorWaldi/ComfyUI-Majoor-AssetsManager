@@ -132,21 +132,6 @@ export function createExecutionRuntimeController({
         } catch (e) {
             console.debug?.(e);
         }
-        try {
-            const grid = getActiveGridContainer();
-            const scope = String(grid?.dataset?.mjrScope || "")
-                .trim()
-                .toLowerCase();
-            if (grid && (scope === "output" || scope === "all")) {
-                window.dispatchEvent(
-                    new CustomEvent(EVENTS.RELOAD_GRID, {
-                        detail: { reason: "stacks-updated", ...(detail || {}) },
-                    }),
-                );
-            }
-        } catch (e) {
-            console.debug?.(e);
-        }
     }
 
     const stackFinalizeQueue = createJobFinalizeQueue({

@@ -1944,6 +1944,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             Number.isFinite(totalAssets) && Number.isFinite(lastKnownTotalAssets)
                 ? totalAssets - lastKnownTotalAssets
                 : 0;
+        const recentUpsertCount = Math.max(0, Number(window.__mjrLastAssetUpsertCount || 0) || 0);
         // Only trigger reload for large bulk additions (e.g. full scan, external copy).
         // Small increments from generation are handled by upsert (no reload needed).
         const hasNewTotal = totalDelta >= 20;
@@ -1964,6 +1965,11 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         // If upsert handled assets recently, skip reload entirely — assets are already visible.
         const recentUpsertMs = Date.now() - Number(window.__mjrLastAssetUpsert || 0);
         const upsertHandledRecently = recentUpsertMs < 15000;
+        const totalExplainedByRecentUpserts =
+            upsertHandledRecently &&
+            totalDelta > 0 &&
+            recentUpsertCount > 0 &&
+            totalDelta <= recentUpsertCount + 8;
 
         // hasNewIndexEnd: files were indexed (e.g. after a generation run).
         // Primary handler: mjr-asset-added WS push → upsertAsset (instant, no flash).
@@ -1976,6 +1982,16 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
 
         // If upsert handled things recently, also skip hasNewTotal reloads — only
         // full scans (hasNewScan) should force a reload in that window.
+        if (totalExplainedByRecentUpserts && !hasNewScan) {
+            lastKnownScan = counters.last_scan_end;
+            lastKnownIndexEnd = counters.last_index_end;
+            try {
+                window.__mjrLastAssetUpsertCount = 0;
+            } catch (e) {
+                console.debug?.(e);
+            }
+            return;
+        }
         if (upsertHandledRecently && !hasNewScan) return;
         if (!hasNewScan && !hasNewTotal && !needsFallbackReload) return;
 
@@ -2006,6 +2022,11 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             _lastAutoReloadAt = Date.now();
         } catch {
             _lastAutoReloadAt = 0;
+        }
+        try {
+            window.__mjrLastAssetUpsertCount = 0;
+        } catch (e) {
+            console.debug?.(e);
         }
     };
 
