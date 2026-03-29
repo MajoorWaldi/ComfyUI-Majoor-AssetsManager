@@ -1,5 +1,36 @@
 /** Infinite scroll / upsert helpers extracted from GridView_impl.js (P3-B-05). */
-import { shouldHideSiblingAsset } from "./AssetCardRenderer.js";
+import { shouldHideSiblingAsset, unregisterHiddenSibling } from "./AssetCardRenderer.js";
+
+function _assetMatchesActiveFilters(gridContainer, asset) {
+    if (!asset || typeof asset !== "object") return false;
+    const scope = String(gridContainer?.dataset?.mjrScope || "output").trim().toLowerCase();
+    const subfolder = String(gridContainer?.dataset?.mjrSubfolder || "").trim().toLowerCase();
+    const kind = String(gridContainer?.dataset?.mjrFilterKind || "").trim().toLowerCase();
+    const workflowOnly = gridContainer?.dataset?.mjrFilterWorkflowOnly === "1";
+    const minRating = Number(gridContainer?.dataset?.mjrFilterMinRating || 0) || 0;
+    const workflowType = String(gridContainer?.dataset?.mjrFilterWorkflowType || "")
+        .trim()
+        .toLowerCase();
+    const dateExact = String(gridContainer?.dataset?.mjrFilterDateExact || "").trim();
+    const assetSubfolder = String(asset?.subfolder || "").trim().toLowerCase();
+    const assetType = String(asset?.type || "output").trim().toLowerCase();
+    const assetKind = String(asset?.kind || "").trim().toLowerCase();
+    const assetWorkflowType = String(asset?.workflow_type || asset?.workflowType || "")
+        .trim()
+        .toLowerCase();
+    const assetDate = String(asset?.date_exact || asset?.date || "").trim();
+    const hasWorkflow = Boolean(asset?.has_workflow ?? asset?.hasWorkflow);
+
+    if (scope && scope !== "all" && assetType && assetType !== scope) return false;
+    if (subfolder && assetSubfolder !== subfolder) return false;
+    if (kind && assetKind && assetKind !== kind) return false;
+    if (workflowOnly && !hasWorkflow) return false;
+    if (minRating > 0 && (Number(asset?.rating || 0) || 0) < minRating) return false;
+    if (workflowType && assetWorkflowType !== workflowType) return false;
+    if (dateExact && assetDate && assetDate !== dateExact) return false;
+
+    return true;
+}
 
 export async function fetchPage(
     gridContainer,
@@ -272,17 +303,7 @@ export function flushUpsertBatch(gridContainer, deps) {
                 state.assets = state.assets.filter((item) => {
                     const keep = !removedSet.has(item);
                     if (!keep) {
-                        try {
-                            if (item?.id != null) state.assetIdSet?.delete?.(String(item.id));
-                        } catch (e) {
-                            console.debug?.(e);
-                        }
-                        try {
-                            const removedKey = deps.assetKey(item);
-                            if (removedKey) state.seenKeys?.delete?.(removedKey);
-                        } catch (e) {
-                            console.debug?.(e);
-                        }
+                        unregisterHiddenSibling(state, item, state);
                     }
                     return keep;
                 });
@@ -304,6 +325,15 @@ export function flushUpsertBatch(gridContainer, deps) {
             }
             const key = deps.assetKey(asset);
             const existingIndex = state.assets.findIndex((a) => String(a.id) === assetId);
+            const matchesFilters = _assetMatchesActiveFilters(gridContainer, asset);
+            if (!matchesFilters) {
+                if (existingIndex > -1) {
+                    const [removedAsset] = state.assets.splice(existingIndex, 1);
+                    unregisterHiddenSibling(state, removedAsset, state);
+                    modified = true;
+                }
+                continue;
+            }
             if (existingIndex > -1) {
                 const existingAsset = state.assets[existingIndex];
                 const previousKey = deps.assetKey(existingAsset);

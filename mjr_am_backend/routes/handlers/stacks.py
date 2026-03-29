@@ -7,6 +7,7 @@ Routes:
     GET  /mjr/am/stacks/{stack_id}/members  — assets in a stack
     GET  /mjr/am/stacks/by-job/{job_id}     — look up stack by job_id
     POST /mjr/am/stacks/{stack_id}/cover    — set cover asset
+    POST /mjr/am/stacks/{stack_id}/rename   — update stack display name
     POST /mjr/am/stacks/dissolve            — dissolve a stack
     POST /mjr/am/stacks/merge               — merge stacks together
     POST /mjr/am/stacks/auto-stack          — trigger automatic stacking
@@ -154,6 +155,26 @@ def register_stacks_routes(routes: web.RouteTableDef) -> None:
             return _json_response(Result.Err("INVALID_INPUT", "cover_asset_id required"), status=400)
 
         result = await svc.set_cover(stack_id, int(cover_asset_id))
+        return _json_response(result)
+
+    @routes.post("/mjr/am/stacks/{stack_id}/rename")
+    async def rename_stack(request: web.Request) -> web.Response:
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
+        services, error_result = await _require_services()
+        if error_result is not None or not services:
+            return _json_response(error_result or Result.Err("SERVICE_UNAVAILABLE", "Backend not ready"), status=503)
+        svc = _stacks_service(services)
+
+        try:
+            stack_id = int(request.match_info["stack_id"])
+        except (KeyError, ValueError):
+            return _json_response(Result.Err("INVALID_INPUT", "Invalid stack_id"), status=400)
+
+        body = await _read_json(request)
+        name = body.get("name", "") if isinstance(body, dict) else ""
+        result = await svc.update_name(stack_id, str(name))
         return _json_response(result)
 
     @routes.post("/mjr/am/stacks/dissolve")

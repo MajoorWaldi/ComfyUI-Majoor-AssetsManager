@@ -144,9 +144,13 @@ export async function registerRealtimeListeners({
                 let existsInGrid = false;
                 if (assetId) {
                     try {
-                        existsInGrid = !!grid.querySelector(
-                            `.mjr-asset-card[data-mjr-asset-id="${assetId.replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1")}"]`,
-                        );
+                        if (typeof grid?._mjrHasAssetId === "function") {
+                            existsInGrid = !!grid._mjrHasAssetId(assetId);
+                        } else {
+                            existsInGrid = !!grid.querySelector(
+                                `.mjr-asset-card[data-mjr-asset-id="${assetId.replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1")}"]`,
+                            );
+                        }
                     } catch (e) {
                         console.debug?.(e);
                     }

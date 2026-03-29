@@ -45,7 +45,7 @@ export function ensureStackGroupCard(gridContainer, card, asset) {
     const cachedMembers = gridContainer?._mjrStackMembersCache?.get?.(groupKey);
     const knownCount = Array.isArray(cachedMembers)
         ? cachedMembers.length
-        : Math.max(2, Number(asset?.stack_asset_count || asset?._mjrFeedGroupCount || 0) || 0);
+        : Number(asset?.stack_asset_count || asset?._mjrFeedGroupCount || 0) || 0;
     if (knownCount > 1) {
         card.dataset.mjrStacked = "true";
         card.dataset.mjrStackCount = String(knownCount);

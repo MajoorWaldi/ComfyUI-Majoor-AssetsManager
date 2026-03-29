@@ -117,7 +117,7 @@ export function ensureSentinel(gridContainer, state, sentinelClass) {
     return sentinel;
 }
 
-export function stopObserver(state) {
+export function stopObserver(state, gridContainer = null) {
     try {
         if (state.observer) state.observer.disconnect();
     } catch (e) {
@@ -143,6 +143,14 @@ export function stopObserver(state) {
     state.ignoreNextScroll = false;
     state.userScrolled = false;
     state.allowUntilFilled = true;
+    if (gridContainer && state._cardKeydownHandler) {
+        try {
+            gridContainer.removeEventListener("keydown", state._cardKeydownHandler, true);
+        } catch (e) {
+            console.debug?.(e);
+        }
+        state._cardKeydownHandler = null;
+    }
 }
 
 export function captureScrollMetrics(state) {

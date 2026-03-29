@@ -132,7 +132,7 @@ function ensureSiblingState(state) {
     return { nonImageSiblingKeys, stemMap, assetIdSet, seenKeys };
 }
 
-function unregisterHiddenSibling(state, removed, siblingMaps) {
+export function unregisterHiddenSibling(state, removed, siblingMaps) {
     try {
         if (removed?.id != null) siblingMaps.assetIdSet.delete(String(removed.id));
     } catch (e) {

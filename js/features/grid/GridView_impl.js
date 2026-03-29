@@ -20,7 +20,6 @@ import { getViewerInstance } from "../../components/Viewer.js";
 // Context menus are bound by the panel (GridContextMenu) to avoid duplicate handlers.
 import { ASSET_RATING_CHANGED_EVENT, ASSET_TAGS_CHANGED_EVENT } from "../../app/events.js";
 import { safeDispatchCustomEvent } from "../../utils/events.js";
-import { debounce } from "../../utils/debounce.js";
 import { pickRootId } from "../../utils/ids.js";
 import { bindAssetDragStart } from "../dnd/DragDrop.js";
 import { loadMajoorSettings } from "../../app/settings.js";
@@ -91,7 +90,7 @@ import {
  * @property {Map<string, number>} filenameCounts Collision detection map
  * @property {Set<string>} nonImageStems Logic for hiding PNG siblings
  * @property {Map<string, Array<Object>>} stemMap Logic for hiding PNG siblings
- * @property {Map<string, Array<HTMLElement>>} renderedFilenameMap Live DOM references
+ * @property {Map<string, Set<HTMLElement>>} renderedFilenameMap Live DOM references
  * @property {VirtualGrid|null} virtualGrid The virtual renderer instance
  * @property {HTMLElement|null} sentinel Infinite scroll trigger
  * @property {IntersectionObserver|null} observer Infinite scroll observer
@@ -483,6 +482,16 @@ export function createGridContainer() {
             const idx = state.assets.findIndex((a) => String(a?.id || "") === id);
             if (idx >= 0) state.virtualGrid.scrollToIndex(idx);
         };
+        container._mjrHasAssetId = (assetId) => {
+            const id = String(assetId || "").trim();
+            if (!id) return false;
+            try {
+                const state = GRID_STATE.get(container);
+                return !!state?.assets?.some?.((asset) => String(asset?.id || "") === id);
+            } catch {
+                return false;
+            }
+        };
     } catch (e) {
         console.debug?.(e);
     }
@@ -491,18 +500,11 @@ export function createGridContainer() {
     _updateGridSettingsClasses(container);
 
     // Listen for settings changes to update CSS classes reactively
-    const SETTINGS_REFRESH_DEBOUNCE_MS = 180;
-    const scheduleSettingsRefresh = debounce(() => {
-        refreshGrid(container);
-    }, SETTINGS_REFRESH_DEBOUNCE_MS);
     const onSettingsChanged = () => {
         // Apply class/CSS var updates immediately (cheap) for responsive UI.
         requestAnimationFrame(() => {
             _updateGridSettingsClasses(container);
         });
-
-        // Heavy virtual-grid redraw is debounced to avoid picker-drag freeze.
-        scheduleSettingsRefresh();
     };
 
     // We bind to the custom event dispatched by settings.js
@@ -783,7 +785,7 @@ function getOrCreateState(gridContainer) {
             nonImageSiblingKeys: new Set(),
             // Virtual Grid mappings
             stemMap: new Map(), // stem -> [Asset]
-            renderedFilenameMap: new Map(), // filenameKey -> [DOMElement] (only currently rendered)
+            renderedFilenameMap: new Map(), // filenameKey -> Set<DOMElement> (only currently rendered)
 
             sentinel: null,
             observer: null,
@@ -948,12 +950,12 @@ function ensureVirtualGrid(gridContainer, state) {
                 // Track rendered card for live updates (collisions)
                 const fnKey = _getFilenameKey(asset?.filename);
                 if (fnKey) {
-                    let list = state.renderedFilenameMap.get(fnKey);
-                    if (!list) {
-                        list = [];
-                        state.renderedFilenameMap.set(fnKey, list);
+                    let cards = state.renderedFilenameMap.get(fnKey);
+                    if (!cards) {
+                        cards = new Set();
+                        state.renderedFilenameMap.set(fnKey, cards);
                     }
-                    list.push(card);
+                    cards.add(card);
                 }
             },
             onItemUpdated: (asset, card) => {
@@ -987,11 +989,10 @@ function ensureVirtualGrid(gridContainer, state) {
                     const nextFnKey = _getFilenameKey(asset?.filename);
                     try {
                         if (prevFnKey) {
-                            const oldList = state.renderedFilenameMap.get(prevFnKey);
-                            if (oldList) {
-                                const idx = oldList.indexOf(oldCard);
-                                if (idx > -1) oldList.splice(idx, 1);
-                                if (!oldList.length) state.renderedFilenameMap.delete(prevFnKey);
+                            const oldCards = state.renderedFilenameMap.get(prevFnKey);
+                            if (oldCards) {
+                                oldCards.delete(oldCard);
+                                if (!oldCards.size) state.renderedFilenameMap.delete(prevFnKey);
                             }
                         }
                     } catch (e) {
@@ -999,12 +1000,12 @@ function ensureVirtualGrid(gridContainer, state) {
                     }
                     try {
                         if (nextFnKey) {
-                            let nextList = state.renderedFilenameMap.get(nextFnKey);
-                            if (!nextList) {
-                                nextList = [];
-                                state.renderedFilenameMap.set(nextFnKey, nextList);
+                            let nextCards = state.renderedFilenameMap.get(nextFnKey);
+                            if (!nextCards) {
+                                nextCards = new Set();
+                                state.renderedFilenameMap.set(nextFnKey, nextCards);
                             }
-                            if (!nextList.includes(card)) nextList.push(card);
+                            nextCards.add(card);
                         }
                     } catch (e) {
                         console.debug?.(e);
@@ -1046,10 +1047,10 @@ function ensureVirtualGrid(gridContainer, state) {
                     const asset = card._mjrAsset;
                     const fnKey = _getFilenameKey(asset?.filename);
                     if (fnKey) {
-                        const list = state.renderedFilenameMap.get(fnKey);
-                        if (list) {
-                            const idx = list.indexOf(card);
-                            if (idx > -1) list.splice(idx, 1);
+                        const cards = state.renderedFilenameMap.get(fnKey);
+                        if (cards) {
+                            cards.delete(card);
+                            if (!cards.size) state.renderedFilenameMap.delete(fnKey);
                         }
                     }
                 } catch (e) {
@@ -1080,14 +1081,14 @@ function ensureVirtualGrid(gridContainer, state) {
     });
 }
 
-function assetKey(asset) {
+function assetKey(asset, gridContainer = null) {
     if (!asset || typeof asset !== "object") return "";
     const fallback =
         asset.id != null
             ? `id:${asset.id}`
             : `${asset.type || ""}|${pickRootId(asset)}|${asset.filepath || ""}|${asset.subfolder || ""}|${asset.filename || ""}`;
     try {
-        const grid = globalThis?.__MJR_LAST_ASSETKEY_GRID__ || null;
+        const grid = gridContainer || globalThis?.__MJR_LAST_ASSETKEY_GRID__ || null;
         return getStackAwareAssetKey(grid, asset, fallback);
     } catch (e) {
         console.debug?.(e);
@@ -1145,15 +1146,15 @@ function appendAssets(gridContainer, assets, state) {
         clearGridMessage,
         ensureVirtualGrid,
         setFileBadgeCollision,
-        assetKey,
+        assetKey: (asset) => assetKey(asset, gridContainer),
     });
 }
 
 function _ensureSentinel(gridContainer, state) {
     return vsEnsureSentinel(gridContainer, state, SENTINEL_CLASS);
 }
-function stopObserver(state) {
-    return vsStopObserver(state);
+function stopObserver(state, gridContainer = null) {
+    return vsStopObserver(state, gridContainer);
 }
 
 function captureScrollMetrics(state) {
@@ -1197,25 +1198,12 @@ async function _fetchPage(
     );
 }
 
-const _emitAgendaStatus = (dateExact, hasResults) => {
-    if (!dateExact) return;
-    try {
-        window?.dispatchEvent?.(
-            new CustomEvent("MJR:AgendaStatus", {
-                detail: { date: dateExact, hasResults: Boolean(hasResults) },
-            }),
-        );
-    } catch (e) {
-        console.debug?.(e);
-    }
-};
-
 async function loadNextPage(gridContainer, state) {
     return infLoadNextPage(gridContainer, state, {
         config: APP_CONFIG,
         captureScrollMetrics,
         gridDebug,
-        stopObserver,
+        stopObserver: (innerState) => stopObserver(innerState, gridContainer),
         appendAssets,
         maybeKeepPinnedToBottom,
         sanitizeQuery,
@@ -1826,7 +1814,7 @@ function _flushUpsertBatch(gridContainer) {
         upsertState: UPSERT_BATCH_STATE,
         getOrCreateState,
         ensureVirtualGrid,
-        assetKey,
+        assetKey: (asset) => assetKey(asset, gridContainer),
         loadMajoorSettings,
     });
 }
@@ -1845,7 +1833,7 @@ export function upsertAsset(gridContainer, asset) {
         upsertState: UPSERT_BATCH_STATE,
         maxBatchSize: UPSERT_BATCH_MAX_SIZE,
         debounceMs: UPSERT_BATCH_DEBOUNCE_MS,
-        assetKey,
+        assetKey: (asset) => assetKey(asset, gridContainer),
         loadMajoorSettings,
     });
 }

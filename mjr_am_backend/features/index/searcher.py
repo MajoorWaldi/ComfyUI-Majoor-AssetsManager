@@ -537,6 +537,18 @@ def _apply_stack_counts(grouped_assets: list[dict[str, Any]], stack_counts: dict
         asset["stack_asset_count"] = stack_counts.get(key, 1)
 
 
+def _adapt_raw_chunk(current_chunk: int, grouped_count: int, raw_processed: int, target: int) -> int:
+    """Double chunk size when grouping ratio is poor to reduce DB round trips."""
+    if grouped_count <= 0 or raw_processed <= 0 or target <= grouped_count:
+        return current_chunk
+    ratio = grouped_count / raw_processed
+    if ratio <= 0:
+        return current_chunk
+    remaining = target - grouped_count
+    estimated = int(remaining / ratio) * 2
+    return max(current_chunk, min(5000, estimated))
+
+
 async def _paginate_grouped_assets(
     fetch_rows,
     hydrate_rows,
@@ -547,7 +559,7 @@ async def _paginate_grouped_assets(
 ) -> Result[dict[str, Any]]:
     target = max(0, offset) + max(0, limit)
     raw_offset = 0
-    raw_chunk = max(100, min(1000, max(limit, 1) * 4))
+    raw_chunk = max(200, min(2000, max(limit, 1) * 10))
     grouped_assets: list[dict[str, Any]] = []
     grouped_by_key: dict[str, dict[str, Any]] = {}
     stack_counts: dict[str, int] = {}
@@ -587,6 +599,7 @@ async def _collect_grouped_assets(
     while True:
         if not include_total and len(grouped_assets) >= target:
             return Result.Ok(None)
+        raw_chunk = _adapt_raw_chunk(raw_chunk, len(grouped_assets), raw_offset, target)
         rows_res = await fetch_rows(raw_chunk, raw_offset)
         if not rows_res.ok:
             return Result.Err(rows_res.code, rows_res.error or "Grouped search query failed")

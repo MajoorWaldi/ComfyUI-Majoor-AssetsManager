@@ -33,6 +33,7 @@ export function createLiveAssetGate() {
         pendingJobs.set(normalizedJobId, {
             expectedCount: Math.max(0, Number(expectedCount ?? fileKeys.size) || 0),
             fileKeys,
+            markedAt: Date.now(),
         });
     }
 
@@ -47,10 +48,15 @@ export function createLiveAssetGate() {
         if (explicit) return explicit;
         const key = _assetFileKey(detail);
         if (!key) return "";
+        let bestJobId = "";
+        let oldestTime = Infinity;
         for (const [jobId, meta] of pendingJobs.entries()) {
-            if (meta?.fileKeys?.has?.(key)) return jobId;
+            if (meta?.fileKeys?.has?.(key) && (meta.markedAt ?? Infinity) < oldestTime) {
+                oldestTime = meta.markedAt ?? Infinity;
+                bestJobId = jobId;
+            }
         }
-        return "";
+        return bestJobId;
     }
 
     function prepare(detail) {

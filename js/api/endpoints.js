@@ -305,6 +305,10 @@ export function buildStackCoverURL(stackId) {
     return `${buildStackURL(stackId)}/cover`;
 }
 
+export function buildStackRenameURL(stackId) {
+    return `${buildStackURL(stackId)}/rename`;
+}
+
 export function buildViewerResourceURL(assetOrContext, relpath = "") {
     const ctx = assetOrContext && typeof assetOrContext === "object" ? assetOrContext : {};
     const rel = String(relpath || "").trim();

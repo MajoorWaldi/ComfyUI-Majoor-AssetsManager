@@ -223,7 +223,25 @@ class StacksService:
 
     # ── Cover management ─────────────────────────────────────────────────
 
+    async def update_name(self, stack_id: int, name: str) -> Result[bool]:
+        """Update the display name of a stack."""
+        normalized = _normalize_stack_name(name)
+        now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        res = await self.db.aexecute(
+            "UPDATE asset_stacks SET name = ?, updated_at = ? WHERE id = ?",
+            (normalized, now, stack_id),
+        )
+        if not res.ok:
+            return Result.Err("DB_ERROR", res.error or "Failed to update stack name")
+        return Result.Ok(True)
+
     async def set_cover(self, stack_id: int, cover_asset_id: int) -> Result[bool]:
+        check = await self.db.aquery(
+            "SELECT 1 FROM assets WHERE id = ? AND stack_id = ?",
+            (cover_asset_id, stack_id),
+        )
+        if not check.ok or not check.data:
+            return Result.Err("INVALID_INPUT", "Asset does not belong to this stack")
         now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         res = await self.db.aexecute(
             "UPDATE asset_stacks SET cover_asset_id = ?, updated_at = ? WHERE id = ?",

@@ -268,7 +268,7 @@ export function createGridController({
         const ftsQuery = hasAiPrefix ? q || "*" : query;
         const ftsResult = await loadAssets(gridContainer, ftsQuery);
 
-        if (looksNaturalLanguage) {
+        if (looksNaturalLanguage && !aiAttempted) {
             const count = Number(ftsResult?.count || 0) || 0;
             if (count === 0) {
                 try {

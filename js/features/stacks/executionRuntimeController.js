@@ -19,6 +19,7 @@ const INDEX_RETRY_MAX_DELAY_MS = 15_000;
 const EXECUTION_START_TTL_MS = 10 * 60 * 1000;
 const EXECUTION_STARTS_MAX = 500;
 const ORPHAN_GENERATION_RETRY_MAX_ATTEMPTS = 6;
+const ORPHAN_GENERATION_ABSOLUTE_TIMEOUT_MS = 30_000;
 
 export function createExecutionRuntimeController({
     post,
@@ -259,6 +260,11 @@ export function createExecutionRuntimeController({
         }
         const existing = orphanGenerationEntries.get(key);
         if (existing?.timer) clearTimeout(existing.timer);
+        const firstAttemptAt = existing?.firstAttemptAt ?? Date.now();
+        if (Date.now() - firstAttemptAt >= ORPHAN_GENERATION_ABSOLUTE_TIMEOUT_MS) {
+            scheduleGenerationIndex(payloadFiles, 1, meta);
+            return;
+        }
         const nextAttempt = Math.max(1, Number(attempt) || 1);
         const delayMs = Math.min(2000, 250 * nextAttempt);
         const timer = setTimeout(() => {
@@ -270,6 +276,7 @@ export function createExecutionRuntimeController({
             meta,
             attempt: nextAttempt,
             timer,
+            firstAttemptAt,
         });
     }
 

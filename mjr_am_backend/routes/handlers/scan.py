@@ -124,7 +124,8 @@ def _normalize_stack_id(value: Any) -> int | None:
     return stack_id if stack_id > 0 else None
 
 
-def _should_preserve_existing_job(existing_job_id: Any, candidate_job_id: Any) -> bool:
+def _job_ids_conflict(existing_job_id: Any, candidate_job_id: Any) -> bool:
+    """Return True when both IDs are non-empty and differ (skip the overwrite)."""
     existing = _normalize_job_id(existing_job_id)
     candidate = _normalize_job_id(candidate_job_id)
     if not existing or not candidate:
@@ -456,6 +457,11 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         files = body.get("files")
         origin = str(body.get("origin") or body.get("source") or "").strip().lower()
         prompt_id = str(body.get("prompt_id") or "").strip()
+        if prompt_id and len(prompt_id) > 255:
+            return _json_response(
+                Result.Err("INVALID_INPUT", "prompt_id exceeds maximum allowed length"),
+                status=400,
+            )
         if not isinstance(files, list) or not files:
             result = Result.Err("INVALID_INPUT", "Missing or invalid 'files' list")
             return _json_response(result)
@@ -848,7 +854,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                                     if not asset_id:
                                         continue
                                     existing_job_id = row.get("job_id")
-                                    if _should_preserve_existing_job(existing_job_id, row_prompt_id):
+                                    if _job_ids_conflict(existing_job_id, row_prompt_id):
                                         logger.debug(
                                             "Skipping prompt correlation overwrite for asset %s: existing job_id=%s candidate=%s",
                                             asset_id,
@@ -885,7 +891,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                                 if not asset_id:
                                     continue
                                 existing_job_id = row.get("job_id")
-                                if _should_preserve_existing_job(existing_job_id, row_prompt_id):
+                                if _job_ids_conflict(existing_job_id, row_prompt_id):
                                     logger.debug(
                                         "Skipping filename prompt correlation overwrite for asset %s: existing job_id=%s candidate=%s",
                                         asset_id,
@@ -950,7 +956,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                                 continue
                             row_job_id = sibling_job
                             existing_job_id = row.get("job_id")
-                            if _should_preserve_existing_job(existing_job_id, row_job_id):
+                            if _job_ids_conflict(existing_job_id, row_job_id):
                                 logger.debug(
                                     "Skipping sibling prompt correlation overwrite for asset %s: existing job_id=%s candidate=%s",
                                     asset_id,

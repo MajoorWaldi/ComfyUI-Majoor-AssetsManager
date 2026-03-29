@@ -76,4 +76,44 @@ describe("InfiniteScroll upsert", () => {
         expect(state.assetIdSet.has("2")).toBe(false);
         expect(setItems).toHaveBeenCalledTimes(1);
     });
+
+    it("skips inserting an upsert that does not match active grid filters", () => {
+        const gridContainer = {
+            dataset: {
+                mjrSort: "mtime_desc",
+                mjrScope: "output",
+                mjrSubfolder: "shots/final",
+                mjrFilterKind: "image",
+                mjrFilterMinRating: "4",
+            },
+        };
+        const state = {
+            assets: [],
+            seenKeys: new Set(),
+            assetIdSet: new Set(),
+            hiddenPngSiblings: 0,
+        };
+        const setItems = vi.fn();
+        const deps = {
+            upsertState: new Map(),
+            getOrCreateState: () => state,
+            ensureVirtualGrid: () => ({ setItems }),
+            assetKey,
+            loadMajoorSettings: () => ({}),
+            maxBatchSize: 50,
+            debounceMs: 0,
+        };
+
+        expect(
+            upsertAsset(
+                gridContainer,
+                { id: 3, kind: "video", subfolder: "shots/wip", rating: 2, mtime: 10 },
+                deps,
+            ),
+        ).toBe(true);
+        flushUpsertBatch(gridContainer, deps);
+
+        expect(state.assets).toHaveLength(0);
+        expect(setItems).not.toHaveBeenCalled();
+    });
 });

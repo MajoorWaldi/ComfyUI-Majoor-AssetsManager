@@ -575,7 +575,10 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                     } catch {
                         refreshGrid(currentGrid);
                     }
-                } else {
+                } else if (
+                    changedKey.startsWith("grid.") ||
+                    changedKey.startsWith("workflowMinimap.")
+                ) {
                     refreshGrid(currentGrid);
                 }
             }
@@ -933,14 +936,11 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         }
     };
 
-    if (!header._mjrTabListenersBound) {
-        Object.values(tabButtons).forEach((btn) => {
-            btn.addEventListener("click", () => scopeController.setScope(btn.dataset.scope), {
-                signal: panelLifecycleAC?.signal,
-            });
+    Object.values(tabButtons).forEach((btn) => {
+        btn.addEventListener("click", () => scopeController.setScope(btn.dataset.scope), {
+            signal: panelLifecycleAC?.signal,
         });
-        header._mjrTabListenersBound = true;
-    }
+    });
 
     bindMessagePopoverController({
         messageBtn,
@@ -1613,7 +1613,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         gridContainer.addEventListener("mjr:selection-changed", onSelectionChanged, {
             signal: panelLifecycleAC?.signal,
         });
-        document.addEventListener?.("mjr-settings-changed", onStats, {
+        window.addEventListener?.("mjr-settings-changed", onStats, {
             signal: panelLifecycleAC?.signal,
         });
 
@@ -1630,8 +1630,6 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         mo.observe(gridContainer, {
             childList: true,
             subtree: true,
-            attributes: true,
-            attributeFilter: ["class"],
         });
         gridContainer._mjrSummaryBarObserver = mo;
         registerSummaryDispose(() => {
@@ -1646,7 +1644,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                 console.debug?.(e);
             }
             try {
-                document.removeEventListener?.("mjr-settings-changed", onStats);
+                window.removeEventListener?.("mjr-settings-changed", onStats);
             } catch (e) {
                 console.debug?.(e);
             }
@@ -1923,10 +1921,11 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
 
         // Fallback for "new files appeared" without a full scan end update (e.g. incremental indexing).
         // Only auto-refresh when browsing output with default filters to avoid disrupting searches.
+        const stableQuery = String(gridContainer?.dataset?.mjrQuery || "*").trim() || "*";
         const isDefaultBrowse =
             state.scope === "output" &&
             !state.collectionId &&
-            String(getQuery?.() ?? "*").trim() === "*" &&
+            stableQuery === "*" &&
             !state.kindFilter &&
             !state.workflowOnly &&
             !(Number(state.minRating || 0) > 0) &&
@@ -2151,30 +2150,21 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
                     const selected = (state.selectedAssetIds || []).map(String);
                     const activeId = String(state.activeAssetId || selected[0] || "");
 
-                    selected.forEach((id) => {
-                        const card = gridContainer.querySelector(
-                            `.mjr-asset-card[data-mjr-asset-id="${_safeCssEscapeAttr(id)}"]`,
-                        );
-                        if (card) {
-                            card.classList.add("is-selected");
-                            card.setAttribute?.("aria-selected", "true");
-                        }
-                    });
+                    if (typeof gridContainer?._mjrSetSelection === "function") {
+                        gridContainer._mjrSetSelection(selected, activeId);
+                    }
 
-                    if (activeId) {
-                        const activeCard = gridContainer.querySelector(
-                            `.mjr-asset-card[data-mjr-asset-id="${_safeCssEscapeAttr(activeId)}"]`,
-                        );
-                        if (activeCard) {
-                            activeCard.classList.add("is-active");
-                            activeCard.setAttribute?.("aria-selected", "true");
-                            // Scroll selection into view if not visible after scroll restore
-                            if (state.scrollTop === 0) {
-                                activeCard.scrollIntoView?.({
-                                    block: "nearest",
-                                    behavior: "instant",
-                                });
-                            }
+                    if (activeId && state.scrollTop === 0) {
+                        if (typeof gridContainer?._mjrScrollToAssetId === "function") {
+                            gridContainer._mjrScrollToAssetId(activeId);
+                        } else {
+                            const activeCard = gridContainer.querySelector(
+                                `.mjr-asset-card[data-mjr-asset-id="${_safeCssEscapeAttr(activeId)}"]`,
+                            );
+                            activeCard?.scrollIntoView?.({
+                                block: "nearest",
+                                behavior: "instant",
+                            });
                         }
                     }
                 } catch (e) {
@@ -2194,6 +2184,13 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
     };
     restoreUIState();
 
+    try {
+        window.__mjrLastAssetUpsert = 0;
+        window.__mjrLastAssetUpsertCount = 0;
+    } catch (e) {
+        console.debug?.(e);
+    }
+
     const checkAndAutoLoad = async () => {
         try {
             await initialLoadPromise;
@@ -2201,7 +2198,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
             console.debug?.(e);
         }
 
-        const hasCards = gridContainer.querySelector(".mjr-card") != null;
+        const hasCards = gridContainer.querySelector(".mjr-asset-card") != null;
         if (hasCards) return;
         if (state.scope !== "output") return;
         if (getQuery() !== "*") return;
