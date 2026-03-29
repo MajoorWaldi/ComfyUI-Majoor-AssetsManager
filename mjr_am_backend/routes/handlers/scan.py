@@ -133,11 +133,57 @@ def _job_ids_conflict(existing_job_id: Any, candidate_job_id: Any) -> bool:
     return existing != candidate
 
 
+def _should_preserve_existing_job(existing_job_id: Any, candidate_job_id: Any) -> bool:
+    """Backward-compatible alias for callers/tests using the older helper name."""
+    return _job_ids_conflict(existing_job_id, candidate_job_id)
+
+
 def _resolve_stack_assignment(existing_stack_id: Any, candidate_stack_id: Any) -> int | None:
     candidate = _normalize_stack_id(candidate_stack_id)
     if candidate is not None:
         return candidate
     return _normalize_stack_id(existing_stack_id)
+
+
+async def _finalize_indexed_execution_stacks(
+    services: dict[str, Any],
+    job_ids: set[str] | list[str] | tuple[str, ...],
+) -> None:
+    if not is_execution_grouping_enabled():
+        return
+    normalized_job_ids = [
+        job_id for job_id in dict.fromkeys(_normalize_job_id(item) for item in (job_ids or [])) if job_id
+    ]
+    if not normalized_job_ids:
+        return
+    db = services.get("db") if isinstance(services, dict) else None
+    if db is None:
+        return
+    try:
+        from mjr_am_backend.features.stacks import StacksService
+
+        stack_service = StacksService(db)
+        finalized: list[dict[str, Any]] = []
+        for job_id in normalized_job_ids:
+            result = await stack_service.auto_stack_by_job_id(job_id)
+            if not result.ok or not isinstance(result.data, dict):
+                logger.debug("Late stack finalization skipped for job_id=%s: %s", job_id, result.error)
+                continue
+            stacks = result.data.get("stacks") or []
+            if isinstance(stacks, list):
+                finalized.extend(item for item in stacks if isinstance(item, dict))
+        if finalized:
+            _send_prompt_event(
+                "mjr.stacks.updated",
+                sanitize_for_json(
+                    {
+                        "targeted_job_id": normalized_job_ids[0] if len(normalized_job_ids) == 1 else None,
+                        "stacks": finalized,
+                    }
+                ),
+            )
+    except Exception as exc:
+        logger.debug("Failed to finalize indexed execution stacks: %s", exc)
 
 
 def _scan_enqueued_from_kickoff(result: Any) -> bool:
@@ -748,6 +794,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
         prompt_lookup: dict[tuple[str, str, str, str], str] = {}
         prompt_lookup_by_path: dict[str, str] = {}
         node_provenance_lookup: dict[tuple[str, str, str, str], tuple[str, str]] = {}
+        restack_job_ids: set[str] = set()
         for item in files:
             fname = item.get("filename")
             if not fname:
@@ -768,6 +815,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 node_provenance_lookup.setdefault(key, (src_node_id, src_node_type))
             item_prompt_id = str(item.get("prompt_id") or prompt_id or "").strip()
             if item_prompt_id:
+                restack_job_ids.add(item_prompt_id)
                 raw_path = item.get("path") or item.get("filepath") or item.get("fullpath") or item.get("full_path")
                 normalized_prompt_path = normalize_filepath_str(raw_path) if raw_path else ""
                 if normalized_prompt_path:
@@ -866,6 +914,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                                         "UPDATE assets SET job_id = ? WHERE id = ?",
                                         (row_prompt_id, asset_id),
                                     )
+                                    restack_job_ids.add(row_prompt_id)
                         for start in range(0, len(fnames_for_prompt), _MAX_IN_BATCH):
                             chunk = fnames_for_prompt[start:start + _MAX_IN_BATCH]
                             if not chunk:
@@ -903,6 +952,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                                     "UPDATE assets SET job_id = ? WHERE id = ?",
                                     (row_prompt_id, asset_id),
                                 )
+                                restack_job_ids.add(row_prompt_id)
 
                         sibling_rows: list[dict[str, Any]] = []
                         if all_fnames:
@@ -968,6 +1018,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                                 "UPDATE assets SET job_id = ? WHERE id = ?",
                                 (row_job_id, asset_id),
                             )
+                            restack_job_ids.add(row_job_id)
                     except Exception as ex:
                         logger.debug("Failed to assign prompt/job correlation: %s", ex)
 
@@ -1060,6 +1111,9 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
 
             except Exception as ex:
                 logger.debug("Failed during batch metadata enhancement: %s", ex)
+
+        if restack_job_ids:
+            await _finalize_indexed_execution_stacks(svc, restack_job_ids)
 
 
         try:

@@ -107,6 +107,88 @@ async def test_index_files_generation_allowed_during_vector_backfill(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_index_files_retriggers_stack_finalize_for_prompt_ids(monkeypatch, tmp_path: Path) -> None:
+    out_root = tmp_path / "out"
+    out_root.mkdir()
+    fp = out_root / "new.png"
+    fp.write_bytes(b"x")
+    finalized = []
+
+    class _Index:
+        async def index_paths(self, paths, base_dir, incremental, source, root_id):
+            _ = (paths, base_dir, incremental, source, root_id)
+            return Result.Ok({"scanned": 1, "added": 1, "updated": 0, "skipped": 0, "errors": 0})
+
+        async def get_assets_batch(self, _ids):
+            return Result.Ok([])
+
+    class _DB:
+        async def aquery(self, sql, params=()):
+            if "LEFT JOIN asset_metadata" in sql:
+                return Result.Ok([{"id": 11, "filename": "new.png", "subfolder": "", "source": "output", "root_id": "", "metadata_raw": None}])
+            if "job_id, stack_id FROM assets WHERE filepath" in sql:
+                return Result.Ok([{"id": 11, "job_id": "", "stack_id": None}])
+            if "job_id, stack_id FROM assets WHERE lower(filename)" in sql:
+                return Result.Ok([{"id": 11, "filename": "new.png", "subfolder": "", "source": "output", "root_id": "", "job_id": "", "stack_id": None}])
+            return Result.Ok([])
+
+        async def aexecute(self, sql, params=()):
+            _ = (sql, params)
+            return Result.Ok(1)
+
+        def lock_for_asset(self, _asset_id):
+            class _Lock:
+                async def __aenter__(self):
+                    return self
+
+                async def __aexit__(self, exc_type, exc, tb):
+                    return False
+
+            return _Lock()
+
+    async def _require_services():
+        return {"index": _Index(), "db": _DB()}, None
+
+    async def _read_json(_request):
+        return Result.Ok(
+            {
+                "files": [{"path": str(fp), "type": "output", "filename": "new.png", "subfolder": ""}],
+                "origin": "generation",
+                "prompt_id": "job-late",
+            }
+        )
+
+    async def _runtime_output_root(_svc):
+        return str(out_root)
+
+    async def _write_asset_metadata_row(_db, _asset_id, _res):
+        return Result.Ok({})
+
+    async def _finalize(_services, job_ids):
+        finalized.append(sorted(job_ids))
+
+    monkeypatch.setattr(scan_mod, "_require_services", _require_services)
+    monkeypatch.setattr(scan_mod, "is_db_maintenance_active", lambda: False)
+    monkeypatch.setattr(scan_mod, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(scan_mod, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(scan_mod, "_read_json", _read_json)
+    monkeypatch.setattr(scan_mod, "_runtime_output_root", _runtime_output_root)
+    monkeypatch.setattr(scan_mod.MetadataHelpers, "write_asset_metadata_row", staticmethod(_write_asset_metadata_row))
+    monkeypatch.setattr(scan_mod, "_is_path_allowed", lambda _p: True)
+    monkeypatch.setattr(scan_mod, "_is_path_allowed_custom", lambda _p: True)
+    monkeypatch.setattr(scan_mod, "folder_paths", SimpleNamespace(get_input_directory=lambda: str(out_root)))
+    monkeypatch.setattr(scan_mod, "_finalize_indexed_execution_stacks", _finalize)
+
+    app = _app()
+    req = make_mocked_request("POST", "/mjr/am/index-files", app=app)
+    match = await app.router.resolve(req)
+    resp = await match.handler(req)
+    payload = json.loads(resp.text)
+    assert payload.get("ok") is True
+    assert finalized == [["job-late"]]
+
+
+@pytest.mark.asyncio
 async def test_index_files_non_generation_blocked_during_maintenance(monkeypatch) -> None:
     async def _require_services():
         return {"index": object()}, None
