@@ -162,7 +162,7 @@ async def test_finalize_job_stack_creates_stack_for_multi_asset_job():
             _ok([]),
             _ok([{"id": 31}]),
             _ok([{"total": 2}]),
-            _ok([]),
+            _ok([{"id": 99}]),
             _ok([{"id": 99}]),
         ],
         execute_results=[
@@ -182,3 +182,32 @@ async def test_finalize_job_stack_creates_stack_for_multi_asset_job():
         "stack_id": 31,
         "asset_count": 2,
     }
+
+
+async def test_set_cover_rejects_asset_outside_stack():
+    db = _DbStub(
+        query_results=[
+            _ok([]),
+        ],
+    )
+    service = StacksService(db)
+
+    result = await service.set_cover(stack_id=31, cover_asset_id=99)
+
+    assert result.ok is False
+    assert result.code == "INVALID_INPUT"
+
+
+async def test_auto_select_cover_propagates_set_cover_failure():
+    db = _DbStub(
+        query_results=[
+            _ok([{"id": 99}]),
+            _ok([]),
+        ],
+    )
+    service = StacksService(db)
+
+    result = await service.auto_select_cover(stack_id=31)
+
+    assert result.ok is False
+    assert result.code == "INVALID_INPUT"

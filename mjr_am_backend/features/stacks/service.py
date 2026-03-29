@@ -261,7 +261,12 @@ class StacksService:
         )
         if res.ok and res.data:
             cover_id = int(res.data[0]["id"])
-            await self.set_cover(stack_id, cover_id)
+            set_cover_res = await self.set_cover(stack_id, cover_id)
+            if not set_cover_res.ok:
+                return Result.Err(
+                    set_cover_res.code or "DB_ERROR",
+                    set_cover_res.error or "Failed to set cover",
+                )
             return Result.Ok(cover_id)
 
         # Fallback: last created file of any kind
@@ -271,7 +276,12 @@ class StacksService:
         )
         if res.ok and res.data:
             cover_id = int(res.data[0]["id"])
-            await self.set_cover(stack_id, cover_id)
+            set_cover_res = await self.set_cover(stack_id, cover_id)
+            if not set_cover_res.ok:
+                return Result.Err(
+                    set_cover_res.code or "DB_ERROR",
+                    set_cover_res.error or "Failed to set cover",
+                )
             return Result.Ok(cover_id)
 
         return Result.Ok(None)
@@ -443,7 +453,10 @@ class StacksService:
                 (stack_id, int(member["id"])),
             )
         await self._refresh_stack_count(stack_id)
-        await self.auto_select_cover(stack_id)
+        cover_res = await self.auto_select_cover(stack_id)
+        if not cover_res.ok:
+            logger.warning("Failed to auto-select cover for workflow_hash=%s: %s", workflow_hash, cover_res.error)
+            return False
         return True
 
     async def _finalize_job_stack(self, job_id: str) -> dict[str, Any] | None:
@@ -482,7 +495,10 @@ class StacksService:
             member_count = await self._count_assets_for_stack_id(stack_id)
 
             await self._refresh_stack_count(stack_id)
-            await self.auto_select_cover(stack_id)
+            cover_res = await self.auto_select_cover(stack_id)
+            if not cover_res.ok:
+                logger.warning("Failed to auto-select cover for job_id=%s: %s", current_job_id, cover_res.error)
+                return None
 
         return {
             "job_id": current_job_id,
