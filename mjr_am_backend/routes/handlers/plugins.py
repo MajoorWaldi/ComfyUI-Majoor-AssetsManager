@@ -9,9 +9,9 @@ Exposes endpoints:
 from __future__ import annotations
 
 from aiohttp import web
-
 from mjr_am_backend.shared import Result
-from ..core import _require_services, _json_response
+
+from ..core import _json_response, _require_services
 
 
 def register_plugin_routes(routes: web.RouteTableDef) -> None:

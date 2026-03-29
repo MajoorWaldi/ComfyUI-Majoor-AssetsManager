@@ -27,7 +27,6 @@ from .scan_batch_utils import compute_state_hash, normalize_filepath_str
 from .scanner import IndexScanner
 from .searcher import IndexSearcher
 from .updater import AssetUpdater
-from .vector_runtime import ensure_vector_runtime
 
 if TYPE_CHECKING:
     from .vector_searcher import VectorSearcher

@@ -843,7 +843,6 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                                 )
                                 if not (q_res.ok and q_res.data):
                                     continue
-                                new_stack_id = job_stack_lookup.get(row_prompt_id)
                                 for row in q_res.data:
                                     asset_id = int(row.get("id") or 0)
                                     if not asset_id:
