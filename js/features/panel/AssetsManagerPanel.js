@@ -2064,8 +2064,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         { signal: panelLifecycleAC?.signal },
     );
 
+    let didHydrateFromSnapshot = false;
     try {
-        await hydrateGridFromSnapshot(
+        didHydrateFromSnapshot = await hydrateGridFromSnapshot(
             gridContainer,
             {
                 scope: state.scope || "output",
@@ -2083,7 +2084,9 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         console.debug?.(e);
     }
 
-    const initialLoadPromise = gridController.reloadGrid();
+    const initialLoadPromise = didHydrateFromSnapshot
+        ? Promise.resolve({ ok: true, hydrated: true })
+        : gridController.reloadGrid();
     try {
         await refreshDuplicateAlerts();
     } catch (e) {

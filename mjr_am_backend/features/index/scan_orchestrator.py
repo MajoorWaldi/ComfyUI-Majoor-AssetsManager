@@ -177,7 +177,12 @@ def filter_indexable_paths(paths: list[Path]) -> list[Path]:
 
 
 def log_index_paths_start(scanner: Any, *, paths: list[Path], base_dir: str, incremental: bool) -> None:
-    start_log_level = logging.DEBUG if len(paths) == 1 else logging.INFO
+    # Small incremental batches are common with watcher/generation flows and can
+    # be retriggered by benign UI lifecycle activity. Keep them out of INFO logs.
+    if incremental and len(paths) <= 10:
+        start_log_level = logging.DEBUG
+    else:
+        start_log_level = logging.DEBUG if len(paths) == 1 else logging.INFO
     scanner._log_scan_event(
         start_log_level,
         "Starting file list index",

@@ -76,26 +76,21 @@ export function registerAssetsSidebar(runtimeApp, { sidebarTabId, useComfyThemeU
         tooltip: t("tooltip.sidebarTab"),
         type: "custom",
         render: (el) => {
+            try {
+                if (el?._mjrKeepAliveMounted) {
+                    return;
+                }
+                el._mjrKeepAliveMounted = true;
+            } catch (e) {
+                console.debug?.(e);
+            }
             void renderAssetsManager(el, { useComfyThemeUI });
         },
         destroy: (el) => {
+            // Keep the panel mounted between sidebar open/close cycles so the grid
+            // state and DOM survive and reopening the tab does not force a reload.
             try {
-                el?._eventCleanup?.();
-            } catch (e) {
-                console.debug?.(e);
-            }
-            try {
-                el?._mjrPanelState?._mjrDispose?.();
-            } catch (e) {
-                console.debug?.(e);
-            }
-            try {
-                el?._mjrPopoverManager?.dispose?.();
-            } catch (e) {
-                console.debug?.(e);
-            }
-            try {
-                el?.replaceChildren?.();
+                el?._mjrKeepAliveMounted;
             } catch (e) {
                 console.debug?.(e);
             }

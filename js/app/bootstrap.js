@@ -9,6 +9,8 @@ import { APP_CONFIG } from "./config.js";
 // Auto-scan state (once per session)
 let startupScanDone = false;
 let startupScanTimer = null;
+let startupWarmupDone = false;
+let startupWarmupPromise = null;
 
 function isExecutionIdle() {
     try {
@@ -69,6 +71,33 @@ export async function triggerStartupScan(options = {}) {
     } catch (error) {
         console.error("📂 Majoor [❌]: Startup scan error:", error);
     }
+}
+
+async function warmDbAndStatus() {
+    try {
+        await Promise.allSettled([
+            get(ENDPOINTS.HEALTH),
+            get(`${ENDPOINTS.HEALTH_COUNTERS}?scope=output`),
+            get(ENDPOINTS.HEALTH_DB),
+        ]);
+    } catch (error) {
+        console.debug?.(error);
+    }
+}
+
+/**
+ * Run a single explicit startup warmup sequence:
+ * 1. warm API/DB/status endpoints
+ * 2. schedule a background incremental scan if enabled and runtime is idle
+ */
+export async function runStartupWarmup(options = {}) {
+    if (startupWarmupDone) return startupWarmupPromise || Promise.resolve();
+    startupWarmupDone = true;
+    startupWarmupPromise = (async () => {
+        await warmDbAndStatus();
+        await triggerStartupScan(options);
+    })();
+    return startupWarmupPromise;
 }
 
 /**

@@ -3,7 +3,7 @@
  * Registers extension with ComfyUI and mounts UI.
  */
 
-import { testAPI, triggerStartupScan } from "./app/bootstrap.js";
+import { runStartupWarmup, testAPI, triggerStartupScan } from "./app/bootstrap.js";
 import { checkMajoorVersion } from "./app/versionCheck.js";
 import { ensureStyleLoaded } from "./app/style.js";
 import { buildMajoorSettings, registerMajoorSettings } from "./app/settings.js";
@@ -179,7 +179,6 @@ async function setupApiListeners(runtimeApp, executionRuntime) {
         setEnrichmentState,
         comfyToast,
         t,
-        triggerStartupScan,
         reportError,
         registerCleanableListener,
     });
@@ -269,10 +268,9 @@ app.registerExtension({
             console.debug?.("[Majoor] Bottom panel tab registration unavailable", e);
         }
 
-        // Warm the asset index quickly after startup so the first panel open feels instant,
-        // while still avoiding scans during active execution.
-        void triggerStartupScan({ delayMs: 200, idleOnly: true }).catch((e) =>
-            reportError(e, "entry.startup_scan"),
+        // Explicit warmup sequence: API/DB/counters first, then index scan only if idle.
+        void runStartupWarmup({ delayMs: 200, idleOnly: true }).catch((e) =>
+            reportError(e, "entry.startup_warmup"),
         );
 
         exposeDebugApis({

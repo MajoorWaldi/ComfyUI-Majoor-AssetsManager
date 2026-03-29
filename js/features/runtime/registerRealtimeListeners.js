@@ -16,7 +16,6 @@ export async function registerRealtimeListeners({
     setEnrichmentState,
     comfyToast,
     t,
-    triggerStartupScan,
     reportError,
     registerCleanableListener,
 }) {
@@ -300,6 +299,5 @@ export async function registerRealtimeListeners({
         runtime.api = api;
         runtime.assetsDeletedHandler = assetsDeletedHandler;
     }
-    triggerStartupScan({ delayMs: 2500, idleOnly: true });
     console.debug("[Majoor] Real-time listener registered");
 }
