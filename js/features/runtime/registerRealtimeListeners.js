@@ -97,7 +97,17 @@ export async function registerRealtimeListeners({
             const grid = getActiveGridContainer();
             if (grid && event?.detail) {
                 const liveEvent = executionRuntime.prepareLiveAssetEvent(event.detail);
-                if (liveEvent?.defer) return;
+                // Deferred assets (multi-output, awaiting stack_id) are buffered so they
+                // can be replayed once notifyStacksUpdated fires refreshGeneratedFeedHosts.
+                // Previously they were silently dropped, causing invisible assets when stack
+                // finalization succeeded but the WS event arrived before stack assignment.
+                if (liveEvent?.defer) {
+                    const detail = liveEvent?.detail || event.detail;
+                    if (executionRuntime.isRenderableLiveAsset(detail)) {
+                        pushGeneratedAsset(detail);
+                    }
+                    return;
+                }
                 const detail = liveEvent?.detail || event.detail;
                 const renderable = executionRuntime.isRenderableLiveAsset(detail);
                 if (renderable) {

@@ -11,7 +11,10 @@ export function createJobFinalizeQueue({ defaultDelayMs = 900, postJob } = {}) {
                 const next = pending.values().next().value;
                 pending.delete(next);
                 if (!next) continue;
-                await postJob?.(next);
+                // Wrap in Promise.resolve so a synchronous throw from postJob is caught
+                // here rather than propagating before the finally block runs, which would
+                // permanently lock inFlight=true and halt future drains.
+                await Promise.resolve().then(() => postJob?.(next));
             }
         } finally {
             inFlight = false;

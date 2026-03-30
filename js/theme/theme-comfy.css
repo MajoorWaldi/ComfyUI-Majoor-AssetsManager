@@ -3790,6 +3790,87 @@
     width: min(440px, 92vw);
 }
 
+/* ── Audio / 3D placeholder thumbnails in the feed ───────────────────────── */
+
+/* Audio cards show the waveform sprite; give it a distinct background so it
+   doesn't look like a broken image placeholder in the feed. */
+.mjr-bottom-feed .mjr-asset-card[data-mjr-kind="audio"] .mjr-thumb,
+.mjr-bottom-feed .mjr-asset-card[data-mjr-ext="mp3"] .mjr-thumb,
+.mjr-bottom-feed .mjr-asset-card[data-mjr-ext="wav"] .mjr-thumb,
+.mjr-bottom-feed .mjr-asset-card[data-mjr-ext="ogg"] .mjr-thumb,
+.mjr-bottom-feed .mjr-asset-card[data-mjr-ext="flac"] .mjr-thumb {
+    background: color-mix(in srgb, var(--mjr-surface-0) 60%, #1a1f2b 40%) !important;
+}
+
+/* 3D model cards use an icon placeholder — add a subtle gradient so they read
+   as intentional rather than missing. */
+.mjr-bottom-feed .mjr-asset-card[data-mjr-kind="model3d"] .mjr-thumb,
+.mjr-bottom-feed .mjr-asset-card[data-mjr-ext="glb"] .mjr-thumb,
+.mjr-bottom-feed .mjr-asset-card[data-mjr-ext="gltf"] .mjr-thumb,
+.mjr-bottom-feed .mjr-asset-card[data-mjr-ext="obj"] .mjr-thumb,
+.mjr-bottom-feed .mjr-asset-card[data-mjr-ext="fbx"] .mjr-thumb {
+    background: color-mix(in srgb, var(--mjr-surface-0) 50%, #0d1117 50%) !important;
+}
+
+/* ── Feed group button ────────────────────────────────────────────────────── */
+
+.mjr-bottom-feed .mjr-feed-group-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 22px;
+    padding: 3px 7px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    background: rgba(10, 14, 20, 0.74);
+    color: rgba(255, 255, 255, 0.96);
+    font-size: 10px;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.24);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    cursor: pointer;
+    transition: background 120ms ease;
+}
+
+.mjr-bottom-feed .mjr-feed-group-button:hover {
+    background: rgba(18, 24, 34, 0.9);
+}
+
+.mjr-feed-group-button-icon {
+    font-size: 11px;
+    opacity: 0.9;
+}
+
+.mjr-feed-group-button-count {
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+/* ── Feed group popover ───────────────────────────────────────────────────── */
+
+.mjr-feed-group-popover {
+    background: var(--comfy-menu-bg, #222);
+    border: 1px solid var(--border-color, #3a3a3a);
+    border-radius: var(--mjr-r-lg, 8px);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+    overflow: hidden;
+}
+
+.mjr-feed-group-popover-title {
+    padding: 8px 10px 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    margin-bottom: 8px;
+}
+
+.mjr-feed-group-popover-grid {
+    padding: 4px 8px 10px;
+    max-height: 360px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
 .mjr-feed-group-member-card {
     min-width: 0;
 }

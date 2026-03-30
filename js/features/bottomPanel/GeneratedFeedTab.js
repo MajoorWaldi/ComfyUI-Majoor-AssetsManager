@@ -9,6 +9,7 @@ import { get } from "../../api/client.js";
 import { buildListURL } from "../../api/endpoints.js";
 import { createPopoverManager } from "../panel/views/popoverManager.js";
 import { APP_CONFIG } from "../../app/config.js";
+import { bindGridContextMenu } from "../contextmenu/GridContextMenu.js";
 
 const FEED_FETCH_LIMIT = 240;
 const FEED_PAGE_SIZE = 120;
@@ -316,14 +317,27 @@ function _assetKey(asset) {
     return `file:${type}:${subfolder}:${filename}`;
 }
 
+function _detectKindFromExt(filename) {
+    const ext = String(filename || "")
+        .split(".")
+        .pop()
+        .toUpperCase();
+    const videos = new Set(["MP4", "WEBM", "MOV", "AVI", "MKV"]);
+    const audio = new Set(["MP3", "WAV", "OGG", "FLAC", "AAC", "M4A"]);
+    const model3d = new Set(["OBJ", "FBX", "GLB", "GLTF", "STL", "PLY", "SPLAT", "KSPLAT", "SPZ"]);
+    if (videos.has(ext)) return "video";
+    if (audio.has(ext)) return "audio";
+    if (model3d.has(ext)) return "model3d";
+    return "image";
+}
+
 function _normalizeAsset(asset) {
     if (!asset || typeof asset !== "object") return null;
     const normalized = { ...asset };
     if (!normalized.type && normalized.source) normalized.type = normalized.source;
     if (!normalized.source && normalized.type) normalized.source = normalized.type;
     if (!normalized.kind) {
-        const ext = String(normalized.ext || normalized.filename || "").toLowerCase();
-        normalized.kind = /\.(mp4|mov|webm|mkv|avi)$/.test(ext) ? "video" : "image";
+        normalized.kind = _detectKindFromExt(normalized.ext || normalized.filename || "");
     }
     return normalized;
 }
@@ -383,12 +397,26 @@ async function _loadHistory(host) {
             if (rows.length < FEED_PAGE_SIZE) break;
             offset += rows.length;
         }
-        const res = await loadAssetsFromList(host.grid, _groupFeedAssets(assets), {
+
+        // Merge pending assets into the host store before the single render pass.
+        // This avoids the double-reset that happened when _applyPendingAssets called
+        // _renderHostAssets (reset:true) after loadAssetsFromList had already done so,
+        // which discarded the _enhanceGroupedCards work done between the two calls.
+        for (const asset of _getPendingAssets()) {
+            _storeHostAsset(host, asset);
+        }
+        // Pending assets are now absorbed into host.assetsByKey — clear the global buffer
+        // so future hosts don't replay the same entries (would cause duplicates).
+        FEED_STATE.pendingAssets.clear();
+
+        const allAssets = _getHostAssets(host);
+        const grouped = _groupFeedAssets(allAssets);
+        const res = await loadAssetsFromList(host.grid, grouped, {
             title: t("bottomFeed.title", "Generated Feed"),
             reset: true,
         });
-        _enhanceGroupedCards(host, _groupFeedAssets(_getHostAssets(host)));
-        await _applyPendingAssets(host);
+        _enhanceGroupedCards(host, grouped);
+
         const count = Number(res?.count || 0);
         if (count <= 0) {
             host.empty.textContent = t("bottomFeed.empty", "No generated assets yet.");
@@ -477,6 +505,10 @@ function _buildGrid(host) {
     grid.dataset.mjrQuery = "*";
     grid.dataset.mjrSort = "mtime_desc";
     grid.dataset.mjrBottomFeed = "true";
+    // Use the configured grid min-size so feed card thumbnails respect the same
+    // size setting as the main grid (fixes overly-large thumbnails on small feeds).
+    const feedMinSize = Number(APP_CONFIG.FEED_GRID_MIN_SIZE || APP_CONFIG.GRID_MIN_SIZE || 120);
+    grid.dataset.mjrFeedMinItemWidth = String(feedMinSize);
     const markActive = () => {
         try {
             window.__MJR_LAST_SELECTION_GRID__ = grid;
@@ -542,6 +574,24 @@ function _makeHost(container) {
     _buildGrid(host);
     _bindFeedSelection(host);
     host.popoverManager = createPopoverManager(root);
+
+    // Bind the same context menu as the main grid.
+    // The feed is output-only so scope is always "output" — no browser/custom-root
+    // items will appear. Delete, rename, rate, tag, find-similar all work normally.
+    host._disposeContextMenu = bindGridContextMenu({
+        gridContainer: host.grid,
+        getState: () => ({ scope: "output" }),
+        onRequestOpenViewer: (asset) => {
+            try {
+                host.grid?.dispatchEvent?.(
+                    new CustomEvent("mjr:open-viewer", { detail: { asset } }),
+                );
+            } catch (e) {
+                console.debug?.(e);
+            }
+        },
+        getViewer: getViewerInstance,
+    });
 
     // Apply feed display settings and listen for changes
     _applyFeedSettingsClasses(host.grid);
@@ -617,6 +667,11 @@ export function disposeGeneratedFeedTab(host) {
     }
     try {
         resolvedHost._disposeFeedSettings?.();
+    } catch (e) {
+        console.debug?.(e);
+    }
+    try {
+        resolvedHost._disposeContextMenu?.();
     } catch (e) {
         console.debug?.(e);
     }
