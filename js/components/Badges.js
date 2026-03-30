@@ -407,6 +407,49 @@ function _normalizeBadgeTags(tags) {
     return [];
 }
 
+/**
+ * Returns a CSS color string for a given generation time in milliseconds.
+ * Thresholds: green < 10s, light-green < 30s, yellow < 60s, orange >= 60s.
+ */
+export function genTimeColor(ms) {
+    const secs = Number(ms) / 1000;
+    if (secs >= 60) return "#FF9800";
+    if (secs >= 30) return "#FFC107";
+    if (secs >= 10) return "#8BC34A";
+    return "#4CAF50";
+}
+
+/**
+ * Create generation-time badge (overlaid on thumbnail, bottom-right).
+ * Returns null when genTimeMs is 0 or invalid (> 24h sanity limit).
+ */
+export function createGenTimeBadge(genTimeMs) {
+    const ms = Number(genTimeMs);
+    if (!ms || !Number.isFinite(ms) || ms <= 0 || ms >= 86400000) return null;
+
+    const badge = document.createElement("div");
+    badge.className = "mjr-gentime-badge";
+    const secs = (ms / 1000).toFixed(1);
+    badge.textContent = `${secs}s`;
+    badge.title = `Generation time: ${secs} seconds`;
+    badge.style.cssText = `
+        position: absolute;
+        bottom: 6px;
+        right: 6px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 700;
+        background: rgba(0,0,0,0.55);
+        border: 1px solid rgba(255,255,255,0.12);
+        color: ${genTimeColor(ms)};
+        pointer-events: none;
+        z-index: 10;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    `;
+    return badge;
+}
+
 export function createTagsBadge(tags) {
     const badge = document.createElement("div");
     badge.className = "mjr-tags-badge";

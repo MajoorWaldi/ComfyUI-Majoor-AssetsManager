@@ -29,11 +29,7 @@ function _extractGridGenInfo(asset) {
                 step: norm.steps != null ? String(norm.steps) : "",
                 genTime: "",
             };
-            const ms =
-                asset.generation_time_ms ??
-                candidate?.generation_time_ms ??
-                candidate?.geninfo?.generation_time_ms ??
-                0;
+            const ms = asset.generation_time_ms ?? candidate?.generation_time_ms ?? 0;
             if (ms && Number.isFinite(Number(ms)) && ms > 0 && ms < 86400000) {
                 out.genTime = (Number(ms) / 1000).toFixed(1) + "s";
             }

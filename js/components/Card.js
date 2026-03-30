@@ -6,9 +6,11 @@
 import { buildAssetViewURL, buildViewURL } from "../api/endpoints.js";
 import {
     createFileBadge,
+    createGenTimeBadge,
     createRatingBadge,
     createTagsBadge,
     createWorkflowDot,
+    genTimeColor,
 } from "./Badges.js";
 import { formatDuration, formatDate, formatTime } from "../utils/format.js";
 import { APP_CONFIG } from "../app/config.js";
@@ -954,6 +956,12 @@ export function createAssetCard(asset) {
         thumb.appendChild(tagsBadge);
     }
 
+    const rawGenTimeBadge = asset.generation_time_ms ?? asset.metadata?.generation_time_ms ?? 0;
+    const genTimeBadge = createGenTimeBadge(rawGenTimeBadge);
+    if (genTimeBadge) {
+        thumb.appendChild(genTimeBadge);
+    }
+
     // Store asset reference for sidebar
     card._mjrAsset = asset;
 
@@ -1048,20 +1056,10 @@ export function createAssetCard(asset) {
         }
         const genTimeSpan = document.createElement("span");
         genTimeSpan.classList.add("mjr-meta-gentime");
-
-        // Color based on generation time (green = fast, yellow = medium, orange = slow)
-        const secs = genTimeMs / 1000;
-        let color = "#4CAF50"; // Green for < 10s
-        if (secs >= 60)
-            color = "#FF9800"; // Orange for >= 60s
-        else if (secs >= 30)
-            color = "#FFC107"; // Yellow for >= 30s
-        else if (secs >= 10) color = "#8BC34A"; // Light green for >= 10s
-
-        genTimeSpan.style.color = color;
+        genTimeSpan.style.color = genTimeColor(genTimeMs);
         genTimeSpan.style.fontWeight = "500";
 
-        const secsDisplay = secs.toFixed(1);
+        const secsDisplay = (genTimeMs / 1000).toFixed(1);
         genTimeSpan.textContent = `${secsDisplay}s`;
         genTimeSpan.title = `Generation time: ${secsDisplay} seconds`;
 

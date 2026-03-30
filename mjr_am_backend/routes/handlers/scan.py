@@ -830,7 +830,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                 item.get("type") or "output",
                 item.get("root_id") or item.get("custom_root_id") or "",
             )
-            gen_time = item.get("generation_time_ms") or item.get("duration_ms")
+            gen_time = item.get("generation_time_ms")
             if gen_time and isinstance(gen_time, (int, float)) and gen_time > 0:
                 gen_time_lookup.setdefault(key, int(gen_time))
             # Capture source node provenance (which workflow node produced this file)

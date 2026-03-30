@@ -1,6 +1,7 @@
 import { createParametersBox } from "../utils/dom.js";
 import { formatDate, formatTime, formatDuration } from "../../../utils/format.js";
 import { formatFps, readAssetFps, readAssetFrameCount } from "../../../utils/mediaFps.js";
+import { genTimeColor } from "../../Badges.js";
 
 /**
  * Create a section displaying file information:
@@ -58,20 +59,11 @@ export function createFileInfoSection(asset) {
     const genTimeMs = asset.generation_time_ms ?? asset.metadata?.generation_time_ms ?? 0;
     if (genTimeMs && Number.isFinite(Number(genTimeMs)) && genTimeMs > 0 && genTimeMs < 86400000) {
         const secs = (Number(genTimeMs) / 1000).toFixed(1);
-
-        // Color based on generation time
-        let color = "#4CAF50"; // Green for < 10s
-        if (secs >= 60)
-            color = "#FF9800"; // Orange
-        else if (secs >= 30)
-            color = "#FFC107"; // Yellow
-        else if (secs >= 10) color = "#8BC34A"; // Light green
-
         fileData.push({
             label: "Generation Time",
             value: `${secs}s`,
             tooltip: "Time taken to generate this asset (workflow execution time)",
-            valueStyle: `color: ${color}; font-weight: 600;`,
+            valueStyle: `color: ${genTimeColor(genTimeMs)}; font-weight: 600;`,
         });
     }
 
