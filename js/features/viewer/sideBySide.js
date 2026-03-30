@@ -319,6 +319,30 @@ export function renderSideBySideView({
 
     if (!sideView || !state || !currentAsset) return;
 
+    const assignPlayableRole = (mediaEl, role) => {
+        try {
+            const video =
+                mediaEl?.querySelector?.(".mjr-viewer-video-src") || mediaEl?.querySelector?.("video");
+            const audio =
+                mediaEl?.querySelector?.(".mjr-viewer-audio-src") || mediaEl?.querySelector?.("audio");
+            if (video?.dataset) video.dataset.mjrCompareRole = role;
+            if (audio?.dataset) audio.dataset.mjrCompareRole = role;
+            if (audio) {
+                const isPrimary = String(role || "").toUpperCase() === "A";
+                audio.muted = !isPrimary;
+                if (!isPrimary) {
+                    try {
+                        audio.pause?.();
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+                }
+            }
+        } catch (e) {
+            console.debug?.(e);
+        }
+    };
+
     const items = Array.isArray(state.assets) ? state.assets.slice(0, 4) : [];
     const count = items.length;
     const hasFilmstripCompare = !!state.compareAsset;
@@ -357,6 +381,7 @@ export function renderSideBySideView({
                 try {
                     const media = createMediaElement?.(a, u);
                     if (media) cell.appendChild(media);
+                    assignPlayableRole(media, LABELS[i]);
                 } catch (e) {
                     console.debug?.(e);
                 }
@@ -441,26 +466,8 @@ export function renderSideBySideView({
     }
 
     // Tag roles for the global viewer bar (so it controls the "A" side by default).
-    try {
-        const leftVideo =
-            leftMedia?.querySelector?.(".mjr-viewer-video-src") ||
-            leftMedia?.querySelector?.("video");
-        const rightVideo =
-            rightMedia?.querySelector?.(".mjr-viewer-video-src") ||
-            rightMedia?.querySelector?.("video");
-        const leftAudio =
-            leftMedia?.querySelector?.(".mjr-viewer-audio-src") ||
-            leftMedia?.querySelector?.("audio");
-        const rightAudio =
-            rightMedia?.querySelector?.(".mjr-viewer-audio-src") ||
-            rightMedia?.querySelector?.("audio");
-        if (leftVideo?.dataset) leftVideo.dataset.mjrCompareRole = "A";
-        if (rightVideo?.dataset) rightVideo.dataset.mjrCompareRole = "B";
-        if (leftAudio?.dataset) leftAudio.dataset.mjrCompareRole = "A";
-        if (rightAudio?.dataset) rightAudio.dataset.mjrCompareRole = "B";
-    } catch (e) {
-        console.debug?.(e);
-    }
+    assignPlayableRole(leftMedia, "A");
+    assignPlayableRole(rightMedia, "B");
 
     // Video sync is handled centrally by the viewer bar (Viewer.js) so we avoid double-sync here.
 

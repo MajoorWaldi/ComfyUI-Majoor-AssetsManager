@@ -4,12 +4,15 @@ import { t } from "../../app/i18n.js";
 import { floatingViewerManager } from "../viewer/floatingViewerManager.js";
 import { setSelectionIds, getSelectedIdSet } from "../grid/GridSelectionManager.js";
 import { createAssetCard } from "../../components/Card.js";
+import { createRatingBadge } from "../../components/Badges.js";
 import { getViewerInstance } from "../../components/Viewer.js";
 import { get } from "../../api/client.js";
 import { buildListURL } from "../../api/endpoints.js";
 import { createPopoverManager } from "../panel/views/popoverManager.js";
 import { APP_CONFIG } from "../../app/config.js";
-import { bindGridContextMenu } from "../contextmenu/GridContextMenu.js";
+import { bindGridContextMenu, showTagsPopover } from "../contextmenu/GridContextMenu.js";
+import { createRatingHotkeysController } from "../panel/controllers/ratingHotkeysController.js";
+import { installGridKeyboard } from "../grid/GridKeyboard.js";
 
 const FEED_FETCH_LIMIT = 240;
 const FEED_PAGE_SIZE = 120;
@@ -555,6 +558,79 @@ function _buildGrid(host) {
     host.grid = grid;
 }
 
+function _getFeedSelectedAssets(host) {
+    const grid = host?.grid;
+    if (!grid) return [];
+    const selectedIds = getSelectedIdSet(grid);
+    if (!selectedIds.size) return [];
+    const assets = _getHostAssets(host);
+    return assets.filter((asset) => selectedIds.has(String(asset?.id || "")));
+}
+
+function _getFeedActiveAsset(host) {
+    const grid = host?.grid;
+    if (!grid) return null;
+    const activeId = String(grid.dataset?.mjrSelectedAssetId || "").trim();
+    if (!activeId) return _getFeedSelectedAssets(host)[0] || null;
+    return _getHostAssets(host).find((asset) => String(asset?.id || "") === activeId) || null;
+}
+
+function _safeCssEscapeAttr(value) {
+    const str = String(value ?? "");
+    try {
+        if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
+            return CSS.escape(str);
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+    return str.replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1");
+}
+
+function _bindFeedKeyboard(host) {
+    const grid = host?.grid;
+    if (!grid) return;
+
+    const onAssetChanged = () => {
+        try {
+            _scheduleHostRender(host);
+        } catch (e) {
+            console.debug?.(e);
+        }
+    };
+
+    host.keyboard = installGridKeyboard({
+        gridContainer: grid,
+        getState: () => ({ assets: _groupFeedAssets(_getHostAssets(host)) }),
+        getSelectedAssets: () => _getFeedSelectedAssets(host),
+        getActiveAsset: () => _getFeedActiveAsset(host),
+        onOpenTagsEditor: (asset) => {
+            const activeCard =
+                grid.querySelector?.(
+                    `.mjr-asset-card[data-mjr-asset-id="${_safeCssEscapeAttr(asset?.id || "")}"]`,
+                ) || null;
+            let rect = null;
+            try {
+                rect = activeCard?.getBoundingClientRect?.() || grid.getBoundingClientRect();
+            } catch (e) {
+                console.debug?.(e);
+            }
+            const x = Math.round((rect?.left || 0) + Math.min((rect?.width || 0) * 0.5, 160));
+            const y = Math.round((rect?.top || 0) + Math.min((rect?.height || 0) * 0.5, 120));
+            showTagsPopover(x, y, asset, onAssetChanged);
+        },
+        onAssetChanged,
+        getViewer: getViewerInstance,
+    });
+    host.keyboard.bind();
+
+    host.ratingHotkeys = createRatingHotkeysController({
+        gridContainer: grid,
+        createRatingBadge,
+    });
+    host.ratingHotkeys.bind();
+}
+
 function _makeHost(container) {
     const root = document.createElement("div");
     root.className = "mjr-assets-manager mjr-bottom-feed";
@@ -593,6 +669,7 @@ function _makeHost(container) {
         },
         getViewer: getViewerInstance,
     });
+    _bindFeedKeyboard(host);
 
     // Apply feed display settings and listen for changes
     _applyFeedSettingsClasses(host.grid);
@@ -673,6 +750,16 @@ export function disposeGeneratedFeedTab(host) {
     }
     try {
         resolvedHost._disposeContextMenu?.();
+    } catch (e) {
+        console.debug?.(e);
+    }
+    try {
+        resolvedHost.keyboard?.dispose?.();
+    } catch (e) {
+        console.debug?.(e);
+    }
+    try {
+        resolvedHost.ratingHotkeys?.dispose?.();
     } catch (e) {
         console.debug?.(e);
     }

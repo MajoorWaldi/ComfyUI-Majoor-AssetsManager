@@ -347,4 +347,30 @@ describe("FloatingViewer", () => {
             once: true,
         });
     });
+
+    it("pauses playable media when the floating viewer is hidden", async () => {
+        const { FloatingViewer } = await import("../features/viewer/FloatingViewer.js");
+
+        const pauseA = vi.fn();
+        const pauseB = vi.fn();
+        const viewer = new FloatingViewer();
+        viewer.element = {
+            querySelectorAll: vi.fn(() => [{ pause: pauseA }, { pause: pauseB }]),
+            classList: { remove: vi.fn() },
+            setAttribute: vi.fn(),
+        };
+        viewer._destroyPanZoom = vi.fn();
+        viewer._destroyCompareSync = vi.fn();
+        viewer._stopEdgeResize = vi.fn();
+        viewer._closeGenDropdown = vi.fn();
+        viewer.isVisible = true;
+
+        viewer.hide();
+
+        expect(pauseA).toHaveBeenCalledTimes(1);
+        expect(pauseB).toHaveBeenCalledTimes(1);
+        expect(viewer.element.classList.remove).toHaveBeenCalledWith("is-visible");
+        expect(viewer.element.setAttribute).toHaveBeenCalledWith("aria-hidden", "true");
+        expect(viewer.isVisible).toBe(false);
+    });
 });

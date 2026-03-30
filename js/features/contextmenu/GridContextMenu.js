@@ -317,7 +317,7 @@ function showSubmenuNextTo(anchorEl, menuEl) {
     showAt(menuEl, x, y);
 }
 
-function showTagsPopover(x, y, asset, onChanged) {
+export function showTagsPopover(x, y, asset, onChanged) {
     try {
         const existing = document.querySelector(POPOVER_SELECTOR);
         try {

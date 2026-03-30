@@ -54,6 +54,25 @@ export function renderABCompareView({
 
     if (!abView || !state || !currentAsset) return;
 
+    const muteSecondaryAudio = (mediaEl, role) => {
+        try {
+            const audio =
+                mediaEl?.querySelector?.(".mjr-viewer-audio-src") || mediaEl?.querySelector?.("audio");
+            if (!audio) return;
+            const isPrimary = String(role || "").toUpperCase() === "A";
+            audio.muted = !isPrimary;
+            if (!isPrimary) {
+                try {
+                    audio.pause?.();
+                } catch (e) {
+                    console.debug?.(e);
+                }
+            }
+        } catch (e) {
+            console.debug?.(e);
+        }
+    };
+
     const mode = (() => {
         try {
             const m = String(state.abCompareMode || "wipe");
@@ -107,6 +126,7 @@ export function renderABCompareView({
     } catch (e) {
         console.debug?.(e);
     }
+    muteSecondaryAudio(baseMedia, "B");
     try {
         const baseCanvas =
             baseMedia?.querySelector?.("canvas.mjr-viewer-media") ||
@@ -196,6 +216,7 @@ export function renderABCompareView({
     } catch (e) {
         console.debug?.(e);
     }
+    muteSecondaryAudio(topMedia, "A");
     try {
         const topCanvas =
             topMedia?.querySelector?.("canvas.mjr-viewer-media") ||

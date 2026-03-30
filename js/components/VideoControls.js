@@ -1503,9 +1503,10 @@ export function mountVideoControls(video, opts = {}) {
             safeAddListener(muteBtn, "click", (e) => {
                 stop(e);
                 try {
-                    if (!volumeWrap) return;
-                    const open = volumeWrap.style.display !== "none";
-                    volumeWrap.style.display = open ? "none" : "inline-flex";
+                    video.muted = !video.muted;
+                    if (volumeWrap) {
+                        volumeWrap.style.display = video.muted ? "none" : "inline-flex";
+                    }
                 } catch (e) {
                     console.debug?.(e);
                 }
@@ -1516,7 +1517,9 @@ export function mountVideoControls(video, opts = {}) {
             safeAddListener(muteBtn, "contextmenu", (e) => {
                 preventStop(e);
                 try {
-                    video.muted = !video.muted;
+                    if (!volumeWrap) return;
+                    const open = volumeWrap.style.display !== "none";
+                    volumeWrap.style.display = open ? "none" : "inline-flex";
                 } catch (e) {
                     console.debug?.(e);
                 }

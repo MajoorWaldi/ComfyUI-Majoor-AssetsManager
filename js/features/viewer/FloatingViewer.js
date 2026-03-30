@@ -107,6 +107,23 @@ function _attemptAutoplay(mediaEl) {
     }
 }
 
+function _pauseMediaIn(rootEl) {
+    if (!rootEl) return;
+    try {
+        const mediaEls = rootEl.querySelectorAll?.("video, audio");
+        if (!mediaEls || !mediaEls.length) return;
+        for (const el of mediaEls) {
+            try {
+                el.pause?.();
+            } catch (e) {
+                console.debug?.(e);
+            }
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+}
+
 function _buildMediaEl(fileData, { fill = false } = {}) {
     const url = _resolveUrl(fileData);
     if (!url) return null;
@@ -1646,6 +1663,7 @@ export class FloatingViewer {
         this._destroyCompareSync();
         this._stopEdgeResize();
         this._closeGenDropdown();
+        _pauseMediaIn(this.element);
         this.element.classList.remove("is-visible");
         this.element.setAttribute("aria-hidden", "true");
         this.isVisible = false;
