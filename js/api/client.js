@@ -60,6 +60,34 @@ const _obsCache = createTTLCache({ ttlMs: SETTINGS_FAST_CACHE_TTL_MS, maxSize: 1
 const _rtSyncCache = createTTLCache({ ttlMs: SETTINGS_FAST_CACHE_TTL_MS, maxSize: 1 });
 const _tagsCache = createTTLCache({ ttlMs: () => _getTagsCacheTTL(), maxSize: 1 });
 const _authTokenCache = createTTLCache({ ttlMs: AUTH_TOKEN_CACHE_TTL_MS, maxSize: 1 });
+const _pendingRequests = new Map();
+
+function _buildPendingRequestKey(method, url, options = {}) {
+    const normalizedMethod = String(method || "GET").trim().toUpperCase();
+    const normalizedUrl = String(url || "").trim();
+    if (!normalizedMethod || !normalizedUrl) return "";
+    const timeoutMs = _resolveFetchTimeoutMs(options);
+    return `${normalizedMethod}:${normalizedUrl}:timeout=${timeoutMs}`;
+}
+
+function _deduplicatedFetch(key, fetcher) {
+    const normalizedKey = String(key || "").trim();
+    if (!normalizedKey) return fetcher();
+    if (_pendingRequests.has(normalizedKey)) {
+        return _pendingRequests.get(normalizedKey);
+    }
+    const pending = Promise.resolve()
+        .then(() => fetcher())
+        .finally(() => {
+            try {
+                _pendingRequests.delete(normalizedKey);
+            } catch (e) {
+                console.debug?.(e);
+            }
+        });
+    _pendingRequests.set(normalizedKey, pending);
+    return pending;
+}
 
 function _methodIsWrite(method) {
     return WRITE_METHODS.has(String(method || "").toUpperCase());
@@ -679,7 +707,12 @@ async function fetchAPI(url, options = {}, retryCount = 0) {
  * GET request helper
  */
 export async function get(url, options = {}) {
-    return fetchAPI(url, { ...options, method: "GET" });
+    const dedupeKey =
+        options?.dedupe === false
+            ? ""
+            : String(options?.dedupeKey || "").trim() ||
+              _buildPendingRequestKey("GET", url, options);
+    return _deduplicatedFetch(dedupeKey, () => fetchAPI(url, { ...options, method: "GET" }));
 }
 
 /**
@@ -790,7 +823,11 @@ export async function getAvailableTags() {
  * Get full asset metadata by ID
  */
 export async function getAssetMetadata(assetId, options = {}) {
-    return get(`/mjr/am/asset/${encodeURIComponent(normalizeAssetId(assetId))}`, options);
+    const id = encodeURIComponent(normalizeAssetId(assetId));
+    return get(`/mjr/am/asset/${id}`, {
+        ...options,
+        dedupeKey: options?.dedupeKey || `meta:${id}`,
+    });
 }
 
 /**
@@ -1348,7 +1385,9 @@ export async function vectorFindSimilar(assetId, topKOrOptions = 20) {
     let url = `${ENDPOINTS.VECTOR_SIMILAR}/${encodeURIComponent(id)}?top_k=${topK}`;
     if (scope) url += `&scope=${encodeURIComponent(scope)}`;
     if (customRootId) url += `&custom_root_id=${encodeURIComponent(customRootId)}`;
-    return get(url);
+    return get(url, {
+        dedupeKey: `vec:${id}:${topK}:${scope}:${customRootId}`,
+    });
 }
 
 /**

@@ -39,6 +39,17 @@ const TOOL_CAPABILITIES = [
 let _maintenanceActive = false;
 let _dbRestoreStatusHandler = null;
 let _runtimeStatusHandler = null;
+const STATUS_CACHE_KEY = "__MJR_STATUS_DOT_CACHE__";
+const STATUS_POLL_STATE = {
+    ACTIVE: "active",
+    COOLDOWN: "cooldown",
+    IDLE: "idle",
+};
+const STATUS_POLL_INTERVALS_MS = {
+    [STATUS_POLL_STATE.ACTIVE]: 2_000,
+    [STATUS_POLL_STATE.COOLDOWN]: 10_000,
+    [STATUS_POLL_STATE.IDLE]: 60_000,
+};
 
 function setMaintenanceActive(active) {
     _maintenanceActive = !!active;
@@ -1775,6 +1786,154 @@ function createRetryButton(statusDot, statusText, capabilitiesSection = null, sc
     return button;
 }
 
+function _readCachedStatusCounters() {
+    try {
+        const raw = localStorage?.getItem?.(STATUS_CACHE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === "object" ? parsed : null;
+    } catch (e) {
+        console.debug?.(e);
+        return null;
+    }
+}
+
+function _writeCachedStatusCounters(counters) {
+    try {
+        if (!counters || typeof counters !== "object") return;
+        localStorage?.setItem?.(STATUS_CACHE_KEY, JSON.stringify(counters));
+    } catch (e) {
+        console.debug?.(e);
+    }
+}
+
+function _collectProgressValues(status) {
+    const values = [];
+    const visit = (node, depth = 0) => {
+        if (!node || depth > 2) return;
+        if (typeof node === "number" && Number.isFinite(node)) {
+            values.push(node);
+            return;
+        }
+        if (Array.isArray(node)) {
+            for (const item of node) visit(item, depth + 1);
+            return;
+        }
+        if (typeof node !== "object") return;
+        for (const [key, value] of Object.entries(node)) {
+            const normalizedKey = String(key || "").toLowerCase();
+            if (
+                normalizedKey.includes("queue") ||
+                normalizedKey.includes("progress") ||
+                normalizedKey.includes("pending") ||
+                normalizedKey.includes("running") ||
+                normalizedKey.includes("active") ||
+                normalizedKey.includes("scan") ||
+                normalizedKey.includes("index")
+            ) {
+                visit(value, depth + 1);
+            }
+        }
+    };
+    visit(status, 0);
+    return values;
+}
+
+function _statusHasActiveWork(counters) {
+    if (!counters || typeof counters !== "object") return false;
+    if (_maintenanceActive) return true;
+    try {
+        if (getEnrichmentState()?.active) return true;
+    } catch (e) {
+        console.debug?.(e);
+    }
+    const values = _collectProgressValues(counters);
+    return values.some((value) => Number(value) > 0);
+}
+
+function _buildStatusSignature(counters) {
+    if (!counters || typeof counters !== "object") return "";
+    const pick = (value) => {
+        if (value == null) return null;
+        if (typeof value === "number") return Number.isFinite(value) ? value : null;
+        if (typeof value === "boolean") return value;
+        if (typeof value === "string") return value;
+        return null;
+    };
+    return JSON.stringify({
+        total_assets: pick(counters.total_assets),
+        last_scan_end: pick(counters.last_scan_end),
+        last_index_end: pick(counters.last_index_end),
+        enrichment_queue_length: pick(counters.enrichment_queue_length),
+        images: pick(counters.images),
+        videos: pick(counters.videos),
+        watcher: {
+            enabled: pick(counters?.watcher?.enabled),
+            scope: pick(counters?.watcher?.scope),
+        },
+    });
+}
+
+function _hydrateStatusFromCache(statusDot, statusText, capabilitiesSection) {
+    const cached = _readCachedStatusCounters();
+    if (!cached) return false;
+    try {
+        renderCapabilities(capabilitiesSection, cached.tool_availability || {}, cached.tool_paths || {});
+    } catch (e) {
+        console.debug?.(e);
+    }
+    try {
+        statusDot.style.background = "var(--mjr-status-info, #64B5F6)";
+        setStatusWithHint(
+            statusText,
+            t("status.cached", "Last known status"),
+            t("status.checking", "Checking status..."),
+        );
+        return true;
+    } catch (e) {
+        console.debug?.(e);
+        return false;
+    }
+}
+
+function _advancePollState(currentState, counters, pollStateMeta) {
+    const signature = _buildStatusSignature(counters);
+    const hasChange =
+        signature && signature !== String(pollStateMeta?.lastSignature || "");
+    const hasActiveWork = _statusHasActiveWork(counters);
+
+    let nextState = currentState || STATUS_POLL_STATE.ACTIVE;
+    let cooldownStablePolls = Number(pollStateMeta?.cooldownStablePolls || 0) || 0;
+
+    if (hasActiveWork) {
+        nextState = STATUS_POLL_STATE.ACTIVE;
+        cooldownStablePolls = 0;
+    } else if (hasChange) {
+        nextState = STATUS_POLL_STATE.ACTIVE;
+        cooldownStablePolls = 0;
+    } else if (nextState === STATUS_POLL_STATE.ACTIVE) {
+        nextState = STATUS_POLL_STATE.COOLDOWN;
+        cooldownStablePolls = 0;
+    } else if (nextState === STATUS_POLL_STATE.COOLDOWN) {
+        cooldownStablePolls += 1;
+        if (cooldownStablePolls >= 3) {
+            nextState = STATUS_POLL_STATE.IDLE;
+            cooldownStablePolls = 0;
+        }
+    } else {
+        nextState = hasChange ? STATUS_POLL_STATE.ACTIVE : STATUS_POLL_STATE.IDLE;
+        cooldownStablePolls = 0;
+    }
+
+    return {
+        nextState,
+        signature,
+        hasChange,
+        hasActiveWork,
+        cooldownStablePolls,
+    };
+}
+
 /**
  * Setup status polling
  */
@@ -1788,6 +1947,11 @@ export function setupStatusPolling(
 ) {
     const GLOBAL_POLL_KEY = "__MJR_STATUS_POLL_DISPOSE__";
     const pollMeta = { lastCode: null, lastStatus: null, _pollTick: 0, _auxCached: false };
+    const pollStateMeta = {
+        mode: STATUS_POLL_STATE.ACTIVE,
+        cooldownStablePolls: 0,
+        lastSignature: "",
+    };
 
     const pollingAC = typeof AbortController !== "undefined" ? new AbortController() : null;
     const handleUpdate = async () => {
@@ -1812,6 +1976,13 @@ export function setupStatusPolling(
                 force: !!_maintenanceActive || pollMeta._pollTick <= 1,
             },
         );
+        if (counters && typeof counters === "object") {
+            _writeCachedStatusCounters(counters);
+            const transition = _advancePollState(pollStateMeta.mode, counters, pollStateMeta);
+            pollStateMeta.mode = transition.nextState;
+            pollStateMeta.lastSignature = transition.signature;
+            pollStateMeta.cooldownStablePolls = transition.cooldownStablePolls;
+        }
         if (counters && typeof onCountersUpdate === "function") {
             try {
                 await onCountersUpdate(counters);
@@ -1822,7 +1993,8 @@ export function setupStatusPolling(
         return counters;
     };
 
-    // Initial update
+    // Show last known state immediately, then refresh in background.
+    _hydrateStatusFromCache(statusDot, statusText, capabilitiesSection);
     handleUpdate();
 
     try {
@@ -1858,7 +2030,9 @@ export function setupStatusPolling(
     };
 
     const scheduleNext = () => {
-        const baseMs = Math.max(250, Number(APP_CONFIG.STATUS_POLL_INTERVAL) || 2000);
+        const baseMs =
+            STATUS_POLL_INTERVALS_MS[pollStateMeta.mode] ||
+            Math.max(250, Number(APP_CONFIG.STATUS_POLL_INTERVAL) || 2000);
         const rawWaitMs = lastWasMissingEndpoint
             ? Math.max(30_000, baseMs)
             : consecutiveFailures > 0
@@ -1884,6 +2058,8 @@ export function setupStatusPolling(
                 consecutiveFailures = Math.min(999, consecutiveFailures + 1);
             } else {
                 consecutiveFailures = Math.min(999, consecutiveFailures + 1);
+                pollStateMeta.mode = STATUS_POLL_STATE.ACTIVE;
+                pollStateMeta.cooldownStablePolls = 0;
             }
 
             // After a few consecutive 404s, stop polling entirely until reload.

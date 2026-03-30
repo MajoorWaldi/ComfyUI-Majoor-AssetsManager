@@ -871,6 +871,39 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         console.debug?.(e);
     }
 
+    const reconcileVisibleSelection = () => {
+        try {
+            const getAssets = gridContainer?._mjrGetAssets;
+            const setSelection = gridContainer?._mjrSetSelection;
+            if (typeof getAssets !== "function" || typeof setSelection !== "function") return;
+            const visibleIds = (Array.isArray(getAssets()) ? getAssets() : [])
+                .map((asset) => String(asset?.id ?? "").trim())
+                .filter(Boolean);
+            const selectedIds = Array.isArray(state.selectedAssetIds)
+                ? state.selectedAssetIds.map(String).filter(Boolean)
+                : [];
+            const next = selectedIds.filter((id) => visibleIds.includes(id));
+            const pruned = selectedIds.length - next.length;
+            if (pruned <= 0) return;
+            const nextActiveId = next.includes(String(state.activeAssetId || ""))
+                ? String(state.activeAssetId || "")
+                : next[0] || "";
+            setSelection(next, nextActiveId);
+            comfyToast(
+                t(
+                    "toast.selectionPruned",
+                    "{count} items deselected - not visible in current view",
+                    { count: pruned },
+                ),
+                "info",
+                2600,
+                { noHistory: true },
+            );
+        } catch (e) {
+            console.debug?.(e);
+        }
+    };
+
     scopeController = createScopeController({
         state,
         tabButtons,
@@ -879,6 +912,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         popovers,
         refreshCustomRoots: customRootsController.refreshCustomRoots,
         reloadGrid: gridController.reloadGrid,
+        reconcileSelection: reconcileVisibleSelection,
         onChanged: () => {
             try {
                 if (gridContainer) gridContainer.dataset.mjrScope = state.scope;
@@ -1425,6 +1459,7 @@ export async function renderAssetsManager(container, { useComfyThemeUI = true } 
         dateRangeSelect,
         dateExactInput,
         reloadGrid: gridController.reloadGrid,
+        reconcileSelection: reconcileVisibleSelection,
         lifecycleSignal: panelLifecycleAC?.signal || null,
         onFiltersChanged: () => {
             void exitSimilarViewIfActive({ reload: false });

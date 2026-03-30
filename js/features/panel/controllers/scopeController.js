@@ -5,6 +5,7 @@ export function createScopeController({
     customPopover,
     popovers,
     reloadGrid,
+    reconcileSelection = null,
     onChanged = null,
     onScopeChanged = null,
     onBeforeReload = null,
@@ -130,6 +131,11 @@ export function createScopeController({
             console.debug?.(e);
         }
         if (requestedSeq !== scopeSwitchSeq) return;
+        try {
+            reconcileSelection?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
         await reloadGrid();
     };
 

@@ -99,6 +99,39 @@ export function setSelectionIds(
     return list;
 }
 
+export function reconcileSelectionIds(
+    gridContainer,
+    visibleAssetIds,
+    { activeId = "", emitWhenUnchanged = false } = {},
+    getRenderedCards,
+) {
+    if (!gridContainer) return { selectedIds: [], pruned: 0, activeId: "" };
+    const visibleSet = new Set(Array.from(visibleAssetIds || []).map(String).filter(Boolean));
+    const current = getSelectedIdSet(gridContainer);
+    const next = new Set();
+    let pruned = 0;
+    for (const id of current) {
+        if (visibleSet.has(String(id))) next.add(String(id));
+        else pruned += 1;
+    }
+    const nextActiveId =
+        activeId && next.has(String(activeId))
+            ? String(activeId)
+            : next.values().next().value || "";
+    if (pruned === 0 && !emitWhenUnchanged) {
+        syncSelectionClasses(gridContainer, next, getRenderedCards);
+        setSelectedIdsDataset(gridContainer, next, nextActiveId);
+        return { selectedIds: Array.from(next), pruned: 0, activeId: nextActiveId };
+    }
+    const selectedIds = setSelectionIds(
+        gridContainer,
+        next,
+        { activeId: nextActiveId },
+        getRenderedCards,
+    );
+    return { selectedIds, pruned, activeId: nextActiveId };
+}
+
 export function safeEscapeId(value) {
     try {
         return CSS?.escape

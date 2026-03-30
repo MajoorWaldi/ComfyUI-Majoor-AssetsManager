@@ -3886,3 +3886,60 @@
         --mjr-card-hover-color: var(--interface-panel-hover-surface, #e0e0e0);
     }
 }
+
+/* ─── Skeleton loaders ──────────────────────────────────────────────────────── */
+
+.mjr-card-skeleton {
+    background: var(--mjr-surface-1, #2a2a2a);
+    border: 1px solid var(--mjr-border, #3a3a3a);
+    border-radius: var(--mjr-r-lg, 8px);
+    overflow: hidden;
+    position: relative;
+    /* Match .mjr-thumb aspect ratio so skeletons have the same footprint as real cards. */
+    aspect-ratio: 1 / 1;
+}
+
+/* Shimmer sweep */
+.mjr-card-skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        color-mix(in srgb, var(--mjr-surface-2, #3a3a3a) 80%, transparent) 50%,
+        transparent 100%
+    );
+    animation: mjr-shimmer 1.4s ease-in-out infinite;
+    transform: translateX(-100%);
+}
+
+@keyframes mjr-shimmer {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mjr-card-skeleton::after { animation: none; }
+}
+
+/* ─── Responsive summary bar ────────────────────────────────────────────────── */
+
+/*
+ * Enable container queries on the summary bar so children can respond to its
+ * actual rendered width (e.g. when the panel is docked in a narrow sidebar).
+ */
+.mjr-assets-manager .mjr-am-summary {
+    container-type: inline-size;
+    container-name: mjr-summary-bar;
+}
+
+/* Below ~380 px: hide the pills/right section to prevent overflow. */
+@container mjr-summary-bar (max-width: 380px) {
+    .mjr-assets-manager .mjr-am-summary-right {
+        display: none;
+    }
+    .mjr-assets-manager .mjr-am-summary-text {
+        max-width: 100%;
+    }
+}

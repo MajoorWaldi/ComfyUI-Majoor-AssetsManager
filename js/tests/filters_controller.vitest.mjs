@@ -77,6 +77,7 @@ describe("filtersController", () => {
 
         const reloadGrid = vi.fn(async () => ({}));
         const onFiltersChanged = vi.fn();
+        const reconcileSelection = vi.fn();
 
         bindFilters({
             state,
@@ -94,6 +95,7 @@ describe("filtersController", () => {
             dateRangeSelect: createControl(),
             dateExactInput: createControl(),
             reloadGrid,
+            reconcileSelection,
             onFiltersChanged,
             lifecycleSignal: null,
         });
@@ -112,6 +114,7 @@ describe("filtersController", () => {
         expect(onFiltersChanged).toHaveBeenCalledTimes(1);
 
         await vi.advanceTimersByTimeAsync(250);
+        expect(reconcileSelection).toHaveBeenCalledTimes(1);
         expect(reloadGrid).toHaveBeenCalledTimes(1);
     });
 });

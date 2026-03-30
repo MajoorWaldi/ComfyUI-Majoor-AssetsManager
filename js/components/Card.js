@@ -15,6 +15,7 @@ import {
 import { formatDuration, formatDate, formatTime } from "../utils/format.js";
 import { APP_CONFIG } from "../app/config.js";
 import { createMediaErrorPlaceholder } from "../utils/dom.js";
+import { MediaBlobCache } from "../features/grid/MediaBlobCache.js";
 
 const AUDIO_THUMB_URL = (() => {
     try {
@@ -1104,7 +1105,6 @@ function createThumbnail(asset, viewUrl) {
 
     if (asset.kind === "image") {
         const img = document.createElement("img");
-        img.src = viewUrl;
         img.alt = asset.filename || "Asset Image";
         img.classList.add("mjr-thumb-media");
         try {
@@ -1114,12 +1114,22 @@ function createThumbnail(asset, viewUrl) {
             console.debug?.(e);
         }
 
-        // Critical: Handle broken images
+        // Critical: Handle broken images — mark in cache to prevent retry storms.
         img.onerror = () => {
+            MediaBlobCache.markError(viewUrl);
             img.style.display = "none";
             const err = createMediaErrorPlaceholder("pi pi-image");
             thumb.appendChild(err);
         };
+
+        if (MediaBlobCache.hasError(viewUrl)) {
+            // Skip src assignment for known-broken URLs; show placeholder immediately.
+            img.style.display = "none";
+            const err = createMediaErrorPlaceholder("pi pi-image");
+            thumb.appendChild(err);
+        } else {
+            img.src = viewUrl;
+        }
 
         thumb.appendChild(img);
     } else if (asset.kind === "video") {
@@ -1147,6 +1157,7 @@ function createThumbnail(asset, viewUrl) {
         }
 
         video.onerror = () => {
+            MediaBlobCache.markError(viewUrl);
             video.style.display = "none";
             // Hide the play overlay so it doesn't float over the error placeholder.
             try {

@@ -34,6 +34,7 @@ import {
 } from "./RatingTagsHydrator.js";
 import {
     getSelectedIdSet as selectionGetSelectedIdSet,
+    reconcileSelectionIds as selectionReconcileSelectionIds,
     safeEscapeId as selectionSafeEscapeId,
     setSelectedIdsDataset as selectionSetSelectedIdsDataset,
     setSelectionIds as selectionSetSelectionIds,
@@ -631,43 +632,67 @@ const SENTINEL_CLASS = "mjr-grid-sentinel";
 const LOAD_ASSETS_TIMEOUT_MS = 25000;
 
 function showLoadingOverlay(gridContainer, message = "Loading assets...") {
-    let overlay = gridContainer.querySelector(`.${OVERLAY_CLASS}`);
-    if (!overlay) {
-        overlay = document.createElement("div");
-        overlay.className = OVERLAY_CLASS;
-    }
+    hideLoadingOverlay(gridContainer);
+
+    const overlay = document.createElement("div");
+    overlay.className = OVERLAY_CLASS;
     overlay.style.cssText = `
         position: absolute;
         inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        padding: 16px;
-        pointer-events: none;
-        font-size: 14px;
-        line-height: 1.4;
-        color: var(--muted-text, #bdbdbd);
-        background: rgba(0, 0, 0, 0.35);
         z-index: 4;
+        pointer-events: none;
+        padding: 4px;
+        overflow: hidden;
     `;
-    overlay.textContent = message;
+
+    // Show a non-default message as a subtle caption above the skeletons.
+    if (message && message !== "Loading assets...") {
+        const caption = document.createElement("div");
+        caption.style.cssText = `
+            text-align: center;
+            font-size: 12px;
+            padding: 8px 0 6px;
+            color: var(--muted-text, #bdbdbd);
+        `;
+        caption.textContent = message;
+        overlay.appendChild(caption);
+    }
+
+    const skGrid = _buildSkeletonGrid(gridContainer);
+    overlay.appendChild(skGrid);
+
     try {
         const pos = String(getComputedStyle(gridContainer).position || "").toLowerCase();
-        if (!pos || pos === "static") {
-            gridContainer.style.position = "relative";
-        }
+        if (!pos || pos === "static") gridContainer.style.position = "relative";
     } catch (e) {
         console.debug?.(e);
     }
-    if (!gridContainer.contains(overlay)) {
-        gridContainer.appendChild(overlay);
+    gridContainer.appendChild(overlay);
+    if (!gridContainer.style.minHeight) gridContainer.style.minHeight = "160px";
+}
+
+function _buildSkeletonGrid(gridContainer) {
+    const minW = Number(APP_CONFIG?.GRID_MIN_SIZE || 120) || 120;
+    const containerW = gridContainer.offsetWidth || 400;
+    const containerH = gridContainer.offsetHeight || 400;
+    const gap = 8;
+    const cols = Math.max(1, Math.floor(containerW / (minW + gap)));
+    const rows = Math.max(2, Math.ceil(containerH / (minW + gap)));
+    const count = Math.min(32, Math.max(6, cols * rows));
+
+    const grid = document.createElement("div");
+    grid.style.cssText = `
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(${minW}px, 1fr));
+        gap: ${gap}px;
+        align-content: start;
+    `;
+    for (let i = 0; i < count; i++) {
+        const sk = document.createElement("div");
+        sk.className = "mjr-card-skeleton";
+        grid.appendChild(sk);
     }
-    overlay.style.display = "flex";
-    // Ensure the overlay is visible even when the grid is empty/collapsed.
-    if (!gridContainer.style.minHeight) {
-        gridContainer.style.minHeight = "160px";
-    }
+    return grid;
 }
 
 function hideLoadingOverlay(gridContainer) {
@@ -1112,6 +1137,23 @@ function setSelectionIds(gridContainer, selectedIds, { activeId = "" } = {}) {
     return selectionSetSelectionIds(gridContainer, selectedIds, { activeId }, _getRenderedCards);
 }
 
+function reconcileSelectionIds(gridContainer, visibleAssetIds, { activeId = "" } = {}) {
+    return selectionReconcileSelectionIds(
+        gridContainer,
+        visibleAssetIds,
+        { activeId },
+        _getRenderedCards,
+    );
+}
+
+function reconcileSelectionWithState(gridContainer, state) {
+    const visibleIds = Array.isArray(state?.assets)
+        ? state.assets.map((asset) => String(asset?.id ?? "")).filter(Boolean)
+        : [];
+    const activeId = String(gridContainer?.dataset?.mjrSelectedAssetId || "").trim();
+    return reconcileSelectionIds(gridContainer, visibleIds, { activeId });
+}
+
 function _safeEscapeId(value) {
     return selectionSafeEscapeId(value);
 }
@@ -1342,6 +1384,7 @@ export async function loadAssets(gridContainer, query = "*", options = {}) {
                 _rememberGridSnapshot(gridContainer, state, state.query);
             }
         }
+        reconcileSelectionWithState(gridContainer, state);
         return { ok: true, count: state.offset, total: state.total || 0 };
     } catch (err) {
         try {
@@ -1530,6 +1573,7 @@ export async function loadAssetsFromList(gridContainer, assets, options = {}) {
             }
         }
 
+        reconcileSelectionWithState(gridContainer, state);
         return { ok: true, count: sorted.length, total: sorted.length };
     } catch (err) {
         stopObserver(state);

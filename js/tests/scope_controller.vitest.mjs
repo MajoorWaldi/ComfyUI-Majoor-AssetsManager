@@ -40,6 +40,7 @@ describe("scopeController similar scope", () => {
             customRootId: "",
         };
         const reloadGrid = vi.fn(async () => {});
+        const reconcileSelection = vi.fn();
         const onChanged = vi.fn();
         const onScopeChanged = vi.fn();
         const onBeforeReload = vi.fn();
@@ -54,6 +55,7 @@ describe("scopeController similar scope", () => {
             customPopover,
             popovers,
             reloadGrid,
+            reconcileSelection,
             onChanged,
             onScopeChanged,
             onBeforeReload,
@@ -76,5 +78,8 @@ describe("scopeController similar scope", () => {
         expect(state.similarTitle).toBe("");
         expect(state.similarSourceAssetId).toBe("");
         expect(tabButtons.tabSimilar.style.display).toBe("none");
+
+        await controller.setScope("output");
+        expect(reconcileSelection).toHaveBeenCalledTimes(1);
     });
 });

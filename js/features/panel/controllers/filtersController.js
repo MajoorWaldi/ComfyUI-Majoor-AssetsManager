@@ -22,6 +22,7 @@ export function bindFilters({
     dateRangeSelect,
     dateExactInput,
     reloadGrid,
+    reconcileSelection = null,
     onFiltersChanged = null,
     lifecycleSignal = null,
 }) {
@@ -34,6 +35,11 @@ export function bindFilters({
         if (_filterReloadTimer) clearTimeout(_filterReloadTimer);
         _filterReloadTimer = setTimeout(() => {
             _filterReloadTimer = null;
+            try {
+                reconcileSelection?.();
+            } catch (e) {
+                console.debug?.(e);
+            }
             reloadGrid().catch(() => {});
         }, 250);
     };

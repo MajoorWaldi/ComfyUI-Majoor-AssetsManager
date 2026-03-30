@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
     getSelectedIdSet,
+    reconcileSelectionIds,
     safeEscapeId,
     setSelectionIds,
     syncSelectionClasses,
@@ -50,6 +51,11 @@ describe("GridSelectionManager", () => {
                 this.detail = init?.detail;
             }
         };
+        globalThis.window = {
+            dispatchEvent(evt) {
+                events.push(evt);
+            },
+        };
         const grid = {
             dataset: {},
             dispatchEvent(evt) {
@@ -70,5 +76,43 @@ describe("GridSelectionManager", () => {
     it("falls back when CSS.escape is unavailable", () => {
         globalThis.CSS = undefined;
         expect(safeEscapeId('a"b\\c')).toBe('a\\"b\\\\c');
+    });
+
+    it("reconciles selection against visible assets and reports pruned items", () => {
+        const cards = [makeCard(1), makeCard(2), makeCard(3)];
+        const events = [];
+        globalThis.CustomEvent = class {
+            constructor(type, init) {
+                this.type = type;
+                this.detail = init?.detail;
+            }
+        };
+        globalThis.window = {
+            dispatchEvent(evt) {
+                events.push(evt);
+            },
+        };
+        const grid = {
+            dataset: {
+                mjrSelectedAssetIds: JSON.stringify(["1", "2", "9"]),
+                mjrSelectedAssetId: "2",
+            },
+            dispatchEvent(evt) {
+                events.push(evt);
+            },
+        };
+
+        const result = reconcileSelectionIds(
+            grid,
+            ["2", "3"],
+            { activeId: "2" },
+            () => cards,
+        );
+
+        expect(result.pruned).toBe(2);
+        expect(result.selectedIds).toEqual(["2"]);
+        expect(grid.dataset.mjrSelectedAssetIds).toBe(JSON.stringify(["2"]));
+        expect(grid.dataset.mjrSelectedAssetId).toBe("2");
+        expect(events.some((evt) => evt.type === "mjr:selection-changed")).toBe(true);
     });
 });
