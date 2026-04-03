@@ -86,4 +86,42 @@ describe("api client request deduplication", () => {
         expect(second.ok).toBe(false);
         expect(globalThis.fetch).toHaveBeenCalledTimes(2);
     });
+
+    it("invalidates the available tags cache after a successful tag update", async () => {
+        globalThis.fetch = vi.fn(async (url) => {
+            if (String(url).includes("/mjr/am/tags")) {
+                return {
+                    status: 200,
+                    headers: { get: (name) => (name === "content-type" ? "application/json" : null) },
+                    json: async () => ({ ok: true, data: ["old-tag"] }),
+                };
+            }
+            if (String(url).includes("/mjr/am/asset/tags")) {
+                return {
+                    status: 200,
+                    headers: { get: (name) => (name === "content-type" ? "application/json" : null) },
+                    json: async () => ({ ok: true, data: { asset_id: 7, tags: [] } }),
+                };
+            }
+            return {
+                status: 200,
+                headers: { get: (name) => (name === "content-type" ? "application/json" : null) },
+                json: async () => ({ ok: true, data: null }),
+            };
+        });
+
+        const client = await import("../api/client.js");
+
+        const first = await client.getAvailableTags();
+        expect(first.ok).toBe(true);
+        expect(first.data).toEqual(["old-tag"]);
+
+        await client.updateAssetTags(7, []);
+        await client.getAvailableTags();
+
+        const tagFetches = globalThis.fetch.mock.calls.filter(([url]) =>
+            String(url).includes("/mjr/am/tags"),
+        );
+        expect(tagFetches).toHaveLength(2);
+    });
 });

@@ -784,19 +784,7 @@ export async function updateAssetTags(assetId, tags, options = {}) {
         body: JSON.stringify(payload),
     });
     if (result?.ok) {
-        try {
-            const persistedTags = _dedupeTagList(
-                Array.isArray(result?.data?.tags) ? result.data.tags : tags,
-            );
-            const cachedTags = _tagsCache.get(TAGS_CACHE_KEY);
-            if (Array.isArray(cachedTags)) {
-                _tagsCache.set(TAGS_CACHE_KEY, _dedupeTagList([...cachedTags, ...persistedTags]));
-            } else {
-                invalidateTagsCache();
-            }
-        } catch {
-            invalidateTagsCache();
-        }
+        invalidateTagsCache();
     }
     return result;
 }

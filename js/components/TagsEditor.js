@@ -9,7 +9,7 @@ import { t } from "../app/i18n.js";
 import { safeDispatchCustomEvent } from "../utils/events.js";
 
 const MAX_TAG_LEN = 100;
-const MAX_TAGS = 200;
+const MAX_TAGS = 50;
 
 function normalizeInputTag(raw) {
     try {

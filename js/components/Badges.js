@@ -420,12 +420,44 @@ export function genTimeColor(ms) {
 }
 
 /**
+ * Normalize generation time into milliseconds.
+ * Accepts plain numbers, numeric strings, and unit-suffixed strings like "8.2s" or "8200ms".
+ * Returns 0 when invalid, non-positive, or outside sanity bounds.
+ */
+export function normalizeGenerationTimeMs(value, { maxMs = 86_400_000 } = {}) {
+    let ms;
+    if (value == null) return 0;
+    if (typeof value === "string") {
+        const raw = value.trim().toLowerCase();
+        if (!raw) return 0;
+        const secMatch = raw.match(/^(-?\d+(?:[.,]\d+)?)\s*(s|sec|secs|second|seconds)$/i);
+        if (secMatch) {
+            ms = Number(secMatch[1].replace(",", ".")) * 1000;
+        } else {
+            const msMatch = raw.match(
+                /^(-?\d+(?:[.,]\d+)?)\s*(ms|msec|millisecond|milliseconds)$/i,
+            );
+            if (msMatch) {
+                ms = Number(msMatch[1].replace(",", "."));
+            } else {
+                ms = Number(raw.replace(",", "."));
+            }
+        }
+    } else {
+        ms = Number(value);
+    }
+
+    if (!Number.isFinite(ms) || ms <= 0 || ms >= Number(maxMs)) return 0;
+    return ms;
+}
+
+/**
  * Create generation-time badge (overlaid on thumbnail, bottom-right).
  * Returns null when genTimeMs is 0 or invalid (> 24h sanity limit).
  */
 export function createGenTimeBadge(genTimeMs) {
-    const ms = Number(genTimeMs);
-    if (!ms || !Number.isFinite(ms) || ms <= 0 || ms >= 86400000) return null;
+    const ms = normalizeGenerationTimeMs(genTimeMs);
+    if (!ms) return null;
 
     const badge = document.createElement("div");
     badge.className = "mjr-gentime-badge";

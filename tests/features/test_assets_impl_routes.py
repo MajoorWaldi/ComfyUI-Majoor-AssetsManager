@@ -129,6 +129,47 @@ async def test_asset_tags_validation_branches(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_asset_tags_limit_applies_after_sanitization(monkeypatch):
+    app = _app()
+
+    class _Index:
+        called = None
+
+        async def update_asset_tags(self, asset_id, tags):
+            self.called = (asset_id, tags)
+            return Result.Ok({"asset_id": asset_id, "tags": tags})
+
+    idx = _Index()
+
+    async def _require_services():
+        return {"index": idx}, None
+
+    async def _prefs(_svc):
+        return {}
+
+    sanitized_unique = [f"tag-{i}" for i in range(m.MAX_TAGS_PER_ASSET)]
+    raw_tags = sanitized_unique + ["tag-0", "", "x" * 300, "tag-1"]
+
+    async def _read_json(_request):
+        return Result.Ok({"asset_id": 9, "tags": raw_tags})
+
+    monkeypatch.setattr(m, "_csrf_error", lambda _request: None)
+    monkeypatch.setattr(m, "_require_services", _require_services)
+    monkeypatch.setattr(m, "_resolve_security_prefs", _prefs)
+    monkeypatch.setattr(m, "_require_operation_enabled", lambda *_args, **_kwargs: Result.Ok({}))
+    monkeypatch.setattr(m, "_require_write_access", lambda _request: Result.Ok({}))
+    monkeypatch.setattr(m, "_check_rate_limit", lambda *_args, **_kwargs: (True, None))
+    monkeypatch.setattr(m, "_read_json", _read_json)
+
+    req = make_mocked_request("POST", "/mjr/am/asset/tags", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    payload = _json(resp)
+
+    assert payload.get("ok") is True
+    assert idx.called == (9, sanitized_unique)
+
+
+@pytest.mark.asyncio
 async def test_download_asset_not_found(monkeypatch, tmp_path: Path):
     app = web.Application()
     app.router.add_get("/mjr/am/asset/download", m.download_asset)

@@ -11,7 +11,11 @@
  */
 import { computed, ref, watch, watchEffect, onUnmounted } from "vue";
 import { buildAssetViewURL } from "../../../api/endpoints.js";
-import { genTimeColor, createWorkflowDot } from "../../../components/Badges.js";
+import {
+    genTimeColor,
+    createWorkflowDot,
+    normalizeGenerationTimeMs,
+} from "../../../components/Badges.js";
 import { formatDuration, formatDate, formatTime } from "../../../utils/format.js";
 import { MediaBlobCache } from "../../../features/grid/MediaBlobCache.js";
 import RatingBadge from "../common/RatingBadge.vue";
@@ -122,10 +126,9 @@ const tags = computed(() => props.asset.tags || []);
 
 const genTimeMs = computed(() => {
     const raw = props.asset.generation_time_ms ?? props.asset.metadata?.generation_time_ms ?? 0;
-    const n = Number(raw);
-    return Number.isFinite(n) && n > 0 ? n : 0;
+    return normalizeGenerationTimeMs(raw);
 });
-const genTimeValid = computed(() => genTimeMs.value > 0 && genTimeMs.value < 86_400_000);
+const genTimeValid = computed(() => genTimeMs.value > 0);
 const genTimeSecs = computed(() => (genTimeMs.value / 1000).toFixed(1));
 const genTimeColorVal = computed(() => genTimeColor(genTimeMs.value));
 

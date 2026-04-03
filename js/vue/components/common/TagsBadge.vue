@@ -59,23 +59,7 @@ const displayTags = computed(() => {
         v-if="hasTags"
         class="mjr-tags-badge"
         :title="tagsTitle"
-        :style="{
-            position: 'absolute',
-            bottom: '6px',
-            left: '6px',
-            padding: '3px 6px',
-            borderRadius: '4px',
-            background: 'rgba(0,0,0,0.8)',
-            color: 'var(--mjr-tag-color, #90CAF9)',
-            fontSize: '9px',
-            maxWidth: '80%',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            pointerEvents: 'none',
-            zIndex: 10,
-            boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-        }"
+        :style="{ color: 'var(--mjr-tag-color, #90CAF9)' }"
     >
         {{ displayTags }}
     </div>
@@ -83,6 +67,21 @@ const displayTags = computed(() => {
 
 <style scoped>
 .mjr-tags-badge {
+    position: absolute;
+    bottom: 6px;
+    left: 6px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.8);
+    font-size: 9px;
+    /* Reserve room for the gentime badge (≈ 50px) at the bottom-right */
+    max-width: calc(100% - 56px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     animation: mjr-fade-in 0.2s ease-out;
 }
 

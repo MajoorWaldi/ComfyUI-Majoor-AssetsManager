@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import { formatDate, formatTime, formatDuration } from "../../../../utils/format.js";
 import { formatFps, readAssetFps, readAssetFrameCount } from "../../../../utils/mediaFps.js";
-import { genTimeColor } from "../../../../components/Badges.js";
+import { genTimeColor, normalizeGenerationTimeMs } from "../../../../components/Badges.js";
 
 const props = defineProps({
     asset: { type: Object, required: true },
@@ -62,8 +62,10 @@ const rows = computed(() => {
             });
         }
     }
-    const genTimeMs = asset.generation_time_ms ?? asset.metadata?.generation_time_ms ?? 0;
-    if (genTimeMs && Number.isFinite(Number(genTimeMs)) && genTimeMs > 0 && genTimeMs < 86400000) {
+    const genTimeMs = normalizeGenerationTimeMs(
+        asset.generation_time_ms ?? asset.metadata?.generation_time_ms ?? 0,
+    );
+    if (genTimeMs > 0) {
         fileData.push({
             label: "Generation Time",
             value: `${(Number(genTimeMs) / 1000).toFixed(1)}s`,

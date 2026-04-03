@@ -582,6 +582,7 @@ function bindCardRef(asset, node) {
     const card = node?.$el ?? node;
     if (!(card instanceof HTMLElement)) return;
     state.cardElements.set(id, card);
+    card._mjrIsVue = true;
     card._mjrAsset = asset;
     card._mjrReactiveAsset = asset;
     card.dataset.mjrKind = String(asset?.kind || "");

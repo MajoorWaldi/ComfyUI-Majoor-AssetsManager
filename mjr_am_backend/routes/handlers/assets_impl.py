@@ -693,9 +693,6 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         if not isinstance(tags, list):
             return _json_response(Result.Err("INVALID_INPUT", "Tags must be a list"))
 
-        if len(tags) > MAX_TAGS_PER_ASSET:
-            return _json_response(Result.Err("INVALID_INPUT", f"Too many tags (max {MAX_TAGS_PER_ASSET}, got {len(tags)})"))
-
         # Validate and sanitize tags: strip control chars, deduplicate, enforce limits
         sanitized_tags = []
         for tag in tags:
@@ -708,8 +705,13 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
             if any(existing.lower() == tag_lower for existing in sanitized_tags):
                 continue
             sanitized_tags.append(tag)
-            if len(sanitized_tags) >= MAX_TAGS_PER_ASSET:
-                break
+            if len(sanitized_tags) > MAX_TAGS_PER_ASSET:
+                return _json_response(
+                    Result.Err(
+                        "INVALID_INPUT",
+                        f"Too many tags (max {MAX_TAGS_PER_ASSET}, got {len(sanitized_tags)})",
+                    )
+                )
 
         try:
             result = await svc["index"].update_asset_tags(asset_id, sanitized_tags)

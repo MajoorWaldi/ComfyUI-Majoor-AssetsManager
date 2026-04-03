@@ -38,12 +38,70 @@ export function pruneRatingTagsHydrateSeen(st, max, ttlMs, budgetRef) {
     st.lastPruneAt = now;
 }
 
+function normalizeHydratedTags(rawTags) {
+    if (Array.isArray(rawTags)) return rawTags.filter((t) => String(t ?? "").trim());
+    if (typeof rawTags === "string") {
+        const raw = rawTags.trim();
+        if (!raw) return [];
+        try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                return parsed.map((t) => String(t ?? "").trim()).filter(Boolean);
+            }
+        } catch {
+            // Non-JSON tags payload; fallback to comma-separated parsing below.
+        }
+        return raw
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean);
+    }
+    return [];
+}
+
+function hasVueScopeAttr(el) {
+    try {
+        if (!el || !el.attributes) return false;
+        for (const a of el.attributes) {
+            if (String(a?.name || "").startsWith("data-v-")) return true;
+        }
+    } catch {
+        return false;
+    }
+    return false;
+}
+
 export function updateCardRatingTagsBadges(card, rating, tags, deps) {
     if (!card) return;
     try {
         if (!card.isConnected) return;
     } catch (e) {
         console.debug?.(e);
+    }
+    // Vue-rendered cards manage their own badges reactively via AssetCardInner.vue.
+    // Imperative DOM writes into Vue-owned nodes risk creating duplicate badges or
+    // conflicting with Vue's next patch cycle. Update the reactive asset object instead.
+    if (card._mjrIsVue && card._mjrAsset) {
+        try {
+            const thumb = card.querySelector?.(".mjr-thumb");
+            if (thumb) {
+                const legacyRating = thumb.querySelector?.(".mjr-rating-badge");
+                if (legacyRating && !hasVueScopeAttr(legacyRating)) {
+                    legacyRating.remove?.();
+                }
+                const legacyTags = thumb.querySelector?.(".mjr-tags-badge");
+                if (legacyTags && !hasVueScopeAttr(legacyTags)) {
+                    legacyTags.remove?.();
+                }
+            }
+            const ratingNum = Math.max(0, Math.min(5, Number(rating) || 0));
+            const tagsArr = normalizeHydratedTags(tags);
+            card._mjrAsset.rating = ratingNum;
+            card._mjrAsset.tags = tagsArr;
+        } catch (e) {
+            console.debug?.(e);
+        }
+        return;
     }
     const thumb = card.querySelector?.(".mjr-thumb");
     if (!thumb) return;
@@ -79,16 +137,17 @@ export function updateCardRatingTagsBadges(card, rating, tags, deps) {
     }
 
     const oldTagsBadge = thumb.querySelector?.(".mjr-tags-badge");
+    const tagsArr = normalizeHydratedTags(tags);
     if (oldTagsBadge) {
-        if (Array.isArray(tags) && tags.length) {
-            oldTagsBadge.textContent = tags.join(", ");
+        if (tagsArr.length) {
+            oldTagsBadge.textContent = tagsArr.join(", ");
             oldTagsBadge.style.display = "";
         } else {
             oldTagsBadge.textContent = "";
             oldTagsBadge.style.display = "none";
         }
     } else {
-        const nextTagsBadge = deps.createTagsBadge(Array.isArray(tags) ? tags : []);
+        const nextTagsBadge = deps.createTagsBadge(tagsArr);
         thumb.appendChild(nextTagsBadge);
     }
 }
@@ -105,7 +164,7 @@ export function pumpRatingTagsHydration(gridContainer, deps) {
             if (!res || !res.ok || !res.data) return;
             const updated = res.data;
             const rating = Number(updated.rating || 0) || 0;
-            const tags = Array.isArray(updated.tags) ? updated.tags : [];
+            const tags = normalizeHydratedTags(updated.tags);
             try {
                 if (job.asset) {
                     job.asset.rating = rating;
@@ -150,10 +209,6 @@ export function enqueueRatingTagsHydration(gridContainer, card, asset, deps) {
     const tags = asset?.tags;
     const tagsEmpty = !(Array.isArray(tags) && tags.length);
     if (rating > 0 && !tagsEmpty) {
-        st.seen.add(id);
-        return;
-    }
-    if (rating > 0 || !tagsEmpty) {
         st.seen.add(id);
         return;
     }

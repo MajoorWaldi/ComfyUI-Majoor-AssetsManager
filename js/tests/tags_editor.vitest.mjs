@@ -218,4 +218,25 @@ describe("TagsEditor", () => {
 
         expect(apiMock.updateAssetTags).toHaveBeenCalledTimes(1);
     });
+
+    it("enforces the 50-tag limit before posting", async () => {
+        apiMock.getAvailableTags.mockResolvedValue({ ok: true, data: [] });
+        apiMock.updateAssetTags.mockResolvedValue({
+            ok: true,
+            data: { asset_id: 1, tags: [] },
+        });
+
+        const { createTagsEditor } = await import("../components/TagsEditor.js");
+        const asset = { id: 1, tags: Array.from({ length: 50 }, (_, i) => `tag-${i}`) };
+        const editor = createTagsEditor(asset, vi.fn());
+        const input = editor.querySelector(".mjr-tag-input");
+
+        input.value = "overflow";
+        input.dispatchEvent({ type: "keydown", key: "Enter" });
+        await flushPromises();
+
+        expect(asset.tags).toHaveLength(50);
+        expect(asset.tags.includes("overflow")).toBe(false);
+        expect(apiMock.updateAssetTags).not.toHaveBeenCalled();
+    });
 });

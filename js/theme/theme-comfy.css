@@ -1776,6 +1776,58 @@
     overflow: hidden;
 }
 
+/* Keep generation-time badge pinned to the thumbnail corner across grid/feed variants.
+   The !important overrides are intentional: GenTimeBadge.vue uses <style scoped> whose
+   hashed class has the same specificity as global selectors. Without !important, a
+   conflicting rule (e.g. from a theme extension or an older non-scoped context) that sets
+   left:0/top:0 would win. left:auto + top:auto explicitly cancel any such accidental reset. */
+.mjr-assets-manager .mjr-thumb > .mjr-gentime-badge,
+.mjr-bottom-feed .mjr-thumb > .mjr-gentime-badge {
+    position: absolute !important;
+    right: 6px !important;
+    bottom: 6px !important;
+    left: auto !important;
+    top: auto !important;
+    z-index: 10 !important;
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+    background: rgba(0, 0, 0, 0.5) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Keep rating/tags badges anchored even when scoped Vue styles are not applied after reload.
+   Do not force display here so grid visibility toggles (.mjr-show-badges-*) still control show/hide. */
+.mjr-assets-manager .mjr-thumb > .mjr-rating-badge,
+.mjr-bottom-feed .mjr-thumb > .mjr-rating-badge {
+    position: absolute !important;
+    top: 6px !important;
+    right: 6px !important;
+    left: auto !important;
+    bottom: auto !important;
+    z-index: 10 !important;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+.mjr-assets-manager .mjr-thumb > .mjr-tags-badge,
+.mjr-bottom-feed .mjr-thumb > .mjr-tags-badge {
+    position: absolute !important;
+    left: 6px !important;
+    bottom: 6px !important;
+    right: auto !important;
+    top: auto !important;
+    z-index: 10 !important;
+    max-width: calc(100% - 56px);
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.8);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
 .mjr-assets-manager .mjr-thumb-play {
     position: absolute;
     inset: 0;

@@ -31,24 +31,6 @@ const ratingTitle = computed(() =>
         v-if="hasRating"
         class="mjr-rating-badge"
         :title="ratingTitle"
-        :style="{
-            position: 'absolute',
-            top: '6px',
-            right: '6px',
-            background: 'rgba(0, 0, 0, 0.55)',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            padding: '2px 6px',
-            borderRadius: '6px',
-            fontSize: '13px',
-            letterSpacing: '1px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            pointerEvents: 'none',
-            zIndex: 10,
-            textShadow: '0 2px 6px rgba(0,0,0,0.6)',
-            boxShadow: '0 6px 18px rgba(0,0,0,0.25)',
-        }"
     >
         <span
             v-for="i in ratingValue"
@@ -65,6 +47,22 @@ const ratingTitle = computed(() =>
 
 <style scoped>
 .mjr-rating-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 13px;
+    letter-spacing: 1px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 10;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
     animation: mjr-fade-in 0.2s ease-out;
 }
 
