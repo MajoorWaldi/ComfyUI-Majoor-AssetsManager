@@ -92,6 +92,43 @@ export async function registerRealtimeListeners({
     registerCleanableListener(runtime, api, EVENTS.RUNTIME_STATUS, api._mjrRuntimeStatusHandler);
     registerCleanableListener(runtime, api, "execution_cached", api._mjrExecutionCachedHandler);
 
+    function markRecentAssetUpsert() {
+        try {
+            window.__mjrLastAssetUpsert = Date.now();
+            window.__mjrLastAssetUpsertCount =
+                (Number(window.__mjrLastAssetUpsertCount || 0) || 0) + 1;
+        } catch (e) {
+            console.debug?.(e);
+        }
+    }
+
+    function upsertLiveAssetIntoGrid(grid, detail) {
+        const assetId = String(detail?.id || "").trim();
+        const kind = String(detail?.kind || "").trim();
+        const filename = String(detail?.filename || "").trim();
+        const filepath = String(detail?.filepath || "").trim();
+        const hasRenderableFields = !!kind && (!!filename || !!filepath);
+        let existsInGrid = false;
+        if (assetId) {
+            try {
+                if (typeof grid?._mjrHasAssetId === "function") {
+                    existsInGrid = !!grid._mjrHasAssetId(assetId);
+                } else {
+                    existsInGrid = !!grid.querySelector(
+                        `.mjr-asset-card[data-mjr-asset-id="${assetId.replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1")}"]`,
+                    );
+                }
+            } catch (e) {
+                console.debug?.(e);
+            }
+        }
+        const canUpsert = hasRenderableFields || existsInGrid;
+        const handled = canUpsert ? !!upsertAsset(grid, detail) : false;
+        if (handled) {
+            markRecentAssetUpsert();
+        }
+    }
+
     api._mjrAssetAddedHandler = (event) => {
         try {
             const grid = getActiveGridContainer();
@@ -146,36 +183,7 @@ export async function registerRealtimeListeners({
                 if (executionRuntime.isRenderableLiveAsset(detail)) {
                     pushGeneratedAsset(detail);
                 }
-                const assetId = String(detail?.id || "").trim();
-                const kind = String(detail?.kind || "").trim();
-                const filename = String(detail?.filename || "").trim();
-                const filepath = String(detail?.filepath || "").trim();
-                const hasRenderableFields = !!kind && (!!filename || !!filepath);
-                let existsInGrid = false;
-                if (assetId) {
-                    try {
-                        if (typeof grid?._mjrHasAssetId === "function") {
-                            existsInGrid = !!grid._mjrHasAssetId(assetId);
-                        } else {
-                            existsInGrid = !!grid.querySelector(
-                                `.mjr-asset-card[data-mjr-asset-id="${assetId.replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1")}"]`,
-                            );
-                        }
-                    } catch (e) {
-                        console.debug?.(e);
-                    }
-                }
-                const canUpsert = hasRenderableFields || existsInGrid;
-                const handled = canUpsert ? !!upsertAsset(grid, detail) : false;
-                if (handled) {
-                    try {
-                        window.__mjrLastAssetUpsert = Date.now();
-                        window.__mjrLastAssetUpsertCount =
-                            (Number(window.__mjrLastAssetUpsertCount || 0) || 0) + 1;
-                    } catch (e) {
-                        console.debug?.(e);
-                    }
-                }
+                upsertLiveAssetIntoGrid(grid, detail);
             }
         } catch (error) {
             reportError(error, "entry.asset_updated");
@@ -217,6 +225,16 @@ export async function registerRealtimeListeners({
         try {
             const detail = event?.detail || {};
             window.dispatchEvent(new CustomEvent(EVENTS.ASSET_INDEXED, { detail }));
+            const grid = getActiveGridContainer();
+            if (grid && detail) {
+                const liveEvent = executionRuntime.prepareLiveAssetEvent(detail);
+                if (liveEvent?.defer) return;
+                const nextDetail = liveEvent?.detail || detail;
+                if (executionRuntime.isRenderableLiveAsset(nextDetail)) {
+                    pushGeneratedAsset(nextDetail);
+                }
+                upsertLiveAssetIntoGrid(grid, nextDetail);
+            }
         } catch (e) {
             console.debug?.(e);
         }
