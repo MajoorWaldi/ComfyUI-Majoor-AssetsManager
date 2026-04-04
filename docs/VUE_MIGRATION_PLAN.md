@@ -1,4 +1,4 @@
-﻿# Vue Migration Plan — ComfyUI-Majoor-AssetsManager
+# Vue Migration Plan — ComfyUI-Majoor-AssetsManager
 
 > Last updated: 2026-04-01
 > Status: **Phases 0–7 complete for the Vue migration scope. The panel, sidebar, grid, feed, context menus, viewer runtime hosts, and DnD runtime ownership are now Vue-owned. `AssetsManagerPanel.js` is gone, replaced by `panelRuntime.js`; `createSidebar()` and the `js/components/SidebarView.js` shim are deleted. Remaining imperative modules are service/runtime layers kept by design rather than unfinished migration work.**
