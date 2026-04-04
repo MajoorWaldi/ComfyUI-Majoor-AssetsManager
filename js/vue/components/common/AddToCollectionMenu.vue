@@ -21,6 +21,7 @@ const menuStyle = computed(() => ({
     position: "fixed",
     left: `${Math.round(Number(addToCollectionMenuState.x) || 0)}px`,
     top: `${Math.round(Number(addToCollectionMenuState.y) || 0)}px`,
+    display: "block",
     zIndex: "10004",
 }));
 

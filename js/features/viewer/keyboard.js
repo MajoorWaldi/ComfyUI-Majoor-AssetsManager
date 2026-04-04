@@ -14,6 +14,7 @@ export function installViewerKeyboard({
     scheduleOverlayRedraw,
     scheduleApplyGrade,
     syncToolsUIFromState,
+    applyDistractionFreeUI,
     navigateViewerAssets,
     closeViewer,
     renderBadges,
@@ -367,6 +368,7 @@ export function installViewerKeyboard({
                     console.debug?.(e);
                 }
                 safeCall(syncToolsUIFromState);
+                safeCall(applyDistractionFreeUI);
                 safeCall(renderGenInfoPanel);
                 break;
             }

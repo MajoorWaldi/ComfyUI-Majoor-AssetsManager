@@ -339,148 +339,157 @@ export function renderABCompareView({
                 if (!ctx) return false;
                 const { w, h } = syncSize();
                 if (!(w > 1 && h > 1)) return false;
+                let saved = false;
                 try {
                     ctx.save();
+                    saved = true;
                 } catch (e) {
                     console.debug?.(e);
                 }
                 try {
-                    ctx.clearRect(0, 0, w, h);
-                } catch (e) {
-                    console.debug?.(e);
-                }
-
-                const px = w * h;
-                const isVideo = !!(
-                    topMedia?.querySelector?.("video") || baseMedia?.querySelector?.("video")
-                );
-
-                const doComposite = (op) => {
                     try {
-                        ctx.globalCompositeOperation = "copy";
-                        ctx.drawImage(bCanvas, 0, 0, w, h);
-                        ctx.globalCompositeOperation = op;
-                        ctx.drawImage(aCanvas, 0, 0, w, h);
-                        ctx.globalCompositeOperation = "source-over";
-                        return true;
-                    } catch {
-                        return false;
-                    }
-                };
-
-                const doSubtract = () => {
-                    // Subtract is not supported by Canvas2D composite ops; do CPU math for small images.
-                    // For video or very large frames, degrade to difference for stability/perf.
-                    if (isVideo) return doComposite("difference");
-                    if (!(px > 0 && px <= 750_000)) return doComposite("difference");
-                    try {
-                        const aImg = ctx.getImageData(0, 0, w, h);
                         ctx.clearRect(0, 0, w, h);
-                        ctx.globalCompositeOperation = "copy";
-                        ctx.drawImage(bCanvas, 0, 0, w, h);
-                        const bImg = ctx.getImageData(0, 0, w, h);
-                        const da = aImg.data;
-                        const db = bImg.data;
-                        for (let i = 0; i < db.length; i += 4) {
-                            db[i] = Math.max(0, (db[i] || 0) - (da[i] || 0));
-                            db[i + 1] = Math.max(0, (db[i + 1] || 0) - (da[i + 1] || 0));
-                            db[i + 2] = Math.max(0, (db[i + 2] || 0) - (da[i + 2] || 0));
-                            db[i + 3] = 255;
-                        }
-                        ctx.putImageData(bImg, 0, 0);
-                        ctx.globalCompositeOperation = "source-over";
-                        return true;
-                    } catch {
-                        return doComposite("difference");
-                    }
-                };
-
-                if (isCompositeMode(mode)) {
-                    if (mode === "add") return doComposite("lighter");
-                    return doComposite(mode);
-                }
-
-                if (mode === "subtract") {
-                    return doSubtract();
-                }
-
-                const doAbsDiff = () => {
-                    // CPU pixel path: |A-B| per channel, auto-normalized to full 0-255 range.
-                    // Falls back to canvas "difference" composite for video or very large frames.
-                    if (isVideo) return doComposite("difference");
-                    if (!(px > 0 && px <= 1_000_000)) return doComposite("difference");
-                    try {
-                        // Capture A
-                        ctx.globalCompositeOperation = "copy";
-                        ctx.drawImage(aCanvas, 0, 0, w, h);
-                        const aImg = ctx.getImageData(0, 0, w, h);
-                        // Capture B
-                        ctx.clearRect(0, 0, w, h);
-                        ctx.drawImage(bCanvas, 0, 0, w, h);
-                        const bImg = ctx.getImageData(0, 0, w, h);
-                        const da = aImg.data;
-                        const db = bImg.data;
-                        // Compute |A-B| and track max for normalization
-                        let maxVal = 0;
-                        for (let i = 0; i < da.length; i += 4) {
-                            db[i] = Math.abs((da[i] || 0) - (db[i] || 0));
-                            db[i + 1] = Math.abs((da[i + 1] || 0) - (db[i + 1] || 0));
-                            db[i + 2] = Math.abs((da[i + 2] || 0) - (db[i + 2] || 0));
-                            db[i + 3] = 255;
-                            if (db[i] > maxVal) maxVal = db[i];
-                            if (db[i + 1] > maxVal) maxVal = db[i + 1];
-                            if (db[i + 2] > maxVal) maxVal = db[i + 2];
-                        }
-                        // Auto-normalize: stretch so the largest difference maps to 255
-                        if (maxVal > 0 && maxVal < 255) {
-                            const scale = 255 / maxVal;
-                            for (let i = 0; i < db.length; i += 4) {
-                                db[i] = Math.min(255, Math.round(db[i] * scale));
-                                db[i + 1] = Math.min(255, Math.round(db[i + 1] * scale));
-                                db[i + 2] = Math.min(255, Math.round(db[i + 2] * scale));
-                            }
-                        }
-                        ctx.putImageData(bImg, 0, 0);
-                        ctx.globalCompositeOperation = "source-over";
-                        return true;
-                    } catch {
-                        return doComposite("difference");
-                    }
-                };
-
-                if (mode === "absdiff") {
-                    return doAbsDiff();
-                }
-
-                // Default: difference = |A-B| boosted 4× for subtle-change visibility
-                const ok = doComposite("difference");
-                if (!ok) return false;
-
-                // Boost visibility for subtle changes (bounded; skip when too large).
-                if (mode === "difference") {
-                    try {
-                        if (px > 0 && px <= 1_000_000) {
-                            const img = ctx.getImageData(0, 0, w, h);
-                            const d = img.data;
-                            const gain = 4;
-                            for (let i = 0; i < d.length; i += 4) {
-                                d[i] = Math.min(255, (d[i] || 0) * gain);
-                                d[i + 1] = Math.min(255, (d[i + 1] || 0) * gain);
-                                d[i + 2] = Math.min(255, (d[i + 2] || 0) * gain);
-                                d[i + 3] = 255;
-                            }
-                            ctx.putImageData(img, 0, 0);
-                        }
                     } catch (e) {
                         console.debug?.(e);
                     }
+
+                    const px = w * h;
+                    const isVideo = !!(
+                        topMedia?.querySelector?.("video") || baseMedia?.querySelector?.("video")
+                    );
+
+                    const doComposite = (op) => {
+                        try {
+                            ctx.globalCompositeOperation = "copy";
+                            ctx.drawImage(bCanvas, 0, 0, w, h);
+                            ctx.globalCompositeOperation = op;
+                            ctx.drawImage(aCanvas, 0, 0, w, h);
+                            ctx.globalCompositeOperation = "source-over";
+                            return true;
+                        } catch {
+                            return false;
+                        }
+                    };
+
+                    const doSubtract = () => {
+                        // Subtract is not supported by Canvas2D composite ops; do CPU math for small images.
+                        // For video or very large frames, degrade to difference for stability/perf.
+                        if (isVideo) return doComposite("difference");
+                        if (!(px > 0 && px <= 750_000)) return doComposite("difference");
+                        try {
+                            ctx.globalCompositeOperation = "copy";
+                            ctx.drawImage(aCanvas, 0, 0, w, h);
+                            const aImg = ctx.getImageData(0, 0, w, h);
+                            ctx.clearRect(0, 0, w, h);
+                            ctx.globalCompositeOperation = "copy";
+                            ctx.drawImage(bCanvas, 0, 0, w, h);
+                            const bImg = ctx.getImageData(0, 0, w, h);
+                            const da = aImg.data;
+                            const db = bImg.data;
+                            for (let i = 0; i < db.length; i += 4) {
+                                db[i] = Math.max(0, (db[i] || 0) - (da[i] || 0));
+                                db[i + 1] = Math.max(0, (db[i + 1] || 0) - (da[i + 1] || 0));
+                                db[i + 2] = Math.max(0, (db[i + 2] || 0) - (da[i + 2] || 0));
+                                db[i + 3] = 255;
+                            }
+                            ctx.putImageData(bImg, 0, 0);
+                            ctx.globalCompositeOperation = "source-over";
+                            return true;
+                        } catch {
+                            return doComposite("difference");
+                        }
+                    };
+
+                    if (isCompositeMode(mode)) {
+                        if (mode === "add") return doComposite("lighter");
+                        return doComposite(mode);
+                    }
+
+                    if (mode === "subtract") {
+                        return doSubtract();
+                    }
+
+                    const doAbsDiff = () => {
+                        // CPU pixel path: |A-B| per channel, auto-normalized to full 0-255 range.
+                        // Falls back to canvas "difference" composite for video or very large frames.
+                        if (isVideo) return doComposite("difference");
+                        if (!(px > 0 && px <= 1_000_000)) return doComposite("difference");
+                        try {
+                            // Capture A
+                            ctx.globalCompositeOperation = "copy";
+                            ctx.drawImage(aCanvas, 0, 0, w, h);
+                            const aImg = ctx.getImageData(0, 0, w, h);
+                            // Capture B
+                            ctx.clearRect(0, 0, w, h);
+                            ctx.drawImage(bCanvas, 0, 0, w, h);
+                            const bImg = ctx.getImageData(0, 0, w, h);
+                            const da = aImg.data;
+                            const db = bImg.data;
+                            // Compute |A-B| and track max for normalization
+                            let maxVal = 0;
+                            for (let i = 0; i < da.length; i += 4) {
+                                db[i] = Math.abs((da[i] || 0) - (db[i] || 0));
+                                db[i + 1] = Math.abs((da[i + 1] || 0) - (db[i + 1] || 0));
+                                db[i + 2] = Math.abs((da[i + 2] || 0) - (db[i + 2] || 0));
+                                db[i + 3] = 255;
+                                if (db[i] > maxVal) maxVal = db[i];
+                                if (db[i + 1] > maxVal) maxVal = db[i + 1];
+                                if (db[i + 2] > maxVal) maxVal = db[i + 2];
+                            }
+                            // Auto-normalize: stretch so the largest difference maps to 255
+                            if (maxVal > 0 && maxVal < 255) {
+                                const scale = 255 / maxVal;
+                                for (let i = 0; i < db.length; i += 4) {
+                                    db[i] = Math.min(255, Math.round(db[i] * scale));
+                                    db[i + 1] = Math.min(255, Math.round(db[i + 1] * scale));
+                                    db[i + 2] = Math.min(255, Math.round(db[i + 2] * scale));
+                                }
+                            }
+                            ctx.putImageData(bImg, 0, 0);
+                            ctx.globalCompositeOperation = "source-over";
+                            return true;
+                        } catch {
+                            return doComposite("difference");
+                        }
+                    };
+
+                    if (mode === "absdiff") {
+                        return doAbsDiff();
+                    }
+
+                    // Default: difference = |A-B| boosted 4× for subtle-change visibility
+                    const ok = doComposite("difference");
+                    if (!ok) return false;
+
+                    // Boost visibility for subtle changes (bounded; skip when too large).
+                    if (mode === "difference") {
+                        try {
+                            if (px > 0 && px <= 1_000_000) {
+                                const img = ctx.getImageData(0, 0, w, h);
+                                const d = img.data;
+                                const gain = 4;
+                                for (let i = 0; i < d.length; i += 4) {
+                                    d[i] = Math.min(255, (d[i] || 0) * gain);
+                                    d[i + 1] = Math.min(255, (d[i + 1] || 0) * gain);
+                                    d[i + 2] = Math.min(255, (d[i + 2] || 0) * gain);
+                                    d[i + 3] = 255;
+                                }
+                                ctx.putImageData(img, 0, 0);
+                            }
+                        } catch (e) {
+                            console.debug?.(e);
+                        }
+                    }
+                    return true;
+                } finally {
+                    if (saved) {
+                        try {
+                            ctx.restore();
+                        } catch (e) {
+                            console.debug?.(e);
+                        }
+                    }
                 }
-                try {
-                    ctx.restore();
-                } catch (e) {
-                    console.debug?.(e);
-                }
-                return true;
             };
 
             try {

@@ -449,7 +449,7 @@ const DICTIONARY = {
         "tooltip.resetInPoint": "Reset In point to start",
         "tooltip.resetOutPoint": "Reset Out point to end",
         "tooltip.maintenanceTools": "Database maintenance tools",
-        "tooltip.resetPlayerControls": "Reset all player controls",
+        "tooltip.resetPlayerControls": "Reset all viewer controls",
 
         // --- Panel: Filters ---
         "filter.all": "All",

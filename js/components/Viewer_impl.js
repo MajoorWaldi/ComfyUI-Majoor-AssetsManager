@@ -2264,6 +2264,7 @@ function createViewer() {
         scheduleOverlayRedraw,
         scheduleApplyGrade,
         syncToolsUIFromState,
+        applyDistractionFreeUI,
         navigateViewerAssets,
         closeViewer,
         renderBadges,
@@ -2406,6 +2407,12 @@ function createViewer() {
     }
 
     function closeViewer() {
+        try {
+            state.distractionFree = false;
+            applyDistractionFreeUI();
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             metadataHydrator?.abort?.();
         } catch (e) {
@@ -2606,6 +2613,7 @@ function createViewer() {
             bindOpenListeners();
             state.assets = Array.isArray(assets) ? assets : [assets];
             state.currentIndex = Math.max(0, Math.min(startIndex, state.assets.length - 1));
+            state.distractionFree = false;
             // Rebuild the filmstrip thumbnail strip for the new asset list.
             try {
                 filmstrip.rebuild();

@@ -22,6 +22,24 @@ export function createViewerToolbar({
     getCanAB,
 } = {}) {
     const unsubs = lifecycle?.unsubs || [];
+    const DEFAULT_TOOL_STATE = {
+        channel: "rgb",
+        exposureEV: 0,
+        gamma: 1.0,
+        analysisMode: "none",
+        scopesMode: "off",
+        gridMode: 0,
+        overlayMaskEnabled: false,
+        overlayMaskOpacity: 0.65,
+        overlayFormat: "image",
+        probeEnabled: false,
+        loupeEnabled: false,
+        hudEnabled: true,
+        distractionFree: false,
+        genInfoOpen: true,
+        abCompareMode: "wipe",
+        audioVisualizerMode: "artistic",
+    };
 
     const header = document.createElement("div");
     header.className = "mjr-viewer-header";
@@ -604,7 +622,7 @@ export function createViewerToolbar({
 
     const resetGradeBtn = createIconButton(
         "Reset",
-        t("tooltip.resetExposure", "Reset Exposure/Gamma/Channel"),
+        t("tooltip.resetPlayerControls", "Reset all viewer controls"),
     );
     resetGradeBtn.style.height = "26px";
     resetGradeBtn.style.fontSize = "12px";
@@ -690,6 +708,17 @@ export function createViewerToolbar({
         } catch (e) {
             console.debug?.(e);
         }
+        safeCall(onToolsChanged);
+    };
+
+    const resetViewerTools = () => {
+        try {
+            Object.assign(state, DEFAULT_TOOL_STATE);
+        } catch (e) {
+            console.debug?.(e);
+        }
+        safeCall(onCompareModeChanged);
+        safeCall(onAudioVizModeChanged);
         safeCall(onToolsChanged);
     };
 
@@ -1107,15 +1136,7 @@ export function createViewerToolbar({
     );
     unsubs.push(
         safeAddListener(resetGradeBtn, "click", () => {
-            try {
-                state.channel = "rgb";
-                state.exposureEV = 0;
-                state.gamma = 1.0;
-                state.analysisMode = "none";
-            } catch (e) {
-                console.debug?.(e);
-            }
-            safeCall(onToolsChanged);
+            resetViewerTools();
         }),
     );
     unsubs.push(

@@ -82,7 +82,8 @@ function readRenderedCards() {
 function scrollToAssetId(assetId, { align = "auto" } = {}) {
     const id = String(assetId || "").trim();
     if (!id) return;
-    const index = (Array.isArray(state.assets) ? state.assets : []).findIndex(
+    const visibleAssets = Array.isArray(renderableAssets.value) ? renderableAssets.value : [];
+    const index = visibleAssets.findIndex(
         (asset) => String(asset?.id || "") === id,
     );
     if (index < 0) return;
@@ -140,6 +141,10 @@ function isSelected(asset) {
 
 function isFolderAsset(asset) {
     return String(asset?.kind || "").toLowerCase() === "folder";
+}
+
+function isRenderableAsset(asset) {
+    return !!asset && asset._mjrDupHidden !== true;
 }
 
 function updateSelectionDatasets() {
@@ -258,11 +263,16 @@ function buildDisplayAssets(assets) {
 
 const displayAssets = computed(() => buildDisplayAssets(state.assets));
 
+const renderableAssets = computed(() => {
+    const assets = Array.isArray(displayAssets.value) ? displayAssets.value : [];
+    return assets.filter((asset) => isRenderableAsset(asset));
+});
+
 function emitGridStats() {
     const container = gridContainerRef.value;
     if (!container) return;
     const detail = {
-        count: Array.isArray(displayAssets.value) ? displayAssets.value.length : 0,
+        count: Array.isArray(renderableAssets.value) ? renderableAssets.value.length : 0,
         total: Number(state.total || 0) || 0,
     };
     try {
@@ -326,7 +336,8 @@ function installGridApi(container) {
         disposeAssetDragStart = null;
     }
     container._mjrPrimaryPointerSelectionUnbind = () => {};
-    container._mjrGetAssets = () => (Array.isArray(displayAssets.value) ? displayAssets.value : []);
+    container._mjrGetAssets = () =>
+        Array.isArray(renderableAssets.value) ? renderableAssets.value : [];
     container._mjrSetSelection = (ids, activeId = "") => {
         const detail = setSelection(ids, activeId);
         updateSelectionDatasets();
@@ -396,7 +407,7 @@ watch(
 
 watch(
     () =>
-        `${Array.isArray(displayAssets.value) ? displayAssets.value.length : 0}::${Number(state.total || 0)}::${Number(state.hiddenPngSiblings || 0)}`,
+        `${Array.isArray(renderableAssets.value) ? renderableAssets.value.length : 0}::${Number(state.total || 0)}::${Number(state.hiddenPngSiblings || 0)}`,
     () => {
         if (!gridContainerRef.value) return;
         emitGridStats();
@@ -435,7 +446,7 @@ const estimateRowHeight = computed(() => {
 });
 
 const rows = computed(() => {
-    const assets = Array.isArray(displayAssets.value) ? displayAssets.value : [];
+    const assets = Array.isArray(renderableAssets.value) ? renderableAssets.value : [];
     const cols = Math.max(1, columnCount.value);
     const nextRows = [];
     for (let index = 0; index < assets.length; index += cols) {
@@ -652,12 +663,12 @@ function syncRenderedDuplicateCards(filenameKey) {
     const renderedCards = Array.from(renderedSet || []);
     if (!renderedCards.length) return;
 
-    const count = Math.max(
-        Number(state.filenameCounts?.get?.(key) || 0) || 0,
-        renderedCards.length,
-    );
     const allMembers = (Array.isArray(state.assets) ? state.assets : []).filter(
         (asset) => String(asset?.filename || "").trim().toLowerCase() === key,
+    );
+    const count = Math.max(
+        Number(state.filenameCounts?.get?.(key) || 0) || 0,
+        allMembers.length,
     );
 
     const primaryCard = renderedCards[0] || null;

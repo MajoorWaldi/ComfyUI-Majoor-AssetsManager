@@ -1015,11 +1015,20 @@ export class FloatingViewer {
 
     // ── Mode ──────────────────────────────────────────────────────────────────
 
+    _notifyModeChanged() {
+        try {
+            this._controller?.onModeChanged?.(this._mode);
+        } catch (e) {
+            console.debug?.(e);
+        }
+    }
+
     _cycleMode() {
         const order = [MFV_MODES.SIMPLE, MFV_MODES.AB, MFV_MODES.SIDE, MFV_MODES.GRID];
         this._mode = order[(order.indexOf(this._mode) + 1) % order.length];
         this._updateModeBtnUI();
         this._refresh();
+        this._notifyModeChanged();
     }
 
     setMode(mode) {
@@ -1027,6 +1036,7 @@ export class FloatingViewer {
         this._mode = mode;
         this._updateModeBtnUI();
         this._refresh();
+        this._notifyModeChanged();
     }
 
     getPinnedSlot() {

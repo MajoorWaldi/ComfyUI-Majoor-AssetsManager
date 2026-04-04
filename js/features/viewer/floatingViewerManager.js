@@ -78,6 +78,11 @@ async function _getInstance() {
                     togglePreview: () => floatingViewerManager.togglePreview(),
                     toggleNodeStream: () => floatingViewerManager.toggleNodeStream(),
                     popOut: () => floatingViewerManager.popOut(),
+                    onModeChanged: (mode) => {
+                        if (!_instance?.isVisible) return;
+                        if (mode === MFV_MODES.SIMPLE) return;
+                        _syncCurrentGridSelection();
+                    },
                     handleForwardedKeydown: (event) => _onGlobalKeydown(event),
                 },
             });

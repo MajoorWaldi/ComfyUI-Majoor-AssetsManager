@@ -33,6 +33,12 @@ const dateRangeSelectRef = ref(null);
 const agendaContainerRef = ref(null);
 const dateExactInputRef = ref(null);
 
+const groupOpen = ref({
+    core: false,
+    media: false,
+    time: false,
+});
+
 const resolutionPresetValue = computed(() => {
     const minW = Number(panelStore.minWidth || 0) || 0;
     const minH = Number(panelStore.minHeight || 0) || 0;
@@ -155,6 +161,17 @@ const onDateExactChange = (event) => {
     dispatchFiltersChanged();
 };
 
+const toggleGroup = (groupName) => {
+    const key = String(groupName || "").trim().toLowerCase();
+    if (!key || !(key in groupOpen.value)) return;
+    groupOpen.value = {
+        ...groupOpen.value,
+        [key]: !groupOpen.value[key],
+    };
+};
+
+const isGroupOpen = (groupName) => Boolean(groupOpen.value[String(groupName || "").trim().toLowerCase()]);
+
 defineExpose({
     get kindSelect()              { return kindSelectRef.value; },
     get wfCheckbox()              { return wfCheckboxRef.value; },
@@ -182,8 +199,18 @@ defineExpose({
     <div class="mjr-popover mjr-filter-popover" style="display: none;">
 
         <!-- ── Core group ─────────────────────────────────────────────────── -->
-        <div class="mjr-filter-group">
-            <div class="mjr-filter-group-title">{{ t("group.core", "Core") }}</div>
+        <div class="mjr-filter-group" :class="{ 'is-open': isGroupOpen('core') }">
+            <button
+                type="button"
+                class="mjr-filter-group-toggle"
+                :aria-expanded="String(isGroupOpen('core'))"
+                @click="toggleGroup('core')"
+            >
+                <span class="mjr-filter-group-title">{{ t("group.core", "Core") }}</span>
+                <span class="mjr-filter-group-chevron" aria-hidden="true">{{ isGroupOpen("core") ? "▾" : "▸" }}</span>
+            </button>
+
+            <div v-show="isGroupOpen('core')" class="mjr-filter-group-body">
 
             <!-- File type -->
             <div class="mjr-popover-row">
@@ -261,11 +288,22 @@ defineExpose({
                     <option value="5">★ 5</option>
                 </select>
             </div>
+            </div>
         </div>
 
         <!-- ── Media group ─────────────────────────────────────────────────── -->
-        <div class="mjr-filter-group">
-            <div class="mjr-filter-group-title">{{ t("group.media", "Media") }}</div>
+        <div class="mjr-filter-group" :class="{ 'is-open': isGroupOpen('media') }">
+            <button
+                type="button"
+                class="mjr-filter-group-toggle"
+                :aria-expanded="String(isGroupOpen('media'))"
+                @click="toggleGroup('media')"
+            >
+                <span class="mjr-filter-group-title">{{ t("group.media", "Media") }}</span>
+                <span class="mjr-filter-group-chevron" aria-hidden="true">{{ isGroupOpen("media") ? "▾" : "▸" }}</span>
+            </button>
+
+            <div v-show="isGroupOpen('media')" class="mjr-filter-group-body">
 
             <!-- File size -->
             <div class="mjr-popover-row mjr-popover-row--3col">
@@ -362,11 +400,22 @@ defineExpose({
                     @change="onResolutionChange"
                 />
             </div>
+            </div>
         </div>
 
         <!-- ── Time group ──────────────────────────────────────────────────── -->
-        <div class="mjr-filter-group">
-            <div class="mjr-filter-group-title">{{ t("group.time", "Time") }}</div>
+        <div class="mjr-filter-group" :class="{ 'is-open': isGroupOpen('time') }">
+            <button
+                type="button"
+                class="mjr-filter-group-toggle"
+                :aria-expanded="String(isGroupOpen('time'))"
+                @click="toggleGroup('time')"
+            >
+                <span class="mjr-filter-group-title">{{ t("group.time", "Time") }}</span>
+                <span class="mjr-filter-group-chevron" aria-hidden="true">{{ isGroupOpen("time") ? "▾" : "▸" }}</span>
+            </button>
+
+            <div v-show="isGroupOpen('time')" class="mjr-filter-group-body">
 
             <!-- Date range -->
             <div class="mjr-popover-row">
@@ -400,6 +449,7 @@ defineExpose({
                     />
                 </div>
             </div>
+            </div>
         </div>
 
     </div>
@@ -431,5 +481,45 @@ defineExpose({
     cursor: pointer;
     font-size: 12px;
     color: var(--fg-color, #e6edf7);
+}
+
+.mjr-filter-group-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 0;
+    margin: 0 0 10px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+}
+
+.mjr-filter-group-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.mjr-filter-group-chevron {
+    font-size: 12px;
+    line-height: 1;
+    color: var(--mjr-muted, var(--descrip-text, rgba(255, 255, 255, 0.65)));
+}
+
+.mjr-filter-group-body {
+    padding-top: 2px;
+}
+
+.mjr-filter-group:not(.is-open) {
+    padding-bottom: 8px;
+}
+
+.mjr-filter-group:not(.is-open) .mjr-filter-group-toggle {
+    margin-bottom: 0;
 }
 </style>

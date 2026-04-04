@@ -9,13 +9,13 @@
  * don't cause spurious updates.
  *
  * When async metadata enrichment arrives (see SidebarView.js loadMetadataAsync),
- * `patchActiveAsset(patches)` merges the extra fields and calls `triggerRef` to
- * force a re-render with the updated data.
+ * `patchActiveAsset(patches)` replaces the top-level asset reference so Vue
+ * recomputes dependent sections with the enriched data.
  *
  * Phase 5.
  */
 
-import { shallowRef, triggerRef } from "vue";
+import { shallowRef } from "vue";
 
 // Singleton refs — sidebar is a singleton panel.
 const _activeAsset = shallowRef(null);
@@ -50,7 +50,7 @@ export function clearActiveAsset() {
 }
 
 /**
- * Merge metadata patches into the active asset and trigger a Vue re-render.
+ * Merge metadata patches into the active asset by replacing the top-level reference.
  * Called from `loadMetadataAsync` in SidebarView.js when async enrichment data
  * arrives.
  *
@@ -59,8 +59,10 @@ export function clearActiveAsset() {
  */
 export function patchActiveAsset(patches, onUpdate) {
     if (!_activeAsset.value || !patches) return;
-    Object.assign(_activeAsset.value, patches);
-    triggerRef(_activeAsset);
+    _activeAsset.value = {
+        ..._activeAsset.value,
+        ...patches,
+    };
     // Forward to sidebarController's onUpdate so card badges stay in sync.
     try {
         const cb = onUpdate ?? _onUpdateCallback.value;
