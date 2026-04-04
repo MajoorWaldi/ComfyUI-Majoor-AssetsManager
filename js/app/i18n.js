@@ -424,6 +424,8 @@ const DICTIONARY = {
         "tooltip.videoFile": "Video file",
         "tooltip.minimapSettings": "Minimap settings",
         "tooltip.closeViewer": "Close viewer",
+        "tooltip.popInViewer": "Return to floating panel",
+        "tooltip.popOutViewer": "Pop out viewer to separate window",
         "tooltip.liveStreamOff": "Live Stream: OFF — click to follow",
         "tooltip.liveStreamOn": "Live Stream: ON — click to disable",
         "tooltip.captureView": "Save view as image",

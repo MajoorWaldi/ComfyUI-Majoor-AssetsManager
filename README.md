@@ -42,6 +42,7 @@ Useful links:
 - [Main Features](#main-features)
 - [What's New in v2.4.0](#whats-new-in-v240)
 - [Installation](#installation)
+- [ComfyUI Desktop Second-Screen Popup](#comfyui-desktop-second-screen-popup)
 - [Basic Usage](#basic-usage)
 - [Majoor Floating Viewer (MFV)](#majoor-floating-viewer-mfv)
 - [Hotkeys & Shortcuts](#hotkeys--shortcuts)
@@ -210,6 +211,63 @@ ffprobe -version
 ```
 
 See [`docs/INSTALLATION.md`](docs/INSTALLATION.md) for detailed instructions.
+
+### ComfyUI Desktop Second-Screen Popup
+
+If you use the official **ComfyUI Desktop / Electron** build and want the **Majoor Floating Viewer** to open in a real detachable window that can be moved to another monitor, the Desktop host must allow `window.open("about:blank")` popups.
+
+The Majoor plugin already tries to open a real popup first on Desktop. However, some Desktop builds still block that popup in the Electron host and redirect it to the OS instead. In that case, add the popup allow-list below to the Desktop app host.
+
+Typical file to patch in an extracted Desktop app:
+
+```text
+.vite/build/main.cjs
+```
+
+Find the `#shouldOpenInPopup(url2)` method and make sure it allows `about:blank`, `127.0.0.1`, and `localhost`:
+
+```js
+  #shouldOpenInPopup(url2) {
+    return url2 === "about:blank"
+      || url2.startsWith("http://127.0.0.1:")
+      || url2.startsWith("http://localhost:")
+      || url2.startsWith("https://dreamboothy.firebaseapp.com/")
+      || url2.startsWith("https://checkout.comfy.org/")
+      || url2.startsWith("https://accounts.google.com/")
+      || url2.startsWith("https://github.com/login/oauth/");
+  }
+```
+
+And ensure the window-open handler still allows popup creation for approved URLs:
+
+```js
+    this.window.webContents.setWindowOpenHandler(({ url: url2 }) => {
+      if (this.#shouldOpenInPopup(url2)) {
+        return {
+          action: "allow",
+          overrideBrowserWindowOptions: {
+            webPreferences: { preload: void 0 },
+          },
+        };
+      }
+
+      electron.shell.openExternal(url2);
+      return { action: "deny" };
+    });
+```
+
+After patching the Desktop host:
+
+1. Repack the Desktop app archive if needed.
+2. Restart ComfyUI Desktop completely.
+3. Reopen Majoor Assets Manager.
+4. Use the MFV pop-out button. It should now open a real detachable window that can be moved to another screen.
+
+Notes:
+
+- This host-side patch is only needed for Desktop builds that still block `about:blank` popups.
+- Browser-based ComfyUI does not require this Electron host patch.
+- If your Desktop build already allows these popup URLs, no extra host change is required.
 
 ---
 

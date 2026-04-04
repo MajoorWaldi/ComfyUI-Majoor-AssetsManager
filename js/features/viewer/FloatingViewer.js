@@ -8,6 +8,7 @@
 
 import { EVENTS } from "../../app/events.js";
 import { t } from "../../app/i18n.js";
+import { comfyToast } from "../../app/toast.js";
 import { buildViewURL, buildAssetViewURL } from "../../api/endpoints.js";
 import { ensureViewerMetadataAsset } from "./genInfo.js";
 import { getAssetMetadata, getFileMetadataScoped } from "../../api/client.js";
@@ -54,10 +55,44 @@ function _isElectronAppHost() {
         if (root?.electron || root?.ipcRenderer || root?.electronAPI) {
             return true;
         }
+        const userAgent = String(root?.navigator?.userAgent || globalThis?.navigator?.userAgent || "");
+        const hasElectronUa = /\bElectron\//i.test(userAgent);
+        const isVsCodeShell = /\bCode\//i.test(userAgent);
+        if (hasElectronUa && !isVsCodeShell) {
+            return true;
+        }
     } catch (e) {
         console.debug?.(e);
     }
     return false;
+}
+
+function _tracePopout(stage, detail = null, level = "info") {
+    const payload = {
+        stage: String(stage || "unknown"),
+        detail,
+        ts: Date.now(),
+    };
+    try {
+        const root = typeof window !== "undefined" ? window : globalThis;
+        const key = "__MJR_MFV_POPOUT_TRACE__";
+        const history = Array.isArray(root[key]) ? root[key] : [];
+        history.push(payload);
+        root[key] = history.slice(-20);
+        root.__MJR_MFV_POPOUT_LAST__ = payload;
+    } catch (e) {
+        console.debug?.(e);
+    }
+    try {
+        const logger = level === "error"
+            ? console.error
+            : level === "warn"
+                ? console.warn
+                : console.info;
+        logger?.("[MFV popout]", payload);
+    } catch (e) {
+        console.debug?.(e);
+    }
 }
 
 function _extOf(filename) {
@@ -322,6 +357,9 @@ export class FloatingViewer {
         this._popoutWindow = null;
         this._popoutBtn = null;
         this._isPopped = false;
+        this._desktopExpanded = false;
+        this._desktopExpandRestore = null;
+        this._desktopPopoutUnsupported = false;
         this._popoutCloseHandler = null;
         this._popoutKeydownHandler = null;
         this._popoutCloseTimer = null;
@@ -548,7 +586,7 @@ export class FloatingViewer {
         this._popoutBtn.className = "mjr-icon-btn";
         const popoutLabel = t(
             "tooltip.popOutViewer",
-            "Expand to full screen (Esc or button to return)",
+            "Pop out viewer to separate window",
         );
         this._popoutBtn.title = popoutLabel;
         this._popoutBtn.setAttribute("aria-label", popoutLabel);
@@ -1781,6 +1819,109 @@ export class FloatingViewer {
 
     // ── Pop-out / Pop-in (separate OS window for second monitor) ────────────
 
+    _setDesktopExpanded(active) {
+        if (!this.element) return;
+        const shouldExpand = Boolean(active);
+        if (this._desktopExpanded === shouldExpand) return;
+
+        const el = this.element;
+        if (shouldExpand) {
+            this._desktopExpandRestore = {
+                parent: el.parentNode || null,
+                nextSibling: el.nextSibling || null,
+                styleAttr: el.getAttribute("style"),
+            };
+            if (el.parentNode !== document.body) {
+                document.body.appendChild(el);
+            }
+            el.classList.add("mjr-mfv--desktop-expanded", "is-visible");
+            el.setAttribute("aria-hidden", "false");
+            el.style.position = "fixed";
+            el.style.top = "12px";
+            el.style.left = "12px";
+            el.style.right = "12px";
+            el.style.bottom = "12px";
+            el.style.width = "auto";
+            el.style.height = "auto";
+            el.style.maxWidth = "none";
+            el.style.maxHeight = "none";
+            el.style.minWidth = "320px";
+            el.style.minHeight = "240px";
+            el.style.resize = "none";
+            el.style.margin = "0";
+            el.style.zIndex = "2147483000";
+            this._desktopExpanded = true;
+            this.isVisible = true;
+            this._resetGenDropdownForCurrentDocument();
+            this._rebindControlHandlers();
+            this._bindPanelInteractions();
+            this._bindDocumentUiHandlers();
+            this._updatePopoutBtnUI();
+            _tracePopout("electron-in-app-expanded", { isVisible: this.isVisible });
+            return;
+        }
+
+        const restore = this._desktopExpandRestore;
+        this._desktopExpanded = false;
+        el.classList.remove("mjr-mfv--desktop-expanded");
+        if (restore?.styleAttr == null || restore.styleAttr === "") {
+            el.removeAttribute("style");
+        } else {
+            el.setAttribute("style", restore.styleAttr);
+        }
+        if (restore?.parent && restore.parent.isConnected) {
+            if (restore.nextSibling && restore.nextSibling.parentNode === restore.parent) {
+                restore.parent.insertBefore(el, restore.nextSibling);
+            } else {
+                restore.parent.appendChild(el);
+            }
+        }
+        this._desktopExpandRestore = null;
+        this._resetGenDropdownForCurrentDocument();
+        this._rebindControlHandlers();
+        this._bindPanelInteractions();
+        this._bindDocumentUiHandlers();
+        this._updatePopoutBtnUI();
+        _tracePopout("electron-in-app-restored", null);
+    }
+
+    _activateDesktopExpandedFallback(error) {
+        this._desktopPopoutUnsupported = true;
+        _tracePopout(
+            "electron-in-app-fallback",
+            { message: error?.message || String(error || "unknown error") },
+            "warn",
+        );
+        this._setDesktopExpanded(true);
+        try {
+            comfyToast(
+                t(
+                    "toast.popoutElectronInAppFallback",
+                    "Desktop PiP is unavailable here. Viewer expanded inside the app instead.",
+                ),
+                "warning",
+                4500,
+            );
+        } catch (e) {
+            console.debug?.(e);
+        }
+    }
+
+    _tryElectronPopupFallback(el, w, h, reason) {
+        _tracePopout(
+            "electron-popup-fallback-attempt",
+            { reason: reason?.message || String(reason || "unknown") },
+            "warn",
+        );
+        this._fallbackPopout(el, w, h);
+        if (this._popoutWindow) {
+            this._desktopPopoutUnsupported = false;
+            _tracePopout("electron-popup-fallback-opened", null);
+            return true;
+        }
+        return false;
+    }
+
     /**
      * Move the viewer into a separate browser window so it can be
      * dragged onto a second monitor. Opens a dedicated same-origin page,
@@ -1790,18 +1931,47 @@ export class FloatingViewer {
         if (this._isPopped || !this.element) return;
         const el = this.element;
         this._stopEdgeResize();
+        const isElectronHost = _isElectronAppHost();
+        const hasDocumentPiP = typeof window !== "undefined" && "documentPictureInPicture" in window;
+        const userAgent = String(window?.navigator?.userAgent || globalThis?.navigator?.userAgent || "");
 
         const w = Math.max(el.offsetWidth || 520, 400);
         const h = Math.max(el.offsetHeight || 420, 300);
 
-        // 1. Electron app fallback: Document Picture-in-Picture ────────────────
-        //    In standard browser usage we keep the classic about:blank popup.
-        //    In Electron-style hosts with a real bridge exposed, PiP is more
-        //    reliable than popup navigation and keeps the viewer usable.
-        if (_isElectronAppHost() && "documentPictureInPicture" in window) {
+        _tracePopout("start", {
+            isElectronHost,
+            hasDocumentPiP,
+            userAgent,
+            width: w,
+            height: h,
+            desktopPopoutUnsupported: this._desktopPopoutUnsupported,
+        });
+
+        if (isElectronHost && this._desktopPopoutUnsupported) {
+            _tracePopout("electron-in-app-fallback-reuse", null);
+            this._setDesktopExpanded(true);
+            return;
+        }
+
+        // 1. Electron app: prefer a real detachable popup window so the
+        //    viewer can be moved onto a second monitor. PiP remains the
+        //    fallback only when popup creation fails in this host.
+        if (isElectronHost) {
+            _tracePopout("electron-popup-request", { width: w, height: h });
+            if (this._tryElectronPopupFallback(el, w, h, new Error("Desktop popup requested"))) {
+                return;
+            }
+        }
+
+        // 2. Electron fallback: Document Picture-in-Picture ───────────────────
+        if (isElectronHost && "documentPictureInPicture" in window) {
+            _tracePopout("electron-pip-request", { width: w, height: h });
             window.documentPictureInPicture
                 .requestWindow({ width: w, height: h })
                 .then((pipWindow) => {
+                    _tracePopout("electron-pip-opened", {
+                        hasDocument: Boolean(pipWindow?.document),
+                    });
                     this._popoutWindow = pipWindow;
                     this._isPopped = true;
                     this._popoutRestoreGuard = false;
@@ -1829,9 +1999,18 @@ export class FloatingViewer {
                     doc.body.appendChild(root);
 
                     try {
-                        root.appendChild(doc.adoptNode(el));
+                        const adopted = typeof doc.adoptNode === "function" ? doc.adoptNode(el) : el;
+                        root.appendChild(adopted);
+                        _tracePopout("electron-pip-adopted", {
+                            usedAdoptNode: typeof doc.adoptNode === "function",
+                        });
                     } catch (e) {
-                        console.warn("[MFV] PiP adoptNode failed, falling back to window.open", e);
+                        _tracePopout(
+                            "electron-pip-adopt-failed",
+                            { message: e?.message || String(e) },
+                            "warn",
+                        );
+                        console.warn("[MFV] PiP adoptNode failed", e);
                         this._isPopped = false;
                         this._popoutWindow = null;
                         try {
@@ -1839,7 +2018,7 @@ export class FloatingViewer {
                         } catch (_) {
                             /* noop */
                         }
-                        this._fallbackPopout(el, w, h);
+                        this._activateDesktopExpandedFallback(e);
                         return;
                     }
                     el.classList.add("is-visible");
@@ -1849,6 +2028,7 @@ export class FloatingViewer {
                     this._rebindControlHandlers();
                     this._bindDocumentUiHandlers();
                     this._updatePopoutBtnUI();
+                    _tracePopout("electron-pip-ready", { isPopped: this._isPopped });
 
                     pipWindow.addEventListener("pagehide", handlePopupClosing, {
                         signal: popoutSignal,
@@ -1872,13 +2052,26 @@ export class FloatingViewer {
                     });
                 })
                 .catch((err) => {
-                    console.warn("[MFV] Document PiP failed, falling back to window.open", err);
-                    this._fallbackPopout(el, w, h);
+                    _tracePopout(
+                        "electron-pip-request-failed",
+                        { message: err?.message || String(err) },
+                        "warn",
+                    );
+                    this._activateDesktopExpandedFallback(err);
                 });
             return;
         }
 
-        // 2. Browser default: classic about:blank popup window.
+        if (isElectronHost) {
+            _tracePopout("electron-no-pip-api", { hasDocumentPiP });
+            this._activateDesktopExpandedFallback(
+                new Error("Document Picture-in-Picture unavailable after popup failure"),
+            );
+            return;
+        }
+
+        // 3. Browser default: classic about:blank popup window.
+        _tracePopout("browser-fallback-popup", { width: w, height: h });
         this._fallbackPopout(el, w, h);
     }
 
@@ -1889,15 +2082,18 @@ export class FloatingViewer {
      * backend URL results in a blank page.
      */
     _fallbackPopout(el, w, h) {
+        _tracePopout("browser-popup-open", { width: w, height: h });
         const left =
             (window.screenX || window.screenLeft) + Math.round((window.outerWidth - w) / 2);
         const top = (window.screenY || window.screenTop) + Math.round((window.outerHeight - h) / 2);
         const features = `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no`;
         const popup = window.open("about:blank", "_mjr_viewer", features);
         if (!popup) {
+            _tracePopout("browser-popup-blocked", null, "warn");
             console.warn("[MFV] Pop-out blocked — allow popups for this site.");
             return;
         }
+        _tracePopout("browser-popup-opened", { hasDocument: Boolean(popup?.document) });
         this._popoutWindow = popup;
         this._isPopped = true;
         this._popoutRestoreGuard = false;
@@ -2080,6 +2276,10 @@ export class FloatingViewer {
      * Move the viewer back from the popup window into the main ComfyUI page.
      */
     popIn({ closePopupWindow = true } = {}) {
+        if (this._desktopExpanded) {
+            this._setDesktopExpanded(false);
+            return;
+        }
         if (!this._isPopped || !this.element) return;
         const popup = this._popoutWindow;
         this._clearPopoutCloseWatch();
@@ -2125,22 +2325,23 @@ export class FloatingViewer {
     /** Toggle pop-out button icon between external-link (pop out) and sign-in (pop in). */
     _updatePopoutBtnUI() {
         if (!this._popoutBtn) return;
+        const activePopoutState = this._isPopped || this._desktopExpanded;
         if (this.element) {
-            this.element.classList.toggle("mjr-mfv--popped", this._isPopped);
+            this.element.classList.toggle("mjr-mfv--popped", activePopoutState);
         }
-        this._popoutBtn.classList.toggle("mjr-popin-active", this._isPopped);
+        this._popoutBtn.classList.toggle("mjr-popin-active", activePopoutState);
         const icon = this._popoutBtn.querySelector("i") || document.createElement("i");
-        const label = this._isPopped
+        const label = activePopoutState
             ? t("tooltip.popInViewer", "Return to floating panel")
-            : t("tooltip.popOutViewer", "Expand to full screen (Esc or button to return)");
-        if (this._isPopped) {
+            : t("tooltip.popOutViewer", "Pop out viewer to separate window");
+        if (activePopoutState) {
             icon.className = "pi pi-sign-in";
         } else {
             icon.className = "pi pi-external-link";
         }
         this._popoutBtn.title = label;
         this._popoutBtn.setAttribute("aria-label", label);
-        this._popoutBtn.setAttribute("aria-pressed", String(this._isPopped));
+        this._popoutBtn.setAttribute("aria-pressed", String(activePopoutState));
         if (!this._popoutBtn.contains(icon)) {
             this._popoutBtn.replaceChildren(icon);
         }
@@ -2148,7 +2349,7 @@ export class FloatingViewer {
 
     /** Whether the viewer is currently in a pop-out window. */
     get isPopped() {
-        return this._isPopped;
+        return this._isPopped || this._desktopExpanded;
     }
 
     _resizeCursorForDirection(dir) {

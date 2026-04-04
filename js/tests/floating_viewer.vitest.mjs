@@ -1,7 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const comfyToastMock = vi.fn();
+
 vi.mock("../app/i18n.js", () => ({
     t: (_key, fallback) => fallback,
+}));
+
+vi.mock("../app/toast.js", () => ({
+    comfyToast: comfyToastMock,
 }));
 
 vi.mock("../app/events.js", () => ({
@@ -34,6 +40,7 @@ vi.mock("../features/viewer/videoSync.js", () => ({
 
 describe("FloatingViewer", () => {
     beforeEach(() => {
+        comfyToastMock.mockReset();
         globalThis.document = {
             adoptNode: vi.fn((node) => node),
             body: {
@@ -333,6 +340,7 @@ describe("FloatingViewer", () => {
         globalThis.window = {
             documentPictureInPicture: { requestWindow },
             open: vi.fn(),
+            navigator: { userAgent: "Mozilla/5.0 Code/1.113.0 Electron/39.8.3" },
             screenX: 0,
             screenLeft: 0,
             screenY: 0,
@@ -354,7 +362,7 @@ describe("FloatingViewer", () => {
         expect(requestWindow).not.toHaveBeenCalled();
     });
 
-    it("uses Document PiP as fallback in Electron app contexts", async () => {
+    it("uses popup window first in Electron app contexts", async () => {
         const { FloatingViewer } = await import("../features/viewer/FloatingViewer.js");
 
         const requestWindow = vi.fn(() => new Promise(() => {}));
@@ -374,13 +382,138 @@ describe("FloatingViewer", () => {
             _isPopped: false,
             element: { offsetWidth: 640, offsetHeight: 480 },
             _stopEdgeResize: vi.fn(),
-            _fallbackPopout: vi.fn(),
+            _tryElectronPopupFallback: vi.fn(() => true),
         };
 
         FloatingViewer.prototype.popOut.call(viewer);
 
+        expect(viewer._tryElectronPopupFallback).toHaveBeenCalledWith(
+            viewer.element,
+            640,
+            480,
+            expect.any(Error),
+        );
+        expect(requestWindow).not.toHaveBeenCalled();
+    });
+
+    it("uses popup first for desktop Electron user agents even without exposed bridge", async () => {
+        const { FloatingViewer } = await import("../features/viewer/FloatingViewer.js");
+
+        const requestWindow = vi.fn(() => new Promise(() => {}));
+        globalThis.window = {
+            documentPictureInPicture: { requestWindow },
+            navigator: { userAgent: "Mozilla/5.0 Electron/39.8.3 Safari/537.36" },
+            open: vi.fn(),
+            screenX: 0,
+            screenLeft: 0,
+            screenY: 0,
+            screenTop: 0,
+            outerWidth: 1280,
+            outerHeight: 900,
+        };
+
+        const viewer = {
+            _isPopped: false,
+            element: { offsetWidth: 640, offsetHeight: 480 },
+            _stopEdgeResize: vi.fn(),
+            _tryElectronPopupFallback: vi.fn(() => true),
+        };
+
+        FloatingViewer.prototype.popOut.call(viewer);
+
+        expect(viewer._tryElectronPopupFallback).toHaveBeenCalledWith(
+            viewer.element,
+            640,
+            480,
+            expect.any(Error),
+        );
+        expect(requestWindow).not.toHaveBeenCalled();
+    });
+
+    it("falls back in-app for desktop Electron when popup and PiP are unavailable", async () => {
+        const { FloatingViewer } = await import("../features/viewer/FloatingViewer.js");
+
+        globalThis.window = {
+            navigator: { userAgent: "Mozilla/5.0 Electron/39.8.3 Safari/537.36" },
+            open: vi.fn(),
+            screenX: 0,
+            screenLeft: 0,
+            screenY: 0,
+            screenTop: 0,
+            outerWidth: 1280,
+            outerHeight: 900,
+        };
+
+        const viewer = {
+            _isPopped: false,
+            _desktopExpanded: false,
+            _desktopExpandRestore: null,
+            _desktopPopoutUnsupported: false,
+            element: { offsetWidth: 640, offsetHeight: 480 },
+            _stopEdgeResize: vi.fn(),
+            _fallbackPopout: vi.fn(),
+            _resetGenDropdownForCurrentDocument: vi.fn(),
+            _rebindControlHandlers: vi.fn(),
+            _bindPanelInteractions: vi.fn(),
+            _bindDocumentUiHandlers: vi.fn(),
+            _updatePopoutBtnUI: vi.fn(),
+            _setDesktopExpanded: FloatingViewer.prototype._setDesktopExpanded,
+            _activateDesktopExpandedFallback: FloatingViewer.prototype._activateDesktopExpandedFallback,
+            _tryElectronPopupFallback: FloatingViewer.prototype._tryElectronPopupFallback,
+        };
+
+        viewer.element.classList = { add: vi.fn(), remove: vi.fn(), toggle: vi.fn() };
+        viewer.element.setAttribute = vi.fn();
+        viewer.element.getAttribute = vi.fn(() => null);
+        viewer.element.removeAttribute = vi.fn();
+        viewer.element.style = {};
+        viewer.element.parentNode = null;
+        viewer.element.nextSibling = null;
+
+        FloatingViewer.prototype.popOut.call(viewer);
+
+        expect(viewer._fallbackPopout).toHaveBeenCalledWith(viewer.element, 640, 480);
+        expect(viewer._desktopExpanded).toBe(true);
+        expect(comfyToastMock).toHaveBeenCalledWith(
+            "Desktop PiP is unavailable here. Viewer expanded inside the app instead.",
+            "warning",
+            4500,
+        );
+    });
+
+    it("falls back to Document PiP when Desktop popup creation fails", async () => {
+        const { FloatingViewer } = await import("../features/viewer/FloatingViewer.js");
+
+        const requestWindow = vi.fn(() => new Promise(() => {}));
+        globalThis.window = {
+            documentPictureInPicture: { requestWindow },
+            process: { versions: { electron: "39.8.3" } },
+            open: vi.fn(() => null),
+            screenX: 0,
+            screenLeft: 0,
+            screenY: 0,
+            screenTop: 0,
+            outerWidth: 1280,
+            outerHeight: 900,
+        };
+
+        const viewer = {
+            _isPopped: false,
+            _popoutWindow: null,
+            element: { offsetWidth: 640, offsetHeight: 480 },
+            _stopEdgeResize: vi.fn(),
+            _tryElectronPopupFallback: vi.fn(() => false),
+        };
+
+        FloatingViewer.prototype.popOut.call(viewer);
+
+        expect(viewer._tryElectronPopupFallback).toHaveBeenCalledWith(
+            viewer.element,
+            640,
+            480,
+            expect.any(Error),
+        );
         expect(requestWindow).toHaveBeenCalledWith({ width: 640, height: 480 });
-        expect(viewer._fallbackPopout).not.toHaveBeenCalled();
     });
 
     it("installs follower sync for compare-mode playable media", async () => {
