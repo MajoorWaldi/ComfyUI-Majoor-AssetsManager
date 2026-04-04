@@ -20,6 +20,7 @@ export const APP_DEFAULTS = Object.freeze({
 
     // Grid
     GRID_MIN_SIZE: 120,
+    FEED_GRID_MIN_SIZE: 120,
     GRID_GAP: 10,
     GRID_SHOW_BADGES_EXTENSION: true,
     GRID_SHOW_BADGES_RATING: true,

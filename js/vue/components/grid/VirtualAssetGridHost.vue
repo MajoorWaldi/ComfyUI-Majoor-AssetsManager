@@ -415,10 +415,23 @@ watch(
     { flush: "post", immediate: true },
 );
 
+function getActiveGridMinSize() {
+    const container = gridContainerRef.value;
+    const isBottomFeed = String(container?.dataset?.mjrBottomFeed || "").toLowerCase() === "true";
+    const fallbackMinSize = Number(APP_CONFIG.GRID_MIN_SIZE || 120) || 120;
+    if (isBottomFeed) {
+        return Math.max(
+            80,
+            Number(APP_CONFIG.FEED_GRID_MIN_SIZE || fallbackMinSize) || fallbackMinSize,
+        );
+    }
+    return Math.max(80, fallbackMinSize);
+}
+
 const columnCount = computed(() => {
     settingsVersion.value;
     const gap = Math.max(0, Number(APP_CONFIG.GRID_GAP || 10) || 10);
-    const minWidth = Math.max(80, Number(APP_CONFIG.GRID_MIN_SIZE || 120) || 120);
+    const minWidth = getActiveGridMinSize();
     const width = Number(hostWidth.value || 0) || Number(scrollElementRef.value?.clientWidth || 0) || 0;
     if (width <= 0) return 1;
     return Math.max(1, Math.floor((width + gap) / (minWidth + gap)));
@@ -433,7 +446,7 @@ const itemWidth = computed(() => {
     const cols = Math.max(1, columnCount.value);
     const width =
         Number(hostWidth.value || 0) || Number(scrollElementRef.value?.clientWidth || 0) || 0;
-    if (width <= 0) return Math.max(80, Number(APP_CONFIG.GRID_MIN_SIZE || 120) || 120);
+    if (width <= 0) return getActiveGridMinSize();
     return Math.max(80, Math.floor((width - gapPx.value * Math.max(0, cols - 1)) / cols));
 });
 
@@ -1042,7 +1055,7 @@ onBeforeUnmount(() => {
 watch(
     gridContainerRef,
     (container) => {
-        if (!container || !props.applyDefaultSettingsClasses) return;
+        if (!container) return;
         if (settingsListenerBound) return;
         window.addEventListener("mjr-settings-changed", onSettingsChanged);
         settingsListenerBound = true;

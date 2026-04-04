@@ -13,7 +13,13 @@ import {
 import { safeDispatchCustomEvent } from "../../utils/events.js";
 import { SettingsStore } from "./SettingsStore.js";
 import { SETTINGS_KEY, SETTINGS_SCHEMA_VERSION } from "../settingsStore.js";
-import { _safeBool, _safeNum, deepMerge, resolveGridMinSize } from "./settingsUtils.js";
+import {
+    _safeBool,
+    _safeNum,
+    deepMerge,
+    resolveFeedGridMinSize,
+    resolveGridMinSize,
+} from "./settingsUtils.js";
 import { t } from "../i18n.js";
 
 // ─── Default settings ─────────────────────────────────────────────────────
@@ -96,6 +102,7 @@ export const DEFAULT_SETTINGS = {
         verboseErrors: false,
     },
     feed: {
+        minSize: APP_DEFAULTS.FEED_GRID_MIN_SIZE,
         showInfo: APP_DEFAULTS.FEED_SHOW_INFO,
         showFilename: APP_DEFAULTS.FEED_SHOW_FILENAME,
         showDimensions: APP_DEFAULTS.FEED_SHOW_DIMENSIONS,
@@ -311,6 +318,7 @@ export const applySettingsToConfig = (settings) => {
     APP_CONFIG.DEBUG_VIEWER = !!settings.debug?.viewer;
 
     APP_CONFIG.GRID_MIN_SIZE = resolveGridMinSize(settings.grid);
+    APP_CONFIG.FEED_GRID_MIN_SIZE = resolveFeedGridMinSize(settings.feed);
     APP_CONFIG.GRID_GAP = Math.max(
         0,
         Math.min(40, Math.round(_safeNum(settings.grid?.gap, APP_DEFAULTS.GRID_GAP))),

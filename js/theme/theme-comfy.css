@@ -1795,6 +1795,11 @@
     border-radius: 4px !important;
     background: rgba(0, 0, 0, 0.5) !important;
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.015em;
+    text-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.9),
+        0 0 10px color-mix(in srgb, currentColor 35%, transparent);
 }
 
 /* Keep rating/tags badges anchored even when scoped Vue styles are not applied after reload.
@@ -4439,8 +4444,12 @@
     border: 1px solid rgba(255, 255, 255, 0.12);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
     font-size: 10px;
-    font-weight: 700 !important;
-    letter-spacing: 0.01em;
+    font-weight: 800 !important;
+    letter-spacing: 0.015em;
+    color: rgba(255, 255, 255, 0.98);
+    text-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.9),
+        0 0 10px rgba(255, 255, 255, 0.16);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
 }
