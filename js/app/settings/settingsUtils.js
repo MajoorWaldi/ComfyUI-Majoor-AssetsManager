@@ -59,18 +59,25 @@ export const GRID_SIZE_PRESETS = Object.freeze({
 
 export const GRID_SIZE_PRESET_OPTIONS = Object.freeze(["small", "medium", "large"]);
 
+const clampCardMinSize = (value, fallback) =>
+    Math.max(60, Math.min(600, Math.round(_safeNum(value, fallback))));
+
 export const resolveGridMinSize = (grid = {}) => {
+    const explicitMinSize = Number(grid?.minSize);
+    if (Number.isFinite(explicitMinSize)) {
+        return clampCardMinSize(explicitMinSize, APP_DEFAULTS.GRID_MIN_SIZE);
+    }
     const preset = _safeOneOf(
         String(grid?.minSizePreset || "").toLowerCase(),
         GRID_SIZE_PRESET_OPTIONS,
         "",
     );
     if (preset) return GRID_SIZE_PRESETS[preset];
-    return Math.max(
-        60,
-        Math.min(600, Math.round(_safeNum(grid?.minSize, APP_DEFAULTS.GRID_MIN_SIZE))),
-    );
+    return clampCardMinSize(grid?.minSize, APP_DEFAULTS.GRID_MIN_SIZE);
 };
+
+export const resolveFeedGridMinSize = (feed = {}) =>
+    clampCardMinSize(feed?.minSize, APP_DEFAULTS.FEED_GRID_MIN_SIZE);
 
 export const detectGridSizePreset = (minSize) => {
     const val = Math.round(_safeNum(minSize, APP_DEFAULTS.GRID_MIN_SIZE));

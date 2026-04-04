@@ -23,6 +23,23 @@ export function registerFeedSettings(safeAddSetting, settings, notifyApplied) {
         settings.feed = settings.feed || {};
     };
 
+    safeAddSetting({
+        id: `${SETTINGS_PREFIX}.Feed.CardSize`,
+        category: feedCat("Card size"),
+        name: "Feed card size (px)",
+        tooltip: "Set the minimum card width used by the Generated Feed layout (60-600 px).",
+        type: "number",
+        defaultValue: Math.max(60, Math.min(600, Number(settings.feed?.minSize) || 120)),
+        attrs: { min: 60, max: 600, step: 10 },
+        onChange: (value) => {
+            ensureFeed();
+            settings.feed.minSize = Math.max(60, Math.min(600, Math.round(Number(value) || 120)));
+            saveMajoorSettings(settings);
+            applySettingsToConfig(settings);
+            notifyApplied("feed.minSize");
+        },
+    });
+
     // ── Master toggle: show info section ──
     safeAddSetting({
         id: `${SETTINGS_PREFIX}.Feed.ShowInfo`,

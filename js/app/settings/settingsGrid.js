@@ -94,6 +94,24 @@ export function registerGridSettings(safeAddSetting, settings, notifyApplied) {
     });
 
     safeAddSetting({
+        id: `${SETTINGS_PREFIX}.Cards.CustomThumbSize`,
+        category: cardCat(t("setting.grid.cardSize.group", "Card size")),
+        name: "Majoor: Custom Card Size (px)",
+        tooltip: "Set the minimum card width used by the main grid layout (60-600 px).",
+        type: "number",
+        defaultValue: Math.max(60, Math.min(600, Number(settings.grid?.minSize) || 120)),
+        attrs: { min: 60, max: 600, step: 10 },
+        onChange: (value) => {
+            const minSize = Math.max(60, Math.min(600, Math.round(Number(value) || 120)));
+            settings.grid.minSize = minSize;
+            settings.grid.minSizePreset = detectGridSizePreset(minSize);
+            saveMajoorSettings(settings);
+            applySettingsToConfig(settings);
+            notifyApplied("grid.minSize");
+        },
+    });
+
+    safeAddSetting({
         id: `${SETTINGS_PREFIX}.Grid.ShowDetails`,
         category: cardCat("Show card details"),
         name: "Show metadata panel",
