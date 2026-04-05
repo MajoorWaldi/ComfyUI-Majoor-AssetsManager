@@ -1,5 +1,9 @@
 # Majoor Assets Manager for ComfyUI
 
+## Presentation Video
+
+[![Watch the presentation video](https://img.youtube.com/vi/mRxMnrggliY/maxresdefault.jpg)](https://youtu.be/mRxMnrggliY)
+
 [![GitHub Repo](https://img.shields.io/badge/GitHub-Repo-181717?logo=github)](https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager)
 [![GitHub Stars](https://img.shields.io/github/stars/MajoorWaldi/ComfyUI-Majoor-AssetsManager?style=flat)](https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/MajoorWaldi/ComfyUI-Majoor-AssetsManager?style=flat)](https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/network/members)
@@ -33,14 +37,14 @@ Useful links:
 - 📝 Changelog: [`CHANGELOG.md`](CHANGELOG.md)
 - 📚 Documentation index: [`docs/DOCUMENTATION_INDEX.md`](docs/DOCUMENTATION_INDEX.md)
 - 🔧 API reference: [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md)
-- 🤖 **AI Features Guide**: [`docs/AI_FEATURES.md`](docs/AI_FEATURES.md) — NEW!
+- 🤖 **AI Features Guide**: [`docs/AI_FEATURES.md`](docs/AI_FEATURES.md)
 
 ---
 
 ## Table of Contents
 
 - [Main Features](#main-features)
-- [What's New in v2.4.0](#whats-new-in-v240)
+- [What's New in v2.4.4](#whats-new-in-v244)
 - [Installation](#installation)
 - [ComfyUI Desktop Second-Screen Popup](#comfyui-desktop-second-screen-popup)
 - [Basic Usage](#basic-usage)
@@ -86,9 +90,18 @@ Useful links:
 
 ---
 
-## What's New in v2.4.0
+## What's New in v2.4.4
 
-### 🤖 AI Features — Comprehensive Guide — NEW!
+### Latest Release Highlights
+- **Documentation sync**: Main guides, API reference, testing docs, and user guide aligned with the current repository
+- **Version bump**: Published project metadata and docs now target 2.4.4 consistently
+- **Plugin docs refresh**: Plugin compatibility examples now reflect the current Majoor baseline
+
+See [CHANGELOG.md](CHANGELOG.md) for the complete release notes.
+
+### Key Feature Highlights
+
+### 🤖 AI Features
 Complete AI-powered asset discovery and organization:
 - **Semantic Search**: Natural language queries ("sunset over mountains")
 - **Find Similar**: Visual similarity matching
@@ -99,7 +112,7 @@ Complete AI-powered asset discovery and organization:
 - **Models**: SigLIP2 (image/text), X-CLIP (video), Florence-2 (caption)
 - See full guide: [`docs/AI_FEATURES.md`](docs/AI_FEATURES.md)
 
-### 🎉 Majoor Floating Viewer (MFV) — NEW! 🎯
+### 🎉 Majoor Floating Viewer (MFV)
 A lightweight floating viewer panel for real-time generation comparison:
 - **Live Stream Mode**: Automatically follows new generations from Save/Load nodes
 - **Compare Modes**: Simple, A/B Compare, and Side-by-Side views
@@ -125,9 +138,9 @@ See [`CHANGELOG.md`](CHANGELOG.md) for complete details.
 
 ---
 
-## Prerelease Features (Upcoming)
+## Recent Platform Improvements
 
-The following features are currently in prerelease and will be included in the next version:
+The following improvements were delivered across the recent release cycle:
 
 ### 🔧 Core Improvements
 - **Improved Assets Metadata Parsing**: Enhanced metadata extraction and parsing pipeline
@@ -137,7 +150,7 @@ The following features are currently in prerelease and will be included in the n
 - **Code Refactor for Maintainability**: Major codebase refactoring for improved long-term maintainability
 - **Various Bug Fixes**: Multiple stability and correctness improvements
 
-See [`CHANGELOG.md`](CHANGELOG.md) for the latest prerelease notes.
+See [`CHANGELOG.md`](CHANGELOG.md) for the detailed release history.
 
 ---
 
@@ -708,12 +721,12 @@ ComfyUI-Majoor-AssetsManager/
 │   ├── components/            # UI components
 │   ├── features/              # Feature modules
 │   ├── api/                   # API client
-│   └── vue/                   # Vue.js build artifacts
+│   └── vue/                   # Vue.js source modules
 ├── mjr_am_backend/            # Backend (Python)
 │   ├── routes/                # API routes
 │   ├── features/              # Backend features
 │   ├── adapters/              # Database adapters
-│   └── shared/                # Shared utilities
+│   └── shared.py              # Shared backend helpers
 ├── mjr_am_shared/             # Shared code (frontend/backend)
 ├── tests/                     # Test suites
 │   ├── core/                  # Core functionality tests
@@ -733,10 +746,10 @@ ComfyUI-Majoor-AssetsManager/
 python -m pytest tests/ -q
 
 # Single test file
-python -m pytest tests/core/test_index.py -v
+python -m pytest tests/core/test_routes.py -v
 
 # Single test function
-python -m pytest tests/core/test_index.py::test_scan_recursive -v
+python -m pytest tests/core/test_routes.py::test_routes -v
 
 # With coverage
 pytest tests/ --cov=mjr_am_backend --cov-report=html
@@ -756,9 +769,6 @@ npm run test:js:watch
 # Full test suite
 run_tests.bat
 
-# Quick suite (skips slow tests)
-run_tests_quick.bat
-
 # With JUnit XML and HTML reports
 tests/run_tests_all.bat
 ```
@@ -767,18 +777,18 @@ Test reports: `tests/__reports__/index.html`
 
 ### Code Quality
 ```bash
-# Type checking
-mypy mjr_am_backend/
+# Canonical repo quality gate
+python scripts/run_quality_gate.py
 
-# Linting
-flake8 mjr_am_backend/
+# Fast Python-only gate
+python scripts/run_quality_gate.py --python-only --skip-tests
 
-# Code complexity
-radon cc mjr_am_backend/
-
-# Security audit
-bandit -r mjr_am_backend/
-pip-audit
+# Individual checks
+mypy --config-file mypy.ini
+python -m ruff check mjr_am_backend mjr_am_shared tests scripts __init__.py
+bandit -r mjr_am_backend -ll -ii -x tests
+pip-audit -r requirements.txt
+python scripts/check_cc_changed.py
 ```
 
 ### Contributing
@@ -867,5 +877,5 @@ Optional attribution request: See [`NOTICE`](NOTICE) file for details.
 
 ---
 
-*Last updated: March 27, 2026*
-*Version: 2.4.3 (Prerelease)*
+*Last updated: April 5, 2026*
+*Version: 2.4.4*

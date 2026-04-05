@@ -9,62 +9,22 @@ Test suite for ComfyUI-Majoor-AssetsManager.
 ```
 tests/
 ├── conftest.py                  # Pytest fixtures & shared setup
-├── README.md
+├── README.md                    # Test documentation
+├── run_tests_all.bat            # Windows full-suite runner
 ├── __init__.py
-│
-├── core/                        # Core functionality
-│   ├── test_mvp.py              # MVP functionality
-│   ├── test_index.py            # IndexService (scan/search)
-│   ├── test_integration.py      # End-to-end integration
-│   └── test_routes.py           # API route handlers
-│
-├── metadata/                    # Metadata extraction
-│   ├── test_extractors.py
-│   ├── test_geninfo_parser.py
-│   ├── test_geninfo_from_parameters.py
-│   ├── test_metadata_flags.py
-│   ├── test_metadata_quality_monotonic.py
-│   ├── test_exiftool_batch_matching.py
-│   ├── test_video_metadata_extraction_encoded.py
-│   ├── test_video_metadata_extraction_wrapped_comment.py
-│   ├── test_video_generation_extraction.py
-│   └── test_image_workflow_extraction_guards.py
-│
-├── rating_tags/                 # Ratings & tags
-│   ├── test_rating_tags_import.py
-│   ├── test_rating_tags_os_sync.py
-│   ├── test_rating_tags_extractor_variants.py
-│   └── test_asset_hydrate_rating_tags.py
-│
-├── assets/                      # Assets & search
-│   ├── test_assets_batch.py
-│   ├── test_assets_delete.py
-│   ├── test_search_fts_metadata.py
-│   └── test_stage_to_input_dedupe.py
-│
-├── database/                    # Database & schema
-│   ├── test_schema_heal.py
-│   ├── test_sqlite_query_in.py
-│   └── test_index_service_geninfo_self_heal.py
-│
-├── config/                      # Config & security
-│   ├── test_security.py
-│   ├── test_settings.py
-│   ├── test_observability_settings.py
-│   ├── test_comfy_output.py
-│   └── test_list_output_fs_fallback.py
-│
-├── features/                    # Feature tests
-│   ├── test_collections_service.py
-│   ├── test_batch_zip.py
-│   ├── test_fast_scan.py
-│   ├── test_date_histogram.py
-│   └── test_viewer_grid_mask.py
-│
-└── regressions/                 # Regression tests
-    ├── test_audit_issues_regressions.py
-    ├── test_scan_batching.py
-    └── test_logs.py
+├── assets/                      # Asset fixtures and media samples
+├── compat/                      # Backward-compatibility coverage
+├── config/                      # Configuration tests and runner
+├── core/                        # Core route and path helpers
+├── database/                    # Schema and SQLite behavior
+├── features/                    # Main feature, service, and route coverage
+├── metadata/                    # Metadata extraction coverage
+├── parser/                      # Parser-focused regression samples
+├── quality/                     # Quality-gate tests
+├── rating_tags/                 # Ratings, tags, and sync behavior
+├── regressions/                 # Targeted regression coverage
+├── routes/                      # Route-level scenarios
+└── security/                    # Security-specific tests
 ```
 
 ---
@@ -83,7 +43,7 @@ python -m pytest tests/ -q
 ### Single test file
 
 ```bash
-python -m pytest tests/core/test_index.py -v
+python -m pytest tests/core/test_routes.py -v
 ```
 
 ### Single folder
@@ -95,12 +55,12 @@ python -m pytest tests/metadata/ -v
 ### Single test function
 
 ```bash
-python -m pytest tests/core/test_index.py::test_scan_recursive -v
+python -m pytest tests/core/test_routes.py::test_routes -v
 ```
 
 ### With coverage
 ```bash
-pytest tests/ --cov=backend --cov-report=html
+pytest tests/ --cov=mjr_am_backend --cov=mjr_am_shared --cov-report=html
 ```
 
 ---
@@ -220,4 +180,4 @@ Common fixtures are defined in `conftest.py`:
 
 ---
 
-Last updated: January 2026
+Last updated: April 5, 2026

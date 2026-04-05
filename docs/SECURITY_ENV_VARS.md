@@ -1,12 +1,12 @@
 # Majoor Assets Manager - Security Model & Environment Variables Guide
 
-**Version**: 2.3.3  
-**Last Updated**: February 28, 2026
+**Version**: 2.4.4  
+**Last Updated**: April 5, 2026
 
 ## Overview
 The Majoor Assets Manager implements a comprehensive security model to protect your system while providing powerful asset management capabilities. This guide covers the security architecture, threat models, and security-related environment variables.
 
-**New in v2.3.3**: Enhanced API token support, improved Safe Mode controls, and better remote access configuration.
+**Recent highlights**: Enhanced API token support, improved Safe Mode controls, and better remote access configuration.
 
 ## Security Architecture
 
@@ -469,4 +469,4 @@ When performing security testing:
 
 ---
 *Security Model & Environment Variables Guide Version: 1.0*  
-*Last Updated: January 2026*
+*Last Updated: April 5, 2026*

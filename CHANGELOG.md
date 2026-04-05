@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [2.4.4] - 2026-04-05
+
+### ✨ Improved
+- Refactor frontend in Vue to match ComfyUI frontend evolution
+
+### 📚 Documentation
+- Sync documentation with the current repository layout and commands
+- Update published documentation and user guide to version 2.4.4
+- Refresh plugin compatibility examples and reference material
+
+---
+
 ## [2.4.3] - 2026-03-29
 
 ### ✨ Improved
