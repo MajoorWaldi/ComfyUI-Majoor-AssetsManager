@@ -1,12 +1,12 @@
 # Majoor Assets Manager - Search & Filtering Guide
 
-**Version**: 2.3.3  
-**Last Updated**: February 28, 2026
+**Version**: 2.4.4  
+**Last Updated**: April 5, 2026
 
 ## Overview
 The Majoor Assets Manager provides powerful search and filtering capabilities to help you quickly find and organize your assets. This guide explains all the search and filtering features available in the extension.
 
-**New in v2.3.3**: Enhanced workflow type filters, file size filtering, resolution filtering, and inline attribute filters.
+**Recent highlights**: Enhanced workflow type filters, file size filtering, resolution filtering, and inline attribute filters.
 
 ## Full-Text Search
 
@@ -215,4 +215,4 @@ The interface shows:
 
 ---
 *Search & Filtering Guide Version: 1.0*  
-*Last Updated: January 2026*
+*Last Updated: April 5, 2026*

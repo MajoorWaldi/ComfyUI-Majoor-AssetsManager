@@ -1,7 +1,7 @@
 # Majoor Assets Manager - Viewer Feature Tutorial
 
-**Version**: 2.3.3  
-**Last Updated**: February 28, 2026
+**Version**: 2.4.4  
+**Last Updated**: April 5, 2026
 
 ## Overview
 The Majoor Assets Manager provides **two viewer experiences**:
@@ -567,4 +567,4 @@ The viewer seamlessly integrates with the comparison feature:
 
 ---
 *Viewer Feature Tutorial Version: 1.0*
-*Last Updated: February 2026*
+*Last Updated: April 5, 2026*

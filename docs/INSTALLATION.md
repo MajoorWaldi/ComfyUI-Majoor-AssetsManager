@@ -1,12 +1,12 @@
 # Majoor Assets Manager - Installation Guide
 
-**Version**: 2.3.3  
-**Last Updated**: February 28, 2026
+**Version**: 2.4.4  
+**Last Updated**: April 5, 2026
 
 ## Overview
 This guide provides detailed instructions for installing and configuring the Majoor Assets Manager for ComfyUI. Follow these steps to get the extension up and running with all its features.
 
-**New in v2.3.3**: Full Linux support, Majoor Floating Viewer (MFV), improved performance.
+**Recent highlights**: Improved metadata parsing, expanded floating viewer compare modes, and better workflow grouping with job and stack IDs.
 
 ## Prerequisites
 
@@ -299,4 +299,4 @@ Simply click "Uninstall" in the ComfyUI Manager interface.
 
 ---
 *Installation Guide Version: 1.1*  
-*Last Updated: February 7, 2026*
+*Last Updated: April 5, 2026*

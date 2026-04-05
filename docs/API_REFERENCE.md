@@ -1,8 +1,8 @@
 # Majoor API Reference
 
 **Base Path**: `/mjr/am`  
-**Version**: 2.3.3  
-**Last Updated**: February 28, 2026
+**Version**: 2.4.4  
+**Last Updated**: April 5, 2026
 
 ---
 
@@ -57,7 +57,7 @@ GET /mjr/am/health
 {
   "ok": true,
   "data": {
-    "version": "2.3.3",
+    "version": "2.4.4",
     "status": "healthy",
     "indexed_count": 1234,
     "scopes_available": ["output", "input", "custom", "collections"]
@@ -144,9 +144,9 @@ GET /mjr/am/version
 {
   "ok": true,
   "data": {
-    "version": "2.3.3",
+    "version": "2.4.4",
     "branch": "main",
-    "build_date": "2026-02-28",
+    "build_date": "2026-03-29",
     "python_version": "3.11.0",
     "comfyui_version": "0.13.0"
   }
@@ -1129,15 +1129,15 @@ GET /mjr/am/releases
 {
   "ok": true,
   "data": {
-    "current_version": "2.3.3",
+    "current_version": "2.4.4",
     "branch": "main",
     "latest_release": {
-      "version": "2.3.3",
-      "date": "2026-02-28",
-      "download_url": "https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/tag/v2.3.3"
+      "version": "2.4.4",
+      "date": "2026-04-05",
+      "download_url": "https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/tag/v2.4.4"
     },
     "branches_available": ["main", "dev"],
-    "tags_available": ["v2.3.3", "v2.3.2", "v2.3.1"]
+    "tags_available": ["v2.4.4", "v2.4.3", "v2.4.2"]
   }
 }
 ```
@@ -1224,5 +1224,5 @@ api.addEventListener("mjr-asset-added", (event) => {
 ---
 
 *API Reference Version: 2.0*  
-*Last Updated: February 28, 2026*  
-*Compatible with Majoor Assets Manager v2.3.3+*
+*Last Updated: April 5, 2026*  
+*Compatible with Majoor Assets Manager v2.4.4+*

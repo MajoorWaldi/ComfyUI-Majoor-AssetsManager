@@ -65,7 +65,7 @@ curl -X POST http://localhost:8188/mjr/am/plugins/reload
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `metadata` | `ExtractorMetadata` | Auto | Plugin info (version, author, description) |
-| `min_compatibility_version` | str | "2.4.0" | Minimum Majoor version |
+| `min_compatibility_version` | str | "2.4.4" | Minimum Majoor version |
 
 ### Optional Methods
 

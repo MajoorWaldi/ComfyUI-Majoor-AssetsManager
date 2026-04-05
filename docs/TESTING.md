@@ -1,7 +1,7 @@
 # Testing
 
-**Version**: 2.3.3  
-**Last Updated**: February 28, 2026
+**Version**: 2.4.4  
+**Last Updated**: April 5, 2026
 
 This project uses **pytest** (backend) and **Vitest** (frontend) for comprehensive test coverage. On Windows, batch runners are provided for convenience and generate both:
 - JUnit XML (`.xml`)
@@ -48,7 +48,7 @@ pytest tests/ --cov=mjr_am_backend --cov-report=html
 
 ### Single Test File
 ```bash
-python -m pytest tests/core/test_index.py -v
+python -m pytest tests/core/test_routes.py -v
 ```
 
 ### Single Test Folder
@@ -58,7 +58,7 @@ python -m pytest tests/metadata/ -v
 
 ### Single Test Function
 ```bash
-python -m pytest tests/core/test_index.py::test_scan_recursive -v
+python -m pytest tests/core/test_routes.py::test_routes -v
 ```
 
 ### Frontend Tests
@@ -93,8 +93,6 @@ During the migration to stricter quality thresholds, `ruff` is enforced on chang
 From the repo root:
 
 - Full suite: `run_tests.bat` (delegates to `tests/run_tests_all.bat`)
-- Quick suite (skips `test_comfy_output`): `run_tests_quick.bat`
-- Metadata / parser suite: `run_tests_parser.bat`
 
 Category runners:
 
@@ -109,7 +107,7 @@ Category runners:
 All batch runners support `/nopause` for non-interactive runs:
 
 ```bat
-run_tests_quick.bat /nopause
+run_tests.bat /nopause
 ```
 
 ## Test artifacts (DB/WAL/SHM)

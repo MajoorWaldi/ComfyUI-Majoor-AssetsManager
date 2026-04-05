@@ -1,7 +1,7 @@
 # Architecture Map
 
-**Version**: 2.4.3  
-**Last Updated**: March 25, 2026
+**Version**: 2.4.4  
+**Last Updated**: April 5, 2026
 
 This map is the working reference for backend refactors. It is intentionally short and operational.
 

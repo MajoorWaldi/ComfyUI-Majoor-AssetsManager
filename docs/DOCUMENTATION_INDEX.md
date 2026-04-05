@@ -2,8 +2,8 @@
 
 Welcome to the documentation hub for **Majoor Assets Manager** for ComfyUI.
 
-**Current Version**: 2.4.3 (Prerelease)
-**Last Updated**: March 27, 2026
+**Current Version**: 2.4.4
+**Last Updated**: April 5, 2026
 
 ## Quick Start
 
@@ -51,7 +51,6 @@ Welcome to the documentation hub for **Majoor Assets Manager** for ComfyUI.
 |----------|-------------|
 | **[DB_MAINTENANCE.md](DB_MAINTENANCE.md)** | Database maintenance and recovery |
 | **[TESTING.md](TESTING.md)** | Tests, reports, and quality gate |
-| **[QUALITY_IMPROVEMENT_PLAN.md](QUALITY_IMPROVEMENT_PLAN.md)** | Codebase metrics, hotspots, and improvement roadmap |
 | **[API_REFERENCE.md](API_REFERENCE.md)** | Backend endpoint reference |
 | **[adr/](adr/)** | Architecture Decision Records |
 

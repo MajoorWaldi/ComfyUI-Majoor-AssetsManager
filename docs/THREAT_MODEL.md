@@ -1,12 +1,12 @@
 # Threat Model — Majoor Assets Manager
 
-**Version**: 2.3.3  
-**Date**: February 28, 2026 (Updated from 2026-01-24)
+**Version**: 2.4.4  
+**Date**: April 5, 2026 (Updated from 2026-01-24)
 
 ## Scope
 This model covers the Majoor Assets Manager backend routes under `/mjr/am/*` and the associated local filesystem/database operations.
 
-**New in v2.3.3**: Enhanced API token authentication, improved CSRF protection, and better rate limiting for remote access scenarios.
+**Recent highlights**: Enhanced API token authentication, improved CSRF protection, and better rate limiting for remote access scenarios.
 
 ## Assets to Protect
 - User files on disk (input/output/custom roots).

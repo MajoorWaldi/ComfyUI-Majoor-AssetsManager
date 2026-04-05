@@ -2,8 +2,8 @@
 
 **Comprehensive guide to AI-powered features in Majoor Assets Manager**
 
-*Version: 2.4.3*  
-*Last Updated: March 21, 2026*
+*Version: 2.4.4*  
+*Last Updated: April 5, 2026*
 
 ---
 
