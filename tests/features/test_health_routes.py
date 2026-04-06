@@ -1,6 +1,7 @@
 import asyncio
 import json
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 from aiohttp import web
@@ -15,6 +16,18 @@ def _build_health_app() -> web.Application:
     health_mod.register_health_routes(routes)
     app.add_routes(routes)
     return app
+
+
+def _make_request_with_peer(app: web.Application, method: str, path: str, peer_ip: str):
+    transport = Mock()
+
+    def _get_extra_info(name, default=None):
+        if name == "peername":
+            return (peer_ip, 12345)
+        return default
+
+    transport.get_extra_info.side_effect = _get_extra_info
+    return make_mocked_request(method, path, app=app, transport=transport)
 
 
 @pytest.mark.asyncio
@@ -617,6 +630,50 @@ async def test_bootstrap_token_disabled_without_env_gate(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_bootstrap_token_allows_remote_initial_provisioning_for_authenticated_comfy_user(monkeypatch) -> None:
+    settings = _Settings()
+
+    async def _svc():
+        return {"settings": settings}, None
+
+    monkeypatch.setattr(health_mod, "_require_services", _svc)
+    monkeypatch.setattr(health_mod, "_csrf_error", lambda _req: None)
+    monkeypatch.setattr(health_mod, "_require_write_access", lambda _req: Result.Err("AUTH_REQUIRED", "missing"))
+    monkeypatch.setattr(health_mod, "_require_authenticated_user", lambda _req: Result.Ok("user-1", auth_mode="comfy_user"))
+    monkeypatch.setattr(health_mod, "_has_configured_write_token", lambda: False)
+    monkeypatch.setattr(health_mod, "_is_secure_request_transport", lambda _req: True)
+    monkeypatch.setattr(health_mod, "_bootstrap_enabled", lambda: False)
+
+    app = _build_health_app()
+    req = _make_request_with_peer(app, "POST", "/mjr/am/settings/security/bootstrap-token", "10.0.0.15")
+    resp = await (await app.router.resolve(req)).handler(req)
+    body = json.loads(resp.text)
+    assert body.get("ok") is True
+
+
+@pytest.mark.asyncio
+async def test_bootstrap_token_remote_initial_provisioning_stays_blocked_without_comfy_auth(monkeypatch) -> None:
+    settings = _Settings()
+
+    async def _svc():
+        return {"settings": settings}, None
+
+    monkeypatch.setattr(health_mod, "_require_services", _svc)
+    monkeypatch.setattr(health_mod, "_csrf_error", lambda _req: None)
+    monkeypatch.setattr(health_mod, "_require_write_access", lambda _req: Result.Err("AUTH_REQUIRED", "missing"))
+    monkeypatch.setattr(health_mod, "_require_authenticated_user", lambda _req: Result.Ok("", auth_mode="disabled"))
+    monkeypatch.setattr(health_mod, "_has_configured_write_token", lambda: False)
+    monkeypatch.setattr(health_mod, "_is_secure_request_transport", lambda _req: True)
+    monkeypatch.setattr(health_mod, "_bootstrap_enabled", lambda: False)
+
+    app = _build_health_app()
+    req = _make_request_with_peer(app, "POST", "/mjr/am/settings/security/bootstrap-token", "10.0.0.15")
+    resp = await (await app.router.resolve(req)).handler(req)
+    body = json.loads(resp.text)
+    assert body.get("code") == "BOOTSTRAP_DISABLED"
+
+
+@pytest.mark.asyncio
 async def test_bootstrap_token_requires_authenticated_comfy_user_when_write_auth_fails(monkeypatch) -> None:
     settings = _Settings()
 
@@ -626,14 +683,13 @@ async def test_bootstrap_token_requires_authenticated_comfy_user_when_write_auth
     monkeypatch.setattr(health_mod, "_require_services", _svc)
     monkeypatch.setattr(health_mod, "_csrf_error", lambda _req: None)
     monkeypatch.setattr(health_mod, "_require_write_access", lambda _req: Result.Err("AUTH_REQUIRED", "missing"))
-    monkeypatch.setattr(health_mod, "_is_loopback_request", lambda _req: True)
     monkeypatch.setattr(health_mod, "_require_authenticated_user", lambda _req: Result.Ok("", auth_mode="disabled"))
     monkeypatch.setattr(health_mod, "_has_configured_write_token", lambda: False)
     monkeypatch.setattr(health_mod, "_is_secure_request_transport", lambda _req: True)
     monkeypatch.setattr(health_mod, "_bootstrap_enabled", lambda: True)
 
     app = _build_health_app()
-    req = make_mocked_request("POST", "/mjr/am/settings/security/bootstrap-token", app=app)
+    req = _make_request_with_peer(app, "POST", "/mjr/am/settings/security/bootstrap-token", "127.0.0.1")
     resp = await (await app.router.resolve(req)).handler(req)
     assert json.loads(resp.text).get("code") == "AUTH_REQUIRED"
 

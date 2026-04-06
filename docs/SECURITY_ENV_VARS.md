@@ -47,12 +47,33 @@ To reduce risk, Majoor blocks destructive/write operations from non-local client
 - **Token behavior**: if `MAJOOR_API_TOKEN` (or `MJR_API_TOKEN`) is set, remote write operations require it.
   - Loopback keeps the compatibility behavior by default.
   - Send the token via `X-MJR-Token: <token>` or `Authorization: Bearer <token>`.
+- **Remote first-run bootstrap**: if no persistent API token is configured yet, an authenticated ComfyUI user can bootstrap the initial remote session token automatically over HTTPS without setting `MAJOOR_ALLOW_BOOTSTRAP=1`.
 - **Strict local auth**: set `MAJOOR_REQUIRE_AUTH=1` if you want loopback writes to require the token too.
 
 #### Overrides (use with care)
 - `MAJOOR_REQUIRE_AUTH=1` forces token auth even for loopback (requires `MAJOOR_API_TOKEN`).
 - `MAJOOR_ALLOW_REMOTE_WRITE=1` allows remote write operations without a token (**unsafe**).
-- `MAJOOR_ALLOW_BOOTSTRAP=1` temporarily enables initial `/bootstrap-token` provisioning. Disable it after first successful bootstrap.
+- `MAJOOR_ALLOW_BOOTSTRAP=1` temporarily enables initial `/bootstrap-token` provisioning for remote clients even when no authenticated ComfyUI user context is available. Disable it after first successful bootstrap.
+
+#### Where to set these variables
+Set these on the machine that runs ComfyUI, in the same shell, batch file, service definition, or launcher script that starts `python main.py`.
+
+Windows batch example:
+```batch
+@echo off
+set MAJOOR_API_TOKEN=change-this-to-a-long-random-secret
+cd /d "C:\path\to\ComfyUI"
+python main.py --listen 0.0.0.0 --port 8188
+```
+
+Linux/macOS shell example:
+```bash
+export MAJOOR_API_TOKEN="change-this-to-a-long-random-secret"
+cd /path/to/ComfyUI
+python main.py --listen 0.0.0.0 --port 8188
+```
+
+If you change the value after ComfyUI is already running, restart ComfyUI so the new environment is loaded.
 
 ### Client-side token handling
 Set the same secret inside ComfyUI's Settings modal at **Security -> Majoor: API Token**. Runtime tokens are kept in `sessionStorage` (tab/session scoped) and bootstrap/rotate responses set an `httpOnly` cookie (`mjr_write_token`) so JavaScript does not need to read plaintext secrets from API responses.

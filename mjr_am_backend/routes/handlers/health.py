@@ -1154,41 +1154,53 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         except Exception:
             _raw_peer = ""
         is_loopback = _is_loopback_ip(_raw_peer) if _raw_peer else False
+        remote_bootstrap_bypass_write_auth = False
+        has_configured_token = _has_configured_write_token()
 
-        # Remote requests must explicitly opt-in via MAJOOR_ALLOW_BOOTSTRAP=1.
-        # Loopback is always allowed: only local processes can reach it, and the
-        # auto-generated session token must be deliverable without user configuration.
-        if not is_loopback and not _bootstrap_enabled():
-            return _json_response(
-                Result.Err(
-                    "BOOTSTRAP_DISABLED",
-                    "Bootstrap token is disabled. Set MAJOOR_ALLOW_BOOTSTRAP=1 for initial token provisioning.",
+        # Remote bootstrap is allowed in two cases:
+        #   1. MAJOOR_ALLOW_BOOTSTRAP=1 explicitly enables initial remote provisioning.
+        #   2. No persistent token exists yet and the request is tied to an authenticated
+        #      ComfyUI user, which keeps first-run remote UX simple without opening an
+        #      unauthenticated bootstrap path on exposed instances.
+        # Loopback is always allowed because only local processes can reach it.
+        if not is_loopback:
+            if has_configured_token:
+                return _json_response(
+                    Result.Err(
+                        "FORBIDDEN",
+                        "Bootstrap token is disabled when an API token is already configured. Use rotate-token instead.",
+                    )
                 )
-            )
+            remote_bootstrap_bypass_write_auth = _bootstrap_enabled()
+            if not remote_bootstrap_bypass_write_auth:
+                user_auth = _require_authenticated_user(request)
+                auth_mode = str((user_auth.meta or {}).get("auth_mode") or "").strip().lower()
+                remote_bootstrap_bypass_write_auth = bool(user_auth.ok and auth_mode == "comfy_user")
+                if not remote_bootstrap_bypass_write_auth:
+                    return _json_response(
+                        Result.Err(
+                            "BOOTSTRAP_DISABLED",
+                            "Bootstrap token is disabled for remote clients unless an authenticated ComfyUI user is requesting initial provisioning. Sign in to ComfyUI and retry, or set MAJOOR_ALLOW_BOOTSTRAP=1.",
+                        )
+                    )
 
         auth = _require_write_access(request)
         if not auth.ok:
             if not is_loopback:
-                return _json_response(auth)
-            user_auth = _require_authenticated_user(request)
-            auth_mode = str((user_auth.meta or {}).get("auth_mode") or "").strip().lower()
-            if not (user_auth.ok and auth_mode == "comfy_user"):
-                return _json_response(
-                    Result.Err(
-                        "AUTH_REQUIRED",
-                        "Bootstrap requires an authenticated ComfyUI user on loopback when API token auth is unavailable.",
+                if remote_bootstrap_bypass_write_auth:
+                    pass
+                else:
+                    return _json_response(auth)
+            else:
+                user_auth = _require_authenticated_user(request)
+                auth_mode = str((user_auth.meta or {}).get("auth_mode") or "").strip().lower()
+                if not (user_auth.ok and auth_mode == "comfy_user"):
+                    return _json_response(
+                        Result.Err(
+                            "AUTH_REQUIRED",
+                            "Bootstrap requires an authenticated ComfyUI user on loopback when API token auth is unavailable.",
+                        )
                     )
-                )
-
-        # Remote: block when a persistent token is already configured (use rotate-token instead).
-        # Loopback: always deliver the session token — the user never configured it manually.
-        if not is_loopback and _has_configured_write_token():
-            return _json_response(
-                Result.Err(
-                    "FORBIDDEN",
-                    "Bootstrap token is disabled when an API token is already configured. Use rotate-token instead.",
-                )
-            )
 
         svc, error_result = await _require_services()
         if error_result:

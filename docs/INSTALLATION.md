@@ -208,6 +208,51 @@ python main.py --auto-launch
 pause
 ```
 
+### Remote Access Write Permissions
+If you open ComfyUI from another machine, Majoor blocks write operations by default unless you explicitly allow them.
+
+Recommended setup: define `MAJOOR_API_TOKEN` on the machine that runs ComfyUI, then send the same token from the remote client.
+
+If no persistent token has been configured yet, Majoor can also bootstrap the first remote session token automatically for a signed-in ComfyUI user over HTTPS. That avoids manual environment setup for the initial connection on hosted/private ComfyUI installs.
+
+#### Windows batch example
+```batch
+@echo off
+set MAJOOR_API_TOKEN=change-this-to-a-long-random-secret
+
+cd /d "C:\path\to\ComfyUI"
+python main.py --listen 0.0.0.0 --port 8188
+pause
+```
+
+#### Windows PowerShell example
+```powershell
+$env:MAJOOR_API_TOKEN = "change-this-to-a-long-random-secret"
+Set-Location "C:\path\to\ComfyUI"
+python main.py --listen 0.0.0.0 --port 8188
+```
+
+#### Linux/macOS shell example
+```bash
+export MAJOOR_API_TOKEN="change-this-to-a-long-random-secret"
+cd /path/to/ComfyUI
+python main.py --listen 0.0.0.0 --port 8188
+```
+
+#### Unsafe fallback
+If you really want to allow remote writes without a token, set `MAJOOR_ALLOW_REMOTE_WRITE=1` before starting ComfyUI. This is less safe and should only be used on trusted networks.
+
+```bash
+export MAJOOR_ALLOW_REMOTE_WRITE=1
+python main.py --listen 0.0.0.0 --port 8188
+```
+
+#### Remote client side
+- In the ComfyUI UI, open the Majoor settings and set the same token under `Security -> Majoor: API Token`.
+- For direct API calls, send either `X-MJR-Token: <token>` or `Authorization: Bearer <token>`.
+- Restart ComfyUI after changing environment variables so the new values are picked up.
+- On first remote use, if ComfyUI authentication is enabled and no persistent token exists yet, Majoor can provision the initial session token automatically.
+
 ## Troubleshooting
 
 ### Extension Not Appearing
