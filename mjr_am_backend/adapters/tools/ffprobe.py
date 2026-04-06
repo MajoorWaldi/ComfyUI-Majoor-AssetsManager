@@ -12,6 +12,7 @@ from ...config import FFPROBE_TIMEOUT
 from ...shared import ErrorCode, Result, get_logger
 
 logger = get_logger(__name__)
+_FFPROBE_CANDIDATE_NAMES = ("ffprobe", "ffprobe.exe")
 
 class FFProbe:
     """
@@ -64,16 +65,43 @@ class FFProbe:
 
     @staticmethod
     def _resolve_executable_path(raw: str) -> str | None:
-        resolved = shutil.which(raw)
-        if resolved:
-            return resolved
+        clean = FFProbe._strip_optional_quotes(raw)
+        for candidate in FFProbe._candidate_executable_names(clean):
+            resolved = shutil.which(candidate)
+            if resolved:
+                return resolved
+
         try:
-            candidate = Path(raw)
+            candidate = Path(clean)
             if candidate.is_file():
                 return str(candidate.resolve(strict=True))
+            for sibling_name in FFProbe._candidate_executable_names(candidate.name):
+                sibling = candidate.with_name(sibling_name)
+                if sibling.is_file():
+                    return str(sibling.resolve(strict=True))
         except (OSError, RuntimeError, ValueError):
             return None
         return None
+
+    @staticmethod
+    def _strip_optional_quotes(raw: str) -> str:
+        text = str(raw or "").strip()
+        if len(text) >= 2 and text[0] == text[-1] and text[0] in ('"', "'"):
+            return text[1:-1].strip()
+        return text
+
+    @staticmethod
+    def _candidate_executable_names(raw: str) -> list[str]:
+        text = FFProbe._strip_optional_quotes(raw)
+        if not text:
+            return list(_FFPROBE_CANDIDATE_NAMES)
+
+        out: list[str] = [text]
+        if Path(text).name.lower() in _FFPROBE_CANDIDATE_NAMES:
+            for alias in _FFPROBE_CANDIDATE_NAMES:
+                if alias not in out:
+                    out.append(alias)
+        return out
 
     @staticmethod
     def _is_ffprobe_name(resolved: str) -> bool:

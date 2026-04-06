@@ -6,6 +6,7 @@ import re
 import shutil
 import subprocess
 import threading
+from pathlib import Path
 from typing import Any
 
 from mjr_am_backend.config import (
@@ -30,6 +31,39 @@ _TOOL_VERSIONS: dict[str, str | None] = {
     "ffprobe": None,
 }
 _TOOL_CACHE_LOCK = threading.Lock()
+_EXIFTOOL_CANDIDATE_NAMES = ("exiftool", "exiftool.exe", "exiftool(-k)", "exiftool(-k).exe")
+_FFPROBE_CANDIDATE_NAMES = ("ffprobe", "ffprobe.exe")
+
+
+def _strip_optional_quotes(raw: str) -> str:
+    text = str(raw or "").strip()
+    if len(text) >= 2 and text[0] == text[-1] and text[0] in ('"', "'"):
+        return text[1:-1].strip()
+    return text
+
+
+def _iter_exiftool_candidates(raw: str | None) -> list[str]:
+    configured = _strip_optional_quotes(raw or "")
+    out: list[str] = []
+
+    def add(value: str) -> None:
+        if value and value not in out:
+            out.append(value)
+
+    if configured:
+        add(configured)
+        name = Path(configured).name.lower()
+        if name in _EXIFTOOL_CANDIDATE_NAMES:
+            for alias in _EXIFTOOL_CANDIDATE_NAMES:
+                add(alias)
+
+            parent = Path(configured).parent
+            for alias in _EXIFTOOL_CANDIDATE_NAMES:
+                add(str(parent / alias))
+
+    for alias in _EXIFTOOL_CANDIDATE_NAMES:
+        add(alias)
+    return out
 
 
 def parse_tool_version(value: str | None) -> tuple[int, ...]:
@@ -84,6 +118,70 @@ def _run_command(cmd: list[str]) -> subprocess.CompletedProcess[str]:
     )
 
 
+def _is_named_exiftool_candidate(candidate: str) -> bool:
+    return Path(candidate).name.lower() in _EXIFTOOL_CANDIDATE_NAMES
+
+
+def _can_try_candidate(candidate: str) -> bool:
+    if not _is_named_exiftool_candidate(candidate):
+        return True
+    return shutil.which(candidate) is not None
+
+
+def _probe_exiftool_candidates() -> tuple[bool, subprocess.CompletedProcess[str] | None, str]:
+    for candidate in _iter_exiftool_candidates(EXIFTOOL_BIN):
+        if not _can_try_candidate(candidate):
+            continue
+        try:
+            probe = _run_command([candidate, "-ver"])
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            continue
+        if probe.returncode == 0:
+            return True, probe, candidate
+    return False, None, ""
+
+
+def _is_named_ffprobe_candidate(candidate: str) -> bool:
+    return Path(candidate).name.lower() in _FFPROBE_CANDIDATE_NAMES
+
+
+def _iter_ffprobe_candidates(raw: str | None) -> list[str]:
+    configured = _strip_optional_quotes(raw or "")
+    out: list[str] = []
+
+    def add(value: str) -> None:
+        if value and value not in out:
+            out.append(value)
+
+    if configured:
+        add(configured)
+        name = Path(configured).name.lower()
+        if name in _FFPROBE_CANDIDATE_NAMES:
+            for alias in _FFPROBE_CANDIDATE_NAMES:
+                add(alias)
+
+            parent = Path(configured).parent
+            for alias in _FFPROBE_CANDIDATE_NAMES:
+                add(str(parent / alias))
+
+    for alias in _FFPROBE_CANDIDATE_NAMES:
+        add(alias)
+    return out
+
+
+def _probe_ffprobe_candidates() -> tuple[bool, subprocess.CompletedProcess[str] | None, str]:
+    for candidate in _iter_ffprobe_candidates(FFPROBE_BIN):
+        if _is_named_ffprobe_candidate(candidate) and shutil.which(candidate) is None:
+            continue
+        try:
+            probe = _run_command([candidate, "-version"])
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            continue
+        if probe.returncode == 0:
+            return True, probe, candidate
+    return False, None, ""
+
+
 def has_exiftool() -> bool:
     """Check if ExifTool is available."""
     with _TOOL_CACHE_LOCK:
@@ -91,22 +189,19 @@ def has_exiftool() -> bool:
             return bool(_TOOL_CACHE["exiftool"])
 
         try:
-            exiftool_bin = EXIFTOOL_BIN or "exiftool"
-            if shutil.which(exiftool_bin) is None:
-                logger.debug("ExifTool binary not found in PATH: %s", exiftool_bin)
-            result = _run_command([exiftool_bin, "-ver"])
-            available = result.returncode == 0
+            available, result, chosen_bin = _probe_exiftool_candidates()
             _TOOL_CACHE["exiftool"] = available
 
             if available:
+                assert result is not None
                 version = result.stdout.strip()
                 _TOOL_VERSIONS["exiftool"] = version
                 if not _enforce_min_version("ExifTool", version, EXIFTOOL_MIN_VERSION):
                     _TOOL_CACHE["exiftool"] = False
                     return False
-                logger.info("ExifTool detected: version %s", version)
+                logger.info("ExifTool detected via %s: version %s", chosen_bin, version)
             else:
-                logger.warning("ExifTool not found or failed to start: %s", result.stderr.strip())
+                logger.warning("ExifTool not found or failed to start")
 
             return available
         except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
@@ -126,23 +221,20 @@ def has_ffprobe() -> bool:
             return bool(_TOOL_CACHE["ffprobe"])
 
         try:
-            ffprobe_bin = FFPROBE_BIN or "ffprobe"
-            if shutil.which(ffprobe_bin) is None:
-                logger.debug("FFprobe binary not found in PATH: %s", ffprobe_bin)
-            result = _run_command([ffprobe_bin, "-version"])
-            available = result.returncode == 0
+            available, result, chosen_bin = _probe_ffprobe_candidates()
             _TOOL_CACHE["ffprobe"] = available
 
             if available:
+                assert result is not None
                 version_line = result.stdout.split("\n")[0] if result.stdout else ""
                 version = version_line.strip()
                 _TOOL_VERSIONS["ffprobe"] = version
                 if not _enforce_min_version("FFprobe", version, FFPROBE_MIN_VERSION):
                     _TOOL_CACHE["ffprobe"] = False
                     return False
-                logger.info("FFprobe detected: %s", version)
+                logger.info("FFprobe detected via %s: %s", chosen_bin, version)
             else:
-                logger.warning("FFprobe not found or failed to start: %s", result.stderr.strip())
+                logger.warning("FFprobe not found or failed to start")
 
             return available
         except (FileNotFoundError, subprocess.TimeoutExpired) as exc:

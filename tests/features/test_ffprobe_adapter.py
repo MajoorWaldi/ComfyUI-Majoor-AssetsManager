@@ -30,6 +30,25 @@ def test_validate_probe_path_accepts_normal_file_path() -> None:
     assert out.data == "./video.mp4"
 
 
+def test_ffprobe_executable_resolution_helpers(monkeypatch, tmp_path) -> None:
+    exep = tmp_path / "ffprobe.exe"
+    exep.write_text("x")
+
+    monkeypatch.setattr("mjr_am_backend.adapters.tools.ffprobe.shutil.which", lambda raw: str(exep) if raw in {"ffprobe", "ffprobe.exe"} else None)
+    assert FFProbe._resolve_executable_path("ffprobe") == str(exep)
+    assert FFProbe._resolve_executable_path('"ffprobe"') == str(exep)
+    assert FFProbe._is_ffprobe_name(str(exep)) is True
+
+
+def test_ffprobe_resolve_executable_path_uses_sibling_alias(monkeypatch, tmp_path) -> None:
+    exep = tmp_path / "ffprobe.exe"
+    exep.write_text("x")
+
+    monkeypatch.setattr("mjr_am_backend.adapters.tools.ffprobe.shutil.which", lambda _raw: None)
+    configured = tmp_path / "ffprobe"
+    assert FFProbe._resolve_executable_path(str(configured)) == str(exep)
+
+
 def test_read_rejects_invalid_path_before_subprocess(monkeypatch) -> None:
     probe = _new_probe()
     calls = {"run": 0}

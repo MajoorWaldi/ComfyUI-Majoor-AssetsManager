@@ -47,3 +47,21 @@ def test_tool_detect_failure_branches(monkeypatch):
     td.reset_tool_cache()
     monkeypatch.setattr(td, "_run_command", lambda cmd: (_ for _ in ()).throw(subprocess.TimeoutExpired(cmd, timeout=1)))
     assert td.has_ffprobe() is False
+
+
+def test_tool_detect_exiftool_alias_candidates(monkeypatch):
+    td.reset_tool_cache()
+    monkeypatch.setattr(td, "EXIFTOOL_BIN", '"C:/tools/exiftool"')
+    monkeypatch.setattr(td.shutil, "which", lambda b: "ok" if b == "exiftool(-k).exe" else None)
+
+    calls: list[str] = []
+
+    def _run(cmd):
+        calls.append(cmd[0])
+        if cmd[0] == "exiftool(-k).exe":
+            return SimpleNamespace(returncode=0, stdout="13.30", stderr="")
+        raise FileNotFoundError("missing")
+
+    monkeypatch.setattr(td, "_run_command", _run)
+    assert td.has_exiftool() is True
+    assert "exiftool(-k).exe" in calls

@@ -19,6 +19,7 @@ _TAG_SAFE_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_:-]*$")
 _EXIFTOOL_EXECUTABLE_RE = re.compile(r"^exiftool(?:\(-k\))?(?:\.exe)?$", re.IGNORECASE)
 _WINDOWS_CMDLINE_TOO_LONG = 206
 _MAX_WRITE_VALUE_CHARS = 8192
+_EXIFTOOL_CANDIDATE_NAMES = ("exiftool", "exiftool.exe", "exiftool(-k)", "exiftool(-k).exe")
 
 
 def _decode_bytes_best_effort(blob: bytes | None) -> tuple[str, bool]:
@@ -232,16 +233,43 @@ class ExifTool:
 
     @staticmethod
     def _resolve_executable_path(raw: str) -> str | None:
-        resolved = shutil.which(raw)
-        if resolved:
-            return resolved
+        clean = ExifTool._strip_optional_quotes(raw)
+        for candidate in ExifTool._candidate_executable_names(clean):
+            resolved = shutil.which(candidate)
+            if resolved:
+                return resolved
+
         try:
-            candidate = Path(raw)
+            candidate = Path(clean)
             if candidate.is_file():
                 return str(candidate.resolve(strict=True))
+            for sibling_name in ExifTool._candidate_executable_names(candidate.name):
+                sibling = candidate.with_name(sibling_name)
+                if sibling.is_file():
+                    return str(sibling.resolve(strict=True))
         except (OSError, RuntimeError, ValueError):
             return None
         return None
+
+    @staticmethod
+    def _strip_optional_quotes(raw: str) -> str:
+        text = str(raw or "").strip()
+        if len(text) >= 2 and text[0] == text[-1] and text[0] in ('"', "'"):
+            return text[1:-1].strip()
+        return text
+
+    @staticmethod
+    def _candidate_executable_names(raw: str) -> list[str]:
+        text = ExifTool._strip_optional_quotes(raw)
+        if not text:
+            return list(_EXIFTOOL_CANDIDATE_NAMES)
+
+        out: list[str] = [text]
+        if Path(text).name.lower() in _EXIFTOOL_CANDIDATE_NAMES:
+            for alias in _EXIFTOOL_CANDIDATE_NAMES:
+                if alias not in out:
+                    out.append(alias)
+        return out
 
     @staticmethod
     def _is_under_trusted_dirs(resolved: str) -> bool:
