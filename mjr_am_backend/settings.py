@@ -212,9 +212,10 @@ class AppSettings:
 
         token_hash = await self._get_stored_api_token_hash_locked()
         if token_hash:
-            self._set_runtime_api_token("", token_hash)
-            self._set_api_token_env("", token_hash, include_plain=False)
-            return ""
+            token = await self._get_stored_api_token_plain_locked(token_hash)
+            self._set_runtime_api_token(token, token_hash)
+            self._set_api_token_env(token, token_hash, include_plain=False)
+            return token
 
         # Auto-generate a session token.
         # Not persisted to DB, not injected into env — this keeps loopback connections
@@ -285,6 +286,30 @@ class AppSettings:
             return ""
         tail = normalized[-4:] if len(normalized) >= 4 else normalized
         return f"...{tail}"
+
+    def _env_api_token_hash(self) -> str:
+        try:
+            return (
+                os.environ.get("MAJOOR_API_TOKEN_HASH")
+                or os.environ.get("MJR_API_TOKEN_HASH")
+                or ""
+            ).strip().lower()
+        except Exception:
+            return ""
+
+    async def _get_security_token_status_locked(self) -> tuple[bool, str]:
+        plain_token = self._env_api_token()
+        configured_hash = self._hash_api_token(plain_token) if plain_token else self._env_api_token_hash()
+        if not configured_hash:
+            configured_hash = await self._get_stored_api_token_hash_locked()
+        if not plain_token and configured_hash:
+            runtime_token = str(self._runtime_api_token or "").strip()
+            runtime_hash = str(self._runtime_api_token_hash or "").strip().lower()
+            if runtime_token and runtime_hash == configured_hash:
+                plain_token = runtime_token
+            else:
+                plain_token = await self._get_stored_api_token_plain_locked(configured_hash)
+        return bool(configured_hash), self._token_hint(plain_token)
 
     async def _persist_api_token_hash_with_warning(self, token: str, warning_message: str) -> str:
         token_hash = self._hash_api_token(token)
@@ -367,6 +392,10 @@ class AppSettings:
                 default = bool(info.get("default", False))
                 env_var = str(info.get("env") or "")
                 output[key] = env_bool(env_var, default)
+        token_configured, token_hint = await self._get_security_token_status_locked()
+        output["token_configured"] = token_configured
+        if token_hint:
+            output["token_hint"] = token_hint
         if include_secret:
             output["api_token"] = await self._get_or_create_api_token_locked()
         return output
@@ -446,6 +475,9 @@ class AppSettings:
     async def _persist_security_api_token(self, token_payload: Any) -> Result[dict[str, Any]] | None:
         token = str(token_payload or "").strip() or self._generate_api_token()
         token_hash = self._hash_api_token(token)
+        token_res = await self._write_setting(_SECURITY_API_TOKEN_KEY, token)
+        if not token_res.ok:
+            return Result.Err("DB_ERROR", token_res.error or "Failed to persist api_token")
         hash_res = await self._write_setting(_SECURITY_API_TOKEN_HASH_KEY, token_hash)
         if not hash_res.ok:
             return Result.Err("DB_ERROR", hash_res.error or "Failed to persist api_token")
@@ -457,6 +489,9 @@ class AppSettings:
         value = str(token_hash or "").strip().lower()
         if len(value) != 64 or any(ch not in "0123456789abcdef" for ch in value):
             return Result.Err("INVALID_INPUT", "Invalid api_token_hash")
+        clear_res = await self._delete_setting(_SECURITY_API_TOKEN_KEY)
+        if not clear_res.ok:
+            return Result.Err("DB_ERROR", clear_res.error or "Failed to clear api_token")
         hash_res = await self._write_setting(_SECURITY_API_TOKEN_HASH_KEY, value)
         if not hash_res.ok:
             return Result.Err("DB_ERROR", hash_res.error or "Failed to persist api_token_hash")
@@ -476,6 +511,9 @@ class AppSettings:
         async with self._lock:
             token = self._generate_api_token()
             token_hash = self._hash_api_token(token)
+            token_res = await self._write_setting(_SECURITY_API_TOKEN_KEY, token)
+            if not token_res.ok:
+                return Result.Err("DB_ERROR", token_res.error or "Failed to persist rotated api token")
             hash_res = await self._write_setting(_SECURITY_API_TOKEN_HASH_KEY, token_hash)
             if not hash_res.ok:
                 return Result.Err("DB_ERROR", hash_res.error or "Failed to persist rotated api token")
@@ -493,7 +531,23 @@ class AppSettings:
         async with self._lock:
             token = await self._get_or_create_api_token_locked()
             if not token:
-                return Result.Err("AUTH_REQUIRED", "API token bootstrap unavailable")
+                # Legacy recovery path: older builds stored only the token hash.
+                # In trusted bootstrap contexts, rotate to a fresh plaintext token so
+                # the browser can re-establish its write session.
+                legacy_hash = await self._get_stored_api_token_hash_locked()
+                if legacy_hash:
+                    token = self._generate_api_token()
+                    token_hash = self._hash_api_token(token)
+                    token_res = await self._write_setting(_SECURITY_API_TOKEN_KEY, token)
+                    if not token_res.ok:
+                        return Result.Err("DB_ERROR", token_res.error or "Failed to persist recovery api token")
+                    hash_res = await self._write_setting(_SECURITY_API_TOKEN_HASH_KEY, token_hash)
+                    if not hash_res.ok:
+                        return Result.Err("DB_ERROR", hash_res.error or "Failed to persist recovery api token")
+                    self._set_runtime_api_token(token, token_hash)
+                    self._set_api_token_env(token, token_hash, include_plain=False)
+                else:
+                    return Result.Err("AUTH_REQUIRED", "API token bootstrap unavailable")
             return Result.Ok({"api_token": token})
 
     async def _read_settings_version_exact(self, storage_key: str) -> int:

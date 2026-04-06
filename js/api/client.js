@@ -245,6 +245,12 @@ function _persistAuthToken(token) {
     }
 }
 
+export function setRuntimeSecurityToken(token) {
+    const normalized = String(token || "").trim();
+    if (!normalized) return false;
+    return _persistAuthToken(normalized);
+}
+
 function _rememberAuthBootstrapFailure(details = {}) {
     const code = String(details?.code || "").trim().toUpperCase();
     const error = String(details?.error || "").trim();

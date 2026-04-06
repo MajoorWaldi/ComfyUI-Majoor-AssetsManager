@@ -8,6 +8,7 @@ from mjr_am_backend.settings import (
     _AI_VERBOSE_LOGS_KEY,
     _METADATA_FALLBACK_IMAGE_KEY,
     _METADATA_FALLBACK_MEDIA_KEY,
+    _SECURITY_API_TOKEN_KEY,
     _OUTPUT_DIRECTORY_KEY,
     _PROBE_BACKEND_KEY,
     _SECURITY_API_TOKEN_HASH_KEY,
@@ -139,6 +140,7 @@ async def test_security_prefs_defaults_and_set(monkeypatch):
     assert db.store.get("allow_insecure_token_transport") == "1"
     assert os.environ.get("MAJOOR_REQUIRE_AUTH") == "1"
     assert os.environ.get("MAJOOR_ALLOW_INSECURE_TOKEN_TRANSPORT") == "1"
+    assert db.store.get(_SECURITY_API_TOKEN_KEY) == "abc"
     assert db.store.get(_SECURITY_API_TOKEN_HASH_KEY)
 
 
@@ -161,9 +163,38 @@ async def test_rotate_and_bootstrap_token():
 
     rot = await s.rotate_api_token()
     assert rot.ok and rot.data.get("api_token")
+    assert db.store.get(_SECURITY_API_TOKEN_KEY) == rot.data.get("api_token")
 
     boot = await s.bootstrap_api_token()
     assert boot.ok and boot.data.get("api_token")
+
+
+@pytest.mark.asyncio
+async def test_bootstrap_token_can_be_recovered_after_restart_when_managed_by_settings():
+    db = _DB()
+    first = AppSettings(db)
+
+    saved = await first.set_security_prefs({"apiToken": "persisted-token-123456"})
+    assert saved.ok
+    assert db.store.get(_SECURITY_API_TOKEN_KEY) == "persisted-token-123456"
+
+    restarted = AppSettings(db)
+    boot = await restarted.bootstrap_api_token()
+    assert boot.ok
+    assert boot.data.get("api_token") == "persisted-token-123456"
+
+
+@pytest.mark.asyncio
+async def test_bootstrap_token_recovers_legacy_hash_only_configuration():
+    db = _DB()
+    s = AppSettings(db)
+    db.store[_SECURITY_API_TOKEN_HASH_KEY] = s._hash_api_token("old-legacy-token-123456")
+
+    boot = await s.bootstrap_api_token()
+    assert boot.ok
+    assert boot.data.get("api_token")
+    assert db.store.get(_SECURITY_API_TOKEN_KEY) == boot.data.get("api_token")
+    assert db.store.get(_SECURITY_API_TOKEN_HASH_KEY) == s._hash_api_token(boot.data.get("api_token"))
 
 
 @pytest.mark.asyncio

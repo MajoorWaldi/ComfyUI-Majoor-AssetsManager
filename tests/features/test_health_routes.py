@@ -638,12 +638,57 @@ async def test_bootstrap_token_blocked_when_token_already_configured(monkeypatch
     monkeypatch.setattr(health_mod, "_csrf_error", lambda _req: None)
     monkeypatch.setattr(health_mod, "_require_write_access", lambda _req: Result.Ok({}))
     monkeypatch.setattr(health_mod, "_has_configured_write_token", lambda: True)
+    monkeypatch.setattr(health_mod, "_is_secure_request_transport", lambda _req: True)
     monkeypatch.setattr(health_mod, "_bootstrap_enabled", lambda: True)
 
     app = _build_health_app()
     req = make_mocked_request("POST", "/mjr/am/settings/security/bootstrap-token", app=app)
     resp = await (await app.router.resolve(req)).handler(req)
-    assert json.loads(resp.text).get("code") == "FORBIDDEN"
+    assert json.loads(resp.text).get("ok") is True
+
+
+@pytest.mark.asyncio
+async def test_bootstrap_token_allows_remote_recovery_for_authenticated_comfy_user_when_token_configured(monkeypatch) -> None:
+    settings = _Settings()
+
+    async def _svc():
+        return {"settings": settings}, None
+
+    monkeypatch.setattr(health_mod, "_require_services", _svc)
+    monkeypatch.setattr(health_mod, "_csrf_error", lambda _req: None)
+    monkeypatch.setattr(health_mod, "_require_write_access", lambda _req: Result.Err("AUTH_REQUIRED", "missing"))
+    monkeypatch.setattr(health_mod, "_require_authenticated_user", lambda _req: Result.Ok("user-1", auth_mode="comfy_user"))
+    monkeypatch.setattr(health_mod, "_has_configured_write_token", lambda: True)
+    monkeypatch.setattr(health_mod, "_is_secure_request_transport", lambda _req: True)
+    monkeypatch.setattr(health_mod, "_bootstrap_enabled", lambda: False)
+
+    app = _build_health_app()
+    req = _make_request_with_peer(app, "POST", "/mjr/am/settings/security/bootstrap-token", "10.0.0.15")
+    resp = await (await app.router.resolve(req)).handler(req)
+    body = json.loads(resp.text)
+    assert body.get("ok") is True
+
+
+@pytest.mark.asyncio
+async def test_bootstrap_token_remote_recovery_stays_blocked_without_comfy_auth_when_token_configured(monkeypatch) -> None:
+    settings = _Settings()
+
+    async def _svc():
+        return {"settings": settings}, None
+
+    monkeypatch.setattr(health_mod, "_require_services", _svc)
+    monkeypatch.setattr(health_mod, "_csrf_error", lambda _req: None)
+    monkeypatch.setattr(health_mod, "_require_write_access", lambda _req: Result.Err("AUTH_REQUIRED", "missing"))
+    monkeypatch.setattr(health_mod, "_require_authenticated_user", lambda _req: Result.Ok("", auth_mode="disabled"))
+    monkeypatch.setattr(health_mod, "_has_configured_write_token", lambda: True)
+    monkeypatch.setattr(health_mod, "_is_secure_request_transport", lambda _req: True)
+    monkeypatch.setattr(health_mod, "_bootstrap_enabled", lambda _req=None: False)
+
+    app = _build_health_app()
+    req = _make_request_with_peer(app, "POST", "/mjr/am/settings/security/bootstrap-token", "10.0.0.15")
+    resp = await (await app.router.resolve(req)).handler(req)
+    body = json.loads(resp.text)
+    assert body.get("code") == "FORBIDDEN"
 
 
 @pytest.mark.asyncio
@@ -727,7 +772,7 @@ async def test_bootstrap_token_requires_authenticated_comfy_user_when_write_auth
     app = _build_health_app()
     req = _make_request_with_peer(app, "POST", "/mjr/am/settings/security/bootstrap-token", "127.0.0.1")
     resp = await (await app.router.resolve(req)).handler(req)
-    assert json.loads(resp.text).get("code") == "AUTH_REQUIRED"
+    assert json.loads(resp.text).get("ok") is True
 
 
 @pytest.mark.asyncio

@@ -5,9 +5,86 @@
  */
 
 import { getRuntimeStatus } from "../../api/client.js";
+import { getSecuritySettings } from "../../api/client.js";
 import { t } from "../i18n.js";
 
 const RUNTIME_DASHBOARD_ID = "mjr-runtime-status-dashboard";
+const RUNTIME_TOKEN_KEY = "__mjr_write_token";
+
+function readRuntimeWriteToken() {
+    try {
+        return String(sessionStorage?.getItem?.(RUNTIME_TOKEN_KEY) || "").trim();
+    } catch {
+        return "";
+    }
+}
+
+function ensureDashboardLine(el, key) {
+    const storeKey = key === "auth" ? "__mjrAuthLine" : "__mjrMetricsLine";
+    if (el?.[storeKey]) {
+        return el[storeKey];
+    }
+    const line = document.createElement("div");
+    line.style.whiteSpace = "nowrap";
+    line.style.lineHeight = "1.35";
+    if (key === "auth") {
+        line.style.marginTop = "4px";
+        line.style.fontWeight = "600";
+    }
+    el.appendChild(line);
+    el[storeKey] = line;
+    return line;
+}
+
+function buildWriteAuthSummary(prefs) {
+    const token = readRuntimeWriteToken();
+    const tokenHint = String(prefs?.token_hint || "").trim();
+    const sessionHint = tokenHint || (token ? `...${token.slice(-4)}` : "");
+    const allowWrite = prefs?.allow_write !== false;
+    const requireAuth = prefs?.require_auth === true;
+    const tokenConfigured = prefs?.token_configured === true;
+
+    if (!allowWrite) {
+        return {
+            text: t("runtime.writeAuthBlocked", "Write auth: writes blocked by server"),
+            color: "#ff9b9b",
+        };
+    }
+    if (token) {
+        return {
+            text: t("runtime.writeAuthActive", "Write auth: active {tokenHint}", {
+                tokenHint: sessionHint || "(session)",
+            }),
+            color: "#7ee0a0",
+        };
+    }
+    if (requireAuth && tokenConfigured) {
+        return {
+            text: t(
+                "runtime.writeAuthMissing",
+                "Write auth: missing in this browser {tokenHint}",
+                { tokenHint: sessionHint || "(server token configured)" },
+            ),
+            color: "#f1c36d",
+        };
+    }
+    if (requireAuth) {
+        return {
+            text: t("runtime.writeAuthRequired", "Write auth: required"),
+            color: "#f1c36d",
+        };
+    }
+    if (prefs && typeof prefs === "object") {
+        return {
+            text: t("runtime.writeAuthNotRequired", "Write auth: not required"),
+            color: "#8fd0ff",
+        };
+    }
+    return {
+        text: t("runtime.writeAuthUnknown", "Write auth: unknown"),
+        color: "#c8ced8",
+    };
+}
 
 // ─── DOM helpers ──────────────────────────────────────────────────────────
 
@@ -51,6 +128,8 @@ function ensureRuntimeStatusDashboard() {
             el.style.color = "var(--content-fg, #fff)";
             el.style.fontSize = "11px";
             el.style.pointerEvents = "none";
+            el.style.display = "flex";
+            el.style.flexDirection = "column";
             host.appendChild(el);
         } else if (el.parentElement !== host) {
             host.appendChild(el);
@@ -64,33 +143,44 @@ function ensureRuntimeStatusDashboard() {
 async function refreshRuntimeStatusDashboard() {
     const el = ensureRuntimeStatusDashboard();
     if (!el) return false;
+    const metricsEl = ensureDashboardLine(el, "metrics");
+    const authEl = ensureDashboardLine(el, "auth");
     try {
-        const res = await getRuntimeStatus();
-        if (!res?.ok || !res?.data) {
-            el.textContent = t("runtime.unavailable", "Runtime: unavailable");
-            el.title = t("runtime.unavailable", "Runtime: unavailable");
-            return true;
-        }
-        const db = res.data.db || {};
-        const idx = res.data.index || {};
-        const w = res.data.watcher || {};
-        const active = Number(db.active_connections || 0);
-        const enrichQ = Number(idx.enrichment_queue_length || 0);
-        const pending = Number(w.pending_files || 0);
-        el.textContent = t(
+        const [runtimeRes, securityRes] = await Promise.all([
+            getRuntimeStatus(),
+            getSecuritySettings(),
+        ]);
+        let runtimeTitle = t("runtime.unavailable", "Runtime: unavailable");
+        if (!runtimeRes?.ok || !runtimeRes?.data) {
+            metricsEl.textContent = runtimeTitle;
+        } else {
+            const db = runtimeRes.data.db || {};
+            const idx = runtimeRes.data.index || {};
+            const w = runtimeRes.data.watcher || {};
+            const active = Number(db.active_connections || 0);
+            const enrichQ = Number(idx.enrichment_queue_length || 0);
+            const pending = Number(w.pending_files || 0);
+            metricsEl.textContent = t(
             "runtime.metricsLine",
             "DB active: {active} | Enrich Q: {enrichQ} | Watcher pending: {pending}",
             { active, enrichQ, pending },
         );
-        el.title = t(
+            runtimeTitle = t(
             "runtime.metricsTitle",
             "Runtime Metrics\nDB active connections: {active}\nEnrichment queue: {enrichQ}\nWatcher pending files: {pending}",
             { active, enrichQ, pending },
         );
+        }
+        const authSummary = buildWriteAuthSummary(securityRes?.data?.prefs || null);
+        authEl.textContent = authSummary.text;
+        authEl.style.color = authSummary.color;
+        el.title = `${runtimeTitle}\n${authSummary.text}`;
         return true;
     } catch {
-        el.textContent = t("runtime.unavailable", "Runtime: unavailable");
-        el.title = t("runtime.unavailable", "Runtime: unavailable");
+        metricsEl.textContent = t("runtime.unavailable", "Runtime: unavailable");
+        authEl.textContent = t("runtime.writeAuthUnknown", "Write auth: unknown");
+        authEl.style.color = "#c8ced8";
+        el.title = `${t("runtime.unavailable", "Runtime: unavailable")}\n${authEl.textContent}`;
         return true;
     }
 }
@@ -116,14 +206,6 @@ export function startRuntimeStatusDashboard() {
                         }
                         window.__MJR_RUNTIME_STATUS_MISS_COUNT__ =
                             Number(window.__MJR_RUNTIME_STATUS_MISS_COUNT__ || 0) + 1;
-                        // Stop background polling if panel is absent for ~30s.
-                        if (
-                            window.__MJR_RUNTIME_STATUS_MISS_COUNT__ >= 10 &&
-                            window.__MJR_RUNTIME_STATUS_INTERVAL__
-                        ) {
-                            clearInterval(window.__MJR_RUNTIME_STATUS_INTERVAL__);
-                            window.__MJR_RUNTIME_STATUS_INTERVAL__ = null;
-                        }
                     })
                     .catch(() => {})
                     .finally(() => {

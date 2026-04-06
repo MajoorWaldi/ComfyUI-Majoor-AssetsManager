@@ -2,8 +2,9 @@
  * Settings section: Safety + Security + Remote.
  */
 
-import { setSecuritySettings } from "../../api/client.js";
+import { setSecuritySettings, setRuntimeSecurityToken } from "../../api/client.js";
 import { t } from "../i18n.js";
+import { comfyToast } from "../toast.js";
 import { _safeBool } from "./settingsUtils.js";
 import {
     saveMajoorSettings,
@@ -13,6 +14,122 @@ import {
 
 const SETTINGS_PREFIX = "Majoor";
 const SETTINGS_CATEGORY = "Majoor Assets Manager";
+const MIN_RECOMMENDED_TOKEN_LENGTH = 16;
+
+function normalizeSecurityBoolean(value) {
+    return !!value;
+}
+
+function shouldSkipBooleanSecurityUpdate(currentValue, nextValue) {
+    return normalizeSecurityBoolean(currentValue) === normalizeSecurityBoolean(nextValue);
+}
+
+function normalizeSecurityToken(value) {
+    return typeof value === "string" ? value.trim() : "";
+}
+
+function isLoopbackHostname(hostname) {
+    const value = String(hostname || "")
+        .trim()
+        .toLowerCase();
+    return value === "localhost" || value === "127.0.0.1" || value === "::1";
+}
+
+function getRuntimeLocation() {
+    return globalThis.location || globalThis.window?.location || null;
+}
+
+function shouldAllowInsecureTokenTransportByDefault() {
+    const runtimeLocation = getRuntimeLocation();
+    if (!runtimeLocation) return false;
+    const protocol = String(runtimeLocation.protocol || "").toLowerCase();
+    const hostname = String(runtimeLocation.hostname || "").trim();
+    return protocol === "http:" && !isLoopbackHostname(hostname);
+}
+
+function buildRandomTokenSegment(byteCount) {
+    const size = Math.max(4, Number(byteCount) || 0);
+    try {
+        if (globalThis.crypto?.getRandomValues) {
+            const buffer = new Uint8Array(size);
+            globalThis.crypto.getRandomValues(buffer);
+            return Array.from(buffer, (value) => value.toString(16).padStart(2, "0")).join("");
+        }
+    } catch {
+        // Fall back to Math.random when crypto is unavailable.
+    }
+    return Array.from({ length: size }, () =>
+        Math.floor(Math.random() * 256)
+            .toString(16)
+            .padStart(2, "0"),
+    ).join("");
+}
+
+export function generateRecommendedApiToken() {
+    return `mjr_${buildRandomTokenSegment(18)}`;
+}
+
+export function isRecommendedRemoteLanSecurity(security) {
+    const token = String(security?.apiToken || "").trim();
+    return (
+        token.length >= MIN_RECOMMENDED_TOKEN_LENGTH &&
+        _safeBool(security?.allowWrite, true) &&
+        _safeBool(security?.requireAuth, false) &&
+        !_safeBool(security?.allowRemoteWrite, false)
+    );
+}
+
+export function buildRecommendedRemoteLanSecuritySettings(security) {
+    const current = security && typeof security === "object" ? security : {};
+    const token = String(current.apiToken || "").trim();
+    return {
+        apiToken: token.length >= MIN_RECOMMENDED_TOKEN_LENGTH ? token : generateRecommendedApiToken(),
+        allowWrite: true,
+        requireAuth: true,
+        allowRemoteWrite: false,
+        allowInsecureTokenTransport: shouldAllowInsecureTokenTransportByDefault(),
+    };
+}
+
+function buildBackendSecurityPayload(security) {
+    const sec = security || {};
+    return {
+        safe_mode: _safeBool(sec.safeMode, false),
+        allow_write: _safeBool(sec.allowWrite, true),
+        require_auth: _safeBool(sec.requireAuth, false),
+        allow_remote_write: _safeBool(sec.allowRemoteWrite, false),
+        allow_insecure_token_transport: _safeBool(sec.allowInsecureTokenTransport, false),
+        allow_delete: _safeBool(sec.allowDelete, true),
+        allow_rename: _safeBool(sec.allowRename, true),
+        allow_open_in_folder: _safeBool(sec.allowOpenInFolder, true),
+        allow_reset_index: _safeBool(sec.allowResetIndex, false),
+        ...(String(sec.apiToken || "").trim()
+            ? { api_token: String(sec.apiToken || "").trim() }
+            : {}),
+    };
+}
+
+function pushSecuritySettings(security) {
+    return setSecuritySettings(buildBackendSecurityPayload(security));
+}
+
+function tokenFieldPlaceholder(settings) {
+    const tokenHint = String(settings?.security?.tokenHint || "").trim();
+    if (tokenHint) {
+        return t(
+            "setting.sec.token.placeholderConfigured",
+            "Token configured on server ({tokenHint}). Leave blank to keep the current server token.",
+            { tokenHint },
+        );
+    }
+    if (settings?.security?.tokenConfigured) {
+        return t(
+            "setting.sec.token.placeholderConfiguredGeneric",
+            "Token configured on server. Leave blank to keep the current server token.",
+        );
+    }
+    return t("setting.sec.token.placeholder", "Auto-generated for this browser session.");
+}
 
 /**
  * Register all Security-related settings (Safety, Security toggles, Remote, API token).
@@ -37,6 +154,9 @@ export function registerSecuritySettings(safeAddSetting, settings, notifyApplied
         type: "boolean",
         defaultValue: settings.safety?.confirmDeletion !== false,
         onChange: (value) => {
+            if (shouldSkipBooleanSecurityUpdate(settings.safety?.confirmDeletion !== false, value)) {
+                return;
+            }
             settings.safety = settings.safety || {};
             settings.safety.confirmDeletion = !!value;
             saveMajoorSettings(settings);
@@ -54,23 +174,15 @@ export function registerSecuritySettings(safeAddSetting, settings, notifyApplied
             type: "boolean",
             defaultValue: !!settings.security?.[key],
             onChange: (value) => {
+                if (shouldSkipBooleanSecurityUpdate(settings.security?.[key], value)) {
+                    return;
+                }
                 settings.security = settings.security || {};
                 settings.security[key] = !!value;
                 saveMajoorSettings(settings);
                 notifyApplied(`security.${key}`);
                 try {
-                    const sec = settings.security || {};
-                    setSecuritySettings({
-                        safe_mode: _safeBool(sec.safeMode, false),
-                        allow_write: _safeBool(sec.allowWrite, true),
-                        require_auth: _safeBool(sec.requireAuth, false),
-                        allow_remote_write: _safeBool(sec.allowRemoteWrite, false),
-                        allow_insecure_token_transport: _safeBool(sec.allowInsecureTokenTransport, false),
-                        allow_delete: _safeBool(sec.allowDelete, true),
-                        allow_rename: _safeBool(sec.allowRename, true),
-                        allow_open_in_folder: _safeBool(sec.allowOpenInFolder, true),
-                        allow_reset_index: _safeBool(sec.allowResetIndex, false),
-                    })
+                    pushSecuritySettings(settings.security)
                         .then((res) => {
                             if (res?.ok && res.data?.prefs) {
                                 syncBackendSecuritySettings();
@@ -101,6 +213,88 @@ export function registerSecuritySettings(safeAddSetting, settings, notifyApplied
     // ──────────────────────────────────────────────
 
     safeAddSetting({
+        id: `${SETTINGS_PREFIX}.Security.RemoteLanPreset`,
+        category: cat(
+            t("cat.remote"),
+            t("setting.sec.remoteLanPreset.name").replace("Majoor: ", ""),
+        ),
+        name: t("setting.sec.remoteLanPreset.name"),
+        tooltip: t("setting.sec.remoteLanPreset.desc"),
+        type: "boolean",
+        defaultValue: isRecommendedRemoteLanSecurity(settings.security),
+        onChange: (value) => {
+            settings.security = settings.security || {};
+            if (shouldSkipBooleanSecurityUpdate(settings.security.remoteLanPreset, value)) {
+                return;
+            }
+            settings.security.remoteLanPreset = !!value;
+            if (!value) {
+                saveMajoorSettings(settings);
+                notifyApplied("security.remoteLanPreset");
+                return;
+            }
+
+            const patch = buildRecommendedRemoteLanSecuritySettings(settings.security);
+            Object.assign(settings.security, patch);
+            settings.security.tokenConfigured = true;
+            settings.security.tokenHint = String(patch.apiToken || "").trim()
+                ? `...${String(patch.apiToken).trim().slice(-4)}`
+                : "";
+            if (patch.apiToken) {
+                setRuntimeSecurityToken(patch.apiToken);
+            }
+            saveMajoorSettings(settings);
+            notifyApplied("security.remoteLanPreset");
+            notifyApplied("security.apiToken");
+            notifyApplied("security.allowWrite");
+            notifyApplied("security.requireAuth");
+            notifyApplied("security.allowRemoteWrite");
+            notifyApplied("security.allowInsecureTokenTransport");
+
+            try {
+                pushSecuritySettings(settings.security)
+                    .then((res) => {
+                        if (res?.ok && res.data?.prefs) {
+                            syncBackendSecuritySettings();
+                            comfyToast(
+                                t(
+                                    "toast.remoteLanPresetApplied",
+                                    "Recommended remote LAN setup applied. This browser session is now authorized for Majoor write operations.",
+                                ),
+                                "success",
+                            );
+                        } else if (res && res.ok === false) {
+                            comfyToast(
+                                res.error ||
+                                    t(
+                                        "toast.remoteLanPresetFailed",
+                                        "Failed to apply the recommended remote LAN setup.",
+                                    ),
+                                "error",
+                            );
+                            console.warn(
+                                "[Majoor] backend remote LAN preset update failed",
+                                res.error || res,
+                            );
+                        }
+                    })
+                    .catch((error) => {
+                        comfyToast(
+                            error?.message ||
+                                t(
+                                    "toast.remoteLanPresetFailed",
+                                    "Failed to apply the recommended remote LAN setup.",
+                                ),
+                            "error",
+                        );
+                    });
+            } catch (e) {
+                console.debug?.(e);
+            }
+        },
+    });
+
+    safeAddSetting({
         id: `${SETTINGS_PREFIX}.Security.ApiToken`,
         category: cat(t("cat.remote"), t("setting.sec.token.name").replace("Majoor: ", "")),
         name: t("setting.sec.token.name", "Majoor: API Token"),
@@ -111,11 +305,20 @@ export function registerSecuritySettings(safeAddSetting, settings, notifyApplied
         type: "text",
         defaultValue: settings.security?.apiToken || "",
         attrs: {
-            placeholder: t("setting.sec.token.placeholder", "Auto-generated and synced."),
+            placeholder: tokenFieldPlaceholder(settings),
         },
         onChange: (value) => {
             settings.security = settings.security || {};
-            settings.security.apiToken = typeof value === "string" ? value.trim() : "";
+            const nextToken = normalizeSecurityToken(value);
+            if (normalizeSecurityToken(settings.security.apiToken) === nextToken) {
+                return;
+            }
+            settings.security.apiToken = nextToken;
+            if (settings.security.apiToken) {
+                settings.security.tokenConfigured = true;
+                settings.security.tokenHint = `...${settings.security.apiToken.slice(-4)}`;
+                setRuntimeSecurityToken(settings.security.apiToken);
+            }
             saveMajoorSettings(settings);
             notifyApplied("security.apiToken");
             // Skip backend call when token is empty: the token is auto-generated and

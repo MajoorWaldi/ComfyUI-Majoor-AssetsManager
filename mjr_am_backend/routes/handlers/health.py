@@ -1169,21 +1169,23 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
         #   2. No persistent token exists yet and the request is tied to an authenticated
         #      ComfyUI user, which keeps first-run remote UX simple without opening an
         #      unauthenticated bootstrap path on exposed instances.
+        #   3. A persistent token already exists, but an authenticated ComfyUI user is
+        #      re-establishing the browser session on a secure transport.
         # Loopback is always allowed because only local processes can reach it.
         if not is_loopback:
-            if has_configured_token:
-                return _json_response(
-                    Result.Err(
-                        "FORBIDDEN",
-                        "Bootstrap token is disabled when an API token is already configured. Use rotate-token instead.",
-                    )
-                )
             remote_bootstrap_bypass_write_auth = _bootstrap_enabled()
             if not remote_bootstrap_bypass_write_auth:
                 user_auth = _require_authenticated_user(request)
                 auth_mode = str((user_auth.meta or {}).get("auth_mode") or "").strip().lower()
                 remote_bootstrap_bypass_write_auth = bool(user_auth.ok and auth_mode == "comfy_user")
                 if not remote_bootstrap_bypass_write_auth:
+                    if has_configured_token:
+                        return _json_response(
+                            Result.Err(
+                                "FORBIDDEN",
+                                "Bootstrap token recovery is restricted when an API token is already configured. Sign in to ComfyUI and retry on a secure session.",
+                            )
+                        )
                     return _json_response(
                         Result.Err(
                             "BOOTSTRAP_DISABLED",
@@ -1199,15 +1201,9 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
                 else:
                     return _json_response(auth)
             else:
-                user_auth = _require_authenticated_user(request)
-                auth_mode = str((user_auth.meta or {}).get("auth_mode") or "").strip().lower()
-                if not (user_auth.ok and auth_mode == "comfy_user"):
-                    return _json_response(
-                        Result.Err(
-                            "AUTH_REQUIRED",
-                            "Bootstrap requires an authenticated ComfyUI user on loopback when API token auth is unavailable.",
-                        )
-                    )
+                # Loopback is local-only. Allow bootstrap recovery so the local browser can
+                # re-establish its Majoor write session even when token auth is already required.
+                pass
 
         svc, error_result = await _require_services()
         if error_result:

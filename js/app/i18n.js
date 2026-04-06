@@ -269,6 +269,9 @@ const DICTIONARY = {
         "setting.sec.requireAuth.name": "Majoor: Require Token For All Writes",
         "setting.sec.requireAuth.desc":
             "Require the Majoor API token even for local loopback writes. Recommended when you want one consistent auth path everywhere.",
+        "setting.sec.remoteLanPreset.name": "Majoor: Recommended Remote LAN Setup",
+        "setting.sec.remoteLanPreset.desc":
+            "One click helper for trusted home/LAN access. Majoor generates a strong token if needed, requires it for writes, and enables HTTP token transport automatically on plain-HTTP LAN sessions.",
         "setting.sec.remote.name": "Majoor: Allow Remote Full Access",
         "setting.sec.remote.desc":
             "Allow non-local clients to perform write operations. Disabling blocks writes unless a token is configured.",
@@ -288,7 +291,11 @@ const DICTIONARY = {
         "setting.sec.token.name": "Majoor: API Token",
         "setting.sec.token.desc":
             "Store the write authorization token. Majoor inserts it in the Authorization and X-MJR-Token headers.",
-        "setting.sec.token.placeholder": "Leave blank to disable.",
+        "setting.sec.token.placeholder": "Auto-generated for this browser session.",
+        "setting.sec.token.placeholderConfigured":
+            "Token configured on server ({tokenHint}). Leave blank to keep the current server token.",
+        "setting.sec.token.placeholderConfiguredGeneric":
+            "Token configured on server. Leave blank to keep the current server token.",
 
         // --- Panel: Tabs ---
         "tab.output": "Output",
@@ -562,6 +569,12 @@ const DICTIONARY = {
             "Runtime Metrics\nDB active connections: {active}\nEnrichment queue: {enrichQ}\nWatcher pending files: {pending}",
         "runtime.metricsLine":
             "DB active: {active} | Enrich Q: {enrichQ} | Watcher pending: {pending}",
+        "runtime.writeAuthActive": "Write auth: active {tokenHint}",
+        "runtime.writeAuthMissing": "Write auth: missing in this browser {tokenHint}",
+        "runtime.writeAuthRequired": "Write auth: required",
+        "runtime.writeAuthNotRequired": "Write auth: not required",
+        "runtime.writeAuthBlocked": "Write auth: writes blocked by server",
+        "runtime.writeAuthUnknown": "Write auth: unknown",
 
         // --- Scopes ---
         "scope.all": "Inputs + Outputs",
@@ -838,6 +851,9 @@ const DICTIONARY = {
         "toast.ratingCleared": "Rating cleared",
         "toast.ratingSetN": "Rating set to {n} stars",
         "toast.tagsUpdated": "Tags updated",
+        "toast.remoteLanPresetApplied":
+            "Recommended remote LAN setup applied. This browser session is now authorized for Majoor write operations.",
+        "toast.remoteLanPresetFailed": "Failed to apply the recommended remote LAN setup.",
         "toast.createFolderFailed": "Failed to create folder",
         "toast.createFolderFailedDetail": "Failed to create folder: {error}",
         "toast.renameFolderFailed": "Failed to rename folder",
@@ -995,6 +1011,12 @@ const DICTIONARY = {
             "Metriques runtime\nConnexions DB actives : {active}\nFile enrichissement : {enrichQ}\nFichiers watcher en attente : {pending}",
         "runtime.metricsLine":
             "DB active : {active} | File enrich. : {enrichQ} | Watcher en attente : {pending}",
+        "runtime.writeAuthActive": "Auth ecriture : active {tokenHint}",
+        "runtime.writeAuthMissing": "Auth ecriture : absente dans ce navigateur {tokenHint}",
+        "runtime.writeAuthRequired": "Auth ecriture : requise",
+        "runtime.writeAuthNotRequired": "Auth ecriture : non requise",
+        "runtime.writeAuthBlocked": "Auth ecriture : ecritures bloquees par le serveur",
+        "runtime.writeAuthUnknown": "Auth ecriture : inconnue",
         "status.runtimeProgress": "Progression runtime : {value}/{max}",
         "status.queueRemaining": "File restante : {count}",
         "status.executionCached": "Noeuds en cache reutilises : {count}",

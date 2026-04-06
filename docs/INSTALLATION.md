@@ -1,7 +1,7 @@
 # Majoor Assets Manager - Installation Guide
 
 **Version**: 2.4.4  
-**Last Updated**: April 5, 2026
+**Last Updated**: April 6, 2026
 
 ## Overview
 This guide provides detailed instructions for installing and configuring the Majoor Assets Manager for ComfyUI. Follow these steps to get the extension up and running with all its features.
@@ -213,14 +213,41 @@ If you open ComfyUI from another machine, Majoor blocks write operations by defa
 
 Recommended setup: define `MAJOOR_API_TOKEN` on the machine that runs ComfyUI, then send the same token from the remote client.
 
-If no persistent token has been configured yet, Majoor can also bootstrap the first remote session token automatically for a signed-in ComfyUI user over HTTPS. That avoids manual environment setup for the initial connection on hosted/private ComfyUI installs.
+If no persistent token has been configured yet, Majoor can also bootstrap the first remote session token automatically for a signed-in ComfyUI user over HTTPS. Local loopback browser sessions can also recover a write session automatically after restart/new tab without a separate ComfyUI sign-in step.
+
+Older installs that only kept a legacy token hash are recovered automatically on the first successful bootstrap: Majoor rotates to a fresh persistent token and re-authorizes the current browser session.
 
 Recent builds also expose the main remote security toggles directly in Majoor Settings, so a signed-in ComfyUI user can usually complete the initial setup without editing shell startup scripts manually:
 
 - `Require Token For All Writes`
+- `Recommended Remote LAN Setup` to auto-generate a token and apply the safest common LAN defaults in one click
 - `Allow HTTP Token Transport` for trusted LAN-only HTTP setups
 - `Allow Remote Full Access` if you explicitly want no-token remote writes
 - `API Token` for the fixed shared token value
+
+#### Fastest Settings-only path for a trusted LAN
+1. Open Majoor Settings in ComfyUI.
+2. Turn on `Recommended Remote LAN Setup`.
+3. Confirm that the current browser session is authorized.
+4. Keep `Allow Remote Full Access` off unless you explicitly want no-token remote writes.
+
+That preset automatically:
+
+- generates a strong API token if none exists yet
+- enables `Require Token For All Writes`
+- keeps `Allow Remote Full Access` disabled
+- enables `Allow HTTP Token Transport` automatically when the current session is plain HTTP on a non-loopback LAN address
+- injects the token into the current browser session immediately so write actions work without a manual copy/paste step
+
+Visual confirmation inside Assets Manager:
+
+- the runtime status widget now shows a `Write auth:` line such as `Write auth: active ...ABCD`
+- if the browser session is missing authorization while the server still requires a token, the same widget reports that state directly
+
+If you need to authorize a different browser or device, either:
+
+- enter a fixed shared value in `Security -> Majoor: API Token`, or
+- open that browser while signed in to ComfyUI and let Majoor bootstrap a session token there
 
 #### Windows batch example
 ```batch

@@ -88,4 +88,8 @@ The backend keeps a compatibility-first local security model:
 - remote writes are denied unless explicitly authorized
 - `MAJOOR_REQUIRE_AUTH=1` switches to strict token-auth for local writes too
 
+Current releases also support a Settings-first remote setup flow:
+- `Recommended Remote LAN Setup` is the preferred one-click LAN path
+- the current browser session exposes its state through the runtime `Write auth:` indicator inside Assets Manager
+
 That nuance is intentional and is the documented target behavior for current releases.

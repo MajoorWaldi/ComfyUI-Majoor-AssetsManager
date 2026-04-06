@@ -1,12 +1,12 @@
 # Majoor Assets Manager - Settings & Configuration Guide
 
 **Version**: 2.4.4  
-**Last Updated**: April 5, 2026
+**Last Updated**: April 6, 2026
 
 ## Overview
 The Majoor Assets Manager offers extensive configuration options to customize the interface, performance, and functionality to match your workflow. This guide covers all available settings and configuration options.
 
-**Recent highlights**: Floating Viewer settings, Live Stream Mode, and output path configuration from the UI.
+**Recent highlights**: Floating Viewer settings, output path configuration from the UI, and a fully Settings-driven remote write security flow.
 
 ## Browser-Based Settings
 
@@ -23,6 +23,37 @@ Settings are primarily adjusted through the user interface:
 2. Look for settings icons or configuration panels
 3. Adjust settings as needed
 4. Settings are saved automatically
+
+### Security Settings In The UI
+Majoor now exposes the main remote write controls directly in Settings, including:
+
+- `Recommended Remote LAN Setup`
+- `Require Token For All Writes`
+- `Allow Remote Full Access`
+- `Allow HTTP Token Transport`
+- `Majoor: API Token`
+
+For the common trusted-LAN case, `Recommended Remote LAN Setup` is the intended one-click path. It generates a server-side token if needed, applies the recommended flags, and authorizes the current browser session immediately.
+
+### Browser Session Vs Server Token State
+Not all security values live in the same place:
+
+- browser settings in `localStorage` keep UI preferences and non-secret token state such as `tokenConfigured` and `tokenHint`
+- the active write token for the current tab/browser session lives in `sessionStorage`
+- the persistent shared token lives server-side once saved through Majoor Settings or environment variables
+
+This means a browser can show that a token exists on the server without storing the plaintext token permanently in browser local storage.
+
+### Visual Write Authorization Status
+When the Assets Manager panel is open, the runtime status widget in the lower-right corner now includes a `Write auth:` line.
+
+Examples:
+
+- `Write auth: active ...ABCD`
+- `Write auth: missing in this browser ...ABCD`
+- `Write auth: not required`
+
+Use that line as the quickest confirmation that the current browser session can perform write operations.
 
 ## Display Settings
 

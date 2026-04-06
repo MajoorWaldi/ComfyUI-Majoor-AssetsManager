@@ -176,6 +176,8 @@ export const DEFAULT_SETTINGS = {
         allowOpenInFolder: true,
         allowResetIndex: true,
         apiToken: "",
+        tokenConfigured: false,
+        tokenHint: "",
     },
 };
 
@@ -628,6 +630,11 @@ export async function syncBackendSecuritySettings() {
             prefs.allow_reset_index,
             settings.security.allowResetIndex,
         );
+        settings.security.tokenConfigured = _safeBool(
+            prefs.token_configured,
+            settings.security.tokenConfigured,
+        );
+        settings.security.tokenHint = String(prefs.token_hint || "").trim();
         // Security settings endpoint intentionally does not expose the token.
         // Bootstrap it once so write actions work without manual user input.
         if (!String(settings.security.apiToken || "").trim()) {

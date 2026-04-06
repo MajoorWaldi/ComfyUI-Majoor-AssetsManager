@@ -1,7 +1,7 @@
 # Majoor Assets Manager - Security Model & Environment Variables Guide
 
 **Version**: 2.4.4  
-**Last Updated**: April 5, 2026
+**Last Updated**: April 6, 2026
 
 ## Overview
 The Majoor Assets Manager implements a comprehensive security model to protect your system while providing powerful asset management capabilities. This guide covers the security architecture, threat models, and security-related environment variables.
@@ -48,6 +48,8 @@ To reduce risk, Majoor blocks destructive/write operations from non-local client
   - Loopback keeps the compatibility behavior by default.
   - Send the token via `X-MJR-Token: <token>` or `Authorization: Bearer <token>`.
 - **Remote first-run bootstrap**: if no persistent API token is configured yet, an authenticated ComfyUI user can bootstrap the initial remote session token automatically over HTTPS without setting `MAJOOR_ALLOW_BOOTSTRAP=1`.
+- **Loopback recovery bootstrap**: local browser sessions on loopback can recover a Majoor write session after restart/new tab without a separate ComfyUI sign-in step.
+- **Legacy hash-only recovery**: if an older install only has a stored token hash, the first successful bootstrap rotates to a new persistent plaintext token automatically so future sessions can recover cleanly.
 - **Strict local auth**: set `MAJOOR_REQUIRE_AUTH=1` if you want loopback writes to require the token too.
 
 #### Overrides (use with care)
@@ -59,6 +61,16 @@ To reduce risk, Majoor blocks destructive/write operations from non-local client
 Set these on the machine that runs ComfyUI, in the same shell, batch file, service definition, or launcher script that starts `python main.py`.
 
 Recent builds expose the main remote-access controls directly in Majoor Settings as well. For many home/LAN setups, a signed-in ComfyUI user can now complete the initial remote setup from the UI without manually editing startup scripts.
+
+Recommended UI path for a trusted LAN setup:
+
+1. Open Majoor Settings.
+2. Enable `Recommended Remote LAN Setup`.
+3. Confirm the browser session is authorized.
+
+That preset generates a strong token if needed, forces token auth for writes, keeps anonymous remote writes disabled, automatically enables HTTP token transport only when the current session is a non-loopback HTTP LAN connection, and injects the token into the current browser session immediately.
+
+Majoor also shows the current session state directly inside Assets Manager through the runtime widget, with a `Write auth:` line such as `Write auth: active ...ABCD`.
 
 Windows batch example:
 ```batch
@@ -78,7 +90,14 @@ python main.py --listen 0.0.0.0 --port 8188
 If you change the value after ComfyUI is already running, restart ComfyUI so the new environment is loaded.
 
 ### Client-side token handling
-Set the same secret inside ComfyUI's Settings modal at **Security -> Majoor: API Token**. Runtime tokens are kept in `sessionStorage` (tab/session scoped) and bootstrap/rotate responses set an `httpOnly` cookie (`mjr_write_token`) so JavaScript does not need to read plaintext secrets from API responses.
+Set the same secret inside ComfyUI's Settings modal at **Security -> Majoor: API Token** if you want a fixed shared token across multiple browsers/devices.
+
+Runtime behavior:
+
+- the current browser session keeps its active write token in `sessionStorage` (tab/session scoped)
+- bootstrap/rotate flows can also set the companion `httpOnly` cookie `mjr_write_token`
+- the settings API does not expose the plaintext token after save; it only reports non-secret status fields such as `token_configured` and `token_hint`
+- browser-local settings intentionally scrub the plaintext token after it has been pushed into the active session
 
 ### Safe Mode (default enabled)
 Safe Mode adds an explicit opt-in layer for operations that modify files or user metadata.
