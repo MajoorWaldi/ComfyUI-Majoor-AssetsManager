@@ -55,7 +55,9 @@ from .filesystem import _invalidate_fs_list_cache, _kickoff_background_scan
 SECURITY_PREF_KEYS = {
     "safe_mode",
     "allow_write",
+    "require_auth",
     "allow_remote_write",
+    "allow_insecure_token_transport",
     "allow_delete",
     "allow_rename",
     "allow_open_in_folder",
@@ -1030,7 +1032,12 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
 
         auth = _require_write_access(request)
         if not auth.ok:
-            return _json_response(auth)
+            if _has_configured_write_token():
+                return _json_response(auth)
+            user_auth = _require_authenticated_user(request)
+            auth_mode = str((user_auth.meta or {}).get("auth_mode") or "").strip().lower()
+            if not (user_auth.ok and auth_mode == "comfy_user"):
+                return _json_response(auth)
 
         svc, error_result = await _require_services()
         if error_result:

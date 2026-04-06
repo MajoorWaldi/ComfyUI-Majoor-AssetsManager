@@ -266,9 +266,15 @@ const DICTIONARY = {
         "setting.sec.safe.name": "Majoor: Safe Mode",
         "setting.sec.safe.desc":
             "When enabled, rating/tags writes are blocked unless explicitly authorized.",
+        "setting.sec.requireAuth.name": "Majoor: Require Token For All Writes",
+        "setting.sec.requireAuth.desc":
+            "Require the Majoor API token even for local loopback writes. Recommended when you want one consistent auth path everywhere.",
         "setting.sec.remote.name": "Majoor: Allow Remote Full Access",
         "setting.sec.remote.desc":
             "Allow non-local clients to perform write operations. Disabling blocks writes unless a token is configured.",
+        "setting.sec.insecureTransport.name": "Majoor: Allow HTTP Token Transport",
+        "setting.sec.insecureTransport.desc":
+            "Allow the Majoor API token over plain HTTP for trusted LAN setups. Unsafe on untrusted networks; HTTPS is preferred.",
         "setting.sec.write.name": "Majoor: Allow Write",
         "setting.sec.write.desc": "Allow writing ratings and tags.",
         "setting.sec.del.name": "Majoor: Allow Delete",

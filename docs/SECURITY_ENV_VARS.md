@@ -58,6 +58,8 @@ To reduce risk, Majoor blocks destructive/write operations from non-local client
 #### Where to set these variables
 Set these on the machine that runs ComfyUI, in the same shell, batch file, service definition, or launcher script that starts `python main.py`.
 
+Recent builds expose the main remote-access controls directly in Majoor Settings as well. For many home/LAN setups, a signed-in ComfyUI user can now complete the initial remote setup from the UI without manually editing startup scripts.
+
 Windows batch example:
 ```batch
 @echo off

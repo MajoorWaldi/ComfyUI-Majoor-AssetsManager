@@ -125,9 +125,20 @@ async def test_security_prefs_defaults_and_set(monkeypatch):
     prefs = await s.get_security_prefs()
     assert isinstance(prefs["allow_delete"], bool)
 
-    out = await s.set_security_prefs({"allow_write": True, "apiToken": "abc"})
+    out = await s.set_security_prefs(
+        {
+            "allow_write": True,
+            "require_auth": True,
+            "allow_insecure_token_transport": True,
+            "apiToken": "abc",
+        }
+    )
     assert out.ok
     assert db.store.get("allow_write") == "1"
+    assert db.store.get("require_auth") == "1"
+    assert db.store.get("allow_insecure_token_transport") == "1"
+    assert os.environ.get("MAJOOR_REQUIRE_AUTH") == "1"
+    assert os.environ.get("MAJOOR_ALLOW_INSECURE_TOKEN_TRANSPORT") == "1"
     assert db.store.get(_SECURITY_API_TOKEN_HASH_KEY)
 
 
@@ -257,25 +268,23 @@ async def test_user_scoped_settings_fallback_and_isolation(monkeypatch):
     alice_probe_key = s._storage_key(_PROBE_BACKEND_KEY, user_scoped=True, user_id="alice")
     alice_image_key = s._storage_key(_METADATA_FALLBACK_IMAGE_KEY, user_scoped=True, user_id="alice")
     alice_media_key = s._storage_key(_METADATA_FALLBACK_MEDIA_KEY, user_scoped=True, user_id="alice")
-    alice_allow_write_key = s._storage_key("allow_write", user_scoped=True, user_id="alice")
     alice_version_key = s._settings_version_write_key(user_scoped=True, user_id="alice")
 
     assert db.store[_PROBE_BACKEND_KEY] == "ffprobe"
     assert db.store[_METADATA_FALLBACK_IMAGE_KEY] == "0"
     assert db.store[_METADATA_FALLBACK_MEDIA_KEY] == "1"
-    assert db.store["allow_write"] == "1"
+    assert db.store["allow_write"] == "0"
     assert db.store[alice_probe_key] == "both"
     assert db.store[alice_image_key] == "1"
     assert db.store[alice_media_key] == "0"
-    assert db.store[alice_allow_write_key] == "0"
     assert alice_version_key in db.store
-    assert os.environ.get("MAJOOR_ALLOW_WRITE") is None
+    assert os.environ.get("MAJOOR_ALLOW_WRITE") == "0"
 
     token = sec._CURRENT_USER_ID.set("bob")
     try:
         assert await s.get_probe_backend() == "ffprobe"
         assert await s.get_metadata_fallback_prefs() == {"image": False, "media": True}
-        assert (await s.get_security_prefs())["allow_write"] is True
+        assert (await s.get_security_prefs())["allow_write"] is False
     finally:
         sec._CURRENT_USER_ID.reset(token)
 

@@ -38,7 +38,12 @@ _VALID_PROBE_MODES = {"auto", "exiftool", "ffprobe", "both"}
 _SECURITY_PREFS_INFO: Mapping[str, dict[str, bool | str]] = {
     "safe_mode": {"env": "MAJOOR_SAFE_MODE", "default": True},
     "allow_write": {"env": "MAJOOR_ALLOW_WRITE", "default": False},
+    "require_auth": {"env": "MAJOOR_REQUIRE_AUTH", "default": False},
     "allow_remote_write": {"env": "MAJOOR_ALLOW_REMOTE_WRITE", "default": False},
+    "allow_insecure_token_transport": {
+        "env": "MAJOOR_ALLOW_INSECURE_TOKEN_TRANSPORT",
+        "default": False,
+    },
     "allow_delete": {"env": "MAJOOR_ALLOW_DELETE", "default": False},
     "allow_rename": {"env": "MAJOOR_ALLOW_RENAME", "default": False},
     "allow_open_in_folder": {"env": "MAJOOR_ALLOW_OPEN_IN_FOLDER", "default": False},
@@ -353,10 +358,9 @@ class AppSettings:
             await self._get_or_create_api_token_locked()
 
     async def _get_security_prefs_locked(self, *, include_secret: bool = False) -> dict[str, Any]:
-        user_id = self._effective_user_id()
         output: dict[str, Any] = {}
         for key, info in _SECURITY_PREFS_INFO.items():
-            raw = await self._read_setting(key, user_scoped=True, user_id=user_id)
+            raw = await self._read_setting(key, user_scoped=False)
             if raw is not None:
                 output[key] = parse_bool(raw, bool(info.get("default", False)))
             else:
@@ -377,10 +381,8 @@ class AppSettings:
         token_hash_in_payload = self._extract_token_hash_from_prefs_payload(prefs)
         if not to_write and token_in_payload is None and token_hash_in_payload is None:
             return Result.Err("INVALID_INPUT", "No security settings provided")
-        user_id = self._effective_user_id()
-        user_scoped = bool(user_id and to_write)
         async with self._lock:
-            write_err = await self._persist_security_pref_flags(to_write, user_id=user_id)
+            write_err = await self._persist_security_pref_flags(to_write)
             if write_err is not None:
                 return write_err
             if token_hash_in_payload is not None:
@@ -391,11 +393,7 @@ class AppSettings:
                 token_err = await self._persist_security_api_token(token_in_payload)
                 if token_err is not None:
                     return token_err
-            await self._warn_if_bump_fails(
-                "Failed to bump settings version",
-                user_scoped=user_scoped,
-                user_id=user_id,
-            )
+            await self._warn_if_bump_fails("Failed to bump settings version")
             return Result.Ok(await self._get_security_prefs_locked(include_secret=False))
 
     def _extract_security_prefs_to_write(self, prefs: Mapping[str, Any]) -> dict[str, bool]:
@@ -428,16 +426,12 @@ class AppSettings:
     async def _persist_security_pref_flags(
         self,
         to_write: Mapping[str, bool],
-        *,
-        user_id: str | None = None,
     ) -> Result[dict[str, Any]] | None:
-        effective_user_id = self._effective_user_id(user_id)
         for key, value in to_write.items():
-            res = await self._write_setting(key, "1" if value else "0", user_scoped=True, user_id=effective_user_id)
+            res = await self._write_setting(key, "1" if value else "0", user_scoped=False)
             if not res.ok:
                 return Result.Err("DB_ERROR", res.error or f"Failed to persist {key}")
-            if not effective_user_id:
-                self._set_security_pref_env_var(key, value)
+            self._set_security_pref_env_var(key, value)
         return None
 
     def _set_security_pref_env_var(self, key: str, value: bool) -> None:

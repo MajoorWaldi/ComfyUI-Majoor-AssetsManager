@@ -63,7 +63,9 @@ export function registerSecuritySettings(safeAddSetting, settings, notifyApplied
                     setSecuritySettings({
                         safe_mode: _safeBool(sec.safeMode, false),
                         allow_write: _safeBool(sec.allowWrite, true),
+                        require_auth: _safeBool(sec.requireAuth, false),
                         allow_remote_write: _safeBool(sec.allowRemoteWrite, false),
+                        allow_insecure_token_transport: _safeBool(sec.allowInsecureTokenTransport, false),
                         allow_delete: _safeBool(sec.allowDelete, true),
                         allow_rename: _safeBool(sec.allowRename, true),
                         allow_open_in_folder: _safeBool(sec.allowOpenInFolder, true),
@@ -136,9 +138,23 @@ export function registerSecuritySettings(safeAddSetting, settings, notifyApplied
     });
 
     registerSecurityToggle(
+        "requireAuth",
+        "setting.sec.requireAuth.name",
+        "setting.sec.requireAuth.desc",
+        "cat.remote",
+    );
+
+    registerSecurityToggle(
         "allowRemoteWrite",
         "setting.sec.remote.name",
         "setting.sec.remote.desc",
+        "cat.remote",
+    );
+
+    registerSecurityToggle(
+        "allowInsecureTokenTransport",
+        "setting.sec.insecureTransport.name",
+        "setting.sec.insecureTransport.desc",
         "cat.remote",
     );
 }

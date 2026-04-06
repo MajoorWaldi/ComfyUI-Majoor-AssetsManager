@@ -215,6 +215,13 @@ Recommended setup: define `MAJOOR_API_TOKEN` on the machine that runs ComfyUI, t
 
 If no persistent token has been configured yet, Majoor can also bootstrap the first remote session token automatically for a signed-in ComfyUI user over HTTPS. That avoids manual environment setup for the initial connection on hosted/private ComfyUI installs.
 
+Recent builds also expose the main remote security toggles directly in Majoor Settings, so a signed-in ComfyUI user can usually complete the initial setup without editing shell startup scripts manually:
+
+- `Require Token For All Writes`
+- `Allow HTTP Token Transport` for trusted LAN-only HTTP setups
+- `Allow Remote Full Access` if you explicitly want no-token remote writes
+- `API Token` for the fixed shared token value
+
 #### Windows batch example
 ```batch
 @echo off

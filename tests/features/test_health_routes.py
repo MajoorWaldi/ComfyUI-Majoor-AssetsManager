@@ -472,7 +472,14 @@ async def test_metadata_fallback_and_security_routes(monkeypatch) -> None:
         return Result.Ok({"prefs": {"image": False, "media": True}})
 
     async def _read_sec(_request):
-        return Result.Ok({"allow_write": False, "apiToken": "abc"})
+        return Result.Ok(
+            {
+                "allow_write": False,
+                "require_auth": True,
+                "allow_insecure_token_transport": True,
+                "apiToken": "abc",
+            }
+        )
 
     monkeypatch.setattr(health_mod, "_require_services", _svc)
     monkeypatch.setattr(health_mod, "_csrf_error", lambda _req: None)
@@ -497,6 +504,35 @@ async def test_metadata_fallback_and_security_routes(monkeypatch) -> None:
     req4 = make_mocked_request("POST", "/mjr/am/settings/security", app=app)
     resp4 = await (await app.router.resolve(req4)).handler(req4)
     assert json.loads(resp4.text).get("ok") is True
+    assert settings.sec.get("require_auth") is True
+    assert settings.sec.get("allow_insecure_token_transport") is True
+
+
+@pytest.mark.asyncio
+async def test_security_settings_allows_initial_authenticated_comfy_user_provisioning(monkeypatch) -> None:
+    settings = _Settings()
+
+    async def _svc():
+        return {"settings": settings}, None
+
+    async def _read_sec(_request):
+        return Result.Ok({"require_auth": True, "allow_insecure_token_transport": True})
+
+    monkeypatch.setattr(health_mod, "_require_services", _svc)
+    monkeypatch.setattr(health_mod, "_csrf_error", lambda _req: None)
+    monkeypatch.setattr(health_mod, "_require_write_access", lambda _req: Result.Err("AUTH_REQUIRED", "missing"))
+    monkeypatch.setattr(health_mod, "_has_configured_write_token", lambda: False)
+    monkeypatch.setattr(health_mod, "_require_authenticated_user", lambda _req: Result.Ok("user-1", auth_mode="comfy_user"))
+    monkeypatch.setattr(health_mod, "_read_json", _read_sec)
+
+    app = _build_health_app()
+    req = make_mocked_request("POST", "/mjr/am/settings/security", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    body = json.loads(resp.text)
+    assert body.get("ok") is True
+    prefs = (body.get("data") or {}).get("prefs") or {}
+    assert prefs.get("require_auth") is True
+    assert prefs.get("allow_insecure_token_transport") is True
 
 
 @pytest.mark.asyncio
