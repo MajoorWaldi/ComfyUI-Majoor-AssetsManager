@@ -116,6 +116,69 @@ def _configure_hf_quiet_mode() -> None:
         logging.getLogger(_logger_name).setLevel(logging.ERROR)
 
 
+def _resolve_preferred_torch_device(requested_device: str | None) -> str:
+    raw = str(requested_device or "").strip()
+    if raw and raw.lower() not in {"auto", "default"}:
+        return raw
+
+    try:
+        import torch
+    except Exception:
+        return "cpu"
+
+    try:
+        cuda = getattr(torch, "cuda", None)
+        is_available = getattr(cuda, "is_available", None)
+        if callable(is_available) and bool(is_available()):
+            return "cuda"
+    except Exception:
+        pass
+
+    try:
+        backends = getattr(torch, "backends", None)
+        mps = getattr(backends, "mps", None)
+        is_available = getattr(mps, "is_available", None)
+        if callable(is_available) and bool(is_available()):
+            return "mps"
+    except Exception:
+        pass
+
+    return "cpu"
+
+
+def _move_tensor_like_to_device(value: Any, device: str | None) -> Any:
+    if value is None or not device:
+        return value
+    mover = getattr(value, "to", None)
+    if not callable(mover):
+        return value
+    try:
+        return mover(device)
+    except TypeError:
+        try:
+            return mover(device=device)
+        except Exception:
+            return value
+    except Exception:
+        return value
+
+
+def _move_model_to_device(model: Any, device: str | None) -> Any:
+    return _move_tensor_like_to_device(model, device)
+
+
+def _move_mapping_tensors_to_device(values: Any, device: str | None) -> Any:
+    if values is None or not device or not hasattr(values, "items"):
+        return values
+    try:
+        return {
+            key: _move_tensor_like_to_device(value, device)
+            for key, value in values.items()
+        }
+    except Exception:
+        return values
+
+
 @contextlib.contextmanager
 def _suppress_stdout_only():
     """Redirect stdout to /dev/null while keeping stderr (tqdm progress bars).
@@ -430,6 +493,7 @@ def _load_siglip_components(service: Any, hf_logging: Any, AutoModel: Any, AutoP
                 service._siglip_processor = AutoProcessor.from_pretrained(service._model_name, use_fast=False)  # nosec B615
                 service._siglip_model = AutoModel.from_pretrained(service._model_name)  # nosec B615
 
+        service._siglip_model = _move_model_to_device(service._siglip_model, service._device)
         try:
             service._siglip_model.eval()
         except Exception:
@@ -530,6 +594,7 @@ def _load_florence_components(service: Any, hf_logging: Any, AutoModelForCausalL
         else:
             _load_florence_components_quiet(service, AutoModelForCausalLM, AutoProcessor)
 
+        service._prompt_model = _move_model_to_device(service._prompt_model, service._device)
         if not hasattr(service._prompt_model, "_supports_sdpa"):
             try:
                 service._prompt_model._supports_sdpa = False
@@ -623,7 +688,7 @@ class VectorService:
         self._video_model_name = self._normalise_model_name(VECTOR_VIDEO_MODEL_NAME, "microsoft/xclip-base-patch32")
         self._prompt_model_name = self._normalise_model_name(VECTOR_PROMPT_MODEL_NAME, "microsoft/Florence-2-base")
         self._prompt_task = str(VECTOR_PROMPT_TASK or "<MORE_DETAILED_CAPTION>").strip() or "<MORE_DETAILED_CAPTION>"
-        self._device = device  # None → auto-detect (CPU / CUDA)
+        self._device = _resolve_preferred_torch_device(device)
         self._model: SentenceTransformer | None = None
         self._lock = asyncio.Lock()
         self._video_model: Any | None = None
@@ -1213,7 +1278,10 @@ class VectorService:
                 import torch
 
                 with torch.inference_mode():
-                    inputs = processor(text=[cleaned], return_tensors="pt", padding=True, truncation=True)
+                    inputs = _move_mapping_tensors_to_device(
+                        processor(text=[cleaned], return_tensors="pt", padding=True, truncation=True),
+                        self._device,
+                    )
                     vec = _extract_hf_feature_vector(
                         model.get_text_features(**inputs),
                         preferred_fields=("text_embeds", "pooler_output", "last_hidden_state"),
@@ -1301,7 +1369,10 @@ class VectorService:
                     import torch
 
                     with torch.inference_mode():
-                        inputs = processor(images=[img], return_tensors="pt")
+                        inputs = _move_mapping_tensors_to_device(
+                            processor(images=[img], return_tensors="pt"),
+                            self._device,
+                        )
                         vec = _extract_hf_feature_vector(
                             native_model.get_image_features(**inputs),
                             preferred_fields=("image_embeds", "pooler_output", "last_hidden_state"),
@@ -1417,7 +1488,10 @@ class VectorService:
                     vecs = []
                     with torch.inference_mode():
                         for frame in frames:
-                            inputs = processor(images=[frame], return_tensors="pt")
+                            inputs = _move_mapping_tensors_to_device(
+                                processor(images=[frame], return_tensors="pt"),
+                                self._device,
+                            )
                             vecs.append(
                                 _extract_hf_feature_vector(
                                     native_model.get_image_features(**inputs),
@@ -1570,6 +1644,11 @@ class VectorService:
                     if input_ids is None or pixel_values is None:
                         raise RuntimeError("Florence processor returned incomplete tensors")
 
+                    input_ids = _move_tensor_like_to_device(input_ids, self._device)
+                    attention_mask = _move_tensor_like_to_device(attention_mask, self._device)
+                    pixel_values = _move_tensor_like_to_device(pixel_values, self._device)
+                    pixel_mask = _move_tensor_like_to_device(pixel_mask, self._device)
+
                     generate_kwargs: dict[str, Any] = {
                         "input_ids": input_ids,
                         "pixel_values": pixel_values,
@@ -1672,6 +1751,7 @@ class VectorService:
                             self._video_model = AutoModel.from_pretrained(self._video_model_name)  # nosec B615
                 finally:
                     hf_logging.set_verbosity(previous_hf_verbosity)
+                self._video_model = _move_model_to_device(self._video_model, self._device)
                 try:
                     self._video_model.eval()
                 except Exception:
@@ -1708,7 +1788,10 @@ class VectorService:
                 with torch.inference_mode():
                     # XCLIPProcessor uses images= (not videos=) to build
                     # pixel_values with shape [batch, num_frames, C, H, W].
-                    inputs = processor(images=rgb_frames, return_tensors="pt")
+                    inputs = _move_mapping_tensors_to_device(
+                        processor(images=rgb_frames, return_tensors="pt"),
+                        self._device,
+                    )
                     pixel_values = inputs.get("pixel_values")
                     if pixel_values is None:
                         raise RuntimeError("X-CLIP processor returned no pixel_values")
