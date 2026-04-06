@@ -16,7 +16,7 @@ import {
     getAiLoggingSettings,
     setAiLoggingSettings,
 } from "../../api/client.js";
-import { comfyToast } from "../toast.js";
+import { comfyToast, recordToastHistory } from "../toast.js";
 import {
     t,
     initI18n,
@@ -655,6 +655,16 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
         onChange: async (value) => {
             if (String(value || "") !== "Run backfill now") return;
 
+            const historyBase = {
+                history: {
+                    trackId: "vector-backfill:advanced-settings",
+                    title: "Vector Backfill",
+                    source: "all",
+                    operation: "vector_backfill",
+                    forceStore: true,
+                },
+            };
+
             try {
                 comfyToast(
                     t(
@@ -662,8 +672,52 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
                         "Starting vector backfill... This may take a while.",
                     ),
                     "info",
+                    undefined,
+                    {
+                        history: {
+                            ...historyBase.history,
+                            status: "started",
+                            detail: "Starting vector backfill... This may take a while.",
+                        },
+                    },
                 );
-                const result = await vectorBackfill(64);
+                const result = await vectorBackfill(64, {
+                    onProgress: (payload) => {
+                        const status = String(payload?.status || "running").toLowerCase() || "running";
+                        const progress = payload?.progress || payload?.result || {};
+                        const candidates = Number(progress?.candidates ?? progress?.processed ?? 0);
+                        const indexed = Number(progress?.indexed ?? 0);
+                        const skipped = Number(progress?.skipped ?? 0);
+                        const errors = Number(progress?.errors ?? 0);
+                        const total = Math.max(candidates, indexed + skipped + errors);
+                        const percent = total > 0 ? Math.round(((indexed + skipped + errors) / total) * 100) : null;
+                        const detail =
+                            status === "queued"
+                                ? "Vector backfill queued"
+                                : `Candidates ${candidates}, indexed ${indexed}, skipped ${skipped}, errors ${errors}`;
+                        recordToastHistory(
+                            { summary: "Vector Backfill", detail },
+                            status === "failed" ? "error" : status === "succeeded" ? "success" : "info",
+                            0,
+                            {
+                                history: {
+                                    ...historyBase.history,
+                                    status,
+                                    detail,
+                                    progress: {
+                                        current: indexed + skipped + errors,
+                                        total,
+                                        percent,
+                                        indexed,
+                                        skipped,
+                                        errors,
+                                        label: status,
+                                    },
+                                },
+                            },
+                        );
+                    },
+                });
 
                 if (result?.ok) {
                     const data = result.data || {};
@@ -683,6 +737,25 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
                                 { job: jobId ? ` (job ${jobId.slice(0, 8)})` : "" },
                             ),
                             "info",
+                            undefined,
+                            {
+                                history: {
+                                    ...historyBase.history,
+                                    status: "running",
+                                    detail: `Vector backfill still running in background${jobId ? ` (${jobId.slice(0, 8)})` : ""}.`,
+                                    progress: {
+                                        current: indexed + skipped,
+                                        total: Math.max(processed, indexed + skipped),
+                                        percent:
+                                            Math.max(processed, indexed + skipped) > 0
+                                                ? Math.round(((indexed + skipped) / Math.max(processed, indexed + skipped)) * 100)
+                                                : null,
+                                        indexed,
+                                        skipped,
+                                        label: "running",
+                                    },
+                                },
+                            },
                         );
                     } else {
                         const msg = t(
@@ -690,7 +763,21 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
                             "Vector backfill complete! Processed: {processed}, Indexed: {indexed}, Skipped: {skipped}",
                             { processed, indexed, skipped },
                         );
-                        comfyToast(msg, "success");
+                        comfyToast(msg, "success", undefined, {
+                            history: {
+                                ...historyBase.history,
+                                status: "succeeded",
+                                detail: `Processed ${processed}, indexed ${indexed}, skipped ${skipped}`,
+                                progress: {
+                                    current: processed,
+                                    total: processed,
+                                    percent: processed > 0 ? 100 : null,
+                                    indexed,
+                                    skipped,
+                                    label: "done",
+                                },
+                            },
+                        });
                     }
                     try {
                         const stats = await vectorStats();
@@ -712,6 +799,14 @@ export function registerAdvancedSettings(safeAddSetting, settings, notifyApplied
                         error: errMsg,
                     }),
                     "error",
+                    undefined,
+                    {
+                        history: {
+                            ...historyBase.history,
+                            status: "failed",
+                            detail: errMsg,
+                        },
+                    },
                 );
                 console.error("[Majoor] Vector backfill error:", error);
             }

@@ -104,6 +104,18 @@ export function createGridController({
         }
     };
 
+    const _hasSemanticContribution = (items = []) => {
+        if (!Array.isArray(items) || items.length === 0) return false;
+        return items.some((item) => {
+            const matchType = String(item?._matchType || item?.matchType || "")
+                .trim()
+                .toLowerCase();
+            if (matchType.includes("semantic")) return true;
+            const vectorScore = Number(item?._vectorScore ?? item?.vectorScore ?? NaN);
+            return Number.isFinite(vectorScore) && vectorScore > 0;
+        });
+    };
+
     const _buildSemanticFilterOptions = () => {
         const rawSubfolder = String(read("currentFolderRelativePath", "") || "").trim();
         const isCustomBrowserMode =
@@ -140,6 +152,8 @@ export function createGridController({
             const statsRes = await vectorStats();
             if (statsRes?.ok && statsRes?.data) {
                 const total = Number(statsRes.data?.total || 0) || 0;
+                const eligibleTotal = Number(statsRes.data?.eligible_total || 0) || 0;
+                const coverageRatio = Number(statsRes.data?.coverage_ratio ?? NaN);
                 if (total <= 10) {
                     comfyToast(
                         t(
@@ -149,6 +163,27 @@ export function createGridController({
                         ),
                         "warn",
                         6500,
+                    );
+                    return;
+                }
+                if (
+                    eligibleTotal > 0 &&
+                    Number.isFinite(coverageRatio) &&
+                    coverageRatio > 0 &&
+                    coverageRatio < 0.75
+                ) {
+                    comfyToast(
+                        t(
+                            "toast.aiSearchPartiallyIndexed",
+                            "AI search index is only partially built ({indexed}/{eligible}, {percent}%). Run Vector Backfill for existing assets.",
+                            {
+                                indexed: total,
+                                eligible: eligibleTotal,
+                                percent: Math.round(coverageRatio * 100),
+                            },
+                        ),
+                        "warn",
+                        7000,
                     );
                     return;
                 }
@@ -202,7 +237,12 @@ export function createGridController({
                     customRootId: read("customRootId", "") || "",
                     ...filters,
                 });
-                if (hybRes?.ok && Array.isArray(hybRes.data) && hybRes.data.length > 0) {
+                if (
+                    hybRes?.ok &&
+                    Array.isArray(hybRes.data) &&
+                    hybRes.data.length > 0 &&
+                    _hasSemanticContribution(hybRes.data)
+                ) {
                     return await loadAssetsFromList(gridContainer, hybRes.data, {
                         title: `AI Search: "${q}" (${hybRes.data.length} results)`,
                         reset: true,
@@ -240,7 +280,7 @@ export function createGridController({
         }
         const ftsResult = await loadAssets(gridContainer, q || "*");
 
-        if (aiAttempted) {
+        if (aiAttempted && aiError) {
             const count = Number(ftsResult?.count || 0) || 0;
             if (count === 0) {
                 void _notifyAiSearchDiagnostic(aiError);

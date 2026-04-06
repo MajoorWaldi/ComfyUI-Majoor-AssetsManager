@@ -84,6 +84,17 @@ def test_list_backup_files(tmp_path: Path, monkeypatch):
     assert rows[0]["name"] == "a.sqlite"
 
 
+def test_next_backup_target_avoids_collision(tmp_path: Path, monkeypatch):
+    arc = tmp_path / "archive"
+    arc.mkdir()
+    (arc / "b.sqlite").write_bytes(b"x")
+    monkeypatch.setattr(m, "_DB_ARCHIVE_DIR", arc)
+    monkeypatch.setattr(m, "_backup_name", lambda: "b.sqlite")
+
+    target = m._next_backup_target()
+    assert target.name == "b_2.sqlite"
+
+
 @pytest.mark.asyncio
 async def test_stop_and_restart_watcher_if_needed(monkeypatch):
     state = {"stopped": 0, "started": 0}
@@ -373,6 +384,7 @@ async def test_db_backup_save_success(monkeypatch, tmp_path: Path):
     payload = json.loads(resp.text)
     assert payload.get("ok") is True
     assert payload.get("data", {}).get("name") == "b.sqlite"
+    assert payload.get("data", {}).get("mtime") is not None
 
 
 @pytest.mark.asyncio

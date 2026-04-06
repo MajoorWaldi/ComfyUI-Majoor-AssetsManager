@@ -17,7 +17,7 @@ import {
 import { ENDPOINTS } from "../../api/endpoints.js";
 import { APP_CONFIG } from "../../app/config.js";
 import { comfyConfirm } from "../../app/dialogs.js";
-import { comfyToast } from "../../app/toast.js";
+import { comfyToast, recordToastHistory } from "../../app/toast.js";
 import { t } from "../../app/i18n.js";
 import { getEnrichmentState, setEnrichmentState } from "../../app/runtimeState.js";
 import { loadMajoorSettings } from "../../app/settings.js";
@@ -323,16 +323,23 @@ export function createStatusIndicator(options = {}) {
         color: inherit;
     `;
     backupSelect.title = t("status.dbBackupSelectHint", "Select a DB backup to restore");
+    let _hasBackupChoices = false;
+    let restoreDbBtn = null;
     const setSingleOption = (text) => {
         backupSelect.replaceChildren();
         const opt = document.createElement("option");
         opt.value = "";
         opt.textContent = String(text || "");
+        opt.disabled = true;
+        opt.selected = true;
         backupSelect.appendChild(opt);
+        _hasBackupChoices = false;
+        backupSelect.disabled = true;
+        if (restoreDbBtn) restoreDbBtn.disabled = true;
     };
     setSingleOption(t("status.dbBackupLoading", "Loading DB backups..."));
 
-    const refreshBackups = async () => {
+    const refreshBackups = async (preferredName = "") => {
         try {
             const res = await listDbBackups();
             if (!res?.ok) {
@@ -345,6 +352,7 @@ export function createStatusIndicator(options = {}) {
                 return;
             }
             backupSelect.replaceChildren();
+            let matched = false;
             for (const item of items) {
                 const name = String(item?.name || "");
                 if (!name) continue;
@@ -355,8 +363,18 @@ export function createStatusIndicator(options = {}) {
                 const opt = document.createElement("option");
                 opt.value = name;
                 opt.textContent = label;
+                if (preferredName && preferredName === name) {
+                    opt.selected = true;
+                    matched = true;
+                }
                 backupSelect.appendChild(opt);
             }
+            _hasBackupChoices = backupSelect.childNodes.length > 0;
+            backupSelect.disabled = !_hasBackupChoices;
+            if (_hasBackupChoices && !matched && backupSelect.childNodes[0]) {
+                backupSelect.value = String(backupSelect.childNodes[0].value || "");
+            }
+            if (restoreDbBtn) restoreDbBtn.disabled = !_hasBackupChoices;
         } catch {
             setSingleOption(t("status.dbBackupNone", "No DB backup found"));
         }
@@ -381,15 +399,29 @@ export function createStatusIndicator(options = {}) {
         event.stopPropagation();
         setMaintenanceActive(true);
         const original = saveDbBtn.textContent;
+        const originalRestoreDisabled = !!restoreDbBtn?.disabled;
         saveDbBtn.disabled = true;
+        if (restoreDbBtn) restoreDbBtn.disabled = true;
         saveDbBtn.textContent = t("btn.saving", "Saving...");
         statusDot.style.background = "var(--mjr-status-info, #64B5F6)";
         applyStatusHighlight(section, "info");
         try {
             const res = await saveDbBackup();
             if (res?.ok) {
-                comfyToast(t("toast.dbSaveSuccess", "Database backup saved"), "success", 2200);
-                await refreshBackups();
+                const savedName = String(res?.data?.name || "").trim();
+                const sizeBytes = Number(res?.data?.size_bytes || 0);
+                comfyToast(t("toast.dbSaveSuccess", "Database backup saved"), "success", 2200, {
+                    history: {
+                        title: t("btn.dbSave", "Save DB"),
+                        detail: savedName
+                            ? `${savedName}${sizeBytes > 0 ? ` | ${formatBytes(sizeBytes)}` : ""}`
+                            : t("toast.dbSaveSuccess", "Database backup saved"),
+                        operation: "save_db",
+                        source: savedName || "archive",
+                        forceStore: true,
+                    },
+                });
+                await refreshBackups(savedName);
             } else {
                 comfyToast(
                     res?.error || t("toast.dbSaveFailed", "Failed to save DB backup"),
@@ -404,6 +436,7 @@ export function createStatusIndicator(options = {}) {
         } finally {
             setMaintenanceActive(false);
             saveDbBtn.disabled = false;
+            if (restoreDbBtn) restoreDbBtn.disabled = originalRestoreDisabled || !_hasBackupChoices;
             saveDbBtn.textContent = original;
             try {
                 const target = getScanContext ? getScanContext() : null;
@@ -417,7 +450,7 @@ export function createStatusIndicator(options = {}) {
     };
     backupRow.appendChild(saveDbBtn);
 
-    const restoreDbBtn = document.createElement("button");
+    restoreDbBtn = document.createElement("button");
     restoreDbBtn.type = "button";
     restoreDbBtn.textContent = t("btn.dbRestore", "Restore");
     restoreDbBtn.title = t("status.dbRestoreHint", "Restore selected DB backup");
@@ -438,24 +471,37 @@ export function createStatusIndicator(options = {}) {
             return;
         }
         const confirmed = await comfyConfirm(
-            t(
+            `${t(
                 "dialog.dbRestore.confirm",
                 "Restore selected DB backup? Current DB will be replaced.",
-            ),
+            )}\n\n${selected}`,
             t("btn.dbRestore", "Restore DB"),
         );
         if (!confirmed) return;
-        comfyToast(t("toast.dbRestoreStarted", "DB restore started"), "info", 1800);
+        comfyToast(t("toast.dbRestoreStarted", "DB restore started"), "info", 1800, {
+            history: {
+                trackId: "maintenance:restore_db",
+                title: t("btn.dbRestore", "Restore DB"),
+                detail: selected,
+                operation: "restore_db",
+                source: selected,
+                status: "started",
+                forceStore: true,
+            },
+        });
         setMaintenanceActive(true);
         const original = restoreDbBtn.textContent;
+        const originalSaveDisabled = !!saveDbBtn.disabled;
         restoreDbBtn.disabled = true;
+        saveDbBtn.disabled = true;
+        backupSelect.disabled = true;
         restoreDbBtn.textContent = t("btn.restoring", "Restoring...");
         statusDot.style.background = "var(--mjr-status-warning, #FFA726)";
         applyStatusHighlight(section, "warning");
         try {
             const res = await restoreDbBackup({ name: selected, useLatest: false });
             if (res?.ok) {
-                await refreshBackups();
+                await refreshBackups(String(res?.data?.name || selected || ""));
             } else {
                 comfyToast(
                     res?.error || t("toast.dbRestoreFailed", "Failed to restore DB backup"),
@@ -469,7 +515,9 @@ export function createStatusIndicator(options = {}) {
             );
         } finally {
             setMaintenanceActive(false);
-            restoreDbBtn.disabled = false;
+            restoreDbBtn.disabled = !_hasBackupChoices;
+            saveDbBtn.disabled = originalSaveDisabled;
+            backupSelect.disabled = !_hasBackupChoices;
             restoreDbBtn.textContent = original;
             emitGlobalGridReload("db-restore");
             try {
@@ -667,6 +715,15 @@ export function createStatusIndicator(options = {}) {
         }
         const backfillScope = desiredScope || "output";
         const backfillScopeLabel = formatWatcherScopeLabel(backfillScope);
+        const historyBase = {
+            history: {
+                trackId: `vector-backfill:status:${backfillScope}:${desiredCustomRootId || "default"}`,
+                title: "Vector Backfill",
+                source: backfillScopeLabel,
+                operation: "vector_backfill",
+                forceStore: true,
+            },
+        };
         setMaintenanceActive(true);
 
         const originalBackfillText = backfillBtn.textContent;
@@ -675,6 +732,12 @@ export function createStatusIndicator(options = {}) {
         resetBtn.disabled = true;
         backfillBtn.textContent = "Backfilling...";
         setActionLog(`Backfill started (${backfillScopeLabel})...`, "info");
+        recordToastHistory(
+            { summary: "Vector Backfill", detail: `Started (${backfillScopeLabel})` },
+            "info",
+            0,
+            { history: { ...historyBase.history, status: "started", detail: `Started (${backfillScopeLabel})` } },
+        );
 
         statusDot.style.background = "var(--mjr-status-info, #64B5F6)";
         applyStatusHighlight(section, "info");
@@ -685,23 +748,80 @@ export function createStatusIndicator(options = {}) {
                     const status = String(payload?.status || "").toLowerCase();
                     const progress = payload?.progress || payload?.result || {};
                     const candidates = Number(progress?.candidates || progress?.processed || 0);
+                    const candidateTotal = Number(progress?.candidate_total || candidates || 0);
+                    const totalAssets = Number(progress?.eligible_total || progress?.total_assets || 0);
                     const indexed = Number(progress?.indexed || 0);
                     const skipped = Number(progress?.skipped || 0);
                     const errors = Number(progress?.errors || 0);
                     if (status === "queued") {
                         setActionLog("Backfill queued…", "info");
+                        recordToastHistory(
+                            { summary: "Vector Backfill", detail: `Queued (${backfillScopeLabel})` },
+                            "info",
+                            0,
+                            {
+                                history: {
+                                    ...historyBase.history,
+                                    status: "queued",
+                                    detail: `Queued (${backfillScopeLabel})`,
+                                    progress: { current: 0, total: 1, percent: 0, label: "queued" },
+                                },
+                            },
+                        );
                         return;
                     }
                     if (
                         status === "running" ||
                         candidates > 0 ||
+                        candidateTotal > 0 ||
+                        totalAssets > 0 ||
                         indexed > 0 ||
                         skipped > 0 ||
                         errors > 0
                     ) {
+                        const detailText =
+                            totalAssets > 0
+                                ? `Indexed ${indexed}/${totalAssets} assets, candidates ${candidateTotal}, skipped ${skipped}, errors ${errors}`
+                                : `Candidates ${candidates}, indexed ${indexed}, skipped ${skipped}, errors ${errors}`;
                         setActionLog(
-                            `Backfill running — candidates ${candidates}, indexed ${indexed}, skipped ${skipped}, errors ${errors}`,
+                            totalAssets > 0
+                                ? `Backfill running — indexed ${indexed}/${totalAssets} assets, candidates ${candidateTotal}, skipped ${skipped}, errors ${errors}`
+                                : `Backfill running — candidates ${candidates}, indexed ${indexed}, skipped ${skipped}, errors ${errors}`,
                             "info",
+                        );
+                        recordToastHistory(
+                            { summary: "Vector Backfill", detail: detailText },
+                            "info",
+                            0,
+                            {
+                                history: {
+                                    ...historyBase.history,
+                                    status: "running",
+                                    detail: detailText,
+                                    progress: {
+                                        current: totalAssets > 0 ? indexed : indexed + skipped + errors,
+                                        total:
+                                            totalAssets > 0
+                                                ? totalAssets
+                                                : Math.max(candidates, indexed + skipped + errors),
+                                        percent:
+                                            totalAssets > 0
+                                                ? Math.round((indexed / totalAssets) * 100)
+                                                : Math.max(candidates, indexed + skipped + errors) > 0
+                                                  ? Math.round(
+                                                        ((indexed + skipped + errors) /
+                                                            Math.max(candidates, indexed + skipped + errors)) * 100,
+                                                    )
+                                                  : null,
+                                        eligible_total: totalAssets > 0 ? totalAssets : undefined,
+                                        candidate_total: candidateTotal > 0 ? candidateTotal : undefined,
+                                        indexed,
+                                        skipped,
+                                        errors,
+                                        label: "running",
+                                    },
+                                },
+                            },
                         );
                     }
                 },
@@ -726,7 +846,28 @@ export function createStatusIndicator(options = {}) {
                         "Vector backfill still running in background{job}.",
                         { job: backfillId ? ` (${backfillId.slice(0, 8)})` : "" },
                     );
-                    comfyToast(msg, "info", 4200);
+                    comfyToast(msg, "info", 4200, {
+                        history: {
+                            ...historyBase.history,
+                            status: "running",
+                            detail: `Running in background${backfillId ? ` (${backfillId.slice(0, 8)})` : ""}.`,
+                            progress: {
+                                current: indexed + skipped + errors,
+                                total: Math.max(processed, indexed + skipped + errors),
+                                percent:
+                                    Math.max(processed, indexed + skipped + errors) > 0
+                                        ? Math.round(
+                                              ((indexed + skipped + errors) /
+                                                  Math.max(processed, indexed + skipped + errors)) * 100,
+                                          )
+                                        : null,
+                                indexed,
+                                skipped,
+                                errors,
+                                label: "running",
+                            },
+                        },
+                    });
                     setActionLog(
                         `Backfill running in background — candidates ${processed}, indexed ${indexed}, skipped ${skipped}, errors ${errors}`,
                         "info",
@@ -742,6 +883,22 @@ export function createStatusIndicator(options = {}) {
                         ),
                         "success",
                         3000,
+                        {
+                            history: {
+                                ...historyBase.history,
+                                status: "succeeded",
+                                detail: `Processed ${processed}, indexed ${indexed}, skipped ${skipped}`,
+                                progress: {
+                                    current: processed,
+                                    total: processed,
+                                    percent: processed > 0 ? 100 : null,
+                                    indexed,
+                                    skipped,
+                                    errors,
+                                    label: "done",
+                                },
+                            },
+                        },
                     );
                     setActionLog(
                         `Backfill OK — processed ${processed}, indexed ${indexed}, skipped ${skipped}`,
@@ -759,7 +916,14 @@ export function createStatusIndicator(options = {}) {
                 const detail = [code ? `code=${code}` : "", status ? `status=${status}` : "", err]
                     .filter(Boolean)
                     .join(" | ");
-                comfyToast(detail, "error", 4500);
+                comfyToast(detail, "error", 4500, {
+                    history: {
+                        ...historyBase.history,
+                        status: "failed",
+                        detail,
+                        progress: { label: "failed", errors: 1 },
+                    },
+                });
                 setActionLog(`Backfill ERROR — ${detail}\nSee console for full payload.`, "error");
                 console.error("[Majoor] Vector backfill failed response", res);
                 statusDot.style.background = "var(--mjr-status-error, #f44336)";
@@ -767,7 +931,14 @@ export function createStatusIndicator(options = {}) {
             }
         } catch (error) {
             const errText = String(error?.message || error || "Backfill failed");
-            comfyToast(errText, "error", 4500);
+            comfyToast(errText, "error", 4500, {
+                history: {
+                    ...historyBase.history,
+                    status: "failed",
+                    detail: errText,
+                    progress: { label: "failed", errors: 1 },
+                },
+            });
             setActionLog(`Backfill EXCEPTION — ${errText}\nSee console for stack trace.`, "error");
             console.error("[Majoor] Vector backfill exception", error);
             statusDot.style.background = "var(--mjr-status-error, #f44336)";

@@ -8,12 +8,119 @@ export const TOAST_HISTORY_EVENT = "mjr:toast-history-changed";
 
 let _history = null; // lazy-loaded
 
+function _normalizeText(value) {
+    return String(value || "").trim();
+}
+
+function _normalizeType(value) {
+    const raw = _normalizeText(value).toLowerCase();
+    if (raw === "warn") return "warning";
+    if (raw === "danger") return "error";
+    return raw || "info";
+}
+
+function _normalizeDuration(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+}
+
+function _normalizeProgress(value) {
+    if (!value || typeof value !== "object") return null;
+    const percentRaw = Number(value.percent);
+    const percent = Number.isFinite(percentRaw)
+        ? Math.max(0, Math.min(100, Math.round(percentRaw)))
+        : null;
+    const currentRaw = Number(value.current);
+    const totalRaw = Number(value.total);
+    const current = Number.isFinite(currentRaw) ? Math.max(0, Math.floor(currentRaw)) : null;
+    const total = Number.isFinite(totalRaw) ? Math.max(0, Math.floor(totalRaw)) : null;
+    const indexedRaw = Number(value.indexed);
+    const skippedRaw = Number(value.skipped);
+    const errorsRaw = Number(value.errors);
+    const indexed = Number.isFinite(indexedRaw) ? Math.max(0, Math.floor(indexedRaw)) : null;
+    const skipped = Number.isFinite(skippedRaw) ? Math.max(0, Math.floor(skippedRaw)) : null;
+    const errors = Number.isFinite(errorsRaw) ? Math.max(0, Math.floor(errorsRaw)) : null;
+    const label = _normalizeText(value.label);
+    if (
+        percent === null &&
+        current === null &&
+        total === null &&
+        indexed === null &&
+        skipped === null &&
+        errors === null &&
+        !label
+    ) {
+        return null;
+    }
+    return {
+        percent,
+        current,
+        total,
+        indexed,
+        skipped,
+        errors,
+        label,
+    };
+}
+
+function _buildMessageFromParts(title, detail, fallback) {
+    if (title && detail) return `${title}: ${detail}`;
+    return detail || title || fallback || "";
+}
+
+function _normalizeEntry(input, fallbackType = "info", fallbackDuration = null) {
+    if (!input || typeof input !== "object") return null;
+    const title = _normalizeText(input.title || input.summary);
+    const detail = _normalizeText(input.detail);
+    const message = _normalizeText(
+        input.message || _buildMessageFromParts(title, detail, _normalizeText(input.fallbackMessage)),
+    );
+    if (!message) return null;
+
+    const durationMs = _normalizeDuration(input.durationMs ?? input.duration ?? fallbackDuration);
+    const createdAtRaw = Number(input.createdAt);
+    const createdAt = Number.isFinite(createdAtRaw) && createdAtRaw > 0 ? createdAtRaw : Date.now();
+    const persistent =
+        typeof input.persistent === "boolean"
+            ? input.persistent
+            : !(Number.isFinite(durationMs) && durationMs > 0);
+
+    return {
+        id:
+            _normalizeText(input.id) ||
+            `th-${createdAt}-${Math.random().toString(36).slice(2, 6)}`,
+        message,
+        title,
+        detail,
+        type: _normalizeType(input.type || fallbackType),
+        createdAt,
+        durationMs,
+        persistent,
+        source: _normalizeText(input.source),
+        trackId: _normalizeText(input.trackId),
+        status: _normalizeText(input.status),
+        operation: _normalizeText(input.operation),
+        progress: _normalizeProgress(input.progress),
+        forceStore: !!input.forceStore,
+        actionLabel: _normalizeText(input.actionLabel),
+        actionUrl: _normalizeText(input.actionUrl),
+    };
+}
+
 function _load() {
     if (_history !== null) return;
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
         const parsed = raw ? JSON.parse(raw) : [];
-        _history = Array.isArray(parsed) ? parsed : [];
+        _history = Array.isArray(parsed)
+            ? parsed
+                  .map((entry) => {
+                      if (entry && typeof entry === "object") return _normalizeEntry(entry);
+                      const message = _normalizeText(entry);
+                      return message ? _normalizeEntry({ message }) : null;
+                  })
+                  .filter(Boolean)
+            : [];
     } catch {
         _history = [];
     }
@@ -53,28 +160,51 @@ function _writeLastRead(ts) {
 
 /**
  * Add a toast to the history ring buffer.
- * @param {string} message - The (already-translated) message text.
+ * @param {string|object} message - The (already-translated) message text or structured history data.
  * @param {string} type    - "info" | "success" | "warning" | "error"
  * @param {number} [duration] - Display duration in ms; used to filter ephemeral info toasts.
  */
 export function addToastHistory(message, type, duration) {
     _load();
-    const msg = String(message || "").trim();
-    if (!msg) return;
-    const t = String(type || "info")
-        .trim()
-        .toLowerCase();
-    // Skip ephemeral info-only toasts (short-lived operational feedback).
-    // Errors, warnings and successes are always stored.
-    const dur = Number.isFinite(Number(duration)) ? Number(duration) : 99999;
-    if (t === "info" && dur < 2500) return;
+    const entry =
+        message && typeof message === "object"
+            ? _normalizeEntry(message, type, duration)
+            : _normalizeEntry(
+                  {
+                      message: _normalizeText(message),
+                      type,
+                      durationMs: duration,
+                  },
+                  type,
+                  duration,
+              );
+    if (!entry) return;
 
-    const entry = {
-        id: `th-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        message: msg,
-        type: t,
-        createdAt: Date.now(),
-    };
+    // Skip ephemeral info-only toasts (short-lived operational feedback).
+    // Persistent info toasts are kept because they usually carry actionable context.
+    if (
+        !entry.forceStore &&
+        !entry.trackId &&
+        entry.type === "info" &&
+        Number.isFinite(entry.durationMs) &&
+        entry.durationMs > 0 &&
+        entry.durationMs < 2500
+    ) {
+        return;
+    }
+
+    const trackId = String(entry.trackId || "").trim();
+    if (trackId) {
+        const existingIndex = _history.findIndex(
+            (item) => String(item?.trackId || "").trim() === trackId,
+        );
+        if (existingIndex >= 0) {
+            const existing = _history[existingIndex] || {};
+            _history.splice(existingIndex, 1);
+            entry.id = String(existing.id || entry.id || "").trim() || entry.id;
+        }
+    }
+
     _history.unshift(entry); // newest first
     if (_history.length > MAX_HISTORY) _history = _history.slice(0, MAX_HISTORY);
     _save();

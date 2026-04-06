@@ -528,8 +528,21 @@ def _resolve_watcher_restart_paths(svc: dict[str, Any], build_watch_paths: Any) 
 
 
 def _backup_name(now: datetime.datetime | None = None) -> str:
-    ts = (now or datetime.datetime.now(datetime.timezone.utc)).strftime("%Y%m%d_%H%M%S")
+    ts = (now or datetime.datetime.now(datetime.timezone.utc)).strftime("%Y%m%d_%H%M%S_%f")[:-3]
     return f"assets_{ts}.sqlite"
+
+
+def _next_backup_target() -> Path:
+    target = _DB_ARCHIVE_DIR / _backup_name()
+    if not target.exists():
+        return target
+    stem = target.stem
+    suffix = target.suffix or ".sqlite"
+    for index in range(2, 1000):
+        candidate = target.with_name(f"{stem}_{index}{suffix}")
+        if not candidate.exists():
+            return candidate
+    raise RuntimeError("Failed to reserve unique DB backup filename")
 
 
 def _list_backup_files() -> list[dict[str, str | int]]:
@@ -812,6 +825,12 @@ async def _backfill_missing_asset_vectors(
 
     scope_sql, scope_params = _build_backfill_scope_clause(normalized_scope, normalized_custom_root)
     counters = _BackfillCounters(batch_size=size)
+    totals_res = await _count_backfill_scope_totals(db=db, scope_sql=scope_sql, scope_params=scope_params)
+    if not totals_res.ok:
+        return Result.Err(totals_res.code, totals_res.error or "Failed to count backfill totals")
+    totals = totals_res.data or {}
+    counters.eligible_total = int(totals.get("eligible_total") or 0)
+    counters.candidate_total = int(totals.get("candidate_total") or 0)
     _emit_backfill_progress(on_progress, counters)
     result = await _run_backfill_vector_query_loop(
         db=db,
@@ -837,12 +856,60 @@ def _normalize_backfill_batch_size(batch_size: int) -> int:
     return max(1, min(200, int(batch_size or 64)))
 
 
+async def _count_backfill_scope_totals(
+    *,
+    db: Any,
+    scope_sql: str,
+    scope_params: list[Any],
+) -> Result[dict[str, int]]:
+    count_res = await db.aquery(
+        """
+        SELECT
+            COUNT(*) AS eligible_total,
+            COALESCE(
+                SUM(
+                    CASE
+                        WHEN ae.asset_id IS NULL OR ae.vector IS NULL OR length(ae.vector) = 0 THEN 1
+                        ELSE 0
+                    END
+                ),
+                0
+            ) AS candidate_total
+        FROM assets a
+        LEFT JOIN vec.asset_embeddings ae ON ae.asset_id = a.id
+        WHERE a.kind IN ('image', 'video')
+        """
+        + scope_sql,
+        tuple(scope_params),
+    )
+    if not count_res.ok:
+        return Result.Err("DB_ERROR", count_res.error or "Failed to count eligible assets")
+    rows = count_res.data or []
+    row = rows[0] if rows else {}
+    try:
+        eligible_total = int((row or {}).get("eligible_total") or 0)
+    except Exception:
+        eligible_total = 0
+    try:
+        candidate_total = int((row or {}).get("candidate_total") or 0)
+    except Exception:
+        candidate_total = 0
+    return Result.Ok(
+        {
+            "eligible_total": max(0, eligible_total),
+            "candidate_total": max(0, candidate_total),
+        }
+    )
+
+
 def _normalize_backfill_custom_root(normalized_scope: str, custom_root_id: str) -> str:
     return str(custom_root_id or "").strip() if normalized_scope == "custom" else ""
 
 
 class _BackfillCounters:
     def __init__(self, *, batch_size: int) -> None:
+        self.eligible_total = 0
+        self.candidate_total = 0
         self.candidates = 0
         self.indexed = 0
         self.skipped = 0
@@ -852,6 +919,9 @@ class _BackfillCounters:
 
     def as_payload(self) -> dict[str, int]:
         return {
+            "eligible_total": int(self.eligible_total),
+            "total_assets": int(self.eligible_total),
+            "candidate_total": int(self.candidate_total),
             "candidates": int(self.candidates),
             "indexed": int(self.indexed),
             "skipped": int(self.skipped),
@@ -1618,7 +1688,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
         if not db:
             return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Database service unavailable"))
 
-        target = _DB_ARCHIVE_DIR / _backup_name()
+        target = _next_backup_target()
         try:
             try:
                 await db.aquery("PRAGMA wal_checkpoint(TRUNCATE)", ())
@@ -1643,6 +1713,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                 "archive_dir": _DB_ARCHIVE_DIR.name,
                 "name": target.name,
                 "size_bytes": int(target.stat().st_size) if target.exists() else 0,
+                "mtime": int(target.stat().st_mtime) if target.exists() else 0,
             }
         )
         await _audit_db_maintenance_write(
@@ -1694,32 +1765,32 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
             return _json_response(Result.Err("DB_ERROR", safe_error_message(exc, "Failed to resolve backup file")))
 
         set_db_maintenance_active(True)
-        _emit_restore_status("started", "info", operation="restore_db")
+        _emit_restore_status("started", "info", operation="restore_db", name=src.name)
         svc, error_result = await _require_services()
         if error_result:
             set_db_maintenance_active(False)
-            _emit_restore_status("failed", "error", error_result.error if hasattr(error_result, "error") else None, operation="restore_db")
+            _emit_restore_status("failed", "error", error_result.error if hasattr(error_result, "error") else None, operation="restore_db", name=src.name)
             return _json_response(error_result)
         db = svc.get("db") if isinstance(svc, dict) else None
         index_service = svc.get("index") if isinstance(svc, dict) else None
         if not db:
             set_db_maintenance_active(False)
-            _emit_restore_status("failed", "error", "Database service unavailable", operation="restore_db")
+            _emit_restore_status("failed", "error", "Database service unavailable", operation="restore_db", name=src.name)
             return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Database service unavailable"))
         watcher_was_running = await _stop_watcher_if_running(svc if isinstance(svc, dict) else None)
 
         try:
-            _emit_restore_status("stopping_workers", "info", operation="restore_db")
+            _emit_restore_status("stopping_workers", "info", operation="restore_db", name=src.name)
             if index_service and hasattr(index_service, "stop_enrichment"):
                 try:
                     await index_service.stop_enrichment(clear_queue=True)
                 except Exception:
                     pass
 
-            _emit_restore_status("resetting_db", "info", operation="restore_db")
+            _emit_restore_status("resetting_db", "info", operation="restore_db", name=src.name)
             reset_res = await db.areset()
             if not reset_res.ok:
-                _emit_restore_status("failed", "error", reset_res.error or "Failed to reset DB", operation="restore_db")
+                _emit_restore_status("failed", "error", reset_res.error or "Failed to reset DB", operation="restore_db", name=src.name)
                 result: Result[Any] = Result.Err(reset_res.code or "DB_ERROR", reset_res.error or "Failed to reset DB")
                 await _audit_db_maintenance_write(
                     svc if isinstance(svc, dict) else {},
@@ -1730,7 +1801,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                     name=src.name,
                 )
                 return _json_response(result)
-            _emit_restore_status("replacing_files", "info", operation="restore_db")
+            _emit_restore_status("replacing_files", "info", operation="restore_db", name=src.name)
             await _replace_db_from_backup(src, INDEX_DB_PATH)
             try:
                 await db._ensure_initialized_async()
@@ -1745,7 +1816,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
 
             scans_triggered: list[str] = []
             if index_service:
-                _emit_restore_status("restarting_scan", "info", operation="restore_db")
+                _emit_restore_status("restarting_scan", "info", operation="restore_db", name=src.name)
                 try:
                     out_path = str(Path(get_runtime_output_root()).resolve(strict=False))
                     _spawn_background_task(
@@ -1780,7 +1851,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                 except Exception:
                     pass
         except Exception as exc:
-            _emit_restore_status("failed", "error", safe_error_message(exc, "Failed to restore DB backup"), operation="restore_db")
+            _emit_restore_status("failed", "error", safe_error_message(exc, "Failed to restore DB backup"), operation="restore_db", name=src.name)
             result = Result.Err("DB_ERROR", safe_error_message(exc, "Failed to restore DB backup"))
             await _audit_db_maintenance_write(
                 svc if isinstance(svc, dict) else {},
@@ -1797,7 +1868,7 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
             except Exception:
                 pass
             set_db_maintenance_active(False)
-        _emit_restore_status("done", "success", "Database restore completed", operation="restore_db")
+        _emit_restore_status("done", "success", "Database restore completed", operation="restore_db", name=src.name)
         result = Result.Ok(
             {
                 "restored": True,

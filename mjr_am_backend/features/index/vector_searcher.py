@@ -376,16 +376,26 @@ class VectorSearcher:
     async def stats(self) -> Result[dict[str, Any]]:
         """Return basic statistics about the vector index."""
         row = await self.db.aquery(
-            "SELECT COUNT(*) as total, AVG(aesthetic_score) as avg_score FROM vec.asset_embeddings"
+            "SELECT "
+            "(SELECT COUNT(*) FROM vec.asset_embeddings) as total, "
+            "(SELECT AVG(aesthetic_score) FROM vec.asset_embeddings) as avg_score, "
+            "(SELECT COUNT(*) FROM assets WHERE kind IN ('image', 'video')) as eligible_total"
         )
         if not row.ok or not row.data:
             return Result.Ok({"total": 0, "avg_score": None})
         data = row.data[0]
+        total = int(data.get("total") or 0)
+        eligible_total = int(data.get("eligible_total") or 0)
+        coverage_ratio = None
+        if eligible_total > 0:
+            coverage_ratio = round(total / eligible_total, 4)
         return Result.Ok({
-            "total": int(data.get("total") or 0),
+            "total": total,
             "avg_score": round(float(data["avg_score"]), 4) if data.get("avg_score") is not None else None,
             "dim": self._dim,
             "enabled": is_vector_search_enabled(),
+            "eligible_total": eligible_total,
+            "coverage_ratio": coverage_ratio,
         })
 
     # ── Private helpers ────────────────────────────────────────────────

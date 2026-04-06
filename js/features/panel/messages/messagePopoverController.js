@@ -87,6 +87,53 @@ function getHistoryTypeIcon(type) {
     }
 }
 
+function formatHistoryDuration(entry) {
+    if (entry?.persistent) return "persistent";
+    const durationMs = Number(entry?.durationMs);
+    if (!Number.isFinite(durationMs) || durationMs <= 0) return "";
+    if (durationMs < 10000) return `${(durationMs / 1000).toFixed(1)}s`;
+    return `${Math.round(durationMs / 1000)}s`;
+}
+
+function formatHistoryStatus(status) {
+    const raw = String(status || "").trim().toLowerCase();
+    if (!raw) return "";
+    return raw.replace(/[_-]+/g, " ");
+}
+
+function formatHistoryProgressSummary(entry) {
+    const progress = entry?.progress;
+    if (!progress || typeof progress !== "object") return "";
+    const label = String(progress.label || "").trim();
+    const current = Number(progress.current);
+    const total = Number(progress.total);
+    const indexed = Number(progress.indexed);
+    const skipped = Number(progress.skipped);
+    const errors = Number(progress.errors);
+    const parts = [];
+    if (label) parts.push(label);
+    if (Number.isFinite(current) && Number.isFinite(total) && total > 0) {
+        parts.push(`${current}/${total}`);
+    }
+    if (Number.isFinite(indexed)) parts.push(`indexed ${indexed}`);
+    if (Number.isFinite(skipped)) parts.push(`skipped ${skipped}`);
+    if (Number.isFinite(errors) && errors > 0) parts.push(`errors ${errors}`);
+    return parts.join(" | ");
+}
+
+function getHistoryProgressPercent(entry) {
+    const progress = entry?.progress;
+    if (!progress || typeof progress !== "object") return null;
+    const percent = Number(progress.percent);
+    if (Number.isFinite(percent)) return Math.max(0, Math.min(100, Math.round(percent)));
+    const current = Number(progress.current);
+    const total = Number(progress.total);
+    if (Number.isFinite(current) && Number.isFinite(total) && total > 0) {
+        return Math.max(0, Math.min(100, Math.round((current / total) * 100)));
+    }
+    return null;
+}
+
 function setTabState({
     activeTab = "messages",
     title = null,
@@ -328,16 +375,87 @@ export function bindMessagePopoverController({
             const content = document.createElement("div");
             content.className = "mjr-history-item-content";
 
-            const msg = document.createElement("div");
-            msg.className = "mjr-history-item-msg";
-            msg.textContent = String(entry.message || "");
+            const titleText = String(entry.title || "").trim();
+            const detailText = String(entry.detail || "").trim();
+            const fallbackMessage = String(entry.message || "").trim();
+            const primaryText = titleText || fallbackMessage;
+            const secondaryText = titleText && detailText ? detailText : titleText ? "" : detailText;
 
-            const time = document.createElement("div");
+            const msg = document.createElement("div");
+            msg.className = titleText ? "mjr-history-item-title" : "mjr-history-item-msg";
+            msg.textContent = primaryText;
+
+            const detail = document.createElement("div");
+            detail.className = "mjr-history-item-detail";
+            detail.textContent = secondaryText;
+
+            const meta = document.createElement("div");
+            meta.className = "mjr-history-item-meta";
+
+            const time = document.createElement("span");
             time.className = "mjr-history-item-time";
             time.textContent = formatMessageDate(entry.createdAt);
 
+            const duration = document.createElement("span");
+            duration.className = "mjr-history-item-chip";
+            duration.textContent = formatHistoryDuration(entry);
+
+            const source = document.createElement("span");
+            source.className = "mjr-history-item-chip";
+            source.textContent = String(entry.source || "").trim();
+
+            const status = document.createElement("span");
+            status.className = "mjr-history-item-chip";
+            status.textContent = formatHistoryStatus(entry.status);
+
             content.appendChild(msg);
-            if (time.textContent) content.appendChild(time);
+            if (detail.textContent) content.appendChild(detail);
+            if (time.textContent) meta.appendChild(time);
+            if (duration.textContent) meta.appendChild(duration);
+            if (status.textContent) meta.appendChild(status);
+            if (source.textContent) meta.appendChild(source);
+            if (meta.childNodes.length) content.appendChild(meta);
+
+            const progressSummaryText = formatHistoryProgressSummary(entry);
+            const progressPercent = getHistoryProgressPercent(entry);
+            if (progressSummaryText || progressPercent !== null) {
+                const progressWrap = document.createElement("div");
+                progressWrap.className = "mjr-history-item-progress";
+
+                if (progressSummaryText) {
+                    const progressSummary = document.createElement("div");
+                    progressSummary.className = "mjr-history-item-progress-summary";
+                    progressSummary.textContent = progressSummaryText;
+                    progressWrap.appendChild(progressSummary);
+                }
+
+                if (progressPercent !== null) {
+                    const progressBar = document.createElement("div");
+                    progressBar.className = "mjr-history-item-progress-bar";
+
+                    const progressFill = document.createElement("div");
+                    progressFill.className = "mjr-history-item-progress-fill";
+                    progressFill.style.width = `${progressPercent}%`;
+
+                    progressBar.appendChild(progressFill);
+                    progressWrap.appendChild(progressBar);
+                }
+
+                content.appendChild(progressWrap);
+            }
+
+            const actionUrl = resolveSafeActionUrl(entry?.actionUrl);
+            const actionLabel = String(entry?.actionLabel || "").trim();
+            if (actionUrl && actionLabel) {
+                const action = document.createElement("a");
+                action.className = "mjr-history-item-action";
+                action.href = actionUrl;
+                action.target = "_blank";
+                action.rel = "noopener noreferrer";
+                action.textContent = actionLabel;
+                content.appendChild(action);
+            }
+
             item.appendChild(icon);
             item.appendChild(content);
             historyList.appendChild(item);

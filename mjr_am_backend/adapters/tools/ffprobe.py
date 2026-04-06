@@ -66,17 +66,17 @@ class FFProbe:
     @staticmethod
     def _resolve_executable_path(raw: str) -> str | None:
         clean = FFProbe._strip_optional_quotes(raw)
-        for candidate in FFProbe._candidate_executable_names(clean):
-            resolved = shutil.which(candidate)
+        for candidate_name in FFProbe._candidate_executable_names(clean):
+            resolved = shutil.which(candidate_name)
             if resolved:
                 return resolved
 
         try:
-            candidate = Path(clean)
-            if candidate.is_file():
-                return str(candidate.resolve(strict=True))
-            for sibling_name in FFProbe._candidate_executable_names(candidate.name):
-                sibling = candidate.with_name(sibling_name)
+            candidate_path = Path(clean)
+            if candidate_path.is_file():
+                return str(candidate_path.resolve(strict=True))
+            for sibling_name in FFProbe._candidate_executable_names(candidate_path.name):
+                sibling = candidate_path.with_name(sibling_name)
                 if sibling.is_file():
                     return str(sibling.resolve(strict=True))
         except (OSError, RuntimeError, ValueError):

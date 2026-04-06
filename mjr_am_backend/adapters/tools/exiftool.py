@@ -234,17 +234,17 @@ class ExifTool:
     @staticmethod
     def _resolve_executable_path(raw: str) -> str | None:
         clean = ExifTool._strip_optional_quotes(raw)
-        for candidate in ExifTool._candidate_executable_names(clean):
-            resolved = shutil.which(candidate)
+        for candidate_name in ExifTool._candidate_executable_names(clean):
+            resolved = shutil.which(candidate_name)
             if resolved:
                 return resolved
 
         try:
-            candidate = Path(clean)
-            if candidate.is_file():
-                return str(candidate.resolve(strict=True))
-            for sibling_name in ExifTool._candidate_executable_names(candidate.name):
-                sibling = candidate.with_name(sibling_name)
+            candidate_path = Path(clean)
+            if candidate_path.is_file():
+                return str(candidate_path.resolve(strict=True))
+            for sibling_name in ExifTool._candidate_executable_names(candidate_path.name):
+                sibling = candidate_path.with_name(sibling_name)
                 if sibling.is_file():
                     return str(sibling.resolve(strict=True))
         except (OSError, RuntimeError, ValueError):

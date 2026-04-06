@@ -875,6 +875,8 @@ const DICTIONARY = {
             "Vector backfill complete! Processed: {processed}, Indexed: {indexed}, Skipped: {skipped}",
         "toast.vectorBackfillFailedGeneric": "Backfill failed",
         "toast.vectorBackfillFailedDetail": "Vector backfill failed: {error}",
+        "toast.aiSearchPartiallyIndexed":
+            "AI search index is only partially built ({indexed}/{eligible}, {percent}%). Run Vector Backfill for existing assets.",
         "toast.rescanUpdatingAiIndex": "Rescanning file + updating AI index...",
         "toast.metadataVectorUpdated": "Metadata + AI vector index updated for this asset.",
         "toast.metadataUpdatedVectorFailed":
@@ -1058,6 +1060,8 @@ const DICTIONARY = {
             "Vector backfill termine ! Traites : {processed}, Indexes : {indexed}, Ignores : {skipped}",
         "toast.vectorBackfillFailedGeneric": "Echec du backfill",
         "toast.vectorBackfillFailedDetail": "Echec du vector backfill : {error}",
+        "toast.aiSearchPartiallyIndexed":
+            "L'index de recherche IA n'est que partiellement construit ({indexed}/{eligible}, {percent} %). Lancez Vector Backfill pour les assets existants.",
         "toast.rescanUpdatingAiIndex": "Rescan du fichier + mise a jour index IA...",
         "toast.metadataVectorUpdated":
             "Metadonnees + index vectoriel IA mis a jour pour cet asset.",

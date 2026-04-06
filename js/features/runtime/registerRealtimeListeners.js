@@ -1,4 +1,33 @@
 import { EVENTS } from "../../app/events.js";
+import { recordToastHistory } from "../../app/toast.js";
+
+function resolveMaintenanceTitle(op, t) {
+    const operation = String(op || "").trim().toLowerCase();
+    if (operation === "delete_db") return t("btn.deleteDb", "Delete DB");
+    if (operation === "reset_index") return t("btn.resetIndex", "Reset index");
+    if (operation === "restore_db") return t("btn.dbRestore", "Restore DB");
+    return t("toast.dbRestoreStarted", "DB restore started");
+}
+
+function buildMaintenanceProgress(op, step) {
+    const operation = String(op || "").trim().toLowerCase();
+    const currentStep = String(step || "").trim().toLowerCase();
+    const flows = {
+        delete_db: ["started", "stopping_workers", "resetting_db", "delete_db", "recreate_db", "restarting_scan", "done"],
+        reset_index: ["started", "stopping_workers", "resetting_db", "restarting_scan", "done"],
+        db_restore: ["started", "stopping_workers", "resetting_db", "replacing_files", "restarting_scan", "done"],
+    };
+    const steps = flows[operation] || flows.db_restore;
+    const index = Math.max(0, steps.indexOf(currentStep));
+    const current = Math.min(steps.length, index >= 0 ? index + 1 : 1);
+    const total = steps.length;
+    return {
+        current,
+        total,
+        percent: Math.round((current / total) * 100),
+        label: currentStep.replace(/[_-]+/g, " "),
+    };
+}
 
 export async function registerRealtimeListeners({
     api,
@@ -273,9 +302,6 @@ export async function registerRealtimeListeners({
             window.dispatchEvent(new CustomEvent(EVENTS.DB_RESTORE_STATUS, { detail }));
             const isDelete = op === "delete_db";
             const isReset = op === "reset_index";
-            if (isDelete && !["started", "done", "failed"].includes(step)) {
-                return;
-            }
             const map = {
                 started: isDelete
                     ? t("toast.dbDeleteTriggered", "Deleting database and rebuilding...")
@@ -310,7 +336,23 @@ export async function registerRealtimeListeners({
                     : step === "done"
                       ? "success"
                       : "info";
-            comfyToast(msg, tone, step === "done" || step === "failed" ? 2800 : 1800);
+            const historyOpts = {
+                history: {
+                    trackId: `maintenance:${String(op || "db_restore").trim().toLowerCase() || "db_restore"}`,
+                    title: resolveMaintenanceTitle(op, t),
+                    detail: msg,
+                    status: step,
+                    operation: String(op || "db_restore").trim().toLowerCase(),
+                    progress: buildMaintenanceProgress(op, step),
+                    source: String(detail?.name || "").trim() || "maintenance",
+                    forceStore: true,
+                },
+            };
+            if (isDelete && !["started", "done", "failed"].includes(step)) {
+                recordToastHistory(msg, tone, 0, historyOpts);
+                return;
+            }
+            comfyToast(msg, tone, step === "done" || step === "failed" ? 2800 : 1800, historyOpts);
         } catch (e) {
             console.debug?.(e);
         }

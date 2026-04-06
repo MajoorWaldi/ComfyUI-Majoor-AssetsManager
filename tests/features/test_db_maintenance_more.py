@@ -197,6 +197,10 @@ async def test_db_backfill_missing_vectors_success(monkeypatch, tmp_path):
             self.calls += 1
             if self.calls == 1:
                 return Result.Ok([
+                    {"eligible_total": 25, "candidate_total": 1},
+                ])
+            if self.calls == 2:
+                return Result.Ok([
                         {"id": 1, "filepath": str(image_path), "kind": "image", "metadata_raw": "{}"},
                 ])
             return Result.Ok([])
@@ -229,6 +233,8 @@ async def test_db_backfill_missing_vectors_success(monkeypatch, tmp_path):
     assert body.get("ok") is True
     assert body.get("data", {}).get("ran") is True
     assert body.get("data", {}).get("indexed") == 1
+    assert body.get("data", {}).get("eligible_total") == 25
+    assert body.get("data", {}).get("candidate_total") == 1
     assert searcher.invalidated == 1
 
 
@@ -261,6 +267,10 @@ async def test_db_backfill_missing_vectors_custom_scope_filters_sql(monkeypatch,
             if self.calls == 1:
                 self.first_sql = str(sql)
                 self.first_params = tuple(params or ())
+                return Result.Ok([
+                    {"eligible_total": 12, "candidate_total": 1},
+                ])
+            if self.calls == 2:
                 return Result.Ok([
                     {"id": 11, "filepath": str(image_path), "kind": "image", "metadata_raw": "{}"},
                 ])
@@ -299,11 +309,13 @@ async def test_db_backfill_missing_vectors_custom_scope_filters_sql(monkeypatch,
     assert body.get("data", {}).get("scope") == "custom"
     assert body.get("data", {}).get("custom_root_id") == "root-1"
     assert body.get("data", {}).get("indexed") == 1
+    assert body.get("data", {}).get("eligible_total") == 12
+    assert body.get("data", {}).get("candidate_total") == 1
     assert searcher.invalidated == 1
     assert "LOWER(COALESCE(a.source, '')) = ?" in db.first_sql
     assert "a.root_id = ?" in db.first_sql
-    assert db.first_params[1] == "custom"
-    assert db.first_params[2] == "root-1"
+    assert db.first_params[0] == "custom"
+    assert db.first_params[1] == "root-1"
 
 
 @pytest.mark.asyncio

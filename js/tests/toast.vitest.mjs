@@ -157,7 +157,78 @@ describe("toast", () => {
 
         expect(historyModule.listToastHistory()[0]).toMatchObject({
             message: "Import: 3 assets added",
+            title: "Import",
+            detail: "3 assets added",
+            durationMs: 2500,
+            persistent: false,
             type: "success",
+        });
+    });
+
+    it("keeps persistent info toasts in history instead of filtering them out", async () => {
+        const { toastModule, historyModule } = await loadToastModules();
+
+        toastModule.comfyToast({ summary: "Update", detail: "A new version is available" }, "info", 0);
+
+        expect(historyModule.listToastHistory()[0]).toMatchObject({
+            message: "Update: A new version is available",
+            title: "Update",
+            detail: "A new version is available",
+            type: "info",
+            persistent: true,
+        });
+    });
+
+    it("stores extended history metadata when provided", async () => {
+        const { toastModule, historyModule } = await loadToastModules();
+
+        toastModule.comfyToast("Indexed 3 assets", "success", 3600, {
+            history: {
+                title: "Vector Backfill",
+                detail: "Indexed 3 assets across 2 folders",
+                source: "ai-index",
+                actionLabel: "Open docs",
+                actionUrl: "https://example.com/docs",
+            },
+        });
+
+        expect(historyModule.listToastHistory()[0]).toMatchObject({
+            message: "Indexed 3 assets",
+            title: "Vector Backfill",
+            detail: "Indexed 3 assets across 2 folders",
+            source: "ai-index",
+            actionLabel: "Open docs",
+            actionUrl: "https://example.com/docs",
+            type: "success",
+            durationMs: 3600,
+        });
+    });
+
+    it("updates a tracked history entry instead of duplicating progress steps", async () => {
+        const { toastModule, historyModule } = await loadToastModules();
+
+        toastModule.recordToastHistory("Reset started", "info", 0, {
+            history: {
+                trackId: "maintenance:reset_index",
+                title: "Reset index",
+                status: "started",
+            },
+        });
+        toastModule.recordToastHistory("Restarting scan", "info", 0, {
+            history: {
+                trackId: "maintenance:reset_index",
+                title: "Reset index",
+                status: "restarting_scan",
+            },
+        });
+
+        expect(historyModule.listToastHistory()).toHaveLength(1);
+        expect(historyModule.listToastHistory()[0]).toMatchObject({
+            message: "Restarting scan",
+            title: "Reset index",
+            trackId: "maintenance:reset_index",
+            status: "restarting_scan",
+            persistent: true,
         });
     });
 

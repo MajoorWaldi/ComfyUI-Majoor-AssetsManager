@@ -191,6 +191,45 @@ async def test_vector_search_route_filters_hits_by_scope(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_vector_stats_route_exposes_coverage_fields(monkeypatch) -> None:
+    class _Searcher:
+        async def stats(self):
+            return Result.Ok(
+                {
+                    "total": 692,
+                    "avg_score": 0.9578,
+                    "dim": 1152,
+                    "enabled": True,
+                    "eligible_total": 3116,
+                    "coverage_ratio": 0.2221,
+                }
+            )
+
+    async def _require_services():
+        return {"vector_searcher": _Searcher()}, None
+
+    monkeypatch.setattr(vector_search, "_require_services", _require_services)
+    monkeypatch.setattr(vector_search, "is_vector_search_enabled", lambda: True)
+
+    app = _build_vector_app()
+    req = make_mocked_request("GET", "/mjr/am/vector/stats", app=app)
+    match = await app.router.resolve(req)
+    req._match_info = match
+    resp = await match.handler(req)
+    body = json.loads(resp.text)
+
+    assert body.get("ok") is True
+    assert body.get("data") == {
+        "total": 692,
+        "avg_score": 0.9578,
+        "dim": 1152,
+        "enabled": True,
+        "eligible_total": 3116,
+        "coverage_ratio": 0.2221,
+    }
+
+
+@pytest.mark.asyncio
 async def test_vector_search_route_applies_asset_filters(monkeypatch) -> None:
     class _DB:
         async def aquery(self, sql: str, params=()):

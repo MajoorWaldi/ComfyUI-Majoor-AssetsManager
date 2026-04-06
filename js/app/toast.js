@@ -40,6 +40,45 @@ function serializeToastMessage(message) {
     }
 }
 
+function buildToastHistoryPayload(message, type, duration, opts) {
+    const history = opts?.history && typeof opts.history === "object" ? opts.history : null;
+    const payload = {
+        type,
+        durationMs: Number.isFinite(Number(duration)) ? Number(duration) : null,
+        persistent: !(Number.isFinite(Number(duration)) && Number(duration) > 0),
+        source: String(history?.source || opts?.source || "").trim(),
+        trackId: String(history?.trackId || "").trim(),
+        status: String(history?.status || "").trim(),
+        operation: String(history?.operation || "").trim(),
+        progress: history?.progress && typeof history.progress === "object" ? { ...history.progress } : null,
+        forceStore: !!history?.forceStore,
+        actionLabel: String(history?.actionLabel || "").trim(),
+        actionUrl: String(history?.actionUrl || "").trim(),
+    };
+
+    if (message && typeof message === "object") {
+        payload.title = String(history?.title || message.summary || "").trim();
+        payload.detail = String(history?.detail || message.detail || message.message || "").trim();
+        payload.message = serializeToastMessage(message);
+        return payload;
+    }
+
+    payload.title = String(history?.title || "").trim();
+    payload.detail = String(history?.detail || "").trim();
+    payload.message = serializeToastMessage(message);
+    return payload;
+}
+
+export function recordToastHistory(message, type = "info", duration, opts) {
+    try {
+        const payload = buildToastHistoryPayload(message, type, duration, opts);
+        payload.forceStore = true;
+        addToastHistory(payload, type, duration);
+    } catch {
+        /* ignore */
+    }
+}
+
 /**
  * Get standard duration for toast type.
  * @param {string} type - Toast type
@@ -402,7 +441,7 @@ export function comfyToast(message, type = "info", duration, opts) {
     // Record in toast history unless caller opts out.
     if (!opts?.noHistory) {
         try {
-            addToastHistory(serializeToastMessage(message), type, duration);
+            addToastHistory(buildToastHistoryPayload(message, type, duration, opts), type, duration);
         } catch {
             /* ignore */
         }
@@ -510,6 +549,7 @@ export const toast = {
 };
 
 export const __toastTestUtils = {
+    buildToastHistoryPayload,
     normalizeToastType,
     serializeToastMessage,
     _dismissAllFallbackErrorToasts,
