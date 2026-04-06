@@ -5,7 +5,12 @@ from typing import Any
 
 from ...probe_router import pick_probe_backend
 from ...shared import Result, classify_file
-from .extractors import extract_avif_metadata, extract_png_metadata, extract_video_metadata, extract_webp_metadata
+from .extractors import (
+    extract_avif_metadata,
+    extract_png_metadata,
+    extract_video_metadata,
+    extract_webp_metadata,
+)
 from .extractors_3d import extract_model3d_metadata
 from .parsing_utils import parse_auto1111_params
 

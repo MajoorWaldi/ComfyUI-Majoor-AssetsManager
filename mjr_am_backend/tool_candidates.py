@@ -2,8 +2,8 @@
 Shared candidate helpers for external tool resolution.
 """
 import os
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 EXIFTOOL_CANDIDATE_NAMES = ("exiftool", "exiftool.exe", "exiftool(-k)", "exiftool(-k).exe")
 
