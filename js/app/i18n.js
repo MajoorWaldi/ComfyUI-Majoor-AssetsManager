@@ -869,6 +869,13 @@ const DICTIONARY = {
         "toast.unableResolveFolderPath": "Unable to resolve folder path",
         "toast.pathCopyFailed": "Failed to copy path",
         "toast.noFilePath": "No file path available for this asset.",
+        "toast.writeAuthBootstrapHelp":
+            "Write access is blocked. Sign in to ComfyUI and retry so Majoor can bootstrap the remote session automatically, or set a Majoor API token in Settings -> Security.",
+        "toast.writeAuthSignInRequired":
+            "Write access is blocked. Sign in to ComfyUI first, then retry so Majoor can bootstrap the remote session token automatically.",
+        "toast.writeAuthConfiguredTokenRequired":
+            "Write access requires the Majoor API token already configured on the server. Open Settings -> Security -> API Token and enter the matching token.",
+        "toast.writeAuthTitle": "Majoor remote write access",
         "toast.vectorBackfillStarting": "Starting vector backfill... This may take a while.",
         "toast.vectorBackfillRunning": "Vector backfill still running in background{job}.",
         "toast.vectorBackfillComplete":

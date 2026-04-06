@@ -3,6 +3,8 @@
  */
 
 import { SETTINGS_KEY } from "../app/settingsStore.js";
+import { t } from "../app/i18n.js";
+import { comfyToast } from "../app/toast.js";
 import { ENDPOINTS, appendAssetFilterQueryParams } from "./endpoints.js";
 import { normalizeAssetId, pickRootId } from "../utils/ids.js";
 import { createTTLCache } from "../utils/ttlCache.js";
@@ -39,6 +41,8 @@ import { createTTLCache } from "../utils/ttlCache.js";
  */
 
 const AUTH_TOKEN_CACHE_TTL_MS = 2000;
+const AUTH_BOOTSTRAP_FAILURE_TTL_MS = 15_000;
+const WRITE_AUTH_TOAST_TTL_MS = 8_000;
 const TAGS_CACHE_TTL_MS = 30_000;
 const DEFAULT_TAGS_CACHE_TTL_MS = TAGS_CACHE_TTL_MS;
 const CLIENT_GLOBAL_KEY = "__MJR_API_CLIENT__";
@@ -50,6 +54,8 @@ const BOOTSTRAP_TOKEN_PATH = "/mjr/am/settings/security/bootstrap-token";
 const DEFAULT_FETCH_TIMEOUT_MS = 20_000;
 const MAX_FETCH_TIMEOUT_MS = 300_000;
 let _authTokenRefreshInFlight = null;
+let _lastAuthBootstrapFailure = null;
+let _lastWriteAuthToast = null;
 const VECTOR_BACKFILL_DEFAULT_POLL_INTERVAL_MS = 1000;
 const VECTOR_BACKFILL_DEFAULT_POLL_TIMEOUT_MS = 30 * 60_000;
 const VECTOR_BACKFILL_MAX_POLL_TIMEOUT_MS = 12 * 60 * 60_000;
@@ -209,6 +215,7 @@ function _persistAuthToken(token) {
     try {
         sessionStorage?.setItem?.(RUNTIME_TOKEN_KEY, normalized);
         _authTokenCache.set(AUTH_TOKEN_CACHE_KEY, normalized);
+        _lastAuthBootstrapFailure = null;
         try {
             const raw = localStorage?.getItem?.(SETTINGS_KEY);
             const parsed = raw ? JSON.parse(raw) : {};
@@ -238,6 +245,116 @@ function _persistAuthToken(token) {
     }
 }
 
+function _rememberAuthBootstrapFailure(details = {}) {
+    const code = String(details?.code || "").trim().toUpperCase();
+    const error = String(details?.error || "").trim();
+    const status = Number(details?.status || 0) || 0;
+    _lastAuthBootstrapFailure = {
+        code,
+        error,
+        status,
+        at: Date.now(),
+    };
+}
+
+function _readAuthBootstrapFailure() {
+    const cached = _lastAuthBootstrapFailure;
+    if (!cached) return null;
+    const age = Date.now() - (Number(cached.at || 0) || 0);
+    if (age < 0 || age > AUTH_BOOTSTRAP_FAILURE_TTL_MS) {
+        _lastAuthBootstrapFailure = null;
+        return null;
+    }
+    return cached;
+}
+
+function _buildWriteAuthErrorMessage(result) {
+    const failure = _readAuthBootstrapFailure();
+    const resultCode = String(result?.code || "").trim().toUpperCase();
+    const resultError = String(result?.error || "").trim();
+    const failureCode = String(failure?.code || "").trim().toUpperCase();
+    const failureError = String(failure?.error || "")
+        .trim()
+        .toLowerCase();
+    const resultErrorLower = resultError.toLowerCase();
+
+    if (
+        failureCode === "FORBIDDEN" &&
+        (failureError.includes("already configured") || failureError.includes("rotate-token"))
+    ) {
+        return t(
+            "toast.writeAuthConfiguredTokenRequired",
+            "Write access requires the Majoor API token already configured on the server. Open Settings -> Security -> API Token and enter the matching token.",
+        );
+    }
+
+    if (
+        failureCode === "AUTH_REQUIRED" &&
+        (failureError.includes("sign in to comfyui") || failureError.includes("authenticated comfyui user"))
+    ) {
+        return t(
+            "toast.writeAuthSignInRequired",
+            "Write access is blocked. Sign in to ComfyUI first, then retry so Majoor can bootstrap the remote session token automatically.",
+        );
+    }
+
+    if (
+        failureCode === "BOOTSTRAP_DISABLED" ||
+        (failureCode === "AUTH_REQUIRED" && failureError.includes("bootstrap")) ||
+        (resultCode === "AUTH_REQUIRED" && resultErrorLower.includes("api token"))
+    ) {
+        return t(
+            "toast.writeAuthBootstrapHelp",
+            "Write access is blocked. Sign in to ComfyUI and retry so Majoor can bootstrap the remote session automatically, or set a Majoor API token in Settings -> Security.",
+        );
+    }
+
+    return "";
+}
+
+function _notifyWriteAuthFailure(message) {
+    const normalized = String(message || "").trim();
+    if (!normalized) return;
+    const now = Date.now();
+    const cached = _lastWriteAuthToast;
+    if (
+        cached &&
+        cached.message === normalized &&
+        now - (Number(cached.at || 0) || 0) < WRITE_AUTH_TOAST_TTL_MS
+    ) {
+        return;
+    }
+    _lastWriteAuthToast = { message: normalized, at: now };
+    try {
+        comfyToast(
+            {
+                summary: t("toast.writeAuthTitle", "Majoor remote write access"),
+                detail: normalized,
+            },
+            "warning",
+            6500,
+            { noHistory: true },
+        );
+    } catch (e) {
+        console.debug?.(e);
+    }
+}
+
+function _normalizeWriteAuthFailure(result) {
+    const code = String(result?.code || "").trim().toUpperCase();
+    const error = String(result?.error || "").trim().toLowerCase();
+    const authLikeForbidden = code === "FORBIDDEN" && error.includes("write operation blocked");
+    if (code !== "AUTH_REQUIRED" && !authLikeForbidden) {
+        return result;
+    }
+    const message = _buildWriteAuthErrorMessage(result);
+    if (!message) {
+        return result;
+    }
+    _notifyWriteAuthFailure(message);
+    return { ...result, error: message };
+}
+
 async function _refreshAuthTokenFromServer() {
     try {
         const response = await fetch("/mjr/am/settings/security/bootstrap-token", {
@@ -249,16 +366,44 @@ async function _refreshAuthTokenFromServer() {
             body: "{}",
         });
         const contentType = response.headers.get("content-type") || "";
-        if (!contentType.includes("application/json")) return false;
+        if (!contentType.includes("application/json")) {
+            _rememberAuthBootstrapFailure({
+                code: "INVALID_RESPONSE",
+                error: `Bootstrap token request returned non-JSON response (${response.status})`,
+                status: response.status,
+            });
+            return false;
+        }
         const payload = await response.json().catch((e) => {
             console.debug?.("[MJR auth] JSON parse error:", e);
             return null;
         });
-        if (!payload || typeof payload !== "object" || !payload.ok) return false;
+        if (!payload || typeof payload !== "object") {
+            _rememberAuthBootstrapFailure({
+                code: "INVALID_RESPONSE",
+                error: "Bootstrap token response was invalid.",
+                status: response.status,
+            });
+            return false;
+        }
+        if (!payload.ok) {
+            _rememberAuthBootstrapFailure({
+                code: payload?.code,
+                error: payload?.error,
+                status: response.status,
+            });
+            return false;
+        }
         const token = String(payload?.data?.token || "").trim();
         if (token) return _persistAuthToken(token);
+        _lastAuthBootstrapFailure = null;
         return true;
-    } catch {
+    } catch (error) {
+        _rememberAuthBootstrapFailure({
+            code: "NETWORK_ERROR",
+            error: error?.message || "Bootstrap token request failed.",
+            status: 0,
+        });
         return false;
     }
 }
@@ -643,6 +788,10 @@ async function fetchAPI(url, options = {}, retryCount = 0) {
                 const retryOptions = { ...options, _authRetryDone: true };
                 return await fetchAPI(url, retryOptions, retryCount);
             }
+        }
+
+        if (_methodIsWrite(method) && _isMajoorApiUrl(url) && !_isBootstrapTokenUrl(url)) {
+            result = _normalizeWriteAuthFailure(result);
         }
 
         return result; // Backend returns {ok, data, error, code, meta}
