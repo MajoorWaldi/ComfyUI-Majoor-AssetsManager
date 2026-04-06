@@ -61,6 +61,7 @@ def test_resolve_scan_root_validates_directory(tmp_path: Path) -> None:
 def test_allowed_upload_exts_adds_env(monkeypatch) -> None:
     monkeypatch.setenv("MJR_UPLOAD_EXTRA_EXT", "abc,.def")
     allowed = scan_helpers_mod._allowed_upload_exts()
+    assert ".avif" in allowed
     assert ".abc" in allowed
     assert ".def" in allowed
 

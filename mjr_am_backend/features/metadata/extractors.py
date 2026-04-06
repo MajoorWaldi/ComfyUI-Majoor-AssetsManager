@@ -37,6 +37,9 @@ _WEBP_TEXT_KEYS = (
     "EXIF:Subject",
     "IFD0:Subject",
 )
+_AVIF_WORKFLOW_KEYS = _WEBP_WORKFLOW_KEYS
+_AVIF_PROMPT_KEYS = _WEBP_PROMPT_KEYS
+_AVIF_TEXT_KEYS = _WEBP_TEXT_KEYS
 _VIDEO_WORKFLOW_KEYS = ("QuickTime:Workflow", "Keys:Workflow", "comfyui:workflow")
 _VIDEO_PROMPT_KEYS = ("QuickTime:Prompt", "Keys:Prompt", "comfyui:prompt")
 _RATING_CANDIDATE_KEYS = (
@@ -1241,6 +1244,23 @@ def _scan_webp_text_fields(
     )
 
 
+def _scan_avif_text_fields(
+    metadata: dict[str, Any],
+    exif_data: dict[str, Any],
+    workflow: dict[str, Any] | None,
+    prompt: dict[str, Any] | None,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    return _webp.scan_webp_text_fields(
+        metadata,
+        exif_data,
+        workflow,
+        prompt,
+        webp_text_keys=_AVIF_TEXT_KEYS,
+        try_merge_webp_json_candidate=_try_merge_avif_json_candidate,
+        apply_webp_auto1111_candidate=_apply_avif_auto1111_candidate,
+    )
+
+
 def _try_merge_webp_json_candidate(
     candidate_text: str,
     workflow: dict[str, Any] | None,
@@ -1255,7 +1275,35 @@ def _try_merge_webp_json_candidate(
     )
 
 
+def _try_merge_avif_json_candidate(
+    candidate_text: str,
+    workflow: dict[str, Any] | None,
+    prompt: dict[str, Any] | None,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None, bool]:
+    return _webp.try_merge_webp_json_candidate(
+        candidate_text,
+        workflow,
+        prompt,
+        try_parse_json_text=try_parse_json_text,
+        merge_workflow_prompt_candidate=_merge_workflow_prompt_candidate,
+    )
+
+
 def _apply_webp_auto1111_candidate(
+    metadata: dict[str, Any],
+    candidate_text: str,
+    prompt: dict[str, Any] | None,
+) -> None:
+    _webp.apply_webp_auto1111_candidate(
+        metadata,
+        candidate_text,
+        prompt,
+        parse_auto1111_params=parse_auto1111_params,
+        bump_quality=_bump_quality,
+    )
+
+
+def _apply_avif_auto1111_candidate(
     metadata: dict[str, Any],
     candidate_text: str,
     prompt: dict[str, Any] | None,
@@ -1313,6 +1361,25 @@ def extract_webp_metadata(file_path: str, exif_data: dict | None = None) -> Resu
         merge_workflow_prompt_candidate=_merge_workflow_prompt_candidate,
         merge_scanned_workflow_prompt=_merge_scanned_workflow_prompt,
         scan_webp_text_fields=_scan_webp_text_fields,
+        apply_common_exif_fields=_apply_common_exif_fields,
+        result_ok=Result.Ok,
+        result_err=Result.Err,
+        error_code=ErrorCode,
+        logger=logger,
+    )
+
+
+def extract_avif_metadata(file_path: str, exif_data: dict | None = None) -> Result[dict[str, Any]]:
+    return _webp.extract_webp_metadata_impl(
+        file_path,
+        exif_data,
+        exists=os.path.exists,
+        inspect_json_field=_inspect_json_field,
+        webp_workflow_keys=_AVIF_WORKFLOW_KEYS,
+        webp_prompt_keys=_AVIF_PROMPT_KEYS,
+        merge_workflow_prompt_candidate=_merge_workflow_prompt_candidate,
+        merge_scanned_workflow_prompt=_merge_scanned_workflow_prompt,
+        scan_webp_text_fields=_scan_avif_text_fields,
         apply_common_exif_fields=_apply_common_exif_fields,
         result_ok=Result.Ok,
         result_err=Result.Err,

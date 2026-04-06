@@ -262,6 +262,22 @@ async def test_image_video_audio_extractors(monkeypatch, tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_process_image_batch_item_supports_avif(monkeypatch, tmp_path):
+    p_avif = tmp_path / "a.avif"
+    p_avif.write_text("x")
+    s = _svc()
+
+    monkeypatch.setattr(m, "extract_avif_metadata", lambda *args, **kwargs: Result.Ok({"quality": "partial", "workflow": {"w": 1}, "prompt": None}))
+    monkeypatch.setattr(s, "_get_file_info", lambda _path: {"path": _path})
+    monkeypatch.setattr(s, "_normalize_visual_dimensions", lambda *args, **kwargs: None)
+    monkeypatch.setattr(s, "_finalize_batch_ok", lambda combined, metadata_result: asyncio.sleep(0, result=Result.Ok(combined, quality=metadata_result.meta.get("quality", "none"))))
+
+    out = await s._process_image_batch_item(str(p_avif), {"x": 1}, image_fallback_enabled=False)
+    assert out.ok
+    assert out.data["workflow"] == {"w": 1}
+
+
+@pytest.mark.asyncio
 async def test_audio_fallback_only_and_reads(monkeypatch, tmp_path):
     p = tmp_path / "a.mp3"
     p.write_text("x")

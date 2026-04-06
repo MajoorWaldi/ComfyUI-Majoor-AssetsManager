@@ -22,12 +22,13 @@ def test_validate_scan_directory_errors(tmp_path: Path) -> None:
 
 
 def test_filter_indexable_paths_keeps_known_extensions() -> None:
-    paths = [Path("a.png"), Path("b.mp4"), Path("c.unknown")]
+    paths = [Path("a.png"), Path("b.avif"), Path("c.mp4"), Path("d.unknown")]
     out = so.filter_indexable_paths(paths)
     names = {p.name for p in out}
     assert "a.png" in names
-    assert "b.mp4" in names
-    assert "c.unknown" not in names
+    assert "b.avif" in names
+    assert "c.mp4" in names
+    assert "d.unknown" not in names
 
 
 @pytest.mark.asyncio

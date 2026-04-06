@@ -30,9 +30,12 @@ def test_is_supported_file_and_candidate_paths(tmp_path: Path):
     walker = m.FileSystemWalker(scan_iops_limit=0.0)
     p = tmp_path / "a.png"
     p.write_bytes(b"x")
+    avif = tmp_path / "a.avif"
+    avif.write_bytes(b"x")
     q = tmp_path / "a.txt"
     q.write_text("x", encoding="utf-8")
     assert walker.is_supported_file(p) is True
+    assert walker.is_supported_file(avif) is True
     assert walker.is_supported_file(q) is False
     assert walker._next_dir(_BrokenEntry()) is None
     assert walker._candidate(_BrokenEntry()) is None

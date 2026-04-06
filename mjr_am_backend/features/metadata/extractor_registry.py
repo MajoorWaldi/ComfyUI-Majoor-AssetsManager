@@ -5,7 +5,7 @@ from typing import Any
 
 from ...probe_router import pick_probe_backend
 from ...shared import Result, classify_file
-from .extractors import extract_png_metadata, extract_video_metadata, extract_webp_metadata
+from .extractors import extract_avif_metadata, extract_png_metadata, extract_video_metadata, extract_webp_metadata
 from .extractors_3d import extract_model3d_metadata
 from .parsing_utils import parse_auto1111_params
 
@@ -216,6 +216,8 @@ def extract_workflow_only_payload(kind: str, ext: str, file_path: str, exif_data
             return extract_png_metadata(file_path, exif_data)
         if ext == ".webp":
             return extract_webp_metadata(file_path, exif_data)
+        if ext == ".avif":
+            return extract_avif_metadata(file_path, exif_data)
         return Result.Ok({"workflow": None, "prompt": None, "quality": "none"}, quality="none")
     return extract_video_metadata(file_path, exif_data, ffprobe_data=None)
 
@@ -225,6 +227,8 @@ def extract_image_by_extension(file_path: str, ext: str, exif_data: dict[str, An
         return extract_png_metadata(file_path, exif_data)
     if ext == ".webp":
         return extract_webp_metadata(file_path, exif_data)
+    if ext == ".avif":
+        return extract_avif_metadata(file_path, exif_data)
     return Result.Ok({"workflow": None, "prompt": None, "quality": "partial" if exif_data else "none"})
 
 

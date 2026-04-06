@@ -71,16 +71,21 @@ def test_group_batch_and_resolution_helpers(monkeypatch, tmp_path: Path):
 def test_extract_payload_dispatch_and_batch_tool_data(monkeypatch):
     monkeypatch.setattr(r, "extract_png_metadata", lambda fp, ex: Result.Ok({"kind": "png", "fp": fp, "ex": ex}))
     monkeypatch.setattr(r, "extract_webp_metadata", lambda fp, ex: Result.Ok({"kind": "webp", "fp": fp, "ex": ex}))
+    monkeypatch.setattr(r, "extract_avif_metadata", lambda fp, ex: Result.Ok({"kind": "avif", "fp": fp, "ex": ex}))
     monkeypatch.setattr(r, "extract_video_metadata", lambda fp, ex, ffprobe_data=None: Result.Ok({"kind": "video", "fp": fp, "ex": ex}))
 
     p = r.extract_workflow_only_payload("image", ".png", "a.png", {"x": 1})
     assert p.ok and p.data["kind"] == "png"
     p2 = r.extract_workflow_only_payload("video", ".mp4", "a.mp4", {"x": 1})
     assert p2.ok and p2.data["kind"] == "video"
-    p3 = r.extract_image_by_extension("a.jpg", ".jpg", None)
-    assert p3.ok and p3.data["quality"] == "none"
-    p4 = r.extract_image_by_extension("a.webp", ".webp", {"x": 1})
-    assert p4.ok and p4.data["kind"] == "webp"
+    p3 = r.extract_workflow_only_payload("image", ".avif", "a.avif", {"x": 1})
+    assert p3.ok and p3.data["kind"] == "avif"
+    p4 = r.extract_image_by_extension("a.jpg", ".jpg", None)
+    assert p4.ok and p4.data["quality"] == "none"
+    p5 = r.extract_image_by_extension("a.webp", ".webp", {"x": 1})
+    assert p5.ok and p5.data["kind"] == "webp"
+    p6 = r.extract_image_by_extension("a.avif", ".avif", {"x": 1})
+    assert p6.ok and p6.data["kind"] == "avif"
 
     merged = r.build_image_metadata_payload("a.png", {"size": 1}, {"x": 1}, Result.Ok({"workflow": {"a": 1}}))
     assert merged["file_info"]["size"] == 1 and merged["workflow"] == {"a": 1}

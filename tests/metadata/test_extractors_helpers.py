@@ -143,6 +143,7 @@ def test_extract_png_webp_video_not_found(tmp_path):
     missing = str(tmp_path / "missing.png")
     assert e.extract_png_metadata(missing).ok is False
     assert e.extract_webp_metadata(missing).ok is False
+    assert e.extract_avif_metadata(missing).ok is False
     assert e.extract_video_metadata(missing).ok is False
 
 
@@ -160,6 +161,9 @@ def test_extract_png_webp_video_basic(monkeypatch, tmp_path):
 
     webp = e.extract_webp_metadata(str(f), {"ImageDescription": "Prompt: test"})
     assert webp.ok
+
+    avif = e.extract_avif_metadata(str(f), {"ImageDescription": "Prompt: test"})
+    assert avif.ok
 
     video = e.extract_video_metadata(str(f), {}, {"video_stream": {"width": 1, "height": 2, "r_frame_rate": "30/1"}, "format": {"duration": "1.0"}})
     assert video.ok and video.data["resolution"] == (1, 2)

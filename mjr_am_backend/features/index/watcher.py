@@ -62,6 +62,7 @@ except Exception:
         ".jpeg",
         ".webp",
         ".gif",
+        ".avif",
         ".mp4",
         ".mov",
         ".webm",

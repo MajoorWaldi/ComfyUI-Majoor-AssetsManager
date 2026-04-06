@@ -645,6 +645,8 @@ def test_download_helpers_unit(monkeypatch, tmp_path: Path):
     resp = m._build_download_response(f, preview=True)
     assert resp is not None
     assert m._safe_download_filename('a";\r\n') == "a"
+    assert ".avif" in m._STRIP_SUPPORTED_EXTS
+    assert m._strip_tags_for_ext(".avif") == m._COMFYUI_STRIP_TAGS_WEBP
 
 @pytest.mark.asyncio
 async def test_asset_rating_resolve_or_create_path(monkeypatch, tmp_path: Path):

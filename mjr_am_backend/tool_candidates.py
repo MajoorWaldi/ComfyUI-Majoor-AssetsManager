@@ -46,22 +46,22 @@ def _add_named_exiftool_aliases(raw: str, add: Callable[[str], None]) -> None:
 
 
 def _iter_common_windows_exiftool_paths() -> list[str]:
-    roots: list[Path] = []
+    roots: list[str] = []
 
     local_app_data = strip_optional_quotes(os.getenv("LOCALAPPDATA"))
     if local_app_data:
-        roots.append(Path(local_app_data) / "Programs" / "ExifTool")
-        roots.append(Path(local_app_data) / "Microsoft" / "WinGet" / "Links")
+        roots.append(str(Path(local_app_data) / "Programs" / "ExifTool"))
+        roots.append(str(Path(local_app_data) / "Microsoft" / "WinGet" / "Links"))
 
     for env_name in ("ProgramFiles", "ProgramFiles(x86)"):
         root = strip_optional_quotes(os.getenv(env_name))
         if root:
-            roots.append(Path(root) / "ExifTool")
+            roots.append(str(Path(root) / "ExifTool"))
 
     out: list[str] = []
     for root in roots:
         for alias in EXIFTOOL_CANDIDATE_NAMES:
-            candidate = str(root / alias)
+            candidate = str(Path(root) / alias)
             if candidate not in out:
                 out.append(candidate)
     return out

@@ -1868,7 +1868,7 @@ _COMFYUI_STRIP_TAGS_VIDEO = [
     "QuickTime:Workflow", "QuickTime:Prompt",
     "Keys:Workflow", "Keys:Prompt",
 ]
-_STRIP_SUPPORTED_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".mp4", ".mov"}
+_STRIP_SUPPORTED_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".avif", ".mp4", ".mov"}
 
 # PNG tEXt/iTXt/zTXt chunk keywords used by ComfyUI to embed metadata.
 _PNG_COMFYUI_KEYWORDS = frozenset({b"workflow", b"prompt", b"parameters"})
@@ -1919,7 +1919,7 @@ def _strip_tags_for_ext(ext: str) -> list[str]:
     ext = ext.lower()
     if ext == ".png":
         return []  # PNG uses pure-Python chunk removal, not ExifTool
-    if ext in (".webp", ".jpg", ".jpeg"):
+    if ext in (".webp", ".avif", ".jpg", ".jpeg"):
         return _COMFYUI_STRIP_TAGS_WEBP
     if ext in (".mp4", ".mov"):
         return _COMFYUI_STRIP_TAGS_VIDEO

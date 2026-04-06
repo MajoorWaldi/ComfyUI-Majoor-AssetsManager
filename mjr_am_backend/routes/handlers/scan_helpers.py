@@ -139,6 +139,7 @@ def _default_allowed_upload_exts() -> set[str]:
             ".jpeg",
             ".webp",
             ".gif",
+            ".avif",
             ".mp4",
             ".webm",
             ".mov",

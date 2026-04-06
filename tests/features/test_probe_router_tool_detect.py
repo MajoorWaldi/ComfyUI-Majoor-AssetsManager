@@ -89,3 +89,25 @@ def test_tool_detect_exiftool_common_windows_dir(monkeypatch, tmp_path):
     monkeypatch.setattr(td, "_run_command", _run)
     assert td.has_exiftool() is True
     assert any("Programs" in call and "ExifTool" in call for call in calls)
+
+
+def test_tool_detect_exiftool_explicit_path_bypasses_which(monkeypatch, tmp_path):
+    td.reset_tool_cache()
+    exep = tmp_path / "tools" / "exiftool.exe"
+    exep.parent.mkdir(parents=True)
+    exep.write_text("x")
+
+    monkeypatch.setattr(td, "EXIFTOOL_BIN", str(exep))
+    monkeypatch.setattr(td.shutil, "which", lambda _b: None)
+
+    calls: list[str] = []
+
+    def _run(cmd):
+        calls.append(cmd[0])
+        if Path(cmd[0]).resolve() == exep.resolve():
+            return SimpleNamespace(returncode=0, stdout="13.54", stderr="")
+        raise FileNotFoundError("missing")
+
+    monkeypatch.setattr(td, "_run_command", _run)
+    assert td.has_exiftool() is True
+    assert calls[0] == str(exep)

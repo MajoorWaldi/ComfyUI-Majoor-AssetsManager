@@ -121,7 +121,7 @@ const _getSelectedAssets = (containerEl, draggedCard) => {
 };
 
 /** Extensions that can contain ComfyUI workflow/prompt metadata. */
-const _STRIPPABLE_EXTS = new Set([".png", ".jpg", ".jpeg", ".webp", ".mp4", ".mov"]);
+const _STRIPPABLE_EXTS = new Set([".png", ".jpg", ".jpeg", ".webp", ".avif", ".mp4", ".mov"]);
 
 /** Check if an asset likely has embedded ComfyUI metadata worth stripping. */
 const _hasComfyMetadata = (asset) => {

@@ -42,7 +42,7 @@ class ErrorCode(str, Enum):
 
 # File extensions by type
 EXTENSIONS: Final[dict[FileKind, set[str]]] = {
-    "image": {".png", ".jpg", ".jpeg", ".webp", ".gif"},
+    "image": {".png", ".jpg", ".jpeg", ".webp", ".gif", ".avif"},
     "video": {".mp4", ".mov", ".webm", ".mkv"},
     "audio": {".wav", ".mp3", ".flac", ".ogg", ".aiff", ".aif", ".m4a", ".aac"},
     "model3d": {".obj", ".fbx", ".glb", ".gltf", ".stl", ".ply", ".splat", ".ksplat", ".spz"},

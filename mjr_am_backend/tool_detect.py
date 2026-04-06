@@ -95,7 +95,22 @@ def _is_named_exiftool_candidate(candidate: str) -> bool:
     return Path(candidate).name.lower() in EXIFTOOL_CANDIDATE_NAMES
 
 
+def _is_explicit_existing_path(candidate: str) -> bool:
+    text = str(candidate or "").strip()
+    if not text:
+        return False
+    path = Path(text)
+    if not (path.is_absolute() or path.parent != Path(".")):
+        return False
+    try:
+        return path.exists()
+    except OSError:
+        return False
+
+
 def _can_try_candidate(candidate: str) -> bool:
+    if _is_explicit_existing_path(candidate):
+        return True
     if not _is_named_exiftool_candidate(candidate):
         return True
     return shutil.which(candidate) is not None

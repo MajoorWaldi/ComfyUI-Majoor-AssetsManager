@@ -52,6 +52,7 @@ from .extractor_registry import (
     should_parse_geninfo as registry_should_parse_geninfo,
 )
 from .extractors import (
+    extract_avif_metadata,
     extract_png_metadata,
     extract_video_metadata,
     extract_webp_metadata,
@@ -1027,6 +1028,8 @@ class MetadataService:
             metadata_result = extract_png_metadata(path, resolved_exif)
         elif ext == ".webp":
             metadata_result = extract_webp_metadata(path, resolved_exif)
+        elif ext == ".avif":
+            metadata_result = extract_avif_metadata(path, resolved_exif)
         else:
             metadata_result = Result.Ok(
                 {

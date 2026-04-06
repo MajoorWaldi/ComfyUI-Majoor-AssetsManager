@@ -117,6 +117,7 @@ def test_apply_flush_limit(monkeypatch):
 
 def test_handler_path_support_and_ignore(handler):
     assert handler._is_supported("x.png") is True
+    assert handler._is_supported("x.avif") is True
     assert handler._is_supported("x.txt") is False
     assert handler._is_ignored_path("/tmp/.git/a.png") is True
     assert handler._is_ignored_path("/tmp/ok/a.png") is False
