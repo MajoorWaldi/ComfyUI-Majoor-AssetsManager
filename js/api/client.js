@@ -164,26 +164,11 @@ function _readAuthToken() {
     const now = Date.now();
 
     try {
-        const sessionToken = String(sessionStorage?.getItem?.(RUNTIME_TOKEN_KEY) || "").trim();
-        if (sessionToken) {
-            _authTokenCache.set(AUTH_TOKEN_CACHE_KEY, sessionToken, { at: now });
-            return sessionToken;
-        }
-    } catch (e) {
-        console.debug?.(e);
-    }
-
-    try {
         const raw = localStorage?.getItem?.(SETTINGS_KEY);
         const parsed = raw ? JSON.parse(raw) : null;
         const payload = parsed?.data && typeof parsed.data === "object" ? parsed.data : parsed;
         const token = String(payload?.security?.apiToken || "").trim();
         if (token) {
-            try {
-                sessionStorage?.setItem?.(RUNTIME_TOKEN_KEY, token);
-            } catch (e) {
-                console.debug?.(e);
-            }
             try {
                 const mutable = parsed && typeof parsed === "object" ? parsed : {};
                 const target =
@@ -213,7 +198,6 @@ function _persistAuthToken(token) {
     const normalized = String(token || "").trim();
     if (!normalized) return false;
     try {
-        sessionStorage?.setItem?.(RUNTIME_TOKEN_KEY, normalized);
         _authTokenCache.set(AUTH_TOKEN_CACHE_KEY, normalized);
         _lastAuthBootstrapFailure = null;
         try {
