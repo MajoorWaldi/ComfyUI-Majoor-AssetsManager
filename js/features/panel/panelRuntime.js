@@ -410,17 +410,19 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
     };
 
     // ── 14. QUEUED RELOAD ─────────────────────────────────────────────────
-    let _lastReloadRequestAt = 0;
+    const REQUEST_QUEUED_RELOAD_DEBOUNCE_MS = 120;
+    let _queuedReloadTimer = null;
     const requestQueuedReload = () => {
         try {
-            const now = Date.now();
-            if (now - Number(_lastReloadRequestAt || 0) < 500) return;
-            _lastReloadRequestAt = now;
+            if (_queuedReloadTimer) clearTimeout(_queuedReloadTimer);
         } catch (e) { console.debug?.(e); }
-        queuedReload().catch((err) => {
-            try { console.warn("[Majoor] queuedReload failed", err); }
-            catch (e) { console.debug?.(e); }
-        });
+        _queuedReloadTimer = setTimeout(() => {
+            _queuedReloadTimer = null;
+            queuedReload().catch((err) => {
+                try { console.warn("[Majoor] queuedReload failed", err); }
+                catch (e) { console.debug?.(e); }
+            });
+        }, REQUEST_QUEUED_RELOAD_DEBOUNCE_MS);
     };
 
     // ── 15. GRID EVENT BINDINGS ───────────────────────────────────────────

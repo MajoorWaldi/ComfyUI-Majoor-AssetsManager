@@ -55,6 +55,15 @@ export function createAssetsQueryController({
     let autoLoadTimer = null;
     let searchDebounceTimer = null;
 
+    const hasVisibleGridCards = () => {
+        try {
+            return gridContainer?.querySelector?.(".mjr-asset-card") != null;
+        } catch (e) {
+            console.debug?.(e);
+            return false;
+        }
+    };
+
     const queuedReload = async () => {
         if (!gridContainer || !gridController?.reloadGrid) return;
         pendingReloadCount += 1;
@@ -218,6 +227,11 @@ export function createAssetsQueryController({
                 totalDelta > 0 &&
                 recentUpsertCount > 0 &&
                 totalDelta <= recentUpsertCount + 8;
+            const totalOnlyBackgroundGrowth =
+                hasNewTotal &&
+                !hasNewScan &&
+                !hasNewIndexEnd &&
+                hasVisibleGridCards();
 
             if (hasNewIndexEnd) lastKnownIndexEnd = counters.last_index_end;
             const needsFallbackReload =
@@ -231,6 +245,11 @@ export function createAssetsQueryController({
                 } catch (e) {
                     console.debug?.(e);
                 }
+                return;
+            }
+            if (totalOnlyBackgroundGrowth) {
+                lastKnownScan = counters.last_scan_end;
+                lastKnownIndexEnd = counters.last_index_end;
                 return;
             }
             if (upsertHandledRecently && !hasNewScan) return;
