@@ -34,6 +34,7 @@ logger = get_logger(__name__)
 try:
     import folder_paths  # type: ignore
 except Exception:
+
     class _FolderPathsStub:
         @staticmethod
         def get_input_directory() -> str:
@@ -183,7 +184,9 @@ def _resolve_allowed_viewer_candidate(raw_path: str) -> tuple[Path | None, Resul
     return candidate, None
 
 
-def _resolve_viewer_filename_candidate(base_root: Path, rel: Path, filename: str) -> tuple[Path | None, Result | None]:
+def _resolve_viewer_filename_candidate(
+    base_root: Path, rel: Path, filename: str
+) -> tuple[Path | None, Result | None]:
     candidate = base_root / rel / filename
     if not _is_within_root(candidate, base_root):
         return None, Result.Err("FORBIDDEN", "Path access denied (outside allowed scope)")
@@ -222,7 +225,9 @@ def _resolve_viewer_asset_path(raw_path: str) -> tuple[Path | None, Path | None,
 async def _resolve_viewer_asset_context(
     raw_id: str,
 ) -> tuple[dict | None, Path | None, Path | None, Result | None]:
-    asset_id_res = _parse_positive_int(raw_id, error_code="INVALID_INPUT", error_message="Invalid asset_id")
+    asset_id_res = _parse_positive_int(
+        raw_id, error_code="INVALID_INPUT", error_message="Invalid asset_id"
+    )
     if not asset_id_res.ok:
         return None, None, None, asset_id_res
 
@@ -298,7 +303,13 @@ def _parse_viewer_filename_context(
     asset_type = str(request.query.get("type", "output") or "output").strip().lower()
 
     if not filename:
-        return root_id, filename, None, asset_type, Result.Err("INVALID_INPUT", "Missing viewer file context")
+        return (
+            root_id,
+            filename,
+            None,
+            asset_type,
+            Result.Err("INVALID_INPUT", "Missing viewer file context"),
+        )
     if Path(filename).name != filename:
         return root_id, filename, None, asset_type, Result.Err("INVALID_INPUT", "Invalid filename")
 
@@ -383,7 +394,9 @@ def register_viewer_routes(routes: web.RouteTableDef) -> None:
     async def viewer_resource(request: web.Request):
         relpath = _normalize_viewer_resource_relpath(request.query.get("relpath", ""))
         if relpath is None:
-            return _json_response(Result.Err("FORBIDDEN", "Path access denied (escape attempt or invalid relpath)"))
+            return _json_response(
+                Result.Err("FORBIDDEN", "Path access denied (escape attempt or invalid relpath)")
+            )
 
         _asset, resolved_base, root_limit, error = await _resolve_viewer_file_context(request)
         if error:
@@ -399,7 +412,9 @@ def register_viewer_routes(routes: web.RouteTableDef) -> None:
             return _json_response(Result.Err("VIEW_FAILED", "Failed to resolve resource path"))
 
         if not _is_within_root(target, root_limit):
-            return _json_response(Result.Err("FORBIDDEN", "Path access denied (outside allowed scope)"))
+            return _json_response(
+                Result.Err("FORBIDDEN", "Path access denied (outside allowed scope)")
+            )
         if not target.is_file():
             return _json_response(Result.Err("NOT_FOUND", "Resource not found"))
 
