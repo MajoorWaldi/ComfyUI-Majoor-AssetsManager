@@ -300,7 +300,16 @@ def _hash_token(value: str) -> str:
     except Exception:
         pepper = ""
     payload = f"{pepper}\0{normalized}".encode("utf-8", errors="ignore")
-    return hashlib.sha256(payload).hexdigest()
+    # Use a computationally expensive password hashing function instead of a fast hash.
+    # PBKDF2-HMAC-SHA256 with a fixed salt and sufficient iterations provides a stronger
+    # defense against brute-force attacks while remaining deterministic for comparison.
+    dk = hashlib.pbkdf2_hmac(
+        "sha256",
+        payload,
+        b"mjr_am_backend.api_token_salt",
+        100_000,
+    )
+    return dk.hex()
 
 def _get_write_token_hash() -> str:
     try:
