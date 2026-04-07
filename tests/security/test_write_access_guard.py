@@ -1,5 +1,5 @@
 import pytest
-from mjr_am_backend.routes.core.security import _check_write_access
+from mjr_am_backend.routes.core.security import _check_write_access, _hash_token
 
 TEST_TOKEN = "unit-test-token-01"
 
@@ -84,10 +84,8 @@ async def test_write_token_accepts_bearer_header(monkeypatch):
 @pytest.mark.asyncio
 async def test_write_accepts_hashed_token_env(monkeypatch):
     _clear_auth_env(monkeypatch)
-    import hashlib
-
     token = TEST_TOKEN
-    token_hash = hashlib.sha256(f"\0{token}".encode()).hexdigest()
+    token_hash = _hash_token(token)
     monkeypatch.setenv("MAJOOR_API_TOKEN_HASH", token_hash)
 
     res = _check_write_access(peer_ip="127.0.0.1", headers={"X-MJR-Token": token})
