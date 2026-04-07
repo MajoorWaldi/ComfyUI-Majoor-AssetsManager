@@ -169,12 +169,27 @@ class AppSettings:
             return ""
 
     def _hash_api_token(self, token: str) -> str:
+        """
+        Derive a stable, computationally expensive hash for the API token.
+
+        Uses PBKDF2-HMAC-SHA256 with a pepper from the environment as salt,
+        so the resulting value can be safely stored and compared.
+        """
         try:
             normalized = str(token or "").strip()
         except Exception:
             normalized = ""
-        payload = f"{self._token_pepper()}\0{normalized}".encode("utf-8", errors="ignore")
-        return hashlib.sha256(payload).hexdigest()
+        pepper = self._token_pepper()
+        # Fall back to a fixed, non-empty pepper to ensure a stable salt value.
+        if not pepper:
+            pepper = "mjr_api_token_pepper_fallback"
+        dk = hashlib.pbkdf2_hmac(
+            "sha256",
+            normalized.encode("utf-8", errors="ignore"),
+            pepper.encode("utf-8", errors="ignore"),
+            100_000,
+        )
+        return dk.hex()
 
     async def _get_stored_api_token_hash_locked(self) -> str:
         token_hash = str(await self._read_setting(_SECURITY_API_TOKEN_HASH_KEY) or "").strip().lower()
