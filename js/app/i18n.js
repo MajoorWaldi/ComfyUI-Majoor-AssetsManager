@@ -931,6 +931,8 @@ const DICTIONARY = {
         "toast.rescanningFile": "Rescanning file",
         "toast.failedToggleWatcher": "Failed to toggle watcher",
         "toast.failedUpdateMetadataFallback": "Failed to update metadata fallback settings",
+        "toast.failedSetIndexDirectory": "Failed to set index directory",
+        "toast.indexDirectorySavedRestart": "Index directory saved. Restart ComfyUI to apply.",
         "toast.failedSetOutputDirectory": "Failed to set output directory",
         "toast.nativeBrowserUnavailable":
             "Native folder browser unavailable. Please enter path manually.",

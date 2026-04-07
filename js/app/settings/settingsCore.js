@@ -132,6 +132,7 @@ export const DEFAULT_SETTINGS = {
     },
     paths: {
         outputDirectory: "",
+        indexDirectory: "",
     },
     db: {
         timeoutMs: 5000,

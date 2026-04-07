@@ -24,7 +24,9 @@ from mjr_am_backend.config import (
     MEDIA_PROBE_BACKEND,
     OUTPUT_ROOT,
     TO_THREAD_TIMEOUT_S,
+    get_runtime_index_dir,
     get_runtime_output_root,
+    set_index_directory_override,
     get_tool_paths,
 )
 from mjr_am_backend.custom_roots import resolve_custom_root
@@ -567,6 +569,7 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
 
         return _json_response(Result.Ok({
             "output_directory": output_root,
+            "index_directory": get_runtime_index_dir(),
             "tool_paths": get_tool_paths(),
             "media_probe_backend": probe_mode,
             "metadata_fallback": (
@@ -667,6 +670,66 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
             response_result,
             previous=old_output_dir,
             current=str(result.data or ""),
+        )
+        return _json_response(response_result)
+
+    @routes.get("/mjr/am/settings/index-directory")
+    async def get_index_directory_setting(request):
+        user_auth = _require_authenticated_user(request)
+        if not user_auth.ok:
+            return _json_response(
+                Result.Err(user_auth.code or "AUTH_REQUIRED", user_auth.error or "Authentication required"),
+                status=401,
+            )
+        return _json_response(Result.Ok({"index_directory": get_runtime_index_dir()}))
+
+    @routes.post("/mjr/am/settings/index-directory")
+    async def update_index_directory_setting(request):
+        csrf = _csrf_error(request)
+        if csrf:
+            return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
+        body_res = await _read_json(request)
+        if not body_res.ok:
+            return _json_response(body_res)
+
+        body = body_res.data or {}
+        raw_value = body.get("index_directory")
+        value = "" if raw_value is None else str(raw_value).strip()
+
+        if value:
+            try:
+                normalized_path = Path(value).expanduser().resolve(strict=True)
+            except Exception:
+                return _json_response(Result.Err("INVALID_INPUT", "index_directory must be an existing directory"))
+            if not normalized_path.is_dir():
+                return _json_response(Result.Err("INVALID_INPUT", "index_directory must be a directory"))
+            value = str(normalized_path)
+
+        previous = get_runtime_index_dir()
+        try:
+            new_value = set_index_directory_override(value)
+        except Exception as exc:
+            logger.warning("Failed to persist index directory override: %s", exc)
+            return _json_response(Result.Err("DB_ERROR", "Failed to persist index directory override"))
+
+        response_result = Result.Ok(
+            {
+                "index_directory": new_value or get_runtime_index_dir(),
+                "requires_restart": True,
+            }
+        )
+        svc, _ = await _require_services()
+        await _audit_settings_write(
+            svc,
+            request,
+            "settings_index_directory",
+            "settings:index_directory",
+            response_result,
+            previous=previous,
+            current=str(new_value or ""),
         )
         return _json_response(response_result)
 

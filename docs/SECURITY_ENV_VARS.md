@@ -1,12 +1,12 @@
 # Majoor Assets Manager - Security Model & Environment Variables Guide
 
-**Version**: 2.4.4  
-**Last Updated**: April 6, 2026
+**Version**: 2.4.5  
+**Last Updated**: April 7, 2026
 
 ## Overview
 The Majoor Assets Manager implements a comprehensive security model to protect your system while providing powerful asset management capabilities. This guide covers the security architecture, threat models, and security-related environment variables.
 
-**Recent highlights**: Enhanced API token support, improved Safe Mode controls, and better remote access configuration.
+**Recent highlights**: Enhanced API token support, improved Safe Mode controls, better remote access configuration, and a configurable index database directory for network-drive setups.
 
 ## Security Architecture
 
@@ -76,6 +76,7 @@ Windows batch example:
 ```batch
 @echo off
 set MAJOOR_API_TOKEN=change-this-to-a-long-random-secret
+set MJR_AM_INDEX_DIRECTORY=C:\mjr_index
 cd /d "C:\path\to\ComfyUI"
 python main.py --listen 0.0.0.0 --port 8188
 ```
@@ -83,6 +84,7 @@ python main.py --listen 0.0.0.0 --port 8188
 Linux/macOS shell example:
 ```bash
 export MAJOOR_API_TOKEN="change-this-to-a-long-random-secret"
+export MJR_AM_INDEX_DIRECTORY=/var/local/mjr_index
 cd /path/to/ComfyUI
 python main.py --listen 0.0.0.0 --port 8188
 ```

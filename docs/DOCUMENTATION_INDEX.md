@@ -2,8 +2,8 @@
 
 Welcome to the documentation hub for **Majoor Assets Manager** for ComfyUI.
 
-**Current Version**: 2.4.4
-**Last Updated**: April 5, 2026
+**Current Version**: 2.4.5
+**Last Updated**: April 7, 2026
 
 ## Quick Start
 
@@ -30,7 +30,7 @@ Welcome to the documentation hub for **Majoor Assets Manager** for ComfyUI.
 ### Getting Started
 | Document | Description |
 |----------|-------------|
-| **[INSTALLATION.md](INSTALLATION.md)** | Detailed installation instructions |
+| **[INSTALLATION.md](INSTALLATION.md)** | Detailed installation and network-drive guidance |
 | **[user_guide.html](../user_guide.html)** | Full visual user guide |
 | **[HOTKEYS_SHORTCUTS.md](HOTKEYS_SHORTCUTS.md)** | Keyboard shortcuts |
 | **[SHORTCUTS.md](SHORTCUTS.md)** | Extra gestures and shortcuts |
@@ -48,7 +48,7 @@ Welcome to the documentation hub for **Majoor Assets Manager** for ComfyUI.
 | Document | Description |
 |----------|-------------|
 | **[PRIVACY_OFFLINE.md](PRIVACY_OFFLINE.md)** | Dedicated privacy, offline behavior, and token clarification guide |
-| **[SETTINGS_CONFIGURATION.md](SETTINGS_CONFIGURATION.md)** | UI and runtime settings |
+| **[SETTINGS_CONFIGURATION.md](SETTINGS_CONFIGURATION.md)** | UI and runtime settings, index DB path, env vars |
 | **[SECURITY_ENV_VARS.md](SECURITY_ENV_VARS.md)** | Environment variables and security model |
 | **[THREAT_MODEL.md](THREAT_MODEL.md)** | Threats, mitigations, and residual risk |
 | **[ARCHITECTURE_MAP.md](ARCHITECTURE_MAP.md)** | Package responsibilities and internal boundaries |
@@ -56,7 +56,7 @@ Welcome to the documentation hub for **Majoor Assets Manager** for ComfyUI.
 ### Maintenance And Development
 | Document | Description |
 |----------|-------------|
-| **[DB_MAINTENANCE.md](DB_MAINTENANCE.md)** | Database maintenance and recovery |
+| **[DB_MAINTENANCE.md](DB_MAINTENANCE.md)** | Database maintenance, recovery, and configurable index directory |
 | **[TESTING.md](TESTING.md)** | Tests, reports, and quality gate |
 | **[API_REFERENCE.md](API_REFERENCE.md)** | Backend endpoint reference |
 | **[adr/](adr/)** | Architecture Decision Records |

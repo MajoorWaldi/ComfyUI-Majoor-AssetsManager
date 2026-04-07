@@ -39,6 +39,7 @@ export const ENDPOINTS = {
     OPEN_IN_FOLDER: "/mjr/am/open-in-folder",
     TOOLS_STATUS: "/mjr/am/tools/status",
     SETTINGS_OUTPUT_DIRECTORY: "/mjr/am/settings/output-directory",
+    SETTINGS_INDEX_DIRECTORY: "/mjr/am/settings/index-directory",
     SETTINGS_METADATA_FALLBACK: "/mjr/am/settings/metadata-fallback",
     SETTINGS_VECTOR_SEARCH: "/mjr/am/settings/vector-search",
     SETTINGS_EXECUTION_GROUPING: "/mjr/am/settings/execution-grouping",

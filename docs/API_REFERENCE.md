@@ -1,8 +1,8 @@
 # Majoor API Reference
 
 **Base Path**: `/mjr/am`  
-**Version**: 2.4.4  
-**Last Updated**: April 5, 2026
+**Version**: 2.4.5  
+**Last Updated**: April 7, 2026
 
 ---
 
@@ -122,6 +122,7 @@ GET /mjr/am/config
   "ok": true,
   "data": {
     "output_directory": "/path/to/output",
+    "index_directory": "/path/to/_mjr_index",
     "media_probe_backend": "auto",
     "db_timeout": 30.0,
     "max_connections": 8,
@@ -233,6 +234,63 @@ POST /mjr/am/settings/output-directory
   }
 }
 ```
+
+### Index Directory Override
+```http
+GET  /mjr/am/settings/index-directory
+POST /mjr/am/settings/index-directory
+```
+
+**GET**: Read the current index directory path.
+
+**Response**:
+```json
+{
+  "ok": true,
+  "data": {
+    "index_directory": "/path/to/_mjr_index"
+  }
+}
+```
+
+**POST**: Set a new index directory path.
+
+> Requires write access (loopback or valid `X-MJR-Token`).
+
+**Request Body** (POST):
+```json
+{
+  "index_directory": "/path/to/local/mjr_index"
+}
+```
+
+Send an empty string to clear the override and revert to the default (`<output>/_mjr_index/`):
+```json
+{
+  "index_directory": ""
+}
+```
+
+**Response** (POST):
+```json
+{
+  "ok": true,
+  "data": {
+    "index_directory": "/path/to/local/mjr_index",
+    "requires_restart": true
+  }
+}
+```
+
+The new path is persisted to the `.mjr_index_directory_override` sidecar file and the in-process environment variables. The change takes effect after ComfyUI is restarted.
+
+**Error codes**:
+
+| Code | Meaning |
+|---|---|
+| `INVALID_INPUT` | Path exists but is a file, not a directory |
+| `INVALID_INPUT` | Path was given as a non-empty string but the parent directory does not exist |
+| `DB_ERROR` | Sidecar file could not be written |
 
 ---
 

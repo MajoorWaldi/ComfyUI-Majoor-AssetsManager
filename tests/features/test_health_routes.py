@@ -192,6 +192,40 @@ async def test_get_config_uses_defaults_without_settings(monkeypatch) -> None:
     body = json.loads(resp.text)
     assert body.get("ok") is True
     assert "output_directory" in (body.get("data") or {})
+    assert "index_directory" in (body.get("data") or {})
+
+
+@pytest.mark.asyncio
+async def test_get_index_directory_setting_requires_auth(monkeypatch) -> None:
+    monkeypatch.setattr(health_mod, "_require_authenticated_user", lambda _req: Result.Err("AUTH_REQUIRED", "no"))
+    app = _build_health_app()
+    req = make_mocked_request("GET", "/mjr/am/settings/index-directory", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    body = json.loads(resp.text)
+    assert body.get("code") == "AUTH_REQUIRED"
+
+
+@pytest.mark.asyncio
+async def test_update_index_directory_setting_success(monkeypatch, tmp_path) -> None:
+    monkeypatch.setattr(health_mod, "_csrf_error", lambda _req: None)
+    monkeypatch.setattr(health_mod, "_require_write_access", lambda _req: Result.Ok({}))
+    monkeypatch.setattr(health_mod, "_read_json", lambda _req: asyncio.sleep(0, result=Result.Ok({"index_directory": str(tmp_path)})))
+    monkeypatch.setattr(health_mod, "set_index_directory_override", lambda value: value)
+    monkeypatch.setattr(health_mod, "get_runtime_index_dir", lambda: str(tmp_path))
+
+    async def _svc():
+        return {}, None
+
+    monkeypatch.setattr(health_mod, "_require_services", _svc)
+
+    app = _build_health_app()
+    req = make_mocked_request("POST", "/mjr/am/settings/index-directory", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    body = json.loads(resp.text)
+    assert body.get("ok") is True
+    data = body.get("data") or {}
+    assert data.get("requires_restart") is True
+    assert data.get("index_directory") == str(tmp_path)
 
 
 @pytest.mark.asyncio

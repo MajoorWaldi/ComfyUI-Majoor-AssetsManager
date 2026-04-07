@@ -1,12 +1,12 @@
 # Majoor Assets Manager - Installation Guide
 
-**Version**: 2.4.4  
-**Last Updated**: April 6, 2026
+**Version**: 2.4.5  
+**Last Updated**: April 7, 2026
 
 ## Overview
 This guide provides detailed instructions for installing and configuring the Majoor Assets Manager for ComfyUI. Follow these steps to get the extension up and running with all its features.
 
-**Recent highlights**: Improved metadata parsing, expanded floating viewer compare modes, and better workflow grouping with job and stack IDs.
+**Recent highlights**: Improved metadata parsing, expanded floating viewer compare modes, better workflow grouping with job and stack IDs, and support for a configurable Index DB directory (useful on network drives or NAS storage).
 
 ## Prerequisites
 
@@ -186,6 +186,11 @@ You can configure the extension using environment variables. Add these to your s
 # Override default output directory
 export MAJOOR_OUTPUT_DIRECTORY="/path/to/your/output"
 
+# Override index database directory (useful on NAS/SMB/network drives)
+# By default the index lives at <output>/_mjr_index/
+# Move it to a local disk if your output is on a slow or SMB-mounted drive:
+export MJR_AM_INDEX_DIRECTORY="/var/local/mjr_index"
+
 # Specify tool paths if not in system PATH
 export MAJOOR_EXIFTOOL_PATH="/path/to/exiftool"
 export MAJOOR_FFPROBE_PATH="/path/to/ffprobe"
@@ -201,6 +206,8 @@ Create a batch file to set environment variables and start ComfyUI:
 ```batch
 @echo off
 set MAJOOR_MEDIA_PROBE_BACKEND=auto
+REM Optional: move the index DB to a local SSD if output is on a network drive
+set MJR_AM_INDEX_DIRECTORY=C:\mjr_index
 
 REM Start ComfyUI with the environment variables
 cd /d "C:\path\to\ComfyUI"

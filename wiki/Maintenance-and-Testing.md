@@ -2,7 +2,7 @@
 
 ## Database Maintenance
 
-Majoor Assets Manager stores its SQLite index in the output-side `_mjr_index` area. The docs now provide much clearer recovery guidance for corruption and rebuild workflows.
+Majoor Assets Manager stores its SQLite index in the `_mjr_index` area. By default this is inside the output directory, but the location can be changed to any local path — useful for network drive setups. The docs provide clear recovery guidance for corruption and rebuild workflows.
 
 Important maintenance actions include:
 - reset index
@@ -10,6 +10,20 @@ Important maintenance actions include:
 - optimize database after heavy scan or delete activity
 
 The docs also explain what is preserved and what is lost during emergency recovery.
+
+## Configuring the Index Directory
+
+If your output directory is on a NAS or SMB share, SQLite may log "database is locked" errors because many NAS implementations do not support OS-level file locking reliably. The fix is to move the index to a local disk.
+
+**From Settings UI**:
+Settings → Paths → Majoor: Index Directory → enter a local path → Save → Restart ComfyUI.
+
+**From environment variable**:
+```bash
+MJR_AM_INDEX_DIRECTORY=/var/local/mjr_index
+```
+
+See [DB_MAINTENANCE.md](https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/blob/main/docs/DB_MAINTENANCE.md) for full details including migration notes.
 
 ## Testing Strategy
 
