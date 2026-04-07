@@ -34,11 +34,20 @@ vi.mock("../app/settings/settingsCore.js", () => ({
 describe("settingsSecurity recommended remote LAN preset", () => {
     beforeEach(() => {
         vi.resetModules();
+        vi.unstubAllGlobals();
         vi.clearAllMocks();
         globalThis.location = {
             protocol: "http:",
             hostname: "192.168.1.10",
         };
+        vi.stubGlobal("crypto", {
+            getRandomValues: vi.fn((buffer) => {
+                for (let index = 0; index < buffer.length; index += 1) {
+                    buffer[index] = (index * 17 + 23) & 0xff;
+                }
+                return buffer;
+            }),
+        });
         setSecuritySettings.mockResolvedValue({ ok: true, data: { prefs: {} } });
     });
 
@@ -52,6 +61,16 @@ describe("settingsSecurity recommended remote LAN preset", () => {
         expect(patch.allowInsecureTokenTransport).toBe(true);
         expect(String(patch.apiToken)).toMatch(/^mjr_[0-9a-f]+$/);
         expect(String(patch.apiToken)).toHaveLength(40);
+    });
+
+    it("rejects token generation when secure randomness is unavailable", async () => {
+        vi.stubGlobal("crypto", undefined);
+
+        const mod = await import("../app/settings/settingsSecurity.js");
+
+        expect(() => mod.generateRecommendedApiToken()).toThrow(
+            "Secure token generation requires crypto.getRandomValues().",
+        );
     });
 
     it("applies the preset through the settings toggle and syncs backend security", async () => {

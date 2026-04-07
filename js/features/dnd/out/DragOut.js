@@ -15,7 +15,7 @@ import {
     buildCleanDownloadURL,
 } from "../../../api/endpoints.js";
 import { getDownloadMimeForFilename } from "../utils/video.js";
-import { pickRootId } from "../../../utils/ids.js";
+import { createSecureToken, pickRootId } from "../../../utils/ids.js";
 import { comfyConfirm } from "../../../app/dialogs.js";
 import { t } from "../../../app/i18n.js";
 import { consumeInternalDropOccurred } from "../runtimeState.js";
@@ -29,22 +29,7 @@ const _abs = (url) => {
 };
 
 const _makeToken = () => {
-    try {
-        const cryptoObj = globalThis?.crypto || window?.crypto;
-        if (cryptoObj?.getRandomValues) {
-            const bytes = new Uint8Array(24); // 192 bits → ~36 char token (above backend min of 32)
-            cryptoObj.getRandomValues(bytes);
-            let bin = "";
-            for (let i = 0; i < bytes.length; i++) {
-                bin += String.fromCharCode(bytes[i]);
-            }
-            const b64 = btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-            return `mjr_${b64}`;
-        }
-        return `mjr_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
-    } catch {
-        return `mjr_${Date.now()}_${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
-    }
+    return createSecureToken("mjr_", 24);
 };
 
 const _assetToZipItem = (asset) => {
@@ -178,25 +163,32 @@ export const applyDragOutToOS = ({ dt, asset, containerEl, card, viewUrl }) => {
     if (Array.isArray(selected) && selected.length > 1) {
         const items = selected.map(_assetToZipItem).filter(Boolean);
         if (items.length > 1) {
-            const token = _makeToken();
-
-            // Fire-and-forget zip build. Never block dragstart.
+            let token = "";
             try {
-                post(ENDPOINTS.BATCH_ZIP_CREATE, { token, items }).catch(() => {});
+                token = _makeToken();
             } catch (e) {
-                console.debug?.(e);
+                console.warn("[DragOut] failed to create secure batch token", e);
             }
 
-            const url = _abs(buildBatchZipDownloadURL(token));
-            const zipName = `Majoor_Batch_${items.length}.zip`;
-            try {
-                dt.setData("text/uri-list", url);
-                dt.setData("DownloadURL", `application/zip:${zipName}:${url}`);
-                dt.effectAllowed = "copy";
-            } catch (e) {
-                console.debug?.(e);
+            if (token) {
+                // Fire-and-forget zip build. Never block dragstart.
+                try {
+                    post(ENDPOINTS.BATCH_ZIP_CREATE, { token, items }).catch(() => {});
+                } catch (e) {
+                    console.debug?.(e);
+                }
+
+                const url = _abs(buildBatchZipDownloadURL(token));
+                const zipName = `Majoor_Batch_${items.length}.zip`;
+                try {
+                    dt.setData("text/uri-list", url);
+                    dt.setData("DownloadURL", `application/zip:${zipName}:${url}`);
+                    dt.effectAllowed = "copy";
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                return;
             }
-            return;
         }
     }
 

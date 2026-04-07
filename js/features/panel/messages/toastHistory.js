@@ -1,5 +1,7 @@
 /** Toast history ring buffer — stores recent toasts for the History tab. */
 
+import { createUniqueId } from "../../../utils/ids.js";
+
 const STORAGE_KEY = "mjr_toast_history_v1";
 const STORAGE_LAST_READ_KEY = "mjr_toast_history_last_read_v1";
 const MAX_HISTORY = 60;
@@ -88,7 +90,7 @@ function _normalizeEntry(input, fallbackType = "info", fallbackDuration = null) 
     return {
         id:
             _normalizeText(input.id) ||
-            `th-${createdAt}-${Math.random().toString(36).slice(2, 6)}`,
+            createUniqueId(`th-${createdAt}-`, 4),
         message,
         title,
         detail,

@@ -47,22 +47,19 @@ function shouldAllowInsecureTokenTransportByDefault() {
     return protocol === "http:" && !isLoopbackHostname(hostname);
 }
 
+function getCryptoRandomValues(target) {
+    const cryptoApi = globalThis.crypto;
+    if (!cryptoApi?.getRandomValues) {
+        throw new Error("Secure token generation requires crypto.getRandomValues().");
+    }
+    return cryptoApi.getRandomValues(target);
+}
+
 function buildRandomTokenSegment(byteCount) {
     const size = Math.max(4, Number(byteCount) || 0);
-    try {
-        if (globalThis.crypto?.getRandomValues) {
-            const buffer = new Uint8Array(size);
-            globalThis.crypto.getRandomValues(buffer);
-            return Array.from(buffer, (value) => value.toString(16).padStart(2, "0")).join("");
-        }
-    } catch {
-        // Fall back to Math.random when crypto is unavailable.
-    }
-    return Array.from({ length: size }, () =>
-        Math.floor(Math.random() * 256)
-            .toString(16)
-            .padStart(2, "0"),
-    ).join("");
+    const buffer = new Uint8Array(size);
+    getCryptoRandomValues(buffer);
+    return Array.from(buffer, (value) => value.toString(16).padStart(2, "0")).join("");
 }
 
 export function generateRecommendedApiToken() {
@@ -234,7 +231,20 @@ export function registerSecuritySettings(safeAddSetting, settings, notifyApplied
                 return;
             }
 
-            const patch = buildRecommendedRemoteLanSecuritySettings(settings.security);
+            let patch;
+            try {
+                patch = buildRecommendedRemoteLanSecuritySettings(settings.security);
+            } catch (error) {
+                comfyToast(
+                    error?.message ||
+                        t(
+                            "toast.remoteLanPresetFailed",
+                            "Failed to apply the recommended remote LAN setup.",
+                        ),
+                    "error",
+                );
+                return;
+            }
             Object.assign(settings.security, patch);
             settings.security.tokenConfigured = true;
             settings.security.tokenHint = String(patch.apiToken || "").trim()
