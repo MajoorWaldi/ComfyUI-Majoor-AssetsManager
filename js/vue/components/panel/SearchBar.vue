@@ -15,6 +15,7 @@ import { get } from "../../../api/client.js";
 import { debounce } from "../../../utils/debounce.js";
 import { t } from "../../../app/i18n.js";
 import { appendTooltipHint } from "../../../utils/tooltipShortcuts.js";
+import { createUniqueId } from "../../../utils/ids.js";
 
 const SEARCH_TOOLTIP_HINT = "Ctrl/Cmd+F, Ctrl/Cmd+K, Ctrl/Cmd+H";
 
@@ -31,7 +32,7 @@ const searchInputRef = ref(null);
 const dataListRef = ref(null);
 const similarBtnRef = ref(null);
 const semanticBtnRef = ref(null);
-const dataListId = `mjr-search-autocomplete-${Math.random().toString(36).slice(2, 11)}`;
+const dataListId = createUniqueId("mjr-search-autocomplete-", 8);
 
 // Local semantic mode state (synced with settings, not persisted)
 const semanticMode = ref(false);

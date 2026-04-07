@@ -5,6 +5,8 @@ const MAX_STORED_MESSAGES = 120;
 const LOCAL_USER_GUIDE_URL = "/mjr/am/user-guide";
 const ALLOWED_MESSAGE_LEVELS = new Set(["info", "success", "warning", "error"]);
 
+import { createUniqueId } from "../../../utils/ids.js";
+
 export const PANEL_MESSAGES_EVENT = "mjr:panel-messages-changed";
 
 let _loaded = false;
@@ -119,7 +121,7 @@ function _safeNow() {
 }
 
 function _makeId() {
-    return `msg-${_safeNow()}-${Math.random().toString(36).slice(2, 8)}`;
+    return createUniqueId(`msg-${_safeNow()}-`, 6);
 }
 
 function _normalizeMessageLevel(value) {
