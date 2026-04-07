@@ -33,13 +33,17 @@ _DEFAULT_TRUSTED_PROXIES = "127.0.0.1,::1"
 _DEFAULT_RATE_LIMIT_BACKGROUND_CLEANUP_SECONDS = 60
 
 try:
-    _MAX_RATE_LIMIT_CLIENTS = int(os.environ.get("MAJOOR_RATE_LIMIT_MAX_CLIENTS", str(_DEFAULT_MAX_RATE_LIMIT_CLIENTS)))
+    _MAX_RATE_LIMIT_CLIENTS = int(
+        os.environ.get("MAJOOR_RATE_LIMIT_MAX_CLIENTS", str(_DEFAULT_MAX_RATE_LIMIT_CLIENTS))
+    )
 except Exception:
     _MAX_RATE_LIMIT_CLIENTS = _DEFAULT_MAX_RATE_LIMIT_CLIENTS
 
 try:
     _RATE_LIMIT_MIN_WINDOW_SECONDS = int(
-        os.environ.get("MAJOOR_RATE_LIMIT_MIN_WINDOW_SECONDS", str(_DEFAULT_RATE_LIMIT_MIN_WINDOW_SECONDS))
+        os.environ.get(
+            "MAJOOR_RATE_LIMIT_MIN_WINDOW_SECONDS", str(_DEFAULT_RATE_LIMIT_MIN_WINDOW_SECONDS)
+        )
     )
 except Exception:
     _RATE_LIMIT_MIN_WINDOW_SECONDS = _DEFAULT_RATE_LIMIT_MIN_WINDOW_SECONDS
@@ -175,7 +179,9 @@ def _pref_truthy(key: str, env_var: str, prefs: Mapping[str, Any] | None) -> boo
     return _env_truthy(env_var)
 
 
-def _require_operation_enabled(operation: str, *, prefs: Mapping[str, Any] | None = None) -> Result[bool]:
+def _require_operation_enabled(
+    operation: str, *, prefs: Mapping[str, Any] | None = None
+) -> Result[bool]:
     """
     Gate "dangerous" or state-changing operations behind explicit opt-ins.
 
@@ -290,6 +296,7 @@ def _get_write_token() -> str:
         raw = ""
     return _validate_token_format(raw, "MAJOOR_API_TOKEN") or ""
 
+
 def _hash_token(value: str) -> str:
     try:
         normalized = str(value or "").strip()
@@ -300,15 +307,25 @@ def _hash_token(value: str) -> str:
     except Exception:
         pepper = ""
     payload = f"{pepper}\0{normalized}".encode("utf-8", errors="ignore")
-    return hashlib.sha256(payload).hexdigest()
+    # Use a computationally expensive password hashing function instead of a fast hash.
+    # PBKDF2-HMAC-SHA256 with a fixed salt and sufficient iterations provides a stronger
+    # defense against brute-force attacks while remaining deterministic for comparison.
+    dk = hashlib.pbkdf2_hmac(
+        "sha256",
+        payload,
+        b"mjr_am_backend.api_token_salt",
+        100_000,
+    )
+    return dk.hex()
+
 
 def _get_write_token_hash() -> str:
     try:
         configured_hash = (
-            os.environ.get("MAJOOR_API_TOKEN_HASH")
-            or os.environ.get("MJR_API_TOKEN_HASH")
-            or ""
-        ).strip().lower()
+            (os.environ.get("MAJOOR_API_TOKEN_HASH") or os.environ.get("MJR_API_TOKEN_HASH") or "")
+            .strip()
+            .lower()
+        )
     except Exception:
         configured_hash = ""
     if configured_hash:
@@ -328,7 +345,7 @@ def _extract_bearer_token(headers: Mapping[str, str]) -> str:
         return ""
     prefix = "bearer "
     if auth.lower().startswith(prefix):
-        return auth[len(prefix):].strip()
+        return auth[len(prefix) :].strip()
     return ""
 
 
@@ -461,7 +478,9 @@ def _is_loopback_ip(value: str) -> bool:
         return False
 
 
-def _check_write_access(*, peer_ip: str, headers: Mapping[str, str], request_scheme: str = "") -> Result[bool]:
+def _check_write_access(
+    *, peer_ip: str, headers: Mapping[str, str], request_scheme: str = ""
+) -> Result[bool]:
     """
     Authorization guard for destructive/write endpoints.
 
@@ -527,7 +546,9 @@ def _check_write_access_with_token(
     from ...shared import Result
 
     if provided and hmac.compare_digest(_hash_token(provided), configured_hash):
-        if not _request_transport_is_secure(peer_ip=peer_ip, headers=headers, request_scheme=request_scheme):
+        if not _request_transport_is_secure(
+            peer_ip=peer_ip, headers=headers, request_scheme=request_scheme
+        ):
             if not _env_truthy("MAJOOR_ALLOW_INSECURE_TOKEN_TRANSPORT", default=False):
                 return Result.Err(
                     "FORBIDDEN",
@@ -548,7 +569,14 @@ def _check_write_access_with_token(
     )
 
 
-def _check_write_access_without_token(*, client_ip: str, allow_remote: bool, require_auth: bool, headers: Mapping[str, str] | None = None, request_scheme: str = "") -> Result[bool]:
+def _check_write_access_without_token(
+    *,
+    client_ip: str,
+    allow_remote: bool,
+    require_auth: bool,
+    headers: Mapping[str, str] | None = None,
+    request_scheme: str = "",
+) -> Result[bool]:
     from ...shared import Result
 
     if require_auth:
@@ -564,7 +592,7 @@ def _check_write_access_without_token(*, client_ip: str, allow_remote: bool, req
         return Result.Ok(True, auth="loopback", client_ip=client_ip)
     if _is_loopback_fallback_unknown_peer(client_ip, headers):
         return Result.Ok(True, auth="loopback_unknown_peer", client_ip=client_ip)
-    
+
     return Result.Err(
         "FORBIDDEN",
         "Write operation blocked for non-local clients. Configure MAJOOR_API_TOKEN (recommended) or set MAJOOR_ALLOW_REMOTE_WRITE=1 to allow remote writes when no token is configured.",
@@ -618,7 +646,9 @@ def _is_loopback_request(request: web.Request) -> bool:
     return _is_loopback_ip(client_ip)
 
 
-def _request_transport_is_secure(*, peer_ip: str, headers: Mapping[str, str], request_scheme: str) -> bool:
+def _request_transport_is_secure(
+    *, peer_ip: str, headers: Mapping[str, str], request_scheme: str
+) -> bool:
     scheme = str(request_scheme or "").strip().lower()
     if scheme == "https":
         return True
@@ -867,7 +897,10 @@ def _get_client_identifier(request: web.Request) -> str:
     except Exception:
         headers = {}
     client_ip = _resolve_client_ip(peer_ip, headers)
-    return hashlib.sha256(client_ip.encode("utf-8", errors="ignore")).hexdigest()[:_CLIENT_ID_HASH_HEX_CHARS]
+    return hashlib.sha256(client_ip.encode("utf-8", errors="ignore")).hexdigest()[
+        :_CLIENT_ID_HASH_HEX_CHARS
+    ]
+
 
 def _get_or_create_client_state(client_id: str) -> dict[str, list[float]]:
     if client_id in _rate_limit_state:
@@ -937,10 +970,7 @@ def _ensure_rate_limit_cleanup_thread() -> None:
 
 
 def _check_rate_limit(
-    request: web.Request,
-    endpoint: str,
-    max_requests: int = 10,
-    window_seconds: int = 60
+    request: web.Request, endpoint: str, max_requests: int = 10, window_seconds: int = 60
 ) -> tuple[bool, int | None]:
     """
     Check if the current client exceeded the rate limit.
@@ -1014,7 +1044,9 @@ def _csrf_error(request: web.Request) -> str | None:
 
 def _has_csrf_header(request: web.Request) -> bool:
     try:
-        return bool(request.headers.get("X-Requested-With")) or bool(request.headers.get("X-CSRF-Token"))
+        return bool(request.headers.get("X-Requested-With")) or bool(
+            request.headers.get("X-CSRF-Token")
+        )
     except Exception:
         return False
 
@@ -1090,4 +1122,3 @@ def _reset_security_state_for_tests() -> None:
         _WARNED_TOKEN_SOURCES.clear()
     except Exception:
         pass
-
