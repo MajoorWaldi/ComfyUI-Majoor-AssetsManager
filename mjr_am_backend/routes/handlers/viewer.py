@@ -123,11 +123,10 @@ def _normalize_viewer_resource_relpath(value: str) -> Path | None:
     drive, _tail = os.path.splitdrive(text)
     if drive:
         return None
-    # Split into path components and reject any attempts at directory traversal
+    # Rebuild a normalized relative path from components. Preserve ".." segments:
+    # GLTF resources can legitimately live in sibling directories, and the final
+    # resolved path is still checked against the allowed root before serving.
     parts = [p for p in text.split("/") if p not in ("", ".")]
-    if any(p == ".." for p in parts):
-        return None
-    # Rebuild a normalized relative path from the safe components
     safe_rel = "/".join(parts)
     if not safe_rel:
         return None
@@ -384,7 +383,7 @@ def register_viewer_routes(routes: web.RouteTableDef) -> None:
     async def viewer_resource(request: web.Request):
         relpath = _normalize_viewer_resource_relpath(request.query.get("relpath", ""))
         if relpath is None:
-            return _json_response(Result.Err("INVALID_INPUT", "Missing or invalid relpath"))
+            return _json_response(Result.Err("FORBIDDEN", "Path access denied (escape attempt or invalid relpath)"))
 
         _asset, resolved_base, root_limit, error = await _resolve_viewer_file_context(request)
         if error:
@@ -395,9 +394,7 @@ def register_viewer_routes(routes: web.RouteTableDef) -> None:
             root_limit = resolved_base.parent
 
         try:
-            target = (resolved_base.parent / relpath).resolve(strict=True)
-        except FileNotFoundError:
-            return _json_response(Result.Err("NOT_FOUND", "Resource not found"))
+            target = (resolved_base.parent / relpath).resolve(strict=False)
         except Exception:
             return _json_response(Result.Err("VIEW_FAILED", "Failed to resolve resource path"))
 
