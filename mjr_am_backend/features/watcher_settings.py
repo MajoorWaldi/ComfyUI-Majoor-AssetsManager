@@ -15,7 +15,9 @@ class WatcherSettings:
     dedupe_ttl_ms: int
 
 
-_lock = threading.Lock()
+# RLock so that update_watcher_settings() can call get_watcher_settings()
+# (which also acquires the lock) without deadlocking.
+_lock = threading.RLock()
 _state = {
     "debounce_ms": max(50, int(WATCHER_DEFAULT_DEBOUNCE_MS)),
     "dedupe_ttl_ms": max(100, int(WATCHER_DEFAULT_DEDUPE_TTL_MS)),

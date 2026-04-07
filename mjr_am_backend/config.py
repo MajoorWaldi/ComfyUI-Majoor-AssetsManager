@@ -1,6 +1,7 @@
 """
 Configuration for Majoor Assets Manager.
 """
+import contextlib
 import logging
 import os
 import sys
@@ -306,8 +307,19 @@ def set_index_directory_override(path: str) -> str:
     resolved = str(_normalize_index_dir_candidate(normalized, OUTPUT_ROOT_PATH))
     for env_name in _INDEX_DIR_OVERRIDE_ENV_NAMES:
         os.environ[env_name] = resolved
-    _INDEX_DIR_OVERRIDE_FILE_PATH.write_text(resolved + "\n", encoding="utf-8")
+    _write_index_override_file_atomic(resolved)
     return resolved
+
+
+def _write_index_override_file_atomic(resolved: str) -> None:
+    """Write the index directory override file atomically (write-then-rename)."""
+    tmp = _INDEX_DIR_OVERRIDE_FILE_PATH.with_suffix(".tmp")
+    try:
+        tmp.write_text(resolved + "\n", encoding="utf-8")
+        tmp.replace(_INDEX_DIR_OVERRIDE_FILE_PATH)
+    except Exception:
+        with contextlib.suppress(Exception):
+            tmp.unlink(missing_ok=True)
 
 # Platform detection
 IS_WINDOWS = sys.platform == "win32"

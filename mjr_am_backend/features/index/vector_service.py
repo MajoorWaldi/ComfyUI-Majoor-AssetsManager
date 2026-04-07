@@ -116,33 +116,37 @@ def _configure_hf_quiet_mode() -> None:
         logging.getLogger(_logger_name).setLevel(logging.ERROR)
 
 
+def _cuda_is_available(torch: Any) -> bool:
+    try:
+        cuda = getattr(torch, "cuda", None)
+        fn = getattr(cuda, "is_available", None)
+        return callable(fn) and bool(fn())
+    except Exception:
+        return False
+
+
+def _mps_is_available(torch: Any) -> bool:
+    try:
+        backends = getattr(torch, "backends", None)
+        mps = getattr(backends, "mps", None)
+        fn = getattr(mps, "is_available", None)
+        return callable(fn) and bool(fn())
+    except Exception:
+        return False
+
+
 def _resolve_preferred_torch_device(requested_device: str | None) -> str:
     raw = str(requested_device or "").strip()
     if raw and raw.lower() not in {"auto", "default"}:
         return raw
-
     try:
         import torch
     except Exception:
         return "cpu"
-
-    try:
-        cuda = getattr(torch, "cuda", None)
-        is_available = getattr(cuda, "is_available", None)
-        if callable(is_available) and bool(is_available()):
-            return "cuda"
-    except Exception:
-        pass
-
-    try:
-        backends = getattr(torch, "backends", None)
-        mps = getattr(backends, "mps", None)
-        is_available = getattr(mps, "is_available", None)
-        if callable(is_available) and bool(is_available()):
-            return "mps"
-    except Exception:
-        pass
-
+    if _cuda_is_available(torch):
+        return "cuda"
+    if _mps_is_available(torch):
+        return "mps"
     return "cpu"
 
 

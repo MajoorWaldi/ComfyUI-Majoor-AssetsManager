@@ -60,17 +60,23 @@ def _rows_to_allowed_set(rows_data: list[dict[str, Any]]) -> set[int]:
     return allowed
 
 
+def _safe_score(raw: Any) -> float:
+    """Convert a raw score to a finite float clamped to [0.0, 1.0]."""
+    try:
+        value = float(raw or 0.0)
+    except Exception:
+        return 0.0
+    return value if math.isfinite(value) else 0.0
+
+
 def _filter_by_score_floor(hits: list[dict[str, Any]], min_score: float) -> list[dict[str, Any]]:
-    """Return hits whose score meets the minimum threshold."""
+    """Return hits whose score meets the minimum threshold, with scores sanitized to [0.0, 1.0]."""
     score_floor = max(0.0, min(1.0, float(min_score or 0.0)))
     result: list[dict[str, Any]] = []
     for hit in hits:
-        try:
-            score = float(hit.get("score") or 0.0)
-        except Exception:
-            score = 0.0
+        score = _safe_score(hit.get("score"))
         if score >= score_floor:
-            result.append(hit)
+            result.append({**hit, "score": score})
     return result
 
 

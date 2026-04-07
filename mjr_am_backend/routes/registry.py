@@ -384,6 +384,28 @@ def _install_background_scan_cleanup(app: web.Application) -> None:
         logger.debug("Failed to install background scan cleanup hook: %s", exc)
 
 
+def _try_register(
+    register_fn: Any,
+    routes: Any,
+    error_label: str,
+    verbose: bool,
+    *log_msgs: str,
+) -> None:
+    """Register an optional route group; log errors instead of raising."""
+    try:
+        register_fn(routes)
+        if verbose:
+            for msg in log_msgs:
+                logger.info(msg)
+    except Exception as e:
+        logger.error("Failed to register %s routes: %s", error_label, e)
+
+
+def _register_download_and_duplicates(routes: Any) -> None:
+    register_download_routes(routes)
+    register_duplicates_routes(routes)
+
+
 def register_all_routes() -> web.RouteTableDef:
     """
     Register all route handlers and return the RouteTableDef.
@@ -394,9 +416,9 @@ def register_all_routes() -> web.RouteTableDef:
     if _ROUTES_REGISTERED:
         logger.debug("register_all_routes() skipped: already registered")
         return routes
-    verbose_route_logs = _route_verbose_logs_enabled()
+    verbose = _route_verbose_logs_enabled()
 
-    # Register all handler modules
+    # Core handlers — always registered
     register_health_routes(routes)
     register_metadata_routes(routes)
     register_custom_roots_routes(routes)
@@ -410,66 +432,33 @@ def register_all_routes() -> web.RouteTableDef:
     register_stacks_routes(routes)
     register_vendor_routes(routes)
     register_db_maintenance_routes(routes)
-    # Register releases route (exposes tags/branches + zip template)
-    try:
-        register_releases_routes(routes)
-        if verbose_route_logs:
-            logger.info("  GET /mjr/am/releases (Added)")
-    except Exception as e:
-        logger.error(f"Failed to register releases routes: {e}")
 
-    try:
-        register_version_routes(routes)
-        if verbose_route_logs:
-            logger.info("  GET /mjr/am/version (Added)")
-            logger.info("  GET /majoor/version (Legacy alias)")
-    except Exception as e:
-        logger.error(f"Failed to register version route: {e}")
+    # Optional handlers — failures are logged, not raised
+    _try_register(register_releases_routes, routes, "releases", verbose,
+                  "  GET /mjr/am/releases (Added)")
+    _try_register(register_version_routes, routes, "version", verbose,
+                  "  GET /mjr/am/version (Added)", "  GET /majoor/version (Legacy alias)")
+    _try_register(_register_download_and_duplicates, routes, "download+duplicates", verbose,
+                  "  GET /mjr/am/download (Added)")
+    _try_register(register_vector_search_routes, routes, "vector search", verbose,
+                  "  GET /mjr/am/vector/search (Added)",
+                  "  GET /mjr/am/vector/similar/{asset_id} (Added)",
+                  "  GET /mjr/am/vector/alignment/{asset_id} (Added)",
+                  "  GET /mjr/am/vector/auto-tags/{asset_id} (Added)",
+                  "  GET /mjr/am/vector/stats (Added)",
+                  "  POST /mjr/am/vector/index/{asset_id} (Added)",
+                  "  POST /mjr/am/vector/caption/{asset_id} (Added)",
+                  "  POST /mjr/am/vector/suggest-collections (Added)")
+    _try_register(register_plugin_routes, routes, "plugins", verbose,
+                  "  GET /mjr/am/plugins/list (Added)",
+                  "  POST /mjr/am/plugins/{name}/enable (Added)",
+                  "  POST /mjr/am/plugins/reload (Added)")
+    _try_register(register_hybrid_search_routes, routes, "hybrid search", verbose,
+                  "  GET /mjr/am/search/hybrid (Added)")
+    _try_register(register_audit_routes, routes, "audit", verbose,
+                  "  GET /mjr/am/audit (Added)")
 
-    # FIX: Enregistrement de la route de tÃ©lÃ©chargement
-    try:
-        register_download_routes(routes)
-        register_duplicates_routes(routes)
-        if verbose_route_logs:
-            logger.info("  GET /mjr/am/download (Added)")
-    except Exception as e:
-        logger.error(f"Failed to register download routes: {e}")
-    # Vector / semantic search routes (CLIP)
-    try:
-        register_vector_search_routes(routes)
-        if verbose_route_logs:
-            logger.info("  GET /mjr/am/vector/search (Added)")
-            logger.info("  GET /mjr/am/vector/similar/{asset_id} (Added)")
-            logger.info("  GET /mjr/am/vector/alignment/{asset_id} (Added)")
-            logger.info("  GET /mjr/am/vector/auto-tags/{asset_id} (Added)")
-            logger.info("  GET /mjr/am/vector/stats (Added)")
-            logger.info("  POST /mjr/am/vector/index/{asset_id} (Added)")
-            logger.info("  POST /mjr/am/vector/caption/{asset_id} (Added)")
-            logger.info("  POST /mjr/am/vector/suggest-collections (Added)")
-    except Exception as e:
-        logger.error(f"Failed to register vector search routes: {e}")
-    try:
-        register_plugin_routes(routes)
-        if verbose_route_logs:
-            logger.info("  GET /mjr/am/plugins/list (Added)")
-            logger.info("  POST /mjr/am/plugins/{name}/enable (Added)")
-            logger.info("  POST /mjr/am/plugins/reload (Added)")
-    except Exception as e:
-        logger.error(f"Failed to register plugin routes: {e}")
-    try:
-        register_hybrid_search_routes(routes)
-        if verbose_route_logs:
-            logger.info("  GET /mjr/am/search/hybrid (Added)")
-    except Exception as e:
-        logger.error(f"Failed to register hybrid search routes: {e}")
-    try:
-        register_audit_routes(routes)
-        if verbose_route_logs:
-            logger.info("  GET /mjr/am/audit (Added)")
-    except Exception as e:
-        logger.error(f"Failed to register audit routes: {e}")
-    _log_route_registration_summary(verbose_route_logs)
-
+    _log_route_registration_summary(verbose)
     _ROUTES_REGISTERED = True
     return routes
 

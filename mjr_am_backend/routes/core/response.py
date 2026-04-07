@@ -2,8 +2,8 @@
 Response utilities for route handlers.
 """
 
-from dataclasses import asdict, is_dataclass
 import math
+from dataclasses import asdict, is_dataclass
 
 from aiohttp import web
 from mjr_am_backend.shared import Result

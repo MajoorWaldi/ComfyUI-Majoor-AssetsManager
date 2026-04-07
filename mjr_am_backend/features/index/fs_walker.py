@@ -113,7 +113,8 @@ class FileSystemWalker:
                             file_path = self._candidate(entry)
                             if file_path is not None:
                                 yield file_path
-                except (OSError, PermissionError):
+                except (OSError, PermissionError) as exc:
+                    logger.debug("Scan skipped inaccessible directory %s: %s", current, exc)
                     continue
         else:
             for item in directory.iterdir():

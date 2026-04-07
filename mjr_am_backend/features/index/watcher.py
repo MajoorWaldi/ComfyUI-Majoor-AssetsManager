@@ -11,7 +11,7 @@ import time
 from collections import deque
 from collections.abc import Awaitable, Callable, Coroutine
 from pathlib import Path
-from threading import Lock
+from threading import Lock, RLock
 from typing import (
     Any,
     cast,
@@ -114,7 +114,7 @@ MAX_FILE_SIZE = max(0, int(WATCHER_MAX_FILE_SIZE_BYTES))
 # ~100ms this assumption may break and a lock-based coordination would be needed.
 # The TTL of 30s provides ample margin for slow index_paths() runs.
 _RECENT_GENERATED_TTL_S = 30.0
-_RECENT_GENERATED_LOCK = Lock()
+_RECENT_GENERATED_LOCK = RLock()  # RLock allows re-entrant acquisition if callers are ever composed
 _RECENT_GENERATED: dict[str, float] = {}
 _MAX_PENDING_FILES = max(0, WATCHER_PENDING_MAX)
 _STREAM_EVENTS: deque[tuple[float, int]] = deque()
@@ -296,7 +296,9 @@ class DebouncedWatchHandler(FileSystemEventHandler):
             # Prevent unbounded memory growth under bursts.
             if _MAX_PENDING_FILES > 0 and len(self._pending) >= _MAX_PENDING_FILES:
                 # Keep overflow candidates for later flush instead of dropping permanently.
-                if key not in self._overflow:
+                # Cap overflow at the same limit so it cannot grow without bound when
+                # pending stays full and events arrive faster than they are flushed.
+                if key not in self._overflow and len(self._overflow) < _MAX_PENDING_FILES:
                     self._overflow[key] = now
                 self._maybe_log_pending_limit(path)
                 self._schedule_flush()
@@ -311,17 +313,26 @@ class DebouncedWatchHandler(FileSystemEventHandler):
             self._schedule_flush()
 
     def _schedule_flush(self):
-        """Schedule a debounced flush of pending files."""
+        """Schedule a debounced flush of pending files.
+
+        This method is called from the watchdog background thread, so it must
+        not touch the event loop directly.  ``call_soon_threadsafe`` safely
+        hands off to the event loop thread, which then arms the debounce timer
+        via ``call_later`` (safe because it runs inside the loop).
+        """
         try:
             self._refresh_runtime_settings()
-            if self._flush_timer:
-                self._flush_timer.cancel()
-            # BUG-10: call_later callback runs in the event loop thread, so use
-            # create_task (not run_coroutine_threadsafe which is for cross-thread use).
-            self._flush_timer = self._loop.call_later(
-                self._debounce_s,
-                lambda: self._loop.create_task(self._flush()),
-            )
+            debounce_s = self._debounce_s
+
+            def _do_schedule() -> None:
+                if self._flush_timer:
+                    self._flush_timer.cancel()
+                self._flush_timer = self._loop.call_later(
+                    debounce_s,
+                    lambda: self._loop.create_task(self._flush()),
+                )
+
+            self._loop.call_soon_threadsafe(_do_schedule)
         except Exception:
             pass
 
@@ -414,7 +425,19 @@ class DebouncedWatchHandler(FileSystemEventHandler):
             try:
                 await self._on_files_ready(files)
             except Exception as e:
-                logger.debug("Watcher flush error: %s", e)
+                logger.warning(
+                    "Watcher index callback failed — %d file(s) re-queued for retry: %s",
+                    len(files), e,
+                )
+                self._requeue_failed_files(files)
+
+    def _requeue_failed_files(self, files: list[str]) -> None:
+        """Re-queue files that the index callback failed to process into overflow."""
+        now = time.time()
+        with self._lock:
+            for f in files:
+                if _MAX_PENDING_FILES <= 0 or len(self._overflow) < _MAX_PENDING_FILES:
+                    self._overflow[f] = now
 
     def _drain_pending_candidates(self) -> list[str]:
         with self._lock:
@@ -584,20 +607,24 @@ def _prune_oldest_generated() -> None:
         _RECENT_GENERATED.pop(k, None)
 
 
+_RECENT_GENERATED_HARD_CAP = 2000
+
+
 def mark_recent_generated(paths: list[str]) -> None:
     if not paths:
         return
     now = time.time()
     try:
         with _RECENT_GENERATED_LOCK:
+            # Prune *before* inserting so the cache never exceeds the hard cap.
+            if len(_RECENT_GENERATED) >= _RECENT_GENERATED_HARD_CAP:
+                _prune_expired_generated(now)
+            if len(_RECENT_GENERATED) >= _RECENT_GENERATED_HARD_CAP:
+                _prune_oldest_generated()
             for p in paths:
                 key = _normalize_recent_key(p)
                 if key:
                     _RECENT_GENERATED[key] = now
-            if len(_RECENT_GENERATED) > 2000:
-                _prune_expired_generated(now)
-            if len(_RECENT_GENERATED) > 3000:
-                _prune_oldest_generated()
     except Exception:
         return
 
@@ -675,15 +702,24 @@ class OutputWatcher:
         self._handler: DebouncedWatchHandler | None = None
         self._watched_paths: dict[str, dict] = {}  # watch_key -> {path, source, root_id, watch}
         self._lock = Lock()
+        self._start_lock = asyncio.Lock()  # prevents concurrent start() calls
         self._running = False
         self._allowed_sources: set[str] = set()
 
     async def start(self, paths: list, loop: asyncio.AbstractEventLoop | None = None):
-        """Start watching the given directories."""
+        """Start watching the given directories.
+
+        Protected by ``_start_lock`` so concurrent ``await watcher.start()``
+        calls are serialised — only the first one does any work.
+        """
+        async with self._start_lock:
+            await self._start_locked(paths, loop)
+
+    async def _start_locked(self, paths: list, loop: asyncio.AbstractEventLoop | None = None) -> None:
         if self._running:
             return
 
-        loop = loop or asyncio.get_event_loop()
+        loop = loop or asyncio.get_running_loop()
         self._allowed_sources = set()
         on_files_ready = self._handle_ready_files
         on_files_removed = self._handle_removed_files
@@ -739,9 +775,58 @@ class OutputWatcher:
         if not moves:
             return
         if callable(self._move_callback):
-            await self._dispatch_move_groups(self._group_moves_by_watched_root(moves))
+            grouped = self._group_moves_by_watched_root(moves)
+            await self._dispatch_move_groups(grouped)
+            await self._emit_removes_for_outbound_moves(moves, grouped)
             return
         await self._handle_move_fallback(moves)
+
+    @staticmethod
+    def _get_unmatched_move_src(move: Any, matched_srcs: set[str]) -> str | None:
+        """Return the src path of a move whose destination is outside all watched roots."""
+        try:
+            src, _ = move
+        except Exception:
+            return None
+        src_str = str(src)
+        return src_str if src_str not in matched_srcs else None
+
+    def _collect_outbound_move_removes(
+        self, moves: list, matched_srcs: set[str]
+    ) -> dict[str, dict]:
+        """Build a remove-groups dict for move sources that left all watched roots."""
+        removes: dict[str, dict] = {}
+        for move in moves:
+            src_str = self._get_unmatched_move_src(move, matched_srcs)
+            if not src_str:
+                continue
+            entry = self._best_watched_entry_for_path(src_str)
+            if not entry:
+                continue
+            base = str(entry.get("path") or "")
+            if not base:
+                continue
+            removes.setdefault(
+                base,
+                {"files": [], "source": entry.get("source"), "root_id": entry.get("root_id")},
+            )
+            removes[base]["files"].append(src_str)
+        return removes
+
+    async def _emit_removes_for_outbound_moves(
+        self, moves: list, grouped: dict[str, dict]
+    ) -> None:
+        """Emit remove events for move sources whose destination left all watched roots.
+
+        Without this, a file moved *out* of a watched directory would leave a
+        stale record in the index indefinitely.
+        """
+        if not self._remove_callback:
+            return
+        matched_srcs = {str(s) for p in grouped.values() for s, _ in p.get("moves", [])}
+        removes = self._collect_outbound_move_removes(moves, matched_srcs)
+        if removes:
+            await self._dispatch_file_groups(removes, self._remove_callback, "remove-outbound-move")
 
     async def _dispatch_move_groups(self, grouped_moves: dict[str, dict]) -> None:
         if not callable(self._move_callback):
@@ -819,7 +904,11 @@ class OutputWatcher:
         logger.info("File watcher stopped")
 
     def add_path(self, path: str, *, source: str | None = None, root_id: str | None = None):
-        """Add a new path to watch (e.g., when custom root is added)."""
+        """Add a new path to watch (e.g., when custom root is added).
+
+        Uses ``self._lock`` to prevent TOCTOU races when two callers check
+        ``_is_already_watched`` concurrently and both proceed to ``schedule``.
+        """
         if not self._running or not self._observer or not self._handler:
             return
 
@@ -827,22 +916,23 @@ class OutputWatcher:
             normalized = os.path.normpath(path)
             if not os.path.isdir(normalized):
                 return
-            if self._is_already_watched(normalized):
-                return
-            source_norm = self._normalize_source(source)
-            if not self._allows_source(source_norm):
-                try:
-                    logger.debug("Watcher ignored path (scope mismatch): %s (source=%s)", normalized, source_norm)
-                except Exception:
-                    pass
-                return
-            watch = self._observer.schedule(self._handler, normalized, recursive=True)
-            self._watched_paths[str(id(watch))] = {
-                "path": normalized,
-                "source": source_norm,
-                "root_id": root_id,
-                "watch": watch,
-            }
+            with self._lock:
+                if self._is_already_watched(normalized):
+                    return
+                source_norm = self._normalize_source(source)
+                if not self._allows_source(source_norm):
+                    logger.debug(
+                        "Watcher ignored path (scope mismatch): %s (source=%s)",
+                        normalized, source_norm,
+                    )
+                    return
+                watch = self._observer.schedule(self._handler, normalized, recursive=True)
+                self._watched_paths[str(id(watch))] = {
+                    "path": normalized,
+                    "source": source_norm,
+                    "root_id": root_id,
+                    "watch": watch,
+                }
             logger.info("Watcher added: %s", normalized)
         except Exception as e:
             logger.warning("Failed to add watch for %s: %s", path, e)
@@ -858,9 +948,13 @@ class OutputWatcher:
 
     def _best_watched_entry_for_path(self, path_value: str) -> dict | None:
         normalized_path = os.path.normcase(os.path.normpath(path_value))
+        # Snapshot under lock to avoid RuntimeError if add_path/remove_path
+        # modifies _watched_paths concurrently while we iterate.
+        with self._lock:
+            entries = list(self._watched_paths.values())
         best = None
         best_len = -1
-        for entry in self._watched_paths.values():
+        for entry in entries:
             watched = entry.get("path")
             if not watched:
                 continue

@@ -33,7 +33,7 @@ from .features.metadata import MetadataService
 from .features.runtime import apply_startup_settings
 from .features.tags import RatingTagsSyncWorker
 from .settings import AppSettings
-from .shared import Result, get_logger, log_success
+from .shared import Result, get_logger
 from .startup_logging import startup_log_info, startup_log_success
 
 logger = get_logger(__name__)

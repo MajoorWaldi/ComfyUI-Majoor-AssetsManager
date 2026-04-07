@@ -796,6 +796,25 @@ def _parse_backfill_metadata_raw(row: dict[str, Any]) -> dict[str, Any] | None:
     return None
 
 
+async def _init_backfill_counters(
+    db: Any,
+    scope_sql: str,
+    scope_params: list[Any],
+    batch_size: int,
+    on_progress: Any | None,
+) -> Result[_BackfillCounters]:
+    """Initialize backfill counters from DB totals and emit initial progress."""
+    counters = _BackfillCounters(batch_size=batch_size)
+    totals_res = await _count_backfill_scope_totals(db=db, scope_sql=scope_sql, scope_params=scope_params)
+    if not totals_res.ok:
+        return Result.Err(totals_res.code, totals_res.error or "Failed to count backfill totals")
+    totals = totals_res.data or {}
+    counters.eligible_total = int(totals.get("eligible_total") or 0)
+    counters.candidate_total = int(totals.get("candidate_total") or 0)
+    _emit_backfill_progress(on_progress, counters)
+    return Result.Ok(counters)
+
+
 async def _backfill_missing_asset_vectors(
     db: Any,
     vector_service: Any,
@@ -824,14 +843,10 @@ async def _backfill_missing_asset_vectors(
         return Result.Err("INVALID_INPUT", "Missing custom_root_id for custom scope")
 
     scope_sql, scope_params = _build_backfill_scope_clause(normalized_scope, normalized_custom_root)
-    counters = _BackfillCounters(batch_size=size)
-    totals_res = await _count_backfill_scope_totals(db=db, scope_sql=scope_sql, scope_params=scope_params)
-    if not totals_res.ok:
-        return Result.Err(totals_res.code, totals_res.error or "Failed to count backfill totals")
-    totals = totals_res.data or {}
-    counters.eligible_total = int(totals.get("eligible_total") or 0)
-    counters.candidate_total = int(totals.get("candidate_total") or 0)
-    _emit_backfill_progress(on_progress, counters)
+    counters_res = await _init_backfill_counters(db, scope_sql, scope_params, size, on_progress)
+    if not counters_res.ok:
+        return counters_res
+    counters = counters_res.data
     result = await _run_backfill_vector_query_loop(
         db=db,
         vector_service=vector_service,
@@ -856,14 +871,7 @@ def _normalize_backfill_batch_size(batch_size: int) -> int:
     return max(1, min(200, int(batch_size or 64)))
 
 
-async def _count_backfill_scope_totals(
-    *,
-    db: Any,
-    scope_sql: str,
-    scope_params: list[Any],
-) -> Result[dict[str, int]]:
-    count_res = await db.aquery(
-        """
+_BACKFILL_SCOPE_TOTALS_SQL = """
         SELECT
             COUNT(*) AS eligible_total,
             COALESCE(
@@ -879,25 +887,34 @@ async def _count_backfill_scope_totals(
         LEFT JOIN vec.asset_embeddings ae ON ae.asset_id = a.id
         WHERE a.kind IN ('image', 'video')
         """
-        + scope_sql,
+
+
+def _safe_row_int(row: Any, key: str) -> int:
+    """Safely extract an integer value from a DB result row."""
+    try:
+        return int((row or {}).get(key) or 0)
+    except Exception:
+        return 0
+
+
+async def _count_backfill_scope_totals(
+    *,
+    db: Any,
+    scope_sql: str,
+    scope_params: list[Any],
+) -> Result[dict[str, int]]:
+    count_res = await db.aquery(
+        _BACKFILL_SCOPE_TOTALS_SQL + scope_sql,
         tuple(scope_params),
     )
     if not count_res.ok:
         return Result.Err("DB_ERROR", count_res.error or "Failed to count eligible assets")
     rows = count_res.data or []
     row = rows[0] if rows else {}
-    try:
-        eligible_total = int((row or {}).get("eligible_total") or 0)
-    except Exception:
-        eligible_total = 0
-    try:
-        candidate_total = int((row or {}).get("candidate_total") or 0)
-    except Exception:
-        candidate_total = 0
     return Result.Ok(
         {
-            "eligible_total": max(0, eligible_total),
-            "candidate_total": max(0, candidate_total),
+            "eligible_total": max(0, _safe_row_int(row, "eligible_total")),
+            "candidate_total": max(0, _safe_row_int(row, "candidate_total")),
         }
     )
 

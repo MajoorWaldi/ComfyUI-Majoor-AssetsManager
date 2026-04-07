@@ -53,7 +53,7 @@ _STOPWORDS_FR_EN = {
     "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "in", "is", "it", "of",
     "on", "or", "that", "the", "to", "was", "were", "with", "without",
     # French
-    "a", "au", "aux", "avec", "ce", "ces", "dans", "de", "des", "du", "en", "et", "la", "le",
+    "au", "aux", "avec", "ce", "ces", "dans", "de", "des", "du", "en", "et", "la", "le",
     "les", "leur", "leurs", "mais", "ou", "par", "pas", "pour", "sans", "se", "ses", "sur", "un",
     "une", "vos", "votre",
 }

@@ -12,7 +12,7 @@ from typing import Any
 
 from ...config import EXIFTOOL_TIMEOUT
 from ...shared import ErrorCode, Result, get_logger
-from ...tool_candidates import EXIFTOOL_CANDIDATE_NAMES, iter_exiftool_candidates
+from ...tool_candidates import iter_exiftool_candidates
 
 logger = get_logger(__name__)
 
