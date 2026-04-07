@@ -219,6 +219,9 @@ def _detect_comfy_root(current_file: Path) -> Path | None:
 OUTPUT_ROOT_PATH = _resolve_output_root()
 OUTPUT_ROOT = str(OUTPUT_ROOT_PATH)
 
+_INDEX_DIR_OVERRIDE_ENV_NAMES = ("MJR_AM_INDEX_DIRECTORY", "MAJOOR_INDEX_DIRECTORY")
+_INDEX_DIR_OVERRIDE_FILE_PATH = Path(__file__).resolve().parents[1] / ".mjr_index_directory_override"
+
 
 def get_runtime_output_root() -> str:
     """
@@ -239,11 +242,66 @@ def get_runtime_output_root() -> str:
     except Exception:
         return str(OUTPUT_ROOT)
 
+
+def _normalize_index_dir_candidate(raw: str, output_root: Path) -> Path:
+    candidate = Path(str(raw or "").strip()).expanduser()
+    if not candidate.is_absolute():
+        candidate = output_root / candidate
+    return candidate.resolve(strict=False)
+
+
+def _read_index_dir_override_from_file() -> str | None:
+    try:
+        if not _INDEX_DIR_OVERRIDE_FILE_PATH.exists():
+            return None
+        raw = _INDEX_DIR_OVERRIDE_FILE_PATH.read_text(encoding="utf-8").strip()
+        return raw or None
+    except Exception:
+        return None
+
+
+def _resolve_index_dir() -> Path:
+    raw = str(_env_raw(*_INDEX_DIR_OVERRIDE_ENV_NAMES, default="") or "").strip()
+    if not raw:
+        raw = str(_read_index_dir_override_from_file() or "").strip()
+    if raw:
+        try:
+            return _normalize_index_dir_candidate(raw, OUTPUT_ROOT_PATH)
+        except Exception:
+            logger.warning("Invalid index directory override: %s", raw)
+    return (OUTPUT_ROOT_PATH / "_mjr_index").resolve(strict=False)
+
+
+def get_runtime_index_dir() -> str:
+    try:
+        return str(_resolve_index_dir())
+    except Exception:
+        return str(INDEX_DIR)
+
+
+def set_index_directory_override(path: str) -> str:
+    normalized = str(path or "").strip()
+    if not normalized:
+        for env_name in _INDEX_DIR_OVERRIDE_ENV_NAMES:
+            os.environ.pop(env_name, None)
+        try:
+            if _INDEX_DIR_OVERRIDE_FILE_PATH.exists():
+                _INDEX_DIR_OVERRIDE_FILE_PATH.unlink()
+        except Exception:
+            pass
+        return ""
+
+    resolved = str(_normalize_index_dir_candidate(normalized, OUTPUT_ROOT_PATH))
+    for env_name in _INDEX_DIR_OVERRIDE_ENV_NAMES:
+        os.environ[env_name] = resolved
+    _INDEX_DIR_OVERRIDE_FILE_PATH.write_text(resolved + "\n", encoding="utf-8")
+    return resolved
+
 # Platform detection
 IS_WINDOWS = sys.platform == "win32"
 
 # SQLite index configuration
-INDEX_DIR_PATH = OUTPUT_ROOT_PATH / "_mjr_index"
+INDEX_DIR_PATH = _resolve_index_dir()
 INDEX_DIR = str(INDEX_DIR_PATH)
 INDEX_DB_PATH = INDEX_DIR_PATH / "assets.sqlite"
 INDEX_DB = str(INDEX_DB_PATH)

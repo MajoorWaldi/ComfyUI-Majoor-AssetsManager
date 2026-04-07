@@ -275,3 +275,48 @@ async def test_resolve_security_prefs_best_effort() -> None:
 
     prefs2 = await sec._resolve_security_prefs(None)
     assert prefs2 is None
+
+
+def test_check_write_access_allows_unknown_peer_on_truly_local(monkeypatch) -> None:
+    """When peer_ip extraction returns 'unknown' and NO headers dict is passed (direct/test call),
+    allowwrite access on local connections without a token. This handles edge cases where
+    peer IP extraction fails (e.g., WebSocket, unix domain sockets)."""
+    
+    monkeypatch.delenv("MAJOOR_API_TOKEN", raising=False)
+    monkeypatch.delenv("MJR_API_TOKEN", raising=False)
+    monkeypatch.delenv("MAJOOR_API_TOKEN_HASH", raising=False)
+    monkeypatch.delenv("MJR_API_TOKEN_HASH", raising=False)
+    monkeypatch.delenv("MAJOOR_REQUIRE_AUTH", raising=False)
+    monkeypatch.delenv("MAJOOR_ALLOW_REMOTE_WRITE", raising=False)
+    
+    # Calling _check_write_access directly without headers (bypassing _require_write_access wrapper)
+    out = sec._check_write_access(
+        peer_ip="unknown",
+        headers=None,
+    )
+    assert out.ok, f"Expected write access allowed for unknown peer when headers=None, got {out}"
+    assert (out.meta or {}).get("auth") == "loopback_unknown_peer"
+
+
+def test_check_write_access_allows_unknown_peer_with_token_not_provided(monkeypatch) -> None:
+    """When a token IS configured but NOT provided in the request, and peer_ip is 'unknown'
+    and headers is None, still allow write access (local edge case with token configured)."""
+    
+    monkeypatch.setenv("MAJOOR_API_TOKEN", "test-token-1234567890")
+    monkeypatch.delenv("MAJOOR_REQUIRE_AUTH", raising=False)
+    monkeypatch.delenv("MAJOOR_ALLOW_REMOTE_WRITE", raising=False)
+    
+    # Calling _check_write_access with token configured but not provided, unknown peer
+    out = sec._check_write_access(
+        peer_ip="unknown",
+        headers=None,  # No headers dict = true direct call
+    )
+    assert out.ok, f"Expected write access allowed for unknown peer + token configured, got {out}"
+    assert (out.meta or {}).get("auth") == "loopback_unknown_peer"
+
+
+@pytest.fixture(autouse=True)
+def monkeypatch():
+    _mp = pytest.MonkeyPatch()
+    yield _mp
+    _mp.undo()

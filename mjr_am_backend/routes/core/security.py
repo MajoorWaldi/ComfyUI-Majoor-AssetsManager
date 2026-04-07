@@ -493,7 +493,23 @@ def _check_write_access(*, peer_ip: str, headers: Mapping[str, str], request_sch
             request_scheme=request_scheme,
             require_auth=require_auth,
         )
-    return _check_write_access_without_token(client_ip=client_ip, allow_remote=allow_remote, require_auth=require_auth)
+    return _check_write_access_without_token(
+        client_ip=client_ip,
+        allow_remote=allow_remote,
+        require_auth=require_auth,
+        headers=headers,
+        request_scheme=request_scheme,
+    )
+
+
+def _is_loopback_fallback_unknown_peer(client_ip: str, headers: Mapping[str, str] | None) -> bool:
+    """
+    Check if client_ip is 'unknown' and headers is None, indicating a true local/direct call
+    where peer IP extraction failed (e.g., WebSocket, Unix socket). In this rare edge case,
+    grant loopback privileges since true remote clients would have populated headers.
+    """
+    normalized = str(client_ip or "").strip().lower()
+    return normalized == "unknown" and headers is None
 
 
 def _check_write_access_with_token(
@@ -522,6 +538,8 @@ def _check_write_access_with_token(
         return Result.Ok(True, auth="token", client_ip=client_ip)
     if not require_auth and _is_loopback_ip(client_ip):
         return Result.Ok(True, auth="loopback", client_ip=client_ip)
+    if not require_auth and _is_loopback_fallback_unknown_peer(client_ip, headers):
+        return Result.Ok(True, auth="loopback_unknown_peer", client_ip=client_ip)
     return Result.Err(
         "AUTH_REQUIRED",
         "Write operation blocked: missing or invalid API token. Set MAJOOR_API_TOKEN and send it via X-MJR-Token or Authorization: Bearer <token>.",
@@ -530,7 +548,7 @@ def _check_write_access_with_token(
     )
 
 
-def _check_write_access_without_token(*, client_ip: str, allow_remote: bool, require_auth: bool) -> Result[bool]:
+def _check_write_access_without_token(*, client_ip: str, allow_remote: bool, require_auth: bool, headers: Mapping[str, str] | None = None, request_scheme: str = "") -> Result[bool]:
     from ...shared import Result
 
     if require_auth:
@@ -544,6 +562,9 @@ def _check_write_access_without_token(*, client_ip: str, allow_remote: bool, req
         return Result.Ok(True, auth="allow_remote_no_token", client_ip=client_ip)
     if _is_loopback_ip(client_ip):
         return Result.Ok(True, auth="loopback", client_ip=client_ip)
+    if _is_loopback_fallback_unknown_peer(client_ip, headers):
+        return Result.Ok(True, auth="loopback_unknown_peer", client_ip=client_ip)
+    
     return Result.Err(
         "FORBIDDEN",
         "Write operation blocked for non-local clients. Configure MAJOOR_API_TOKEN (recommended) or set MAJOOR_ALLOW_REMOTE_WRITE=1 to allow remote writes when no token is configured.",

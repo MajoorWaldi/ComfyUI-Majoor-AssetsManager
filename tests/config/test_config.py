@@ -99,3 +99,25 @@ class TestConfigConstants:
     def test_to_thread_timeout_positive(self):
         from mjr_am_backend.config import TO_THREAD_TIMEOUT_S  # type: ignore[attr-defined]
         assert TO_THREAD_TIMEOUT_S > 0
+
+
+def test_index_dir_override_from_env(monkeypatch, tmp_path):
+    import mjr_am_backend.config as cfg
+
+    monkeypatch.setenv("MJR_AM_INDEX_DIRECTORY", str(tmp_path))
+    assert cfg.get_runtime_index_dir() == str(tmp_path.resolve())
+
+
+def test_set_and_clear_index_dir_override(monkeypatch, tmp_path):
+    import mjr_am_backend.config as cfg
+
+    override_file = tmp_path / "override.txt"
+    monkeypatch.setattr(cfg, "_INDEX_DIR_OVERRIDE_FILE_PATH", override_file)
+
+    out = cfg.set_index_directory_override(str(tmp_path))
+    assert out == str(tmp_path.resolve())
+    assert override_file.exists()
+
+    cleared = cfg.set_index_directory_override("")
+    assert cleared == ""
+    assert not override_file.exists()

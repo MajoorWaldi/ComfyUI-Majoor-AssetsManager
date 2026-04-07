@@ -4326,8 +4326,6 @@ function qs(t, e) {
   for (const s in e) {
     if (!e.hasOwnProperty(s))
       continue;
-    if (s === "__proto__" || s === "constructor" || s === "prototype")
-      continue;
     const n = e[s], r = t[s];
     Bs(r) && Bs(n) && t.hasOwnProperty(s) && !/* @__PURE__ */ z(n) && !/* @__PURE__ */ $t(n) ? t[s] = qs(r, n) : t[s] = n;
   }

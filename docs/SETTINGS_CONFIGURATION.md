@@ -1,12 +1,12 @@
 # Majoor Assets Manager - Settings & Configuration Guide
 
-**Version**: 2.4.4  
-**Last Updated**: April 6, 2026
+**Version**: 2.4.5  
+**Last Updated**: April 7, 2026
 
 ## Overview
 The Majoor Assets Manager offers extensive configuration options to customize the interface, performance, and functionality to match your workflow. This guide covers all available settings and configuration options.
 
-**Recent highlights**: Floating Viewer settings, output path configuration from the UI, and a fully Settings-driven remote write security flow.
+**Recent highlights**: Floating Viewer settings, output path configuration from the UI, a fully Settings-driven remote write security flow, and a configurable Index DB directory for users on network drives or NAS storage.
 
 ## Browser-Based Settings
 
@@ -139,6 +139,14 @@ Use that line as the quickest confirmation that the current browser session can 
 
 ## File System Settings
 
+### Index Directory
+- **Purpose**: Override where the SQLite index database and related index files are stored.
+- **Default**: `<output_directory>/_mjr_index/` (next to your assets)
+- **Why change it**: If your output directory lives on a network share (NAS, SMB, CIFS) or a slow/remote disk, SQLite may suffer file-locking issues. Moving the index to a fast local disk (e.g. `C:\mjr_index` on Windows) solves that without touching your asset files.
+- **UI location**: Settings → Paths → Majoor: Index Directory
+- **Takes effect after**: ComfyUI restart. The old index directory is **not** deleted automatically; run a fresh scan after restart.
+- **Clear the override**: Leave the field empty and save to revert to the default (`<output>/_mjr_index/`).
+
 ### Custom Roots
 - **Adding Custom Directories**: Add additional directories to browse
 - **Path Validation**: Ensures paths are valid and accessible
@@ -178,11 +186,21 @@ Use that line as the quickest confirmation that the current browser session can 
 ### Environment Variables (Backend)
 
 #### Directory Configuration
-- **MAJOOR_OUTPUT_DIRECTORY**: Override default output directory
+- **MAJOOR_OUTPUT_DIRECTORY** / **MJR_AM_OUTPUT_DIRECTORY**: Override default output directory
   - Default: ComfyUI's output directory
   - Format: Full path to directory
   - Impact: Changes where the indexer looks for assets
   - Example: `MAJOOR_OUTPUT_DIRECTORY=/path/to/my/output`
+
+- **MJR_AM_INDEX_DIRECTORY** / **MAJOOR_INDEX_DIRECTORY**: Override the directory where the SQLite index database is stored
+  - Default: `<output_directory>/_mjr_index/`
+  - Format: Full absolute path to an existing or creatable directory
+  - Impact: Moves the index DB (and vectors DB) to a different disk or path; assets themselves stay in the output directory
+  - Takes effect: at ComfyUI startup (or restart after saving from the UI)
+  - Example: `MJR_AM_INDEX_DIRECTORY=C:\mjr_index`
+  - Example: `MJR_AM_INDEX_DIRECTORY=/var/local/mjr_index`
+  - Priority: env var → sidecar file (`.mjr_index_directory_override`) → default
+  - Also configurable from: Settings → Paths → Majoor: Index Directory (persists to the sidecar file)
 
 #### External Tool Paths
 - **MAJOOR_EXIFTOOL_PATH** / **MAJOOR_EXIFTOOL_BIN**: Path to ExifTool executable

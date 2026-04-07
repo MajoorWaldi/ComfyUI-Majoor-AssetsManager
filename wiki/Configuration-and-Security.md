@@ -7,10 +7,57 @@ Runtime behavior is controlled through extension settings and selected environme
 Important areas include:
 - probe backend selection
 - indexing behavior
+- index database directory
 - root and custom path setup
 - metadata extraction tools
 - AI model bootstrap and optional HuggingFace access
 - remote access and write authorization
+
+## Index Database Directory
+
+By default, the SQLite index lives at `<output>/_mjr_index/assets.sqlite`. You can relocate it to any local path without touching your asset files.
+
+### Why you might want to move it
+
+**Network drive (NAS/SMB/CIFS) users**: SQLite relies on OS-level file locking that many NAS/SMB implementations do not support reliably. This causes "database is locked" errors under concurrent access. Moving the index to a local SSD while keeping assets on the NAS eliminates this problem entirely.
+
+**Separate disk for performance**: Keep large/slow asset storage and a fast index DB on separate volumes.
+
+### How to change the index directory
+
+**From the UI (recommended)**:
+
+1. Open Majoor Settings → Paths → **Majoor: Index Directory**.
+2. Enter the full path to the desired directory (created automatically if it does not exist).
+3. Save. A toast confirms the save and reminds you to restart ComfyUI.
+4. Restart ComfyUI. A fresh scan runs automatically on startup.
+
+**Via environment variable**:
+
+```batch
+:: Windows
+set MJR_AM_INDEX_DIRECTORY=C:\mjr_index
+```
+```bash
+# Linux/macOS
+export MJR_AM_INDEX_DIRECTORY=/var/local/mjr_index
+```
+
+**Priority order** (highest to lowest):
+1. `MJR_AM_INDEX_DIRECTORY` or `MAJOOR_INDEX_DIRECTORY` environment variable
+2. `.mjr_index_directory_override` sidecar file (written by the UI)
+3. Default: `<output_directory>/_mjr_index/`
+
+### What the index contains
+
+| File | Contents |
+|---|---|
+| `assets.sqlite` | Ratings, tags, metadata, FTS index, scan journal |
+| `vectors.sqlite` | Optional AI embeddings |
+| `collections/` | Collection JSON files (preserved across Delete DB) |
+| `custom_roots.json` | Custom roots config (preserved across Delete DB) |
+
+> Ratings, tags, and AI vectors are not migrated automatically when you change the directory. To migrate, stop ComfyUI, copy the `.sqlite` files to the new directory, then restart.
 
 ## Security Model
 

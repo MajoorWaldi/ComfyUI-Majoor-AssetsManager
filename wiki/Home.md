@@ -77,6 +77,8 @@ The documentation set now includes dedicated coverage for:
 - plugin system design and implementation notes
 - plugin author quick reference and examples
 - stronger maintenance and recovery guidance for the SQLite index
+- configurable Index DB directory (useful for NAS, SMB, and network-drive setups)
+- write access loopback fallback for edge cases (WebSocket, Unix socket connections)
 
 This wiki now surfaces those areas directly instead of sending users only to the repository index.
 

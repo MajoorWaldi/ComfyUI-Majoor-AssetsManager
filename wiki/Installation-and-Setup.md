@@ -68,6 +68,7 @@ Recommended first checks:
 - check whether auto-scan on startup matches your workflow
 - verify the media probe backend stays on Auto unless you are troubleshooting
 - if you use AI features, install optional packages before expecting semantic features to work
+- **NAS/SMB users**: set a local Index Directory (Settings → Paths → Majoor: Index Directory) so the SQLite database is not on a network share; SQLite requires reliable file locking that many NAS implementations do not provide
 
 ## Common Installation Profiles
 
@@ -78,6 +79,17 @@ Install the extension and Python dependencies only. This gives you browsing, sea
 ### Power User
 
 Add ExifTool and ffprobe. This is the best default if you care about complete metadata extraction and smooth media probing.
+
+### NAS / Network Drive User
+
+Install the extension, add ExifTool and ffprobe, and relocate the index database to a fast local disk so SQLite does not fight with the NAS file-locking layer.
+
+1. Install normally.
+2. After first launch, open Settings → Paths → **Majoor: Index Directory**.
+3. Set a local path such as `C:\mjr_index` (Windows) or `/var/local/mjr_index` (Linux/macOS).
+4. Save, then restart ComfyUI.
+
+Alternatively set `MJR_AM_INDEX_DIRECTORY` in your ComfyUI startup script before starting ComfyUI.
 
 ### AI User
 

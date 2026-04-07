@@ -1156,6 +1156,15 @@ export async function setOutputDirectorySetting(outputDirectory, options = {}) {
     return post(ENDPOINTS.SETTINGS_OUTPUT_DIRECTORY, { output_directory: value }, options);
 }
 
+export async function getIndexDirectorySetting() {
+    return get(ENDPOINTS.SETTINGS_INDEX_DIRECTORY);
+}
+
+export async function setIndexDirectorySetting(indexDirectory, options = {}) {
+    const value = String(indexDirectory ?? "").trim();
+    return post(ENDPOINTS.SETTINGS_INDEX_DIRECTORY, { index_directory: value }, options);
+}
+
 export async function getSecuritySettings() {
     return get("/mjr/am/settings/security");
 }
