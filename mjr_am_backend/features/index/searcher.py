@@ -278,13 +278,20 @@ def _safe_positive_prompt_extract(max_len: int = 250) -> str:
     """
     n = int(max_len)
     return (
+        "COALESCE("
+        "NULLIF(TRIM(COALESCE(m.positive_prompt, '')), ''), "
         "CASE WHEN json_valid(COALESCE(m.metadata_raw, '')) THEN "
         f"SUBSTR(COALESCE("
         f"NULLIF(TRIM(COALESCE(json_extract(m.metadata_raw, '$.positive_prompt'), '')), ''), "
         f"NULLIF(TRIM(COALESCE(json_extract(m.metadata_raw, '$.geninfo.positive.value'), '')), '')"
         f"), 1, {n}) "
         "ELSE NULL END"
+        ")"
     )
+
+
+def _generation_time_ms_select() -> str:
+    return f"COALESCE(m.generation_time_ms, {_safe_metadata_json_extract('$.generation_time_ms')})"
 
 
 def _append_workflow_type_filter(filters: dict[str, Any], clauses: list[str], params: list[Any]) -> None:
@@ -295,11 +302,13 @@ def _append_workflow_type_filter(filters: dict[str, Any], clauses: list[str], pa
     if not variants:
         return
     placeholders = ", ".join("?" for _ in variants)
+    denormalized_type_expr = "NULLIF(TRIM(COALESCE(m.workflow_type, '')), '')"
     workflow_type_expr = _safe_metadata_json_extract("$.workflow_type")
     geninfo_type_expr = _safe_metadata_json_extract("$.geninfo.engine.type")
     engine_type_expr = _safe_metadata_json_extract("$.engine.type")
     clauses.append(
         "AND UPPER(COALESCE("
+        f"{denormalized_type_expr}, "
         f"{workflow_type_expr}, "
         f"{geninfo_type_expr}, "
         f"{engine_type_expr}, "
@@ -891,7 +900,7 @@ class IndexSearcher:
                 COALESCE(m.tags, '[]') as tags,
 {metadata_tags_text_clause}{_AI_SELECT_SQL}                    m.has_workflow as has_workflow,
                 m.has_generation_data as has_generation_data,
-                CASE WHEN json_valid(COALESCE(m.metadata_raw, '')) THEN json_extract(m.metadata_raw, '$.generation_time_ms') ELSE NULL END as generation_time_ms,
+                {_generation_time_ms_select()} as generation_time_ms,
                 {_safe_positive_prompt_extract(250)} as positive_prompt,
                 NULL as file_creation_time,
                 NULL as file_birth_time
@@ -995,7 +1004,7 @@ class IndexSearcher:
                 COALESCE(m.tags, '[]') as tags,
 {metadata_tags_text_clause}{_AI_SELECT_SQL}                    m.has_workflow as has_workflow,
                 m.has_generation_data as has_generation_data,
-                CASE WHEN json_valid(COALESCE(m.metadata_raw, '')) THEN json_extract(m.metadata_raw, '$.generation_time_ms') ELSE NULL END as generation_time_ms,
+                {_generation_time_ms_select()} as generation_time_ms,
                 {_safe_positive_prompt_extract(250)} as positive_prompt,
                 NULL as file_creation_time,
                 NULL as file_birth_time,
@@ -1062,7 +1071,7 @@ class IndexSearcher:
                 COALESCE(m.tags, '[]') as tags,
 {metadata_tags_text_clause}{_AI_SELECT_SQL}                    m.has_workflow as has_workflow,
                 m.has_generation_data as has_generation_data,
-                {_safe_metadata_json_extract('$.generation_time_ms')} as generation_time_ms,
+                {_generation_time_ms_select()} as generation_time_ms,
                 {_safe_positive_prompt_extract(250)} as positive_prompt,
                 NULL as file_creation_time,
                 NULL as file_birth_time
@@ -1145,7 +1154,7 @@ class IndexSearcher:
                 COALESCE(m.tags, '[]') as tags,
 {metadata_tags_text_clause}{_AI_SELECT_SQL}                    m.has_workflow as has_workflow,
                 m.has_generation_data as has_generation_data,
-                {_safe_metadata_json_extract('$.generation_time_ms')} as generation_time_ms,
+                {_generation_time_ms_select()} as generation_time_ms,
                 {_safe_positive_prompt_extract(250)} as positive_prompt,
                 NULL as file_creation_time,
                 NULL as file_birth_time,                    best.rank as rank
@@ -1641,7 +1650,7 @@ class IndexSearcher:
                     THEN 1
                     ELSE 0
                 END as has_ai_info,
-                {_safe_metadata_json_extract('$.generation_time_ms')} as generation_time_ms,
+                {_generation_time_ms_select()} as generation_time_ms,
                 {_safe_positive_prompt_extract(250)} as positive_prompt,
                 COALESCE(m.metadata_raw, '{{}}') AS metadata_raw
             FROM assets a
@@ -1763,7 +1772,10 @@ class IndexSearcher:
                     THEN 1
                     ELSE 0
                 END as has_ai_info,
-                CASE WHEN json_valid(COALESCE(m.metadata_raw, '')) THEN json_extract(m.metadata_raw, '$.workflow_type') ELSE NULL END as workflow_type
+                COALESCE(
+                    NULLIF(TRIM(COALESCE(m.workflow_type, '')), ''),
+                    CASE WHEN json_valid(COALESCE(m.metadata_raw, '')) THEN json_extract(m.metadata_raw, '$.workflow_type') ELSE NULL END
+                ) as workflow_type
             FROM assets a
             LEFT JOIN asset_metadata m ON a.id = m.asset_id
             LEFT JOIN vec.asset_embeddings ae ON a.id = ae.asset_id

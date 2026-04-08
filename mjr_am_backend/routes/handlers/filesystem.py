@@ -1155,6 +1155,21 @@ def _entry_passes_listing_post_filters(
     return True
 
 
+def _listing_requires_db_enrichment(
+    *,
+    filter_tags: list[str],
+    filter_min_rating: int,
+    filter_workflow_only: bool | None,
+    filter_workflow_type: str,
+) -> bool:
+    return bool(
+        filter_tags
+        or int(filter_min_rating or 0) > 0
+        or filter_workflow_only is not None
+        or str(filter_workflow_type or "").strip()
+    )
+
+
 def _passes_extension_filter(item: dict[str, Any], filter_extensions: list[str]) -> bool:
     entry_ext = _normalize_extension(item.get("ext"))
     if filter_extensions and entry_ext and entry_ext not in filter_extensions:
@@ -1301,11 +1316,18 @@ async def _list_filesystem_assets_cached_path(
     )
     _sort_filesystem_entries(entries, sort_key)
 
-    await _enrich_filesystem_entries_from_db(
-        index_service,
-        entries,
-        log_label="Filesystem DB enrichment skipped",
+    needs_db_enrichment_before_filter = _listing_requires_db_enrichment(
+        filter_tags=filter_tags,
+        filter_min_rating=filter_min_rating,
+        filter_workflow_only=filter_workflow_only,
+        filter_workflow_type=filter_workflow_type,
     )
+    if needs_db_enrichment_before_filter:
+        await _enrich_filesystem_entries_from_db(
+            index_service,
+            entries,
+            log_label="Filesystem DB enrichment skipped",
+        )
 
     paged, total = _paginate_filesystem_listing_entries(
         entries,
@@ -1322,6 +1344,12 @@ async def _list_filesystem_assets_cached_path(
         limit=limit,
         offset=offset,
     )
+    if not needs_db_enrichment_before_filter:
+        await _enrich_filesystem_entries_from_db(
+            index_service,
+            paged,
+            log_label="Filesystem DB enrichment skipped",
+        )
     return Result.Ok(
         _build_filesystem_listing_payload(
             paged,

@@ -100,7 +100,19 @@ async def asset_has_rich_metadata(scanner: Any, *, asset_id: int) -> bool:
     if not asset_id:
         return False
     row = await scanner.db.aquery(
-        "SELECT metadata_quality, metadata_raw FROM asset_metadata WHERE asset_id = ? LIMIT 1",
+        """
+        SELECT
+            metadata_quality,
+            CASE
+                WHEN metadata_raw IS NOT NULL
+                     AND TRIM(metadata_raw) NOT IN ('', '{}', 'null', 'NULL')
+                THEN 1
+                ELSE 0
+            END AS has_metadata_raw
+        FROM asset_metadata
+        WHERE asset_id = ?
+        LIMIT 1
+        """,
         (int(asset_id),),
     )
     if not row.ok or not row.data:
@@ -110,8 +122,8 @@ async def asset_has_rich_metadata(scanner: Any, *, asset_id: int) -> bool:
         if not isinstance(data, dict):
             return False
         metadata_quality = str(data.get("metadata_quality") or "").strip().lower()
-        metadata_raw = str(data.get("metadata_raw") or "").strip()
-        return metadata_quality not in ("", "none") or metadata_raw not in ("", "{}", "null")
+        has_raw = bool(int(data.get("has_metadata_raw") or 0))
+        return metadata_quality not in ("", "none") or has_raw
     except Exception:
         return False
 

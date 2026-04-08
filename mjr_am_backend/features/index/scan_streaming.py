@@ -13,7 +13,7 @@ from queue import Queue
 from typing import Any
 
 from ...config import SCAN_BATCH_XL, SCAN_LOG_PROGRESS_EVERY, SCAN_LOG_PROGRESS_MIN_SECONDS
-from .fs_walker import _FS_WALK_EXECUTOR
+from .fs_walker import _FS_WALK_EXECUTOR, ScanQueueItem, scan_candidate_path
 from .index_batching import existing_map_for_batch, index_batch
 from .scan_batch_utils import normalize_filepath_str, stream_batch_target
 from .scan_storage_ops import get_journal_entries
@@ -35,7 +35,7 @@ async def run_scan_streaming_loop(
 ) -> None:
     loop = asyncio.get_running_loop()
     stop_event = threading.Event()
-    q: Queue[Path | None] = Queue(maxsize=max(1000, int(SCAN_BATCH_XL) * 4))
+    q: Queue[ScanQueueItem] = Queue(maxsize=max(1000, int(SCAN_BATCH_XL) * 4))
     walk_future = loop.run_in_executor(
         _FS_WALK_EXECUTOR,
         scanner._fs_walker.walk_and_enqueue,
@@ -81,7 +81,7 @@ def _should_log_progress(
     )
 
 
-def _emit_scan_progress(scanner: Any, stats: dict[str, Any], batch: list[Path], scanned_count: int) -> None:
+def _emit_scan_progress(scanner: Any, stats: dict[str, Any], batch: list[ScanQueueItem], scanned_count: int) -> None:
     try:
         log_event = getattr(scanner, "_log_scan_event", None)
         if callable(log_event):
@@ -101,8 +101,8 @@ def _emit_scan_progress(scanner: Any, stats: dict[str, Any], batch: list[Path], 
 
 async def _process_pulled_files(
     scanner: Any,
-    pulled: list[Path | None],
-    batch: list[Path],
+    pulled: list[ScanQueueItem],
+    batch: list[ScanQueueItem],
     stats: dict[str, Any],
     progress_every: int,
     progress_min_seconds: float,
@@ -115,7 +115,7 @@ async def _process_pulled_files(
     fast: bool,
     to_enrich: list[str],
     added_ids: list[int] | None,
-) -> tuple[list[Path], bool, int, float]:
+) -> tuple[list[ScanQueueItem], bool, int, float]:
     done = False
     for file_path in pulled:
         if file_path is None:
@@ -149,7 +149,7 @@ async def _process_pulled_files(
 async def consume_scan_queue(
     scanner: Any,
     *,
-    q: "Queue[Path | None]",
+    q: "Queue[ScanQueueItem]",
     directory: str,
     incremental: bool,
     source: str,
@@ -160,7 +160,7 @@ async def consume_scan_queue(
     added_ids: list[int] | None = None,
     stop_event: threading.Event,
 ) -> None:
-    batch: list[Path] = []
+    batch: list[ScanQueueItem] = []
     done = False
     progress_every = max(0, int(SCAN_LOG_PROGRESS_EVERY))
     progress_min_seconds = max(0.0, float(SCAN_LOG_PROGRESS_MIN_SECONDS))
@@ -212,7 +212,7 @@ async def consume_scan_queue(
 async def process_scan_batch(
     scanner: Any,
     *,
-    batch: list[Path],
+    batch: list[ScanQueueItem],
     directory: str,
     incremental: bool,
     source: str,
@@ -239,7 +239,7 @@ async def process_scan_batch(
 async def scan_stream_batch(
     scanner: Any,
     *,
-    batch: list[Path],
+    batch: list[ScanQueueItem],
     base_dir: str,
     incremental: bool,
     source: str,
@@ -252,7 +252,7 @@ async def scan_stream_batch(
     if not batch:
         return
 
-    filepaths = [normalize_filepath_str(p) for p in batch]
+    filepaths = [normalize_filepath_str(scan_candidate_path(p)) for p in batch if p is not None]
     journal_map = (await get_journal_entries(scanner, filepaths=filepaths)) if incremental and filepaths else {}
     existing_map = await existing_map_for_batch(scanner, filepaths=filepaths)
 
