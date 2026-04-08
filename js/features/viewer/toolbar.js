@@ -46,8 +46,8 @@ export function createViewerToolbar({
     header.style.cssText = `
         display: flex;
         flex-direction: column;
-        gap: 8px;
-        padding: 12px 20px;
+        gap: 6px;
+        padding: 8px 16px;
         background: linear-gradient(170deg, rgba(24, 27, 33, 0.96), rgba(17, 19, 25, 0.97));
         border-bottom: 0.8px solid rgba(196, 202, 210, 0.2);
         color: white;
@@ -55,11 +55,15 @@ export function createViewerToolbar({
     `;
 
     const headerTop = document.createElement("div");
+    headerTop.className = "mjr-viewer-header-top";
     headerTop.style.cssText = `
-        display: grid;
-        grid-template-columns: 1fr auto 1fr;
+        display: flex;
         align-items: center;
-        column-gap: 12px;
+        justify-content: center;
+        gap: 12px;
+        position: relative;
+        padding-right: 84px;
+        padding-left: 12px;
         min-width: 0;
         box-sizing: border-box;
     `;
@@ -69,14 +73,24 @@ export function createViewerToolbar({
     leftMeta.className = "mjr-viewer-header-meta mjr-viewer-header-meta--left";
     leftMeta.style.cssText = "display:flex; align-items:center; gap:10px; min-width:0;";
 
+    const titleLine = document.createElement("div");
+    titleLine.className = "mjr-viewer-title-line";
+    titleLine.style.cssText =
+        "display:flex; align-items:center; justify-content:center; gap:8px; min-width:0; flex-wrap:nowrap; overflow:hidden;";
+
+    const titleWrap = document.createElement("div");
+    titleWrap.className = "mjr-viewer-title-wrap";
+    titleWrap.style.cssText =
+        "display:flex; align-items:center; justify-content:center; gap:12px; min-width:0; max-width:min(100%, calc(100vw - 220px)); text-align:center;";
+
     const filename = document.createElement("span");
     filename.className = "mjr-viewer-filename";
     filename.style.cssText =
-        "font-size: 14px; font-weight: 500; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;";
+        "font-size: 13px; font-weight: 600; min-width:0; max-width:min(60vw, 820px); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:center;";
 
     const badgesBar = document.createElement("div");
     badgesBar.className = "mjr-viewer-badges";
-    badgesBar.style.cssText = "display:flex; gap:8px; align-items:center; flex-wrap:wrap;";
+    badgesBar.style.cssText = "display:flex; gap:6px; align-items:center; flex-wrap:nowrap; min-width:0;";
 
     const rightMeta = document.createElement("div");
     rightMeta.className = "mjr-viewer-header-meta mjr-viewer-header-meta--right";
@@ -93,15 +107,16 @@ export function createViewerToolbar({
     badgesBarRight.style.cssText =
         "display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;";
 
-    leftMeta.appendChild(filename);
-    leftMeta.appendChild(badgesBar);
+    titleLine.appendChild(filename);
+    titleLine.appendChild(badgesBar);
+    titleWrap.appendChild(titleLine);
 
     rightMeta.appendChild(badgesBarRight);
     rightMeta.appendChild(filenameRight);
 
     const modeButtons = document.createElement("div");
     modeButtons.className = "mjr-viewer-mode-buttons";
-    modeButtons.style.cssText = "display: flex; gap: 6px;";
+    modeButtons.style.cssText = "display: flex; gap: 4px;";
 
     const singleBtn = createModeButton("Single", VIEWER_MODES.SINGLE);
     singleBtn.title = t("tooltip.singleViewMode", "Single view mode (one image)");
@@ -136,8 +151,9 @@ export function createViewerToolbar({
     fullscreenBtn.style.fontSize = "16px";
     try {
         fullscreenBtn.style.position = "absolute";
-        fullscreenBtn.style.top = "10px";
-        fullscreenBtn.style.right = "50px"; // To the left of close button
+        fullscreenBtn.style.top = "8px";
+        fullscreenBtn.style.left = "";
+        fullscreenBtn.style.right = "48px";
         fullscreenBtn.style.zIndex = "10002";
         fullscreenBtn.style.width = "34px";
         fullscreenBtn.style.height = "34px";
@@ -195,19 +211,20 @@ export function createViewerToolbar({
 
     const leftArea = document.createElement("div");
     leftArea.className = "mjr-viewer-header-area mjr-viewer-header-area--left";
-    leftArea.style.cssText = "display:flex; align-items:center; gap:12px; flex:1; min-width:0;";
+    leftArea.style.cssText = "display:none; align-items:center; gap:12px; min-width:0;";
     leftArea.appendChild(leftMeta);
 
     const centerArea = document.createElement("div");
     centerArea.className = "mjr-viewer-header-area mjr-viewer-header-area--center";
     centerArea.style.cssText =
-        "display:flex; align-items:center; justify-content:center; gap:12px; flex:0 0 auto;";
-    centerArea.appendChild(modeButtons);
+        "display:flex; align-items:center; justify-content:center; gap:12px; flex:1 1 auto; min-width:0;";
+    titleWrap.appendChild(modeButtons);
+    centerArea.appendChild(titleWrap);
 
     const rightArea = document.createElement("div");
     rightArea.className = "mjr-viewer-header-area mjr-viewer-header-area--right";
     rightArea.style.cssText =
-        "display:flex; align-items:center; justify-content:flex-end; gap:12px; flex:1; min-width:0;";
+        "display:none; position:absolute; right:92px; top:50%; transform:translateY(-50%); align-items:center; justify-content:flex-end; gap:12px; min-width:0; max-width:min(26vw, 360px);";
     rightArea.appendChild(rightMeta);
 
     headerTop.appendChild(leftArea);
@@ -218,8 +235,9 @@ export function createViewerToolbar({
     // rather than fixed to ensure it stays with the viewer if the viewer is ever not full-screen.
     try {
         closeBtn.style.position = "absolute";
-        closeBtn.style.top = "10px";
-        closeBtn.style.right = "10px";
+        closeBtn.style.top = "8px";
+        closeBtn.style.left = "";
+        closeBtn.style.right = "8px";
         closeBtn.style.transform = "";
         closeBtn.style.zIndex = "10002";
         closeBtn.style.width = "34px";
@@ -232,22 +250,76 @@ export function createViewerToolbar({
     } catch (e) {
         console.debug?.(e);
     }
-    headerTop.appendChild(fullscreenBtn);
-    headerTop.appendChild(closeBtn);
     header.appendChild(headerTop);
+    header.appendChild(fullscreenBtn);
+    header.appendChild(closeBtn);
 
     const toolsRow = document.createElement("div");
     toolsRow.className = "mjr-viewer-tools";
     toolsRow.style.cssText = `
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
-        gap: 8px 10px;
-        flex-wrap: wrap;
-        padding: 6px 8px 4px;
+        display: block;
+        padding: 8px 8px 6px;
         border-top: 0.8px solid rgba(196, 202, 210, 0.16);
-        background: rgba(12, 14, 19, 0.28);
+        background: rgba(12, 14, 19, 0.22);
     `;
+
+    const toolsDeck = document.createElement("div");
+    toolsDeck.className = "mjr-viewer-tools-deck";
+    toolsDeck.style.cssText =
+        "display:flex; flex-wrap:nowrap; gap:8px; align-items:center; min-width:0; overflow-x:auto; overflow-y:hidden;";
+
+    const createToolsPanel = ({ key, eyebrow, title } = {}) => {
+        const panel = document.createElement("section");
+        panel.className = "mjr-viewer-tools-panel";
+        if (key) panel.dataset.panel = String(key);
+        panel.style.cssText =
+            "display:flex; flex-direction:column; gap:4px; min-width:0; padding:5px 6px; border-radius:10px; border:1px solid rgba(255,255,255,0.08); background:linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02)); box-shadow:inset 0 1px 0 rgba(255,255,255,0.04); flex:0 0 auto;";
+
+        const head = document.createElement("div");
+        head.className = "mjr-viewer-tools-panel-head";
+        head.style.cssText =
+            "display:none; align-items:flex-start; justify-content:space-between; gap:6px; min-width:0;";
+
+        const heading = document.createElement("div");
+        heading.className = "mjr-viewer-tools-panel-heading";
+        heading.style.cssText = "display:flex; flex-direction:column; gap:1px; min-width:0;";
+
+        const eyebrowEl = document.createElement("span");
+        eyebrowEl.className = "mjr-viewer-tools-panel-eyebrow";
+        eyebrowEl.textContent = eyebrow || "";
+
+        const titleEl = document.createElement("span");
+        titleEl.className = "mjr-viewer-tools-panel-title";
+        titleEl.textContent = title || "";
+
+        const body = document.createElement("div");
+        body.className = "mjr-viewer-tools-panel-body";
+        body.style.cssText = "display:flex; align-items:center; flex-wrap:nowrap; gap:6px; min-width:0;";
+
+        heading.appendChild(eyebrowEl);
+        heading.appendChild(titleEl);
+        head.appendChild(heading);
+        panel.appendChild(head);
+        panel.appendChild(body);
+
+        return { panel, body, head, heading, eyebrowEl, titleEl };
+    };
+
+    const gradePanel = createToolsPanel({ key: "grade", eyebrow: "Image", title: "Adjustments" });
+    const overlayPanel = createToolsPanel({ key: "overlay", eyebrow: "Viewer", title: "Guides & Compare" });
+    const inspectPanel = createToolsPanel({ key: "inspect", eyebrow: "Inspect", title: "Probe" });
+    const actionPanel = createToolsPanel({ key: "actions", eyebrow: "Actions", title: "Reset & Export" });
+    const infoPanel = createToolsPanel({ key: "info", eyebrow: "Infos", title: "Help" });
+
+    const toolsActions = document.createElement("div");
+    toolsActions.className = "mjr-viewer-tools-actions";
+    toolsActions.style.cssText =
+        "display:flex; align-items:center; justify-content:flex-start; gap:6px; flex-wrap:wrap; min-width:0;";
+
+    const toolsMeta = document.createElement("div");
+    toolsMeta.className = "mjr-viewer-tools-meta";
+    toolsMeta.style.cssText =
+        "display:flex; align-items:center; justify-content:flex-start; gap:6px; flex-wrap:nowrap; min-width:0;";
 
     const toolsGroup = ({ key, label, accentRgb } = {}) => {
         const g = document.createElement("div");
@@ -255,12 +327,12 @@ export function createViewerToolbar({
         if (key) g.dataset.group = String(key);
         if (accentRgb) g.style.setProperty("--mjr-group-accent", String(accentRgb));
         g.style.cssText =
-            "display:flex; align-items:center; gap:8px; padding:3px 8px; border-radius:8px; border:1px solid rgba(196,202,210,0.14); background:rgba(10,12,16,0.22);";
+            "display:flex; align-items:center; gap:6px; padding:2px 6px; border-radius:8px; border:1px solid rgba(196,202,210,0.14); background:rgba(10,12,16,0.22);";
         if (label) {
             const l = document.createElement("span");
             l.className = "mjr-viewer-tools-group-label";
             l.textContent = label;
-            l.style.cssText = "font-size: 11px; color: rgba(255,255,255,0.7);";
+            l.style.cssText = "font-size: 10px; color: rgba(255,255,255,0.7);";
             g.appendChild(l);
         }
         return g;
@@ -271,13 +343,13 @@ export function createViewerToolbar({
         s.title = title || "";
         s.className = "mjr-viewer-tools-select";
         s.style.cssText = `
-            height: 26px;
-            padding: 0 8px;
+            height: 24px;
+            padding: 0 6px;
             border-radius: 6px;
             border: 0.8px solid rgba(196, 202, 210, 0.24);
             background: linear-gradient(180deg, rgba(210, 214, 220, 0.06), rgba(210, 214, 220, 0.02));
             color: rgba(230,233,238,0.92);
-            font-size: 12px;
+            font-size: 11px;
             outline: none;
         `;
         for (const o of options || []) {
@@ -292,7 +364,7 @@ export function createViewerToolbar({
     const createRange = (title, { min, max, step, value }) => {
         const wrap = document.createElement("div");
         wrap.className = "mjr-viewer-tools-range";
-        wrap.style.cssText = "display:flex; align-items:center; gap:8px;";
+        wrap.style.cssText = "display:flex; align-items:center; gap:6px;";
 
         const input = document.createElement("input");
         input.type = "range";
@@ -303,13 +375,13 @@ export function createViewerToolbar({
         input.value = String(value);
         input.title = title || "";
         input.style.cssText = `
-            width: 140px;
+            width: 92px;
             accent-color: rgba(255,255,255,0.85);
         `;
 
         const out = document.createElement("span");
         out.style.cssText =
-            "font-size: 12px; color: rgba(255,255,255,0.9); min-width: 44px; text-align: right;";
+            "font-size: 11px; color: rgba(255,255,255,0.9); min-width: 38px; text-align: right;";
         out.textContent = String(value);
 
         wrap.appendChild(input);
@@ -348,14 +420,14 @@ export function createViewerToolbar({
         }
         b.title = title || "";
         b.style.cssText = `
-            height: 26px;
-            padding: 0 10px;
+            height: 24px;
+            padding: 0 8px;
             border-radius: 6px;
             border: 0.8px solid rgba(196, 202, 210, 0.24);
             background: linear-gradient(180deg, rgba(210,214,220,0.06), rgba(210,214,220,0.02));
             color: rgba(230,233,238,0.92);
             cursor: pointer;
-            font-size: 12px;
+            font-size: 11px;
             user-select: none;
             display: inline-flex;
             align-items: center;
@@ -625,8 +697,8 @@ export function createViewerToolbar({
         t("tooltip.resetPlayerControls", "Reset all viewer controls"),
     );
     resetGradeBtn.style.height = "26px";
-    resetGradeBtn.style.fontSize = "12px";
-    resetGradeBtn.style.padding = "0 10px";
+    resetGradeBtn.style.fontSize = "11px";
+    resetGradeBtn.style.padding = "0 8px";
     resetGradeBtn.classList?.add?.("mjr-viewer-tool-btn", "mjr-viewer-tool-btn--reset");
     resetGradeBtn.classList?.add?.("mjr-viewer-tools-action", "mjr-viewer-tools-action--primary");
     resetGradeBtn.style.marginLeft = "auto";
@@ -637,7 +709,7 @@ export function createViewerToolbar({
     exportBtn.setAttribute("aria-label", t("tooltip.exportFrame", "Save frame as PNG"));
     exportBtn.className = "mjr-viewer-tool-btn mjr-viewer-tool-btn--reset";
     exportBtn.style.cssText =
-        "height:26px; padding:0 10px; display:inline-flex; align-items:center; justify-content:center;";
+        "height:24px; padding:0 8px; display:inline-flex; align-items:center; justify-content:center;";
     const exportIcon = document.createElement("span");
     exportIcon.className = "pi pi-download";
     exportIcon.setAttribute("aria-hidden", "true");
@@ -656,7 +728,7 @@ export function createViewerToolbar({
     copyBtn.setAttribute("aria-label", t("tooltip.copyFrame", "Copy frame to clipboard"));
     copyBtn.className = "mjr-viewer-tool-btn mjr-viewer-tool-btn--reset";
     copyBtn.style.cssText =
-        "height:26px; padding:0 10px; display:inline-flex; align-items:center; justify-content:center;";
+        "height:24px; padding:0 8px; display:inline-flex; align-items:center; justify-content:center;";
     const copyIcon = document.createElement("span");
     copyIcon.className = "pi pi-copy";
     copyIcon.setAttribute("aria-hidden", "true");
@@ -671,15 +743,15 @@ export function createViewerToolbar({
 
     const chGroup = toolsGroup({ key: "channel", label: "Channel", accentRgb: ACCENT.channel });
     chGroup.appendChild(channelsSelect);
-    toolsRow.appendChild(chGroup);
+    gradePanel.body.appendChild(chGroup);
 
     const expGroup = toolsGroup({ key: "exposure", label: "EV", accentRgb: ACCENT.exposure });
     expGroup.appendChild(exposureCtl.wrap);
-    toolsRow.appendChild(expGroup);
+    gradePanel.body.appendChild(expGroup);
 
     const gamGroup = toolsGroup({ key: "gamma", label: "Gamma", accentRgb: ACCENT.gamma });
     gamGroup.appendChild(gammaCtl.wrap);
-    toolsRow.appendChild(gamGroup);
+    gradePanel.body.appendChild(gamGroup);
 
     const resetExposure = () => {
         try {
@@ -762,7 +834,7 @@ export function createViewerToolbar({
     anaGroup.appendChild(zebraToggle.b);
     anaGroup.appendChild(scopesToggle.b);
     anaGroup.appendChild(scopesSelect);
-    toolsRow.appendChild(anaGroup);
+    gradePanel.body.appendChild(anaGroup);
 
     const ovGuidesGroup = toolsGroup({
         key: "overlay-guides",
@@ -774,7 +846,7 @@ export function createViewerToolbar({
     ovGuidesGroup.appendChild(maskToggle.b);
     ovGuidesGroup.appendChild(formatSelect);
     ovGuidesGroup.appendChild(maskOpacityCtl.wrap);
-    toolsRow.appendChild(ovGuidesGroup);
+    overlayPanel.body.appendChild(ovGuidesGroup);
 
     const ovInspectGroup = toolsGroup({
         key: "overlay-inspect",
@@ -786,7 +858,7 @@ export function createViewerToolbar({
         if (index > 0) btn.style.marginLeft = "4px";
         ovInspectGroup.appendChild(btn);
     });
-    toolsRow.appendChild(ovInspectGroup);
+    inspectPanel.body.appendChild(ovInspectGroup);
 
     const cmpGroup = toolsGroup({ key: "compare", label: "Compare", accentRgb: ACCENT.compare });
     cmpGroup.style.borderRadius = "8px";
@@ -795,7 +867,7 @@ export function createViewerToolbar({
     cmpGroup.style.transition =
         "background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease";
     cmpGroup.appendChild(compareModeSelect);
-    toolsRow.appendChild(cmpGroup);
+    overlayPanel.body.appendChild(cmpGroup);
 
     const audGroup = toolsGroup({
         key: "audio-viz",
@@ -803,11 +875,11 @@ export function createViewerToolbar({
         accentRgb: ACCENT.audioviz,
     });
     audGroup.appendChild(audioVizModeSelect);
-    toolsRow.appendChild(audGroup);
+    overlayPanel.body.appendChild(audGroup);
 
-    toolsRow.appendChild(resetGradeBtn);
-    toolsRow.appendChild(exportBtn);
-    toolsRow.appendChild(copyBtn);
+    toolsActions.appendChild(resetGradeBtn);
+    toolsActions.appendChild(exportBtn);
+    toolsActions.appendChild(copyBtn);
 
     const model3dHint = document.createElement("div");
     model3dHint.className = "mjr-viewer-tools-group mjr-viewer-tools-group--3d";
@@ -815,16 +887,16 @@ export function createViewerToolbar({
     model3dHint.style.cssText = [
         "display:none",
         "align-items:center",
-        "padding:3px 10px",
+        "padding:2px 8px",
         "border-radius:999px",
         "border:1px solid rgba(255,255,255,0.12)",
         "background:rgba(255,255,255,0.06)",
         "color:rgba(255,255,255,0.55)",
-        "font-size:11px",
+        "font-size:10px",
         "font-weight:400",
         "letter-spacing:0.01em",
     ].join(";");
-    toolsRow.appendChild(model3dHint);
+    toolsMeta.appendChild(model3dHint);
 
     // Shortcut help (discoverability)
     const helpWrap = document.createElement("div");
@@ -837,8 +909,8 @@ export function createViewerToolbar({
     helpBtn.title = t("tooltip.viewerShortcuts", "Viewer shortcuts");
     helpBtn.setAttribute("aria-label", t("tooltip.viewerShortcuts", "Viewer shortcuts"));
     helpBtn.style.cssText = `
-        height: 26px;
-        padding: 0 10px;
+        height: 24px;
+        padding: 0 8px;
         border-radius: 6px;
         border: 1px solid rgba(255,255,255,0.14);
         background: rgba(255,255,255,0.08);
@@ -916,7 +988,17 @@ export function createViewerToolbar({
 
     helpWrap.appendChild(helpBtn);
     helpWrap.appendChild(helpPop);
-    toolsRow.appendChild(helpWrap);
+    toolsMeta.appendChild(helpWrap);
+
+    actionPanel.body.appendChild(toolsActions);
+    infoPanel.body.appendChild(toolsMeta);
+
+    toolsDeck.appendChild(gradePanel.panel);
+    toolsDeck.appendChild(overlayPanel.panel);
+    toolsDeck.appendChild(inspectPanel.panel);
+    toolsDeck.appendChild(actionPanel.panel);
+    toolsDeck.appendChild(infoPanel.panel);
+    toolsRow.appendChild(toolsDeck);
 
     header.appendChild(toolsRow);
 
@@ -1169,6 +1251,10 @@ export function createViewerToolbar({
             anaGroup.style.display = hidden;
             resetGradeBtn.style.display = hidden;
             model3dHint.style.display = isModel3D ? "inline-flex" : "none";
+            gradePanel.panel.style.display = isModel3D ? "none" : "";
+            overlayPanel.panel.style.display = isModel3D ? "none" : "";
+            infoPanel.panel.style.display = "";
+            actionPanel.panel.style.display = "";
             // For 3D: hide image-specific guide tools but keep focus/gen toggles.
             const ovInspectLabel = ovInspectGroup.querySelector?.(".mjr-viewer-tools-group-label");
             if (isModel3D) {
@@ -1176,9 +1262,9 @@ export function createViewerToolbar({
                 ovInspectGroup.style.display = "";
                 if (ovInspectLabel) ovInspectLabel.style.display = "none";
                 helpWrap.style.display = "none";
-                header.style.padding = "8px 16px";
-                header.style.gap = "4px";
-                toolsRow.style.padding = "4px 8px 2px";
+                header.style.padding = "10px 16px";
+                header.style.gap = "6px";
+                toolsRow.style.padding = "6px 8px 6px";
                 for (const el of [
                     gridToggle.b,
                     gridModeSelect,
@@ -1198,9 +1284,13 @@ export function createViewerToolbar({
                 ovInspectGroup.style.display = "";
                 if (ovInspectLabel) ovInspectLabel.style.display = "";
                 helpWrap.style.display = "";
-                header.style.padding = "12px 20px";
-                header.style.gap = "8px";
-                toolsRow.style.padding = "6px 8px 4px";
+                gradePanel.panel.style.display = "";
+                overlayPanel.panel.style.display = "";
+                infoPanel.panel.style.display = "";
+                actionPanel.panel.style.display = "";
+                header.style.padding = "8px 16px";
+                header.style.gap = "6px";
+                toolsRow.style.padding = "8px 8px 6px";
                 for (const el of [
                     gridToggle.b,
                     gridModeSelect,
@@ -1528,6 +1618,7 @@ export function createViewerToolbar({
         filenameRightEl: filenameRight,
         badgesBarRightEl: badgesBarRight,
         rightMetaEl: rightMeta,
+        rightAreaEl: rightArea,
         syncToolsUIFromState,
         syncModeButtons,
     };

@@ -269,6 +269,7 @@ export function mountVideoControls(video, opts = {}) {
         const variant = _resolveVideoControlsVariant(opts);
         const mediaKind = String(opts?.mediaKind || "video").toLowerCase();
         const isAudioMedia = mediaKind === "audio";
+        const isViewerBar = variant === "viewerbar";
         const advanced = variant !== "preview" && !isAudioMedia;
         // Volume slider is toggled from the sound icon to keep the bar compact.
         const showVolumeSlider = true;
@@ -300,6 +301,7 @@ export function mountVideoControls(video, opts = {}) {
 
         const controls = document.createElement("div");
         controls.className = `mjr-video-controls mjr-video-controls--${variant}`;
+        if (isViewerBar) controls.classList.add("mjr-video-controls--modern");
         controls.setAttribute("role", "group");
         controls.setAttribute(
             "aria-label",
@@ -561,30 +563,25 @@ export function mountVideoControls(video, opts = {}) {
         const leftAdjustGroup = document.createElement("div");
         leftAdjustGroup.className = "mjr-video-group mjr-video-group--adjust-left";
         if (advanced) {
-            // Requested: keep "I" (set in), FPS and Step on the left side of the player.
+            // Requested: keep current frame next to the FPS controls in the bottom row.
             leftAdjustGroup.appendChild(setInBtn);
             leftAdjustGroup.appendChild(document.createTextNode(t("video.step", "Step")));
             leftAdjustGroup.appendChild(stepInput);
             leftAdjustGroup.appendChild(document.createTextNode(t("video.fps", "FPS")));
             leftAdjustGroup.appendChild(fpsInput);
+            leftAdjustGroup.appendChild(frameLabel);
         }
 
         const rightAdjustGroup = document.createElement("div");
         rightAdjustGroup.className = "mjr-video-group mjr-video-group--adjust-right";
         if (advanced) {
+            rightAdjustGroup.appendChild(timeGroup);
             rightAdjustGroup.appendChild(loopBtn);
         }
         const speedGroup = document.createElement("div");
         speedGroup.className = "mjr-video-group mjr-video-group--speed";
         speedGroup.appendChild(document.createTextNode(t("video.speed", "Speed")));
         speedGroup.appendChild(speedSelect);
-
-        // Top row: In (left) — seek — Out (right) — time — frame
-        if (advanced) rowTop.appendChild(frameLabel);
-        if (advanced) rowTop.appendChild(inGroup);
-        rowTop.appendChild(seekWrap);
-        if (advanced) rowTop.appendChild(outGroup);
-        rowTop.appendChild(timeGroup);
 
         // Bottom row: center transport, right-side extra controls
         const bottomLeft = document.createElement("div");
@@ -611,9 +608,48 @@ export function mountVideoControls(video, opts = {}) {
         if (advanced) bottomRight.appendChild(setOutBtn);
         if (volume) bottomRight.appendChild(volumeWrap);
 
-        rowBottom.appendChild(bottomLeft);
-        rowBottom.appendChild(transport);
-        rowBottom.appendChild(bottomRight);
+        if (isViewerBar) {
+            const timelineStrip = document.createElement("div");
+            timelineStrip.className = "mjr-video-bar-timeline";
+            if (advanced) timelineStrip.appendChild(inGroup);
+            timelineStrip.appendChild(seekWrap);
+            if (advanced) timelineStrip.appendChild(outGroup);
+
+            const actionsStrip = document.createElement("div");
+            actionsStrip.className = "mjr-video-bar-actions";
+
+            const actionsLeft = document.createElement("div");
+            actionsLeft.className = "mjr-video-bar-side mjr-video-bar-side--left";
+            if (advanced) actionsLeft.appendChild(leftAdjustGroup);
+
+            const actionsCenter = document.createElement("div");
+            actionsCenter.className = "mjr-video-bar-center";
+            actionsCenter.appendChild(transport);
+
+            const actionsRight = document.createElement("div");
+            actionsRight.className = "mjr-video-bar-side mjr-video-bar-side--right";
+            if (advanced) actionsRight.appendChild(rightAdjustGroup);
+            actionsRight.appendChild(speedGroup);
+            actionsRight.appendChild(muteBtn);
+            if (advanced) actionsRight.appendChild(setOutBtn);
+            if (volume) actionsRight.appendChild(volumeWrap);
+
+            actionsStrip.appendChild(actionsLeft);
+            actionsStrip.appendChild(actionsCenter);
+            actionsStrip.appendChild(actionsRight);
+
+            controls.replaceChildren(timelineStrip, actionsStrip);
+        } else {
+            if (advanced) rowTop.appendChild(frameLabel);
+            if (advanced) rowTop.appendChild(inGroup);
+            rowTop.appendChild(seekWrap);
+            if (advanced) rowTop.appendChild(outGroup);
+            rowTop.appendChild(timeGroup);
+
+            rowBottom.appendChild(bottomLeft);
+            rowBottom.appendChild(transport);
+            rowBottom.appendChild(bottomRight);
+        }
 
         // Ensure the controls overlay never triggers viewer panning/zoom handlers.
         const stop = (e) => {

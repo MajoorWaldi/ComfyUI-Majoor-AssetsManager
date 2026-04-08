@@ -113,13 +113,15 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
         height: ${STRIP_H}px;
         overflow-x: auto;
         overflow-y: hidden;
-        background: rgba(0, 0, 0, 0.82);
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        background: linear-gradient(180deg, rgba(16, 20, 27, 0.82), rgba(10, 13, 18, 0.92));
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 18px;
         flex-shrink: 0;
         scrollbar-width: thin;
-        scrollbar-color: rgba(255,255,255,0.2) transparent;
+        scrollbar-color: rgba(255,255,255,0.14) transparent;
         box-sizing: border-box;
         display: none;
+        box-shadow: 0 16px 36px rgba(0, 0, 0, 0.22);
     `;
 
     // Horizontal flex track (grows with item count)
@@ -128,8 +130,8 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
     track.style.cssText = `
         display: inline-flex;
         align-items: center;
-        gap: 4px;
-        padding: 7px 12px;
+        gap: 8px;
+        padding: 9px 12px;
         min-height: 100%;
         box-sizing: border-box;
     `;
@@ -304,14 +306,14 @@ export function createFilmstrip({ state, buildAssetViewURL, onNavigate, onCompar
             position: relative;
             width: ${ITEM_W}px;
             height: ${ITEM_H}px;
-            border-radius: 3px;
+            border-radius: 14px;
             overflow: hidden;
             cursor: pointer;
             flex-shrink: 0;
             border: 2px solid transparent;
             box-sizing: border-box;
-            background: rgba(255,255,255,0.07);
-            opacity: 0.5;
+            background: rgba(255,255,255,0.06);
+            opacity: 0.58;
             transform: scale(1);
             transition: border-color 0.16s ease, opacity 0.16s ease, transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
         `;

@@ -70,10 +70,247 @@ const VIEWER_MODES = {
     SIDE_BY_SIDE: "sidebyside",
 };
 
+const VIEWER_INFO_PANEL_WIDTH = "min(400px, 42vw)";
+const VIEWER_INFO_PANEL_RESERVE = `calc(${VIEWER_INFO_PANEL_WIDTH} + 24px)`;
+const VIEWER_THEME_STYLE_ID = "mjr-viewer-modern-theme";
+
+function ensureViewerThemeStyles() {
+    try {
+        if (document.getElementById(VIEWER_THEME_STYLE_ID)) return;
+        const style = document.createElement("style");
+        style.id = VIEWER_THEME_STYLE_ID;
+        style.textContent = `
+            .mjr-viewer-overlay {
+                --mjr-viewer-surface: rgba(14, 18, 24, 0.78);
+                --mjr-viewer-surface-strong: rgba(10, 13, 18, 0.9);
+                --mjr-viewer-surface-soft: rgba(255, 255, 255, 0.045);
+                --mjr-viewer-border: rgba(255, 255, 255, 0.11);
+                --mjr-viewer-border-strong: rgba(255, 255, 255, 0.18);
+                --mjr-viewer-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+                --mjr-viewer-shadow-soft: 0 14px 40px rgba(0, 0, 0, 0.22);
+                --mjr-viewer-radius: 22px;
+                isolation: isolate;
+            }
+
+            .mjr-viewer-overlay::before {
+                content: "";
+                position: absolute;
+                inset: 0;
+                pointer-events: none;
+                background:
+                    radial-gradient(circle at top left, rgba(87, 153, 255, 0.14), transparent 34%),
+                    radial-gradient(circle at top right, rgba(78, 224, 196, 0.12), transparent 28%),
+                    radial-gradient(circle at bottom center, rgba(255, 184, 107, 0.08), transparent 28%);
+                opacity: 0.95;
+                z-index: 0;
+            }
+
+            .mjr-viewer-overlay > * {
+                position: relative;
+                z-index: 1;
+            }
+
+            .mjr-viewer-header,
+            .mjr-viewer-content-row,
+            .mjr-filmstrip,
+            .mjr-viewer-footer,
+            .mjr-viewer-geninfo {
+                box-shadow: var(--mjr-viewer-shadow-soft);
+            }
+
+            .mjr-viewer-header {
+                margin: 18px 18px 0;
+                border-radius: calc(var(--mjr-viewer-radius) - 2px);
+                border: 1px solid var(--mjr-viewer-border) !important;
+                backdrop-filter: blur(20px) saturate(140%);
+            }
+
+            .mjr-viewer-header-top {
+                min-height: 42px;
+            }
+
+            .mjr-viewer-header-area--center {
+                padding-inline: 8px;
+            }
+
+            .mjr-viewer-mode-buttons {
+                padding: 4px;
+                border-radius: 999px;
+                background: rgba(255, 255, 255, 0.045);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+            }
+
+            .mjr-viewer-close,
+            .mjr-viewer-fs,
+            .mjr-viewer-nav-btn {
+                border-color: rgba(255, 255, 255, 0.14) !important;
+                background: rgba(255, 255, 255, 0.05) !important;
+                backdrop-filter: blur(16px) saturate(140%);
+                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+                transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+            }
+
+            .mjr-viewer-close:hover,
+            .mjr-viewer-fs:hover,
+            .mjr-viewer-nav-btn:hover {
+                transform: translateY(-1px);
+                background: rgba(255, 255, 255, 0.085) !important;
+                border-color: rgba(255, 255, 255, 0.22) !important;
+            }
+
+            .mjr-viewer-content-row {
+                margin: 14px 18px 0;
+                border-radius: calc(var(--mjr-viewer-radius) + 2px);
+                border: 1px solid var(--mjr-viewer-border);
+                background:
+                    linear-gradient(180deg, rgba(19, 24, 31, 0.78), rgba(10, 14, 20, 0.88)),
+                    radial-gradient(circle at top, rgba(255, 255, 255, 0.04), transparent 42%);
+                overflow: hidden;
+                box-shadow: var(--mjr-viewer-shadow);
+            }
+
+            .mjr-viewer-content {
+                background:
+                    radial-gradient(circle at center, rgba(255, 255, 255, 0.035), transparent 55%),
+                    linear-gradient(180deg, rgba(7, 10, 14, 0.28), rgba(7, 10, 14, 0.62));
+            }
+
+            .mjr-viewer-probe,
+            .mjr-viewer-loupe {
+                backdrop-filter: blur(14px) saturate(125%);
+            }
+
+            .mjr-viewer-geninfo {
+                width: ${VIEWER_INFO_PANEL_WIDTH} !important;
+                top: 16px !important;
+                bottom: 16px !important;
+                border-radius: 20px;
+                border: 1px solid var(--mjr-viewer-border-strong);
+                background: linear-gradient(180deg, rgba(15, 19, 24, 0.92), rgba(9, 12, 16, 0.94)) !important;
+                backdrop-filter: blur(22px) saturate(140%);
+            }
+
+            .mjr-viewer-geninfo--right {
+                right: 16px !important;
+            }
+
+            .mjr-viewer-geninfo--left {
+                left: 16px !important;
+            }
+
+            .mjr-viewer-footer {
+                margin: 12px 18px 18px;
+                border-radius: 18px;
+                border: 1px solid var(--mjr-viewer-border) !important;
+                backdrop-filter: blur(18px) saturate(135%);
+                justify-content: space-between !important;
+                flex-wrap: wrap;
+                align-content: center;
+            }
+
+            .mjr-viewer-nav {
+                padding: 6px;
+                border-radius: 999px;
+                background: rgba(255, 255, 255, 0.04);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+            }
+
+            .mjr-viewer-nav-btn {
+                width: 42px;
+                height: 42px;
+                padding: 0 !important;
+                border-radius: 999px !important;
+                font-size: 22px !important;
+                line-height: 1;
+            }
+
+            .mjr-viewer-index {
+                min-height: 36px;
+                padding: 0 14px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 999px;
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                letter-spacing: 0.02em;
+            }
+
+            .mjr-viewer-playerbar {
+                flex: 1 1 320px;
+                min-width: 260px;
+            }
+
+            @media (max-width: 960px) {
+                .mjr-viewer-header,
+                .mjr-viewer-content-row,
+                .mjr-filmstrip,
+                .mjr-viewer-footer {
+                    margin-left: 10px;
+                    margin-right: 10px;
+                }
+
+                .mjr-viewer-header {
+                    margin-top: 10px;
+                }
+
+                .mjr-viewer-footer {
+                    margin-bottom: 10px;
+                    justify-content: center !important;
+                }
+
+                .mjr-viewer-nav,
+                .mjr-viewer-playerbar {
+                    width: 100%;
+                }
+
+                .mjr-viewer-header-top {
+                    grid-template-columns: 1fr;
+                    row-gap: 10px;
+                }
+
+                .mjr-viewer-header-area--left,
+                .mjr-viewer-header-area--center,
+                .mjr-viewer-header-area--right {
+                    justify-content: flex-start !important;
+                }
+
+                .mjr-viewer-header-area--center {
+                    order: 3;
+                    padding-inline: 0;
+                }
+
+                .mjr-viewer-header-area--right {
+                    justify-content: flex-start !important;
+                }
+
+                .mjr-viewer-geninfo {
+                    width: min(calc(100vw - 20px), 360px) !important;
+                    top: 10px !important;
+                    bottom: 10px !important;
+                }
+
+                .mjr-viewer-geninfo--right {
+                    right: 10px !important;
+                }
+
+                .mjr-viewer-geninfo--left {
+                    left: 10px !important;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    } catch (e) {
+        console.debug?.(e);
+    }
+}
+
 /**
  * Create the main viewer overlay
  */
 function createViewer() {
+    ensureViewerThemeStyles();
     const overlay = document.createElement("div");
     // mjr-assets-manager class allows access to theme variables (colors, fonts)
     overlay.className = "mjr-viewer-overlay mjr-assets-manager";
@@ -83,12 +320,13 @@ function createViewer() {
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(0, 0, 0, 0.95);
+        background: linear-gradient(180deg, rgba(6, 8, 12, 0.94), rgba(5, 7, 10, 0.985));
         z-index: 10000;
         pointer-events: auto;
         display: none;
         flex-direction: column;
         box-sizing: border-box;
+        overflow: hidden;
     `;
     // Ensure the overlay can receive focus so keyboard shortcuts work reliably.
     // (We still install a capture listener on `window` to beat ComfyUI global handlers.)
@@ -292,6 +530,7 @@ function createViewer() {
     let filenameRight = null;
     let badgesBarRight = null;
     let rightMeta = null;
+    let rightArea = null;
     try {
         header.appendChild(filename);
         header.appendChild(badgesBar);
@@ -499,6 +738,7 @@ function createViewer() {
         if (toolbar?.filenameRightEl) filenameRight = toolbar.filenameRightEl;
         if (toolbar?.badgesBarRightEl) badgesBarRight = toolbar.badgesBarRightEl;
         if (toolbar?.rightMetaEl) rightMeta = toolbar.rightMetaEl;
+        if (toolbar?.rightAreaEl) rightArea = toolbar.rightAreaEl;
     } catch (e) {
         console.debug?.(e);
     }
@@ -511,6 +751,7 @@ function createViewer() {
         display: flex;
         min-height: 0;
         overflow: hidden;
+        min-width: 0;
     `;
 
     const content = document.createElement("div");
@@ -523,6 +764,7 @@ function createViewer() {
         display: flex;
         align-items: center;
         justify-content: center;
+        isolation: isolate;
     `;
 
     // Single view container
@@ -587,16 +829,17 @@ function createViewer() {
     probeTooltip.style.cssText = `
         position: absolute;
         display: none;
-        padding: 6px 8px;
-        border-radius: 6px;
-        background: rgba(0, 0, 0, 0.8);
-        border: 1px solid rgba(255, 255, 255, 0.14);
+        padding: 7px 10px;
+        border-radius: 10px;
+        background: rgba(11, 14, 19, 0.78);
+        border: 1px solid rgba(255, 255, 255, 0.12);
         color: rgba(255, 255, 255, 0.92);
         font-size: 11px;
         line-height: 1.2;
         white-space: pre;
         max-width: 280px;
         transform: translate3d(0,0,0);
+        box-shadow: 0 18px 34px rgba(0,0,0,0.28);
     `;
 
     const loupeWrap = document.createElement("div");
@@ -606,11 +849,11 @@ function createViewer() {
         display: none;
         width: 120px;
         height: 120px;
-        border-radius: 8px;
+        border-radius: 14px;
         overflow: hidden;
-        border: 1px solid rgba(255,255,255,0.16);
-        box-shadow: 0 8px 18px rgba(0,0,0,0.45);
-        background: rgba(0,0,0,0.65);
+        border: 1px solid rgba(255,255,255,0.14);
+        box-shadow: 0 18px 34px rgba(0,0,0,0.34);
+        background: rgba(9,12,16,0.72);
         transform: translate3d(0,0,0);
     `;
 
@@ -631,14 +874,14 @@ function createViewer() {
     genInfoOverlay.className = "mjr-viewer-geninfo mjr-viewer-geninfo--right";
     genInfoOverlay.style.cssText = `
         position: absolute;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        width: min(420px, 48vw);
+        top: 16px;
+        right: 16px;
+        bottom: 16px;
+        width: ${VIEWER_INFO_PANEL_WIDTH};
         display: none;
         flex-direction: column;
         overflow: hidden;
-        background: rgba(0, 0, 0, 0.88);
+        background: rgba(12, 15, 20, 0.9);
         border-left: 1px solid rgba(255,255,255,0.12);
         pointer-events: auto;
         backdrop-filter: blur(10px);
@@ -662,7 +905,7 @@ function createViewer() {
     genInfoBody.style.cssText = `
         flex: 1;
         overflow: auto;
-        padding: 12px;
+        padding: 14px;
         color: rgba(255,255,255,0.92);
     `;
     genInfoOverlay.appendChild(genInfoHeader);
@@ -673,14 +916,14 @@ function createViewer() {
     genInfoOverlayLeft.className = "mjr-viewer-geninfo mjr-viewer-geninfo--left";
     genInfoOverlayLeft.style.cssText = `
         position: absolute;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        width: min(420px, 48vw);
+        top: 16px;
+        left: 16px;
+        bottom: 16px;
+        width: ${VIEWER_INFO_PANEL_WIDTH};
         display: none;
         flex-direction: column;
         overflow: hidden;
-        background: rgba(0, 0, 0, 0.88);
+        background: rgba(12, 15, 20, 0.9);
         border-right: 1px solid rgba(255,255,255,0.12);
         pointer-events: auto;
         backdrop-filter: blur(10px);
@@ -697,7 +940,7 @@ function createViewer() {
     genInfoBodyLeft.style.cssText = `
         flex: 1;
         overflow: auto;
-        padding: 12px;
+        padding: 14px;
         color: rgba(255,255,255,0.92);
     `;
     genInfoOverlayLeft.appendChild(genInfoHeaderLeft);
@@ -715,13 +958,14 @@ function createViewer() {
     footer.className = "mjr-viewer-footer";
     footer.style.cssText = `
         display: flex;
-        justify-content: center;
+        justify-content: space-between;
         align-items: center;
         padding: 12px 20px;
-        background: rgba(0, 0, 0, 0.8);
+        background: rgba(13, 16, 22, 0.78);
         border-top: 1px solid rgba(255, 255, 255, 0.1);
         color: white;
-        gap: 20px;
+        gap: 14px 20px;
+        flex-wrap: wrap;
     `;
 
     const prevBtn = createIconButton("<", "Previous (Left Arrow)");
@@ -729,7 +973,7 @@ function createViewer() {
     prevBtn.style.fontSize = "24px";
     const indexInfo = document.createElement("span");
     indexInfo.className = "mjr-viewer-index";
-    indexInfo.style.cssText = "font-size: 14px;";
+    indexInfo.style.cssText = "font-size: 14px; font-weight: 500;";
     const nextBtn = createIconButton(">", "Next (Right Arrow)");
     nextBtn.classList.add("mjr-viewer-nav-btn", "mjr-viewer-nav-btn--next");
     nextBtn.style.fontSize = "24px";
@@ -1240,8 +1484,8 @@ function createViewer() {
             genInfoOverlay.style.display = open ? "flex" : "none";
             genInfoOverlayLeft.style.display = isDual ? "flex" : "none";
             // Reserve space so the viewer shrinks.
-            overlay.style.paddingRight = open ? "min(420px, 48vw)" : "0px";
-            overlay.style.paddingLeft = isDual ? "min(420px, 48vw)" : "0px";
+            overlay.style.paddingRight = open ? VIEWER_INFO_PANEL_RESERVE : "0px";
+            overlay.style.paddingLeft = isDual ? VIEWER_INFO_PANEL_RESERVE : "0px";
 
             if (!open) {
                 stopGenInfoFetch();
@@ -1779,9 +2023,11 @@ function createViewer() {
         try {
             if (rightMeta && filenameRight && rightAsset && rightAsset !== leftAsset) {
                 rightMeta.style.display = "flex";
+                if (rightArea) rightArea.style.display = "flex";
                 filenameRight.textContent = rightAsset?.filename || "";
             } else if (rightMeta && filenameRight) {
                 rightMeta.style.display = "none";
+                if (rightArea) rightArea.style.display = "none";
                 filenameRight.textContent = "";
             }
         } catch (e) {
