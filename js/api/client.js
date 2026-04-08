@@ -69,7 +69,9 @@ const _authTokenCache = createTTLCache({ ttlMs: AUTH_TOKEN_CACHE_TTL_MS, maxSize
 const _pendingRequests = new Map();
 
 function _buildPendingRequestKey(method, url, options = {}) {
-    const normalizedMethod = String(method || "GET").trim().toUpperCase();
+    const normalizedMethod = String(method || "GET")
+        .trim()
+        .toUpperCase();
     const normalizedUrl = String(url || "").trim();
     if (!normalizedMethod || !normalizedUrl) return "";
     const timeoutMs = _resolveFetchTimeoutMs(options);
@@ -156,6 +158,57 @@ function _getTagsCacheTTL() {
     }
 }
 
+function _readSessionAuthToken() {
+    try {
+        return String(sessionStorage?.getItem?.(RUNTIME_TOKEN_KEY) || "").trim();
+    } catch {
+        return "";
+    }
+}
+
+function _writeSessionAuthToken(token) {
+    const normalized = String(token || "").trim();
+    try {
+        if (normalized) {
+            sessionStorage?.setItem?.(RUNTIME_TOKEN_KEY, normalized);
+        } else {
+            sessionStorage?.removeItem?.(RUNTIME_TOKEN_KEY);
+        }
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+function _clearLocalSettingsAuthToken() {
+    try {
+        const raw = localStorage?.getItem?.(SETTINGS_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        const next = parsed && typeof parsed === "object" ? parsed : {};
+        const target = next?.data && typeof next.data === "object" ? next.data : next;
+        if (
+            target?.security &&
+            typeof target.security === "object" &&
+            String(target.security.apiToken || "").trim()
+        ) {
+            target.security.apiToken = "";
+            localStorage?.setItem?.(SETTINGS_KEY, JSON.stringify(next));
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+}
+
+function _clearAuthToken() {
+    try {
+        _authTokenCache.delete(AUTH_TOKEN_CACHE_KEY);
+    } catch (e) {
+        console.debug?.(e);
+    }
+    _writeSessionAuthToken("");
+    _clearLocalSettingsAuthToken();
+}
+
 function _readAuthToken() {
     const cached = _authTokenCache.get(AUTH_TOKEN_CACHE_KEY);
     if (cached !== undefined) {
@@ -163,12 +216,19 @@ function _readAuthToken() {
     }
     const now = Date.now();
 
+    const sessionToken = _readSessionAuthToken();
+    if (sessionToken) {
+        _authTokenCache.set(AUTH_TOKEN_CACHE_KEY, sessionToken, { at: now });
+        return sessionToken;
+    }
+
     try {
         const raw = localStorage?.getItem?.(SETTINGS_KEY);
         const parsed = raw ? JSON.parse(raw) : null;
         const payload = parsed?.data && typeof parsed.data === "object" ? parsed.data : parsed;
         const token = String(payload?.security?.apiToken || "").trim();
         if (token) {
+            _writeSessionAuthToken(token);
             try {
                 const mutable = parsed && typeof parsed === "object" ? parsed : {};
                 const target =
@@ -200,22 +260,8 @@ function _persistAuthToken(token) {
     try {
         _authTokenCache.set(AUTH_TOKEN_CACHE_KEY, normalized);
         _lastAuthBootstrapFailure = null;
-        try {
-            const raw = localStorage?.getItem?.(SETTINGS_KEY);
-            const parsed = raw ? JSON.parse(raw) : {};
-            const next = parsed && typeof parsed === "object" ? parsed : {};
-            const target = next?.data && typeof next.data === "object" ? next.data : next;
-            if (
-                target?.security &&
-                typeof target.security === "object" &&
-                String(target.security.apiToken || "").trim()
-            ) {
-                target.security.apiToken = "";
-                localStorage?.setItem?.(SETTINGS_KEY, JSON.stringify(next));
-            }
-        } catch (e) {
-            console.debug?.(e);
-        }
+        _writeSessionAuthToken(normalized);
+        _clearLocalSettingsAuthToken();
         try {
             window?.dispatchEvent?.(
                 new CustomEvent("mjr-settings-changed", { detail: { key: "security.apiToken" } }),
@@ -236,7 +282,9 @@ export function setRuntimeSecurityToken(token) {
 }
 
 function _rememberAuthBootstrapFailure(details = {}) {
-    const code = String(details?.code || "").trim().toUpperCase();
+    const code = String(details?.code || "")
+        .trim()
+        .toUpperCase();
     const error = String(details?.error || "").trim();
     const status = Number(details?.status || 0) || 0;
     _lastAuthBootstrapFailure = {
@@ -260,9 +308,13 @@ function _readAuthBootstrapFailure() {
 
 function _buildWriteAuthErrorMessage(result) {
     const failure = _readAuthBootstrapFailure();
-    const resultCode = String(result?.code || "").trim().toUpperCase();
+    const resultCode = String(result?.code || "")
+        .trim()
+        .toUpperCase();
     const resultError = String(result?.error || "").trim();
-    const failureCode = String(failure?.code || "").trim().toUpperCase();
+    const failureCode = String(failure?.code || "")
+        .trim()
+        .toUpperCase();
     const failureError = String(failure?.error || "")
         .trim()
         .toLowerCase();
@@ -280,7 +332,8 @@ function _buildWriteAuthErrorMessage(result) {
 
     if (
         failureCode === "AUTH_REQUIRED" &&
-        (failureError.includes("sign in to comfyui") || failureError.includes("authenticated comfyui user"))
+        (failureError.includes("sign in to comfyui") ||
+            failureError.includes("authenticated comfyui user"))
     ) {
         return t(
             "toast.writeAuthSignInRequired",
@@ -331,8 +384,12 @@ function _notifyWriteAuthFailure(message) {
 }
 
 function _normalizeWriteAuthFailure(result) {
-    const code = String(result?.code || "").trim().toUpperCase();
-    const error = String(result?.error || "").trim().toLowerCase();
+    const code = String(result?.code || "")
+        .trim()
+        .toUpperCase();
+    const error = String(result?.error || "")
+        .trim()
+        .toLowerCase();
     const authLikeForbidden = code === "FORBIDDEN" && error.includes("write operation blocked");
     if (code !== "AUTH_REQUIRED" && !authLikeForbidden) {
         return result;
@@ -362,7 +419,7 @@ async function _refreshAuthTokenFromServer() {
                 error: `Bootstrap token request returned non-JSON response (${response.status})`,
                 status: response.status,
             });
-            return false;
+            return { ok: false, token: false };
         }
         const payload = await response.json().catch((e) => {
             console.debug?.("[MJR auth] JSON parse error:", e);
@@ -374,7 +431,7 @@ async function _refreshAuthTokenFromServer() {
                 error: "Bootstrap token response was invalid.",
                 status: response.status,
             });
-            return false;
+            return { ok: false, token: false };
         }
         if (!payload.ok) {
             _rememberAuthBootstrapFailure({
@@ -382,40 +439,58 @@ async function _refreshAuthTokenFromServer() {
                 error: payload?.error,
                 status: response.status,
             });
-            return false;
+            return { ok: false, token: false };
         }
         const token = String(payload?.data?.token || "").trim();
-        if (token) return _persistAuthToken(token);
+        if (token) return { ok: _persistAuthToken(token), token: true };
         _lastAuthBootstrapFailure = null;
-        return true;
+        return { ok: true, token: false };
     } catch (error) {
         _rememberAuthBootstrapFailure({
             code: "NETWORK_ERROR",
             error: error?.message || "Bootstrap token request failed.",
             status: 0,
         });
-        return false;
+        return { ok: false, token: false };
     }
 }
 
-async function ensureWriteAuthToken({ force = false } = {}) {
+async function ensureWriteAuthToken({ force = false, allowCookieRefresh = false } = {}) {
     const existing = _readAuthToken();
     if (existing && !force) return existing;
+    let refreshResult = { ok: false, token: false };
     if (!_authTokenRefreshInFlight) {
         _authTokenRefreshInFlight = (async () => {
             try {
-                await _refreshAuthTokenFromServer();
+                return await _refreshAuthTokenFromServer();
             } finally {
                 _authTokenRefreshInFlight = null;
             }
         })();
     }
     try {
-        await _authTokenRefreshInFlight;
+        refreshResult = (await _authTokenRefreshInFlight) || refreshResult;
     } catch (e) {
         console.debug?.(e);
     }
-    return _readAuthToken();
+    if (force && refreshResult?.ok && !refreshResult?.token && existing) {
+        // Remote bootstrap may refresh the HttpOnly cookie without exposing the token.
+        // Drop stale header/session credentials so the cookie can authorize the retry.
+        _clearAuthToken();
+    } else if (force && !refreshResult?.ok) {
+        const failure = _readAuthBootstrapFailure();
+        const failureCode = String(failure?.code || "")
+            .trim()
+            .toUpperCase();
+        if (!failureCode || !["NETWORK_ERROR", "INVALID_RESPONSE"].includes(failureCode)) {
+            _clearAuthToken();
+        }
+    }
+    const nextToken = _readAuthToken();
+    if (!nextToken && allowCookieRefresh && refreshResult?.ok) {
+        return true;
+    }
+    return nextToken;
 }
 
 const MAX_RETRIES = 3;
@@ -471,7 +546,10 @@ function _buildTimedSignal(options = {}) {
     let timer = null;
     const onAbort = () => {
         try {
-            if (timer) { clearTimeout(timer); timer = null; }
+            if (timer) {
+                clearTimeout(timer);
+                timer = null;
+            }
         } catch (e) {
             console.debug?.(e);
         }
@@ -726,7 +804,10 @@ async function fetchAPI(url, options = {}, retryCount = 0) {
                 !_isBootstrapTokenUrl(url) &&
                 Number(response.status || 0) === 401
             ) {
-                const refreshed = await ensureWriteAuthToken({ force: true });
+                const refreshed = await ensureWriteAuthToken({
+                    force: true,
+                    allowCookieRefresh: true,
+                });
                 if (refreshed) {
                     const retryOptions = { ...options, _authRetryDone: true };
                     return await fetchAPI(url, retryOptions, retryCount);
@@ -773,7 +854,10 @@ async function fetchAPI(url, options = {}, retryCount = 0) {
                 Number(result?.status || 0) === 401);
 
         if (shouldTryAuthRefresh) {
-            const refreshed = await ensureWriteAuthToken({ force: true });
+            const refreshed = await ensureWriteAuthToken({
+                force: true,
+                allowCookieRefresh: true,
+            });
             if (refreshed) {
                 const retryOptions = { ...options, _authRetryDone: true };
                 return await fetchAPI(url, retryOptions, retryCount);

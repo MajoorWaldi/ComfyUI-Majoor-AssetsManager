@@ -1,7 +1,10 @@
+import hashlib
+
 import pytest
 from mjr_am_backend.routes.core.security import _check_write_access
 
 TEST_TOKEN = "unit-test-token-01"
+PBKDF2_FALLBACK_PEPPER = "mjr_api_token_pepper_fallback"
 
 
 def _clear_auth_env(monkeypatch):
@@ -20,6 +23,16 @@ def _clear_auth_env(monkeypatch):
         "MAJOOR_ALLOW_REMOTE_WRITE",
     ):
         monkeypatch.delenv(key, raising=False)
+
+
+def _pbkdf2_token_hash(token: str, pepper: str = "") -> str:
+    salt = pepper or PBKDF2_FALLBACK_PEPPER
+    return hashlib.pbkdf2_hmac(
+        "sha256",
+        str(token).encode(),
+        salt.encode(),
+        100_000,
+    ).hex()
 
 
 @pytest.mark.asyncio
@@ -84,13 +97,26 @@ async def test_write_token_accepts_bearer_header(monkeypatch):
 @pytest.mark.asyncio
 async def test_write_accepts_hashed_token_env(monkeypatch):
     _clear_auth_env(monkeypatch)
-    import hashlib
 
     token = TEST_TOKEN
     token_hash = hashlib.sha256(f"\0{token}".encode()).hexdigest()
     monkeypatch.setenv("MAJOOR_API_TOKEN_HASH", token_hash)
 
     res = _check_write_access(peer_ip="127.0.0.1", headers={"X-MJR-Token": token})
+    assert res.ok, res.error
+    assert (res.meta or {}).get("auth") == "token"
+
+
+@pytest.mark.asyncio
+async def test_write_accepts_pbkdf2_hash_from_settings_service(monkeypatch):
+    _clear_auth_env(monkeypatch)
+    monkeypatch.setenv("MAJOOR_API_TOKEN_HASH", _pbkdf2_token_hash(TEST_TOKEN))
+
+    res = _check_write_access(
+        peer_ip="203.0.113.10",
+        headers={"X-MJR-Token": TEST_TOKEN},
+        request_scheme="https",
+    )
     assert res.ok, res.error
     assert (res.meta or {}).get("auth") == "token"
 
