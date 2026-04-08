@@ -8,12 +8,57 @@ import os
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from pathlib import Path
 from queue import Empty, Queue
+from typing import Any
 
 from ...shared import EXTENSIONS, FileKind, classify_file, get_logger
 
 logger = get_logger(__name__)
+
+
+@dataclass(frozen=True, slots=True, eq=False)
+class ScanCandidate:
+    """Filesystem scan candidate with stat data captured from os.scandir."""
+
+    path: Path
+    stat: Any | None = None
+    kind: FileKind | None = None
+
+    def __str__(self) -> str:
+        return str(self.path)
+
+    def __fspath__(self) -> str:
+        return os.fspath(self.path)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.path, name)
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, ScanCandidate):
+            return self.path == other.path
+        if isinstance(other, Path):
+            return self.path == other
+        return False
+
+    def __hash__(self) -> int:
+        return hash(self.path)
+
+
+ScanQueueItem = ScanCandidate | Path | None
+
+
+def scan_candidate_path(candidate: ScanCandidate | Path) -> Path:
+    return candidate.path if isinstance(candidate, ScanCandidate) else candidate
+
+
+def scan_candidate_stat(candidate: ScanCandidate | Path) -> Any | None:
+    return candidate.stat if isinstance(candidate, ScanCandidate) else None
+
+
+def scan_candidate_kind(candidate: ScanCandidate | Path) -> FileKind | None:
+    return candidate.kind if isinstance(candidate, ScanCandidate) else None
 
 # ---------------------------------------------------------------------------
 # Module-level globals (previously in scanner.py)
@@ -95,7 +140,7 @@ class FileSystemWalker:
             recursive: Scan subdirectories
 
         Yields:
-            File paths one by one
+            Scan candidates one by one
         """
         if recursive:
             # Iterative scandir is generally faster than os.walk on large trees/NAS shares.
@@ -117,10 +162,15 @@ class FileSystemWalker:
                     logger.debug("Scan skipped inaccessible directory %s: %s", current, exc)
                     continue
         else:
-            for item in directory.iterdir():
-                self._scan_iops_wait()
-                if item.is_file() and self.is_supported_file(item):
-                    yield item
+            try:
+                with os.scandir(directory) as it:
+                    for entry in it:
+                        self._scan_iops_wait()
+                        candidate = self._candidate(entry)
+                        if candidate is not None:
+                            yield candidate
+            except (OSError, PermissionError) as exc:
+                logger.debug("Scan skipped inaccessible directory %s: %s", directory, exc)
 
     @staticmethod
     def is_supported_file(path: Path) -> bool:
@@ -141,17 +191,26 @@ class FileSystemWalker:
             return None
         return None
 
-    def _candidate(self, entry) -> Path | None:
+    def _candidate(self, entry) -> ScanCandidate | None:
         try:
             # Keep historical behavior: index symlinks to files, but do not recurse into symlinked dirs.
             if not entry.is_file(follow_symlinks=True):
                 return None
             ext = os.path.splitext(entry.name)[1].lower()
-            if ext and _EXT_TO_KIND and _EXT_TO_KIND.get(ext, "unknown") == "unknown":
+            if ext in _EXCLUDED_EXTENSIONS:
                 return None
+            kind: FileKind | None
+            if ext and _EXT_TO_KIND:
+                kind = _EXT_TO_KIND.get(ext)
+                if kind is None or kind == "unknown":
+                    return None
+            else:
+                kind = classify_file(entry.name)
+                if kind == "unknown":
+                    return None
             file_path = Path(entry.path)
-            if self.is_supported_file(file_path):
-                return file_path
+            stat = entry.stat(follow_symlinks=True)
+            return ScanCandidate(file_path, stat, kind)
         except (OSError, PermissionError):
             return None
         return None
@@ -165,7 +224,7 @@ class FileSystemWalker:
         dir_path: Path,
         recursive: bool,
         stop_event: threading.Event,
-        q: "Queue[Path | None]",
+        q: "Queue[ScanQueueItem]",
     ) -> None:
         """Producer running on executor: walks filesystem and pushes paths into queue."""
         # Reset pacing window for each full walk.
@@ -188,9 +247,9 @@ class FileSystemWalker:
                 logger.debug("Walk queue sentinel push failed for %s", dir_path, exc_info=True)
 
     @staticmethod
-    def drain_queue(q: "Queue[Path | None]", max_items: int) -> list[Path | None]:
+    def drain_queue(q: "Queue[ScanQueueItem]", max_items: int) -> list[ScanQueueItem]:
         """Read one-or-more items from walk queue with bounded non-blocking drain."""
-        items: list[Path | None] = []
+        items: list[ScanQueueItem] = []
         try:
             first = q.get()
         except Exception:

@@ -24,6 +24,29 @@ class _SearcherStub:
         self.invalidated += 1
 
 
+class _SqliteVectorDb:
+    def __init__(self):
+        self.conn = sqlite3.connect(":memory:")
+        self.conn.row_factory = sqlite3.Row
+        self.conn.execute("ATTACH DATABASE ':memory:' AS vec")
+        self.conn.execute(
+            "CREATE TABLE assets (id INTEGER PRIMARY KEY, filepath TEXT, kind TEXT)"
+        )
+        self.conn.execute(
+            "CREATE TABLE asset_metadata (asset_id INTEGER, positive_prompt TEXT, metadata_raw TEXT)"
+        )
+        self.conn.execute("CREATE TABLE vec.asset_embeddings (asset_id INTEGER, vector BLOB)")
+
+    async def aquery_in(self, sql, column, asset_ids):
+        placeholders = ", ".join("?" for _ in asset_ids)
+        query = sql.replace("{IN_CLAUSE}", f"{column} IN ({placeholders})")
+        rows = self.conn.execute(query, tuple(asset_ids)).fetchall()
+        return Result.Ok([dict(row) for row in rows])
+
+    def close(self):
+        self.conn.close()
+
+
 @pytest.mark.asyncio
 async def test_index_added_vectors_includes_image_and_video(monkeypatch, tmp_path: Path):
     image_path = tmp_path / "img.png"
@@ -69,6 +92,24 @@ async def test_index_added_vectors_includes_image_and_video(monkeypatch, tmp_pat
     assert {c["kind"] for c in calls} == {"image", "video"}
     assert searcher.invalidated == 1
     assert updated["asset_ids"] == [1, 2]
+
+
+@pytest.mark.asyncio
+async def test_query_unindexed_vector_rows_prefers_denormalized_positive_prompt() -> None:
+    db = _SqliteVectorDb()
+    try:
+        db.conn.execute("INSERT INTO assets(id, filepath, kind) VALUES (1, 'C:/x.png', 'image')")
+        db.conn.execute(
+            "INSERT INTO asset_metadata(asset_id, positive_prompt, metadata_raw) VALUES (1, 'denormalized prompt', '{bad')"
+        )
+        scanner = IndexScanner(db, metadata_service=object(), scan_lock=asyncio.Lock())
+
+        rows = await scanner._query_unindexed_vector_rows([1])
+
+        assert rows is not None
+        assert rows[0]["prompt_text"] == "denormalized prompt"
+    finally:
+        db.close()
 
 
 @pytest.mark.asyncio

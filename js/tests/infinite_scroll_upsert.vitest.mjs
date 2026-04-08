@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+    fetchPage,
     flushUpsertBatch,
     getUpsertBatchState,
     resolvePageAdvanceCount,
@@ -45,6 +46,35 @@ describe("InfiniteScroll upsert", () => {
                 total: null,
             }),
         ).toBe(16);
+    });
+
+    it("only skips total counts after the first page for output scope", async () => {
+        const buildListURL = vi.fn(() => "/mjr/am/list");
+        const deps = {
+            sanitizeQuery: (value) => value,
+            buildListURL,
+            get: vi.fn(async () => ({
+                ok: true,
+                data: { assets: [], total: 0, limit: 100, offset: 0 },
+            })),
+            getGridState: () => ({ requestId: 1 }),
+        };
+
+        const cases = [
+            ["output", 0, true],
+            ["output", 100, false],
+            ["all", 100, true],
+            ["input", 100, true],
+            ["custom", 100, true],
+        ];
+
+        for (const [scope, offset, includeTotal] of cases) {
+            await fetchPage({ dataset: { mjrScope: scope } }, "*", 100, offset, deps, {
+                requestId: 1,
+            });
+            const lastCall = buildListURL.mock.calls[buildListURL.mock.calls.length - 1]?.[0];
+            expect(lastCall).toMatchObject({ scope, offset, includeTotal });
+        }
     });
 
     it("refreshes seen keys when an existing asset gains a stack id", () => {
@@ -149,5 +179,62 @@ describe("InfiniteScroll upsert", () => {
 
         expect(state.assets).toHaveLength(0);
         expect(setItems).not.toHaveBeenCalled();
+    });
+
+    it("keeps an existing filtered card when a sparse upsert omits filter fields", () => {
+        const gridContainer = {
+            dataset: {
+                mjrSort: "mtime_desc",
+                mjrScope: "custom",
+                mjrSubfolder: "shots/final",
+                mjrFilterKind: "image",
+                mjrFilterWorkflowOnly: "1",
+                mjrFilterWorkflowType: "T2I",
+                mjrFilterMinRating: "4",
+            },
+        };
+        const state = {
+            assets: [
+                {
+                    id: 4,
+                    filename: "four.png",
+                    source: "custom",
+                    subfolder: "shots/final",
+                    kind: "image",
+                    rating: 5,
+                    has_workflow: true,
+                    workflow_type: "T2I",
+                    mtime: 10,
+                },
+            ],
+            seenKeys: new Set(["id:4"]),
+            assetIdSet: new Set(["4"]),
+            hiddenPngSiblings: 0,
+        };
+        const setItems = vi.fn();
+        const deps = {
+            upsertState: new Map(),
+            getOrCreateState: () => state,
+            ensureVirtualGrid: () => ({ setItems }),
+            assetKey,
+            loadMajoorSettings: () => ({}),
+            maxBatchSize: 50,
+            debounceMs: 0,
+        };
+
+        expect(upsertAsset(gridContainer, { id: 4, mtime: 20 }, deps)).toBe(true);
+        flushUpsertBatch(gridContainer, deps);
+
+        expect(state.assets).toHaveLength(1);
+        expect(state.assets[0]).toMatchObject({
+            id: 4,
+            source: "custom",
+            subfolder: "shots/final",
+            rating: 5,
+            has_workflow: true,
+            workflow_type: "T2I",
+            mtime: 20,
+        });
+        expect(setItems).toHaveBeenCalledTimes(1);
     });
 });

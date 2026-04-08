@@ -130,17 +130,7 @@ def _vector_rows_to_entries(rows_data: list[dict[str, Any]]) -> list[dict[str, A
     """Convert DB rows from the vector-missing query into indexing entry dicts."""
     entries: list[dict[str, Any]] = []
     for row in rows_data:
-        raw = row.get("metadata_raw")
-        if isinstance(raw, dict):
-            metadata_raw: dict[str, Any] | None = raw
-        elif isinstance(raw, str) and raw.strip():
-            try:
-                parsed = json.loads(raw)
-                metadata_raw = parsed if isinstance(parsed, dict) else None
-            except (TypeError, ValueError, json.JSONDecodeError):
-                metadata_raw = None
-        else:
-            metadata_raw = None
+        metadata_raw = _vector_row_metadata_payload(row)
         kind_raw = str(row.get("kind") or "").strip().lower()
         entries.append({
             "asset_id": int(row["id"]),
@@ -149,6 +139,32 @@ def _vector_rows_to_entries(rows_data: list[dict[str, Any]]) -> list[dict[str, A
             "metadata_raw": metadata_raw,
         })
     return entries
+
+
+def _vector_row_metadata_payload(row: dict[str, Any]) -> dict[str, Any] | None:
+    metadata_raw: dict[str, Any] = {}
+    prompt_text = str(row.get("prompt_text") or "").strip()
+    negative_prompt_text = str(row.get("negative_prompt_text") or "").strip()
+    parameters_text = str(row.get("parameters_text") or "").strip()
+    if prompt_text:
+        metadata_raw["positive_prompt"] = prompt_text
+    if negative_prompt_text:
+        metadata_raw["negative_prompt"] = negative_prompt_text
+    if parameters_text:
+        metadata_raw["parameters"] = parameters_text
+    if metadata_raw:
+        return metadata_raw
+
+    raw = row.get("metadata_raw")
+    if isinstance(raw, dict):
+        return raw
+    if isinstance(raw, str) and raw.strip():
+        try:
+            parsed = json.loads(raw)
+            return parsed if isinstance(parsed, dict) else None
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return None
+    return None
 
 
 def _vector_entry_context(entry: dict[str, Any]) -> tuple[int, str, FileKind]:
@@ -226,38 +242,59 @@ async def _run_vector_index_loop(
     updated_asset_ids: list[int] = []
     loop = asyncio.get_running_loop()
     semaphore = _vector_index_semaphore()
-
+    work_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
     for entry in entries:
-        status, aid, payload = await _run_vector_index_entry(
-            db,
-            vector_service,
-            entry,
-            index_asset_vector=index_asset_vector,
-            semaphore=semaphore,
-            loop=loop,
-        )
-        if status == "skip":
-            skipped += 1
-            continue
-        if status == "timeout":
-            timed_out += 1
-            if aid > 0:
-                timed_out_ids.append(aid)
-            continue
-        if status == "error":
-            errors += 1
-            _raise_if_fatal_vector_index_error(aid, payload)
-            continue
-        result = payload
+        work_queue.put_nowait(entry)
 
-        if result.ok and bool(result.data):
-            indexed += 1
-            if aid > 0:
-                updated_asset_ids.append(aid)
-        elif result.ok:
-            skipped += 1
-        else:
-            errors += 1
+    async def _worker() -> list[tuple[str, int, Any]]:
+        local_results: list[tuple[str, int, Any]] = []
+        while True:
+            try:
+                entry = work_queue.get_nowait()
+            except asyncio.QueueEmpty:
+                break
+            try:
+                local_results.append(
+                    await _run_vector_index_entry(
+                        db,
+                        vector_service,
+                        entry,
+                        index_asset_vector=index_asset_vector,
+                        semaphore=semaphore,
+                        loop=loop,
+                    )
+                )
+            finally:
+                work_queue.task_done()
+        return local_results
+
+    worker_count = min(len(entries), _vector_index_concurrency())
+    worker_results = await asyncio.gather(*(_worker() for _ in range(worker_count)))
+
+    for batch_result in worker_results:
+        for status, aid, payload in batch_result:
+            if status == "skip":
+                skipped += 1
+                continue
+            if status == "timeout":
+                timed_out += 1
+                if aid > 0:
+                    timed_out_ids.append(aid)
+                continue
+            if status == "error":
+                errors += 1
+                _raise_if_fatal_vector_index_error(aid, payload)
+                continue
+            result = payload
+
+            if result.ok and bool(result.data):
+                indexed += 1
+                if aid > 0:
+                    updated_asset_ids.append(aid)
+            elif result.ok:
+                skipped += 1
+            else:
+                errors += 1
 
     return indexed, skipped, errors, timed_out, timed_out_ids, updated_asset_ids
 
@@ -449,7 +486,36 @@ class IndexScanner:
     async def _query_unindexed_vector_rows(self, asset_ids: list[int]) -> list[Any] | None:
         rows = await self.db.aquery_in(
             """
-            SELECT a.id, a.filepath, a.kind, m.metadata_raw
+            SELECT
+                a.id,
+                a.filepath,
+                a.kind,
+                SUBSTR(COALESCE(
+                    NULLIF(TRIM(COALESCE(m.positive_prompt, '')), ''),
+                    CASE WHEN json_valid(COALESCE(m.metadata_raw, '')) THEN
+                        COALESCE(
+                            NULLIF(TRIM(COALESCE(json_extract(m.metadata_raw, '$.positive_prompt'), '')), ''),
+                            NULLIF(TRIM(COALESCE(json_extract(m.metadata_raw, '$.prompt'), '')), ''),
+                            NULLIF(TRIM(COALESCE(json_extract(m.metadata_raw, '$.geninfo.positive.value'), '')), ''),
+                            NULLIF(TRIM(COALESCE(json_extract(m.metadata_raw, '$.geninfo.prompt'), '')), '')
+                        )
+                    ELSE NULL END
+                ), 1, 4000) AS prompt_text,
+                CASE WHEN json_valid(COALESCE(m.metadata_raw, '')) THEN
+                    SUBSTR(COALESCE(
+                        NULLIF(TRIM(COALESCE(json_extract(m.metadata_raw, '$.negative_prompt'), '')), ''),
+                        NULLIF(TRIM(COALESCE(json_extract(m.metadata_raw, '$.geninfo.negative.value'), '')), ''),
+                        NULLIF(TRIM(COALESCE(json_extract(m.metadata_raw, '$.geninfo.negative_prompt'), '')), '')
+                    ), 1, 4000)
+                ELSE NULL END AS negative_prompt_text,
+                CASE WHEN json_valid(COALESCE(m.metadata_raw, '')) THEN
+                    SUBSTR(COALESCE(
+                        NULLIF(TRIM(COALESCE(json_extract(m.metadata_raw, '$.parameters'), '')), ''),
+                        NULLIF(TRIM(COALESCE(json_extract(m.metadata_raw, '$."PNG:Parameters"'), '')), ''),
+                        NULLIF(TRIM(COALESCE(json_extract(m.metadata_raw, '$.UserComment'), '')), ''),
+                        NULLIF(TRIM(COALESCE(json_extract(m.metadata_raw, '$.ImageDescription'), '')), '')
+                    ), 1, 4000)
+                ELSE NULL END AS parameters_text
             FROM assets a
             LEFT JOIN vec.asset_embeddings ae ON ae.asset_id = a.id
             LEFT JOIN asset_metadata m ON a.id = m.asset_id

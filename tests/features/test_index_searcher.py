@@ -215,6 +215,7 @@ def test_workflow_filters_use_json_valid_guards():
 
     assert "json_valid" in sql
     assert "CASE WHEN json_valid" in sql
+    assert "m.workflow_type" in sql
     assert "$.workflow_type" in sql
     assert "$.workflow" in sql
     assert params == ["T2I"]
@@ -223,12 +224,16 @@ def test_workflow_filters_use_json_valid_guards():
 def test_workflow_filters_tolerate_malformed_metadata_json():
     conn = sqlite3.connect(":memory:")
     conn.execute("CREATE TABLE assets (id INTEGER PRIMARY KEY, source TEXT, mtime INTEGER)")
-    conn.execute("CREATE TABLE asset_metadata (asset_id INTEGER, has_workflow INTEGER, metadata_raw TEXT)")
+    conn.execute(
+        "CREATE TABLE asset_metadata (asset_id INTEGER, has_workflow INTEGER, workflow_type TEXT, metadata_raw TEXT)"
+    )
     conn.execute("INSERT INTO assets(id, source, mtime) VALUES (1, 'output', 1)")
     conn.execute("INSERT INTO assets(id, source, mtime) VALUES (2, 'output', 2)")
-    conn.execute("INSERT INTO asset_metadata(asset_id, has_workflow, metadata_raw) VALUES (1, 0, '{bad')")
     conn.execute(
-        "INSERT INTO asset_metadata(asset_id, has_workflow, metadata_raw) VALUES (2, 1, '{\"workflow_type\":\"T2I\"}')"
+        "INSERT INTO asset_metadata(asset_id, has_workflow, workflow_type, metadata_raw) VALUES (1, 0, NULL, '{bad')"
+    )
+    conn.execute(
+        "INSERT INTO asset_metadata(asset_id, has_workflow, workflow_type, metadata_raw) VALUES (2, 1, NULL, '{\"workflow_type\":\"T2I\"}')"
     )
 
     clauses, params = m._build_filter_clauses({"has_workflow": True, "workflow_type": "T2I"})
@@ -245,6 +250,37 @@ def test_workflow_filters_tolerate_malformed_metadata_json():
     conn.close()
 
     assert rows == [(2,)]
+
+
+def test_workflow_type_filter_prefers_denormalized_column_when_metadata_is_minimal():
+    conn = sqlite3.connect(":memory:")
+    conn.execute("CREATE TABLE assets (id INTEGER PRIMARY KEY, source TEXT, mtime INTEGER)")
+    conn.execute(
+        "CREATE TABLE asset_metadata (asset_id INTEGER, workflow_type TEXT, metadata_raw TEXT)"
+    )
+    conn.execute("INSERT INTO assets(id, source, mtime) VALUES (1, 'output', 1)")
+    conn.execute("INSERT INTO assets(id, source, mtime) VALUES (2, 'output', 2)")
+    conn.execute(
+        "INSERT INTO asset_metadata(asset_id, workflow_type, metadata_raw) VALUES (1, 'I2I', '{bad')"
+    )
+    conn.execute(
+        "INSERT INTO asset_metadata(asset_id, workflow_type, metadata_raw) VALUES (2, NULL, '{\"workflow_type\":\"T2I\"}')"
+    )
+
+    clauses, params = m._build_filter_clauses({"workflow_type": "I2I"})
+    sql = (
+        "SELECT a.id "
+        "FROM assets a "
+        "LEFT JOIN asset_metadata m ON a.id = m.asset_id "
+        "WHERE 1=1 "
+        f"{' '.join(clauses)} "
+        "ORDER BY a.id"
+    )
+
+    rows = conn.execute(sql, tuple(params)).fetchall()
+    conn.close()
+
+    assert rows == [(1,)]
 
 
 @pytest.mark.asyncio

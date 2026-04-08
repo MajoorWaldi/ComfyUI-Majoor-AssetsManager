@@ -72,6 +72,9 @@ CREATE TABLE IF NOT EXISTS asset_metadata (
     has_workflow BOOLEAN DEFAULT 0,
     has_generation_data BOOLEAN DEFAULT 0,
     metadata_quality TEXT DEFAULT 'none',  -- full, partial, degraded, none
+    workflow_type TEXT DEFAULT '',
+    generation_time_ms INTEGER,
+    positive_prompt TEXT DEFAULT '',
     metadata_raw TEXT DEFAULT '{}',  -- Full raw metadata as JSON
     FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
 );
@@ -150,6 +153,9 @@ COLUMN_DEFINITIONS = {
         ("has_workflow", "has_workflow BOOLEAN DEFAULT 0"),
         ("has_generation_data", "has_generation_data BOOLEAN DEFAULT 0"),
         ("metadata_quality", "metadata_quality TEXT DEFAULT 'none'"),
+        ("workflow_type", "workflow_type TEXT DEFAULT ''"),
+        ("generation_time_ms", "generation_time_ms INTEGER"),
+        ("positive_prompt", "positive_prompt TEXT DEFAULT ''"),
         ("metadata_raw", "metadata_raw TEXT DEFAULT '{}'"),
     ],
     "scan_journal": [
@@ -187,12 +193,14 @@ CREATE INDEX IF NOT EXISTS idx_assets_kind ON assets(kind);
 CREATE INDEX IF NOT EXISTS idx_assets_mtime ON assets(mtime);
 CREATE INDEX IF NOT EXISTS idx_assets_kind_mtime ON assets(kind, mtime);
 CREATE INDEX IF NOT EXISTS idx_assets_source ON assets(source);
+CREATE INDEX IF NOT EXISTS idx_assets_source_lower ON assets(LOWER(source));
 CREATE INDEX IF NOT EXISTS idx_assets_root_id ON assets(root_id);
 CREATE INDEX IF NOT EXISTS idx_assets_source_root_id ON assets(source, root_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_assets_filepath_source_root ON assets(filepath, source, root_id);
 CREATE INDEX IF NOT EXISTS idx_metadata_rating ON asset_metadata(rating);
 CREATE INDEX IF NOT EXISTS idx_metadata_workflow_hash ON asset_metadata(workflow_hash);
 CREATE INDEX IF NOT EXISTS idx_metadata_quality_workflow ON asset_metadata(metadata_quality, has_workflow);
+CREATE INDEX IF NOT EXISTS idx_metadata_workflow_type ON asset_metadata(workflow_type);
 CREATE INDEX IF NOT EXISTS idx_assets_source_mtime_desc ON assets(source, mtime DESC);
 CREATE INDEX IF NOT EXISTS idx_assets_content_hash ON assets(content_hash);
 CREATE INDEX IF NOT EXISTS idx_assets_phash ON assets(phash);
@@ -200,6 +208,10 @@ CREATE INDEX IF NOT EXISTS idx_assets_hash_state ON assets(hash_state);
 CREATE INDEX IF NOT EXISTS idx_asset_metadata_has_workflow_true ON asset_metadata(has_workflow) WHERE has_workflow = 1;
 CREATE INDEX IF NOT EXISTS idx_asset_metadata_has_generation_data_true ON asset_metadata(has_generation_data) WHERE has_generation_data = 1;
 CREATE INDEX IF NOT EXISTS idx_assets_list_cover ON assets(source, mtime DESC, id, filename, filepath, kind);
+CREATE INDEX IF NOT EXISTS idx_assets_filename_lower ON assets(LOWER(filename), id DESC);
+CREATE INDEX IF NOT EXISTS idx_assets_ext_lower ON assets(LOWER(ext));
+CREATE INDEX IF NOT EXISTS idx_assets_source_size_desc ON assets(source, size DESC, mtime DESC, id DESC);
+CREATE INDEX IF NOT EXISTS idx_assets_source_kind_mtime_desc ON assets(source, kind, mtime DESC, id DESC);
 
 CREATE INDEX IF NOT EXISTS idx_scan_journal_dir ON scan_journal(dir_path);
 CREATE INDEX IF NOT EXISTS idx_metadata_cache_state ON metadata_cache(state_hash);

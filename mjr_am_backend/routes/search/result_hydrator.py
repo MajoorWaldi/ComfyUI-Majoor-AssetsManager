@@ -89,22 +89,29 @@ async def query_browser_rows(db: Any, filepaths: list[str]) -> list[dict] | None
                 m.has_workflow AS has_workflow,
                 m.has_generation_data AS has_generation_data,
                 UPPER(COALESCE(
-                    json_extract(m.metadata_raw, '$.workflow_type'),
-                    json_extract(m.metadata_raw, '$.geninfo.engine.type'),
-                    json_extract(m.metadata_raw, '$.engine.type'),
+                    NULLIF(TRIM(COALESCE(m.workflow_type, '')), ''),
+                    CASE WHEN json_valid(COALESCE(m.metadata_raw, '')) THEN json_extract(m.metadata_raw, '$.workflow_type') ELSE NULL END,
+                    CASE WHEN json_valid(COALESCE(m.metadata_raw, '')) THEN json_extract(m.metadata_raw, '$.geninfo.engine.type') ELSE NULL END,
+                    CASE WHEN json_valid(COALESCE(m.metadata_raw, '')) THEN json_extract(m.metadata_raw, '$.engine.type') ELSE NULL END,
                     ''
                 )) AS workflow_type,
-                CASE WHEN json_valid(COALESCE(m.metadata_raw, ''))
-                    THEN SUBSTR(COALESCE(
-                        NULLIF(TRIM(COALESCE(json_extract(m.metadata_raw, '$.positive_prompt'), '')), ''),
-                        NULLIF(TRIM(COALESCE(json_extract(m.metadata_raw, '$.geninfo.positive.value'), '')), '')
-                    ), 1, 250)
-                    ELSE NULL
-                END AS positive_prompt,
-                CASE WHEN json_valid(COALESCE(m.metadata_raw, ''))
-                    THEN json_extract(m.metadata_raw, '$.generation_time_ms')
-                    ELSE NULL
-                END AS generation_time_ms,
+                COALESCE(
+                    NULLIF(TRIM(COALESCE(m.positive_prompt, '')), ''),
+                    CASE WHEN json_valid(COALESCE(m.metadata_raw, ''))
+                        THEN SUBSTR(COALESCE(
+                            NULLIF(TRIM(COALESCE(json_extract(m.metadata_raw, '$.positive_prompt'), '')), ''),
+                            NULLIF(TRIM(COALESCE(json_extract(m.metadata_raw, '$.geninfo.positive.value'), '')), '')
+                        ), 1, 250)
+                        ELSE NULL
+                    END
+                ) AS positive_prompt,
+                COALESCE(
+                    m.generation_time_ms,
+                    CASE WHEN json_valid(COALESCE(m.metadata_raw, ''))
+                        THEN json_extract(m.metadata_raw, '$.generation_time_ms')
+                        ELSE NULL
+                    END
+                ) AS generation_time_ms,
                 CASE
                     WHEN LENGTH(TRIM(COALESCE(a.enhanced_caption, ''))) > 0 THEN 1
                     ELSE 0

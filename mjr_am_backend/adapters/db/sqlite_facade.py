@@ -208,6 +208,9 @@ _KNOWN_COLUMNS = {
     "has_workflow",
     "has_generation_data",
     "metadata_quality",
+    "workflow_type",
+    "generation_time_ms",
+    "positive_prompt",
     "metadata_raw",
     # scan_journal
     "dir_path",
@@ -232,6 +235,9 @@ _KNOWN_COLUMNS = {
     "m.tags",
     "m.tags_text",
     "m.metadata_raw",
+    "m.workflow_type",
+    "m.generation_time_ms",
+    "m.positive_prompt",
     "m.has_workflow",
     "m.has_generation_data",
 }

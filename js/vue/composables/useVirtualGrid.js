@@ -309,7 +309,9 @@ function _assetMatchesActiveFilters(gridContainer, asset) {
         .toLowerCase();
     const dateExact = String(gridContainer?.dataset?.mjrFilterDateExact || "").trim();
     const assetSubfolder = String(asset?.subfolder || "").trim().toLowerCase();
-    const assetType = String(asset?.type || "output").trim().toLowerCase();
+    const assetType = String(asset?.type || asset?.source || "output")
+        .trim()
+        .toLowerCase();
     const assetKind = String(asset?.kind || "").trim().toLowerCase();
     const assetWorkflowType = String(asset?.workflow_type || asset?.workflowType || "")
         .trim()
@@ -687,9 +689,11 @@ export function flushUpsertBatch(gridContainer, deps) {
                 }
                 continue;
             }
-            const key = deps.assetKey(asset);
             const existingIndex = state.assets.findIndex((a) => String(a.id) === assetId);
-            const matchesFilters = _assetMatchesActiveFilters(gridContainer, asset);
+            const existingAsset = existingIndex > -1 ? state.assets[existingIndex] : null;
+            const candidateAsset = existingAsset ? { ...existingAsset, ...asset } : asset;
+            const key = deps.assetKey(candidateAsset);
+            const matchesFilters = _assetMatchesActiveFilters(gridContainer, candidateAsset);
             if (!matchesFilters) {
                 if (existingIndex > -1) {
                     const [removedAsset] = state.assets.splice(existingIndex, 1);
@@ -699,7 +703,6 @@ export function flushUpsertBatch(gridContainer, deps) {
                 continue;
             }
             if (existingIndex > -1) {
-                const existingAsset = state.assets[existingIndex];
                 const previousKey = deps.assetKey(existingAsset);
                 Object.assign(existingAsset, asset);
                 const mergedAsset = { ...existingAsset };
@@ -716,10 +719,10 @@ export function flushUpsertBatch(gridContainer, deps) {
                     (asset.id != null && state.assetIdSet?.has?.(assetId));
                 if (!alreadySeen) {
                     const sortKey = gridContainer.dataset.mjrSort || "mtime_desc";
-                    const insertPos = findInsertPosition(state.assets, asset, sortKey);
+                    const insertPos = findInsertPosition(state.assets, candidateAsset, sortKey);
                     state.seenKeys.add(key);
                     if (asset.id != null) state.assetIdSet?.add?.(assetId);
-                    state.assets.splice(insertPos, 0, asset); // findInsertPosition never returns -1
+                    state.assets.splice(insertPos, 0, candidateAsset); // findInsertPosition never returns -1
                     modified = true;
                 }
             }
@@ -765,4 +768,3 @@ export function upsertAsset(gridContainer, asset, deps) {
     }
     return true;
 }
-

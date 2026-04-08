@@ -382,6 +382,7 @@ class MetadataService:
             max_concurrency = 1
         if max_concurrency <= 0:
             max_concurrency = 1
+        self._extract_concurrency = max_concurrency
         self._extract_sem = asyncio.Semaphore(max_concurrency)
 
     async def _exif_read(self, file_path: str) -> Result[dict[str, Any]]:
@@ -1021,7 +1022,7 @@ class MetadataService:
     ) -> Result[dict[str, Any]]:
         resolved_exif = exif_data
         if not resolved_exif and image_fallback_enabled:
-            resolved_exif = read_image_exif_like(path)
+            resolved_exif = await asyncio.to_thread(read_image_exif_like, path)
 
         ext = os.path.splitext(path)[1].lower()
         if ext == ".png":
@@ -1059,7 +1060,7 @@ class MetadataService:
     ) -> Result[dict[str, Any]]:
         resolved_ffprobe = ffprobe_data
         if not resolved_ffprobe and media_fallback_enabled:
-            resolved_ffprobe = read_media_probe_like(path)
+            resolved_ffprobe = await asyncio.to_thread(read_media_probe_like, path)
 
         metadata_result = extract_video_metadata(path, exif_data, resolved_ffprobe)
         if not metadata_result.ok:
@@ -1086,7 +1087,7 @@ class MetadataService:
     ) -> Result[dict[str, Any]]:
         resolved_ffprobe = ffprobe_data
         if not resolved_ffprobe and media_fallback_enabled:
-            resolved_ffprobe = read_media_probe_like(path)
+            resolved_ffprobe = await asyncio.to_thread(read_media_probe_like, path)
 
         metadata_result = extract_audio_metadata(path, exif_data=exif_data, ffprobe_data=resolved_ffprobe)
         if not metadata_result.ok:
@@ -1116,11 +1117,15 @@ class MetadataService:
 
         exif_targets, ffprobe_targets = registry_build_batch_probe_targets([*images, *videos, *audios], probe_mode)
 
-        exif_results: dict[str, Result[dict[str, Any]]] = (
-            await self.exiftool.aread_batch(exif_targets) if exif_targets else {}
-        )
-        ffprobe_results: dict[str, Result[dict[str, Any]]] = (
-            await self._ffprobe_read_batch(ffprobe_targets) if ffprobe_targets else {}
+        async def _read_exif_batch() -> dict[str, Result[dict[str, Any]]]:
+            return await self.exiftool.aread_batch(exif_targets) if exif_targets else {}
+
+        async def _read_ffprobe_batch() -> dict[str, Result[dict[str, Any]]]:
+            return await self._ffprobe_read_batch(ffprobe_targets) if ffprobe_targets else {}
+
+        exif_results, ffprobe_results = await asyncio.gather(
+            _read_exif_batch(),
+            _read_ffprobe_batch(),
         )
 
         await self._fill_image_batch_results(results, images, exif_results, image_fallback_enabled)
@@ -1137,14 +1142,16 @@ class MetadataService:
         exif_results: dict[str, Result[dict[str, Any]]],
         image_fallback_enabled: bool,
     ) -> None:
-        for path in paths:
-            if path in results:
-                continue
-            results[path] = await self._process_image_batch_item(
+        pending = [path for path in paths if path not in results]
+        item_results = await self._run_batch_items(
+            pending,
+            lambda path: self._process_image_batch_item(
                 path,
                 registry_batch_tool_data(exif_results, path),
                 image_fallback_enabled,
-            )
+            ),
+        )
+        results.update(item_results)
 
     async def _fill_video_batch_results(
         self,
@@ -1154,15 +1161,17 @@ class MetadataService:
         ffprobe_results: dict[str, Result[dict[str, Any]]],
         media_fallback_enabled: bool,
     ) -> None:
-        for path in paths:
-            if path in results:
-                continue
-            results[path] = await self._process_video_batch_item(
+        pending = [path for path in paths if path not in results]
+        item_results = await self._run_batch_items(
+            pending,
+            lambda path: self._process_video_batch_item(
                 path,
                 registry_batch_tool_data(exif_results, path),
                 registry_batch_tool_data(ffprobe_results, path),
                 media_fallback_enabled,
-            )
+            ),
+        )
+        results.update(item_results)
 
     async def _fill_audio_batch_results(
         self,
@@ -1172,15 +1181,40 @@ class MetadataService:
         ffprobe_results: dict[str, Result[dict[str, Any]]],
         media_fallback_enabled: bool,
     ) -> None:
-        for path in paths:
-            if path in results:
-                continue
-            results[path] = await self._process_audio_batch_item(
+        pending = [path for path in paths if path not in results]
+        item_results = await self._run_batch_items(
+            pending,
+            lambda path: self._process_audio_batch_item(
                 path,
                 registry_batch_tool_data(exif_results, path),
                 registry_batch_tool_data(ffprobe_results, path),
                 media_fallback_enabled,
-            )
+            ),
+        )
+        results.update(item_results)
+
+    async def _run_batch_items(
+        self,
+        paths: list[str],
+        factory: Callable[[str], Awaitable[Result[dict[str, Any]]]],
+    ) -> dict[str, Result[dict[str, Any]]]:
+        if not paths:
+            return {}
+        limit = max(1, int(getattr(self, "_extract_concurrency", 1) or 1))
+        if limit == 1 or len(paths) == 1:
+            output: dict[str, Result[dict[str, Any]]] = {}
+            for path in paths:
+                output[path] = await factory(path)
+            return output
+
+        sem = asyncio.Semaphore(limit)
+
+        async def _run(path: str) -> tuple[str, Result[dict[str, Any]]]:
+            async with sem:
+                return path, await factory(path)
+
+        pairs = await asyncio.gather(*(_run(path) for path in paths))
+        return dict(pairs)
 
     def _fill_other_batch_results(
         self,
