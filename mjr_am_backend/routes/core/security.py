@@ -31,6 +31,7 @@ _DEFAULT_RATE_LIMIT_MIN_WINDOW_SECONDS = 60
 _DEFAULT_CLIENT_ID_HASH_HEX_CHARS = 16
 _DEFAULT_TRUSTED_PROXIES = "127.0.0.1,::1"
 _DEFAULT_RATE_LIMIT_BACKGROUND_CLEANUP_SECONDS = 60
+_PBKDF2_TOKEN_PEPPER_FALLBACK = "mjr_api_token_pepper_fallback"
 
 try:
     _MAX_RATE_LIMIT_CLIENTS = int(
@@ -310,6 +311,38 @@ def _hash_token(value: str) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+def _hash_token_pbkdf2(value: str) -> str:
+    try:
+        normalized = str(value or "").strip()
+    except Exception:
+        normalized = ""
+    try:
+        pepper = str(os.environ.get("MAJOOR_API_TOKEN_PEPPER") or "").strip()
+    except Exception:
+        pepper = ""
+    if not pepper:
+        pepper = _PBKDF2_TOKEN_PEPPER_FALLBACK
+    return hashlib.pbkdf2_hmac(
+        "sha256",
+        normalized.encode("utf-8", errors="ignore"),
+        pepper.encode("utf-8", errors="ignore"),
+        100_000,
+    ).hex()
+
+
+def _token_hash_matches(provided: str, configured_hash: str) -> bool:
+    import hmac
+
+    token = str(provided or "").strip()
+    expected = str(configured_hash or "").strip().lower()
+    if not token or not expected:
+        return False
+    return hmac.compare_digest(_hash_token(token), expected) or hmac.compare_digest(
+        _hash_token_pbkdf2(token),
+        expected,
+    )
+
+
 def _get_write_token_hash() -> str:
     try:
         configured_hash = (
@@ -532,11 +565,9 @@ def _check_write_access_with_token(
     request_scheme: str,
     require_auth: bool,
 ) -> Result[bool]:
-    import hmac
-
     from ...shared import Result
 
-    if provided and hmac.compare_digest(_hash_token(provided), configured_hash):
+    if _token_hash_matches(provided, configured_hash):
         if not _request_transport_is_secure(
             peer_ip=peer_ip, headers=headers, request_scheme=request_scheme
         ):

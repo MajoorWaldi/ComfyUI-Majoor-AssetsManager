@@ -1,2 +1,2 @@
-import "./chunks/entry-ikhzmsim.js";
+import "./chunks/entry-BfoXEiGb.js";
 import "../../scripts/app.js";

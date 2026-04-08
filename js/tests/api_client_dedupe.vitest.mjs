@@ -15,6 +15,12 @@ function makeStorage() {
     };
 }
 
+function readHeader(headers, name) {
+    if (!headers) return null;
+    if (typeof headers.get === "function") return headers.get(name);
+    return headers[name] ?? headers[String(name || "").toLowerCase()] ?? null;
+}
+
 describe("api client request deduplication", () => {
     beforeEach(() => {
         vi.resetModules();
@@ -95,14 +101,18 @@ describe("api client request deduplication", () => {
             if (String(url).includes("/mjr/am/tags")) {
                 return {
                     status: 200,
-                    headers: { get: (name) => (name === "content-type" ? "application/json" : null) },
+                    headers: {
+                        get: (name) => (name === "content-type" ? "application/json" : null),
+                    },
                     json: async () => ({ ok: true, data: ["old-tag"] }),
                 };
             }
             if (String(url).includes("/mjr/am/asset/tags")) {
                 return {
                     status: 200,
-                    headers: { get: (name) => (name === "content-type" ? "application/json" : null) },
+                    headers: {
+                        get: (name) => (name === "content-type" ? "application/json" : null),
+                    },
                     json: async () => ({ ok: true, data: { asset_id: 7, tags: [] } }),
                 };
             }
@@ -133,7 +143,9 @@ describe("api client request deduplication", () => {
             if (String(url).includes("/mjr/am/settings/security/bootstrap-token")) {
                 return {
                     status: 403,
-                    headers: { get: (name) => (name === "content-type" ? "application/json" : null) },
+                    headers: {
+                        get: (name) => (name === "content-type" ? "application/json" : null),
+                    },
                     json: async () => ({
                         ok: false,
                         code: "BOOTSTRAP_DISABLED",
@@ -144,7 +156,9 @@ describe("api client request deduplication", () => {
             if (String(url).includes("/mjr/am/asset/tags")) {
                 return {
                     status: 401,
-                    headers: { get: (name) => (name === "content-type" ? "application/json" : null) },
+                    headers: {
+                        get: (name) => (name === "content-type" ? "application/json" : null),
+                    },
                     json: async () => ({
                         ok: false,
                         code: "AUTH_REQUIRED",
@@ -169,5 +183,116 @@ describe("api client request deduplication", () => {
         const [payload] = globalThis.app.extensionManager.toast.add.mock.calls[0];
         expect(String(payload?.summary || "")).toContain("Majoor remote write access");
         expect(String(payload?.detail || "")).toContain("Sign in to ComfyUI");
+    });
+
+    it("keeps a bootstrapped token after settings-change cache invalidation", async () => {
+        const listeners = new Map();
+        globalThis.window.addEventListener = vi.fn((type, listener) => {
+            listeners.set(String(type), listener);
+        });
+        globalThis.window.dispatchEvent = vi.fn((event) => {
+            const listener = listeners.get(String(event?.type || ""));
+            if (typeof listener === "function") listener(event);
+        });
+
+        const token = "boot-token-1234567890";
+        globalThis.fetch = vi.fn(async (url, options = {}) => {
+            if (String(url).includes("/mjr/am/settings/security/bootstrap-token")) {
+                return {
+                    status: 200,
+                    headers: {
+                        get: (name) => (name === "content-type" ? "application/json" : null),
+                    },
+                    json: async () => ({ ok: true, data: { token } }),
+                };
+            }
+            if (String(url).includes("/mjr/am/asset/tags")) {
+                const sentToken = readHeader(options.headers, "X-MJR-Token");
+                return {
+                    status: sentToken === token ? 200 : 401,
+                    headers: {
+                        get: (name) => (name === "content-type" ? "application/json" : null),
+                    },
+                    json: async () =>
+                        sentToken === token
+                            ? { ok: true, data: { asset_id: 7, tags: ["local"] } }
+                            : {
+                                  ok: false,
+                                  code: "AUTH_REQUIRED",
+                                  error: "Write operation blocked: missing or invalid API token.",
+                              },
+                };
+            }
+            return {
+                status: 200,
+                headers: { get: (name) => (name === "content-type" ? "application/json" : null) },
+                json: async () => ({ ok: true, data: null }),
+            };
+        });
+
+        const client = await import("../api/client.js");
+        const result = await client.updateAssetTags(7, ["local"]);
+
+        expect(result.ok).toBe(true);
+        expect(globalThis.sessionStorage.getItem("__mjr_write_token")).toBe(token);
+        const tagCall = globalThis.fetch.mock.calls.find(([url]) =>
+            String(url).includes("/mjr/am/asset/tags"),
+        );
+        expect(readHeader(tagCall?.[1]?.headers, "X-MJR-Token")).toBe(token);
+    });
+
+    it("drops a stale header token when bootstrap refreshes only the auth cookie", async () => {
+        const staleToken = "stale-token-1234567890";
+        globalThis.sessionStorage.setItem("__mjr_write_token", staleToken);
+        let tagCalls = 0;
+        globalThis.fetch = vi.fn(async (url, options = {}) => {
+            if (String(url).includes("/mjr/am/settings/security/bootstrap-token")) {
+                return {
+                    status: 200,
+                    headers: {
+                        get: (name) => (name === "content-type" ? "application/json" : null),
+                    },
+                    json: async () => ({ ok: true, data: { token_hint: "...fresh" } }),
+                };
+            }
+            if (String(url).includes("/mjr/am/asset/tags")) {
+                tagCalls += 1;
+                const sentToken = readHeader(options.headers, "X-MJR-Token");
+                if (tagCalls === 1) {
+                    expect(sentToken).toBe(staleToken);
+                    return {
+                        status: 401,
+                        headers: {
+                            get: (name) => (name === "content-type" ? "application/json" : null),
+                        },
+                        json: async () => ({
+                            ok: false,
+                            code: "AUTH_REQUIRED",
+                            error: "Write operation blocked: missing or invalid API token.",
+                        }),
+                    };
+                }
+                expect(sentToken).toBeNull();
+                return {
+                    status: 200,
+                    headers: {
+                        get: (name) => (name === "content-type" ? "application/json" : null),
+                    },
+                    json: async () => ({ ok: true, data: { asset_id: 7, tags: ["remote"] } }),
+                };
+            }
+            return {
+                status: 200,
+                headers: { get: (name) => (name === "content-type" ? "application/json" : null) },
+                json: async () => ({ ok: true, data: null }),
+            };
+        });
+
+        const client = await import("../api/client.js");
+        const result = await client.updateAssetTags(7, ["remote"]);
+
+        expect(result.ok).toBe(true);
+        expect(tagCalls).toBe(2);
+        expect(globalThis.sessionStorage.getItem("__mjr_write_token")).toBeNull();
     });
 });
