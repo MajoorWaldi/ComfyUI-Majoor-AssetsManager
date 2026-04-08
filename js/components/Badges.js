@@ -420,6 +420,27 @@ export function genTimeColor(ms) {
 }
 
 /**
+ * Format generation time for display.
+ * Shows seconds (e.g. "45.2s") when < 60s, minutes (e.g. "3.6m") when >= 60s.
+ * Returns { text, title } for badge display.
+ */
+export function formatGenTime(ms) {
+    const totalSecs = ms / 1000;
+    if (totalSecs >= 60) {
+        const mins = (totalSecs / 60).toFixed(1);
+        return {
+            text: `${mins}m`,
+            title: `Generation time: ${mins} minutes (${totalSecs.toFixed(1)}s)`,
+        };
+    }
+    const secs = totalSecs.toFixed(1);
+    return {
+        text: `${secs}s`,
+        title: `Generation time: ${secs} seconds`,
+    };
+}
+
+/**
  * Normalize generation time into milliseconds.
  * Accepts plain numbers, numeric strings, and unit-suffixed strings like "8.2s" or "8200ms".
  * Returns 0 when invalid, non-positive, or outside sanity bounds.
@@ -461,9 +482,9 @@ export function createGenTimeBadge(genTimeMs) {
 
     const badge = document.createElement("div");
     badge.className = "mjr-gentime-badge";
-    const secs = (ms / 1000).toFixed(1);
-    badge.textContent = `${secs}s`;
-    badge.title = `Generation time: ${secs} seconds`;
+    const fmt = formatGenTime(ms);
+    badge.textContent = fmt.text;
+    badge.title = fmt.title;
     badge.style.cssText = `
         position: absolute;
         bottom: 6px;

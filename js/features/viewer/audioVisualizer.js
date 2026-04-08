@@ -137,7 +137,7 @@ function _createMinimalWebGLDrawer(canvas, { pseudo3d = false } = {}) {
     try {
         gl = canvas.getContext("webgl", {
             antialias: true,
-            alpha: false,
+            alpha: true,
             preserveDrawingBuffer: true,
         });
     } catch {
@@ -232,7 +232,7 @@ void main() {
         draw(freqData, _timeData, tsMs = 0) {
             try {
                 gl.viewport(0, 0, canvas.width || 1, canvas.height || 1);
-                gl.clearColor(0, 0, 0, 1);
+                gl.clearColor(0, 0, 0, 0);
                 gl.clear(gl.COLOR_BUFFER_BIT);
 
                 const n = Math.max(48, Math.min(180, Math.floor((canvas.width || 640) / 7)));
@@ -310,7 +310,7 @@ export function createAudioVisualizer({ canvas, audioEl, mode: modeOverride } = 
     let lastAt = 0;
     const targetFps = clamp(APP_CONFIG?.VIEWER_AUDIO_VIS_FPS ?? 24, 8, 60);
     const minDt = 1000 / targetFps;
-    const _mode = resolveMode(modeOverride);
+    let currentMode = resolveMode(modeOverride);
 
     const resize = () => {
         try {
@@ -322,6 +322,38 @@ export function createAudioVisualizer({ canvas, audioEl, mode: modeOverride } = 
         } catch (e) {
             console.debug?.(e);
         }
+    };
+
+    const rebuildDrawer = (nextMode = currentMode) => {
+        currentMode = resolveMode(nextMode);
+        try {
+            drawer?.destroy?.();
+        } catch (e) {
+            console.debug?.(e);
+        }
+        drawer = null;
+        try {
+            resize();
+        } catch (e) {
+            console.debug?.(e);
+        }
+        try {
+            const preferWebGL =
+                currentMode === "artistic" && !Boolean(APP_CONFIG?.VIEWER_DISABLE_WEBGL_AUDIO);
+            if (preferWebGL) drawer = _createMinimalWebGLDrawer(canvas, { pseudo3d: true });
+        } catch (e) {
+            console.debug?.(e);
+        }
+        if (!drawer) {
+            try {
+                drawer = createMinimal2DDrawer(canvas);
+            } catch (e) {
+                console.debug?.(e);
+                drawer = null;
+            }
+        }
+        lastAt = 0;
+        return currentMode;
     };
 
     const init = () => {
@@ -338,9 +370,7 @@ export function createAudioVisualizer({ canvas, audioEl, mode: modeOverride } = 
             analyser.connect(audioCtx.destination);
             freqData = new Uint8Array(analyser.frequencyBinCount);
             timeData = new Uint8Array(analyser.fftSize);
-
-            // Unified minimalist renderer for all modes.
-            drawer = createMinimal2DDrawer(canvas);
+            if (!drawer) rebuildDrawer(currentMode);
         } catch {
             analyser = null;
         }
@@ -402,6 +432,7 @@ export function createAudioVisualizer({ canvas, audioEl, mode: modeOverride } = 
 
     try {
         resize();
+        rebuildDrawer(currentMode);
     } catch (e) {
         console.debug?.(e);
     }
@@ -415,6 +446,10 @@ export function createAudioVisualizer({ canvas, audioEl, mode: modeOverride } = 
     }
 
     return {
+        setMode(nextMode) {
+            if (disposed) return currentMode;
+            return rebuildDrawer(nextMode);
+        },
         destroy() {
             if (disposed) return;
             disposed = true;

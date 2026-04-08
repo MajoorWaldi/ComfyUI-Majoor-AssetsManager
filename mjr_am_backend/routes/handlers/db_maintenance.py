@@ -728,6 +728,115 @@ async def _cleanup_assets_case_duplicates(db) -> Result[dict[str, int]]:
         return Result.Err("DB_ERROR", safe_error_message(exc, "Failed to cleanup case duplicates"))
 
 
+def _extract_filename_prefix(filename: str) -> str:
+    """
+    Extract the base prefix of a filename for sibling grouping.
+    
+    Examples:
+      - "ltx-23_audio_00001.png" -> "ltx-23_audio_00001"
+      - "ltx-23_audio_00001-audio.mp4" -> "ltx-23_audio_00001"
+      - "ltx-23_audio_00001_audio.mp4" -> "ltx-23_audio_00001"
+      - "ComfyUI_00123.png" -> "comfyui_00123"
+    """
+    import re
+    name = str(filename or "").strip()
+    # Remove extension
+    stem = name.rsplit(".", 1)[0] if "." in name else name
+    # Remove common suffixes like -audio, _audio, -merged, _merged, -final, _final
+    stem_lower = stem.lower()
+    for suffix in ["-audio", "_audio", "-merged", "_merged", "-final", "_final", "-video", "_video"]:
+        if stem_lower.endswith(suffix):
+            stem_lower = stem_lower[:-len(suffix)]
+            break
+    return stem_lower
+
+
+async def _backfill_job_ids_by_prefix(db) -> Result[dict[str, int]]:
+    """
+    Backfill missing job_ids by propagating from sibling files with same prefix.
+    
+    Groups files by (subfolder, source, root_id, filename_prefix) and propagates
+    job_id from files that have one to files that don't.
+    """
+    try:
+        # Get all assets with their job_id status
+        rows_res = await db.aquery(
+            """
+            SELECT id, filename, subfolder, source, root_id, job_id
+            FROM assets
+            WHERE filename IS NOT NULL AND filename != ''
+            ORDER BY subfolder, source, root_id, filename
+            """
+        )
+        if not rows_res.ok:
+            return Result.Err("DB_ERROR", rows_res.error or "Failed to scan assets")
+        rows = rows_res.data or []
+        if not rows:
+            return Result.Ok({"groups": 0, "updated": 0, "skipped": 0})
+
+        # Group by (subfolder, source, root_id, prefix)
+        groups: dict[tuple[str, str, str, str], list[dict]] = {}
+        for row in rows:
+            prefix = _extract_filename_prefix(row.get("filename") or "")
+            if not prefix:
+                continue
+            key = (
+                str(row.get("subfolder") or "").strip().lower(),
+                str(row.get("source") or "output").strip().lower(),
+                str(row.get("root_id") or "").strip().lower(),
+                prefix,
+            )
+            groups.setdefault(key, []).append(row)
+
+        # For each group, find the job_id and propagate to others
+        updated_count = 0
+        skipped_count = 0
+        groups_with_updates = 0
+        
+        for key, group_rows in groups.items():
+            if len(group_rows) < 2:
+                continue  # Need at least 2 files to propagate
+                
+            # Find the job_id in this group (take first non-null)
+            group_job_id = None
+            for row in group_rows:
+                job = str(row.get("job_id") or "").strip()
+                if job:
+                    group_job_id = job
+                    break
+            
+            if not group_job_id:
+                skipped_count += len(group_rows)
+                continue  # No job_id in this group
+            
+            # Propagate to rows without job_id
+            group_updated = False
+            for row in group_rows:
+                if str(row.get("job_id") or "").strip():
+                    continue  # Already has job_id
+                asset_id = int(row.get("id") or 0)
+                if not asset_id:
+                    continue
+                update_res = await db.aexecute(
+                    "UPDATE assets SET job_id = ? WHERE id = ? AND (job_id IS NULL OR job_id = '')",
+                    (group_job_id, asset_id),
+                )
+                if update_res.ok:
+                    updated_count += 1
+                    group_updated = True
+            
+            if group_updated:
+                groups_with_updates += 1
+
+        return Result.Ok({
+            "groups": groups_with_updates,
+            "updated": updated_count,
+            "skipped": skipped_count,
+        })
+    except Exception as exc:
+        return Result.Err("DB_ERROR", safe_error_message(exc, "Failed to backfill job_ids"))
+
+
 def _build_backfill_scope_clause(normalized_scope: str, normalized_custom_root: str) -> tuple[str, list[Any]]:
     """Build the SQL WHERE fragment and params for backfill scope filtering."""
     where: list[str] = []
@@ -1497,6 +1606,82 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
                 request,
                 "db_cleanup_case_duplicates",
                 "db:cleanup_case_duplicates",
+                result,
+            )
+            return _json_response(result)
+        finally:
+            try:
+                await _restart_watcher_if_needed(svc if isinstance(svc, dict) else None, watcher_was_running)
+            except Exception:
+                pass
+            set_db_maintenance_active(False)
+
+    @routes.post("/mjr/am/db/backfill-job-ids-by-prefix")
+    async def db_backfill_job_ids_by_prefix(request: web.Request):
+        """
+        Backfill missing job_ids by propagating from sibling files with same prefix.
+        
+        For example, if ltx-23_audio_00001-audio.mp4 has a job_id but 
+        ltx-23_audio_00001.mp4 and ltx-23_audio_00001.png don't, this will
+        propagate the job_id to all files with the same prefix.
+        """
+        csrf = _csrf_error(request)
+        if csrf:
+            return _json_response(Result.Err("CSRF", csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
+
+        svc, error_result = await _require_services()
+        if error_result:
+            return _json_response(error_result)
+        db = svc.get("db") if isinstance(svc, dict) else None
+        if not db:
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Database service unavailable"))
+
+        set_db_maintenance_active(True)
+        watcher_was_running = False
+        try:
+            watcher_was_running = await _stop_watcher_if_running(svc if isinstance(svc, dict) else None)
+
+            async with db.atransaction(mode="immediate") as tx:
+                if not tx.ok:
+                    return _json_response(Result.Err("DB_ERROR", tx.error or "Failed to begin transaction"))
+                backfill_res = await _backfill_job_ids_by_prefix(db)
+                if not backfill_res.ok:
+                    return _json_response(backfill_res)
+
+            if not tx.ok:
+                return _json_response(Result.Err("DB_ERROR", tx.error or "Commit failed"))
+
+            # Trigger stack finalization for updated assets
+            try:
+                from mjr_am_backend.features.index.stacking import finalize_stack_for_job_id
+                index_svc = svc.get("index") if isinstance(svc, dict) else None
+                if index_svc and hasattr(index_svc, "scanner") and backfill_res.data:
+                    # Re-stack affected assets
+                    pass  # Stacking will be handled on next list
+            except Exception:
+                pass
+
+            payload = {"ran": True, **(backfill_res.data or {})}
+            result = Result.Ok(payload)
+            await _audit_db_maintenance_write(
+                svc if isinstance(svc, dict) else {},
+                request,
+                "db_backfill_job_ids_by_prefix",
+                "db:backfill_job_ids_by_prefix",
+                result,
+                updated=int((backfill_res.data or {}).get("updated") or 0),
+            )
+            return _json_response(result)
+        except Exception as exc:
+            result = Result.Err("DB_ERROR", safe_error_message(exc, "Backfill job_ids failed"))
+            await _audit_db_maintenance_write(
+                svc if isinstance(svc, dict) else {},
+                request,
+                "db_backfill_job_ids_by_prefix",
+                "db:backfill_job_ids_by_prefix",
                 result,
             )
             return _json_response(result)

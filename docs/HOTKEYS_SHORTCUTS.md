@@ -92,15 +92,16 @@ These shortcuts apply when the **Standard Viewer** overlay is open (double-click
 | **Click+Drag** | Pan Image | When zoomed in |
 
 ### Tools & Analysis
-| Shortcut | Action |
-|----------|--------|
-| **I** | Toggle Pixel Probe |
-| **C** | Copy Probed Color (Hex) |
-| **L** | Toggle Loupe |
-| **Z** | Toggle Zebra (Exposure) |
-| **G** | Cycle Grid Overlays |
-| **Alt+1** | Toggle 1:1 Pixel View |
-| **+** / **-** | Zoom In / Out |
+| Shortcut | Action | Notes |
+|----------|--------|-------|
+| **I** | Set In Point (video) / Toggle Pixel Probe (image) | Context-sensitive |
+| **O** | Set Out Point | Video only |
+| **C** | Copy Probed Color (Hex) | |
+| **L** | Toggle Loupe | |
+| **Z** | Toggle Zebra (Exposure) | |
+| **G** | Cycle Grid Overlays | |
+| **Alt+1** | Toggle 1:1 Pixel View | |
+| **+** / **-** | Zoom In / Out | |
 
 ### Enhancement Tools
 | Shortcut | Action |
@@ -183,43 +184,37 @@ These shortcuts apply when the **Majoor Floating Viewer** panel is open.
 
 ## Video Playback Hotkeys
 
-These shortcuts apply when playing video content in either viewer.
+These shortcuts apply when playing video content in the viewer.
 
 ### Playback Control
 | Shortcut | Action |
 |----------|--------|
 | **Space** | Play/Pause |
-| **K** | Play/Pause (alternative) |
-| **J** | Rewind (2x speed backward) |
-| **L** | Fast Forward (2x speed forward) |
-| **Shift+Space** | Play at 0.5x speed |
+| **Click on video** | Play/Pause |
 
 ### Frame Navigation
-| Shortcut | Action |
-|----------|--------|
-| **Left Arrow** | Previous Frame |
-| **Right Arrow** | Next Frame |
-| **Shift+Left** | Jump Back 10 frames |
-| **Shift+Right** | Jump Forward 10 frames |
-| **Home** | Go to Start |
-| **End** | Go to End |
+| Shortcut | Action | Notes |
+|----------|--------|-------|
+| **Left Arrow** | Previous Frame | When player bar is focused |
+| **Right Arrow** | Next Frame | When player bar is focused |
+| **Home** | Go to In Point | |
+| **End** | Go to Out Point | |
 
-### Timeline
+### In/Out Points (Edit Marks)
 | Shortcut | Action |
 |----------|--------|
-| **[** | Set In Point |
-| **]** | Set Out Point |
-| **Shift+[** | Clear In Point |
-| **Shift+]** | Clear Out Point |
-| **Shift+\\** | Clear All Points |
+| **I** | Set In Point at current frame |
+| **O** | Set Out Point at current frame |
 
 ### Speed Control
 | Shortcut | Action |
 |----------|--------|
-| **1** | Normal Speed (1x) |
-| **2** | Double Speed (2x) |
-| **0.5** | Half Speed (0.5x) |
-| **Shift+1** | Reset Speed to Normal |
+| **[** | Decrease Playback Speed (-0.25x) |
+| **]** | Increase Playback Speed (+0.25x) |
+| **\\** | Reset Speed to Normal (1x) |
+
+### Audio
+Video audio is automatically unmuted after first user interaction (play, seek, or frame step).
 
 ---
 

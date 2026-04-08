@@ -239,6 +239,32 @@ function createViewer() {
         }
     }
 
+    function updateVisibleAudioVisualizerMode() {
+        let updated = false;
+        try {
+            const activeRoot =
+                state.mode === VIEWER_MODES.AB_COMPARE
+                    ? abView
+                    : state.mode === VIEWER_MODES.SIDE_BY_SIDE
+                      ? sideView
+                      : singleView;
+            const canvases = Array.from(activeRoot?.querySelectorAll?.(".mjr-viewer-audio-viz") || []);
+            for (const canvas of canvases) {
+                try {
+                    const proc = canvas?._mjrProc || null;
+                    if (!proc?.setMode) continue;
+                    proc.setMode(state.audioVisualizerMode);
+                    updated = true;
+                } catch (e) {
+                    console.debug?.(e);
+                }
+            }
+        } catch (e) {
+            console.debug?.(e);
+        }
+        return updated;
+    }
+
     let toolbar = null;
     // Late-bound close handler: default to "soft close" until API exists, then upgrade close button to full dispose.
     let _requestCloseFromButton = () => closeViewer();
@@ -406,8 +432,10 @@ function createViewer() {
                 try {
                     const current = state.assets[state.currentIndex];
                     if (String(current?.kind || "") !== "audio") return;
-                    renderAsset();
-                    syncPlayerBar();
+                    if (!updateVisibleAudioVisualizerMode()) {
+                        renderAsset();
+                        syncPlayerBar();
+                    }
                 } catch (e) {
                     console.debug?.(e);
                 }
@@ -2151,17 +2179,21 @@ function createViewer() {
             console.debug?.(e);
         }
 
-        if (e.shiftKey) {
-            const delta = Number(e.deltaY) || 0;
-            if (delta) {
-                const direction = delta > 0 ? 1 : -1;
-                if (navigateViewerAssets(direction)) {
-                    return;
-                }
-            }
+        // Shift+wheel or horizontal scroll (trackpad) = navigate assets
+        const dx = Number(e.deltaX) || 0;
+        const dy = Number(e.deltaY) || 0;
+        
+        if (e.shiftKey && dy) {
+            const direction = dy > 0 ? 1 : -1;
+            if (navigateViewerAssets(direction)) return;
+        }
+        
+        // Horizontal scroll (trackpad swipe) navigates between assets
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30) {
+            const direction = dx > 0 ? 1 : -1;
+            if (navigateViewerAssets(direction)) return;
         }
 
-        const dy = Number(e.deltaY) || 0;
         if (!dy) return;
 
         // Smooth scaling: wheel down -> zoom out, wheel up -> zoom in.
@@ -2319,6 +2351,60 @@ function createViewer() {
         try {
             _openUnsubs.push(
                 safeAddListener(content, "wheel", onWheelZoom, { passive: false, capture: true }),
+            );
+        } catch (e) {
+            console.debug?.(e);
+        }
+        // Touch swipe navigation (swipe left/right to navigate assets)
+        try {
+            let _touchStart = null;
+            const SWIPE_THRESHOLD = 60; // minimum px to trigger swipe
+            const SWIPE_MAX_VERTICAL = 80; // ignore if too much vertical movement
+
+            _openUnsubs.push(
+                safeAddListener(content, "touchstart", (e) => {
+                    try {
+                        if (e.touches?.length !== 1) return;
+                        const t = e.touches[0];
+                        _touchStart = { x: t.clientX, y: t.clientY, t: Date.now() };
+                    } catch (ex) {
+                        console.debug?.(ex);
+                    }
+                }, { passive: true }),
+            );
+
+            _openUnsubs.push(
+                safeAddListener(content, "touchend", (e) => {
+                    try {
+                        if (!_touchStart) return;
+                        if (e.changedTouches?.length !== 1) {
+                            _touchStart = null;
+                            return;
+                        }
+                        const t = e.changedTouches[0];
+                        const dx = t.clientX - _touchStart.x;
+                        const dy = t.clientY - _touchStart.y;
+                        const elapsed = Date.now() - _touchStart.t;
+                        _touchStart = null;
+                        
+                        // Ignore if too slow (>600ms) or too much vertical movement
+                        if (elapsed > 600 || Math.abs(dy) > SWIPE_MAX_VERTICAL) return;
+                        
+                        // Check swipe direction
+                        if (Math.abs(dx) >= SWIPE_THRESHOLD) {
+                            const direction = dx < 0 ? 1 : -1; // swipe left = next
+                            navigateViewerAssets(direction);
+                        }
+                    } catch (ex) {
+                        console.debug?.(ex);
+                    }
+                }, { passive: true }),
+            );
+
+            _openUnsubs.push(
+                safeAddListener(content, "touchcancel", () => {
+                    _touchStart = null;
+                }, { passive: true }),
             );
         } catch (e) {
             console.debug?.(e);

@@ -1024,8 +1024,19 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
         );
     } catch (e) { console.debug?.(e); }
 
-    const initialLoadPromise = didHydrateFromSnapshot
-        ? Promise.resolve({ ok: true, hydrated: true })
+    let hasExistingGridCards = false;
+    try {
+        hasExistingGridCards = !!gridContainer?.querySelector?.(".mjr-asset-card");
+    } catch (e) {
+        console.debug?.(e);
+    }
+
+    const initialLoadPromise = didHydrateFromSnapshot || hasExistingGridCards
+        ? Promise.resolve({
+              ok: true,
+              hydrated: !!didHydrateFromSnapshot,
+              cached: !!hasExistingGridCards,
+          })
         : gridController.reloadGrid();
 
     try { await refreshDuplicateAlerts(); } catch (e) { console.debug?.(e); }

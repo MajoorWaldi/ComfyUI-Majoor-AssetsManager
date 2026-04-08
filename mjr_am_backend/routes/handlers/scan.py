@@ -802,17 +802,79 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
             stem_lower = _filename_stem_lower(filename)
             if not stem_lower:
                 return []
+            sf = str(subfolder or "").strip().lower()
+            src = str(source or "output").strip().lower()
+            rid = str(root_id or "").strip().lower()
+            # Direct siblings (same stem, different extension)
+            keys = [
+                (f"{stem_lower}.mp4", sf, src, rid),
+                (f"{stem_lower}.webm", sf, src, rid),
+                (f"{stem_lower}.mov", sf, src, rid),
+                (f"{stem_lower}.avi", sf, src, rid),
+                (f"{stem_lower}.mkv", sf, src, rid),
+                (f"{stem_lower}.mp3", sf, src, rid),
+                (f"{stem_lower}.wav", sf, src, rid),
+                (f"{stem_lower}.ogg", sf, src, rid),
+                (f"{stem_lower}.flac", sf, src, rid),
+                (stem_lower, sf, src, rid),
+            ]
+            # Also check for suffixed variants like stem-audio.mp4
+            suffixes = ["-audio", "_audio", "-merged", "_merged", "-final", "_final"]
+            for suffix in suffixes:
+                keys.extend([
+                    (f"{stem_lower}{suffix}.mp4", sf, src, rid),
+                    (f"{stem_lower}{suffix}.webm", sf, src, rid),
+                    (f"{stem_lower}{suffix}.mov", sf, src, rid),
+                    (f"{stem_lower}{suffix}.mp3", sf, src, rid),
+                    (f"{stem_lower}{suffix}.wav", sf, src, rid),
+                ])
+            return keys
+
+        def _extract_base_stem(filename: Any) -> str:
+            """Extract base stem without common suffixes like -audio."""
+            name = str(filename or "").strip()
+            stem = name.rsplit(".", 1)[0] if "." in name else name
+            stem_lower = stem.lower()
+            for suffix in ["-audio", "_audio", "-merged", "_merged", "-final", "_final", "-video", "_video"]:
+                if stem_lower.endswith(suffix):
+                    return stem_lower[:-len(suffix)]
+            return stem_lower
+
+        def _video_sibling_lookup_keys(
+            filename: Any,
+            subfolder: Any = "",
+            source: Any = "output",
+            root_id: Any = "",
+        ) -> list[tuple[str, str, str, str]]:
+            """For video files with suffix (e.g. -audio.mp4), find siblings without suffix."""
+            ext_upper = _filename_ext_upper(filename)
+            video_exts = {"MP4", "WEBM", "MOV", "AVI", "MKV", "MP3", "WAV", "OGG", "FLAC"}
+            if ext_upper not in video_exts:
+                return []
+            stem_lower = _filename_stem_lower(filename)
+            if not stem_lower:
+                return []
+            # Check if this file has a known suffix
+            base_stem = None
+            for suffix in ["-audio", "_audio", "-merged", "_merged", "-final", "_final", "-video", "_video"]:
+                if stem_lower.endswith(suffix):
+                    base_stem = stem_lower[:-len(suffix)]
+                    break
+            if not base_stem:
+                return []  # No suffix found, nothing to propagate
+            sf = str(subfolder or "").strip().lower()
+            src = str(source or "output").strip().lower()
+            rid = str(root_id or "").strip().lower()
             return [
-                (f"{stem_lower}.mp4", str(subfolder or "").strip().lower(), str(source or "output").strip().lower(), str(root_id or "").strip().lower()),
-                (f"{stem_lower}.webm", str(subfolder or "").strip().lower(), str(source or "output").strip().lower(), str(root_id or "").strip().lower()),
-                (f"{stem_lower}.mov", str(subfolder or "").strip().lower(), str(source or "output").strip().lower(), str(root_id or "").strip().lower()),
-                (f"{stem_lower}.avi", str(subfolder or "").strip().lower(), str(source or "output").strip().lower(), str(root_id or "").strip().lower()),
-                (f"{stem_lower}.mkv", str(subfolder or "").strip().lower(), str(source or "output").strip().lower(), str(root_id or "").strip().lower()),
-                (f"{stem_lower}.mp3", str(subfolder or "").strip().lower(), str(source or "output").strip().lower(), str(root_id or "").strip().lower()),
-                (f"{stem_lower}.wav", str(subfolder or "").strip().lower(), str(source or "output").strip().lower(), str(root_id or "").strip().lower()),
-                (f"{stem_lower}.ogg", str(subfolder or "").strip().lower(), str(source or "output").strip().lower(), str(root_id or "").strip().lower()),
-                (f"{stem_lower}.flac", str(subfolder or "").strip().lower(), str(source or "output").strip().lower(), str(root_id or "").strip().lower()),
-                (stem_lower, str(subfolder or "").strip().lower(), str(source or "output").strip().lower(), str(root_id or "").strip().lower()),
+                (f"{base_stem}.mp4", sf, src, rid),
+                (f"{base_stem}.webm", sf, src, rid),
+                (f"{base_stem}.mov", sf, src, rid),
+                (f"{base_stem}.avi", sf, src, rid),
+                (f"{base_stem}.mkv", sf, src, rid),
+                (f"{base_stem}.png", sf, src, rid),
+                (f"{base_stem}.jpg", sf, src, rid),
+                (f"{base_stem}.jpeg", sf, src, rid),
+                (f"{base_stem}.webp", sf, src, rid),
             ]
 
         gen_time_lookup: dict[tuple[str, str, str, str], int] = {}
@@ -1007,6 +1069,7 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                                 ),
                                 row_job_id,
                             )
+                        # Propagate job_id to PNG files from their video siblings
                         for row in sibling_rows:
                             filename_value = row.get("filename") or ""
                             if _filename_ext_upper(filename_value) != "PNG":
@@ -1044,6 +1107,46 @@ def register_scan_routes(routes: web.RouteTableDef) -> None:
                                 (row_job_id, asset_id),
                             )
                             restack_job_ids.add(row_job_id)
+                        
+                        # Propagate job_id to base video/audio files from suffixed siblings (e.g. -audio.mp4)
+                        for row in sibling_rows:
+                            filename_value = row.get("filename") or ""
+                            ext_upper = _filename_ext_upper(filename_value)
+                            if ext_upper not in {"MP4", "WEBM", "MOV", "AVI", "MKV", "PNG", "JPG", "JPEG", "WEBP"}:
+                                continue
+                            if str(row.get("job_id") or "").strip():
+                                continue
+                            # Check if there's a sibling with suffix that has job_id
+                            base_stem = _extract_base_stem(filename_value)
+                            stem_lower = _filename_stem_lower(filename_value)
+                            if base_stem == stem_lower:
+                                # This file doesn't have a suffix, look for suffixed siblings
+                                sf = str(row.get("subfolder") or "").strip().lower()
+                                src = str(row.get("source") or "output").strip().lower()
+                                rid = str(row.get("root_id") or "").strip().lower()
+                                suffixes = ["-audio", "_audio", "-merged", "_merged", "-final", "_final"]
+                                sibling_job = None
+                                for suffix in suffixes:
+                                    for ext in [".mp4", ".webm", ".mov", ".mp3", ".wav"]:
+                                        candidate_key = (f"{stem_lower}{suffix}{ext}", sf, src, rid)
+                                        sibling_job = sibling_job_lookup.get(candidate_key)
+                                        if sibling_job:
+                                            break
+                                    if sibling_job:
+                                        break
+                                if not sibling_job:
+                                    continue
+                                asset_id = int(row.get("id") or 0)
+                                if not asset_id:
+                                    continue
+                                existing_job_id = row.get("job_id")
+                                if _job_ids_conflict(existing_job_id, sibling_job):
+                                    continue
+                                await db_adapter.aexecute(
+                                    "UPDATE assets SET job_id = ? WHERE id = ?",
+                                    (sibling_job, asset_id),
+                                )
+                                restack_job_ids.add(sibling_job)
                     except Exception as ex:
                         logger.debug("Failed to assign prompt/job correlation: %s", ex)
 

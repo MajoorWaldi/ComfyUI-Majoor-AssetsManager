@@ -233,6 +233,191 @@ describe("useGridLoader adaptive paging", () => {
         expect(state2.done).toBe(false);
     });
 
+    it("can replace existing assets from a cached snapshot during a scope switch", async () => {
+        appendAssetsMock.mockImplementation((_grid, assets, state) => {
+            state.assets = Array.isArray(assets) ? assets.map((asset) => ({ ...asset })) : [];
+            return state.assets.length;
+        });
+
+        let module = await import("../vue/composables/useGridLoader.js");
+        const gridContainer = createVisibleElement({
+            dataset: {
+                mjrScope: "output",
+                mjrQuery: "*",
+                mjrSort: "mtime_desc",
+            },
+        });
+        const scrollElement = createVisibleElement();
+        const snapshotSeedState = {
+            loading: false,
+            done: false,
+            total: 2,
+            offset: 2,
+            requestId: 1,
+            abortController: null,
+            query: "*",
+            assets: [
+                { id: 1, filename: "out-one.png", kind: "image", source: "output" },
+                { id: 2, filename: "out-two.png", kind: "image", source: "output" },
+            ],
+            activeId: "",
+            statusMessage: "",
+            statusError: false,
+        };
+
+        const seedLoader = module.useGridLoader({
+            gridContainerRef: { value: gridContainer },
+            state: snapshotSeedState,
+            setLoadingMessage: vi.fn(),
+            clearLoadingMessage: vi.fn(),
+            setStatusMessage: vi.fn(),
+            clearStatusMessage: vi.fn(),
+            resetAssets: vi.fn(),
+            setSelection: vi.fn(),
+            reconcileSelection: vi.fn(),
+            readScrollElement: () => scrollElement,
+            readRenderedCards: () => [],
+            scrollToAssetId: vi.fn(),
+        });
+        seedLoader.dispose();
+
+        vi.resetModules();
+        module = await import("../vue/composables/useGridLoader.js");
+        appendAssetsMock.mockImplementation((_grid, assets, state) => {
+            state.assets = Array.isArray(assets) ? assets.map((asset) => ({ ...asset })) : [];
+            return state.assets.length;
+        });
+
+        const inputGridContainer = createVisibleElement({
+            dataset: {
+                mjrScope: "output",
+                mjrQuery: "*",
+                mjrSort: "mtime_desc",
+            },
+        });
+        const state = {
+            loading: false,
+            done: false,
+            total: 1,
+            offset: 1,
+            requestId: 1,
+            abortController: null,
+            query: "*",
+            assets: [{ id: 9, filename: "input-one.png", kind: "image", source: "input" }],
+            activeId: "",
+            statusMessage: "",
+            statusError: false,
+        };
+        const resetAssets = vi.fn(({ query = "*", total = null, done = false } = {}) => {
+            state.query = query;
+            state.total = total;
+            state.done = done;
+            state.offset = 0;
+            state.assets = [];
+        });
+        const loader = module.useGridLoader({
+            gridContainerRef: { value: inputGridContainer },
+            state,
+            setLoadingMessage: vi.fn(),
+            clearLoadingMessage: vi.fn(),
+            setStatusMessage: vi.fn(),
+            clearStatusMessage: vi.fn(),
+            resetAssets,
+            setSelection: vi.fn(),
+            reconcileSelection: vi.fn(),
+            readScrollElement: () => scrollElement,
+            readRenderedCards: () => [],
+            scrollToAssetId: vi.fn(),
+        });
+
+        const restored = await loader.hydrateFromSnapshot(
+            { scope: "output", query: "*", sort: "mtime_desc" },
+            { allowReplaceExisting: true },
+        );
+
+        expect(restored).toBe(true);
+        expect(state.assets.map((asset) => asset.filename)).toEqual(["out-one.png", "out-two.png"]);
+    });
+
+    it("defers the scope-switch visual reset until the first new page arrives", async () => {
+        const { useGridLoader } = await import("../vue/composables/useGridLoader.js");
+
+        let resolvePage;
+        fetchGridPageMock.mockImplementation(
+            () =>
+                new Promise((resolve) => {
+                    resolvePage = resolve;
+                }),
+        );
+        appendAssetsMock.mockImplementation((_grid, assets, state) => {
+            state.assets = Array.isArray(assets) ? assets.map((asset) => ({ ...asset })) : [];
+            return state.assets.length;
+        });
+
+        const state = {
+            loading: false,
+            done: false,
+            total: 1,
+            offset: 1,
+            requestId: 1,
+            abortController: null,
+            query: "*",
+            assets: [{ id: "input-1", filename: "input-one.png", kind: "image", source: "input" }],
+            activeId: "",
+            statusMessage: "",
+            statusError: false,
+        };
+        const gridContainer = createVisibleElement({
+            dataset: {
+                mjrScope: "output",
+                mjrQuery: "*",
+                mjrSort: "mtime_desc",
+            },
+        });
+        const scrollElement = createVisibleElement();
+        const resetAssets = vi.fn(({ query = "*", total = null, done = false } = {}) => {
+            state.query = query;
+            state.total = total;
+            state.done = done;
+            state.offset = 0;
+            state.assets = [];
+        });
+
+        const loader = useGridLoader({
+            gridContainerRef: { value: gridContainer },
+            state,
+            setLoadingMessage: vi.fn(),
+            clearLoadingMessage: vi.fn(),
+            setStatusMessage: vi.fn(),
+            clearStatusMessage: vi.fn(),
+            resetAssets,
+            setSelection: vi.fn(),
+            reconcileSelection: vi.fn(),
+            readScrollElement: () => scrollElement,
+            readRenderedCards: () => [],
+            scrollToAssetId: vi.fn(),
+        });
+
+        loader.prepareGridForScopeSwitch();
+        const pendingLoad = loader.loadAssets("*", { reset: true });
+
+        expect(resetAssets).not.toHaveBeenCalled();
+        expect(state.assets.map((asset) => asset.filename)).toEqual(["input-one.png"]);
+
+        resolvePage({
+            ok: true,
+            assets: [{ id: "output-1", filename: "output-one.png", kind: "image", source: "output" }],
+            total: 1,
+            count: 1,
+            limit: 100,
+            offset: 0,
+        });
+        await pendingLoad;
+
+        expect(resetAssets).toHaveBeenCalledTimes(1);
+        expect(state.assets.map((asset) => asset.filename)).toEqual(["output-one.png"]);
+    });
+
     it("skips next-page loading while the grid host is hidden", async () => {
         const { useGridLoader } = await import("../vue/composables/useGridLoader.js");
 

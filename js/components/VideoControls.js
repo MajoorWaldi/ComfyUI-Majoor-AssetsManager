@@ -267,7 +267,9 @@ function _mountPreviewControls(video, hostEl) {
 export function mountVideoControls(video, opts = {}) {
     try {
         const variant = _resolveVideoControlsVariant(opts);
-        const advanced = variant !== "preview";
+        const mediaKind = String(opts?.mediaKind || "video").toLowerCase();
+        const isAudioMedia = mediaKind === "audio";
+        const advanced = variant !== "preview" && !isAudioMedia;
         // Volume slider is toggled from the sound icon to keep the bar compact.
         const showVolumeSlider = true;
         const initialFps = _resolveInitialFps(opts);
@@ -299,7 +301,12 @@ export function mountVideoControls(video, opts = {}) {
         const controls = document.createElement("div");
         controls.className = `mjr-video-controls mjr-video-controls--${variant}`;
         controls.setAttribute("role", "group");
-        controls.setAttribute("aria-label", t("video.controls", "Video controls"));
+        controls.setAttribute(
+            "aria-label",
+            isAudioMedia
+                ? t("video.audioControls", "Audio controls")
+                : t("video.controls", "Video controls"),
+        );
 
         const rowTop = document.createElement("div");
         rowTop.className = "mjr-video-row mjr-video-row--top";
@@ -319,7 +326,9 @@ export function mountVideoControls(video, opts = {}) {
         seek.step = "1";
         seek.value = "0";
         seek.setAttribute("aria-label", t("video.seek", "Seek"));
-        seek.title = t("video.seekThrough", "Seek through video");
+        seek.title = isAudioMedia
+            ? t("video.seekThroughAudio", "Seek through audio")
+            : t("video.seekThrough", "Seek through video");
 
         const seekOverlay = document.createElement("div");
         seekOverlay.className = "mjr-video-seek-overlay";
@@ -585,11 +594,15 @@ export function mountVideoControls(video, opts = {}) {
         const bottomRight = document.createElement("div");
         bottomRight.className = "mjr-video-bottom mjr-video-bottom--right";
 
-        transport.appendChild(toInBtn);
-        transport.appendChild(prevFrameBtn);
+        if (!isAudioMedia) {
+            transport.appendChild(toInBtn);
+            transport.appendChild(prevFrameBtn);
+        }
         transport.appendChild(playBtn);
-        transport.appendChild(nextFrameBtn);
-        transport.appendChild(toOutBtn);
+        if (!isAudioMedia) {
+            transport.appendChild(nextFrameBtn);
+            transport.appendChild(toOutBtn);
+        }
 
         if (advanced) bottomLeft.appendChild(leftAdjustGroup);
         if (advanced) bottomRight.appendChild(rightAdjustGroup);
@@ -692,6 +705,24 @@ export function mountVideoControls(video, opts = {}) {
             _seeking: false,
             _ppReverse: false,
             _ppRafId: null,
+            _userInteracted: false,
+        };
+
+        // Auto-unmute once the user interacts with the video controls.
+        // This bypasses autoplay restrictions: most browsers allow unmuted playback after a user gesture.
+        const tryAutoUnmute = () => {
+            if (state._userInteracted) return;
+            state._userInteracted = true;
+            try {
+                // Only unmute if the video is currently muted due to autoplay restrictions
+                // (not if user explicitly muted via the mute button).
+                if (video.muted) {
+                    video.muted = false;
+                    updateVolumeUI?.();
+                }
+            } catch (e) {
+                console.debug?.(e);
+            }
         };
 
         let _stepFlashCancel = null;
@@ -1242,6 +1273,7 @@ export function mountVideoControls(video, opts = {}) {
         };
 
         const stepFrames = (direction) => {
+            tryAutoUnmute();
             try {
                 const inc = Math.max(1, Math.floor(Number(state.step) || 1));
                 const { inF, outF } = getEffectiveInOut();
@@ -1278,6 +1310,7 @@ export function mountVideoControls(video, opts = {}) {
         };
 
         const togglePlay = () => {
+            tryAutoUnmute();
             try {
                 if (state._ppReverse) {
                     // Stop pingpong reverse and pause
@@ -1360,6 +1393,7 @@ export function mountVideoControls(video, opts = {}) {
         unsubs.push(
             safeAddListener(seek, "input", (e) => {
                 stop(e);
+                tryAutoUnmute();
                 try {
                     const d = Number(video?.duration);
                     if (!Number.isFinite(d) || d <= 0) return;
@@ -1962,6 +1996,54 @@ export function mountVideoControls(video, opts = {}) {
             stepFrames: (direction) => {
                 try {
                     stepFrames(direction);
+                    return true;
+                } catch {
+                    return false;
+                }
+            },
+            setInPoint: () => {
+                if (!advanced) return false;
+                try {
+                    state.inFrame = currentFrame();
+                    normalizeRange();
+                    updateTimeUI();
+                    updateSeekRangeStyle();
+                    applyRangeChange({ prefer: "in" });
+                    return true;
+                } catch {
+                    return false;
+                }
+            },
+            setOutPoint: () => {
+                if (!advanced) return false;
+                try {
+                    state.outFrame = currentFrame();
+                    normalizeRange();
+                    updateTimeUI();
+                    updateSeekRangeStyle();
+                    applyRangeChange({ prefer: "out" });
+                    return true;
+                } catch {
+                    return false;
+                }
+            },
+            goToIn: () => {
+                if (!advanced) return false;
+                try {
+                    const { inF } = getEffectiveInOut();
+                    goToFrame(inF);
+                    flashFrameStep();
+                    return true;
+                } catch {
+                    return false;
+                }
+            },
+            goToOut: () => {
+                if (!advanced) return false;
+                try {
+                    const { outF } = getEffectiveInOut();
+                    goToFrame(outF);
+                    flashFrameStep();
                     return true;
                 } catch {
                     return false;

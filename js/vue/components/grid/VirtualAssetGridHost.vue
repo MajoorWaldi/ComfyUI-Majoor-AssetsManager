@@ -7,6 +7,7 @@ import { ensureStackGroupCard, ensureDupStackCard } from "../../../features/grid
 import { setSelectedIdsDataset } from "../../../features/grid/GridSelectionManager.js";
 import { applyGridSettingsClasses, configureGridContainer } from "../../../features/grid/gridApi.js";
 import { bindAssetDragStart } from "../../../features/dnd/DragDrop.js";
+import { preserveRepresentativeGenerationTime, selectStackRepresentative } from "../../../features/grid/AssetCardRenderer.js";
 import AssetCardInner from "./AssetCardInner.vue";
 import FolderCard from "./FolderCard.vue";
 import { useGridState } from "../../composables/useGridState.js";
@@ -42,6 +43,7 @@ const props = defineProps({
 
 const gridContainerRef = ref(null);
 const hostWidth = ref(0);
+const hasMeasuredHostWidthOnce = ref(false);
 const settingsVersion = ref(0);
 const cardFilenameKeys = new WeakMap();
 
@@ -443,6 +445,11 @@ const columnCount = computed(() => {
     return Math.max(1, Math.floor((width + gap) / (minWidth + gap)));
 });
 
+const hasMeasuredHostWidth = computed(() => {
+    const width = Number(hostWidth.value || 0) || Number(scrollElementRef.value?.clientWidth || 0) || 0;
+    return width > 0;
+});
+
 const gapPx = computed(() => {
     settingsVersion.value;
     return Math.max(0, Number(APP_CONFIG.GRID_GAP || 10) || 10);
@@ -618,7 +625,15 @@ const skeletonInfoStyle = computed(() => ({
 }));
 
 function updateHostWidth() {
-    hostWidth.value = Number(scrollElementRef.value?.clientWidth || 0) || 0;
+    const width = Number(scrollElementRef.value?.clientWidth || 0) || 0;
+    if (width > 0) {
+        hostWidth.value = width;
+        hasMeasuredHostWidthOnce.value = true;
+        return;
+    }
+    if (!hasMeasuredHostWidthOnce.value) {
+        hostWidth.value = 0;
+    }
 }
 
 let resizeObserver = null;
@@ -651,6 +666,7 @@ watch(
 watch(
     () => rowCount.value,
     async () => {
+        if (!hasMeasuredHostWidth.value) return;
         await nextTick();
         syncAllRenderedDuplicateCards();
         try {
@@ -720,8 +736,16 @@ function syncRenderedDuplicateCards(filenameKey) {
         allMembers.length,
     );
 
-    const primaryCard = renderedCards[0] || null;
-    const primaryAsset = primaryCard?._mjrAsset || allMembers[0] || null;
+    // Select the best representative: prefer video_with_audio > video > image.
+    const selectedAsset = selectStackRepresentative(allMembers);
+    const selectedCard = renderedCards.find((card) => {
+        const cardAssetId = String(card._mjrAsset?.id || "");
+        const selectedId = String(selectedAsset?.id || "");
+        return cardAssetId && selectedId && cardAssetId === selectedId;
+    }) || renderedCards[0];
+    const primaryCard = selectedCard || renderedCards[0] || null;
+    const primaryAsset = primaryCard?._mjrAsset || selectedAsset || allMembers[0] || null;
+    preserveRepresentativeGenerationTime(primaryAsset, allMembers);
 
     for (const card of renderedCards) {
         delete card.dataset.mjrDupHidden;
@@ -740,7 +764,7 @@ function syncRenderedDuplicateCards(filenameKey) {
     if (!primaryCard || !primaryAsset || count < 2) {
         for (const card of renderedCards) {
             try {
-                ensureDupStackCard(gridContainerRef.value, card, card._mjrAsset);
+                    {{ hasMeasuredHostWidthOnce ? (state.loadingMessage || "Loading assets...") : "Preparing grid..." }}
             } catch (e) {
                 console.debug?.(e);
             }
@@ -969,7 +993,7 @@ watch(
 );
 
 async function maybeFillViewport() {
-    if (!props.virtualize || state.loading || state.done) return;
+    if (!props.virtualize || !hasMeasuredHostWidth.value || state.loading || state.done) return;
     const element = scrollElementRef.value;
     if (!element) return;
     await nextTick();
@@ -1162,7 +1186,7 @@ defineExpose({
         style="position: relative; min-height: 100%;"
     >
         <div
-            v-if="state.loading && !state.assets.length"
+            v-if="(state.loading && !state.assets.length) || (!hasMeasuredHostWidthOnce && state.assets.length)"
             class="mjr-grid-loading-overlay"
             style="position:absolute; inset:0; z-index:4; display:flex; align-items:flex-start; justify-content:center; padding:14px; pointer-events:none;"
         >
@@ -1201,7 +1225,7 @@ defineExpose({
                 <div
                     style="margin-top:10px; font-size:12px; opacity:0.68; text-align:center;"
                 >
-                    {{ state.loadingMessage || "Loading assets..." }}
+                    {{ hasMeasuredHostWidthOnce ? (state.loadingMessage || "Loading assets...") : "Preparing grid..." }}
                 </div>
             </div>
         </div>
@@ -1231,7 +1255,7 @@ defineExpose({
         </div>
 
         <div
-            v-if="virtualize"
+            v-if="virtualize && hasMeasuredHostWidthOnce"
             :style="{
                 height: `${totalSize}px`,
                 position: 'relative',

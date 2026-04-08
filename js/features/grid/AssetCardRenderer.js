@@ -35,6 +35,93 @@ export function getStemLower(filename) {
     }
 }
 
+/**
+ * Check if asset is a video with audio track (detected by filename pattern).
+ * Videos with "-audio" or "_audio" suffix contain audio.
+ */
+function isVideoWithAudio(asset) {
+    try {
+        const kind = String(asset?.kind || "").toLowerCase();
+        if (kind !== "video") return false;
+        const filename = String(asset?.filename || "").toLowerCase();
+        return filename.includes("-audio") || filename.includes("_audio");
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Calculate priority for stack representative selection.
+ * Higher priority = better candidate for stack cover.
+ * Priority: video_with_audio > video > image > other
+ */
+function getStackRepPriority(asset) {
+    try {
+        const kind = String(asset?.kind || "").toLowerCase();
+        let kindPriority = 0;
+        if (isVideoWithAudio(asset)) {
+            kindPriority = 2;
+        } else if (kind === "video") {
+            kindPriority = 1;
+        }
+        const hasGeneration = Number(asset?.has_generation_data || 0) > 0 ? 1 : 0;
+        const size = Number(asset?.size || 0);
+        const mtime = Number(asset?.mtime || 0);
+        // Return array for comparison: [kindPriority, mtime, hasGeneration, size]
+        return [kindPriority, mtime, hasGeneration, size];
+    } catch {
+        return [0, 0, 0, 0];
+    }
+}
+
+/**
+ * Compare two priority tuples. Returns > 0 if a > b.
+ */
+function comparePriority(a, b) {
+    for (let i = 0; i < Math.max(a.length, b.length); i++) {
+        const diff = (a[i] || 0) - (b[i] || 0);
+        if (diff !== 0) return diff;
+    }
+    return 0;
+}
+
+/**
+ * Select the best representative from a list of assets.
+ * Prefers video with audio > video > image, then by mtime/generation/size.
+ */
+export function selectStackRepresentative(assets) {
+    if (!Array.isArray(assets) || assets.length === 0) return null;
+    if (assets.length === 1) return assets[0];
+    let best = assets[0];
+    let bestPriority = getStackRepPriority(best);
+    for (let i = 1; i < assets.length; i++) {
+        const asset = assets[i];
+        const priority = getStackRepPriority(asset);
+        if (comparePriority(priority, bestPriority) > 0) {
+            best = asset;
+            bestPriority = priority;
+        }
+    }
+    return best;
+}
+
+export function preserveRepresentativeGenerationTime(primary, members) {
+    if (!primary || !Array.isArray(members) || members.length === 0) return primary;
+    const current = Number(primary?.generation_time_ms ?? primary?.metadata?.generation_time_ms ?? 0) || 0;
+    if (current > 0) return primary;
+    const donor = members.find(
+        (asset) => (Number(asset?.generation_time_ms ?? asset?.metadata?.generation_time_ms ?? 0) || 0) > 0,
+    );
+    if (!donor) return primary;
+    const donorMs = Number(donor?.generation_time_ms ?? donor?.metadata?.generation_time_ms ?? 0) || 0;
+    if (donorMs <= 0) return primary;
+    primary.generation_time_ms = donorMs;
+    if (!primary.has_generation_data && donor?.has_generation_data) {
+        primary.has_generation_data = donor.has_generation_data;
+    }
+    return primary;
+}
+
 export function detectKind(asset, extUpper) {
     const k = String(asset?.kind || "").toLowerCase();
     if (k) return k;
@@ -257,9 +344,11 @@ export function appendAssets(gridContainer, assets, state, deps) {
                 }
 
                 // ── count >= 2: group into a duplicate stack ──────────────────────────────
-                // Keep an existing primary if we already marked one, else pick first asset.
-                const existingPrimary = visibleBucket.find((a) => a._mjrDupStack);
-                const primary = existingPrimary || visibleBucket[0];
+                // Select the best representative: prefer video_with_audio > video > image.
+                const primary = preserveRepresentativeGenerationTime(
+                    selectStackRepresentative(visibleBucket),
+                    visibleBucket,
+                );
                 const secondaries = visibleBucket.filter((a) => a !== primary);
 
                 // Ensure stale collision markers are cleared on all visible members.

@@ -74,7 +74,12 @@ export function createImagePreloader({ buildAssetViewURL, IMAGE_PRELOAD_EXTENSIO
     function preloadAdjacentAssets(assets, centerIndex) {
         const assetList = Array.isArray(assets) ? assets : [];
         if (!assetList.length) return;
-        const candidates = [centerIndex - 1, centerIndex + 1];
+        // Preload ±3 images for smoother navigation (prioritize closest first)
+        const candidates = [
+            centerIndex - 1, centerIndex + 1,
+            centerIndex - 2, centerIndex + 2,
+            centerIndex - 3, centerIndex + 3,
+        ];
         for (const idx of candidates) {
             if (idx < 0 || idx >= assetList.length) continue;
             const asset = assetList[idx];

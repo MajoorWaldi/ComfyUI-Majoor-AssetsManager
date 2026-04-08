@@ -4553,22 +4553,30 @@
 /* ── Feed group button ────────────────────────────────────────────────────── */
 
 .mjr-bottom-feed .mjr-feed-group-button {
+    position: absolute;
+    top: 34px;
+    right: 6px;
+    z-index: 11;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 4px;
-    min-height: 22px;
-    padding: 3px 7px;
+    min-width: 28px;
+    min-height: 28px;
+    padding: 4px 8px;
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 999px;
     background: rgba(10, 14, 20, 0.74);
     color: rgba(255, 255, 255, 0.96);
     font-size: 10px;
     font-weight: 700;
+    line-height: 1;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.24);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
     cursor: pointer;
-    transition: background 120ms ease;
+    touch-action: manipulation;
+    transition: background 120ms ease, transform 80ms ease;
 }
 
 .mjr-bottom-feed .mjr-feed-group-button:hover {
@@ -4631,26 +4639,36 @@
 
 .mjr-assets-manager .mjr-stack-group-button {
     position: absolute;
-    top: 6px;
+    top: 34px;
     right: 6px;
-    z-index: 3;
+    z-index: 11;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 4px;
-    min-height: 24px;
-    padding: 4px 7px;
+    min-width: 28px;
+    min-height: 28px;
+    padding: 4px 8px;
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 999px;
     background: rgba(10, 14, 20, 0.74);
     color: rgba(255, 255, 255, 0.96);
+    line-height: 1;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.24);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
     cursor: pointer;
+    touch-action: manipulation;
+    transform: translateZ(0);
+    transition: background 120ms ease, transform 80ms ease;
 }
 
 .mjr-assets-manager .mjr-stack-group-button:hover {
     background: rgba(18, 24, 34, 0.9);
+}
+
+.mjr-assets-manager .mjr-stack-group-button > * {
+    pointer-events: none;
 }
 
 .mjr-assets-manager .mjr-stack-group-button-count {
@@ -4664,14 +4682,16 @@
 /* Positioned at bottom-right to not overlap the stack-group button (top-right). */
 .mjr-assets-manager .mjr-dup-stack-button {
     position: absolute;
-    bottom: 6px;
+    bottom: 30px;
     right: 6px;
-    z-index: 3;
+    z-index: 11;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 4px;
-    min-height: 22px;
-    padding: 3px 7px;
+    min-width: 28px;
+    min-height: 28px;
+    padding: 4px 8px;
     border: 1px solid rgba(255, 180, 0, 0.38);
     border-radius: 999px;
     background: rgba(30, 18, 0, 0.82);
@@ -4681,12 +4701,19 @@
     -webkit-backdrop-filter: blur(6px);
     cursor: pointer;
     font-size: 11px;
-    transition: background 0.15s;
+    line-height: 1;
+    touch-action: manipulation;
+    transform: translateZ(0);
+    transition: background 0.15s, transform 80ms ease;
 }
 
 .mjr-assets-manager .mjr-dup-stack-button:hover {
     background: rgba(50, 30, 0, 0.94);
     border-color: rgba(255, 180, 0, 0.6);
+}
+
+.mjr-assets-manager .mjr-dup-stack-button > * {
+    pointer-events: none;
 }
 
 .mjr-assets-manager .mjr-dup-stack-count {
@@ -4706,6 +4733,11 @@
     box-shadow:
         0 2px 8px rgba(0, 0, 0, 0.24),
         0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.mjr-assets-manager .mjr-asset-card[data-mjr-stacked="true"]:hover,
+.mjr-assets-manager .mjr-asset-card[data-mjr-dup-stacked="true"]:hover {
+    transform: none !important;
 }
 
 .mjr-stack-group-popover {
