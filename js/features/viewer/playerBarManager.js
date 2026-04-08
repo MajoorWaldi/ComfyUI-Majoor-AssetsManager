@@ -213,6 +213,17 @@ export function createPlayerBarManager({
             } catch (e) {
                 console.debug?.(e);
             }
+            try {
+                const shouldAutoEnableVideoSound =
+                    mediaKind === "video" && state.mode === VIEWER_MODES?.SINGLE;
+                if (shouldAutoEnableVideoSound) {
+                    mediaEl.muted = false;
+                    const p = mediaEl.play?.();
+                    if (p && typeof p.catch === "function") p.catch(() => {});
+                }
+            } catch (e) {
+                console.debug?.(e);
+            }
 
             // Keep scopes responsive for video only.
             try {
@@ -293,14 +304,15 @@ export function createPlayerBarManager({
                 state._scopesVideoAbort = null;
             }
 
-            // If multiple videos are visible (compare modes), keep them synced to the controlled one.
+            // Only sync followers for video. Audio compare intentionally keeps secondary tracks silent.
             try {
                 state._videoSyncAbort?.abort?.();
             } catch (e) {
                 console.debug?.(e);
             }
             try {
-                if (allMedia.length > 1) {
+                state._videoSyncAbort = null;
+                if (mediaKind === "video" && allMedia.length > 1) {
                     const followers = allMedia.filter((v) => v && v !== mediaEl);
                     state._videoSyncAbort = installFollowerVideoSync(mediaEl, followers);
                 }
@@ -308,96 +320,111 @@ export function createPlayerBarManager({
                 console.debug?.(e);
             }
 
-            // Best-effort: use backend viewer-info to set FPS / frame count for the ruler.
-            // Must never throw or block the UI.
-            try {
-                const parseFps = (v) => {
-                    return parseFpsValue(v);
-                };
-                const parseFrameCount = (v) => {
-                    const n = Number(v);
-                    if (!Number.isFinite(n) || n <= 0) return null;
-                    return Math.floor(n);
-                };
+            if (mediaKind === "video") {
+                // Best-effort: use backend viewer-info to set FPS / frame count for the ruler.
+                // Must never throw or block the UI.
+                try {
+                    const parseFps = (v) => {
+                        return parseFpsValue(v);
+                    };
+                    const parseFrameCount = (v) => {
+                        const n = Number(v);
+                        if (!Number.isFinite(n) || n <= 0) return null;
+                        return Math.floor(n);
+                    };
 
-                const applyFromViewerInfo = (info) => {
+                    const applyFromViewerInfo = (info) => {
+                        try {
+                            if (!info || typeof info !== "object") return;
+                            const fps = parseFps(info?.fps ?? info?.fps_raw ?? info?.frame_rate);
+                            const frameCount = parseFrameCount(info?.frame_count);
+                            if (fps != null || frameCount != null)
+                                mounted?.setMediaInfo?.({ fps, frameCount });
+                        } catch (e) {
+                            console.debug?.(e);
+                        }
+                    };
+
+                    // Apply cached viewer info immediately if present.
                     try {
-                        if (!info || typeof info !== "object") return;
-                        const fps = parseFps(info?.fps ?? info?.fps_raw ?? info?.frame_rate);
-                        const frameCount = parseFrameCount(info?.frame_count);
-                        if (fps != null || frameCount != null)
-                            mounted?.setMediaInfo?.({ fps, frameCount });
+                        const cached = viewerInfoCacheGet(current?.id);
+                        if (cached) applyFromViewerInfo(cached);
                     } catch (e) {
                         console.debug?.(e);
                     }
-                };
 
-                // Apply cached viewer info immediately if present.
-                try {
-                    const cached = viewerInfoCacheGet(current?.id);
-                    if (cached) applyFromViewerInfo(cached);
+                    // Fetch fresh in background (cancel if asset changes).
+                    try {
+                        state._videoMetaAbort?.abort?.();
+                    } catch (e) {
+                        console.debug?.(e);
+                    }
+                    const ac = new AbortController();
+                    state._videoMetaAbort = ac;
+                    void (async () => {
+                        try {
+                            const res = await getViewerInfo(current?.id, { signal: ac.signal });
+                            if (!res?.ok || !res.data) return;
+                            // Still the same active media element?
+                            if (state._activeVideoEl !== mediaEl) return;
+                            try {
+                                viewerInfoCacheSet(current?.id, res.data);
+                            } catch (e) {
+                                console.debug?.(e);
+                            }
+                            applyFromViewerInfo(res.data);
+                        } catch (e) {
+                            console.debug?.(e);
+                        }
+                    })();
                 } catch (e) {
                     console.debug?.(e);
                 }
 
-                // Fetch fresh in background (cancel if asset changes).
+                // Best-effort: listen for FPS detected from video metadata/runtime in mediaFactory.
+                try {
+                    state._videoFpsEventAbort?.abort?.();
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                try {
+                    const ac = new AbortController();
+                    state._videoFpsEventAbort = ac;
+                    window.addEventListener(
+                        "mjr:viewer-fps-detected",
+                        (e) => {
+                            try {
+                                const detail = e?.detail || {};
+                                const aid = String(detail?.assetId || "");
+                                const currentId = String(current?.id ?? "");
+                                if (!aid || !currentId || aid !== currentId) return;
+                                if (state._activeVideoEl !== mediaEl) return;
+                                const fps = Number(detail?.fps);
+                                if (!Number.isFinite(fps) || fps <= 0) return;
+                                state.nativeFps = fps;
+                                mounted?.setMediaInfo?.({ fps });
+                            } catch (e) {
+                                console.debug?.(e);
+                            }
+                        },
+                        { signal: ac.signal, passive: true },
+                    );
+                } catch (e) {
+                    console.debug?.(e);
+                }
+            } else {
                 try {
                     state._videoMetaAbort?.abort?.();
                 } catch (e) {
                     console.debug?.(e);
                 }
-                const ac = new AbortController();
-                state._videoMetaAbort = ac;
-                void (async () => {
-                    try {
-                        const res = await getViewerInfo(current?.id, { signal: ac.signal });
-                        if (!res?.ok || !res.data) return;
-                        // Still the same active media element?
-                        if (state._activeVideoEl !== mediaEl) return;
-                        try {
-                            viewerInfoCacheSet(current?.id, res.data);
-                        } catch (e) {
-                            console.debug?.(e);
-                        }
-                        applyFromViewerInfo(res.data);
-                    } catch (e) {
-                        console.debug?.(e);
-                    }
-                })();
-            } catch (e) {
-                console.debug?.(e);
-            }
-
-            // Best-effort: listen for FPS detected from video metadata/runtime in mediaFactory.
-            try {
-                state._videoFpsEventAbort?.abort?.();
-            } catch (e) {
-                console.debug?.(e);
-            }
-            try {
-                const ac = new AbortController();
-                state._videoFpsEventAbort = ac;
-                window.addEventListener(
-                    "mjr:viewer-fps-detected",
-                    (e) => {
-                        try {
-                            const detail = e?.detail || {};
-                            const aid = String(detail?.assetId || "");
-                            const currentId = String(current?.id ?? "");
-                            if (!aid || !currentId || aid !== currentId) return;
-                            if (state._activeVideoEl !== mediaEl) return;
-                            const fps = Number(detail?.fps);
-                            if (!Number.isFinite(fps) || fps <= 0) return;
-                            state.nativeFps = fps;
-                            mounted?.setMediaInfo?.({ fps });
-                        } catch (e) {
-                            console.debug?.(e);
-                        }
-                    },
-                    { signal: ac.signal, passive: true },
-                );
-            } catch (e) {
-                console.debug?.(e);
+                state._videoMetaAbort = null;
+                try {
+                    state._videoFpsEventAbort?.abort?.();
+                } catch (e) {
+                    console.debug?.(e);
+                }
+                state._videoFpsEventAbort = null;
             }
         } catch {
             destroyPlayerBar();

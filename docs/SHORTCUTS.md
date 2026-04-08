@@ -31,7 +31,10 @@ Quick reference for Majoor Assets Manager shortcuts. For full details including 
 | ** / ** | Prev/Next Asset (or Step Frame if Player Focused) |
 | **F** | Fullscreen |
 | **D** | Info Panel |
-| **I** | Pixel Probe |
+| **I** | Set In Point (video) / Pixel Probe (image) |
+| **O** | Set Out Point (video) |
+| **Home** | Go to In Point (video) |
+| **End** | Go to Out Point (video) |
 | **L** | Loupe |
 | **Z** | Zebra |
 | **G** | Grid Overlay |

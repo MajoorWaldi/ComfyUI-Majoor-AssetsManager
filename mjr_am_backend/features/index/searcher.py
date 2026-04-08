@@ -584,15 +584,33 @@ def _stack_group_key(asset: dict[str, Any]) -> str:
     return f"asset:{_safe_positive_int(asset.get('id')) or 0}"
 
 
+def _is_video_with_audio(asset: dict[str, Any]) -> bool:
+    """Check if asset is a video that contains audio (detected by filename pattern)."""
+    kind = str(asset.get("kind") or "").strip().lower()
+    if kind != "video":
+        return False
+    filename = str(asset.get("filename") or "").lower()
+    # Videos with audio typically have "-audio" or "_audio" suffix before extension
+    # e.g., "video_00001-audio.mp4", "clip_audio.mp4"
+    return "-audio" in filename or "_audio" in filename
+
+
 def _group_priority(asset: dict[str, Any]) -> tuple[int, int, int, int]:
     kind = str(asset.get("kind") or "").strip().lower()
-    is_image = 1 if kind == "image" else 0
+    # Priority for stack representatives:
+    # - Video with audio (2) > Video (1) > Image (0)
+    # This ensures video with audio is shown as the stack cover in the grid
+    if _is_video_with_audio(asset):
+        kind_priority = 2
+    elif kind == "video":
+        kind_priority = 1
+    else:
+        kind_priority = 0
     has_generation = 1 if int(asset.get("has_generation_data") or 0) else 0
     size = int(asset.get("size") or 0)
     mtime = int(asset.get("mtime") or 0)
-    # Prioritize: image > most recent (DESC) > generation data > size
-    # For DESC sorting, newer mtime should rank higher, so use mtime directly
-    return (is_image, mtime, has_generation, size)
+    # Prioritize: video_with_audio > video > image, then most recent, generation data, size
+    return (kind_priority, mtime, has_generation, size)
 
 
 def _select_group_representative(current: dict[str, Any], candidate: dict[str, Any]) -> dict[str, Any]:
@@ -601,6 +619,33 @@ def _select_group_representative(current: dict[str, Any], candidate: dict[str, A
     if candidate_priority > current_priority:
         return candidate
     return current
+
+
+def _generation_time_ms_value(asset: dict[str, Any] | None) -> int:
+    if not isinstance(asset, dict):
+        return 0
+    raw = asset.get("generation_time_ms")
+    if raw in (None, ""):
+        return 0
+    try:
+        return max(0, int(float(raw)))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _preserve_group_generation_time(
+    selected: dict[str, Any], *candidates: dict[str, Any] | None
+) -> dict[str, Any]:
+    if _generation_time_ms_value(selected) > 0:
+        return selected
+    for candidate in candidates:
+        gen_time_ms = _generation_time_ms_value(candidate)
+        if gen_time_ms > 0:
+            selected["generation_time_ms"] = gen_time_ms
+            if not selected.get("has_generation_data") and candidate and candidate.get("has_generation_data"):
+                selected["has_generation_data"] = candidate.get("has_generation_data")
+            return selected
+    return selected
 
 
 def _merge_asset_into_group(
@@ -617,6 +662,7 @@ def _merge_asset_into_group(
         grouped_assets.append(asset)
         return
     selected = _select_group_representative(existing, asset)
+    _preserve_group_generation_time(selected, existing, asset)
     if selected is existing:
         return
     grouped_by_key[key] = selected

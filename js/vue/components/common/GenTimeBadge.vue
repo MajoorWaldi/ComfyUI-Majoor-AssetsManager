@@ -4,7 +4,7 @@
  * Replaces createGenTimeBadge() from Badges.js.
  */
 import { computed } from "vue";
-import { genTimeColor, normalizeGenerationTimeMs } from "../../../components/Badges.js";
+import { genTimeColor, normalizeGenerationTimeMs, formatGenTime } from "../../../components/Badges.js";
 
 const props = defineProps({
     genTimeMs: { type: [Number, String], default: 0 },
@@ -12,7 +12,7 @@ const props = defineProps({
 
 const ms = computed(() => normalizeGenerationTimeMs(props.genTimeMs));
 const isValid = computed(() => ms.value > 0);
-const secs = computed(() => (ms.value / 1000).toFixed(1));
+const fmt = computed(() => formatGenTime(ms.value));
 const color = computed(() => genTimeColor(ms.value));
 </script>
 
@@ -20,10 +20,10 @@ const color = computed(() => genTimeColor(ms.value));
     <div
         v-if="isValid"
         class="mjr-gentime-badge"
-        :title="`Generation time: ${secs} seconds`"
+        :title="fmt.title"
         :style="{ color }"
     >
-        {{ secs }}s
+        {{ fmt.text }}
     </div>
 </template>
 

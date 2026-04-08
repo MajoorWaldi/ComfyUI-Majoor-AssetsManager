@@ -15,6 +15,7 @@ import {
     genTimeColor,
     createWorkflowDot,
     normalizeGenerationTimeMs,
+    formatGenTime,
 } from "../../../components/Badges.js";
 import { formatDuration, formatDate, formatTime } from "../../../utils/format.js";
 import { MediaBlobCache } from "../../../features/grid/MediaBlobCache.js";
@@ -170,7 +171,7 @@ const genTimeMs = computed(() => {
     return normalizeGenerationTimeMs(raw);
 });
 const genTimeValid = computed(() => genTimeMs.value > 0);
-const genTimeSecs = computed(() => (genTimeMs.value / 1000).toFixed(1));
+const genTimeFmt = computed(() => formatGenTime(genTimeMs.value));
 const genTimeColorVal = computed(() => genTimeColor(genTimeMs.value));
 
 const positivePrompt = computed(() => String(props.asset.positive_prompt || "").trim());
@@ -423,7 +424,7 @@ function onFileBadgeClick(event) {
             class="mjr-card-hover-info"
         >
             <div v-if="positivePrompt" class="mjr-hover-prompt">{{ positivePrompt }}</div>
-            <div v-if="genTimeValid" class="mjr-hover-gentime">⏱ {{ genTimeSecs }}s</div>
+            <div v-if="genTimeValid" class="mjr-hover-gentime">⏱ {{ genTimeFmt.text }}</div>
         </div>
     </div>
 
@@ -455,8 +456,8 @@ function onFileBadgeClick(event) {
                 v-if="genTimeValid"
                 class="mjr-meta-gentime"
                 :style="{ color: genTimeColorVal, fontWeight: '500' }"
-                :title="`Generation time: ${genTimeSecs} seconds`"
-            >{{ genTimeSecs }}s</span>
+                :title="genTimeFmt.title"
+            >{{ genTimeFmt.text }}</span>
         </div>
 
         <!-- Workflow dot (imperatively created by createWorkflowDot) -->

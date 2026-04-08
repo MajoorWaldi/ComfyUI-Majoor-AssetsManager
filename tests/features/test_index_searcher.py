@@ -284,22 +284,12 @@ def test_workflow_type_filter_prefers_denormalized_column_when_metadata_is_minim
 
 
 @pytest.mark.asyncio
-async def test_paginate_grouped_assets_prefers_image_cover_over_video_in_same_stack():
+async def test_paginate_grouped_assets_prefers_video_over_image_in_same_stack():
+    """Video should be preferred over image as stack cover (video can show movement)."""
     async def _fetch_rows(_limit, _offset):
         return Result.Ok(
             {
                 "rows": [
-                    {
-                        "id": 42,
-                        "filename": "AnimateDiff_00001.mp4",
-                        "kind": "video",
-                        "stack_id": 1,
-                        "job_id": "job-1",
-                        "size": 20574,
-                        "mtime": 200,
-                        "has_generation_data": 1,
-                        "tags": "[]",
-                    },
                     {
                         "id": 43,
                         "filename": "animatediff_00001.png",
@@ -308,6 +298,17 @@ async def test_paginate_grouped_assets_prefers_image_cover_over_video_in_same_st
                         "job_id": "job-1",
                         "size": 185981,
                         "mtime": 199,
+                        "has_generation_data": 1,
+                        "tags": "[]",
+                    },
+                    {
+                        "id": 42,
+                        "filename": "AnimateDiff_00001.mp4",
+                        "kind": "video",
+                        "stack_id": 1,
+                        "job_id": "job-1",
+                        "size": 20574,
+                        "mtime": 200,
                         "has_generation_data": 1,
                         "tags": "[]",
                     },
@@ -326,6 +327,117 @@ async def test_paginate_grouped_assets_prefers_image_cover_over_video_in_same_st
     assert result.ok
     assets = result.data["assets"]
     assert len(assets) == 1
-    assert assets[0]["filename"] == "animatediff_00001.png"
-    assert assets[0]["kind"] == "image"
+    assert assets[0]["filename"] == "AnimateDiff_00001.mp4"
+    assert assets[0]["kind"] == "video"
+    assert assets[0]["stack_asset_count"] == 2
+
+
+@pytest.mark.asyncio
+async def test_paginate_grouped_assets_prefers_video_with_audio_over_video_without():
+    """Video with audio (detected by -audio suffix) should be preferred as stack cover."""
+    async def _fetch_rows(_limit, _offset):
+        return Result.Ok(
+            {
+                "rows": [
+                    {
+                        "id": 42,
+                        "filename": "ltx-23_00001.mp4",
+                        "kind": "video",
+                        "stack_id": 1,
+                        "job_id": "job-1",
+                        "size": 20574,
+                        "mtime": 200,
+                        "has_generation_data": 1,
+                        "tags": "[]",
+                    },
+                    {
+                        "id": 43,
+                        "filename": "ltx-23_00001.png",
+                        "kind": "image",
+                        "stack_id": 1,
+                        "job_id": "job-1",
+                        "size": 185981,
+                        "mtime": 199,
+                        "has_generation_data": 1,
+                        "tags": "[]",
+                    },
+                    {
+                        "id": 44,
+                        "filename": "LTX-23_00001-audio.mp4",
+                        "kind": "video",
+                        "stack_id": 1,
+                        "job_id": "job-1",
+                        "size": 30000,
+                        "mtime": 198,
+                        "has_generation_data": 1,
+                        "tags": "[]",
+                    },
+                ]
+            }
+        )
+
+    result = await m._paginate_grouped_assets(
+        _fetch_rows,
+        lambda rows: m._hydrate_search_rows(rows, include_highlight=True),
+        limit=10,
+        offset=0,
+        include_total=True,
+    )
+
+    assert result.ok
+    assets = result.data["assets"]
+    assert len(assets) == 1
+    # Video with -audio suffix should be selected as representative
+    assert assets[0]["filename"] == "LTX-23_00001-audio.mp4"
+    assert assets[0]["kind"] == "video"
+    assert assets[0]["stack_asset_count"] == 3
+
+
+@pytest.mark.asyncio
+async def test_paginate_grouped_assets_preserves_generation_time_on_selected_stack_representative():
+    async def _fetch_rows(_limit, _offset):
+        return Result.Ok(
+            {
+                "rows": [
+                    {
+                        "id": 42,
+                        "filename": "ltx-23_00001.png",
+                        "kind": "image",
+                        "stack_id": 1,
+                        "job_id": "job-1",
+                        "size": 185981,
+                        "mtime": 199,
+                        "has_generation_data": 1,
+                        "generation_time_ms": 218600,
+                        "tags": "[]",
+                    },
+                    {
+                        "id": 44,
+                        "filename": "LTX-23_00001-audio.mp4",
+                        "kind": "video",
+                        "stack_id": 1,
+                        "job_id": "job-1",
+                        "size": 30000,
+                        "mtime": 198,
+                        "has_generation_data": 1,
+                        "generation_time_ms": None,
+                        "tags": "[]",
+                    },
+                ]
+            }
+        )
+
+    result = await m._paginate_grouped_assets(
+        _fetch_rows,
+        lambda rows: m._hydrate_search_rows(rows, include_highlight=True),
+        limit=10,
+        offset=0,
+        include_total=True,
+    )
+
+    assert result.ok
+    assets = result.data["assets"]
+    assert len(assets) == 1
+    assert assets[0]["filename"] == "LTX-23_00001-audio.mp4"
+    assert assets[0]["generation_time_ms"] == 218600
     assert assets[0]["stack_asset_count"] == 2

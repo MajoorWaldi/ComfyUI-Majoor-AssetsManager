@@ -463,7 +463,16 @@ export function createViewerMediaFactory({
             video.playsInline = true;
             video.muted = true;
             video.autoplay = true;
-            video.preload = "metadata";
+            // Use "auto" preload for smoother playback (buffers more video ahead)
+            video.preload = "auto";
+            // Hint for async decoding to improve playback fluidity
+            try {
+                if ("decode" in HTMLVideoElement.prototype) {
+                    video.decoding = "async";
+                }
+            } catch {
+                // Ignore if not supported
+            }
             video.style.cssText =
                 "position:absolute; width:1px; height:1px; opacity:0; pointer-events:none;";
             _attachFpsDetection(video, asset);
@@ -696,7 +705,16 @@ export function createViewerMediaFactory({
             video.muted = true;
             video.playsInline = true;
             video.autoplay = true;
-            video.preload = "metadata";
+            // Use "auto" preload for smoother playback (buffers more video ahead)
+            video.preload = "auto";
+            // Hint for async decoding to improve playback fluidity
+            try {
+                if ("decode" in HTMLVideoElement.prototype) {
+                    video.decoding = "async";
+                }
+            } catch {
+                // Ignore if not supported
+            }
             video.style.cssText =
                 "position:absolute; width:1px; height:1px; opacity:0; pointer-events:none;";
             _attachFpsDetection(video, asset);

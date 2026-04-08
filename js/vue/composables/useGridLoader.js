@@ -351,8 +351,41 @@ export function useGridLoader({
     scrollToAssetId = () => {},
     canLoadMore = null,
 } = {}) {
+    let deferVisualResetUntilNextPage = false;
+
     function getGridContainer() {
         return resolveElement(gridContainerRef);
+    }
+
+    function buildCurrentSnapshotParts() {
+        const gridContainer = getGridContainer();
+        return {
+            scope: gridContainer?.dataset?.mjrScope || "output",
+            query: gridContainer?.dataset?.mjrQuery || state.query || "*",
+            customRootId: gridContainer?.dataset?.mjrCustomRootId || "",
+            subfolder: gridContainer?.dataset?.mjrSubfolder || "",
+            collectionId: gridContainer?.dataset?.mjrCollectionId || "",
+            viewScope: gridContainer?.dataset?.mjrViewScope || "",
+            kind: gridContainer?.dataset?.mjrFilterKind || "",
+            workflowOnly: gridContainer?.dataset?.mjrFilterWorkflowOnly === "1",
+            minRating: gridContainer?.dataset?.mjrFilterMinRating || "",
+            minSizeMB: gridContainer?.dataset?.mjrFilterMinSizeMB || "",
+            maxSizeMB: gridContainer?.dataset?.mjrFilterMaxSizeMB || "",
+            resolutionCompare: gridContainer?.dataset?.mjrFilterResolutionCompare || "",
+            minWidth: gridContainer?.dataset?.mjrFilterMinWidth || "",
+            minHeight: gridContainer?.dataset?.mjrFilterMinHeight || "",
+            maxWidth: gridContainer?.dataset?.mjrFilterMaxWidth || "",
+            maxHeight: gridContainer?.dataset?.mjrFilterMaxHeight || "",
+            workflowType: gridContainer?.dataset?.mjrFilterWorkflowType || "",
+            dateRange: gridContainer?.dataset?.mjrFilterDateRange || "",
+            dateExact: gridContainer?.dataset?.mjrFilterDateExact || "",
+            sort: gridContainer?.dataset?.mjrSort || "mtime_desc",
+        };
+    }
+
+    function shouldPreserveVisibleOnReset({ reset = true, preserveVisibleUntilReady = true } = {}) {
+        if (!reset || preserveVisibleUntilReady === false) return false;
+        return Array.isArray(state.assets) && state.assets.length > 0;
     }
 
     function canLoadFromHost() {
@@ -584,6 +617,12 @@ export function useGridLoader({
                     state.total = Number(page.total) || 0;
                 }
 
+                if (deferVisualResetUntilNextPage) {
+                    resetAssets({ query: state.query || "*", total: null, done: false });
+                    resetAssetCollectionsState(state);
+                    deferVisualResetUntilNextPage = false;
+                }
+
                 const fetchedCount = Number(page.count || 0) || 0;
                 const consumedCount = resolvePageAdvanceCount({
                     count: fetchedCount,
@@ -663,7 +702,7 @@ export function useGridLoader({
     }
 
     async function loadAssets(query = "*", options = {}) {
-        const { reset = true } = options || {};
+        const { reset = true, preserveVisibleUntilReady = true } = options || {};
         const gridContainer = getGridContainer();
         if (!gridContainer) {
             return { ok: false, error: "Grid unavailable" };
@@ -683,6 +722,10 @@ export function useGridLoader({
         state.query = safeQuery;
 
         if (reset) {
+            deferVisualResetUntilNextPage = shouldPreserveVisibleOnReset({
+                reset,
+                preserveVisibleUntilReady,
+            });
             try {
                 state.abortController?.abort?.();
             } catch (e) {
@@ -695,9 +738,16 @@ export function useGridLoader({
                 state.abortController = null;
             }
             state.requestId = (Number(state.requestId) || 0) + 1;
-            resetAssets({ query: safeQuery, total: null, done: false });
             clearPendingUpserts();
             clearStatusMessage();
+            if (deferVisualResetUntilNextPage) {
+                state.query = safeQuery;
+                state.offset = 0;
+                state.total = null;
+                state.done = false;
+            } else {
+                resetAssets({ query: safeQuery, total: null, done: false });
+            }
             setLoadingMessage(
                 safeQuery === "*" ? "Loading assets..." : `Searching for "${safeQuery}"...`,
             );
@@ -734,7 +784,12 @@ export function useGridLoader({
     }
 
     async function loadAssetsFromList(assets, options = {}) {
-        const { title = "Collection", reset = true, showLoading = true } = options || {};
+        const {
+            title = "Collection",
+            reset = true,
+            showLoading = true,
+            preserveVisibleUntilReady = true,
+        } = options || {};
         const gridContainer = getGridContainer();
         if (!gridContainer) {
             return { ok: false, error: "Grid unavailable" };
@@ -743,7 +798,13 @@ export function useGridLoader({
         const list = Array.isArray(assets) ? assets.slice() : [];
         const loadingStartedAt = Date.now();
 
+        const preserveVisible = shouldPreserveVisibleOnReset({
+            reset,
+            preserveVisibleUntilReady,
+        });
+
         if (reset) {
+            
             try {
                 state.abortController?.abort?.();
             } catch (e) {
@@ -757,13 +818,20 @@ export function useGridLoader({
             }
             state.requestId = (Number(state.requestId) || 0) + 1;
             clearPendingUpserts();
-            resetAssets({
-                query: String(title || "Collection"),
-                total: list.length,
-                done: true,
-            });
-            resetAssetCollectionsState(state);
             clearStatusMessage();
+            if (preserveVisible) {
+                state.query = String(title || "Collection");
+                state.offset = 0;
+                state.total = list.length;
+                state.done = true;
+            } else {
+                resetAssets({
+                    query: String(title || "Collection"),
+                    total: list.length,
+                    done: true,
+                });
+                resetAssetCollectionsState(state);
+            }
             if (showLoading) {
                 setLoadingMessage(list.length ? `Loading ${title}...` : `${title} is empty`);
                 state.loading = true;
@@ -776,6 +844,14 @@ export function useGridLoader({
         try {
             const sortKey = gridContainer.dataset?.mjrSort || "mtime_desc";
             const sorted = list.sort((a, b) => compareAssets(a, b, sortKey));
+            if (reset && preserveVisible) {
+                resetAssets({
+                    query: String(title || "Collection"),
+                    total: list.length,
+                    done: true,
+                });
+                resetAssetCollectionsState(state);
+            }
             appendAssets(gridContainer, sorted);
             state.offset = sorted.length;
             state.total = sorted.length;
@@ -822,8 +898,8 @@ export function useGridLoader({
         clearPendingUpserts();
         clearLoadingMessage();
         clearStatusMessage();
-        resetAssets({ query: state.query || "*", total: null, done: false });
-        resetAssetCollectionsState(state);
+        deferVisualResetUntilNextPage = true;
+        void hydrateFromSnapshot(buildCurrentSnapshotParts(), { allowReplaceExisting: true });
         setSelection([], "");
     }
 
@@ -962,7 +1038,7 @@ export function useGridLoader({
         if (!snapshot || !Array.isArray(snapshot.assets) || !snapshot.assets.length) {
             return false;
         }
-        if (Array.isArray(state.assets) && state.assets.length) {
+        if (!options.allowReplaceExisting && Array.isArray(state.assets) && state.assets.length) {
             return false;
         }
         try {

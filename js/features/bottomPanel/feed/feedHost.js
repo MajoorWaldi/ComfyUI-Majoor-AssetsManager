@@ -12,6 +12,7 @@ import { APP_CONFIG } from "../../../app/config.js";
 import { bindGridContextMenu, showTagsPopover } from "../../contextmenu/GridContextMenu.js";
 import { createRatingHotkeysController } from "../../panel/controllers/ratingHotkeysController.js";
 import { installGridKeyboard } from "../../grid/GridKeyboard.js";
+import { bindCardOverlayButton } from "../../grid/StackGroupCards.js";
 import { createMjrApp } from "../../../vue/createVueApp.js";
 import VirtualAssetGridHost from "../../../vue/components/grid/VirtualAssetGridHost.vue";
 
@@ -291,7 +292,8 @@ function _decorateFeedCard(host, card, groupedAsset) {
     badge.title = t("bottomFeed.groupOpen", "Show other assets from this generation");
     badge.setAttribute("aria-label", `${count} assets`);
     badge.innerHTML = `<span class="mjr-feed-group-button-icon pi pi-clone"></span><span class="mjr-feed-group-button-count">${count}</span>`;
-    badge.style.cssText = "position:absolute; top:6px; right:6px; z-index:3;";
+    badge.style.cssText = "position:absolute; top:34px; right:6px; z-index:11;";
+    bindCardOverlayButton(badge);
 
     const popover = _buildGroupPopover(host, groupedAsset);
     badge.addEventListener("click", (event) => {

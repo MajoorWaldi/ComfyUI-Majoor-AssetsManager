@@ -3,6 +3,55 @@ import { comfyToast } from "../../app/toast.js";
 import { t } from "../../app/i18n.js";
 import { isHotkeysSuspended } from "../panel/controllers/hotkeysState.js";
 
+/**
+ * Extract prompt text from asset metadata for clipboard copy.
+ */
+function extractPromptText(asset) {
+    if (!asset) return null;
+    try {
+        // Direct prompt field
+        if (typeof asset.prompt === "string" && asset.prompt.trim()) {
+            return asset.prompt.trim();
+        }
+        // From geninfo object
+        if (asset.geninfo) {
+            const gi = asset.geninfo;
+            if (typeof gi.prompt === "string" && gi.prompt.trim()) return gi.prompt.trim();
+            if (typeof gi.positive_prompt === "string" && gi.positive_prompt.trim()) {
+                let text = gi.positive_prompt.trim();
+                if (typeof gi.negative_prompt === "string" && gi.negative_prompt.trim()) {
+                    text += "\n\nNegative prompt: " + gi.negative_prompt.trim();
+                }
+                return text;
+            }
+        }
+        // From metadata_raw (parsed geninfo)
+        const raw = asset.metadata_raw;
+        if (raw && typeof raw === "object") {
+            if (typeof raw.prompt === "string" && raw.prompt.trim()) return raw.prompt.trim();
+            const gi = raw.geninfo || raw.GenInfo || raw.generation;
+            if (gi && typeof gi === "object") {
+                if (typeof gi.prompt === "string" && gi.prompt.trim()) return gi.prompt.trim();
+                if (typeof gi.positive_prompt === "string" && gi.positive_prompt.trim()) {
+                    let text = gi.positive_prompt.trim();
+                    if (typeof gi.negative_prompt === "string" && gi.negative_prompt.trim()) {
+                        text += "\n\nNegative prompt: " + gi.negative_prompt.trim();
+                    }
+                    return text;
+                }
+            }
+        }
+        // From raw string metadata (e.g., PNG tEXt parameters)
+        if (typeof raw === "string" && raw.includes("Negative prompt:")) {
+            // Looks like A1111-style
+            return raw.trim();
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+    return null;
+}
+
 export function installViewerKeyboard({
     overlay,
     _content,
@@ -247,6 +296,23 @@ export function installViewerKeyboard({
             }
         };
 
+        // Ctrl/Cmd+C: Copy prompt to clipboard (when not focused on an input)
+        if ((e.ctrlKey || e.metaKey) && (e.key === "c" || e.key === "C")) {
+            try {
+                // Get the prompt from current asset
+                const promptText = extractPromptText(current);
+                if (promptText) {
+                    consume();
+                    void navigator.clipboard?.writeText?.(promptText)
+                        .then(() => comfyToast(t("toast.promptCopied", "Prompt copied to clipboard"), "success", 1500))
+                        .catch(() => comfyToast(t("toast.copyFailed", "Copy failed"), "error", 1500));
+                    return;
+                }
+            } catch (ex) {
+                console.debug?.(ex);
+            }
+        }
+
         // Rating shortcuts (viewer single only). Ignore modifier combos so we can reserve Alt+keys for viewer tools.
         if (
             isSingle &&
@@ -329,6 +395,16 @@ export function installViewerKeyboard({
             }
             case "i":
             case "I": {
+                // For video: I sets In point; for other media: toggle pixel probe
+                if (isSingle && current?.kind === "video") {
+                    const controls = getControls();
+                    if (controls?.setInPoint?.()) {
+                        consume();
+                        comfyToast(t("toast.inPointSet", "In point set"), "info", 1200);
+                        break;
+                    }
+                }
+                // Fall through to pixel probe for images
                 consume();
                 try {
                     state.probeEnabled = !state.probeEnabled;
@@ -341,6 +417,41 @@ export function installViewerKeyboard({
                     console.debug?.(e);
                 }
                 safeCall(syncToolsUIFromState);
+                break;
+            }
+            case "o":
+            case "O": {
+                // O sets Out point (video only)
+                if (isSingle && current?.kind === "video") {
+                    const controls = getControls();
+                    if (controls?.setOutPoint?.()) {
+                        consume();
+                        comfyToast(t("toast.outPointSet", "Out point set"), "info", 1200);
+                        break;
+                    }
+                }
+                break;
+            }
+            case "Home": {
+                // Home: go to In point (video only)
+                if (isSingle && current?.kind === "video") {
+                    const controls = getControls();
+                    if (controls?.goToIn?.()) {
+                        consume();
+                        break;
+                    }
+                }
+                break;
+            }
+            case "End": {
+                // End: go to Out point (video only)
+                if (isSingle && current?.kind === "video") {
+                    const controls = getControls();
+                    if (controls?.goToOut?.()) {
+                        consume();
+                        break;
+                    }
+                }
                 break;
             }
             case "l":

@@ -19,6 +19,18 @@ jobs:
         with:
           submodules: true
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
       - name: Create Archive
         # Réutilisation de la logique d'exclusion du ps1
         run: |

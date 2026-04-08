@@ -2,6 +2,38 @@ import { get } from "../../api/client.js";
 import { buildStackMembersURL } from "../../api/endpoints.js";
 import { EVENTS } from "../../app/events.js";
 
+export function bindCardOverlayButton(button) {
+    if (!button || button.dataset?.mjrOverlayButtonBound === "1") return button;
+
+    try {
+        button.dataset.mjrOverlayButtonBound = "1";
+    } catch (e) {
+        console.debug?.(e);
+    }
+    try {
+        button.draggable = false;
+    } catch (e) {
+        console.debug?.(e);
+    }
+
+    const stopOnly = (event) => {
+        event.stopPropagation();
+    };
+    const stopAndPrevent = (event) => {
+        event.stopPropagation();
+        event.preventDefault();
+    };
+
+    button.addEventListener("pointerdown", stopOnly);
+    button.addEventListener("mousedown", stopAndPrevent);
+    button.addEventListener("touchstart", stopOnly, { passive: true });
+    button.addEventListener("dblclick", stopOnly);
+    button.addEventListener("keydown", stopOnly);
+    button.addEventListener("dragstart", stopAndPrevent);
+
+    return button;
+}
+
 function _isGroupEnabled(gridContainer) {
     return String(gridContainer?.dataset?.mjrGroupStacks || "") === "1";
 }
@@ -37,9 +69,23 @@ export function getStackAwareAssetKey(gridContainer, asset, fallbackKey) {
 }
 
 export function ensureStackGroupCard(gridContainer, card, asset) {
-    if (!_isGroupEnabled(gridContainer) || !card || !asset) return;
+    if (!card || !asset || !_isGroupEnabled(gridContainer)) {
+        card?.querySelector?.(".mjr-stack-group-button")?.remove?.();
+        if (card?.dataset) {
+            delete card.dataset.mjrStacked;
+            delete card.dataset.mjrStackCount;
+            delete card.dataset.mjrStackGroupKey;
+        }
+        return;
+    }
     const groupKey = _getGroupKey(asset);
-    if (!groupKey) return;
+    if (!groupKey) {
+        card.querySelector?.(".mjr-stack-group-button")?.remove?.();
+        delete card.dataset.mjrStacked;
+        delete card.dataset.mjrStackCount;
+        delete card.dataset.mjrStackGroupKey;
+        return;
+    }
     card.dataset.mjrStackGroupKey = groupKey;
 
     const cachedMembers = gridContainer?._mjrStackMembersCache?.get?.(groupKey);
@@ -49,53 +95,73 @@ export function ensureStackGroupCard(gridContainer, card, asset) {
     if (knownCount > 1) {
         card.dataset.mjrStacked = "true";
         card.dataset.mjrStackCount = String(knownCount);
+    } else {
+        delete card.dataset.mjrStacked;
+        delete card.dataset.mjrStackCount;
     }
 
-    if (card.querySelector(".mjr-stack-group-button")) return;
+    let button = card.querySelector(".mjr-stack-group-button");
+    if (!button) {
+        button = document.createElement("button");
+        button.type = "button";
+        button.className = "mjr-stack-group-button";
+        button.setAttribute("aria-label", "Open generation group in grid");
+        bindCardOverlayButton(button);
+        button.addEventListener("click", async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
 
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "mjr-stack-group-button";
-    button.title = "Open generation group in grid";
-    button.setAttribute("aria-label", "Open generation group in grid");
-    button.innerHTML = `<span class="pi pi-clone"></span>`;
-
-    button.addEventListener("click", async (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-
-        try {
-            if (!gridContainer._mjrStackMembersCache)
-                gridContainer._mjrStackMembersCache = new Map();
-            let members = gridContainer._mjrStackMembersCache.get(groupKey);
-            if (!Array.isArray(members)) {
-                members = await _fetchGroupMembers(asset);
-                gridContainer._mjrStackMembersCache.set(groupKey, members);
+            try {
+                const activeGrid = button?._mjrGridContainer;
+                const activeCard = button?._mjrCard;
+                const activeAsset = button?._mjrAsset;
+                const activeGroupKey = String(button?._mjrGroupKey || "").trim();
+                if (!activeGrid || !activeCard || !activeAsset || !activeGroupKey) return;
+                if (!activeGrid._mjrStackMembersCache) {
+                    activeGrid._mjrStackMembersCache = new Map();
+                }
+                let members = activeGrid._mjrStackMembersCache.get(activeGroupKey);
+                if (!Array.isArray(members)) {
+                    members = await _fetchGroupMembers(activeAsset);
+                    activeGrid._mjrStackMembersCache.set(activeGroupKey, members);
+                }
+                const ordered = _sortMembers(members);
+                const count = ordered.length;
+                if (count > 1) {
+                    activeCard.dataset.mjrStacked = "true";
+                    activeCard.dataset.mjrStackCount = String(count);
+                    button.innerHTML = `<span class="pi pi-clone"></span><span class="mjr-stack-group-button-count">${count}</span>`;
+                }
+                activeGrid.dispatchEvent(
+                    new CustomEvent(EVENTS.OPEN_STACK_GROUP, {
+                        bubbles: true,
+                        detail: {
+                            asset: activeAsset,
+                            members: ordered,
+                            title: `Generation group (${count} assets)`,
+                            stackId: String(activeAsset?.stack_id || "").trim(),
+                        },
+                    }),
+                );
+            } catch (err) {
+                console.debug?.(err);
             }
-            const ordered = _sortMembers(members);
-            const count = ordered.length;
-            if (count > 1) {
-                card.dataset.mjrStacked = "true";
-                card.dataset.mjrStackCount = String(count);
-                button.innerHTML = `<span class="pi pi-clone"></span><span class="mjr-stack-group-button-count">${count}</span>`;
-            }
-            gridContainer.dispatchEvent(
-                new CustomEvent(EVENTS.OPEN_STACK_GROUP, {
-                    bubbles: true,
-                    detail: {
-                        asset,
-                        members: ordered,
-                        title: `Generation group (${count} assets)`,
-                        stackId: String(asset?.stack_id || "").trim(),
-                    },
-                }),
-            );
-        } catch (err) {
-            console.debug?.(err);
-        }
-    });
+        });
+        card.appendChild(button);
+    }
 
-    card.appendChild(button);
+    button._mjrGridContainer = gridContainer;
+    button._mjrCard = card;
+    button._mjrAsset = asset;
+    button._mjrGroupKey = groupKey;
+    button.title =
+        knownCount > 1
+            ? `Open generation group in grid (${knownCount} assets)`
+            : "Open generation group in grid";
+    button.innerHTML =
+        knownCount > 1
+            ? `<span class="pi pi-clone"></span><span class="mjr-stack-group-button-count">${knownCount}</span>`
+            : `<span class="pi pi-clone"></span>`;
 }
 
 export function disposeStackGroupCards(gridContainer) {
@@ -136,18 +202,22 @@ export function ensureDupStackCard(gridContainer, card, asset) {
         button.type = "button";
         button.className = "mjr-dup-stack-button";
         button.setAttribute("aria-label", "Show all duplicates");
+        bindCardOverlayButton(button);
 
         button.addEventListener("click", (event) => {
             event.preventDefault();
             event.stopPropagation();
             try {
-                const members = Array.isArray(asset._mjrDupMembers) ? asset._mjrDupMembers : [asset];
+                const activeGrid = button?._mjrGridContainer;
+                const activeAsset = button?._mjrAsset;
+                if (!activeGrid || !activeAsset) return;
+                const members = Array.isArray(activeAsset._mjrDupMembers) ? activeAsset._mjrDupMembers : [activeAsset];
                 const n = members.length;
-                gridContainer.dispatchEvent(
+                activeGrid.dispatchEvent(
                     new CustomEvent(EVENTS.OPEN_STACK_GROUP, {
                         bubbles: true,
                         detail: {
-                            asset,
+                            asset: activeAsset,
                             members,
                             title: `Duplicates — ${n} copies`,
                             isDupGroup: true,
@@ -161,6 +231,8 @@ export function ensureDupStackCard(gridContainer, card, asset) {
         card.appendChild(button);
     }
 
+    button._mjrGridContainer = gridContainer;
+    button._mjrAsset = asset;
     const label = `${count} duplicate${count > 1 ? "s" : ""}`;
     button.title = `${label} — click to compare all copies`;
     button.innerHTML = `<span class="pi pi-copy"></span><span class="mjr-dup-stack-count">${count}</span>`;

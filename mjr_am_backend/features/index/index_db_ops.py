@@ -9,6 +9,7 @@ from typing import Any
 from ...shared import FileKind, Result
 from .entry_builder import asset_dimensions_from_metadata
 from .metadata_helpers import MetadataHelpers
+from .scan_batch_utils import normalize_filepath_str
 
 
 @asynccontextmanager
@@ -35,10 +36,12 @@ def _build_asset_insert_params(
     size: int,
     mtime: int,
 ) -> tuple:
+    # Normalize filepath to prevent case-sensitivity duplicates on Windows
+    normalized_filepath = normalize_filepath_str(filepath)
     return (
         filename,
         subfolder,
-        filepath,
+        normalized_filepath,
         str(source or "output"),
         str(root_id) if root_id else None,
         kind,
