@@ -284,8 +284,8 @@ def _parse_hydrated_tags(tags_raw: Any) -> list[Any]:
     return []
 
 
-def _hydrate_vector_row(row: dict[str, Any], score_map: dict[int, Any], aid: int) -> dict[str, Any]:
-    return {
+def _hydrate_vector_row(row: dict[str, Any], score_map: dict[int, Any], aid: int, extra_fields: dict[int, dict[str, Any]] | None = None) -> dict[str, Any]:
+    result = {
         "id": aid,
         "asset_id": aid,
         "filepath": row.get("filepath", ""),
@@ -304,19 +304,28 @@ def _hydrate_vector_row(row: dict[str, Any], score_map: dict[int, Any], aid: int
         "has_generation_data": bool(row.get("has_generation_data")),
         "_vectorScore": score_map.get(aid, 0),
     }
+    # Preserve hybrid search fields if present
+    if extra_fields and aid in extra_fields:
+        extras = extra_fields[aid]
+        if "_matchType" in extras:
+            result["_matchType"] = extras["_matchType"]
+        if "_hybridScore" in extras:
+            result["_hybridScore"] = extras["_hybridScore"]
+    return result
 
 
 def _hydrate_vector_rows(
     rows: list[dict[str, Any]],
     asset_ids: list[int],
     score_map: dict[int, Any],
+    extra_fields: dict[int, dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     row_map: dict[int, Any] = {int(row["id"]): row for row in rows}
     hydrated = []
     for aid in asset_ids:
         row = row_map.get(aid)
         if row:
-            hydrated.append(_hydrate_vector_row(row, score_map, aid))
+            hydrated.append(_hydrate_vector_row(row, score_map, aid, extra_fields))
     return hydrated
 
 
@@ -482,13 +491,27 @@ async def _hydrate_vector_results(
     Takes a ``Result`` whose ``.data`` is a list of ``{"asset_id": int, "score": float}``
     and returns a ``Result`` with ``.data`` being a list of full hydrated asset dicts
     (filepath, filename, kind, tags, rating, …) plus the ``_vectorScore`` field.
+    
+    Also preserves ``_matchType`` and ``_hybridScore`` from hybrid search results.
     """
     items = result.data or []
     if not items:
         return result
 
     asset_ids = [r["asset_id"] for r in items]
-    score_map = {r["asset_id"]: r.get("score", 0) for r in items}
+    # Build score map: prefer _hybridScore, fall back to score
+    score_map = {r["asset_id"]: r.get("_hybridScore") or r.get("score", 0) for r in items}
+    # Capture extra hybrid fields (_matchType, _hybridScore) to preserve after hydration
+    extra_fields: dict[int, dict[str, Any]] = {}
+    for r in items:
+        aid = r["asset_id"]
+        extras = {}
+        if "_matchType" in r:
+            extras["_matchType"] = r["_matchType"]
+        if "_hybridScore" in r:
+            extras["_hybridScore"] = r["_hybridScore"]
+        if extras:
+            extra_fields[aid] = extras
     placeholders = ",".join("?" for _ in asset_ids)
 
     db = services.get("db")
@@ -515,7 +538,7 @@ async def _hydrate_vector_results(
     if not rows.ok or not rows.data:
         return result
 
-    return Result.Ok(_hydrate_vector_rows(rows.data, asset_ids, score_map))
+    return Result.Ok(_hydrate_vector_rows(rows.data, asset_ids, score_map, extra_fields))
 
 
 def register_vector_search_routes(routes: web.RouteTableDef) -> None:

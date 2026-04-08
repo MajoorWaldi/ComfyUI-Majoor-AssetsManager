@@ -259,7 +259,21 @@ watchEffect(() => {
     const wrapper = dotWrapperRef.value;
     if (!wrapper) return;
     // Access reactive asset fields so watchEffect re-runs on changes.
-    const _a = props.asset; // reactive tracking
+    // We must explicitly read all properties used by createWorkflowDot/detectAiInfo
+    // for Vue to detect updates after backfill operations.
+    const _a = props.asset;
+    // eslint-disable-next-line no-unused-vars
+    const _trackWorkflow = _a?.has_workflow ?? _a?.hasWorkflow;
+    // eslint-disable-next-line no-unused-vars
+    const _trackGenData = _a?.has_generation_data ?? _a?.hasGenerationData;
+    // eslint-disable-next-line no-unused-vars
+    const _trackAiInfo = _a?.has_ai_info ?? _a?.hasAiInfo ?? _a?.ai_indexed;
+    // eslint-disable-next-line no-unused-vars
+    const _trackAutoTags = _a?.has_ai_auto_tags ?? _a?.hasAiAutoTags ?? _a?.auto_tags ?? _a?.autoTags;
+    // eslint-disable-next-line no-unused-vars
+    const _trackCaption = _a?.has_ai_enhanced_caption ?? _a?.hasAiEnhancedCaption ?? _a?.enhanced_caption ?? _a?.enhancedCaption;
+    // eslint-disable-next-line no-unused-vars
+    const _trackVector = _a?.has_ai_vector ?? _a?.hasAiVector ?? _a?.vector_indexed ?? _a?.vectorIndexed;
     try {
         wrapper.textContent = "";
         const dot = createWorkflowDot(_a);
