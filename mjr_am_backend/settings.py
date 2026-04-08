@@ -15,6 +15,7 @@ from typing import Any
 from .config import (
     MEDIA_PROBE_BACKEND,
     OUTPUT_ROOT,
+    _OUTPUT_DIR_OVERRIDE_FILE_PATH,
     is_execution_grouping_enabled,
     is_vector_search_enabled,
 )
@@ -1259,6 +1260,7 @@ class AppSettings:
             if not result.ok:
                 return Result.Err("DB_ERROR", result.error or "Failed to clear output directory")
             self._clear_output_directory_env_vars()
+            self._clear_output_directory_override_file()
             restore_target = self._restore_output_directory_target()
             if restore_target:
                 self._apply_comfy_output_directory(restore_target)
@@ -1272,6 +1274,7 @@ class AppSettings:
             if not result.ok:
                 return Result.Err("DB_ERROR", result.error or "Failed to persist output directory")
             self._set_output_directory_env_vars(normalized)
+            self._write_output_directory_override_file(normalized)
             self._apply_comfy_output_directory(normalized)
             await self._warn_if_bump_fails("Failed to bump settings version")
             return Result.Ok(normalized)
@@ -1280,6 +1283,13 @@ class AppSettings:
         try:
             os.environ.pop("MAJOOR_OUTPUT_DIRECTORY", None)
             os.environ.pop("MJR_AM_OUTPUT_DIRECTORY", None)
+        except Exception:
+            return
+
+    def _clear_output_directory_override_file(self) -> None:
+        try:
+            if _OUTPUT_DIR_OVERRIDE_FILE_PATH.exists():
+                _OUTPUT_DIR_OVERRIDE_FILE_PATH.unlink()
         except Exception:
             return
 
@@ -1304,6 +1314,12 @@ class AppSettings:
                     os.environ[_ORIGINAL_OUTPUT_DIRECTORY_ENV] = current
             os.environ["MAJOOR_OUTPUT_DIRECTORY"] = normalized
             os.environ["MJR_AM_OUTPUT_DIRECTORY"] = normalized
+        except Exception:
+            return
+
+    def _write_output_directory_override_file(self, normalized: str) -> None:
+        try:
+            _OUTPUT_DIR_OVERRIDE_FILE_PATH.write_text(normalized + "\n", encoding="utf-8")
         except Exception:
             return
 

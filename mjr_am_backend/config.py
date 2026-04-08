@@ -13,6 +13,9 @@ from .utils import env_bool
 logger = logging.getLogger(__name__)
 _INIT_LOCK = threading.Lock()
 _DIRS_INITIALIZED = False
+_OUTPUT_DIR_OVERRIDE_FILE_PATH = Path(__file__).resolve().parents[1] / ".mjr_output_directory_override"
+_INDEX_DIR_OVERRIDE_ENV_NAMES = ("MJR_AM_INDEX_DIRECTORY", "MAJOOR_INDEX_DIRECTORY")
+_INDEX_DIR_OVERRIDE_FILE_PATH = Path(__file__).resolve().parents[1] / ".mjr_index_directory_override"
 
 
 def _env_raw(*names: str, default: str | None = None) -> str | None:
@@ -75,6 +78,16 @@ def _env_bool(default: bool, *names: str) -> bool:
             continue
     return default
 
+
+def _read_output_dir_override_from_file() -> str | None:
+    try:
+        if not _OUTPUT_DIR_OVERRIDE_FILE_PATH.exists():
+            return None
+        raw = _OUTPUT_DIR_OVERRIDE_FILE_PATH.read_text(encoding="utf-8").strip()
+        return raw or None
+    except Exception:
+        return None
+
 def _resolve_output_root() -> Path:
     resolved = _resolve_output_root_from_env()
     if resolved is not None:
@@ -91,11 +104,13 @@ def _resolve_output_root() -> Path:
 def _resolve_output_root_from_env() -> Path | None:
     env_path = _env_raw("MJR_AM_OUTPUT_DIRECTORY", "MAJOOR_OUTPUT_DIRECTORY")
     if not env_path:
+        env_path = _read_output_dir_override_from_file()
+    if not env_path:
         return None
     try:
         return Path(env_path).expanduser().resolve()
     except (OSError, RuntimeError):
-        logger.warning("Failed to resolve MAJOOR_OUTPUT_DIRECTORY: %s, using fallback", env_path)
+        logger.warning("Failed to resolve output directory override: %s, using fallback", env_path)
         return None
 
 
@@ -219,9 +234,6 @@ def _detect_comfy_root(current_file: Path) -> Path | None:
 
 OUTPUT_ROOT_PATH = _resolve_output_root()
 OUTPUT_ROOT = str(OUTPUT_ROOT_PATH)
-
-_INDEX_DIR_OVERRIDE_ENV_NAMES = ("MJR_AM_INDEX_DIRECTORY", "MAJOOR_INDEX_DIRECTORY")
-_INDEX_DIR_OVERRIDE_FILE_PATH = Path(__file__).resolve().parents[1] / ".mjr_index_directory_override"
 
 
 def get_runtime_output_root() -> str:

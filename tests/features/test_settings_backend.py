@@ -337,6 +337,7 @@ async def test_output_directory_set_get_clear(tmp_path: Path, monkeypatch):
     db = _DB()
     s = AppSettings(db)
     target = str(tmp_path)
+    override_file = tmp_path / "output-override.txt"
 
     class _FP:
         output_directory = ""
@@ -350,16 +351,19 @@ async def test_output_directory_set_get_clear(tmp_path: Path, monkeypatch):
             return "C:/orig"
 
     monkeypatch.setitem(sys.modules, "folder_paths", _FP)
+    monkeypatch.setattr("mjr_am_backend.settings._OUTPUT_DIR_OVERRIDE_FILE_PATH", override_file)
 
     set_res = await s.set_output_directory(target)
     assert set_res.ok
     assert db.store[_OUTPUT_DIRECTORY_KEY]
+    assert override_file.read_text(encoding="utf-8").strip() == str(tmp_path.resolve())
     got = await s.get_output_directory()
     assert got
 
     clear_res = await s.set_output_directory("")
     assert clear_res.ok
     assert _OUTPUT_DIRECTORY_KEY not in db.store
+    assert not override_file.exists()
 
 
 @pytest.mark.asyncio

@@ -121,3 +121,18 @@ def test_set_and_clear_index_dir_override(monkeypatch, tmp_path):
     cleared = cfg.set_index_directory_override("")
     assert cleared == ""
     assert not override_file.exists()
+
+
+def test_output_root_override_from_sidecar_file(monkeypatch, tmp_path):
+    import mjr_am_backend.config as cfg
+
+    override_root = tmp_path / "custom-output"
+    override_root.mkdir()
+    override_file = tmp_path / "output-override.txt"
+    override_file.write_text(str(override_root) + "\n", encoding="utf-8")
+
+    monkeypatch.delenv("MJR_AM_OUTPUT_DIRECTORY", raising=False)
+    monkeypatch.delenv("MAJOOR_OUTPUT_DIRECTORY", raising=False)
+    monkeypatch.setattr(cfg, "_OUTPUT_DIR_OVERRIDE_FILE_PATH", override_file)
+
+    assert cfg._resolve_output_root_from_env() == override_root.resolve()
