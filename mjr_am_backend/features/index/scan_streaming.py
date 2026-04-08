@@ -14,7 +14,7 @@ from typing import Any
 
 from ...config import SCAN_BATCH_XL, SCAN_LOG_PROGRESS_EVERY, SCAN_LOG_PROGRESS_MIN_SECONDS
 from .fs_walker import _FS_WALK_EXECUTOR, ScanQueueItem, scan_candidate_path
-from .index_batching import existing_map_for_batch, index_batch
+from .index_batching import BatchCandidate, existing_map_for_batch, index_batch
 from .scan_batch_utils import normalize_filepath_str, stream_batch_target
 from .scan_storage_ops import get_journal_entries
 
@@ -252,13 +252,17 @@ async def scan_stream_batch(
     if not batch:
         return
 
-    filepaths = [normalize_filepath_str(scan_candidate_path(p)) for p in batch if p is not None]
+    batch_candidates: list[BatchCandidate] = [item for item in batch if item is not None]
+    if not batch_candidates:
+        return
+
+    filepaths = [normalize_filepath_str(scan_candidate_path(p)) for p in batch_candidates]
     journal_map = (await get_journal_entries(scanner, filepaths=filepaths)) if incremental and filepaths else {}
     existing_map = await existing_map_for_batch(scanner, filepaths=filepaths)
 
     await index_batch(
         scanner,
-        batch=batch,
+        batch=batch_candidates,
         base_dir=base_dir,
         incremental=incremental,
         source=source,

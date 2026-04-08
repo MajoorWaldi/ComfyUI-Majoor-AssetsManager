@@ -6,7 +6,7 @@ import logging
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeAlias
 
 from ...config import IS_WINDOWS
 from ...shared import Result, classify_file, get_logger
@@ -68,7 +68,7 @@ def metadata_queue_item(
     )
 
 
-BatchCandidate = Path | ScanCandidate
+BatchCandidate: TypeAlias = Path | ScanCandidate
 
 
 async def index_paths_batches(
@@ -85,12 +85,13 @@ async def index_paths_batches(
     for batch in chunk_file_batches(paths):
         if not batch:
             continue
+        batch_candidates: list[BatchCandidate] = list(batch)
         filepaths = [normalize_filepath_str(p) for p in batch]
         journal_map = await journal_map_for_batch(scanner, filepaths=filepaths, incremental=incremental)
         existing_map = await existing_map_for_batch(scanner, filepaths=filepaths)
         await index_batch(
             scanner,
-            batch=batch,
+            batch=batch_candidates,
             base_dir=base_dir,
             incremental=incremental,
             source=source,
