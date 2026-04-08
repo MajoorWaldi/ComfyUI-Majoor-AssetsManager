@@ -11,9 +11,12 @@
  */
 
 const CACHE_KEY = "__MJR_MEDIA_BLOB_CACHE__";
-const MAX_ENTRIES = 150;
-const TTL_MS = 30 * 60 * 1000; // 30 minutes
-const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+// Session cache: keep thumbs in memory for faster re-access during the session.
+// On modern systems with 16GB+ RAM, 2000 thumbs at ~50KB avg = ~100MB max.
+const MAX_ENTRIES = 2000;
+// Long TTL: keep cached for entire session (cleaned on page unload anyway).
+const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours (session-bound)
+const CLEANUP_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes (less aggressive)
 
 /**
  * @typedef {{ blobUrl: string|null, refcount: number, expiresAt: number, hasError: boolean }} CacheEntry

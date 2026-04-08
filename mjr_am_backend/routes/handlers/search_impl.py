@@ -45,7 +45,8 @@ from .filesystem import (
     _parse_filesystem_listing_filters,
 )
 
-DEFAULT_LIST_LIMIT = 50
+# Aligned with frontend DEFAULT_PAGE_SIZE for optimal batch loading
+DEFAULT_LIST_LIMIT = 200
 DEFAULT_LIST_OFFSET = 0
 MAX_LIST_LIMIT = 5000
 MAX_LIST_OFFSET = 100_000  # Fix M-8: 1M offset causes DB to scan/skip millions of rows; cap at 100k

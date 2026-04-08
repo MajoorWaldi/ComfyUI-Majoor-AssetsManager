@@ -32,17 +32,52 @@ export function createMjrApp(rootComponent, props = undefined) {
     return { app, pinia };
 }
 
-// WeakMap<HTMLElement, Map<mountKey, Vue app>> — avoids polluting DOM elements
-// with expando properties and works correctly even on frozen/sealed elements.
-const _registry = new WeakMap();
+// Map<mountKey, { app, host, container }> — keep a single app/host pair alive
+// across ComfyUI render() calls even when the framework swaps the outer
+// container element between tab activations.
+const _registry = new Map();
 
-function _getKeyMap(container) {
-    let map = _registry.get(container);
-    if (!map) {
-        map = new Map();
-        _registry.set(container, map);
+function _dispatchKeepAliveAttached(mountKey, host, container) {
+    try {
+        window.dispatchEvent(
+            new CustomEvent("mjr:keepalive-attached", {
+                detail: {
+                    mountKey: String(mountKey || "_mjrVueApp"),
+                    host: host || null,
+                    container: container || null,
+                },
+            }),
+        );
+    } catch {
+        /* ignore */
     }
-    return map;
+}
+
+function _createHost(mountKey) {
+    const host = document.createElement("div");
+    host.dataset.mjrKeepAliveHost = String(mountKey || "_mjrVueApp");
+    host.style.height = "100%";
+    host.style.width = "100%";
+    host.style.minHeight = "0";
+    host.style.display = "flex";
+    host.style.flexDirection = "column";
+    host.style.overflow = "hidden";
+    return host;
+}
+
+function _attachHost(container, host) {
+    if (!container || !host) return;
+    // Constrain the ComfyUI-provided container so our host's height:100% works correctly.
+    // Without this, the container expands to the full content height (200000+ px),
+    // making scroll impossible inside el.mjr-am-grid-scroll.
+    container.style.height = "100%";
+    container.style.minHeight = "0";
+    container.style.display = "flex";
+    container.style.flexDirection = "column";
+    container.style.overflow = "hidden";
+    if (container.firstChild === host && container.childNodes.length === 1) return;
+    container.replaceChildren(host);
+    _dispatchKeepAliveAttached(host?.dataset?.mjrKeepAliveHost, host, container);
 }
 
 /**
@@ -60,13 +95,20 @@ function _getKeyMap(container) {
  */
 export function mountKeepAlive(container, component, mountKey = "_mjrVueApp") {
     if (!container) return false;
-    const map = _getKeyMap(container);
-    if (map.has(mountKey)) return false; // already mounted — keep-alive
+    let record = _registry.get(mountKey);
+    let created = false;
+    if (!record) {
+        const host = _createHost(mountKey);
+        const { app } = createMjrApp(component);
+        app.mount(host);
+        record = { app, host, container: null };
+        _registry.set(mountKey, record);
+        created = true;
+    }
 
-    const { app } = createMjrApp(component);
-    app.mount(container);
-    map.set(mountKey, app);
-    return true;
+    _attachHost(container, record.host);
+    record.container = container;
+    return created;
 }
 
 /**
@@ -78,15 +120,18 @@ export function mountKeepAlive(container, component, mountKey = "_mjrVueApp") {
  * @param {string}      [mountKey]
  */
 export function unmountKeepAlive(container, mountKey = "_mjrVueApp") {
-    if (!container) return;
-    const map = _registry.get(container);
-    if (!map) return;
-    const app = map.get(mountKey);
-    if (!app) return;
+    void container;
+    const record = _registry.get(mountKey);
+    if (!record?.app) return;
     try {
-        app.unmount();
+        record.app.unmount();
     } catch {
         /* ignore */
     }
-    map.delete(mountKey);
+    try {
+        record.host?.remove?.();
+    } catch {
+        /* ignore */
+    }
+    _registry.delete(mountKey);
 }

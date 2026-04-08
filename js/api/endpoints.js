@@ -5,7 +5,7 @@
 import { normalizeAssetId, pickRootId } from "../utils/ids.js";
 import { hasWindowsDrivePrefix, splitFilenameAndSubfolder, toPosixPath } from "../utils/path.js";
 
-const DEFAULT_QUERY_LIMIT = 100;
+const DEFAULT_QUERY_LIMIT = 200;
 const DEFAULT_QUERY_OFFSET = 0;
 
 export const ENDPOINTS = {

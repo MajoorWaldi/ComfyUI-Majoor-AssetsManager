@@ -5,6 +5,8 @@ import { APP_CONFIG } from "../../app/config.js";
 import { loadMajoorSettings } from "../../app/settings.js";
 import { setFileBadgeCollision } from "../../components/Badges.js";
 import { pickRootId } from "../../utils/ids.js";
+import { isGridHostVisible } from "./gridVisibility.js";
+import { consumeEarlyFetch } from "../../features/runtime/entryUiRegistration.js";
 import {
     appendAssets as cardAppendAssets,
 } from "../../features/grid/AssetCardRenderer.js";
@@ -347,9 +349,21 @@ export function useGridLoader({
     readScrollElement = () => null,
     readRenderedCards = () => [],
     scrollToAssetId = () => {},
+    canLoadMore = null,
 } = {}) {
     function getGridContainer() {
         return resolveElement(gridContainerRef);
+    }
+
+    function canLoadFromHost() {
+        try {
+            if (typeof canLoadMore === "function") {
+                return !!canLoadMore();
+            }
+        } catch (e) {
+            console.debug?.(e);
+        }
+        return isGridHostVisible(getGridContainer(), readScrollElement());
     }
 
     function assetKey(asset, gridContainer = null) {
@@ -456,6 +470,40 @@ export function useGridLoader({
         if (!gridContainer) {
             return { ok: false, error: "Grid unavailable" };
         }
+
+        // Try to use early-fetched data for the first page of default browse context.
+        // This significantly reduces perceived load time when opening the panel.
+        if (offset === 0) {
+            const scope = String(gridContainer.dataset?.mjrScope || "output").toLowerCase();
+            const sort = String(gridContainer.dataset?.mjrSort || "mtime_desc").toLowerCase();
+            const normalizedQuery = String(query || "*").trim() || "*";
+            const isDefaultContext = scope === "output" && normalizedQuery === "*" && sort === "mtime_desc";
+            
+            if (isDefaultContext) {
+                const earlyFetchPromise = consumeEarlyFetch("output:*:mtime_desc");
+                if (earlyFetchPromise) {
+                    try {
+                        const earlyResult = await earlyFetchPromise;
+                        // API returns { ok, data: { assets: [...], total, ... } }
+                        const earlyAssets = earlyResult?.data?.assets;
+                        if (earlyResult?.ok && Array.isArray(earlyAssets)) {
+                            console.debug("[Grid] Using early-fetched data:", earlyAssets.length, "assets");
+                            return {
+                                ok: true,
+                                assets: earlyAssets,
+                                total: Number(earlyResult.data?.total ?? earlyResult.meta?.total ?? earlyAssets.length) || 0,
+                                count: earlyAssets.length,
+                                limit: limit,
+                                offset: 0,
+                            };
+                        }
+                    } catch (e) {
+                        console.debug("[Grid] Early fetch failed, falling back to normal fetch", e);
+                    }
+                }
+            }
+        }
+
         return fetchGridPage(
             gridContainer,
             query,
@@ -490,6 +538,9 @@ export function useGridLoader({
     async function loadNextPage() {
         const gridContainer = getGridContainer();
         if (!gridContainer || state.loading || state.done) return { ok: true, skipped: true };
+        if (!canLoadFromHost()) {
+            return { ok: true, skipped: true, hidden: true };
+        }
 
         const baseLimit = Math.max(
             1,
@@ -509,6 +560,9 @@ export function useGridLoader({
         try {
             let emptyAppendBatches = 0;
             while (!state.done) {
+                if (!canLoadFromHost()) {
+                    return { ok: true, skipped: true, hidden: true };
+                }
                 const currentLimit = getAdaptivePageLimit(baseLimit, emptyAppendBatches);
                 const page = await fetchPage(state.query, currentLimit, state.offset, {
                     requestId: Number(state.requestId ?? 0) || 0,
@@ -650,6 +704,23 @@ export function useGridLoader({
         }
 
         const result = await loadNextPage();
+
+        // Prefetch next page immediately for faster scrolling (non-blocking)
+        if (
+            APP_CONFIG.PREFETCH_NEXT_PAGE &&
+            result?.ok &&
+            !result?.skipped &&
+            !state.done &&
+            !result?.aborted
+        ) {
+            // Schedule prefetch after current microtask to not block initial render
+            queueMicrotask(() => {
+                if (!state.done && !state.loading) {
+                    loadNextPage().catch(() => {/* ignore prefetch errors */});
+                }
+            });
+        }
+
         if (reset) {
             finalizeLoad({ title: safeQuery });
         }

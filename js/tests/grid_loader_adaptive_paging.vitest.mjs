@@ -60,6 +60,17 @@ vi.mock("../vue/composables/useVirtualGrid.js", async () => {
     };
 });
 
+function createVisibleElement({ dataset = {}, scrollTop = 0 } = {}) {
+    return {
+        dataset,
+        scrollTop,
+        isConnected: true,
+        clientWidth: 320,
+        clientHeight: 240,
+        getClientRects: vi.fn(() => [{ width: 320, height: 240 }]),
+    };
+}
+
 describe("useGridLoader adaptive paging", () => {
     beforeEach(() => {
         vi.resetModules();
@@ -100,7 +111,8 @@ describe("useGridLoader adaptive paging", () => {
             statusError: false,
         };
 
-        const gridContainer = { dataset: {} };
+        const gridContainer = createVisibleElement({ dataset: {} });
+        const scrollElement = createVisibleElement();
         const loader = useGridLoader({
             gridContainerRef: { value: gridContainer },
             state,
@@ -111,7 +123,7 @@ describe("useGridLoader adaptive paging", () => {
             resetAssets: vi.fn(),
             setSelection: vi.fn(),
             reconcileSelection: vi.fn(),
-            readScrollElement: () => null,
+            readScrollElement: () => scrollElement,
             readRenderedCards: () => [],
             scrollToAssetId: vi.fn(),
         });
@@ -131,13 +143,14 @@ describe("useGridLoader adaptive paging", () => {
         });
 
         let module = await import("../vue/composables/useGridLoader.js");
-        const gridContainer = {
+        const gridContainer = createVisibleElement({
             dataset: {
                 mjrScope: "output",
                 mjrQuery: "*",
                 mjrSort: "mtime_desc",
             },
-        };
+        });
+        const scrollElement = createVisibleElement();
         const state1 = {
             loading: false,
             done: false,
@@ -145,6 +158,7 @@ describe("useGridLoader adaptive paging", () => {
             offset: 2,
             requestId: 1,
             abortController: null,
+            query: "*",
             assets: [
                 { id: 1, filename: "one.png", kind: "image", source: "output" },
                 { id: 2, filename: "two.png", kind: "image", source: "output" },
@@ -164,7 +178,7 @@ describe("useGridLoader adaptive paging", () => {
             resetAssets: vi.fn(),
             setSelection: vi.fn(),
             reconcileSelection: vi.fn(),
-            readScrollElement: () => null,
+            readScrollElement: () => scrollElement,
             readRenderedCards: () => [],
             scrollToAssetId: vi.fn(),
         });
@@ -173,7 +187,7 @@ describe("useGridLoader adaptive paging", () => {
         vi.resetModules();
         module = await import("../vue/composables/useGridLoader.js");
 
-        const state2 = {
+                const state2 = {
             loading: false,
             done: false,
             total: null,
@@ -201,7 +215,7 @@ describe("useGridLoader adaptive paging", () => {
             resetAssets,
             setSelection: vi.fn(),
             reconcileSelection: vi.fn(),
-            readScrollElement: () => null,
+            readScrollElement: () => scrollElement,
             readRenderedCards: () => [],
             scrollToAssetId: vi.fn(),
         });
@@ -217,5 +231,108 @@ describe("useGridLoader adaptive paging", () => {
         expect(state2.offset).toBe(2);
         expect(state2.total).toBe(50);
         expect(state2.done).toBe(false);
+    });
+
+    it("skips next-page loading while the grid host is hidden", async () => {
+        const { useGridLoader } = await import("../vue/composables/useGridLoader.js");
+
+        const state = {
+            loading: false,
+            done: false,
+            total: 7000,
+            offset: 0,
+            requestId: 1,
+            abortController: null,
+            assets: [],
+            activeId: "",
+            statusMessage: "",
+            statusError: false,
+        };
+        const gridContainer = {
+            dataset: {},
+            isConnected: false,
+            getClientRects: vi.fn(() => []),
+        };
+        const scrollElement = {
+            clientWidth: 320,
+            clientHeight: 240,
+            isConnected: false,
+            getClientRects: vi.fn(() => []),
+        };
+
+        const loader = useGridLoader({
+            gridContainerRef: { value: gridContainer },
+            state,
+            setLoadingMessage: vi.fn(),
+            clearLoadingMessage: vi.fn(),
+            setStatusMessage: vi.fn(),
+            clearStatusMessage: vi.fn(),
+            resetAssets: vi.fn(),
+            setSelection: vi.fn(),
+            reconcileSelection: vi.fn(),
+            readScrollElement: () => scrollElement,
+            readRenderedCards: () => [],
+            scrollToAssetId: vi.fn(),
+        });
+
+        const result = await loader.loadNextPage();
+
+        expect(result).toMatchObject({ ok: true, skipped: true, hidden: true });
+        expect(fetchGridPageMock).not.toHaveBeenCalled();
+    });
+
+    it("continues loading when only the scroll wrapper has a visible rect", async () => {
+        const { useGridLoader } = await import("../vue/composables/useGridLoader.js");
+
+        fetchGridPageMock.mockResolvedValue({
+            ok: true,
+            assets: [{ id: "asset-1" }],
+            total: 1,
+            count: 1,
+            limit: 100,
+            offset: 0,
+        });
+        appendAssetsMock.mockReturnValue(1);
+
+        const state = {
+            loading: false,
+            done: false,
+            total: 1,
+            offset: 0,
+            requestId: 1,
+            abortController: null,
+            assets: [],
+            activeId: "",
+            statusMessage: "",
+            statusError: false,
+        };
+        const gridContainer = {
+            dataset: {},
+            isConnected: true,
+            clientWidth: 0,
+            clientHeight: 0,
+            getClientRects: vi.fn(() => []),
+        };
+        const scrollElement = createVisibleElement();
+
+        const loader = useGridLoader({
+            gridContainerRef: { value: gridContainer },
+            state,
+            setLoadingMessage: vi.fn(),
+            clearLoadingMessage: vi.fn(),
+            setStatusMessage: vi.fn(),
+            clearStatusMessage: vi.fn(),
+            resetAssets: vi.fn(),
+            setSelection: vi.fn(),
+            reconcileSelection: vi.fn(),
+            readScrollElement: () => scrollElement,
+            readRenderedCards: () => [],
+            scrollToAssetId: vi.fn(),
+        });
+
+        const result = await loader.loadNextPage();
+
+        expect(result).toMatchObject({ ok: true, count: 1, total: 1 });
+        expect(fetchGridPageMock).toHaveBeenCalledTimes(1);
     });
 });

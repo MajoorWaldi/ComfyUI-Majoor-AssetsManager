@@ -39,16 +39,57 @@ const AUDIO_BARS = [
     [50, 9, 3, 14], [56, 6, 3, 20],
 ];
 
-function observeVideoThumb(video) {
+/**
+ * Load image using the session blob cache for instant re-access.
+ * Falls back to direct URL if cache fails.
+ */
+async function loadImageBlob(url) {
+    if (!url) return null;
+    try {
+        if (MediaBlobCache.hasError(url)) return url;
+        const cachedUrl = await MediaBlobCache.acquireUrl(url);
+        return cachedUrl || url;
+    } catch {
+        return url;
+    }
+}
+
+/**
+ * Load video thumbnail using the session blob cache for instant re-access.
+ * Falls back to direct URL if cache fails.
+ */
+async function observeVideoThumb(video) {
     if (!video) return;
     try {
         const src = String(video.dataset?.src || "").trim();
-        if (src && !video.getAttribute("src")) {
-            video.src = src;
-            video.load?.();
+        if (!src || video.getAttribute("src")) return;
+        
+        // Check if already errored
+        if (MediaBlobCache.hasError(src)) {
+            video.src = src; // Let browser show error
+            return;
         }
+        
+        // Try to get from blob cache (or fetch + cache)
+        const cachedUrl = await MediaBlobCache.acquireUrl(src);
+        if (cachedUrl) {
+            video.src = cachedUrl;
+            video._mjrCachedSrc = src; // Track original URL for release
+        } else {
+            // Fallback to direct URL if blob cache fails
+            video.src = src;
+        }
+        video.load?.();
     } catch (e) {
         console.debug?.(e);
+        // Fallback
+        try {
+            const src = String(video.dataset?.src || "").trim();
+            if (src && !video.getAttribute("src")) {
+                video.src = src;
+                video.load?.();
+            }
+        } catch {}
     }
 }
 
@@ -169,9 +210,27 @@ const fileBadgeBg = computed(() => {
 
 const thumbRef = ref(null);
 const videoRef = ref(null);
+const imgRef = ref(null);
 const dotWrapperRef = ref(null);
 const imgError = ref(false);
 const model3dImgError = ref(false);
+const cachedImageSrc = ref("");
+
+// ─── Image thumb lifecycle (blob cache) ───────────────────────────────────────
+
+watch(
+    () => [imgRef.value, viewUrl.value],
+    async ([img, url]) => {
+        if (!img || !url || imgError.value) return;
+        try {
+            const cached = await loadImageBlob(url);
+            if (cached && cached !== cachedImageSrc.value) {
+                cachedImageSrc.value = cached;
+            }
+        } catch {}
+    },
+    { immediate: true }
+);
 
 // ─── Video thumb lifecycle (observe/unobserve) ────────────────────────────────
 
@@ -250,7 +309,7 @@ function onFileBadgeClick(event) {
                 :alt="filename"
                 loading="lazy"
                 decoding="async"
-                :src="viewUrl"
+                :src="cachedImageSrc || viewUrl"
                 @error="onImgError"
             />
             <div v-if="imgError" class="mjr-media-error-placeholder">

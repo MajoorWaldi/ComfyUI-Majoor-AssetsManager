@@ -15,6 +15,9 @@
  * without any extra imperative registration calls.
  */
 
+import { get } from "../../api/client.js";
+import { buildListURL } from "../../api/endpoints.js";
+import { APP_CONFIG } from "../../app/config.js";
 import {
     activateSidebarTabCompat,
     registerBottomPanelTabCompat,
@@ -34,6 +37,63 @@ const GLOBAL_RUNTIME_ROOT_ID = "mjr-global-runtime-root";
 const GLOBAL_RUNTIME_MOUNT_KEY = "_mjrGlobalRuntimeVueApp";
 const SIDEBAR_MOUNT_KEY = "_mjrSidebarVueApp";
 const FEED_MOUNT_KEY = "_mjrFeedVueApp";
+
+// ── early fetch for faster initial load ──────────────────────────────────────
+// Start fetching assets as soon as sidebar is activated, before Vue fully mounts.
+// This prefetched data is consumed by useGridLoader when it initializes.
+let _earlyFetchPromise = null;
+let _earlyFetchKey = null;
+const EARLY_FETCH_TTL_MS = 5000; // Prefetch valid for 5 seconds
+let _earlyFetchTimestamp = 0;
+
+function startEarlyFetch() {
+    const now = Date.now();
+    const key = "output:*:mtime_desc"; // Default browse context
+    
+    // Skip if we already have a valid prefetch
+    if (_earlyFetchPromise && _earlyFetchKey === key && (now - _earlyFetchTimestamp) < EARLY_FETCH_TTL_MS) {
+        return _earlyFetchPromise;
+    }
+    
+    _earlyFetchKey = key;
+    _earlyFetchTimestamp = now;
+    
+    try {
+        const url = buildListURL({
+            query: "*",
+            limit: APP_CONFIG.DEFAULT_PAGE_SIZE || 200,
+            offset: 0,
+            scope: "output",
+            sort: "mtime_desc",
+        });
+        _earlyFetchPromise = get(url).catch(() => null);
+    } catch {
+        _earlyFetchPromise = null;
+    }
+    
+    return _earlyFetchPromise;
+}
+
+/**
+ * Consume the early fetch result if available and matching.
+ * Called by useGridLoader on first load.
+ */
+export function consumeEarlyFetch(key = "output:*:mtime_desc") {
+    if (!_earlyFetchPromise || _earlyFetchKey !== key) {
+        return null;
+    }
+    const now = Date.now();
+    if ((now - _earlyFetchTimestamp) >= EARLY_FETCH_TTL_MS) {
+        _earlyFetchPromise = null;
+        _earlyFetchKey = null;
+        return null;
+    }
+    const promise = _earlyFetchPromise;
+    // Clear after consumption to avoid stale reuse
+    _earlyFetchPromise = null;
+    _earlyFetchKey = null;
+    return promise;
+}
 
 function ensureGlobalRuntimeRoot() {
     if (typeof document === "undefined" || !document?.body) return null;
@@ -160,6 +220,9 @@ export function registerAssetsSidebar(runtimeApp, { sidebarTabId }) {
         type: "custom",
 
         render(el) {
+            // Start fetching assets immediately to reduce perceived load time.
+            // The Vue app will consume this prefetched data when it mounts.
+            startEarlyFetch();
             // Mount the Vue app once; subsequent calls reuse the live instance.
             mountKeepAlive(el, AssetsManagerApp, SIDEBAR_MOUNT_KEY);
         },
@@ -179,8 +242,7 @@ export function registerAssetsSidebar(runtimeApp, { sidebarTabId }) {
  */
 export function teardownAssetsSidebar() {
     try {
-        const el = document.querySelector(`[data-tab-id="majoor-assets"]`);
-        if (el) unmountKeepAlive(el, SIDEBAR_MOUNT_KEY);
+        unmountKeepAlive(null, SIDEBAR_MOUNT_KEY);
     } catch {
         /* ignore */
     }
@@ -218,6 +280,14 @@ export function buildBottomPanelTabs() {
 
 export function registerGeneratedBottomPanel(runtimeApp) {
     return registerBottomPanelTabCompat(runtimeApp, getGeneratedFeedBottomPanelTab());
+}
+
+export function teardownGeneratedFeed() {
+    try {
+        unmountKeepAlive(null, FEED_MOUNT_KEY);
+    } catch {
+        /* ignore */
+    }
 }
 
 // ── node context-menu items ───────────────────────────────────────────────────

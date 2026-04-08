@@ -57,6 +57,8 @@ import {
     mountGlobalRuntime,
     registerAssetsSidebar,
     registerNativeCommands,
+    teardownGeneratedFeed,
+    teardownAssetsSidebar,
     teardownGlobalRuntime,
 } from "./features/runtime/entryUiRegistration.js";
 import {
@@ -79,6 +81,7 @@ let nodeStreamModule = null;
 
 const SIDEBAR_TAB_ID = "majoor-assets";
 const EXECUTION_RUNTIME_KEY = "__MJR_EXECUTION_RUNTIME__";
+const EXTENSION_NAME = "Majoor.AssetsManager";
 
 // ── execution runtime helpers ─────────────────────────────────────────────────
 
@@ -214,9 +217,10 @@ const executionRuntime = createExecutionRuntimeController({
 });
 
 // ── extension registration ─────────────────────────────────────────────────────
-
+// Keep registration unconditional. ComfyUI reload needs setup() to run again,
+// and installEntryRuntimeController() already tears down the previous runtime.
 app.registerExtension({
-    name: "Majoor.AssetsManager",
+    name: EXTENSION_NAME,
 
     /**
      * Declarative settings — registered with ComfyUI's settings panel.
@@ -250,6 +254,8 @@ app.registerExtension({
                 liveStreamModule?.teardownLiveStreamTracker(runtimeApp),
             teardownNodeStream: (runtimeApp) => nodeStreamModule?.teardownNodeStream(runtimeApp),
             teardownFloatingViewerManager,
+            teardownGeneratedFeed,
+            teardownAssetsSidebar,
             teardownGlobalRuntime,
             reportError,
         });

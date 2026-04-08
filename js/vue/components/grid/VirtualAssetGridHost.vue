@@ -11,6 +11,7 @@ import AssetCardInner from "./AssetCardInner.vue";
 import FolderCard from "./FolderCard.vue";
 import { useGridState } from "../../composables/useGridState.js";
 import { useGridLoader } from "../../composables/useGridLoader.js";
+import { isGridHostVisible } from "../../composables/gridVisibility.js";
 
 const props = defineProps({
     scrollElement: {
@@ -108,6 +109,10 @@ function scrollToAssetId(assetId, { align = "auto" } = {}) {
     }
 }
 
+function isGridVisible() {
+    return isGridHostVisible(gridContainerRef.value, scrollElementRef.value);
+}
+
 const loader = useGridLoader({
     gridContainerRef,
     state,
@@ -121,6 +126,7 @@ const loader = useGridLoader({
     readScrollElement: () => scrollElementRef.value,
     readRenderedCards,
     scrollToAssetId,
+    canLoadMore: isGridVisible,
 });
 
 function getAssetExt(asset) {
@@ -923,6 +929,11 @@ function handleCardDblclick(asset) {
 
 let scrollCleanup = null;
 
+function handleKeepAliveAttached() {
+    if (!isGridVisible()) return;
+    void maybeFillViewport();
+}
+
 function bindInfiniteScroll(element) {
     if (!element || !props.virtualize) return () => {};
     const onScroll = () => {
@@ -1080,6 +1091,11 @@ onBeforeUnmount(() => {
     } catch (e) {
         console.debug?.(e);
     }
+    try {
+        window.removeEventListener("mjr:keepalive-attached", handleKeepAliveAttached);
+    } catch (e) {
+        console.debug?.(e);
+    }
 });
 
 watch(
@@ -1088,6 +1104,7 @@ watch(
         if (!container) return;
         if (settingsListenerBound) return;
         window.addEventListener("mjr-settings-changed", onSettingsChanged);
+        window.addEventListener("mjr:keepalive-attached", handleKeepAliveAttached);
         settingsListenerBound = true;
     },
     { immediate: true },

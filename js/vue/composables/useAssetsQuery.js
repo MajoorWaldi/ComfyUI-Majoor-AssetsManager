@@ -1,5 +1,6 @@
 import { get } from "../../api/client.js";
 import { ENDPOINTS } from "../../api/endpoints.js";
+import { isGridHostVisible } from "./gridVisibility.js";
 
 function nextFrame(callback) {
     try {
@@ -36,6 +37,7 @@ function isDefaultBrowseContext(state = {}, stableQuery = "*") {
 export function createAssetsQueryController({
     gridContainer,
     gridWrapper,
+    readScrollElement = () => null,
     gridController,
     captureAnchor,
     restoreAnchor,
@@ -54,6 +56,43 @@ export function createAssetsQueryController({
     let isReloading = false;
     let autoLoadTimer = null;
     let searchDebounceTimer = null;
+    let pendingAutoLoadPromise = null;
+    let pendingAutoLoadDelayMs = 0;
+    let lastKnownVisible = true;
+
+    const isGridVisible = () => {
+        try {
+            const scrollElement =
+                typeof readScrollElement === "function" ? readScrollElement() : gridWrapper;
+            return isGridHostVisible(gridContainer, scrollElement || gridWrapper || null);
+        } catch (e) {
+            console.debug?.(e);
+            return false;
+        }
+    };
+
+    const syncVisibilityState = (nextVisible = null, { resumeQueuedReload = true } = {}) => {
+        lastKnownVisible =
+            typeof nextVisible === "boolean" ? nextVisible : isGridVisible();
+        if (!lastKnownVisible) {
+            if (autoLoadTimer) {
+                clearTimeout(autoLoadTimer);
+                autoLoadTimer = null;
+            }
+            return lastKnownVisible;
+        }
+        if (pendingAutoLoadPromise && !autoLoadTimer) {
+            const promise = pendingAutoLoadPromise;
+            const delayMs = pendingAutoLoadDelayMs || 50;
+            pendingAutoLoadPromise = null;
+            pendingAutoLoadDelayMs = 0;
+            scheduleAutoLoad(promise, Math.min(delayMs, 50));
+        }
+        if (resumeQueuedReload && pendingReloadCount > 0 && !isReloading) {
+            void queuedReload().catch((e) => console.debug?.(e));
+        }
+        return lastKnownVisible;
+    };
 
     const hasVisibleGridCards = () => {
         try {
@@ -67,15 +106,18 @@ export function createAssetsQueryController({
     const queuedReload = async () => {
         if (!gridContainer || !gridController?.reloadGrid) return;
         pendingReloadCount += 1;
+        if (!syncVisibilityState(null, { resumeQueuedReload: false })) return;
         if (isReloading) return;
 
         isReloading = true;
         try {
             while (pendingReloadCount > 0) {
+                if (!syncVisibilityState(null, { resumeQueuedReload: false })) return;
                 pendingReloadCount = 0;
                 const anchor =
                     typeof captureAnchor === "function" ? captureAnchor(gridContainer) : null;
                 await gridController.reloadGrid();
+                if (!syncVisibilityState(null, { resumeQueuedReload: false })) return;
                 if (anchor && typeof restoreAnchor === "function") {
                     try {
                         const currentScrollTop = Number(readScrollTop() || 0) || 0;
@@ -141,6 +183,11 @@ export function createAssetsQueryController({
 
         if (!gridContainer || typeof loadAssets !== "function") return;
         if (lifecycleSignal?.aborted) return;
+        if (!syncVisibilityState()) {
+            pendingAutoLoadPromise = initialLoadPromise;
+            pendingAutoLoadDelayMs = 50;
+            return;
+        }
 
         let hasCards = false;
         try {
@@ -166,6 +213,13 @@ export function createAssetsQueryController({
 
     const scheduleAutoLoad = (initialLoadPromise, delayMs = 2000) => {
         if (autoLoadTimer) clearTimeout(autoLoadTimer);
+        if (!syncVisibilityState()) {
+            pendingAutoLoadPromise = initialLoadPromise;
+            pendingAutoLoadDelayMs = delayMs;
+            return null;
+        }
+        pendingAutoLoadPromise = null;
+        pendingAutoLoadDelayMs = 0;
         autoLoadTimer = setTimeout(() => {
             autoLoadTimer = null;
             checkAndAutoLoad(initialLoadPromise).catch(() => {});
@@ -254,6 +308,7 @@ export function createAssetsQueryController({
             }
             if (upsertHandledRecently && !hasNewScan) return;
             if (!hasNewScan && !hasNewTotal && !needsFallbackReload) return;
+            if (!syncVisibilityState()) return;
 
             try {
                 const now = Date.now();
@@ -388,11 +443,16 @@ export function createAssetsQueryController({
         scheduleAutoLoad,
         createCountersUpdateHandler,
         bindSearchInput,
+        setVisibility(visible = null) {
+            return syncVisibilityState(visible);
+        },
         dispose() {
             if (autoLoadTimer) {
                 clearTimeout(autoLoadTimer);
                 autoLoadTimer = null;
             }
+            pendingAutoLoadPromise = null;
+            pendingAutoLoadDelayMs = 0;
             if (searchDebounceTimer) {
                 clearTimeout(searchDebounceTimer);
                 searchDebounceTimer = null;

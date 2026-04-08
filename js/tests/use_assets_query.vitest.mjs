@@ -17,7 +17,21 @@ vi.mock("../api/endpoints.js", () => ({
 function createGridContainer() {
     return {
         dataset: { mjrQuery: "*" },
+        isConnected: true,
+        clientWidth: 320,
+        clientHeight: 240,
+        getClientRects: vi.fn(() => [{ width: 320, height: 240 }]),
         querySelector: vi.fn(() => null),
+    };
+}
+
+function createGridWrapper() {
+    return {
+        scrollTop: 0,
+        isConnected: true,
+        clientWidth: 320,
+        clientHeight: 240,
+        getClientRects: vi.fn(() => [{ width: 320, height: 240 }]),
     };
 }
 
@@ -52,7 +66,7 @@ describe("useAssetsQuery", () => {
         const { createAssetsQueryController } = await import("../vue/composables/useAssetsQuery.js");
 
         const gridContainer = createGridContainer();
-        const gridWrapper = { scrollTop: 0 };
+        const gridWrapper = createGridWrapper();
         const captureAnchor = vi.fn(() => ({ id: "anchor-1" }));
         const restoreAnchor = vi.fn(async () => {});
         const resolvers = [];
@@ -69,6 +83,7 @@ describe("useAssetsQuery", () => {
             gridController: { reloadGrid },
             captureAnchor,
             restoreAnchor,
+            readScrollTop: () => gridWrapper.scrollTop,
         });
 
         const firstRun = controller.queuedReload();
@@ -99,7 +114,7 @@ describe("useAssetsQuery", () => {
         };
 
         const gridContainer = createGridContainer();
-        const gridWrapper = { scrollTop: 0 };
+        const gridWrapper = createGridWrapper();
         const restoreSelectionState = vi.fn();
         const toggleSidebarDetails = vi.fn();
 
@@ -129,7 +144,7 @@ describe("useAssetsQuery", () => {
         const restoreGridUiState = vi.fn(async () => {});
         const controller = createAssetsQueryController({
             gridContainer: createGridContainer(),
-            gridWrapper: { scrollTop: 0 },
+            gridWrapper: createGridWrapper(),
             gridController: { reloadGrid: vi.fn() },
             restoreGridUiState,
         });
@@ -154,7 +169,7 @@ describe("useAssetsQuery", () => {
 
         const controller = createAssetsQueryController({
             gridContainer,
-            gridWrapper: { scrollTop: 0 },
+            gridWrapper: createGridWrapper(),
             gridController: { reloadGrid: vi.fn() },
             getQuery: () => "*",
             getScope: () => "output",
@@ -170,13 +185,57 @@ describe("useAssetsQuery", () => {
         expect(loadAssets).toHaveBeenCalledWith(gridContainer);
     });
 
+    it("defers auto-load while the grid host is hidden and resumes when visible again", async () => {
+        const { createAssetsQueryController } = await import("../vue/composables/useAssetsQuery.js");
+
+        vi.useFakeTimers();
+        apiState.get.mockResolvedValue({
+            ok: true,
+            data: { total_assets: 3 },
+        });
+
+        const gridContainer = createGridContainer();
+        gridContainer.isConnected = false;
+        gridContainer.getClientRects = vi.fn(() => []);
+        const gridWrapper = {
+            clientWidth: 320,
+            clientHeight: 240,
+            isConnected: false,
+            getClientRects: vi.fn(() => []),
+        };
+        const loadAssets = vi.fn(async () => ({ ok: true }));
+
+        const controller = createAssetsQueryController({
+            gridContainer,
+            gridWrapper,
+            gridController: { reloadGrid: vi.fn() },
+            getQuery: () => "*",
+            getScope: () => "output",
+            loadAssets,
+        });
+
+        controller.scheduleAutoLoad(Promise.resolve({ ok: true }), 25);
+        await vi.advanceTimersByTimeAsync(25);
+        expect(loadAssets).toHaveBeenCalledTimes(0);
+
+        gridContainer.isConnected = true;
+        gridContainer.getClientRects = vi.fn(() => [{ width: 320, height: 240 }]);
+        gridWrapper.isConnected = true;
+        gridWrapper.getClientRects = vi.fn(() => [{ width: 320, height: 240 }]);
+
+        controller.setVisibility();
+        await vi.advanceTimersByTimeAsync(50);
+
+        expect(loadAssets).toHaveBeenCalledWith(gridContainer);
+    });
+
     it("creates a counters update handler that triggers queued reload on new index updates", async () => {
         const { createAssetsQueryController } = await import("../vue/composables/useAssetsQuery.js");
 
         const reloadGrid = vi.fn(async () => ({ ok: true }));
         const controller = createAssetsQueryController({
             gridContainer: createGridContainer(),
-            gridWrapper: { scrollTop: 0 },
+            gridWrapper: createGridWrapper(),
             gridController: { reloadGrid },
             captureAnchor: () => null,
             restoreAnchor: async () => {},
@@ -222,12 +281,12 @@ describe("useAssetsQuery", () => {
         const reloadGrid = vi.fn(async () => ({ ok: true }));
         const controller = createAssetsQueryController({
             gridContainer: {
-                dataset: { mjrQuery: "*" },
+                ...createGridContainer(),
                 querySelector: vi.fn((selector) =>
                     selector === ".mjr-asset-card" ? { dataset: { mjrAssetId: "asset-1" } } : null,
                 ),
             },
-            gridWrapper: { scrollTop: 0 },
+            gridWrapper: createGridWrapper(),
             gridController: { reloadGrid },
             captureAnchor: () => null,
             restoreAnchor: async () => {},
@@ -267,13 +326,68 @@ describe("useAssetsQuery", () => {
         expect(reloadGrid).toHaveBeenCalledTimes(0);
     });
 
+    it("does not trigger counters-based reload while the grid host is hidden", async () => {
+        const { createAssetsQueryController } = await import("../vue/composables/useAssetsQuery.js");
+
+        const gridContainer = createGridContainer();
+        gridContainer.isConnected = false;
+        gridContainer.getClientRects = vi.fn(() => []);
+        const gridWrapper = {
+            clientWidth: 320,
+            clientHeight: 240,
+            isConnected: false,
+            getClientRects: vi.fn(() => []),
+        };
+        const reloadGrid = vi.fn(async () => ({ ok: true }));
+        const controller = createAssetsQueryController({
+            gridContainer,
+            gridWrapper,
+            gridController: { reloadGrid },
+            captureAnchor: () => null,
+            restoreAnchor: async () => {},
+        });
+
+        const handleCountersUpdate = controller.createCountersUpdateHandler({
+            state: {
+                scope: "output",
+                collectionId: "",
+                kindFilter: "",
+                workflowOnly: false,
+                minRating: 0,
+                minSizeMB: 0,
+                maxSizeMB: 0,
+                minWidth: 0,
+                minHeight: 0,
+                maxWidth: 0,
+                maxHeight: 0,
+                workflowType: "",
+                dateRangeFilter: "",
+                dateExactFilter: "",
+            },
+            getRecentUserInteractionAt: () => 0,
+        });
+
+        await handleCountersUpdate({
+            last_scan_end: "scan-1",
+            last_index_end: "idx-1",
+            total_assets: 10,
+        });
+        await handleCountersUpdate({
+            last_scan_end: "scan-1",
+            last_index_end: "idx-2",
+            total_assets: 10,
+        });
+
+        expect(reloadGrid).toHaveBeenCalledTimes(0);
+    });
+
     it("binds search input with debounce and immediate reload for empty query", async () => {
         const { createAssetsQueryController } = await import("../vue/composables/useAssetsQuery.js");
 
         vi.useFakeTimers();
         const controller = createAssetsQueryController({
             gridContainer: createGridContainer(),
-            gridWrapper: { scrollTop: 0 },
+            gridWrapper: createGridWrapper(),
             gridController: { reloadGrid: vi.fn() },
         });
 

@@ -27,6 +27,87 @@ let disposeScrollSync = null;
 let disposeGridHostState = null;
 let gridHostStateOptions = null;
 let assetsQueryController = null;
+let disposeVisibilityObservers = null;
+
+function syncAssetsQueryVisibility() {
+    try {
+        assetsQueryController?.setVisibility?.();
+    } catch (e) {
+        console.debug?.(e);
+    }
+}
+
+function installVisibilityObservers() {
+    try {
+        disposeVisibilityObservers?.();
+    } catch (e) {
+        console.debug?.(e);
+    }
+
+    const cleanups = [];
+    const notifyVisibility = () => {
+        syncAssetsQueryVisibility();
+    };
+
+    try {
+        window.addEventListener("resize", notifyVisibility);
+        cleanups.push(() => window.removeEventListener("resize", notifyVisibility));
+    } catch (e) {
+        console.debug?.(e);
+    }
+
+    try {
+        if (typeof ResizeObserver === "function") {
+            const resizeObserver = new ResizeObserver(() => {
+                notifyVisibility();
+            });
+            const targets = [
+                browseSectionRef.value,
+                gridWrapperRef.value,
+                browseSectionRef.value?.parentElement || null,
+            ].filter(Boolean);
+            for (const target of targets) {
+                resizeObserver.observe(target);
+            }
+            cleanups.push(() => resizeObserver.disconnect());
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+
+    try {
+        if (typeof MutationObserver === "function") {
+            const mutationObserver = new MutationObserver(() => {
+                notifyVisibility();
+            });
+            const targets = [
+                browseSectionRef.value,
+                gridWrapperRef.value,
+                browseSectionRef.value?.parentElement || null,
+            ].filter(Boolean);
+            for (const target of targets) {
+                mutationObserver.observe(target, {
+                    attributes: true,
+                    attributeFilter: ["class", "style", "hidden", "aria-hidden"],
+                });
+            }
+            cleanups.push(() => mutationObserver.disconnect());
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+
+    disposeVisibilityObservers = () => {
+        while (cleanups.length) {
+            const cleanup = cleanups.pop();
+            try {
+                cleanup?.();
+            } catch (e) {
+                console.debug?.(e);
+            }
+        }
+    };
+}
 
 provide("mjr-grid-container-ref", gridContainerRef);
 
@@ -60,6 +141,14 @@ onMounted(() => {
     if (gridWrapperRef.value && Number(panelStore.scrollTop || 0) > 0) {
         gridWrapperRef.value.scrollTop = Number(panelStore.scrollTop || 0);
     }
+    installVisibilityObservers();
+    try {
+        window.addEventListener("mjr:keepalive-attached", syncAssetsQueryVisibility);
+        document.addEventListener("visibilitychange", syncAssetsQueryVisibility);
+    } catch (e) {
+        console.debug?.(e);
+    }
+    syncAssetsQueryVisibility();
 });
 
 onBeforeUnmount(() => {
@@ -75,6 +164,12 @@ onBeforeUnmount(() => {
     }
     disposeScrollSync = null;
     try {
+        disposeVisibilityObservers?.();
+    } catch (e) {
+        console.debug?.(e);
+    }
+    disposeVisibilityObservers = null;
+    try {
         disposeGridHostState?.();
     } catch (e) {
         console.debug?.(e);
@@ -86,6 +181,12 @@ onBeforeUnmount(() => {
         console.debug?.(e);
     }
     assetsQueryController = null;
+    try {
+        window.removeEventListener("mjr:keepalive-attached", syncAssetsQueryVisibility);
+        document.removeEventListener("visibilitychange", syncAssetsQueryVisibility);
+    } catch (e) {
+        console.debug?.(e);
+    }
 });
 
 watch(
@@ -158,6 +259,7 @@ defineExpose({
             gridWrapper: gridWrapperRef.value,
             ...options,
         });
+        syncAssetsQueryVisibility();
         return assetsQueryController;
     },
     loadAssets(...args) {

@@ -58,10 +58,12 @@ export const APP_DEFAULTS = Object.freeze({
     BADGE_DUPLICATE_ALERT_COLOR: "#FF1744",
 
     // Pagination
-    DEFAULT_PAGE_SIZE: 100,
+    DEFAULT_PAGE_SIZE: 200,
     // Upper bound for a single list request. The backend allows more, but very large
     // pages can create huge DOM batches; keep this as a safety cap.
     MAX_PAGE_SIZE: 2000,
+    // Prefetch next page immediately after initial load for faster scrolling
+    PREFETCH_NEXT_PAGE: true,
     // Client-side default for search request limit (user-adjustable in settings)
     SEARCH_DEFAULT_LIMIT: 500,
     INFINITE_SCROLL_ENABLED: true,

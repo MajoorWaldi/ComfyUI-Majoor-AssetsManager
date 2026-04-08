@@ -148,6 +148,8 @@ export function installEntryRuntimeController({
     teardownLiveStreamTracker,
     teardownNodeStream,
     teardownFloatingViewerManager,
+    teardownGeneratedFeed,
+    teardownAssetsSidebar,
     teardownGlobalRuntime,
     reportError,
 }) {
@@ -175,6 +177,16 @@ export function installEntryRuntimeController({
                 console.warn("[MJR teardown]", e);
             }
             try {
+                teardownAssetsSidebar?.();
+            } catch (e) {
+                console.warn("[MJR teardown]", e);
+            }
+            try {
+                teardownGeneratedFeed?.();
+            } catch (e) {
+                console.warn("[MJR teardown]", e);
+            }
+            try {
                 teardownGlobalRuntime?.();
             } catch (e) {
                 console.warn("[MJR teardown]", e);
@@ -185,6 +197,7 @@ export function installEntryRuntimeController({
                 _cleanupControllers: [],
                 _listenerCleanupFns: [],
             };
+            window.__MJR_RUNTIME_APP__ = null;
         }
     } catch (e) {
         console.warn("[MJR teardown]", e);
