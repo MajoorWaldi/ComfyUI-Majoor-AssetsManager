@@ -4,7 +4,14 @@ export function extractOutputFiles(output) {
     const MAX_ITEMS = 500;
     const MAX_DEPTH = 4;
     const MAX_SCAN_ITEMS = 2000;
+    const SUPPORTED_PATH_EXT_RE =
+        /\.(png|jpe?g|webp|gif|bmp|tiff?|avif|heic|heif|apng|hdr|svg|mp4|webm|mov|mkv|avi|m4v|mp3|wav|flac|ogg|glb|gltf|obj|fbx|ply|stl)$/i;
     const visited = typeof WeakSet !== "undefined" ? new WeakSet() : null;
+
+    const buildKey = ({ type, subfolder, filename, path }) => {
+        if (path) return `path|${String(path).trim().toLowerCase()}`;
+        return `${type || ""}|${subfolder || ""}|${filename || ""}`.toLowerCase();
+    };
 
     const pushItem = (item) => {
         if (!item) return;
@@ -20,7 +27,7 @@ export function extractOutputFiles(output) {
         if (!filename) return;
         const subfolder = item.subfolder || item.sub_folder || item.subFolder || "";
         const type = item.type || item.output_type || "output";
-        const key = `${type}|${subfolder}|${filename}`.toLowerCase();
+        const key = buildKey({ type, subfolder, filename, path: rawPath });
         if (seen.has(key)) return;
         seen.add(key);
         const entry = { filename, subfolder, type };
@@ -28,7 +35,24 @@ export function extractOutputFiles(output) {
         files.push(entry);
     };
 
+    const pushPathString = (value) => {
+        if (typeof value !== "string") return;
+        const raw = value.trim().replace(/^['"]|['"]$/g, "");
+        if (!raw || !SUPPORTED_PATH_EXT_RE.test(raw)) return;
+        const parts = raw.split(/[/\\\\]/);
+        const filename = parts[parts.length - 1];
+        if (!filename) return;
+        const key = buildKey({ type: "output", subfolder: "", filename, path: raw });
+        if (seen.has(key)) return;
+        seen.add(key);
+        files.push({ filename, subfolder: "", type: "output", path: raw });
+    };
+
     const addItems = (items) => {
+        if (typeof items === "string") {
+            pushPathString(items);
+            return;
+        }
         if (!Array.isArray(items)) return;
         let scanned = 0;
         for (const item of items) {
@@ -36,6 +60,8 @@ export function extractOutputFiles(output) {
             scanned += 1;
             if (item && typeof item === "object" && "filename" in item) {
                 pushItem(item);
+            } else if (typeof item === "string") {
+                pushPathString(item);
             } else {
                 walk(item, 1);
             }
@@ -57,6 +83,8 @@ export function extractOutputFiles(output) {
                 scanned += 1;
                 if (item && typeof item === "object" && "filename" in item) {
                     pushItem(item);
+                } else if (typeof item === "string") {
+                    pushPathString(item);
                 } else {
                     walk(item, depth + 1);
                 }
@@ -84,6 +112,10 @@ export function extractOutputFiles(output) {
         if (depth < MAX_DEPTH) {
             for (const value of Object.values(node)) {
                 if (files.length >= MAX_ITEMS) break;
+                if (typeof value === "string") {
+                    pushPathString(value);
+                    continue;
+                }
                 if (!value || typeof value !== "object") continue;
                 if (
                     value.images ||
