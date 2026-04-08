@@ -845,8 +845,10 @@ async def _backfill_missing_asset_vectors(
     scope_sql, scope_params = _build_backfill_scope_clause(normalized_scope, normalized_custom_root)
     counters_res = await _init_backfill_counters(db, scope_sql, scope_params, size, on_progress)
     if not counters_res.ok:
-        return counters_res
+        return Result.Err(counters_res.code, counters_res.error or "Failed to initialize backfill counters")
     counters = counters_res.data
+    if counters is None:
+        return Result.Err("DB_ERROR", "Failed to initialize backfill counters")
     result = await _run_backfill_vector_query_loop(
         db=db,
         vector_service=vector_service,
