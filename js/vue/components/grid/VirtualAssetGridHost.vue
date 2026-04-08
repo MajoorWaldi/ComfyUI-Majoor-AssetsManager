@@ -461,6 +461,7 @@ const estimateRowHeight = computed(() => {
 const rows = computed(() => {
     const assets = Array.isArray(renderableAssets.value) ? renderableAssets.value : [];
     const cols = Math.max(1, columnCount.value);
+    if (props.virtualize) return [];
     const nextRows = [];
     for (let index = 0; index < assets.length; index += cols) {
         nextRows.push({
@@ -471,9 +472,22 @@ const rows = computed(() => {
     return nextRows;
 });
 
+const rowCount = computed(() => {
+    const assets = Array.isArray(renderableAssets.value) ? renderableAssets.value : [];
+    const cols = Math.max(1, columnCount.value);
+    return Math.ceil(assets.length / cols);
+});
+
+function rowItemsAt(index) {
+    const assets = Array.isArray(renderableAssets.value) ? renderableAssets.value : [];
+    const cols = Math.max(1, columnCount.value);
+    const start = Math.max(0, Number(index) || 0) * cols;
+    return assets.slice(start, start + cols);
+}
+
 const rowVirtualizer = useVirtualizer(
     computed(() => ({
-        count: props.virtualize ? rows.value.length : 0,
+        count: props.virtualize ? rowCount.value : 0,
         getScrollElement: () => scrollElementRef.value,
         estimateSize: () => estimateRowHeight.value,
         overscan: 6,
@@ -484,6 +498,22 @@ const rowVirtualizer = useVirtualizer(
 const virtualRows = computed(() => {
     if (!props.virtualize) return [];
     return rowVirtualizer.value.getVirtualItems();
+});
+
+const virtualRowsWithItems = computed(() =>
+    virtualRows.value.map((row) => ({
+        key: row.key,
+        index: row.index,
+        items: rowItemsAt(row.index),
+    })),
+);
+
+const virtualRowByIndex = computed(() => {
+    const map = new Map();
+    for (const row of virtualRows.value) {
+        map.set(row.index, row);
+    }
+    return map;
 });
 
 const totalSize = computed(() => {
@@ -613,7 +643,7 @@ watch(
 );
 
 watch(
-    () => rows.value.length,
+    () => rowCount.value,
     async () => {
         await nextTick();
         syncAllRenderedDuplicateCards();
@@ -626,7 +656,7 @@ watch(
 );
 
 watch(
-    () => `${Array.isArray(state.assets) ? state.assets.length : 0}::${(Array.isArray(state.assets) ? state.assets : []).map((asset) => String(asset?.filename || "")).join("|")}`,
+    () => state.assets,
     async () => {
         await nextTick();
         syncAllRenderedDuplicateCards();
@@ -965,7 +995,7 @@ function cardStyle() {
 }
 
 function getVirtualRowByIndex(index) {
-    return virtualRows.value.find((row) => row.index === index) || null;
+    return virtualRowByIndex.value.get(index) || null;
 }
 
 function virtualRowStyle(index) {
@@ -1192,15 +1222,15 @@ defineExpose({
             }"
         >
             <div
-                v-for="virtualRow in virtualRows"
+                v-for="virtualRow in virtualRowsWithItems"
                 :key="virtualRow.key"
                 :ref="measureRow"
                 :data-index="virtualRow.index"
                 :style="virtualRowStyle(virtualRow.index)"
             >
-                <template v-if="rows[virtualRow.index]">
+                <template v-if="virtualRow.items.length">
                 <template
-                    v-for="asset in rows[virtualRow.index].items"
+                    v-for="asset in virtualRow.items"
                     :key="String(asset.id)"
                 >
                     <FolderCard

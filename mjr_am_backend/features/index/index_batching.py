@@ -18,6 +18,7 @@ from .entry_builder import (
     extract_existing_asset_state,
     safe_relative_path,
 )
+from .fs_walker import ScanCandidate, scan_candidate_path, scan_candidate_stat
 from .metadata_helpers import MetadataHelpers
 from .scan_batch_utils import (
     chunk_file_batches,
@@ -65,6 +66,9 @@ def metadata_queue_item(
         state_hash,
         existing_id if existing_id else None,
     )
+
+
+BatchCandidate = Path | ScanCandidate
 
 
 async def index_paths_batches(
@@ -146,7 +150,7 @@ async def finalize_index_paths(scanner: Any, *, scan_start: float, stats: dict[s
 async def index_batch(
     scanner: Any,
     *,
-    batch: list[Path],
+    batch: list[BatchCandidate],
     base_dir: str,
     incremental: bool,
     source: str,
@@ -159,7 +163,7 @@ async def index_batch(
     added_ids: list[int] | None = None,
 ) -> None:
     batch_start = time.perf_counter()
-    filepaths = [normalize_filepath_str(p) for p in batch]
+    filepaths = [normalize_filepath_str(scan_candidate_path(p)) for p in batch]
 
     cache_map, has_rich_meta_set = await prefetch_batch_cache_and_rich_meta(
         scanner,
@@ -251,7 +255,19 @@ async def prefetch_rich_metadata_rows(
     has_rich_meta_set: set[int],
 ) -> None:
     meta_rows = await scanner.db.aquery_in(
-        "SELECT asset_id, metadata_quality, metadata_raw FROM asset_metadata WHERE {IN_CLAUSE}",
+        """
+        SELECT
+            asset_id,
+            metadata_quality,
+            CASE
+                WHEN metadata_raw IS NOT NULL
+                     AND TRIM(metadata_raw) NOT IN ('', '{}', 'null', 'NULL')
+                THEN 1
+                ELSE 0
+            END AS has_metadata_raw
+        FROM asset_metadata
+        WHERE {IN_CLAUSE}
+        """,
         "asset_id",
         asset_ids,
     )
@@ -263,8 +279,8 @@ async def prefetch_rich_metadata_rows(
             continue
         try:
             metadata_quality = str(row.get("metadata_quality") or "").strip().lower()
-            metadata_raw = str(row.get("metadata_raw") or "").strip()
-            has_rich = metadata_quality not in ("", "none") or metadata_raw not in ("", "{}", "null")
+            has_raw = bool(int(row.get("has_metadata_raw") or 0))
+            has_rich = metadata_quality not in ("", "none") or has_raw
             if has_rich:
                 has_rich_meta_set.add(int(asset_id))
         except Exception:
@@ -274,7 +290,7 @@ async def prefetch_rich_metadata_rows(
 async def prepare_batch_entries(
     scanner: Any,
     *,
-    batch: list[Path],
+    batch: list[BatchCandidate],
     base_dir: str,
     incremental: bool,
     fast: bool,
@@ -287,9 +303,11 @@ async def prepare_batch_entries(
     prepared: list[dict[str, Any]] = []
     needs_metadata: list[tuple[Path, str, int, int, int, str, int | None]] = []
 
-    for file_path in batch:
+    for candidate in batch:
+        file_path = scan_candidate_path(candidate)
         prepared_entry, metadata_item = await scanner._prepare_single_batch_entry(
             file_path=file_path,
+            scan_stat=scan_candidate_stat(candidate),
             base_dir=base_dir,
             incremental=incremental,
             fast=fast,
@@ -311,6 +329,7 @@ async def prepare_single_batch_entry(
     scanner: Any,
     *,
     file_path: Path,
+    scan_stat: Any | None = None,
     base_dir: str,
     incremental: bool,
     fast: bool,
@@ -329,13 +348,15 @@ async def prepare_single_batch_entry(
         existing_map=existing_map,
     )
 
-    stat_result = await scanner._stat_with_retry(file_path=file_path)
-    if not stat_result[0]:
-        stats["errors"] += 1
-        logger.warning("Failed to stat %s: %s", str(file_path), stat_result[1])
-        return None, None
-
-    stat = stat_result[1]
+    if scan_stat is not None:
+        stat = scan_stat
+    else:
+        stat_result = await scanner._stat_with_retry(file_path=file_path)
+        if not stat_result[0]:
+            stats["errors"] += 1
+            logger.warning("Failed to stat %s: %s", str(file_path), stat_result[1])
+            return None, None
+        stat = stat_result[1]
     mtime_ns, mtime, size = batch_stat_to_values(stat)
     filepath = normalize_filepath_str(file_path)
     state_hash = compute_state_hash(filepath, mtime_ns, size)

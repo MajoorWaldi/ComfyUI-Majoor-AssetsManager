@@ -332,6 +332,37 @@ def _best_effort_workflow_type(meta: dict[str, Any]) -> str | None:
     return None
 
 
+def _best_effort_generation_time_ms(meta: dict[str, Any]) -> int | None:
+    for key_path in ("generation_time_ms", "geninfo.generation_time_ms", "generation.time_ms"):
+        value = _resolve_key_path(meta, key_path)
+        parsed = _parse_generation_time_ms(value)
+        if parsed is not None:
+            return parsed
+    return None
+
+
+def _parse_generation_time_ms(value: Any) -> int | None:
+    if value in (None, "", [], {}):
+        return None
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+    if numeric <= 0:
+        return None
+    return int(round(numeric))
+
+
+def _denormalized_metadata_fields(metadata_result: Result[dict[str, Any]]) -> tuple[str, int | None, str]:
+    if not (metadata_result and metadata_result.ok and isinstance(metadata_result.data, dict)):
+        return "", None, ""
+    meta = metadata_result.data
+    workflow_type = _best_effort_workflow_type(meta) or ""
+    generation_time_ms = _best_effort_generation_time_ms(meta)
+    positive_prompt = _best_effort_prompt_text(meta, text_budget=250) or ""
+    return workflow_type, generation_time_ms, positive_prompt
+
+
 def _best_effort_model_name(meta: dict[str, Any], *, text_budget: int) -> str | None:
     direct = _first_compact_named_value(
         meta,
@@ -873,6 +904,7 @@ class MetadataHelpers:
         )
         extracted_rating, extracted_tags_json, extracted_tags_text = _extract_rating_and_tags(metadata_result)
         extracted_tags_text = _enrich_tags_text_with_metadata(metadata_result, extracted_tags_text)
+        workflow_type, generation_time_ms, positive_prompt = _denormalized_metadata_fields(metadata_result)
 
         # Import existing OS/file metadata when DB has defaults, without overriding user edits.
         # - rating: only set if current rating is 0
@@ -888,8 +920,11 @@ class MetadataHelpers:
         return await db.aexecute(
             f"""
             INSERT INTO asset_metadata
-            (asset_id, rating, tags, tags_text, has_workflow, has_generation_data, metadata_quality, metadata_raw)
-            SELECT ?, ?, ?, ?, ?, ?, ?, ?
+            (
+                asset_id, rating, tags, tags_text, has_workflow, has_generation_data,
+                metadata_quality, workflow_type, generation_time_ms, positive_prompt, metadata_raw
+            )
+            SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
             WHERE EXISTS (SELECT 1 FROM assets WHERE id = ?)
             ON CONFLICT(asset_id) DO UPDATE SET
                 rating = CASE
@@ -926,6 +961,30 @@ class MetadataHelpers:
                     WHEN {should_upgrade} THEN excluded.metadata_quality
                     ELSE asset_metadata.metadata_quality
                 END,
+                workflow_type = CASE
+                    WHEN {should_upgrade} THEN excluded.workflow_type
+                    WHEN {same_quality}
+                         AND COALESCE(asset_metadata.workflow_type, '') = ''
+                         AND COALESCE(excluded.workflow_type, '') <> ''
+                    THEN excluded.workflow_type
+                    ELSE asset_metadata.workflow_type
+                END,
+                generation_time_ms = CASE
+                    WHEN {should_upgrade} THEN excluded.generation_time_ms
+                    WHEN {same_quality}
+                         AND asset_metadata.generation_time_ms IS NULL
+                         AND excluded.generation_time_ms IS NOT NULL
+                    THEN excluded.generation_time_ms
+                    ELSE asset_metadata.generation_time_ms
+                END,
+                positive_prompt = CASE
+                    WHEN {should_upgrade} THEN excluded.positive_prompt
+                    WHEN {same_quality}
+                         AND COALESCE(asset_metadata.positive_prompt, '') = ''
+                         AND COALESCE(excluded.positive_prompt, '') <> ''
+                    THEN excluded.positive_prompt
+                    ELSE asset_metadata.positive_prompt
+                END,
                 metadata_raw = CASE
                     WHEN {should_upgrade} THEN excluded.metadata_raw
                     WHEN {same_quality} AND {replace_raw_on_equal} THEN excluded.metadata_raw
@@ -941,6 +1000,9 @@ class MetadataHelpers:
                 db_has_workflow,
                 db_has_generation,
                 metadata_quality,
+                workflow_type,
+                generation_time_ms,
+                positive_prompt,
                 metadata_raw_json,
                 asset_id,
             ),
