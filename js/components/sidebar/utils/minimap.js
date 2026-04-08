@@ -1,3 +1,13 @@
+const MINIMAP_PADDING = 6;
+const MINIMAP_ZOOM_MIN = 1;
+const MINIMAP_ZOOM_MAX = 8;
+
+const clampNumber = (value, min, max) => {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return min;
+    return Math.max(min, Math.min(max, n));
+};
+
 export function drawWorkflowMinimap(canvas, workflow, options = null) {
     if (!canvas) return;
     const ctx = canvas.getContext?.("2d");
@@ -31,7 +41,7 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
 
     if ((!nodes || nodes.length === 0) && (!groups || groups.length === 0)) {
         ctx.clearRect(0, 0, cw, ch);
-        return;
+        return null;
     }
 
     const toRgba = (color, alpha) => {
@@ -174,7 +184,7 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
 
     if (!rects.length) {
         ctx.clearRect(0, 0, cw, ch);
-        return;
+        return null;
     }
 
     let minX = rects[0].x;
@@ -188,10 +198,33 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
         maxY = Math.max(maxY, r.y + r.h);
     }
 
-    const pad = 6;
-    const viewW = Math.max(1, maxX - minX);
-    const viewH = Math.max(1, maxY - minY);
-    const scale = Math.min((cw - pad * 2) / viewW, (ch - pad * 2) / viewH);
+    const boundsW = Math.max(1, maxX - minX);
+    const boundsH = Math.max(1, maxY - minY);
+    const baseCenterX = minX + boundsW / 2;
+    const baseCenterY = minY + boundsH / 2;
+    const requestedView =
+        settings.view && typeof settings.view === "object" ? settings.view : Object.create(null);
+    const zoom = clampNumber(requestedView.zoom ?? 1, MINIMAP_ZOOM_MIN, MINIMAP_ZOOM_MAX);
+    const visibleW = Math.max(1, boundsW / zoom);
+    const visibleH = Math.max(1, boundsH / zoom);
+    const halfVisibleW = visibleW / 2;
+    const halfVisibleH = visibleH / 2;
+    const centerX =
+        visibleW >= boundsW
+            ? baseCenterX
+            : clampNumber(requestedView.centerX ?? baseCenterX, minX + halfVisibleW, maxX - halfVisibleW);
+    const centerY =
+        visibleH >= boundsH
+            ? baseCenterY
+            : clampNumber(requestedView.centerY ?? baseCenterY, minY + halfVisibleH, maxY - halfVisibleH);
+    const viewMinX = centerX - halfVisibleW;
+    const viewMinY = centerY - halfVisibleH;
+    const pad = MINIMAP_PADDING;
+    const renderScale = Math.min((cw - pad * 2) / visibleW, (ch - pad * 2) / visibleH);
+    const hoveredNodeId =
+        requestedView.hoveredNodeId !== null && requestedView.hoveredNodeId !== undefined
+            ? String(requestedView.hoveredNodeId)
+            : null;
 
     ctx.clearRect(0, 0, cw, ch);
 
@@ -200,8 +233,13 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
     ctx.fillRect(0, 0, cw, ch);
 
     const toCanvas = (x, y) => ({
-        x: pad + (x - minX) * scale,
-        y: pad + (y - minY) * scale,
+        x: pad + (x - viewMinX) * renderScale,
+        y: pad + (y - viewMinY) * renderScale,
+    });
+
+    const toWorld = (x, y) => ({
+        x: clampNumber(viewMinX + (Number(x) - pad) / renderScale, minX, maxX),
+        y: clampNumber(viewMinY + (Number(y) - pad) / renderScale, minY, maxY),
     });
 
     const drawLinks = () => {
@@ -245,10 +283,10 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
     };
 
     const drawRect = (r) => {
-        const x = pad + (r.x - minX) * scale;
-        const y = pad + (r.y - minY) * scale;
-        const w = Math.max(1, r.w * scale);
-        const h = Math.max(1, r.h * scale);
+        const x = pad + (r.x - viewMinX) * renderScale;
+        const y = pad + (r.y - viewMinY) * renderScale;
+        const w = Math.max(1, r.w * renderScale);
+        const h = Math.max(1, r.h * renderScale);
 
         const isNode = r.kind === "node";
         const isGroup = r.kind === "group";
@@ -315,6 +353,17 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
             ctx.strokeStyle = "rgba(244,67,54,0.95)";
             ctx.lineWidth = 1.5;
             ctx.strokeRect(x - 0.5, y - 0.5, w + 1, h + 1);
+        }
+
+        if (isNode && hoveredNodeId && String(r.id || "") === hoveredNodeId) {
+            try {
+                ctx.setLineDash([]);
+            } catch (e) {
+                console.debug?.(e);
+            }
+            ctx.strokeStyle = "rgba(255,224,130,0.96)";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x - 1, y - 1, w + 2, h + 2);
         }
 
         if (isNode && settings.showNodeLabels && r.label && w >= 42 && h >= 12) {
@@ -392,6 +441,48 @@ export function drawWorkflowMinimap(canvas, workflow, options = null) {
     }
 
     ctx.globalAlpha = 1;
+
+    const hitTestNode = (canvasX, canvasY) => {
+        const world = toWorld(canvasX, canvasY);
+        for (let i = rects.length - 1; i >= 0; i -= 1) {
+            const rect = rects[i];
+            if (rect.kind !== "node") continue;
+            if (
+                world.x >= rect.x &&
+                world.x <= rect.x + rect.w &&
+                world.y >= rect.y &&
+                world.y <= rect.y + rect.h
+            ) {
+                return rect;
+            }
+        }
+        return null;
+    };
+
+    return {
+        bounds: {
+            minX,
+            minY,
+            maxX,
+            maxY,
+            width: boundsW,
+            height: boundsH,
+        },
+        resolvedView: {
+            zoom,
+            centerX,
+            centerY,
+            visibleW,
+            visibleH,
+            viewMinX,
+            viewMinY,
+            pad,
+            renderScale,
+        },
+        canvasToWorld: toWorld,
+        worldToCanvas: toCanvas,
+        hitTestNode,
+    };
 }
 
 export function synthesizeWorkflowFromPromptGraph(promptGraph, options = null) {

@@ -44,6 +44,39 @@ def test_apply_auto1111_text_candidates(monkeypatch):
     assert meta["quality"] == "partial"
 
 
+def test_apply_auto1111_text_candidates_skips_filepath_like_prompt(monkeypatch):
+    monkeypatch.setattr(
+        e,
+        "parse_auto1111_params",
+        lambda t: {"prompt": t, "negative_prompt": "n", "steps": 20} if t else None,
+    )
+    meta = {"quality": "none", "prompt": None}
+    e._apply_auto1111_text_candidates(
+        meta,
+        [("k", r"D:/____COMFY_OUTPUTS/2026-04-07/LTX-23_Audio/LTX-23_Audio_00002.mp4")],
+        prompt_graph=None,
+        preserve_existing_prompt_text=False,
+    )
+    assert "parameters" not in meta
+    assert meta["prompt"] is None
+
+
+def test_apply_auto1111_text_candidates_skips_weak_signal_when_prompt_graph_exists(monkeypatch):
+    monkeypatch.setattr(
+        e,
+        "parse_auto1111_params",
+        lambda t: {"prompt": "16 MB"} if t == "16 MB" else None,
+    )
+    meta = {"quality": "none", "prompt": None}
+    e._apply_auto1111_text_candidates(
+        meta,
+        [("k", "16 MB")],
+        prompt_graph={"1": {"class_type": "KSampler", "inputs": {}}},
+        preserve_existing_prompt_text=False,
+    )
+    assert "parameters" not in meta
+
+
 def test_workflow_small_helpers():
     links = e._workflow_build_link_lookup([[10, 1, 2, "positive", "x"]])
     assert links[10][0] == 1
@@ -137,6 +170,37 @@ def test_apply_common_exif_fields(monkeypatch):
     m = {"quality": "none", "workflow": None, "prompt": None, "parameters": None, "width": None, "height": None}
     e._apply_common_exif_fields(m, {"a": 1}, workflow={"nodes": []}, prompt={"1": {}})
     assert m["rating"] == 4 and m["width"] == 1
+
+
+def test_apply_reconstructed_workflow_params_overrides_filepath_parameters(monkeypatch):
+    monkeypatch.setattr(
+        e,
+        "_reconstruct_params_from_workflow",
+        lambda workflow: {"positive_prompt": "scene prompt", "parameters": "scene prompt\nSteps: 20"},
+    )
+    meta = {
+        "workflow": {"nodes": []},
+        "parameters": r"D:/____COMFY_OUTPUTS/2026-04-07/LTX-23_Audio/LTX-23_Audio_00002.mp4",
+        "quality": "full",
+    }
+    e._apply_reconstructed_workflow_params(meta)
+    assert meta["positive_prompt"] == "scene prompt"
+    assert meta["parameters"] == "scene prompt\nSteps: 20"
+
+
+def test_apply_reconstructed_workflow_params_overrides_filename_parameters(monkeypatch):
+    monkeypatch.setattr(
+        e,
+        "_reconstruct_params_from_workflow",
+        lambda workflow: {"positive_prompt": "scene prompt", "parameters": "scene prompt\nSteps: 20"},
+    )
+    meta = {
+        "workflow": {"nodes": []},
+        "parameters": "LTX-23_Audio_00002.mp4",
+        "quality": "full",
+    }
+    e._apply_reconstructed_workflow_params(meta)
+    assert meta["positive_prompt"] == "scene prompt"
 
 
 def test_extract_png_webp_video_not_found(tmp_path):

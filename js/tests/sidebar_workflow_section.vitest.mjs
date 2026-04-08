@@ -44,9 +44,37 @@ describe("SidebarWorkflowSection", () => {
             },
         };
         drawWorkflowMinimap.mockReset();
+        drawWorkflowMinimap.mockImplementation((_canvas, _workflow, options) => ({
+            resolvedView: {
+                zoom: Number(options?.view?.zoom) || 1,
+                centerX: Number(options?.view?.centerX) || 100,
+                centerY: Number(options?.view?.centerY) || 200,
+                visibleW: 400,
+                visibleH: 300,
+                viewMinX: (Number(options?.view?.centerX) || 100) - 200,
+                viewMinY: (Number(options?.view?.centerY) || 200) - 150,
+            },
+            bounds: {
+                width: 800,
+                height: 600,
+            },
+            canvasToWorld: (x, y) => ({ x: 100 + Number(x), y: 200 + Number(y) }),
+            hitTestNode: () => null,
+        }));
         globalThis.ResizeObserver = class {
             observe() {}
             disconnect() {}
+        };
+        globalThis.PointerEvent = globalThis.PointerEvent || MouseEvent;
+        window.app = {
+            canvas: {
+                canvas: { width: 1000, height: 800, clientWidth: 1000, clientHeight: 800 },
+                ds: { scale: 1, offset: [0, 0] },
+                setDirty: vi.fn(),
+            },
+            graph: {
+                setDirtyCanvas: vi.fn(),
+            },
         };
         HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
             setTransform: vi.fn(),
@@ -88,6 +116,59 @@ describe("SidebarWorkflowSection", () => {
         const canvas = wrapper.find("canvas");
         expect(canvas.attributes("style")).toContain("height: 220px");
         expect(drawWorkflowMinimap).toHaveBeenCalled();
+
+        wrapper.unmount();
+    });
+
+    it("navigates the main workflow on minimap drag and supports local minimap zoom", async () => {
+        const { default: SidebarWorkflowSection } = await import(
+            "../vue/components/panel/sidebar/SidebarWorkflowSection.vue"
+        );
+
+        const wrapper = mount(SidebarWorkflowSection, {
+            props: {
+                asset: {
+                    has_generation_data: true,
+                    workflow: {
+                        nodes: [{ id: 1, pos: [0, 0], size: [180, 80], type: "KSampler" }],
+                        links: [],
+                        groups: [],
+                        extra: {},
+                    },
+                },
+            },
+            attachTo: document.body,
+        });
+
+        const canvas = wrapper.find("canvas");
+        canvas.element.getBoundingClientRect = () => ({
+            left: 10,
+            top: 20,
+            width: 320,
+            height: 160,
+            right: 330,
+            bottom: 180,
+        });
+
+        await canvas.trigger("pointerdown", {
+            button: 0,
+            pointerId: 4,
+            clientX: 60,
+            clientY: 50,
+        });
+
+        expect(window.app.canvas.ds.offset).toEqual([350, 170]);
+        expect(window.app.canvas.setDirty).toHaveBeenCalled();
+        expect(window.app.graph.setDirtyCanvas).toHaveBeenCalled();
+
+        await canvas.trigger("wheel", {
+            deltaY: -120,
+            clientX: 60,
+            clientY: 50,
+        });
+
+        const lastCall = drawWorkflowMinimap.mock.calls.at(-1);
+        expect(Number(lastCall?.[2]?.view?.zoom)).toBeGreaterThan(1);
 
         wrapper.unmount();
     });

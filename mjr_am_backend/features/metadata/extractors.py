@@ -3,6 +3,7 @@ Metadata extractors for different file types.
 Extracts ComfyUI workflow and generation parameters from PNG, WEBP, MP4.
 """
 import os
+import re
 from typing import Any
 
 from ...shared import ErrorCode, Result, get_logger
@@ -282,6 +283,43 @@ def _collect_text_candidates(container: Any) -> list[tuple[str, str]]:
     return out
 
 
+def _looks_like_path_prompt(value: Any) -> bool:
+    raw = str(value or "").strip()
+    if not raw or "\n" in raw:
+        return False
+    if re.match(r"^[A-Za-z]:[\\/].+", raw):
+        return True
+    if re.match(
+        r"^[^\\/\n]+\.(?:png|jpe?g|webp|gif|bmp|tiff?|avif|heic|heif|apng|hdr|svg|mp4|webm|mov|mkv|avi|m4v|mp3|wav|flac|ogg|glb|gltf|obj|fbx|ply|stl|ckpt|safetensors|pt|pth|bin|gguf|json|ya?ml)$",
+        raw,
+        re.IGNORECASE,
+    ):
+        return True
+    normalised = raw.replace("\\", "/")
+    if "/" not in normalised or re.search(r"[,;]", normalised):
+        return False
+    if re.search(
+        r"\b(?:cinematic|portrait|landscape|lighting|style|detailed|masterpiece|photo|render)\b",
+        normalised,
+        re.IGNORECASE,
+    ):
+        return False
+    return bool(
+        re.search(
+            r"(?:/[^/\n]+){2,}\.(?:png|jpe?g|webp|gif|bmp|tiff?|avif|heic|heif|apng|hdr|svg|mp4|webm|mov|mkv|avi|m4v|mp3|wav|flac|ogg|glb|gltf|obj|fbx|ply|stl|ckpt|safetensors|pt|pth|bin|gguf|json|ya?ml)$",
+            normalised,
+            re.IGNORECASE,
+        )
+    )
+
+
+def _has_structured_a1111_signal(parsed: dict[str, Any]) -> bool:
+    return any(
+        parsed.get(key) not in (None, "", [], {})
+        for key in ("steps", "cfg", "seed", "sampler", "scheduler", "width", "height", "model")
+    )
+
+
 def _apply_auto1111_text_candidates(
     metadata: dict[str, Any],
     candidates: list[tuple[str, str]],
@@ -294,6 +332,11 @@ def _apply_auto1111_text_candidates(
     for _, text in candidates:
         parsed = parse_auto1111_params(text)
         if not parsed:
+            continue
+        parsed_prompt = parsed.get("prompt")
+        if _looks_like_path_prompt(text) or _looks_like_path_prompt(parsed_prompt):
+            continue
+        if prompt_graph is not None and not _has_structured_a1111_signal(parsed):
             continue
         metadata["parameters"] = text
         metadata.update(parsed)
@@ -1079,7 +1122,10 @@ def _apply_workflow_prompt_quality(
 
 
 def _apply_reconstructed_workflow_params(metadata: dict[str, Any]) -> None:
-    if not metadata.get("workflow") or metadata.get("parameters"):
+    if not metadata.get("workflow"):
+        return
+    existing_parameters = metadata.get("parameters")
+    if existing_parameters and not _looks_like_path_prompt(existing_parameters):
         return
     reconstructed = _reconstruct_params_from_workflow(metadata["workflow"])
     if not reconstructed:
