@@ -18,6 +18,8 @@ from mjr_am_backend.features.assets import (
     find_asset_id_row_by_filepath,
     find_asset_row_by_filepath,
     find_rename_row_by_filepath,
+    load_asset_filepath_by_id as _load_asset_filepath_by_id,
+    load_asset_row_by_id as _load_asset_row_by_id,
     prepare_asset_ids_context,
     prepare_asset_path_context,
     prepare_asset_rename_context,
@@ -101,37 +103,6 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         except Exception as exc:
             logger.debug("Audit logging skipped for %s: %s", operation, exc)
 
-    async def _load_asset_filepath_by_id(services: dict[str, Any], asset_id: int) -> Result[str]:
-        db = services.get("db") if isinstance(services, dict) else None
-        if not db:
-            return Result.Err("SERVICE_UNAVAILABLE", "Database service unavailable")
-        try:
-            res = await db.aquery("SELECT filepath FROM assets WHERE id = ?", (asset_id,))
-            if not res.ok or not res.data:
-                return Result.Err("NOT_FOUND", "Asset not found")
-            raw_path = (res.data[0] or {}).get("filepath")
-        except Exception as exc:
-            return Result.Err("DB_ERROR", _safe_error_message(exc, "Failed to load asset"))
-        if not raw_path or not isinstance(raw_path, str):
-            return Result.Err("NOT_FOUND", "Asset path not available")
-        return Result.Ok(raw_path)
-
-    async def _load_asset_row_by_id(services: dict[str, Any], asset_id: int) -> Result[dict[str, Any]]:
-        db = services.get("db") if isinstance(services, dict) else None
-        if not db:
-            return Result.Err("SERVICE_UNAVAILABLE", "Database service unavailable")
-        try:
-            res = await db.aquery(
-                "SELECT filepath, filename, source, root_id FROM assets WHERE id = ?",
-                (asset_id,),
-            )
-            if not res.ok or not res.data:
-                return Result.Err("NOT_FOUND", "Asset not found")
-            row = res.data[0] or {}
-        except Exception as exc:
-            return Result.Err("DB_ERROR", _safe_error_message(exc, "Failed to load asset"))
-        return Result.Ok(row if isinstance(row, dict) else {})
-
     def _resolve_body_filepath(body: dict | None) -> Path | None:
         try:
             raw = ""
@@ -147,11 +118,13 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
     def _normalize_result_error(res: Result[Any], default_code: str, default_error: str) -> Result[Any]:
         return Result.Err(res.code if res.code else default_code, res.error if res.error else default_error)
 
-    async def _prepare_asset_rating_request(request: web.Request) -> Result[tuple[dict[str, Any], dict[str, Any]]]:
+    async def _prepare_asset_op_request(
+        request: web.Request, *, operation: str
+    ) -> Result[tuple[dict[str, Any], dict[str, Any]]]:
         context_res = await prepare_asset_route_context(
             request,
-            operation="asset_rating",
-            rate_limit_endpoint="asset_rating",
+            operation=operation,
+            rate_limit_endpoint=operation,
             max_requests=30,
             window_seconds=60,
             require_services=_require_services,
@@ -167,25 +140,11 @@ def register_asset_routes(routes: web.RouteTableDef) -> None:
         context = context_res.data
         return Result.Ok(((context.services if context else {}), (context.body if context else {})))
 
+    async def _prepare_asset_rating_request(request: web.Request) -> Result[tuple[dict[str, Any], dict[str, Any]]]:
+        return await _prepare_asset_op_request(request, operation="asset_rating")
+
     async def _prepare_asset_tags_request(request: web.Request) -> Result[tuple[dict[str, Any], dict[str, Any]]]:
-        context_res = await prepare_asset_route_context(
-            request,
-            operation="asset_tags",
-            rate_limit_endpoint="asset_tags",
-            max_requests=30,
-            window_seconds=60,
-            require_services=_require_services,
-            resolve_security_prefs=_resolve_security_prefs,
-            require_operation_enabled=_require_operation_enabled,
-            require_write_access=_require_write_access,
-            check_rate_limit=_check_rate_limit,
-            read_json=_read_json,
-            csrf_error=_csrf_error,
-        )
-        if not context_res.ok:
-            return _normalize_result_error(context_res, "INVALID_INPUT", "Invalid request body")
-        context = context_res.data
-        return Result.Ok(((context.services if context else {}), (context.body if context else {})))
+        return await _prepare_asset_op_request(request, operation="asset_tags")
 
     @routes.post("/mjr/am/retry-services")
     async def retry_services(request):
@@ -460,20 +419,12 @@ def _resolve_download_path(filepath: Any) -> Path | web.Response:
     )
 
 
-def _validate_no_symlink_open(path: Path) -> str:
-    return _downloads.validate_no_symlink_open(path)
-
-
 def _build_download_response(resolved: Path, *, preview: bool) -> web.StreamResponse:
     return _downloads.build_download_response(resolved, preview=preview)
 
 
 def _safe_download_filename(name: str) -> str:
     return _downloads.safe_download_filename(name)
-
-
-def _strip_png_comfyui_chunks(data: bytes) -> bytes:
-    return _downloads.strip_png_comfyui_chunks(data)
 
 
 def _strip_tags_for_ext(ext: str) -> list[str]:

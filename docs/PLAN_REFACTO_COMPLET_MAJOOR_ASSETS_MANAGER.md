@@ -1,7 +1,7 @@
 # Plan de refacto complet — ComfyUI-Majoor-AssetsManager
 
-> Dernière mise à jour : 2026-04-09 (révision audit)
-> Statut global : migration frontend Vue clôturée ; split DB largement terminé (non commité) ; handlers assets/search encore denses ; security.py et registry.py ont grossi malgré les extractions ; gouvernance docs toujours à zéro
+> Dernière mise à jour : 2026-04-09 (passe refacto backend — security / registry / assets_impl)
+> Statut global : migration frontend Vue clôturée ; split DB largement terminé (non commité) ; security.py splitée en 4 sous-modules + registry_middlewares.py extrait ; assets_impl.py dédensifié ; gouvernance docs toujours à zéro
 
 ## 1. But du document
 
@@ -107,11 +107,11 @@ La réalité 2026-04-09 est plus avancée que la version précédente du plan :
 - `mjr_am_backend/features/assets/service.py`, `mjr_am_backend/features/search/service.py` et `mjr_am_backend/features/runtime/bootstrap.py` existent déjà ;
 - `mjr_am_backend/adapters/db/sqlite.py` est désormais un point d’entrée très fin ; le vrai hotspot DB reste `sqlite_facade.py`.
 
-Plusieurs points restent denses ou ont grossi malgré les extractions :
+La passe refacto du 2026-04-09 a résolu les principaux hotspots de croissance :
 
-- `mjr_am_backend/routes/registry.py` — **a grossi** à 326 L malgré les splits registry_*
-- `mjr_am_backend/routes/core/security.py` — **a grossi** à 836 L malgré l’extraction security_policy / security_tokens
-- `mjr_am_backend/routes/handlers/assets_impl.py` — **a grossi** à 522 L
+- `mjr_am_backend/routes/registry.py` — **réduit à 202 L** (middlewares extraits dans `registry_middlewares.py`)
+- `mjr_am_backend/routes/core/security.py` — **réduit à ~438 L** (4 sous-modules extraits : `security_proxies.py`, `security_auth_context.py`, `security_rate_limit.py`, `security_csrf.py`)
+- `mjr_am_backend/routes/handlers/assets_impl.py` — **réduit à 473 L** (fonctions DB déplacées dans service.py, shims morts supprimés, _prepare_* fusionnées)
 - `mjr_am_backend/routes/handlers/search_impl.py` — à 244 L, stable
 - certaines zones bootstrap/import-time dans `__init__.py`
 - `route_actions_rename.py` (286 L) et `listing_all_scope.py` (294 L) restent denses
@@ -166,10 +166,10 @@ Tailles réelles au 2026-04-09 (audit) :
 - `mjr_am_backend/adapters/db/sqlite_connections.py` : 144 L (non commité)
 
 **Backend routes / handlers :**
-- `mjr_am_backend/routes/core/security.py` : **836 L** ⚠️ (était ~711, a grossi)
-- `mjr_am_backend/routes/handlers/assets_impl.py` : **522 L** ⚠️ (était ~464, a grossi)
-- `mjr_am_backend/routes/registry.py` : **326 L** ⚠️ (était ~265, a grossi)
-- `mjr_am_backend/routes/handlers/search_impl.py` : 244 L (était ~212)
+- `mjr_am_backend/routes/core/security.py` : **438 L** ✓ (splitée : +security_proxies/auth_context/rate_limit/csrf)
+- `mjr_am_backend/routes/handlers/assets_impl.py` : **473 L** ✓ (DB helpers déplacés, shims morts supprimés, prepare fusionnées)
+- `mjr_am_backend/routes/registry.py` : **202 L** ✓ (middlewares extraits dans registry_middlewares.py)
+- `mjr_am_backend/routes/handlers/search_impl.py` : 244 L (stable)
 - `mjr_am_backend/routes/search/listing_all_scope.py` : 294 L
 - `mjr_am_backend/routes/assets/route_actions_rename.py` : 286 L
 - `mjr_am_backend/routes/registry_app.py` : 195 L
@@ -241,9 +241,9 @@ La cible est un projet avec des frontières lisibles entre :
 | Migration Vue des surfaces UI majeures | Fait / clôturé | 2026-04-09 | Seulement en cas de régression structurelle | Voir `docs/VUE_MIGRATION_PLAN.md` |
 | Consolidation frontend post-Vue | En cours | 2026-04-09 | Après chaque lot de tests / cleanup | Viewer (~2963 L), FloatingViewer (~2848 L), toolbar (~1526 L) intacts ; tests panel manquants |
 | Découpage DB | **Fait (non commité)** | 2026-04-09 | Après commit du lot DB | 4 modules extraits de sqlite_facade ; façade à 1195 L ; SQL guards et schema.py encore à sortir |
-| Split handlers assets/search | En cours — handlers ont grossi | 2026-04-09 | Prochaine passe backend | `assets_impl.py` 522 L, `search_impl.py` 244 L ; `features/assets/` vide des sous-services cibles |
-| Registry / middlewares / bootstrap routes | En cours — registry a grossi | 2026-04-09 | Prochaine passe backend | `registry.py` à 326 L malgré les splits registry_* ; wiring pas encore déclaratif |
-| Clarification security / observability | En cours — security a grossi | 2026-04-09 | Prochaine passe sécurité | `security.py` à 836 L malgré extraction policy/tokens ; proxies/rate-limit/auth context encore là |
+| Split handlers assets/search | **En cours** | 2026-04-09 | Prochaine passe backend | `assets_impl.py` réduit à 473 L ; `load_asset_*` dans service.py ; shims morts supprimés ; sous-services features/assets/ non créés |
+| Registry / middlewares / bootstrap routes | **En cours** | 2026-04-09 | Après commit du lot | `registry.py` réduit à 202 L via `registry_middlewares.py` (non commité) ; wiring pas encore déclaratif |
+| Clarification security / observability | **En cours** | 2026-04-09 | Après commit du lot | `security.py` réduit à 438 L via 4 sous-modules (non commité) ; observability splitée (non commité) |
 | Gouvernance dépendances / docs / ADR | **Rien de fait** | 2026-04-09 | À la prochaine passe docs | `requirements-dev.txt`, `DEPENDENCY_POLICY.md`, 2 ADR manquent — risque double-vérité croissant |
 
 ---
@@ -282,8 +282,8 @@ La cible est un projet avec des frontières lisibles entre :
 - [ ] Découper `assets_impl.py` (522 L) — a grossi, les helpers download sont encore inline
 - [ ] Sortir les sous-services métier dans `features/assets/` (rename, delete, rating_tags, download, path_resolution)
 - [ ] Poursuivre le découpage de `search_impl.py` si la densité le justifie après la prochaine mesure
-- [ ] Comprendre pourquoi `registry.py` a grossi à 326 L malgré les splits registry_* avant d'ouvrir une nouvelle extraction
-- [ ] Revoir la séparation security / auth / tokens / proxies / rate-limit dans `security.py` (836 L)
+- [x] Extraire `registry_middlewares.py` depuis `registry.py` (L58–176) — `registry.py` réduit à 202 L (non commité)
+- [x] Extraire `security_proxies.py` / `security_auth_context.py` / `security_rate_limit.py` / `security_csrf.py` — `security.py` réduit à 438 L (non commité)
 - [ ] Clarifier les politiques de fallback et de mode strict dev
 
 ## 6.4 À terminer côté gouvernance technique
@@ -496,11 +496,13 @@ mjr_am_backend/features/search/
 - [x] Séparer les routes rating / tags / autocomplete
 - [x] Ajouter `query_sanitizer.py`, `result_filter.py`, `result_hydrator.py` dans `routes/search/`
 - [x] Réévaluer `search_impl.py` — réduit à une façade de wiring (244 L acceptable)
-- [ ] ⚠️ Investiguer pourquoi `assets_impl.py` a grossi à 522 L (les helpers download sont encore inline)
+- [x] Supprimer les shims morts de `assets_impl.py` (`_validate_no_symlink_open`, `_strip_png_comfyui_chunks`) — autres shims conservés car testés ou wiring nécessaire
+- [x] Fusionner `_prepare_asset_rating_request` et `_prepare_asset_tags_request` en `_prepare_asset_op_request(request, *, operation)` (L150–188)
+- [x] Déplacer `_load_asset_filepath_by_id` et `_load_asset_row_by_id` dans `features/assets/service.py` (L104–133)
+- [ ] Réduire la verbosité des lambdas d'injection dans `handle_update_asset_rating` / `handle_update_asset_tags`
 - [ ] Sortir les helpers HTTP partagés dans un module commun léger
 - [ ] Créer les sous-services dans `features/assets/` : `rename_service.py`, `delete_service.py`, `rating_tags_service.py`, `download_service.py`, `path_resolution_service.py`
 - [ ] Déplacer les validations request → context dans `features/assets/`
-- [ ] Réduire les accès DB/filesystem directs dans les handlers
 
 ## 9.5 Critères d’acceptation
 
@@ -562,9 +564,12 @@ Conserver `__init__.py` compatible ComfyUI, mais réduire les side effects direc
 - [x] Extraire un premier split `security_policy.py` (181 L) / `security_tokens.py` (135 L) — non commité
 - [x] Extraire `observability_runtime.py` (376 L) / `observability_install.py` (73 L) — non commité
 - [x] `observability.py` réduit à 13 L (façade fine ✓)
-- [ ] ⚠️ Investiguer pourquoi `security.py` a grossi à 836 L malgré l'extraction policy/tokens
-- [ ] Clarifier les sous-zones restantes de `security.py` : trusted proxies / auth context / rate-limit / CSRF
-- [ ] ⚠️ Investiguer pourquoi `registry.py` a grossi à 326 L malgré les splits registry_*
+- [x] Extraire `security_proxies.py` : IP helpers, trusted proxy parsing, forwarded-for chain (non commité)
+- [x] Extraire `security_auth_context.py` : ComfyUI user bridge, ContextVar, `_require_authenticated_user` (non commité)
+- [x] Extraire `security_rate_limit.py` : state machine rate-limit, lock, background cleanup thread, `_check_rate_limit` (non commité)
+- [x] Extraire `security_csrf.py` : `_csrf_error`, `_has_csrf_header`, Origin/Host validation (non commité)
+- [x] `security.py` réduit à 438 L — reste : write-access checking, wrappers patchables pour les tests, re-exports (non commité)
+- [x] Extraire `registry_middlewares.py` depuis `registry.py` (L58–176) : 3 middlewares + 4 helpers privés — `registry.py` réduit à 202 L (non commité)
 - [ ] Rendre l'ordre d'enregistrement des routes plus déclaratif dans `registry.py`
 - [ ] Revoir le bootstrap import-side-effects dans `__init__.py`
 - [ ] Ajouter un mode strict dev plus explicite pour les fallbacks critiques
@@ -646,8 +651,10 @@ Encore manquant ou à formaliser :
 
 ## Phase 3 — Split handlers assets/search
 
-- [ ] Investiguer la croissance de `assets_impl.py` (464 → 522 L)
-- [ ] Extraire les helpers download encore inline dans `assets_impl.py`
+- [x] Investiguer la croissance de `assets_impl.py` (464 → 522 L) — causes identifiées et corrigées
+- [x] Supprimer les shims morts de `assets_impl.py` et dédensifier
+- [x] Déplacer `_load_asset_filepath_by_id` / `_load_asset_row_by_id` dans `features/assets/service.py`
+- [x] Fusionner les `_prepare_asset_*` dupliquées en `_prepare_asset_op_request`
 - [ ] Créer les sous-services dans `features/assets/` (rename, delete, download, rating_tags, path_resolution)
 - [ ] Sortir les validations request → context dans `features/assets/`
 - [ ] `search_impl.py` à 244 L — acceptable, surveiller seulement
@@ -657,10 +664,10 @@ Encore manquant ou à formaliser :
 - [x] Extraire registry_prompt / registry_logging / registry_app
 - [x] Extraire security_policy / security_tokens (non commité)
 - [x] Extraire observability_runtime / observability_install (non commité)
-- [ ] Committer le lot observability + security (non commité)
-- [ ] Investiguer la croissance de `registry.py` (265 → 326 L) et clarifier
-- [ ] Clarifier `security.py` (836 L) : trusted proxies / auth context / rate-limit / CSRF en modules dédiés
-- [ ] `observability.py` est déjà une façade fine (13 L ✓)
+- [x] Extraire security_proxies / security_auth_context / security_rate_limit / security_csrf (non commité)
+- [x] Extraire registry_middlewares.py depuis registry.py (non commité)
+- [x] `observability.py` est déjà une façade fine (13 L ✓)
+- [ ] **Committer** le lot observability + security + registry_middlewares (non commité)
 
 ## Phase 5 — Nettoyage final et durcissement
 
@@ -738,23 +745,24 @@ FAIT (non commité — à committer)
 - sqlite_facade.py réduit à 1195 L via 4 nouveaux modules :
   sqlite_connections (144 L) / sqlite_execution (455 L) / sqlite_lifecycle (613 L) / sqlite_recovery (222 L)
 - security_policy.py (181 L) / security_tokens.py (135 L) extraits de security.py
+- security_proxies.py / security_auth_context.py / security_rate_limit.py / security_csrf.py extraits de security.py
+  → security.py réduit de 836 L à 438 L ; 1293 tests passent
+- registry_middlewares.py extrait de registry.py (L58–176) → registry.py réduit de 326 L à 202 L
 - observability_runtime.py (376 L) / observability_install.py (73 L) extraits — observability.py = 13 L ✓
+- load_asset_filepath_by_id / load_asset_row_by_id déplacées dans features/assets/service.py
+- _prepare_asset_rating_request / _prepare_asset_tags_request fusionnées en _prepare_asset_op_request
+- shims morts (_validate_no_symlink_open, _strip_png_comfyui_chunks) supprimés de assets_impl.py
+  → assets_impl.py réduit de 522 L à 473 L
 
-PROBLÈMES DÉTECTÉS (fichiers qui ont grossi malgré les extractions)
-- assets_impl.py : 464 → 522 L ⚠️ (helpers download encore inline)
-- security.py : 711 → 836 L ⚠️ (proxies/auth context/rate-limit/CSRF toujours là)
-- registry.py : 265 → 326 L ⚠️ (cause à identifier)
-
-CE QUI RESTE À FAIRE
+CE QUI RESTE À FAIRE (ordre de priorité)
 1. Committer le lot DB (sqlite_connections/execution/lifecycle/recovery)
-2. Committer le lot observability + security (policy/tokens/runtime/install)
-3. Investiguer et réduire assets_impl.py / security.py / registry.py
-4. Créer les sous-services dans features/assets/ (rename/delete/download/rating_tags/path_resolution)
-5. Extraire les SQL guards résiduels de sqlite_facade.py
-6. Décider du sort de schema.py (951 L)
-7. Étendre les tests Vue critiques côté panel / teardown
-8. Documenter ce qui reste impératif par design dans le viewer
-9. Créer requirements-dev.txt + docs/DEPENDENCY_POLICY.md + 2 ADR manquantes
+2. Committer le lot security + registry_middlewares + observability (non commité)
+3. Créer les sous-services dans features/assets/ (rename/delete/download/rating_tags/path_resolution)
+4. Extraire les SQL guards résiduels de sqlite_facade.py
+5. Décider du sort de schema.py (951 L)
+6. Étendre les tests Vue critiques côté panel / teardown
+7. Documenter ce qui reste impératif par design dans le viewer
+8. Créer requirements-dev.txt + docs/DEPENDENCY_POLICY.md + 2 ADR manquantes
 ```
 
 ---
