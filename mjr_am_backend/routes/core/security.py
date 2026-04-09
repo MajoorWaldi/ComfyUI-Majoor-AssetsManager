@@ -1,23 +1,50 @@
 """
-Security utilities: CSRF protection and rate limiting.
+Security utilities: write-access guards and re-exports of security sub-modules.
+
+Sub-module layout:
+  security_policy.py       — env flags, operation policy, safe mode
+  security_tokens.py       — token hashing and extraction
+  security_proxies.py      — trusted proxy resolution, IP utilities
+  security_auth_context.py — ComfyUI user bridge, request user context
+  security_rate_limit.py   — rate limiting state machine
+  security_csrf.py         — CSRF validation
 """
 
 from __future__ import annotations
 
-import hashlib
 import ipaddress
-import os
-import threading
 import time
-from collections import OrderedDict
 from collections.abc import Mapping
-from contextvars import ContextVar, Token
 from functools import lru_cache
 from typing import Any
-from urllib.parse import urlparse
 
 from aiohttp import web
+
 from mjr_am_backend.shared import Result, get_logger
+
+# --- Sub-module re-exports (keep this module as the single import point) ---
+from .security_auth_context import (
+    _CURRENT_USER_ID,
+    _app_key_name,
+    _comfy_auth_enabled,
+    _current_user_id,
+    _get_comfy_user_manager,
+    _get_request_user_id,
+    _push_request_user_context_with,
+    _request_app_user_manager,
+    _require_authenticated_user,
+    _reset_request_user_context,
+    _resolve_request_user_id,
+    _server_module_user_manager,
+)
+from .security_csrf import (
+    _csrf_error,
+    _has_csrf_header,
+    _is_loopback_origin_host_match,
+    _parse_origin,
+    _resolve_effective_host,
+    _split_host_port,
+)
 from .security_policy import (
     _WARNED_TOKEN_SOURCES,
     _env_truthy,
@@ -25,6 +52,24 @@ from .security_policy import (
     _resolve_security_prefs,
     _safe_mode_enabled,
     _validate_token_format,
+)
+from .security_proxies import (
+    _CLIENT_ID_HASH_HEX_CHARS,
+    _extract_peer_ip,
+    _forwarded_for_chain,
+    _header_value,
+    _is_loopback_ip,
+    _is_valid_ip,
+    _parse_trusted_proxies as _parse_trusted_proxies_impl,
+    _real_ip_from_header,
+)
+from .security_rate_limit import (
+    _MAX_RATE_LIMIT_CLIENTS,
+    _MAX_RATE_LIMIT_ENDPOINTS_PER_CLIENT,
+    _RATE_LIMIT_BACKGROUND_CLEANUP_SECONDS,
+    _RATE_LIMIT_MIN_WINDOW_SECONDS,
+    _check_rate_limit as _check_rate_limit_impl,
+    _rate_limit_state,
 )
 from .security_tokens import (
     _extract_bearer_token,
@@ -40,112 +85,84 @@ from .security_tokens import (
 
 logger = get_logger(__name__)
 
-# Per-client rate limiting state: {client_id: {endpoint: [timestamps]}}
-# Use LRU eviction to prevent unbounded memory growth from spoofed client IPs.
-_DEFAULT_MAX_RATE_LIMIT_CLIENTS = 1_000
-_DEFAULT_MAX_RATE_LIMIT_ENDPOINTS_PER_CLIENT = 32
-_DEFAULT_RATE_LIMIT_MIN_WINDOW_SECONDS = 60
-_DEFAULT_CLIENT_ID_HASH_HEX_CHARS = 16
-_DEFAULT_TRUSTED_PROXIES = "127.0.0.1,::1"
-_DEFAULT_RATE_LIMIT_BACKGROUND_CLEANUP_SECONDS = 60
 
-try:
-    _MAX_RATE_LIMIT_CLIENTS = int(
-        os.environ.get("MAJOOR_RATE_LIMIT_MAX_CLIENTS", str(_DEFAULT_MAX_RATE_LIMIT_CLIENTS))
+# ---------------------------------------------------------------------------
+# Rate limit wrapper — defined here so tests can monkeypatch sec._MAX_RATE_LIMIT_CLIENTS
+# and have it take effect (security_rate_limit reads its own module-level constant otherwise).
+# ---------------------------------------------------------------------------
+
+
+def _check_rate_limit(
+    request: web.Request,
+    endpoint: str,
+    max_requests: int = 10,
+    window_seconds: int = 60,
+) -> tuple[bool, int | None]:
+    return _check_rate_limit_impl(
+        request,
+        endpoint,
+        max_requests=max_requests,
+        window_seconds=window_seconds,
+        _max_clients=_MAX_RATE_LIMIT_CLIENTS,
     )
-except Exception:
-    _MAX_RATE_LIMIT_CLIENTS = _DEFAULT_MAX_RATE_LIMIT_CLIENTS
-
-try:
-    _RATE_LIMIT_MIN_WINDOW_SECONDS = int(
-        os.environ.get(
-            "MAJOOR_RATE_LIMIT_MIN_WINDOW_SECONDS", str(_DEFAULT_RATE_LIMIT_MIN_WINDOW_SECONDS)
-        )
-    )
-except Exception:
-    _RATE_LIMIT_MIN_WINDOW_SECONDS = _DEFAULT_RATE_LIMIT_MIN_WINDOW_SECONDS
-
-try:
-    _CLIENT_ID_HASH_HEX_CHARS = int(
-        os.environ.get("MAJOOR_CLIENT_ID_HASH_CHARS", str(_DEFAULT_CLIENT_ID_HASH_HEX_CHARS))
-    )
-except Exception:
-    _CLIENT_ID_HASH_HEX_CHARS = _DEFAULT_CLIENT_ID_HASH_HEX_CHARS
-
-try:
-    _MAX_RATE_LIMIT_ENDPOINTS_PER_CLIENT = int(
-        os.environ.get(
-            "MAJOOR_RATE_LIMIT_MAX_ENDPOINTS_PER_CLIENT",
-            str(_DEFAULT_MAX_RATE_LIMIT_ENDPOINTS_PER_CLIENT),
-        )
-    )
-except Exception:
-    _MAX_RATE_LIMIT_ENDPOINTS_PER_CLIENT = _DEFAULT_MAX_RATE_LIMIT_ENDPOINTS_PER_CLIENT
-
-_rate_limit_state: OrderedDict[str, dict[str, list[float]]] = OrderedDict()
-# INVARIANT: threading.Lock is used intentionally because all rate-limit updates
-# are purely synchronous (dict/list mutations only). This avoids the cost and
-# complexity of asyncio.Lock for a hot path that never awaits.
-# **DO NOT** add any `await` inside a `with _rate_limit_lock:` critical section —
-# doing so would block the entire event loop for all other coroutines.
-_rate_limit_lock = threading.Lock()
-_rate_limit_cleanup_thread: threading.Thread | None = None
-_rate_limit_cleanup_thread_lock = threading.Lock()
-_rate_limit_cleanup_stop = threading.Event()
-_CURRENT_USER_ID: ContextVar[str] = ContextVar("mjr_current_user_id", default="")
-try:
-    _RATE_LIMIT_BACKGROUND_CLEANUP_SECONDS = int(
-        os.environ.get(
-            "MAJOOR_RATE_LIMIT_BACKGROUND_CLEANUP_SECONDS",
-            str(_DEFAULT_RATE_LIMIT_BACKGROUND_CLEANUP_SECONDS),
-        )
-    )
-except Exception:
-    _RATE_LIMIT_BACKGROUND_CLEANUP_SECONDS = _DEFAULT_RATE_LIMIT_BACKGROUND_CLEANUP_SECONDS
-_RATE_LIMIT_BACKGROUND_CLEANUP_SECONDS = max(10, _RATE_LIMIT_BACKGROUND_CLEANUP_SECONDS)
 
 
-def _resolve_client_ip(peer_ip: str, headers: Mapping[str, str]) -> str:
-    """
-    Resolve client IP, honoring X-Forwarded-For / X-Real-IP only from trusted proxies.
-
-    Note: This mirrors the rate-limit identity resolution but returns the IP string (not a hash),
-    so it can be used for local/remote authorization checks.
-    """
-    peer = str(peer_ip or "").strip()
-    if not peer:
-        return "unknown"
-
-    if _is_trusted_proxy(peer):
-        forwarded_chain = _forwarded_for_chain(headers)
-        forwarded_ip = _client_ip_from_forwarded_chain(forwarded_chain, peer=peer)
-        if forwarded_ip:
-            return forwarded_ip
-        real_ip = _real_ip_from_header(headers)
-        if real_ip:
-            return real_ip
-
-    return peer
+# ---------------------------------------------------------------------------
+# Trusted proxy state — defined HERE (not imported) so tests can monkeypatch
+# sec._TRUSTED_PROXY_NETS / sec._is_trusted_proxy at the security module level.
+# security_proxies.py keeps its own copy used by security_csrf and other sub-modules.
+# ---------------------------------------------------------------------------
 
 
-def _forwarded_for_chain(headers: Mapping[str, str]) -> list[str]:
-    forwarded_for = _header_value(headers, "X-Forwarded-For")
-    if not forwarded_for:
-        return []
-    out: list[str] = []
-    for part in forwarded_for.split(","):
-        candidate = part.strip()
-        if _is_valid_ip(candidate):
-            out.append(candidate)
-    return out
+def _parse_trusted_proxies() -> list[ipaddress._BaseNetwork]:
+    return _parse_trusted_proxies_impl()
+
+
+_TRUSTED_PROXY_NETS: list[ipaddress._BaseNetwork] = _parse_trusted_proxies()
+
+
+@lru_cache(maxsize=2048)
+def _is_trusted_proxy(ip: str) -> bool:
+    try:
+        addr = ipaddress.ip_address(str(ip or "").strip())
+    except Exception:
+        return False
+    try:
+        for net in _TRUSTED_PROXY_NETS:
+            try:
+                if addr in net:
+                    return True
+            except Exception:
+                continue
+    except Exception:
+        return False
+    return False
+
+
+def _refresh_trusted_proxy_cache() -> None:
+    global _TRUSTED_PROXY_NETS
+    _TRUSTED_PROXY_NETS = _parse_trusted_proxies()
+    try:
+        _is_trusted_proxy.cache_clear()
+    except Exception:
+        pass
+    # Also refresh the proxies sub-module (used by security_csrf, etc.)
+    from .security_proxies import _refresh_trusted_proxy_cache as _proxies_refresh
+    _proxies_refresh()
+
+
+# ---------------------------------------------------------------------------
+# Proxy-aware IP resolution
+# (defined here so tests can monkeypatch _is_trusted_proxy at this module level)
+# ---------------------------------------------------------------------------
 
 
 def _client_ip_from_forwarded_chain(forwarded_chain: list[str], *, peer: str) -> str:
     """
     Resolve client IP from X-Forwarded-For using trusted-proxy chain semantics.
 
-    We trim trusted proxies from the right side (closest hop first), then pick the
-    nearest untrusted hop. This is safer than blindly taking the first XFF value.
+    Trims trusted proxies from the right (closest hop first), then picks the
+    nearest untrusted hop. Safer than blindly taking the first XFF value.
     """
     if not forwarded_chain:
         return ""
@@ -163,76 +180,45 @@ def _client_ip_from_forwarded_chain(forwarded_chain: list[str], *, peer: str) ->
     return ""
 
 
-def _real_ip_from_header(headers: Mapping[str, str]) -> str:
-    real_ip = _header_value(headers, "X-Real-IP")
-    if not real_ip:
-        return ""
-    return real_ip if _is_valid_ip(real_ip) else ""
-
-
-def _header_value(headers: Mapping[str, str], key: str) -> str:
-    try:
-        return str(headers.get(key) or "").strip()
-    except Exception:
-        return ""
-
-
-def _is_valid_ip(value: str) -> bool:
-    try:
-        ipaddress.ip_address(value)
-        return True
-    except Exception:
-        return False
-
-
-def _is_loopback_ip(value: str) -> bool:
-    try:
-        return ipaddress.ip_address(str(value or "").strip()).is_loopback
-    except Exception:
-        return False
-
-
-def _check_write_access(
-    *, peer_ip: str, headers: Mapping[str, str], request_scheme: str = ""
-) -> Result[bool]:
+def _resolve_client_ip(peer_ip: str, headers: Mapping[str, str]) -> str:
     """
-    Authorization guard for destructive/write endpoints.
+    Resolve client IP, honoring X-Forwarded-For / X-Real-IP only from trusted proxies.
 
-    Default policy:
-      - Loopback clients are trusted by default (same machine = same user).
-      - If a token is configured AND the client is remote: token is required.
-      - If no token is configured: allow loopback, deny remote.
-
-    Overrides:
-      - MAJOOR_REQUIRE_AUTH=1 forces token auth even for loopback.
-      - MAJOOR_ALLOW_REMOTE_WRITE=1 allows remote writes when no token is set.
-
-    Returns a Result that never raises (route handlers should return 200 with this Result on error).
+    Note: Defined here (not in security_proxies) so that monkeypatching
+    `_is_trusted_proxy` at this module level works correctly in tests.
     """
-    configured_hash = _get_write_token_hash()
-    require_auth = _env_truthy("MAJOOR_REQUIRE_AUTH")
-    # Default: deny remote writes when no token is configured.
-    allow_remote = _env_truthy("MAJOOR_ALLOW_REMOTE_WRITE", default=False)
+    peer = str(peer_ip or "").strip()
+    if not peer:
+        return "unknown"
+    if _is_trusted_proxy(peer):
+        forwarded_chain = _forwarded_for_chain(headers)
+        forwarded_ip = _client_ip_from_forwarded_chain(forwarded_chain, peer=peer)
+        if forwarded_ip:
+            return forwarded_ip
+        real_ip = _real_ip_from_header(headers)
+        if real_ip:
+            return real_ip
+    return peer
 
+
+def _get_client_identifier(request: web.Request) -> str:
+    import hashlib
+
+    peer_ip = _extract_peer_ip(request)
+    headers: Mapping[str, str]
+    try:
+        headers = request.headers
+    except Exception:
+        headers = {}
     client_ip = _resolve_client_ip(peer_ip, headers)
-    provided = _extract_write_token_from_headers(headers)
-    if configured_hash:
-        return _check_write_access_with_token(
-            client_ip=client_ip,
-            configured_hash=configured_hash,
-            provided=provided,
-            peer_ip=peer_ip,
-            headers=headers,
-            request_scheme=request_scheme,
-            require_auth=require_auth,
-        )
-    return _check_write_access_without_token(
-        client_ip=client_ip,
-        allow_remote=allow_remote,
-        require_auth=require_auth,
-        headers=headers,
-        request_scheme=request_scheme,
-    )
+    return hashlib.sha256(client_ip.encode("utf-8", errors="ignore")).hexdigest()[
+        :_CLIENT_ID_HASH_HEX_CHARS
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Write-access checking
+# ---------------------------------------------------------------------------
 
 
 def _is_loopback_fallback_unknown_peer(client_ip: str, headers: Mapping[str, str] | None) -> bool:
@@ -255,8 +241,6 @@ def _check_write_access_with_token(
     request_scheme: str,
     require_auth: bool,
 ) -> Result[bool]:
-    from ...shared import Result
-
     if _token_hash_matches(provided, configured_hash):
         if not _request_transport_is_secure(
             peer_ip=peer_ip, headers=headers, request_scheme=request_scheme
@@ -289,8 +273,6 @@ def _check_write_access_without_token(
     headers: Mapping[str, str] | None = None,
     request_scheme: str = "",
 ) -> Result[bool]:
-    from ...shared import Result
-
     if require_auth:
         return Result.Err(
             "AUTH_REQUIRED",
@@ -304,7 +286,6 @@ def _check_write_access_without_token(
         return Result.Ok(True, auth="loopback", client_ip=client_ip)
     if _is_loopback_fallback_unknown_peer(client_ip, headers):
         return Result.Ok(True, auth="loopback_unknown_peer", client_ip=client_ip)
-
     return Result.Err(
         "FORBIDDEN",
         "Write operation blocked for non-local clients. Configure MAJOOR_API_TOKEN (recommended) or set MAJOOR_ALLOW_REMOTE_WRITE=1 to allow remote writes when no token is configured.",
@@ -313,11 +294,56 @@ def _check_write_access_without_token(
     )
 
 
+def _check_write_access(
+    *, peer_ip: str, headers: Mapping[str, str], request_scheme: str = ""
+) -> Result[bool]:
+    """
+    Authorization guard for destructive/write endpoints.
+
+    Default policy:
+      - Loopback clients are trusted by default (same machine = same user).
+      - If a token is configured AND the client is remote: token is required.
+      - If no token is configured: allow loopback, deny remote.
+
+    Overrides:
+      - MAJOOR_REQUIRE_AUTH=1 forces token auth even for loopback.
+      - MAJOOR_ALLOW_REMOTE_WRITE=1 allows remote writes when no token is set.
+    """
+    configured_hash = _get_write_token_hash()
+    require_auth = _env_truthy("MAJOOR_REQUIRE_AUTH")
+    allow_remote = _env_truthy("MAJOOR_ALLOW_REMOTE_WRITE", default=False)
+
+    client_ip = _resolve_client_ip(peer_ip, headers)
+    provided = _extract_write_token_from_headers(headers)
+    if configured_hash:
+        return _check_write_access_with_token(
+            client_ip=client_ip,
+            configured_hash=configured_hash,
+            provided=provided,
+            peer_ip=peer_ip,
+            headers=headers,
+            request_scheme=request_scheme,
+            require_auth=require_auth,
+        )
+    return _check_write_access_without_token(
+        client_ip=client_ip,
+        allow_remote=allow_remote,
+        require_auth=require_auth,
+        headers=headers,
+        request_scheme=request_scheme,
+    )
+
+
 def _has_configured_write_token() -> bool:
     try:
         return bool(_get_write_token_hash())
     except Exception:
         return False
+
+
+# ---------------------------------------------------------------------------
+# Request-level guards
+# ---------------------------------------------------------------------------
 
 
 def _require_write_access(request: web.Request) -> Result[bool]:
@@ -338,7 +364,7 @@ def _require_write_access(request: web.Request) -> Result[bool]:
         request_scheme = ""
     headers: Mapping[str, str]
     try:
-        headers = request.headers  # CIMultiDictProxy
+        headers = request.headers
     except Exception:
         headers = {}
     return _check_write_access(peer_ip=peer, headers=headers, request_scheme=request_scheme)
@@ -372,6 +398,8 @@ def _request_transport_is_secure(
     if not _is_trusted_proxy(peer_ip):
         return False
 
+    from .security_proxies import _header_value
+
     forwarded_proto = _header_value(headers, "X-Forwarded-Proto")
     if not forwarded_proto:
         return False
@@ -379,449 +407,23 @@ def _request_transport_is_secure(
     return first == "https"
 
 
-def _get_comfy_user_manager(request: web.Request | None = None) -> Any:
+# ---------------------------------------------------------------------------
+# Test helpers
+# ---------------------------------------------------------------------------
+
+
+def _push_request_user_context(request: web.Request | None) -> Any:
     """
-    Best-effort resolver for ComfyUI user manager object.
+    Push current user id into async context. Defined here (not in security_auth_context)
+    so tests can monkeypatch sec._get_request_user_id and have it take effect.
     """
-    app_manager = _request_app_user_manager(request)
-    if app_manager is not None:
-        return app_manager
-    return _server_module_user_manager()
-
-
-def _current_user_id() -> str:
-    try:
-        return str(_CURRENT_USER_ID.get() or "").strip()
-    except Exception:
-        return ""
-
-
-def _get_request_user_id(request: web.Request | None) -> str:
-    if request is None:
-        return ""
-    try:
-        stored = str(request.get("mjr_user_id") or "").strip()
-        if stored:
-            return stored
-    except Exception:
-        pass
-    try:
-        return _resolve_request_user_id(request)
-    except Exception:
-        return ""
-
-
-def _push_request_user_context(request: web.Request | None) -> Token[str]:
-    return _CURRENT_USER_ID.set(_get_request_user_id(request))
-
-
-def _reset_request_user_context(token: Token[str]) -> None:
-    try:
-        _CURRENT_USER_ID.reset(token)
-    except Exception:
-        return
-
-
-def _request_app_user_manager(request: web.Request | None) -> Any:
-    if request is None:
-        return None
-    try:
-        app_mgr = request.app.get("_mjr_user_manager")
-        if app_mgr is not None:
-            return app_mgr
-        for key in request.app.keys():
-            key_name = _app_key_name(key)
-            if key_name != "_mjr_user_manager":
-                continue
-            candidate = request.app.get(key)
-            if candidate is not None:
-                return candidate
-    except Exception:
-        return None
-    return None
-
-
-def _app_key_name(key: Any) -> str:
-    try:
-        return str(getattr(key, "name", "") or "")
-    except Exception:
-        return ""
-
-
-def _server_module_user_manager() -> Any:
-    try:
-        import sys
-
-        server_mod = sys.modules.get("server")
-        if server_mod is None:
-            return None
-        for key in ("USER_MANAGER", "user_manager"):
-            manager = getattr(server_mod, key, None)
-            if manager is not None:
-                return manager
-        prompt_server = getattr(server_mod, "PromptServer", None)
-        instance = getattr(prompt_server, "instance", None)
-        manager = getattr(instance, "user_manager", None)
-        if manager is not None:
-            return manager
-    except Exception:
-        return None
-    return None
-
-
-def _comfy_auth_enabled(user_manager: Any) -> bool:
-    """
-    Determine whether ComfyUI auth should be treated as enabled.
-    """
-    if user_manager is None:
-        return False
-    try:
-        for attr in ("enabled", "is_enabled", "auth_enabled", "users_enabled"):
-            value = getattr(user_manager, attr, None)
-            if isinstance(value, bool):
-                return value
-            if callable(value):
-                out = value()
-                if isinstance(out, bool):
-                    return out
-    except Exception:
-        pass
-    # If manager exists but does not expose flags, assume enabled to fail safe.
-    return True
-
-
-def _resolve_request_user_id(request: web.Request) -> str:
-    """
-    Resolve ComfyUI user id from request, if available.
-    """
-    um = _get_comfy_user_manager(request)
-    if um is None:
-        return ""
-    try:
-        getter = getattr(um, "get_request_user_id", None)
-        if callable(getter):
-            uid = getter(request)
-            if uid is None:
-                return ""
-            return str(uid).strip()
-    except Exception:
-        return ""
-    return ""
-
-
-def _require_authenticated_user(request: web.Request) -> Result[str]:
-    """
-    Require an authenticated ComfyUI user when Comfy auth is enabled.
-    """
-    um = _get_comfy_user_manager(request)
-    if um is None:
-        # Backward compatibility: Comfy auth subsystem unavailable.
-        return Result.Ok("", auth_mode="unavailable")
-
-    if not _comfy_auth_enabled(um):
-        return Result.Ok("", auth_mode="disabled")
-
-    user_id = _resolve_request_user_id(request)
-    if user_id:
-        return Result.Ok(user_id, auth_mode="comfy_user")
-
-    return Result.Err(
-        "AUTH_REQUIRED",
-        "Authentication required. Please sign in to ComfyUI first.",
-        auth_mode="comfy_user",
-    )
-
-
-def _parse_trusted_proxies() -> list[ipaddress._BaseNetwork]:
-    raw = os.environ.get("MAJOOR_TRUSTED_PROXIES", _DEFAULT_TRUSTED_PROXIES)
-    allow_insecure = _env_truthy("MAJOOR_ALLOW_INSECURE_TRUSTED_PROXIES", default=False)
-    out: list[ipaddress._BaseNetwork] = []
-    for part in (raw or "").split(","):
-        s = part.strip()
-        if not s:
-            continue
-        try:
-            # Accept either an IP or a CIDR.
-            if "/" in s:
-                out.append(ipaddress.ip_network(s, strict=False))
-            else:
-                ip = ipaddress.ip_address(s)
-                out.append(ipaddress.ip_network(f"{ip}/{ip.max_prefixlen}", strict=False))
-        except Exception:
-            continue
-    # Refuse universal trust by default. This blocks spoofing via X-Forwarded-For from arbitrary peers.
-    if not allow_insecure:
-        filtered: list[ipaddress._BaseNetwork] = []
-        for net in out:
-            try:
-                if int(getattr(net, "prefixlen", 0)) == 0:
-                    continue
-            except Exception:
-                pass
-            filtered.append(net)
-        out = filtered
-    return out
-
-
-_TRUSTED_PROXY_NETS = _parse_trusted_proxies()
-
-
-def _refresh_trusted_proxy_cache() -> None:
-    global _TRUSTED_PROXY_NETS
-    _TRUSTED_PROXY_NETS = _parse_trusted_proxies()
-    try:
-        _is_trusted_proxy.cache_clear()
-    except Exception:
-        pass
-
-
-@lru_cache(maxsize=2048)
-def _is_trusted_proxy(ip: str) -> bool:
-    try:
-        addr = ipaddress.ip_address(str(ip or "").strip())
-    except Exception:
-        return False
-    try:
-        for net in _TRUSTED_PROXY_NETS:
-            try:
-                if addr in net:
-                    return True
-            except Exception:
-                continue
-    except Exception:
-        return False
-    return False
-
-
-def _extract_peer_ip(request: web.Request) -> str:
-    try:
-        peername = request.transport.get_extra_info("peername") if request.transport else None
-        return peername[0] if peername else "unknown"
-    except Exception:
-        return "unknown"
-
-
-def _get_client_identifier(request: web.Request) -> str:
-    peer_ip = _extract_peer_ip(request)
-    headers: Mapping[str, str]
-    try:
-        headers = request.headers
-    except Exception:
-        headers = {}
-    client_ip = _resolve_client_ip(peer_ip, headers)
-    return hashlib.sha256(client_ip.encode("utf-8", errors="ignore")).hexdigest()[
-        :_CLIENT_ID_HASH_HEX_CHARS
-    ]
-
-
-def _get_or_create_client_state(client_id: str) -> dict[str, list[float]]:
-    if client_id in _rate_limit_state:
-        _rate_limit_state.move_to_end(client_id)
-        return _rate_limit_state[client_id]
-    # Synchronous eviction at insertion time: pop the oldest entry (FIFO) whenever
-    # the dict exceeds _MAX_RATE_LIMIT_CLIENTS.  This caps memory at all times,
-    # not just at background-cleanup intervals — preventing spoofed-IP floods from
-    # exhausting memory between 60-second cleanup cycles (HIGH-002).
-    while len(_rate_limit_state) >= _MAX_RATE_LIMIT_CLIENTS:
-        try:
-            _rate_limit_state.popitem(last=False)
-        except KeyError:
-            break
-    state: dict[str, list[float]] = {}
-    _rate_limit_state[client_id] = state
-    return state
-
-
-def _evict_oldest_endpoint_if_needed(client_state: dict[str, list[float]], endpoint: str) -> None:
-    if endpoint in client_state:
-        return
-    cap = max(1, int(_MAX_RATE_LIMIT_ENDPOINTS_PER_CLIENT or 1))
-    while len(client_state) >= cap:
-        try:
-            # Dict preserves insertion order in modern Python.
-            oldest_key = next(iter(client_state))
-            client_state.pop(oldest_key, None)
-        except Exception:
-            break
-
-
-def _cleanup_rate_limit_state_locked(now: float, window_seconds: int) -> None:
-    for client_id, endpoints in list(_rate_limit_state.items()):
-        for endpoint, timestamps in list(endpoints.items()):
-            recent = [ts for ts in timestamps if now - ts < window_seconds]
-            if recent:
-                endpoints[endpoint] = recent
-            else:
-                endpoints.pop(endpoint, None)
-        if not endpoints:
-            _rate_limit_state.pop(client_id, None)
-
-
-def _rate_limit_cleanup_loop() -> None:
-    while not _rate_limit_cleanup_stop.wait(timeout=float(_RATE_LIMIT_BACKGROUND_CLEANUP_SECONDS)):
-        try:
-            now = time.time()
-            with _rate_limit_lock:
-                _cleanup_rate_limit_state_locked(now, max(_RATE_LIMIT_MIN_WINDOW_SECONDS, 60))
-        except Exception as exc:
-            logger.debug("Rate limit background cleanup failed: %s", exc)
-
-
-def _ensure_rate_limit_cleanup_thread() -> None:
-    global _rate_limit_cleanup_thread
-    with _rate_limit_cleanup_thread_lock:
-        if _rate_limit_cleanup_thread and _rate_limit_cleanup_thread.is_alive():
-            return
-        _rate_limit_cleanup_stop.clear()
-        _rate_limit_cleanup_thread = threading.Thread(
-            target=_rate_limit_cleanup_loop,
-            name="mjr-rate-limit-cleanup",
-            daemon=True,
-        )
-        _rate_limit_cleanup_thread.start()
-
-
-def _check_rate_limit(
-    request: web.Request, endpoint: str, max_requests: int = 10, window_seconds: int = 60
-) -> tuple[bool, int | None]:
-    """
-    Check if the current client exceeded the rate limit.
-
-    Returns:
-        (allowed, retry_after_seconds)
-    """
-    _ensure_rate_limit_cleanup_thread()
-
-    try:
-        client_id = _get_client_identifier(request)
-        now = time.time()
-    except Exception as exc:
-        # If we can't identify the client, fail open to avoid breaking UI.
-        logger.warning("Rate limit identity resolution failed; failing open: %s", exc)
-        return True, None
-
-    try:
-        with _rate_limit_lock:
-            client_state = _get_or_create_client_state(client_id)
-            _evict_oldest_endpoint_if_needed(client_state, endpoint)
-            previous = client_state.get(endpoint, [])
-            recent = [ts for ts in previous if now - ts < window_seconds]
-
-            if len(recent) >= max_requests:
-                retry_after = int(window_seconds - (now - recent[0])) + 1
-                return False, max(1, retry_after)
-
-            recent.append(now)
-            # Fix C-7: cap the list to max_requests to prevent unbounded growth.
-            # Without this, a client making many calls inside the window keeps
-            # accumulating timestamps, potentially consuming megabytes of RAM.
-            if len(recent) > max_requests:
-                recent = recent[-max_requests:]
-            client_state[endpoint] = recent
-            return True, None
-    except Exception as exc:
-        logger.error("Rate limit check raised unexpectedly; failing open: %s", exc, exc_info=True)
-        return True, None
-
-
-def _csrf_error(request: web.Request) -> str | None:
-    """
-    Enhanced CSRF protection for state-changing endpoints.
-
-    Layers:
-      1) Require an anti-CSRF header for state-changing methods (X-Requested-With or X-CSRF-Token)
-      2) If Origin is present, validate it against Host (with loopback allowance)
-    """
-    if request.method.upper() not in ("POST", "PUT", "DELETE", "PATCH"):
-        return None
-    if not _has_csrf_header(request):
-        return "Missing anti-CSRF header (X-Requested-With or X-CSRF-Token)"
-    origin = request.headers.get("Origin")
-    if not origin:
-        return None
-    if origin == "null":
-        return "Cross-site request blocked (Origin=null)"
-    host = _resolve_effective_host(request)
-    if not host:
-        return "Missing Host header"
-    parsed = _parse_origin(origin)
-    if parsed is None:
-        return "Cross-site request blocked (invalid Origin)"
-    if parsed.netloc == host:
-        return None
-    if _is_loopback_origin_host_match(parsed, host):
-        return None
-    return f"Cross-site request blocked ({parsed.netloc} != {host})"
-
-
-def _has_csrf_header(request: web.Request) -> bool:
-    try:
-        return bool(request.headers.get("X-Requested-With")) or bool(
-            request.headers.get("X-CSRF-Token")
-        )
-    except Exception:
-        return False
-
-
-def _resolve_effective_host(request: web.Request) -> str:
-    host = request.headers.get("Host") or ""
-    if not host:
-        return ""
-    try:
-        peer_ip = _extract_peer_ip(request)
-    except Exception:
-        peer_ip = "unknown"
-    if not _is_trusted_proxy(peer_ip):
-        return host
-    xf_host = str(request.headers.get("X-Forwarded-Host") or "").strip()
-    if not xf_host:
-        return host
-    return xf_host.split(",")[0].strip()
-
-
-def _parse_origin(origin: str):
-    try:
-        parsed = urlparse(origin)
-    except Exception:
-        return None
-    if not parsed.scheme or not parsed.netloc:
-        return None
-    return parsed
-
-
-def _is_loopback_origin_host_match(parsed_origin: Any, host: str) -> bool:
-    try:
-        origin_host = parsed_origin.hostname or ""
-        origin_port = parsed_origin.port
-    except Exception:
-        return False
-    host_name, host_port = _split_host_port(host)
-    loopback = {"localhost", "127.0.0.1", "::1"}
-    if origin_host not in loopback or host_name not in loopback:
-        return False
-    return origin_port is None or host_port is None or origin_port == host_port
-
-
-def _split_host_port(host: str) -> tuple[str, int | None]:
-    try:
-        if ":" in host and not host.endswith("]"):
-            host_name, host_port_raw = host.rsplit(":", 1)
-            return host_name, int(host_port_raw)
-    except Exception:
-        return host, None
-    return host, None
+    return _push_request_user_context_with(request, _get_request_user_id)
 
 
 def _reset_security_state_for_tests() -> None:
-    try:
-        with _rate_limit_lock:
-            _rate_limit_state.clear()
-    except Exception:
-        pass
-    try:
-        _rate_limit_cleanup_stop.set()
-    except Exception:
-        pass
+    from .security_rate_limit import _reset_rate_limit_state_for_tests
+
+    _reset_rate_limit_state_for_tests()
     try:
         _is_trusted_proxy.cache_clear()
     except Exception:

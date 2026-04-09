@@ -72,6 +72,45 @@ class _RenameState:
     current_root_id: str
 
 
+async def load_asset_filepath_by_id(services: dict[str, Any], asset_id: int) -> Result[str]:
+    """Load the filepath for an asset by its DB id."""
+    from mjr_am_backend.shared import sanitize_error_message as _safe_error
+
+    db = services.get("db") if isinstance(services, dict) else None
+    if not db:
+        return Result.Err("SERVICE_UNAVAILABLE", "Database service unavailable")
+    try:
+        res = await db.aquery("SELECT filepath FROM assets WHERE id = ?", (asset_id,))
+        if not res.ok or not res.data:
+            return Result.Err("NOT_FOUND", "Asset not found")
+        raw_path = (res.data[0] or {}).get("filepath")
+    except Exception as exc:
+        return Result.Err("DB_ERROR", _safe_error(exc, "Failed to load asset"))
+    if not raw_path or not isinstance(raw_path, str):
+        return Result.Err("NOT_FOUND", "Asset path not available")
+    return Result.Ok(raw_path)
+
+
+async def load_asset_row_by_id(services: dict[str, Any], asset_id: int) -> Result[dict[str, Any]]:
+    """Load filepath/filename/source/root_id for an asset by its DB id."""
+    from mjr_am_backend.shared import sanitize_error_message as _safe_error
+
+    db = services.get("db") if isinstance(services, dict) else None
+    if not db:
+        return Result.Err("SERVICE_UNAVAILABLE", "Database service unavailable")
+    try:
+        res = await db.aquery(
+            "SELECT filepath, filename, source, root_id FROM assets WHERE id = ?",
+            (asset_id,),
+        )
+        if not res.ok or not res.data:
+            return Result.Err("NOT_FOUND", "Asset not found")
+        row = res.data[0] or {}
+    except Exception as exc:
+        return Result.Err("DB_ERROR", _safe_error(exc, "Failed to load asset"))
+    return Result.Ok(row if isinstance(row, dict) else {})
+
+
 def _result_error(result: Result[Any], default_code: str, default_error: str) -> Result[Any]:
     return Result.Err(result.code or default_code, result.error or default_error)
 
