@@ -100,6 +100,9 @@ from .db_recovery import (
     mark_malformed_event as recovery_mark_malformed_event,
 )
 from .db_recovery import (
+    extract_schema_column_name as recovery_extract_schema_column_name,
+)
+from .db_recovery import (
     populate_known_columns_from_schema as recovery_populate_known_columns_from_schema,
 )
 from .db_recovery import (
@@ -148,6 +151,9 @@ from .transaction_manager import (
 from .transaction_manager import (
     validate_in_base_query as tx_validate_in_base_query,
 )
+from .transaction_manager import (
+    repair_column_name as tx_repair_column_name,
+)
 
 logger = get_logger(__name__)
 
@@ -166,7 +172,6 @@ ASYNC_LOOP_RUN_TIMEOUT_S = float(
 )
 
 _TX_TOKEN: contextvars.ContextVar[str | None] = contextvars.ContextVar("mjr_db_tx_token", default=None)
-_COLUMN_NAME_PATTERN = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?$")
 _KNOWN_COLUMNS = {
     # assets
     "id",
@@ -240,195 +245,50 @@ _SCHEMA_TABLE_ALIASES = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Thin wrappers — delegate to sub-modules so tests can monkeypatch at this
+# module level while actual logic lives in transaction_manager / db_recovery.
+# ---------------------------------------------------------------------------
+
+
 def _is_missing_column_error(exc: Exception) -> bool:
-    try:
-        msg = str(exc).lower()
-    except Exception:
-        return False
-    return "no such column" in msg
+    return tx_is_missing_column_error(exc)
 
 
 def _is_missing_table_error(exc: Exception) -> bool:
-    try:
-        msg = str(exc).lower()
-    except Exception:
-        return False
-    return "no such table" in msg
+    return tx_is_missing_table_error(exc)
+
 
 def _populate_known_columns_from_schema(db_path: Path) -> None:
-    """Populate known column names from the DB schema.
-
-    NOTE: Uses synchronous sqlite3.connect intentionally — this runs once at
-    startup before the async event loop is active, so blocking is acceptable.
-    """
+    """Populate _KNOWN_COLUMNS / _KNOWN_COLUMNS_LOWER from the DB schema."""
     global _KNOWN_COLUMNS_LOWER
-    try:
-        if not db_path.exists():
-            return
-        with _KNOWN_COLUMNS_LOCK:
-            with sqlite3.connect(str(db_path)) as conn:
-                cursor = conn.cursor()
-                for table, alias in _SCHEMA_TABLE_ALIASES.items():
-                    _populate_table_columns(cursor, table, alias)
-                _KNOWN_COLUMNS_LOWER = {c.lower(): c for c in _KNOWN_COLUMNS}
-    except Exception as exc:
-        logger.warning("Failed to refresh known columns from schema: %s", exc)
-
-
-def _populate_table_columns(cursor: sqlite3.Cursor, table: str, alias: str | None) -> None:
-    try:
-        safe_table = _safe_schema_table_name(table)
-        if not safe_table:
-            return
-        # NOTE: SQLite does not parameterize PRAGMA identifiers; keep strict validation.
-        cursor.execute(f'PRAGMA table_info("{safe_table}")')
-        for row in cursor.fetchall() or []:
-            col = _extract_schema_column_name(row)
-            if not col:
-                continue
-            _KNOWN_COLUMNS.add(col)
-            if alias:
-                _KNOWN_COLUMNS.add(f"{alias}.{col}")
-    except Exception:
-        pass
-
-
-def _safe_schema_table_name(table: str) -> str | None:
-    try:
-        normalized = str(table or "").strip()
-    except Exception:
-        return None
-    if not normalized or normalized not in _SCHEMA_TABLE_ALIASES:
-        return None
-    if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", normalized):
-        return None
-    return normalized
+    _KNOWN_COLUMNS_LOWER = recovery_populate_known_columns_from_schema(
+        db_path, _KNOWN_COLUMNS, _KNOWN_COLUMNS_LOCK, _SCHEMA_TABLE_ALIASES
+    )
 
 
 def _extract_schema_column_name(row: Any) -> str:
-    if not row or len(row) < 2:
-        return ""
-    return str(row[1]).strip()
+    return recovery_extract_schema_column_name(row)
 
-_IN_QUERY_FORBIDDEN = re.compile(
-    r"(--|/\*|\*/|;|\bpragma\b|\battach\b|\bdetach\b|\bvacuum\b|\balter\b|\bdrop\b|\binsert\b|\bupdate\b|\bdelete\b|\bcreate\b|\bgrant\b|\breindex\b)",
-    re.IGNORECASE,
-)
+
 _UNRESOLVED_SQL_TEMPLATE = re.compile(r"\{[a-zA-Z_][a-zA-Z0-9_]*\}")
 
 
 def _validate_in_base_query(base_query: str) -> tuple[bool, str]:
-    """
-    Validate the `base_query` template used by `query_in`.
-
-    Threat model: even though `base_query` is expected to be a constant defined in code,
-    enforcing a conservative allowlist prevents accidental misuse that could reintroduce
-    SQL injection.
-    """
-    try:
-        q = str(base_query or "").strip()
-    except Exception:
-        return False, "base_query must be a string"
-
-    if not q:
-        return False, "base_query is empty"
-
-    if q.count("{IN_CLAUSE}") != 1:
-        return False, "base_query must contain exactly one {IN_CLAUSE}"
-
-    # Only allow SELECT (optionally with WITH) templates.
-    q_lower = q.lower().lstrip()
-    if not re.match(r"^(select|with)\b", q_lower):
-        return False, "base_query must be a SELECT query"
-
-    # Reject obvious multi-statement or dangerous SQL constructs.
-    if _IN_QUERY_FORBIDDEN.search(q):
-        return False, "base_query contains forbidden SQL tokens"
-
-    return True, ""
+    return tx_validate_in_base_query(base_query)
 
 
 def _build_in_query(base_query: str, safe_column: str, value_count: int) -> tuple[bool, str, int]:
-    """
-    Build a parameterized IN-clause query from a validated template.
-
-    Returns:
-        (ok, query_or_error, placeholder_count)
-        - placeholder_count: number of ``?`` placeholders in the IN clause.
-          The caller must supply this many parameter values.
-    """
-    try:
-        n = int(value_count)
-    except Exception:
-        n = 0
-    if n <= 0:
-        return True, "", 0
-
-    try:
-        parts = str(base_query).split("{IN_CLAUSE}")
-    except Exception:
-        return False, "Invalid base_query template", 0
-
-    if len(parts) != 2:
-        return False, "base_query must contain exactly one {IN_CLAUSE}", 0
-
-    placeholders = ",".join(["?"] * n)
-    in_clause = f"{safe_column} IN ({placeholders})"
-    query = parts[0] + in_clause + parts[1]
-    return True, query, n
+    ok, query, n = tx_build_in_query(base_query, safe_column, value_count)
+    return ok, query, n if isinstance(n, int) else len(n)
 
 
 def _try_repair_column_name(column: str) -> str | None:
-    if not column or not isinstance(column, str):
-        return None
-
-    normalized = column.strip()
-    if not normalized:
-        return None
-
-    # Case-insensitive match against known columns/aliases.
-    with _KNOWN_COLUMNS_LOCK:
-        hit = _KNOWN_COLUMNS_LOWER.get(normalized.lower())
-    if hit:
-        return hit
-
-    # Strip all characters except [a-zA-Z0-9_.] and try again (still must match known list).
-    cleaned = re.sub(r"[^a-zA-Z0-9_.]", "", normalized)
-    if not cleaned:
-        return None
-    with _KNOWN_COLUMNS_LOCK:
-        if cleaned.lower() in _KNOWN_COLUMNS_LOWER:
-            return _KNOWN_COLUMNS_LOWER[cleaned.lower()]
-    return None
+    return tx_repair_column_name(column, _KNOWN_COLUMNS_LOWER, _KNOWN_COLUMNS_LOCK)
 
 
 def _validate_and_repair_column_name(column: str) -> tuple[bool, str | None]:
-    """
-    Validate a SQL column identifier (optionally with table alias), and best-effort
-    repair common user/legacy mistakes without weakening injection protections.
-
-    Returns:
-        (is_valid, safe_column_or_none)
-    """
-    if not column or not isinstance(column, str):
-        return False, None
-
-    stripped = column.strip()
-    if not stripped:
-        return False, None
-
-    # Fast path: syntactically valid and allowlisted.
-    if _COLUMN_NAME_PATTERN.match(stripped):
-        with _KNOWN_COLUMNS_LOCK:
-            hit = _KNOWN_COLUMNS_LOWER.get(stripped.lower())
-        if hit:
-            return True, hit
-
-    repaired = _try_repair_column_name(stripped)
-    if repaired and _COLUMN_NAME_PATTERN.match(repaired):
-        return True, repaired
-
-    return False, None
+    return tx_validate_and_repair_column_name(column, _KNOWN_COLUMNS_LOWER, _KNOWN_COLUMNS_LOCK)
 
 
 def _asset_lock_key(asset_id: Any) -> str:

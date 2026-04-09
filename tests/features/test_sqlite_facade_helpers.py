@@ -170,7 +170,7 @@ def test_sqlite_tx_helper_delegates(monkeypatch):
 def test_sqlite_validate_in_query_and_column_repair_delegates(monkeypatch):
     monkeypatch.setattr(s, "tx_validate_in_base_query", lambda q: (True, ""))
     monkeypatch.setattr(s, "tx_build_in_query", lambda q, c, n: (True, "Q", ("?",) * n))
-    monkeypatch.setattr(s, "tx_validate_and_repair_column_name", lambda col: (True, "id"))
+    monkeypatch.setattr(s, "tx_validate_and_repair_column_name", lambda col, lower, lock: (True, "id"))
     monkeypatch.setattr(s, "tx_is_missing_column_error", lambda exc: True)
     monkeypatch.setattr(s, "tx_is_missing_table_error", lambda exc: True)
 

@@ -1,7 +1,7 @@
 # Plan de refacto complet — ComfyUI-Majoor-AssetsManager
 
-> Dernière mise à jour : 2026-04-09 (passe refacto backend — security / registry / assets_impl)
-> Statut global : migration frontend Vue clôturée ; split DB largement terminé (non commité) ; security.py splitée en 4 sous-modules + registry_middlewares.py extrait ; assets_impl.py dédensifié ; gouvernance docs toujours à zéro
+> Dernière mise à jour : 2026-04-09 (passe refacto backend — schema.py splitée + SQL guards sqlite_facade remplacés + route_actions_rename audité)
+> Statut global : migration frontend Vue clôturée ; split DB terminé (non commité) ; schema.py splitée en 4 modules (331+295+238+115 L) ; SQL guards sqlite_facade remplacés par wrappers fins ; security.py splitée en 4 sous-modules + registry_middlewares.py extrait ; assets_impl.py dédensifié ; gouvernance docs toujours à zéro
 
 ## 1. But du document
 
@@ -114,19 +114,23 @@ La passe refacto du 2026-04-09 a résolu les principaux hotspots de croissance :
 - `mjr_am_backend/routes/handlers/assets_impl.py` — **réduit à 473 L** (fonctions DB déplacées dans service.py, shims morts supprimés, _prepare_* fusionnées)
 - `mjr_am_backend/routes/handlers/search_impl.py` — à 244 L, stable
 - certaines zones bootstrap/import-time dans `__init__.py`
-- `route_actions_rename.py` (286 L) et `listing_all_scope.py` (294 L) restent denses
+- `route_actions_rename.py` (286 L) — **audité : 1 seule fonction, DI par design, pas de split**
+- `listing_all_scope.py` (294 L) reste dense
 
-La couche DB est **majoritairement splitée** (non commité) :
+La couche DB est **entièrement splitée** (non commité) :
 
-- `mjr_am_backend/adapters/db/sqlite_facade.py` — réduit à 1195 L, délègue à 4 nouveaux modules
+- `mjr_am_backend/adapters/db/sqlite_facade.py` — réduit à 1055 L, délègue à 4 nouveaux modules, SQL guards remplacés par wrappers fins
 - `mjr_am_backend/adapters/db/sqlite_connections.py` — connexions et pool (144 L, non commité)
 - `mjr_am_backend/adapters/db/sqlite_execution.py` — exécution SQL (455 L, non commité)
 - `mjr_am_backend/adapters/db/sqlite_lifecycle.py` — transactions, lifecycle, reset (613 L, non commité)
 - `mjr_am_backend/adapters/db/sqlite_recovery.py` — recovery (222 L, non commité)
 - `mjr_am_backend/adapters/db/connection_pool.py`, `transaction_manager.py`, `db_recovery.py`
-- `mjr_am_backend/adapters/db/schema.py` — 951 L, à surveiller
+- `mjr_am_backend/adapters/db/schema.py` — **réduit à 331 L** ✓ (splitée en 3 sous-modules)
+- `mjr_am_backend/adapters/db/schema_sql.py` — constantes SQL + helpers identifiant (295 L, non commité)
+- `mjr_am_backend/adapters/db/schema_fts.py` — repair FTS (238 L, non commité)
+- `mjr_am_backend/adapters/db/schema_vec.py` — repair vec embeddings (115 L, non commité)
 
-Donc ici, l’objectif est **commiter le split DB existant et finir les zones résiduelles** (`schema.py`, SQL guards encore dans `sqlite_facade.py`).
+Donc ici, l’objectif est **commiter le lot DB complet**.
 
 ## 3.3 Gouvernance dépendances et docs
 
@@ -158,10 +162,10 @@ Tailles réelles au 2026-04-09 (audit) :
 - `js/features/panel/panelRuntime.js` : ~1003 lignes
 
 **Backend DB :**
-- `mjr_am_backend/adapters/db/sqlite_facade.py` : **1195 L** (était ~1900, réduit par le split)
+- `mjr_am_backend/adapters/db/sqlite_facade.py` : **1055 L** ✓ (SQL guards remplacés par wrappers fins)
 - `mjr_am_backend/adapters/db/sqlite_lifecycle.py` : 613 L (non commité)
 - `mjr_am_backend/adapters/db/sqlite_execution.py` : 455 L (non commité)
-- `mjr_am_backend/adapters/db/schema.py` : **951 L** (non splitée, à surveiller)
+- `mjr_am_backend/adapters/db/schema.py` : **331 L** ✓ (splitée : +schema_sql 295 L / schema_fts 238 L / schema_vec 115 L)
 - `mjr_am_backend/adapters/db/sqlite_recovery.py` : 222 L (non commité)
 - `mjr_am_backend/adapters/db/sqlite_connections.py` : 144 L (non commité)
 
@@ -240,7 +244,7 @@ La cible est un projet avec des frontières lisibles entre :
 |---|---|---|---|---|
 | Migration Vue des surfaces UI majeures | Fait / clôturé | 2026-04-09 | Seulement en cas de régression structurelle | Voir `docs/VUE_MIGRATION_PLAN.md` |
 | Consolidation frontend post-Vue | En cours | 2026-04-09 | Après chaque lot de tests / cleanup | Viewer (~2963 L), FloatingViewer (~2848 L), toolbar (~1526 L) intacts ; tests panel manquants |
-| Découpage DB | **Fait (non commité)** | 2026-04-09 | Après commit du lot DB | 4 modules extraits de sqlite_facade ; façade à 1195 L ; SQL guards et schema.py encore à sortir |
+| Découpage DB | **Fait (non commité)** | 2026-04-09 | Après commit du lot DB | 4 modules extraits de sqlite_facade (1055 L) ; SQL guards remplacés par wrappers fins ; schema.py splitée (331 L + 3 sous-modules) ; tout à committer |
 | Split handlers assets/search | **En cours** | 2026-04-09 | Prochaine passe backend | `assets_impl.py` réduit à 473 L ; `load_asset_*` dans service.py ; shims morts supprimés ; sous-services features/assets/ non créés |
 | Registry / middlewares / bootstrap routes | **En cours** | 2026-04-09 | Après commit du lot | `registry.py` réduit à 202 L via `registry_middlewares.py` (non commité) ; wiring pas encore déclaratif |
 | Clarification security / observability | **En cours** | 2026-04-09 | Après commit du lot | `security.py` réduit à 438 L via 4 sous-modules (non commité) ; observability splitée (non commité) |
@@ -277,8 +281,8 @@ La cible est un projet avec des frontières lisibles entre :
 
 - [x] Extraire les modules DB internes de `sqlite_facade.py` (connections, execution, lifecycle, recovery) — **fait, non commité**
 - [ ] Committer le lot DB et mettre à jour les checklists 8.4
-- [ ] Extraire les SQL guards encore dans `sqlite_facade.py` (_validate_in_base_query, _build_in_query, _try_repair_column_name…)
-- [ ] Surveiller / découper `schema.py` (951 L)
+- [x] Remplacer les SQL guards dupliqués de `sqlite_facade.py` par des wrappers fins délégant aux sous-modules — **fait, non commité**
+- [x] Découper `schema.py` (951 L → 331 L + schema_sql 295 L + schema_fts 238 L + schema_vec 115 L) — **fait, non commité**
 - [ ] Découper `assets_impl.py` (522 L) — a grossi, les helpers download sont encore inline
 - [ ] Sortir les sous-services métier dans `features/assets/` (rename, delete, rating_tags, download, path_resolution)
 - [ ] Poursuivre le découpage de `search_impl.py` si la densité le justifie après la prochaine mesure
@@ -411,10 +415,10 @@ Le nom exact des fichiers peut évoluer, mais la règle reste la même :
 - [x] Continuer à réduire la logique transactionnelle encore portée par `sqlite_facade.py` → `sqlite_lifecycle.py` (613 L, non commité)
 - [x] Continuer à réduire recovery / reset / heal → `sqlite_recovery.py` (222 L, non commité)
 - [x] Isoler connexions / pool → `sqlite_connections.py` (144 L, non commité)
-- [ ] **Committer** les 4 nouveaux modules DB
-- [ ] Isoler les SQL guards encore dans `sqlite_facade.py` (`_validate_in_base_query`, `_build_in_query`, `_try_repair_column_name`, `_validate_and_repair_column_name`, `_find_unresolved_sql_template`)
+- [x] Remplacer les 10 SQL guards dupliqués de `sqlite_facade.py` par des wrappers fins (non commité)
+- [x] Découper `schema.py` (951 L) → `schema.py` 331 L + `schema_sql.py` 295 L + `schema_fts.py` 238 L + `schema_vec.py` 115 L (non commité)
+- [ ] **Committer** le lot DB complet (7 nouveaux modules + sqlite_facade.py réduit)
 - [ ] Vérifier si du spécifique Windows reste dans `sqlite_facade.py` hors zones dédiées
-- [ ] Décider du sort de `schema.py` (951 L) — split ou stabilisation
 - [ ] Ajouter des tests ciblés pour `sqlite_execution`, `sqlite_lifecycle`, `sqlite_recovery`, `sqlite_connections`
 
 ## 8.5 Critères d’acceptation
@@ -644,9 +648,9 @@ Encore manquant ou à formaliser :
 ## Phase 2 — Finalisation du split DB
 
 - [x] Extraire connections, execution, lifecycle, recovery de sqlite_facade (non commité)
-- [ ] Committer le lot DB
-- [ ] Extraire les SQL guards résiduels de sqlite_facade
-- [ ] Décider du sort de schema.py (951 L)
+- [x] Remplacer les SQL guards dupliqués de sqlite_facade par wrappers fins (non commité)
+- [x] Découper schema.py (951 L → 331 L + 3 sous-modules) (non commité)
+- [ ] Committer le lot DB complet
 - [ ] Ajouter les tests par sous-module extrait
 
 ## Phase 3 — Split handlers assets/search
@@ -742,8 +746,10 @@ FAIT (commité)
 - premier split du runtime panel et du bootstrap backend
 
 FAIT (non commité — à committer)
-- sqlite_facade.py réduit à 1195 L via 4 nouveaux modules :
+- sqlite_facade.py réduit à 1055 L via 4 nouveaux modules + SQL guards remplacés par wrappers fins :
   sqlite_connections (144 L) / sqlite_execution (455 L) / sqlite_lifecycle (613 L) / sqlite_recovery (222 L)
+- schema.py réduit à 331 L via 3 sous-modules :
+  schema_sql.py (295 L) / schema_fts.py (238 L) / schema_vec.py (115 L)
 - security_policy.py (181 L) / security_tokens.py (135 L) extraits de security.py
 - security_proxies.py / security_auth_context.py / security_rate_limit.py / security_csrf.py extraits de security.py
   → security.py réduit de 836 L à 438 L ; 1293 tests passent
@@ -755,14 +761,12 @@ FAIT (non commité — à committer)
   → assets_impl.py réduit de 522 L à 473 L
 
 CE QUI RESTE À FAIRE (ordre de priorité)
-1. Committer le lot DB (sqlite_connections/execution/lifecycle/recovery)
-2. Committer le lot security + registry_middlewares + observability (non commité)
+1. Committer le lot DB complet (sqlite_connections/execution/lifecycle/recovery + sqlite_facade réduit + schema split)
+2. Committer le lot security + registry_middlewares + observability
 3. Créer les sous-services dans features/assets/ (rename/delete/download/rating_tags/path_resolution)
-4. Extraire les SQL guards résiduels de sqlite_facade.py
-5. Décider du sort de schema.py (951 L)
-6. Étendre les tests Vue critiques côté panel / teardown
-7. Documenter ce qui reste impératif par design dans le viewer
-8. Créer requirements-dev.txt + docs/DEPENDENCY_POLICY.md + 2 ADR manquantes
+4. Étendre les tests Vue critiques côté panel / teardown
+5. Documenter ce qui reste impératif par design dans le viewer
+6. Créer requirements-dev.txt + docs/DEPENDENCY_POLICY.md + 2 ADR manquantes
 ```
 
 ---
