@@ -112,7 +112,12 @@ def resolve_download_path(
     return resolved
 
 
-def build_download_response(resolved: Path, *, preview: bool) -> web.StreamResponse:
+def build_download_response(
+    resolved: Path,
+    *,
+    preview: bool,
+    is_resolved_path_allowed: Callable[[Path], bool] | None = None,
+) -> web.StreamResponse:
     try:
         safe_path = resolved.resolve(strict=True)
     except (OSError, RuntimeError, ValueError):
@@ -120,6 +125,9 @@ def build_download_response(resolved: Path, *, preview: bool) -> web.StreamRespo
 
     if not safe_path.is_absolute() or not safe_path.is_file():
         return web.Response(status=404, text="File not found")
+
+    if is_resolved_path_allowed is not None and not is_resolved_path_allowed(safe_path):
+        return web.Response(status=403, text="Path is not within allowed roots")
 
     mime_type, _ = mimetypes.guess_type(str(safe_path))
     safe_mime = mime_type or "application/octet-stream"
