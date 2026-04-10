@@ -1,0 +1,55 @@
+export default [
+    {
+        ignores: [
+            "js_dist/**",
+            "vendor/**",
+            "js/vue/**",
+        ],
+    },
+    {
+        files: ["js/**/*.{js,mjs}"],
+        languageOptions: {
+            ecmaVersion: "latest",
+            sourceType: "module",
+            globals: {
+                AbortController: "readonly",
+                Blob: "readonly",
+                CustomEvent: "readonly",
+                URL: "readonly",
+                clearInterval: "readonly",
+                clearTimeout: "readonly",
+                console: "readonly",
+                document: "readonly",
+                fetch: "readonly",
+                globalThis: "readonly",
+                localStorage: "readonly",
+                navigator: "readonly",
+                performance: "readonly",
+                process: "readonly",
+                requestAnimationFrame: "readonly",
+                cancelAnimationFrame: "readonly",
+                ResizeObserver: "readonly",
+                MutationObserver: "readonly",
+                sessionStorage: "readonly",
+                setInterval: "readonly",
+                setTimeout: "readonly",
+                window: "readonly",
+            },
+        },
+        rules: {},
+    },
+    {
+        files: ["js/tests/**/*.{js,mjs}"],
+        languageOptions: {
+            globals: {
+                afterEach: "readonly",
+                beforeEach: "readonly",
+                describe: "readonly",
+                expect: "readonly",
+                it: "readonly",
+                test: "readonly",
+                vi: "readonly",
+            },
+        },
+    },
+];
