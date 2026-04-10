@@ -344,6 +344,8 @@ class DebouncedWatchHandler(FileSystemEventHandler):
             return
         if not self._is_supported(path):
             return
+        if _is_recent_generated(path):
+            return
         if not self._on_files_removed:
             return
         key = self._normalize_path(path)

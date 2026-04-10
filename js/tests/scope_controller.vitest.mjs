@@ -87,6 +87,9 @@ describe("scopeController similar scope", () => {
 
         await controller.clearSimilarScope({ reload: false });
         expect(panelStore.viewScope).toBe("");
+        expect(panelStore.similarResults).toEqual([]);
+        expect(panelStore.similarTitle).toBe("");
+        expect(panelStore.similarSourceAssetId).toBe("");
         expect(tabButtons.tabSimilar.style.display).toBe("none");
 
         await controller.setScope("output");
@@ -94,6 +97,9 @@ describe("scopeController similar scope", () => {
         expect(panelStore.collectionId).toBe("");
         expect(panelStore.collectionName).toBe("");
         expect(panelStore.currentFolderRelativePath).toBe("");
+        expect(panelStore.similarResults).toEqual([]);
+        expect(panelStore.similarTitle).toBe("");
+        expect(panelStore.similarSourceAssetId).toBe("");
         expect(reconcileSelection).toHaveBeenCalledTimes(1);
     });
 });

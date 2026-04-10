@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from ...adapters.tools.exiftool import ExifTool
+from ...features.index.watcher import mark_recent_generated
 from ...shared import ErrorCode, Result, get_logger
 
 logger = get_logger(__name__)
@@ -453,6 +454,10 @@ class RatingTagsSyncWorker:
 
         tags_norm = _normalize_tags(task.tags)
         rating = max(0, min(5, int(task.rating or 0)))
+
+        # Mark the file so the watcher ignores events triggered by the
+        # metadata write (ExifTool may delete+rename, causing ID loss).
+        mark_recent_generated([task.file_path])
 
         # Prefer ExifTool (cross-platform), then Windows Shell fallback (Windows-only).
         if mode in ("on", "exiftool"):

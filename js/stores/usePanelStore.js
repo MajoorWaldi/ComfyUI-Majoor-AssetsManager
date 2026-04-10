@@ -274,6 +274,9 @@ export const usePanelStore = defineStore("mjr-panel", () => {
         customRootId.value = opts.customRootId || "";
         customRootLabel.value = opts.customRootLabel || "";
         viewScope.value = "";
+        similarResults.value = [];
+        similarTitle.value = "";
+        similarSourceAssetId.value = "";
         clearSelection();
     }
 

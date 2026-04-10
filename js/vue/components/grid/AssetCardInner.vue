@@ -9,7 +9,7 @@
  *
  * Phase 4.2 — full inner card replacement.
  */
-import { computed, ref, watch, watchEffect, onUnmounted } from "vue";
+import { computed, inject, ref, watch, watchEffect, onMounted, onUnmounted } from "vue";
 import { buildAssetViewURL } from "../../../api/endpoints.js";
 import {
     genTimeColor,
@@ -19,6 +19,7 @@ import {
 } from "../../../components/Badges.js";
 import { formatDuration, formatDate, formatTime } from "../../../utils/format.js";
 import { MediaBlobCache } from "../../../features/grid/MediaBlobCache.js";
+import { APP_CONFIG } from "../../../app/config.js";
 import RatingBadge from "../common/RatingBadge.vue";
 import TagsBadge from "../common/TagsBadge.vue";
 import GenTimeBadge from "../common/GenTimeBadge.vue";
@@ -64,13 +65,13 @@ async function observeVideoThumb(video) {
     try {
         const src = String(video.dataset?.src || "").trim();
         if (!src || video.getAttribute("src")) return;
-        
+
         // Check if already errored
         if (MediaBlobCache.hasError(src)) {
             video.src = src; // Let browser show error
             return;
         }
-        
+
         // Try to get from blob cache (or fetch + cache)
         const cachedUrl = await MediaBlobCache.acquireUrl(src);
         if (cachedUrl) {
@@ -123,14 +124,64 @@ function bindVideoThumbHover(thumbEl, video) {
     };
 }
 
-function unobserveVideoThumb(video) {
+function bindVideoAutoplay(video) {
+    if (!video) return;
+    const observer = new IntersectionObserver(
+        (entries) => {
+            for (const entry of entries) {
+                try {
+                    if (entry.isIntersecting) {
+                        video.play?.().catch?.(() => {});
+                    } else {
+                        video.pause?.();
+                        video.currentTime = 0;
+                    }
+                } catch (e) {
+                    console.debug?.(e);
+                }
+            }
+        },
+        { threshold: 0.25 },
+    );
+    observer.observe(video);
+    video._mjrAutoplayCleanup = () => {
+        try {
+            observer.unobserve(video);
+            observer.disconnect();
+        } catch (e) {
+            console.debug?.(e);
+        }
+    };
+}
+
+function cleanupVideoBehaviors(video) {
     if (!video) return;
     try {
         video._mjrHoverCleanup?.();
         video._mjrHoverCleanup = null;
+        video._mjrAutoplayCleanup?.();
+        video._mjrAutoplayCleanup = null;
+        video.pause?.();
+        video.currentTime = 0;
     } catch (e) {
         console.debug?.(e);
     }
+}
+
+function applyVideoMode(thumbEl, video, mode) {
+    if (!video) return;
+    cleanupVideoBehaviors(video);
+    if (mode === "hover") {
+        bindVideoThumbHover(thumbEl, video);
+    } else if (mode === "always") {
+        bindVideoAutoplay(video);
+    }
+    // "off" — no bindings, video stays paused
+}
+
+function unobserveVideoThumb(video) {
+    if (!video) return;
+    cleanupVideoBehaviors(video);
 }
 
 // ─── Props ───────────────────────────────────────────────────────────────────
@@ -207,6 +258,43 @@ const fileBadgeBg = computed(() => {
     return map[kind.value] || "var(--mjr-badge-image, #888)";
 });
 
+// ─── Stack / dup-stack (Vue-reactive buttons, replacing imperative DOM) ──────
+
+const stackService = inject("mjrStackService", null);
+
+const hasStackGroup = computed(() => {
+    if (!stackService) return false;
+    const stackId = String(props.asset.stack_id || "").trim();
+    if (!stackId) return false;
+    return Number(props.asset.stack_asset_count || props.asset._mjrFeedGroupCount || 0) > 1;
+});
+const stackCount = computed(() =>
+    Number(props.asset.stack_asset_count || props.asset._mjrFeedGroupCount || 0) || 0,
+);
+
+const hasDupStack = computed(() => !!props.asset._mjrDupStack && Number(props.asset._mjrDupCount || 0) >= 2);
+const dupCount = computed(() => Number(props.asset._mjrDupCount || 0) || 0);
+
+async function onStackGroupClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    try {
+        await stackService?.openStackGroup?.(props.asset);
+    } catch (err) {
+        console.debug?.(err);
+    }
+}
+
+function onDupStackClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    try {
+        stackService?.openDupGroup?.(props.asset);
+    } catch (err) {
+        console.debug?.(err);
+    }
+}
+
 // ─── Template refs ───────────────────────────────────────────────────────────
 
 const thumbRef = ref(null);
@@ -233,6 +321,18 @@ watch(
     { immediate: true }
 );
 
+// ─── Video autoplay mode (reactive to settings changes) ──────────────────────
+
+const videoMode = ref(APP_CONFIG.GRID_VIDEO_AUTOPLAY_MODE || "hover");
+
+function onSettingsChangedForVideo() {
+    videoMode.value = APP_CONFIG.GRID_VIDEO_AUTOPLAY_MODE || "hover";
+}
+
+onMounted(() => {
+    window.addEventListener("mjr-settings-changed", onSettingsChangedForVideo);
+});
+
 // ─── Video thumb lifecycle (observe/unobserve) ────────────────────────────────
 
 watch(videoRef, (newEl, oldEl) => {
@@ -242,12 +342,21 @@ watch(videoRef, (newEl, oldEl) => {
     if (newEl && thumbRef.value) {
         try {
             observeVideoThumb(newEl);
-            bindVideoThumbHover(thumbRef.value, newEl);
+            applyVideoMode(thumbRef.value, newEl, videoMode.value);
         } catch {}
     }
 });
 
+watch(videoMode, (mode) => {
+    const video = videoRef.value;
+    const thumb = thumbRef.value;
+    if (video && thumb) {
+        applyVideoMode(thumb, video, mode);
+    }
+});
+
 onUnmounted(() => {
+    window.removeEventListener("mjr-settings-changed", onSettingsChangedForVideo);
     const v = videoRef.value;
     if (v) {
         try { unobserveVideoThumb(v); } catch {}
@@ -467,4 +576,42 @@ function onFileBadgeClick(event) {
             style="position:absolute;right:8px;bottom:6px;z-index:2"
         />
     </div>
+
+    <!-- ── STACK GROUP BUTTON (execution grouping) ────────────────────────── -->
+    <button
+        v-if="hasStackGroup"
+        type="button"
+        class="mjr-stack-group-button"
+        :aria-label="`Open generation group in grid (${stackCount} assets)`"
+        :title="`Open generation group in grid (${stackCount} assets)`"
+        @click="onStackGroupClick"
+        @pointerdown.stop
+        @mousedown.stop.prevent
+        @touchstart.stop.passive
+        @dblclick.stop
+        @keydown.stop
+        @dragstart.stop.prevent
+    >
+        <span class="pi pi-clone"></span>
+        <span class="mjr-stack-group-button-count">{{ stackCount }}</span>
+    </button>
+
+    <!-- ── DUPLICATE STACK BUTTON (same-filename copies) ──────────────────── -->
+    <button
+        v-if="hasDupStack"
+        type="button"
+        class="mjr-dup-stack-button"
+        :aria-label="`${dupCount} duplicate${dupCount > 1 ? 's' : ''} — click to compare all copies`"
+        :title="`${dupCount} duplicate${dupCount > 1 ? 's' : ''} — click to compare all copies`"
+        @click="onDupStackClick"
+        @pointerdown.stop
+        @mousedown.stop.prevent
+        @touchstart.stop.passive
+        @dblclick.stop
+        @keydown.stop
+        @dragstart.stop.prevent
+    >
+        <span class="pi pi-copy"></span>
+        <span class="mjr-dup-stack-count">{{ dupCount }}</span>
+    </button>
 </template>

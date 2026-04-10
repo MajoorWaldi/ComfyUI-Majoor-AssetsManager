@@ -11,7 +11,7 @@ import { consumeEarlyFetch } from "../../features/runtime/entryUiRegistration.js
 import {
     appendAssets as cardAppendAssets,
 } from "../../features/grid/AssetCardRenderer.js";
-import { getStackAwareAssetKey, ensureDupStackCard } from "../../features/grid/StackGroupCards.js";
+import { getStackAwareAssetKey, ensureDupStackCard, disposeStackGroupCards } from "../../features/grid/StackGroupCards.js";
 import {
     compareAssets,
     fetchPage as fetchGridPage,
@@ -585,7 +585,7 @@ export function useGridLoader({
             const sort = String(gridContainer.dataset?.mjrSort || "mtime_desc").toLowerCase();
             const normalizedQuery = String(query || "*").trim() || "*";
             const isDefaultContext = scope === "output" && normalizedQuery === "*" && sort === "mtime_desc";
-            
+
             if (isDefaultContext) {
                 const earlyFetchPromise = consumeEarlyFetch("output:*:mtime_desc");
                 if (earlyFetchPromise) {
@@ -892,7 +892,7 @@ export function useGridLoader({
         });
 
         if (reset) {
-            
+
             try {
                 state.abortController?.abort?.();
             } catch (e) {
@@ -970,6 +970,11 @@ export function useGridLoader({
     }
 
     function prepareGridForScopeSwitch() {
+        try {
+            disposeStackGroupCards(getGridContainer());
+        } catch (e) {
+            console.debug?.(e);
+        }
         try {
             state.abortController?.abort?.();
         } catch (e) {

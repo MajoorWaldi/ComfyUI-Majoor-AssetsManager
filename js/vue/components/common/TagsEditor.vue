@@ -11,6 +11,7 @@ import { ASSET_TAGS_CHANGED_EVENT } from "../../../app/events.js";
 import { t } from "../../../app/i18n.js";
 import { comfyToast } from "../../../app/toast.js";
 import { safeDispatchCustomEvent } from "../../../utils/events.js";
+import { normalizeAssetId } from "../../../utils/ids.js";
 
 const MAX_TAG_LEN = 100;
 const MAX_TAGS = 200;
@@ -212,7 +213,7 @@ async function saveTags() {
 
         try {
             const newId = result?.data?.asset_id ?? null;
-            if (props.asset.id == null && newId != null) props.asset.id = newId;
+            if (newId != null && !normalizeAssetId(props.asset.id)) props.asset.id = newId;
         } catch (e) {
             console.debug?.(e);
         }

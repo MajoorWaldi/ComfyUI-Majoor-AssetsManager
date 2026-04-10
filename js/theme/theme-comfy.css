@@ -5319,6 +5319,47 @@
     transform: none !important;
 }
 
+/* ── Visual stacking effect — layered cards behind the main card ──────────── */
+/* Creates pseudo-element "cards" offset behind the primary card to visually    */
+/* communicate that this card represents a group of multiple images.            */
+.mjr-assets-manager .mjr-asset-card[data-mjr-stacked="true"] {
+    position: relative;
+    z-index: 1;
+}
+
+.mjr-assets-manager .mjr-asset-card[data-mjr-stacked="true"]::before,
+.mjr-assets-manager .mjr-asset-card[data-mjr-stacked="true"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--comfy-menu-bg, #1a1a2e);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    pointer-events: none;
+    z-index: -1;
+    transition: transform 180ms ease, opacity 180ms ease;
+}
+
+.mjr-assets-manager .mjr-asset-card[data-mjr-stacked="true"]::before {
+    transform: translate(3px, 3px) rotate(1deg);
+    opacity: 0.45;
+}
+
+.mjr-assets-manager .mjr-asset-card[data-mjr-stacked="true"]::after {
+    transform: translate(6px, 6px) rotate(2.2deg);
+    opacity: 0.25;
+}
+
+.mjr-assets-manager .mjr-asset-card[data-mjr-stacked="true"]:hover::before {
+    transform: translate(4px, 4px) rotate(1.5deg);
+    opacity: 0.55;
+}
+
+.mjr-assets-manager .mjr-asset-card[data-mjr-stacked="true"]:hover::after {
+    transform: translate(8px, 8px) rotate(3deg);
+    opacity: 0.35;
+}
+
 .mjr-stack-group-popover {
     width: min(440px, 92vw);
 }

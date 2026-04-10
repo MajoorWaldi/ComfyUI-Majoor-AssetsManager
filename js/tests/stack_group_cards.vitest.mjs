@@ -80,4 +80,57 @@ describe("StackGroupCards overlay buttons", () => {
         expect(detail.stackId).toBe("stack-1");
         expect(detail.members.map((entry) => entry.id)).toEqual(["asset-2", "asset-1"]);
     });
+
+    it("skips imperative button creation for Vue cards (_mjrIsVue guard)", async () => {
+        const { ensureStackGroupCard, ensureDupStackCard } = await import("../features/grid/StackGroupCards.js");
+
+        const grid = document.createElement("div");
+        grid.dataset.mjrGroupStacks = "1";
+        const card = document.createElement("div");
+        card.className = "mjr-asset-card";
+        card._mjrIsVue = true;
+        grid.appendChild(card);
+
+        const asset = {
+            id: "asset-1",
+            filename: "image.png",
+            stack_id: "stack-1",
+            stack_asset_count: 3,
+            _mjrDupStack: true,
+            _mjrDupCount: 2,
+        };
+
+        ensureStackGroupCard(grid, card, asset);
+        expect(card.querySelector(".mjr-stack-group-button")).toBeNull();
+
+        ensureDupStackCard(grid, card, asset);
+        expect(card.querySelector(".mjr-dup-stack-button")).toBeNull();
+    });
+
+    it("still creates buttons for non-Vue cards", async () => {
+        const { ensureStackGroupCard, ensureDupStackCard } = await import("../features/grid/StackGroupCards.js");
+
+        const grid = document.createElement("div");
+        grid.dataset.mjrGroupStacks = "1";
+        const card = document.createElement("div");
+        card.className = "mjr-asset-card";
+        // _mjrIsVue not set
+        grid.appendChild(card);
+
+        const asset = {
+            id: "asset-1",
+            filename: "image.png",
+            stack_id: "stack-1",
+            stack_asset_count: 3,
+            _mjrDupStack: true,
+            _mjrDupCount: 2,
+            _mjrDupMembers: [{ id: "a1" }, { id: "a2" }],
+        };
+
+        ensureStackGroupCard(grid, card, asset);
+        expect(card.querySelector(".mjr-stack-group-button")).toBeTruthy();
+
+        ensureDupStackCard(grid, card, asset);
+        expect(card.querySelector(".mjr-dup-stack-button")).toBeTruthy();
+    });
 });

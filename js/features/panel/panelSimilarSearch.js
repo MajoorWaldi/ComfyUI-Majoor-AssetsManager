@@ -1,6 +1,5 @@
 import { EVENTS } from "../../app/events.js";
 import { vectorFindSimilar } from "../../api/client.js";
-import { loadAssetsFromList } from "../grid/gridApi.js";
 import { comfyToast } from "../../app/toast.js";
 import { t } from "../../app/i18n.js";
 
@@ -27,18 +26,6 @@ export function bindSimilarSearch({
     scopeController,
     closePopovers,
 }) {
-    // ── Helper: load a list into the grid and update stats ─────────────────
-
-    const _loadSimilarList = async (list, title) => {
-        const loaded = await loadAssetsFromList(gridContainer, list, { title, reset: true });
-        const count = Number((loaded?.count ?? list.length) || 0) || 0;
-        writePanelValue("lastGridCount", count);
-        writePanelValue("lastGridTotal", count);
-        gridContainer.dispatchEvent?.(
-            new CustomEvent("mjr:grid-stats", { detail: { count, total: count } }),
-        );
-    };
-
     // ── Similar button click ───────────────────────────────────────────────
 
     similarBtn?.addEventListener(
@@ -103,12 +90,6 @@ export function bindSimilarSearch({
                     }),
                 );
                 await scopeController?.setScope?.("similar");
-                try {
-                    const title = String(readPanelValue("similarTitle", "") || "Similar").trim();
-                    await _loadSimilarList(list, title);
-                } catch (err) {
-                    console.debug?.(err);
-                }
             } catch (err) {
                 console.debug?.(err);
                 comfyToast(
@@ -140,12 +121,6 @@ export function bindSimilarSearch({
                         `Generation group (${list.length} assets)`,
                 );
                 await scopeController?.setScope?.("similar");
-                try {
-                    const title = String(readPanelValue("similarTitle", "") || "Similar").trim();
-                    await _loadSimilarList(list, title);
-                } catch (err) {
-                    console.debug?.(err);
-                }
             } catch (err) {
                 console.debug?.(err);
             }

@@ -11,6 +11,7 @@ import { ASSET_RATING_CHANGED_EVENT } from "../../../app/events.js";
 import { t } from "../../../app/i18n.js";
 import { comfyToast } from "../../../app/toast.js";
 import { safeDispatchCustomEvent } from "../../../utils/events.js";
+import { normalizeAssetId } from "../../../utils/ids.js";
 
 function clampRating(value) {
     return Math.max(0, Math.min(5, Number(value) || 0));
@@ -113,7 +114,7 @@ async function flushSaves() {
 
             try {
                 const newId = result?.data?.asset_id ?? null;
-                if (props.asset.id == null && newId != null) props.asset.id = newId;
+                if (newId != null && !normalizeAssetId(props.asset.id)) props.asset.id = newId;
             } catch (e) {
                 console.debug?.(e);
             }

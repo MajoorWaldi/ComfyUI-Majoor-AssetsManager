@@ -46,6 +46,7 @@ export function createGridController({
     ]);
     let _isReloading = false;
     let _pendingReload = false;
+    let _nextReloadOptions = {};
     let _lastReloadErrorAt = 0;
     let _lastAiHintAt = 0;
     const RELOAD_WATCHDOG_MS = 30000;
@@ -209,7 +210,7 @@ export function createGridController({
      *
         * Explicit activation only: semantic toggle or "ai:" prefix.
      */
-    const _loadWithSemanticFallback = async (query) => {
+    const _loadWithSemanticFallback = async (query, loadOptions = {}) => {
         let q = String(query || "").trim();
 
         // ── "ai:" prefix forces semantic search ────────────────────
@@ -221,7 +222,7 @@ export function createGridController({
         const aiEnabled = _isAiEnabled();
         const semanticMode = aiEnabled && _isSemanticMode();
         if (!aiEnabled) {
-            return await loadAssets(gridContainer, q || "*");
+            return await loadAssets(gridContainer, q || "*", loadOptions);
         }
         const semanticRequested = semanticMode || hasAiPrefix;
         let aiAttempted = false;
@@ -247,6 +248,7 @@ export function createGridController({
                     return await loadAssetsFromList(gridContainer, hybRes.data, {
                         title: `AI Search: "${q}" (${hybRes.data.length} results)`,
                         reset: true,
+                        ...loadOptions,
                     });
                 }
                 if (hybRes?.ok === false) {
@@ -268,6 +270,7 @@ export function createGridController({
                     return await loadAssetsFromList(gridContainer, vecRes.data, {
                         title: `AI Search: "${q}" (${vecRes.data.length} results)`,
                         reset: true,
+                        ...loadOptions,
                     });
                 }
                 if (vecRes?.ok === false) {
@@ -279,7 +282,7 @@ export function createGridController({
                 console.debug?.("[Majoor] Semantic search failed, falling back to FTS", err);
             }
         }
-        const ftsResult = await loadAssets(gridContainer, q || "*");
+        const ftsResult = await loadAssets(gridContainer, q || "*", loadOptions);
 
         if (aiAttempted && aiError) {
             const count = Number(ftsResult?.count || 0) || 0;
@@ -291,7 +294,7 @@ export function createGridController({
         return ftsResult;
     };
 
-    const runReloadOnce = async () => {
+    const runReloadOnce = async (reloadOptions = {}) => {
         // Expose the current query on the container so external listeners (ComfyUI executed events)
         // can decide whether to do incremental upserts or avoid disrupting an active search.
         try {
@@ -299,7 +302,14 @@ export function createGridController({
         } catch (e) {
             console.debug?.(e);
         }
+        const prevViewScope = String(gridContainer.dataset.mjrViewScope || "")
+            .trim()
+            .toLowerCase();
+        const nextViewScope = String(read("viewScope", state?.viewScope || "") || "")
+            .trim()
+            .toLowerCase();
         gridContainer.dataset.mjrScope = read("scope", "output");
+        gridContainer.dataset.mjrViewScope = nextViewScope;
         gridContainer.dataset.mjrCustomRootId = read("customRootId", "") || "";
         const subfolder = read("currentFolderRelativePath", "") || "";
         gridContainer.dataset.mjrSubfolder = subfolder;
@@ -317,6 +327,7 @@ export function createGridController({
         gridContainer.dataset.mjrFilterDateRange = read("dateRangeFilter", "") || "";
         gridContainer.dataset.mjrFilterDateExact = read("dateExactFilter", "") || "";
         gridContainer.dataset.mjrSort = read("sort", "mtime_desc") || "mtime_desc";
+        gridContainer.dataset.mjrCollectionId = read("collectionId", "") || "";
         gridContainer.dataset.mjrGroupStacks =
             APP_CONFIG.EXECUTION_GROUPING_ENABLED &&
             (read("scope", "output") === "output" || read("scope", "output") === "all")
@@ -382,7 +393,7 @@ export function createGridController({
             write("collectionName", "");
         }
 
-        const viewScope = String(read("viewScope", state?.viewScope || "") || "").toLowerCase();
+        const viewScope = nextViewScope;
         if (viewScope === "similar") {
             const bridgeList = Array.isArray(read("similarResults", [])) ? read("similarResults", []) : [];
             const stateList = Array.isArray(state?.similarResults) ? state.similarResults : [];
@@ -400,6 +411,7 @@ export function createGridController({
             const result = await loadAssetsFromList(gridContainer, list, {
                 title: title || "Similar",
                 reset: true,
+                ...reloadOptions,
             });
             try {
                 write("lastGridCount", Number(result?.count || 0) || 0);
@@ -413,7 +425,12 @@ export function createGridController({
             return;
         }
 
-        const result = await _loadWithSemanticFallback(getQuery());
+        const exitingVirtualSimilarScope = prevViewScope === "similar" && viewScope !== "similar";
+        const result = await _loadWithSemanticFallback(getQuery(), {
+            ...reloadOptions,
+            preserveVisibleUntilReady:
+                reloadOptions.preserveVisibleUntilReady ?? !exitingVirtualSimilarScope,
+        });
 
         // Track search query timing if timer was started
         try {
@@ -447,13 +464,15 @@ export function createGridController({
         _isReloading = true;
         try {
             while (_pendingReload) {
+                const reloadOptions = { ...(_nextReloadOptions || {}) };
+                _nextReloadOptions = {};
                 _pendingReload = false;
                 try {
                     const useAiTimeout =
                         _isAiEnabled() &&
                         (_isSemanticMode() || String(getQuery?.() || "").length >= 12);
                     await runWithWatchdog(
-                        () => runReloadOnce(),
+                        () => runReloadOnce(reloadOptions),
                         useAiTimeout ? AI_RELOAD_WATCHDOG_MS : RELOAD_WATCHDOG_MS,
                     );
                 } catch (err) {
@@ -477,8 +496,9 @@ export function createGridController({
     // Input debounce: batches rapid reloadGrid() calls (e.g., scope switch +
     // watcher event arriving simultaneously) into a single _doReload execution.
     // The inner coalescing loop still handles calls that arrive mid-reload.
-    const reloadGrid = () => {
+    const reloadGrid = (options = {}) => {
         return new Promise((resolve, reject) => {
+            _nextReloadOptions = { ...(_nextReloadOptions || {}), ...(options || {}) };
             if (_debounceTimer) clearTimeout(_debounceTimer);
             _debounceTimer = setTimeout(() => {
                 _debounceTimer = null;

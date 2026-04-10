@@ -245,7 +245,9 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
         gridWrapper.appendChild(gridContainer);
     }
     setActiveGridContainer(gridContainer);
-    try { gridContainer.dataset.mjrScope = state.scope; } catch (e) { console.debug?.(e); }
+    try {
+        gridContainer.dataset.mjrScope = String(readPanelValue("scope", state.scope || "output") || "output");
+    } catch (e) { console.debug?.(e); }
 
     const summaryBarDisposers = [];
     const registerSummaryDispose = (fn) => {
@@ -385,8 +387,8 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
 
     // ── 13. DUPLICATE ALERTS ─────────────────────────────────────────────
     const refreshDuplicateAlerts = async () => {
-        const scope = String(state.scope || "output").toLowerCase();
-        const customRootId = String(state.customRootId || "").trim();
+        const scope = String(readPanelValue("scope", state.scope || "output") || "output").toLowerCase();
+        const customRootId = String(readPanelValue("customRootId", state.customRootId || "") || "").trim();
         if (scope === "custom" && !customRootId) {
             _duplicatesAlert = null;
             notifyContextChanged();
@@ -510,20 +512,40 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
         reconcileSelection: reconcileVisibleSelection,
         onChanged: () => {
             try {
-                if (gridContainer) gridContainer.dataset.mjrScope = state.scope;
+                if (gridContainer) {
+                    gridContainer.dataset.mjrScope = String(
+                        readPanelValue("scope", state.scope || "output") || "output",
+                    );
+                }
             } catch (e) { console.debug?.(e); }
             notifyContextChanged();
         },
         onScopeChanged: async () => {
-            try { await applyWatcherForScope(state.scope); } catch (e) { console.debug?.(e); }
+            try {
+                await applyWatcherForScope(
+                    String(readPanelValue("scope", state.scope || "output") || "output"),
+                );
+            } catch (e) { console.debug?.(e); }
             try { await refreshDuplicateAlerts(); } catch (e) { console.debug?.(e); }
         },
         onBeforeReload: async () => {
+            // Sync key dataset fields *before* prepareGridForScopeSwitch so that
+            // snapshot-cache hydration uses the correct (new-scope) key.
+            try {
+                gridContainer.dataset.mjrScope = readPanelValue("scope", "output");
+                gridContainer.dataset.mjrCustomRootId = readPanelValue("customRootId", "") || "";
+                gridContainer.dataset.mjrSubfolder = readPanelValue("currentFolderRelativePath", "") || "";
+                gridContainer.dataset.mjrCollectionId = readPanelValue("collectionId", "") || "";
+                gridContainer.dataset.mjrViewScope = readPanelValue("viewScope", "") || "";
+            } catch (e) { console.debug?.(e); }
             try { prepareGridForScopeSwitchFn(gridContainer); } catch (e) { console.debug?.(e); }
             try {
                 await updateStatus(
                     statusDot, statusText, capabilitiesSection,
-                    { scope: state.scope, customRootId: state.customRootId },
+                    {
+                        scope: readPanelValue("scope", state.scope || "output"),
+                        customRootId: readPanelValue("customRootId", state.customRootId || ""),
+                    },
                     null,
                     { signal: panelLifecycleAC?.signal || null },
                 );
@@ -533,7 +555,7 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
 
     const exitSimilarViewIfActive = async ({ reload = false } = {}) => {
         try {
-            if (String(state.viewScope || "").trim().toLowerCase() !== "similar") return;
+            if (String(readPanelValue("viewScope", state.viewScope || "") || "").trim().toLowerCase() !== "similar") return;
             await scopeController?.clearSimilarScope?.({ reload });
         } catch (e) { console.debug?.(e); }
     };
@@ -990,34 +1012,34 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
         didHydrateFromSnapshot = await hydrateGridFromSnapshotFn(
             gridContainer,
             {
-                scope: state.scope || "output",
+                scope: readPanelValue("scope", state.scope || "output") || "output",
                 query: String(
                     normalizeQuery(
                         panelStateBridge.read("searchQuery", state.searchQuery || "*") || "*",
                     ) || "*",
                 ),
-                customRootId: state.customRootId || "",
-                subfolder: state.currentFolderRelativePath || "",
-                collectionId: state.collectionId || "",
-                viewScope: state.viewScope || "",
-                kind: state.kindFilter || "",
-                workflowOnly: !!state.workflowOnly,
-                minRating: state.minRating || "",
-                minSizeMB: state.minSizeMB || "",
-                maxSizeMB: state.maxSizeMB || "",
-                resolutionCompare: state.resolutionCompare || "",
-                minWidth: state.minWidth || "",
-                minHeight: state.minHeight || "",
-                maxWidth: state.maxWidth || "",
-                maxHeight: state.maxHeight || "",
-                workflowType: state.workflowType || "",
-                dateRange: state.dateRangeFilter || "",
-                dateExact: state.dateExactFilter || "",
-                sort: state.sort || "mtime_desc",
+                customRootId: readPanelValue("customRootId", state.customRootId || "") || "",
+                subfolder: readPanelValue("currentFolderRelativePath", state.currentFolderRelativePath || "") || "",
+                collectionId: readPanelValue("collectionId", state.collectionId || "") || "",
+                viewScope: readPanelValue("viewScope", state.viewScope || "") || "",
+                kind: readPanelValue("kindFilter", state.kindFilter || "") || "",
+                workflowOnly: !!readPanelValue("workflowOnly", state.workflowOnly),
+                minRating: readPanelValue("minRating", state.minRating || "") || "",
+                minSizeMB: readPanelValue("minSizeMB", state.minSizeMB || "") || "",
+                maxSizeMB: readPanelValue("maxSizeMB", state.maxSizeMB || "") || "",
+                resolutionCompare: readPanelValue("resolutionCompare", state.resolutionCompare || "") || "",
+                minWidth: readPanelValue("minWidth", state.minWidth || "") || "",
+                minHeight: readPanelValue("minHeight", state.minHeight || "") || "",
+                maxWidth: readPanelValue("maxWidth", state.maxWidth || "") || "",
+                maxHeight: readPanelValue("maxHeight", state.maxHeight || "") || "",
+                workflowType: readPanelValue("workflowType", state.workflowType || "") || "",
+                dateRange: readPanelValue("dateRangeFilter", state.dateRangeFilter || "") || "",
+                dateExact: readPanelValue("dateExactFilter", state.dateExactFilter || "") || "",
+                sort: readPanelValue("sort", state.sort || "mtime_desc") || "mtime_desc",
             },
             {
                 title:
-                    state.collectionName ||
+                    readPanelValue("collectionName", state.collectionName || "") ||
                     panelStateBridge.read("searchQuery", state.searchQuery || "") ||
                     "Cached",
             },

@@ -78,6 +78,8 @@ export function ensureStackGroupCard(gridContainer, card, asset) {
         }
         return;
     }
+    // Vue cards handle their own stack buttons reactively via AssetCardInner.vue
+    if (card._mjrIsVue) return;
     const groupKey = _getGroupKey(asset);
     if (!groupKey) {
         card.querySelector?.(".mjr-stack-group-button")?.remove?.();
@@ -179,6 +181,8 @@ export function disposeStackGroupCards(gridContainer) {
  */
 export function ensureDupStackCard(gridContainer, card, asset) {
     if (!card || !asset) return;
+    // Vue cards handle their own dup-stack buttons reactively via AssetCardInner.vue
+    if (card._mjrIsVue) return;
     const isDupStack = !!asset._mjrDupStack;
     const count = Number(asset._mjrDupCount || 0) || 0;
 

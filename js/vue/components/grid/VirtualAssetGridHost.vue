@@ -1,7 +1,10 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, provide, ref, watch } from "vue";
 import { measureElement, useVirtualizer } from "@tanstack/vue-virtual";
 import { APP_CONFIG } from "../../../app/config.js";
+import { EVENTS } from "../../../app/events.js";
+import { get } from "../../../api/client.js";
+import { buildStackMembersURL } from "../../../api/endpoints.js";
 import { requestViewerOpen } from "../../../features/viewer/viewerOpenRequest.js";
 import { ensureStackGroupCard, ensureDupStackCard } from "../../../features/grid/StackGroupCards.js";
 import { setSelectedIdsDataset } from "../../../features/grid/GridSelectionManager.js";
@@ -46,6 +49,65 @@ const hostWidth = ref(0);
 const hasMeasuredHostWidthOnce = ref(false);
 const settingsVersion = ref(0);
 const cardFilenameKeys = new WeakMap();
+
+// ─── Stack service (provide/inject for AssetCardInner Vue buttons) ────────────
+
+function _sortMembersByMtime(items) {
+    return (Array.isArray(items) ? items : []).slice().sort((a, b) => {
+        const am = Number(a?.mtime || a?.created_at || 0) || 0;
+        const bm = Number(b?.mtime || b?.created_at || 0) || 0;
+        return bm - am;
+    });
+}
+
+provide("mjrStackService", {
+    openStackGroup: async (asset) => {
+        const gc = gridContainerRef.value;
+        if (!gc || !asset) return;
+        const stackId = String(asset.stack_id || "").trim();
+        if (!stackId) return;
+        const groupKey = `stack:${stackId}`;
+        if (!gc._mjrStackMembersCache) gc._mjrStackMembersCache = new Map();
+        let members = gc._mjrStackMembersCache.get(groupKey);
+        if (!Array.isArray(members)) {
+            const res = await get(buildStackMembersURL(stackId), { timeoutMs: 30_000 });
+            if (res?.ok && Array.isArray(res?.data)) {
+                members = res.data;
+                gc._mjrStackMembersCache.set(groupKey, members);
+            } else {
+                return;
+            }
+        }
+        const ordered = _sortMembersByMtime(members);
+        gc.dispatchEvent(
+            new CustomEvent(EVENTS.OPEN_STACK_GROUP, {
+                bubbles: true,
+                detail: {
+                    asset,
+                    members: ordered,
+                    title: `Generation group (${ordered.length} assets)`,
+                    stackId,
+                },
+            }),
+        );
+    },
+    openDupGroup: (asset) => {
+        const gc = gridContainerRef.value;
+        if (!gc || !asset) return;
+        const members = Array.isArray(asset._mjrDupMembers) ? asset._mjrDupMembers : [asset];
+        gc.dispatchEvent(
+            new CustomEvent(EVENTS.OPEN_STACK_GROUP, {
+                bubbles: true,
+                detail: {
+                    asset,
+                    members,
+                    title: `Duplicates — ${members.length} copies`,
+                    isDupGroup: true,
+                },
+            }),
+        );
+    },
+});
 
 const {
     state,
@@ -149,6 +211,12 @@ function isSelected(asset) {
 
 function isFolderAsset(asset) {
     return String(asset?.kind || "").toLowerCase() === "folder";
+}
+
+function isAssetStacked(asset) {
+    const gc = gridContainerRef.value;
+    if (!gc || String(gc.dataset?.mjrGroupStacks || "") !== "1") return false;
+    return !!String(asset?.stack_id || "").trim() && Number(asset?.stack_asset_count || 0) > 1;
 }
 
 function isRenderableAsset(asset) {
@@ -783,12 +851,6 @@ function syncRenderedDuplicateCards(filenameKey) {
             renderedCards[index]._mjrAsset._mjrDupHidden = true;
         }
     }
-
-    try {
-        ensureDupStackCard(gridContainerRef.value, primaryCard, primaryAsset);
-    } catch (e) {
-        console.debug?.(e);
-    }
 }
 
 function syncAllRenderedDuplicateCards() {
@@ -819,16 +881,6 @@ function bindCardRef(asset, node) {
     registerFilenameCard(card, asset);
     syncRenderedDuplicateCards(String(asset?.filename || "").trim().toLowerCase());
 
-    try {
-        ensureStackGroupCard(gridContainerRef.value, card, asset);
-    } catch (e) {
-        console.debug?.(e);
-    }
-    try {
-        ensureDupStackCard(gridContainerRef.value, card, asset);
-    } catch (e) {
-        console.debug?.(e);
-    }
     try {
         props.onCardRendered?.(card, asset, gridContainerRef.value);
     } catch (e) {
@@ -1299,6 +1351,10 @@ defineExpose({
                         :data-mjr-ext="getAssetExt(asset)"
                         :data-mjr-stem="getAssetStem(asset)"
                         :data-mjr-kind="String(asset.kind || '')"
+                        :data-mjr-stacked="isAssetStacked(asset) ? 'true' : undefined"
+                        :data-mjr-stack-count="isAssetStacked(asset) ? String(asset.stack_asset_count || 0) : undefined"
+                        :data-mjr-dup-stacked="asset._mjrDupStack ? 'true' : undefined"
+                        :data-mjr-dup-count="asset._mjrDupStack ? String(asset._mjrDupCount || 0) : undefined"
                         :aria-label="`Asset ${asset.filename || ''}`"
                         :aria-selected="isSelected(asset) ? 'true' : 'false'"
                         @mousedown.left="handleCardPrimaryMouseDown($event, asset)"
@@ -1347,6 +1403,10 @@ defineExpose({
                         :data-mjr-ext="getAssetExt(asset)"
                         :data-mjr-stem="getAssetStem(asset)"
                         :data-mjr-kind="String(asset.kind || '')"
+                        :data-mjr-stacked="isAssetStacked(asset) ? 'true' : undefined"
+                        :data-mjr-stack-count="isAssetStacked(asset) ? String(asset.stack_asset_count || 0) : undefined"
+                        :data-mjr-dup-stacked="asset._mjrDupStack ? 'true' : undefined"
+                        :data-mjr-dup-count="asset._mjrDupStack ? String(asset._mjrDupCount || 0) : undefined"
                         :aria-label="`Asset ${asset.filename || ''}`"
                         :aria-selected="isSelected(asset) ? 'true' : 'false'"
                         @mousedown.left="handleCardPrimaryMouseDown($event, asset)"
