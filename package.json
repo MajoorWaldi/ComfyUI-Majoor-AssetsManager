@@ -24,7 +24,7 @@
     "eslint": "^10.1.0",
     "happy-dom": "^20.8.9",
     "prettier": "^3.8.1",
-    "vite": "^6.4.2",
+    "vite": "^8.0.8",
     "vitest": "^4.1.4"
   },
   "dependencies": {
