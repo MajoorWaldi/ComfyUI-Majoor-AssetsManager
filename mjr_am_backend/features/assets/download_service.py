@@ -113,12 +113,20 @@ def resolve_download_path(
 
 
 def build_download_response(resolved: Path, *, preview: bool) -> web.StreamResponse:
-    mime_type, _ = mimetypes.guess_type(str(resolved))
+    try:
+        safe_path = resolved.resolve(strict=True)
+    except (OSError, RuntimeError, ValueError):
+        return web.Response(status=404, text="File not found")
+
+    if not safe_path.is_absolute() or not safe_path.is_file():
+        return web.Response(status=404, text="File not found")
+
+    mime_type, _ = mimetypes.guess_type(str(safe_path))
     safe_mime = mime_type or "application/octet-stream"
-    filename = safe_download_filename(resolved.name)
+    filename = safe_download_filename(safe_path.name)
     disposition = "inline" if preview else "attachment"
 
-    response = web.FileResponse(path=str(resolved))
+    response = web.FileResponse(path=str(safe_path))
     try:
         response.headers["Content-Type"] = safe_mime
         response.headers["Content-Disposition"] = f'{disposition}; filename="{filename}"'
