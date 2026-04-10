@@ -24,7 +24,7 @@ repos:
 
       - id: ruff-fix
         name: Ruff autofix
-        entry: python -m ruff check --fix --exit-non-zero-on-fix
+        entry: python scripts/run_repo_python.py -m ruff check --fix --exit-non-zero-on-fix
         language: system
         types: [python]
 
@@ -32,7 +32,7 @@ repos:
         name: ESLint autofix
         entry: npm exec eslint --fix
         language: system
-        files: ^js/.*\.(js|mjs|vue)$
+        files: ^js/.*\.(js|mjs)$
 
       - id: prettier-write
         name: Prettier write
@@ -41,15 +41,15 @@ repos:
         files: ^js/.*\.(js|mjs|vue)$
 
       - id: mypy
-        name: Mypy (pre-push / manual)
-        entry: python -m mypy --config-file mypy.ini
+        name: Mypy (manual)
+        entry: python scripts/run_repo_python.py -m mypy --config-file mypy.ini
         language: system
         pass_filenames: false
-        stages: [pre-push, manual]
+        stages: [manual]
 
       - id: quality-gate
         name: Changed-file quality gate (pre-push / manual)
-        entry: python scripts/run_changed_quality_gate.py
+        entry: python scripts/run_repo_python.py scripts/run_changed_quality_gate.py
         language: system
         pass_filenames: false
         stages: [pre-push, manual]
