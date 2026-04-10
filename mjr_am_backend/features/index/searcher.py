@@ -627,6 +627,14 @@ def _generation_time_ms_value(asset: dict[str, Any] | None) -> int:
     raw = asset.get("generation_time_ms")
     if raw in (None, ""):
         return 0
+    if isinstance(raw, bool):
+        return int(raw)
+    if isinstance(raw, int):
+        return max(0, raw)
+    if isinstance(raw, float):
+        return max(0, int(raw))
+    if not isinstance(raw, str):
+        return 0
     try:
         return max(0, int(float(raw)))
     except (TypeError, ValueError):

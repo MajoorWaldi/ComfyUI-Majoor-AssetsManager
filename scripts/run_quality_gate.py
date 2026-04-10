@@ -9,6 +9,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+import tomllib
+from packaging.specifiers import SpecifierSet
+from packaging.version import Version
+
 ROOT = Path(__file__).resolve().parents[1]
 PYTHON_TEXT_PATHS = [
     "mjr_am_backend",
@@ -147,6 +151,27 @@ def _npm_available() -> bool:
     return any(shutil.which(candidate) for candidate in (("npm.cmd", "npm") if os.name == "nt" else ("npm",)))
 
 
+def _current_python_supported_by_project() -> bool:
+    pyproject_path = ROOT / "pyproject.toml"
+    if not pyproject_path.exists():
+        return True
+    try:
+        data = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
+    except Exception:
+        return True
+
+    requires_python = ((data.get("project") or {}).get("requires-python") or "").strip()
+    if not requires_python:
+        return True
+
+    try:
+        supported_versions = SpecifierSet(requires_python)
+        current_version = Version(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
+    except Exception:
+        return True
+    return current_version in supported_versions
+
+
 def _clear_mypy_cache() -> None:
     cache_dir = ROOT / ".mypy_cache"
     if not cache_dir.exists():
@@ -191,10 +216,17 @@ def main() -> int:
         _run(_python_cmd("bandit", "-r", *bandit_targets, "-ll", "-ii", "-x", "tests"), label="Bandit")
 
     if not args.skip_pip_audit:
-        _run(
-            _pip_audit_cmd(),
-            label="pip-audit",
-        )
+        if _current_python_supported_by_project():
+            _run(
+                _pip_audit_cmd(),
+                label="pip-audit",
+            )
+        else:
+            print("\n==> pip-audit")
+            print(
+                "Skipping pip-audit because the active Python interpreter is outside the supported "
+                "range declared in pyproject.toml."
+            )
 
     if not args.skip_complexity:
         _run(

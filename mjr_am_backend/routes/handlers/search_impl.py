@@ -1,7 +1,6 @@
 """
 Search and list endpoints.
 """
-import asyncio
 from pathlib import Path
 from typing import Any
 
@@ -21,7 +20,7 @@ from mjr_am_backend.config import TO_THREAD_TIMEOUT_S
 from mjr_am_backend.custom_roots import resolve_custom_root
 from mjr_am_backend.features.index.metadata_helpers import MetadataHelpers
 from mjr_am_backend.features.search import parse_search_request
-from mjr_am_backend.shared import Result, get_logger
+from mjr_am_backend.shared import get_logger
 
 from ..core import (
     _is_loopback_request,
@@ -67,13 +66,19 @@ AUTOCOMPLETE_RATE_LIMIT_WINDOW_SECONDS = 60
 logger = get_logger(__name__)
 
 
+def _safe_error_message_for_base_exception(exc: BaseException, fallback: str) -> str:
+    if isinstance(exc, Exception):
+        return safe_error_message(exc, fallback)
+    return fallback
+
+
 # P2-E-01..03 delegation to extracted modules.
 from ..search import listing_endpoint as _listing_endpoint  # noqa: E402
 from ..search import query_sanitizer as _qs  # noqa: E402
-from ..search import route_endpoints as _route_endpoints  # noqa: E402
-from ..search import route_helpers as _route_helpers  # noqa: E402
 from ..search import result_filter as _rf  # noqa: E402
 from ..search import result_hydrator as _rh  # noqa: E402
+from ..search import route_endpoints as _route_endpoints  # noqa: E402
+from ..search import route_helpers as _route_helpers  # noqa: E402
 
 _asset_dedupe_key = _rh.dedupe_key
 _dedupe_assets_by_filepath = _rh.dedupe_by_filepath
@@ -107,6 +112,7 @@ _parse_asset_ids = _route_helpers.parse_asset_ids
 _workflow_quick_query_parts = _route_helpers.workflow_quick_query_parts
 _extract_workflow_from_metadata_raw = _route_helpers.extract_workflow_from_metadata_raw
 _browser_mode_needs_post_filters = _route_helpers.browser_mode_needs_post_filters
+asyncio = _route_endpoints.asyncio
 
 
 async def _hydrate_browser_assets_from_db(svc: Any, assets: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -165,7 +171,7 @@ async def get_workflow_quick(request: web.Request) -> web.StreamResponse:
         workflow_quick_query_parts=_workflow_quick_query_parts,
         extract_workflow_from_metadata_raw=_extract_workflow_from_metadata_raw,
         json_response=_json_response,
-        safe_error_message=safe_error_message,
+        safe_error_message=_safe_error_message_for_base_exception,
         logger=logger,
     )
 
