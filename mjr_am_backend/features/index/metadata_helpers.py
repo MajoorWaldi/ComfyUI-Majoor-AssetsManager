@@ -31,6 +31,12 @@ _METADATA_CACHE_CLEANUP_LOCK = asyncio.Lock()
 _METADATA_CACHE_LAST_CLEANUP = 0.0
 _SAMPLER_PARAM_RE = re.compile(r"(?:^|\n)\s*Sampler\s*:\s*([^\n,]+)", re.IGNORECASE)
 _MODEL_PARAM_RE = re.compile(r"(?:^|\n)\s*Model\s*:\s*([^\n,]+)", re.IGNORECASE)
+_GENERATION_TIME_WITH_UNIT_RE = re.compile(
+    r"^\s*(-?\d+(?:[.,]\d+)?)\s*"
+    r"(ms|msec|millisecond|milliseconds|s|sec|secs|second|seconds|m|min|mins|minute|minutes|h|hr|hrs|hour|hours)"
+    r"\s*$",
+    re.IGNORECASE,
+)
 _TRUNCATION_OPTIONAL_KEYS = (
     "workflow",
     "geninfo",
@@ -333,7 +339,17 @@ def _best_effort_workflow_type(meta: dict[str, Any]) -> str | None:
 
 
 def _best_effort_generation_time_ms(meta: dict[str, Any]) -> int | None:
-    for key_path in ("generation_time_ms", "geninfo.generation_time_ms", "generation.time_ms"):
+    for key_path in (
+        "generation_time_ms",
+        "geninfo.generation_time_ms",
+        "generation.time_ms",
+        "generation_time",
+        "geninfo.generation_time",
+        "timing.generation_time_ms",
+        "timing.total_ms",
+        "timing.elapsed_ms",
+        "metrics.generation_time_ms",
+    ):
         value = _resolve_key_path(meta, key_path)
         parsed = _parse_generation_time_ms(value)
         if parsed is not None:
@@ -344,11 +360,36 @@ def _best_effort_generation_time_ms(meta: dict[str, Any]) -> int | None:
 def _parse_generation_time_ms(value: Any) -> int | None:
     if value in (None, "", [], {}):
         return None
-    try:
-        numeric = float(value)
-    except (TypeError, ValueError):
+    if isinstance(value, bool):
         return None
+    numeric: float
+    if isinstance(value, str):
+        raw = value.strip().lower()
+        if not raw:
+            return None
+        unit_match = _GENERATION_TIME_WITH_UNIT_RE.match(raw)
+        if unit_match:
+            numeric = float(unit_match.group(1).replace(",", "."))
+            unit = unit_match.group(2)
+            if unit.startswith("h"):
+                numeric *= 3_600_000
+            elif unit.startswith("m") and not unit.startswith("ms"):
+                numeric *= 60_000
+            elif unit.startswith("s"):
+                numeric *= 1000
+        else:
+            try:
+                numeric = float(raw.replace(",", "."))
+            except (TypeError, ValueError):
+                return None
+    else:
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError):
+            return None
     if numeric <= 0:
+        return None
+    if numeric >= 86_400_000:
         return None
     return int(round(numeric))
 
@@ -970,10 +1011,15 @@ class MetadataHelpers:
                     ELSE asset_metadata.workflow_type
                 END,
                 generation_time_ms = CASE
-                    WHEN {should_upgrade} THEN excluded.generation_time_ms
-                    WHEN {same_quality}
+                    WHEN excluded.generation_time_ms IS NOT NULL
+                         AND {should_upgrade}
+                    THEN excluded.generation_time_ms
+                    WHEN excluded.generation_time_ms IS NOT NULL
+                         AND {same_quality}
                          AND asset_metadata.generation_time_ms IS NULL
-                         AND excluded.generation_time_ms IS NOT NULL
+                    THEN excluded.generation_time_ms
+                    WHEN excluded.generation_time_ms IS NOT NULL
+                         AND asset_metadata.generation_time_ms IS NULL
                     THEN excluded.generation_time_ms
                     ELSE asset_metadata.generation_time_ms
                 END,

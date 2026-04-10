@@ -1,4 +1,5 @@
 import datetime
+from typing import Any
 
 import pytest
 from mjr_am_backend.routes.handlers import search_impl as s
@@ -20,7 +21,7 @@ def test_dedupe_assets_payload_total_adjusted() -> None:
 
 
 def test_collect_hydration_paths_skips_folder_and_invalid() -> None:
-    assets = [
+    assets: list[Any] = [
         {"kind": "folder", "filepath": "C:/x"},
         {"kind": "image", "filepath": "C:/y.png"},
         "bad",
@@ -39,6 +40,8 @@ def test_index_rows_and_hydrate_asset_from_row() -> None:
             "has_workflow": 1,
             "has_generation_data": 1,
             "workflow_type": "T2I",
+            "positive_prompt": "cinematic portrait",
+            "generation_time_ms": "9100",
         }
     ]
     by = s._index_rows_by_filepath(rows)
@@ -50,6 +53,8 @@ def test_index_rows_and_hydrate_asset_from_row() -> None:
     assert asset["has_workflow"] == 1
     assert asset["has_generation_data"] == 1
     assert asset["workflow_type"] == "T2I"
+    assert asset["positive_prompt"] == "cinematic portrait"
+    assert asset["generation_time_ms"] == 9100
 
 
 def test_coerce_browser_tags_variants() -> None:
@@ -71,10 +76,26 @@ async def test_hydrate_browser_assets_from_db_applies_rows(monkeypatch) -> None:
 
     class _DB:
         async def aquery_in(self, *_args, **_kwargs):
-            return type("R", (), {"ok": True, "data": [{"filepath": "C:/a.png", "id": 9, "rating": 4, "tags": []}]})
+            return type(
+                "R",
+                (),
+                {
+                    "ok": True,
+                    "data": [
+                        {
+                            "filepath": "C:/a.png",
+                            "id": 9,
+                            "rating": 4,
+                            "tags": [],
+                            "generation_time_ms": 7250,
+                        }
+                    ],
+                },
+            )
 
     out = await s._hydrate_browser_assets_from_db({"db": _DB()}, assets)
     assert out[0]["id"] == 9
+    assert out[0]["generation_time_ms"] == 7250
 
 
 def test_date_bounds_helpers() -> None:

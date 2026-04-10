@@ -174,6 +174,18 @@ def coerce_browser_tags(raw_tags: Any) -> list[str]:
     return []
 
 
+def _coerce_browser_generation_time_ms(value: Any) -> int | None:
+    if value in (None, "", 0):
+        return None
+    if isinstance(value, bool):
+        return None
+    try:
+        parsed = int(float(value))
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed > 0 else None
+
+
 def hydrate_asset_from_row(asset: dict, by_fp: dict[str, dict]) -> None:
     if is_folder_asset(asset):
         return
@@ -189,6 +201,12 @@ def hydrate_asset_from_row(asset: dict, by_fp: dict[str, dict]) -> None:
     asset["has_workflow"] = row.get("has_workflow")
     asset["has_generation_data"] = row.get("has_generation_data")
     asset["workflow_type"] = row.get("workflow_type")
+    positive_prompt = str(row.get("positive_prompt") or "").strip()
+    if positive_prompt:
+        asset["positive_prompt"] = positive_prompt
+    generation_time_ms = _coerce_browser_generation_time_ms(row.get("generation_time_ms"))
+    if generation_time_ms is not None:
+        asset["generation_time_ms"] = generation_time_ms
     asset["has_ai_info"] = row.get("has_ai_info")
     asset["has_ai_vector"] = row.get("has_ai_vector")
     asset["has_ai_auto_tags"] = row.get("has_ai_auto_tags")

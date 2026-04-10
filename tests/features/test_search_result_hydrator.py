@@ -61,11 +61,22 @@ def test_collect_hydration_paths_skips_folder_assets() -> None:
 
 def test_apply_hydration_rows_sets_id_rating_tags() -> None:
     assets = [{"filepath": "/a/x.png", "kind": "image"}, {"filepath": "/a/folder", "kind": "folder"}]
-    rows = [{"id": "7", "filepath": "/a/x.png", "rating": 5, "tags": '["tag1"]'}]
+    rows = [
+        {
+            "id": "7",
+            "filepath": "/a/x.png",
+            "rating": 5,
+            "tags": '["tag1"]',
+            "positive_prompt": "studio portrait",
+            "generation_time_ms": "8421",
+        }
+    ]
     rh.apply_hydration_rows(assets, rows)
     assert assets[0]["id"] == 7
     assert assets[0]["rating"] == 5
     assert assets[0]["tags"] == ["tag1"]
+    assert assets[0]["positive_prompt"] == "studio portrait"
+    assert assets[0]["generation_time_ms"] == 8421
     assert "id" not in assets[1]
 
 
@@ -73,7 +84,18 @@ class _Db:
     async def aquery_in(self, _query, _column, _filepaths):
         from mjr_am_backend.shared import Result
 
-        return Result.Ok([{"id": 3, "filepath": "/a/x.png", "rating": 2, "tags": ["t"]}])
+        return Result.Ok(
+            [
+                {
+                    "id": 3,
+                    "filepath": "/a/x.png",
+                    "rating": 2,
+                    "tags": ["t"],
+                    "positive_prompt": "forest scene",
+                    "generation_time_ms": 6400,
+                }
+            ]
+        )
 
 
 @pytest.mark.asyncio
@@ -84,4 +106,5 @@ async def test_hydrate_assets_roundtrip() -> None:
     assert out[0]["id"] == 3
     assert out[0]["rating"] == 2
     assert out[0]["tags"] == ["t"]
-
+    assert out[0]["positive_prompt"] == "forest scene"
+    assert out[0]["generation_time_ms"] == 6400

@@ -1,6 +1,9 @@
 import json
+from pathlib import Path
 
 import pytest
+from mjr_am_backend.adapters.db.schema import migrate_schema
+from mjr_am_backend.adapters.db.sqlite import Sqlite
 from mjr_am_backend.features.index import metadata_helpers as mh
 from mjr_am_backend.shared import Result
 
@@ -29,6 +32,14 @@ class _DB:
 
     def lock_for_asset(self, _asset_id):
         return _DummyLock()
+
+
+async def _make_db(tmp_path: Path) -> Sqlite:
+    db_path = tmp_path / "metadata-helpers.db"
+    db = Sqlite(str(db_path), attach={"vec": str(tmp_path / "vectors.sqlite")})
+    mig = await migrate_schema(db)
+    assert mig.ok
+    return db
 
 
 def test_json_guard_and_tag_helpers(monkeypatch):
@@ -101,6 +112,29 @@ def test_geninfo_extras_and_presence_flags():
     assert mh._graph_has_sampler({"1": {"class_type": "KSampler", "inputs": {"steps": 20}}}) is True
 
 
+def test_generation_time_parser_accepts_units_and_nested_variants():
+    assert mh._parse_generation_time_ms("8421ms") == 8421
+    assert mh._parse_generation_time_ms("8.421s") == 8421
+    assert mh._parse_generation_time_ms("1.5m") == 90_000
+    assert mh._parse_generation_time_ms("1.5h") == 5_400_000
+    assert mh._parse_generation_time_ms(True) is None
+    assert mh._parse_generation_time_ms("2026:04:10 12:00:00") is None
+
+    workflow_type, generation_time_ms, positive_prompt = mh._denormalized_metadata_fields(
+        Result.Ok(
+            {
+                "quality": "partial",
+                "geninfo": {"generation_time_ms": "8.421s"},
+                "positive_prompt": "portrait",
+                "workflow_type": "txt2img",
+            }
+        )
+    )
+    assert workflow_type == "TXT2IMG"
+    assert generation_time_ms == 8421
+    assert positive_prompt == "portrait"
+
+
 def test_prepare_and_error_payload_helpers():
     has_wf, has_gen, quality, raw = mh.MetadataHelpers.prepare_metadata_fields(Result.Ok({"quality": "partial", "parameters": "x"}))
     assert has_wf is True and has_gen is True and quality == "partial" and raw
@@ -165,6 +199,56 @@ async def test_refresh_if_needed_and_cleanup_paths(monkeypatch):
     assert mh._cache_cleanup_config()[0] >= 0
     await mh._cleanup_cache_by_ttl(db, 5)
     await mh._cleanup_cache_by_max_entries(db, 10)
+
+
+@pytest.mark.asyncio
+async def test_write_row_preserves_generation_time_across_quality_upgrade(tmp_path: Path):
+    db = await _make_db(tmp_path)
+    try:
+        ins = await db.aexecute(
+            "INSERT INTO assets(filepath, filename, subfolder, source, root_id, kind, ext, size, mtime) "
+            "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            ("C:\\x\\gentime.png", "gentime.png", "", "output", "output", "image", ".png", 123, 1700000000),
+        )
+        assert ins.ok
+        asset_rows = (await db.aquery("SELECT id FROM assets")).data
+        assert asset_rows
+        asset_id = int(asset_rows[0]["id"])
+
+        initial = await mh.MetadataHelpers.write_asset_metadata_row(
+            db,
+            asset_id,
+            Result.Ok({"quality": "partial", "parameters": "prompt", "generation_time_ms": 8421}),
+            filepath="gentime.png",
+        )
+        assert initial.ok
+
+        upgraded = await mh.MetadataHelpers.write_asset_metadata_row(
+            db,
+            asset_id,
+            Result.Ok(
+                {
+                    "quality": "full",
+                    "workflow": {"nodes": [{"id": 1, "type": "KSampler"}]},
+                    "prompt": {"1": {"class_type": "KSampler", "inputs": {"steps": 20}}},
+                }
+            ),
+            filepath="gentime.png",
+        )
+        assert upgraded.ok
+
+        rows = (
+            await db.aquery(
+                "SELECT metadata_quality, generation_time_ms FROM asset_metadata WHERE asset_id = ?",
+                (asset_id,),
+            )
+        ).data
+        assert rows
+        row = rows[0]
+        assert row["metadata_quality"] == "full"
+        assert row["generation_time_ms"] == 8421
+    finally:
+        await db.aclose()
 
 
 def test_metadata_payload_size_helpers(monkeypatch):
