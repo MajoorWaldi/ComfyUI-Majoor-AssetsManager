@@ -90,6 +90,24 @@ export function registerViewerSettings(safeAddSetting, settings, notifyApplied) 
         },
     });
 
+    safeAddSetting({
+        id: `${SETTINGS_PREFIX}.Viewer.MfvSidebarPosition`,
+        category: cat(t("cat.viewer"), "Node Parameters sidebar position"),
+        name: "Node Parameters sidebar position",
+        tooltip: "Position of the Node Parameters sidebar in the Floating Viewer (right, left, or bottom).",
+        type: "combo",
+        defaultValue: settings.viewer?.mfvSidebarPosition || "right",
+        options: ["right", "left", "bottom"],
+        onChange: (value) => {
+            const pos = ["left", "right", "bottom"].includes(value) ? value : "right";
+            settings.viewer = settings.viewer || {};
+            settings.viewer.mfvSidebarPosition = pos;
+            saveMajoorSettings(settings);
+            applySettingsToConfig(settings);
+            notifyApplied("viewer.mfvSidebarPosition");
+        },
+    });
+
     const registerMinimapToggle = (idKey, stateKey, nameKey, descKey) => {
         safeAddSetting({
             id: `${SETTINGS_PREFIX}.WorkflowMinimap.${idKey}`,

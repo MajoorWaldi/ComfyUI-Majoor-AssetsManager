@@ -22,7 +22,7 @@ const state = vi.hoisted(() => {
             this._mode = viewerMode;
             this._mediaA = null;
             this._mediaB = null;
-            this._pinnedSlot = pinnedSlot;
+            this._pinnedSlots = typeof pinnedSlot === 'object' && pinnedSlot instanceof Set ? pinnedSlot : (pinnedSlot ? new Set([pinnedSlot]) : new Set());
             this._isPopped = viewerPopped;
             this.isVisible = false;
             this.show = vi.fn(() => {
@@ -61,8 +61,8 @@ const state = vi.hoisted(() => {
             return this._isPopped;
         }
 
-        getPinnedSlot() {
-            return this._pinnedSlot;
+        getPinnedSlots() {
+            return this._pinnedSlots;
         }
 
         popOut = vi.fn(() => {

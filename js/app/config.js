@@ -82,6 +82,7 @@ export const APP_DEFAULTS = Object.freeze({
     DEFER_GRID_FETCH_DURING_EXECUTION: true,
     VIEWER_PAUSE_DURING_EXECUTION: true,
     FLOATING_VIEWER_PAUSE_DURING_EXECUTION: false,
+    MFV_SIDEBAR_POSITION: "right",
 
     // Rating/tags hydration (grid)
     RT_HYDRATE_CONCURRENCY: 2,

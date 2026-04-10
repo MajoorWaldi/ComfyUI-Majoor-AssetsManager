@@ -1,7 +1,7 @@
 # Majoor Assets Manager - Viewer Feature Tutorial
 
-**Version**: 2.4.4  
-**Last Updated**: April 5, 2026
+**Version**: 2.4.4
+**Last Updated**: April 10, 2026
 
 ## Overview
 The Majoor Assets Manager provides **two viewer experiences**:
@@ -33,6 +33,9 @@ A full-featured overlay viewer with **advanced analysis tools**:
 - [Opening the Floating Viewer](#opening-the-floating-viewer)
 - [Live Stream Mode](#live-stream-mode)
 - [Compare Modes](#compare-modes)
+- [Multi-Pin References (A/B/C/D)](#multi-pin-references-abcd)
+- [Node Parameters Sidebar](#node-parameters-sidebar)
+- [Sidebar Position Setting](#sidebar-position-setting)
 - [Node Tracking](#node-tracking)
 - [MFV Controls](#mfv-controls)
 - [MFV Keyboard Shortcuts](#mfv-keyboard-shortcuts)
@@ -142,6 +145,82 @@ The MFV supports three comparison modes:
 - Direct visual comparison
 - Composition analysis
 - Color grading comparison
+
+### Multi-Pin References (A/B/C/D)
+
+The Multi-Pin system lets you pin up to **4 reference images** simultaneously for comparison.
+
+#### How It Works
+1. Open the Floating Viewer
+2. In the toolbar, locate the **A B C D** toggle buttons next to the mode button
+3. Click a letter to **pin** the currently displayed image to that slot
+4. Click the same letter again to **unpin** it
+5. Multiple slots can be active at the same time
+
+#### Pin Behavior
+- **Pinned slots are locked**: When Live Stream brings in a new generation, pinned slots keep their content while unpinned slots update automatically
+- **Compare with pins**: In A/B or Side-by-Side mode, pin A as a reference and let B follow live generations to compare every new result against a fixed baseline
+- **Multi-pin in Grid Compare**: Pin A, B, C, and D to lock 4 images for simultaneous comparison in Grid Compare mode
+
+#### Use Cases
+- **Baseline comparison**: Pin your best result in slot A and iterate freely
+- **Parameter sweep**: Pin 4 different sampler results and compare visually
+- **Before/after editing**: Pin the original in A, the edited version in B
+
+---
+
+### Node Parameters Sidebar
+
+The **Node Parameters** sidebar displays and lets you edit the ComfyUI node widgets directly inside the Floating Viewer.
+
+#### Opening the Sidebar
+1. Open the Floating Viewer
+2. Click the **Node Parameters** button (sliders icon) in the toolbar — it is located at the far right of the toolbar
+3. The sidebar slides open on the right (default position)
+
+#### What It Shows
+- All widgets from the workflow node that produced the current image
+- Grouped by node: each node section has a colored header showing the node title
+- Widget types supported: text fields, number inputs, combo/dropdown selectors, toggles
+
+#### Editing Widgets
+- **Text fields**: Click and type. Long text (prompts) use a resizable text area
+  - Click the **expand** button (↕) to toggle between collapsed (80px) and expanded (680px) height
+  - Text labels appear above the text area for better readability
+- **Numbers**: Type a value or use the stepper
+- **Combos**: Select from the dropdown list
+- Changes are applied back to the ComfyUI graph in real time
+
+#### Run Button
+The **Run** (▶) button at the far right of the toolbar queues the current workflow, allowing you to iterate without switching back to the ComfyUI canvas.
+
+#### Use Cases
+- **Prompt iteration**: Edit the positive/negative prompt and re-run without leaving the viewer
+- **Seed tweaking**: Change the seed value and queue immediately
+- **Sampler comparison**: Switch samplers from the sidebar and compare outputs
+- **CFG tuning**: Adjust CFG scale and see results in real time via Live Stream
+
+---
+
+### Sidebar Position Setting
+
+You can change where the Node Parameters sidebar appears inside the Floating Viewer.
+
+#### Changing the Position
+1. Go to **Settings → Majoor Assets Manager › Viewer**
+2. Find **Node Parameters sidebar position**
+3. Select one of:
+   - **right** (default) — sidebar opens on the right side
+   - **left** — sidebar opens on the left side
+   - **bottom** — sidebar opens at the bottom as a horizontal panel
+4. The change applies **immediately** — no page reload required
+
+#### Recommendations
+- **Right** works best for most layouts and screen sizes
+- **Left** is useful when your ComfyUI canvas is on the right
+- **Bottom** is ideal for wide screens or when you prefer a short, wide parameter panel
+
+---
 
 ### Node Tracking
 

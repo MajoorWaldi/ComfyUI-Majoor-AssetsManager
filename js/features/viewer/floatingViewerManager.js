@@ -18,6 +18,7 @@ import { getHotkeysState, isHotkeysSuspended } from "../panel/controllers/hotkey
 import { reportError } from "../../utils/logging.js";
 import { NODE_STREAM_FEATURE_ENABLED } from "./nodeStream/nodeStreamFeatureFlag.js";
 import { appendFloatingViewerNode } from "./viewerRuntimeHosts.js";
+import { getComfyApp } from "../../app/comfyApiBridge.js";
 
 // Lazy-loaded modules — loaded on first use to avoid blocking startup.
 /** @type {typeof import("./FloatingViewer.js").FloatingViewer | null} */
@@ -184,17 +185,18 @@ async function _loadFromIds(selectedIds) {
     _fetchAC = ac;
 
     try {
-        const pinnedSlot = _instance.getPinnedSlot();
+        const pins = _instance.getPinnedSlots();
+        const hasPins = pins.size > 0;
         const mode = _instance._mode;
         const isGrid = mode === MFV_MODES.GRID;
         const isCompare = mode === MFV_MODES.AB || mode === MFV_MODES.SIDE;
         const maxSlots = isGrid ? 4 : 2;
         let ids = selectedIds.slice(0, maxSlots);
 
-        if (pinnedSlot && (isCompare || isGrid)) {
-            // With a pinned slot, only load new assets into non-pinned slots.
-            // Remove duplicates of pinned content; limit to maxSlots - 1 new.
-            ids = ids.slice(0, maxSlots - 1);
+        if (hasPins && (isCompare || isGrid)) {
+            // With pinned slots, only load new assets into non-pinned slots.
+            const freeCount = maxSlots - pins.size;
+            ids = ids.slice(0, Math.max(1, freeCount));
         } else if (ids.length === 1 && isCompare) {
             // Compare-mode fallback: if only 1 asset, auto-pick the adjacent grid item for slot B.
             const adjId = _findAdjacentGridId(ids[0]);
@@ -211,15 +213,15 @@ async function _loadFromIds(selectedIds) {
 
         // Grid mode: load up to 4 assets
         if (isGrid) {
-            if (pinnedSlot) {
-                // Keep the pinned slot, fill others from new assets
+            if (hasPins) {
+                // Keep all pinned slots, fill others from new assets
                 const slotMedia = {
                     A: _instance._mediaA,
                     B: _instance._mediaB,
                     C: _instance._mediaC,
                     D: _instance._mediaD,
                 };
-                const freeSlots = ["A", "B", "C", "D"].filter((s) => s !== pinnedSlot);
+                const freeSlots = ["A", "B", "C", "D"].filter((s) => !pins.has(s));
                 let ai = 0;
                 for (const slot of freeSlots) {
                     if (ai < assets.length) slotMedia[slot] = assets[ai++];
@@ -235,10 +237,13 @@ async function _loadFromIds(selectedIds) {
             return;
         }
 
-        // AB / Side / Simple modes (C/D pins only valid in GRID, handled above)
-        if (pinnedSlot === "A" && _instance._mediaA) {
+        // AB / Side / Simple modes
+        if (pins.has("A") && pins.has("B") && _instance._mediaA && _instance._mediaB) {
+            // Both pinned — nothing to replace
+            return;
+        } else if (pins.has("A") && _instance._mediaA) {
             _instance.loadMediaPair(_instance._mediaA, assets[0]);
-        } else if (pinnedSlot === "B" && _instance._mediaB) {
+        } else if (pins.has("B") && _instance._mediaB) {
             _instance.loadMediaPair(assets[0], _instance._mediaB);
         } else if (ids.length >= 2 && assets.length >= 2) {
             _instance.loadMediaPair(assets[0], assets[1]);
@@ -305,6 +310,58 @@ function _unbindSelectionListener() {
     _cancelFetch();
 }
 
+// ── Node selection hooks (canvas → sidebar sync) ─────────────────────────────
+
+let _nodeSelectionBound = false;
+let _origOnNodeSelected = null;
+let _origOnSelectionChange = null;
+
+function _onCanvasNodeSelection() {
+    // Refresh the sidebar when canvas node selection changes
+    if (_instance?.isVisible) _instance.refreshSidebar?.();
+}
+
+function _bindNodeSelectionListener() {
+    if (_nodeSelectionBound) return;
+    try {
+        const app = getComfyApp();
+        const canvas = app?.canvas;
+        if (!canvas) return;
+
+        _origOnNodeSelected = canvas.onNodeSelected ?? null;
+        _origOnSelectionChange = canvas.onSelectionChange ?? null;
+
+        canvas.onNodeSelected = function (node) {
+            _origOnNodeSelected?.call(this, node);
+            _onCanvasNodeSelection();
+        };
+        canvas.onSelectionChange = function (selectedNodes) {
+            _origOnSelectionChange?.call(this, selectedNodes);
+            _onCanvasNodeSelection();
+        };
+        _nodeSelectionBound = true;
+    } catch (e) {
+        console.debug?.("[MFV] _bindNodeSelectionListener error", e);
+    }
+}
+
+function _unbindNodeSelectionListener() {
+    if (!_nodeSelectionBound) return;
+    try {
+        const app = getComfyApp();
+        const canvas = app?.canvas;
+        if (canvas) {
+            if (_origOnNodeSelected !== null) canvas.onNodeSelected = _origOnNodeSelected;
+            if (_origOnSelectionChange !== null) canvas.onSelectionChange = _origOnSelectionChange;
+        }
+    } catch (e) {
+        console.debug?.("[MFV] _unbindNodeSelectionListener error", e);
+    }
+    _origOnNodeSelected = null;
+    _origOnSelectionChange = null;
+    _nodeSelectionBound = false;
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 export const floatingViewerManager = {
@@ -313,6 +370,7 @@ export const floatingViewerManager = {
         inst.show();
         _syncViewerControls(inst);
         _bindSelectionListener();
+        _bindNodeSelectionListener();
         // KEY FIX: immediately show whatever is selected in the grid.
         _syncCurrentGridSelection();
         _emitVisibilityChanged(true);
@@ -328,6 +386,7 @@ export const floatingViewerManager = {
             }
         }
         _unbindSelectionListener();
+        _unbindNodeSelectionListener();
         _emitVisibilityChanged(false);
     },
 
@@ -394,7 +453,7 @@ export const floatingViewerManager = {
             mode === MFV_MODES.AB || mode === MFV_MODES.SIDE || mode === MFV_MODES.GRID;
         if (inCompare) {
             // In compare/grid mode: route the live stream to the first non-pinned slot.
-            const pin = inst.getPinnedSlot();
+            const pins = inst.getPinnedSlots();
             if (mode === MFV_MODES.GRID) {
                 const slotMedia = {
                     A: inst._mediaA,
@@ -402,10 +461,10 @@ export const floatingViewerManager = {
                     C: inst._mediaC,
                     D: inst._mediaD,
                 };
-                const freeSlot = ["A", "B", "C", "D"].find((s) => s !== pin) || "A";
+                const freeSlot = ["A", "B", "C", "D"].find((s) => !pins.has(s)) || "A";
                 slotMedia[freeSlot] = fileData;
                 inst.loadMediaQuad(slotMedia.A, slotMedia.B, slotMedia.C, slotMedia.D);
-            } else if (pin === "B") {
+            } else if (pins.has("B")) {
                 inst.loadMediaPair(fileData, inst._mediaB); // B pinned — stream to A
             } else {
                 inst.loadMediaPair(inst._mediaA, fileData); // A pinned (or no pin) — stream to B
@@ -522,7 +581,7 @@ export const floatingViewerManager = {
         const inCompare =
             mode === MFV_MODES.AB || mode === MFV_MODES.SIDE || mode === MFV_MODES.GRID;
         if (inCompare) {
-            const pin = inst.getPinnedSlot();
+            const pins = inst.getPinnedSlots();
             if (mode === MFV_MODES.GRID) {
                 const slotMedia = {
                     A: inst._mediaA,
@@ -530,10 +589,10 @@ export const floatingViewerManager = {
                     C: inst._mediaC,
                     D: inst._mediaD,
                 };
-                const freeSlot = ["A", "B", "C", "D"].find((s) => s !== pin) || "A";
+                const freeSlot = ["A", "B", "C", "D"].find((s) => !pins.has(s)) || "A";
                 slotMedia[freeSlot] = fileData;
                 inst.loadMediaQuad(slotMedia.A, slotMedia.B, slotMedia.C, slotMedia.D);
-            } else if (pin === "B") {
+            } else if (pins.has("B")) {
                 inst.loadMediaPair(fileData, inst._mediaB);
             } else {
                 inst.loadMediaPair(inst._mediaA, fileData);

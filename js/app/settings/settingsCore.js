@@ -91,6 +91,7 @@ export const DEFAULT_SETTINGS = {
         scopesFps: APP_DEFAULTS.VIEWER_SCOPES_FPS,
         metaTtlMs: APP_DEFAULTS.VIEWER_META_TTL_MS,
         metaMaxEntries: APP_DEFAULTS.VIEWER_META_MAX_ENTRIES,
+        mfvSidebarPosition: "right",
     },
     rtHydrate: {
         concurrency: APP_DEFAULTS.RT_HYDRATE_CONCURRENCY,
@@ -490,6 +491,10 @@ export const applySettingsToConfig = (settings) => {
         settings.viewer?.floatingPauseDuringExecution ??
         APP_DEFAULTS.FLOATING_VIEWER_PAUSE_DURING_EXECUTION
     );
+    {
+        const pos = String(settings.viewer?.mfvSidebarPosition || "right").toLowerCase();
+        APP_CONFIG.MFV_SIDEBAR_POSITION = ["left", "right", "bottom"].includes(pos) ? pos : "right";
+    }
     APP_CONFIG.VIEWER_VIDEO_GRADE_THROTTLE_FPS = Math.max(
         1,
         Math.min(

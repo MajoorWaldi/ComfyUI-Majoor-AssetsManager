@@ -25,6 +25,8 @@ import {
 import { installFollowerVideoSync } from "./videoSync.js";
 import { appendTooltipHint, setTooltipHint } from "../../utils/tooltipShortcuts.js";
 import { NODE_STREAM_FEATURE_ENABLED } from "./nodeStream/nodeStreamFeatureFlag.js";
+import { WorkflowSidebar } from "./workflowSidebar/WorkflowSidebar.js";
+import { createRunButton } from "./workflowSidebar/sidebarRunButton.js";
 
 export const MFV_MODES = Object.freeze({
     SIMPLE: "simple",
@@ -329,7 +331,8 @@ export class FloatingViewer {
         this._contentEl = null;
         this._closeBtn = null;
         this._modeBtn = null;
-        this._pinSelect = null;
+        this._pinGroup = null;
+        this._pinBtns = null;
         this._liveBtn = null;
         this._genBtn = null;
         this._genDropdown = null;
@@ -340,7 +343,7 @@ export class FloatingViewer {
         this._mediaB = null;
         this._mediaC = null;
         this._mediaD = null;
-        this._pinnedSlot = null;
+        this._pinnedSlots = new Set();
         this._abDividerX = 0.5; // 0..1
 
         // Pan/zoom state
@@ -453,13 +456,36 @@ export class FloatingViewer {
         el.setAttribute("aria-labelledby", this._titleId);
         el.appendChild(this._buildToolbar());
 
+        // Wrap content and sidebar in a flex container
+        this._contentWrapper = document.createElement("div");
+        this._contentWrapper.className = "mjr-mfv-content-wrapper";
+        this._applySidebarPosition();
+
         this._contentEl = document.createElement("div");
         this._contentEl.className = "mjr-mfv-content";
-        el.appendChild(this._contentEl);
+        this._contentWrapper.appendChild(this._contentEl);
+
+        // Workflow sidebar (hidden by default)
+        this._sidebar = new WorkflowSidebar({
+            hostEl: el,
+            onClose: () => this._updateSettingsBtnState(false),
+        });
+        this._contentWrapper.appendChild(this._sidebar.el);
+
+        el.appendChild(this._contentWrapper);
 
         this._rebindControlHandlers();
         this._bindPanelInteractions();
         this._bindDocumentUiHandlers();
+
+        // React to live sidebar-position setting changes.
+        this._onSidebarPosChanged = (e) => {
+            if (e?.detail?.key === "viewer.mfvSidebarPosition") {
+                this._applySidebarPosition();
+            }
+        };
+        window.addEventListener("mjr-settings-changed", this._onSidebarPosChanged);
+
         this._refresh();
         return el;
     }
@@ -476,7 +502,7 @@ export class FloatingViewer {
         const closeBtn = document.createElement("button");
         this._closeBtn = closeBtn;
         closeBtn.type = "button";
-        closeBtn.className = "mjr-icon-btn";
+        closeBtn.className = "mjr-icon-btn mjr-mfv-close-btn";
         setTooltipHint(closeBtn, t("tooltip.closeViewer", "Close viewer"), CLOSE_HINT);
         const _closeBtnIcon = document.createElement("i");
         _closeBtnIcon.className = "pi pi-times";
@@ -499,24 +525,24 @@ export class FloatingViewer {
         this._updateModeBtnUI();
         bar.appendChild(this._modeBtn);
 
-        this._pinSelect = document.createElement("select");
-        this._pinSelect.className = "mjr-mfv-pin-select";
-        this._pinSelect.setAttribute("aria-label", "Pin Reference");
-        this._pinSelect.value = this._pinnedSlot || "";
-        for (const { value, label } of [
-            { value: "", label: "No Pin" },
-            { value: "A", label: "Pin A" },
-            { value: "B", label: "Pin B" },
-            { value: "C", label: "Pin C" },
-            { value: "D", label: "Pin D" },
-        ]) {
-            const option = document.createElement("option");
-            option.value = value;
-            option.textContent = label;
-            this._pinSelect.appendChild(option);
+        this._pinGroup = document.createElement("div");
+        this._pinGroup.className = "mjr-mfv-pin-group";
+        this._pinGroup.setAttribute("role", "group");
+        this._pinGroup.setAttribute("aria-label", "Pin References");
+        this._pinBtns = {};
+        for (const slot of ["A", "B", "C", "D"]) {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "mjr-mfv-pin-btn";
+            btn.textContent = slot;
+            btn.dataset.slot = slot;
+            btn.title = `Pin ${slot}`;
+            btn.setAttribute("aria-pressed", "false");
+            this._pinBtns[slot] = btn;
+            this._pinGroup.appendChild(btn);
         }
-        this._updatePinSelectUI();
-        bar.appendChild(this._pinSelect);
+        this._updatePinUI();
+        bar.appendChild(this._pinGroup);
 
         // Separator
         const sep = document.createElement("div");
@@ -615,6 +641,31 @@ export class FloatingViewer {
         this._captureBtn.appendChild(_captureBtnIcon);
         bar.appendChild(this._captureBtn);
 
+        // ── Spacer + separator before workflow controls (push to far right) ──
+        const sep2 = document.createElement("div");
+        sep2.className = "mjr-mfv-toolbar-sep";
+        sep2.style.marginLeft = "auto";
+        sep2.setAttribute("aria-hidden", "true");
+        bar.appendChild(sep2);
+
+        // ── Workflow Sidebar toggle button (⚙) ──
+        this._settingsBtn = document.createElement("button");
+        this._settingsBtn.type = "button";
+        this._settingsBtn.className = "mjr-icon-btn mjr-mfv-settings-btn";
+        const settingsLabel = t("tooltip.nodeParams", "Node Parameters");
+        this._settingsBtn.title = settingsLabel;
+        this._settingsBtn.setAttribute("aria-label", settingsLabel);
+        this._settingsBtn.setAttribute("aria-pressed", "false");
+        const _settingsIcon = document.createElement("i");
+        _settingsIcon.className = "pi pi-sliders-h";
+        _settingsIcon.setAttribute("aria-hidden", "true");
+        this._settingsBtn.appendChild(_settingsIcon);
+        bar.appendChild(this._settingsBtn);
+
+        // ── Run / Queue Prompt button (▶) ──
+        this._runHandle = createRunButton();
+        bar.appendChild(this._runHandle.el);
+
         this._handleDocClick = (ev) => {
             if (!this._genDropdown) return;
             const target = ev?.target;
@@ -646,17 +697,25 @@ export class FloatingViewer {
 
         this._modeBtn?.addEventListener("click", () => this._cycleMode(), { signal });
 
-        this._pinSelect?.addEventListener(
-            "change",
+        this._pinGroup?.addEventListener(
+            "click",
             (e) => {
-                this._pinnedSlot = e?.target?.value || null;
-                if (this._pinnedSlot === "C" || this._pinnedSlot === "D") {
-                    // C/D pins require grid mode — switch regardless of current mode
+                const btn = e.target?.closest?.(".mjr-mfv-pin-btn");
+                if (!btn) return;
+                const slot = btn.dataset.slot;
+                if (!slot) return;
+                if (this._pinnedSlots.has(slot)) {
+                    this._pinnedSlots.delete(slot);
+                } else {
+                    this._pinnedSlots.add(slot);
+                }
+                // Auto-switch mode if needed
+                if (this._pinnedSlots.has("C") || this._pinnedSlots.has("D")) {
                     if (this._mode !== MFV_MODES.GRID) this.setMode(MFV_MODES.GRID);
-                } else if (this._pinnedSlot && this._mode === MFV_MODES.SIMPLE) {
+                } else if (this._pinnedSlots.size > 0 && this._mode === MFV_MODES.SIMPLE) {
                     this.setMode(MFV_MODES.AB);
                 }
-                this._updatePinSelectUI();
+                this._updatePinUI();
             },
             { signal },
         );
@@ -710,6 +769,47 @@ export class FloatingViewer {
         );
 
         this._captureBtn?.addEventListener("click", () => this._captureView(), { signal });
+
+        this._settingsBtn?.addEventListener(
+            "click",
+            () => {
+                this._sidebar?.toggle();
+                this._updateSettingsBtnState(this._sidebar?.isVisible ?? false);
+            },
+            { signal },
+        );
+    }
+
+    _updateSettingsBtnState(active) {
+        if (!this._settingsBtn) return;
+        this._settingsBtn.classList.toggle("active", Boolean(active));
+        this._settingsBtn.setAttribute("aria-pressed", String(Boolean(active)));
+    }
+
+    /**
+     * Apply sidebar position (right / left / bottom) from APP_CONFIG.
+     * Sets a data-attribute on _contentWrapper so CSS handles layout.
+     * Also reorders DOM children when position is "left".
+     */
+    _applySidebarPosition() {
+        if (!this._contentWrapper) return;
+        const pos = APP_CONFIG.MFV_SIDEBAR_POSITION || "right";
+        this._contentWrapper.setAttribute("data-sidebar-pos", pos);
+
+        // For "left", sidebar must appear before content in DOM order
+        if (this._sidebar?.el && this._contentEl) {
+            if (pos === "left") {
+                this._contentWrapper.insertBefore(this._sidebar.el, this._contentEl);
+            } else {
+                // Ensure sidebar is after content for right/bottom
+                this._contentWrapper.appendChild(this._sidebar.el);
+            }
+        }
+    }
+
+    /** Refresh the sidebar content (called by manager on node selection change). */
+    refreshSidebar() {
+        this._sidebar?.refresh();
     }
 
     _resetGenDropdownForCurrentDocument() {
@@ -1046,19 +1146,20 @@ export class FloatingViewer {
         this._notifyModeChanged();
     }
 
-    getPinnedSlot() {
-        return this._pinnedSlot;
+    getPinnedSlots() {
+        return this._pinnedSlots;
     }
 
-    _updatePinSelectUI() {
-        if (!this._pinSelect) return;
-        const validPins = ["A", "B", "C", "D"];
-        const pinned = validPins.includes(this._pinnedSlot);
-        this._pinSelect.value = this._pinnedSlot || "";
-        this._pinSelect.classList.toggle("is-pinned", pinned);
-        const label = pinned ? `Pin Reference: ${this._pinnedSlot}` : "Pin Reference: Off";
-        this._pinSelect.title = label;
-        this._pinSelect.setAttribute("aria-label", label);
+    _updatePinUI() {
+        if (!this._pinBtns) return;
+        for (const slot of ["A", "B", "C", "D"]) {
+            const btn = this._pinBtns[slot];
+            if (!btn) continue;
+            const active = this._pinnedSlots.has(slot);
+            btn.classList.toggle("is-pinned", active);
+            btn.setAttribute("aria-pressed", String(active));
+            btn.title = active ? `Unpin ${slot}` : `Pin ${slot}`;
+        }
     }
 
     _updateModeBtnUI() {
@@ -1163,11 +1264,11 @@ export class FloatingViewer {
         if (inCompare) {
             // Route preview to the first non-pinned slot. In GRID mode, cycle through
             // all free slots so existing content in other cells is preserved.
-            const pin = this.getPinnedSlot();
+            const pins = this.getPinnedSlots();
             if (this._mode === MFV_MODES.GRID) {
-                const target = ["A", "B", "C", "D"].find((s) => s !== pin) || "A";
+                const target = ["A", "B", "C", "D"].find((s) => !pins.has(s)) || "A";
                 this[`_media${target}`] = fileData;
-            } else if (pin === "B") {
+            } else if (pins.has("B")) {
                 this._mediaA = fileData;
             } else {
                 this._mediaB = fileData; // A pinned or no pin — stream to B
@@ -3057,6 +3158,10 @@ export class FloatingViewer {
             console.debug?.(e);
         }
         this._revokePreviewBlob();
+        if (this._onSidebarPosChanged) {
+            window.removeEventListener("mjr-settings-changed", this._onSidebarPosChanged);
+            this._onSidebarPosChanged = null;
+        }
         try {
             this.element?.remove();
         } catch (e) {
@@ -3066,7 +3171,8 @@ export class FloatingViewer {
         this._contentEl = null;
         this._closeBtn = null;
         this._modeBtn = null;
-        this._pinSelect = null;
+        this._pinGroup = null;
+        this._pinBtns = null;
         this._liveBtn = null;
         this._nodeStreamBtn = null;
         this._popoutBtn = null;

@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [2.4.5] - 2026-04-10
+
+### 🎉 New Features — Floating Viewer
+- **Multi-Pin References (A/B/C/D)**: Pin up to 4 images simultaneously with toggle buttons; pinned slots hold their content while unpinned slots follow Live Stream
+- **Node Parameters Sidebar**: View and edit workflow node widgets (prompts, seeds, samplers) directly inside the Floating Viewer
+- **Run Button in Viewer**: Queue prompt from the viewer toolbar without switching back to the canvas
+- **Expandable Text Areas**: Collapse/expand long text inputs with a toggle button
+- **Sidebar Position Setting**: Choose right, left, or bottom placement for the Node Parameters sidebar via Settings; applies immediately without reload
+- **Toolbar Layout**: Run and Node Parameters buttons placed at far right for ergonomic access
+
+---
+
 ## [2.4.4] - 2026-04-05
 
 ### ✨ Improved

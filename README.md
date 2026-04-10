@@ -47,7 +47,7 @@ Useful links:
 ## Table of Contents
 
 - [Main Features](#main-features)
-- [What's New in v2.4.4](#whats-new-in-v244)
+- [What's New in v2.4.5](#whats-new-in-v245)
 - [Installation](#installation)
 - [ComfyUI Desktop Second-Screen Popup](#comfyui-desktop-second-screen-popup)
 - [Basic Usage](#basic-usage)
@@ -89,16 +89,19 @@ Useful links:
 
 ### Real-Time Features
 - **Live Generation Tracking**: Automatic indexing of new outputs
-- **Majoor Floating Viewer**: Real-time preview of generations
+- **Majoor Floating Viewer**: Real-time preview of generations with multi-pin references and node parameter editing
 - **Event-Driven Updates**: Instant grid updates via ComfyUI events
 
 ---
 
-## What's New in v2.4.4
+## What's New in v2.4.5
 
 ### Latest Release Highlights
+- **Floating Viewer — Multi-Pin (A/B/C/D)**: Pin up to 4 images and compare them simultaneously
+- **Floating Viewer — Node Parameters Sidebar**: Edit prompts, seeds, and samplers directly inside the viewer; Run button for immediate re-queue
+- **Floating Viewer — Sidebar Position Setting**: Place the Node Parameters sidebar on the right, left, or bottom
 - **Documentation sync**: Main guides, API reference, testing docs, and user guide aligned with the current repository
-- **Version bump**: Published project metadata and docs now target 2.4.4 consistently
+- **Version bump**: Published project metadata and docs now target 2.4.5 consistently
 - **Plugin docs refresh**: Plugin compatibility examples now reflect the current Majoor baseline
 
 See [CHANGELOG.md](CHANGELOG.md) for the complete release notes.
@@ -120,6 +123,10 @@ Complete AI-powered asset discovery and organization:
 A lightweight floating viewer panel for real-time generation comparison:
 - **Live Stream Mode**: Automatically follows new generations from Save/Load nodes
 - **Compare Modes**: Simple, A/B Compare, and Side-by-Side views
+- **Multi-Pin References (A/B/C/D)**: Pin up to 4 images with toggle buttons for simultaneous comparison
+- **Node Parameters Sidebar**: View and edit workflow node widgets (prompts, seeds, samplers) directly inside the viewer
+- **Run Button**: Queue prompt from the viewer toolbar without switching back to the canvas
+- **Sidebar Position Setting**: Place the Node Parameters sidebar on the right, left, or bottom via Settings
 - **Real-time Preview**: Watch generations as they complete
 - **Node Tracking**: Click on LoadImage/SaveImage nodes to preview their content
 - **Pan & Zoom**: Mouse wheel zoom and click-drag pan for detailed inspection
@@ -949,4 +956,4 @@ Optional attribution request: See [`NOTICE`](NOTICE) file for details.
 ---
 
 *Last updated: April 5, 2026*
-*Version: 2.4.4*
+*Version: 2.4.5*
