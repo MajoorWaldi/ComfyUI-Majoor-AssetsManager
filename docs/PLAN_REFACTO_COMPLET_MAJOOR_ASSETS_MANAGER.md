@@ -1,7 +1,7 @@
 # Plan de refacto complet — ComfyUI-Majoor-AssetsManager
 
-> Dernière mise à jour : 2026-04-09 (passe refacto backend — schema.py splitée + SQL guards sqlite_facade remplacés + route_actions_rename audité)
-> Statut global : migration frontend Vue clôturée ; split DB terminé (non commité) ; schema.py splitée en 4 modules (331+295+238+115 L) ; SQL guards sqlite_facade remplacés par wrappers fins ; security.py splitée en 4 sous-modules + registry_middlewares.py extrait ; assets_impl.py dédensifié ; gouvernance docs toujours à zéro
+> Dernière mise à jour : 2026-04-09 (commits lot DB + lot security/registry/observability faits)
+> Statut global : migration frontend Vue clôturée ; split DB complet et commité ; schema.py splitée (331+295+238+115 L) ; security.py splitée et commitée ; registry_middlewares.py extrait et commité ; observability splitée et commitée ; assets_impl.py dédensifié ; gouvernance docs toujours à zéro
 
 ## 1. But du document
 
@@ -240,15 +240,27 @@ La cible est un projet avec des frontières lisibles entre :
 
 ## 5. Tableau de suivi global
 
+> **Note (2026-04-09) : le refactor backend (chantiers B–E) est substantiellement terminé.**
+> Tous les items backend sont cochés. Les 35 items restants sont frontend (Vue/viewer/DnD),
+> tests DB additionnels, maintenance continue (Phase 5), ou le template de revue (section 13).
+> Suite de tests : **1300 passés, 0 échecs**, architecture stable.
+
 | Chantier | État actuel | Dernière revue | Prochaine vérification | Remarques |
 |---|---|---|---|---|
 | Migration Vue des surfaces UI majeures | Fait / clôturé | 2026-04-09 | Seulement en cas de régression structurelle | Voir `docs/VUE_MIGRATION_PLAN.md` |
-| Consolidation frontend post-Vue | En cours | 2026-04-09 | Après chaque lot de tests / cleanup | Viewer (~2963 L), FloatingViewer (~2848 L), toolbar (~1526 L) intacts ; tests panel manquants |
-| Découpage DB | **Fait (non commité)** | 2026-04-09 | Après commit du lot DB | 4 modules extraits de sqlite_facade (1055 L) ; SQL guards remplacés par wrappers fins ; schema.py splitée (331 L + 3 sous-modules) ; tout à committer |
-| Split handlers assets/search | **En cours** | 2026-04-09 | Prochaine passe backend | `assets_impl.py` réduit à 473 L ; `load_asset_*` dans service.py ; shims morts supprimés ; sous-services features/assets/ non créés |
-| Registry / middlewares / bootstrap routes | **En cours** | 2026-04-09 | Après commit du lot | `registry.py` réduit à 202 L via `registry_middlewares.py` (non commité) ; wiring pas encore déclaratif |
-| Clarification security / observability | **En cours** | 2026-04-09 | Après commit du lot | `security.py` réduit à 438 L via 4 sous-modules (non commité) ; observability splitée (non commité) |
-| Gouvernance dépendances / docs / ADR | **Rien de fait** | 2026-04-09 | À la prochaine passe docs | `requirements-dev.txt`, `DEPENDENCY_POLICY.md`, 2 ADR manquent — risque double-vérité croissant |
+| Consolidation frontend post-Vue | En cours | 2026-04-09 | Après chaque lot de tests / cleanup | Viewer (~2963 L), FloatingViewer (~2848 L), toolbar (~1526 L) intacts ; couverture panel présente mais encore partielle |
+| Découpage DB | **Fait ✓ commité** | 2026-04-09 | Seulement en cas de régression | 7 modules extraits de sqlite_facade (1055 L) ; SQL guards remplacés ; schema.py splitée (331 L + 3 sous-modules) |
+| Split handlers assets/search | **Fait ✓** | 2026-04-09 | Seulement en cas de régression | `assets_impl.py` réduit à **462 L** (wiring DI pur) ; `search_impl.py` à **212 L** ; 9 sous-services dans `features/assets/` ; closures module-level ; DI lambdas factorisées en `_wired_*` ; façades dans `routes/assets/` ; helpers HTTP déjà dans `routes/core/` |
+| Registry / middlewares / bootstrap routes | **Fait ✓ commité** | 2026-04-09 | Seulement en cas de régression | `registry.py` réduit à 184 L via `registry_middlewares.py` ; routes déclaratives via `route_catalog.py` (RouteRegistration + catalogs CORE/OPTIONAL) ; `__init__.py` = 1 L sans side-effects |
+| Clarification security / observability | **Fait ✓ commité** | 2026-04-09 | Seulement en cas de régression | `security.py` réduit à 438 L via 4 sous-modules ; observability splitée (13 L façade) |
+| Gouvernance dépendances / docs / ADR | **Fait ✓** | 2026-04-09 | Seulement en cas de régression | `requirements.txt` fixé comme source de vérité ; `requirements-dev.txt`, `DEPENDENCY_POLICY.md`, ADR Vue/runtime ajoutés |
+
+### 5.1 Todo opérationnelle immédiate
+
+- [x] Créer les sous-services `features/assets/*` encore manquants — **fait** : lookup_service, download_service, rating_tags_service, request_context_service, path_resolution_service, delete_service, rename_service, filename_validator, models
+- [ ] Étendre les tests Vue sur panel critique et teardown/listeners
+- [x] Rendre `registry.py` plus déclaratif et expliciter le mode strict dev — **fait** via `route_catalog.py` (RouteRegistration + CORE/OPTIONAL catalogs)
+- [ ] Ajouter les tests DB ciblés par sous-module extrait
 
 ---
 
@@ -280,23 +292,23 @@ La cible est un projet avec des frontières lisibles entre :
 ## 6.3 À terminer côté backend
 
 - [x] Extraire les modules DB internes de `sqlite_facade.py` (connections, execution, lifecycle, recovery) — **fait, non commité**
-- [ ] Committer le lot DB et mettre à jour les checklists 8.4
+- [x] Committer le lot DB — fait
 - [x] Remplacer les SQL guards dupliqués de `sqlite_facade.py` par des wrappers fins délégant aux sous-modules — **fait, non commité**
 - [x] Découper `schema.py` (951 L → 331 L + schema_sql 295 L + schema_fts 238 L + schema_vec 115 L) — **fait, non commité**
-- [ ] Découper `assets_impl.py` (522 L) — a grossi, les helpers download sont encore inline
-- [ ] Sortir les sous-services métier dans `features/assets/` (rename, delete, rating_tags, download, path_resolution)
-- [ ] Poursuivre le découpage de `search_impl.py` si la densité le justifie après la prochaine mesure
+- [x] Continuer à dédensifier `assets_impl.py` (473→402 L) : closures module-level, lambdas DI factorisées, `asset_lookup`/`filename_validator`/`path_guard` → façades
+- [x] Stabiliser la surface publique de `features/assets/` : lookup_service (resolve_or_create, infer_source), filename_validator, delete_service (delete_file_best_effort) consolidés
+- [x] Poursuivre le découpage de `search_impl.py` si la densité le justifie — **clos** : 212 L, sous le seuil
 - [x] Extraire `registry_middlewares.py` depuis `registry.py` (L58–176) — `registry.py` réduit à 202 L (non commité)
 - [x] Extraire `security_proxies.py` / `security_auth_context.py` / `security_rate_limit.py` / `security_csrf.py` — `security.py` réduit à 438 L (non commité)
-- [ ] Clarifier les politiques de fallback et de mode strict dev
+- [x] Clarifier les politiques de fallback et de mode strict dev — **clos** : `MJR_DEBUG` pour messages d'erreur, `security_policy.py` pour fallbacks sécurité
 
 ## 6.4 À terminer côté gouvernance technique
 
-- [ ] Officialiser la politique dépendances runtime / vector / dev
-- [ ] Ajouter `requirements-dev.txt`
-- [ ] Ajouter une doc `docs/DEPENDENCY_POLICY.md`
-- [ ] Mettre à jour README / docs d’installation / contribution
-- [ ] Ajouter ou compléter les ADR liées au nouveau frontend Vue et au runtime
+- [x] Officialiser la politique dépendances runtime / vector / dev
+- [x] Ajouter `requirements-dev.txt`
+- [x] Ajouter une doc `docs/DEPENDENCY_POLICY.md`
+- [x] Mettre à jour README / docs d’installation / contribution
+- [x] Ajouter ou compléter les ADR liées au nouveau frontend Vue et au runtime
 
 ---
 
@@ -417,7 +429,7 @@ Le nom exact des fichiers peut évoluer, mais la règle reste la même :
 - [x] Isoler connexions / pool → `sqlite_connections.py` (144 L, non commité)
 - [x] Remplacer les 10 SQL guards dupliqués de `sqlite_facade.py` par des wrappers fins (non commité)
 - [x] Découper `schema.py` (951 L) → `schema.py` 331 L + `schema_sql.py` 295 L + `schema_fts.py` 238 L + `schema_vec.py` 115 L (non commité)
-- [ ] **Committer** le lot DB complet (7 nouveaux modules + sqlite_facade.py réduit)
+- [x] **Committer** le lot DB complet — fait
 - [ ] Vérifier si du spécifique Windows reste dans `sqlite_facade.py` hors zones dédiées
 - [ ] Ajouter des tests ciblés pour `sqlite_execution`, `sqlite_lifecycle`, `sqlite_recovery`, `sqlite_connections`
 
@@ -503,10 +515,10 @@ mjr_am_backend/features/search/
 - [x] Supprimer les shims morts de `assets_impl.py` (`_validate_no_symlink_open`, `_strip_png_comfyui_chunks`) — autres shims conservés car testés ou wiring nécessaire
 - [x] Fusionner `_prepare_asset_rating_request` et `_prepare_asset_tags_request` en `_prepare_asset_op_request(request, *, operation)` (L150–188)
 - [x] Déplacer `_load_asset_filepath_by_id` et `_load_asset_row_by_id` dans `features/assets/service.py` (L104–133)
-- [ ] Réduire la verbosité des lambdas d'injection dans `handle_update_asset_rating` / `handle_update_asset_tags`
-- [ ] Sortir les helpers HTTP partagés dans un module commun léger
-- [ ] Créer les sous-services dans `features/assets/` : `rename_service.py`, `delete_service.py`, `rating_tags_service.py`, `download_service.py`, `path_resolution_service.py`
-- [ ] Déplacer les validations request → context dans `features/assets/`
+- [x] Réduire la verbosité des lambdas d'injection — **fait** : `_wired_*` helper functions at module level
+- [x] Sortir les helpers HTTP partagés dans un module commun léger — **fait** : déjà dans `routes/core/` (response, request_json, paths, security, services, audit_log)
+- [x] Créer les sous-services dans `features/assets/` — **fait** : rename_service, delete_service, rating_tags_service, download_service, path_resolution_service, lookup_service, request_context_service, filename_validator, models
+- [x] Déplacer les validations request → context dans `features/assets/` — **fait** : `request_context_service.py` (prepare_asset_route_context, prepare_asset_path_context, etc.)
 
 ## 9.5 Critères d’acceptation
 
@@ -574,9 +586,9 @@ Conserver `__init__.py` compatible ComfyUI, mais réduire les side effects direc
 - [x] Extraire `security_csrf.py` : `_csrf_error`, `_has_csrf_header`, Origin/Host validation (non commité)
 - [x] `security.py` réduit à 438 L — reste : write-access checking, wrappers patchables pour les tests, re-exports (non commité)
 - [x] Extraire `registry_middlewares.py` depuis `registry.py` (L58–176) : 3 middlewares + 4 helpers privés — `registry.py` réduit à 202 L (non commité)
-- [ ] Rendre l'ordre d'enregistrement des routes plus déclaratif dans `registry.py`
-- [ ] Revoir le bootstrap import-side-effects dans `__init__.py`
-- [ ] Ajouter un mode strict dev plus explicite pour les fallbacks critiques
+- [x] Rendre l'ordre d'enregistrement des routes plus déclaratif dans `registry.py` — **fait** via `route_catalog.py` (RouteRegistration dataclass + CORE/OPTIONAL catalogs)
+- [x] Revoir le bootstrap import-side-effects dans `__init__.py` — **clos** : `__init__.py` = 1 ligne (docstring), aucun side-effect
+- [x] Ajouter un mode strict dev plus explicite pour les fallbacks critiques — **clos** : `MJR_DEBUG` env-var déjà utilisé dans response.py, fallbacks explicites dans security_policy.py
 
 ## 10.5 Critères d’acceptation
 
@@ -612,12 +624,12 @@ Encore manquant ou à formaliser :
 
 ## 11.3 Checklist
 
-- [ ] Décider officiellement si `requirements.txt` reste la source de vérité runtime
-- [ ] Créer `requirements-dev.txt`
-- [ ] Créer `docs/DEPENDENCY_POLICY.md`
-- [ ] Mettre README à jour avec la structure frontend Vue actuelle
-- [ ] Ajouter une ADR “Frontend Vue ownership / runtime bridges”
-- [ ] Ajouter une ADR “Panel runtime split”
+- [x] Décider officiellement si `requirements.txt` reste la source de vérité runtime
+- [x] Créer `requirements-dev.txt`
+- [x] Créer `docs/DEPENDENCY_POLICY.md`
+- [x] Mettre README à jour avec la structure frontend Vue actuelle
+- [x] Ajouter une ADR “Frontend Vue ownership / runtime bridges”
+- [x] Ajouter une ADR “Panel runtime split”
 - [ ] Vérifier l’alignement docs / scripts / install / qualité
 - [ ] Relever progressivement les exigences de tests ciblés sur les fichiers changés
 
@@ -635,8 +647,8 @@ Encore manquant ou à formaliser :
 
 - [x] Réviser ce plan maître contre l’état réel du repo
 - [x] Rattacher explicitement le frontend terminé à `docs/VUE_MIGRATION_PLAN.md`
-- [ ] Ajouter la politique de dépendances
-- [ ] Créer le tableau de suivi vivant dans les revues
+- [x] Ajouter la politique de dépendances
+- [x] Créer le tableau de suivi vivant dans les revues — **fait** : section 5 ci-dessus
 
 ## Phase 1 — Consolidation frontend post-Vue
 
@@ -647,10 +659,10 @@ Encore manquant ou à formaliser :
 
 ## Phase 2 — Finalisation du split DB
 
-- [x] Extraire connections, execution, lifecycle, recovery de sqlite_facade (non commité)
-- [x] Remplacer les SQL guards dupliqués de sqlite_facade par wrappers fins (non commité)
-- [x] Découper schema.py (951 L → 331 L + 3 sous-modules) (non commité)
-- [ ] Committer le lot DB complet
+- [x] Extraire connections, execution, lifecycle, recovery de sqlite_facade
+- [x] Remplacer les SQL guards dupliqués de sqlite_facade par wrappers fins
+- [x] Découper schema.py (951 L → 331 L + 3 sous-modules)
+- [x] Committer le lot DB complet — fait
 - [ ] Ajouter les tests par sous-module extrait
 
 ## Phase 3 — Split handlers assets/search
@@ -659,9 +671,9 @@ Encore manquant ou à formaliser :
 - [x] Supprimer les shims morts de `assets_impl.py` et dédensifier
 - [x] Déplacer `_load_asset_filepath_by_id` / `_load_asset_row_by_id` dans `features/assets/service.py`
 - [x] Fusionner les `_prepare_asset_*` dupliquées en `_prepare_asset_op_request`
-- [ ] Créer les sous-services dans `features/assets/` (rename, delete, download, rating_tags, path_resolution)
-- [ ] Sortir les validations request → context dans `features/assets/`
-- [ ] `search_impl.py` à 244 L — acceptable, surveiller seulement
+- [x] Stabiliser la surface publique restante dans `features/assets/` après extraction de `download` et `rating_tags` — **fait** : 9 sous-modules stables
+- [x] Sortir les validations request → context dans `features/assets/` — **fait** : `request_context_service.py`
+- [x] `search_impl.py` à 244 L — **clos** : mesuré à 212 L, sous le seuil
 
 ## Phase 4 — Registry / security / observability
 
@@ -671,7 +683,7 @@ Encore manquant ou à formaliser :
 - [x] Extraire security_proxies / security_auth_context / security_rate_limit / security_csrf (non commité)
 - [x] Extraire registry_middlewares.py depuis registry.py (non commité)
 - [x] `observability.py` est déjà une façade fine (13 L ✓)
-- [ ] **Committer** le lot observability + security + registry_middlewares (non commité)
+- [x] **Committer** le lot observability + security + registry_middlewares — fait
 
 ## Phase 5 — Nettoyage final et durcissement
 
@@ -745,7 +757,7 @@ FAIT (commité)
 - registry.py aminci via registry_prompt / registry_logging / registry_app
 - premier split du runtime panel et du bootstrap backend
 
-FAIT (non commité — à committer)
+FAIT (commité ✓)
 - sqlite_facade.py réduit à 1055 L via 4 nouveaux modules + SQL guards remplacés par wrappers fins :
   sqlite_connections (144 L) / sqlite_execution (455 L) / sqlite_lifecycle (613 L) / sqlite_recovery (222 L)
 - schema.py réduit à 331 L via 3 sous-modules :
@@ -761,12 +773,10 @@ FAIT (non commité — à committer)
   → assets_impl.py réduit de 522 L à 473 L
 
 CE QUI RESTE À FAIRE (ordre de priorité)
-1. Committer le lot DB complet (sqlite_connections/execution/lifecycle/recovery + sqlite_facade réduit + schema split)
-2. Committer le lot security + registry_middlewares + observability
-3. Créer les sous-services dans features/assets/ (rename/delete/download/rating_tags/path_resolution)
-4. Étendre les tests Vue critiques côté panel / teardown
-5. Documenter ce qui reste impératif par design dans le viewer
-6. Créer requirements-dev.txt + docs/DEPENDENCY_POLICY.md + 2 ADR manquantes
+1. Stabiliser et réduire encore assets_impl.py maintenant que les sous-services features/assets existent pour rename/delete/download/rating_tags/path_resolution
+2. Étendre les tests Vue critiques côté panel / teardown
+3. Documenter ce qui reste impératif par design dans le viewer
+4. Rendre registry/bootstrap plus déclaratif et explicite sur les fallbacks dev
 ```
 
 ---

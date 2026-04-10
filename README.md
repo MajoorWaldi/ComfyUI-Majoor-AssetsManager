@@ -38,6 +38,8 @@ Useful links:
 - 📚 Documentation index: [`docs/DOCUMENTATION_INDEX.md`](docs/DOCUMENTATION_INDEX.md)
 - 🔐 Privacy / Offline guide: [`docs/PRIVACY_OFFLINE.md`](docs/PRIVACY_OFFLINE.md)
 - 🔧 API reference: [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md)
+- 📦 Dependency policy: [`docs/DEPENDENCY_POLICY.md`](docs/DEPENDENCY_POLICY.md)
+- 🏛️ ADR index: [`docs/adr/README.md`](docs/adr/README.md)
 - 🤖 **AI Features Guide**: [`docs/AI_FEATURES.md`](docs/AI_FEATURES.md)
 
 ---
@@ -181,8 +183,13 @@ pip install -r requirements.txt
 # Optional: install AI/vector features
 # pip install -r requirements.txt -r requirements-vector.txt
 
+# Optional: install contributor tooling
+# pip install -r requirements-dev.txt
+
 # Restart ComfyUI
 ```
+
+Dependency ownership is documented in [`docs/DEPENDENCY_POLICY.md`](docs/DEPENDENCY_POLICY.md). `requirements.txt` is the primary source of truth, `requirements-vector.txt` layers optional AI/vector dependencies on top, and `requirements-dev.txt` is reserved for contributor tooling.
 
 ### Optional Dependencies (Highly Recommended)
 
@@ -742,6 +749,20 @@ See [`docs/DB_MAINTENANCE.md`](docs/DB_MAINTENANCE.md) for detailed recovery pro
 
 ## Development & Testing
 
+### Dependency Setup
+```bash
+# Runtime-only install
+pip install -r requirements.txt
+
+# Runtime + optional AI/vector features
+pip install -r requirements.txt -r requirements-vector.txt
+
+# Contributor tooling (tests, lint, typing, security checks)
+pip install -r requirements-dev.txt
+```
+
+Dependency roles and update rules are defined in [`docs/DEPENDENCY_POLICY.md`](docs/DEPENDENCY_POLICY.md).
+
 ### Project Structure
 ```
 ComfyUI-Majoor-AssetsManager/
@@ -825,11 +846,12 @@ python scripts/check_cc_changed.py
 ### Contributing
 1. Fork the repository
 2. Create a feature branch
-3. Make your changes
-4. Run tests: `run_tests.bat`
-5. Submit a pull request
+3. Install contributor dependencies: `pip install -r requirements-dev.txt`
+4. Make your changes
+5. Run tests: `run_tests.bat`
+6. Submit a pull request
 
-See [`docs/TESTING.md`](docs/TESTING.md) and [`tests/README.md`](tests/README.md) for detailed testing documentation.
+See [`docs/TESTING.md`](docs/TESTING.md), [`tests/README.md`](tests/README.md), and [`docs/DEPENDENCY_POLICY.md`](docs/DEPENDENCY_POLICY.md) for detailed contributor guidance.
 
 ---
 

@@ -60,6 +60,14 @@ If you want the optional AI/vector features as well, install the extra vector st
 pip install -r requirements.txt -r requirements-vector.txt
 ```
 
+If you are contributing to the project itself, install the local dev/test tooling separately:
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+Dependency ownership and update rules are documented in `docs/DEPENDENCY_POLICY.md`.
+
 > **Faster installs with `uv`**: If you have [uv](https://github.com/astral-sh/uv) installed, you can use it as a drop-in replacement for significantly faster dependency resolution:
 > ```bash
 > uv pip install -r requirements.txt
@@ -69,6 +77,11 @@ pip install -r requirements.txt -r requirements-vector.txt
 > For AI/vector features with `uv`:
 > ```bash
 > uv pip install -r requirements.txt -r requirements-vector.txt
+> ```
+>
+> For contributor tooling with `uv`:
+> ```bash
+> uv pip install -r requirements-dev.txt
 > ```
 
 ### Step 3: Restart ComfyUI

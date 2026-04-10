@@ -7,6 +7,14 @@ This project uses **pytest** (backend) and **Vitest** (frontend) for comprehensi
 - JUnit XML (`.xml`)
 - Styled HTML report (`.html`)
 
+Before running the quality gate or local tests, install contributor tooling:
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+Runtime dependencies stay in `requirements.txt`; optional AI/vector dependencies stay in `requirements-vector.txt`. See `docs/DEPENDENCY_POLICY.md` for the canonical dependency policy.
+
 Reports are written to:
 - `tests/__reports__/`
 

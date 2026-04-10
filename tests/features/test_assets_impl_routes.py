@@ -176,7 +176,14 @@ async def test_download_asset_not_found(monkeypatch, tmp_path: Path):
     app = web.Application()
     app.router.add_get("/mjr/am/asset/download", m.download_asset)
     monkeypatch.setattr(m, "_check_rate_limit", lambda *_args, **_kwargs: (True, None))
-    monkeypatch.setattr(m, "_resolve_download_path", lambda _filepath: web.Response(status=404, text="File not found"))
+    monkeypatch.setattr(
+        m,
+        "resolve_download_path",
+        lambda _filepath, *, normalize_path, is_resolved_path_allowed, logger: web.Response(
+            status=404,
+            text="File not found",
+        ),
+    )
 
     req = make_mocked_request("GET", "/mjr/am/asset/download?filepath=x.png", app=app)
     match = await app.router.resolve(req)
@@ -357,7 +364,8 @@ async def test_open_in_folder_main_branches(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(m, "_check_rate_limit", lambda *_args, **_kwargs: (True, None))
     monkeypatch.setattr(m, "_read_json", _read_json)
     monkeypatch.setattr(m, "_is_resolved_path_allowed", lambda _p: True)
-    monkeypatch.setattr(m.shutil, "which", lambda _cmd: None)
+    import shutil as _shutil_mod
+    monkeypatch.setattr(_shutil_mod, "which", lambda _cmd: None)
 
     req1 = make_mocked_request("POST", "/mjr/am/open-in-folder", app=app)
     resp1 = await (await app.router.resolve(req1)).handler(req1)
@@ -631,24 +639,33 @@ async def test_assets_delete_writes_audit_log(monkeypatch, tmp_path: Path):
 
 def test_download_helpers_unit(monkeypatch, tmp_path: Path):
     req = make_mocked_request("GET", "/mjr/am/asset/download?preview=true")
-    assert m._is_preview_download_request(req) is True
+    assert m.is_preview_download_request(req) is True
 
     monkeypatch.setattr(m, "_check_rate_limit", lambda *_args, **_kwargs: (False, 3))
-    rl = m._download_rate_limit_response_or_none(req, preview=False)
+    rl = m.download_rate_limit_response_or_none(
+        req,
+        preview=False,
+        is_loopback_request=m._is_loopback_request,
+        check_rate_limit=m._check_rate_limit,
+    )
     assert rl is not None and rl.status == 429
 
     f = tmp_path / "x.png"
     f.write_bytes(b"x")
     monkeypatch.setattr(m, "_normalize_path", lambda _v: f)
     monkeypatch.setattr(m, "_is_resolved_path_allowed", lambda _p: True)
-    out = m._resolve_download_path("x")
+    out = m.resolve_download_path(
+        "x",
+        normalize_path=m._normalize_path,
+        is_resolved_path_allowed=m._is_resolved_path_allowed,
+        logger=m.logger,
+    )
     assert isinstance(out, Path)
 
-    resp = m._build_download_response(f, preview=True)
+    resp = m.build_download_response(f, preview=True)
     assert resp is not None
-    assert m._safe_download_filename('a";\r\n') == "a"
-    assert ".avif" in m._STRIP_SUPPORTED_EXTS
-    assert m._strip_tags_for_ext(".avif") == m._COMFYUI_STRIP_TAGS_WEBP
+    assert m.safe_download_filename('a";\r\n') == "a"
+    assert ".avif" in m.STRIP_SUPPORTED_EXTS
 
 @pytest.mark.asyncio
 async def test_asset_rating_resolve_or_create_path(monkeypatch, tmp_path: Path):

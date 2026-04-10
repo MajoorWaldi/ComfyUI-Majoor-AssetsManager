@@ -2,6 +2,7 @@ import types
 from pathlib import Path
 
 from mjr_am_backend.routes.assets import path_guard as g
+from mjr_am_backend.features.assets import download_service as ds
 
 
 def test_is_resolved_path_allowed_and_safe_download_filename(monkeypatch, tmp_path: Path):
@@ -35,27 +36,46 @@ def test_delete_file_best_effort_branches(monkeypatch, tmp_path: Path):
     assert out2.ok and out2.meta.get("method") in {"unlink_fallback", "unlink"}
 
 
-def test_resolve_download_path_and_build_response(monkeypatch, tmp_path: Path):
+def test_resolve_download_path_and_build_response(tmp_path: Path):
     f = tmp_path / "a.png"
     f.write_text("x", encoding="utf-8")
 
-    monkeypatch.setattr(g, "_normalize_path", lambda fp: Path(fp))
-    monkeypatch.setattr(g, "is_resolved_path_allowed", lambda p: True)
-    resolved = g.resolve_download_path(str(f))
+    class _FakeLogger:
+        def debug(self, *a, **k): pass
+
+    resolved = ds.resolve_download_path(
+        str(f),
+        normalize_path=lambda fp: Path(fp),
+        is_resolved_path_allowed=lambda p: True,
+        logger=_FakeLogger(),
+    )
     assert isinstance(resolved, Path)
 
-    not_found = g.resolve_download_path(str(tmp_path / "missing.png"))
+    not_found = ds.resolve_download_path(
+        str(tmp_path / "missing.png"),
+        normalize_path=lambda fp: Path(fp),
+        is_resolved_path_allowed=lambda p: True,
+        logger=_FakeLogger(),
+    )
     assert getattr(not_found, "status", None) == 404
 
-    monkeypatch.setattr(g, "is_resolved_path_allowed", lambda p: False)
-    forbidden = g.resolve_download_path(str(f))
+    forbidden = ds.resolve_download_path(
+        str(f),
+        normalize_path=lambda fp: Path(fp),
+        is_resolved_path_allowed=lambda p: False,
+        logger=_FakeLogger(),
+    )
     assert getattr(forbidden, "status", None) == 403
 
-    monkeypatch.setattr(g, "_normalize_path", lambda fp: None)
-    bad = g.resolve_download_path("x")
+    bad = ds.resolve_download_path(
+        "x",
+        normalize_path=lambda fp: None,
+        is_resolved_path_allowed=lambda p: True,
+        logger=_FakeLogger(),
+    )
     assert getattr(bad, "status", None) == 400
 
-    resp = g.build_download_response(f, preview=True)
+    resp = ds.build_download_response(f, preview=True)
     assert resp.headers.get("X-Content-Type-Options") == "nosniff"
 
 
@@ -63,9 +83,15 @@ def test_resolve_download_path_rejects_when_final_open_detects_symlink_swap(monk
     f = tmp_path / "a.png"
     f.write_bytes(b"x")
 
-    monkeypatch.setattr(g, "_normalize_path", lambda _fp: f)
-    monkeypatch.setattr(g, "is_resolved_path_allowed", lambda _p: True)
-    monkeypatch.setattr(g, "_validate_no_symlink_open", lambda _p: False)
+    monkeypatch.setattr(ds, "validate_no_symlink_open", lambda _p: "symlink")
 
-    out = g.resolve_download_path(str(f))
+    class _FakeLogger:
+        def debug(self, *a, **k): pass
+
+    out = ds.resolve_download_path(
+        str(f),
+        normalize_path=lambda fp: Path(fp),
+        is_resolved_path_allowed=lambda _p: True,
+        logger=_FakeLogger(),
+    )
     assert getattr(out, "status", None) == 403
