@@ -206,7 +206,11 @@ def _wired_rate_limit(request_obj: Any, *, preview: bool) -> Any:
 
 
 def _wired_build_download_attachment(path: Any) -> Any:
-    return build_download_response(path, preview=False)
+    return build_download_response(
+        path,
+        preview=False,
+        is_resolved_path_allowed=_is_resolved_path_allowed,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -427,6 +431,7 @@ async def download_asset(request: web.Request) -> web.StreamResponse:
         build_download_response=lambda path: build_download_response(
             path,
             preview=is_preview_download_request(request),
+            is_resolved_path_allowed=_is_resolved_path_allowed,
         ),
     )
 
