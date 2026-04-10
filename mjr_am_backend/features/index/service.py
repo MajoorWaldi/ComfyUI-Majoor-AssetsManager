@@ -379,15 +379,16 @@ class IndexService:
         payload.pop("to_enrich", None)
 
     async def _emit_index_paths_notifications(self, data: Any, *, source: str, root_id: str | None) -> None:
+        prompt_server_cls: Any | None
         try:
-            from ...routes.registry import PromptServer as _PS
+            from ...routes.registry import PromptServer as prompt_server_cls
         except Exception:
-            _PS = None
-        if _PS is None:
+            prompt_server_cls = None
+        if prompt_server_cls is None:
             return
         try:
-            _PS.instance.send_sync("mjr-scan-complete", data)
-            _PS.instance.send_sync(
+            prompt_server_cls.instance.send_sync("mjr-scan-complete", data)
+            prompt_server_cls.instance.send_sync(
                 "mjr.scan.progress",
                 sanitize_for_json(
                     {
@@ -401,7 +402,7 @@ class IndexService:
         except Exception as exc:
             logger.debug("Failed to emit scan-complete event: %s", exc)
             return
-        await self._emit_added_assets_notifications(data, _PS)
+        await self._emit_added_assets_notifications(data, prompt_server_cls)
 
     async def _emit_added_assets_notifications(self, data: Any, prompt_server: Any) -> None:
         added_ids = (data or {}).get("added_ids") or []

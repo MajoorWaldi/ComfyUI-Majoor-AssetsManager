@@ -21,7 +21,7 @@ watchdog>=3.0.0,<7.0.0
 
 # Windows-specific: Windows Property System metadata support
 # Only required on Windows; gracefully skipped on other platforms
-pywin32>=300,<311; sys_platform == 'win32'
+pywin32>=300,<312; sys_platform == 'win32'
 
 # Note: tkinter is required for native folder browser functionality
 # tkinter is included in standard Python distribution but may be missing in minimal installs
