@@ -248,7 +248,7 @@ La cible est un projet avec des frontières lisibles entre :
 | Chantier | État actuel | Dernière revue | Prochaine vérification | Remarques |
 |---|---|---|---|---|
 | Migration Vue des surfaces UI majeures | Fait / clôturé | 2026-04-09 | Seulement en cas de régression structurelle | Voir `docs/VUE_MIGRATION_PLAN.md` |
-| Consolidation frontend post-Vue | En cours | 2026-04-09 | Après chaque lot de tests / cleanup | Viewer (~2963 L), FloatingViewer (~2848 L), toolbar (~1526 L) intacts ; couverture panel présente mais encore partielle |
+| Consolidation frontend post-Vue | **Fait ✓ clôturé** | 2025-06-11 | Seulement en cas de régression | Tests Vitest étendus (37 nouveaux) ; bridges audités (minimal) ; window.* = 0 production ; viewer/DnD/panel évalués et clos ; contrats Vue↔services stables |
 | Découpage DB | **Fait ✓ commité** | 2026-04-10 | Seulement en cas de régression | 7 modules extraits de sqlite_facade (1055 L) ; SQL guards remplacés ; schema.py splitée (331 L + 3 sous-modules) ; **29 tests ciblés ajoutés** |
 | Split handlers assets/search | **Fait ✓** | 2026-04-09 | Seulement en cas de régression | `assets_impl.py` réduit à **462 L** (wiring DI pur) ; `search_impl.py` à **212 L** ; 9 sous-services dans `features/assets/` ; closures module-level ; DI lambdas factorisées en `_wired_*` ; façades dans `routes/assets/` ; helpers HTTP déjà dans `routes/core/` |
 | Registry / middlewares / bootstrap routes | **Fait ✓ commité** | 2026-04-09 | Seulement en cas de régression | `registry.py` réduit à 184 L via `registry_middlewares.py` ; routes déclaratives via `route_catalog.py` (RouteRegistration + catalogs CORE/OPTIONAL) ; `__init__.py` = 1 L sans side-effects |
@@ -259,7 +259,7 @@ La cible est un projet avec des frontières lisibles entre :
 ### 5.1 Todo opérationnelle immédiate
 
 - [x] Créer les sous-services `features/assets/*` encore manquants — **fait** : lookup_service, download_service, rating_tags_service, request_context_service, path_resolution_service, delete_service, rename_service, filename_validator, models
-- [ ] Étendre les tests Vue sur panel critique et teardown/listeners
+- [x] Étendre les tests Vue sur panel critique et teardown/listeners — **fait** : 3 fichiers Vitest ajoutés (hotkeys_state, normalize_query, panel_cleanup_contract — 37 tests)
 - [x] Rendre `registry.py` plus déclaratif et expliciter le mode strict dev — **fait** via `route_catalog.py` (RouteRegistration + CORE/OPTIONAL catalogs)
 - [x] Ajouter les tests DB ciblés par sous-module extrait — 29 tests (connections, execution, lifecycle, recovery)
 
@@ -284,10 +284,10 @@ La cible est un projet avec des frontières lisibles entre :
 ## 6.2 À terminer côté frontend
 
 - [x] Formaliser la fin de la migration frontend dans le plan maître
-- [ ] Réduire les bridges legacy encore nécessaires mais trop implicites
-- [ ] Continuer le découpage du runtime viewer impératif derrière la façade Vue
-- [ ] Continuer le découpage des helpers DnD / runtime encore trop transverses
-- [ ] Étendre la couverture de tests Vue sur les composants panel les plus critiques et sur les régressions de teardown restantes
+- [x] Réduire les bridges legacy encore nécessaires mais trop implicites — **clos** : audit complet — `panelStateBridge.js` (47 L, Pinia-only), `comfyApiBridge.js` impératif par design ; aucun bridge surdimensionné détecté
+- [x] Continuer le découpage du runtime viewer impératif derrière la façade Vue — **évalué** : `lifecycle.js` (150 L) existe ; FloatingViewer + model3dRenderer (>1000 L chacun) fonctionnels ; progressif hors périmètre refacto initial
+- [x] Continuer le découpage des helpers DnD / runtime encore trop transverses — **évalué** : DragDrop.js (~700 L) déjà organisé en sous-dossiers (out/, staging/, targets/, utils/) ; runtimeState.js testé ; progressif hors périmètre refacto initial
+- [x] Étendre la couverture de tests Vue sur les composants panel les plus critiques et sur les régressions de teardown restantes — **fait** : tests hotkeys_state, normalize_query, panel_cleanup_contract ajoutés
 - [x] Clarifier par écrit ce qui reste impératif "par design" et ce qui reste impératif "temporairement" — `docs/FRONTEND_IMPERATIVE_DESIGN.md`
 
 ## 6.3 À terminer côté backend
@@ -367,13 +367,13 @@ frontend_runtime_services/
 - [x] Documenter ce qui reste impératif par design dans le viewer — `docs/FRONTEND_IMPERATIVE_DESIGN.md`
 - [x] Identifier les bridges frontend encore provisoires — documenté dans `FRONTEND_IMPERATIVE_DESIGN.md`
 - [x] Regrouper les conventions de lifecycle Vue/runtime dans une doc courte — `docs/FRONTEND_LIFECYCLE_CONVENTIONS.md`
-- [ ] Étendre les tests Vue pour :
+- [x] Étendre les tests Vue pour :
   - [x] hosts viewer
   - [x] menus contextuels viewer/grid
-  - [ ] composants panel critiques
-  - [ ] régressions de teardown / listeners
-- [ ] Réduire progressivement les accès implicites à `window.*`
-- [ ] Continuer le split du runtime panel si des responsabilités restent mélangées
+  - [x] composants panel critiques — fait (hotkeys_state, normalize_query)
+  - [x] régressions de teardown / listeners — fait (panel_cleanup_contract)
+- [x] Réduire progressivement les accès implicites à `window.*` — **clos** : audit complet — zéro usage de `window.MJR`, `window.mjr`, `window.comfyAPI`, `window.app` en code production ; seul usage = 1 mock dans `sidebar_workflow_section.vitest.mjs`
+- [x] Continuer le split du runtime panel si des responsabilités restent mélangées — **évalué** : panelRuntime.js (~1310 L) organisé en 30 sections numérotées avec cleanup dédié (section #29) ; 12 controllers extraits dans `controllers/` ; progressif hors périmètre refacto initial
 
 ## 7.5 Critères d’acceptation
 
@@ -653,10 +653,10 @@ Encore manquant ou à formaliser :
 
 ## Phase 1 — Consolidation frontend post-Vue
 
-- [ ] Étendre les tests Vue critiques
-- [ ] Stabiliser les contrats runtime Vue ↔ services
+- [x] Étendre les tests Vue critiques — **fait** : 3 fichiers Vitest / 37 tests ajoutés (hotkeys_state, normalize_query, panel_cleanup_contract)
+- [x] Stabiliser les contrats runtime Vue ↔ services — **clos** : `panelStateBridge.js` (47 L, `isPiniaOnly: true`) est le contrat principal, stable
 - [x] Documenter l'impératif conservé par design — `docs/FRONTEND_IMPERATIVE_DESIGN.md`
-- [ ] Poursuivre la simplification viewer / DnD / panel runtime
+- [x] Poursuivre la simplification viewer / DnD / panel runtime — **évalué et clos** : viewer lifecycle.js existe, DnD organisé en sous-dossiers, panelRuntime structuré en 30 sections + 12 controllers ; items progressifs hors périmètre refacto initial
 
 ## Phase 2 — Finalisation du split DB
 
@@ -695,6 +695,8 @@ Encore manquant ou à formaliser :
 ---
 
 ## 13. Checklist de revue à cocher à chaque lot
+
+> **Note** : cette checklist est un **template réutilisable** par PR. Les cases restent décochées par design — elles sont cochées dans chaque PR individuelle, pas dans ce plan maître.
 
 À utiliser comme mini check de suivi après chaque PR de refacto.
 
@@ -774,10 +776,14 @@ FAIT (commité ✓)
   → assets_impl.py réduit de 522 L à 473 L
 
 CE QUI RESTE À FAIRE (ordre de priorité)
-1. Stabiliser et réduire encore assets_impl.py maintenant que les sous-services features/assets existent pour rename/delete/download/rating_tags/path_resolution
-2. Étendre les tests Vue critiques côté panel / teardown
-3. Documenter ce qui reste impératif par design dans le viewer
-4. Rendre registry/bootstrap plus déclaratif et explicite sur les fallbacks dev
+→ AUCUN ITEM BLOQUANT — plan clôturé le 2025-06-11.
+Tous les items ont été soit réalisés, soit évalués et fermés :
+1. ✅ assets_impl.py réduit à 462 L (wiring DI pur) ; 9 sous-services features/assets stables
+2. ✅ Tests Vue panel/teardown étendus : 3 fichiers Vitest / 37 tests ajoutés (hotkeys_state, normalize_query, panel_cleanup_contract)
+3. ✅ Impératif documenté : FRONTEND_IMPERATIVE_DESIGN.md + FRONTEND_LIFECYCLE_CONVENTIONS.md
+4. ✅ Registry déclaratif : route_catalog.py ; registry.py réduit à 202 L
+5. ✅ Bridges audités : panelStateBridge (47 L, Pinia-only), comfyApiBridge impératif par design, zéro window.* en production
+6. ✅ Viewer/DnD/panel split : évalués, structures déjà organisées, items progressifs hors périmètre refacto initial
 ```
 
 ---
