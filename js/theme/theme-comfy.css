@@ -2673,6 +2673,9 @@
 
 .mjr-viewer-header-area--left {
     display: none;
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .mjr-viewer-header-area--center {
@@ -2681,12 +2684,10 @@
 }
 
 .mjr-viewer-header-area--right {
-    position: absolute;
-    right: 92px;
-    top: 50%;
-    transform: translateY(-50%);
     justify-content: flex-end;
-    max-width: min(26vw, 360px);
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .mjr-viewer-title-wrap {
@@ -2980,6 +2981,7 @@
         transform: none;
         max-width: 100%;
         width: 100%;
+        flex: 1 1 100%;
     }
 
     .mjr-viewer-header-meta--right {

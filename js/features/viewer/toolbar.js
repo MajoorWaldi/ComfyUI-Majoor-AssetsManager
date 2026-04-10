@@ -71,7 +71,7 @@ export function createViewerToolbar({
 
     const leftMeta = document.createElement("div");
     leftMeta.className = "mjr-viewer-header-meta mjr-viewer-header-meta--left";
-    leftMeta.style.cssText = "display:flex; align-items:center; gap:10px; min-width:0;";
+    leftMeta.style.cssText = "display:flex; align-items:center; gap:10px; min-width:0; overflow:hidden;";
 
     const titleLine = document.createElement("div");
     titleLine.className = "mjr-viewer-title-line";
@@ -95,7 +95,7 @@ export function createViewerToolbar({
     const rightMeta = document.createElement("div");
     rightMeta.className = "mjr-viewer-header-meta mjr-viewer-header-meta--right";
     rightMeta.style.cssText =
-        "display:none; align-items:center; gap:10px; min-width:0; justify-content:flex-end;";
+        "display:none; align-items:center; gap:10px; min-width:0; justify-content:flex-end; overflow:hidden;";
 
     const filenameRight = document.createElement("span");
     filenameRight.className = "mjr-viewer-filename mjr-viewer-filename--right";
@@ -211,7 +211,7 @@ export function createViewerToolbar({
 
     const leftArea = document.createElement("div");
     leftArea.className = "mjr-viewer-header-area mjr-viewer-header-area--left";
-    leftArea.style.cssText = "display:none; align-items:center; gap:12px; min-width:0;";
+    leftArea.style.cssText = "display:none; align-items:center; gap:12px; min-width:0; flex:1 1 0; overflow:hidden;";
     leftArea.appendChild(leftMeta);
 
     const centerArea = document.createElement("div");
@@ -224,7 +224,7 @@ export function createViewerToolbar({
     const rightArea = document.createElement("div");
     rightArea.className = "mjr-viewer-header-area mjr-viewer-header-area--right";
     rightArea.style.cssText =
-        "display:none; position:absolute; right:92px; top:50%; transform:translateY(-50%); align-items:center; justify-content:flex-end; gap:12px; min-width:0; max-width:min(26vw, 360px);";
+        "display:none; align-items:center; justify-content:flex-end; gap:12px; min-width:0; flex:1 1 0; overflow:hidden;";
     rightArea.appendChild(rightMeta);
 
     headerTop.appendChild(leftArea);
@@ -1613,12 +1613,19 @@ export function createViewerToolbar({
 
     return {
         headerEl: header,
+        headerTopEl: headerTop,
         filenameEl: filename,
         badgesBarEl: badgesBar,
         filenameRightEl: filenameRight,
         badgesBarRightEl: badgesBarRight,
+        leftAreaEl: leftArea,
+        leftMetaEl: leftMeta,
+        centerAreaEl: centerArea,
         rightMetaEl: rightMeta,
         rightAreaEl: rightArea,
+        titleLineEl: titleLine,
+        titleWrapEl: titleWrap,
+        modeButtonsEl: modeButtons,
         syncToolsUIFromState,
         syncModeButtons,
     };

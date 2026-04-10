@@ -531,6 +531,13 @@ function createViewer() {
     let badgesBarRight = null;
     let rightMeta = null;
     let rightArea = null;
+    let leftArea = null;
+    let leftMeta = null;
+    let centerArea = null;
+    let titleLine = null;
+    let titleWrap = null;
+    let modeButtonsEl = null;
+    let headerTop = null;
     try {
         header.appendChild(filename);
         header.appendChild(badgesBar);
@@ -733,12 +740,19 @@ function createViewer() {
             },
         });
         if (toolbar?.headerEl) header = toolbar.headerEl;
+        if (toolbar?.headerTopEl) headerTop = toolbar.headerTopEl;
         if (toolbar?.filenameEl) filename = toolbar.filenameEl;
         if (toolbar?.badgesBarEl) badgesBar = toolbar.badgesBarEl;
         if (toolbar?.filenameRightEl) filenameRight = toolbar.filenameRightEl;
         if (toolbar?.badgesBarRightEl) badgesBarRight = toolbar.badgesBarRightEl;
+        if (toolbar?.leftAreaEl) leftArea = toolbar.leftAreaEl;
+        if (toolbar?.leftMetaEl) leftMeta = toolbar.leftMetaEl;
+        if (toolbar?.centerAreaEl) centerArea = toolbar.centerAreaEl;
         if (toolbar?.rightMetaEl) rightMeta = toolbar.rightMetaEl;
         if (toolbar?.rightAreaEl) rightArea = toolbar.rightAreaEl;
+        if (toolbar?.titleLineEl) titleLine = toolbar.titleLineEl;
+        if (toolbar?.titleWrapEl) titleWrap = toolbar.titleWrapEl;
+        if (toolbar?.modeButtonsEl) modeButtonsEl = toolbar.modeButtonsEl;
     } catch (e) {
         console.debug?.(e);
     }
@@ -2025,10 +2039,36 @@ function createViewer() {
                 rightMeta.style.display = "flex";
                 if (rightArea) rightArea.style.display = "flex";
                 filenameRight.textContent = rightAsset?.filename || "";
+                // Compare mode: move titleLine to leftArea for proper 3-column layout
+                if (leftArea && leftMeta && titleLine) {
+                    leftArea.style.display = "flex";
+                    leftMeta.appendChild(titleLine);
+                    titleLine.style.justifyContent = "flex-start";
+                }
+                if (headerTop) {
+                    headerTop.style.justifyContent = "center";
+                    headerTop.style.paddingLeft = "84px";
+                }
+                if (centerArea) centerArea.style.flex = "0 0 auto";
+                if (titleWrap) titleWrap.style.flex = "0 0 auto";
+                if (filename) filename.style.textAlign = "left";
             } else if (rightMeta && filenameRight) {
                 rightMeta.style.display = "none";
                 if (rightArea) rightArea.style.display = "none";
                 filenameRight.textContent = "";
+                // Single mode: restore titleLine into titleWrap (before modeButtons)
+                if (leftArea) leftArea.style.display = "none";
+                if (titleWrap && titleLine && modeButtonsEl) {
+                    titleWrap.insertBefore(titleLine, modeButtonsEl);
+                    titleLine.style.justifyContent = "center";
+                }
+                if (headerTop) {
+                    headerTop.style.justifyContent = "center";
+                    headerTop.style.paddingLeft = "12px";
+                }
+                if (centerArea) centerArea.style.flex = "1 1 auto";
+                if (titleWrap) titleWrap.style.flex = "";
+                if (filename) filename.style.textAlign = "center";
             }
         } catch (e) {
             console.debug?.(e);
@@ -2428,12 +2468,12 @@ function createViewer() {
         // Shift+wheel or horizontal scroll (trackpad) = navigate assets
         const dx = Number(e.deltaX) || 0;
         const dy = Number(e.deltaY) || 0;
-        
+
         if (e.shiftKey && dy) {
             const direction = dy > 0 ? 1 : -1;
             if (navigateViewerAssets(direction)) return;
         }
-        
+
         // Horizontal scroll (trackpad swipe) navigates between assets
         if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30) {
             const direction = dx > 0 ? 1 : -1;
@@ -2632,10 +2672,10 @@ function createViewer() {
                         const dy = t.clientY - _touchStart.y;
                         const elapsed = Date.now() - _touchStart.t;
                         _touchStart = null;
-                        
+
                         // Ignore if too slow (>600ms) or too much vertical movement
                         if (elapsed > 600 || Math.abs(dy) > SWIPE_MAX_VERTICAL) return;
-                        
+
                         // Check swipe direction
                         if (Math.abs(dx) >= SWIPE_THRESHOLD) {
                             const direction = dx < 0 ? 1 : -1; // swipe left = next
