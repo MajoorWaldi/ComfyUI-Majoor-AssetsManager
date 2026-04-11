@@ -164,9 +164,18 @@ function _persistAuthToken(token) {
     }
 }
 
+// RFC 6750 token68 charset + underscore. Covers "mjr_<hex>" generated tokens and
+// standard Bearer token values. Rejects control chars, spaces, or injection attempts
+// before the value reaches an Authorization header.
+const _TOKEN_FORMAT_RE = /^[A-Za-z0-9._\-~+/]+=*$/;
+
 export function setRuntimeSecurityToken(token) {
     const normalized = String(token || "").trim();
     if (!normalized) return false;
+    if (!_TOKEN_FORMAT_RE.test(normalized)) {
+        console.debug?.("[MJR auth] Rejected malformed security token (invalid characters)");
+        return false;
+    }
     return _persistAuthToken(normalized);
 }
 

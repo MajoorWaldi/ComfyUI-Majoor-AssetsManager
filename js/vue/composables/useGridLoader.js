@@ -8,6 +8,7 @@ import { setFileBadgeCollision } from "../../components/Badges.js";
 import { pickRootId } from "../../utils/ids.js";
 import { isGridHostVisible } from "./gridVisibility.js";
 import { consumeEarlyFetch } from "../../features/runtime/entryUiRegistration.js";
+import { mjrDbg } from "../../utils/logging.js";
 import {
     appendAssets as cardAppendAssets,
 } from "../../features/grid/AssetCardRenderer.js";
@@ -594,7 +595,7 @@ export function useGridLoader({
                         // API returns { ok, data: { assets: [...], total, ... } }
                         const earlyAssets = earlyResult?.data?.assets;
                         if (earlyResult?.ok && Array.isArray(earlyAssets)) {
-                            console.debug("[Grid] Using early-fetched data:", earlyAssets.length, "assets");
+                            mjrDbg("[Grid] Using early-fetched data:", earlyAssets.length, "assets");
                             return {
                                 ok: true,
                                 assets: earlyAssets,
@@ -605,7 +606,7 @@ export function useGridLoader({
                             };
                         }
                     } catch (e) {
-                        console.debug("[Grid] Early fetch failed, falling back to normal fetch", e);
+                        mjrDbg("[Grid] Early fetch failed, falling back to normal fetch", e);
                     }
                 }
             }
@@ -718,7 +719,7 @@ export function useGridLoader({
 
                 // Debug logging
                 if (emptyAppendBatches > 0 || state.done) {
-                    console.debug(`[Grid LoadPage] offset=${state.offset}, fetched=${fetchedCount}, consumed=${consumedCount}, added=${addedCount}, limit=${currentLimit}, done=${state.done}, visibleCount=${state.assets.length}, total=${state.total}, emptyBatches=${emptyAppendBatches}/${MAX_EMPTY_APPEND_BATCHES}`);
+                    mjrDbg(`[Grid LoadPage] offset=${state.offset}, fetched=${fetchedCount}, consumed=${consumedCount}, added=${addedCount}, limit=${currentLimit}, done=${state.done}, visibleCount=${state.assets.length}, total=${state.total}, emptyBatches=${emptyAppendBatches}/${MAX_EMPTY_APPEND_BATCHES}`);
                 }
 
                 if (state.done || addedCount > 0) {
@@ -737,7 +738,7 @@ export function useGridLoader({
                 // Limit is now dynamic based on total assets to handle large libraries.
                 emptyAppendBatches += 1;
                 if (emptyAppendBatches >= MAX_EMPTY_APPEND_BATCHES) {
-                    console.debug(`[Grid] Empty append batches limit reached: ${emptyAppendBatches}/${MAX_EMPTY_APPEND_BATCHES}`);
+                    mjrDbg(`[Grid] Empty append batches limit reached: ${emptyAppendBatches}/${MAX_EMPTY_APPEND_BATCHES}`);
                     return {
                         ok: true,
                         count: 0,

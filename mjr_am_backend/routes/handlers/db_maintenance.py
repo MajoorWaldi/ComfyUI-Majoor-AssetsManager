@@ -7,13 +7,8 @@ from __future__ import annotations
 import asyncio
 import datetime
 import gc
-import json
 import os
-import shutil
-import sqlite3
 import threading
-import time
-import uuid
 from pathlib import Path
 from typing import Any
 
@@ -23,8 +18,6 @@ from mjr_am_backend.custom_roots import resolve_custom_root
 from mjr_am_backend.runtime_activity import is_generation_busy
 from mjr_am_backend.shared import FileKind, Result, get_logger
 
-from ..db_maintenance import archive_runtime
-from ..db_maintenance import vector_runtime
 from ..core import (
     _csrf_error,
     _json_response,
@@ -36,49 +29,20 @@ from ..core import (
     audit_log_write,
     safe_error_message,
 )
+from ..db_maintenance import archive_runtime, backfill_jobs, vector_runtime
 
 logger = get_logger(__name__)
 
 _DB_ARCHIVE_DIR = INDEX_DB_PATH.parent / "archive"
 _DB_MAINTENANCE_ACTIVE = False
 _DB_MAINT_LOCK = threading.Lock()
-_VECTOR_BACKFILL_LOCK = threading.Lock()
-_VECTOR_BACKFILL_JOBS: dict[str, dict[str, Any]] = {}
-_VECTOR_BACKFILL_ACTIVE_JOB_ID: str | None = None
-_VECTOR_BACKFILL_HISTORY_LIMIT = 20
-_VECTOR_BACKFILL_PRIORITY_LOCK = threading.Lock()
-_VECTOR_BACKFILL_PRIORITY_UNTIL_MONO: float = 0.0
-_VECTOR_BACKFILL_PRIORITY_REASON: str = ""
-_VECTOR_BACKFILL_PRIORITY_MAX_WINDOW_S = 120.0
-_VECTOR_BACKFILL_PRIORITY_SLEEP_SLICE_S = 0.25
-_VECTOR_BACKFILL_VALID_SCOPES = {"output", "input", "custom", "all"}
+
+# Backfill job scope validation (kept here for HTTP param parsing)
+_VECTOR_BACKFILL_VALID_SCOPES = backfill_jobs.VALID_SCOPES
 
 
-def _parse_bool_flag(value: Any, default: bool = False) -> bool:
-    try:
-        if value is None:
-            return bool(default)
-        if isinstance(value, bool):
-            return value
-        s = str(value).strip().lower()
-        if not s:
-            return bool(default)
-        if s in {"1", "true", "yes", "on", "enabled", "enable"}:
-            return True
-        if s in {"0", "false", "no", "off", "disabled", "disable"}:
-            return False
-        return bool(default)
-    except Exception:
-        return bool(default)
-
-
-def _normalize_backfill_scope(value: Any) -> str:
-    raw = str(value or "output").strip().lower()
-    if raw == "outputs":
-        return "output"
-    if raw == "inputs":
-        return "input"
-    return raw if raw in _VECTOR_BACKFILL_VALID_SCOPES else ""
+_parse_bool_flag = backfill_jobs.parse_bool_flag
+_normalize_backfill_scope = backfill_jobs.normalize_scope
 
 
 def _read_vector_backfill_scope_params(request: web.Request) -> tuple[str, str, Result | None]:
@@ -107,194 +71,21 @@ def _read_vector_backfill_scope_params(request: web.Request) -> tuple[str, str, 
     return scope, custom_root_id, None
 
 
-def _utc_now_iso() -> str:
-    try:
-        return datetime.datetime.now(datetime.timezone.utc).isoformat()
-    except Exception:
-        return ""
-
-
-def _vector_backfill_job_public(job: dict[str, Any]) -> dict[str, Any]:
-    if not isinstance(job, dict):
-        return {
-            "backfill_id": "",
-            "status": "idle",
-            "async": True,
-        }
-    public_job = _vector_backfill_job_public_base(job)
-    public_job.update(_vector_backfill_job_public_timing(job))
-    public_job.update(_vector_backfill_job_public_payload(job))
-    return public_job
-
-
-def _vector_backfill_job_public_base(job: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "backfill_id": str(job.get("backfill_id") or ""),
-        "status": str(job.get("status") or "unknown"),
-        "async": True,
-        "batch_size": int(job.get("batch_size") or 64),
-        "scope": str(job.get("scope") or "output"),
-        "custom_root_id": str(job.get("custom_root_id") or "") or None,
-    }
-
-
-def _vector_backfill_job_public_timing(job: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "created_at": str(job.get("created_at") or ""),
-        "updated_at": str(job.get("updated_at") or ""),
-        "started_at": str(job.get("started_at") or ""),
-        "finished_at": str(job.get("finished_at") or ""),
-    }
-
-
-def _vector_backfill_job_public_payload(job: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "progress": job.get("progress") if isinstance(job.get("progress"), dict) else None,
-        "result": job.get("result") if isinstance(job.get("result"), dict) else None,
-        "code": str(job.get("code") or "") or None,
-        "error": str(job.get("error") or "") or None,
-    }
-
-
-def _vector_backfill_get_job(backfill_id: str) -> dict[str, Any] | None:
-    with _VECTOR_BACKFILL_LOCK:
-        return _VECTOR_BACKFILL_JOBS.get(str(backfill_id or ""))
-
-
-def _vector_backfill_get_active_or_latest_job() -> dict[str, Any] | None:
-    with _VECTOR_BACKFILL_LOCK:
-        if _VECTOR_BACKFILL_ACTIVE_JOB_ID:
-            active = _VECTOR_BACKFILL_JOBS.get(_VECTOR_BACKFILL_ACTIVE_JOB_ID)
-            if isinstance(active, dict):
-                return active
-        if not _VECTOR_BACKFILL_JOBS:
-            return None
-        ordered = sorted(
-            _VECTOR_BACKFILL_JOBS.values(),
-            key=lambda j: str(j.get("created_at") or ""),
-            reverse=True,
-        )
-        return ordered[0] if ordered else None
-
-
-def is_vector_backfill_active() -> bool:
-    """Return True when an async vector backfill job is queued/running."""
-    with _VECTOR_BACKFILL_LOCK:
-        if not _VECTOR_BACKFILL_ACTIVE_JOB_ID:
-            return False
-        job = _VECTOR_BACKFILL_JOBS.get(_VECTOR_BACKFILL_ACTIVE_JOB_ID)
-        if not isinstance(job, dict):
-            return False
-        status = str(job.get("status") or "").strip().lower()
-        return status in {"queued", "running"}
-
-
-def _vector_backfill_priority_remaining_seconds() -> float:
-    global _VECTOR_BACKFILL_PRIORITY_UNTIL_MONO, _VECTOR_BACKFILL_PRIORITY_REASON
-    now = time.monotonic()
-    with _VECTOR_BACKFILL_PRIORITY_LOCK:
-        remaining = float(_VECTOR_BACKFILL_PRIORITY_UNTIL_MONO - now)
-        if remaining <= 0:
-            _VECTOR_BACKFILL_PRIORITY_UNTIL_MONO = 0.0
-            _VECTOR_BACKFILL_PRIORITY_REASON = ""
-            return 0.0
-        return remaining
-
-
-def request_vector_backfill_priority_window(seconds: float = 18.0, *, reason: str = "generation") -> float:
-    """
-    Request a temporary cooperative pause window for the running vector backfill job.
-
-    Returns the remaining requested window (seconds).
-    """
-    duration = max(0.5, min(_VECTOR_BACKFILL_PRIORITY_MAX_WINDOW_S, float(seconds or 0.0)))
-    now = time.monotonic()
-    requested_until = now + duration
-    with _VECTOR_BACKFILL_PRIORITY_LOCK:
-        global _VECTOR_BACKFILL_PRIORITY_UNTIL_MONO, _VECTOR_BACKFILL_PRIORITY_REASON
-        if requested_until > _VECTOR_BACKFILL_PRIORITY_UNTIL_MONO:
-            _VECTOR_BACKFILL_PRIORITY_UNTIL_MONO = requested_until
-            _VECTOR_BACKFILL_PRIORITY_REASON = str(reason or "generation")
-        return max(0.0, _VECTOR_BACKFILL_PRIORITY_UNTIL_MONO - now)
-
-
-def _clear_vector_backfill_priority_window() -> None:
-    with _VECTOR_BACKFILL_PRIORITY_LOCK:
-        global _VECTOR_BACKFILL_PRIORITY_UNTIL_MONO, _VECTOR_BACKFILL_PRIORITY_REASON
-        _VECTOR_BACKFILL_PRIORITY_UNTIL_MONO = 0.0
-        _VECTOR_BACKFILL_PRIORITY_REASON = ""
-
-
-async def _vector_backfill_wait_for_priority_window() -> None:
-    """
-    Cooperative yield point used by backfill loops.
-    Sleeps in short slices while a priority window is active.
-    """
-    while True:
-        remaining = _vector_backfill_priority_remaining_seconds()
-        if remaining <= 0:
-            return
-        await asyncio.sleep(min(_VECTOR_BACKFILL_PRIORITY_SLEEP_SLICE_S, remaining))
-
-
-def _vector_backfill_register_job(*, batch_size: int, scope: str = "output", custom_root_id: str = "") -> dict[str, Any]:
-    normalized_scope = _normalize_backfill_scope(scope) or "output"
-    normalized_custom_root = str(custom_root_id or "").strip() if normalized_scope == "custom" else ""
-    backfill_id = uuid.uuid4().hex
-    job = {
-        "backfill_id": backfill_id,
-        "status": "queued",
-        "batch_size": int(max(1, min(200, batch_size))),
-        "scope": normalized_scope,
-        "custom_root_id": normalized_custom_root,
-        "created_at": _utc_now_iso(),
-        "updated_at": _utc_now_iso(),
-        "started_at": "",
-        "finished_at": "",
-        "progress": {
-            "candidates": 0,
-            "indexed": 0,
-            "skipped": 0,
-            "errors": 0,
-            "batch_size": int(max(1, min(200, batch_size))),
-        },
-        "result": None,
-        "code": None,
-        "error": None,
-    }
-    with _VECTOR_BACKFILL_LOCK:
-        _VECTOR_BACKFILL_JOBS[backfill_id] = job
-        global _VECTOR_BACKFILL_ACTIVE_JOB_ID
-        _VECTOR_BACKFILL_ACTIVE_JOB_ID = backfill_id
-    return job
-
-
-def _vector_backfill_prune_history() -> None:
-    with _VECTOR_BACKFILL_LOCK:
-        if len(_VECTOR_BACKFILL_JOBS) <= _VECTOR_BACKFILL_HISTORY_LIMIT:
-            return
-        keep_ids = set()
-        if _VECTOR_BACKFILL_ACTIVE_JOB_ID:
-            keep_ids.add(_VECTOR_BACKFILL_ACTIVE_JOB_ID)
-        ordered = sorted(
-            _VECTOR_BACKFILL_JOBS.values(),
-            key=lambda j: str(j.get("created_at") or ""),
-            reverse=True,
-        )
-        for item in ordered[:_VECTOR_BACKFILL_HISTORY_LIMIT]:
-            keep_ids.add(str(item.get("backfill_id") or ""))
-        for key in list(_VECTOR_BACKFILL_JOBS.keys()):
-            if key not in keep_ids:
-                _VECTOR_BACKFILL_JOBS.pop(key, None)
-
-
-def _vector_backfill_update_job(backfill_id: str, **updates: Any) -> None:
-    with _VECTOR_BACKFILL_LOCK:
-        job = _VECTOR_BACKFILL_JOBS.get(str(backfill_id or ""))
-        if not isinstance(job, dict):
-            return
-        job["updated_at"] = _utc_now_iso()
-        job.update(updates)
+# ---------------------------------------------------------------------------
+# Backfill job state — delegated to backfill_jobs module
+# ---------------------------------------------------------------------------
+_utc_now_iso = backfill_jobs.utc_now_iso
+_vector_backfill_job_public = backfill_jobs.job_public
+_vector_backfill_get_job = backfill_jobs.get_job
+_vector_backfill_get_active_or_latest_job = backfill_jobs.get_active_or_latest_job
+is_vector_backfill_active = backfill_jobs.is_active
+_vector_backfill_priority_remaining_seconds = backfill_jobs.priority_remaining_seconds
+request_vector_backfill_priority_window = backfill_jobs.request_priority_window
+_clear_vector_backfill_priority_window = backfill_jobs.clear_priority_window
+_vector_backfill_wait_for_priority_window = backfill_jobs.wait_for_priority_window
+_vector_backfill_register_job = backfill_jobs.register_job
+_vector_backfill_prune_history = backfill_jobs.prune_history
+_vector_backfill_update_job = backfill_jobs.update_job
 
 
 async def _stop_index_enrichment(index_service: Any) -> None:
@@ -355,7 +146,7 @@ async def _run_vector_backfill_job(
         _invalidate_vector_searcher(svc)
         _vector_backfill_complete_job(backfill_id, scope=scope, custom_root_id=custom_root_id, payload=backfill_res.data or {})
     except Exception as exc:
-        _vector_backfill_fail_job(backfill_id, exc)
+        backfill_jobs.fail_job(backfill_id, safe_error_message(exc, "Vector backfill failed"))
     finally:
         _clear_vector_backfill_priority_window()
         try:
@@ -363,10 +154,7 @@ async def _run_vector_backfill_job(
         except Exception:
             pass
         set_db_maintenance_active(False)
-        with _VECTOR_BACKFILL_LOCK:
-            global _VECTOR_BACKFILL_ACTIVE_JOB_ID
-            if _VECTOR_BACKFILL_ACTIVE_JOB_ID == backfill_id:
-                _VECTOR_BACKFILL_ACTIVE_JOB_ID = None
+        backfill_jobs.clear_active_job_id(backfill_id)
         _vector_backfill_prune_history()
 
 
@@ -396,31 +184,7 @@ async def _run_vector_backfill_payload(
     )
 
 
-def _vector_backfill_complete_job(backfill_id: str, *, scope: str, custom_root_id: str, payload: dict[str, Any]) -> None:
-    job_payload = {
-        "ran": True,
-        "scope": _normalize_backfill_scope(scope) or "output",
-        "custom_root_id": str(custom_root_id or "") or None,
-        **payload,
-    }
-    _vector_backfill_update_job(
-        backfill_id,
-        status="succeeded",
-        finished_at=_utc_now_iso(),
-        result=job_payload,
-        code=None,
-        error=None,
-    )
-
-
-def _vector_backfill_fail_job(backfill_id: str, exc: Exception) -> None:
-    _vector_backfill_update_job(
-        backfill_id,
-        status="failed",
-        finished_at=_utc_now_iso(),
-        code="DB_ERROR",
-        error=safe_error_message(exc, "Vector backfill failed"),
-    )
+_vector_backfill_complete_job = backfill_jobs.complete_job
 
 
 def _archive_root_resolved() -> Path:
@@ -797,8 +561,6 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
         This works even when the DB is malformed and normal reset/security-pref
         queries would fail.  Only requires CSRF check (no DB-dependent security).
         """
-        import asyncio
-        import gc
         from pathlib import Path
 
         from mjr_am_backend.config import INDEX_DB_PATH
@@ -1180,8 +942,8 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
     async def db_backfill_job_ids_by_prefix(request: web.Request):
         """
         Backfill missing job_ids by propagating from sibling files with same prefix.
-        
-        For example, if ltx-23_audio_00001-audio.mp4 has a job_id but 
+
+        For example, if ltx-23_audio_00001-audio.mp4 has a job_id but
         ltx-23_audio_00001.mp4 and ltx-23_audio_00001.png don't, this will
         propagate the job_id to all files with the same prefix.
         """
@@ -1218,7 +980,6 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
 
             # Trigger stack finalization for updated assets
             try:
-                from mjr_am_backend.features.index.stacking import finalize_stack_for_job_id
                 index_svc = svc.get("index") if isinstance(svc, dict) else None
                 if index_svc and hasattr(index_svc, "scanner") and backfill_res.data:
                     # Re-stack affected assets
@@ -1440,7 +1201,6 @@ def register_db_maintenance_routes(routes: web.RouteTableDef) -> None:
     @routes.post("/mjr/am/db/backup-save")
     async def db_backup_save(request: web.Request):
         """Create a consistent DB snapshot into archive folder."""
-        import asyncio
 
         csrf = _csrf_error(request)
         if csrf:

@@ -101,14 +101,27 @@ def _env_bool(default: bool, *names: str) -> bool:
     return default
 
 
-def _read_output_dir_override_from_file() -> str | None:
+def _read_override_from_file(file_path: Path) -> str | None:
+    """Read a single-line directory override from *file_path*.
+
+    Returns the stripped content, or ``None`` when the file is absent, empty,
+    or cannot be read (locked, corrupt, permission error, etc.).
+    """
     try:
-        if not _OUTPUT_DIR_OVERRIDE_FILE_PATH.exists():
+        if not file_path.exists():
             return None
-        raw = _OUTPUT_DIR_OVERRIDE_FILE_PATH.read_text(encoding="utf-8").strip()
+        raw = file_path.read_text(encoding="utf-8").strip()
         return raw or None
     except Exception:  # OK: file may be missing/locked/corrupt — graceful fallback
         return None
+
+
+def _read_output_dir_override_from_file() -> str | None:
+    return _read_override_from_file(_OUTPUT_DIR_OVERRIDE_FILE_PATH)
+
+
+def _read_index_dir_override_from_file() -> str | None:
+    return _read_override_from_file(_INDEX_DIR_OVERRIDE_FILE_PATH)
 
 def _resolve_output_root() -> Path:
     resolved = _resolve_output_root_from_env()
@@ -288,16 +301,6 @@ def _normalize_index_dir_candidate(raw: str, output_root: Path) -> Path:
     if not candidate.is_absolute():
         candidate = output_root / candidate
     return candidate.resolve(strict=False)
-
-
-def _read_index_dir_override_from_file() -> str | None:
-    try:
-        if not _INDEX_DIR_OVERRIDE_FILE_PATH.exists():
-            return None
-        raw = _INDEX_DIR_OVERRIDE_FILE_PATH.read_text(encoding="utf-8").strip()
-        return raw or None
-    except Exception:  # OK: file may be missing/locked/corrupt — graceful fallback
-        return None
 
 
 def _resolve_index_dir() -> Path:

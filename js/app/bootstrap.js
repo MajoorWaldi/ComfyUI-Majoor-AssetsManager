@@ -5,6 +5,7 @@
 import { get, post } from "../api/client.js";
 import { ENDPOINTS } from "../api/endpoints.js";
 import { APP_CONFIG } from "./config.js";
+import { mjrDbg } from "../utils/logging.js";
 
 // Auto-scan state (once per session)
 let startupScanDone = false;
@@ -51,7 +52,7 @@ export async function triggerStartupScan(options = {}) {
     startupScanDone = true;
 
     try {
-        console.debug("[Majoor] Starting startup scan of output directory...");
+        mjrDbg("[Majoor] Starting startup scan of output directory...");
 
         const result = await post(ENDPOINTS.SCAN, {
             recursive: true,
@@ -62,7 +63,7 @@ export async function triggerStartupScan(options = {}) {
 
         if (result.ok) {
             const stats = result.data;
-            console.debug(
+            mjrDbg(
                 `[Majoor] Startup scan complete — added: ${stats.added}, updated: ${stats.updated}, skipped: ${stats.skipped}`,
             );
         } else {
@@ -105,11 +106,11 @@ export async function runStartupWarmup(options = {}) {
  */
 export async function testAPI() {
     try {
-        console.debug("[Majoor] Testing API connection...");
+        mjrDbg("[Majoor] Testing API connection...");
         const data = await get(ENDPOINTS.HEALTH);
 
         if (data?.ok) {
-            console.debug("[Majoor] API connection successful, health:", data.data.overall);
+            mjrDbg("[Majoor] API connection successful, health:", data.data.overall);
         } else {
             console.error("📂 Majoor [❌]: API health check failed:", data?.error);
         }

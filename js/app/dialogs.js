@@ -59,6 +59,20 @@ export const toNativeDialogMessage = (message, title = "Majoor") => {
     return `${ttl}<br><br>${msg}`;
 };
 
+// Allowlist of DOM event names accepted by fallbackEl's "on*" prop handler.
+// Restricting to known events prevents attaching listeners to arbitrary strings
+// (e.g. "onXXXX") that would silently produce no-op event registrations and
+// could cause confusion when debugging or scanning for handler leaks.
+const ALLOWED_EVENT_NAMES = new Set([
+    "abort", "blur", "change", "click", "close", "contextmenu", "dblclick",
+    "dragend", "dragenter", "dragleave", "dragover", "dragstart", "drop",
+    "error", "focus", "input", "keydown", "keypress", "keyup",
+    "load", "mousedown", "mouseenter", "mouseleave", "mousemove",
+    "mouseout", "mouseover", "mouseup", "reset", "resize", "scroll",
+    "select", "submit", "touchcancel", "touchend", "touchmove", "touchstart",
+    "transitionend", "unload", "wheel",
+]);
+
 const BLOCKED_PROP_KEYS = new Set([
     "__proto__",
     "constructor",
@@ -101,7 +115,10 @@ const fallbackEl = (tag, props = {}, children = []) => {
         }
         if (propKey.startsWith("on")) {
             if (typeof value === "function") {
-                el.addEventListener(propKey.slice(2).toLowerCase(), value);
+                const eventName = propKey.slice(2).toLowerCase();
+                if (ALLOWED_EVENT_NAMES.has(eventName)) {
+                    el.addEventListener(eventName, value);
+                }
             }
             return;
         }

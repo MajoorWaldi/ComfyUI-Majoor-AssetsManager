@@ -47,7 +47,7 @@ import { comfyToast } from "./app/toast.js";
 import { t } from "./app/i18n.js";
 import { APP_CONFIG } from "./app/config.js";
 import { getRuntimeEnrichmentState, setRuntimeEnrichmentState } from "./stores/runtimeEnrichmentState.js";
-import { reportError } from "./utils/logging.js";
+import { reportError, mjrDbg } from "./utils/logging.js";
 import { app } from "../../scripts/app.js";
 import { registerRealtimeListeners } from "./features/runtime/registerRealtimeListeners.js";
 import { exposeDebugApis } from "./features/runtime/entryDebugApi.js";
@@ -193,9 +193,7 @@ function setupLazyModules(runtimeApp) {
         .catch((e) => console.warn("[MJR setup] LiveStreamTracker load failed:", e));
 
     if (!NODE_STREAM_FEATURE_ENABLED) {
-        console.debug(
-            `[Majoor] Node Stream disabled by feature flag. See ${NODE_STREAM_REACTIVATION_DOC}`,
-        );
+        console.debug("[Majoor] Node Stream disabled by feature flag.");
         return;
     }
 
@@ -369,7 +367,7 @@ app.registerExtension({
                 sidebarTabId: SIDEBAR_TAB_ID,
             })
         ) {
-            console.debug("[Majoor] Sidebar tab registered (Vue)");
+            mjrDbg("[Majoor] Sidebar tab registered (Vue)");
         } else {
             console.warn(
                 "Majoor Assets Manager: extensionManager.registerSidebarTab is unavailable",

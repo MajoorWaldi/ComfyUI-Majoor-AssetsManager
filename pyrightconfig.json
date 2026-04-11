@@ -18,13 +18,22 @@
   ],
   "pythonVersion": "3.10",
   "typeCheckingMode": "standard",
-  "reportMissingImports": "warning",
-  "reportArgumentType": "warning",
+
+  "reportMissingImports": "error",
+  "reportArgumentType": "error",
+  "reportReturnType": "error",
+  "reportOperatorIssue": "error",
+  "reportIndexIssue": "error",
+  "reportUnusedCoroutine": "error",
+
   "reportAttributeAccessIssue": "warning",
   "reportCallIssue": "warning",
   "reportGeneralTypeIssues": "warning",
   "reportOptionalMemberAccess": "warning",
   "reportOptionalSubscript": "warning",
-  "reportUnusedCoroutine": "warning",
-  "reportUnsupportedDunderAll": "none"
+  "reportMissingModuleSource": "warning",
+  "reportUninitializedInstanceVariable": "warning",
+
+  "reportUnsupportedDunderAll": "none",
+  "reportMissingTypeStubs": "none"
 }
