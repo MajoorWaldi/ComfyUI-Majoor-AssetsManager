@@ -141,7 +141,7 @@ export async function registerRealtimeListeners({
         }
     }
 
-    function upsertLiveAssetIntoGrid(grid, detail, { immediate = false } = {}) {
+    function upsertLiveAssetIntoGrid(grid, detail, { immediate = false, force = false } = {}) {
         const assetId = String(detail?.id || "").trim();
         const kind = String(detail?.kind || "").trim();
         const filename = String(detail?.filename || "").trim();
@@ -166,7 +166,9 @@ export async function registerRealtimeListeners({
         // wildcard. This prevents injecting irrelevant assets into active text
         // filters (e.g. "gnome") regardless of which handler triggered the upsert.
         // Existing-asset updates always proceed so in-place metadata stays fresh.
-        if (!existsInGrid && canUpsert) {
+        // The `force` flag bypasses this guard for ASSET_INDEXED events, which must
+        // always surface the freshly-indexed asset regardless of the active query.
+        if (!existsInGrid && canUpsert && !force) {
             const currentQuery = String(grid?.dataset?.mjrQuery || "*").trim() || "*";
             if (currentQuery !== "*") return;
         }
@@ -289,7 +291,7 @@ export async function registerRealtimeListeners({
                 if (executionRuntime.isRenderableLiveAsset(nextDetail)) {
                     pushGeneratedAsset(nextDetail);
                 }
-                upsertLiveAssetIntoGrid(grid, nextDetail, { immediate: true });
+                upsertLiveAssetIntoGrid(grid, nextDetail, { immediate: true, force: true });
             }
         } catch (e) {
             console.debug?.(e);

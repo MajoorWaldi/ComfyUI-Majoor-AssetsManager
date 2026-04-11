@@ -25,6 +25,10 @@ vi.mock("../api/client.js", () => ({
 }));
 
 vi.mock("../app/config.js", () => ({
+    APP_DEFAULTS: {
+        DEFAULT_PAGE_SIZE: 100,
+        MAX_PAGE_SIZE: 2000,
+    },
     APP_CONFIG: {
         DEFAULT_PAGE_SIZE: 100,
         MAX_PAGE_SIZE: 2000,

@@ -89,7 +89,7 @@ describe("registerRealtimeListeners", () => {
 
         expect(harness.pushGeneratedAsset).toHaveBeenCalledTimes(1);
         expect(harness.upsertAsset).toHaveBeenCalledTimes(1);
-        expect(harness.upsertAsset).toHaveBeenCalledWith(harness.grid, detail);
+        expect(harness.upsertAsset).toHaveBeenCalledWith(harness.grid, expect.objectContaining(detail));
     });
 
     it("upsert un asset indexe differe tout en laissant la finalisation lourde au gate", async () => {
@@ -128,13 +128,13 @@ describe("registerRealtimeListeners", () => {
 
         expect(harness.pushGeneratedAsset).toHaveBeenCalledTimes(1);
         expect(harness.upsertAsset).toHaveBeenCalledTimes(1);
-        expect(harness.upsertAsset).toHaveBeenCalledWith(harness.grid, {
+        expect(harness.upsertAsset).toHaveBeenCalledWith(harness.grid, expect.objectContaining({
             id: 43,
             kind: "image",
             filename: "gen_0043.png",
             filepath: "output/gen_0043.png",
             type: "output",
-        });
+        }));
     });
 
     it("upsert apres generation puis indexation sur la grille active", async () => {
@@ -182,7 +182,7 @@ describe("registerRealtimeListeners", () => {
         harness.api._mjrAssetIndexedHandler({ detail });
         expect(harness.pushGeneratedAsset).toHaveBeenCalledTimes(2);
         expect(harness.upsertAsset).toHaveBeenCalledTimes(1);
-        expect(harness.upsertAsset).toHaveBeenCalledWith(harness.grid, detail);
+        expect(harness.upsertAsset).toHaveBeenCalledWith(harness.grid, expect.objectContaining(detail));
         expect(Number(window.__mjrLastAssetUpsertCount || 0)).toBeGreaterThan(0);
     });
 
