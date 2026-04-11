@@ -39,11 +39,15 @@ from .registry_app import (
     _set_user_manager_best_effort as _set_user_manager_best_effort_impl,
 )
 from .registry_logging import (
+    _extract_app_paths,
+    _extract_table_paths,
     _log_route_collisions,
     _log_route_registration_summary,
     _route_verbose_logs_enabled,
 )
 from .registry_middlewares import (
+    _request_path_and_method,
+    _requires_auth,
     _store_request_user_id,
     api_versioning_middleware,
     auth_required_middleware,
