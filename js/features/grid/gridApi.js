@@ -241,5 +241,9 @@ export function upsertAsset(gridContainer, asset) {
     return !!callGrid(gridContainer, "_mjrUpsertAsset", asset);
 }
 
+export function upsertAssetNow(gridContainer, asset) {
+    return !!callGrid(gridContainer, "_mjrUpsertAssetNow", asset);
+}
+
 export function bindGridScanListeners() {}
 export function disposeGridScanListeners() {}

@@ -40,6 +40,7 @@ export async function registerRealtimeListeners({
     getActiveGridContainer,
     pushGeneratedAsset,
     upsertAsset,
+    upsertAssetNow,
     removeAssetsFromGrid,
     getEnrichmentState,
     setEnrichmentState,
@@ -140,7 +141,7 @@ export async function registerRealtimeListeners({
         }
     }
 
-    function upsertLiveAssetIntoGrid(grid, detail) {
+    function upsertLiveAssetIntoGrid(grid, detail, { immediate = false } = {}) {
         const assetId = String(detail?.id || "").trim();
         const kind = String(detail?.kind || "").trim();
         const filename = String(detail?.filename || "").trim();
@@ -161,7 +162,46 @@ export async function registerRealtimeListeners({
             }
         }
         const canUpsert = hasRenderableFields || existsInGrid;
-        const handled = canUpsert ? !!upsertAsset(grid, detail) : false;
+        // For new assets (not yet in the grid), only upsert when the search is a
+        // wildcard. This prevents injecting irrelevant assets into active text
+        // filters (e.g. "gnome") regardless of which handler triggered the upsert.
+        // Existing-asset updates always proceed so in-place metadata stays fresh.
+        if (!existsInGrid && canUpsert) {
+            const currentQuery = String(grid?.dataset?.mjrQuery || "*").trim() || "*";
+            if (currentQuery !== "*") return;
+        }
+        // Ensure freshly-generated assets sort at the top (mtime_desc) even when
+        // the backend event omits ``mtime``. Without a fallback the asset lands at
+        // the very end of the list (getSortValue returns 0 for missing mtime).
+        let liveDetail =
+            !existsInGrid && canUpsert && !detail.mtime
+                ? { ...detail, mtime: Date.now() / 1000 }
+                : detail;
+        // For brand-new generation assets that haven't been enriched yet,
+        // force has_workflow/has_generation_data to null so the workflow dot
+        // shows as "pending" (blue) while enrichment runs in the background.
+        // A subsequent mjr-asset-updated event with the real values will update
+        // the card in-place once enrichment completes.
+        if (!existsInGrid && canUpsert) {
+            const hwVal = detail.has_workflow ?? detail.hasWorkflow;
+            const hgVal = detail.has_generation_data ?? detail.hasGenerationData;
+            if (hwVal == null && hgVal == null) {
+                // Already pending — no change needed
+            } else if (hwVal == null || hgVal == null) {
+                // Partially missing — normalise to null so dot stays pending
+                liveDetail = {
+                    ...liveDetail,
+                    has_workflow: hwVal ?? null,
+                    has_generation_data: hgVal ?? null,
+                };
+            }
+            // If both are present (0/1) the backend has already done inline
+            // metadata extraction — honour the real values.
+        }
+        // Use immediate flush for fresh generation events to bypass the
+        // 200 ms debounce and show the card as soon as the WS event arrives.
+        const doUpsert = immediate && typeof upsertAssetNow === "function" ? upsertAssetNow : upsertAsset;
+        const handled = canUpsert ? !!doUpsert(grid, liveDetail) : false;
         if (handled) {
             markRecentAssetUpsert();
         }
@@ -182,7 +222,7 @@ export async function registerRealtimeListeners({
                 const query = grid.dataset?.mjrQuery || "*";
                 const canDirectUpsert = String(query).trim() === "*";
                 if (canDirectUpsert && renderable) {
-                    upsertLiveAssetIntoGrid(grid, detail);
+                    upsertLiveAssetIntoGrid(grid, detail, { immediate: true });
                 }
             }
         } catch (error) {
@@ -249,7 +289,7 @@ export async function registerRealtimeListeners({
                 if (executionRuntime.isRenderableLiveAsset(nextDetail)) {
                     pushGeneratedAsset(nextDetail);
                 }
-                upsertLiveAssetIntoGrid(grid, nextDetail);
+                upsertLiveAssetIntoGrid(grid, nextDetail, { immediate: true });
             }
         } catch (e) {
             console.debug?.(e);

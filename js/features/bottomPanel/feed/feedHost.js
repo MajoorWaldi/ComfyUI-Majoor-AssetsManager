@@ -1,4 +1,5 @@
 import { disposeGrid, loadAssetsFromList } from "../../grid/gridApi.js";
+import { loadMajoorSettings, saveMajoorSettings, applySettingsToConfig } from "../../../app/settings/settingsCore.js";
 import { EVENTS } from "../../../app/events.js";
 import { t } from "../../../app/i18n.js";
 import { floatingViewerManager } from "../../viewer/floatingViewerManager.js";
@@ -599,6 +600,7 @@ function _buildGrid(host, externalGridWrapper = null) {
     grid.dataset.mjrBottomFeed = "true";
     const feedMinSize = Number(APP_CONFIG.FEED_GRID_MIN_SIZE || APP_CONFIG.GRID_MIN_SIZE || 120);
     grid.dataset.mjrFeedMinItemWidth = String(feedMinSize);
+    grid.style.setProperty("--mjr-grid-min-size", `${feedMinSize}px`);
     grid.addEventListener("keydown", (event) => {
         const lower = event?.key?.toLowerCase?.() || "";
         if (event?.ctrlKey || event?.metaKey || event?.altKey) return;
@@ -709,6 +711,120 @@ function _bindFeedKeyboard(host) {
     host.ratingHotkeys.bind();
 }
 
+const FEED_SIZE_MIN = 60;
+const FEED_SIZE_MAX = 600;
+const FEED_SIZE_STEP = 10;
+
+function _applyFeedMinSize(host, rawSize) {
+    const clamped = Math.max(
+        FEED_SIZE_MIN,
+        Math.min(FEED_SIZE_MAX, Math.round(Number(rawSize) / FEED_SIZE_STEP) * FEED_SIZE_STEP),
+    );
+    // Apply CSS variable immediately on the grid element for live feedback.
+    if (host?.grid) {
+        try {
+            host.grid.style.setProperty("--mjr-grid-min-size", `${clamped}px`);
+        } catch (e) {
+            console.debug?.(e);
+        }
+    }
+    // Persist to settings and update APP_CONFIG.
+    APP_CONFIG.FEED_GRID_MIN_SIZE = clamped;
+    try {
+        const settings = loadMajoorSettings();
+        settings.feed.minSize = clamped;
+        saveMajoorSettings(settings);
+        applySettingsToConfig(settings);
+    } catch (e) {
+        console.debug?.(e);
+    }
+    // Notify Vue grid to recompute columnCount.
+    try {
+        window.dispatchEvent(new CustomEvent("mjr-settings-changed", { detail: { key: "feed.minSize" } }));
+    } catch (e) {
+        console.debug?.(e);
+    }
+    // Update toolbar display.
+    if (host?._sizeToolbar) {
+        try {
+            const slider = host._sizeToolbar.querySelector(".mjr-feed-size-slider");
+            const display = host._sizeToolbar.querySelector(".mjr-feed-size-display");
+            if (slider) slider.value = String(clamped);
+            if (display) display.textContent = `${clamped}px`;
+        } catch (e) {
+            console.debug?.(e);
+        }
+    }
+    return clamped;
+}
+
+function _buildSizeControl(host) {
+    const currentSize = Math.max(
+        FEED_SIZE_MIN,
+        Number(APP_CONFIG.FEED_GRID_MIN_SIZE || 120) || 120,
+    );
+
+    const toolbar = document.createElement("div");
+    toolbar.className = "mjr-feed-toolbar";
+    toolbar.style.cssText =
+        "display:flex; align-items:center; gap:5px; padding:0 2px 5px 2px; flex-shrink:0; user-select:none;";
+
+    const label = document.createElement("span");
+    label.textContent = t("bottomFeed.cardSize", "Cards:");
+    label.style.cssText =
+        "font-size:11px; opacity:0.65; white-space:nowrap; flex-shrink:0;";
+    toolbar.appendChild(label);
+
+    const btnMinus = document.createElement("button");
+    btnMinus.type = "button";
+    btnMinus.className = "mjr-feed-size-btn";
+    btnMinus.textContent = "−";
+    btnMinus.title = t("bottomFeed.cardSizeDecrease", "Decrease card size");
+    btnMinus.style.cssText =
+        "width:20px; height:20px; padding:0; border:1px solid var(--mjr-border,#555); border-radius:4px; background:var(--mjr-surface,#2a2a2a); color:inherit; cursor:pointer; font-size:14px; line-height:1; flex-shrink:0; display:flex; align-items:center; justify-content:center;";
+    toolbar.appendChild(btnMinus);
+
+    const slider = document.createElement("input");
+    slider.type = "range";
+    slider.className = "mjr-feed-size-slider";
+    slider.min = String(FEED_SIZE_MIN);
+    slider.max = String(FEED_SIZE_MAX);
+    slider.step = String(FEED_SIZE_STEP);
+    slider.value = String(currentSize);
+    slider.title = t("bottomFeed.cardSizeSlider", "Card size");
+    slider.style.cssText =
+        "flex:1 1 auto; min-width:40px; max-width:180px; height:4px; cursor:pointer; accent-color:var(--mjr-accent,#64b5f6);";
+    toolbar.appendChild(slider);
+
+    const btnPlus = document.createElement("button");
+    btnPlus.type = "button";
+    btnPlus.className = "mjr-feed-size-btn";
+    btnPlus.textContent = "+";
+    btnPlus.title = t("bottomFeed.cardSizeIncrease", "Increase card size");
+    btnPlus.style.cssText = btnMinus.style.cssText;
+    toolbar.appendChild(btnPlus);
+
+    const display = document.createElement("span");
+    display.className = "mjr-feed-size-display";
+    display.textContent = `${currentSize}px`;
+    display.style.cssText =
+        "font-size:11px; opacity:0.65; white-space:nowrap; min-width:36px; text-align:right; flex-shrink:0; font-variant-numeric:tabular-nums;";
+    toolbar.appendChild(display);
+
+    btnMinus.addEventListener("click", () => {
+        _applyFeedMinSize(host, Number(slider.value) - FEED_SIZE_STEP);
+    });
+    btnPlus.addEventListener("click", () => {
+        _applyFeedMinSize(host, Number(slider.value) + FEED_SIZE_STEP);
+    });
+    slider.addEventListener("input", () => {
+        _applyFeedMinSize(host, Number(slider.value));
+    });
+
+    host.root.appendChild(toolbar);
+    host._sizeToolbar = toolbar;
+}
+
 function _makeHost(container, external = {}) {
     const root = document.createElement("div");
     root.className = "mjr-assets-manager mjr-bottom-feed";
@@ -725,6 +841,7 @@ function _makeHost(container, external = {}) {
         assetsByKey: new Map(),
         popoverManager: null,
     };
+    _buildSizeControl(host);
     _buildEmpty(host);
     _buildGrid(host, external.gridWrapper ?? null);
     _bindFeedSelection(host);

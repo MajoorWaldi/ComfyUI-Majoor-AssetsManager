@@ -16,6 +16,7 @@ import { getStackAwareAssetKey, ensureDupStackCard, disposeStackGroupCards } fro
 import {
     compareAssets,
     fetchPage as fetchGridPage,
+    flushUpsertBatch,
     getUpsertBatchState,
     resolvePageAdvanceCount,
     upsertAsset as queueUpsertAsset,
@@ -1169,10 +1170,8 @@ export function useGridLoader({
         return true;
     }
 
-    function upsertAsset(asset) {
-        const gridContainer = getGridContainer();
-        if (!gridContainer || !asset || !asset.id) return false;
-        return queueUpsertAsset(gridContainer, asset, {
+    function _buildUpsertDeps(gridContainer) {
+        return {
             getOrCreateState: () => state,
             ensureVirtualGrid: () => state.virtualGrid,
             upsertState: UPSERT_BATCH_STATE,
@@ -1180,7 +1179,27 @@ export function useGridLoader({
             debounceMs: UPSERT_BATCH_DEBOUNCE_MS,
             assetKey: (asset) => assetKey(asset, gridContainer),
             loadMajoorSettings,
-        });
+        };
+    }
+
+    function upsertAsset(asset) {
+        const gridContainer = getGridContainer();
+        if (!gridContainer || !asset || !asset.id) return false;
+        return queueUpsertAsset(gridContainer, asset, _buildUpsertDeps(gridContainer));
+    }
+
+    /**
+     * Upsert an asset and immediately flush the batch to the virtual grid,
+     * bypassing the debounce timer. Used for live generation events so the
+     * card appears as soon as the WS event arrives rather than ~200 ms later.
+     */
+    function upsertAssetNow(asset) {
+        const gridContainer = getGridContainer();
+        if (!gridContainer || !asset || !asset.id) return false;
+        const deps = _buildUpsertDeps(gridContainer);
+        const ok = queueUpsertAsset(gridContainer, asset, deps);
+        if (ok) flushUpsertBatch(gridContainer, deps);
+        return ok;
     }
 
     function dispose() {
@@ -1217,6 +1236,7 @@ export function useGridLoader({
         restoreAnchor,
         hydrateFromSnapshot,
         upsertAsset,
+        upsertAssetNow,
         dispose,
     };
 }

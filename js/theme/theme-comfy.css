@@ -5381,15 +5381,32 @@
 .mjr-bottom-feed .mjr-badge-tags { display: none !important; }
 .mjr-bottom-feed .mjr-grid.mjr-feed-show-badges-tags .mjr-badge-tags { display: flex !important; }
 
-/* Feed meta row styling */
+/* Feed meta row styling — flex layout so visible items stay separated */
 .mjr-bottom-feed .mjr-card-meta-row {
-    padding-right: 0 !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 5px !important;
     overflow: hidden !important;
-    white-space: nowrap !important;
-    text-overflow: ellipsis !important;
+    min-width: 0 !important;
+    padding-right: 0 !important;
     line-height: 1.3 !important;
-    opacity: 0.7 !important;
+    opacity: 0.78 !important;
     font-size: 0.8em !important;
+    /* text-overflow ellipsis doesn't apply on a flex container itself */
+}
+/* Each meta span truncates individually if too long */
+.mjr-bottom-feed .mjr-card-meta-row > span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    flex-shrink: 1;
+}
+/* Gentime badge and time value should stay visible (don't shrink away) */
+.mjr-bottom-feed .mjr-card-meta-row > .mjr-meta-gentime,
+.mjr-bottom-feed .mjr-card-meta-row > .mjr-meta-time-val {
+    flex-shrink: 0;
 }
 
 .mjr-bottom-feed .mjr-grid.mjr-feed-show-gentime .mjr-meta-gentime {

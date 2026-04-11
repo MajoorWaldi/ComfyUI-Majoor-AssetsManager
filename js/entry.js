@@ -37,7 +37,7 @@ import {
     NODE_STREAM_FEATURE_ENABLED,
     NODE_STREAM_REACTIVATION_DOC,
 } from "./features/viewer/nodeStream/nodeStreamFeatureFlag.js";
-import { loadAssets, upsertAsset, removeAssetsFromGrid } from "./features/grid/gridApi.js";
+import { loadAssets, upsertAsset, upsertAssetNow, removeAssetsFromGrid } from "./features/grid/gridApi.js";
 import { getActiveGridContainer } from "./features/panel/panelRuntimeRefs.js";
 import { pushGeneratedAsset, refreshGeneratedFeedHosts } from "./features/bottomPanel/feed/feedHost.js";
 import { createExecutionRuntimeController } from "./features/stacks/executionRuntimeController.js";
@@ -249,6 +249,7 @@ async function setupApiListeners(runtimeApp, executionRuntime) {
         getActiveGridContainer,
         pushGeneratedAsset,
         upsertAsset,
+        upsertAssetNow,
         removeAssetsFromGrid,
         getEnrichmentState: getRuntimeEnrichmentState,
         setEnrichmentState: setRuntimeEnrichmentState,

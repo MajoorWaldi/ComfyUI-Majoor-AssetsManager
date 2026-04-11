@@ -452,6 +452,7 @@ function installGridApi(container) {
     container._mjrRestoreAnchor = (anchor) => loader.restoreAnchor(anchor);
     container._mjrHydrateFromSnapshot = (...args) => loader.hydrateFromSnapshot(...args);
     container._mjrUpsertAsset = (asset) => loader.upsertAsset(asset);
+    container._mjrUpsertAssetNow = (asset) => loader.upsertAssetNow(asset);
     container._mjrDispose = () => {
         loader.prepareGridForScopeSwitch();
         loader.dispose();
