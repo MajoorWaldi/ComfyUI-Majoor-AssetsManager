@@ -49,6 +49,7 @@ from .registry_middlewares import (
     auth_required_middleware,
     security_headers_middleware,
 )
+from .registry_prompt import PromptServer as PromptServer
 from .registry_prompt import _get_prompt_server
 from .route_catalog import CORE_ROUTE_REGISTRATIONS, OPTIONAL_ROUTE_REGISTRATIONS
 
