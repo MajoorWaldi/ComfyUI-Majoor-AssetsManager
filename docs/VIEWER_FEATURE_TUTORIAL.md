@@ -1,7 +1,7 @@
 # Majoor Assets Manager - Viewer Feature Tutorial
 
-**Version**: 2.4.4
-**Last Updated**: April 10, 2026
+**Version**: 2.4.5
+**Last Updated**: April 11, 2026
 
 ## Overview
 The Majoor Assets Manager provides **two viewer experiences**:
@@ -9,12 +9,15 @@ The Majoor Assets Manager provides **two viewer experiences**:
 ### 1. Majoor Floating Viewer (MFV) — NEW! 🎉
 A lightweight, draggable floating panel for **real-time generation comparison**:
 - **Live Stream Mode**: Automatically follows new generations
-- **Compare Modes**: Simple, A/B Compare, Side-by-Side
+- **Compare Modes**: Simple, A/B Compare, Side-by-Side, Grid Compare (up to 4 assets)
+- **Multi-Pin References (A/B/C/D)**: Pin up to 4 images simultaneously for comparison
+- **Node Parameters Sidebar**: Edit workflow node widgets directly in the viewer
+- **Run Button**: Queue prompt from viewer toolbar without switching to canvas
 - **Node Tracking**: Click nodes to preview their content
 - **Real-time Updates**: Watch generations as they complete
 - **Portable**: Move anywhere on screen, resize, dock
 
-**Best for**: Real-time workflow monitoring, quick comparisons, node preview
+**Best for**: Real-time workflow monitoring, quick comparisons, node preview, parameter tweaking
 
 ### 2. Standard Viewer
 A full-featured overlay viewer with **advanced analysis tools**:

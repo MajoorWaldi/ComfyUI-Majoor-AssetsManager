@@ -1,66 +1,66 @@
-# Floating Viewer — Intégration Workflow Sidebar & Run
+# Floating Viewer — Workflow Sidebar & Run Implementation
 
-> **Objectif** : Ajouter au Floating Viewer (MFV) un panneau latéral léger permettant de
-> modifier les widgets des nœuds sélectionnés sur le canvas, **ainsi qu'un bouton Run**,
-> le tout sans dupliquer ni concurrencer le panel « Workflow Overview » natif de ComfyUI.
+> **Purpose**: The Floating Viewer (MFV) includes a lightweight sidebar panel that allows
+> modifying widgets of selected nodes on the canvas, **plus a Run button**,
+> without duplicating or competing with ComfyUI's native "Workflow Overview" panel.
 
 ---
 
-## 1. Principe directeur — « Déléguer, ne pas dupliquer »
+## 1. Design Principles — "Delegate, Don't Duplicate"
 
-| Règle | Détail |
+| Rule | Detail |
 |-------|--------|
-| **Lecture seule des données** | On lit `app.graph`, `app.canvas.selected_nodes` — on n'invente pas de modèle parallèle. |
-| **Écriture via widget natif** | On écrit via `widget.value = x ; widget.callback?.(x)` — le moteur ComfyUI gère la propagation. |
-| **Exécution via endpoint** | Le Run appelle `POST /prompt` avec le payload de `app.graphToPrompt()` — on ne réimplémente pas la queue. |
-| **Aucune persistence propre** | Pas de store, pas de cache — chaque ouverture relit l'état live du graph. |
+| **Read-only data access** | Reads `app.graph`, `app.canvas.selected_nodes` — no parallel model invented. |
+| **Write via native widget** | Writes via `widget.value = x ; widget.callback?.(x)` — ComfyUI engine handles propagation. |
+| **Execution via endpoint** | Run calls `POST /prompt` with payload from `app.graphToPrompt()` — queue is not reimplemented. |
+| **No own persistence** | No store, no cache — each opening reads live graph state. |
 
 ---
 
-## 2. Architecture des modules
+## 2. Module Architecture
 
 ```
 js/features/viewer/
-├── FloatingViewer.js              ← existant (on touche _buildToolbar)
-├── floatingViewerManager.js       ← existant (on ajoute les bindings sélection)
+├── FloatingViewer.js              ← existing (modified _buildToolbar)
+├── floatingViewerManager.js       ← existing (added selection bindings)
 │
-├── workflowSidebar/               ← NOUVEAU sous-module
-│   ├── WorkflowSidebar.js         ← Composant principal (panneau DOM)
-│   ├── NodeWidgetRenderer.js      ← Rendu des widgets d'un nœud
-│   ├── widgetAdapters.js          ← Adaptateurs type → HTML input
-│   └── sidebarRunButton.js        ← Bouton Run (queue prompt)
+├── workflowSidebar/               ← NEW submodule
+│   ├── WorkflowSidebar.js         ← Main component (DOM panel)
+│   ├── NodeWidgetRenderer.js      ← Renders node widgets
+│   ├── widgetAdapters.js          ← Type → HTML input adapters
+│   └── sidebarRunButton.js        ← Run button (queue prompt)
 ```
 
-### 2.1 Dépendances
+### 2.1 Dependencies
 
 ```
 FloatingViewer
-  └─► WorkflowSidebar        (créé dans _buildToolbar, injecté dans le DOM MFV)
-        ├─► NodeWidgetRenderer  (instancié 1× par nœud affiché)
-        │     └─► widgetAdapters  (fonctions pures, aucun état)
-        └─► sidebarRunButton    (bouton autonome, appelle l'API ComfyUI)
+  └─► WorkflowSidebar        (created in _buildToolbar, injected into MFV DOM)
+        ├─► NodeWidgetRenderer  (instantiated 1× per displayed node)
+        │     └─► widgetAdapters  (pure functions, no state)
+        └─► sidebarRunButton    (autonomous button, calls ComfyUI API)
 ```
 
-Aucun de ces fichiers n'importe depuis `comfyui-frontend` directement.
-Tout passe par le bridge existant : `js/app/comfyApiBridge.js`.
+None of these files import from `comfyui-frontend` directly.
+Everything goes through the existing bridge: `js/app/comfyApiBridge.js`.
 
 ---
 
-## 3. Module par module
+## 3. Module by Module
 
 ---
 
-### 3.1 `WorkflowSidebar.js` — Panneau latéral
+### 3.1 `WorkflowSidebar.js` — Sidebar Panel
 
-**Rôle** : Conteneur glissant (slide-in) qui s'ouvre à droite du Floating Viewer.
+**Role**: Sliding container (slide-in) that opens on the right side of the Floating Viewer.
 
 ```
 ┌─────────────────────────────────────────────────────┐
 │  Majoor Viewer Lite              [⚙] [▶ Run] [✕]   │  ← header + toolbar
 ├────────────────────┬────────────────────────────────┤
 │                    │  Workflow Sidebar               │
-│   Contenu Viewer   │  ┌────────────────────────────┐ │
-│   (image/vidéo)    │  │ KSampler              [📍] │ │
+│   Viewer Content   │  ┌────────────────────────────┐ │
+│   (image/video)    │  │ KSampler              [📍] │ │
 │                    │  │  seed   [156680208700286]   │ │
 │                    │  │  steps  [20]                │ │
 │                    │  │  cfg    [8.0]               │ │
@@ -74,23 +74,23 @@ Tout passe par le bridge existant : `js/app/comfyApiBridge.js`.
 └────────────────────┴────────────────────────────────┘
 ```
 
-#### API publique
+#### Public API
 
 ```js
 class WorkflowSidebar {
   constructor({ hostEl, onClose })
-  show()           // slide-in, lit la sélection courante
+  show()           // slide-in, reads current selection
   hide()           // slide-out
   toggle()
-  refresh()        // relit app.canvas.selected_nodes et re-render
+  refresh()        // re-reads app.canvas.selected_nodes and re-renders
   get isVisible()
   destroy()
 }
 ```
 
-#### Comment lire les nœuds sélectionnés
+#### How to read selected nodes
 
-Le pattern existe déjà dans `NodeStreamController.js` :
+The pattern already exists in `NodeStreamController.js`:
 
 ```js
 import { getComfyApp } from "../../../app/comfyApiBridge.js";
@@ -108,9 +108,9 @@ function getSelectedNodes() {
 }
 ```
 
-#### Comment écouter les changements de sélection
+#### How to listen to selection changes
 
-Le pattern existe dans `LiveStreamTracker.js` :
+The pattern exists in `LiveStreamTracker.js`:
 
 ```js
 const canvas = app.canvas;
@@ -119,38 +119,38 @@ const origSelChange = canvas.onSelectionChange;
 
 canvas.onNodeSelected = function (node) {
   origSelected?.call(this, node);
-  sidebar.refresh();  // ← notre hook
+  sidebar.refresh();  // ← our hook
 };
 
 canvas.onSelectionChange = function (selectedNodes) {
   origSelChange?.call(this, selectedNodes);
-  sidebar.refresh();  // ← notre hook
+  sidebar.refresh();  // ← our hook
 };
 ```
 
-> **Important** : ces hooks doivent être posés/retirés proprement à l'ouverture/fermeture
-> du sidebar pour ne pas fuiter. On utilise le même pattern chaîné que `LiveStreamTracker`.
+> **Important**: These hooks must be properly attached/detached when opening/closing
+> the sidebar to avoid leaks. We use the same chained pattern as `LiveStreamTracker`.
 
 ---
 
-### 3.2 `NodeWidgetRenderer.js` — Rendu d'un nœud
+### 3.2 `NodeWidgetRenderer.js` — Node Rendering
 
-**Rôle** : Pour un `LGraphNode` donné, itère sur `node.widgets` et génère
-un formulaire HTML correspondant.
+**Role**: For a given `LGraphNode`, iterates over `node.widgets` and generates
+a corresponding HTML form.
 
-#### Informations disponibles sur un widget ComfyUI
+#### Information available on a ComfyUI widget
 
 ```js
 node.widgets.forEach(widget => {
   widget.name       // "seed", "steps", "cfg", "sampler_name" …
   widget.type       // "number", "combo", "text", "toggle", "IMAGEUPLOAD" …
-  widget.value      // valeur courante
-  widget.options     // { min, max, step, values: [...] }  (pour combo/number)
-  widget.callback   // function(value) — à appeler après écriture
+  widget.value      // current value
+  widget.options     // { min, max, step, values: [...] }  (for combo/number)
+  widget.callback   // function(value) — to call after write
 });
 ```
 
-#### Structure DOM générée
+#### Generated DOM structure
 
 ```html
 <section class="mjr-ws-node" data-node-id="3">
@@ -161,19 +161,19 @@ node.widgets.forEach(widget => {
     </button>
   </div>
   <div class="mjr-ws-node-body">
-    <!-- widgets rendus par widgetAdapters -->
+    <!-- widgets rendered by widgetAdapters -->
   </div>
 </section>
 ```
 
-#### Localisation d'un nœud sur le canvas
+#### Locating a node on the canvas
 
 ```js
 function locateNode(node) {
   const app = getComfyApp();
   const canvas = app?.canvas;
   if (!canvas || !node) return;
-  // Centre la vue sur le nœud
+  // Center view on node
   canvas.centerOnNode?.(node);
   // Fallback LiteGraph
   if (!canvas.centerOnNode && canvas.ds) {
@@ -186,20 +186,20 @@ function locateNode(node) {
 
 ---
 
-### 3.3 `widgetAdapters.js` — Conversion widget → input HTML
+### 3.3 `widgetAdapters.js` — Widget → HTML Input Conversion
 
-Fichier de fonctions pures, aucun état. Chaque adaptateur retourne un `HTMLElement`.
+File of pure functions, no state. Each adapter returns an `HTMLElement`.
 
-| `widget.type` | Input HTML | Notes |
+| `widget.type` | HTML Input | Notes |
 |---------------|-----------|-------|
-| `"number"` | `<input type="number" min max step>` | Reprend `widget.options.{min,max,step}` |
-| `"combo"` | `<select>` avec `<option>` | Reprend `widget.options.values` |
+| `"number"` | `<input type="number" min max step>` | Uses `widget.options.{min,max,step}` |
+| `"combo"` | `<select>` with `<option>` | Uses `widget.options.values` |
 | `"text"` | `<textarea>` | Auto-resize |
 | `"toggle"` | `<input type="checkbox">` | |
-| `"IMAGEUPLOAD"` | *(ignoré)* | Trop complexe, on ne le gère pas |
-| autre / inconnu | `<input type="text" readonly>` | Affichage seul |
+| `"IMAGEUPLOAD"` | *(ignored)* | Too complex, not handled |
+| other / unknown | `<input type="text" readonly>` | Display only |
 
-#### Écriture vers un widget ComfyUI
+#### Writing to a ComfyUI widget
 
 ```js
 function writeWidgetValue(widget, newValue) {
@@ -211,25 +211,25 @@ function writeWidgetValue(widget, newValue) {
   } else {
     widget.value = newValue;
   }
-  // Notifier ComfyUI que le widget a changé
+  // Notify ComfyUI that widget changed
   widget.callback?.(widget.value);
-  // Marquer le canvas dirty pour refresh visuel
+  // Mark canvas dirty for visual refresh
   const app = getComfyApp();
   app?.canvas?.setDirty?.(true, true);
   return true;
 }
 ```
 
-> Ce pattern est identique à celui déjà utilisé dans `DragDrop.js` pour le drop
-> de médias sur les nœuds — on ne réinvente rien.
+> This pattern is identical to the one already used in `DragDrop.js` for dropping
+> media on nodes — nothing is reinvented.
 
 ---
 
-### 3.4 `sidebarRunButton.js` — Bouton Run
+### 3.4 `sidebarRunButton.js` — Run Button
 
-**Rôle** : Bouton unique qui déclenche `POST /prompt` en réutilisant l'API ComfyUI.
+**Role**: Single button that triggers `POST /prompt` using ComfyUI API.
 
-#### Option A — Via l'objet `app` (recommandé)
+#### Option A — Via `app` object (recommended)
 
 ```js
 import { getComfyApp } from "../../../app/comfyApiBridge.js";
@@ -238,25 +238,25 @@ async function queueCurrentPrompt() {
   const app = getComfyApp();
   if (!app) return { ok: false, error: "ComfyUI app not ready" };
 
-  // graphToPrompt() sérialise le workflow courant en payload exécutable
+  // graphToPrompt() serializes current workflow into executable payload
   const promptData = await app.graphToPrompt();
   if (!promptData?.output) return { ok: false, error: "Empty prompt" };
 
-  // Déclencher l'exécution
-  // Méthode 1 : via app.queuePrompt (si disponible)
+  // Trigger execution
+  // Method 1: via app.queuePrompt (if available)
   if (typeof app.queuePrompt === "function") {
-    const res = await app.queuePrompt(0); // 0 = insérer en fin de queue
+    const res = await app.queuePrompt(0); // 0 = insert at end of queue
     return { ok: true, data: res };
   }
 
-  // Méthode 2 : via api.queuePrompt
+  // Method 2: via api.queuePrompt
   const api = app.api;
   if (api && typeof api.queuePrompt === "function") {
     const res = await api.queuePrompt(0, promptData);
     return { ok: true, data: res };
   }
 
-  // Méthode 3 : fallback HTTP direct
+  // Method 3: direct HTTP fallback
   const resp = await fetch("/prompt", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -269,53 +269,53 @@ async function queueCurrentPrompt() {
 }
 ```
 
-#### Rendu
+#### Rendering
 
 ```html
-<!-- Dans la toolbar, à côté du bouton ⚙ settings -->
+<!-- In toolbar, next to ⚙ settings button -->
 <button class="mjr-icon-btn mjr-mfv-run-btn" title="Queue Prompt (Run)">
   <i class="pi pi-play"></i>
 </button>
 ```
 
-État visuel :
-- Idle → icône `pi-play` verte
-- Running → icône `pi-spin pi-spinner` + disabled
-- Error → flash rouge 1s puis retour idle
+Visual state:
+- Idle → green `pi-play` icon
+- Running → `pi-spin pi-spinner` icon + disabled
+- Error → red flash 1s then back to idle
 
 ---
 
-## 4. Intégration dans FloatingViewer
+## 4. Integration in FloatingViewer
 
-### 4.1 Modification de `_buildToolbar()`
+### 4.1 Modification of `_buildToolbar()`
 
-Ajouter **2 boutons** dans la toolbar existante :
+Add **2 buttons** to existing toolbar:
 
 ```js
-// Après le bouton capture/download existant :
+// After existing capture/download button:
 
-// --- Séparateur ---
+// --- Separator ---
 const sep2 = document.createElement("div");
 sep2.className = "mjr-mfv-toolbar-sep";
 bar.appendChild(sep2);
 
-// --- Bouton Settings (ouvre/ferme le sidebar) ---
+// --- Settings Button (opens/closes sidebar) ---
 const settingsBtn = document.createElement("button");
 settingsBtn.type = "button";
 settingsBtn.className = "mjr-icon-btn mjr-mfv-settings-btn";
 settingsBtn.title = "Node Parameters";
 const settingsIcon = document.createElement("i");
-settingsIcon.className = "pi pi-cog";          // ⚙ icône PrimeIcons
+settingsIcon.className = "pi pi-cog";          // ⚙ PrimeIcons icon
 settingsBtn.appendChild(settingsIcon);
 settingsBtn.addEventListener("click", () => this._sidebar?.toggle());
 bar.appendChild(settingsBtn);
 
-// --- Bouton Run ---
-const runBtn = createRunButton();              // depuis sidebarRunButton.js
+// --- Run Button ---
+const runBtn = createRunButton();              // from sidebarRunButton.js
 bar.appendChild(runBtn);
 ```
 
-### 4.2 Modification de `render()`
+### 4.2 Modification of `render()`
 
 ```js
 render() {
@@ -324,7 +324,7 @@ render() {
   el.appendChild(this._buildToolbar());
   el.appendChild(this._contentEl);
 
-  // NOUVEAU : sidebar, monté une fois, caché par défaut
+  // NEW: sidebar, mounted once, hidden by default
   this._sidebar = new WorkflowSidebar({
     hostEl: el,
     onClose: () => this._updateSettingsBtnState(false),
@@ -335,19 +335,19 @@ render() {
 }
 ```
 
-### 4.3 Hook sélection dans `floatingViewerManager.js`
+### 4.3 Selection Hook in `floatingViewerManager.js`
 
 ```js
-// Dans open() :
+// In open():
 _bindNodeSelectionListener();
 
-// Dans close() :
+// In close():
 _unbindNodeSelectionListener();
 ```
 
 ---
 
-## 5. CSS — Classes ajoutées
+## 5. CSS — Added Classes
 
 ```css
 /* ── Sidebar container ── */
@@ -401,7 +401,7 @@ _unbindNodeSelectionListener();
 
 ---
 
-## 6. Événements et flux de données
+## 6. Events and Data Flow
 
 ```
 ┌─────────────┐     click ⚙      ┌───────────────────┐
@@ -417,7 +417,7 @@ _unbindNodeSelectionListener();
                                          │
                               ┌──────────▼───────────┐
                               │ NodeWidgetRenderer   │
-                              │ pour chaque nœud     │
+                              │ for each node        │
                               │   → widgetAdapters   │
                               └──────────┬───────────┘
                                          │ user edits input
@@ -438,36 +438,49 @@ _unbindNodeSelectionListener();
 
 ---
 
-## 7. Ce qu'on NE fait PAS
+## 7. What We Do NOT Do
 
-| Interdit | Raison |
+| Prohibited | Reason |
 |----------|--------|
-| Recréer un éditeur de nœud complet | On n'est pas un IDE — juste un panneau de réglage rapide |
-| Gérer l'ajout/suppression de nœuds | C'est le canvas ComfyUI qui gère ça |
-| Dupliquer le Workflow Overview | Notre sidebar est un **raccourci contextuel** (nœuds sélectionnés uniquement) |
-| Intercepter la queue d'exécution | On POST et c'est tout — pas de suivi de progression propre |
-| Stocker l'état des widgets | On lit/écrit le graph live — pas de copie locale |
-| Ajouter des dépendances ComfyUI frontend | Tout passe par `comfyApiBridge.js` |
+| Recreate a full node editor | We're not an IDE — just a quick adjustment panel |
+| Handle node add/delete | ComfyUI canvas manages that |
+| Duplicate Workflow Overview | Our sidebar is a **contextual shortcut** (selected nodes only) |
+| Intercept execution queue | We POST and that's it — no own progress tracking |
+| Store widget state | We read/write live graph — no local copy |
+| Add ComfyUI frontend dependencies | Everything goes through `comfyApiBridge.js` |
 
 ---
 
-## 8. Checklist d'implémentation
+## 8. Implementation Checklist
 
-- [ ] Créer `js/features/viewer/workflowSidebar/widgetAdapters.js`
-- [ ] Créer `js/features/viewer/workflowSidebar/NodeWidgetRenderer.js`
-- [ ] Créer `js/features/viewer/workflowSidebar/WorkflowSidebar.js`
-- [ ] Créer `js/features/viewer/workflowSidebar/sidebarRunButton.js`
-- [ ] Modifier `FloatingViewer.js` — ajouter bouton ⚙ + ▶ dans `_buildToolbar()`
-- [ ] Modifier `FloatingViewer.js` — instancier `WorkflowSidebar` dans `render()`
-- [ ] Modifier `floatingViewerManager.js` — hooks `onNodeSelected` / `onSelectionChange`
-- [ ] Ajouter les classes CSS dans `theme-comfy.css`
-- [ ] Tests : `workflowSidebar.vitest.mjs` (DOM/adaptateurs), `sidebarRunButton.vitest.mjs` (mock fetch)
+- [x] Create `js/features/viewer/workflowSidebar/widgetAdapters.js`
+- [x] Create `js/features/viewer/workflowSidebar/NodeWidgetRenderer.js`
+- [x] Create `js/features/viewer/workflowSidebar/WorkflowSidebar.js`
+- [x] Create `js/features/viewer/workflowSidebar/sidebarRunButton.js`
+- [x] Modify `FloatingViewer.js` — add ⚙ + ▶ buttons in `_buildToolbar()`
+- [x] Modify `FloatingViewer.js` — instantiate `WorkflowSidebar` in `render()`
+- [x] Modify `floatingViewerManager.js` — `onNodeSelected` / `onSelectionChange` hooks
+- [x] Add CSS classes in `theme-comfy.css`
+- [x] Tests: `workflowSidebar.vitest.mjs` (DOM/adapters), `sidebarRunButton.vitest.mjs` (mock fetch)
+
+**Status**: ✅ **Complete** — All items implemented and tested.
 
 ---
 
-## 9. Résumé visuel de la toolbar finale du MFV
+## 9. Final MFV Toolbar Visual Summary
 
 ```
 [ Mode ][ Pin ▾]│[ Live ][ Preview ][ NodeStream ]│[ GenInfo ][ PopOut ][ Download ]│[ ⚙ Settings ][ ▶ Run ]│[ ✕ ]
-                                                                                      └── NOUVEAU ──┘
+                                                                                      └── NEW ──┘
 ```
+
+---
+
+## 10. Sidebar Position Setting
+
+Users can customize sidebar placement via Settings:
+- **Right** (default) — sidebar slides in from right
+- **Left** — sidebar slides in from left
+- **Bottom** — sidebar slides up from bottom
+
+The setting applies immediately without reload and persists across sessions.

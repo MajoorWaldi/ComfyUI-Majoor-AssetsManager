@@ -1,13 +1,22 @@
-# Plan de refacto V2 â€” MaintenabilitÃ© long-terme, dette zÃ©ro, durcissement sÃ©curitÃ©
+# V2 Long-Term Refactoring Plan — ARCHIVAL DOCUMENT
+
+> **Status**: ✅ **FORMALLY CLOSED** — All V2-scoped items completed as of July 2026.
+> **Language**: Original document in French (preserved for historical reference).
+> **Summary**: All V2 objectives achieved — typing hardened, security hardened, large files split, tests added, Pinia migration complete.
+> **Post-V2 deferrals**: ViewerRuntime split (2527L), model3dRenderer bootstrap (1313L), Vue component tests, coverage threshold increases — see "Conditions de réouverture" section.
+
+---
+
+# Plan de refacto V2 — Maintenable long-terme, dette zero, durcissement sécurité (ARCHIVE)
 
 > Date de l'audit : 2026-04-10
-> Version auditÃ©e : 2.4.4
-> Statut du plan V1 : **clÃ´turÃ©** (voir `PLAN_REFACTO_COMPLET_MAJOOR_ASSETS_MANAGER.md`)
+> Version auditée : 2.4.4
+> Statut du plan V1 : **clôturé** (voir `PLAN_REFACTO_COMPLET_MAJOOR_ASSETS_MANAGER.md`)
 > Base : audit complet backend Python + frontend JS/Vue + infra tests + CI
 
 ---
 
-## 1. RÃ©sumÃ© exÃ©cutif
+## 1. Résumé exécutif
 
 L'audit confirme que le plan V1 a Ã©tÃ© menÃ© Ã  terme avec succÃ¨s : le backend est modulaire, le frontend Vue est stable, la CI est solide. Aucune faille **critique** ou **haute** n'a Ã©tÃ© identifiÃ©e.
 
