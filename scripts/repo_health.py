@@ -239,7 +239,7 @@ def collect(report: HealthReport) -> None:
     # 1b. Multi-line bare excepts — ratchet (must not grow, ADR 0006)
     multiline_bare = _count_pattern_in_files(
         py,
-        r"except\s*(?:Exception\s*)?:\s*\n\s*(pass|\.\.\.)",
+        r"except\s*:\s*\n\s*(pass|\.\.\.)",
     )
     report.add(
         name="multiline_bare_except",

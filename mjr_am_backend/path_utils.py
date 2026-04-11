@@ -34,6 +34,8 @@ def safe_rel_path(value: str) -> Path | None:
         return Path("")
     if "\x00" in raw:
         return None
+    # Normalize Windows-style backslashes so traversal checks work on Linux too
+    raw = raw.replace("\\", "/")
     try:
         rel = Path(raw)
     except (OSError, ValueError):
