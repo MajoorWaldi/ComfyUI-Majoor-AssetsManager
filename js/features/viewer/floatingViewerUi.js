@@ -14,6 +14,10 @@ import { NODE_STREAM_FEATURE_ENABLED } from "./nodeStream/nodeStreamFeatureFlag.
 import { WorkflowSidebar } from "./workflowSidebar/WorkflowSidebar.js";
 import { createRunButton } from "./workflowSidebar/sidebarRunButton.js";
 import {
+    buildFloatingViewerMediaProgressOverlay,
+    buildFloatingViewerProgressBar,
+} from "./floatingViewerProgress.js";
+import {
     normalizeGenerationMetadata,
     sanitizePromptForDisplay,
 } from "../../components/sidebar/parsers/geninfoParser.js";
@@ -29,6 +33,7 @@ export function renderFloatingViewer(viewer) {
     el.appendChild(viewer._buildHeader());
     el.setAttribute("aria-labelledby", viewer._titleId);
     el.appendChild(viewer._buildToolbar());
+    el.appendChild(buildFloatingViewerProgressBar(viewer));
 
     viewer._contentWrapper = document.createElement("div");
     viewer._contentWrapper.className = "mjr-mfv-content-wrapper";
@@ -37,6 +42,7 @@ export function renderFloatingViewer(viewer) {
     viewer._contentEl = document.createElement("div");
     viewer._contentEl.className = "mjr-mfv-content";
     viewer._contentWrapper.appendChild(viewer._contentEl);
+    viewer._contentEl.appendChild(buildFloatingViewerMediaProgressOverlay(viewer));
 
     viewer._sidebar = new WorkflowSidebar({
         hostEl: el,

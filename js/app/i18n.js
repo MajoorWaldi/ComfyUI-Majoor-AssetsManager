@@ -216,6 +216,9 @@ const DICTIONARY = {
             "Majoor: Pause Floating Viewer During Execution",
         "setting.viewer.floatingPauseExecution.desc":
             "Pause the Floating Viewer during generation. Disable this if you want to keep live generation steps visible.",
+        "setting.viewer.mfvPreviewMethod.name": "Majoor: MFV Preview Method",
+        "setting.viewer.mfvPreviewMethod.desc":
+            "Preview mode forced by the Floating Viewer Run button. 'taesd' gives the best chance of getting previews, with latent2rgb fallback when available.",
         "setting.minimap.enabled.name": "Majoor: Enable Minimap",
         "setting.minimap.enabled.desc": "Global activation of the workflow minimap.",
 
@@ -1022,6 +1025,9 @@ const DICTIONARY = {
             "Majoor : Pause du Floating Viewer pendant l'execution",
         "setting.viewer.floatingPauseExecution.desc":
             "Met en pause le Floating Viewer pendant la generation. Desactivez cette option pour garder les steps visibles en direct.",
+        "setting.viewer.mfvPreviewMethod.name": "Majoor : Methode de preview MFV",
+        "setting.viewer.mfvPreviewMethod.desc":
+            "Mode de preview force par le bouton Run du Floating Viewer. 'taesd' donne la meilleure chance d'avoir un preview, avec repli sur latent2rgb quand c'est possible.",
 
         "runtime.unavailable": "Runtime indisponible",
         "runtime.metricsTitle":

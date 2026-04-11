@@ -211,7 +211,7 @@ export function popOutFloatingViewer(viewer) {
                 doc.title = "Majoor Viewer";
                 viewer._installPopoutStyles(doc);
                 doc.body.style.cssText =
-                    "margin:0;display:flex;min-height:100vh;background:#111;overflow:hidden;";
+                    "margin:0;display:flex;min-height:100vh;background:#0d0d0d;overflow:hidden;";
                 const root = doc.createElement("div");
                 root.id = "mjr-mfv-popout-root";
                 root.style.cssText = "flex:1;min-width:0;min-height:0;display:flex;";
@@ -333,7 +333,7 @@ export function fallbackPopoutFloatingViewer(viewer, el, w, h) {
         doc.title = "Majoor Viewer";
         viewer._installPopoutStyles(doc);
         doc.body.style.cssText =
-            "margin:0;display:flex;min-height:100vh;background:#111;overflow:hidden;";
+            "margin:0;display:flex;min-height:100vh;background:#0d0d0d;overflow:hidden;";
         const root = doc.createElement("div");
         root.id = "mjr-mfv-popout-root";
         root.style.cssText = "flex:1;min-width:0;min-height:0;display:flex;";
@@ -440,6 +440,18 @@ export function installFloatingViewerPopoutStyles(viewer, doc) {
     } catch (e) {
         console.debug?.(e);
     }
+    // Copy CSS variables from the main document's <html> element (ComfyUI theme vars)
+    try {
+        const htmlInlineStyle = document.documentElement.style.cssText;
+        if (htmlInlineStyle) {
+            const varsStyle = doc.createElement("style");
+            varsStyle.setAttribute("data-mjr-popout-cloned-style", "1");
+            varsStyle.textContent = `:root { ${htmlInlineStyle} }`;
+            doc.head.appendChild(varsStyle);
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
     for (const ss of document.querySelectorAll('link[rel="stylesheet"], style')) {
         try {
             let clone = null;
@@ -462,6 +474,7 @@ export function installFloatingViewerPopoutStyles(viewer, doc) {
     const overrideStyle = doc.createElement("style");
     overrideStyle.setAttribute("data-mjr-popout-cloned-style", "1");
     overrideStyle.textContent = `
+        html, body { background: #0d0d0d !important; }
         .mjr-mfv {
             position: static !important;
             width: 100% !important;

@@ -78,15 +78,33 @@ def init_prompt_server() -> None:
     Initialize routes against ComfyUI PromptServer.
 
     This is kept as a convenience wrapper for ComfyUI runtime.
+    Bootstrap stages are recorded in ``mjr_am_backend.bootstrap_report``
+    so their status is visible via ``/mjr/am/health``.
     """
     global _REGISTRY_HOOKS_DONE
+    try:
+        from mjr_am_backend.bootstrap_report import (
+            record_stage,
+        )
+    except Exception:
+        record_stage = None  # type: ignore[assignment]
+
+    def _record(name: str, status: str, severity: str = "none", detail: str | None = None) -> None:
+        if callable(record_stage):
+            try:
+                record_stage(name, status, severity, detail)
+            except Exception:
+                pass
+
     try:
         try:
             from mjr_am_backend.runtime_activity import ensure_prompt_lifecycle_provider_registered
 
             ensure_prompt_lifecycle_provider_registered()
-        except Exception:
+            _record("prompt_lifecycle", "ok")
+        except Exception as exc:
             _logger.debug("failed to register prompt lifecycle provider", exc_info=True)
+            _record("prompt_lifecycle", "degraded", "internal", str(exc)[:120])
 
         _registry = importlib.import_module("mjr_am_backend.routes.registry")
 
@@ -97,6 +115,7 @@ def init_prompt_server() -> None:
         # Always register decorator-backed routes first; this does not require app.
         if not _REGISTRY_HOOKS_DONE and callable(register_all_routes):
             register_all_routes()
+            _record("route_table", "ok")
 
         from server import PromptServer  # type: ignore
         prompt_server = getattr(PromptServer, "instance", None)
@@ -104,17 +123,24 @@ def init_prompt_server() -> None:
         user_manager = getattr(prompt_server, "user_manager", None)
         if app is None:
             _logger.debug("PromptServer app is not available yet; route table registered only")
+            _record("app_mount", "degraded", "internal", "PromptServer app not yet available")
             return
         if not _REGISTRY_HOOKS_DONE and callable(install_observability):
-            install_observability()
+            try:
+                install_observability()
+                _record("observability", "ok")
+            except Exception as exc:
+                _record("observability", "degraded", "internal", str(exc)[:120])
         _REGISTRY_HOOKS_DONE = True
         if callable(register_routes):
             app_id = id(app)
             if app_id not in _REGISTERED_APPS:
                 register_routes(app, user_manager=user_manager)
                 _REGISTERED_APPS.add(app_id)
-    except Exception:
+                _record("routes", "ok")
+    except Exception as exc:
         _logger.exception("failed to initialize prompt server routes")
+        _record("init", "fatal", "fatal", str(exc)[:120])
 
 
 def init(app) -> None:

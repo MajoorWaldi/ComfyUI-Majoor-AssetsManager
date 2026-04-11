@@ -92,6 +92,7 @@ export const DEFAULT_SETTINGS = {
         metaTtlMs: APP_DEFAULTS.VIEWER_META_TTL_MS,
         metaMaxEntries: APP_DEFAULTS.VIEWER_META_MAX_ENTRIES,
         mfvSidebarPosition: "right",
+        mfvPreviewMethod: APP_DEFAULTS.MFV_PREVIEW_METHOD,
     },
     rtHydrate: {
         concurrency: APP_DEFAULTS.RT_HYDRATE_CONCURRENCY,
@@ -491,6 +492,16 @@ export const applySettingsToConfig = (settings) => {
         settings.viewer?.floatingPauseDuringExecution ??
         APP_DEFAULTS.FLOATING_VIEWER_PAUSE_DURING_EXECUTION
     );
+    {
+        const previewMethod = String(
+            settings.viewer?.mfvPreviewMethod || APP_DEFAULTS.MFV_PREVIEW_METHOD,
+        ).toLowerCase();
+        APP_CONFIG.MFV_PREVIEW_METHOD = ["default", "auto", "latent2rgb", "taesd", "none"].includes(
+            previewMethod,
+        )
+            ? previewMethod
+            : APP_DEFAULTS.MFV_PREVIEW_METHOD;
+    }
     {
         const pos = String(settings.viewer?.mfvSidebarPosition || "right").toLowerCase();
         APP_CONFIG.MFV_SIDEBAR_POSITION = ["left", "right", "bottom"].includes(pos) ? pos : "right";

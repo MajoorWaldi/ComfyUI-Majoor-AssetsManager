@@ -394,6 +394,12 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
                     result.data["overall"] = "degraded"
             except Exception:
                 pass
+            # Attach the bootstrap report so callers get one coherent status snapshot.
+            try:
+                from mjr_am_backend.bootstrap_report import get_report
+                result.data["bootstrap"] = get_report()
+            except Exception:
+                pass
         return _json_response(result)
 
     @routes.get("/mjr/am/health/counters")

@@ -86,6 +86,7 @@ import {
     loadFloatingViewerMediaPair,
     loadFloatingViewerMediaQuad,
 } from "./floatingViewerLoader.js";
+import { disposeFloatingViewerProgressBar } from "./floatingViewerProgress.js";
 
 export { MFV_MODES } from "./floatingViewerConstants.js";
 
@@ -163,6 +164,14 @@ export class FloatingViewer {
         this._resizeState = null;
         this._titleId = `mjr-mfv-title-${this._instanceId}`;
         this._genDropdownId = `mjr-mfv-gen-dropdown-${this._instanceId}`;
+        this._progressEl = null;
+        this._progressNodesEl = null;
+        this._progressStepsEl = null;
+        this._progressTextEl = null;
+        this._mediaProgressEl = null;
+        this._mediaProgressTextEl = null;
+        this._progressUpdateHandler = null;
+        this._progressCurrentNodeId = null;
         this._docClickHost = null;
         this._handleDocClick = null;
     }
@@ -396,6 +405,14 @@ export class FloatingViewer {
         this._applyTransform();
     }
 
+    /** Reset zoom and pan to the default 1:1 fit. Called when new media is loaded. */
+    _resetMfvZoom() {
+        this._zoom = 1;
+        this._panX = 0;
+        this._panY = 0;
+        this._applyTransform();
+    }
+
     /** Bind wheel + pointer events to the clip viewport element. */
     _initPanZoom(contentEl) {
         this._destroyPanZoom();
@@ -560,6 +577,10 @@ export class FloatingViewer {
             case MFV_MODES.GRID:
                 this._renderGrid();
                 break;
+        }
+
+        if (this._mediaProgressEl) {
+            this._contentEl.appendChild(this._mediaProgressEl);
         }
 
         this._applyTransform();
@@ -914,6 +935,7 @@ export class FloatingViewer {
     }
 
     dispose() {
+        disposeFloatingViewerProgressBar(this);
         this._destroyPanZoom();
         this._destroyCompareSync();
         this._stopEdgeResize();

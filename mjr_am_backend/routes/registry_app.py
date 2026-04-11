@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from aiohttp import web
 
@@ -23,8 +24,18 @@ def _install_security_middlewares(
         app.middlewares.insert(0, security_headers_middleware)
         app.middlewares.insert(0, api_versioning_middleware)
         app[installed_key] = True
+        try:
+            from mjr_am_backend.bootstrap_report import record_stage
+            record_stage("security_middlewares", "ok")
+        except Exception:
+            pass
     except Exception as exc:
         logger.debug("Failed to install security middlewares: %s", exc)
+        try:
+            from mjr_am_backend.bootstrap_report import record_stage
+            record_stage("security_middlewares", "degraded", "fatal", str(exc)[:120])
+        except Exception:
+            pass
 
 
 def _install_background_scan_cleanup(

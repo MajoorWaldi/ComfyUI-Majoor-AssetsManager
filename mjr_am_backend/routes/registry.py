@@ -2,43 +2,54 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from aiohttp import web
 from mjr_am_backend.config import SERVICES_PREWARM_ON_STARTUP
 from mjr_am_backend.observability import ensure_observability
 from mjr_am_backend.shared import get_logger
+
+from .core import _json_response, _require_authenticated_user
 from .registry_app import (
     _install_app_middlewares_best_effort as _install_app_middlewares_best_effort_impl,
+)
+from .registry_app import (
     _install_background_scan_cleanup as _install_background_scan_cleanup_impl,
+)
+from .registry_app import (
     _install_observability_on_prompt_server as _install_observability_on_prompt_server_impl,
+)
+from .registry_app import (
     _install_security_middlewares as _install_security_middlewares_impl,
+)
+from .registry_app import (
     _is_app_routes_registered as _is_app_routes_registered_impl,
+)
+from .registry_app import (
     _mark_routes_registered_best_effort as _mark_routes_registered_best_effort_impl,
+)
+from .registry_app import (
     _prepare_route_table as _prepare_route_table_impl,
+)
+from .registry_app import (
     _register_app_routes_best_effort as _register_app_routes_best_effort_impl,
+)
+from .registry_app import (
     _schedule_services_prewarm as _schedule_services_prewarm_impl,
+)
+from .registry_app import (
     _set_user_manager_best_effort as _set_user_manager_best_effort_impl,
 )
 from .registry_logging import (
-    _extract_app_paths,
-    _extract_table_paths,
     _log_route_collisions,
     _log_route_registration_summary,
-    _read_route_verbose_logs_env,
-    _read_route_verbose_logs_from_db,
     _route_verbose_logs_enabled,
 )
-from .core import _json_response, _require_authenticated_user
 from .registry_middlewares import (
-    _request_path_and_method,
-    _requires_auth,
     _store_request_user_id,
     api_versioning_middleware,
     auth_required_middleware,
     security_headers_middleware,
 )
-from .registry_prompt import PromptServer, _get_prompt_server
+from .registry_prompt import _get_prompt_server
 from .route_catalog import CORE_ROUTE_REGISTRATIONS, OPTIONAL_ROUTE_REGISTRATIONS
 
 # --- CONFIGURATION ---
@@ -90,21 +101,14 @@ def _install_background_scan_cleanup(app: web.Application) -> None:
     )
 
 
-def _try_register(
-    register_fn: Any,
-    routes: Any,
-    error_label: str,
-    verbose: bool,
-    *log_msgs: str,
-) -> None:
-    """Register an optional route group; log errors instead of raising."""
+
+def _bootstrap_record(name: str, status: str, severity: str = "none", detail: str | None = None) -> None:
+    """Best-effort helper — never raises."""
     try:
-        register_fn(routes)
-        if verbose:
-            for msg in log_msgs:
-                logger.info(msg)
-    except Exception as e:
-        logger.error("Failed to register %s routes: %s", error_label, e)
+        from mjr_am_backend.bootstrap_report import record_stage
+        record_stage(name, status, severity, detail)
+    except Exception:
+        pass
 
 
 def register_all_routes() -> web.RouteTableDef:
@@ -122,14 +126,26 @@ def register_all_routes() -> web.RouteTableDef:
     for route_group in CORE_ROUTE_REGISTRATIONS:
         route_group.register_fn(routes)
 
+    failed_optional: list[str] = []
     for route_group in OPTIONAL_ROUTE_REGISTRATIONS:
-        _try_register(
-            route_group.register_fn,
-            routes,
-            route_group.label,
-            verbose,
-            *route_group.verbose_messages,
+        try:
+            route_group.register_fn(routes)
+            if verbose:
+                for msg in route_group.verbose_messages:
+                    logger.info(msg)
+        except Exception as exc:
+            logger.error("Failed to register %s routes: %s", route_group.label, exc)
+            failed_optional.append(route_group.label)
+
+    if failed_optional:
+        _bootstrap_record(
+            "optional_routes",
+            "degraded",
+            "internal",
+            f"failed optional route groups: {', '.join(failed_optional)}",
         )
+    else:
+        _bootstrap_record("optional_routes", "ok")
 
     _log_route_registration_summary(verbose)
     _ROUTES_REGISTERED = True

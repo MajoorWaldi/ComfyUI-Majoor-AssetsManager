@@ -32,6 +32,7 @@ import {
     teardownFloatingViewerManager,
     floatingViewerManager,
 } from "./features/viewer/floatingViewerManager.js";
+import { ensureFloatingViewerProgressTracking } from "./features/viewer/floatingViewerProgress.js";
 import {
     NODE_STREAM_FEATURE_ENABLED,
     NODE_STREAM_REACTIVATION_DOC,
@@ -222,6 +223,9 @@ async function setupApiListeners(runtimeApp, executionRuntime) {
         console.warn("Majoor API not available, real-time updates disabled");
         return;
     }
+    void ensureFloatingViewerProgressTracking({ api, app: runtimeApp }).catch((e) =>
+        console.debug?.("[Majoor] MFV progress tracking init failed", e),
+    );
 
     let runtime = null;
     try {

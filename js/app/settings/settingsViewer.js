@@ -108,6 +108,26 @@ export function registerViewerSettings(safeAddSetting, settings, notifyApplied) 
         },
     });
 
+    safeAddSetting({
+        id: `${SETTINGS_PREFIX}.Viewer.MfvPreviewMethod`,
+        category: cat(t("cat.viewer"), t("setting.viewer.mfvPreviewMethod.name").replace("Majoor: ", "")),
+        name: t("setting.viewer.mfvPreviewMethod.name"),
+        tooltip: t("setting.viewer.mfvPreviewMethod.desc"),
+        type: "combo",
+        defaultValue: settings.viewer?.mfvPreviewMethod || "taesd",
+        options: ["taesd", "latent2rgb", "auto", "default", "none"],
+        onChange: (value) => {
+            const method = ["taesd", "latent2rgb", "auto", "default", "none"].includes(value)
+                ? value
+                : "taesd";
+            settings.viewer = settings.viewer || {};
+            settings.viewer.mfvPreviewMethod = method;
+            saveMajoorSettings(settings);
+            applySettingsToConfig(settings);
+            notifyApplied("viewer.mfvPreviewMethod");
+        },
+    });
+
     const registerMinimapToggle = (idKey, stateKey, nameKey, descKey) => {
         safeAddSetting({
             id: `${SETTINGS_PREFIX}.WorkflowMinimap.${idKey}`,

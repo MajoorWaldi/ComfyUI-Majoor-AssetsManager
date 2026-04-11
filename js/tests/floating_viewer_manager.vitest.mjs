@@ -177,6 +177,8 @@ beforeEach(() => {
     vi.resetModules();
     state.reset();
     globalThis.window = createWindowStub();
+    globalThis.requestAnimationFrame = (cb) => { cb(); return 1; };
+    globalThis.cancelAnimationFrame = vi.fn();
     globalThis.document = {
         body: {
             appendChild: vi.fn(),
