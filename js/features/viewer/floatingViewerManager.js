@@ -315,10 +315,20 @@ function _unbindSelectionListener() {
 let _nodeSelectionBound = false;
 let _origOnNodeSelected = null;
 let _origOnSelectionChange = null;
+let _origOnNodeDeselected = null;
+let _canvasPointerupHandler = null;
+let _sidebarRefreshTimer = null;
 
 function _onCanvasNodeSelection() {
     // Refresh the sidebar when canvas node selection changes
     if (_instance?.isVisible) _instance.refreshSidebar?.();
+}
+
+// Debounced version for DOM-level fallback — avoids double-refresh when
+// LiteGraph callbacks already fired for the same interaction.
+function _scheduleCanvasNodeSelection() {
+    clearTimeout(_sidebarRefreshTimer);
+    _sidebarRefreshTimer = setTimeout(_onCanvasNodeSelection, 150);
 }
 
 function _bindNodeSelectionListener() {
@@ -330,6 +340,7 @@ function _bindNodeSelectionListener() {
 
         _origOnNodeSelected = canvas.onNodeSelected ?? null;
         _origOnSelectionChange = canvas.onSelectionChange ?? null;
+        _origOnNodeDeselected = canvas.onNodeDeselected ?? null;
 
         canvas.onNodeSelected = function (node) {
             _origOnNodeSelected?.call(this, node);
@@ -339,6 +350,21 @@ function _bindNodeSelectionListener() {
             _origOnSelectionChange?.call(this, selectedNodes);
             _onCanvasNodeSelection();
         };
+        // Needed for deselect-all (click on empty canvas) — LiteGraph calls
+        // onNodeDeselected for each previously-selected node when clearing.
+        canvas.onNodeDeselected = function (node) {
+            _origOnNodeDeselected?.call(this, node);
+            _onCanvasNodeSelection();
+        };
+
+        // DOM-level fallback: catches cases that bypass LiteGraph callbacks
+        // (e.g. keyboard-only selection, custom ComfyUI selection code).
+        const canvasDomEl = canvas.canvas;
+        if (canvasDomEl?.addEventListener) {
+            _canvasPointerupHandler = _scheduleCanvasNodeSelection;
+            canvasDomEl.addEventListener("pointerup", _canvasPointerupHandler);
+        }
+
         _nodeSelectionBound = true;
     } catch (e) {
         console.debug?.("[MFV] _bindNodeSelectionListener error", e);
@@ -347,18 +373,26 @@ function _bindNodeSelectionListener() {
 
 function _unbindNodeSelectionListener() {
     if (!_nodeSelectionBound) return;
+    clearTimeout(_sidebarRefreshTimer);
+    _sidebarRefreshTimer = null;
     try {
         const app = getComfyApp();
         const canvas = app?.canvas;
         if (canvas) {
             if (_origOnNodeSelected !== null) canvas.onNodeSelected = _origOnNodeSelected;
             if (_origOnSelectionChange !== null) canvas.onSelectionChange = _origOnSelectionChange;
+            if (_origOnNodeDeselected !== null) canvas.onNodeDeselected = _origOnNodeDeselected;
+            if (_canvasPointerupHandler && canvas.canvas?.removeEventListener) {
+                canvas.canvas.removeEventListener("pointerup", _canvasPointerupHandler);
+            }
         }
     } catch (e) {
         console.debug?.("[MFV] _unbindNodeSelectionListener error", e);
     }
     _origOnNodeSelected = null;
     _origOnSelectionChange = null;
+    _origOnNodeDeselected = null;
+    _canvasPointerupHandler = null;
     _nodeSelectionBound = false;
 }
 
@@ -371,6 +405,11 @@ export const floatingViewerManager = {
         _syncViewerControls(inst);
         _bindSelectionListener();
         _bindNodeSelectionListener();
+        // If canvas wasn't ready yet (ComfyUI still loading), retry once
+        // via rAF so the node selection listener is installed as soon as possible.
+        if (!_nodeSelectionBound) {
+            requestAnimationFrame(() => _bindNodeSelectionListener());
+        }
         // KEY FIX: immediately show whatever is selected in the grid.
         _syncCurrentGridSelection();
         _emitVisibilityChanged(true);

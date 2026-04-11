@@ -73,6 +73,14 @@ function _numberInput(widget, onChange) {
     if (opts.min != null) input.min = String(opts.min);
     if (opts.max != null) input.max = String(opts.max);
     if (opts.step != null) input.step = String(opts.step);
+    // Real-time: write on every keystroke (skip invalid partial states like "-" or ".").
+    input.addEventListener("input", () => {
+        const raw = input.value;
+        if (raw === "" || raw === "-" || raw === "." || raw.endsWith(".")) return;
+        writeWidgetValue(widget, raw);
+        onChange?.(widget.value);
+    });
+    // On blur/Enter: sync display with possibly-clamped widget value.
     input.addEventListener("change", () => {
         if (writeWidgetValue(widget, input.value)) {
             input.value = widget.value;
@@ -141,7 +149,11 @@ function _textInput(widget, onChange) {
     textarea.addEventListener("change", () => {
         if (writeWidgetValue(widget, textarea.value)) onChange?.(widget.value);
     });
-    textarea.addEventListener("input", autoFit);
+    // Real-time: write on every keystroke.
+    textarea.addEventListener("input", () => {
+        writeWidgetValue(widget, textarea.value);
+        autoFit();
+    });
 
     expandBtn.addEventListener("click", () => {
         expanded = !expanded;

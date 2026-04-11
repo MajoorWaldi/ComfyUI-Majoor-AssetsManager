@@ -1,7 +1,7 @@
 # Majoor Assets Manager - Hotkeys & Keyboard Shortcuts Guide
 
-**Version**: 2.4.4  
-**Last Updated**: April 5, 2026
+**Version**: 2.4.5
+**Last Updated**: April 11, 2026
 
 ## Overview
 This guide covers all active keyboard shortcuts for the Majoor Assets Manager, including the new **Majoor Floating Viewer (MFV)**.
@@ -322,6 +322,6 @@ All features are accessible via keyboard:
 
 ---
 
-*Hotkeys & Shortcuts Guide Version: 2.0*  
-*Last Updated: April 5, 2026*  
+*Hotkeys & Shortcuts Guide Version: 2.0*
+*Last Updated: April 5, 2026*
 *Compatible with Majoor Assets Manager v2.4.4+*

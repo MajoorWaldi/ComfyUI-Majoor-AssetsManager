@@ -40,9 +40,17 @@ Welcome to the documentation hub for **Majoor Assets Manager** for ComfyUI.
 |----------|-------------|
 | **[SEARCH_FILTERING.md](SEARCH_FILTERING.md)** | Full-text search, filters, and sorting |
 | **[VIEWER_FEATURE_TUTORIAL.md](VIEWER_FEATURE_TUTORIAL.md)** | Viewer, MFV, and analysis tools |
+| **[FLOATING_VIEWER_WORKFLOW_SIDEBAR.md](FLOATING_VIEWER_WORKFLOW_SIDEBAR.md)** | Node Parameters sidebar in Floating Viewer |
 | **[RATINGS_TAGS_COLLECTIONS.md](RATINGS_TAGS_COLLECTIONS.md)** | Ratings, tags, and collections |
 | **[DRAG_DROP.md](DRAG_DROP.md)** | Drag and drop behavior |
 | **[AI_FEATURES.md](AI_FEATURES.md)** | Semantic search, auto-tags, and enrichment |
+
+### Plugin System
+| Document | Description |
+|----------|-------------|
+| **[PLUGIN_QUICK_REFERENCE.md](PLUGIN_QUICK_REFERENCE.md)** | Quick start for plugin development |
+| **[PLUGIN_SYSTEM_DESIGN.md](PLUGIN_SYSTEM_DESIGN.md)** | Full plugin architecture design |
+| **[PLUGIN_SYSTEM_IMPLEMENTATION_SUMMARY.md](PLUGIN_SYSTEM_IMPLEMENTATION_SUMMARY.md)** | Implementation status and details |
 
 ### Configuration And Security
 | Document | Description |
@@ -59,7 +67,22 @@ Welcome to the documentation hub for **Majoor Assets Manager** for ComfyUI.
 | **[DB_MAINTENANCE.md](DB_MAINTENANCE.md)** | Database maintenance, recovery, and configurable index directory |
 | **[TESTING.md](TESTING.md)** | Tests, reports, and quality gate |
 | **[API_REFERENCE.md](API_REFERENCE.md)** | Backend endpoint reference |
+| **[CONTRIBUTING.md](CONTRIBUTING.md)** | Developer onboarding and contribution guidelines |
 | **[adr/](adr/)** | Architecture Decision Records |
+
+### Frontend Architecture
+| Document | Description |
+|----------|-------------|
+| **[FRONTEND_IMPERATIVE_DESIGN.md](FRONTEND_IMPERATIVE_DESIGN.md)** | Design rationale for imperative modules |
+| **[FRONTEND_LIFECYCLE_CONVENTIONS.md](FRONTEND_LIFECYCLE_CONVENTIONS.md)** | Component lifecycle conventions |
+| **[VUE_MIGRATION_PLAN.md](VUE_MIGRATION_PLAN.md)** | Vue 3 migration plan (archival) |
+| **[node-stream-reactivation.md](node-stream-reactivation.md)** | Node Stream feature reactivation guide |
+
+### Historical Documents
+| Document | Description |
+|----------|-------------|
+| **[PLAN_REFACTO_COMPLET_MAJOOR_ASSETS_MANAGER.md](PLAN_REFACTO_COMPLET_MAJOOR_ASSETS_MANAGER.md)** | V1 refactoring completion plan (archival) |
+| **[PLAN_REFACTO_V2_LONG_TERME.md](PLAN_REFACTO_V2_LONG_TERME.md)** | V2 long-term refactoring plan (archival) |
 
 ## Quality And Verification
 

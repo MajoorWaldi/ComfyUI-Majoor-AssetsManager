@@ -1,4 +1,12 @@
-# Plan de refacto complet — ComfyUI-Majoor-AssetsManager
+# V1 Complete Refactoring Plan — ARCHIVAL DOCUMENT
+
+> **Status**: ✅ **COMPLETED** — All refactoring objectives achieved as of April 2026.
+> **Language**: Original document in French (preserved for historical reference).
+> **See also**: [`PLAN_REFACTO_V2_LONG_TERME.md`](PLAN_REFACTO_V2_LONG_TERME.md) for future improvements.
+
+---
+
+# Plan de refacto complet — ComfyUI-Majoor-AssetsManager (ARCHIVE)
 
 > Dernière mise à jour : 2026-04-09 (commits lot DB + lot security/registry/observability faits)
 > Statut global : migration frontend Vue clôturée ; split DB complet et commité ; schema.py splitée (331+295+238+115 L) ; security.py splitée et commitée ; registry_middlewares.py extrait et commité ; observability splitée et commitée ; assets_impl.py dédensifié ; gouvernance docs toujours à zéro
