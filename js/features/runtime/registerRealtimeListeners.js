@@ -1,12 +1,62 @@
 import { EVENTS } from "../../app/events.js";
 import { recordToastHistory } from "../../app/toast.js";
+import { vectorIndexAsset } from "../../api/client.js";
+
+const AUTO_VECTOR_INDEX_DEDUPE_MS = 30_000;
+const _autoVectorIndexSeenAt = new Map();
+
+function toNullableBool(value) {
+    if (value === true || value === 1 || value === "1") return true;
+    if (value === false || value === 0 || value === "0") return false;
+    return null;
+}
+
+function hasVectorEmbedding(detail) {
+    const flags = [
+        detail?.has_ai_vector,
+        detail?.hasAiVector,
+        detail?.has_vector_embedding,
+        detail?.hasVectorEmbedding,
+        detail?.vector_indexed,
+        detail?.vectorIndexed,
+    ];
+    for (const flag of flags) {
+        const parsed = toNullableBool(flag);
+        if (parsed !== null) return parsed;
+    }
+    return false;
+}
+
+function shouldSkipAutoVectorIndex(assetId) {
+    const now = Date.now();
+    const previous = Number(_autoVectorIndexSeenAt.get(assetId) || 0);
+    if (previous > 0 && now - previous < AUTO_VECTOR_INDEX_DEDUPE_MS) {
+        return true;
+    }
+    _autoVectorIndexSeenAt.set(assetId, now);
+    if (_autoVectorIndexSeenAt.size > 500) {
+        const minTs = now - 5 * AUTO_VECTOR_INDEX_DEDUPE_MS;
+        for (const [id, ts] of _autoVectorIndexSeenAt.entries()) {
+            if (Number(ts) < minTs) _autoVectorIndexSeenAt.delete(id);
+        }
+    }
+    return false;
+}
+
+function maybeAutoVectorIndexAsset(detail) {
+    const assetId = String(detail?.id || "").trim();
+    if (!assetId) return;
+    if (hasVectorEmbedding(detail)) return;
+    if (shouldSkipAutoVectorIndex(assetId)) return;
+    void vectorIndexAsset(assetId).catch((e) => console.debug?.("[Majoor] auto vector index failed", e));
+}
 
 function resolveMaintenanceTitle(op, t) {
     const operation = String(op || "").trim().toLowerCase();
     if (operation === "delete_db") return t("btn.deleteDb", "Delete DB");
     if (operation === "reset_index") return t("btn.resetIndex", "Reset index");
     if (operation === "restore_db") return t("btn.dbRestore", "Restore DB");
-    return t("toast.dbRestoreStarted", "DB restore started");
+    return t("btn.maintenance", "Maintenance");
 }
 
 function buildMaintenanceProgress(op, step) {
@@ -18,8 +68,8 @@ function buildMaintenanceProgress(op, step) {
         db_restore: ["started", "stopping_workers", "resetting_db", "replacing_files", "restarting_scan", "done"],
     };
     const steps = flows[operation] || flows.db_restore;
-    const index = Math.max(0, steps.indexOf(currentStep));
-    const current = Math.min(steps.length, index >= 0 ? index + 1 : 1);
+    const index = steps.indexOf(currentStep);
+    const current = Math.min(steps.length, index >= 0 ? index + 1 : 0);
     const total = steps.length;
     return {
         current,
@@ -154,7 +204,7 @@ export async function registerRealtimeListeners({
                     existsInGrid = !!grid._mjrHasAssetId(assetId);
                 } else {
                     existsInGrid = !!grid.querySelector(
-                        `.mjr-asset-card[data-mjr-asset-id="${assetId.replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, "\\$1")}"]`,
+                        `.mjr-asset-card[data-mjr-asset-id="${CSS.escape(assetId)}"]`,
                     );
                 }
             } catch (e) {
@@ -219,6 +269,7 @@ export async function registerRealtimeListeners({
                 if (renderable) {
                     pushGeneratedAsset(detail);
                 }
+                maybeAutoVectorIndexAsset(detail);
                 const scope = grid.dataset?.mjrScope || "output";
                 if (scope !== "output" && scope !== "all") return;
                 const query = grid.dataset?.mjrQuery || "*";
@@ -291,6 +342,7 @@ export async function registerRealtimeListeners({
                 if (executionRuntime.isRenderableLiveAsset(nextDetail)) {
                     pushGeneratedAsset(nextDetail);
                 }
+                maybeAutoVectorIndexAsset(nextDetail);
                 upsertLiveAssetIntoGrid(grid, nextDetail, { immediate: true, force: true });
             }
         } catch (e) {

@@ -105,10 +105,9 @@ const isValidWorkflowShape = (workflow) => {
 };
 
 const cleanupWorkflowCache = () => {
-    if (_workflowCache.size <= WORKFLOW_CACHE_MAX) return;
     const now = Date.now();
 
-    // Remove expired first
+    // Always remove expired entries
     for (const [key, value] of _workflowCache.entries()) {
         if (now - (value?.at || 0) > WORKFLOW_CACHE_TTL_MS) {
             _workflowCache.delete(key);
@@ -125,9 +124,24 @@ const cleanupWorkflowCache = () => {
     }
 };
 
+const _applyWorkflowTabName = (app, name) => {
+    if (!name) return;
+    try {
+        const wf = app?.extensionManager?.workflow?.activeWorkflow;
+        if (wf && typeof wf === "object") {
+            const base = String(name).replace(/\.[^.]+$/, "");
+            wf.filename = base;
+            wf.path = `workflows/${base}.json`;
+        }
+    } catch (e) {
+        console.debug?.(e);
+    }
+};
+
 const tryLoadWorkflowToCanvas = async (payload, fallbackAbsPath = null) => {
     const pl = payload && typeof payload === "object" ? payload : null;
     const rootId = pickRootId(pl);
+    const displayName = pl?.filename || (fallbackAbsPath ? String(fallbackAbsPath).split(/[\\/]/).pop() : null);
     const app = _resolveApp();
 
     // Check cache first
@@ -146,10 +160,12 @@ const tryLoadWorkflowToCanvas = async (payload, fallbackAbsPath = null) => {
                 try {
                     if (typeof app?.loadGraphData === "function") {
                         app.loadGraphData(cached.workflow);
+                        _applyWorkflowTabName(app, displayName);
                         return true;
                     }
                     if (typeof app?.canvas?.graph?.configure === "function") {
                         app.canvas.graph.configure(cached.workflow);
+                        _applyWorkflowTabName(app, displayName);
                         try {
                             app.canvas.setDirty?.(true, true);
                         } catch (e) {
@@ -159,6 +175,7 @@ const tryLoadWorkflowToCanvas = async (payload, fallbackAbsPath = null) => {
                     }
                     if (typeof app?.graph?.configure === "function") {
                         app.graph.configure(cached.workflow);
+                        _applyWorkflowTabName(app, displayName);
                         return true;
                     }
                 } catch (e) {
@@ -224,10 +241,12 @@ const tryLoadWorkflowToCanvas = async (payload, fallbackAbsPath = null) => {
         // Prefer ComfyUI helper if available; otherwise use LiteGraph configure.
         if (typeof app?.loadGraphData === "function") {
             app.loadGraphData(workflow);
+            _applyWorkflowTabName(app, displayName);
             return true;
         }
         if (typeof app?.canvas?.graph?.configure === "function") {
             app.canvas.graph.configure(workflow);
+            _applyWorkflowTabName(app, displayName);
             try {
                 app.canvas.setDirty?.(true, true);
             } catch (e) {
@@ -237,6 +256,7 @@ const tryLoadWorkflowToCanvas = async (payload, fallbackAbsPath = null) => {
         }
         if (typeof app?.graph?.configure === "function") {
             app.graph.configure(workflow);
+            _applyWorkflowTabName(app, displayName);
             return true;
         }
     } catch (e) {

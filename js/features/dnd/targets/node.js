@@ -123,20 +123,36 @@ export const ensureComboHasValue = (widget, value) => {
     target.values = vals;
 };
 
-const pickBestVideoPathWidget = (node, droppedExt) => {
+// Widget types that can never hold a file path
+const _REJECT_TYPES = new Set(["number", "int", "float", "boolean", "toggle", "checkbox"]);
+// Terms that indicate an output/save widget (strong negative signal)
+const _OUTPUTY_TERMS = ["output", "save", "export", "folder", "dir"];
+// Generic path-like widget name terms
+const _PATH_TERMS = ["file", "path"];
+// Terms that suggest a file-path input
+const _PATH_HINT_TERMS = ["path", "file", "input", "src", "source"];
+
+/**
+ * Generic scored widget picker.
+ * @param {object} node - LiteGraph node
+ * @param {string} droppedExt - Extension of the dropped file (without leading dot)
+ * @param {object} cfg
+ * @param {Set<string>}    cfg.exactNames        - Widget names that match perfectly (+100)
+ * @param {string[]}       cfg.knownNodeIncludes - Node-type substrings that flag a known loader
+ * @param {string[]}       cfg.mediaTerms        - Media-specific widget name terms
+ * @param {Array<{terms:string[], score:number}>} cfg.extraTerms - Extra scoring groups
+ * @param {Set<string>}    cfg.exactSingleNames  - Names with value-conditional scoring
+ * @param {Function}       cfg.looksLikeFn       - (value, ext) → bool
+ * @param {Function}       cfg.comboChecker      - (widget, ext) → bool
+ * @param {string}         cfg.scoreKey          - Debug property attached to the winning widget
+ */
+const _pickBestPathWidget = (node, droppedExt, cfg) => {
     const widgets = node?.widgets;
     if (!Array.isArray(widgets) || !widgets.length) return null;
 
-    const ext = String(droppedExt || "")
-        .toLowerCase()
-        .replace(/^\./, "");
-    const exactNames = new Set(["video_path", "input_video", "source_video", "video"]);
+    const ext = String(droppedExt || "").toLowerCase().replace(/^\./, "");
     const nodeType = String(node?.type || "").toLowerCase();
-    const isKnownVideoNode =
-        nodeType.includes("loadvideo") ||
-        nodeType.includes("vhs_loadvideo") ||
-        nodeType.includes("videoloader") ||
-        nodeType === "loadvideo";
+    const isKnownNode = cfg.knownNodeIncludes.some((p) => nodeType.includes(p));
 
     const candidates = [];
     for (const w of widgets) {
@@ -144,64 +160,44 @@ const pickBestVideoPathWidget = (node, droppedExt) => {
         const type = String(w?.type || "").toLowerCase();
         const value = w?.value;
 
-        const rejectTypes = new Set(["number", "int", "float", "boolean", "toggle", "checkbox"]);
-        if (rejectTypes.has(type)) continue;
+        if (_REJECT_TYPES.has(type)) continue;
         if (typeof value === "number" || typeof value === "boolean") continue;
 
         const stringLikeByType = type === "text" || type === "string" || type === "combo";
         const stringLikeByCallback = typeof w?.callback === "function" && typeof value === "string";
         if (!stringLikeByType && !stringLikeByCallback) continue;
 
-        const rawName = String(w?.name || w?.label || "");
-        const name = rawName.toLowerCase().trim();
+        const name = String(w?.name || w?.label || "").toLowerCase().trim();
 
         let score = 0;
-        if (exactNames.has(name)) score += 100;
+        if (cfg.exactNames.has(name)) score += 100;
 
-        if (
-            name === "file" &&
-            isKnownVideoNode &&
-            type === "combo" &&
-            comboHasAnyVideoValue(w, ext)
-        ) {
+        if (name === "file" && isKnownNode && type === "combo" && cfg.comboChecker(w, ext)) {
             score += 100;
         }
 
-        const hasVideo = name.includes("video");
-        const hasAnyVideoHint =
-            name.includes("path") ||
-            name.includes("file") ||
-            name.includes("input") ||
-            name.includes("src") ||
-            name.includes("source");
-        if (hasVideo && hasAnyVideoHint) score += 80;
-        if (name.includes("file") || name.includes("path")) score += 35;
-        if (name.includes("media") || name.includes("clip") || name.includes("footage"))
-            score += 45;
+        const hasMediaHint = cfg.mediaTerms.some((t) => name.includes(t));
+        const hasPathHint = _PATH_HINT_TERMS.some((t) => name.includes(t));
+        if (hasMediaHint && hasPathHint) score += 80;
+        if (_PATH_TERMS.some((t) => name.includes(t))) score += 35;
 
-        const isOutputy =
-            name.includes("output") ||
-            name.includes("save") ||
-            name.includes("export") ||
-            name.includes("folder") ||
-            name.includes("dir");
-        if (isOutputy) score -= 90;
-
-        if (name === "video") {
-            const empty = typeof value === "string" && value.trim() === "";
-            if (empty) {
-                score += 25;
-            } else if (looksLikeVideoPath(value, ext)) {
-                score += 25;
-            } else {
-                score -= 10;
-            }
+        for (const { terms, score: pts } of cfg.extraTerms) {
+            if (terms.some((t) => name.includes(t))) score += pts;
         }
 
-        if (isKnownVideoNode) score += 15;
+        if (_OUTPUTY_TERMS.some((t) => name.includes(t))) score -= 90;
+
+        if (cfg.exactSingleNames.has(name)) {
+            const empty = typeof value === "string" && value.trim() === "";
+            if (empty) score += 25;
+            else if (cfg.looksLikeFn(value, ext)) score += 25;
+            else score -= 10;
+        }
+
+        if (isKnownNode) score += 15;
         const emptyValue = typeof value === "string" && value.trim() === "";
         if (emptyValue) score += 3;
-        if (type === "combo" && comboHasAnyVideoValue(w, ext)) score += 12;
+        if (type === "combo" && cfg.comboChecker(w, ext)) score += 12;
 
         candidates.push({ w, score, emptyValue, combo: type === "combo" });
     }
@@ -216,244 +212,55 @@ const pickBestVideoPathWidget = (node, droppedExt) => {
 
     const best = candidates[0];
     if (!best || best.score < 20) return null;
-    try {
-        best.w.__mjrVideoPickScore = best.score;
-    } catch (e) {
-        console.debug?.(e);
-    }
+    try { best.w[cfg.scoreKey] = best.score; } catch (e) { console.debug?.(e); }
     return best.w;
 };
 
-const pickBestModel3DPathWidget = (node, droppedExt) => {
-    const widgets = node?.widgets;
-    if (!Array.isArray(widgets) || !widgets.length) return null;
+const _VIDEO_CFG = {
+    exactNames: new Set(["video_path", "input_video", "source_video", "video"]),
+    knownNodeIncludes: ["loadvideo", "vhs_loadvideo", "videoloader"],
+    mediaTerms: ["video"],
+    extraTerms: [{ terms: ["media", "clip", "footage"], score: 45 }],
+    exactSingleNames: new Set(["video"]),
+    looksLikeFn: looksLikeVideoPath,
+    comboChecker: comboHasAnyVideoValue,
+    scoreKey: "__mjrVideoPickScore",
+};
 
-    const ext = String(droppedExt || "")
-        .toLowerCase()
-        .replace(/^\./, "");
-    const exactNames = new Set([
-        "model_path",
-        "input_model",
-        "source_model",
-        "mesh_path",
-        "input_mesh",
-        "geometry_path",
-        "scene_path",
-        "point_cloud_path",
-        "splat_path",
-        "model",
-        "mesh",
-        "geometry",
-    ]);
-    const nodeType = String(node?.type || "").toLowerCase();
-    const isKnownModelNode =
-        nodeType.includes("load3d") ||
-        nodeType.includes("loadmodel") ||
-        nodeType.includes("loadmesh") ||
-        nodeType.includes("loadobj") ||
-        nodeType.includes("loadgltf") ||
-        nodeType.includes("loadglb") ||
-        nodeType.includes("loadstl") ||
-        nodeType.includes("loadply") ||
-        nodeType.includes("pointcloud") ||
-        nodeType.includes("meshloader") ||
-        nodeType.includes("modelloader");
+const _AUDIO_CFG = {
+    exactNames: new Set(["audio_path", "input_audio", "source_audio", "audio"]),
+    knownNodeIncludes: ["loadaudio", "vhs_loadaudioupload", "vhs_loadaudio", "audioloader", "inputaudio"],
+    mediaTerms: ["audio", "sound", "music"],
+    extraTerms: [{ terms: ["media", "track"], score: 45 }],
+    exactSingleNames: new Set(["audio"]),
+    looksLikeFn: looksLikeAudioPath,
+    comboChecker: comboHasAnyAudioValue,
+    scoreKey: "__mjrAudioPickScore",
+};
 
-    const candidates = [];
-    for (const w of widgets) {
-        if (!w) continue;
-        const type = String(w?.type || "").toLowerCase();
-        const value = w?.value;
-
-        const rejectTypes = new Set(["number", "int", "float", "boolean", "toggle", "checkbox"]);
-        if (rejectTypes.has(type)) continue;
-        if (typeof value === "number" || typeof value === "boolean") continue;
-
-        const stringLikeByType = type === "text" || type === "string" || type === "combo";
-        const stringLikeByCallback = typeof w?.callback === "function" && typeof value === "string";
-        if (!stringLikeByType && !stringLikeByCallback) continue;
-
-        const rawName = String(w?.name || w?.label || "");
-        const name = rawName.toLowerCase().trim();
-
-        let score = 0;
-        if (exactNames.has(name)) score += 100;
-
-        if (
-            name === "file" &&
-            isKnownModelNode &&
-            type === "combo" &&
-            comboHasAnyModel3DValue(w, ext)
-        ) {
-            score += 100;
-        }
-
-        const hasModelHint =
-            name.includes("model") ||
-            name.includes("mesh") ||
-            name.includes("geometry") ||
-            name.includes("scene") ||
-            name.includes("object") ||
-            name.includes("point") ||
-            name.includes("cloud") ||
-            name.includes("splat");
-        const hasPathHint =
-            name.includes("path") ||
-            name.includes("file") ||
-            name.includes("input") ||
-            name.includes("src") ||
-            name.includes("source");
-        if (hasModelHint && hasPathHint) score += 80;
-        if (name.includes("file") || name.includes("path")) score += 35;
-        if (name.includes("asset") || name.includes("resource")) score += 30;
-
-        const isOutputy =
-            name.includes("output") ||
-            name.includes("save") ||
-            name.includes("export") ||
-            name.includes("folder") ||
-            name.includes("dir");
-        if (isOutputy) score -= 90;
-
-        if (name === "model" || name === "mesh" || name === "geometry") {
-            const empty = typeof value === "string" && value.trim() === "";
-            if (empty) {
-                score += 25;
-            } else if (looksLikeModel3DPath(value, ext)) {
-                score += 25;
-            } else {
-                score -= 10;
-            }
-        }
-
-        if (isKnownModelNode) score += 15;
-        const emptyValue = typeof value === "string" && value.trim() === "";
-        if (emptyValue) score += 3;
-        if (type === "combo" && comboHasAnyModel3DValue(w, ext)) score += 12;
-
-        candidates.push({ w, score, emptyValue, combo: type === "combo" });
-    }
-
-    if (!candidates.length) return null;
-    candidates.sort((a, b) => {
-        if (b.score !== a.score) return b.score - a.score;
-        if (b.emptyValue !== a.emptyValue) return b.emptyValue ? 1 : -1;
-        if (b.combo !== a.combo) return b.combo ? 1 : -1;
-        return 0;
-    });
-
-    const best = candidates[0];
-    if (!best || best.score < 20) return null;
-    try {
-        best.w.__mjrModel3DPickScore = best.score;
-    } catch (e) {
-        console.debug?.(e);
-    }
-    return best.w;
+const _MODEL3D_CFG = {
+    exactNames: new Set([
+        "model_path", "input_model", "source_model", "mesh_path", "input_mesh",
+        "geometry_path", "scene_path", "point_cloud_path", "splat_path",
+        "model", "mesh", "geometry",
+    ]),
+    knownNodeIncludes: [
+        "load3d", "loadmodel", "loadmesh", "loadobj", "loadgltf", "loadglb",
+        "loadstl", "loadply", "pointcloud", "meshloader", "modelloader",
+    ],
+    mediaTerms: ["model", "mesh", "geometry", "scene", "object", "point", "cloud", "splat"],
+    extraTerms: [{ terms: ["asset", "resource"], score: 30 }],
+    exactSingleNames: new Set(["model", "mesh", "geometry"]),
+    looksLikeFn: looksLikeModel3DPath,
+    comboChecker: comboHasAnyModel3DValue,
+    scoreKey: "__mjrModel3DPickScore",
 };
 
 export const pickBestMediaPathWidget = (node, payload, droppedExt) => {
     const kind = String(payload?.kind || "").toLowerCase();
-    if (kind === "model3d") return pickBestModel3DPathWidget(node, droppedExt);
-    if (kind !== "audio") return pickBestVideoPathWidget(node, droppedExt);
-
-    const widgets = node?.widgets;
-    if (!Array.isArray(widgets) || !widgets.length) return null;
-
-    const ext = String(droppedExt || "")
-        .toLowerCase()
-        .replace(/^\./, "");
-    const exactNames = new Set(["audio_path", "input_audio", "source_audio", "audio"]);
-    const nodeType = String(node?.type || "").toLowerCase();
-    const isKnownAudioNode =
-        nodeType.includes("loadaudio") ||
-        nodeType.includes("vhs_loadaudioupload") ||
-        nodeType.includes("vhs_loadaudio") ||
-        nodeType.includes("audioloader") ||
-        nodeType.includes("inputaudio") ||
-        nodeType === "loadaudio";
-
-    const candidates = [];
-    for (const w of widgets) {
-        if (!w) continue;
-        const type = String(w?.type || "").toLowerCase();
-        const value = w?.value;
-
-        const rejectTypes = new Set(["number", "int", "float", "boolean", "toggle", "checkbox"]);
-        if (rejectTypes.has(type)) continue;
-        if (typeof value === "number" || typeof value === "boolean") continue;
-
-        const stringLikeByType = type === "text" || type === "string" || type === "combo";
-        const stringLikeByCallback = typeof w?.callback === "function" && typeof value === "string";
-        if (!stringLikeByType && !stringLikeByCallback) continue;
-
-        const rawName = String(w?.name || w?.label || "");
-        const name = rawName.toLowerCase().trim();
-
-        let score = 0;
-        if (exactNames.has(name)) score += 100;
-
-        if (
-            name === "file" &&
-            isKnownAudioNode &&
-            type === "combo" &&
-            comboHasAnyAudioValue(w, ext)
-        ) {
-            score += 100;
-        }
-
-        const hasAudio = name.includes("audio") || name.includes("sound") || name.includes("music");
-        const hasAnyHint =
-            name.includes("path") ||
-            name.includes("file") ||
-            name.includes("input") ||
-            name.includes("src") ||
-            name.includes("source");
-        if (hasAudio && hasAnyHint) score += 80;
-        if (name.includes("file") || name.includes("path")) score += 35;
-        if (name.includes("media") || name.includes("track")) score += 45;
-
-        const isOutputy =
-            name.includes("output") ||
-            name.includes("save") ||
-            name.includes("export") ||
-            name.includes("folder") ||
-            name.includes("dir");
-        if (isOutputy) score -= 90;
-
-        if (name === "audio") {
-            const empty = typeof value === "string" && value.trim() === "";
-            if (empty) {
-                score += 25;
-            } else if (looksLikeAudioPath(value, ext)) {
-                score += 25;
-            } else {
-                score -= 10;
-            }
-        }
-
-        if (isKnownAudioNode) score += 15;
-        const emptyValue = typeof value === "string" && value.trim() === "";
-        if (emptyValue) score += 3;
-        if (type === "combo" && comboHasAnyAudioValue(w, ext)) score += 12;
-
-        candidates.push({ w, score, emptyValue, combo: type === "combo" });
-    }
-
-    if (!candidates.length) return null;
-    candidates.sort((a, b) => {
-        if (b.score !== a.score) return b.score - a.score;
-        if (b.emptyValue !== a.emptyValue) return b.emptyValue ? 1 : -1;
-        if (b.combo !== a.combo) return b.combo ? 1 : -1;
-        return 0;
-    });
-
-    const best = candidates[0];
-    if (!best || best.score < 20) return null;
-    try {
-        best.w.__mjrAudioPickScore = best.score;
-    } catch (e) {
-        console.debug?.(e);
-    }
-    return best.w;
+    const cfg =
+        kind === "model3d" ? _MODEL3D_CFG :
+        kind === "audio"   ? _AUDIO_CFG   :
+                             _VIDEO_CFG;
+    return _pickBestPathWidget(node, droppedExt, cfg);
 };
