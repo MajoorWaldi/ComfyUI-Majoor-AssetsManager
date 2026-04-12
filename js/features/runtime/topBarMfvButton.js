@@ -5,14 +5,59 @@ const BUTTON_HOST_ATTR = "data-mjr-topbar-mfv-host";
 const BUTTON_ATTR = "data-mjr-topbar-mfv-button";
 
 let _observer = null;
+let _observedTarget = null;
+let _bodyObserver = null;
 let _visibilityListener = null;
+let _resizeListener = null;
 let _syncQueued = false;
 let _syncTimer = null;
 let _visible = false;
 
+function _tryObserveActionbar(container) {
+    if (_observer && _observedTarget === container) return;
+    if (!container) {
+        // Actionbar not in DOM yet — observe body shallowly to detect it
+        if (!_bodyObserver && typeof MutationObserver !== "undefined") {
+            _bodyObserver = new MutationObserver(() => {
+                const c = getActionbarContainer();
+                if (c) {
+                    _bodyObserver?.disconnect?.();
+                    _bodyObserver = null;
+                    scheduleSync();
+                }
+            });
+            _bodyObserver.observe(document.body, { childList: true, subtree: true });
+        }
+        return;
+    }
+    // Disconnect previous observer if target changed
+    try { _observer?.disconnect?.(); } catch (_) { /* noop */ }
+    _observer = new MutationObserver(() => scheduleSync());
+    _observer.observe(container, { childList: true });
+    _observedTarget = container;
+    // Body observer no longer needed
+    try { _bodyObserver?.disconnect?.(); } catch (_) { /* noop */ }
+    _bodyObserver = null;
+}
+
 function getActionbarContainer() {
     if (typeof document === "undefined") return null;
     return document.querySelector(".actionbar-container");
+}
+
+function updateViewerTopOffset(container = getActionbarContainer()) {
+    if (typeof document === "undefined") return;
+    const rootStyle = document.documentElement?.style;
+    if (!rootStyle) return;
+
+    if (!container) {
+        rootStyle.setProperty("--mjr-mfv-top-offset", "60px");
+        return;
+    }
+
+    const rect = container.getBoundingClientRect();
+    const safeTop = Math.max(60, Math.ceil(rect.bottom + 12));
+    rootStyle.setProperty("--mjr-mfv-top-offset", `${safeTop}px`);
 }
 
 function getAnchor(container) {
@@ -89,8 +134,12 @@ function ensureViewerModesEnabled(attempt = 0) {
 
 function dispatchLaunch() {
     try {
-        window.dispatchEvent(new Event(EVENTS.MFV_OPEN));
-        ensureViewerModesEnabled();
+        if (_visible) {
+            window.dispatchEvent(new Event(EVENTS.MFV_CLOSE));
+        } else {
+            window.dispatchEvent(new Event(EVENTS.MFV_OPEN));
+            ensureViewerModesEnabled();
+        }
     } catch (e) {
         console.debug?.("[Majoor] top bar MFV launch failed", e);
     }
@@ -102,6 +151,8 @@ function createButton() {
     button.type = "button";
     button.setAttribute(BUTTON_ATTR, "1");
     button.className = "comfyui-button mjr-topbar-mfv-button";
+    button.style.position = "relative";
+    button.style.zIndex = "10030";
     button.style.width = "auto";
     button.style.height = "32px";
     button.style.minWidth = "32px";
@@ -120,15 +171,31 @@ function createButtonHost() {
     const host = document.createElement("div");
     host.setAttribute(BUTTON_HOST_ATTR, "1");
     host.className = "flex h-full items-center pointer-events-auto";
+    host.style.position = "relative";
+    host.style.zIndex = "10030";
     host.style.padding = "0 4px";
 
     host.appendChild(createButton());
     return host;
 }
 
+function _syncVisibleFromDom() {
+    if (typeof document === "undefined") return;
+    const viewerOpen = !!document.querySelector(".mjr-mfv.is-visible");
+    if (_visible !== viewerOpen) {
+        _visible = viewerOpen;
+    }
+}
+
 function ensureButtonMounted() {
     const container = getActionbarContainer();
-    if (!container) return null;
+    if (!container) {
+        updateViewerTopOffset(null);
+        return null;
+    }
+
+    _tryObserveActionbar(container);
+    _syncVisibleFromDom();
 
     let host = container.querySelector(`[${BUTTON_HOST_ATTR}]`);
     if (!host) {
@@ -146,6 +213,7 @@ function ensureButtonMounted() {
         container.insertBefore(host, anchor);
     }
 
+    updateViewerTopOffset(container);
     updateButtonState(host.querySelector(`[${BUTTON_ATTR}]`));
     return host;
 }
@@ -175,10 +243,12 @@ export function mountTopBarMfvButton() {
         window.addEventListener(EVENTS.MFV_VISIBILITY_CHANGED, _visibilityListener);
     }
 
-    if (!_observer && typeof MutationObserver !== "undefined") {
-        _observer = new MutationObserver(() => scheduleSync());
-        _observer.observe(document.body, { childList: true, subtree: true });
+    if (!_resizeListener) {
+        _resizeListener = () => scheduleSync();
+        window.addEventListener("resize", _resizeListener);
     }
+
+    _tryObserveActionbar(getActionbarContainer());
 
     return true;
 }
@@ -190,6 +260,14 @@ export function teardownTopBarMfvButton() {
         console.debug?.(e);
     }
     _observer = null;
+    _observedTarget = null;
+
+    try {
+        _bodyObserver?.disconnect?.();
+    } catch (e) {
+        console.debug?.(e);
+    }
+    _bodyObserver = null;
 
     try {
         if (_syncTimer) {
@@ -204,10 +282,16 @@ export function teardownTopBarMfvButton() {
         window.removeEventListener(EVENTS.MFV_VISIBILITY_CHANGED, _visibilityListener);
     }
     _visibilityListener = null;
+
+    if (_resizeListener && typeof window !== "undefined") {
+        window.removeEventListener("resize", _resizeListener);
+    }
+    _resizeListener = null;
     _syncQueued = false;
     _visible = false;
 
     try {
+        document.documentElement?.style?.setProperty("--mjr-mfv-top-offset", "60px");
         document.querySelector(`[${BUTTON_HOST_ATTR}]`)?.remove?.();
     } catch (e) {
         console.debug?.(e);

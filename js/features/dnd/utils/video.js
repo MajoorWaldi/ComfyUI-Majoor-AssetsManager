@@ -42,30 +42,21 @@ const isModel3DPayload = (payload) => {
 export const isManagedPayload = (payload) =>
     isVideoPayload(payload) || isAudioPayload(payload) || isModel3DPayload(payload);
 
+const _EXT_TO_MIME = {
+    mp4: "video/mp4",
+    mov: "video/quicktime",
+    webm: "video/webm",
+    mkv: "video/x-matroska",
+    glb: "model/gltf-binary",
+    gltf: "model/gltf+json",
+    obj: "model/obj",
+    stl: "model/stl",
+    ply: "application/ply",
+};
+
 export const getDownloadMimeForFilename = (filename) => {
-    const ext = String(filename || "")
-        .split(".")
-        .pop()
-        ?.toLowerCase();
-    return ext === "mp4"
-        ? "video/mp4"
-        : ext === "mov"
-          ? "video/quicktime"
-          : ext === "webm"
-            ? "video/webm"
-            : ext === "mkv"
-              ? "video/x-matroska"
-              : ext === "glb"
-                ? "model/gltf-binary"
-                : ext === "gltf"
-                  ? "model/gltf+json"
-                  : ext === "obj"
-                    ? "model/obj"
-                    : ext === "stl"
-                      ? "model/stl"
-                      : ext === "ply"
-                        ? "application/ply"
-                        : "application/octet-stream";
+    const ext = String(filename || "").split(".").pop()?.toLowerCase();
+    return _EXT_TO_MIME[ext] ?? "application/octet-stream";
 };
 
 export const looksLikeVideoPath = (value, droppedExt) => {
@@ -78,7 +69,7 @@ export const looksLikeVideoPath = (value, droppedExt) => {
     return VIDEO_EXTS.has(`.${ext}`);
 };
 
-export const comboHasAnyVideoValue = (widget, droppedExt) => {
+const _comboHasAnyValue = (widget, droppedExt, looksLikeFn) => {
     if (!widget || widget.type !== "combo" || !widget.options) return false;
     const vals =
         (Array.isArray(widget.options.values) && widget.options.values) ||
@@ -89,9 +80,12 @@ export const comboHasAnyVideoValue = (widget, droppedExt) => {
     if (!Array.isArray(vals)) return false;
     return vals.some((v) => {
         const s = typeof v === "string" ? v : (v?.content ?? v?.value ?? v?.text);
-        return looksLikeVideoPath(s, droppedExt);
+        return looksLikeFn(s, droppedExt);
     });
 };
+
+export const comboHasAnyVideoValue = (widget, droppedExt) =>
+    _comboHasAnyValue(widget, droppedExt, looksLikeVideoPath);
 
 export const looksLikeAudioPath = (value, droppedExt) => {
     if (typeof value !== "string") return false;
@@ -103,20 +97,8 @@ export const looksLikeAudioPath = (value, droppedExt) => {
     return AUDIO_EXTS.has(`.${ext}`);
 };
 
-export const comboHasAnyAudioValue = (widget, droppedExt) => {
-    if (!widget || widget.type !== "combo" || !widget.options) return false;
-    const vals =
-        (Array.isArray(widget.options.values) && widget.options.values) ||
-        (widget.options.values &&
-            Array.isArray(widget.options.values.values) &&
-            widget.options.values.values) ||
-        null;
-    if (!Array.isArray(vals)) return false;
-    return vals.some((v) => {
-        const s = typeof v === "string" ? v : (v?.content ?? v?.value ?? v?.text);
-        return looksLikeAudioPath(s, droppedExt);
-    });
-};
+export const comboHasAnyAudioValue = (widget, droppedExt) =>
+    _comboHasAnyValue(widget, droppedExt, looksLikeAudioPath);
 
 export const looksLikeModel3DPath = (value, droppedExt) => {
     if (typeof value !== "string") return false;
@@ -128,17 +110,5 @@ export const looksLikeModel3DPath = (value, droppedExt) => {
     return MODEL3D_EXTS.has(`.${ext}`);
 };
 
-export const comboHasAnyModel3DValue = (widget, droppedExt) => {
-    if (!widget || widget.type !== "combo" || !widget.options) return false;
-    const vals =
-        (Array.isArray(widget.options.values) && widget.options.values) ||
-        (widget.options.values &&
-            Array.isArray(widget.options.values.values) &&
-            widget.options.values.values) ||
-        null;
-    if (!Array.isArray(vals)) return false;
-    return vals.some((v) => {
-        const s = typeof v === "string" ? v : (v?.content ?? v?.value ?? v?.text);
-        return looksLikeModel3DPath(s, droppedExt);
-    });
-};
+export const comboHasAnyModel3DValue = (widget, droppedExt) =>
+    _comboHasAnyValue(widget, droppedExt, looksLikeModel3DPath);

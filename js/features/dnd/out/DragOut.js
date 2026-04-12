@@ -138,19 +138,18 @@ const _downloadClean = (assets) => {
         }
         const url = buildCleanDownloadURL(filepath);
         if (!url) continue;
+        const a = document.createElement("a");
         try {
-            const a = document.createElement("a");
             a.href = _abs(url);
             a.download = asset.filename || asset.name || "download";
             a.style.display = "none";
             document.body.appendChild(a);
             a.click();
             setTimeout(() => {
-                try {
-                    a.remove();
-                } catch {}
+                try { a.remove(); } catch {}
             }, 1000);
         } catch (e) {
+            try { a.remove(); } catch {}
             console.debug?.(e);
         }
     }

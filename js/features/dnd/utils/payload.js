@@ -23,7 +23,13 @@ const _sanitizeDraggedPayload = (value) => {
     if (filename.includes("/") || filename.includes("\\") || filename.includes("\x00")) return null;
 
     // eslint-disable-next-line no-control-regex
-    const subfolder = String(value.subfolder || "").replace(/\x00/g, "");
+    const rawSubfolder = String(value.subfolder || "").replace(/\x00/g, "");
+    // Reject path traversal attempts in subfolder
+    const subfolder = rawSubfolder
+        .split(/[\\/]/)
+        .filter((seg) => seg !== ".." && seg !== ".")
+        .join("/")
+        .replace(/^\/+/, "");
     const rawType = String(value.type || "output").toLowerCase();
     const type = rawType === "input" || rawType === "custom" ? rawType : "output";
 
