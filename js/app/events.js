@@ -36,4 +36,5 @@ export const EVENTS = Object.freeze({
     OPEN_ASSETS_MANAGER: "mjr:open-assets-manager",
     OPEN_VIEWER: "mjr:open-viewer",
     OPEN_STACK_GROUP: "mjr:open-stack-group",
+    OPEN_MESSAGE_HISTORY: "mjr:open-message-history",
 });

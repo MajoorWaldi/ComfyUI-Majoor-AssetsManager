@@ -234,6 +234,18 @@ function emitGlobalGridReload(reason = "status-action") {
     }
 }
 
+function requestOpenMessageHistory(reason = "") {
+    try {
+        window?.dispatchEvent?.(
+            new CustomEvent(EVENTS.OPEN_MESSAGE_HISTORY, {
+                detail: { reason: String(reason || "status-action") },
+            }),
+        );
+    } catch (e) {
+        console.debug?.(e);
+    }
+}
+
 async function askKeepVectors(actionLabel = "") {
     return await comfyConfirm(
         t(
@@ -614,6 +626,7 @@ export function createStatusIndicator(options = {}) {
             t("dialog.resetIndex.title", "Reset index?"),
         );
         if (!confirmed) return;
+        requestOpenMessageHistory("reset-index");
         setMaintenanceActive(true);
 
         const originalText = resetBtn.textContent;
@@ -718,6 +731,7 @@ export function createStatusIndicator(options = {}) {
         }
         const backfillScope = desiredScope || "output";
         const backfillScopeLabel = formatWatcherScopeLabel(backfillScope);
+        requestOpenMessageHistory("vector-backfill");
         const historyBase = {
             history: {
                 trackId: `vector-backfill:status:${backfillScope}:${desiredCustomRootId || "default"}`,

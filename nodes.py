@@ -217,16 +217,51 @@ def _resolve_video_inputs(
     frame_rate: float,
 ) -> tuple[torch.Tensor, float, dict | None] | None:
     """Return (images, fps, audio) or None when nothing to encode."""
+
+    def _coerce_audio_input(candidate: Any | None) -> dict | None:
+        if candidate is None:
+            return None
+        if isinstance(candidate, dict):
+            return candidate if candidate.get("waveform") is not None else None
+        waveform = getattr(candidate, "waveform", None)
+        if waveform is not None:
+            return {
+                "waveform": waveform,
+                "sample_rate": getattr(candidate, "sample_rate", 44100),
+            }
+        if hasattr(candidate, "__getitem__"):
+            try:
+                waveform = candidate["waveform"]
+                if waveform is not None:
+                    sample_rate = candidate["sample_rate"] if "sample_rate" in candidate else 44100
+                    return {
+                        "waveform": waveform,
+                        "sample_rate": sample_rate,
+                    }
+            except Exception:
+                pass
+        return None
+
     resolved_images: torch.Tensor | None = None
     resolved_audio: dict | None = audio
     resolved_fps: float = frame_rate
 
     if video is not None:
-        components = video.get_components()
-        resolved_images = components.images
-        resolved_fps = float(components.frame_rate) if components.frame_rate else frame_rate
-        if resolved_audio is None and components.audio is not None:
-            resolved_audio = components.audio
+        get_components = getattr(video, "get_components", None)
+        if callable(get_components):
+            components = get_components()
+            resolved_images = components.images
+            resolved_fps = float(components.frame_rate) if components.frame_rate else frame_rate
+            if resolved_audio is None and components.audio is not None:
+                resolved_audio = components.audio
+        else:
+            # Accept AUDIO payloads accidentally/explicitly routed to the video socket.
+            if resolved_audio is None:
+                resolved_audio = _coerce_audio_input(video)
+            if images is not None:
+                resolved_images = images
+            else:
+                return None
     elif images is not None:
         resolved_images = images
     else:
@@ -285,26 +320,77 @@ def _build_container_metadata(
 
 
 def _prepare_audio(
-    audio_input: dict | None,
+    audio_input: Any | None,
     fps_fraction: Fraction,
     num_frames: int,
 ) -> tuple[Any, int, str] | None:
     """Extract waveform, sample_rate, layout from an AUDIO input. Returns None if no audio."""
+
+    def _extract_audio_payload(candidate: Any | None) -> tuple[Any | None, int]:
+        if candidate is None:
+            return None, 44100
+
+        if isinstance(candidate, dict):
+            if candidate.get("waveform") is not None:
+                return candidate.get("waveform"), int(candidate.get("sample_rate", 44100) or 44100)
+            for key in ("audio", "sound", "data"):
+                nested = candidate.get(key)
+                if nested is not None:
+                    waveform, sr = _extract_audio_payload(nested)
+                    if waveform is not None:
+                        return waveform, sr
+
+        if isinstance(candidate, (list, tuple)):
+            for item in candidate:
+                waveform, sr = _extract_audio_payload(item)
+                if waveform is not None:
+                    return waveform, sr
+
+        waveform = getattr(candidate, "waveform", None)
+        if waveform is not None:
+            return waveform, int(getattr(candidate, "sample_rate", 44100) or 44100)
+
+        if hasattr(candidate, "__getitem__"):
+            try:
+                waveform = candidate["waveform"]
+                sample_rate = candidate["sample_rate"] if "sample_rate" in candidate else 44100
+                if waveform is not None:
+                    return waveform, int(sample_rate or 44100)
+            except Exception:
+                pass
+
+        return None, 44100
+
+    def _normalize_waveform_channels_samples(waveform: Any) -> torch.Tensor | None:
+        if not torch.is_tensor(waveform):
+            return None
+
+        w = waveform
+        if w.ndim == 1:
+            w = w.unsqueeze(0)
+        elif w.ndim == 3:
+            # Prefer first batch item.
+            w = w[0]
+
+        if w.ndim != 2:
+            return None
+
+        # Support both [channels, samples] and [samples, channels].
+        if w.shape[0] > 8 and w.shape[1] <= 8:
+            w = w.transpose(0, 1)
+
+        return w.contiguous()
+
     if audio_input is None:
         return None
-    waveform = audio_input.get("waveform") if isinstance(audio_input, dict) else getattr(audio_input, "waveform", None)
-    if waveform is None and hasattr(audio_input, "__getitem__"):
-        try:
-            waveform = audio_input["waveform"]
-        except Exception:
-            pass
+
+    waveform_raw, sample_rate = _extract_audio_payload(audio_input)
+    waveform = _normalize_waveform_channels_samples(waveform_raw)
     if waveform is None:
         return None
-    sample_rate = (
-        audio_input.get("sample_rate", 44100) if isinstance(audio_input, dict)
-        else getattr(audio_input, "sample_rate", 44100)
-    )
-    trimmed = waveform[0, :, :math.ceil((sample_rate / fps_fraction) * num_frames)]
+
+    max_samples = math.ceil((float(sample_rate) / float(fps_fraction)) * num_frames)
+    trimmed = waveform[:, :max_samples]
     channels = trimmed.shape[0]
     layout = {1: "mono", 2: "stereo", 6: "5.1"}.get(channels, "stereo")
     return trimmed, int(sample_rate), layout
@@ -316,7 +402,7 @@ def _encode_mp4(
     fps: float,
     crf: int,
     container_meta: dict[str, str],
-    audio_input: dict | None,
+    audio_input: Any | None,
     num_frames: int,
 ) -> None:
     """Encode frames + optional audio into an MP4 via PyAV."""
@@ -387,7 +473,10 @@ class MajoorSaveVideo:
             },
             "optional": {
                 "images": ("IMAGE", {"tooltip": "Batch of frames to encode as video."}),
-                "video": ("VIDEO", {"tooltip": "A VIDEO input (from LoadVideo / CreateVideo)."}),
+                "video": (
+                    "*",
+                    {"tooltip": "A VIDEO input, or AUDIO routed into this socket (native SaveVideo style)."},
+                ),
                 "frame_rate": (
                     "FLOAT",
                     {"default": 24.0, "min": 1.0, "max": 120.0, "step": 1.0,

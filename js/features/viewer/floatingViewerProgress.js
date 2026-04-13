@@ -408,12 +408,30 @@ export function formatFloatingViewerMediaProgressText(detail) {
     const prompt = detail?.prompt || null;
 
     if (prompt?.errorDetails) {
+        const errorDetails = prompt?.errorDetails || {};
         const nodeLabel = String(
             prompt?.currentlyExecuting?.nodeLabel
-            || prompt?.errorDetails?.node_type
-            || prompt?.errorDetails?.node_id
+            || errorDetails?.node_type
+            || errorDetails?.node_id
             || "Execution",
         ).trim();
+        const rawMessage =
+            errorDetails?.exception_message
+            ?? errorDetails?.error
+            ?? errorDetails?.message
+            ?? errorDetails?.detail
+            ?? errorDetails?.reason
+            ?? "";
+        const normalizedMessage = Array.isArray(rawMessage)
+            ? rawMessage
+                  .map((item) => String(item || "").trim())
+                  .filter(Boolean)
+                  .join(" | ")
+            : String(rawMessage || "").trim();
+        const compactMessage = normalizedMessage.replace(/\s+/g, " ").trim();
+        if (compactMessage) {
+            return `${nodeLabel} - ${compactMessage}`;
+        }
         return `${nodeLabel} - Error`;
     }
 
@@ -475,6 +493,7 @@ function applyFloatingViewerProgressState(viewer, detail) {
     if (viewer._mediaProgressEl) {
         const mediaLabel = formatFloatingViewerMediaProgressText(detail);
         viewer._mediaProgressTextEl.textContent = mediaLabel;
+        viewer._mediaProgressEl.title = mediaLabel || "";
         viewer._mediaProgressEl.classList.toggle("is-error", isError);
         viewer._mediaProgressEl.classList.toggle("is-visible", Boolean(mediaLabel));
     }

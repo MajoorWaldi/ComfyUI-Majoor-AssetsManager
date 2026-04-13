@@ -170,9 +170,21 @@ describe("floating viewer progress service", () => {
                 prompt: {
                     errorDetails: {
                         node_type: "SamplerCustomAdvanced",
+                        exception_message: "CUDA out of memory",
                     },
                 },
             }),
-        ).toBe("SamplerCustomAdvanced - Error");
+        ).toBe("SamplerCustomAdvanced - CUDA out of memory");
+
+        expect(
+            formatFloatingViewerMediaProgressText({
+                prompt: {
+                    errorDetails: {
+                        node_type: "KSampler",
+                        exception_message: ["Invalid latent", "shape mismatch"],
+                    },
+                },
+            }),
+        ).toBe("KSampler - Invalid latent | shape mismatch");
     });
 });

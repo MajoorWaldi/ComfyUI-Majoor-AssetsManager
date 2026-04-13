@@ -1,4 +1,5 @@
 import { t } from "../../../app/i18n.js";
+import { EVENTS } from "../../../app/events.js";
 import {
     PANEL_MESSAGES_EVENT,
     ensurePanelMessagesReady,
@@ -672,6 +673,34 @@ export function bindMessagePopoverController({
         showShortcutsTab();
     };
 
+    const openHistoryPopover = () => {
+        if (!messagePopover || !popovers || !messageBtn) return;
+        const isOpen = messagePopover?.style?.display === "block";
+        if (!isOpen) {
+            try {
+                if (typeof onBeforeToggle === "function") onBeforeToggle();
+            } catch (err) {
+                console.debug?.(err);
+            }
+            popovers.toggle(messagePopover, messageBtn);
+        }
+        showHistoryTab();
+        syncExpandedState();
+        updateMessageButtonState();
+    };
+
+    try {
+        window.addEventListener(
+            EVENTS.OPEN_MESSAGE_HISTORY,
+            () => {
+                openHistoryPopover();
+            },
+            listenerOptions,
+        );
+    } catch (e) {
+        console.debug?.(e);
+    }
+
     const tabOrder = ["messages", "history", "shortcuts"];
     const onTabKeydown = (event, tabName) => {
         const key = String(event?.key || "").toLowerCase();
@@ -817,6 +846,7 @@ export function bindMessagePopoverController({
         showMessagesTab,
         showHistoryTab,
         showShortcutsTab,
+        openHistoryPopover,
         close: () => {
             if (!messagePopover || !popovers) return;
             popovers.close(messagePopover);
