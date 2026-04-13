@@ -44,6 +44,7 @@ _HUGGINGFACE_TOKEN_KEY = "huggingface_token"
 _AI_VERBOSE_LOGS_KEY = "ai_verbose_logs"
 _ROUTE_VERBOSE_LOGS_KEY = "route_verbose_logs"
 _STARTUP_VERBOSE_LOGS_KEY = "startup_verbose_logs"
+_LTXAV_RGB_FALLBACK_ENABLED_KEY = "ltxav_rgb_fallback_enabled"
 _SETTINGS_VERSION_KEY = "__settings_version"
 _SECURITY_API_TOKEN_KEY = "security_api_token"
 _SECURITY_API_TOKEN_HASH_KEY = "security_api_token_hash"
@@ -156,6 +157,7 @@ class AppSettings:
         self._default_ai_verbose_logs = self._env_ai_verbose_logs_enabled()
         self._default_route_verbose_logs = self._env_route_verbose_logs_enabled()
         self._default_startup_verbose_logs = self._env_startup_verbose_logs_enabled()
+        self._default_ltxav_rgb_fallback_enabled = self._env_ltxav_rgb_fallback_enabled()
         self._runtime_api_token: str = ""
         self._runtime_api_token_hash: str = ""
 
@@ -355,6 +357,18 @@ class AppSettings:
                 or os.environ.get("MJR_AM_STARTUP_VERBOSE_LOGS")
                 or os.environ.get("MAJOOR_VERBOSE_STARTUP_LOGS")
                 or os.environ.get("MJR_AM_VERBOSE_STARTUP_LOGS")
+                or ""
+            )
+        except Exception:
+            raw = ""
+        return parse_bool(raw, False)
+
+    @staticmethod
+    def _env_ltxav_rgb_fallback_enabled() -> bool:
+        try:
+            raw = (
+                os.environ.get("MJR_ENABLE_LTXAV_RGB_FALLBACK")
+                or os.environ.get("MAJOOR_ENABLE_LTXAV_RGB_FALLBACK")
                 or ""
             )
         except Exception:
@@ -1116,6 +1130,54 @@ class AppSettings:
             self._cache.put(_STARTUP_VERBOSE_LOGS_KEY, "1" if normalized else "0", version=current_version)
             return Result.Ok(normalized)
 
+    async def get_ltxav_rgb_fallback_enabled(self) -> bool:
+        """Return persisted LTXAV RGB fallback preference."""
+        async with self._lock:
+            current_version = await self._get_settings_version()
+            cached = self._cache.get(_LTXAV_RGB_FALLBACK_ENABLED_KEY, version=current_version)
+            if cached is not None:
+                return parse_bool(cached, self._default_ltxav_rgb_fallback_enabled)
+            raw = await self._read_setting(_LTXAV_RGB_FALLBACK_ENABLED_KEY)
+            enabled = (
+                parse_bool(raw, self._default_ltxav_rgb_fallback_enabled)
+                if raw is not None
+                else self._default_ltxav_rgb_fallback_enabled
+            )
+            self._cache.put(
+                _LTXAV_RGB_FALLBACK_ENABLED_KEY,
+                "1" if enabled else "0",
+                version=current_version,
+            )
+            return enabled
+
+    async def set_ltxav_rgb_fallback_enabled(self, enabled: Any) -> Result[bool]:
+        """Persist LTXAV RGB fallback preference and apply runtime env vars."""
+        normalized = parse_bool(enabled, self._default_ltxav_rgb_fallback_enabled)
+        async with self._lock:
+            res = await self._write_setting(
+                _LTXAV_RGB_FALLBACK_ENABLED_KEY,
+                "1" if normalized else "0",
+            )
+            if not res.ok:
+                return Result.Err(
+                    "DB_ERROR",
+                    res.error or "Failed to persist ltxav_rgb_fallback_enabled",
+                )
+            self._set_ltxav_rgb_fallback_env_vars(normalized)
+            bump = await self._bump_settings_version_locked()
+            if not bump.ok:
+                try:
+                    logger.warning("Failed to bump settings version: %s", bump.error)
+                except Exception:
+                    pass
+            current_version = int(bump.data or await self._get_settings_version() or 0)
+            self._cache.put(
+                _LTXAV_RGB_FALLBACK_ENABLED_KEY,
+                "1" if normalized else "0",
+                version=current_version,
+            )
+            return Result.Ok(normalized)
+
     def _set_vector_search_env_vars(self, enabled: bool) -> None:
         value = "1" if enabled else "0"
         try:
@@ -1152,6 +1214,14 @@ class AppSettings:
             os.environ["MJR_AM_STARTUP_VERBOSE_LOGS"] = value
             os.environ["MAJOOR_VERBOSE_STARTUP_LOGS"] = value
             os.environ["MJR_AM_VERBOSE_STARTUP_LOGS"] = value
+        except Exception:
+            return
+
+    def _set_ltxav_rgb_fallback_env_vars(self, enabled: bool) -> None:
+        value = "1" if enabled else "0"
+        try:
+            os.environ["MJR_ENABLE_LTXAV_RGB_FALLBACK"] = value
+            os.environ["MAJOOR_ENABLE_LTXAV_RGB_FALLBACK"] = value
         except Exception:
             return
 
@@ -1459,3 +1529,27 @@ class AppSettings:
                 )
         except Exception as exc:
             logger.warning("Failed to restore verbose startup logs setting on startup: %s", exc)
+
+    async def apply_ltxav_rgb_fallback_on_startup(self) -> None:
+        """Restore LTXAV RGB fallback preference into environment on startup."""
+        try:
+            async with self._lock:
+                raw = await self._read_setting(_LTXAV_RGB_FALLBACK_ENABLED_KEY)
+                enabled = (
+                    parse_bool(raw, self._default_ltxav_rgb_fallback_enabled)
+                    if raw is not None
+                    else self._default_ltxav_rgb_fallback_enabled
+                )
+                self._set_ltxav_rgb_fallback_env_vars(enabled)
+                self._cache.put(
+                    _LTXAV_RGB_FALLBACK_ENABLED_KEY,
+                    "1" if enabled else "0",
+                    version=int(await self._get_settings_version() or 0),
+                )
+                startup_log_info(
+                    logger,
+                    "Restored LTXAV RGB fallback setting on startup: %s",
+                    "enabled" if enabled else "disabled",
+                )
+        except Exception as exc:
+            logger.warning("Failed to restore LTXAV RGB fallback setting on startup: %s", exc)

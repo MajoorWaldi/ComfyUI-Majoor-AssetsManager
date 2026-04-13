@@ -246,6 +246,10 @@ def _extract_startup_verbose_logs_payload(body: dict) -> object | None:
     return _extract_ai_verbose_logs_payload(body)
 
 
+def _extract_ltxav_rgb_fallback_payload(body: dict) -> object | None:
+    return _extract_ai_verbose_logs_payload(body)
+
+
 def _build_security_prefs(body: dict) -> dict[str, object]:
     prefs: dict[str, object] = {}
     for key in SECURITY_PREF_KEYS:
@@ -1255,6 +1259,68 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
             request,
             "settings_startup_logging",
             "settings:startup_logging",
+            response_result,
+            enabled=enabled,
+        )
+        return _json_response(response_result)
+
+    @routes.get("/mjr/am/settings/ltxav-rgb-fallback")
+    async def get_ltxav_rgb_fallback_settings(request):
+        svc, error_result = await _require_services()
+        if error_result:
+            return _json_response(error_result)
+
+        settings_service = svc.get("settings")
+        if not settings_service:
+            return _json_response(Result.Err("SERVICE_UNAVAILABLE", "Settings service unavailable"))
+
+        enabled = await settings_service.get_ltxav_rgb_fallback_enabled()
+        return _json_response(Result.Ok({"prefs": {"enabled": bool(enabled)}}))
+
+    @routes.post("/mjr/am/settings/ltxav-rgb-fallback")
+    async def update_ltxav_rgb_fallback_settings(request):
+        csrf = _csrf_error(request)
+        if csrf:
+            return _json_response(Result.Err(ErrorCode.CSRF, csrf))
+        auth = _require_write_access(request)
+        if not auth.ok:
+            return _json_response(auth)
+
+        svc, error_result = await _require_services()
+        if error_result:
+            return _json_response(error_result)
+
+        settings_service = svc.get("settings")
+        if not settings_service:
+            return _json_response(Result.Err(ErrorCode.SERVICE_UNAVAILABLE, "Settings service unavailable"))
+
+        body_res = await _read_json(request)
+        if not body_res.ok:
+            return _json_response(body_res)
+        body = body_res.data or {}
+
+        enabled = _extract_ltxav_rgb_fallback_payload(body)
+        if enabled is None:
+            return _json_response(Result.Err("INVALID_INPUT", "Missing LTXAV RGB fallback value"))
+
+        result = await settings_service.set_ltxav_rgb_fallback_enabled(enabled)
+        if not result.ok:
+            await _audit_settings_write(
+                svc,
+                request,
+                "settings_ltxav_rgb_fallback",
+                "settings:ltxav_rgb_fallback",
+                result,
+                enabled=enabled,
+            )
+            return _json_response(result)
+
+        response_result = Result.Ok({"prefs": {"enabled": bool(result.data)}})
+        await _audit_settings_write(
+            svc,
+            request,
+            "settings_ltxav_rgb_fallback",
+            "settings:ltxav_rgb_fallback",
             response_result,
             enabled=enabled,
         )

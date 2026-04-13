@@ -323,8 +323,8 @@ export class FloatingViewer {
         return setFloatingViewerPreviewActive(this, active);
     }
 
-    loadPreviewBlob(blob) {
-        return loadFloatingViewerPreviewBlob(this, blob);
+    loadPreviewBlob(blob, opts = {}) {
+        return loadFloatingViewerPreviewBlob(this, blob, opts);
     }
 
     _revokePreviewBlob() {

@@ -93,6 +93,7 @@ export const DEFAULT_SETTINGS = {
         metaMaxEntries: APP_DEFAULTS.VIEWER_META_MAX_ENTRIES,
         mfvSidebarPosition: "right",
         mfvPreviewMethod: APP_DEFAULTS.MFV_PREVIEW_METHOD,
+        ltxavRgbFallback: false,
     },
     rtHydrate: {
         concurrency: APP_DEFAULTS.RT_HYDRATE_CONCURRENCY,

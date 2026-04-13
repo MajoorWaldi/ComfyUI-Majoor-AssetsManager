@@ -111,12 +111,18 @@ export function setFloatingViewerPreviewActive(viewer, active) {
     }
 }
 
-export function loadFloatingViewerPreviewBlob(viewer, blob) {
+export function loadFloatingViewerPreviewBlob(viewer, blob, opts = {}) {
     if (!blob || !(blob instanceof Blob)) return;
     viewer._revokePreviewBlob();
     const url = URL.createObjectURL(blob);
     viewer._previewBlobUrl = url;
-    const fileData = { url, filename: "preview.jpg", kind: "image", _isPreview: true };
+    const fileData = {
+        url,
+        filename: "preview.jpg",
+        kind: "image",
+        _isPreview: true,
+        _sourceLabel: opts?.sourceLabel || null,
+    };
 
     const inCompare =
         viewer._mode === MFV_MODES.AB ||

@@ -70,6 +70,14 @@ export async function setStartupLoggingSettings(enabled = false) {
     return post(ENDPOINTS.SETTINGS_STARTUP_LOGGING, { enabled: !!enabled });
 }
 
+export async function getLtxavRgbFallbackSettings() {
+    return get(ENDPOINTS.SETTINGS_LTXAV_RGB_FALLBACK);
+}
+
+export async function setLtxavRgbFallbackSettings(enabled = false) {
+    return post(ENDPOINTS.SETTINGS_LTXAV_RGB_FALLBACK, { enabled: !!enabled });
+}
+
 export async function getOutputDirectorySetting() {
     return get(ENDPOINTS.SETTINGS_OUTPUT_DIRECTORY);
 }

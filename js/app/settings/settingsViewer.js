@@ -4,6 +4,8 @@
 
 import { t } from "../i18n.js";
 import { saveMajoorSettings, applySettingsToConfig } from "./settingsCore.js";
+import { getLtxavRgbFallbackSettings, setLtxavRgbFallbackSettings } from "../../api/client.js";
+import { comfyToast } from "../toast.js";
 
 const SETTINGS_PREFIX = "Majoor";
 const SETTINGS_CATEGORY = "Majoor Assets Manager";
@@ -127,6 +129,60 @@ export function registerViewerSettings(safeAddSetting, settings, notifyApplied) 
             notifyApplied("viewer.mfvPreviewMethod");
         },
     });
+
+    safeAddSetting({
+        id: `${SETTINGS_PREFIX}.Viewer.LtxavRgbFallback`,
+        category: cat(t("cat.viewer"), "LTXAV preview fallback"),
+        name: "Majoor: LTXAV RGB Preview Fallback (experimental)",
+        tooltip:
+            "Reuse LTXV RGB projection for LTXAV when native latent preview is unavailable. Experimental; quality may be approximate.",
+        type: "boolean",
+        defaultValue: !!settings.viewer?.ltxavRgbFallback,
+        onChange: async (value) => {
+            const next = !!value;
+            const prev = !!settings.viewer?.ltxavRgbFallback;
+            settings.viewer = settings.viewer || {};
+            settings.viewer.ltxavRgbFallback = next;
+            saveMajoorSettings(settings);
+            applySettingsToConfig(settings);
+            notifyApplied("viewer.ltxavRgbFallback");
+            try {
+                const res = await setLtxavRgbFallbackSettings(next);
+                if (!res?.ok) {
+                    throw new Error(
+                        res?.error || "Failed to update LTXAV RGB preview fallback setting",
+                    );
+                }
+            } catch (error) {
+                settings.viewer.ltxavRgbFallback = prev;
+                saveMajoorSettings(settings);
+                applySettingsToConfig(settings);
+                notifyApplied("viewer.ltxavRgbFallback");
+                comfyToast(
+                    error?.message || "Failed to update LTXAV RGB preview fallback setting",
+                    "error",
+                );
+            }
+        },
+    });
+
+    try {
+        getLtxavRgbFallbackSettings()
+            .then((res) => {
+                if (!res?.ok) return;
+                const enabled = !!res?.data?.prefs?.enabled;
+                settings.viewer = settings.viewer || {};
+                if (!!settings.viewer.ltxavRgbFallback !== enabled) {
+                    settings.viewer.ltxavRgbFallback = enabled;
+                    saveMajoorSettings(settings);
+                    applySettingsToConfig(settings);
+                    notifyApplied("viewer.ltxavRgbFallback");
+                }
+            })
+            .catch(() => {});
+    } catch (e) {
+        console.debug?.(e);
+    }
 
     const registerMinimapToggle = (idKey, stateKey, nameKey, descKey) => {
         safeAddSetting({

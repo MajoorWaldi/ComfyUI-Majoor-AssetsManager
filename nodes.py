@@ -486,7 +486,6 @@ class MajoorSaveVideo:
 
         return {"ui": {"videos": [{"filename": out_file, "subfolder": subfolder, "type": self.type}]}}
 
-
 # ---------------------------------------------------------------------------
 # Registration helpers
 # ---------------------------------------------------------------------------

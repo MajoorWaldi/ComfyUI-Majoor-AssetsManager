@@ -557,7 +557,7 @@ export const floatingViewerManager = {
      * If preview mode is off or the viewer is not visible, the blob is ignored.
      * @param {Blob} blob  JPEG/PNG Blob from the ComfyUI `b_preview` event.
      */
-    async feedPreviewBlob(blob) {
+    async feedPreviewBlob(blob, opts = {}) {
         if (!_previewActive) return;
         const inst = await _getInstance();
         const wasVisible = Boolean(inst.isVisible);
@@ -565,7 +565,7 @@ export const floatingViewerManager = {
             inst.show();
         }
         _syncViewerControls(inst);
-        inst.loadPreviewBlob(blob);
+        inst.loadPreviewBlob(blob, opts);
         if (!wasVisible) _emitVisibilityChanged(true);
     },
 
