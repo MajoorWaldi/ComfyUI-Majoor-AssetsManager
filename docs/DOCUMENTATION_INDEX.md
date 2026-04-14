@@ -3,7 +3,7 @@
 Welcome to the documentation hub for **Majoor Assets Manager** for ComfyUI.
 
 **Current Version**: 2.4.5
-**Last Updated**: April 7, 2026
+**Last Updated**: April 14, 2026
 
 ## Quick Start
 

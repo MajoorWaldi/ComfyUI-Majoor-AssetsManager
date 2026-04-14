@@ -104,6 +104,9 @@ export function mountFloatingViewerSimplePlayer(mediaEl, fileData = null, { kind
 
     const root = document.createElement("div");
     root.className = "mjr-mfv-simple-player";
+    root.tabIndex = 0;
+    root.setAttribute("role", "group");
+    root.setAttribute("aria-label", "Media player");
     if (audioKind) root.classList.add("is-audio");
     if (animatedImage) root.classList.add("is-animated-image");
 
@@ -344,6 +347,39 @@ export function mountFloatingViewerSimplePlayer(mediaEl, fileData = null, { kind
 
     const stopControlEvent = (e) => stopEvent(e);
 
+    const focusPlayerRoot = (e) => {
+        try {
+            if (e?.target?.closest?.("button, input, textarea, select")) return;
+            root.focus?.({ preventScroll: true });
+        } catch (err) {
+            console.debug?.(err);
+        }
+    };
+
+    const onPlayerKeydown = (e) => {
+        const key = String(e?.key || "");
+        if (!key || e?.altKey || e?.ctrlKey || e?.metaKey) return;
+
+        if (key === " " || key === "Spacebar") {
+            e.preventDefault?.();
+            onPlayPause(e);
+            return;
+        }
+
+        if (key === "ArrowLeft") {
+            if (!videoKind) return;
+            e.preventDefault?.();
+            onStep(-1, e);
+            return;
+        }
+
+        if (key === "ArrowRight") {
+            if (!videoKind) return;
+            e.preventDefault?.();
+            onStep(1, e);
+        }
+    };
+
     playPauseBtn.addEventListener("click", onPlayPause);
     stepBackBtn.addEventListener("click", (e) => onStep(-1, e));
     stepForwardBtn.addEventListener("click", (e) => onStep(1, e));
@@ -353,6 +389,8 @@ export function mountFloatingViewerSimplePlayer(mediaEl, fileData = null, { kind
     controls.addEventListener("pointerdown", stopControlEvent);
     controls.addEventListener("click", stopControlEvent);
     controls.addEventListener("dblclick", stopControlEvent);
+    root.addEventListener("pointerdown", focusPlayerRoot);
+    root.addEventListener("keydown", onPlayerKeydown);
 
     if (mediaEl instanceof HTMLMediaElement) {
         mediaEl.addEventListener("play", updatePlayPauseIcon, { passive: true });

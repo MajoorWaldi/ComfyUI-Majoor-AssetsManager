@@ -1,7 +1,7 @@
 # Majoor Assets Manager - Viewer Feature Tutorial
 
 **Version**: 2.4.5
-**Last Updated**: April 11, 2026
+**Last Updated**: April 14, 2026
 
 ## Overview
 The Majoor Assets Manager provides **two viewer experiences**:
@@ -262,8 +262,8 @@ You can change where the Node Parameters sidebar appears inside the Floating Vie
 - **Pan**: Click and drag when zoomed in
 
 #### Navigation
-- **Previous Asset**: **Left Arrow**
-- **Next Asset**: **Right Arrow**
+- **Previous Asset**: **Left Arrow** when the inline player is not focused
+- **Next Asset**: **Right Arrow** when the inline player is not focused
 - **First Asset**: **Home**
 - **Last Asset**: **End**
 
@@ -287,9 +287,11 @@ You can change where the Node Parameters sidebar appears inside the Floating Vie
 #### Video Controls
 | Shortcut | Action |
 |----------|--------|
-| **Space** | Play/Pause Video |
-| **[** | Set In Point |
-| **]** | Set Out Point |
+| **Space** | Play/Pause the focused inline player |
+| **Left Arrow** | Step backward one frame |
+| **Right Arrow** | Step forward one frame |
+
+> Tip: click once on the MFV media player to focus it, then use the playback keys above. The Gen Info overlay remains visible and automatically sits above the player controls when they are present.
 
 See [HOTKEYS_SHORTCUTS.md](HOTKEYS_SHORTCUTS.md) for complete shortcut list.
 
@@ -648,5 +650,5 @@ The viewer seamlessly integrates with the comparison feature:
 - Keep frequently accessed assets in smaller collections
 
 ---
-*Viewer Feature Tutorial Version: 1.0*
-*Last Updated: April 5, 2026*
+*Viewer Feature Tutorial Version: 2.4.5*
+*Last Updated: April 14, 2026*

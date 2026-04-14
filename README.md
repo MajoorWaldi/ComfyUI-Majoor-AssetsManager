@@ -131,9 +131,9 @@ A lightweight floating viewer panel for real-time generation comparison:
 - **Real-time Preview**: Watch generations as they complete
 - **Node Tracking**: Click on LoadImage/SaveImage nodes to preview their content
 - **Pan & Zoom**: Mouse wheel zoom and click-drag pan for detailed inspection
-- **Gen Info Overlay**: Display prompt, seed, model, and LoRA for each generation
+- **Gen Info Overlay**: Display prompt, seed, model, and LoRA for each generation; when the inline MFV player is present, the overlay automatically shifts above the player controls
 - **Draggable Panel**: Position anywhere on screen, resizable
-- **Keyboard Shortcuts**: Quick mode switching and controls
+- **Keyboard Shortcuts**: Quick mode switching and focused player controls, including Space for play/pause and Left/Right for frame stepping
 
 ### 🔧 Major Improvements
 - **Cross-Platform**: Full Linux support (Ubuntu 22.04+, Fedora, Debian)
@@ -411,6 +411,7 @@ If the Majoor nodes are **not** used, the asset manager falls back to its standa
 - **Move Panel**: Drag from panel header
 - **Resize**: Drag panel edges
 - **Close**: ESC or close button
+- **Focused Player Shortcuts**: Click once on the inline player, then use **Space** to play/pause and **Left/Right** to step frame by frame
 
 See [`docs/VIEWER_FEATURE_TUTORIAL.md`](docs/VIEWER_FEATURE_TUTORIAL.md) for complete viewer documentation.
 
@@ -448,7 +449,7 @@ See [`docs/VIEWER_FEATURE_TUTORIAL.md`](docs/VIEWER_FEATURE_TUTORIAL.md) for com
 | **F** | Toggle fullscreen |
 | **D** | Toggle info panel |
 | **Space** | Play/pause video |
-| **Left/Right** | Previous/next asset |
+| **Left/Right** | Previous/next asset, or step frame when the focused MFV player is active |
 | **Mouse Wheel** | Zoom in/out |
 | **I** | Toggle pixel probe |
 | **C** | Copy probed color |

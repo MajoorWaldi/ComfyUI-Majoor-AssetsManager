@@ -1,7 +1,7 @@
 # Majoor Assets Manager - Hotkeys & Keyboard Shortcuts Guide
 
 **Version**: 2.4.5
-**Last Updated**: April 11, 2026
+**Last Updated**: April 14, 2026
 
 ## Overview
 This guide covers all active keyboard shortcuts for the Majoor Assets Manager, including the new **Majoor Floating Viewer (MFV)**.
@@ -161,17 +161,16 @@ These shortcuts apply when the **Majoor Floating Viewer** panel is open.
 | **P** | Show Prompt Only |
 | **S** | Show Settings Only |
 
+> In MFV, Gen Info stays as an overlay and automatically moves above the inline player controls when those controls are visible.
+
 ### Video Controls (MFV)
 | Shortcut | Action |
 |----------|--------|
-| **Space** | Play/Pause Video |
-| **K** | Play/Pause Video (alternative) |
-| **J** | Rewind (2x speed backward) |
-| **L** | Fast Forward (2x speed forward) |
-| **[** | Set In Point |
-| **]** | Set Out Point |
-| **Shift+[** | Clear In Point |
-| **Shift+]** | Clear Out Point |
+| **Space** | Play/Pause the focused MFV player |
+| **Left Arrow** | Step backward one frame |
+| **Right Arrow** | Step forward one frame |
+
+> Click once on the inline player surface to give it focus before using the playback shortcuts above.
 
 ### Compare Mode (MFV)
 | Shortcut | Action |
@@ -322,6 +321,6 @@ All features are accessible via keyboard:
 
 ---
 
-*Hotkeys & Shortcuts Guide Version: 2.0*
-*Last Updated: April 5, 2026*
+*Hotkeys & Shortcuts Guide Version: 2.4.5*
+*Last Updated: April 14, 2026*
 *Compatible with Majoor Assets Manager v2.4.4+*

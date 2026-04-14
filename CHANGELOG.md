@@ -18,6 +18,10 @@ All notable changes to this project are documented in this file.
 - **Majoor Save Video 🎬**: Save IMAGE batches or VIDEO inputs as MP4 (h264 via PyAV), GIF, or WebP; embeds `generation_time_ms`, prompt, and workflow directly in the MP4 container metadata; optional PNG sidecar for first frame; supports audio muxing and configurable CRF quality
 - **Generation Time Extraction**: The metadata extraction pipeline now reads `generation_time_ms` from PNG text chunks and MP4 container format tags, so the value survives index resets and re-indexing
 
+### ✨ Improved
+- **MFV Gen Info Overlay Placement**: Keep Gen Info as the original overlay and automatically place it above the inline player controls when the player is visible
+- **MFV Simple Player Keyboard Controls**: Support focused playback shortcuts with Space for play/pause and Left/Right for frame-by-frame stepping
+
 ---
 
 ## [2.4.4] - 2026-04-05

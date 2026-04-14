@@ -1,7 +1,7 @@
 # Keyboard Shortcuts
 
-**Version**: 2.4.4  
-**Last Updated**: April 5, 2026
+**Version**: 2.4.5
+**Last Updated**: April 14, 2026
 
 Quick reference for Majoor Assets Manager shortcuts. For full details including MFV shortcuts, see [HOTKEYS_SHORTCUTS.md](HOTKEYS_SHORTCUTS.md).
 
@@ -28,7 +28,7 @@ Quick reference for Majoor Assets Manager shortcuts. For full details including 
 |----------|--------|
 | **Esc** | Close Viewer |
 | **Space** | Play/Pause |
-| ** / ** | Prev/Next Asset (or Step Frame if Player Focused) |
+| **Left Arrow / Right Arrow** | Prev/Next Asset, or step frame when the focused MFV player is active |
 | **F** | Fullscreen |
 | **D** | Info Panel |
 | **I** | Set In Point (video) / Pixel Probe (image) |
@@ -40,4 +40,3 @@ Quick reference for Majoor Assets Manager shortcuts. For full details including 
 | **G** | Grid Overlay |
 | **Alt+1** | 1:1 View |
 | **+ / -** | Zoom |
-
