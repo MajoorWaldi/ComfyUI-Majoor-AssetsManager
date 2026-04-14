@@ -253,6 +253,28 @@ async def test_update_index_directory_setting_success(monkeypatch, tmp_path) -> 
 
 
 @pytest.mark.asyncio
+async def test_update_index_directory_creates_missing_dir(monkeypatch, tmp_path) -> None:
+    new_dir = tmp_path / "sub" / "index"
+    monkeypatch.setattr(health_mod, "_csrf_error", lambda _req: None)
+    monkeypatch.setattr(health_mod, "_require_write_access", lambda _req: Result.Ok({}))
+    monkeypatch.setattr(health_mod, "_read_json", lambda _req: asyncio.sleep(0, result=Result.Ok({"index_directory": str(new_dir)})))
+    monkeypatch.setattr(health_mod, "set_index_directory_override", lambda value: value)
+    monkeypatch.setattr(health_mod, "get_runtime_index_dir", lambda: str(new_dir))
+
+    async def _svc():
+        return {}, None
+
+    monkeypatch.setattr(health_mod, "_require_services", _svc)
+
+    app = _build_health_app()
+    req = make_mocked_request("POST", "/mjr/am/settings/index-directory", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    body = json.loads(resp.text)
+    assert body.get("ok") is True
+    assert new_dir.is_dir(), "Handler should auto-create the index directory"
+
+
+@pytest.mark.asyncio
 async def test_update_output_directory_csrf_block(monkeypatch) -> None:
     monkeypatch.setattr(health_mod, "_csrf_error", lambda _req: "csrf")
 

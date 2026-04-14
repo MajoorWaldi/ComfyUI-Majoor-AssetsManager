@@ -761,11 +761,18 @@ def register_health_routes(routes: web.RouteTableDef) -> None:
 
         if value:
             try:
-                normalized_path = Path(value).expanduser().resolve(strict=True)
+                normalized_path = Path(value).expanduser().resolve(strict=False)
             except Exception:
-                return _json_response(Result.Err("INVALID_INPUT", "index_directory must be an existing directory"))
-            if not normalized_path.is_dir():
-                return _json_response(Result.Err("INVALID_INPUT", "index_directory must be a directory"))
+                return _json_response(Result.Err("INVALID_INPUT", "index_directory path is invalid"))
+            if normalized_path.exists() and not normalized_path.is_dir():
+                return _json_response(Result.Err("INVALID_INPUT", "index_directory must be a directory, not a file"))
+            if not normalized_path.exists():
+                try:
+                    normalized_path.mkdir(parents=True, exist_ok=True)
+                except Exception:
+                    return _json_response(
+                        Result.Err("INVALID_INPUT", f"Cannot create index directory: {normalized_path}")
+                    )
             value = str(normalized_path)
 
         previous = get_runtime_index_dir()
