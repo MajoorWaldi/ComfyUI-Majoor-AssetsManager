@@ -1,8 +1,10 @@
 import {
     comboHasAnyAudioValue,
+    comboHasAnyImageValue,
     comboHasAnyModel3DValue,
     comboHasAnyVideoValue,
     looksLikeAudioPath,
+    looksLikeImagePath,
     looksLikeModel3DPath,
     looksLikeVideoPath,
 } from "../utils/video.js";
@@ -227,6 +229,17 @@ const _VIDEO_CFG = {
     scoreKey: "__mjrVideoPickScore",
 };
 
+const _IMAGE_CFG = {
+    exactNames: new Set(["image", "image_path", "input_image", "source_image"]),
+    knownNodeIncludes: ["loadimage", "loadimagemask", "imageloader"],
+    mediaTerms: ["image", "img", "mask", "frame", "photo", "picture"],
+    extraTerms: [{ terms: ["media", "source", "first", "last"], score: 35 }],
+    exactSingleNames: new Set(["image"]),
+    looksLikeFn: looksLikeImagePath,
+    comboChecker: comboHasAnyImageValue,
+    scoreKey: "__mjrImagePickScore",
+};
+
 const _AUDIO_CFG = {
     exactNames: new Set(["audio_path", "input_audio", "source_audio", "audio"]),
     knownNodeIncludes: ["loadaudio", "vhs_loadaudioupload", "vhs_loadaudio", "audioloader", "inputaudio"],
@@ -261,6 +274,7 @@ export const pickBestMediaPathWidget = (node, payload, droppedExt) => {
     const cfg =
         kind === "model3d" ? _MODEL3D_CFG :
         kind === "audio"   ? _AUDIO_CFG   :
+        kind === "image"   ? _IMAGE_CFG   :
                              _VIDEO_CFG;
     return _pickBestPathWidget(node, droppedExt, cfg);
 };

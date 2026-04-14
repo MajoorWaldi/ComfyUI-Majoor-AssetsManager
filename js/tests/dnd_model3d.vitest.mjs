@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+    comboHasAnyImageValue,
     comboHasAnyModel3DValue,
     getDownloadMimeForFilename,
     isManagedPayload,
+    looksLikeImagePath,
     looksLikeModel3DPath,
 } from "../features/dnd/utils/video.js";
 import { pickBestMediaPathWidget } from "../features/dnd/targets/node.js";
@@ -11,6 +13,8 @@ import { pickBestMediaPathWidget } from "../features/dnd/targets/node.js";
 describe("3D drag and drop support", () => {
     it("treats model3d payloads as managed assets", () => {
         expect(isManagedPayload({ kind: "model3d", filename: "robot.glb" })).toBe(true);
+        expect(isManagedPayload({ kind: "image", filename: "photo.png" })).toBe(true);
+        expect(isManagedPayload({ filename: "photo.webp" })).toBe(true);
         expect(isManagedPayload({ filename: "robot.obj" })).toBe(true);
         expect(isManagedPayload({ filename: "notes.txt" })).toBe(false);
     });
@@ -24,6 +28,19 @@ describe("3D drag and drop support", () => {
                     options: { values: ["cat.png", "robot.glb"] },
                 },
                 "glb",
+            ),
+        ).toBe(true);
+    });
+
+    it("recognizes image paths and image widgets", () => {
+        expect(looksLikeImagePath("mjr_staged/shot.png", "png")).toBe(true);
+        expect(
+            comboHasAnyImageValue(
+                {
+                    type: "combo",
+                    options: { values: ["shot.png", "clip.mp4"] },
+                },
+                "png",
             ),
         ).toBe(true);
     });
@@ -53,5 +70,19 @@ describe("3D drag and drop support", () => {
 
         expect(picked).toBe(modelPath);
         expect(modelPath.__mjrModel3DPickScore).toBeGreaterThan(0);
+    });
+
+    it("prefers image-oriented widgets when dropping an image asset on a LoadImage node", () => {
+        const imagePath = { name: "image", type: "combo", value: "", options: { values: ["existing.png"] } };
+        const outputPath = { name: "output_path", type: "text", value: "" };
+        const node = {
+            type: "LoadImage",
+            widgets: [outputPath, imagePath],
+        };
+
+        const picked = pickBestMediaPathWidget(node, { kind: "image" }, "png");
+
+        expect(picked).toBe(imagePath);
+        expect(imagePath.__mjrImagePickScore).toBeGreaterThan(0);
     });
 });

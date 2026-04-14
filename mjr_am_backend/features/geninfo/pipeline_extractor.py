@@ -61,7 +61,7 @@ def _classify_pipeline_pass_name(
     return f"Pass {index + 1}"
 
 
-_INTERNAL_PASS_KEYS = ("_node_type", "_title", "_is_detailer", "_keep_when_sparse", "_add_noise")
+_INTERNAL_PASS_KEYS = ("_node_id", "_node_type", "_title", "_is_detailer", "_keep_when_sparse", "_add_noise")
 
 
 def _assign_pass_name(sampler_pass: dict[str, Any], index: int, total: int) -> None:
@@ -117,6 +117,29 @@ def _coerce_int(value: Any, default: int | None = None) -> int | None:
         return default
 
 
+def _pipeline_pass_identity(export_sampler: dict[str, Any]) -> str:
+    dedupe_sampler = {k: v for k, v in export_sampler.items() if not k.startswith("_")}
+    identity = {
+        "fields": dedupe_sampler,
+        "node_id": str(export_sampler.get("_node_id") or ""),
+        "node_type": str(export_sampler.get("_node_type") or ""),
+        "title": str(export_sampler.get("_title") or ""),
+        "is_detailer": export_sampler.get("_is_detailer") is True,
+    }
+    return json.dumps(identity, sort_keys=True)
+
+
+def _pipeline_sampler_sort_key(
+    nodes_by_id: dict[str, Any],
+    candidates: list[tuple[int, int, str]],
+    item: tuple[int, int, str],
+) -> tuple[int, int, int]:
+    depth, stable, nid = item
+    upstream = _collect_upstream_nodes(nodes_by_id, nid, max_nodes=300, max_depth=120)
+    ancestor_count = sum(1 for _, _, other_id in candidates if other_id != nid and other_id in upstream)
+    return (ancestor_count, -depth, stable)
+
+
 def _build_pipeline_pass_entry(nodes_by_id: dict[str, Any], sampler_id: str) -> dict[str, Any] | None:
     from . import parser_impl as _p
 
@@ -130,6 +153,7 @@ def _build_pipeline_pass_entry(nodes_by_id: dict[str, Any], sampler_id: str) -> 
     _apply_proxy_widget_sampler_values(sampler_values, sampler_node)
     stage_hint = _lower(f"{_node_type(sampler_node) or ''} {sampler_node.get('title') or ''}")
     entry: dict[str, Any] = {
+        "_node_id": str(sampler_id),
         "_node_type": str(_node_type(sampler_node) or ""),
         "_title": str(sampler_node.get("title") or ""),
         "_is_detailer": _node_has_detailer_signals(sampler_node),
@@ -166,9 +190,14 @@ def _collect_all_samplers_from_sinks(
             confidence = sampler_conf if sampler_conf != "none" else "low"
             sampler_values = _p._extract_sampler_values(nodes_by_id, sampler_node, sampler_id, ins, advanced, confidence, trace)
 
-            export_sampler: dict[str, Any] = {}
+            export_sampler: dict[str, Any] = {
+                "_node_id": str(sampler_id),
+                "_node_type": str(_node_type(sampler_node) or ""),
+                "_title": str(sampler_node.get("title") or ""),
+                "_is_detailer": _node_has_detailer_signals(sampler_node),
+            }
             _cast_sampler_fields(sampler_values, export_sampler)
-            val_str = json.dumps(export_sampler, sort_keys=True)
+            val_str = _pipeline_pass_identity(export_sampler)
             if val_str not in seen_hashes:
                 seen_hashes.add(val_str)
                 all_samplers.append(export_sampler)
@@ -247,10 +276,15 @@ def _advance_advanced_sampler_chain_step(
     confidence = sampler_conf if depth == 1 else "medium"
     sampler_values = _p._extract_sampler_values(nodes_by_id, sampler_node, current_id, ins, True, confidence, trace)
 
-    entry: dict[str, Any] = {"_node_type": str(_node_type(sampler_node) or "")}
+    entry: dict[str, Any] = {
+        "_node_id": str(current_id),
+        "_node_type": str(_node_type(sampler_node) or ""),
+        "_title": str(sampler_node.get("title") or ""),
+        "_is_detailer": _node_has_detailer_signals(sampler_node),
+    }
     _cast_sampler_fields(sampler_values, entry)
 
-    val_str = json.dumps(entry, sort_keys=True)
+    val_str = _pipeline_pass_identity(entry)
     if val_str not in seen_hashes:
         seen_hashes.add(val_str)
         collected.append(entry)
@@ -292,7 +326,8 @@ def _collect_pipeline_sampler_ids(nodes_by_id: dict[str, Any], dist: dict[str, i
         except Exception:
             stable = 10**9
         sampler_ids.append((depth, stable, nid))
-    sampler_ids.sort(key=lambda item: (-item[0], item[1]))
+    candidates = list(sampler_ids)
+    sampler_ids.sort(key=lambda item: _pipeline_sampler_sort_key(nodes_by_id, candidates, item))
     return sampler_ids
 
 
@@ -318,13 +353,7 @@ def _should_keep_pipeline_pass(
     dedupe_sampler = {k: v for k, v in export_sampler.items() if not k.startswith("_")}
     if not dedupe_sampler and export_sampler.get("_keep_when_sparse") is not True:
         return False
-    val_str = json.dumps(
-        dedupe_sampler if dedupe_sampler else {
-            "_node_type": export_sampler.get("_node_type") or "",
-            "_title": export_sampler.get("_title") or "",
-        },
-        sort_keys=True,
-    )
+    val_str = _pipeline_pass_identity(export_sampler)
     if val_str in seen_hashes:
         return False
     seen_hashes.add(val_str)

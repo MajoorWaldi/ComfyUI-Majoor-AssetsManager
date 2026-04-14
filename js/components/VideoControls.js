@@ -1878,31 +1878,19 @@ export function mountVideoControls(video, opts = {}) {
         }
 
         const setMediaInfo = (info = {}) => {
+            let oldMax = 0;
+            let hadAutoFullOut = false;
+            try {
+                oldMax = Math.max(0, durationFrames());
+                hadAutoFullOut = oldMax > 0 && state.outFrame != null && state.outFrame >= oldMax - 1;
+            } catch (e) {
+                console.debug?.(e);
+            }
+
             try {
                 const fps = Number(info?.fps);
                 if (Number.isFinite(fps) && fps > 0) {
-                    const newFps = normalizeVideoFps(fps, state.fps || 30);
-                    // If FPS changes and the out-point was set to the video's full extent
-                    // (auto-initialized by loadedmetadata), reset it so normalizeRange()
-                    // recalculates the correct frame count for the new FPS.
-                    if (Math.abs(newFps - Number(state.fps || 0)) >= 0.001) {
-                        try {
-                            const d = Number(video?.duration);
-                            if (Number.isFinite(d) && d > 0) {
-                                const oldMax = Math.max(0, Math.floor(d * state.fps));
-                                if (
-                                    oldMax > 0 &&
-                                    state.outFrame != null &&
-                                    state.outFrame >= oldMax - 1
-                                ) {
-                                    state.outFrame = null;
-                                }
-                            }
-                        } catch (e) {
-                            console.debug?.(e);
-                        }
-                    }
-                    state.fps = newFps;
+                    state.fps = normalizeVideoFps(fps, state.fps || 30);
                     try {
                         if (!fpsInput?.matches?.(":focus")) fpsInput.value = String(state.fps);
                     } catch (e) {
@@ -1919,6 +1907,12 @@ export function mountVideoControls(video, opts = {}) {
                 state.frameCount = null;
             }
             try {
+                const nextMax = Math.max(0, durationFrames());
+                // If the out-point was previously pinned to the media's full extent,
+                // keep that behavior when later metadata reveals a larger frame range.
+                if (hadAutoFullOut && nextMax > oldMax + 0.5) {
+                    state.outFrame = null;
+                }
                 normalizeRange();
                 applyLoopOnceUI();
                 updateTimeUI();

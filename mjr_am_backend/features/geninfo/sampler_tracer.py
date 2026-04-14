@@ -172,7 +172,19 @@ def _stable_numeric_node_id(node_id: str) -> int:
         return 10**9
 
 
-_TRACE_FALLBACK_KEYS = ("base_ctx", "pipe", "pipe_to", "any_1", "any_2", "any_3", "any", "context")
+_TRACE_FALLBACK_KEYS = (
+    "base_ctx",
+    "pipe",
+    "pipe_to",
+    "any_01",
+    "any_1",
+    "any_02",
+    "any_2",
+    "any_03",
+    "any_3",
+    "any",
+    "context",
+)
 
 
 def _trace_via_fallback_keys(
@@ -269,7 +281,20 @@ def _steps_from_manual_sigmas(ins: dict[str, Any]) -> tuple[Any | None, str | No
     return None, None
 
 
-_SCHEDULER_SIGMAS_FALLBACK_KEYS = ("base_ctx", "pipe", "pipe_to", "any_1", "any_2", "any_3", "any", "context", "sigmas")
+_SCHEDULER_SIGMAS_FALLBACK_KEYS = (
+    "base_ctx",
+    "pipe",
+    "pipe_to",
+    "any_01",
+    "any_1",
+    "any_02",
+    "any_2",
+    "any_03",
+    "any_3",
+    "any",
+    "context",
+    "sigmas",
+)
 
 _SCHEDULER_SIGMAS_EMPTY: tuple[None, None, None, None, None, None] = (None, None, None, None, None, None)
 

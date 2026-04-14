@@ -167,6 +167,56 @@ def _next_reroute_link(node: dict[str, Any]) -> Any | None:
     return None
 
 
+_SWITCH_SELECT_INPUT_KEYS: tuple[str, ...] = ("select", "selector", "index", "which", "slot", "choice", "input")
+_SWITCH_ANY_LINK_KEYS: tuple[str, ...] = tuple(f"any_{idx:02d}" for idx in range(1, 10)) + tuple(
+    f"any_{idx}" for idx in range(1, 10)
+)
+
+
+def _is_switch_selector(node: dict[str, Any]) -> bool:
+    ct = _lower(_node_type(node))
+    return ("switch" in ct or "selector" in ct) and not _is_reroute(node)
+
+
+def _selected_switch_link(node: dict[str, Any]) -> Any | None:
+    ins = _inputs(node)
+    candidate_keys: list[str] = []
+
+    for key in _SWITCH_SELECT_INPUT_KEYS:
+        idx = _to_int(ins.get(key))
+        if idx is not None and idx > 0:
+            candidate_keys.extend((f"any_{idx:02d}", f"any_{idx}"))
+
+    widgets = node.get("widgets_values")
+    if isinstance(widgets, list):
+        for raw in widgets:
+            idx = _to_int(raw)
+            if idx is not None and idx > 0:
+                candidate_keys.extend((f"any_{idx:02d}", f"any_{idx}"))
+            elif isinstance(raw, str):
+                text = raw.strip().lower()
+                if text in ins and _is_link(ins.get(text)):
+                    candidate_keys.append(text)
+
+    candidate_keys.extend(("image", "images", "video", "audio", "any"))
+    candidate_keys.extend(_SWITCH_ANY_LINK_KEYS)
+    candidate_keys.extend(("context", "base_ctx", "pipe", "pipe_to", "input", "output"))
+
+    seen: set[str] = set()
+    for key in candidate_keys:
+        if key in seen:
+            continue
+        seen.add(key)
+        value = ins.get(key)
+        if _is_link(value):
+            return value
+
+    links = [value for value in ins.values() if _is_link(value)]
+    if len(links) == 1:
+        return links[0]
+    return links[0] if links else None
+
+
 def _walk_passthrough(nodes_by_id: dict[str, dict[str, Any]], start_link: Any, max_hops: int = 50) -> str | None:
     resolved = _resolve_link(start_link)
     if not resolved:
@@ -178,9 +228,13 @@ def _walk_passthrough(nodes_by_id: dict[str, dict[str, Any]], start_link: Any, m
         node = nodes_by_id.get(node_id)
         if not isinstance(node, dict):
             return node_id
-        if not _is_reroute(node):
+        next_link = None
+        if _is_reroute(node):
+            next_link = _next_reroute_link(node)
+        elif _is_switch_selector(node):
+            next_link = _selected_switch_link(node)
+        else:
             return node_id
-        next_link = _next_reroute_link(node)
         if not _is_link(next_link):
             return node_id
         resolved = _resolve_link(next_link)
