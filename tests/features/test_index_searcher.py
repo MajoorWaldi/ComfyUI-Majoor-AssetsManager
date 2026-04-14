@@ -112,7 +112,8 @@ async def test_search_global_browse_rows_and_search_browse():
 async def test_search_global_fts_rows_and_search_fts():
     db = _DB(
         q=[
-            Result.Ok([{"id": 1, "tags": "[]", "_total": 7, "rank": 1.0}]),
+            Result.Ok([{"id": 1, "tags": "[]", "rank": 1.0}]),
+            Result.Ok([{"total": 7}]),
             Result.Ok([{"id": 2, "tags": "[]", "rank": 2.0}]),
             Result.Ok([{"total": 2}]),
         ]
