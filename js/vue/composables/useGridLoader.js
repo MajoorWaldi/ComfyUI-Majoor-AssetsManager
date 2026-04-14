@@ -30,7 +30,7 @@ const GRID_SNAPSHOT_TTL_MS = 30 * 60 * 1000;
 const UPSERT_BATCH_DEBOUNCE_MS = 200;
 const UPSERT_BATCH_MAX_SIZE = 50;
 const UPSERT_BATCH_STATE = new WeakMap();
-const MIN_LOADING_SKELETON_MS = 180;
+const MIN_LOADING_SKELETON_MS = 50;
 let gridSnapshotStorageLoaded = false;
 
 const GRID_SNAPSHOT_ASSET_FIELDS = [
@@ -234,20 +234,19 @@ function getGridSnapshot(key) {
 }
 
 function sanitizeQuery(query) {
-    if (!query || query.trim() === "") return query;
-    if (query === "*") return "*";
+    if (query == null) return query;
 
-    let cleaned = "";
-    if (query.length > 256) {
-        cleaned = query.replace(/[^a-z0-9\s-]/gi, " ");
-    } else {
-        try {
-            cleaned = query.replace(/[^\p{L}\p{N}\s-]/gu, " ");
-        } catch {
-            cleaned = query.replace(/[^a-z0-9\s-]/gi, " ");
-        }
-    }
-    return cleaned.trim() || query;
+    const raw = String(query);
+    if (raw.trim() === "") return raw;
+    if (raw.trim() === "*") return "*";
+
+    const cleaned = raw
+        .replace(/[\u0000-\u001f\u007f]+/g, " ")
+        .replace(/[<>]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    return cleaned || raw;
 }
 
 function coerceQueryText(query) {
@@ -841,6 +840,48 @@ export function useGridLoader({
             setLoadingMessage(
                 safeQuery === "*" ? "Loading assets..." : `Searching for "${safeQuery}"...`,
             );
+
+            // Fast path: when returning to default browse (e.g. clearing search),
+            // instantly restore from snapshot cache so the grid appears immediately
+            // while the API call refreshes data in the background.
+            if (safeQuery === "*" && deferVisualResetUntilNextPage) {
+                try {
+                    const snapshotParts = buildCurrentSnapshotParts();
+                    snapshotParts.query = "*";
+                    // Sync guard: only await hydrateFromSnapshot when a snapshot
+                    // actually exists, to avoid an unnecessary microtask yield
+                    // that would delay the fetchPage call.
+                    const snapshotKey = buildGridSnapshotKey(snapshotParts);
+                    const hasSnapshot = GRID_SNAPSHOT_CACHE.has(snapshotKey);
+                    const didHydrate = hasSnapshot
+                        ? await hydrateFromSnapshot(snapshotParts, {
+                              allowReplaceExisting: true,
+                          })
+                        : false;
+                    if (didHydrate) {
+                        // Snapshot restored — launch a background refresh and return immediately
+                        state.offset = 0;
+                        state.done = false;
+                        state.loading = false;
+                        clearLoadingMessage();
+                        queueMicrotask(() => {
+                            loadNextPage().then((bgResult) => {
+                                if (bgResult?.ok && !bgResult?.aborted) {
+                                    finalizeLoad({ title: safeQuery });
+                                }
+                            }).catch(() => {});
+                        });
+                        return {
+                            ok: true,
+                            count: Number(state.offset || 0) || 0,
+                            total: Number(state.total || 0) || 0,
+                            cached: true,
+                        };
+                    }
+                } catch (e) {
+                    console.debug?.("[Grid] Snapshot fast-path failed, falling back", e);
+                }
+            }
         }
 
         const result = await loadNextPage();

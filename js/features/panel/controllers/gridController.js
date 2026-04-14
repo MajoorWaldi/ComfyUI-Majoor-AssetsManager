@@ -52,7 +52,7 @@ export function createGridController({
     const RELOAD_WATCHDOG_MS = 30000;
     const AI_RELOAD_WATCHDOG_MS = 150000;
     const AI_HINT_COOLDOWN_MS = 15_000;
-    const RELOAD_DEBOUNCE_MS = 80;
+    const RELOAD_DEBOUNCE_MS = 30;
 
     const runWithWatchdog = async (promiseFactory, timeoutMs = RELOAD_WATCHDOG_MS) => {
         let timer = null;

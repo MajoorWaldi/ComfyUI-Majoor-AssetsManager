@@ -3,6 +3,7 @@ Index searcher - handles asset search and retrieval operations.
 """
 import os
 import re
+import time
 import unicodedata
 from pathlib import Path
 from typing import Any
@@ -215,9 +216,17 @@ def _append_extension_filter(filters: dict[str, Any], alias: str, clauses: list[
     normalized_exts = [ext for ext in normalized_exts if ext]
     if not normalized_exts:
         return
+
     placeholders = ", ".join("?" for _ in normalized_exts)
-    clauses.append(f"AND LOWER({alias}.ext) IN ({placeholders})")
+    filename_suffix_clauses = " OR ".join(f"LOWER({alias}.filename) LIKE ?" for _ in normalized_exts)
+    clauses.append(
+        "AND ("
+        f"LOWER(LTRIM(TRIM(COALESCE({alias}.ext, '')), '.')) IN ({placeholders})"
+        + (f" OR {filename_suffix_clauses}" if filename_suffix_clauses else "")
+        + ")"
+    )
     params.extend(normalized_exts)
+    params.extend([f"%.{ext}" for ext in normalized_exts])
 
 
 def _append_subfolder_filter(filters: dict[str, Any], alias: str, clauses: list[str], params: list[Any]) -> None:
@@ -828,6 +837,11 @@ class IndexSearcher:
         self.db = db
         self._has_tags_text_column = has_tags_text_column
         self.fts_vocab_ready = False
+        # Lightweight total-count cache: avoids expensive COUNT(*)
+        # on every search-as-you-type keystroke. Entries expire after
+        # _BROWSE_COUNT_TTL seconds.
+        self._browse_count_cache: dict[str, tuple[float, int]] = {}
+        self._BROWSE_COUNT_TTL = 5.0  # seconds
 
     async def ensure_vocab(self):
         """Ensure FTS5 vocab table exists for autocomplete."""
@@ -984,13 +998,31 @@ class IndexSearcher:
 
         total: int | None = None
         if include_total:
-            count_sql = "SELECT COUNT(*) as total FROM assets a LEFT JOIN asset_metadata m ON a.id = m.asset_id WHERE 1=1"
+            # Build a lean COUNT query — only join asset_metadata when
+            # the filter clauses actually reference it (rating, tags, etc.)
+            filter_text = " ".join(filter_clauses)
+            needs_metadata_join = "m." in filter_text or "asset_metadata" in filter_text
+            if needs_metadata_join:
+                count_sql = "SELECT COUNT(*) as total FROM assets a LEFT JOIN asset_metadata m ON a.id = m.asset_id WHERE 1=1"
+            else:
+                count_sql = "SELECT COUNT(*) as total FROM assets a WHERE 1=1"
             count_params: list[Any] = []
             if filter_clauses:
                 count_sql += " " + " ".join(filter_clauses)
                 count_params.extend(filter_params)
-            count_result = await self.db.aquery(count_sql, tuple(count_params))
-            total = count_result.data[0]["total"] if count_result.ok and count_result.data else 0
+
+            # Use a short-lived cache keyed on the count SQL + params
+            # to avoid re-running the same expensive COUNT on rapid
+            # search-as-you-type interactions.
+            cache_key = count_sql + repr(count_params)
+            cached = self._browse_count_cache.get(cache_key)
+            now = time.monotonic()
+            if cached and (now - cached[0]) < self._BROWSE_COUNT_TTL:
+                total = cached[1]
+            else:
+                count_result = await self.db.aquery(count_sql, tuple(count_params))
+                total = count_result.data[0]["total"] if count_result.ok and count_result.data else 0
+                self._browse_count_cache[cache_key] = (now, total)
         return Result.Ok({"rows": rows, "total": total})
 
     async def _search_global_fts_rows(

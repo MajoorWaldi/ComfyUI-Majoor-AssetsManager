@@ -994,7 +994,7 @@ async function _mountPanelRuntimeImpl(container, { useComfyThemeUI = true, exter
     disposeSearchBinding = assetsQueryController?.bindSearchInput?.({
         searchInputEl,
         lifecycleSignal: panelLifecycleAC?.signal || null,
-        debounceMs: 200,
+        debounceMs: 120,
         onQueryChanged: () => {
             void exitSimilarViewIfActive({ reload: false });
             notifyContextChanged();

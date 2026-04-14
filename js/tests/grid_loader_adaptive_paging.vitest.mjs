@@ -54,6 +54,7 @@ vi.mock("../features/grid/AssetCardRenderer.js", () => ({
 vi.mock("../features/grid/StackGroupCards.js", () => ({
     getStackAwareAssetKey: vi.fn((_grid, _asset, fallback) => fallback),
     ensureDupStackCard: vi.fn(),
+    disposeStackGroupCards: vi.fn(),
 }));
 
 vi.mock("../vue/composables/useVirtualGrid.js", async () => {
@@ -142,6 +143,68 @@ describe("useGridLoader adaptive paging", () => {
         expect(requestedLimits).toEqual([100, 200, 400]);
         expect(requestedOffsets).toEqual([0, 100, 300]);
         expect(state.offset).toBe(700);
+    });
+
+    it("preserves inline query syntax for advanced search tokens", async () => {
+        const { useGridLoader } = await import("../vue/composables/useGridLoader.js");
+
+        fetchGridPageMock.mockResolvedValue({
+            ok: true,
+            assets: [],
+            total: 0,
+            count: 0,
+            limit: 100,
+            offset: 0,
+        });
+        appendAssetsMock.mockReturnValue(0);
+
+        const state = {
+            loading: false,
+            done: false,
+            total: 0,
+            offset: 0,
+            requestId: 1,
+            abortController: null,
+            query: "*",
+            assets: [],
+            activeId: "",
+            statusMessage: "",
+            statusError: false,
+        };
+
+        const loader = useGridLoader({
+            gridContainerRef: { value: createVisibleElement({ dataset: {} }) },
+            state,
+            setLoadingMessage: vi.fn(),
+            clearLoadingMessage: vi.fn(),
+            setStatusMessage: vi.fn(),
+            clearStatusMessage: vi.fn(),
+            resetAssets: vi.fn(({ query = "*", total = null, done = false } = {}) => {
+                state.query = query;
+                state.total = total;
+                state.done = done;
+                state.offset = 0;
+                state.assets = [];
+            }),
+            setSelection: vi.fn(),
+            reconcileSelection: vi.fn(),
+            readScrollElement: () => createVisibleElement(),
+            readRenderedCards: () => [],
+            scrollToAssetId: vi.fn(),
+        });
+
+        const query = 'ext:png rating:5 "speed cinematic push-in"';
+        await loader.loadAssets(query, { preserveVisibleUntilReady: false });
+
+        expect(state.query).toBe(query);
+        expect(fetchGridPageMock).toHaveBeenCalledWith(
+            expect.anything(),
+            query,
+            expect.any(Number),
+            0,
+            expect.any(Object),
+            expect.any(Object),
+        );
     });
 
     it("hydrates a persisted grid snapshot without marking partial pages as done", async () => {

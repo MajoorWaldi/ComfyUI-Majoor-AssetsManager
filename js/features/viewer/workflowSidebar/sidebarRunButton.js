@@ -93,7 +93,10 @@ export function createRunButton() {
         const queue = Math.max(0, Number(snapshot?.queue) || 0);
         const prompt = snapshot?.prompt || null;
         const hasExecution = Boolean(prompt?.currentlyExecuting);
-        const hasQueuedPrompt = queue > 0 || Boolean(prompt && !prompt?.errorDetails);
+        // A prompt object that has finished executing (currentlyExecuting == null)
+        // and has no error is effectively done — don't treat it as "queued".
+        const promptStillActive = Boolean(prompt && (prompt.currentlyExecuting || prompt.errorDetails));
+        const hasQueuedPrompt = queue > 0 || promptStillActive;
         const isError = Boolean(prompt?.errorDetails);
 
         if (authoritative && queue === 0 && !prompt) {

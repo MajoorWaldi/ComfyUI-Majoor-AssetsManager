@@ -869,12 +869,15 @@ export function mountVideoControls(video, opts = {}) {
             }
         };
 
-        const currentFrame = () => {
+        const currentFrame = (timeOverride = null) => {
             try {
-                const t = Number(video?.currentTime);
+                const sourceTime = timeOverride == null ? video?.currentTime : timeOverride;
+                const t = Number(sourceTime);
                 const fps = normalizeVideoFps(state.fps, 30);
                 if (!Number.isFinite(t) || t < 0) return 0;
-                return Math.max(0, Math.round(t * fps));
+                // Use floor rather than round so the frame counter matches the
+                // currently displayed frame instead of jumping ahead mid-frame.
+                return Math.max(0, Math.floor((t * fps) + 1e-6));
             } catch {
                 return 0;
             }
@@ -942,10 +945,11 @@ export function mountVideoControls(video, opts = {}) {
             }
         };
 
-        const updateTimeUI = () => {
+        const updateTimeUI = (timeOverride = null) => {
             try {
                 const d = Number(video?.duration);
-                const t = Number(video?.currentTime);
+                const sourceTime = timeOverride == null ? video?.currentTime : timeOverride;
+                const t = Number(sourceTime);
                 const durationOk = Number.isFinite(d) && d > 0;
 
                 timeLabel.textContent = `${formatTime(t)} / ${durationOk ? formatTime(d) : "0:00"}`;
@@ -971,7 +975,7 @@ export function mountVideoControls(video, opts = {}) {
 
                 if (advanced) {
                     const maxF = durationFrames();
-                    const cf = currentFrame();
+                    const cf = currentFrame(t);
                     frameLabel.textContent = `F: ${cf} / ${maxF}`;
                     try {
                         // Show current frame value on the ruler, anchored to the playhead.
@@ -1701,9 +1705,90 @@ export function mountVideoControls(video, opts = {}) {
             }
         };
 
+        const playbackUiSync = {
+            rafId: null,
+            rvfcId: null,
+        };
+
+        const cancelPlaybackUiSync = () => {
+            try {
+                if (
+                    playbackUiSync.rvfcId != null
+                    && typeof video?.cancelVideoFrameCallback === "function"
+                ) {
+                    video.cancelVideoFrameCallback(playbackUiSync.rvfcId);
+                }
+            } catch (e) {
+                console.debug?.(e);
+            }
+            playbackUiSync.rvfcId = null;
+            try {
+                if (playbackUiSync.rafId != null && typeof cancelAnimationFrame === "function") {
+                    cancelAnimationFrame(playbackUiSync.rafId);
+                }
+            } catch (e) {
+                console.debug?.(e);
+            }
+            playbackUiSync.rafId = null;
+        };
+
+        const tickPlaybackUiSync = (_now = 0, meta = null) => {
+            playbackUiSync.rafId = null;
+            playbackUiSync.rvfcId = null;
+            try {
+                safeCall(updateTimeUI, meta?.mediaTime);
+                safeCall(enforceRange);
+            } catch (e) {
+                console.debug?.(e);
+            }
+
+            const shouldContinue = Boolean(state._ppReverse) || !video?.paused;
+            if (!shouldContinue || timersAC.signal?.aborted) return;
+
+            try {
+                if (typeof video?.requestVideoFrameCallback === "function" && !state._ppReverse) {
+                    playbackUiSync.rvfcId = video.requestVideoFrameCallback(tickPlaybackUiSync);
+                    return;
+                }
+            } catch (e) {
+                console.debug?.(e);
+            }
+
+            try {
+                if (typeof requestAnimationFrame === "function") {
+                    playbackUiSync.rafId = requestAnimationFrame((nextNow) => {
+                        tickPlaybackUiSync(nextNow, { mediaTime: Number(video?.currentTime) || 0 });
+                    });
+                }
+            } catch (e) {
+                console.debug?.(e);
+            }
+        };
+
+        const startPlaybackUiSync = () => {
+            cancelPlaybackUiSync();
+            const shouldContinue = Boolean(state._ppReverse) || !video?.paused;
+            if (!shouldContinue || timersAC.signal?.aborted) return;
+            tickPlaybackUiSync(0, { mediaTime: Number(video?.currentTime) || 0 });
+        };
+
+        unsubs.push(cancelPlaybackUiSync);
+
         // Keep UI synced with media events.
-        for (const ev of ["play", "pause", "ended"]) {
-            unsubs.push(safeAddListener(video, ev, () => safeCall(setPlayLabel)));
+        unsubs.push(
+            safeAddListener(video, "play", () => {
+                safeCall(setPlayLabel);
+                startPlaybackUiSync();
+            }),
+        );
+        for (const ev of ["pause", "ended"]) {
+            unsubs.push(
+                safeAddListener(video, ev, () => {
+                    cancelPlaybackUiSync();
+                    safeCall(setPlayLabel);
+                    safeCall(updateTimeUI);
+                }),
+            );
         }
         for (const ev of ["timeupdate", "loadedmetadata", "durationchange", "seeked"]) {
             unsubs.push(safeAddListener(video, ev, () => safeCall(updateTimeUI)));
@@ -1784,6 +1869,13 @@ export function mountVideoControls(video, opts = {}) {
         safeCall(updateTimeUI);
         safeCall(updateSeekRangeStyle);
         safeCall(updateVolumeUI);
+        try {
+            if (!video?.paused || state._ppReverse) {
+                startPlaybackUiSync();
+            }
+        } catch (e) {
+            console.debug?.(e);
+        }
 
         const setMediaInfo = (info = {}) => {
             try {

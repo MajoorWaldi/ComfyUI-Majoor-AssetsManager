@@ -248,10 +248,10 @@ export class FloatingViewerProgressService extends EventTarget {
                 this.currentExecution = this.getOrMakePrompt("unknown");
             }
             this.currentExecution.executing(event?.detail);
-            this.dispatchProgressUpdate();
             if (event?.detail == null) {
                 this.currentExecution = null;
             }
+            this.dispatchProgressUpdate();
         });
 
         this._attachListener(api, "progress", (event) => {

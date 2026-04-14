@@ -1,4 +1,5 @@
 import datetime
+import sqlite3
 
 import pytest
 from mjr_am_backend.features.index import searcher as searcher_mod
@@ -80,3 +81,18 @@ def test_parse_request_filters_rejects_bad_date_range():
 
     assert not res.ok
     assert res.code == "INVALID_INPUT"
+
+
+def test_extension_filter_sql_matches_filename_suffix_when_ext_column_missing():
+    clauses, params = searcher_mod._build_filter_clauses({"extensions": ["png"]})
+    sql = (
+        "SELECT COUNT(*) FROM ("
+        "SELECT NULL AS ext, 'example.png' AS filename, 'output' AS source, 'image' AS kind"
+        ") a WHERE 1=1 "
+        + " ".join(clauses)
+    )
+
+    with sqlite3.connect(":memory:") as conn:
+        total = conn.execute(sql, tuple(params)).fetchone()[0]
+
+    assert total == 1
