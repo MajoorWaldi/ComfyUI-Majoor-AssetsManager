@@ -1,4 +1,5 @@
 export const DND_MIME = "application/x-mjr-asset";
+export const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".avif"]);
 export const VIDEO_EXTS = new Set([".mp4", ".mov", ".mkv", ".webm", ".avi"]);
 export const AUDIO_EXTS = new Set([".wav", ".mp3", ".flac", ".ogg", ".m4a", ".aac", ".opus"]);
 // NOTE: Must stay in sync with MODEL3D_EXT_TO_LOADER in js/features/viewer/model3dRenderer.js

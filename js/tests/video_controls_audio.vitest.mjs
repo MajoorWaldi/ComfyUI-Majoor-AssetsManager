@@ -114,4 +114,51 @@ describe("audio viewer controls", () => {
 
         mounted.destroy();
     });
+
+    it("expands the frame stepping range when the real frame count arrives after metadata load", async () => {
+        const window = new Window();
+        globalThis.window = window;
+        globalThis.document = window.document;
+        Object.defineProperty(globalThis, "navigator", {
+            configurable: true,
+            value: window.navigator,
+        });
+
+        let currentTime = 0;
+
+        const { mountVideoControls } = await import("../components/VideoControls.js");
+
+        const host = document.createElement("div");
+        const video = document.createElement("video");
+        host.appendChild(video);
+        document.body.appendChild(host);
+
+        Object.defineProperty(video, "currentTime", {
+            configurable: true,
+            get: () => currentTime,
+            set: (value) => {
+                currentTime = Number(value) || 0;
+            },
+        });
+        Object.defineProperty(video, "duration", {
+            configurable: true,
+            get: () => 28 / 30,
+        });
+
+        const mounted = mountVideoControls(video, {
+            variant: "viewerbar",
+            mediaKind: "video",
+            hostEl: host,
+        });
+
+        video.dispatchEvent(new window.Event("loadedmetadata"));
+        mounted.setMediaInfo({ frameCount: 41 });
+        mounted.goToOut();
+
+        const frameLabel = mounted.controlsEl.querySelector(".mjr-video-frame");
+        expect(frameLabel?.textContent || "").toContain("F: 41 / 41");
+        expect(currentTime).toBeCloseTo(41 / 30, 5);
+
+        mounted.destroy();
+    });
 });

@@ -1,4 +1,17 @@
-import { AUDIO_EXTS, MODEL3D_EXTS, VIDEO_EXTS } from "./constants.js";
+import { AUDIO_EXTS, IMAGE_EXTS, MODEL3D_EXTS, VIDEO_EXTS } from "./constants.js";
+
+const isImageFilename = (filename) => {
+    if (!filename) return false;
+    const dot = filename.lastIndexOf(".");
+    if (dot === -1) return false;
+    return IMAGE_EXTS.has(filename.slice(dot).toLowerCase());
+};
+
+const isImagePayload = (payload) => {
+    if (!payload) return false;
+    if (String(payload.kind || "").toLowerCase() === "image") return true;
+    return isImageFilename(payload.filename);
+};
 
 const isVideoFilename = (filename) => {
     if (!filename) return false;
@@ -40,7 +53,7 @@ const isModel3DPayload = (payload) => {
 };
 
 export const isManagedPayload = (payload) =>
-    isVideoPayload(payload) || isAudioPayload(payload) || isModel3DPayload(payload);
+    isImagePayload(payload) || isVideoPayload(payload) || isAudioPayload(payload) || isModel3DPayload(payload);
 
 const _EXT_TO_MIME = {
     mp4: "video/mp4",
@@ -86,6 +99,19 @@ const _comboHasAnyValue = (widget, droppedExt, looksLikeFn) => {
 
 export const comboHasAnyVideoValue = (widget, droppedExt) =>
     _comboHasAnyValue(widget, droppedExt, looksLikeVideoPath);
+
+export const looksLikeImagePath = (value, droppedExt) => {
+    if (typeof value !== "string") return false;
+    const v = value.trim().toLowerCase();
+    if (!v) return false;
+    const ext = (v.split(/[?#]/)[0].split(".").pop() || "").toLowerCase();
+    if (!ext) return false;
+    if (droppedExt && ext === String(droppedExt).toLowerCase()) return true;
+    return IMAGE_EXTS.has(`.${ext}`);
+};
+
+export const comboHasAnyImageValue = (widget, droppedExt) =>
+    _comboHasAnyValue(widget, droppedExt, looksLikeImagePath);
 
 export const looksLikeAudioPath = (value, droppedExt) => {
     if (typeof value !== "string") return false;

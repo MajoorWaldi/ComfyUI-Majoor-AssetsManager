@@ -343,6 +343,102 @@ def test_collect_sampler_pipeline_from_sink_uses_proxy_widgets():
     assert passes[1].get("seed_val") == 222
 
 
+def test_collect_sampler_pipeline_keeps_identical_detailer_passes():
+    nodes = {
+        "1": {
+            "class_type": "KSampler",
+            "title": "Base Sampler",
+            "inputs": {
+                "steps": 20,
+                "cfg": 6.5,
+                "seed": 111,
+                "sampler_name": "euler",
+                "scheduler": "normal",
+                "denoise": 1.0,
+            },
+        },
+        "2": {
+            "class_type": "DetailerForEach",
+            "title": "Face Detailer",
+            "inputs": {
+                "image": ["1", 0],
+                "steps": 20,
+                "cfg": 6.5,
+                "seed": 111,
+                "sampler_name": "euler",
+                "scheduler": "normal",
+                "denoise": 1.0,
+            },
+        },
+        "3": {"class_type": "SaveImage", "inputs": {"images": ["2", 0]}},
+    }
+
+    passes = p._collect_sampler_pipeline_from_sink(nodes, "3")
+
+    assert len(passes) == 2
+    assert passes[0].get("seed_val") == 111
+    assert passes[0].get("pass_name") == "Base"
+    assert passes[1].get("seed_val") == 111
+    assert passes[1].get("pass_name") == "Detailer"
+
+
+def test_collect_sampler_pipeline_orders_rgthree_any_switch_branch_correctly():
+    nodes = {
+        "1": {
+            "class_type": "KSampler",
+            "title": "Base Sampler",
+            "inputs": {
+                "steps": 20,
+                "cfg": 6.5,
+                "seed": 111,
+                "sampler_name": "euler",
+                "scheduler": "normal",
+                "denoise": 1.0,
+            },
+        },
+        "2": {
+            "class_type": "KSampler",
+            "title": "Upscale Sampler",
+            "inputs": {
+                "steps": 12,
+                "cfg": 5.0,
+                "seed": 222,
+                "sampler_name": "dpmpp_2m",
+                "scheduler": "karras",
+                "denoise": 0.4,
+                "image": ["1", 0],
+            },
+        },
+        "3": {
+            "class_type": "DetailerForEach",
+            "title": "Detailer",
+            "inputs": {
+                "image": ["2", 0],
+                "steps": 8,
+                "cfg": 4.0,
+                "seed": 333,
+                "sampler_name": "dpmpp_2m",
+                "scheduler": "karras",
+                "denoise": 0.35,
+            },
+        },
+        "4": {
+            "class_type": "RgthreeAnySwitch",
+            "title": "any switch",
+            "inputs": {
+                "any_01": ["3", 0],
+                "any_02": ["1", 0],
+            },
+        },
+        "5": {"class_type": "SaveImage", "inputs": {"images": ["4", 0]}},
+    }
+
+    passes = p._collect_sampler_pipeline_from_sink(nodes, "5")
+
+    assert [item.get("seed_val") for item in passes] == [111, 222, 333]
+    assert [item.get("pass_name") for item in passes] == ["Base", "Refine / Upscale", "Detailer"]
+
+
 def test_trace_scheduler_sigmas_resolves_linked_steps():
     nodes = {
         "1": {

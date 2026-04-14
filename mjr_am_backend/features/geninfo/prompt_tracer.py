@@ -349,7 +349,20 @@ def _first_non_none_scalar(source: dict[str, Any], keys: tuple[str, ...]) -> Any
 
 
 _SCALAR_FIELD_KEYS = ("seed", "value", "number", "int", "float", "text", "string", "prompt", "input", "text_a", "text_b")
-_FALLBACK_LINK_KEYS = ("base_ctx", "pipe", "pipe_to", "any_1", "any_2", "any_3", "any", "context")
+_CACHED_TEXT_FIELD_KEYS = ("text_0", "string_0", "STRING", "result", "output")
+_FALLBACK_LINK_KEYS = (
+    "base_ctx",
+    "pipe",
+    "pipe_to",
+    "any_01",
+    "any_1",
+    "any_02",
+    "any_2",
+    "any_03",
+    "any_3",
+    "any",
+    "context",
+)
 
 
 def _resolve_scalar_from_field(nodes_by_id: dict[str, dict[str, Any]], ins: dict[str, Any], key: str, memo: set[str]) -> Any | None:
@@ -385,6 +398,9 @@ def _resolve_scalar_from_link(nodes_by_id: dict[str, dict[str, Any]], value: Any
     if not isinstance(node, dict):
         return None
     ins = _inputs(node)
+    cached_text = _first_cached_prompt_text(ins)
+    if cached_text is not None:
+        return cached_text
     for k in _SCALAR_FIELD_KEYS:
         result = _resolve_scalar_from_field(nodes_by_id, ins, k, memo)
         if result is not None:
@@ -392,4 +408,9 @@ def _resolve_scalar_from_link(nodes_by_id: dict[str, dict[str, Any]], value: Any
     return _resolve_scalar_via_fallback_links(nodes_by_id, ins, memo)
 
 
-
+def _first_cached_prompt_text(ins: dict[str, Any]) -> str | None:
+    for key in _CACHED_TEXT_FIELD_KEYS:
+        value = ins.get(key)
+        if isinstance(value, str) and _looks_like_prompt_string(value):
+            return value.strip()
+    return None
