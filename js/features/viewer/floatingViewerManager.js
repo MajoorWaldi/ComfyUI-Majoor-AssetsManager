@@ -596,7 +596,7 @@ export const floatingViewerManager = {
             inst.show();
         }
         _syncViewerControls(inst);
-        inst.loadPreviewBlob(blob, opts);
+        inst.loadPreviewBlob(blob, ...(Object.keys(opts).length ? [opts] : []));
         if (!wasVisible) _emitVisibilityChanged(true);
     },
 
