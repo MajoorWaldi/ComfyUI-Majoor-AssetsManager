@@ -173,6 +173,10 @@ reports_vulture_backend.txt
 
 # Accidental files that must never reappear in git
 
+# Wiki publish working directory (local-only clone, must never be tracked)
+.wiki-publish
+.wiki-publish/
+
 # Extra local temp artifacts (pytest/radon scratch)
 .tmp_*
 tests/__pytest_tmp_py*/
