@@ -11,6 +11,7 @@
  */
 
 import { EVENTS } from "../../app/events.js";
+import { APP_CONFIG } from "../../app/config.js";
 import { getAssetsBatch } from "../../api/client.js";
 import { getActiveGridContainer } from "../panel/panelRuntimeRefs.js";
 import { getSelectedIdSet } from "../grid/GridSelectionManager.js";
@@ -57,8 +58,16 @@ const MFV_MODES = Object.freeze({ SIMPLE: "simple", AB: "ab", SIDE: "side", GRID
 
 /** @type {FloatingViewer | null} */
 let _instance = null;
-let _liveActive = false;
-let _previewActive = false;
+function _getDefaultLiveActive() {
+    return APP_CONFIG.MFV_LIVE_DEFAULT !== false;
+}
+
+function _getDefaultPreviewActive() {
+    return APP_CONFIG.MFV_PREVIEW_DEFAULT !== false;
+}
+
+let _liveActive = _getDefaultLiveActive();
+let _previewActive = _getDefaultPreviewActive();
 let _nodeStreamActive = false;
 let _selectionListenerBound = false;
 let _fetchAC = null; // AbortController for the latest in-flight batch fetch
@@ -795,8 +804,8 @@ export function teardownFloatingViewerManager({ reinstallGlobalHandlers = false 
     _unbindSelectionListener();
     _cancelFetch();
     _loadSeq += 1;
-    _liveActive = false;
-    _previewActive = false;
+    _liveActive = _getDefaultLiveActive();
+    _previewActive = _getDefaultPreviewActive();
     _nodeStreamActive = false;
     try {
         if (_setControllerNodeStreamActive) _setControllerNodeStreamActive(false);

@@ -348,7 +348,7 @@ describe("floatingViewerManager", () => {
         expect(viewer).toBeTruthy();
         expect(viewer.isVisible).toBe(true);
         expect(viewer.setLiveActive).toHaveBeenLastCalledWith(true);
-        expect(viewer.setPreviewActive).toHaveBeenLastCalledWith(false);
+        expect(viewer.setPreviewActive).toHaveBeenLastCalledWith(true);
         expect(viewer.loadMediaA).toHaveBeenCalledWith(
             { filename: "live-output.png", type: "output" },
             { autoMode: true },
@@ -371,7 +371,7 @@ describe("floatingViewerManager", () => {
         const viewer = state.getLastViewer();
         expect(viewer).toBeTruthy();
         expect(viewer.isVisible).toBe(true);
-        expect(viewer.setLiveActive).toHaveBeenLastCalledWith(false);
+        expect(viewer.setLiveActive).toHaveBeenLastCalledWith(true);
         expect(viewer.setPreviewActive).toHaveBeenLastCalledWith(true);
         expect(viewer.loadPreviewBlob).toHaveBeenCalledWith(blob);
         expect(seen).toEqual([true]);
@@ -397,8 +397,8 @@ describe("floatingViewerManager", () => {
         };
         window.dispatchEvent(event);
 
-        expect(viewer.setLiveActive).toHaveBeenLastCalledWith(true);
-        expect(floatingViewerManager.getLiveActive()).toBe(true);
+        expect(viewer.setLiveActive).toHaveBeenLastCalledWith(false);
+        expect(floatingViewerManager.getLiveActive()).toBe(false);
         expect(event.preventDefault).toHaveBeenCalledTimes(1);
     });
 
@@ -474,8 +474,8 @@ describe("floatingViewerManager", () => {
         };
         window.dispatchEvent(event);
 
-        expect(viewer.setPreviewActive).toHaveBeenLastCalledWith(true);
-        expect(floatingViewerManager.getPreviewActive()).toBe(true);
+        expect(viewer.setPreviewActive).toHaveBeenLastCalledWith(false);
+        expect(floatingViewerManager.getPreviewActive()).toBe(false);
         expect(event.preventDefault).toHaveBeenCalledTimes(1);
     });
 

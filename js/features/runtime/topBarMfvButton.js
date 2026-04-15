@@ -94,14 +94,14 @@ function ensureSlotMounted(container) {
     const anchor = getAnchor(container);
     if (slot.parentElement !== container) {
         if (anchor) {
-            container.insertBefore(slot, anchor);
+            container.insertBefore(slot, anchor.nextSibling);
         } else {
-            container.prepend(slot);
+            container.appendChild(slot);
         }
-    } else if (anchor && slot.nextSibling !== anchor) {
-        container.insertBefore(slot, anchor);
-    } else if (!anchor && slot !== container.firstElementChild) {
-        container.prepend(slot);
+    } else if (anchor && slot.previousSibling !== anchor) {
+        container.insertBefore(slot, anchor.nextSibling);
+    } else if (!anchor && slot !== container.lastElementChild) {
+        container.appendChild(slot);
     }
 
     return slot;
