@@ -2,8 +2,8 @@
 
 **Comprehensive guide to AI-powered features in Majoor Assets Manager**
 
-*Version: 2.4.4*  
-*Last Updated: April 5, 2026*
+*Version: 2.4.5*
+*Last Updated: April 15, 2026*
 
 ---
 
@@ -457,7 +457,7 @@ Adjust number of suggestions:
 }
 ```
 
-More clusters = more specific collections  
+More clusters = more specific collections
 Fewer clusters = broader collections
 
 ---
@@ -1097,5 +1097,5 @@ pip install -r requirements.txt -r requirements-vector.txt
 
 ---
 
-*This documentation is part of the Majoor Assets Manager project.*  
+*This documentation is part of the Majoor Assets Manager project.*
 *Copyright © 2026 Ewald ALOEBOETOE (MajoorWaldi)*

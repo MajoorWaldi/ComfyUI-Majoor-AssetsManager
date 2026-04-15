@@ -1,6 +1,6 @@
 # Threat Model — Majoor Assets Manager
 
-**Version**: 2.4.4  
+**Version**: 2.4.5
 **Date**: April 5, 2026 (Updated from 2026-01-24)
 
 ## Scope
@@ -75,4 +75,3 @@ This model covers the Majoor Assets Manager backend routes under `/mjr/am/*` and
 ## Non-Goals
 - Remote multi-user authentication/authorization (ComfyUI is typically local-only).
 - Protecting against a fully compromised host OS.
-

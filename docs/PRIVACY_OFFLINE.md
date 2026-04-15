@@ -1,6 +1,6 @@
 # Majoor Assets Manager - Privacy & Offline Guide
 
-**Version**: 2.4.4  
+**Version**: 2.4.5
 **Last Updated**: April 7, 2026
 
 ## Overview

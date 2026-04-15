@@ -1,7 +1,7 @@
 # Majoor API Reference
 
-**Base Path**: `/mjr/am`  
-**Version**: 2.4.5  
+**Base Path**: `/mjr/am`
+**Version**: 2.4.5
 **Last Updated**: April 7, 2026
 
 ---
@@ -57,7 +57,7 @@ GET /mjr/am/health
 {
   "ok": true,
   "data": {
-    "version": "2.4.4",
+    "version": "2.4.5",
     "status": "healthy",
     "indexed_count": 1234,
     "scopes_available": ["output", "input", "custom", "collections"]
@@ -145,7 +145,7 @@ GET /mjr/am/version
 {
   "ok": true,
   "data": {
-    "version": "2.4.4",
+    "version": "2.4.5",
     "branch": "main",
     "build_date": "2026-03-29",
     "python_version": "3.11.0",
@@ -184,7 +184,7 @@ GET  /mjr/am/settings/probe-backend
 POST /mjr/am/settings/probe-backend
 ```
 
-**GET**: Read current probe mode.  
+**GET**: Read current probe mode.
 **POST**: Set probe mode.
 
 **Request Body** (POST):
@@ -213,7 +213,7 @@ GET  /mjr/am/settings/output-directory
 POST /mjr/am/settings/output-directory
 ```
 
-**GET**: Read output directory override.  
+**GET**: Read output directory override.
 **POST**: Set output directory override.
 
 **Request Body** (POST):
@@ -300,7 +300,7 @@ GET  /mjr/am/settings/metadata-fallback
 POST /mjr/am/settings/metadata-fallback
 ```
 
-**GET**: Read fallback toggles for metadata extraction.  
+**GET**: Read fallback toggles for metadata extraction.
 **POST**: Set fallback toggles.
 
 **Request Body** (POST):
@@ -1187,15 +1187,15 @@ GET /mjr/am/releases
 {
   "ok": true,
   "data": {
-    "current_version": "2.4.4",
+    "current_version": "2.4.5",
     "branch": "main",
     "latest_release": {
-      "version": "2.4.4",
-      "date": "2026-04-05",
-      "download_url": "https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/tag/v2.4.4"
+      "version": "2.4.5",
+      "date": "2026-04-10",
+      "download_url": "https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/tag/v2.4.5"
     },
     "branches_available": ["main", "dev"],
-    "tags_available": ["v2.4.4", "v2.4.3", "v2.4.2"]
+    "tags_available": ["v2.4.5", "v2.4.4", "v2.4.3", "v2.4.2"]
   }
 }
 ```
@@ -1281,6 +1281,6 @@ api.addEventListener("mjr-asset-added", (event) => {
 
 ---
 
-*API Reference Version: 2.0*  
-*Last Updated: April 5, 2026*  
+*API Reference Version: 2.0*
+*Last Updated: April 5, 2026*
 *Compatible with Majoor Assets Manager v2.4.4+*

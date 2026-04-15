@@ -1,6 +1,6 @@
 # Majoor Assets Manager - Drag & Drop Guide
 
-**Version**: 2.4.4  
+**Version**: 2.4.5
 **Last Updated**: April 5, 2026
 
 ## Overview
@@ -345,5 +345,5 @@ The system recognizes different drag targets:
 - Combine collections with drag for complex operations
 
 ---
-*Drag & Drop Guide Version: 1.0*  
+*Drag & Drop Guide Version: 1.0*
 *Last Updated: April 5, 2026*

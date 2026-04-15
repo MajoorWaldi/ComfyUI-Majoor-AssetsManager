@@ -22,6 +22,13 @@ All notable changes to this project are documented in this file.
 - **MFV Gen Info Overlay Placement**: Keep Gen Info as the original overlay and automatically place it above the inline player controls when the player is visible
 - **MFV Simple Player Keyboard Controls**: Support focused playback shortcuts with Space for play/pause and Left/Right for frame-by-frame stepping
 
+### 🐛 Bug Fixes & Issue Resolutions
+- **Realtime Vector Indexing**: Fixed newly generated assets not always entering automatic vector indexing after save/index events
+- **Grid Reload Stability**: Fixed unnecessary full refreshes and parasitic reloads triggered by ambiguous settings sync and window events
+- **Pagination Freeze at Bottom**: Fixed cases where scrolling could stall when a page returned results that were fully deduplicated or hidden
+- **MFV Video Overlay Overlap**: Fixed Gen Info overlapping inline video player controls in simple player mode
+- **GenInfo Pipeline Accuracy**: Fixed sampler pass deduping and rgthree Any Switch tracing so multi-pass workflow metadata stays in the correct order
+
 ---
 
 ## [2.4.4] - 2026-04-05

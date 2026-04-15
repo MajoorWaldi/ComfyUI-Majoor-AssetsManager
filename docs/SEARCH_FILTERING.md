@@ -1,6 +1,6 @@
 # Majoor Assets Manager - Search & Filtering Guide
 
-**Version**: 2.4.4  
+**Version**: 2.4.5
 **Last Updated**: April 5, 2026
 
 ## Overview
@@ -214,5 +214,5 @@ The interface shows:
 - Memory usage indicators help monitor performance
 
 ---
-*Search & Filtering Guide Version: 1.0*  
+*Search & Filtering Guide Version: 1.0*
 *Last Updated: April 5, 2026*

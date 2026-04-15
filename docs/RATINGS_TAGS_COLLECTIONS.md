@@ -1,6 +1,6 @@
 # Majoor Assets Manager - Ratings, Tags & Collections Guide
 
-**Version**: 2.4.4  
+**Version**: 2.4.5
 **Last Updated**: April 5, 2026
 
 ## Overview
@@ -358,5 +358,5 @@ Collections are user-created groups of assets that can span multiple directories
 - Preserves existing file metadata
 
 ---
-*Ratings, Tags & Collections Guide Version: 1.0*  
+*Ratings, Tags & Collections Guide Version: 1.0*
 *Last Updated: April 5, 2026*
