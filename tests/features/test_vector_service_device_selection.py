@@ -105,3 +105,40 @@ def test_load_florence_components_moves_model_to_resolved_device(monkeypatch):
     assert returned_torch is fake_torch
     assert fake_model.moved_to == "cuda"
     assert fake_model.eval_called is True
+
+
+def test_load_florence_model_with_compat_patches_missing_generation_attrs(monkeypatch):
+    class _FakePretrainedConfig:
+        pass
+
+    class _FakeGenerationConfig:
+        pass
+
+    fake_cfg_mod = types.ModuleType("transformers.configuration_utils")
+    fake_cfg_mod.PretrainedConfig = _FakePretrainedConfig
+    fake_generation_mod = types.ModuleType("transformers.generation.configuration_utils")
+    fake_generation_mod.GenerationConfig = _FakeGenerationConfig
+
+    fake_model = _FakeModel()
+
+    class _FakeAutoModelForCausalLM:
+        calls = 0
+
+        @staticmethod
+        def from_pretrained(*_args, **_kwargs):
+            _FakeAutoModelForCausalLM.calls += 1
+            if not hasattr(_FakePretrainedConfig, "forced_bos_token_id"):
+                raise AttributeError("'Florence2LanguageConfig' object has no attribute 'forced_bos_token_id'")
+            return fake_model
+
+    monkeypatch.setitem(sys.modules, "transformers.configuration_utils", fake_cfg_mod)
+    monkeypatch.setitem(sys.modules, "transformers.generation.configuration_utils", fake_generation_mod)
+
+    loaded_model = m._load_florence_model_with_compat("dummy/florence", _FakeAutoModelForCausalLM)
+
+    assert loaded_model is fake_model
+    assert _FakeAutoModelForCausalLM.calls >= 1
+    assert hasattr(_FakePretrainedConfig, "forced_bos_token_id")
+    assert _FakePretrainedConfig.forced_bos_token_id is None
+    assert hasattr(_FakeGenerationConfig, "forced_bos_token_id")
+    assert _FakeGenerationConfig.forced_bos_token_id is None

@@ -519,6 +519,54 @@ def _load_florence_processor(prompt_model_name: str, AutoProcessor: Any, *, use_
     return AutoProcessor.from_pretrained(prompt_model_name, **kwargs)  # nosec B615
 
 
+_FLORENCE_GENERATION_COMPAT_DEFAULTS: dict[str, Any] = {
+    "forced_bos_token_id": None,
+    "forced_eos_token_id": None,
+    "decoder_start_token_id": None,
+    "bos_token_id": None,
+    "eos_token_id": None,
+    "pad_token_id": None,
+}
+
+
+def _patch_florence_generation_config_compat(target: Any | None = None) -> None:
+    def _apply(obj: Any) -> None:
+        if obj is None:
+            return
+        for attr, default in _FLORENCE_GENERATION_COMPAT_DEFAULTS.items():
+            if hasattr(obj, attr):
+                continue
+            try:
+                setattr(obj, attr, default)
+            except Exception:
+                continue
+
+    if target is None:
+        for module_name, class_name in (
+            ("transformers.configuration_utils", "PretrainedConfig"),
+            ("transformers.generation.configuration_utils", "GenerationConfig"),
+            ("transformers.models.florence2.configuration_florence2", "Florence2Config"),
+            ("transformers.models.florence2.configuration_florence2", "Florence2LanguageConfig"),
+        ):
+            try:
+                module = __import__(module_name, fromlist=[class_name])
+                _apply(getattr(module, class_name, None))
+            except Exception:
+                continue
+        return
+
+    _apply(target)
+    cfg = getattr(target, "config", None)
+    gen_cfg = getattr(target, "generation_config", None)
+    _apply(cfg)
+    _apply(gen_cfg)
+    for nested in (cfg, gen_cfg):
+        if nested is None:
+            continue
+        _apply(getattr(nested, "text_config", None))
+        _apply(getattr(nested, "language_config", None))
+
+
 def _patch_florence_sdpa_support() -> None:
     try:
         from transformers.modeling_utils import PreTrainedModel
@@ -541,21 +589,30 @@ def _patch_florence_sdpa_support() -> None:
 
 
 def _load_florence_model_with_compat(prompt_model_name: str, AutoModelForCausalLM: Any) -> Any:
+    _patch_florence_generation_config_compat()
     try:
-        return AutoModelForCausalLM.from_pretrained(  # nosec B615
+        model = AutoModelForCausalLM.from_pretrained(  # nosec B615
             prompt_model_name,
             trust_remote_code=True,
             attn_implementation="eager",
         )
+        _patch_florence_generation_config_compat(model)
+        return model
     except AttributeError as exc:
-        if "_supports_sdpa" not in str(exc or ""):
+        msg = str(exc or "")
+        if "_supports_sdpa" in msg:
+            _patch_florence_sdpa_support()
+        elif any(attr in msg for attr in _FLORENCE_GENERATION_COMPAT_DEFAULTS):
+            _patch_florence_generation_config_compat()
+        else:
             raise
-        _patch_florence_sdpa_support()
-        return AutoModelForCausalLM.from_pretrained(  # nosec B615
+        model = AutoModelForCausalLM.from_pretrained(  # nosec B615
             prompt_model_name,
             trust_remote_code=True,
             attn_implementation="eager",
         )
+        _patch_florence_generation_config_compat(model)
+        return model
 
 
 def _load_florence_components_verbose(service: Any, AutoModelForCausalLM: Any, AutoProcessor: Any) -> None:
@@ -824,8 +881,8 @@ class VectorService:
         # SentenceTransformer may default to a higher max_seq_length.
         # CLIP's hard limit is 77 tokens; exceeding it triggers a noisy
         # HuggingFace warning *and* risks silent embedding corruption.
-        
-        
+
+
 
         # ── Diagnostic: discover tokenizer location ─────────────────
         self._cached_tokenizer = self._discover_tokenizer(model)

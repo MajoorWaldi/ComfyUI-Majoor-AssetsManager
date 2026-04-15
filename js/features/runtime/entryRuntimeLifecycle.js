@@ -151,6 +151,7 @@ export function installEntryRuntimeController({
     teardownGeneratedFeed,
     teardownAssetsSidebar,
     teardownGlobalRuntime,
+    teardownTopBarMfvButton,
     reportError,
 }) {
     try {
@@ -183,6 +184,11 @@ export function installEntryRuntimeController({
             }
             try {
                 teardownGeneratedFeed?.();
+            } catch (e) {
+                console.warn("[MJR teardown]", e);
+            }
+            try {
+                teardownTopBarMfvButton?.();
             } catch (e) {
                 console.warn("[MJR teardown]", e);
             }

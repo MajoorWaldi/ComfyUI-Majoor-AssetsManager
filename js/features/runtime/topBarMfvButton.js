@@ -1,8 +1,13 @@
 import { EVENTS } from "../../app/events.js";
 import { t } from "../../app/i18n.js";
+import { setTooltipHint } from "../../utils/tooltipShortcuts.js";
 
 const BUTTON_HOST_ATTR = "data-mjr-topbar-mfv-host";
 const BUTTON_ATTR = "data-mjr-topbar-mfv-button";
+const SLOT_ATTR = "data-mjr-topbar-mfv-slot";
+const BUTTON_LABEL_KEY = "label.floatingViewer";
+const BUTTON_LABEL_FALLBACK = "Viewer";
+const MFV_TOOLTIP_HINT = "V, Ctrl/Cmd+V";
 
 let _observer = null;
 let _observedTarget = null;
@@ -12,6 +17,7 @@ let _resizeListener = null;
 let _syncQueued = false;
 let _syncTimer = null;
 let _visible = false;
+let _hasVisibilitySignal = false;
 
 function _tryObserveActionbar(container) {
     if (_observer && _observedTarget === container) return;
@@ -63,7 +69,42 @@ function updateViewerTopOffset(container = getActionbarContainer()) {
 function getAnchor(container) {
     if (!container) return null;
     const queueGroup = container.querySelector(".queue-button-group");
-    return queueGroup?.closest(".flex.h-full.items-center") || null;
+    if (queueGroup?.parentElement === container) return queueGroup;
+    return (
+        queueGroup?.closest("[class*='items-center']") ||
+        queueGroup?.closest("[class*='queue-button-group']") ||
+        queueGroup ||
+        null
+    );
+}
+
+function ensureSlotMounted(container) {
+    if (!container) return null;
+
+    let slot = container.querySelector(`[${SLOT_ATTR}]`);
+    if (!slot) {
+        slot = document.createElement("div");
+        slot.setAttribute(SLOT_ATTR, "1");
+        slot.className = "flex h-full items-center pointer-events-auto";
+        slot.style.position = "relative";
+        slot.style.zIndex = "10030";
+        slot.style.padding = "0 4px";
+    }
+
+    const anchor = getAnchor(container);
+    if (slot.parentElement !== container) {
+        if (anchor) {
+            container.insertBefore(slot, anchor);
+        } else {
+            container.prepend(slot);
+        }
+    } else if (anchor && slot.nextSibling !== anchor) {
+        container.insertBefore(slot, anchor);
+    } else if (!anchor && slot !== container.firstElementChild) {
+        container.prepend(slot);
+    }
+
+    return slot;
 }
 
 function createIcon(className = "pi pi-eye") {
@@ -82,64 +123,24 @@ function createLabel(text = "Viewer") {
 
 function updateButtonState(button) {
     if (!button) return;
-    const tooltip = _visible
+    const tooltipLabel = _visible
         ? t("tooltip.closeMFV", "Close Floating Viewer")
         : t("tooltip.openMFV", "Open Floating Viewer");
-    button.setAttribute("title", tooltip);
-    button.setAttribute("aria-label", tooltip);
+    setTooltipHint(button, tooltipLabel, MFV_TOOLTIP_HINT, {
+        ariaLabel: tooltipLabel,
+    });
     button.setAttribute("aria-pressed", _visible ? "true" : "false");
     button.classList.toggle("primary", _visible);
     button.classList.toggle("mjr-topbar-mfv-active", _visible);
-    button.replaceChildren(createIcon("pi pi-eye"), createLabel("Viewer"));
-}
-
-function findViewerControlButton(labelStart) {
-    if (typeof document === "undefined") return null;
-    const buttons = document.querySelectorAll("button[aria-label]");
-    for (const button of buttons) {
-        const label = String(button.getAttribute("aria-label") || "").trim();
-        if (label.startsWith(labelStart)) {
-            return button;
-        }
-    }
-    return null;
-}
-
-function ensureViewerToggleEnabled(labelStart, fallbackEventName) {
-    const button = findViewerControlButton(labelStart);
-    if (button) {
-        if (button.getAttribute("aria-pressed") !== "true") {
-            button.click();
-        }
-        return true;
-    }
-    if (fallbackEventName) {
-        window.dispatchEvent(new Event(fallbackEventName));
-    }
-    return false;
-}
-
-function ensureViewerModesEnabled(attempt = 0) {
-    const liveReady = ensureViewerToggleEnabled("Live Stream:", EVENTS.MFV_LIVE_TOGGLE);
-    const previewReady = ensureViewerToggleEnabled("KSampler Preview:", EVENTS.MFV_PREVIEW_TOGGLE);
-    if ((liveReady && previewReady) || attempt >= 10) {
-        scheduleSync();
-        return;
-    }
-
-    setTimeout(() => {
-        ensureViewerModesEnabled(attempt + 1);
-    }, 80);
+    button.replaceChildren(
+        createIcon(_visible ? "pi pi-eye-slash" : "pi pi-eye"),
+        createLabel(t(BUTTON_LABEL_KEY, BUTTON_LABEL_FALLBACK)),
+    );
 }
 
 function dispatchLaunch() {
     try {
-        if (_visible) {
-            window.dispatchEvent(new Event(EVENTS.MFV_CLOSE));
-        } else {
-            window.dispatchEvent(new Event(EVENTS.MFV_OPEN));
-            ensureViewerModesEnabled();
-        }
+        window.dispatchEvent(new Event(EVENTS.MFV_TOGGLE));
     } catch (e) {
         console.debug?.("[Majoor] top bar MFV launch failed", e);
     }
@@ -170,10 +171,8 @@ function createButton() {
 function createButtonHost() {
     const host = document.createElement("div");
     host.setAttribute(BUTTON_HOST_ATTR, "1");
-    host.className = "flex h-full items-center pointer-events-auto";
+    host.className = "mjr-topbar-mfv-button-host";
     host.style.position = "relative";
-    host.style.zIndex = "10030";
-    host.style.padding = "0 4px";
 
     host.appendChild(createButton());
     return host;
@@ -181,6 +180,7 @@ function createButtonHost() {
 
 function _syncVisibleFromDom() {
     if (typeof document === "undefined") return;
+    if (_hasVisibilitySignal) return;
     const viewerOpen = !!document.querySelector(".mjr-mfv.is-visible");
     if (_visible !== viewerOpen) {
         _visible = viewerOpen;
@@ -197,25 +197,24 @@ function ensureButtonMounted() {
     _tryObserveActionbar(container);
     _syncVisibleFromDom();
 
-    let host = container.querySelector(`[${BUTTON_HOST_ATTR}]`);
+    const slot = ensureSlotMounted(container);
+    if (!slot) {
+        updateViewerTopOffset(container);
+        return null;
+    }
+
+    let host = slot.querySelector(`[${BUTTON_HOST_ATTR}]`);
     if (!host) {
         host = createButtonHost();
     }
 
-    const anchor = getAnchor(container);
-    if (host.parentElement !== container) {
-        if (anchor) {
-            container.insertBefore(host, anchor);
-        } else {
-            container.appendChild(host);
-        }
-    } else if (anchor && host.nextElementSibling !== anchor) {
-        container.insertBefore(host, anchor);
+    if (host.parentElement !== slot) {
+        slot.replaceChildren(host);
     }
 
     updateViewerTopOffset(container);
     updateButtonState(host.querySelector(`[${BUTTON_ATTR}]`));
-    return host;
+    return slot;
 }
 
 function scheduleSync() {
@@ -238,6 +237,7 @@ export function mountTopBarMfvButton() {
     if (!_visibilityListener) {
         _visibilityListener = (event) => {
             _visible = Boolean(event?.detail?.visible);
+            _hasVisibilitySignal = true;
             scheduleSync();
         };
         window.addEventListener(EVENTS.MFV_VISIBILITY_CHANGED, _visibilityListener);
@@ -289,10 +289,12 @@ export function teardownTopBarMfvButton() {
     _resizeListener = null;
     _syncQueued = false;
     _visible = false;
+    _hasVisibilitySignal = false;
 
     try {
         document.documentElement?.style?.setProperty("--mjr-mfv-top-offset", "60px");
         document.querySelector(`[${BUTTON_HOST_ATTR}]`)?.remove?.();
+        document.querySelector(`[${SLOT_ATTR}]`)?.remove?.();
     } catch (e) {
         console.debug?.(e);
     }

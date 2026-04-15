@@ -137,6 +137,7 @@ export function mountGlobalRuntime() {
 
 export function teardownGlobalRuntime() {
     try {
+        teardownTopBarMfvButton();
         const root = document.getElementById(GLOBAL_RUNTIME_ROOT_ID);
         if (!root) return;
         unmountKeepAlive(root, GLOBAL_RUNTIME_MOUNT_KEY);
