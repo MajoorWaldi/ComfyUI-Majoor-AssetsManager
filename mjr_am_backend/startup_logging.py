@@ -6,7 +6,7 @@ import os
 import sqlite3
 from typing import Any
 
-from .config import INDEX_DB
+from .config import get_runtime_index_db_path
 from .shared import log_success
 from .utils import parse_bool
 
@@ -49,7 +49,7 @@ def _read_startup_verbose_logs_env() -> bool | None:
 
 
 def _read_startup_verbose_logs_from_db(db_path: str | None = None) -> bool:
-    target_db = str(db_path or INDEX_DB or "").strip()
+    target_db = str(db_path or get_runtime_index_db_path() or "").strip()
     if not target_db:
         return False
     try:

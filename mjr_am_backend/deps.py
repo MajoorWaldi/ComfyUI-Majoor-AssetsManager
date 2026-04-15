@@ -16,10 +16,10 @@ from .config import (
     EXIFTOOL_TIMEOUT,
     FFPROBE_BIN,
     FFPROBE_TIMEOUT,
-    INDEX_DB,
-    VECTORS_DB,
     WATCHER_ENABLED,
     WATCHER_START_ON_BOOT,
+    get_runtime_index_db_path,
+    get_runtime_vectors_db_path,
     initialize_directories,
     is_vector_search_enabled,
 )
@@ -39,29 +39,31 @@ from .startup_logging import startup_log_info, startup_log_success
 logger = get_logger(__name__)
 
 def _resolve_db_path(db_path: str | None) -> str:
-    return db_path if db_path is not None else INDEX_DB
+    return db_path if db_path is not None else str(get_runtime_index_db_path())
 
 
 def _resolve_vectors_db_path(db_path: str) -> str:
+    runtime_index_db = str(get_runtime_index_db_path())
+    runtime_vectors_db = str(get_runtime_vectors_db_path())
     # On POSIX runners, pathlib.Path treats "C:/..." as a relative path.
     # Detect Windows drive paths explicitly so we can preserve correct sibling
     # path semantics in cross-platform tests and CI.
     if len(db_path) >= 3 and db_path[1] == ":" and db_path[2] in ("\\", "/"):
         win_db = PureWindowsPath(db_path)
-        win_index = PureWindowsPath(INDEX_DB)
+        win_index = PureWindowsPath(runtime_index_db)
         if win_db == win_index:
-            return VECTORS_DB
+            return runtime_vectors_db
         return str(win_db.with_name("vectors.sqlite"))
 
     try:
         resolved_db = Path(db_path).expanduser().resolve()
-        resolved_index = Path(INDEX_DB).expanduser().resolve()
+        resolved_index = Path(runtime_index_db).expanduser().resolve()
     except Exception:
         resolved_db = Path(db_path)
-        resolved_index = Path(INDEX_DB)
+        resolved_index = Path(runtime_index_db)
 
     if resolved_db == resolved_index:
-        return VECTORS_DB
+        return runtime_vectors_db
     return str(resolved_db.with_name("vectors.sqlite"))
 
 

@@ -6,8 +6,7 @@ import os
 import sqlite3
 
 from aiohttp import web
-
-from mjr_am_backend.config import INDEX_DB
+from mjr_am_backend.config import get_runtime_index_db_path
 from mjr_am_backend.shared import get_logger
 from mjr_am_backend.utils import parse_bool
 
@@ -43,7 +42,7 @@ def _read_route_verbose_logs_env() -> bool | None:
 
 def _read_route_verbose_logs_from_db() -> bool:
     try:
-        with sqlite3.connect(str(INDEX_DB)) as conn:
+        with sqlite3.connect(str(get_runtime_index_db_path())) as conn:
             row = conn.execute(
                 "SELECT value FROM metadata WHERE key = ?",
                 (_ROUTE_VERBOSE_LOGS_DB_KEY,),

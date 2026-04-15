@@ -123,6 +123,22 @@ def test_set_and_clear_index_dir_override(monkeypatch, tmp_path):
     assert not override_file.exists()
 
 
+def test_runtime_index_db_and_directory_helpers_follow_override_file(monkeypatch, tmp_path):
+    import mjr_am_backend.config as cfg
+
+    override_dir = tmp_path / "runtime-index"
+    override_file = tmp_path / ".mjr_index_directory_override"
+    override_file.write_text(str(override_dir) + "\n", encoding="utf-8")
+
+    monkeypatch.delenv("MJR_AM_INDEX_DIRECTORY", raising=False)
+    monkeypatch.delenv("MAJOOR_INDEX_DIRECTORY", raising=False)
+    monkeypatch.setattr(cfg, "_INDEX_DIR_OVERRIDE_FILE_PATH", override_file)
+
+    assert cfg.get_runtime_index_dir_path() == override_dir.resolve()
+    assert cfg.get_runtime_index_db_path() == override_dir.resolve() / "assets.sqlite"
+    assert cfg.get_runtime_collections_dir_path() == override_dir.resolve() / "collections"
+
+
 def test_output_root_override_from_sidecar_file(monkeypatch, tmp_path):
     import mjr_am_backend.config as cfg
 

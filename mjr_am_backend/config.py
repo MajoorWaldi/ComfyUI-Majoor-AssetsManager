@@ -326,6 +326,25 @@ def get_runtime_index_dir() -> str:
         return str(INDEX_DIR)
 
 
+def get_runtime_index_dir_path() -> Path:
+    try:
+        return _resolve_index_dir()
+    except Exception:  # OK: fallback to startup-resolved INDEX_DIR_PATH
+        return INDEX_DIR_PATH
+
+
+def get_runtime_index_db_path() -> Path:
+    return get_runtime_index_dir_path() / "assets.sqlite"
+
+
+def get_runtime_vectors_db_path() -> Path:
+    return get_runtime_index_dir_path() / "vectors.sqlite"
+
+
+def get_runtime_collections_dir_path() -> Path:
+    return get_runtime_index_dir_path() / "collections"
+
+
 def set_index_directory_override(path: str) -> str:
     normalized = str(path or "").strip()
     if not normalized:
@@ -378,8 +397,8 @@ def initialize_directories() -> None:
     with _INIT_LOCK:
         if _DIRS_INITIALIZED:
             return
-        os.makedirs(INDEX_DIR, exist_ok=True)
-        os.makedirs(COLLECTIONS_DIR, exist_ok=True)
+        os.makedirs(get_runtime_index_dir_path(), exist_ok=True)
+        os.makedirs(get_runtime_collections_dir_path(), exist_ok=True)
         _DIRS_INITIALIZED = True
 
 # External tool overrides (portable vs. system-wide)

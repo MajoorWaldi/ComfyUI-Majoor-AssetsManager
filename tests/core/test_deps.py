@@ -1,19 +1,21 @@
+from pathlib import Path
+
 import pytest
 from mjr_am_backend import deps as deps_mod
 from mjr_am_backend.shared import Result
 
 
 def test_resolve_db_path_default_and_custom(monkeypatch):
-    monkeypatch.setattr(deps_mod, "INDEX_DB", "C:/default.sqlite")
-    assert deps_mod._resolve_db_path(None) == "C:/default.sqlite"
+    monkeypatch.setattr(deps_mod, "get_runtime_index_db_path", lambda: Path("C:/default.sqlite"))
+    assert deps_mod._resolve_db_path(None).replace("\\", "/") == "C:/default.sqlite"
     assert deps_mod._resolve_db_path("C:/x.sqlite") == "C:/x.sqlite"
 
 
 def test_resolve_vectors_db_path_default_and_custom(monkeypatch):
-    monkeypatch.setattr(deps_mod, "INDEX_DB", "C:/default.sqlite")
-    monkeypatch.setattr(deps_mod, "VECTORS_DB", "C:/shared/vectors.sqlite")
+    monkeypatch.setattr(deps_mod, "get_runtime_index_db_path", lambda: Path("C:/default.sqlite"))
+    monkeypatch.setattr(deps_mod, "get_runtime_vectors_db_path", lambda: Path("C:/shared/vectors.sqlite"))
 
-    assert deps_mod._resolve_vectors_db_path("C:/default.sqlite") == "C:/shared/vectors.sqlite"
+    assert deps_mod._resolve_vectors_db_path("C:/default.sqlite").replace("\\", "/") == "C:/shared/vectors.sqlite"
     assert deps_mod._resolve_vectors_db_path("C:/tmp/custom.sqlite").endswith("tmp\\vectors.sqlite")
 
 
@@ -37,8 +39,8 @@ def test_init_db_or_error_uses_sibling_vectors_db_for_custom_path(monkeypatch):
             captured["kwargs"] = kwargs
 
     monkeypatch.setattr(deps_mod, "Sqlite", _Sqlite)
-    monkeypatch.setattr(deps_mod, "INDEX_DB", "C:/default.sqlite")
-    monkeypatch.setattr(deps_mod, "VECTORS_DB", "C:/shared/vectors.sqlite")
+    monkeypatch.setattr(deps_mod, "get_runtime_index_db_path", lambda: Path("C:/default.sqlite"))
+    monkeypatch.setattr(deps_mod, "get_runtime_vectors_db_path", lambda: Path("C:/shared/vectors.sqlite"))
 
     out = deps_mod._init_db_or_error("C:/tmp/custom.sqlite")
     assert out.ok is True
@@ -47,6 +49,13 @@ def test_init_db_or_error_uses_sibling_vectors_db_for_custom_path(monkeypatch):
     attach = kwargs.get("attach")
     assert isinstance(attach, dict)
     assert str(attach.get("vec") or "").endswith("tmp\\vectors.sqlite")
+
+
+def test_resolve_db_path_uses_runtime_override(monkeypatch, tmp_path):
+    override_db = tmp_path / "override-index" / "assets.sqlite"
+    monkeypatch.setattr(deps_mod, "get_runtime_index_db_path", lambda: override_db)
+
+    assert deps_mod._resolve_db_path(None) == str(override_db)
 
 
 def test_build_services_dict_contains_core_keys(monkeypatch):
