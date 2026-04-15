@@ -2,7 +2,7 @@
 
 ## Presentation Video
 
-<video src="https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/download/v2.4.4/COMFYUI.ASSETS.MANAGER.mp4" controls autoplay muted loop width="100%"></video>
+[![Watch the presentation video](examples/ComfyUI_Majoor_AssetsManager_Video.gif)](https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/download/v2.4.4/COMFYUI.ASSETS.MANAGER.mp4)
 
 [![GitHub Repo](https://img.shields.io/badge/GitHub-Repo-181717?logo=github)](https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager)
 [![GitHub Stars](https://img.shields.io/github/stars/MajoorWaldi/ComfyUI-Majoor-AssetsManager?style=flat)](https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/stargazers)
@@ -17,8 +17,6 @@
 [![Buy Me a White Monster Drink](https://img.shields.io/badge/Ko--fi-Buy_Me_a_White_Monster_Drink-ff5e5b?logo=ko-fi)](https://ko-fi.com/majoorwaldi)
 
 **Advanced asset browser for ComfyUI** — Search, filter, preview, organize, and manage generated files directly in the UI with real-time generation tracking.
-
-![Majoor Assets Manager Demo](examples/ComfyUI_Majoor_AssetsManager_Video.gif)
 
 ## Samples
 
