@@ -11,7 +11,7 @@
  * the legacy controller layer.  Each is replaced one by one in subsequent
  * steps.
  */
-import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { usePanelStore } from "../../../stores/usePanelStore.js";
 import { get } from "../../../api/client.js";
 import { ENDPOINTS } from "../../../api/endpoints.js";
@@ -242,9 +242,17 @@ function syncMfvTooltip() {
     }
 }
 
+function syncMfvStateFromDom() {
+    try {
+        if (typeof document === "undefined") return;
+        mfvVisible.value = !!document.querySelector(".mjr-mfv.is-visible");
+    } catch (e) {
+        console.debug?.(e);
+    }
+}
+
 function handleMfvVisibility(event) {
     mfvVisible.value = Boolean(event?.detail?.visible);
-    syncMfvTooltip();
 }
 
 function handleVersionUpdate(event) {
@@ -268,11 +276,16 @@ function dispose() {
 
 // ── lifecycle ──────────────────────────────────────────────────────────────────
 
+watch(mfvVisible, () => {
+    syncMfvTooltip();
+});
+
 onMounted(async () => {
     await nextTick();
 
     try { applyDotState(getStoredVersionUpdateState()); } catch (e) { console.debug?.(e); }
 
+    syncMfvStateFromDom();
     syncMfvTooltip();
     applyExtensionMetadata(initialNightly);
     void hydrateBackendVersionBadge(initialNightly);
@@ -472,6 +485,9 @@ defineExpose({
                         ref="mfvBtnRef"
                         type="button"
                         class="mjr-icon-btn"
+                        :class="{ 'mjr-mfv-btn-active': mfvVisible }"
+                        :title="mfvTitle"
+                        :aria-label="mfvTitle"
                         @click="handleMfvToggle"
                     >
                         <i :class="mfvIconClass" aria-hidden="true" />

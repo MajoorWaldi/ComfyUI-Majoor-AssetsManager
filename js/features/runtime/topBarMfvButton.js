@@ -68,14 +68,7 @@ function updateViewerTopOffset(container = getActionbarContainer()) {
 
 function getAnchor(container) {
     if (!container) return null;
-    const queueGroup = container.querySelector(".queue-button-group");
-    if (queueGroup?.parentElement === container) return queueGroup;
-    return (
-        queueGroup?.closest("[class*='items-center']") ||
-        queueGroup?.closest("[class*='queue-button-group']") ||
-        queueGroup ||
-        null
-    );
+    return container.querySelector(".queue-button-group") || null;
 }
 
 function ensureSlotMounted(container) {
@@ -92,16 +85,18 @@ function ensureSlotMounted(container) {
     }
 
     const anchor = getAnchor(container);
-    if (slot.parentElement !== container) {
-        if (anchor) {
-            container.insertBefore(slot, anchor.nextSibling);
+    const parent = anchor?.parentElement || container;
+
+    if (slot.parentElement !== parent) {
+        if (anchor && parent) {
+            parent.insertBefore(slot, anchor.nextSibling);
         } else {
-            container.appendChild(slot);
+            parent.appendChild(slot);
         }
-    } else if (anchor && slot.previousSibling !== anchor) {
-        container.insertBefore(slot, anchor.nextSibling);
-    } else if (!anchor && slot !== container.lastElementChild) {
-        container.appendChild(slot);
+    } else if (anchor && parent && slot.previousSibling !== anchor) {
+        parent.insertBefore(slot, anchor.nextSibling);
+    } else if (!anchor && slot !== parent.lastElementChild) {
+        parent.appendChild(slot);
     }
 
     return slot;

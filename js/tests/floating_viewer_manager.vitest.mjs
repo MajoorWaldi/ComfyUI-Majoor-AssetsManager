@@ -479,6 +479,35 @@ describe("floatingViewerManager", () => {
         expect(event.preventDefault).toHaveBeenCalledTimes(1);
     });
 
+    it("syncs live and preview defaults when viewer settings change", async () => {
+        const { APP_CONFIG } = await import("../app/config.js");
+        APP_CONFIG.MFV_LIVE_DEFAULT = true;
+        APP_CONFIG.MFV_PREVIEW_DEFAULT = true;
+
+        const { floatingViewerManager, installFloatingViewerGlobalHandlers } =
+            await import("../features/viewer/floatingViewerManager.js");
+        installFloatingViewerGlobalHandlers();
+        await floatingViewerManager.open();
+
+        const viewer = state.getLastViewer();
+        expect(floatingViewerManager.getLiveActive()).toBe(true);
+        expect(floatingViewerManager.getPreviewActive()).toBe(true);
+
+        APP_CONFIG.MFV_LIVE_DEFAULT = false;
+        APP_CONFIG.MFV_PREVIEW_DEFAULT = false;
+        window.dispatchEvent(
+            new CustomEvent("mjr-settings-changed", { detail: { key: "viewer.mfvLiveDefault" } }),
+        );
+        window.dispatchEvent(
+            new CustomEvent("mjr-settings-changed", { detail: { key: "viewer.mfvPreviewDefault" } }),
+        );
+
+        expect(viewer.setLiveActive).toHaveBeenLastCalledWith(false);
+        expect(viewer.setPreviewActive).toHaveBeenLastCalledWith(false);
+        expect(floatingViewerManager.getLiveActive()).toBe(false);
+        expect(floatingViewerManager.getPreviewActive()).toBe(false);
+    });
+
     it("re-attaches an existing detached MFV node on reopen", async () => {
         const { floatingViewerManager } =
             await import("../features/viewer/floatingViewerManager.js");

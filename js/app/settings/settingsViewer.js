@@ -3,6 +3,7 @@
  */
 
 import { t } from "../i18n.js";
+import { APP_DEFAULTS } from "../config.js";
 import { saveMajoorSettings, applySettingsToConfig } from "./settingsCore.js";
 import { getLtxavRgbFallbackSettings, setLtxavRgbFallbackSettings } from "../../api/client.js";
 import { comfyToast } from "../toast.js";
@@ -89,6 +90,41 @@ export function registerViewerSettings(safeAddSetting, settings, notifyApplied) 
             saveMajoorSettings(settings);
             applySettingsToConfig(settings);
             notifyApplied("viewer.floatingPauseDuringExecution");
+        },
+    });
+
+    safeAddSetting({
+        id: `${SETTINGS_PREFIX}.Viewer.MfvLiveDefault`,
+        category: cat(t("cat.viewer"), t("setting.viewer.mfvLiveDefault.name").replace("Majoor: ", "")),
+        name: t("setting.viewer.mfvLiveDefault.name"),
+        tooltip: t("setting.viewer.mfvLiveDefault.desc"),
+        type: "boolean",
+        defaultValue: !!(settings.viewer?.mfvLiveDefault ?? APP_DEFAULTS.MFV_LIVE_DEFAULT),
+        onChange: (value) => {
+            settings.viewer = settings.viewer || {};
+            settings.viewer.mfvLiveDefault = !!value;
+            saveMajoorSettings(settings);
+            applySettingsToConfig(settings);
+            notifyApplied("viewer.mfvLiveDefault");
+        },
+    });
+
+    safeAddSetting({
+        id: `${SETTINGS_PREFIX}.Viewer.MfvPreviewDefault`,
+        category: cat(
+            t("cat.viewer"),
+            t("setting.viewer.mfvPreviewDefault.name").replace("Majoor: ", ""),
+        ),
+        name: t("setting.viewer.mfvPreviewDefault.name"),
+        tooltip: t("setting.viewer.mfvPreviewDefault.desc"),
+        type: "boolean",
+        defaultValue: !!(settings.viewer?.mfvPreviewDefault ?? APP_DEFAULTS.MFV_PREVIEW_DEFAULT),
+        onChange: (value) => {
+            settings.viewer = settings.viewer || {};
+            settings.viewer.mfvPreviewDefault = !!value;
+            saveMajoorSettings(settings);
+            applySettingsToConfig(settings);
+            notifyApplied("viewer.mfvPreviewDefault");
         },
     });
 

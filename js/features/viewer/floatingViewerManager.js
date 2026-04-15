@@ -73,6 +73,13 @@ let _selectionListenerBound = false;
 let _fetchAC = null; // AbortController for the latest in-flight batch fetch
 let _loadSeq = 0; // Sequence counter to discard stale _loadFromIds responses
 
+function _syncToggleDefaultsFromConfig() {
+    _liveActive = _getDefaultLiveActive();
+    _previewActive = _getDefaultPreviewActive();
+    _instance?.setLiveActive(_liveActive);
+    _instance?.setPreviewActive(_previewActive);
+}
+
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
 async function _getInstance() {
@@ -705,6 +712,17 @@ const _onBeforeUnload = () => {
         /* noop */
     }
 };
+const _onSettingsChanged = (event) => {
+    const key = String(event?.detail?.key || "");
+    if (
+        !key ||
+        key === "viewer" ||
+        key === "viewer.mfvLiveDefault" ||
+        key === "viewer.mfvPreviewDefault"
+    ) {
+        _syncToggleDefaultsFromConfig();
+    }
+};
 const _onGlobalKeydown = (event) => {
     if (!_instance?.isVisible) return;
     if (isHotkeysSuspended()) return;
@@ -763,6 +781,7 @@ export function installFloatingViewerGlobalHandlers() {
         window.addEventListener(EVENTS.MFV_NODESTREAM_TOGGLE, _onMfvNodeStreamToggle);
     }
     window.addEventListener(EVENTS.MFV_POPOUT, _onMfvPopout);
+    window.addEventListener(EVENTS.SETTINGS_CHANGED, _onSettingsChanged);
     window.addEventListener("keydown", _onGlobalKeydown, true);
     window.addEventListener("beforeunload", _onBeforeUnload);
     _globalHandlersInstalled = true;
@@ -782,6 +801,7 @@ export function removeFloatingViewerGlobalHandlers() {
         window.removeEventListener(EVENTS.MFV_NODESTREAM_TOGGLE, _onMfvNodeStreamToggle);
     }
     window.removeEventListener(EVENTS.MFV_POPOUT, _onMfvPopout);
+    window.removeEventListener(EVENTS.SETTINGS_CHANGED, _onSettingsChanged);
     window.removeEventListener("keydown", _onGlobalKeydown, true);
     window.removeEventListener("beforeunload", _onBeforeUnload);
     _globalHandlersInstalled = false;

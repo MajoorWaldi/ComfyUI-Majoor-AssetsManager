@@ -21,7 +21,7 @@ describe("topBarMfvButton", () => {
         vi.restoreAllMocks();
     });
 
-    it("mounts before the queue group and toggles MFV without forcing live or preview", async () => {
+    it("mounts after the queue group and toggles MFV without forcing live or preview", async () => {
         const actionbar = document.createElement("div");
         actionbar.className = "actionbar-container";
         actionbar.getBoundingClientRect = () => ({ bottom: 88 });
@@ -46,9 +46,9 @@ describe("topBarMfvButton", () => {
         expect(slot).toBeTruthy();
         expect(host).toBeTruthy();
         expect(button).toBeTruthy();
-        expect(actionbar.firstElementChild).toBe(slot);
+        expect(queueGroup.nextSibling).toBe(slot);
         expect(slot.firstElementChild).toBe(host);
-        expect(slot.nextSibling).toBe(queueGroup);
+        expect(actionbar.lastElementChild).toBe(slot);
 
         button.click();
 
@@ -139,9 +139,42 @@ describe("topBarMfvButton", () => {
         const button = secondActionbar.querySelector("[data-mjr-topbar-mfv-button]");
         expect(slot).toBeTruthy();
         expect(button).toBeTruthy();
-        expect(secondActionbar.firstElementChild).toBe(slot);
-        expect(slot.nextSibling).toBe(queueGroup);
+        expect(queueGroup.nextSibling).toBe(slot);
+        expect(secondActionbar.lastElementChild).toBe(slot);
         expect(document.documentElement.style.getPropertyValue("--mjr-mfv-top-offset")).toBe("108px");
+
+        teardownTopBarMfvButton();
+    });
+
+    it("mounts next to a nested queue group without throwing insertBefore errors", async () => {
+        const actionbar = document.createElement("div");
+        actionbar.className = "actionbar-container";
+        actionbar.getBoundingClientRect = () => ({ bottom: 80 });
+
+        const left = document.createElement("div");
+        left.className = "left items-center";
+        const queueGroup = document.createElement("div");
+        queueGroup.className = "queue-button-group";
+        left.appendChild(queueGroup);
+        actionbar.appendChild(left);
+        document.body.appendChild(actionbar);
+
+        const { mountTopBarMfvButton, teardownTopBarMfvButton } = await import(
+            "../features/runtime/topBarMfvButton.js"
+        );
+
+        expect(() => {
+            mountTopBarMfvButton();
+            flushTimers();
+        }).not.toThrow();
+
+        const slot = actionbar.querySelector("[data-mjr-topbar-mfv-slot]");
+        const button = actionbar.querySelector("[data-mjr-topbar-mfv-button]");
+        expect(slot).toBeTruthy();
+        expect(button).toBeTruthy();
+        expect(slot.parentElement).toBe(left);
+        expect(left.lastElementChild).toBe(slot);
+        expect(slot.previousSibling).toBe(queueGroup);
 
         teardownTopBarMfvButton();
     });

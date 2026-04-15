@@ -87,6 +87,8 @@ export const DEFAULT_SETTINGS = {
         disableWebGL: APP_DEFAULTS.VIEWER_DISABLE_WEBGL_VIDEO,
         pauseDuringExecution: APP_DEFAULTS.VIEWER_PAUSE_DURING_EXECUTION,
         floatingPauseDuringExecution: APP_DEFAULTS.FLOATING_VIEWER_PAUSE_DURING_EXECUTION,
+        mfvLiveDefault: APP_DEFAULTS.MFV_LIVE_DEFAULT,
+        mfvPreviewDefault: APP_DEFAULTS.MFV_PREVIEW_DEFAULT,
         videoGradeThrottleFps: APP_DEFAULTS.VIEWER_VIDEO_GRADE_THROTTLE_FPS,
         scopesFps: APP_DEFAULTS.VIEWER_SCOPES_FPS,
         metaTtlMs: APP_DEFAULTS.VIEWER_META_TTL_MS,
@@ -493,6 +495,10 @@ export const applySettingsToConfig = (settings) => {
         settings.viewer?.floatingPauseDuringExecution ??
         APP_DEFAULTS.FLOATING_VIEWER_PAUSE_DURING_EXECUTION
     );
+    APP_CONFIG.MFV_LIVE_DEFAULT =
+        settings.viewer?.mfvLiveDefault ?? APP_DEFAULTS.MFV_LIVE_DEFAULT;
+    APP_CONFIG.MFV_PREVIEW_DEFAULT =
+        settings.viewer?.mfvPreviewDefault ?? APP_DEFAULTS.MFV_PREVIEW_DEFAULT;
     {
         const previewMethod = String(
             settings.viewer?.mfvPreviewMethod || APP_DEFAULTS.MFV_PREVIEW_METHOD,
