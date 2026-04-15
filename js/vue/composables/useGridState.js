@@ -78,15 +78,17 @@ export function useGridState() {
         resetCollections();
     }
 
-    function setSelection(ids, activeId = "") {
+    function setSelection(ids, activeId = "", { preserveAnchor = false } = {}) {
         const nextIds = Array.from(new Set(normalizeIds(ids)));
         const nextActive = String(activeId || nextIds[0] || "").trim();
         state.selectedIds = nextIds;
         state.activeId = nextActive;
-        if (nextActive) {
-            state.selectionAnchorId = nextActive;
-        } else if (!nextIds.length) {
-            state.selectionAnchorId = "";
+        if (!preserveAnchor) {
+            if (nextActive) {
+                state.selectionAnchorId = nextActive;
+            } else if (!nextIds.length) {
+                state.selectionAnchorId = "";
+            }
         }
         return {
             selectedIds: nextIds,
@@ -99,7 +101,8 @@ export function useGridState() {
         const nextIds = normalizeIds(state.selectedIds).filter((id) => visible.has(id));
         const nextActive = String(activeId || state.activeId || nextIds[0] || "").trim();
         const resolvedActive = visible.has(nextActive) ? nextActive : nextIds[0] || "";
-        return setSelection(nextIds, resolvedActive);
+        // Pruning visible assets must not reset the Shift+Click anchor.
+        return setSelection(nextIds, resolvedActive, { preserveAnchor: true });
     }
 
     function getSelectedAssets() {

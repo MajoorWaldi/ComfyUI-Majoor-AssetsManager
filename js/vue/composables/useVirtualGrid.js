@@ -4,7 +4,7 @@
  * This centralizes virtualization helpers that were previously split
  * across VirtualScroller.js and InfiniteScroll.js.
  */
-import { shouldHideSiblingAsset, unregisterHiddenSibling } from "../../features/grid/AssetCardRenderer.js";
+import { getFilenameKey, shouldHideSiblingAsset, unregisterHiddenSibling } from "../../features/grid/AssetCardRenderer.js";
 
 export function isPotentialScrollContainer(el) {
     if (!el || el === window) return false;
@@ -650,7 +650,7 @@ function dedupeAssetsByKey(state, deps) {
     for (const asset of Array.isArray(state?.assets) ? state.assets : []) {
         const assetId = asset?.id != null ? String(asset.id) : "";
         const key = deps.assetKey(asset);
-        const filenameKey = String(asset?.filename || "").trim().toLowerCase();
+        const filenameKey = getFilenameKey(asset?.filename);
         if (assetId && seenIds.has(assetId)) continue;
         if (key && seenKeys.has(key)) continue;
 

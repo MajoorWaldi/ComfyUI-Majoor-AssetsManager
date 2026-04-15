@@ -10,7 +10,7 @@ import { ensureStackGroupCard, ensureDupStackCard } from "../../../features/grid
 import { setSelectedIdsDataset } from "../../../features/grid/GridSelectionManager.js";
 import { applyGridSettingsClasses, configureGridContainer } from "../../../features/grid/gridApi.js";
 import { bindAssetDragStart } from "../../../features/dnd/DragDrop.js";
-import { preserveRepresentativeGenerationTime, selectStackRepresentative } from "../../../features/grid/AssetCardRenderer.js";
+import { getFilenameKey, preserveRepresentativeGenerationTime, selectStackRepresentative } from "../../../features/grid/AssetCardRenderer.js";
 import AssetCardInner from "./AssetCardInner.vue";
 import FolderCard from "./FolderCard.vue";
 import { useGridState } from "../../composables/useGridState.js";
@@ -290,7 +290,7 @@ function buildDisplayAssets(assets) {
     const singles = [];
 
     for (const asset of list) {
-        const filenameKey = String(asset?.filename || "").trim().toLowerCase();
+        const filenameKey = getFilenameKey(asset?.filename);
         if (!filenameKey) {
             singles.push(asset);
             continue;
@@ -305,7 +305,7 @@ function buildDisplayAssets(assets) {
 
     const output = [];
     for (const asset of list) {
-        const filenameKey = String(asset?.filename || "").trim().toLowerCase();
+        const filenameKey = getFilenameKey(asset?.filename);
         if (!filenameKey) {
             asset._mjrNameCollision = false;
             delete asset._mjrNameCollisionCount;
@@ -578,12 +578,20 @@ function rowItemsAt(index) {
     return assets.slice(start, start + cols);
 }
 
+// Adaptive overscan: keep ~1 full viewport of rows buffered, clamped to [3, 20].
+const adaptiveOverscan = computed(() => {
+    const rowH = Math.max(1, estimateRowHeight.value);
+    const clientH = scrollElementRef.value?.clientHeight || 0;
+    if (clientH <= 0) return 6;
+    return Math.max(3, Math.min(20, Math.ceil(clientH / rowH)));
+});
+
 const rowVirtualizer = useVirtualizer(
     computed(() => ({
         count: props.virtualize ? rowCount.value : 0,
         getScrollElement: () => scrollElementRef.value,
         estimateSize: () => estimateRowHeight.value,
-        overscan: 6,
+        overscan: adaptiveOverscan.value,
         measureElement,
     })),
 );
