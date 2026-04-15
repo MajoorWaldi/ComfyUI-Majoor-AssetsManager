@@ -25,6 +25,69 @@ from .sampler_tracer import _scalar
 
 logger = get_logger(__name__)
 
+
+def _clean_text_fragment(value: Any) -> str:
+    return str(value).strip() if isinstance(value, str) else ""
+
+
+def _join_text_fragments(parts: list[str], separator: str = "") -> str | None:
+    filtered = [part for part in (_clean_text_fragment(item) for item in parts) if part]
+    if not filtered:
+        return None
+    return separator.join(filtered).strip() or None
+
+
+def _resolve_text_value(nodes_by_id: dict[str, dict[str, Any]], value: Any, memo: set[str]) -> str | None:
+    if isinstance(value, str):
+        return value.strip() or None
+    if _is_link(value):
+        resolved = _resolve_scalar_from_link(nodes_by_id, value, memo)
+        if isinstance(resolved, str):
+            return resolved.strip() or None
+    return None
+
+
+def _resolve_string_concatenate_node(
+    nodes_by_id: dict[str, dict[str, Any]], ins: dict[str, Any], widgets: Any, memo: set[str]
+) -> str | None:
+    separator = ""
+    if isinstance(widgets, list) and len(widgets) > 2 and isinstance(widgets[2], str):
+        separator = widgets[2]
+    part_a = _resolve_text_value(nodes_by_id, ins.get("string_a"), memo)
+    part_b = _resolve_text_value(nodes_by_id, ins.get("string_b"), memo)
+    return _join_text_fragments([part_a or "", part_b or ""], separator)
+
+
+def _resolve_pysssss_string_function_node(
+    nodes_by_id: dict[str, dict[str, Any]], ins: dict[str, Any], widgets: Any, memo: set[str]
+) -> str | None:
+    mode = ""
+    auto_separator = ""
+    if isinstance(widgets, list):
+        if widgets and isinstance(widgets[0], str):
+            mode = widgets[0].strip().lower()
+        if len(widgets) > 1 and str(widgets[1]).strip().lower() in {"yes", "true", "1"}:
+            auto_separator = ", "
+    if mode and mode != "append":
+        return None
+    part_a = _resolve_text_value(nodes_by_id, ins.get("text_a"), memo)
+    part_b = _resolve_text_value(nodes_by_id, ins.get("text_b"), memo)
+    part_c = _resolve_text_value(nodes_by_id, ins.get("text_c"), memo)
+    return _join_text_fragments([part_a or "", part_b or "", part_c or ""], auto_separator)
+
+
+def _resolve_composed_string_from_node(
+    nodes_by_id: dict[str, dict[str, Any]], node: dict[str, Any], memo: set[str]
+) -> str | None:
+    ct = _lower(_node_type(node))
+    ins = _inputs(node)
+    widgets = node.get("widgets_values")
+    if ct == "stringconcatenate":
+        return _resolve_string_concatenate_node(nodes_by_id, ins, widgets, memo)
+    if ct == "stringfunction|pysssss":
+        return _resolve_pysssss_string_function_node(nodes_by_id, ins, widgets, memo)
+    return None
+
 def _collect_texts_from_conditioning(
     nodes_by_id: dict[str, dict[str, Any]], start_link: Any, max_nodes: int = DEFAULT_MAX_LINK_NODES, branch: str | None = None
 ) -> list[tuple[str, str]]:
@@ -79,6 +142,9 @@ def _extract_cached_text_from_linked_node(
         v = dest_ins.get(cached_key)
         if isinstance(v, str) and _looks_like_prompt_string(v):
             return v.strip()
+    composed = _resolve_composed_string_from_node(nodes_by_id, dest_node, {dest_id})
+    if _looks_like_prompt_string(composed):
+        return str(composed).strip()
     return None
 
 
@@ -401,6 +467,9 @@ def _resolve_scalar_from_link(nodes_by_id: dict[str, dict[str, Any]], value: Any
     cached_text = _first_cached_prompt_text(ins)
     if cached_text is not None:
         return cached_text
+    composed_text = _resolve_composed_string_from_node(nodes_by_id, node, memo)
+    if composed_text is not None:
+        return composed_text
     for k in _SCALAR_FIELD_KEYS:
         result = _resolve_scalar_from_field(nodes_by_id, ins, k, memo)
         if result is not None:
