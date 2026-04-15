@@ -4,7 +4,13 @@
 
 import { ENDPOINTS, appendAssetFilterQueryParams } from "./endpoints.js";
 import { delay as fetchDelay } from "./fetchUtils.js";
-import { get, post } from "./client.js";
+import {
+    get,
+    post,
+    VECTOR_BACKFILL_DEFAULT_POLL_INTERVAL_MS,
+    VECTOR_BACKFILL_DEFAULT_POLL_TIMEOUT_MS,
+    VECTOR_BACKFILL_MAX_POLL_TIMEOUT_MS,
+} from "./client.js";
 import { normalizeAssetId, pickRootId } from "../utils/ids.js";
 
 export async function setProbeBackendMode(mode) {

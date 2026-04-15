@@ -1,3 +1,5 @@
+# mypy: disable-error-code="attr-defined"
+
 import asyncio
 import json
 from pathlib import Path
@@ -272,6 +274,39 @@ async def test_update_index_directory_creates_missing_dir(monkeypatch, tmp_path)
     body = json.loads(resp.text)
     assert body.get("ok") is True
     assert new_dir.is_dir(), "Handler should auto-create the index directory"
+
+
+@pytest.mark.asyncio
+async def test_update_index_directory_writes_override_sidecar(monkeypatch, tmp_path) -> None:
+    import mjr_am_backend.config as cfg
+
+    new_dir = tmp_path / "local-index"
+    override_file = tmp_path / ".mjr_index_directory_override"
+
+    monkeypatch.setattr(health_mod, "_csrf_error", lambda _req: None)
+    monkeypatch.setattr(health_mod, "_require_write_access", lambda _req: Result.Ok({}))
+    monkeypatch.setattr(
+        health_mod,
+        "_read_json",
+        lambda _req: asyncio.sleep(0, result=Result.Ok({"index_directory": str(new_dir)})),
+    )
+    monkeypatch.setattr(cfg, "_INDEX_DIR_OVERRIDE_FILE_PATH", override_file)
+    monkeypatch.setattr(health_mod, "get_runtime_index_dir", lambda: str(new_dir))
+
+    async def _svc():
+        return {}, None
+
+    monkeypatch.setattr(health_mod, "_require_services", _svc)
+
+    app = _build_health_app()
+    req = make_mocked_request("POST", "/mjr/am/settings/index-directory", app=app)
+    resp = await (await app.router.resolve(req)).handler(req)
+    body = json.loads(resp.text)
+
+    assert body.get("ok") is True
+    assert body.get("data", {}).get("requires_restart") is True
+    assert override_file.exists(), "Index override sidecar should be written on save"
+    assert override_file.read_text(encoding="utf-8").strip() == str(new_dir.resolve())
 
 
 @pytest.mark.asyncio

@@ -142,3 +142,42 @@ def test_load_florence_model_with_compat_patches_missing_generation_attrs(monkey
     assert _FakePretrainedConfig.forced_bos_token_id is None
     assert hasattr(_FakeGenerationConfig, "forced_bos_token_id")
     assert _FakeGenerationConfig.forced_bos_token_id is None
+
+
+def test_load_florence_model_with_compat_handles_language_config_init_access(monkeypatch):
+    class _FakePretrainedConfig:
+        pass
+
+    class _FakeGenerationConfig:
+        pass
+
+    class _FakeFlorence2Config:
+        pass
+
+    class _FakeFlorence2LanguageConfig:
+        def __init__(self):
+            self.forced_bos_seen_during_init = self.forced_bos_token_id
+
+    fake_cfg_mod = types.ModuleType("transformers.configuration_utils")
+    fake_cfg_mod.PretrainedConfig = _FakePretrainedConfig
+    fake_generation_mod = types.ModuleType("transformers.generation.configuration_utils")
+    fake_generation_mod.GenerationConfig = _FakeGenerationConfig
+    fake_florence_mod = types.ModuleType("transformers.models.florence2.configuration_florence2")
+    fake_florence_mod.Florence2Config = _FakeFlorence2Config
+    fake_florence_mod.Florence2LanguageConfig = _FakeFlorence2LanguageConfig
+
+    class _FakeAutoModelForCausalLM:
+        @staticmethod
+        def from_pretrained(*_args, **_kwargs):
+            fake_model = _FakeModel()
+            fake_model.config = types.SimpleNamespace(language_config=_FakeFlorence2LanguageConfig())
+            return fake_model
+
+    monkeypatch.setitem(sys.modules, "transformers.configuration_utils", fake_cfg_mod)
+    monkeypatch.setitem(sys.modules, "transformers.generation.configuration_utils", fake_generation_mod)
+    monkeypatch.setitem(sys.modules, "transformers.models.florence2.configuration_florence2", fake_florence_mod)
+
+    loaded_model = m._load_florence_model_with_compat("dummy/florence", _FakeAutoModelForCausalLM)
+
+    assert loaded_model.config.language_config.forced_bos_seen_during_init is None
+    assert loaded_model.config.language_config.forced_bos_token_id is None
