@@ -551,6 +551,12 @@ def _set_text_fallback_from_widgets(converted_inputs: dict[str, Any], widgets_li
     node_type_lower = _lower(node.get("type"))
     if not any(token in node_type_lower for token in ("primitive", "string", "text", "encode")):
         return
+    if "primitive" in node_type_lower:
+        for widget_value in widgets_list:
+            if isinstance(widget_value, str) and widget_value.strip():
+                converted_inputs["text"] = widget_value
+                converted_inputs["value"] = widget_value
+                return
     for widget_value in widgets_list:
         if isinstance(widget_value, str) and len(widget_value.strip()) > 10:
             converted_inputs["text"] = widget_value
