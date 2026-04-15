@@ -45,7 +45,7 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v6 # v4.0.2
         with:
-          submodules: true
+          submodules: false
       - name: Publish Custom Node
         uses: Comfy-Org/publish-node-action@v1 # 1.0.1
         with:
