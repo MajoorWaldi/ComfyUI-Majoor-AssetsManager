@@ -318,6 +318,188 @@ def test_parse_geninfo_supports_pysssss_string_function_append():
     assert pos.get("value") == "masterpiece, a cheese floating in space, detailed background"
 
 
+def test_parse_geninfo_from_workflow_preserves_short_string_punctuation_literals():
+    workflow = {
+        "nodes": [
+            {
+                "id": 1,
+                "type": "PrimitiveStringMultiline",
+                "inputs": [],
+                "widgets_values": ["masterpiece"],
+            },
+            {
+                "id": 2,
+                "type": "PrimitiveStringMultiline",
+                "inputs": [],
+                "widgets_values": ["a cheese floating in space"],
+            },
+            {
+                "id": 3,
+                "type": "PrimitiveStringMultiline",
+                "inputs": [],
+                "widgets_values": ["."],
+            },
+            {
+                "id": 4,
+                "type": "StringConcatenate",
+                "inputs": [
+                    {"name": "string_a", "link": 101},
+                    {"name": "string_b", "link": 102},
+                ],
+                "widgets_values": ["", "", ", "],
+            },
+            {
+                "id": 5,
+                "type": "StringConcatenate",
+                "inputs": [
+                    {"name": "string_a", "link": 103},
+                    {"name": "string_b", "link": 104},
+                ],
+                "widgets_values": ["", "", ""],
+            },
+            {
+                "id": 6,
+                "type": "CLIPTextEncode",
+                "inputs": [
+                    {"name": "clip", "link": 105},
+                    {"name": "text", "link": 106, "widget": {"name": "text"}},
+                ],
+                "widgets_values": [""],
+            },
+            {
+                "id": 7,
+                "type": "CLIPTextEncode",
+                "inputs": [
+                    {"name": "clip", "link": 107},
+                    {"name": "text", "link": 108, "widget": {"name": "text"}},
+                ],
+                "widgets_values": [""],
+            },
+            {
+                "id": 8,
+                "type": "CheckpointLoaderSimple",
+                "inputs": [],
+                "widgets_values": ["demo.safetensors"],
+            },
+            {
+                "id": 9,
+                "type": "KSampler",
+                "inputs": [
+                    {"name": "model", "link": 109},
+                    {"name": "positive", "link": 110},
+                    {"name": "negative", "link": 111},
+                    {"name": "latent_image", "link": 112},
+                ],
+                "widgets_values": [123, "fixed", 20, 7, "euler", "normal", 1],
+            },
+            {
+                "id": 10,
+                "type": "EmptyLatentImage",
+                "inputs": [],
+                "widgets_values": [1024, 1024, 1],
+            },
+            {
+                "id": 11,
+                "type": "SaveImage",
+                "inputs": [{"name": "images", "link": 113}],
+                "widgets_values": ["ComfyUI"],
+            },
+        ],
+        "links": [
+            [101, 1, 0, 4, 0, "STRING"],
+            [102, 2, 0, 4, 1, "STRING"],
+            [103, 4, 0, 5, 0, "STRING"],
+            [104, 3, 0, 5, 1, "STRING"],
+            [105, 8, 1, 6, 0, "CLIP"],
+            [106, 5, 0, 6, 1, "STRING"],
+            [107, 8, 1, 7, 0, "CLIP"],
+            [108, 3, 0, 7, 1, "STRING"],
+            [109, 8, 0, 9, 0, "MODEL"],
+            [110, 6, 0, 9, 1, "CONDITIONING"],
+            [111, 7, 0, 9, 2, "CONDITIONING"],
+            [112, 10, 0, 9, 3, "LATENT"],
+            [113, 9, 0, 11, 0, "LATENT"],
+        ],
+    }
+
+    res = p.parse_geninfo_from_prompt(None, workflow=workflow)
+    assert res.ok
+    data = res.data
+    assert isinstance(data, dict)
+    assert data.get("positive", {}).get("value") == "masterpiece, a cheese floating in space."
+
+
+def test_parse_geninfo_from_workflow_preserves_pysssss_append_auto_comma():
+    workflow = {
+        "nodes": [
+            {"id": 1, "type": "PrimitiveStringMultiline", "inputs": [], "widgets_values": ["masterpiece"]},
+            {"id": 2, "type": "PrimitiveStringMultiline", "inputs": [], "widgets_values": ["a cheese floating in space"]},
+            {"id": 3, "type": "PrimitiveStringMultiline", "inputs": [], "widgets_values": ["."]},
+            {
+                "id": 4,
+                "type": "StringFunction|pysssss",
+                "inputs": [
+                    {"name": "text_a", "link": 201, "widget": {"name": "text_a"}},
+                    {"name": "text_b", "link": 202, "widget": {"name": "text_b"}},
+                    {"name": "text_c", "link": 203, "widget": {"name": "text_c"}},
+                ],
+                "widgets_values": ["append", "yes", "", "", ""],
+            },
+            {
+                "id": 5,
+                "type": "CLIPTextEncode",
+                "inputs": [
+                    {"name": "clip", "link": 204},
+                    {"name": "text", "link": 205, "widget": {"name": "text"}},
+                ],
+                "widgets_values": [""],
+            },
+            {
+                "id": 6,
+                "type": "CLIPTextEncode",
+                "inputs": [
+                    {"name": "clip", "link": 206},
+                    {"name": "text", "widget": {"name": "text"}},
+                ],
+                "widgets_values": ["bad anatomy"],
+            },
+            {"id": 7, "type": "CheckpointLoaderSimple", "inputs": [], "widgets_values": ["demo.safetensors"]},
+            {
+                "id": 8,
+                "type": "KSampler",
+                "inputs": [
+                    {"name": "model", "link": 207},
+                    {"name": "positive", "link": 208},
+                    {"name": "negative", "link": 209},
+                    {"name": "latent_image", "link": 210},
+                ],
+                "widgets_values": [123, "fixed", 20, 7, "euler", "normal", 1],
+            },
+            {"id": 9, "type": "EmptyLatentImage", "inputs": [], "widgets_values": [1024, 1024, 1]},
+            {"id": 10, "type": "SaveImage", "inputs": [{"name": "images", "link": 211}], "widgets_values": ["ComfyUI"]},
+        ],
+        "links": [
+            [201, 1, 0, 4, 0, "STRING"],
+            [202, 2, 0, 4, 1, "STRING"],
+            [203, 3, 0, 4, 2, "STRING"],
+            [204, 7, 1, 5, 0, "CLIP"],
+            [205, 4, 0, 5, 1, "STRING"],
+            [206, 7, 1, 6, 0, "CLIP"],
+            [207, 7, 0, 8, 0, "MODEL"],
+            [208, 5, 0, 8, 1, "CONDITIONING"],
+            [209, 6, 0, 8, 2, "CONDITIONING"],
+            [210, 9, 0, 8, 3, "LATENT"],
+            [211, 8, 0, 10, 0, "LATENT"],
+        ],
+    }
+
+    res = p.parse_geninfo_from_prompt(None, workflow=workflow)
+    assert res.ok
+    data = res.data
+    assert isinstance(data, dict)
+    assert data.get("positive", {}).get("value") == "masterpiece, a cheese floating in space, ."
+
+
 def test_upscaler_extractor_is_standalone_upscaler_node():
     upscaler = {"class_type": "SeedVR2TilingUpscaler", "inputs": {"image": ["5", 0], "dit": ["1", 0]}}
     latent_upscaler = {"class_type": "LatentUpscale", "inputs": {"samples": ["1", 0]}}
