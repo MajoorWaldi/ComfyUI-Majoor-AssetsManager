@@ -667,8 +667,6 @@ const DICTIONARY = {
             "Skipped {count} item(s): already present in the collection.",
         "msg.collectionAdd.skippedDuplicate": "Ignored {count} duplicate(s) in selection.",
         "msg.collectionAdd.noneAddedExisting": 'No new items added to "{name}" (all exist).',
-        "msg.dbResetNoticeDetail":
-            "Majoor Update Notice:\n\nTo avoid database errors with this new version, please delete your existing index. Click the 'Delete DB' button in the Index Status panel to reset it.",
         "msg.nightlyUpdateTitle": "Majoor Assets Manager",
         "msg.nightlyUpdateDetail":
             "A newer nightly build is available: https://github.com/MajoorWaldi/ComfyUI-Majoor-AssetsManager/releases/tag/nightly",

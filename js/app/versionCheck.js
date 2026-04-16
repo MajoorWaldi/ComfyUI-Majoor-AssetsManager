@@ -322,28 +322,5 @@ export async function checkMajoorVersion({ force = false } = {}) {
         console.debug?.(e);
     }
 
-    try {
-        const alreadyShownFor = String(SettingsStore.get(DB_RESET_NOTICE_VERSION_KEY) || "").trim();
-        if (alreadyShownFor !== remoteVersion) {
-            setTimeout(() => {
-                comfyAlert(
-                    t(
-                        "msg.dbResetNoticeDetail",
-                        "Majoor Update Notice:\n\nTo avoid database errors with this new version, please delete your existing index. Click the 'Delete DB' button in the Index Status panel to reset it.",
-                    ),
-                    "Majoor",
-                    { native: true },
-                );
-            }, 1000);
-            try {
-                SettingsStore.set(DB_RESET_NOTICE_VERSION_KEY, remoteVersion);
-            } catch (e) {
-                console.debug?.(e);
-            }
-        }
-    } catch (e) {
-        console.debug?.(e);
-    }
-
     return { current: localVersion, latest: remoteVersion };
 }
