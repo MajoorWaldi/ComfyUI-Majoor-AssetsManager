@@ -50,29 +50,39 @@ def _resolve_text_value(nodes_by_id: dict[str, dict[str, Any]], value: Any, memo
 def _resolve_string_concatenate_node(
     nodes_by_id: dict[str, dict[str, Any]], ins: dict[str, Any], widgets: Any, memo: set[str]
 ) -> str | None:
-    separator = ""
-    if isinstance(widgets, list) and len(widgets) > 2 and isinstance(widgets[2], str):
-        separator = widgets[2]
+    separator = ins.get("delimiter") or ""
     part_a = _resolve_text_value(nodes_by_id, ins.get("string_a"), memo)
     part_b = _resolve_text_value(nodes_by_id, ins.get("string_b"), memo)
     return _join_text_fragments([part_a or "", part_b or ""], separator)
 
 
+
 def _resolve_pysssss_string_function_node(
     nodes_by_id: dict[str, dict[str, Any]], ins: dict[str, Any], widgets: Any, memo: set[str]
 ) -> str | None:
-    mode = ""
+    mode = "append"
     auto_separator = ""
-    if isinstance(widgets, list):
+
+    action = ins.get("action")
+    if isinstance(action, str):
+        mode = action.strip().lower()
+    tidy = ins.get("tidy_tags")
+    if isinstance(tidy, str) and tidy.strip().lower() in {"yes", "true", "1"}:
+        auto_separator = ", "
+
+    if isinstance(widgets, list) and not action:
         if widgets and isinstance(widgets[0], str):
             mode = widgets[0].strip().lower()
         if len(widgets) > 1 and str(widgets[1]).strip().lower() in {"yes", "true", "1"}:
             auto_separator = ", "
+
     if mode and mode != "append":
         return None
+
     part_a = _resolve_text_value(nodes_by_id, ins.get("text_a"), memo)
     part_b = _resolve_text_value(nodes_by_id, ins.get("text_b"), memo)
     part_c = _resolve_text_value(nodes_by_id, ins.get("text_c"), memo)
+
     return _join_text_fragments([part_a or "", part_b or "", part_c or ""], auto_separator)
 
 
@@ -82,11 +92,40 @@ def _resolve_composed_string_from_node(
     ct = _lower(_node_type(node))
     ins = _inputs(node)
     widgets = node.get("widgets_values")
+
     if ct == "stringconcatenate":
         return _resolve_string_concatenate_node(nodes_by_id, ins, widgets, memo)
-    if ct == "stringfunction|pysssss":
+    if "stringfunction|pysssss" in ct:
         return _resolve_pysssss_string_function_node(nodes_by_id, ins, widgets, memo)
+
+    if "ereprompt" in ct:
+        prefix = _resolve_text_value(nodes_by_id, ins.get("prefix"), memo)
+        text = _resolve_text_value(nodes_by_id, ins.get("text"), memo)
+        suffix = _resolve_text_value(nodes_by_id, ins.get("suffix"), memo)
+        return _join_text_fragments([prefix or "", text or "", suffix or ""], ", ")
+
+    if "triggerword toggle" in ct:
+        trigger_data = ins.get("toggle_trigger_words", {}).get("__value__")
+        if isinstance(trigger_data, list):
+            active_words = [str(item.get("text")) for item in trigger_data if isinstance(item, dict) and item.get("active")]
+            return _join_text_fragments(active_words, ", ")
+        return _resolve_text_value(nodes_by_id, ins.get("orinalMessage"), memo)
+
+    if "lora stacker" in ct or "lora loader" in ct:
+        lora_data = ins.get("loras", {}).get("__value__")
+        if isinstance(lora_data, list):
+            active_loras = []
+            for item in lora_data:
+                if isinstance(item, dict) and item.get("active"):
+                    name = item.get("name")
+                    strength = item.get("strength")
+                    if name and strength is not None:
+                        active_loras.append(f"<lora:{name}:{strength}>")
+            return _join_text_fragments(active_loras, " ")
+        return _resolve_text_value(nodes_by_id, ins.get("text"), memo)
+
     return None
+
 
 def _collect_texts_from_conditioning(
     nodes_by_id: dict[str, dict[str, Any]], start_link: Any, max_nodes: int = DEFAULT_MAX_LINK_NODES, branch: str | None = None
