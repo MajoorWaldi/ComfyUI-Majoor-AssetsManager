@@ -214,14 +214,31 @@ def _apply_multi_sink_sampler_fields(out: dict[str, Any], nodes_by_id: dict[str,
 
 
 def _apply_multi_checkpoint_fields(out: dict[str, Any], nodes_by_id: dict[str, Any], sinks: list[str]) -> None:
-    """For single-sink workflows with chained passes, expose all distinct checkpoints."""
-    if len(sinks) != 1:
+    if not sinks:
         return
-    from . import parser_impl as _p
 
-    all_checkpoints = _p._collect_all_checkpoints_from_chained_samplers(nodes_by_id, sinks[0])
-    if len(all_checkpoints) > 1:
-        out["all_checkpoints"] = all_checkpoints
+    from .pipeline_extractor import _collect_all_checkpoints_from_chained_samplers
+
+    all_collected = []
+    seen_names = set()
+
+    for sink_id in sinks:
+        collected = _collect_all_checkpoints_from_chained_samplers(nodes_by_id, sink_id)
+        for ckpt in collected:
+            name = ckpt.get("name")
+            if name and name not in seen_names:
+                seen_names.add(name)
+                all_collected.append(ckpt)
+
+    if len(all_collected) > 1:
+        def get_id(c):
+            source = c.get("source", "")
+            return int(source.split(":")[-1]) if ":" in source else 999
+
+        all_collected.sort(key=get_id)
+
+        out["all_checkpoints"] = all_collected
+        out["checkpoint"] = all_collected[0]
 
 
 def _build_geninfo_payload(
