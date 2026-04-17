@@ -47,7 +47,7 @@ jobs:
           -x "*.zip"
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2 # upgraded from v1; TODO: pin to commit SHA
+        uses: softprops/action-gh-release@v3 # upgraded from v1; TODO: pin to commit SHA
         with:
           files: ComfyUI-Majoor-AssetsManager_release.zip
           generate_release_notes: true

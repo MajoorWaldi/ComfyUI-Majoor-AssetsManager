@@ -41,7 +41,7 @@ jobs:
           -x "*.zip"
 
       - name: Update Nightly Release
-        uses: softprops/action-gh-release@v2 # TODO: pin to commit SHA for supply-chain safety
+        uses: softprops/action-gh-release@v3 # TODO: pin to commit SHA for supply-chain safety
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: nightly
