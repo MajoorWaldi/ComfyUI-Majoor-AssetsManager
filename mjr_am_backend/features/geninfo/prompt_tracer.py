@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from typing import Any
 
 from ...shared import get_logger
@@ -39,93 +41,133 @@ def _join_text_fragments(parts: list[str], separator: str = "") -> str | None:
 
 def _resolve_text_value(nodes_by_id: dict[str, dict[str, Any]], value: Any, memo: set[str]) -> str | None:
     if isinstance(value, str):
-        return value.strip() or None
+        return value or None
     if _is_link(value):
         resolved = _resolve_scalar_from_link(nodes_by_id, value, memo)
         if isinstance(resolved, str):
-            return resolved.strip() or None
+            return resolved or None
     return None
 
 
 def _resolve_string_concatenate_node(
-    nodes_by_id: dict[str, dict[str, Any]], ins: dict[str, Any], widgets: Any, memo: set[str]
+    nodes_by_id: dict[str, dict[str, Any]], ins: dict[str, Any], memo: set[str]
 ) -> str | None:
-    separator = ins.get("delimiter") or ""
+    separator = ""
+    delimiter = ins.get("delimiter")
+    if isinstance(delimiter, str):
+        separator = delimiter
+    elif _is_link(delimiter):
+        resolved = _resolve_text_value(nodes_by_id, delimiter, memo)
+        if resolved:
+            separator = resolved
     part_a = _resolve_text_value(nodes_by_id, ins.get("string_a"), memo)
     part_b = _resolve_text_value(nodes_by_id, ins.get("string_b"), memo)
-    return _join_text_fragments([part_a or "", part_b or ""], separator)
-
-
+    a = part_a if part_a is not None else ""
+    b = part_b if part_b is not None else ""
+    result = a + separator + b
+    return result or None
 
 def _resolve_pysssss_string_function_node(
-    nodes_by_id: dict[str, dict[str, Any]], ins: dict[str, Any], widgets: Any, memo: set[str]
+    nodes_by_id: dict[str, dict[str, Any]], ins: dict[str, Any], memo: set[str]
 ) -> str | None:
-    mode = "append"
-    auto_separator = ""
+    action = "append"
+    action_from_ins = ins.get("action")
+    if isinstance(action_from_ins, str):
+        action = action_from_ins.strip().lower()
+    tidy_tags = False
+    tidy_from_ins = ins.get("tidy_tags")
+    if isinstance(tidy_from_ins, str):
+        tidy_tags = tidy_from_ins.strip().lower() == "yes"
+    part_a = _resolve_text_value(nodes_by_id, ins.get("text_a"), memo) or ""
+    part_b = _resolve_text_value(nodes_by_id, ins.get("text_b"), memo) or ""
+    part_c = _resolve_text_value(nodes_by_id, ins.get("text_c"), memo) or ""
+    out = ""
+    if action == "append":
+        parts = [p for p in [part_a, part_b, part_c] if p]
+        separator = ", " if tidy_tags else ""
+        out = separator.join(parts)
+    else:
+        if part_c is None:
+            part_c = ""
+        if part_b.startswith("/") and part_b.endswith("/"):
+            try:
+                regex = part_b[1:-1]
+                out = re.sub(regex, part_c, part_a)
+            except re.error:
+                out = part_a.replace(part_b, part_c)
+        else:
+            out = part_a.replace(part_b, part_c)
+    if tidy_tags:
+        out = re.sub(r"\s{2,}", " ", out)
+        out = out.replace(" ,", ",")
+        out = re.sub(r",{2,}", ",", out)
+        out = out.strip()
+    return out if out else None
 
-    action = ins.get("action")
-    if isinstance(action, str):
-        mode = action.strip().lower()
-    tidy = ins.get("tidy_tags")
-    if isinstance(tidy, str) and tidy.strip().lower() in {"yes", "true", "1"}:
-        auto_separator = ", "
+def _resolve_ereprompt_node(
+    nodes_by_id: dict[str, dict[str, Any]], ins: dict[str, Any], memo: set[str]
+) -> str | None:
+    prefix = _resolve_text_value(nodes_by_id, ins.get("prefix"), memo)
+    text = _resolve_text_value(nodes_by_id, ins.get("text"), memo)
 
-    if isinstance(widgets, list) and not action:
-        if widgets and isinstance(widgets[0], str):
-            mode = widgets[0].strip().lower()
-        if len(widgets) > 1 and str(widgets[1]).strip().lower() in {"yes", "true", "1"}:
-            auto_separator = ", "
-
-    if mode and mode != "append":
+    if prefix and text:
+        return f"{prefix}, {text}"
+    elif prefix:
+        return prefix or None
+    elif text:
+        return text or None
+    else:
         return None
 
-    part_a = _resolve_text_value(nodes_by_id, ins.get("text_a"), memo)
-    part_b = _resolve_text_value(nodes_by_id, ins.get("text_b"), memo)
-    part_c = _resolve_text_value(nodes_by_id, ins.get("text_c"), memo)
+def _resolve_triggerword_toggle_node(
+    ins: dict[str, Any]
+) -> str | None:
+    active_words = []
+    trigger_data = ins.get("toggle_trigger_words", {})
+    if isinstance(trigger_data, dict) and "__value__" in trigger_data:
+        trigger_list = trigger_data["__value__"]
+    else:
+        trigger_list = None
+    if isinstance(trigger_list, list):
+        for item in trigger_list:
+            if isinstance(item, dict) and item.get("active"):
+                active_words.append(str(item.get("text")))
+    return _join_text_fragments(active_words, ", ")
 
-    return _join_text_fragments([part_a or "", part_b or "", part_c or ""], auto_separator)
-
+def _resolve_lora_stacker_node(
+    ins: dict[str, Any]
+) -> str | None:
+    active_loras = []
+    lora_data = ins.get("loras", {})
+    if isinstance(lora_data, dict) and "__value__" in lora_data:
+        lora_list = lora_data["__value__"]
+    else:
+        lora_list = None
+    if isinstance(lora_list, list):
+        for item in lora_list:
+            if isinstance(item, dict) and item.get("active"):
+                name = item.get("name")
+                strength = item.get("strength")
+                if name and strength is not None:
+                    active_loras.append(f"<lora:{name}:{strength}>")
+    return _join_text_fragments(active_loras, " ") or ""
 
 def _resolve_composed_string_from_node(
     nodes_by_id: dict[str, dict[str, Any]], node: dict[str, Any], memo: set[str]
 ) -> str | None:
     ct = _lower(_node_type(node))
     ins = _inputs(node)
-    widgets = node.get("widgets_values")
-
     if ct == "stringconcatenate":
-        return _resolve_string_concatenate_node(nodes_by_id, ins, widgets, memo)
-    if "stringfunction|pysssss" in ct:
-        return _resolve_pysssss_string_function_node(nodes_by_id, ins, widgets, memo)
-
+        return _resolve_string_concatenate_node(nodes_by_id, ins, memo)
+    if ct == "stringfunction|pysssss":
+        return _resolve_pysssss_string_function_node(nodes_by_id, ins, memo)
     if "ereprompt" in ct:
-        prefix = _resolve_text_value(nodes_by_id, ins.get("prefix"), memo)
-        text = _resolve_text_value(nodes_by_id, ins.get("text"), memo)
-        suffix = _resolve_text_value(nodes_by_id, ins.get("suffix"), memo)
-        return _join_text_fragments([prefix or "", text or "", suffix or ""], ", ")
-
+        return _resolve_ereprompt_node(nodes_by_id, ins, memo)
     if "triggerword toggle" in ct:
-        trigger_data = ins.get("toggle_trigger_words", {}).get("__value__")
-        if isinstance(trigger_data, list):
-            active_words = [str(item.get("text")) for item in trigger_data if isinstance(item, dict) and item.get("active")]
-            return _join_text_fragments(active_words, ", ")
-        return _resolve_text_value(nodes_by_id, ins.get("orinalMessage"), memo)
-
+        return _resolve_triggerword_toggle_node(ins)
     if "lora stacker" in ct or "lora loader" in ct:
-        lora_data = ins.get("loras", {}).get("__value__")
-        if isinstance(lora_data, list):
-            active_loras = []
-            for item in lora_data:
-                if isinstance(item, dict) and item.get("active"):
-                    name = item.get("name")
-                    strength = item.get("strength")
-                    if name and strength is not None:
-                        active_loras.append(f"<lora:{name}:{strength}>")
-            return _join_text_fragments(active_loras, " ")
-        return _resolve_text_value(nodes_by_id, ins.get("text"), memo)
-
+        return _resolve_lora_stacker_node(ins)
     return None
-
 
 def _collect_texts_from_conditioning(
     nodes_by_id: dict[str, dict[str, Any]], start_link: Any, max_nodes: int = DEFAULT_MAX_LINK_NODES, branch: str | None = None
