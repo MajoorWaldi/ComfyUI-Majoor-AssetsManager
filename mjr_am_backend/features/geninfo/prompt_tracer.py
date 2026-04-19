@@ -50,9 +50,10 @@ def _resolve_text_value(nodes_by_id: dict[str, dict[str, Any]], value: Any, memo
 
 
 def _resolve_string_concatenate_node(
-    nodes_by_id: dict[str, dict[str, Any]], ins: dict[str, Any], memo: set[str]
+    nodes_by_id: dict[str, dict[str, Any]], node: dict[str, Any], memo: set[str]
 ) -> str | None:
-    separator = ""
+    ins = _inputs(node)
+    separator = ", "
     delimiter = ins.get("delimiter")
     if isinstance(delimiter, str):
         separator = delimiter
@@ -60,6 +61,10 @@ def _resolve_string_concatenate_node(
         resolved = _resolve_text_value(nodes_by_id, delimiter, memo)
         if resolved:
             separator = resolved
+    else:
+        widgets = node.get("widgets_values")
+        if isinstance(widgets, list) and len(widgets) > 2 and isinstance(widgets[2], str):
+            separator = widgets[2]
     part_a = _resolve_text_value(nodes_by_id, ins.get("string_a"), memo)
     part_b = _resolve_text_value(nodes_by_id, ins.get("string_b"), memo)
     a = part_a if part_a is not None else ""
@@ -68,24 +73,30 @@ def _resolve_string_concatenate_node(
     return result or None
 
 def _resolve_pysssss_string_function_node(
-    nodes_by_id: dict[str, dict[str, Any]], ins: dict[str, Any], memo: set[str]
+    nodes_by_id: dict[str, dict[str, Any]], node: dict[str, Any], memo: set[str]
 ) -> str | None:
+    ins = _inputs(node)
+    widgets = node.get("widgets_values")
+    widgets_list = widgets if isinstance(widgets, list) else []
     action = "append"
     action_from_ins = ins.get("action")
     if isinstance(action_from_ins, str):
         action = action_from_ins.strip().lower()
+    elif widgets_list and isinstance(widgets_list[0], str):
+        action = widgets_list[0].strip().lower()
     tidy_tags = False
     tidy_from_ins = ins.get("tidy_tags")
     if isinstance(tidy_from_ins, str):
         tidy_tags = tidy_from_ins.strip().lower() == "yes"
+    elif len(widgets_list) > 1 and isinstance(widgets_list[1], str):
+        tidy_tags = widgets_list[1].strip().lower() == "yes"
     part_a = _resolve_text_value(nodes_by_id, ins.get("text_a"), memo) or ""
     part_b = _resolve_text_value(nodes_by_id, ins.get("text_b"), memo) or ""
     part_c = _resolve_text_value(nodes_by_id, ins.get("text_c"), memo) or ""
     out = ""
     if action == "append":
         parts = [p for p in [part_a, part_b, part_c] if p]
-        separator = ", " if tidy_tags else ""
-        out = separator.join(parts)
+        out = ", ".join(parts)
     else:
         if part_c is None:
             part_c = ""
@@ -99,7 +110,7 @@ def _resolve_pysssss_string_function_node(
             out = part_a.replace(part_b, part_c)
     if tidy_tags:
         out = re.sub(r"\s{2,}", " ", out)
-        out = out.replace(" ,", ",")
+        out = re.sub(r"\s*,\s*", ", ", out)
         out = re.sub(r",{2,}", ",", out)
         out = out.strip()
     return out if out else None
@@ -158,9 +169,9 @@ def _resolve_composed_string_from_node(
     ct = _lower(_node_type(node))
     ins = _inputs(node)
     if ct == "stringconcatenate":
-        return _resolve_string_concatenate_node(nodes_by_id, ins, memo)
+        return _resolve_string_concatenate_node(nodes_by_id, node, memo)
     if ct == "stringfunction|pysssss":
-        return _resolve_pysssss_string_function_node(nodes_by_id, ins, memo)
+        return _resolve_pysssss_string_function_node(nodes_by_id, node, memo)
     if "ereprompt" in ct:
         return _resolve_ereprompt_node(nodes_by_id, ins, memo)
     if "triggerword toggle" in ct:
