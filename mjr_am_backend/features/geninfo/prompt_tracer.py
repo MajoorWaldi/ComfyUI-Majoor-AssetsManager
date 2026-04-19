@@ -49,10 +49,9 @@ def _resolve_text_value(nodes_by_id: dict[str, dict[str, Any]], value: Any, memo
 
 
 def _resolve_string_concatenate_node(
-    nodes_by_id: dict[str, dict[str, Any]], node: dict[str, Any], memo: set[str]
+    nodes_by_id: dict[str, dict[str, Any]], ins: dict[str, Any], widgets: Any, memo: set[str]
 ) -> str | None:
-    ins = _inputs(node)
-    separator = ", "
+    separator = ""
     delimiter = ins.get("delimiter")
     if isinstance(delimiter, str):
         separator = delimiter
@@ -60,10 +59,8 @@ def _resolve_string_concatenate_node(
         resolved = _resolve_text_value(nodes_by_id, delimiter, memo)
         if resolved:
             separator = resolved
-    else:
-        widgets = node.get("widgets_values")
-        if isinstance(widgets, list) and len(widgets) > 2 and isinstance(widgets[2], str):
-            separator = widgets[2]
+    elif isinstance(widgets, list) and len(widgets) > 2 and isinstance(widgets[2], str):
+        separator = widgets[2]
     part_a = _resolve_text_value(nodes_by_id, ins.get("string_a"), memo)
     part_b = _resolve_text_value(nodes_by_id, ins.get("string_b"), memo)
     a = part_a if part_a is not None else ""
@@ -72,10 +69,8 @@ def _resolve_string_concatenate_node(
     return result or None
 
 def _resolve_pysssss_string_function_node(
-    nodes_by_id: dict[str, dict[str, Any]], node: dict[str, Any], memo: set[str]
+    nodes_by_id: dict[str, dict[str, Any]], ins: dict[str, Any], widgets: Any, memo: set[str]
 ) -> str | None:
-    ins = _inputs(node)
-    widgets = node.get("widgets_values")
     widgets_list = widgets if isinstance(widgets, list) else []
     action = "append"
     action_from_ins = ins.get("action")
@@ -115,11 +110,12 @@ def _resolve_pysssss_string_function_node(
     return out if out else None
 
 def _resolve_ereprompt_node(
-    nodes_by_id: dict[str, dict[str, Any]], ins: dict[str, Any], memo: set[str]
+    nodes_by_id: dict[str, dict[str, Any]], ins: dict[str, Any], widgets: Any, memo: set[str]
 ) -> str | None:
     prefix = _resolve_text_value(nodes_by_id, ins.get("prefix"), memo)
     text = _resolve_text_value(nodes_by_id, ins.get("text"), memo)
-
+    if text is None and isinstance(widgets, list) and len(widgets) > 0:
+        text = widgets[0] if isinstance(widgets[0], str) else None
     if prefix and text:
         return f"{prefix}, {text}"
     elif prefix:
@@ -130,12 +126,14 @@ def _resolve_ereprompt_node(
         return None
 
 def _resolve_triggerword_toggle_node(
-    ins: dict[str, Any]
+    ins: dict[str, Any], widgets: Any
 ) -> str | None:
     active_words = []
     trigger_data = ins.get("toggle_trigger_words", {})
     if isinstance(trigger_data, dict) and "__value__" in trigger_data:
         trigger_list = trigger_data["__value__"]
+    elif isinstance(widgets, list) and len(widgets) > 3:
+        trigger_list = widgets[3]
     else:
         trigger_list = None
     if isinstance(trigger_list, list):
@@ -145,12 +143,14 @@ def _resolve_triggerword_toggle_node(
     return _join_text_fragments(active_words, ", ")
 
 def _resolve_lora_stacker_node(
-    ins: dict[str, Any]
+    ins: dict[str, Any], widgets: Any
 ) -> str | None:
     active_loras = []
     lora_data = ins.get("loras", {})
     if isinstance(lora_data, dict) and "__value__" in lora_data:
         lora_list = lora_data["__value__"]
+    elif isinstance(widgets, list) and len(widgets) > 2:
+        lora_list = widgets[2]
     else:
         lora_list = None
     if isinstance(lora_list, list):
@@ -167,16 +167,17 @@ def _resolve_composed_string_from_node(
 ) -> str | None:
     ct = _lower(_node_type(node))
     ins = _inputs(node)
+    widgets = node.get("widgets_values")
     if ct == "stringconcatenate":
-        return _resolve_string_concatenate_node(nodes_by_id, node, memo)
+        return _resolve_string_concatenate_node(nodes_by_id, ins, widgets, memo)
     if ct == "stringfunction|pysssss":
-        return _resolve_pysssss_string_function_node(nodes_by_id, node, memo)
+        return _resolve_pysssss_string_function_node(nodes_by_id, ins, widgets, memo)
     if "ereprompt" in ct:
-        return _resolve_ereprompt_node(nodes_by_id, ins, memo)
+        return _resolve_ereprompt_node(nodes_by_id, ins, widgets, memo)
     if "triggerword toggle" in ct:
-        return _resolve_triggerword_toggle_node(ins)
+        return _resolve_triggerword_toggle_node(ins, widgets)
     if "lora stacker" in ct or "lora loader" in ct:
-        return _resolve_lora_stacker_node(ins)
+        return _resolve_lora_stacker_node(ins, widgets)
     return None
 
 def _collect_texts_from_conditioning(
