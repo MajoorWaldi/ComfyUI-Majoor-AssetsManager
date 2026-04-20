@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased]
+## [2.4.6] - 2026-04-20
 
 ### 🐛 Bug Fixes & Performance
 - **Bug Fixes**: Various bug fixes
