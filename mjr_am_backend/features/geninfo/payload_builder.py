@@ -298,8 +298,13 @@ def _geninfo_metadata_only_result(workflow_meta: dict[str, Any] | None) -> Resul
 
 def _build_no_sampler_result(nodes_by_id: dict[str, Any], workflow_meta: dict[str, Any] | None) -> Result:
     from . import parser_impl as _p
+    from .api_node_extractor import _extract_api_node_geninfo_fallback
     from .tts_extractor import _extract_tts_geninfo_fallback
     from .upscaler_extractor import _extract_upscaler_geninfo_fallback
+
+    api_fallback = _extract_api_node_geninfo_fallback(nodes_by_id, workflow_meta)
+    if api_fallback:
+        return Result.Ok(api_fallback)
 
     tts_fallback = _extract_tts_geninfo_fallback(nodes_by_id, workflow_meta)
     if tts_fallback:

@@ -68,6 +68,54 @@ def _resolve_string_concatenate_node(
     result = a + separator + b
     return result or None
 
+
+def _resolve_string_replace_node(
+    nodes_by_id: dict[str, dict[str, Any]], ins: dict[str, Any], memo: set[str]
+) -> str | None:
+    base = _resolve_text_value(nodes_by_id, ins.get("string"), memo)
+    find_value = _resolve_text_value(nodes_by_id, ins.get("find"), memo)
+    replace_value = _resolve_text_value(nodes_by_id, ins.get("replace"), memo)
+    if base is None:
+        return None
+    if find_value in (None, ""):
+        return base
+    return base.replace(find_value or "", replace_value or "")
+
+
+def _coerce_switch_enabled(value: Any) -> bool | None:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if text in ("true", "1", "yes", "on"):
+            return True
+        if text in ("false", "0", "no", "off"):
+            return False
+    return None
+
+
+def _resolve_switch_node(
+    nodes_by_id: dict[str, dict[str, Any]], ins: dict[str, Any], memo: set[str]
+) -> str | None:
+    enabled = _coerce_switch_enabled(_resolve_scalar_from_field(nodes_by_id, ins, "switch", memo))
+    if enabled is True:
+        return _resolve_text_value(nodes_by_id, ins.get("on_true"), memo)
+    if enabled is False:
+        return _resolve_text_value(nodes_by_id, ins.get("on_false"), memo)
+    return _resolve_text_value(nodes_by_id, ins.get("on_true"), memo) or _resolve_text_value(
+        nodes_by_id, ins.get("on_false"), memo
+    )
+
+
+def _resolve_preview_text(ins: dict[str, Any]) -> str | None:
+    for key in ("preview_text", "preview_markdown", "text_0", "string_0", "STRING", "result", "output"):
+        value = ins.get(key)
+        if isinstance(value, str) and _looks_like_prompt_string(value):
+            return value.strip()
+    return None
+
 def _resolve_pysssss_string_function_node(
     nodes_by_id: dict[str, dict[str, Any]], ins: dict[str, Any], widgets: Any, memo: set[str]
 ) -> str | None:
@@ -168,8 +216,15 @@ def _resolve_composed_string_from_node(
     ct = _lower(_node_type(node))
     ins = _inputs(node)
     widgets = node.get("widgets_values")
+    preview_text = _resolve_preview_text(ins)
+    if preview_text is not None:
+        return preview_text
     if ct == "stringconcatenate":
         return _resolve_string_concatenate_node(nodes_by_id, ins, widgets, memo)
+    if ct == "stringreplace":
+        return _resolve_string_replace_node(nodes_by_id, ins, memo)
+    if "switch" in ct:
+        return _resolve_switch_node(nodes_by_id, ins, memo)
     if ct == "stringfunction|pysssss":
         return _resolve_pysssss_string_function_node(nodes_by_id, ins, widgets, memo)
     if "ereprompt" in ct:
@@ -230,10 +285,9 @@ def _extract_cached_text_from_linked_node(
     if not isinstance(dest_node, dict):
         return None
     dest_ins = _inputs(dest_node)
-    for cached_key in ("text_0", "string_0", "STRING"):
-        v = dest_ins.get(cached_key)
-        if isinstance(v, str) and _looks_like_prompt_string(v):
-            return v.strip()
+    cached = _resolve_preview_text(dest_ins)
+    if cached:
+        return cached
     composed = _resolve_composed_string_from_node(nodes_by_id, dest_node, {dest_id})
     if _looks_like_prompt_string(composed):
         return str(composed).strip()
@@ -507,7 +561,7 @@ def _first_non_none_scalar(source: dict[str, Any], keys: tuple[str, ...]) -> Any
 
 
 _SCALAR_FIELD_KEYS = ("seed", "value", "number", "int", "float", "text", "string", "prompt", "input", "text_a", "text_b")
-_CACHED_TEXT_FIELD_KEYS = ("text_0", "string_0", "STRING", "result", "output")
+_CACHED_TEXT_FIELD_KEYS = ("text_0", "string_0", "STRING", "result", "output", "preview_text", "preview_markdown")
 _FALLBACK_LINK_KEYS = (
     "base_ctx",
     "pipe",
@@ -548,10 +602,24 @@ def _resolve_scalar_via_fallback_links(nodes_by_id: dict[str, dict[str, Any]], i
 def _resolve_scalar_from_link(nodes_by_id: dict[str, dict[str, Any]], value: Any, memo: set[str] | None = None) -> Any | None:
     if memo is None:
         memo = set()
-    src_id = _walk_passthrough(nodes_by_id, value)
-    if not src_id or src_id in memo:
-        return None
-    memo.add(src_id)
+    resolved = []
+    direct = value[0] if _is_link(value) else None
+    if direct is not None:
+        resolved.append(str(direct))
+    passthrough = _walk_passthrough(nodes_by_id, value)
+    if passthrough and passthrough not in resolved:
+        resolved.append(passthrough)
+    for src_id in resolved:
+        if src_id in memo:
+            continue
+        memo.add(src_id)
+        result = _resolve_scalar_from_node_id(nodes_by_id, src_id, memo)
+        if result is not None:
+            return result
+    return None
+
+
+def _resolve_scalar_from_node_id(nodes_by_id: dict[str, dict[str, Any]], src_id: str, memo: set[str]) -> Any | None:
     node = nodes_by_id.get(src_id)
     if not isinstance(node, dict):
         return None
@@ -562,11 +630,32 @@ def _resolve_scalar_from_link(nodes_by_id: dict[str, dict[str, Any]], value: Any
     composed_text = _resolve_composed_string_from_node(nodes_by_id, node, memo)
     if composed_text is not None:
         return composed_text
+    downstream_cached = _find_downstream_cached_prompt_text(nodes_by_id, src_id)
+    if downstream_cached is not None:
+        return downstream_cached
     for k in _SCALAR_FIELD_KEYS:
         result = _resolve_scalar_from_field(nodes_by_id, ins, k, memo)
         if result is not None:
             return result
     return _resolve_scalar_via_fallback_links(nodes_by_id, ins, memo)
+
+
+def _find_downstream_cached_prompt_text(nodes_by_id: dict[str, dict[str, Any]], source_id: str) -> str | None:
+    for node in nodes_by_id.values():
+        if not isinstance(node, dict):
+            continue
+        ins = _inputs(node)
+        has_source_link = False
+        for value in ins.values():
+            if _is_link(value) and str(value[0]) == str(source_id):
+                has_source_link = True
+                break
+        if not has_source_link:
+            continue
+        cached = _resolve_preview_text(ins)
+        if cached is not None:
+            return cached
+    return None
 
 
 def _first_cached_prompt_text(ins: dict[str, Any]) -> str | None:

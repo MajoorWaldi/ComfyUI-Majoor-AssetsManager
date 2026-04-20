@@ -266,6 +266,71 @@ def test_resolve_scalar_from_core_string_concatenate():
     assert p._resolve_scalar_from_link(nodes, ["3", 0]) == "masterpiece, forest at sunrise"
 
 
+def test_resolve_scalar_from_string_replace():
+    nodes = {
+        "1": {"class_type": "PrimitiveStringMultiline", "inputs": {"value": "portrait of a woman"}},
+        "2": {
+            "class_type": "StringReplace",
+            "inputs": {"string": "cinematic {prompt}", "find": "{prompt}", "replace": ["1", 0]},
+        },
+    }
+
+    assert p._resolve_scalar_from_link(nodes, ["2", 0]) == "cinematic portrait of a woman"
+
+
+def test_prompt_extracted_through_ernie_switch_and_preview_any_output():
+    nodes = {
+        "1": {"class_type": "PrimitiveStringMultiline", "inputs": {"value": "portrait of a woman at dusk"}},
+        "2": {
+            "class_type": "StringReplace",
+            "inputs": {"string": "enhance {prompt}", "find": "{prompt}", "replace": ["1", 0]},
+        },
+        "3": {
+            "class_type": "TextGenerate",
+            "inputs": {"prompt": ["2", 0], "clip": ["8", 0]},
+        },
+        "4": {"class_type": "PrimitiveBoolean", "inputs": {"value": True}},
+        "5": {
+            "class_type": "ComfySwitchNode",
+            "inputs": {"switch": ["4", 0], "on_false": ["1", 0], "on_true": ["3", 0]},
+        },
+        "6": {
+            "class_type": "PreviewAny",
+            "inputs": {
+                "source": ["3", 0],
+                "preview_text": "A cinematic side-profile portrait of a woman at dusk with dramatic neon rim lighting.",
+            },
+        },
+        "7": {"class_type": "CLIPTextEncode", "inputs": {"text": ["5", 0], "clip": ["8", 0]}},
+        "8": {"class_type": "CLIPLoader", "inputs": {"clip_name": "clip.safetensors"}},
+        "9": {"class_type": "ConditioningZeroOut", "inputs": {"conditioning": ["7", 0]}},
+        "10": {
+            "class_type": "KSampler",
+            "inputs": {
+                "seed": 42,
+                "steps": 8,
+                "cfg": 1.0,
+                "sampler_name": "euler",
+                "scheduler": "simple",
+                "denoise": 1.0,
+                "model": ["8", 0],
+                "positive": ["7", 0],
+                "negative": ["9", 0],
+                "latent_image": ["11", 0],
+            },
+        },
+        "11": {"class_type": "EmptyLatentImage", "inputs": {"width": 1024, "height": 1024}},
+        "12": {"class_type": "SaveImage", "inputs": {"images": ["10", 0]}},
+    }
+
+    res = p.parse_geninfo_from_prompt(nodes)
+    assert res.ok
+    data = res.data
+    assert isinstance(data, dict)
+    pos = data.get("positive", {})
+    assert pos.get("value") == "A cinematic side-profile portrait of a woman at dusk with dramatic neon rim lighting."
+
+
 def test_parse_geninfo_supports_pysssss_string_function_append():
     nodes = {
         "24": {"class_type": "PrimitiveStringMultiline", "inputs": {"value": "masterpiece"}},
