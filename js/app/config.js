@@ -84,7 +84,7 @@ export const APP_DEFAULTS = Object.freeze({
     VIEWER_PAUSE_DURING_EXECUTION: true,
     FLOATING_VIEWER_PAUSE_DURING_EXECUTION: false,
     MFV_SIDEBAR_POSITION: "right",
-    MFV_LIVE_DEFAULT: false,
+    MFV_LIVE_DEFAULT: true,
     MFV_PREVIEW_DEFAULT: true,
     MFV_PREVIEW_METHOD: "taesd",
 
